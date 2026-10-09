@@ -699,7 +699,10 @@ impl Simulation {
     }
 
     /// A standalone weapon's skill releasing its blow, as the unit's main
-    /// skill does: one projectile at a point its offset draw gives.
+    /// skill does: a burst of its count, each at a point its offset draw
+    /// gives, the offsets drawn as the burst begins. The first leaves now and
+    /// the rest wait in the slot's own performer, its interval apart:
+    /// Saturation Bombardment's four from each of a Mountain's weapons.
     pub(in crate::fight) fn release_standalone_projectile(
         &mut self,
         actor_id: u64,
@@ -712,51 +715,53 @@ impl Simulation {
         let attacker = self
             .attacker(owner)
             .ok_or_else(|| Error::new("projectile owner is absent"))?;
-        // A grouped slot keeps no burst of its own here: Saturation
-        // Bombardment's four projectiles from each of a Mountain's weapons
-        // are refused rather than fired as one.
         let count = attacker.projectile_count();
-        if count > 1 {
-            return Err(Error::new(format!(
-                "unit {actor_id}'s standalone weapon {slot} fires a burst of {count} \
-                 projectiles, and a grouped slot's burst is not implemented"
-            )));
-        }
+        let interval = attacker.projectile_interval_steps();
         let radius = attacker.projectile_target_offset_radius();
         let source_y = attacker.y;
         let (target_x_q32, target_y_q32, target_z_q32) =
             self.attack_position(owner, slot, target, 0, true)?;
         let climb_target = self.climb_target(target)?;
-        let (x, z) = self
-            .projectile_target_offsets(
-                SkillRef::main(owner),
-                target_x_q32,
-                target_z_q32,
-                (space_to_q32(source_y), target_y_q32),
-                1,
-                radius,
-            )?
-            .into_iter()
+        let offsets = self.projectile_target_offsets(
+            SkillRef::main(owner),
+            target_x_q32,
+            target_z_q32,
+            (space_to_q32(source_y), target_y_q32),
+            count,
+            radius,
+        )?;
+        let mut releases =
+            offsets
+                .into_iter()
+                .enumerate()
+                .map(|(index, (x, z))| PendingProjectileRelease {
+                    step: step.saturating_add(interval.saturating_mul(index as u64)),
+                    target_kind: target.kind(),
+                    target: target.id(),
+                    target_x_q32: target_x_q32.saturating_add(x),
+                    target_y_q32,
+                    target_z_q32: target_z_q32.saturating_add(z),
+                    offset_x_q32: x,
+                    offset_z_q32: z,
+                    climb_target,
+                    aims_at_release: false,
+                    weapon_index: slot,
+                    skill_slot: slot,
+                });
+        let first = releases
             .next()
             .ok_or_else(|| Error::new("a standalone blow draws one offset"))?;
-        self.release_pending_projectile(
-            SkillRef::main(owner),
-            PendingProjectileRelease {
-                step,
-                target_kind: target.kind(),
-                target: target.id(),
-                target_x_q32: target_x_q32.saturating_add(x),
-                target_y_q32,
-                target_z_q32: target_z_q32.saturating_add(z),
-                offset_x_q32: x,
-                offset_z_q32: z,
-                climb_target,
-                aims_at_release: false,
-                weapon_index: slot,
-                skill_slot: slot,
-            },
-            events,
-        )
+        let Performer::Projectile { pending, .. } = &mut self
+            .skill_mut(SkillRef::main(owner))
+            .sibling_mut(slot)
+            .performer
+        else {
+            return Err(Error::new(
+                "a standalone burst needs a projectile performer",
+            ));
+        };
+        pending.extend(releases);
+        self.release_pending_projectile(SkillRef::main(owner), first, events)
     }
 
     /// `ProjectileAttackPerformer.CalculateAttackPosition`: where a

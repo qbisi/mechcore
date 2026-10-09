@@ -315,9 +315,8 @@ target, and the skill has two: a Sabertooth's and a Fortress's Doubleshot
 fire both from weapon 0.
 
 Saturation Bombardment also [turns its unit's lock over](#turning-the-lock-over),
-and fires its four projectiles from each of a Mountain's standalone weapons,
-whose grouped slots keep no burst here: the simulator refuses a slot's burst
-of more than one where it fires.
+and its four projectiles leave from each of a Mountain's standalone weapons,
+each weapon's burst its own ([standalone_weapons.md](standalone_weapons.md#a-batch-of-main-skills)).
 
 ## Missile Interception
 
@@ -574,7 +573,8 @@ derive (a minimum range):
 - A multi-attack technology adds to its unit's bursts: Doubleshot fires two
   projectiles an attack, a Sabertooth's 0.2 seconds apart where its row's
   interval is zero and both from weapon 0, and Burst Mode twelve from a
-  Farseer and ten from a Phantom Ray, 0.1 seconds apart:
+  Farseer and ten from a Phantom Ray, 0.1 seconds apart, and Saturation
+  Bombardment four from each of a Mountain's weapons, 0.65 seconds apart:
   `tests/multi_attack/fights/`.
 - A projectile life rate multiplies the life a skill's projectiles leave with:
   Heavy Missile's rockets leave with 126000, and fought without the rate the

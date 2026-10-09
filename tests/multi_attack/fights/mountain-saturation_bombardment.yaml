@@ -1,0 +1,27 @@
+# Saturation Bombardment on a Mountain: three more projectiles an attack
+# from each of its four standalone weapons, 0.65 seconds apart, each within
+# 30 metres of where its target stood, which no weapon locks
+# (`isInverseIsLockTarget`). Every weapon fires its own burst on its own
+# schedule: all four at ticks 61, 74, 87 and 100 at the first Rhino, then at
+# the second from tick 141 (weapon 3), 152 (weapon 5) and 153 (weapons 4 and
+# 6). The first Rhino dies at tick 87; each weapon's fourth projectile still
+# leaves at tick 100, and the Mountain names the dead Rhino, searching
+# nothing, through the update the last of them leaves.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 177
+hash: {profile: mcfr-content-0.22.0, result: 5f9cf1365b72050ad3b094085d18202991606769af584d157f227ddb65f38bc3}
+blue:
+  techs:
+    mountain: [saturation_bombardment]
+  units:
+  - {name: mountain, index: 0, position: {x: 5, y: -105}, exp: 0/800/3200}
+red:
+  core_damage: 500
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 1, position: {x: 45, y: -95}}
