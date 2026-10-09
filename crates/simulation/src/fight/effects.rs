@@ -247,7 +247,10 @@ impl Simulation {
         match provider {
             // `ExtraSkillProvider.DisableSkill` and `EnableSkill`: every
             // extra skill of a technology that switches is disabled and
-            // enabled with it (`FightSkill.IsBelongExtraSkill`).
+            // enabled with it (`FightSkill.IsBelongExtraSkill`), each skill
+            // of a grouped row its own, and so is each of a row's skills
+            // that joined the main skill's group
+            // (`FightSkillFactory.PrepareGroupedSkill` only adds them to it).
             EffectProvider::ExtraSkill => {
                 let actor = self
                     .actors
@@ -257,6 +260,18 @@ impl Simulation {
                 for extra in &mut actor.skills.extras {
                     if switched.contains(&extra.rules.technology) {
                         extra.skill.disabled = !on;
+                        for sibling in extra.skill.siblings_mut() {
+                            sibling.disabled = !on;
+                        }
+                    }
+                }
+                let main = &mut actor.skills.main;
+                for slot in 1..main.group_size() {
+                    if main
+                        .joined(slot)
+                        .is_some_and(|joined| switched.contains(&joined.technology))
+                    {
+                        main.sibling_mut(slot).disabled = !on;
                     }
                 }
             }

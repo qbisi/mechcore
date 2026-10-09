@@ -1168,6 +1168,12 @@ whose own `DisableEffect` it does not mirror.
   so the blow under way runs out, a burst's every projectile, and its attack
   ends. Enabled again, it starts as any idle skill does: a Centurion's Homing
   Missile, due while disabled, fires two ticks after its buff runs out.
+  Each skill of a grouped row is a skill of the unit's extra skills
+  (`ISkillOwner.GetExtralSkills`) and is disabled on its own, and so is each
+  of a row's skills that joined the main skill's group, which
+  `FightSkillFactory.PrepareGroupedSkill` only adds to that group: an idle
+  one starts no attack, one attacking fails its check, and the main row's
+  skills go on. Read from the build; no recording holds it.
 - **A permanent preemptive explosion neither activates nor explodes.** Its
   condition holds nothing while the unit's technologies are disabled, its
   skill being a technology's
@@ -1295,8 +1301,8 @@ technologies are off makes nothing, and `EnableEffect` puts both back. Read
 from the build; no recording holds it.
 
 Every provider's `DisableEffect` is mirrored. What an extra weapon's
-production line, other explosion or preemptive skill, or group does switched
-off is not measured: a buff that disables technology reaching a unit whose
+production line, or other explosion or preemptive skill, does switched off
+is not measured: a buff that disables technology reaching a unit whose
 technologies hold one is refused by the technology's id.
 
 ## What the recordings show

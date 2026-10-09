@@ -840,6 +840,7 @@ fn main_skill(rules: &UnitConfig, placement: &Placement) -> Skill {
                 let slot = JoinedSlot {
                     range: weapon.rules.attack.range(),
                     half_angle_mdeg: weapon.rules.attack.attack_half_angle_mdeg(),
+                    technology: weapon.rules.technology,
                 };
                 vec![Some(slot); weapon.rules.attack.weapons.indices.len()]
             }))

@@ -205,8 +205,12 @@ impl Simulation {
             let before = self.skill(main).sibling(slot).lock_target;
             let state = self.skill(main).sibling(slot).state;
             match state {
+                // `SkillIdleState.Update` performs nothing for a skill that
+                // is not enabled, each of a group its own.
                 SkillState::Idle { .. } => {
-                    if may_start_group_slot(fusillade, self.skill(main)) {
+                    if !self.skill(main).sibling(slot).disabled
+                        && may_start_group_slot(fusillade, self.skill(main))
+                    {
                         self.start_group_slot(
                             main,
                             slot,
@@ -228,8 +232,11 @@ impl Simulation {
                 }
                 SkillState::Attack(_)
                     if self.group_slot_burst_lost_target(main, slot, step, events)? => {}
+                // `SkillAttackState.CheckAttackable` fails a skill that is
+                // not enabled before it asks anything else.
                 SkillState::Attack(blow) => {
-                    if self.attacks_fallen_construction(main, Some(slot))
+                    if self.skill(main).sibling(slot).disabled
+                        || self.attacks_fallen_construction(main, Some(slot))
                         || !self.check_attackable_slot(
                             main,
                             Some(slot),

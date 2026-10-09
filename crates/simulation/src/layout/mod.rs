@@ -1380,9 +1380,11 @@ fn technology_disable(
             // around skill, Whirlwind Slash's, then returns to its idle
             // state and hands the main skill back. A permanent preemptive
             // explosion, Scorching Charge's, does not activate and its death
-            // does not explode while its unit's technologies are off; a
-            // production line's, any other explosion's or preemptive skill's
-            // and a group's own paths are not measured switched off.
+            // does not explode while its unit's technologies are off. Each
+            // skill of a grouped row, and of one that joined the main skill's
+            // group, is disabled on its own and fails as a lone skill does. A
+            // production line's and any other explosion's or preemptive
+            // skill's paths are not measured switched off.
             .filter(|weapon| held.contains(&weapon.rules.technology))
             .filter(|weapon| {
                 let rules = &weapon.rules;
@@ -1395,8 +1397,6 @@ fn technology_disable(
                         | crate::rules::AttackPath::Around { .. }
                 );
                 rules.production.is_some()
-                    || rules.attack.weapons.makes_group()
-                    || weapon.joins_main_group
                     || !preemptive_explosion
                         && (rules.explosion.is_some() || rules.preemptive.is_some() || !read_path)
             })
