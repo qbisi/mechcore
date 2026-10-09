@@ -135,7 +135,7 @@ Messages are UTF-8 JSON, one object per line, with a maximum encoded size of
 1 MiB. A new connection speaks first, and says what it is worth:
 
 ```json
-{"kind":"claim","protocol":"mechcore.adapter.v7","level":1}
+{"kind":"claim","protocol":"mechcore.adapter.v11","level":1}
 ```
 
 The level is `0..=4`. It orders clients and nothing else: a claim strictly
@@ -151,7 +151,7 @@ An admitted claim receives:
 ```json
 {
   "kind": "hello",
-  "protocol": "mechcore.adapter.v7",
+  "protocol": "mechcore.adapter.v11",
   "capabilities": [
     "status",
     "start_test",
@@ -194,7 +194,7 @@ process itself if it has not exited 30 s later.
 A claim that does not win is answered instead:
 
 ```json
-{"kind":"busy","protocol":"mechcore.adapter.v7","holder_level":1,"evicting":true}
+{"kind":"busy","protocol":"mechcore.adapter.v11","holder_level":1,"evicting":true}
 ```
 
 `holder_level` is what the claim lost to, or is taking the game from.
@@ -207,7 +207,7 @@ connection immediately.
 The client being served is told before its connection closes:
 
 ```json
-{"kind":"evicted","protocol":"mechcore.adapter.v7","by_level":3}
+{"kind":"evicted","protocol":"mechcore.adapter.v11","by_level":3}
 ```
 
 That notice is the difference between a taken game and a crashed one. A client
@@ -795,36 +795,6 @@ file `mechcore convert --to match` can open carrying the build and a non-negativ
 no managed exception in either log. That decode is the reviewer's check on a new
 build, not a step the collector performs per match.
 
-### save_replay
-
-Input may name an absolute path the replay is copied to:
-
-```json
-{"output":"/tmp/slices/scene-round-4.grbr"}
-```
-
-Typical output:
-
-```json
-{"saved":true,"native_source":".../ProjectDatas/Replay/2324_20260928--861_[a]VS[b].grbr","output":"/tmp/slices/scene-round-4.grbr"}
-```
-
-The operation calls `MatchProxy.SaveReplay` on the match being watched,
-finished or not, waits up to 30 seconds for the file it writes under
-`Mechabellum.app/ProjectDatas/Replay` to settle, and copies it to `output`
-without overwriting. It refuses with `invalid_game_state` when there is no
-match or the match is not watched. The game names a replay after its match,
-so a second save of one match rewrites `native_source`; `output` is where a
-copy that must survive the next save goes.
-
-A replay saved mid-match holds every round the spectator was present for, from
-the round it joined in, and an empty round-0 record ahead of them when it
-joined after round one. A round's record is complete once the spectator has
-entered that round's fight. Joined before round two, the spectator builds the
-match from its start and the replay also holds round 0, the opening
-specialist choice. `BattleRecord.GetAvaliableStartRound` makes the joined round
-the one a replay of it starts from.
-
 ### quit_match
 
 Input is an empty object.
@@ -955,50 +925,6 @@ Typical output:
 The operation changes the Training Ground process state from deployment to
 fight. The MCP layer additionally observes the fight transition before
 returning.
-
-### watch_scene
-
-Input names a scene of the lobby's page:
-
-```json
-{"scene_id":201458701}
-```
-
-Typical output:
-
-```json
-{"started":true,"scene_id":201458701}
-```
-
-The operation calls `LobbyProxy.WatchScene` from `main_menu` and returns at
-once. The spectator is in once `status` reports `spectating` with `live` set,
-which took 2.5 to 8.4 seconds whenever the server answered. Some listed scenes,
-taken to have ended, were never answered. It refuses with
-`invalid_game_state` in a match or when the lobby is not registered.
-
-### watch_scenes
-
-Input may set `refresh`, `true` by default:
-
-```json
-{"refresh":false}
-```
-
-Typical output:
-
-```json
-{"ready":true,"refreshed":false,"scenes":[{"scene_id":201458701,"map_id":1021,"round":7,"watcher_num":0,"standard":true}]}
-```
-
-The operation reads the lobby's cached first page of match-made scenes,
-`LobbyProxy.GetRoomFilterDataByType(MatchFirst).GetWatchScenes()`, at most 20
-scenes. With `refresh` it first asks the lobby for a new page
-(`SwitchToRoomListFilter`), which empties the cache until the server answers
-some seconds later, so a caller refreshes once and then reads without
-refreshing. `standard` applies the rules `record_watch_replay` admits a scene
-by, at any round. `round` is the lobby's, which has differed by one from the
-round `live` reported on joining. `ready` is `false` until login has
-registered the lobby.
 
 ## Errors
 
