@@ -1,0 +1,24 @@
+# Enhanced Control: a Crawler the Hacker turns is brought up to its whole
+# life as it turns.
+#
+# The Fang has left Crawlers 21 and 25 at 171; each turns, on t151 and t183,
+# at 250 and records a healing of 79. Crawlers 22 and 20 turn whole and gain
+# nothing.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 333
+hash: {profile: mcfr-content-0.23.0, result: 917fffc23f34811ebf4d31fde129a0e8e26e8a05dfbd7b451675d3f67225e942}
+blue:
+  techs:
+    hacker: [enhanced_control]
+  units:
+  - {name: hacker, index: 0, position: {x: -5, y: -125}, exp: 0/60/560}
+  - {name: fang, index: 1, position: {x: 45, y: -120}, exp: 0/132/600}
+red:
+  core_damage: 308
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/32/450}

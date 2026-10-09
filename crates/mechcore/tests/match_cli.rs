@@ -306,13 +306,13 @@ fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
     assert_eq!(fought["round"], 2);
 
     // A technology that does more than correct its unit's numbers is
-    // refused, as the Hacker's Enhanced Control is. The fight is run from the
+    // refused, as the Centurion's Melee Mode is. The fight is run from the
     // position the round ends in, so what stops it is what the simulator says
     // about that position.
     for decision in [
-        "{type: unlock_unit, name: hacker}",
-        "{type: buy_unit, name: hacker, position: {x: 45, y: -275}}",
-        "{type: upgrade_technology, unit: hacker, tech: enhanced_control}",
+        "{type: unlock_unit, name: centurion}",
+        "{type: buy_unit, name: centurion, position: {x: 45, y: -275}}",
+        "{type: upgrade_technology, unit: centurion, tech: melee_mode}",
     ] {
         run(&["match", "act", &path, "--side", "red", decision]).ok();
     }
@@ -321,7 +321,7 @@ fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
     assert_eq!(stopped["phase"], "fight");
     let unresolved = stopped["unresolved"].as_str().unwrap();
     assert!(
-        unresolved.starts_with("round 2 is not fought: side red: technology 1714"),
+        unresolved.starts_with("round 2 is not fought: side red: technology 5532"),
         "{unresolved}"
     );
 

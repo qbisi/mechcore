@@ -118,6 +118,17 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
 A side whose every unit a beam has turned has none left, and loses as a
 wiped-out side does: its towers are torn down.
 
+**Enhanced Control brings a unit it turns up to its whole life.** The
+Hacker's technology writes `SkillDataChangeFloat.CBLifeRecoveryRate` on its
+main skill and its extra skills, 1 at every level, and takes it away while
+the Hacker's technologies are disabled (`ControllBeamLifeRecoveryTech.AddData`,
+`RemoveData`). As `TeamTranslationSystem.Update` turns a unit, it hands
+`ChangeTeam` the rate of the first beam on the unit whose skill carries one
+above `FPoint.Epsilon`, and once the unit has turned, `ChangeTeam` gives it
+that rate of its maximum life, the `FPoint` product's whole part, less what
+it has, through `FightMech.RecoveryLife`: a healing on the unit, none while a
+buff disables its recovery.
+
 ## A turned unit's death
 
 A hit that kills a turned unit, or its own blow, only queues it with
@@ -181,6 +192,9 @@ the shield does not count against the turn.
 
 ### Recorded
 
+- Enhanced Control brings two Crawlers a Fang left at 171 up to 250 as the
+  Hacker turns them, and gives two turned whole nothing:
+  `tests/control/enhanced-control.yaml`.
 - A Hacker turning a Void Eye with Electromagnetic Armor takes the armor's
   buff from tick 101, its Barrier going at 28568; without `OnMechBeHit` on a
   turning hit the simulator parts from the game at t101:
@@ -281,6 +295,10 @@ the shield does not count against the turn.
 
 ### Read
 
+- Enhanced Control: `ControllBeamLifeRecoveryTechnologyData.GetRecoveryRate`,
+  `ControllBeamLifeRecoveryTech.AddData`, `RemoveData`,
+  `SkillDataChangeFloat.CBLifeRecoveryRate`, `TeamTranslationSystem.Update`,
+  `TeamTranslationSystem.ChangeTeam`, `FightMech.RecoveryLife`.
 - The two effects and their damage: `FightControllBeamSkill.GetAttackEffect`,
   `FightControllBeamSkill.GetDamage`, `FightControllBeamSkill.DAMAGE_MODIFIER`,
   `ControlBeamDamageCalculator.GetAttackDamage`, `FightMech.IsSimulateMech`,

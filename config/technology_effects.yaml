@@ -150,6 +150,10 @@ schema: mechcore.technology_effects
 # target's life each hit of its unit's skills takes besides
 # (`additional_damage_rate`), on its main skill and its extra skills
 # as `main_skill_effect` and `extra_skill_effect` say.
+# A control-recovery technology carries the FPoint rate of its
+# maximum life a unit its control beams turn is brought up to, by its
+# unit's level (`control_recovery_rate`), on its main skill and its
+# extra skills as `main_skill_effect` and `extra_skill_effect` say.
 # A search technology carries the `SkillSearchTargetType` its unit's
 # skills search by (`search_target_type`), on its main skill and its
 # extra skills as `main_skill_effect` and `extra_skill_effect` say.
@@ -611,6 +615,9 @@ technologies:
     name: Enhanced Control
     unit: hacker
     kind: controllBeamLifeRecoveryTechnologies
+    main_skill_effect: true
+    extra_skill_effect: true
+    control_recovery_rate: [4294967296]  # +1
   - id: 1802
     name: Electromagnetic Shot
     unit: marksman

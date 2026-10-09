@@ -176,6 +176,21 @@ pub(crate) struct AdditionalDamage {
     pub(crate) can_disable: bool,
 }
 
+/// What a `ControllBeamLifeRecoveryTech` writes on its unit's skills
+/// (`SkillDataChangeFloat.CBLifeRecoveryRate`): the rate of its maximum life
+/// a unit the skill's control beam turns is brought up to, by the unit's
+/// level, and the skills it reaches beside the main one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ControlRecovery {
+    /// `FPoint` raw rates.
+    pub(crate) rate: Vec<i64>,
+    /// `IsExtraSkillEffect`: the extra skills' beams carry it too.
+    pub(crate) extra_skills: bool,
+    /// `CanDisable`: its numbers leave the skills while the unit's
+    /// technologies are disabled.
+    pub(crate) can_disable: bool,
+}
+
 /// What a `DeadExplosiveTech` answers `IDeadExplosive` with: what its
 /// unit's death strikes with (`GetExplosiveDamageCondition`), the multiplier
 /// on it (`GetDamageMultiplier`) and how far beyond the unit's radius it
