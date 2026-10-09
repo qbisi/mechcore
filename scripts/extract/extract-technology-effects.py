@@ -143,6 +143,8 @@ SUBCLASS_SCALARS = (
     ("fly_landing_duration", "landingDuration", "flyTechDatas"),
     ("main_skill_effect", "mainSkillEffect", "flyTechDatas"),
     ("extra_skill_effect", "extraSkillEffect", "flyTechDatas"),
+    ("ignores_buff_effect", "useIgnoredBuffEffectType", "ignoreBuffEffectTechnologyDatas"),
+    ("ignored_buff_effect", "buffEffectType", "ignoreBuffEffectTechnologyDatas"),
 )
 # A field of one list's rows that is one rate, written only where it is set:
 # an extra weapon's `allWeaponReduceDamageRate`, which
@@ -175,7 +177,8 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "wreckageRecoveryTechnologies", "rebirthEffectTechologyDatas",
                "rVORadiusChangeTechnologyTechDatas", "clearRangeItemTechDatas",
                "recoveryTechDatas", "killExplosionTechDatas",
-               "burrowTechnologies", "deadAcidRangeItemTechnologyDatas", "flyTechDatas")
+               "burrowTechnologies", "deadAcidRangeItemTechnologyDatas", "flyTechDatas",
+               "ignoreBuffEffectTechnologyDatas")
 # The list whose `DeadAcidRangeItemTech` leaves an acid where its unit dies,
 # and the fields its rows carry for it: whole metres of range
 # (`GetRangeItemRange`), the rounds it stands (`GetRoundDuration`), and the
@@ -642,6 +645,9 @@ def main() -> int:
         "# (`rebirth`): the whole seconds it waits, the times a fight brings it",
         "# back, the seconds it spends rising, the unit it rises as, and, for a",
         "# pilot that follows an ally, the FPoint offsets and rates it flies by.",
+        "# An ignore technology carries whether its unit ignores one kind of",
+        "# buff effect (`ignores_buff_effect`) and that kind, a `BuffEffectType`",
+        "# (`ignored_buff_effect`).",
         "",
         "technologies:",
     ]

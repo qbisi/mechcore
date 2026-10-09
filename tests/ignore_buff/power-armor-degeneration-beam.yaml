@@ -1,0 +1,27 @@
+# Power Armor: a Rhino ignores the speed rate of Degeneration Beam's debuff.
+#
+# The Rhino and the Wasp take buff 20003 from the Wraith beside them. The Wasp
+# runs at 9.6, its speed less 0.4; the Rhino keeps 16 on every tick it carries
+# the buff. The control is tests/technology_buff/degeneration-beam.yaml, the
+# same fight without Power Armor, whose Rhino is slowed.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 557
+hash: {profile: mcfr-content-0.23.0, result: 468fad47225689a9764127f697050cba651ea321e87eeb4aeb05dc208c6a4197}
+blue:
+  core_damage: 300
+  techs:
+    wraith: [degeneration_beam]
+  units:
+  - {name: wraith, index: 0, position: {x: 5, y: -105}, exp: 0/408/2250}
+red:
+  techs:
+    rhino: [power_armor]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -115}, exp: 0/200/1150}
+  - {name: wasp, index: 1, position: {x: 45, y: -110}}
+  - {name: marksman, index: 2, position: {x: -40, y: -160}, exp: 0/600/650}

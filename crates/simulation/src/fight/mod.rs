@@ -53,6 +53,7 @@ mod experience;
 mod explosion;
 mod fly;
 mod grid;
+mod ignore_buff;
 mod important_unit;
 mod intercept;
 mod kill_explosion;
@@ -321,6 +322,9 @@ struct Actor {
     /// The step its technology's `GRTimerManager` timer gives it its type's
     /// domain back, after its technologies were switched off.
     fly_reverts_at: Option<u64>,
+    /// `BuffManager.stateDatas` of `BuffEffectType.SpeedChangeRate` above
+    /// zero: no buff writes a speed rate on it now.
+    ignores_speed_rate: bool,
     /// `BuffManager.beHitDelayBuffInfos`: the buffs that disable technology
     /// a unit it hit queued on it, each with that unit, which
     /// `InvokeDelayAddBuff` adds as its `BuffManager.Update` ends.

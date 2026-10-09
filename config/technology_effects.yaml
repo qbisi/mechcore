@@ -137,6 +137,9 @@ schema: mechcore.technology_effects
 # (`rebirth`): the whole seconds it waits, the times a fight brings it
 # back, the seconds it spends rising, the unit it rises as, and, for a
 # pilot that follows an ally, the FPoint offsets and rates it flies by.
+# An ignore technology carries whether its unit ignores one kind of
+# buff effect (`ignores_buff_effect`) and that kind, a `BuffEffectType`
+# (`ignored_buff_effect`).
 
 technologies:
   - id: 206
@@ -921,6 +924,8 @@ technologies:
     name: Power Armor
     unit: rhino
     kind: ignoreBuffEffectTechnologyDatas
+    ignores_buff_effect: true
+    ignored_buff_effect: 0
     life_rate: [1073741824]  # +0.25
   - id: 2610
     name: Subterranean Blitz

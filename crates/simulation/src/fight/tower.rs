@@ -72,6 +72,12 @@ pub(in crate::fight) struct RunningBuff {
     /// when it stacks. Its end takes away these and leaves every other
     /// buff's, whatever module wrote them.
     entries: Vec<Entry>,
+    /// Of its row's entries, those it left unwritten because its unit
+    /// ignored their kind of effect as it was written (`Buff.AddEffect`
+    /// passes over a `BuffDataFloatRate` whose `BuffManager.stateDatas` is
+    /// above zero, its `avaliableBuffEffectRecord` left false).
+    /// `Buff.Reset` writes each once the unit no longer ignores it.
+    held: Vec<Entry>,
     /// `Buff.source`: the actor that first added it, which `Buff.Reset`
     /// keeps unless the buff summons.
     source_actor: Option<ObjectRef>,
@@ -705,14 +711,15 @@ impl Simulation {
                 .building_buffs
                 .entry(construction_id)
                 .or_default();
-            let (running, added) = add_buff(&mut buffed.buffs, &row, (None, false), loss.team);
+            let (running, added, written) =
+                add_buff(&mut buffed.buffs, &row, (None, false), loss.team, false);
             applied.push(buff_applied(
                 ObjectRef::new(ObjectKind::Building, construction_id),
                 loss.team,
                 &running,
             ));
             if added {
-                for entry in &row.entries {
+                for entry in &written {
                     buffed.overlays.channel(Channel::Buff).write(*entry);
                 }
                 self.refresh_construction(construction_id)?;
@@ -795,14 +802,46 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
+        if row.stacking.is_some()
+            && actor.ignores_speed_rate
+            && row.entries.iter().any(is_speed_rate)
+        {
+            return Err(Error::new(format!(
+                "buff {} stacks a speed rate on unit {actor_id}, which ignores speed rates, \
+                 and `Buff.RefreshEffect` passing over it is not measured",
+                row.buff_id
+            )));
+        }
         let was_disabled = actor.technology_disabled();
-        let (running, added) = add_buff(&mut actor.buffs, row, (source, takes_source), team);
-        if added {
-            if row.stacking.is_none() {
-                for entry in &row.entries {
-                    actor.stats.overlays.channel(Channel::Buff).write(*entry);
-                }
+        // `BuffManager.AddBuff` raises the unit's `DisableTechnology` count,
+        // and with it switches its technologies off
+        // (`TryAddCommonEffectController`), before `Buff.AddEffect`: a buff
+        // that disables an ignoring technology writes what it ignored.
+        let ignores_speed_rate = actor.ignores_speed_rate
+            && !(row.disables_technology
+                && !was_disabled
+                && actor
+                    .placement
+                    .effects
+                    .technology_disable
+                    .providers
+                    .contains(&crate::modifier::EffectProvider::IgnoreBuff));
+        let (running, added, written) = add_buff(
+            &mut actor.buffs,
+            row,
+            (source, takes_source),
+            team,
+            ignores_speed_rate,
+        );
+        if row.stacking.is_none() {
+            for entry in &written {
+                actor.stats.overlays.channel(Channel::Buff).write(*entry);
             }
+            if !added && !written.is_empty() {
+                actor.stats.refresh(&actor.rules)?;
+            }
+        }
+        if added {
             // `IBEC_ChangeMaxLife.Enter`: the rate once, into the unit's own
             // `DataSet`, whether the buff stacks or not.
             if let Some(entry) = running.life_entry() {
@@ -1318,13 +1357,16 @@ pub(in crate::fight) struct BuildingBuffs {
 /// the same row or one of the same nonzero divide, is `Buff.Reset`,
 /// lengthened by the new row's duration when additive and started over
 /// otherwise; any other is added. The running buff is returned, with whether
-/// it is new.
+/// it is new and the entries to write now: a new buff's that its unit does
+/// not ignore (`Buff.AddEffect`), and those a reset one held that its unit
+/// no longer ignores (`Buff.Reset`).
 fn add_buff(
     buffs: &mut Vec<RunningBuff>,
     row: &BuffRow,
     (source_actor, takes_source): (Option<ObjectRef>, bool),
     team: u32,
-) -> (RunningBuff, bool) {
+    ignores_speed_rate: bool,
+) -> (RunningBuff, bool, Vec<Entry>) {
     if let Some(running) = buffs.iter_mut().find(|running| same_buff(running, row)) {
         if takes_source {
             running.source_actor = source_actor;
@@ -1334,8 +1376,17 @@ fn add_buff(
         } else {
             running.elapsed = 0;
         }
-        return (running.clone(), false);
+        let (held, written) = std::mem::take(&mut running.held)
+            .into_iter()
+            .partition::<Vec<_>, _>(|entry| ignores_speed_rate && is_speed_rate(entry));
+        running.held = held;
+        running.entries.extend(written.iter().copied());
+        return (running.clone(), false, written);
     }
+    let (held, entries) = row
+        .entries
+        .iter()
+        .partition::<Vec<Entry>, _>(|entry| ignores_speed_rate && is_speed_rate(entry));
     let running = RunningBuff {
         buff_id: row.buff_id,
         technology: row.technology,
@@ -1347,7 +1398,8 @@ fn add_buff(
         step_ticks: row.step_ticks,
         team,
         source: row.source,
-        entries: row.entries.clone(),
+        entries: entries.clone(),
+        held,
         source_actor,
         disables_technology: row.disables_technology,
         invincible: row.invincible,
@@ -1365,7 +1417,14 @@ fn add_buff(
         clears_when_technologies_disabled: row.clears_when_technologies_disabled,
     };
     buffs.push(running.clone());
-    (running, true)
+    (running, true, entries)
+}
+
+/// Whether an entry is a buff's `BuffDataFloatRate.MoveSpeedChangeRate`,
+/// which a unit that ignores `BuffEffectType.SpeedChangeRate` leaves
+/// unwritten.
+fn is_speed_rate(entry: &Entry) -> bool {
+    entry.index == Index::MoveSpeed && matches!(entry.correction, Correction::Rate { .. })
 }
 
 /// `Buff.IsSameBuff`: the same row, or one of the same nonzero divide.
