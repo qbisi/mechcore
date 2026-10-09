@@ -49,7 +49,7 @@ directory alone keeps a readme, for the rules of pinning a round:
 | [`splash/`](splash/) | how a correction widens a skill's splash, and a skill with none given one | [`combat.md`](../docs/rules/combat.md#damage-and-death) |
 | [`super_deployment/`](super_deployment/) | what a formation deployed on a flank does in a fight, travelling in or settled | [`unit-rules.md`](../docs/spec/simulation/unit-rules.md) |
 | [`sweep/`](sweep/) | what a sweep strikes beyond the standard fights: shields, buildings, aircraft beside ground units, its technology | [`sweep.md`](../docs/rules/sweep.md) |
-| [`stealth/`](stealth/) | when a stealth technology hides its unit, what strikes and finds it meanwhile, and what disabling it does | [`technology_effects.md`](../docs/rules/technology_effects.md#stealth-technologies) |
+| [`stealth/`](stealth/) | when a stealth or cloak technology hides its unit, what strikes and finds it meanwhile, and what disabling it does | [`technology_effects.md`](../docs/rules/technology_effects.md#stealth-technologies) |
 | [`shield/`](shield/) | what a battlefield shield does to the hits meant for what it covers, and when it breaks | [`contraptions.md`](../docs/rules/contraptions.md) |
 | [`siege_mode/`](siege_mode/) | when a siege-mode technology digs its unit in, what the trench gives it, and what takes it away | [`technology_effects.md`](../docs/rules/technology_effects.md#siege-mode-technologies) |
 | [`search/`](search/) | which positions a skill's target search scores | [`combat.md`](../docs/rules/combat.md) |

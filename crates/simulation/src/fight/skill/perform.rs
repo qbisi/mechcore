@@ -66,6 +66,10 @@ impl Simulation {
         if let (SkillSlot::Main, FightActorRef::Unit(unit)) = (skill_ref.slot, skill_ref.owner) {
             self.reset_siege_time(unit);
         }
+        // `FightMech.OnMechSkillPerformAttack`, on a blow of any skill.
+        if let FightActorRef::Unit(unit) = skill_ref.owner {
+            self.cloak_on_blow(unit);
+        }
         let skill = self.skill_mut(skill_ref);
         // The backswing is cut short by the next blow: a blow fitted into its
         // interval by `SkillAttackController.PerformAttack` gives its

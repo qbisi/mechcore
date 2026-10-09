@@ -161,6 +161,9 @@ schema: mechcore.technology_effects
 # (`chain_delay`), how many jumps (`chain_count`), and the FPoint rate
 # of the skill's damage each jump deals, raised to the jump's number
 # (`chain_damage_rate`).
+# A cloak technology carries the FPoint seconds its unit waits before
+# it cloaks (`cloak_delay`) and stays seen once it shows itself
+# (`cloak_exit_delay`).
 # A search technology carries the `SkillSearchTargetType` its unit's
 # skills search by (`search_target_type`), on its main skill and its
 # extra skills as `main_skill_effect` and `extra_skill_effect` say.
@@ -1319,6 +1322,8 @@ technologies:
     name: Stealth Cloak
     unit: phantom_ray
     kind: moveAbilityDynamicTechDatas
+    cloak_delay: 10737418240
+    cloak_exit_delay: 4294967296
     life_rate: [858993459]  # +0.2
     damage_rate: [858993459]  # +0.2
   - id: 4027

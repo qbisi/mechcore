@@ -1236,6 +1236,37 @@ the skill's hit effects (`ApplySecondaryDamageToActors`,
 `DispatchSecondaryDamageEvent`). A source that `CanDisable` writes nothing
 while the Vortex's technologies are off, and no second damage is dealt then.
 
+## Cloak technologies
+
+A row of `moveAbilityDynamicTechDatas` is a `MoveAbilityDynamicTech`, an
+`IMoveAbilityDynamicSource`: Stealth Cloak, the Phantom Ray's, whose
+numbers give it a fifth more life and damage, and whose row gives the
+seconds before it cloaks (`delay`, 2.5) and that it stays seen once it shows
+itself (`delayExit`, 1), counted in updates (50 and 20).
+
+**Its unit cloaks while no enemy is within its reach.** Its
+`MoveAbilityDynamicProvider` hands the unit a `CloakController` of its
+side's `TeamCloakManager` (`CloakSystem.Active`). The controller of a unit
+deployed on the field exists as the fight starts, and
+`TeamCloakManager.OnEnterFight` leaves it counting with its count full
+(`ResetData`). `CloakSystem` is the first module to update, each side's units
+in the order `OnFightStart` sorts them. A unit is ready while the nearest
+unit its main skill's search measured stands beyond its range, edge to edge
+(`IsNothingAround`; `IsMainSearcherSkillIdle` reads `FightSkillBase.IsIdle`,
+which nothing sets). Counting, a ready unit counts an update and, once the
+count reaches 50, cloaks (`ActorVisibility.Disappear`); one not ready counts
+from none. Cloaked, a unit not ready starts to show; showing, it counts 20
+updates whatever happens and is then seen again, and starts counting anew
+once ready. Each blow of any of its skills starts a cloaked unit showing and
+sends a counting one back to none (`FightMech.OnMechSkillPerformAttack`).
+A cloaked unit is searched and locked still, and no skill reaches it but one
+moving underground.
+
+**Switched off, it shows and holds.** Its technologies disabled start a
+cloaked unit showing and a counting one from none, and the controller does
+nothing more until they come back, in `None`; its death shows it at once
+(`Disable`, `Enable`, `Deactive`).
+
 ## What this table does not carry
 
 A technology that is not plain does something that is not a correction on its
@@ -1652,6 +1683,10 @@ derive (a minimum range):
 - Electromagnetic Cloud writes buff 1031 on the Rhino a Vortex strikes and
   the two Crawlers within 10 metres of it, switching Power Armor off:
   `tests/secondary_damage/electromagnetic-cloud.yaml`.
+- Stealth Cloak cloaks three Phantom Rays from the first tick and shows each
+  20 updates after an enemy comes within its reach:
+  `tests/stealth/stealth-cloak.yaml`,
+  `tests/stealth/stealth-cloak-electromagnetic-shot.yaml`.
 - Subterranean Blitz burrows its Crawlers from the first tick and brings
   each up as its enemy comes within 50: `tests/burrow/crawler-rhino.yaml`.
   Burrowed, they take a Marksman's shot less 0.4; one that dies burrowed,
@@ -1844,6 +1879,12 @@ derive (a minimum range):
 
 ### Read
 
+- Cloak technologies: `MoveAbilityDynamicTech.GetDelayEnter`, `GetDelayExit`,
+  `MoveAbilityDynamicProvider.DoActive`, `DoDeactive`, `DisableEffect`,
+  `EnableEffect`, `CloakSystem`, `TeamCloakManager.OnEnterFight`,
+  `OnFightStart`, `Update`, `CloakController.Update`, `ResetData`,
+  `OnISkillOwnerAttack`, `IsMainSearcherSkillIdle`, `IsNothingAround`,
+  `PerformChangeVisibility`, `FightController.AddModules`.
 - A second damage that writes a buff: `SecondaryDamageIntensifyTech.GetBuffData`,
   `GetBuffTechListener`, `GetEffectTargetTypes`, `GetProbablity`,
   `SecondaryDamageIntensifyTechData.PreProcess`,
@@ -2368,6 +2409,8 @@ derive (a minimum range):
 
 ### Not established
 
+- **A Phantom Ray switched off while cloaked**, and one whose technologies
+  come back while it shows: read from the build, not recorded.
 - **A chain whose jump makes the fight's last kill.** A Raiden whose jump
   kills the last Fang, before the main skill's update, attacks a tower that
   is torn down on the next tick: the game keeps its skill cooling on the

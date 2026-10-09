@@ -55,8 +55,8 @@ use super::{
     providers::EffectProvider,
     sources::{
         AdditionalDamage, AutoRecovery, BuffSource, Burrow, CarriedShield, Chain, ClearRangeItem,
-        ControlRecovery, DeadExplosion, EnergyShield, FlyTech, KillExplosion, LifeSteal,
-        MoveAbilityAttack, MoveAbilityRangeItem, ProductionLine, ReactiveArmor, Rebirth,
+        CloakSource, ControlRecovery, DeadExplosion, EnergyShield, FlyTech, KillExplosion,
+        LifeSteal, MoveAbilityAttack, MoveAbilityRangeItem, ProductionLine, ReactiveArmor, Rebirth,
         RebirthFollow, RecoveryState, Repair, RvoRadiusChange, SiegeMode, Stealth, SweepIntensify,
         WreckageRecovery,
     },
@@ -170,9 +170,11 @@ const ADDITIONAL_DAMAGE: &str = "additionalDamageTechDatas";
 const CONTROL_RECOVERY: &str = "controllBeamLifeRecoveryTechnologies";
 /// The list whose `IterationHitTech` is an `IIterationHit`.
 const CHAIN: &str = "iterationHitDamageTechDatas";
+/// The list whose `MoveAbilityDynamicTech` is an `IMoveAbilityDynamicSource`.
+const CLOAK: &str = "moveAbilityDynamicTechDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 42] = [
+const IMPLEMENTED: [&str; 43] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -215,6 +217,7 @@ const IMPLEMENTED: [&str; 42] = [
     ADDITIONAL_DAMAGE,
     CONTROL_RECOVERY,
     CHAIN,
+    CLOAK,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -360,6 +363,8 @@ struct Technology {
     additional_damage: Option<AdditionalDamage>,
     /// What it answers `IIterationHit` with, if its class is one.
     chain: Option<Chain>,
+    /// What it answers `IMoveAbilityDynamicSource` with, if its class is one.
+    cloak: Option<CloakSource>,
     /// What it writes as `CBLifeRecoveryRate`, if its class is a
     /// `ControllBeamLifeRecoveryTech`.
     control_recovery: Option<ControlRecovery>,
@@ -558,6 +563,9 @@ pub(crate) struct SingleSources {
     /// The first that makes its unit's hits jump on: the provider enables
     /// one source (`SingleEffectProvider`).
     pub(crate) chain: Option<Chain>,
+    /// The first that cloaks its unit: the provider enables one source
+    /// (`SingleEffectProvider`).
+    pub(crate) cloak: Option<CloakSource>,
 }
 
 /// What a move ability summon row answers `IMoveAbilitySummon` and
@@ -969,6 +977,12 @@ struct Row {
     control_recovery_rate: Vec<i64>,
     /// `IterationHitDamageTechData`'s fields, `FPoint` raw but the count, on
     /// a row of its list.
+    /// `MoveAbilityDynamicTechData.delay` and `delayExit`, `FPoint` seconds,
+    /// on a row of its list.
+    #[serde(default)]
+    cloak_delay: i64,
+    #[serde(default)]
+    cloak_exit_delay: i64,
     #[serde(default)]
     chain_select_range: i64,
     #[serde(default)]
@@ -1690,6 +1704,10 @@ impl TechnologyEffects {
                 }),
                 ignores_speed_rate: row.kind == IGNORE_BUFF_EFFECT && row.ignores_buff_effect,
                 life_priority: row.kind == SEARCH_TARGET_MODIFY,
+                cloak: (row.kind == CLOAK).then_some(CloakSource {
+                    enter_q32: row.cloak_delay,
+                    exit_q32: row.cloak_exit_delay,
+                }),
                 chain: (row.kind == CHAIN).then_some(Chain {
                     select_range_q32: row.chain_select_range,
                     preferred_range_q32: row.chain_preferred_range,
@@ -1887,6 +1905,7 @@ impl TechnologyEffects {
                     .clone_from(&technology.control_recovery);
             }
             sources.single.chain = sources.single.chain.or(technology.chain);
+            sources.single.cloak = sources.single.cloak.or(technology.cloak);
             sources.single.additional_damage = sources
                 .single
                 .additional_damage
@@ -2368,6 +2387,7 @@ fn provider_of(kind: &str) -> Option<EffectProvider> {
         SEARCH_TARGET_MODIFY => EffectProvider::SkillSearchTarget,
         ADDITIONAL_DAMAGE => EffectProvider::AdditionalDamage,
         CHAIN => EffectProvider::IterationHit,
+        CLOAK => EffectProvider::MoveAbilityDynamic,
         BURROW => EffectProvider::Burrow,
         _ => return None,
     })

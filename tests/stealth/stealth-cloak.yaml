@@ -1,0 +1,24 @@
+# Stealth Cloak: Phantom Rays cloak from the first tick and show themselves
+# 20 ticks after an enemy comes within their range.
+#
+# Each of the three is `disappear` from t1, out of every enemy's reach; unit 3
+# is seen again from t157, unit 1 from t160 and unit 2 from t171, and none
+# cloaks again while enemies stand within its range.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 485
+hash: {profile: mcfr-content-0.23.0, result: 6b27b9e06a305ed91d5a4e898e558c5677aae0aac41d1d35406908abb30ea25f}
+blue:
+  core_damage: 450
+  techs:
+    phantom_ray: [stealth_cloak]
+  units:
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -170}}
+red:
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -50}, exp: 0/300/1600}
+  - {name: marksman, index: 1, position: {x: 40, y: -60}, exp: 0/301/650}

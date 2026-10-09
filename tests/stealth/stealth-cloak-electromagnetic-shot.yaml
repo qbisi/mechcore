@@ -1,0 +1,24 @@
+# Stealth Cloak against Electromagnetic Shots: the Phantom Rays cloak from the
+# first tick, show themselves as the Marksmen come within reach (t155 to
+# t163), and the shot that disables unit 1's technologies at t173 finds it
+# seen already.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 220
+hash: {profile: mcfr-content-0.23.0, result: 296cc8a071052367758e3a5fe0dfeeb2f6de3593393d379be6dc7b1ff5624b24}
+blue:
+  techs:
+    phantom_ray: [stealth_cloak]
+  units:
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -170}, exp: 0/400/1000}
+red:
+  core_damage: 201
+  techs:
+    marksman: [electromagnetic_shot]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -60}}
+  - {name: marksman, index: 1, position: {x: 40, y: -60}}
