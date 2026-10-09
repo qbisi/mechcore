@@ -109,6 +109,12 @@ schema: mechcore.technology_effects
 # unit's radius within which its unit clears terrain (`clear_radius`),
 # and the `RangeItemType`s it clears, in its row's order
 # (`clear_range_item_types`).
+# A repair technology carries the whole life its unit hands each unit
+# about it, by its unit's level (`repair_life`), the FPoint rate of the
+# unit's maximum life added to it (`repair_max_life_rate`), the FPoint
+# seconds between two repairs (`repair_interval`) and metres it reaches
+# (`repair_range`), and whether it repairs enemies (`repair_enemy`),
+# units only (`repair_only_mech`) and aerial units (`repair_air`).
 # A burrowing technology carries the FPoint rate on the damage its unit
 # takes while no enemy is near (`burrow_amplify_damage_rate`), the FPoint
 # metres within which an enemy brings it up (`burrow_relieve_distance`),
@@ -1368,6 +1374,13 @@ technologies:
     name: 维修阵列
     unit: typhoon
     kind: recoveryTechDatas
+    repair_max_life_rate: 0
+    repair_interval: 12884901888
+    repair_range: 429496729600
+    repair_enemy: false
+    repair_only_mech: true
+    repair_air: true
+    repair_life: [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500]
   - id: 5322
     name: 残骸引爆
     unit: typhoon

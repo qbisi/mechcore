@@ -73,6 +73,7 @@ SUBCLASS_LISTS = (
     ("splash_range", "range", "splashTechnologies"),
     ("fire_range", "range", "fireIntensifyTechnologies"),
     ("fire_life_time", "lifeTime", "fireIntensifyTechnologies"),
+    ("repair_life", "life", "recoveryTechDatas"),
     ("projectile_count_value", "countIncrease", "multiAttackTechnologies"),
     ("projectile_duration_value", "durationChangeValue", "multiAttackTechnologies"),
     ("projectile_random_range_value", "randomRangeChangeValue", "multiAttackTechnologies"),
@@ -125,6 +126,12 @@ SUBCLASS_SCALARS = (
     ("rvo_near_target_threshold", "nearTargetThreshold", "rVORadiusChangeTechnologyTechDatas"),
     ("clear_radius", "radius", "clearRangeItemTechDatas"),
     ("clear_range_item_types", "rangeItemTypes", "clearRangeItemTechDatas"),
+    ("repair_max_life_rate", "maxLifeRate", "recoveryTechDatas"),
+    ("repair_interval", "interval", "recoveryTechDatas"),
+    ("repair_range", "range", "recoveryTechDatas"),
+    ("repair_enemy", "canRecoverEnemy", "recoveryTechDatas"),
+    ("repair_only_mech", "isOnlyRecoverMech", "recoveryTechDatas"),
+    ("repair_air", "canRecoverAir", "recoveryTechDatas"),
     ("burrow_enters_underground", "isEnterUnderGround", "burrowTechnologies"),
 )
 # A field of one list's rows that is one rate, written only where it is set:
@@ -157,6 +164,7 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "reactiveArmorTechDatas", "fireIntensifyTechnologies", "siegeModeTechDatas",
                "wreckageRecoveryTechnologies", "rebirthEffectTechologyDatas",
                "rVORadiusChangeTechnologyTechDatas", "clearRangeItemTechDatas",
+               "recoveryTechDatas",
                "burrowTechnologies")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
@@ -308,7 +316,7 @@ DESCRIPTIVE = {
 RATES = {"life_rate", "damage_rate", "attack_range_rate", "attack_interval_rate", "projectile_life_rate", "exp_rate",
          "lifesteal_multiplier", "recovery_life_rate", "air_damage_change_rate", "ground_damage_change_rate"}
 INTEGERS = {"speed_value", "min_attack_range_value", "reduce_damage_value", "projectile_count_value",
-            "dead_line_value", "barrier_energy", "barrier_radius"}
+            "dead_line_value", "barrier_energy", "barrier_radius", "repair_life"}
 
 
 def raw(value):
@@ -588,6 +596,12 @@ def main() -> int:
         "# unit's radius within which its unit clears terrain (`clear_radius`),",
         "# and the `RangeItemType`s it clears, in its row's order",
         "# (`clear_range_item_types`).",
+        "# A repair technology carries the whole life its unit hands each unit",
+        "# about it, by its unit's level (`repair_life`), the FPoint rate of the",
+        "# unit's maximum life added to it (`repair_max_life_rate`), the FPoint",
+        "# seconds between two repairs (`repair_interval`) and metres it reaches",
+        "# (`repair_range`), and whether it repairs enemies (`repair_enemy`),",
+        "# units only (`repair_only_mech`) and aerial units (`repair_air`).",
         "# A burrowing technology carries the FPoint rate on the damage its unit",
         "# takes while no enemy is near (`burrow_amplify_damage_rate`), the FPoint",
         "# metres within which an enemy brings it up (`burrow_relieve_distance`),",

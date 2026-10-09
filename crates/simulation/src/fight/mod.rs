@@ -65,6 +65,7 @@ mod random;
 mod reactive_armor;
 mod rebirth;
 mod recovery;
+mod repair;
 mod run;
 mod rvo;
 mod search;
@@ -494,6 +495,8 @@ struct Simulation {
     kills: kills::KillCounts,
     /// `RangeItemSystem`'s terrains and the units standing in them.
     terrain: terrain::TerrainSystem,
+    /// `RecoveryEffectSystem`'s repairing units.
+    repair: repair::RepairSystem,
     /// `TeamClearRangeItemManager.m_deltaTime`: its updates since it last
     /// cleared.
     clear_range_item_time: i32,
@@ -628,6 +631,7 @@ impl Simulation {
             exp: experience::ExpSystem::new(building_exp)?,
             kills: kills::KillCounts::default(),
             terrain: terrain::TerrainSystem::default(),
+            repair: repair::RepairSystem::default(),
             clear_range_item_time: 0,
             stealth: stealth::StealthSystem::default(),
             siege: siege::SiegeModeSystem::default(),
@@ -643,6 +647,7 @@ impl Simulation {
         simulation.start_groups();
         simulation.enter_wreckage_fight();
         simulation.enter_burrow_fight();
+        simulation.enter_repair_fight();
         simulation.restore_standing_oil(&layout.standing_oil)?;
         // `CommanderSkillManager.OnFightStart`: a path is given out before
         // the first tick, and lands nothing.
@@ -1158,6 +1163,8 @@ impl Simulation {
             self.remove_siege_unit(unit_id)?;
             // And its `WreckageRecoveryEffectProvider.DoDeactive`.
             self.remove_wreckage_unit(unit_id);
+            // And its `RecoveryEffectProvider.DoDeactive`.
+            self.remove_repair_unit(unit_id);
             // And its `BurrowEffectProvider.DoDeactive`.
             self.remove_burrow_unit(unit_id);
             // `SkillManager.OnOwnerDead` stops its skills, a control beam's
@@ -1189,6 +1196,8 @@ impl Simulation {
         // and `StealthTechSystem` after it, one of the last modules.
         self.step_siege()?;
         self.step_stealth();
+        // `RecoveryEffectSystem` updates after `StealthTechSystem`.
+        self.step_repair()?;
         // A side whose last unit died this tick loses its towers even when
         // a shot landing on the same tick is what leaves the fight finished:
         // a Sandworm's blow that kills the last Overlord as a tower's shot
@@ -1372,6 +1381,7 @@ impl Simulation {
             events.extend(follows);
         }
         events.extend(self.take_burrow_events());
+        events.extend(self.take_repair_events());
         self.buffs.dropped.clear();
         // A fight a projectile's drain finished leaves on this tick, with no
         // tower torn down to publish first: its buffs are cleared after

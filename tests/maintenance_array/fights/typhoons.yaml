@@ -1,0 +1,26 @@
+# Maintenance Array on blue's two level-4 Typhoons. Each counts from the
+# fight's start and repairs every 61 ticks, the 3 seconds of
+# FightUtility.DeltaTime falling short of 60: on ticks 61 and 122 nothing
+# is hurt, and on ticks 183 and 244 each Typhoon hands the hurt one 2000,
+# its level's life.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 283
+hash: {profile: mcfr-content-0.23.0, result: 49eafd72e99502d4670341d445439778d5bf8a993beae1befbc2a65286a17605}
+blue:
+  techs:
+    typhoon: [maintenance_array]
+  units:
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, level: 4, exp: 0/273/8756}
+  - {name: rhino, index: 1, position: {x: -55, y: -95}, level: 4, exp: 0/517/5164}
+  - {name: rhino, index: 2, position: {x: 65, y: -95}, level: 4, exp: 0/100/5164}
+  - {name: wasp, index: 3, position: {x: 5, y: -130}, exp: 0/101/900}
+red:
+  core_damage: 854
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -150}}
+  - {name: crawler, index: 1, position: {x: 5, y: -60}}

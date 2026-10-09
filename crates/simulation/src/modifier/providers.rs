@@ -74,6 +74,8 @@ pub(crate) enum EffectProvider {
     RvoRadiusChange,
     /// `ClearRangeItemEffectProvider`, for an `IClearRangeItem`.
     ClearRangeItem,
+    /// `RecoveryEffectProvider`, for an `IRecoveryTechEffectDataSource`.
+    Repair,
     /// `BurrowEffectProvider`, for an `IBurrow`.
     Burrow,
 }
@@ -108,6 +110,7 @@ impl EffectProvider {
             Self::WreckageRecovery => "WreckageRecoveryEffectProvider",
             Self::RvoRadiusChange => "RVORadiusChangeProvider",
             Self::ClearRangeItem => "ClearRangeItemEffectProvider",
+            Self::Repair => "RecoveryEffectProvider",
             Self::Burrow => "BurrowEffectProvider",
         }
     }
@@ -186,6 +189,7 @@ impl EffectProvider {
             | Self::WreckageRecovery
             | Self::RvoRadiusChange
             | Self::ClearRangeItem
+            | Self::Repair
             | Self::Burrow => true,
             Self::AutoRecovery
             | Self::EnergyShield
