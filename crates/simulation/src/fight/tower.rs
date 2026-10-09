@@ -516,25 +516,27 @@ impl super::Actor {
 
     /// `BuffManager.ClearSelfResourceBuffByDisableTech`, which
     /// `FightMech.DisableTechnology` raises after the unit's effects are
-    /// switched off: each buff the unit added itself whose row clears it,
-    /// last first, written at no stack when it stacks
+    /// switched off: each buff the unit added itself whose row clears it
+    /// (`IsClearSelfBuffWhenDisableTech`), last first. One that stacks
+    /// (`IsAdditiveEffect`) is written at no stack
     /// (`ResetAdditiveEffectStackByDisableTech`), which leaves its stack and
-    /// its life rate until its next step. Any other such buff is removed,
-    /// which is not measured.
-    pub(in crate::fight) fn clear_self_buffs(&mut self) -> Result<()> {
+    /// its life rate until its next step; any other is removed
+    /// (`BuffManager.RemoveBuff`), what it wrote taken away and the life
+    /// refreshed (`Buff.Exit`), as a buff that runs out is.
+    pub(in crate::fight) fn clear_self_buffs(&mut self, events: &mut Vec<Event>) -> Result<()> {
         let unit = self.object_ref();
         for index in (0..self.buffs.len()).rev() {
             if !self.buffs[index].cleared_from(unit) {
                 continue;
             }
-            if self.buffs[index].stack.is_none() {
-                return Err(Error::new(format!(
-                    "unit {}'s technologies are disabled while it runs buff {}, which they \
-                     clear, and clearing it is not measured",
-                    unit.id, self.buffs[index].buff_id
-                )));
+            if self.buffs[index].stack.is_some() {
+                self.write_stacks(index, 0);
+                continue;
             }
-            self.write_stacks(index, 0);
+            let buff = self.buffs.remove(index);
+            events.push(buff_removed(unit, buff.buff_id, BuffRemovedReason::Removed));
+            self.withdraw_buff(&buff);
+            self.refresh_life_data()?;
         }
         self.stats.refresh(&self.rules)
     }
@@ -786,7 +788,7 @@ impl Simulation {
             self.actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
-                .clear_self_buffs()?;
+                .clear_self_buffs(events)?;
         }
         if row.current_life_rate != 0 {
             self.change_current_life(actor_id, team, row.current_life_rate, events)?;
