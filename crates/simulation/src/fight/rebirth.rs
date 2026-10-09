@@ -507,6 +507,9 @@ impl Simulation {
             .expect("actor identity is stable")
             .skills
             .ready_attack_clocks(self.step_now);
+        // `FightTeam.DeactiveMech` and `ActiveMech`: it updates after every
+        // unit of its side, as one joining it does.
+        self.joins_side_last(task.unit);
         self.plant(task.unit);
         self.active_effect(task.unit)?;
         Ok(())
