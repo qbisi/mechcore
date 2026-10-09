@@ -33,7 +33,7 @@ use crate::{
 };
 
 use super::{LOGIC_TICK_TIME_UNITS, Simulation, TIME_UNITS_PER_SECOND, event, math::q32_div};
-use crate::modifier::{DeadSummon, StackCondition};
+use crate::modifier::{DeadSummon, EffectProvider, StackCondition};
 use mechcore_mcfr::{BuffRemovedReason, Event, EventPayload, ObjectKind, ObjectRef};
 
 /// What tags a tower's loss writes, so that its end takes it away.
@@ -1129,6 +1129,34 @@ impl Simulation {
         Ok(())
     }
 
+    /// One provider's `DisableEffect` or `EnableEffect` on a unit, beside
+    /// what its technologies wrote onto its numbers, which every provider
+    /// takes away and writes again alike. The layout refuses a provider whose
+    /// own the fight does not mirror ([`EffectProvider::disable_read`]).
+    fn switch_provider(&mut self, actor_id: u64, provider: EffectProvider, on: bool) {
+        match provider {
+            // `ExtraSkillProvider.DisableSkill` and `EnableSkill`: every
+            // extra skill of a technology is disabled and enabled with it.
+            EffectProvider::ExtraSkill => {
+                let actor = self
+                    .actors
+                    .get_mut(&actor_id)
+                    .expect("actor identity is stable");
+                for extra in &mut actor.skills.extras {
+                    extra.skill.disabled = !on;
+                }
+            }
+            EffectProvider::StealthTech => self.switch_stealth(actor_id, on),
+            // The rest take away what the fight asks of the unit where it
+            // acts, its technologies disabled: a lifesteal's and a second
+            // damage's hit effect, a search's ranges, offsets and selector,
+            // an armour's reduction among its numbers, and a buff its unit
+            // added itself, which `BuffManager` clears as the disabling buff
+            // enters.
+            _ => {}
+        }
+    }
+
     /// `FightEffectSystem.DisableEffect` and `EnableEffect` of a unit's
     /// technologies: what they wrote taken away or written again
     /// (`IEffectProviderDataSource.RemoveData`, `AddData`), its life
@@ -1152,14 +1180,10 @@ impl Simulation {
                  skill is active, and giving it up is not measured"
             )));
         }
-        // `ExtraSkillProvider.DisableSkill` and `EnableSkill`: every extra
-        // skill of a technology is disabled and enabled with it.
-        for extra in &mut actor.skills.extras {
-            extra.skill.disabled = !on;
-        }
-        // `StealthTechEffectProvider.DisableEffect` and `EnableEffect`.
-        if self.holds_stealth(actor_id) {
-            self.switch_stealth(actor_id, on);
+        // `FightEffectMananger.DisableEffect` and `EnableEffect`: every
+        // provider beside the numbers' its technologies reach.
+        for provider in actor.placement.technology_disable.providers.clone() {
+            self.switch_provider(actor_id, provider, on);
         }
         let actor = self
             .actors

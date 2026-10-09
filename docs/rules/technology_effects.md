@@ -520,6 +520,17 @@ false, which every row but a few buff, Dual Wield and melee-mode rows does;
 an officer, an equipment, an Energy Tower skill and a battle skill answer
 false. So the officers' and the items' corrections stay.
 
+Every technology is an `IDataModifier`, whose numbers its provider takes
+away and writes again, and a class that answers an interface beside it is
+that interface's provider's source too: a `LifestealTech` the
+`LifeStealEffectProvider`'s, a `StealthTech` the
+`StealthTechEffectProvider`'s. A plain, mobility, damage intensify, splash or
+multi-attack technology answers none, so switching it off takes its numbers
+alone, a splash's `splash_range` and a multi-attack's projectile values among
+them. The simulator switches every provider of the unit in one place, as
+`FightEffectMananger.DisableEffect` does, and refuses by name a provider
+whose own `DisableEffect` it does not mirror.
+
 - **A plain technology's numbers leave its unit.** The provider removes its
   source's data (`IEffectProviderDataSource.RemoveData`) and writes it again
   as it is switched on (`AddData`); an armour's provider its reduction, a
@@ -591,11 +602,14 @@ false. So the officers' and the items' corrections stay.
   (`BuffEffectProvider.DoDisableCycle`), and a cleared buff that does not
   stack is removed, neither measured.
 
-What switching off does to any other technology, an extra weapon's
-production line, other explosion or preemptive skill, or group, a repair, a
-shield, a cycling buff source, a sweep's change, is read below and
-refused: a buff that disables technology reaching a unit that carries one is
-refused by name.
+What any other provider does switched off, the `AutoRecoveryEffectProvider`,
+`EnergyShieldProvider`, `SweepSkillIntensifyEffectProvider`,
+`AirAttackEffectProvider`, `InterceptMissileEffectProvider`,
+`SupportUnitProvider`, `DeadEffectProvider`, `MoveAbilitySummonProvider`,
+`DeadLineEffectProvider` and a cycling buff source's `BuffEffectProvider`, and
+an extra weapon's production line, other explosion or preemptive skill, or
+group, is not measured: a buff that disables technology reaching a unit whose
+technologies reach one is refused by the provider's name.
 
 ## What the recordings show
 

@@ -12,10 +12,10 @@ use crate::{
     Error, Result,
     data::{Channel, Correction, Entry, ExperienceRate, Index, Stats},
     modifier::{
-        AutoRecovery, BuffSource, CarriedShield, DeadLine, DeadSummon, EnergyShield,
-        EnergyTowerSkillEffects, EquipmentEffects, LifeSteal, MainSkill, OfficerEffects,
-        ProductionLine, SecondaryDamage, Stealth, SweepIntensify, TECHNOLOGY_SOURCE,
-        TechnologyEffects, UnitInterception, current_source,
+        AutoRecovery, BuffSource, CarriedShield, DeadLine, DeadSummon, EffectProvider,
+        EnergyShield, EnergyTowerSkillEffects, EquipmentEffects, LifeSteal, MainSkill,
+        OfficerEffects, ProductionLine, SecondaryDamage, Stealth, SweepIntensify,
+        TECHNOLOGY_SOURCE, TechnologyEffects, UnitInterception, current_source,
     },
     rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs, UnitDomain},
 };
@@ -1096,8 +1096,12 @@ pub(crate) struct TechnologyDisable {
     /// take away and write again (`IEffectProviderDataSource.RemoveData`,
     /// `AddData`).
     pub(crate) corrections: Vec<(Channel, Entry)>,
+    /// The providers beside the numbers' its technologies reach, each of
+    /// which `FightEffectMananger.DisableEffect` switches.
+    pub(crate) providers: Vec<EffectProvider>,
     /// What it carries whose switching off is not measured, by name: a
-    /// technology whose provider does more than take its numbers away.
+    /// provider whose `DisableEffect` the fight does not mirror, or an extra
+    /// skill of a shape it does not fight disabled.
     pub(crate) unmeasured: Vec<String>,
 }
 
@@ -1278,8 +1282,8 @@ fn loadout(
 }
 
 /// What a buff that disables technology takes from one unit: what its
-/// technologies wrote, which resolved with the rest of its loadout, and what
-/// of them a disabling buff does more to than take its numbers away.
+/// technologies wrote, which resolved with the rest of its loadout, and the
+/// providers beside the numbers' they reach.
 fn technology_disable(
     type_name: &str,
     level: i64,
@@ -1291,6 +1295,7 @@ fn technology_disable(
 ) -> Option<TechnologyDisable> {
     let technologies = &loadouts.technologies;
     let held = &side.techs.units;
+    let providers = technologies.providers(held, type_name);
     Some(TechnologyDisable {
         corrections: refused.hold(
             technologies
@@ -1301,10 +1306,13 @@ fn technology_disable(
                 })
                 .map_err(on_side),
         )?,
-        unmeasured: technologies
-            .disabled_unmeasured(held, type_name)
-            .into_iter()
-            .map(|id| format!("technology {id}"))
+        unmeasured: providers
+            .iter()
+            .filter(|(provider, _)| !provider.disable_read())
+            .map(|(provider, ids)| {
+                let ids = ids.iter().map(ToString::to_string).collect::<Vec<_>>();
+                format!("technology {}'s {}", ids.join(", "), provider.name())
+            })
             // An extra skill switched off neither searches nor starts from
             // idle and ends its attack between blows. A permanent preemptive
             // explosion, Scorching Charge's, does not activate and its death
@@ -1335,6 +1343,7 @@ fn technology_disable(
                     .map(|weapon| format!("technology {}", weapon.rules.technology)),
             )
             .collect(),
+        providers: providers.into_keys().collect(),
     })
 }
 
