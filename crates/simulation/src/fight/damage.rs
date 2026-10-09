@@ -1143,12 +1143,13 @@ impl Simulation {
     /// under the unit's side, at the point the hit landed. A source that
     /// `CanDisable` leaves none while the unit's technologies are disabled.
     ///
-    /// The point is the hit's when it struck nothing, when the skill has no
-    /// lock (and so no shield it fires at), or when its lock stands on the
-    /// side of the first unit it struck. Otherwise the
-    /// provider takes the point on the shield the skill fires at
-    /// (`FightUtility.GetAttackPositionOnEnergyShield`), or the lock's own
-    /// position for a skill that locks its target, which is not measured.
+    /// The point is the hit's when it struck nothing, or when its lock stands
+    /// on the side of the first unit it struck. Otherwise the provider takes
+    /// the point on the shield the skill fires at
+    /// (`FightUtility.GetAttackPositionOnEnergyShield`, toward its lock, or
+    /// toward the hit's point when it holds none), or, with no shield, the
+    /// lock's own position for a skill that locks its target
+    /// (`IsLockTarget`), and the hit's point for any other.
     fn leave_main_fire(
         &mut self,
         skill: SkillRef,
@@ -1168,17 +1169,35 @@ impl Simulation {
             return Ok(());
         }
         let team = actor.placement.team;
-        if let Some(&first) = targets.first() {
-            let side = |target| self.fight_actor(target).map(|view| view.team);
-            let lock = self.skill(skill).lock_target;
-            if lock.is_some_and(|lock| side(lock) != side(first)) {
-                return Err(Error::new(format!(
-                    "unit {owner}'s fire lands where its lock does not stand on the side \
-                     of what its hit struck, which is not measured"
-                )));
+        let point = match targets.first() {
+            None => center,
+            Some(&first) => {
+                let side = |target| self.fight_actor(target).map(|view| view.team);
+                let lock = self.skill(skill).lock_target;
+                if lock.is_some_and(|lock| side(lock) == side(first)) {
+                    center
+                } else {
+                    let shield = self.skill(skill).target_shield.map(|(shield, _)| shield);
+                    let owner_at = self.position_3d(skill.owner);
+                    let locks = self
+                        .skill_attacker(skill)
+                        .is_some_and(|attacker| attacker.lock_target);
+                    match (shield, lock) {
+                        (None, Some(lock)) if locks => self.position_3d(lock).unwrap_or(center),
+                        (None, _) => center,
+                        (Some(shield), lock) => {
+                            let inside = lock
+                                .and_then(|lock| self.position_3d(lock))
+                                .unwrap_or(center);
+                            owner_at.map_or(center, |outside| {
+                                self.shield_entry_point(shield, inside, outside)
+                            })
+                        }
+                    }
+                }
             }
-        }
-        self.add_terrain(team, &format!("unit {owner}"), fire, center)
+        };
+        self.add_terrain(team, &format!("unit {owner}"), fire, point)
     }
 
     /// `LifeStealEffectProvider.PerformHitEffect`: the skill's owner, alive
