@@ -124,8 +124,10 @@ pub(in crate::fight) struct Creator {
     /// `isEnable`, cleared while the technology that hands its owner the line
     /// is switched off: it counts on but makes nothing.
     enabled: bool,
-    /// The support technology that hands its owner the line, which
-    /// switches it.
+    /// The technology that hands its owner the line, which switches it: a
+    /// support technology's provider (`SupportUnitProvider`) a line no skill
+    /// gates, a support skill (`FightSupportSkill.Disable`) the line it
+    /// gates.
     technology: Option<i32>,
 }
 
@@ -393,9 +395,29 @@ impl Simulation {
             .clone();
         for creator in &mut self.support.lines {
             if creator.owner == Some(owner)
+                && creator.gate == Gate::None
                 && creator
                     .technology
                     .is_some_and(|technology| switched.contains(&technology))
+            {
+                creator.enabled = on;
+            }
+        }
+    }
+
+    /// `FightSupportSkill.Disable` and `Enable` of a technology's support
+    /// skill: its line's creator (`supportUnitCreator`) is disabled and
+    /// enabled with it, and counts on but makes nothing meanwhile.
+    pub(in crate::fight) fn switch_support_skill_line(
+        &mut self,
+        owner: u64,
+        technology: i32,
+        on: bool,
+    ) {
+        for creator in &mut self.support.lines {
+            if creator.owner == Some(owner)
+                && creator.gate != Gate::None
+                && creator.technology == Some(technology)
             {
                 creator.enabled = on;
             }

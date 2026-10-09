@@ -257,8 +257,12 @@ impl Simulation {
                     .get_mut(&actor_id)
                     .expect("actor identity is stable");
                 let switched = &actor.placement.effects.technology_disable.technologies;
+                let mut support_skills = Vec::new();
                 for extra in &mut actor.skills.extras {
                     if switched.contains(&extra.rules.technology) {
+                        if extra.skill.kind == SkillKind::Support {
+                            support_skills.push(extra.rules.technology);
+                        }
                         extra.skill.disabled = !on;
                         for sibling in extra.skill.siblings_mut() {
                             sibling.disabled = !on;
@@ -273,6 +277,9 @@ impl Simulation {
                     {
                         main.sibling_mut(slot).disabled = !on;
                     }
+                }
+                for technology in support_skills {
+                    self.switch_support_skill_line(actor_id, technology, on);
                 }
             }
             EffectProvider::StealthTech => self.switch_stealth(actor_id, on),
