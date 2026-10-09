@@ -55,8 +55,8 @@ use super::{
     providers::EffectProvider,
     sources::{
         AutoRecovery, BuffSource, CarriedShield, EnergyShield, LifeSteal, MoveAbilityAttack,
-        MoveAbilityRangeItem, ProductionLine, ReactiveArmor, Rebirth, RecoveryState, SiegeMode,
-        Stealth, SweepIntensify, WreckageRecovery,
+        MoveAbilityRangeItem, ProductionLine, ReactiveArmor, Rebirth, RebirthFollow, RecoveryState,
+        SiegeMode, Stealth, SweepIntensify, WreckageRecovery,
     },
 };
 
@@ -1035,7 +1035,10 @@ struct WreckageBlock {
 /// `FPoint` raw.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
-#[allow(dead_code, reason = "a pilot that follows an ally is not fought yet")]
+#[allow(
+    dead_code,
+    reason = "its rotation's rate turns a pilot no recording reads"
+)]
 struct RebirthBlock {
     cost_time: i64,
     count: i64,
@@ -1064,12 +1067,6 @@ fn rebirth_of(row: &Row, who: &str) -> std::result::Result<Option<Rebirth>, Stri
         .rebirth
         .as_ref()
         .ok_or_else(|| format!("{who} carries no rebirth"))?;
-    if block.follow_others {
-        return Err(format!(
-            "{who} brings its unit back behind an ally it follows (`IsFollowOthers`), \
-             which is not implemented"
-        ));
-    }
     let own = mechcore_document::unit_type_from_id(i32::try_from(block.unit_id).unwrap_or(-1))
         .is_some_and(|(name, _)| name == row.unit);
     if !own || block.unit_count != 1 {
@@ -1078,9 +1075,28 @@ fn rebirth_of(row: &Row, who: &str) -> std::result::Result<Option<Rebirth>, Stri
             block.unit_count, block.unit_id
         ));
     }
+    // `RebirthTechnologyData.rebirthingTime` is a `float`, a whole number
+    // of quarter seconds on every row, which `FPoint` takes exactly.
+    #[allow(
+        clippy::cast_possible_truncation,
+        reason = "the row's float is a few seconds"
+    )]
+    let rebirthing_q32 = (block.rebirthing_time * 4.0).round() as i64 * (1 << 30);
     Ok(Some(Rebirth {
         cost_seconds: block.cost_time,
         count: block.count,
+        rebirthing_q32,
+        follow: block.follow_others.then_some(RebirthFollow {
+            interval_x_q32: block.interval_x,
+            interval_z_q32: block.interval_z,
+            interval_from_center_z_q32: block.interval_from_mech_center_z,
+            random_offset_q32: block.random_offset_range,
+            start_offset_q32: block.follow_start_offset_range,
+            transfer_distance_q32: block.transfer_distance_min,
+            transfer_speed_q32: block.speed_in_transfer,
+            per_r_q32: block.per_r,
+            follow_rate_q32: block.follow_rate,
+        }),
     }))
 }
 
@@ -2375,9 +2391,9 @@ mod tests {
         );
     }
 
-    /// A rebirth technology hands its unit what brings it back where it
-    /// fell, through `DeadEffectProvider`; one whose pilot follows an ally is
-    /// refused by name.
+    /// A rebirth technology hands its unit what brings it back, through
+    /// `DeadEffectProvider`, and one whose pilot follows an ally how it
+    /// flies.
     #[test]
     fn a_rebirth_technology_hands_its_unit_a_source() {
         let table = TechnologyEffects::parse(
@@ -2394,6 +2410,8 @@ mod tests {
             Some(super::Rebirth {
                 cost_seconds: 5,
                 count: 1,
+                rebirthing_q32: 3 << 31,
+                follow: None,
             })
         );
         assert_eq!(
@@ -2405,10 +2423,10 @@ mod tests {
         );
         assert!(
             table
-                .corrections(&[10], "phoenix", 1)
-                .unwrap_err()
-                .to_string()
-                .contains("follows")
+                .sources(&[10], "phoenix")
+                .unwrap()
+                .rebirth
+                .is_some_and(|rebirth| rebirth.follow.is_some())
         );
     }
 
