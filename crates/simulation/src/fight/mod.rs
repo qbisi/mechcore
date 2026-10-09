@@ -307,6 +307,9 @@ struct Actor {
     /// Whether its sweep skill holds what its technology changes: cleared
     /// while that technology is switched off.
     sweep_intensified: bool,
+    /// Whether `MoveAbilityRangeItemSystem` holds its sand fog's action on
+    /// its move ability: taken off while its technology is switched off.
+    sand_fog_held: bool,
     /// `BuffManager.beHitDelayBuffInfos`: the buffs that disable technology
     /// a unit it hit queued on it, each with that unit, which
     /// `InvokeDelayAddBuff` adds as its `BuffManager.Update` ends.

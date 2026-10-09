@@ -1228,8 +1228,8 @@ off: `AirAttackEffectProvider.DisableEffect` and `EnableEffect` are
 as it activated (`SwitchMechAirAttackEnabled`), not among the numbers its
 technologies write. Read from the build; no recording holds it.
 
-What any other provider does switched off, the `SupportUnitProvider`,
-`MoveAbilitySummonProvider` and `MoveAbilityRangeItemProvider`, and an extra weapon's production line, other
+What any other provider does switched off, the `SupportUnitProvider` and
+`MoveAbilitySummonProvider`, and an extra weapon's production line, other
 explosion or preemptive skill, or group, is not measured: a buff that
 disables technology reaching a unit whose technologies reach one is refused
 by the provider's name.

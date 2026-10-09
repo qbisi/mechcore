@@ -88,6 +88,7 @@ impl Actor {
             buff_cycles: super::buff_cycle::BuffCycle::of(&placement.effects.buff_sources),
             buff_cycles_available: true,
             sweep_intensified: true,
+            sand_fog_held: true,
             reactive_armor: super::reactive_armor::ReactiveArmorState::of(&placement),
             placement,
             rules,

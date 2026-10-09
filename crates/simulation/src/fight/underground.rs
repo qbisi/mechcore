@@ -337,12 +337,31 @@ impl Simulation {
             .as_ref()
             .is_some_and(|underground| underground.state == AbilityState::Exit);
         actor.end_transition_state();
-        if let (true, Some(spec)) = (surfaced, actor.placement.effects.move_ability_range_item) {
+        let fog = actor
+            .placement
+            .effects
+            .move_ability_range_item
+            .filter(|_| actor.sand_fog_held);
+        if let (true, Some(spec)) = (surfaced, fog) {
             let position = (actor.x_q32, 0, actor.z_q32);
             let team = actor.placement.team;
             self.add_terrain(team, &format!("unit {actor_id}"), spec, position)?;
         }
         Ok(())
+    }
+}
+
+impl Simulation {
+    /// `MoveAbilityRangeItemProvider.DisableEffect` and `EnableEffect`: off,
+    /// `MoveAbilityRangeItemSystem.RemoveMech` takes the sand fog's action off
+    /// the unit's move ability (and the provider stops hearing the unit's
+    /// ability change); on, `AddMech` puts it back, so a surfacing that ends
+    /// while the technologies are off leaves no sand fog.
+    pub(in crate::fight) fn switch_sand_fog(&mut self, actor_id: u64, on: bool) {
+        self.actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable")
+            .sand_fog_held = on;
     }
 }
 

@@ -228,6 +228,8 @@ impl EffectProvider {
     /// - A stronger surfacing's linker takes its effect away and holds none
     ///   while off, its count going on
     ///   (`FightSkill.SetAttackCountEffectLinkerEnable`).
+    /// - A sand fog's action leaves its unit's move ability and is put back
+    ///   (`MoveAbilityRangeItemSystem.RemoveMech`, `AddMech`).
     /// - A burrowing technology's unit comes up, its buff removed, and its
     ///   manager passes over it (`BurrowSystem.Deactive`) until it is
     ///   switched on (`Active`).
@@ -260,8 +262,9 @@ impl EffectProvider {
             | Self::SweepSkillIntensify
             | Self::AirAttack
             | Self::InterceptMissile
-            | Self::MoveAbilityAttackIntensify => true,
-            Self::SupportUnit | Self::MoveAbilitySummon | Self::MoveAbilityRangeItem => false,
+            | Self::MoveAbilityAttackIntensify
+            | Self::MoveAbilityRangeItem => true,
+            Self::SupportUnit | Self::MoveAbilitySummon => false,
         }
     }
 }
