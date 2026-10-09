@@ -606,6 +606,46 @@ A Rhino that fells a Marksman takes its 1622; two Rhinos that fell a Vulcan
 take half its 30279 each, held to what each lacks. A holder disabled still
 heals for what it struck before.
 
+## Rebirth technologies
+
+A row of `rebirthEffectTechologyDatas` is a `RebirthTech`, an `IDeadEffect`
+and an `IRebirthData`: Field Reassembly, the Typhoon's, and Quantum
+Reassembly, the Phoenix's. Its `rebirth` carries the whole seconds its unit
+waits, 5 and 12, the times a fight brings it back, 1, the unit it rises as,
+its own, and whether it follows an ally while it waits, which Quantum
+Reassembly does and Field Reassembly does not. `DeadEffectProvider.DoActive`
+hands its unit to `DeadEffectSystem`.
+
+**A unit that dies starts a task where it fell.** `DeadEffectSystem.Update`,
+after `FightCoreSystem` and `ProjectileSystem`, hands each controller in turn
+the units with its dead effect that died this tick (`PerformDeadEffect`) and
+then updates it, all before any dead unit's `OnDead`. The rebirth
+controller sets a unit's count to its source's the first time it dies
+(`CostRebirthCount`, `GetRebirthCount`); while any is left it spends one and
+starts the unit's task (`GetRebirthTask`, `RebirthTask.StartTask`). A unit
+that does not follow an ally is marked rising (`FightMech.isRebirthing`).
+
+**A rising unit holds its side.** A side whose only units are rising has not
+lost: `FightCoreSystem.TryDstroyTower` and `IsStepFinish` count a unit alive
+or rising, so the towers stand, the fight goes on, and an enemy that has
+killed the last unit standing reads on at its cycle, as against an enemy
+still in the fight.
+
+**It stands again after its seconds.** Each update the task counts one, the
+update it started on first (`RebirthTask.Update`); the tasks are taken by
+index and one that ends is taken out under it, so the task after it is not
+counted on that update. Once it has counted the seconds over a tick, 100 for
+Field Reassembly, the unit stands where it fell, facing as it fell
+(`RebirthTask.RebirthMech`): its whole life back, with no heal
+(`FightMech.ForceRecoveryLife`), among its side's active units again
+(`FightTeam.ActiveMech`), its technologies' effects active again
+(`FightEffectSystem.ActiveEffect`), and every skill's attack time at its
+interval, so its first blow is due (`FightMech.EnterFight`). It is counted
+reborn (`FightMech.AddRebirthCount`), which cuts its score
+([`reactor_damage.md`](reactor_damage.md)). A unit that dies again with no
+rebirth left is gone. A fight that ends while a unit rises drops its task
+(`DeadRebirthController.OnFightExit`), and the unit scores nothing.
+
 ## Missile Interception
 
 Missile Interception makes its unit an interceptor: Mustang, Sabertooth,
@@ -976,6 +1016,15 @@ derive (a minimum range):
   Two Rhinos that fell a Vulcan both heal:
   `tests/wreckage/fights/split.yaml`. Disabled, it heals for no one it
   strikes: `tests/wreckage/fights/disabled.yaml`.
+- Field Reassembly brings each Typhoon back where it fell 100 updates after
+  it dies, its whole life and its attack time at its interval, once: the
+  second waits a tick longer as the first rises before it,
+  `tests/rebirth/fights/field-reassembly-anti-air.yaml`. While both wait
+  blue stands and the Fortress reads on at its cycle, and two reborn
+  Typhoons standing at the end score 31 each,
+  `tests/rebirth/fights/field-reassembly-stands.yaml`. A fight that ends
+  while one waits drops it, and it scores nothing,
+  `tests/rebirth/fights/field-reassembly-rising-at-the-end.yaml`.
 - A dead-line technology destroys a unit its unit's shots strike at or
   under the line at its level, before the shot's damage: Culling Rounds
   culls Crawlers at 250 under a level-one Mustang's 320, and Marksmen at 712
@@ -1244,6 +1293,21 @@ derive (a minimum range):
   `WreckageRecoveryEffectProvider.EnableEffect`,
   `WreckageRecoveryTechnologyData.GetDistance`, `SkillManager.AddHitEffect`,
   `FightMech.OnDead`.
+- A rebirth technology starts a task as its unit dies, before its `OnDead`,
+  while its count lasts, marks a unit that does not follow an ally rising,
+  counts the task each update and brings the unit back where it fell after
+  its whole seconds over a tick, and a rising unit holds its side:
+  `DeadEffectSystem.Update`, `DeadEffectSystem.Init`,
+  `DeadRebirthController.PerformDeadEffect`,
+  `DeadRebirthController.CostRebirthCount`, `DeadRebirthController.Update`,
+  `DeadRebirthController.OnFightExit`, `RebirthTask.StartTask`,
+  `RebirthTask.Update`, `RebirthTask.RebirthMech`, `RebirthTask.rebirthCostTime`,
+  `RebirthTech.GetRebirthCostTime`, `RebirthTech.GetRebirthCount`,
+  `RebirthTech.IsFollowOthers`, `FightMech.isRebirthing`,
+  `FightMech.ForceRecoveryLife`, `FightMech.AddRebirthCount`,
+  `FightMech.EnterFight`, `FightTeam.ActiveMech`,
+  `FightEffectSystem.ActiveEffect`, `FightCoreSystem.TryDstroyTower`,
+  `FightCoreSystem.IsStepFinish`.
 - A dead-line technology hands its unit's main skill a pre-hit effect that
   destroys a live unit at or under the line at the owner's level as a
   suicide, before the hit's shield and damage, and charges it the line:
@@ -1506,6 +1570,14 @@ derive (a minimum range):
   `InterceptSystem.OnChangeTeam`.
 
 ### Not established
+
+- **A pilot that follows an ally.** Quantum Reassembly's unit waits behind
+  the nearest Phoenix of its side and rises there (`RebirthTask.TryGetNearestTeamMech`,
+  `RebirthSurvival`); the simulator refuses it.
+- **A rebirth beside another dead effect, switched off, or of a turned or
+  summoned unit.** No recording holds one; the order of `DeadEffectSystem`'s
+  controllers, `DeadEffectProvider.DisableEffect` and a rebirth to another
+  side (`RebirthTask.rebirthToTeam`) are refused by name.
 
 - **A wreckage record running out, and the share among holders.** Read
   from the build; no recording holds a recorded unit dying after its time,

@@ -27,7 +27,7 @@ pub(crate) use providers::EffectProvider;
 pub(crate) use sources::{
     AllCycle, Arrival, AutoRecovery, BuffReach, BuffSource, BuffTrigger, CarriedShield, DeadSummon,
     EnergyShield, LifeSteal, MoveAbilityAttack, MoveAbilityRangeItem, ProductionLine,
-    ReactiveArmor, RecoveryState, SiegeMode, StackCondition, Stealth, SweepIntensify,
+    ReactiveArmor, Rebirth, RecoveryState, SiegeMode, StackCondition, Stealth, SweepIntensify,
     WreckageRecovery, current as current_source,
 };
 pub(crate) use technologies::{

@@ -61,6 +61,7 @@ mod pilot;
 mod projectile;
 mod random;
 mod reactive_armor;
+mod rebirth;
 mod recovery;
 mod run;
 mod rvo;
@@ -306,6 +307,9 @@ struct Actor {
     created: bool,
     /// `FightMech.rebirthCount`: the times it has been reborn in this fight.
     rebirth_count: u32,
+    /// `FightMech.isRebirthing`: dead and rising where it fell, which holds
+    /// its side standing.
+    rebirthing: bool,
     /// `MotionController.totalMoveDistanceWithoutDisableTech`, Q32.32 metres,
     /// and `prevPosition`, where its last `Move` before a solve found it.
     moved_q32: i64,
@@ -494,6 +498,7 @@ struct Simulation {
     siege: siege::SiegeModeSystem,
     /// `WreckageRecoverySystem`'s holders.
     wreckage: wreckage::WreckageSystem,
+    rebirth: rebirth::RebirthSystem,
     /// `MechGrounpSystem`'s groups.
     mech_groups: mech_group::MechGroupSystem,
     /// The RVO simulator's state and the obstacles besides the units.
@@ -619,6 +624,7 @@ impl Simulation {
             stealth: stealth::StealthSystem::default(),
             siege: siege::SiegeModeSystem::default(),
             wreckage: wreckage::WreckageSystem::default(),
+            rebirth: rebirth::RebirthSystem::default(),
             mech_groups: mech_group::MechGroupSystem::default(),
         };
         simulation.number_joiners();
@@ -843,7 +849,7 @@ impl Simulation {
                 .filter(|actor| actor.alive())
                 .map(|actor| self.unit_snapshot(actor.placement.unit_id))
                 .collect(),
-            rebirths: Vec::new(),
+            rebirths: self.rebirth_states(),
             projectiles: self.projectiles.iter().map(Projectile::snapshot).collect(),
             buildings: self
                 .buildings
@@ -869,11 +875,14 @@ impl Simulation {
     /// 1787720817) whose own target died the tick before the last enemy did
     /// stands idle and lockless, and reads its drawn 6 until the fight's final
     /// tick, where every unit reads its composed interval.
+    ///
+    /// A side with a unit rising where it fell is not left, and its enemies
+    /// read on.
     fn settle_intervals(&mut self, every_unit: bool, step: u64) {
         let alive_teams = self
             .actors
             .values()
-            .filter(|actor| actor.alive())
+            .filter(|actor| actor.alive() || actor.rebirthing)
             .map(|actor| actor.placement.team)
             .collect::<BTreeSet<_>>();
         let settled = self
@@ -1116,6 +1125,10 @@ impl Simulation {
         // Its dead effects first, the explosions among them, and then each
         // dead actor's `OnDead`.
         self.step_dead_explosions(&mut events)?;
+        // The rebirth controller after it, and every controller's
+        // `PerformDeadEffect` and `Update` before any `OnDead`.
+        let dead = self.dead_exits.clone();
+        self.step_rebirths(&dead)?;
         for unit_id in std::mem::take(&mut self.dead_exits) {
             self.actors
                 .get_mut(&unit_id)
@@ -1176,7 +1189,9 @@ impl Simulation {
         // A tick that leaves both sides with no unit, a Missile Strike
         // landing among both sides' Crawlers, fells both sides' towers.
         let wiped_out = [0_u32, 1].into_iter().all(|team| {
-            team_alive_counts.get(&team).is_none_or(|alive| *alive == 0) && !self.appearing_on(team)
+            team_alive_counts.get(&team).is_none_or(|alive| *alive == 0)
+                && !self.appearing_on(team)
+                && !self.rebirthing_on(team)
         }) && !team_alive_counts.is_empty()
             && self.projectiles.is_empty();
         let towers_fall = !fight_was_finished
@@ -1186,7 +1201,7 @@ impl Simulation {
         let mut queued_late_building_events = false;
         let appearing_teams = [0_u32, 1]
             .into_iter()
-            .filter(|&team| self.appearing_on(team))
+            .filter(|&team| self.appearing_on(team) || self.rebirthing_on(team))
             .collect::<BTreeSet<_>>();
         for building in self.buildings.iter_mut().filter(|building| {
             towers_fall
@@ -1316,6 +1331,7 @@ impl Simulation {
                 self.end_stealth_as_the_fight_ends();
                 self.end_siege_as_the_fight_ends()?;
                 self.end_wreckage_as_the_fight_ends();
+                self.end_rebirths_as_the_fight_ends();
             }
         }
         // `BuffManager.Clear` takes a dying unit's buffs as it dies, whatever
@@ -1347,6 +1363,7 @@ impl Simulation {
             self.end_stealth_as_the_fight_ends();
             self.end_siege_as_the_fight_ends()?;
             self.end_wreckage_as_the_fight_ends();
+            self.end_rebirths_as_the_fight_ends();
         }
         if !self.buffs.tower_events.is_empty() {
             return Err(Error::new(
@@ -1485,11 +1502,14 @@ impl Simulation {
     /// `FightCoreSystem.TryDstroyTower` passes over a team that
     /// `HaveProcessingMech`.
     /// Whether a side has a unit left in the fight, or one still to appear.
+    /// A side with a unit rising where it fell stands too
+    /// (`FightMech.IsRebirthing`).
     fn standing(&self, team: u32) -> bool {
         self.actors
             .values()
             .any(|actor| actor.placement.team == team && actor.alive())
             || self.appearing_on(team)
+            || self.rebirthing_on(team)
     }
 
     fn winner(&self) -> Option<u32> {
@@ -1505,7 +1525,7 @@ impl Simulation {
         let living_teams = self
             .actors
             .values()
-            .filter(|actor| actor.alive())
+            .filter(|actor| actor.alive() || actor.rebirthing)
             .map(|actor| actor.placement.team)
             .collect::<std::collections::BTreeSet<_>>();
         // `SupportUnitSystem.IsStepFinish` and `SummonSystem.IsStepFinish`:

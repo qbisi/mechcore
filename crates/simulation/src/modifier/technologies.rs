@@ -55,8 +55,8 @@ use super::{
     providers::EffectProvider,
     sources::{
         AutoRecovery, BuffSource, CarriedShield, EnergyShield, LifeSteal, MoveAbilityAttack,
-        MoveAbilityRangeItem, ProductionLine, ReactiveArmor, RecoveryState, SiegeMode, Stealth,
-        SweepIntensify, WreckageRecovery,
+        MoveAbilityRangeItem, ProductionLine, ReactiveArmor, Rebirth, RecoveryState, SiegeMode,
+        Stealth, SweepIntensify, WreckageRecovery,
     },
 };
 
@@ -132,9 +132,11 @@ const FIRE_INTENSIFY: &str = "fireIntensifyTechnologies";
 const SIEGE: &str = "siegeModeTechDatas";
 /// The list whose `WreckageRecoveryTech` is an `IWreckageRecovery`.
 const WRECKAGE: &str = "wreckageRecoveryTechnologies";
+/// The list whose `RebirthTech` is an `IDeadEffect` and an `IRebirthData`.
+const REBIRTH: &str = "rebirthEffectTechologyDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 28] = [
+const IMPLEMENTED: [&str; 29] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -163,6 +165,7 @@ const IMPLEMENTED: [&str; 28] = [
     SIEGE,
     FIRE_INTENSIFY,
     WRECKAGE,
+    REBIRTH,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -279,6 +282,8 @@ struct Technology {
     siege_mode: Option<SiegeMode>,
     /// What it answers `IWreckageRecovery` with, if its class is one.
     wreckage: Option<WreckageRecovery>,
+    /// What it answers `IRebirthData` with, if its class is one.
+    rebirth: Option<Rebirth>,
     /// What it answers `IMoveAbilityAttackIntensify` with, if its class is
     /// one.
     move_ability_attack: Option<MoveAbilityAttack>,
@@ -411,6 +416,8 @@ pub(crate) struct UnitSources {
     /// The first that heals its unit as an enemy it struck dies: the
     /// provider enables one source (`SingleEffectProvider`).
     pub(crate) wreckage: Option<WreckageRecovery>,
+    /// What brings its unit back after it dies.
+    pub(crate) rebirth: Option<Rebirth>,
     pub(crate) buff_sources: Vec<BuffSource>,
     pub(crate) interception: Vec<UnitInterception>,
     pub(crate) dead_summon: Option<UnitDeadSummon>,
@@ -746,6 +753,9 @@ struct Row {
     /// `WreckageRecoveryTechnologyData`'s fields, on a row of its list.
     #[serde(default)]
     wreckage: Option<WreckageBlock>,
+    /// `RebirthTechnologyData`'s fields, on a row of its list.
+    #[serde(default)]
+    rebirth: Option<RebirthBlock>,
     /// `DeadLineTechData`'s `deadLineValue`, whole life by the unit's level,
     /// and `ignoreEnergyShield`, on a row of its list.
     #[serde(default)]
@@ -1020,6 +1030,60 @@ struct WreckageBlock {
     distance: Vec<i64>,
 }
 
+/// What a rebirth row answers `IRebirthData` with: whole seconds, counts and
+/// the unit it rises as, then what a pilot that follows an ally flies by,
+/// `FPoint` raw.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[allow(dead_code, reason = "a pilot that follows an ally is not fought yet")]
+struct RebirthBlock {
+    cost_time: i64,
+    count: i64,
+    rebirthing_time: f64,
+    unit_id: u32,
+    unit_count: i64,
+    follow_others: bool,
+    interval_x: i64,
+    interval_z: i64,
+    interval_from_mech_center_z: i64,
+    random_offset_range: [i64; 3],
+    follow_start_offset_range: [i64; 3],
+    transfer_distance_min: i64,
+    speed_in_transfer: i64,
+    per_r: i64,
+    follow_rate: i64,
+    follow_rotate_rate: i64,
+}
+
+/// What a rebirth row brings its unit back as, or why this build will not.
+fn rebirth_of(row: &Row, who: &str) -> std::result::Result<Option<Rebirth>, String> {
+    if row.kind != REBIRTH {
+        return Ok(None);
+    }
+    let block = row
+        .rebirth
+        .as_ref()
+        .ok_or_else(|| format!("{who} carries no rebirth"))?;
+    if block.follow_others {
+        return Err(format!(
+            "{who} brings its unit back behind an ally it follows (`IsFollowOthers`), \
+             which is not implemented"
+        ));
+    }
+    let own = mechcore_document::unit_type_from_id(i32::try_from(block.unit_id).unwrap_or(-1))
+        .is_some_and(|(name, _)| name == row.unit);
+    if !own || block.unit_count != 1 {
+        return Err(format!(
+            "{who} brings its unit back as {} of unit type {}, which is not its own unit",
+            block.unit_count, block.unit_id
+        ));
+    }
+    Ok(Some(Rebirth {
+        cost_seconds: block.cost_time,
+        count: block.count,
+    }))
+}
+
 /// What a siege-mode row answers `ISiegeModeEffectDataSource` with: `FPoint`
 /// raw integers.
 #[derive(Debug, Clone, Copy, Deserialize)]
@@ -1210,6 +1274,10 @@ impl TechnologyEffects {
                 Ok(group) => (group, effect),
                 Err(why) => (None, Err(why)),
             };
+            let (rebirth, effect) = match rebirth_of(&row, &who) {
+                Ok(rebirth) => (rebirth, effect),
+                Err(why) => (None, Err(why)),
+            };
             let self_buff = buff_source.as_ref().is_some_and(adds_its_unit_a_buff);
             let technology = Technology {
                 unit: row.unit.clone(),
@@ -1225,6 +1293,7 @@ impl TechnologyEffects {
                     distance: block.distance,
                     can_disable: true,
                 }),
+                rebirth,
                 dead_line: (row.kind == DEAD_LINE)
                     .then(|| (row.dead_line_value.clone(), row.dead_line_ignores_shield)),
                 mech_group,
@@ -1361,6 +1430,15 @@ impl TechnologyEffects {
             }
             if sources.wreckage.is_none() {
                 sources.wreckage.clone_from(&technology.wreckage);
+            }
+            if let Some(rebirth) = &technology.rebirth {
+                if sources.rebirth.is_some() {
+                    return Err(Error::new(format!(
+                        "unit type {unit_type:?} is brought back by two technologies, \
+                         which is not measured"
+                    )));
+                }
+                sources.rebirth = Some(rebirth.clone());
             }
             sources.buff_sources.extend(technology.buff_source);
             sources.interception.extend(technology.interception);
@@ -1805,7 +1883,7 @@ fn provider_of(kind: &str, self_buff: bool) -> Option<EffectProvider> {
         BUFF => EffectProvider::Buff { cycles: !self_buff },
         INTERCEPT => EffectProvider::InterceptMissile,
         SUPPORT => EffectProvider::SupportUnit,
-        DEAD_SUMMON => EffectProvider::DeadEffect,
+        DEAD_SUMMON | REBIRTH => EffectProvider::DeadEffect,
         MOVE_SUMMON => EffectProvider::MoveAbilitySummon,
         EXTRA_WEAPON => EffectProvider::ExtraSkill,
         STEALTH => EffectProvider::StealthTech,
@@ -2294,6 +2372,43 @@ mod tests {
                 .into_keys()
                 .collect::<Vec<_>>(),
             [super::EffectProvider::WreckageRecovery]
+        );
+    }
+
+    /// A rebirth technology hands its unit what brings it back where it
+    /// fell, through `DeadEffectProvider`; one whose pilot follows an ally is
+    /// refused by name.
+    #[test]
+    fn a_rebirth_technology_hands_its_unit_a_source() {
+        let table = TechnologyEffects::parse(
+            "schema: mechcore.technology_effects\n\
+             technologies:\n\
+             - {id: 9, name: probe, unit: typhoon, kind: rebirthEffectTechologyDatas, \
+             rebirth: {cost_time: 5, count: 1, rebirthing_time: 1.5, unit_id: 22, unit_count: 1, follow_others: false, interval_x: 0, interval_z: 0, interval_from_mech_center_z: 0, random_offset_range: [0, 0, 0], follow_start_offset_range: [0, 0, 0], transfer_distance_min: 0, speed_in_transfer: 0, per_r: 0, follow_rate: 0, follow_rotate_rate: 0}}\n\
+             - {id: 10, name: pilot, unit: phoenix, kind: rebirthEffectTechologyDatas, \
+             rebirth: {cost_time: 5, count: 1, rebirthing_time: 1.5, unit_id: 16, unit_count: 1, follow_others: true, interval_x: 0, interval_z: 0, interval_from_mech_center_z: 0, random_offset_range: [0, 0, 0], follow_start_offset_range: [0, 0, 0], transfer_distance_min: 0, speed_in_transfer: 0, per_r: 0, follow_rate: 0, follow_rotate_rate: 0}}\n",
+        )
+        .unwrap();
+        assert_eq!(
+            table.sources(&[9], "typhoon").unwrap().rebirth,
+            Some(super::Rebirth {
+                cost_seconds: 5,
+                count: 1,
+            })
+        );
+        assert_eq!(
+            table
+                .providers(&[9], "typhoon")
+                .into_keys()
+                .collect::<Vec<_>>(),
+            [super::EffectProvider::DeadEffect]
+        );
+        assert!(
+            table
+                .corrections(&[10], "phoenix", 1)
+                .unwrap_err()
+                .to_string()
+                .contains("follows")
         );
     }
 

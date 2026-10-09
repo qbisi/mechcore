@@ -456,6 +456,7 @@ impl Simulation {
             stealth: None,
             siege_mode: None,
             wreckage: None,
+            rebirth: None,
             sweep: None,
             distance_intensify: false,
             secondary_damage: None,
@@ -767,7 +768,7 @@ impl Simulation {
     }
 
     /// The summon in its side's trees.
-    fn plant(&mut self, unit_id: u64) {
+    pub(in crate::fight) fn plant(&mut self, unit_id: u64) {
         let actor = &self.actors[&unit_id];
         let team = actor.placement.team;
         let (x_q32, z_q32, radius) = (actor.x_q32, actor.z_q32, actor.rules.collision_radius());

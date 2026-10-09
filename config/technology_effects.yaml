@@ -112,6 +112,10 @@ schema: mechcore.technology_effects
 # its unit on an enemy counts, and the whole metres, by the dying
 # unit's level, within which the unit takes life as that enemy dies
 # (`wreckage`).
+# A rebirth technology carries what brings its unit back after it dies
+# (`rebirth`): the whole seconds it waits, the times a fight brings it
+# back, the seconds it spends rising, the unit it rises as, and, for a
+# pilot that follows an ally, the FPoint offsets and rates it flies by.
 
 technologies:
   - id: 206
@@ -923,10 +927,44 @@ technologies:
     name: 量子重组
     unit: phoenix
     kind: rebirthEffectTechologyDatas
+    rebirth:
+      cost_time: 12
+      count: 1
+      rebirthing_time: 2.5
+      unit_id: 16
+      unit_count: 1
+      follow_others: true
+      interval_x: 21474836480  # 5
+      interval_z: 21474836480  # 5
+      interval_from_mech_center_z: 42949672960  # 10
+      random_offset_range: [21474836480, 21474836480, 21474836480]
+      follow_start_offset_range: [21474836480, 21474836480, 21474836480]
+      transfer_distance_min: 214748364800  # 50
+      speed_in_transfer: 171798691840  # 40
+      per_r: 171798691  # 0.04
+      follow_rate: 171798691  # 0.04
+      follow_rotate_rate: 429496729  # 0.1
   - id: 2922
     name: 战地重组
     unit: typhoon
     kind: rebirthEffectTechologyDatas
+    rebirth:
+      cost_time: 5
+      count: 1
+      rebirthing_time: 1.5
+      unit_id: 22
+      unit_count: 1
+      follow_others: false
+      interval_x: 0  # 0
+      interval_z: 0  # 0
+      interval_from_mech_center_z: 0  # 0
+      random_offset_range: [0, 0, 0]
+      follow_start_offset_range: [0, 0, 0]
+      transfer_distance_min: 0  # 0
+      speed_in_transfer: 0  # 0
+      per_r: 0  # 0
+      follow_rate: 0  # 0
+      follow_rotate_rate: 0  # 0
   - id: 3001
     name: 装甲强化
     unit: fortress

@@ -351,6 +351,22 @@ impl SkillManager {
         }
     }
 
+    /// A unit rising where it fell enters the fight with every skill's
+    /// `attackTime` at its interval: the first blow is due at once.
+    pub(in crate::fight) fn ready_attack_clocks(&mut self, step: u64) {
+        let step = i64::try_from(step).unwrap_or(i64::MAX);
+        let skills = std::iter::once(&mut self.main)
+            .chain(self.extras.iter_mut().map(|extra| &mut extra.skill));
+        for skill in skills {
+            skill.attack_time_anchor =
+                step - i64::try_from(skill.current_attack_interval).unwrap_or(i64::MAX);
+            for sibling in skill.siblings_mut() {
+                sibling.attack_time_anchor =
+                    step - i64::try_from(sibling.current_attack_interval).unwrap_or(i64::MAX);
+            }
+        }
+    }
+
     /// A tick on which no skill updates: `FightSkill.Update` adds nothing
     /// to any skill's `attackTime`, so the attack each is waiting for comes
     /// a tick later. A Sandworm's interval stands still while it burrows and

@@ -117,6 +117,16 @@ pub(crate) struct WreckageRecovery {
     pub(crate) can_disable: bool,
 }
 
+/// What an `IRebirthData` answers: `DeadRebirthController` brings its unit
+/// back where it fell, a while after it dies.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Rebirth {
+    /// `GetRebirthCostTime`, whole seconds: how long the unit waits.
+    pub(crate) cost_seconds: i64,
+    /// `GetRebirthCount`: the times a fight brings it back.
+    pub(crate) count: i64,
+}
+
 /// What an `ISiegeModeEffectDataSource` answers: `SiegeModeEffectSystem`
 /// digs its unit in as the fight starts, and lets it out once no enemy has
 /// stood in its main skill's range for a while.

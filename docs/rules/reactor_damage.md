@@ -78,6 +78,11 @@ and taken out again before the score is compared, so it does not count either.
   `tests/control/fights/anti-interference-rhino.yaml`, and a Missile Strike
   that leaves neither side standing scores 0 for both,
   `tests/battle_skill/fights/heavy-missile-strike.yaml`.
+- A reborn unit standing at the end scores its row times
+  `rebirth_unit_score_rate`: two Typhoons with Field Reassembly that died and
+  rose score 31 each, `tests/rebirth/fights/field-reassembly-stands.yaml`,
+  and one still waiting when the fight ends scores nothing,
+  `tests/rebirth/fights/field-reassembly-rising-at-the-end.yaml`.
 
 ### Replayed
 
@@ -127,11 +132,6 @@ and taken out again before the score is compared, so it does not count either.
 
 ### Not established
 
-- **A reborn unit in play.** No pinned fight leaves a reborn unit standing.
-  A recording of two Typhoons with Field Reassembly that die, are reborn and
-  stand at the end scored each at its row's 125 times
-  `rebirth_unit_score_rate`, 31, in the game's own `team_scored`; it is pinned
-  once the simulator fights the technology.
 - **A summoned unit's level.** No document states it, and no row of this
   table scores levels differently, so nothing here depends on it. A row that
   did would leave a summoned unit's score unanswered.
