@@ -148,6 +148,11 @@ a block the tick one enters its line and off it the tick it leaves. A lock that
 dies behind a block is searched for again at once, the block kept if it stands
 in the way of the new one too.
 
+**Only a block is in the way.** `PrepareWalls` takes the enemy's constructions
+whose row answers `IsEnableBlock`, alive and with durability where they have
+any: a turret on the line is not in the way. A Mustang firing at a unit beyond
+an Anti-Armor Turret keeps firing at the unit.
+
 It is **the nearest wall the line reaches**, not the nearest wall and not the
 wall nearest the line. **The width does not belong to the attacker**: units of
 different collision radius take and pass up blocks at the same distance from
