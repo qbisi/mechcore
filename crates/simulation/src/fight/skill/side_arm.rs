@@ -199,30 +199,27 @@ impl Simulation {
     }
 
     /// `FightSkill.NeedRefreshSideArmTarget`: a side arm searches again when
-    /// the main skill holds no live lock and it holds one, when its own lock
-    /// is dead, out of its attack range or angle, and when its lock is not
-    /// the main skill's and stands further from it than the side arm's search
-    /// range.
+    /// the main skill holds no live lock and it holds one, and when its own
+    /// lock is dead or out of its attack range or angle.
+    ///
+    /// Its lock standing far from the main skill's is no reason: the build
+    /// compares their distance with a range it reads through a helper the
+    /// decompilation does not resolve (`0x264EE0`), and the game keeps a
+    /// living lock in the side arm's area 49 metres from the main skill's,
+    /// beyond the 40 of its search range, without asking its selector.
     pub(in crate::fight) fn need_refresh_side_arm_target(&self, skill_ref: SkillRef) -> bool {
-        let anchor = self
+        let lock = self.skill(skill_ref).lock_target;
+        if !self
             .skill(SkillRef::main(skill_ref.owner))
             .lock_target
-            .filter(|&anchor| self.fight_actor_is_alive(anchor));
-        let lock = self.skill(skill_ref).lock_target;
-        let Some(anchor) = anchor else {
+            .is_some_and(|anchor| self.fight_actor_is_alive(anchor))
+        {
             return lock.is_some();
-        };
+        }
         let Some(lock) = lock.filter(|&lock| self.fight_actor_is_alive(lock)) else {
             return true;
         };
-        if !self.target_in_attack_area(skill_ref, lock) {
-            return true;
-        }
-        if lock == anchor {
-            return false;
-        }
-        let range = self.side_arm_search_range(skill_ref);
-        range <= 0 || !self.within_of(lock, anchor, range)
+        !self.target_in_attack_area(skill_ref, lock)
     }
 
     /// `SideArmSearchTargetController.PerformNormalSkillSearch`: about the

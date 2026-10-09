@@ -260,6 +260,10 @@ The map's own buildings are the exception and are named: each side gets one
 - Two Stormcallers whose burst goes on at a block that fell at tick 695 read
   attacking through it, their turrets turning to their lock:
   `tests/corpus/134369439-r8.yaml`.
+- Stormcallers walking up to a wall take the next block along it once the one
+  ahead comes inside their 70 metre minimum range centre to centre, and fire
+  at their lock once no block on the line is far enough:
+  `tests/corpus/134362016-r5.yaml`, ticks 26 to 32.
 - A unit with four weapon slots takes the block in its way with every slot,
   splashes the next block, and drops its slots with the lock when a block falls:
   `tests/construction/`.
