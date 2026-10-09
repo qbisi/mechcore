@@ -747,8 +747,14 @@ drawn from any stream, and no event is written.
   agent is handed no speed while it appears. Both are measured, not read: the
   game's `rvo_solve` rows read an appearing summon's agent locked with a
   maximum speed of 0.
-- **A summon killed by its own air drop.** Whose death that counts as is not
-  measured; the simulator refuses it.
+- **A summon killed by its own air drop.** `PerformAirDropDamage` hands
+  `FightCalculator.CalculateHitActorDamage` a direct hit (`isDirectHit`)
+  under the summon's side with no attacker, which goes straight to
+  `FightActor.ReduceLife`: no shield, rate or `OnHitted`. A summon that loses
+  all its life so dies as any unit does, credited to no one, its damage
+  recorded before its death: a level 1 Rhino of Rhino Assault dropped on a
+  level 9 Fortress deals it 19297 and dies. Read from the build; no recording
+  holds it.
 - **A support skill whose row places its summons at set offsets**, or makes
   them in capped batches. None of the standard ones does, and the simulator
   refuses such a row.

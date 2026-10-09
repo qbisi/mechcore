@@ -730,7 +730,11 @@ impl Simulation {
     /// `FightActor.OnLifeChange`, which `ReduceLife` invokes once it took
     /// life from a unit: its `GetDamage` buff sources, and
     /// `StealthTechSystem`.
-    fn on_life_change(&mut self, unit_id: u64, events: &mut Vec<Event>) -> Result<()> {
+    pub(in crate::fight) fn on_life_change(
+        &mut self,
+        unit_id: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
         self.add_damaged_buffs(unit_id, events)?;
         self.stealth_on_life_change(unit_id);
         Ok(())
@@ -1510,7 +1514,7 @@ impl Simulation {
     /// however its unit died once the unit has arrived
     /// (`FightExplosionSkill.EnterFight`, `OnTravelFinished`), and its
     /// `OnDead`, whose `BuffManager.OnMechDead` lets a buff it runs summon.
-    fn on_actor_dead(&mut self, unit_id: u64) {
+    pub(in crate::fight) fn on_actor_dead(&mut self, unit_id: u64) {
         self.dead_exits.push(unit_id);
         if !self.actors[&unit_id].travelling && self.explodes_on_death(unit_id) {
             self.dead_explosions.push((unit_id, false));
