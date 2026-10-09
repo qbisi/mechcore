@@ -798,9 +798,9 @@ impl Simulation {
         // a unit held by a construction in its line of fire still advances on
         // the unit behind it, and only stops because the construction is in
         // reach. The two coincide in every fight without one.
+        let walked_on = self.walked_on(actor_id, target).unwrap_or(target);
         let (body_x_q32, body_z_q32, body_radius) = self
-            .walked_on(actor_id, target)
-            .and_then(|lock| self.fight_actor(lock))
+            .fight_actor(walked_on)
             .map_or((target_x_q32, target_z_q32, target_radius), |view| {
                 (view.x_q32, view.z_q32, view.radius)
             });
@@ -835,8 +835,20 @@ impl Simulation {
             actor.aim_rotation = actor.body_rotation;
             return Ok(());
         }
-        let Some(in_reach) =
-            self.reach_or_surface(actor_id, target, sees_target, edge_distance_q32)?
+        let actor = &self.actors[&actor_id];
+        let lock_edge_distance_q32 = native_q32_magnitude(
+            body_x_q32.saturating_sub(actor.x_q32),
+            body_z_q32.saturating_sub(actor.z_q32),
+        )
+        .saturating_sub(space_to_q32(actor.rules.collision_radius()))
+        .saturating_sub(space_to_q32(body_radius))
+        .max(0);
+        let Some(in_reach) = self.reach_or_surface(
+            actor_id,
+            (target, edge_distance_q32),
+            (walked_on, lock_edge_distance_q32),
+            sees_target,
+        )?
         else {
             return Ok(());
         };
@@ -875,10 +887,13 @@ impl Simulation {
     }
 
     /// `MotionMoveState.Update` of a unit moving below: it asks its ability
-    /// alone whether its lock, `edge_distance_q32` off, is in range
+    /// alone whether its lock, `lock_edge_distance_q32` off, is in range
     /// (`UndergroundMoveAbility.IsLockTargetInRange`), within the exit range,
     /// and when it is changes to attack through the ability, which surfaces
-    /// it; out of it, it walks on, whatever its skill's range. No attack
+    /// it; out of it, it walks on, whatever its skill's range. The lock is
+    /// `IAttacker.GetLockTarget`, not what the skill fires at: a Sandworm
+    /// whose skill fires at a block in the way of its lock stays below until
+    /// the lock is within the exit range. No attack
     /// starts on that tick: a Sandworm that travelled below with its target
     /// already in its range strikes as soon as it has surfaced. Any other
     /// unit asks whether its target is in reach ([`Self::motion_in_reach`]);
@@ -887,17 +902,17 @@ impl Simulation {
     fn reach_or_surface(
         &mut self,
         actor_id: u64,
-        target: FightActorRef,
+        (target, edge_distance_q32): (FightActorRef, i64),
+        (lock, lock_edge_distance_q32): (FightActorRef, i64),
         sees_target: bool,
-        edge_distance_q32: i64,
     ) -> Result<Option<bool>> {
         let actor = &self.actors[&actor_id];
         let below = actor
             .underground
             .as_ref()
             .filter(|_| actor.motion.state == MotionState::Moving)
-            .and_then(|underground| underground.lock_in_exit_range(edge_distance_q32));
-        if below == Some(true) && self.shield_around(target).is_some() {
+            .and_then(|underground| underground.lock_in_exit_range(lock_edge_distance_q32));
+        if below == Some(true) && self.shield_around(lock).is_some() {
             return Err(Error::new(format!(
                 "unit {actor_id} moves below on a lock within an energy shield, and what \
                  UndergroundMoveAbility.IsLockTargetInRange reads through a shield is not \

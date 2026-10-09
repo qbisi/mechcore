@@ -1,0 +1,68 @@
+# Replay 2328_20261007--67257780, round 5, map 1011. Blue's Sandworm 67,
+# below and firing at red's block 9 in the way of its lock 267, surfaces
+# only as 267 comes within its 30 m exit range
+# (`UndergroundMoveAbility.IsLockTargetInRange` of `GetLockTarget`), at
+# tick 625 rather than as it nears the block.
+
+kind: fight
+map_id: 1011
+seed: 1092841387
+round: 5
+source: game
+ticks: 1408
+hash: {profile: mcfr-content-0.22.0, result: 77164679d650533d0cd25756c9e7a2f062640b617a8bc8431017b69474fb67d3}
+blue:
+  core_damage: 1006
+  officers: [advanced_missile_device, giant_specialist]
+  techs:
+    sandworm: [burrow_maintenance, armor_enhancement]
+  blueprints: [attack_enhancement, defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  legacy_index: 16
+  units:
+  - {name: fang, index: 0, position: {x: 140, y: -205}, exp: 342/407/600, rotated: true}
+  - {name: fang, index: 1, position: {x: -140, y: -205}, exp: 456/600/600, rotated: true}
+  - {name: fang, index: 2, position: {x: 0, y: -205}, exp: 505/547/600, rotated: true}
+  - {name: crawler, index: 5, position: {x: 290, y: -235}, exp: 105/145/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -290, y: -235}, exp: 108/123/450, rotated: true}
+  - {name: crawler, index: 7, position: {x: 0, y: -255}, exp: 35/44/450, rotated: true}
+  - {name: crawler, index: 8, position: {x: -140, y: -255}, exp: 53/123/450, rotated: true}
+  - {name: crawler, index: 9, position: {x: 140, y: -255}, exp: 98/139/450, rotated: true}
+  - {name: mustang, index: 10, position: {x: -175, y: -300}, level: 2, exp: 1865/2704/2704}
+  - {name: sandworm, index: 11, position: {x: 170, y: -250}, exp: 1089/1482/2000, equipment: [amplifying_core]}
+  - {name: sandworm, index: 12, position: {x: -170, y: -250}, exp: 418/932/2000}
+  - {name: sandworm, index: 13, position: {x: -30, y: -250}, exp: 573/1681/2000}
+  - {name: fang, index: 14, position: {x: -140, y: -95}, exp: 0/40/600, rotated: true}
+  - {name: fang, index: 15, position: {x: 140, y: -95}, exp: 85/85/600, rotated: true}
+  - {name: sandworm, index: 16, position: {x: 30, y: -250}, exp: 0/1161/2000}
+  - {name: fang, index: 17, position: {x: 0, y: -95}, exp: 0/107/600, rotated: true}
+red:
+  officers: [fortified_specialist, assault_melting_point]
+  techs:
+    melting_point: [energy_absorption]
+    fire_badger: [range_enhancement]
+  blueprints: [attack_enhancement]
+  legacy_index: 15
+  units:
+  - {name: hound, index: 0, position: {x: 190, y: -50}, exp: 750/750/750}
+  - {name: hound, index: 1, position: {x: 90, y: -50}, exp: 750/750/750}
+  - {name: hound, index: 2, position: {x: -140, y: -200}, exp: 750/750/750, rotated: true}
+  - {name: void_eye, index: 5, position: {x: 90, y: -80}, exp: 650/650/650}
+  - {name: void_eye, index: 6, position: {x: -190, y: -170}, exp: 353/463/650}
+  - {name: hound, index: 7, position: {x: -280, y: -200}, exp: 577/750/750, rotated: true}
+  - {name: marksman, index: 8, position: {x: 190, y: -130}, level: 2, exp: 0/80/1465}
+  - {name: marksman, index: 9, position: {x: 110, y: -130}, exp: 574/597/650}
+  - {name: mustang, index: 10, position: {x: 185, y: -220}, level: 3, exp: 0/290/4274}
+  - {name: crawler, index: 11, position: {x: -280, y: -245}, exp: 171/215/450, rotated: true}
+  - {name: crawler, index: 12, position: {x: 260, y: -285}, exp: 299/380/450, rotated: true}
+  - {name: melting_point, index: 13, position: {x: -160, y: -140}, exp: 747/1400/1400}
+  - {name: melting_point, index: 14, position: {x: 220, y: -140}, exp: 1156/1400/1400}
+  - {name: fire_badger, index: 15, position: {x: 220, y: -95}, exp: 0/368/1400, rotated: true}
+  - {name: fire_badger, index: 16, position: {x: -140, y: -95}, exp: 0/1303/1400, rotated: true}
+  - {name: fire_badger, index: 17, position: {x: 120, y: -95}, exp: 0/536/1400, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 196, y: -106}}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: -157, y: -149}]}
