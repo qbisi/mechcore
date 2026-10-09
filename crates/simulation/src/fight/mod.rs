@@ -65,6 +65,7 @@ mod search;
 mod shield;
 mod skill;
 mod statistics;
+mod stealth;
 mod super_deployment;
 mod support_unit;
 mod sweep;
@@ -198,6 +199,9 @@ struct FightActorView {
     /// Whether the tick-start snapshot the selectors score saw it visible:
     /// `ScoreRatingTargetSelector` passes over a unit that is not.
     query_visible: bool,
+    /// Its visibility in that snapshot, which the selectors' own
+    /// `AttackTargetFilter` asks.
+    query_visibility: Visibility,
     targetable: bool,
     /// Whether it could be targeted as the tick opened, which the scores a
     /// search prepared then read: a tower that falls during the tick is
@@ -207,7 +211,24 @@ struct FightActorView {
     /// and a lock already held does not: a Rhino keeps its lock on a
     /// Sandworm that burrows and walks on towards it.
     visible: bool,
+    /// `FightActor.visibility`, which a shot that lands asks no more of than
+    /// that it is not hidden (`IsValidTarget(Stealth)`).
+    visibility: Visibility,
     domain: UnitDomain,
+}
+
+impl FightActorView {
+    /// The visibility half of `AttackTargetFilter.Check`, which every
+    /// selector's search asks: not in stealth, as the tick opened for a
+    /// prepared search, or now.
+    fn searchable(&self, prepared: bool) -> bool {
+        let visibility = if prepared {
+            self.query_visibility
+        } else {
+            self.visibility
+        };
+        visibility != Visibility::Stealth
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -230,7 +251,7 @@ struct Actor {
     target_query_z_q32: i64,
     target_query_source_rotation_q32: i64,
     target_query_alive: bool,
-    target_query_visible: bool,
+    target_query_visibility: Visibility,
     body_rotation: i64,
     body_rotation_q32: i64,
     aim_rotation: i64,
@@ -453,6 +474,8 @@ struct Simulation {
     kills: kills::KillCounts,
     /// `RangeItemSystem`'s terrains and the units standing in them.
     terrain: terrain::TerrainSystem,
+    /// `StealthTechSystem`'s units.
+    stealth: stealth::StealthSystem,
     /// The RVO simulator's state and the obstacles besides the units.
     rvo: RvoState,
     /// The buffs on constructions and the buff events a tick holds back.
@@ -479,6 +502,7 @@ impl Simulation {
         Ok(simulation)
     }
 
+    #[allow(clippy::too_many_lines)]
     fn new_unprepared(
         layout: &CompiledLayout,
         configs: &UnitConfigs,
@@ -572,9 +596,11 @@ impl Simulation {
             exp: experience::ExpSystem::new(building_exp)?,
             kills: kills::KillCounts::default(),
             terrain: terrain::TerrainSystem::default(),
+            stealth: stealth::StealthSystem::default(),
         };
         simulation.number_joiners();
         simulation.activate_interceptions();
+        simulation.enter_stealth_fight();
         simulation.restore_standing_oil(&layout.standing_oil)?;
         // `CommanderSkillManager.OnFightStart`: a path is given out before
         // the first tick, and lands nothing.
@@ -1078,6 +1104,9 @@ impl Simulation {
         // Its `TryProcessDeadImportantUnit` too: a side whose last important
         // unit died this tick loses every unit it has left.
         self.lose_important_units(&events)?;
+        // `StealthTechSystem` updates after `DeadEffectSystem` and
+        // `FightConstructionSystem`, one of the last modules.
+        self.step_stealth();
         // A side whose last unit died this tick loses its towers even when
         // a shot landing on the same tick is what leaves the fight finished:
         // a Sandworm's blow that kills the last Overlord as a tower's shot
@@ -1235,6 +1264,7 @@ impl Simulation {
             if leaves_now {
                 self.clear_buffs_as_the_fight_ends(&mut events)?;
                 self.clear_terrains_as_the_fight_ends()?;
+                self.end_stealth_as_the_fight_ends();
             }
         }
         // `BuffManager.Clear` takes a dying unit's buffs as it dies, whatever
@@ -1262,6 +1292,7 @@ impl Simulation {
         if !(publish_late_building_events && leaves_now) && self.ready_to_finish() {
             self.clear_buffs_as_the_fight_ends(&mut events)?;
             self.clear_terrains_as_the_fight_ends()?;
+            self.end_stealth_as_the_fight_ends();
         }
         if !self.buffs.tower_events.is_empty() {
             return Err(Error::new(
@@ -1351,10 +1382,12 @@ impl Simulation {
                     radius: actor.rules.collision_radius(),
                     alive: actor.alive(),
                     query_alive: actor.target_query_alive,
-                    query_visible: actor.target_query_visible,
+                    query_visible: actor.target_query_visibility == Visibility::Normal,
+                    query_visibility: actor.target_query_visibility,
                     targetable: actor.alive(),
                     query_targetable: actor.target_query_alive,
                     visible: actor.visibility == Visibility::Normal,
+                    visibility: actor.visibility,
                     domain: actor.rules.domain,
                 })
             }
@@ -1375,7 +1408,9 @@ impl Simulation {
                     alive: building_alive(building),
                     query_alive: self.buildings_query_alive.contains(&id),
                     query_visible: true,
+                    query_visibility: Visibility::Normal,
                     visible: true,
+                    visibility: Visibility::Normal,
                     targetable: building.targetable && building.available,
                     query_targetable: self.buildings_query_alive.contains(&id)
                         && building.available,

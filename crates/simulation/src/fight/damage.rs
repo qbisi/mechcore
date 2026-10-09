@@ -500,6 +500,7 @@ impl Simulation {
         Ok(stroke)
     }
 
+    #[allow(clippy::too_many_lines)]
     fn strike_target(
         &mut self,
         target: FightActorRef,
@@ -528,8 +529,13 @@ impl Simulation {
                     (amount, amount)
                 };
                 // Then the unit's damage reduction comes off it, though
-                // never to below 1, and off a summon's drop only so far.
-                let amount = reduced(amount, unit.stats.reduce_damage(), provider);
+                // never to below 1, and off a summon's drop only so far; a
+                // unit in stealth loses none of it, though it counts as taken.
+                let amount = if unit.visibility == Visibility::Stealth {
+                    0
+                } else {
+                    reduced(amount, unit.stats.reduce_damage(), provider)
+                };
                 let previous_life = unit.life;
                 // `FightMech.OnHitted`: a shield with energy left takes the
                 // hit, as much of it as it holds, and the unit loses no life;
@@ -559,7 +565,7 @@ impl Simulation {
                 // `ReduceLife` invokes `OnLifeChange` as soon as it took
                 // life, before the unit's death is handled.
                 if actual > 0 {
-                    self.add_damaged_buffs(unit_id, events)?;
+                    self.on_life_change(unit_id, events)?;
                 }
                 let unit = &self.actors[&unit_id];
                 let death = (unit.life == 0).then(|| QVec3 {
@@ -623,6 +629,15 @@ impl Simulation {
                 Ok(stroke)
             }
         }
+    }
+
+    /// `FightActor.OnLifeChange`, which `ReduceLife` invokes once it took
+    /// life from a unit: its `GetDamage` buff sources, and
+    /// `StealthTechSystem`.
+    fn on_life_change(&mut self, unit_id: u64, events: &mut Vec<Event>) -> Result<()> {
+        self.add_damaged_buffs(unit_id, events)?;
+        self.stealth_on_life_change(unit_id);
+        Ok(())
     }
 
     /// Resolves one hit against everything it strikes.

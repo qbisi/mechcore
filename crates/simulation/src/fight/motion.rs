@@ -779,7 +779,8 @@ impl Simulation {
         let target_z_q32 = target_view.z_q32;
         let target_radius = target_view.radius;
         // `IsAttackTargetInAttackRange` asks whether the target is visible.
-        let sees_target = self.reaches_hidden(FightActorRef::Unit(actor_id), target_view.visible);
+        let sees_target =
+            self.reaches_hidden(FightActorRef::Unit(actor_id), target_view.visibility);
         // Where the body goes when it moves is the lock's, not the weapons':
         // a unit held by a construction in its line of fire still advances on
         // the unit behind it, and only stops because the construction is in
@@ -1257,7 +1258,7 @@ impl Simulation {
         else {
             return Ok(update);
         };
-        let sees_target = self.reaches_hidden(FightActorRef::Unit(actor_id), view.visible);
+        let sees_target = self.reaches_hidden(FightActorRef::Unit(actor_id), view.visibility);
         let (dx, dz) = (
             view.x_q32.saturating_sub(actor.x_q32),
             view.z_q32.saturating_sub(actor.z_q32),

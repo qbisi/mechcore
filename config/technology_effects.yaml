@@ -66,7 +66,9 @@ schema: mechcore.technology_effects
 # its unit's attacks fires (`projectile_count_value`), and the FPoint
 # seconds it adds between two of them and metres it adds to how far
 # each lands from its target (`projectile_duration_value`,
-# `projectile_random_range_value`).
+# `projectile_random_range_value`). A stealth technology carries the
+# share of its unit's maximum life its life first falling to puts it in
+# stealth, and the seconds that lasts (`stealth`).
 
 technologies:
   - id: 206
@@ -2529,6 +2531,9 @@ technologies:
     name: 应急装甲
     unit: vortex
     kind: stealthTechData
+    stealth:
+      trigger_life_rate: 2147483648  # 0.5
+      duration: 17179869184  # 4
   - id: 1022002
     name: 射程强化
     unit: mountain

@@ -44,6 +44,20 @@ pub(crate) struct AutoRecovery {
     pub(crate) can_disable: bool,
 }
 
+/// What an `IStealthTechDataSource` answers: `StealthTechSystem` puts its
+/// unit in stealth once its life first falls to a share of its maximum, for a
+/// while.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct Stealth {
+    /// `GetTriggerConditionValue`, Q32.32: the share of its maximum life its
+    /// life falls to.
+    pub(crate) trigger_life_rate_q32: i64,
+    /// `GetDuration`, Q32.32 seconds.
+    pub(crate) duration_q32: i64,
+    /// `CanDisable`, as [`LifeSteal::can_disable`].
+    pub(crate) can_disable: bool,
+}
+
 /// A `BuffEquipment` or a `BuffTech` as `BuffEffectProvider` reads it: one
 /// whose `BuffTechListener` is `FightStart` and which always triggers, the
 /// targets its `BuffCycleController` gives the buff, and the `buffDatas` row

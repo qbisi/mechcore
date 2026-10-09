@@ -52,6 +52,7 @@ pub(super) fn placement(
         lifesteal: None,
         auto_recovery: None,
         energy_shield: None,
+        stealth: None,
         sweep: None,
         distance_intensify: false,
         secondary_damage: None,

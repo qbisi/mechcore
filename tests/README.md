@@ -33,6 +33,7 @@ out to show:
 | [`splash/`](splash/README.md) | how a correction widens a skill's splash, and a skill with none given one |
 | [`super_deployment/`](super_deployment/README.md) | what a formation deployed on a flank does in a fight, travelling in or settled |
 | [`sweep/`](sweep/README.md) | what a sweep strikes beyond the standard fights: shields, buildings, aircraft beside ground units, its technology |
+| [`stealth/`](stealth/README.md) | when a stealth technology hides its unit, what strikes and finds it meanwhile, and what disabling it does |
 | [`shield/`](shield/README.md) | what a battlefield shield does to the hits meant for what it covers, and when it breaks |
 | [`search/`](search/README.md) | which positions a skill's target search scores |
 | [`secondary_damage/`](secondary_damage/README.md) | what a technology's second damage deals around each of its unit's hits |

@@ -811,22 +811,23 @@ impl Simulation {
                 .shield_attack_point(shield, skill_ref, target)
                 .is_some_and(|(x_q32, z_q32)| attacker.reaches_shield(x_q32, z_q32));
         }
-        self.reaches_hidden(skill_ref.owner, view.visible)
+        self.reaches_hidden(skill_ref.owner, view.visibility)
             && attacker.reaches(view.x_q32, view.z_q32, view.radius)
     }
 
     /// The visibility half of `SkillAttackRangeChecker.IsActorInAttackRange`:
     /// a target that is not visible is out of range, except to a unit whose
     /// own `MechData` moves underground, which reaches one hidden the way it
-    /// is (and not one in stealth, which no unit's skill makes).
+    /// is, though not one in stealth.
     pub(in crate::fight) fn reaches_hidden(
         &self,
         owner: FightActorRef,
-        target_visible: bool,
+        target_visibility: Visibility,
     ) -> bool {
-        target_visible
-            || matches!(owner, FightActorRef::Unit(id)
-                if self.actors[&id].rules.underground.is_some())
+        target_visibility == Visibility::Normal
+            || (target_visibility != Visibility::Stealth
+                && matches!(owner, FightActorRef::Unit(id)
+                    if self.actors[&id].rules.underground.is_some()))
     }
 
     /// Whether a target is within the owner's attack angle:

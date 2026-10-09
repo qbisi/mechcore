@@ -1,0 +1,27 @@
+# Emergency Armor on a Vortex shot by three Marksmen.
+#
+# Two shots take the Vortex from 8538 to 3880 (t83, t84), the second leaving
+# it at no more than half its maximum life: it goes into stealth as that
+# shot lands, no longer targetable. The Marksmen give their locks up (t85),
+# and the third shot, already on its way, lands on it and takes nothing.
+# Their selectors pass over it, and at t90 they lock red's towers instead.
+# 81 updates on, its time past the 4 seconds, it is shown again (t165).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 193
+hash: {profile: mcfr-content-0.22.0, result: ffd5371d621b3f41c53c4205637d61b59252055f3bb1209bcf1728675f8fbb08}
+blue:
+  core_damage: 200
+  techs:
+    vortex: [emergency_armor]
+  units:
+  - {name: vortex, index: 0, position: {x: 0, y: -100}, exp: 0/200/750}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -100}, exp: 0/50/650}
+  - {name: marksman, index: 1, position: {x: 0, y: -100}}
+  - {name: marksman, index: 2, position: {x: 20, y: -100}, exp: 0/150/650}
