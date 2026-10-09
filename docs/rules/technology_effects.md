@@ -2083,8 +2083,18 @@ derive (a minimum range):
 - **A unit's interceptors switched off.** `InterceptMissileEffectProvider.DisableEffect`
   disables each and lets it idle (`InterceptEffectBase.DoDisable`); no
   recording holds it, and a disable reaching an interceptor unit is refused.
-- **When a summon's interceptors start.** A summon or a made unit whose
-  technologies make it an interceptor is refused.
+- **What a joining unit's effects do.** A unit made by a line, summoned by
+  a battle skill or summoned as another dies is handed its side's loadout
+  for its type whole (`TeamFightEffectManager.CreateMechUnitEffectMananger`),
+  and `FightEffectSystem.ActiveEffect` hands it to each provider as it
+  joins, as it does a unit landing. Read from the build; no recording holds
+  a joining unit's interceptors, stealth, group, trench, repair or rebirth.
+  A line that makes the unit's own type is passed over for a unit created
+  in the fight (`SupportUnitProvider.AvaliableCheck`, `FightMech.mechCreateType`):
+  a Vortex Mirage makes no Mirage
+  (`tests/production/fights/electromagnetic-twin.yaml`). One whose
+  technologies make it summon in turn as it dies, or give it a line of
+  another type or one as it surfaces, is refused.
 - **A unit's interceptors beside a building's, and on a turned or travelling
   unit.** Here a side's buildings update before its units, which is not read;
   the order the side's records keep units in is read from the build and
