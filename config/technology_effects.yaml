@@ -72,7 +72,12 @@ schema: mechcore.technology_effects
 # technology carries the life, by its unit's level, at or under which
 # its unit's main skill destroys what it hits (`dead_line_value`), and
 # whether it does so through a unit's own shield
-# (`dead_line_ignores_shield`).
+# (`dead_line_ignores_shield`). A move-ability attack technology
+# carries the rate on its unit's surfacing time (`exit_time_rate`), and
+# what its unit's first attacks after surfacing take: how many
+# (`strike_trigger_count`), the rate on their damage, and the FPoint
+# metres of splash and the attack point they add
+# (`strike_damage_rate`, `strike_splash_range`, `strike_attack_point`).
 
 technologies:
   - id: 206
@@ -1115,6 +1120,11 @@ technologies:
     name: 突袭
     unit: sandworm
     kind: moveAbilityAttackIntensifyTechDatas
+    exit_time_rate: -2147483648
+    strike_trigger_count: 1
+    strike_damage_rate: 1288490188
+    strike_splash_range: 42949672960
+    strike_attack_point: 0
   - id: 3925
     name: 隐形
     unit: phantom_ray

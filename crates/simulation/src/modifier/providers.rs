@@ -52,6 +52,9 @@ pub(crate) enum EffectProvider {
     StealthTech,
     /// `DeadLineEffectProvider`, for an `IDeadLineDataSource`.
     DeadLine,
+    /// `MoveAbilityAttackIntensifyProvider`, for an
+    /// `IMoveAbilityAttackIntensify`.
+    MoveAbilityAttackIntensify,
 }
 
 impl EffectProvider {
@@ -74,6 +77,7 @@ impl EffectProvider {
             Self::ExtraSkill => "ExtraSkillProvider",
             Self::StealthTech => "StealthTechEffectProvider",
             Self::DeadLine => "DeadLineEffectProvider",
+            Self::MoveAbilityAttackIntensify => "MoveAbilityAttackIntensifyProvider",
         }
     }
 
@@ -120,7 +124,8 @@ impl EffectProvider {
             | Self::InterceptMissile
             | Self::SupportUnit
             | Self::DeadEffect
-            | Self::MoveAbilitySummon => false,
+            | Self::MoveAbilitySummon
+            | Self::MoveAbilityAttackIntensify => false,
         }
     }
 }

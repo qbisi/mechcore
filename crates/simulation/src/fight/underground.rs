@@ -61,6 +61,18 @@ pub(in crate::fight) struct Underground {
 }
 
 impl Underground {
+    /// `UndergroundMoveAbility.GetMoveAbilityExitTime` and `GetExitKeepTime`:
+    /// both times are the row's times the remainder of the unit's
+    /// `MechDataChangeFloatRate.MoveAbilityExitTimeChangeRate`, which a rate
+    /// below zero impairs, and which `MoveAbilityAttackIntensifyProvider.
+    /// DoActive` writes.
+    fn with_exit_time_rate(mut self, rate_q32: i64) -> Self {
+        let remaining_q32 = Q32_ONE + rate_q32.min(0);
+        self.exit_q32 = q32_mul(self.exit_q32, remaining_q32);
+        self.exit_keep_q32 = q32_mul(self.exit_keep_q32, remaining_q32);
+        self
+    }
+
     /// `UndergroundMoveAbility.IsLockTargetInRange` for a unit moving below:
     /// whether its lock, `edge_distance_q32` off, is within the exit range.
     pub(in crate::fight) fn lock_in_exit_range(&self, edge_distance_q32: i64) -> Option<bool> {
@@ -68,7 +80,17 @@ impl Underground {
             .then(|| !rvo::fpoint_greater_than(edge_distance_q32, space_to_q32(self.exit_range)))
     }
 
-    pub(in crate::fight) fn of(config: &crate::rules::UndergroundConfig) -> Self {
+    /// The move ability `MoveAbility.Create` gives a unit whose row moves
+    /// underground, none otherwise.
+    pub(in crate::fight) fn of_unit(rules: &UnitConfig, placement: &Placement) -> Option<Self> {
+        let config = rules.underground.as_ref()?;
+        Some(Self::of(config, placement.move_ability_attack))
+    }
+
+    fn of(
+        config: &crate::rules::UndergroundConfig,
+        attack: Option<crate::modifier::MoveAbilityAttack>,
+    ) -> Self {
         // Time units, two thousand a second, as Q32.32 seconds.
         let seconds = |units: u64| {
             i64::try_from(
@@ -77,7 +99,7 @@ impl Underground {
             )
             .expect("a configured time fits Q32.32")
         };
-        Self {
+        let underground = Self {
             enter_q32: seconds(config.enter_time_units()),
             exit_q32: seconds(config.exit_time_units()),
             exit_keep_q32: seconds(config.exit_keep_time_units()),
@@ -88,6 +110,10 @@ impl Underground {
             showing_q32: None,
             agent_locked: false,
             below: false,
+        };
+        match attack {
+            Some(attack) => underground.with_exit_time_rate(attack.exit_time_rate_q32),
+            None => underground,
         }
     }
 }
@@ -231,6 +257,8 @@ impl Simulation {
             underground.time_q32 = 0;
             underground.agent_locked = true;
             actor.deactivate_skills();
+            // `OnEnterMoveBegin`.
+            actor.attack_count_condition(false);
         } else if from == MotionState::Moving {
             // `MoveAbility.ExitMoveBegin` and `DoExitMoveBegin(true)`.
             underground.state = AbilityState::Exit;
@@ -306,6 +334,8 @@ impl Actor {
                 underground.agent_locked = false;
                 underground.below = false;
                 self.skills_active = true;
+                // `OnExitMoveEnd`.
+                self.attack_count_condition(true);
             }
             AbilityState::Enter => {
                 // `UndergroundMoveAbility.EnterMoveEnd(IsAlive)`.

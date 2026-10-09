@@ -96,7 +96,9 @@ under which its unit's hits destroy what they strike
 ([below](#dead-line-technologies)), a missile interception technology's
 with the interceptors it makes its unit
 ([below](#missile-interception)), a production technology's with the line it
-runs ([below](#production-lines)), and refuses
+runs ([below](#production-lines)), a move-ability attack technology's with
+its unit's shorter surfacing and the stronger first attack after it
+([underground.md](underground.md#a-stronger-surfacing)), and refuses
 every other technology by name and kind, since applying a subclass's numbers
 alone would fight it as something it is not.
 

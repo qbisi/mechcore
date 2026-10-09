@@ -457,6 +457,7 @@ impl Simulation {
             distance_intensify: false,
             secondary_damage: None,
             dead_line: None,
+            move_ability_attack: None,
             interception: None,
             carried_shield: None,
             production: None,

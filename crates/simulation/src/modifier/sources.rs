@@ -58,6 +58,23 @@ pub(crate) struct AutoRecovery {
     pub(crate) can_disable: bool,
 }
 
+/// What an `IMoveAbilityAttackIntensify` answers, which
+/// `MoveAbilityAttackIntensifyProvider` hands its unit: a rate on its
+/// surfacing time, and an `AttackCountEffectLinker` on its main skill that
+/// strengthens its first attacks after each surfacing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct MoveAbilityAttack {
+    /// `GetExitTimeChangeRate`, Q32.32: the rate `DoActive` writes into the
+    /// unit's `MechDataChangeFloatRate.MoveAbilityExitTimeChangeRate`.
+    pub(crate) exit_time_rate_q32: i64,
+    /// `GetTriggerCount`: how many attacks after surfacing it strengthens.
+    pub(crate) trigger_count: i32,
+    /// `GetDamageChangeRateInCondition`, Q32.32: a rate on their damage.
+    pub(crate) damage_rate_q32: i64,
+    /// `GetSplashRangeChange`, Q32.32 metres added to their splash.
+    pub(crate) splash_range_q32: i64,
+}
+
 /// What an `IStealthTechDataSource` answers: `StealthTechSystem` puts its
 /// unit in stealth once its life first falls to a share of its maximum, for a
 /// while.

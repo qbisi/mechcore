@@ -110,6 +110,40 @@ ends it after its first update, which makes its first batch. Replicate makes
 one Larva at the Sandworm's level, 35 metres ahead of it, each time the
 Sandworm begins to surface: `tests/move_ability/fights/replicate.yaml`.
 
+## A stronger surfacing
+
+A row of `moveAbilityAttackIntensifyTechDatas` is a
+`MoveAbilityAttackIntensifyTech`, and its `MoveAbilityAttackIntensifyProvider`
+reaches only a unit with an `UndergroundMoveAbility`
+(`IsAvailableMoveAbility`). It does two things.
+
+**Its surfacing is shorter.** `DoActive` writes its row's
+`exitTimeChangeRate` into the unit's
+`MechDataChangeFloatRate.MoveAbilityExitTimeChangeRate`, and
+`UndergroundMoveAbility.GetMoveAbilityExitTime` and `GetExitKeepTime` take
+the row's times by what that rate leaves of one. Strike's −0.5 halves both:
+the Sandworm surfaces in 15 ticks, shown after 10.
+
+**The first attacks after each surfacing are stronger.** `DoActive` hands
+the main skill an `AttackCountEffectLinker`, in condition from the end of a
+surfacing (`OnExitMoveEnd`) to the start of the next burrow
+(`OnEnterMoveBegin`), each change counting the skill's attacks from zero
+again and the end taking the effect away. `SkillAttackController.PerformAttack`
+begins with the linker's `TryEffect`: it counts the attack and, in
+condition, writes the effect onto the main skill while the count is within
+the row's `triggerCount`, and takes it away once past it. The effect is the
+row's `damageChangeRateInCondition` as a rate on the skill's damage and its
+`splashRangeChange` as metres on its splash. `PerformAttack` runs as the
+attack begins and its blow lands after the attack point, so the effect is
+written on the tick the attack begins and read by that attack's blow; the
+next attack's start takes it away. `FightSkill.ExitFight` resets the linker,
+which takes the effect away too. Strike's first attack after surfacing deals
+30% more and splashes 10 metres further:
+`tests/move_ability/fights/strike.yaml`.
+
+A row whose `attackPointChange` is not 0 is refused, as the simulator does not
+read it; Strike's is 0.
+
 ## A hidden unit as a target
 
 A unit that is not visible is no valid target (`FightActor.IsValidTarget`,
@@ -159,6 +193,10 @@ stands where it was on that tick while every other unit moves.
   transition, fires on tick 129 as the transition ends, and stands through
   the solve of tick 128 with no speed while a Rhino charges through it:
   `tests/move_ability/fights/replicate.yaml`.
+- Strike's Sandworm surfaces in 15 ticks from tick 108, shown on tick 118;
+  its attack begun on tick 125 reads 12643 damage and 22 metres of splash
+  from that tick, and its blow on tick 145 deals 12643; the attack begun on
+  tick 176 reads 9726 again: `tests/move_ability/fights/strike.yaml`.
 - Burrowing and surfacing, a lock kept on a burrowing Sandworm, Sandworms
   surfacing on each other, a Sandworm turning aside from an ally surfacing,
   a shot spent on a burrowed Sandworm, and a Sandworm below as the fight
@@ -193,6 +231,16 @@ stands where it was on that tick while every other unit moves.
   `FightProjectile.Update`.
 - The end of the fight: `MotionController.ExitFight`,
   `UndergroundMoveAbility.Clear`.
+- A stronger surfacing: `MoveAbilityAttackIntensifyProvider.DoActive`,
+  `MoveAbilityAttackIntensifyProvider.IsAvailableMoveAbility`,
+  `MoveAbilityAttackIntensifyProvider.EnterCondition`,
+  `MoveAbilityAttackIntensifyProvider.ExitCondition`,
+  `UndergroundMoveAbility.GetMoveAbilityExitTime`,
+  `UndergroundMoveAbility.GetExitKeepTime`, `FightMech.GetDataFloatReduceRate`,
+  `FightSkill.SetAttackCountEffectLinkerCondition`,
+  `SkillAttackController.PerformAttack`, `AttackCountEffectLinker.TryEffect`,
+  `AttackCountEffectLinker.AddEffect`, `AttackCountEffectLinker.RemoveEffect`,
+  `AttackCountEffectLinker.ResetData`, `FightSkill.ExitFight`.
 
 ### Not established
 
@@ -209,7 +257,9 @@ stands where it was on that tick while every other unit moves.
 - **A lock within an energy shield.** `IsLockTargetInRange` then measures to
   the shield's edge; the simulator refuses it by name.
 - **Technology and equipment.** A technology or an equipment that changes the
-  move ability (`MoveAbilityDynamicTech`, `BurrowTech`, the surfacing time's
-  reduce rate) is not read.
+  move ability otherwise (`MoveAbilityDynamicTech`, `BurrowTech`) is not read.
+- **Strike switched off.** What `MoveAbilityAttackIntensifyProvider`'s
+  `DisableEffect` and `EnableEffect` do is not measured, and a buff that
+  switches off the technologies of a unit holding it is refused.
 - **Cloak.** `CloakMoveAbility`, which no unit's `MechData` makes, is refused
   by the extractor.

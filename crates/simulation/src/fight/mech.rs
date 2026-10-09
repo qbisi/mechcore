@@ -52,7 +52,7 @@ impl Actor {
                 maximum,
             }
         });
-        let underground = rules.underground.as_ref().map(underground::Underground::of);
+        let underground = underground::Underground::of_unit(&rules, &placement);
         let original_team = placement.team;
         let original_formation = placement.formation_id;
         let path_finding = path_finding::PathFinding::of(&rules);
@@ -817,6 +817,7 @@ fn main_skill(rules: &UnitConfig, placement: &Placement) -> Skill {
             }))
             .collect();
     }
+    skill.attack_count_linker = super::attack_count::AttackCountLinker::of(rules, placement);
     skill
 }
 

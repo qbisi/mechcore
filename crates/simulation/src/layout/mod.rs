@@ -14,8 +14,8 @@ use crate::{
     modifier::{
         AutoRecovery, BuffSource, CarriedShield, DeadLine, DeadSummon, EffectProvider,
         EnergyShield, EnergyTowerSkillEffects, EquipmentEffects, LifeSteal, MainSkill,
-        OfficerEffects, ProductionLine, SecondaryDamage, Stealth, SweepIntensify,
-        TECHNOLOGY_SOURCE, TechnologyEffects, UnitInterception, current_source,
+        MoveAbilityAttack, OfficerEffects, ProductionLine, SecondaryDamage, Stealth,
+        SweepIntensify, TECHNOLOGY_SOURCE, TechnologyEffects, UnitInterception, current_source,
     },
     rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs, UnitDomain},
 };
@@ -88,6 +88,9 @@ pub(crate) struct Placement {
     /// The life at or under which its main skill destroys what it hits
     /// (`DeadLineTech`).
     pub(crate) dead_line: Option<DeadLine>,
+    /// What its technologies do to its surfacing and the attacks after it
+    /// (`MoveAbilityAttackIntensifyTech`).
+    pub(crate) move_ability_attack: Option<MoveAbilityAttack>,
     /// The interceptors its technologies make it (`InterceptMissileTech`).
     pub(crate) interception: Option<UnitInterception>,
     /// The battlefield shield its equipment makes it carry.
@@ -574,6 +577,7 @@ fn compile_death_summons(
             distance_intensify: worn.distance_intensify,
             secondary_damage: worn.secondary_damage,
             dead_line: worn.dead_line,
+            move_ability_attack: worn.move_ability_attack,
             interception: worn.interception,
             carried_shield: worn.carried_shield,
             production: None,
@@ -872,6 +876,7 @@ fn compile_formation(
         distance_intensify: worn.distance_intensify,
         secondary_damage: worn.secondary_damage,
         dead_line: worn.dead_line,
+        move_ability_attack: worn.move_ability_attack,
         interception: worn.interception,
         carried_shield: worn.carried_shield,
         production,
@@ -1009,13 +1014,14 @@ fn made_by(
         || worn.distance_intensify
         || worn.secondary_damage.is_some()
         || worn.dead_line.is_some()
+        || worn.move_ability_attack.is_some()
         || worn.interception.is_some()
         || worn.dead_summon.is_some()
     {
         refused.push(format!(
             "side {side_name} makes a {} that its technologies give lifesteal, repair, a \
-             shield, a search by distance, a second damage, a dead line, interceptors or a \
-             summon as it dies, and what a made unit's effect providers carry is not measured",
+             shield, a search by distance, a second damage, a dead line, a stronger \
+             surfacing, interceptors or a summon as it dies, and what a made unit's effect providers carry is not measured",
             made.type_name
         ));
         return None;
@@ -1161,6 +1167,7 @@ struct Worn {
     distance_intensify: bool,
     secondary_damage: Option<SecondaryDamage>,
     dead_line: Option<DeadLine>,
+    move_ability_attack: Option<MoveAbilityAttack>,
     interception: Option<UnitInterception>,
     carried_shield: Option<CarriedShield>,
     buff_sources: Vec<BuffSource>,
@@ -1349,7 +1356,11 @@ fn technology_disable(
 
 /// What a unit's technologies and equipment hand it beyond its numbers, the
 /// sources of each interface its one provider of that interface enables.
-#[allow(clippy::too_many_arguments)]
+#[allow(
+    clippy::too_many_arguments,
+    clippy::too_many_lines,
+    reason = "one field for each interface a loadout answers"
+)]
 fn worn(
     side_name: &str,
     type_name: &str,
@@ -1447,6 +1458,12 @@ fn worn(
             loadouts
                 .technologies
                 .dead_line(&side.techs.units, type_name, level)
+                .map_err(on_side),
+        )?,
+        move_ability_attack: refused.hold(
+            loadouts
+                .technologies
+                .move_ability_attack(&side.techs.units, type_name)
                 .map_err(on_side),
         )?,
         interception: refused.hold(one_interception(

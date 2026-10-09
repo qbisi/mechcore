@@ -606,6 +606,9 @@ pub(in crate::fight) struct Skill {
     /// (`ProjectileMultiAttackPerformer.IsEnableCheckTarget` answering no):
     /// the update its last projectile leaves still names its target.
     pub(in crate::fight) burst_releasing: bool,
+    /// The `AttackCountEffectLinker` a technology hands the main skill
+    /// (`FightSkill.AddAttackCountEffectLinker`).
+    pub(in crate::fight) attack_count_linker: Option<super::attack_count::AttackCountLinker>,
     /// The rounds left in a skill that fires from a magazine
     /// (`SkillData.isLoadingType`), and none for one that does not.
     pub(in crate::fight) rounds: Option<u32>,
@@ -680,6 +683,7 @@ impl Skill {
             perform_count: 0,
             attacking_unfinished: false,
             burst_releasing: false,
+            attack_count_linker: None,
             rounds: magazine.map(|magazine| magazine.capacity),
             attack_target_left: None,
             idle: false,
@@ -1925,6 +1929,14 @@ impl Simulation {
                 .expect("every skill owner's team owns one attack random stream");
             let attack_point_steps =
                 fitted_attack_point(attack_point_steps, backswing_steps, interval);
+            // `SkillAttackController.PerformAttack` begins with the linker's
+            // `TryEffect`, so the blow it winds up deals what that wrote.
+            if let (SkillSlot::Main, Some(actor_id)) = (skill_ref.slot, skill_ref.owner.unit_id()) {
+                self.actors
+                    .get_mut(&actor_id)
+                    .expect("actor identity is stable")
+                    .try_attack_count_effect();
+            }
             self.skill_mut(skill_ref)
                 .schedule_blow(step, interval, attack_point_steps, target);
             self.set_fire_turns_mark(skill_ref);
@@ -2017,6 +2029,15 @@ impl Simulation {
             skill.drop_lock();
             skill.set_phase(FightSkillPhase::Idle);
             skill.performer.stop();
+            // `ExitFight` resets its `AttackCountEffectLinker` too.
+            if let (FightActorRef::Unit(actor_id), SkillSlot::Main) =
+                (skill_ref.owner, skill_ref.slot)
+            {
+                self.actors
+                    .get_mut(&actor_id)
+                    .expect("actor identity is stable")
+                    .attack_count_condition(false);
+            }
             if let Some(actor) = self.moving_mut(skill_ref) {
                 if clear_velocity {
                     actor.motion.current_velocity_x_q32 = 0;
