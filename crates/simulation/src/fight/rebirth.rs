@@ -526,20 +526,6 @@ impl Simulation {
         })
     }
 
-    /// `FightEffectSystem.ActiveEffect`: each provider of the unit's
-    /// technologies takes it, as it lands or rises again.
-    pub(in crate::fight) fn active_effect(&mut self, unit: u64) -> Result<()> {
-        self.activate_interception(unit);
-        self.add_stealth_unit(unit);
-        self.add_group_unit(unit);
-        self.add_siege_unit(unit)?;
-        self.activate_reactive_armor(unit);
-        self.add_wreckage_unit(unit);
-        self.add_burrow_unit(unit);
-        self.add_repair_unit(unit);
-        Ok(())
-    }
-
     /// Every unit waiting to be reborn, as a recording holds it.
     pub(in crate::fight) fn rebirth_states(&self) -> Vec<RebirthState> {
         let mut states = self

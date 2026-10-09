@@ -33,7 +33,7 @@ use crate::{
 };
 
 use super::{LOGIC_TICK_TIME_UNITS, Simulation, TIME_UNITS_PER_SECOND, event, math::q32_div};
-use crate::modifier::{DeadSummon, EffectProvider, StackCondition};
+use crate::modifier::{DeadSummon, StackCondition};
 use mechcore_mcfr::{BuffRemovedReason, Event, EventPayload, ObjectKind, ObjectRef};
 
 /// What tags a tower's loss writes, so that its end takes it away.
@@ -1172,56 +1172,6 @@ impl Simulation {
             if was_disabled && !actor.technology_disabled() {
                 self.switch_technologies(actor_id, true, events)?;
             }
-        }
-        Ok(())
-    }
-
-    /// One provider's `DisableEffect` or `EnableEffect` on a unit, beside
-    /// what its technologies wrote onto its numbers, which every provider
-    /// takes away and writes again alike. The layout refuses a provider whose
-    /// own the fight does not mirror ([`EffectProvider::disable_read`]).
-    fn switch_provider(
-        &mut self,
-        actor_id: u64,
-        provider: EffectProvider,
-        on: bool,
-        events: &mut Vec<Event>,
-    ) -> Result<()> {
-        match provider {
-            // `ExtraSkillProvider.DisableSkill` and `EnableSkill`: every
-            // extra skill of a technology that switches is disabled and
-            // enabled with it (`FightSkill.IsBelongExtraSkill`).
-            EffectProvider::ExtraSkill => {
-                let actor = self
-                    .actors
-                    .get_mut(&actor_id)
-                    .expect("actor identity is stable");
-                let switched = &actor.placement.effects.technology_disable.technologies;
-                for extra in &mut actor.skills.extras {
-                    if switched.contains(&extra.rules.technology) {
-                        extra.skill.disabled = !on;
-                    }
-                }
-            }
-            EffectProvider::StealthTech => self.switch_stealth(actor_id, on),
-            EffectProvider::MechGroup => self.switch_group_unit(actor_id, on),
-            EffectProvider::AdvancedEnergyShield => self.switch_carried_shield(actor_id, on),
-            EffectProvider::RvoRadiusChange => self.switch_rvo_radius_change(actor_id, on),
-            EffectProvider::Repair => self.switch_repair(actor_id, on),
-            EffectProvider::ReactiveArmor => self
-                .actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable")
-                .switch_reactive_armor(on),
-            EffectProvider::SiegeMode if !on => self.end_siege_mode(actor_id),
-            EffectProvider::Burrow => return self.switch_burrow(actor_id, on, events),
-            // The rest take away what the fight asks of the unit where it
-            // acts, its technologies disabled: a lifesteal's and a second
-            // damage's hit effect, a search's ranges, offsets and selector,
-            // an armour's reduction among its numbers, and a buff its unit
-            // added itself, which `BuffManager` clears as the disabling buff
-            // enters.
-            _ => {}
         }
         Ok(())
     }
