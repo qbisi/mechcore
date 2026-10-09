@@ -200,14 +200,23 @@ impl GridBlock {
         Ok(Some(target))
     }
 
-    /// `GridBlockInt.TryDisableGrid`: the cells a shield's own grid covers go.
-    pub(in crate::fight) fn disable(&mut self, shield: Circle) -> Result<()> {
-        if let Some(target) = self.local_circle(shield)? {
+    /// `GridBlockInt.TryDisableGrid`: the cells a circle's own grid covers
+    /// go, and whether any did.
+    pub(in crate::fight) fn disable(&mut self, circle: Circle) -> Result<bool> {
+        let mut changed = false;
+        if let Some(target) = self.local_circle(circle)? {
             for (row, cut) in self.rows.iter_mut().zip(target.rows) {
+                let before = *row;
                 *row &= !cut;
+                changed |= *row != before;
             }
         }
-        Ok(())
+        Ok(changed)
+    }
+
+    /// Whether no cell is left, every row of `grids` zero.
+    pub(in crate::fight) fn is_empty(&self) -> bool {
+        self.rows.iter().all(|&row| row == 0)
     }
 
     /// `GridBlockInt.Overlaps` of a circle: whether the circle's own grid

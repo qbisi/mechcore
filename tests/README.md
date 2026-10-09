@@ -29,6 +29,7 @@ out to show:
 | [`lifesteal/`](lifesteal/README.md) | how a hit hands life back to the unit whose skill dealt it, and which lifesteal source does |
 | [`loose_formation/`](loose_formation/README.md) | how far apart a loose-formation technology keeps its unit's agents, and when they close up |
 | [`missile/`](missile/README.md) | when a missile fires, at what, and what its hit writes |
+| [`fire_extinguisher/`](fire_extinguisher/README.md) | which terrain a fire extinguisher clears about its unit, and when |
 | [`fire_intensify/`](fire_intensify/README.md) | where a fire technology's unit leaves fires as its main skill hits |
 | [`rebirth/`](rebirth/README.md) | when a rebirth technology brings its unit back after it dies, where, and what its side and the score make of it meanwhile |
 | [`reactive_armor/`](reactive_armor/README.md) | what a reactive armor technology takes off the hits on its unit, and for how many |
