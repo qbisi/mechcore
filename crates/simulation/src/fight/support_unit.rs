@@ -463,6 +463,7 @@ impl Simulation {
             move_ability_attack: None,
             reactive_armor: creator.summon.reactive_armor,
             move_ability_range_item: None,
+            main_fire: None,
             interception: None,
             carried_shield: None,
             production: None,

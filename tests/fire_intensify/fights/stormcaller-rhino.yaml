@@ -1,0 +1,23 @@
+# Incendiary Bomb on blue's Stormcaller against a Rhino charging it. Every
+# shell of the volley that lands from tick 93 leaves a fire of 5.5 metres
+# where it lands, under blue, the one that strikes the Rhino and the ones
+# that strike nothing alike; the Rhino standing in them takes the fire's 54
+# on ticks 94 and 97, and a third time later. The technology's -20 metres of
+# range are a plain correction.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 305
+hash: {profile: mcfr-content-0.22.0, result: 611256a1bb20f8a2c4340843533868d7ba2d6de4adba9c89e97397c7900623e8}
+blue:
+  core_damage: 200
+  techs:
+    stormcaller: [incendiary_bomb]
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -100}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150}

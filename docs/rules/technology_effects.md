@@ -98,7 +98,8 @@ group its units share every hit in ([below](#damage-share-technologies)), a
 barrier technology's with the battlefield shield its unit carries
 ([contraptions.md](contraptions.md#a-shield)), a
 reactive armor technology's with the rate it puts on its unit's first hits
-([below](#reactive-armor-technologies)), a
+([below](#reactive-armor-technologies)), a fire technology's with the fire
+each hit of its unit's main skill leaves ([below](#fire-technologies)), a
 missile interception technology's
 with the interceptors it makes its unit
 ([below](#missile-interception)), a production technology's with the line it
@@ -542,6 +543,33 @@ leaves as `DeadEffectSystem` deactivates its effects (`DoDeactive`,
 `RemoveSiegeModeOwner`). Leaving the fight takes every trench away
 (`OnExitFight`), its life refreshed and its motion idle on the last tick. A
 unit a Hacker turns stays dug in, counting the enemies of its new side.
+
+## Fire technologies
+
+A row of `fireIntensifyTechnologies` is a `FireIntensifyTech`: Incendiary
+Bomb, the Stormcaller's, and Napalm, the Fire Badger's. Its numbers are a
+plain technology's (-20 metres of range, -0.3 of life), and it answers
+`IFireIntensify` with its `fire_range` and `fire_life_time` at its unit's
+level (`FireIntensifyTechnologyData.GetRange`, `GetLIfeTime`): 5.5 metres
+for 15 seconds, and 12 metres for 8. `FireIntensifyEffectProvider.AddEffect`
+writes them onto the unit's `DataSet` as its fire's range and life time
+(`MechDataModifer.AddData`), as a burning extra weapon writes its own
+([extra_weapons.md](extra_weapons.md#a-fire-where-it-lands)); a unit with
+both, whose numbers would sum, is refused.
+
+**Each hit of the main skill leaves the unit's fire.** The provider is a hit
+effect of the main skill (`RegisterMechEventInternal`, on
+`SkillDataModifier.AvaliableCheck`, which no row's `extraSkillEffect`
+passes for an extra skill). Its `PerformHitEffect` leaves
+`GroundFireController.GetFireMech`, the fire of the unit's numbers, under
+the unit's side through `RangeItemSystem.AddItem`, at the point the hit
+landed: every shell of a Stormcaller's volley leaves one, the shells that
+strike nothing too. It leaves none for a second damage's hit, and none
+while the unit's technologies are off. Where the skill's lock stands on
+another side than the first unit the hit struck, the provider takes the
+point on the shield the skill fires at or the lock's own position instead,
+and the simulator refuses it. The fire burns as any fire does
+([terrain.md](terrain.md)).
 
 ## Missile Interception
 
@@ -1056,9 +1084,18 @@ derive (a minimum range):
 - A Typhoon travelling in takes its whole damage and counts nothing until it
   arrives on tick 161, and has the rate for five hits from then:
   `tests/reactive_armor/fights/typhoon-travelling.yaml`.
+- A fire technology's unit leaves its fire where each hit of its main skill
+  lands, a Stormcaller's every shell, those that strike nothing too:
+  `tests/fire_intensify/fights/stormcaller-rhino.yaml`,
+  `tests/fire_intensify/fights/fire_badger-marksman.yaml`.
 
 ### Read
 
+- Fire technologies: `FireIntensifyTechnologyData.GetRange`, `GetLIfeTime`,
+  `FireIntensifyEffectProvider.AddEffect`, `RemoveEffect`,
+  `RegisterMechEventInternal`, its `IHitEffectPerformer.PerformHitEffect`,
+  `GroundFireController.GetFireMech`, `RangeItemSystem.AddItem`,
+  `MechDataModifer.AddData`.
 - Reactive armor: `ReactiveArmorTech.GetDamageReduceRate`,
   `GetDamageReduceCount`, `GetDamageReduceValue`,
   `ReactiveArmorTechEffectProvider.DoActive`, `DisableEffect`, `EnableEffect`,

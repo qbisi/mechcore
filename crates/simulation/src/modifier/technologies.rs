@@ -125,11 +125,13 @@ const DAMAGE_SHARE: &str = "damageShareTechnologies";
 const BARRIER: &str = "advancedEnergyShieldTechnologies";
 /// The list whose `ReactiveArmorTech` is an `IReactiveArmorTechDataSource`.
 const REACTIVE_ARMOR: &str = "reactiveArmorTechDatas";
+/// The list whose `FireIntensifyTech` is an `IFireIntensify`.
+const FIRE_INTENSIFY: &str = "fireIntensifyTechnologies";
 /// The list whose `SiegeModeTech` is an `ISiegeModeEffectDataSource`.
 const SIEGE: &str = "siegeModeTechDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 26] = [
+const IMPLEMENTED: [&str; 27] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -156,6 +158,7 @@ const IMPLEMENTED: [&str; 26] = [
     BARRIER,
     REACTIVE_ARMOR,
     SIEGE,
+    FIRE_INTENSIFY,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -264,6 +267,9 @@ struct Technology {
     /// What it answers `IReactiveArmorTechDataSource` with, if its class is
     /// one.
     reactive_armor: Option<ReactiveArmor>,
+    /// What it answers `IFireIntensify` with, if its class is one: its
+    /// fire's `FPoint` metres and seconds by its unit's level.
+    fire_intensify: Option<(Vec<i64>, Vec<i64>)>,
     /// What it answers `ISiegeModeEffectDataSource` with, if its class is
     /// one.
     siege_mode: Option<SiegeMode>,
@@ -755,6 +761,12 @@ struct Row {
     reactive_armor_rate: i64,
     #[serde(default)]
     reactive_armor_count: i32,
+    /// `FireIntensifyTechnologyData.range` and `lifeTime`, on a row of its
+    /// list: `FPoint` metres and seconds by the unit's level.
+    #[serde(default)]
+    fire_range: Vec<i64>,
+    #[serde(default)]
+    fire_life_time: Vec<i64>,
     /// `MoveAbilityAttackIntensifyTechData`'s fields and the
     /// `exitTimeChangeRate` its tech answers, on a row of its list.
     #[serde(default)]
@@ -1188,6 +1200,8 @@ impl TechnologyEffects {
                 mech_group,
                 carried_shield: (row.kind == BARRIER)
                     .then(|| (row.barrier_energy.clone(), row.barrier_radius.clone())),
+                fire_intensify: (row.kind == FIRE_INTENSIFY)
+                    .then(|| (row.fire_range.clone(), row.fire_life_time.clone())),
                 reactive_armor: (row.kind == REACTIVE_ARMOR).then_some(ReactiveArmor {
                     rate_q32: row.reactive_armor_rate,
                     count: row.reactive_armor_count,
@@ -1477,6 +1491,37 @@ impl TechnologyEffects {
             }))
     }
 
+    /// The `FPoint` metres and seconds of the fire the first of this side's
+    /// technologies on one unit type that is an `IFireIntensify` answers at
+    /// the unit's level: `FireIntensifyTechnologyData.GetRange` and
+    /// `GetLIfeTime` read entry `GetLevel()` of their lists, their last past
+    /// it, and zero for an empty list.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn fire_intensify(
+        &self,
+        held: &[i32],
+        unit_type: &str,
+        level: i64,
+    ) -> Result<Option<[i64; 2]>> {
+        self.effects(held, unit_type)?;
+        let index = usize::try_from(level - 1).unwrap_or_default();
+        let at_level = |values: &Vec<i64>| values.get(index).or_else(|| values.last()).copied();
+        Ok(held
+            .iter()
+            .filter_map(|id| self.technologies.get(id))
+            .filter(|technology| technology.unit == unit_type)
+            .find_map(|technology| technology.fire_intensify.as_ref())
+            .map(|(range, life)| {
+                [
+                    at_level(range).unwrap_or_default(),
+                    at_level(life).unwrap_or_default(),
+                ]
+            }))
+    }
+
     /// What the first of this side's technologies on one unit type that is
     /// an `IReactiveArmorTechDataSource` answers. Its `GetDamageReduceValue`
     /// reads a list no row sets, which `special` would name.
@@ -1729,6 +1774,7 @@ fn provider_of(kind: &str, self_buff: bool) -> Option<EffectProvider> {
         DAMAGE_SHARE => EffectProvider::MechGroup,
         BARRIER => EffectProvider::AdvancedEnergyShield,
         REACTIVE_ARMOR => EffectProvider::ReactiveArmor,
+        FIRE_INTENSIFY => EffectProvider::FireIntensify,
         SIEGE => EffectProvider::SiegeMode,
         _ => return None,
     })

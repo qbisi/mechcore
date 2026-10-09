@@ -104,6 +104,10 @@ pub(crate) struct Placement {
     /// The sand fog its technologies leave as it ends a surfacing
     /// (`MoveAbilityRangeItemTech`).
     pub(crate) move_ability_range_item: Option<TerrainSpec>,
+    /// The fire each hit of its main skill leaves, when a technology is an
+    /// `IFireIntensify` (`FireIntensifyEffectProvider`): the unit's fire,
+    /// `GroundFireController.GetFireMech`.
+    pub(crate) main_fire: Option<TerrainSpec>,
     /// The interceptors its technologies make it (`InterceptMissileTech`).
     pub(crate) interception: Option<UnitInterception>,
     /// The battlefield shield its equipment makes it carry.
@@ -596,6 +600,7 @@ fn compile_death_summons(
             move_ability_attack: worn.move_ability_attack,
             reactive_armor: worn.reactive_armor,
             move_ability_range_item: worn.move_ability_range_item,
+            main_fire: worn.main_fire,
             interception: worn.interception,
             carried_shield: worn.carried_shield,
             production: None,
@@ -756,10 +761,11 @@ fn compile_battle_skills(
                 || worn.stealth.is_some()
                 || worn.mech_group.is_some()
                 || worn.siege_mode.is_some()
+                || worn.main_fire.is_some()
             {
                 refused.push(format!(
                     "side {name} summons a {} that its technologies give lifesteal, repair, \
-                     a shield, stealth, a group or a trench, and what a \
+                     a shield, stealth, a group, a trench or a fire, and what a \
                      summon's effect providers carry is not measured",
                     summon.rules.type_name
                 ));
@@ -894,6 +900,7 @@ fn compile_formation(
         move_ability_attack: worn.move_ability_attack,
         reactive_armor: worn.reactive_armor,
         move_ability_range_item: worn.move_ability_range_item,
+        main_fire: worn.main_fire,
         interception: worn.interception,
         carried_shield: worn.carried_shield,
         production,
@@ -1037,11 +1044,12 @@ fn made_by(
         || worn.interception.is_some()
         || worn.dead_summon.is_some()
         || worn.siege_mode.is_some()
+        || worn.main_fire.is_some()
     {
         refused.push(format!(
             "side {side_name} makes a {} that its technologies give lifesteal, repair, a \
              shield, a search by distance, a second damage, a dead line, a stronger \
-             surfacing, a sand fog, interceptors, a summon as it dies or a trench, and what a made unit's effect providers carry is not measured",
+             surfacing, a sand fog, interceptors, a summon as it dies, a trench or a fire, and what a made unit's effect providers carry is not measured",
             made.type_name
         ));
         return None;
@@ -1220,6 +1228,7 @@ struct Worn {
     move_ability_attack: Option<MoveAbilityAttack>,
     reactive_armor: Option<ReactiveArmor>,
     move_ability_range_item: Option<TerrainSpec>,
+    main_fire: Option<TerrainSpec>,
     interception: Option<UnitInterception>,
     carried_shield: Option<CarriedShield>,
     buff_sources: Vec<BuffSource>,
@@ -1503,6 +1512,17 @@ fn worn(
     for weapon in &extra_weapons {
         corrections.extend(extra_weapon_corrections(&weapon.rules));
     }
+    let main_fire = refused.hold(
+        main_fire(
+            type_name,
+            level,
+            side,
+            &extra_weapons,
+            loadouts,
+            &mut corrections,
+        )
+        .map_err(on_side),
+    )?;
     switch_air_attack(&main_skill, rules, &mut corrections, &mut extra_weapons);
     let in_force = |error: String| refusal(Error::new(error));
     Some(Worn {
@@ -1540,6 +1560,7 @@ fn worn(
                 .reactive_armor(&side.techs.units, type_name)
                 .map_err(on_side),
         )?,
+        main_fire,
         move_ability_range_item: refused.hold(
             loadouts
                 .technologies
@@ -1675,6 +1696,57 @@ fn extra_weapon_corrections(weapon: &ExtraWeaponConfig) -> Vec<(Channel, Entry)>
         )
     })
     .collect()
+}
+
+/// The fire a unit's technology makes each hit of its main skill leave
+/// (`FireIntensifyEffectProvider`). `AddEffect` writes the fire's range and
+/// life time onto the unit (`MechDataModifer.AddData`), and
+/// `PerformHitEffect` leaves the unit's fire, which
+/// `GroundFireController.GetFireMech` makes of those numbers. An extra weapon
+/// writes its own fire's numbers there too, which would sum with them; a unit
+/// with both is not measured.
+fn main_fire(
+    type_name: &str,
+    level: i64,
+    side: &SidePlan,
+    extra_weapons: &[ExtraWeapon],
+    loadouts: &Loadouts,
+    corrections: &mut Vec<(Channel, Entry)>,
+) -> Result<Option<TerrainSpec>> {
+    let Some([range, life]) =
+        loadouts
+            .technologies
+            .fire_intensify(&side.techs.units, type_name, level)?
+    else {
+        return Ok(None);
+    };
+    if extra_weapons
+        .iter()
+        .any(|weapon| !extra_weapon_corrections(&weapon.rules).is_empty())
+    {
+        return Err(Error::new(format!(
+            "unit type {type_name:?} has a fire technology and an extra weapon that burns, \
+             whose fires' numbers sum, which is not measured"
+        )));
+    }
+    corrections.extend(
+        [
+            (Index::GroundFireRange, range),
+            (Index::GroundFireLifeTime, life),
+        ]
+        .into_iter()
+        .map(|(index, value)| {
+            (
+                Channel::Unit,
+                Entry {
+                    index,
+                    source: "FireIntensifyEffectProvider",
+                    correction: Correction::Value(value),
+                },
+            )
+        }),
+    );
+    loadouts.skill_effects.unit_fire(range, life).map(Some)
 }
 
 /// The extra weapons a unit's technologies add beside its main skill

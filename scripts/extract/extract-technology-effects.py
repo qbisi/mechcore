@@ -71,6 +71,8 @@ SUBCLASS_LISTS = (
     ("air_damage_change_rate", "airDamageChangeRate", "damageIntensifyTechnologies"),
     ("ground_damage_change_rate", "groundDamageChangeRate", "damageIntensifyTechnologies"),
     ("splash_range", "range", "splashTechnologies"),
+    ("fire_range", "range", "fireIntensifyTechnologies"),
+    ("fire_life_time", "lifeTime", "fireIntensifyTechnologies"),
     ("projectile_count_value", "countIncrease", "multiAttackTechnologies"),
     ("projectile_duration_value", "durationChangeValue", "multiAttackTechnologies"),
     ("projectile_random_range_value", "randomRangeChangeValue", "multiAttackTechnologies"),
@@ -144,7 +146,7 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "deadLineTechDatas", "moveAbilityAttackIntensifyTechDatas",
                "moveAbilityRangeItemTechDatas",
                "damageShareTechnologies", "advancedEnergyShieldTechnologies",
-               "reactiveArmorTechDatas", "siegeModeTechDatas")
+               "reactiveArmorTechDatas", "fireIntensifyTechnologies", "siegeModeTechDatas")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
@@ -534,6 +536,9 @@ def main() -> int:
         "# A reactive armor technology carries the FPoint rate on the damage its",
         "# unit takes (`reactive_armor_rate`) and how many hits dealing it damage",
         "# the rate lasts (`reactive_armor_count`).",
+        "# A fire technology carries the FPoint metres and seconds of the fire",
+        "# each hit of its unit's main skill leaves (`fire_range`,",
+        "# `fire_life_time`), by its unit's level.",
         "",
         "technologies:",
     ]
