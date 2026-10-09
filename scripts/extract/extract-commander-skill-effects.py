@@ -115,7 +115,7 @@ def buff_lines(buff):
     lines = [
         "    buff:",
         f"      id: {buff['id']}",
-        f"      name: {buff['name']}",
+        *build_data.name_lines(buff, "      "),
         f"      divide: {buff.get('buffDivide', 0)}",
         f"      duration: {raw(buff['duration'])}{reading(raw(buff['duration']))}",
     ]
@@ -155,7 +155,7 @@ def support_lines(group, standard):
             continue
         if row["positions"]:
             raise SystemExit(f"support skill {row['id']} places its summons at {row['positions']}")
-        lines += [f"  - id: {row['id']}", f"    name: {row['name']}"]
+        lines += [f"  - id: {row['id']}", *build_data.name_lines(row, "    ")]
         for field, name in SUPPORT_INTEGERS:
             lines.append(f"    {name}: {row[field]}")
         for field, name in SUPPORT_FIXED:
@@ -186,7 +186,7 @@ def shield_lines(group, standard):
     for row in group["energyShieldCommanderSkills"]:
         if not kept(row, standard):
             continue
-        lines += [f"  - id: {row['id']}", f"    name: {row['name']}"]
+        lines += [f"  - id: {row['id']}", *build_data.name_lines(row, "    ")]
         for field, name in SHIELD_INTEGERS:
             lines.append(f"    {name}: {row[field]}")
         for field, name in SHIELD_FIXED:
@@ -256,7 +256,7 @@ def terrain_lines(group, buffs, standard):
         for row in group[kind_list]:
             if not kept(row, standard):
                 continue
-            lines += [f"  - id: {row['id']}", f"    name: {row['name']}", f"    kind: {kind}"]
+            lines += [f"  - id: {row['id']}", *build_data.name_lines(row, "    "), f"    kind: {kind}"]
             for field, name in TERRAIN_INTEGERS:
                 lines.append(f"    {name}: {row.get(field, 0)}")
             for field, name in TERRAIN_FIXED:
@@ -292,7 +292,7 @@ def damage_lines(group, buffs, standard):
         if not kept(row, standard):
             continue
         circle = row["effectRangeType"] == 0
-        lines += [f"  - id: {row['id']}", f"    name: {row['name']}"]
+        lines += [f"  - id: {row['id']}", *build_data.name_lines(row, "    ")]
         for field, name in DAMAGE_INTEGERS:
             lines.append(f"    {name}: {row[field]}")
         lines.append(f"    sub_effect_count: {1 if circle else row['subEffectCount']}")
@@ -326,7 +326,7 @@ def waypoint_lines(group, standard):
             raise SystemExit(f"waypoint skill {row['id']} selects target type "
                              f"{row.get('effectTargetType', 0)} and writes buff "
                              f"{row.get('subEffectBuffID', 0)}")
-        lines += [f"  - id: {row['id']}", f"    name: {row['name']}"]
+        lines += [f"  - id: {row['id']}", *build_data.name_lines(row, "    ")]
         for field, name in WAYPOINT_FIXED:
             value = raw(row[field])
             lines.append(f"    {name}: {value}{reading(value)}")
@@ -349,9 +349,9 @@ def other_lines(group, written, standard):
             continue
         for row in entries:
             if isinstance(row, dict) and "id" in row and kept(row, standard) and row["id"] not in ids:
-                rows.append((row["id"], row["name"], kind))
+                rows.append((row["id"], build_data.name_field(row), kind))
     for identifier, name, kind in sorted(rows):
-        lines.append(f"  - {{id: {identifier}, name: {name}, kind: {kind}}}")
+        lines.append(f"  - {{id: {identifier}, {name}kind: {kind}}}")
     return lines
 
 
@@ -376,7 +376,7 @@ def render(group):
         "buff_skills:",
     ]
     for row in rows:
-        lines += [f"  - id: {row['id']}", f"    name: {row['name']}"]
+        lines += [f"  - id: {row['id']}", *build_data.name_lines(row, "    ")]
         for field, name in INTEGERS:
             lines.append(f"    {name}: {row.get(field, 0)}")
         for field, name in FIXED:

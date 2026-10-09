@@ -124,7 +124,7 @@ def missile_lines(group):
         "",
         "missiles:",
         f"  - id: {row['id']}",
-        f"    name: {row['name']}",
+        *build_data.name_lines(row, "    "),
         "    layout_name: missile",
     ]
     for field, name in MISSILE_INTEGERS:
@@ -137,7 +137,7 @@ def missile_lines(group):
     lines += [
         "    buff:",
         f"      id: {buff['id']}",
-        f"      name: {buff['name']}",
+        *build_data.name_lines(buff, "      "),
         f"      divide: {buff.get('buffDivide', 0)}",
         f"      additive: {str(buff.get('isAdditiveMode', False)).lower()}",
         f"      debuff: {str(buff.get('debuff', False)).lower()}",
@@ -159,7 +159,7 @@ def shield_lines(group):
         "",
         "shields:",
         f"  - id: {row['id']}",
-        f"    name: {row['name']}",
+        *build_data.name_lines(row, "    "),
         "    layout_name: shield",
         f"    energy: {row['energy']}",
         f"    effect_type: {row['effectType']}",
@@ -188,7 +188,7 @@ def render(group):
         "",
         "interceptors:",
         f"  - id: {row['id']}",
-        f"    name: {row['name']}",
+        *build_data.name_lines(row, "    "),
         "    layout_name: interceptor",
     ]
     for field, name in INTEGERS:

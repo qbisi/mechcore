@@ -343,7 +343,7 @@ def rows_by_id() -> dict[int, dict]:
     for kind, table in build_data.level0("TechnologyGroupData").items():
         if isinstance(table, list):
             for row in table:
-                effect = {"id": row["id"], "name": row["name"], "row": row, "kind": kind}
+                effect = {"id": row["id"], "name": row.get("name"), "row": row, "kind": kind}
                 for field, source in LISTS:
                     effect[field] = [raw(value) for value in row.get(source) or []]
                 for field, source, owner in SUBCLASS_LISTS:
@@ -456,7 +456,7 @@ def crosscheck(rows: dict[int, dict]) -> tuple[int, int, list[str]]:
                 grown = round(values[0] / ONE * (rank + 1) * ONE)
                 if abs(value - grown) > 2:
                     disagreed.append(
-                        f"technology {identifier} ({row['name']}) {field} rank"
+                        f"technology {identifier} ({row.get('name')}) {field} rank"
                         f" {rank + 1} is {value}, and its first entry times the"
                         f" rank is {grown}"
                     )
@@ -476,7 +476,7 @@ def crosscheck(rows: dict[int, dict]) -> tuple[int, int, list[str]]:
         checked += 1
         if not claims <= numbers:
             disagreed.append(
-                f"technology {identifier} ({row['name']}) states"
+                f"technology {identifier} ({row.get('name')}) states"
                 f" {sorted(claims - numbers)}, which its effect text does not"
             )
     return checked, len(rows), disagreed
@@ -652,7 +652,7 @@ def main() -> int:
         ]
         written += 1
         lines.append(f"  - id: {identifier}")
-        lines.append(f"    name: {row['name']}")
+        lines += build_data.name_lines(row, "    ")
         lines.append(f"    unit: {row['unit']}")
         lines.append(f"    kind: {row['kind']}")
         # A plain row, and a subclass's whose mechanism the simulator reads,

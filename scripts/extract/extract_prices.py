@@ -86,7 +86,7 @@ def config_numbers(structure):
 def contraption_prices():
     """What releasing each contraption costs, by `ContraptionData` id."""
     rows = group_rows("ContraptionGroupData")
-    return {identifier: (rows[identifier]["name"], rows[identifier]["supply"])
+    return {identifier: (rows[identifier].get("name"), rows[identifier]["supply"])
             for identifier in sorted(CONTRAPTION_TYPES)}
 
 
@@ -97,7 +97,7 @@ def reinforce_items(group):
         if "scope" not in row or not 100_000 <= row["id"] < 100_000_000:
             continue
         rows[row["id"]] = {
-            "id": row["id"], "name": row["name"], "supply": row["supply"], "scope": row["scope"],
+            "id": row["id"], "name": row.get("name"), "supply": row["supply"], "scope": row["scope"],
             "level": row["level"], "scenes": row.get("limitedScene") or [],
             # What wearing an equipment adds to its side's income each round,
             # and takes off the price of upgrading its formation.
@@ -114,7 +114,7 @@ def commander_skill_cooldowns():
     and `releaseInterval` is where it goes once the skill is spent.
     """
     return {
-        row["id"]: {"id": row["id"], "name": row["name"],
+        row["id"]: {"id": row["id"], "name": row.get("name"),
                     "initial_cooldown": row["initialCoolDown"], "cooldown": row["releaseInterval"]}
         for row in group_rows("CommanderSkillGroupData").values()
         if 100_000 <= row["id"] < 100_000_000 and build_data.in_standard(row)
@@ -134,7 +134,7 @@ def write_commander_skills(structure):
              "# says how a round counts it down.",
              "", "skills:"]
     for row in sorted(rows.values(), key=lambda row: row["id"]):
-        lines.append(f"  - {{id: {row['id']}, name: {yaml_scalar(row['name'])}, "
+        lines.append(f"  - {{id: {row['id']}, {build_data.name_field(row)}"
                      f"initial_cooldown: {row['initial_cooldown']}, "
                      f"cooldown: {row['cooldown']}}}")
     COMMANDER_SKILLS.write_text("\n".join(lines) + "\n")
@@ -301,7 +301,7 @@ def write_unit_reinforcements(structure, by_level):
         supply = row.get("supply", 0)
         count += 1
         lines.append(
-            f"  - {{id: {row['id']}, name: {yaml_scalar(row.get('name') or '')}, "
+            f"  - {{id: {row['id']}, {build_data.name_field(row)}"
             f"supply: {by_level.get(row.get('level'), 0) if supply < 0 else supply}, "
             f"unit: {squads[0]}, squads: {len(squads)}, "
             f"level: {row['extraUnitLevel']}, from_round: {row['activeRound']}}}")
@@ -387,7 +387,7 @@ def write_advance_teams(structure):
         teams += 1
         units = ", ".join(str(unit) for unit in row["units"])
         core = f", reactor_core: {row['reactorCore']}" if row.get("reactorCore") else ""
-        lines.append(f"  - {{id: {row['id']}, name: {yaml_scalar(row.get('name') or '')}, "
+        lines.append(f"  - {{id: {row['id']}, {build_data.name_field(row)}"
                      f"kind: units, units: [{units}]{core}}}")
     for row in sorted(structure["officerDatas"], key=lambda row: row["id"]):
         if row.get("scope") != OPENING_SCOPE:
@@ -397,7 +397,7 @@ def write_advance_teams(structure):
             continue
         specialists += 1
         core = f", reactor_core: {row['reactorCore']}" if row.get("reactorCore") else ""
-        lines.append(f"  - {{id: {row['id']}, name: {yaml_scalar(row.get('name') or '')}, "
+        lines.append(f"  - {{id: {row['id']}, {build_data.name_field(row)}"
                      f"kind: officer{core}}}")
     ADVANCE_TEAMS.write_text("\n".join(lines) + "\n")
     print(f"openings: {teams} teams and {specialists} specialists")
@@ -472,7 +472,7 @@ def write_economy(structure, contraptions, config):
         # A chain blueprint's mapID names the officer it produces; any other
         # blueprint's names the commander skill it puts on the panel.
         grants = ("grants_officer" if row.get("bpType") == 1 else "grants_skill")
-        lines.append(f"  - {{id: {row['id']}, name: {yaml_scalar(row.get('name') or '')}, "
+        lines.append(f"  - {{id: {row['id']}, {build_data.name_field(row)}"
                      f"supply: {row.get('supply', 0)}, {grants}: {row.get('mapID', 0)}}}")
     lines += ["", "tower_strengthen:"]
     for row in sorted(structure["towerStrengthenDatas"], key=lambda row: row["level"]):
@@ -488,7 +488,7 @@ def write_economy(structure, contraptions, config):
         level = row.get("shopUnitLevelChangeValue", 0)
         raised = f"shop_unit_level: {level}, " if level else ""
         lines.append(
-            f"  - {{id: {row['id']}, name: {yaml_scalar(row.get('name') or '')}, "
+            f"  - {{id: {row['id']}, {build_data.name_field(row)}"
             f"supply: {row.get('supply', 0)}, granted: {row.get('supplyChangeValue', 0)}, "
             f"{raised}owed: {-row.get('nextRoundSupplyChangeValue', 0)}}}")
     lines += ["", "# What each technology already researched on a unit adds to the",
@@ -544,7 +544,7 @@ def write_economy(structure, contraptions, config):
     fields = ("firstRoundSupply", "roundSupplyIncreaseValue", "maxRoundSupply")
     for row in versus:
         if any(row[field] != standard_supply[field] for field in fields):
-            raise SystemExit(f"map {row['id']} pays out differently: {row['name']}")
+            raise SystemExit(f"map {row['id']} pays out differently: {row.get('name')}")
     lines += ["",
               f"# The income rule every versus map shares, checked across the",
               f"# {len(versus)} of them. A survival map caps at 2000 instead, and",
@@ -624,7 +624,7 @@ def main():
         supply = row.get("supply", 0)
         offered.setdefault(row["id"], {
             "id": row["id"],
-            "name": row.get("name") or "",
+            "name": row.get("name"),
             "supply": by_level.get(row.get("level"), 0) if supply < 0 else supply,
             "kind": "officer",
         })
@@ -648,7 +648,7 @@ def main():
             for name in ("round_supply", "upgrade_supply")
             if row.get(name)
         )
-        lines.append(f"  - {{id: {row['id']}, name: {yaml_scalar(row['name'])}, "
+        lines.append(f"  - {{id: {row['id']}, {build_data.name_field(row)}"
                      f"kind: {row['kind']}, supply: {row['supply']}{extra}}}")
     REINFORCE.write_text("\n".join(lines) + "\n")
     print(f"cards a standard match can offer: {len(offered)}")

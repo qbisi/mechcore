@@ -776,6 +776,8 @@ pub(crate) struct TowersConfig {
     reason = "the buff row's flags are independent fields"
 )]
 pub(crate) struct DestroyedBuff {
+    /// The English name the game gives it; none for a buff the game never shows.
+    #[serde(default)]
     pub(crate) name: String,
     pub(crate) buff_divide: i32,
     pub(crate) additive: bool,

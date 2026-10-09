@@ -8,6 +8,8 @@ fields set of those), and the `buffDatas` row it adds. `extract-equipment-effect
 `extract-technology-effects.py` both write them through `buff_lines`.
 """
 
+import build_data
+
 # The fields of a source its `BuffCycleController` reads, written under
 # `buff_cycle` when set; `max` and the times are Q32.32.
 SOURCE_CYCLE = {
@@ -105,7 +107,7 @@ def buff_row_lines(buff, indent):
     lines = [
         f"{indent}buff:",
         f"{indent}  id: {buff['id']}",
-        f"{indent}  name: {buff['name']}",
+        *build_data.name_lines(buff, f"{indent}  "),
         f"{indent}  duration: {raw(buff['duration'])}{reading(raw(buff['duration']))}",
     ]
     for field, name in BUFF_READ.items():

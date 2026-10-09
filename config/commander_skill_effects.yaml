@@ -8,7 +8,7 @@ schema: mechcore.commander_skill_effects
 
 buff_skills:
   - id: 200001
-    name: 电磁冲击
+    name: Electromagnetic Impact
     effect_range_type: 0
     effect_type: 0
     sub_effect_damage: 0
@@ -20,7 +20,6 @@ buff_skills:
     cross_advanced_shield: false
     buff:
       id: 200001
-      name: 战场技能-电磁干扰
       divide: 0
       duration: 107374182400  # 25
       additive: false
@@ -34,7 +33,7 @@ buff_skills:
       life_change_rate: 0  # 0
       step_time: 0  # 0
   - id: 200002
-    name: 巨型电磁冲击
+    name: Electromagnetic Blast
     effect_range_type: 0
     effect_type: 0
     sub_effect_damage: 0
@@ -46,7 +45,6 @@ buff_skills:
     cross_advanced_shield: false
     buff:
       id: 200001
-      name: 战场技能-电磁干扰
       divide: 0
       duration: 107374182400  # 25
       additive: false
@@ -60,7 +58,7 @@ buff_skills:
       life_change_rate: 0  # 0
       step_time: 0  # 0
   - id: 200003
-    name: 光子投射
+    name: Photon Emission
     effect_range_type: 0
     effect_type: 0
     sub_effect_damage: 0
@@ -72,7 +70,6 @@ buff_skills:
     cross_advanced_shield: false
     buff:
       id: 40000
-      name: 光子投射通用
       divide: 0
       duration: 85899345920  # 20
       additive: false
@@ -88,7 +85,7 @@ buff_skills:
 
 support_skills:
   - id: 1200001
-    name: 地底威胁
+    name: Underground Threat
     effect_range_type: 0
     effect_type: 0
     unit_type_id: 10
@@ -102,7 +99,7 @@ support_skills:
     sub_effect_move_time: 0  # 0
     create_interval: 1073741824  # 0.25
   - id: 1200002
-    name: 犀牛来袭
+    name: Rhino Assault
     effect_range_type: 0
     effect_type: 0
     unit_type_id: 5
@@ -116,7 +113,7 @@ support_skills:
     sub_effect_move_time: 0  # 0
     create_interval: 0  # 0
   - id: 1200003
-    name: 呼叫机群
+    name: Wasp Swarm
     effect_range_type: 0
     effect_type: 0
     unit_type_id: 6
@@ -130,7 +127,7 @@ support_skills:
     sub_effect_move_time: 0  # 0
     create_interval: 0  # 0
   - id: 1200004
-    name: 呼叫战舰
+    name: Mobilize Battleship
     effect_range_type: 0
     effect_type: 0
     unit_type_id: 11
@@ -144,7 +141,7 @@ support_skills:
     sub_effect_move_time: 0  # 0
     create_interval: 0  # 0
   - id: 1200005
-    name: 天降火神
+    name: Vulcan's Descent
     effect_range_type: 0
     effect_type: 0
     unit_type_id: 3
@@ -160,7 +157,7 @@ support_skills:
 
 shield_skills:
   - id: 800001
-    name: 空投护盾
+    name: Shield Airdrop
     effect_range_type: 0
     effect_type: 0
     energy: 50000
@@ -171,7 +168,7 @@ shield_skills:
 
 damage_skills:
   - id: 300001
-    name: 导弹打击
+    name: Missile Strike
     effect_range_type: 0
     effect_type: 0
     sub_effect_damage: 3000
@@ -186,7 +183,7 @@ damage_skills:
     sub_effect_interval_time: 0  # 0
     cross_advanced_shield: false
   - id: 300003
-    name: 轨道轰炸
+    name: Orbital Bombardment
     effect_range_type: 2
     effect_type: 0
     sub_effect_damage: 2500
@@ -201,7 +198,7 @@ damage_skills:
     sub_effect_interval_time: 4294967296  # 1
     cross_advanced_shield: false
   - id: 300004
-    name: 核弹
+    name: Nuke
     effect_range_type: 0
     effect_type: 0
     sub_effect_damage: 70000
@@ -216,7 +213,7 @@ damage_skills:
     sub_effect_interval_time: 0  # 0
     cross_advanced_shield: false
   - id: 300005
-    name: 闪电风暴
+    name: Lightning Storm
     effect_range_type: 2
     effect_type: 0
     sub_effect_damage: 2000
@@ -232,7 +229,6 @@ damage_skills:
     cross_advanced_shield: false
     buff:
       id: 20002
-      name: 减速-战场技能-闪电风暴
       divide: 0
       duration: 85899345920  # 20
       additive: false
@@ -246,7 +242,7 @@ damage_skills:
       life_change_rate: 0  # 0
       step_time: 0  # 0
   - id: 300006
-    name: 离子轰炸
+    name: Ion Blast
     effect_range_type: 1
     effect_type: 0
     sub_effect_damage: 2400
@@ -261,7 +257,7 @@ damage_skills:
     sub_effect_interval_time: 1288490188  # 0.3
     cross_advanced_shield: false
   - id: 300007
-    name: 轨道标枪
+    name: Orbital Javelin
     effect_range_type: 0
     effect_type: 0
     sub_effect_damage: 70000
@@ -276,7 +272,7 @@ damage_skills:
     sub_effect_interval_time: 0  # 0
     cross_advanced_shield: true
   - id: 300016
-    name: 重型导弹打击
+    name: Heavy missile strike
     effect_range_type: 0
     effect_type: 0
     sub_effect_damage: 12000
@@ -293,15 +289,15 @@ damage_skills:
 
 waypoint_skills:
   - id: 1500001
-    name: 移动信标
+    name: Mobile Beacon
     sub_effect_range: 171798691840  # 40
   - id: 1500002
-    name: 移动信标
+    name: Mobile Beacon
     sub_effect_range: 171798691840  # 40
 
 terrain_skills:
   - id: 100002
-    name: 燃烧弹
+    name: Incendiary Bomb
     kind: fire
     effect_range_type: 1
     effect_type: 0
@@ -318,7 +314,7 @@ terrain_skills:
     attack_range_change_rate: 0  # 0
     cross_advanced_shield: false
   - id: 400002
-    name: 黏油弹
+    name: Sticky Oil Bomb
     kind: oil
     effect_range_type: 1
     effect_type: 0
@@ -336,7 +332,6 @@ terrain_skills:
     cross_advanced_shield: false
     buff:
       id: 400001
-      name: 战场技能-粘油
       divide: 0
       duration: 4294967296  # 1
       additive: false
@@ -350,7 +345,7 @@ terrain_skills:
       life_change_rate: 0  # 0
       step_time: 0  # 0
   - id: 600002
-    name: 烟雾弹
+    name: Smoke Bomb
     kind: fog
     effect_range_type: 1
     effect_type: 0
@@ -367,7 +362,7 @@ terrain_skills:
     attack_range_change_rate: -1503238553  # -0.35
     cross_advanced_shield: false
   - id: 500002
-    name: 酸液弹
+    name: Acid Blast
     kind: acid
     effect_range_type: 1
     effect_type: 0
@@ -385,7 +380,6 @@ terrain_skills:
     cross_advanced_shield: false
     buff:
       id: 500001
-      name: 战场技能-酸液
       divide: 0
       duration: 4294967296  # 1
       additive: false
@@ -409,6 +403,6 @@ ground_fire:
 # above this build does not release, by the CommanderSkillGroupData
 # list each comes from.
 other_skills:
-  - {id: 900001, name: 战地回收, kind: sellUnitCommanderSkills}
-  - {id: 1000001, name: 再部署, kind: moveUnitCommanderSkills}
-  - {id: 1100001, name: 强化训练, kind: addExpCommanderSkills}
+  - {id: 900001, name: Field Recovery, kind: sellUnitCommanderSkills}
+  - {id: 1000001, name: Redeployment, kind: moveUnitCommanderSkills}
+  - {id: 1100001, name: Intensive Training, kind: addExpCommanderSkills}

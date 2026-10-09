@@ -10,6 +10,12 @@ given `--build`, and its export is `work/decomp/<build>/`, which
     level0("Class")        the m_Structure of a level0 data object, e.g. MechSkillGroupData
     shared("Class")        {name: m_Structure} of a class sharedassets0 holds, e.g. MapLayout
     names("Table")         {row id: {"en": ..., "zh": ...}} from the configuration's localization
+
+Every row these return has its `name` in the game's English, or none: a
+row's own `name` is the developers' Chinese label, and the localization's
+English name replaces it. A row the game never shows, such as an internal
+buff, has no English name, and its `name` is dropped. `name_lines` and
+`name_field` write a row's name, and nothing for a row without one.
     description("Table", row)   a row's English description, its {n} placeholders filled from descParams
     in_standard(row)       whether a row can appear outside Interstellar Expedition
 """
@@ -77,11 +83,11 @@ def _load(relative):
 
 
 def container():
-    return _load("config-data-container.json")["m_Structure"]
+    return _in_english(_load("config-data-container.json")["m_Structure"])
 
 
 def level0(name):
-    return _load(f"level0/{name}.json")["m_Structure"]
+    return _in_english(_load(f"level0/{name}.json")["m_Structure"])
 
 
 def shared(name):
@@ -108,6 +114,55 @@ def names(table):
         for term, (english, chinese) in _terms().items()
         if term.startswith(prefix) and term[len(prefix):].isdigit()
     }
+
+
+@functools.cache
+def _english_by_row():
+    """{(row id, Chinese name): English name} over every table's name terms."""
+    found = {}
+    for term, (english, chinese) in _terms().items():
+        match = re.fullmatch(r"ConfigData/\w+/name_(\d+)", term)
+        if match and english:
+            key = (int(match.group(1)), chinese)
+            if found.get(key, english) != english:
+                sys.exit(f"row {key[0]} named {chinese!r} has two English names")
+            found[key] = english
+    return found
+
+
+def _in_english(value):
+    """`value` with every row's `name` replaced by its English one, or dropped.
+
+    The English name is the localization term whose row id and Chinese text
+    are the row's: the two together pick one term.
+    """
+    if isinstance(value, list):
+        return [_in_english(item) for item in value]
+    if not isinstance(value, dict):
+        return value
+    value = {key: _in_english(item) for key, item in value.items()}
+    if isinstance(value.get("id"), int) and isinstance(value.get("name"), str):
+        english = _english_by_row().get((value["id"], value["name"]))
+        if english:
+            value["name"] = english
+        else:
+            del value["name"]
+    return value
+
+
+def _scalar(text):
+    """A name as a YAML scalar, quoted only where YAML would read it otherwise."""
+    return json.dumps(text, ensure_ascii=False) if re.search(r"[:#{}\[\],&*!|>%@`\"]|^\s|\s$", text) else text
+
+
+def name_lines(row, indent):
+    """The block-style `name:` line of a row, or none for a row without one."""
+    return [f"{indent}name: {_scalar(row['name'])}"] if row.get("name") else []
+
+
+def name_field(row):
+    """The flow-style `name: ..., ` of a row, or nothing for a row without one."""
+    return f"name: {_scalar(row['name'])}, " if row.get("name") else ""
 
 
 def description(table, row):

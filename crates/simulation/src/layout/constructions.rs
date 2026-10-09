@@ -109,6 +109,8 @@ pub(crate) struct Constructions {
 #[serde(deny_unknown_fields)]
 struct SkillRow {
     id: i32,
+    /// The English name the game gives it; none for a skill the game never shows.
+    #[serde(default)]
     name: String,
     attack: AttackConfig,
 }

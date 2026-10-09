@@ -12,10 +12,10 @@ schema: mechcore.energy_tower_skill_effects
 
 skills:
   - id: 5
-    name: 强化瞄准
+    name: Enhanced Range
     mech_type: [4]
     attack_range_value: 64424509440  # +15
   - id: 6
-    name: 高速移动
+    name: High Mobility
     mech_type: [0]
     speed_value: 3

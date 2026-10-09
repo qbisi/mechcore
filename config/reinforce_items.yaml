@@ -12,131 +12,131 @@ schema: mechcore.reinforce_items
 # belongs to an opening are left out: the pool never deals them.
 
 items:
-  - {id: 10003, name: 超级补给强化, kind: officer, supply: 250}
-  - {id: 10004, name: 额外部署位, kind: officer, supply: 100}
-  - {id: 10007, name: 先进护盾装置, kind: officer, supply: 0}
-  - {id: 10008, name: 先进飞弹装置, kind: officer, supply: 0}
-  - {id: 10009, name: 快速传送, kind: officer, supply: 0}
-  - {id: 10524, name: 量产激光瞄具, kind: officer, supply: 100}
-  - {id: 10525, name: 量产火控系统, kind: officer, supply: 100}
-  - {id: 10526, name: 量产重型装甲, kind: officer, supply: 100}
-  - {id: 10540, name: 装备扩容, kind: officer, supply: 100}
-  - {id: 20001, name: 先进防御战术, kind: officer, supply: 300}
-  - {id: 20002, name: 先进进攻战术, kind: officer, supply: 350}
-  - {id: 20003, name: 高效科技研发, kind: officer, supply: 100}
-  - {id: 20004, name: 先进动力系统, kind: officer, supply: 100}
-  - {id: 20006, name: 先进瞄准系统, kind: officer, supply: 400}
-  - {id: 20007, name: 补给强化, kind: officer, supply: 100}
-  - {id: 20022, name: 高效巨型制造, kind: officer, supply: 100}
-  - {id: 20023, name: 高效小型制造, kind: officer, supply: 300}
-  - {id: 30101, name: 量产堡垒, kind: officer, supply: 50}
-  - {id: 30102, name: 突击堡垒, kind: officer, supply: 50}
-  - {id: 30104, name: 改进型堡垒, kind: officer, supply: 0}
-  - {id: 30105, name: 增程堡垒, kind: officer, supply: 0}
-  - {id: 30201, name: 增程长弓, kind: officer, supply: 50}
-  - {id: 30202, name: 智能长弓, kind: officer, supply: 0}
-  - {id: 30203, name: 长弓补贴, kind: officer, supply: 100}
-  - {id: 30204, name: 精英长弓, kind: officer, supply: 0}
-  - {id: 30301, name: 增程火神, kind: officer, supply: 50}
-  - {id: 30302, name: 突击火神, kind: officer, supply: 0}
-  - {id: 30401, name: 突击熔点, kind: officer, supply: 0}
-  - {id: 30402, name: 改进型熔点, kind: officer, supply: 0}
-  - {id: 30403, name: 量产熔点, kind: officer, supply: 0}
-  - {id: 30501, name: 量产犀牛, kind: officer, supply: 0}
-  - {id: 30502, name: 狂暴犀牛, kind: officer, supply: 0}
-  - {id: 30503, name: 精英犀牛, kind: officer, supply: 0}
-  - {id: 30601, name: 量产兵蜂, kind: officer, supply: 0}
-  - {id: 30602, name: 改进型兵蜂, kind: officer, supply: 50}
-  - {id: 30604, name: 精英兵蜂, kind: officer, supply: 0}
-  - {id: 30701, name: 野马补贴, kind: officer, supply: 100}
-  - {id: 30702, name: 重装野马, kind: officer, supply: 50}
-  - {id: 30703, name: 精英野马, kind: officer, supply: 0}
-  - {id: 30801, name: 钢球补贴, kind: officer, supply: 100}
-  - {id: 30803, name: 改进型钢球, kind: officer, supply: 0}
-  - {id: 30804, name: 精英钢球, kind: officer, supply: 0}
-  - {id: 30901, name: 精英尖牙, kind: officer, supply: 0}
-  - {id: 30902, name: 突击尖牙, kind: officer, supply: 0}
-  - {id: 31001, name: 爬虫补贴, kind: officer, supply: 100}
-  - {id: 31002, name: 精英爬虫, kind: officer, supply: 0}
-  - {id: 31101, name: 重装霸主, kind: officer, supply: 0}
-  - {id: 31102, name: 量产霸主, kind: officer, supply: 0}
-  - {id: 31104, name: 改进型霸主, kind: officer, supply: 50}
-  - {id: 31201, name: 突击暴雨, kind: officer, supply: 0}
-  - {id: 31202, name: 增程暴雨, kind: officer, supply: 50}
-  - {id: 31203, name: 暴雨补贴, kind: officer, supply: 50}
-  - {id: 31205, name: 精英暴雨, kind: officer, supply: 0}
-  - {id: 31301, name: 量产铁锤, kind: officer, supply: 0}
-  - {id: 31302, name: 增程铁锤, kind: officer, supply: 0}
-  - {id: 31304, name: 改进型铁锤, kind: officer, supply: 0}
-  - {id: 31305, name: 精英铁锤, kind: officer, supply: 0}
-  - {id: 31402, name: 重装骇客, kind: officer, supply: 0}
-  - {id: 31403, name: 精英骇客, kind: officer, supply: 0}
-  - {id: 31501, name: 弧光补贴, kind: officer, supply: 100}
-  - {id: 31502, name: 智能弧光, kind: officer, supply: 0}
-  - {id: 31503, name: 重装弧光, kind: officer, supply: 100}
-  - {id: 31504, name: 增程弧光, kind: officer, supply: 50}
-  - {id: 31505, name: 精英弧光, kind: officer, supply: 0}
-  - {id: 31601, name: 量产凤凰, kind: officer, supply: 0}
-  - {id: 31602, name: 增程凤凰, kind: officer, supply: 0}
-  - {id: 31603, name: 改进型凤凰, kind: officer, supply: 0}
-  - {id: 31604, name: 精英凤凰, kind: officer, supply: 0}
-  - {id: 31701, name: 增程战争工厂, kind: officer, supply: 0}
-  - {id: 31702, name: 改进型战争工厂, kind: officer, supply: 0}
-  - {id: 31801, name: 量产恶灵, kind: officer, supply: 0}
-  - {id: 31802, name: 改进型恶灵, kind: officer, supply: 0}
-  - {id: 31901, name: 突击狂蝎, kind: officer, supply: 50}
-  - {id: 31902, name: 量产狂蝎, kind: officer, supply: 0}
-  - {id: 31903, name: 改进型狂蝎, kind: officer, supply: 0}
-  - {id: 32101, name: 增程剑齿虎, kind: officer, supply: 0}
-  - {id: 32102, name: 量产剑齿虎, kind: officer, supply: 0}
-  - {id: 32103, name: 改进型剑齿虎, kind: officer, supply: 0}
-  - {id: 32301, name: 改进型沙虫, kind: officer, supply: 0}
-  - {id: 32302, name: 量产沙虫, kind: officer, supply: 0}
-  - {id: 32401, name: 改进型狼蛛, kind: officer, supply: 0}
-  - {id: 32402, name: 精英狼蛛, kind: officer, supply: 0}
-  - {id: 32501, name: 增程鬼鳐, kind: officer, supply: 0}
-  - {id: 32601, name: 量产先知, kind: officer, supply: 0}
-  - {id: 32602, name: 重装先知, kind: officer, supply: 0}
-  - {id: 32701, name: 突击雷霆, kind: officer, supply: 0}
-  - {id: 32801, name: 强击猎犬, kind: officer, supply: 0}
-  - {id: 33001, name: 改进型魔眼, kind: officer, supply: 0}
-  - {id: 100002, name: 燃烧弹, kind: commander_skill, supply: 100}
-  - {id: 200001, name: 电磁冲击, kind: commander_skill, supply: 50}
-  - {id: 200002, name: 巨型电磁冲击, kind: commander_skill, supply: 200}
-  - {id: 200003, name: 光子投射, kind: commander_skill, supply: 100}
-  - {id: 300001, name: 导弹打击, kind: commander_skill, supply: 50}
-  - {id: 300003, name: 轨道轰炸, kind: commander_skill, supply: 150}
-  - {id: 300004, name: 核弹, kind: commander_skill, supply: 250}
-  - {id: 300005, name: 闪电风暴, kind: commander_skill, supply: 250}
-  - {id: 300006, name: 离子轰炸, kind: commander_skill, supply: 200}
-  - {id: 300007, name: 轨道标枪, kind: commander_skill, supply: 200}
-  - {id: 500002, name: 酸液弹, kind: commander_skill, supply: 100}
-  - {id: 600002, name: 烟雾弹, kind: commander_skill, supply: 100}
-  - {id: 800001, name: 空投护盾, kind: commander_skill, supply: 50}
-  - {id: 1000001, name: 再部署, kind: commander_skill, supply: 50}
-  - {id: 1100001, name: 强化训练, kind: commander_skill, supply: 50}
-  - {id: 1200001, name: 地底威胁, kind: commander_skill, supply: 50}
-  - {id: 1200002, name: 犀牛来袭, kind: commander_skill, supply: 50}
-  - {id: 1200003, name: 呼叫机群, kind: commander_skill, supply: 50}
-  - {id: 1200004, name: 呼叫战舰, kind: commander_skill, supply: 250}
-  - {id: 1200005, name: 天降火神, kind: commander_skill, supply: 200}
-  - {id: 1305003, name: 光子涂层, kind: equipment, supply: 0}
-  - {id: 1306001, name: 坦克生产线, kind: equipment, supply: 200}
-  - {id: 1306002, name: 野马生产线, kind: equipment, supply: 200}
-  - {id: 1306003, name: 钢球生产线, kind: equipment, supply: 200}
-  - {id: 1307001, name: 保护屏障, kind: equipment, supply: 100}
-  - {id: 1308001, name: 抗干扰模块, kind: equipment, supply: 0}
-  - {id: 1309001, name: 汲取模块, kind: equipment, supply: 100}
-  - {id: 1500002, name: 移动信标, kind: commander_skill, supply: 0}
-  - {id: 13010001, name: 便携式护盾, kind: equipment, supply: 150}
-  - {id: 13020001, name: 纳米维修包, kind: equipment, supply: 100}
-  - {id: 13030001, name: 激光瞄具, kind: equipment, supply: 50}
-  - {id: 13030002, name: 重型装甲, kind: equipment, supply: 50}
-  - {id: 13030003, name: 改良火控系统, kind: equipment, supply: 50}
-  - {id: 13030004, name: 强化模块, kind: equipment, supply: 200, upgrade_supply: -100}
-  - {id: 13030005, name: 速攻模块, kind: equipment, supply: 0}
-  - {id: 13030006, name: 超重型装甲, kind: equipment, supply: 200}
-  - {id: 13030007, name: 增幅核心, kind: equipment, supply: 150}
-  - {id: 13030010, name: 统御核心, kind: equipment, supply: 100, round_supply: 50}
-  - {id: 13040001, name: 部署模块, kind: equipment, supply: 0}
-  - {id: 13150101, name: 爆裂弹药, kind: equipment, supply: 100}
+  - {id: 10003, name: Super Supply Enhancement, kind: officer, supply: 250}
+  - {id: 10004, name: Additional Deployment Slot, kind: officer, supply: 100}
+  - {id: 10007, name: Advanced Shield Device, kind: officer, supply: 0}
+  - {id: 10008, name: Advanced Missile Device, kind: officer, supply: 0}
+  - {id: 10009, name: Quick Teleport, kind: officer, supply: 0}
+  - {id: 10524, name: Mass-produced laser sight, kind: officer, supply: 100}
+  - {id: 10525, name: Mass Production Fire Control System, kind: officer, supply: 100}
+  - {id: 10526, name: Mass Production Heavy Armor, kind: officer, supply: 100}
+  - {id: 10540, name: Equipment Expansion, kind: officer, supply: 100}
+  - {id: 20001, name: Advanced Defensive Tactics, kind: officer, supply: 300}
+  - {id: 20002, name: Advanced Offensive Tactics, kind: officer, supply: 350}
+  - {id: 20003, name: Efficient Tech Research, kind: officer, supply: 100}
+  - {id: 20004, name: Advanced Power System, kind: officer, supply: 100}
+  - {id: 20006, name: Advanced Targeting System, kind: officer, supply: 400}
+  - {id: 20007, name: Supply Enhancement, kind: officer, supply: 100}
+  - {id: 20022, name: Efficient Giant Manufacturing, kind: officer, supply: 100}
+  - {id: 20023, name: Efficient Light Manufacturing, kind: officer, supply: 300}
+  - {id: 30101, name: Mass-Produced Fortress, kind: officer, supply: 50}
+  - {id: 30102, name: Assault Fortress, kind: officer, supply: 50}
+  - {id: 30104, name: Improved Fortress, kind: officer, supply: 0}
+  - {id: 30105, name: Extended Range Fortress, kind: officer, supply: 0}
+  - {id: 30201, name: Extended Range Marksman, kind: officer, supply: 50}
+  - {id: 30202, name: Smart Marksman, kind: officer, supply: 0}
+  - {id: 30203, name: Subsidized Marksman, kind: officer, supply: 100}
+  - {id: 30204, name: Elite Marksman, kind: officer, supply: 0}
+  - {id: 30301, name: Extended Range Vulcan, kind: officer, supply: 50}
+  - {id: 30302, name: Assault Vulcan, kind: officer, supply: 0}
+  - {id: 30401, name: Assault Melting Point, kind: officer, supply: 0}
+  - {id: 30402, name: Improved Melting Point, kind: officer, supply: 0}
+  - {id: 30403, name: Mass-Produced Melting Point, kind: officer, supply: 0}
+  - {id: 30501, name: Mass-Produced Rhino, kind: officer, supply: 0}
+  - {id: 30502, name: Berserk Rhino, kind: officer, supply: 0}
+  - {id: 30503, name: Elite Rhino, kind: officer, supply: 0}
+  - {id: 30601, name: Mass-Produced Wasp, kind: officer, supply: 0}
+  - {id: 30602, name: Improved Wasp, kind: officer, supply: 50}
+  - {id: 30604, name: Elite Wasp, kind: officer, supply: 0}
+  - {id: 30701, name: Subsidized Mustang, kind: officer, supply: 100}
+  - {id: 30702, name: Fortified Mustang, kind: officer, supply: 50}
+  - {id: 30703, name: Elite Mustang, kind: officer, supply: 0}
+  - {id: 30801, name: Subsidized Steel Ball, kind: officer, supply: 100}
+  - {id: 30803, name: Improved Steel Ball, kind: officer, supply: 0}
+  - {id: 30804, name: Elite Steel Ball, kind: officer, supply: 0}
+  - {id: 30901, name: Elite Fang, kind: officer, supply: 0}
+  - {id: 30902, name: Assault Fang, kind: officer, supply: 0}
+  - {id: 31001, name: Subsidized Crawler, kind: officer, supply: 100}
+  - {id: 31002, name: Elite Crawler, kind: officer, supply: 0}
+  - {id: 31101, name: Fortified Overlord, kind: officer, supply: 0}
+  - {id: 31102, name: Mass-Produced Overlord, kind: officer, supply: 0}
+  - {id: 31104, name: Improved Overlord, kind: officer, supply: 50}
+  - {id: 31201, name: Assault Stormcaller, kind: officer, supply: 0}
+  - {id: 31202, name: Extended Range Stormcaller, kind: officer, supply: 50}
+  - {id: 31203, name: Subsidized Stormcaller, kind: officer, supply: 50}
+  - {id: 31205, name: Elite Stormcaller, kind: officer, supply: 0}
+  - {id: 31301, name: Mass-Produced Sledgehammer, kind: officer, supply: 0}
+  - {id: 31302, name: Extended Range Sledgehammer, kind: officer, supply: 0}
+  - {id: 31304, name: Improved Sledgehammer, kind: officer, supply: 0}
+  - {id: 31305, name: Elite Sledgehammer, kind: officer, supply: 0}
+  - {id: 31402, name: Fortified Hacker, kind: officer, supply: 0}
+  - {id: 31403, name: Elite Hacker, kind: officer, supply: 0}
+  - {id: 31501, name: Subsidized Arclight, kind: officer, supply: 100}
+  - {id: 31502, name: Smart Arclight, kind: officer, supply: 0}
+  - {id: 31503, name: Fortified Arclight, kind: officer, supply: 100}
+  - {id: 31504, name: Extended Range Arclight, kind: officer, supply: 50}
+  - {id: 31505, name: Elite Arclight, kind: officer, supply: 0}
+  - {id: 31601, name: Mass-Produced Phoenix, kind: officer, supply: 0}
+  - {id: 31602, name: Extended Range Phoenix, kind: officer, supply: 0}
+  - {id: 31603, name: Improved Phoenix, kind: officer, supply: 0}
+  - {id: 31604, name: Elite Phoenix, kind: officer, supply: 0}
+  - {id: 31701, name: Extended Range War Factory, kind: officer, supply: 0}
+  - {id: 31702, name: Improved War Factory, kind: officer, supply: 0}
+  - {id: 31801, name: Mass-Produced Wraith, kind: officer, supply: 0}
+  - {id: 31802, name: Improved Wraith, kind: officer, supply: 0}
+  - {id: 31901, name: Assault Scorpion, kind: officer, supply: 50}
+  - {id: 31902, name: Mass-Produced Scorpion, kind: officer, supply: 0}
+  - {id: 31903, name: Improved Scorpion, kind: officer, supply: 0}
+  - {id: 32101, name: Extended Range Sabertooth, kind: officer, supply: 0}
+  - {id: 32102, name: Mass-Produced Sabertooth, kind: officer, supply: 0}
+  - {id: 32103, name: Improved Sabertooth, kind: officer, supply: 0}
+  - {id: 32301, name: Improved Sandworm, kind: officer, supply: 0}
+  - {id: 32302, name: Mass-Produced Sandworm, kind: officer, supply: 0}
+  - {id: 32401, name: Improved Tarantula, kind: officer, supply: 0}
+  - {id: 32402, name: Elite Tarantula, kind: officer, supply: 0}
+  - {id: 32501, name: Extended Range Phantom Ray, kind: officer, supply: 0}
+  - {id: 32601, name: Mass-Produced Farseer, kind: officer, supply: 0}
+  - {id: 32602, name: Fortified Farseer, kind: officer, supply: 0}
+  - {id: 32701, name: Assault Raiden, kind: officer, supply: 0}
+  - {id: 32801, name: Strike Hound, kind: officer, supply: 0}
+  - {id: 33001, name: Improved Void Eye, kind: officer, supply: 0}
+  - {id: 100002, name: Incendiary Bomb, kind: commander_skill, supply: 100}
+  - {id: 200001, name: Electromagnetic Impact, kind: commander_skill, supply: 50}
+  - {id: 200002, name: Electromagnetic Blast, kind: commander_skill, supply: 200}
+  - {id: 200003, name: Photon Emission, kind: commander_skill, supply: 100}
+  - {id: 300001, name: Missile Strike, kind: commander_skill, supply: 50}
+  - {id: 300003, name: Orbital Bombardment, kind: commander_skill, supply: 150}
+  - {id: 300004, name: Nuke, kind: commander_skill, supply: 250}
+  - {id: 300005, name: Lightning Storm, kind: commander_skill, supply: 250}
+  - {id: 300006, name: Ion Blast, kind: commander_skill, supply: 200}
+  - {id: 300007, name: Orbital Javelin, kind: commander_skill, supply: 200}
+  - {id: 500002, name: Acid Blast, kind: commander_skill, supply: 100}
+  - {id: 600002, name: Smoke Bomb, kind: commander_skill, supply: 100}
+  - {id: 800001, name: Shield Airdrop, kind: commander_skill, supply: 50}
+  - {id: 1000001, name: Redeployment, kind: commander_skill, supply: 50}
+  - {id: 1100001, name: Intensive Training, kind: commander_skill, supply: 50}
+  - {id: 1200001, name: Underground Threat, kind: commander_skill, supply: 50}
+  - {id: 1200002, name: Rhino Assault, kind: commander_skill, supply: 50}
+  - {id: 1200003, name: Wasp Swarm, kind: commander_skill, supply: 50}
+  - {id: 1200004, name: Mobilize Battleship, kind: commander_skill, supply: 250}
+  - {id: 1200005, name: Vulcan's Descent, kind: commander_skill, supply: 200}
+  - {id: 1305003, name: Photon Coating, kind: equipment, supply: 0}
+  - {id: 1306001, name: Tank Production Line, kind: equipment, supply: 200}
+  - {id: 1306002, name: Mustang Production Line, kind: equipment, supply: 200}
+  - {id: 1306003, name: Steel Ball Production Line, kind: equipment, supply: 200}
+  - {id: 1307001, name: Barrier, kind: equipment, supply: 100}
+  - {id: 1308001, name: Anti-Interference Module, kind: equipment, supply: 0}
+  - {id: 1309001, name: Absorption Module, kind: equipment, supply: 100}
+  - {id: 1500002, name: Mobile Beacon, kind: commander_skill, supply: 0}
+  - {id: 13010001, name: Portable Shield, kind: equipment, supply: 150}
+  - {id: 13020001, name: Nano Repair Kit, kind: equipment, supply: 100}
+  - {id: 13030001, name: Laser Sights, kind: equipment, supply: 50}
+  - {id: 13030002, name: Heavy Armor, kind: equipment, supply: 50}
+  - {id: 13030003, name: Improved Firepower Control System, kind: equipment, supply: 50}
+  - {id: 13030004, name: Enhancement Module, kind: equipment, supply: 200, upgrade_supply: -100}
+  - {id: 13030005, name: Haste Module, kind: equipment, supply: 0}
+  - {id: 13030006, name: Super Heavy Armor, kind: equipment, supply: 200}
+  - {id: 13030007, name: Amplifying Core, kind: equipment, supply: 150}
+  - {id: 13030010, name: Dominion Core, kind: equipment, supply: 100, round_supply: 50}
+  - {id: 13040001, name: Deployment Module, kind: equipment, supply: 0}
+  - {id: 13150101, name: Explosive Ammo, kind: equipment, supply: 100}

@@ -274,6 +274,8 @@ struct BuffSkillRow {
 )]
 struct BuffRow {
     id: u32,
+    /// The English name the game gives it; none for a buff the game never shows.
+    #[serde(default)]
     name: String,
     divide: i32,
     duration: i64,

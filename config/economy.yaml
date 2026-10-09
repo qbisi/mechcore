@@ -8,13 +8,13 @@ schema: mechcore.economy
 # second level is reached by activating its first.
 
 blueprints:
-  - {id: 1, name: 黏油弹, supply: 150, grants_skill: 400002}
-  - {id: 2, name: 战地回收, supply: 100, grants_skill: 900001}
-  - {id: 3, name: 移动信标, supply: 100, grants_skill: 1500001}
-  - {id: 4, name: 进攻强化, supply: 100, grants_officer: 20310}
-  - {id: 5, name: 防御强化, supply: 100, grants_officer: 20300}
-  - {id: 401, name: 进攻强化II, supply: 300, grants_officer: 20311}
-  - {id: 501, name: 防御强化II, supply: 300, grants_officer: 20301}
+  - {id: 1, name: Sticky Oil Bomb, supply: 150, grants_skill: 400002}
+  - {id: 2, name: Field Recovery, supply: 100, grants_skill: 900001}
+  - {id: 3, name: Mobile Beacon, supply: 100, grants_skill: 1500001}
+  - {id: 4, name: Attack Enhancement, supply: 100, grants_officer: 20310}
+  - {id: 5, name: Defense Enhancement, supply: 100, grants_officer: 20300}
+  - {id: 401, name: Attack Enhancement II, supply: 300, grants_officer: 20311}
+  - {id: 501, name: Defense Enhancement II, supply: 300, grants_officer: 20301}
 
 tower_strengthen:
   - {level: 1, supply: 100}
@@ -27,11 +27,11 @@ tower_strengthen:
 # `shop_unit_level` is how much higher a unit bought after it
 # arrives, which is a price as well as a level.
 energy_tower_skills:
-  - {id: 1, name: 快速补给, supply: 0, granted: 200, owed: 300}
-  - {id: 3, name: 批量征召, supply: 50, granted: 0, owed: 0}
-  - {id: 4, name: 精英征召, supply: 100, granted: 0, shop_unit_level: 1, owed: 0}
-  - {id: 5, name: 强化瞄准, supply: 100, granted: 0, owed: 0}
-  - {id: 6, name: 高速移动, supply: 50, granted: 0, owed: 0}
+  - {id: 1, name: Rapid Resupply, supply: 0, granted: 200, owed: 300}
+  - {id: 3, name: Mass Recruitment, supply: 50, granted: 0, owed: 0}
+  - {id: 4, name: Elite Recruitment, supply: 100, granted: 0, shop_unit_level: 1, owed: 0}
+  - {id: 5, name: Enhanced Range, supply: 100, granted: 0, owed: 0}
+  - {id: 6, name: High Mobility, supply: 50, granted: 0, owed: 0}
 
 # What each technology already researched on a unit adds to the
 # next one's price. `UnitUtility.CalculateUpgradeTechnologyCost`
@@ -62,9 +62,9 @@ reinforce_decline: 50
 # does not carry these; they come from the `constraptionDatas`
 # object of `level0`.
 contraptions:
-  - {type: shield, id: 10001, name: 护盾发生器, supply: 100}
-  - {type: missile, id: 20001, name: 哨戒飞弹, supply: 50}
-  - {type: interceptor, id: 30001, name: 导弹拦截器, supply: 100}
+  - {type: shield, id: 10001, name: Shield Generator, supply: 100}
+  - {type: missile, id: 20001, name: Sentry Missile, supply: 50}
+  - {type: interceptor, id: 30001, name: Missile Interceptor, supply: 100}
 
 # What recovering a construction pays back. Unlike a unit's,
 # this is a property of the construction and not of its history.
