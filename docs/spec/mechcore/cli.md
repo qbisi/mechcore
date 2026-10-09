@@ -473,16 +473,22 @@ in play: what one side is shown of it.
 
 ## `query`
 
-`query <file>... --sql <sql>` answers one SQL statement over the tables of one
-recording or several, as SQLite runs it in a database of the binary's own, so
-a question a recording can answer needs no program beside the binary. `--query <name>`
-runs a statement the binary carries instead, and `--schema` answers what can be
-asked: every table with its key and columns, and every named statement with
-what it answers and the parameters it takes. `--sql-file <path>` reads the
-statement from a file. Exactly one of the four is given. A statement's `:name` parameters are bound by `--param name=value`, once
-each, as an integer or a number where the value reads as one and as text
-otherwise; a parameter the statement does not take, or one it takes and is
-not given, is a usage failure.
+`query <file>... --sql <sql>` answers SQL over the tables of one recording or
+several, as SQLite runs it in a database of the binary's own, so a question a
+recording can answer needs no program beside the binary. `--sql-file <path>`
+reads the SQL from a file, `--query <name>` runs SQL the binary carries
+instead, and `--schema` answers what can be asked: every table with its key
+and columns, and every named statement with what it answers and the
+parameters it takes. Exactly one of the four is given.
+
+The SQL is one statement or several, separated by `;` outside a string and a
+comment, run in order, and the answer is the last one's. An earlier statement
+may make a temporary table, view or index a later one reads, and each
+statement's tables are filled as it is prepared. A statement's `:name`
+parameters are bound by `--param name=value`, once each, as an integer or a
+number where the value reads as one and as text otherwise, in every statement
+that names it; a parameter no statement takes, or one a statement takes and is
+not given, is a usage failure, and so is SQL that holds no statement.
 
 **Several recordings.** One recording's tables go unprefixed. Two paths are
 `left` and `right`, as `diff` takes them, and `name=path` names each of any

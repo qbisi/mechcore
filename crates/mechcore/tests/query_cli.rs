@@ -424,3 +424,22 @@ fn a_later_query_reads_what_an_earlier_one_cached() {
     assert_eq!(code, 0, "{memory}");
     assert_eq!(memory["rows"], first["rows"]);
 }
+
+#[test]
+fn a_statement_reads_what_an_earlier_one_made() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = recording(directory.path());
+    let sql = "CREATE TEMP TABLE first AS SELECT unit_id FROM units WHERE tick = :tick; \
+               CREATE INDEX temp.first_key ON first (unit_id); \
+               SELECT count(*) FROM first JOIN units__skills s USING (unit_id) WHERE s.tick = :tick";
+    let (code, answer) = query(&path, &["--sql", sql, "--param", "tick=1"]);
+    assert_eq!(code, 0, "{answer}");
+    assert_eq!(
+        answer["rows"][0][0],
+        single(&path, "SELECT count(*) FROM units__skills WHERE tick = 1")
+    );
+    let (code, _) = query(&path, &["--sql", "SELECT 1; SELECT 2", "--param", "tick=1"]);
+    assert_eq!(code, 2);
+    let (code, empty) = query(&path, &["--sql", "-- nothing"]);
+    assert_eq!(code, 2, "{empty}");
+}

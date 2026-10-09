@@ -407,39 +407,31 @@ impl Database {
     }
 
     /// Runs one statement, first filling every table it reads.
+    /// Runs the statements of `sql` in order, each once every table it reads
+    /// is filled, and answers the last one's rows. A statement may read what
+    /// an earlier one made, a temporary view or table, since each is prepared
+    /// only once the ones before it have run.
     fn query(
         mut self,
         sql: &str,
         parameters: &BTreeMap<String, String>,
     ) -> Result<Answer, Failure> {
-        self.read.lock().expect("one thread").clear();
-        // Preparing names every table the statement reads, through the views
-        // it reads too, to the authorizer.
-        drop(self.connection().prepare(sql).map_err(sqlite)?);
-        let read = std::mem::take(&mut *self.read.lock().expect("one thread"));
-        for recording in &mut self.recordings {
-            let tables = read
-                .iter()
-                .filter(|(schema, _)| *schema == recording.schema)
-                .map(|(_, table)| table.clone())
-                .collect();
-            recording.fill(&tables)?;
+        let statements = statements(sql);
+        let Some((last, earlier)) = statements.split_last() else {
+            return Err(Failure::usage("the query holds no statement"));
+        };
+        let mut unused = parameters.keys().cloned().collect::<BTreeSet<_>>();
+        for statement in earlier {
+            self.fill_for(statement)?;
+            let mut prepared = self.connection().prepare(statement).map_err(sqlite)?;
+            bind(&mut prepared, parameters, &mut unused)?;
+            // An earlier statement's rows, if it has any, are not the answer.
+            let mut rows = prepared.raw_query();
+            while rows.next().map_err(sqlite)?.is_some() {}
         }
-        let mut statement = self.connection().prepare(sql).map_err(sqlite)?;
-        let mut unused = parameters.keys().collect::<BTreeSet<_>>();
-        for index in 1..=statement.parameter_count() {
-            let name = statement
-                .parameter_name(index)
-                .ok_or_else(|| Failure::usage("a query's parameters are named, :name"))?;
-            let key = name.trim_start_matches([':', '@', '$']);
-            let value = parameters
-                .get(key)
-                .ok_or_else(|| Failure::usage(format!("the query takes --param {key}=<value>")))?;
-            unused.remove(&key.to_owned());
-            statement
-                .raw_bind_parameter(index, parameter(value))
-                .map_err(sqlite)?;
-        }
+        self.fill_for(last)?;
+        let mut statement = self.connection().prepare(last).map_err(sqlite)?;
+        bind(&mut statement, parameters, &mut unused)?;
         if let Some(name) = unused.first() {
             return Err(Failure::usage(format!(
                 "the query takes no parameter {name}"
@@ -461,6 +453,23 @@ impl Database {
             );
         }
         Ok(Answer { columns, rows })
+    }
+
+    /// Fills every table one statement reads, which preparing it names to
+    /// the authorizer, through the views it reads too.
+    fn fill_for(&mut self, statement: &str) -> Result<(), Failure> {
+        self.read.lock().expect("one thread").clear();
+        drop(self.connection().prepare(statement).map_err(sqlite)?);
+        let read = std::mem::take(&mut *self.read.lock().expect("one thread"));
+        for recording in &mut self.recordings {
+            let tables = read
+                .iter()
+                .filter(|(schema, _)| *schema == recording.schema)
+                .map(|(_, table)| table.clone())
+                .collect();
+            recording.fill(&tables)?;
+        }
+        Ok(())
     }
 
     fn schema(&self) -> Result<Schema, Failure> {
@@ -777,6 +786,104 @@ impl Attached {
     }
 }
 
+/// Binds a statement's `:name` parameters from `parameters`, striking each
+/// it takes from `unused`.
+fn bind(
+    statement: &mut rusqlite::Statement<'_>,
+    parameters: &BTreeMap<String, String>,
+    unused: &mut BTreeSet<String>,
+) -> Result<(), Failure> {
+    for index in 1..=statement.parameter_count() {
+        let name = statement
+            .parameter_name(index)
+            .ok_or_else(|| Failure::usage("a query's parameters are named, :name"))?;
+        let key = name.trim_start_matches([':', '@', '$']).to_owned();
+        let value = parameters
+            .get(&key)
+            .ok_or_else(|| Failure::usage(format!("the query takes --param {key}=<value>")))?;
+        statement
+            .raw_bind_parameter(index, parameter(value))
+            .map_err(sqlite)?;
+        unused.remove(&key);
+    }
+    Ok(())
+}
+
+/// The statements of a query in order: split at each `;` outside a quoted
+/// string or name and outside a comment, each kept with its own comments, and
+/// none that holds only whitespace and comments.
+fn statements(sql: &str) -> Vec<&str> {
+    let bytes = sql.as_bytes();
+    let mut statements = Vec::new();
+    let (mut start, mut at) = (0, 0);
+    while at < bytes.len() {
+        match bytes[at] {
+            quote @ (b'\'' | b'"' | b'`') => {
+                at += 1;
+                while at < bytes.len() {
+                    if bytes[at] == quote {
+                        // A doubled quote stands for itself.
+                        if bytes.get(at + 1) == Some(&quote) {
+                            at += 1;
+                        } else {
+                            break;
+                        }
+                    }
+                    at += 1;
+                }
+            }
+            b'[' => {
+                while at < bytes.len() && bytes[at] != b']' {
+                    at += 1;
+                }
+            }
+            b'-' if bytes.get(at + 1) == Some(&b'-') => {
+                while at < bytes.len() && bytes[at] != b'\n' {
+                    at += 1;
+                }
+            }
+            b'/' if bytes.get(at + 1) == Some(&b'*') => {
+                at += 2;
+                while at + 1 < bytes.len() && !(bytes[at] == b'*' && bytes[at + 1] == b'/') {
+                    at += 1;
+                }
+                at += 1;
+            }
+            b';' => {
+                statements.push(&sql[start..at]);
+                start = at + 1;
+            }
+            _ => {}
+        }
+        at += 1;
+    }
+    statements.push(&sql[start.min(sql.len())..]);
+    statements
+        .into_iter()
+        .filter(|statement| !is_blank(statement))
+        .collect()
+}
+
+/// Whether a piece of SQL holds nothing but whitespace and comments.
+fn is_blank(sql: &str) -> bool {
+    let mut rest = sql.trim_start();
+    loop {
+        if let Some(line) = rest.strip_prefix("--") {
+            rest = line
+                .split_once('\n')
+                .map_or("", |(_, after)| after)
+                .trim_start();
+        } else if let Some(block) = rest.strip_prefix("/*") {
+            rest = block
+                .split_once("*/")
+                .map_or("", |(_, after)| after)
+                .trim_start();
+        } else {
+            return rest.is_empty();
+        }
+    }
+}
+
 #[allow(clippy::needless_pass_by_value)] // `map_err` hands the error over
 fn sqlite(error: rusqlite::Error) -> Failure {
     Failure::failed(format!("sqlite: {error}"))
@@ -992,4 +1099,23 @@ fn schema_text(schema: &Schema) -> String {
         let _ = writeln!(text, "\n    {}", query.description);
     }
     text
+}
+
+#[cfg(test)]
+mod tests {
+    use super::statements;
+
+    #[test]
+    fn statements_split_at_semicolons_outside_strings_and_comments() {
+        assert_eq!(
+            statements("SELECT 1; SELECT ';', \"a;b\" -- c;d\n; /* e; */ SELECT 2;\n-- tail\n"),
+            [
+                "SELECT 1",
+                " SELECT ';', \"a;b\" -- c;d\n",
+                " /* e; */ SELECT 2"
+            ]
+        );
+        assert_eq!(statements("SELECT 'it''s; fine'"), ["SELECT 'it''s; fine'"]);
+        assert!(statements("-- nothing\n/* at all */ ;").is_empty());
+    }
 }
