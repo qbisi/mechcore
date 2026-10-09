@@ -16,7 +16,7 @@ use crate::{
         EnergyShield, EnergyTowerSkillEffects, EquipmentEffects, LifeSteal, MainSkill, MechGroup,
         MoveAbilityAttack, OfficerEffects, ProductionLine, ReactiveArmor, SecondaryDamage,
         SiegeMode, Stealth, SweepIntensify, TECHNOLOGY_SOURCE, TechnologyEffects, UnitInterception,
-        current_source,
+        WreckageRecovery, current_source,
     },
     rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs, UnitDomain},
 };
@@ -81,6 +81,10 @@ pub(crate) struct Placement {
     /// The `ISiegeModeEffectDataSource` its `SiegeModeEffectProvider` hands
     /// `SiegeModeEffectSystem`, if its technologies hand it one.
     pub(crate) siege_mode: Option<SiegeMode>,
+    /// The `IWreckageRecovery` its `WreckageRecoveryEffectProvider` hands
+    /// its side's `TeamWreckageRecoveryManager`, if its technologies hand it
+    /// one.
+    pub(crate) wreckage: Option<WreckageRecovery>,
     /// What its technologies hand its sweep (`SweepSkillIntensifyTech`).
     pub(crate) sweep: Option<SweepIntensify>,
     /// Whether its technologies turn its main skill's search to
@@ -592,6 +596,7 @@ fn compile_death_summons(
             energy_shield: worn.energy_shield,
             stealth: worn.stealth,
             siege_mode: worn.siege_mode.clone(),
+            wreckage: worn.wreckage.clone(),
             sweep: worn.sweep,
             distance_intensify: worn.distance_intensify,
             secondary_damage: worn.secondary_damage,
@@ -762,10 +767,11 @@ fn compile_battle_skills(
                 || worn.mech_group.is_some()
                 || worn.siege_mode.is_some()
                 || worn.main_fire.is_some()
+                || worn.wreckage.is_some()
             {
                 refused.push(format!(
                     "side {name} summons a {} that its technologies give lifesteal, repair, \
-                     a shield, stealth, a group, a trench or a fire, and what a \
+                     a shield, stealth, a group, a trench, a fire or life from wreckage, and what a \
                      summon's effect providers carry is not measured",
                     summon.rules.type_name
                 ));
@@ -892,6 +898,7 @@ fn compile_formation(
         energy_shield: worn.energy_shield,
         stealth: worn.stealth,
         siege_mode: worn.siege_mode.clone(),
+        wreckage: worn.wreckage.clone(),
         sweep: worn.sweep,
         distance_intensify: worn.distance_intensify,
         secondary_damage: worn.secondary_damage,
@@ -1045,11 +1052,12 @@ fn made_by(
         || worn.dead_summon.is_some()
         || worn.siege_mode.is_some()
         || worn.main_fire.is_some()
+        || worn.wreckage.is_some()
     {
         refused.push(format!(
             "side {side_name} makes a {} that its technologies give lifesteal, repair, a \
              shield, a search by distance, a second damage, a dead line, a stronger \
-             surfacing, a sand fog, interceptors, a summon as it dies, a trench or a fire, and what a made unit's effect providers carry is not measured",
+             surfacing, a sand fog, interceptors, a summon as it dies, a trench, a fire or life from wreckage, and what a made unit's effect providers carry is not measured",
             made.type_name
         ));
         return None;
@@ -1220,6 +1228,7 @@ struct Worn {
     energy_shield: Option<EnergyShield>,
     stealth: Option<Stealth>,
     siege_mode: Option<SiegeMode>,
+    wreckage: Option<WreckageRecovery>,
     sweep: Option<SweepIntensify>,
     distance_intensify: bool,
     secondary_damage: Option<SecondaryDamage>,
@@ -1533,6 +1542,7 @@ fn worn(
         energy_shield: refused.hold(current_source(&energy_shield).map_err(in_force))?,
         stealth: sources.stealth,
         siege_mode: sources.siege_mode,
+        wreckage: sources.wreckage,
         sweep: main_skill.sweep,
         distance_intensify: main_skill.distance_intensify,
         secondary_damage: main_skill.secondary_damage,

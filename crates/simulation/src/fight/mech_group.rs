@@ -70,7 +70,7 @@ const fn approximately(left: i64, right: i64) -> bool {
 
 impl Simulation {
     /// `FightActor.Distance2D`: edge to edge, never below zero.
-    fn group_distance(&self, one: u64, two: u64) -> i64 {
+    pub(in crate::fight) fn distance_2d(&self, one: u64, two: u64) -> i64 {
         let (one, two) = (&self.actors[&one], &self.actors[&two]);
         math::native_q32_magnitude(
             two.x_q32.saturating_sub(one.x_q32),
@@ -83,7 +83,7 @@ impl Simulation {
 
     fn within_share(&self, one: u64, two: u64) -> bool {
         math::fpoint_less_or_equal(
-            self.group_distance(one, two),
+            self.distance_2d(one, two),
             self.mech_groups.share_distance_q32,
         )
     }
@@ -123,10 +123,10 @@ impl Simulation {
         };
         let source_last = *source.last().expect("a list with a first has a last");
         let target_last = *target.last().expect("a list with a first has a last");
-        let a = self.group_distance(source_first, target_first);
-        let b = self.group_distance(source_first, target_last);
-        let c = self.group_distance(source_last, target_first);
-        let d = self.group_distance(source_last, target_last);
+        let a = self.distance_2d(source_first, target_first);
+        let b = self.distance_2d(source_first, target_last);
+        let c = self.distance_2d(source_last, target_first);
+        let d = self.distance_2d(source_last, target_last);
         let nearest = [b, c, d].into_iter().fold(a, |nearest, distance| {
             if rvo::fpoint_less_than(distance, nearest) {
                 distance
@@ -458,8 +458,8 @@ impl Simulation {
                     let (first, last) = (part[0], part[part.len() - 1]);
                     if part.len() < 2
                         || math::fpoint_less_or_equal(
-                            self.group_distance(unit, last),
-                            self.group_distance(unit, first),
+                            self.distance_2d(unit, last),
+                            self.distance_2d(unit, first),
                         )
                     {
                         parts[index].push(unit);
@@ -547,8 +547,8 @@ impl Simulation {
     fn group_add(&mut self, group: u64, unit: u64) {
         let members = &self.mech_groups.groups[&group];
         let (first, last) = (members[0], members[members.len() - 1]);
-        let to_first = self.group_distance(unit, first);
-        let to_last = self.group_distance(unit, last);
+        let to_first = self.distance_2d(unit, first);
+        let to_last = self.distance_2d(unit, last);
         let members = self
             .mech_groups
             .groups

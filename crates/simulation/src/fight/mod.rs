@@ -78,6 +78,7 @@ mod terrain;
 mod tests;
 mod tower;
 mod underground;
+mod wreckage;
 
 #[cfg(test)]
 use attacker::Facing;
@@ -484,6 +485,8 @@ struct Simulation {
     stealth: stealth::StealthSystem,
     /// `SiegeModeEffectSystem`'s units.
     siege: siege::SiegeModeSystem,
+    /// `WreckageRecoverySystem`'s holders.
+    wreckage: wreckage::WreckageSystem,
     /// `MechGrounpSystem`'s groups.
     mech_groups: mech_group::MechGroupSystem,
     /// The RVO simulator's state and the obstacles besides the units.
@@ -608,6 +611,7 @@ impl Simulation {
             terrain: terrain::TerrainSystem::default(),
             stealth: stealth::StealthSystem::default(),
             siege: siege::SiegeModeSystem::default(),
+            wreckage: wreckage::WreckageSystem::default(),
             mech_groups: mech_group::MechGroupSystem::default(),
         };
         simulation.number_joiners();
@@ -615,6 +619,7 @@ impl Simulation {
         simulation.enter_stealth_fight();
         simulation.enter_reactive_armor_fight();
         simulation.start_groups();
+        simulation.enter_wreckage_fight();
         simulation.restore_standing_oil(&layout.standing_oil)?;
         // `CommanderSkillManager.OnFightStart`: a path is given out before
         // the first tick, and lands nothing.
@@ -1108,11 +1113,17 @@ impl Simulation {
                 .get_mut(&unit_id)
                 .expect("actor identity is stable")
                 .exit_fight_on_death();
+            // `FightMech.OnDead` raises `OnMechDead`, which a side's
+            // `TeamWreckageRecoveryManager` registered with for each unit
+            // its holders struck.
+            self.wreckage_on_dead(unit_id)?;
             // `FightEffectSystem.DeactiveEffect` of the dead unit: its
             // group's `MechGrounpEffectProvider.DoDeactive`.
             self.remove_group_unit(unit_id);
             // Its `SiegeModeEffectProvider.DoDeactive`.
             self.remove_siege_unit(unit_id)?;
+            // And its `WreckageRecoveryEffectProvider.DoDeactive`.
+            self.remove_wreckage_unit(unit_id);
             // `SkillManager.OnOwnerDead` stops its skills, a control beam's
             // `ControllEffect` among them: the Rhino a Hacker was turning
             // holds no entry from the tick the Hacker dies.
@@ -1131,6 +1142,9 @@ impl Simulation {
         // Its `TryProcessDeadImportantUnit` too: a side whose last important
         // unit died this tick loses every unit it has left.
         self.lose_important_units(&events)?;
+        // `WreckageRecoverySystem` updates after `DeadEffectSystem` and
+        // `FightEffectSystem`.
+        self.step_wreckage();
         // `SiegeModeEffectSystem` updates after `FightConstructionSystem`,
         // and `StealthTechSystem` after it, one of the last modules.
         self.step_siege()?;
@@ -1292,6 +1306,7 @@ impl Simulation {
                 self.clear_terrains_as_the_fight_ends()?;
                 self.end_stealth_as_the_fight_ends();
                 self.end_siege_as_the_fight_ends()?;
+                self.end_wreckage_as_the_fight_ends();
             }
         }
         // `BuffManager.Clear` takes a dying unit's buffs as it dies, whatever
@@ -1321,6 +1336,7 @@ impl Simulation {
             self.clear_terrains_as_the_fight_ends()?;
             self.end_stealth_as_the_fight_ends();
             self.end_siege_as_the_fight_ends()?;
+            self.end_wreckage_as_the_fight_ends();
         }
         if !self.buffs.tower_events.is_empty() {
             return Err(Error::new(
@@ -1380,6 +1396,8 @@ impl Simulation {
                     .remove(&subject.id)
                     .unwrap_or_default();
                 follows.extend(self.buffs_cleared_by_death(subject.id));
+                // Then `OnMechDead`'s healing.
+                follows.extend(self.healing_from_wreckage(subject.id));
                 (precedes, follows)
             }
             (Some(subject), EventPayload::BuildingDestroyed { .. })

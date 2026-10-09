@@ -104,6 +104,19 @@ pub(crate) struct Stealth {
     pub(crate) can_disable: bool,
 }
 
+/// What an `IWreckageRecovery` answers: `TeamWreckageRecoveryManager` heals
+/// its unit as an enemy unit it struck dies.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct WreckageRecovery {
+    /// `GetEffectTime`, Q32.32 seconds: how long a strike counts.
+    pub(crate) time_q32: i64,
+    /// `WreckageRecoveryTechnologyData.distance`, whole metres, of which
+    /// `GetEffectDistance` reads the dying unit's level's.
+    pub(crate) distance: Vec<i64>,
+    /// `CanDisable`, as [`LifeSteal::can_disable`].
+    pub(crate) can_disable: bool,
+}
+
 /// What an `ISiegeModeEffectDataSource` answers: `SiegeModeEffectSystem`
 /// digs its unit in as the fight starts, and lets it out once no enemy has
 /// stood in its main skill's range for a while.
