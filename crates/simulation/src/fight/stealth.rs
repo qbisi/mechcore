@@ -161,7 +161,13 @@ impl Simulation {
     /// longer triggered, and goes into stealth at once if its life is low
     /// enough.
     pub(in crate::fight) fn switch_stealth(&mut self, unit: u64, on: bool) {
-        if !self.stealth.owners[&unit].0.can_disable {
+        // A unit still travelling in is not held yet.
+        if !self
+            .stealth
+            .owners
+            .get(&unit)
+            .is_some_and(|(source, _)| source.can_disable)
+        {
             return;
         }
         if on {
@@ -175,11 +181,6 @@ impl Simulation {
             self.stealth.triggered.push(unit);
             self.end_stealth(unit);
         }
-    }
-
-    /// Whether `StealthTechSystem` holds a unit.
-    pub(in crate::fight) fn holds_stealth(&self, unit: u64) -> bool {
-        self.stealth.owners.contains_key(&unit)
     }
 
     /// `StealthTechSystem.OnExitFight`: every triggered unit is shown, and

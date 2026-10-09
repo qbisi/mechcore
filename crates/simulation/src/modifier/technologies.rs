@@ -51,6 +51,7 @@ use crate::{
 use super::{
     buffs::{self, BuffBlock, CycleBlock},
     effects::{self, Fields},
+    providers::EffectProvider,
     sources::{
         AutoRecovery, BuffSource, EnergyShield, LifeSteal, ProductionLine, Stealth, SweepIntensify,
     },
@@ -253,41 +254,9 @@ struct Technology {
     /// The line its unit runs once each time it begins to surface, if its
     /// class is an `IMoveAbilitySummon`.
     surfacing_line: Option<ProductionLine>,
-    /// Whether what switching it off does is read and fought: its numbers
-    /// taken away, as [`DISABLED_AS_NUMBERS`] lists, an extra weapon's skills
-    /// disabled, or the buff a fight-start buff technology adds its own unit
-    /// cleared (`BuffManager.ClearSelfResourceBuffByDisableTech`), or a
-    /// stealth technology's unit taken out of stealth for good
-    /// (`StealthTechSystem.DisableStealthTech`). A source
-    /// that keeps its buff on the units around its unit stops its cycle
-    /// (`BuffEffectProvider.DoDisableCycle`), and how it starts again is not
-    /// measured.
-    switch_off_read: bool,
+    /// The provider beside the numbers' its class reaches, if any.
+    provider: Option<EffectProvider>,
 }
-
-/// The lists whose technologies a disabling buff switches off by taking their
-/// numbers away and gives back by writing them again, which the fight does:
-/// `EffectProvider.DisableEffect` removes a source's data
-/// (`IEffectProviderDataSource.RemoveData`) and `EnableEffect` adds it, and
-/// an armour's `ArmorStrengthenEffectProvider` its reduction. A lifesteal's
-/// and a second damage's providers take their hit effect away, which the
-/// fight asks of the unit at each hit. A search technology's
-/// `SearchTargetSpecificProvider.DoDisable` takes its ranges and score
-/// offsets away and turns its unit's selector back to `Normal`, which is the
-/// selector it turned to with no offsets, and `DoEnable` writes them and
-/// turns it to `DistanceIntensify` again, which reads them as they now stand.
-/// An extra weapon's provider takes its numbers and disables its skills,
-/// which the layout refuses for the shapes it does not fight switched off.
-/// Every other list's provider does more, which is not measured.
-const DISABLED_AS_NUMBERS: [&str; 7] = [
-    PLAIN,
-    MOBILITY,
-    ARMOR,
-    DAMAGE_INTENSIFY,
-    LIFESTEAL,
-    SECONDARY_DAMAGE,
-    SEARCH_TARGET_SPECIFIC,
-];
 
 /// What `DeadLineEffectProvider` hands its unit's main skill as a pre-hit
 /// effect (`PerformPreHitEffect`): a unit it hits at or under `life` is
@@ -1047,10 +1016,7 @@ impl TechnologyEffects {
                     hits_main_target: row.secondary_hits_main_target,
                     buffed: row.secondary_buffed,
                 }),
-                switch_off_read: DISABLED_AS_NUMBERS.contains(&row.kind.as_str())
-                    || row.kind == EXTRA_WEAPON
-                    || row.kind == STEALTH
-                    || self_buff,
+                provider: provider_of(&row.kind, self_buff),
             };
             if technologies.insert(id, technology).is_some() {
                 return Err(Error::new(format!(
@@ -1229,17 +1195,25 @@ impl TechnologyEffects {
             }))
     }
 
-    /// This side's technologies on one unit type whose switching off by a
-    /// disabling buff is not measured, by id.
-    pub(crate) fn disabled_unmeasured(&self, held: &[i32], unit_type: &str) -> Vec<i32> {
-        held.iter()
-            .copied()
-            .filter(|id| {
-                self.technologies.get(id).is_some_and(|technology| {
-                    technology.unit == unit_type && !technology.switch_off_read
-                })
-            })
-            .collect()
+    /// The providers beside the numbers' this side's technologies on one
+    /// unit type reach, each once, with the technologies that reach it.
+    pub(crate) fn providers(
+        &self,
+        held: &[i32],
+        unit_type: &str,
+    ) -> BTreeMap<EffectProvider, Vec<i32>> {
+        let mut providers = BTreeMap::<EffectProvider, Vec<i32>>::new();
+        for &id in held {
+            if let Some(provider) = self
+                .technologies
+                .get(&id)
+                .filter(|technology| technology.unit == unit_type)
+                .and_then(|technology| technology.provider)
+            {
+                providers.entry(provider).or_default().push(id);
+            }
+        }
+        providers
     }
 
     /// The rate this side's technologies put on what one unit of this type
@@ -1354,6 +1328,32 @@ fn adds_its_unit_a_buff(buff: &BuffSource) -> bool {
 }
 
 /// What a row writes at each level, or why this build will not apply it.
+/// The provider beside the numbers' a row's class reaches: the interface it
+/// answers beside `IDataModifier`. A plain, mobility, damage intensify,
+/// splash or multi-attack technology answers none, its class a
+/// `Technology` or a `DataModifyTech` alone.
+fn provider_of(kind: &str, self_buff: bool) -> Option<EffectProvider> {
+    Some(match kind {
+        LIFESTEAL => EffectProvider::LifeSteal,
+        AUTO_RECOVERY => EffectProvider::AutoRecovery,
+        ENERGY_SHIELD => EffectProvider::EnergyShield,
+        SWEEP => EffectProvider::SweepSkillIntensify,
+        ARMOR => EffectProvider::ArmorStrengthen,
+        SEARCH_TARGET_SPECIFIC => EffectProvider::SearchTargetSpecific,
+        AIR_ATTACK => EffectProvider::AirAttack,
+        SECONDARY_DAMAGE => EffectProvider::SecondaryDamageIntensify,
+        BUFF => EffectProvider::Buff { cycles: !self_buff },
+        INTERCEPT => EffectProvider::InterceptMissile,
+        SUPPORT => EffectProvider::SupportUnit,
+        DEAD_SUMMON => EffectProvider::DeadEffect,
+        MOVE_SUMMON => EffectProvider::MoveAbilitySummon,
+        EXTRA_WEAPON => EffectProvider::ExtraSkill,
+        STEALTH => EffectProvider::StealthTech,
+        DEAD_LINE => EffectProvider::DeadLine,
+        _ => return None,
+    })
+}
+
 fn corrections_of(row: &Row) -> std::result::Result<Vec<Written>, String> {
     let fought_extra_weapon = row.kind == EXTRA_WEAPON && FOUGHT_EXTRA_WEAPONS.contains(&row.id);
     if !IMPLEMENTED.contains(&row.kind.as_str()) && !fought_extra_weapon {
@@ -1714,7 +1714,13 @@ mod tests {
                 can_disable: true,
             })
         );
-        assert!(table.disabled_unmeasured(&[9], "vortex").is_empty());
+        assert_eq!(
+            table
+                .providers(&[9], "vortex")
+                .into_keys()
+                .collect::<Vec<_>>(),
+            [super::EffectProvider::StealthTech]
+        );
     }
 
     /// A dead-line technology answers the line at its unit's level, the

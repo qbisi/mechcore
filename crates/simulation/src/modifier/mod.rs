@@ -15,6 +15,7 @@ mod effects;
 mod energy_tower;
 mod equipment;
 mod officers;
+mod providers;
 mod sources;
 mod targets;
 mod technologies;
@@ -22,6 +23,7 @@ mod technologies;
 pub(crate) use energy_tower::EnergyTowerSkillEffects;
 pub(crate) use equipment::EquipmentEffects;
 pub(crate) use officers::{ContraptionRates, OfficerEffects};
+pub(crate) use providers::EffectProvider;
 pub(crate) use sources::{
     AllCycle, Arrival, AutoRecovery, BuffReach, BuffSource, BuffTrigger, CarriedShield, DeadSummon,
     EnergyShield, LifeSteal, ProductionLine, StackCondition, Stealth, SweepIntensify,
