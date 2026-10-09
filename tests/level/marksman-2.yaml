@@ -1,0 +1,23 @@
+# What does a unit's level do to its numbers?
+#
+# The pinned `../regression/marksman-vs-arclight.yaml` fight with
+# blue's Marksman at level 2 and nothing else changed. The Arclight has 4813
+# of life: a level-1 Marksman needs three shots, a doubled one two, so the
+# fight is shorter and the Marksman takes fewer hits, and what the recording
+# holds of it on its first tick, its life and its damage, is the level and
+# nothing else.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: game
+ticks: 83
+hash: {profile: mcfr-content-0.23.0, result: 6968f64b80c523cdc1ca43fb6cb025957707939c97dca476d6118576263a492f}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, level: 2, exp: 0/200/1465}
+red:
+  core_damage: 100
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -50}}

@@ -1,0 +1,20 @@
+# Explosive Ammo on blue's Marksman, whose shot has no splash, against the
+# Crawlers of `../marksman/m3-crawler-4242.yaml`. The item adds 5
+# metres of splash to the Marksman's main skill: each shot strikes the
+# Crawlers around the one it is aimed at, up to six at once, where a shot of
+# the control strikes one.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 249
+hash: {profile: mcfr-content-0.23.0, result: c7a735c5e6ed8ba0e2126d40f909e632fd3dc85b08e66c452afd7bf0d0ea0b82}
+blue:
+  core_damage: 52
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/88/650, equipment: [explosive_ammo]}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450}

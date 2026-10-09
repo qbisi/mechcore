@@ -95,7 +95,7 @@ jobs:
       - name: Release build, without the Adapter
         run: cargo build --release -p mechcore --no-default-features
 
-      # Every fight document under `tests/*/fights/` is fought again by the
+      # Every fight document under `tests/*/` is fought again by the
       # simulator and compared with what the game recorded, while recording
       # them stays a thing only a machine with the game can do.
       - name: Every pinned fight verifies

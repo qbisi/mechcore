@@ -15,7 +15,7 @@ and the Anti-Armor Turret, the two a layout can place, every prepare, attack
 point, backswing, cooling and initial cooldown is zero, and both target ground
 only.
 
-The fights are in `tests/turret/fights/`: `rapid-fire-head-on.yaml`,
+The fights are in `tests/turret/`: `rapid-fire-head-on.yaml`,
 `rapid-fire-flank.yaml` and `anti-armor-head-on.yaml`, and
 `anti-armor-arclights.yaml`, which puts the Anti-Armor Turret through a reload
 in a fight no tower falls in, `anti-armor-beside-officers.yaml`, the same
@@ -250,58 +250,58 @@ legacy units.
 ### Recorded
 
 - A turret searches on the positions the tick has moved its candidates to:
-  `tests/corpus/fights/268477093-r2.yaml`, tick 122.
+  `tests/corpus/268477093-r2.yaml`, tick 122.
 
 Each holds in both Rapid-Fire fights and both Anti-Armor fights, physics and
-content, as `tests/turret/fights/` replays them.
+content, as `tests/turret/` replays them.
 
 - A turret locks through its skill's search before anything is in reach, and
-  turns its weapon onto the lock: `tests/turret/fights/`.
+  turns its weapon onto the lock: `tests/turret/`.
 - A dead target is replaced by the one the selector scores from the weapon's
-  rotation, not the nearest: `tests/turret/fights/`.
+  rotation, not the nearest: `tests/turret/`.
 - A candidate in reach more than the attack angle off the weapon takes the
   out-of-range penalty, at every rotation of the weapon:
-  `tests/corpus/fights/268447927-r1.yaml`,
-  `tests/corpus/fights/67152171-r1.yaml`.
-- A reload keeps the lock, and the next shot goes to it: `tests/turret/fights/`.
+  `tests/corpus/268447927-r1.yaml`,
+  `tests/corpus/67152171-r1.yaml`.
+- A reload keeps the lock, and the next shot goes to it: `tests/turret/`.
 - The first shot leaves on the tick after a target starts within reach, reach
-  measured edge to edge: `tests/turret/fights/`.
+  measured edge to edge: `tests/turret/`.
 - The weapon turns at the construction's rotate speed after the state has
-  updated: `tests/turret/fights/`.
+  updated: `tests/turret/`.
 - A turret starts the fight facing the best scored of the other side's
   towers, turrets and old units, the units that side bought this round not
-  among them: `tests/corpus/fights/134270595-r3.yaml`, where red's faces a
-  blue unit, and `tests/corpus/fights/67158946-r3.yaml`, where blue's faces a
+  among them: `tests/corpus/134270595-r3.yaml`, where red's faces a
+  blue unit, and `tests/corpus/67158946-r3.yaml`, where blue's faces a
   red tower although an old red unit's centre is nearer, and red's faces
-  blue's turret. With no old unit it faces a tower: `tests/turret/fights/`.
+  blue's turret. With no old unit it faces a tower: `tests/turret/`.
 - A squad an officer delivers as the round opens is scored and faced at the
   origin, wherever it is moved: red's turret at world (140, 100) faces 234.44
   degrees, and at world (-140, 100) faces 125.56, with nothing of blue's on
   either line; the same squad restored from a snapshot is faced where it
-  stands: `tests/turret/fights/anti-armor-faces-delivered-squad.yaml`,
-  `tests/turret/fights/anti-armor-faces-delivered-squad-moved.yaml`,
-  `tests/turret/fights/anti-armor-faces-delivered-squad-mirrored.yaml`,
-  `tests/turret/fights/anti-armor-faces-restored-squad.yaml`, and
-  `tests/corpus/fights/67152781-r3.yaml`, where the facing leaves the
+  stands: `tests/turret/anti-armor-faces-delivered-squad.yaml`,
+  `tests/turret/anti-armor-faces-delivered-squad-moved.yaml`,
+  `tests/turret/anti-armor-faces-delivered-squad-mirrored.yaml`,
+  `tests/turret/anti-armor-faces-restored-squad.yaml`, and
+  `tests/corpus/67152781-r3.yaml`, where the facing leaves the
   turret's first target out of its attack angle.
 - Each shot draws its interval from the owning side's stream, after every unit
   of the side, including the top bit of a power-of-two range:
-  `tests/turret/fights/`.
+  `tests/turret/`.
 - The gap across a reload is the reload's ticks plus three:
-  `tests/turret/fights/`.
+  `tests/turret/`.
 - The shot is a projectile from the turret's centre, at the bullet speed, with
   the construction's damage and the skill's splash, and the building is its
-  source: `tests/turret/fights/`.
+  source: `tests/turret/`.
 - A unit whose lock was the fallen turret stays on it through its swing and
-  then looks for the next target: `tests/turret/fights/`.
+  then looks for the next target: `tests/turret/`.
 - A Steel Ball whose beam fells the turret it locked reads idle on that tick:
-  `tests/turret/fights/laser-fells-turret.yaml`.
+  `tests/turret/laser-fells-turret.yaml`.
 - A Steel Ball whose beam kills the unit it locked reads attacking on that
-  tick: `tests/corpus/fights/201370830-r6.yaml` and
-  `tests/corpus/fights/201370830-r7.yaml`.
+  tick: `tests/corpus/201370830-r6.yaml` and
+  `tests/corpus/201370830-r7.yaml`.
 - A turret fires with its row's damage and reach beside Advanced Offensive
   Tactics, Advanced Targeting System and a unit technology on its side:
-  `tests/turret/fights/anti-armor-beside-officers.yaml`.
+  `tests/turret/anti-armor-beside-officers.yaml`.
 
 ### Read
 

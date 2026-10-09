@@ -451,112 +451,112 @@ drawn from any stream, and no event is written.
 
 - An Electromagnetic Impact lands on tick `s + 3`, writes its buff for its
   whole duration, and holds the unit's technologies off while it runs, on a
-  unit with none: `tests/battle_skill/fights/rhino-slowed.yaml`.
+  unit with none: `tests/battle_skill/rhino-slowed.yaml`.
 - It reaches a unit by its edge, whose centre stands beyond the range:
-  `tests/battle_skill/fights/reached-by-its-edge.yaml`.
+  `tests/battle_skill/reached-by-its-edge.yaml`.
 - It reaches air units, and a fight a projectile's landing decided clears its
   buff on the last tick, after that projectile's removal:
-  `tests/battle_skill/fights/wasps.yaml`.
+  `tests/battle_skill/wasps.yaml`.
 - It reaches the releasing side's own units, blue's before red's:
-  `tests/battle_skill/fights/own-side.yaml`.
+  `tests/battle_skill/own-side.yaml`.
 - Photon Emission lands on tick 14, writes its buff on the releasing side's
   units in range and on no enemy, and its invincibility keeps an Electromagnetic
-  Impact's debuff off them: `tests/battle_skill/fights/photon-emission.yaml`,
-  `tests/battle_skill/fights/photon-emission-allies.yaml`.
+  Impact's debuff off them: `tests/battle_skill/photon-emission.yaml`,
+  `tests/battle_skill/photon-emission-allies.yaml`.
 - A random circle's sub-effects are drawn from its side's stream before any
   first interval, land `subEffectIntervalTime` apart and strike
   `subEffectRange` about where each lands; each side draws from its own
   stream, and a line's sub-effects stand evenly along it and land as the
   activation rule times them:
-  `tests/battle_skill/fights/orbital-bombardment.yaml`,
-  `tests/battle_skill/fights/ion-blast.yaml`,
-  `tests/battle_skill/fights/scattered-both-sides.yaml`.
+  `tests/battle_skill/orbital-bombardment.yaml`,
+  `tests/battle_skill/ion-blast.yaml`,
+  `tests/battle_skill/scattered-both-sides.yaml`.
 - A strike's buff is written after its damage on the units it reached that
   are still alive, and again on a unit struck again:
-  `tests/battle_skill/fights/lightning-storm.yaml`,
-  `tests/battle_skill/fights/lightning-storm-repeated.yaml`.
+  `tests/battle_skill/lightning-storm.yaml`,
+  `tests/battle_skill/lightning-storm-repeated.yaml`.
 - A support skill lands on tick `s + 2`, and a summon stands on the release
   point, joins a second later, is found from the tick after, and moves from
-  the next solve: `tests/battle_skill/fights/rhino-assault.yaml`,
-  `tests/battle_skill/fights/mobilize-battleship.yaml`.
+  the next solve: `tests/battle_skill/rhino-assault.yaml`,
+  `tests/battle_skill/mobilize-battleship.yaml`.
 - An air drop deals the summon's life around it, and the summon loses what it
   took; an appearing summon turns units aside:
-  `tests/battle_skill/fights/rhino-drop.yaml`.
+  `tests/battle_skill/rhino-drop.yaml`.
 - Several summons are scattered by two draws each of their side's stream, and
   Wasps that join setting off to move take no speed from the solve on their
   join tick:
-  `tests/battle_skill/fights/wasp-swarm.yaml`.
+  `tests/battle_skill/wasp-swarm.yaml`.
 - Wasps that join attacking are pushed off the Wasps they overlap by the
-  solve on their join tick: `tests/corpus/fights/67158166-r2.yaml`, ticks 48
+  solve on their join tick: `tests/corpus/67158166-r2.yaml`, ticks 48
   to 52.
 - A creator makes its summons in batches, and a surfacing summon is a locked
-  obstacle: `tests/battle_skill/fights/underground-threat.yaml`.
+  obstacle: `tests/battle_skill/underground-threat.yaml`.
 - A Production Line's Sledgehammer that dies with a shell in the air lands
-  it without its side's 30% on damage: `tests/corpus/fights/67159970-r6.yaml`,
+  it without its side's 30% on damage: `tests/corpus/67159970-r6.yaml`,
   tick 318.
 - Summons of both sides that join on one tick lock each other on it, and all
   72 search with `Select` on the tick they join:
-  `tests/battle_skill/fights/underground-threat-both-sides.yaml`, tick 48.
+  `tests/battle_skill/underground-threat-both-sides.yaml`, tick 48.
 - A summon is no neighbour of the first solve after it is made: the
   Crawlers made on tick 53 are not among a Crawler's twenty neighbours on
-  tick 56, and are on tick 60, `tests/corpus/fights/67156354-r3.yaml`.
+  tick 56, and are on tick 60, `tests/corpus/67156354-r3.yaml`.
 - An air drop reaches both sides, blue's first, and its kills count for the
-  dead ones' enemies: `tests/battle_skill/fights/vulcans-descent.yaml`.
+  dead ones' enemies: `tests/battle_skill/vulcans-descent.yaml`.
 - A side's officer, technology and Energy Tower skill reach its summon as they
   reach a deployed unit of the summon's type:
-  `tests/battle_skill/fights/summon-officer.yaml`,
-  `tests/battle_skill/fights/summon-technology.yaml`,
-  `tests/battle_skill/fights/summon-energy-tower.yaml`.
+  `tests/battle_skill/summon-officer.yaml`,
+  `tests/battle_skill/summon-technology.yaml`,
+  `tests/battle_skill/summon-energy-tower.yaml`.
 - A damage strike lands on tick `s + 3` or `s + 2`, strikes both sides'
   units with no owner, and spares towers:
-  `tests/battle_skill/fights/missile-strike-both-sides.yaml`,
-  `tests/battle_skill/fights/heavy-missile-strike.yaml`,
-  `tests/battle_skill/fights/strike-spares-tower.yaml`,
-  `tests/battle_skill/fights/nuke-beside-shield.yaml`.
+  `tests/battle_skill/missile-strike-both-sides.yaml`,
+  `tests/battle_skill/heavy-missile-strike.yaml`,
+  `tests/battle_skill/strike-spares-tower.yaml`,
+  `tests/battle_skill/nuke-beside-shield.yaml`.
 - A falling strike stops at a shield, and one that crosses shields does not:
-  `tests/battle_skill/fights/strike-stopped-by-shield.yaml`,
-  `tests/battle_skill/fights/javelin-crosses-shield.yaml`.
+  `tests/battle_skill/strike-stopped-by-shield.yaml`,
+  `tests/battle_skill/javelin-crosses-shield.yaml`.
 - An Electromagnetic Impact stops at a shield as it falls, a shield its
   circle reaches takes 20000, and a unit its own side's shield holds takes no
   buff, whether the Impact stopped or landed:
-  `tests/battle_skill/fights/impact-stopped-by-shield.yaml`,
-  `tests/battle_skill/fights/impact-beside-shield.yaml`.
+  `tests/battle_skill/impact-stopped-by-shield.yaml`,
+  `tests/battle_skill/impact-beside-shield.yaml`.
 - A Shield Airdrop lands on tick `s + 3`, and stands a full shield on the
   ground at its release point, which takes shots until it breaks:
-  `tests/shield/fights/airdrop-lands.yaml`.
+  `tests/shield/airdrop-lands.yaml`.
 - One an earlier round left standing stands full from the first tick, and
   sorts among its side's shields by position:
-  `tests/shield/fights/airdrops-standing.yaml`,
-  `tests/shield/fights/airdrop-beside-contraption.yaml`.
+  `tests/shield/airdrops-standing.yaml`,
+  `tests/shield/airdrop-beside-contraption.yaml`.
 
 - A Mobile Beacon faces its units along the path, walks each at its own
   speed, turns them onto the next segment 20 m past each end, and leaves
   them to their own behaviour at the last:
-  `tests/battle_skill/fights/beacon-marksman.yaml`,
-  `tests/battle_skill/fights/beacon-hounds.yaml`,
-  `tests/battle_skill/fights/beacon-red-rhino.yaml`.
+  `tests/battle_skill/beacon-marksman.yaml`,
+  `tests/battle_skill/beacon-hounds.yaml`,
+  `tests/battle_skill/beacon-red-rhino.yaml`.
 - A ranged unit on a beacon fires as it walks, walks on when its target dies
   and while its skill cools, and a free-firing unit faces where it moves:
-  `tests/battle_skill/fights/beacon-fires-walking.yaml`,
-  `tests/battle_skill/fights/beacon-free-fire.yaml`.
+  `tests/battle_skill/beacon-fires-walking.yaml`,
+  `tests/battle_skill/beacon-free-fire.yaml`.
 - A Wasp on a beacon walks on unless an enemy within half the segment's width
   is within its range edge to edge, keeps attacking a lock that dies within
   range, and does not turn its body as it walks on; what it walks towards
   reaches its agent only on the update before each RVO solve:
-  `tests/battle_skill/fights/beacon-wasps.yaml`.
+  `tests/battle_skill/beacon-wasps.yaml`.
 - Wasps still on a beacon when the fight is won go on moving until it ends:
-  `tests/battle_skill/fights/beacon-wasps-won.yaml`,
-  `tests/corpus/fights/134270595-r4.yaml`.
+  `tests/battle_skill/beacon-wasps-won.yaml`,
+  `tests/corpus/134270595-r4.yaml`.
 - A Centurion on a beacon whose lock an ally kills attacks on through its
   cooling while what the cooling names is in range, standing still and
   turning nothing, and walks on as the cooling ends; one moving through its
   cooling with nothing locked keeps its turret still:
-  `tests/corpus/fights/67157394-r7.yaml`.
+  `tests/corpus/67157394-r7.yaml`.
 - Phantom Rays on a beacon keep attacking a Vortex that dies between two
   shots of a burst, turning to it, and change to moving only once the burst
   is out; one moving through its cooling with no lock changes to attacking
   as the Tarantula its cooling names comes into range:
-  `tests/corpus/fights/67160345-r4.yaml`, ticks 237, 246 and 357.
+  `tests/corpus/67160345-r4.yaml`, ticks 237, 246 and 357.
 
 ### Replayed
 

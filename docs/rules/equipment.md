@@ -88,7 +88,7 @@ creates one inventory object through `MAD_AddEquipment` and lets
 
 - Under Equipment Expansion a Marksman wears two items, and each writes its
   correction in its own channel, as an item and an officer do:
-  `tests/equipment/fights/`.
+  `tests/equipment/`.
 
 ### Read
 

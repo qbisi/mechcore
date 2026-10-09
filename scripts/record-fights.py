@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Record fight documents with the game and keep the recordings.
 
-A pinned fight is a fight document under ``tests/<topic>/fights/``. This
+A pinned fight is a fight document under ``tests/<topic>/``. This
 fights each one given in the game, headless, with ``mechcore convert <fight>
 --to mcfr --backend game``, and writes the recording to ``<out>/<name>.mcfr``,
 the fixture's own name, for a study to read, usually with instrument channels.
@@ -9,7 +9,7 @@ Checking fixtures against the game keeps no recording: that is ``mechcore
 verify --backend game``.
 
     scripts/record-fights.py --instrument skill_attackable_checker \\
-        --out /tmp/mechcore/wraith/slots tests/wraith/fights/*.yaml
+        --out /tmp/mechcore/wraith/slots tests/wraith/*.yaml
 
 A command joins a game somebody started, so the first fight that finds none
 starts one with ``mechcore game launch --headless``, after which the game

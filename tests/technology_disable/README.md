@@ -9,4 +9,4 @@ and the tick they come back.
 
 A Barrier switched off by Electromagnetic Armor, and the interval of a unit
 whose only technology writes no number, are in
-[`../shield/fights/barrier-technology-void_eye.yaml`](../shield/fights/barrier-technology-void_eye.yaml).
+[`../shield/barrier-technology-void_eye.yaml`](../shield/barrier-technology-void_eye.yaml).

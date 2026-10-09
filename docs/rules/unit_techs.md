@@ -332,7 +332,7 @@ What a technology writes onto its unit's numbers is
 
 - A technology a layout names under its unit is active in the fight, alone and
   beside an officer's correction to the same number:
-  `tests/modifier/fights/`.
+  `tests/modifier/`.
 
 ### Read
 

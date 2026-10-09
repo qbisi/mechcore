@@ -184,30 +184,30 @@ what the formation carries into the next round.
 - What a kill hands out and to whom, as the section above states it: every
   formation's experience is in each recording's hash, and the
   simulator reproduces it tick by tick in every fight the topics pin, which
-  every unit's `fights/`, `tests/marksman/fights/` among them, and the other
+  every unit's directory, `tests/marksman/` among them, and the other
   topics' hold.
 - A missile's kill, which no unit made and no one else shares, goes to every
-  formation of the missile's side: `tests/missile/fights/crawlers.yaml`.
+  formation of the missile's side: `tests/missile/crawlers.yaml`.
 - An air drop's kills count for the dead ones' enemies, its own side's dead
   included, and a summon's own kills leave its side's formations their whole
-  share: `tests/battle_skill/fights/rhino-drop.yaml`,
-  `tests/battle_skill/fights/vulcans-descent.yaml`.
+  share: `tests/battle_skill/rhino-drop.yaml`,
+  `tests/battle_skill/vulcans-descent.yaml`.
 - A Fire Badger an ally's explosion fells hands its pool to every formation
   that hit it and to the enemies within 65 metres of it, and one that took its
-  own life hands out nothing: `tests/extra_weapon/fights/scorching-charge.yaml`,
-  `tests/extra_weapon/fights/scorching-charge-survivor.yaml`.
+  own life hands out nothing: `tests/extra_weapon/scorching-charge.yaml`,
+  `tests/extra_weapon/scorching-charge-survivor.yaml`.
 - An officer's experience rate multiplies its formation's every gain, the
   whole and the share, and no other formation's, and leaves the bar the table's:
-  `tests/modifier/fights/officer-exp-rate-marksman.yaml`,
-  `tests/modifier/fights/officer-exp-rate-arclight.yaml`, against
-  `tests/modifier/fights/officer-exp-rate-none.yaml`.
+  `tests/modifier/officer-exp-rate-marksman.yaml`,
+  `tests/modifier/officer-exp-rate-arclight.yaml`, against
+  `tests/modifier/officer-exp-rate-none.yaml`.
 - A technology's experience rate multiplies its unit's formation's gains and
-  no other formation's: `tests/modifier/fights/technology-exp-rate.yaml`, where
+  no other formation's: `tests/modifier/technology-exp-rate.yaml`, where
   the Vortex ends with 112 and with 56 without Machine Learning.
 - A kill that brings a formation within 4 raw of its bar brings it to the
-  bar: `tests/corpus/fights/201370830-r5.yaml`, tick 403.
+  bar: `tests/corpus/201370830-r5.yaml`, tick 403.
 - A Steel Ball whose beam dealt the Crawler it then left nothing takes no
-  share of it: `tests/corpus/fights/201477097-r4.yaml`, tick 715, where only
+  share of it: `tests/corpus/201477097-r4.yaml`, tick 715, where only
   the killer's formation takes the Crawler's pool.
 
 ### Replayed
@@ -297,7 +297,7 @@ what the formation carries into the next round.
   read.
 - **What writes a unit's `UpgradeExp`.** Not an officer's `expChangeRate`,
   which rates the gains and leaves the bar the table's in
-  `tests/modifier/fights/officer-exp-rate-marksman.yaml`; no recording has a
+  `tests/modifier/officer-exp-rate-marksman.yaml`; no recording has a
   bar changed.
 - **An impairment of the rate, and two rates on one card.** Every officer row
   that carries one is a single enhancement, and the simulator compounds an

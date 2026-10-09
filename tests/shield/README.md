@@ -16,8 +16,8 @@ by the unit's level, and switch it off with a Void Eye's Electromagnetic
 Armor.
 
 A missile's projectile meets a shield in
-[`../missile/fights/into-shield.yaml`](../missile/fights/into-shield.yaml),
-[`../missile/fights/splash-beside-shield.yaml`](../missile/fights/splash-beside-shield.yaml),
-[`../missile/fights/into-airdrop.yaml`](../missile/fights/into-airdrop.yaml),
-[`../missile/fights/fired-inside-airdrop.yaml`](../missile/fights/fired-inside-airdrop.yaml) and
-[`../missile/fights/fired-inside-standing-airdrop.yaml`](../missile/fights/fired-inside-standing-airdrop.yaml).
+[`../missile/into-shield.yaml`](../missile/into-shield.yaml),
+[`../missile/splash-beside-shield.yaml`](../missile/splash-beside-shield.yaml),
+[`../missile/into-airdrop.yaml`](../missile/into-airdrop.yaml),
+[`../missile/fired-inside-airdrop.yaml`](../missile/fired-inside-airdrop.yaml) and
+[`../missile/fired-inside-standing-airdrop.yaml`](../missile/fired-inside-standing-airdrop.yaml).

@@ -1,0 +1,21 @@
+# Two Hackers, red's wearing the Anti-Interference Module, laid out as
+# `../hacker/m1-mirror-4242.yaml`. Blue's beam strikes red's Hacker
+# for 179 a hit; red's turns blue's, which was blue's last unit, on tick 168.
+# The turned Hacker reads cooling at red's Hacker, as red's does at it, and
+# blue's towers fall on that tick: a side whose every unit a beam turned has
+# lost.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 169
+hash: {profile: mcfr-content-0.23.0, result: 7f2fc7ecc6506cad9a0389c800b30ff68dc43dbc9eeefeabca562dd626b89ba3}
+blue:
+  core_damage: 250
+  units:
+  - {name: hacker, index: 0, position: {x: -5, y: -105}}
+red:
+  units:
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, exp: 0/400/560, equipment: [anti_interference_module]}

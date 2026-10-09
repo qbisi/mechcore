@@ -180,75 +180,75 @@ the shield does not count against the turn.
 - A Hacker turning a Void Eye with Electromagnetic Armor takes the armor's
   buff from tick 101, its Barrier going at 28568; without `OnMechBeHit` on a
   turning hit the simulator parts from the game at t101:
-  `tests/control/fights/electromagnetic-armor.yaml`.
+  `tests/control/electromagnetic-armor.yaml`.
 - The Hacker turns a Crawler whose progress reaches its life on tick 103, cools
   for a tick naming it, and searches again; the turned Crawler takes a new lock
-  on that tick: `tests/hacker/fights/m3-crawler-4242.yaml`, ticks 101 to 105.
+  on that tick: `tests/hacker/m3-crawler-4242.yaml`, ticks 101 to 105.
 - The Rhino a Hacker was turning holds no entry from tick 203, when its blow
-  kills the Hacker: `tests/hacker/fights/m2-rhino-4242.yaml`.
+  kills the Hacker: `tests/hacker/m2-rhino-4242.yaml`.
 - A turn with one Hacker hands its formation the Crawler's 4 and the whole
   assist pool, 8 in all; with two, 4 to each formation in range:
-  `tests/hacker/fights/m3-crawler-4242.yaml`, tick 103;
-  `tests/hacker/fights/m6-formations-4242.yaml`, tick 97.
+  `tests/hacker/m3-crawler-4242.yaml`, tick 103;
+  `tests/hacker/m6-formations-4242.yaml`, tick 97.
 - A turned Crawler dies on its new side: the Crawlers that struck it in their
   attack state name nothing from that tick, those idle on it keep naming it,
   one that updated after the blow searches only on the next tick, and its last
   blow is counted under its own recorder:
-  `tests/hacker/fights/m3-crawler-4242.yaml`, ticks 125 and 126.
+  `tests/hacker/m3-crawler-4242.yaml`, ticks 125 and 126.
 - An extra weapon locked on a turned unit that dies drops its lock and keeps
   naming it until its next search: a Tarantula's Spider Mine skill on a turned
   Crawler that a projectile kills, in round 5 of replay 134259672, ticks 126
-  and 127: `tests/corpus/fights/134259672-r5.yaml`.
+  and 127: `tests/corpus/134259672-r5.yaml`.
 - An idle turned Crawler whose lock is the Hacker searches at once:
-  `tests/hacker/fights/m6-formations-4242.yaml`, tick 61. A turned Crawler
+  `tests/hacker/m6-formations-4242.yaml`, tick 61. A turned Crawler
   caught in its backswing goes idle as it turns, turns to its new lock and
-  starts its attack ten ticks on: `tests/hacker/fights/m3-crawler-4242.yaml`,
+  starts its attack ten ticks on: `tests/hacker/m3-crawler-4242.yaml`,
   ticks 263 to 273. A Crawler whose target is turned turns to the next while
   idle and walks on it once it is out of range:
-  `tests/hacker/fights/m3-crawler-1787720817.yaml`, ticks 199 to 203, and
-  `tests/hacker/fights/m3-crawler-4242.yaml`, tick 126. A bodyless start fires
-  a tick later: `tests/hacker/fights/m6-formations-4242.yaml`, tick 156.
+  `tests/hacker/m3-crawler-1787720817.yaml`, ticks 199 to 203, and
+  `tests/hacker/m3-crawler-4242.yaml`, tick 126. A bodyless start fires
+  a tick later: `tests/hacker/m6-formations-4242.yaml`, tick 156.
 - Two Hackers turned on one tick take their formations in the recorder's
   order, which is their identity order there:
-  `tests/hacker/fights/m6-formations-1787720817.yaml`, tick 189. Six Crawlers
+  `tests/hacker/m6-formations-1787720817.yaml`, tick 189. Six Crawlers
   turned on one tick take theirs by where they stand, units 5, 4, 9, 10, 7
-  and 14, not by identity: `tests/extra_weapon/fights/multi-control-crawlers.yaml`,
+  and 14, not by identity: `tests/extra_weapon/multi-control-crawlers.yaml`,
   tick 216.
 - A skill that searches while the unit it would take was turned on that tick
   passes over it, a grouped skill as a skill of its own does:
-  `tests/extra_weapon/fights/multi-control-crawlers.yaml`, tick 320.
+  `tests/extra_weapon/multi-control-crawlers.yaml`, tick 320.
 - A skill of a group locked on a unit that turns hears it as a skill of its
-  own (`FightSkill.OnChangeTeam`): `tests/extra_weapon/fights/multi-control-crawlers.yaml`.
+  own (`FightSkill.OnChangeTeam`): `tests/extra_weapon/multi-control-crawlers.yaml`.
 - Two Hackers that turn each other on one tick end both on blue's side:
-  `tests/hacker/fights/m1-mirror-1787720817.yaml`, tick 166.
+  `tests/hacker/m1-mirror-1787720817.yaml`, tick 166.
 - A Hacker turned with its side's last unit reads cooling at its target, and
-  its side's towers fall: `tests/control/fights/anti-interference-mirror.yaml`,
-  tick 168; `tests/hacker/fights/m1-mirror-4242.yaml`, tick 168.
+  its side's towers fall: `tests/control/anti-interference-mirror.yaml`,
+  tick 168; `tests/hacker/m1-mirror-4242.yaml`, tick 168.
 - A Fortress firing at a Hacker's barrier and turned by it, red's last unit,
-  cools naming nothing: `tests/control/fights/barrier-technology-turn.yaml`,
+  cools naming nothing: `tests/control/barrier-technology-turn.yaml`,
   tick 277.
 - When the fight ends on a turned unit's death, the weapons left name nothing:
-  `tests/hacker/fights/m3-crawler-1787720817.yaml`, tick 333.
+  `tests/hacker/m3-crawler-1787720817.yaml`, tick 333.
 - The Anti-Interference Module keeps its unit from being turned, and the beam
   strikes it for 179 a hit after three hits that write nothing:
-  `tests/control/fights/anti-interference-rhino.yaml`,
-  `tests/control/fights/anti-interference-crawlers.yaml`.
+  `tests/control/anti-interference-rhino.yaml`,
+  `tests/control/anti-interference-crawlers.yaml`.
 - Explosive Ammo splashes the strikes and nothing else:
-  `tests/control/fights/explosive-ammo-anti-interference.yaml`,
-  `tests/control/fights/explosive-ammo-crawlers.yaml`.
+  `tests/control/explosive-ammo-anti-interference.yaml`,
+  `tests/control/explosive-ammo-crawlers.yaml`.
 - A Portable Shield neither takes a hit nor slows the turn:
-  `tests/control/fights/portable-shield-rhino.yaml`,
-  `tests/control/fights/portable-shield-crawlers-4242.yaml`.
+  `tests/control/portable-shield-rhino.yaml`,
+  `tests/control/portable-shield-crawlers-4242.yaml`.
 - A search in the middle of a tick takes a unit turned on it:
-  `tests/control/fights/portable-shield-crawlers-1787720817.yaml`, tick 166.
+  `tests/control/portable-shield-crawlers-1787720817.yaml`, tick 166.
 - A battlefield shield and a Barrier take the beam's damage effect:
-  `tests/control/fights/battlefield-shield.yaml`,
-  `tests/control/fights/barrier.yaml`.
+  `tests/control/battlefield-shield.yaml`,
+  `tests/control/barrier.yaml`.
 - A blue Fire Badger turned while it charges keeps its main skill locked and
   its charge's buff; its own blow hands it back on that tick, its fire under
   red's side; a blue Fire Badger an Electromagnetic Impact switched off has
   the Impact's buff taken off as it turns, and its technologies back on:
-  `tests/corpus/fights/134259672-r4.yaml`, ticks 51, 76 and 142.
+  `tests/corpus/134259672-r4.yaml`, ticks 51, 76 and 142.
 
 ### Replayed
 
@@ -263,7 +263,7 @@ the shield does not count against the turn.
   it died, and hands its formation a share of later kills near it: replay
   2324_20260925--134259672 round 5, ticks 385 and 494, fought by the game
   with `scripts/corpus/match-replays.py`; recorded in
-  `tests/corpus/fights/134259672-r5.yaml`.
+  `tests/corpus/134259672-r5.yaml`.
 - A blue Crawler a Hacker turned updates after every red unit: replay
   2324_20260925--134259672 round 5, tick 161, fought by the game with
   `scripts/corpus/match-replays.py`.

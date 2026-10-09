@@ -1547,7 +1547,7 @@ mod tests {
 
     /// A scattered strike's sub-effects land as the recordings have them:
     /// Orbital Bombardment's every 20 ticks from 63, Ion Blast's on 62, 67
-    /// and every six after (`tests/battle_skill/fights/`).
+    /// and every six after (`tests/battle_skill/`).
     #[test]
     fn a_scattered_strikes_sub_effects_land_their_interval_apart() {
         let table = CommanderSkillEffects::load().unwrap();
@@ -1569,7 +1569,7 @@ mod tests {
     }
 
     /// A Smoke Bomb's seven fogs land every four ticks from 63, as
-    /// `tests/terrain/fights/smoke.yaml` has them.
+    /// `tests/terrain/smoke.yaml` has them.
     #[test]
     fn a_smoke_bombs_fogs_land_every_four_ticks() {
         let table = CommanderSkillEffects::load().unwrap();

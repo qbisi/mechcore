@@ -1,0 +1,24 @@
+# Matrix Bombardment over two formations.
+#
+# Two Wraiths with Matrix Bombardment against a Crawler swarm and a
+# Marksman, the standard `../wraith/m6-formations-4242.yaml` with
+# the technology: the eight slots share the targets out across both.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 283
+hash: {profile: mcfr-content-0.23.0, result: 7a1f1ecdde7796b7b853034d19bada7175ead31d353a8192c96520c253298aaa}
+blue:
+  techs:
+    wraith: [floating_artillery_array]
+  units:
+  - {name: wraith, index: 0, position: {x: 5, y: -135}}
+  - {name: wraith, index: 1, position: {x: 5, y: -75}, exp: 0/392/2250}
+red:
+  core_damage: 500
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -70}}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}}

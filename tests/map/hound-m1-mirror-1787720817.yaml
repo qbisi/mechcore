@@ -1,0 +1,20 @@
+# `tests/hound/m1-mirror-1787720817.yaml` on Desert, map 1001, which
+# names map_1V1Desert_default: 458 ticks, where the Training Ground's is 395.
+# Nothing but the map differs, so what parts the two is the map's crystals of
+# collider priority 3, immovable agents on the RVO tree that stand only on
+# blue's half.
+
+kind: fight
+map_id: 1001
+seed: 1787720817
+round: 1
+source: game
+ticks: 458
+hash: {profile: mcfr-content-0.23.0, result: d0cebe1ca53ec20ed80af90efa5b5c08f93a1cecafae490679df5f8e94b9d81a}
+blue:
+  core_damage: 20
+  units:
+  - {name: hound, index: 0, position: {x: 0, y: -100}, exp: 0/160/750}
+red:
+  units:
+  - {name: hound, index: 0, position: {x: 0, y: -100}, exp: 0/180/750}

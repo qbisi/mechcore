@@ -412,7 +412,7 @@ mod tests {
 
     /// A Ranged row reaches every unit whose main skill is not a melee
     /// attack, whatever its attack path, and no melee unit:
-    /// `tests/modifier/fights/targeting-ranged.yaml` pins Advanced Targeting System
+    /// `tests/modifier/targeting-ranged.yaml` pins Advanced Targeting System
     /// on all six of these.
     #[test]
     fn a_ranged_officer_reaches_every_unit_that_is_not_melee() {
@@ -438,7 +438,7 @@ mod tests {
 
     /// Smart Marksman's `exp_rate` is its formation's, not a correction on
     /// the unit, and reaches only the unit its row lists:
-    /// `tests/modifier/fights/officer-exp-rate-marksman.yaml`.
+    /// `tests/modifier/officer-exp-rate-marksman.yaml`.
     #[test]
     fn an_experience_rate_is_the_formations_and_reaches_its_listed_unit() {
         const SMART_MARKSMAN: i32 = 30202;
@@ -467,8 +467,8 @@ mod tests {
 
     /// Advanced Shield Device and Advanced Missile Device write nothing onto
     /// a unit and add their rates onto the side's contraptions, which sum:
-    /// `tests/shield/fights/advanced-shield-device.yaml`,
-    /// `tests/missile/fights/advanced-missile-device.yaml`.
+    /// `tests/shield/advanced-shield-device.yaml`,
+    /// `tests/missile/advanced-missile-device.yaml`.
     #[test]
     fn a_device_officer_rates_its_sides_contraptions() {
         use super::ContraptionRates;

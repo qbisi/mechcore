@@ -1,0 +1,19 @@
+# `tests/phantom_ray/m1-mirror-1787720817.yaml` on Desert, map 1001,
+# which names map_1V1Desert_default: 235 ticks, where the Training Ground's
+# is 164. Nothing but the map differs, so what parts the two is the map's
+# crystals of collider priority 3, immovable agents on the RVO tree that
+# stand only on blue's half.
+
+kind: fight
+map_id: 1001
+seed: 1787720817
+round: 1
+source: game
+ticks: 235
+hash: {profile: mcfr-content-0.23.0, result: a98dd531d0b46a753d53915678f6e9d42c196644c7e2ba7eba8c0043beaf5c96}
+blue:
+  units:
+  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}, exp: 0/134/1000}
+red:
+  units:
+  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}, exp: 0/402/1000}

@@ -75,14 +75,14 @@ and taken out again before the score is compared, so it does not count either.
 - A fight's last tick records each side's score as the game computes it, its
   `team_scored`, and the simulator answers the same score on every pinned
   fight: the Rhino that wins scores its row's 200 for red,
-  `tests/control/fights/anti-interference-rhino.yaml`, and a Missile Strike
+  `tests/control/anti-interference-rhino.yaml`, and a Missile Strike
   that leaves neither side standing scores 0 for both,
-  `tests/battle_skill/fights/heavy-missile-strike.yaml`.
+  `tests/battle_skill/heavy-missile-strike.yaml`.
 - A reborn unit standing at the end scores its row times
   `rebirth_unit_score_rate`: two Typhoons with Field Reassembly that died and
-  rose score 31 each, `tests/rebirth/fights/field-reassembly-stands.yaml`,
+  rose score 31 each, `tests/rebirth/field-reassembly-stands.yaml`,
   and one still waiting when the fight ends scores nothing,
-  `tests/rebirth/fights/field-reassembly-rising-at-the-end.yaml`.
+  `tests/rebirth/field-reassembly-rising-at-the-end.yaml`.
 
 ### Replayed
 

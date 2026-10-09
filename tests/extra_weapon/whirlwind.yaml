@@ -1,0 +1,26 @@
+# Whirlwind: a Rhino's strike about itself once two enemies stand near.
+#
+# A Rhino with Whirlwind against a Crawler formation, the standard
+# `../rhino/m3-crawler-4242.yaml` with the technology. The Whirlwind
+# starts once two Crawlers' edges are within 25 metres of the Rhino, as the
+# Rhino's unit quadtree answers a 25-metre square about it (t113): the main
+# skill locks and the Whirlwind takes the motion. Its strike, 0.6 seconds
+# on, is about the Rhino itself, out to 35 metres, and deals 1.4 times the
+# Rhino's damage: every one of the 24 Crawlers falls (t126).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 127
+hash: {profile: mcfr-content-0.23.0, result: d142f81b1986a7f085d493012763b833c98b5e82b202cf0e6c0b58409252c74e}
+blue:
+  techs:
+    rhino: [whirlwind]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/192/1150}
+red:
+  core_damage: 200
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}

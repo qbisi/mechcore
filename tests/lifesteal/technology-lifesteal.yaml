@@ -1,0 +1,21 @@
+# Energy Absorption on blue's Steel Ball, against the Rhino of
+# `../steel_ball/m2-rhino-4242.yaml`. The technology writes +0.4 of
+# life, and each beam hands the Steel Ball back 0.8 of the life it took: a
+# beam of 148 gives back 118, the whole part of 118.4.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 179
+hash: {profile: mcfr-content-0.23.0, result: 58108abdece9bfb5eaec762849038cb088ce8c25d7db0f10cf45074d40ad7f17}
+blue:
+  techs:
+    steel_ball: [energy_absorption]
+  units:
+  - {name: steel_ball, index: 0, position: {x: 5, y: -100}, exp: 0/400/1000}
+red:
+  core_damage: 150
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/100/1150}

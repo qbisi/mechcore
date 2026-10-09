@@ -76,15 +76,15 @@ refused by name, as an officer's is.
 
 - Enhanced Range writes +15 m into a ranged unit's skill channel and nothing
   into a melee unit's. High Mobility writes +3 into every unit's own channel:
-  `tests/energy_tower/fights/both-skills.yaml`.
+  `tests/energy_tower/both-skills.yaml`.
 - Enhanced Range reaches every skill slot of a unit:
-  `tests/energy_tower/fights/wraith-slots.yaml`.
+  `tests/energy_tower/wraith-slots.yaml`.
 - Enhanced Range leaves a turret's range alone:
-  `tests/energy_tower/fights/turret-untouched.yaml`.
+  `tests/energy_tower/turret-untouched.yaml`.
 - High Mobility reaches a summon:
-  `tests/battle_skill/fights/summon-energy-tower.yaml`.
+  `tests/battle_skill/summon-energy-tower.yaml`.
 - Both skills reach a travelling unit from the first tick:
-  `tests/super_deployment/fights/energy-tower-skills.yaml`.
+  `tests/super_deployment/energy-tower-skills.yaml`.
 
 ### Read
 

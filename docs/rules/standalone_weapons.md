@@ -158,60 +158,60 @@ The Mountain's motion follows one of its weapons, the one whose skill is
 ### Recorded
 
 - Four weapons hold three targets at once, each turning to its own:
-  `tests/mountain/fights/m3-crawler-1787720817.yaml`, ticks 72 to 75.
+  `tests/mountain/m3-crawler-1787720817.yaml`, ticks 72 to 75.
 - A weapon at the edge of its arc is set on it in one tick, further than it
   turns: the second gun, on tick 122 of
-  `tests/mountain/fights/m6-formations-1787720817.yaml`.
+  `tests/mountain/m6-formations-1787720817.yaml`.
 - The turret stays on the target two weapons fire at while the two others
-  turn idle to a fresh lock: `tests/mountain/fights/m6-formations-1787720817.yaml`,
+  turn idle to a fresh lock: `tests/mountain/m6-formations-1787720817.yaml`,
   ticks 122 to 124.
 - The turret turns to the lock of the only weapon holding one while the
-  others cool: `tests/mountain/fights/m6-formations-4242.yaml`, ticks 105 to
+  others cool: `tests/mountain/m6-formations-4242.yaml`, ticks 105 to
   110.
 - While the unit moves, the turret keeps to the first weapon's lock as the
   others take theirs, and turns when the first takes another:
-  `tests/mountain/fights/m6-formations-4242.yaml`, ticks 61 to 63.
+  `tests/mountain/m6-formations-4242.yaml`, ticks 61 to 63.
 - The motion stays in its attack with no mech lock while three weapons
-  attack and the fourth cools: `tests/mountain/fights/m6-formations-4242.yaml`,
+  attack and the fourth cools: `tests/mountain/m6-formations-4242.yaml`,
   ticks 94 to 100.
 - The motion goes idle as the last weapon to update drops its lock, though
   three hold a lock out of range, and stays idle:
-  `tests/mountain/fights/m6-formations-4242.yaml`, ticks 113 to 123.
+  `tests/mountain/m6-formations-4242.yaml`, ticks 113 to 123.
 - The Mountain fights each of the six standard layouts on both seeds:
-  `tests/mountain/fights/`.
+  `tests/mountain/`.
 - The War Factory's guns are held about its chassis: the chassis turns on
   tick 9 and two guns at the edges of their arcs follow it on tick 10 while
-  the turret stays: `tests/war_factory/fights/m1-mirror-4242.yaml`.
+  the turret stays: `tests/war_factory/m1-mirror-4242.yaml`.
 - The War Factory enters the fight facing its first gun's lock, scored from
   that gun's rest well off its nose; its guns start at that facing, two of
   them set at once on the edges of their arcs, and one turns four and a half
-  degrees a tick: `tests/war_factory/fights/m3-crawler-4242.yaml`, ticks 1
+  degrees a tick: `tests/war_factory/m3-crawler-4242.yaml`, ticks 1
   to 3.
 - The War Factory's own lock stays on its first search's while its guns lock
   others, and changes on its next search, eleven updates on:
-  `tests/war_factory/fights/m6-formations-4242.yaml`, ticks 1 and 12.
+  `tests/war_factory/m6-formations-4242.yaml`, ticks 1 and 12.
 - Its motion keeps moving and turns its turret to a lock that is in its
   guns' range but not nearer than a metre less, and attacks on the next;
   its first gun starts its attack while the motion moves:
-  `tests/war_factory/fights/m6-formations-4242.yaml`, ticks 12 and 13.
+  `tests/war_factory/m6-formations-4242.yaml`, ticks 12 and 13.
 - Its attacking motion, its new lock out of range, changes to moving and
   turns only from the next update:
-  `tests/war_factory/fights/m6-formations-4242.yaml`, ticks 137 and 138.
+  `tests/war_factory/m6-formations-4242.yaml`, ticks 137 and 138.
 - With the Rhino dead, its motion walks on to the tower its search took, and
   the fight's last tick clears the lock:
-  `tests/war_factory/fights/m2-rhino-4242.yaml`, ticks 104 and 105.
+  `tests/war_factory/m2-rhino-4242.yaml`, ticks 104 and 105.
 - A won fight that runs on while a shot is still in flight: its turret turns
   to that tower at its rotate speed from the update after the Rhino dies, while
   its skills leave the fight:
-  `tests/production/fights/sledgehammer-production-level-4.yaml`, ticks 288
+  `tests/production/sledgehammer-production-level-4.yaml`, ticks 288
   to 290.
 - The War Factory fights each of the six standard layouts on both seeds:
-  `tests/war_factory/fights/`.
+  `tests/war_factory/`.
 
 - Saturation Bombardment's four weapons each fire a burst of four on their
   own schedules, and go on through the death of the Rhino the third killed,
   naming it through tick 100 and taking the next at 101:
-  `tests/multi_attack/fights/mountain-saturation_bombardment.yaml`.
+  `tests/multi_attack/mountain-saturation_bombardment.yaml`.
 
 ### Read
 

@@ -10,5 +10,5 @@ tick, and their searches are `target_search` and `target_candidate` rows:
 
 ```sh
 scripts/record-fights.py --instrument target_search,target_candidate \
-    --out /tmp/mechcore/extra_weapon tests/extra_weapon/fights/*.yaml
+    --out /tmp/mechcore/extra_weapon tests/extra_weapon/*.yaml
 ```

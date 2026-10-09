@@ -13,7 +13,7 @@
 //! Nothing in the fight reads a description directly.
 //!
 //! **A rate composes by summing within its channel and multiplying once**,
-//! which `tests/modifier/fights/officer-composition-*.yaml` pin from the game and
+//! which `tests/modifier/officer-composition-*.yaml` pin from the game and
 //! `docs/rules/officer_effects.md` records. Across channels a number composes
 //! as its own property reads them: `DamageProperty.CalculateDamage` and
 //! `MoveSpeedProperty.Refresh` sum every channel's values and enhancements and
@@ -1420,7 +1420,7 @@ mod tests {
     /// 4658 at level 2, 4866 and 6987 at level 3, and move speed, interval and
     /// range unchanged.
     /// A kill-count rate adds its enhancement once per kill, and the fight's
-    /// end takes the kills away: `tests/modifier/fights/officer-kills-crawlers.yaml`
+    /// end takes the kills away: `tests/modifier/officer-kills-crawlers.yaml`
     /// reads 4983 after four kills and 3560 again on its last tick.
     #[test]
     fn each_kill_adds_the_kill_count_rate_to_the_damage() {
@@ -1506,7 +1506,7 @@ mod tests {
 
     /// The capture, replayed against this layer.
     ///
-    /// `tests/modifier/fights/officer-composition-*.yaml` hold one Marksman shooting
+    /// `tests/modifier/officer-composition-*.yaml` hold one Marksman shooting
     /// one Rhino under no officer, one and two, and the game's own damage was
     /// 2329, 3027 and 3726. Two officers of one kind reach the recording as a
     /// single `+0.6`, so they sum and multiply once rather than compounding —

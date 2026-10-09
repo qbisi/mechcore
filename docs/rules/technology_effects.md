@@ -952,9 +952,9 @@ The War Factory's three lines make theirs at its level, each taking the row's
 `productTime`, a second, to appear (`SupportUnitData.GetProductMoveTime`).
 Phoenix Production's (`appear_type` 6) appears as a transition does, at the
 War Factory itself, a Phoenix every 17.2 seconds; a level-4 War Factory's
-Phoenix is level 4 (`tests/production/fights/phoenix-production-level-4.yaml`),
+Phoenix is level 4 (`tests/production/phoenix-production-level-4.yaml`),
 and so is its Sledgehammer
-(`tests/production/fights/sledgehammer-production-level-4.yaml`). Steel Ball Production's and
+(`tests/production/sledgehammer-production-level-4.yaml`). Steel Ball Production's and
 Sledgehammer Production's (`appear_type` 7) come out of it, every 9.7 and 6.6
 seconds (`SummonSystem.CreateMechDelaySetPos`). Each is made where the War
 Factory stands, with no agent, and draws two hundredths of a metre of its
@@ -1009,9 +1009,9 @@ buff's, it is made whatever the unit's domain and whether or not a buff
 summoned the unit, and the recording writes its `unit_created` before its
 unit's `unit_died` rather than after. Mechanical Division leaves five Crawlers
 where a Steel Ball dies:
-`tests/dead_summon/fights/mechanical-division.yaml`. The Sandworm's leaves
+`tests/dead_summon/mechanical-division.yaml`. The Sandworm's leaves
 four Larvas at its own level:
-`tests/dead_summon/fights/sandworm-mechanical-division.yaml`.
+`tests/dead_summon/sandworm-mechanical-division.yaml`.
 
 ## Flying and landing technologies
 
@@ -1345,303 +1345,303 @@ derive (a minimum range):
 ### Recorded
 
 - A technology's range and an officer's range land in one `attack_range_value`,
-  and the fight uses their sum: `tests/modifier/fights/`.
+  and the fight uses their sum: `tests/modifier/`.
 - A growing technology writes the entry for its unit's level: Elite Marksman
   gives a level-3 Marksman 155 metres of range and a level-1 one 145, and
   reading the first entry on both parts from the game at t1:
-  `tests/modifier/fights/technology-elite-marksman.yaml`.
+  `tests/modifier/technology-elite-marksman.yaml`.
 - A production technology runs its line as a production item does, its makes
   at its unit's level, and a line of one position scatters its make:
-  `tests/production/fights/best-partner.yaml`,
-  `tests/production/fights/shooting-squad.yaml`,
-  `tests/production/fights/summon-hounds.yaml`; one of no positions makes
+  `tests/production/best-partner.yaml`,
+  `tests/production/shooting-squad.yaml`,
+  `tests/production/summon-hounds.yaml`; one of no positions makes
   about its unit, its makes joining at once:
-  `tests/production/fights/fang-production.yaml`,
-  `tests/production/fights/crawler-production.yaml`,
-  `tests/production/fights/mothership.yaml`.
+  `tests/production/fang-production.yaml`,
+  `tests/production/crawler-production.yaml`,
+  `tests/production/mothership.yaml`.
 - One inversion turns a locking skill free, and a minimum range value keeps
   its unit from firing within it: Siege Mode's Scorpion fires two shells that
   lock nothing at a charging Rhino, and none once it is within 75 metres;
   fought with the lock kept, the simulator parts from the game on the first
-  shell's aim: `tests/modifier/fights/technology-siege-mode.yaml`.
+  shell's aim: `tests/modifier/technology-siege-mode.yaml`.
 - A damage-share technology links its units into groups that share each
   hit as the whole part of it over their count, in the group's order:
   fifteen Sledgehammers take a Marksman's 2329 as 155 each, ten a beam's
   tick as its tenth, eight Steel Balls a Rhino's 3560 as 445, and two
   squads 140 metres apart share apart:
-  `tests/damage_share/fights/sledgehammers.yaml`,
-  `tests/damage_share/fights/beams.yaml`,
-  `tests/damage_share/fights/steel-balls.yaml`,
-  `tests/damage_share/fights/apart.yaml`. A tank a Hacker turns leaves its
+  `tests/damage_share/sledgehammers.yaml`,
+  `tests/damage_share/beams.yaml`,
+  `tests/damage_share/steel-balls.yaml`,
+  `tests/damage_share/apart.yaml`. A tank a Hacker turns leaves its
   group and links with the next one turned on its new side:
-  `tests/damage_share/fights/hackers.yaml`.
+  `tests/damage_share/hackers.yaml`.
 - Grid Integration's group of five Vortexes raises each one's damage by
   105%, the count held to four; as they fall and part, two pairs take 35%
   and a Vortex alone nothing:
-  `tests/damage_share/fights/vortexes.yaml`. Two of them an Electromagnetic
+  `tests/damage_share/vortexes.yaml`. Two of them an Electromagnetic
   Impact disables leave the group and link again as it runs out:
-  `tests/damage_share/fights/vortexes-disabled.yaml`.
+  `tests/damage_share/vortexes-disabled.yaml`.
 - Field Entrenchment digs its unit in from the first tick, a Sabertooth at
   21213 life and 115 metres, two Typhoons at 16199 and 120, and takes the
   trench away 141 updates after the last enemy left its range, the motion
-  stopped 0.3 seconds more: `tests/siege_mode/fights/sabertooth.yaml`,
-  `tests/siege_mode/fights/typhoon.yaml`. The Sabertooth's blows at a wall
-  keep it dug in: `tests/siege_mode/fights/wall.yaml`. An Electromagnetic
+  stopped 0.3 seconds more: `tests/siege_mode/sabertooth.yaml`,
+  `tests/siege_mode/typhoon.yaml`. The Sabertooth's blows at a wall
+  keep it dug in: `tests/siege_mode/wall.yaml`. An Electromagnetic
   Impact takes the trench away as it lands:
-  `tests/siege_mode/fights/disabled.yaml`. The fight's end takes it away on
-  its last tick: `tests/siege_mode/fights/ends.yaml`. A unit turned by a
+  `tests/siege_mode/disabled.yaml`. The fight's end takes it away on
+  its last tick: `tests/siege_mode/ends.yaml`. A unit turned by a
   Hacker stays dug in on its new side, one travelling in digs in as it
   arrives, and one dies in its trench:
-  `tests/siege_mode/fights/turned.yaml`,
-  `tests/siege_mode/fights/travel.yaml`,
-  `tests/siege_mode/fights/dies.yaml`.
+  `tests/siege_mode/turned.yaml`,
+  `tests/siege_mode/travel.yaml`,
+  `tests/siege_mode/dies.yaml`.
 - Wreckage Recycling heals its unit by the maximum life of each enemy it
   struck as that enemy dies, held to what it lacks, and nothing at its whole
-  life: `tests/wreckage/fights/rhino.yaml`,
-  `tests/wreckage/fights/abyss.yaml`, `tests/wreckage/fights/shared.yaml`.
+  life: `tests/wreckage/rhino.yaml`,
+  `tests/wreckage/abyss.yaml`, `tests/wreckage/shared.yaml`.
   Two Rhinos that fell a Vulcan both heal:
-  `tests/wreckage/fights/split.yaml`. Disabled, it heals for no one it
-  strikes: `tests/wreckage/fights/disabled.yaml`.
+  `tests/wreckage/split.yaml`. Disabled, it heals for no one it
+  strikes: `tests/wreckage/disabled.yaml`.
 - Field Reassembly brings each Typhoon back where it fell 100 updates after
   it dies, its whole life and its attack time at its interval, once: the
   second waits a tick longer as the first rises before it,
-  `tests/rebirth/fights/field-reassembly-anti-air.yaml`. While both wait
+  `tests/rebirth/field-reassembly-anti-air.yaml`. While both wait
   blue stands and the Fortress reads on at its cycle, and two reborn
   Typhoons standing at the end score 31 each,
-  `tests/rebirth/fights/field-reassembly-stands.yaml`. A fight that ends
+  `tests/rebirth/field-reassembly-stands.yaml`. A fight that ends
   while one waits drops it, and it scores nothing,
-  `tests/rebirth/fights/field-reassembly-rising-at-the-end.yaml`.
+  `tests/rebirth/field-reassembly-rising-at-the-end.yaml`.
 - Quantum Reassembly's pilot flies at speed to the nearest point behind its
   partner, turns to the far pair as the partner falls, waits 15 ticks and
   lands on a point drawn from blue's stream, follows by its lerp and its
   swing's offset, and rises 240 ticks after it fell facing as the Phoenix it
   follows, its interval drawn again; pilots with no Phoenix left fail:
-  `tests/rebirth/fights/quantum-reassembly.yaml`. Seven pilots behind one
+  `tests/rebirth/quantum-reassembly.yaml`. Seven pilots behind one
   Phoenix take its second row, and a Phoenix that rises updates after its
   side's others, in the order they rose:
-  `tests/rebirth/fights/quantum-reassembly-rows.yaml`.
+  `tests/rebirth/quantum-reassembly-rows.yaml`.
 - Loose Formation keeps its Crawlers 3.4 apart each as they walk, and 1.5
-  once their lock is within 25: `tests/loose_formation/fights/crawler-rhino.yaml`.
-  Disabled, they keep 1.5: `tests/loose_formation/fights/crawler-impact.yaml`.
+  once their lock is within 25: `tests/loose_formation/crawler-rhino.yaml`.
+  Disabled, they keep 1.5: `tests/loose_formation/crawler-impact.yaml`.
   Landing from a flank, they join no team:
-  `tests/loose_formation/fights/crawler-travelling.yaml`. Made by a
+  `tests/loose_formation/crawler-travelling.yaml`. Made by a
   production line or summoned as a Steel Ball dies, they join one:
-  `tests/loose_formation/fights/melting_point-production.yaml`,
-  `tests/loose_formation/fights/steel_ball-death-summon.yaml`.
+  `tests/loose_formation/melting_point-production.yaml`,
+  `tests/loose_formation/steel_ball-death-summon.yaml`.
 - Fire Extinguisher clears the fires within 44 metres of each Hound every
   second tick, a fire turning into a grid as it is first cleared:
-  `tests/fire_extinguisher/fights/fire.yaml`. It clears acid and fog alike,
+  `tests/fire_extinguisher/fire.yaml`. It clears acid and fog alike,
   and an acid left with no cell goes:
-  `tests/fire_extinguisher/fights/acid-smoke.yaml`. Disabled, it clears
-  nothing: `tests/fire_extinguisher/fights/fire-impact.yaml`. The Hounds a
+  `tests/fire_extinguisher/acid-smoke.yaml`. Disabled, it clears
+  nothing: `tests/fire_extinguisher/fire-impact.yaml`. The Hounds a
   Centurion makes clear as deployed ones do:
-  `tests/fire_extinguisher/fights/made.yaml`. Travelling in, they clear from
-  their arrival: `tests/fire_extinguisher/fights/travelling.yaml`. A fire a
+  `tests/fire_extinguisher/made.yaml`. Travelling in, they clear from
+  their arrival: `tests/fire_extinguisher/travelling.yaml`. A fire a
   barrier reaches after it lands loses the barrier's cells as it is first
-  cleared: `tests/fire_extinguisher/fights/shield-cut.yaml`.
+  cleared: `tests/fire_extinguisher/shield-cut.yaml`.
 - Maintenance Array repairs every 61 ticks from the fight's start, its
   Typhoons handing each hurt unit about them their level's life:
-  `tests/maintenance_array/fights/typhoons.yaml`. Aerial units are repaired
-  too: `tests/maintenance_array/fights/air.yaml`. A Typhoon reborn counts
-  from its rise: `tests/maintenance_array/fights/rebirth.yaml`, and one
+  `tests/maintenance_array/typhoons.yaml`. Aerial units are repaired
+  too: `tests/maintenance_array/air.yaml`. A Typhoon reborn counts
+  from its rise: `tests/maintenance_array/rebirth.yaml`, and one
   travelling in from its arrival:
-  `tests/maintenance_array/fights/travelling.yaml`. Disabled, they repair
-  nothing: `tests/maintenance_array/fights/impact.yaml`.
+  `tests/maintenance_array/travelling.yaml`. Disabled, they repair
+  nothing: `tests/maintenance_array/impact.yaml`.
 - Wreckage Detonation explodes each unit a Typhoon's rocket kills, up to
   the first it struck that lives, striking both sides about it:
-  `tests/wreckage_detonation/fights/crawlers.yaml`. A Wasp's explosion
-  strikes aerial units alone: `tests/wreckage_detonation/fights/air.yaml`.
+  `tests/wreckage_detonation/crawlers.yaml`. A Wasp's explosion
+  strikes aerial units alone: `tests/wreckage_detonation/air.yaml`.
   Disabled, it sets nothing off:
-  `tests/wreckage_detonation/fights/impact.yaml`.
+  `tests/wreckage_detonation/impact.yaml`.
 - Subterranean Blitz burrows its Crawlers from the first tick and brings
-  each up as its enemy comes within 50: `tests/burrow/fights/crawler-rhino.yaml`.
+  each up as its enemy comes within 50: `tests/burrow/crawler-rhino.yaml`.
   Burrowed, they take a Marksman's shot less 0.4; one that dies burrowed,
   and one burrowed as the fight ends, has its buff cleared and nothing
   removed; after the Marksman's death, those whose search found a tower
   burrow and those left with no target stay up:
-  `tests/burrow/fights/crawler-marksman.yaml`. Disabled, they come up and
-  stay up: `tests/burrow/fights/crawler-impact.yaml`. Landing from a flank,
-  they burrow from the tick after: `tests/burrow/fights/crawler-travelling.yaml`.
+  `tests/burrow/crawler-marksman.yaml`. Disabled, they come up and
+  stay up: `tests/burrow/crawler-impact.yaml`. Landing from a flank,
+  they burrow from the tick after: `tests/burrow/crawler-travelling.yaml`.
   Made by a production line or summoned as a Steel Ball dies, they are held
   as they join, and the fight's end clears their buffs in that order:
-  `tests/burrow/fights/melting_point-production.yaml`,
-  `tests/burrow/fights/steel_ball-death-summon.yaml`.
+  `tests/burrow/melting_point-production.yaml`,
+  `tests/burrow/steel_ball-death-summon.yaml`.
 - Acidic Explosion leaves an acid where each Crawler dies:
-  `tests/dead_acid/fights/crawler-rhino.yaml`; none from a Crawler whose
+  `tests/dead_acid/crawler-rhino.yaml`; none from a Crawler whose
   technologies an Electromagnetic Impact switched off:
-  `tests/dead_acid/fights/crawler-impact.yaml`; none from one killed while
+  `tests/dead_acid/crawler-impact.yaml`; none from one killed while
   it travels in, and one from a Crawler killed after it lands:
-  `tests/dead_acid/fights/crawler-travelling.yaml`; one from each made or
-  summoned Crawler: `tests/dead_acid/fights/melting_point-production.yaml`,
-  `tests/dead_acid/fights/steel_ball-death-summon.yaml`.
+  `tests/dead_acid/crawler-travelling.yaml`; one from each made or
+  summoned Crawler: `tests/dead_acid/melting_point-production.yaml`,
+  `tests/dead_acid/steel_ball-death-summon.yaml`.
 - A dead-line technology destroys a unit its unit's shots strike at or
   under the line at its level, before the shot's damage: Culling Rounds
   culls Crawlers at 250 under a level-one Mustang's 320, and Marksmen at 712
   under a level-three one's 720:
-  `tests/dead_line/fights/culling-rounds-crawlers.yaml`,
-  `tests/dead_line/fights/culling-rounds-level-three.yaml`. Disabled, it
+  `tests/dead_line/culling-rounds-crawlers.yaml`,
+  `tests/dead_line/culling-rounds-level-three.yaml`. Disabled, it
   culls nothing and its cut leaves with its numbers, and a shot its unit
   left in the air as it died culls again:
-  `tests/dead_line/fights/culling-rounds-disabled.yaml`.
+  `tests/dead_line/culling-rounds-disabled.yaml`.
 - A stealth technology puts its unit in stealth as a hit leaves it at no
   more than half its life, and shows it 81 ticks on: no search finds it, a
   shot already on its way lands on it and takes nothing, and the units that
   shot it lock the towers:
-  `tests/stealth/fights/emergency-armor.yaml`. Disabled before it is hurt,
+  `tests/stealth/emergency-armor.yaml`. Disabled before it is hurt,
   it does not go into stealth:
-  `tests/stealth/fights/disabled-before.yaml`; disabled in stealth, it is
-  shown at once: `tests/stealth/fights/disabled-during.yaml`.
+  `tests/stealth/disabled-before.yaml`; disabled in stealth, it is
+  shown at once: `tests/stealth/disabled-during.yaml`.
 - A Wraith's grouped slot firing at a Vortex that goes into stealth ends its
-  attack the tick after: `tests/corpus/fights/67257112-r11.yaml`, tick 433.
+  attack the tick after: `tests/corpus/67257112-r11.yaml`, tick 433.
 - A multi-attack technology adds to its unit's bursts: Doubleshot fires two
   projectiles an attack, a Sabertooth's 0.2 seconds apart where its row's
   interval is zero and both from weapon 0, and Burst Mode twelve from a
   Farseer and ten from a Phantom Ray, 0.1 seconds apart, and Saturation
   Bombardment four from each of a Mountain's weapons, 0.65 seconds apart:
-  `tests/multi_attack/fights/`.
+  `tests/multi_attack/`.
 - A projectile life rate multiplies the life a skill's projectiles leave with:
   Heavy Missile's rockets leave with 126000, and fought without the rate the
   simulator parts from the game at t20:
-  `tests/interceptor/fights/stormcallers-heavy-missile.yaml`.
+  `tests/interceptor/stormcallers-heavy-missile.yaml`.
 - An interval value lands as the table's `FPoint`, and the Rhino's blows follow
-  the interval it composes: `tests/modifier/fights/technology-interval-value.yaml`.
+  the interval it composes: `tests/modifier/technology-interval-value.yaml`.
 
 - A buff technology's buff stacks every second and raises its unit's damage
-  and maximum life: `tests/technology_buff/fights/combat-evolvement.yaml`, and
-  on hit Rhinos `tests/corpus/fights/134260717-r2.yaml` and
-  `tests/corpus/fights/134260717-r3.yaml`.
+  and maximum life: `tests/technology_buff/combat-evolvement.yaml`, and
+  on hit Rhinos `tests/corpus/134260717-r2.yaml` and
+  `tests/corpus/134260717-r3.yaml`.
 - A source of the update model `Each` adds its buff to the units in reach on
   every tick from the ninth, its side's ground units or the enemies of either
   domain, and stops with its unit's death:
-  `tests/technology_buff/fights/mobile-power-station.yaml` and
-  `tests/technology_buff/fights/degeneration-beam.yaml`.
+  `tests/technology_buff/mobile-power-station.yaml` and
+  `tests/technology_buff/degeneration-beam.yaml`.
 - A hit adds its buff to the unit struck, ranged or melee, and a Fortress's
-  range reads 70 of 100 under it: `tests/technology_buff/fights/suppression-shots.yaml`,
-  `tests/technology_buff/fights/suppression-shots-melee.yaml`.
+  range reads 70 of 100 under it: `tests/technology_buff/suppression-shots.yaml`,
+  `tests/technology_buff/suppression-shots-melee.yaml`.
 - Ignite burns a Rhino 3% of its maximum life every half second from the
   Vulcan's first hit, and Field Maintenance repairs nothing while it burns;
   without Ignite the Rhino repairs from tick 106 and wins:
-  `tests/technology_buff/fights/ignite.yaml`.
+  `tests/technology_buff/ignite.yaml`.
 - An uncertain Ignite draws from the struck Rhino's side's stream on each
   hit: 67 of a Wasp's 131 hits add it, 17 of a Fang squad's 97 and 164 of a
   Fire Badger's 236; drawn from the attacker's side, the simulator parts from
   each recording at its first draw:
-  `tests/technology_buff/fights/ignite-wasp.yaml`,
-  `tests/technology_buff/fights/ignite-fang.yaml`,
-  `tests/technology_buff/fights/ignite-fire-badger.yaml`.
+  `tests/technology_buff/ignite-wasp.yaml`,
+  `tests/technology_buff/ignite-fang.yaml`,
+  `tests/technology_buff/ignite-fire-badger.yaml`.
 - Photon Coating holds its buff from the first tick, and a Vulcan's Ignite
   never reaches the Rhino or War Factory it covers:
-  `tests/technology_buff/fights/photon-coating.yaml`,
-  `tests/technology_buff/fights/photon-coating-war-factory.yaml`.
+  `tests/technology_buff/photon-coating.yaml`,
+  `tests/technology_buff/photon-coating-war-factory.yaml`.
 - Photon Emission adds its buff at tick 12 to the Overlord's side's other
   units within 100 m, the Wasps and a Rhino but neither a Marksman 155 m off
   nor the Overlord, and to the Farseer's only on the ground; a Vulcan's
   Ignite reaches none of them. Photon Loop adds its buff to the Mountain on
   the first tick and at tick 600, 100 ticks after it ran out:
-  `tests/technology_buff/fights/photon-emission.yaml`,
-  `tests/technology_buff/fights/photon-emission-farseer.yaml`,
-  `tests/technology_buff/fights/photon-loop.yaml`.
+  `tests/technology_buff/photon-emission.yaml`,
+  `tests/technology_buff/photon-emission-farseer.yaml`,
+  `tests/technology_buff/photon-loop.yaml`.
 - Each of a Scorpion's hits with Acid Attack adds its buff to the Rhino it
   struck and leaves an acid at t131 and t219, which keeps the buff on a Rhino
-  standing in it every 19 ticks: `tests/technology_buff/fights/acid-attack.yaml`.
+  standing in it every 19 ticks: `tests/technology_buff/acid-attack.yaml`.
 - Electromagnetic Armor's buff is on a Rhino from the tick its blow lands
   on a Void Eye, at t244 and again at t264:
-  `tests/technology_buff/fights/electromagnetic-armor.yaml`.
+  `tests/technology_buff/electromagnetic-armor.yaml`.
 - Electromagnetic Armor's buff on a Fortress whose only technology is
   Barrier deactivates its shield at 60614 and gives it back at 60614, and
   makes its drawn interval of 35 its plain 36; without the refresh the
   simulator parts from the recording at t164:
-  `tests/shield/fights/barrier-technology-void_eye.yaml`.
+  `tests/shield/barrier-technology-void_eye.yaml`.
 - Chamber Compression's stack goes back to none as each of a Hound's shots
   lands; without the reset the simulator parts from the recording at t189:
-  `tests/technology_buff/fights/chamber-compression.yaml`.
+  `tests/technology_buff/chamber-compression.yaml`.
 - Scanning Radar keeps its range on the Farseer and a Marksman 55 m off, and
   never on a Rhino beside it, whose attack is melee:
-  `tests/technology_buff/fights/scanning-radar.yaml`.
+  `tests/technology_buff/scanning-radar.yaml`.
 - Counter-Fire's buff is on a Fire Badger from the tick a Marksman's hit
   takes life from it, its range 145 of 75; without it the simulator parts
   from the recording on that tick, on that range:
-  `tests/technology_buff/fights/counter-fire.yaml`.
+  `tests/technology_buff/counter-fire.yaml`.
 - A hit's buff that disables technology switches the struck unit's off, a
   squad's buff written by its first unit, and reaches the unit the hit
-  killed: `tests/technology_disable/fights/shot-armor.yaml`,
-  `tests/technology_disable/fights/shot-phoenix.yaml`,
-  `tests/technology_disable/fights/shot-kills.yaml`.
+  killed: `tests/technology_disable/shot-armor.yaml`,
+  `tests/technology_disable/shot-phoenix.yaml`,
+  `tests/technology_disable/shot-kills.yaml`.
 - A unit killed under Replicate leaves Crawlers by its radius, 7 for a
   Marksman and 12 for a Rhino, which join at once and move from the second
-  move before a solve: `tests/technology_buff/fights/replicate.yaml`,
-  `tests/technology_buff/fights/replicate-swarm.yaml`.
+  move before a solve: `tests/technology_buff/replicate.yaml`,
+  `tests/technology_buff/replicate-swarm.yaml`.
 - Three buffs run on one Rhino, and one ending leaves the others' rates:
-  `tests/technology_buff/fights/three-buffs.yaml`.
+  `tests/technology_buff/three-buffs.yaml`.
 - A buff stacking on distance adds a metre of range for every 7 metres its
   Steel Ball has rolled, two in a step where it rolled that far, and holds
-  while it stands: `tests/technology_buff/fights/kinetic-charge.yaml`,
-  `tests/technology_buff/fights/kinetic-charge-stops.yaml`, and to 80 metres
-  `tests/corpus/fights/268477093-r4.yaml`.
+  while it stands: `tests/technology_buff/kinetic-charge.yaml`,
+  `tests/technology_buff/kinetic-charge-stops.yaml`, and to 80 metres
+  `tests/corpus/268477093-r4.yaml`.
 - A disabling buff takes a plain technology's numbers off its unit as it is
   written, life and current interval with them, and they come back as it runs
   out or as the fight is left:
-  `tests/technology_disable/fights/barrage-assault-mode.yaml`,
-  `tests/technology_disable/fights/impact-to-fight-end.yaml`,
-  `tests/technology_disable/fights/impact-expires.yaml`. An armour's reduction
+  `tests/technology_disable/barrage-assault-mode.yaml`,
+  `tests/technology_disable/impact-to-fight-end.yaml`,
+  `tests/technology_disable/impact-expires.yaml`. An armour's reduction
   leaves with it, a Wasp's 142 on an armoured Rhino becoming 202:
-  `tests/technology_disable/fights/impact-armor.yaml`. A unit with no
+  `tests/technology_disable/impact-armor.yaml`. A unit with no
   technology keeps its drawn interval:
-  `tests/technology_disable/fights/impact-on-both-sides.yaml`. A unit that
+  `tests/technology_disable/impact-on-both-sides.yaml`. A unit that
   dies disabled has its technologies back as its buffs go, and its shots
   still in the air land with them:
-  `tests/technology_disable/fights/shot-dies-with-shots-in-flight.yaml`.
+  `tests/technology_disable/shot-dies-with-shots-in-flight.yaml`.
 - A disabled extra skill lets the burst under way run out, starts no attack
   while disabled, and fires again as it is enabled:
-  `tests/technology_disable/fights/barrage-homing-missile.yaml`,
-  `tests/technology_disable/fights/barrage-homing-missile-held.yaml`.
+  `tests/technology_disable/barrage-homing-missile.yaml`,
+  `tests/technology_disable/barrage-homing-missile-held.yaml`.
 - A search technology's ranges and offsets leave with it:
-  `tests/technology_disable/fights/impact-ground-targeting.yaml`.
+  `tests/technology_disable/impact-ground-targeting.yaml`.
 - A stacking buff its unit added writes no stack while the technologies are
   off, takes its life rate out at its next step with a second share of the
   life, and stacks on from the stack it kept:
-  `tests/technology_disable/fights/impact-combat-evolvement.yaml`,
-  `tests/technology_disable/fights/impact-combat-evolvement-expires.yaml`.
+  `tests/technology_disable/impact-combat-evolvement.yaml`,
+  `tests/technology_disable/impact-combat-evolvement-expires.yaml`.
 - High-Explosive Ammo's range lands in each skill's `splash_range` beside its
   damage rate, and its shots strike the Crawlers around their target:
-  `tests/splash/fights/high-explosive-ammo-wasp.yaml`,
-  `tests/splash/fights/high-explosive-ammo-mustang.yaml`,
-  `tests/splash/fights/high-explosive-ammo-overlord.yaml`,
-  `tests/splash/fights/high-explosive-ammo-stormcaller.yaml`,
-  `tests/splash/fights/high-explosive-ammo-war_factory.yaml`,
-  `tests/splash/fights/high-explosive-ammo-wraith.yaml`,
-  `tests/splash/fights/high-explosive-ammo-tarantula.yaml`,
-  `tests/splash/fights/high-explosive-ammo-phantom_ray.yaml`.
+  `tests/splash/high-explosive-ammo-wasp.yaml`,
+  `tests/splash/high-explosive-ammo-mustang.yaml`,
+  `tests/splash/high-explosive-ammo-overlord.yaml`,
+  `tests/splash/high-explosive-ammo-stormcaller.yaml`,
+  `tests/splash/high-explosive-ammo-war_factory.yaml`,
+  `tests/splash/high-explosive-ammo-wraith.yaml`,
+  `tests/splash/high-explosive-ammo-tarantula.yaml`,
+  `tests/splash/high-explosive-ammo-phantom_ray.yaml`.
 - High-Speed Engine's 5 lands in its unit's move speed, a Wasp's and a
   Phoenix's 16 reading 21 and an Overlord's 10 reading 15:
-  `tests/modifier/fights/technology-jump-drive-wasp.yaml`,
-  `tests/modifier/fights/technology-jump-drive-overlord.yaml`,
-  `tests/modifier/fights/technology-jump-drive-phoenix.yaml`.
+  `tests/modifier/technology-jump-drive-wasp.yaml`,
+  `tests/modifier/technology-jump-drive-overlord.yaml`,
+  `tests/modifier/technology-jump-drive-phoenix.yaml`.
 - A unit's interceptors take rockets out of the air from where it stands, a
   War Factory's four each on its own, and a Mustang's lock its main skill,
   which stands its unit idle on the next update:
-  `tests/interceptor/fights/mustang-interception.yaml`,
-  `tests/interceptor/fights/sabertooth-interception.yaml`,
-  `tests/interceptor/fights/farseer-interception.yaml`,
-  `tests/interceptor/fights/war_factory-interception.yaml`.
+  `tests/interceptor/mustang-interception.yaml`,
+  `tests/interceptor/sabertooth-interception.yaml`,
+  `tests/interceptor/farseer-interception.yaml`,
+  `tests/interceptor/war_factory-interception.yaml`.
 - A permanent preemptive explosion does not activate, and its unit's death
   neither explodes nor burns, while the technologies are off; switched on,
   both come back:
-  `tests/technology_disable/fights/impact-scorching-charge.yaml`,
-  `tests/technology_disable/fights/impact-scorching-charge-expires.yaml`.
+  `tests/technology_disable/impact-scorching-charge.yaml`,
+  `tests/technology_disable/impact-scorching-charge-expires.yaml`.
 - Reactive Armor takes the first five hits that take life from its unit at
   a fifth of their damage, the fifth included, and the next one, in the same
   tick, whole; switched off, it keeps its count:
-  `tests/reactive_armor/fights/typhoon-wasps.yaml`,
-  `tests/reactive_armor/fights/centurion-wasps.yaml`,
-  `tests/reactive_armor/fights/typhoon-void_eye.yaml`.
+  `tests/reactive_armor/typhoon-wasps.yaml`,
+  `tests/reactive_armor/centurion-wasps.yaml`,
+  `tests/reactive_armor/typhoon-void_eye.yaml`.
 - A Typhoon travelling in takes its whole damage and counts nothing until it
   arrives on tick 161, and has the rate for five hits from then:
-  `tests/reactive_armor/fights/typhoon-travelling.yaml`.
+  `tests/reactive_armor/typhoon-travelling.yaml`.
 - A fire technology's unit leaves its fire where each hit of its main skill
   lands, a Stormcaller's every shell, those that strike nothing too:
-  `tests/fire_intensify/fights/stormcaller-rhino.yaml`,
-  `tests/fire_intensify/fights/fire_badger-marksman.yaml`.
+  `tests/fire_intensify/stormcaller-rhino.yaml`,
+  `tests/fire_intensify/fire_badger-marksman.yaml`.
 
 ### Read
 
@@ -2205,7 +2205,7 @@ derive (a minimum range):
   its side's others, except a line that makes its own type, which is passed
   over for a unit created in the fight (`SupportUnitProvider.AvaliableCheck`,
   `FightMech.mechCreateType`): a Vortex Mirage makes no Mirage
-  (`tests/production/fights/electromagnetic-twin.yaml`), and a Vulcan's
+  (`tests/production/electromagnetic-twin.yaml`), and a Vulcan's
   Marksman with Shooting Squad makes its Fangs. What it summons as it dies
   is summoned as a placed unit's is (`DeadSummonTech`, `IBEC_DeadSummon`),
   the summon handed its side's loadout for its type: a War Factory's Steel

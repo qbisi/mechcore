@@ -16,7 +16,7 @@ trajectory.
 
 ```sh
 mechcore convert <replay.grbr> --to mcfr --backend game --round <n> /tmp/mechcore/corpus/<id>-r<n>.mcfr
-mechcore convert /tmp/mechcore/corpus/<id>-r<n>.mcfr --to fight tests/corpus/fights/<id>-r<n>.yaml
+mechcore convert /tmp/mechcore/corpus/<id>-r<n>.mcfr --to fight tests/corpus/<id>-r<n>.yaml
 ```
 
 `<id>` is the replay's match number, the digits after `--` in its file name

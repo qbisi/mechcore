@@ -1,0 +1,25 @@
+# Energy Diffraction with two Melting Points against a Crawler and a
+# Marksman formation, the standard
+# `../melting_point/m6-formations-4242.yaml` with the technology.
+# A group's beams share the formation out, each searching from the turret it
+# is mounted on: the first Melting Point's first beam on the Crawler it
+# holds, and the other three on three more as it attacks (t95).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 426
+hash: {profile: mcfr-content-0.23.0, result: d46e4acfd71102ca73d79ee9d6d0ce4951ac919305c506fd6fcb91906ed81d69}
+blue:
+  techs:
+    melting_point: [energy_diffraction]
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -130}, exp: 0/82/1400}
+  - {name: melting_point, index: 1, position: {x: 0, y: -80}, exp: 0/310/1400}
+red:
+  core_damage: 700
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -70}}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}}

@@ -266,7 +266,7 @@ def differing_table(
     lines = [
         "",
         "The rounds the simulator fights and gets wrong, each a divergence to find"
-        " and, once fixed, a round to pin under `tests/corpus/fights/`:",
+        " and, once fixed, a round to pin under `tests/corpus/`:",
         "",
     ]
     was = {(match, round_number) for match, round_number, _, _ in before} if before is not None else None
