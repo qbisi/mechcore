@@ -30,7 +30,17 @@ fn query(recording: &Path, arguments: &[&str]) -> (i32, serde_json::Value) {
 }
 
 fn queries(recordings: &[&std::ffi::OsStr], arguments: &[&str]) -> (i32, serde_json::Value) {
+    let cache = tempfile::tempdir().unwrap();
+    queries_in(cache.path(), recordings, arguments)
+}
+
+fn queries_in(
+    cache: &Path,
+    recordings: &[&std::ffi::OsStr],
+    arguments: &[&str],
+) -> (i32, serde_json::Value) {
     let command = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .env("MECHCORE_QUERY_CACHE", cache)
         .arg("query")
         .args(recordings)
         .args(arguments)
@@ -337,4 +347,80 @@ fn every_event_is_a_row_of_its_kinds_view() {
         .map(|column| column["name"].as_str().unwrap())
         .collect::<Vec<_>>();
     assert!(damage.contains(&"amount") && !damage.contains(&"buff_id"));
+}
+
+#[test]
+fn a_statement_reads_from_a_file() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = recording(directory.path());
+    let sql = directory.path().join("count.sql");
+    std::fs::write(&sql, "-- units\nSELECT count(*) FROM units\n").unwrap();
+    let (code, answer) = query(&path, &["--sql-file", sql.to_str().unwrap()]);
+    assert_eq!(code, 0, "{answer}");
+    assert_eq!(
+        answer["rows"][0][0],
+        single(&path, "SELECT count(*) FROM units")
+    );
+    let (code, _) = query(
+        &path,
+        &["--sql-file", sql.to_str().unwrap(), "--sql", "SELECT 1"],
+    );
+    assert_eq!(code, 2);
+}
+
+#[test]
+fn a_later_query_reads_what_an_earlier_one_cached() {
+    let directory = tempfile::tempdir().unwrap();
+    let cache = tempfile::tempdir().unwrap();
+    let path = recording(directory.path());
+    let moved = directory.path().join("moved.mcfr");
+    std::fs::copy(&path, &moved).unwrap();
+    let count = "SELECT count(*) FROM units__skills";
+    let (code, first) = queries_in(cache.path(), &[path.as_os_str()], &["--sql", count]);
+    assert_eq!(code, 0, "{first}");
+    let files = std::fs::read_dir(cache.path()).unwrap().count();
+    assert!(files >= 1);
+    // The same content elsewhere opens the same file, which holds the table
+    // filled, and records where it now lies.
+    let (code, filled) = queries_in(
+        cache.path(),
+        &[moved.as_os_str()],
+        &["--sql", "SELECT name FROM mechcore_filled ORDER BY name"],
+    );
+    assert_eq!(code, 0, "{filled}");
+    assert!(
+        filled["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|row| row[0] == "units__skills")
+    );
+    let (code, second) = queries_in(cache.path(), &[moved.as_os_str()], &["--sql", count]);
+    assert_eq!(code, 0, "{second}");
+    assert_eq!(first["rows"], second["rows"]);
+    let (code, at) = queries_in(
+        cache.path(),
+        &[moved.as_os_str()],
+        &["--sql", "SELECT value FROM meta WHERE key = 'path'"],
+    );
+    assert_eq!(code, 0, "{at}");
+    assert_eq!(at["rows"][0][0], moved.to_str().unwrap());
+    // The same recording read twice at once fills each table once.
+    let (code, both) = queries_in(
+        cache.path(),
+        &[path.as_os_str(), moved.as_os_str()],
+        &[
+            "--sql",
+            "SELECT (SELECT count(*) FROM left.units) = (SELECT count(*) FROM right.units)",
+        ],
+    );
+    assert_eq!(code, 0, "{both}");
+    assert_eq!(both["rows"][0][0], 1);
+    let (code, memory) = queries_in(
+        cache.path(),
+        &[path.as_os_str()],
+        &["--sql", count, "--no-cache"],
+    );
+    assert_eq!(code, 0, "{memory}");
+    assert_eq!(memory["rows"], first["rows"]);
 }

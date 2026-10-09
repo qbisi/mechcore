@@ -114,7 +114,7 @@ than redefining them.
 | `convert` | no, yes with `backend: game` | `input`, `to`, optional `output`, `seed`, `round`, `backend`, `instrument`; the same result as `mechcore convert` |
 | `diff` | no | `left`, `right`, optional `fields` (a group or a list of groups) and `tick`; the same report as `mechcore diff` |
 | `show` | no | `input`, `view`, optional `tick`; the same answer as `mechcore show` |
-| `query` | no | `input`, a path, a list of two (`left` and `right`) or a mapping of names to paths, and one of `sql`, `query` and `schema: true`, optional `param` (a mapping of names to values); the same answer as `mechcore query` |
+| `query` | no | `input`, a path, a list of two (`left` and `right`) or a mapping of names to paths, and one of `sql`, `sql_file`, `query` and `schema: true`, optional `param` (a mapping of names to values) and `no_cache`; the same answer as `mechcore query` |
 | `play` | no | `input`, optional `page` and `seed`; the same answer as `mechcore play`, the page written and never opened |
 | `game.status` | yes | current status snapshot |
 | `game.start_test` | yes | optional `seed`, `map_id`; rarely needed, see `game.apply_layout` |
