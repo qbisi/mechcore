@@ -9,7 +9,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 340
-hash: {profile: mcfr-content-0.22.0, result: 7b60178de9df39f1d6516e9c361c7cb5969abe7e14a2f9fd8bcec65cfd412a26}
+hash: {profile: mcfr-content-0.23.0, result: 227faa70be2cb369648bb80b4df3f2d778618095b9f13624185c40128f81a664}
 blue:
   techs:
     typhoon: [reactive_armor]

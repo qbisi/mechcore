@@ -756,7 +756,8 @@ impl Simulation {
 
     /// The summon in the fight and its side's update order, its skills'
     /// first intervals drawn.
-    fn join(&mut self, actor: Actor) -> Result<()> {
+    fn join(&mut self, mut actor: Actor) -> Result<()> {
+        actor.created = true;
         let unit_id = actor.placement.unit_id;
         self.actors.insert(unit_id, actor);
         self.unit_update_order.push(unit_id);

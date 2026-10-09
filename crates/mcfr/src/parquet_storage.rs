@@ -35,8 +35,8 @@ use crate::{
     DamageStatistics, Domain, DurableContext, EnabledSkill, Error, Event, EventPayload,
     FormationState, GaugeI32, HASH_PROFILE, Hashes, LiveUnitState, MCFR_FORMAT, MotionState,
     ObjectKind, ObjectRef, PersonalShieldState, Producer, ProjectileState, QPlanar, QPose, QVec3,
-    RecorderKind, Result, ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillMachineState,
-    SkillState, TerrainApplicationState, TerrainEffectClock, TerrainGridState,
+    RebirthState, RecorderKind, Result, ShieldRoundPolicy, ShieldSourceKind, ShieldState,
+    SkillMachineState, SkillState, TerrainApplicationState, TerrainEffectClock, TerrainGridState,
     TerrainLogicLifetime, TerrainState, TerrainType, TransitionEvents, Visibility, WeaponState,
     WorldSnapshot, canonical,
     event_table::{batch_events, event_batch, event_schema},
@@ -48,8 +48,9 @@ const REQUIRED_MEMBERS: [&str; 2] = ["layout.yaml", "ticks.parquet"];
 
 /// The per-tick tables, in container order. A table no row was written to is
 /// left out, and reads as having none.
-const TABLE_MEMBERS: [&str; 8] = [
+const TABLE_MEMBERS: [&str; 9] = [
     "units.parquet",
+    "rebirths.parquet",
     "projectiles.parquet",
     "buildings.parquet",
     "shields.parquet",
@@ -96,6 +97,7 @@ pub(crate) fn encode_durable_context(context: &DurableContext) -> Result<Vec<u8>
 pub(crate) struct StorageWriter {
     directory: TempDir,
     units: Option<ArrowWriter<File>>,
+    rebirths: Option<ArrowWriter<File>>,
     projectiles: Option<ArrowWriter<File>>,
     buildings: Option<ArrowWriter<File>>,
     shields: Option<ArrowWriter<File>>,
@@ -103,6 +105,7 @@ pub(crate) struct StorageWriter {
     formations: Option<ArrowWriter<File>>,
     terrains: Option<ArrowWriter<File>>,
     unit_rows: Vec<(u32, LiveUnitState)>,
+    rebirth_rows: Vec<(u32, RebirthState)>,
     projectile_rows: Vec<(u32, ProjectileState)>,
     building_rows: Vec<(u32, BuildingState)>,
     shield_rows: Vec<(u32, ShieldState)>,
@@ -129,6 +132,7 @@ impl StorageWriter {
         Ok(Self {
             directory,
             units: None,
+            rebirths: None,
             projectiles: None,
             buildings: None,
             shields: None,
@@ -136,6 +140,7 @@ impl StorageWriter {
             formations: None,
             terrains: None,
             unit_rows: Vec::new(),
+            rebirth_rows: Vec::new(),
             projectile_rows: Vec::new(),
             building_rows: Vec::new(),
             shield_rows: Vec::new(),
@@ -194,6 +199,8 @@ impl StorageWriter {
     fn append_state(&mut self, tick: u32, state: &WorldSnapshot) {
         self.unit_rows
             .extend(state.live_units.iter().cloned().map(|row| (tick, row)));
+        self.rebirth_rows
+            .extend(state.rebirths.iter().copied().map(|row| (tick, row)));
         self.projectile_rows
             .extend(state.projectiles.iter().cloned().map(|row| (tick, row)));
         self.building_rows
@@ -240,6 +247,12 @@ impl StorageWriter {
             &mut self.units,
             Track::Units,
             unit_batch(&self.unit_rows)?,
+        )?;
+        write_buffer(
+            directory,
+            &mut self.rebirths,
+            Track::Rebirths,
+            rebirth_batch(&self.rebirth_rows)?,
         )?;
         write_buffer(
             directory,
@@ -291,6 +304,7 @@ impl StorageWriter {
                 .flush()?;
         }
         self.unit_rows.clear();
+        self.rebirth_rows.clear();
         self.projectile_rows.clear();
         self.building_rows.clear();
         self.shield_rows.clear();
@@ -313,6 +327,7 @@ impl StorageWriter {
         // A table nothing was written to is left out of the container.
         for table in [
             &mut self.units,
+            &mut self.rebirths,
             &mut self.projectiles,
             &mut self.buildings,
             &mut self.shields,
@@ -403,6 +418,7 @@ fn close_writer(writer: &mut Option<ArrowWriter<File>>) -> Result<()> {
 enum Track {
     Ticks,
     Units,
+    Rebirths,
     Projectiles,
     Buildings,
     Shields,
@@ -419,6 +435,7 @@ impl Track {
     fn table(self) -> Option<(&'static str, SchemaRef)> {
         match self {
             Self::Units => Some(("units.parquet", unit_schema())),
+            Self::Rebirths => Some(("rebirths.parquet", rebirth_schema())),
             Self::Projectiles => Some(("projectiles.parquet", projectile_schema())),
             Self::Buildings => Some(("buildings.parquet", building_schema())),
             Self::Shields => Some(("shields.parquet", shield_schema())),
@@ -482,7 +499,7 @@ fn writer_properties(track: Track, metadata: Vec<KeyValue>) -> Result<WriterProp
 
 fn dictionary_paths(track: Track) -> &'static [&'static str] {
     match track {
-        Track::Ticks | Track::Instrument => &[],
+        Track::Ticks | Track::Rebirths | Track::Instrument => &[],
         Track::Events => &["type", "object.kind", "source.kind", "target.kind"],
         Track::Units => &[
             "team_id",
@@ -522,6 +539,7 @@ fn delta_paths(track: Track) -> &'static [&'static str] {
     match track {
         Track::Ticks
         | Track::Units
+        | Track::Rebirths
         | Track::Projectiles
         | Track::Buildings
         | Track::Shields
@@ -586,6 +604,11 @@ fn unit_batch(rows: &[(u32, LiveUnitState)]) -> Result<Option<RecordBatch>> {
             i64_values(units.iter().map(|row| row.move_speed)),
             skill_list_values(units.iter().map(|row| &row.skills))?,
             control_values(units.iter().map(|row| row.control.as_ref()))?,
+            optional_u32_values(
+                units
+                    .iter()
+                    .map(|row| (row.rebirth_count != 0).then_some(row.rebirth_count)),
+            ),
         ],
     )?))
 }
@@ -652,6 +675,21 @@ fn statistic_identity(row: &DamageStatistics) -> u64 {
     (u64::from(row.team_id) << 56)
         | (u64::from(encode_recorder(row.recorder)) << 48)
         | row.recorder_id
+}
+
+fn rebirth_batch(rows: &[(u32, RebirthState)]) -> Result<Option<RecordBatch>> {
+    if rows.is_empty() {
+        return Ok(None);
+    }
+    let values = rows.iter().map(|(_, row)| row).collect::<Vec<_>>();
+    Ok(Some(RecordBatch::try_new(
+        rebirth_schema(),
+        vec![
+            u32_values(rows.iter().map(|(tick, _)| *tick)),
+            u64_values(values.iter().map(|row| row.unit_id)),
+            vec3_values(values.iter().map(|row| row.position)),
+        ],
+    )?))
 }
 
 fn formation_batch(rows: &[(u32, FormationState)]) -> Result<Option<RecordBatch>> {
@@ -1279,6 +1317,7 @@ fn unit_schema() -> SchemaRef {
         Field::new("move_speed", DataType::Int64, false),
         list_field("skills", skill_fields()),
         struct_field("control", control_fields(), true),
+        Field::new("rebirth_count", DataType::UInt32, true),
     ]))
 }
 
@@ -1292,6 +1331,14 @@ fn statistic_schema() -> SchemaRef {
         Field::new("damage_real", DataType::Int32, false),
         Field::new("kills", DataType::Int32, false),
         Field::new("damage_taken", DataType::Int32, false),
+    ]))
+}
+
+fn rebirth_schema() -> SchemaRef {
+    Arc::new(Schema::new(vec![
+        Field::new("tick", DataType::UInt32, false),
+        Field::new("unit_id", DataType::UInt64, false),
+        struct_field("position", vec3_fields(), false),
     ]))
 }
 
@@ -1691,6 +1738,14 @@ fn validate_event_refs(event: &Event) -> Result<()> {
     if matches!(event.payload, EventPayload::Healing { amount } if amount <= 0) {
         return Err(Error::invalid("healing amount must be positive"));
     }
+    if matches!(event.payload, EventPayload::TeamScored { .. })
+        && (event.subject.is_some()
+            || event.source.is_some()
+            || event.source_team_id.is_some()
+            || event.target.is_some())
+    {
+        return Err(Error::invalid("team_scored names no object"));
+    }
     Ok(())
 }
 
@@ -1711,6 +1766,7 @@ fn event_type_name(kind: crate::EventKind) -> &'static str {
         crate::EventKind::Healing => "healing",
         crate::EventKind::BuffApplied => "buff_applied",
         crate::EventKind::BuffRemoved => "buff_removed",
+        crate::EventKind::TeamScored => "team_scored",
     }
 }
 
@@ -1793,6 +1849,7 @@ pub(crate) struct StorageReader {
     member_sizes: BTreeMap<String, u64>,
     tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
     units: Vec<Vec<LiveUnitState>>,
+    rebirths: Vec<Vec<RebirthState>>,
     projectiles: Vec<Vec<ProjectileState>>,
     buildings: Vec<Vec<BuildingState>>,
     shields: Vec<Vec<ShieldState>>,
@@ -1848,6 +1905,12 @@ impl StorageReader {
             |row| row.unit_id,
             "unit",
         )?;
+        let rebirths = group_state_rows(
+            table(&members, "rebirths.parquet", read_rebirths)?,
+            tick_count,
+            |row| row.unit_id,
+            "rebirth",
+        )?;
         let projectiles = group_state_rows(
             table(&members, "projectiles.parquet", read_projectiles)?,
             tick_count,
@@ -1897,6 +1960,7 @@ impl StorageReader {
             member_sizes,
             tick_hashes,
             units,
+            rebirths,
             projectiles,
             buildings,
             shields,
@@ -1964,6 +2028,7 @@ impl StorageReader {
         let index = state_tick_index(tick, self.metadata.tick_count)?;
         Ok(WorldSnapshot {
             live_units: self.units[index].clone(),
+            rebirths: self.rebirths[index].clone(),
             projectiles: self.projectiles[index].clone(),
             buildings: self.buildings[index].clone(),
             shields: self.shields[index].clone(),
@@ -2197,6 +2262,7 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
         let move_speed = column::<Int64Array>(&batch, "move_speed")?;
         let skills = column::<ListArray>(&batch, "skills")?;
         let control = struct_column(&batch, "control")?;
+        let rebirth_count = column::<UInt32Array>(&batch, "rebirth_count")?;
         for index in 0..batch.num_rows() {
             rows.push((
                 tick.value(index),
@@ -2225,6 +2291,7 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
                     move_speed: move_speed.value(index),
                     skills: read_skill_list(skills, index)?,
                     control: read_control(control, index)?,
+                    rebirth_count: read_rebirth_count(rebirth_count, index)?,
                 },
             ));
         }
@@ -2259,6 +2326,38 @@ fn read_statistics(member: MemberSlice) -> Result<Vec<(u32, DamageStatistics)>> 
                     damage_real: damage_real.value(index),
                     kills: kills.value(index),
                     damage_taken: damage_taken.value(index),
+                },
+            ));
+        }
+    }
+    Ok(rows)
+}
+
+/// A unit's `rebirth_count`, which the table leaves null for 0, its one
+/// form.
+fn read_rebirth_count(column: &UInt32Array, index: usize) -> Result<u32> {
+    if !column.is_valid(index) {
+        return Ok(0);
+    }
+    match column.value(index) {
+        0 => Err(Error::invalid("rebirth_count 0 is written as null")),
+        count => Ok(count),
+    }
+}
+
+fn read_rebirths(member: MemberSlice) -> Result<Vec<(u32, RebirthState)>> {
+    let mut rows = Vec::new();
+    for batch in checked_builder(member, rebirth_schema().as_ref(), "rebirths")?.build()? {
+        let batch = batch?;
+        let tick = column::<UInt32Array>(&batch, "tick")?;
+        let id = column::<UInt64Array>(&batch, "unit_id")?;
+        let position = struct_column(&batch, "position")?;
+        for index in 0..batch.num_rows() {
+            rows.push((
+                tick.value(index),
+                RebirthState {
+                    unit_id: id.value(index),
+                    position: read_vec3(position, index)?,
                 },
             ));
         }

@@ -13,7 +13,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 472
-hash: {profile: mcfr-content-0.22.0, result: beab797d541d36d0dc90c815ca8a8b07ece1b741a1e6553ecc5373b2afb1eceb}
+hash: {profile: mcfr-content-0.23.0, result: 80d350b3df9f7795a144de135c1ee31f47916b95b95c4e6d01d6fb5af83cfe4b}
 blue:
   units:
   - {name: vortex, index: 0, position: {x: -40, y: -150}}

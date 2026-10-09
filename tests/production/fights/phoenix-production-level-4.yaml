@@ -8,7 +8,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 200
-hash: {profile: mcfr-content-0.22.0, result: 367ea58de1880b9d78932cf75dc8bb51d6393c51c2483d3ad731bd260f7c9a67}
+hash: {profile: mcfr-content-0.23.0, result: a3b529f4ca9375372388da72d3c20314fd4b0242ba228efeffcbf5f9b351e533}
 blue:
   techs:
     war_factory: [phoenix_production]

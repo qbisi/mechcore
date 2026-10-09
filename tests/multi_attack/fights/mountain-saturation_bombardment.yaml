@@ -14,7 +14,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 177
-hash: {profile: mcfr-content-0.22.0, result: 5f9cf1365b72050ad3b094085d18202991606769af584d157f227ddb65f38bc3}
+hash: {profile: mcfr-content-0.23.0, result: fe1105256eee616bf4583db10ade72fb86ffe0d327471725fe81db25c075c4e2}
 blue:
   techs:
     mountain: [saturation_bombardment]

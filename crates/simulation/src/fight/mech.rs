@@ -21,6 +21,7 @@ impl Actor {
         self.rules = rules;
     }
 
+    #[allow(clippy::too_many_lines)]
     pub(in crate::fight) fn at_generated_position(
         placement: Placement,
         rules: UnitConfig,
@@ -91,6 +92,8 @@ impl Actor {
             buffs: Vec::new(),
             delayed_buffs: Vec::new(),
             parasitic: false,
+            created: false,
+            rebirth_count: 0,
             moved_q32: 0,
             move_mark_q32: (0, 0),
             shield,
@@ -592,6 +595,7 @@ impl Actor {
                 maximum: i32::try_from(self.stats.max_life()).expect("unit max life fits i32"),
             },
             active: true,
+            rebirth_count: self.rebirth_count,
             targetable: self.visibility == Visibility::Normal,
             visibility: self.visibility,
             buffs: self.buffs.iter().map(RunningBuff::state).collect(),

@@ -11,7 +11,7 @@ seed: 892887593
 round: 8
 source: game
 ticks: 1077
-hash: {profile: mcfr-content-0.22.0, result: b985a7c88c80907196b946134ffcddb97cfca7a72964253a02145fe97c46470f}
+hash: {profile: mcfr-content-0.23.0, result: 3cd708b867c916e8a41b737c72562417a57539bb52c62dc3832ac77b437a522e}
 blue:
   core_damage: 1674
   officers: [secondary_equipment_expert, mass_produced_laser_sight]

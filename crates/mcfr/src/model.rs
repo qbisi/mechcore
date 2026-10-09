@@ -9,7 +9,7 @@ use crate::{Error, Result, canonical};
 /// two formats.
 macro_rules! format_version {
     () => {
-        "0.22.0"
+        "0.23.0"
     };
 }
 pub(crate) use format_version;
@@ -154,6 +154,9 @@ pub struct WorldSnapshot {
     pub live_units: Vec<LiveUnitState>,
     #[serde(default)]
     pub projectiles: Vec<ProjectileState>,
+    /// Every unit dead and waiting to be reborn.
+    #[serde(default)]
+    pub rebirths: Vec<RebirthState>,
     #[serde(default)]
     pub shields: Vec<ShieldState>,
     /// The build's own damage and kill counters for the fight so far.
@@ -176,6 +179,24 @@ pub struct FormationState {
     /// `MechTeam.maxExpFloat`, `FPoint` raw: the full bar, where gains stop.
     pub max_experience: i64,
     pub team_id: u32,
+}
+
+#[allow(clippy::trivially_copy_pass_by_ref)]
+const fn is_zero(value: &u32) -> bool {
+    *value == 0
+}
+
+/// A unit dead and waiting to be reborn: a `RebirthTask` of
+/// `DeadRebirthController.rebirthTasks`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct RebirthState {
+    /// `RebirthTask.GetPosAndRotation`: where the unit will stand again. A
+    /// unit reborn where it fell answers where it fell; one that follows an
+    /// ally answers where its pilot is.
+    pub position: QVec3,
+    pub unit_id: u64,
 }
 
 /// Whose counters a row of the build's damage statistics is.
@@ -721,6 +742,10 @@ pub struct LiveUnitState {
     pub original_team_id: u32,
     pub personal_shield: PersonalShieldState,
     pub position: QVec3,
+    /// `FightMech.rebirthCount`: how many times the unit has been reborn in
+    /// this fight. Left out while it is 0, as it is for nearly every unit.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub rebirth_count: u32,
     /// Every skill `FightMech.GetSkills()` holds, strictly ascending by slot.
     #[serde(default)]
     pub skills: Vec<SkillState>,
@@ -1210,6 +1235,7 @@ pub enum EventKind {
     Healing,
     BuffApplied,
     BuffRemoved,
+    TeamScored,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1285,6 +1311,13 @@ pub enum EventPayload {
         buff_id: u32,
         reason: BuffRemovedReason,
     },
+    /// What a side's units standing at the fight's end score, on the
+    /// fight's last tick: `FightResultController.CalculateScore` of the
+    /// side's team, alive.
+    TeamScored {
+        amount: i32,
+        team_id: u32,
+    },
 }
 
 impl EventPayload {
@@ -1306,6 +1339,7 @@ impl EventPayload {
             Self::Healing { .. } => EventKind::Healing,
             Self::BuffApplied { .. } => EventKind::BuffApplied,
             Self::BuffRemoved { .. } => EventKind::BuffRemoved,
+            Self::TeamScored { .. } => EventKind::TeamScored,
         }
     }
 }

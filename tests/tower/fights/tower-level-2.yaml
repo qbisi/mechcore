@@ -7,7 +7,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 928
-hash: {profile: mcfr-content-0.22.0, result: 15f6e9057dd7908ca951b10de2d4428b62f49ce2e954e3b503fac9c84e4eb8fb}
+hash: {profile: mcfr-content-0.23.0, result: ad820d9b2a517677d0020a8dd3607a2e2a119608f0b2a7f3403fd44e4febcf72}
 blue:
   core_damage: 150
   tower_strengthen_levels: [2, 2]

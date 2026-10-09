@@ -13,7 +13,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 415
-hash: {profile: mcfr-content-0.22.0, result: 3f7217f0f24659ed7e0a29597ff5913b120b8d69be638ca3ea0708593c2833f2}
+hash: {profile: mcfr-content-0.23.0, result: 07465b26a94a70d3cedbafe658497839d17ea182f63aed1ab5e463cba4d3ce8c}
 blue:
   techs:
     sandworm: [burrow_maintenance]

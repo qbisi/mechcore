@@ -83,6 +83,9 @@ EventPayload::shield_created.team_id: integer(uint32)
 EventPayload::shield_destroyed
 EventPayload::shield_destroyed.position: QVec3
 EventPayload::shield_destroyed.reason: ShieldDestroyedReason
+EventPayload::team_scored
+EventPayload::team_scored.amount: integer(int32)
+EventPayload::team_scored.team_id: integer(uint32)
 EventPayload::terrain_converted
 EventPayload::terrain_converted.position: QVec3
 EventPayload::terrain_created
@@ -123,6 +126,7 @@ LiveUnitState.move_speed: integer(int64)
 LiveUnitState.original_team_id: integer(uint32)
 LiveUnitState.personal_shield: PersonalShieldState
 LiveUnitState.position: QVec3
+LiveUnitState.rebirth_count: integer(uint32)
 LiveUnitState.skills: [SkillState]
 LiveUnitState.targetable: boolean
 LiveUnitState.team_id: integer(uint32)
@@ -163,6 +167,8 @@ QPose.rotation: integer(int64)
 QVec3.x: integer(int64)
 QVec3.y: integer(int64)
 QVec3.z: integer(int64)
+RebirthState.position: QVec3
+RebirthState.unit_id: integer(uint64)
 RecorderKind::construction
 RecorderKind::formation
 RecorderKind::unit
@@ -238,6 +244,7 @@ WorldSnapshot.buildings: [BuildingState]
 WorldSnapshot.formations: [FormationState]
 WorldSnapshot.live_units: [LiveUnitState]
 WorldSnapshot.projectiles: [ProjectileState]
+WorldSnapshot.rebirths: [RebirthState]
 WorldSnapshot.shields: [ShieldState]
 WorldSnapshot.statistics: [DamageStatistics]
 WorldSnapshot.terrains: [TerrainState]

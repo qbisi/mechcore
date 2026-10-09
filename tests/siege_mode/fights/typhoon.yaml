@@ -11,7 +11,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 804
-hash: {profile: mcfr-content-0.22.0, result: 53f74e738e489052ddf51aef6c2518eb431602b6e3e057c75f4607aac38b4ab9}
+hash: {profile: mcfr-content-0.23.0, result: 0e58c5be15c7d75320996aadc87813444fc56d76566cde18398d9d4416fd6afe}
 blue:
   techs:
     typhoon: [field_entrenchment]

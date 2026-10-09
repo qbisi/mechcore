@@ -9,7 +9,7 @@ seed: 4242
 round: 2
 source: game
 ticks: 1392
-hash: {profile: mcfr-content-0.22.0, result: e46a0030cfd708b4ace242000753525c97465b4c81422cebb8668273791d2e3e}
+hash: {profile: mcfr-content-0.23.0, result: c6d43f892477763d594651b0be3a6c1e61605a5af392cab4497106dc008f2a89}
 blue:
   units:
   - {name: hound, index: 0, position: {x: -150, y: -200}, exp: 0/400/750}

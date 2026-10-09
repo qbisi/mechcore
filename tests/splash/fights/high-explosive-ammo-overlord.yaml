@@ -8,7 +8,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 619
-hash: {profile: mcfr-content-0.22.0, result: 110be4a6dd22d67a80afa8ee20efa7036f9438269f3fb7a646ebcedafdd92b55}
+hash: {profile: mcfr-content-0.23.0, result: c06dcf7849e3ddb02d0aa7d195a00add8d141bbf25cf0834ca2dd028bf11e84b}
 blue:
   techs:
     overlord: [high_explosive_ammo]

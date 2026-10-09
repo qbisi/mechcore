@@ -112,6 +112,10 @@ impl Payload {
             EventPayload::Healing { amount } => {
                 flat.amount = Some(amount);
             }
+            EventPayload::TeamScored { amount, team_id } => {
+                flat.amount = Some(amount);
+                flat.team_id = Some(team_id);
+            }
             EventPayload::UnitCreated {
                 team_id,
                 formation_id,
@@ -251,6 +255,10 @@ impl Payload {
             EventKind::BuffRemoved => EventPayload::BuffRemoved {
                 buff_id: required(self.buff_id.take(), label, "buff_id")?,
                 reason: decode_buff_reason(required(self.reason.take(), label, "reason")?)?,
+            },
+            EventKind::TeamScored => EventPayload::TeamScored {
+                amount: required(self.amount.take(), label, "amount")?,
+                team_id: required(self.team_id.take(), label, "team_id")?,
             },
         };
         self.refuse_stray(label)?;
@@ -508,7 +516,7 @@ fn vec3(array: &StructArray, index: usize) -> Result<Option<QVec3>> {
     }))
 }
 
-const KINDS: [EventKind; 15] = [
+const KINDS: [EventKind; 16] = [
     EventKind::ProjectileReleased,
     EventKind::ProjectileRemoved,
     EventKind::Damage,
@@ -524,6 +532,7 @@ const KINDS: [EventKind; 15] = [
     EventKind::Healing,
     EventKind::BuffApplied,
     EventKind::BuffRemoved,
+    EventKind::TeamScored,
 ];
 
 fn encode_kind_tag(kind: EventKind) -> u8 {
@@ -558,6 +567,7 @@ fn kind_name(kind: EventKind) -> &'static str {
         EventKind::Healing => "healing",
         EventKind::BuffApplied => "buff_applied",
         EventKind::BuffRemoved => "buff_removed",
+        EventKind::TeamScored => "team_scored",
     }
 }
 

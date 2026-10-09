@@ -12,7 +12,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 290
-hash: {profile: mcfr-content-0.22.0, result: f9ad13e70ac3f1227a8b3e9390cb8c5cd61a0c8ef02f0eee9066f10cbb9e3bd8}
+hash: {profile: mcfr-content-0.23.0, result: 89e3b1986e8d2d801250122bf9c00fdcebd8f65396593bd7a30734038aa8c417}
 blue:
   techs:
     war_factory: [sledgehammer_production]

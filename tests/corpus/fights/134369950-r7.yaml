@@ -10,7 +10,7 @@ seed: 1966074706
 round: 7
 source: game
 ticks: 931
-hash: {profile: mcfr-content-0.22.0, result: 0f12e1d111f81dc921e88e7dfed0df473ce7b26709f40150443477ef412c86b1}
+hash: {profile: mcfr-content-0.23.0, result: 0134f23aea051af6be57662c4491da9aa00478e6cf5ee2fa84754444df3f2608}
 blue:
   core_damage: 750
   officers: [super_supply_enhancement, additional_deployment_slot, aerial_specialist]

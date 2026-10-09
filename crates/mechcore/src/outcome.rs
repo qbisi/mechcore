@@ -21,8 +21,7 @@ use std::{
 use mechcore_document::{
     BattleSkillEntry, Fight, FightBattleSkill, FightContraption, FightExperience, FightHash,
     FightKind, FightRelease, FightSide, FightStanding, FightUnit, Layout, Position, Source,
-    Standing, UnitPlacement,
-    reactor_damage::{self, Survivor as Scored},
+    Standing, UnitPlacement, reactor_damage,
 };
 use mechcore_mcfr::{
     EventPayload, McfrReader, ObjectKind, Producer, Recording, ShieldRoundPolicy, ShieldSourceKind,
@@ -161,14 +160,7 @@ pub(crate) fn read(reader: &dyn Recording) -> Result<Reading, Failure> {
     let survived = members(&formations, &ended);
 
     let mut unresolved = Vec::new();
-    let scores = scores(
-        &layout,
-        &formations,
-        &timeline,
-        &opened,
-        &ended,
-        &mut unresolved,
-    )?;
+    let scores = scores(reader, &mut unresolved)?;
     let damage = match scores {
         [Some(blue), Some(red)] => {
             let (blue, red) = reactor_damage::damage(blue, red);
@@ -330,9 +322,6 @@ fn fight_side(side: mechcore_document::Side, read: SideReading) -> Result<FightS
 
 /// What the whole fight shows, beside its first and last snapshots.
 struct Timeline {
-    /// Units the fight created, and units that died in it.
-    created: BTreeSet<u64>,
-    died: BTreeSet<u64>,
     /// Each projectile released with no owner: its team and where it is
     /// first recorded, in world units.
     launches: Vec<(u32, (i64, i64))>,
@@ -343,8 +332,6 @@ struct Timeline {
 impl Timeline {
     fn read(reader: &dyn Recording) -> Result<Self, Failure> {
         let mut timeline = Self {
-            created: BTreeSet::new(),
-            died: BTreeSet::new(),
             launches: Vec::new(),
             shields: BTreeMap::new(),
         };
@@ -362,12 +349,6 @@ impl Timeline {
                     continue;
                 };
                 match (subject.kind, &event.payload) {
-                    (ObjectKind::Unit, EventPayload::UnitCreated { .. }) => {
-                        timeline.created.insert(subject.id);
-                    }
-                    (ObjectKind::Unit, EventPayload::UnitDied { .. }) => {
-                        timeline.died.insert(subject.id);
-                    }
                     (ObjectKind::Projectile, EventPayload::ProjectileReleased { .. })
                         if event.source.is_none() =>
                     {
@@ -424,82 +405,39 @@ fn raw(position: Position, side: Side) -> (i64, i64) {
 }
 
 /// Each side's score, `TeamScoreCalculator.CalculateTeamScore`: what the
-/// units alive at the fight's end score for the side they then serve.
-///
-/// A unit is classified by what the recording shows of it. It came from its
-/// side's formations when it opened the fight in a formation a placement
-/// takes and the fight did not create it; any other unit was summoned,
-/// produced or spawned. It changed sides when its team is not the one it
-/// started on. It was reborn when it died in the fight and stands at the end:
-/// a rebirth revives the unit that died, `RebirthTask.RebirthMech`, which is
-/// the one way a dead unit stands again.
+/// units alive at the fight's end score for the side they then serve, as the
+/// recording's last tick states it (`team_scored`,
+/// `FightResultController.CalculateScore`).
 fn scores(
-    layout: &Layout,
-    formations: &BTreeMap<u64, (Side, i32)>,
-    timeline: &Timeline,
-    opened: &WorldSnapshot,
-    ended: &WorldSnapshot,
+    reader: &dyn Recording,
     unresolved: &mut Vec<String>,
 ) -> Result<[Option<i64>; 2], Failure> {
-    let opened_in: BTreeMap<u64, u64> = opened
-        .live_units
-        .iter()
-        .map(|unit| (unit.unit_id, unit.formation_id))
-        .collect();
-    let mut scores = [Some(0_i64), Some(0_i64)];
-    for unit in ended
-        .live_units
-        .iter()
-        .filter(|unit| unit.life.current > 0 && unit.active)
-    {
-        let side = match unit.team_id {
-            0 => Side::Blue,
-            1 => Side::Red,
-            other => {
-                return Err(Failure::refused(format!(
-                    "recording holds team {other}, and a match has two"
-                )));
-            }
-        };
-        let name = mechcore_document::unit_type_from_id(
-            i32::try_from(unit.unit_type_id).unwrap_or(i32::MAX),
-        )
-        .map_or_else(
-            || unit.unit_type_id.to_string(),
-            |(name, _)| name.to_owned(),
-        );
-        // A unit that changes sides joins a formation of the side it serves, so
-        // where it came from is the formation it opened the fight in.
-        let placement = opened_in
-            .get(&unit.unit_id)
-            .and_then(|formation| formations.get(formation))
-            .and_then(|(owner, index)| {
-                scene::units_of(layout, *owner)
-                    .iter()
-                    .find(|placement| placement.index == *index)
-            });
-        let survivor = Scored {
-            unit_type: unit.unit_type_id,
-            level: placement.map(|placement| placement.level.unwrap_or(1)),
-            support: timeline.created.contains(&unit.unit_id) || placement.is_none(),
-            reborn: timeline.died.contains(&unit.unit_id),
-            team_changed: unit.team_id != unit.original_team_id,
-        };
-        match reactor_damage::score(survivor) {
-            Ok(score) => {
-                if let Some(total) = &mut scores[side.seat()] {
-                    *total += score;
+    let last = reader.terminal_tick();
+    let events = reader.events(last).map_err(|error| {
+        Failure::refused(format!("recording has no events at tick {last}: {error}"))
+    })?;
+    let mut scores = [None, None];
+    for event in events.events {
+        if let EventPayload::TeamScored { amount, team_id } = event.payload {
+            let side = match team_id {
+                0 => Side::Blue,
+                1 => Side::Red,
+                other => {
+                    return Err(Failure::refused(format!(
+                        "recording scores team {other}, and a match has two"
+                    )));
                 }
-            }
-            Err(reason) => {
-                unresolved.push(format!(
-                    "{} core_damage: unit {} of {name} on {}: {reason}",
-                    side.other().name(),
-                    unit.unit_id,
-                    side.name()
-                ));
-                scores[side.seat()] = None;
-            }
+            };
+            scores[side.seat()] = Some(i64::from(amount));
+        }
+    }
+    for side in Side::BOTH {
+        if scores[side.seat()].is_none() {
+            unresolved.push(format!(
+                "{} core_damage: the recording's last tick scores no {} side",
+                side.other().name(),
+                side.name()
+            ));
         }
     }
     Ok(scores)

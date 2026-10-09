@@ -70,11 +70,20 @@ and taken out again before the score is compared, so it does not count either.
 
 ## Evidence
 
+### Recorded
+
+- A fight's last tick records each side's score as the game computes it, its
+  `team_scored`, and the simulator answers the same score on every pinned
+  fight: the Rhino that wins scores its row's 200 for red,
+  `tests/control/fights/anti-interference-rhino.yaml`, and a Missile Strike
+  that leaves neither side standing scores 0 for both,
+  `tests/battle_skill/fights/heavy-missile-strike.yaml`.
+
 ### Replayed
 
 - Each core falls, round by round, by exactly what the rule above answers from
-  the round's recording, classified as `mechcore convert <recording> --to
-  fight` classifies it: `scripts/corpus/match-replays.py` records every round of
+  the round's recording, the scores its last tick records as
+  `mechcore convert <recording> --to fight` reads them: `scripts/corpus/match-replays.py` records every round of
   the corpus with the game and compares its answer with the fall between the
   round's state and the next in the match document, and `--recordings` repeats
   the comparison over recordings already made. The fights of the corpus
@@ -118,19 +127,15 @@ and taken out again before the score is compared, so it does not count either.
 
 ### Not established
 
-- **A reborn unit in play.** No recorded fight has left a reborn unit
-  standing, so the reading above, a unit with a death in the fight that
-  stands at its end scored at `rebirth_unit_score_rate`, has not been checked
-  against a core's fall. The fixture that would check it is a Phoenix with
-  Quantum Reassembly that dies, is reborn and survives.
-- **Which units count as active.** The reader counts a unit that is alive and
-  active in the recording's last tick, which is how a recording states a
-  unit's membership of its team's active units; the two have not been told
-  apart by any fight.
+- **A reborn unit in play.** No pinned fight leaves a reborn unit standing.
+  A recording of two Typhoons with Field Reassembly that die, are reborn and
+  stand at the end scored each at its row's 125 times
+  `rebirth_unit_score_rate`, 31, in the game's own `team_scored`; it is pinned
+  once the simulator fights the technology.
 - **A summoned unit's level.** No document states it, and no row of this
   table scores levels differently, so nothing here depends on it. A row that
   did would leave a summoned unit's score unanswered.
-- **How a recording tells a summoned unit.** The reader takes a unit as
-  deployed when it opened the fight in a formation a placement takes and the
-  fight did not create it. The build reads the unit's creation type, which a
-  recording does not carry; the two agree on every fight of the corpus.
+- **How the simulator tells a summoned unit.** The build reads the unit's
+  creation type, for which the simulator takes whether the fight made the
+  unit rather than its side deploying it from a formation; no pinned fight
+  tells the two apart.

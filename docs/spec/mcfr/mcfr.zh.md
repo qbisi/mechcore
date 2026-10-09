@@ -1,11 +1,11 @@
-# MCFR 格式规范（format 0.22.0）
+# MCFR 格式规范（format 0.23.0）
 
 [English](mcfr.md)
 
 本文描述仓库当前实现的 MCFR 逻辑模型、物理容器、Adapter 原生采集来源和 Reader/Writer 校验契约。统一格式标识为：
 
 ```text
-format = "0.22.0"
+format = "0.23.0"
 ```
 
 当前 Adapter 原生字段映射绑定仓库在 `GAME_VERSION` 钉住的游戏版本。其他版本可以生成同格式录像，前提是 Producer 已验证所用原生接口与本文语义一致。
@@ -21,6 +21,7 @@ recording.mcfr
 ├── layout.yaml
 ├── ticks.parquet
 ├── units.parquet
+├── rebirths.parquet
 ├── projectiles.parquet
 ├── buildings.parquet
 ├── shields.parquet
@@ -43,6 +44,7 @@ instrument 通道是研究要看的战斗内部过程（技能状态机、一次
 | `layout.yaml` | 可直接重放的规范化场景布局，首行为 `kind: layout` | 录像级 | UTF-8 YAML，LF 结尾 |
 | `ticks.parquet` | DurableContext、录像元数据、每帧摘要 | `T(1)..T(n)` | Parquet + Zstd level 6 |
 | `units.parquet` | 存活 FightMech 完整状态 | `S(1)..S(n)` | Parquet + Zstd level 6 |
+| `rebirths.parquet` | 每个已死亡、正在等待复活的单位及其将站起的位置 | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `projectiles.parquet` | ProjectileSystem 中的弹体完整状态 | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `buildings.parquet` | 各 FightTeam 当前存活的 Crystal/Construction 状态 | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `shields.parquet` | AdvancedEnergyShieldSystem 中仍存在的战场护盾状态 | `S(1)..S(n)` | Parquet + Zstd level 6 |
@@ -51,7 +53,7 @@ instrument 通道是研究要看的战斗内部过程（技能状态机、一次
 | `formations.parquet` | 每个编队的经验 | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `events.parquet` | 相邻快照之间的有序离散事件 | `E(1)..E(n)` | Parquet + Zstd level 6 |
 
-从 `units.parquet` 到 `events.parquet` 的八张表只在有行时才写入，缺失的表按空表读取。成员都不内嵌 Arrow schema；`ticks.parquet` 的元数据是 Parquet 文件的 key/value 元数据；列统计只按 column chunk 记录，不写页级统计和页索引。
+从 `units.parquet` 到 `events.parquet` 的九张表只在有行时才写入，缺失的表按空表读取。成员都不内嵌 Arrow schema；`ticks.parquet` 的元数据是 Parquet 文件的 key/value 元数据；列统计只按 column chunk 记录，不写页级统计和页索引。
 
 ZIP 层采用 STORE，数据压缩由 Parquet page 的 Zstd 完成。逐 tick 的表 row group 按 1024 个逻辑 tick 刷新，单个 row group 的行数上限为 1,000,000。状态表按 `(tick, object_id)` 排序，事件按 `(tick, ordinal)` 排序。
 
@@ -101,11 +103,11 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 
 | key | 数据规范 | 含义 |
 | --- | --- | --- |
-| `format` | 精确值 `0.22.0` | MCFR 逻辑与物理契约版本 |
+| `format` | 精确值 `0.23.0` | MCFR 逻辑与物理契约版本 |
 | `producer` | `game` 或 `simulator` | 录像由谁写出：经 Adapter 的游戏，或模拟器 |
 | `game_build` | 非空 UTF-8 | 采集构建 provenance；Adapter 来自 `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | 单回合保持稳定的上下文 `D` |
-| `hash_profile` | 精确值 `mcfr-content-0.22.0` | 哈希定义，以它所属的格式版本命名 |
+| `hash_profile` | 精确值 `mcfr-content-0.23.0` | 哈希定义，以它所属的格式版本命名 |
 | `result_hash` | 64 位小写十六进制 | 全部 `tick_hash` 的有序摘要；回归判断依据 |
 | `tick_count` | `u32` 规范十进制 | 从 `S(1)` 开始记录的逻辑 tick 数 |
 | `terminal_tick` | `u32` 规范十进制 | 已确认的最终逻辑边界；当前连续时间线中等于 `tick_count` |
@@ -135,7 +137,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | 字段 | Parquet 类型 | 含义 | Adapter 原生来源 |
 | --- | --- | --- | --- |
 | `tick` | `UINT32 required` | 状态所属逻辑时刻 | Adapter 逻辑帧计数 |
-| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.22.0 身份规则，见附录 B |
+| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.23.0 身份规则，见附录 B |
 | `team_id` | `UINT32 required` | 当前所属队伍 | `FightTeam` controller index |
 | `original_team_id` | `UINT32 required` | 首次出现时的队伍 | 首次采样的 `team_id` |
 | `formation_id` | `UINT64 required` | 编队身份 | `FightMech.GetMechTeam()` 指针映射 |
@@ -156,6 +158,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | `personal_shield` | required struct | 单位个人能量盾状态 | 见 2.5 |
 | `move_speed` | `INT64 required` | 战斗移动单位所用的速度，所有修正之后，Q32.32 原始值 | `FightMech.GetMoveSpeed()` |
 | `skills` | required list | 单位持有的每个技能、其状态与武器 | 见 2.6 |
+| `rebirth_count` | `UINT32 nullable` | 单位本场已复活的次数；从未复活写 null，从不写 0 | `FightMech.rebirthCount`，`RebirthTask.RebirthMech` 经 `AddRebirthCount` 加一 |
 | `control` | nullable struct | 控制光束正在转化该单位时：`progress`（`INT32`，光束命中累加的力量）与 `sources`（`list<ObjectRef>`，持有它的光束所属技能的拥有者，按 build 保存的顺序）；没有光束时为 null | 该单位在 `TeamTranslationSystem.translatingDatas` 中的条目：`TranslationData.progress` 与 `sources` |
 
 ## 2.3 `buffs`
@@ -464,6 +467,12 @@ null。时钟中的两个整数都以逻辑步为单位，并通过 `DurableCont
 
 每个快照一份每个编队的经验：录像编过号的每个 `MechTeam` 一行，存活与否都在，按 `(tick, formation_id)` 严格升序。列为 `tick`、`formation_id`、`team_id`（首个单位的原始队伍）、`experience`（`MechTeam.expFloat`，FPoint raw，首次获得经验之前为 -1.0）、`max_experience`（`MechTeam.maxExpFloat`，FPoint raw，经验到此为止）。`ExpSystem` 在逻辑 tick 内、击杀当时分配经验，所以它是战斗状态；一次击杀给出多少、给谁，见 [`docs/rules/unit_experience.md`](../../rules/unit_experience.md#what-a-kill-hands-out)。战斗结束时 `BattleSystem.OnFightOver` 把每个编队的经验截为整数，最后一个快照已经是截断后的值。
 
+## 7.2 `rebirths.parquet`
+
+每个快照一份每个已死亡、正在等待复活的单位：`DeadRebirthController.rebirthTasks` 中每个 `RebirthTask` 一行，按 `(tick, unit_id)` 严格升序。列为 `tick`、`unit_id`（单位存活时的 id，取自 `RebirthTask.mFightMech`）、`position`（`QVec3`，单位将重新站起的位置，取自 `RebirthTask.GetPosAndRotation`）。
+
+`DeadRebirthController.PerformDeadEffect` 在单位死亡时开始它的任务，所以它的行从 `unit_died` 那个 tick 开始，此时它已不在 `units.parquet` 里。`DoTaskEndProcess` 结束任务：单位以同一个 `unit_id` 复活，下一 tick 回到 `units.parquet`，`rebirth_count` 加一；或任务失败（驾驶舱找不到可跟随的友军），单位本场不再出现。原地复活的单位（台风的战地重组）每行都是它倒下的位置；跟随友军的单位（凤凰的量子重组）是驾驶舱所在的位置，会离开倒下的地方。字段与规则以 [English](mcfr.md#rebirths) 为准。
+
 # Part VIII — `events.parquet`
 
 ## 8.1 表与排序规范
@@ -503,6 +512,7 @@ null。时钟中的两个整数都以逻辑步为单位，并通过 `DurableCont
 | `healing` | `target` | `amount: i32` | 一次正数恢复结果 |
 | `buff_applied` | `target`；`source` 是施加者（若有），`source_team_id` 是其队伍 | `buff_id: u32`, `duration: i32` | 目标被施加或再次施加一个 buff；`buff_id` 是其数据的 `GetID()`，`duration` 是施加后剩余的 tick 数 |
 | `buff_removed` | `target` | `buff_id: u32`, `reason: BuffRemovedReason` | 目标上的一个 buff 被移除 |
+| `team_scored` | 无：所有引用都为 null | `team_id: u32`, `amount: i32` | 战斗结束时该方存活单位的得分；每方一条、蓝方在前，是战斗最后一个 tick 的最后几个事件 |
 
 `projectile_removed` 的合法原因组合为：原生拦截系统移除使用 `intercepted=true, absorbed_by=null`；战场盾吸收使用 `intercepted=false, absorbed_by=ShieldRef`；其他移除使用两者均为空/false。`absorbed_by` 只能引用 Shield。
 
@@ -526,6 +536,7 @@ null。时钟中的两个整数都以逻辑步为单位，并通过 `DurableCont
 | `unit_created` | `FightController.CreateMech(team, mech, position, rotation, createType, mechTeam, isRebirth)`，部署、召唤、死亡生成、生产与空投都经过这个入口。只记逻辑 tick 内的调用，部署因此不记；单位死后复活会带 `isRebirth` 再经过一次，也不记。位置取调用返回后单位的位置 |
 | `unit_died` | `FightMech.OnDead` trace |
 | `building_destroyed` | `FightCrystal.OnDead` trace |
+| `team_scored` | `FightResultController.CalculateScore(team, isAlive)`：`BattleSystem.OnFightOver` 在战斗最后一次逻辑更新内为每方调用两次，存活单位一次、阵亡单位一次。记存活那次，队伍取 `FightTeam.GetTeamIndex()` |
 | `healing` | `FightActor.AddLife(value, isShowLifeBar)`（单位、塔与水晶都经它回血）与 `FightConstruction.AddLife`。量是调用后读到的生命减去调用前的：满血截断，调用本身不返回实际加了多少。回血都显示血条；不显示的两处回满——单位死后复活、超级部署落地——不是回血，不记。没有 `source`，调用本身不带 |
 | `shield_created` | 相邻采样边界间首次进入 `GetEnergyShields(fightGroup)` 全量集合。同一对边界间加入的多个护盾按身份顺序写，即快照读它们的顺序：逐队读，每队按其集合自身的顺序，不按原生地址 |
 | `shield_destroyed` | 相邻采样边界间从全量集合消失。原因在 `GroupAdvancedEnergyShieldManager.Destroy(FightEnergyShield)`（唯一把护盾移出集合的方法）开始时读：能量耗尽为 `energy_depleted`，只有伤害会在销毁前清空能量；有 owner 为 `owner_destroyed`；其余为 `scripted`。回合结束时的销毁在最后一个记录的 tick 之后，不写 `round_end`。同一对边界间离开的多个护盾按身份顺序写 |
@@ -623,9 +634,9 @@ ObjectRef = { kind: ObjectKind, id: u64 }
 
 # 附录 B — 身份与排序约定
 
-## B.1 format 0.22.0 身份规则
+## B.1 format 0.23.0 身份规则
 
-format `0.22.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
+format `0.23.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
 
 战斗期间首次出现的 Unit 按首次观察顺序取得当前 Unit namespace 的下一个连续编号。Unit namespace 从 1 开始单调递增；历史引用持续使用对象首次取得的编号。
 
@@ -646,7 +657,7 @@ format `0.22.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, posi
 
 初始 Shield 在 S(1) 按队伍分组：活跃盾按 `active_order` 升序，同队 inactive 盾随后。首 tick 已移除但事件仍可能引用的盾排在全部 S(1) 对象之后，再按队伍分组，确保初始状态中的 ID 从 1 连续。inactive/已移除组内按 `(source_kind, owner, position.x/y/z, radius, round_policy, energy.maximum, energy.current)` 排序，已移除项使用最后观测状态；无法区分的相同键使采集失败。编号仅规范化一次，并同步转换 E(1) 与缓存引用，不能每 tick 用 active_order 重新编号。此后新盾按首次观察顺序追加，ID 不因失活、重激活或 active_order 变化而改变。初始 Terrain 按 `(terrain_type, native controller item index)` 分配，动态 Terrain 按首次观察顺序追加。Shield 与 Terrain 从各自权威集合移除后，原生指针进入 tombstone 并保持历史 ID 唯一。
 
-状态快照最终统一按对象 ID 排序；`buffs` 保持 build 的顺序，`skills` 按 `skill_slot`、技能的 `weapons` 按 `weapon_index`，投射物 `spawn_containing_shields` 按 Shield ObjectRef 排序。
+状态快照最终统一按对象 ID 排序；`buffs` 保持 build 的顺序，`skills` 按 `skill_slot`、技能的 `weapons` 按 `weapon_index`，投射物 `spawn_containing_shields` 按 Shield ObjectRef 排序，`rebirths` 按 `unit_id` 排序。
 
 ## B.2 状态与事件的同帧约定
 
@@ -666,11 +677,11 @@ LE_u64(byte_length) || bytes
 
 ## C.2 定义
 
-完整状态和事件先编码为 canonical JSON：UTF-8、紧凑编码、每个 object 的 key 按其类型声明字段的顺序、数组按 schema 定义的顺序。`S(t)`/`E(t)` 的每个类型都按字节序声明字段，所以 object 的 key 是有序的；唯一的例外是事件的 `payload`，它的 `kind` 在最前，其余 key 在后并按字节序。JSON 就是 `serde_json` 按值原样写出的内容，编码时不对任何 object 排序，因此乱序新增的字段会改变哈希；crate 的测试保证每个声明都按字节序。哈希覆盖全部 `S(t)`/`E(t)` 字段；它不包含布局、DurableContext 或其他文件元数据。
+完整状态和事件先编码为 canonical JSON：UTF-8、紧凑编码、每个 object 的 key 按其类型声明字段的顺序、数组按 schema 定义的顺序。`S(t)`/`E(t)` 的每个类型都按字节序声明字段，所以 object 的 key 是有序的；唯一的例外是事件的 `payload`，它的 `kind` 在最前，其余 key 在后并按字节序。JSON 就是 `serde_json` 按值原样写出的内容，编码时不对任何 object 排序，因此乱序新增的字段会改变哈希；crate 的测试保证每个声明都按字节序。单位的 `rebirth_count` 为 0 时（即 `units.parquet` 中的 null）不写进 JSON，所以从未复活的单位与没有这个字段时编码相同；其余字段都写出，null 也写。哈希覆盖全部 `S(t)`/`E(t)` 字段；它不包含布局、DurableContext 或其他文件元数据。
 
 ```text
-tick_hash(t) = H_content-tick-0.22.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
-result_hash  = H_content-result-0.22.0(
+tick_hash(t) = H_content-tick-0.23.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
+result_hash  = H_content-result-0.23.0(
     LE_u32(tick_count),
     tick_hash(1)..tick_hash(n)
 )

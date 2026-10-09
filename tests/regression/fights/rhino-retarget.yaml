@@ -4,7 +4,7 @@ seed: 1787720956
 round: 1
 source: game
 ticks: 336
-hash: {profile: mcfr-content-0.22.0, result: 9d365c77c5870dcc0cd3df2cf326ea26acf2f30e80e7b7d5b3ecac99e20d17e4}
+hash: {profile: mcfr-content-0.23.0, result: 2932aaa5071bc0df11e504adb3a1550c514d4bd9ef0523459ede97d55eafba67}
 blue:
   units:
   - {name: rhino, index: 0, position: {x: -285, y: -105}, exp: 0/400/1150}

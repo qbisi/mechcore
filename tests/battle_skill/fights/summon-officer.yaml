@@ -13,7 +13,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 259
-hash: {profile: mcfr-content-0.22.0, result: 287a46bcd95ce62faa33e8d45e3db75d826e390914c049323e7d1be2f2c9d19a}
+hash: {profile: mcfr-content-0.23.0, result: 931fdf9b7635580a45d2d3ac56192d50762e3fa195347d24c13b4f25dfb6e0cc}
 blue:
   officers: [advanced_offensive_tactics]
   units:

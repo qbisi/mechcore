@@ -577,6 +577,20 @@ A unit's `control` is read at each snapshot from its entry in
 `TeamTranslationSystem.Translate`, and the entry goes with its last beam. The
 field is a `SyncDictionary`, read through the two lists it keeps side by side.
 
+The `rebirths` collection is read at each snapshot from
+`DeadRebirthController.rebirthTasks`, the rebirth controller among
+`DeadEffectSystem.deadEffectControllers`: each task's unit
+(`RebirthTask.mFightMech`), numbered as it was alive, and where it will stand
+again, `RebirthTask.GetPosAndRotation`, called with the task's own two `out`
+vectors. A unit's `rebirth_count` is `FightMech.rebirthCount`, read with the
+rest of its row.
+
+`team_scored` comes from a hook on `FightResultController.CalculateScore(team,
+isAlive)`, which `BattleSystem.OnFightOver` calls inside the fight's last logic
+update, while the capture is armed: the call for the standing units is
+recorded with its answer and the side's `FightTeam.GetTeamIndex()`, and the
+call for the fallen is not.
+
 `exp_range` records each kill's search for the formations near enough to share
 its experience. `ExpSystem.DoCalculateExp` lists the formations that hit the
 target and then calls `ExpSystem.AddRangeUnit`, which asks the killer's side's

@@ -1,6 +1,7 @@
 use crate::control::{self, ControlMetadata};
 use crate::exp_range;
 use crate::reach::{self, ReachMetadata};
+use crate::rebirth::{self, RebirthMetadata};
 use crate::rvo::{self, RawSolve, RvoChannels, RvoMetadata, RvoRows};
 use crate::selector::{self, RawSearch, SelectorMetadata, TargetChannels};
 use crate::statistics::{self, StatisticsMetadata};
@@ -19,10 +20,10 @@ use mechcore_mcfr::{
     AttackPhase, BuffDataKind, BuffDataRef, BuffRemovedReason, BuffState, BuildingState,
     ControlState, Domain, DurableContext, EnabledSkill, Event, EventPayload, GaugeI32,
     LiveUnitState, MotionState, ObjectKind, ObjectRef, PersonalShieldState, ProjectileState,
-    QPlanar, QPose, QVec3, Rational, ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind,
-    ShieldState, SkillMachineState, SkillState, TerrainApplicationState, TerrainEffectClock,
-    TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType,
-    TransitionEvents, Visibility, WeaponState, WorldSnapshot,
+    QPlanar, QPose, QVec3, Rational, RebirthState, ShieldDestroyedReason, ShieldRoundPolicy,
+    ShieldSourceKind, ShieldState, SkillMachineState, SkillState, TerrainApplicationState,
+    TerrainEffectClock, TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState,
+    TerrainType, TransitionEvents, Visibility, WeaponState, WorldSnapshot,
 };
 use mechcore_mcfr::{
     CheckedSkill, ExpRange, PoseClip, ProjectileReach, RvoNeighbour, RvoSolve, RvoVo,
@@ -334,6 +335,7 @@ pub(crate) struct Metadata {
     pub(crate) reach: Option<ReachMetadata>,
     reach_error: Option<String>,
     control: ControlMetadata,
+    rebirth: RebirthMetadata,
     exp_range: bool,
     exp_range_error: Option<String>,
 }
@@ -1115,6 +1117,7 @@ static ORIGINAL_ADVANCED_SHIELD_DAMAGE: AtomicPtr<c_void> = AtomicPtr::new(ptr::
 static ORIGINAL_FIGHT_MECH_ON_DEAD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_FIGHT_CRYSTAL_ON_DEAD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_FIGHT_CONTROLLER_CREATE_MECH: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_CALCULATE_SCORE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_FIGHT_ACTOR_ADD_LIFE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_FIGHT_CONSTRUCTION_ADD_LIFE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_SHIELD_MANAGER_DESTROY: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
@@ -1254,6 +1257,11 @@ enum NativeTrace {
     /// Life an actor gained, clamped at its full life.
     Healing {
         target: usize,
+        amount: i32,
+    },
+    /// What a side's units standing at the fight's end score.
+    TeamScored {
+        team_id: u32,
         amount: i32,
     },
     BuffApplied {
@@ -1554,6 +1562,17 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             .class("GRFight.dll", "GameRiver.Fight", "FightConstruction")
             .and_then(|class| api.method(class, "AddLife", 2))
             .map_err(|error| error.to_string())?;
+        let calculate_score = api
+            .class("GRClient.dll", "GameRiver.Client", "FightResultController")
+            .and_then(|class| api.method(class, "CalculateScore", 2))
+            .map_err(|error| error.to_string())?;
+        install_inline_hook(
+            api,
+            calculate_score,
+            calculate_score_hook as *const c_void,
+            &ORIGINAL_CALCULATE_SCORE,
+            "FightResultController.CalculateScore",
+        )?;
         install_inline_hook(
             api,
             create_mech,
@@ -1647,6 +1666,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             Err(error) => (None, Some(error)),
         };
         let control = control::initialize(api)?;
+        let rebirth = rebirth::initialize(api)?;
         let (exp_range, exp_range_error) = match exp_range::initialize(api) {
             Ok(()) => (true, None),
             Err(error) => (false, Some(error)),
@@ -1699,6 +1719,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             reach,
             reach_error,
             control,
+            rebirth,
             exp_range,
             exp_range_error,
         })
@@ -3287,6 +3308,54 @@ unsafe extern "C" fn create_mech_hook(
     let _ = catch_unwind(AssertUnwindSafe(|| {
         record_unit_created(team_controller, mech, mech_team);
     }));
+}
+
+type CalculateScoreFn =
+    unsafe extern "C" fn(*mut Object, *mut Object, bool, *const MethodInfo) -> i32;
+
+/// `FightResultController.CalculateScore(team, isAlive)`, which
+/// `BattleSystem.OnFightOver` calls for each side inside the fight's last
+/// update, once for the units standing and once for the fallen. What the
+/// standing score is recorded.
+unsafe extern "C" fn calculate_score_hook(
+    controller: *mut Object,
+    team: *mut Object,
+    is_alive: bool,
+    method: *const MethodInfo,
+) -> i32 {
+    let original = ORIGINAL_CALCULATE_SCORE.load(Ordering::Acquire);
+    // SAFETY: hook installer stored the trampoline for this exact method ABI.
+    let original: CalculateScoreFn = unsafe { std::mem::transmute(original) };
+    // SAFETY: IL2CPP arguments are forwarded unchanged.
+    let score = unsafe { original(controller, team, is_alive, method) };
+    if is_alive {
+        let _ = catch_unwind(AssertUnwindSafe(|| record_team_score(team, score)));
+    }
+    score
+}
+
+fn record_team_score(team: *mut Object, score: i32) {
+    let runtime = RUNTIME.load(Ordering::Acquire);
+    if runtime.is_null() {
+        return;
+    }
+    // SAFETY: runtime is boxed for the adapter process lifetime.
+    let runtime = unsafe { &*runtime };
+    let mut state = capture_state()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if !state.armed || !state.in_update {
+        return;
+    }
+    match invoke_value::<i32>(runtime.api, team, "GetTeamIndex")
+        .and_then(|index| u32::try_from(index).map_err(|_| format!("team index {index}")))
+    {
+        Ok(team_id) => state.traces.push(NativeTrace::TeamScored {
+            team_id,
+            amount: score,
+        }),
+        Err(error) => state.fail(format!("CalculateScore: reading the team: {error}")),
+    }
 }
 
 fn record_unit_created(team_controller: *mut Object, mech: *mut Object, mech_team: *mut Object) {
@@ -5492,7 +5561,8 @@ fn finalize_initial_shield_ids(
             | NativeTrace::UnitCreated { .. }
             | NativeTrace::Healing { .. }
             | NativeTrace::BuffApplied { .. }
-            | NativeTrace::BuffRemoved { .. } => {}
+            | NativeTrace::BuffRemoved { .. }
+            | NativeTrace::TeamScored { .. } => {}
         }
     }
     capture.shield_ids = ids;
@@ -5925,6 +5995,7 @@ fn snapshot(
     capture.live_shield_pointers = current_shield_pointers;
     let terrains = read_terrains(runtime.api, range_item_system, capture, initial)
         .map_err(|error| format!("dynamic terrain snapshot failed: {error}"))?;
+    let rebirths = read_rebirths(runtime, capture)?;
     for (unit, control) in read_control(runtime, capture)? {
         units
             .iter_mut()
@@ -6059,6 +6130,7 @@ fn snapshot(
         native_tick,
         world: WorldSnapshot {
             live_units: units,
+            rebirths,
             projectiles,
             buildings,
             shields,
@@ -6673,6 +6745,11 @@ fn read_unit(
             move_speed: invoke_value::<FixedPoint>(api, unit, "GetMoveSpeed")?.raw,
             skills,
             control: None,
+            rebirth_count: u32::try_from(
+                api.field_value::<i32>(unit, metadata.rebirth.unit_count as *mut FieldInfo)
+                    .map_err(|error| format!("FightMech.rebirthCount: {error}"))?,
+            )
+            .map_err(|_| "FightMech.rebirthCount is negative")?,
         },
         target_refs,
         poses,
@@ -7189,6 +7266,21 @@ fn read_control(
     control::read(runtime.api, system, &metadata, capture)
 }
 
+fn read_rebirths(runtime: &Runtime, capture: &CaptureState) -> Result<Vec<RebirthState>, String> {
+    let metadata = capture.metadata.rebirth;
+    let modules = runtime
+        .api
+        .invoke(runtime.current_fight(), "GetModules", &mut [])
+        .map_err(|error| error.to_string())?;
+    let system = find_module(
+        runtime.api,
+        modules,
+        metadata.system_class,
+        "DeadEffectSystem",
+    )?;
+    rebirth::read(runtime.api, system, &metadata, capture)
+}
+
 fn find_module(
     api: Api,
     modules: *mut Object,
@@ -7572,6 +7664,15 @@ fn transition_events(
                     EventPayload::Healing { amount },
                 ));
             }
+            NativeTrace::TeamScored { team_id, amount } => {
+                events.push(event(
+                    None,
+                    None,
+                    None,
+                    None,
+                    EventPayload::TeamScored { amount, team_id },
+                ));
+            }
         }
     }
     Ok(TransitionEvents { events })
@@ -7731,7 +7832,8 @@ fn renumber_unit_references(
             | NativeTrace::UnitCreated { .. }
             | NativeTrace::Healing { .. }
             | NativeTrace::BuffApplied { .. }
-            | NativeTrace::BuffRemoved { .. } => {}
+            | NativeTrace::BuffRemoved { .. }
+            | NativeTrace::TeamScored { .. } => {}
         }
     }
     Ok(())
@@ -8906,6 +9008,7 @@ mod tests {
             move_speed: 0,
             skills: Vec::new(),
             control: None,
+            rebirth_count: 0,
         }
     }
 

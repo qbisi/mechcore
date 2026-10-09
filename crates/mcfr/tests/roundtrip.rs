@@ -6,9 +6,9 @@ use mechcore_mcfr::{
     Domain, DurableContext, EnabledSkill, Event, EventPayload, ExpRange, GaugeI32, HASH_PROFILE,
     Hashes, LiveUnitState, MCFR_FORMAT, McfrReader, McfrWriter, MotionState, ObjectKind, ObjectRef,
     PersonalShieldState, PoseClip, Producer, ProjectileReach, QPlanar, QPose, QVec3, Rational,
-    RvoExit, RvoNeighbour, RvoNeighbourKind, RvoSolve, RvoVec, RvoVo, ShieldDestroyedReason,
-    ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillAttackableCheck, SkillMachineState,
-    SkillState, TargetCandidate, TargetRefs, TargetSearch, TargetSearchPath,
+    RebirthState, RvoExit, RvoNeighbour, RvoNeighbourKind, RvoSolve, RvoVec, RvoVo,
+    ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillAttackableCheck,
+    SkillMachineState, SkillState, TargetCandidate, TargetRefs, TargetSearch, TargetSearchPath,
     TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
     TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents, UnitPose, Visibility,
     WeaponState, WorldSnapshot,
@@ -49,7 +49,7 @@ fn writes_and_reads_every_table() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.22.0");
+    assert_eq!(MCFR_FORMAT, "0.23.0");
     assert_eq!(reader.producer(), Producer::Game);
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
@@ -68,6 +68,7 @@ fn writes_and_reads_every_table() {
             "buildings.parquet",
             "events.parquet",
             "layout.yaml",
+            "rebirths.parquet",
             "shields.parquet",
             "terrains.parquet",
             "ticks.parquet",
@@ -80,7 +81,7 @@ fn writes_and_reads_every_table() {
     assert_eq!(reader.events(1).unwrap(), events);
 
     let mut archive = zip::ZipArchive::new(std::fs::File::open(&path).unwrap()).unwrap();
-    assert_eq!(archive.len(), 7);
+    assert_eq!(archive.len(), 8);
     assert!(archive.by_name("projectiles.parquet").is_err());
     {
         let mut entry = archive.by_name("layout.yaml").unwrap();
@@ -92,6 +93,7 @@ fn writes_and_reads_every_table() {
     for name in [
         "ticks.parquet",
         "units.parquet",
+        "rebirths.parquet",
         "buildings.parquet",
         "shields.parquet",
         "terrains.parquet",
@@ -269,7 +271,7 @@ fn the_result_hash_is_golden() {
     let hashes = hash_tick(&context(), state(75), &damage_events());
     assert_eq!(
         hashes.result_hash,
-        "4da99700fe70ff398600d78c544b76b6b6ae1dce5045451633c06c2dd7371bbf"
+        "4fdad1c4e82f27dd4fbf20c1c192cfdd39cf6e09d8c51c0a71a0773383796ecb"
     );
 }
 
@@ -282,6 +284,8 @@ fn hash_reads_every_field_of_the_state_and_events() {
     for mutate in [
         |state: &mut WorldSnapshot| state.live_units[0].position.x += 1,
         |state: &mut WorldSnapshot| state.live_units[0].body_rotation += 1,
+        |state: &mut WorldSnapshot| state.live_units[1].rebirth_count += 1,
+        |state: &mut WorldSnapshot| state.rebirths[0].position.y -= 1,
         |state: &mut WorldSnapshot| state.live_units[0].turret_rotation = Some(8 << 32),
         |state: &mut WorldSnapshot| state.live_units[0].velocity.z += 1,
         |state: &mut WorldSnapshot| state.live_units[0].life.current -= 1,
@@ -537,6 +541,16 @@ fn terrain_events_round_trip() {
                 source_team_id: Some(1),
                 target: Some(ObjectRef::new(ObjectKind::Unit, 2)),
                 payload: EventPayload::Healing { amount: 5 },
+            },
+            Event {
+                subject: None,
+                source: None,
+                source_team_id: None,
+                target: None,
+                payload: EventPayload::TeamScored {
+                    amount: 262,
+                    team_id: 0,
+                },
             },
         ],
     };
@@ -1021,6 +1035,15 @@ fn context() -> DurableContext {
 fn state(enemy_life: i32) -> WorldSnapshot {
     WorldSnapshot {
         live_units: vec![unit(1, 1, 0, 100, true), unit(2, 2, 100, enemy_life, false)],
+        // A third unit waits to be reborn where its pilot flies.
+        rebirths: vec![RebirthState {
+            unit_id: 3,
+            position: QVec3 {
+                x: -40 << 32,
+                y: 70 << 32,
+                z: 12,
+            },
+        }],
         projectiles: Vec::new(),
         buildings: vec![BuildingState {
             building_id: 1,
@@ -1116,6 +1139,8 @@ fn unit(id: u64, team: u32, x: i64, life: i32, with_secondary: bool) -> LiveUnit
             },
         },
         move_speed: 8 << 32,
+        // The first unit has been reborn once; the second never was.
+        rebirth_count: u32::from(id == 1),
         // The main skill attacks; a secondary one is switched off, which
         // keeps its slot and nothing else.
         skills: (0..skill_count)
