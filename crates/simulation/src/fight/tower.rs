@@ -1147,6 +1147,7 @@ impl Simulation {
                 }
             }
             EffectProvider::StealthTech => self.switch_stealth(actor_id, on),
+            EffectProvider::MechGroup => self.switch_group_unit(actor_id, on),
             // The rest take away what the fight asks of the unit where it
             // acts, its technologies disabled: a lifesteal's and a second
             // damage's hit effect, a search's ranges, offsets and selector,

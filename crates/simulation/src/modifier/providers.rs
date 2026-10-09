@@ -110,6 +110,9 @@ impl EffectProvider {
     /// - A dead-line technology's pre-hit effect is taken off its unit's
     ///   skills (`DeadLineEffectProvider.DisableEffect`), and does nothing
     ///   while the technologies are off (`PerformPreHitEffect`).
+    /// - A grouping technology's unit leaves its side's groups
+    ///   (`MechGrounpEffectProvider.DisableEffect`,
+    ///   `TeamMechGroupManager.RemoveMech`) and is handed back (`AddMech`).
     ///
     /// Every other provider does more, which is not measured.
     pub(crate) const fn disable_read(self) -> bool {
@@ -121,7 +124,8 @@ impl EffectProvider {
             | Self::Buff { cycles: false }
             | Self::ExtraSkill
             | Self::StealthTech
-            | Self::DeadLine => true,
+            | Self::DeadLine
+            | Self::MechGroup => true,
             Self::AutoRecovery
             | Self::EnergyShield
             | Self::SweepSkillIntensify
@@ -132,8 +136,7 @@ impl EffectProvider {
             | Self::DeadEffect
             | Self::MoveAbilitySummon
             | Self::MoveAbilityAttackIntensify
-            | Self::MoveAbilityRangeItem
-            | Self::MechGroup => false,
+            | Self::MoveAbilityRangeItem => false,
         }
     }
 }
