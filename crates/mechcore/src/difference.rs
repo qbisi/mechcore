@@ -25,8 +25,9 @@ const SHOWN: usize = 50;
 
 /// Each collection a tick holds, the key it is written under and the field
 /// that identifies one of its objects.
-const COLLECTIONS: [(&str, &str, &str); 5] = [
+const COLLECTIONS: [(&str, &str, &str); 6] = [
     ("units", "live_units", "unit_id"),
+    ("rebirths", "rebirths", "unit_id"),
     ("projectiles", "projectiles", "projectile_id"),
     ("buildings", "buildings", "building_id"),
     ("shields", "shields", "shield_id"),
