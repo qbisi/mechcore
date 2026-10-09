@@ -1101,6 +1101,32 @@ its own numbers (`BuffManager.AddBuff` raises the `DisableTechnology` count
 and adds its `CBEC_DisableTechnology` before `Buff.AddEffect`), so an
 Electromagnetic Shot slows a Rhino with Power Armor from its first hit.
 
+## Searching for the most life
+
+A row of `searchTargetModifyTechnologies` is a `SearchTargetModifyTech`, an
+`ISkillSearchTargetProviderDataSource`: Fortified Target Lock, the Steel
+Ball's, whose row names the `SkillSearchTargetType` its unit's main skill
+searches by, `CurrentLifeHighestFirst`.
+
+**Its unit's main skill locks the enemy of the most life in its reach.**
+`SkillSearchTargetProvider`, a `SingleEffectProvider`, turns the skill's
+selector to a `LifePriorityTargetSelector` as the unit's effects are
+activated (`DoActive`, `FightSkill.ChangeSearchTargetType`,
+`SearchTargetController.Change`). Of the enemies its filters pass, it keeps
+those whose edge stands beyond the skill's minimum range and within its
+range (`FightTransform.Distance2D`, the distance less both radii), and of
+them the ones of the most life, every one tied at it
+(`SelectBySearchTargetType`), and hands them to the plain selector it holds,
+which scores them as any search does; when none stands in reach, it hands it
+every enemy it passed. Its selector is no `ScoreRatingTargetSelector`, so its
+search is never prepared at the tick's start
+(`MainSkillSearchTargetController.PrepareSearch`): it searches with `Select`
+where everything stands whenever it searches.
+
+Switched off, the selector turns back to `Normal`, and on again to the
+technology's (`DoDisable`, `DoEnable`). A row of another type, or one that
+reaches the extra skills, is refused.
+
 ## What this table does not carry
 
 A technology that is not plain does something that is not a correction on its
@@ -1497,6 +1523,9 @@ derive (a minimum range):
   slowed in `tests/technology_buff/degeneration-beam.yaml`. An
   Electromagnetic Shot slows it from its first hit, which switches Power
   Armor off: `tests/ignore_buff/power-armor-electromagnetic-shot.yaml`.
+- Fortified Target Lock has two Steel Balls lock a Rhino in their reach
+  over the Crawlers standing nearer, once the Crawlers they locked die:
+  `tests/search/fortified-target-lock.yaml`.
 - Subterranean Blitz burrows its Crawlers from the first tick and brings
   each up as its enemy comes within 50: `tests/burrow/crawler-rhino.yaml`.
   Burrowed, they take a Marksman's shot less 0.4; one that dies burrowed,
@@ -1689,6 +1718,13 @@ derive (a minimum range):
 
 ### Read
 
+- Searching for the most life: `SearchTargetModifyTechnologyData`,
+  `SearchTargetModifyTech.GetSearchTargetType`, `SkillSearchTargetProvider.DoActive`,
+  `DoDeactive`, `DoEnable`, `DoDisable`, `FightSkill.ChangeSearchTargetType`,
+  `SearchTargetController.Change`, `LifePriorityTargetSelector.Select`,
+  `SelectBySearchTargetType`, `FightTransform.Distance2D`,
+  `MainSkillSearchTargetController.PrepareSearch`,
+  `SkillSearchTargetController.PerformNormalSkillSearch`.
 - Ignoring a buff effect: `IgnoreBuffEffectTechnologyData`,
   `IgnoreBuffEffectTech.IsIgnoreBuffEffect`, `GetIgnoredBuffEffectType`,
   `IgnoreBuffEffectProvider.Active`, `Deactive`, `DisableEffect`,

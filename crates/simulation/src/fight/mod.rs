@@ -58,6 +58,7 @@ mod important_unit;
 mod intercept;
 mod kill_explosion;
 mod kills;
+mod life_priority;
 mod math;
 mod mech;
 mod mech_group;
@@ -325,6 +326,9 @@ struct Actor {
     /// `BuffManager.stateDatas` of `BuffEffectType.SpeedChangeRate` above
     /// zero: no buff writes a speed rate on it now.
     ignores_speed_rate: bool,
+    /// Whether its main skill's selector is a `LifePriorityTargetSelector`
+    /// its technology turned it to (`SkillSearchTargetProvider`).
+    life_priority: bool,
     /// `BuffManager.beHitDelayBuffInfos`: the buffs that disable technology
     /// a unit it hit queued on it, each with that unit, which
     /// `InvokeDelayAddBuff` adds as its `BuffManager.Update` ends.

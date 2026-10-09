@@ -56,6 +56,10 @@ impl Facing<'_> {
 
 /// A skill's owner as the skill sees it.
 #[derive(Debug, Clone, Copy)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "a view mirrors the native attacker's independent answers"
+)]
 pub(in crate::fight) struct Attacker<'a> {
     pub(in crate::fight) owner: FightActorRef,
     /// The skill whose view of its owner this is.
@@ -125,6 +129,10 @@ pub(in crate::fight) struct Attacker<'a> {
     /// `ConstructionSearchTargetController`, which its row's
     /// `IsEnableSearchTarget` decides, never finds a target.
     pub(in crate::fight) searches: bool,
+    /// Whether its selector is a `LifePriorityTargetSelector` of
+    /// `CurrentLifeHighestFirst`, which a technology turned its unit's main
+    /// skill to (`SkillSearchTargetProvider`).
+    pub(in crate::fight) life_priority: bool,
     /// What its search counts off a candidate's distance by the candidate's
     /// domain, millimetres: the `airTargetDistanceScoreOffset` and
     /// `groundTargetDistanceScoreOffset` that
@@ -312,6 +320,7 @@ impl Simulation {
         source.rotation_window_q32 = None;
         // `MechSearchTargetController` keeps the selector it was made with.
         source.score_offsets = ScoreOffsets::default();
+        source.life_priority = false;
         Some(source)
     }
 
@@ -419,6 +428,7 @@ impl Simulation {
                         .default_search_frame(&actor.rules.attack, 0)
                         .and_then(|(_, window)| window),
                     searches: true,
+                    life_priority: actor.life_priority,
                     // `SearchTargetSpecificProvider.DoEnable` turns the main
                     // skill's selector to `DistanceIntensify` after it has
                     // written the values the selector reads.
@@ -479,6 +489,7 @@ impl Simulation {
                         (half, half)
                     }),
                     searches: construction.searches,
+                    life_priority: false,
                     score_offsets: ScoreOffsets::default(),
                 })
             }
@@ -555,6 +566,7 @@ impl Simulation {
         };
         // Only the main skill's search is turned to `DistanceIntensify`.
         attacker.score_offsets = ScoreOffsets::default();
+        attacker.life_priority = false;
         // A row that uses the main skill's range reaches its own range
         // beyond it: the Secondary Armament's 2 metres past the main gun's,
         // 107 against 105 in the recorded searches. So does every skill of a

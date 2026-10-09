@@ -154,9 +154,14 @@ const IGNORE_BUFF_EFFECT: &str = "ignoreBuffEffectTechnologyDatas";
 /// `BuffEffectType.SpeedChangeRate`, the kind of buff effect whose
 /// `BuffDataFloatRate.MoveSpeedChangeRate` a buff then leaves unwritten.
 const SPEED_CHANGE_RATE: i32 = 0;
+/// The list whose `SearchTargetModifyTech` is an
+/// `ISkillSearchTargetProviderDataSource`.
+const SEARCH_TARGET_MODIFY: &str = "searchTargetModifyTechnologies";
+/// `SkillSearchTargetType.CurrentLifeHighestFirst`.
+const CURRENT_LIFE_HIGHEST_FIRST: i32 = 1;
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 37] = [
+const IMPLEMENTED: [&str; 38] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -194,6 +199,7 @@ const IMPLEMENTED: [&str; 37] = [
     KILL_EXPLOSION,
     FLY,
     IGNORE_BUFF_EFFECT,
+    SEARCH_TARGET_MODIFY,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -274,6 +280,10 @@ pub(crate) struct TechnologyEffects {
 type Written = Vec<(Channel, Index, Correction)>;
 
 #[derive(Debug, Clone)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "each flag is a separate interface the technology's class answers"
+)]
 struct Technology {
     /// The unit type whose numbers it corrects.
     unit: String,
@@ -326,6 +336,9 @@ struct Technology {
     /// Whether it makes its unit ignore buffs' speed rates, as an
     /// `IIgnoreBuffDataSouce` whose `IsIgnoreBuffEffect` holds.
     ignores_speed_rate: bool,
+    /// Whether it turns its unit's main skill's search to
+    /// `CurrentLifeHighestFirst`: an `ISkillSearchTargetProviderDataSource`.
+    life_priority: bool,
     /// What it answers `IBurrow` with, if its class is one.
     burrow: Option<Burrow>,
     /// The acid it leaves where its unit dies, if its class is an
@@ -505,6 +518,10 @@ pub(crate) struct SingleSources {
     /// The first that turns its unit's domain: the provider enables one
     /// source (`SingleEffectProvider`).
     pub(crate) fly: Option<FlyTech>,
+    /// Whether one turns its unit's main skill's search to
+    /// `CurrentLifeHighestFirst` (`SkillSearchTargetProvider`, a
+    /// `SingleEffectProvider`).
+    pub(crate) life_priority: bool,
 }
 
 /// What a move ability summon row answers `IMoveAbilitySummon` and
@@ -891,6 +908,10 @@ struct Row {
     ignores_buff_effect: bool,
     #[serde(default)]
     ignored_buff_effect: i32,
+    /// `SearchTargetModifyTechnologyData.searchTargetType`, on a row of its
+    /// list.
+    #[serde(default)]
+    search_target_type: i32,
     /// `BurrowData.amplifyDamageRate`, `relieveDistance` and
     /// `isEnterUnderGround`, on a row of its list.
     #[serde(default)]
@@ -1585,6 +1606,7 @@ impl TechnologyEffects {
                     extra_skills: row.extra_skill_effect,
                 }),
                 ignores_speed_rate: row.kind == IGNORE_BUFF_EFFECT && row.ignores_buff_effect,
+                life_priority: row.kind == SEARCH_TARGET_MODIFY,
                 dead_line: (row.kind == DEAD_LINE)
                     .then(|| (row.dead_line_value.clone(), row.dead_line_ignores_shield)),
                 mech_group,
@@ -1746,6 +1768,7 @@ impl TechnologyEffects {
             }
             sources.single.fly = sources.single.fly.or(technology.fly);
             sources.ignores_speed_rate |= technology.ignores_speed_rate;
+            sources.single.life_priority |= technology.life_priority;
             if sources.single.kill_explosion.is_none() {
                 sources
                     .single
@@ -2214,14 +2237,17 @@ fn provider_of(kind: &str) -> Option<EffectProvider> {
         KILL_EXPLOSION => EffectProvider::KillExplosion,
         FLY => EffectProvider::FlyTech,
         IGNORE_BUFF_EFFECT => EffectProvider::IgnoreBuff,
+        SEARCH_TARGET_MODIFY => EffectProvider::SkillSearchTarget,
         BURROW => EffectProvider::Burrow,
         _ => return None,
     })
 }
 
-/// Whether this build reads the buff effect an ignore technology's row makes
-/// its unit ignore: `SpeedChangeRate` alone.
-fn ignored_effect_read(row: &Row) -> std::result::Result<(), String> {
+/// Whether this build reads what a row hands its provider: the buff effect
+/// an ignore technology makes its unit ignore, `SpeedChangeRate` alone, and
+/// the search a search technology turns its unit's main skill to,
+/// `CurrentLifeHighestFirst` alone.
+fn provider_source_read(row: &Row) -> std::result::Result<(), String> {
     if row.kind == IGNORE_BUFF_EFFECT
         && row.ignores_buff_effect
         && row.ignored_buff_effect != SPEED_CHANGE_RATE
@@ -2230,6 +2256,21 @@ fn ignored_effect_read(row: &Row) -> std::result::Result<(), String> {
             "technology {} ({}) makes its unit ignore BuffEffectType {}, and only \
              SpeedChangeRate is read",
             row.id, row.name, row.ignored_buff_effect
+        ))
+    } else if row.kind == SEARCH_TARGET_MODIFY
+        && (row.search_target_type != CURRENT_LIFE_HIGHEST_FIRST || row.extra_skill_effect)
+    {
+        Err(format!(
+            "technology {} ({}) turns its unit's search to SkillSearchTargetType {}{}, and only \
+             CurrentLifeHighestFirst on the main skill is read",
+            row.id,
+            row.name,
+            row.search_target_type,
+            if row.extra_skill_effect {
+                " on its extra skills too"
+            } else {
+                ""
+            }
         ))
     } else {
         Ok(())
@@ -2262,7 +2303,7 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<Written>, String> {
             row.id, row.name, row.range_item_time, row.range_item_move_type
         ));
     }
-    ignored_effect_read(row)?;
+    provider_source_read(row)?;
     if row.burrow_enters_underground {
         return Err(format!(
             "technology {} ({}) takes its unit underground as it burrows, which is not \

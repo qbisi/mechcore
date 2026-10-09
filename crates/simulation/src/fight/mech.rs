@@ -96,6 +96,7 @@ impl Actor {
             domain: rules.domain,
             fly_reverts_at: None,
             ignores_speed_rate: false,
+            life_priority: false,
             reactive_armor: super::reactive_armor::ReactiveArmorState::of(&placement),
             placement,
             rules,
