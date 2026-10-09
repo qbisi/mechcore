@@ -37,6 +37,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import build_data  # noqa: E402
+from extract_opening import MAPS  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "config/names.yaml"
@@ -82,7 +83,7 @@ def quoted(text):
 
 
 def write_localization(terms, officers, commander_skills, equipment, technologies,
-                       skill_tables, equipment_tables, technology_tables):
+                       skill_tables, equipment_tables, technology_tables, blueprints, skills):
     """The official English and Chinese names of what a match names, for readers."""
     cards = build_data.container()["cardDatas"]
     units = {
@@ -97,6 +98,9 @@ def write_localization(terms, officers, commander_skills, equipment, technologie
         ("equipment", {row: official(terms, equipment_tables, row) for row in equipment}),
         ("technologies", {row: official(terms, technology_tables, row)
                           for rows in technologies.values() for row in rows}),
+        ("blueprints", {row: official(terms, ["BlueprintData"], row) for row in blueprints}),
+        ("energy_tower_skills", {row: official(terms, ["EnergyTowerSkillData"], row) for row in skills}),
+        ("maps", {row: official(terms, ["MatchSetting"], row) for row in MAPS}),
     ]
     lines = [
         "schema: mechcore.localization",
@@ -105,7 +109,7 @@ def write_localization(terms, officers, commander_skills, equipment, technologie
         "# match document names, for a reader to find it in the game. Generated",
         "# by scripts/extract/extract_names.py; config/names.yaml holds the snake-case",
         "# names a document writes. scripts/extract/name-tables.py turns this into the",
-        "# name tables of docs/rules/.",
+        "# name tables of docs/rules/ and docs/terminology/.",
     ]
     for section, rows in sections:
         lines += ["", f"{section}:"]
@@ -224,7 +228,7 @@ def main():
     lines += [f"  {row}: {name}" for row, name in sorted(equipment.items())]
     OUTPUT.write_text("\n".join(lines) + "\n")
     write_localization(terms, officers, commander_skills, equipment, technologies,
-                       skill_tables, equipment_tables, tables)
+                       skill_tables, equipment_tables, tables, blueprints, skills)
     print(
         f"{len(officers)} officers, {sum(map(len, technologies.values()))} technologies, "
         f"{len(blueprints)} blueprints, {len(skills)} energy tower skills, "

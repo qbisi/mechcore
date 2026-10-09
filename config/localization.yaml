@@ -4,7 +4,7 @@ schema: mechcore.localization
 # match document names, for a reader to find it in the game. Generated
 # by scripts/extract/extract_names.py; config/names.yaml holds the snake-case
 # names a document writes. scripts/extract/name-tables.py turns this into the
-# name tables of docs/rules/.
+# name tables of docs/rules/ and docs/terminology/.
 
 units:
   1: {en: "Fortress", zh: "堡垒"}
@@ -441,3 +441,26 @@ technologies:
   11020021: {en: "Gun-launched Missile", zh: "炮射火箭"}
   11020022: {en: "Smoke Bomb", zh: "烟雾弹"}
   18032002: {en: "Photon Loop", zh: "光子循环"}
+
+blueprints:
+  1: {en: "Sticky Oil Bomb", zh: "黏油弹"}
+  2: {en: "Field Recovery", zh: "战地回收"}
+  3: {en: "Mobile Beacon", zh: "移动信标"}
+  4: {en: "Attack Enhancement", zh: "进攻强化"}
+  5: {en: "Defense Enhancement", zh: "防御强化"}
+  401: {en: "Attack Enhancement II", zh: "进攻强化II"}
+  501: {en: "Defense Enhancement II", zh: "防御强化II"}
+
+energy_tower_skills:
+  1: {en: "Rapid Resupply", zh: "快速补给"}
+  3: {en: "Mass Recruitment", zh: "批量征召"}
+  4: {en: "Elite Recruitment", zh: "精英征召"}
+  5: {en: "Enhanced Range", zh: "强化瞄准"}
+  6: {en: "High Mobility", zh: "高速移动"}
+
+maps:
+  1001: {en: "Railway Town", zh: "铁道小镇"}
+  1011: {en: "Forest Eye", zh: "森林巨眼"}
+  1021: {en: "Training Base", zh: "训练基地"}
+  1031: {en: "Railway Town - Dusk", zh: "铁道小镇-黄昏"}
+  1032: {en: "Railway Town - Night", zh: "铁道小镇-深夜"}

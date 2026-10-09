@@ -2,9 +2,10 @@
 """Check what a machine can check about the documents.
 
 Relative links resolve, section anchors exist, readmes are spelled README.md,
-every spec follows the convention in docs/README.md, and the name tables of
-docs/rules/ are the ones config/localization.yaml gives, and config/README.md
-names the script that writes every file under config/. Nothing here judges
+every spec follows the convention in docs/README.md, the name tables of
+docs/rules/ and docs/terminology/ are the ones config/localization.yaml
+gives, and config/README.md names the script that writes every file under
+config/. Nothing here judges
 whether a sentence is true; that still needs a reader.
 
 Run from the repository root: python3 scripts/check/check-docs.py
@@ -294,7 +295,7 @@ def check_version_pins(fail):
 
 
 def check_name_tables(fail):
-    """The name tables of docs/rules/ are what config/localization.yaml gives."""
+    """The name tables of docs/rules/ and docs/terminology/ are what config/localization.yaml gives."""
     import importlib.util
 
     spec = importlib.util.spec_from_file_location("name_tables", REPO / "scripts" / "extract" / "name-tables.py")

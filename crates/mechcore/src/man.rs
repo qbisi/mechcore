@@ -134,6 +134,50 @@ static TOPICS: &[(&str, &str)] = &[
         include_str!("../../../docs/rules/unit_techs.md"),
     ),
     (
+        "terminology/README",
+        include_str!("../../../docs/terminology/README.md"),
+    ),
+    (
+        "terminology/blueprints",
+        include_str!("../../../docs/terminology/blueprints.md"),
+    ),
+    (
+        "terminology/commander_skills",
+        include_str!("../../../docs/terminology/commander_skills.md"),
+    ),
+    (
+        "terminology/energy_tower_skills",
+        include_str!("../../../docs/terminology/energy_tower_skills.md"),
+    ),
+    (
+        "terminology/equipment",
+        include_str!("../../../docs/terminology/equipment.md"),
+    ),
+    (
+        "terminology/game",
+        include_str!("../../../docs/terminology/game.md"),
+    ),
+    (
+        "terminology/maps",
+        include_str!("../../../docs/terminology/maps.md"),
+    ),
+    (
+        "terminology/mechcore",
+        include_str!("../../../docs/terminology/mechcore.md"),
+    ),
+    (
+        "terminology/officers",
+        include_str!("../../../docs/terminology/officers.md"),
+    ),
+    (
+        "terminology/technologies",
+        include_str!("../../../docs/terminology/technologies.md"),
+    ),
+    (
+        "terminology/units",
+        include_str!("../../../docs/terminology/units.md"),
+    ),
+    (
         "spec/adapter/adapter",
         include_str!("../../../docs/spec/adapter/adapter.md"),
     ),

@@ -78,112 +78,112 @@ raises every formation's equipment slots from one to two
 ## Names
 
 <!-- names: officers -->
-| ID | 中文 | English | Document name |
-| ---: | --- | --- | --- |
-| 10002 | 补给专家 | Supply Specialist | `supply_specialist` |
-| 10003 | 超级补给强化 | Super Supply Enhancement | `super_supply_enhancement` |
-| 10004 | 额外部署位 | Additional Deployment Slot | `additional_deployment_slot` |
-| 10007 | 先进护盾装置 | Advanced Shield Device | `advanced_shield_device` |
-| 10008 | 先进飞弹装置 | Advanced Missile Device | `advanced_missile_device` |
-| 10009 | 快速传送 | Quick Teleport | `quick_teleport` |
-| 10010 | 快速补给专家 | Quick Supply Specialist | `quick_supply_specialist` |
-| 10011 | 导弹专家 | Missile Specialist | `missile_specialist` |
-| 10014 | 训练专家 | Training Specialist | `training_specialist` |
-| 10015 | 次级装备专家 | Secondary Equipment Expert | `secondary_equipment_expert` |
-| 10524 | 量产激光瞄具 | Mass-produced laser sight | `mass_produced_laser_sight` |
-| 10525 | 量产火控系统 | Mass Production Fire Control System | `mass_production_fire_control_system` |
-| 10526 | 量产重型装甲 | Mass Production Heavy Armor | `mass_production_heavy_armor` |
-| 10540 | 装备扩容 | Equipment Expansion | `equipment_expansion` |
-| 20001 | 先进防御战术 | Advanced Defensive Tactics | `advanced_defensive_tactics` |
-| 20002 | 先进进攻战术 | Advanced Offensive Tactics | `advanced_offensive_tactics` |
-| 20003 | 高效科技研发 | Efficient Tech Research | `efficient_tech_research` |
-| 20004 | 先进动力系统 | Advanced Power System | `advanced_power_system` |
-| 20005 | 巨型专家 | Giant Specialist | `giant_specialist` |
-| 20006 | 先进瞄准系统 | Advanced Targeting System | `advanced_targeting_system` |
-| 20007 | 补给强化 | Supply Enhancement | `supply_enhancement` |
-| 20021 | 空军专家 | Aerial Specialist | `aerial_specialist` |
-| 20022 | 高效巨型制造 | Efficient Giant Manufacturing | `efficient_giant_manufacturing` |
-| 20023 | 高效小型制造 | Efficient Light Manufacturing | `efficient_light_manufacturing` |
-| 20024 | 速度专家 | Speed Specialist | `speed_specialist` |
-| 20029 | 长弓专家 | Marksman Specialist | `marksman_specialist` |
-| 20032 | 精英专家 | Elite Specialist | `elite_specialist` |
-| 20033 | 犀牛专家 | Rhino Specialist | `rhino_specialist` |
-| 20034 | 成本控制专家 | Cost Control Specialist | `cost_control_specialist` |
-| 20035 | 重装专家 | Fortified Specialist | `fortified_specialist` |
-| 20036 | 剑齿虎专家 | Sabertooth Specialist | `sabertooth_specialist` |
-| 20038 | 火獾专家 | Fire Badger Specialist | `fire_badger_specialist` |
-| 20039 | 台风专家 | Typhoon Specialist | `typhoon_specialist` |
-| 30101 | 量产堡垒 | Mass-Produced Fortress | `mass_produced_fortress` |
-| 30102 | 突击堡垒 | Assault Fortress | `assault_fortress` |
-| 30104 | 改进型堡垒 | Improved Fortress | `improved_fortress` |
-| 30105 | 增程堡垒 | Extended Range Fortress | `extended_range_fortress` |
-| 30201 | 增程长弓 | Extended Range Marksman | `extended_range_marksman` |
-| 30202 | 智能长弓 | Smart Marksman | `smart_marksman` |
-| 30203 | 长弓补贴 | Subsidized Marksman | `subsidized_marksman` |
-| 30204 | 精英长弓 | Elite Marksman | `elite_marksman` |
-| 30301 | 增程火神 | Extended Range Vulcan | `extended_range_vulcan` |
-| 30302 | 突击火神 | Assault Vulcan | `assault_vulcan` |
-| 30401 | 突击熔点 | Assault Melting Point | `assault_melting_point` |
-| 30402 | 改进型熔点 | Improved Melting Point | `improved_melting_point` |
-| 30403 | 量产熔点 | Mass-Produced Melting Point | `mass_produced_melting_point` |
-| 30501 | 量产犀牛 | Mass-Produced Rhino | `mass_produced_rhino` |
-| 30502 | 狂暴犀牛 | Berserk Rhino | `berserk_rhino` |
-| 30503 | 精英犀牛 | Elite Rhino | `elite_rhino` |
-| 30601 | 量产兵蜂 | Mass-Produced Wasp | `mass_produced_wasp` |
-| 30602 | 改进型兵蜂 | Improved Wasp | `improved_wasp` |
-| 30604 | 精英兵蜂 | Elite Wasp | `elite_wasp` |
-| 30701 | 野马补贴 | Subsidized Mustang | `subsidized_mustang` |
-| 30702 | 重装野马 | Fortified Mustang | `fortified_mustang` |
-| 30703 | 精英野马 | Elite Mustang | `elite_mustang` |
-| 30801 | 钢球补贴 | Subsidized Steel Ball | `subsidized_steel_ball` |
-| 30803 | 改进型钢球 | Improved Steel Ball | `improved_steel_ball` |
-| 30804 | 精英钢球 | Elite Steel Ball | `elite_steel_ball` |
-| 30901 | 精英尖牙 | Elite Fang | `elite_fang` |
-| 30902 | 突击尖牙 | Assault Fang | `assault_fang` |
-| 31001 | 爬虫补贴 | Subsidized Crawler | `subsidized_crawler` |
-| 31002 | 精英爬虫 | Elite Crawler | `elite_crawler` |
-| 31101 | 重装霸主 | Fortified Overlord | `fortified_overlord` |
-| 31102 | 量产霸主 | Mass-Produced Overlord | `mass_produced_overlord` |
-| 31104 | 改进型霸主 | Improved Overlord | `improved_overlord` |
-| 31201 | 突击暴雨 | Assault Stormcaller | `assault_stormcaller` |
-| 31202 | 增程暴雨 | Extended Range Stormcaller | `extended_range_stormcaller` |
-| 31203 | 暴雨补贴 | Subsidized Stormcaller | `subsidized_stormcaller` |
-| 31205 | 精英暴雨 | Elite Stormcaller | `elite_stormcaller` |
-| 31301 | 量产铁锤 | Mass-Produced Sledgehammer | `mass_produced_sledgehammer` |
-| 31302 | 增程铁锤 | Extended Range Sledgehammer | `extended_range_sledgehammer` |
-| 31304 | 改进型铁锤 | Improved Sledgehammer | `improved_sledgehammer` |
-| 31305 | 精英铁锤 | Elite Sledgehammer | `elite_sledgehammer` |
-| 31402 | 重装骇客 | Fortified Hacker | `fortified_hacker` |
-| 31403 | 精英骇客 | Elite Hacker | `elite_hacker` |
-| 31501 | 弧光补贴 | Subsidized Arclight | `subsidized_arclight` |
-| 31502 | 智能弧光 | Smart Arclight | `smart_arclight` |
-| 31503 | 重装弧光 | Fortified Arclight | `fortified_arclight` |
-| 31504 | 增程弧光 | Extended Range Arclight | `extended_range_arclight` |
-| 31505 | 精英弧光 | Elite Arclight | `elite_arclight` |
-| 31601 | 量产凤凰 | Mass-Produced Phoenix | `mass_produced_phoenix` |
-| 31602 | 增程凤凰 | Extended Range Phoenix | `extended_range_phoenix` |
-| 31603 | 改进型凤凰 | Improved Phoenix | `improved_phoenix` |
-| 31604 | 精英凤凰 | Elite Phoenix | `elite_phoenix` |
-| 31701 | 增程战争工厂 | Extended Range War Factory | `extended_range_war_factory` |
-| 31702 | 改进型战争工厂 | Improved War Factory | `improved_war_factory` |
-| 31801 | 量产恶灵 | Mass-Produced Wraith | `mass_produced_wraith` |
-| 31802 | 改进型恶灵 | Improved Wraith | `improved_wraith` |
-| 31901 | 突击狂蝎 | Assault Scorpion | `assault_scorpion` |
-| 31902 | 量产狂蝎 | Mass-Produced Scorpion | `mass_produced_scorpion` |
-| 31903 | 改进型狂蝎 | Improved Scorpion | `improved_scorpion` |
-| 32101 | 增程剑齿虎 | Extended Range Sabertooth | `extended_range_sabertooth` |
-| 32102 | 量产剑齿虎 | Mass-Produced Sabertooth | `mass_produced_sabertooth` |
-| 32103 | 改进型剑齿虎 | Improved Sabertooth | `improved_sabertooth` |
-| 32301 | 改进型沙虫 | Improved Sandworm | `improved_sandworm` |
-| 32302 | 量产沙虫 | Mass-Produced Sandworm | `mass_produced_sandworm` |
-| 32401 | 改进型狼蛛 | Improved Tarantula | `improved_tarantula` |
-| 32402 | 精英狼蛛 | Elite Tarantula | `elite_tarantula` |
-| 32501 | 增程鬼鳐 | Extended Range Phantom Ray | `extended_range_phantom_ray` |
-| 32601 | 量产先知 | Mass-Produced Farseer | `mass_produced_farseer` |
-| 32602 | 重装先知 | Fortified Farseer | `fortified_farseer` |
-| 32701 | 突击雷霆 | Assault Raiden | `assault_raiden` |
-| 32801 | 强击猎犬 | Strike Hound | `strike_hound` |
-| 33001 | 改进型魔眼 | Improved Void Eye | `improved_void_eye` |
+| ID | English | Document name |
+| ---: | --- | --- |
+| 10002 | Supply Specialist | `supply_specialist` |
+| 10003 | Super Supply Enhancement | `super_supply_enhancement` |
+| 10004 | Additional Deployment Slot | `additional_deployment_slot` |
+| 10007 | Advanced Shield Device | `advanced_shield_device` |
+| 10008 | Advanced Missile Device | `advanced_missile_device` |
+| 10009 | Quick Teleport | `quick_teleport` |
+| 10010 | Quick Supply Specialist | `quick_supply_specialist` |
+| 10011 | Missile Specialist | `missile_specialist` |
+| 10014 | Training Specialist | `training_specialist` |
+| 10015 | Secondary Equipment Expert | `secondary_equipment_expert` |
+| 10524 | Mass-produced laser sight | `mass_produced_laser_sight` |
+| 10525 | Mass Production Fire Control System | `mass_production_fire_control_system` |
+| 10526 | Mass Production Heavy Armor | `mass_production_heavy_armor` |
+| 10540 | Equipment Expansion | `equipment_expansion` |
+| 20001 | Advanced Defensive Tactics | `advanced_defensive_tactics` |
+| 20002 | Advanced Offensive Tactics | `advanced_offensive_tactics` |
+| 20003 | Efficient Tech Research | `efficient_tech_research` |
+| 20004 | Advanced Power System | `advanced_power_system` |
+| 20005 | Giant Specialist | `giant_specialist` |
+| 20006 | Advanced Targeting System | `advanced_targeting_system` |
+| 20007 | Supply Enhancement | `supply_enhancement` |
+| 20021 | Aerial Specialist | `aerial_specialist` |
+| 20022 | Efficient Giant Manufacturing | `efficient_giant_manufacturing` |
+| 20023 | Efficient Light Manufacturing | `efficient_light_manufacturing` |
+| 20024 | Speed Specialist | `speed_specialist` |
+| 20029 | Marksman Specialist | `marksman_specialist` |
+| 20032 | Elite Specialist | `elite_specialist` |
+| 20033 | Rhino Specialist | `rhino_specialist` |
+| 20034 | Cost Control Specialist | `cost_control_specialist` |
+| 20035 | Fortified Specialist | `fortified_specialist` |
+| 20036 | Sabertooth Specialist | `sabertooth_specialist` |
+| 20038 | Fire Badger Specialist | `fire_badger_specialist` |
+| 20039 | Typhoon Specialist | `typhoon_specialist` |
+| 30101 | Mass-Produced Fortress | `mass_produced_fortress` |
+| 30102 | Assault Fortress | `assault_fortress` |
+| 30104 | Improved Fortress | `improved_fortress` |
+| 30105 | Extended Range Fortress | `extended_range_fortress` |
+| 30201 | Extended Range Marksman | `extended_range_marksman` |
+| 30202 | Smart Marksman | `smart_marksman` |
+| 30203 | Subsidized Marksman | `subsidized_marksman` |
+| 30204 | Elite Marksman | `elite_marksman` |
+| 30301 | Extended Range Vulcan | `extended_range_vulcan` |
+| 30302 | Assault Vulcan | `assault_vulcan` |
+| 30401 | Assault Melting Point | `assault_melting_point` |
+| 30402 | Improved Melting Point | `improved_melting_point` |
+| 30403 | Mass-Produced Melting Point | `mass_produced_melting_point` |
+| 30501 | Mass-Produced Rhino | `mass_produced_rhino` |
+| 30502 | Berserk Rhino | `berserk_rhino` |
+| 30503 | Elite Rhino | `elite_rhino` |
+| 30601 | Mass-Produced Wasp | `mass_produced_wasp` |
+| 30602 | Improved Wasp | `improved_wasp` |
+| 30604 | Elite Wasp | `elite_wasp` |
+| 30701 | Subsidized Mustang | `subsidized_mustang` |
+| 30702 | Fortified Mustang | `fortified_mustang` |
+| 30703 | Elite Mustang | `elite_mustang` |
+| 30801 | Subsidized Steel Ball | `subsidized_steel_ball` |
+| 30803 | Improved Steel Ball | `improved_steel_ball` |
+| 30804 | Elite Steel Ball | `elite_steel_ball` |
+| 30901 | Elite Fang | `elite_fang` |
+| 30902 | Assault Fang | `assault_fang` |
+| 31001 | Subsidized Crawler | `subsidized_crawler` |
+| 31002 | Elite Crawler | `elite_crawler` |
+| 31101 | Fortified Overlord | `fortified_overlord` |
+| 31102 | Mass-Produced Overlord | `mass_produced_overlord` |
+| 31104 | Improved Overlord | `improved_overlord` |
+| 31201 | Assault Stormcaller | `assault_stormcaller` |
+| 31202 | Extended Range Stormcaller | `extended_range_stormcaller` |
+| 31203 | Subsidized Stormcaller | `subsidized_stormcaller` |
+| 31205 | Elite Stormcaller | `elite_stormcaller` |
+| 31301 | Mass-Produced Sledgehammer | `mass_produced_sledgehammer` |
+| 31302 | Extended Range Sledgehammer | `extended_range_sledgehammer` |
+| 31304 | Improved Sledgehammer | `improved_sledgehammer` |
+| 31305 | Elite Sledgehammer | `elite_sledgehammer` |
+| 31402 | Fortified Hacker | `fortified_hacker` |
+| 31403 | Elite Hacker | `elite_hacker` |
+| 31501 | Subsidized Arclight | `subsidized_arclight` |
+| 31502 | Smart Arclight | `smart_arclight` |
+| 31503 | Fortified Arclight | `fortified_arclight` |
+| 31504 | Extended Range Arclight | `extended_range_arclight` |
+| 31505 | Elite Arclight | `elite_arclight` |
+| 31601 | Mass-Produced Phoenix | `mass_produced_phoenix` |
+| 31602 | Extended Range Phoenix | `extended_range_phoenix` |
+| 31603 | Improved Phoenix | `improved_phoenix` |
+| 31604 | Elite Phoenix | `elite_phoenix` |
+| 31701 | Extended Range War Factory | `extended_range_war_factory` |
+| 31702 | Improved War Factory | `improved_war_factory` |
+| 31801 | Mass-Produced Wraith | `mass_produced_wraith` |
+| 31802 | Improved Wraith | `improved_wraith` |
+| 31901 | Assault Scorpion | `assault_scorpion` |
+| 31902 | Mass-Produced Scorpion | `mass_produced_scorpion` |
+| 31903 | Improved Scorpion | `improved_scorpion` |
+| 32101 | Extended Range Sabertooth | `extended_range_sabertooth` |
+| 32102 | Mass-Produced Sabertooth | `mass_produced_sabertooth` |
+| 32103 | Improved Sabertooth | `improved_sabertooth` |
+| 32301 | Improved Sandworm | `improved_sandworm` |
+| 32302 | Mass-Produced Sandworm | `mass_produced_sandworm` |
+| 32401 | Improved Tarantula | `improved_tarantula` |
+| 32402 | Elite Tarantula | `elite_tarantula` |
+| 32501 | Extended Range Phantom Ray | `extended_range_phantom_ray` |
+| 32601 | Mass-Produced Farseer | `mass_produced_farseer` |
+| 32602 | Fortified Farseer | `fortified_farseer` |
+| 32701 | Assault Raiden | `assault_raiden` |
+| 32801 | Strike Hound | `strike_hound` |
+| 33001 | Improved Void Eye | `improved_void_eye` |
 <!-- /names -->
 
 ## Evidence

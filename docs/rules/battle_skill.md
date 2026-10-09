@@ -416,33 +416,33 @@ drawn from any stream, and no event is written.
 ## Names
 
 <!-- names: commander_skills -->
-| ID | 中文 | English | Document name |
-| ---: | --- | --- | --- |
-| 100002 | 燃烧弹 | Incendiary Bomb | `incendiary_bomb` |
-| 200001 | 电磁冲击 | Electromagnetic Impact | `electromagnetic_impact` |
-| 200002 | 巨型电磁冲击 | Electromagnetic Blast | `electromagnetic_blast` |
-| 200003 | 光子投射 | Photon Emission | `photon_emission` |
-| 300001 | 导弹打击 | Missile Strike | `missile_strike` |
-| 300003 | 轨道轰炸 | Orbital Bombardment | `orbital_bombardment` |
-| 300004 | 核弹 | Nuke | `nuke` |
-| 300005 | 闪电风暴 | Lightning Storm | `lightning_storm` |
-| 300006 | 离子轰炸 | Ion Blast | `ion_blast` |
-| 300007 | 轨道标枪 | Orbital Javelin | `orbital_javelin` |
-| 300016 | 重型导弹打击 | Heavy missile strike | `heavy_missile_strike` |
-| 400002 | 黏油弹 | Sticky Oil Bomb | `sticky_oil_bomb` |
-| 500002 | 酸液弹 | Acid Blast | `acid_blast` |
-| 600002 | 烟雾弹 | Smoke Bomb | `smoke_bomb` |
-| 800001 | 空投护盾 | Shield Airdrop | `shield_airdrop` |
-| 900001 | 战地回收 | Field Recovery | `field_recovery` |
-| 1000001 | 再部署 | Redeployment | `redeployment` |
-| 1100001 | 强化训练 | Intensive Training | `intensive_training` |
-| 1200001 | 地底威胁 | Underground Threat | `underground_threat` |
-| 1200002 | 犀牛来袭 | Rhino Assault | `rhino_assault` |
-| 1200003 | 呼叫机群 | Wasp Swarm | `wasp_swarm` |
-| 1200004 | 呼叫战舰 | Mobilize Battleship | `mobilize_battleship` |
-| 1200005 | 天降火神 | Vulcan's Descent | `vulcans_descent` |
-| 1500001 | 移动信标 | Mobile Beacon | `mobile_beacon` |
-| 1500002 | 移动信标 | Mobile Beacon | `mobile_beacon_card` |
+| ID | English | Document name |
+| ---: | --- | --- |
+| 100002 | Incendiary Bomb | `incendiary_bomb` |
+| 200001 | Electromagnetic Impact | `electromagnetic_impact` |
+| 200002 | Electromagnetic Blast | `electromagnetic_blast` |
+| 200003 | Photon Emission | `photon_emission` |
+| 300001 | Missile Strike | `missile_strike` |
+| 300003 | Orbital Bombardment | `orbital_bombardment` |
+| 300004 | Nuke | `nuke` |
+| 300005 | Lightning Storm | `lightning_storm` |
+| 300006 | Ion Blast | `ion_blast` |
+| 300007 | Orbital Javelin | `orbital_javelin` |
+| 300016 | Heavy missile strike | `heavy_missile_strike` |
+| 400002 | Sticky Oil Bomb | `sticky_oil_bomb` |
+| 500002 | Acid Blast | `acid_blast` |
+| 600002 | Smoke Bomb | `smoke_bomb` |
+| 800001 | Shield Airdrop | `shield_airdrop` |
+| 900001 | Field Recovery | `field_recovery` |
+| 1000001 | Redeployment | `redeployment` |
+| 1100001 | Intensive Training | `intensive_training` |
+| 1200001 | Underground Threat | `underground_threat` |
+| 1200002 | Rhino Assault | `rhino_assault` |
+| 1200003 | Wasp Swarm | `wasp_swarm` |
+| 1200004 | Mobilize Battleship | `mobilize_battleship` |
+| 1200005 | Vulcan's Descent | `vulcans_descent` |
+| 1500001 | Mobile Beacon | `mobile_beacon` |
+| 1500002 | Mobile Beacon | `mobile_beacon_card` |
 <!-- /names -->
 
 ## Evidence
