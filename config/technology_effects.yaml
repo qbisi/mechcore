@@ -140,6 +140,12 @@ schema: mechcore.technology_effects
 # An ignore technology carries whether its unit ignores one kind of
 # buff effect (`ignores_buff_effect`) and that kind, a `BuffEffectType`
 # (`ignored_buff_effect`).
+# A dead-explosion technology carries what its unit's death strikes
+# with (`dead_explosion_damage`, an `ExplosiveDamageCondition`), the
+# FPoint multiplier on it and FPoint metres it reaches beyond its
+# unit's radius, by its unit's level (`dead_explosion_multiplier`,
+# `dead_explosion_range`), and whether it strikes its own side
+# (`dead_explosion_hits_allies`).
 # A search technology carries the `SkillSearchTargetType` its unit's
 # skills search by (`search_target_type`), on its main skill and its
 # extra skills as `main_skill_effect` and `extra_skill_effect` say.
@@ -977,6 +983,10 @@ technologies:
     name: Final Blitz
     unit: rhino
     kind: deadExplosiveTechnologyDatas
+    dead_explosion_hits_allies: true
+    dead_explosion_damage: 1
+    dead_explosion_multiplier: [4294967296]  # +1
+    dead_explosion_range: [206158430208]  # +48
   - id: 2916
     name: Quantum Reassembly
     unit: phoenix

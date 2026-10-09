@@ -263,12 +263,13 @@ pub(crate) struct ExplosionConfig {
     pub(crate) dead_fire: Option<DeadFire>,
 }
 
-/// `ExplosiveDamageCondition`: the skill's attack damage, or the life its
-/// unit had before it took its own.
+/// `ExplosiveDamageCondition`: the skill's attack damage, its unit's maximum
+/// life, or the life its unit had before it took its own.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub(crate) enum ExplosionDamage {
     Attack,
+    MaxLife,
     CurrentLife,
 }
 

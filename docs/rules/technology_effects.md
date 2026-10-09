@@ -1127,6 +1127,30 @@ Switched off, the selector turns back to `Normal`, and on again to the
 technology's (`DoDisable`, `DoEnable`). A row of another type, or one that
 reaches the extra skills, is refused.
 
+## Dead-explosion technologies
+
+A row of `deadExplosiveTechnologyDatas` is a `DeadExplosiveTech`, an
+`IDeadExplosive` and an `IDeadEffectTech`: Final Blitz, the Rhino's. Its
+`DeadEffectProvider` hands its unit's death to `DeadExplosiveController`,
+the controller an explosion skill's death goes to, with the technology's
+numbers in the skill's place.
+
+**Its unit's death strikes everything about it with its maximum life.** As
+`DeadEffectSystem` updates, `DeadExplosiveController.PerformDeadEffect`
+strikes, from where the unit fell, every unit and building within the row's
+`range` (48 metres) beyond the unit's radius
+(`DeadExplosiveDamageProvider.GetSplashRange`) that the unit's own skill
+attacks (`GetTargetType`, `FightMech.GetAttackTargetType`), with what its
+`explosiveDamageCondition` names times its `damageMultiplier`: Final Blitz's
+condition 1 is the unit's maximum life as it died (`lifeGauge`'s maximum),
+times 1. `enableFriendlyFire` makes it strike its own side too. It leaves no
+terrain (`HasDeadRangeItem`). A unit its blast kills that explodes in turn
+explodes on the same update.
+
+**Switched off, its unit's death strikes nothing**, as a technology's dead
+effect does not go off while its unit's technologies are disabled
+(`IDeadEffect.IsTechnologyEffect`); an invincible unit's goes off.
+
 ## What this table does not carry
 
 A technology that is not plain does something that is not a correction on its
@@ -1526,6 +1550,11 @@ derive (a minimum range):
 - Fortified Target Lock has two Steel Balls lock a Rhino in their reach
   over the Crawlers standing nearer, once the Crawlers they locked die:
   `tests/search/fortified-target-lock.yaml`.
+- Final Blitz strikes the Rhino's own Crawlers and every enemy within 48
+  metres of its edge with its 19297 life as it dies:
+  `tests/dead_explosion/final-blitz.yaml`. A Rhino that dies with its
+  technologies disabled strikes nothing:
+  `tests/dead_explosion/final-blitz-disabled.yaml`.
 - Subterranean Blitz burrows its Crawlers from the first tick and brings
   each up as its enemy comes within 50: `tests/burrow/crawler-rhino.yaml`.
   Burrowed, they take a Marksman's shot less 0.4; one that dies burrowed,
@@ -1718,6 +1747,11 @@ derive (a minimum range):
 
 ### Read
 
+- Dead-explosion technologies: `DeadExplosiveTechnologyData.GetRange`,
+  `DeadExplosiveTech.GetDamageMultiplier`, `HasDeadRangeItem`,
+  `DeadExplosiveController.PerformDeadEffect`,
+  `DeadExplosiveDamageProvider.GetDamage`, `GetSplashRange`,
+  `GetTargetType`, `ExplosiveDamageCondition`, `FightActor.lifeGauge`.
 - Searching for the most life: `SearchTargetModifyTechnologyData`,
   `SearchTargetModifyTech.GetSearchTargetType`, `SkillSearchTargetProvider.DoActive`,
   `DoDeactive`, `DoEnable`, `DoDisable`, `FightSkill.ChangeSearchTargetType`,

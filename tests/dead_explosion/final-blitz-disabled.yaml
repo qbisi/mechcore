@@ -1,0 +1,27 @@
+# Final Blitz switched off: a Rhino that dies with its technologies disabled
+# does not explode.
+#
+# Electromagnetic Shots hold the Rhino's technologies off as it dies at t148;
+# its death strikes nothing.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 148
+hash: {profile: mcfr-content-0.23.0, result: 9d01e92322f0767d82fc39bb54e07bd66fe122606e8079262806a2dc3bb6226c}
+blue:
+  core_damage: 500
+  techs:
+    rhino: [final_blitz]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -125}}
+red:
+  techs:
+    marksman: [electromagnetic_shot]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -40}, exp: 0/250/650}
+  - {name: marksman, index: 1, position: {x: 40, y: -40}, exp: 0/50/650}
+  - {name: marksman, index: 2, position: {x: -40, y: -40}, exp: 0/50/650}
+  - {name: sledgehammer, index: 3, position: {x: 5, y: -80}, exp: 0/50/1300}

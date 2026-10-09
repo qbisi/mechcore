@@ -1,5 +1,6 @@
 //! An explosion skill's unit's death (`FightExplosionSkill`,
-//! `DeadExplosiveController`).
+//! `DeadExplosiveController`), and a dead-explosion technology's
+//! (`DeadExplosiveTech`).
 //!
 //! `FightExplosionSkill.EnterFight` hands its unit to `DeadEffectSystem` with
 //! the skill's data as its dead effect, so the unit explodes however it dies.
@@ -10,23 +11,46 @@
 //! that life times the skill's multiplier (`DeadExplosiveDamageProvider`,
 //! `explosiveDamageCondition` 2), its own side too where the skill enables
 //! friendly fire, and leaves a fire there (`RangeItemSystem.AddItem`).
+//!
+//! A `DeadExplosiveTech` is an `IDeadExplosive` its `DeadEffectProvider`
+//! hands the same controller, so its unit's death strikes as an explosion
+//! skill's does, with the technology's numbers: Final Blitz strikes with the
+//! unit's maximum life (`explosiveDamageCondition` 1) within 48 metres of its
+//! edge, its own side too, and leaves no fire.
 
 use super::*;
 
+/// What sets off a unit's death: one of its skills, an explosion, by its
+/// slot, or a technology.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::fight) enum DeadBlast {
+    Skill(SkillSlot),
+    Technology,
+}
+
 impl Simulation {
     /// The explosion a unit's death sets off, if one of its skills is an
-    /// explosion: the skill's slot.
-    pub(in crate::fight) fn explosion_of(&self, actor_id: u64) -> Option<SkillSlot> {
+    /// explosion or a technology makes its death one.
+    pub(in crate::fight) fn explosion_of(&self, actor_id: u64) -> Option<DeadBlast> {
         let actor = &self.actors[&actor_id];
         if actor.rules.explosion.is_some() {
-            return Some(SkillSlot::Main);
+            return Some(DeadBlast::Skill(SkillSlot::Main));
         }
         actor
             .skills
             .extras
             .iter()
             .position(|extra| extra.rules.explosion.is_some())
-            .map(SkillSlot::Extra)
+            .map(|index| DeadBlast::Skill(SkillSlot::Extra(index)))
+            .or_else(|| {
+                actor
+                    .placement
+                    .effects
+                    .single
+                    .dead_explosion
+                    .is_some()
+                    .then_some(DeadBlast::Technology)
+            })
     }
 
     /// Whether the unit's death queues its explosion:
@@ -35,12 +59,15 @@ impl Simulation {
     /// off, and a unit whose technologies are disabled has none that is a
     /// technology's (`IDeadEffect.IsTechnologyEffect`), as an extra skill's
     /// explosion is: a Fire Badger with Scorching Charge that dies switched
-    /// off neither explodes nor burns. Whether a main skill's explosion is a
-    /// technology's is not read; it is taken to go off.
+    /// off neither explodes nor burns, nor does a Rhino with Final Blitz.
+    /// Whether a main skill's explosion is a technology's is not read; it is
+    /// taken to go off.
     pub(in crate::fight) fn explodes_on_death(&self, actor_id: u64) -> bool {
         let actor = &self.actors[&actor_id];
-        self.explosion_of(actor_id).is_some_and(|slot| {
-            actor.invincible() || !actor.technology_disabled() || slot == SkillSlot::Main
+        self.explosion_of(actor_id).is_some_and(|blast| {
+            actor.invincible()
+                || !actor.technology_disabled()
+                || blast == DeadBlast::Skill(SkillSlot::Main)
         })
     }
 
@@ -126,23 +153,24 @@ impl Simulation {
                 position.z = z_q32;
             }
         }
-        let Some(slot) = self.explosion_of(actor_id) else {
+        let Some(blast) = self.explosion_of(actor_id) else {
             return Ok(());
         };
         let actor = &self.actors[&actor_id];
-        let (explosion, attack, dead_fire) = explosion_skill(actor, slot);
-        let explosion = explosion.clone();
+        let Blast {
+            damage,
+            multiplier_q32,
+            friendly_fire,
+            splash_radius,
+            skill_ref,
+            dead_fire,
+        } = blast_numbers(actor, actor_id, blast);
         // `DeadExplosiveDamageProvider.GetSplashRange`: the unit's radius and
         // the explosion's range.
-        let splash_radius = attack
-            .splash_radius()
-            .saturating_add(actor.rules.collision_radius());
+        let splash_radius = splash_radius.saturating_add(actor.rules.collision_radius());
         let reach = Reach::Targets(
-            self.skill_attacker(SkillRef {
-                owner: FightActorRef::Unit(actor_id),
-                slot,
-            })
-            .map_or(attack.targets, |attacker| attacker.targets),
+            self.skill_attacker(skill_ref)
+                .map_or(actor.rules.attack.targets, |attacker| attacker.targets),
         );
         // `DeadExplosiveDamageProvider.GetTeamController`: the side the unit
         // was deployed on, a beam having turned it or not.
@@ -150,28 +178,24 @@ impl Simulation {
         let center_y_q32 = space_to_q32(unit_height(actor.domain));
         let (x_q32, z_q32) = (actor.x_q32, actor.z_q32);
         // `explosiveDamageCondition` 2: the life the unit had before it took
-        // its own, which a unit any other blow killed never had; 0: the
-        // skill's attack damage, a Spider Mine's 2500 at level one.
-        let base = match explosion.damage {
+        // its own, which a unit any other blow killed never had; 1: its
+        // maximum life as it died (`lifeGauge`'s maximum); 0: the skill's
+        // attack damage, a Spider Mine's 2500 at level one.
+        let base = match damage {
             crate::rules::ExplosionDamage::CurrentLife if suicide => actor.last_life_before_suicide,
             crate::rules::ExplosionDamage::CurrentLife => 0,
+            crate::rules::ExplosionDamage::MaxLife => actor.stats.max_life(),
             crate::rules::ExplosionDamage::Attack => self
-                .skill_attacker(SkillRef {
-                    owner: FightActorRef::Unit(actor_id),
-                    slot,
-                })
+                .skill_attacker(skill_ref)
                 .map_or(0, |attacker| attacker.attack_damage),
         };
-        let amount = q32_mul(
-            base << 32,
-            crate::rules::metres_q32(explosion.damage_multiplier),
-        ) >> 32;
+        let amount = q32_mul(base << 32, multiplier_q32) >> 32;
         if amount > 0 {
             let hit = DamageHit {
                 source: Some(actor.object_ref()),
                 source_team: team,
                 team,
-                effect: if explosion.friendly_fire {
+                effect: if friendly_fire {
                     EffectTarget::Both
                 } else {
                     EffectTarget::Opponent
@@ -240,4 +264,61 @@ fn explosion_skill(
         attack,
         dead_fire,
     )
+}
+
+/// What a unit's blast strikes with.
+struct Blast {
+    damage: crate::rules::ExplosionDamage,
+    multiplier_q32: i64,
+    friendly_fire: bool,
+    /// Metres beyond the unit's radius, in space units.
+    splash_radius: i64,
+    /// The skill whose attacker answers its targets and its attack damage.
+    skill_ref: SkillRef,
+    dead_fire: Option<crate::layout::TerrainSpec>,
+}
+
+/// The numbers of an explosion skill's blast or a technology's.
+fn blast_numbers(actor: &Actor, actor_id: u64, blast: DeadBlast) -> Blast {
+    let owner = FightActorRef::Unit(actor_id);
+    match blast {
+        DeadBlast::Skill(slot) => {
+            let (explosion, attack, dead_fire) = explosion_skill(actor, slot);
+            Blast {
+                damage: explosion.damage,
+                multiplier_q32: crate::rules::metres_q32(explosion.damage_multiplier),
+                friendly_fire: explosion.friendly_fire,
+                splash_radius: attack.splash_radius(),
+                skill_ref: SkillRef { owner, slot },
+                dead_fire,
+            }
+        }
+        // `DeadExplosiveTech.GetRange` and `GetDamageMultiplier` by the
+        // unit's level, and `DeadExplosiveDamageProvider.GetTargetType` the
+        // unit's own (`FightMech.GetAttackTargetType`).
+        DeadBlast::Technology => {
+            let source = actor
+                .placement
+                .effects
+                .single
+                .dead_explosion
+                .as_ref()
+                .expect("a technology's blast has its source");
+            let level = actor.placement.level;
+            Blast {
+                damage: source.damage,
+                multiplier_q32: super::burrow::level_value(&source.multiplier, level),
+                friendly_fire: source.hits_allies,
+                splash_radius: q32_to_space_rounded(super::burrow::level_value(
+                    &source.range,
+                    level,
+                )),
+                skill_ref: SkillRef {
+                    owner,
+                    slot: SkillSlot::Main,
+                },
+                dead_fire: None,
+            }
+        }
+    }
 }

@@ -163,6 +163,23 @@ pub(crate) struct Burrow {
     pub(crate) relieve_distance: Vec<i64>,
 }
 
+/// What a `DeadExplosiveTech` answers `IDeadExplosive` with: what its
+/// unit's death strikes with (`GetExplosiveDamageCondition`), the multiplier
+/// on it (`GetDamageMultiplier`) and how far beyond the unit's radius it
+/// reaches (`GetRange`), each by the unit's level, and whether it strikes its
+/// own side (`EnableFriendlyFire`). It leaves no terrain
+/// (`HasDeadRangeItem`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct DeadExplosion {
+    /// `ExplosiveDamageCondition`.
+    pub(crate) damage: crate::rules::ExplosionDamage,
+    /// `FPoint` raw multipliers.
+    pub(crate) multiplier: Vec<i64>,
+    /// `FPoint` metres.
+    pub(crate) range: Vec<i64>,
+    pub(crate) hits_allies: bool,
+}
+
 /// What an `IRVORadiusChangeSource` answers: the radius its unit's agent
 /// keeps from the agents of its own type and side that keep one too while
 /// its lock is far, and how near its lock must be for it to keep its own
