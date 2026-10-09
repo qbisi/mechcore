@@ -982,6 +982,16 @@ attack range corrected by the row, are capped in all, come in its
 `intensifyMode` or without their side's technologies is refused by name; no
 row of this version does.
 
+A buff that disables the unit's technologies disables the line
+(`SupportUnitProvider.DisableEffect`, `SupportUnitSystem.Disable`, which
+clears the unit's `SupportUnitCreator.isEnable` for the row): its update
+still counts its life and its interval, but makes nothing, and its support
+skill finds no batch due (`PreCalculate`). Switched on again
+(`SupportUnitSystem.Enable`), a line whose interval ran out meanwhile makes
+its batch on its next update. A unit's line from its equipment or its extra
+weapon is not this provider's and runs on. Read from the build; no recording
+holds it.
+
 ## Summons where a unit dies
 
 A row of `deadSummonTechnologies` is a `DeadSummonTech`, an `IDeadSummon`.
@@ -1228,8 +1238,8 @@ off: `AirAttackEffectProvider.DisableEffect` and `EnableEffect` are
 as it activated (`SwitchMechAirAttackEnabled`), not among the numbers its
 technologies write. Read from the build; no recording holds it.
 
-What any other provider does switched off, the `SupportUnitProvider` and
-`MoveAbilitySummonProvider`, and an extra weapon's production line, other
+What any other provider does switched off, the `MoveAbilitySummonProvider`,
+and an extra weapon's production line, other
 explosion or preemptive skill, or group, is not measured: a buff that
 disables technology reaching a unit whose technologies reach one is refused
 by the provider's name.

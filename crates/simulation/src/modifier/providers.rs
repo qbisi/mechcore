@@ -230,6 +230,8 @@ impl EffectProvider {
     ///   (`FightSkill.SetAttackCountEffectLinkerEnable`).
     /// - A sand fog's action leaves its unit's move ability and is put back
     ///   (`MoveAbilityRangeItemSystem.RemoveMech`, `AddMech`).
+    /// - A support technology's production line counts on and makes nothing
+    ///   (`SupportUnitSystem.Disable`, `Enable`).
     /// - A burrowing technology's unit comes up, its buff removed, and its
     ///   manager passes over it (`BurrowSystem.Deactive`) until it is
     ///   switched on (`Active`).
@@ -263,8 +265,9 @@ impl EffectProvider {
             | Self::AirAttack
             | Self::InterceptMissile
             | Self::MoveAbilityAttackIntensify
-            | Self::MoveAbilityRangeItem => true,
-            Self::SupportUnit | Self::MoveAbilitySummon => false,
+            | Self::MoveAbilityRangeItem
+            | Self::SupportUnit => true,
+            Self::MoveAbilitySummon => false,
         }
     }
 }

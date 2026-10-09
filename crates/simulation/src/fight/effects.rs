@@ -182,6 +182,7 @@ impl Simulation {
             EffectProvider::SweepSkillIntensify => self.switch_sweep(actor_id, on),
             EffectProvider::InterceptMissile => self.switch_unit_interception(actor_id, on),
             EffectProvider::MoveAbilityRangeItem => self.switch_sand_fog(actor_id, on),
+            EffectProvider::SupportUnit => self.switch_production(actor_id, on),
             EffectProvider::MoveAbilityAttackIntensify => self
                 .actors
                 .get_mut(&actor_id)
@@ -214,7 +215,6 @@ impl Simulation {
             | EffectProvider::ArmorStrengthen
             | EffectProvider::SearchTargetSpecific
             | EffectProvider::SecondaryDamageIntensify
-            | EffectProvider::SupportUnit
             | EffectProvider::DeadEffect
             | EffectProvider::MoveAbilitySummon
             | EffectProvider::DeadLine
