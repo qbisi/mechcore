@@ -1389,8 +1389,10 @@ fn technology_disable(
             // explosion, Scorching Charge's, does not activate and its death
             // does not explode while its unit's technologies are off. Each
             // skill of a grouped row, and of one that joined the main skill's
-            // group, is disabled on its own and fails as a lone skill does. A
-            // support skill takes its line's creator with it. Any other
+            // group, is disabled on its own and fails as a lone skill does,
+            // a control beam's effect stopping as its attack is exited
+            // (`ControllEffect.Stop`). A support skill takes its line's
+            // creator with it. Any other
             // explosion's or preemptive skill's paths are not measured
             // switched off.
             .filter(|weapon| held.contains(&weapon.rules.technology))
@@ -1404,6 +1406,7 @@ fn technology_disable(
                         | crate::rules::AttackPath::Laser { .. }
                         | crate::rules::AttackPath::Around { .. }
                         | crate::rules::AttackPath::Support
+                        | crate::rules::AttackPath::ControlBeam { .. }
                 );
                 !preemptive_explosion
                     && (rules.explosion.is_some() || rules.preemptive.is_some() || !read_path)
