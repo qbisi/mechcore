@@ -537,14 +537,7 @@ impl Simulation {
             if actor.placement.team == team {
                 return Ok(false);
             }
-            // `MechGrounpSystem.ChangeMechGroup` moves a grouped unit to its
-            // new side's manager, which is not measured.
-            if self.holds_group_unit(unit_id) {
-                return Err(Error::new(format!(
-                    "unit {unit_id} shares damage in a group and changes side, which is not \
-                     measured"
-                )));
-            }
+
             (
                 actor.placement.team,
                 actor.x_q32,
@@ -584,6 +577,12 @@ impl Simulation {
             .expect("actor identity is stable");
         actor.placement.team = team;
         actor.placement.formation_id = formation_id;
+        // `OnChangeTeam` reaches `MechGrounpSystem.ChangeMechGroup`.
+        self.change_group_side(unit_id, old_team);
+        let actor = self
+            .actors
+            .get_mut(&unit_id)
+            .expect("actor identity is stable");
         if actor.summoned {
             self.summon_changes_side(unit_id, old_team, team);
         }

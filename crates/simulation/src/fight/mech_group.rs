@@ -162,12 +162,38 @@ impl Simulation {
     /// `MechGrounpEffectProvider.DoDeactive` of a unit that died: its
     /// `MechGroupDistance` goes, and it leaves its group and its type's list
     /// (`TeamMechGroupManager.RemoveMech`), the side's manager refreshing.
+    /// It no longer hears its side change (`MechGrounpSystem.RemoveMech`).
     pub(in crate::fight) fn remove_group_unit(&mut self, unit: u64) {
         if self.mech_groups.distances.remove(&unit).is_none() {
             return;
         }
+        self.leave_side_groups(self.actors[&unit].placement.team, unit);
+    }
+
+    /// `MechGrounpSystem.ChangeMechGroup`, as a beam turns a held unit: it
+    /// leaves its old side's manager and joins its new side's, its
+    /// `MechGroupDistance` kept, each manager refreshing.
+    pub(in crate::fight) fn change_group_side(&mut self, unit: u64, old_team: u32) {
+        if !self.mech_groups.distances.contains_key(&unit) {
+            return;
+        }
+        self.leave_side_groups(old_team, unit);
         let actor = &self.actors[&unit];
         let (team, kind) = (actor.placement.team, actor.rules.unit_type_id);
+        self.mech_groups
+            .teams
+            .entry(team)
+            .or_default()
+            .grouped
+            .entry(kind)
+            .or_default()
+            .push(unit);
+        self.refresh_groups(team);
+    }
+
+    /// `TeamMechGroupManager.RemoveMech` on one side's manager.
+    fn leave_side_groups(&mut self, team: u32, unit: u64) {
+        let kind = self.actors[&unit].rules.unit_type_id;
         if let Some(group) = self.mech_groups.member_of.get(&unit).copied() {
             self.group_remove(group, unit);
             if self.mech_groups.groups[&group].is_empty() {
@@ -184,13 +210,6 @@ impl Simulation {
             units.remove(index);
         }
         self.refresh_groups(team);
-    }
-
-    /// Whether a unit is held, which a beam turning it would move to the
-    /// other side's manager (`MechGrounpSystem.ChangeMechGroup`), not
-    /// measured.
-    pub(in crate::fight) fn holds_group_unit(&self, unit: u64) -> bool {
-        self.mech_groups.distances.contains_key(&unit)
     }
 
     /// `TeamMechGroupManager.OnFightStart` of every side: `RebuildGroup`,
