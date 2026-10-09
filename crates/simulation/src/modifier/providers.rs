@@ -214,6 +214,9 @@ impl EffectProvider {
     /// - A repair technology's controller is disabled, its clocks standing
     ///   still, and enabled again (`AutoRecoveryEffectProvider.DisableEffect`,
     ///   `EnableEffect`, `AutoRecoverySystem.DisableMech`, `EnableMech`).
+    /// - A unit's own shield is disabled, its energy's share of its maximum
+    ///   recorded, and enabled again at that share
+    ///   (`EnergyShieldController.Disable`, `Enable`).
     /// - A burrowing technology's unit comes up, its buff removed, and its
     ///   manager passes over it (`BurrowSystem.Deactive`) until it is
     ///   switched on (`Active`).
@@ -241,9 +244,9 @@ impl EffectProvider {
             | Self::KillExplosion
             | Self::Burrow
             | Self::DeadEffect
-            | Self::AutoRecovery => true,
-            Self::EnergyShield
-            | Self::SweepSkillIntensify
+            | Self::AutoRecovery
+            | Self::EnergyShield => true,
+            Self::SweepSkillIntensify
             | Self::AirAttack
             | Self::InterceptMissile
             | Self::SupportUnit

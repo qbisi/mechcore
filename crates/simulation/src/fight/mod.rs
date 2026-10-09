@@ -355,6 +355,20 @@ struct Actor {
 struct PersonalShield {
     energy: i64,
     maximum: i64,
+    /// `isEnable`, cleared while its technology is switched off.
+    enabled: bool,
+    /// `recordRate`: its energy over its maximum as it was switched off,
+    /// Q32.32.
+    record_rate_q32: i64,
+}
+
+impl PersonalShield {
+    /// `EnergyShieldBehaviour.IsAvaliable`: enabled with energy left, which
+    /// a hit asks before the shield takes it (`DamagePerformer.
+    /// PerformHitTargetEffect`, `FightMech.OnHitted`).
+    fn available(&self) -> bool {
+        self.enabled && self.energy > 0
+    }
 }
 
 /// The production lines the units run, one creator each, made as the fight

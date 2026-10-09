@@ -792,6 +792,17 @@ Shield technology a source of rate 1, whatever its row: the technology's
 class answers the rate with a constant. A unit holds one source in force, an
 item's over a technology's, as for lifesteal.
 
+**Switched off with its technologies, it lets hits through and keeps its
+energy.** `EnergyShieldProvider.DisableEffect` disables the controller
+(`EnergyShieldController.Disable`), which clears `isEnable` and records its
+energy over its maximum, an `FPoint` quotient, rounded. A hit asks
+`EnergyShieldBehaviour.IsAvaliable`, active, enabled and with energy left,
+before the shield takes it, so a disabled shield takes nothing; a dead line
+asks only that it is active with energy left, so a disabled shield still keeps
+the line off. `EnableEffect` enables it (`EnergyShieldController.Enable`) with
+the recorded share of its maximum, the product truncated. Read from the
+build; no recording holds it.
+
 ## Armour
 
 **A unit with an armour technology loses a fixed amount less to each hit,
@@ -1692,7 +1703,7 @@ not the game's native attack-type enum.
   does; an item's armour (`ArmorStrengthenEquipment`) is refused.
 - **A personal shield's** refresh when its unit's maximum life changes
   (`EnergyShieldController.Refresh`), which no simulated buff does, and its
-  disabling with its unit's technologies.
+  disabling with its unit's technologies, which no recorded fight does.
 - **Attack timing**: repeat attacks, grouped and loading paths, phase
   adjustments other than the backswing; losing the target during windup, a
   third-party kill and quick target switching during a backswing; third-party

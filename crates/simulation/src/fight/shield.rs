@@ -190,6 +190,35 @@ impl Simulation {
         }
     }
 
+    /// `EnergyShieldProvider.DisableEffect` and `EnableEffect`
+    /// (`EnergyShieldController.Disable`, `Enable`): off, the unit's own
+    /// shield is disabled and records its energy over its maximum, an
+    /// `FPoint` quotient, rounded; on, it is enabled with that share of its
+    /// maximum, the product truncated. Its energy stays as it was while it
+    /// is off.
+    pub(in crate::fight) fn switch_energy_shield(&mut self, actor_id: u64, on: bool) {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        let Some(shield) = actor.shield.as_mut() else {
+            return;
+        };
+        shield.enabled = on;
+        if shield.maximum <= 0 {
+            return;
+        }
+        let maximum = i128::from(shield.maximum);
+        if on {
+            shield.energy = i64::try_from((maximum * i128::from(shield.record_rate_q32)) >> 32)
+                .expect("a share of the maximum fits");
+        } else {
+            shield.record_rate_q32 =
+                i64::try_from(((i128::from(shield.energy) << 32) + maximum / 2) / maximum)
+                    .expect("a share of the maximum fits");
+        }
+    }
+
     /// `AdvancedEnergyShieldProvider.DisableEffect` and `EnableEffect` of a
     /// unit's technologies, on the shield it carries.
     ///
