@@ -134,7 +134,6 @@ pub(crate) enum InternalOperation {
     RefreshWatchScenes,
     StartEligibleWatch,
     SaveCurrentReplay,
-    SaveWatchReplay,
     StartCapture {
         mode: crate::capture::CaptureStartMode,
         visual: bool,
@@ -161,7 +160,6 @@ pub(crate) fn execute_internal(
         InternalOperation::RefreshWatchScenes => refresh_watch_scenes(runtime),
         InternalOperation::StartEligibleWatch => start_eligible_watch(runtime),
         InternalOperation::SaveCurrentReplay => save_current_replay(runtime),
-        InternalOperation::SaveWatchReplay => save_replay(runtime),
         InternalOperation::StartCapture {
             mode,
             visual,
@@ -268,11 +266,6 @@ fn execute_inner(runtime: &mut Runtime, request: &Request) -> Result<Value, Oper
         Operation::SpeedUp => speed_up(runtime),
         Operation::QuitMatch => quit_match(runtime),
         Operation::QuitGame => quit_game(runtime),
-        Operation::WatchScenes => watch_scenes(runtime, &request.arguments),
-        Operation::WatchScene => watch_scene(runtime, &request.arguments),
-        Operation::SaveReplay => Err(OperationError::InvalidState(
-            "save_replay requires the runtime watch coordinator".into(),
-        )),
         Operation::ApplyLayout => Err(OperationError::InvalidState(
             "apply_layout requires the runtime round-series coordinator".into(),
         )),
@@ -626,94 +619,6 @@ fn observe_watch_rules(
             .transpose()?,
         deploy_time: Some(api.field_value(custom_info, fields.deploy_time)?),
     })
-}
-
-/// Every scene the lobby's cached first page of match-made scenes holds, at
-/// any round. With `refresh` (the default) the lobby is first asked for a new
-/// page, which empties the cache until the server answers, some seconds later.
-fn watch_scenes(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
-    let refresh = arguments
-        .get("refresh")
-        .and_then(Value::as_bool)
-        .unwrap_or(true);
-    if refresh {
-        refresh_watch_scenes(runtime)?;
-    }
-    let api = runtime.api;
-    let Some(lobby) = find_proxy(runtime, "LobbyProxy", "GameRiver.Client.LobbyProxy")? else {
-        return Ok(json!({"ready": false, "scenes": []}));
-    };
-    let mut filter = MATCH_FIRST_ROOM_FILTER;
-    let data = api.invoke(
-        lobby,
-        "GetRoomFilterDataByType",
-        &mut [argument(&mut filter)],
-    )?;
-    let scenes = if data.is_null() {
-        std::ptr::null_mut()
-    } else {
-        api.invoke(data, "GetWatchScenes", &mut [])?
-    };
-    let listed = if scenes.is_null() {
-        Vec::new()
-    } else {
-        scan_scenes(runtime, scenes)?
-            .0
-            .into_iter()
-            .map(|scene| {
-                json!({
-                    "scene_id": scene.scene_id,
-                    "map_id": scene.map_id,
-                    "round": scene.round,
-                    "watcher_num": scene.watcher_num,
-                    "standard": scene.standard_subtype.is_some(),
-                })
-            })
-            .collect()
-    };
-    Ok(json!({"ready": true, "refreshed": refresh, "scenes": listed}))
-}
-
-/// Enter one scene as a spectator, `LobbyProxy.WatchScene(sceneId)`.
-fn watch_scene(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
-    if !runtime.current_match().is_null() {
-        return Err(OperationError::InvalidState(
-            "watch_scene requires main_menu with no active match".into(),
-        ));
-    }
-    let mut scene_id = arguments
-        .get("scene_id")
-        .and_then(Value::as_i64)
-        .and_then(|id| i32::try_from(id).ok())
-        .ok_or_else(|| OperationError::InvalidArguments("scene_id must be an i32".into()))?;
-    let lobby =
-        find_proxy(runtime, "LobbyProxy", "GameRiver.Client.LobbyProxy")?.ok_or_else(|| {
-            OperationError::InvalidState("LobbyProxy is not registered in GameFacade".into())
-        })?;
-    crate::watch::forget();
-    runtime
-        .api
-        .invoke_void(lobby, "WatchScene", &mut [argument(&mut scene_id)])?;
-    Ok(json!({"started": true, "scene_id": scene_id}))
-}
-
-/// `MatchProxy.SaveReplay` on the match being watched, finished or not: the
-/// replay holds every round the spectator was present for.
-fn save_replay(runtime: &Runtime) -> Result<Value, OperationError> {
-    let current = require_match(runtime)?;
-    let api = runtime.api;
-    if !api.invoke_value::<bool>(current, "IsWatchMode", &mut [])? {
-        return Err(OperationError::InvalidState(
-            "save_replay requires a watch match".into(),
-        ));
-    }
-    let proxy =
-        find_proxy(runtime, "MatchProxy", "GameRiver.Client.MatchProxy")?.ok_or_else(|| {
-            OperationError::InvalidState("MatchProxy is not registered in GameFacade".into())
-        })?;
-    let callback: *mut Object = std::ptr::null_mut();
-    api.invoke_void(proxy, "SaveReplay", &mut [object_argument(callback)])?;
-    Ok(json!({"requested": true}))
 }
 
 fn save_current_replay(runtime: &Runtime) -> Result<Value, OperationError> {
