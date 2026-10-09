@@ -505,6 +505,9 @@ struct Simulation {
     projectiles: Vec<Projectile>,
     /// Each side's interceptors, `InterceptSystem`'s sources.
     interceptors: Vec<Interceptor>,
+    /// The buildings that fell this tick, whose interceptors leave their
+    /// side's as `DeadEffectSystem` calls each one's `OnDead`.
+    fallen_interceptors: Vec<u64>,
     /// Each side's missiles still standing, `MineSystem`'s, in side order.
     mines: Vec<Mine>,
     /// Each side's `SuperDeploymentController` that opened with a unit
@@ -646,6 +649,7 @@ impl Simulation {
             team_random: BTreeMap::new(),
             projectiles: Vec::new(),
             interceptors,
+            fallen_interceptors: Vec::new(),
             mines: {
                 let mut mines = layout.missiles.iter().map(Mine::new).collect::<Vec<_>>();
                 mines.sort_by_key(Mine::team);
@@ -1217,6 +1221,9 @@ impl Simulation {
         self.summon_from_the_dead()?;
         for building_id in std::mem::take(&mut self.towers.fallen) {
             self.lose_tower(building_id)?;
+        }
+        for building_id in std::mem::take(&mut self.fallen_interceptors) {
+            self.lose_interceptor(building_id);
         }
         for unit_id in std::mem::take(&mut self.turned_fallen) {
             self.turned_unit_died(unit_id);

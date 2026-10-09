@@ -2216,11 +2216,15 @@ impl Simulation {
                 .skill(skill_ref)
                 .lock_target
                 .is_some_and(|lock| self.fight_actor_is_alive(lock));
+            // The idle state publishes its point as it is entered, not on
+            // every update the burst goes on: a Stormcaller an RVO solve
+            // nudged while its burst fires on goes back to where it stopped.
             if let Some(actor) = self.moving_mut(skill_ref)
                 && actor.command.is_none()
                 && !lock_lives
             {
-                actor.lose_target_motion(true);
+                let entered_idle = actor.motion.state != MotionState::Idle;
+                actor.lose_target_motion(entered_idle);
             }
             if !has_alive_enemy {
                 self.skill_mut(skill_ref).performer.stop();

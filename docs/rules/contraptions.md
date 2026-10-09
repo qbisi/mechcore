@@ -75,9 +75,13 @@ each product truncated to whole points. An interceptor idle with nothing to lock
 cools for `coolingTime` and then gives back `attackNum × rise` every
 `riseInterval`, up to `attackNum`; locking anything ends the cooling.
 
-**When it falls.** It intercepts nothing more, and no projectile joins it;
-what it had locked stays locked by it, which counts against what the others
-lock (`TeamInterceptSourceManager.DoRemove`). Its `building_destroyed` is
+**When it falls.** It leaves its side's interceptors as its `OnDead` runs
+(`FightCrystal.OnBuildingDestroyed`, `InterceptSystem.OnRemoveBuilding`),
+which `DeadEffectSystem` calls after `InterceptSystem` has updated: on the
+tick it falls it still updates, and locks and draws from its side's stream
+as an idle one does. From the next it intercepts nothing more, and no
+projectile joins it; what it had locked stays locked by it, which counts
+against what the others lock (`TeamInterceptSourceManager.DoRemove`). Its `building_destroyed` is
 read among the tick's deaths and falls in the order they came, as every
 building's and unit's is. It is no construction: `CreateFightBuilding` makes it
 a plain `FightCrystal`, and `SkillAttackState.CheckAttackable` rejects a dead
@@ -259,6 +263,9 @@ kind ends its own way:
 
 ### Recorded
 
+- An interceptor a Raiden fells still updates on that tick and draws from its
+  side's stream: a Hound of its side draws the stream's next value but one on
+  the tick after, `tests/corpus/134370978-r7.yaml`, ticks 359 and 360.
 - An interceptor takes projectiles out of the air as the section above says:
   its reach, its lock, one draw a lock from its side's stream, the hit on a
   projectile's life, its attack falling with hits and rising while idle, and

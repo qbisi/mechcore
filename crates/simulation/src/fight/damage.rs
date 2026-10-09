@@ -718,9 +718,11 @@ impl Simulation {
                     self.towers.fallen.push(building_id);
                 }
                 // An interceptor's building falling is `FightInterceptor.
-                // OnDestroy`: it intercepts nothing from the next hit on.
+                // OnDestroy`, which `FightCrystal.OnDead` raises
+                // (`OnBuildingDestroyed`) as `DeadEffectSystem` updates, after
+                // `InterceptSystem`: it intercepts on to the end of the tick.
                 if destroyed {
-                    self.lose_interceptor(building_id);
+                    self.fallen_interceptors.push(building_id);
                 }
                 Ok(stroke)
             }

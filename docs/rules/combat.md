@@ -1151,6 +1151,13 @@ not the game's native attack-type enum.
   `tests/endgame/towers-torn-down-stand-in-the-solve.yaml`, ticks 380
   and 384.
 
+- A Stormcaller whose burst goes on at a dead target stops idle once, at the
+  point it stands on, and an RVO solve that nudges it off that point steers
+  it back to it rather than to where it was nudged:
+  `tests/corpus/134370978-r7.yaml`, ticks 183 to 193.
+- A Raiden's slot that strikes a building counts the blow as one at a unit
+  does, reading `performCount` 1 that tick: `tests/corpus/134370978-r7.yaml`,
+  tick 359.
 - A Sandworm left with only aircraft to fire at locks the nearest, 49 metres
   off edge to edge, and stays idle where it stands: `tests/corpus/134370228-r7.yaml`,
   tick 856.
