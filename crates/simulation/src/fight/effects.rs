@@ -177,6 +177,7 @@ impl Simulation {
             EffectProvider::AdvancedEnergyShield => self.switch_carried_shield(actor_id, on),
             EffectProvider::RvoRadiusChange => self.switch_rvo_radius_change(actor_id, on),
             EffectProvider::Repair => self.switch_repair(actor_id, on),
+            EffectProvider::AutoRecovery => self.switch_auto_recovery(actor_id, on),
             EffectProvider::ReactiveArmor => self
                 .actors
                 .get_mut(&actor_id)
@@ -197,7 +198,6 @@ impl Simulation {
             EffectProvider::InterceptMissile
             | EffectProvider::WreckageRecovery
             | EffectProvider::LifeSteal
-            | EffectProvider::AutoRecovery
             | EffectProvider::EnergyShield
             | EffectProvider::SweepSkillIntensify
             | EffectProvider::ArmorStrengthen

@@ -510,7 +510,6 @@ impl Equipment {
             life_rate_q32: row.recovery_life_rate.unwrap_or(0),
             state: RecoveryState::Normal,
             priority: PRIORITY,
-            can_disable: false,
         });
         let (effect, buff_source, production) = match (
             corrections_of(row, &who),

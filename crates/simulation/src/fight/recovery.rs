@@ -28,17 +28,21 @@ pub(in crate::fight) struct RecoveryClock {
     recovery_q32: i64,
     /// `isCondition`: whether the unit is in the source's state.
     pub(in crate::fight) condition: bool,
+    /// `isEnable`: cleared while a technology of the unit that is an
+    /// `IAutoRecovery` and `CanDisable` is switched off.
+    enabled: bool,
 }
 
 impl RecoveryClock {
     /// `AutoRecoveryController.Reset`: the start clock at −1 second, the
-    /// repair clock at zero, and in condition only for a source of
+    /// repair clock at zero, enabled, and in condition only for a source of
     /// `AutoRecoveryStateType.Normal`.
     pub(in crate::fight) fn reset(source: &AutoRecovery) -> Self {
         Self {
             start_q32: -Q32_ONE,
             recovery_q32: 0,
             condition: source.state == RecoveryState::Normal,
+            enabled: true,
         }
     }
 }
@@ -46,10 +50,8 @@ impl RecoveryClock {
 impl Simulation {
     /// `AutoRecoverySystem.Update`: each side's `TeamAutoRecoveryManager.
     /// Update`, blue's first, its controllers in the order their units joined.
-    ///
-    /// A source that `CanDisable` is disabled while its unit's technologies
-    /// are (`AutoRecoveryEffectProvider.DisableEffect`), and its clocks stand
-    /// still.
+    /// A controller disabled or out of its condition is passed over, its
+    /// clocks standing still (`AutoRecoveryController.IsPass`).
     pub(in crate::fight) fn step_auto_recovery(&mut self, events: &mut Vec<Event>) -> Result<()> {
         let mut repaired = self
             .actors
@@ -63,14 +65,15 @@ impl Simulation {
             let Some(source) = actor.placement.effects.auto_recovery else {
                 continue;
             };
-            if source.can_disable && actor.technology_disabled() {
-                continue;
-            }
             let max_life = actor.stats.max_life();
             if !actor.alive() || actor.life >= max_life {
                 continue;
             }
-            let Some(clock) = actor.recovery.as_mut().filter(|clock| clock.condition) else {
+            let Some(clock) = actor
+                .recovery
+                .as_mut()
+                .filter(|clock| clock.enabled && clock.condition)
+            else {
                 continue;
             };
             clock.start_q32 = clock.start_q32.saturating_add(NATIVE_LOGIC_DELTA_Q32);
@@ -88,6 +91,19 @@ impl Simulation {
             self.add_life(id, repair, events)?;
         }
         Ok(())
+    }
+
+    /// `AutoRecoveryEffectProvider.DisableEffect` and `EnableEffect`
+    /// (`AutoRecoverySystem.DisableMech`, `EnableMech`): the unit's
+    /// controller disabled or enabled, whichever of its sources is in force.
+    pub(in crate::fight) fn switch_auto_recovery(&mut self, unit: u64, on: bool) {
+        let actor = self
+            .actors
+            .get_mut(&unit)
+            .expect("actor identity is stable");
+        if let Some(clock) = actor.recovery.as_mut() {
+            clock.enabled = on;
+        }
     }
 
     /// `FightMech.RecoveryLife` and `FightMech.StealLife`: `FightActor.

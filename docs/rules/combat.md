@@ -768,6 +768,14 @@ until it has burrowed, and twenty ticks after it has, its start clock
 reaches its second: `tests/move_ability/fights/burrow_maintenance.yaml`. A
 state of 2, `Cloak`, is refused.
 
+**A repair is off while its technologies are.** A buff that disables a
+unit's technologies has `AutoRecoveryEffectProvider.DisableEffect` clear its
+controller's `isEnable` (`AutoRecoverySystem.DisableMech`), whichever of its
+sources is in force, as long as one of its technologies that switches is a
+repair source; `EnableEffect` sets it again. `Update` passes over a disabled
+controller as over one out of condition (`AutoRecoveryController.IsPass`), so
+both its clocks stand still while it is off. Read from the build.
+
 ## Personal shield
 
 A unit with no shield still starts with its `EnergyShieldController` enabled.
@@ -1625,7 +1633,8 @@ not the game's native attack-type enum.
   simulator refuses each.
 - **Repair with its technologies disabled**, which stops the clocks
   (`AutoRecoveryEffectProvider.DisableEffect`) and which no recorded fight
-  does; and which of an item and a technology a unit with both keeps, since
+  does, an item's repair beside a technology's among them; and which of an
+  item and a technology a unit with both keeps, since
   every standard source repairs by the same numbers.
 - **Lifesteal under a recovery-disabling buff or with its technologies
   disabled.** Only the Ignite buffs disable recovery, and the recorded fight

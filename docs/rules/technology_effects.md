@@ -2075,8 +2075,7 @@ derive (a minimum range):
 - **What switching off does beyond numbers**: an extra weapon's production
   line (`SupportUnitCreator`), an explosion or preemptive skill other than a
   permanent preemptive explosion, an active permanent preemptive skill
-  (`PreemptiveSkillController.Update` gives it up), a group, a repair
-  (`AutoRecoverySystem.DisableMech`), a unit's own shield
+  (`PreemptiveSkillController.Update` gives it up), a group, a unit's own shield
   (`EnergyShieldProvider.DisableEffect`), a buff source that
   cycles over the units around its unit, a cleared buff that does not
   stack, a sweep's change, an air attack's switch. Refused.
