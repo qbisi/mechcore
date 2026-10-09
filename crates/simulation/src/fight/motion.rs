@@ -933,6 +933,10 @@ impl Simulation {
             target_x_q32.saturating_sub(actor.x_q32),
             target_z_q32.saturating_sub(actor.z_q32),
         );
+        let target_turn_q32 = turn_direction_q32(
+            target_x_q32.saturating_sub(actor.x_q32),
+            target_z_q32.saturating_sub(actor.z_q32),
+        );
         let center_distance_q32 = native_q32_magnitude(
             target_x_q32.saturating_sub(actor.x_q32),
             target_z_q32.saturating_sub(actor.z_q32),
@@ -983,7 +987,7 @@ impl Simulation {
                 step,
                 events,
                 target,
-                target_rotation_q32,
+                target_turn_q32,
                 backswing_just_finished,
                 prepare_finished,
                 update.blow_released,
@@ -1428,7 +1432,7 @@ impl Simulation {
         let in_attack_angle = self
             .attacker(FightActorRef::Unit(actor_id))
             .expect("actor identity is stable")
-            .faces(direction_degrees_q32_raw(dx, dz));
+            .faces_point(view.x_q32, view.z_q32);
         let skill_ref = SkillRef::main(FightActorRef::Unit(actor_id));
         self.try_start_attack(
             skill_ref,
@@ -1491,7 +1495,7 @@ impl Simulation {
             actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
         }
         if cooling.is_none() {
-            self.track_target_in_range(actor_id, target_rotation_q32, false);
+            self.track_target_in_range(actor_id, Some(target_rotation_q32), false);
         } else {
             self.attack_rotate_to_velocity(actor_id);
         }
@@ -1897,7 +1901,7 @@ impl Simulation {
         step: u64,
         events: &mut Vec<Event>,
         target: FightActorRef,
-        target_rotation_q32: i64,
+        target_rotation_q32: Option<i64>,
         backswing_just_finished: bool,
         prepare_finished: bool,
         blow_released: bool,
@@ -1905,10 +1909,11 @@ impl Simulation {
         // `SkillAttackAngleChecker`, against the weapons or, for a unit
         // without a body, its root: the motion does not turn anything before
         // the skill asks.
+        let view = self.fight_actor(target).expect("target identity is stable");
         let in_attack_angle = self
             .attacker(FightActorRef::Unit(actor_id))
             .expect("actor identity is stable")
-            .faces(target_rotation_q32);
+            .faces_point(view.x_q32, view.z_q32);
         // `AttackMove` walks a command on with `Move` instead of stopping.
         let walks_on = self.actors[&actor_id].motion.state == MotionState::Attacking
             && self.command_attack_moves(actor_id);
@@ -2036,7 +2041,7 @@ impl Simulation {
         // turns onto the Marksman on the tick its beam fells block 4.
         let target_rotation_q32 = if released && !self.fight_actor_is_alive(target) {
             self.lock_rotation_for_bodyless(actor_id)
-                .unwrap_or(target_rotation_q32)
+                .or(target_rotation_q32)
         } else {
             target_rotation_q32
         };
@@ -2050,7 +2055,7 @@ impl Simulation {
     fn track_target_in_range(
         &mut self,
         actor_id: u64,
-        target_rotation_q32: i64,
+        target_rotation_q32: Option<i64>,
         clear_hold_after_motion: bool,
     ) {
         let actor = self
@@ -2058,7 +2063,9 @@ impl Simulation {
             .get_mut(&actor_id)
             .expect("actor identity is stable");
         // FightSkill.Update rotates every free weapon after its state controller.
-        actor.rotate_weapons_towards(target_rotation_q32);
+        if let Some(rotation) = target_rotation_q32 {
+            actor.rotate_weapons_towards(rotation);
+        }
         if actor.rules.has_body {
             actor.aim_rotation = degrees_q32_to_mdeg(
                 actor
@@ -2075,7 +2082,9 @@ impl Simulation {
             let free_fire_move =
                 actor.command.is_some() && actor.rules.attack.attack_half_angle_mdeg() >= 360_000;
             if !free_fire_move {
-                actor.rotate_body_towards(target_rotation_q32);
+                if let Some(rotation) = target_rotation_q32 {
+                    actor.rotate_body_towards(rotation);
+                }
             } else if actor.motion.current_velocity_x_q32 != 0
                 || actor.motion.current_velocity_z_q32 != 0
             {
@@ -2086,7 +2095,9 @@ impl Simulation {
             }
             actor.aim_rotation = actor.body_rotation;
             // MotionAttackState subsequently asks the active FightSkill to rotate its weapons.
-            actor.rotate_weapons_towards(target_rotation_q32);
+            if let Some(rotation) = target_rotation_q32 {
+                actor.rotate_weapons_towards(rotation);
+            }
         }
         if clear_hold_after_motion {
             // FightMech runs SkillManager before MotionController. The

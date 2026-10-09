@@ -51,6 +51,15 @@ impl Facing<'_> {
             }
         }
     }
+
+    /// Whether every angle is within it: an owner with a weapon to measure
+    /// from.
+    fn faces_everything(self) -> bool {
+        match self {
+            Self::Root(_) => true,
+            Self::Weapons(rotations) => !rotations.is_empty(),
+        }
+    }
 }
 
 /// A skill's owner as the skill sees it.
@@ -196,6 +205,16 @@ impl Attacker<'_> {
     pub(in crate::fight) fn faces(&self, bearing_q32: i64) -> bool {
         self.facing
             .faces(bearing_q32, self.attack.attack_half_angle_mdeg())
+    }
+
+    /// Whether a point is within the attack angle: `FightUtility.CalculateAngle`
+    /// of two transforms reads a target standing on the owner's own position
+    /// as angle 0, straight ahead of every weapon.
+    pub(in crate::fight) fn faces_point(&self, x_q32: i64, z_q32: i64) -> bool {
+        if (x_q32, z_q32) == (self.x_q32, self.z_q32) {
+            return self.facing.faces_everything();
+        }
+        self.faces(self.bearing_q32(x_q32, z_q32))
     }
 
     /// The bearing from the owner to a point.
@@ -842,7 +861,7 @@ impl Simulation {
         else {
             return false;
         };
-        view.alive && attacker.faces(attacker.bearing_q32(view.x_q32, view.z_q32))
+        view.alive && attacker.faces_point(view.x_q32, view.z_q32)
     }
 
     /// Both: `FightSkill.IsAttackTargetInAttackArea`.
