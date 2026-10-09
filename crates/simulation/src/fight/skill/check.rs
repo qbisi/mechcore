@@ -731,7 +731,13 @@ impl Simulation {
         let width = space_to_q32(WALL_IN_THE_WAY_WIDTH);
         let mut nearest: Option<(i64, u64)> = None;
         for building in &self.buildings {
+            // `PrepareWalls` takes a construction that answers
+            // `IsEnableBlock`: a turret is not in the way.
             if building.building_type_id != CONSTRUCTION_BUILDING_TYPE
+                || !self
+                    .rvo
+                    .passable_constructions
+                    .contains(&building.building_id)
                 || building.team_id == actor.team
                 || !building_alive(building)
                 || !building.targetable
