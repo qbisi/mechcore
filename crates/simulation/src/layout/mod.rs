@@ -186,6 +186,7 @@ pub(crate) struct Production {
     pub(crate) technology_disable: TechnologyDisable,
     pub(crate) reactive_armor: Option<ReactiveArmor>,
     pub(crate) burrow: Option<Burrow>,
+    pub(crate) clear_range_item: Option<ClearRangeItem>,
 }
 
 #[derive(Debug, Clone)]
@@ -794,12 +795,11 @@ fn compile_battle_skills(
                 || worn.wreckage.is_some()
                 || worn.rebirth.is_some()
                 || worn.rvo_radius_change.is_some()
-                || worn.clear_range_item.is_some()
             {
                 refused.push(format!(
                     "side {name} summons a {} that its technologies give lifesteal, repair, \
                      a shield, stealth, a group, a trench, a fire, life from wreckage, a \
-                     rebirth, a loose formation or a fire extinguisher, and what a \
+                     rebirth or a loose formation, and what a \
                      summon's effect providers carry is not measured",
                     summon.rules.type_name
                 ));
@@ -809,6 +809,7 @@ fn compile_battle_skills(
             summon.technology_disable = worn.technology_disable;
             summon.reactive_armor = worn.reactive_armor;
             summon.burrow = worn.burrow;
+            summon.clear_range_item = worn.clear_range_item;
         }
         battle_skills.push(release);
     }
@@ -906,14 +907,6 @@ fn compile_formation(
         return None;
     };
     refuse_travelling_buffs(side_name, formation, &worn, refused)?;
-    if formation.travelling && worn.clear_range_item.is_some() {
-        refused.push(format!(
-            "side {side_name} unit type {:?} travels in with a fire extinguisher, and \
-             whether it clears terrain while it travels is not measured",
-            formation.type_name
-        ));
-        return None;
-    }
     let (world_x, world_z, rotation) = world_placement(formation.position, team);
     Some(Placement {
         team,
@@ -1096,12 +1089,11 @@ fn made_by(
         || worn.wreckage.is_some()
         || worn.rebirth.is_some()
         || worn.rvo_radius_change.is_some()
-        || worn.clear_range_item.is_some()
     {
         refused.push(format!(
             "side {side_name} makes a {} that its technologies give lifesteal, repair, a \
              shield, a search by distance, a second damage, a dead line, a stronger \
-             surfacing, a sand fog, interceptors, a summon as it dies, a trench, a fire, life from wreckage, a rebirth, a loose formation or a fire extinguisher, and what a made unit's effect providers carry is not measured",
+             surfacing, a sand fog, interceptors, a summon as it dies, a trench, a fire, life from wreckage, a rebirth or a loose formation, and what a made unit's effect providers carry is not measured",
             made.type_name
         ));
         return None;
@@ -1115,6 +1107,7 @@ fn made_by(
         technology_disable: worn.technology_disable,
         reactive_armor: worn.reactive_armor,
         burrow: worn.burrow,
+        clear_range_item: worn.clear_range_item,
     })
 }
 
@@ -1232,8 +1225,6 @@ fn unread_on_a_death_summon(worn: &Worn) -> Option<&'static str> {
         Some("make summon as it dies in turn")
     } else if worn.rvo_radius_change.is_some() {
         Some("loosen its formation, and whether its agent joins its team as it appears")
-    } else if worn.clear_range_item.is_some() {
-        Some("clear terrain, and when a summon starts to")
     } else {
         None
     }

@@ -1,0 +1,23 @@
+# Fire Extinguisher on the Hounds blue's Centurion makes with Summon Hounds,
+# which join the fight on tick 1 and clear red's Incendiary Bomb as
+# deployed Hounds do: the first fire becomes a grid on tick 64.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 271
+hash: {profile: mcfr-content-0.23.0, result: 03cdc3426bb2ff1835830e923a87382fecc5a4d5cb0fd4171cc6377aa1270892}
+blue:
+  core_damage: 350
+  techs:
+    hound: [fire_extinguisher]
+    centurion: [summon_hounds]
+  units:
+  - {name: centurion, index: 0, position: {x: 5, y: -55}}
+red:
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -150}, exp: 0/680/1600}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}

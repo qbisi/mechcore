@@ -456,6 +456,9 @@ pub(crate) struct Summon {
     /// Its side's technology that burrows it, which `FightEffectSystem`
     /// hands its side's `TeamBurrowManager` as it joins.
     pub(crate) burrow: Option<crate::modifier::Burrow>,
+    /// What its side's technology hands it to clear terrain about it,
+    /// which `FightEffectSystem` adds as it joins.
+    pub(crate) clear_range_item: Option<crate::modifier::ClearRangeItem>,
 }
 
 /// The buff a released skill writes: the Electromagnetic Impact's slow,
@@ -1288,6 +1291,7 @@ fn summon(named: &str, row: &SupportSkillRow, units: &UnitConfigs) -> Result<Sum
         technology_disable: crate::layout::TechnologyDisable::default(),
         reactive_armor: None,
         burrow: None,
+        clear_range_item: None,
     })
 }
 
