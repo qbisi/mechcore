@@ -105,6 +105,8 @@ pub(crate) struct Production {
     /// What its side's loadout hands what it makes, the line's own
     /// corrections among them.
     pub(crate) effects: UnitEffects,
+    /// The lines what it makes runs of its own, as it joins.
+    pub(crate) productions: Vec<Production>,
 }
 
 #[derive(Debug, Clone)]
@@ -534,7 +536,13 @@ fn compile_death_summons(
             ));
             continue;
         }
-        let template = death_summon_template(team, rules, level, worn);
+        let Some(productions) =
+            joining_productions(name, (rules, level, 0), units, side, loadouts, refused)
+        else {
+            continue;
+        };
+        let mut template = death_summon_template(team, rules, level, worn);
+        template.productions = productions;
         pending.extend(death_summoned(&template, units));
         templates.insert(
             (team, type_id, level),
@@ -685,7 +693,13 @@ fn compile_battle_skills(
                 ));
                 continue;
             }
+            let Some(productions) =
+                joining_productions(name, (&summon.rules, 1, 0), units, side, loadouts, refused)
+            else {
+                continue;
+            };
             summon.effects = worn.effects;
+            summon.productions = productions;
         }
         battle_skills.push(release);
     }
@@ -762,7 +776,7 @@ fn compile_formation(
     );
     let productions = production_of(
         side_name,
-        (&formation.equipment, level),
+        (&formation.equipment, level, None),
         rules,
         units,
         side,
@@ -838,7 +852,7 @@ fn formation_rotation(position: mechcore_document::Position, team: u32, world_x:
 #[allow(clippy::option_option, reason = "a refusal is kept apart from no line")]
 fn production_of(
     side_name: &str,
-    (equipment, level): (&[i32], i64),
+    (equipment, level, joining): (&[i32], i64, Option<usize>),
     rules: &UnitConfig,
     units: &UnitConfigs,
     side: &SidePlan,
@@ -874,17 +888,69 @@ fn production_of(
             .filter_map(|weapon| weapon.production.as_ref())
             .map(technology_line),
     );
+    // A unit that joins the fight runs no line of its own type
+    // (`SupportUnitProvider.AvaliableCheck` for `FightMech.mechCreateType`).
+    if joining.is_some() {
+        lines.retain(|line| line.unit_type_id != rules.unit_type_id);
+    }
+    let depth = joining.map_or(0, |depth| depth + 1);
+    if depth > MAKES_IN_TURN {
+        refused.push(format!(
+            "side {side_name} unit type {:?} makes units that make units in turn more than \
+             {MAKES_IN_TURN} deep, which is not read",
+            rules.type_name
+        ));
+        return None;
+    }
     lines
         .into_iter()
-        .map(|line| made_by(side_name, line, level, units, side, loadouts, refused))
+        .map(|line| {
+            made_by(
+                side_name,
+                (line, depth),
+                level,
+                units,
+                side,
+                loadouts,
+                refused,
+            )
+        })
         .collect()
+}
+
+/// How deep a unit's makes may make units in turn: no line of this version
+/// goes past a Vulcan's Marksman making Fangs.
+const MAKES_IN_TURN: usize = 4;
+
+/// The lines a unit that joins the fight runs of its own, made by a line,
+/// summoned by a battle skill or summoned as another dies: its side's
+/// technologies' and its extra weapons', it wearing no equipment, `depth`
+/// lines below a placed unit.
+#[allow(clippy::too_many_arguments)]
+fn joining_productions(
+    side_name: &str,
+    (rules, level, depth): (&UnitConfig, i64, usize),
+    units: &UnitConfigs,
+    side: &SidePlan,
+    loadouts: &Loadouts,
+    refused: &mut Refusals,
+) -> Option<Vec<Production>> {
+    production_of(
+        side_name,
+        (&[], level, Some(depth)),
+        rules,
+        units,
+        side,
+        loadouts,
+        refused,
+    )
 }
 
 /// What a line its unit runs makes, as its side's loadout writes it: a unit
 /// at its owner's level, or the first.
 fn made_by(
     side_name: &str,
-    line: ProductionLine,
+    (line, depth): (ProductionLine, usize),
     level: i64,
     units: &UnitConfigs,
     side: &SidePlan,
@@ -900,10 +966,11 @@ fn made_by(
     };
     let made = made.clone();
     // A make takes its owner's level, or the first.
+    let made_level = if line.parent_level { level } else { 1 };
     let worn = loadout(
         side_name,
         &made.type_name,
-        if line.parent_level { level } else { 1 },
+        made_level,
         &[],
         &made,
         side,
@@ -921,10 +988,19 @@ fn made_by(
     effects
         .corrections
         .extend(line.make_corrections.iter().copied());
+    let productions = joining_productions(
+        side_name,
+        (&made, made_level, depth),
+        units,
+        side,
+        loadouts,
+        refused,
+    )?;
     Some(Production {
         line,
         rules: made,
         effects,
+        productions,
     })
 }
 
@@ -957,7 +1033,7 @@ fn surfacing_of(
         ));
         return None;
     }
-    made_by(side_name, line, level, units, side, loadouts, refused).map(Some)
+    made_by(side_name, (line, 0), level, units, side, loadouts, refused).map(Some)
 }
 
 /// A technology's support skill as the production line it runs.
@@ -1018,38 +1094,24 @@ pub(crate) struct TechnologyDisable {
 /// one: made by a line, summoned by a battle skill or summoned as another
 /// dies, it is handed its side's loadout for its type whole
 /// (`TeamFightEffectManager.CreateMechUnitEffectMananger`) and its effects
-/// are activated as it joins (`Simulation::active_effect`), but no template
-/// is compiled for what it summons as it dies in turn, and its placement
-/// carries no production line of its own. A line that makes the unit's own
-/// type is none of its own: `SupportUnitProvider.AvaliableCheck` passes over
-/// it for a unit created in the fight (`FightMech.mechCreateType`), so a
-/// Vortex Mirage makes no Mirage.
+/// are activated as it joins (`Simulation::active_effect`), and it runs the
+/// lines it is handed of other types ([`joining_productions`]), but no
+/// template is compiled for what it summons as it dies in turn, and its
+/// placement carries no line it runs as it surfaces.
 fn unread_on_a_joining_unit(
     effects: &UnitEffects,
     rules: &UnitConfig,
     side: &SidePlan,
     loadouts: &Loadouts,
 ) -> Option<&'static str> {
-    let held = &side.techs.units;
-    let technologies = &loadouts.technologies;
-    let another = |made: u32| made != rules.unit_type_id;
     if effects.dead_summon.is_some() {
         Some("its technologies make summon in turn as it dies")
-    } else if technologies
-        .production(held, &rules.type_name)
-        .is_ok_and(|lines| lines.iter().any(|line| another(line.unit_type_id)))
-        || rules.extra_weapons.iter().any(|weapon| {
-            held.contains(&weapon.technology)
-                && weapon
-                    .production
-                    .as_ref()
-                    .is_some_and(|production| another(production.unit_type_id))
-        })
-        || technologies
-            .sources(held, &rules.type_name)
-            .is_ok_and(|sources| sources.surfacing_line.is_some())
+    } else if loadouts
+        .technologies
+        .sources(&side.techs.units, &rules.type_name)
+        .is_ok_and(|sources| sources.surfacing_line.is_some())
     {
-        Some("its technologies give a production line of its own")
+        Some("its technologies give a line it runs as it surfaces")
     } else {
         None
     }
