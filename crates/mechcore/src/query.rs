@@ -17,7 +17,7 @@ use std::{
 
 use mechcore_mcfr::{McfrTables, TableOrigin};
 use rusqlite::{
-    Connection,
+    Connection, TransactionBehavior,
     functions::FunctionFlags,
     hooks::{AuthAction, AuthContext, Authorization},
     types::Value as Sql,
@@ -48,8 +48,8 @@ const QUERIES: &[(&str, &str)] = &[
     ("units-diff", include_str!("query/units-diff.sql")),
 ];
 
-/// Reads `query <file>... (--sql <sql> | --query <name> | --schema)` off a
-/// command line.
+/// Reads `query <file>... (--sql <sql> | --sql-file <path> | --query <name> |
+/// --schema) [--no-cache]` off a command line.
 ///
 /// # Errors
 ///
@@ -59,8 +59,14 @@ const QUERIES: &[(&str, &str)] = &[
 pub(crate) fn run(mut arguments: Args) -> Outcome {
     let format = arguments.format()?;
     let sql = arguments.value("--sql")?;
+    let sql_file = arguments.value("--sql-file")?.map(PathBuf::from);
     let named = arguments.value("--query")?;
     let schema = arguments.flag("--schema")?;
+    let store = if arguments.flag("--no-cache")? {
+        Store::Memory
+    } else {
+        Store::Cache
+    };
     let parameters = arguments
         .values("--param")?
         .into_iter()
@@ -73,12 +79,12 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
         .collect::<Result<BTreeMap<_, _>, _>>()?;
     let operands = arguments.operands()?;
     let inputs = Inputs::of(&operands)?;
-    let asked = Asked::of(sql, named, schema)?;
+    let asked = Asked::of(sql, sql_file.as_deref(), named, schema)?;
     if format == Format::Text {
-        print!("{}", answer_text(&inputs, asked, &parameters)?);
+        print!("{}", answer_text(&inputs, store, asked, &parameters)?);
         return Ok(Verdict::Yes);
     }
-    crate::cli::emit(&answer(&inputs, asked, &parameters)?, format)?;
+    crate::cli::emit(&answer(&inputs, store, asked, &parameters)?, format)?;
     Ok(Verdict::Yes)
 }
 
@@ -146,14 +152,25 @@ pub(crate) enum Asked {
 }
 
 impl Asked {
-    /// The question exactly one of `--sql`, `--query` and `--schema` asks.
+    /// The question exactly one of `--sql`, `--sql-file`, `--query` and
+    /// `--schema` asks.
     pub(crate) fn of(
         sql: Option<String>,
+        sql_file: Option<&Path>,
         named: Option<String>,
         schema: bool,
     ) -> Result<Self, Failure> {
+        let sql = match (sql, sql_file) {
+            (Some(_), Some(_)) => Some(None),
+            (sql, None) => sql.map(Some),
+            (None, Some(path)) => {
+                Some(Some(std::fs::read_to_string(path).map_err(|error| {
+                    Failure::failed(format!("{}: {error}", path.display()))
+                })?))
+            }
+        };
         match (sql, named, schema) {
-            (Some(sql), None, false) => Ok(Self::Sql(sql)),
+            (Some(Some(sql)), None, false) => Ok(Self::Sql(sql)),
             (None, Some(name), false) => QUERIES
                 .iter()
                 .find(|(known, _)| *known == name)
@@ -170,7 +187,8 @@ impl Asked {
                 }),
             (None, None, true) => Ok(Self::Schema),
             _ => Err(Failure::usage(
-                "expected exactly one of --sql <sql>, --query <name> and --schema",
+                "expected exactly one of --sql <sql>, --sql-file <path>, --query <name> and \
+                 --schema",
             )),
         }
     }
@@ -183,10 +201,11 @@ impl Asked {
 /// As [`run`], for everything but the command line.
 pub(crate) fn answer(
     inputs: &Inputs,
+    store: Store,
     asked: Asked,
     parameters: &BTreeMap<String, String>,
 ) -> Result<Value, Failure> {
-    let database = open(inputs, &asked, parameters)?;
+    let database = open(inputs, store, &asked, parameters)?;
     match asked {
         Asked::Schema => serde_json::to_value(database.schema()?)
             .map_err(|error| Failure::failed(format!("cannot write the result: {error}"))),
@@ -196,10 +215,11 @@ pub(crate) fn answer(
 
 fn answer_text(
     inputs: &Inputs,
+    store: Store,
     asked: Asked,
     parameters: &BTreeMap<String, String>,
 ) -> Result<String, Failure> {
-    let database = open(inputs, &asked, parameters)?;
+    let database = open(inputs, store, &asked, parameters)?;
     match asked {
         Asked::Schema => Ok(schema_text(&database.schema()?)),
         Asked::Sql(sql) => Ok(database.query(&sql, parameters)?.text()),
@@ -208,21 +228,110 @@ fn answer_text(
 
 fn open(
     inputs: &Inputs,
+    store: Store,
     asked: &Asked,
     parameters: &BTreeMap<String, String>,
 ) -> Result<Database, Failure> {
     if matches!(asked, Asked::Schema) && !parameters.is_empty() {
         return Err(Failure::usage("--param belongs to --sql and --query"));
     }
-    Database::open(inputs)
+    Database::open(inputs, store)
+}
+
+/// Where a recording's tables are kept.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Store {
+    /// In a database file of the cache, which every later query of the same
+    /// recording by the same binary opens again with what it filled.
+    Cache,
+    /// In memory, gone with the query.
+    Memory,
+}
+
+/// The directory a recording's cached tables are kept in:
+/// `MECHCORE_QUERY_CACHE`, or `/tmp/mechcore-query`, which the system clears,
+/// so a cache lives no longer than it is used; a platform without `/tmp` uses
+/// its own temporary directory.
+fn cache_directory() -> PathBuf {
+    std::env::var_os("MECHCORE_QUERY_CACHE").map_or_else(
+        || {
+            let tmp = Path::new("/tmp");
+            if cfg!(unix) && tmp.is_dir() {
+                tmp.join("mechcore-query")
+            } else {
+                std::env::temp_dir().join("mechcore-query")
+            }
+        },
+        PathBuf::from,
+    )
+}
+
+/// The cache file of one recording's tables: named by the recording's content
+/// and by the binary that lays it out, its size and modification time, so a
+/// moved recording finds its tables and another build lays them out afresh.
+fn cache_file(input: &Path) -> Result<PathBuf, String> {
+    let mut hasher = blake3::Hasher::new();
+    let mut file = std::fs::File::open(input).map_err(|error| error.to_string())?;
+    std::io::copy(&mut file, &mut hasher).map_err(|error| error.to_string())?;
+    let content = hasher.finalize().to_hex();
+    let binary = std::env::current_exe()
+        .and_then(std::fs::metadata)
+        .map_err(|error| error.to_string())?;
+    let modified = binary
+        .modified()
+        .ok()
+        .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+        .map_or(0, |since| since.as_nanos());
+    let build = blake3::hash(format!("{}:{modified}", binary.len()).as_bytes()).to_hex();
+    let directory = cache_directory();
+    std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
+    Ok(directory.join(format!("{}-{}.sqlite", &content[..32], &build[..16])))
+}
+
+/// A connection to the database a recording's tables are kept in: its cache
+/// file, or memory where the cache cannot be written, which standard error
+/// says. Several recordings each need a database the query's connection can
+/// attach, so one kept in memory is shared under a name of this process's.
+fn store_connection(
+    input: &Path,
+    store: Store,
+    name: Option<&str>,
+) -> Result<(Connection, String), Failure> {
+    if store == Store::Cache {
+        match cache_file(input) {
+            Ok(path) => {
+                let connection = Connection::open(&path).map_err(sqlite)?;
+                connection
+                    .busy_timeout(std::time::Duration::from_secs(300))
+                    .map_err(sqlite)?;
+                return Ok((connection, path.display().to_string()));
+            }
+            Err(error) => {
+                eprintln!("query: the cache cannot be written ({error}); reading in memory");
+            }
+        }
+    }
+    match name {
+        None => Ok((
+            Connection::open_in_memory().map_err(sqlite)?,
+            ":memory:".to_owned(),
+        )),
+        Some(name) => {
+            let uri = format!(
+                "file:mechcore-query-{}-{name}?mode=memory&cache=shared",
+                std::process::id()
+            );
+            Ok((Connection::open(&uri).map_err(sqlite)?, uri))
+        }
+    }
 }
 
 /// The recordings a query reads, and the connection it runs on.
 ///
-/// One recording's tables live in the connection the query runs on. Several
-/// each live in a shared in-memory database of their own, which the query's
-/// connection attaches under the recording's name, so a recording's tables are
-/// made and filled the same way however many are read.
+/// Each recording's tables live in a database of their own, a cache file or
+/// memory. One recording's query runs on its database's connection; several
+/// are attached to the query's connection under their names, so a
+/// recording's tables are made and filled the same way however many are read.
 struct Database {
     /// The connection several recordings are attached to; one recording's
     /// query runs on its own connection.
@@ -244,24 +353,23 @@ struct Attached {
 }
 
 impl Database {
-    fn open(inputs: &Inputs) -> Result<Self, Failure> {
+    fn open(inputs: &Inputs, store: Store) -> Result<Self, Failure> {
         let (attached, recordings) = match inputs {
             Inputs::One(input) => {
-                let connection = Connection::open_in_memory().map_err(sqlite)?;
+                let (connection, _) = store_connection(input, store, None)?;
                 (None, vec![Attached::open(input, "main", connection)?])
             }
             Inputs::Named(named) => {
                 let query = Connection::open_in_memory().map_err(sqlite)?;
+                query
+                    .busy_timeout(std::time::Duration::from_secs(300))
+                    .map_err(sqlite)?;
                 let mut recordings = Vec::new();
                 for (name, input) in named {
-                    let uri = format!(
-                        "file:mechcore-query-{}-{name}?mode=memory&cache=shared",
-                        std::process::id()
-                    );
-                    let connection = Connection::open(&uri).map_err(sqlite)?;
+                    let (connection, location) = store_connection(input, store, Some(name))?;
                     recordings.push(Attached::open(input, name, connection)?);
                     query
-                        .execute(&format!("ATTACH DATABASE ?1 AS \"{name}\""), [&uri])
+                        .execute(&format!("ATTACH DATABASE ?1 AS \"{name}\""), [&location])
                         .map_err(sqlite)?;
                 }
                 (Some(query), recordings)
@@ -405,8 +513,81 @@ fn functions(connection: &Connection) -> Result<(), Failure> {
     Ok(())
 }
 
+/// Makes one recording's tables, views and `meta`, every table empty.
+fn make(
+    connection: &Connection,
+    input: &Path,
+    recording: &McfrTables,
+    members: &BTreeMap<String, Table>,
+) -> Result<(), Failure> {
+    for table in members.values() {
+        for table in table.all() {
+            connection.execute_batch(&table.create()).map_err(sqlite)?;
+        }
+    }
+    connection
+        .execute_batch(
+            "CREATE TABLE mechcore_filled (name TEXT PRIMARY KEY);
+             CREATE TABLE meta (key TEXT NOT NULL, value TEXT NOT NULL);
+             CREATE VIEW fight AS SELECT
+               (SELECT value FROM meta WHERE key = 'producer') AS producer,
+               (SELECT value FROM meta WHERE key = 'game_build') AS game_build,
+               (SELECT value FROM meta WHERE key = 'format') AS format,
+               (SELECT value FROM meta WHERE key = 'result_hash') AS result_hash,
+               CAST((SELECT value FROM meta WHERE key = 'tick_count') AS INTEGER) AS tick_count,
+               CAST((SELECT value FROM meta WHERE key = 'terminal_tick') AS INTEGER) AS terminal_tick,
+               json_extract((SELECT value FROM meta WHERE key = 'durable_context'), '$.combat_round') AS combat_round;",
+        )
+        .map_err(sqlite)?;
+    connection.execute_batch(layout::CREATE).map_err(sqlite)?;
+    if let Some(events) = members.get("events") {
+        for view in events::views(events) {
+            connection.execute_batch(&view.create).map_err(sqlite)?;
+        }
+    }
+    let mut insert = connection
+        .prepare("INSERT INTO meta (key, value) VALUES (?1, ?2)")
+        .map_err(sqlite)?;
+    for (key, value) in recording.metadata() {
+        insert.execute((key, value)).map_err(sqlite)?;
+    }
+    insert
+        .execute(("layout.yaml", recording.layout_yaml()))
+        .map_err(sqlite)?;
+    insert
+        .execute(("path", input.display().to_string()))
+        .map_err(sqlite)?;
+    Ok(())
+}
+
+/// The tables a database records filled.
+fn filled(connection: &Connection) -> Result<BTreeSet<String>, Failure> {
+    let mut statement = connection
+        .prepare("SELECT name FROM mechcore_filled")
+        .map_err(sqlite)?;
+    let names = statement
+        .query_map([], |row| row.get(0))
+        .map_err(sqlite)?
+        .collect::<Result<_, _>>()
+        .map_err(sqlite)?;
+    Ok(names)
+}
+
+fn record_filled(connection: &Connection, tables: &BTreeSet<String>) -> Result<(), Failure> {
+    let mut insert = connection
+        .prepare("INSERT OR IGNORE INTO mechcore_filled (name) VALUES (?1)")
+        .map_err(sqlite)?;
+    for table in tables {
+        insert.execute([table]).map_err(sqlite)?;
+    }
+    Ok(())
+}
+
 impl Attached {
-    fn open(input: &Path, schema: &str, connection: Connection) -> Result<Self, Failure> {
+    /// Opens one recording's tables in `connection`'s database, making them
+    /// empty the first time: a cache file another query made already holds
+    /// them, and what that query filled.
+    fn open(input: &Path, schema: &str, mut connection: Connection) -> Result<Self, Failure> {
         let (kind, _) = Kind::read(input)?;
         kind.require("query")?;
         let recording = McfrTables::open(input)
@@ -418,55 +599,48 @@ impl Attached {
                 .map_err(|error| Failure::failed(format!("{member}: {error}")))?;
             let table = flatten::tables(&member, &table_schema)
                 .map_err(|error| Failure::failed(format!("{member}: {error}")))?;
-            for table in table.all() {
-                connection.execute_batch(&table.create()).map_err(sqlite)?;
-            }
             members.insert(member, table);
         }
-        connection
-            .execute_batch(
-                "CREATE TABLE meta (key TEXT NOT NULL, value TEXT NOT NULL);
-                 CREATE VIEW fight AS SELECT
-                   (SELECT value FROM meta WHERE key = 'producer') AS producer,
-                   (SELECT value FROM meta WHERE key = 'game_build') AS game_build,
-                   (SELECT value FROM meta WHERE key = 'format') AS format,
-                   (SELECT value FROM meta WHERE key = 'result_hash') AS result_hash,
-                   CAST((SELECT value FROM meta WHERE key = 'tick_count') AS INTEGER) AS tick_count,
-                   CAST((SELECT value FROM meta WHERE key = 'terminal_tick') AS INTEGER) AS terminal_tick,
-                   json_extract((SELECT value FROM meta WHERE key = 'durable_context'), '$.combat_round') AS combat_round;",
+        let transaction = connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(sqlite)?;
+        let made: bool = transaction
+            .query_row(
+                "SELECT count(*) > 0 FROM sqlite_master WHERE name = 'mechcore_filled'",
+                [],
+                |row| row.get(0),
             )
             .map_err(sqlite)?;
-        connection.execute_batch(layout::CREATE).map_err(sqlite)?;
-        if let Some(events) = members.get("events") {
-            for view in events::views(events) {
-                connection.execute_batch(&view.create).map_err(sqlite)?;
-            }
+        if made {
+            transaction
+                .execute(
+                    "UPDATE meta SET value = ?1 WHERE key = 'path'",
+                    [input.display().to_string()],
+                )
+                .map_err(sqlite)?;
+        } else {
+            make(&transaction, input, &recording, &members)?;
         }
-        {
-            let mut insert = connection
-                .prepare("INSERT INTO meta (key, value) VALUES (?1, ?2)")
-                .map_err(sqlite)?;
-            for (key, value) in recording.metadata() {
-                insert.execute((key, value)).map_err(sqlite)?;
-            }
-            insert
-                .execute(("layout.yaml", recording.layout_yaml()))
-                .map_err(sqlite)?;
-            insert
-                .execute(("path", input.display().to_string()))
-                .map_err(sqlite)?;
-        }
+        transaction.commit().map_err(sqlite)?;
+        let filled = filled(&connection)?;
         Ok(Self {
             schema: schema.to_owned(),
             connection,
             recording,
             members,
-            filled: BTreeSet::new(),
+            filled,
         })
     }
 
-    /// Fills the tables of `read` not filled yet, decoding each member once.
+    /// Fills the tables of `read` not filled yet, decoding each member once,
+    /// and records them filled. Another query of the same cache file may
+    /// have filled some since this one opened it, which the write lock each
+    /// fill takes lets it see.
     fn fill(&mut self, read: &BTreeSet<String>) -> Result<(), Failure> {
+        if read.iter().all(|table| self.filled.contains(table)) {
+            return Ok(());
+        }
+        self.filled = filled(&self.connection)?;
         for (member, table) in &self.members {
             let tables = table.all();
             let wanted = tables
@@ -481,12 +655,20 @@ impl Attached {
                 .recording
                 .batches(member)
                 .map_err(|error| Failure::failed(format!("{member}: {error}")))?;
-            let transaction = self.connection.transaction().map_err(sqlite)?;
+            let transaction = self
+                .connection
+                .transaction_with_behavior(TransactionBehavior::Immediate)
+                .map_err(sqlite)?;
+            let wanted = wanted
+                .difference(&filled(&transaction)?)
+                .cloned()
+                .collect::<BTreeSet<_>>();
             flatten::insert(&transaction, table, &batches, &wanted)
                 .map_err(|error| Failure::failed(format!("{member}: {error}")))?;
             for table in tables.iter().filter(|table| wanted.contains(&table.name)) {
                 transaction.execute_batch(&table.index()).map_err(sqlite)?;
             }
+            record_filled(&transaction, &wanted)?;
             transaction.commit().map_err(sqlite)?;
             self.filled.extend(wanted);
         }
@@ -494,12 +676,21 @@ impl Attached {
             .iter()
             .any(|table| read.contains(*table) && !self.filled.contains(*table))
         {
-            let transaction = self.connection.transaction().map_err(sqlite)?;
-            layout::fill(&transaction, &self.recording)
-                .map_err(|error| Failure::failed(format!("layout.yaml: {error}")))?;
+            let transaction = self
+                .connection
+                .transaction_with_behavior(TransactionBehavior::Immediate)
+                .map_err(sqlite)?;
+            let tables = layout::TABLES
+                .iter()
+                .map(|table| (*table).to_owned())
+                .collect::<BTreeSet<_>>();
+            if filled(&transaction)?.is_disjoint(&tables) {
+                layout::fill(&transaction, &self.recording)
+                    .map_err(|error| Failure::failed(format!("layout.yaml: {error}")))?;
+                record_filled(&transaction, &tables)?;
+            }
             transaction.commit().map_err(sqlite)?;
-            self.filled
-                .extend(layout::TABLES.iter().map(|table| (*table).to_owned()));
+            self.filled.extend(tables);
         }
         Ok(())
     }

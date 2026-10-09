@@ -713,7 +713,9 @@ async fn perform(
             let fields = closed(
                 arguments,
                 "query",
-                &["input", "sql", "query", "schema", "param"],
+                &[
+                    "input", "sql", "sql_file", "query", "schema", "param", "no_cache",
+                ],
             )?;
             // One path; two, which are `left` and `right`; or a mapping of
             // names to paths, as the command's operands are.
@@ -773,9 +775,24 @@ async fn perform(
                 })
                 .transpose()?
                 .unwrap_or_default();
+            let sql_file = fields
+                .get("sql_file")
+                .map(|path| scope.path(path, "query sql_file"))
+                .transpose()?;
+            let store = if fields
+                .get("no_cache")
+                .map(|value| value.as_bool().ok_or("query no_cache is a boolean"))
+                .transpose()?
+                .unwrap_or(false)
+            {
+                crate::query::Store::Memory
+            } else {
+                crate::query::Store::Cache
+            };
             let asked =
-                crate::query::Asked::of(text("sql")?, text("query")?, schema).map_err(reason)?;
-            crate::query::answer(&input, asked, &parameters).map_err(reason)
+                crate::query::Asked::of(text("sql")?, sql_file.as_deref(), text("query")?, schema)
+                    .map_err(reason)?;
+            crate::query::answer(&input, store, asked, &parameters).map_err(reason)
         }
         "play" => {
             let fields = closed(arguments, "play", &["input", "page", "seed"])?;

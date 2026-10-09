@@ -478,8 +478,8 @@ recording or several, as SQLite runs it in a database of the binary's own, so
 a question a recording can answer needs no program beside the binary. `--query <name>`
 runs a statement the binary carries instead, and `--schema` answers what can be
 asked: every table with its key and columns, and every named statement with
-what it answers and the parameters it takes. Exactly one of the three is
-given. A statement's `:name` parameters are bound by `--param name=value`, once
+what it answers and the parameters it takes. `--sql-file <path>` reads the
+statement from a file. Exactly one of the four is given. A statement's `:name` parameters are bound by `--param name=value`, once
 each, as an integer or a number where the value reads as one and as text
 otherwise; a parameter the statement does not take, or one it takes and is
 not given, is a usage failure.
@@ -558,6 +558,16 @@ vector.
 
 A table is decoded only once a statement reads it, so a statement pays for the
 members it names and no others.
+
+**The cache.** A recording's tables are kept in a database file named by the
+recording's content and by the binary, so a later query of the same recording
+by the same binary reads what an earlier one decoded, wherever the recording
+has moved, and another build lays it out afresh. The files are kept in
+`MECHCORE_QUERY_CACHE`, or by default in `/tmp/mechcore-query`, which the
+system clears; a platform without `/tmp` uses its temporary directory.
+Queries of one recording at once share its file, each table filled once.
+`--no-cache` keeps the tables in memory for the one query, and a cache that
+cannot be written is read in memory, which standard error says.
 
 ## `play`
 
