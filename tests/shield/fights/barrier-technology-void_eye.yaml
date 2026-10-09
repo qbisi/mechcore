@@ -1,0 +1,30 @@
+# Barrier on blue's level-2 Fortress against a Void Eye with Electromagnetic
+# Armor, whose buff switches off the technologies of what hits it. The
+# Fortress's hit on tick 163 writes it on tick 164: the shield, at 60614
+# after that tick's hits, is disabled with its energy recorded and
+# deactivated, holding nothing. The buff written again on ticks 200 and 241
+# runs out on tick 301, and the shield is active again with the 60614 it
+# had, not refilled. Switching the technologies refreshes the Fortress's
+# attack interval, which Barrier writes no number on: its drawn 35 becomes
+# its plain 36.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 1624
+hash: {profile: mcfr-content-0.22.0, result: 09fbc8861bac1d6d9a0438755d592ac77c1cc7f63adac00f495d971db430a899}
+blue:
+  core_damage: 408
+  techs:
+    fortress: [barrier]
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, level: 2, exp: 0/598/3605}
+red:
+  techs:
+    void_eye: [electromagnetic_armor]
+  units:
+  - {name: void_eye, index: 0, position: {x: 0, y: -60}}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/600/900}
+  - {name: wasp, index: 2, position: {x: -55, y: -100}, exp: 0/900/900}

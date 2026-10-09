@@ -11,6 +11,9 @@ takes is removed `absorbed_by` it.
 
 The Barrier fights put a shield on a unit, which carries it: `barrier-wasps.yaml`
 and `barrier-crawlers.yaml`.
+The `barrier-technology-*.yaml` fights give it by Barrier the technology,
+by the unit's level, and switch it off with a Void Eye's Electromagnetic
+Armor.
 
 A missile's projectile meets a shield in
 [`../missile/fights/into-shield.yaml`](../missile/fights/into-shield.yaml),

@@ -53,8 +53,8 @@ use super::{
     effects::{self, Fields},
     providers::EffectProvider,
     sources::{
-        AutoRecovery, BuffSource, EnergyShield, LifeSteal, MoveAbilityAttack, MoveAbilityRangeItem,
-        ProductionLine, RecoveryState, Stealth, SweepIntensify,
+        AutoRecovery, BuffSource, CarriedShield, EnergyShield, LifeSteal, MoveAbilityAttack,
+        MoveAbilityRangeItem, ProductionLine, RecoveryState, Stealth, SweepIntensify,
     },
 };
 
@@ -119,9 +119,12 @@ const ON_EXIT_MOVE_END: i32 = 3;
 const UNDERGROUND_MOVE: i32 = 1;
 /// The list whose `DamageShareTech` is an `IMechGroupSource`.
 const DAMAGE_SHARE: &str = "damageShareTechnologies";
+/// The list whose `AdvancedEnergyShieldTech` is an
+/// `IAdvancedEnergyShieldSource`, which hands its unit a [`CarriedShield`].
+const BARRIER: &str = "advancedEnergyShieldTechnologies";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 23] = [
+const IMPLEMENTED: [&str; 24] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -145,6 +148,7 @@ const IMPLEMENTED: [&str; 23] = [
     MOVE_ABILITY_ATTACK,
     MOVE_ABILITY_RANGE_ITEM,
     DAMAGE_SHARE,
+    BARRIER,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -247,6 +251,9 @@ struct Technology {
     /// What it answers `IMechGroupSource` with, if its class is one: the
     /// share distance, `FPoint` metres by its unit's level, and the rest.
     mech_group: Option<(Vec<i64>, MechGroup)>,
+    /// What it answers `IAdvancedEnergyShieldSource` with, if its class is
+    /// one: the energy and the whole metres of radius by its unit's level.
+    carried_shield: Option<(Vec<i64>, Vec<i64>)>,
     /// What it answers `IMoveAbilityAttackIntensify` with, if its class is
     /// one.
     move_ability_attack: Option<MoveAbilityAttack>,
@@ -717,6 +724,12 @@ struct Row {
     group_max_count: i32,
     #[serde(default)]
     main_skill_effect: bool,
+    /// `AdvancedEnergyShieldTechData.shieldValues` and `radius`, on a row of
+    /// its list: energy and whole metres by the unit's level.
+    #[serde(default)]
+    barrier_energy: Vec<i64>,
+    #[serde(default)]
+    barrier_radius: Vec<i64>,
     /// `MoveAbilityAttackIntensifyTechData`'s fields and the
     /// `exitTimeChangeRate` its tech answers, on a row of its list.
     #[serde(default)]
@@ -1101,6 +1114,8 @@ impl TechnologyEffects {
                 dead_line: (row.kind == DEAD_LINE)
                     .then(|| (row.dead_line_value.clone(), row.dead_line_ignores_shield)),
                 mech_group,
+                carried_shield: (row.kind == BARRIER)
+                    .then(|| (row.barrier_energy.clone(), row.barrier_radius.clone())),
                 move_ability_attack: (row.kind == MOVE_ABILITY_ATTACK).then_some(
                     MoveAbilityAttack {
                         exit_time_rate_q32: row.exit_time_rate,
@@ -1383,6 +1398,43 @@ impl TechnologyEffects {
             }))
     }
 
+    /// The battlefield shield the first of this side's technologies on one
+    /// unit type that is an `IAdvancedEnergyShieldSource` makes the unit
+    /// carry at its level: `AdvancedEnergyShieldTech.GetShieldValue` and
+    /// `GetRadius` read their lists with `TechnologyData.GetLevelValue`,
+    /// entry `GetLevel()` counting from zero and its last past it, and zero
+    /// for an empty list.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn carried_shield(
+        &self,
+        held: &[i32],
+        unit_type: &str,
+        level: i64,
+    ) -> Result<Option<CarriedShield>> {
+        self.effects(held, unit_type)?;
+        let index = usize::try_from(level - 1).unwrap_or_default();
+        let at_level = |values: &Vec<i64>| values.get(index).or_else(|| values.last()).copied();
+        Ok(held
+            .iter()
+            .filter_map(|id| self.technologies.get(id))
+            .filter(|technology| technology.unit == unit_type)
+            .find_map(|technology| technology.carried_shield.as_ref())
+            .map(|(energy, radius)| CarriedShield {
+                radius: at_level(radius).unwrap_or_default(),
+                energy: at_level(energy).unwrap_or_default(),
+            }))
+    }
+
+    /// Whether this side holds a technology on one unit type.
+    pub(crate) fn holds(&self, held: &[i32], unit_type: &str) -> bool {
+        held.iter()
+            .filter_map(|id| self.technologies.get(id))
+            .any(|technology| technology.unit == unit_type)
+    }
+
     /// The providers beside the numbers' this side's technologies on one
     /// unit type reach, each once, with the technologies that reach it.
     pub(crate) fn providers(
@@ -1576,6 +1628,7 @@ fn provider_of(kind: &str, self_buff: bool) -> Option<EffectProvider> {
         MOVE_ABILITY_ATTACK => EffectProvider::MoveAbilityAttackIntensify,
         MOVE_ABILITY_RANGE_ITEM => EffectProvider::MoveAbilityRangeItem,
         DAMAGE_SHARE => EffectProvider::MechGroup,
+        BARRIER => EffectProvider::AdvancedEnergyShield,
         _ => return None,
     })
 }

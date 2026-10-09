@@ -6,3 +6,7 @@ states the rule. Each fight strikes units with an Electromagnetic Impact,
 Electromagnetic Barrage's shells or Electromagnetic Shot's hits and reads, in
 each unit's corrections and its skills' numbers, the tick the technologies go
 and the tick they come back.
+
+A Barrier switched off by Electromagnetic Armor, and the interval of a unit
+whose only technology writes no number, are in
+[`../shield/fights/barrier-technology-void_eye.yaml`](../shield/fights/barrier-technology-void_eye.yaml).

@@ -76,6 +76,8 @@ SUBCLASS_LISTS = (
     ("projectile_random_range_value", "randomRangeChangeValue", "multiAttackTechnologies"),
     ("dead_line_value", "deadLineValue", "deadLineTechDatas"),
     ("share_distance", "distance", "damageShareTechnologies"),
+    ("barrier_energy", "shieldValues", "advancedEnergyShieldTechnologies"),
+    ("barrier_radius", "radius", "advancedEnergyShieldTechnologies"),
 )
 # The same for a field that is one value rather than a rank list.
 SUBCLASS_SCALARS = (
@@ -139,7 +141,7 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "mobilityIntensifyTechnologies", "multiAttackTechnologies", "stealthTechData",
                "deadLineTechDatas", "moveAbilityAttackIntensifyTechDatas",
                "moveAbilityRangeItemTechDatas",
-               "damageShareTechnologies")
+               "damageShareTechnologies", "advancedEnergyShieldTechnologies")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
@@ -241,7 +243,7 @@ DESCRIPTIVE = {
 RATES = {"life_rate", "damage_rate", "attack_range_rate", "attack_interval_rate", "projectile_life_rate", "exp_rate",
          "lifesteal_multiplier", "recovery_life_rate", "air_damage_change_rate", "ground_damage_change_rate"}
 INTEGERS = {"speed_value", "min_attack_range_value", "reduce_damage_value", "projectile_count_value",
-            "dead_line_value"}
+            "dead_line_value", "barrier_energy", "barrier_radius"}
 
 
 def raw(value):
@@ -501,6 +503,9 @@ def main() -> int:
         "# more than `group_max_count` members when that is above zero, on its",
         "# main skill and its extra skills as `main_skill_effect` and",
         "# `extra_skill_effect` say.",
+        "# A barrier technology carries the energy and the whole metres of",
+        "# radius of the battlefield shield its unit carries (`barrier_energy`,",
+        "# `barrier_radius`), by its unit's level.",
         "",
         "technologies:",
     ]

@@ -1,0 +1,22 @@
+# Barrier, the technology, on blue's level-2 Hacker: a shield of 50 metres
+# and 32000 energy. Six of the Marksmen's shots land on it, leaving 18026,
+# while the Hacker's beam turns them.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 219
+hash: {profile: mcfr-content-0.22.0, result: 4833a136d4fb25432d0359c0ffd35209e8fb59c3b26a2625948bfaaea7682550}
+blue:
+  techs:
+    hacker: [barrier]
+  units:
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, level: 2, exp: 0/50/1262}
+  - {name: marksman, index: 1, position: {x: 30, y: -110}, exp: 0/350/650}
+red:
+  core_damage: 300
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}}
+  - {name: marksman, index: 1, position: {x: 30, y: -100}}

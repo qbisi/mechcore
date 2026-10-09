@@ -39,8 +39,15 @@ pub(in crate::fight) struct EnergyShield {
     /// stands where it was placed.
     owner: Option<u64>,
     /// `FightEnergyShield.IsActive`: false once a hit empties a shield with
-    /// an owner.
+    /// an owner, or its owner's technologies are switched off.
     pub(in crate::fight) active: bool,
+    /// `EnergyShieldBehaviour.isEnable` of its owner's
+    /// `AdvancedEnergyShieldController`: false while the technologies that
+    /// gave it are switched off.
+    enabled: bool,
+    /// `AdvancedEnergyShieldController.energyRecord`: the energy it had as
+    /// it was switched off, which it gets back.
+    energy_record: i64,
 }
 
 /// A shield a unit carries into the fight: its side, where it starts, how
@@ -116,6 +123,8 @@ fn initialize_shields(
             },
             owner: None,
             active: true,
+            enabled: true,
+            energy_record: 0,
         })
         .chain(carried.iter().map(|shield| EnergyShield {
             id: 0,
@@ -128,6 +137,8 @@ fn initialize_shields(
             source_kind: ShieldSourceKind::OwnerAdvanced,
             owner: Some(shield.owner),
             active: true,
+            enabled: true,
+            energy_record: 0,
         }))
         .collect::<Vec<_>>();
     shields.sort_by_key(|shield| {
@@ -177,6 +188,61 @@ impl Simulation {
                 shield.z_q32 = z_q32;
             }
         }
+    }
+
+    /// `AdvancedEnergyShieldProvider.DisableEffect` and `EnableEffect` of a
+    /// unit's technologies, on the shield it carries.
+    ///
+    /// Switched off, a shield that is available (`IsAvaliable`: active,
+    /// enabled and holding energy) is disabled with its energy recorded
+    /// (`AdvancedEnergyShieldController.Disable`) and deactivated
+    /// (`AdvancedEnergyShieldSystem.DeactiveEnergyShield`): it has no energy
+    /// and leaves its side's active shields. One that is not available is
+    /// left as it is.
+    ///
+    /// Switched on, a shield that was disabled gets its recorded energy back
+    /// (`AdvancedEnergyShieldController.Enable`) and, while its owner lives,
+    /// is activated without being refilled
+    /// (`AdvancedEnergyShieldSystem.ActiveEnergyShield` with no reset),
+    /// joining its side's active shields after every other.
+    pub(in crate::fight) fn switch_carried_shield(&mut self, actor_id: u64, on: bool) {
+        let alive = self.actors.get(&actor_id).is_some_and(Actor::alive);
+        let Some(index) = self
+            .shield
+            .standing
+            .iter()
+            .position(|shield| shield.owner == Some(actor_id))
+        else {
+            return;
+        };
+        let shield = &mut self.shield.standing[index];
+        if !on {
+            if !(shield.active && shield.enabled && shield.energy > 0) {
+                return;
+            }
+            shield.enabled = false;
+            shield.energy_record = shield.energy;
+            shield.active = false;
+            shield.energy = 0;
+            return;
+        }
+        if shield.enabled {
+            return;
+        }
+        shield.enabled = true;
+        shield.energy = shield.energy_record;
+        if !alive {
+            return;
+        }
+        shield.active = true;
+        let shield = self.shield.standing.remove(index);
+        let after = self
+            .shield
+            .standing
+            .iter()
+            .rposition(|standing| standing.team <= shield.team)
+            .map_or(0, |index| index + 1);
+        self.shield.standing.insert(after, shield);
     }
 
     /// Every standing shield as the snapshot holds it.
@@ -240,6 +306,8 @@ impl Simulation {
             source_kind: ShieldSourceKind::CommanderSkill,
             owner: None,
             active: true,
+            enabled: true,
+            energy_record: 0,
         };
         self.shield.created.push(event(
             Some(shield.object_ref()),
