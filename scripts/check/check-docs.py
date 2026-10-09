@@ -272,10 +272,9 @@ def check_rules_evidence_sections(fail):
 
 # The game version is written once, in GAME_VERSION; everything else reads it.
 # A five-part version string, or a build named by number, anywhere else is a
-# second pin that nothing keeps in step. The migration lane is the migration's
-# own record.
+# second pin that nothing keeps in step.
 VERSION_PIN = re.compile(r"\b[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\b|\b[Bb]uild[- ][0-9]{3,}\b")
-VERSION_WRITERS = {"GAME_VERSION", "plan/migration.md"}
+VERSION_WRITERS = {"GAME_VERSION"}
 
 
 def check_version_pins(fail):
@@ -294,12 +293,11 @@ def check_version_pins(fail):
                 fail(f"{name}:{number}: names a game version ({match.group(0)}); GAME_VERSION is the only place")
 
 
-# Chinese is written in docs/terminology/ alone; the plan is kept in Chinese,
-# and the localization and the scripts that read and write it carry the
-# game's own. Elsewhere a Chinese name is quoted only as an identifier, in
+# Chinese is written in docs/terminology/ alone; the localization and the
+# scripts that read and write it carry the game's own. Elsewhere a Chinese name is quoted only as an identifier, in
 # backticks: a replay named by its players.
 CHINESE = re.compile("[\u3400-\u4dbf\u4e00-\u9fff]")
-CHINESE_HOMES = ("plan/", "docs/terminology/")
+CHINESE_HOMES = ("docs/terminology/",)
 CHINESE_FILES = {"config/localization.yaml", "scripts/build_data.py", "scripts/extract/name-tables.py"}
 
 
