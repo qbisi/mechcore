@@ -524,10 +524,9 @@ fn compile_death_summons(
         ) else {
             continue;
         };
-        if let Some(why) = unread_on_a_death_summon(&worn.effects) {
+        if let Some(why) = unread_on_a_joining_unit(&worn.effects, rules, side, loadouts) {
             refused.push(format!(
-                "side {name} summons a {} as a unit dies, which its technologies {why}, which \
-                 is not measured",
+                "side {name} summons a {} as a unit dies that {why}, which is not measured",
                 rules.type_name
             ));
             continue;
@@ -674,26 +673,16 @@ fn compile_battle_skills(
             ) else {
                 continue;
             };
-            if worn.effects.lifesteal.is_some()
-                || worn.effects.auto_recovery.is_some()
-                || worn.effects.energy_shield.is_some()
-                || worn.effects.single.stealth.is_some()
-                || worn.effects.mech_group.is_some()
-                || worn.effects.single.siege_mode.is_some()
-                || worn.effects.main_fire.is_some()
-                || worn.effects.single.wreckage.is_some()
-                || worn.effects.single.rebirth.is_some()
+            if let Some(why) =
+                unread_on_a_joining_unit(&worn.effects, &summon.rules, side, loadouts)
             {
                 refused.push(format!(
-                    "side {name} summons a {} that its technologies give lifesteal, repair, \
-                     a shield, stealth, a group, a trench, a fire, life from wreckage or a \
-                     rebirth, and what a \
-                     summon's effect providers carry is not measured",
+                    "side {name} summons a {} that {why}, which is not measured",
                     summon.rules.type_name
                 ));
                 continue;
             }
-            summon.effects = worn.effects.passed_on();
+            summon.effects = worn.effects;
         }
         battle_skills.push(release);
     }
@@ -928,32 +917,14 @@ fn made_by(
         loadouts,
         refused,
     )?;
-    if worn.effects.lifesteal.is_some()
-        || worn.effects.auto_recovery.is_some()
-        || worn.effects.energy_shield.is_some()
-        || worn.effects.single.stealth.is_some()
-        || worn.effects.distance_intensify
-        || worn.effects.secondary_damage.is_some()
-        || worn.effects.dead_line.is_some()
-        || worn.effects.mech_group.is_some()
-        || worn.effects.move_ability_attack.is_some()
-        || worn.effects.move_ability_range_item.is_some()
-        || worn.effects.interception.is_some()
-        || worn.effects.dead_summon.is_some()
-        || worn.effects.single.siege_mode.is_some()
-        || worn.effects.main_fire.is_some()
-        || worn.effects.single.wreckage.is_some()
-        || worn.effects.single.rebirth.is_some()
-    {
+    if let Some(why) = unread_on_a_joining_unit(&worn.effects, &made, side, loadouts) {
         refused.push(format!(
-            "side {side_name} makes a {} that its technologies give lifesteal, repair, a \
-             shield, a search by distance, a second damage, a dead line, a stronger \
-             surfacing, a sand fog, interceptors, a summon as it dies, a trench, a fire, life from wreckage or a rebirth, and what a made unit's effect providers carry is not measured",
+            "side {side_name} makes a {} that {why}, which is not measured",
             made.type_name
         ));
         return None;
     }
-    let mut effects = worn.effects.passed_on();
+    let mut effects = worn.effects;
     effects
         .corrections
         .extend(line.make_corrections.iter().copied());
@@ -1070,12 +1041,42 @@ fn refuse_travelling_buffs(
     Some(())
 }
 
-/// What a unit summoned as another dies carries that is not measured on one.
-fn unread_on_a_death_summon(effects: &UnitEffects) -> Option<&'static str> {
-    if effects.interception.is_some() {
-        Some("make an interceptor, and when a summon's interceptors start")
-    } else if effects.dead_summon.is_some() {
-        Some("make summon as it dies in turn")
+/// What a unit that joins the fight carries that the fight does not read on
+/// one: made by a line, summoned by a battle skill or summoned as another
+/// dies, it is handed its side's loadout for its type whole
+/// (`TeamFightEffectManager.CreateMechUnitEffectMananger`) and its effects
+/// are activated as it joins (`Simulation::active_effect`), but no template
+/// is compiled for what it summons as it dies in turn, and its placement
+/// carries no production line of its own. A line that makes the unit's own
+/// type is none of its own: `SupportUnitProvider.AvaliableCheck` passes over
+/// it for a unit created in the fight (`FightMech.mechCreateType`), so a
+/// Vortex Mirage makes no Mirage.
+fn unread_on_a_joining_unit(
+    effects: &UnitEffects,
+    rules: &UnitConfig,
+    side: &SidePlan,
+    loadouts: &Loadouts,
+) -> Option<&'static str> {
+    let held = &side.techs.units;
+    let technologies = &loadouts.technologies;
+    let another = |made: u32| made != rules.unit_type_id;
+    if effects.dead_summon.is_some() {
+        Some("its technologies make summon in turn as it dies")
+    } else if technologies
+        .production(held, &rules.type_name)
+        .is_ok_and(|lines| lines.iter().any(|line| another(line.unit_type_id)))
+        || rules.extra_weapons.iter().any(|weapon| {
+            held.contains(&weapon.technology)
+                && weapon
+                    .production
+                    .as_ref()
+                    .is_some_and(|production| another(production.unit_type_id))
+        })
+        || technologies
+            .sources(held, &rules.type_name)
+            .is_ok_and(|sources| sources.surfacing_line.is_some())
+    {
+        Some("its technologies give a production line of its own")
     } else {
         None
     }
@@ -1186,23 +1187,6 @@ pub(crate) struct UnitEffects {
     pub(crate) technology_disable: TechnologyDisable,
     /// What its technology summons where it dies (`DeadSummonTech`).
     pub(crate) dead_summon: Option<DeadSummonOnDeath>,
-}
-
-impl UnitEffects {
-    /// What a production line or a battle skill hands what it makes of
-    /// these: what they write onto its numbers, what a buff that disables
-    /// technology switches off, its reactive armor and its single sources.
-    /// What it holds beyond them the layout refuses before, where a made or
-    /// summoned unit's is not measured, or does not read.
-    fn passed_on(self) -> Self {
-        Self {
-            corrections: self.corrections,
-            technology_disable: self.technology_disable,
-            reactive_armor: self.reactive_armor,
-            single: self.single,
-            ..Self::default()
-        }
-    }
 }
 
 /// What a side's loadout and a formation's equipment hand one unit: its
