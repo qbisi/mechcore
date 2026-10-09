@@ -49,10 +49,12 @@ of a layout does not repeat it inside that part.
 
 `game_build` names the game version whose tables the document is written
 against, the one the repository's `GAME_VERSION` pins and the binary embeds.
-Every writer writes it, and a reader refuses a document
+A reader refuses a document
 that names another build rather than reading it with the wrong tables
 underneath. A document that states no build is the reader's own, because a
-reader has no other build to read it as.
+reader has no other build to read it as, so a writer leaves out the build it
+carries and writes one only where it differs: a version is written in the
+repository only in `GAME_VERSION`.
 
 ```yaml
 kind: layout
