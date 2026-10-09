@@ -306,7 +306,7 @@ fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
     assert_eq!(fought["round"], 2);
 
     // A technology that does more than correct its unit's numbers is
-    // refused, as Damage Sharing is. The fight is run from the position the
+    // refused, as Fire Extinguisher is. The fight is run from the position the
     // round ends in, so what stops it is what the simulator says about that
     // position.
     run(&[
@@ -315,7 +315,7 @@ fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
         &path,
         "--side",
         "red",
-        "{type: upgrade_technology, unit: sledgehammer, tech: damage_sharing}",
+        "{type: upgrade_technology, unit: hound, tech: fire_extinguisher}",
     ])
     .ok();
     run(&["match", "commit", &path, "--side", "red"]).ok();
@@ -323,7 +323,7 @@ fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
     assert_eq!(stopped["phase"], "fight");
     let unresolved = stopped["unresolved"].as_str().unwrap();
     assert!(
-        unresolved.starts_with("round 2 is not fought: side red: technology 613"),
+        unresolved.starts_with("round 2 is not fought: side red: technology 4228"),
         "{unresolved}"
     );
 

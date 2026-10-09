@@ -57,6 +57,7 @@ pub(super) fn placement(
         distance_intensify: false,
         secondary_damage: None,
         dead_line: None,
+        share_distance: None,
         move_ability_attack: None,
         move_ability_range_item: None,
         interception: None,

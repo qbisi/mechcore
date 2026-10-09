@@ -466,29 +466,32 @@ impl Simulation {
         hit: (i64, bool),
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let stroke = self.strike(target, None, team, hit, Provider::Other, events)?;
-        self.count_hit(None, team, target, &stroke)?;
-        self.turned_unit_fell(target, &stroke);
-        if stroke.actual > 0 {
-            events.push(event(
-                None,
-                None,
-                Some(team),
-                Some(target.object_ref()),
-                EventPayload::Damage {
-                    amount: i32::try_from(stroke.actual)
-                        .map_err(|_| Error::new("damage exceeds i32"))?,
-                    skill_slot: None,
-                },
-            ));
-        }
-        if let Some(position) = stroke.death {
-            self.record_ends(vec![(target, position)], events);
+        for (struck, stroke) in self.strike(target, None, team, hit, Provider::Other, events)? {
+            self.count_hit(None, team, struck, &stroke)?;
+            self.turned_unit_fell(struck, &stroke);
+            if stroke.actual > 0 {
+                events.push(event(
+                    None,
+                    None,
+                    Some(team),
+                    Some(struck.object_ref()),
+                    EventPayload::Damage {
+                        amount: i32::try_from(stroke.actual)
+                            .map_err(|_| Error::new("damage exceeds i32"))?,
+                        skill_slot: None,
+                    },
+                ));
+            }
+            if let Some(position) = stroke.death {
+                self.record_ends(vec![(struck, position)], events);
+            }
         }
         Ok(())
     }
 
-    /// Takes one hit's damage off one target, unit or building alike.
+    /// Takes one hit's damage off one target, unit or building alike, and
+    /// answers what each object it reached lost: the target alone, or every
+    /// member alive of a group that shares it, in the group's order.
     ///
     /// The one place this simulator takes life away. A unit remembers who hurt
     /// it and leaves the fight when it dies; a building stops being a target
@@ -503,19 +506,158 @@ impl Simulation {
         hit: (i64, bool),
         provider: Provider,
         events: &mut Vec<Event>,
-    ) -> Result<Stroke> {
+    ) -> Result<Vec<(FightActorRef, Stroke)>> {
+        // `FightCalculator.PerformHitTargetEffect`'s first hit on a unit a
+        // group shares damage with hands its damage, after the unit's rates,
+        // reduction and stealth, to `CalculateGroupDamage`: the whole part of
+        // it over the group's count, dead members counted, to each member
+        // alive in the group's order as a hit of its own, which nothing
+        // raises, reduces or shares again. A dead member's part is lost.
+        if let FightActorRef::Unit(unit_id) = target
+            && self.actors.get(&unit_id).is_some_and(Actor::alive)
+            && let Some(members) = self.sharing_group(unit_id)
+        {
+            let (_, amount) = self.first_hit(unit_id, hit, provider)?;
+            let count = i64::try_from(members.len()).map_err(|_| Error::new("group too large"))?;
+            let share = math::q32_div(amount << 32, count << 32) >> 32;
+            let mut strokes = Vec::with_capacity(members.len());
+            for member in members {
+                if !self.actors[&member].alive() {
+                    continue;
+                }
+                let stroke = self.land(member, (source, source_team), (share, share), events)?;
+                self.after_hit(FightActorRef::Unit(member), source, &stroke, events)?;
+                strokes.push((FightActorRef::Unit(member), stroke));
+            }
+            return Ok(strokes);
+        }
         let stroke = self.strike_target(target, source, source_team, hit, provider, events)?;
-        // `FightMech.OnHitted` raises `OnMechBeHit` once the hit took what it
-        // took, the hit's owner its `damageSourceOwner`.
+        self.after_hit(target, source, &stroke, events)?;
+        Ok(vec![(target, stroke)])
+    }
+
+    /// `FightMech.OnHitted` raises `OnMechBeHit` once the hit took what it
+    /// took, the hit's owner its `damageSourceOwner`.
+    fn after_hit(
+        &mut self,
+        target: FightActorRef,
+        source: Option<ObjectRef>,
+        stroke: &Stroke,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
         if let (FightActorRef::Unit(id), Some(attacker)) = (target, source)
             && stroke.reached_alive
         {
             self.on_mech_be_hit(id, attacker, events)?;
         }
-        Ok(stroke)
+        Ok(())
     }
 
-    #[allow(clippy::too_many_lines)]
+    /// `PerformHitTargetEffect` on a first hit at a unit: it scales the hit
+    /// by the unit's rate on damage taken before it takes any life, and
+    /// counts it as taken with the rate's increases alone, a hit that rate
+    /// does not affect taken whole, and a remote hit takes the unit's rate on
+    /// remote hits; then the unit's damage reduction comes
+    /// off it, though never to below 1, and off a summon's drop only so far;
+    /// a unit in stealth loses none of it, though it counts as taken.
+    /// Answers what it counts as taken and what it deals.
+    fn first_hit(
+        &self,
+        unit_id: u64,
+        (amount, amplified): (i64, bool),
+        provider: Provider,
+    ) -> Result<(i64, i64)> {
+        let unit = self
+            .actors
+            .get(&unit_id)
+            .ok_or_else(|| Error::new("damage target unit is absent"))?;
+        let (taken, amount) = if amplified {
+            (
+                unit.stats.damage_taken_raised(amount)?,
+                unit.stats.damage_taken(amount)?,
+            )
+        } else {
+            (amount, amount)
+        };
+        // A remote hit then takes the unit's rate on remote hits.
+        let amount = if provider.remote() {
+            unit.stats.remote_damage_taken(amount)
+        } else {
+            amount
+        };
+        let amount = if unit.visibility == Visibility::Stealth {
+            0
+        } else {
+            reduced(amount, unit.stats.reduce_damage(), provider)
+        };
+        Ok((taken, amount))
+    }
+
+    /// What `FightMech.OnHitted` and `FightActor.ReduceLife` do with a hit
+    /// on a unit, once its damage is known. A shield with energy left takes
+    /// the hit, as much of it as it holds, and the unit loses no life; what
+    /// it took is what the hit dealt. A unit in stealth loses none of it.
+    fn land(
+        &mut self,
+        unit_id: u64,
+        (source, source_team): (Option<ObjectRef>, u32),
+        (amount, taken): (i64, i64),
+        events: &mut Vec<Event>,
+    ) -> Result<Stroke> {
+        let unit = self
+            .actors
+            .get_mut(&unit_id)
+            .ok_or_else(|| Error::new("damage target unit is absent"))?;
+        let previous_life = unit.life;
+        if let Some(shield) = unit.shield.as_mut()
+            && amount >= 1
+            && shield.energy > 0
+        {
+            let absorbed = shield.energy.min(amount);
+            shield.energy -= absorbed;
+            return Ok(Stroke {
+                actual: absorbed,
+                dealt: amount,
+                taken,
+                killed: false,
+                reached_alive: previous_life > 0,
+                death: None,
+                fallen: None,
+            });
+        }
+        if unit.visibility != Visibility::Stealth {
+            unit.life = unit.life.saturating_sub(amount).max(0);
+        }
+        let actual = previous_life - unit.life;
+        if actual > 0 {
+            unit.last_damage_source = Some((source, source_team));
+        }
+        let killed = unit.life == 0 && previous_life > 0;
+        // `ReduceLife` invokes `OnLifeChange` as soon as it took life,
+        // before the unit's death is handled.
+        if actual > 0 {
+            self.on_life_change(unit_id, events)?;
+        }
+        let unit = &self.actors[&unit_id];
+        let death = (unit.life == 0).then(|| QVec3 {
+            x: unit.x_q32,
+            y: space_to_q32(unit_height(unit.rules.domain)),
+            z: unit.z_q32,
+        });
+        if killed {
+            self.on_actor_dead(unit_id);
+        }
+        Ok(Stroke {
+            actual,
+            dealt: amount,
+            taken,
+            killed: death.is_some(),
+            reached_alive: previous_life > 0,
+            death,
+            fallen: None,
+        })
+    }
+
     fn strike_target(
         &mut self,
         target: FightActorRef,
@@ -527,85 +669,8 @@ impl Simulation {
     ) -> Result<Stroke> {
         match target {
             FightActorRef::Unit(unit_id) => {
-                let unit = self
-                    .actors
-                    .get_mut(&unit_id)
-                    .ok_or_else(|| Error::new("damage target unit is absent"))?;
-                // `PerformHitTargetEffect` scales the hit by the unit's rate on
-                // damage taken before it takes any life, and counts it as taken
-                // with the rate's increases alone; a hit that rate does not
-                // affect is taken whole.
-                let (taken, amount) = if amplified {
-                    (
-                        unit.stats.damage_taken_raised(amount)?,
-                        unit.stats.damage_taken(amount)?,
-                    )
-                } else {
-                    (amount, amount)
-                };
-                // A remote hit then takes the unit's rate on remote hits.
-                let amount = if provider.remote() {
-                    unit.stats.remote_damage_taken(amount)
-                } else {
-                    amount
-                };
-                // Then the unit's damage reduction comes off it, though
-                // never to below 1, and off a summon's drop only so far; a
-                // unit in stealth loses none of it, though it counts as taken.
-                let amount = if unit.visibility == Visibility::Stealth {
-                    0
-                } else {
-                    reduced(amount, unit.stats.reduce_damage(), provider)
-                };
-                let previous_life = unit.life;
-                // `FightMech.OnHitted`: a shield with energy left takes the
-                // hit, as much of it as it holds, and the unit loses no life;
-                // what it took is what the hit dealt.
-                if let Some(shield) = unit.shield.as_mut()
-                    && amount >= 1
-                    && shield.energy > 0
-                {
-                    let absorbed = shield.energy.min(amount);
-                    shield.energy -= absorbed;
-                    return Ok(Stroke {
-                        actual: absorbed,
-                        dealt: amount,
-                        taken,
-                        killed: false,
-                        reached_alive: previous_life > 0,
-                        death: None,
-                        fallen: None,
-                    });
-                }
-                unit.life = unit.life.saturating_sub(amount).max(0);
-                let actual = previous_life - unit.life;
-                if actual > 0 {
-                    unit.last_damage_source = Some((source, source_team));
-                }
-                let killed = unit.life == 0 && previous_life > 0;
-                // `ReduceLife` invokes `OnLifeChange` as soon as it took
-                // life, before the unit's death is handled.
-                if actual > 0 {
-                    self.on_life_change(unit_id, events)?;
-                }
-                let unit = &self.actors[&unit_id];
-                let death = (unit.life == 0).then(|| QVec3 {
-                    x: unit.x_q32,
-                    y: space_to_q32(unit_height(unit.rules.domain)),
-                    z: unit.z_q32,
-                });
-                if killed {
-                    self.on_actor_dead(unit_id);
-                }
-                Ok(Stroke {
-                    actual,
-                    dealt: amount,
-                    taken,
-                    killed: death.is_some(),
-                    reached_alive: previous_life > 0,
-                    death,
-                    fallen: None,
-                })
+                let (taken, amount) = self.first_hit(unit_id, (amount, amplified), provider)?;
+                self.land(unit_id, (source, source_team), (amount, taken), events)
             }
             FightActorRef::Building(building_id) => {
                 let (amount, taken) = if amplified {
@@ -732,8 +797,8 @@ impl Simulation {
             } else {
                 (hit.projectile, hit.skill_slot)
             };
-            let stroke = if let Some(stroke) = culled {
-                stroke
+            let strokes = if let Some(stroke) = culled {
+                vec![(target, stroke)]
             } else {
                 // `DamagePerformer.PerformHitTargetEffect` hands a hit on to
                 // `FightCalculator` only when it deals at least 1: one that deals
@@ -767,33 +832,35 @@ impl Simulation {
                     events,
                 )?
             };
-            self.count_hit(hit.source, hit.source_team, target, &stroke)?;
-            self.turned_unit_fell(target, &stroke);
             struck.targets.push(target);
-            struck.lost += stroke.actual;
-            if stroke.actual > 0 {
-                events.push(event(
-                    carrier,
-                    hit.source,
-                    Some(hit.source_team),
-                    Some(target.object_ref()),
-                    EventPayload::Damage {
-                        amount: i32::try_from(stroke.actual)
-                            .map_err(|_| Error::new("damage exceeds i32"))?,
-                        skill_slot,
-                    },
-                ));
-            }
-            let id = match target {
-                FightActorRef::Unit(id) | FightActorRef::Building(id) => id,
-            };
-            if let Some(position) = stroke.death {
-                struck.deaths.push((id, position));
-                struck.ends.push((target, position));
-            }
-            if let Some(position) = stroke.fallen {
-                struck.fallen.push((id, position));
-                struck.ends.push((target, position));
+            for (reached, stroke) in strokes {
+                self.count_hit(hit.source, hit.source_team, reached, &stroke)?;
+                self.turned_unit_fell(reached, &stroke);
+                struck.lost += stroke.actual;
+                if stroke.actual > 0 {
+                    events.push(event(
+                        carrier,
+                        hit.source,
+                        Some(hit.source_team),
+                        Some(reached.object_ref()),
+                        EventPayload::Damage {
+                            amount: i32::try_from(stroke.actual)
+                                .map_err(|_| Error::new("damage exceeds i32"))?,
+                            skill_slot,
+                        },
+                    ));
+                }
+                let id = match reached {
+                    FightActorRef::Unit(id) | FightActorRef::Building(id) => id,
+                };
+                if let Some(position) = stroke.death {
+                    struck.deaths.push((id, position));
+                    struck.ends.push((reached, position));
+                }
+                if let Some(position) = stroke.fallen {
+                    struck.fallen.push((id, position));
+                    struck.ends.push((reached, position));
+                }
             }
         }
         self.dispatch_hit_damage(hit, &struck.targets, struck.lost, events)?;
@@ -946,7 +1013,7 @@ impl Simulation {
             if amount < 1 {
                 continue;
             }
-            let stroke = self.strike(
+            let strokes = self.strike(
                 target,
                 hit.source,
                 hit.source_team,
@@ -954,31 +1021,33 @@ impl Simulation {
                 hit.provider,
                 events,
             )?;
-            self.count_hit(hit.source, hit.source_team, target, &stroke)?;
-            self.turned_unit_fell(target, &stroke);
-            if stroke.actual > 0 {
-                events.push(event(
-                    hit.projectile,
-                    hit.source,
-                    Some(hit.source_team),
-                    Some(target.object_ref()),
-                    EventPayload::Damage {
-                        amount: i32::try_from(stroke.actual)
-                            .map_err(|_| Error::new("damage exceeds i32"))?,
-                        skill_slot: hit.skill_slot,
-                    },
-                ));
-            }
-            let id = match target {
-                FightActorRef::Unit(id) | FightActorRef::Building(id) => id,
-            };
-            if let Some(position) = stroke.death {
-                struck.deaths.push((id, position));
-                struck.ends.push((target, position));
-            }
-            if let Some(position) = stroke.fallen {
-                struck.fallen.push((id, position));
-                struck.ends.push((target, position));
+            for (reached, stroke) in strokes {
+                self.count_hit(hit.source, hit.source_team, reached, &stroke)?;
+                self.turned_unit_fell(reached, &stroke);
+                if stroke.actual > 0 {
+                    events.push(event(
+                        hit.projectile,
+                        hit.source,
+                        Some(hit.source_team),
+                        Some(reached.object_ref()),
+                        EventPayload::Damage {
+                            amount: i32::try_from(stroke.actual)
+                                .map_err(|_| Error::new("damage exceeds i32"))?,
+                            skill_slot: hit.skill_slot,
+                        },
+                    ));
+                }
+                let id = match reached {
+                    FightActorRef::Unit(id) | FightActorRef::Building(id) => id,
+                };
+                if let Some(position) = stroke.death {
+                    struck.deaths.push((id, position));
+                    struck.ends.push((reached, position));
+                }
+                if let Some(position) = stroke.fallen {
+                    struck.fallen.push((id, position));
+                    struck.ends.push((reached, position));
+                }
             }
         }
         Ok(())
@@ -1365,6 +1434,7 @@ impl Simulation {
     /// A beam's blow: the `blow`th of its skill's attack, from the skill
     /// `skill_ref` holds or the `member`th skill of its group, which the
     /// recording names by its own slot.
+    #[allow(clippy::too_many_lines)]
     pub(in crate::fight) fn laser_effect(
         &mut self,
         skill_ref: SkillRef,
@@ -1444,7 +1514,7 @@ impl Simulation {
         if damage < 1 {
             return Ok(());
         }
-        let stroke = self.strike(
+        let strokes = self.strike(
             target,
             Some(attacker_ref),
             attacker_team,
@@ -1454,41 +1524,46 @@ impl Simulation {
             },
             events,
         )?;
-        self.count_hit(Some(attacker_ref), attacker_team, target, &stroke)?;
-        self.turned_unit_fell(target, &stroke);
-        if let Some(position) = stroke.death {
-            events.push(event(
-                Some(target.object_ref()),
-                Some(attacker_ref),
-                Some(attacker_team),
-                None,
-                EventPayload::UnitDied { position },
-            ));
-        }
-        if stroke.actual > 0 {
-            events.push(event(
-                None,
-                Some(attacker_ref),
-                Some(attacker_team),
-                Some(target.object_ref()),
-                EventPayload::Damage {
-                    amount: i32::try_from(stroke.actual)
-                        .map_err(|_| Error::new("laser damage exceeds i32"))?,
-                    skill_slot: Some(skill_slot),
-                },
-            ));
+        let (mut lost, mut fallen) = (0, Vec::new());
+        for (reached, stroke) in strokes {
+            self.count_hit(Some(attacker_ref), attacker_team, reached, &stroke)?;
+            self.turned_unit_fell(reached, &stroke);
+            if let Some(position) = stroke.death {
+                events.push(event(
+                    Some(reached.object_ref()),
+                    Some(attacker_ref),
+                    Some(attacker_team),
+                    None,
+                    EventPayload::UnitDied { position },
+                ));
+            }
+            if stroke.actual > 0 {
+                events.push(event(
+                    None,
+                    Some(attacker_ref),
+                    Some(attacker_team),
+                    Some(reached.object_ref()),
+                    EventPayload::Damage {
+                        amount: i32::try_from(stroke.actual)
+                            .map_err(|_| Error::new("laser damage exceeds i32"))?,
+                        skill_slot: Some(skill_slot),
+                    },
+                ));
+            }
+            lost += stroke.actual;
+            fallen.extend(stroke.fallen.map(|position| (reached, position)));
         }
         // The beam is its skill's `SkillDamageProvider`, which hands what it
         // took to the skill's hit effects as any hit does.
-        self.steal_life(actor_id, stroke.actual, events)?;
+        self.steal_life(actor_id, lost, events)?;
         // A building the beam fells is recorded at the end of the tick, as a
         // blow's and a projectile's are: in the tower-loss fight with two
         // lanes, the other lane's Steel Ball damages its tower between the
         // beam that fells the first and that tower's `building_destroyed`.
         // The tick's end moves it there, in its place among the deaths.
-        if let Some(position) = stroke.fallen {
+        for (reached, position) in fallen {
             events.push(event(
-                Some(target.object_ref()),
+                Some(reached.object_ref()),
                 None,
                 None,
                 None,

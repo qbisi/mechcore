@@ -14,6 +14,7 @@ out to show:
 | [`battle_skill/`](battle_skill/README.md) | when a released battle skill lands, what it reaches, and what it writes or summons |
 | [`construction/`](construction/README.md) | what a construction becomes in a fight, and what attacks it |
 | [`control/`](control/README.md) | what a control beam turns, what it strikes instead, and what an item or a shield changes about it |
+| [`damage_share/`](damage_share/README.md) | which units a damage-share technology links into a group, and how a hit on one is shared |
 | [`dead_line/`](dead_line/README.md) | the life under which a technology makes its unit's hits destroy what they strike |
 | [`dead_summon/`](dead_summon/README.md) | what a technology makes its unit summon where it dies |
 | [`energy_tower/`](energy_tower/README.md) | what the Energy Tower's fight skills write onto a side, and what they leave alone |

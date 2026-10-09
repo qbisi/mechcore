@@ -537,6 +537,14 @@ impl Simulation {
             if actor.placement.team == team {
                 return Ok(false);
             }
+            // `MechGrounpSystem.ChangeMechGroup` moves a grouped unit to its
+            // new side's manager, which is not measured.
+            if self.holds_group_unit(unit_id) {
+                return Err(Error::new(format!(
+                    "unit {unit_id} shares damage in a group and changes side, which is not \
+                     measured"
+                )));
+            }
             (
                 actor.placement.team,
                 actor.x_q32,

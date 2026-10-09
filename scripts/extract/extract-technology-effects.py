@@ -75,6 +75,7 @@ SUBCLASS_LISTS = (
     ("projectile_duration_value", "durationChangeValue", "multiAttackTechnologies"),
     ("projectile_random_range_value", "randomRangeChangeValue", "multiAttackTechnologies"),
     ("dead_line_value", "deadLineValue", "deadLineTechDatas"),
+    ("share_distance", "distance", "damageShareTechnologies"),
 )
 # The same for a field that is one value rather than a rank list.
 SUBCLASS_SCALARS = (
@@ -132,7 +133,8 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "interceptMissileTechnologyDatas", "splashTechnologies",
                "mobilityIntensifyTechnologies", "multiAttackTechnologies", "stealthTechData",
                "deadLineTechDatas", "moveAbilityAttackIntensifyTechDatas",
-               "moveAbilityRangeItemTechDatas")
+               "moveAbilityRangeItemTechDatas",
+               "damageShareTechnologies")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
@@ -481,6 +483,9 @@ def main() -> int:
         "# (`range_item_range`, `range_item_life_time`) and its rates on the",
         "# attack range of what stands in it and on the remote hits it takes",
         "# (`fog_attack_range_rate`, `reduce_damage_from_remote`).",
+        "# A damage-share technology carries the FPoint metres within which its",
+        "# units link into a group that shares the damage any of them takes",
+        "# (`share_distance`), by its unit's level.",
         "",
         "technologies:",
     ]

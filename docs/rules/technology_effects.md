@@ -93,7 +93,9 @@ projectiles it adds its unit's bursts ([below](#multi-attack-technologies)),
 a stealth technology's with the stealth it puts its unit in once it is hurt
 ([below](#stealth-technologies)), a dead-line technology's with the life
 under which its unit's hits destroy what they strike
-([below](#dead-line-technologies)), a missile interception technology's
+([below](#dead-line-technologies)), a damage-share technology's with the
+group its units share every hit in ([below](#damage-share-technologies)), a
+missile interception technology's
 with the interceptors it makes its unit
 ([below](#missile-interception)), a production technology's with the line it
 runs ([below](#production-lines)), a move-ability attack technology's with
@@ -395,6 +397,43 @@ with the life as damage and charges the target the line as taken: a Crawler
 culled at 250 is charged 320. The hit names no damage provider, so its
 `damage` names neither a projectile nor a skill.
 
+## Damage-share technologies
+
+A row of `damageShareTechnologies` is a `DamageShareTech`: Damage Sharing,
+the Sledgehammer's and the Steel Ball's, whose numbers give their units 120%
+more life, and Grid Integration, the Vortex's, which groups its units for
+another purpose (`mechGroupPurpose` 1, a damage rate by the group's count)
+and is refused by the fields it names in `special`. Its `share_distance` is
+what it answers `IMechGroupSource.GetShareDistance` with, 25 metres, by its
+unit's level. `MechGrounpEffectProvider.DoActive` writes it on the unit as
+its `MechDataChangeFloat.MechGroupDistance` and hands the unit to its side's
+`TeamMechGroupManager` (`AddMech`); a unit travelling in is handed over as it
+arrives, and a unit that dies leaves as `DeadEffectSystem` deactivates its
+effects (`DoDeactive`, `RemoveMech`).
+
+**Units of one type within the distance form a group.** Two units link when
+the edges of their bodies (`FightActor.Distance2D`) are within the distance
+by `FPoint.op_LessThanOrEqual`; the distance is one static the last unit
+taken wrote (`PrepareAvaliableMechs`). As the fight starts, each type's units
+are one group (`RebuildGroup`), put in order squad by squad
+(`MechGroupInternal.Refresh`: by `ActorComparer`, each squad chained onto
+the last by the two ends nearest each other, `LinkMeches`). Every update,
+before `RangeItemSystem` (`Update` falls through to `DoRefresh`), each unit
+in turn splits its group into the parts still linked, a part of one unit
+leaving and the group keeping the first part (`TrySplitGroup`), joins the
+groups it reaches and takes in the units it reaches that have none
+(`UpdateGroupInfo`). The group writes nothing on its members.
+
+**A hit on a member is shared.** `FightCalculator.PerformHitTargetEffect`
+takes a first hit's damage through the target's rates, reduction and
+stealth, and then, the target grouped, hands it to `CalculateGroupDamage`:
+the whole part of the damage over the group's count, dead members counted,
+is dealt to each member alive in the group's order as a hit of its own,
+which no rate, reduction or further share touches, and which each member's
+own shield takes first. The remainder, and a dead member's part, are lost.
+Fifteen Sledgehammers share a Marksman's 2329 as 155 each; each member takes
+its part as taken damage, and the target nothing more.
+
 ## Missile Interception
 
 Missile Interception makes its unit an interceptor: Mustang, Sabertooth,
@@ -618,7 +657,8 @@ What any other provider does switched off, the `AutoRecoveryEffectProvider`,
 `EnergyShieldProvider`, `SweepSkillIntensifyEffectProvider`,
 `AirAttackEffectProvider`, `InterceptMissileEffectProvider`,
 `SupportUnitProvider`, `DeadEffectProvider`, `MoveAbilitySummonProvider`,
-and a cycling buff source's `BuffEffectProvider`, and
+`MechGrounpEffectProvider` and a cycling buff source's `BuffEffectProvider`,
+and
 an extra weapon's production line, other explosion or preemptive skill, or
 group, is not measured: a buff that disables technology reaching a unit whose
 technologies reach one is refused by the provider's name.
@@ -676,6 +716,15 @@ derive (a minimum range):
   lock nothing at a charging Rhino, and none once it is within 75 metres;
   fought with the lock kept, the simulator parts from the game on the first
   shell's aim: `tests/modifier/fights/technology-siege-mode.yaml`.
+- A damage-share technology links its units into groups that share each
+  hit as the whole part of it over their count, in the group's order:
+  fifteen Sledgehammers take a Marksman's 2329 as 155 each, ten a beam's
+  tick as its tenth, eight Steel Balls a Rhino's 3560 as 445, and two
+  squads 140 metres apart share apart:
+  `tests/damage_share/fights/sledgehammers.yaml`,
+  `tests/damage_share/fights/beams.yaml`,
+  `tests/damage_share/fights/steel-balls.yaml`,
+  `tests/damage_share/fights/apart.yaml`.
 - A dead-line technology destroys a unit its unit's shots strike at or
   under the line at its level, before the shot's damage: Culling Rounds
   culls Crawlers at 250 under a level-one Mustang's 320, and Marksmen at 712
@@ -861,6 +910,14 @@ derive (a minimum range):
   random range above zero, which takes turns between the weapons only for a
   skill of two: `ProjectileMultiAttackPerformer.OnStartFirstPerform`,
   `ProjectileMultiAttackPerformer.MultiAttackTargetPositionController.GetAndDeletePositionOffsets`.
+- A damage-share technology's units of one type link within its distance
+  into groups each update, and a first hit on a member is shared among the
+  group's members alive as hits of their own:
+  `MechGrounpEffectProvider.DoActive`, `TeamMechGroupManager.UpdateGroupInfo`,
+  `TeamMechGroupManager.TrySplitGroup`, `TeamMechGroupManager.RebuildGroup`,
+  `MechGroupInternal.Refresh`, `TeamMechGroupManager.LinkMeches`,
+  `FightCalculator.CalculateGroupDamage`,
+  `FightCalculator.PerformHitTargetEffect`.
 - A dead-line technology hands its unit's main skill a pre-hit effect that
   destroys a live unit at or under the line at the owner's level as a
   suicide, before the hit's shield and damage, and charges it the line:

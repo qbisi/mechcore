@@ -1,0 +1,23 @@
+# Damage Sharing on two Steel Ball squads, struck by a Rhino and a Marksman.
+#
+# The eight Steel Balls form one group: a Rhino's 3560 lands as 445 on each,
+# a Marksman's 2329 as 291 (t68 on).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 292
+hash: {profile: mcfr-content-0.22.0, result: f80523025a27ef52db7d2f6874a54f570462ac41070859d1a54c9817cbf11be0}
+blue:
+  techs:
+    steel_ball: [damage_sharing]
+  units:
+  - {name: steel_ball, index: 0, position: {x: -35, y: -100}, exp: 0/250/1000}
+  - {name: steel_ball, index: 1, position: {x: 45, y: -100}, exp: 0/350/1000}
+red:
+  core_damage: 400
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 60, y: -100}}
