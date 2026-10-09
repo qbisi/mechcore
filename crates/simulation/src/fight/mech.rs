@@ -85,7 +85,10 @@ impl Actor {
                 .then(|| mdeg_to_degrees_q32(placement.rotation)),
             turret_aim_q32: None,
             // Read before the placement moves in.
-            buff_cycles: super::buff_cycle::BuffCycle::of(&placement.effects.buff_sources),
+            buff_cycles: super::buff_cycle::BuffCycle::of(
+                &placement.effects.buff_sources,
+                placement.travelling,
+            ),
             buff_cycles_available: true,
             sweep_intensified: true,
             sand_fog_held: true,

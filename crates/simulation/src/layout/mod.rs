@@ -779,7 +779,6 @@ fn compile_formation(
     else {
         return None;
     };
-    refuse_travelling_buffs(side_name, formation, &worn, refused)?;
     let (world_x, world_z, rotation) = world_placement(formation.position, team);
     Some(Placement {
         team,
@@ -1020,26 +1019,6 @@ pub(crate) struct TechnologyDisable {
 
 /// The interceptors a unit's technologies make it, from the one that makes
 /// any: a second is refused, which is not measured.
-/// `BuffCycleController.OnEnterFight` starts no controller on a unit still
-/// travelling, and when one that arrives starts it is not read: a unit
-/// travelling in with a buff its equipment adds is refused.
-fn refuse_travelling_buffs(
-    side_name: &str,
-    formation: &mechcore_document::Placement,
-    worn: &Worn,
-    refused: &mut Refusals,
-) -> Option<()> {
-    if formation.travelling && !worn.effects.buff_sources.is_empty() {
-        refused.push(format!(
-            "side {side_name} unit type {:?} travels in with a buff its equipment adds as \
-             the fight starts, and when a travelling unit's starts is not measured",
-            formation.type_name
-        ));
-        return None;
-    }
-    Some(())
-}
-
 /// What a unit that joins the fight carries that the fight does not read on
 /// one: made by a line, summoned by a battle skill or summoned as another
 /// dies, it is handed its side's loadout for its type whole
