@@ -1,0 +1,23 @@
+# Incendiary Bomb on blue's Stormcaller behind a blue Rhino, against Crawlers
+# and a Rhino. Up to 32 fires of 5.5 metres burn at once, past the fire
+# controller's twentieth, and the red Rhino standing in them takes the fire's
+# 54 thirty times.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 423
+hash: {profile: mcfr-content-0.22.0, result: 7ad7edbef4f1e8f8033cf9686d46d7003ce9c003d13dad1b7ca90d2f2cc0e0a3}
+blue:
+  core_damage: 212
+  techs:
+    stormcaller: [incendiary_bomb]
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -150}, exp: 0/42/1100}
+  - {name: rhino, index: 1, position: {x: 5, y: -95}, exp: 0/126/1150}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450}
+  - {name: rhino, index: 1, position: {x: 45, y: -95}, exp: 0/600/1150}
