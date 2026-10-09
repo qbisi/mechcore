@@ -225,6 +225,9 @@ impl EffectProvider {
     /// - An interception technology's interceptors are disabled and enabled,
     ///   each letting its target go and returning to idle
     ///   (`InterceptEffectBase.DoDisable`, `DoEnable`).
+    /// - A stronger surfacing's linker takes its effect away and holds none
+    ///   while off, its count going on
+    ///   (`FightSkill.SetAttackCountEffectLinkerEnable`).
     /// - A burrowing technology's unit comes up, its buff removed, and its
     ///   manager passes over it (`BurrowSystem.Deactive`) until it is
     ///   switched on (`Active`).
@@ -256,11 +259,9 @@ impl EffectProvider {
             | Self::EnergyShield
             | Self::SweepSkillIntensify
             | Self::AirAttack
-            | Self::InterceptMissile => true,
-            Self::SupportUnit
-            | Self::MoveAbilitySummon
-            | Self::MoveAbilityAttackIntensify
-            | Self::MoveAbilityRangeItem => false,
+            | Self::InterceptMissile
+            | Self::MoveAbilityAttackIntensify => true,
+            Self::SupportUnit | Self::MoveAbilitySummon | Self::MoveAbilityRangeItem => false,
         }
     }
 }

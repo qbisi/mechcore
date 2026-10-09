@@ -146,6 +146,14 @@ which takes the effect away too. Strike's first attack after surfacing deals
 30% more and splashes 10 metres further:
 `tests/move_ability/fights/strike.yaml`.
 
+**Switched off with its technologies, the stronger attacks stop; the shorter
+surfacing stays.** `MoveAbilityAttackIntensifyProvider.DisableEffect` hands
+the main skill `SetAttackCountEffectLinkerEnable(false)`, which takes the
+effect away if it is written and clears the linker's `isEnable`; `TryEffect`
+still counts each attack but writes nothing until `EnableEffect` sets it
+again. The exit time rate `DoActive` wrote is not among what switching takes
+away. Read from the build; no recording holds it.
+
 A row whose `attackPointChange` is not 0 is refused, as the simulator does not
 read it; Strike's is 0.
 
@@ -272,7 +280,9 @@ stands where it was on that tick while every other unit moves.
   `FightSkill.SetAttackCountEffectLinkerCondition`,
   `SkillAttackController.PerformAttack`, `AttackCountEffectLinker.TryEffect`,
   `AttackCountEffectLinker.AddEffect`, `AttackCountEffectLinker.RemoveEffect`,
-  `AttackCountEffectLinker.ResetData`, `FightSkill.ExitFight`.
+  `AttackCountEffectLinker.ResetData`, `FightSkill.ExitFight`,
+  `MoveAbilityAttackIntensifyProvider.DisableEffect`, `EnableEffect`,
+  `FightSkill.SetAttackCountEffectLinkerEnable`.
 
 ### Not established
 

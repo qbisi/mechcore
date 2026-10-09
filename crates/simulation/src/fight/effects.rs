@@ -181,6 +181,11 @@ impl Simulation {
             EffectProvider::EnergyShield => self.switch_energy_shield(actor_id, on),
             EffectProvider::SweepSkillIntensify => self.switch_sweep(actor_id, on),
             EffectProvider::InterceptMissile => self.switch_unit_interception(actor_id, on),
+            EffectProvider::MoveAbilityAttackIntensify => self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable")
+                .switch_attack_count(on),
             EffectProvider::Buff => self.switch_buff_cycles(actor_id, on),
             EffectProvider::ReactiveArmor => self
                 .actors
@@ -212,7 +217,6 @@ impl Simulation {
             | EffectProvider::DeadEffect
             | EffectProvider::MoveAbilitySummon
             | EffectProvider::DeadLine
-            | EffectProvider::MoveAbilityAttackIntensify
             | EffectProvider::MoveAbilityRangeItem
             | EffectProvider::FireIntensify
             | EffectProvider::ClearRangeItem

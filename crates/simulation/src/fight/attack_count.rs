@@ -25,12 +25,16 @@ use crate::modifier::MoveAbilityAttack;
 /// away again.
 const SOURCE: &str = "AttackCountEffectLinker";
 
-/// One main skill's `AttackCountEffectLinker`. Its `isEnable` stays true: a
-/// unit whose technologies can be switched off with this provider is
-/// refused.
+/// One main skill's `AttackCountEffectLinker`.
 #[derive(Debug, Clone, Copy)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "each is a field of `AttackCountEffectLinker`"
+)]
 pub(in crate::fight) struct AttackCountLinker {
     source: MoveAbilityAttack,
+    /// `isEnable`, cleared while its technology is switched off.
+    enabled: bool,
     /// `isCondition`, false from the fight's start (`ResetData`).
     condition: bool,
     /// `hasEffect`: whether its entries are written.
@@ -51,6 +55,7 @@ impl AttackCountLinker {
         rules.underground.as_ref()?;
         Some(Self {
             source,
+            enabled: true,
             condition: false,
             has_effect: false,
             attack_count: 0,
@@ -84,7 +89,7 @@ impl Actor {
             return;
         };
         linker.attack_count += 1;
-        if !linker.condition {
+        if !(linker.enabled && linker.condition) {
             return;
         }
         if linker.source.trigger_count < linker.attack_count {
@@ -116,6 +121,21 @@ impl Actor {
         self.stats
             .refresh(&self.rules)
             .expect("a rate on damage and metres on splash resolve");
+    }
+
+    /// `MoveAbilityAttackIntensifyProvider.DisableEffect` and `EnableEffect`,
+    /// through the main skill's `SetAttackCountEffectLinkerEnable`: off, the
+    /// effect is taken away if it is written; either way `isEnable` follows,
+    /// and the count goes on (`TryEffect` counts before it asks).
+    pub(in crate::fight) fn switch_attack_count(&mut self, on: bool) {
+        let Some(linker) = self.skills.main.attack_count_linker.as_mut() else {
+            return;
+        };
+        let remove = !on && linker.has_effect;
+        linker.enabled = on;
+        if remove {
+            self.remove_attack_count_effect();
+        }
     }
 
     /// `AttackCountEffectLinker.RemoveEffect`.
