@@ -164,6 +164,12 @@ impl Simulation {
         }
         self.count_experience(source, source_team, target, stroke.killed)?;
         self.count_kill(source, target, stroke.killed)?;
+        // `ReactiveArmorSystem.OnReactiveArmorOwnerDamaged` hears it too.
+        if let FightActorRef::Unit(id) = target
+            && let Some(actor) = self.actors.get_mut(&id)
+        {
+            actor.reactive_armor_hit(stroke.actual);
+        }
         let narrow =
             |value: i64| i32::try_from(value).map_err(|_| Error::new("a counted hit exceeds i32"));
         if let Some(key) = source.and_then(|source| self.recorder(source)) {

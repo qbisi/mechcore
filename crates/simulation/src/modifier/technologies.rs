@@ -54,7 +54,8 @@ use super::{
     providers::EffectProvider,
     sources::{
         AutoRecovery, BuffSource, CarriedShield, EnergyShield, LifeSteal, MoveAbilityAttack,
-        MoveAbilityRangeItem, ProductionLine, RecoveryState, Stealth, SweepIntensify,
+        MoveAbilityRangeItem, ProductionLine, ReactiveArmor, RecoveryState, Stealth,
+        SweepIntensify,
     },
 };
 
@@ -122,9 +123,11 @@ const DAMAGE_SHARE: &str = "damageShareTechnologies";
 /// The list whose `AdvancedEnergyShieldTech` is an
 /// `IAdvancedEnergyShieldSource`, which hands its unit a [`CarriedShield`].
 const BARRIER: &str = "advancedEnergyShieldTechnologies";
+/// The list whose `ReactiveArmorTech` is an `IReactiveArmorTechDataSource`.
+const REACTIVE_ARMOR: &str = "reactiveArmorTechDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 24] = [
+const IMPLEMENTED: [&str; 25] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -149,6 +152,7 @@ const IMPLEMENTED: [&str; 24] = [
     MOVE_ABILITY_RANGE_ITEM,
     DAMAGE_SHARE,
     BARRIER,
+    REACTIVE_ARMOR,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -254,6 +258,9 @@ struct Technology {
     /// What it answers `IAdvancedEnergyShieldSource` with, if its class is
     /// one: the energy and the whole metres of radius by its unit's level.
     carried_shield: Option<(Vec<i64>, Vec<i64>)>,
+    /// What it answers `IReactiveArmorTechDataSource` with, if its class is
+    /// one.
+    reactive_armor: Option<ReactiveArmor>,
     /// What it answers `IMoveAbilityAttackIntensify` with, if its class is
     /// one.
     move_ability_attack: Option<MoveAbilityAttack>,
@@ -730,6 +737,12 @@ struct Row {
     barrier_energy: Vec<i64>,
     #[serde(default)]
     barrier_radius: Vec<i64>,
+    /// `ReactiveArmorTechData.damageReduceRate`, an `FPoint` raw rate, and
+    /// `damageReduceCount`, on a row of its list.
+    #[serde(default)]
+    reactive_armor_rate: i64,
+    #[serde(default)]
+    reactive_armor_count: i32,
     /// `MoveAbilityAttackIntensifyTechData`'s fields and the
     /// `exitTimeChangeRate` its tech answers, on a row of its list.
     #[serde(default)]
@@ -1116,6 +1129,10 @@ impl TechnologyEffects {
                 mech_group,
                 carried_shield: (row.kind == BARRIER)
                     .then(|| (row.barrier_energy.clone(), row.barrier_radius.clone())),
+                reactive_armor: (row.kind == REACTIVE_ARMOR).then_some(ReactiveArmor {
+                    rate_q32: row.reactive_armor_rate,
+                    count: row.reactive_armor_count,
+                }),
                 move_ability_attack: (row.kind == MOVE_ABILITY_ATTACK).then_some(
                     MoveAbilityAttack {
                         exit_time_rate_q32: row.exit_time_rate,
@@ -1398,6 +1415,26 @@ impl TechnologyEffects {
             }))
     }
 
+    /// What the first of this side's technologies on one unit type that is
+    /// an `IReactiveArmorTechDataSource` answers. Its `GetDamageReduceValue`
+    /// reads a list no row sets, which `special` would name.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn reactive_armor(
+        &self,
+        held: &[i32],
+        unit_type: &str,
+    ) -> Result<Option<ReactiveArmor>> {
+        self.effects(held, unit_type)?;
+        Ok(held
+            .iter()
+            .filter_map(|id| self.technologies.get(id))
+            .filter(|technology| technology.unit == unit_type)
+            .find_map(|technology| technology.reactive_armor))
+    }
+
     /// The battlefield shield the first of this side's technologies on one
     /// unit type that is an `IAdvancedEnergyShieldSource` makes the unit
     /// carry at its level: `AdvancedEnergyShieldTech.GetShieldValue` and
@@ -1629,6 +1666,7 @@ fn provider_of(kind: &str, self_buff: bool) -> Option<EffectProvider> {
         MOVE_ABILITY_RANGE_ITEM => EffectProvider::MoveAbilityRangeItem,
         DAMAGE_SHARE => EffectProvider::MechGroup,
         BARRIER => EffectProvider::AdvancedEnergyShield,
+        REACTIVE_ARMOR => EffectProvider::ReactiveArmor,
         _ => return None,
     })
 }

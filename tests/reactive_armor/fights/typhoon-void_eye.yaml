@@ -1,0 +1,27 @@
+# Reactive Armor on blue's Typhoon, which hits a Void Eye with
+# Electromagnetic Armor from tick 73: the buff switches its technologies off
+# until tick 193, and the rate leaves it with its count kept. The Void Eye's
+# hit on tick 80 takes the whole 1144 and counts nothing. Switched on, the
+# rate is written again: the Wasps' first five hits, from tick 199, take 40
+# of their 202 each, and the sixth on tick 216 takes 202.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 391
+hash: {profile: mcfr-content-0.22.0, result: 7c991ed523b0e0824a11608d8ef06fb9192518a77169b76cb0915fd9ec82ac33}
+blue:
+  techs:
+    typhoon: [reactive_armor]
+  units:
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/997/1950}
+red:
+  core_damage: 125
+  techs:
+    void_eye: [electromagnetic_armor]
+  units:
+  - {name: void_eye, index: 0, position: {x: 0, y: -60}, exp: 0/200/650}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/50/900}
+  - {name: wasp, index: 2, position: {x: -55, y: -100}, exp: 0/50/900}

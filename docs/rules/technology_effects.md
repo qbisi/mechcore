@@ -97,6 +97,8 @@ under which its unit's hits destroy what they strike
 group its units share every hit in ([below](#damage-share-technologies)), a
 barrier technology's with the battlefield shield its unit carries
 ([contraptions.md](contraptions.md#a-shield)), a
+reactive armor technology's with the rate it puts on its unit's first hits
+([below](#reactive-armor-technologies)), a
 missile interception technology's
 with the interceptors it makes its unit
 ([below](#missile-interception)), a production technology's with the line it
@@ -457,6 +459,31 @@ every one. Five Vortexes in one group each deal 3218, 1570 with 105% more;
 two pairs each deal 2119, and a Vortex alone 1570. A row that names its
 extra skills (`extra_skill_effect`) is refused.
 
+## Reactive armor technologies
+
+A row of `reactiveArmorTechDatas` is a `ReactiveArmorTech`: Reactive Armor,
+the Typhoon's and the Centurion's. It answers `IReactiveArmorTechDataSource`
+with its `reactive_armor_rate`, -0.8, and its `reactive_armor_count`, 5; its
+`GetDamageReduceValue` reads a `damageReduceValues` list no row sets.
+`ReactiveArmorTechEffectProvider.DoActive` lists the unit in its side's
+`ReactiveArmorSystem` with its count (`AddReactiveArmorOwner`), and the
+system's `OnEnterFight` writes the rate on every unit listed as its
+`MechDataChangeFloatRate.AmplifyDamageRate` (`AddEffect`), its count whole.
+A unit travelling in is listed only as it arrives, after that, and is
+refused.
+
+**The rate is on the damage the unit takes.** `PerformHitTargetEffect`
+multiplies a hit on a unit by one plus its buffs' and its own
+`AmplifyDamageRate` increases, then by its buffs' decreases and its own: a
+Marksman's 2329 takes 465 off an armored Typhoon, a Wasp's 202 takes 40.
+
+**It lasts for as many hits as its count.** `FightController.OnActorHitted`
+hands every hit to `OnReactiveArmorOwnerDamaged`, which takes one off the
+count of a unit in force for a hit that took life (`damageReal` above zero)
+and takes the rate away (`RemoveEffect`) once the count is none. The hit
+that does has had the rate, and the next one, in the same tick or later,
+takes its whole damage.
+
 ## Missile Interception
 
 Missile Interception makes its unit an interceptor: Mustang, Sabertooth,
@@ -633,6 +660,12 @@ whose own `DisableEffect` it does not mirror.
   activated without being refilled (`ActiveEnergyShield` with no reset),
   joining its side's active shields after every other. A Fortress's shield
   at 60614 goes on tick 164 and is back at 60614 on tick 301.
+- **A reactive armor's rate leaves its unit, its count kept.**
+  `ReactiveArmorSystem.DisableReactiveArmor` takes the rate of a unit in
+  force away, and `EnableReactiveArmor` writes it again on one with a count
+  left. A hit while it is off takes its whole damage and counts nothing: a
+  Typhoon's armor off takes a Void Eye's 1144 whole, and still has five hits
+  of 40 once it is on.
 - **A search technology's reach and preference leave its unit.** Its
   provider takes away the metres it added to the main skill's range against
   a domain and to what its search counts off a candidate of that domain, and
@@ -934,9 +967,24 @@ derive (a minimum range):
   both come back:
   `tests/technology_disable/fights/impact-scorching-charge.yaml`,
   `tests/technology_disable/fights/impact-scorching-charge-expires.yaml`.
+- Reactive Armor takes the first five hits that take life from its unit at
+  a fifth of their damage, the fifth included, and the next one, in the same
+  tick, whole; switched off, it keeps its count:
+  `tests/reactive_armor/fights/typhoon-wasps.yaml`,
+  `tests/reactive_armor/fights/centurion-wasps.yaml`,
+  `tests/reactive_armor/fights/typhoon-void_eye.yaml`.
 
 ### Read
 
+- Reactive armor: `ReactiveArmorTech.GetDamageReduceRate`,
+  `GetDamageReduceCount`, `GetDamageReduceValue`,
+  `ReactiveArmorTechEffectProvider.DoActive`, `DisableEffect`, `EnableEffect`,
+  `ReactiveArmorSystem.AddReactiveArmorOwner`, `OnEnterFight`, `AddEffect`,
+  `RemoveEffect`, `OnReactiveArmorOwnerDamaged`, `DisableReactiveArmor`,
+  `EnableReactiveArmor`, `ReactiveArmorSystem.Init` (listening to
+  `FightController.OnActorHittedEvent`), `FightController.OnActorHitted`,
+  `FightCalculator.PerformHitTargetEffect`, `FightMech.GetDataFloatAddRate`,
+  `FightMech.GetDataFloatReduceRate`.
 - A technology answers the same correction interface an officer does, so its
   fields land in the same channels: `TechnologyData.lifeChangeRate`,
   `TechnologyData.damageChangeRate`, `TechnologyData.attackRangeChangeValue`.

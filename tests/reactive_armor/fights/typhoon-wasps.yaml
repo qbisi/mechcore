@@ -1,0 +1,23 @@
+# Reactive Armor on blue's Typhoon against three Wasps. The technology's
+# rate of -0.8 is on the Typhoon's damage taken from the fight's start: the
+# Wasps' first five hits, from tick 194 to 207, take 40 of their 202 each.
+# The fifth takes the rate away, and every later hit takes 202.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 340
+hash: {profile: mcfr-content-0.22.0, result: 7b60178de9df39f1d6516e9c361c7cb5969abe7e14a2f9fd8bcec65cfd412a26}
+blue:
+  techs:
+    typhoon: [reactive_armor]
+  units:
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/1224/1950}
+red:
+  core_damage: 250
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}}
+  - {name: wasp, index: 2, position: {x: -55, y: -100}}

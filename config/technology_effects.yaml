@@ -96,6 +96,9 @@ schema: mechcore.technology_effects
 # A barrier technology carries the energy and the whole metres of
 # radius of the battlefield shield its unit carries (`barrier_energy`,
 # `barrier_radius`), by its unit's level.
+# A reactive armor technology carries the FPoint rate on the damage its
+# unit takes (`reactive_armor_rate`) and how many hits dealing it damage
+# the rate lasts (`reactive_armor_count`).
 
 technologies:
   - id: 206
@@ -1254,10 +1257,14 @@ technologies:
     name: 反应装甲
     unit: typhoon
     kind: reactiveArmorTechDatas
+    reactive_armor_rate: -3435973836
+    reactive_armor_count: 5
   - id: 5132
     name: 反应装甲
     unit: centurion
     kind: reactiveArmorTechDatas
+    reactive_armor_rate: -3435973836
+    reactive_armor_count: 5
   - id: 5222
     name: 维修阵列
     unit: typhoon

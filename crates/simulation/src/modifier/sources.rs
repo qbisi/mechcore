@@ -306,6 +306,16 @@ pub(crate) struct CarriedShield {
     pub(crate) energy: i64,
 }
 
+/// What an `IReactiveArmorTechDataSource` answers: the rate on the damage
+/// its unit takes (`GetDamageReduceRate`) and how many hits dealing it damage
+/// the rate lasts (`GetDamageReduceCount`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct ReactiveArmor {
+    /// An `FPoint` raw rate, -0.8 on every row.
+    pub(crate) rate_q32: i64,
+    pub(crate) count: i32,
+}
+
 /// What a `SupportUnitEquipment` or a `SupportUnitTech` answers
 /// `ISupportDataSource` with: a production line its wearer runs, whose makes
 /// stand at set offsets from it or about it.

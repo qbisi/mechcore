@@ -61,6 +61,9 @@ pub(crate) enum EffectProvider {
     MechGroup,
     /// `AdvancedEnergyShieldProvider`, for an `IAdvancedEnergyShieldSource`.
     AdvancedEnergyShield,
+    /// `ReactiveArmorTechEffectProvider`, for an
+    /// `IReactiveArmorTechDataSource`.
+    ReactiveArmor,
 }
 
 impl EffectProvider {
@@ -87,6 +90,7 @@ impl EffectProvider {
             Self::MoveAbilityRangeItem => "MoveAbilityRangeItemProvider",
             Self::MechGroup => "MechGrounpEffectProvider",
             Self::AdvancedEnergyShield => "AdvancedEnergyShieldProvider",
+            Self::ReactiveArmor => "ReactiveArmorTechEffectProvider",
         }
     }
 
@@ -119,6 +123,9 @@ impl EffectProvider {
     /// - A barrier technology's shield is disabled and deactivated, its
     ///   energy recorded, and given back that energy and activated again
     ///   (`AdvancedEnergyShieldProvider.DisableEffect`, `EnableEffect`).
+    /// - A reactive armor's rate leaves its unit, its count kept, and comes
+    ///   back while the count lasts (`ReactiveArmorSystem.DisableReactiveArmor`,
+    ///   `EnableReactiveArmor`).
     ///
     /// Every other provider does more, which is not measured.
     pub(crate) const fn disable_read(self) -> bool {
@@ -132,7 +139,8 @@ impl EffectProvider {
             | Self::StealthTech
             | Self::DeadLine
             | Self::MechGroup
-            | Self::AdvancedEnergyShield => true,
+            | Self::AdvancedEnergyShield
+            | Self::ReactiveArmor => true,
             Self::AutoRecovery
             | Self::EnergyShield
             | Self::SweepSkillIntensify
