@@ -1506,7 +1506,6 @@ impl TechnologyEffects {
                 Ok(clear) => (clear, effect),
                 Err(why) => (None, Err(why)),
             };
-            let self_buff = buff_source.as_ref().is_some_and(adds_its_unit_a_buff);
             let technology = Technology {
                 unit: row.unit.clone(),
                 exp_rate: row.exp_rate.clone(),
@@ -1594,7 +1593,7 @@ impl TechnologyEffects {
                     hits_main_target: row.secondary_hits_main_target,
                     buffed: row.secondary_buffed,
                 }),
-                provider: provider_of(&row.kind, self_buff),
+                provider: provider_of(&row.kind),
                 can_disable,
             };
             if technologies.insert(id, technology).is_some() {
@@ -2136,24 +2135,12 @@ fn mech_group_of(
     )))
 }
 
-/// Whether a buff technology's buff goes on its own unit: one of a range
-/// cycle that reaches only it, or one its unit's hit or being hit adds.
-fn adds_its_unit_a_buff(buff: &BuffSource) -> bool {
-    matches!(
-        buff.trigger,
-        crate::modifier::BuffTrigger::All(crate::modifier::AllCycle { reach: None, .. })
-            | crate::modifier::BuffTrigger::Hit
-            | crate::modifier::BuffTrigger::BeHit
-            | crate::modifier::BuffTrigger::Damaged
-    )
-}
-
 /// What a row writes at each level, or why this build will not apply it.
 /// The provider beside the numbers' a row's class reaches: the interface it
 /// answers beside `IDataModifier`. A plain, mobility, damage intensify,
 /// splash or multi-attack technology answers none, its class a
 /// `Technology` or a `DataModifyTech` alone.
-fn provider_of(kind: &str, self_buff: bool) -> Option<EffectProvider> {
+fn provider_of(kind: &str) -> Option<EffectProvider> {
     Some(match kind {
         LIFESTEAL => EffectProvider::LifeSteal,
         AUTO_RECOVERY => EffectProvider::AutoRecovery,
@@ -2163,7 +2150,7 @@ fn provider_of(kind: &str, self_buff: bool) -> Option<EffectProvider> {
         SEARCH_TARGET_SPECIFIC => EffectProvider::SearchTargetSpecific,
         AIR_ATTACK => EffectProvider::AirAttack,
         SECONDARY_DAMAGE => EffectProvider::SecondaryDamageIntensify,
-        BUFF => EffectProvider::Buff { cycles: !self_buff },
+        BUFF => EffectProvider::Buff,
         INTERCEPT => EffectProvider::InterceptMissile,
         SUPPORT => EffectProvider::SupportUnit,
         DEAD_SUMMON | REBIRTH | DEAD_ACID => EffectProvider::DeadEffect,

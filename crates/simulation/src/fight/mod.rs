@@ -301,6 +301,9 @@ struct Actor {
     shield: Option<PersonalShield>,
     /// Its `BuffCycleController`s, one for each of its buff sources.
     buff_cycles: Vec<buff_cycle::BuffCycle>,
+    /// Their `isAvailable`, which `BuffEffectProvider.DoDisableCycle` and
+    /// `DoEnableCycle` switch for all of them at once.
+    buff_cycles_available: bool,
     /// `BuffManager.beHitDelayBuffInfos`: the buffs that disable technology
     /// a unit it hit queued on it, each with that unit, which
     /// `InvokeDelayAddBuff` adds as its `BuffManager.Update` ends.

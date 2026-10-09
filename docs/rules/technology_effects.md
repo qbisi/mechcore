@@ -1196,16 +1196,25 @@ whose own `DisableEffect` it does not mirror.
   to the one kept and writes the rates and life rate at it. A Rhino with
   Combat Evolvement at two stacks loses its 9% damage as the Electromagnetic
   Impact lands and its 5% life at its next second; the buff run out, its next
-  second writes three stacks. A buff source that adds its buff once onto its
-  unit is the only kind read: one that cycles over the units around stops
-  (`BuffEffectProvider.DoDisableCycle`), and a cleared buff that does not
-  stack is removed, neither measured.
+  second writes three stacks. A cleared buff that does not stack is removed,
+  which is not measured.
 
-What any other provider does switched off, the `AutoRecoveryEffectProvider`,
-`EnergyShieldProvider`, `SweepSkillIntensifyEffectProvider`,
+  Every buff controller of the unit stops too, whichever source it is of,
+  once one of its technologies that switches is a buff source
+  (`BuffEffectProvider.DisableEffect` runs `DoDisableCycle` over every source
+  the provider holds): its `isAvailable` cleared and its listener taken off
+  (`BuffCycleController.RemoveListener`), so `Update` passes over it and
+  being hit or losing life adds nothing. Switched on, `DoEnableCycle` puts the
+  listener back, sets `isAvailable` and `timeSum` to zero: a cycle under
+  `All` counts its delay or interval again from nothing, and a range cycle's
+  `RangeUnitCycle` keeps where it stood. A hit's buff is the skill's hit
+  effect and not a listener: `BuffCycleController.PerformHitEffect` adds
+  nothing while the technologies are off for a source that `CanDisable`.
+  Read from the build; no recording holds a cycling buff switched off.
+
+What any other provider does switched off, the `EnergyShieldProvider`, `SweepSkillIntensifyEffectProvider`,
 `AirAttackEffectProvider`, `InterceptMissileEffectProvider`,
-`SupportUnitProvider`, `DeadEffectProvider`, `MoveAbilitySummonProvider`
-and a cycling buff source's `BuffEffectProvider`, and
+`SupportUnitProvider`, `DeadEffectProvider` and `MoveAbilitySummonProvider`, and
 an extra weapon's production line, other explosion or preemptive skill, or
 group, is not measured: a buff that disables technology reaching a unit whose
 technologies reach one is refused by the provider's name.
@@ -1973,6 +1982,7 @@ derive (a minimum range):
   `SearchTargetSpecificProvider.DoEnable`,
   `SearchTargetController.SetTargetSelector`,
   `BuffEffectProvider.DisableEffect`, `BuffEffectProvider.DoDisableCycle`,
+  `BuffEffectProvider.DoEnableCycle`, `BuffCycleController.RemoveListener`,
   `BuffManager.ClearSelfResourceBuffByDisableTech`,
   `Buff.ResetAdditiveEffectStackByDisableTech`,
   `IBEC_AdditiveEffectBuff.AddAdditiveStack`,
@@ -2076,8 +2086,7 @@ derive (a minimum range):
   line (`SupportUnitCreator`), an explosion or preemptive skill other than a
   permanent preemptive explosion, an active permanent preemptive skill
   (`PreemptiveSkillController.Update` gives it up), a group, a unit's own shield
-  (`EnergyShieldProvider.DisableEffect`), a buff source that
-  cycles over the units around its unit, a cleared buff that does not
+  (`EnergyShieldProvider.DisableEffect`), a cleared buff that does not
   stack, a sweep's change, an air attack's switch. Refused.
 - **A unit's interceptors switched off.** `InterceptMissileEffectProvider.DisableEffect`
   disables each and lets it idle (`InterceptEffectBase.DoDisable`); no

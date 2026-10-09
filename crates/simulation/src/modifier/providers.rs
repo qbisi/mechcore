@@ -33,10 +33,8 @@ pub(crate) enum EffectProvider {
     AirAttack,
     /// `SecondaryDamageIntensifyEffectProvider`.
     SecondaryDamageIntensify,
-    /// `BuffEffectProvider`, for an `IEffectBuffDataSource`; `cycles` when
-    /// its buff runs on the units around its unit rather than once on the
-    /// unit itself.
-    Buff { cycles: bool },
+    /// `BuffEffectProvider`, for an `IEffectBuffDataSource`.
+    Buff,
     /// `InterceptMissileEffectProvider`, for an
     /// `IInterceptEffectProviderDataSource`.
     InterceptMissile,
@@ -85,7 +83,7 @@ pub(crate) enum EffectProvider {
 impl EffectProvider {
     /// Every provider, in the order the fight hands a unit to each as
     /// `FightEffectSystem` activates, deactivates or switches its effects.
-    pub(crate) const ALL: [Self; 30] = [
+    pub(crate) const ALL: [Self; 29] = [
         Self::InterceptMissile,
         Self::StealthTech,
         Self::MechGroup,
@@ -102,8 +100,7 @@ impl EffectProvider {
         Self::SearchTargetSpecific,
         Self::AirAttack,
         Self::SecondaryDamageIntensify,
-        Self::Buff { cycles: false },
-        Self::Buff { cycles: true },
+        Self::Buff,
         Self::SupportUnit,
         Self::DeadEffect,
         Self::MoveAbilitySummon,
@@ -129,7 +126,7 @@ impl EffectProvider {
             Self::SearchTargetSpecific => "SearchTargetSpecificProvider",
             Self::AirAttack => "AirAttackEffectProvider",
             Self::SecondaryDamageIntensify => "SecondaryDamageIntensifyEffectProvider",
-            Self::Buff { .. } => "BuffEffectProvider",
+            Self::Buff => "BuffEffectProvider",
             Self::InterceptMissile => "InterceptMissileEffectProvider",
             Self::SupportUnit => "SupportUnitProvider",
             Self::DeadEffect => "DeadEffectProvider",
@@ -168,9 +165,10 @@ impl EffectProvider {
     ///   (`ExtraSkillProvider.DisableSkill`), which the layout refuses for the
     ///   shapes it does not fight switched off.
     /// - A buff added once onto its own unit is cleared
-    ///   (`BuffManager.ClearSelfResourceBuffByDisableTech`); one that cycles
-    ///   over the units around stops (`BuffEffectProvider.DoDisableCycle`),
-    ///   and how it starts again is not measured.
+    ///   (`BuffManager.ClearSelfResourceBuffByDisableTech`), and every buff
+    ///   controller of the unit stops, its listener taken off, and starts
+    ///   again at no time (`BuffEffectProvider.DoDisableCycle`,
+    ///   `DoEnableCycle`).
     /// - A stealth technology's unit is shown and counts as triggered
     ///   (`StealthTechSystem.DisableStealthTech`).
     /// - A dead-line technology's pre-hit effect is taken off its unit's
@@ -227,7 +225,7 @@ impl EffectProvider {
             | Self::ArmorStrengthen
             | Self::SearchTargetSpecific
             | Self::SecondaryDamageIntensify
-            | Self::Buff { cycles: false }
+            | Self::Buff
             | Self::ExtraSkill
             | Self::StealthTech
             | Self::DeadLine
@@ -247,7 +245,6 @@ impl EffectProvider {
             Self::EnergyShield
             | Self::SweepSkillIntensify
             | Self::AirAttack
-            | Self::Buff { cycles: true }
             | Self::InterceptMissile
             | Self::SupportUnit
             | Self::MoveAbilitySummon

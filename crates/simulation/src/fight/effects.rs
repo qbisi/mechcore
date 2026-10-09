@@ -44,7 +44,7 @@ impl Simulation {
                 | EffectProvider::SearchTargetSpecific
                 | EffectProvider::AirAttack
                 | EffectProvider::SecondaryDamageIntensify
-                | EffectProvider::Buff { .. }
+                | EffectProvider::Buff
                 | EffectProvider::SupportUnit
                 | EffectProvider::DeadEffect
                 | EffectProvider::MoveAbilitySummon
@@ -84,7 +84,7 @@ impl Simulation {
                 | EffectProvider::SearchTargetSpecific
                 | EffectProvider::AirAttack
                 | EffectProvider::SecondaryDamageIntensify
-                | EffectProvider::Buff { .. }
+                | EffectProvider::Buff
                 | EffectProvider::SupportUnit
                 | EffectProvider::DeadEffect
                 | EffectProvider::MoveAbilitySummon
@@ -127,7 +127,7 @@ impl Simulation {
                 | EffectProvider::SearchTargetSpecific
                 | EffectProvider::AirAttack
                 | EffectProvider::SecondaryDamageIntensify
-                | EffectProvider::Buff { .. }
+                | EffectProvider::Buff
                 | EffectProvider::SupportUnit
                 | EffectProvider::DeadEffect
                 | EffectProvider::MoveAbilitySummon
@@ -178,6 +178,7 @@ impl Simulation {
             EffectProvider::RvoRadiusChange => self.switch_rvo_radius_change(actor_id, on),
             EffectProvider::Repair => self.switch_repair(actor_id, on),
             EffectProvider::AutoRecovery => self.switch_auto_recovery(actor_id, on),
+            EffectProvider::Buff => self.switch_buff_cycles(actor_id, on),
             EffectProvider::ReactiveArmor => self
                 .actors
                 .get_mut(&actor_id)
@@ -204,7 +205,6 @@ impl Simulation {
             | EffectProvider::SearchTargetSpecific
             | EffectProvider::AirAttack
             | EffectProvider::SecondaryDamageIntensify
-            | EffectProvider::Buff { .. }
             | EffectProvider::SupportUnit
             | EffectProvider::DeadEffect
             | EffectProvider::MoveAbilitySummon
