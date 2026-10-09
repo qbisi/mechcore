@@ -639,7 +639,8 @@ Field Reassembly and 240 for Quantum Reassembly, the unit stands where it
 fell, or where its pilot flies, facing as the Phoenix it rises behind
 (`RebirthTask.RebirthMech`): its whole life back, with no heal
 (`FightMech.ForceRecoveryLife`), among its side's active units again
-(`FightTeam.ActiveMech`), its technologies' effects active again
+(`FightTeam.ActiveMech`), so that it updates after every other unit of its
+side, its technologies' effects active again
 (`FightEffectSystem.ActiveEffect`), and every skill's interval drawn again
 and its attack time at it, so its first blow is due (`FightMech.EnterFight`). It is counted
 reborn (`FightMech.AddRebirthCount`), which cuts its score
@@ -1096,7 +1097,10 @@ derive (a minimum range):
   lands on a point drawn from blue's stream, follows by its lerp and its
   swing's offset, and rises 240 ticks after it fell facing as the Phoenix it
   follows, its interval drawn again; pilots with no Phoenix left fail:
-  `tests/rebirth/fights/quantum-reassembly.yaml`.
+  `tests/rebirth/fights/quantum-reassembly.yaml`. Seven pilots behind one
+  Phoenix take its second row, and a Phoenix that rises updates after its
+  side's others, in the order they rose:
+  `tests/rebirth/fights/quantum-reassembly-rows.yaml`.
 - Loose Formation keeps its Crawlers 3.4 apart each as they walk, and 1.5
   once their lock is within 25: `tests/loose_formation/fights/crawler-rhino.yaml`.
   Disabled, they keep 1.5: `tests/loose_formation/fights/crawler-impact.yaml`.
@@ -1673,9 +1677,8 @@ derive (a minimum range):
 
 ### Not established
 
-- **A second row of pilots, and a tie between points.** No recording holds
-  more than two pilots behind one Phoenix; the sort that orders points at
-  one distance follows `List.Sort` as read.
+- **A tie between points.** The sort that orders points at one distance
+  follows `List.Sort` as read; no recording tells it from a stable one.
 - **A rebirth beside another dead effect, switched off, or of a turned or
   summoned unit.** No recording holds one; the order of `DeadEffectSystem`'s
   controllers, `DeadEffectProvider.DisableEffect` and a rebirth to another

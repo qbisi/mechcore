@@ -1,0 +1,33 @@
+# Quantum Reassembly on blue's seven pairs of Phoenixes, six near three
+# Fortresses with Anti-Air Barrage and one far. Up to seven pilots follow one
+# Phoenix, the sixth and seventh on the second row of its points, and their
+# Phoenixes rise behind it. A Phoenix that rises updates after every unit of
+# its side: the one that rose on tick 266 fires before the one that rose on
+# 271 at tick 354, though it was deployed after it.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 383
+hash: {profile: mcfr-content-0.23.0, result: 5436125c940843cdfd48875e64a2b206fb202a67d79d217a8f1a9f3f81192f86}
+blue:
+  techs:
+    phoenix: [quantum_reassembly]
+  units:
+  - {name: phoenix, index: 0, position: {x: -100, y: -40}, exp: 0/466/1300}
+  - {name: phoenix, index: 1, position: {x: -60, y: -40}, exp: 0/66/1300}
+  - {name: phoenix, index: 2, position: {x: -20, y: -40}}
+  - {name: phoenix, index: 3, position: {x: 20, y: -40}, exp: 0/466/1300}
+  - {name: phoenix, index: 4, position: {x: 60, y: -40}, exp: 0/66/1300}
+  - {name: phoenix, index: 5, position: {x: 100, y: -40}, exp: 0/266/1300}
+  - {name: phoenix, index: 6, position: {x: 120, y: -260}, exp: 0/666/1300}
+red:
+  core_damage: 550
+  techs:
+    fortress: [anti_air_barrage]
+  units:
+  - {name: fortress, index: 0, position: {x: -60, y: -40}, exp: 0/500/1600}
+  - {name: fortress, index: 1, position: {x: 60, y: -40}, exp: 0/950/1600}
+  - {name: fortress, index: 2, position: {x: 0, y: -80}, exp: 0/550/1600}
