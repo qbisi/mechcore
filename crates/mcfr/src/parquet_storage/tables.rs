@@ -255,6 +255,27 @@ pub fn column_tags(table: &str, path: &[&str], parent: &Fields) -> Option<Vec<(u
     })
 }
 
+/// One event kind as a reader of the events table sees it: its type tag's
+/// name, the payload columns it may set, and the names of its `reason`'s tags.
+pub struct EventKindColumns {
+    pub name: &'static str,
+    pub payload: &'static [&'static str],
+    pub reason_tags: Option<Vec<(u8, String)>>,
+}
+
+/// Every event kind, in tag order.
+#[must_use]
+pub fn event_kinds() -> Vec<EventKindColumns> {
+    event_table::KINDS
+        .iter()
+        .map(|kind| EventKindColumns {
+            name: event_table::kind_name(*kind),
+            payload: event_table::payload_fields(*kind),
+            reason_tags: event_table::reason_tags(*kind),
+        })
+        .collect()
+}
+
 fn name<E: Serialize>(value: &E) -> String {
     match serde_json::to_value(value) {
         Ok(serde_json::Value::String(name)) => name,
