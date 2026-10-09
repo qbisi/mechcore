@@ -35,10 +35,10 @@ const FOG_SOURCE: &str = "FogController";
 /// What tags the entries a sand fog writes, as [`FOG_SOURCE`] a fog's.
 const FOG_SAND_SOURCE: &str = "FogSandController";
 
-/// A `RangeItemController`'s quadtree holds 20 items to a node before it
-/// splits; a split changes the order units are found in, which is not
-/// read, so a controller is refused that many.
-const ITEMS_BEFORE_A_SPLIT: usize = 19;
+/// `RangeItemController`'s `FightQuadtree<RangeItem>` is made with
+/// `MaxDepth` 7 (and 20 elements to a node before it splits, as every fight
+/// quadtree).
+const TERRAIN_QUADTREE_MAX_DEPTH: u8 = 7;
 
 /// `RangeItemSystem`: every terrain, and a controller per kind in play.
 #[derive(Default)]
@@ -102,7 +102,11 @@ enum Layout {
 /// `affectedUnitTimes`).
 struct TerrainController {
     kind: TerrainKind,
+    /// `rangeItems`, in the order they were added.
     items: Vec<u64>,
+    /// `quadtree`: the same items by their bounds (`RangeItem.GetBounds`),
+    /// which `UpdateAffectedActorChange` walks.
+    tree: FightQuadtree<u64>,
     affected: Vec<Affected>,
     /// `effectTimeDuration` in ticks: how often a periodic effect repeats,
     /// none for a fog's.
@@ -113,6 +117,20 @@ struct Affected {
     unit: u64,
     terrain: u64,
     time: i32,
+}
+
+/// `RangeItem.GetBounds`: a square about where the item stands, as wide as
+/// its range (`IRangeItemProvider.GetRangeItemRange`), where a unit's bounds
+/// are twice its radius wide.
+fn item_bounds(x_q32: i64, z_q32: i64, range_q32: i64) -> TargetActorRect {
+    let low = range_q32 / 2;
+    let high = range_q32 - low;
+    TargetActorRect {
+        min_x: x_q32.saturating_sub(low),
+        min_z: z_q32.saturating_sub(low),
+        max_x: x_q32.saturating_add(high),
+        max_z: z_q32.saturating_add(high),
+    }
 }
 
 /// A controller's place in `RangeItemSystem.Init`, which `Update` keeps:
@@ -248,12 +266,6 @@ impl Simulation {
             return Ok(repeat);
         }
         let index = self.controller_for(spec);
-        if self.terrain.controllers[index].items.len() >= ITEMS_BEFORE_A_SPLIT {
-            return Err(Error::new(format!(
-                "{name} leaves its kind's twentieth terrain, which splits its controller's \
-                 quadtree, and what that does to the order units are found in is not read"
-            )));
-        }
         let grid = self.lay_out((x_q32, z_q32, spec.radius_q32), layout)?;
         self.terrain.next_key += 1;
         let key = self.terrain.next_key;
@@ -273,7 +285,11 @@ impl Simulation {
                 grid,
             },
         );
-        self.terrain.controllers[index].items.push(key);
+        let controller = &mut self.terrain.controllers[index];
+        controller.items.push(key);
+        controller
+            .tree
+            .insert_range(key, item_bounds(x_q32, z_q32, spec.radius_q32));
         if spec.kind == TerrainKind::Fire {
             self.ignite_oils(key)?;
         }
@@ -319,15 +335,24 @@ impl Simulation {
         let Some(index) = self.controller_of(TerrainKind::Oil) else {
             return Ok(());
         };
+        // `CheckInteractableItems` asks the oils' quadtree, whose order once
+        // a node has split is not read.
+        if self.terrain.controllers[index].tree.root.children.is_some() {
+            return Err(Error::new(
+                "a fire reaching oils after their controller's quadtree split is not read",
+            ));
+        }
         let mut reached = Vec::new();
         for &key in &self.terrain.controllers[index].items {
             if self.terrain_reaches(key, (x_q32, z_q32, radius_q32))? {
                 reached.push(key);
             }
         }
-        self.terrain.controllers[index]
-            .items
-            .retain(|key| !reached.contains(key));
+        let controller = &mut self.terrain.controllers[index];
+        controller.items.retain(|key| !reached.contains(key));
+        for &key in &reached {
+            controller.tree.remove(key);
+        }
         for oil in reached {
             let oil = &self.terrain.terrains[&oil];
             let (provider, spec, position) = (
@@ -430,6 +455,7 @@ impl Simulation {
             TerrainController {
                 kind: spec.kind,
                 items: Vec::new(),
+                tree: FightQuadtree::with_max_depth(TERRAIN_QUADTREE_MAX_DEPTH),
                 affected: Vec::new(),
                 period: match spec.effect {
                     TerrainEffect::Fog { .. } | TerrainEffect::FogSand { .. } => None,
@@ -593,55 +619,38 @@ impl Simulation {
     /// `RangeItemController.Remove`: the terrain leaves its controller,
     /// which still holds any unit that stood in it until it next updates.
     fn remove_terrain(&mut self, index: usize, key: u64, reason: TerrainRemovedReason) {
-        self.terrain.controllers[index]
-            .items
-            .retain(|&item| item != key);
+        let controller = &mut self.terrain.controllers[index];
+        controller.items.retain(|&item| item != key);
+        // `RangeItem.Remove` raises `OnDestroyed`, which takes it out of the
+        // quadtree, keeping the order of the rest.
+        controller.tree.remove(key);
         self.terrain.reasons.insert(key, reason);
     }
 
-    /// `UpdateAffectedActorChange`. Side by side, each item against every
-    /// unit of the side found by querying its units' tree with the item
-    /// tree's node: a ground unit valid as a target whose edge the item's
-    /// range reaches, in two dimensions. Every affected unit not found
-    /// leaves, last first; every unit found that is not affected enters the
-    /// first item it was found in, and one already affected keeps its own.
+    /// `UpdateAffectedActorChange`. Side by side, the item tree's nodes the
+    /// side's units' tree is interactable with
+    /// (`FightQuadtree.GetInteractableNodes`), and for each, each of its
+    /// items against every unit found by querying the units' tree with the
+    /// node's rect: a ground unit valid as a target whose edge the item's
+    /// range reaches, in two dimensions. While the item tree holds its items
+    /// in its root, that is every item against every unit of the side.
+    /// Every affected unit not found leaves, last first; every unit found
+    /// that is not affected enters the first item it was found in, and one
+    /// already affected keeps its own.
     fn update_affected(&mut self, index: usize, events: &mut Vec<Event>) -> Result<()> {
         let mut found = Vec::<(u64, u64)>::new();
-        let items = self.terrain.controllers[index].items.clone();
         for team in [0_u32, 1] {
             let Some(tree) = self.mech_quadtrees.get(&team) else {
                 continue;
             };
-            let units = tree.query_rect(TargetActorRect::map());
-            for &item in &items {
-                let terrain = &self.terrain.terrains[&item];
-                for &unit in &units {
-                    let FightActorRef::Unit(unit_id) = unit else {
-                        continue;
-                    };
-                    let actor = &self.actors[&unit_id];
-                    if !actor.alive()
-                        || actor.visibility == Visibility::Hide
-                        || actor.rules.domain == UnitDomain::Air
-                    {
-                        continue;
-                    }
-                    let radius = space_to_q32(actor.rules.collision_radius());
-                    let edge = native_q32_magnitude(
-                        actor.x_q32.saturating_sub(terrain.x_q32),
-                        actor.z_q32.saturating_sub(terrain.z_q32),
-                    )
-                    .saturating_sub(radius);
-                    // A grid's unit must also meet one of its cells with its
-                    // bounds circle (`RangeItemEffectLayerGrid.IsInRange`).
-                    if fpoint_less_or_equal(edge, terrain.spec.radius_q32)
-                        && terrain.grid.map_or(Ok(true), |grid| {
-                            grid.overlaps((actor.x_q32, actor.z_q32, radius))
-                        })?
-                    {
-                        found.push((unit_id, item));
-                    }
-                }
+            let walked = self.terrain.controllers[index]
+                .tree
+                .interactable_nodes(tree)
+                .into_iter()
+                .map(|node| (tree.query_rect(node.rect), node.elements.clone()))
+                .collect::<Vec<_>>();
+            for (units, items) in walked {
+                self.found_in_items(&units, &items, &mut found)?;
             }
         }
         let affected = self.terrain.controllers[index]
@@ -669,6 +678,47 @@ impl Simulation {
             });
             self.perform_terrain_effect(item, unit, events)?;
             self.forget_the_dead(index);
+        }
+        Ok(())
+    }
+
+    /// One node's part of `UpdateAffectedActorChange`: each of its items
+    /// against every unit the query found, in order.
+    fn found_in_items(
+        &self,
+        units: &[FightActorRef],
+        items: &[u64],
+        found: &mut Vec<(u64, u64)>,
+    ) -> Result<()> {
+        for &item in items {
+            let terrain = &self.terrain.terrains[&item];
+            for &unit in units {
+                let FightActorRef::Unit(unit_id) = unit else {
+                    continue;
+                };
+                let actor = &self.actors[&unit_id];
+                if !actor.alive()
+                    || actor.visibility == Visibility::Hide
+                    || actor.rules.domain == UnitDomain::Air
+                {
+                    continue;
+                }
+                let radius = space_to_q32(actor.rules.collision_radius());
+                let edge = native_q32_magnitude(
+                    actor.x_q32.saturating_sub(terrain.x_q32),
+                    actor.z_q32.saturating_sub(terrain.z_q32),
+                )
+                .saturating_sub(radius);
+                // A grid's unit must also meet one of its cells with its
+                // bounds circle (`RangeItemEffectLayerGrid.IsInRange`).
+                if fpoint_less_or_equal(edge, terrain.spec.radius_q32)
+                    && terrain.grid.map_or(Ok(true), |grid| {
+                        grid.overlaps((actor.x_q32, actor.z_q32, radius))
+                    })?
+                {
+                    found.push((unit_id, item));
+                }
+            }
         }
         Ok(())
     }

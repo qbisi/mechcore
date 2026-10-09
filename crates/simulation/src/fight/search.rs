@@ -10,17 +10,38 @@ pub(in crate::fight) struct TargetActorRect {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(in crate::fight) struct TargetActorQuadtreeNode {
+pub(in crate::fight) struct FightQuadtreeNode<E> {
     pub(in crate::fight) rect: TargetActorRect,
     pub(in crate::fight) depth: u8,
-    pub(in crate::fight) elements: Vec<FightActorRef>,
-    pub(in crate::fight) children: Option<Box<[TargetActorQuadtreeNode; 4]>>,
+    pub(in crate::fight) elements: Vec<E>,
+    pub(in crate::fight) children: Option<Box<[FightQuadtreeNode<E>; 4]>>,
 }
 
+/// A `FightQuadtree`: a side's units for the target trees, or a terrain
+/// controller's items, each with the range it was put in by.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(in crate::fight) struct TargetActorQuadtree {
-    pub(in crate::fight) root: TargetActorQuadtreeNode,
-    pub(in crate::fight) ranges: BTreeMap<FightActorRef, TargetActorRect>,
+pub(in crate::fight) struct FightQuadtree<E: Ord> {
+    pub(in crate::fight) root: FightQuadtreeNode<E>,
+    pub(in crate::fight) ranges: BTreeMap<E, TargetActorRect>,
+    /// `MaxDepth`: a node this deep never splits.
+    max_depth: u8,
+}
+
+/// The trees units are found in.
+pub(in crate::fight) type TargetActorQuadtree = FightQuadtree<FightActorRef>;
+
+/// `RectRange.Overlaps` of two rects: on each axis, twice the distance
+/// between their centres is less than the sum of their widths.
+fn overlaps(one: TargetActorRect, other: TargetActorRect) -> bool {
+    let axis = |min: i64, max: i64, other_min: i64, other_max: i64| {
+        let twice_delta =
+            (i128::from(min) + i128::from(max) - i128::from(other_min) - i128::from(other_max))
+                .abs();
+        twice_delta
+            < i128::from(max) - i128::from(min) + i128::from(other_max) - i128::from(other_min)
+    };
+    axis(one.min_x, one.max_x, other.min_x, other.max_x)
+        && axis(one.min_z, one.max_z, other.min_z, other.max_z)
 }
 
 impl TargetActorRect {
@@ -83,7 +104,7 @@ impl TargetActorRect {
     }
 }
 
-impl TargetActorQuadtreeNode {
+impl<E: Copy + Ord> FightQuadtreeNode<E> {
     pub(in crate::fight) fn new(rect: TargetActorRect, depth: u8) -> Self {
         Self {
             rect,
@@ -102,18 +123,19 @@ impl TargetActorQuadtreeNode {
 
     pub(in crate::fight) fn insert(
         &mut self,
-        candidate: FightActorRef,
-        ranges: &BTreeMap<FightActorRef, TargetActorRect>,
+        candidate: E,
+        ranges: &BTreeMap<E, TargetActorRect>,
+        max_depth: u8,
     ) {
         let range = ranges[&candidate];
         if let Some(child_index) = self.child_containing(range) {
             self.children.as_mut().expect("observed child exists")[child_index]
-                .insert(candidate, ranges);
+                .insert(candidate, ranges, max_depth);
             return;
         }
 
         if self.children.is_none()
-            && self.depth < TARGET_QUADTREE_MAX_DEPTH
+            && self.depth < max_depth
             && self.elements.len().saturating_add(1) >= TARGET_QUADTREE_MAX_ELEMENTS
         {
             self.children = Some(Box::new(
@@ -127,23 +149,19 @@ impl TargetActorQuadtreeNode {
                 if let Some(child_index) = self.child_containing(ranges[&old]) {
                     self.elements.remove(index);
                     self.children.as_mut().expect("split children exist")[child_index]
-                        .insert(old, ranges);
+                        .insert(old, ranges, max_depth);
                 }
             }
             if let Some(child_index) = self.child_containing(range) {
                 self.children.as_mut().expect("split children exist")[child_index]
-                    .insert(candidate, ranges);
+                    .insert(candidate, ranges, max_depth);
                 return;
             }
         }
         self.elements.push(candidate);
     }
 
-    pub(in crate::fight) fn find_path(
-        &self,
-        candidate: FightActorRef,
-        path: &mut Vec<usize>,
-    ) -> bool {
+    pub(in crate::fight) fn find_path(&self, candidate: E, path: &mut Vec<usize>) -> bool {
         if self.elements.contains(&candidate) {
             return true;
         }
@@ -178,11 +196,7 @@ impl TargetActorQuadtreeNode {
 
     /// `FightQuadtreeNode.Query`: a node the range overlaps answers its
     /// elements, then each child's, children in order.
-    fn query(
-        &self,
-        overlaps: &impl Fn(TargetActorRect) -> bool,
-        found: &mut Vec<FightActorRef>,
-    ) -> bool {
+    fn query(&self, overlaps: &impl Fn(TargetActorRect) -> bool, found: &mut Vec<E>) -> bool {
         if !overlaps(self.rect) {
             return false;
         }
@@ -193,7 +207,7 @@ impl TargetActorQuadtreeNode {
         true
     }
 
-    pub(in crate::fight) fn append_query_order(&self, output: &mut Vec<FightActorRef>) {
+    pub(in crate::fight) fn append_query_order(&self, output: &mut Vec<E>) {
         output.extend(self.elements.iter().copied());
         if let Some(children) = &self.children {
             for child in children {
@@ -203,40 +217,39 @@ impl TargetActorQuadtreeNode {
     }
 }
 
-impl TargetActorQuadtree {
+impl<E: Copy + Ord> FightQuadtree<E> {
+    /// A side's units' tree: `MaxDepth` 6.
     pub(in crate::fight) fn new() -> Self {
+        Self::with_max_depth(TARGET_QUADTREE_MAX_DEPTH)
+    }
+
+    /// An empty tree over the battlefield, splitting no node `max_depth`
+    /// deep.
+    pub(in crate::fight) fn with_max_depth(max_depth: u8) -> Self {
         Self {
-            root: TargetActorQuadtreeNode::new(
-                TargetActorRect {
-                    min_x: -TARGET_QUADTREE_HALF_WIDTH_Q32,
-                    min_z: -TARGET_QUADTREE_HALF_HEIGHT_Q32,
-                    max_x: TARGET_QUADTREE_HALF_WIDTH_Q32,
-                    max_z: TARGET_QUADTREE_HALF_HEIGHT_Q32,
-                },
-                0,
-            ),
+            root: FightQuadtreeNode::new(TargetActorRect::map(), 0),
             ranges: BTreeMap::new(),
+            max_depth,
         }
     }
 
-    pub(in crate::fight) fn insert(
-        &mut self,
-        candidate: FightActorRef,
-        x_q32: i64,
-        z_q32: i64,
-        radius: i64,
-    ) {
-        let range = TargetActorRect::around(x_q32, z_q32, radius);
+    pub(in crate::fight) fn insert(&mut self, candidate: E, x_q32: i64, z_q32: i64, radius: i64) {
+        self.insert_range(candidate, TargetActorRect::around(x_q32, z_q32, radius));
+    }
+
+    /// `FightQuadtree.Insert` of an element by its bounds: into the deepest
+    /// node holding them, the root when they leave the battlefield.
+    pub(in crate::fight) fn insert_range(&mut self, candidate: E, range: TargetActorRect) {
         self.ranges.insert(candidate, range);
         if self.root.rect.contains(range) {
-            self.root.insert(candidate, &self.ranges);
+            self.root.insert(candidate, &self.ranges, self.max_depth);
         } else {
             self.root.elements.push(candidate);
         }
     }
 
     /// Takes an element out, keeping the order of the rest.
-    pub(in crate::fight) fn remove(&mut self, candidate: FightActorRef) {
+    pub(in crate::fight) fn remove(&mut self, candidate: E) {
         let mut path = Vec::new();
         if !self.root.find_path(candidate, &mut path) {
             return;
@@ -254,7 +267,7 @@ impl TargetActorQuadtree {
 
     pub(in crate::fight) fn position_changed(
         &mut self,
-        candidate: FightActorRef,
+        candidate: E,
         x_q32: i64,
         z_q32: i64,
         radius: i64,
@@ -283,8 +296,11 @@ impl TargetActorQuadtree {
                 .position(|element| *element == candidate)
                 .expect("located quadtree element exists");
             node.elements.remove(index);
-            node.children.as_mut().expect("located child exists")[child_index]
-                .insert(candidate, &self.ranges);
+            node.children.as_mut().expect("located child exists")[child_index].insert(
+                candidate,
+                &self.ranges,
+                self.max_depth,
+            );
             return;
         }
 
@@ -305,7 +321,7 @@ impl TargetActorQuadtree {
         }
         self.root
             .node_at_path_mut(&path)
-            .insert(candidate, &self.ranges);
+            .insert(candidate, &self.ranges, self.max_depth);
     }
 
     /// `FightQuadtree.Query` for a square of full width `size` around a
@@ -318,7 +334,7 @@ impl TargetActorQuadtree {
         center_x_q32: i64,
         center_z_q32: i64,
         size_q32: i64,
-    ) -> Vec<FightActorRef> {
+    ) -> Vec<E> {
         let overlaps = |rect: TargetActorRect| {
             let axis = |min: i64, max: i64, center: i64| {
                 let twice_delta =
@@ -337,20 +353,8 @@ impl TargetActorQuadtree {
     /// `FightQuadtree.Query` for a rect: the root's elements always, then,
     /// as [`TargetActorQuadtree::query_square`] walks them, every element of
     /// each node whose rect overlaps it strictly on both axes.
-    pub(in crate::fight) fn query_rect(&self, range: TargetActorRect) -> Vec<FightActorRef> {
-        let overlaps = |rect: TargetActorRect| {
-            let axis = |min: i64, max: i64, range_min: i64, range_max: i64| {
-                let twice_delta = (i128::from(min) + i128::from(max)
-                    - i128::from(range_min)
-                    - i128::from(range_max))
-                .abs();
-                twice_delta
-                    < i128::from(max) - i128::from(min) + i128::from(range_max)
-                        - i128::from(range_min)
-            };
-            axis(rect.min_x, rect.max_x, range.min_x, range.max_x)
-                && axis(rect.min_z, rect.max_z, range.min_z, range.max_z)
-        };
+    pub(in crate::fight) fn query_rect(&self, range: TargetActorRect) -> Vec<E> {
+        let overlaps = |rect: TargetActorRect| overlaps(rect, range);
         let mut found = Vec::new();
         if !self.root.query(&overlaps, &mut found) {
             found.extend(self.root.elements.iter().copied());
@@ -358,7 +362,46 @@ impl TargetActorQuadtree {
         found
     }
 
-    pub(in crate::fight) fn query_order(&self) -> Vec<FightActorRef> {
+    /// `FightQuadtree.IsInteractableRange`: whether a node holding elements
+    /// overlaps the rect, strictly on both axes (`RectRange.Overlaps`).
+    pub(in crate::fight) fn is_interactable(&self, range: TargetActorRect) -> bool {
+        fn walk<E>(node: &FightQuadtreeNode<E>, range: TargetActorRect) -> bool {
+            (!node.elements.is_empty() && overlaps(node.rect, range))
+                || node
+                    .children
+                    .iter()
+                    .flat_map(|children| children.iter())
+                    .any(|child| walk(child, range))
+        }
+        walk(&self.root, range)
+    }
+
+    /// `FightQuadtree.GetInteractableNodes` against another tree: every node
+    /// holding elements whose rect the other tree is interactable with
+    /// (`IsInteractableRange`), a node before its children, the children in
+    /// order, each child visited whether its parent was taken or not.
+    pub(in crate::fight) fn interactable_nodes<F: Copy + Ord>(
+        &self,
+        target: &FightQuadtree<F>,
+    ) -> Vec<&FightQuadtreeNode<E>> {
+        fn walk<'a, E, F: Copy + Ord>(
+            node: &'a FightQuadtreeNode<E>,
+            target: &FightQuadtree<F>,
+            found: &mut Vec<&'a FightQuadtreeNode<E>>,
+        ) {
+            if !node.elements.is_empty() && target.is_interactable(node.rect) {
+                found.push(node);
+            }
+            for child in node.children.iter().flat_map(|children| children.iter()) {
+                walk(child, target, found);
+            }
+        }
+        let mut found = Vec::new();
+        walk(&self.root, target, &mut found);
+        found
+    }
+
+    pub(in crate::fight) fn query_order(&self) -> Vec<E> {
         let mut output = Vec::with_capacity(self.ranges.len());
         self.root.append_query_order(&mut output);
         output

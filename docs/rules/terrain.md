@@ -58,6 +58,23 @@ the recording's `DurableContext.logic_step`, not its separate
 `time_units_per_second` scale; [mcfr.md](../spec/mcfr/mcfr.md) defines the file
 fields.
 
+**A controller finds its units through two quadtrees.** Each controller keeps
+its items in a `FightQuadtree<RangeItem>` (`MaxDepth` 7, 20 elements to a node
+before it splits), each by its bounds (`RangeItem.GetBounds`): a square about
+where it stands as wide as its range, where a unit's bounds are twice its
+radius wide. `UpdateAffectedActorChange` takes, side by side, the item tree's
+nodes the side's units' tree is interactable with
+(`FightQuadtree.GetInteractableNodes`: every node holding items, a node before
+its children, whose rect overlaps a node of the units' tree that holds units),
+and for each node, each of its items against every unit the units' tree
+answers for the node's rect. A unit found in several items enters the first.
+Until a controller's twentieth item splits its root, that is every item in the
+order it was added against every unit of the side; after, the items go node by
+node. A removed item leaves the tree as it leaves the controller
+(`RangeItem.Remove` raises `OnDestroyed`). A Fire Badger with Napalm keeps 150
+fires burning among its own units and the Rhino charging them, and the game
+and the simulator burn each of them alike.
+
 ## A battle skill's terrains
 
 A terrain battle skill (Incendiary Bomb, Sticky Oil Bomb, Smoke Bomb, Acid
@@ -197,9 +214,10 @@ controller in the system's order and item by item. A terrain made and gone
 in one tick, an oil that lands in a fire, is never named. A terrain it only
 finds gone, an oil that burns, goes `unknown`.
 
-The simulator refuses a controller's twentieth terrain, which splits its
-tree, and a circle of 80 metres or more meeting a grid, which the build
-compares as a `GridBlockLong`.
+The simulator refuses a fire reaching oils once the oils' tree has split,
+whose `CheckInteractableItems` asks that tree in an order not read, and a
+circle of 80 metres or more meeting a grid, which the build compares as a
+`GridBlockLong`.
 
 ## Circles and grids
 
@@ -311,6 +329,11 @@ already exists.
 
 ### Recorded
 
+- A controller past its twentieth item finds its units node by node: 150
+  fires of a Fire Badger's Napalm burn its own units and a Rhino as the game
+  does, and 32 of a Stormcaller's Incendiary Bomb a Rhino:
+  `tests/terrain/fights/napalm-quadtree.yaml`,
+  `tests/fire_intensify/fights/stormcaller-friendly.yaml`.
 - A Fire Badger's shot burns the oil its splash reaches, and the first fire
   the line beyond it: `tests/corpus/fights/201340110-r5.yaml`, tick 140.
 - A Smoke Bomb's fogs land along its line every four ticks, take ground units
@@ -433,6 +456,13 @@ already exists.
 - The affected set is refreshed each update from target validity and a
   two-dimensional range: `RangeItemController.Update`,
   `RangeItemController.UpdateAffectedActorChange`, `FightActor.IsValidTarget`.
+- The item tree and how the pass walks it: `RangeItemController..ctor`
+  (`FightQuadtree<RangeItem>` of depth 7 and 20 to a node),
+  `RangeItemController.Add`, `RangeItemController.OnFightStart`,
+  `RangeItem.GetBounds`, `FightActor.GetBoundsRect`, `RangeItem.Remove`,
+  `FightQuadtree.GetInteractableNodes`, `FightQuadtreeNode`1.GetElementCount`,
+  `FightQuadtree`1.IsInteractableRange`, `FightQuadtreeNode`1.IsInteractableRange`,
+  `RectRange.Overlaps`.
 - A grid subtracts the live battlefield shields:
   `RangeItemEffectLayerGrid.GenerateGrid`,
   `AdvancedEnergyShieldSystem.GetActiveEnergyShields`,

@@ -1,0 +1,23 @@
+# Napalm on blue's Fire Badgers against a charging Rhino. Each of their hits
+# leaves a fire of 12 metres, and up to 150 burn at once, so the fire
+# controller's quadtree splits at its twentieth and goes on splitting: its
+# `UpdateAffectedActorChange` finds units node by node. The fires burn the
+# Rhino and the Fire Badgers themselves, from tick 173. Fought with the
+# controller's items in one list, the simulator refused the twentieth fire.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 247
+hash: {profile: mcfr-content-0.22.0, result: 2730167b3b22b7aeca96e78f6f2616bcb1b30a41eacc5ab6dd6e545e99a9f937}
+blue:
+  core_damage: 200
+  techs:
+    fire_badger: [napalm]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 5, y: -100}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/402/1150}

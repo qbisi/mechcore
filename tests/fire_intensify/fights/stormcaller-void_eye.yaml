@@ -1,0 +1,26 @@
+# Incendiary Bomb on blue's Stormcallers against a Void Eye with
+# Electromagnetic Armor. Its buff switches off the technologies of the
+# Stormcaller that hit it, from tick 156: that unit's shells land and leave
+# no fire (`FireIntensifyEffectProvider.PerformHitEffect` on
+# `isTechnologyDisabled`), so on ticks 162 and 165 two shells land and one
+# fire is made.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 410
+hash: {profile: mcfr-content-0.22.0, result: 573570bd95eaa85245723d0569e7fb36e33630e19179e8285b8eafcf98ac82c8}
+blue:
+  core_damage: 162
+  techs:
+    stormcaller: [incendiary_bomb]
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -150}, exp: 0/66/1100}
+red:
+  techs:
+    void_eye: [electromagnetic_armor]
+  units:
+  - {name: void_eye, index: 0, position: {x: 0, y: -100}, exp: 0/175/650}
+  - {name: crawler, index: 1, position: {x: 65, y: -100}, exp: 0/225/450}
