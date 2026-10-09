@@ -28,6 +28,7 @@ out to show:
 | [`level/`](level/README.md) | how a unit level scales base life and damage before overlays |
 | [`lifesteal/`](lifesteal/README.md) | how a hit hands life back to the unit whose skill dealt it, and which lifesteal source does |
 | [`missile/`](missile/README.md) | when a missile fires, at what, and what its hit writes |
+| [`fire_intensify/`](fire_intensify/README.md) | where a fire technology's unit leaves fires as its main skill hits |
 | [`reactive_armor/`](reactive_armor/README.md) | what a reactive armor technology takes off the hits on its unit, and for how many |
 | [`multi_attack/`](multi_attack/README.md) | how many projectiles a multi-attack technology adds its unit's bursts, how far apart in time and space, and from which weapon |
 | [`map/`](map/README.md) | what a map's neutral crystals do to a fight |

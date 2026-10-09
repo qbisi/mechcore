@@ -99,6 +99,9 @@ schema: mechcore.technology_effects
 # A reactive armor technology carries the FPoint rate on the damage its
 # unit takes (`reactive_armor_rate`) and how many hits dealing it damage
 # the rate lasts (`reactive_armor_count`).
+# A fire technology carries the FPoint metres and seconds of the fire
+# each hit of its unit's main skill leaves (`fire_range`,
+# `fire_life_time`), by its unit's level.
 
 technologies:
   - id: 206
@@ -274,11 +277,15 @@ technologies:
     unit: stormcaller
     kind: fireIntensifyTechnologies
     attack_range_value: [-85899345920]  # -20
+    fire_range: [23622320128]  # +5.5
+    fire_life_time: [64424509440]  # +15
   - id: 820
     name: 液态火
     unit: fire_badger
     kind: fireIntensifyTechnologies
     life_rate: [-1288490188]  # -0.3
+    fire_range: [51539607552]  # +12
+    fire_life_time: [34359738368]  # +8
   - id: 905
     name: 战地维修
     unit: rhino

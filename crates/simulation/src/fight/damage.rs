@@ -1074,15 +1074,62 @@ impl Simulation {
                 self.add_hit_buffs(owner.id, slot, (targets, center), events)?;
                 // `PerformMainSkillHitted`, when the hit is the main skill's.
                 let skill = self.skill_at_slot(FightActorRef::Unit(owner.id), usize::from(slot));
-                if skill.slot == SkillSlot::Main
-                    && let Some(actor) = self.actors.get_mut(&owner.id)
-                {
-                    actor.reset_stacks_on_main_hit()?;
+                if skill.slot == SkillSlot::Main {
+                    self.leave_main_fire(skill, targets, center)?;
+                    if let Some(actor) = self.actors.get_mut(&owner.id) {
+                        actor.reset_stacks_on_main_hit()?;
+                    }
                 }
                 Ok(())
             }
             _ => Ok(()),
         }
+    }
+
+    /// `FireIntensifyEffectProvider.PerformHitEffect`, a hit effect of the
+    /// main skill alone (`SkillDataModifier.AvaliableCheck` on
+    /// `mainSkillEffect`, the rows setting no `extraSkillEffect`): a first
+    /// hit, not a second damage's, leaves the unit's fire
+    /// (`GroundFireController.GetFireMech`) through `RangeItemSystem.AddItem`
+    /// under the unit's side, at the point the hit landed. A source that
+    /// `CanDisable` leaves none while the unit's technologies are disabled.
+    ///
+    /// The point is the hit's when it struck nothing, when the skill has no
+    /// lock (and so no shield it fires at), or when its lock stands on the
+    /// side of the first unit it struck. Otherwise the
+    /// provider takes the point on the shield the skill fires at
+    /// (`FightUtility.GetAttackPositionOnEnergyShield`), or the lock's own
+    /// position for a skill that locks its target, which is not measured.
+    fn leave_main_fire(
+        &mut self,
+        skill: SkillRef,
+        targets: &[FightActorRef],
+        center: (i64, i64, i64),
+    ) -> Result<()> {
+        let FightActorRef::Unit(owner) = skill.owner else {
+            return Ok(());
+        };
+        let Some(actor) = self.actors.get(&owner) else {
+            return Ok(());
+        };
+        let Some(fire) = actor.placement.main_fire else {
+            return Ok(());
+        };
+        if actor.technology_disabled() {
+            return Ok(());
+        }
+        let team = actor.placement.team;
+        if let Some(&first) = targets.first() {
+            let side = |target| self.fight_actor(target).map(|view| view.team);
+            let lock = self.skill(skill).lock_target;
+            if lock.is_some_and(|lock| side(lock) != side(first)) {
+                return Err(Error::new(format!(
+                    "unit {owner}'s fire lands where its lock does not stand on the side \
+                     of what its hit struck, which is not measured"
+                )));
+            }
+        }
+        self.add_terrain(team, &format!("unit {owner}"), fire, center)
     }
 
     /// `LifeStealEffectProvider.PerformHitEffect`: the skill's owner, alive

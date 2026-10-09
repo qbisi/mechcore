@@ -62,6 +62,7 @@ pub(super) fn placement(
         move_ability_attack: None,
         reactive_armor: None,
         move_ability_range_item: None,
+        main_fire: None,
         interception: None,
         carried_shield: None,
         production: None,

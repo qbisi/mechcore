@@ -66,6 +66,8 @@ pub(crate) enum EffectProvider {
     ReactiveArmor,
     /// `SiegeModeEffectProvider`, for an `ISiegeModeEffectDataSource`.
     SiegeMode,
+    /// `FireIntensifyEffectProvider`, for an `IFireIntensify`.
+    FireIntensify,
 }
 
 impl EffectProvider {
@@ -94,6 +96,7 @@ impl EffectProvider {
             Self::AdvancedEnergyShield => "AdvancedEnergyShieldProvider",
             Self::ReactiveArmor => "ReactiveArmorTechEffectProvider",
             Self::SiegeMode => "SiegeModeEffectProvider",
+            Self::FireIntensify => "FireIntensifyEffectProvider",
         }
     }
 
@@ -134,6 +137,9 @@ impl EffectProvider {
     ///   duration (`SiegeModeEffectProvider.DisableEffect`,
     ///   `SiegeModeEffectSystem.EndSiegeMode`), and does not dig in again
     ///   (`EnableEffect` is `SingleEffectProvider`'s alone).
+    /// - A fire technology's hit leaves no fire while the technologies are
+    ///   off (`FireIntensifyEffectProvider.PerformHitEffect` returns on
+    ///   `isTechnologyDisabled` for a source that `CanDisable`).
     ///
     /// Every other provider does more, which is not measured.
     pub(crate) const fn disable_read(self) -> bool {
@@ -149,7 +155,8 @@ impl EffectProvider {
             | Self::MechGroup
             | Self::AdvancedEnergyShield
             | Self::ReactiveArmor
-            | Self::SiegeMode => true,
+            | Self::SiegeMode
+            | Self::FireIntensify => true,
             Self::AutoRecovery
             | Self::EnergyShield
             | Self::SweepSkillIntensify

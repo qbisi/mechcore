@@ -1,0 +1,22 @@
+# Napalm on blue's Fire Badger against a Marksman: each of its hits from
+# tick 209 leaves a fire of 12 metres, burning 8 seconds, where it lands,
+# and the Marksman standing in them takes the fire's 54 every few ticks
+# from tick 210 until it falls. The technology's -0.3 of life is a plain
+# correction.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 252
+hash: {profile: mcfr-content-0.22.0, result: 65e43a6336691b16c96299eb775821e687483f683b42b2c1eb4c47d833a20591}
+blue:
+  techs:
+    fire_badger: [napalm]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 5, y: -100}, exp: 0/200/1400}
+red:
+  core_damage: 134
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/134/650}
