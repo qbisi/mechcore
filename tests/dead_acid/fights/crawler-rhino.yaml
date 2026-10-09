@@ -1,0 +1,20 @@
+# Acidic Explosion on blue's Crawlers, which walk on a Rhino. Each Crawler
+# that dies leaves an acid of 9 metres where it fell, for blue, from tick
+# 106: battle skill buff 500001 on the red units standing in it.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 192
+hash: {profile: mcfr-content-0.23.0, result: 2881b032b611787605a6d33ce029bb3e8367a2e0551c1257479d40b782c1e25a}
+blue:
+  techs:
+    crawler: [acidic_explosion]
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/400/450}
+red:
+  core_damage: 36
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -65}, exp: 0/120/1150}

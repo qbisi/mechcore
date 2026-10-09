@@ -242,6 +242,7 @@ impl Creator {
             technology_disable: production.technology_disable.clone(),
             reactive_armor: production.reactive_armor,
             burrow: production.burrow.clone(),
+            dead_acid: production.dead_acid,
             clear_range_item: production.clear_range_item.clone(),
             rvo_radius_change: production.rvo_radius_change,
             repair: production.repair.clone(),
@@ -829,7 +830,10 @@ impl Simulation {
         let mut created = Vec::new();
         for dead_id in std::mem::take(&mut self.support.dying) {
             let dead = &self.actors[&dead_id];
-            let technology = dead.placement.dead_summon;
+            let technology = dead
+                .placement
+                .dead_summon
+                .filter(|_| self.technology_dead_effect_held(dead_id));
             let summons = if dead.parasitic {
                 Vec::new()
             } else {
@@ -1155,6 +1159,7 @@ fn summon_placement(
         clear_range_item: creator.summon.clear_range_item.clone(),
         repair: creator.summon.repair.clone(),
         burrow: creator.summon.burrow.clone(),
+        dead_acid: creator.summon.dead_acid,
         sweep: None,
         distance_intensify: false,
         secondary_damage: None,

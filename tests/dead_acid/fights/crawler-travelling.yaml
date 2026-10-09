@@ -1,0 +1,23 @@
+# Acidic Explosion on blue's Crawlers travelling in from the left flank in
+# round 2, beside red's Marksmen. The Crawlers killed on their way, on ticks
+# 17, 70 and 125, leave no acid; one killed on tick 183, after they land on
+# 161, leaves one.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: game
+ticks: 1274
+hash: {profile: mcfr-content-0.23.0, result: 25b0f5b881f22b8be730a51794a3063077fc72573d9796f93e2923e8d9c77bd5}
+blue:
+  techs:
+    crawler: [acidic_explosion]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/50/650}
+  - {name: crawler, index: 1, position: {x: -330, y: 45}, exp: 0/450/450, travelling: true}
+red:
+  core_damage: 48
+  units:
+  - {name: marksman, index: 0, position: {x: 280, y: -100}, exp: 0/40/650}
+  - {name: marksman, index: 1, position: {x: -280, y: -100}, exp: 0/456/650}

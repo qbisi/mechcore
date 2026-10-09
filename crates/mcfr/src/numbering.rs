@@ -114,6 +114,10 @@ impl UnitNumbering {
             for application in &mut terrain.applications {
                 unit(&mut application.unit_id);
             }
+            // The normal form holds them by unit, which a renaming reorders.
+            terrain
+                .applications
+                .sort_by_key(|application| application.unit_id);
         }
         for row in &mut snapshot.statistics {
             match row.recorder {

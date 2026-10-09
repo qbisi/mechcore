@@ -185,6 +185,9 @@ impl Simulation {
         let Some(source) = actor.placement.rebirth.clone() else {
             return Ok(());
         };
+        if !self.technology_dead_effect_held(unit) {
+            return Ok(());
+        }
         if actor.placement.team != actor.original_team {
             return Err(Error::new(
                 "a unit another side turned dies and is brought back, which is not measured",

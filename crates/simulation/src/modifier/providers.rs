@@ -166,6 +166,10 @@ impl EffectProvider {
     /// - A fire-extinguisher technology's unit clears nothing
     ///   (`TeamClearRangeItemManager.DisableMech`), and clears again from the
     ///   manager's next clearing (`EnableMech`).
+    /// - A dead effect is taken off the unit's `DeadEffectSystem` controller
+    ///   and handed back (`DeadEffectProvider.DisableEffect`,
+    ///   `EnableEffect`): a unit that dies with its technologies off leaves
+    ///   no acid, summons nothing and does not rise.
     /// - A burrowing technology's unit comes up, its buff removed, and its
     ///   manager passes over it (`BurrowSystem.Deactive`) until it is
     ///   switched on (`Active`).
@@ -190,7 +194,8 @@ impl EffectProvider {
             | Self::RvoRadiusChange
             | Self::ClearRangeItem
             | Self::Repair
-            | Self::Burrow => true,
+            | Self::Burrow
+            | Self::DeadEffect => true,
             Self::AutoRecovery
             | Self::EnergyShield
             | Self::SweepSkillIntensify
@@ -198,7 +203,6 @@ impl EffectProvider {
             | Self::Buff { cycles: true }
             | Self::InterceptMissile
             | Self::SupportUnit
-            | Self::DeadEffect
             | Self::MoveAbilitySummon
             | Self::MoveAbilityAttackIntensify
             | Self::MoveAbilityRangeItem => false,

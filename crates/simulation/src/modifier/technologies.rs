@@ -45,7 +45,7 @@ use serde::Deserialize;
 use crate::{
     Error, Result,
     data::{Channel, Correction, Entry, ExperienceRate, Index},
-    layout::{InterceptNumbers, Interception},
+    layout::{InterceptNumbers, Interception, TerrainSpec},
     rules::UnitDomain,
 };
 
@@ -135,6 +135,8 @@ const SIEGE: &str = "siegeModeTechDatas";
 const WRECKAGE: &str = "wreckageRecoveryTechnologies";
 /// The list whose `RebirthTech` is an `IDeadEffect` and an `IRebirthData`.
 const REBIRTH: &str = "rebirthEffectTechologyDatas";
+/// The list whose `DeadAcidRangeItemTech` is an `IDeadAcidRangeItem`.
+const DEAD_ACID: &str = "deadAcidRangeItemTechnologyDatas";
 /// The list whose `BurrowTech` is an `IBurrow`.
 const BURROW: &str = "burrowTechnologies";
 /// The list whose `RVORadiusChangeTechnology` is an `IRVORadiusChangeSource`.
@@ -145,7 +147,7 @@ const CLEAR_RANGE_ITEM: &str = "clearRangeItemTechDatas";
 const REPAIR: &str = "recoveryTechDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 33] = [
+const IMPLEMENTED: [&str; 34] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -179,6 +181,7 @@ const IMPLEMENTED: [&str; 33] = [
     CLEAR_RANGE_ITEM,
     BURROW,
     REPAIR,
+    DEAD_ACID,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -306,6 +309,9 @@ struct Technology {
     repair: Option<Repair>,
     /// What it answers `IBurrow` with, if its class is one.
     burrow: Option<Burrow>,
+    /// The acid it leaves where its unit dies, if its class is an
+    /// `IDeadAcidRangeItem`, or why it is refused.
+    dead_acid: Option<std::result::Result<TerrainSpec, String>>,
     /// What it answers `IMoveAbilityAttackIntensify` with, if its class is
     /// one.
     move_ability_attack: Option<MoveAbilityAttack>,
@@ -452,6 +458,9 @@ pub(crate) struct UnitSources {
     /// The first that burrows its unit: the provider enables one source
     /// (`SingleEffectProvider`).
     pub(crate) burrow: Option<Burrow>,
+    /// The acid the first that leaves one where its unit dies leaves
+    /// (`DeadAcidRangeItemController`).
+    pub(crate) dead_acid: Option<TerrainSpec>,
     pub(crate) buff_sources: Vec<BuffSource>,
     pub(crate) interception: Vec<UnitInterception>,
     pub(crate) dead_summon: Option<UnitDeadSummon>,
@@ -827,6 +836,9 @@ struct Row {
     burrow_relieve_distance: Vec<i64>,
     #[serde(default)]
     burrow_enters_underground: bool,
+    /// `DeadAcidRangeItemTechnologyData`'s fields, on a row of its list.
+    #[serde(default)]
+    dead_acid: Option<DeadAcidBlock>,
     /// `DeadLineTechData`'s `deadLineValue`, whole life by the unit's level,
     /// and `ignoreEnergyShield`, on a row of its list.
     #[serde(default)]
@@ -1099,6 +1111,18 @@ impl StealthBlock {
 struct WreckageBlock {
     time: i64,
     distance: Vec<i64>,
+}
+
+/// What a dead-acid row answers `IRangeItemProvider` with: whole metres of
+/// range (`GetRangeItemRange`, `subEffectRange`) and the rounds it stands
+/// (`GetRoundDuration`), and the `buffDatas` row of its `buffID`, which
+/// `PreProcess` makes its `BuffData`. `GetLifeTime` answers none.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DeadAcidBlock {
+    range: i64,
+    rounds: i32,
+    buff: BuffBlock,
 }
 
 /// What a rebirth row answers `IRebirthData` with: whole seconds, counts and
@@ -1425,6 +1449,13 @@ impl TechnologyEffects {
                     can_disable: true,
                 }),
                 rebirth,
+                dead_acid: row.dead_acid.as_ref().map(|block| {
+                    super::buffs::acid_terrain(
+                        &format!("technology {} ({})", row.id, row.name),
+                        (block.range, 0, block.rounds),
+                        &block.buff,
+                    )
+                }),
                 burrow: (row.kind == BURROW).then(|| Burrow {
                     technology: u32::try_from(row.id).unwrap_or(u32::MAX),
                     amplify_damage_rate: row.burrow_amplify_damage_rate.clone(),
@@ -1602,6 +1633,11 @@ impl TechnologyEffects {
             }
             if sources.burrow.is_none() {
                 sources.burrow.clone_from(&technology.burrow);
+            }
+            if sources.dead_acid.is_none()
+                && let Some(acid) = &technology.dead_acid
+            {
+                sources.dead_acid = Some(acid.clone().map_err(Error::new)?);
             }
             sources.buff_sources.extend(technology.buff_source);
             sources.interception.extend(technology.interception);
@@ -2046,7 +2082,7 @@ fn provider_of(kind: &str, self_buff: bool) -> Option<EffectProvider> {
         BUFF => EffectProvider::Buff { cycles: !self_buff },
         INTERCEPT => EffectProvider::InterceptMissile,
         SUPPORT => EffectProvider::SupportUnit,
-        DEAD_SUMMON | REBIRTH => EffectProvider::DeadEffect,
+        DEAD_SUMMON | REBIRTH | DEAD_ACID => EffectProvider::DeadEffect,
         MOVE_SUMMON => EffectProvider::MoveAbilitySummon,
         EXTRA_WEAPON => EffectProvider::ExtraSkill,
         STEALTH => EffectProvider::StealthTech,
@@ -2585,6 +2621,36 @@ mod tests {
                 .unwrap()
                 .rebirth
                 .is_some_and(|rebirth| rebirth.follow.is_some())
+        );
+    }
+
+    /// An acid technology hands its unit the acid it leaves where it dies,
+    /// through `DeadEffectProvider`.
+    #[test]
+    fn an_acid_technology_hands_its_unit_an_acid() {
+        let table = TechnologyEffects::parse(
+            "schema: mechcore.technology_effects\n\
+             technologies:\n\
+             - {id: 9, name: probe, unit: crawler, kind: deadAcidRangeItemTechnologyDatas, \
+             dead_acid: {range: 9, rounds: 1, buff: {id: 500001, name: acid, duration: 4294967296, \
+             divide: 0, additive: false, debuff: true, invincible: false, disable_technology: false, \
+             amplify_damage_rate: 6442450944, damage_rate: 0, speed_rate: 0, attack_range_value: 0, \
+             attack_range_rate: 0, max_life_rate: 0, step_time: 2147483648, additive_effect: false, \
+             additive_condition: 0, additive_condition_param: 0, max_additive_stack: 0, \
+             clear_when_technologies_disabled: true, summon_unit: 0, summon_level_inherit: false, \
+             life_change_rate: -64424509, disable_recover: false, additive_reset_condition: 0}}}\n",
+        )
+        .unwrap();
+        let acid = table.sources(&[9], "crawler").unwrap().dead_acid.unwrap();
+        assert_eq!(acid.kind, crate::layout::TerrainKind::Acid);
+        assert_eq!(acid.radius_q32, 9 << 32);
+        assert_eq!(acid.rounds, 1);
+        assert_eq!(
+            table
+                .providers(&[9], "crawler")
+                .into_keys()
+                .collect::<Vec<_>>(),
+            [super::EffectProvider::DeadEffect]
         );
     }
 

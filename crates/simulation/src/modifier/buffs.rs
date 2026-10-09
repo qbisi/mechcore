@@ -329,7 +329,6 @@ fn range_item_terrain(
     item: &RangeItemBlock,
     trigger: BuffTrigger,
 ) -> std::result::Result<TerrainSpec, String> {
-    let buff = &item.buff;
     if trigger != BuffTrigger::Hit {
         return Err(format!(
             "{who} leaves a range item on a trigger other than a hit, which leaves none"
@@ -341,6 +340,18 @@ fn range_item_terrain(
             item.kind
         ));
     }
+    acid_terrain(who, (item.range, item.life, item.rounds), &item.buff)
+}
+
+/// An acid of `range` whole metres, `life` `FPoint` raw seconds and `rounds`
+/// whose `BuffItemController` keeps `buff` on the units standing in it, as a
+/// battle skill's acid does; a buff that writes what a terrain's buff here
+/// does not is refused.
+pub(crate) fn acid_terrain(
+    who: &str,
+    (range, life, rounds): (i64, i64, i32),
+    buff: &BuffBlock,
+) -> std::result::Result<TerrainSpec, String> {
     let unread = [
         ("damageChangeRate", buff.damage_rate != 0),
         ("attackRangeChangeRate", buff.attack_range_rate != 0),
@@ -365,7 +376,7 @@ fn range_item_terrain(
     }
     crate::layout::buff_item_terrain(
         who,
-        (item.range, item.life, item.rounds),
+        (range, life, rounds),
         &crate::layout::ItemBuff {
             id: buff.id,
             divide: buff.divide,

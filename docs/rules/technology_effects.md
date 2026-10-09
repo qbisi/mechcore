@@ -833,6 +833,31 @@ death, and `DoDeactive`'s `TryBurrowUp` finds nothing to remove; nor does
 `OnFightEnd`'s after the fight's clearing, which clears each side's units in
 the order they joined it (`FightTeam.activeActors`), not by id.
 
+## Acid technologies
+
+A row of `deadAcidRangeItemTechnologyDatas` is a `DeadAcidRangeItemTech`, an
+`IDeadAcidRangeItem` and an `IRangeItemProvider`: Acidic Explosion, the
+Crawler's. It answers a range of 9 whole metres (`GetRangeItemRange`, its
+`subEffectRange`), one round (`GetRoundDuration`), no life time
+(`GetLifeTime`) and the buff its `buffID` names (`PreProcess`), 500001, the
+battle skill acid's: 1.5 on the damage taken and -0.015 of the maximum
+life every half second. `DeadEffectProvider` hands its unit to
+`DeadEffectSystem`'s acid controller.
+
+**A unit that dies leaves an acid where it fell.** `DeadEffectSystem` makes
+its controllers in the order buff, acid, explosive, summon, rebirth
+(`DeadEffectSystem.Init`), and as it updates each controller performs the
+dead effects of the units that died this tick, in the order they died,
+before any dead unit's `OnDead`. The acid controller adds the technology's
+acid where the unit fell, for the side it stands on as it dies
+(`DeadAcidRangeItemController.PerformDeadEffect`,
+`RangeItemSystem.AddItem`), as a battle skill's acid is added: its
+`BuffItemController` keeps the buff on the enemies standing in it. Its
+creation follows the unit's death among the tick's events. A unit travelling
+in is held only once it lands, and a unit whose technologies are off is not
+held (below), so neither leaves one; made and summoned units are held as
+they join.
+
 ## Missile Interception
 
 Missile Interception makes its unit an interceptor: Mustang, Sabertooth,
@@ -1102,6 +1127,12 @@ whose own `DisableEffect` it does not mirror.
   each update sets it back to zero; switched on, `EnableEffect`
   (`EnableRecovery`) counts it from there. Typhoons under an Electromagnetic
   Impact repair nothing.
+- **A dead effect is taken away.** `DeadEffectProvider.DisableEffect`
+  takes the unit's technology dead effects off their `DeadEffectSystem`
+  controller and `EnableEffect` hands them back, so a unit that dies with
+  its technologies off leaves no acid, summons nothing and does not rise
+  (`DeadEffectController.IsAvaliable`). Crawlers under an Electromagnetic
+  Impact die leaving no acid.
 - **A burrowing technology's unit comes up and stays up.**
   `BurrowEffectProvider.DisableEffect` brings it up (`TryBurrowUp`, its buff
   `removed` before the disabling buff is applied) and leaves it `Deactive`,
@@ -1284,6 +1315,14 @@ derive (a minimum range):
   as they join, and the fight's end clears their buffs in that order:
   `tests/burrow/fights/melting_point-production.yaml`,
   `tests/burrow/fights/steel_ball-death-summon.yaml`.
+- Acidic Explosion leaves an acid where each Crawler dies:
+  `tests/dead_acid/fights/crawler-rhino.yaml`; none from a Crawler whose
+  technologies an Electromagnetic Impact switched off:
+  `tests/dead_acid/fights/crawler-impact.yaml`; none from one killed while
+  it travels in, and one from a Crawler killed after it lands:
+  `tests/dead_acid/fights/crawler-travelling.yaml`; one from each made or
+  summoned Crawler: `tests/dead_acid/fights/melting_point-production.yaml`,
+  `tests/dead_acid/fights/steel_ball-death-summon.yaml`.
 - A dead-line technology destroys a unit its unit's shots strike at or
   under the line at its level, before the shot's damage: Culling Rounds
   culls Crawlers at 250 under a level-one Mustang's 320, and Marksmen at 712
@@ -1647,6 +1686,14 @@ derive (a minimum range):
   `SkillSearchTargetController.PerformNormalSkillSearch`,
   `ScoreRatingTargetSelector.Selector.Select`,
   `ScoreRatingTargetSelector.Selector.Calculate`.
+- An acid technology leaves its acid where its unit dies, after the buff
+  controller and before the explosive one, unless the unit's technologies
+  are off: `DeadEffectSystem.Init`, `DeadEffectSystem.Update`,
+  `DeadAcidRangeItemController.PerformDeadEffect`,
+  `DeadAcidRangeItemTech.GetRangeItemRange`, `DeadAcidRangeItemTech.GetRoundDuration`,
+  `DeadAcidRangeItemTechnologyData.PreProcess`,
+  `DeadEffectController.IsAvaliable`, `DeadEffectProvider.DisableEffect`,
+  `DeadEffectProvider.EnableEffect`, `RangeItemSystem.AddItem`.
 - A dead-line technology hands its unit's main skill a pre-hit effect that
   destroys a live unit at or under the line at the owner's level as a
   suicide, before the hit's shield and damage, and charges it the line:
@@ -1913,9 +1960,11 @@ derive (a minimum range):
 - **A tie between points.** The sort that orders points at one distance
   follows `List.Sort` as read; no recording tells it from a stable one.
 - **A rebirth beside another dead effect, switched off, or of a turned or
-  summoned unit.** No recording holds one; the order of `DeadEffectSystem`'s
-  controllers, `DeadEffectProvider.DisableEffect` and a rebirth to another
-  side (`RebirthTask.rebirthToTeam`) are refused by name.
+  summoned unit.** No recording holds one; a rebirth to another side
+  (`RebirthTask.rebirthToTeam`) is refused by name. A dead summon or a
+  rebirth switched off is read from the build, the acid's alone recorded.
+  A unit an explosion kills dies after the acid controller has run and
+  leaves no acid, read from the build.
 - **A burrowing technology switched on again, a burrowing unit risen
   again, or one a battle skill summons.** Read from the build; no recording
   holds one. One with a grouped main skill or a batch of standalone weapons,

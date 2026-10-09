@@ -120,6 +120,8 @@ schema: mechcore.technology_effects
 # metres within which an enemy brings it up (`burrow_relieve_distance`),
 # by its unit's level, and whether it goes underground
 # (`burrow_enters_underground`).
+# An acid technology carries the acid its unit leaves where it dies
+# (`dead_acid`): its whole metres of range, its rounds and its buff.
 # A fire technology carries the FPoint metres and seconds of the fire
 # each hit of its unit's main skill leaves (`fire_range`,
 # `fire_life_time`), by its unit's level.
@@ -941,6 +943,35 @@ technologies:
     name: 酸性爆炸
     unit: crawler
     kind: deadAcidRangeItemTechnologyDatas
+    dead_acid:
+      range: 9
+      rounds: 1
+      buff:
+        id: 500001
+        name: 战场技能-酸液
+        duration: 4294967296  # +1
+        divide: 0
+        additive: false
+        debuff: true
+        invincible: false
+        disable_technology: false
+        amplify_damage_rate: 6442450944  # +1.5
+        damage_rate: 0
+        speed_rate: 0
+        attack_range_value: 0
+        attack_range_rate: 0
+        max_life_rate: 0
+        step_time: 2147483648  # +0.5
+        additive_effect: false
+        additive_condition: 0
+        additive_condition_param: 0
+        max_additive_stack: 0
+        clear_when_technologies_disabled: true
+        summon_unit: 0
+        summon_level_inherit: false
+        life_change_rate: -64424509  # -0.015
+        disable_recover: false
+        additive_reset_condition: 0
   - id: 2805
     name: 最后一击
     unit: rhino

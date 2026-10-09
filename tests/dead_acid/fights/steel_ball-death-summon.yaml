@@ -1,0 +1,21 @@
+# Acidic Explosion on the Crawlers blue's Steel Ball summons as it dies
+# (Mechanical Division): each that dies leaves its acid.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 361
+hash: {profile: mcfr-content-0.23.0, result: f3ba454363afc65c4fca91a215da0c8bb5cbf8dd5574e3a2da2be5fd633dc441}
+blue:
+  techs:
+    steel_ball: [mechanical_division]
+    crawler: [acidic_explosion]
+  units:
+  - {name: steel_ball, index: 0, position: {x: 5, y: -140}, exp: 0/600/1000}
+red:
+  core_damage: 104
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/140/1150}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/108/650}
