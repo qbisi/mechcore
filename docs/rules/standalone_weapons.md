@@ -23,7 +23,15 @@ weapon, and `FightSkillBatch.Init` makes every one of them a main skill. No
   parents; a standalone weapon's skill reaches as far as the unit's range.
 - **Each weapon fires its own shots**, from its own weapon, at a point its own
   target offset draw gives, and measures its attack angle from its own
-  weapon's rotation.
+  weapon's rotation. A burst is each weapon's own: its offsets drawn as it
+  begins, its projectiles its interval apart from its own first, its blow
+  counted once its last is out.
+- **A burst still releasing checks nothing.**
+  `ProjectileMultiAttackPerformer.IsEnableCheckTarget` answers
+  `performIndex == 0`, so `SkillAttackState.Update` asks no check, and no
+  quick switch, until the burst is out: a weapon whose target dies goes on
+  firing the burst where it aimed and naming the dead target, and the unit
+  holds it, idle, through the update its last projectile leaves.
 - **Each weapon's search is a main skill's**: it is prepared as the tick opens
   (`FightCoreSystem.PreCalculate`), on where every unit stood then.
 
@@ -192,8 +200,15 @@ The Mountain's motion follows one of its weapons, the one whose skill is
 - The War Factory fights each of the six standard layouts on both seeds:
   `tests/war_factory/fights/`.
 
+- Saturation Bombardment's four weapons each fire a burst of four on their
+  own schedules, and go on through the death of the Rhino the third killed,
+  naming it through tick 100 and taking the next at 101:
+  `tests/multi_attack/fights/mountain-saturation_bombardment.yaml`.
+
 ### Read
 
+- A burst checks nothing after its first projectile:
+  `ProjectileMultiAttackPerformer.IsEnableCheckTarget`, `SkillAttackState.Update`.
 - The batch: `FightSkillFactory.Create`, `FightSkillBatch.Init`,
   `FightSkillBatch.GetLockTarget`, `FightSkillBatch.IsAttackTargetInAttackRange`,
   `FightSkillBatch.RotateWeaponTo`, `FightSkill.GetAttackRange`.

@@ -203,7 +203,8 @@ impl Simulation {
         }
         for slot in 1..self.skill(main).group_size() {
             let before = self.skill(main).sibling(slot).lock_target;
-            match self.skill(main).sibling(slot).state {
+            let state = self.skill(main).sibling(slot).state;
+            match state {
                 SkillState::Idle { .. } => {
                     if may_start_group_slot(fusillade, self.skill(main)) {
                         self.start_group_slot(
@@ -225,6 +226,8 @@ impl Simulation {
                             sibling.next_attack_step.max(step.saturating_add(1));
                     }
                 }
+                SkillState::Attack(_)
+                    if self.group_slot_burst_lost_target(main, slot, step, events)? => {}
                 SkillState::Attack(blow) => {
                     if self.attacks_fallen_construction(main, Some(slot))
                         || !self.check_attackable_slot(
@@ -244,6 +247,20 @@ impl Simulation {
                         && let Some(target) = self.skill(main).group_attack_target(slot)
                     {
                         self.release_group_slot(main, slot, target, step, events)?;
+                    }
+                    // `ProjectileMultiAttackPerformer.TryPerformEffect`: the
+                    // rest of a burst leaves at its interval while the slot
+                    // attacks.
+                    if let SkillState::Attack(_) = self.skill(main).sibling(slot).state {
+                        let due = self
+                            .skill_mut(main)
+                            .sibling_mut(slot)
+                            .performer
+                            .take_due(step);
+                        for pending in due {
+                            self.release_pending_projectile(main, pending, events)?;
+                        }
+                        self.finish_group_slot_attacking(main, slot);
                     }
                     // `SkillAttackState.Update` counts the search timer down
                     // after the check and the blow.
@@ -269,6 +286,60 @@ impl Simulation {
             self.skill_mut(main).align_slots_to_core(false);
         }
         Ok(())
+    }
+
+    /// A slot's burst whose target died while it was still firing, as the
+    /// core's: with no enemy left it stops, and otherwise the rest of it is
+    /// fired where it was aimed and the slot asks nothing else this update.
+    /// A Mountain's slots under Saturation Bombardment fire their fourth
+    /// projectiles at the Rhino that died after their third.
+    fn group_slot_burst_lost_target(
+        &mut self,
+        main: SkillRef,
+        slot: usize,
+        step: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<bool> {
+        let sibling = self.skill(main).sibling(slot);
+        let lost = !sibling.performer.pending().is_empty()
+            && sibling
+                .attack_target()
+                .is_some_and(|target| !self.fight_actor_is_alive(target));
+        if !lost {
+            return Ok(false);
+        }
+        let team = self
+            .skill_attacker(main)
+            .expect("skill owner identity is stable")
+            .team;
+        let has_alive_enemy = self
+            .actors
+            .values()
+            .any(|actor| actor.placement.team != team && actor.alive());
+        if !has_alive_enemy {
+            self.skill_mut(main).sibling_mut(slot).performer.stop();
+            return Ok(true);
+        }
+        let due = self
+            .skill_mut(main)
+            .sibling_mut(slot)
+            .performer
+            .take_due(step);
+        for pending in due {
+            self.release_pending_projectile(main, pending, events)?;
+        }
+        self.finish_group_slot_attacking(main, slot);
+        Ok(true)
+    }
+
+    /// [`Self::finish_attacking`] for a slot: once its performer's work is
+    /// done, its blow has run its cycle out and `performCount` counts it.
+    fn finish_group_slot_attacking(&mut self, main: SkillRef, slot: usize) {
+        let sibling = self.skill_mut(main).sibling_mut(slot);
+        if sibling.attacking_unfinished && sibling.performer.done() {
+            sibling.attacking_unfinished = false;
+            sibling.perform_count += 1;
+        }
     }
 
     /// What a sibling's update hands on: a lock it changed reaches the
@@ -622,10 +693,12 @@ impl Simulation {
         // `SkillAttackController.PerformAttack` counts the blow, and a
         // slot's blow, with neither wind-up nor backswing, runs its cycle
         // out in the update it starts (`ChangeToIdle`): a Wraith's slots
-        // read `performCount` 1 from the tick they fire.
+        // read `performCount` 1 from the tick they fire. A burst still
+        // releasing runs it out with its last projectile.
         let sibling = self.skill_mut(skill_ref).sibling_mut(skill_index);
         sibling.attack_count += 1;
-        sibling.perform_count += 1;
+        sibling.attacking_unfinished = true;
+        self.finish_group_slot_attacking(skill_ref, skill_index);
         Ok(())
     }
 

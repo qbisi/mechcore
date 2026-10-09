@@ -602,6 +602,10 @@ pub(in crate::fight) struct Skill {
     /// the performer's work is done, the last projectile of its burst
     /// released or its sweep over.
     pub(in crate::fight) attacking_unfinished: bool,
+    /// Whether a burst was still releasing as the skill's last update began
+    /// (`ProjectileMultiAttackPerformer.IsEnableCheckTarget` answering no):
+    /// the update its last projectile leaves still names its target.
+    pub(in crate::fight) burst_releasing: bool,
     /// The rounds left in a skill that fires from a magazine
     /// (`SkillData.isLoadingType`), and none for one that does not.
     pub(in crate::fight) rounds: Option<u32>,
@@ -675,6 +679,7 @@ impl Skill {
             total_attack_count: 0,
             perform_count: 0,
             attacking_unfinished: false,
+            burst_releasing: false,
             rounds: magazine.map(|magazine| magazine.capacity),
             attack_target_left: None,
             idle: false,
@@ -1316,12 +1321,17 @@ impl Simulation {
         }
         // A skill that splashes about itself checks nothing as it winds up
         // ([`Self::self_splash_winding_up`]): Disintegration goes on naming
-        // the Fang that died a second into its wind-up until its blow.
+        // the Fang that died a second into its wind-up until its blow. Nor
+        // does a burst still releasing, whose quick switch is the check's
+        // (`ProjectileMultiAttackPerformer.IsEnableCheckTarget` answers
+        // `performIndex == 0`): a Mountain under Saturation Bombardment names
+        // the Rhino its third projectiles killed until its fourth are out.
         let skill = self.skill(skill_ref);
         if (matches!(skill.phase(), FightSkillPhase::Prepare { .. })
             || skill.phase() == FightSkillPhase::Attack)
             && (!quick_switch_target
                 || target_alive
+                || !skill.performer.pending().is_empty()
                 || self.self_splash_winding_up(skill_ref, step))
         {
             return Ok(());
@@ -1692,6 +1702,7 @@ impl Simulation {
             .backswing_finish_step()
             .is_some_and(|finish_step| finish_step < step);
         let burst_releasing = !self.skill(skill_ref).performer.pending().is_empty();
+        self.skill_mut(skill_ref).burst_releasing = burst_releasing;
         // A sweep that struck its last stretch on the update before is over.
         if let Performer::Sweep(sweep) = &self.skill(skill_ref).performer
             && sweep.over()

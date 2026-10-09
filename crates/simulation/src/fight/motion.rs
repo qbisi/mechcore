@@ -1461,7 +1461,11 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        if !actor.skills.main.performer.sweeping() {
+        // A burst still releasing as the skill updated goes on naming its
+        // dead target too: a Mountain under Saturation Bombardment holds the
+        // Rhino its third projectiles killed through the update its fourth
+        // leave.
+        if !actor.skills.main.performer.sweeping() && !actor.skills.main.burst_releasing {
             return Flow::Next;
         }
         actor.motion.state = MotionState::Idle;
