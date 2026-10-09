@@ -329,11 +329,23 @@ impl Simulation {
                     };
                     (owner.placement.team, kept)
                 });
+            // The first source whose skill carries a rate of life to bring
+            // the unit up to (`CBLifeRecoveryRate` above `FPoint.Epsilon`).
+            let recovery_q32 = entry
+                .sources
+                .iter()
+                .map(|source| self.control_recovery_q32(source))
+                .find(|&rate| rate > 0)
+                .unwrap_or_default();
             if let (true, Some((team, kept))) = (due, turner)
                 && self.change_team(target, (team, &kept), step, events)?
-                && !self.actors[&target].summoned
             {
-                turned.push(target);
+                if recovery_q32 > 0 {
+                    self.recover_turned(target, recovery_q32, events)?;
+                }
+                if !self.actors[&target].summoned {
+                    turned.push(target);
+                }
             }
         }
         self.turned_unnamed.append(&mut turned);
@@ -538,6 +550,46 @@ impl Simulation {
                     .collect::<Vec<_>>()
             })
             .collect()
+    }
+
+    /// `SkillDataChangeFloat.CBLifeRecoveryRate` of a beam's skill: what a
+    /// `ControllBeamLifeRecoveryTech` of its owner writes on the skills it
+    /// reaches, by the owner's level, none while the owner's technologies are
+    /// disabled and the technology `CanDisable`.
+    fn control_recovery_q32(&self, source: &BeamSource) -> i64 {
+        let Some(owner) = self.actors.get(&source.owner) else {
+            return 0;
+        };
+        let Some(recovery) = &owner.placement.effects.single.control_recovery else {
+            return 0;
+        };
+        let reaches = match source.slot {
+            SkillSlot::Main => true,
+            SkillSlot::Extra(_) => recovery.extra_skills,
+        };
+        if !reaches || (recovery.can_disable && owner.technology_disabled()) {
+            return 0;
+        }
+        super::burrow::level_value(&recovery.rate, owner.placement.level)
+    }
+
+    /// The end of `TeamTranslationSystem.ChangeTeam` with a rate above
+    /// `FPoint.Epsilon`: the unit turned is brought up to that rate of its
+    /// maximum life, the `FPoint` product's whole part, by
+    /// `FightMech.RecoveryLife` of what it lacks.
+    fn recover_turned(
+        &mut self,
+        unit_id: u64,
+        rate_q32: i64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let actor = &self.actors[&unit_id];
+        let up_to = q32_mul(actor.stats.max_life() << 32, rate_q32) >> 32;
+        let lacking = up_to - actor.life;
+        if lacking > 0 {
+            self.add_life(unit_id, lacking, events)?;
+        }
+        Ok(())
     }
 
     /// `TeamTranslationSystem.ChangeTeam` and `FightActor.ChangeTeam`: the

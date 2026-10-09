@@ -55,9 +55,10 @@ use super::{
     providers::EffectProvider,
     sources::{
         AdditionalDamage, AutoRecovery, BuffSource, Burrow, CarriedShield, ClearRangeItem,
-        DeadExplosion, EnergyShield, FlyTech, KillExplosion, LifeSteal, MoveAbilityAttack,
-        MoveAbilityRangeItem, ProductionLine, ReactiveArmor, Rebirth, RebirthFollow, RecoveryState,
-        Repair, RvoRadiusChange, SiegeMode, Stealth, SweepIntensify, WreckageRecovery,
+        ControlRecovery, DeadExplosion, EnergyShield, FlyTech, KillExplosion, LifeSteal,
+        MoveAbilityAttack, MoveAbilityRangeItem, ProductionLine, ReactiveArmor, Rebirth,
+        RebirthFollow, RecoveryState, Repair, RvoRadiusChange, SiegeMode, Stealth, SweepIntensify,
+        WreckageRecovery,
     },
 };
 
@@ -163,9 +164,13 @@ const CURRENT_LIFE_HIGHEST_FIRST: i32 = 1;
 const DEAD_EXPLOSIVE: &str = "deadExplosiveTechnologyDatas";
 /// The list whose `AdditionalDamageTech` is an `IAdditionalDamage`.
 const ADDITIONAL_DAMAGE: &str = "additionalDamageTechDatas";
+/// The list whose `ControllBeamLifeRecoveryTech` writes
+/// `CBLifeRecoveryRate` on its unit's skills, a `DataModifyTech` of no
+/// provider beside the numbers'.
+const CONTROL_RECOVERY: &str = "controllBeamLifeRecoveryTechnologies";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 40] = [
+const IMPLEMENTED: [&str; 41] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -206,6 +211,7 @@ const IMPLEMENTED: [&str; 40] = [
     SEARCH_TARGET_MODIFY,
     DEAD_EXPLOSIVE,
     ADDITIONAL_DAMAGE,
+    CONTROL_RECOVERY,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -349,6 +355,9 @@ struct Technology {
     dead_explosion: Option<DeadExplosion>,
     /// What it answers `IAdditionalDamage` with, if its class is one.
     additional_damage: Option<AdditionalDamage>,
+    /// What it writes as `CBLifeRecoveryRate`, if its class is a
+    /// `ControllBeamLifeRecoveryTech`.
+    control_recovery: Option<ControlRecovery>,
     /// What it answers `IBurrow` with, if its class is one.
     burrow: Option<Burrow>,
     /// The acid it leaves where its unit dies, if its class is an
@@ -539,6 +548,8 @@ pub(crate) struct SingleSources {
     /// life besides: the provider enables one source
     /// (`SingleEffectProvider`).
     pub(crate) additional_damage: Option<AdditionalDamage>,
+    /// What the first that writes `CBLifeRecoveryRate` writes.
+    pub(crate) control_recovery: Option<ControlRecovery>,
 }
 
 /// What a move ability summon row answers `IMoveAbilitySummon` and
@@ -944,6 +955,10 @@ struct Row {
     /// raw rate, on a row of its list.
     #[serde(default)]
     additional_damage_rate: i64,
+    /// `ControllBeamLifeRecoveryTechnologyData.recoveryRate`, `FPoint` raw
+    /// rates by the unit's level, on a row of its list.
+    #[serde(default)]
+    control_recovery_rate: Vec<i64>,
     /// `BurrowData.amplifyDamageRate`, `relieveDistance` and
     /// `isEnterUnderGround`, on a row of its list.
     #[serde(default)]
@@ -1639,6 +1654,11 @@ impl TechnologyEffects {
                 }),
                 ignores_speed_rate: row.kind == IGNORE_BUFF_EFFECT && row.ignores_buff_effect,
                 life_priority: row.kind == SEARCH_TARGET_MODIFY,
+                control_recovery: (row.kind == CONTROL_RECOVERY).then(|| ControlRecovery {
+                    rate: row.control_recovery_rate.clone(),
+                    extra_skills: row.extra_skill_effect,
+                    can_disable: !row.ignore_electric_effect,
+                }),
                 additional_damage: (row.kind == ADDITIONAL_DAMAGE).then_some(AdditionalDamage {
                     rate_q32: row.additional_damage_rate,
                     extra_skills: row.extra_skill_effect,
@@ -1816,6 +1836,12 @@ impl TechnologyEffects {
             sources.single.fly = sources.single.fly.or(technology.fly);
             sources.ignores_speed_rate |= technology.ignores_speed_rate;
             sources.single.life_priority |= technology.life_priority;
+            if sources.single.control_recovery.is_none() {
+                sources
+                    .single
+                    .control_recovery
+                    .clone_from(&technology.control_recovery);
+            }
             sources.single.additional_damage = sources
                 .single
                 .additional_damage
