@@ -1315,17 +1315,18 @@ impl Simulation {
         self.blow(skill_ref, skill_slot, target, amount, events)
     }
 
-    /// A blow dealing what a beam's damage effect deals: the main skill's
-    /// `DamageEffect.Perform` with another amount.
+    /// A blow dealing what a beam's damage effect deals: the skill's
+    /// `DamageEffect.Perform` with another amount, recorded under the slot
+    /// of the group's skill at `offset`.
     pub(in crate::fight) fn direct_effect_dealing(
         &mut self,
-        actor_id: u64,
+        (skill_ref, offset): (SkillRef, usize),
         target: FightActorRef,
         amount: i64,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let skill_ref = SkillRef::main(FightActorRef::Unit(actor_id));
-        self.blow(skill_ref, 0, target, amount, events)
+        let skill_slot = self.skill_slot(skill_ref) + offset;
+        self.blow(skill_ref, skill_slot, target, amount, events)
     }
 
     /// `DamagePerformer.Perform` of a skill's `SkillDamageProvider`: the

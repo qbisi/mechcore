@@ -27,8 +27,12 @@ Hacker reads 1 all fight, whatever it is on.
 A hit that strikes deals `FightControllBeamSkill.GetDamage`: the calculator's
 damage times `DAMAGE_MODIFIER`, three tenths in `FPoint`, rounded down. A full
 hit deals 179, and a warmup hit nothing: a hit that deals nothing strikes
-nothing and writes no damage. The effect is the main skill's damage effect, so
-it splashes as the skill does: Explosive Ammo gives it 5 metres, and one hit
+nothing and writes no damage. The effect is its own skill's damage effect: a
+beam of Multi Control strikes a building with its row's damage and records
+it under its own slot. Read from
+the build (`FightControllBeamSkill.GetAttackEffect` is the class's, the extra
+row's beams among it); no recording holds it. The main skill's splashes as
+the skill does: Explosive Ammo gives it 5 metres, and one hit
 strikes every unit around the one it is on. A hit that turns strikes nothing,
 and its splash nothing either; but after it adds its power, the unit it is on
 raises `OnMechBeHit` with the beam's owner as the attacker
