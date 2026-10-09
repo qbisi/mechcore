@@ -751,6 +751,35 @@ new terrain's, unless it was turned from another kind, a fire burnt from oil
 `m_isConvertFromOtherType`). A grid left with no cell goes. Which unit
 clears first changes nothing that is left.
 
+## Repair technologies
+
+A row of `recoveryTechDatas` is a `RecoveryTech`, Maintenance Array, the
+Typhoon's: it answers `IRecoveryTechEffectDataSource` with 500 life at the
+first level, 500 more each level up to 4500 at the ninth (`GetLife`, the last
+entry past the list), no rate of maximum life (`GetMaxLifeRate`), an interval
+of 3 seconds (`GetRecoveryInterval`) and a range of 100 metres (`GetRange`),
+repairing no enemy, units only and aerial units too (`CanRecoverEnemy`,
+`IsOnlyRecoverMech`, `CanRecoverAir`).
+
+**It repairs every 61 ticks about its unit.**
+`RecoveryEffectProvider.DoActive` adds the unit to `RecoveryEffectSystem`
+(`AddRecoveryOwner`), and `OnEnterFight` sets each clock at zero, enabled; a
+unit added during the fight, arriving from its travel, rising again or made,
+starts at zero, enabled. `DoDeactive`, as the unit dies, takes it out. Each
+update while fighting (`RecoveryEffectSystem.Update`, one module after
+`StealthTechSystem`), each clock, in its dictionary's order, adds
+`FightUtility.DeltaTime`; on reaching the interval
+(`FPoint.op_GreaterThanOrEqual`), which 60 updates fall short of, it goes
+back to zero and repairs (`RecoveryEffectSystem.RecoveryDataInfo.Update`).
+`DoRecover` takes every
+unit `RangeTargetCalculator.CalculateRangeActors` finds within the range of
+the unit's position, its own radius counted and no building. Of those it
+keeps the unit's side's unless it repairs enemies, and aerial units only if
+it repairs those. Each gains the life at the unit's level plus the rate of
+its own maximum life, the whole part
+(`FightActor.RecoveryLife`). The unit repairs itself. Its repairs follow the
+tick's deaths. A row that repairs targets beside units is refused.
+
 ## Burrowing technologies
 
 A row of `burrowTechnologies` is a `BurrowTech`, an `IBurrow`: Subterranean
@@ -1068,6 +1097,11 @@ whose own `DisableEffect` it does not mirror.
   (`TeamClearRangeItemManager.DisableMech`) makes it inactive; switched on,
   `EnableEffect` (`EnableMech`) makes it active for the manager's next
   clearing. Hounds under an Electromagnetic Impact leave every fire whole.
+- **A repair technology's clock stands at zero.**
+  `RecoveryEffectProvider.DisableEffect` (`DisableRecovery`) disables it, and
+  each update sets it back to zero; switched on, `EnableEffect`
+  (`EnableRecovery`) counts it from there. Typhoons under an Electromagnetic
+  Impact repair nothing.
 - **A burrowing technology's unit comes up and stays up.**
   `BurrowEffectProvider.DisableEffect` brings it up (`TryBurrowUp`, its buff
   `removed` before the disabling buff is applied) and leaves it `Deactive`,
@@ -1229,6 +1263,14 @@ derive (a minimum range):
   their arrival: `tests/fire_extinguisher/fights/travelling.yaml`. A fire a
   barrier reaches after it lands loses the barrier's cells as it is first
   cleared: `tests/fire_extinguisher/fights/shield-cut.yaml`.
+- Maintenance Array repairs every 61 ticks from the fight's start, its
+  Typhoons handing each hurt unit about them their level's life:
+  `tests/maintenance_array/fights/typhoons.yaml`. Aerial units are repaired
+  too: `tests/maintenance_array/fights/air.yaml`. A Typhoon reborn counts
+  from its rise: `tests/maintenance_array/fights/rebirth.yaml`, and one
+  travelling in from its arrival:
+  `tests/maintenance_array/fights/travelling.yaml`. Disabled, they repair
+  nothing: `tests/maintenance_array/fights/impact.yaml`.
 - Subterranean Blitz burrows its Crawlers from the first tick and brings
   each up as its enemy comes within 50: `tests/burrow/fights/crawler-rhino.yaml`.
   Burrowed, they take a Marksman's shot less 0.4; one that dies burrowed,
@@ -1573,6 +1615,20 @@ derive (a minimum range):
   `RangeItemEffectLayerGrid.GenerateGrid`,
   `AdvancedEnergyShieldSystem.GetActiveEnergyShields`,
   `GridBlockInt.TryDisableGrid`.
+- A repair technology's unit repairs, each time its clock reaches the
+  interval, every unit of its side within its range, at its level's life;
+  added during the fight or switched on again, it counts from zero:
+  `RecoveryTech.GetLife`, `RecoveryEffectProvider.DoActive`,
+  `RecoveryEffectProvider.DoDeactive`,
+  `RecoveryEffectProvider.DisableEffect`,
+  `RecoveryEffectProvider.EnableEffect`,
+  `RecoveryEffectSystem.AddRecoveryOwner`,
+  `RecoveryEffectSystem.RemoveRecoveryOwner`,
+  `RecoveryEffectSystem.EnableRecovery`,
+  `RecoveryEffectSystem.DisableRecovery`,
+  `RecoveryEffectSystem.OnEnterFight`, `RecoveryEffectSystem.Update`,
+  `RecoveryEffectSystem.DoRecover`, `RecoveryEffectSystem.RecoveryDataInfo.Update`,
+  `RangeTargetCalculator.CalculateRangeActors`.
 - A burrowing technology burrows its unit while the nearest enemy its main
   skill's search measured, and its attack target or lock, stand beyond its
   distance, writing itself as the unit's buff, and brings it up otherwise:
@@ -1874,6 +1930,11 @@ derive (a minimum range):
   or a dying unit that summons a Hound (none does), nor a Hound clearing a
   fire burnt from an oil beside a shield. A recovery zone among its kinds is
   refused.
+- **A repair switched on again, and two clocks reaching the interval
+  together.** Read from the build; no recording holds an Electromagnetic
+  Impact running out on Typhoons that hold it, nor two repairing Typhoons
+  whose dictionary order a repair's events show, beyond a pair added
+  together.
 
 - **A wreckage record running out, and the share among holders.** Read
   from the build; no recording holds a recorded unit dying after its time,

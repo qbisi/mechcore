@@ -15,7 +15,7 @@ use crate::{
         AutoRecovery, BuffSource, Burrow, CarriedShield, ClearRangeItem, DeadLine, DeadSummon,
         EffectProvider, EnergyShield, EnergyTowerSkillEffects, EquipmentEffects, LifeSteal,
         MainSkill, MechGroup, MoveAbilityAttack, OfficerEffects, ProductionLine, ReactiveArmor,
-        Rebirth, RvoRadiusChange, SecondaryDamage, SiegeMode, Stealth, SweepIntensify,
+        Rebirth, Repair, RvoRadiusChange, SecondaryDamage, SiegeMode, Stealth, SweepIntensify,
         TECHNOLOGY_SOURCE, TechnologyEffects, UnitInterception, WreckageRecovery, current_source,
     },
     rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs, UnitDomain},
@@ -94,6 +94,9 @@ pub(crate) struct Placement {
     /// The `IClearRangeItem` its `ClearRangeItemEffectProvider` hands its
     /// side's `TeamClearRangeItemManager`, if its technologies hand it one.
     pub(crate) clear_range_item: Option<ClearRangeItem>,
+    /// The `IRecoveryTechEffectDataSource` its `RecoveryEffectProvider` hands
+    /// `RecoveryEffectSystem`, if its technologies hand it one.
+    pub(crate) repair: Option<Repair>,
     /// The `IBurrow` its `BurrowEffectProvider` hands its side's
     /// `TeamBurrowManager`, if its technologies hand it one.
     pub(crate) burrow: Option<Burrow>,
@@ -188,6 +191,7 @@ pub(crate) struct Production {
     pub(crate) burrow: Option<Burrow>,
     pub(crate) clear_range_item: Option<ClearRangeItem>,
     pub(crate) rvo_radius_change: Option<RvoRadiusChange>,
+    pub(crate) repair: Option<Repair>,
 }
 
 #[derive(Debug, Clone)]
@@ -559,6 +563,7 @@ fn death_summon_template(team: u32, rules: &UnitConfig, level: i64, worn: Worn) 
         rebirth: worn.rebirth.clone(),
         rvo_radius_change: worn.rvo_radius_change,
         clear_range_item: worn.clear_range_item.clone(),
+        repair: worn.repair.clone(),
         burrow: worn.burrow.clone(),
         sweep: worn.sweep,
         distance_intensify: worn.distance_intensify,
@@ -811,6 +816,7 @@ fn compile_battle_skills(
             summon.burrow = worn.burrow;
             summon.clear_range_item = worn.clear_range_item;
             summon.rvo_radius_change = worn.rvo_radius_change;
+            summon.repair = worn.repair;
         }
         battle_skills.push(release);
     }
@@ -933,6 +939,7 @@ fn compile_formation(
         rebirth: worn.rebirth.clone(),
         rvo_radius_change: worn.rvo_radius_change,
         clear_range_item: worn.clear_range_item.clone(),
+        repair: worn.repair.clone(),
         burrow: worn.burrow.clone(),
         sweep: worn.sweep,
         distance_intensify: worn.distance_intensify,
@@ -1109,6 +1116,7 @@ fn made_by(
         burrow: worn.burrow,
         clear_range_item: worn.clear_range_item,
         rvo_radius_change: worn.rvo_radius_change,
+        repair: worn.repair,
     })
 }
 
@@ -1273,6 +1281,7 @@ struct Worn {
     rebirth: Option<Rebirth>,
     rvo_radius_change: Option<RvoRadiusChange>,
     clear_range_item: Option<ClearRangeItem>,
+    repair: Option<Repair>,
     burrow: Option<Burrow>,
     sweep: Option<SweepIntensify>,
     distance_intensify: bool,
@@ -1594,6 +1603,7 @@ fn worn(
         rebirth: sources.rebirth,
         rvo_radius_change: sources.rvo_radius_change,
         clear_range_item: sources.clear_range_item,
+        repair: sources.repair,
         burrow: sources.burrow,
         sweep: main_skill.sweep,
         distance_intensify: main_skill.distance_intensify,

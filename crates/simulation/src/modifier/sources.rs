@@ -177,6 +177,26 @@ pub(crate) struct RvoRadiusChange {
     pub(crate) near_target_threshold_q32: i64,
 }
 
+/// What an `IRecoveryTechEffectDataSource` answers: `RecoveryEffectSystem`
+/// repairs the units about its unit every so often.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Repair {
+    /// `GetLife`: the whole life each repair hands, by the unit's level, the
+    /// last entry past its list.
+    pub(crate) life: Vec<i64>,
+    /// `GetMaxLifeRate`, Q32.32: the rate of a repaired unit's maximum life
+    /// added.
+    pub(crate) max_life_rate_q32: i64,
+    /// `GetRecoveryInterval`, Q32.32 seconds.
+    pub(crate) interval_q32: i64,
+    /// `GetRange`, Q32.32 metres.
+    pub(crate) range_q32: i64,
+    /// `CanRecoverEnemy`.
+    pub(crate) enemies: bool,
+    /// `CanRecoverAir`.
+    pub(crate) air: bool,
+}
+
 /// What an `IClearRangeItem` answers: `TeamClearRangeItemManager` clears the
 /// terrain of these kinds about its unit.
 #[derive(Debug, Clone, PartialEq, Eq)]

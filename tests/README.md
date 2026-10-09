@@ -35,6 +35,7 @@ out to show:
 | [`rebirth/`](rebirth/README.md) | when a rebirth technology brings its unit back after it dies, where, and what its side and the score make of it meanwhile |
 | [`reactive_armor/`](reactive_armor/README.md) | what a reactive armor technology takes off the hits on its unit, and for how many |
 | [`multi_attack/`](multi_attack/README.md) | how many projectiles a multi-attack technology adds its unit's bursts, how far apart in time and space, and from which weapon |
+| [`maintenance_array/`](maintenance_array/README.md) | whom a repair technology's unit repairs about it, how often and from when |
 | [`map/`](map/README.md) | what a map's neutral crystals do to a fight |
 | [`move_ability/`](move_ability/README.md) | what a technology adds to its unit's move ability, and what it makes as the unit surfaces |
 | [`modifier/`](modifier/README.md) | how officers and technologies correct a unit's numbers |

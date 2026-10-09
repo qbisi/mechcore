@@ -56,7 +56,7 @@ use super::{
     sources::{
         AutoRecovery, BuffSource, Burrow, CarriedShield, ClearRangeItem, EnergyShield, LifeSteal,
         MoveAbilityAttack, MoveAbilityRangeItem, ProductionLine, ReactiveArmor, Rebirth,
-        RebirthFollow, RecoveryState, RvoRadiusChange, SiegeMode, Stealth, SweepIntensify,
+        RebirthFollow, RecoveryState, Repair, RvoRadiusChange, SiegeMode, Stealth, SweepIntensify,
         WreckageRecovery,
     },
 };
@@ -141,9 +141,11 @@ const BURROW: &str = "burrowTechnologies";
 const RVO_RADIUS_CHANGE: &str = "rVORadiusChangeTechnologyTechDatas";
 /// The list whose `ClearRangeItemTech` is an `IClearRangeItem`.
 const CLEAR_RANGE_ITEM: &str = "clearRangeItemTechDatas";
+/// The list whose `RecoveryTech` is an `IRecoveryTechEffectDataSource`.
+const REPAIR: &str = "recoveryTechDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 32] = [
+const IMPLEMENTED: [&str; 33] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -176,6 +178,7 @@ const IMPLEMENTED: [&str; 32] = [
     RVO_RADIUS_CHANGE,
     CLEAR_RANGE_ITEM,
     BURROW,
+    REPAIR,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -298,6 +301,9 @@ struct Technology {
     rvo_radius_change: Option<RvoRadiusChange>,
     /// What it answers `IClearRangeItem` with, if its class is one.
     clear_range_item: Option<ClearRangeItem>,
+    /// What it answers `IRecoveryTechEffectDataSource` with, if its class
+    /// is one.
+    repair: Option<Repair>,
     /// What it answers `IBurrow` with, if its class is one.
     burrow: Option<Burrow>,
     /// What it answers `IMoveAbilityAttackIntensify` with, if its class is
@@ -440,6 +446,9 @@ pub(crate) struct UnitSources {
     /// The first that clears terrain about its unit: the provider enables
     /// one source (`SingleEffectProvider`).
     pub(crate) clear_range_item: Option<ClearRangeItem>,
+    /// The first that repairs the units about its unit: the provider enables
+    /// one source (`SingleEffectProvider`).
+    pub(crate) repair: Option<Repair>,
     /// The first that burrows its unit: the provider enables one source
     /// (`SingleEffectProvider`).
     pub(crate) burrow: Option<Burrow>,
@@ -793,6 +802,23 @@ struct Row {
     clear_radius: i32,
     #[serde(default)]
     clear_range_item_types: Vec<i32>,
+    /// `RecoveryTechData`'s `life`, whole life by level, `maxLifeRate`,
+    /// `interval` and `range`, `FPoint`, and `canRecoverEnemy`,
+    /// `isOnlyRecoverMech` and `canRecoverAir`, on a row of its list.
+    #[serde(default)]
+    repair_life: Vec<i64>,
+    #[serde(default)]
+    repair_max_life_rate: i64,
+    #[serde(default)]
+    repair_interval: i64,
+    #[serde(default)]
+    repair_range: i64,
+    #[serde(default)]
+    repair_enemy: bool,
+    #[serde(default)]
+    repair_only_mech: bool,
+    #[serde(default)]
+    repair_air: bool,
     /// `BurrowData.amplifyDamageRate`, `relieveDistance` and
     /// `isEnterUnderGround`, on a row of its list.
     #[serde(default)]
@@ -1370,6 +1396,16 @@ impl TechnologyEffects {
                 Ok(rebirth) => (rebirth, effect),
                 Err(why) => (None, Err(why)),
             };
+            // `isOnlyRecoverMech` keeps a `FightMech`, which is every target
+            // `CalculateRangeActors` finds without buildings; without it, a
+            // target that is not one is not read.
+            let effect = if row.kind == REPAIR && !row.repair_only_mech {
+                Err(format!(
+                    "{who} repairs targets beside units, which is not read"
+                ))
+            } else {
+                effect
+            };
             let (clear_range_item, effect) = match clear_range_item_of(&row, &who) {
                 Ok(clear) => (clear, effect),
                 Err(why) => (None, Err(why)),
@@ -1400,6 +1436,16 @@ impl TechnologyEffects {
                     near_target_threshold_q32: row.rvo_near_target_threshold,
                 }),
                 clear_range_item,
+                // `isOnlyRecoverMech` keeps a `FightMech`, which every target
+                // `CalculateRangeActors` finds without buildings is.
+                repair: (row.kind == REPAIR).then(|| Repair {
+                    life: row.repair_life.clone(),
+                    max_life_rate_q32: row.repair_max_life_rate,
+                    interval_q32: row.repair_interval,
+                    range_q32: row.repair_range,
+                    enemies: row.repair_enemy,
+                    air: row.repair_air,
+                }),
                 dead_line: (row.kind == DEAD_LINE)
                     .then(|| (row.dead_line_value.clone(), row.dead_line_ignores_shield)),
                 mech_group,
@@ -1551,6 +1597,9 @@ impl TechnologyEffects {
                 sources
                     .clear_range_item
                     .clone_from(&technology.clear_range_item);
+            }
+            if sources.repair.is_none() {
+                sources.repair.clone_from(&technology.repair);
             }
             if sources.burrow.is_none() {
                 sources.burrow.clone_from(&technology.burrow);
@@ -2013,6 +2062,7 @@ fn provider_of(kind: &str, self_buff: bool) -> Option<EffectProvider> {
         WRECKAGE => EffectProvider::WreckageRecovery,
         RVO_RADIUS_CHANGE => EffectProvider::RvoRadiusChange,
         CLEAR_RANGE_ITEM => EffectProvider::ClearRangeItem,
+        REPAIR => EffectProvider::Repair,
         BURROW => EffectProvider::Burrow,
         _ => return None,
     })
@@ -2599,6 +2649,43 @@ mod tests {
                 .collect::<Vec<_>>(),
             [super::EffectProvider::RvoRadiusChange]
         );
+    }
+
+    /// A repair technology hands its unit what it repairs with, and one that
+    /// repairs targets beside units is refused.
+    #[test]
+    fn a_repair_technology_hands_its_unit_a_repair() {
+        let table = TechnologyEffects::parse(
+            "schema: mechcore.technology_effects\n\
+             technologies:\n\
+             - {id: 9, name: probe, unit: typhoon, kind: recoveryTechDatas, \
+             repair_life: [500, 1000], repair_max_life_rate: 0, \
+             repair_interval: 12884901888, repair_range: 429496729600, \
+             repair_enemy: false, repair_only_mech: true, repair_air: true}\n\
+             - {id: 10, name: towers, unit: typhoon, kind: recoveryTechDatas, \
+             repair_life: [500], repair_interval: 12884901888, \
+             repair_range: 429496729600, repair_only_mech: false}\n",
+        )
+        .unwrap();
+        assert_eq!(
+            table.sources(&[9], "typhoon").unwrap().repair,
+            Some(super::Repair {
+                life: vec![500, 1000],
+                max_life_rate_q32: 0,
+                interval_q32: 3 << 32,
+                range_q32: 100 << 32,
+                enemies: false,
+                air: true,
+            })
+        );
+        assert_eq!(
+            table
+                .providers(&[9], "typhoon")
+                .into_keys()
+                .collect::<Vec<_>>(),
+            [super::EffectProvider::Repair]
+        );
+        assert!(table.corrections(&[10], "typhoon", 1).is_err());
     }
 
     /// A fire-extinguisher technology hands its unit the terrain it clears,
