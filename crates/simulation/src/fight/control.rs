@@ -469,7 +469,11 @@ impl Simulation {
             core.set_mech_lock(None);
         }
         let skill = core.group_skill_mut(offset);
-        let fired_at = skill.attack_target();
+        // A skill firing at a shield has no attack target to go on naming,
+        // as at the end of an attack (`SkillAttackState.Finish`).
+        let fired_at = skill
+            .attack_target()
+            .filter(|_| skill.shield_target().is_none());
         skill.drop_lock();
         skill.performer.stop();
         if permanent_holds {

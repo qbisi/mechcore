@@ -97,7 +97,8 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
 - **stops every skill locked on it** (`FightSkill.OnChangeTeam`): `StopAttack`
   drops the lock and keeps the attack target. A skill idle already stays idle,
   its weapons naming what they named until it takes another; a cooling one
-  goes on cooling. Any other enters its cooling, naming what it fired at, or
+  goes on cooling. Any other enters its cooling, naming what it fired at
+  (nothing, when it fired at a battlefield shield), or
   without one enters `SkillIdleState` with its targets cleared, unless it is
   a main skill whose unit's permanent preemptive skill is active, which stays
   locked, and a permanent preemptive skill not yet active, which stays as it
@@ -223,6 +224,9 @@ the shield does not count against the turn.
 - A Hacker turned with its side's last unit reads cooling at its target, and
   its side's towers fall: `tests/control/fights/anti-interference-mirror.yaml`,
   tick 168; `tests/hacker/fights/m1-mirror-4242.yaml`, tick 168.
+- A Fortress firing at a Hacker's barrier and turned by it, red's last unit,
+  cools naming nothing: `tests/control/fights/barrier-technology-turn.yaml`,
+  tick 277.
 - When the fight ends on a turned unit's death, the weapons left name nothing:
   `tests/hacker/fights/m3-crawler-1787720817.yaml`, tick 333.
 - The Anti-Interference Module keeps its unit from being turned, and the beam
