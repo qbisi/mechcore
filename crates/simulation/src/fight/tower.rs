@@ -1136,14 +1136,18 @@ impl Simulation {
     fn switch_provider(&mut self, actor_id: u64, provider: EffectProvider, on: bool) {
         match provider {
             // `ExtraSkillProvider.DisableSkill` and `EnableSkill`: every
-            // extra skill of a technology is disabled and enabled with it.
+            // extra skill of a technology that switches is disabled and
+            // enabled with it (`FightSkill.IsBelongExtraSkill`).
             EffectProvider::ExtraSkill => {
                 let actor = self
                     .actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable");
+                let switched = &actor.placement.technology_disable.technologies;
                 for extra in &mut actor.skills.extras {
-                    extra.skill.disabled = !on;
+                    if switched.contains(&extra.rules.technology) {
+                        extra.skill.disabled = !on;
+                    }
                 }
             }
             EffectProvider::StealthTech => self.switch_stealth(actor_id, on),
@@ -1202,7 +1206,7 @@ impl Simulation {
         // Electromagnetic Impact reaches keep the intervals they drew. One
         // whose technologies wrote nothing still refreshes: a Fortress with
         // Barrier's drawn 35 becomes its plain 36.
-        if !actor.placement.technology_disable.holds {
+        if actor.placement.technology_disable.technologies.is_empty() {
             return Ok(());
         }
         for (channel, entry) in corrections {
