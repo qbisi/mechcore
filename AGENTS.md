@@ -53,13 +53,7 @@ which is how CI's Linux jobs build; code that only holds on macOS goes behind
 `cfg(target_os = "macos")`. What each CI job checks is in the comments of
 `.github/workflows/ci.yml`.
 
-Run `cargo fmt --all` before committing; CI checks it. Install the pre-commit
-hook once per clone, as a repository setting because a global
-`core.hooksPath` would override `.git/hooks`:
-
-```
-git config core.hooksPath .githooks
-```
+Run `cargo fmt --all` before committing; CI checks it.
 
 Master requires the `gate` status, which `.github/workflows/gate.yml` posts
 when every check is green. Pull requests merge as merge commits, the only
