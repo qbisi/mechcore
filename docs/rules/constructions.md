@@ -258,6 +258,9 @@ The map's own buildings are the exception and are named: each side gets one
   slot whose block another slot fells drops its lock on its own check, while
   the others keep theirs: `tests/corpus/fights/134258634-r5.yaml`,
   `tests/corpus/fights/134258634-r7.yaml`.
+- A Wraith's slot whose block falls while the core fires at a unit with a
+  clear line goes on naming the block and ends its attack on its own check
+  the tick after: `tests/corpus/fights/67257112-r11.yaml`, tick 328.
 - A blow takes the block in its line, and the unit reads idle for a tick before
   the next: `tests/construction/fights/`.
 - A beam takes the block in its line, a block holds off a unit of the other
