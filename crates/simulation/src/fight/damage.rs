@@ -1072,14 +1072,19 @@ impl Simulation {
     /// `IDamageProvider.DispatchHitDamageEvent` after a hit: a unit's skill,
     /// struck directly (`SkillDamageProvider`) or through its projectile
     /// (`FightProjectile`), hands what the hit struck and the life it took in
-    /// all to the skill's hit effects, `FightSkill.DispatchHitDamageEvent`:
-    /// `LifeStealEffectProvider`'s, `TeamWreckageRecoveryManager`'s, a
-    /// buff source's `BuffCycleController` and `KillExplosionEffectProvider`'s,
-    /// in that order, which no recording holds two of. A projectile's
-    /// dispatch alone then raises `ISkillOwner.PerformMainSkillHitted` on its
-    /// owner when its skill is the main one (`IProjectileDataSource.IsMainSkill`);
-    /// `SkillDamageProvider`'s, a direct blow's or a laser's, does not. Answers
-    /// the deaths and falls the hit effects dealt.
+    /// all to the skill's hit effects, `FightSkill.DispatchHitDamageEvent`, in
+    /// the order `SkillHitEffectController` holds them: the order its unit's
+    /// providers registered them (`FightEffectMananger.RegisterMechEvent`
+    /// walks its providers, [`crate::modifier::EffectProvider::ALL`]), so
+    /// `TeamWreckageRecoveryManager`'s, `LifeStealEffectProvider`'s, a buff
+    /// source's `BuffCycleController`, `FireIntensifyEffectProvider`'s and
+    /// `KillExplosionEffectProvider`'s. A Void Eye with Suppression Shots and
+    /// Energy Absorption takes its life back before its buff is written. A
+    /// projectile's dispatch alone then raises
+    /// `ISkillOwner.PerformMainSkillHitted` on its owner when its skill is the
+    /// main one (`IProjectileDataSource.IsMainSkill`); `SkillDamageProvider`'s,
+    /// a direct blow's or a laser's, does not. Answers the deaths and falls
+    /// the hit effects dealt.
     /// A hit no unit's skill dealt — a turret's, a mine's, a battle skill's —
     /// reaches no unit's skill.
     ///
@@ -1100,25 +1105,25 @@ impl Simulation {
     ) -> Result<Struck> {
         match (hit.source, hit.skill_slot) {
             (Some(owner), Some(slot)) if owner.kind == ObjectKind::Unit => {
-                self.steal_life(owner.id, damage, events)?;
                 self.record_wreckage_hit(owner.id, slot, targets);
+                self.steal_life(owner.id, damage, events)?;
                 let center = (hit.center_q32.0, hit.center_y_q32, hit.center_q32.1);
+                let skill = self.skill_at_slot(FightActorRef::Unit(owner.id), usize::from(slot));
+                let main = skill.slot == SkillSlot::Main;
                 if !secondary {
                     self.add_hit_buffs(owner.id, slot, (targets, center), events)?;
+                    if main {
+                        self.leave_main_fire(skill, targets, center)?;
+                    }
                 }
                 let ends = self.explode_kills(owner.id, slot, targets, events)?;
-                if secondary {
-                    return Ok(ends);
-                }
-                let skill = self.skill_at_slot(FightActorRef::Unit(owner.id), usize::from(slot));
-                if skill.slot == SkillSlot::Main {
-                    self.leave_main_fire(skill, targets, center)?;
-                    // `PerformMainSkillHitted`, which only a projectile raises.
-                    if hit.provider == Provider::Projectile
-                        && let Some(actor) = self.actors.get_mut(&owner.id)
-                    {
-                        actor.reset_stacks_on_main_hit()?;
-                    }
+                // `PerformMainSkillHitted`, which only a projectile raises.
+                if main
+                    && !secondary
+                    && hit.provider == Provider::Projectile
+                    && let Some(actor) = self.actors.get_mut(&owner.id)
+                {
+                    actor.reset_stacks_on_main_hit()?;
                 }
                 Ok(ends)
             }
