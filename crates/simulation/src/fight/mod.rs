@@ -39,6 +39,7 @@ use crate::{
 mod attack_count;
 mod attacker;
 mod buff_cycle;
+mod clear_range_item;
 mod commander_skill;
 mod construction;
 mod control;
@@ -492,6 +493,9 @@ struct Simulation {
     kills: kills::KillCounts,
     /// `RangeItemSystem`'s terrains and the units standing in them.
     terrain: terrain::TerrainSystem,
+    /// `TeamClearRangeItemManager.m_deltaTime`: its updates since it last
+    /// cleared.
+    clear_range_item_time: i32,
     /// `StealthTechSystem`'s units.
     stealth: stealth::StealthSystem,
     /// `SiegeModeEffectSystem`'s units.
@@ -621,6 +625,7 @@ impl Simulation {
             exp: experience::ExpSystem::new(building_exp)?,
             kills: kills::KillCounts::default(),
             terrain: terrain::TerrainSystem::default(),
+            clear_range_item_time: 0,
             stealth: stealth::StealthSystem::default(),
             siege: siege::SiegeModeSystem::default(),
             wreckage: wreckage::WreckageSystem::default(),
@@ -1169,6 +1174,8 @@ impl Simulation {
         // `WreckageRecoverySystem` updates after `DeadEffectSystem` and
         // `FightEffectSystem`.
         self.step_wreckage();
+        // `ClearRangeItemSystem` updates after `WreckageRecoverySystem`.
+        self.step_clear_range_items()?;
         // `SiegeModeEffectSystem` updates after `FightConstructionSystem`,
         // and `StealthTechSystem` after it, one of the last modules.
         self.step_siege()?;

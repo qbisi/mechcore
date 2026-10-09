@@ -466,6 +466,68 @@ impl Simulation {
         index
     }
 
+    /// `TeamClearRangeItemManager.RemoveRangeItemGrids` for one kind: the
+    /// kind's quadtree answers the circle (`RangeItemController.Query`), and
+    /// each answered terrain whose own circle the circle reaches
+    /// (`CircleRange.Overlaps`, a grid's too) loses the cells under it.
+    pub(in crate::fight) fn clear_terrain(
+        &mut self,
+        kind: TerrainKind,
+        circle: Circle,
+    ) -> Result<()> {
+        let Some(index) = self.controller_of(kind) else {
+            return Ok(());
+        };
+        let answered = self.terrain.controllers[index]
+            .tree
+            .query_circle(circle.0, circle.1, circle.2);
+        for key in answered {
+            let terrain = &self.terrain.terrains[&key];
+            if circles_overlap(
+                circle,
+                (terrain.x_q32, terrain.z_q32, terrain.spec.radius_q32),
+            ) {
+                self.remove_grids(index, key, circle)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// `RangeItemController.RemoveGrids`. A circle becomes a grid of every
+    /// cell of its circle first (`RangeItemEffectLayerGrid.ConvertToGrid`);
+    /// a standing shield would cut it in a way not read, and is refused.
+    /// The cells under the circle go (`GridBlockInt.TryDisableGrid`), and a
+    /// grid that loses its last goes.
+    fn remove_grids(&mut self, index: usize, key: u64, circle: Circle) -> Result<()> {
+        if self.terrain.terrains[&key].grid.is_none() {
+            if self.shield.standing.iter().any(|shield| shield.active) {
+                return Err(Error::new(
+                    "a terrain cleared into a grid beside a battlefield shield is not supported",
+                ));
+            }
+            let terrain = self
+                .terrain
+                .terrains
+                .get_mut(&key)
+                .expect("an item's terrain exists");
+            terrain.grid = Some(GridBlock::of_circle((
+                terrain.x_q32,
+                terrain.z_q32,
+                terrain.spec.radius_q32,
+            ))?);
+        }
+        let grid = self
+            .terrain
+            .terrains
+            .get_mut(&key)
+            .and_then(|terrain| terrain.grid.as_mut())
+            .expect("a cleared terrain is a grid");
+        if grid.disable(circle)? && grid.is_empty() {
+            self.remove_terrain(index, key, TerrainRemovedReason::GridDepleted);
+        }
+        Ok(())
+    }
+
     fn controller_of(&self, kind: TerrainKind) -> Option<usize> {
         self.terrain
             .controllers

@@ -54,9 +54,10 @@ use super::{
     effects::{self, Fields},
     providers::EffectProvider,
     sources::{
-        AutoRecovery, BuffSource, CarriedShield, EnergyShield, LifeSteal, MoveAbilityAttack,
-        MoveAbilityRangeItem, ProductionLine, ReactiveArmor, Rebirth, RebirthFollow, RecoveryState,
-        RvoRadiusChange, SiegeMode, Stealth, SweepIntensify, WreckageRecovery,
+        AutoRecovery, BuffSource, CarriedShield, ClearRangeItem, EnergyShield, LifeSteal,
+        MoveAbilityAttack, MoveAbilityRangeItem, ProductionLine, ReactiveArmor, Rebirth,
+        RebirthFollow, RecoveryState, RvoRadiusChange, SiegeMode, Stealth, SweepIntensify,
+        WreckageRecovery,
     },
 };
 
@@ -136,9 +137,11 @@ const WRECKAGE: &str = "wreckageRecoveryTechnologies";
 const REBIRTH: &str = "rebirthEffectTechologyDatas";
 /// The list whose `RVORadiusChangeTechnology` is an `IRVORadiusChangeSource`.
 const RVO_RADIUS_CHANGE: &str = "rVORadiusChangeTechnologyTechDatas";
+/// The list whose `ClearRangeItemTech` is an `IClearRangeItem`.
+const CLEAR_RANGE_ITEM: &str = "clearRangeItemTechDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 30] = [
+const IMPLEMENTED: [&str; 31] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -169,6 +172,7 @@ const IMPLEMENTED: [&str; 30] = [
     WRECKAGE,
     REBIRTH,
     RVO_RADIUS_CHANGE,
+    CLEAR_RANGE_ITEM,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -289,6 +293,8 @@ struct Technology {
     rebirth: Option<Rebirth>,
     /// What it answers `IRVORadiusChangeSource` with, if its class is one.
     rvo_radius_change: Option<RvoRadiusChange>,
+    /// What it answers `IClearRangeItem` with, if its class is one.
+    clear_range_item: Option<ClearRangeItem>,
     /// What it answers `IMoveAbilityAttackIntensify` with, if its class is
     /// one.
     move_ability_attack: Option<MoveAbilityAttack>,
@@ -426,6 +432,9 @@ pub(crate) struct UnitSources {
     /// The first that widens its unit's agent: the provider enables one
     /// source (`SingleEffectProvider`).
     pub(crate) rvo_radius_change: Option<RvoRadiusChange>,
+    /// The first that clears terrain about its unit: the provider enables
+    /// one source (`SingleEffectProvider`).
+    pub(crate) clear_range_item: Option<ClearRangeItem>,
     pub(crate) buff_sources: Vec<BuffSource>,
     pub(crate) interception: Vec<UnitInterception>,
     pub(crate) dead_summon: Option<UnitDeadSummon>,
@@ -770,6 +779,12 @@ struct Row {
     rvo_move_radius: i64,
     #[serde(default)]
     rvo_near_target_threshold: i64,
+    /// `ClearRangeItemTechData.radius`, whole metres, and `rangeItemTypes`,
+    /// on a row of its list.
+    #[serde(default)]
+    clear_radius: i32,
+    #[serde(default)]
+    clear_range_item_types: Vec<i32>,
     /// `DeadLineTechData`'s `deadLineValue`, whole life by the unit's level,
     /// and `ignoreEnergyShield`, on a row of its list.
     #[serde(default)]
@@ -1072,6 +1087,37 @@ struct RebirthBlock {
     follow_rotate_rate: i64,
 }
 
+/// The terrain a fire-extinguisher row clears, or why this build will not:
+/// `RangeItemType`'s numbers, a recovery zone not among the simulator's
+/// terrains.
+fn clear_range_item_of(
+    row: &Row,
+    who: &str,
+) -> std::result::Result<Option<ClearRangeItem>, String> {
+    use crate::layout::TerrainKind;
+    if row.kind != CLEAR_RANGE_ITEM {
+        return Ok(None);
+    }
+    let kinds = row
+        .clear_range_item_types
+        .iter()
+        .map(|&kind| match kind {
+            0 => Ok(TerrainKind::Fire),
+            1 => Ok(TerrainKind::Oil),
+            2 => Ok(TerrainKind::Fog),
+            3 => Ok(TerrainKind::Acid),
+            5 => Ok(TerrainKind::FogSand),
+            _ => Err(format!(
+                "{who} clears a terrain of kind {kind}, which is not simulated"
+            )),
+        })
+        .collect::<std::result::Result<_, _>>()?;
+    Ok(Some(ClearRangeItem {
+        radius: row.clear_radius,
+        kinds,
+    }))
+}
+
 /// What a rebirth row brings its unit back as, or why this build will not.
 fn rebirth_of(row: &Row, who: &str) -> std::result::Result<Option<Rebirth>, String> {
     if row.kind != REBIRTH {
@@ -1308,6 +1354,10 @@ impl TechnologyEffects {
                 Ok(rebirth) => (rebirth, effect),
                 Err(why) => (None, Err(why)),
             };
+            let (clear_range_item, effect) = match clear_range_item_of(&row, &who) {
+                Ok(clear) => (clear, effect),
+                Err(why) => (None, Err(why)),
+            };
             let self_buff = buff_source.as_ref().is_some_and(adds_its_unit_a_buff);
             let technology = Technology {
                 unit: row.unit.clone(),
@@ -1328,6 +1378,7 @@ impl TechnologyEffects {
                     move_radius_q32: row.rvo_move_radius,
                     near_target_threshold_q32: row.rvo_near_target_threshold,
                 }),
+                clear_range_item,
                 dead_line: (row.kind == DEAD_LINE)
                     .then(|| (row.dead_line_value.clone(), row.dead_line_ignores_shield)),
                 mech_group,
@@ -1475,6 +1526,11 @@ impl TechnologyEffects {
                 sources.rebirth = Some(rebirth.clone());
             }
             sources.rvo_radius_change = sources.rvo_radius_change.or(technology.rvo_radius_change);
+            if sources.clear_range_item.is_none() {
+                sources
+                    .clear_range_item
+                    .clone_from(&technology.clear_range_item);
+            }
             sources.buff_sources.extend(technology.buff_source);
             sources.interception.extend(technology.interception);
             if let Some(dead_summon) = &technology.dead_summon {
@@ -1932,6 +1988,7 @@ fn provider_of(kind: &str, self_buff: bool) -> Option<EffectProvider> {
         SIEGE => EffectProvider::SiegeMode,
         WRECKAGE => EffectProvider::WreckageRecovery,
         RVO_RADIUS_CHANGE => EffectProvider::RvoRadiusChange,
+        CLEAR_RANGE_ITEM => EffectProvider::ClearRangeItem,
         _ => return None,
     })
 }
@@ -2477,6 +2534,40 @@ mod tests {
                 .collect::<Vec<_>>(),
             [super::EffectProvider::RvoRadiusChange]
         );
+    }
+
+    /// A fire-extinguisher technology hands its unit the terrain it clears,
+    /// and a recovery zone among its kinds is refused.
+    #[test]
+    fn a_fire_extinguisher_technology_hands_its_unit_what_it_clears() {
+        let table = TechnologyEffects::parse(
+            "schema: mechcore.technology_effects\n\
+             technologies:\n\
+             - {id: 9, name: probe, unit: hound, kind: clearRangeItemTechDatas, \
+             clear_radius: 40, clear_range_item_types: [0, 3, 2]}\n\
+             - {id: 10, name: zone, unit: hound, kind: clearRangeItemTechDatas, \
+             clear_radius: 40, clear_range_item_types: [4]}\n",
+        )
+        .unwrap();
+        assert_eq!(
+            table.sources(&[9], "hound").unwrap().clear_range_item,
+            Some(super::ClearRangeItem {
+                radius: 40,
+                kinds: vec![
+                    crate::layout::TerrainKind::Fire,
+                    crate::layout::TerrainKind::Acid,
+                    crate::layout::TerrainKind::Fog,
+                ],
+            })
+        );
+        assert_eq!(
+            table
+                .providers(&[9], "hound")
+                .into_keys()
+                .collect::<Vec<_>>(),
+            [super::EffectProvider::ClearRangeItem]
+        );
+        assert!(table.corrections(&[10], "hound", 1).is_err());
     }
 
     /// A dead-line technology answers the line at its unit's level, the

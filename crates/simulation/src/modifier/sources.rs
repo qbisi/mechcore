@@ -163,6 +163,16 @@ pub(crate) struct RvoRadiusChange {
     pub(crate) near_target_threshold_q32: i64,
 }
 
+/// What an `IClearRangeItem` answers: `TeamClearRangeItemManager` clears the
+/// terrain of these kinds about its unit.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ClearRangeItem {
+    /// `GetRadius`, whole metres beyond the unit's own radius.
+    pub(crate) radius: i32,
+    /// `GetRangeItemTypes`, in its row's order.
+    pub(crate) kinds: Vec<crate::layout::TerrainKind>,
+}
+
 /// What an `ISiegeModeEffectDataSource` answers: `SiegeModeEffectSystem`
 /// digs its unit in as the fight starts, and lets it out once no enemy has
 /// stood in its main skill's range for a while.

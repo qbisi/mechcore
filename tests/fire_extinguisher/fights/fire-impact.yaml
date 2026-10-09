@@ -1,0 +1,24 @@
+# Fire Extinguisher on blue's five Hounds, on which red's Electromagnetic
+# Impact lands on tick 57, before the Incendiary Bomb's fires. With their
+# technology disabled until they die, the Hounds clear nothing: no fire
+# becomes a grid.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 254
+hash: {profile: mcfr-content-0.23.0, result: 6393be049aa113d15db91933d79c9dd5d3ec726048ba957be08854ac19d710a1}
+blue:
+  core_damage: 350
+  techs:
+    hound: [fire_extinguisher]
+  units:
+  - {name: hound, index: 0, position: {x: 0, y: -60}}
+red:
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -150}, exp: 0/200/1600}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
+  - {name: electromagnetic_impact, positions: [{x: 0, y: 45}]}

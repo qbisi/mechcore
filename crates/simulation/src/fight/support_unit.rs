@@ -415,6 +415,7 @@ impl Simulation {
     /// its side's stream when the skill summons several, then
     /// `DoCreateMech`, whose `FightMech` draws its skills' first intervals,
     /// and `CreateMechDelay`, which keeps it out of the fight for a second.
+    #[allow(clippy::too_many_lines)]
     fn create_summon(
         &mut self,
         creator: &Creator,
@@ -458,6 +459,7 @@ impl Simulation {
             wreckage: None,
             rebirth: None,
             rvo_radius_change: None,
+            clear_range_item: None,
             sweep: None,
             distance_intensify: false,
             secondary_damage: None,

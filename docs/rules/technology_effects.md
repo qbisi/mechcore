@@ -706,6 +706,33 @@ not. On a change it hands its agent its own inner radius near, 1.5 for a
 Crawler, and the move radius far. `MotionController.EnterFight` asks once
 as the unit enters the fight.
 
+## Fire-extinguisher technologies
+
+A row of `clearRangeItemTechDatas` is a `ClearRangeItemTech`, Fire
+Extinguisher, the Hound's: it answers `IClearRangeItem` with a radius of 40
+whole metres (`GetRadius`) and the kinds fire, acid and fog, in that order
+(`GetRangeItemTypes`). `ClearRangeItemEffectProvider.AddEffect` puts its
+unit in its side's `TeamClearRangeItemManager`, active; `DoDeactive`, as
+the unit dies, makes it inactive.
+
+**Every second update it clears about each active unit.** Each side's
+manager counts its updates (`m_deltaTime`) and, on reaching
+`m_updateInterval`, 2, counts back to none and clears
+(`TeamClearRangeItemManager.Update`), after `WreckageRecoverySystem` and
+before `SiegeModeEffectSystem` (`FightController.AddModules`). For each
+active unit and each of its kinds, the kind's controller is asked for the
+terrain in a circle about the unit (`RemoveRangeItemGrids`,
+`RangeItemController.Query`): its radius the source's 40 and the whole part
+of the unit's radius (`FightTransform.radius`), 44 for a Hound. Each answered
+terrain whose own circle the circle reaches (`RangeItem.GetCircleRange`,
+`CircleRange.Overlaps`) loses its cells under the circle's
+(`RangeItemController.RemoveGrids`, `GridBlockInt.TryDisableGrid`), a
+terrain of either side alike. A circle becomes a grid of its whole circle
+first (`RangeItemEffectLayerGrid.ConvertToGrid`, `GenerateGrid`), and a grid
+left with no cell goes. Which unit clears first changes nothing that is
+left. A circle that becomes a grid while a battlefield shield stands, which
+`GenerateGrid` cuts in a way not read, is refused.
+
 ## Missile Interception
 
 Missile Interception makes its unit an interceptor: Mustang, Sabertooth,
@@ -965,6 +992,11 @@ whose own `DisableEffect` it does not mirror.
   `EnableEffect` (`EnableRVOChangeRadius`) lets it switch from its next
   update. Crawlers under an Electromagnetic Impact keep 1.5 from each other
   for the rest of the fight.
+- **A fire-extinguisher technology's unit clears nothing.**
+  `ClearRangeItemEffectProvider.DisableEffect`
+  (`TeamClearRangeItemManager.DisableMech`) makes it inactive; switched on,
+  `EnableEffect` (`EnableMech`) makes it active for the manager's next
+  clearing. Hounds under an Electromagnetic Impact leave every fire whole.
 - **A buff its unit added itself is cleared, if its row says so**
   (`isClearSelfBuffWhenDisableTech`): `FightMech.DisableTechnology` raises
   `BuffManager.ClearSelfResourceBuffByDisableTech` after the effects are off.
@@ -1104,6 +1136,12 @@ derive (a minimum range):
 - Loose Formation keeps its Crawlers 3.4 apart each as they walk, and 1.5
   once their lock is within 25: `tests/loose_formation/fights/crawler-rhino.yaml`.
   Disabled, they keep 1.5: `tests/loose_formation/fights/crawler-impact.yaml`.
+- Fire Extinguisher clears the fires within 44 metres of each Hound every
+  second tick, a fire turning into a grid as it is first cleared:
+  `tests/fire_extinguisher/fights/fire.yaml`. It clears acid and fog alike,
+  and an acid left with no cell goes:
+  `tests/fire_extinguisher/fights/acid-smoke.yaml`. Disabled, it clears
+  nothing: `tests/fire_extinguisher/fights/fire-impact.yaml`.
 - A dead-line technology destroys a unit its unit's shots strike at or
   under the line at its level, before the shot's damage: Culling Rounds
   culls Crawlers at 250 under a level-one Mustang's 320, and Marksmen at 712
@@ -1414,6 +1452,21 @@ derive (a minimum range):
   `RVOAgentFixed.EnableTeamRadius`, `RVOAgentFixed.SetTeamRadius`,
   `RVOAgentFixed.GenerateNeighbourAgentVOs`, `FightMech.GetMechID`,
   `FightMech.GetLockTarget`.
+- A fire-extinguisher technology's unit clears, every second update of its
+  side's manager, the cells of each of its kinds' terrain within its radius
+  and the source's, turning a circle into a grid first and taking away a grid
+  left with none; disabled, it clears nothing:
+  `ClearRangeItemTech.GetRadius`, `ClearRangeItemTechData.GetRangeItemTypes`,
+  `ClearRangeItemEffectProvider.AddEffect`,
+  `ClearRangeItemEffectProvider.DoDeactive`,
+  `ClearRangeItemEffectProvider.DisableEffect`,
+  `ClearRangeItemEffectProvider.EnableEffect`,
+  `TeamClearRangeItemManager.Update`,
+  `TeamClearRangeItemManager.RemoveRangeItemGrids`,
+  `FightController.AddModules`, `RangeItemController.Query`,
+  `RangeItemController.RemoveGrids`, `RangeItemController.Remove`,
+  `RangeItem.GetCircleRange`, `RangeItemEffectLayerGrid.ConvertToGrid`,
+  `RangeItemEffectLayerGrid.GenerateGrid`, `GridBlockInt.TryDisableGrid`.
 - A dead-line technology hands its unit's main skill a pre-hit effect that
   destroys a live unit at or under the line at the owner's level as a
   suicide, before the hit's shield and damage, and charges it the line:
@@ -1687,6 +1740,11 @@ derive (a minimum range):
   the build; no recording holds an Electromagnetic Impact running out on
   Crawlers that hold it, nor one landing. A summoned, made or
   death-summoned unit that holds it is refused.
+- **A fire extinguisher switched on again.** Read from the build; no
+  recording holds an Electromagnetic Impact running out on Hounds that hold
+  it. A circle turning into a grid beside a battlefield shield, a recovery
+  zone, and a summoned, made, death-summoned or travelling unit that holds it
+  are refused.
 
 - **A wreckage record running out, and the share among holders.** Read
   from the build; no recording holds a recorded unit dying after its time,

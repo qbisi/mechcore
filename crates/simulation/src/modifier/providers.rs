@@ -72,6 +72,8 @@ pub(crate) enum EffectProvider {
     WreckageRecovery,
     /// `RVORadiusChangeProvider`, for an `IRVORadiusChangeSource`.
     RvoRadiusChange,
+    /// `ClearRangeItemEffectProvider`, for an `IClearRangeItem`.
+    ClearRangeItem,
 }
 
 impl EffectProvider {
@@ -103,6 +105,7 @@ impl EffectProvider {
             Self::FireIntensify => "FireIntensifyEffectProvider",
             Self::WreckageRecovery => "WreckageRecoveryEffectProvider",
             Self::RvoRadiusChange => "RVORadiusChangeProvider",
+            Self::ClearRangeItem => "ClearRangeItemEffectProvider",
         }
     }
 
@@ -154,6 +157,9 @@ impl EffectProvider {
     ///   from the others of its team and stops switching
     ///   (`MotionController.DisableRVOChangeRadius`), and switches again from
     ///   its next update (`EnableRVOChangeRadius`).
+    /// - A fire-extinguisher technology's unit clears nothing
+    ///   (`TeamClearRangeItemManager.DisableMech`), and clears again from the
+    ///   manager's next clearing (`EnableMech`).
     ///
     /// Every other provider does more, which is not measured.
     pub(crate) const fn disable_read(self) -> bool {
@@ -172,7 +178,8 @@ impl EffectProvider {
             | Self::SiegeMode
             | Self::FireIntensify
             | Self::WreckageRecovery
-            | Self::RvoRadiusChange => true,
+            | Self::RvoRadiusChange
+            | Self::ClearRangeItem => true,
             Self::AutoRecovery
             | Self::EnergyShield
             | Self::SweepSkillIntensify

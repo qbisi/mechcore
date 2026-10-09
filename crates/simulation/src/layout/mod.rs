@@ -12,11 +12,11 @@ use crate::{
     Error, Result,
     data::{Channel, Correction, Entry, ExperienceRate, Index, Stats},
     modifier::{
-        AutoRecovery, BuffSource, CarriedShield, DeadLine, DeadSummon, EffectProvider,
-        EnergyShield, EnergyTowerSkillEffects, EquipmentEffects, LifeSteal, MainSkill, MechGroup,
-        MoveAbilityAttack, OfficerEffects, ProductionLine, ReactiveArmor, Rebirth, RvoRadiusChange,
-        SecondaryDamage, SiegeMode, Stealth, SweepIntensify, TECHNOLOGY_SOURCE, TechnologyEffects,
-        UnitInterception, WreckageRecovery, current_source,
+        AutoRecovery, BuffSource, CarriedShield, ClearRangeItem, DeadLine, DeadSummon,
+        EffectProvider, EnergyShield, EnergyTowerSkillEffects, EquipmentEffects, LifeSteal,
+        MainSkill, MechGroup, MoveAbilityAttack, OfficerEffects, ProductionLine, ReactiveArmor,
+        Rebirth, RvoRadiusChange, SecondaryDamage, SiegeMode, Stealth, SweepIntensify,
+        TECHNOLOGY_SOURCE, TechnologyEffects, UnitInterception, WreckageRecovery, current_source,
     },
     rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs, UnitDomain},
 };
@@ -91,6 +91,9 @@ pub(crate) struct Placement {
     /// The `IRVORadiusChangeSource` its `RVORadiusChangeProvider` hands its
     /// motion, if its technologies hand it one.
     pub(crate) rvo_radius_change: Option<RvoRadiusChange>,
+    /// The `IClearRangeItem` its `ClearRangeItemEffectProvider` hands its
+    /// side's `TeamClearRangeItemManager`, if its technologies hand it one.
+    pub(crate) clear_range_item: Option<ClearRangeItem>,
     /// What its technologies hand its sweep (`SweepSkillIntensifyTech`).
     pub(crate) sweep: Option<SweepIntensify>,
     /// Whether its technologies turn its main skill's search to
@@ -530,6 +533,7 @@ fn death_summoned(placement: &Placement, units: &UnitConfigs) -> Vec<(u32, i64)>
 /// equipment, and `FightController.CreateMech` gives it its side's
 /// technologies when its parent `IsChildInheritTechnologyEffect`, which
 /// `MechData` answers for every unit but types 4001 and 5203.
+#[allow(clippy::too_many_lines)]
 fn compile_death_summons(
     (name, team, side): (&str, u32, &SidePlan),
     placements: &[Placement],
@@ -605,6 +609,7 @@ fn compile_death_summons(
             wreckage: worn.wreckage.clone(),
             rebirth: worn.rebirth.clone(),
             rvo_radius_change: worn.rvo_radius_change,
+            clear_range_item: worn.clear_range_item.clone(),
             sweep: worn.sweep,
             distance_intensify: worn.distance_intensify,
             secondary_damage: worn.secondary_damage,
@@ -778,11 +783,12 @@ fn compile_battle_skills(
                 || worn.wreckage.is_some()
                 || worn.rebirth.is_some()
                 || worn.rvo_radius_change.is_some()
+                || worn.clear_range_item.is_some()
             {
                 refused.push(format!(
                     "side {name} summons a {} that its technologies give lifesteal, repair, \
                      a shield, stealth, a group, a trench, a fire, life from wreckage, a \
-                     rebirth or a loose formation, and what a \
+                     rebirth, a loose formation or a fire extinguisher, and what a \
                      summon's effect providers carry is not measured",
                     summon.rules.type_name
                 ));
@@ -888,6 +894,14 @@ fn compile_formation(
         return None;
     };
     refuse_travelling_buffs(side_name, formation, &worn, refused)?;
+    if formation.travelling && worn.clear_range_item.is_some() {
+        refused.push(format!(
+            "side {side_name} unit type {:?} travels in with a fire extinguisher, and \
+             whether it clears terrain while it travels is not measured",
+            formation.type_name
+        ));
+        return None;
+    }
     let (world_x, world_z, rotation) = world_placement(formation.position, team);
     Some(Placement {
         team,
@@ -912,6 +926,7 @@ fn compile_formation(
         wreckage: worn.wreckage.clone(),
         rebirth: worn.rebirth.clone(),
         rvo_radius_change: worn.rvo_radius_change,
+        clear_range_item: worn.clear_range_item.clone(),
         sweep: worn.sweep,
         distance_intensify: worn.distance_intensify,
         secondary_damage: worn.secondary_damage,
@@ -1068,11 +1083,12 @@ fn made_by(
         || worn.wreckage.is_some()
         || worn.rebirth.is_some()
         || worn.rvo_radius_change.is_some()
+        || worn.clear_range_item.is_some()
     {
         refused.push(format!(
             "side {side_name} makes a {} that its technologies give lifesteal, repair, a \
              shield, a search by distance, a second damage, a dead line, a stronger \
-             surfacing, a sand fog, interceptors, a summon as it dies, a trench, a fire, life from wreckage, a rebirth or a loose formation, and what a made unit's effect providers carry is not measured",
+             surfacing, a sand fog, interceptors, a summon as it dies, a trench, a fire, life from wreckage, a rebirth, a loose formation or a fire extinguisher, and what a made unit's effect providers carry is not measured",
             made.type_name
         ));
         return None;
@@ -1202,6 +1218,8 @@ fn unread_on_a_death_summon(worn: &Worn) -> Option<&'static str> {
         Some("make summon as it dies in turn")
     } else if worn.rvo_radius_change.is_some() {
         Some("loosen its formation, and whether its agent joins its team as it appears")
+    } else if worn.clear_range_item.is_some() {
+        Some("clear terrain, and when a summon starts to")
     } else {
         None
     }
@@ -1250,6 +1268,7 @@ struct Worn {
     wreckage: Option<WreckageRecovery>,
     rebirth: Option<Rebirth>,
     rvo_radius_change: Option<RvoRadiusChange>,
+    clear_range_item: Option<ClearRangeItem>,
     sweep: Option<SweepIntensify>,
     distance_intensify: bool,
     secondary_damage: Option<SecondaryDamage>,
@@ -1569,6 +1588,7 @@ fn worn(
         wreckage: sources.wreckage,
         rebirth: sources.rebirth,
         rvo_radius_change: sources.rvo_radius_change,
+        clear_range_item: sources.clear_range_item,
         sweep: main_skill.sweep,
         distance_intensify: main_skill.distance_intensify,
         secondary_damage: main_skill.secondary_damage,

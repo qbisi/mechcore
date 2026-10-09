@@ -1,0 +1,24 @@
+# Fire Extinguisher on blue's five Hounds, which walk through red's Acid
+# Blast and then its Smoke Bomb. Both kinds lose cells under the Hounds as
+# fire does; the acid the Hounds cross at its centre has none left on
+# tick 106, and goes as its grid is depleted.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 284
+hash: {profile: mcfr-content-0.23.0, result: 2c8c3fd22fe488095c7587cacc90d3de8dd7d31032481ad2ceb9b0ca3b51f1b0}
+blue:
+  core_damage: 350
+  techs:
+    hound: [fire_extinguisher]
+  units:
+  - {name: hound, index: 0, position: {x: 0, y: -60}}
+red:
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -150}, exp: 0/200/1600}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: -60, y: 0}, {x: 60, y: 0}]}
+  - {name: smoke_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}

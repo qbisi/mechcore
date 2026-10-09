@@ -121,6 +121,8 @@ SUBCLASS_SCALARS = (
     ("reactive_armor_count", "damageReduceCount", "reactiveArmorTechDatas"),
     ("rvo_move_radius", "moveRadius", "rVORadiusChangeTechnologyTechDatas"),
     ("rvo_near_target_threshold", "nearTargetThreshold", "rVORadiusChangeTechnologyTechDatas"),
+    ("clear_radius", "radius", "clearRangeItemTechDatas"),
+    ("clear_range_item_types", "rangeItemTypes", "clearRangeItemTechDatas"),
 )
 # A field of one list's rows that is one rate, written only where it is set:
 # an extra weapon's `allWeaponReduceDamageRate`, which
@@ -151,7 +153,7 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "damageShareTechnologies", "advancedEnergyShieldTechnologies",
                "reactiveArmorTechDatas", "fireIntensifyTechnologies", "siegeModeTechDatas",
                "wreckageRecoveryTechnologies", "rebirthEffectTechologyDatas",
-               "rVORadiusChangeTechnologyTechDatas")
+               "rVORadiusChangeTechnologyTechDatas", "clearRangeItemTechDatas")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
@@ -578,6 +580,10 @@ def main() -> int:
         "# agents keep from each other while it moves (`rvo_move_radius`), and",
         "# the FPoint metres within which of its lock it keeps its own radius",
         "# again (`rvo_near_target_threshold`).",
+        "# A fire-extinguisher technology carries the whole metres beyond its",
+        "# unit's radius within which its unit clears terrain (`clear_radius`),",
+        "# and the `RangeItemType`s it clears, in its row's order",
+        "# (`clear_range_item_types`).",
         "# A fire technology carries the FPoint metres and seconds of the fire",
         "# each hit of its unit's main skill leaves (`fire_range`,",
         "# `fire_life_time`), by its unit's level.",
