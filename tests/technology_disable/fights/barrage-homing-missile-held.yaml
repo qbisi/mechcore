@@ -10,7 +10,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 328
-hash: {profile: mcfr-content-0.22.0, result: 9622c7ce2345a5bb3e8853d514454efdd53f023f2841e3dad66f0616b755014c}
+hash: {profile: mcfr-content-0.23.0, result: 9b6c8e4fb6f4a7858d81bc2fc48a269785b687e6ea0b2fde37bfa69ece150e68}
 blue:
   techs:
     melting_point: [electromagnetic_barrage]

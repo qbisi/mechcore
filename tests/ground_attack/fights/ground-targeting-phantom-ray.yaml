@@ -12,7 +12,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 240
-hash: {profile: mcfr-content-0.22.0, result: e26d5883a194db3d23823a9bb2fe042317a4eb96c9f3349f0ebfa117d68714b9}
+hash: {profile: mcfr-content-0.23.0, result: b16bbfc3d7b8dd1a39f4a726c4add7676873d8a3c7612118117c328321c36db7}
 blue:
   techs:
     phantom_ray: [ground_targeting]

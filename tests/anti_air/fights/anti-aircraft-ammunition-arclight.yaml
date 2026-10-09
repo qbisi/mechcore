@@ -10,7 +10,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 180
-hash: {profile: mcfr-content-0.22.0, result: 95cfe6c123c09a92b2e4a02d0bf48767bcaa4b064a9fd147d97f723e10417e48}
+hash: {profile: mcfr-content-0.23.0, result: d92dcc9bac17e2b8a6e6baf7e3ce59d3c4003b4614025a64ad3e8437b64f7c2d}
 blue:
   techs:
     arclight: [anti_aircraft_ammunition]

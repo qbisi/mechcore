@@ -11,6 +11,7 @@ mod il2cpp;
 mod offline;
 mod operations;
 mod reach;
+mod rebirth;
 mod runtime;
 mod rvo;
 mod selector;

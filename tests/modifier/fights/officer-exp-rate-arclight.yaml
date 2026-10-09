@@ -11,7 +11,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 172
-hash: {profile: mcfr-content-0.22.0, result: ba886f6474e3817f34827d7bc59ee2f1260b5256edc51a20da5dccf11c7c77c3}
+hash: {profile: mcfr-content-0.23.0, result: 3d6332a12d2ad0dd8eea21838fe65622f14b2183d538e66b35314d10adef4b1f}
 blue:
   officers: [smart_arclight]
   units:

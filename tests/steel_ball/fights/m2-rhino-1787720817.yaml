@@ -6,7 +6,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 182
-hash: {profile: mcfr-content-0.22.0, result: 3b276ff4c321b5ff3f4f102936a84e775a7aa7acc50de438f599910d27e25ef8}
+hash: {profile: mcfr-content-0.23.0, result: 5881da29bb6bbab1e7e95b7844d4d7ded4f28a08355fd125038f3422d57e5119}
 blue:
   units:
   - {name: steel_ball, index: 0, position: {x: 5, y: -100}, exp: 0/400/1000}

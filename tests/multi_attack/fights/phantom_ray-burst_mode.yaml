@@ -8,7 +8,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 152
-hash: {profile: mcfr-content-0.22.0, result: 27cf5658e30a99de850f8b3543f67f12a9ea0f8f63aa2e6f7fc013a298cf0dd8}
+hash: {profile: mcfr-content-0.23.0, result: 27313a0f5d204c7382d8cb8a553019107a223abefffc27327f63411e82c0a32a}
 blue:
   techs:
     phantom_ray: [burst_mode]

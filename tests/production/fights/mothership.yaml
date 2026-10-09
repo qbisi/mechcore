@@ -7,7 +7,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 402
-hash: {profile: mcfr-content-0.22.0, result: abb724a3e43afbc686a997f6b8ec9fe14946384dbd36329a8c54399e77bf5477}
+hash: {profile: mcfr-content-0.23.0, result: c189d24bff2fabc55090aa3377df52fc7bc531f909057dd4c53becce43cae03d}
 blue:
   techs:
     overlord: [mothership]

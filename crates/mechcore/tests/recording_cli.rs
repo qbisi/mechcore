@@ -319,7 +319,7 @@ red:
     // The simulator wrote the recording, so the document says so.
     assert!(document.contains("\nsource: simulator\n"), "{document}");
     assert!(document.contains("\nticks: "), "{document}");
-    assert!(document.contains("\nhash: {profile: mcfr-content-0.22.0, result: "));
+    assert!(document.contains("\nhash: {profile: mcfr-content-0.23.0, result: "));
     // Blue alone stands, so red's core takes the three deployed level 1
     // Marksmen's scores and blue's takes nothing.
     assert!(

@@ -12,7 +12,7 @@ seed: 214541783
 round: 7
 source: game
 ticks: 891
-hash: {profile: mcfr-content-0.22.0, result: 066b7ddce691b4e0f8f7b64b8f40bd4716f08a537991e429a82335df00e6b23c}
+hash: {profile: mcfr-content-0.23.0, result: 7ddbda2fb9c50b3413f21d47e32f0299df1a0ba027842218fc0d300e23e82e9a}
 blue:
   officers: [additional_deployment_slot, elite_specialist, berserk_rhino]
   techs:

@@ -14,7 +14,7 @@ seed: 4242
 round: 3
 source: game
 ticks: 870
-hash: {profile: mcfr-content-0.22.0, result: 380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef}
+hash: {profile: mcfr-content-0.23.0, result: 380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef}
 blue:
   officers: [extended_range_marksman]
   units:

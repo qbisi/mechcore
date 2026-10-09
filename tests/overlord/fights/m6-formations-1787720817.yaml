@@ -10,7 +10,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 352
-hash: {profile: mcfr-content-0.22.0, result: dd9dd4d8c6e2d4c6696fa03c3bcd56ec798b9e345007371be73995776adab8fd}
+hash: {profile: mcfr-content-0.23.0, result: 03795a987eab61c6323aa290d1f19292345e07831518217e52db0c8963826b3c}
 blue:
   units:
   - {name: overlord, index: 0, position: {x: -75, y: -105}, exp: 0/320/1750}

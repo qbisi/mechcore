@@ -8,7 +8,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 189
-hash: {profile: mcfr-content-0.22.0, result: 7468cca5a37a67e626fe84567dc2940595428a87c624960784158465a44d196c}
+hash: {profile: mcfr-content-0.23.0, result: 378dbec3805cf97155d2088310b9aac294a1a9823cfff46433a45e7604ab8d41}
 blue:
   techs:
     war_factory: [high_explosive_ammo]

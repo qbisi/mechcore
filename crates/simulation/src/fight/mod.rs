@@ -301,6 +301,11 @@ struct Actor {
     /// `FightMech.mechCreateType` is `ParasiticalSummon`: a buff summoned it
     /// as a unit died, and it summons nothing as it dies.
     parasitic: bool,
+    /// `FightMech.mechCreateType` is not the default: the fight made it,
+    /// rather than its side deploying it from a formation.
+    created: bool,
+    /// `FightMech.rebirthCount`: the times it has been reborn in this fight.
+    rebirth_count: u32,
     /// `MotionController.totalMoveDistanceWithoutDisableTech`, Q32.32 metres,
     /// and `prevPosition`, where its last `Move` before a solve found it.
     moved_q32: i64,
@@ -401,6 +406,8 @@ struct Ending {
     /// The buildings `FightCoreSystem.TryDstroyTower` tore down, whose
     /// `building_destroyed` the next tick records.
     torn_down_buildings: Vec<u64>,
+    /// Whether `FightResultController.CalculateResult` has scored the fight.
+    scored: bool,
 }
 
 struct Simulation {
@@ -836,6 +843,7 @@ impl Simulation {
                 .filter(|actor| actor.alive())
                 .map(|actor| self.unit_snapshot(actor.placement.unit_id))
                 .collect(),
+            rebirths: Vec::new(),
             projectiles: self.projectiles.iter().map(Projectile::snapshot).collect(),
             buildings: self
                 .buildings
@@ -1303,6 +1311,7 @@ impl Simulation {
             events.extend(torn_down);
             if leaves_now {
                 self.clear_buffs_as_the_fight_ends(&mut events)?;
+                self.score_the_fight(&mut events)?;
                 self.clear_terrains_as_the_fight_ends()?;
                 self.end_stealth_as_the_fight_ends();
                 self.end_siege_as_the_fight_ends()?;
@@ -1333,6 +1342,7 @@ impl Simulation {
         // everything else the tick did.
         if !(publish_late_building_events && leaves_now) && self.ready_to_finish() {
             self.clear_buffs_as_the_fight_ends(&mut events)?;
+            self.score_the_fight(&mut events)?;
             self.clear_terrains_as_the_fight_ends()?;
             self.end_stealth_as_the_fight_ends();
             self.end_siege_as_the_fight_ends()?;
@@ -1511,14 +1521,66 @@ impl Simulation {
     /// as the fight finishes, and `BattleSystem.OnFightOver` prunes each
     /// formation's experience to a whole number and clears every skill's
     /// kills before the last state is read.
-    fn close_tick(&mut self, out_of_time: bool) -> Result<()> {
+    /// A fight that runs out of time is scored here, after the tick's last
+    /// event; one that finishes was scored as it left
+    /// ([`Self::score_the_fight`]).
+    fn close_tick(&mut self, out_of_time: bool, events: &mut Vec<Event>) -> Result<()> {
         self.name_turned_formations();
         self.settle_intervals_if_finishing();
         if self.ready_to_finish() || out_of_time {
             self.prune_experience();
             self.clear_kills()?;
+            self.score_the_fight(events)?;
         }
         Ok(())
+    }
+
+    /// `FightResultController.CalculateResult`, once: each side scored,
+    /// blue first, after the units' buffs are cleared and before the
+    /// terrains go (`RangeItemController.OnExitFight`).
+    fn score_the_fight(&mut self, events: &mut Vec<Event>) -> Result<()> {
+        if self.ending.scored {
+            return Ok(());
+        }
+        self.ending.scored = true;
+        for team in [0, 1] {
+            let amount = i32::try_from(self.team_score(team)?)
+                .map_err(|_| Error::new("a side's score exceeds i32"))?;
+            events.push(event(
+                None,
+                None,
+                None,
+                None,
+                EventPayload::TeamScored {
+                    amount,
+                    team_id: team,
+                },
+            ));
+        }
+        Ok(())
+    }
+
+    /// `FightResultController.CalculateScore(team, true)`: what the side's
+    /// units standing score, each `FightMech.GetScore`.
+    fn team_score(&self, team: u32) -> Result<i64> {
+        let mut total = 0;
+        for actor in self
+            .actors
+            .values()
+            .filter(|actor| actor.placement.team == team && actor.alive())
+        {
+            total += mechcore_document::reactor_damage::score(
+                mechcore_document::reactor_damage::Survivor {
+                    unit_type: actor.rules.unit_type_id,
+                    level: i32::try_from(actor.placement.level).ok(),
+                    support: actor.created,
+                    reborn: actor.rebirth_count > 0,
+                    team_changed: actor.placement.team != actor.original_team,
+                },
+            )
+            .map_err(Error::new)?;
+        }
+        Ok(total)
     }
 
     fn ready_to_finish(&self) -> bool {

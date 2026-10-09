@@ -12,7 +12,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 157
-hash: {profile: mcfr-content-0.22.0, result: d2bfe757397e4fb63f057b2ab2a2679a632bcfd75fea3d190925fbf52356db26}
+hash: {profile: mcfr-content-0.23.0, result: c94c433e130007c5c04bc48ce1c5380b2f95bb6cb676f6866a122992b5c2376d}
 blue:
   techs:
     arclight: [shockwave]

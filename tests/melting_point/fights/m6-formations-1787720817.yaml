@@ -7,7 +7,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 467
-hash: {profile: mcfr-content-0.22.0, result: c470c5052d49632790f924065a523b3ae119fa3245bfccafde630a69ab29a845}
+hash: {profile: mcfr-content-0.23.0, result: b8b7e7137b74e24bd45fc238ec6f8f0dc49b2fe09501b2753e025d518be06558}
 blue:
   units:
   - {name: melting_point, index: 0, position: {x: 0, y: -130}, exp: 0/92/1400}

@@ -9,7 +9,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 124
-hash: {profile: mcfr-content-0.22.0, result: 99836c5bc1c7323c426bf72d1b6bf9aa0a150a75369ef8876c53b7d4aeaf5c70}
+hash: {profile: mcfr-content-0.23.0, result: 2cf349324d631489fd8cea0ebe07b1a4a51b9e474ff58524ad62c23bd4036cd1}
 blue:
   techs:
     fortress: [doubleshot]

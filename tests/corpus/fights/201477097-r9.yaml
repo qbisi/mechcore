@@ -10,7 +10,7 @@ seed: 314316270
 round: 9
 source: game
 ticks: 769
-hash: {profile: mcfr-content-0.22.0, result: 941ea7104f205295db1906e96a527ce405f300cb3c669fe7d289c5f2fe84b5c1}
+hash: {profile: mcfr-content-0.23.0, result: 24b87d851ee3bd2c8bcb90bb72f138fdc58a2424ac1ec62353cf154aefd92ddc}
 blue:
   officers: [super_supply_enhancement, additional_deployment_slot, advanced_power_system, rhino_specialist]
   techs:

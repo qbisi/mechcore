@@ -10,7 +10,7 @@ seed: 886311192
 round: 6
 source: game
 ticks: 778
-hash: {profile: mcfr-content-0.22.0, result: a2b29fbe5ce6cbb3c711ed0d0f8fd441be827042c078b2cf9bfb49d2dedc2439}
+hash: {profile: mcfr-content-0.23.0, result: c1ad7176c0996d39c862d48952acab9005f6078c1e663b628f55fc349d236f54}
 blue:
   officers: [advanced_offensive_tactics, giant_specialist, efficient_giant_manufacturing]
   techs:

@@ -10,7 +10,7 @@ seed: 1966074706
 round: 5
 source: game
 ticks: 833
-hash: {profile: mcfr-content-0.22.0, result: 60290fd7ead0ae3f7e68fef17f79fc070794aaaea0708852936a1ad8fcd1fc63}
+hash: {profile: mcfr-content-0.23.0, result: 2eead0be5c73d2c3317403c5f52d94760202083fd9d4f71694b0869f5021b65c}
 blue:
   officers: [aerial_specialist]
   techs:
