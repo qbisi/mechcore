@@ -172,6 +172,27 @@ impl EnergyShield {
                 z_q32.saturating_sub(self.z_q32),
             ) < self.radius_q32
     }
+
+    /// `FightCalculator.IsInEnergyShield(position, shield, range)`: a circle
+    /// of `range` about a point lies within the sphere of a shield that has
+    /// energy left, the point's distance from its centre less than its
+    /// radius less the range (`FPoint.op_LessThan`).
+    pub(in crate::fight) fn holds_circle(
+        &self,
+        (x_q32, y_q32, z_q32): (i64, i64, i64),
+        range_q32: i64,
+    ) -> bool {
+        self.active
+            && self.energy > 0
+            && super::rvo::fpoint_less_than(
+                native_q32_magnitude_3d(
+                    x_q32.saturating_sub(self.x_q32),
+                    y_q32,
+                    z_q32.saturating_sub(self.z_q32),
+                ),
+                self.radius_q32.saturating_sub(range_q32),
+            )
+    }
 }
 
 impl Simulation {

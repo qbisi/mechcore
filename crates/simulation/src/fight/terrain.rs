@@ -308,7 +308,7 @@ impl Simulation {
             let fire = &self.terrain.terrains[&fire];
             (fire.x_q32, fire.z_q32, fire.spec.radius_q32, fire.team)
         };
-        self.ignite_oils_in((x_q32, z_q32, radius_q32), team)
+        self.ignite_oils_in((x_q32, z_q32, radius_q32), team, false)
     }
 
     /// `RangeItemSystem.TriggerInteractableItem` for a hit that deals fire
@@ -318,8 +318,10 @@ impl Simulation {
     /// before any burns, so the first fire's own reach takes the rest of a
     /// line first: a Fire Badger's shot that lands among the first three
     /// oils of a line burns the first, then the line beyond the third, then
-    /// the second and the third. A battlefield shield standing is asked of
-    /// each oil in a way not read, and such a hit is refused.
+    /// the second and the third. An oil that lies wholly within an active
+    /// battlefield shield of either side with energy left
+    /// (`AdvancedEnergyShieldSystem.GetActiveEnergyShields`,
+    /// `FightCalculator.IsInEnergyShield`) is passed over and stays.
     pub(in crate::fight) fn ignite_oils_hit(&mut self, circle: Circle, team: u32) -> Result<()> {
         let Some(index) = self.controller_of(TerrainKind::Oil) else {
             return Ok(());
@@ -327,15 +329,15 @@ impl Simulation {
         if self.terrain.controllers[index].items.is_empty() {
             return Ok(());
         }
-        if self.shield.standing.iter().any(|shield| shield.active) {
-            return Err(Error::new(
-                "a fire hit on oil beside a battlefield shield is not supported",
-            ));
-        }
-        self.ignite_oils_in(circle, team)
+        self.ignite_oils_in(circle, team, true)
     }
 
-    fn ignite_oils_in(&mut self, (x_q32, z_q32, radius_q32): Circle, team: u32) -> Result<()> {
+    fn ignite_oils_in(
+        &mut self,
+        (x_q32, z_q32, radius_q32): Circle,
+        team: u32,
+        shields_spare: bool,
+    ) -> Result<()> {
         let Some(index) = self.controller_of(TerrainKind::Oil) else {
             return Ok(());
         };
@@ -350,6 +352,17 @@ impl Simulation {
             if self.terrain_reaches(key, (x_q32, z_q32, radius_q32))? {
                 reached.push(key);
             }
+        }
+        if shields_spare {
+            reached.retain(|key| {
+                let oil = &self.terrain.terrains[key];
+                let position = (oil.x_q32, oil.y_q32, oil.z_q32);
+                !self
+                    .shield
+                    .standing
+                    .iter()
+                    .any(|shield| shield.holds_circle(position, oil.spec.radius_q32))
+            });
         }
         let controller = &mut self.terrain.controllers[index];
         controller.items.retain(|key| !reached.contains(key));
