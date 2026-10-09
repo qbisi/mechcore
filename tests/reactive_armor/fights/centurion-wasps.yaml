@@ -1,0 +1,23 @@
+# Reactive Armor on blue's Centurion against three Wasps: the first five
+# hits take 40 each. On tick 155 three hits land: the fourth and the fifth
+# take 40, and the sixth, in the same tick, 202. The count goes as each hit
+# lands, not at the tick's end.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 262
+hash: {profile: mcfr-content-0.22.0, result: cf4e104beaeffd847d372805a3781b29a351339e6552e9ea2bc74b3ffc2ca188}
+blue:
+  core_damage: 408
+  techs:
+    centurion: [reactive_armor]
+  units:
+  - {name: centurion, index: 0, position: {x: 5, y: -95}, exp: 0/408/2250}
+red:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/100/900}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/400/900}
+  - {name: wasp, index: 2, position: {x: -55, y: -100}, exp: 0/100/900}

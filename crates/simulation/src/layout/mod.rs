@@ -14,7 +14,7 @@ use crate::{
     modifier::{
         AutoRecovery, BuffSource, CarriedShield, DeadLine, DeadSummon, EffectProvider,
         EnergyShield, EnergyTowerSkillEffects, EquipmentEffects, LifeSteal, MainSkill, MechGroup,
-        MoveAbilityAttack, OfficerEffects, ProductionLine, SecondaryDamage, Stealth,
+        MoveAbilityAttack, OfficerEffects, ProductionLine, ReactiveArmor, SecondaryDamage, Stealth,
         SweepIntensify, TECHNOLOGY_SOURCE, TechnologyEffects, UnitInterception, current_source,
     },
     rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs, UnitDomain},
@@ -94,6 +94,9 @@ pub(crate) struct Placement {
     /// What its technologies do to its surfacing and the attacks after it
     /// (`MoveAbilityAttackIntensifyTech`).
     pub(crate) move_ability_attack: Option<MoveAbilityAttack>,
+    /// The rate its technology puts on the damage it takes for its first
+    /// hits (`ReactiveArmorTech`).
+    pub(crate) reactive_armor: Option<ReactiveArmor>,
     /// The sand fog its technologies leave as it ends a surfacing
     /// (`MoveAbilityRangeItemTech`).
     pub(crate) move_ability_range_item: Option<TerrainSpec>,
@@ -585,6 +588,7 @@ fn compile_death_summons(
             dead_line: worn.dead_line,
             mech_group: worn.mech_group,
             move_ability_attack: worn.move_ability_attack,
+            reactive_armor: worn.reactive_armor,
             move_ability_range_item: worn.move_ability_range_item,
             interception: worn.interception,
             carried_shield: worn.carried_shield,
@@ -745,10 +749,11 @@ fn compile_battle_skills(
                 || worn.energy_shield.is_some()
                 || worn.stealth.is_some()
                 || worn.mech_group.is_some()
+                || worn.reactive_armor.is_some()
             {
                 refused.push(format!(
                     "side {name} summons a {} that its technologies give lifesteal, repair, \
-                     a shield or stealth, and what a summon's effect providers carry is not measured",
+                     a shield, stealth or a reactive armor, and what a summon's effect providers carry is not measured",
                     summon.rules.type_name
                 ));
                 continue;
@@ -851,16 +856,7 @@ fn compile_formation(
     else {
         return None;
     };
-    // `BuffCycleController.OnEnterFight` starts no controller on a unit still
-    // travelling, and when one that arrives starts it is not read.
-    if formation.travelling && !worn.buff_sources.is_empty() {
-        refused.push(format!(
-            "side {side_name} unit type {:?} travels in with a buff its equipment adds as \
-             the fight starts, and when a travelling unit's starts is not measured",
-            formation.type_name
-        ));
-        return None;
-    }
+    refuse_unread_on_travel(side_name, formation, &worn, refused)?;
     let (world_x, world_z, rotation) = world_placement(formation.position, team);
     Some(Placement {
         team,
@@ -887,6 +883,7 @@ fn compile_formation(
         dead_line: worn.dead_line,
         mech_group: worn.mech_group,
         move_ability_attack: worn.move_ability_attack,
+        reactive_armor: worn.reactive_armor,
         move_ability_range_item: worn.move_ability_range_item,
         interception: worn.interception,
         carried_shield: worn.carried_shield,
@@ -1027,6 +1024,7 @@ fn made_by(
         || worn.dead_line.is_some()
         || worn.mech_group.is_some()
         || worn.move_ability_attack.is_some()
+        || worn.reactive_armor.is_some()
         || worn.move_ability_range_item.is_some()
         || worn.interception.is_some()
         || worn.dead_summon.is_some()
@@ -1034,7 +1032,7 @@ fn made_by(
         refused.push(format!(
             "side {side_name} makes a {} that its technologies give lifesteal, repair, a \
              shield, a search by distance, a second damage, a dead line, a stronger \
-             surfacing, a sand fog, interceptors or a summon as it dies, and what a made unit's effect providers carry is not measured",
+             surfacing, a sand fog, a reactive armor, interceptors or a summon as it dies, and what a made unit's effect providers carry is not measured",
             made.type_name
         ));
         return None;
@@ -1133,6 +1131,34 @@ pub(crate) struct TechnologyDisable {
 
 /// The interceptors a unit's technologies make it, from the one that makes
 /// any: a second is refused, which is not measured.
+/// A unit travelling in that carries what is not measured on one is
+/// refused: an `OnEnterFight` that skips a unit still travelling, whose
+/// arrival is not read.
+fn refuse_unread_on_travel(
+    side_name: &str,
+    formation: &mechcore_document::Placement,
+    worn: &Worn,
+    refused: &mut Refusals,
+) -> Option<()> {
+    let what = if !formation.travelling {
+        return Some(());
+    } else if worn.reactive_armor.is_some() {
+        // `ReactiveArmorSystem.OnEnterFight` writes no rate on it.
+        "a reactive armor"
+    } else if !worn.buff_sources.is_empty() {
+        // `BuffCycleController.OnEnterFight` starts no controller on it.
+        "a buff its equipment adds as the fight starts"
+    } else {
+        return Some(());
+    };
+    refused.push(format!(
+        "side {side_name} unit type {:?} travels in with {what}, and what a travelling \
+         unit's does is not measured",
+        formation.type_name
+    ));
+    None
+}
+
 /// What a unit summoned as another dies carries that is not measured on one.
 fn unread_on_a_death_summon(worn: &Worn) -> Option<&'static str> {
     if worn.interception.is_some() {
@@ -1189,6 +1215,7 @@ struct Worn {
     dead_line: Option<DeadLine>,
     mech_group: Option<MechGroup>,
     move_ability_attack: Option<MoveAbilityAttack>,
+    reactive_armor: Option<ReactiveArmor>,
     move_ability_range_item: Option<TerrainSpec>,
     interception: Option<UnitInterception>,
     carried_shield: Option<CarriedShield>,
@@ -1501,6 +1528,12 @@ fn worn(
             loadouts
                 .technologies
                 .move_ability_attack(&side.techs.units, type_name)
+                .map_err(on_side),
+        )?,
+        reactive_armor: refused.hold(
+            loadouts
+                .technologies
+                .reactive_armor(&side.techs.units, type_name)
                 .map_err(on_side),
         )?,
         move_ability_range_item: refused.hold(

@@ -60,6 +60,7 @@ mod path_finding;
 mod pilot;
 mod projectile;
 mod random;
+mod reactive_armor;
 mod recovery;
 mod run;
 mod rvo;
@@ -305,6 +306,8 @@ struct Actor {
     /// Its `AutoRecoveryController`'s clocks, when a repair source is in
     /// force on it.
     recovery: Option<recovery::RecoveryClock>,
+    /// Its entry in `ReactiveArmorSystem`, when a technology gives it one.
+    reactive_armor: Option<reactive_armor::ReactiveArmorState>,
     /// `RVOControllerFixed._maxSpeed`: the speed `Active` read when the unit
     /// took the field, which `StopMove` hands the agent as its maximum. A
     /// buff that changes the unit's speed later reaches a moving agent through
@@ -606,6 +609,7 @@ impl Simulation {
         simulation.number_joiners();
         simulation.activate_interceptions();
         simulation.enter_stealth_fight();
+        simulation.enter_reactive_armor_fight();
         simulation.start_groups();
         simulation.restore_standing_oil(&layout.standing_oil)?;
         // `CommanderSkillManager.OnFightStart`: a path is given out before

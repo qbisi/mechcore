@@ -1149,6 +1149,11 @@ impl Simulation {
             EffectProvider::StealthTech => self.switch_stealth(actor_id, on),
             EffectProvider::MechGroup => self.switch_group_unit(actor_id, on),
             EffectProvider::AdvancedEnergyShield => self.switch_carried_shield(actor_id, on),
+            EffectProvider::ReactiveArmor => self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable")
+                .switch_reactive_armor(on),
             // The rest take away what the fight asks of the unit where it
             // acts, its technologies disabled: a lifesteal's and a second
             // damage's hit effect, a search's ranges, offsets and selector,

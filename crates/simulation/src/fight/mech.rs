@@ -44,7 +44,6 @@ impl Actor {
             .auto_recovery
             .as_ref()
             .map(super::recovery::RecoveryClock::reset);
-        let buff_cycles = super::buff_cycle::BuffCycle::of(&placement.buff_sources);
         let shield = placement.energy_shield.map(|source| {
             let maximum = q32_mul(max_life << 32, source.life_rate_q32) >> 32;
             PersonalShield {
@@ -76,6 +75,9 @@ impl Actor {
                 .is_some()
                 .then(|| mdeg_to_degrees_q32(placement.rotation)),
             turret_aim_q32: None,
+            // Read before the placement moves in.
+            buff_cycles: super::buff_cycle::BuffCycle::of(&placement.buff_sources),
+            reactive_armor: super::reactive_armor::ReactiveArmorState::of(&placement),
             placement,
             rules,
             stats,
@@ -87,7 +89,6 @@ impl Actor {
             last_life_before_suicide: 0,
             command: None,
             buffs: Vec::new(),
-            buff_cycles,
             delayed_buffs: Vec::new(),
             parasitic: false,
             moved_q32: 0,

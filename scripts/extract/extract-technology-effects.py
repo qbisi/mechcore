@@ -115,6 +115,8 @@ SUBCLASS_SCALARS = (
     ("group_max_count", "maxCount", "damageShareTechnologies"),
     ("main_skill_effect", "mainSkillEffect", "damageShareTechnologies"),
     ("extra_skill_effect", "extraSkillEffect", "damageShareTechnologies"),
+    ("reactive_armor_rate", "damageReduceRate", "reactiveArmorTechDatas"),
+    ("reactive_armor_count", "damageReduceCount", "reactiveArmorTechDatas"),
 )
 # A field of one list's rows that is one rate, written only where it is set:
 # an extra weapon's `allWeaponReduceDamageRate`, which
@@ -141,7 +143,8 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "mobilityIntensifyTechnologies", "multiAttackTechnologies", "stealthTechData",
                "deadLineTechDatas", "moveAbilityAttackIntensifyTechDatas",
                "moveAbilityRangeItemTechDatas",
-               "damageShareTechnologies", "advancedEnergyShieldTechnologies")
+               "damageShareTechnologies", "advancedEnergyShieldTechnologies",
+               "reactiveArmorTechDatas")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
@@ -506,6 +509,9 @@ def main() -> int:
         "# A barrier technology carries the energy and the whole metres of",
         "# radius of the battlefield shield its unit carries (`barrier_energy`,",
         "# `barrier_radius`), by its unit's level.",
+        "# A reactive armor technology carries the FPoint rate on the damage its",
+        "# unit takes (`reactive_armor_rate`) and how many hits dealing it damage",
+        "# the rate lasts (`reactive_armor_count`).",
         "",
         "technologies:",
     ]
