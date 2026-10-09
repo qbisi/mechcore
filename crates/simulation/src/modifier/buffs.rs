@@ -92,6 +92,8 @@ pub(crate) struct CycleBlock {
 )]
 pub(crate) struct BuffBlock {
     id: u32,
+    /// The English name the game gives it; none for a buff the game never shows.
+    #[serde(default)]
     name: String,
     duration: i64,
     divide: i32,

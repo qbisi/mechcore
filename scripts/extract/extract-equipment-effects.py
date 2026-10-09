@@ -85,7 +85,7 @@ def extract():
         for row in entries:
             if row["isTestData"] or not build_data.in_standard(row):
                 continue
-            entry = {"id": row["id"], "name": row["name"], "kind": kind}
+            entry = {"id": row["id"], "name": row.get("name"), "kind": kind}
             entry.update({column: raw(row[field]) for column, field in FIELDS.items()})
             entry.update({column: raw(row[field]) for column, (field, owner) in SUBCLASS_FIELDS.items()
                           if kind == owner})
@@ -159,7 +159,7 @@ def render(rows):
     ]
     for d in rows:
         lines.append(f"  - id: {d['id']}")
-        lines.append(f"    name: {d['name']}")
+        lines += build_data.name_lines(d, "    ")
         lines.append(f"    kind: {d['kind']}")
         lines.append(f"    mech_type: [{', '.join(map(str, d['mech_type']))}]")
         if d["units"]:
@@ -181,7 +181,7 @@ def render(rows):
             lines += production_lines(d["production"])
         if "buff_group" in d:
             group = groups[d["buff_group"]]
-            lines.append(f"    ignored_buffs: [{', '.join(map(str, group['buffs']))}]  # {group['name']}")
+            lines.append(f"    ignored_buffs: [{', '.join(map(str, group['buffs']))}]" + (f"  # {group['name']}" if group.get('name') else ""))
         for field in SUBCLASS_FIELDS:
             if field in d:
                 comment = reading(d[field]) if d[field] and field not in SUBCLASS_INTEGERS else ""

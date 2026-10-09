@@ -42,7 +42,6 @@ buildings:
 # The buff a tower's loss writes, one buff that differs by level only
 # in how long it lasts.
 destroyed_buff:
-  name: 能量塔摧毁
   buff_divide: 1
   additive: true
   debuff: false

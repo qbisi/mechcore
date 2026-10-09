@@ -61,6 +61,8 @@ struct MissileRow {
 #[serde(deny_unknown_fields)]
 struct MissileBuffRow {
     id: u32,
+    /// The English name the game gives it; none for a buff the game never shows.
+    #[serde(default)]
     name: String,
     divide: i32,
     additive: bool,

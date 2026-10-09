@@ -10,76 +10,76 @@ schema: mechcore.officer_effects
 
 officers:
   - id: 10007
-    name: 先进护盾装置
+    name: Advanced Shield Device
     mech_type: 11
     energy_shield_rate: 1717986918  # +0.4
   - id: 10008
-    name: 先进飞弹装置
+    name: Advanced Missile Device
     mech_type: 11
     land_mine_rate: 8589934592  # +2
   - id: 10009
-    name: 快速传送
+    name: Quick Teleport
     mech_type: 11
     super_deployment_time_rate: -2147483648  # -0.5
   - id: 20001
-    name: 先进防御战术
+    name: Advanced Defensive Tactics
     mech_type: 0
     life_rate: 1288490188  # +0.3
   - id: 20002
-    name: 先进进攻战术
+    name: Advanced Offensive Tactics
     mech_type: 0
     damage_rate: 1288490188  # +0.3
   - id: 20004
-    name: 先进动力系统
+    name: Advanced Power System
     mech_type: 0
     speed_value: 3
   - id: 20006
-    name: 先进瞄准系统
+    name: Advanced Targeting System
     mech_type: 4
     attack_range_value: 42949672960  # +10
   - id: 20021
-    name: 空军专家
+    name: Aerial Specialist
     mech_type: 1
     units: [wasp, overlord, phoenix, wraith, phantom_ray, raiden, abyss]
     damage_rate: 558345748  # +0.13
     life_rate: 558345748  # +0.13
   - id: 20024
-    name: 速度专家
+    name: Speed Specialist
     mech_type: 0
     speed_value: 3
   - id: 20034
-    name: 成本控制专家
+    name: Cost Control Specialist
     mech_type: 0
     damage_rate: -472446402  # -0.11
     life_rate: -472446402  # -0.11
   - id: 20035
-    name: 重装专家
+    name: Fortified Specialist
     mech_type: 0
     life_rate: 730144440  # +0.17
   - id: 20300
-    name: 防御强化
+    name: Defense Enhancement
     mech_type: 0
     life_rate: 644245094  # +0.15
   - id: 20301
-    name: 防御强化II
+    name: Defense Enhancement II
     mech_type: 0
     life_rate: 1932735283  # +0.45
   - id: 20310
-    name: 进攻强化
+    name: Attack Enhancement
     mech_type: 0
     damage_rate: 515396075  # +0.12
   - id: 20311
-    name: 进攻强化II
+    name: Attack Enhancement II
     mech_type: 0
     damage_rate: 1546188226  # +0.36
   - id: 30101
-    name: 量产堡垒
+    name: Mass-Produced Fortress
     mech_type: 10
     units: [fortress]
     damage_rate: -1503238553  # -0.35
     life_rate: -1503238553  # -0.35
   - id: 30102
-    name: 突击堡垒
+    name: Assault Fortress
     mech_type: 10
     units: [fortress]
     damage_rate: 858993459  # +0.2
@@ -87,95 +87,95 @@ officers:
     attack_range_value: -42949672960  # -10
     speed_value: 3
   - id: 30104
-    name: 改进型堡垒
+    name: Improved Fortress
     mech_type: 10
     units: [fortress]
     damage_rate: 1288490188  # +0.3
     life_rate: 2147483648  # +0.5
     speed_value: 3
   - id: 30105
-    name: 增程堡垒
+    name: Extended Range Fortress
     mech_type: 10
     units: [fortress]
     life_rate: -1288490188  # -0.3
     attack_range_value: 85899345920  # +20
   - id: 30201
-    name: 增程长弓
+    name: Extended Range Marksman
     mech_type: 10
     units: [marksman]
     damage_rate: -858993459  # -0.2
     life_rate: -858993459  # -0.2
     attack_range_value: 128849018880  # +30
   - id: 30202
-    name: 智能长弓
+    name: Smart Marksman
     mech_type: 10
     units: [marksman]
     exp_rate: 3221225472  # +0.75
   - id: 30301
-    name: 增程火神
+    name: Extended Range Vulcan
     mech_type: 10
     units: [vulcan]
     life_rate: -1503238553  # -0.35
     attack_range_value: 85899345920  # +20
   - id: 30302
-    name: 突击火神
+    name: Assault Vulcan
     mech_type: 10
     units: [vulcan]
     life_rate: 1717986918  # +0.4
     attack_range_value: -42949672960  # -10
     speed_value: 3
   - id: 30401
-    name: 突击熔点
+    name: Assault Melting Point
     mech_type: 10
     units: [melting_point]
     life_rate: 3006477107  # +0.7
     attack_range_value: -64424509440  # -15
     speed_value: 5
   - id: 30402
-    name: 改进型熔点
+    name: Improved Melting Point
     mech_type: 10
     units: [melting_point]
     life_rate: 858993459  # +0.2
     attack_range_value: 42949672960  # +10
   - id: 30403
-    name: 量产熔点
+    name: Mass-Produced Melting Point
     mech_type: 10
     units: [melting_point]
     damage_rate: -858993459  # -0.2
     life_rate: -858993459  # -0.2
     attack_range_value: -42949672960  # -10
   - id: 30501
-    name: 量产犀牛
+    name: Mass-Produced Rhino
     mech_type: 10
     units: [rhino]
     damage_rate: -858993459  # -0.2
     life_rate: -858993459  # -0.2
   - id: 30502
-    name: 狂暴犀牛
+    name: Berserk Rhino
     mech_type: 10
     units: [rhino]
     damage_rate_by_kill_count: 429496729  # +0.1
   - id: 30601
-    name: 量产兵蜂
+    name: Mass-Produced Wasp
     mech_type: 10
     units: [wasp]
     damage_rate: -1503238553  # -0.35
     life_rate: -1503238553  # -0.35
   - id: 30602
-    name: 改进型兵蜂
+    name: Improved Wasp
     mech_type: 10
     units: [wasp]
     damage_rate: 2576980377  # +0.6
     life_rate: 2576980377  # +0.6
     attack_range_value: 42949672960  # +10
   - id: 30702
-    name: 重装野马
+    name: Fortified Mustang
     mech_type: 10
     units: [mustang]
     life_rate: 8589934592  # +2
     attack_range_value: -85899345920  # -20
   - id: 30803
-    name: 改进型钢球
+    name: Improved Steel Ball
     mech_type: 10
     units: [steel_ball]
     damage_rate: 2147483648  # +0.5
@@ -183,66 +183,66 @@ officers:
     attack_range_value: 42949672960  # +10
     speed_value: 3
   - id: 30902
-    name: 突击尖牙
+    name: Assault Fang
     mech_type: 10
     units: [fang]
     damage_rate: 2147483648  # +0.5
     attack_range_value: -64424509440  # -15
     speed_value: 3
   - id: 31101
-    name: 重装霸主
+    name: Fortified Overlord
     mech_type: 10
     units: [overlord]
     damage_rate: -1073741824  # -0.25
     life_rate: 3221225472  # +0.75
   - id: 31102
-    name: 量产霸主
+    name: Mass-Produced Overlord
     mech_type: 10
     units: [overlord]
     damage_rate: -644245094  # -0.15
     life_rate: -644245094  # -0.15
     attack_range_value: -42949672960  # -10
   - id: 31104
-    name: 改进型霸主
+    name: Improved Overlord
     mech_type: 10
     units: [overlord]
     damage_rate: 858993459  # +0.2
     life_rate: 858993459  # +0.2
     splash_range_value: 21474836480  # +5
   - id: 31201
-    name: 突击暴雨
+    name: Assault Stormcaller
     mech_type: 10
     units: [stormcaller]
     life_rate: 12884901888  # +3
     attack_range_value: -128849018880  # -30
     speed_value: 5
   - id: 31202
-    name: 增程暴雨
+    name: Extended Range Stormcaller
     mech_type: 10
     units: [stormcaller]
     damage_rate: -1288490188  # -0.3
     attack_range_value: 150323855360  # +35
   - id: 31301
-    name: 量产铁锤
+    name: Mass-Produced Sledgehammer
     mech_type: 10
     units: [sledgehammer]
     damage_rate: -1288490188  # -0.3
     life_rate: -1288490188  # -0.3
   - id: 31302
-    name: 增程铁锤
+    name: Extended Range Sledgehammer
     mech_type: 10
     units: [sledgehammer]
     damage_rate: -858993459  # -0.2
     life_rate: -858993459  # -0.2
     attack_range_value: 128849018880  # +30
   - id: 31304
-    name: 改进型铁锤
+    name: Improved Sledgehammer
     mech_type: 10
     units: [sledgehammer]
     damage_rate: 4294967296  # +1
     speed_value: 3
   - id: 31402
-    name: 重装骇客
+    name: Fortified Hacker
     mech_type: 10
     units: [hacker]
     damage_rate: 858993459  # +0.2
@@ -250,49 +250,49 @@ officers:
     attack_range_value: -150323855360  # -35
     speed_value: 5
   - id: 31502
-    name: 智能弧光
+    name: Smart Arclight
     mech_type: 10
     units: [arclight]
     exp_rate: 3221225472  # +0.75
   - id: 31503
-    name: 重装弧光
+    name: Fortified Arclight
     mech_type: 10
     units: [arclight]
     life_rate: 7730941132  # +1.8
     attack_range_value: -64424509440  # -15
   - id: 31504
-    name: 增程弧光
+    name: Extended Range Arclight
     mech_type: 10
     units: [arclight]
     damage_rate: -858993459  # -0.2
     attack_range_value: 85899345920  # +20
   - id: 31601
-    name: 量产凤凰
+    name: Mass-Produced Phoenix
     mech_type: 10
     units: [phoenix]
     damage_rate: -1288490188  # -0.3
     life_rate: -1288490188  # -0.3
   - id: 31602
-    name: 增程凤凰
+    name: Extended Range Phoenix
     mech_type: 10
     units: [phoenix]
     damage_rate: -858993459  # -0.2
     attack_range_value: 85899345920  # +20
   - id: 31603
-    name: 改进型凤凰
+    name: Improved Phoenix
     mech_type: 10
     units: [phoenix]
     damage_rate: 858993459  # +0.2
     life_rate: 10737418240  # +2.5
   - id: 31701
-    name: 增程战争工厂
+    name: Extended Range War Factory
     mech_type: 10
     units: [war_factory]
     damage_rate: -858993459  # -0.2
     life_rate: -1717986918  # -0.4
     attack_range_value: 85899345920  # +20
   - id: 31702
-    name: 改进型战争工厂
+    name: Improved War Factory
     mech_type: 10
     units: [war_factory]
     damage_rate: 644245094  # +0.15
@@ -300,19 +300,19 @@ officers:
     attack_range_value: 42949672960  # +10
     attack_interval_value: -858993459  # -0.2
   - id: 31801
-    name: 量产恶灵
+    name: Mass-Produced Wraith
     mech_type: 10
     units: [wraith]
     damage_rate: -858993459  # -0.2
     life_rate: -858993459  # -0.2
   - id: 31802
-    name: 改进型恶灵
+    name: Improved Wraith
     mech_type: 10
     units: [wraith]
     damage_rate: 1288490188  # +0.3
     attack_range_value: 21474836480  # +5
   - id: 31901
-    name: 突击狂蝎
+    name: Assault Scorpion
     mech_type: 10
     units: [scorpion]
     life_rate: 858993459  # +0.2
@@ -320,90 +320,90 @@ officers:
     attack_interval_value: -6442450944  # -1.5
     speed_value: 3
   - id: 31902
-    name: 量产狂蝎
+    name: Mass-Produced Scorpion
     mech_type: 10
     units: [scorpion]
     damage_rate: -858993459  # -0.2
     life_rate: -858993459  # -0.2
     attack_range_value: -42949672960  # -10
   - id: 31903
-    name: 改进型狂蝎
+    name: Improved Scorpion
     mech_type: 10
     units: [scorpion]
     damage_rate: 644245094  # +0.15
     life_rate: 644245094  # +0.15
     attack_range_value: 42949672960  # +10
   - id: 32101
-    name: 增程剑齿虎
+    name: Extended Range Sabertooth
     mech_type: 10
     units: [sabertooth]
     damage_rate: -858993459  # -0.2
     life_rate: -1717986918  # -0.4
     attack_range_value: 128849018880  # +30
   - id: 32102
-    name: 量产剑齿虎
+    name: Mass-Produced Sabertooth
     mech_type: 10
     units: [sabertooth]
     damage_rate: -1717986918  # -0.4
     life_rate: -1717986918  # -0.4
   - id: 32103
-    name: 改进型剑齿虎
+    name: Improved Sabertooth
     mech_type: 10
     units: [sabertooth]
     life_rate: 858993459  # +0.2
     attack_interval_value: -3865470566  # -0.9
   - id: 32301
-    name: 改进型沙虫
+    name: Improved Sandworm
     mech_type: 10
     units: [sandworm]
     damage_rate: 1717986918  # +0.4
     splash_range_value: 21474836480  # +5
     speed_value: 3
   - id: 32302
-    name: 量产沙虫
+    name: Mass-Produced Sandworm
     mech_type: 10
     units: [sandworm]
     damage_rate: -1288490188  # -0.3
     life_rate: -1288490188  # -0.3
   - id: 32401
-    name: 改进型狼蛛
+    name: Improved Tarantula
     mech_type: 10
     units: [tarantula]
     splash_range_value: 17179869184  # +4
     speed_value: 3
   - id: 32501
-    name: 增程鬼鳐
+    name: Extended Range Phantom Ray
     mech_type: 10
     units: [phantom_ray]
     life_rate: -1717986918  # -0.4
     attack_range_value: 128849018880  # +30
   - id: 32601
-    name: 量产先知
+    name: Mass-Produced Farseer
     mech_type: 10
     units: [farseer]
     damage_rate: -1717986918  # -0.4
     attack_range_value: -85899345920  # -20
   - id: 32602
-    name: 重装先知
+    name: Fortified Farseer
     mech_type: 10
     units: [farseer]
     damage_rate: -1288490188  # -0.3
     life_rate: 3435973836  # +0.8
   - id: 32701
-    name: 突击雷霆
+    name: Assault Raiden
     mech_type: 10
     units: [raiden]
     life_rate: 3435973836  # +0.8
     attack_range_value: -85899345920  # -20
     speed_value: 3
   - id: 32801
-    name: 强击猎犬
+    name: Strike Hound
     mech_type: 10
     units: [hound]
     damage_rate: 11596411699  # +2.7
     attack_interval_value: 11166914969  # +2.6
   - id: 33001
-    name: 改进型魔眼
+    name: Improved Void Eye
     mech_type: 10
     units: [void_eye]
     damage_rate: 1717986918  # +0.4

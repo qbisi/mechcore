@@ -142,7 +142,7 @@ def number(value):
 def attack(row, body):
     return {
         "id": row["id"],
-        "name": row["name"],
+        "name": row.get("name"),
         "attack": {
             "base_damage": body["damage"],
             "min_range": number(row["minAttackRange"]),
@@ -210,7 +210,7 @@ def check(row, named):
     id_ = row["id"]
     if row["count"] <= 0 or row["maxLife"] <= 0:
         raise SystemExit(
-            f"construction {id_} ({row['name']}) carries count {row['count']} and "
+            f"construction {id_} ({row.get('name')}) carries count {row['count']} and "
             f"maxLife {row['maxLife']}; both are per child and must be positive"
         )
     if id_ not in named:
@@ -225,7 +225,7 @@ def check(row, named):
 
 
 def entry(row, named):
-    body = {"id": row["id"], "name": row["name"]}
+    body = {"id": row["id"], "name": row.get("name")}
     if row["id"] in named:
         body["layout_name"] = named[row["id"]][0]
     for field in INTEGERS:
@@ -294,7 +294,7 @@ def render(entries, skills):
         ]
         for skill in skills:
             lines.append(f"  - id: {skill['id']}")
-            lines.append(f"    name: {scalar(skill['name'])}")
+            lines += build_data.name_lines(skill, "    ")
             lines.append("    attack:")
             lines.extend(render_mapping(skill["attack"], "      "))
     return "\n".join(lines) + "\n"

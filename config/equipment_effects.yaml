@@ -33,7 +33,7 @@ schema: mechcore.equipment_effects
 
 equipment:
   - id: 1305001
-    name: 充能弹药
+    name: Charged Ammo
     kind: buffEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
@@ -43,7 +43,6 @@ equipment:
     probability: 4294967296  # +1
     buff:
       id: 1100
-      name: 装备-充能弹药
       duration: 21474836480  # +5
       divide: 0
       additive: false
@@ -68,7 +67,7 @@ equipment:
       disable_recover: false
       additive_reset_condition: 0
   - id: 1305002
-    name: 寄生弹药
+    name: Parasitic Ammo
     kind: buffEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
@@ -78,7 +77,6 @@ equipment:
     probability: 4294967296  # +1
     buff:
       id: 2100
-      name: 装备-寄生弹药
       duration: 12884901888  # +3
       divide: 0
       additive: false
@@ -103,7 +101,7 @@ equipment:
       disable_recover: false
       additive_reset_condition: 0
   - id: 1305003
-    name: 光子涂层
+    name: Photon Coating
     kind: buffEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
@@ -113,7 +111,6 @@ equipment:
     probability: 4294967296  # +1
     buff:
       id: 4000
-      name: 光子涂层通用
       duration: 128849018880  # +30
       divide: 0
       additive: false
@@ -138,7 +135,7 @@ equipment:
       disable_recover: false
       additive_reset_condition: 0
   - id: 1305004
-    name: 先进电磁弹药
+    name: Advanced EMP Ammo
     kind: buffEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
@@ -150,7 +147,6 @@ equipment:
     probability: 4294967296  # +1
     buff:
       id: 1100
-      name: 装备-充能弹药
       duration: 21474836480  # +5
       divide: 0
       additive: false
@@ -175,7 +171,7 @@ equipment:
       disable_recover: false
       additive_reset_condition: 0
   - id: 1305005
-    name: 先进寄生弹药
+    name: Advanced Parasitic Ammo
     kind: buffEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
@@ -187,7 +183,6 @@ equipment:
     probability: 4294967296  # +1
     buff:
       id: 2100
-      name: 装备-寄生弹药
       duration: 12884901888  # +3
       divide: 0
       additive: false
@@ -212,7 +207,7 @@ equipment:
       disable_recover: false
       additive_reset_condition: 0
   - id: 1305006
-    name: 先进压制弹药
+    name: Advanced Suppression Ammo
     kind: buffEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
@@ -224,7 +219,6 @@ equipment:
     probability: 4294967296  # +1
     buff:
       id: 10301
-      name: 压制射击-魔眼
       duration: 15032385536  # +3.5
       divide: 0
       additive: false
@@ -249,7 +243,7 @@ equipment:
       disable_recover: false
       additive_reset_condition: 0
   - id: 1305007
-    name: 战斗进化系统
+    name: Combat Evolution System
     kind: buffEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
@@ -260,7 +254,6 @@ equipment:
     probability: 4294967296  # +1
     buff:
       id: 9001
-      name: 试验级进化装置
       duration: 42945377992704  # +9999
       divide: 0
       additive: false
@@ -285,7 +278,7 @@ equipment:
       disable_recover: false
       additive_reset_condition: 0
   - id: 1305008
-    name: 光子投射装置
+    name: Photon Emission Device
     kind: buffEquipmentDatas
     mech_type: [7]
     main_skill_effect: true
@@ -302,7 +295,6 @@ equipment:
       target_radius: true
     buff:
       id: 40000
-      name: 光子投射通用
       duration: 85899345920  # +20
       divide: 0
       additive: false
@@ -327,7 +319,7 @@ equipment:
       disable_recover: false
       additive_reset_condition: 0
   - id: 1305009
-    name: 先进酸性弹药
+    name: Advanced Acid Ammo
     kind: buffEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
@@ -343,7 +335,6 @@ equipment:
       rounds: 0
       buff:
         id: 2019
-        name: 酸性弹药
         duration: 4294967296  # +1
         divide: 0
         additive: false
@@ -369,7 +360,6 @@ equipment:
         additive_reset_condition: 0
     buff:
       id: 9003
-      name: 无效果
       duration: 4294967296  # +1
       divide: 0
       additive: false
@@ -394,7 +384,7 @@ equipment:
       disable_recover: false
       additive_reset_condition: 0
   - id: 1305010
-    name: 先进引导雷达
+    name: Advanced Guidance Radar
     kind: buffEquipmentDatas
     mech_type: [7, 2]
     main_skill_effect: true
@@ -411,7 +401,6 @@ equipment:
       target_radius: true
     buff:
       id: 9002
-      name: 试验级雷达
       duration: 8589934592  # +2
       divide: 0
       additive: false
@@ -436,7 +425,7 @@ equipment:
       disable_recover: false
       additive_reset_condition: 0
   - id: 1306001
-    name: 坦克生产线
+    name: Tank Production Line
     kind: supportUnitEquipmentDatas
     mech_type: [7]
     main_skill_effect: true
@@ -454,7 +443,7 @@ equipment:
       unit_life_rate: 0
       positions: [{x: 103079215104, z: 64424509440}, {x: -103079215104, z: 64424509440}]
   - id: 1306002
-    name: 野马生产线
+    name: Mustang Production Line
     kind: supportUnitEquipmentDatas
     mech_type: [7]
     main_skill_effect: true
@@ -472,7 +461,7 @@ equipment:
       unit_life_rate: 0
       positions: [{x: 85899345920, z: -64424509440}, {x: -85899345920, z: -64424509440}, {x: 42949672960, z: -64424509440}, {x: -42949672960, z: -64424509440}]
   - id: 1306003
-    name: 钢球生产线
+    name: Steel Ball Production Line
     kind: supportUnitEquipmentDatas
     mech_type: [7]
     main_skill_effect: true
@@ -490,7 +479,7 @@ equipment:
       unit_life_rate: 0
       positions: [{x: 103079215104, z: 64424509440}, {x: -103079215104, z: 64424509440}]
   - id: 1306004
-    name: 深渊信标
+    name: Abyss Beacon
     kind: supportUnitEquipmentDatas
     mech_type: [7]
     main_skill_effect: true
@@ -509,7 +498,7 @@ equipment:
       unit_life_rate: 0
       positions: [{x: 0, z: 64424509440}]
   - id: 1307001
-    name: 保护屏障
+    name: Barrier
     kind: advancedEnergyShieldEquipmentDatas
     mech_type: [7, 2]
     main_skill_effect: true
@@ -517,7 +506,7 @@ equipment:
     barrier_radius: 65
     barrier_energy: 60000
   - id: 1307002
-    name: 超级屏障
+    name: Super Barrier
     kind: advancedEnergyShieldEquipmentDatas
     mech_type: [7]
     main_skill_effect: true
@@ -526,15 +515,15 @@ equipment:
     barrier_radius: 130
     barrier_energy: 180000
   - id: 1308001
-    name: 抗干扰模块
+    name: Anti-Interference Module
     kind: ignoreBuffEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
     permanent_effect: true
-    ignored_buffs: [1, 2, 3, 4, 5, 1002, 1004, 1005, 1006, 1009, 1012, 1013, 1014, 1015, 1016, 1026, 1027, 1054, 102001, 1031, 1100, 200001, 10055, 20064, 1056, 10302, 9004, 1004001, 105002, 105004, 105006, 105012, 105013, 105014, 105015, 105016, 105026, 105027, 105201, 105031, 1500302]  # 抗干扰模块免疫BUFF
+    ignored_buffs: [1, 2, 3, 4, 5, 1002, 1004, 1005, 1006, 1009, 1012, 1013, 1014, 1015, 1016, 1026, 1027, 1054, 102001, 1031, 1100, 200001, 10055, 20064, 1056, 10302, 9004, 1004001, 105002, 105004, 105006, 105012, 105013, 105014, 105015, 105016, 105026, 105027, 105201, 105031, 1500302]
   - id: 1309001
-    name: 汲取模块
+    name: Absorption Module
     kind: lifestealEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
@@ -542,14 +531,14 @@ equipment:
     life_rate: 1288490188  # +0.3
     lifesteal_multiplier: 3865470566  # +0.9
   - id: 13010001
-    name: 便携式护盾
+    name: Portable Shield
     kind: energyShieldEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
     shield_life_rate: 4294967296  # +1
   - id: 13020001
-    name: 纳米维修包
+    name: Nano Repair Kit
     kind: autoRecoveryEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
@@ -558,27 +547,27 @@ equipment:
     recovery_duration: 429496729  # +0.1
     recovery_life_rate: 19327352  # +0.0045
   - id: 13030001
-    name: 激光瞄具
+    name: Laser Sights
     kind: equipmentDatas
     mech_type: [4]
     main_skill_effect: true
     attack_range_value: 85899345920  # +20
   - id: 13030002
-    name: 重型装甲
+    name: Heavy Armor
     kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
     life_rate: 3221225472  # +0.75
   - id: 13030003
-    name: 改良火控系统
+    name: Improved Firepower Control System
     kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
     damage_rate: 2791728742  # +0.65
   - id: 13030004
-    name: 强化模块
+    name: Enhancement Module
     kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
@@ -586,7 +575,7 @@ equipment:
     life_rate: 1073741824  # +0.25
     damage_rate: 1073741824  # +0.25
   - id: 13030005
-    name: 速攻模块
+    name: Haste Module
     kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
@@ -594,14 +583,14 @@ equipment:
     damage_rate: 1503238553  # +0.35
     speed_value: 5
   - id: 13030006
-    name: 超重型装甲
+    name: Super Heavy Armor
     kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
     life_rate: 6442450944  # +1.5
   - id: 13030007
-    name: 增幅核心
+    name: Amplifying Core
     kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
@@ -609,14 +598,14 @@ equipment:
     life_rate: 2147483648  # +0.5
     damage_rate: 2147483648  # +0.5
   - id: 13030008
-    name: 高级火控系统
+    name: Advanced Firepower Control System
     kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
     damage_rate: 8589934592  # +2
   - id: 13030009
-    name: 次级增幅核心
+    name: Small Amplifying Core
     kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
@@ -624,7 +613,7 @@ equipment:
     life_rate: 644245094  # +0.15
     damage_rate: 644245094  # +0.15
   - id: 13030010
-    name: 统御核心
+    name: Dominion Core
     kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
@@ -633,7 +622,7 @@ equipment:
     life_rate: 4294967296  # +1
     damage_rate: 2147483648  # +0.5
   - id: 13030011
-    name: 快速装填机
+    name: Rapid Autoloader
     kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
@@ -641,47 +630,47 @@ equipment:
     round_duration: 1
     attack_interval_rate: -2147483648  # -0.5
   - id: 13030521
-    name: 次级激光瞄具
+    name: Secondary Laser Sight
     kind: equipmentDatas
     mech_type: [4]
     main_skill_effect: true
     attack_range_value: 34359738368  # +8
   - id: 13030522
-    name: 次级火控系统
+    name: Secondary Fire Control System
     kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
     damage_rate: 1073741824  # +0.25
   - id: 13030523
-    name: 次级重型装甲
+    name: Secondary Heavy Armor
     kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
     life_rate: 1288490188  # +0.3
   - id: 13040001
-    name: 部署模块
+    name: Deployment Module
     kind: mobilityIntensifyEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
   - id: 13100001
-    name: 试验级巨山装甲
+    name: Experimental Mountain Armor
     kind: armorStrengthenEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
     round_duration: 1
   - id: 13110001
-    name: 分裂核心
+    name: Splitter Core
     kind: deadSummonEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
     round_duration: 1
   - id: 13120001
-    name: 应激电容
+    name: Emergency Capacitor
     kind: lifeBuffEquipmentDatas
     mech_type: [7]
     main_skill_effect: true
@@ -689,7 +678,7 @@ equipment:
     round_duration: 1
     life_rate: 6442450944  # +1.5
   - id: 13130001
-    name: 光学迷彩
+    name: Optical Camouflage
     kind: moveAbilityDynamicEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
@@ -697,26 +686,26 @@ equipment:
     round_duration: 1
     damage_rate: 4294967296  # +1
   - id: 13130101
-    name: 光学迷彩
+    name: Optical Camouflage
     kind: moveAbilityDynamicEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
   - id: 13140001
-    name: 重装锁定系统
+    name: Heavy Targeting System
     kind: searchTargetModifyEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
     round_duration: 1
   - id: 13150001
-    name: 先进高爆弹药
+    name: Advanced HE Shells
     kind: splashEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
     round_duration: 1
     splash_range: 42949672960  # +10
   - id: 13150101
-    name: 爆裂弹药
+    name: Explosive Ammo
     kind: splashEquipmentDatas
     mech_type: [0]
     main_skill_effect: true

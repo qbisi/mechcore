@@ -152,7 +152,7 @@ def main() -> int:
             continue
         written += 1
         lines.append(f"  - id: {row['id']}")
-        lines.append(f"    name: {row.get('name') or ''}")
+        lines += build_data.name_lines(row, "    ")
         lines.append(f"    mech_type: {(row.get('mechType') or [0])[0]}")
         units = [names.get(unit, str(unit)) for unit in row.get("unitID") or []]
         if units:

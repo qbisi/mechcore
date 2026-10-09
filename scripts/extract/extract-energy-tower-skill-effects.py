@@ -34,7 +34,7 @@ def extract():
             continue
         rows.append({
             "id": row["id"],
-            "name": row["name"],
+            "name": row.get("name"),
             "mech_type": row["mechType"],
             "units": row.get("unitID") or [],
             "attack_range_value": attack_range,
@@ -66,7 +66,7 @@ def render(rows):
     ]
     for d in rows:
         lines.append(f"  - id: {d['id']}")
-        lines.append(f"    name: {d['name']}")
+        lines += build_data.name_lines(d, "    ")
         lines.append(f"    mech_type: [{', '.join(map(str, d['mech_type']))}]")
         if d["units"]:
             lines.append(f"    units: [{', '.join(map(str, d['units']))}]")

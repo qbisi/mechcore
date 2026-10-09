@@ -118,7 +118,7 @@ def render(structure):
         "# The buff a tower's loss writes, one buff that differs by level only",
         "# in how long it lasts.",
         "destroyed_buff:",
-        f"  name: {first['name']}",
+        *build_data.name_lines(first, "  "),
         f"  buff_divide: {first['buffDivide']}",
         f"  additive: {str(first['isAdditiveMode']).lower()}",
         f"  debuff: {str(first['debuff']).lower()}",
