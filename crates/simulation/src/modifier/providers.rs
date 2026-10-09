@@ -83,6 +83,41 @@ pub(crate) enum EffectProvider {
 }
 
 impl EffectProvider {
+    /// Every provider, in the order the fight hands a unit to each as
+    /// `FightEffectSystem` activates, deactivates or switches its effects.
+    pub(crate) const ALL: [Self; 30] = [
+        Self::InterceptMissile,
+        Self::StealthTech,
+        Self::MechGroup,
+        Self::SiegeMode,
+        Self::ReactiveArmor,
+        Self::WreckageRecovery,
+        Self::Burrow,
+        Self::Repair,
+        Self::LifeSteal,
+        Self::AutoRecovery,
+        Self::EnergyShield,
+        Self::SweepSkillIntensify,
+        Self::ArmorStrengthen,
+        Self::SearchTargetSpecific,
+        Self::AirAttack,
+        Self::SecondaryDamageIntensify,
+        Self::Buff { cycles: false },
+        Self::Buff { cycles: true },
+        Self::SupportUnit,
+        Self::DeadEffect,
+        Self::MoveAbilitySummon,
+        Self::ExtraSkill,
+        Self::DeadLine,
+        Self::MoveAbilityAttackIntensify,
+        Self::MoveAbilityRangeItem,
+        Self::AdvancedEnergyShield,
+        Self::FireIntensify,
+        Self::RvoRadiusChange,
+        Self::ClearRangeItem,
+        Self::KillExplosion,
+    ];
+
     /// The build's name for it, which a refusal gives.
     pub(crate) const fn name(self) -> &'static str {
         match self {

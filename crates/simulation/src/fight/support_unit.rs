@@ -730,8 +730,7 @@ impl Simulation {
         self.actors.insert(unit_id, actor);
         self.unit_update_order.push(unit_id);
         // `FightEffectSystem` activates its effects as it joins.
-        self.activate_reactive_armor(unit_id);
-        self.add_burrow_unit(unit_id);
+        self.active_effect(unit_id)?;
         self.draw_owner_first_intervals(FightActorRef::Unit(unit_id))
     }
 

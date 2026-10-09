@@ -48,6 +48,7 @@ mod damage;
 mod dead_acid;
 mod deploy;
 mod diffusion;
+mod effects;
 mod experience;
 mod explosion;
 mod grid;
@@ -644,13 +645,7 @@ impl Simulation {
             mech_groups: mech_group::MechGroupSystem::default(),
         };
         simulation.number_joiners();
-        simulation.activate_interceptions();
-        simulation.enter_stealth_fight();
-        simulation.enter_reactive_armor_fight();
-        simulation.start_groups();
-        simulation.enter_wreckage_fight();
-        simulation.enter_burrow_fight();
-        simulation.enter_repair_fight();
+        simulation.enter_effects_fight();
         simulation.restore_standing_oil(&layout.standing_oil)?;
         // `CommanderSkillManager.OnFightStart`: a path is given out before
         // the first tick, and lands nothing.
@@ -1162,17 +1157,8 @@ impl Simulation {
             // `TeamWreckageRecoveryManager` registered with for each unit
             // its holders struck.
             self.wreckage_on_dead(unit_id)?;
-            // `FightEffectSystem.DeactiveEffect` of the dead unit: its
-            // group's `MechGrounpEffectProvider.DoDeactive`.
-            self.remove_group_unit(unit_id);
-            // Its `SiegeModeEffectProvider.DoDeactive`.
-            self.remove_siege_unit(unit_id)?;
-            // And its `WreckageRecoveryEffectProvider.DoDeactive`.
-            self.remove_wreckage_unit(unit_id);
-            // And its `RecoveryEffectProvider.DoDeactive`.
-            self.remove_repair_unit(unit_id);
-            // And its `BurrowEffectProvider.DoDeactive`.
-            self.remove_burrow_unit(unit_id);
+            // `FightEffectSystem.DeactiveEffect` of the dead unit.
+            self.deactive_effect(unit_id)?;
             // `SkillManager.OnOwnerDead` stops its skills, a control beam's
             // `ControllEffect` among them: the Rhino a Hacker was turning
             // holds no entry from the tick the Hacker dies.
