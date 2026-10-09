@@ -140,6 +140,9 @@ schema: mechcore.technology_effects
 # An ignore technology carries whether its unit ignores one kind of
 # buff effect (`ignores_buff_effect`) and that kind, a `BuffEffectType`
 # (`ignored_buff_effect`).
+# A search technology carries the `SkillSearchTargetType` its unit's
+# skills search by (`search_target_type`), on its main skill and its
+# extra skills as `main_skill_effect` and `extra_skill_effect` say.
 
 technologies:
   - id: 206
@@ -920,6 +923,9 @@ technologies:
     name: Fortified Target Lock
     unit: steel_ball
     kind: searchTargetModifyTechnologies
+    search_target_type: 1
+    main_skill_effect: true
+    extra_skill_effect: false
   - id: 2505
     name: Power Armor
     unit: rhino

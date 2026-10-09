@@ -764,8 +764,10 @@ impl Simulation {
             // a `Select` whenever it searches. A unit with one grouped skill,
             // the Vortex, and a batch of standalone weapons have none.
             let skill = &actor.skills.main;
+            // Nor one whose selector is no `ScoreRatingTargetSelector`.
             actor.skills.main.search_prepared = actor.alive()
                 && !actor.travelling
+                && !actor.life_priority
                 && (skill.group_size() <= 1 || skill.standalone());
         }
         self.buildings_query_alive = super::standing_buildings(&self.buildings);
@@ -1048,6 +1050,7 @@ impl Simulation {
         // before it, under the skill's minimum range or not.
         let mut nearest: Option<(FightActorRef, i64)> = None;
 
+        let mut admitted = Vec::new();
         for (&team, candidates) in target_search_order {
             // The prepared trees hold each unit on the side it stood on as the
             // tick opened; a search made where everything stands now asks the
@@ -1096,42 +1099,48 @@ impl Simulation {
                 {
                     continue;
                 }
-                let (candidate_x_q32, candidate_z_q32) = if use_live_candidate_positions {
-                    (target.x_q32, target.z_q32)
-                } else {
-                    (target.query_x_q32, target.query_z_q32)
-                };
-                let visible = if use_live_candidate_positions {
-                    target.visible
-                } else {
-                    target.query_visible
-                };
-                let distance_q32 = target_edge_distance_q32(
-                    source.query_x_q32,
-                    source.query_z_q32,
-                    source.radius,
-                    candidate_x_q32,
-                    candidate_z_q32,
-                    target.radius,
-                );
-                if nearest.is_none_or(|(_, least)| distance_q32 < least) {
-                    nearest = Some((candidate, distance_q32));
-                }
-                if let Some(score) = full_rotation_target_score_q32(
-                    source.query_x_q32,
-                    source.query_z_q32,
-                    source.radius,
-                    source.query_rotation_q32,
-                    candidate_x_q32,
-                    candidate_z_q32,
-                    target.radius,
-                    source.score_offsets.for_candidate(target.domain, visible),
-                    source.min_range,
-                    source.attack_range,
-                    source.rotation_window_q32,
-                ) {
-                    scoring.consider(candidate, score, visible);
-                }
+                admitted.push((candidate, target));
+            }
+        }
+        if source.life_priority {
+            admitted = self.life_priority(source, admitted);
+        }
+        for (candidate, target) in admitted {
+            let (candidate_x_q32, candidate_z_q32) = if use_live_candidate_positions {
+                (target.x_q32, target.z_q32)
+            } else {
+                (target.query_x_q32, target.query_z_q32)
+            };
+            let visible = if use_live_candidate_positions {
+                target.visible
+            } else {
+                target.query_visible
+            };
+            let distance_q32 = target_edge_distance_q32(
+                source.query_x_q32,
+                source.query_z_q32,
+                source.radius,
+                candidate_x_q32,
+                candidate_z_q32,
+                target.radius,
+            );
+            if nearest.is_none_or(|(_, least)| distance_q32 < least) {
+                nearest = Some((candidate, distance_q32));
+            }
+            if let Some(score) = full_rotation_target_score_q32(
+                source.query_x_q32,
+                source.query_z_q32,
+                source.radius,
+                source.query_rotation_q32,
+                candidate_x_q32,
+                candidate_z_q32,
+                target.radius,
+                source.score_offsets.for_candidate(target.domain, visible),
+                source.min_range,
+                source.attack_range,
+                source.rotation_window_q32,
+            ) {
+                scoring.consider(candidate, score, visible);
             }
         }
 
@@ -1139,6 +1148,66 @@ impl Simulation {
             .nearest_actor
             .set(nearest.map(|(candidate, _)| candidate));
         scoring.chosen(|next| self.target_in_attack_range(source.skill, next))
+    }
+
+    /// `LifePriorityTargetSelector.Select` of `CurrentLifeHighestFirst`
+    /// before it hands its choice to the `ScoreRatingTargetSelector` it
+    /// holds: of the candidates its filters pass, those whose edge stands
+    /// beyond the skill's minimum range and within its range of the
+    /// searcher's (`FightTransform.Distance2D`, less both radii), and of them
+    /// the ones of the
+    /// most life, every one tied at it (`SelectBySearchTargetType`); when no
+    /// candidate stands in that ring, every one it passed, in order.
+    fn life_priority(
+        &self,
+        source: &super::attacker::Attacker<'_>,
+        admitted: Vec<(FightActorRef, FightActorView)>,
+    ) -> Vec<(FightActorRef, FightActorView)> {
+        let min_q32 = space_to_q32(source.min_range);
+        let range_q32 = space_to_q32(source.attack_range);
+        let mut most = 0;
+        let mut in_range = Vec::new();
+        let mut others = Vec::new();
+        for (candidate, target) in admitted {
+            let distance_q32 = target_edge_distance_q32(
+                source.query_x_q32,
+                source.query_z_q32,
+                source.radius,
+                target.x_q32,
+                target.z_q32,
+                target.radius,
+            );
+            if distance_q32 > min_q32 && distance_q32 <= range_q32 {
+                let life = self.actor_life(candidate);
+                if life < most {
+                    continue;
+                }
+                if life > most {
+                    in_range.clear();
+                }
+                most = life;
+                in_range.push((candidate, target));
+            } else {
+                others.push((candidate, target));
+            }
+        }
+        if in_range.is_empty() {
+            others
+        } else {
+            in_range
+        }
+    }
+
+    /// `FightActor.GetLife`: a unit's whole life, or a building's.
+    fn actor_life(&self, actor: FightActorRef) -> i64 {
+        match actor {
+            FightActorRef::Unit(id) => self.actors.get(&id).map_or(0, |actor| actor.life),
+            FightActorRef::Building(id) => self
+                .buildings
+                .iter()
+                .find(|building| building.building_id == id)
+                .map_or(0, |building| i64::from(building.life.current)),
+        }
     }
 
     /// `MechSearchTargetController.Update`, before the unit's skills: a unit
