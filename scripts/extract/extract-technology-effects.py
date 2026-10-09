@@ -74,6 +74,7 @@ SUBCLASS_LISTS = (
     ("projectile_count_value", "countIncrease", "multiAttackTechnologies"),
     ("projectile_duration_value", "durationChangeValue", "multiAttackTechnologies"),
     ("projectile_random_range_value", "randomRangeChangeValue", "multiAttackTechnologies"),
+    ("dead_line_value", "deadLineValue", "deadLineTechDatas"),
 )
 # The same for a field that is one value rather than a rank list.
 SUBCLASS_SCALARS = (
@@ -94,6 +95,7 @@ SUBCLASS_SCALARS = (
     ("secondary_buffed", "canBeAffectedByBuff", "secondaryDamageIntensifyTechDatas"),
     ("secondary_disables_technology", "canDisableTech", "secondaryDamageIntensifyTechDatas"),
     ("secondary_buff_id", "hitEMPBuffID", "secondaryDamageIntensifyTechDatas"),
+    ("dead_line_ignores_shield", "ignoreEnergyShield", "deadLineTechDatas"),
 )
 # A field of one list's rows that is one rate, written only where it is set:
 # an extra weapon's `allWeaponReduceDamageRate`, which
@@ -117,7 +119,8 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "airAttackTechnologyDatas", "damageIntensifyTechnologies",
                "secondaryDamageIntensifyTechDatas", "buffTechnologies",
                "interceptMissileTechnologyDatas", "splashTechnologies",
-               "mobilityIntensifyTechnologies", "multiAttackTechnologies", "stealthTechData")
+               "mobilityIntensifyTechnologies", "multiAttackTechnologies", "stealthTechData",
+               "deadLineTechDatas")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
@@ -214,7 +217,8 @@ DESCRIPTIVE = {
 }
 RATES = {"life_rate", "damage_rate", "attack_range_rate", "attack_interval_rate", "projectile_life_rate", "exp_rate",
          "lifesteal_multiplier", "recovery_life_rate", "air_damage_change_rate", "ground_damage_change_rate"}
-INTEGERS = {"speed_value", "min_attack_range_value", "reduce_damage_value", "projectile_count_value"}
+INTEGERS = {"speed_value", "min_attack_range_value", "reduce_damage_value", "projectile_count_value",
+            "dead_line_value"}
 
 
 def raw(value):
@@ -448,7 +452,11 @@ def main() -> int:
         "# each lands from its target (`projectile_duration_value`,",
         "# `projectile_random_range_value`). A stealth technology carries the",
         "# share of its unit's maximum life its life first falling to puts it in",
-        "# stealth, and the seconds that lasts (`stealth`).",
+        "# stealth, and the seconds that lasts (`stealth`). A dead-line",
+        "# technology carries the life, by its unit's level, at or under which",
+        "# its unit's main skill destroys what it hits (`dead_line_value`), and",
+        "# whether it does so through a unit's own shield",
+        "# (`dead_line_ignores_shield`).",
         "",
         "technologies:",
     ]

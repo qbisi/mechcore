@@ -91,7 +91,9 @@ on the damage of its unit's skills
 ([splash](#splash-technologies)), a multi-attack technology's with the
 projectiles it adds its unit's bursts ([below](#multi-attack-technologies)),
 a stealth technology's with the stealth it puts its unit in once it is hurt
-([below](#stealth-technologies)), a missile interception technology's
+([below](#stealth-technologies)), a dead-line technology's with the life
+under which its unit's hits destroy what they strike
+([below](#dead-line-technologies)), a missile interception technology's
 with the interceptors it makes its unit
 ([below](#missile-interception)), a production technology's with the line it
 runs ([below](#production-lines)), and refuses
@@ -366,6 +368,30 @@ every triggered unit (`OnExitFight`).
   (`RangeTargetCalculator.CalculateRangeActors`), and so does a sweep
   (`DamageEffect.PerformInRange`).
 
+## Dead-line technologies
+
+A row of `deadLineTechDatas` is a `DeadLineTech`, the Mustang's Culling
+Rounds: beside its numbers, a 35% cut in damage, it carries the life by its
+unit's level, `dead_line_value` (320 at level one, 200 more each level), and
+whether a unit's own shield keeps it off, `dead_line_ignores_shield` (it
+does not). `DeadLineEffectProvider` hands its unit's main skill a pre-hit
+effect (`FightSkill.AddPreHitEffectProvider`), and
+`DamagePerformer.PerformHitTargetEffect` asks it of each target the skill's
+hit strikes, the skill's own or its projectile's (`FightProjectile` hands
+its pre-hit on to its skill), before anything else.
+
+**A unit at or under the line is destroyed whole**
+(`DeadLineEffectProvider.PerformPreHitEffect`): a live unit, not a building,
+whose life is no more than the line at the level of the skill's owner
+(`GetDeadLineValue`, by `CardLevel` counting from zero), unless its own
+shield has energy left and the row does not ignore shields, or the owner's
+technologies are disabled. `FightActor.ReduceLife` takes its whole life as a
+suicide's, which no damage reduction lessens and neither a shield nor stealth
+stops, and the hit deals it nothing more. `OnActorHitted` credits the owner
+with the life as damage and charges the target the line as taken: a Crawler
+culled at 250 is charged 320. The hit names no damage provider, so its
+`damage` names neither a projectile nor a skill.
+
 ## Missile Interception
 
 Missile Interception makes its unit an interceptor: Mustang, Sabertooth,
@@ -625,6 +651,12 @@ derive (a minimum range):
   lock nothing at a charging Rhino, and none once it is within 75 metres;
   fought with the lock kept, the simulator parts from the game on the first
   shell's aim: `tests/modifier/fights/technology-siege-mode.yaml`.
+- A dead-line technology destroys a unit its unit's shots strike at or
+  under the line at its level, before the shot's damage: Culling Rounds
+  culls Crawlers at 250 under a level-one Mustang's 320, and Marksmen at 712
+  under a level-three one's 720:
+  `tests/dead_line/fights/culling-rounds-crawlers.yaml`,
+  `tests/dead_line/fights/culling-rounds-level-three.yaml`.
 - A stealth technology puts its unit in stealth as a hit leaves it at no
   more than half its life, and shows it 81 ticks on: no search finds it, a
   shot already on its way lands on it and takes nothing, and the units that
@@ -800,6 +832,12 @@ derive (a minimum range):
   random range above zero, which takes turns between the weapons only for a
   skill of two: `ProjectileMultiAttackPerformer.OnStartFirstPerform`,
   `ProjectileMultiAttackPerformer.MultiAttackTargetPositionController.GetAndDeletePositionOffsets`.
+- A dead-line technology hands its unit's main skill a pre-hit effect that
+  destroys a live unit at or under the line at the owner's level as a
+  suicide, before the hit's shield and damage, and charges it the line:
+  `DeadLineEffectProvider.RegisterMechEventInternal`,
+  `DeadLineEffectProvider.PerformPreHitEffect`,
+  `DamagePerformer.PerformHitTargetEffect`, `DeadLineTech.GetDeadLineValue`.
 - A stealth technology's unit goes into stealth as a hit leaves its life over
   its maximum no more than its share, once, and is shown once its time is
   past the duration; a disabling buff shows it and counts it as triggered:

@@ -1,0 +1,23 @@
+# Culling Rounds on a level-one Mustang squad shooting Crawlers.
+#
+# A Crawler's 250 is under the line of 320, so every shot that reaches one
+# destroys it whole, before its damage is asked (t70 on). The damage names
+# neither a projectile nor a skill, and the Crawler's formation is charged
+# the line, 320, as taken.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 120
+hash: {profile: mcfr-content-0.22.0, result: 37f38ce813b7cc810421b034d350180be14e81c6b5c8083f416ab90694fcc5b8}
+blue:
+  techs:
+    mustang: [culling_rounds]
+  units:
+  - {name: mustang, index: 0, position: {x: 5, y: -100}, exp: 0/192/1200}
+red:
+  core_damage: 204
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}

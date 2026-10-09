@@ -22,8 +22,9 @@
 //! `BuffTech` the buff it adds its unit as the fight starts, and a
 //! `SupportUnitTech` the production line a production item's
 //! `SupportUnitEquipment` would, and a `MultiAttackTech` the projectiles it
-//! adds its unit's bursts, and a `StealthTech` its stealth once it is hurt;
-//! any other is
+//! adds its unit's bursts, and a `StealthTech` its stealth once it is hurt,
+//! and a `DeadLineTech` the life under which its main skill destroys what it
+//! hits; any other is
 //! refused by name rather than applied for its numbers alone.
 //!
 //! A technology belongs to one unit type, which is how a side's flat list of
@@ -99,8 +100,11 @@ const MULTI_ATTACK: &str = "multiAttackTechnologies";
 /// The list whose `StealthTech` is an `IStealthTechDataSource`.
 const STEALTH: &str = "stealthTechData";
 
+/// The list whose `DeadLineTech` is an `IDeadLineDataSource`.
+const DEAD_LINE: &str = "deadLineTechDatas";
+
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 19] = [
+const IMPLEMENTED: [&str; 20] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -120,6 +124,7 @@ const IMPLEMENTED: [&str; 19] = [
     MOVE_SUMMON,
     MULTI_ATTACK,
     STEALTH,
+    DEAD_LINE,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -216,6 +221,9 @@ struct Technology {
     energy_shield: Option<EnergyShield>,
     /// What it answers `IStealthTechDataSource` with, if its class is one.
     stealth: Option<Stealth>,
+    /// What it answers `IDeadLineDataSource` with, if its class is one: the
+    /// life by its unit's level, and whether a shield keeps it off.
+    dead_line: Option<(Vec<i64>, bool)>,
     /// What it hands its unit's sweep, if its class is a sweep's.
     sweep: Option<SweepIntensify>,
     /// What it answers `IArmorStrengthen.GetReduceDamageValue` with, by its
@@ -280,6 +288,18 @@ const DISABLED_AS_NUMBERS: [&str; 7] = [
     SECONDARY_DAMAGE,
     SEARCH_TARGET_SPECIFIC,
 ];
+
+/// What `DeadLineEffectProvider` hands its unit's main skill as a pre-hit
+/// effect (`PerformPreHitEffect`): a unit it hits at or under `life` is
+/// destroyed, unless its own shield has energy left and the row does not
+/// ignore shields.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct DeadLine {
+    /// `IDeadLineDataSource.GetDeadLineValue` at the unit's level.
+    pub(crate) life: i64,
+    /// `IsIgnoreEnergyShield`.
+    pub(crate) ignores_shield: bool,
+}
 
 /// What `SecondaryDamageIntensifyEffectProvider` hands its unit's main skill
 /// (`FightSkill.SetSecondaryDamageInfo`), and `DamagePerformer.PerformSecondaryEffect`
@@ -655,6 +675,12 @@ struct Row {
     /// `StealthTechData`'s fields, on a row of its list.
     #[serde(default)]
     stealth: Option<StealthBlock>,
+    /// `DeadLineTechData`'s `deadLineValue`, whole life by the unit's level,
+    /// and `ignoreEnergyShield`, on a row of its list.
+    #[serde(default)]
+    dead_line_value: Vec<i64>,
+    #[serde(default)]
+    dead_line_ignores_shield: bool,
     /// `SupportUnitTechnologyData`'s fields, on a row of its list.
     #[serde(default)]
     production: Option<SupportBlock>,
@@ -1002,6 +1028,8 @@ impl TechnologyEffects {
                 auto_recovery,
                 energy_shield,
                 stealth: row.stealth.map(StealthBlock::source),
+                dead_line: (row.kind == DEAD_LINE)
+                    .then(|| (row.dead_line_value.clone(), row.dead_line_ignores_shield)),
                 sweep,
                 reduce_damage,
                 distance_intensify: row.kind == SEARCH_TARGET_SPECIFIC,
@@ -1167,6 +1195,38 @@ impl TechnologyEffects {
             .filter(|technology| technology.unit == unit_type)
             .filter_map(|technology| technology.production.clone())
             .collect())
+    }
+
+    /// What the first of this side's technologies on one unit type that is
+    /// an `IDeadLineDataSource` answers at the unit's level:
+    /// `DeadLineTech.GetDeadLineValue` reads entry `CardLevel`, counting from
+    /// zero, and its last past it.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn dead_line(
+        &self,
+        held: &[i32],
+        unit_type: &str,
+        level: i64,
+    ) -> Result<Option<DeadLine>> {
+        self.effects(held, unit_type)?;
+        Ok(held
+            .iter()
+            .filter_map(|id| self.technologies.get(id))
+            .filter(|technology| technology.unit == unit_type)
+            .find_map(|technology| technology.dead_line.as_ref())
+            .and_then(|(values, ignores_shield)| {
+                let index = usize::try_from(level - 1).unwrap_or_default();
+                values
+                    .get(index)
+                    .or_else(|| values.last())
+                    .map(|&life| DeadLine {
+                        life,
+                        ignores_shield: *ignores_shield,
+                    })
+            }))
     }
 
     /// This side's technologies on one unit type whose switching off by a
@@ -1655,6 +1715,32 @@ mod tests {
             })
         );
         assert!(table.disabled_unmeasured(&[9], "vortex").is_empty());
+    }
+
+    /// A dead-line technology answers the line at its unit's level, the
+    /// first at level one and the last past its list.
+    #[test]
+    fn a_dead_line_technology_reads_its_line_by_level() {
+        let table = TechnologyEffects::parse(
+            "schema: mechcore.technology_effects\n\
+             technologies:\n\
+             - {id: 9, name: probe, unit: mustang, kind: deadLineTechDatas, \
+             dead_line_ignores_shield: true, damage_rate: [-1503238553], \
+             dead_line_value: [320, 520, 720]}\n",
+        )
+        .unwrap();
+        let line = |level| table.dead_line(&[9], "mustang", level).unwrap();
+        assert_eq!(
+            line(1),
+            Some(super::DeadLine {
+                life: 320,
+                ignores_shield: true,
+            })
+        );
+        assert_eq!(line(3).map(|line| line.life), Some(720));
+        assert_eq!(line(9).map(|line| line.life), Some(720));
+        assert_eq!(table.dead_line(&[9], "rhino", 1).unwrap(), None);
+        assert!(!table.corrections(&[9], "mustang", 1).unwrap().is_empty());
     }
 
     /// A technology of a list whose mechanism is not here is refused by name
