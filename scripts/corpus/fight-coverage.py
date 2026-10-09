@@ -29,8 +29,10 @@ and alone holds, and the order that opens the most rounds as groups land.
 *What the game has* is the third number, and it reads no replay: every
 technology `config/unit_techs.yaml` lets a unit research, fought on one unit
 of its type against a Rhino. It counts the ones the simulator accepts, and
-classifies the rest by the `TechnologyGroupData` list each comes from, one
-kind of technology, and within a kind by the cause its refusal names.
+lists the rest by the unit that researches them, each with its id, the
+`TechnologyGroupData` list it comes from and the cause its refusal names.
+It lists them again by name, those whose name a technology of another id
+shares: one mechanism usually clears every technology of a name.
 """
 
 import argparse
@@ -235,15 +237,16 @@ def probe(binary: pathlib.Path, room: pathlib.Path, unit: str, name: str) -> str
 
 def technology_coverage(binary: pathlib.Path) -> None:
     """How many of the technologies the game has the simulator fights, and the
-    rest by kind and cause."""
+    rest by unit, and again by a name another id shares."""
     names = technology_names()
     rows = {
         int(found.group(1)): (found.group(2), found.group(3))
         for found in ROW.finditer((REPOSITORY / "config/technology_effects.yaml").read_text())
     }
-    refused: dict[str, dict[str, list[str]]] = collections.defaultdict(
-        lambda: collections.defaultdict(list)
-    )
+    # By unit, each refused technology as (id, layout name, Chinese name,
+    # kind, cause).
+    refused: dict[str, list[tuple[int, str, str, str, str]]] = collections.defaultdict(list)
+    accepted: list[tuple[str, int, str]] = []
     every = researched()
     with tempfile.TemporaryDirectory() as room:
         for unit, identifier in every:
@@ -254,21 +257,34 @@ def technology_coverage(binary: pathlib.Path) -> None:
                 if name
                 else "no name in config/names.yaml"
             )
-            if reason is not None:
-                refused[kind][cause_of(reason)].append(f"{unit} {name} ({chinese}, {identifier})")
-    count = sum(len(members) for causes in refused.values() for members in causes.values())
+            if reason is None:
+                accepted.append((unit, identifier, chinese))
+            else:
+                refused[unit].append((identifier, name or "?", chinese, kind, cause_of(reason)))
+    count = sum(map(len, refused.values()))
     print(
         f"\n{len(every)} unit technologies the game lets a unit research, "
         f"{len(every) - count} of them the simulator accepts"
     )
-    print("\nunit technologies the simulator refuses, by kind and cause")
-    for kind, causes in sorted(
-        refused.items(), key=lambda item: (-sum(map(len, item[1].values())), item[0])
-    ):
-        print(f"  {sum(map(len, causes.values())):4}  {kind}")
-        for cause, members in sorted(causes.items(), key=lambda item: -len(item[1])):
-            print(f"          {cause}: {', '.join(members)}")
-
+    print("\nunit technologies the simulator refuses, by unit")
+    for unit, members in sorted(refused.items(), key=lambda item: (-len(item[1]), item[0])):
+        print(f"  {len(members):4}  {unit}")
+        for identifier, name, chinese, kind, cause in sorted(members):
+            print(f"          {identifier} {name} ({chinese}, {kind}): {cause}")
+    # A name a technology of another id shares, refused or not.
+    ids_of: dict[str, set[int]] = collections.defaultdict(set)
+    for _, identifier in every:
+        ids_of[rows.get(identifier, ("?", "?"))[0]].add(identifier)
+    shared: dict[str, list[str]] = collections.defaultdict(list)
+    for unit, members in refused.items():
+        for identifier, _, chinese, _, _ in members:
+            if len(ids_of[chinese]) > 1:
+                shared[chinese].append(f"{unit} {identifier}")
+    print("\nunit technologies the simulator refuses whose name another id shares, by name")
+    for chinese, members in sorted(shared.items(), key=lambda item: (-len(item[1]), item[0])):
+        fought = [f"{unit} {identifier}" for unit, identifier, name in accepted if name == chinese]
+        also = f"; accepted: {', '.join(fought)}" if fought else ""
+        print(f"  {len(members):4}  {chinese}: {', '.join(sorted(members))}{also}")
 
 def rounds_of(match_doc: pathlib.Path) -> list[int]:
     """The rounds a match states, less the one a side concedes: a concession
