@@ -79,6 +79,10 @@ impl SupportUnitSystem {
 
 /// One `SupportUnitCreator` still creating or still alive.
 #[derive(Debug, Clone)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "each is a fact of the line or of `SupportUnitCreator`"
+)]
 pub(in crate::fight) struct Creator {
     team: u32,
     x_q32: i64,
@@ -117,6 +121,9 @@ pub(in crate::fight) struct Creator {
     created: u32,
     /// `lifeTime`: the updates it has run.
     updates: u64,
+    /// `isEnable`, cleared while the technology that hands its owner the line
+    /// is switched off: it counts on but makes nothing.
+    enabled: bool,
 }
 
 /// What a support skill makes of its production line.
@@ -211,6 +218,7 @@ impl Creator {
             made: Vec::new(),
             created: 0,
             updates: 0,
+            enabled: true,
         }
     }
 
@@ -259,6 +267,7 @@ impl Creator {
             made: Vec::new(),
             created: 0,
             updates: 0,
+            enabled: true,
         }
     }
 }
@@ -336,7 +345,7 @@ impl Simulation {
                     && alive >= usize::try_from(creator.max_alive).unwrap_or(usize::MAX);
                 if !full && creator.created < creator.summon.count {
                     creator.counter += 1;
-                    if creator.counter >= creator.summon.interval_ticks {
+                    if creator.enabled && creator.counter >= creator.summon.interval_ticks {
                         creator.counter = 0;
                         batch = creator
                             .summon
@@ -358,6 +367,21 @@ impl Simulation {
             }
         }
         Ok(())
+    }
+
+    /// `SupportUnitProvider.DisableEffect` and `EnableEffect`
+    /// (`SupportUnitSystem.Disable`, `Enable`, `TeamSupportUnitManager`):
+    /// the owner's line that the technology hands it disabled or enabled.
+    /// Disabled, `SupportUnitCreator.Update` counts its life and its interval
+    /// on but makes nothing, and `PreCalculate` finds no batch due; enabled,
+    /// a line whose interval ran out meanwhile makes its batch on its next
+    /// update.
+    pub(in crate::fight) fn switch_production(&mut self, owner: u64, on: bool) {
+        for creator in &mut self.support.lines {
+            if creator.owner == Some(owner) {
+                creator.enabled = on;
+            }
+        }
     }
 
     /// `aliveMechCount`: a creator's makes still appearing or alive.
@@ -401,6 +425,7 @@ impl Simulation {
         let due = (creator.max_batch == 0 || creator.batches < creator.max_batch)
             && !full
             && creator.created < creator.summon.count
+            && creator.enabled
             && creator.counter + 1 >= creator.summon.interval_ticks;
         if !due {
             return false;
