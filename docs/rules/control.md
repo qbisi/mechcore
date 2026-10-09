@@ -30,7 +30,11 @@ hit deals 179, and a warmup hit nothing: a hit that deals nothing strikes
 nothing and writes no damage. The effect is the main skill's damage effect, so
 it splashes as the skill does: Explosive Ammo gives it 5 metres, and one hit
 strikes every unit around the one it is on. A hit that turns strikes nothing,
-and its splash nothing either.
+and its splash nothing either; but after it adds its power, the unit it is on
+raises `OnMechBeHit` with the beam's owner as the attacker
+(`ControllEffect.Perform`), as a unit a hit reaches does. What listens to it
+answers the Hacker: a Void Eye with Electromagnetic Armor switches the
+Hacker's technologies off.
 
 ## Progress and the turn
 
@@ -172,6 +176,10 @@ the shield does not count against the turn.
 
 ### Recorded
 
+- A Hacker turning a Void Eye with Electromagnetic Armor takes the armor's
+  buff from tick 101, its Barrier going at 28568; without `OnMechBeHit` on a
+  turning hit the simulator parts from the game at t101:
+  `tests/control/fights/electromagnetic-armor.yaml`.
 - The Hacker turns a Crawler whose progress reaches its life on tick 103, cools
   for a tick naming it, and searches again; the turned Crawler takes a new lock
   on that tick: `tests/hacker/fights/m3-crawler-4242.yaml`, ticks 101 to 105.
@@ -270,7 +278,8 @@ the shield does not count against the turn.
   `ControlBeamDamageCalculator.GetAttackDamage`, `FightMech.IsSimulateMech`,
   `TeamTranslationSystem.IsIgnoredMech`, `IIgnoreBuffDataSouce.IgnoreControllerBeam`.
 - Progress: `ControllEffect.Start`, `ControllEffect.Stop`,
-  `ControllEffect.Perform`, `TeamTranslationSystem.Add`,
+  `ControllEffect.Perform` (which raises the target's `OnMechBeHit` after
+  `Translate`), `TeamTranslationSystem.Add`,
   `TeamTranslationSystem.Remove`, `TeamTranslationSystem.Translate`,
   `TeamTranslationSystem.translatingDatas`.
 - The turn: `ProjectileSystem.Create`, `ProjectileController.Init`,

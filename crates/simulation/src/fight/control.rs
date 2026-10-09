@@ -280,7 +280,11 @@ impl Simulation {
         // (`ExpSystem.AddAttackData`), as a hit does.
         let owner = self.actors[&actor_id].object_ref();
         let team = self.actors[&actor_id].placement.team;
-        self.count_experience(Some(owner), team, FightActorRef::Unit(lock), false)
+        self.count_experience(Some(owner), team, FightActorRef::Unit(lock), false)?;
+        // Then the unit it turns raises `OnMechBeHit` with the beam's owner
+        // as the attacker, as a hit's `FightMech.OnHitted` does: a Void Eye
+        // with Electromagnetic Armor switches the Hacker's technologies off.
+        self.on_mech_be_hit(lock, owner, events)
     }
 
     /// `TeamTranslationSystem.Update`: every unit whose progress has reached

@@ -1,0 +1,26 @@
+# A level-2 Hacker with Barrier turns a Void Eye with Electromagnetic Armor.
+# A hit that turns strikes nothing, but the unit it is on raises
+# `OnMechBeHit` with the Hacker as the attacker (`ControllEffect.Perform`),
+# and the armor writes its buff on the Hacker: on tick 101, and again every
+# few hits until tick 195. The Hacker's shield goes on tick 101 at 28568
+# and comes back at 28568 as the fight ends on tick 197. Without
+# `OnMechBeHit` on a turning hit the simulator parts from the game at t101.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 197
+hash: {profile: mcfr-content-0.22.0, result: 985098b7e9e572bdf721026b67851712731a91814479951ef5bd6cbf0dfb6b29}
+blue:
+  techs:
+    hacker: [barrier]
+  units:
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, level: 2, exp: 0/198/1262}
+red:
+  core_damage: 224
+  techs:
+    void_eye: [electromagnetic_armor]
+  units:
+  - {name: void_eye, index: 0, position: {x: -10, y: -60}}
