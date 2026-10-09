@@ -16,7 +16,7 @@ use super::*;
 use crate::data::{Entry, Index};
 
 /// `Config.mineFlyHeight`, which the export does not carry: the missiles of
-/// `tests/missile/fights/` leave from 60 metres above where they stand.
+/// `tests/missile/` leave from 60 metres above where they stand.
 const MINE_FLY_HEIGHT: i64 = 60_000;
 
 /// What tags a missile's buff, so that its end takes it away.

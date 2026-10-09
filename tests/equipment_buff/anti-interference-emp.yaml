@@ -1,0 +1,22 @@
+# Anti-Interference Module on the Rhino of
+# `../battle_skill/rhino-slowed.yaml`, where red's Electromagnetic
+# Impact lands on tick 57 and writes buff 200001. The item's buff group holds
+# that row, so the Rhino ignores it: no buff_applied, no slow, no
+# technology_disabled, and the Rhino wins on tick 216 where it won on 309.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 216
+hash: {profile: mcfr-content-0.23.0, result: a88e9a4c962968446e337e805a8984d6ca3ca924b1cd4cf5d57889e6bbf0fe22}
+blue:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/200/1150, equipment: [anti_interference_module]}
+red:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -5, y: 45}]}

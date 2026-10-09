@@ -682,72 +682,72 @@ not melee, so the simulator refuses it.
 ### Recorded
 
 - A dead Tarantula's line makes no more mines, its living partner's makes
-  on: `tests/corpus/fights/67160345-r2.yaml`, ticks 191 and 301.
+  on: `tests/corpus/67160345-r2.yaml`, ticks 191 and 301.
 - An Energy Tower skill's range reaches an extra skill of its own range
   without a damage rate, and a melee one's slot records it without its range
-  moving: `tests/extra_weapon/fights/enhanced-range-homing-missile.yaml`,
-  `tests/extra_weapon/fights/enhanced-range-scorching-charge.yaml`.
+  moving: `tests/extra_weapon/enhanced-range-homing-missile.yaml`,
+  `tests/extra_weapon/enhanced-range-scorching-charge.yaml`.
 - A Secondary Armament gun at the edge of its arc whose Crawler walks out of
   it takes the next Crawler within the arc on its check:
-  `tests/corpus/fights/201340110-r5.yaml`, blue's Sabertooth 179, tick 143.
+  `tests/corpus/201340110-r5.yaml`, blue's Sabertooth 179, tick 143.
 - Secondary Armament's two guns are skills 1 and 2 beside the main gun, start
   at their rest, turn at their own speed, fire on their own once they face
   their target, deal their row's damage for the unit's level, and stand where
   they left on the tick they are released:
-  `tests/extra_weapon/fights/secondary-armament.yaml`, beside its control
-  `tests/extra_weapon/fights/secondary-armament-control.yaml`.
+  `tests/extra_weapon/secondary-armament.yaml`, beside its control
+  `tests/extra_weapon/secondary-armament-control.yaml`.
 - Each gun searches from its own rotation within its arc, the two take
   different targets, they reach the main gun's corrected range plus their
   row's own, and a level 2 unit's deal the row's level 2 damage:
-  `tests/extra_weapon/fights/secondary-armament-level-range.yaml`.
+  `tests/extra_weapon/secondary-armament-level-range.yaml`.
 - A technology's and an officer's range, written on the main skill alone,
   reach both of a Sabertooth's extra skills through the main skill's range:
   Range Enhancement's +40 metres lets the missile and the extra guns fire
   from 145 and 152 metres, centre to centre, at once,
-  `tests/extra_weapon/fights/sabertooth-range-enhancement.yaml`, beside its
-  control `tests/extra_weapon/fights/sabertooth-range-enhancement-control.yaml`;
+  `tests/extra_weapon/sabertooth-range-enhancement.yaml`, beside its
+  control `tests/extra_weapon/sabertooth-range-enhancement-control.yaml`;
   Advanced Targeting System's +10 metres lets the missile fire from 122
   metres nine ticks earlier,
-  `tests/extra_weapon/fights/anti-air-missile-advanced-targeting.yaml`, beside
-  its control `tests/extra_weapon/fights/anti-air-missile.yaml`.
+  `tests/extra_weapon/anti-air-missile-advanced-targeting.yaml`, beside
+  its control `tests/extra_weapon/anti-air-missile.yaml`.
 - An extra gun takes the motion while the main gun holds no lock, and the
   motion moves after the gun's target out of its reach:
-  `tests/extra_weapon/fights/secondary-armament-takes-motion.yaml`, beside its
-  control `tests/extra_weapon/fights/secondary-armament-takes-motion-control.yaml`.
+  `tests/extra_weapon/secondary-armament-takes-motion.yaml`, beside its
+  control `tests/extra_weapon/secondary-armament-takes-motion-control.yaml`.
 - A Fire Badger brought to half its life locks its main skill, writes its
   buff, charges, and takes its own life against what it reached; its death
   explodes within its radius and the skill's splash with the life it had,
   felling its own side's Badgers and the enemies about it, and the fire it
   leaves goes with the fight it ends on that tick:
-  `tests/extra_weapon/fights/scorching-charge.yaml`,
-  beside its control `tests/extra_weapon/fights/scorching-charge-control.yaml`.
+  `tests/extra_weapon/scorching-charge.yaml`,
+  beside its control `tests/extra_weapon/scorching-charge-control.yaml`.
 - Each Fire Badger's death leaves a fire where it fell, one an ally's explosion
   felled as well as the one that exploded, and the fire burns an invincible
   Badger; a Badger charges a tower when no unit is left to it, and its
-  explosion strikes the tower: `tests/extra_weapon/fights/scorching-charge-survivor.yaml`.
+  explosion strikes the tower: `tests/extra_weapon/scorching-charge-survivor.yaml`.
 - A side's last Fire Badger, killed by a blow, leaves its fire, and the fight
   ends on the next tick with it standing (t1678):
-  `tests/corpus/fights/67160729-r4.yaml`.
+  `tests/corpus/67160729-r4.yaml`.
 - A Fire Badger killed while travelling in leaves no fire, and what an
   explosion kills reads after the units a turret's shots killed on that tick:
-  `tests/corpus/fights/134259672-r3.yaml`.
+  `tests/corpus/134259672-r3.yaml`.
 - A Centurion's Homing Missile fires its two missiles at its own interval,
   with no offset, the second leaving for where its target stood the tick
-  before: `tests/extra_weapon/fights/homing-missile.yaml`,
-  `tests/extra_weapon/fights/enhanced-range-homing-missile.yaml`, beside its
+  before: `tests/extra_weapon/homing-missile.yaml`,
+  `tests/extra_weapon/enhanced-range-homing-missile.yaml`, beside its
   control
-  `tests/extra_weapon/fights/homing-missile-control.yaml`.
+  `tests/extra_weapon/homing-missile-control.yaml`.
 - A Centurion whose missile skill holds its motion turns its turret to the
   missile skill's lock as it moves, a tick before its main skill locks it:
-  `tests/corpus/fights/134265566-r4.yaml`.
+  `tests/corpus/134265566-r4.yaml`.
 - A Hound's bomb skill whose target walks inside its 40 metre minimum range
   takes another on that update, and its search passes towers over:
-  `tests/corpus/fights/201371791-r4.yaml`, `tests/corpus/fights/201371791-r5.yaml`.
+  `tests/corpus/201371791-r4.yaml`, `tests/corpus/201371791-r5.yaml`.
 - A Hound's main skill releases before its bombs on the update both release:
-  `tests/extra_weapon/fights/incendiary-bomb-with-main.yaml`.
+  `tests/extra_weapon/incendiary-bomb-with-main.yaml`.
 - A Hound's bomb skill scores every search from the unit's rotation as it
   stands then: recorded with `target_search,target_candidate`,
-  `tests/extra_weapon/fights/incendiary-bomb-with-main.yaml` reads each bomb
+  `tests/extra_weapon/incendiary-bomb-with-main.yaml` reads each bomb
   search's source rotation equal to the body rotation the update began with.
   That fight's result does not turn on it; a corpus round does, where the
   bomb's search over 125 candidates scored each exactly as the main skill's.
@@ -756,171 +756,171 @@ not melee, so the simulator refuses it.
   height it landed at, which burns the Marksman in it; the unit carries the
   fire's range and life time; the bombs' skill takes the motion when the main
   skill's target burns to death, and the Hound turns its root:
-  `tests/extra_weapon/fights/incendiary-bomb.yaml`, beside its control
-  `tests/extra_weapon/fights/incendiary-bomb-control.yaml`.
+  `tests/extra_weapon/incendiary-bomb.yaml`, beside its control
+  `tests/extra_weapon/incendiary-bomb-control.yaml`.
 
 - Anti-Air Missile is one skill beside the Sabertooth's main gun, reaching
   as far as it and taking the air alone, a missile every 3 seconds; with no
   ground target the missile skill takes the motion:
-  `tests/extra_weapon/fights/anti-air-missile.yaml`, beside its control
-  `tests/extra_weapon/fights/anti-air-missile-control.yaml`; with one, the two
+  `tests/extra_weapon/anti-air-missile.yaml`, beside its control
+  `tests/extra_weapon/anti-air-missile-control.yaml`; with one, the two
   skills fire side by side:
-  `tests/extra_weapon/fights/anti-air-missile-mixed.yaml` and
-  `tests/corpus/fights/201340110-r3.yaml`.
+  `tests/extra_weapon/anti-air-missile-mixed.yaml` and
+  `tests/corpus/201340110-r3.yaml`.
 - Whirlwind starts once two Crawlers' edges are within 25 metres as the
   Rhino's unit quadtree answers them, locks the main skill and strikes about
   the Rhino out to 35 metres, felling all 24 Crawlers:
-  `tests/extra_weapon/fights/whirlwind.yaml`, beside its control
-  `tests/rhino/fights/m3-crawler-4242.yaml`. It starts as the main skill's
+  `tests/extra_weapon/whirlwind.yaml`, beside its control
+  `tests/rhino/m3-crawler-4242.yaml`. It starts as the main skill's
   first backswing runs out, strikes two Rhinos for 1.4 times the Rhino's
   damage truncated, returns to idle once it has struck and hands the main
   skill back, which attacks on the next tick:
-  `tests/extra_weapon/fights/whirlwind-rhinos.yaml`. Against one enemy it
-  never starts: `tests/extra_weapon/fights/whirlwind-one-enemy.yaml`.
+  `tests/extra_weapon/whirlwind-rhinos.yaml`. Against one enemy it
+  never starts: `tests/extra_weapon/whirlwind-one-enemy.yaml`.
 - Energy Diffraction's beams reach 95 metres, the main beam's 85 and their
   own 10: the first prepares a tick after the Rhino comes within 95 and the
   main beam a tick after it comes within 85; the other three start as the
   first attacks, and every beam, the main one's among them, deals 0.17 of its
   ramp, the recorded damage leaving the rate out:
-  `tests/extra_weapon/fights/energy-diffraction-rhino.yaml`, beside its
-  control `tests/melting_point/fights/m2-rhino-4242.yaml`. The beams share a
+  `tests/extra_weapon/energy-diffraction-rhino.yaml`, beside its
+  control `tests/melting_point/m2-rhino-4242.yaml`. The beams share a
   formation out, searching from the turret:
-  `tests/extra_weapon/fights/energy-diffraction-formations.yaml`, beside its
-  control `tests/melting_point/fights/m6-formations-4242.yaml`. A group's
+  `tests/extra_weapon/energy-diffraction-formations.yaml`, beside its
+  control `tests/melting_point/m6-formations-4242.yaml`. A group's
   first beam gives up a lock it shares, and the beams take no motion while
-  the main beam holds no lock: `tests/corpus/fights/201370830-r6.yaml` and
-  `tests/corpus/fights/201370830-r7.yaml`.
+  the main beam holds no lock: `tests/corpus/201370830-r6.yaml` and
+  `tests/corpus/201370830-r7.yaml`.
 - A blueprint's and an officer's damage rates on the main skill reach
   Whirlwind, the recording holding them on its skill too, and compose on its
   damage as on the main skill's:
-  `tests/extra_weapon/fights/whirlwind-attack-enhancement.yaml` and
-  `tests/extra_weapon/fights/whirlwind-cost-control.yaml`.
+  `tests/extra_weapon/whirlwind-attack-enhancement.yaml` and
+  `tests/extra_weapon/whirlwind-cost-control.yaml`.
 - An item's damage rate reaching extra skills through its `extraSkillEffect`
   composes on a Homing Missile's own damage and on Whirlwind's, and the
   recording holds it on every slot it reaches:
-  `tests/extra_weapon/fights/homing-missile-secondary-fire-control.yaml`,
-  `tests/extra_weapon/fights/whirlwind-haste-module.yaml` and
-  `tests/extra_weapon/fights/sabertooth-amplifying-core.yaml`.
+  `tests/extra_weapon/homing-missile-secondary-fire-control.yaml`,
+  `tests/extra_weapon/whirlwind-haste-module.yaml` and
+  `tests/extra_weapon/sabertooth-amplifying-core.yaml`.
 - Sticky Oil Bomb's bomb writes its buff on the Rhino it strikes, from the
   Phantom Ray, and leaves an oil of its splash that renews the buff every 19
   ticks, keeping the Phantom Ray as its source, and stands to the fight's
   end; the unit carries the oil's fire's range and life time:
-  `tests/extra_weapon/fights/sticky-oil-bomb.yaml`, beside its control
-  `tests/extra_weapon/fights/sticky-oil-bomb-control.yaml`.
+  `tests/extra_weapon/sticky-oil-bomb.yaml`, beside its control
+  `tests/extra_weapon/sticky-oil-bomb-control.yaml`.
 - A Sticky Oil Bomb landing on a Hound's fire leaves a fire of its splash
   that burns the row's 7 seconds:
-  `tests/extra_weapon/fights/sticky-oil-bomb-fire.yaml`.
+  `tests/extra_weapon/sticky-oil-bomb-fire.yaml`.
 - A Vulcan's Sticky Oil Bomb, which does not lock its target, leaves its
-  oils: `tests/extra_weapon/fights/sticky-oil-bomb-vulcan.yaml`.
+  oils: `tests/extra_weapon/sticky-oil-bomb-vulcan.yaml`.
 - The Vulcan's Incendiary Bomb fires ten shells a volley from one skill of
   both its launchers, each leaving a fire of 18 metres that burns 12
   seconds, and a Marksman burns in them:
-  `tests/extra_weapon/fights/incendiary-bomb-vulcan.yaml`.
+  `tests/extra_weapon/incendiary-bomb-vulcan.yaml`.
 - A Phantom Ray's Sticky Oil Bomb fires past a Rapid-Fire Turret standing in
   its line of fire, at the unit behind it:
-  `tests/corpus/fights/268447927-r2.yaml`.
+  `tests/corpus/268447927-r2.yaml`.
 - Smoke Bomb's eight shells leave eight fogs of 18 metres, a Marksman
   standing in one ranges 91 metres for its 140 and 140 again once it leaves,
   and every fog goes as the fight ends; with fogs half as wide the events
   part on the tick the first lands:
-  `tests/extra_weapon/fights/smoke-bomb-marksmen.yaml`.
+  `tests/extra_weapon/smoke-bomb-marksmen.yaml`.
 - Spider Mine's support skill starts at t1 at a Rhino 201 metres off. It
   locks the main skill until t33, prepares to t31 and returns to idle at t33.
   Its line makes two mines at t1, which appear at t41 and explode at t109 for
   2500 each, one blast reaching the other mine for its 750:
-  `tests/extra_weapon/fights/spider-mine-rhino.yaml`. Against Crawlers:
-  `tests/extra_weapon/fights/spider-mine-crawlers.yaml`.
+  `tests/extra_weapon/spider-mine-rhino.yaml`. Against Crawlers:
+  `tests/extra_weapon/spider-mine-crawlers.yaml`.
 - The line makes a batch every 15 seconds (t1, t301, t601), the skill
   starting each time. At t601 it starts while the main skill is attacking
-  between blows: `tests/extra_weapon/fights/spider-mine-sledgehammers.yaml`.
+  between blows: `tests/extra_weapon/spider-mine-sledgehammers.yaml`.
 
 - Air Defense Mark's marker strikes for nothing and writes its mark on
   every aircraft within 100 metres of where it lands: 0.3 more damage taken
   and 20 metres off the main skill's range, a Wraith's 60 to 40, the buffs'
   `attack_range_reduce_value` reading -20:
-  `tests/extra_weapon/fights/air-defense-mark-wraiths.yaml`. It marks the
+  `tests/extra_weapon/air-defense-mark-wraiths.yaml`. It marks the
   Wasps and not the Rhino beside them, and once no aircraft is left it holds
   no lock, an extra skill being no main searcher that
   `TrySearchAliveTarget` would answer:
-  `tests/extra_weapon/fights/air-defense-mark-wasps.yaml`.
+  `tests/extra_weapon/air-defense-mark-wasps.yaml`.
 - Anti-Air Barrage releases its sixteen projectiles every ten seconds, its
   two weapons in turn, one every two ticks, scattered 55 metres about its
   target and climbing first, and strikes aircraft alone, 900 a hit:
-  `tests/extra_weapon/fights/anti-air-barrage-wasps.yaml`, beside its
-  control `tests/fortress/fights/m4-wasp-4242.yaml`, and
-  `tests/extra_weapon/fights/anti-air-barrage-mixed.yaml`.
+  `tests/extra_weapon/anti-air-barrage-wasps.yaml`, beside its
+  control `tests/fortress/m4-wasp-4242.yaml`, and
+  `tests/extra_weapon/anti-air-barrage-mixed.yaml`.
 - Matrix Bombardment's four guns join the Wraith's group as slots 4 to 7,
   prepare with the main row's as the core attacks and deal 381 each; their
   projectiles leave the tick after their release:
-  `tests/extra_weapon/fights/matrix-bombardment-rhino.yaml`, beside its
-  control `tests/wraith/fights/m2-rhino-4242.yaml`. The eight slots share
+  `tests/extra_weapon/matrix-bombardment-rhino.yaml`, beside its
+  control `tests/wraith/m2-rhino-4242.yaml`. The eight slots share
   seven Crawlers out, and the Wraith's lock is the last the main row's slots
-  took: `tests/extra_weapon/fights/matrix-bombardment-crawlers.yaml`. Over
-  two formations: `tests/extra_weapon/fights/matrix-bombardment-formations.yaml`.
+  took: `tests/extra_weapon/matrix-bombardment-crawlers.yaml`. Over
+  two formations: `tests/extra_weapon/matrix-bombardment-formations.yaml`.
 - Swarm Missiles' 46 missiles are shared out evenly among the units within
   the skill's reach and its extra search range
   ([combat.md](combat.md#ordinary-projectiles)): two units 23 each,
-  `tests/extra_weapon/fights/swarm-missiles-mixed.yaml`; a Crawler swarm over
-  three volleys, `tests/extra_weapon/fights/swarm-missiles-crawlers.yaml`.
+  `tests/extra_weapon/swarm-missiles-mixed.yaml`; a Crawler swarm over
+  three volleys, `tests/extra_weapon/swarm-missiles-crawlers.yaml`.
 - Rocket Punch throws at 83.8% of the Fortress's life and again at 51.4%,
   each fist striking what its splash reaches for 12000; with the first
   condition for both punches the second is thrown from tick 377:
-  `tests/extra_weapon/fights/rocket-punch-rhinos.yaml`.
+  `tests/extra_weapon/rocket-punch-rhinos.yaml`.
 - Multi Control's four beams reach 95 metres beside the main beam's 85,
   share a Rhino four to one, each winds up its blow and counts its own
   warm-up, and every beam turns by 102 a hit:
-  `tests/extra_weapon/fights/multi-control-rhinos.yaml`. Two Hackers with it
+  `tests/extra_weapon/multi-control-rhinos.yaml`. Two Hackers with it
   turn a Crawler swarm, and every beam locked on a unit that turns hears it:
-  `tests/extra_weapon/fights/multi-control-crawlers.yaml`.
+  `tests/extra_weapon/multi-control-crawlers.yaml`.
 - Fork's two bolts join the Raiden's group as slots 3 and 4 and strike with
   the main row's from the first blow, five Crawlers a blow; with the Raiden's
   60 degrees in place of the whole circle on the row's slots the Raidens'
-  locks part from tick 186: `tests/extra_weapon/fights/fork-crawlers.yaml`,
-  beside its control `tests/raiden/fights/m3-crawler-4242.yaml`. The core
+  locks part from tick 186: `tests/extra_weapon/fork-crawlers.yaml`,
+  beside its control `tests/raiden/m3-crawler-4242.yaml`. The core
   reaches 100 metres and every other slot 110, and no two bolts share a
-  target: `tests/extra_weapon/fights/fork-mixed.yaml`.
+  target: `tests/extra_weapon/fork-mixed.yaml`.
 
 - Disintegration's wave strikes the ground about the Abyss 30 metres further
   every half second after its blow, each unit once, the Rhinos and Crawlers
   each losing 0.2 of their life as the slow is written:
-  `tests/extra_weapon/fights/disintegration-rhinos.yaml`. Two Abysses' waves
+  `tests/extra_weapon/disintegration-rhinos.yaml`. Two Abysses' waves
   renew each other's buff and take their share again, the buff keeping its
   first source, and leave the Wasp among them alone:
-  `tests/extra_weapon/fights/disintegration-two-abysses.yaml`. A shield keeps
+  `tests/extra_weapon/disintegration-two-abysses.yaml`. A shield keeps
   the Marksman it covers out of every firing that reaches it, until the
   Abyss's sweep breaks it, and a shield struck for nothing records nothing:
-  `tests/extra_weapon/fights/disintegration-shield.yaml`.
+  `tests/extra_weapon/disintegration-shield.yaml`.
 
 - Naval Gun's two guns are one skill, slot 1 after the Overlord's main
   skill, that fires one shell a blow from its first gun, every three seconds
   give or take 0.3, for 7000:
-  `tests/extra_weapon/fights/naval-gun-rhinos.yaml`. Two Overlords whose guns
+  `tests/extra_weapon/naval-gun-rhinos.yaml`. Two Overlords whose guns
   turn onto targets spread wide, each searching from where its first gun
-  points: `tests/extra_weapon/fights/naval-gun-spread.yaml`.
+  points: `tests/extra_weapon/naval-gun-spread.yaml`.
 
 - Gun-launched Missile's two launchers are one skill, slot 4 after the
   Mountain's guns, firing one missile a blow from its first launcher at its
   own 180 metres; it takes the motion as the guns cool without a lock and
   the turret turns onto its lock:
-  `tests/extra_weapon/fights/gun-launched-missile-rhinos.yaml`.
+  `tests/extra_weapon/gun-launched-missile-rhinos.yaml`.
 
 - Electromagnetic Barrage's sixteen shells a blow write the slow that turns
   technologies off on what they reach, the Rhino and the Crawlers carrying
   none, and its skill names the Crawler the beam killed through the rest of
-  its burst: `tests/extra_weapon/fights/electromagnetic-barrage-rhinos.yaml`.
+  its burst: `tests/extra_weapon/electromagnetic-barrage-rhinos.yaml`.
   Red's shield takes its shells for 6000 each, the seventh for the 4000 it has
-  left, which breaks it: `tests/extra_weapon/fights/electromagnetic-barrage-shield.yaml`.
+  left, which breaks it: `tests/extra_weapon/electromagnetic-barrage-shield.yaml`.
 
 - Dual Wield's side arm begins its blow four ticks after the main gun
   begins one, and takes the main gun's lock where nothing else is in its
-  reach within 40 metres of it: `tests/extra_weapon/fights/dual-wield-close.yaml`.
+  reach within 40 metres of it: `tests/extra_weapon/dual-wield-close.yaml`.
   Attacking, it waits for its turn however long its interval is over, and
   searches about the main gun's last lock while it holds none:
-  `tests/extra_weapon/fights/dual-wield-spread.yaml`. The main gun out of its
+  `tests/extra_weapon/dual-wield-spread.yaml`. The main gun out of its
   cooling takes the side arm's lock in place of a search:
-  `tests/extra_weapon/fights/dual-wield-near.yaml`. Among Marksmen and Wasps
+  `tests/extra_weapon/dual-wield-near.yaml`. Among Marksmen and Wasps
   it fires at a Wasp beside the main gun's:
-  `tests/extra_weapon/fights/dual-wield-mixed.yaml`.
+  `tests/extra_weapon/dual-wield-mixed.yaml`.
 
 ### Replayed
 

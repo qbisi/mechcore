@@ -1,0 +1,20 @@
+# `tests/tower/tower-level-0.yaml` on Desert, map 1001, which names
+# map_1V1Desert_default: 884 ticks, where the Training Ground's is 870.
+# Nothing but the map differs, so what parts the two is the map's crystals of
+# collider priority 3, immovable agents on the RVO tree that stand only on
+# blue's half.
+
+kind: fight
+map_id: 1001
+seed: 4242
+round: 1
+source: game
+ticks: 884
+hash: {profile: mcfr-content-0.23.0, result: f8ee27eb0fe1c320ef0f2701eeecfbe0f38ec4393a4b75a9382a49d8739531c8}
+blue:
+  core_damage: 150
+  units:
+  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/100/600}
+red:
+  units:
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/416/1000}

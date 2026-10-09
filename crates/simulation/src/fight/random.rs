@@ -116,7 +116,7 @@ mod tests {
     ///
     /// The Rapid-Fire Turret's interval is 0.3 seconds with a random 0.1,
     /// six ticks `± 1`, and the draw spans the three values `-1..=1`, a range
-    /// of two. Its shots in `tests/turret/fights/rapid-fire-head-on.yaml` are 7 6 6
+    /// of two. Its shots in `tests/turret/rapid-fire-head-on.yaml` are 7 6 6
     /// 6 6 7 6 5 6 ticks apart: the stream after the Marksman's stagger
     /// (range twelve) and the turret's own (range two). A mask of the range's
     /// next power of two, less one, would never draw `+1`.

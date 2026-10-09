@@ -1,0 +1,24 @@
+# What a Steel Ball whose beam fells the turret it locked does on that tick.
+#
+# Red's Steel Balls walk onto the Anti-Armor Turret, the nearest of blue's
+# buildings, and their beams take it. The one whose beam fells it reads idle on
+# that tick, as one whose beam kills a unit or fells a tower does: the turret
+# was its lock. A block that only stood in the way of its lock, in
+# `tests/construction/wall-laser.yaml`, leaves it attacking.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 1083
+hash: {profile: mcfr-content-0.23.0, result: 44b7b1f304b3afa20db81d48a2d1f63519b4e0cc6dd9571ea1e3516972a6246f}
+blue:
+  core_damage: 50
+  units:
+  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/300/600}
+  constructions:
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+red:
+  units:
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/536/1000}

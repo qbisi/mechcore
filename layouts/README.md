@@ -11,7 +11,7 @@ One a script reads lives with it, in its topic directory under
 are in the corpus [`../scripts/corpus/README.md`](../scripts/corpus/README.md) points at.
 
 `marksman-vs-arclight.yaml` is the layout of the pinned fight
-[`../tests/regression/fights/marksman-vs-arclight.yaml`](../tests/regression/fights/marksman-vs-arclight.yaml),
+[`../tests/regression/marksman-vs-arclight.yaml`](../tests/regression/marksman-vs-arclight.yaml),
 one Marksman against one Arclight. The crates' tests read it as a plain
 layout: a small fight that ends, for what `simulate_layout` and the command
 line do with any layout, under seeds of their own. They also fight

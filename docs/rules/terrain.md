@@ -347,50 +347,50 @@ already exists.
 - A controller past its twentieth item finds its units node by node: 150
   fires of a Fire Badger's Napalm burn its own units and a Rhino as the game
   does, and 32 of a Stormcaller's Incendiary Bomb a Rhino:
-  `tests/terrain/fights/napalm-quadtree.yaml`,
-  `tests/fire_intensify/fights/stormcaller-friendly.yaml`.
+  `tests/terrain/napalm-quadtree.yaml`,
+  `tests/fire_intensify/stormcaller-friendly.yaml`.
 - A fire among 28 standing oils, their tree split, burns them in the order
   the tree answers its circle, root first and quadrant by quadrant; in the
   order they were added, the simulator parts from the game at t67:
-  `tests/terrain/fights/standing-oils-quadtree.yaml`.
+  `tests/terrain/standing-oils-quadtree.yaml`.
 - A Fire Badger's shot burns the oil its splash reaches, and the first fire
-  the line beyond it: `tests/corpus/fights/201340110-r5.yaml`, tick 140.
+  the line beyond it: `tests/corpus/201340110-r5.yaml`, tick 140.
 - A Smoke Bomb's fogs land along its line every four ticks, take ground units
   of either side whose edge they reach one fog at a time, hold a ranged
   attack's range to 0.65 of it, leave melee units alone, and go as the fight
-  ends, taking the rate back: `tests/terrain/fights/smoke.yaml`,
-  `tests/terrain/fights/smoke-both-sides.yaml`.
+  ends, taking the rate back: `tests/terrain/smoke.yaml`,
+  `tests/terrain/smoke-both-sides.yaml`.
 - An oil writes its slow as a unit enters and every 19 ticks it stays, and
-  stands into the next round: `tests/terrain/fights/oil.yaml`.
+  stands into the next round: `tests/terrain/oil.yaml`.
 - An acid's buff takes 1.5% of a unit's maximum life every ten ticks from its
   first writing, unraised by the buff's damage taken and unreset by its
-  rewriting, and stops once the fight is over: `tests/terrain/fights/acid.yaml`.
+  rewriting, and stops once the fight is over: `tests/terrain/acid.yaml`.
 - A fire takes the oils it reaches, for its own side, and an oil that lands
   in a fire burns for the oil's side; a burning oil is a fire of 30 metres,
-  two rounds and 700 ticks: `tests/terrain/fights/oil-ignited.yaml`,
-  `tests/terrain/fights/oil-ignited-by-the-enemy.yaml`.
+  two rounds and 700 ticks: `tests/terrain/oil-ignited.yaml`,
+  `tests/terrain/oil-ignited-by-the-enemy.yaml`.
 - A unit held to a fire that burns out while it stands in the next one takes
   the gone fire's hits on, every four ticks: an Arclight held to the fifth of
   an Incendiary Bomb's fires, gone after tick 777, takes 54 on ticks 778 and
-  782, `tests/corpus/fights/67156354-r3.yaml`.
+  782, `tests/corpus/67156354-r3.yaml`.
 - A shield of either side ends the terrain sub-effects that fall inside it and
   cuts the terrains it reaches; a unit stands in a cut terrain where its cells
   meet the terrain's, a burnt cut oil keeps its cells, and a standing oil is
   restored with its recorded cells or whole:
-  `tests/terrain/fights/oil-cut-by-a-shield.yaml`,
-  `tests/terrain/fights/units-in-cut-terrains.yaml`,
-  `tests/terrain/fights/fire-cut-by-an-enemy-shield.yaml`,
-  `tests/terrain/fights/cut-oil-ignited.yaml`,
-  `tests/terrain/fights/oil-standing-cut.yaml`.
+  `tests/terrain/oil-cut-by-a-shield.yaml`,
+  `tests/terrain/units-in-cut-terrains.yaml`,
+  `tests/terrain/fire-cut-by-an-enemy-shield.yaml`,
+  `tests/terrain/cut-oil-ignited.yaml`,
+  `tests/terrain/oil-standing-cut.yaml`.
 - An oil an earlier round left stands from the first tick, one round old and
   named in point order, side by side, blue's first; it burns when a fire
-  reaches it and goes as the fight ends: `tests/terrain/fights/oil-standing.yaml`,
-  `tests/terrain/fights/oil-standing-ignited.yaml`,
-  `tests/terrain/fights/oil-standing-both-sides.yaml`.
+  reaches it and goes as the fight ends: `tests/terrain/oil-standing.yaml`,
+  `tests/terrain/oil-standing-ignited.yaml`,
+  `tests/terrain/oil-standing-both-sides.yaml`.
 - A fire hits a unit as it enters and every four ticks it stays, the units
   counting last first, burns out after 700 ticks, and its removal is the
-  last event of its tick: `tests/terrain/fights/fire.yaml`,
-  `tests/terrain/fights/fire-burns-out.yaml`.
+  last event of its tick: `tests/terrain/fire.yaml`,
+  `tests/terrain/fire-burns-out.yaml`.
 
 ### Read
 

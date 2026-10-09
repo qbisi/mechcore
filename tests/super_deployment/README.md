@@ -9,4 +9,4 @@ in round 2, and `arrives.yaml` is the control the rest each change one thing
 from, but `extra-weapons.yaml`, which travels on all four flanks at once.
 
 A travelling unit's reactive armor, written only as it arrives, is in
-[`../reactive_armor/fights/typhoon-travelling.yaml`](../reactive_armor/fights/typhoon-travelling.yaml).
+[`../reactive_armor/typhoon-travelling.yaml`](../reactive_armor/typhoon-travelling.yaml).

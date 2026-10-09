@@ -6,5 +6,5 @@ and [`config/constructions.yaml`](../../config/constructions.yaml) holds each
 turret's numbers. They were read from each skill's state tick by tick:
 
 ```sh
-scripts/record-fights.py --instrument target_refs --out /tmp/mechcore/turret/skill-state tests/turret/fights/*.yaml
+scripts/record-fights.py --instrument target_refs --out /tmp/mechcore/turret/skill-state tests/turret/*.yaml
 ```

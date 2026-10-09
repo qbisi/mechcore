@@ -138,15 +138,15 @@ place crystals of priority 1 only, so a fight on 1011 is the same fight as on
 
 - A Desert crystal of priority 3 changes a fight the Training Ground fights
   otherwise, and the simulator reproduces it with every crystal of priority 2
-  or more in the tree, the towers before them: `tests/map/fights/`.
+  or more in the tree, the towers before them: `tests/map/`.
 - A crystal stands on its map position floored to whole metres: the Scorpion's
   M4 on Desert parts from the game at tick 208 with the crystal at
   (95.48, -360.93) where the map data places it, and plays back with it at
   (95, -361), where an RVO neighbour list of the game measured it:
-  `tests/map/fights/scorpion-m4-wasp-1787720817.yaml`.
+  `tests/map/scorpion-m4-wasp-1787720817.yaml`.
 - A crystal a formation stands on is left out of the fight, and one whose
   circle only touches the formation's footprint stays: blue's Mustangs of
-  `tests/map/fights/mustangs-over-crystals.yaml`, and of round 2 of replay
+  `tests/map/mustangs-over-crystals.yaml`, and of round 2 of replay
   134265566, stand over the crystals at (-125, -310) and (-115, -310) and
   touch the one at (-135, -320). In that round the game's RVO tree held 299
   agents, two fewer than the simulator's with the two crystals, and no
@@ -158,8 +158,8 @@ place crystals of priority 1 only, so a fight on 1011 is the same fight as on
   wall blocks, then the 71 crystals, as the first 85 of its 299 agents. With
   the constructions after the crystals, the simulator's tree grew its node
   array on tick 52 and lost the fifteen agents of one leaf from it, red
-  Crawlers among them, where the game's did not: `tests/corpus/fights/134265566-r2.yaml`.
-- 1001, 1031 and 1032 fight alike: each fight under `tests/map/fights/`
+  Crawlers among them, where the game's did not: `tests/corpus/134265566-r2.yaml`.
+- 1001, 1031 and 1032 fight alike: each fight under `tests/map/`
   recorded on 1031 and 1032 has 1001's hash.
 
 ### Replayed

@@ -191,7 +191,7 @@ raises every formation's equipment slots from one to two
 ### Recorded
 
 - Equipment Expansion gives a formation a second slot, and each of its two items
-  writes: `tests/equipment/fights/`.
+  writes: `tests/equipment/`.
 
 ### Replayed
 

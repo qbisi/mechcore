@@ -435,7 +435,7 @@ in were read from a capture of each unit's `SkillStateController` state and
 beside the recordings under `tests/construction/`.
 
 **How it was held to the game.** Two captures of every fight in
-`tests/regression/fights/` are the oracle: each unit's skill state and attack phase per tick
+`tests/regression/` are the oracle: each unit's skill state and attack phase per tick
 (`scripts/record-fights.py --instrument target_refs`), and every `Check` call with the
 skill's lock and attack target on either side of it (the
 `skill_attackable_checker` channel). Grouped skills use the same checker
@@ -456,11 +456,11 @@ per-call replay and the physics/content checks. Beyond the checker itself:
   is up, whatever its motion does: a Crawler pushed out of reach during its
   backswing and back on the next tick starts its next blow on the tick it
   returns, as the game's skill-state capture of the Rhino's formation fight
-  reads (`tests/rhino/fights/m6-formations-1787720817.yaml`). Only
+  reads (`tests/rhino/m6-formations-1787720817.yaml`). Only
   entering the attack state from idle waits a tick. Nor does a bodyless
   unit's motion coming back into its attack out of angle hold it: the blow
   waits only for the angle, as the Wasp of
-  `tests/regression/fights/barrier-fortress-vs-wasps.yaml` reads.
+  `tests/regression/barrier-fortress-vs-wasps.yaml` reads.
 
 With those, the stale-target, quick-switch-out-of-range and stale-replacement
 paths that answered a lock dying or walking away are gone: the checker answers

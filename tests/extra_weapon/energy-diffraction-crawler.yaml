@@ -1,0 +1,23 @@
+# Energy Diffraction against a Crawler formation, the standard
+# `../melting_point/m3-crawler-4242.yaml` with the technology. The
+# main beam starts in its own update: it prepares on the Crawler it locks
+# (t282), the first beam fells that Crawler before the motion updates, and
+# the prepare's check fails and leaves the main beam idle (t283) before it
+# takes the next.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 317
+hash: {profile: mcfr-content-0.23.0, result: afa1486773a6741afd274a420d466954a72426cb8785aa33f926f0bd4f5f5d8d}
+blue:
+  techs:
+    melting_point: [energy_diffraction]
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -100}, exp: 0/192/1400}
+red:
+  core_damage: 350
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}

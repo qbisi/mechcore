@@ -342,14 +342,14 @@ Three layers of test hold this:
   construction at raw values;
 - kernel tests cover building collision, Q32.32 distance boundaries, the tree's
   coarse reachable range, and the behaviour at the edge of stopping;
-- the native samples in `tests/regression/fights/` are fight documents
+- the native samples in `tests/regression/` are fight documents
   holding the recording's `result_hash`, over every field of every tick, the
   Steel Ball fight sample included; `verify` holds the simulator to every one
   and needs no game.
 
 ```text
 cargo test -p mechcore-simulation rvo
-cargo run --release -p mechcore --no-default-features -- verify tests/regression/fights/*.yaml
+cargo run --release -p mechcore --no-default-features -- verify tests/regression/*.yaml
 ```
 
 ## Fidelity boundary

@@ -12,7 +12,7 @@ here make the corpus, fetch it, and read it:
 | `collect-replays.py` | watches live standard 1v1 matches unattended and keeps each one in the game's replay directory; it needs the game |
 | `replay.py` | `sync` fetches the corpus into the untracked `work/replay/`; `publish` adds the replays this machine's game recorded under the installed version, and pushes them |
 | `export-replay-corpus.py` | converts this checkout's version's replays into `work/match/<version>/`, writes each match back as a replay and converts it again, and fails on one that does not come back the same |
-| `verify-matches.py` | runs `mechcore verify` over those matches, adds up the transition coverage, and lists every round the simulator fights whose result differs from the match, with whether `tests/corpus/fights/` pins it |
+| `verify-matches.py` | runs `mechcore verify` over those matches, adds up the transition coverage, and lists every round the simulator fights whose result differs from the match, with whether `tests/corpus/` pins it |
 | `match-replays.py` | fights every round of both replays, the corpus's and the one its match writes, in the game, and compares the two |
 | `corpus-fights.py` | fights every corpus round in the game into the fight document it records, under `work/fight/<version>/`, each a fixture candidate for `tests/corpus/`; it needs the game |
 | `fight-coverage.py` | how many recorded rounds the simulator fights, a round a side concedes left out, and what it names as missing for the rest, by refusal, by system and by layout field; and how many of the unit technologies the game has it fights, each on one unit against a Rhino, the rest by unit with each one's id, kind and cause, and again those whose name another id shares |

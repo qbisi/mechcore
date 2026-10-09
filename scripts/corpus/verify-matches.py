@@ -11,7 +11,7 @@ opening. This script adds the reports up by field group, lists every unequal
 leaf, says for each match how many rounds it fought as the match says before
 the first that is not and where that was, and lists every round the simulator
 fights whose result differs from the match, the divergences left to find, with
-whether `tests/corpus/fights/` pins the round already.
+whether `tests/corpus/` pins the round already.
 The documents are the ones `scripts/corpus/export-replay-corpus.py` converts from the
 corpus's replays of this checkout's version.
 
@@ -104,9 +104,9 @@ def match_id(path: Path) -> str:
 
 
 def pinned(path: Path, round_number: int) -> bool:
-    """Whether `tests/corpus/fights/` pins the round, under the name its readme gives."""
+    """Whether `tests/corpus/` pins the round, under the name its readme gives."""
     root = Path(__file__).resolve().parents[2]
-    return (root / "tests/corpus/fights" / f"{match_id(path)}-r{round_number}.yaml").is_file()
+    return (root / "tests/corpus" / f"{match_id(path)}-r{round_number}.yaml").is_file()
 
 
 def summarize(matches: list[Path], reports: list[dict[str, Any]]) -> dict[str, Any]:

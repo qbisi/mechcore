@@ -51,11 +51,11 @@ interval.
 ### Recorded
 
 - A level-two and a level-three Marksman have twice and three times the
-  description's life and damage: `tests/level/fights/`.
+  description's life and damage: `tests/level/`.
 - At level two, an officer's damage rate applies to the level's base, not to
-  the description's: `tests/level/fights/`.
+  the description's: `tests/level/`.
 - A level-one, level-two and level-three Marksman keep the description's range,
-  speed and first interval: `tests/level/fights/`.
+  speed and first interval: `tests/level/`.
 
 ### Read
 

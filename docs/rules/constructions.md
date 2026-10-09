@@ -240,40 +240,40 @@ The map's own buildings are the exception and are named: each side gets one
 ### Recorded
 
 - A Defensive Wall aside from a fight is five blocks at their spacing and
-  changes nothing else: `tests/construction/fights/`.
+  changes nothing else: `tests/construction/`.
 - A unit shoots the nearest of the blocks its line reaches, within the width
-  and its reach: `tests/construction/fights/`.
+  and its reach: `tests/construction/`.
 - A tick that lands two shots reports the fallen block after both:
-  `tests/construction/fights/`.
+  `tests/construction/`.
 - A unit pushed out of reach of a block an ally fells during its swing walks
   on towards its lock the next update, and those still in reach go on
-  attacking: `tests/corpus/fights/134259672-r1.yaml`, ticks 344 and 345.
+  attacking: `tests/corpus/134259672-r1.yaml`, ticks 344 and 345.
 - Two Stormcallers whose burst goes on at a block that fell at tick 695 read
   attacking through it, their turrets turning to their lock:
-  `tests/corpus/fights/134369439-r8.yaml`.
+  `tests/corpus/134369439-r8.yaml`.
 - A unit with four weapon slots takes the block in its way with every slot,
   splashes the next block, and drops its slots with the lock when a block falls:
-  `tests/construction/fights/`.
+  `tests/construction/`.
 - A Wraith's slot takes a block ten metres further off than its core, and a
   slot whose block another slot fells drops its lock on its own check, while
-  the others keep theirs: `tests/corpus/fights/134258634-r5.yaml`,
-  `tests/corpus/fights/134258634-r7.yaml`.
+  the others keep theirs: `tests/corpus/134258634-r5.yaml`,
+  `tests/corpus/134258634-r7.yaml`.
 - A Wraith's slot whose block falls while the core fires at a unit with a
   clear line goes on naming the block and ends its attack on its own check
-  the tick after: `tests/corpus/fights/67257112-r11.yaml`, tick 328.
+  the tick after: `tests/corpus/67257112-r11.yaml`, tick 328.
 - A blow takes the block in its line, and the unit reads idle for a tick before
-  the next: `tests/construction/fights/`.
+  the next: `tests/construction/`.
 - A beam takes the block in its line, a block holds off a unit of the other
   side, and a unit whose beam fells a block turns onto its lock that tick:
-  `tests/construction/fights/`.
+  `tests/construction/`.
 - The side that placed a wall walks through it, and the blocks still take
-  places among its neighbours: `tests/construction/fights/`.
+  places among its neighbours: `tests/construction/`.
 - The other side stops at a wall and takes it down, changing blocks between
   blows and going on when a block it had not struck falls:
-  `tests/construction/fights/`.
+  `tests/construction/`.
 - A splash takes the units on a block it hits and a block behind a unit it
   hits, in target-tree order, and a unit re-locks when its splash kills its
-  lock: `tests/construction/fights/`.
+  lock: `tests/construction/`.
 
 ### Read
 

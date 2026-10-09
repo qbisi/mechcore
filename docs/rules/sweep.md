@@ -121,49 +121,49 @@ unit does. Its configuration writes no arc for it.
 - The first sweep of a fight lays its strip out on the update its blow starts
   and strikes on every second update after: the Rhino is struck on ticks 77,
   79 and 81 by a sweep that began on tick 62,
-  `tests/abyss/fights/m2-rhino-4242.yaml`.
+  `tests/abyss/m2-rhino-4242.yaml`.
 - A unit wider than every radius in the list is struck on every strike that
   reaches it on the stretch then struck: the Rhino three times a sweep,
-  `tests/abyss/fights/m2-rhino-4242.yaml`; another Abyss seven to ten times,
-  `tests/abyss/fights/m1-mirror-4242.yaml`. A Crawler, narrower than the first
-  radius, is struck once a sweep: `tests/abyss/fights/m3-crawler-4242.yaml`.
+  `tests/abyss/m2-rhino-4242.yaml`; another Abyss seven to ten times,
+  `tests/abyss/m1-mirror-4242.yaml`. A Crawler, narrower than the first
+  radius, is struck once a sweep: `tests/abyss/m3-crawler-4242.yaml`.
 - A sweep that kills its target runs on, the skill naming the dead Crawler
   and the motion idle, until its last strike; the update after, the skill
   lets it go and locks another on the next:
-  `tests/abyss/fights/m3-crawler-4242.yaml`, ticks 168 to 192.
+  `tests/abyss/m3-crawler-4242.yaml`, ticks 168 to 192.
 - A sweep's direction follows the count of blows its Abyss has started in
   the fight, not in its attack state: counted the other way, the later
-  sweeps of `tests/abyss/fights/m3-crawler-4242.yaml` and
-  `tests/abyss/fights/m6-formations-4242.yaml` strike other units.
+  sweeps of `tests/abyss/m3-crawler-4242.yaml` and
+  `tests/abyss/m6-formations-4242.yaml` strike other units.
 - The Abyss fights each of the six standard layouts on both seeds:
-  `tests/abyss/fights/`.
+  `tests/abyss/`.
 - A sweep at a Marksman inside red's battlefield shield stops when the
   Marksman, nearer than the shield's centre, is in range, strikes the shield
   every second update until it breaks and the Marksman with the next strike:
-  `tests/sweep/fights/shield-4242.yaml`, ticks 164 to 190;
-  `tests/sweep/fights/shield-1787720817.yaml`.
+  `tests/sweep/shield-4242.yaml`, ticks 164 to 190;
+  `tests/sweep/shield-1787720817.yaml`.
 - A sweep at a Fortress carrying a Barrier strikes the Barrier sixteen times,
   breaking it, and the Fortress from the next sweep:
-  `tests/sweep/fights/barrier-4242.yaml`, ticks 114 to 211;
-  `tests/sweep/fights/barrier-1787720817.yaml`.
+  `tests/sweep/barrier-4242.yaml`, ticks 114 to 211;
+  `tests/sweep/barrier-1787720817.yaml`.
 - A sweep aimed at a Wasp strikes the Wasps it reaches and none of the
   Crawlers beside them, and one aimed at a Crawler no Wasp:
-  `tests/sweep/fights/domain-4242.yaml`, ticks 79 to 89 and 411 to 419;
-  `tests/sweep/fights/domain-1787720817.yaml`.
+  `tests/sweep/domain-4242.yaml`, ticks 79 to 89 and 411 to 419;
+  `tests/sweep/domain-1787720817.yaml`.
 - A sweep at red's Anti-Armor Turret strikes it, and a sweep at a tower the
-  tower: `tests/sweep/fights/turret-4242.yaml`, ticks 153, 339 and 869.
+  tower: `tests/sweep/turret-4242.yaml`, ticks 153, 339 and 869.
 - With Vertical Sweep the strip runs along the line and one way: a Rhino is
-  struck three times a sweep, `tests/sweep/fights/vertical-rhino-4242.yaml`,
-  `tests/sweep/fights/vertical-rhino-1787720817.yaml`; a Marksman standing
+  struck three times a sweep, `tests/sweep/vertical-rhino-4242.yaml`,
+  `tests/sweep/vertical-rhino-1787720817.yaml`; a Marksman standing
   behind the one aimed at is struck by the same sweep,
-  `tests/sweep/fights/vertical-marksmen-4242.yaml`, ticks 102 and 108,
-  `tests/sweep/fights/vertical-marksmen-1787720817.yaml`; a Crawler swarm,
-  `tests/sweep/fights/vertical-4242.yaml`,
-  `tests/sweep/fights/vertical-1787720817.yaml`.
+  `tests/sweep/vertical-marksmen-4242.yaml`, ticks 102 and 108,
+  `tests/sweep/vertical-marksmen-1787720817.yaml`; a Crawler swarm,
+  `tests/sweep/vertical-4242.yaml`,
+  `tests/sweep/vertical-1787720817.yaml`.
 - A strip that runs on past the Marksman it killed strikes the tower and the
   wall blocks it crosses, which it was not aimed at:
-  `tests/sweep/fights/tower-vertical-4242.yaml`, ticks 111 and 119;
-  `tests/sweep/fights/wall-vertical-4242.yaml`, ticks 44, 48 and 129; and
+  `tests/sweep/tower-vertical-4242.yaml`, ticks 111 and 119;
+  `tests/sweep/wall-vertical-4242.yaml`, ticks 44, 48 and 129; and
   their second seeds.
 
 ### Read

@@ -177,26 +177,26 @@ to a gain.
 ### Recorded
 
 - One enhancement multiplies the description once, and two on one number sum
-  into one stored entry: `tests/modifier/fights/`.
+  into one stored entry: `tests/modifier/`.
 - An officer's damage rate lands in the skill channel, and its life rate in the
-  unit channel: `tests/modifier/fights/`.
+  unit channel: `tests/modifier/`.
 - Two impairments compound into one stored reduction:
-  `tests/modifier/fights/`.
+  `tests/modifier/`.
 - A range value is added in metres, beside an impairment on the same unit:
-  `tests/modifier/fights/`.
+  `tests/modifier/`.
 - A technology's range value and an officer's sum into one stored entry:
-  `tests/modifier/fights/`.
-- Two speed values sum: `tests/modifier/fights/`.
+  `tests/modifier/`.
+- Two speed values sum: `tests/modifier/`.
 - A `Ranged` row reaches the ranged units of a side and not its melee ones:
-  `tests/modifier/fights/`.
+  `tests/modifier/`.
 - A kill-count damage rate raises damage once per kill, counts a death for
   every living unit that hit the target, counts nothing for a target the unit
   never hit, and is cleared as the fight ends:
-  `tests/modifier/fights/officer-kills-crawlers.yaml`,
-  `tests/modifier/fights/officer-kills-assist.yaml`,
-  `tests/modifier/fights/officer-kills-others.yaml`.
+  `tests/modifier/officer-kills-crawlers.yaml`,
+  `tests/modifier/officer-kills-assist.yaml`,
+  `tests/modifier/officer-kills-others.yaml`.
 - An experience rate is on no unit's modifier set:
-  `tests/modifier/fights/officer-exp-rate-marksman.yaml`.
+  `tests/modifier/officer-exp-rate-marksman.yaml`.
 
 ### Read
 

@@ -1,0 +1,21 @@
+# Portable Shield on blue's Marksman, against the Arclight of
+# `../regression/marksman-vs-arclight.yaml`, which the Arclight
+# wins. The Marksman opens with a shield of 1622, its whole maximum life. Each
+# hit takes energy and no life while energy is left: four hits of 365 leave
+# 162, and the fifth takes those 162 and no more, recorded as a hit of 162,
+# its other 203 lost. The Marksman wins on tick 139.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: game
+ticks: 139
+hash: {profile: mcfr-content-0.23.0, result: b9ea60feddbc973b8becad943f718757afec1d5a4bbd3c16cfc4111830c5856c}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/200/650, equipment: [portable_shield]}
+red:
+  core_damage: 100
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -50}}

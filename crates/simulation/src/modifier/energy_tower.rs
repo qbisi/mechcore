@@ -173,7 +173,7 @@ mod tests {
         UnitConfigs::load().unwrap().get(name).unwrap().clone()
     }
 
-    /// `tests/modifier/fights/` recorded a Marksman at 155 of range and 11 of
+    /// `tests/modifier/` recorded a Marksman at 155 of range and 11 of
     /// speed under both skills, and a Rhino at its own range and 11 of speed.
     #[test]
     fn range_reaches_a_ranged_unit_and_speed_every_unit() {

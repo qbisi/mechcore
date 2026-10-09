@@ -676,7 +676,7 @@ fn buildings_read_the_towers_a_map_gives_each_side() {
 #[test]
 fn a_fight_converts_to_the_recording_it_pins() {
     let fight = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/regression/fights/marksman-vs-arclight.yaml");
+        .join("../../tests/regression/marksman-vs-arclight.yaml");
     let command = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["convert", "--to", "mcfr"])
         .arg(&fight)

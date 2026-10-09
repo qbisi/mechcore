@@ -55,11 +55,11 @@ fn grouped_slots_follow_the_native_exclusion_and_fallback() {
     let config = SimulationConfig::load().unwrap();
     for (yaml, ticks) in [
         (
-            include_bytes!("../../../../../tests/wraith/fights/two-targets.yaml").as_slice(),
+            include_bytes!("../../../../../tests/wraith/two-targets.yaml").as_slice(),
             10_u64,
         ),
         (
-            include_bytes!("../../../../../tests/regression/fights/wraith-group-attack-01.yaml")
+            include_bytes!("../../../../../tests/regression/wraith-group-attack-01.yaml")
                 .as_slice(),
             206_u64,
         ),
@@ -244,7 +244,7 @@ fn an_attacking_sibling_gives_up_a_shared_unit_by_its_blows() {
 /// Every slot of a grouped skill takes the construction in its way, and
 /// every slot is dropped with the lock.
 ///
-/// The Wraith of `tests/construction/fights/wall-weapon-group.yaml` was
+/// The Wraith of `tests/construction/wall-weapon-group.yaml` was
 /// recorded doing all of it: its core engages block 3 at tick 32 and the
 /// other three slots follow eight ticks later, while the lock stays on the
 /// Marksman; block 3 falls at tick 59 and all four slots read empty at
@@ -254,7 +254,7 @@ fn an_attacking_sibling_gives_up_a_shared_unit_by_its_blows() {
 fn grouped_slots_take_the_wall_and_are_dropped_with_the_lock() {
     let config = SimulationConfig::load().unwrap();
     let layout = pinned_layout(
-        include_bytes!("../../../../../tests/construction/fights/wall-weapon-group.yaml"),
+        include_bytes!("../../../../../tests/construction/wall-weapon-group.yaml"),
         &config.units,
     );
     let mut simulation =

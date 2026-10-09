@@ -7,9 +7,9 @@ fn repository() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
-/// A native regression fight: `tests/regression/fights/<name>.yaml`.
+/// A native regression fight: `tests/regression/<name>.yaml`.
 fn native_regression(name: &str) -> mechcore_document::Fight {
-    let path = repository().join(format!("tests/regression/fights/{name}.yaml"));
+    let path = repository().join(format!("tests/regression/{name}.yaml"));
     mechcore_document::fight::parse_yaml(&fs::read(&path).unwrap())
         .unwrap_or_else(|error| panic!("{}: {error}", path.display()))
 }

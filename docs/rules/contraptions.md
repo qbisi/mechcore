@@ -263,85 +263,85 @@ kind ends its own way:
   its reach, its lock, one draw a lock from its side's stream, the hit on a
   projectile's life, its attack falling with hits and rising while idle, and
   its standing as an obstacle to both sides:
-  `tests/interceptor/fights/stormcallers.yaml`.
+  `tests/interceptor/stormcallers.yaml`.
 - A missile fires once, at tick one when an enemy is in range, at the enemy
   whose edge is nearest, air or ground, or a building that is not a tower; its
   projectile leaves from 60 metres above it, lands for its damage and splash,
   and writes its slow on every unit it struck that still stands:
-  `tests/missile/fights/crawlers.yaml`, `tests/missile/fights/rhino-slowed.yaml`,
-  `tests/missile/fights/wasps.yaml`, `tests/missile/fights/turret.yaml`.
+  `tests/missile/crawlers.yaml`, `tests/missile/rhino-slowed.yaml`,
+  `tests/missile/wasps.yaml`, `tests/missile/turret.yaml`.
 - Interceptors take missiles' projectiles out of the air:
-  `tests/interceptor/fights/missiles.yaml`.
+  `tests/interceptor/missiles.yaml`.
 - Two missiles of one side firing on one tick fire the last released first:
-  `tests/missile/fights/two-at-once.yaml`.
+  `tests/missile/two-at-once.yaml`.
 - A missile's projectile that flies into the shield over its target is taken
   at the surface, the shield losing the 5000 and the Rhino under it nothing:
-  `tests/missile/fights/into-shield.yaml`. One that lands on a Rhino beside a
+  `tests/missile/into-shield.yaml`. One that lands on a Rhino beside a
   shield strikes the Rhino and the shield its splash reaches, and spares the
-  Marksman the shield covers: `tests/missile/fights/splash-beside-shield.yaml`.
+  Marksman the shield covers: `tests/missile/splash-beside-shield.yaml`.
 - A missile fired from inside an enemy Shield Airdrop, landed or left standing
   by an earlier round, is not taken by it:
-  `tests/missile/fights/fired-inside-airdrop.yaml`,
-  `tests/missile/fights/fired-inside-standing-airdrop.yaml`. One fired from
+  `tests/missile/fired-inside-airdrop.yaml`,
+  `tests/missile/fired-inside-standing-airdrop.yaml`. One fired from
   outside a Shield Airdrop is taken where it flies into it:
-  `tests/missile/fights/into-airdrop.yaml`.
+  `tests/missile/into-airdrop.yaml`.
 - A fallen interceptor intercepts nothing more, falls among the tick's deaths,
   and does not stand into the next round:
-  `tests/interceptor/fights/interceptor-falls.yaml`.
+  `tests/interceptor/interceptor-falls.yaml`.
 - A unit whose shot fells the interceptor it attacks searches again, and
   cools naming what the search found:
-  `tests/interceptor/fights/fortress-fells-interceptor.yaml`.
+  `tests/interceptor/fortress-fells-interceptor.yaml`.
 - An officer's rate raises a side's shield's energy and its missile's damage,
-  cut to an integer: `tests/shield/fights/advanced-shield-device.yaml` against
-  `tests/shield/fights/projectiles.yaml`, and
-  `tests/missile/fights/advanced-missile-device.yaml`.
+  cut to an integer: `tests/shield/advanced-shield-device.yaml` against
+  `tests/shield/projectiles.yaml`, and
+  `tests/missile/advanced-missile-device.yaml`.
 - A Whirlwind beside a Shield Airdrop strikes the shield and the units in it,
   and a Wraith's gun whose lock stood in the shield measures the next target
-  its search offers to that target: `tests/corpus/fights/67252808-r4.yaml`,
+  its search offers to that target: `tests/corpus/67252808-r4.yaml`,
   tick 100.
 - A shield takes projectiles at its surface, a splashing one's included, and
   its side's covered unit takes nothing; units whose target it covers stop at
-  its surface: `tests/shield/fights/projectiles.yaml`.
+  its surface: `tests/shield/projectiles.yaml`.
 - Blows at a covered unit land on the shield until it breaks, and the unit
   that broke it loses its lock the tick after:
-  `tests/shield/fights/blows-break-it.yaml`.
-- A beam at a covered unit lands on the shield: `tests/shield/fights/beam.yaml`.
+  `tests/shield/blows-break-it.yaml`.
+- A beam at a covered unit lands on the shield: `tests/shield/beam.yaml`.
 - Wasps attacking a shield that breaks between their checks stand attacking
-  it until the next: `tests/corpus/fights/201370830-r5.yaml`, ticks 203 to
+  it until the next: `tests/corpus/201370830-r5.yaml`, ticks 203 to
   218.
 - A grouped unit's weapons each fire at the shield covering their own lock,
   and name no target while they do, cooling included, until they search
-  again: `tests/shield/fights/grouped-weapons.yaml`.
+  again: `tests/shield/grouped-weapons.yaml`.
 - A skill that crosses shields strikes the covered unit:
-  `tests/shield/fights/crawlers-cross.yaml`.
+  `tests/shield/crawlers-cross.yaml`.
 - A unit locking a covered tower fires at the shield, its weapon naming no
   target, and the shield takes every shot:
-  `tests/shield/fights/tower-covered.yaml`.
+  `tests/shield/tower-covered.yaml`.
 - The hit that empties a shield is absorbed whole, and the shield is gone
-  after it: `tests/shield/fights/projectiles-break-it.yaml`.
+  after it: `tests/shield/projectiles-break-it.yaml`.
 - A splash that lands on an uncovered unit beside a shield strikes both, and
   its projectile is removed `absorbed_by` the shield it never entered:
-  `tests/shield/fights/splash-beside.yaml`.
+  `tests/shield/splash-beside.yaml`.
 
 - A shield a unit carries follows it, shields it from shots from outside,
   is deactivated when emptied and stays where its owner fell:
-  `tests/shield/fights/barrier-wasps.yaml`; blows from inside it reach its
-  owner: `tests/shield/fights/barrier-crawlers.yaml`.
+  `tests/shield/barrier-wasps.yaml`; blows from inside it reach its
+  owner: `tests/shield/barrier-crawlers.yaml`.
 - Barrier the technology makes the shield of its unit's level: a level-2
   Fortress's of 60 metres and 80000, a level-2 Hacker's of 50 and 32000:
-  `tests/shield/fights/barrier-technology-fortress.yaml`,
-  `tests/shield/fights/barrier-technology-hacker.yaml`.
+  `tests/shield/barrier-technology-fortress.yaml`,
+  `tests/shield/barrier-technology-hacker.yaml`.
 - Electromagnetic Armor's buff deactivates a Fortress's Barrier at 60614 and
   gives it back at 60614 as it runs out, and one given back joins its side's
   active shields after the other Barrier:
-  `tests/shield/fights/barrier-technology-void_eye.yaml`,
-  `tests/shield/fights/barrier-technology-order.yaml`.
+  `tests/shield/barrier-technology-void_eye.yaml`,
+  `tests/shield/barrier-technology-order.yaml`.
 - A Fire Badger's charge takes a Melting Point's Barrier for its target with
   the shield's surface 4.35 metres from its edge, within its 1 metre and the
   5 its skill adds for a shield, on the tick the 1 alone would leave one
-  later: `tests/corpus/fights/134369950-r7.yaml`.
+  later: `tests/corpus/134369950-r7.yaml`.
 - A Stormcaller's shell that lands outside a shield short of the unit it
-  covers leaves the shield alone: `tests/corpus/fights/134369439-r8.yaml`,
+  covers leaves the shield alone: `tests/corpus/134369439-r8.yaml`,
   tick 275.
 
 ### Replayed

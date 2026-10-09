@@ -10,7 +10,7 @@ take `marksman-vs-arclight.yaml` as the unmodified Marksman, and
 its slot channels. Recorded with each skill's state tick by tick:
 
 ```sh
-scripts/record-fights.py --instrument target_refs --out /tmp/mechcore/regression/skill-state tests/regression/fights/*.yaml
+scripts/record-fights.py --instrument target_refs --out /tmp/mechcore/regression/skill-state tests/regression/*.yaml
 ```
 
 `crates/simulation/tests/fight.rs` fights `marksman-vs-arclight.yaml`,

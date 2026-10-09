@@ -7,7 +7,7 @@ same buff sources on an item.
 
 - `combat-evolvement.yaml` puts Combat Evolvement on a Rhino among Crawlers,
   whose buff stacks every second and moves the Rhino's damage and maximum
-  life with it; the corpus rounds `tests/corpus/fights/134260717-r2.yaml` and
+  life with it; the corpus rounds `tests/corpus/134260717-r2.yaml` and
   `134260717-r3.yaml` hold it on Rhinos taking hits.
 - `mobile-power-station.yaml` and `degeneration-beam.yaml` keep a buff on the
   units around a Vortex and a Wraith: its side's ground units, and the
@@ -41,7 +41,7 @@ same buff sources on an item.
   and a Rhino killed under the Crawlers' buff.
 - `kinetic-charge.yaml` and `kinetic-charge-stops.yaml` stack Kinetic
   Charge's range on Steel Balls as they roll, and hold it as they stop; the
-  corpus round `tests/corpus/fights/268477093-r4.yaml` stacks it to 80.
+  corpus round `tests/corpus/268477093-r4.yaml` stacks it to 80.
 
 A recording holds the buffs' damage rate in the `buff` channel's
 `damage_rate`, their speed rate in its `move_speed_rate`, their range in its

@@ -2,7 +2,7 @@
 
 How a Raiden's three weapons choose their targets and fire together, the
 fusillade [`combat.md`](../../docs/rules/combat.md#a-fusillade-fires-with-its-core)
-describes. `fights/fang-in-reach.yaml` asks it; the other twelve fights are
+describes. `fang-in-reach.yaml` asks it; the other twelve fights are
 the Raiden's [standard fights](../README.md#standard-unit-layouts).
 
 Every slot's lock, attack target, state and clock are in each recording's
@@ -12,5 +12,5 @@ call with the slot that made it and its lock before and after.
 
 ```sh
 scripts/record-fights.py --instrument skill_attackable_checker \
-    --out /tmp/mechcore/raiden/slots tests/raiden/fights/*.yaml
+    --out /tmp/mechcore/raiden/slots tests/raiden/*.yaml
 ```

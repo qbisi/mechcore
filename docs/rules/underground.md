@@ -113,7 +113,7 @@ production line does
 Its source's `GetLifeTime` answers -1, so `SupportUnitCreator.IsFinished`
 ends it after its first update, which makes its first batch. Replicate makes
 one Larva at the Sandworm's level, 35 metres ahead of it, each time the
-Sandworm begins to surface: `tests/move_ability/fights/replicate.yaml`.
+Sandworm begins to surface: `tests/move_ability/replicate.yaml`.
 
 Switched off with its unit's technologies,
 `MoveAbilitySummonProvider.DisableEffect` stops hearing the unit's ability
@@ -151,7 +151,7 @@ written on the tick the attack begins and read by that attack's blow; the
 next attack's start takes it away. `FightSkill.ExitFight` resets the linker,
 which takes the effect away too. Strike's first attack after surfacing deals
 30% more and splashes 10 metres further:
-`tests/move_ability/fights/strike.yaml`.
+`tests/move_ability/strike.yaml`.
 
 **Switched off with its technologies, the stronger attacks stop; the shorter
 surfacing stays.** `MoveAbilityAttackIntensifyProvider.DisableEffect` hands
@@ -178,8 +178,8 @@ takes its first units on the next, as any terrain does
 ([terrain.md](terrain.md#a-battle-skills-terrains)), and what it does to
 them is [terrain.md](terrain.md)'s: the Sandworm's own side stands in it
 too. A row of another time or move type is refused:
-`tests/move_ability/fights/sandstorm.yaml` and
-`tests/move_ability/fights/sandstorm-steel_ball.yaml`.
+`tests/move_ability/sandstorm.yaml` and
+`tests/move_ability/sandstorm-steel_ball.yaml`.
 
 Switched off with its unit's technologies,
 `MoveAbilityRangeItemProvider.DisableEffect` takes the action off the move
@@ -227,32 +227,32 @@ stands where it was on that tick while every other unit moves.
 ### Recorded
 
 - A Sandworm's attack interval stands still through its transitions: unit 265
-  of `tests/corpus/fights/201373545-r4.yaml` begins its next attack fifty
+  of `tests/corpus/201373545-r4.yaml` begins its next attack fifty
   updates after the last began, the twenty ticks of its burrow and the thirty
   of its surfacing not counted.
 - A Sandworm burrows, its lock dropped and its agent still, reads hidden and
   untargetable below with no range correction, walks on below with its Rhino
   inside its attack range, surfaces once the Rhino is within its exit range
   (from tick 108), and strikes it as soon as it is up (tick 160):
-  `tests/sandworm/fights/m2-rhino-4242.yaml`.
+  `tests/sandworm/m2-rhino-4242.yaml`.
 - A Larva Replicate makes joins on tick 128, changes to attack through its
   transition, fires on tick 129 as the transition ends, and stands through
   the solve of tick 128 with no speed while a Rhino charges through it:
-  `tests/move_ability/fights/replicate.yaml`.
+  `tests/move_ability/replicate.yaml`.
 - Strike's Sandworm surfaces in 15 ticks from tick 108, shown on tick 118;
   its attack begun on tick 125 reads 12643 damage and 22 metres of splash
   from that tick, and its blow on tick 145 deals 12643; the attack begun on
-  tick 176 reads 9726 again: `tests/move_ability/fights/strike.yaml`.
+  tick 176 reads 9726 again: `tests/move_ability/strike.yaml`.
 - Sandstorm's Sandworm leaves its sand fog on ticks 138 and 392 as its
   surfacings end; it stands 140 ticks, takes the Sandworm and the Rhino
   from tick 139, and the Marksman from tick 393, whose range halves to 70
   metres, and the Marksman's shots at the Sandworm deal 1630 rather than
-  2329: `tests/move_ability/fights/sandstorm.yaml`. Steel Balls' beams
-  lose 30% in it: `tests/move_ability/fights/sandstorm-steel_ball.yaml`.
+  2329: `tests/move_ability/sandstorm.yaml`. Steel Balls' beams
+  lose 30% in it: `tests/move_ability/sandstorm-steel_ball.yaml`.
 - Burrowing and surfacing, a lock kept on a burrowing Sandworm, Sandworms
   surfacing on each other, a Sandworm turning aside from an ally surfacing,
   a shot spent on a burrowed Sandworm, and a Sandworm below as the fight
-  ends, each as above: `tests/sandworm/fights/`, both seeds of each layout.
+  ends, each as above: `tests/sandworm/`, both seeds of each layout.
 
 ### Read
 

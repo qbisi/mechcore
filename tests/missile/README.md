@@ -8,5 +8,5 @@ missile's numbers and its buff.
 Each fight is its layout fought once in the game, read back as a fight. The
 projectile a missile fires is the one whose `projectile_released` names no
 source, and the fight in
-[`../interceptor/fights/missiles.yaml`](../interceptor/fights/missiles.yaml) is
+[`../interceptor/missiles.yaml`](../interceptor/missiles.yaml) is
 the one where interceptors take missiles out of the air.

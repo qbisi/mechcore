@@ -105,27 +105,27 @@ recording therefore reads no skill of a travelling unit
 - A travelling unit stands where its layout put it and starts on 0.4 of its
   life. It heals on ticks 20, 40, 61 and every twenty ticks after, arrives on
   161, and names no attack target until it has updated:
-  `tests/super_deployment/fights/arrives.yaml`.
+  `tests/super_deployment/arrives.yaml`.
 - Travelling units can be struck and killed, both sides travel at once, and
   the survivors arrive together:
-  `tests/super_deployment/fights/struck-while-travelling.yaml`.
+  `tests/super_deployment/struck-while-travelling.yaml`.
 - Officers, equipment, technologies and Energy Tower skills correct a
   travelling unit from the first tick:
-  `tests/super_deployment/fights/officers-and-equipment.yaml`,
-  `tests/super_deployment/fights/technologies.yaml`,
-  `tests/super_deployment/fights/energy-tower-skills.yaml`.
+  `tests/super_deployment/officers-and-equipment.yaml`,
+  `tests/super_deployment/technologies.yaml`,
+  `tests/super_deployment/energy-tower-skills.yaml`.
 - Travelling units with extra weapons, on either flank of either side, fight
-  from their arrival as units that did not travel: `tests/super_deployment/fights/extra-weapons.yaml`.
+  from their arrival as units that did not travel: `tests/super_deployment/extra-weapons.yaml`.
 - Whether a travelling unit's extra weapon is on changes nothing but that
   weapon's own state before its arrival: recorded from their replays, these
   two rounds differed from their layouts' fights on ticks 1 to 160 in that
-  state alone, `tests/corpus/fights/134259672-r3.yaml`,
-  `tests/corpus/fights/201370830-r7.yaml`.
+  state alone, `tests/corpus/134259672-r3.yaml`,
+  `tests/corpus/201370830-r7.yaml`.
 - Quick Teleport halves the travel, with four heals of a quarter of 0.6:
-  `tests/super_deployment/fights/quick-teleport.yaml`.
+  `tests/super_deployment/quick-teleport.yaml`.
 - A squad that arrives together is solved once with none of its members among
   another's RVO neighbours, and walks off where a squad whose members saw each
-  other would stand blocked: `tests/corpus/fights/134270595-r2.yaml`.
+  other would stand blocked: `tests/corpus/134270595-r2.yaml`.
 
 ### Read
 

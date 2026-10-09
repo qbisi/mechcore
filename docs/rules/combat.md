@@ -429,7 +429,7 @@ The hold does not reach a skill already in its attack state:
 target in angle, and nothing of the motion. A Wasp whose motion moved during
 its backswing, and came back into its attack out of angle, fires on the first
 tick its target is in its angle
-(`tests/regression/fights/barrier-fortress-vs-wasps.yaml`).
+(`tests/regression/barrier-fortress-vs-wasps.yaml`).
 
 ## Normal target scoring and pre-fight acquisition
 
@@ -499,7 +499,7 @@ released or its sweep is over, and a blow with a backswing as the backswing's
 controller hands back on its last tick. A Farseer's two-projectile burst
 released on tick 2 reads 0 until its last projectile goes out on tick 6, and
 the Rhino it fires at, whose backswing ends on tick 107, reads 1 on that tick:
-`tests/projectile/fights/farseer-rhino-closing.yaml`.
+`tests/projectile/farseer-rhino-closing.yaml`.
 
 `FightPrepareState` completes the first acquisition and syncs initial facing
 before the first persisted state S(1).
@@ -538,7 +538,7 @@ burst with no offset draws no points as it begins, and each of its projectiles
 leaves for where its target stands as it is released, a dead target where it
 died: a Centurion's second Homing Missile, a quarter second after the first,
 leaves for where its target stood the tick before
-(`tests/extra_weapon/fights/enhanced-range-homing-missile.yaml`).
+(`tests/extra_weapon/enhanced-range-homing-missile.yaml`).
 
 **Where a burst aims is held within the skill's reach.** Every projectile
 performer asks `ProjectileAttackPerformer.CalculateAttackPosition` where to
@@ -765,7 +765,7 @@ condition, and the start of a surfacing (`OnExitMoveBegin`) takes it out.
 so both its clocks stand still while the unit is up, and resume where they
 stood. Burrow Maintenance's Sandworm, hurt while it is up, repairs nothing
 until it has burrowed, and twenty ticks after it has, its start clock
-reaches its second: `tests/move_ability/fights/burrow_maintenance.yaml`. A
+reaches its second: `tests/move_ability/burrow_maintenance.yaml`. A
 state of 2, `Cloak`, is refused.
 
 **A repair is off while its technologies are.** A buff that disables a
@@ -1030,7 +1030,7 @@ while shots are still in the air end the fight as the drain ends it, with
 their towers standing. A side whose last unit dies on the tick a shot in the
 air lands still loses its towers then, the fight ending on the next: a
 Sandworm's blow killing the last Overlord as a tower's shot lands
-(`tests/anti_air/fights/anti-aerial-sandworm.yaml`). Only a fight that waited
+(`tests/anti_air/anti-aerial-sandworm.yaml`). Only a fight that waited
 on its shots alone, every last unit gone on an earlier tick, ends with its
 towers standing.
 
@@ -1093,229 +1093,229 @@ not the game's native attack-type enum.
 ### Recorded
 
 - A Hound that a charging Fire Badger stands on keeps its lock and its facing
-  and fires on: `tests/corpus/fights/134367609-r4.yaml`, tick 300.
+  and fires on: `tests/corpus/134367609-r4.yaml`, tick 300.
 - A Sledgehammer whose lock walks out of its reach sets off with its turret
   still, and a Sandworm below when the fight is decided takes the defeated
   side's tower and walks on to it until the fight ends:
-  `tests/corpus/fights/201373545-r4.yaml`, ticks 504 and 1028. A Farseer
-  sets off as a Sledgehammer does: `tests/corpus/fights/134267654-r3.yaml`,
+  `tests/corpus/201373545-r4.yaml`, ticks 504 and 1028. A Farseer
+  sets off as a Sledgehammer does: `tests/corpus/134267654-r3.yaml`,
   tick 1739.
 - A Fang's shot landing where the Fire Badger it was fired at died does
   nothing, though a shield holds the spot, and another flying into a shield on
-  its way is taken by it: `tests/corpus/fights/67252976-r7.yaml`, ticks 137
+  its way is taken by it: `tests/corpus/67252976-r7.yaml`, ticks 137
   and 84.
 - A prepared search scores the candidates the tree held about the searcher as
-  the tick opened: `tests/corpus/fights/67260372-r4.yaml`, tick 42, where
+  the tick opened: `tests/corpus/67260372-r4.yaml`, tick 42, where
   Crawler 311 locks Centurion 159, which the tree by its turn no longer
   answers for its square.
 - The presearch staggers each side's first searches in its update order, not
-  its identities': `tests/corpus/fights/67152171-r3.yaml`, blue's Mustang 27,
+  its identities': `tests/corpus/67152171-r3.yaml`, blue's Mustang 27,
   whose searches fall on ticks 1, 12, …, 133.
 - A main skill starts its attack in its own update: a Melting Point prepares
   on the Crawler it locks, and goes idle when its own beam fells it first:
-  `tests/extra_weapon/fights/energy-diffraction-crawler.yaml`, tick 283, and
-  `tests/corpus/fights/67158166-r5.yaml`, tick 234. Its idle search takes
+  `tests/extra_weapon/energy-diffraction-crawler.yaml`, tick 283, and
+  `tests/corpus/67158166-r5.yaml`, tick 234. Its idle search takes
   what the search answers as its turret comes onto its lock:
-  `tests/corpus/fights/67158166-r5.yaml`, tick 316.
+  `tests/corpus/67158166-r5.yaml`, tick 316.
 
 - A Mustang's shot at a Crawler running away is spent on nothing out of its
-  owner's reach: `tests/corpus/fights/67156074-r5.yaml`, tick 539; and
-  `tests/corpus/fights/268477093-r3.yaml`.
+  owner's reach: `tests/corpus/67156074-r5.yaml`, tick 539; and
+  `tests/corpus/268477093-r3.yaml`.
 
 - A Crawler on the very edge of a Tarantula's splash is spared:
-  `tests/corpus/fights/67159970-r2.yaml`, tick 188.
+  `tests/corpus/67159970-r2.yaml`, tick 188.
 - A Fire Badger's shot at a wall block that fell while it flew lands on
   nothing, splash included, and on the fight's last tick a Wasp's shot at a
   tower torn down is removed before the towers fall:
-  `tests/corpus/fights/67158166-r2.yaml`, ticks 290 and 765.
+  `tests/corpus/67158166-r2.yaml`, ticks 290 and 765.
 - The fallen side's towers stand in the solve of the tick they are torn down:
   red's Fortress dies to a Rhino on a solve tick with Wasp shots still in the
   air, and the two Typhoons walking on are published, four ticks later, the
   speed a solve with red's towers in it gives:
-  `tests/endgame/fights/towers-torn-down-stand-in-the-solve.yaml`, ticks 380
+  `tests/endgame/towers-torn-down-stand-in-the-solve.yaml`, ticks 380
   and 384.
 
 - A Vortex left with only aircraft to fire at locks one, walks on it, idles
   in touch, searches every eleven ticks and sets off again when its lock
-  changes: `tests/corpus/fights/201370830-r3.yaml`, ticks 1227 to 1347.
+  changes: `tests/corpus/201370830-r3.yaml`, ticks 1227 to 1347.
 - A Crawler attacking a tower that another Crawler fells locks the Abyss,
   which it cannot fire at, stands idle on that update and walks on it from the
-  next: `tests/sweep/fights/turret-1787720817.yaml`, ticks 1091 to 1093.
+  next: `tests/sweep/turret-1787720817.yaml`, ticks 1091 to 1093.
 
 - A unit in a defence area beside a flanked tower enters the fight a quarter
   turn towards the flank, and one of the same formation outside it does not:
-  `tests/corpus/fights/268487043-r4.yaml`; in replay 134270595 round 4 the
+  `tests/corpus/268487043-r4.yaml`; in replay 134270595 round 4 the
   back row of a Fang formation faced 270 degrees and its other rows 0, read
   from `PresearchTargetController.SearchTarget` with a temporary hook.
 - An idle Marksman an RVO solve nudges while it cools goes back to the point
-  it stopped at: `tests/corpus/fights/201373545-r2.yaml`, ticks 1112 to 1121.
+  it stopped at: `tests/corpus/201373545-r2.yaml`, ticks 1112 to 1121.
 - A tick that leaves neither side a unit, with no shot in the air, fells all
-  four towers: `tests/battle_skill/fights/missile-strike-both-sides.yaml`.
+  four towers: `tests/battle_skill/missile-strike-both-sides.yaml`.
 - Every unit's current interval, its stagger and the three readings that
   complete it, on every tick of the standard unit fights, one directory per
-  unit, `tests/marksman/fights/` among them.
+  unit, `tests/marksman/` among them.
 - A skill whose row's interval is 0 reads one tick, on the fight's last tick
   too: Spider Mines that outlive the fight,
-  `tests/extra_weapon/fights/spider-mine-outlives-the-fight.yaml`.
+  `tests/extra_weapon/spider-mine-outlives-the-fight.yaml`.
 - A grouped skill's slots, their locks and their reach, and a grouped unit's
-  core interval: `tests/wraith/fights/`.
+  core interval: `tests/wraith/`.
 - Each slot's own states, the core leaving its attack while its siblings go
   on, the unit's lock following the latest slot, a sibling giving up a unit
   it shares with the core, and a slot's interval outliving its attack,
-  in the Wraith's M2, M3 and M6 fights: `tests/wraith/fights/`.
+  in the Wraith's M2, M3 and M6 fights: `tests/wraith/`.
 - A sibling that has struck keeping a unit it shares with siblings still
   preparing, and a free-moving Wraith at full speed off its facing, in the Wraith's M3 with
-  seed 1787720817: `tests/wraith/fights/`.
+  seed 1787720817: `tests/wraith/`.
 - Where a charging Crawler is sent, and a Marksman's quick switch that cannot
-  follow a kill: `tests/regression/fights/`.
+  follow a kill: `tests/regression/`.
 - The body travelling toward the lock, attacking without moving, and the
   weapons on a construction while the body keeps the lock:
-  `tests/construction/fights/`.
+  `tests/construction/`.
 - Target scoring, ordinary projectiles, damage clamping, the first-attack
   delay, the backswing, dead-target retention and the endgame ordering, in the
-  ordinary fights: `tests/regression/fights/`.
+  ordinary fights: `tests/regression/`.
 - A unit's personal shield enabled with no shield of its own, in every unit's
-  standard fights, `tests/rhino/fights/` among them.
+  standard fights, `tests/rhino/` among them.
 - A following projectile's offset, the order a single weapon lands its
   offsets, a simulated-motion shot at a dead unit, a weapon's index, and a
   splashing beam, in the standard fights of the Phantom Ray, Fire Badger,
-  Typhoon, Hound, Sabertooth and Melting Point: `tests/phantom_ray/fights/`,
-  `tests/fire_badger/fights/`, `tests/typhoon/fights/`, `tests/hound/fights/`,
-  `tests/sabertooth/fights/`, `tests/melting_point/fights/`.
+  Typhoon, Hound, Sabertooth and Melting Point: `tests/phantom_ray/`,
+  `tests/fire_badger/`, `tests/typhoon/`, `tests/hound/`,
+  `tests/sabertooth/`, `tests/melting_point/`.
 - A burst's aim, a climbing projectile, two weapons' offsets in three
   dimensions, a burst that goes on after its target leaves reach, a turret on a
   retarget, and a Vortex's single grouped weapon and its kill, in the standard
   fights of the Farseer, Overlord, Melting Point and Vortex:
-  `tests/farseer/fights/`, `tests/overlord/fights/`,
-  `tests/melting_point/fights/`, `tests/vortex/fights/`.
+  `tests/farseer/`, `tests/overlord/`,
+  `tests/melting_point/`, `tests/vortex/`.
 - The blow waiting a tick after the idle state is left, and an idle skill
   giving up a lock it cannot fire at, in the standard fights of the Fortress,
-  Sledgehammer, Typhoon and Melting Point: `tests/fortress/fights/`,
-  `tests/sledgehammer/fights/`, `tests/typhoon/fights/`,
-  `tests/melting_point/fights/`.
+  Sledgehammer, Typhoon and Melting Point: `tests/fortress/`,
+  `tests/sledgehammer/`, `tests/typhoon/`,
+  `tests/melting_point/`.
 - A projectile's climb measured as it is created, and a moving unit stopped
   when the fight stops, in the Overlord's standard fights:
-  `tests/overlord/fights/`.
+  `tests/overlord/`.
 - A burst's climb measured to where its target stood after the target's own
   side moved that tick, for a Farseer's and an Overlord's bursts at a Rhino
-  walking at them: `tests/projectile/fights/`.
+  walking at them: `tests/projectile/`.
 - A Phantom Ray moving after a Rhino on the update its burst's last shot
   leaves, and going idle on the next:
-  `tests/projectile/fights/phantom-ray-rhino-walks-off.yaml`.
+  `tests/projectile/phantom-ray-rhino-walks-off.yaml`.
 - A cooling that goes on through a won fight, and an attack that goes idle,
-  in the Phantom Ray's standard fights: `tests/phantom_ray/fights/`.
+  in the Phantom Ray's standard fights: `tests/phantom_ray/`.
 - A grouped slot whose siblings hold nothing searches from its own weapon and
-  in its own reach: `tests/corpus/fights/134370978-r8.yaml`, tick 145, Raiden
+  in its own reach: `tests/corpus/134370978-r8.yaml`, tick 145, Raiden
   386's second gun.
 - A cooling that does not run through a won fight, a Raiden's grouped slot's
-  among them: `tests/corpus/fights/201477923-r5.yaml`, ticks 1618 to 1625,
+  among them: `tests/corpus/201477923-r5.yaml`, ticks 1618 to 1625,
   Phantom Rays 56 and 58 and Raiden 19's second gun.
 - Wasps still on a Mobile Beacon when the fight is won going on moving and
   turning until the fight ends, and idle at its end:
-  `tests/battle_skill/fights/beacon-wasps-won.yaml`,
-  `tests/corpus/fights/134270595-r4.yaml`.
+  `tests/battle_skill/beacon-wasps-won.yaml`,
+  `tests/corpus/134270595-r4.yaml`.
 - A winner's unit that updates after the last death taking a tower, and
   letting it go the tick after, in the Stormcaller mirrors:
-  `tests/regression/fights/`; a burst the fight's end stops, in the
-  Phantom Ray's M2 fight: `tests/phantom_ray/fights/`.
+  `tests/regression/`; a burst the fight's end stops, in the
+  Phantom Ray's M2 fight: `tests/phantom_ray/`.
 - The Raiden's fusillade, its siblings' towers, a core taking a sibling's unit,
   siblings cooling and searching on their timers, and its weapons' poses, in
-  the Raiden's standard fights: `tests/raiden/fights/`, and nine
-  Raidens' blows landing on nine Fangs: `tests/raiden/fights/`.
+  the Raiden's standard fights: `tests/raiden/`, and nine
+  Raidens' blows landing on nine Fangs: `tests/raiden/`.
 - A presearched target a few raw units left of straight ahead faced at
   +0.245°, in the standard fights of the Steel Ball, Stormcaller, Hound, Fire
-  Badger and Phantom Ray: `tests/steel_ball/fights/`,
-  `tests/stormcaller/fights/`, `tests/hound/fights/`,
-  `tests/fire_badger/fights/`, `tests/phantom_ray/fights/`.
+  Badger and Phantom Ray: `tests/steel_ball/`,
+  `tests/stormcaller/`, `tests/hound/`,
+  `tests/fire_badger/`, `tests/phantom_ray/`.
 - A Stormcaller whose live lock walks inside its minimum range taking blue's
   interceptor on that tick, and a second doing the same three ticks later:
-  `tests/search/fights/lock-inside-min-range.yaml`.
+  `tests/search/lock-inside-min-range.yaml`.
 - A red Wraith's search scoring blue's units where they stand after they
   moved, and taking another than the tick's start would give it:
-  `tests/corpus/fights/201340110-r4.yaml`, tick 121.
+  `tests/corpus/201340110-r4.yaml`, tick 121.
 - A Phantom Ray whose next lock stands inside the enemy's shield naming no
-  unit for its whole cooling: `tests/corpus/fights/201370830-r5.yaml`, ticks
+  unit for its whole cooling: `tests/corpus/201370830-r5.yaml`, ticks
   113 to 130.
 - A Melting Point's beam at a Phoenix splashing no Tarantula under it:
-  `tests/corpus/fights/67159970-r6.yaml`, tick 371.
+  `tests/corpus/67159970-r6.yaml`, tick 371.
 - Summons that join on one tick searching where everything stands then, and
   locking the enemy summons that joined with them:
-  `tests/battle_skill/fights/underground-threat-both-sides.yaml`, tick 48.
+  `tests/battle_skill/underground-threat-both-sides.yaml`, tick 48.
 - A Stormcaller's blow that lost its target inside the minimum range giving
   its interval back, and one whose target died keeping it:
-  `tests/corpus/fights/201372157-r2.yaml`.
+  `tests/corpus/201372157-r2.yaml`.
 - A blow whose attack point and backswing outlast its interval is fitted into
-  it: `tests/modifier/fights/technology-interval-value.yaml`.
+  it: `tests/modifier/technology-interval-value.yaml`.
 
 - A hit hands back the whole part of its life times the multiplier, as far
   as the owner's maximum, through a blow, a projectile and a beam with no
   splash, and an item's source overrides a technology's:
-  `tests/lifesteal/fights/absorption-module.yaml`,
-  `tests/lifesteal/fights/technology-lifesteal.yaml`,
-  `tests/lifesteal/fights/absorption-module-over-technology.yaml` and
-  `tests/lifesteal/fights/technology-lifesteal-beam.yaml`.
+  `tests/lifesteal/absorption-module.yaml`,
+  `tests/lifesteal/technology-lifesteal.yaml`,
+  `tests/lifesteal/absorption-module-over-technology.yaml` and
+  `tests/lifesteal/technology-lifesteal-beam.yaml`.
 
 - A splash value widens a skill's splash, from an item onto a skill with
   none and onto one with its own, from a technology and from an officer:
-  `tests/splash/fights/explosive-ammo.yaml`,
-  `tests/splash/fights/explosive-ammo-arclight.yaml`,
-  `tests/splash/fights/assault-mode.yaml`,
-  `tests/splash/fights/improved-overlord.yaml` and
-  `tests/splash/fights/improved-tarantula.yaml`.
+  `tests/splash/explosive-ammo.yaml`,
+  `tests/splash/explosive-ammo-arclight.yaml`,
+  `tests/splash/assault-mode.yaml`,
+  `tests/splash/improved-overlord.yaml` and
+  `tests/splash/improved-tarantula.yaml`.
 - A side's tree takes its towers, then its units, then its constructions,
   and a query takes a node's own before its children's, children in order:
   a splash at two Void Eyes in one node reads them in the order the units
   went in before their node split, tick 616, and a fire that Fangs of two
   children enter reads the first child's first, tick 83,
-  `tests/corpus/fights/67156354-r3.yaml`.
+  `tests/corpus/67156354-r3.yaml`.
 - A unit repairs from its twentieth hurt tick on, every second tick, by
   the whole part of its maximum life times the rate, from an item and from a
-  technology: `tests/repair/fights/nano-repair-kit.yaml` and
-  `tests/repair/fights/field-maintenance.yaml`.
+  technology: `tests/repair/nano-repair-kit.yaml` and
+  `tests/repair/field-maintenance.yaml`.
 - A repair of state 1 runs only below, its clocks standing still while its
   unit is up: Burrow Maintenance's Sandworm, hurt from tick 147, repairs
   first on tick 283, twenty ticks after its burrow ended,
-  `tests/move_ability/fights/burrow_maintenance.yaml`.
+  `tests/move_ability/burrow_maintenance.yaml`.
 
 - A shield of the whole maximum life takes hits before life, its last hit
-  only what it held: `tests/energy_shield/fights/portable-shield.yaml` and
-  `tests/energy_shield/fights/energy-shield-technology.yaml`.
+  only what it held: `tests/energy_shield/portable-shield.yaml` and
+  `tests/energy_shield/energy-shield-technology.yaml`.
 - An armour technology's reduction is its entry for the unit's level, taken
   off each hit and leaving at least 1: 60 and 180 off a Marksman's shot on a
-  level-1 and a level-3 Rhino, `tests/armor/fights/rhino-armor-enhancement.yaml`
-  and `tests/armor/fights/rhino-armor-enhancement-3.yaml`, and 1 left of an
-  Arclight's hit on a Mountain, `tests/armor/fights/mountain-plating.yaml`;
+  level-1 and a level-3 Rhino, `tests/armor/rhino-armor-enhancement.yaml`
+  and `tests/armor/rhino-armor-enhancement-3.yaml`, and 1 left of an
+  Arclight's hit on a Mountain, `tests/armor/mountain-plating.yaml`;
   577 hits on six armoured Phantom Rays, 21 of them left at 1,
-  `tests/corpus/fights/134258634-r4.yaml`.
+  `tests/corpus/134258634-r4.yaml`.
 - A skill locking a unit that flies reaches it by its air range and deals it
   its air damage: a Marksman with Aerial Specialization fires at an Overlord
-  from 170 metres for 4425, `tests/anti_air/fights/aerial-specialization-overlord.yaml`,
+  from 170 metres for 4425, `tests/anti_air/aerial-specialization-overlord.yaml`,
   and a Wasp, a Mustang and a Farseer squad deal aircraft 1.9 times what they
-  deal a Rhino, `tests/anti_air/fights/aerial-specialization-squads.yaml`.
+  deal a Rhino, `tests/anti_air/aerial-specialization-squads.yaml`.
 - A dead unit's shot landing on the tick it died deals the air damage it was
   fired with, and one landing later the ground damage: a Mustang's on a
-  Phantom Ray, `tests/corpus/fights/67154636-r6.yaml`.
+  Phantom Ray, `tests/corpus/67154636-r6.yaml`.
 - A search by distance counts the air offset off an aircraft's distance score
   and nothing else: the Marksman takes an Overlord further off than a
-  Mountain, `tests/anti_air/fights/aerial-specialization-pick.yaml`, and the
+  Mountain, `tests/anti_air/aerial-specialization-pick.yaml`, and the
   Mountain within its range over an Overlord beyond it,
-  `tests/anti_air/fights/aerial-specialization-out-of-range.yaml`.
+  `tests/anti_air/aerial-specialization-out-of-range.yaml`.
 - The same against the ground: a Wasp's ground rate,
-  `tests/ground_attack/fights/ground-specialization-wasp.yaml`, and a Phantom
+  `tests/ground_attack/ground-specialization-wasp.yaml`, and a Phantom
   Ray's ground range and search offset,
-  `tests/ground_attack/fights/ground-targeting-phantom-ray.yaml`.
+  `tests/ground_attack/ground-targeting-phantom-ray.yaml`.
 - An air-attack technology turns a skill off aircraft,
-  `tests/anti_air/fights/grenade-launcher-overlord.yaml`, or onto them,
-  `tests/anti_air/fights/anti-aircraft-ammunition-arclight.yaml`,
-  `tests/anti_air/fights/anti-aircraft-ammunition-tarantula.yaml` and
-  `tests/anti_air/fights/anti-aerial-sandworm.yaml`, and an extra skill with
+  `tests/anti_air/grenade-launcher-overlord.yaml`, or onto them,
+  `tests/anti_air/anti-aircraft-ammunition-arclight.yaml`,
+  `tests/anti_air/anti-aircraft-ammunition-tarantula.yaml` and
+  `tests/anti_air/anti-aerial-sandworm.yaml`, and an extra skill with
   it where its row says so,
-  `tests/anti_air/fights/anti-aircraft-ammunition-spider-mine.yaml`.
+  `tests/anti_air/anti-aircraft-ammunition-spider-mine.yaml`.
 - A projectile flies at its row's speed with the skill's value added:
-  `tests/anti_air/fights/grenade-launcher.yaml`.
+  `tests/anti_air/grenade-launcher.yaml`.
 - A second damage strikes what lies around a hit and the hit did not strike:
-  `tests/secondary_damage/fights/shockwave-crawlers.yaml` and
-  `tests/secondary_damage/fights/shockwave-marksmen.yaml`.
+  `tests/secondary_damage/shockwave-crawlers.yaml` and
+  `tests/secondary_damage/shockwave-marksmen.yaml`.
 
 ### Read
 

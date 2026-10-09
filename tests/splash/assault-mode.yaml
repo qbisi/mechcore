@@ -1,0 +1,21 @@
+# Assault Mode on blue's Marksman, against the Crawlers of
+# `../marksman/m3-crawler-4242.yaml`. The technology writes 9
+# metres of splash value with its other numbers, among them -70 of range:
+# the Marksman closes in and each shot strikes up to eleven Crawlers.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 361
+hash: {profile: mcfr-content-0.23.0, result: fc8e43ab6c749eca64deb06c57dd9cf156f3bc7de115eab542e64b90b7e2511f}
+blue:
+  techs:
+    marksman: [assault_mode]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/192/650}
+red:
+  core_damage: 100
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}

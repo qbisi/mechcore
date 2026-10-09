@@ -82,16 +82,16 @@ those recordings. A rule lands in [`docs/rules/`](../docs/rules/), never in a
 readme here.
 
 **A pinned fight is a [fight document](../docs/spec/document/fight.md)** in its
-topic's `fights/` directory: the layout, the seed, and what the game's
+topic's directory: the layout, the seed, and what the game's
 recording of them decided, its tick count and hash among it, in one file. A
 comment at the top of the file says what the fight measures. A fixture's
 `source` is `game`: a fight the simulator computed states what is being
 checked, and is never a fixture. A layout stays a layout file only while
 something reads it as a layout: a probe no fight pins, or a stage for
-`game.apply_layout`.
+`game apply_layout`.
 
 CI verifies every fight: `scripts/check/check-scripts.sh` hands every
-`tests/*/fights/*.yaml` to `verify`, which fights each layout with its seed
+`tests/*/*.yaml` to `verify`, which fights each layout with its seed
 through the simulator and holds it to what the document states. Where the game
 runs, `mechcore verify --backend game` records the fights again and holds each
 recording to its fixture, and `--update` writes back each one the game now
@@ -103,11 +103,11 @@ of [`AGENTS.md`](../AGENTS.md) says who records them and where a pinned hash
 may come from.
 
 To pin a fight, record it where the game runs, read the recording back as a
-fight, and put the document under its topic's `fights/`:
+fight, and put the document in its topic's directory:
 
 ```sh
 mechcore convert <layout> --to mcfr --backend game /tmp/mechcore/<topic>/<name>.mcfr --seed <seed>
-mechcore convert /tmp/mechcore/<topic>/<name>.mcfr --to fight tests/<topic>/fights/<name>.yaml
+mechcore convert /tmp/mechcore/<topic>/<name>.mcfr --to fight tests/<topic>/<name>.yaml
 ```
 
 `convert` leaves out `game_build`: a document that states none is read
@@ -178,9 +178,9 @@ or equipment, when three things hold. The six standard layouts below are each
 recorded by the game with two seeds, 4242 and 1787720817, and played back by
 the simulator tick for tick, in every field. Every skill the build gives the
 unit without technology is reproduced by one of them or refused by name. And
-the units its layouts face are supported first. Every recording the simulator reproduces is pinned in the unit's own
-directory as `fights/<layout>-<seed>.yaml`, with the layout's own comment at
-its top. Each is fought without a scene, as a
+the units its layouts face are supported first. Every recording the
+simulator reproduces is pinned in the unit's own directory as
+`<layout>-<seed>.yaml`, with the layout's own comment at its top. Each is fought without a scene, as a
 [layout replay](../docs/spec/document/layout-replay.md), and hashes the same
 recorded that way as in the Training Ground.
 

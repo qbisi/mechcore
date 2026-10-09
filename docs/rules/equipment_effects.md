@@ -222,32 +222,32 @@ carries:
 ### Recorded
 
 - Heavy Armor's life rate lands in the unit's channel, and sums with an
-  officer's life rate in one aggregate: `tests/equipment/fights/`.
+  officer's life rate in one aggregate: `tests/equipment/`.
 - Improved Firepower Control System's damage rate lands in the skill's channel,
   and sums with an officer's damage rate in one aggregate:
-  `tests/equipment/fights/`.
+  `tests/equipment/`.
 - Laser Sights' range value lands in the skill's channel, and the fight uses it:
-  `tests/equipment/fights/`.
+  `tests/equipment/`.
 - Two items on one formation each write in their own channel:
-  `tests/equipment/fights/`.
+  `tests/equipment/`.
 - A `Ranged` row reaches the ranged units of a side and not its melee ones, as an
-  officer's does: `tests/modifier/fights/`.
+  officer's does: `tests/modifier/`.
 - Photon Coating's buff is added on tick 1 to each unit wearing it, written by
   itself, cuts the damage it takes, and keeps an Electromagnetic Impact's
-  debuff off it: `tests/equipment_buff/fights/photon-coating.yaml`,
-  `tests/equipment_buff/fights/photon-coating-crawlers.yaml` and
-  `tests/equipment_buff/fights/photon-coating-emp.yaml`.
+  debuff off it: `tests/equipment_buff/photon-coating.yaml`,
+  `tests/equipment_buff/photon-coating-crawlers.yaml` and
+  `tests/equipment_buff/photon-coating-emp.yaml`.
 - Anti-Interference Module keeps an Electromagnetic Impact's buff and a
-  tower's loss off its unit: `tests/equipment_buff/fights/anti-interference-emp.yaml`
-  and `tests/equipment_buff/fights/anti-interference-tower.yaml`.
+  tower's loss off its unit: `tests/equipment_buff/anti-interference-emp.yaml`
+  and `tests/equipment_buff/anti-interference-tower.yaml`.
 - A production line makes its first batch on tick 1 and the next a
   `create_duration` later, each make where its offset turned by the wearer's
   facing puts it, and the fight ends while the line could still make:
-  `tests/production/fights/`.
+  `tests/production/`.
 - A side's last important unit dying destroys the rest of the side on that
   tick, after it and credited to no one, through a full shield and whether a
   shot or a direct hit killed it; one dying while another stands destroys
-  nothing: `tests/important_unit/fights/`.
+  nothing: `tests/important_unit/`.
 
 ### Replayed
 

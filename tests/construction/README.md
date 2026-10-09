@@ -15,5 +15,5 @@ The rules on how a unit meets a block and how an attack on one ends were read
 from each skill's state and attack phase, tick by tick:
 
 ```sh
-scripts/record-fights.py --instrument target_refs --out /tmp/mechcore/construction/skill-state tests/construction/fights/*.yaml
+scripts/record-fights.py --instrument target_refs --out /tmp/mechcore/construction/skill-state tests/construction/*.yaml
 ```

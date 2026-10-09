@@ -3,8 +3,8 @@
 How a Wraith's four slots choose their targets, given what the others hold:
 the grouped search
 [`combat.md`](../../docs/rules/combat.md#a-grouped-slot-searches-around-its-siblings-locks)
-describes. `fights/two-targets.yaml` and the regression fight
-[`wraith-group-attack-01.yaml`](../regression/fights/wraith-group-attack-01.yaml)
+describes. `two-targets.yaml` and the regression fight
+[`wraith-group-attack-01.yaml`](../regression/wraith-group-attack-01.yaml)
 ask it; the other twelve fights are the Wraith's
 [standard fights](../README.md#standard-unit-layouts).
 
@@ -15,8 +15,8 @@ its lock before and after.
 
 ```sh
 scripts/record-fights.py --instrument skill_attackable_checker \
-    --out /tmp/mechcore/wraith/slots tests/regression/fights/wraith-group-attack-01.yaml \
-    tests/wraith/fights/*.yaml
+    --out /tmp/mechcore/wraith/slots tests/regression/wraith-group-attack-01.yaml \
+    tests/wraith/*.yaml
 ```
 
 An ignored test replays the checker channel: before each grouped call it

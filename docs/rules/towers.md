@@ -142,42 +142,42 @@ rest of the fight. A unit with no lock goes straight to its point.
 
 - Losing a tower at each strengthen level writes its level's buff on every live
   unit of the side, with the level's added life:
-  `tests/tower/fights/`.
+  `tests/tower/`.
 - The buff's rates act in the buff channel, composing with a unit's own as one
   factor on damage dealt, speed and damage taken:
-  `tests/tower/fights/`.
+  `tests/tower/`.
 - A second loss inside the first's debuff lengthens it by the new row's
-  duration and does not stack the rates: `tests/tower/fights/`.
+  duration and does not stack the rates: `tests/tower/`.
 - A turret standing through the loss takes the buff after the side's units,
   fires at a tenth of its damage, takes hits raised by the rate on damage
   taken, and loses the buff when it expires or, cleared, just before it falls:
-  `tests/tower/fights/turret-falls-under-the-loss.yaml`,
-  `tests/tower/fights/turret-outlasts-the-loss.yaml`.
+  `tests/tower/turret-falls-under-the-loss.yaml`,
+  `tests/tower/turret-outlasts-the-loss.yaml`.
 - A unit that dies under the buff has it written as cleared after its death,
-  a projectile's kill as any other: `tests/tower/fights/`.
+  a projectile's kill as any other: `tests/tower/`.
 - The buff counts from the tick after the tower falls on the side updated
-  before the felling side, `tests/tower/fights/`, and on the side updated
+  before the felling side, `tests/tower/`, and on the side updated
   after it, where a Steel Ball of the side updated first fells a Research
-  Center with its beam: `tests/corpus/fights/201373545-r1.yaml`. A projectile
-  takes its owner's damage as it lands: `tests/tower/fights/`.
+  Center with its beam: `tests/corpus/201373545-r1.yaml`. A projectile
+  takes its owner's damage as it lands: `tests/tower/`.
 - A buff still running when the fight ends is written as cleared on every
   survivor, after the one tower the end tore down:
-  `tests/corpus/fights/67160345-r1.yaml`. On a construction it is written
-  after the units', `tests/corpus/fights/201377411-r2.yaml`, and also when the
+  `tests/corpus/67160345-r1.yaml`. On a construction it is written
+  after the units', `tests/corpus/201377411-r2.yaml`, and also when the
   construction's side has lost its last unit:
-  `tests/corpus/fights/134266831-r1.yaml`,
-  `tests/tower/fights/turret-buff-cleared-as-fight-ends.yaml`.
+  `tests/corpus/134266831-r1.yaml`,
+  `tests/tower/turret-buff-cleared-as-fight-ends.yaml`.
 - A Sticky Oil Bomb's slow runs beside the loss's buff on blue's Fangs, the
   two speeds composing, and a Fang dying under both has the oil's cleared
-  first: `tests/tower/fights/loss-beside-oil.yaml`.
+  first: `tests/tower/loss-beside-oil.yaml`.
 - The losing side's projectiles that land after the fall, on the tick the tower
   falls, land for their full damage: a Fire Badger's shot fells a tower and two
   Mustang shots of the losing side land after it, undebuffed:
-  `tests/corpus/fights/67160729-r1.yaml`.
+  `tests/corpus/67160729-r1.yaml`.
 
 - A huge unit walks two of its radii aside around its own side's tower in its
   way, finding the point anew on every move, and straight on once no tower of
-  its side is near: red's Fortress, `tests/corpus/fights/67154636-r6.yaml`.
+  its side is near: red's Fortress, `tests/corpus/67154636-r6.yaml`.
 
 ### Replayed
 
