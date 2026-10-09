@@ -1,0 +1,24 @@
+# Field Entrenchment on two Typhoons, one Arclight close by and one far off.
+#
+# Both dug in from the first tick: 16199 life, the 9529 with 70% more, and a
+# 120-metre range. The near Arclight falls on t113, and the trenches go 141
+# updates later (t254), back to 9529 at whole life; the motions stand
+# stopped until t260.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 804
+hash: {profile: mcfr-content-0.22.0, result: 53f74e738e489052ddf51aef6c2518eb431602b6e3e057c75f4607aac38b4ab9}
+blue:
+  techs:
+    typhoon: [field_entrenchment]
+  units:
+  - {name: typhoon, index: 0, position: {x: 0, y: -40}, exp: 0/600/1950}
+red:
+  core_damage: 250
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -20}}
+  - {name: arclight, index: 1, position: {x: 280, y: -300}}

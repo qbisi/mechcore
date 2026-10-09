@@ -1,0 +1,25 @@
+# Field Entrenchment on a Sabertooth travelling in from blue's left flank in
+# round 2, one red Arclight close by and one far off.
+#
+# It digs in as it arrives (t161), at 14135 of 14142 life, to 21203 of
+# 21213, and with no enemy in its range leaves 141 updates later (t302),
+# moving on at t308.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: game
+ticks: 1815
+hash: {profile: mcfr-content-0.22.0, result: 9f5277d97789c67de9ad6687cf0826de683d71725584f702e2884e42621bef40}
+blue:
+  techs:
+    sabertooth: [field_entrenchment]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -325, y: 25}, exp: 0/800/1300, travelling: true}
+  - {name: arclight, index: 1, position: {x: 0, y: -300}}
+red:
+  core_damage: 200
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -20}, exp: 0/600/750}
+  - {name: arclight, index: 1, position: {x: 280, y: -300}}

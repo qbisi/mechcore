@@ -1,0 +1,23 @@
+# Field Entrenchment on two Typhoons that fell red's only unit, an Arclight
+# close by, on t113.
+#
+# The fight ends with both still dug in: on its last tick (t113) each is
+# back to its share of 9529, 16199 to 9529 and 14009 to 8240, its range to
+# 100 and its motion idle, the trenches taken away as the fight is left.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 113
+hash: {profile: mcfr-content-0.22.0, result: 01fa6fdea1dfb311ae9ad93e14746be15b0263723fa59bd0f87bdd628a4f1fe6}
+blue:
+  techs:
+    typhoon: [field_entrenchment]
+  units:
+  - {name: typhoon, index: 0, position: {x: 0, y: -40}, exp: 0/200/1950}
+red:
+  core_damage: 250
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -20}}

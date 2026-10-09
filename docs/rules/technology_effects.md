@@ -484,6 +484,59 @@ and takes the rate away (`RemoveEffect`) once the count is none. The hit
 that does has had the rate, and the next one, in the same tick or later,
 takes its whole damage.
 
+## Siege-mode technologies
+
+A row of `siegeModeTechDatas` is a `SiegeModeTech`, Field Entrenchment, the
+Sabertooth's and the Typhoon's: its `siege_mode` carries what it answers
+`ISiegeModeEffectDataSource` with, the rates and values its unit's main skill
+and life take while it is dug in (the Sabertooth's 50% more life, 20% off its
+interval and 20 metres of range, the Typhoon's 70% more life and 20 metres),
+the seconds with no enemy in range after which it leaves, 7, and the seconds
+it stands after, 0.3. Its rate on its unit's move speed no fight code reads.
+`SiegeModeEffectProvider.DoActive` hands the unit to `SiegeModeEffectSystem`
+(`AddSiegeModeOwner`), which registers with its main skill's blows
+(`RegisterMainSkillPerformAttack`); a unit it already holds is passed over.
+
+**It digs in as the fight starts.** Each skill has drawn its first interval
+as its unit was deployed, from the interval the trench has not shortened.
+`OnEnterFight` then digs each held unit in (`AddEffect`): the rates and
+values go on its main skill (`FightSkill.AddData`) and the rate on its life
+(`FightMech.AddData`), the life refreshed to the new maximum as a buff's
+maximum life refreshes it, and its motion changes to `MotionStopState`
+(`ChangeToStopState`). The stop locks its agent where it stands, keeping its
+collider priority, at full priority (`RVOControllerFixed.Lock(true, false)`):
+it never moves, and its `Update` turns it to a target in range
+(`AttackUpdate`), whose skill starts and fires as it would from the attack
+state. Its skill letting a target go does not move it out of the stop. A
+unit travelling in digs in as it arrives (`DoActive` during the fight). A
+Sabertooth dug in has 21213 life, its 14142 with half more, and 115 metres
+of range; a Typhoon 16199, its 9529 with 70% more, and 120.
+
+**It leaves once no enemy has stood in range for its duration.**
+`SiegeModeEffectSystem` updates after `FightConstructionSystem`, before
+`StealthTechSystem`, last unit first. A unit whose time has reached the
+duration (`FPoint.op_GreaterThanOrEqual`) leaves its trench; any other's
+time is set back to none when the units in its main skill's range of it
+(`RangeTargetCalculator.CalculateRangeTargets`: no building, the unit's own
+radius, only the fully visible, the main skill's targets, and then no
+`FightConstruction`) are any, and counts the tick otherwise. Each blow of
+its main skill sets the time back too (`AttackingController.Update`,
+`FightMech.PerformMainSkillAttack`, `ResetTimer`), so a unit firing at a
+wall or a tower stays dug in. A tick's 0.05 seconds fall a few raw short, so
+a unit leaves 141 updates after the last that found an enemy. Leaving
+(`RemoveEffect`) takes the rates and values away, the life refreshed to its
+share of the old maximum, and, the unit alive and the fight going on, idles
+its motion once the delay is over (`GRTimerManager`, six ticks), the unit
+standing locked until then; it does not dig in again in that fight.
+
+**A disable, a death and the fight's end take the trench away.** A
+disabling buff makes the unit leave on the system's next update, the tick it
+lands (`EndSiegeMode`), and switched on gives nothing back. A unit that dies
+leaves as `DeadEffectSystem` deactivates its effects (`DoDeactive`,
+`RemoveSiegeModeOwner`). Leaving the fight takes every trench away
+(`OnExitFight`), its life refreshed and its motion idle on the last tick. A
+unit a Hacker turns stays dug in, counting the enemies of its new side.
+
 ## Missile Interception
 
 Missile Interception makes its unit an interceptor: Mustang, Sabertooth,
@@ -717,6 +770,13 @@ whose own `DisableEffect` it does not mirror.
   what it reaches. Two of five Vortexes with Grid Integration under an
   Electromagnetic Impact deal 1570 while the three left keep 2668, 70% more;
   the Impact's 25 seconds over, the two link again as a pair at 2119.
+- **A siege-mode technology's unit leaves its trench.**
+  `SiegeModeEffectProvider.DisableEffect` sets its time to its duration
+  (`SiegeModeEffectSystem.EndSiegeMode`), so the system's next update, on
+  the tick the buff lands, takes it out; switched on, nothing is given back
+  (`EnableEffect` is `SingleEffectProvider`'s alone). A Sabertooth under an
+  Electromagnetic Impact goes from 21213 to 14142 at whole life on t57, and
+  idles 0.3 seconds later.
 - **A buff its unit added itself is cleared, if its row says so**
   (`isClearSelfBuffWhenDisableTech`): `FightMech.DisableTechnology` raises
   `BuffManager.ClearSelfResourceBuffByDisableTech` after the effects are off.
@@ -814,6 +874,20 @@ derive (a minimum range):
   `tests/damage_share/fights/vortexes.yaml`. Two of them an Electromagnetic
   Impact disables leave the group and link again as it runs out:
   `tests/damage_share/fights/vortexes-disabled.yaml`.
+- Field Entrenchment digs its unit in from the first tick, a Sabertooth at
+  21213 life and 115 metres, two Typhoons at 16199 and 120, and takes the
+  trench away 141 updates after the last enemy left its range, the motion
+  stopped 0.3 seconds more: `tests/siege_mode/fights/sabertooth.yaml`,
+  `tests/siege_mode/fights/typhoon.yaml`. The Sabertooth's blows at a wall
+  keep it dug in: `tests/siege_mode/fights/wall.yaml`. An Electromagnetic
+  Impact takes the trench away as it lands:
+  `tests/siege_mode/fights/disabled.yaml`. The fight's end takes it away on
+  its last tick: `tests/siege_mode/fights/ends.yaml`. A unit turned by a
+  Hacker stays dug in on its new side, one travelling in digs in as it
+  arrives, and one dies in its trench:
+  `tests/siege_mode/fights/turned.yaml`,
+  `tests/siege_mode/fights/travel.yaml`,
+  `tests/siege_mode/fights/dies.yaml`.
 - A dead-line technology destroys a unit its unit's shots strike at or
   under the line at its level, before the shot's damage: Culling Rounds
   culls Crawlers at 250 under a level-one Mustang's 320, and Marksmen at 712
@@ -1038,6 +1112,21 @@ derive (a minimum range):
   `MechGrounpEffectProvider.DisableEffect`,
   `MechGrounpEffectProvider.EnableEffect`, `TeamMechGroupManager.RemoveMech`,
   `TeamMechGroupManager.AddMech`.
+- A siege-mode technology digs its unit in as the fight starts and as it
+  arrives, counts the time no enemy stands in its main skill's range, sets
+  it back at each blow, and takes the trench away once the time reaches the
+  duration, the motion idled after the delay; a disable sets the time to
+  the duration, and a death and the fight's end take the trench away:
+  `SiegeModeEffectSystem.AddSiegeModeOwner`,
+  `SiegeModeEffectSystem.OnEnterFight`, `SiegeModeEffectSystem.AddEffect`,
+  `SiegeModeEffectSystem.Update`, `SiegeModeEffectSystem.ResetTimer`,
+  `SiegeModeEffectSystem.RemoveEffect`, `SiegeModeEffectSystem.EndSiegeMode`,
+  `SiegeModeEffectSystem.RemoveSiegeModeOwner`,
+  `SiegeModeEffectSystem.OnExitFight`, `SiegeModeEffectProvider.DoActive`,
+  `SiegeModeEffectProvider.DisableEffect`,
+  `SkillAttackController.AttackingController.Update`,
+  `MotionStopState.Enter`, `MotionStopState.Update`,
+  `RVOControllerFixed.Lock`.
 - A dead-line technology hands its unit's main skill a pre-hit effect that
   destroys a live unit at or under the line at the owner's level as a
   suicide, before the hit's shield and damage, and charges it the line:

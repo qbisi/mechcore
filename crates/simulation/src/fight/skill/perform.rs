@@ -61,6 +61,11 @@ impl Simulation {
         skill.attack_count += 1;
         skill.total_attack_count += 1;
         self.count_punch(skill_ref);
+        // `FightMech.PerformMainSkillAttack`: a blow of a unit's main skill
+        // sets its trench's time back (`SiegeModeEffectSystem.ResetTimer`).
+        if let (SkillSlot::Main, FightActorRef::Unit(unit)) = (skill_ref.slot, skill_ref.owner) {
+            self.reset_siege_time(unit);
+        }
         let skill = self.skill_mut(skill_ref);
         // The backswing is cut short by the next blow: a blow fitted into its
         // interval by `SkillAttackController.PerformAttack` gives its
@@ -439,7 +444,7 @@ impl Simulation {
     /// answer a square twice the range wide, each whose distance from the
     /// point less its radius and the source's is within the range
     /// (`FightCalculator.IsInRange2D`).
-    fn range_targets(
+    pub(in crate::fight) fn range_targets(
         &self,
         team: u32,
         (x_q32, z_q32): (i64, i64),

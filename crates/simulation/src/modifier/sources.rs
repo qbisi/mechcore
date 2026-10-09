@@ -104,6 +104,29 @@ pub(crate) struct Stealth {
     pub(crate) can_disable: bool,
 }
 
+/// What an `ISiegeModeEffectDataSource` answers: `SiegeModeEffectSystem`
+/// digs its unit in as the fight starts, and lets it out once no enemy has
+/// stood in its main skill's range for a while.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct SiegeMode {
+    /// What `SiegeModeEffectSystem.AddEffect` writes while the unit is dug
+    /// in: its rates and values on the unit's main skill
+    /// (`GetSiegeModeAttackIntevalChangeRate` to
+    /// `GetSiegeModeProjectileSpeedChangeValue`) and its rate on the unit's
+    /// life (`GetSiegeModeLifeChangeRate`).
+    pub(crate) written: Vec<(
+        crate::data::Channel,
+        crate::data::Index,
+        crate::data::Correction,
+    )>,
+    /// `GetSiegeModeDuration`, Q32.32 seconds: how long no enemy stands in
+    /// range before the unit leaves.
+    pub(crate) duration_q32: i64,
+    /// `GetAnimationDelay`, Q32.32 seconds: how long after it leaves the unit
+    /// stands before its motion idles.
+    pub(crate) animation_delay_q32: i64,
+}
+
 /// A `BuffEquipment` or a `BuffTech` as `BuffEffectProvider` reads it: one
 /// whose `BuffTechListener` is `FightStart` and which always triggers, the
 /// targets its `BuffCycleController` gives the buff, and the `buffDatas` row

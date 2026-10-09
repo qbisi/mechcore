@@ -1,0 +1,25 @@
+# Field Entrenchment on a Sabertooth that red's Hacker turns while a Rhino
+# charges it, with a blue Arclight far behind.
+#
+# Turned on t133, it stays dug in on red's side, and with no blue unit in
+# its range leaves its trench 141 updates later (t274), the motion stopped
+# until t280.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 733
+hash: {profile: mcfr-content-0.22.0, result: 52b84555ce4217b87bfd6c9f3a0abf5f790f7d449227a7edf2b9feeda73a8c31}
+blue:
+  core_damage: 250
+  techs:
+    sabertooth: [field_entrenchment]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 5, y: -35}, exp: 0/400/1300}
+  - {name: arclight, index: 1, position: {x: -280, y: -300}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -25}}
+  - {name: hacker, index: 1, position: {x: 5, y: -55}, exp: 0/400/560}

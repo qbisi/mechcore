@@ -1154,6 +1154,7 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
                 .switch_reactive_armor(on),
+            EffectProvider::SiegeMode if !on => self.end_siege_mode(actor_id),
             // The rest take away what the fight asks of the unit where it
             // acts, its technologies disabled: a lifesteal's and a second
             // damage's hit effect, a search's ranges, offsets and selector,

@@ -1,0 +1,22 @@
+# Field Entrenchment on a Sabertooth against 24 Crawlers and 12 Mustangs.
+#
+# Enemies stand in its range the whole fight, and it dies in its trench
+# (t720): the trench goes with it, and the fight ends five ticks later.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 725
+hash: {profile: mcfr-content-0.22.0, result: 64e779bcbf7a68e29cc2e57d2f431406bc1fdc7caf751eb09ff177363f283dba}
+blue:
+  core_damage: 85
+  techs:
+    sabertooth: [field_entrenchment]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 5, y: -35}, exp: 0/430/1300}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -20}}
+  - {name: mustang, index: 1, position: {x: 275, y: -290}, exp: 0/600/1200}

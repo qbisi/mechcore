@@ -24,8 +24,8 @@
 //! `SupportUnitEquipment` would, and a `MultiAttackTech` the projectiles it
 //! adds its unit's bursts, and a `StealthTech` its stealth once it is hurt,
 //! and a `DeadLineTech` the life under which its main skill destroys what it
-//! hits; any other is
-//! refused by name rather than applied for its numbers alone.
+//! hits, and a `SiegeModeTech` its unit dug in as the fight starts; any other
+//! is refused by name rather than applied for its numbers alone.
 //!
 //! A technology belongs to one unit type, which is how a side's flat list of
 //! technologies reaches the units it corrects: a technology the side holds
@@ -54,7 +54,7 @@ use super::{
     providers::EffectProvider,
     sources::{
         AutoRecovery, BuffSource, CarriedShield, EnergyShield, LifeSteal, MoveAbilityAttack,
-        MoveAbilityRangeItem, ProductionLine, ReactiveArmor, RecoveryState, Stealth,
+        MoveAbilityRangeItem, ProductionLine, ReactiveArmor, RecoveryState, SiegeMode, Stealth,
         SweepIntensify,
     },
 };
@@ -125,9 +125,11 @@ const DAMAGE_SHARE: &str = "damageShareTechnologies";
 const BARRIER: &str = "advancedEnergyShieldTechnologies";
 /// The list whose `ReactiveArmorTech` is an `IReactiveArmorTechDataSource`.
 const REACTIVE_ARMOR: &str = "reactiveArmorTechDatas";
+/// The list whose `SiegeModeTech` is an `ISiegeModeEffectDataSource`.
+const SIEGE: &str = "siegeModeTechDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 25] = [
+const IMPLEMENTED: [&str; 26] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -153,6 +155,7 @@ const IMPLEMENTED: [&str; 25] = [
     DAMAGE_SHARE,
     BARRIER,
     REACTIVE_ARMOR,
+    SIEGE,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -261,6 +264,9 @@ struct Technology {
     /// What it answers `IReactiveArmorTechDataSource` with, if its class is
     /// one.
     reactive_armor: Option<ReactiveArmor>,
+    /// What it answers `ISiegeModeEffectDataSource` with, if its class is
+    /// one.
+    siege_mode: Option<SiegeMode>,
     /// What it answers `IMoveAbilityAttackIntensify` with, if its class is
     /// one.
     move_ability_attack: Option<MoveAbilityAttack>,
@@ -385,6 +391,9 @@ pub(crate) struct UnitSources {
     /// The first that puts its unit in stealth: `StealthTechSystem.AddMech`
     /// passes over a unit it already holds.
     pub(crate) stealth: Option<Stealth>,
+    /// The first that digs its unit in: `SiegeModeEffectSystem.
+    /// AddSiegeModeOwner` passes over a unit it already holds.
+    pub(crate) siege_mode: Option<SiegeMode>,
     pub(crate) buff_sources: Vec<BuffSource>,
     pub(crate) interception: Vec<UnitInterception>,
     pub(crate) dead_summon: Option<UnitDeadSummon>,
@@ -710,6 +719,9 @@ struct Row {
     /// `StealthTechData`'s fields, on a row of its list.
     #[serde(default)]
     stealth: Option<StealthBlock>,
+    /// `SiegeModeTechData`'s fields, on a row of its list.
+    #[serde(default)]
+    siege_mode: Option<SiegeModeBlock>,
     /// `DeadLineTechData`'s `deadLineValue`, whole life by the unit's level,
     /// and `ignoreEnergyShield`, on a row of its list.
     #[serde(default)]
@@ -970,6 +982,52 @@ impl StealthBlock {
     }
 }
 
+/// What a siege-mode row answers `ISiegeModeEffectDataSource` with: `FPoint`
+/// raw integers.
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[allow(
+    clippy::struct_field_names,
+    reason = "the fields are the row's own names"
+)]
+struct SiegeModeBlock {
+    life_rate: i64,
+    attack_interval_rate: i64,
+    attack_interval_value: i64,
+    damage_rate: i64,
+    attack_range_value: i64,
+    attack_range_rate: i64,
+    splash_range_value: i64,
+    projectile_speed_value: i64,
+    duration: i64,
+    animation_delay: i64,
+}
+
+impl SiegeModeBlock {
+    /// Its numbers as a technology's own fields would write them:
+    /// `SiegeModeEffectSystem.AddEffect` writes them on the unit's main skill
+    /// (`FightSkill.AddData`) and the unit (`FightMech.AddData`) as
+    /// `SkillDataModifier.AddData` writes a technology's.
+    fn source(self) -> SiegeMode {
+        let fields = Fields {
+            life_rate: Some(self.life_rate),
+            damage_rate: Some(self.damage_rate),
+            attack_range_rate: Some(self.attack_range_rate),
+            attack_interval_rate: Some(self.attack_interval_rate),
+            attack_range_value: Some(self.attack_range_value),
+            attack_interval_value: Some(self.attack_interval_value),
+            splash_range_value: Some(self.splash_range_value),
+            projectile_speed_value: Some(self.projectile_speed_value),
+            ..Fields::default()
+        };
+        SiegeMode {
+            written: effects::corrections(&fields),
+            duration_q32: self.duration,
+            animation_delay_q32: self.animation_delay,
+        }
+    }
+}
+
 /// What an interception row answers `IInterceptData` with, named as
 /// `config/contraptions.yaml`'s interceptor names them.
 #[derive(Debug, Clone, Copy, Deserialize)]
@@ -1124,6 +1182,7 @@ impl TechnologyEffects {
                 auto_recovery,
                 energy_shield,
                 stealth: row.stealth.map(StealthBlock::source),
+                siege_mode: row.siege_mode.map(SiegeModeBlock::source),
                 dead_line: (row.kind == DEAD_LINE)
                     .then(|| (row.dead_line_value.clone(), row.dead_line_ignores_shield)),
                 mech_group,
@@ -1252,6 +1311,9 @@ impl TechnologyEffects {
             sources.auto_recovery.extend(technology.auto_recovery);
             sources.energy_shield.extend(technology.energy_shield);
             sources.stealth = sources.stealth.or(technology.stealth);
+            if sources.siege_mode.is_none() {
+                sources.siege_mode.clone_from(&technology.siege_mode);
+            }
             sources.buff_sources.extend(technology.buff_source);
             sources.interception.extend(technology.interception);
             if let Some(dead_summon) = &technology.dead_summon {
@@ -1667,6 +1729,7 @@ fn provider_of(kind: &str, self_buff: bool) -> Option<EffectProvider> {
         DAMAGE_SHARE => EffectProvider::MechGroup,
         BARRIER => EffectProvider::AdvancedEnergyShield,
         REACTIVE_ARMOR => EffectProvider::ReactiveArmor,
+        SIEGE => EffectProvider::SiegeMode,
         _ => return None,
     })
 }
@@ -2053,6 +2116,67 @@ mod tests {
                 .into_keys()
                 .collect::<Vec<_>>(),
             [super::EffectProvider::StealthTech]
+        );
+    }
+
+    /// A siege-mode technology writes nothing as the fight starts: it hands
+    /// its unit what `SiegeModeEffectSystem` writes while the unit is dug
+    /// in, its life rate on the unit and the rest on its skill, and the two
+    /// times.
+    #[test]
+    fn a_siege_mode_technology_hands_its_unit_a_trench() {
+        let table = TechnologyEffects::parse(
+            "schema: mechcore.technology_effects\n\
+             technologies:\n\
+             - {id: 9, name: probe, unit: sabertooth, kind: siegeModeTechDatas, \
+             siege_mode: {life_rate: 2147483648, attack_interval_rate: -858993459, \
+             attack_interval_value: 0, damage_rate: 0, attack_range_value: 85899345920, \
+             attack_range_rate: 0, splash_range_value: 0, projectile_speed_value: 0, \
+             duration: 30064771072, animation_delay: 1288490188}}\n",
+        )
+        .unwrap();
+        assert!(table.corrections(&[9], "sabertooth", 1).unwrap().is_empty());
+        let trench = table
+            .sources(&[9], "sabertooth")
+            .unwrap()
+            .siege_mode
+            .unwrap();
+        assert_eq!(
+            trench.written,
+            [
+                (
+                    Channel::Skill,
+                    Index::AttackInterval,
+                    Correction::Rate {
+                        add: 0,
+                        reduce: 858_993_459,
+                    },
+                ),
+                (
+                    Channel::Unit,
+                    Index::MaxLife,
+                    Correction::Rate {
+                        add: 1 << 31,
+                        reduce: 0,
+                    },
+                ),
+                (
+                    Channel::Skill,
+                    Index::AttackRange,
+                    Correction::Value(20_000),
+                ),
+            ]
+        );
+        assert_eq!(
+            (trench.duration_q32, trench.animation_delay_q32),
+            (7 << 32, 1_288_490_188)
+        );
+        assert_eq!(
+            table
+                .providers(&[9], "sabertooth")
+                .into_keys()
+                .collect::<Vec<_>>(),
+            [super::EffectProvider::SiegeMode]
         );
     }
 

@@ -453,6 +453,7 @@ impl Simulation {
             auto_recovery: None,
             energy_shield: None,
             stealth: None,
+            siege_mode: None,
             sweep: None,
             distance_intensify: false,
             secondary_damage: None,

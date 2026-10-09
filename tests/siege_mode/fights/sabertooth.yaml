@@ -1,0 +1,27 @@
+# Field Entrenchment on a Sabertooth, one Arclight close by and one far off.
+#
+# Dug in from the first tick: 21213 life, its 14142 with 50% more, and a
+# 115-metre range, 20 more. Its first shot fells the near Arclight (t6), and
+# with no enemy unit in 115 metres the time counts from that tick's update:
+# after 141 updates it is past 7 seconds and the trench goes (t147), the
+# range back to 95 and the life its share of the new maximum, 20848 of 21213
+# to 13898 of 14142. The motion stands stopped through the 0.3-second delay
+# and moves on at t153.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 568
+hash: {profile: mcfr-content-0.22.0, result: 6ef1169247db697b23b87495c6238676dc7dc05f2d933fe0a7a40563963c1c52}
+blue:
+  techs:
+    sabertooth: [field_entrenchment]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 5, y: -35}, exp: 0/600/1300}
+red:
+  core_damage: 200
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -20}}
+  - {name: arclight, index: 1, position: {x: 280, y: -300}}

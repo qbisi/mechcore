@@ -144,7 +144,7 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "deadLineTechDatas", "moveAbilityAttackIntensifyTechDatas",
                "moveAbilityRangeItemTechDatas",
                "damageShareTechnologies", "advancedEnergyShieldTechnologies",
-               "reactiveArmorTechDatas")
+               "reactiveArmorTechDatas", "siegeModeTechDatas")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
@@ -231,6 +231,26 @@ STEALTH_FIELDS = (
 # rows carry that only the client reads: the link's effect between members.
 MECH_GROUP = "damageShareTechnologies"
 MECH_GROUP_CLIENT = {"effectName"}
+# The list whose `SiegeModeTech` digs its unit in as the fight starts, and what
+# its rows answer `ISiegeModeEffectDataSource` with, each an FPoint raw
+# integer: the rates and values it writes on its unit's main skill and the
+# rate on its unit's life while it is dug in, the seconds with no enemy in
+# range after which it leaves, and the seconds before it moves again. The
+# rate on its move speed no fight reads: the stopped motion holds the unit.
+SIEGE = "siegeModeTechDatas"
+SIEGE_FIELDS = (
+    ("life_rate", "siegeModeLifeChangeRate"),
+    ("attack_interval_rate", "siegeModeAttackIntevalChangeRate"),
+    ("attack_interval_value", "siegeModeAttackIntevalChangeValue"),
+    ("damage_rate", "siegeModeDamageChangeRate"),
+    ("attack_range_value", "siegeModeAttackRangeChangeValue"),
+    ("attack_range_rate", "siegeModeAttackRangeChangeRate"),
+    ("splash_range_value", "siegeModeSplashRangeChangeValue"),
+    ("projectile_speed_value", "siegeModeProjectileSpeedChangeValue"),
+    ("duration", "siegeModeDuration"),
+    ("animation_delay", "animationDelay"),
+)
+SIEGE_CLIENT = {"siegeModeMoveSpeedChangeRate"}
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
@@ -283,7 +303,9 @@ def special(row: dict) -> list[str]:
     source = (BUFF_SOURCE if row["kind"] == BUFF
               else {field for _, field in INTERCEPT_FIELDS} if row["kind"] == INTERCEPT
               else {field for _, field in STEALTH_FIELDS} if row["kind"] == STEALTH
-              else MECH_GROUP_CLIENT if row["kind"] == MECH_GROUP else set())
+              else MECH_GROUP_CLIENT if row["kind"] == MECH_GROUP
+              else {field for _, field in SIEGE_FIELDS} | SIEGE_CLIENT if row["kind"] == SIEGE
+              else set())
     return sorted(
         field
         for field, value in row["row"].items()
@@ -566,6 +588,11 @@ def main() -> int:
         if row["kind"] == STEALTH:
             lines.append("    stealth:")
             for field, source in STEALTH_FIELDS:
+                point = row["row"][source]["m_rawValue"]
+                lines.append(f"      {field}: {point}  # {point / ONE:.6g}")
+        if row["kind"] == SIEGE:
+            lines.append("    siege_mode:")
+            for field, source in SIEGE_FIELDS:
                 point = row["row"][source]["m_rawValue"]
                 lines.append(f"      {field}: {point}  # {point / ONE:.6g}")
         if row["kind"] == DEAD_SUMMON:
