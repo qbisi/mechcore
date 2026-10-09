@@ -1178,6 +1178,41 @@ Raiden holds. A source that `CanDisable` takes nothing while its unit's
 technologies are disabled (`DoDisableEffect` takes the hit effect off the
 skills).
 
+## Chain technologies
+
+A row of `iterationHitDamageTechDatas` is an `IterationHitTech`, an
+`IIterationHit`: Chain, the Raiden's, which takes 20 metres off its range
+and makes each hit jump on, once, 0.2 seconds later, to an enemy within 60
+metres of where it landed, preferring those within 25, for a quarter of the
+skill's damage. Its provider, a `SingleEffectProvider`, is a hit effect of
+the main skill, each of the Raiden's three weapons its own skill.
+
+**A hit records what it struck and starts a jump.** After a first hit, not
+a second damage's, `IterationHitEffectProvider.PerformHitEffect` records
+every unit it struck with its skill in the unit's
+`FightMechIgnoreTargetManager` (`AddIgnoreBySkillHit`), and unless a chain of
+that skill is under way (`IterationEffectSystem.IsIteration`) starts one
+from where the hit landed (`HitEffectControl.Init`, `Perform`): a
+`GRTimer` of the delay, which strikes nothing yet. A source that
+`CanDisable` does nothing while its unit's technologies are disabled.
+
+**The jump strikes an enemy drawn at random.** As the timer fires
+(`OnTimerOver`, `GetTarget`), the enemy units fully visible whose edge
+stands within the range of the point, in the order each side's objects are
+searched, are taken; of those within the preferred range that no record of
+the unit passes over one is drawn from the side's stream
+(`RandomElementSync`), or failing any, of those within the range. The one
+drawn takes the skill's damage now times the rate to the jump's number,
+the `FPoint` product's whole part, as the unit's hit under its skill
+(`DamagePerformer.Perform`, `HitEffectControl.GetDamage`), which the
+skill's hit effects take as a first hit; the chain under way, the jump's own
+hit starts none. The chain jumps again from the one struck until it has
+jumped its count; with none drawn, or its count done, it ends
+(`OnIterationEnd`): the skill stops attacking in the records, and once no
+skill of the unit is, every record goes (`ClearTargetRecord`). A jump at a
+unit a battlefield shield covers that does not cover the Raiden is refused,
+which is not measured.
+
 ## What this table does not carry
 
 A technology that is not plain does something that is not a correction on its
@@ -1589,6 +1624,8 @@ derive (a minimum range):
 - Ionization takes half the life left of a Fortress a Raiden hits, and
   half of a Fang's through its emptied shield, with no damage recorded:
   `tests/additional_damage/ionization.yaml`.
+- Chain jumps each of a Raiden's weapons' hits on to another Mustang 0.2
+  seconds later, killing it: `tests/chain/raiden-mustangs.yaml`.
 - Subterranean Blitz burrows its Crawlers from the first tick and brings
   each up as its enemy comes within 50: `tests/burrow/crawler-rhino.yaml`.
   Burrowed, they take a Marksman's shot less 0.4; one that dies burrowed,
@@ -1781,6 +1818,13 @@ derive (a minimum range):
 
 ### Read
 
+- Chain technologies: `IterationHitEffectProvider.PerformHitEffect`,
+  `HitEffectControl.Init`, `Perform`, `OnTimerOver`, `GetTarget`,
+  `OnIterationSuccessOnce`, `OnIterationEnd`, `GetDamage`,
+  `IterationEffectSystem.IsIteration`, `Add`, `Remove`,
+  `FightMechIgnoreTargetManager.AddIgnoreBySkillHit`, `IsContains`,
+  `ClearIgnoreByHitEffectEnd`, `ClearTargetRecord`,
+  `SkillDamageProvider.CalculateDamagePosition`.
 - Additional-damage technologies: `AdditionalDamageTech.GetReduceLifeRate`,
   `AdditionalDamageProvider.PerformHitEffect`, `DoEnableEffect`,
   `DoDisableEffect`, `FightActor.OnHitted`, `FightMech.OnHitted`,
@@ -2291,6 +2335,15 @@ derive (a minimum range):
 
 ### Not established
 
+- **A chain whose jump makes the fight's last kill.** A Raiden whose jump
+  kills the last Fang, before the main skill's update, attacks a tower that
+  is torn down on the next tick: the game keeps its skill cooling on the
+  tower, and the simulator lets it go idle.
+- **A Raiden with Chain over Crawlers standing under it.** An idle weapon's
+  search at t563 of a Raiden with Chain against a Fortress, Fangs, Mustangs
+  and Crawlers keeps a Crawler in the game and takes a nearer one in the
+  simulator; the same layout without Chain matches throughout, and its fight
+  takes another course before then.
 - **A tie between points.** The sort that orders points at one distance
   follows `List.Sort` as read; no recording tells it from a stable one.
 - **A rebirth beside another dead effect, switched off, or of a turned or

@@ -60,7 +60,8 @@ impl Simulation {
                 | EffectProvider::RvoRadiusChange
                 | EffectProvider::ClearRangeItem
                 | EffectProvider::KillExplosion
-                | EffectProvider::AdditionalDamage => {}
+                | EffectProvider::AdditionalDamage
+                | EffectProvider::IterationHit => {}
             }
         }
     }
@@ -104,7 +105,8 @@ impl Simulation {
                 | EffectProvider::RvoRadiusChange
                 | EffectProvider::ClearRangeItem
                 | EffectProvider::KillExplosion
-                | EffectProvider::AdditionalDamage => {}
+                | EffectProvider::AdditionalDamage
+                | EffectProvider::IterationHit => {}
             }
         }
         Ok(())
@@ -151,7 +153,8 @@ impl Simulation {
                 | EffectProvider::RvoRadiusChange
                 | EffectProvider::ClearRangeItem
                 | EffectProvider::KillExplosion
-                | EffectProvider::AdditionalDamage => {}
+                | EffectProvider::AdditionalDamage
+                | EffectProvider::IterationHit => {}
             }
         }
         Ok(())
@@ -346,7 +349,10 @@ impl Simulation {
             // `AdditionalDamageProvider.DoDisableEffect` takes its hit effect
             // off the skills (`SkillManager.RemoveHitEffect`), and a hit while
             // the technologies are off takes nothing besides.
-            | EffectProvider::AdditionalDamage => {}
+            | EffectProvider::AdditionalDamage
+            // `IterationHitEffectProvider.DoDisableEffect` takes its hit
+            // effect off the skills; a jump already waiting goes on.
+            | EffectProvider::IterationHit => {}
         }
         Ok(())
     }

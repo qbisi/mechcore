@@ -98,6 +98,7 @@ impl Actor {
             fly_reverts_at: None,
             ignores_speed_rate: false,
             life_priority: false,
+            chain_records: super::chain::ChainRecords::default(),
             reactive_armor: super::reactive_armor::ReactiveArmorState::of(&placement),
             placement,
             rules,
