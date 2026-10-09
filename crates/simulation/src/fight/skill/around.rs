@@ -141,7 +141,7 @@ impl Simulation {
         // radius, `FightUtility.CalculateDistance3D` less its radius, counts,
         // up to the condition.
         let radius_q32 = crate::rules::metres_q32(select_radius);
-        let own_y = space_to_q32(unit_height(actor.rules.domain));
+        let own_y = space_to_q32(unit_height(actor.domain));
         let found = self
             .mech_quadtrees
             .iter()
@@ -155,10 +155,10 @@ impl Simulation {
             .filter(|enemy| {
                 enemy.alive()
                     && enemy.visibility == Visibility::Normal
-                    && attacker.targets.accepts(enemy.rules.domain)
+                    && attacker.targets.accepts(enemy.domain)
                     && native_q32_magnitude_3d(
                         enemy.x_q32.saturating_sub(actor.x_q32),
-                        space_to_q32(unit_height(enemy.rules.domain)).saturating_sub(own_y),
+                        space_to_q32(unit_height(enemy.domain)).saturating_sub(own_y),
                         enemy.z_q32.saturating_sub(actor.z_q32),
                     )
                     .saturating_sub(space_to_q32(enemy.rules.collision_radius()))
@@ -237,7 +237,7 @@ impl Simulation {
         let actor = &self.actors[&actor_id];
         let hit = DamageHit {
             center_q32: (actor.x_q32, actor.z_q32),
-            center_y_q32: space_to_q32(unit_height(actor.rules.domain)),
+            center_y_q32: space_to_q32(unit_height(actor.domain)),
             splash_radius,
             crosses_shields,
             ..DamageHit::of_skill(actor, skill_slot, (target, self.domain_of(target)), amount)

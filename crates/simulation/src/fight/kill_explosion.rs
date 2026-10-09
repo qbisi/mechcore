@@ -112,14 +112,14 @@ impl Simulation {
             aimed: Some(FightActorRef::Unit(unit)),
             hits_aimed: false,
             center_q32: (dead.x_q32, dead.z_q32),
-            center_y_q32: space_to_q32(unit_height(dead.rules.domain)),
+            center_y_q32: space_to_q32(unit_height(dead.domain)),
             shield: None,
             crosses_shields: false,
             strikes_buildings: true,
             splash_radius: source.range,
             fire: false,
             shield_damage: None,
-            reach: Reach::Domain(dead.rules.domain),
+            reach: Reach::Domain(dead.domain),
         };
         let struck = self.perform_damage(hit, events)?;
         let targets = struck.targets.clone();

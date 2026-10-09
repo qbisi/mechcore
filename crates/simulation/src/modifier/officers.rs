@@ -191,6 +191,14 @@ impl OfficerEffects {
         )
     }
 
+    /// Whether any of the officers `held` that has an effect names its
+    /// units by whether they fly.
+    pub(crate) fn any_by_domain(&self, held: &[i32]) -> bool {
+        held.iter()
+            .filter_map(|id| self.officers.get(id))
+            .any(|officer| officer.targets.by_domain())
+    }
+
     /// Every correction this side's officers write onto one unit.
     ///
     /// An id the table does not hold writes nothing: the table carries the

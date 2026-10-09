@@ -336,7 +336,7 @@ impl Simulation {
             FightActorRef::Unit(id) => self
                 .actors
                 .get(&id)
-                .map_or(UnitDomain::Ground, |actor| actor.rules.domain),
+                .map_or(UnitDomain::Ground, |actor| actor.domain),
             FightActorRef::Building(_) => UnitDomain::Ground,
         }
     }
@@ -391,7 +391,7 @@ impl Simulation {
                     FightActorRef::Unit(unit_id) => {
                         let unit = &self.actors[&unit_id];
                         unit.alive()
-                            && hit.reach.touches(unit.rules.domain)
+                            && hit.reach.touches(unit.domain)
                             && hit.splashes(unit, splash_q32)
                     }
                     FightActorRef::Building(other_id) => self
@@ -429,7 +429,7 @@ impl Simulation {
                 FightActorRef::Unit(candidate_id) => {
                     let candidate = &self.actors[&candidate_id];
                     candidate.alive()
-                        && hit.reach.touches(candidate.rules.domain)
+                        && hit.reach.touches(candidate.domain)
                         // `FightProjectile.Update` strikes what it aimed at
                         // only while `IsValidTarget(Stealth)`: a Wasp's shot
                         // that reaches a Sandworm as it burrows is spent.
@@ -651,7 +651,7 @@ impl Simulation {
         let unit = &self.actors[&unit_id];
         let death = (unit.life == 0).then(|| QVec3 {
             x: unit.x_q32,
-            y: space_to_q32(unit_height(unit.rules.domain)),
+            y: space_to_q32(unit_height(unit.domain)),
             z: unit.z_q32,
         });
         if killed {
@@ -935,7 +935,7 @@ impl Simulation {
         unit.last_damage_source = Some((hit.source, hit.source_team));
         let death = QVec3 {
             x: unit.x_q32,
-            y: space_to_q32(unit_height(unit.rules.domain)),
+            y: space_to_q32(unit_height(unit.domain)),
             z: unit.z_q32,
         };
         self.on_life_change(unit_id, events)?;
@@ -1332,7 +1332,7 @@ impl Simulation {
         let (center_q32, center_y_q32) = if self_splash && splash_radius > 0 {
             (
                 (attacker.x_q32, attacker.z_q32),
-                space_to_q32(unit_height(attacker.rules.domain)),
+                space_to_q32(unit_height(attacker.domain)),
             )
         } else {
             let center_q32 = match target {
@@ -1456,7 +1456,7 @@ impl Simulation {
             FightActorRef::Unit(id) => self
                 .actors
                 .get(&id)
-                .map_or(0, |actor| space_to_q32(unit_height(actor.rules.domain))),
+                .map_or(0, |actor| space_to_q32(unit_height(actor.domain))),
             FightActorRef::Building(_) => 0,
         }
     }

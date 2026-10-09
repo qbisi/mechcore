@@ -469,7 +469,7 @@ impl Simulation {
                 .saturating_sub(self_radius_q32);
                 (actor.alive()
                     && actor.visibility == Visibility::Normal
-                    && accepted.accepts(actor.rules.domain)
+                    && accepted.accepts(actor.domain)
                     && fpoint_less_or_equal(distance, range_q32))
                 .then_some(id)
             })
@@ -516,7 +516,7 @@ impl Simulation {
         };
         let actor = &self.actors[&current];
         let (x_q32, z_q32) = (actor.x_q32, actor.z_q32);
-        let height = unit_height(actor.rules.domain);
+        let height = unit_height(actor.domain);
         // `GetTargetPosition`: where the skill aims at the unit
         // (`CalculateAttackPosition`, reaching its extra search range too, on
         // the ground), its offset added.
@@ -583,7 +583,7 @@ impl Simulation {
             .fight_actor(target)
             .ok_or_else(|| Error::new("projectile target is absent"))?;
         let height = match target {
-            FightActorRef::Unit(id) => unit_height(self.actors[&id].rules.domain),
+            FightActorRef::Unit(id) => unit_height(self.actors[&id].domain),
             FightActorRef::Building(_) => 0,
         };
         Ok((view.x_q32, view.z_q32, height))
@@ -813,7 +813,7 @@ impl Simulation {
             .fight_actor(target)
             .ok_or_else(|| Error::new("projectile target is absent"))?;
         let owner_domain = match owner {
-            FightActorRef::Unit(id) => self.actors[&id].rules.domain,
+            FightActorRef::Unit(id) => self.actors[&id].domain,
             FightActorRef::Building(_) => UnitDomain::Ground,
         };
         let owner_flies = owner_domain == UnitDomain::Air;

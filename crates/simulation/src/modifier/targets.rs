@@ -71,6 +71,22 @@ impl Targets {
         }
     }
 
+    /// Whether the category names a unit by whether it flies
+    /// (`IUnitStateEffect.GetUnitStateType`), which a technology that turns
+    /// its unit's domain changes in the fight.
+    pub(crate) fn by_domain(&self) -> bool {
+        match self {
+            Self::Ground => true,
+            Self::AllOf(every) => every.iter().any(Self::by_domain),
+            Self::Every
+            | Self::Listed(_)
+            | Self::Melee
+            | Self::Ranged
+            | Self::Size(_)
+            | Self::Refused(_) => false,
+        }
+    }
+
     /// Whether the row writes onto this unit.
     ///
     /// `IsEffectTarget` reads Melee and Ranged from the unit's main

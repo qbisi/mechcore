@@ -175,7 +175,7 @@ impl Simulation {
             .filter(|target| {
                 let target = &self.actors[target];
                 (source.enemies || target.placement.team == team)
-                    && (source.air || target.rules.domain != crate::rules::UnitDomain::Air)
+                    && (source.air || target.domain != crate::rules::UnitDomain::Air)
             })
             .collect::<Vec<_>>();
         // `RecoveryTech.GetLife`: the level's entry, the last past the list.

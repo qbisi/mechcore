@@ -389,7 +389,7 @@ impl Simulation {
                             rotation
                         }),
                     radius: actor.rules.collision_radius(),
-                    y: unit_height(actor.rules.domain),
+                    y: unit_height(actor.domain),
                     attack: &actor.rules.attack,
                     targets: actor.stats.targets(actor.rules.attack.targets),
                     projectile_speed_add: actor.stats.projectile_speed_add(),

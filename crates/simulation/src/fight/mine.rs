@@ -129,11 +129,7 @@ impl Simulation {
             .fight_actor(target)
             .ok_or_else(|| Error::new("a missile's target is not on the board"))?;
         let (target_kind, target_id, target_y) = match target {
-            FightActorRef::Unit(id) => (
-                ObjectKind::Unit,
-                id,
-                unit_height(self.actors[&id].rules.domain),
-            ),
+            FightActorRef::Unit(id) => (ObjectKind::Unit, id, unit_height(self.actors[&id].domain)),
             FightActorRef::Building(id) => (ObjectKind::Building, id, 0),
         };
         let projectile_id = self.ids.objects.allocate_object(ObjectKind::Projectile)?.id;

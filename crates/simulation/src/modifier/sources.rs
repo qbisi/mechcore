@@ -195,6 +195,21 @@ pub(crate) struct Repair {
     pub(crate) air: bool,
 }
 
+/// What a `FlyTech` answers `IFlyTechDataSource` with, as
+/// `FlyTechData.PreProcess` derives it from its unit's type: the unit flies
+/// if its type does not and lands if it does (`GetUnitStateType`), and its
+/// skills are turned onto aircraft if its type is on the ground and off them
+/// if it flies (`canAttackAir`, `GetIsInverseAirAttack`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct FlyTech {
+    /// `GetLandingDuration`, Q32.32 seconds: how long after its technologies
+    /// are switched off its unit takes its own domain back.
+    pub(crate) landing_q32: i64,
+    /// Whether its row reaches its unit's extra skills
+    /// (`extraSkillEffect`), whose aircraft it turns too.
+    pub(crate) extra_skills: bool,
+}
+
 /// What an `IKillExplosionDataSource` answers: `KillExplosionEffectProvider`
 /// sets off each unit a hit of its unit's skill kills.
 #[derive(Debug, Clone, PartialEq, Eq)]

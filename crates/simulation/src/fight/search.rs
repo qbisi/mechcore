@@ -826,7 +826,7 @@ impl Simulation {
                 let actor = &self.actors[&id];
                 if !actor.alive()
                     || actor.visibility == Visibility::Hide
-                    || !domains.accepts(actor.rules.domain)
+                    || !domains.accepts(actor.domain)
                 {
                     return None;
                 }

@@ -70,7 +70,7 @@ impl Simulation {
                 unit.last_damage_source = None;
                 let position = QVec3 {
                     x: unit.x_q32,
-                    y: space_to_q32(unit_height(unit.rules.domain)),
+                    y: space_to_q32(unit_height(unit.domain)),
                     z: unit.z_q32,
                 };
                 unit.exit_fight_on_death();

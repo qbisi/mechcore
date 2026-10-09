@@ -54,7 +54,7 @@ use super::{
     effects::{self, Fields},
     providers::EffectProvider,
     sources::{
-        AutoRecovery, BuffSource, Burrow, CarriedShield, ClearRangeItem, EnergyShield,
+        AutoRecovery, BuffSource, Burrow, CarriedShield, ClearRangeItem, EnergyShield, FlyTech,
         KillExplosion, LifeSteal, MoveAbilityAttack, MoveAbilityRangeItem, ProductionLine,
         ReactiveArmor, Rebirth, RebirthFollow, RecoveryState, Repair, RvoRadiusChange, SiegeMode,
         Stealth, SweepIntensify, WreckageRecovery,
@@ -147,9 +147,11 @@ const CLEAR_RANGE_ITEM: &str = "clearRangeItemTechDatas";
 const REPAIR: &str = "recoveryTechDatas";
 /// The list whose `KillExplosionTech` is an `IKillExplosionDataSource`.
 const KILL_EXPLOSION: &str = "killExplosionTechDatas";
+/// The list whose `FlyTech` is an `IFlyTechDataSource`.
+const FLY: &str = "flyTechDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 35] = [
+const IMPLEMENTED: [&str; 36] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -185,6 +187,7 @@ const IMPLEMENTED: [&str; 35] = [
     REPAIR,
     DEAD_ACID,
     KILL_EXPLOSION,
+    FLY,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -312,6 +315,8 @@ struct Technology {
     repair: Option<Repair>,
     /// What it answers `IKillExplosionDataSource` with, if its class is one.
     kill_explosion: Option<KillExplosion>,
+    /// What it answers `IFlyTechDataSource` with, if its class is one.
+    fly: Option<FlyTech>,
     /// What it answers `IBurrow` with, if its class is one.
     burrow: Option<Burrow>,
     /// The acid it leaves where its unit dies, if its class is an
@@ -485,6 +490,9 @@ pub(crate) struct SingleSources {
     /// The acid the first that leaves one where its unit dies leaves
     /// (`DeadAcidRangeItemController`).
     pub(crate) dead_acid: Option<TerrainSpec>,
+    /// The first that turns its unit's domain: the provider enables one
+    /// source (`SingleEffectProvider`).
+    pub(crate) fly: Option<FlyTech>,
 }
 
 /// What a move ability summon row answers `IMoveAbilitySummon` and
@@ -862,6 +870,9 @@ struct Row {
     kill_explosion_hits_allies: bool,
     #[serde(default)]
     kill_explosion_buffed: bool,
+    /// `FlyTechData.landingDuration`, Q32.32 seconds, on a row of its list.
+    #[serde(default)]
+    fly_landing_duration: i64,
     /// `BurrowData.amplifyDamageRate`, `relieveDistance` and
     /// `isEnterUnderGround`, on a row of its list.
     #[serde(default)]
@@ -1551,6 +1562,10 @@ impl TechnologyEffects {
                     air: row.repair_air,
                 }),
                 kill_explosion,
+                fly: (row.kind == FLY).then_some(FlyTech {
+                    landing_q32: row.fly_landing_duration,
+                    extra_skills: row.extra_skill_effect,
+                }),
                 dead_line: (row.kind == DEAD_LINE)
                     .then(|| (row.dead_line_value.clone(), row.dead_line_ignores_shield)),
                 mech_group,
@@ -1710,6 +1725,7 @@ impl TechnologyEffects {
             if sources.single.repair.is_none() {
                 sources.single.repair.clone_from(&technology.repair);
             }
+            sources.single.fly = sources.single.fly.or(technology.fly);
             if sources.single.kill_explosion.is_none() {
                 sources
                     .single
@@ -2175,6 +2191,7 @@ fn provider_of(kind: &str) -> Option<EffectProvider> {
         CLEAR_RANGE_ITEM => EffectProvider::ClearRangeItem,
         REPAIR => EffectProvider::Repair,
         KILL_EXPLOSION => EffectProvider::KillExplosion,
+        FLY => EffectProvider::FlyTech,
         BURROW => EffectProvider::Burrow,
         _ => return None,
     })

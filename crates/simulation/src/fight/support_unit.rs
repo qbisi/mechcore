@@ -500,7 +500,7 @@ impl Simulation {
         actor.target_query_alive = false;
         let position = QVec3 {
             x: x_q32,
-            y: space_to_q32(unit_height(actor.rules.domain)),
+            y: space_to_q32(unit_height(actor.domain)),
             z: z_q32,
         };
         events.push(event(
@@ -758,7 +758,7 @@ impl Simulation {
     fn let_in(&mut self, actor: Actor, drop_damage: bool, events: &mut Vec<Event>) -> Result<()> {
         let unit_id = actor.placement.unit_id;
         self.join(actor)?;
-        if drop_damage && self.actors[&unit_id].rules.domain == UnitDomain::Ground {
+        if drop_damage && self.actors[&unit_id].domain == UnitDomain::Ground {
             self.drop_damage(unit_id, events)?;
         }
         self.plant(unit_id);
@@ -1078,7 +1078,7 @@ impl Simulation {
                 unit_type_id: actor.rules.unit_type_id,
                 position: QVec3 {
                     x: x_q32,
-                    y: space_to_q32(unit_height(actor.rules.domain)),
+                    y: space_to_q32(unit_height(actor.domain)),
                     z: z_q32,
                 },
             },
