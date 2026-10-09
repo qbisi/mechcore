@@ -144,6 +144,23 @@ which takes the effect away too. Strike's first attack after surfacing deals
 A row whose `attackPointChange` is not 0 is refused, as the simulator does not
 read it; Strike's is 0.
 
+## A sand fog as it surfaces
+
+A row of `moveAbilityRangeItemTechDatas` is a `MoveAbilityRangeItemTech`.
+Its `MoveAbilityRangeItemProvider` registers it with its unit's move
+ability, and when the ability reaches the row's `moveAbilityTimeType`,
+`OnExitMoveEnd` for Sandstorm, `MoveAbilityRangeItemSystem.EnableEffect`
+leaves a terrain of the row's `RangeItemType`, a sand fog, where the unit
+stands, under its side (`RangeItemSystem.AddItem`). It is as wide as the
+row's `rangeItemRange` and lasts its `lifeTime`, Sandstorm's 120 metres
+for 140 ticks, and one round. Made on the tick the surfacing ends, it
+takes its first units on the next, as any terrain does
+([terrain.md](terrain.md#a-battle-skills-terrains)), and what it does to
+them is [terrain.md](terrain.md)'s: the Sandworm's own side stands in it
+too. A row of another time or move type is refused:
+`tests/move_ability/fights/sandstorm.yaml` and
+`tests/move_ability/fights/sandstorm-steel_ball.yaml`.
+
 ## A hidden unit as a target
 
 A unit that is not visible is no valid target (`FightActor.IsValidTarget`,
@@ -197,6 +214,12 @@ stands where it was on that tick while every other unit moves.
   its attack begun on tick 125 reads 12643 damage and 22 metres of splash
   from that tick, and its blow on tick 145 deals 12643; the attack begun on
   tick 176 reads 9726 again: `tests/move_ability/fights/strike.yaml`.
+- Sandstorm's Sandworm leaves its sand fog on ticks 138 and 392 as its
+  surfacings end; it stands 140 ticks, takes the Sandworm and the Rhino
+  from tick 139, and the Marksman from tick 393, whose range halves to 70
+  metres, and the Marksman's shots at the Sandworm deal 1630 rather than
+  2329: `tests/move_ability/fights/sandstorm.yaml`. Steel Balls' beams
+  lose 30% in it: `tests/move_ability/fights/sandstorm-steel_ball.yaml`.
 - Burrowing and surfacing, a lock kept on a burrowing Sandworm, Sandworms
   surfacing on each other, a Sandworm turning aside from an ally surfacing,
   a shot spent on a burrowed Sandworm, and a Sandworm below as the fight
@@ -231,6 +254,10 @@ stands where it was on that tick while every other unit moves.
   `FightProjectile.Update`.
 - The end of the fight: `MotionController.ExitFight`,
   `UndergroundMoveAbility.Clear`.
+- A sand fog as it surfaces: `MoveAbilityRangeItemProvider.DoActive`,
+  `MoveAbilityRangeItemSystem.AddMech`, `MoveAbilityRangeItemSystem.EnableEffect`,
+  `MoveAbilityRangeItemTech.GetItemType`, `MoveAbilityRangeItemTech.GetLifeTime`,
+  `MoveAbilityRangeItemTech.GetRoundDuration`, `RangeItemSystem.AddItem`.
 - A stronger surfacing: `MoveAbilityAttackIntensifyProvider.DoActive`,
   `MoveAbilityAttackIntensifyProvider.IsAvailableMoveAbility`,
   `MoveAbilityAttackIntensifyProvider.EnterCondition`,
@@ -258,8 +285,12 @@ stands where it was on that tick while every other unit moves.
   the shield's edge; the simulator refuses it by name.
 - **Technology and equipment.** A technology or an equipment that changes the
   move ability otherwise (`MoveAbilityDynamicTech`, `BurrowTech`) is not read.
-- **Strike switched off.** What `MoveAbilityAttackIntensifyProvider`'s
+- **Strike or Sandstorm switched off.** What
+  `MoveAbilityAttackIntensifyProvider`'s and `MoveAbilityRangeItemProvider`'s
   `DisableEffect` and `EnableEffect` do is not measured, and a buff that
-  switches off the technologies of a unit holding it is refused.
+  switches off the technologies of a unit holding either is refused.
+- **A sand fog at the fight's end.** A Sandworm surfacing as the fight ends
+  is cleared without a fog; whether `MoveAbilityRangeItemSystem`, no longer
+  active, leaves one there is not read.
 - **Cloak.** `CloakMoveAbility`, which no unit's `MechData` makes, is refused
   by the extractor.

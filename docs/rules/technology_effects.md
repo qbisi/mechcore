@@ -98,7 +98,9 @@ with the interceptors it makes its unit
 ([below](#missile-interception)), a production technology's with the line it
 runs ([below](#production-lines)), a move-ability attack technology's with
 its unit's shorter surfacing and the stronger first attack after it
-([underground.md](underground.md#a-stronger-surfacing)), and refuses
+([underground.md](underground.md#a-stronger-surfacing)), a move-ability
+terrain technology's with the sand fog its unit leaves as it surfaces
+([underground.md](underground.md#a-sand-fog-as-it-surfaces)), and refuses
 every other technology by name and kind, since applying a subclass's numbers
 alone would fight it as something it is not.
 

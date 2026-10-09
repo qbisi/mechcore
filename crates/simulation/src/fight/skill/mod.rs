@@ -1497,7 +1497,7 @@ impl Simulation {
                 .expect("actor identity is stable")
                 .skills
                 .pause_attack_intervals();
-            let _ = self.update_transition(actor_id);
+            self.update_transition(actor_id)?;
             return Ok(());
         }
         // `SkillManager.Update` runs the unit's skills in ascending ID, and
@@ -1631,7 +1631,7 @@ impl Simulation {
         // `SkillManager.Update` ends with `PreemptiveSkillController.Update`,
         // before the motion updates.
         self.update_preemptive(actor_id, events)?;
-        if let Flow::Done = self.update_transition(actor_id) {
+        if let Flow::Done = self.update_transition(actor_id)? {
             // `TransitionState.Update` is the motion's whole update.
         } else if let Some(update) = update {
             self.update_motion(actor_id, step, events, update)?;

@@ -133,6 +133,11 @@ pub(crate) enum Index {
     /// projectiles' speed gains. Q32.32 metres a second in the build,
     /// millimetres a second here as the speed is.
     ProjectileSpeed,
+    /// `MechDataChangeFloatRate.ReduceDamageFromRemote`: a rate on the remote
+    /// hits a unit takes, of which `PerformHitTargetEffect` reads the
+    /// remainder (`GetDataFloatReduceRate`), so only an impairment counts.
+    /// Q32.32.
+    RemoteDamage,
     /// `SkillDataChangeFloatRate.ProjectileLifeRate`: a rate on the life its
     /// projectiles leave with, which `FightProjectileSkill.GetMaxLife`
     /// multiplies the row's by. Q32.32.
@@ -209,6 +214,7 @@ impl Index {
             Self::AttackValueFor(UnitDomain::Air) => "air attack",
             Self::AttackValueFor(UnitDomain::Ground) => "ground attack",
             Self::ProjectileSpeed => "projectile speed",
+            Self::RemoteDamage => "remote damage taken",
             Self::ProjectileLife => "projectile life",
             Self::ProjectileCount => "projectile count",
             Self::ProjectileDuration => "projectile duration",
@@ -525,6 +531,7 @@ fn refuse_fieldless_skill_corrections(skill: &Overlay) -> Result<()> {
         Index::MoveSpeed,
         Index::MaxLife,
         Index::AmplifyDamage,
+        Index::RemoteDamage,
         Index::GroundFireRange,
         Index::GroundFireLifeTime,
         Index::ReduceDamage,
@@ -1233,6 +1240,18 @@ impl Stats {
     /// Returns an error when the scaled hit leaves the signed range.
     pub(crate) fn damage_taken(&self, amount: i64) -> Result<i64> {
         self.overlays.resolve(Index::AmplifyDamage, amount)
+    }
+
+    /// A remote hit as the unit takes it: `PerformHitTargetEffect` multiplies
+    /// a hit of `DamageDistanceType.remote` by the remainder of the unit's
+    /// `ReduceDamageFromRemote` rates in `FPoint` and keeps the whole part.
+    pub(crate) fn remote_damage_taken(&self, amount: i64) -> i64 {
+        let remaining = self
+            .overlays
+            .unit
+            .aggregate(Index::RemoteDamage)
+            .map_or(ONE, |rate| rate.remaining);
+        i64::try_from((i128::from(amount) * remaining) >> 32).unwrap_or(i64::MAX)
     }
 
     /// A hit raised by what increases this unit's damage taken, before

@@ -78,6 +78,13 @@ schema: mechcore.technology_effects
 # (`strike_trigger_count`), the rate on their damage, and the FPoint
 # metres of splash and the attack point they add
 # (`strike_damage_rate`, `strike_splash_range`, `strike_attack_point`).
+# A move-ability terrain technology carries the time its unit's move
+# ability leaves it (`range_item_time`, a MoveAbilityTimeType: 3 as it
+# ends a surfacing), the MechMoveType it needs (`range_item_move_type`:
+# 1 underground), and the terrain's FPoint metres and seconds
+# (`range_item_range`, `range_item_life_time`) and its rates on the
+# attack range of what stands in it and on the remote hits it takes
+# (`fog_attack_range_rate`, `reduce_damage_from_remote`).
 
 technologies:
   - id: 206
@@ -1116,6 +1123,12 @@ technologies:
     name: 沙暴
     unit: sandworm
     kind: moveAbilityRangeItemTechDatas
+    range_item_time: 3
+    range_item_move_type: 1
+    range_item_range: 515396075520
+    range_item_life_time: 30064771072
+    fog_attack_range_rate: -2147483648
+    reduce_damage_from_remote: -1288490188
   - id: 3823
     name: 突袭
     unit: sandworm

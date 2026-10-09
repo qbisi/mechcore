@@ -91,6 +91,9 @@ pub(crate) struct Placement {
     /// What its technologies do to its surfacing and the attacks after it
     /// (`MoveAbilityAttackIntensifyTech`).
     pub(crate) move_ability_attack: Option<MoveAbilityAttack>,
+    /// The sand fog its technologies leave as it ends a surfacing
+    /// (`MoveAbilityRangeItemTech`).
+    pub(crate) move_ability_range_item: Option<TerrainSpec>,
     /// The interceptors its technologies make it (`InterceptMissileTech`).
     pub(crate) interception: Option<UnitInterception>,
     /// The battlefield shield its equipment makes it carry.
@@ -578,6 +581,7 @@ fn compile_death_summons(
             secondary_damage: worn.secondary_damage,
             dead_line: worn.dead_line,
             move_ability_attack: worn.move_ability_attack,
+            move_ability_range_item: worn.move_ability_range_item,
             interception: worn.interception,
             carried_shield: worn.carried_shield,
             production: None,
@@ -877,6 +881,7 @@ fn compile_formation(
         secondary_damage: worn.secondary_damage,
         dead_line: worn.dead_line,
         move_ability_attack: worn.move_ability_attack,
+        move_ability_range_item: worn.move_ability_range_item,
         interception: worn.interception,
         carried_shield: worn.carried_shield,
         production,
@@ -1015,13 +1020,14 @@ fn made_by(
         || worn.secondary_damage.is_some()
         || worn.dead_line.is_some()
         || worn.move_ability_attack.is_some()
+        || worn.move_ability_range_item.is_some()
         || worn.interception.is_some()
         || worn.dead_summon.is_some()
     {
         refused.push(format!(
             "side {side_name} makes a {} that its technologies give lifesteal, repair, a \
              shield, a search by distance, a second damage, a dead line, a stronger \
-             surfacing, interceptors or a summon as it dies, and what a made unit's effect providers carry is not measured",
+             surfacing, a sand fog, interceptors or a summon as it dies, and what a made unit's effect providers carry is not measured",
             made.type_name
         ));
         return None;
@@ -1168,6 +1174,7 @@ struct Worn {
     secondary_damage: Option<SecondaryDamage>,
     dead_line: Option<DeadLine>,
     move_ability_attack: Option<MoveAbilityAttack>,
+    move_ability_range_item: Option<TerrainSpec>,
     interception: Option<UnitInterception>,
     carried_shield: Option<CarriedShield>,
     buff_sources: Vec<BuffSource>,
@@ -1464,6 +1471,13 @@ fn worn(
             loadouts
                 .technologies
                 .move_ability_attack(&side.techs.units, type_name)
+                .map_err(on_side),
+        )?,
+        move_ability_range_item: refused.hold(
+            loadouts
+                .technologies
+                .move_ability_range_item(&side.techs.units, type_name)
+                .and_then(|source| source.map(commander_skills::sand_fog).transpose())
                 .map_err(on_side),
         )?,
         interception: refused.hold(one_interception(

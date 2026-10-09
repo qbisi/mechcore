@@ -78,6 +78,8 @@ pub(crate) enum TerrainKind {
     Fire,
     Oil,
     Fog,
+    /// `FogSand`, which a move ability's technology leaves.
+    FogSand,
     Acid,
 }
 
@@ -86,6 +88,12 @@ pub(crate) enum TerrainKind {
 pub(crate) enum TerrainEffect {
     /// `FogController`: an attack range rate on every ranged skill.
     Fog { attack_range_rate: i64 },
+    /// `FogSandController`: an attack range rate on every ranged skill, as
+    /// a fog's, and a rate on the remote hits every unit takes.
+    FogSand {
+        attack_range_rate: i64,
+        remote_damage_rate: i64,
+    },
     /// `GroundFireController`: `Config.groundFireDamage` on entering, and
     /// again every `fireAttackInterval`, in ticks.
     Fire { damage: i64, period_ticks: i32 },
@@ -887,6 +895,11 @@ fn terrain_effect(named: &str, row: &TerrainSkillRow, fire: GroundFire) -> Resul
             damage: fire.damage,
             period_ticks: fire_period,
         },
+        TerrainKind::FogSand => {
+            return Err(Error::new(format!(
+                "{named} leaves a sand fog, which only a move ability's technology does"
+            )));
+        }
     };
     let lifetime = |life: i64| -> Result<Option<i32>> {
         match life {
@@ -1411,6 +1424,29 @@ fn multiply(left: i64, right: i64) -> i64 {
 /// division: `FPoint.RawDiv` rounds the quotient's magnitude to the nearest
 /// raw unit, and the cast keeps the whole part below it, so -1.5 seconds is
 /// -31 ticks.
+/// The sand fog a move ability's technology leaves: its row's range and
+/// life, one round (`MoveAbilityRangeItemTech.GetRoundDuration`), and its
+/// two rates.
+///
+/// # Errors
+///
+/// Returns an error when its life outlasts a fight.
+pub(crate) fn sand_fog(source: crate::modifier::MoveAbilityRangeItem) -> Result<TerrainSpec> {
+    let life_ticks = i32::try_from(ticks(source.life_time)?)
+        .map_err(|_| Error::new("a sand fog outlasts a fight"))?;
+    Ok(TerrainSpec {
+        kind: TerrainKind::FogSand,
+        radius_q32: source.range,
+        life_ticks: Some(life_ticks),
+        rounds: 1,
+        effect: TerrainEffect::FogSand {
+            attack_range_rate: source.attack_range_rate,
+            remote_damage_rate: source.remote_damage_rate,
+        },
+        burns: None,
+    })
+}
+
 fn ticks(seconds_raw: i64) -> Result<i64> {
     let scaled = u128::from(seconds_raw.unsigned_abs()) << 32;
     let divisor = u128::from(LOGIC_DELTA_RAW.unsigned_abs());

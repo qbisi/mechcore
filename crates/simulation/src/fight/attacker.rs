@@ -1012,3 +1012,15 @@ pub(in crate::fight) fn draw_interval(
         .max(1)
         .cast_unsigned()
 }
+
+impl Actor {
+    /// `FightSkill.IsMelee` of the skill at a slot of `GetSkills()`: its
+    /// owner's row for the main skill's slots, its technology's for an extra
+    /// skill's.
+    pub(in crate::fight) fn skill_melee(&self, slot: u16) -> bool {
+        match self.skills.at_slot(usize::from(slot)).0 {
+            SkillSlot::Main => self.rules.attack.melee,
+            SkillSlot::Extra(index) => self.skills.extras[index].rules.attack.melee,
+        }
+    }
+}

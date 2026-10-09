@@ -280,13 +280,13 @@ impl Simulation {
     /// `TransitionState.Update`: the ability's `Update`, and once its time is
     /// up the change to the next state. `Done` while the unit is in the
     /// state, which is the whole of its motion's update.
-    pub(in crate::fight) fn update_transition(&mut self, actor_id: u64) -> Flow {
+    pub(in crate::fight) fn update_transition(&mut self, actor_id: u64) -> Result<Flow> {
         let actor = self
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
         if actor.motion.state != MotionState::Transitioning {
-            return Flow::Next;
+            return Ok(Flow::Next);
         }
         let underground = actor
             .underground
@@ -301,19 +301,34 @@ impl Simulation {
             actor.visibility = Visibility::Normal;
         }
         if !rvo::fpoint_greater_or_equal(underground.time_q32, underground.translation_q32) {
-            return Flow::Done;
+            return Ok(Flow::Done);
         }
-        self.end_transition(actor_id);
-        Flow::Done
+        self.end_transition(actor_id)?;
+        Ok(Flow::Done)
     }
 
     /// `TransitionState.Exit`, the ability's `OnTransitionEnd`, and the next
     /// state entered.
-    fn end_transition(&mut self, actor_id: u64) {
-        self.actors
+    ///
+    /// The end of a surfacing invokes `OnExitMoveEnd`, on which
+    /// `MoveAbilityRangeItemSystem` leaves the unit's sand fog where it
+    /// stands (`EnableEffect`, `RangeItemSystem.AddItem`), under its side.
+    fn end_transition(&mut self, actor_id: u64) -> Result<()> {
+        let actor = self
+            .actors
             .get_mut(&actor_id)
-            .expect("actor identity is stable")
-            .end_transition_state();
+            .expect("actor identity is stable");
+        let surfaced = actor
+            .underground
+            .as_ref()
+            .is_some_and(|underground| underground.state == AbilityState::Exit);
+        actor.end_transition_state();
+        if let (true, Some(spec)) = (surfaced, actor.placement.move_ability_range_item) {
+            let position = (actor.x_q32, 0, actor.z_q32);
+            let team = actor.placement.team;
+            self.add_terrain(team, &format!("unit {actor_id}"), spec, position)?;
+        }
+        Ok(())
     }
 }
 
