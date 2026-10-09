@@ -1,0 +1,23 @@
+# Loose Formation on blue's Crawlers travelling in from the left flank in
+# round 2. Landing, each Crawler's agent is made before its technology is
+# active, and joins no team: the Crawlers keep their own radii from each
+# other. In a team they part from the game on tick 172.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: game
+ticks: 1207
+hash: {profile: mcfr-content-0.23.0, result: ea8b79aaf26bf4ad52b3a1241702d896eee3cfb06ba073864bef98fa193ef326}
+blue:
+  techs:
+    crawler: [loose_formation]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: crawler, index: 1, position: {x: -330, y: 45}, exp: 0/450/450, travelling: true}
+red:
+  core_damage: 72
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/248/650}

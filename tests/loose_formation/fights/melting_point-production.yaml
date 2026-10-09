@@ -1,0 +1,23 @@
+# Loose Formation on the Crawlers blue's Melting Point makes (Crawler
+# Production). A made Crawler's technology is active before its agent is
+# made, which joins its type's team: kept out of it, they part from the
+# game on tick 8.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 450
+hash: {profile: mcfr-content-0.23.0, result: c36f6f90d0147c6757b492992ef7583a63c37fa171c201b0451f8efd4d372f61}
+blue:
+  techs:
+    melting_point: [crawler_production]
+    crawler: [loose_formation]
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -150}, exp: 0/600/1400}
+red:
+  core_damage: 350
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/40/1150}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/24/650}

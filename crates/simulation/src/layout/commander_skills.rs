@@ -459,6 +459,8 @@ pub(crate) struct Summon {
     /// What its side's technology hands it to clear terrain about it,
     /// which `FightEffectSystem` adds as it joins.
     pub(crate) clear_range_item: Option<crate::modifier::ClearRangeItem>,
+    /// Its side's technology that loosens its formation.
+    pub(crate) rvo_radius_change: Option<crate::modifier::RvoRadiusChange>,
 }
 
 /// The buff a released skill writes: the Electromagnetic Impact's slow,
@@ -1292,6 +1294,7 @@ fn summon(named: &str, row: &SupportSkillRow, units: &UnitConfigs) -> Result<Sum
         reactive_armor: None,
         burrow: None,
         clear_range_item: None,
+        rvo_radius_change: None,
     })
 }
 

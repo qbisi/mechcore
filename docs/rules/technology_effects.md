@@ -699,6 +699,18 @@ radii (`RVOAgentFixed.GenerateNeighbourAgentVOs`). So the Crawlers of one
 side that hold it keep the move radius, 3.4 each, from each other, and their
 own radii from every other agent.
 
+**Only an agent activated after the technology joins the team.**
+`RVOControllerFixed.Active` reads the radius as it activates the agent. A
+unit in the fight as it starts has its effects active before
+`MotionController.EnterFight`, and a unit made or summoned has them before
+its agent is made (`SummonSystem.DoCreateMech` runs `FightEffectSystem.
+AddEffect` before `MotionController.ActiveMoveFunction`): both join. A unit
+landing from a flank has its agent made first
+(`SuperDeploymentController.FinishTranvel` runs `ActiveMoveFunction` before
+`ExitTravel`'s `ActiveEffect`), finds the radius at zero and joins no team:
+its Crawlers keep their own radii from each other, while still switching
+the radius their agents would keep.
+
 **Near its lock it closes up.** Each update, after its state machine and
 before it moves the body, a motion that switches asks whether its unit's
 lock (`FightMech.lockTarget`) stands within the threshold, edge to edge
@@ -1201,6 +1213,11 @@ derive (a minimum range):
 - Loose Formation keeps its Crawlers 3.4 apart each as they walk, and 1.5
   once their lock is within 25: `tests/loose_formation/fights/crawler-rhino.yaml`.
   Disabled, they keep 1.5: `tests/loose_formation/fights/crawler-impact.yaml`.
+  Landing from a flank, they join no team:
+  `tests/loose_formation/fights/crawler-travelling.yaml`. Made by a
+  production line or summoned as a Steel Ball dies, they join one:
+  `tests/loose_formation/fights/melting_point-production.yaml`,
+  `tests/loose_formation/fights/steel_ball-death-summon.yaml`.
 - Fire Extinguisher clears the fires within 44 metres of each Hound every
   second tick, a fire turning into a grid as it is first cleared:
   `tests/fire_extinguisher/fights/fire.yaml`. It clears acid and fog alike,
@@ -1536,7 +1553,9 @@ derive (a minimum range):
   `MotionController.EnterFight`, `RVOControllerFixed.Active`,
   `RVOAgentFixed.EnableTeamRadius`, `RVOAgentFixed.SetTeamRadius`,
   `RVOAgentFixed.GenerateNeighbourAgentVOs`, `FightMech.GetMechID`,
-  `FightMech.GetLockTarget`.
+  `FightMech.GetLockTarget`, `SummonSystem.DoCreateMech`,
+  `MotionController.ActiveMoveFunction`,
+  `SuperDeploymentController.FinishTranvel`.
 - A fire-extinguisher technology's unit clears, every second update of its
   side's manager, the cells of each of its kinds' terrain within its radius
   and the source's, turning a circle into a grid first and taking away a grid
@@ -1845,10 +1864,10 @@ derive (a minimum range):
   again, or one a battle skill summons.** Read from the build; no recording
   holds one. One with a grouped main skill or a batch of standalone weapons,
   whose nearest enemy no recording has read, is refused.
-- **A loose formation switched on again, and one travelling in.** Read from
-  the build; no recording holds an Electromagnetic Impact running out on
-  Crawlers that hold it, nor one landing. A summoned, made or
-  death-summoned unit that holds it is refused.
+- **A loose formation switched on again, or a battle skill's summon that
+  holds it.** Read from the build; no recording holds an Electromagnetic
+  Impact running out on Crawlers that hold it, and no battle skill summons
+  Crawlers.
 - **A fire extinguisher switched on again, on a summon, or clearing a fire
   burnt from oil.** Read from the build; no recording holds an
   Electromagnetic Impact running out on Hounds that hold it, a battle skill
