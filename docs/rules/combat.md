@@ -127,7 +127,12 @@ the lock is in touch: the whole metres between the two, edge to edge, are no
 more than twice the unit's radius. There it idles, and it sets off again
 once the lock is out of touch. So a Vortex, which cannot fire at aircraft,
 that fells the last tower with only aircraft left locks onto the nearest one
-and follows it about. A unit attacking when its search leaves it idle stops
+and follows it about. A unit with a move ability, the Sandworm's or the
+Larva's burrow, is in touch while it stands idle within ten times its radius
+(`IsLockTargetInTouchRange` asks the motion controller's `moveAbility` and
+whether its state is a `MotionIdleState`): a Sandworm idle with only
+aircraft left stays where it is with one 49 metres off, edge to edge, where
+it would walk on one 27 metres off. A unit attacking when its search leaves it idle stops
 first: `MotionAttackState.Update` asks `IsIdle` before anything and goes idle
 on that update, and it sets off only from the idle state, on the next.
 
@@ -1135,6 +1140,9 @@ not the game's native attack-type enum.
   `tests/endgame/towers-torn-down-stand-in-the-solve.yaml`, ticks 380
   and 384.
 
+- A Sandworm left with only aircraft to fire at locks the nearest, 49 metres
+  off edge to edge, and stays idle where it stands: `tests/corpus/134370228-r7.yaml`,
+  tick 856.
 - A Vortex left with only aircraft to fire at locks one, walks on it, idles
   in touch, searches every eleven ticks and sets off again when its lock
   changes: `tests/corpus/201370830-r3.yaml`, ticks 1227 to 1347.
@@ -1357,10 +1365,12 @@ not the game's native attack-type enum.
   `SearchTargetController..ctor` (`aliveTargetSelector`, an
   `AliveTargetFilter`), `FightSkillBase.IsMainSearcher`,
   `FightSkill.SearchLockTarget`, `SkillIdleState.CanStartSearchTarget`.
-- An idle skill's unit walks on its lock until it is in touch, and one
-  attacking stops first: `MotionAttackState.Update`, `MotionIdleState.Update`,
-  `AutoMoveBehaviour.IsActive`,
-  `AutoMoveBehaviour.IsIdle`, `AutoMoveBehaviour.IsLockTargetInTouchRange`.
+- An idle skill's unit walks on its lock until it is in touch, ten times its
+  radius for one standing idle with a move ability and twice it otherwise,
+  and one attacking stops first: `MotionAttackState.Update`,
+  `MotionIdleState.Update`, `AutoMoveBehaviour.IsActive`,
+  `AutoMoveBehaviour.IsIdle`, `AutoMoveBehaviour.IsLockTargetInTouchRange`,
+  `MotionController.moveAbility`.
 
 - A unit's facing as the fight starts is its territory's attack facing, a
   quarter turn in a defence area whose region holds something:
