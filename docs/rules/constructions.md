@@ -118,6 +118,7 @@ same lock.
 among the enemy's constructions,
   keep the ones within attack range of the attacker, edge to edge
       (centre distance <= range + attacker radius + block radius),
+  pass over the ones whose centre stands nearer than the skill's minimum range,
   keep the ones within 11.5 metres of the line from the attacker to its target,
   take the nearest of those to the attacker.
 ```
@@ -162,6 +163,14 @@ slot of a main skill's group, which reaches ten metres beyond its core
 (`FightSkill.GetAttackRange`), takes a block ten metres further off. The
 distance is the build's fast fixed-point magnitude, which reads a little short
 of the true one.
+
+**A block inside the minimum range is not in the way.** `GetNearestWall` passes
+over a block whose centre stands nearer the attacker than the skill's minimum
+range, where the skill has one, before it asks about the line. A Stormcaller,
+whose minimum range is 70 metres, walking up to a wall takes the next block
+along it once the one ahead comes inside 70 metres centre to centre, though
+edge to edge it stood inside long before, and fires at its lock once no block
+on the line is far enough.
 
 **A blow and a beam take a wall the way a shot does**, each on the block in its
 own line. A block falls after every hit its tick resolves, a blow's as a
@@ -296,6 +305,9 @@ The map's own buildings are the exception and are named: each side gets one
   `WallConstructionTargetChecker.CheckWallConstruction`,
   `WallConstructionTargetChecker.GetNearestWall`,
   `FightEnergyShield.GetFightTransform`, `FightCalculator.IsActorInEnergyShield`.
+- A block whose centre stands nearer than the skill's minimum range (vtable
+  1088) is passed over before the line is asked:
+  `WallConstructionTargetChecker.GetNearestWall`.
 - A core's search hands its siblings blocks only when it finds one itself:
   `FightSkill.SearchAttackTarget`,
   `WallConstructionTargetChecker.CheckWallConstruction`,
