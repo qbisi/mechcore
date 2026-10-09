@@ -96,6 +96,11 @@ SUBCLASS_SCALARS = (
     ("secondary_disables_technology", "canDisableTech", "secondaryDamageIntensifyTechDatas"),
     ("secondary_buff_id", "hitEMPBuffID", "secondaryDamageIntensifyTechDatas"),
     ("dead_line_ignores_shield", "ignoreEnergyShield", "deadLineTechDatas"),
+    ("exit_time_rate", "exitTimeChangeRate", "moveAbilityAttackIntensifyTechDatas"),
+    ("strike_trigger_count", "triggerCount", "moveAbilityAttackIntensifyTechDatas"),
+    ("strike_damage_rate", "damageChangeRateInCondition", "moveAbilityAttackIntensifyTechDatas"),
+    ("strike_splash_range", "splashRangeChange", "moveAbilityAttackIntensifyTechDatas"),
+    ("strike_attack_point", "attackPointChange", "moveAbilityAttackIntensifyTechDatas"),
 )
 # A field of one list's rows that is one rate, written only where it is set:
 # an extra weapon's `allWeaponReduceDamageRate`, which
@@ -120,7 +125,7 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "secondaryDamageIntensifyTechDatas", "buffTechnologies",
                "interceptMissileTechnologyDatas", "splashTechnologies",
                "mobilityIntensifyTechnologies", "multiAttackTechnologies", "stealthTechData",
-               "deadLineTechDatas")
+               "deadLineTechDatas", "moveAbilityAttackIntensifyTechDatas")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
@@ -456,7 +461,12 @@ def main() -> int:
         "# technology carries the life, by its unit's level, at or under which",
         "# its unit's main skill destroys what it hits (`dead_line_value`), and",
         "# whether it does so through a unit's own shield",
-        "# (`dead_line_ignores_shield`).",
+        "# (`dead_line_ignores_shield`). A move-ability attack technology",
+        "# carries the rate on its unit's surfacing time (`exit_time_rate`), and",
+        "# what its unit's first attacks after surfacing take: how many",
+        "# (`strike_trigger_count`), the rate on their damage, and the FPoint",
+        "# metres of splash and the attack point they add",
+        "# (`strike_damage_rate`, `strike_splash_range`, `strike_attack_point`).",
         "",
         "technologies:",
     ]

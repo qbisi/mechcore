@@ -1,0 +1,27 @@
+# Strike on blue's Sandworm: its surfacing takes half its time, 15 ticks
+# from tick 108 and shown after 10, and the first attack after each
+# surfacing deals 30% more and splashes 10 metres further. Its
+# `AttackCountEffectLinker` is in condition from the end of a surfacing
+# (`OnExitMoveEnd`) and writes its effect as `PerformAttack` begins, on
+# tick 125, so the blow that lands on tick 145 deals 12643; the next
+# attack, begun on tick 176, takes it away. The Sandworm surfaces again on
+# tick 348, and the effect its attack of tick 365 wrote is taken away as
+# the fight's end resets the linker on tick 386.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 386
+hash: {profile: mcfr-content-0.22.0, result: 0762e8773645dcf81e31299b16f9cd2af29df61aa3b53c18b0c265880e21f4fe}
+blue:
+  techs:
+    sandworm: [strike]
+  units:
+  - {name: sandworm, index: 0, position: {x: 0, y: -140}, exp: 0/600/2000}
+red:
+  core_damage: 350
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}}

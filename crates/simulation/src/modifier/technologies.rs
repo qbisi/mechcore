@@ -53,8 +53,8 @@ use super::{
     effects::{self, Fields},
     providers::EffectProvider,
     sources::{
-        AutoRecovery, BuffSource, EnergyShield, LifeSteal, ProductionLine, RecoveryState, Stealth,
-        SweepIntensify,
+        AutoRecovery, BuffSource, EnergyShield, LifeSteal, MoveAbilityAttack, ProductionLine,
+        RecoveryState, Stealth, SweepIntensify,
     },
 };
 
@@ -105,8 +105,12 @@ const STEALTH: &str = "stealthTechData";
 /// The list whose `DeadLineTech` is an `IDeadLineDataSource`.
 const DEAD_LINE: &str = "deadLineTechDatas";
 
+/// The list whose `MoveAbilityAttackIntensifyTech` is an
+/// `IMoveAbilityAttackIntensify`.
+const MOVE_ABILITY_ATTACK: &str = "moveAbilityAttackIntensifyTechDatas";
+
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 20] = [
+const IMPLEMENTED: [&str; 21] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -127,6 +131,7 @@ const IMPLEMENTED: [&str; 20] = [
     MULTI_ATTACK,
     STEALTH,
     DEAD_LINE,
+    MOVE_ABILITY_ATTACK,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -226,6 +231,9 @@ struct Technology {
     /// What it answers `IDeadLineDataSource` with, if its class is one: the
     /// life by its unit's level, and whether a shield keeps it off.
     dead_line: Option<(Vec<i64>, bool)>,
+    /// What it answers `IMoveAbilityAttackIntensify` with, if its class is
+    /// one.
+    move_ability_attack: Option<MoveAbilityAttack>,
     /// What it hands its unit's sweep, if its class is a sweep's.
     sweep: Option<SweepIntensify>,
     /// What it answers `IArmorStrengthen.GetReduceDamageValue` with, by its
@@ -651,6 +659,18 @@ struct Row {
     dead_line_value: Vec<i64>,
     #[serde(default)]
     dead_line_ignores_shield: bool,
+    /// `MoveAbilityAttackIntensifyTechData`'s fields and the
+    /// `exitTimeChangeRate` its tech answers, on a row of its list.
+    #[serde(default)]
+    exit_time_rate: i64,
+    #[serde(default)]
+    strike_trigger_count: i32,
+    #[serde(default)]
+    strike_damage_rate: i64,
+    #[serde(default)]
+    strike_splash_range: i64,
+    #[serde(default)]
+    strike_attack_point: i64,
     /// `SupportUnitTechnologyData`'s fields, on a row of its list.
     #[serde(default)]
     production: Option<SupportBlock>,
@@ -1005,6 +1025,14 @@ impl TechnologyEffects {
                 stealth: row.stealth.map(StealthBlock::source),
                 dead_line: (row.kind == DEAD_LINE)
                     .then(|| (row.dead_line_value.clone(), row.dead_line_ignores_shield)),
+                move_ability_attack: (row.kind == MOVE_ABILITY_ATTACK).then_some(
+                    MoveAbilityAttack {
+                        exit_time_rate_q32: row.exit_time_rate,
+                        trigger_count: row.strike_trigger_count,
+                        damage_rate_q32: row.strike_damage_rate,
+                        splash_range_q32: row.strike_splash_range,
+                    },
+                ),
                 sweep,
                 reduce_damage,
                 distance_intensify: row.kind == SEARCH_TARGET_SPECIFIC,
@@ -1167,6 +1195,25 @@ impl TechnologyEffects {
             .filter(|technology| technology.unit == unit_type)
             .filter_map(|technology| technology.production.clone())
             .collect())
+    }
+
+    /// What the first of this side's technologies on one unit type that is
+    /// an `IMoveAbilityAttackIntensify` answers.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn move_ability_attack(
+        &self,
+        held: &[i32],
+        unit_type: &str,
+    ) -> Result<Option<MoveAbilityAttack>> {
+        self.effects(held, unit_type)?;
+        Ok(held
+            .iter()
+            .filter_map(|id| self.technologies.get(id))
+            .filter(|technology| technology.unit == unit_type)
+            .find_map(|technology| technology.move_ability_attack))
     }
 
     /// What the first of this side's technologies on one unit type that is
@@ -1356,6 +1403,7 @@ fn provider_of(kind: &str, self_buff: bool) -> Option<EffectProvider> {
         EXTRA_WEAPON => EffectProvider::ExtraSkill,
         STEALTH => EffectProvider::StealthTech,
         DEAD_LINE => EffectProvider::DeadLine,
+        MOVE_ABILITY_ATTACK => EffectProvider::MoveAbilityAttackIntensify,
         _ => return None,
     })
 }
@@ -1375,6 +1423,13 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<Written>, String> {
             row.id,
             row.name,
             row.special.join(", ")
+        ));
+    }
+    if row.strike_attack_point != 0 {
+        return Err(format!(
+            "technology {} ({}) changes the attack point of its unit's first attacks after \
+             surfacing, which is not measured",
+            row.id, row.name
         ));
     }
     if row.secondary_disables_technology || row.secondary_buff_id != 0 {
