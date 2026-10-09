@@ -1,9 +1,5 @@
 # Fight architecture
 
-[简体中文](architecture.zh.md)
-
-[TOC]
-
 ## Scope
 
 This contract defines the shape of the simulator: what a mechanism is, where it

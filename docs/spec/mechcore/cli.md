@@ -1,7 +1,5 @@
 # mechcore command line
 
-[TOC]
-
 ## Scope
 
 This contract defines the surface of the `mechcore` binary: the verbs it holds

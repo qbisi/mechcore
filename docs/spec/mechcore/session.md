@@ -1,7 +1,5 @@
 # Game session acquisition
 
-[TOC]
-
 ## Scope
 
 This contract defines how a `mechcore` process acquires the running game, how

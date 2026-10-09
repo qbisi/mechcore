@@ -1,7 +1,5 @@
 # RVO movement avoidance
 
-[简体中文](rvo.zh.md)
-
 ## Scope
 
 This contract defines fixed-point sampled RVO as the build performs it: the agent inputs, the four-tick pipeline, how a neighbour becomes a velocity

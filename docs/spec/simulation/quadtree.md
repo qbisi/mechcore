@@ -1,7 +1,5 @@
 # RVO quadtree
 
-[简体中文](quadtree.zh.md)
-
 ## Scope
 
 This contract defines the agent neighbour index that sampled RVO queries, as

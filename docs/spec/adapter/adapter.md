@@ -1,7 +1,5 @@
 # Mechcore adapter
 
-[TOC]
-
 ## Scope
 
 This contract defines the socket an in-process adapter exposes to one client at

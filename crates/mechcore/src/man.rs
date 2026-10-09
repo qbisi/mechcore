@@ -170,10 +170,6 @@ static TOPICS: &[(&str, &str)] = &[
         include_str!("../../../docs/spec/mcfr/mcfr.md"),
     ),
     (
-        "spec/mcfr/mcfr.zh",
-        include_str!("../../../docs/spec/mcfr/mcfr.zh.md"),
-    ),
-    (
         "spec/mechcore/cli",
         include_str!("../../../docs/spec/mechcore/cli.md"),
     ),
@@ -194,32 +190,16 @@ static TOPICS: &[(&str, &str)] = &[
         include_str!("../../../docs/spec/simulation/architecture.md"),
     ),
     (
-        "spec/simulation/architecture.zh",
-        include_str!("../../../docs/spec/simulation/architecture.zh.md"),
-    ),
-    (
         "spec/simulation/quadtree",
         include_str!("../../../docs/spec/simulation/quadtree.md"),
-    ),
-    (
-        "spec/simulation/quadtree.zh",
-        include_str!("../../../docs/spec/simulation/quadtree.zh.md"),
     ),
     (
         "spec/simulation/rvo",
         include_str!("../../../docs/spec/simulation/rvo.md"),
     ),
     (
-        "spec/simulation/rvo.zh",
-        include_str!("../../../docs/spec/simulation/rvo.zh.md"),
-    ),
-    (
         "spec/simulation/unit-rules",
         include_str!("../../../docs/spec/simulation/unit-rules.md"),
-    ),
-    (
-        "spec/simulation/unit-rules.zh",
-        include_str!("../../../docs/spec/simulation/unit-rules.zh.md"),
     ),
 ];
 

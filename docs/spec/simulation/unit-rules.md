@@ -1,7 +1,5 @@
 # Unit value configuration
 
-[简体中文](unit-rules.zh.md)
-
 ## Scope
 
 `mechcore.unit` describes the baseline data of exactly one Formation Unit. Each
