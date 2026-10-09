@@ -577,8 +577,11 @@ The skill is the line's gate.
   `FightEffectSystem.DeactiveEffect` takes its effects off and its support
   skill's line leaves its side's creators
   (`SupportUnitSystem.RemoveSkillOwner`): a dead Tarantula makes no more
-  mines, and the ones it made stay. A batch due on the tick the unit dies is
-  not measured.
+  mines, and the ones it made stay. A batch due on the tick the unit dies,
+  before that, is made where the dead unit stands, as it faces: nothing on
+  the way asks whether the owner lives (`SupportUnitCreator.Update`,
+  `SummonSystem.CreateMech`, `SpecialSupportUnitData.GetPosition`). Read from
+  the build; no recording holds it.
 - **A Spider Mine is an explosion.** Its main skill is a suicide that explodes
   as it dies (`DeadExplosiveController`). It deals the skill's attack damage
   (`explosiveDamageCondition` 0), 2500 at level one, to everything within its
