@@ -151,7 +151,7 @@ fn the_schema_names_every_table_and_query() {
     assert!(
         tables
             .iter()
-            .all(|table| table["origin"] == "hashed" || table["origin"] == "layout")
+            .all(|table| ["hashed", "layout", "view"].contains(&table["origin"].as_str().unwrap()))
     );
     assert!(tables.iter().any(|table| table["name"] == "layout_units"));
     assert_eq!(schema["queries"].as_array().unwrap().len(), 7);
@@ -300,4 +300,41 @@ fn single_of(recordings: &[&std::ffi::OsStr], sql: &str) -> serde_json::Value {
     let (code, answer) = queries(recordings, &["--sql", sql]);
     assert_eq!(code, 0, "{answer}");
     answer["rows"][0][0].clone()
+}
+
+#[test]
+fn every_event_is_a_row_of_its_kinds_view() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = recording(directory.path());
+    let (code, schema) = query(&path, &["--schema"]);
+    assert_eq!(code, 0, "{schema}");
+    let views = schema["tables"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|table| table["origin"] == "view")
+        .map(|table| table["name"].as_str().unwrap().to_owned())
+        .collect::<Vec<_>>();
+    assert_eq!(views.len(), 16);
+    let total = views
+        .iter()
+        .map(|view| format!("(SELECT count(*) FROM {view})"))
+        .collect::<Vec<_>>()
+        .join(" + ");
+    assert_eq!(
+        single(&path, &format!("SELECT {total}")),
+        single(&path, "SELECT count(*) FROM events")
+    );
+    let damage = schema["tables"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|table| table["name"] == "ev_damage")
+        .unwrap()["columns"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|column| column["name"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert!(damage.contains(&"amount") && !damage.contains(&"buff_id"));
 }

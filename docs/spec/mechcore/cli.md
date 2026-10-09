@@ -517,7 +517,7 @@ by one rule read off its schema:
   `skills_ordinal` and `ordinal`;
 - an enum is its tag's name as [mcfr.md](../mcfr/mcfr.md#common-types-and-enum-tags)
   names it, `ObjectRef`'s `kind` included, and `events.reason`, whose enum
-  depends on the event's type, its integer tag;
+  depends on the event's type, its integer tag, which each kind's view names;
 - a fixed-point value, a `tick_hash` and every other value is the stored one,
   an unsigned 64-bit integer keeping its bits in SQLite's signed one, and a
   binary value is lowercase hex.
@@ -534,6 +534,12 @@ made the recording, `game_build`, `format`, `result_hash`, `tick_count`,
 `database` when several are read, says of each table whether the content hash
 reads it, and gives each column its place in the member and each
 enum column its tags.
+
+**Event kinds.** Each event kind has a view of `events`, `ev_<kind>` such as
+`ev_damage` or `ev_buff_removed`, holding that kind's rows with the event's
+`tick` and `ordinal`, its references, and the payload columns the kind may
+set and no others. Its `reason`, where it carries one, is the tag's name as
+the kind's own enum names it.
 
 **The layout.** The embedded layout is laid out by its own shape, each row
 naming its `side` and the `team_id` the recording records that side under:

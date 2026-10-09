@@ -29,7 +29,9 @@ pub use instrument::{
 };
 pub use model::*;
 pub use numbering::UnitNumbering;
-pub use parquet_storage::tables::{McfrTables, TableOrigin, column_tags};
+pub use parquet_storage::tables::{
+    EventKindColumns, McfrTables, TableOrigin, column_tags, event_kinds,
+};
 pub use reader::{McfrReader, Published};
 pub use recording::{MemoryRecording, Recording};
 pub use writer::McfrWriter;

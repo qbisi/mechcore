@@ -28,6 +28,7 @@ use serde_json::Value;
 use crate::cli::{Args, Failure, Format, Outcome, Verdict};
 use crate::kind::Kind;
 
+mod events;
 mod flatten;
 mod layout;
 
@@ -436,6 +437,11 @@ impl Attached {
             )
             .map_err(sqlite)?;
         connection.execute_batch(layout::CREATE).map_err(sqlite)?;
+        if let Some(events) = members.get("events") {
+            for view in events::views(events) {
+                connection.execute_batch(&view.create).map_err(sqlite)?;
+            }
+        }
         {
             let mut insert = connection
                 .prepare("INSERT INTO meta (key, value) VALUES (?1, ?2)")
@@ -520,6 +526,28 @@ impl Attached {
                 })
             })
             .collect();
+        if let Some(events) = self.members.get("events") {
+            for view in events::views(events) {
+                tables.push(SchemaTable {
+                    database: database.clone(),
+                    name: view.name,
+                    member: "events.parquet".to_owned(),
+                    origin: "view",
+                    key: vec!["tick".to_owned(), "ordinal".to_owned()],
+                    columns: view
+                        .columns
+                        .into_iter()
+                        .map(|column| SchemaColumn {
+                            name: column.name,
+                            sql_type: column.sql_type,
+                            nullable: column.nullable,
+                            path: column.path,
+                            tags: column.tags,
+                        })
+                        .collect(),
+                });
+            }
+        }
         for table in layout::TABLES {
             let mut statement = self
                 .connection

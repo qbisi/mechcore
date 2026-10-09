@@ -295,6 +295,50 @@ impl Payload {
     }
 }
 
+/// The payload columns an event of `kind` may set, in the table's order: the
+/// fields [`Payload::into_payload`] takes for it, required or not.
+pub(crate) const fn payload_fields(kind: EventKind) -> &'static [&'static str] {
+    match kind {
+        EventKind::ProjectileReleased => &["skill_slot", "weapon_index"],
+        EventKind::ProjectileRemoved => &["position", "intercepted", "absorbed_by"],
+        EventKind::Damage => &["skill_slot", "amount"],
+        EventKind::Healing => &["amount"],
+        EventKind::UnitCreated => &["position", "team_id", "formation_id", "unit_type_id"],
+        EventKind::UnitDied | EventKind::BuildingDestroyed | EventKind::TerrainConverted => {
+            &["position"]
+        }
+        EventKind::UnitTeamChanged => &["previous_team_id", "new_team_id"],
+        EventKind::ShieldCreated => &["position", "team_id", "source_kind"],
+        EventKind::ShieldDestroyed | EventKind::TerrainRemoved => &["position", "reason"],
+        EventKind::TerrainCreated => &["position", "team_id", "terrain_type", "radius"],
+        EventKind::BuffApplied => &["buff_id", "duration"],
+        EventKind::BuffRemoved => &["reason", "buff_id"],
+        EventKind::TeamScored => &["amount", "team_id"],
+    }
+}
+
+/// The names of `reason`'s tags for an event of `kind`, by tag, or `None` for
+/// a kind that carries no reason.
+pub(crate) fn reason_tags(kind: EventKind) -> Option<Vec<(u8, String)>> {
+    fn named<E: serde::Serialize>(decode: fn(u8) -> Result<E>) -> Vec<(u8, String)> {
+        (0..=u8::MAX)
+            .filter_map(|tag| {
+                let value = decode(tag).ok()?;
+                match serde_json::to_value(value) {
+                    Ok(serde_json::Value::String(name)) => Some((tag, name)),
+                    _ => None,
+                }
+            })
+            .collect()
+    }
+    match kind {
+        EventKind::ShieldDestroyed => Some(named(decode_shield_reason)),
+        EventKind::TerrainRemoved => Some(named(decode_terrain_reason)),
+        EventKind::BuffRemoved => Some(named(decode_buff_reason)),
+        _ => None,
+    }
+}
+
 fn required<T>(value: Option<T>, kind: &str, field: &str) -> Result<T> {
     value.ok_or_else(|| Error::invalid(format!("a {kind} event requires {field}")))
 }
@@ -639,5 +683,82 @@ fn decode_buff_reason(tag: u8) -> Result<BuffRemovedReason> {
         _ => Err(Error::invalid(format!(
             "invalid BuffRemovedReason tag {tag}"
         ))),
+    }
+}
+
+#[cfg(test)]
+mod payload_field_tests {
+    use super::*;
+    use crate::ObjectKind;
+
+    const FIELDS: [&str; 17] = [
+        "skill_slot",
+        "weapon_index",
+        "position",
+        "intercepted",
+        "absorbed_by",
+        "amount",
+        "team_id",
+        "formation_id",
+        "unit_type_id",
+        "previous_team_id",
+        "new_team_id",
+        "source_kind",
+        "reason",
+        "terrain_type",
+        "radius",
+        "buff_id",
+        "duration",
+    ];
+
+    /// A payload with exactly the named fields set.
+    fn payload(set: impl Fn(&str) -> bool) -> Payload {
+        Payload {
+            skill_slot: set("skill_slot").then_some(0),
+            weapon_index: set("weapon_index").then_some(0),
+            position: set("position").then_some(QVec3 { x: 0, y: 0, z: 0 }),
+            intercepted: set("intercepted").then_some(false),
+            absorbed_by: set("absorbed_by").then_some(ObjectRef::new(ObjectKind::Shield, 1)),
+            amount: set("amount").then_some(1),
+            team_id: set("team_id").then_some(0),
+            formation_id: set("formation_id").then_some(1),
+            unit_type_id: set("unit_type_id").then_some(1),
+            previous_team_id: set("previous_team_id").then_some(0),
+            new_team_id: set("new_team_id").then_some(1),
+            source_kind: set("source_kind").then_some(0),
+            reason: set("reason").then_some(0),
+            terrain_type: set("terrain_type").then_some(0),
+            radius: set("radius").then_some(1),
+            buff_id: set("buff_id").then_some(1),
+            duration: set("duration").then_some(1),
+        }
+    }
+
+    /// A row that sets exactly the columns `payload_fields` names for its
+    /// kind reads, and one that sets any other column besides is refused: the
+    /// list is every field the kind takes, and only those.
+    #[test]
+    fn payload_fields_are_what_a_kind_reads() {
+        for kind in KINDS {
+            let fields = payload_fields(kind);
+            payload(|name| fields.contains(&name))
+                .into_payload(kind)
+                .unwrap_or_else(|error| panic!("{}: {error}", kind_name(kind)));
+            for other in FIELDS.iter().filter(|field| !fields.contains(field)) {
+                assert!(
+                    payload(|name| fields.contains(&name) || name == *other)
+                        .into_payload(kind)
+                        .is_err(),
+                    "{} takes {other}",
+                    kind_name(kind)
+                );
+            }
+            assert_eq!(
+                reason_tags(kind).is_some(),
+                fields.contains(&"reason"),
+                "{} names its reason's tags",
+                kind_name(kind)
+            );
+        }
     }
 }
