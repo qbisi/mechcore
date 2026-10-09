@@ -54,10 +54,10 @@ use super::{
     effects::{self, Fields},
     providers::EffectProvider,
     sources::{
-        AutoRecovery, BuffSource, Burrow, CarriedShield, ClearRangeItem, DeadExplosion,
-        EnergyShield, FlyTech, KillExplosion, LifeSteal, MoveAbilityAttack, MoveAbilityRangeItem,
-        ProductionLine, ReactiveArmor, Rebirth, RebirthFollow, RecoveryState, Repair,
-        RvoRadiusChange, SiegeMode, Stealth, SweepIntensify, WreckageRecovery,
+        AdditionalDamage, AutoRecovery, BuffSource, Burrow, CarriedShield, ClearRangeItem,
+        DeadExplosion, EnergyShield, FlyTech, KillExplosion, LifeSteal, MoveAbilityAttack,
+        MoveAbilityRangeItem, ProductionLine, ReactiveArmor, Rebirth, RebirthFollow, RecoveryState,
+        Repair, RvoRadiusChange, SiegeMode, Stealth, SweepIntensify, WreckageRecovery,
     },
 };
 
@@ -161,9 +161,11 @@ const SEARCH_TARGET_MODIFY: &str = "searchTargetModifyTechnologies";
 const CURRENT_LIFE_HIGHEST_FIRST: i32 = 1;
 /// The list whose `DeadExplosiveTech` is an `IDeadExplosive`.
 const DEAD_EXPLOSIVE: &str = "deadExplosiveTechnologyDatas";
+/// The list whose `AdditionalDamageTech` is an `IAdditionalDamage`.
+const ADDITIONAL_DAMAGE: &str = "additionalDamageTechDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 39] = [
+const IMPLEMENTED: [&str; 40] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -203,6 +205,7 @@ const IMPLEMENTED: [&str; 39] = [
     IGNORE_BUFF_EFFECT,
     SEARCH_TARGET_MODIFY,
     DEAD_EXPLOSIVE,
+    ADDITIONAL_DAMAGE,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -344,6 +347,8 @@ struct Technology {
     life_priority: bool,
     /// What it answers `IDeadExplosive` with, if its class is one.
     dead_explosion: Option<DeadExplosion>,
+    /// What it answers `IAdditionalDamage` with, if its class is one.
+    additional_damage: Option<AdditionalDamage>,
     /// What it answers `IBurrow` with, if its class is one.
     burrow: Option<Burrow>,
     /// The acid it leaves where its unit dies, if its class is an
@@ -530,6 +535,10 @@ pub(crate) struct SingleSources {
     /// What the first that sets off its unit's death answers
     /// `IDeadExplosive` with (`DeadExplosiveController`).
     pub(crate) dead_explosion: Option<DeadExplosion>,
+    /// The first that makes its unit's hits take a share of their target's
+    /// life besides: the provider enables one source
+    /// (`SingleEffectProvider`).
+    pub(crate) additional_damage: Option<AdditionalDamage>,
 }
 
 /// What a move ability summon row answers `IMoveAbilitySummon` and
@@ -931,6 +940,10 @@ struct Row {
     dead_explosion_range: Vec<i64>,
     #[serde(default)]
     dead_explosion_hits_allies: bool,
+    /// `AdditionalDamageTechData.additionalDamageByTargetLife`, an `FPoint`
+    /// raw rate, on a row of its list.
+    #[serde(default)]
+    additional_damage_rate: i64,
     /// `BurrowData.amplifyDamageRate`, `relieveDistance` and
     /// `isEnterUnderGround`, on a row of its list.
     #[serde(default)]
@@ -1626,6 +1639,11 @@ impl TechnologyEffects {
                 }),
                 ignores_speed_rate: row.kind == IGNORE_BUFF_EFFECT && row.ignores_buff_effect,
                 life_priority: row.kind == SEARCH_TARGET_MODIFY,
+                additional_damage: (row.kind == ADDITIONAL_DAMAGE).then_some(AdditionalDamage {
+                    rate_q32: row.additional_damage_rate,
+                    extra_skills: row.extra_skill_effect,
+                    can_disable: !row.ignore_electric_effect,
+                }),
                 dead_explosion: (row.kind == DEAD_EXPLOSIVE).then(|| DeadExplosion {
                     damage: match row.dead_explosion_damage {
                         0 => crate::rules::ExplosionDamage::Attack,
@@ -1798,6 +1816,10 @@ impl TechnologyEffects {
             sources.single.fly = sources.single.fly.or(technology.fly);
             sources.ignores_speed_rate |= technology.ignores_speed_rate;
             sources.single.life_priority |= technology.life_priority;
+            sources.single.additional_damage = sources
+                .single
+                .additional_damage
+                .or(technology.additional_damage);
             if sources.single.dead_explosion.is_none() {
                 sources
                     .single
@@ -2273,6 +2295,7 @@ fn provider_of(kind: &str) -> Option<EffectProvider> {
         FLY => EffectProvider::FlyTech,
         IGNORE_BUFF_EFFECT => EffectProvider::IgnoreBuff,
         SEARCH_TARGET_MODIFY => EffectProvider::SkillSearchTarget,
+        ADDITIONAL_DAMAGE => EffectProvider::AdditionalDamage,
         BURROW => EffectProvider::Burrow,
         _ => return None,
     })

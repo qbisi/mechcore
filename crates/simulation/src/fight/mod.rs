@@ -36,6 +36,7 @@ use crate::{
     },
 };
 
+mod additional_damage;
 mod attack_count;
 mod attacker;
 mod buff_cycle;

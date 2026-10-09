@@ -607,7 +607,7 @@ impl Simulation {
     /// on a unit, once its damage is known. A shield with energy left takes
     /// the hit, as much of it as it holds, and the unit loses no life; what
     /// it took is what the hit dealt. A unit in stealth loses none of it.
-    fn land(
+    pub(in crate::fight) fn land(
         &mut self,
         unit_id: u64,
         (source, source_team): (Option<ObjectRef>, u32),
@@ -668,7 +668,7 @@ impl Simulation {
         })
     }
 
-    fn strike_target(
+    pub(in crate::fight) fn strike_target(
         &mut self,
         target: FightActorRef,
         source: Option<ObjectRef>,
@@ -1114,13 +1114,15 @@ impl Simulation {
                 let center = (hit.center_q32.0, hit.center_y_q32, hit.center_q32.1);
                 let skill = self.skill_at_slot(FightActorRef::Unit(owner.id), usize::from(slot));
                 let main = skill.slot == SkillSlot::Main;
+                let mut ends = Struck::default();
                 if !secondary {
                     self.add_hit_buffs(owner.id, slot, (targets, center), events)?;
+                    ends.absorb_ends(self.take_life_share(owner.id, slot, targets, events)?);
                     if main {
                         self.leave_main_fire(skill, targets, center)?;
                     }
                 }
-                let ends = self.explode_kills(owner.id, slot, targets, events)?;
+                ends.absorb_ends(self.explode_kills(owner.id, slot, targets, events)?);
                 // `PerformMainSkillHitted`, which only a projectile raises.
                 if main
                     && !secondary

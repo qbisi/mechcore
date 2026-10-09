@@ -150,6 +150,9 @@ SUBCLASS_SCALARS = (
     ("search_target_type", "searchTargetType", "searchTargetModifyTechnologies"),
     ("dead_explosion_hits_allies", "enableFriendlyFire", "deadExplosiveTechnologyDatas"),
     ("dead_explosion_damage", "explosiveDamageCondition", "deadExplosiveTechnologyDatas"),
+    ("additional_damage_rate", "additionalDamageByTargetLife", "additionalDamageTechDatas"),
+    ("main_skill_effect", "mainSkillEffect", "additionalDamageTechDatas"),
+    ("extra_skill_effect", "extraSkillEffect", "additionalDamageTechDatas"),
     ("main_skill_effect", "mainSkillEffect", "searchTargetModifyTechnologies"),
     ("extra_skill_effect", "extraSkillEffect", "searchTargetModifyTechnologies"),
 )
@@ -186,7 +189,7 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "recoveryTechDatas", "killExplosionTechDatas",
                "burrowTechnologies", "deadAcidRangeItemTechnologyDatas", "flyTechDatas",
                "ignoreBuffEffectTechnologyDatas", "searchTargetModifyTechnologies",
-               "deadExplosiveTechnologyDatas")
+               "deadExplosiveTechnologyDatas", "additionalDamageTechDatas")
 # The list whose `DeadAcidRangeItemTech` leaves an acid where its unit dies,
 # and the fields its rows carry for it: whole metres of range
 # (`GetRangeItemRange`), the rounds it stands (`GetRoundDuration`), and the
@@ -662,6 +665,10 @@ def main() -> int:
         "# unit's radius, by its unit's level (`dead_explosion_multiplier`,",
         "# `dead_explosion_range`), and whether it strikes its own side",
         "# (`dead_explosion_hits_allies`).",
+        "# An additional-damage technology carries the FPoint rate of its",
+        "# target's life each hit of its unit's skills takes besides",
+        "# (`additional_damage_rate`), on its main skill and its extra skills",
+        "# as `main_skill_effect` and `extra_skill_effect` say.",
         "# A search technology carries the `SkillSearchTargetType` its unit's",
         "# skills search by (`search_target_type`), on its main skill and its",
         "# extra skills as `main_skill_effect` and `extra_skill_effect` say.",

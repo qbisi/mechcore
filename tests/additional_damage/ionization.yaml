@@ -1,0 +1,27 @@
+# Ionization: each hit of a Raiden takes half the life its target has left
+# besides, and records nothing for it.
+#
+# At t125 the Raiden's shot leaves the Fortress at 42430, and Ionization takes
+# 21215 more; its second slot's shot empties a Fang's 117 shield, and
+# Ionization takes 58 of its 117 life. Neither is a damage event, and neither
+# counts in the statistics.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 728
+hash: {profile: mcfr-content-0.23.0, result: dd2da42052a8108bc2e481a15bdb6c381cbd3701fbee78461367028b26c33743}
+blue:
+  core_damage: 90
+  techs:
+    raiden: [ionization]
+  units:
+  - {name: raiden, index: 0, position: {x: 0, y: -170}, exp: 0/836/2400}
+red:
+  techs:
+    fang: [portable_shield]
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -50}, exp: 0/200/1600}
+  - {name: fang, index: 1, position: {x: 45, y: -60}, exp: 0/600/600}

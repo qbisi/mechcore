@@ -1151,6 +1151,29 @@ explodes on the same update.
 effect does not go off while its unit's technologies are disabled
 (`IDeadEffect.IsTechnologyEffect`); an invincible unit's goes off.
 
+## Additional-damage technologies
+
+A row of `additionalDamageTechDatas` is an `AdditionalDamageTech`, an
+`IAdditionalDamage`: Ionization, the Raiden's, which takes 0.7 off its
+damage and makes each hit take half its target's life besides
+(`additionalDamageByTargetLife`). Its provider, a `SingleEffectProvider`, is
+a hit effect of the main skill and, its row setting `extraSkillEffect`, of
+every extra skill.
+
+**Each hit takes a share of what its target has left.** After a first hit,
+not a second damage's, `AdditionalDamageProvider.PerformHitEffect` hands each
+target the hit struck that still lives a hit of the rate times its life
+left, the `FPoint` product's whole part, through `FightActor.OnHitted`, from
+no object and under its unit's side. `OnHitted` neither raises it by the
+target's rate on damage taken nor takes its reduction off: a unit's own
+shield takes it first and the rest comes off its life. It raises no hit
+event, so the recording holds no damage for it and the statistics do not
+count it. Among a skill's hit effects it runs where its provider stands,
+after a buff technology's of a lower id, which is every buff technology a
+Raiden holds. A source that `CanDisable` takes nothing while its unit's
+technologies are disabled (`DoDisableEffect` takes the hit effect off the
+skills).
+
 ## What this table does not carry
 
 A technology that is not plain does something that is not a correction on its
@@ -1555,6 +1578,9 @@ derive (a minimum range):
   `tests/dead_explosion/final-blitz.yaml`. A Rhino that dies with its
   technologies disabled strikes nothing:
   `tests/dead_explosion/final-blitz-disabled.yaml`.
+- Ionization takes half the life left of a Fortress a Raiden hits, and
+  half of a Fang's through its emptied shield, with no damage recorded:
+  `tests/additional_damage/ionization.yaml`.
 - Subterranean Blitz burrows its Crawlers from the first tick and brings
   each up as its enemy comes within 50: `tests/burrow/crawler-rhino.yaml`.
   Burrowed, they take a Marksman's shot less 0.4; one that dies burrowed,
@@ -1747,6 +1773,10 @@ derive (a minimum range):
 
 ### Read
 
+- Additional-damage technologies: `AdditionalDamageTech.GetReduceLifeRate`,
+  `AdditionalDamageProvider.PerformHitEffect`, `DoEnableEffect`,
+  `DoDisableEffect`, `FightActor.OnHitted`, `FightMech.OnHitted`,
+  `HitDamageInfo`, `FightEffectMananger.Sort`.
 - Dead-explosion technologies: `DeadExplosiveTechnologyData.GetRange`,
   `DeadExplosiveTech.GetDamageMultiplier`, `HasDeadRangeItem`,
   `DeadExplosiveController.PerformDeadEffect`,
