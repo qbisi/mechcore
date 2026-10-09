@@ -222,6 +222,9 @@ impl EffectProvider {
     ///   (`SweepSkillIntensifyEffectProvider.TryApply`).
     /// - An air attack technology's switch stays: its provider's
     ///   `DisableEffect` and `EnableEffect` do nothing.
+    /// - An interception technology's interceptors are disabled and enabled,
+    ///   each letting its target go and returning to idle
+    ///   (`InterceptEffectBase.DoDisable`, `DoEnable`).
     /// - A burrowing technology's unit comes up, its buff removed, and its
     ///   manager passes over it (`BurrowSystem.Deactive`) until it is
     ///   switched on (`Active`).
@@ -252,9 +255,9 @@ impl EffectProvider {
             | Self::AutoRecovery
             | Self::EnergyShield
             | Self::SweepSkillIntensify
-            | Self::AirAttack => true,
-            Self::InterceptMissile
-            | Self::SupportUnit
+            | Self::AirAttack
+            | Self::InterceptMissile => true,
+            Self::SupportUnit
             | Self::MoveAbilitySummon
             | Self::MoveAbilityAttackIntensify
             | Self::MoveAbilityRangeItem => false,

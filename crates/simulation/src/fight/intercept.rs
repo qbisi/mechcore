@@ -207,6 +207,25 @@ impl Simulation {
         }
     }
 
+    /// `InterceptMissileEffectProvider.DisableEffect` and `EnableEffect`:
+    /// each interceptor of the unit's group (`TeamInterceptSourceManager.
+    /// GetInterceptSource`) disabled or enabled (`InterceptEffectBase.
+    /// DoDisable`, `DoEnable`), which either way lets its target go and
+    /// returns it to idle (`SetTarget`, `OnEnterIdle`): a disabled one does
+    /// not update (`InterceptEffectBase.Update`).
+    pub(in crate::fight) fn switch_unit_interception(&mut self, actor_id: u64, on: bool) {
+        for index in 0..self.interceptors.len() {
+            let interceptor = &mut self.interceptors[index];
+            if interceptor.removed
+                || !matches!(interceptor.owner, InterceptorOwner::Unit { actor_id: id, .. } if id == actor_id)
+            {
+                continue;
+            }
+            interceptor.enabled = on;
+            self.enter_intercept_idle(index);
+        }
+    }
+
     /// `InterceptMissileEffectProvider.DoDeactive`, as `DeadEffectSystem`
     /// calls a dead unit's `OnDead` and `FightEffectSystem.DeactiveEffect`
     /// takes its effects off: its group leaves its side's.
