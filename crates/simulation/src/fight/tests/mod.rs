@@ -56,6 +56,7 @@ pub(super) fn placement(
         sweep: None,
         distance_intensify: false,
         secondary_damage: None,
+        dead_line: None,
         interception: None,
         carried_shield: None,
         production: None,

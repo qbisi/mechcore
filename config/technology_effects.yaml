@@ -68,7 +68,11 @@ schema: mechcore.technology_effects
 # each lands from its target (`projectile_duration_value`,
 # `projectile_random_range_value`). A stealth technology carries the
 # share of its unit's maximum life its life first falling to puts it in
-# stealth, and the seconds that lasts (`stealth`).
+# stealth, and the seconds that lasts (`stealth`). A dead-line
+# technology carries the life, by its unit's level, at or under which
+# its unit's main skill destroys what it hits (`dead_line_value`), and
+# whether it does so through a unit's own shield
+# (`dead_line_ignores_shield`).
 
 technologies:
   - id: 206
@@ -1179,7 +1183,9 @@ technologies:
     name: 斩杀弹
     unit: mustang
     kind: deadLineTechDatas
+    dead_line_ignores_shield: true
     damage_rate: [-1503238553]  # -0.35
+    dead_line_value: [320, 520, 720, 920, 1120, 1320, 1520, 1720, 1920]
   - id: 4721
     name: 野战工事
     unit: sabertooth

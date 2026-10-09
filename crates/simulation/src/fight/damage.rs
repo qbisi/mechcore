@@ -702,51 +702,64 @@ impl Simulation {
     ) -> Result<Struck> {
         let mut struck = Struck::default();
         for target in targets {
-            // `DamagePerformer.PerformHitTargetEffect` hands a hit on to
-            // `FightCalculator` only when it deals at least 1: one that deals
-            // nothing, an Incendiary Bomb's, takes no life and is no hit
-            // `ExpSystem.OnActorHitted` hears of, so its owner does not share
-            // what the target is worth when it dies.
-            // A unit whose own shield has energy left takes what the hit
-            // deals a shield, before what it deals is asked
-            // (`CalculateHitEnergyShieldDamage`).
-            let amount = match (hit.shield_damage, target) {
-                (Some(damage), FightActorRef::Unit(id))
-                    if self.actors[&id]
-                        .shield
-                        .as_ref()
-                        .is_some_and(|shield| shield.energy > 0) =>
-                {
-                    damage
-                }
-                _ => hit.amount,
+            // `DamagePerformer.PerformHitTargetEffect` hands the target to the
+            // hit's pre-hit effects first, and a target they destroyed takes
+            // nothing more of it.
+            let culled = self.cull(hit, target, events)?;
+            let (carrier, skill_slot) = if culled.is_some() {
+                (None, None)
+            } else {
+                (hit.projectile, hit.skill_slot)
             };
-            if amount < 1 {
-                struck.targets.push(target);
-                continue;
-            }
-            let stroke = self.strike(
-                target,
-                hit.source,
-                hit.source_team,
-                (amount, true),
-                hit.provider,
-                events,
-            )?;
+            let stroke = if let Some(stroke) = culled {
+                stroke
+            } else {
+                // `DamagePerformer.PerformHitTargetEffect` hands a hit on to
+                // `FightCalculator` only when it deals at least 1: one that deals
+                // nothing, an Incendiary Bomb's, takes no life and is no hit
+                // `ExpSystem.OnActorHitted` hears of, so its owner does not share
+                // what the target is worth when it dies.
+                // A unit whose own shield has energy left takes what the hit
+                // deals a shield, before what it deals is asked
+                // (`CalculateHitEnergyShieldDamage`).
+                let amount = match (hit.shield_damage, target) {
+                    (Some(damage), FightActorRef::Unit(id))
+                        if self.actors[&id]
+                            .shield
+                            .as_ref()
+                            .is_some_and(|shield| shield.energy > 0) =>
+                    {
+                        damage
+                    }
+                    _ => hit.amount,
+                };
+                if amount < 1 {
+                    struck.targets.push(target);
+                    continue;
+                }
+                self.strike(
+                    target,
+                    hit.source,
+                    hit.source_team,
+                    (amount, true),
+                    hit.provider,
+                    events,
+                )?
+            };
             self.count_hit(hit.source, hit.source_team, target, &stroke)?;
             self.turned_unit_fell(target, &stroke);
             struck.targets.push(target);
             struck.lost += stroke.actual;
             if stroke.actual > 0 {
                 events.push(event(
-                    hit.projectile,
+                    carrier,
                     hit.source,
                     Some(hit.source_team),
                     Some(target.object_ref()),
                     EventPayload::Damage {
                         amount: i32::try_from(stroke.actual)
                             .map_err(|_| Error::new("damage exceeds i32"))?,
-                        skill_slot: hit.skill_slot,
+                        skill_slot,
                     },
                 ));
             }
@@ -769,6 +782,71 @@ impl Simulation {
             self.ignite_oils_hit((x_q32, z_q32, space_to_q32(hit.splash_radius)), hit.team)?;
         }
         Ok(struck)
+    }
+
+    /// `DeadLineEffectProvider.PerformPreHitEffect`, a pre-hit effect of the
+    /// main skill of a unit with a dead-line technology, itself or through
+    /// its projectile (`FightProjectile` hands its pre-hit on to its skill's
+    /// `SkillDamageProvider`): a unit it strikes, alive and at or under the
+    /// line at the skill's owner's level, is destroyed, unless its own shield
+    /// has energy left and the technology does not ignore shields, or the
+    /// owner's technologies are disabled. `FightActor.ReduceLife` takes its
+    /// whole life as a suicide's, which neither a shield nor stealth stops and
+    /// no reduction lessens, and `OnActorHitted` charges it with the line.
+    /// The hit it makes names no damage provider, so its `damage` names
+    /// neither a projectile nor a skill.
+    fn cull(
+        &mut self,
+        hit: &DamageHit,
+        target: FightActorRef,
+        events: &mut Vec<Event>,
+    ) -> Result<Option<Stroke>> {
+        let (Some(source), Some(slot), FightActorRef::Unit(unit_id)) =
+            (hit.source, hit.skill_slot, target)
+        else {
+            return Ok(None);
+        };
+        let Some(owner) = self
+            .actors
+            .get(&source.id)
+            .filter(|_| source.kind == ObjectKind::Unit)
+        else {
+            return Ok(None);
+        };
+        let Some(line) = owner.placement.dead_line else {
+            return Ok(None);
+        };
+        if usize::from(slot) >= owner.skills.main_slots() || owner.technology_disabled() {
+            return Ok(None);
+        }
+        let unit = &self.actors[&unit_id];
+        let shielded = unit.shield.as_ref().is_some_and(|shield| shield.energy > 0);
+        if (shielded && !line.ignores_shield) || !unit.alive() || unit.life > line.life {
+            return Ok(None);
+        }
+        let unit = self
+            .actors
+            .get_mut(&unit_id)
+            .expect("actor identity is stable");
+        let life = unit.life;
+        unit.life = 0;
+        unit.last_damage_source = Some((hit.source, hit.source_team));
+        let death = QVec3 {
+            x: unit.x_q32,
+            y: space_to_q32(unit_height(unit.rules.domain)),
+            z: unit.z_q32,
+        };
+        self.on_life_change(unit_id, events)?;
+        self.on_actor_dead(unit_id);
+        Ok(Some(Stroke {
+            actual: life,
+            dealt: life,
+            taken: line.life,
+            killed: true,
+            reached_alive: true,
+            death: Some(death),
+            fallen: None,
+        }))
     }
 
     /// `DamagePerformer.CheckSecondaryDamageApplied`: the second damage of the

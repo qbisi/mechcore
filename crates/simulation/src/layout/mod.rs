@@ -12,10 +12,10 @@ use crate::{
     Error, Result,
     data::{Channel, Correction, Entry, ExperienceRate, Index, Stats},
     modifier::{
-        AutoRecovery, BuffSource, CarriedShield, DeadSummon, EnergyShield, EnergyTowerSkillEffects,
-        EquipmentEffects, LifeSteal, MainSkill, OfficerEffects, ProductionLine, SecondaryDamage,
-        Stealth, SweepIntensify, TECHNOLOGY_SOURCE, TechnologyEffects, UnitInterception,
-        current_source,
+        AutoRecovery, BuffSource, CarriedShield, DeadLine, DeadSummon, EnergyShield,
+        EnergyTowerSkillEffects, EquipmentEffects, LifeSteal, MainSkill, OfficerEffects,
+        ProductionLine, SecondaryDamage, Stealth, SweepIntensify, TECHNOLOGY_SOURCE,
+        TechnologyEffects, UnitInterception, current_source,
     },
     rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs, UnitDomain},
 };
@@ -85,6 +85,9 @@ pub(crate) struct Placement {
     /// The second damage its technologies make its main skill deal around
     /// each hit (`SecondaryDamageIntensifyTech`).
     pub(crate) secondary_damage: Option<SecondaryDamage>,
+    /// The life at or under which its main skill destroys what it hits
+    /// (`DeadLineTech`).
+    pub(crate) dead_line: Option<DeadLine>,
     /// The interceptors its technologies make it (`InterceptMissileTech`).
     pub(crate) interception: Option<UnitInterception>,
     /// The battlefield shield its equipment makes it carry.
@@ -570,6 +573,7 @@ fn compile_death_summons(
             sweep: worn.sweep,
             distance_intensify: worn.distance_intensify,
             secondary_damage: worn.secondary_damage,
+            dead_line: worn.dead_line,
             interception: worn.interception,
             carried_shield: worn.carried_shield,
             production: None,
@@ -867,6 +871,7 @@ fn compile_formation(
         sweep: worn.sweep,
         distance_intensify: worn.distance_intensify,
         secondary_damage: worn.secondary_damage,
+        dead_line: worn.dead_line,
         interception: worn.interception,
         carried_shield: worn.carried_shield,
         production,
@@ -1003,13 +1008,14 @@ fn made_by(
         || worn.stealth.is_some()
         || worn.distance_intensify
         || worn.secondary_damage.is_some()
+        || worn.dead_line.is_some()
         || worn.interception.is_some()
         || worn.dead_summon.is_some()
     {
         refused.push(format!(
             "side {side_name} makes a {} that its technologies give lifesteal, repair, a \
-             shield, a search by distance, a second damage, interceptors or a summon as it \
-             dies, and what a made unit's effect providers carry is not measured",
+             shield, a search by distance, a second damage, a dead line, interceptors or a \
+             summon as it dies, and what a made unit's effect providers carry is not measured",
             made.type_name
         ));
         return None;
@@ -1150,6 +1156,7 @@ struct Worn {
     sweep: Option<SweepIntensify>,
     distance_intensify: bool,
     secondary_damage: Option<SecondaryDamage>,
+    dead_line: Option<DeadLine>,
     interception: Option<UnitInterception>,
     carried_shield: Option<CarriedShield>,
     buff_sources: Vec<BuffSource>,
@@ -1427,6 +1434,12 @@ fn worn(
         sweep: main_skill.sweep,
         distance_intensify: main_skill.distance_intensify,
         secondary_damage: main_skill.secondary_damage,
+        dead_line: refused.hold(
+            loadouts
+                .technologies
+                .dead_line(&side.techs.units, type_name, level)
+                .map_err(on_side),
+        )?,
         interception: refused.hold(one_interception(
             &sources.interception,
             side_name,

@@ -1,0 +1,22 @@
+# Culling Rounds on a level-three Mustang squad shooting two Marksmen.
+#
+# Each shot takes 70 until a Marksman stands at 712, under the line of 720
+# at level three, and the next destroys it whole: 712 (t129, t142).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 147
+hash: {profile: mcfr-content-0.22.0, result: 020261a6a9c711001d05378f003f181a038110ca1d364a8983d80f040d0de197}
+blue:
+  techs:
+    mustang: [culling_rounds]
+  units:
+  - {name: mustang, index: 0, position: {x: 5, y: -100}, level: 3, exp: 0/400/4274}
+red:
+  core_damage: 136
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -100}, exp: 0/340/650}
+  - {name: marksman, index: 1, position: {x: 20, y: -100}, exp: 0/340/650}
