@@ -181,6 +181,24 @@ impl Simulation {
         self.leave_side_groups(self.actors[&unit].placement.team, unit);
     }
 
+    /// `MechGrounpEffectProvider.DisableEffect` and `EnableEffect`, as a
+    /// disabling buff switches the unit's technologies off and on. Off, the
+    /// unit leaves its side's manager (`TeamMechGroupManager.RemoveMech`),
+    /// and with its group the rate a group that changes damage wrote, and
+    /// no longer hears its side change; its `MechGroupDistance` stays, which
+    /// nothing reads while it is out. On, it is handed to its side's manager
+    /// again (`AddMech`).
+    pub(in crate::fight) fn switch_group_unit(&mut self, unit: u64, on: bool) {
+        if on {
+            let actor = &self.actors[&unit];
+            if !actor.travelling && !self.mech_groups.sources.contains_key(&unit) {
+                self.add_group_unit(unit);
+            }
+        } else {
+            self.remove_group_unit(unit);
+        }
+    }
+
     /// `MechGrounpSystem.ChangeMechGroup`, as a beam turns a held unit: it
     /// leaves its old side's manager and joins its new side's, its
     /// `MechGroupDistance` kept, each manager refreshing.

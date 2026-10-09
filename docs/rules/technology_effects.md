@@ -656,6 +656,15 @@ whose own `DisableEffect` it does not mirror.
   go into stealth as its life falls. Switched on, `EnableStealthTech` takes a
   unit still pending out of the triggered ones again, and it goes into
   stealth at once if its life is low enough; this is read and not recorded.
+- **A grouping technology's unit leaves its groups.**
+  `MechGrounpEffectProvider.DisableEffect` takes it out of its side's
+  manager (`TeamMechGroupManager.RemoveMech`): it leaves its group, taking
+  away the rate a group that changes damage wrote, is no longer a candidate,
+  and no longer hears its side change; its `MechGroupDistance` stays.
+  Switched on, `EnableEffect` hands it back (`AddMech`), and it links with
+  what it reaches. Two of five Vortexes with Grid Integration under an
+  Electromagnetic Impact deal 1570 while the three left keep 2668, 70% more;
+  the Impact's 25 seconds over, the two link again as a pair at 2119.
 - **A buff its unit added itself is cleared, if its row says so**
   (`isClearSelfBuffWhenDisableTech`): `FightMech.DisableTechnology` raises
   `BuffManager.ClearSelfResourceBuffByDisableTech` after the effects are off.
@@ -677,9 +686,8 @@ whose own `DisableEffect` it does not mirror.
 What any other provider does switched off, the `AutoRecoveryEffectProvider`,
 `EnergyShieldProvider`, `SweepSkillIntensifyEffectProvider`,
 `AirAttackEffectProvider`, `InterceptMissileEffectProvider`,
-`SupportUnitProvider`, `DeadEffectProvider`, `MoveAbilitySummonProvider`,
-`MechGrounpEffectProvider` and a cycling buff source's `BuffEffectProvider`,
-and
+`SupportUnitProvider`, `DeadEffectProvider`, `MoveAbilitySummonProvider`
+and a cycling buff source's `BuffEffectProvider`, and
 an extra weapon's production line, other explosion or preemptive skill, or
 group, is not measured: a buff that disables technology reaching a unit whose
 technologies reach one is refused by the provider's name.
@@ -751,7 +759,9 @@ derive (a minimum range):
 - Grid Integration's group of five Vortexes raises each one's damage by
   105%, the count held to four; as they fall and part, two pairs take 35%
   and a Vortex alone nothing:
-  `tests/damage_share/fights/vortexes.yaml`.
+  `tests/damage_share/fights/vortexes.yaml`. Two of them an Electromagnetic
+  Impact disables leave the group and link again as it runs out:
+  `tests/damage_share/fights/vortexes-disabled.yaml`.
 - A dead-line technology destroys a unit its unit's shots strike at or
   under the line at its level, before the shot's damage: Culling Rounds
   culls Crawlers at 250 under a level-one Mustang's 320, and Marksmen at 712
@@ -951,6 +961,11 @@ derive (a minimum range):
   shares no hit: `MechGroupInternal.RefreshMechData`,
   `MechGroupInternal.RemoveMechData`, `FightMech.SetGroup`,
   `FightCalculator.PerformHitTargetEffect`.
+- A grouping technology switched off takes its unit out of its side's
+  manager, and switched on hands it back:
+  `MechGrounpEffectProvider.DisableEffect`,
+  `MechGrounpEffectProvider.EnableEffect`, `TeamMechGroupManager.RemoveMech`,
+  `TeamMechGroupManager.AddMech`.
 - A dead-line technology hands its unit's main skill a pre-hit effect that
   destroys a live unit at or under the line at the owner's level as a
   suicide, before the hit's shield and damage, and charges it the line:

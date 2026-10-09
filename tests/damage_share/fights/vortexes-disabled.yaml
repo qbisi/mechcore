@@ -1,0 +1,34 @@
+# Grid Integration on five Vortexes, two of them disabled by an
+# Electromagnetic Impact (t57) while two Rhinos charge and a Melting Point
+# comes up behind.
+#
+# Disabled, the two leave the group and deal 1570, and the three left keep
+# 2668, 1570 with 70% more. As the three fall a pair deals 2119 (t366). The
+# Impact's 25 seconds over, the two disabled Vortexes have their
+# technologies back and link again as a pair at 2119 (t556), until one
+# falls (t570).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 639
+hash: {profile: mcfr-content-0.22.0, result: fd237f28c979377736e7f969d0e04f9505f5729b9e520329d3f560a8f56a1225}
+blue:
+  core_damage: 350
+  techs:
+    vortex: [grid_integration]
+  units:
+  - {name: vortex, index: 0, position: {x: -60, y: -100}, exp: 0/40/750}
+  - {name: vortex, index: 1, position: {x: -30, y: -100}, exp: 0/90/750}
+  - {name: vortex, index: 2, position: {x: 0, y: -100}, exp: 0/290/750}
+  - {name: vortex, index: 3, position: {x: 30, y: -100}, exp: 0/90/750}
+  - {name: vortex, index: 4, position: {x: 60, y: -100}, exp: 0/290/750}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: -45, y: -105}}
+  - {name: rhino, index: 1, position: {x: 5, y: -105}}
+  - {name: melting_point, index: 2, position: {x: 0, y: -200}, exp: 0/1000/1400}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: 75, y: 62}]}

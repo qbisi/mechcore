@@ -7,7 +7,7 @@ raises each member's damage.
 is the rule. Each fight puts Damage Sharing on blue's Sledgehammers or Steel
 Balls, side by side or far apart, and strikes them with shots, blows and
 beams, or turns them with Hackers; or Grid Integration on blue's Vortexes,
-charged by Rhinos.
+charged by Rhinos, some of them under an Electromagnetic Impact.
 
 A recording holds a `damage` event on every member for each shared hit, in
 the group's order, and each Vortex's skill damage as its group changes.
