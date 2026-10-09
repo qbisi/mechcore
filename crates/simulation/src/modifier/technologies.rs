@@ -1574,16 +1574,32 @@ impl TechnologyEffects {
             let _ = row.sweep_skill_id;
             let reduce_damage = (row.kind == ARMOR).then(|| row.reduce_damage_value.clone());
             let who = format!("technology {} ({})", row.id, row.name);
-            let buff_source = (row.kind == BUFF).then(|| {
-                buffs::buff_source(
+            let buff_source = if row.kind == BUFF {
+                Some(buffs::buff_source(
                     &who,
                     (row.buff_trigger, &row.buff_targets, row.probability),
                     &row.buff_cycle,
                     can_disable,
                     &row.buff_special,
                     (row.buff.as_ref(), row.buff_range_item.as_ref()),
-                )
-            });
+                ))
+            } else if row.kind == SECONDARY_DAMAGE && row.secondary_disables_technology {
+                // `SecondaryDamageIntensifyEffectProvider.DoActive` hands the
+                // main skill a `BuffCycleController` of the row when it names
+                // a buff and its second damage disables technology.
+                row.buff.as_ref().map(|buff| {
+                    if i64::from(buff.id) == row.secondary_buff_id {
+                        buffs::second_damage_buff_source(&who, buff, can_disable)
+                    } else {
+                        Err(format!(
+                            "{who} carries buff {} for hitEMPBuffID {}",
+                            buff.id, row.secondary_buff_id
+                        ))
+                    }
+                })
+            } else {
+                None
+            };
             let (buff_source, effect) = match buff_source {
                 Some(Err(why)) => (None, Err(why)),
                 Some(Ok(buff)) => (Some(buff), corrections_of(&row)),
@@ -2435,13 +2451,6 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<Written>, String> {
         return Err(format!(
             "technology {} ({}) changes the attack point of its unit's first attacks after \
              surfacing, which is not measured",
-            row.id, row.name
-        ));
-    }
-    if row.secondary_disables_technology || row.secondary_buff_id != 0 {
-        return Err(format!(
-            "technology {} ({}) disables the technologies of the units its second damage \
-             strikes, or writes a buff on them, which is not measured",
             row.id, row.name
         ));
     }
@@ -3370,11 +3379,16 @@ mod tests {
         let written = table.corrections(&[SHOCKWAVE], "arclight", 1).unwrap();
         assert_eq!(written.len(), 1);
         assert_eq!(written[0].1.correction, Correction::Value(-5_000));
-        let refused = table
+        // Electromagnetic Cloud's second damage deals nothing and writes its
+        // buff through a source of its own, on the second damage's hit too.
+        table
             .corrections(&[ELECTROMAGNETIC_CLOUD], "vortex", 1)
-            .unwrap_err()
-            .to_string();
-        assert!(refused.contains("4531"), "{refused}");
+            .unwrap();
+        let cloud = table.sources(&[ELECTROMAGNETIC_CLOUD], "vortex").unwrap();
+        assert_eq!(cloud.buff_sources.len(), 1);
+        assert_eq!(cloud.buff_sources[0].buff_id, 1031);
+        assert!(cloud.buff_sources[0].on_second_damage);
+        assert!(cloud.buff_sources[0].disables_technology);
     }
 
     /// An interception technology hands its unit the interceptors it adds:

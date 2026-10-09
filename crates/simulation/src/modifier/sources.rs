@@ -390,6 +390,10 @@ pub(crate) struct BuffSource {
     /// `CanDisable`, as [`LifeSteal::can_disable`]: whether a hit of a unit
     /// whose technologies are disabled adds no buff.
     pub(crate) can_disable: bool,
+    /// Whether it is a second damage's own
+    /// (`ISecondaryDamageIntensifyEffectDataSource`), which writes on the
+    /// second damage's hit as well as the first.
+    pub(crate) on_second_damage: bool,
 }
 
 /// The unit a buff makes its unit summon as it dies: `Buff.GetSummonMechID`

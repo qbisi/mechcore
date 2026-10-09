@@ -1,0 +1,29 @@
+# Electromagnetic Cloud: a Vortex's hit writes its electromagnetic buff on
+# what it struck and on every enemy unit its 10-metre second damage reaches.
+#
+# At t129 the Vortex strikes the Rhino (unit 11) for 1570, and buff 1031 lands
+# on it and on the Crawlers 5 and 16 around it, the second damage dealing
+# them nothing. The Rhino's technologies go off: Power Armor's life leaves it,
+# 24121 to 19297, and it slows from 16 to 9.6.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 223
+hash: {profile: mcfr-content-0.23.0, result: e0a01f77113d91a881b4e02a1c9456bbcf9d26a71e054b9c9dc03ee6725a3eaa}
+blue:
+  core_damage: 396
+  techs:
+    vortex: [electromagnetic_cloud]
+  units:
+  - {name: vortex, index: 0, position: {x: 0, y: -150}}
+red:
+  techs:
+    marksman: [range_enhancement]
+    rhino: [power_armor]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/33/1150}
+  - {name: crawler, index: 1, position: {x: 45, y: -100}, exp: 0/33/450}
+  - {name: marksman, index: 2, position: {x: -40, y: -60}, exp: 0/133/650}

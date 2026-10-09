@@ -354,12 +354,14 @@ impl Simulation {
     /// struck them, a dead one only when the buff summons; a construction
     /// takes none, the buff not reaching one. A
     /// Void Eye with Suppression Shots cuts a struck Fortress's range from
-    /// 100 to 70, and a struck Rhino's melee reach not at all.
+    /// 100 to 70, and a struck Rhino's melee reach not at all. On a second
+    /// damage's hit (`secondary`) only a second damage's own source writes.
     pub(in crate::fight) fn add_hit_buffs(
         &mut self,
         owner_id: u64,
         slot: u16,
         (targets, center): (&[FightActorRef], (i64, i64, i64)),
+        secondary: bool,
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let Some(owner) = self.actors.get(&owner_id) else {
@@ -371,6 +373,7 @@ impl Simulation {
             .buff_sources
             .iter()
             .filter(|source| source.trigger == BuffTrigger::Hit)
+            .filter(|source| !secondary || source.on_second_damage)
             .filter(|source| !(source.can_disable && owner.technology_disabled()))
             .copied()
             .collect::<Vec<_>>();
