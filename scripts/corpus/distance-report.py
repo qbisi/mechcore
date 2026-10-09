@@ -6,7 +6,8 @@ Reads the reports `fight-coverage.py` and `verify-matches.py` print, saved as
 table of the numbers `plan/README.md` steers by: the rounds the simulator
 accepts, the rounds fought as the match says, where the matches stop, the
 refusals that hold the most rounds, and the unit technologies the game has
-that the simulator fights, the rest by kind. With `--before`, a directory holding the
+that the simulator fights, the rest by unit with their ids, and again by a
+name another id shares. With `--before`, a directory holding the
 same two reports of an earlier commit, each number carries its change.
 
     python3 scripts/corpus/distance-report.py <after> [--before <dir>] [--title TEXT]
@@ -35,8 +36,11 @@ TECHNOLOGIES = re.compile(
     r"^(\d+) unit technologies the game lets a unit research, (\d+) of them the simulator accepts$",
     re.M,
 )
-TECHNOLOGY_KIND = re.compile(r"^\s+(\d+)  (\w+)$", re.M)
-REFUSED_HEADING = "unit technologies the simulator refuses, by kind and cause"
+BY_UNIT = "unit technologies the simulator refuses, by unit"
+BY_NAME = "unit technologies the simulator refuses whose name another id shares, by name"
+UNIT_LINE = re.compile(r"^  +(\d+)  (\w+)$")
+MEMBER_LINE = re.compile(r"^ {10}(\d+) (\w+) \(")
+NAME_LINE = re.compile(r"^  +(\d+)  (.+?): (.+)$")
 SHOWN = 12
 
 
@@ -50,9 +54,6 @@ def read(directory: pathlib.Path) -> dict:
         sys.exit(f"{directory} does not hold both reports whole")
     every = EVERY.search(matches)
     technologies = TECHNOLOGIES.search(coverage)
-    kinds = (
-        coverage[coverage.index(REFUSED_HEADING):] if REFUSED_HEADING in coverage else ""
-    )
     summary_line = matches[fought.start():].splitlines()[0]
     stopped = {kind: int(count) for count, kind in STOPPED.findall(summary_line)}
     return {
@@ -74,11 +75,53 @@ def read(directory: pathlib.Path) -> dict:
         # A report from before the technologies were counted has neither.
         "technologies": int(technologies.group(1)) if technologies else None,
         "technologies_accepted": int(technologies.group(2)) if technologies else None,
-        "technology_kinds": {
-            kind: int(count) for count, kind in TECHNOLOGY_KIND.findall(kinds)
-        },
+        "technology_units": technology_units(coverage),
+        "technology_names": technology_names(coverage),
         "coverage": coverage,
         "verify": matches,
+    }
+
+
+def section(coverage: str, heading: str) -> list[str] | None:
+    """The lines of one of the report's blocks, up to the first blank line;
+    None for a report from before the block was printed."""
+    lines = coverage.splitlines()
+    if heading not in lines:
+        return None
+    block = []
+    for line in lines[lines.index(heading) + 1:]:
+        if not line.strip():
+            break
+        block.append(line)
+    return block
+
+
+def technology_units(coverage: str) -> dict[str, list[str]] | None:
+    """The refused technologies by unit, each as its id and layout name."""
+    block = section(coverage, BY_UNIT)
+    if block is None:
+        return None
+    units: dict[str, list[str]] = {}
+    unit = None
+    for line in block:
+        if found := UNIT_LINE.match(line):
+            unit = found.group(2)
+            units[unit] = []
+        elif (found := MEMBER_LINE.match(line)) and unit:
+            units[unit].append(f"{found.group(1)} {found.group(2)}")
+    return units
+
+
+def technology_names(coverage: str) -> dict[str, tuple[int, str]] | None:
+    """The refused technologies whose name another id shares: by name, how
+    many and the line naming them."""
+    block = section(coverage, BY_NAME)
+    if block is None:
+        return None
+    return {
+        found.group(2): (int(found.group(1)), found.group(3))
+        for line in block
+        if (found := NAME_LINE.match(line))
     }
 
 
@@ -172,30 +215,48 @@ def report(after: dict, before: dict | None, title: str) -> str:
 
 
 def technology_table(after: dict, before: dict | None) -> list[str]:
-    """The unit technologies the simulator refuses, by the list of
-    `TechnologyGroupData` each comes from: one kind of technology, which one
-    mechanism clears. Each one is named in `fight-coverage.py`'s report."""
-    kinds = after["technology_kinds"]
-    if after["technologies"] is None:
+    """The unit technologies the simulator refuses, by the unit that
+    researches them, each by id; and again those whose name another id
+    shares, which one mechanism usually clears together. Each is named, with
+    its kind and cause, in `fight-coverage.py`'s report."""
+    units = after["technology_units"]
+    if after["technologies"] is None or units is None:
         return []
-    was = before["technology_kinds"] if before and before["technologies"] is not None else None
+    was = before["technology_units"] if before else None
     lines = [
         "",
-        "The unit technologies the game has and the simulator refuses, by kind; "
-        "each is named, with its cause, in `fight-coverage.py`'s report below:",
+        "The unit technologies the game has and the simulator refuses, by unit; "
+        "each is named, with its kind and cause, in `fight-coverage.py`'s report below:",
         "",
     ]
-    if not kinds and not was:
-        return [*lines, "None."]
-    lines += ["| kind | refused |", "| --- | ---: |"]
-    for kind, count in kinds.items():
-        lines.append(f"| {kind} | {change(count, was.get(kind, 0) if was is not None else None)} |")
+    if units:
+        lines += ["| unit | refused | technologies |", "| --- | ---: | --- |"]
+        for unit, members in units.items():
+            count = change(len(members), len(was.get(unit, [])) if was is not None else None)
+            lines.append(f"| {unit} | {count} | {', '.join(members)} |")
+    else:
+        lines.append("None.")
     if was is not None:
-        gone = sorted(set(was) - set(kinds))
+        now = {member for members in units.values() for member in members}
+        gone = sorted(
+            {member for members in was.values() for member in members} - now,
+            key=lambda member: int(member.split()[0]),
+        )
         if gone:
             lines += ["", "No longer refused: " + ", ".join(gone)]
+    names = after["technology_names"] or {}
+    lines += [
+        "",
+        "The refused ones whose name a technology of another id shares, by name:",
+        "",
+    ]
+    if names:
+        lines += ["| name | refused | technologies |", "| --- | ---: | --- |"]
+        for name, (count, members) in names.items():
+            lines.append(f"| {name} | {count} | {members} |")
+    else:
+        lines.append("None.")
     return lines
-
 
 def differing_table(
     after: list[tuple[str, str, str, str]], before: list[tuple[str, str, str, str]] | None
