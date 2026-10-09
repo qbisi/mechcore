@@ -97,6 +97,9 @@ impl EffectProvider {
     ///   and how it starts again is not measured.
     /// - A stealth technology's unit is shown and counts as triggered
     ///   (`StealthTechSystem.DisableStealthTech`).
+    /// - A dead-line technology's pre-hit effect is taken off its unit's
+    ///   skills (`DeadLineEffectProvider.DisableEffect`), and does nothing
+    ///   while the technologies are off (`PerformPreHitEffect`).
     ///
     /// Every other provider does more, which is not measured.
     pub(crate) const fn disable_read(self) -> bool {
@@ -107,7 +110,8 @@ impl EffectProvider {
             | Self::SecondaryDamageIntensify
             | Self::Buff { cycles: false }
             | Self::ExtraSkill
-            | Self::StealthTech => true,
+            | Self::StealthTech
+            | Self::DeadLine => true,
             Self::AutoRecovery
             | Self::EnergyShield
             | Self::SweepSkillIntensify
@@ -116,8 +120,7 @@ impl EffectProvider {
             | Self::InterceptMissile
             | Self::SupportUnit
             | Self::DeadEffect
-            | Self::MoveAbilitySummon
-            | Self::DeadLine => false,
+            | Self::MoveAbilitySummon => false,
         }
     }
 }
