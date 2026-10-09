@@ -512,8 +512,7 @@ by one rule read off its schema:
   depends on the event's type, its integer tag;
 - a fixed-point value, a `tick_hash` and every other value is the stored one,
   an unsigned 64-bit integer keeping its bits in SQLite's signed one, and a
-  binary value is lowercase hex. `q32(x)` reads a fixed-point value as a real
-  number.
+  binary value is lowercase hex.
 
 A member's own table is keyed by `tick` and the identity the format orders its
 rows by: `unit_id`, `projectile_id`, `building_id`, `shield_id`,
@@ -526,6 +525,28 @@ made the recording, `game_build`, `format`, `result_hash`, `tick_count`,
 `terminal_tick` and `combat_round`. `--schema` says of each table whether the
 content hash reads it, and gives each column its place in the member and each
 enum column its tags.
+
+**The layout.** The embedded layout is laid out by its own shape, each row
+naming its `side` and the `team_id` the recording records that side under:
+`layout`, one row of `game_build`, `map_id`, `seed` and `round`;
+`layout_sides`, each side's `legacy_index`; `layout_units`, one row per
+formation placement keyed by `side` and `placement`, the placement's `index`,
+with its `name`, `x` and `y` as the document writes them, `level`, `exp__current`
+and `exp__maximum`, `rotated` and `travelling` where the document states them;
+`layout_units__equipment`, what each formation wears in order;
+`layout_constructions` and `layout_contraptions`, keyed the same way; and
+`layout_choices`, every list of names or numbers a side states — its officers,
+blueprints, energy tower skills, tower strengthen levels and, under `unit`, its
+technologies by unit type — as `list`, `unit`, `ordinal` and `value`.
+`layout_units.formation_id` is the recorded formation the placement is, matched
+as [`show --view outcome`](#show) matches them: by where the formation's
+members stand at the first tick. A placement no formation is matched to has
+none, and where the matching refuses every one is null and `meta` holds the
+refusal as `layout_formations_refused`.
+
+Beside SQLite's own functions, `q32(x)` reads a fixed-point value as a real
+number, and `sqrt(x)` and `hypot(x, y)` are the square root and the length of a
+vector.
 
 A table is decoded only once a statement reads it, so a statement pays for the
 members it names and no others.

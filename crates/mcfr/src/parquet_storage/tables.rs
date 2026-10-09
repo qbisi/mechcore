@@ -18,10 +18,10 @@ use super::{
     SKILL_MACHINE_STATES, TABLE_MEMBERS, building_schema, checked_builder, decode_domain,
     decode_kind, decode_motion, decode_shield_round_policy, decode_shield_source,
     decode_terrain_type, decode_visibility, formation_schema, instrument_channel,
-    object_ref_fields, open_members, projectile_schema, rebirth_schema, shield_schema,
+    object_ref_fields, open_members, projectile_schema, read_units, rebirth_schema, shield_schema,
     statistic_schema, terrain_schema, tick_fields, unit_schema,
 };
-use crate::{Error, MCFR_FORMAT, Result, event_table};
+use crate::{Error, LiveUnitState, MCFR_FORMAT, Result, event_table};
 
 /// One recording's tables, read on demand.
 pub struct McfrTables {
@@ -166,6 +166,25 @@ impl McfrTables {
         Ok(builder
             .build()?
             .collect::<std::result::Result<Vec<_>, _>>()?)
+    }
+
+    /// The live units one tick holds, in stored order, decoded as the model
+    /// holds them: what a reader that matches the recording to its layout
+    /// reads, without decoding any other table.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a units table whose stored schema is not the
+    /// format's.
+    pub fn live_units(&self, tick: u32) -> Result<Vec<LiveUnitState>> {
+        let Some(member) = self.members.get("units.parquet").cloned() else {
+            return Ok(Vec::new());
+        };
+        Ok(read_units(member)?
+            .into_iter()
+            .filter(|(at, _)| *at == tick)
+            .map(|(_, unit)| unit)
+            .collect())
     }
 
     /// A per-tick table's schema, the format's own whether a recording
