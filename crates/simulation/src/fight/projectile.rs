@@ -630,7 +630,7 @@ impl Simulation {
                 .filter_map(|target| target.unit_id())
                 .collect::<Vec<_>>();
             self.write_skill_buff(
-                (&name, team),
+                team,
                 Some(ObjectRef::new(ObjectKind::Unit, id)),
                 &buff,
                 &units,

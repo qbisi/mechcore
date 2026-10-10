@@ -804,9 +804,6 @@ drawn from any stream, and no event is written.
 - **What disabling a technology switches off** beyond a plain technology's
   numbers ([technology_effects.md](technology_effects.md)); the simulator
   refuses a unit that carries any other.
-- **An Electromagnetic Impact on a unit running another buff.** The two run
-  side by side, and how their rates compose is not read; the simulator
-  refuses it.
 - **The Electromagnetic Blast.** Its row differs in its range alone, and no
   fight pins it.
 - **A Training Ground release of Heavy Missile Strike.** Its geometry and map

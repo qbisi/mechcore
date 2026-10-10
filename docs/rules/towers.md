@@ -45,10 +45,11 @@ as it does within one channel: `DamageProperty.CalculateDamage` adds the buff's
 enhancement to the skill's and multiplies the two reduce rates, as one factor,
 before the damage; `MoveSpeedProperty.Refresh` does the same over the unit's
 `DataSet` and the buffs', in Q32.32 metres a second. `PerformHitTargetEffect`
-scales each hit a unit takes by the rate on damage taken. `BuffManager` keeps
-a tower's buffs in a separate `towerBuffDatas` set, read through
-`GetTowerBuffDamageChangeAddRate` and `GetTowerBuffDamageChangeReduceRate`;
-whether that changes the composition is not recorded.
+scales each hit a unit takes by the rate on damage taken. `BuffManager` writes
+a tower's buff into the unit's `buffDatas` as any buff, and into a separate
+`towerBuffDatas` set besides, which only `GetTowerBuffDamageChangeAddRate` and
+`GetTowerBuffDamageChangeReduceRate` read, for a second damage
+([combat.md](combat.md#a-second-damage-around-a-hit)).
 
 A second loss while the buff runs does not add a second buff. `BuffManager`
 finds the running one in the same `buffDivide`, and `Buff.Reset` lengthens it
@@ -59,10 +60,10 @@ another divide, a Sticky Oil Bomb's slow, is a second buff on the unit, and
 its rate on move speed composes with the loss's as two impairments do, each
 multiplying what the other leaves: the oil's -0.55 on a Fang running the
 loss's -0.8 leaves it 0.09 of its speed. A unit that dies
-running both has them cleared last first, the oil's before the loss's. How
-another buff's damage rates compose with the loss's, which `BuffManager` keeps
-apart, is not recorded, and a skill's buff that corrects one of the loss's
-numbers other than speed is refused.
+running both has them cleared last first, the oil's before the loss's. Their
+other rates compose the same way, in the one `buffDatas`: an Acid Blast's 1.5
+more damage taken beside the loss's 0.5 has a Fortress take its hits at 3
+times their damage, the enhancements summed.
 
 ## A construction takes the loss too
 
@@ -170,6 +171,8 @@ rest of the fight. A unit with no lock goes straight to its point.
 - A Sticky Oil Bomb's slow runs beside the loss's buff on blue's Fangs, the
   two speeds composing, and a Fang dying under both has the oil's cleared
   first: `tests/tower/loss-beside-oil.yaml`.
+- An Acid Blast's buff runs beside the loss's, and the two rates on damage
+  taken sum: `tests/battle_skill/acid-beside-tower-loss.yaml`.
 - The losing side's projectiles that land after the fall, on the tick the tower
   falls, land for their full damage: a Fire Badger's shot fells a tower and two
   Mustang shots of the losing side land after it, undebuffed:
@@ -200,7 +203,10 @@ rest of the fight. A unit with no lock goes straight to its point.
 - `FightController.AddModules` adds `FightCoreSystem`, then `ProjectileSystem`,
   then `DeadEffectSystem`, and `FightingState.Update` updates the modules in
   that order.
-- A tower's buffs are kept apart from a unit's: `BuffManager.towerBuffDatas`,
+- A tower's buff is written into the unit's `buffDatas` as any buff, and into
+  `towerBuffDatas` besides, which the second damage alone reads:
+  `BuffManager.AddData`, `BuffManager.IsTowerBuff`,
+  `BuffManager.GetAmplifyDamageAddRate`,
   `BuffManager.GetTowerBuffDamageChangeAddRate`.
 - A buff row may reach a tower: `BuffData.canAffectTower`.
 - A buff row may reach a construction, and a construction row may let it:

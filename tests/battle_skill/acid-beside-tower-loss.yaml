@@ -1,0 +1,27 @@
+# An Acid Blast's buff beside a tower's loss.
+#
+# Blue's Fortress stands in red's Acid Blast, which writes buff 500001, 1.5
+# more damage taken, on it every 19 ticks from tick 79. Red's Steel Balls
+# tear down blue's tower on tick 234, and its loss writes buff 1 on the
+# Fortress, 0.5 more damage taken among its rates; the acid goes on writing
+# its buff beside it. The Steel Balls' hits from tick 319 on are dealt at
+# 1 + 1.5 + 0.5 of their damage: the two buffs' enhancements sum in the
+# unit's one `buffDatas`, the tower's as any other's.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 403
+hash: {profile: mcfr-content-0.23.0, result: 7579c1b2614b99b0edbb41801f9982a9acae63063fa2535554f15d94f1a0265d}
+blue:
+  core_damage: 150
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -200}, exp: 0/300/1600}
+red:
+  units:
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/1000/1000}
+  - {name: marksman, index: 1, position: {x: 0, y: -230}}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: -135, y: 245}, {x: 40, y: 160}]}
