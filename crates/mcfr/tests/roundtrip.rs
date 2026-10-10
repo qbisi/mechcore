@@ -2,16 +2,16 @@ use std::io::Read;
 
 use bytes::Bytes;
 use mechcore_mcfr::{
-    AttackPhase, BuffDataKind, BuffDataRef, BuffState, BuildingState, CheckedSkill, ControlState,
-    Domain, DurableContext, EnabledSkill, Event, EventPayload, ExpRange, GaugeI32, HASH_PROFILE,
-    Hashes, LiveUnitState, MCFR_FORMAT, McfrReader, McfrWriter, MotionState, ObjectKind, ObjectRef,
-    PersonalShieldState, PoseClip, Producer, ProjectileReach, QPlanar, QPose, QVec3, Rational,
-    RebirthState, RvoExit, RvoNeighbour, RvoNeighbourKind, RvoSolve, RvoVec, RvoVo,
-    ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillAttackableCheck,
-    SkillMachineState, SkillState, TargetCandidate, TargetRefs, TargetSearch, TargetSearchPath,
-    TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
-    TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents, UnitPose, Visibility,
-    WeaponState, WorldSnapshot,
+    AttackPhase, BuffDataKind, BuffDataRef, BuffState, BuildingSkill, BuildingState,
+    BuildingWeapon, CheckedSkill, ControlState, Domain, DurableContext, EnabledSkill, Event,
+    EventPayload, ExpRange, GaugeI32, HASH_PROFILE, Hashes, LiveUnitState, MCFR_FORMAT, McfrReader,
+    McfrWriter, MotionState, ObjectKind, ObjectRef, PersonalShieldState, PoseClip, Producer,
+    ProjectileReach, QPlanar, QPose, QVec3, Rational, RebirthState, RvoExit, RvoNeighbour,
+    RvoNeighbourKind, RvoSolve, RvoVec, RvoVo, ShieldDestroyedReason, ShieldRoundPolicy,
+    ShieldSourceKind, ShieldState, SkillAttackableCheck, SkillMachineState, SkillState,
+    TargetCandidate, TargetRefs, TargetSearch, TargetSearchPath, TerrainApplicationState,
+    TerrainEffectClock, TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState,
+    TerrainType, TransitionEvents, UnitPose, Visibility, WeaponState, WorldSnapshot,
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use serde_json::json;
@@ -418,6 +418,46 @@ fn writer_rejects_partial_projectile_channel() {
     };
     assert!(writer.append_tick(state(100), &events).is_err());
     assert!(!path.exists());
+}
+
+/// A searching construction's skill, its lock and its weapons' facing, comes
+/// back as written; a building without one has none.
+#[test]
+fn a_construction_skill_round_trips() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("construction-skill.mcfr");
+    let mut armed = state(75);
+    let mut turret = armed.buildings[0].clone();
+    turret.building_id = 2;
+    turret.skill = Some(BuildingSkill {
+        lock_target: Some(ObjectRef::new(ObjectKind::Unit, 1)),
+        weapons: vec![BuildingWeapon {
+            weapon_index: 0,
+            rotation: 204 << 32,
+        }],
+    });
+    armed.buildings.push(turret);
+    let mut idle = armed.buildings[1].clone();
+    idle.building_id = 3;
+    idle.skill = Some(BuildingSkill {
+        lock_target: None,
+        weapons: vec![BuildingWeapon {
+            weapon_index: 0,
+            rotation: 180 << 32,
+        }],
+    });
+    armed.buildings.push(idle);
+    write_fight(
+        &path,
+        "build-a",
+        &context(),
+        state(100),
+        armed.clone(),
+        &damage_events(),
+    );
+    let read = McfrReader::open(&path).unwrap().state(1).unwrap();
+    assert_eq!(read.buildings, armed.buildings);
+    assert_eq!(read.buildings[0].skill, None);
 }
 
 #[test]
@@ -1043,6 +1083,7 @@ fn state(enemy_life: i32) -> WorldSnapshot {
             available: true,
             targetable: false,
             collision_enabled: true,
+            skill: None,
         }],
         shields: vec![ShieldState {
             shield_id: 1,

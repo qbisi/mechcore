@@ -31,14 +31,14 @@ use tempfile::TempDir;
 use zip::{CompressionMethod, ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 use crate::{
-    AttackPhase, BuffDataKind, BuffDataRef, BuffState, BuildingState, ControlState,
-    DamageStatistics, Domain, DurableContext, EnabledSkill, Error, Event, EventPayload,
-    FormationState, GaugeI32, HASH_PROFILE, Hashes, LiveUnitState, MCFR_FORMAT, MotionState,
-    ObjectKind, ObjectRef, PersonalShieldState, Producer, ProjectileState, QPlanar, QPose, QVec3,
-    RebirthState, RecorderKind, Result, ShieldRoundPolicy, ShieldSourceKind, ShieldState,
-    SkillMachineState, SkillState, TerrainApplicationState, TerrainEffectClock, TerrainGridState,
-    TerrainLogicLifetime, TerrainState, TerrainType, TransitionEvents, Visibility, WeaponState,
-    WorldSnapshot, canonical,
+    AttackPhase, BuffDataKind, BuffDataRef, BuffState, BuildingSkill, BuildingState,
+    BuildingWeapon, ControlState, DamageStatistics, Domain, DurableContext, EnabledSkill, Error,
+    Event, EventPayload, FormationState, GaugeI32, HASH_PROFILE, Hashes, LiveUnitState,
+    MCFR_FORMAT, MotionState, ObjectKind, ObjectRef, PersonalShieldState, Producer,
+    ProjectileState, QPlanar, QPose, QVec3, RebirthState, RecorderKind, Result, ShieldRoundPolicy,
+    ShieldSourceKind, ShieldState, SkillMachineState, SkillState, TerrainApplicationState,
+    TerrainEffectClock, TerrainGridState, TerrainLogicLifetime, TerrainState, TerrainType,
+    TransitionEvents, Visibility, WeaponState, WorldSnapshot, canonical,
     event_table::{batch_events, event_batch, event_schema},
     instrument::{self, ChannelSchema, InstrumentRow},
 };
@@ -787,8 +787,95 @@ fn building_batch(rows: &[(u32, BuildingState)]) -> Result<Option<RecordBatch>> 
             bool_values(values.iter().map(|row| row.available)),
             bool_values(values.iter().map(|row| row.targetable)),
             bool_values(values.iter().map(|row| row.collision_enabled)),
+            building_skill_values(values.iter().map(|row| row.skill.as_ref()))?,
         ],
     )?))
+}
+
+fn building_skill_fields() -> Fields {
+    vec![
+        struct_field("lock_target", object_ref_fields(), true),
+        list_field("weapons", building_weapon_fields()),
+    ]
+    .into()
+}
+
+fn building_weapon_fields() -> Fields {
+    vec![
+        Field::new("weapon_index", DataType::Int32, false),
+        Field::new("rotation", DataType::Int64, false),
+    ]
+    .into()
+}
+
+fn building_skill_values<'a>(
+    values: impl IntoIterator<Item = Option<&'a BuildingSkill>>,
+) -> Result<ArrayRef> {
+    let values = values.into_iter().collect::<Vec<_>>();
+    let weapons = values
+        .iter()
+        .flat_map(|value| value.map_or(&[][..], |skill| &skill.weapons[..]))
+        .copied()
+        .collect::<Vec<_>>();
+    let items = StructArray::new(
+        building_weapon_fields(),
+        vec![
+            i32_values(weapons.iter().map(|weapon| weapon.weapon_index)),
+            i64_values(weapons.iter().map(|weapon| weapon.rotation)),
+        ],
+        None,
+    );
+    let weapon_lists = ListArray::new(
+        Arc::new(Field::new(
+            "item",
+            DataType::Struct(building_weapon_fields()),
+            false,
+        )),
+        list_offsets(
+            values
+                .iter()
+                .map(|value| value.map_or(0, |skill| skill.weapons.len())),
+        )?,
+        Arc::new(items),
+        None,
+    );
+    Ok(Arc::new(StructArray::new(
+        building_skill_fields(),
+        vec![
+            object_ref_values(
+                values
+                    .iter()
+                    .map(|value| value.and_then(|skill| skill.lock_target)),
+            ),
+            Arc::new(weapon_lists),
+        ],
+        Some(values.iter().map(Option::is_some).collect::<NullBuffer>()),
+    )))
+}
+
+fn read_building_skill(array: &StructArray, index: usize) -> Result<Option<BuildingSkill>> {
+    let weapons = struct_child::<ListArray>(array, "weapons")?;
+    let lock_target = struct_child::<StructArray>(array, "lock_target")?;
+    if array.is_null(index) {
+        if weapons.value_length(index) != 0 || !lock_target.is_null(index) {
+            return Err(Error::invalid(
+                "a building with no searching skill carries a skill's lock or weapons",
+            ));
+        }
+        return Ok(None);
+    }
+    let items = list_struct_items(weapons, index, "building skill weapons")?;
+    let weapon_index = struct_child::<Int32Array>(&items, "weapon_index")?;
+    let rotation = struct_child::<Int64Array>(&items, "rotation")?;
+    Ok(Some(BuildingSkill {
+        lock_target: read_optional_ref(lock_target, index)?,
+        weapons: (0..items.len())
+            .map(|item| BuildingWeapon {
+                weapon_index: weapon_index.value(item),
+                rotation: rotation.value(item),
+            })
+            .collect(),
+    }))
 }
 
 fn u8_values(values: impl IntoIterator<Item = u8>) -> ArrayRef {
@@ -1414,6 +1501,7 @@ fn building_schema() -> SchemaRef {
         Field::new("available", DataType::Boolean, false),
         Field::new("targetable", DataType::Boolean, false),
         Field::new("collision_enabled", DataType::Boolean, false),
+        struct_field("skill", building_skill_fields(), true),
     ]))
 }
 
@@ -2588,6 +2676,7 @@ fn read_buildings(member: MemberSlice) -> Result<Vec<(u32, BuildingState)>> {
         let available = column::<BooleanArray>(&batch, "available")?;
         let targetable = column::<BooleanArray>(&batch, "targetable")?;
         let collision = column::<BooleanArray>(&batch, "collision_enabled")?;
+        let skill = struct_column(&batch, "skill")?;
         for index in 0..batch.num_rows() {
             rows.push((
                 tick.value(index),
@@ -2602,6 +2691,7 @@ fn read_buildings(member: MemberSlice) -> Result<Vec<(u32, BuildingState)>> {
                     available: available.value(index),
                     targetable: targetable.value(index),
                     collision_enabled: collision.value(index),
+                    skill: read_building_skill(skill, index)?,
                 },
             ));
         }

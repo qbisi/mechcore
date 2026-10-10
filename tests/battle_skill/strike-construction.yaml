@@ -30,4 +30,4 @@ asserts:
 - sql: "SELECT tick, target__kind, target__id, amount FROM events WHERE type = 'damage' AND source__kind IS NULL AND tick = 63 ORDER BY ordinal"
   rows: [[63, building, 5, 3000], [63, building, 6, 1112], [63, building, 7, 1112], [63, building, 8, 1112], [63, building, 9, 1112]]
 ticks: 514
-hash: 23:933f3d94e46de1af9d801b7e2fd5554f1466f264f07a50e4d2892536d1861d3f
+hash: 23:68508ea6a47237dbf92a3284e3add49fa16d9d6fb8609119fd21db31aa89cde1

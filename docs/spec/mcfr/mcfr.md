@@ -465,6 +465,13 @@ preserves the fact.
 | `available` | `BOOLEAN required` | native availability | `IsAvaliable()` |
 | `targetable` | `BOOLEAN required` | whether it is a legal target now | `IsValidTarget(visibility=0)` |
 | `collision_enabled` | `BOOLEAN required` | collision enabled in building data | `GetBuildingData().get_EnableCollision()` |
+| `skill` | `BuildingSkill nullable` | a construction that searches for targets: its main skill's lock and each weapon's facing; null for every other building, a tower or a wall | `FightConstruction.GetConstructionData().IsEnableSearchTarget()`, `GetMainSkill()` |
+
+A `BuildingSkill` holds `lock_target`, `ObjectRef nullable`, the skill's
+`FightSkill.lockTarget`, and `weapons`, a list of `{weapon_index, rotation}`
+strictly ascending by `weapon_index`: `WeaponData.get_Index()` and the weapon's
+`FightTransform.GetRotationInt()`, Q32.32 degrees raw, which the skill turns
+towards its lock and measures its attack angle from.
 
 This collection is also the definition of what a building is: an object inside a
 team's evolution lists, currently alive, and assignable a stable Building ID.
@@ -1007,8 +1014,9 @@ The JSON is what `serde_json` writes for the value as it is, so no object is
 sorted at encoding time, and a field added out of order would move the hash;
 the crate's tests hold every declaration to byte order. A unit's
 `rebirth_count` is left out of the JSON while it is 0, its null in
-`units.parquet`, so a unit never reborn encodes as it would without the field;
-every other field is written, null included. The hash covers every
+`units.parquet`, so a unit never reborn encodes as it would without the field,
+and a building's `skill` while it is null, so a building that does not search
+encodes as it would without it; every other field is written, null included. The hash covers every
 `S(t)` and `E(t)` field. It carries neither the layout, nor the
 DurableContext, nor any other file metadata.
 
@@ -1099,7 +1107,11 @@ on the game every fixture whose pin it moves, and merges like any other.
 **What an admission moves.** A new event kind or enum value
 appears only in the fights where it happens, and moves only their pins. A new
 field of a state object or of an event, or a new state collection, is written
-in every tick, null or empty where nothing has it, and moves every pin. A new
+in every tick, null or empty where nothing has it, and moves every pin, unless
+it is left out of the JSON while it holds nothing, as `rebirth_count` and a
+building's `skill` are: then it moves only the pins of the fights where it
+holds something, and every other hash stays what it was under the same
+profile. A new
 value of a field already admitted, such as a buff's `data` naming another
 buff row, is not an admission.
 

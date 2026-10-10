@@ -946,13 +946,39 @@ impl Simulation {
                 .buildings
                 .iter()
                 .filter(|building| building_alive(building))
-                .cloned()
+                .map(|building| BuildingState {
+                    skill: self.building_skill(building.building_id),
+                    ..building.clone()
+                })
                 .collect(),
             shields: self.shield_states(),
             terrains: self.terrain_states(),
             statistics: self.statistics.recorders.values().copied().collect(),
             formations: self.formation_states(),
         }
+    }
+
+    /// What a recording holds of a searching construction's main skill: its
+    /// lock and each weapon's facing. A construction that does not search,
+    /// and every other building, has none.
+    fn building_skill(&self, building_id: u64) -> Option<mechcore_mcfr::BuildingSkill> {
+        let construction = self
+            .constructions
+            .get(&building_id)
+            .filter(|construction| construction.searches)?;
+        let skill = &construction.skills.main;
+        Some(mechcore_mcfr::BuildingSkill {
+            lock_target: skill.lock_target.map(FightActorRef::object_ref),
+            weapons: skill
+                .weapon_rotations_q32
+                .iter()
+                .enumerate()
+                .map(|(weapon, &rotation)| mechcore_mcfr::BuildingWeapon {
+                    rotation,
+                    weapon_index: construction.attack.weapons.index(weapon),
+                })
+                .collect(),
+        })
     }
 
     /// Reads a unit with no enemy left at its interval as composed, with no

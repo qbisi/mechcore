@@ -18,6 +18,8 @@ BuffState.source: ObjectRef | null
 BuffState.source_team: integer(uint32)
 BuffState.stacks: integer(int32)
 BuffState.step: integer(int32)
+BuildingSkill.lock_target: ObjectRef | null
+BuildingSkill.weapons: [BuildingWeapon]
 BuildingState.available: boolean
 BuildingState.bounds_height: integer(int64)
 BuildingState.bounds_width: integer(int64)
@@ -26,8 +28,11 @@ BuildingState.building_type_id: integer(uint32)
 BuildingState.collision_enabled: boolean
 BuildingState.life: GaugeI32
 BuildingState.position: QVec3
+BuildingState.skill: BuildingSkill | null
 BuildingState.targetable: boolean
 BuildingState.team_id: integer(uint32)
+BuildingWeapon.rotation: integer(int64)
+BuildingWeapon.weapon_index: integer(int32)
 ControlState.progress: integer(int32)
 ControlState.sources: [ObjectRef]
 DamageStatistics.damage: integer(int32)

@@ -1,0 +1,34 @@
+# A turret does not turn to the advance team as round 1 starts.
+#
+# Round 1. Blue's Marksman at (60, -80) is a legacy unit, the advance team,
+# and its Marksman at (140, -80) joined this round. Red's Anti-Armor Turret
+# at world (140, 100) faces 180 degrees, its attack facing, as the fight
+# starts: in the first round no unit is old (`MechTeam.IsOldUnit`), so it
+# scores only blue's towers. Its first search from 180 locks the Marksman
+# straight ahead. Its assert reads the turret's lock and its weapon's facing
+# on tick 1; `anti-armor-old-unit.yaml` is the same layout in round 3.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 60, y: -80}, source: legacy}
+  - {name: marksman, index: 1, position: {x: 140, y: -80}}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, source: legacy}
+  constructions:
+  - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}
+outcome:
+  blue.units[0].exp: 30
+  blue.units[1].exp: 490
+  red.core_damage: 100
+  red.units[0].exp: 200
+asserts:
+- sql: "SELECT b.tick, b.building_id, b.skill__lock_target__kind, b.skill__lock_target__id, w.rotation FROM buildings b JOIN buildings__skill__weapons w ON w.tick = b.tick AND w.building_id = b.building_id WHERE b.team_id = 1 AND b.has_skill AND b.tick = 1"
+  rows: [[1, 5, unit, 2, 773094113251]]
+ticks: 427
+hash: 23:e9d52d3a4c27cd834d334df6ef7ffcb744cafddf187e369e5ecb857a190cd87d

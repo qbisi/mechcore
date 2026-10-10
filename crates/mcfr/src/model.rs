@@ -1045,8 +1045,37 @@ pub struct BuildingState {
     pub collision_enabled: bool,
     pub life: GaugeI32,
     pub position: QVec3,
+    /// The main skill of a construction that searches for targets
+    /// (`ConstructionData.IsEnableSearchTarget`): its lock and its weapons'
+    /// facing. Left out for every other building, a tower or a wall.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skill: Option<BuildingSkill>,
     pub targetable: bool,
     pub team_id: u32,
+}
+
+/// What a recording holds of a searching construction's main skill.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct BuildingSkill {
+    /// `FightSkill.lockTarget`: what the skill holds as its target, null
+    /// while it holds none.
+    pub lock_target: Option<ObjectRef>,
+    /// Each of the skill's weapons, strictly ascending by index.
+    pub weapons: Vec<BuildingWeapon>,
+}
+
+/// One weapon of a searching construction's main skill.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct BuildingWeapon {
+    /// The weapon's `FightTransform` rotation, Q32.32 degrees raw, which the
+    /// skill turns towards its lock and measures its attack angle from.
+    pub rotation: i64,
+    /// `WeaponData.get_Index()`.
+    pub weapon_index: i32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
