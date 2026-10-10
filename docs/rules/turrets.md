@@ -338,7 +338,12 @@ content, as `tests/turret/` replays them.
 - A unit's round count rises as each round opens, and as an officer's squad
   or a snapshot's unit arrives: `UnitSystem.OnEnterDeployment`,
   `MechTeam.AddRoundCount`, `UnitOfficerController.AddExtraUnit`,
-  `PlayerSnapshotController.ApplyUnitSnapshot`.
+  `PlayerSnapshotController.ApplyUnitSnapshot`. A snapshot's unit is counted
+  as many times as the snapshot's `RoundCount` says, and a unit is old when
+  its count is above zero: `MechTeam.IsOldUnit`. Every replay of this
+  version's corpus writes `RoundCount` 0 for the advance team in round 1 and
+  again in round 2, and 1 in round 3, so no unit is old in the first round;
+  a layout replay writes 0 for every unit it restores.
 - The fight-start direction is taken towards the chosen target's
   `FightTransform.recordPosition`: `UnitDirectionCalculator.CalculateMechDirection`.
   An officer's squad is added through a callback,
@@ -356,6 +361,14 @@ content, as `tests/turret/` replays them.
   `BattleSystem.OnPlayerReleaseConstruction`.
 
 ### Not established
+
+- **The first round's facing, in a recording.** A turret in round 1 does not
+  turn to the other side's advance team: in the game its first search scores
+  from 180°, its attack facing, where the same unit as an old unit of round 3
+  turns it to 204°, read from the `target_candidate` instrument channel. No
+  recording holds a construction's weapon or lock, and in every fight tried
+  the weapon has turned onto its lock before the lock is in reach, so no pin
+  holds it.
 
 - **Which rotation the fight-start score is taken from.**
   `ScoreRatingTargetSelector` reads it through the attacker's
