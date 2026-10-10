@@ -1910,27 +1910,29 @@ fn extra_weapons(
             skill_corrections,
         });
     }
-    // `MeleeModeEffectSystem.UpdateMainSkillAmmoCapacity`: an extra skill
-    // the melee skill locks shares the main skill's rounds
-    // (`AmmoSkillPool`), which is not measured.
-    if let Some(shared) = weapons.iter().find(|weapon| {
-        weapons.iter().any(|melee| {
-            melee
-                .rules
-                .preemptive
-                .as_ref()
-                .and_then(|preemptive| preemptive.ammo_empty.as_ref())
-                .is_some_and(|ammo| ammo.incompatible.contains(&weapon.rules.skill))
-        })
-    }) {
-        refused.push(format!(
-            "side {side_name} unit type {type_name:?} technology {}: its skill shares its \
-             unit's rounds with the main skill under a melee mode, which is not measured",
-            shared.rules.technology
-        ));
-        return None;
-    }
     Some(weapons)
+}
+
+/// `MeleeModeEffectSystem.UpdateMainSkillAmmoCapacity`: the rounds a melee
+/// mode gives its unit's main skill, its `GetAmmoCount`, and its
+/// `GetExtraAmmoCount` more when the unit holds an extra skill its melee
+/// skill names incompatible (`HasIncompatibleSkill`): a Centurion with Dual
+/// Wield holds forty.
+pub(crate) fn melee_rounds(melee: &crate::modifier::MeleeMode, weapons: &[ExtraWeapon]) -> u32 {
+    let incompatible = weapons
+        .iter()
+        .filter(|weapon| weapon.rules.skill == melee.skill)
+        .filter_map(|weapon| weapon.rules.preemptive.as_ref()?.ammo_empty.as_ref())
+        .any(|ammo| {
+            weapons
+                .iter()
+                .any(|weapon| ammo.incompatible.contains(&weapon.rules.skill))
+        });
+    if incompatible {
+        melee.ammo.saturating_add(melee.extra_ammo)
+    } else {
+        melee.ammo
+    }
 }
 
 /// `AirAttackEffectProvider.SwitchMechAirAttackEnabled`: an air-attack

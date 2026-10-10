@@ -351,6 +351,10 @@ struct Actor {
     /// Whether its melee mode has written its numbers
     /// (`MeleeModeOwnerInfo.HasMeleeModeDataModifier`).
     melee_written: bool,
+    /// `MechDataChangeInt.DisableBody`, which a permanent preemptive skill
+    /// whose source answers `IExtraSkill.DisableBody` writes as it takes
+    /// over (`PreemptiveSkillController.ActivePermanentPreemptiveSkill`).
+    body_disabled: bool,
     /// `BuffManager.beHitDelayBuffInfos`: the buffs that disable technology
     /// a unit it hit queued on it, each with that unit, which
     /// `InvokeDelayAddBuff` adds as its `BuffManager.Update` ends.

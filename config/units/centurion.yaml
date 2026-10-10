@@ -60,6 +60,7 @@ extra_weapons:
     use_main_skill_range: true
     damage_by_level: []
     damage_rate: 1
+    loading_type: true
     attack:
       base_damage: 0
       min_range: 0

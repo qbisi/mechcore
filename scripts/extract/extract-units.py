@@ -348,7 +348,8 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
     # A direct skill may splash about its own unit and diffuse: its splash
     # grows from it a step at a time (`DamagePerformer.PerformDiffusionRangeEffect`).
     # A magazine whose reload takes no time is never reloaded
-    # (`FightSkill.CanAutoReload`), and nothing else reads it: the side arm's.
+    # (`FightSkill.CanAutoReload`): the side arm's, whose loading type pools it
+    # with its unit's main skill under a melee mode (`AmmoSkillPool`).
     if raw(skill["initialCoolDownTime"]) or (skill["isLoadingType"] and raw(skill["reloadingTime"])) or (
             skill["isDiffusion"] and kind != "skillDatas"):
         return []
@@ -376,6 +377,8 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
         lines.append(f"    damage_rate: {readable(skill['damageRate'])}")
     if skill["ignoreEquipmentEffect"]:
         lines.append("    ignore_equipment: true")
+    if skill["isLoadingType"]:
+        lines.append("    loading_type: true")
     if row.get("energyShieldDamage", -1) >= 0:
         lines.append(f"    shield_damage: {row['energyShieldDamage']}")
     life = ", ".join(str(grid(value, 2000)) for value in row.get("fireLifeTime") or [])

@@ -1654,7 +1654,12 @@ impl Simulation {
         motion_before: MotionState,
     ) -> Result<()> {
         let was_moving = motion_before == MotionState::Moving;
-        if let SkillSlot::Extra(_) = self.actors[&actor_id].motion.attacker {
+        if let SkillSlot::Extra(_) = self.actors[&actor_id].motion.attacker
+            // A melee skill that took over as a skill ran the rounds out
+            // stopped the motion for its transition (`ChangeToStopState`),
+            // which stands.
+            && self.actors[&actor_id].melee_transition_at.is_none()
+        {
             // The main skill letting its target go idles the motion in its
             // own update here, where the build's motion asks its attacker as
             // it updates: an extra skill that took the motion since finds it

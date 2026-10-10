@@ -415,14 +415,14 @@ impl Simulation {
                     attack_interval_q32: actor.stats.attack_interval_q32(),
                     // A standalone weapon's skill faces with its own weapon:
                     // the unit's main skill is the first gun's.
-                    facing: if actor.rules.has_body && actor.skills.main.standalone() {
+                    facing: if actor.has_body() && actor.skills.main.standalone() {
                         Facing::Weapons(&actor.skills.main.weapon_rotations_q32[..1])
-                    } else if actor.rules.has_body {
+                    } else if actor.has_body() {
                         Facing::Weapons(&actor.skills.main.weapon_rotations_q32)
                     } else {
                         Facing::Root(actor.body_rotation_q32)
                     },
-                    has_body: actor.rules.has_body,
+                    has_body: actor.has_body(),
                     turn_q32: actor.turn_q32(),
                     rotation_window_q32: actor
                         .default_search_frame(&actor.rules.attack, 0)

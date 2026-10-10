@@ -1142,9 +1142,19 @@ impl Simulation {
         self.projectiles.push(projectile);
         // `ProjectileSingleAttackPerformer.TryPerformEffect`: a projectile of
         // a skill whose rounds a pool holds takes one (`ReduceLoadingRemainCount`).
+        // `AmmoSkillPool.CollectPoolSkills` pools the main skill and every
+        // extra skill of a loading type: a Centurion's side arm spends the
+        // rounds its main gun does.
         if let FightActorRef::Unit(id) = source.owner
             && let Some(actor) = self.actors.get_mut(&id)
-            && usize::from(skill_slot) < actor.skills.main_slots()
+            && match actor.skills.at_slot(usize::from(skill_slot)).0 {
+                SkillSlot::Main => true,
+                SkillSlot::Extra(index) => actor
+                    .skills
+                    .extras
+                    .get(index)
+                    .is_some_and(|extra| extra.rules.loading_type),
+            }
             && let Some(rounds) = actor.ammo.as_mut()
         {
             *rounds = rounds.saturating_sub(1);

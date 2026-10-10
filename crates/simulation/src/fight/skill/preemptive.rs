@@ -30,6 +30,36 @@ impl Simulation {
             .position(|extra| extra.rules.preemptive.is_some())
     }
 
+    /// `SkillManager.TryTriggerAmmoEmptyPreemptiveCheck`, which
+    /// `SkillAttackController.ChangeToIdle` calls as a skill's blow runs its
+    /// cycle out: a skill the unit's rounds are pooled for
+    /// (`AmmoSkillPool.CanTriggerAmmoEmptyPreemptiveCheck`) checks the melee
+    /// skill's condition there and then (`PreemptiveSkillController.CheckAmmoEmpty`),
+    /// before its weapon turns: a Centurion's side arm that spends the last
+    /// round locks where it points.
+    pub(in crate::fight) fn check_ammo_on_idle(
+        &mut self,
+        skill_ref: SkillRef,
+        performed_before: u32,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let FightActorRef::Unit(actor_id) = skill_ref.owner else {
+            return Ok(());
+        };
+        if self.skill(skill_ref).perform_count <= performed_before {
+            return Ok(());
+        }
+        let actor = &self.actors[&actor_id];
+        let pooled = match skill_ref.slot {
+            SkillSlot::Main => true,
+            SkillSlot::Extra(index) => actor.skills.extras[index].rules.loading_type,
+        };
+        if !pooled || actor.ammo.is_none() {
+            return Ok(());
+        }
+        self.update_preemptive(actor_id, events)
+    }
+
     /// `PreemptiveSkillController.Update`, after the unit's skills: a
     /// permanent preemptive skill not yet active activates once its
     /// condition holds.
@@ -179,14 +209,20 @@ impl Simulation {
         }
         actor.melee_transition_at =
             Some(step_now + seconds_q32_to_steps(crate::rules::metres_q32(ammo_empty.transition)));
-        // `MotionController.ChangeToStopState` for the transition. The main
-        // skill's weapon, locked, turns to where the unit points and stays
-        // there.
-        actor.motion.state = MotionState::Stopped;
+        // A melee mode's skill disables its unit's body
+        // (`MeleeModeTech.DisableBody` answers true): the body turns to where
+        // the unit points (`IFightMechBody.UpdateRotation`) and stays there,
+        // and the unit turns and aims from its root from then on
+        // (`MechDataChangeInt.DisableBody`).
         let body = actor.body_rotation_q32;
-        if let Some(weapon) = actor.skills.main.weapon_rotations_q32.first_mut() {
+        if actor.has_body()
+            && let Some(weapon) = actor.skills.main.weapon_rotations_q32.first_mut()
+        {
             *weapon = body;
         }
+        actor.body_disabled = true;
+        // `MotionController.ChangeToStopState` for the transition.
+        actor.motion.state = MotionState::Stopped;
         let melee = actor.placement.effects.single.melee;
         if let Some(melee) = melee.filter(|melee| melee.recovers_life) {
             let actor = &self.actors[&actor_id];
@@ -194,7 +230,7 @@ impl Simulation {
             if melee.recovery_ignores_disable {
                 // `FightMech.ForceRecoveryLife`: `AddLife` of its maximum,
                 // whatever holds its recovery off.
-                self.force_add_life(actor_id, max_life, events)?;
+                self.force_add_life(actor_id, max_life);
             } else {
                 self.add_life(actor_id, max_life, events)?;
             }
