@@ -283,7 +283,7 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
     } else {
         crate::cli::emit(
             &Page {
-                schema: "mechcore.man-page.v1",
+                schema: "mechcore.man-page",
                 topic: name,
                 title,
                 text,
@@ -368,7 +368,7 @@ fn list(arguments: Args, format: Format) -> Outcome {
     } else {
         crate::cli::emit(
             &Listing {
-                schema: "mechcore.man-topics.v1",
+                schema: "mechcore.man-topics",
                 topics,
                 kinds,
             },

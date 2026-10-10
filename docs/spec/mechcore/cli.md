@@ -133,10 +133,13 @@ is absent from what they write and present in what the operation reads.
 ## Results
 
 A result is one JSON object on standard output, carrying the `schema` of its
-kind:
+kind, which names the kind and no version: the shape follows the release, and
+nothing here keeps an older one alive beside it. The Adapter's protocol is the
+one versioned name, because a game can hold a dylib older than the CLI that
+talks to it:
 
 ```json
-{"schema": "mechcore.match.v1", "match": "m.yaml", "round": 3, "phase": "deploy", ...}
+{"schema": "mechcore.match", "match": "m.yaml", "round": 3, "phase": "deploy", ...}
 ```
 
 An operation that answers per input writes one object per line, one per input,
@@ -154,7 +157,7 @@ person watches the same run.
 A failure is one JSON object on standard error and an exit code:
 
 ```json
-{"schema": "mechcore.error.v1", "kind": "refused", "operation": "match.act",
+{"schema": "mechcore.error", "kind": "refused", "operation": "match.act",
  "reason": "moving a unit fixed in place"}
 ```
 

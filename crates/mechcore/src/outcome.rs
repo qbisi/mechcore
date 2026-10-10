@@ -35,7 +35,7 @@ use crate::{
     turn::Side,
 };
 
-pub(crate) const SCHEMA: &str = "mechcore.fight-outcome.v4";
+pub(crate) const SCHEMA: &str = "mechcore.fight-outcome";
 
 /// `FPoint`'s one, the recording's fixed point.
 const ONE: i64 = 1 << 32;

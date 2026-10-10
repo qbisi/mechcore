@@ -197,7 +197,7 @@ pub(crate) fn run(
         simulated_duration_milliseconds as f64 / generation_duration.as_secs_f64() / 1_000.0;
     let winner = simulation.winner().map(team_name);
     Ok(SimulationResult {
-        schema: "mechcore.simulation-result.v5",
+        schema: "mechcore.simulation-result",
         game_build: config.game_build.clone(),
         seed,
         seed_source,
@@ -299,7 +299,7 @@ pub(crate) fn compare(
         ));
     }
     Ok(SimulationComparison {
-        schema: "mechcore.sim-compare-result.v3",
+        schema: "mechcore.sim-compare-result",
         game_build: config.game_build.clone(),
         seed,
         equal: first_divergence.is_none(),

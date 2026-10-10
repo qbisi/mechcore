@@ -14,7 +14,7 @@ fn compare_reports_equal_result_hashes() {
     let output = compare(&path, &path);
     assert!(output.status.success());
     let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(report["schema"], "mechcore.fight-compare-result.v3");
+    assert_eq!(report["schema"], "mechcore.fight-compare-result");
     assert_eq!(report["equal"], true);
     assert!(report["first_divergence"].is_null());
     assert_eq!(report["compared_ticks"], 1);

@@ -22,7 +22,7 @@ use crate::{
     turn::Side,
 };
 
-pub(crate) const SCHEMA: &str = "mechcore.fight-stats.v4";
+pub(crate) const SCHEMA: &str = "mechcore.fight-stats";
 
 /// Every correction one tick of a recording holds.
 #[derive(Serialize)]

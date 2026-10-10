@@ -132,7 +132,7 @@ fn a_named_query_takes_its_parameters() {
         ],
     );
     assert_eq!(code, 0, "{answer}");
-    assert_eq!(answer["schema"], "mechcore.query.v1");
+    assert_eq!(answer["schema"], "mechcore.query");
     assert_eq!(answer["columns"][0], "tick");
     let (code, answer) = query(&path, &["--query", "events-window", "--param", "from=1"]);
     assert_eq!(code, 2, "{answer}");

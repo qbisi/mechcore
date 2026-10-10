@@ -187,7 +187,7 @@ middle as a change to every later entry plus one addition or removal at the end;
 keying by identity reports one removal, one change and one addition instead, so a
 difference corresponds to a decision rather than to a shift in the list. A
 collection whose entries lack a usable unique `index` falls back to positional
-alignment. The report is `mechcore.layout-diff-result.v2`.
+alignment. The report is `mechcore.layout-diff-result`.
 
 ## Seed and map
 

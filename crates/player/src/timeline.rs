@@ -19,7 +19,7 @@ use serde::{Serialize, Serializer};
 
 use crate::track::Track;
 
-pub const SCHEMA: &str = "mechcore.player.v1";
+pub const SCHEMA: &str = "mechcore.player";
 
 /// Logic ticks per second: the `1/20` logic step MCFR's `DurableContext`
 /// fixes for every producer.

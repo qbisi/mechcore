@@ -29,7 +29,7 @@ use crate::{
     turn::{Held, Side, Turn},
 };
 
-const SCHEMA: &str = "mechcore.match.v1";
+const SCHEMA: &str = "mechcore.match";
 
 /// How often a `--wait` looks again, which is short enough to answer a round
 /// promptly and long enough not to hold the lock against the side playing it.

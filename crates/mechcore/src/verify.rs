@@ -560,7 +560,7 @@ fn verify_match(
     })
 }
 
-const SCHEMA: &str = "mechcore.verify-result.v1";
+const SCHEMA: &str = "mechcore.verify-result";
 
 /// What checking one file found.
 #[derive(Serialize)]

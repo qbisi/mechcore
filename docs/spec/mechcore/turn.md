@@ -26,7 +26,7 @@ One JSON object, written whole:
 
 ```json
 {
-  "schema": "mechcore.match-turn.v1",
+  "schema": "mechcore.match-turn",
   "round": 3,
   "opened": "2026-09-20T01:02:03.123456Z",
   "rebuilt": false,
