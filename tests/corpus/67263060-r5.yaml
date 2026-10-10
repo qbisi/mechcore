@@ -1,0 +1,97 @@
+# Replay 2328_20261008--67263060, round 5, map 1032. Red's Typhoons with
+# Field Entrenchment presearch with their own 100 metres, before the trench
+# gives them 120 from the first tick: the one at x 189.5 locks blue's
+# Phantom Ray 134.6 metres off, out of either reach, over the Void Eye
+# travelling in 115.4 off that 120 would reach.
+kind: fight
+source: game
+map_id: 1032
+seed: 1749991361
+round: 5
+blue:
+  officers: [super_supply_enhancement, efficient_light_manufacturing, rhino_specialist]
+  techs:
+    fire_badger: [scorching_charge]
+    phantom_ray: [armor_enhancement]
+  blueprints: [defense_enhancement]
+  tower_strengthen_levels: [2, 0]
+  units:
+  - {name: void_eye, index: 0, position: {x: 30, y: -100}, level: 2, exp: 978/1465, source: legacy}
+  - {name: void_eye, index: 1, position: {x: 250, y: -100}, level: 2, exp: 462/1465, source: legacy}
+  - {name: void_eye, index: 2, position: {x: 140, y: -100}, level: 2, exp: 101/1465, source: legacy}
+  - {name: fire_badger, index: 3, position: {x: 195, y: -100}, exp: 544/1400, source: legacy}
+  - {name: fire_badger, index: 4, position: {x: 85, y: -100}, exp: 1089/1400, source: legacy}
+  - {name: crawler, index: 5, position: {x: 140, y: -135}, exp: 423/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: 140, y: -225}, exp: 450/450, rotated: true, source: legacy}
+  - {name: crawler, index: 8, position: {x: 290, y: -115}, exp: 194/450, rotated: true, source: legacy}
+  - {name: phantom_ray, index: 9, position: {x: 145, y: -190}, level: 2, exp: 1906/2253, source: legacy}
+  - {name: phantom_ray, index: 10, position: {x: 350, y: 35}, exp: 753/1000, source: legacy}
+  - {name: fire_badger, index: 12, position: {x: 275, y: -80}, exp: 868/1400, source: legacy}
+  - {name: rhino, index: 13, position: {x: -315, y: 245}, level: 2, exp: 618/2591, travelling: true, source: legacy}
+  - {name: void_eye, index: 14, position: {x: 310, y: 30}, level: 2, travelling: true}
+  - {name: phantom_ray, index: 15, position: {x: 145, y: -60}, level: 2}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -318, y: 243}, {x: -140, y: 174}, {x: -127, y: 166}]}
+red:
+  officers: [advanced_power_system, speed_specialist]
+  techs:
+    sabertooth: [secondary_armament]
+    typhoon: [field_entrenchment]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: crawler, index: 0, position: {x: -70, y: -85}, exp: 374/450, rotated: true, source: legacy}
+  - {name: crawler, index: 1, position: {x: -150, y: -35}, exp: 354/450, rotated: true, source: legacy}
+  - {name: crawler, index: 2, position: {x: -230, y: -85}, exp: 298/450, rotated: true, source: legacy}
+  - {name: sabertooth, index: 3, position: {x: -185, y: -45}, exp: 921/1300, source: legacy}
+  - {name: sabertooth, index: 4, position: {x: -125, y: -45}, exp: 1285/1300, source: legacy}
+  - {name: hound, index: 5, position: {x: -220, y: -50}, exp: 438/750, source: legacy}
+  - {name: hound, index: 6, position: {x: -80, y: -50}, exp: 458/750, source: legacy}
+  - {name: crawler, index: 7, position: {x: 325, y: 300}, exp: 450/450, rotated: true, source: legacy}
+  - {name: hound, index: 8, position: {x: 200, y: -40}, exp: 491/750, source: legacy}
+  - {name: hound, index: 9, position: {x: 280, y: -40}, exp: 412/750, source: legacy}
+  - {name: typhoon, index: 10, position: {x: -100, y: -80}, exp: 354/1950, rotated: true, source: legacy}
+  - {name: typhoon, index: 11, position: {x: -190, y: -80}, exp: 932/1950, rotated: true, source: legacy}
+  - {name: sabertooth, index: 12, position: {x: -45, y: -45}, exp: 307/1300, source: legacy}
+  - {name: typhoon, index: 13, position: {x: -150, y: -80}, exp: 102/1950, rotated: true, source: legacy}
+  - {name: crawler, index: 14, position: {x: 240, y: -35}, exp: 44/450, rotated: true, source: legacy}
+  - {name: steel_ball, index: 15, position: {x: 240, y: -85}, rotated: true}
+  - {name: fang, index: 16, position: {x: 160, y: -205}, rotated: true}
+  - {name: fang, index: 17, position: {x: -150, y: -255}, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: 230, y: -54}, {x: 154, y: 131}, {x: -41, y: 171}]}
+outcome:
+  blue.units[0].exp: 1027
+  blue.units[1].exp: 950
+  blue.units[2].exp: 263
+  blue.units[3].exp: 671
+  blue.units[4].exp: 1277
+  blue.units[5].exp: 441
+  blue.units[7].exp: 290
+  blue.units[8].exp: 2253
+  blue.units[9].exp: 1000
+  blue.units[10].exp: 1189
+  blue.units[11].exp: 630
+  blue.units[12].exp: 206
+  blue.units[13].exp: 1977
+  red.core_damage: 536
+  red.units[0].exp: 400
+  red.units[1].exp: 450
+  red.units[2].exp: 450
+  red.units[3].exp: 1173
+  red.units[4].exp: 1300
+  red.units[5].exp: 690
+  red.units[6].exp: 505
+  red.units[8].exp: 628
+  red.units[9].exp: 449
+  red.units[10].exp: 371
+  red.units[11].exp: 1310
+  red.units[12].exp: 1015
+  red.units[13].exp: 192
+  red.units[14].exp: 450
+  red.units[15].exp: 768
+  red.units[16].exp: 600
+  red.units[17].exp: 17
+ticks: 1193
+hash: 23:66e4289281b85b0317ea5d43ab22a1b421aa5d177e28cb72c9237ebb69516c6d
