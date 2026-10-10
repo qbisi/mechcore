@@ -152,6 +152,9 @@ pub(crate) struct CompiledLayout {
     /// dies, by side, the summoned unit's type id and its level
     /// ([`compile_death_summons`]).
     pub(crate) death_summons: BTreeMap<(u32, u32, i64), DeathSummon>,
+    /// Why a side could not describe a summon of the other side's units,
+    /// which only a control hands it: refused when one is made, not before.
+    pub(crate) taken_summon_refusals: BTreeMap<u32, String>,
 }
 
 /// A unit a side's buff makes a dying unit summon: its description, and its
@@ -190,6 +193,7 @@ impl CompiledLayout {
             tower_levels: BTreeMap::new(),
             map_id: mechcore_document::layout_replay::DEFAULT_MAP_ID,
             death_summons: BTreeMap::new(),
+            taken_summon_refusals: BTreeMap::new(),
         }
     }
 }
@@ -383,7 +387,7 @@ pub(crate) fn compile_with_seed(
         );
         death_summons.extend(compile_death_summons(
             (name, team, side),
-            (&placements, &side_skills),
+            (team, &placements, &side_skills),
             units,
             &loadouts,
             &mut refused,
@@ -393,6 +397,13 @@ pub(crate) fn compile_with_seed(
             tower_levels.insert(team, levels);
         }
     }
+    let taken_summon_refusals = compile_taken_summons(
+        &sides,
+        (&placements, &battle_skills),
+        units,
+        &loadouts,
+        &mut death_summons,
+    );
     refused.settle()?;
 
     Ok((
@@ -415,6 +426,7 @@ pub(crate) fn compile_with_seed(
                 .map_id
                 .unwrap_or(mechcore_document::layout_replay::DEFAULT_MAP_ID),
             death_summons,
+            taken_summon_refusals,
         },
     ))
 }
@@ -449,7 +461,11 @@ fn death_summoned(
 }
 
 /// The placement every unit of one type and level summoned as a unit dies
-/// takes, before where it stands: what its side's loadout hands it.
+/// takes, before where it stands: what its side's loadout hands it. It faces
+/// the world's 0 on either side: `IBEC_DeadSummon.OnMechDead` hands
+/// `SummonSystem.CreateMech` a rotation of 0, which
+/// `FightController.CreateMech` sets as it is, and a technology's summon
+/// is turned to its dead unit's facing after.
 fn death_summon_template(team: u32, rules: &UnitConfig, level: i64, worn: Worn) -> Placement {
     Placement {
         team,
@@ -459,7 +475,7 @@ fn death_summon_template(team: u32, rules: &UnitConfig, level: i64, worn: Worn) 
         type_name: rules.type_name.clone(),
         world_x: 0,
         world_z: 0,
-        rotation: if team == 0 { 0 } else { 180_000 },
+        rotation: 0,
         rotated: false,
         level,
         exp: 0,
@@ -472,6 +488,37 @@ fn death_summon_template(team: u32, rules: &UnitConfig, level: i64, worn: Worn) 
     }
 }
 
+/// What each side summons as a unit dies that only a control hands it: the
+/// summons of the other side's units, described from its own technologies
+/// ([`compile_death_summons`]) where it has none of its own. Such a summon is
+/// refused only when one is made, so what a side cannot describe of them is
+/// kept by side rather than refusing the layout.
+fn compile_taken_summons(
+    sides: &[(&str, u32, &SidePlan); 2],
+    (placements, battle_skills): (&[Placement], &[SkillRelease]),
+    units: &UnitConfigs,
+    loadouts: &Loadouts,
+    death_summons: &mut BTreeMap<(u32, u32, i64), DeathSummon>,
+) -> BTreeMap<u32, String> {
+    let mut refusals = BTreeMap::new();
+    for &(name, team, side) in sides {
+        let mut taken = Refusals::default();
+        for (key, summon) in compile_death_summons(
+            (name, team, side),
+            (1 - team, placements, battle_skills),
+            units,
+            loadouts,
+            &mut taken,
+        ) {
+            death_summons.entry(key).or_insert(summon);
+        }
+        if let Err(error) = taken.settle() {
+            refusals.insert(team, error.to_string());
+        }
+    }
+    refusals
+}
+
 /// The units a side's buffs and technologies make a unit summon as it dies
 /// (`IBEC_DeadSummon`, `DeadSummonTech`), by side and type id: each type one
 /// of the side's placements, a unit its lines make or one its battle skills
@@ -479,10 +526,15 @@ fn death_summon_template(team: u32, rules: &UnitConfig, level: i64, worn: Worn) 
 /// equipment, and `FightController.CreateMech` gives it its side's
 /// technologies when its parent `IsChildInheritTechnologyEffect`, which
 /// `MechData` answers for every unit but types 4001 and 5203.
+///
+/// The summons sought are those of `parents`' units: the side's own, and the
+/// other side's, which a control can hand the side. `IBEC_DeadSummon` makes its
+/// summon for its parent's `currentTeamController`, and
+/// `FightController.CreateMech` describes it from that side's technologies.
 #[allow(clippy::too_many_lines)]
 fn compile_death_summons(
     (name, team, side): (&str, u32, &SidePlan),
-    (placements, battle_skills): (&[Placement], &[SkillRelease]),
+    (parents, placements, battle_skills): (u32, &[Placement], &[SkillRelease]),
     units: &UnitConfigs,
     loadouts: &Loadouts,
     refused: &mut Refusals,
@@ -490,7 +542,7 @@ fn compile_death_summons(
     let own = |type_name: &str| units.get(type_name).map(|rules| rules.unit_type_id);
     let mut pending = placements
         .iter()
-        .filter(|placement| placement.team == team)
+        .filter(|placement| placement.team == parents)
         .flat_map(|placement| {
             death_summoned(
                 (&placement.effects, &placement.productions),
@@ -500,6 +552,7 @@ fn compile_death_summons(
         .chain(
             battle_skills
                 .iter()
+                .filter(|release| release.team == parents)
                 .flat_map(|release| match &release.effect {
                     SkillEffect::Summon(summon) => death_summoned(
                         (&summon.effects, &summon.productions),
