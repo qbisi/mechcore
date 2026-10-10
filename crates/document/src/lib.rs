@@ -371,11 +371,9 @@ red:
         assert_eq!(once.clone().normalized(), once);
     }
 
-    /// Every layout under `directory`, wherever its topic keeps it.
-    ///
-    /// A fixture lives beside the scripts that use it, so layouts are spread
-    /// over one directory per topic under `tests/`, and the rest are in
-    /// `layouts/`; a file is one when it says so.
+    /// Every layout under `directory`, a file being one when it says so.
+    /// The tracked layouts are in `layouts/`; a fixture under `tests/` is a
+    /// fight, which `verify` holds.
     fn tracked_layouts(directory: &std::path::Path, found: &mut Vec<std::path::PathBuf>) {
         for entry in std::fs::read_dir(directory).expect("tracked fixture directory") {
             let path = entry.expect("directory entry").path();
@@ -396,9 +394,7 @@ red:
     fn tracked_layouts_are_normal_and_normalize_idempotently() {
         let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
         let mut paths = Vec::new();
-        for directory in ["tests", "layouts"] {
-            tracked_layouts(&std::path::Path::new(root).join(directory), &mut paths);
-        }
+        tracked_layouts(&std::path::Path::new(root).join("layouts"), &mut paths);
         let mut checked = 0;
         for path in paths {
             let bytes = std::fs::read(&path).expect("readable layout");

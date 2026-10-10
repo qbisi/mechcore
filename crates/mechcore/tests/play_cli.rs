@@ -69,7 +69,22 @@ fn a_layout_is_fought_in_memory_and_played() {
 #[test]
 fn a_fight_and_its_recording_play_the_same_fight() {
     let directory = tempfile::tempdir().unwrap();
-    let fight = repository().join("tests/marksman/vs-arclight.yaml");
+    // The simulator's fight of a tracked layout: a fight document whatever its
+    // source, and one no fixture has to keep.
+    let fight = directory.path().join("fight.yaml");
+    let layout = repository().join("layouts/marksman-vs-arclight.yaml");
+    let written = mechcore(&[
+        "convert".as_ref(),
+        layout.as_os_str(),
+        "--to".as_ref(),
+        "fight".as_ref(),
+        fight.as_os_str(),
+    ]);
+    assert!(
+        written.status.success(),
+        "{}",
+        String::from_utf8_lossy(&written.stderr)
+    );
     let from_fight = directory.path().join("fight.html");
     let report = played(&[
         "play".as_ref(),
