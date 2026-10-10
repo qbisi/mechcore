@@ -6,16 +6,18 @@
 # 139, the whole part of 139.5. The Marksman wins.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 139
-hash: 23:cee0602f899bf8e764e34e675e0f343bf99d1fd0f197f13c75c13da4de61562b
 blue:
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/200/650, equipment: [absorption_module]}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [absorption_module]}
 red:
-  core_damage: 100
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -50}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 100
+ticks: 139
+hash: 23:cee0602f899bf8e764e34e675e0f343bf99d1fd0f197f13c75c13da4de61562b

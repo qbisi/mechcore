@@ -6,20 +6,23 @@
 # debuff's speed rate slows each of them while it runs.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 570
-hash: 23:1fe0501db0f51997173d598a0e7cbd6a85fe6aed919e7bb36bbc55f7c4ae5cf4
 blue:
-  core_damage: 100
   techs:
     wraith: [degeneration_beam]
   units:
-  - {name: wraith, index: 0, position: {x: 5, y: -105}, exp: 0/808/2250}
+  - {name: wraith, index: 0, position: {x: 5, y: -105}}
 red:
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -115}}
   - {name: wasp, index: 1, position: {x: 45, y: -110}}
-  - {name: marksman, index: 2, position: {x: -40, y: -160}, exp: 0/600/650}
+  - {name: marksman, index: 2, position: {x: -40, y: -160}}
+outcome:
+  blue.core_damage: 100
+  blue.units[0].exp: 808
+  red.units[2].exp: 600
+ticks: 570
+hash: 23:1fe0501db0f51997173d598a0e7cbd6a85fe6aed919e7bb36bbc55f7c4ae5cf4

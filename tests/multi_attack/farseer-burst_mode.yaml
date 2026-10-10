@@ -5,18 +5,20 @@
 # attack interval rate.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 191
-hash: 23:3c050c2fe33ec0803b4fff76e414d9b10f36456b830c34a618d0c665cfe1be03
 blue:
   techs:
     farseer: [burst_mode]
   units:
-  - {name: farseer, index: 0, position: {x: -5, y: -105}, exp: 0/400/1800}
+  - {name: farseer, index: 0, position: {x: -5, y: -105}}
 red:
-  core_damage: 250
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 250
+ticks: 191
+hash: 23:3c050c2fe33ec0803b4fff76e414d9b10f36456b830c34a618d0c665cfe1be03

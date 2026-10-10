@@ -5,14 +5,11 @@
 # tick 625 rather than as it nears the block.
 
 kind: fight
+source: game
 map_id: 1011
 seed: 1092841387
 round: 5
-source: game
-ticks: 1408
-hash: 23:03246445527ed138bd52bc97419d94cdfe254c538f6f354207aebb4f4f2cc9c4
 blue:
-  core_damage: 1006
   officers: [advanced_missile_device, giant_specialist]
   techs:
     sandworm: [burrow_maintenance, armor_enhancement]
@@ -20,22 +17,22 @@ blue:
   energy_tower_skills: [enhanced_range]
   legacy_index: 16
   units:
-  - {name: fang, index: 0, position: {x: 140, y: -205}, exp: 342/407/600, rotated: true}
-  - {name: fang, index: 1, position: {x: -140, y: -205}, exp: 456/600/600, rotated: true}
-  - {name: fang, index: 2, position: {x: 0, y: -205}, exp: 505/547/600, rotated: true}
-  - {name: crawler, index: 5, position: {x: 290, y: -235}, exp: 105/145/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -290, y: -235}, exp: 108/123/450, rotated: true}
-  - {name: crawler, index: 7, position: {x: 0, y: -255}, exp: 35/44/450, rotated: true}
-  - {name: crawler, index: 8, position: {x: -140, y: -255}, exp: 53/123/450, rotated: true}
-  - {name: crawler, index: 9, position: {x: 140, y: -255}, exp: 98/139/450, rotated: true}
-  - {name: mustang, index: 10, position: {x: -175, y: -300}, level: 2, exp: 1865/2704/2704}
-  - {name: sandworm, index: 11, position: {x: 170, y: -250}, exp: 1089/1482/2000, equipment: [amplifying_core]}
-  - {name: sandworm, index: 12, position: {x: -170, y: -250}, exp: 418/932/2000}
-  - {name: sandworm, index: 13, position: {x: -30, y: -250}, exp: 573/1681/2000}
-  - {name: fang, index: 14, position: {x: -140, y: -95}, exp: 0/40/600, rotated: true}
-  - {name: fang, index: 15, position: {x: 140, y: -95}, exp: 85/85/600, rotated: true}
-  - {name: sandworm, index: 16, position: {x: 30, y: -250}, exp: 0/1161/2000}
-  - {name: fang, index: 17, position: {x: 0, y: -95}, exp: 0/107/600, rotated: true}
+  - {name: fang, index: 0, position: {x: 140, y: -205}, exp: 342/600, rotated: true}
+  - {name: fang, index: 1, position: {x: -140, y: -205}, exp: 456/600, rotated: true}
+  - {name: fang, index: 2, position: {x: 0, y: -205}, exp: 505/600, rotated: true}
+  - {name: crawler, index: 5, position: {x: 290, y: -235}, exp: 105/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -290, y: -235}, exp: 108/450, rotated: true}
+  - {name: crawler, index: 7, position: {x: 0, y: -255}, exp: 35/450, rotated: true}
+  - {name: crawler, index: 8, position: {x: -140, y: -255}, exp: 53/450, rotated: true}
+  - {name: crawler, index: 9, position: {x: 140, y: -255}, exp: 98/450, rotated: true}
+  - {name: mustang, index: 10, position: {x: -175, y: -300}, level: 2, exp: 1865/2704}
+  - {name: sandworm, index: 11, position: {x: 170, y: -250}, exp: 1089/2000, equipment: [amplifying_core]}
+  - {name: sandworm, index: 12, position: {x: -170, y: -250}, exp: 418/2000}
+  - {name: sandworm, index: 13, position: {x: -30, y: -250}, exp: 573/2000}
+  - {name: fang, index: 14, position: {x: -140, y: -95}, rotated: true}
+  - {name: fang, index: 15, position: {x: 140, y: -95}, exp: 85/600, rotated: true}
+  - {name: sandworm, index: 16, position: {x: 30, y: -250}}
+  - {name: fang, index: 17, position: {x: 0, y: -95}, rotated: true}
 red:
   officers: [fortified_specialist, assault_melting_point]
   techs:
@@ -44,25 +41,56 @@ red:
   blueprints: [attack_enhancement]
   legacy_index: 15
   units:
-  - {name: hound, index: 0, position: {x: 190, y: -50}, exp: 750/750/750}
-  - {name: hound, index: 1, position: {x: 90, y: -50}, exp: 750/750/750}
-  - {name: hound, index: 2, position: {x: -140, y: -200}, exp: 750/750/750, rotated: true}
-  - {name: void_eye, index: 5, position: {x: 90, y: -80}, exp: 650/650/650}
-  - {name: void_eye, index: 6, position: {x: -190, y: -170}, exp: 353/463/650}
-  - {name: hound, index: 7, position: {x: -280, y: -200}, exp: 577/750/750, rotated: true}
-  - {name: marksman, index: 8, position: {x: 190, y: -130}, level: 2, exp: 0/80/1465}
-  - {name: marksman, index: 9, position: {x: 110, y: -130}, exp: 574/597/650}
-  - {name: mustang, index: 10, position: {x: 185, y: -220}, level: 3, exp: 0/290/4274}
-  - {name: crawler, index: 11, position: {x: -280, y: -245}, exp: 171/215/450, rotated: true}
-  - {name: crawler, index: 12, position: {x: 260, y: -285}, exp: 299/380/450, rotated: true}
-  - {name: melting_point, index: 13, position: {x: -160, y: -140}, exp: 747/1400/1400}
-  - {name: melting_point, index: 14, position: {x: 220, y: -140}, exp: 1156/1400/1400}
-  - {name: fire_badger, index: 15, position: {x: 220, y: -95}, exp: 0/368/1400, rotated: true}
-  - {name: fire_badger, index: 16, position: {x: -140, y: -95}, exp: 0/1303/1400, rotated: true}
-  - {name: fire_badger, index: 17, position: {x: 120, y: -95}, exp: 0/536/1400, rotated: true}
+  - {name: hound, index: 0, position: {x: 190, y: -50}, exp: 750/750}
+  - {name: hound, index: 1, position: {x: 90, y: -50}, exp: 750/750}
+  - {name: hound, index: 2, position: {x: -140, y: -200}, exp: 750/750, rotated: true}
+  - {name: void_eye, index: 5, position: {x: 90, y: -80}, exp: 650/650}
+  - {name: void_eye, index: 6, position: {x: -190, y: -170}, exp: 353/650}
+  - {name: hound, index: 7, position: {x: -280, y: -200}, exp: 577/750, rotated: true}
+  - {name: marksman, index: 8, position: {x: 190, y: -130}, level: 2}
+  - {name: marksman, index: 9, position: {x: 110, y: -130}, exp: 574/650}
+  - {name: mustang, index: 10, position: {x: 185, y: -220}, level: 3}
+  - {name: crawler, index: 11, position: {x: -280, y: -245}, exp: 171/450, rotated: true}
+  - {name: crawler, index: 12, position: {x: 260, y: -285}, exp: 299/450, rotated: true}
+  - {name: melting_point, index: 13, position: {x: -160, y: -140}, exp: 747/1400}
+  - {name: melting_point, index: 14, position: {x: 220, y: -140}, exp: 1156/1400}
+  - {name: fire_badger, index: 15, position: {x: 220, y: -95}, rotated: true}
+  - {name: fire_badger, index: 16, position: {x: -140, y: -95}, rotated: true}
+  - {name: fire_badger, index: 17, position: {x: 120, y: -95}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   contraptions:
   - {name: shield, index: 0, position: {x: 196, y: -106}}
   battle_skills:
   - {name: shield_airdrop, positions: [{x: -157, y: -149}]}
+outcome:
+  blue.core_damage: 1006
+  blue.units[0].exp: 407
+  blue.units[1].exp: 600
+  blue.units[2].exp: 547
+  blue.units[3].exp: 145
+  blue.units[4].exp: 123
+  blue.units[5].exp: 44
+  blue.units[6].exp: 123
+  blue.units[7].exp: 139
+  blue.units[8].exp: 2704
+  blue.units[9].exp: 1482
+  blue.units[10].exp: 932
+  blue.units[11].exp: 1681
+  blue.units[12].exp: 40
+  blue.units[14].exp: 1161
+  blue.units[15].exp: 107
+  red.units[4].exp: 463
+  red.units[5].exp: 750
+  red.units[6].exp: 80
+  red.units[7].exp: 597
+  red.units[8].exp: 290
+  red.units[9].exp: 215
+  red.units[10].exp: 380
+  red.units[11].exp: 1400
+  red.units[12].exp: 1400
+  red.units[13].exp: 368
+  red.units[14].exp: 1303
+  red.units[15].exp: 536
+ticks: 1408
+hash: 23:03246445527ed138bd52bc97419d94cdfe254c538f6f354207aebb4f4f2cc9c4

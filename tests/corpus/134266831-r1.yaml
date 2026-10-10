@@ -5,38 +5,51 @@
 # each death clears its unit's buff, and the end clears building 11's last.
 
 kind: fight
+source: game
 map_id: 1011
 seed: 746343185
 round: 1
-source: game
-ticks: 1165
-hash: 23:7c0ffdca7a9c2a0debe0d8b6bf0fb609aef635db881f2f3fd0baf200a9ed4125
 blue:
   officers: [quick_supply_specialist]
   legacy_index: 5
   units:
   - {name: arclight, index: 0, position: {x: 50, y: -70}}
-  - {name: arclight, index: 1, position: {x: 140, y: -70}, exp: 0/560/750}
-  - {name: arclight, index: 2, position: {x: 230, y: -70}, exp: 0/307/750}
-  - {name: sabertooth, index: 3, position: {x: 185, y: -65}, exp: 0/377/1300}
+  - {name: arclight, index: 1, position: {x: 140, y: -70}}
+  - {name: arclight, index: 2, position: {x: 230, y: -70}}
+  - {name: sabertooth, index: 3, position: {x: 185, y: -65}}
   - {name: sabertooth, index: 4, position: {x: 95, y: -65}}
-  - {name: crawler, index: 5, position: {x: 90, y: -125}, exp: 0/285/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 190, y: -125}, exp: 0/450/450, rotated: true}
+  - {name: crawler, index: 5, position: {x: 90, y: -125}, rotated: true}
+  - {name: crawler, index: 6, position: {x: 190, y: -125}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
 red:
-  core_damage: 408
   officers: [fortified_specialist]
   legacy_index: 5
   units:
-  - {name: crawler, index: 0, position: {x: 290, y: -265}, exp: 0/238/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: -290, y: -255}, exp: 0/9/450, rotated: true}
-  - {name: crawler, index: 2, position: {x: -135, y: -190}, exp: 0/34/450}
-  - {name: sabertooth, index: 3, position: {x: 5, y: -105}, exp: 0/366/1300}
-  - {name: sabertooth, index: 4, position: {x: -75, y: -105}, exp: 0/438/1300}
-  - {name: crawler, index: 5, position: {x: 145, y: -190}, exp: 0/374/450}
-  - {name: crawler, index: 6, position: {x: 0, y: -255}, exp: 0/73/450, rotated: true}
+  - {name: crawler, index: 0, position: {x: 290, y: -265}, rotated: true}
+  - {name: crawler, index: 1, position: {x: -290, y: -255}, rotated: true}
+  - {name: crawler, index: 2, position: {x: -135, y: -190}}
+  - {name: sabertooth, index: 3, position: {x: 5, y: -105}}
+  - {name: sabertooth, index: 4, position: {x: -75, y: -105}}
+  - {name: crawler, index: 5, position: {x: 145, y: -190}}
+  - {name: crawler, index: 6, position: {x: 0, y: -255}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+outcome:
+  blue.units[1].exp: 560
+  blue.units[2].exp: 307
+  blue.units[3].exp: 377
+  blue.units[5].exp: 285
+  blue.units[6].exp: 450
+  red.core_damage: 408
+  red.units[0].exp: 238
+  red.units[1].exp: 9
+  red.units[2].exp: 34
+  red.units[3].exp: 366
+  red.units[4].exp: 438
+  red.units[5].exp: 374
+  red.units[6].exp: 73
+ticks: 1165
+hash: 23:7c0ffdca7a9c2a0debe0d8b6bf0fb609aef635db881f2f3fd0baf200a9ed4125

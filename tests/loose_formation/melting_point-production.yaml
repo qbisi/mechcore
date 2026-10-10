@@ -4,20 +4,24 @@
 # game on tick 8.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 450
-hash: 23:c36f6f90d0147c6757b492992ef7583a63c37fa171c201b0451f8efd4d372f61
 blue:
   techs:
     melting_point: [crawler_production]
     crawler: [loose_formation]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -150}, exp: 0/600/1400}
+  - {name: melting_point, index: 0, position: {x: 0, y: -150}}
 red:
-  core_damage: 350
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/40/1150}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/24/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}}
+outcome:
+  blue.units[0].exp: 600
+  red.core_damage: 350
+  red.units[0].exp: 40
+  red.units[1].exp: 24
+ticks: 450
+hash: 23:c36f6f90d0147c6757b492992ef7583a63c37fa171c201b0451f8efd4d372f61

@@ -20,18 +20,20 @@
 # back to the Marksman once the blocks in its way are gone.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 242
-hash: 23:885d853e48772e8b4ddd54192ce40ccdf7b44760f0dc3dc800319dd6a154b08a
 blue:
-  core_damage: 250
   units:
   - {name: marksman, index: 0, position: {x: -140, y: -100}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   units:
-  - {name: wraith, index: 0, position: {x: 195, y: -25}, exp: 0/236/2250}
+  - {name: wraith, index: 0, position: {x: 195, y: -25}}
+outcome:
+  blue.core_damage: 250
+  red.units[0].exp: 236
+ticks: 242
+hash: 23:885d853e48772e8b4ddd54192ce40ccdf7b44760f0dc3dc800319dd6a154b08a

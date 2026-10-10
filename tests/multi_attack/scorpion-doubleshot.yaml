@@ -2,18 +2,20 @@
 # (ticks 88 and 92).
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 99
-hash: 23:0e3c1a9a289abff3ab43450688993b8dd976463462d5e8a03318f44220f1625c
 blue:
   techs:
     scorpion: [doubleshot]
   units:
-  - {name: scorpion, index: 0, position: {x: -5, y: -105}, exp: 0/400/1500}
+  - {name: scorpion, index: 0, position: {x: -5, y: -105}}
 red:
-  core_damage: 250
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 250
+ticks: 99
+hash: 23:0e3c1a9a289abff3ab43450688993b8dd976463462d5e8a03318f44220f1625c

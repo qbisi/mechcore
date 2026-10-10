@@ -1,16 +1,19 @@
 # M1: the mirror. One formation each, 200 m apart.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 314
-hash: 23:f86e61f16775e6ede5f9ab19ea0474e299a02c1ac69eab8ba501d992c1f942e8
 blue:
-  core_damage: 50
   units:
-  - {name: steel_ball, index: 0, position: {x: 5, y: -100}, exp: 0/300/1000}
+  - {name: steel_ball, index: 0, position: {x: 5, y: -100}}
 red:
   units:
-  - {name: steel_ball, index: 0, position: {x: 5, y: -100}, exp: 0/400/1000}
+  - {name: steel_ball, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.core_damage: 50
+  blue.units[0].exp: 300
+  red.units[0].exp: 400
+ticks: 314
+hash: 23:f86e61f16775e6ede5f9ab19ea0474e299a02c1ac69eab8ba501d992c1f942e8

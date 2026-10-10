@@ -9,24 +9,28 @@
 # fight is left at t348 with the buff still running.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 348
-hash: 23:07b1f433b065e5ca27b6f6212cd3f491dafce6b759a12640088986e05a9fd057
 blue:
   techs:
     overlord: [photon_emission]
   units:
-  - {name: overlord, index: 0, position: {x: 5, y: -145}, exp: 0/666/1750}
-  - {name: rhino, index: 1, position: {x: 55, y: -145}, exp: 0/666/1150}
-  - {name: wasp, index: 2, position: {x: -45, y: -150}, exp: 0/266/900}
+  - {name: overlord, index: 0, position: {x: 5, y: -145}}
+  - {name: rhino, index: 1, position: {x: 55, y: -145}}
+  - {name: wasp, index: 2, position: {x: -45, y: -150}}
   - {name: marksman, index: 3, position: {x: 160, y: -150}}
 red:
-  core_damage: 904
   techs:
     vulcan: [ignite]
   units:
   - {name: vulcan, index: 0, position: {x: 0, y: -80}}
   - {name: vulcan, index: 1, position: {x: 100, y: -80}}
+outcome:
+  blue.units[0].exp: 666
+  blue.units[1].exp: 666
+  blue.units[2].exp: 266
+  red.core_damage: 904
+ticks: 348
+hash: 23:07b1f433b065e5ca27b6f6212cd3f491dafce6b759a12640088986e05a9fd057

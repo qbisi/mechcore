@@ -7,22 +7,26 @@
 # the hurt Rhino's 13269 of 19297 becoming 14262 of 20744.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 1985
-hash: 23:ab83266928d8d1c5870972b3b35931710e5dc1642e7a7faba9105c41435b4891
 blue:
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -60}, exp: 0/900/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -60}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 135}]}
 red:
-  core_damage: 204
   techs:
     rhino: [combat_evolvement]
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -135}}
-  - {name: rhino, index: 1, position: {x: 5, y: -55}, exp: 0/200/1150}
-  - {name: rhino, index: 2, position: {x: -45, y: -55}, exp: 0/200/1150}
+  - {name: rhino, index: 1, position: {x: 5, y: -55}}
+  - {name: rhino, index: 2, position: {x: -45, y: -55}}
+outcome:
+  blue.units[0].exp: 900
+  red.core_damage: 204
+  red.units[1].exp: 200
+  red.units[2].exp: 200
+ticks: 1985
+hash: 23:ab83266928d8d1c5870972b3b35931710e5dc1642e7a7faba9105c41435b4891

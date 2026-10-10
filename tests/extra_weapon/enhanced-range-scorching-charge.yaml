@@ -7,20 +7,25 @@
 # 86 and strike at their 1 metre, every unit of both sides dead on tick 109.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 109
-hash: 23:4a83910c0d69fbfb7efb3f9c50e9c16788fb723d1a85e365e0b6da9c5177aac9
 blue:
   techs:
     fire_badger: [scorching_charge]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: fire_badger, index: 0, position: {x: 5, y: -40}, exp: 0/300/1400}
+  - {name: fire_badger, index: 0, position: {x: 5, y: -40}}
 red:
   units:
-  - {name: marksman, index: 0, position: {x: -40, y: -100}, exp: 0/55/650}
-  - {name: marksman, index: 1, position: {x: 0, y: -100}, exp: 0/55/650}
-  - {name: marksman, index: 2, position: {x: 40, y: -100}, exp: 0/22/650}
+  - {name: marksman, index: 0, position: {x: -40, y: -100}}
+  - {name: marksman, index: 1, position: {x: 0, y: -100}}
+  - {name: marksman, index: 2, position: {x: 40, y: -100}}
+outcome:
+  blue.units[0].exp: 300
+  red.units[0].exp: 55
+  red.units[1].exp: 55
+  red.units[2].exp: 22
+ticks: 109
+hash: 23:4a83910c0d69fbfb7efb3f9c50e9c16788fb723d1a85e365e0b6da9c5177aac9

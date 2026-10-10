@@ -3,20 +3,25 @@
 # on ticks 122 and 183, up to their maximum.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 216
-hash: 23:e5c54b4366d8f19a2a960464074cbacea63594fa59a5d14808f91203f09c7363
 blue:
   techs:
     typhoon: [maintenance_array]
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -150}, level: 4, exp: 0/150/8756}
-  - {name: wasp, index: 1, position: {x: 5, y: -130}, exp: 0/167/900}
-  - {name: wasp, index: 2, position: {x: 5, y: -170}, exp: 0/90/900}
+  - {name: typhoon, index: 0, position: {x: 0, y: -150}, level: 4}
+  - {name: wasp, index: 1, position: {x: 5, y: -130}}
+  - {name: wasp, index: 2, position: {x: 5, y: -170}}
 red:
-  core_damage: 488
   units:
-  - {name: mustang, index: 0, position: {x: 5, y: -100}, exp: 0/340/1200}
+  - {name: mustang, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 150
+  blue.units[1].exp: 167
+  blue.units[2].exp: 90
+  red.core_damage: 488
+  red.units[0].exp: 340
+ticks: 216
+hash: 23:e5c54b4366d8f19a2a960464074cbacea63594fa59a5d14808f91203f09c7363

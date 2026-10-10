@@ -2,18 +2,21 @@
 # target distribution and avoidance between allies.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 454
-hash: 23:f912dc36a0d73cfdc4ccb17d19dd8ab3c83241fea6e66889ac86903b42a372e2
 blue:
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -130}, exp: 0/82/1400}
-  - {name: melting_point, index: 1, position: {x: 0, y: -80}, exp: 0/310/1400}
+  - {name: melting_point, index: 0, position: {x: 0, y: -130}}
+  - {name: melting_point, index: 1, position: {x: 0, y: -80}}
 red:
-  core_damage: 700
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -70}}
   - {name: marksman, index: 1, position: {x: 0, y: -110}}
+outcome:
+  blue.units[0].exp: 82
+  blue.units[1].exp: 310
+  red.core_damage: 700
+ticks: 454
+hash: 23:f912dc36a0d73cfdc4ccb17d19dd8ab3c83241fea6e66889ac86903b42a372e2

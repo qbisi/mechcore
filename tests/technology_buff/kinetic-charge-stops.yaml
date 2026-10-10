@@ -4,21 +4,27 @@
 # stops near t110, and holds while it stands and fights.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 642
-hash: 23:ba21251960e33486b4496d57f45a10f8e9dfa45387d26780292397320b77257c
 blue:
-  core_damage: 406
   techs:
     steel_ball: [kinetic_charge]
   units:
-  - {name: steel_ball, index: 0, position: {x: 5, y: -170}, exp: 0/114/1000}
-  - {name: steel_ball, index: 1, position: {x: 65, y: -170}, exp: 0/158/1000}
+  - {name: steel_ball, index: 0, position: {x: 5, y: -170}}
+  - {name: steel_ball, index: 1, position: {x: 65, y: -170}}
 red:
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -60}, exp: 0/233/450}
-  - {name: crawler, index: 1, position: {x: 65, y: -60}, exp: 0/450/450}
-  - {name: fortress, index: 2, position: {x: 40, y: -200}, exp: 0/133/1600}
+  - {name: crawler, index: 0, position: {x: 5, y: -60}}
+  - {name: crawler, index: 1, position: {x: 65, y: -60}}
+  - {name: fortress, index: 2, position: {x: 40, y: -200}}
+outcome:
+  blue.core_damage: 406
+  blue.units[0].exp: 114
+  blue.units[1].exp: 158
+  red.units[0].exp: 233
+  red.units[1].exp: 450
+  red.units[2].exp: 133
+ticks: 642
+hash: 23:ba21251960e33486b4496d57f45a10f8e9dfa45387d26780292397320b77257c

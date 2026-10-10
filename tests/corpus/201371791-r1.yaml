@@ -5,36 +5,49 @@
 # the unit's velocity at tick 276 is the game's.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 802997336
 round: 1
-source: game
-ticks: 842
-hash: 23:7c201f9359e8aebdd1238590cdec670288989f6ac134d236d3618dbbc372a9db
 blue:
-  core_damage: 586
   officers: [sabertooth_specialist]
   legacy_index: 5
   units:
-  - {name: fang, index: 0, position: {x: 160, y: -175}, exp: 0/176/600, rotated: true}
+  - {name: fang, index: 0, position: {x: 160, y: -175}, rotated: true}
   - {name: fang, index: 1, position: {x: -140, y: -225}, rotated: true}
-  - {name: fang, index: 2, position: {x: -160, y: -35}, exp: 0/145/600, rotated: true}
-  - {name: sabertooth, index: 3, position: {x: -165, y: -75}, exp: 0/138/1300}
-  - {name: sabertooth, index: 4, position: {x: -75, y: -75}, exp: 0/82/1300}
-  - {name: hound, index: 5, position: {x: -120, y: -80}, exp: 0/60/750}
-  - {name: hound, index: 6, position: {x: -210, y: -80}, exp: 0/79/750}
+  - {name: fang, index: 2, position: {x: -160, y: -35}, rotated: true}
+  - {name: sabertooth, index: 3, position: {x: -165, y: -75}}
+  - {name: sabertooth, index: 4, position: {x: -75, y: -75}}
+  - {name: hound, index: 5, position: {x: -120, y: -80}}
+  - {name: hound, index: 6, position: {x: -210, y: -80}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
   officers: [training_specialist]
   legacy_index: 5
   units:
-  - {name: void_eye, index: 0, position: {x: 110, y: -170}, exp: 0/455/650}
-  - {name: void_eye, index: 1, position: {x: -110, y: -170}, exp: 0/207/650}
-  - {name: void_eye, index: 2, position: {x: 0, y: -170}, exp: 0/166/650}
-  - {name: mustang, index: 3, position: {x: 95, y: -280}, exp: 0/486/1200}
-  - {name: mustang, index: 4, position: {x: -65, y: -280}, exp: 1200/1200/1200}
-  - {name: crawler, index: 5, position: {x: 120, y: -225}, exp: 0/35/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -120, y: -225}, exp: 0/157/450, rotated: true}
+  - {name: void_eye, index: 0, position: {x: 110, y: -170}}
+  - {name: void_eye, index: 1, position: {x: -110, y: -170}}
+  - {name: void_eye, index: 2, position: {x: 0, y: -170}}
+  - {name: mustang, index: 3, position: {x: 95, y: -280}}
+  - {name: mustang, index: 4, position: {x: -65, y: -280}, exp: 1200/1200}
+  - {name: crawler, index: 5, position: {x: 120, y: -225}, rotated: true}
+  - {name: crawler, index: 6, position: {x: -120, y: -225}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+outcome:
+  blue.core_damage: 586
+  blue.units[0].exp: 176
+  blue.units[2].exp: 145
+  blue.units[3].exp: 138
+  blue.units[4].exp: 82
+  blue.units[5].exp: 60
+  blue.units[6].exp: 79
+  red.units[0].exp: 455
+  red.units[1].exp: 207
+  red.units[2].exp: 166
+  red.units[3].exp: 486
+  red.units[5].exp: 35
+  red.units[6].exp: 157
+ticks: 842
+hash: 23:7c201f9359e8aebdd1238590cdec670288989f6ac134d236d3618dbbc372a9db

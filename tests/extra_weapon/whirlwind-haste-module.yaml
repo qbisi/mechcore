@@ -5,19 +5,22 @@
 # skill's 3560 is, to 4805.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 161
-hash: 23:5302a80fb924925812a220a19f470e64b611192a17eaad917a9e2faf48b3ca8f
 blue:
-  core_damage: 400
   techs:
     rhino: [whirlwind]
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}, equipment: [haste_module]}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: -25, y: -95}, exp: 0/100/1150}
-  - {name: rhino, index: 1, position: {x: 35, y: -95}, exp: 0/300/1150}
+  - {name: rhino, index: 0, position: {x: -25, y: -95}}
+  - {name: rhino, index: 1, position: {x: 35, y: -95}}
+outcome:
+  blue.core_damage: 400
+  red.units[0].exp: 100
+  red.units[1].exp: 300
+ticks: 161
+hash: 23:5302a80fb924925812a220a19f470e64b611192a17eaad917a9e2faf48b3ca8f

@@ -9,19 +9,21 @@
 # nothing, through the update the last of them leaves.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 177
-hash: 23:fe1105256eee616bf4583db10ade72fb86ffe0d327471725fe81db25c075c4e2
 blue:
   techs:
     mountain: [saturation_bombardment]
   units:
-  - {name: mountain, index: 0, position: {x: 5, y: -105}, exp: 0/800/3200}
+  - {name: mountain, index: 0, position: {x: 5, y: -105}}
 red:
-  core_damage: 500
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
   - {name: rhino, index: 1, position: {x: 45, y: -95}}
+outcome:
+  blue.units[0].exp: 800
+  red.core_damage: 500
+ticks: 177
+hash: 23:fe1105256eee616bf4583db10ade72fb86ffe0d327471725fe81db25c075c4e2

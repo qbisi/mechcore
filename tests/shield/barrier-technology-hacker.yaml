@@ -3,20 +3,23 @@
 # while the Hacker's beam turns them.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 219
-hash: 23:e685409ce1095ff11fadacdc2eb50b32faf0d1eaf9ab0e7dadbc218d826af817
 blue:
   techs:
     hacker: [barrier]
   units:
-  - {name: hacker, index: 0, position: {x: -5, y: -105}, level: 2, exp: 0/50/1262}
-  - {name: marksman, index: 1, position: {x: 30, y: -110}, exp: 0/350/650}
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, level: 2}
+  - {name: marksman, index: 1, position: {x: 30, y: -110}}
 red:
-  core_damage: 300
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -100}}
   - {name: marksman, index: 1, position: {x: 30, y: -100}}
+outcome:
+  blue.units[0].exp: 50
+  blue.units[1].exp: 350
+  red.core_damage: 300
+ticks: 219
+hash: 23:e685409ce1095ff11fadacdc2eb50b32faf0d1eaf9ab0e7dadbc218d826af817

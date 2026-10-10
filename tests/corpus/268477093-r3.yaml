@@ -3,54 +3,80 @@
 # master did not ask and which parted the round at tick 800.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 2020722719
 round: 3
-source: game
-ticks: 1267
-hash: 23:0b6b02a60908866fad5029ce5c20d5d98bed1ac035bbd96e8d86167c0d31bdeb
 blue:
-  core_damage: 952
   officers: [fortified_specialist]
   legacy_index: 10
   units:
-  - {name: hound, index: 0, position: {x: 160, y: -110}, exp: 236/317/750, rotated: true}
-  - {name: hound, index: 1, position: {x: 250, y: -100}, exp: 273/273/750, rotated: true}
-  - {name: hound, index: 2, position: {x: 60, y: -120}, exp: 200/234/750, rotated: true}
-  - {name: sledgehammer, index: 3, position: {x: 210, y: -125}, exp: 1000/1118/1300, rotated: true}
-  - {name: crawler, index: 5, position: {x: 60, y: -165}, exp: 34/53/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 160, y: -155}, exp: 70/95/450, rotated: true}
-  - {name: fang, index: 7, position: {x: -140, y: -205}, exp: 102/130/600, rotated: true}
-  - {name: fang, index: 8, position: {x: 140, y: -205}, exp: 306/331/600, rotated: true}
-  - {name: crawler, index: 9, position: {x: 270, y: -285}, exp: 0/21/450, rotated: true}
-  - {name: arclight, index: 10, position: {x: -100, y: -160}, level: 2, exp: 0/397/1690}
-  - {name: arclight, index: 11, position: {x: -200, y: -160}, level: 2, exp: 0/516/1690}
-  - {name: centurion, index: 12, position: {x: 105, y: -165}, exp: 0/209/2250, equipment: [haste_module]}
-  - {name: centurion, index: 13, position: {x: 215, y: -165}, exp: 0/342/2250}
+  - {name: hound, index: 0, position: {x: 160, y: -110}, exp: 236/750, rotated: true}
+  - {name: hound, index: 1, position: {x: 250, y: -100}, exp: 273/750, rotated: true}
+  - {name: hound, index: 2, position: {x: 60, y: -120}, exp: 200/750, rotated: true}
+  - {name: sledgehammer, index: 3, position: {x: 210, y: -125}, exp: 1000/1300, rotated: true}
+  - {name: crawler, index: 5, position: {x: 60, y: -165}, exp: 34/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 160, y: -155}, exp: 70/450, rotated: true}
+  - {name: fang, index: 7, position: {x: -140, y: -205}, exp: 102/600, rotated: true}
+  - {name: fang, index: 8, position: {x: 140, y: -205}, exp: 306/600, rotated: true}
+  - {name: crawler, index: 9, position: {x: 270, y: -285}, rotated: true}
+  - {name: arclight, index: 10, position: {x: -100, y: -160}, level: 2}
+  - {name: arclight, index: 11, position: {x: -200, y: -160}, level: 2}
+  - {name: centurion, index: 12, position: {x: 105, y: -165}, equipment: [haste_module]}
+  - {name: centurion, index: 13, position: {x: 215, y: -165}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   contraptions:
-  - {name: shield, index: 0, position: {x: 115, y: -130}, retained: false}
+  - {name: shield, index: 0, position: {x: 115, y: -130}}
 red:
   officers: [missile_specialist]
   techs:
     fire_badger: [range_enhancement]
   legacy_index: 9
   units:
-  - {name: void_eye, index: 0, position: {x: 170, y: -170}, exp: 489/536/650}
-  - {name: void_eye, index: 1, position: {x: -170, y: -170}, exp: 592/650/650}
-  - {name: void_eye, index: 2, position: {x: 0, y: -180}, level: 2, exp: 219/782/1465}
-  - {name: fire_badger, index: 3, position: {x: -75, y: -180}, exp: 576/1400/1400}
-  - {name: fire_badger, index: 4, position: {x: 75, y: -180}, exp: 989/1400/1400}
-  - {name: fang, index: 5, position: {x: -140, y: -205}, exp: 364/467/600, rotated: true}
-  - {name: fang, index: 6, position: {x: 140, y: -205}, exp: 124/159/600, rotated: true}
-  - {name: fire_badger, index: 7, position: {x: -225, y: -170}, exp: 388/1058/1400}
-  - {name: fang, index: 8, position: {x: -140, y: -135}, exp: 176/347/600, rotated: true}
-  - {name: typhoon, index: 9, position: {x: -170, y: -190}, exp: 0/302/1950}
-  - {name: crawler, index: 10, position: {x: -290, y: -285}, exp: 0/111/450, rotated: true}
-  - {name: marksman, index: 11, position: {x: -80, y: -200}, exp: 0/650/650}
+  - {name: void_eye, index: 0, position: {x: 170, y: -170}, exp: 489/650}
+  - {name: void_eye, index: 1, position: {x: -170, y: -170}, exp: 592/650}
+  - {name: void_eye, index: 2, position: {x: 0, y: -180}, level: 2, exp: 219/1465}
+  - {name: fire_badger, index: 3, position: {x: -75, y: -180}, exp: 576/1400}
+  - {name: fire_badger, index: 4, position: {x: 75, y: -180}, exp: 989/1400}
+  - {name: fang, index: 5, position: {x: -140, y: -205}, exp: 364/600, rotated: true}
+  - {name: fang, index: 6, position: {x: 140, y: -205}, exp: 124/600, rotated: true}
+  - {name: fire_badger, index: 7, position: {x: -225, y: -170}, exp: 388/1400}
+  - {name: fang, index: 8, position: {x: -140, y: -135}, exp: 176/600, rotated: true}
+  - {name: typhoon, index: 9, position: {x: -170, y: -190}}
+  - {name: crawler, index: 10, position: {x: -290, y: -285}, rotated: true}
+  - {name: marksman, index: 11, position: {x: -80, y: -200}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
   battle_skills:
   - {name: heavy_missile_strike, positions: [{x: -185, y: 79}]}
+outcome:
+  blue.core_damage: 952
+  blue.units[0].exp: 317
+  blue.units[2].exp: 234
+  blue.units[3].exp: 1118
+  blue.units[4].exp: 53
+  blue.units[5].exp: 95
+  blue.units[6].exp: 130
+  blue.units[7].exp: 331
+  blue.units[8].exp: 21
+  blue.units[9].exp: 397
+  blue.units[10].exp: 516
+  blue.units[11].exp: 209
+  blue.units[12].exp: 342
+  blue.contraptions[0].retained: false
+  red.units[0].exp: 536
+  red.units[1].exp: 650
+  red.units[2].exp: 782
+  red.units[3].exp: 1400
+  red.units[4].exp: 1400
+  red.units[5].exp: 467
+  red.units[6].exp: 159
+  red.units[7].exp: 1058
+  red.units[8].exp: 347
+  red.units[9].exp: 302
+  red.units[10].exp: 111
+  red.units[11].exp: 650
+ticks: 1267
+hash: 23:0b6b02a60908866fad5029ce5c20d5d98bed1ac035bbd96e8d86167c0d31bdeb

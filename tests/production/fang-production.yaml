@@ -10,19 +10,22 @@
 # the Fortress and red's units.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 405
-hash: 23:b92508e3ec2709df61397351306dfdc49e12ab7a3c383f1acda9893f20c8c35c
 blue:
   techs:
     fortress: [fang_production]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -150}, exp: 0/600/1600}
+  - {name: fortress, index: 0, position: {x: 0, y: -150}}
 red:
-  core_damage: 355
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/36/650}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}}
+outcome:
+  blue.units[0].exp: 600
+  red.core_damage: 355
+  red.units[1].exp: 36
+ticks: 405
+hash: 23:b92508e3ec2709df61397351306dfdc49e12ab7a3c383f1acda9893f20c8c35c

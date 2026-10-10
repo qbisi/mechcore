@@ -4,18 +4,20 @@
 # tick after, by 86, the whole part of 0.0045 of its 19297, and wins.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 212
-hash: 23:46f357e0aae94ad32a716c5f7e9a325a9727b50ccd0b4d5934889385e299ce8b
 blue:
   techs:
     rhino: [field_maintenance]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
 red:
-  core_damage: 200
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 200
+ticks: 212
+hash: 23:46f357e0aae94ad32a716c5f7e9a325a9727b50ccd0b4d5934889385e299ce8b

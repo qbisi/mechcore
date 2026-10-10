@@ -4,20 +4,22 @@
 # buff is applied, and none burrows again for the rest of the fight.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 331
-hash: 23:871d6f85164bbc545a0cdee040257ed824001bd5af328314847d30727d74df6c
 blue:
-  core_damage: 200
   techs:
     crawler: [subterranean_blitz]
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -65}, exp: 0/192/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -65}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 95}]}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 192
+ticks: 331
+hash: 23:871d6f85164bbc545a0cdee040257ed824001bd5af328314847d30727d74df6c

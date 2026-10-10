@@ -12,24 +12,26 @@
 # loss's buff.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 837
-hash: 23:40d44907a3dc0a8c814b067b82dc8d2e4393a063a866885e8b250dd892dd2d81
 blue:
   officers: [advanced_offensive_tactics, advanced_targeting_system]
   techs:
     marksman: [range_enhancement]
   units:
-  - {name: marksman, index: 0, position: {x: 290, y: -300}, exp: 0/650/650}
+  - {name: marksman, index: 0, position: {x: 290, y: -300}}
   constructions:
   - {name: anti_armor_turret, index: 2, position: {x: -140, y: -100}}
 red:
-  core_damage: 100
   units:
   - {name: arclight, index: 0, position: {x: 140, y: -100}}
   - {name: arclight, index: 1, position: {x: 140, y: -140}}
   - {name: arclight, index: 2, position: {x: 140, y: -220}}
   - {name: arclight, index: 3, position: {x: 140, y: -260}}
+outcome:
+  blue.units[0].exp: 650
+  red.core_damage: 100
+ticks: 837
+hash: 23:40d44907a3dc0a8c814b067b82dc8d2e4393a063a866885e8b250dd892dd2d81

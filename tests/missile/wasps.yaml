@@ -5,18 +5,21 @@
 # kills all 12 on tick 14.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 14
-hash: 23:472657ef25f6f80653a99042c3cf1ac5d643ee2b88ff353bfa05f2bd39047198
 blue:
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/408/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
   contraptions:
-  - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
+  - {name: missile, index: 0, position: {x: 1, y: -11}}
 red:
-  core_damage: 100
   units:
   - {name: wasp, index: 0, position: {x: 5, y: -40}}
+outcome:
+  blue.units[0].exp: 408
+  blue.contraptions[0].retained: false
+  red.core_damage: 100
+ticks: 14
+hash: 23:472657ef25f6f80653a99042c3cf1ac5d643ee2b88ff353bfa05f2bd39047198

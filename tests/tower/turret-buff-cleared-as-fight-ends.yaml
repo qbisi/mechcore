@@ -6,22 +6,24 @@
 # and the fight's end clears the turret's, which still has 126 ticks to run.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 3
-source: game
-ticks: 599
-hash: 23:3de4662a107bef072ae896ba7358107d0347bfa3fc306351c1365a51e02f882d
 blue:
   officers: [sabertooth_specialist]
   legacy_index: 2
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/10/650}
-  - {name: sabertooth, index: 1, position: {x: -105, y: -155}, exp: 0/400/1300}
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/650}
+  - {name: sabertooth, index: 1, position: {x: -105, y: -155}}
 red:
-  core_damage: 300
   legacy_index: 1
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/10/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/650}
   constructions:
   - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}
+outcome:
+  blue.units[1].exp: 400
+  red.core_damage: 300
+ticks: 599
+hash: 23:3de4662a107bef072ae896ba7358107d0347bfa3fc306351c1365a51e02f882d

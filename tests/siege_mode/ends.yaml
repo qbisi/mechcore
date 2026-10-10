@@ -6,18 +6,20 @@
 # 100 and its motion idle, the trenches taken away as the fight is left.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 113
-hash: 23:5fa7d6987d6140cbd5796731650176f67b90a8899fd084e3897826d0d030da6c
 blue:
   techs:
     typhoon: [field_entrenchment]
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -40}, exp: 0/200/1950}
+  - {name: typhoon, index: 0, position: {x: 0, y: -40}}
 red:
-  core_damage: 250
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -20}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 250
+ticks: 113
+hash: 23:5fa7d6987d6140cbd5796731650176f67b90a8899fd084e3897826d0d030da6c

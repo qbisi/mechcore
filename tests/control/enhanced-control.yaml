@@ -6,19 +6,23 @@
 # nothing.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 333
-hash: 23:917fffc23f34811ebf4d31fde129a0e8e26e8a05dfbd7b451675d3f67225e942
 blue:
   techs:
     hacker: [enhanced_control]
   units:
-  - {name: hacker, index: 0, position: {x: -5, y: -125}, exp: 0/60/560}
-  - {name: fang, index: 1, position: {x: 45, y: -120}, exp: 0/132/600}
+  - {name: hacker, index: 0, position: {x: -5, y: -125}}
+  - {name: fang, index: 1, position: {x: 45, y: -120}}
 red:
-  core_damage: 308
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/32/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 60
+  blue.units[1].exp: 132
+  red.core_damage: 308
+  red.units[0].exp: 32
+ticks: 333
+hash: 23:917fffc23f34811ebf4d31fde129a0e8e26e8a05dfbd7b451675d3f67225e942

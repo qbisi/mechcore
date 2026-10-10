@@ -6,22 +6,27 @@
 # 60, each a red fire of the oil's 30 metres.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 242
-hash: 23:c46e1582600e3133d409579b0d6a2b677f53b11ff4cfc37fd4c0fc96cd96f047
 blue:
-  core_damage: 120
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/212/650}
-  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/140/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -150}}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}}
   battle_skills:
   - {name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: -40}, {x: 60, y: -40}], grid_rows: {0: [], 1: [], 2: [], 4: [], 5: [], 6: []}}}
 red:
   units:
-  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/300/1300}
-  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/100/450}
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -60, y: 160}, {x: -60, y: 40}]}
+outcome:
+  blue.core_damage: 120
+  blue.units[0].exp: 212
+  blue.units[1].exp: 140
+  red.units[0].exp: 300
+  red.units[1].exp: 100
+ticks: 242
+hash: 23:c46e1582600e3133d409579b0d6a2b677f53b11ff4cfc37fd4c0fc96cd96f047

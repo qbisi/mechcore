@@ -6,22 +6,26 @@
 # same fight without Power Armor, whose Rhino is slowed.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 557
-hash: 23:468fad47225689a9764127f697050cba651ea321e87eeb4aeb05dc208c6a4197
 blue:
-  core_damage: 300
   techs:
     wraith: [degeneration_beam]
   units:
-  - {name: wraith, index: 0, position: {x: 5, y: -105}, exp: 0/408/2250}
+  - {name: wraith, index: 0, position: {x: 5, y: -105}}
 red:
   techs:
     rhino: [power_armor]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -115}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -115}}
   - {name: wasp, index: 1, position: {x: 45, y: -110}}
-  - {name: marksman, index: 2, position: {x: -40, y: -160}, exp: 0/600/650}
+  - {name: marksman, index: 2, position: {x: -40, y: -160}}
+outcome:
+  blue.core_damage: 300
+  blue.units[0].exp: 408
+  red.units[0].exp: 200
+  red.units[2].exp: 600
+ticks: 557
+hash: 23:468fad47225689a9764127f697050cba651ea321e87eeb4aeb05dc208c6a4197

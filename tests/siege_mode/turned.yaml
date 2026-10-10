@@ -6,20 +6,23 @@
 # until t280.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 733
-hash: 23:7c3116736723fe5a7d561bb9d545ed228a3eb8083ae70a976f4732ccd4501e52
 blue:
-  core_damage: 250
   techs:
     sabertooth: [field_entrenchment]
   units:
-  - {name: sabertooth, index: 0, position: {x: 5, y: -35}, exp: 0/400/1300}
+  - {name: sabertooth, index: 0, position: {x: 5, y: -35}}
   - {name: arclight, index: 1, position: {x: -280, y: -300}}
 red:
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -25}}
-  - {name: hacker, index: 1, position: {x: 5, y: -55}, exp: 0/400/560}
+  - {name: hacker, index: 1, position: {x: 5, y: -55}}
+outcome:
+  blue.core_damage: 250
+  blue.units[0].exp: 400
+  red.units[1].exp: 400
+ticks: 733
+hash: 23:7c3116736723fe5a7d561bb9d545ed228a3eb8083ae70a976f4732ccd4501e52

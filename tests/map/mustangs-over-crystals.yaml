@@ -7,16 +7,19 @@
 # only touches that edge, does.
 
 kind: fight
+source: game
 map_id: 1001
 seed: 4242
 round: 1
-source: game
-ticks: 392
-hash: 23:c5639b8dde627e11fa6dbd9055f36c21e8039ccaa8279c2f62da8b06df2cfe9f
 blue:
-  core_damage: 68
   units:
-  - {name: mustang, index: 0, position: {x: -135, y: -300}, exp: 0/255/1200}
+  - {name: mustang, index: 0, position: {x: -135, y: -300}}
 red:
   units:
-  - {name: mustang, index: 0, position: {x: 135, y: -150}, exp: 0/408/1200}
+  - {name: mustang, index: 0, position: {x: 135, y: -150}}
+outcome:
+  blue.core_damage: 68
+  blue.units[0].exp: 255
+  red.units[0].exp: 408
+ticks: 392
+hash: 23:c5639b8dde627e11fa6dbd9055f36c21e8039ccaa8279c2f62da8b06df2cfe9f

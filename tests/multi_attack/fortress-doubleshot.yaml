@@ -4,18 +4,20 @@
 # `MultiAttackTargetPositionController` and both leave weapon 0.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 124
-hash: 23:2cf349324d631489fd8cea0ebe07b1a4a51b9e474ff58524ad62c23bd4036cd1
 blue:
   techs:
     fortress: [doubleshot]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/400/1600}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}}
 red:
-  core_damage: 350
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 350
+ticks: 124
+hash: 23:2cf349324d631489fd8cea0ebe07b1a4a51b9e474ff58524ad62c23bd4036cd1

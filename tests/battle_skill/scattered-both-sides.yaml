@@ -8,21 +8,18 @@
 # three of them strike a Fortress.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 579
-hash: 23:9d4e94718ef4105d6115849a2f008e7731574aae72620128ed4658ba603c33e8
 blue:
   units:
-  - {name: fortress, index: 0, position: {x: -60, y: -160}, exp: 0/728/1600}
-  - {name: fortress, index: 1, position: {x: 60, y: -160}, exp: 0/1048/1600}
+  - {name: fortress, index: 0, position: {x: -60, y: -160}}
+  - {name: fortress, index: 1, position: {x: 60, y: -160}}
   battle_skills:
   - {name: orbital_bombardment, positions: [{x: 0, y: 30}]}
   - {name: ion_blast, positions: [{x: -90, y: 40}, {x: 90, y: 40}]}
 red:
-  core_damage: 700
   units:
   - {name: sledgehammer, index: 0, position: {x: -45, y: -60}}
   - {name: sledgehammer, index: 1, position: {x: 5, y: -60}}
@@ -32,3 +29,9 @@ red:
   - {name: crawler, index: 5, position: {x: 65, y: -110}}
   battle_skills:
   - {name: orbital_bombardment, positions: [{x: 0, y: -160}]}
+outcome:
+  blue.units[0].exp: 728
+  blue.units[1].exp: 1048
+  red.core_damage: 700
+ticks: 579
+hash: 23:9d4e94718ef4105d6115849a2f008e7731574aae72620128ed4658ba603c33e8

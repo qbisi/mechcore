@@ -4,36 +4,50 @@
 # building asks for the wall in the way, as one that locks a unit does.
 
 kind: fight
+source: game
 map_id: 1031
 seed: 505043195
 round: 1
-source: game
-ticks: 1019
-hash: 23:e66748a409e248f6b1524179bc0d61b365390db04a0c74df91754f31b855edd8
 blue:
   officers: [giant_specialist]
   legacy_index: 5
   units:
-  - {name: void_eye, index: 0, position: {x: -190, y: -150}, exp: 0/266/650}
-  - {name: void_eye, index: 1, position: {x: -20, y: -150}, exp: 0/70/650}
-  - {name: void_eye, index: 2, position: {x: -100, y: -150}, exp: 0/645/650}
-  - {name: sledgehammer, index: 3, position: {x: -90, y: -115}, exp: 0/337/1300, rotated: true}
-  - {name: sledgehammer, index: 4, position: {x: -180, y: -115}, exp: 0/163/1300, rotated: true}
-  - {name: crawler, index: 5, position: {x: -190, y: -185}, exp: 0/289/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -100, y: -185}, exp: 0/201/450, rotated: true}
+  - {name: void_eye, index: 0, position: {x: -190, y: -150}}
+  - {name: void_eye, index: 1, position: {x: -20, y: -150}}
+  - {name: void_eye, index: 2, position: {x: -100, y: -150}}
+  - {name: sledgehammer, index: 3, position: {x: -90, y: -115}, rotated: true}
+  - {name: sledgehammer, index: 4, position: {x: -180, y: -115}, rotated: true}
+  - {name: crawler, index: 5, position: {x: -190, y: -185}, rotated: true}
+  - {name: crawler, index: 6, position: {x: -100, y: -185}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
-  core_damage: 538
   officers: [cost_control_specialist]
   legacy_index: 5
   units:
-  - {name: crawler, index: 0, position: {x: 135, y: -190}, exp: 0/19/450}
-  - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 0/265/450, rotated: true}
+  - {name: crawler, index: 0, position: {x: 135, y: -190}}
+  - {name: crawler, index: 1, position: {x: -140, y: -135}, rotated: true}
   - {name: crawler, index: 2, position: {x: 140, y: -135}, rotated: true}
-  - {name: sabertooth, index: 3, position: {x: 95, y: -95}, exp: 0/227/1300}
-  - {name: sabertooth, index: 4, position: {x: -95, y: -95}, exp: 0/248/1300}
-  - {name: arclight, index: 5, position: {x: 140, y: -100}, exp: 0/165/750}
-  - {name: arclight, index: 6, position: {x: -140, y: -100}, exp: 0/25/750}
+  - {name: sabertooth, index: 3, position: {x: 95, y: -95}}
+  - {name: sabertooth, index: 4, position: {x: -95, y: -95}}
+  - {name: arclight, index: 5, position: {x: 140, y: -100}}
+  - {name: arclight, index: 6, position: {x: -140, y: -100}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+outcome:
+  blue.units[0].exp: 266
+  blue.units[1].exp: 70
+  blue.units[2].exp: 645
+  blue.units[3].exp: 337
+  blue.units[4].exp: 163
+  blue.units[5].exp: 289
+  blue.units[6].exp: 201
+  red.core_damage: 538
+  red.units[0].exp: 19
+  red.units[1].exp: 265
+  red.units[3].exp: 227
+  red.units[4].exp: 248
+  red.units[5].exp: 165
+  red.units[6].exp: 25
+ticks: 1019
+hash: 23:e66748a409e248f6b1524179bc0d61b365390db04a0c74df91754f31b855edd8

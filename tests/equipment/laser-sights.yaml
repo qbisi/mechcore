@@ -10,16 +10,18 @@
 # the control's in motion, and only the unit's range tells them apart.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 91
-hash: 23:1715e67c01bc53a6c134aab338803fda021fa7b0b66c7e45ee2960d38dade102
 blue:
-  core_damage: 100
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [laser_sights]}
 red:
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/200/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -50}}
+outcome:
+  blue.core_damage: 100
+  red.units[0].exp: 200
+ticks: 91
+hash: 23:1715e67c01bc53a6c134aab338803fda021fa7b0b66c7e45ee2960d38dade102

@@ -4,18 +4,20 @@
 # buff on both, blue's first, and both run slowed with their technologies off.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 149
-hash: 23:38105f9ae300223e6b7ddf0610f21851c40ec6a7f6680f1d5512293130d100e5
 blue:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/400/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: 0, y: 0}]}
 red:
-  core_damage: 200
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -45}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 200
+ticks: 149
+hash: 23:38105f9ae300223e6b7ddf0610f21851c40ec6a7f6680f1d5512293130d100e5

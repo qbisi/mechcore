@@ -5,18 +5,20 @@
 # at a time, 311 each.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 180
-hash: 23:d92dcc9bac17e2b8a6e6baf7e3ce59d3c4003b4614025a64ad3e8437b64f7c2d
 blue:
   techs:
     arclight: [anti_aircraft_ammunition]
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/408/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -100}}
 red:
-  core_damage: 100
   units:
   - {name: wasp, index: 0, position: {x: 15, y: -90}}
+outcome:
+  blue.units[0].exp: 408
+  red.core_damage: 100
+ticks: 180
+hash: 23:d92dcc9bac17e2b8a6e6baf7e3ce59d3c4003b4614025a64ad3e8437b64f7c2d

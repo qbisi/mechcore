@@ -8,20 +8,23 @@
 # stands then. All 72 summons search that way on the tick they join.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 551
-hash: 23:7636836abe7000bf88243a8a8e7e31510907f70d96e2fd2fe74a303aaffb2fa3
 blue:
   units:
-  - {name: marksman, index: 0, position: {x: -100, y: -150}, exp: 0/32/650}
+  - {name: marksman, index: 0, position: {x: -100, y: -150}}
   battle_skills:
   - {name: underground_threat, positions: [{x: 0, y: -60}]}
 red:
-  core_damage: 104
   units:
-  - {name: marksman, index: 0, position: {x: -100, y: -150}, exp: 0/48/650}
+  - {name: marksman, index: 0, position: {x: -100, y: -150}}
   battle_skills:
   - {name: underground_threat, positions: [{x: 0, y: 60}]}
+outcome:
+  blue.units[0].exp: 32
+  red.core_damage: 104
+  red.units[0].exp: 48
+ticks: 551
+hash: 23:7636836abe7000bf88243a8a8e7e31510907f70d96e2fd2fe74a303aaffb2fa3

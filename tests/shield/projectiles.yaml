@@ -8,19 +8,21 @@
 # target; the Marksman inside takes nothing.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 326
-hash: 23:94ff4dd2216674236cb47c5d1c23e53468787809ea1666628aab7d7ff9d84c27
 blue:
-  core_damage: 100
   units:
   - {name: marksman, index: 0, position: {x: -40, y: -150}}
   - {name: arclight, index: 1, position: {x: 40, y: -150}}
 red:
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -80}, exp: 0/400/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -80}}
   contraptions:
   - {name: shield, index: 1, position: {x: 1, y: -81}}
+outcome:
+  blue.core_damage: 100
+  red.units[0].exp: 400
+ticks: 326
+hash: 23:94ff4dd2216674236cb47c5d1c23e53468787809ea1666628aab7d7ff9d84c27

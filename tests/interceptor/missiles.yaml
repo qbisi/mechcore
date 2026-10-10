@@ -7,22 +7,27 @@
 # 1512 with each hit. Then the Stormcallers fight.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 195
-hash: 23:b5374a3a92ce5558d1fcd18f9a6577bacf1f6932ae6078d0cc1b0f6034c6d21a
 blue:
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/300/1100}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 5, y: -85}}
-  - {name: missile, index: 1, position: {x: 1, y: -11}, retained: false}
+  - {name: missile, index: 1, position: {x: 1, y: -11}}
 red:
-  core_damage: 100
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/200/1100}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 5, y: -85}}
-  - {name: missile, index: 1, position: {x: 1, y: -11}, retained: false}
+  - {name: missile, index: 1, position: {x: 1, y: -11}}
+outcome:
+  blue.units[0].exp: 300
+  blue.contraptions[1].retained: false
+  red.core_damage: 100
+  red.units[0].exp: 200
+  red.contraptions[1].retained: false
+ticks: 195
+hash: 23:b5374a3a92ce5558d1fcd18f9a6577bacf1f6932ae6078d0cc1b0f6034c6d21a

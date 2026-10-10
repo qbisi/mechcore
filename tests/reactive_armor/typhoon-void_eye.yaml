@@ -6,22 +6,27 @@
 # of their 202 each, and the sixth on tick 216 takes 202.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 391
-hash: 23:5e94fb73f24687811c61d5e345f06c56c9edeeacf140465f42dc9d6307355ad6
 blue:
   techs:
     typhoon: [reactive_armor]
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/997/1950}
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}}
 red:
-  core_damage: 125
   techs:
     void_eye: [electromagnetic_armor]
   units:
-  - {name: void_eye, index: 0, position: {x: 0, y: -60}, exp: 0/200/650}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/50/900}
-  - {name: wasp, index: 2, position: {x: -55, y: -100}, exp: 0/50/900}
+  - {name: void_eye, index: 0, position: {x: 0, y: -60}}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}}
+  - {name: wasp, index: 2, position: {x: -55, y: -100}}
+outcome:
+  blue.units[0].exp: 997
+  red.core_damage: 125
+  red.units[0].exp: 200
+  red.units[1].exp: 50
+  red.units[2].exp: 50
+ticks: 391
+hash: 23:5e94fb73f24687811c61d5e345f06c56c9edeeacf140465f42dc9d6307355ad6

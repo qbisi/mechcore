@@ -6,18 +6,21 @@
 # removal is the last event of its tick, after the shots that tick resolved.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 1150
-hash: 23:3bfcc90a23a02e57cb277394d784f4c92ef350e4b39d8b0c50d74199782fd803
 blue:
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -170}, exp: 0/900/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -170}}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -60, y: -60}, {x: 60, y: -60}]}
 red:
-  core_damage: 204
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, level: 9, exp: 0/400/3027}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, level: 9}
+outcome:
+  blue.units[0].exp: 900
+  red.core_damage: 204
+  red.units[0].exp: 400
+ticks: 1150
+hash: 23:3bfcc90a23a02e57cb277394d784f4c92ef350e4b39d8b0c50d74199782fd803

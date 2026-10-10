@@ -7,22 +7,28 @@
 # fire lands on it.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 242
-hash: 23:c87edeb9ce0df46a96520f8c75253598fb9930b135e249aee24f574b83222ca6
 blue:
-  core_damage: 212
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/88/650}
-  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/80/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -150}}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}}
   battle_skills:
   - {name: shield_airdrop, standing: {position: {x: 0, y: 0}}}
-  - {name: sticky_oil_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}], grid_rows: {0: [240, 1020, 2046, 2046, 1023, 255, 63, 31, 14, 6, 0, 0]}}
+  - {name: sticky_oil_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
   - {name: incendiary_bomb, positions: [{x: 60, y: -160}, {x: 60, y: -40}]}
 red:
   units:
-  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/250/1300}
-  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/150/450}
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}}
+outcome:
+  blue.core_damage: 212
+  blue.units[0].exp: 88
+  blue.units[1].exp: 80
+  blue.battle_skills[1].grid_rows: {0: [240, 1020, 2046, 2046, 1023, 255, 63, 31, 14, 6, 0, 0]}
+  red.units[0].exp: 250
+  red.units[1].exp: 150
+ticks: 242
+hash: 23:c87edeb9ce0df46a96520f8c75253598fb9930b135e249aee24f574b83222ca6

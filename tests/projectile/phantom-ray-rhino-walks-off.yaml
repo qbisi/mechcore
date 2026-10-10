@@ -8,16 +8,18 @@
 # tick early.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 157
-hash: 23:93cf4f176d3bef2a5dc08c11cd46949a263baa670f48545be3088655d70e4405
 blue:
-  core_damage: 201
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -45}}
 red:
   units:
-  - {name: phantom_ray, index: 0, position: {x: 5, y: -40}, exp: 0/400/1000}
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -40}}
+outcome:
+  blue.core_damage: 201
+  red.units[0].exp: 400
+ticks: 157
+hash: 23:93cf4f176d3bef2a5dc08c11cd46949a263baa670f48545be3088655d70e4405

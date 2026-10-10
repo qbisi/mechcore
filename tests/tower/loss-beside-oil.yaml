@@ -9,14 +9,11 @@
 # cleared before the loss's, the last added first (t297).
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 605
-hash: 23:42799ec202f6be8f831c68b93eadc079a4afddb8ba984db022d59c54dd9eed9c
 blue:
-  core_damage: 401
   units:
   - {name: fang, index: 0, position: {x: 145, y: -300}}
   - {name: rhino, index: 1, position: {x: -145, y: -295}}
@@ -24,5 +21,11 @@ red:
   techs:
     phantom_ray: [sticky_oil_bomb]
   units:
-  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/606/1000}
-  - {name: phantom_ray, index: 1, position: {x: -145, y: -20}, exp: 0/410/1000}
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}}
+  - {name: phantom_ray, index: 1, position: {x: -145, y: -20}}
+outcome:
+  blue.core_damage: 401
+  red.units[0].exp: 606
+  red.units[1].exp: 410
+ticks: 605
+hash: 23:42799ec202f6be8f831c68b93eadc079a4afddb8ba984db022d59c54dd9eed9c

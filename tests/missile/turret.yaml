@@ -7,20 +7,24 @@
 # and sets nothing off, since the missile is spent.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 394
-hash: 23:806229ab8751119ad111b30f0f079d103992d559d059e6cf61501c3728cc2d86
 blue:
-  core_damage: 200
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/120/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
   contraptions:
-  - {name: missile, index: 0, position: {x: -140, y: -11}, retained: false}
+  - {name: missile, index: 0, position: {x: -140, y: -11}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -255}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -255}}
   constructions:
   - {name: rapid_fire_turret, index: 0, position: {x: 140, y: -100}}
+outcome:
+  blue.core_damage: 200
+  blue.units[0].exp: 120
+  blue.contraptions[0].retained: false
+  red.units[0].exp: 200
+ticks: 394
+hash: 23:806229ab8751119ad111b30f0f079d103992d559d059e6cf61501c3728cc2d86

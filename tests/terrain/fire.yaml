@@ -7,20 +7,23 @@
 # are struck in the order they entered, and on tick 140 in the order back.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 288
-hash: 23:3f82ab139fdf0d7c315fb108bd207979952e7a54c0c239c8b2acbea4476c01a9
 blue:
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/256/650}
-  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/336/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -150}}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
 red:
-  core_damage: 200
   units:
   - {name: sledgehammer, index: 0, position: {x: 5, y: -60}}
   - {name: crawler, index: 1, position: {x: 5, y: -110}}
+outcome:
+  blue.units[0].exp: 256
+  blue.units[1].exp: 336
+  red.core_damage: 200
+ticks: 288
+hash: 23:3f82ab139fdf0d7c315fb108bd207979952e7a54c0c239c8b2acbea4476c01a9

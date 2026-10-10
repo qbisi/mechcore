@@ -9,18 +9,21 @@
 # the buffs cleared, none removed.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 184
-hash: 23:da2f2d97932d10a890cb3fb18a387b4337d2e905532a9e337fd60378d78cffb4
 blue:
   techs:
     crawler: [subterranean_blitz]
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}
 red:
-  core_damage: 84
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -60}, exp: 0/24/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -60}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 84
+  red.units[0].exp: 24
+ticks: 184
+hash: 23:da2f2d97932d10a890cb3fb18a387b4337d2e905532a9e337fd60378d78cffb4

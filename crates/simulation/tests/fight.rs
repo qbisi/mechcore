@@ -71,8 +71,11 @@ fn recorded(name: &str) -> (tempfile::TempDir, McfrReader) {
     let output = directory.path().join("fight.mcfr");
     simulate_document(layout.as_bytes(), Record::File(&output), Some(fight.seed)).unwrap();
     let reader = McfrReader::open(output).unwrap();
-    assert_eq!(reader.tick_count(), fight.ticks);
-    assert_eq!(reader.hashes().result_hash, fight.hash.result);
+    let trajectory = fight
+        .trajectory
+        .expect("a pinned fight states its trajectory");
+    assert_eq!(reader.tick_count(), trajectory.ticks);
+    assert_eq!(reader.hashes().result_hash, trajectory.hash.result);
     (directory, reader)
 }
 

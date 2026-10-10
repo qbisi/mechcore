@@ -5,16 +5,19 @@
 # in front go to the centre and the sixteen behind do not.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 161
-hash: 23:2595408f448f9ea969ced3c7f4d61f70e6d7050589e6134bea550e142caa73f5
 blue:
-  core_damage: 84
   units:
-  - {name: marksman, index: 0, position: {x: -140, y: -100}, exp: 0/24/650}
+  - {name: marksman, index: 0, position: {x: -140, y: -100}}
 red:
   units:
-  - {name: crawler, index: 0, position: {x: 145, y: -20}, exp: 0/200/450}
+  - {name: crawler, index: 0, position: {x: 145, y: -20}}
+outcome:
+  blue.core_damage: 84
+  blue.units[0].exp: 24
+  red.units[0].exp: 200
+ticks: 161
+hash: 23:2595408f448f9ea969ced3c7f4d61f70e6d7050589e6134bea550e142caa73f5

@@ -4,18 +4,20 @@
 # the Marksman closes in and each shot strikes up to eleven Crawlers.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 361
-hash: 23:fc8e43ab6c749eca64deb06c57dd9cf156f3bc7de115eab542e64b90b7e2511f
 blue:
   techs:
     marksman: [assault_mode]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/192/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -100}}
 red:
-  core_damage: 100
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 192
+  red.core_damage: 100
+ticks: 361
+hash: 23:fc8e43ab6c749eca64deb06c57dd9cf156f3bc7de115eab542e64b90b7e2511f

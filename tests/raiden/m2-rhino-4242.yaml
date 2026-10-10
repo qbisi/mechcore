@@ -1,18 +1,22 @@
 # M2: a single large ground target, which cannot hit back.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 155
-hash: 23:7edce837899010350ad07c8b24de6db3468c1917b84f90fb4ba8ddb69a9fbdf6
 blue:
   units:
-  - {name: raiden, index: 0, position: {x: 0, y: -200}, exp: 0/66/2400}
-  - {name: raiden, index: 1, position: {x: 0, y: -150}, exp: 0/66/2400}
-  - {name: raiden, index: 2, position: {x: 0, y: -100}, exp: 0/266/2400}
+  - {name: raiden, index: 0, position: {x: 0, y: -200}}
+  - {name: raiden, index: 1, position: {x: 0, y: -150}}
+  - {name: raiden, index: 2, position: {x: 0, y: -100}}
 red:
-  core_damage: 1050
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.units[0].exp: 66
+  blue.units[1].exp: 66
+  blue.units[2].exp: 266
+  red.core_damage: 1050
+ticks: 155
+hash: 23:7edce837899010350ad07c8b24de6db3468c1917b84f90fb4ba8ddb69a9fbdf6

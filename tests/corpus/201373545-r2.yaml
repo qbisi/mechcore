@@ -8,47 +8,69 @@
 # lock on a tower a shield covers.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 953550766
 round: 2
-source: game
-ticks: 1413
-hash: 23:cdcd5f15987924fa85896026d4b48d4bd47c2ac3e453c212f8f952d513e33039
 blue:
   officers: [quick_supply_specialist]
   legacy_index: 8
   units:
-  - {name: fang, index: 0, position: {x: -140, y: -135}, exp: 95/190/600, rotated: true}
-  - {name: fang, index: 1, position: {x: 50, y: -135}, exp: 82/241/600, rotated: true}
-  - {name: fang, index: 2, position: {x: 140, y: -135}, exp: 0/27/600, rotated: true}
-  - {name: steel_ball, index: 3, position: {x: -215, y: -230}, exp: 43/86/1000}
-  - {name: steel_ball, index: 4, position: {x: 215, y: -230}, exp: 562/1000/1000}
-  - {name: marksman, index: 5, position: {x: -100, y: -170}, exp: 123/264/650}
-  - {name: marksman, index: 6, position: {x: 100, y: -170}, exp: 258/619/650}
-  - {name: marksman, index: 7, position: {x: 180, y: -170}, exp: 450/634/650}
-  - {name: arclight, index: 8, position: {x: 100, y: -150}, exp: 0/286/750}
-  - {name: arclight, index: 9, position: {x: -160, y: -170}, exp: 0/750/750}
-  - {name: marksman, index: 10, position: {x: -180, y: -170}, exp: 0/62/650}
+  - {name: fang, index: 0, position: {x: -140, y: -135}, exp: 95/600, rotated: true}
+  - {name: fang, index: 1, position: {x: 50, y: -135}, exp: 82/600, rotated: true}
+  - {name: fang, index: 2, position: {x: 140, y: -135}, rotated: true}
+  - {name: steel_ball, index: 3, position: {x: -215, y: -230}, exp: 43/1000}
+  - {name: steel_ball, index: 4, position: {x: 215, y: -230}, exp: 562/1000}
+  - {name: marksman, index: 5, position: {x: -100, y: -170}, exp: 123/650}
+  - {name: marksman, index: 6, position: {x: 100, y: -170}, exp: 258/650}
+  - {name: marksman, index: 7, position: {x: 180, y: -170}, exp: 450/650}
+  - {name: arclight, index: 8, position: {x: 100, y: -150}}
+  - {name: arclight, index: 9, position: {x: -160, y: -170}}
+  - {name: marksman, index: 10, position: {x: -180, y: -170}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   battle_skills:
-  - {name: shield_airdrop, positions: [{x: -146, y: -160}], retained: false}
+  - {name: shield_airdrop, positions: [{x: -146, y: -160}]}
 red:
-  core_damage: 638
   officers: [speed_specialist]
   legacy_index: 7
   units:
-  - {name: arclight, index: 0, position: {x: 210, y: -150}, exp: 372/458/750}
-  - {name: arclight, index: 1, position: {x: 140, y: -150}, exp: 353/470/750}
-  - {name: arclight, index: 2, position: {x: 70, y: -150}, exp: 199/489/750}
-  - {name: sledgehammer, index: 3, position: {x: 185, y: -130}, exp: 346/612/1300}
-  - {name: sledgehammer, index: 4, position: {x: 95, y: -130}, exp: 254/536/1300}
-  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 192/215/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 290, y: -285}, exp: 450/450/450, rotated: true}
+  - {name: arclight, index: 0, position: {x: 210, y: -150}, exp: 372/750}
+  - {name: arclight, index: 1, position: {x: 140, y: -150}, exp: 353/750}
+  - {name: arclight, index: 2, position: {x: 70, y: -150}, exp: 199/750}
+  - {name: sledgehammer, index: 3, position: {x: 185, y: -130}, exp: 346/1300}
+  - {name: sledgehammer, index: 4, position: {x: 95, y: -130}, exp: 254/1300}
+  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 192/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 290, y: -285}, exp: 450/450, rotated: true}
   - {name: fang, index: 7, position: {x: -180, y: -185}, rotated: true}
-  - {name: fang, index: 8, position: {x: 70, y: -235}, exp: 0/14/600, rotated: true}
-  - {name: crawler, index: 9, position: {x: 70, y: -285}, exp: 0/51/450, rotated: true}
+  - {name: fang, index: 8, position: {x: 70, y: -235}, rotated: true}
+  - {name: crawler, index: 9, position: {x: 70, y: -285}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   battle_skills:
-  - {name: shield_airdrop, positions: [{x: 143, y: -132}], retained: false}
+  - {name: shield_airdrop, positions: [{x: 143, y: -132}]}
+outcome:
+  blue.units[0].exp: 190
+  blue.units[1].exp: 241
+  blue.units[2].exp: 27
+  blue.units[3].exp: 86
+  blue.units[4].exp: 1000
+  blue.units[5].exp: 264
+  blue.units[6].exp: 619
+  blue.units[7].exp: 634
+  blue.units[8].exp: 286
+  blue.units[9].exp: 750
+  blue.units[10].exp: 62
+  blue.battle_skills[0].retained: false
+  red.core_damage: 638
+  red.units[0].exp: 458
+  red.units[1].exp: 470
+  red.units[2].exp: 489
+  red.units[3].exp: 612
+  red.units[4].exp: 536
+  red.units[5].exp: 215
+  red.units[8].exp: 14
+  red.units[9].exp: 51
+  red.battle_skills[0].retained: false
+ticks: 1413
+hash: 23:cdcd5f15987924fa85896026d4b48d4bd47c2ac3e453c212f8f952d513e33039

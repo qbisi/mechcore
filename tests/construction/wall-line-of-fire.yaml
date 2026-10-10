@@ -25,18 +25,21 @@
 # reaches, block 6, and everything else stands.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 20
-hash: 23:c8404bd207587872658702b89ffdbb014f49383dcbf77bdbae61b81deebb7c64
 blue:
   units:
-  - {name: marksman, index: 0, position: {x: -90, y: -90}, exp: 0/200/650}
+  - {name: marksman, index: 0, position: {x: -90, y: -90}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
-  core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: 170, y: -20}, exp: 0/12/650}
+  - {name: marksman, index: 0, position: {x: 170, y: -20}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 100
+  red.units[0].exp: 12
+ticks: 20
+hash: 23:c8404bd207587872658702b89ffdbb014f49383dcbf77bdbae61b81deebb7c64

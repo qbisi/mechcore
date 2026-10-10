@@ -6,19 +6,16 @@
 # 647 ticks.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 647
-hash: 23:4fe6eec324171ebe601d4ebddedd0650243e52bf5e7fd2a075317f0cd899c684
 blue:
   techs:
     mountain: [photon_loop]
   units:
-  - {name: mountain, index: 0, position: {x: 5, y: -145}, exp: 0/3200/3200}
+  - {name: mountain, index: 0, position: {x: 5, y: -145}}
 red:
-  core_damage: 500
   techs:
     vulcan: [ignite]
   units:
@@ -29,3 +26,8 @@ red:
   - {name: fortress, index: 4, position: {x: 100, y: -200}}
   - {name: fortress, index: 5, position: {x: -100, y: -200}}
   - {name: rhino, index: 6, position: {x: 105, y: -75}}
+outcome:
+  blue.units[0].exp: 3200
+  red.core_damage: 500
+ticks: 647
+hash: 23:4fe6eec324171ebe601d4ebddedd0650243e52bf5e7fd2a075317f0cd899c684

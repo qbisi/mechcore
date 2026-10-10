@@ -8,21 +8,26 @@
 # enemy tower, and its explosion strikes it.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 156
-hash: 23:7ec14c4f6ebb521f13826d528a23702ad9723180c906c26d5d3a72e140b857ad
 blue:
-  core_damage: 100
   techs:
     fire_badger: [scorching_charge]
   units:
-  - {name: fire_badger, index: 0, position: {x: 5, y: -40}, exp: 0/300/1400}
+  - {name: fire_badger, index: 0, position: {x: 5, y: -40}}
 red:
   units:
-  - {name: marksman, index: 0, position: {x: -40, y: -100}, exp: 0/22/650}
-  - {name: marksman, index: 1, position: {x: 0, y: -100}, exp: 0/22/650}
-  - {name: marksman, index: 2, position: {x: 40, y: -100}, exp: 0/22/650}
+  - {name: marksman, index: 0, position: {x: -40, y: -100}}
+  - {name: marksman, index: 1, position: {x: 0, y: -100}}
+  - {name: marksman, index: 2, position: {x: 40, y: -100}}
   - {name: marksman, index: 3, position: {x: 160, y: -180}}
+outcome:
+  blue.core_damage: 100
+  blue.units[0].exp: 300
+  red.units[0].exp: 22
+  red.units[1].exp: 22
+  red.units[2].exp: 22
+ticks: 156
+hash: 23:7ec14c4f6ebb521f13826d528a23702ad9723180c906c26d5d3a72e140b857ad

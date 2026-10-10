@@ -6,19 +6,23 @@
 # fight's end idles them all.
 
 kind: fight
+source: game
 map_id: 1011
 seed: 4242
 round: 3
-source: game
-ticks: 111
-hash: 23:4ad9ff7491838e8d43fc94236d6d8b744baaf7be10d78ad6b4fdacb9c5d6bccd
 blue:
-  core_damage: 374
   units:
-  - {name: marksman, index: 0, position: {x: -200, y: -60}, exp: 0/68/650}
+  - {name: marksman, index: 0, position: {x: -200, y: -60}}
 red:
   units:
-  - {name: wasp, index: 0, position: {x: 275, y: -40}, exp: 0/50/900}
-  - {name: wasp, index: 1, position: {x: 275, y: -60}, exp: 0/150/900}
+  - {name: wasp, index: 0, position: {x: 275, y: -40}}
+  - {name: wasp, index: 1, position: {x: 275, y: -60}}
   battle_skills:
   - {name: mobile_beacon, positions: [{x: 265, y: -30}, {x: 146, y: 130}, {x: -50, y: 168}]}
+outcome:
+  blue.core_damage: 374
+  blue.units[0].exp: 68
+  red.units[0].exp: 50
+  red.units[1].exp: 150
+ticks: 111
+hash: 23:4ad9ff7491838e8d43fc94236d6d8b744baaf7be10d78ad6b4fdacb9c5d6bccd

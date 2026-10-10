@@ -9,16 +9,18 @@
 # before the Rhino moved.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 153
-hash: 23:97e9c2bc485f0386cc0d90205250cabcf082bca54efcd956c9d0b492bb969a9d
 blue:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/600/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}}
 red:
-  core_damage: 200
   units:
   - {name: farseer, index: 0, position: {x: 5, y: -45}}
+outcome:
+  blue.units[0].exp: 600
+  red.core_damage: 200
+ticks: 153
+hash: 23:97e9c2bc485f0386cc0d90205250cabcf082bca54efcd956c9d0b492bb969a9d

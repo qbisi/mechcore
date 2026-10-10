@@ -8,19 +8,23 @@
 # t828; with the rest given in order rather than drawn, from t187.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 829
-hash: 23:88c12c1d0552f951686ed79c9e0f57cd4915dd500b667c5064489c3bba7113cd
 blue:
   techs:
     abyss: [swarm_missiles]
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -205}, exp: 0/384/4800}
+  - {name: abyss, index: 0, position: {x: 5, y: -205}}
 red:
-  core_damage: 500
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450}
-  - {name: crawler, index: 1, position: {x: -45, y: -100}, exp: 0/200/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: crawler, index: 1, position: {x: -45, y: -100}}
+outcome:
+  blue.units[0].exp: 384
+  red.core_damage: 500
+  red.units[0].exp: 200
+  red.units[1].exp: 200
+ticks: 829
+hash: 23:88c12c1d0552f951686ed79c9e0f57cd4915dd500b667c5064489c3bba7113cd

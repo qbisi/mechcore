@@ -8,19 +8,23 @@
 # recording numbers new units, and first moves at t300.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 492
-hash: 23:773447cf71247aac01b551f1499777435579bc05d0fc49d07242241f9c89739e
 blue:
-  core_damage: 350
   techs:
     crawler: [replicate]
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -120}, exp: 0/200/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -120}}
 red:
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -120}, exp: 0/46/650}
-  - {name: fortress, index: 1, position: {x: 70, y: -150}, exp: 0/202/1600}
+  - {name: marksman, index: 0, position: {x: 0, y: -120}}
+  - {name: fortress, index: 1, position: {x: 70, y: -150}}
+outcome:
+  blue.core_damage: 350
+  blue.units[0].exp: 200
+  red.units[0].exp: 46
+  red.units[1].exp: 202
+ticks: 492
+hash: 23:773447cf71247aac01b551f1499777435579bc05d0fc49d07242241f9c89739e

@@ -5,21 +5,24 @@
 # each by 343 or what it lacks, and nothing while at its whole life.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 528
-hash: 23:19ccbb35dab8e923c8691c1af531418e2d44db85209af18aecacbb184e1acb4a
 blue:
   techs:
     abyss: [wreckage_recycling]
   units:
-  - {name: abyss, index: 0, position: {x: -45, y: -55}, exp: 0/782/4800}
-  - {name: abyss, index: 1, position: {x: 45, y: -55}, exp: 0/633/4800}
+  - {name: abyss, index: 0, position: {x: -45, y: -55}}
+  - {name: abyss, index: 1, position: {x: 45, y: -55}}
 red:
-  core_damage: 1000
   units:
   - {name: mustang, index: 0, position: {x: -45, y: -20}}
   - {name: mustang, index: 1, position: {x: 45, y: -20}}
   - {name: arclight, index: 2, position: {x: 280, y: -300}}
+outcome:
+  blue.units[0].exp: 782
+  blue.units[1].exp: 633
+  red.core_damage: 1000
+ticks: 528
+hash: 23:19ccbb35dab8e923c8691c1af531418e2d44db85209af18aecacbb184e1acb4a

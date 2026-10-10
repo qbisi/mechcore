@@ -7,22 +7,26 @@
 # tanks chained by nearest ends squad by squad (t91 on).
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 239
-hash: 23:edb321d3e6f45cf96cf02dd5bbedd77527d5f5052ff697527e186378a5fb482b
 blue:
   techs:
     sledgehammer: [damage_sharing]
   units:
-  - {name: sledgehammer, index: 0, position: {x: -45, y: -100}, exp: 0/150/1300}
-  - {name: sledgehammer, index: 1, position: {x: 5, y: -100}, exp: 0/300/1300}
-  - {name: sledgehammer, index: 2, position: {x: 55, y: -100}, exp: 0/150/1300}
+  - {name: sledgehammer, index: 0, position: {x: -45, y: -100}}
+  - {name: sledgehammer, index: 1, position: {x: 5, y: -100}}
+  - {name: sledgehammer, index: 2, position: {x: 55, y: -100}}
 red:
-  core_damage: 600
   units:
   - {name: marksman, index: 0, position: {x: -20, y: -100}}
   - {name: marksman, index: 1, position: {x: 0, y: -100}}
   - {name: marksman, index: 2, position: {x: 20, y: -100}}
+outcome:
+  blue.units[0].exp: 150
+  blue.units[1].exp: 300
+  blue.units[2].exp: 150
+  red.core_damage: 600
+ticks: 239
+hash: 23:edb321d3e6f45cf96cf02dd5bbedd77527d5f5052ff697527e186378a5fb482b

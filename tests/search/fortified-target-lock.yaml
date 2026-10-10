@@ -8,20 +8,25 @@
 # Crawlers 10 and 5.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 192
-hash: 23:040d262cdadc70924e00a56b2fc02687b11171cab50a22d7f81b2113bcea6d1d
 blue:
-  core_damage: 380
   techs:
     steel_ball: [fortified_target_lock]
   units:
-  - {name: steel_ball, index: 0, position: {x: 5, y: -130}, exp: 0/32/1000}
+  - {name: steel_ball, index: 0, position: {x: 5, y: -130}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 35, y: -65}, exp: 0/183/1150}
-  - {name: marksman, index: 1, position: {x: -40, y: -70}, exp: 0/83/650}
-  - {name: crawler, index: 2, position: {x: -5, y: -40}, exp: 0/133/450}
+  - {name: rhino, index: 0, position: {x: 35, y: -65}}
+  - {name: marksman, index: 1, position: {x: -40, y: -70}}
+  - {name: crawler, index: 2, position: {x: -5, y: -40}}
+outcome:
+  blue.core_damage: 380
+  blue.units[0].exp: 32
+  red.units[0].exp: 183
+  red.units[1].exp: 83
+  red.units[2].exp: 133
+ticks: 192
+hash: 23:040d262cdadc70924e00a56b2fc02687b11171cab50a22d7f81b2113bcea6d1d

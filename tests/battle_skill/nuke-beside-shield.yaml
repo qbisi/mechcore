@@ -5,22 +5,26 @@
 # Marksmen it covers, the one that walked in among them, take nothing.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 433
-hash: 23:d6f41f7ba291b3511388ca591e8af9ad71cd4756ac5bbcff2b3d99608c5f4987
 blue:
   units:
-  - {name: fortress, index: 0, position: {x: -60, y: -150}, exp: 0/200/1600}
-  - {name: fortress, index: 1, position: {x: 60, y: -150}, exp: 0/200/1600}
+  - {name: fortress, index: 0, position: {x: -60, y: -150}}
+  - {name: fortress, index: 1, position: {x: 60, y: -150}}
   battle_skills:
   - {name: nuke, positions: [{x: -60, y: 130}]}
 red:
-  core_damage: 700
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -80}}
   - {name: marksman, index: 1, position: {x: 60, y: -130}}
   contraptions:
-  - {name: shield, index: 2, position: {x: 1, y: -81}, retained: false}
+  - {name: shield, index: 2, position: {x: 1, y: -81}}
+outcome:
+  blue.units[0].exp: 200
+  blue.units[1].exp: 200
+  red.core_damage: 700
+  red.contraptions[0].retained: false
+ticks: 433
+hash: 23:d6f41f7ba291b3511388ca591e8af9ad71cd4756ac5bbcff2b3d99608c5f4987

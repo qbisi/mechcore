@@ -5,24 +5,30 @@
 # Blue's and red's fogs are one controller's, made in turn as they land.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 521
-hash: 23:1f1b82793261273f6026388d14a91ff2e19287925956078d9ce0445cf18dfad5
 blue:
-  core_damage: 350
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/80/650}
-  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/200/650}
-  - {name: arclight, index: 2, position: {x: 60, y: -150}, exp: 0/320/750}
+  - {name: marksman, index: 0, position: {x: -20, y: -150}}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}}
+  - {name: arclight, index: 2, position: {x: 60, y: -150}}
   battle_skills:
   - {name: smoke_bomb, positions: [{x: -60, y: -140}, {x: 60, y: -140}]}
 red:
   units:
   - {name: marksman, index: 0, position: {x: -20, y: -120}}
-  - {name: sledgehammer, index: 1, position: {x: 25, y: -100}, exp: 0/200/1300}
-  - {name: fortress, index: 2, position: {x: 0, y: -150}, exp: 0/400/1600}
+  - {name: sledgehammer, index: 1, position: {x: 25, y: -100}}
+  - {name: fortress, index: 2, position: {x: 0, y: -150}}
   battle_skills:
   - {name: smoke_bomb, positions: [{x: 60, y: -40}, {x: -60, y: -40}]}
+outcome:
+  blue.core_damage: 350
+  blue.units[0].exp: 80
+  blue.units[1].exp: 200
+  blue.units[2].exp: 320
+  red.units[1].exp: 200
+  red.units[2].exp: 400
+ticks: 521
+hash: 23:1f1b82793261273f6026388d14a91ff2e19287925956078d9ce0445cf18dfad5

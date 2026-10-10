@@ -7,21 +7,25 @@
 # counts in the statistics.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 728
-hash: 23:dd2da42052a8108bc2e481a15bdb6c381cbd3701fbee78461367028b26c33743
 blue:
-  core_damage: 90
   techs:
     raiden: [ionization]
   units:
-  - {name: raiden, index: 0, position: {x: 0, y: -170}, exp: 0/836/2400}
+  - {name: raiden, index: 0, position: {x: 0, y: -170}}
 red:
   techs:
     fang: [portable_shield]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -50}, exp: 0/200/1600}
-  - {name: fang, index: 1, position: {x: 45, y: -60}, exp: 0/600/600}
+  - {name: fortress, index: 0, position: {x: 0, y: -50}}
+  - {name: fang, index: 1, position: {x: 45, y: -60}}
+outcome:
+  blue.core_damage: 90
+  blue.units[0].exp: 836
+  red.units[0].exp: 200
+  red.units[1].exp: 600
+ticks: 728
+hash: 23:dd2da42052a8108bc2e481a15bdb6c381cbd3701fbee78461367028b26c33743

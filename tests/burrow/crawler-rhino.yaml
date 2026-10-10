@@ -5,18 +5,20 @@
 # removed, and none burrows again.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 270
-hash: 23:1c2bbe90dd5aea65a7b77aff2d7f2707f6fb8d1746e9db86f5f59b6f2c035794
 blue:
-  core_damage: 200
   techs:
     crawler: [subterranean_blitz]
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -65}, exp: 0/192/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -65}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 192
+ticks: 270
+hash: 23:1c2bbe90dd5aea65a7b77aff2d7f2707f6fb8d1746e9db86f5f59b6f2c035794

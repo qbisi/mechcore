@@ -8,21 +8,23 @@
 # keeps its 40000.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 246
-hash: 23:babb7479d497e37b3b45a821370c555ea9212d2eee404d806bd999f36a4cccd6
 blue:
   units:
-  - {name: marksman, index: 0, position: {x: -100, y: -150}, exp: 0/224/650}
+  - {name: marksman, index: 0, position: {x: -100, y: -150}}
   battle_skills:
   - {name: rhino_assault, positions: [{x: -1, y: 81}]}
 red:
-  core_damage: 150
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -80}}
   - {name: crawler, index: 1, position: {x: 15, y: -100}}
   contraptions:
   - {name: shield, index: 2, position: {x: 1, y: -81}}
+outcome:
+  blue.units[0].exp: 224
+  red.core_damage: 150
+ticks: 246
+hash: 23:babb7479d497e37b3b45a821370c555ea9212d2eee404d806bd999f36a4cccd6

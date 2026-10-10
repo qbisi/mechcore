@@ -1,16 +1,18 @@
 # M4: an air unit against a ground unit that shoots air.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 127
-hash: 23:407299c0445885d24dadcd48ef586c082a07ac1c2a4048675bc0e8b53b2fefa2
 blue:
   units:
-  - {name: overlord, index: 0, position: {x: -5, y: -105}, exp: 0/200/1750}
+  - {name: overlord, index: 0, position: {x: -5, y: -105}}
 red:
-  core_damage: 400
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -100}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 400
+ticks: 127
+hash: 23:407299c0445885d24dadcd48ef586c082a07ac1c2a4048675bc0e8b53b2fefa2

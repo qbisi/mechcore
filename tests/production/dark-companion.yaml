@@ -6,19 +6,21 @@
 # an initial unit to the recording numbered between the Abyss and red's.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 350
-hash: 23:da5dafca9b80c2426e7b14627c7eddf6ebd89cc382997d2e80916ba3a8808ef8
 blue:
   techs:
     abyss: [dark_companion]
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -145}, exp: 0/600/4800}
+  - {name: abyss, index: 0, position: {x: 5, y: -145}}
 red:
-  core_damage: 562
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
   - {name: marksman, index: 1, position: {x: 0, y: -150}}
+outcome:
+  blue.units[0].exp: 600
+  red.core_damage: 562
+ticks: 350
+hash: 23:da5dafca9b80c2426e7b14627c7eddf6ebd89cc382997d2e80916ba3a8808ef8

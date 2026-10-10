@@ -3,20 +3,23 @@
 # from there: the first repair is on tick 221.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 763
-hash: 23:ec4f8a9b2bcfa2730f0d84476a6778756d52dbc658c4e9a4983dd610818aa68c
 blue:
   techs:
     typhoon: [maintenance_array]
   units:
-  - {name: rhino, index: 0, position: {x: -275, y: -35}, level: 4, exp: 0/962/5164}
-  - {name: typhoon, index: 1, position: {x: -310, y: 40}, level: 4, exp: 0/230/8756, travelling: true}
+  - {name: rhino, index: 0, position: {x: -275, y: -35}, level: 4}
+  - {name: typhoon, index: 1, position: {x: -310, y: 40}, level: 4, travelling: true}
 red:
-  core_damage: 450
   units:
   - {name: fortress, index: 0, position: {x: 0, y: -150}}
   - {name: crawler, index: 1, position: {x: 255, y: -30}}
+outcome:
+  blue.units[0].exp: 962
+  blue.units[1].exp: 230
+  red.core_damage: 450
+ticks: 763
+hash: 23:ec4f8a9b2bcfa2730f0d84476a6778756d52dbc658c4e9a4983dd610818aa68c

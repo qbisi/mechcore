@@ -4,19 +4,22 @@
 # lock their target, leave ten oils, none of which a Rhino enters.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 236
-hash: 23:f2a2549c1f8066b0146b19cd0f667ae9e2f4c693c64567cd78334bbb62b570af
 blue:
-  core_damage: 400
   techs:
     vulcan: [sticky_oil_bomb]
   units:
   - {name: vulcan, index: 0, position: {x: 0, y: -50}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: -45, y: -95}, exp: 0/200/1150}
-  - {name: rhino, index: 1, position: {x: 45, y: -95}, exp: 0/600/1150}
+  - {name: rhino, index: 0, position: {x: -45, y: -95}}
+  - {name: rhino, index: 1, position: {x: 45, y: -95}}
+outcome:
+  blue.core_damage: 400
+  red.units[0].exp: 200
+  red.units[1].exp: 600
+ticks: 236
+hash: 23:f2a2549c1f8066b0146b19cd0f667ae9e2f4c693c64567cd78334bbb62b570af

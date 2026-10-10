@@ -5,20 +5,22 @@
 # while the main gun strikes the Rhino three times and a Wraith once.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 979
-hash: 23:fbcb2fb8d3bba96b82a37f41206dfc867d92969b30f747d040cb5c2823637216
 blue:
   techs:
     fortress: [anti_air_barrage]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/1600/1600}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}}
 red:
-  core_damage: 350
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
   - {name: wraith, index: 1, position: {x: 5, y: -175}}
   - {name: wraith, index: 2, position: {x: -55, y: -175}}
+outcome:
+  blue.units[0].exp: 1600
+  red.core_damage: 350
+ticks: 979
+hash: 23:fbcb2fb8d3bba96b82a37f41206dfc867d92969b30f747d040cb5c2823637216

@@ -4,22 +4,24 @@
 # 836 as that one does: the skill reaches units and not a construction.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 836
-hash: 23:8b32300da8bde6571c917a9eae8a95c0d60681823973bd6651cf08b489d7d12c
 blue:
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: marksman, index: 0, position: {x: 290, y: -300}, exp: 0/650/650}
+  - {name: marksman, index: 0, position: {x: 290, y: -300}}
   constructions:
   - {name: anti_armor_turret, index: 2, position: {x: -140, y: -100}}
 red:
-  core_damage: 100
   units:
   - {name: arclight, index: 0, position: {x: 140, y: -100}}
   - {name: arclight, index: 1, position: {x: 140, y: -140}}
   - {name: arclight, index: 2, position: {x: 140, y: -220}}
   - {name: arclight, index: 3, position: {x: 140, y: -260}}
+outcome:
+  blue.units[0].exp: 650
+  red.core_damage: 100
+ticks: 836
+hash: 23:8b32300da8bde6571c917a9eae8a95c0d60681823973bd6651cf08b489d7d12c

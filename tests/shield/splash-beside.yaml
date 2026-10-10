@@ -8,18 +8,20 @@
 # crossed the shield's surface.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 66
-hash: 23:1ad0b7018f023f54ea3a865d1ff52a0362aa6983fed950e124e929cb5ff3add2
 blue:
-  core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -70}}
   battle_skills:
   - {name: shield_airdrop, standing: {position: {x: 0, y: -143}}}
 red:
   units:
-  - {name: sledgehammer, index: 0, position: {x: 5, y: -50}, exp: 0/200/1300}
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -50}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 200
+ticks: 66
+hash: 23:1ad0b7018f023f54ea3a865d1ff52a0362aa6983fed950e124e929cb5ff3add2

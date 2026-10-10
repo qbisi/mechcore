@@ -6,20 +6,23 @@
 # tanks of the squad it strikes alone.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 480
-hash: 23:cbb51e9ba4e3b5f59a218b7c081071c0fbddcf1981dd9611d68f1943ed39941b
 blue:
   techs:
     sledgehammer: [damage_sharing]
   units:
-  - {name: sledgehammer, index: 0, position: {x: -75, y: -100}, exp: 0/300/1300}
-  - {name: sledgehammer, index: 1, position: {x: 65, y: -100}, exp: 0/300/1300}
+  - {name: sledgehammer, index: 0, position: {x: -75, y: -100}}
+  - {name: sledgehammer, index: 1, position: {x: 65, y: -100}}
 red:
-  core_damage: 400
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -100}}
   - {name: rhino, index: 1, position: {x: 5, y: -55}}
+outcome:
+  blue.units[0].exp: 300
+  blue.units[1].exp: 300
+  red.core_damage: 400
+ticks: 480
+hash: 23:cbb51e9ba4e3b5f59a218b7c081071c0fbddcf1981dd9611d68f1943ed39941b

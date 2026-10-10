@@ -4,18 +4,22 @@
 # every tick of it drains the shield instead, as its damage grows.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 349
-hash: 23:77f3f7ddc995ff4908361dcf40efde07ebaff05ab0bcb35ff3c0c40962b7007b
 blue:
   units:
-  - {name: steel_ball, index: 0, position: {x: 5, y: -150}, exp: 0/200/1000}
+  - {name: steel_ball, index: 0, position: {x: 5, y: -150}}
 red:
-  core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -80}, exp: 0/200/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -80}}
   contraptions:
-  - {name: shield, index: 1, position: {x: 1, y: -81}, retained: false}
+  - {name: shield, index: 1, position: {x: 1, y: -81}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 100
+  red.units[0].exp: 200
+  red.contraptions[0].retained: false
+ticks: 349
+hash: 23:77f3f7ddc995ff4908361dcf40efde07ebaff05ab0bcb35ff3c0c40962b7007b

@@ -5,18 +5,20 @@
 # alone.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 210
-hash: 23:c87dfaf3c33abf55112a7a099d3ae2b84ad329b55ad2dbd6c7ce143fefa7a420
 blue:
-  core_damage: 200
   techs:
     rhino: [whirlwind]
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 400
+ticks: 210
+hash: 23:c87dfaf3c33abf55112a7a099d3ae2b84ad329b55ad2dbd6c7ce143fefa7a420

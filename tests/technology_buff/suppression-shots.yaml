@@ -6,14 +6,11 @@
 # at t389.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 389
-hash: 23:b02561dbdc42fe8d73ce72992672812a89db7f14aad76ce4984dce22881d57b3
 blue:
-  core_damage: 450
   techs:
     void_eye: [suppression_shots]
   units:
@@ -21,4 +18,9 @@ blue:
 red:
   units:
   - {name: fortress, index: 0, position: {x: 0, y: -150}}
-  - {name: marksman, index: 1, position: {x: 60, y: -170}, exp: 0/198/650}
+  - {name: marksman, index: 1, position: {x: 60, y: -170}}
+outcome:
+  blue.core_damage: 450
+  red.units[1].exp: 198
+ticks: 389
+hash: 23:b02561dbdc42fe8d73ce72992672812a89db7f14aad76ce4984dce22881d57b3

@@ -4,24 +4,32 @@
 # 227 and 268.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 268
-hash: 23:0dd8b7c1842ccba8cae12a41bedfe321384e6a00f5b8879d4090e5bfc13079ef
 blue:
   techs:
     typhoon: [field_reassembly, maintenance_array]
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -40}, exp: 0/466/1950}
-  - {name: rhino, index: 1, position: {x: -55, y: -95}, level: 4, exp: 0/466/5164}
-  - {name: rhino, index: 2, position: {x: 65, y: -95}, level: 4, exp: 0/466/5164}
+  - {name: typhoon, index: 0, position: {x: 0, y: -40}}
+  - {name: rhino, index: 1, position: {x: -55, y: -95}, level: 4}
+  - {name: rhino, index: 2, position: {x: 65, y: -95}, level: 4}
   - {name: rhino, index: 3, position: {x: -15, y: -95}, level: 4}
-  - {name: rhino, index: 4, position: {x: 25, y: -95}, level: 4, exp: 0/466/5164}
-  - {name: rhino, index: 5, position: {x: -95, y: -95}, level: 4, exp: 0/466/5164}
-  - {name: rhino, index: 6, position: {x: 105, y: -95}, level: 4, exp: 0/3266/5164}
+  - {name: rhino, index: 4, position: {x: 25, y: -95}, level: 4}
+  - {name: rhino, index: 5, position: {x: -95, y: -95}, level: 4}
+  - {name: rhino, index: 6, position: {x: 105, y: -95}, level: 4}
 red:
-  core_damage: 1062
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -40}, level: 4, exp: 0/3400/7184}
+  - {name: fortress, index: 0, position: {x: 0, y: -40}, level: 4}
+outcome:
+  blue.units[0].exp: 466
+  blue.units[1].exp: 466
+  blue.units[2].exp: 466
+  blue.units[4].exp: 466
+  blue.units[5].exp: 466
+  blue.units[6].exp: 3266
+  red.core_damage: 1062
+  red.units[0].exp: 3400
+ticks: 268
+hash: 23:0dd8b7c1842ccba8cae12a41bedfe321384e6a00f5b8879d4090e5bfc13079ef

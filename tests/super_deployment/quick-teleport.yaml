@@ -3,19 +3,23 @@
 # 721, a quarter of 0.6 of its life each.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 1198
-hash: 23:50c12a1f222ba40c106c564729bbdc255c2796be876adf02f1a706c8f842bb84
 blue:
-  core_damage: 100
   officers: [quick_teleport]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/200/750, travelling: true}
+  - {name: arclight, index: 1, position: {x: -310, y: 20}, travelling: true}
 red:
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
-  - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/600/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}}
+outcome:
+  blue.core_damage: 100
+  blue.units[1].exp: 200
+  red.units[0].exp: 200
+  red.units[1].exp: 600
+ticks: 1198
+hash: 23:50c12a1f222ba40c106c564729bbdc255c2796be876adf02f1a706c8f842bb84

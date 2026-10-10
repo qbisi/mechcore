@@ -5,18 +5,21 @@
 # towers, so the side that can fields three formations.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 175
-hash: 23:e0abeb670ee47a3acb6a9bf3d36d00d830fea1cd4e64a22b1485a5f7bc8d6d55
 blue:
-  core_damage: 612
   units:
   - {name: hacker, index: 0, position: {x: -5, y: -105}}
 red:
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/300/900}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/100/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}}
   - {name: wasp, index: 2, position: {x: 5, y: -180}}
+outcome:
+  blue.core_damage: 612
+  red.units[0].exp: 300
+  red.units[1].exp: 100
+ticks: 175
+hash: 23:e0abeb670ee47a3acb6a9bf3d36d00d830fea1cd4e64a22b1485a5f7bc8d6d55

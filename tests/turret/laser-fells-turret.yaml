@@ -7,18 +7,21 @@
 # `tests/construction/wall-laser.yaml`, leaves it attacking.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 1083
-hash: 23:44b7b1f304b3afa20db81d48a2d1f63519b4e0cc6dd9571ea1e3516972a6246f
 blue:
-  core_damage: 50
   units:
-  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/300/600}
+  - {name: fang, index: 0, position: {x: 145, y: -300}}
   constructions:
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
 red:
   units:
-  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/536/1000}
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}}
+outcome:
+  blue.core_damage: 50
+  blue.units[0].exp: 300
+  red.units[0].exp: 536
+ticks: 1083
+hash: 23:44b7b1f304b3afa20db81d48a2d1f63519b4e0cc6dd9571ea1e3516972a6246f

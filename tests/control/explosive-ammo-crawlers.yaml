@@ -4,16 +4,19 @@
 # turns the same Crawlers and ends on the same tick as the one without it.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 324
-hash: 23:cff3dda813aa04d658ba3f4191f7a61b1b6f69e4df02dd20a1f79bfcdb715af3
 blue:
-  core_damage: 64
   units:
-  - {name: hacker, index: 0, position: {x: -5, y: -105}, exp: 0/56/560, equipment: [explosive_ammo]}
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, equipment: [explosive_ammo]}
 red:
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/450/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.core_damage: 64
+  blue.units[0].exp: 56
+  red.units[0].exp: 450
+ticks: 324
+hash: 23:cff3dda813aa04d658ba3f4191f7a61b1b6f69e4df02dd20a1f79bfcdb715af3

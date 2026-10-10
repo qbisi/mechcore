@@ -6,17 +6,19 @@
 # would store 0.31. On the Rhino's 3560 damage that is 2534 against 2456.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 120
-hash: 23:3d254ee631e51de55958d6e42feea10271ce33b38e5d08f6eeda955b539853a4
 blue:
-  core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}}
 red:
   officers: [cost_control_specialist, mass_produced_rhino]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 200
+ticks: 120
+hash: 23:3d254ee631e51de55958d6e42feea10271ce33b38e5d08f6eeda955b539853a4

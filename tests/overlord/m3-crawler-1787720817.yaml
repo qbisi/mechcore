@@ -3,20 +3,26 @@
 # the Crawlers fell a tower, five in a row stop them before any falls.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 374
-hash: 23:8120e09289d8a5b9598f3ac9f31855fe44c5a67406a911f52fc6149a127f1a39
 blue:
   units:
-  - {name: overlord, index: 0, position: {x: -105, y: -105}, exp: 0/15/1750}
-  - {name: overlord, index: 1, position: {x: -55, y: -105}, exp: 0/95/1750}
-  - {name: overlord, index: 2, position: {x: -5, y: -105}, exp: 0/9/1750}
-  - {name: overlord, index: 3, position: {x: 45, y: -105}, exp: 0/14/1750}
-  - {name: overlord, index: 4, position: {x: 95, y: -105}, exp: 0/58/1750}
+  - {name: overlord, index: 0, position: {x: -105, y: -105}}
+  - {name: overlord, index: 1, position: {x: -55, y: -105}}
+  - {name: overlord, index: 2, position: {x: -5, y: -105}}
+  - {name: overlord, index: 3, position: {x: 45, y: -105}}
+  - {name: overlord, index: 4, position: {x: 95, y: -105}}
 red:
-  core_damage: 2000
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 15
+  blue.units[1].exp: 95
+  blue.units[2].exp: 9
+  blue.units[3].exp: 14
+  blue.units[4].exp: 58
+  red.core_damage: 2000
+ticks: 374
+hash: 23:8120e09289d8a5b9598f3ac9f31855fe44c5a67406a911f52fc6149a127f1a39

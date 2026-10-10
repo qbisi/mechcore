@@ -2,19 +2,21 @@
 # other on its line: the strip along the line reaches the one behind.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 109
-hash: 23:cec15f7aa80a7cefdcda5f1f7cf601ddc2b6b4bd8438a5427ccf0e54175de227
 blue:
   techs:
     abyss: [vertical_sweep]
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -105}, exp: 0/400/4800}
+  - {name: abyss, index: 0, position: {x: 5, y: -105}}
 red:
-  core_damage: 500
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -70}}
   - {name: marksman, index: 1, position: {x: 0, y: -110}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 500
+ticks: 109
+hash: 23:cec15f7aa80a7cefdcda5f1f7cf601ddc2b6b4bd8438a5427ccf0e54175de227

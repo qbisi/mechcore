@@ -655,10 +655,11 @@ mod tests {
         // A fight is fought as its layout, with the seed its result is one of.
         let fight = file(
             "fight.yaml",
-            "kind: fight\nseed: 4242\nround: 1\nsource: game\nticks: 1\n\
-             hash: 23:0000000000000000000000000000000000000000000000000000000000000000\n\
-             blue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/10/650}]\n\
-             red:\n  core_damage: 3\n  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+            "kind: fight\nsource: game\nseed: 4242\nround: 1\n\
+             blue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n\
+             red:\n  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n\
+             outcome:\n  blue.units[0].exp: 10\n  red.core_damage: 3\n\
+             ticks: 1\nhash: 23:0000000000000000000000000000000000000000000000000000000000000000\n",
         );
         let fought = RecordRequest {
             input: fight.clone(),

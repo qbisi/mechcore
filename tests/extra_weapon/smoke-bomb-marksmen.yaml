@@ -10,20 +10,22 @@
 # and leaves it at t269; every fog goes, `round_expired`, as the fight ends.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 377
-hash: 23:b748ed70e49946362f3fb068985c930e3e650027b390da5bab704ec15b385c3c
 blue:
   techs:
     mountain: [smoke_bomb]
   units:
-  - {name: mountain, index: 0, position: {x: 5, y: -205}, exp: 0/800/3200}
+  - {name: mountain, index: 0, position: {x: 5, y: -205}}
 red:
-  core_damage: 500
   units:
   - {name: marksman, index: 0, position: {x: -40, y: -100}}
   - {name: marksman, index: 1, position: {x: 40, y: -100}}
   - {name: rhino, index: 2, position: {x: 5, y: -155}}
+outcome:
+  blue.units[0].exp: 800
+  red.core_damage: 500
+ticks: 377
+hash: 23:b748ed70e49946362f3fb068985c930e3e650027b390da5bab704ec15b385c3c

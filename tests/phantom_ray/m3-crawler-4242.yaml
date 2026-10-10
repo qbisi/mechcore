@@ -1,18 +1,22 @@
 # M3: a swarm of ground targets, which cannot hit back.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 181
-hash: 23:cef589eadf85acd896ad164e7a0ccc2e622f86cfacd77d8eb43749c86c5f1779
 blue:
   units:
-  - {name: phantom_ray, index: 0, position: {x: -5, y: -180}, exp: 0/41/1000}
-  - {name: phantom_ray, index: 1, position: {x: -5, y: -140}, exp: 0/63/1000}
-  - {name: phantom_ray, index: 2, position: {x: -5, y: -100}, exp: 0/87/1000}
+  - {name: phantom_ray, index: 0, position: {x: -5, y: -180}}
+  - {name: phantom_ray, index: 1, position: {x: -5, y: -140}}
+  - {name: phantom_ray, index: 2, position: {x: -5, y: -100}}
 red:
-  core_damage: 603
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 41
+  blue.units[1].exp: 63
+  blue.units[2].exp: 87
+  red.core_damage: 603
+ticks: 181
+hash: 23:cef589eadf85acd896ad164e7a0ccc2e622f86cfacd77d8eb43749c86c5f1779

@@ -9,21 +9,24 @@
 # stacks on.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 1362
-hash: 23:4d741d0c9b4df67ec8a232a516b2d8941a3d0d041a7da878e9b68e5aecc09cc2
 blue:
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -60}, exp: 0/900/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -60}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 55}]}
 red:
-  core_damage: 204
   techs:
     rhino: [combat_evolvement]
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: rhino, index: 1, position: {x: -85, y: -135}, exp: 0/400/1150}
+  - {name: rhino, index: 1, position: {x: -85, y: -135}}
+outcome:
+  blue.units[0].exp: 900
+  red.core_damage: 204
+  red.units[1].exp: 400
+ticks: 1362
+hash: 23:4d741d0c9b4df67ec8a232a516b2d8941a3d0d041a7da878e9b68e5aecc09cc2

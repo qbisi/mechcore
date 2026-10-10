@@ -234,7 +234,7 @@ fn verify_fight(path: &Path, bytes: &[u8]) -> Result<Report, String> {
             "source": document.source.as_str(),
             "seed": document.seed,
             "round": document.round,
-            "compared": ["result", "trajectory"],
+            "compared": compared_parts(&document),
             "differences": differences,
         }),
     };
@@ -255,10 +255,25 @@ fn verify_fight(path: &Path, bytes: &[u8]) -> Result<Report, String> {
     };
     let actual = mechcore_document::Fight {
         source: document.source,
+        trajectory: document
+            .trajectory
+            .as_ref()
+            .and(simulated.trajectory.clone()),
         ..simulated
     };
     let (error, differences) = compared(&document, &actual, "the simulator's fight")?;
     Ok(report(error, differences))
+}
+
+/// What a fight document states and so what `verify` compares: its outcome,
+/// and its trajectory when it states one. A document without a trajectory
+/// is held to its outcome alone, so the fight it is compared with is too.
+fn compared_parts(document: &mechcore_document::Fight) -> &'static [&'static str] {
+    if document.trajectory.is_some() {
+        &["outcome", "trajectory"]
+    } else {
+        &["outcome"]
+    }
 }
 
 /// Where `actual` differs from what `document` states, and the error that
@@ -284,7 +299,11 @@ fn compared(
         .map(|difference| difference.path.as_str())
         .collect::<Vec<_>>()
         .join(", ");
-    let incomparable = Some((&document.hash, &actual.hash))
+    let incomparable = document
+        .trajectory
+        .as_ref()
+        .zip(actual.trajectory.as_ref())
+        .map(|(stated, computed)| (&stated.hash, &computed.hash))
         .filter(|(stated, computed)| stated.profile != computed.profile)
         .map(|(stated, computed)| {
             format!(
@@ -339,6 +358,10 @@ async fn fight_in_game(
     } else {
         mechcore_document::Fight {
             source: document.source,
+            trajectory: document
+                .trajectory
+                .as_ref()
+                .and(recorded.trajectory.clone()),
             ..recorded.clone()
         }
     };

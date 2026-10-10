@@ -8,19 +8,22 @@
 # skill with it (t155), which takes its target and attacks on the next tick.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 174
-hash: 23:baa7578192d080dd27d2466c3833b551085e57d38b03e2c7f9fcfc13e60d692a
 blue:
-  core_damage: 400
   techs:
     rhino: [whirlwind]
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: -25, y: -95}, exp: 0/100/1150}
-  - {name: rhino, index: 1, position: {x: 35, y: -95}, exp: 0/300/1150}
+  - {name: rhino, index: 0, position: {x: -25, y: -95}}
+  - {name: rhino, index: 1, position: {x: 35, y: -95}}
+outcome:
+  blue.core_damage: 400
+  red.units[0].exp: 100
+  red.units[1].exp: 300
+ticks: 174
+hash: 23:baa7578192d080dd27d2466c3833b551085e57d38b03e2c7f9fcfc13e60d692a

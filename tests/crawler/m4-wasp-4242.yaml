@@ -2,18 +2,22 @@
 # it can target nothing.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 417
-hash: 23:76bebf3deb67cafe09168b19c4bd4c9c0691233db879cf570073b67c6dd2f92a
 blue:
-  core_damage: 612
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
 red:
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/84/900}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/70/900}
-  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/36/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}}
+outcome:
+  blue.core_damage: 612
+  red.units[0].exp: 84
+  red.units[1].exp: 70
+  red.units[2].exp: 36
+ticks: 417
+hash: 23:76bebf3deb67cafe09168b19c4bd4c9c0691233db879cf570073b67c6dd2f92a

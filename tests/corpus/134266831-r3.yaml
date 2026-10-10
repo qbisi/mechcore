@@ -4,47 +4,69 @@
 # every enemy scored would have put a Crawler 538 m straight ahead first.
 
 kind: fight
+source: game
 map_id: 1011
 seed: 746343185
 round: 3
-source: game
-ticks: 675
-hash: 23:bd74d1ebd0cdd121918e2a9e5dd12f039c5f7805e20513dc69a82d22a43b2fb5
 blue:
   officers: [quick_supply_specialist]
   blueprints: [attack_enhancement, defense_enhancement]
   legacy_index: 10
   units:
-  - {name: arclight, index: 0, position: {x: 50, y: -70}, exp: 177/351/750}
-  - {name: arclight, index: 1, position: {x: 140, y: -70}, exp: 720/750/750}
-  - {name: arclight, index: 2, position: {x: 230, y: -70}, exp: 505/735/750}
-  - {name: sabertooth, index: 3, position: {x: 185, y: -65}, exp: 477/1236/1300}
-  - {name: sabertooth, index: 4, position: {x: 95, y: -65}, exp: 536/985/1300}
-  - {name: crawler, index: 5, position: {x: 90, y: -125}, exp: 450/450/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 190, y: -125}, exp: 450/450/450, rotated: true}
-  - {name: arclight, index: 7, position: {x: -140, y: -140}, exp: 445/625/750}
-  - {name: crawler, index: 8, position: {x: 140, y: -225}, exp: 165/246/450, rotated: true}
-  - {name: fang, index: 9, position: {x: 70, y: -35}, exp: 381/383/600, rotated: true}
-  - {name: mustang, index: 10, position: {x: -175, y: -210}, exp: 0/446/1200}
-  - {name: mustang, index: 11, position: {x: 135, y: -140}, exp: 0/646/1200}
-  - {name: crawler, index: 12, position: {x: 290, y: -285}, exp: 0/203/450, rotated: true}
+  - {name: arclight, index: 0, position: {x: 50, y: -70}, exp: 177/750}
+  - {name: arclight, index: 1, position: {x: 140, y: -70}, exp: 720/750}
+  - {name: arclight, index: 2, position: {x: 230, y: -70}, exp: 505/750}
+  - {name: sabertooth, index: 3, position: {x: 185, y: -65}, exp: 477/1300}
+  - {name: sabertooth, index: 4, position: {x: 95, y: -65}, exp: 536/1300}
+  - {name: crawler, index: 5, position: {x: 90, y: -125}, exp: 450/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 190, y: -125}, exp: 450/450, rotated: true}
+  - {name: arclight, index: 7, position: {x: -140, y: -140}, exp: 445/750}
+  - {name: crawler, index: 8, position: {x: 140, y: -225}, exp: 165/450, rotated: true}
+  - {name: fang, index: 9, position: {x: 70, y: -35}, exp: 381/600, rotated: true}
+  - {name: mustang, index: 10, position: {x: -175, y: -210}}
+  - {name: mustang, index: 11, position: {x: 135, y: -140}}
+  - {name: crawler, index: 12, position: {x: 290, y: -285}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
-  core_damage: 1219
   officers: [fortified_specialist]
   legacy_index: 9
   units:
-  - {name: crawler, index: 0, position: {x: 290, y: -265}, exp: 238/238/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: -290, y: -255}, exp: 22/38/450, rotated: true}
-  - {name: crawler, index: 2, position: {x: -135, y: -190}, exp: 42/51/450}
-  - {name: sabertooth, index: 3, position: {x: 5, y: -105}, exp: 549/720/1300}
-  - {name: crawler, index: 5, position: {x: 145, y: -190}, exp: 385/396/450}
-  - {name: crawler, index: 6, position: {x: 0, y: -255}, exp: 116/152/450, rotated: true}
-  - {name: wasp, index: 7, position: {x: -275, y: -300}, exp: 160/327/900}
-  - {name: crawler, index: 8, position: {x: -130, y: -265}, exp: 41/81/450, rotated: true}
-  - {name: centurion, index: 9, position: {x: -95, y: -145}, exp: 0/247/2250}
-  - {name: centurion, index: 10, position: {x: -35, y: -145}, exp: 0/236/2250}
-  - {name: crawler, index: 11, position: {x: 120, y: -265}, exp: 0/21/450, rotated: true}
+  - {name: crawler, index: 0, position: {x: 290, y: -265}, exp: 238/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: -290, y: -255}, exp: 22/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: -135, y: -190}, exp: 42/450}
+  - {name: sabertooth, index: 3, position: {x: 5, y: -105}, exp: 549/1300}
+  - {name: crawler, index: 5, position: {x: 145, y: -190}, exp: 385/450}
+  - {name: crawler, index: 6, position: {x: 0, y: -255}, exp: 116/450, rotated: true}
+  - {name: wasp, index: 7, position: {x: -275, y: -300}, exp: 160/900}
+  - {name: crawler, index: 8, position: {x: -130, y: -265}, exp: 41/450, rotated: true}
+  - {name: centurion, index: 9, position: {x: -95, y: -145}}
+  - {name: centurion, index: 10, position: {x: -35, y: -145}}
+  - {name: crawler, index: 11, position: {x: 120, y: -265}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+outcome:
+  blue.units[0].exp: 351
+  blue.units[1].exp: 750
+  blue.units[2].exp: 735
+  blue.units[3].exp: 1236
+  blue.units[4].exp: 985
+  blue.units[7].exp: 625
+  blue.units[8].exp: 246
+  blue.units[9].exp: 383
+  blue.units[10].exp: 446
+  blue.units[11].exp: 646
+  blue.units[12].exp: 203
+  red.core_damage: 1219
+  red.units[1].exp: 38
+  red.units[2].exp: 51
+  red.units[3].exp: 720
+  red.units[4].exp: 396
+  red.units[5].exp: 152
+  red.units[6].exp: 327
+  red.units[7].exp: 81
+  red.units[8].exp: 247
+  red.units[9].exp: 236
+  red.units[10].exp: 21
+ticks: 675
+hash: 23:bd74d1ebd0cdd121918e2a9e5dd12f039c5f7805e20513dc69a82d22a43b2fb5

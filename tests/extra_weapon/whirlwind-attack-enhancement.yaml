@@ -7,14 +7,11 @@
 # 5580, its 4983 raised the same way.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 174
-hash: 23:9ff34cea0484f53419e3b546ec5835ed33896733781e16dabf8d31268fa4be6d
 blue:
-  core_damage: 400
   techs:
     rhino: [whirlwind]
   blueprints: [attack_enhancement]
@@ -22,5 +19,11 @@ blue:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: -25, y: -95}, exp: 0/100/1150}
-  - {name: rhino, index: 1, position: {x: 35, y: -95}, exp: 0/300/1150}
+  - {name: rhino, index: 0, position: {x: -25, y: -95}}
+  - {name: rhino, index: 1, position: {x: 35, y: -95}}
+outcome:
+  blue.core_damage: 400
+  red.units[0].exp: 100
+  red.units[1].exp: 300
+ticks: 174
+hash: 23:9ff34cea0484f53419e3b546ec5835ed33896733781e16dabf8d31268fa4be6d

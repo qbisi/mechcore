@@ -7,20 +7,24 @@
 # and t268, and the Marksman burns in them, 54 a time, from then on.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 434
-hash: 23:158525840b99d6c5053739f52de395c67eae059f578cb7d471d4cc22658268b6
 blue:
-  core_damage: 400
   techs:
     vulcan: [incendiary_bomb]
   units:
-  - {name: vulcan, index: 0, position: {x: 0, y: -200}, exp: 0/200/2200}
+  - {name: vulcan, index: 0, position: {x: 0, y: -200}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -155}, exp: 0/800/1150}
-  - {name: rhino, index: 1, position: {x: 45, y: -155}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -155}}
+  - {name: rhino, index: 1, position: {x: 45, y: -155}}
   - {name: marksman, index: 2, position: {x: -40, y: -100}}
+outcome:
+  blue.core_damage: 400
+  blue.units[0].exp: 200
+  red.units[0].exp: 800
+  red.units[1].exp: 200
+ticks: 434
+hash: 23:158525840b99d6c5053739f52de395c67eae059f578cb7d471d4cc22658268b6

@@ -3,18 +3,21 @@
 # 20 ticks, 180 + 20, and it is gone at tick 431.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 641
-hash: 23:c8f384318a3ad856ff4d98af42ffedbffa14b596a31a25396a9c16c9d20b52ca
 blue:
-  core_damage: 400
   tower_strengthen_levels: [0, 4]
   units:
   - {name: fang, index: 0, position: {x: 5, y: -300}}
 red:
   units:
-  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/314/1000}
-  - {name: steel_ball, index: 1, position: {x: -145, y: -20}, exp: 0/302/1000}
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}}
+  - {name: steel_ball, index: 1, position: {x: -145, y: -20}}
+outcome:
+  blue.core_damage: 400
+  red.units[0].exp: 314
+  red.units[1].exp: 302
+ticks: 641
+hash: 23:c8f384318a3ad856ff4d98af42ffedbffa14b596a31a25396a9c16c9d20b52ca

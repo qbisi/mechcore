@@ -4,28 +4,25 @@
 # its two, 20 metres to either side of it and 40 ahead.
 
 kind: fight
+source: game
 map_id: 1031
 seed: 2086664373
 round: 2
-source: game
-ticks: 575
-hash: 23:9699fc4994d166998cbebfad5563288d53425b5e6d70cd998c1cd8eb57c2a473
 blue:
-  core_damage: 913
   officers: [cost_control_specialist]
   techs:
     tarantula: [spider_mine]
   legacy_index: 7
   units:
-  - {name: vortex, index: 0, position: {x: 140, y: -150}, exp: 168/221/750}
-  - {name: vortex, index: 1, position: {x: 0, y: -150}, exp: 625/750/750}
-  - {name: vortex, index: 2, position: {x: -140, y: -150}, exp: 147/205/750}
-  - {name: tarantula, index: 3, position: {x: 95, y: -135}, exp: 488/495/1500}
-  - {name: tarantula, index: 4, position: {x: -95, y: -135}, exp: 473/574/1500}
-  - {name: crawler, index: 5, position: {x: -135, y: -190}, exp: 22/43/450}
-  - {name: crawler, index: 6, position: {x: 135, y: -190}, exp: 117/169/450}
-  - {name: vortex, index: 7, position: {x: -190, y: -150}, exp: 0/43/750}
-  - {name: vortex, index: 8, position: {x: -90, y: -160}, exp: 0/130/750}
+  - {name: vortex, index: 0, position: {x: 140, y: -150}, exp: 168/750}
+  - {name: vortex, index: 1, position: {x: 0, y: -150}, exp: 625/750}
+  - {name: vortex, index: 2, position: {x: -140, y: -150}, exp: 147/750}
+  - {name: tarantula, index: 3, position: {x: 95, y: -135}, exp: 488/1500}
+  - {name: tarantula, index: 4, position: {x: -95, y: -135}, exp: 473/1500}
+  - {name: crawler, index: 5, position: {x: -135, y: -190}, exp: 22/450}
+  - {name: crawler, index: 6, position: {x: 135, y: -190}, exp: 117/450}
+  - {name: vortex, index: 7, position: {x: -190, y: -150}}
+  - {name: vortex, index: 8, position: {x: -90, y: -160}}
   - {name: crawler, index: 9, position: {x: -290, y: -185}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -36,15 +33,38 @@ red:
   blueprints: [attack_enhancement]
   legacy_index: 8
   units:
-  - {name: hound, index: 0, position: {x: 70, y: -60}, exp: 2/38/750}
-  - {name: hound, index: 1, position: {x: 150, y: -70}, exp: 372/544/750}
-  - {name: hound, index: 2, position: {x: 230, y: -70}, exp: 407/610/750}
-  - {name: sledgehammer, index: 3, position: {x: 110, y: -45}, exp: 113/381/1300, rotated: true}
-  - {name: sledgehammer, index: 4, position: {x: 195, y: -40}, exp: 136/293/1300}
-  - {name: crawler, index: 5, position: {x: 150, y: -35}, exp: 34/61/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 160, y: -175}, exp: 30/204/450, rotated: true}
-  - {name: marksman, index: 7, position: {x: 70, y: -80}, level: 3, exp: 0/705/2315}
-  - {name: phantom_ray, index: 8, position: {x: 235, y: -90}, exp: 0/591/1000}
-  - {name: crawler, index: 9, position: {x: -140, y: -285}, exp: 0/288/450, rotated: true}
+  - {name: hound, index: 0, position: {x: 70, y: -60}, exp: 2/750}
+  - {name: hound, index: 1, position: {x: 150, y: -70}, exp: 372/750}
+  - {name: hound, index: 2, position: {x: 230, y: -70}, exp: 407/750}
+  - {name: sledgehammer, index: 3, position: {x: 110, y: -45}, exp: 113/1300, rotated: true}
+  - {name: sledgehammer, index: 4, position: {x: 195, y: -40}, exp: 136/1300}
+  - {name: crawler, index: 5, position: {x: 150, y: -35}, exp: 34/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 160, y: -175}, exp: 30/450, rotated: true}
+  - {name: marksman, index: 7, position: {x: 70, y: -80}, level: 3}
+  - {name: phantom_ray, index: 8, position: {x: 235, y: -90}}
+  - {name: crawler, index: 9, position: {x: -140, y: -285}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+outcome:
+  blue.core_damage: 913
+  blue.units[0].exp: 221
+  blue.units[1].exp: 750
+  blue.units[2].exp: 205
+  blue.units[3].exp: 495
+  blue.units[4].exp: 574
+  blue.units[5].exp: 43
+  blue.units[6].exp: 169
+  blue.units[7].exp: 43
+  blue.units[8].exp: 130
+  red.units[0].exp: 38
+  red.units[1].exp: 544
+  red.units[2].exp: 610
+  red.units[3].exp: 381
+  red.units[4].exp: 293
+  red.units[5].exp: 61
+  red.units[6].exp: 204
+  red.units[7].exp: 705
+  red.units[8].exp: 591
+  red.units[9].exp: 288
+ticks: 575
+hash: 23:9699fc4994d166998cbebfad5563288d53425b5e6d70cd998c1cd8eb57c2a473

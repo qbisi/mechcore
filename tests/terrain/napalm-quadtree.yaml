@@ -6,18 +6,20 @@
 # controller's items in one list, the simulator refused the twentieth fire.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 247
-hash: 23:827c67b66ba6f25311f4bc1656362b4597a8ff7b08526a35a6a6e43b24145489
 blue:
-  core_damage: 200
   techs:
     fire_badger: [napalm]
   units:
   - {name: fire_badger, index: 0, position: {x: 5, y: -100}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/402/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 402
+ticks: 247
+hash: 23:827c67b66ba6f25311f4bc1656362b4597a8ff7b08526a35a6a6e43b24145489

@@ -8,20 +8,23 @@
 # at t103.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 917
-hash: 23:8647bad50a3ca9d4b166c1b7ae8c93c04f0eff2ab3b8d8629378ab5dc7a6acb6
 blue:
   techs:
     wasp: [ignite]
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/400/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}}
 red:
-  core_damage: 204
   techs:
     rhino: [field_maintenance]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 204
+  red.units[0].exp: 400
+ticks: 917
+hash: 23:8647bad50a3ca9d4b166c1b7ae8c93c04f0eff2ab3b8d8629378ab5dc7a6acb6

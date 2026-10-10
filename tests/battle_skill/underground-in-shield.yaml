@@ -6,21 +6,25 @@
 # their making.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 276
-hash: 23:8f1c4d9bf157c98ca7ef603034f974ee8d401fed0697c97b1632a01a623c6316
 blue:
   units:
-  - {name: marksman, index: 0, position: {x: -100, y: -150}, exp: 0/8/650}
+  - {name: marksman, index: 0, position: {x: -100, y: -150}}
   battle_skills:
   - {name: underground_threat, positions: [{x: 0, y: 60}]}
 red:
-  core_damage: 119
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/28/650}
-  - {name: crawler, index: 1, position: {x: 5, y: -70}, exp: 0/108/450}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}}
+  - {name: crawler, index: 1, position: {x: 5, y: -70}}
   contraptions:
   - {name: shield, index: 2, position: {x: 0, y: -80}}
+outcome:
+  blue.units[0].exp: 8
+  red.core_damage: 119
+  red.units[0].exp: 28
+  red.units[1].exp: 108
+ticks: 276
+hash: 23:8f1c4d9bf157c98ca7ef603034f974ee8d401fed0697c97b1632a01a623c6316

@@ -8,19 +8,22 @@
 # that goes idle lets its main skill idle too, which searches again.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 341
-hash: 23:8a5e822a7dc078c82c4ab226b9a3e4928c9dfc2a6059ffac24ae60212f5fdedf
 blue:
-  core_damage: 400
   techs:
     mustang: [missile_interceptor]
   units:
   - {name: mustang, index: 0, position: {x: 5, y: -100}}
 red:
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/170/1100}
-  - {name: stormcaller, index: 1, position: {x: -55, y: -40}, exp: 0/238/1100}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}}
+  - {name: stormcaller, index: 1, position: {x: -55, y: -40}}
+outcome:
+  blue.core_damage: 400
+  red.units[0].exp: 170
+  red.units[1].exp: 238
+ticks: 341
+hash: 23:8a5e822a7dc078c82c4ab226b9a3e4928c9dfc2a6059ffac24ae60212f5fdedf

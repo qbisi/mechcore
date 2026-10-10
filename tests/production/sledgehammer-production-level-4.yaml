@@ -7,19 +7,21 @@
 # skills leave the fight.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 290
-hash: 23:89e3b1986e8d2d801250122bf9c00fdcebd8f65396593bd7a30734038aa8c417
 blue:
   techs:
     war_factory: [sledgehammer_production]
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -145}, level: 4, exp: 0/400/14369}
+  - {name: war_factory, index: 0, position: {x: 5, y: -145}, level: 4}
 red:
-  core_damage: 530
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
   - {name: marksman, index: 1, position: {x: 0, y: -150}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 530
+ticks: 290
+hash: 23:89e3b1986e8d2d801250122bf9c00fdcebd8f65396593bd7a30734038aa8c417

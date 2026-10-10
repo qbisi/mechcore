@@ -2,20 +2,24 @@
 # Range Enhancement. The missile first fires on t37, 111 metres off.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 88
-hash: 23:ce9d4dc9433c54665988bf92b019a3b23d1ebd1e9338a4116ec62dfe5a2b8092
 blue:
-  core_damage: 401
   techs:
     sabertooth: [secondary_armament, anti_air_missile]
   units:
   - {name: sabertooth, index: 0, position: {x: 5, y: -45}}
 red:
   units:
-  - {name: marksman, index: 0, position: {x: -40, y: -100}, exp: 0/66/650}
-  - {name: marksman, index: 1, position: {x: 40, y: -100}, exp: 0/66/650}
-  - {name: phantom_ray, index: 2, position: {x: 5, y: -100}, exp: 0/266/1000}
+  - {name: marksman, index: 0, position: {x: -40, y: -100}}
+  - {name: marksman, index: 1, position: {x: 40, y: -100}}
+  - {name: phantom_ray, index: 2, position: {x: 5, y: -100}}
+outcome:
+  blue.core_damage: 401
+  red.units[0].exp: 66
+  red.units[1].exp: 66
+  red.units[2].exp: 266
+ticks: 88
+hash: 23:ce9d4dc9433c54665988bf92b019a3b23d1ebd1e9338a4116ec62dfe5a2b8092

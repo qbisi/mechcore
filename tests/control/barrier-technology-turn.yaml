@@ -6,18 +6,20 @@
 # Hacker on tick 277.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 278
-hash: 23:acca3162d22a48e2eb420adcbae939f5799758059d081fcb29574826a6bf4737
 blue:
   techs:
     hacker: [barrier]
   units:
-  - {name: hacker, index: 0, position: {x: -5, y: -55}, level: 4, exp: 0/800/2515}
+  - {name: hacker, index: 0, position: {x: -5, y: -55}, level: 4}
 red:
-  core_damage: 287
   units:
   - {name: fortress, index: 0, position: {x: 0, y: -150}}
+outcome:
+  blue.units[0].exp: 800
+  red.core_damage: 287
+ticks: 278
+hash: 23:acca3162d22a48e2eb420adcbae939f5799758059d081fcb29574826a6bf4737

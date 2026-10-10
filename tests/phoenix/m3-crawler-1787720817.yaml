@@ -1,18 +1,22 @@
 # M3: a swarm of ground targets, which cannot hit back.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 462
-hash: 23:b97f632bb4c13b822ef8141ec98c290dd943c92d4a7f3709886212c4991a5ec3
 blue:
   units:
-  - {name: phoenix, index: 0, position: {x: 0, y: -180}, exp: 0/56/1300}
-  - {name: phoenix, index: 1, position: {x: 0, y: -140}, exp: 0/64/1300}
-  - {name: phoenix, index: 2, position: {x: 0, y: -100}, exp: 0/72/1300}
+  - {name: phoenix, index: 0, position: {x: 0, y: -180}}
+  - {name: phoenix, index: 1, position: {x: 0, y: -140}}
+  - {name: phoenix, index: 2, position: {x: 0, y: -100}}
 red:
-  core_damage: 600
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 56
+  blue.units[1].exp: 64
+  blue.units[2].exp: 72
+  red.core_damage: 600
+ticks: 462
+hash: 23:b97f632bb4c13b822ef8141ec98c290dd943c92d4a7f3709886212c4991a5ec3

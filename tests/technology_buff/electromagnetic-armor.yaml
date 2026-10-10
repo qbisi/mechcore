@@ -8,19 +8,23 @@
 # its own update, take it on those ticks. Blue wins at t273.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 273
-hash: 23:ecdccaa63a96422414550f5ba01646d2af0733d509ac08b0c3fdca834694c88c
 blue:
   techs:
     void_eye: [electromagnetic_armor]
   units:
-  - {name: void_eye, index: 0, position: {x: 0, y: -150}, exp: 0/100/650}
-  - {name: void_eye, index: 1, position: {x: 60, y: -150}, exp: 0/300/650}
+  - {name: void_eye, index: 0, position: {x: 0, y: -150}}
+  - {name: void_eye, index: 1, position: {x: 60, y: -150}}
 red:
-  core_damage: 132
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/132/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.units[0].exp: 100
+  blue.units[1].exp: 300
+  red.core_damage: 132
+  red.units[0].exp: 132
+ticks: 273
+hash: 23:ecdccaa63a96422414550f5ba01646d2af0733d509ac08b0c3fdca834694c88c

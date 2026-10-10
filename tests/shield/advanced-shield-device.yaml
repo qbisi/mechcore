@@ -8,20 +8,22 @@
 # 26895.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 326
-hash: 23:de70b6c0267e718c094769b464af6e7be6aafd53b83f08563fe8ac5d1ec28107
 blue:
-  core_damage: 100
   units:
   - {name: marksman, index: 0, position: {x: -40, y: -150}}
   - {name: arclight, index: 1, position: {x: 40, y: -150}}
 red:
   officers: [advanced_shield_device]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -80}, exp: 0/400/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -80}}
   contraptions:
   - {name: shield, index: 1, position: {x: 1, y: -81}}
+outcome:
+  blue.core_damage: 100
+  red.units[0].exp: 400
+ticks: 326
+hash: 23:de70b6c0267e718c094769b464af6e7be6aafd53b83f08563fe8ac5d1ec28107

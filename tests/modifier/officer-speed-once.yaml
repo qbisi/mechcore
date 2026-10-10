@@ -12,17 +12,19 @@
 # lands two shots either way; the reading is the tick the fight ends at.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 104
-hash: 23:de4e85c0ef1498560f63858b6e4f07146a273c573a747305158159218c7e99cb
 blue:
-  core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}}
 red:
   officers: [advanced_power_system]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 200
+ticks: 104
+hash: 23:de4e85c0ef1498560f63858b6e4f07146a273c573a747305158159218c7e99cb

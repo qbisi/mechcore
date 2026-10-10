@@ -4,20 +4,25 @@
 # 161, leaves one.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 1274
-hash: 23:25b0f5b881f22b8be730a51794a3063077fc72573d9796f93e2923e8d9c77bd5
 blue:
   techs:
     crawler: [acidic_explosion]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/50/650}
-  - {name: crawler, index: 1, position: {x: -330, y: 45}, exp: 0/450/450, travelling: true}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: crawler, index: 1, position: {x: -330, y: 45}, travelling: true}
 red:
-  core_damage: 48
   units:
-  - {name: marksman, index: 0, position: {x: 280, y: -100}, exp: 0/40/650}
-  - {name: marksman, index: 1, position: {x: -280, y: -100}, exp: 0/456/650}
+  - {name: marksman, index: 0, position: {x: 280, y: -100}}
+  - {name: marksman, index: 1, position: {x: -280, y: -100}}
+outcome:
+  blue.units[0].exp: 50
+  blue.units[1].exp: 450
+  red.core_damage: 48
+  red.units[0].exp: 40
+  red.units[1].exp: 456
+ticks: 1274
+hash: 23:25b0f5b881f22b8be730a51794a3063077fc72573d9796f93e2923e8d9c77bd5

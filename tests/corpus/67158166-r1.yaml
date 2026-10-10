@@ -8,36 +8,50 @@
 # that order.
 
 kind: fight
+source: game
 map_id: 1031
 seed: 1171883115
 round: 1
-source: game
-ticks: 1475
-hash: 23:52d03ea0e007dd009cd56bbfc514d33a9a54944dce45eaffbe25c79290012fd2
 blue:
   officers: [supply_specialist]
   legacy_index: 5
   units:
-  - {name: vortex, index: 0, position: {x: -140, y: -70}, exp: 0/138/750}
-  - {name: vortex, index: 1, position: {x: -90, y: -70}, exp: 0/346/750}
-  - {name: vortex, index: 2, position: {x: -20, y: -70}, exp: 0/413/750}
-  - {name: fire_badger, index: 3, position: {x: -175, y: -70}, exp: 0/185/1400}
-  - {name: fire_badger, index: 4, position: {x: -55, y: -70}, exp: 0/350/1400}
-  - {name: crawler, index: 5, position: {x: -140, y: -105}, exp: 0/436/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -20, y: -105}, exp: 0/365/450, rotated: true}
+  - {name: vortex, index: 0, position: {x: -140, y: -70}}
+  - {name: vortex, index: 1, position: {x: -90, y: -70}}
+  - {name: vortex, index: 2, position: {x: -20, y: -70}}
+  - {name: fire_badger, index: 3, position: {x: -175, y: -70}}
+  - {name: fire_badger, index: 4, position: {x: -55, y: -70}}
+  - {name: crawler, index: 5, position: {x: -140, y: -105}, rotated: true}
+  - {name: crawler, index: 6, position: {x: -20, y: -105}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
-  core_damage: 846
   officers: [cost_control_specialist]
   legacy_index: 5
   units:
-  - {name: crawler, index: 0, position: {x: -100, y: -205}, exp: 0/18/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: -290, y: -265}, exp: 0/362/450, rotated: true}
+  - {name: crawler, index: 0, position: {x: -100, y: -205}, rotated: true}
+  - {name: crawler, index: 1, position: {x: -290, y: -265}, rotated: true}
   - {name: crawler, index: 2, position: {x: 290, y: -265}, rotated: true}
-  - {name: steel_ball, index: 3, position: {x: -175, y: -230}, exp: 0/99/1000}
-  - {name: steel_ball, index: 4, position: {x: -65, y: -240}, exp: 0/34/1000}
-  - {name: marksman, index: 5, position: {x: -120, y: -170}, exp: 0/5/650}
-  - {name: marksman, index: 6, position: {x: 120, y: -170}, exp: 0/24/650}
+  - {name: steel_ball, index: 3, position: {x: -175, y: -230}}
+  - {name: steel_ball, index: 4, position: {x: -65, y: -240}}
+  - {name: marksman, index: 5, position: {x: -120, y: -170}}
+  - {name: marksman, index: 6, position: {x: 120, y: -170}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+outcome:
+  blue.units[0].exp: 138
+  blue.units[1].exp: 346
+  blue.units[2].exp: 413
+  blue.units[3].exp: 185
+  blue.units[4].exp: 350
+  blue.units[5].exp: 436
+  blue.units[6].exp: 365
+  red.core_damage: 846
+  red.units[0].exp: 18
+  red.units[1].exp: 362
+  red.units[3].exp: 99
+  red.units[4].exp: 34
+  red.units[5].exp: 5
+  red.units[6].exp: 24
+ticks: 1475
+hash: 23:52d03ea0e007dd009cd56bbfc514d33a9a54944dce45eaffbe25c79290012fd2

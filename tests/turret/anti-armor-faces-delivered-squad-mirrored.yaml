@@ -6,22 +6,24 @@
 # of the origin from where it stands; nothing of blue's is on that line.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 3
-source: game
-ticks: 555
-hash: 23:9e66737a415ffad2c8727f5fb26f8c03c3c401de9bc0c66694af1a8c349833dd
 blue:
   officers: [sabertooth_specialist]
   legacy_index: 2
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/10/650}
-  - {name: sabertooth, index: 1, position: {x: -105, y: -155}, exp: 0/320/1300}
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/650}
+  - {name: sabertooth, index: 1, position: {x: -105, y: -155}}
 red:
-  core_damage: 300
   legacy_index: 1
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/10/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/650}
   constructions:
   - {name: anti_armor_turret, index: 0, position: {x: 140, y: -100}}
+outcome:
+  blue.units[1].exp: 320
+  red.core_damage: 300
+ticks: 555
+hash: 23:9e66737a415ffad2c8727f5fb26f8c03c3c401de9bc0c66694af1a8c349833dd

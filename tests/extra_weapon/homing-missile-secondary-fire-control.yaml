@@ -6,20 +6,22 @@
 # 2000 a missile becomes 2500.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 84
-hash: 23:3320c53760071ec5fc70470f90a7ac0d167c88c33fc4751b7e747df26ef83abf
 blue:
   techs:
     centurion: [homing_missile]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -45}, exp: 0/600/2250, equipment: [secondary_fire_control_system]}
+  - {name: centurion, index: 0, position: {x: 5, y: -45}, equipment: [secondary_fire_control_system]}
 red:
-  core_damage: 250
   units:
   - {name: marksman, index: 0, position: {x: -40, y: -100}}
   - {name: marksman, index: 1, position: {x: 0, y: -110}}
   - {name: marksman, index: 2, position: {x: 40, y: -100}}
+outcome:
+  blue.units[0].exp: 600
+  red.core_damage: 250
+ticks: 84
+hash: 23:3320c53760071ec5fc70470f90a7ac0d167c88c33fc4751b7e747df26ef83abf

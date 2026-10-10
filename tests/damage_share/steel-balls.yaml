@@ -4,20 +4,23 @@
 # a Marksman's 2329 as 291 (t68 on).
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 292
-hash: 23:81b50697f141f1c0cc4917b21fbd51af1e2158e3d8b5810325e714fa82a6dba7
 blue:
   techs:
     steel_ball: [damage_sharing]
   units:
-  - {name: steel_ball, index: 0, position: {x: -35, y: -100}, exp: 0/250/1000}
-  - {name: steel_ball, index: 1, position: {x: 45, y: -100}, exp: 0/350/1000}
+  - {name: steel_ball, index: 0, position: {x: -35, y: -100}}
+  - {name: steel_ball, index: 1, position: {x: 45, y: -100}}
 red:
-  core_damage: 400
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
   - {name: marksman, index: 1, position: {x: 60, y: -100}}
+outcome:
+  blue.units[0].exp: 250
+  blue.units[1].exp: 350
+  red.core_damage: 400
+ticks: 292
+hash: 23:81b50697f141f1c0cc4917b21fbd51af1e2158e3d8b5810325e714fa82a6dba7

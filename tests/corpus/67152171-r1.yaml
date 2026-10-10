@@ -4,37 +4,51 @@
 # Turret's skill passes over unit 57, 22.4 degrees off, for unit 80.
 
 kind: fight
+source: game
 map_id: 1011
 seed: 584983421
 round: 1
-source: game
-ticks: 1467
-hash: 23:510a82acb23b0a54c44d232590b559a0c2ec53aab3c25489ac32de291260bbeb
 blue:
   officers: [missile_specialist]
   legacy_index: 5
   units:
-  - {name: void_eye, index: 0, position: {x: 70, y: -180}, exp: 0/270/650}
-  - {name: void_eye, index: 1, position: {x: 110, y: -180}, exp: 0/228/650}
-  - {name: void_eye, index: 2, position: {x: 170, y: -180}, exp: 0/223/650}
-  - {name: mustang, index: 3, position: {x: 140, y: -285}, exp: 0/360/1200, rotated: true}
-  - {name: mustang, index: 4, position: {x: -140, y: -285}, exp: 0/172/1200, rotated: true}
-  - {name: mustang, index: 5, position: {x: 255, y: -300}, exp: 0/678/1200}
+  - {name: void_eye, index: 0, position: {x: 70, y: -180}}
+  - {name: void_eye, index: 1, position: {x: 110, y: -180}}
+  - {name: void_eye, index: 2, position: {x: 170, y: -180}}
+  - {name: mustang, index: 3, position: {x: 140, y: -285}, rotated: true}
+  - {name: mustang, index: 4, position: {x: -140, y: -285}, rotated: true}
+  - {name: mustang, index: 5, position: {x: 255, y: -300}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 red:
-  core_damage: 437
   officers: [secondary_equipment_expert]
   legacy_index: 5
   units:
-  - {name: crawler, index: 0, position: {x: -140, y: -265}, exp: 0/39/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: 140, y: -265}, exp: 0/58/450, rotated: true}
-  - {name: crawler, index: 2, position: {x: 0, y: -265}, exp: 0/63/450, rotated: true}
-  - {name: steel_ball, index: 3, position: {x: -185, y: -280}, exp: 0/221/1000}
-  - {name: steel_ball, index: 4, position: {x: 185, y: -280}, exp: 0/789/1000}
-  - {name: vortex, index: 5, position: {x: -140, y: -140}, exp: 0/34/750}
-  - {name: vortex, index: 6, position: {x: 140, y: -140}, exp: 0/272/750}
+  - {name: crawler, index: 0, position: {x: -140, y: -265}, rotated: true}
+  - {name: crawler, index: 1, position: {x: 140, y: -265}, rotated: true}
+  - {name: crawler, index: 2, position: {x: 0, y: -265}, rotated: true}
+  - {name: steel_ball, index: 3, position: {x: -185, y: -280}}
+  - {name: steel_ball, index: 4, position: {x: 185, y: -280}}
+  - {name: vortex, index: 5, position: {x: -140, y: -140}}
+  - {name: vortex, index: 6, position: {x: 140, y: -140}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+outcome:
+  blue.units[0].exp: 270
+  blue.units[1].exp: 228
+  blue.units[2].exp: 223
+  blue.units[3].exp: 360
+  blue.units[4].exp: 172
+  blue.units[5].exp: 678
+  red.core_damage: 437
+  red.units[0].exp: 39
+  red.units[1].exp: 58
+  red.units[2].exp: 63
+  red.units[3].exp: 221
+  red.units[4].exp: 789
+  red.units[5].exp: 34
+  red.units[6].exp: 272
+ticks: 1467
+hash: 23:510a82acb23b0a54c44d232590b559a0c2ec53aab3c25489ac32de291260bbeb

@@ -9,18 +9,20 @@
 # Rhino's damage: every one of the 24 Crawlers falls (t126).
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 127
-hash: 23:d142f81b1986a7f085d493012763b833c98b5e82b202cf0e6c0b58409252c74e
 blue:
   techs:
     rhino: [whirlwind]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/192/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
 red:
-  core_damage: 200
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 192
+  red.core_damage: 200
+ticks: 127
+hash: 23:d142f81b1986a7f085d493012763b833c98b5e82b202cf0e6c0b58409252c74e

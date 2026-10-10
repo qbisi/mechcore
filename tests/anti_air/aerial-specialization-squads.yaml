@@ -5,24 +5,31 @@
 # 1348. A killing hit deals what life was left.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 273
-hash: 23:602c3a6ec67ee86ebf467ffaf3f54497b1c9631469fa66345b13300e6822f265
 blue:
   techs:
     wasp: [aerial_specialization]
     mustang: [aerial_specialization]
     farseer: [aerial_specialization]
   units:
-  - {name: wasp, index: 0, position: {x: -65, y: -100}, exp: 0/666/900}
-  - {name: mustang, index: 1, position: {x: 5, y: -100}, exp: 0/316/1200}
-  - {name: farseer, index: 2, position: {x: 65, y: -105}, exp: 0/816/1800}
+  - {name: wasp, index: 0, position: {x: -65, y: -100}}
+  - {name: mustang, index: 1, position: {x: 5, y: -100}}
+  - {name: farseer, index: 2, position: {x: 65, y: -105}}
 red:
-  core_damage: 522
   units:
-  - {name: overlord, index: 0, position: {x: -35, y: -75}, exp: 0/136/1750}
-  - {name: phoenix, index: 1, position: {x: 20, y: -90}, exp: 0/102/1300}
-  - {name: rhino, index: 2, position: {x: 35, y: -165}, exp: 0/34/1150}
+  - {name: overlord, index: 0, position: {x: -35, y: -75}}
+  - {name: phoenix, index: 1, position: {x: 20, y: -90}}
+  - {name: rhino, index: 2, position: {x: 35, y: -165}}
+outcome:
+  blue.units[0].exp: 666
+  blue.units[1].exp: 316
+  blue.units[2].exp: 816
+  red.core_damage: 522
+  red.units[0].exp: 136
+  red.units[1].exp: 102
+  red.units[2].exp: 34
+ticks: 273
+hash: 23:602c3a6ec67ee86ebf467ffaf3f54497b1c9631469fa66345b13300e6822f265

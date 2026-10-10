@@ -5,18 +5,20 @@
 # on tick 12; with 3.4 throughout, on tick 108.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 206
-hash: 23:75bdb30296d90bdcea79cc3c0811c74509263f634b505d9dfacd8889c37b303d
 blue:
-  core_damage: 200
   techs:
     crawler: [loose_formation]
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/192/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 192
+ticks: 206
+hash: 23:75bdb30296d90bdcea79cc3c0811c74509263f634b505d9dfacd8889c37b303d

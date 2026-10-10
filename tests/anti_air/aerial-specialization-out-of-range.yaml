@@ -6,19 +6,21 @@
 # Mountain, as it does without the technology.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 133
-hash: 23:88d5c0f4cc8b2eb93989ef760dd934da4e42cf445821d57c1e4e550966296221
 blue:
-  core_damage: 900
   techs:
     marksman: [aerial_specialization]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -100}}
 red:
   units:
-  - {name: overlord, index: 0, position: {x: 25, y: -95}, exp: 0/200/1750}
+  - {name: overlord, index: 0, position: {x: 25, y: -95}}
   - {name: mountain, index: 1, position: {x: -35, y: -95}}
+outcome:
+  blue.core_damage: 900
+  red.units[0].exp: 200
+ticks: 133
+hash: 23:88d5c0f4cc8b2eb93989ef760dd934da4e42cf445821d57c1e4e550966296221

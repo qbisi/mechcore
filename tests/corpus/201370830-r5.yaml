@@ -7,42 +7,39 @@
 # the whole bar.
 
 kind: fight
+source: game
 map_id: 1011
 seed: 865572396
 round: 5
-source: game
-ticks: 1010
-hash: 23:b6431ff7e6bda0e58bc0c55901f0e72f8cfb2ebf49f991a2074557949a207803
 blue:
-  core_damage: 868
   officers: [elite_specialist, fortified_mustang]
   techs:
     mustang: [armor_piercing_bullets]
   legacy_index: 15
   units:
-  - {name: arclight, index: 0, position: {x: -90, y: -60}, exp: 750/750/750}
-  - {name: arclight, index: 1, position: {x: -190, y: -60}, exp: 750/750/750}
-  - {name: arclight, index: 2, position: {x: 180, y: -210}, exp: 600/702/750}
-  - {name: steel_ball, index: 3, position: {x: -225, y: -50}, exp: 1000/1000/1000}
-  - {name: steel_ball, index: 4, position: {x: -125, y: -70}, exp: 705/909/1000}
-  - {name: crawler, index: 5, position: {x: -125, y: -50}, level: 2, exp: 221/300/1014}
-  - {name: crawler, index: 6, position: {x: -225, y: -70}, level: 2, exp: 464/653/1014}
-  - {name: crawler, index: 7, position: {x: -310, y: 35}, level: 2, exp: 70/70/1014}
-  - {name: crawler, index: 8, position: {x: -170, y: -35}, level: 2, exp: 118/129/1014, rotated: true}
-  - {name: wasp, index: 9, position: {x: -260, y: -205}, exp: 900/900/900, rotated: true}
-  - {name: wasp, index: 10, position: {x: 235, y: -50}, exp: 900/900/900}
-  - {name: steel_ball, index: 11, position: {x: 235, y: -70}, level: 2, exp: 2073/2088/2253}
-  - {name: crawler, index: 12, position: {x: 235, y: -20}, level: 2, exp: 716/916/1014}
-  - {name: crawler, index: 13, position: {x: 290, y: -205}, level: 2, exp: 453/580/1014, rotated: true}
-  - {name: mustang, index: 14, position: {x: 210, y: -205}, level: 2, exp: 1989/2704/2704, rotated: true}
-  - {name: mustang, index: 15, position: {x: -125, y: -90}, level: 2, exp: 0/1136/2704}
-  - {name: mustang, index: 16, position: {x: 210, y: -255}, level: 2, exp: 0/1667/2704, rotated: true}
+  - {name: arclight, index: 0, position: {x: -90, y: -60}, exp: 750/750}
+  - {name: arclight, index: 1, position: {x: -190, y: -60}, exp: 750/750}
+  - {name: arclight, index: 2, position: {x: 180, y: -210}, exp: 600/750}
+  - {name: steel_ball, index: 3, position: {x: -225, y: -50}, exp: 1000/1000}
+  - {name: steel_ball, index: 4, position: {x: -125, y: -70}, exp: 705/1000}
+  - {name: crawler, index: 5, position: {x: -125, y: -50}, level: 2, exp: 221/1014}
+  - {name: crawler, index: 6, position: {x: -225, y: -70}, level: 2, exp: 464/1014}
+  - {name: crawler, index: 7, position: {x: -310, y: 35}, level: 2, exp: 70/1014}
+  - {name: crawler, index: 8, position: {x: -170, y: -35}, level: 2, exp: 118/1014, rotated: true}
+  - {name: wasp, index: 9, position: {x: -260, y: -205}, exp: 900/900, rotated: true}
+  - {name: wasp, index: 10, position: {x: 235, y: -50}, exp: 900/900}
+  - {name: steel_ball, index: 11, position: {x: 235, y: -70}, level: 2, exp: 2073/2253}
+  - {name: crawler, index: 12, position: {x: 235, y: -20}, level: 2, exp: 716/1014}
+  - {name: crawler, index: 13, position: {x: 290, y: -205}, level: 2, exp: 453/1014, rotated: true}
+  - {name: mustang, index: 14, position: {x: 210, y: -205}, level: 2, exp: 1989/2704, rotated: true}
+  - {name: mustang, index: 15, position: {x: -125, y: -90}, level: 2}
+  - {name: mustang, index: 16, position: {x: 210, y: -255}, level: 2, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   contraptions:
   - {name: missile, index: 1, position: {x: -297, y: -187}}
   - {name: shield, index: 2, position: {x: 229, y: -81}}
-  - {name: shield, index: 3, position: {x: 229, y: -216}, retained: false}
+  - {name: shield, index: 3, position: {x: 229, y: -216}}
 red:
   officers: [fortified_specialist]
   techs:
@@ -51,23 +48,57 @@ red:
   blueprints: [attack_enhancement, defense_enhancement]
   legacy_index: 15
   units:
-  - {name: void_eye, index: 0, position: {x: 80, y: -70}, level: 2, exp: 386/794/1465}
-  - {name: void_eye, index: 1, position: {x: 180, y: -70}, level: 2, exp: 370/750/1465}
-  - {name: void_eye, index: 2, position: {x: 280, y: -70}, level: 2, exp: 0/353/1465}
-  - {name: tarantula, index: 3, position: {x: 85, y: -115}, level: 2, exp: 2357/3380/3380}
-  - {name: tarantula, index: 4, position: {x: 185, y: -115}, level: 2, exp: 1527/2812/3380}
-  - {name: vortex, index: 5, position: {x: 110, y: -130}, level: 3, exp: 544/2094/2671}
-  - {name: vortex, index: 6, position: {x: 150, y: -130}, level: 2, exp: 756/1488/1690}
-  - {name: crawler, index: 7, position: {x: 80, y: -155}, level: 2, exp: 0/297/1014, rotated: true}
-  - {name: crawler, index: 8, position: {x: 190, y: -155}, level: 2, exp: 0/241/1014, rotated: true}
-  - {name: wasp, index: 9, position: {x: -350, y: 175}, exp: 250/696/900}
-  - {name: wasp, index: 10, position: {x: -350, y: 255}, level: 2, exp: 0/474/2028, equipment: [laser_sights]}
-  - {name: tarantula, index: 11, position: {x: 275, y: -95}, exp: 1472/1500/1500}
-  - {name: crawler, index: 12, position: {x: 190, y: -205}, exp: 136/216/450, rotated: true}
-  - {name: phantom_ray, index: 13, position: {x: -330, y: 175}, exp: 37/371/1000}
-  - {name: phantom_ray, index: 14, position: {x: -330, y: 255}, exp: 109/360/1000}
-  - {name: crawler, index: 15, position: {x: -310, y: 255}, exp: 0/28/450, travelling: true}
-  - {name: crawler, index: 16, position: {x: -310, y: 175}, exp: 0/61/450, travelling: true}
-  - {name: mustang, index: 17, position: {x: 195, y: -240}, exp: 0/1081/1200}
+  - {name: void_eye, index: 0, position: {x: 80, y: -70}, level: 2, exp: 386/1465}
+  - {name: void_eye, index: 1, position: {x: 180, y: -70}, level: 2, exp: 370/1465}
+  - {name: void_eye, index: 2, position: {x: 280, y: -70}, level: 2}
+  - {name: tarantula, index: 3, position: {x: 85, y: -115}, level: 2, exp: 2357/3380}
+  - {name: tarantula, index: 4, position: {x: 185, y: -115}, level: 2, exp: 1527/3380}
+  - {name: vortex, index: 5, position: {x: 110, y: -130}, level: 3, exp: 544/2671}
+  - {name: vortex, index: 6, position: {x: 150, y: -130}, level: 2, exp: 756/1690}
+  - {name: crawler, index: 7, position: {x: 80, y: -155}, level: 2, rotated: true}
+  - {name: crawler, index: 8, position: {x: 190, y: -155}, level: 2, rotated: true}
+  - {name: wasp, index: 9, position: {x: -350, y: 175}, exp: 250/900}
+  - {name: wasp, index: 10, position: {x: -350, y: 255}, level: 2, equipment: [laser_sights]}
+  - {name: tarantula, index: 11, position: {x: 275, y: -95}, exp: 1472/1500}
+  - {name: crawler, index: 12, position: {x: 190, y: -205}, exp: 136/450, rotated: true}
+  - {name: phantom_ray, index: 13, position: {x: -330, y: 175}, exp: 37/1000}
+  - {name: phantom_ray, index: 14, position: {x: -330, y: 255}, exp: 109/1000}
+  - {name: crawler, index: 15, position: {x: -310, y: 255}, travelling: true}
+  - {name: crawler, index: 16, position: {x: -310, y: 175}, travelling: true}
+  - {name: mustang, index: 17, position: {x: 195, y: -240}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+outcome:
+  blue.core_damage: 868
+  blue.units[2].exp: 702
+  blue.units[4].exp: 909
+  blue.units[5].exp: 300
+  blue.units[6].exp: 653
+  blue.units[8].exp: 129
+  blue.units[11].exp: 2088
+  blue.units[12].exp: 916
+  blue.units[13].exp: 580
+  blue.units[14].exp: 2704
+  blue.units[15].exp: 1136
+  blue.units[16].exp: 1667
+  blue.contraptions[2].retained: false
+  red.units[0].exp: 794
+  red.units[1].exp: 750
+  red.units[2].exp: 353
+  red.units[3].exp: 3380
+  red.units[4].exp: 2812
+  red.units[5].exp: 2094
+  red.units[6].exp: 1488
+  red.units[7].exp: 297
+  red.units[8].exp: 241
+  red.units[9].exp: 696
+  red.units[10].exp: 474
+  red.units[11].exp: 1500
+  red.units[12].exp: 216
+  red.units[13].exp: 371
+  red.units[14].exp: 360
+  red.units[15].exp: 28
+  red.units[16].exp: 61
+  red.units[17].exp: 1081
+ticks: 1010
+hash: 23:b6431ff7e6bda0e58bc0c55901f0e72f8cfb2ebf49f991a2074557949a207803

@@ -6,18 +6,20 @@
 # where it won on 309.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 216
-hash: 23:87c3d1bb5f2d3ef702e692c9a47c94474559e590c966bd0da03e3f487592cd89
 blue:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/200/1150, equipment: [photon_coating]}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, equipment: [photon_coating]}
 red:
-  core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 45}]}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 200
+ticks: 216
+hash: 23:87c3d1bb5f2d3ef702e692c9a47c94474559e590c966bd0da03e3f487592cd89

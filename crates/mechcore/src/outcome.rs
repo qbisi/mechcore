@@ -256,8 +256,10 @@ impl Reading {
             seed,
             round,
             source: self.source,
-            ticks: self.ticks,
-            hash: self.hash,
+            trajectory: Some(mechcore_document::fight::Trajectory {
+                ticks: self.ticks,
+                hash: self.hash,
+            }),
             blue: fight_side(blue, blue_reading)?,
             red: fight_side(red, red_reading)?,
         };

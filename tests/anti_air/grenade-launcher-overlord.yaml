@@ -6,19 +6,22 @@
 # unanswered.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 178
-hash: 23:05481779bef6184af1a5e06702d4dd1f43c0279997ddcf83032a3d7d083fe28b
 blue:
-  core_damage: 500
   techs:
     fang: [grenade_launcher]
   units:
   - {name: fang, index: 0, position: {x: 5, y: -100}}
 red:
   units:
-  - {name: overlord, index: 0, position: {x: -35, y: -75}, exp: 0/84/1750}
-  - {name: arclight, index: 1, position: {x: 30, y: -80}, exp: 0/132/750}
+  - {name: overlord, index: 0, position: {x: -35, y: -75}}
+  - {name: arclight, index: 1, position: {x: 30, y: -80}}
+outcome:
+  blue.core_damage: 500
+  red.units[0].exp: 84
+  red.units[1].exp: 132
+ticks: 178
+hash: 23:05481779bef6184af1a5e06702d4dd1f43c0279997ddcf83032a3d7d083fe28b

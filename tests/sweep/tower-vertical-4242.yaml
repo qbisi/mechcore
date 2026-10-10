@@ -3,19 +3,21 @@
 # Another Marksman on the far flank keeps the fight going.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 445
-hash: 23:831ffdbfcfb55007a2a48a179e1e1f3ce762c6f09a420c947029d29a3fde691f
 blue:
   techs:
     abyss: [vertical_sweep]
   units:
-  - {name: abyss, index: 0, position: {x: -135, y: -45}, exp: 0/600/4800}
+  - {name: abyss, index: 0, position: {x: -135, y: -45}}
 red:
-  core_damage: 500
   units:
   - {name: marksman, index: 0, position: {x: 140, y: -140}}
   - {name: marksman, index: 1, position: {x: -140, y: -140}}
+outcome:
+  blue.units[0].exp: 600
+  red.core_damage: 500
+ticks: 445
+hash: 23:831ffdbfcfb55007a2a48a179e1e1f3ce762c6f09a420c947029d29a3fde691f

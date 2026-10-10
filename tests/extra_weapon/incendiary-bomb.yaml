@@ -9,19 +9,23 @@
 # no body, turn their roots to it.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 212
-hash: 23:b977d1bd6fea3750d7716b5706e4efd645d6c8b86eaf3e28272be42dfa0eca27
 blue:
-  core_damage: 100
   techs:
     hound: [incendiary_bomb]
   units:
-  - {name: hound, index: 0, position: {x: 0, y: -40}, exp: 0/200/750}
+  - {name: hound, index: 0, position: {x: 0, y: -40}}
 red:
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -60}, exp: 0/80/650}
-  - {name: marksman, index: 1, position: {x: 30, y: -70}, exp: 0/120/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -60}}
+  - {name: marksman, index: 1, position: {x: 30, y: -70}}
+outcome:
+  blue.core_damage: 100
+  blue.units[0].exp: 200
+  red.units[0].exp: 80
+  red.units[1].exp: 120
+ticks: 212
+hash: 23:b977d1bd6fea3750d7716b5706e4efd645d6c8b86eaf3e28272be42dfa0eca27

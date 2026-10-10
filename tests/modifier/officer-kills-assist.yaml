@@ -10,18 +10,21 @@
 # read 3560 again.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 293
-hash: 23:6fdb585a40783dcf000963cdaa0fc51a69ebe53c1393727fe7330143f46e4e36
 blue:
   officers: [berserk_rhino]
   units:
-  - {name: rhino, index: 0, position: {x: -25, y: -145}, exp: 0/540/1150}
-  - {name: rhino, index: 1, position: {x: 35, y: -145}, exp: 0/660/1150}
+  - {name: rhino, index: 0, position: {x: -25, y: -145}}
+  - {name: rhino, index: 1, position: {x: 35, y: -145}}
 red:
-  core_damage: 400
   units:
   - {name: sledgehammer, index: 0, position: {x: 5, y: -40}, level: 2}
+outcome:
+  blue.units[0].exp: 540
+  blue.units[1].exp: 660
+  red.core_damage: 400
+ticks: 293
+hash: 23:6fdb585a40783dcf000963cdaa0fc51a69ebe53c1393727fe7330143f46e4e36

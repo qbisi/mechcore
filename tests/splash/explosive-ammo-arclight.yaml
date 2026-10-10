@@ -3,16 +3,18 @@
 # the Arclight's own 7: a shot strikes up to twelve Crawlers.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 153
-hash: 23:e8385207f92edc0d8c631c29950c3cb6e39b62decf714ea491c145e51d96fdf1
 blue:
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/192/750, equipment: [explosive_ammo]}
+  - {name: arclight, index: 0, position: {x: 0, y: -100}, equipment: [explosive_ammo]}
 red:
-  core_damage: 100
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 192
+  red.core_damage: 100
+ticks: 153
+hash: 23:e8385207f92edc0d8c631c29950c3cb6e39b62decf714ea491c145e51d96fdf1

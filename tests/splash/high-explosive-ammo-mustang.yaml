@@ -3,19 +3,21 @@
 # damage. The squad's shots strike up to 14 Crawlers on one tick.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 200
-hash: 23:a23de0129970847fad480cd7fc929e534abd0d7953d82aadea64e291fb882009
 blue:
   techs:
     mustang: [high_explosive_ammo]
   units:
-  - {name: mustang, index: 0, position: {x: 5, y: -100}, exp: 0/384/1200}
+  - {name: mustang, index: 0, position: {x: 5, y: -100}}
 red:
-  core_damage: 204
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -70}}
   - {name: crawler, index: 1, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 384
+  red.core_damage: 204
+ticks: 200
+hash: 23:a23de0129970847fad480cd7fc929e534abd0d7953d82aadea64e291fb882009

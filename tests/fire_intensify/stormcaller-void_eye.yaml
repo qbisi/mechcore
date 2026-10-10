@@ -6,21 +6,25 @@
 # fire is made.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 410
-hash: 23:cfd389a5dbaf2f70d0fb9617468b3050cc9b1964940e93127baf68fedec03767
 blue:
-  core_damage: 162
   techs:
     stormcaller: [incendiary_bomb]
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -150}, exp: 0/66/1100}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -150}}
 red:
   techs:
     void_eye: [electromagnetic_armor]
   units:
-  - {name: void_eye, index: 0, position: {x: 0, y: -100}, exp: 0/175/650}
-  - {name: crawler, index: 1, position: {x: 65, y: -100}, exp: 0/225/450}
+  - {name: void_eye, index: 0, position: {x: 0, y: -100}}
+  - {name: crawler, index: 1, position: {x: 65, y: -100}}
+outcome:
+  blue.core_damage: 162
+  blue.units[0].exp: 66
+  red.units[0].exp: 175
+  red.units[1].exp: 225
+ticks: 410
+hash: 23:cfd389a5dbaf2f70d0fb9617468b3050cc9b1964940e93127baf68fedec03767

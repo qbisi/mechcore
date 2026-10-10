@@ -1,16 +1,18 @@
 # M2: a single large ground target that closes in.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 304
-hash: 23:f9c3e5c379cf31a67bf0dd9eb0dd1605d0b1319068453ce9ee1d054e5c33f2b8
 blue:
-  core_damage: 200
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/192/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 192
+ticks: 304
+hash: 23:f9c3e5c379cf31a67bf0dd9eb0dd1605d0b1319068453ce9ee1d054e5c33f2b8

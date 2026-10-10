@@ -1,15 +1,17 @@
 # M1: the mirror. One formation each, 200 m apart.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 197
-hash: 23:72c83bfd6dc233e3cd73402de99e40d726253d259743aba965c68686eb46869e
 blue:
   units:
-  - {name: overlord, index: 0, position: {x: -5, y: -105}, exp: 0/1000/1750}
+  - {name: overlord, index: 0, position: {x: -5, y: -105}}
 red:
   units:
   - {name: overlord, index: 0, position: {x: -5, y: -105}}
+outcome:
+  blue.units[0].exp: 1000
+ticks: 197
+hash: 23:72c83bfd6dc233e3cd73402de99e40d726253d259743aba965c68686eb46869e

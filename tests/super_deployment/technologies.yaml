@@ -2,20 +2,24 @@
 # researched: its technologies correct it from the first tick.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 1041
-hash: 23:6a7dc67c09b82e4848a18ace504462ec03423b33b63b65c5574523a4d9c38b26
 blue:
   techs:
     arclight: [range_enhancement, charged_shot]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/400/750, travelling: true}
+  - {name: arclight, index: 1, position: {x: -310, y: 20}, travelling: true}
 red:
-  core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
-  - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/200/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}}
+outcome:
+  blue.units[1].exp: 400
+  red.core_damage: 100
+  red.units[0].exp: 200
+  red.units[1].exp: 200
+ticks: 1041
+hash: 23:6a7dc67c09b82e4848a18ace504462ec03423b33b63b65c5574523a4d9c38b26

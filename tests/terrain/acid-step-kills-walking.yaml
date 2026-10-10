@@ -8,20 +8,25 @@
 # on tick 631.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 696
-hash: 23:12d3f59733836803be7f4ac3ce5cbf0902113c6d0d3274d20d32051312323794
 blue:
-  core_damage: 100
   units:
-  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/200/600}
-  - {name: fortress, index: 1, position: {x: 0, y: -200}, exp: 0/200/1600}
+  - {name: fang, index: 0, position: {x: 145, y: -300}}
+  - {name: fortress, index: 1, position: {x: 0, y: -200}}
 red:
   units:
-  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/1000/1000}
-  - {name: marksman, index: 1, position: {x: 0, y: -230}, exp: 0/192/650}
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}}
+  - {name: marksman, index: 1, position: {x: 0, y: -230}}
   battle_skills:
   - {name: acid_blast, positions: [{x: -135, y: 245}, {x: 40, y: 160}]}
+outcome:
+  blue.core_damage: 100
+  blue.units[0].exp: 200
+  blue.units[1].exp: 200
+  red.units[0].exp: 1000
+  red.units[1].exp: 192
+ticks: 696
+hash: 23:12d3f59733836803be7f4ac3ce5cbf0902113c6d0d3274d20d32051312323794

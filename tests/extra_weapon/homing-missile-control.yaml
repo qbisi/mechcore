@@ -2,18 +2,20 @@
 # technology.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 160
-hash: 23:16bd39f5dc5ece5db54e846afb916ca94e46e17c12dd63bc8131a8c3e6ccb9f2
 blue:
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -45}, exp: 0/600/2250}
+  - {name: centurion, index: 0, position: {x: 5, y: -45}}
 red:
-  core_damage: 250
   units:
   - {name: marksman, index: 0, position: {x: -40, y: -100}}
   - {name: marksman, index: 1, position: {x: 0, y: -110}}
   - {name: marksman, index: 2, position: {x: 40, y: -100}}
+outcome:
+  blue.units[0].exp: 600
+  red.core_damage: 250
+ticks: 160
+hash: 23:16bd39f5dc5ece5db54e846afb916ca94e46e17c12dd63bc8131a8c3e6ccb9f2

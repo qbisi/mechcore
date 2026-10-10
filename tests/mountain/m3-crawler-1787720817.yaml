@@ -1,16 +1,18 @@
 # M3: a swarm of ground targets: retargeting, splash, being surrounded.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 181
-hash: 23:33f0c7320cfa9b8572e2fa5c926bdb94f8a74cf793139a4b64561dfdcffb31a9
 blue:
   units:
-  - {name: mountain, index: 0, position: {x: 5, y: -105}, exp: 0/192/3200}
+  - {name: mountain, index: 0, position: {x: 5, y: -105}}
 red:
-  core_damage: 500
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 192
+  red.core_damage: 500
+ticks: 181
+hash: 23:33f0c7320cfa9b8572e2fa5c926bdb94f8a74cf793139a4b64561dfdcffb31a9

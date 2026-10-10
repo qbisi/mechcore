@@ -7,14 +7,11 @@
 # for 138 from the very next tick (t286, t288, t290).
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 290
-hash: 23:a078de662f4fd82479deb768b8579e9fac10abde1cf9394b24278d812406d5f0
 blue:
-  core_damage: 750
   techs:
     vulcan: [scorching_fire]
   units:
@@ -23,6 +20,13 @@ red:
   techs:
     phoenix: [electromagnetic_shot]
   units:
-  - {name: phoenix, index: 0, position: {x: 0, y: -150}, exp: 0/133/1300}
-  - {name: phoenix, index: 1, position: {x: 60, y: -150}, exp: 0/133/1300}
-  - {name: fortress, index: 2, position: {x: 70, y: -100}, exp: 0/533/1600}
+  - {name: phoenix, index: 0, position: {x: 0, y: -150}}
+  - {name: phoenix, index: 1, position: {x: 60, y: -150}}
+  - {name: fortress, index: 2, position: {x: 70, y: -100}}
+outcome:
+  blue.core_damage: 750
+  red.units[0].exp: 133
+  red.units[1].exp: 133
+  red.units[2].exp: 533
+ticks: 290
+hash: 23:a078de662f4fd82479deb768b8579e9fac10abde1cf9394b24278d812406d5f0

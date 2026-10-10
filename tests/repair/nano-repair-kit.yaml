@@ -5,16 +5,18 @@
 # 1622. It holds out to tick 112 where it fell on tick 91, and still loses.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 112
-hash: 23:f323a3111357fe0b8bafbf5695883f159dfab3ff621b70ccaf8ef8d652b599fc
 blue:
-  core_damage: 100
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [nano_repair_kit]}
 red:
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/200/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -50}}
+outcome:
+  blue.core_damage: 100
+  red.units[0].exp: 200
+ticks: 112
+hash: 23:f323a3111357fe0b8bafbf5695883f159dfab3ff621b70ccaf8ef8d652b599fc

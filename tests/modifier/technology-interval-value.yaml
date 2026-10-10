@@ -8,18 +8,20 @@
 # no technology, strikes on tick 74 and every 18.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 137
-hash: 23:3f910ebf62aa521177b8e0a20e39c7137e3c9f91dd939ee20bbae0c951563172
 blue:
   techs:
     rhino: [mechanical_rage]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -65}, exp: 0/400/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -65}}
 red:
-  core_damage: 200
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -65}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 200
+ticks: 137
+hash: 23:3f910ebf62aa521177b8e0a20e39c7137e3c9f91dd939ee20bbae0c951563172

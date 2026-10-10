@@ -7,17 +7,19 @@
 # too, or is folded into the base the overlay corrects, is the reading.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 18
-hash: 23:0caffefde31006bba0f117b59c6ab07e39020f054cea02203c9ccd02878dd1fa
 blue:
   officers: [advanced_offensive_tactics]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, level: 2, exp: 0/200/1465}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, level: 2}
 red:
-  core_damage: 100
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -50}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 100
+ticks: 18
+hash: 23:0caffefde31006bba0f117b59c6ab07e39020f054cea02203c9ccd02878dd1fa

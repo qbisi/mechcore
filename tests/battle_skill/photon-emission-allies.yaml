@@ -4,20 +4,24 @@
 # on its own side's units, as `PerformPositiveEffect` asks.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 216
-hash: 23:684607c39bc16cc0d226c65058e3d6a1d7802eac1df8d90db702f1eae03aacc9
 blue:
-  core_damage: 80
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -100}, exp: 0/32/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -100}}
   - {name: marksman, index: 1, position: {x: 20, y: -100}}
   battle_skills:
   - {name: photon_emission, positions: [{x: 0, y: -10}]}
 red:
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -60}, exp: 0/200/650}
-  - {name: crawler, index: 1, position: {x: 25, y: -60}, exp: 0/200/450}
+  - {name: marksman, index: 0, position: {x: -20, y: -60}}
+  - {name: crawler, index: 1, position: {x: 25, y: -60}}
+outcome:
+  blue.core_damage: 80
+  blue.units[0].exp: 32
+  red.units[0].exp: 200
+  red.units[1].exp: 200
+ticks: 216
+hash: 23:684607c39bc16cc0d226c65058e3d6a1d7802eac1df8d90db702f1eae03aacc9

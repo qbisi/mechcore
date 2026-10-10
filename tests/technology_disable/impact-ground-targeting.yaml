@@ -7,21 +7,24 @@
 # technology stays off until each dies.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 249
-hash: 23:9747fb4fdd52fc71f0854182d925ca54a851c8f9b2c06c1e3b346b4bbdc8defb
 blue:
-  core_damage: 200
   techs:
     phantom_ray: [ground_targeting]
   units:
-  - {name: phantom_ray, index: 0, position: {x: 5, y: -150}, exp: 0/100/1000}
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -150}}
 red:
   units:
   - {name: arclight, index: 0, position: {x: 30, y: -30}}
-  - {name: phoenix, index: 1, position: {x: -20, y: -90}, exp: 0/402/1300}
+  - {name: phoenix, index: 1, position: {x: -20, y: -90}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 130}]}
+outcome:
+  blue.core_damage: 200
+  blue.units[0].exp: 100
+  red.units[1].exp: 402
+ticks: 249
+hash: 23:9747fb4fdd52fc71f0854182d925ca54a851c8f9b2c06c1e3b346b4bbdc8defb

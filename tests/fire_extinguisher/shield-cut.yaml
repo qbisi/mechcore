@@ -5,22 +5,25 @@
 # barrier as well as those under the Hounds.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 440
-hash: 23:6a22ed46ff4e296368cd3db1db0c66290babcafdf48fd9f6d1ab482c97abd318
 blue:
   techs:
     fortress: [barrier]
     hound: [fire_extinguisher]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -60}, exp: 0/600/1600}
-  - {name: hound, index: 1, position: {x: 0, y: -110}, exp: 0/200/750}
+  - {name: fortress, index: 0, position: {x: 0, y: -60}}
+  - {name: hound, index: 1, position: {x: 0, y: -110}}
 red:
-  core_damage: 450
   units:
   - {name: fortress, index: 0, position: {x: 0, y: -150}}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
+outcome:
+  blue.units[0].exp: 600
+  blue.units[1].exp: 200
+  red.core_damage: 450
+ticks: 440
+hash: 23:6a22ed46ff4e296368cd3db1db0c66290babcafdf48fd9f6d1ab482c97abd318

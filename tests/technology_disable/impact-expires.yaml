@@ -6,22 +6,26 @@
 # is on again, its corrections back and its interval 12, at 9097 of its life.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 874
-hash: 23:49dae827ed07458e52bec319524ea618c7e6ef5034cec4d9cfd2b020c64f5957
 blue:
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -60}, exp: 0/592/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -60}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 55}]}
 red:
-  core_damage: 204
   techs:
     rhino: [mechanical_rage]
     crawler: [mechanical_rage]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
-  - {name: crawler, index: 1, position: {x: -45, y: -60}, exp: 0/200/450}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: crawler, index: 1, position: {x: -45, y: -60}}
+outcome:
+  blue.units[0].exp: 592
+  red.core_damage: 204
+  red.units[0].exp: 200
+  red.units[1].exp: 200
+ticks: 874
+hash: 23:49dae827ed07458e52bec319524ea618c7e6ef5034cec4d9cfd2b020c64f5957

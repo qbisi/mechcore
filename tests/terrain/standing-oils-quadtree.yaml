@@ -9,17 +9,14 @@
 # were added, the simulator parts from the game at t67.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 183
-hash: 23:c54a58ab2ac48c412be7a9c8973e60f778e7b912cae9e961150ef34424d49421
 blue:
-  core_damage: 140
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/156/650}
-  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/156/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -150}}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}}
   battle_skills:
   - {name: sticky_oil_bomb, standing: {control_points: [{x: -130, y: -90}, {x: -10, y: -90}]}}
   - {name: sticky_oil_bomb, standing: {control_points: [{x: -130, y: -40}, {x: -10, y: -40}]}}
@@ -27,7 +24,15 @@ blue:
   - {name: sticky_oil_bomb, standing: {control_points: [{x: 10, y: -40}, {x: 130, y: -40}]}}
 red:
   units:
-  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/200/1300}
-  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/200/450}
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: 0, y: 160}, {x: 0, y: 40}]}
+outcome:
+  blue.core_damage: 140
+  blue.units[0].exp: 156
+  blue.units[1].exp: 156
+  red.units[0].exp: 200
+  red.units[1].exp: 200
+ticks: 183
+hash: 23:c54a58ab2ac48c412be7a9c8973e60f778e7b912cae9e961150ef34424d49421

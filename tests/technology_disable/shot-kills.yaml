@@ -6,18 +6,21 @@
 # t265).
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 322
-hash: 23:dcbe79588a112d5aa9599f019f307c6b78a155f0a63046fbe4fcbdcf7018e53b
 blue:
-  core_damage: 84
   techs:
     marksman: [electromagnetic_shot]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/24/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
 red:
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -150}, exp: 0/200/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -150}}
+outcome:
+  blue.core_damage: 84
+  blue.units[0].exp: 24
+  red.units[0].exp: 200
+ticks: 322
+hash: 23:dcbe79588a112d5aa9599f019f307c6b78a155f0a63046fbe4fcbdcf7018e53b

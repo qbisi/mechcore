@@ -3,18 +3,20 @@
 # each within its row's 2 metres and the technology's 13 of its target.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 152
-hash: 23:27313a0f5d204c7382d8cb8a553019107a223abefffc27327f63411e82c0a32a
 blue:
   techs:
     phantom_ray: [burst_mode]
   units:
-  - {name: phantom_ray, index: 0, position: {x: 5, y: -130}, exp: 0/400/1000}
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -130}}
 red:
-  core_damage: 201
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 201
+ticks: 152
+hash: 23:27313a0f5d204c7382d8cb8a553019107a223abefffc27327f63411e82c0a32a

@@ -7,14 +7,11 @@
 # `effectName` is only the client's effect, and the fight does not read it.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 342
-hash: 23:0adb1ee8f3ee3dfd0e85ad208d5b41340e74b008cb6a594f2a125c57168150e0
 blue:
-  core_damage: 200
   techs:
     vulcan: [ignite]
   units:
@@ -23,4 +20,9 @@ red:
   techs:
     rhino: [photon_coating]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/800/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 800
+ticks: 342
+hash: 23:0adb1ee8f3ee3dfd0e85ad208d5b41340e74b008cb6a594f2a125c57168150e0

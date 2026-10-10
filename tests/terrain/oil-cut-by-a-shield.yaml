@@ -7,21 +7,27 @@
 # cover gone. A cut terrain is recorded with its grid.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 309
-hash: 23:eae251d802ae36d0c884069853fd2c1b01a9df605a9da08124a791e7675ab022
 blue:
-  core_damage: 200
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/94/650}
-  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/98/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -150}}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}}
   battle_skills:
   - {name: shield_airdrop, standing: {position: {x: 0, y: 0}}}
-  - {name: sticky_oil_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}], grid_rows: {0: [240, 1020, 2046, 2046, 1023, 255, 63, 31, 14, 6, 0, 0], 6: [0, 0, 6, 14, 31, 63, 255, 1023, 2046, 2046, 1020, 240]}}
+  - {name: sticky_oil_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
 red:
   units:
-  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/100/1300}
-  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/300/450}
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}}
+outcome:
+  blue.core_damage: 200
+  blue.units[0].exp: 94
+  blue.units[1].exp: 98
+  blue.battle_skills[1].grid_rows: {0: [240, 1020, 2046, 2046, 1023, 255, 63, 31, 14, 6, 0, 0], 6: [0, 0, 6, 14, 31, 63, 255, 1023, 2046, 2046, 1020, 240]}
+  red.units[0].exp: 100
+  red.units[1].exp: 300
+ticks: 309
+hash: 23:eae251d802ae36d0c884069853fd2c1b01a9df605a9da08124a791e7675ab022

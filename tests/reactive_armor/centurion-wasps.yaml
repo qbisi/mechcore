@@ -4,20 +4,25 @@
 # lands, not at the tick's end.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 262
-hash: 23:384de3f38029bed160d561f3e2be3f2a67c2fc1344b8b166171cd3b74c73a88c
 blue:
-  core_damage: 408
   techs:
     centurion: [reactive_armor]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -95}, exp: 0/408/2250}
+  - {name: centurion, index: 0, position: {x: 5, y: -95}}
 red:
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/100/900}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/400/900}
-  - {name: wasp, index: 2, position: {x: -55, y: -100}, exp: 0/100/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}}
+  - {name: wasp, index: 2, position: {x: -55, y: -100}}
+outcome:
+  blue.core_damage: 408
+  blue.units[0].exp: 408
+  red.units[0].exp: 100
+  red.units[1].exp: 400
+  red.units[2].exp: 100
+ticks: 262
+hash: 23:384de3f38029bed160d561f3e2be3f2a67c2fc1344b8b166171cd3b74c73a88c

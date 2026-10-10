@@ -2,17 +2,20 @@
 # loss writes buff 4 for 60 ticks.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 964
-hash: 23:cde63ec346c7f3cda44f520672c25bc92f43e601bf2941d0314ca45cc5e96ffc
 blue:
-  core_damage: 150
   tower_strengthen_levels: [3, 3]
   units:
-  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/100/600}
+  - {name: fang, index: 0, position: {x: 145, y: -300}}
 red:
   units:
-  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/416/1000}
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}}
+outcome:
+  blue.core_damage: 150
+  blue.units[0].exp: 100
+  red.units[0].exp: 416
+ticks: 964
+hash: 23:cde63ec346c7f3cda44f520672c25bc92f43e601bf2941d0314ca45cc5e96ffc

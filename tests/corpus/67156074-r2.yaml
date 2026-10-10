@@ -4,44 +4,67 @@
 # 52, takes unit 116, whose score is lower.
 
 kind: fight
+source: game
 map_id: 1011
 seed: 718623077
 round: 2
-source: game
-ticks: 1108
-hash: 23:ab39b4685348325d71c5c807b24c46d43af33881cfb6aa2b544270faee87f847
 blue:
-  core_damage: 214
   officers: [training_specialist]
   legacy_index: 7
   units:
-  - {name: void_eye, index: 0, position: {x: 50, y: -140}, exp: 154/281/650}
-  - {name: void_eye, index: 1, position: {x: -10, y: -140}, exp: 103/415/650}
-  - {name: void_eye, index: 2, position: {x: 110, y: -140}, level: 2, exp: 332/826/1465}
-  - {name: mustang, index: 3, position: {x: 225, y: -240}, exp: 394/854/1200}
-  - {name: mustang, index: 4, position: {x: 105, y: -240}, exp: 615/1066/1200}
-  - {name: crawler, index: 5, position: {x: 140, y: -285}, exp: 291/324/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 140, y: -205}, exp: 139/164/450, rotated: true}
-  - {name: marksman, index: 7, position: {x: -120, y: -170}, exp: 0/130/650}
-  - {name: marksman, index: 8, position: {x: -60, y: -170}, exp: 0/41/650}
-  - {name: mustang, index: 9, position: {x: -105, y: -240}, exp: 0/327/1200}
-  - {name: crawler, index: 10, position: {x: -140, y: -205}, exp: 0/25/450, rotated: true}
+  - {name: void_eye, index: 0, position: {x: 50, y: -140}, exp: 154/650}
+  - {name: void_eye, index: 1, position: {x: -10, y: -140}, exp: 103/650}
+  - {name: void_eye, index: 2, position: {x: 110, y: -140}, level: 2, exp: 332/1465}
+  - {name: mustang, index: 3, position: {x: 225, y: -240}, exp: 394/1200}
+  - {name: mustang, index: 4, position: {x: 105, y: -240}, exp: 615/1200}
+  - {name: crawler, index: 5, position: {x: 140, y: -285}, exp: 291/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 140, y: -205}, exp: 139/450, rotated: true}
+  - {name: marksman, index: 7, position: {x: -120, y: -170}}
+  - {name: marksman, index: 8, position: {x: -60, y: -170}}
+  - {name: mustang, index: 9, position: {x: -105, y: -240}}
+  - {name: crawler, index: 10, position: {x: -140, y: -205}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   officers: [sabertooth_specialist]
   legacy_index: 7
   units:
-  - {name: fang, index: 0, position: {x: -155, y: -120}, exp: 53/240/600}
-  - {name: fang, index: 1, position: {x: 155, y: -120}, exp: 161/275/600}
-  - {name: fang, index: 2, position: {x: 0, y: -105}, exp: 86/133/600, rotated: true}
-  - {name: steel_ball, index: 3, position: {x: -185, y: -280}, exp: 69/193/1000}
-  - {name: steel_ball, index: 4, position: {x: 185, y: -280}, exp: 572/1000/1000}
-  - {name: crawler, index: 5, position: {x: 140, y: -285}, exp: 41/369/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -140, y: -285}, exp: 20/66/450, rotated: true}
-  - {name: phantom_ray, index: 7, position: {x: -185, y: -250}, exp: 0/99/1000}
-  - {name: arclight, index: 8, position: {x: -140, y: -150}, exp: 0/750/750}
-  - {name: arclight, index: 9, position: {x: 0, y: -150}, exp: 0/341/750}
-  - {name: arclight, index: 10, position: {x: 140, y: -150}, exp: 0/630/750}
+  - {name: fang, index: 0, position: {x: -155, y: -120}, exp: 53/600}
+  - {name: fang, index: 1, position: {x: 155, y: -120}, exp: 161/600}
+  - {name: fang, index: 2, position: {x: 0, y: -105}, exp: 86/600, rotated: true}
+  - {name: steel_ball, index: 3, position: {x: -185, y: -280}, exp: 69/1000}
+  - {name: steel_ball, index: 4, position: {x: 185, y: -280}, exp: 572/1000}
+  - {name: crawler, index: 5, position: {x: 140, y: -285}, exp: 41/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -140, y: -285}, exp: 20/450, rotated: true}
+  - {name: phantom_ray, index: 7, position: {x: -185, y: -250}}
+  - {name: arclight, index: 8, position: {x: -140, y: -150}}
+  - {name: arclight, index: 9, position: {x: 0, y: -150}}
+  - {name: arclight, index: 10, position: {x: 140, y: -150}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+outcome:
+  blue.core_damage: 214
+  blue.units[0].exp: 281
+  blue.units[1].exp: 415
+  blue.units[2].exp: 826
+  blue.units[3].exp: 854
+  blue.units[4].exp: 1066
+  blue.units[5].exp: 324
+  blue.units[6].exp: 164
+  blue.units[7].exp: 130
+  blue.units[8].exp: 41
+  blue.units[9].exp: 327
+  blue.units[10].exp: 25
+  red.units[0].exp: 240
+  red.units[1].exp: 275
+  red.units[2].exp: 133
+  red.units[3].exp: 193
+  red.units[4].exp: 1000
+  red.units[5].exp: 369
+  red.units[6].exp: 66
+  red.units[7].exp: 99
+  red.units[8].exp: 750
+  red.units[9].exp: 341
+  red.units[10].exp: 630
+ticks: 1108
+hash: 23:ab39b4685348325d71c5c807b24c46d43af33881cfb6aa2b544270faee87f847

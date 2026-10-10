@@ -6,20 +6,23 @@
 # each blow takes what is left of its target's life.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 210
-hash: 23:4af2d3bdab2c8be7d121381c98ea6cac09b0dc5ac20db0ff70fda7441b2b57aa
 blue:
-  core_damage: 153
   techs:
     sabertooth: [secondary_armament, anti_air_missile]
   units:
-  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/502/1300, equipment: [amplifying_core]}
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, equipment: [amplifying_core]}
 red:
   units:
   - {name: marksman, index: 0, position: {x: -40, y: -100}}
   - {name: marksman, index: 1, position: {x: 40, y: -100}}
-  - {name: wasp, index: 2, position: {x: 5, y: -100}, exp: 0/400/900}
+  - {name: wasp, index: 2, position: {x: 5, y: -100}}
+outcome:
+  blue.core_damage: 153
+  blue.units[0].exp: 502
+  red.units[2].exp: 400
+ticks: 210
+hash: 23:4af2d3bdab2c8be7d121381c98ea6cac09b0dc5ac20db0ff70fda7441b2b57aa

@@ -8,20 +8,24 @@
 # not the Raiden's 60 degrees: with 60 the Raidens' locks part from t186.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 262
-hash: 23:fcfae6cdf2ed50aee3bd70f7866d64e6691c08d0e075c6836b37e67da28a2c45
 blue:
   techs:
     raiden: [fork]
   units:
-  - {name: raiden, index: 0, position: {x: 0, y: -200}, exp: 0/24/2400}
-  - {name: raiden, index: 1, position: {x: 0, y: -150}, exp: 0/80/2400}
-  - {name: raiden, index: 2, position: {x: 0, y: -100}, exp: 0/88/2400}
+  - {name: raiden, index: 0, position: {x: 0, y: -200}}
+  - {name: raiden, index: 1, position: {x: 0, y: -150}}
+  - {name: raiden, index: 2, position: {x: 0, y: -100}}
 red:
-  core_damage: 1050
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 24
+  blue.units[1].exp: 80
+  blue.units[2].exp: 88
+  red.core_damage: 1050
+ticks: 262
+hash: 23:fcfae6cdf2ed50aee3bd70f7866d64e6691c08d0e075c6836b37e67da28a2c45

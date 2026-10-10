@@ -7,22 +7,26 @@
 # bolts, and the Marksman is struck only once they fall (t304).
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 305
-hash: 23:9a8329a6038908b0d1076708ed8483fea12ab24363392fbcbe4fcfc54609a8c9
 blue:
   techs:
     raiden: [fork]
   units:
-  - {name: raiden, index: 0, position: {x: 0, y: -200}, exp: 0/133/2400}
-  - {name: raiden, index: 1, position: {x: 0, y: -150}, exp: 0/133/2400}
-  - {name: raiden, index: 2, position: {x: 0, y: -100}, exp: 0/733/2400}
+  - {name: raiden, index: 0, position: {x: 0, y: -200}}
+  - {name: raiden, index: 1, position: {x: 0, y: -150}}
+  - {name: raiden, index: 2, position: {x: 0, y: -100}}
 red:
-  core_damage: 1050
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -155}}
   - {name: rhino, index: 1, position: {x: 45, y: -155}}
   - {name: marksman, index: 2, position: {x: -40, y: -150}}
+outcome:
+  blue.units[0].exp: 133
+  blue.units[1].exp: 133
+  blue.units[2].exp: 733
+  red.core_damage: 1050
+ticks: 305
+hash: 23:9a8329a6038908b0d1076708ed8483fea12ab24363392fbcbe4fcfc54609a8c9

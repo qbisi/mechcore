@@ -7,18 +7,20 @@
 # lasts 174 ticks.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 127
-hash: 23:d0a3b4bddee2736807b8244fe571ac71e95e3f6f0b7ea587dfe9593886ae5757
 blue:
   techs:
     fire_badger: [counter_fire]
   units:
-  - {name: fire_badger, index: 0, position: {x: 5, y: -100}, exp: 0/200/1400}
+  - {name: fire_badger, index: 0, position: {x: 5, y: -100}}
 red:
-  core_damage: 201
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -30}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 201
+ticks: 127
+hash: 23:d0a3b4bddee2736807b8244fe571ac71e95e3f6f0b7ea587dfe9593886ae5757

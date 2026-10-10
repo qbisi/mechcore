@@ -4,16 +4,18 @@
 # and motion state from it, and mechcore's play and recording tests take it as
 # their input. Map 1021, seed 1787720817.
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 91
-hash: 23:9519331bf708332a5f8ab12ceb3554898b8dcaf78ea052795a55681ec7387bbe
 blue:
-  core_damage: 100
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}}
 red:
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/200/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -50}}
+outcome:
+  blue.core_damage: 100
+  red.units[0].exp: 200
+ticks: 91
+hash: 23:9519331bf708332a5f8ab12ceb3554898b8dcaf78ea052795a55681ec7387bbe

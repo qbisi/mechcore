@@ -9,24 +9,29 @@
 # fight is left.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 437
-hash: 23:3662db5a9125cff3077245f262a1a9dc3efb46878566d733fb6487d79b85ba81
 blue:
   techs:
     farseer: [photon_emission]
   units:
-  - {name: farseer, index: 0, position: {x: 5, y: -145}, exp: 0/633/1800}
-  - {name: rhino, index: 1, position: {x: 55, y: -145}, exp: 0/633/1150}
-  - {name: wasp, index: 2, position: {x: -45, y: -150}, exp: 0/233/900}
-  - {name: marksman, index: 3, position: {x: 160, y: -150}, exp: 0/100/650}
+  - {name: farseer, index: 0, position: {x: 5, y: -145}}
+  - {name: rhino, index: 1, position: {x: 55, y: -145}}
+  - {name: wasp, index: 2, position: {x: -45, y: -150}}
+  - {name: marksman, index: 3, position: {x: 160, y: -150}}
 red:
-  core_damage: 754
   techs:
     vulcan: [ignite]
   units:
   - {name: vulcan, index: 0, position: {x: 0, y: -80}}
   - {name: vulcan, index: 1, position: {x: 100, y: -80}}
+outcome:
+  blue.units[0].exp: 633
+  blue.units[1].exp: 633
+  blue.units[2].exp: 233
+  blue.units[3].exp: 100
+  red.core_damage: 754
+ticks: 437
+hash: 23:3662db5a9125cff3077245f262a1a9dc3efb46878566d733fb6487d79b85ba81

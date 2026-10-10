@@ -4,20 +4,22 @@
 # The fifth takes the rate away, and every later hit takes 202.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 340
-hash: 23:227faa70be2cb369648bb80b4df3f2d778618095b9f13624185c40128f81a664
 blue:
   techs:
     typhoon: [reactive_armor]
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/1224/1950}
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}}
 red:
-  core_damage: 250
   units:
   - {name: wasp, index: 0, position: {x: 5, y: -100}}
   - {name: wasp, index: 1, position: {x: 5, y: -140}}
   - {name: wasp, index: 2, position: {x: -55, y: -100}}
+outcome:
+  blue.units[0].exp: 1224
+  red.core_damage: 250
+ticks: 340
+hash: 23:227faa70be2cb369648bb80b4df3f2d778618095b9f13624185c40128f81a664

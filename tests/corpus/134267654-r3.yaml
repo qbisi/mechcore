@@ -3,12 +3,10 @@
 # turn on that tick: the motion changes to moving and nothing turns.
 
 kind: fight
+source: game
 map_id: 1011
 seed: 1804683452
 round: 3
-source: game
-ticks: 1816
-hash: 23:10ef073f3c1f56e208d65f2f4df2ca649d4978fe1606d0ea720eb5aa7b8f3e2e
 blue:
   officers: [speed_specialist]
   techs:
@@ -16,37 +14,61 @@ blue:
   tower_strengthen_levels: [1, 0]
   legacy_index: 10
   units:
-  - {name: crawler, index: 0, position: {x: 290, y: -265}, exp: 129/154/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: 90, y: -55}, exp: 59/80/450, rotated: true}
-  - {name: crawler, index: 2, position: {x: 140, y: -135}, exp: 86/134/450, rotated: true}
-  - {name: fang, index: 5, position: {x: 185, y: -20}, exp: 439/598/600}
-  - {name: fang, index: 6, position: {x: 275, y: -20}, exp: 418/600/600}
-  - {name: fang, index: 7, position: {x: 330, y: 215}, exp: 600/600/600}
-  - {name: fang, index: 8, position: {x: 330, y: 125}, exp: 433/600/600}
-  - {name: fang, index: 9, position: {x: 185, y: -60}, exp: 380/564/600}
-  - {name: farseer, index: 10, position: {x: 235, y: -95}, exp: 0/1800/1800}
-  - {name: fortress, index: 11, position: {x: 340, y: 170}, exp: 0/725/1600, travelling: true}
-  - {name: fang, index: 12, position: {x: 275, y: -60}, exp: 0/480/600}
+  - {name: crawler, index: 0, position: {x: 290, y: -265}, exp: 129/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: 90, y: -55}, exp: 59/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: 140, y: -135}, exp: 86/450, rotated: true}
+  - {name: fang, index: 5, position: {x: 185, y: -20}, exp: 439/600}
+  - {name: fang, index: 6, position: {x: 275, y: -20}, exp: 418/600}
+  - {name: fang, index: 7, position: {x: 330, y: 215}, exp: 600/600}
+  - {name: fang, index: 8, position: {x: 330, y: 125}, exp: 433/600}
+  - {name: fang, index: 9, position: {x: 185, y: -60}, exp: 380/600}
+  - {name: farseer, index: 10, position: {x: 235, y: -95}}
+  - {name: fortress, index: 11, position: {x: 340, y: 170}, travelling: true}
+  - {name: fang, index: 12, position: {x: 275, y: -60}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
-  core_damage: 280
   officers: [cost_control_specialist]
   techs:
     wraith: [degeneration_beam]
   blueprints: [attack_enhancement]
   legacy_index: 9
   units:
-  - {name: vortex, index: 0, position: {x: -250, y: -80}, exp: 274/339/750}
-  - {name: vortex, index: 1, position: {x: -30, y: -80}, exp: 257/366/750}
-  - {name: vortex, index: 2, position: {x: -140, y: -80}, exp: 371/470/750}
-  - {name: fire_badger, index: 3, position: {x: -85, y: -80}, exp: 1393/1400/1400}
-  - {name: fire_badger, index: 4, position: {x: -195, y: -80}, exp: 489/681/1400}
-  - {name: fang, index: 5, position: {x: -200, y: -35}, exp: 175/275/600, rotated: true}
-  - {name: fang, index: 6, position: {x: -80, y: -35}, exp: 393/572/600, rotated: true}
-  - {name: centurion, index: 7, position: {x: -185, y: -105}, exp: 390/580/2250}
-  - {name: fang, index: 8, position: {x: -290, y: -35}, exp: 65/106/600, rotated: true}
-  - {name: wraith, index: 10, position: {x: -245, y: -205}, exp: 0/384/2250}
-  - {name: wraith, index: 11, position: {x: 255, y: -145}, exp: 0/200/2250}
+  - {name: vortex, index: 0, position: {x: -250, y: -80}, exp: 274/750}
+  - {name: vortex, index: 1, position: {x: -30, y: -80}, exp: 257/750}
+  - {name: vortex, index: 2, position: {x: -140, y: -80}, exp: 371/750}
+  - {name: fire_badger, index: 3, position: {x: -85, y: -80}, exp: 1393/1400}
+  - {name: fire_badger, index: 4, position: {x: -195, y: -80}, exp: 489/1400}
+  - {name: fang, index: 5, position: {x: -200, y: -35}, exp: 175/600, rotated: true}
+  - {name: fang, index: 6, position: {x: -80, y: -35}, exp: 393/600, rotated: true}
+  - {name: centurion, index: 7, position: {x: -185, y: -105}, exp: 390/2250}
+  - {name: fang, index: 8, position: {x: -290, y: -35}, exp: 65/600, rotated: true}
+  - {name: wraith, index: 10, position: {x: -245, y: -205}}
+  - {name: wraith, index: 11, position: {x: 255, y: -145}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+outcome:
+  blue.units[0].exp: 154
+  blue.units[1].exp: 80
+  blue.units[2].exp: 134
+  blue.units[3].exp: 598
+  blue.units[4].exp: 600
+  blue.units[6].exp: 600
+  blue.units[7].exp: 564
+  blue.units[8].exp: 1800
+  blue.units[9].exp: 725
+  blue.units[10].exp: 480
+  red.core_damage: 280
+  red.units[0].exp: 339
+  red.units[1].exp: 366
+  red.units[2].exp: 470
+  red.units[3].exp: 1400
+  red.units[4].exp: 681
+  red.units[5].exp: 275
+  red.units[6].exp: 572
+  red.units[7].exp: 580
+  red.units[8].exp: 106
+  red.units[9].exp: 384
+  red.units[10].exp: 200
+ticks: 1816
+hash: 23:10ef073f3c1f56e208d65f2f4df2ca649d4978fe1606d0ea720eb5aa7b8f3e2e

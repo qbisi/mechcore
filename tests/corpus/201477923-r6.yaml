@@ -8,12 +8,10 @@
 # take a Crawler within 130 metres over the one they held beyond it.
 
 kind: fight
+source: game
 map_id: 1001
 seed: 1650117557
 round: 6
-source: game
-ticks: 1129
-hash: 23:7d7adfdf56f330fe49428f60dd3bc41bfe55591b0c25fa11d96feee7a17bdb34
 blue:
   officers: [typhoon_specialist]
   techs:
@@ -23,29 +21,28 @@ blue:
   tower_strengthen_levels: [1, 0]
   legacy_index: 18
   units:
-  - {name: fang, index: 0, position: {x: 245, y: -80}, level: 2, exp: 926/1352/1352}
-  - {name: fang, index: 1, position: {x: 65, y: -80}, level: 2, exp: 612/1352/1352}
-  - {name: fang, index: 2, position: {x: 155, y: -80}, level: 3, exp: 0/1587/2137}
-  - {name: sabertooth, index: 3, position: {x: 115, y: -85}, level: 2, exp: 0/1589/2929}
-  - {name: sabertooth, index: 4, position: {x: 285, y: -25}, level: 3, exp: 2119/2686/4630, equipment: [haste_module]}
-  - {name: fang, index: 5, position: {x: -140, y: -205}, exp: 343/600/600, rotated: true}
-  - {name: fang, index: 6, position: {x: 140, y: -205}, level: 2, exp: 777/1352/1352, rotated: true}
-  - {name: phantom_ray, index: 8, position: {x: 215, y: -170}, level: 2, exp: 1092/2253/2253}
-  - {name: fang, index: 9, position: {x: -350, y: 285}, level: 2, exp: 0/192/1352}
-  - {name: fang, index: 10, position: {x: 350, y: 285}, level: 2, exp: 217/337/1352}
-  - {name: fang, index: 11, position: {x: -140, y: -135}, exp: 18/54/600, rotated: true}
-  - {name: fang, index: 13, position: {x: -25, y: -80}, exp: 309/600/600}
+  - {name: fang, index: 0, position: {x: 245, y: -80}, level: 2, exp: 926/1352}
+  - {name: fang, index: 1, position: {x: 65, y: -80}, level: 2, exp: 612/1352}
+  - {name: fang, index: 2, position: {x: 155, y: -80}, level: 3}
+  - {name: sabertooth, index: 3, position: {x: 115, y: -85}, level: 2}
+  - {name: sabertooth, index: 4, position: {x: 285, y: -25}, level: 3, exp: 2119/4630, equipment: [haste_module]}
+  - {name: fang, index: 5, position: {x: -140, y: -205}, exp: 343/600, rotated: true}
+  - {name: fang, index: 6, position: {x: 140, y: -205}, level: 2, exp: 777/1352, rotated: true}
+  - {name: phantom_ray, index: 8, position: {x: 215, y: -170}, level: 2, exp: 1092/2253}
+  - {name: fang, index: 9, position: {x: -350, y: 285}, level: 2}
+  - {name: fang, index: 10, position: {x: 350, y: 285}, level: 2, exp: 217/1352}
+  - {name: fang, index: 11, position: {x: -140, y: -135}, exp: 18/600, rotated: true}
+  - {name: fang, index: 13, position: {x: -25, y: -80}, exp: 309/600}
   - {name: fang, index: 14, position: {x: -350, y: 35}}
-  - {name: raiden, index: 15, position: {x: -170, y: -240}, exp: 333/1168/2400}
-  - {name: fang, index: 16, position: {x: -180, y: -285}, exp: 50/521/600, rotated: true}
-  - {name: fang, index: 17, position: {x: 350, y: 35}, exp: 589/600/600}
-  - {name: fang, index: 18, position: {x: 140, y: -135}, exp: 0/600/600, rotated: true}
-  - {name: fang, index: 19, position: {x: -105, y: -170}, exp: 0/199/600}
+  - {name: raiden, index: 15, position: {x: -170, y: -240}, exp: 333/2400}
+  - {name: fang, index: 16, position: {x: -180, y: -285}, exp: 50/600, rotated: true}
+  - {name: fang, index: 17, position: {x: 350, y: 35}, exp: 589/600}
+  - {name: fang, index: 18, position: {x: 140, y: -135}, rotated: true}
+  - {name: fang, index: 19, position: {x: -105, y: -170}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -89, y: 72}]}
   - {name: mobile_beacon, positions: [{x: 215, y: -192}, {x: 60, y: -236}, {x: 29, y: -232}]}
 red:
-  core_damage: 1411
   officers: [missile_specialist]
   techs:
     wraith: [field_maintenance]
@@ -54,32 +51,74 @@ red:
   tower_strengthen_levels: [0, 2]
   legacy_index: 21
   units:
-  - {name: vortex, index: 0, position: {x: 140, y: -70}, level: 2, exp: 789/819/1690}
-  - {name: vortex, index: 1, position: {x: 230, y: -70}, level: 2, exp: 346/519/1690}
-  - {name: vortex, index: 2, position: {x: 50, y: -70}, level: 2, exp: 0/108/1690}
-  - {name: tarantula, index: 3, position: {x: 185, y: -65}, level: 2, exp: 616/900/3380, equipment: [haste_module]}
-  - {name: crawler, index: 5, position: {x: 230, y: -105}, level: 2, exp: 0/103/1014, rotated: true}
-  - {name: crawler, index: 6, position: {x: 50, y: -105}, exp: 253/274/450, rotated: true}
-  - {name: vortex, index: 8, position: {x: 310, y: 20}, level: 2, exp: 267/597/1690}
-  - {name: vortex, index: 9, position: {x: 290, y: -20}, level: 2, exp: 477/638/1690}
-  - {name: crawler, index: 10, position: {x: 145, y: -190}, level: 2, exp: 0/114/1014}
-  - {name: crawler, index: 11, position: {x: 290, y: -285}, exp: 277/349/450, rotated: true}
-  - {name: vortex, index: 12, position: {x: 330, y: 300}, exp: 541/655/750}
-  - {name: fang, index: 13, position: {x: -160, y: -175}, exp: 124/124/600, rotated: true}
-  - {name: sledgehammer, index: 14, position: {x: -140, y: -125}, exp: 216/216/1300, rotated: true}
-  - {name: crawler, index: 15, position: {x: 310, y: 75}, exp: 183/254/450}
-  - {name: vortex, index: 16, position: {x: -210, y: -230}, exp: 504/558/750}
-  - {name: wraith, index: 17, position: {x: 265, y: -225}, level: 2, exp: 630/1197/5070}
-  - {name: crawler, index: 18, position: {x: -290, y: -285}, exp: 63/261/450, rotated: true}
-  - {name: vortex, index: 19, position: {x: 100, y: -70}, exp: 432/504/750}
-  - {name: vortex, index: 20, position: {x: 10, y: -100}, exp: 297/423/750}
-  - {name: crawler, index: 21, position: {x: 310, y: 255}, exp: 0/6/450, travelling: true}
-  - {name: wraith, index: 22, position: {x: -275, y: -245}, exp: 0/564/2250}
-  - {name: marksman, index: 23, position: {x: 190, y: -90}, exp: 0/650/650}
+  - {name: vortex, index: 0, position: {x: 140, y: -70}, level: 2, exp: 789/1690}
+  - {name: vortex, index: 1, position: {x: 230, y: -70}, level: 2, exp: 346/1690}
+  - {name: vortex, index: 2, position: {x: 50, y: -70}, level: 2}
+  - {name: tarantula, index: 3, position: {x: 185, y: -65}, level: 2, exp: 616/3380, equipment: [haste_module]}
+  - {name: crawler, index: 5, position: {x: 230, y: -105}, level: 2, rotated: true}
+  - {name: crawler, index: 6, position: {x: 50, y: -105}, exp: 253/450, rotated: true}
+  - {name: vortex, index: 8, position: {x: 310, y: 20}, level: 2, exp: 267/1690}
+  - {name: vortex, index: 9, position: {x: 290, y: -20}, level: 2, exp: 477/1690}
+  - {name: crawler, index: 10, position: {x: 145, y: -190}, level: 2}
+  - {name: crawler, index: 11, position: {x: 290, y: -285}, exp: 277/450, rotated: true}
+  - {name: vortex, index: 12, position: {x: 330, y: 300}, exp: 541/750}
+  - {name: fang, index: 13, position: {x: -160, y: -175}, exp: 124/600, rotated: true}
+  - {name: sledgehammer, index: 14, position: {x: -140, y: -125}, exp: 216/1300, rotated: true}
+  - {name: crawler, index: 15, position: {x: 310, y: 75}, exp: 183/450}
+  - {name: vortex, index: 16, position: {x: -210, y: -230}, exp: 504/750}
+  - {name: wraith, index: 17, position: {x: 265, y: -225}, level: 2, exp: 630/5070}
+  - {name: crawler, index: 18, position: {x: -290, y: -285}, exp: 63/450, rotated: true}
+  - {name: vortex, index: 19, position: {x: 100, y: -70}, exp: 432/750}
+  - {name: vortex, index: 20, position: {x: 10, y: -100}, exp: 297/750}
+  - {name: crawler, index: 21, position: {x: 310, y: 255}, travelling: true}
+  - {name: wraith, index: 22, position: {x: -275, y: -245}}
+  - {name: marksman, index: 23, position: {x: 190, y: -90}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   contraptions:
-  - {name: shield, index: 0, position: {x: 79, y: -91}, retained: false}
+  - {name: shield, index: 0, position: {x: 79, y: -91}}
   battle_skills:
   - {name: heavy_missile_strike, positions: [{x: -210, y: 134}]}
   - {name: electromagnetic_impact, positions: [{x: 179, y: 240}]}
+outcome:
+  blue.units[0].exp: 1352
+  blue.units[1].exp: 1352
+  blue.units[2].exp: 1587
+  blue.units[3].exp: 1589
+  blue.units[4].exp: 2686
+  blue.units[5].exp: 600
+  blue.units[6].exp: 1352
+  blue.units[7].exp: 2253
+  blue.units[8].exp: 192
+  blue.units[9].exp: 337
+  blue.units[10].exp: 54
+  blue.units[11].exp: 600
+  blue.units[13].exp: 1168
+  blue.units[14].exp: 521
+  blue.units[15].exp: 600
+  blue.units[16].exp: 600
+  blue.units[17].exp: 199
+  red.core_damage: 1411
+  red.units[0].exp: 819
+  red.units[1].exp: 519
+  red.units[2].exp: 108
+  red.units[3].exp: 900
+  red.units[4].exp: 103
+  red.units[5].exp: 274
+  red.units[6].exp: 597
+  red.units[7].exp: 638
+  red.units[8].exp: 114
+  red.units[9].exp: 349
+  red.units[10].exp: 655
+  red.units[13].exp: 254
+  red.units[14].exp: 558
+  red.units[15].exp: 1197
+  red.units[16].exp: 261
+  red.units[17].exp: 504
+  red.units[18].exp: 423
+  red.units[19].exp: 6
+  red.units[20].exp: 564
+  red.units[21].exp: 650
+  red.contraptions[0].retained: false
+ticks: 1129
+hash: 23:7d7adfdf56f330fe49428f60dd3bc41bfe55591b0c25fa11d96feee7a17bdb34

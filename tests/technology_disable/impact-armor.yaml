@@ -6,21 +6,24 @@
 # technology, and every Wasp's hit lands whole, 202.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 207
-hash: 23:82f73db59cb4eb0c1d7b1a784948077ea9f29e06492c5fd26b301401f94b9994
 blue:
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/100/650}
-  - {name: wasp, index: 1, position: {x: 65, y: -60}, exp: 0/300/900}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: wasp, index: 1, position: {x: 65, y: -60}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 55}]}
 red:
-  core_damage: 304
   techs:
     rhino: [armor_enhancement]
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
+outcome:
+  blue.units[0].exp: 100
+  blue.units[1].exp: 300
+  red.core_damage: 304
+ticks: 207
+hash: 23:82f73db59cb4eb0c1d7b1a784948077ea9f29e06492c5fd26b301401f94b9994

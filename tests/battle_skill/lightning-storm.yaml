@@ -7,20 +7,17 @@
 # on 16 ticks kill 64 units and slow 16.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 440
-hash: 23:de07488da72ebf852f92b539ef396a8e970c34cfdab46ed213cac6f64adf4aab
 blue:
   units:
-  - {name: fortress, index: 0, position: {x: -60, y: -160}, exp: 0/940/1600}
-  - {name: fortress, index: 1, position: {x: 60, y: -160}, exp: 0/836/1600}
+  - {name: fortress, index: 0, position: {x: -60, y: -160}}
+  - {name: fortress, index: 1, position: {x: 60, y: -160}}
   battle_skills:
   - {name: lightning_storm, positions: [{x: 0, y: -20}]}
 red:
-  core_damage: 700
   units:
   - {name: sledgehammer, index: 0, position: {x: -45, y: -60}}
   - {name: sledgehammer, index: 1, position: {x: 5, y: -60}}
@@ -28,3 +25,9 @@ red:
   - {name: crawler, index: 3, position: {x: 5, y: -110}}
   - {name: crawler, index: 4, position: {x: -55, y: -110}}
   - {name: crawler, index: 5, position: {x: 65, y: -110}}
+outcome:
+  blue.units[0].exp: 940
+  blue.units[1].exp: 836
+  red.core_damage: 700
+ticks: 440
+hash: 23:de07488da72ebf852f92b539ef396a8e970c34cfdab46ed213cac6f64adf4aab

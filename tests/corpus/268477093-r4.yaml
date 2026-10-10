@@ -3,34 +3,31 @@
 # every 7 they have rolled, 80 more for the one that rolled farthest.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 2020722719
 round: 4
-source: game
-ticks: 977
-hash: 23:4b038914bb6a463ce40c8c6761dae9b4ced5ecee1f959a2f59e6227c875dbf0b
 blue:
-  core_damage: 901
   officers: [fortified_specialist]
   techs:
     centurion: [range_enhancement]
   legacy_index: 14
   units:
-  - {name: hound, index: 0, position: {x: 160, y: -110}, exp: 317/390/750, rotated: true}
-  - {name: hound, index: 1, position: {x: 250, y: -100}, exp: 273/304/750, rotated: true}
-  - {name: hound, index: 2, position: {x: 60, y: -120}, exp: 234/234/750, rotated: true}
-  - {name: crawler, index: 5, position: {x: 60, y: -165}, exp: 53/58/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 160, y: -155}, exp: 95/137/450, rotated: true}
-  - {name: fang, index: 7, position: {x: -140, y: -205}, exp: 127/127/600, rotated: true}
-  - {name: fang, index: 8, position: {x: 140, y: -205}, exp: 331/331/600, rotated: true}
-  - {name: crawler, index: 9, position: {x: 270, y: -285}, exp: 21/61/450, rotated: true}
-  - {name: arclight, index: 10, position: {x: -100, y: -160}, level: 2, exp: 400/490/1690}
-  - {name: arclight, index: 11, position: {x: -200, y: -160}, level: 2, exp: 516/582/1690}
-  - {name: centurion, index: 12, position: {x: 105, y: -165}, exp: 209/1363/2250, equipment: [haste_module]}
-  - {name: centurion, index: 13, position: {x: 215, y: -165}, exp: 330/1310/2250, equipment: [explosive_ammo]}
-  - {name: stormcaller, index: 14, position: {x: 80, y: -105}, exp: 0/1032/1100, rotated: true}
-  - {name: stormcaller, index: 15, position: {x: 190, y: -105}, exp: 0/981/1100, rotated: true}
-  - {name: crawler, index: 16, position: {x: 135, y: -300}, exp: 0/37/450}
+  - {name: hound, index: 0, position: {x: 160, y: -110}, exp: 317/750, rotated: true}
+  - {name: hound, index: 1, position: {x: 250, y: -100}, exp: 273/750, rotated: true}
+  - {name: hound, index: 2, position: {x: 60, y: -120}, exp: 234/750, rotated: true}
+  - {name: crawler, index: 5, position: {x: 60, y: -165}, exp: 53/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 160, y: -155}, exp: 95/450, rotated: true}
+  - {name: fang, index: 7, position: {x: -140, y: -205}, exp: 127/600, rotated: true}
+  - {name: fang, index: 8, position: {x: 140, y: -205}, exp: 331/600, rotated: true}
+  - {name: crawler, index: 9, position: {x: 270, y: -285}, exp: 21/450, rotated: true}
+  - {name: arclight, index: 10, position: {x: -100, y: -160}, level: 2, exp: 400/1690}
+  - {name: arclight, index: 11, position: {x: -200, y: -160}, level: 2, exp: 516/1690}
+  - {name: centurion, index: 12, position: {x: 105, y: -165}, exp: 209/2250, equipment: [haste_module]}
+  - {name: centurion, index: 13, position: {x: 215, y: -165}, exp: 330/2250, equipment: [explosive_ammo]}
+  - {name: stormcaller, index: 14, position: {x: 80, y: -105}, rotated: true}
+  - {name: stormcaller, index: 15, position: {x: 190, y: -105}, rotated: true}
+  - {name: crawler, index: 16, position: {x: 135, y: -300}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
@@ -40,22 +37,52 @@ red:
     fire_badger: [range_enhancement]
   legacy_index: 12
   units:
-  - {name: void_eye, index: 0, position: {x: 170, y: -170}, exp: 536/650/650}
-  - {name: void_eye, index: 1, position: {x: -170, y: -170}, level: 2, exp: 0/176/1465}
-  - {name: void_eye, index: 2, position: {x: 0, y: -180}, level: 2, exp: 425/506/1465}
-  - {name: fire_badger, index: 3, position: {x: -75, y: -180}, level: 2, exp: 0/503/3154}
-  - {name: fire_badger, index: 4, position: {x: 75, y: -180}, level: 2, exp: 0/1112/3154}
-  - {name: fang, index: 5, position: {x: -140, y: -205}, exp: 399/440/600, rotated: true}
-  - {name: fang, index: 6, position: {x: 140, y: -205}, exp: 159/172/600, rotated: true}
-  - {name: fire_badger, index: 7, position: {x: -225, y: -170}, exp: 1276/1400/1400}
-  - {name: fang, index: 8, position: {x: -140, y: -135}, exp: 397/400/600, rotated: true}
-  - {name: typhoon, index: 9, position: {x: -170, y: -190}, exp: 351/1232/1950}
-  - {name: crawler, index: 10, position: {x: -290, y: -285}, exp: 111/204/450, rotated: true}
-  - {name: marksman, index: 11, position: {x: -80, y: -200}, exp: 572/650/650}
-  - {name: steel_ball, index: 12, position: {x: -195, y: -300}, exp: 0/121/1000}
-  - {name: steel_ball, index: 13, position: {x: 145, y: -300}, exp: 0/1000/1000}
+  - {name: void_eye, index: 0, position: {x: 170, y: -170}, exp: 536/650}
+  - {name: void_eye, index: 1, position: {x: -170, y: -170}, level: 2}
+  - {name: void_eye, index: 2, position: {x: 0, y: -180}, level: 2, exp: 425/1465}
+  - {name: fire_badger, index: 3, position: {x: -75, y: -180}, level: 2}
+  - {name: fire_badger, index: 4, position: {x: 75, y: -180}, level: 2}
+  - {name: fang, index: 5, position: {x: -140, y: -205}, exp: 399/600, rotated: true}
+  - {name: fang, index: 6, position: {x: 140, y: -205}, exp: 159/600, rotated: true}
+  - {name: fire_badger, index: 7, position: {x: -225, y: -170}, exp: 1276/1400}
+  - {name: fang, index: 8, position: {x: -140, y: -135}, exp: 397/600, rotated: true}
+  - {name: typhoon, index: 9, position: {x: -170, y: -190}, exp: 351/1950}
+  - {name: crawler, index: 10, position: {x: -290, y: -285}, exp: 111/450, rotated: true}
+  - {name: marksman, index: 11, position: {x: -80, y: -200}, exp: 572/650}
+  - {name: steel_ball, index: 12, position: {x: -195, y: -300}}
+  - {name: steel_ball, index: 13, position: {x: 145, y: -300}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
   battle_skills:
   - {name: wasp_swarm, positions: [{x: -94, y: -280}]}
+outcome:
+  blue.core_damage: 901
+  blue.units[0].exp: 390
+  blue.units[1].exp: 304
+  blue.units[3].exp: 58
+  blue.units[4].exp: 137
+  blue.units[7].exp: 61
+  blue.units[8].exp: 490
+  blue.units[9].exp: 582
+  blue.units[10].exp: 1363
+  blue.units[11].exp: 1310
+  blue.units[12].exp: 1032
+  blue.units[13].exp: 981
+  blue.units[14].exp: 37
+  red.units[0].exp: 650
+  red.units[1].exp: 176
+  red.units[2].exp: 506
+  red.units[3].exp: 503
+  red.units[4].exp: 1112
+  red.units[5].exp: 440
+  red.units[6].exp: 172
+  red.units[7].exp: 1400
+  red.units[8].exp: 400
+  red.units[9].exp: 1232
+  red.units[10].exp: 204
+  red.units[11].exp: 650
+  red.units[12].exp: 121
+  red.units[13].exp: 1000
+ticks: 977
+hash: 23:4b038914bb6a463ce40c8c6761dae9b4ced5ecee1f959a2f59e6227c875dbf0b

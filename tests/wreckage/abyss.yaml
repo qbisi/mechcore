@@ -7,21 +7,23 @@
 # 1622 (t124, t181), the Arclight by 4813 (t897).
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 897
-hash: 23:03749441d3324584a7d43ada40488608fda1ce44c0c92df2e4e112f9dd8acd20
 blue:
   techs:
     abyss: [wreckage_recycling]
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -55}, exp: 0/1408/4800}
+  - {name: abyss, index: 0, position: {x: 5, y: -55}}
 red:
-  core_damage: 500
   units:
   - {name: mustang, index: 0, position: {x: 5, y: -20}}
   - {name: marksman, index: 1, position: {x: -60, y: -40}}
   - {name: marksman, index: 2, position: {x: 60, y: -40}}
   - {name: arclight, index: 3, position: {x: 280, y: -300}}
+outcome:
+  blue.units[0].exp: 1408
+  red.core_damage: 500
+ticks: 897
+hash: 23:03749441d3324584a7d43ada40488608fda1ce44c0c92df2e4e112f9dd8acd20

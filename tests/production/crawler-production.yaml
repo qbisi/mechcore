@@ -2,19 +2,23 @@
 # eight Crawlers a batch within the Melting Point's radius.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 471
-hash: 23:d171bf224c162eca98e08833dc406ab2ab228827306d8e29f44f3d3eb6a3b061
 blue:
   techs:
     melting_point: [crawler_production]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -150}, exp: 0/600/1400}
+  - {name: melting_point, index: 0, position: {x: 0, y: -150}}
 red:
-  core_damage: 350
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/34/1150}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/30/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}}
+outcome:
+  blue.units[0].exp: 600
+  red.core_damage: 350
+  red.units[0].exp: 34
+  red.units[1].exp: 30
+ticks: 471
+hash: 23:d171bf224c162eca98e08833dc406ab2ab228827306d8e29f44f3d3eb6a3b061

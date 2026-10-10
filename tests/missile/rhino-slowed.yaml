@@ -6,18 +6,21 @@
 # buff channel for 280 ticks, and the buff expires on tick 302.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 391
-hash: 23:b41d82465b86644ea08eea1c938a1b707d7c629fc1897b9a412e95210cc7452f
 blue:
-  core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
   contraptions:
-  - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
+  - {name: missile, index: 0, position: {x: 1, y: -11}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}}
+outcome:
+  blue.core_damage: 200
+  blue.contraptions[0].retained: false
+  red.units[0].exp: 200
+ticks: 391
+hash: 23:b41d82465b86644ea08eea1c938a1b707d7c629fc1897b9a412e95210cc7452f

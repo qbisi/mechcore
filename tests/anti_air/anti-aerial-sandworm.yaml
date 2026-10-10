@@ -5,19 +5,21 @@
 # row's 9726 and the rate, and then for 8696, what is left.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 277
-hash: 23:3352717044d279cde569207d5525ef2aef63bcd3403c78872c0681fe158ec069
 blue:
   techs:
     sandworm: [anti_aerial]
   units:
-  - {name: sandworm, index: 0, position: {x: 0, y: -100}, exp: 0/1200/2000}
+  - {name: sandworm, index: 0, position: {x: 0, y: -100}}
 red:
-  core_damage: 350
   units:
   - {name: overlord, index: 0, position: {x: -35, y: -75}}
   - {name: arclight, index: 1, position: {x: 30, y: -80}}
+outcome:
+  blue.units[0].exp: 1200
+  red.core_damage: 350
+ticks: 277
+hash: 23:3352717044d279cde569207d5525ef2aef63bcd3403c78872c0681fe158ec069

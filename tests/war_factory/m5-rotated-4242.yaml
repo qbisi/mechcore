@@ -1,16 +1,18 @@
 # M5: the formation rotated, its target off to one side.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 95
-hash: 23:f3038a8e85e4515763f8b41eecab1ff69b4cf794bbd8acdf905fb55a5de3c5a8
 blue:
   units:
-  - {name: war_factory, index: 0, position: {x: -65, y: -65}, exp: 0/400/3200, rotated: true}
+  - {name: war_factory, index: 0, position: {x: -65, y: -65}, rotated: true}
 red:
-  core_damage: 500
   units:
   - {name: rhino, index: 0, position: {x: -35, y: -95}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 500
+ticks: 95
+hash: 23:f3038a8e85e4515763f8b41eecab1ff69b4cf794bbd8acdf905fb55a5de3c5a8

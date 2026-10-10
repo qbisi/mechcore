@@ -11,22 +11,26 @@
 # the tick ends.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 339
-hash: 23:512d46a0b293fd52876a87d6a911c1c30c58b2e1fb3271605b711a4591014faf
 blue:
   techs:
     melting_point: [electromagnetic_barrage]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -150}, level: 6, exp: 0/8118/8118}
-  - {name: rhino, index: 1, position: {x: 65, y: -145}, level: 9, exp: 0/5100/7736}
+  - {name: melting_point, index: 0, position: {x: 0, y: -150}, level: 6}
+  - {name: rhino, index: 1, position: {x: 65, y: -145}, level: 9}
 red:
-  core_damage: 350
   techs:
     centurion: [dual_wield, homing_missile]
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -35}, level: 9}
-  - {name: centurion, index: 1, position: {x: 5, y: -75}, level: 9, exp: 0/6800/15137}
+  - {name: centurion, index: 1, position: {x: 5, y: -75}, level: 9}
+outcome:
+  blue.units[0].exp: 8118
+  blue.units[1].exp: 5100
+  red.core_damage: 350
+  red.units[1].exp: 6800
+ticks: 339
+hash: 23:512d46a0b293fd52876a87d6a911c1c30c58b2e1fb3271605b711a4591014faf

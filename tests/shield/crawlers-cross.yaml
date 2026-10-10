@@ -4,18 +4,21 @@
 # and strike the Marksman inside it: the shield keeps its full energy.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 265
-hash: 23:15ada8b194f7ecfdc6dadda440b7ec0a7f5ef137cd2fe4ac52f4885a77a2b002
 blue:
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -150}, exp: 0/200/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -150}}
 red:
-  core_damage: 80
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -80}, exp: 0/32/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -80}}
   contraptions:
   - {name: shield, index: 1, position: {x: 1, y: -81}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 80
+  red.units[0].exp: 32
+ticks: 265
+hash: 23:15ada8b194f7ecfdc6dadda440b7ec0a7f5ef137cd2fe4ac52f4885a77a2b002

@@ -7,37 +7,52 @@
 # attacking.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1685333659
 round: 1
-source: game
-ticks: 756
-hash: 23:dd0dedae428198711525ba83fd7e144ad35c9436c0d674453e5b74f4eaabdcc2
 blue:
-  core_damage: 472
   officers: [typhoon_specialist]
   legacy_index: 5
   units:
-  - {name: void_eye, index: 0, position: {x: 70, y: -70}, exp: 0/30/650}
-  - {name: void_eye, index: 1, position: {x: 150, y: -70}, exp: 0/92/650}
-  - {name: void_eye, index: 2, position: {x: 230, y: -70}, exp: 0/256/650}
-  - {name: tarantula, index: 3, position: {x: 105, y: -55}, exp: 0/282/1500}
-  - {name: tarantula, index: 4, position: {x: 195, y: -55}, exp: 0/182/1500}
-  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 0/50/450}
-  - {name: crawler, index: 6, position: {x: 150, y: -105}, exp: 0/64/450, rotated: true}
+  - {name: void_eye, index: 0, position: {x: 70, y: -70}}
+  - {name: void_eye, index: 1, position: {x: 150, y: -70}}
+  - {name: void_eye, index: 2, position: {x: 230, y: -70}}
+  - {name: tarantula, index: 3, position: {x: 105, y: -55}}
+  - {name: tarantula, index: 4, position: {x: 195, y: -55}}
+  - {name: crawler, index: 5, position: {x: 135, y: -190}}
+  - {name: crawler, index: 6, position: {x: 150, y: -105}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   officers: [training_specialist]
   legacy_index: 5
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -150}, level: 2, exp: 0/818/1690}
-  - {name: arclight, index: 1, position: {x: 140, y: -150}, exp: 0/9/750}
-  - {name: arclight, index: 2, position: {x: -140, y: -150}, exp: 0/145/750}
-  - {name: sledgehammer, index: 3, position: {x: 75, y: -130}, exp: 0/653/1300}
-  - {name: sledgehammer, index: 4, position: {x: -75, y: -130}, exp: 0/140/1300}
-  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 0/257/450}
-  - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 0/13/450}
+  - {name: arclight, index: 0, position: {x: 0, y: -150}, level: 2}
+  - {name: arclight, index: 1, position: {x: 140, y: -150}}
+  - {name: arclight, index: 2, position: {x: -140, y: -150}}
+  - {name: sledgehammer, index: 3, position: {x: 75, y: -130}}
+  - {name: sledgehammer, index: 4, position: {x: -75, y: -130}}
+  - {name: crawler, index: 5, position: {x: 135, y: -190}}
+  - {name: crawler, index: 6, position: {x: -135, y: -190}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+outcome:
+  blue.core_damage: 472
+  blue.units[0].exp: 30
+  blue.units[1].exp: 92
+  blue.units[2].exp: 256
+  blue.units[3].exp: 282
+  blue.units[4].exp: 182
+  blue.units[5].exp: 50
+  blue.units[6].exp: 64
+  red.units[0].exp: 818
+  red.units[1].exp: 9
+  red.units[2].exp: 145
+  red.units[3].exp: 653
+  red.units[4].exp: 140
+  red.units[5].exp: 257
+  red.units[6].exp: 13
+ticks: 756
+hash: 23:dd0dedae428198711525ba83fd7e144ad35c9436c0d674453e5b74f4eaabdcc2

@@ -6,22 +6,24 @@
 # active shields at the end (`AdvancedEnergyShieldSystem.ActiveEnergyShield`).
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 240
-hash: 23:9619d0a46c9c7a7443ba0f35a6248a6b91e128714dca447999a853b9d9b8281c
 blue:
   techs:
     fortress: [barrier]
     hacker: [barrier]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, level: 2, exp: 0/198/3605}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, level: 2}
   - {name: hacker, index: 1, position: {x: 155, y: -145}, level: 2}
 red:
-  core_damage: 550
   techs:
     void_eye: [electromagnetic_armor]
   units:
   - {name: void_eye, index: 0, position: {x: 0, y: -60}}
+outcome:
+  blue.units[0].exp: 198
+  red.core_damage: 550
+ticks: 240
+hash: 23:9619d0a46c9c7a7443ba0f35a6248a6b91e128714dca447999a853b9d9b8281c

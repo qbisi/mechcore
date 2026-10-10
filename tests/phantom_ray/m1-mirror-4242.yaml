@@ -1,15 +1,18 @@
 # M1: the mirror. One formation each, 200 m apart.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 284
-hash: 23:3c81458ea74cccf3880b02f1d2a0eeeceb12302259767ea0de10ccec064155dc
 blue:
   units:
-  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}, exp: 0/201/1000}
+  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}}
 red:
   units:
-  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}, exp: 0/402/1000}
+  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}}
+outcome:
+  blue.units[0].exp: 201
+  red.units[0].exp: 402
+ticks: 284
+hash: 23:3c81458ea74cccf3880b02f1d2a0eeeceb12302259767ea0de10ccec064155dc

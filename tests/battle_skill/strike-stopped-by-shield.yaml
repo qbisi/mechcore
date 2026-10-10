@@ -6,21 +6,25 @@
 # Marksman inside takes nothing.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 747
-hash: 23:63ba43762b876a166d35620561634c75e3484d54d1f74f752a00fbd183d871ea
 blue:
   units:
-  - {name: fortress, index: 0, position: {x: 60, y: -150}, exp: 0/400/1600}
+  - {name: fortress, index: 0, position: {x: 60, y: -150}}
   battle_skills:
   - {name: missile_strike, positions: [{x: -1, y: 81}]}
 red:
-  core_damage: 350
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -80}}
-  - {name: marksman, index: 1, position: {x: 60, y: -130}, exp: 0/200/650}
+  - {name: marksman, index: 1, position: {x: 60, y: -130}}
   contraptions:
-  - {name: shield, index: 2, position: {x: 1, y: -81}, retained: false}
+  - {name: shield, index: 2, position: {x: 1, y: -81}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 350
+  red.units[1].exp: 200
+  red.contraptions[0].retained: false
+ticks: 747
+hash: 23:63ba43762b876a166d35620561634c75e3484d54d1f74f752a00fbd183d871ea

@@ -4,19 +4,23 @@
 # at level three, and the next destroys it whole: 712 (t129, t142).
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 147
-hash: 23:7a3def764fca98d32b6c0132700e299b6965eb1e94376616adc308ba977c12c5
 blue:
   techs:
     mustang: [culling_rounds]
   units:
-  - {name: mustang, index: 0, position: {x: 5, y: -100}, level: 3, exp: 0/400/4274}
+  - {name: mustang, index: 0, position: {x: 5, y: -100}, level: 3}
 red:
-  core_damage: 136
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -100}, exp: 0/340/650}
-  - {name: marksman, index: 1, position: {x: 20, y: -100}, exp: 0/340/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -100}}
+  - {name: marksman, index: 1, position: {x: 20, y: -100}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 136
+  red.units[0].exp: 340
+  red.units[1].exp: 340
+ticks: 147
+hash: 23:7a3def764fca98d32b6c0132700e299b6965eb1e94376616adc308ba977c12c5

@@ -8,22 +8,26 @@
 # 195 m away. Red wins at t751.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 751
-hash: 23:c850998ef883b4d55795eb44748d0c1e177deb402fcef7e35354135f58bf2429
 blue:
-  core_damage: 450
   techs:
     farseer: [scanning_radar]
   units:
   - {name: farseer, index: 0, position: {x: 5, y: -145}}
   - {name: marksman, index: 1, position: {x: 60, y: -150}}
   - {name: rhino, index: 2, position: {x: -45, y: -145}}
-  - {name: marksman, index: 3, position: {x: 200, y: -150}, exp: 0/200/650}
+  - {name: marksman, index: 3, position: {x: 200, y: -150}}
 red:
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/1100/1600}
-  - {name: marksman, index: 1, position: {x: 100, y: -150}, exp: 0/300/650}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}}
+  - {name: marksman, index: 1, position: {x: 100, y: -150}}
+outcome:
+  blue.core_damage: 450
+  blue.units[3].exp: 200
+  red.units[0].exp: 1100
+  red.units[1].exp: 300
+ticks: 751
+hash: 23:c850998ef883b4d55795eb44748d0c1e177deb402fcef7e35354135f58bf2429

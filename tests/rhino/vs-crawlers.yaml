@@ -2,16 +2,18 @@
 # The simulation's motion tests embed it for the first split RVO tree. Map
 # 1021, seed 1787748319.
 kind: fight
+source: game
 map_id: 1021
 seed: 1787748319
 round: 1
-source: game
-ticks: 377
-hash: 23:59eee526fa2df09d58d5164087a7cace9dbc9c65e0b04bee89e59b04c8cea1f2
 blue:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -105}, exp: 0/192/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -105}}
 red:
-  core_damage: 200
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 192
+  red.core_damage: 200
+ticks: 377
+hash: 23:59eee526fa2df09d58d5164087a7cace9dbc9c65e0b04bee89e59b04c8cea1f2

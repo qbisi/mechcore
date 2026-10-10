@@ -12,22 +12,26 @@
 # skill's do; the main row's on the tick of it.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 238
-hash: 23:4b9f96c8cad9701eebe9ca79ef379c72f033edff9efc4fcbfbd8fca34a39235d
 blue:
   techs:
     wraith: [floating_artillery_array]
   units:
   - {name: wraith, index: 0, position: {x: 5, y: -255}}
   - {name: wraith, index: 1, position: {x: 5, y: -215}}
-  - {name: wraith, index: 2, position: {x: 5, y: -175}, exp: 0/66/2250}
-  - {name: wraith, index: 3, position: {x: 5, y: -135}, exp: 0/266/2250}
-  - {name: wraith, index: 4, position: {x: 5, y: -95}, exp: 0/66/2250}
+  - {name: wraith, index: 2, position: {x: 5, y: -175}}
+  - {name: wraith, index: 3, position: {x: 5, y: -135}}
+  - {name: wraith, index: 4, position: {x: 5, y: -95}}
 red:
-  core_damage: 1250
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.units[2].exp: 66
+  blue.units[3].exp: 266
+  blue.units[4].exp: 66
+  red.core_damage: 1250
+ticks: 238
+hash: 23:4b9f96c8cad9701eebe9ca79ef379c72f033edff9efc4fcbfbd8fca34a39235d

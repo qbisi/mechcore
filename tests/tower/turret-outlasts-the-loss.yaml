@@ -7,18 +7,21 @@
 # the Steel Balls reach it.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 1661
-hash: 23:467518c57c5d447c78375efa44ea1f542458f420dc2b8df094a132a2d392200f
 blue:
-  core_damage: 100
   units:
-  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/200/600}
+  - {name: fang, index: 0, position: {x: 145, y: -300}}
   constructions:
   - {name: anti_armor_turret, index: 1, position: {x: -280, y: -300}}
 red:
   units:
-  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/736/1000}
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}}
+outcome:
+  blue.core_damage: 100
+  blue.units[0].exp: 200
+  red.units[0].exp: 736
+ticks: 1661
+hash: 23:467518c57c5d447c78375efa44ea1f542458f420dc2b8df094a132a2d392200f

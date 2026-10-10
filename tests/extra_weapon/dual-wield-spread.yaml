@@ -7,20 +7,24 @@
 # last.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 180
-hash: 23:269efa60667623a5a6175976144be35a06f1b5e8d00b85ddd99da1e7a2646120
 blue:
-  core_damage: 100
   techs:
     centurion: [dual_wield]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -45}, exp: 0/200/2250}
+  - {name: centurion, index: 0, position: {x: 5, y: -45}}
 red:
   units:
-  - {name: marksman, index: 0, position: {x: -60, y: -120}, exp: 0/450/650}
+  - {name: marksman, index: 0, position: {x: -60, y: -120}}
   - {name: marksman, index: 1, position: {x: 0, y: -140}}
-  - {name: marksman, index: 2, position: {x: 70, y: -120}, exp: 0/150/650}
+  - {name: marksman, index: 2, position: {x: 70, y: -120}}
+outcome:
+  blue.core_damage: 100
+  blue.units[0].exp: 200
+  red.units[0].exp: 450
+  red.units[2].exp: 150
+ticks: 180
+hash: 23:269efa60667623a5a6175976144be35a06f1b5e8d00b85ddd99da1e7a2646120

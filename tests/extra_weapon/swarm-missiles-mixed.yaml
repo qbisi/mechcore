@@ -9,20 +9,22 @@
 # as the burst began.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 323
-hash: 23:4bc53da42e1b5789a0a43fc8d2c950d86e2c2fe62af92d50c375c64a2e1aa474
 blue:
   techs:
     abyss: [swarm_missiles]
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -205}, exp: 0/1000/4800}
+  - {name: abyss, index: 0, position: {x: 5, y: -205}}
 red:
-  core_damage: 500
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -155}}
   - {name: rhino, index: 1, position: {x: 45, y: -155}}
   - {name: marksman, index: 2, position: {x: -40, y: -100}}
+outcome:
+  blue.units[0].exp: 1000
+  red.core_damage: 500
+ticks: 323
+hash: 23:4bc53da42e1b5789a0a43fc8d2c950d86e2c2fe62af92d50c375c64a2e1aa474

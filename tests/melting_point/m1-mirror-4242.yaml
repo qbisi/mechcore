@@ -1,16 +1,18 @@
 # M1: the mirror. One formation each, 200 m apart.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 204
-hash: 23:d472730d146c3bce2c88a052e17422cb10cace3db065481838515ef955c96758
 blue:
-  core_damage: 350
   units:
   - {name: melting_point, index: 0, position: {x: 0, y: -100}}
 red:
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -100}, exp: 0/800/1400}
+  - {name: melting_point, index: 0, position: {x: 0, y: -100}}
+outcome:
+  blue.core_damage: 350
+  red.units[0].exp: 800
+ticks: 204
+hash: 23:d472730d146c3bce2c88a052e17422cb10cace3db065481838515ef955c96758

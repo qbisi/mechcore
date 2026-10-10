@@ -3,17 +3,20 @@
 # widens by the officer's 5: shots strike up to three Crawlers at once.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 821
-hash: 23:cab82699847d9d64beaaa4ed017f329ab9e8bdb08a22b3d96fffaa5978fa28d7
 blue:
   officers: [improved_overlord]
   units:
-  - {name: overlord, index: 0, position: {x: -5, y: -105}, exp: 0/192/1750}
+  - {name: overlord, index: 0, position: {x: -5, y: -105}}
 red:
-  core_damage: 400
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/400/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 192
+  red.core_damage: 400
+  red.units[0].exp: 400
+ticks: 821
+hash: 23:cab82699847d9d64beaaa4ed017f329ab9e8bdb08a22b3d96fffaa5978fa28d7

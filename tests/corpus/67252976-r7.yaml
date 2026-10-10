@@ -7,12 +7,10 @@
 # another such shot flew into shield 7 on its way, which takes it.
 
 kind: fight
+source: game
 map_id: 1032
 seed: 214541783
 round: 7
-source: game
-ticks: 891
-hash: 23:7ddbda2fb9c50b3413f21d47e32f0299df1a0ba027842218fc0d300e23e82e9a
 blue:
   officers: [additional_deployment_slot, elite_specialist, berserk_rhino]
   techs:
@@ -23,37 +21,36 @@ blue:
   energy_tower_skills: [enhanced_range]
   legacy_index: 20
   units:
-  - {name: fang, index: 0, position: {x: 5, y: -70}, level: 2, exp: 1226/1352/1352}
-  - {name: fang, index: 1, position: {x: -275, y: -20}, exp: 360/480/600}
-  - {name: fang, index: 2, position: {x: 275, y: -20}, level: 2, exp: 1142/1260/1352}
-  - {name: sledgehammer, index: 3, position: {x: -205, y: -20}, exp: 1035/1041/1300}
-  - {name: sledgehammer, index: 4, position: {x: 205, y: -20}, exp: 1300/1300/1300}
-  - {name: fang, index: 5, position: {x: -135, y: -70}, level: 4, exp: 1427/2694/2694}
-  - {name: fang, index: 6, position: {x: 145, y: -70}, level: 4, exp: 0/2109/2694}
-  - {name: crawler, index: 7, position: {x: -90, y: -35}, exp: 450/450/450, rotated: true}
-  - {name: crawler, index: 8, position: {x: 100, y: -35}, exp: 285/285/450, rotated: true}
-  - {name: fang, index: 9, position: {x: -65, y: -100}, level: 3, exp: 411/1845/2137}
-  - {name: fang, index: 10, position: {x: -140, y: -205}, level: 3, exp: 166/1050/2137, rotated: true}
-  - {name: fang, index: 11, position: {x: 140, y: -205}, level: 2, exp: 1288/1352/1352, rotated: true}
-  - {name: rhino, index: 12, position: {x: -135, y: -25}, level: 2, exp: 1549/1658/2591}
-  - {name: fang, index: 13, position: {x: -205, y: -100}, level: 3, exp: 1737/2137/2137}
-  - {name: fang, index: 14, position: {x: 75, y: -100}, level: 3, exp: 0/2137/2137}
-  - {name: rhino, index: 17, position: {x: -5, y: -45}, level: 2, exp: 784/1664/2591}
-  - {name: rhino, index: 18, position: {x: 335, y: 95}, level: 2, exp: 842/1662/2591}
-  - {name: fang, index: 19, position: {x: 205, y: -40}, level: 2, exp: 1086/1086/1352}
-  - {name: phantom_ray, index: 20, position: {x: -135, y: -50}, level: 2, exp: 0/82/2253}
-  - {name: phantom_ray, index: 21, position: {x: 145, y: -40}, level: 2, exp: 0/2242/2253}
-  - {name: fang, index: 22, position: {x: 350, y: 35}, level: 2, exp: 0/442/1352, travelling: true}
+  - {name: fang, index: 0, position: {x: 5, y: -70}, level: 2, exp: 1226/1352}
+  - {name: fang, index: 1, position: {x: -275, y: -20}, exp: 360/600}
+  - {name: fang, index: 2, position: {x: 275, y: -20}, level: 2, exp: 1142/1352}
+  - {name: sledgehammer, index: 3, position: {x: -205, y: -20}, exp: 1035/1300}
+  - {name: sledgehammer, index: 4, position: {x: 205, y: -20}, exp: 1300/1300}
+  - {name: fang, index: 5, position: {x: -135, y: -70}, level: 4, exp: 1427/2694}
+  - {name: fang, index: 6, position: {x: 145, y: -70}, level: 4}
+  - {name: crawler, index: 7, position: {x: -90, y: -35}, exp: 450/450, rotated: true}
+  - {name: crawler, index: 8, position: {x: 100, y: -35}, exp: 285/450, rotated: true}
+  - {name: fang, index: 9, position: {x: -65, y: -100}, level: 3, exp: 411/2137}
+  - {name: fang, index: 10, position: {x: -140, y: -205}, level: 3, exp: 166/2137, rotated: true}
+  - {name: fang, index: 11, position: {x: 140, y: -205}, level: 2, exp: 1288/1352, rotated: true}
+  - {name: rhino, index: 12, position: {x: -135, y: -25}, level: 2, exp: 1549/2591}
+  - {name: fang, index: 13, position: {x: -205, y: -100}, level: 3, exp: 1737/2137}
+  - {name: fang, index: 14, position: {x: 75, y: -100}, level: 3}
+  - {name: rhino, index: 17, position: {x: -5, y: -45}, level: 2, exp: 784/2591}
+  - {name: rhino, index: 18, position: {x: 335, y: 95}, level: 2, exp: 842/2591}
+  - {name: fang, index: 19, position: {x: 205, y: -40}, level: 2, exp: 1086/1352}
+  - {name: phantom_ray, index: 20, position: {x: -135, y: -50}, level: 2}
+  - {name: phantom_ray, index: 21, position: {x: 145, y: -40}, level: 2}
+  - {name: fang, index: 22, position: {x: 350, y: 35}, level: 2, travelling: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   contraptions:
   - {name: shield, index: 2, position: {x: -33, y: -86}}
-  - {name: shield, index: 3, position: {x: -164, y: -97}, retained: false}
-  - {name: shield, index: 4, position: {x: 112, y: -95}, retained: false}
+  - {name: shield, index: 3, position: {x: -164, y: -97}}
+  - {name: shield, index: 4, position: {x: 112, y: -95}}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -143, y: 74}, {x: -3, y: 72}]}
 red:
-  core_damage: 288
   officers: [additional_deployment_slot, training_specialist, efficient_light_manufacturing]
   techs:
     fang: [range_enhancement, mechanical_rage, armor_piercing_bullets]
@@ -61,36 +58,88 @@ red:
   energy_tower_skills: [enhanced_range]
   legacy_index: 24
   units:
-  - {name: hound, index: 0, position: {x: 180, y: -40}, level: 2, exp: 110/534/1690}
-  - {name: hound, index: 1, position: {x: 110, y: -40}, exp: 750/750/750}
-  - {name: hound, index: 2, position: {x: 260, y: -40}, level: 2, exp: 575/792/1690}
-  - {name: fang, index: 5, position: {x: -140, y: -205}, exp: 528/600/600, rotated: true}
-  - {name: fang, index: 6, position: {x: 155, y: -80}, level: 3, exp: 663/2137/2137}
-  - {name: crawler, index: 7, position: {x: 270, y: -285}, exp: 450/450/450, rotated: true}
-  - {name: crawler, index: 8, position: {x: -310, y: 235}, exp: 450/450/450}
-  - {name: fang, index: 9, position: {x: 55, y: -80}, exp: 555/600/600}
-  - {name: fang, index: 10, position: {x: 240, y: -215}, level: 4, exp: 0/1591/2694, rotated: true}
-  - {name: fire_badger, index: 11, position: {x: -130, y: -125}, exp: 452/688/1400, rotated: true}
-  - {name: fang, index: 12, position: {x: -225, y: -170}, level: 2, exp: 1021/1352/1352}
-  - {name: fang, index: 13, position: {x: -25, y: -120}, exp: 557/600/600}
-  - {name: fang, index: 14, position: {x: -95, y: -130}, exp: 471/600/600}
-  - {name: fang, index: 15, position: {x: -165, y: -130}, level: 2, exp: 0/935/1352}
-  - {name: fang, index: 16, position: {x: 255, y: -80}, level: 3, exp: 0/1255/2137}
-  - {name: crawler, index: 17, position: {x: 140, y: -35}, exp: 43/93/450, rotated: true}
-  - {name: fire_badger, index: 18, position: {x: -265, y: -110}, level: 2, exp: 0/113/3154}
-  - {name: fire_badger, index: 19, position: {x: 15, y: -50}, exp: 45/73/1400}
-  - {name: scorpion, index: 20, position: {x: -95, y: -85}, level: 3, exp: 77/839/5343}
-  - {name: fang, index: 21, position: {x: 105, y: -80}, level: 2, exp: 70/1093/1352}
-  - {name: fang, index: 22, position: {x: -60, y: -85}, exp: 49/183/600, rotated: true}
-  - {name: scorpion, index: 23, position: {x: 5, y: -75}, exp: 0/28/1500}
-  - {name: fang, index: 24, position: {x: -205, y: -70}, exp: 0/600/600}
-  - {name: fang, index: 25, position: {x: -250, y: -245}, exp: 0/514/600, rotated: true}
-  - {name: scorpion, index: 26, position: {x: -225, y: -115}, level: 2, exp: 0/2801/3380}
-  - {name: fire_badger, index: 27, position: {x: -95, y: -50}, level: 2, exp: 0/180/3154}
+  - {name: hound, index: 0, position: {x: 180, y: -40}, level: 2, exp: 110/1690}
+  - {name: hound, index: 1, position: {x: 110, y: -40}, exp: 750/750}
+  - {name: hound, index: 2, position: {x: 260, y: -40}, level: 2, exp: 575/1690}
+  - {name: fang, index: 5, position: {x: -140, y: -205}, exp: 528/600, rotated: true}
+  - {name: fang, index: 6, position: {x: 155, y: -80}, level: 3, exp: 663/2137}
+  - {name: crawler, index: 7, position: {x: 270, y: -285}, exp: 450/450, rotated: true}
+  - {name: crawler, index: 8, position: {x: -310, y: 235}, exp: 450/450}
+  - {name: fang, index: 9, position: {x: 55, y: -80}, exp: 555/600}
+  - {name: fang, index: 10, position: {x: 240, y: -215}, level: 4, rotated: true}
+  - {name: fire_badger, index: 11, position: {x: -130, y: -125}, exp: 452/1400, rotated: true}
+  - {name: fang, index: 12, position: {x: -225, y: -170}, level: 2, exp: 1021/1352}
+  - {name: fang, index: 13, position: {x: -25, y: -120}, exp: 557/600}
+  - {name: fang, index: 14, position: {x: -95, y: -130}, exp: 471/600}
+  - {name: fang, index: 15, position: {x: -165, y: -130}, level: 2}
+  - {name: fang, index: 16, position: {x: 255, y: -80}, level: 3}
+  - {name: crawler, index: 17, position: {x: 140, y: -35}, exp: 43/450, rotated: true}
+  - {name: fire_badger, index: 18, position: {x: -265, y: -110}, level: 2}
+  - {name: fire_badger, index: 19, position: {x: 15, y: -50}, exp: 45/1400}
+  - {name: scorpion, index: 20, position: {x: -95, y: -85}, level: 3, exp: 77/5343}
+  - {name: fang, index: 21, position: {x: 105, y: -80}, level: 2, exp: 70/1352}
+  - {name: fang, index: 22, position: {x: -60, y: -85}, exp: 49/600, rotated: true}
+  - {name: scorpion, index: 23, position: {x: 5, y: -75}}
+  - {name: fang, index: 24, position: {x: -205, y: -70}}
+  - {name: fang, index: 25, position: {x: -250, y: -245}, rotated: true}
+  - {name: scorpion, index: 26, position: {x: -225, y: -115}, level: 2}
+  - {name: fire_badger, index: 27, position: {x: -95, y: -50}, level: 2}
   contraptions:
-  - {name: shield, index: 2, position: {x: 212, y: -101}, retained: false}
-  - {name: shield, index: 3, position: {x: 74, y: -102}, retained: false}
-  - {name: shield, index: 4, position: {x: -67, y: -91}, retained: false}
-  - {name: shield, index: 5, position: {x: -213, y: -106}, retained: false}
-  - {name: missile, index: 6, position: {x: -194, y: -14}, retained: false}
-  - {name: missile, index: 7, position: {x: 188, y: -13}, retained: false}
+  - {name: shield, index: 2, position: {x: 212, y: -101}}
+  - {name: shield, index: 3, position: {x: 74, y: -102}}
+  - {name: shield, index: 4, position: {x: -67, y: -91}}
+  - {name: shield, index: 5, position: {x: -213, y: -106}}
+  - {name: missile, index: 6, position: {x: -194, y: -14}}
+  - {name: missile, index: 7, position: {x: 188, y: -13}}
+outcome:
+  blue.units[0].exp: 1352
+  blue.units[1].exp: 480
+  blue.units[2].exp: 1260
+  blue.units[3].exp: 1041
+  blue.units[5].exp: 2694
+  blue.units[6].exp: 2109
+  blue.units[9].exp: 1845
+  blue.units[10].exp: 1050
+  blue.units[11].exp: 1352
+  blue.units[12].exp: 1658
+  blue.units[13].exp: 2137
+  blue.units[14].exp: 2137
+  blue.units[15].exp: 1664
+  blue.units[16].exp: 1662
+  blue.units[18].exp: 82
+  blue.units[19].exp: 2242
+  blue.units[20].exp: 442
+  blue.contraptions[1].retained: false
+  blue.contraptions[2].retained: false
+  red.core_damage: 288
+  red.units[0].exp: 534
+  red.units[2].exp: 792
+  red.units[3].exp: 600
+  red.units[4].exp: 2137
+  red.units[7].exp: 600
+  red.units[8].exp: 1591
+  red.units[9].exp: 688
+  red.units[10].exp: 1352
+  red.units[11].exp: 600
+  red.units[12].exp: 600
+  red.units[13].exp: 935
+  red.units[14].exp: 1255
+  red.units[15].exp: 93
+  red.units[16].exp: 113
+  red.units[17].exp: 73
+  red.units[18].exp: 839
+  red.units[19].exp: 1093
+  red.units[20].exp: 183
+  red.units[21].exp: 28
+  red.units[22].exp: 600
+  red.units[23].exp: 514
+  red.units[24].exp: 2801
+  red.units[25].exp: 180
+  red.contraptions[0].retained: false
+  red.contraptions[1].retained: false
+  red.contraptions[2].retained: false
+  red.contraptions[3].retained: false
+  red.contraptions[4].retained: false
+  red.contraptions[5].retained: false
+ticks: 891
+hash: 23:7ddbda2fb9c50b3413f21d47e32f0299df1a0ba027842218fc0d300e23e82e9a

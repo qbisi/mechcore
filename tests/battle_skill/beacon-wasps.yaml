@@ -6,20 +6,25 @@
 # it walks at reach its agent only on the update before each RVO solve.
 
 kind: fight
+source: game
 map_id: 1011
 seed: 4242
 round: 3
-source: game
-ticks: 1488
-hash: 23:2f2c216d21bd0d7d7b50aaab585bdeb733eb0b6fd51d8c76f01588417e034f02
 blue:
-  core_damage: 68
   units:
-  - {name: fang, index: 0, position: {x: -10, y: -35}, exp: 0/600/600, rotated: true}
-  - {name: fang, index: 1, position: {x: 230, y: -35}, exp: 0/370/600, rotated: true}
+  - {name: fang, index: 0, position: {x: -10, y: -35}, rotated: true}
+  - {name: fang, index: 1, position: {x: 230, y: -35}, rotated: true}
 red:
   units:
-  - {name: wasp, index: 0, position: {x: 275, y: -40}, exp: 0/380/900}
-  - {name: wasp, index: 1, position: {x: 275, y: -60}, exp: 0/428/900}
+  - {name: wasp, index: 0, position: {x: 275, y: -40}}
+  - {name: wasp, index: 1, position: {x: 275, y: -60}}
   battle_skills:
   - {name: mobile_beacon, positions: [{x: 265, y: -30}, {x: 146, y: 130}, {x: -50, y: 168}]}
+outcome:
+  blue.core_damage: 68
+  blue.units[0].exp: 600
+  blue.units[1].exp: 370
+  red.units[0].exp: 380
+  red.units[1].exp: 428
+ticks: 1488
+hash: 23:2f2c216d21bd0d7d7b50aaab585bdeb733eb0b6fd51d8c76f01588417e034f02

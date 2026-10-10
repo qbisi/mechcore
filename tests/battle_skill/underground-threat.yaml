@@ -6,18 +6,20 @@
 # locked obstacle: the Crawlers already up turn aside from it.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 296
-hash: 23:ac8eae57c21c281dd88add0ca0654a09d4101cac8e717b14c0a364e0d48d8d02
 blue:
   units:
   - {name: marksman, index: 0, position: {x: -100, y: -150}}
   battle_skills:
   - {name: underground_threat, positions: [{x: 0, y: -60}]}
 red:
-  core_damage: 132
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/32/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+outcome:
+  red.core_damage: 132
+  red.units[0].exp: 32
+ticks: 296
+hash: 23:ac8eae57c21c281dd88add0ca0654a09d4101cac8e717b14c0a364e0d48d8d02

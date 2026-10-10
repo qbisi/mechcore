@@ -4,20 +4,25 @@
 # 54 thirty times.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 423
-hash: 23:4212226d87f03f2e5adc041618599ffbc663ff44000ba2680dea4a6d9c7b2f1e
 blue:
-  core_damage: 212
   techs:
     stormcaller: [incendiary_bomb]
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -150}, exp: 0/42/1100}
-  - {name: rhino, index: 1, position: {x: 5, y: -95}, exp: 0/126/1150}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -150}}
+  - {name: rhino, index: 1, position: {x: 5, y: -95}}
 red:
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450}
-  - {name: rhino, index: 1, position: {x: 45, y: -95}, exp: 0/600/1150}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: rhino, index: 1, position: {x: 45, y: -95}}
+outcome:
+  blue.core_damage: 212
+  blue.units[0].exp: 42
+  blue.units[1].exp: 126
+  red.units[0].exp: 200
+  red.units[1].exp: 600
+ticks: 423
+hash: 23:4212226d87f03f2e5adc041618599ffbc663ff44000ba2680dea4a6d9c7b2f1e

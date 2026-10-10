@@ -1,16 +1,19 @@
 # A Phoenix formation against another: approach, targeting, blows and death of
 # aircraft in a mirror. Map 1021, seed 1788397284.
 kind: fight
+source: game
 map_id: 1021
 seed: 1788397284
 round: 1
-source: game
-ticks: 146
-hash: 23:825835684d7a9ad91e0f94973cdc5f1517e45dd442da1b9d2d663eeff6b3a5f8
 blue:
   units:
-  - {name: phoenix, index: 0, position: {x: 10, y: -100}, exp: 0/200/1300}
+  - {name: phoenix, index: 0, position: {x: 10, y: -100}}
 red:
-  core_damage: 100
   units:
-  - {name: phoenix, index: 0, position: {x: 10, y: -100}, exp: 0/200/1300}
+  - {name: phoenix, index: 0, position: {x: 10, y: -100}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 100
+  red.units[0].exp: 200
+ticks: 146
+hash: 23:825835684d7a9ad91e0f94973cdc5f1517e45dd442da1b9d2d663eeff6b3a5f8

@@ -3,14 +3,11 @@
 # deployed Hounds do: the first fire becomes a grid on tick 64.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 271
-hash: 23:03cdc3426bb2ff1835830e923a87382fecc5a4d5cb0fd4171cc6377aa1270892
 blue:
-  core_damage: 350
   techs:
     hound: [fire_extinguisher]
     centurion: [summon_hounds]
@@ -18,6 +15,11 @@ blue:
   - {name: centurion, index: 0, position: {x: 5, y: -55}}
 red:
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -150}, exp: 0/680/1600}
+  - {name: fortress, index: 0, position: {x: 0, y: -150}}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
+outcome:
+  blue.core_damage: 350
+  red.units[0].exp: 680
+ticks: 271
+hash: 23:03cdc3426bb2ff1835830e923a87382fecc5a4d5cb0fd4171cc6377aa1270892

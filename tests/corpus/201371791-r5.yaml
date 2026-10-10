@@ -5,14 +5,11 @@
 # its main skill takes blue's tower (t528).
 
 kind: fight
+source: game
 map_id: 1021
 seed: 802997336
 round: 5
-source: game
-ticks: 915
-hash: 23:fbf595aab629f6f02bd8ec41f6f11a2096c5b3f02056e16865cbd82a4a26ac19
 blue:
-  core_damage: 1191
   officers: [sabertooth_specialist]
   techs:
     sabertooth: [field_maintenance]
@@ -20,25 +17,25 @@ blue:
   blueprints: [attack_enhancement, defense_enhancement_ii]
   legacy_index: 16
   units:
-  - {name: fang, index: 0, position: {x: 160, y: -175}, exp: 435/506/600, rotated: true}
-  - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 96/408/600, rotated: true}
-  - {name: fang, index: 2, position: {x: -160, y: -35}, exp: 316/346/600, rotated: true}
-  - {name: sabertooth, index: 3, position: {x: -165, y: -75}, level: 2, exp: 2026/2493/2929}
-  - {name: sabertooth, index: 4, position: {x: -75, y: -75}, exp: 700/717/1300}
-  - {name: hound, index: 5, position: {x: -120, y: -80}, level: 2, exp: 1627/1690/1690}
-  - {name: hound, index: 6, position: {x: -210, y: -80}, level: 2, exp: 648/1297/1690}
-  - {name: hound, index: 7, position: {x: 130, y: -150}, level: 2, exp: 0/8/1690}
-  - {name: hound, index: 8, position: {x: -270, y: -90}, level: 2, exp: 757/1357/1690}
-  - {name: hound, index: 9, position: {x: -30, y: -80}, exp: 250/265/750}
-  - {name: sabertooth, index: 10, position: {x: -265, y: -45}, exp: 1196/1300/1300}
-  - {name: centurion, index: 11, position: {x: -125, y: -115}, exp: 1888/2250/2250}
-  - {name: crawler, index: 12, position: {x: -135, y: -190}, exp: 83/259/450}
-  - {name: crawler, index: 13, position: {x: -170, y: -115}, exp: 67/67/450, rotated: true}
-  - {name: hound, index: 14, position: {x: 70, y: -120}, exp: 64/64/750}
-  - {name: sabertooth, index: 15, position: {x: 25, y: -95}, exp: 8/24/1300}
-  - {name: hound, index: 17, position: {x: 210, y: -150}, exp: 0/77/750}
-  - {name: hound, index: 18, position: {x: 270, y: -150}, exp: 0/131/750}
-  - {name: crawler, index: 19, position: {x: 250, y: -285}, exp: 0/9/450, rotated: true}
+  - {name: fang, index: 0, position: {x: 160, y: -175}, exp: 435/600, rotated: true}
+  - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 96/600, rotated: true}
+  - {name: fang, index: 2, position: {x: -160, y: -35}, exp: 316/600, rotated: true}
+  - {name: sabertooth, index: 3, position: {x: -165, y: -75}, level: 2, exp: 2026/2929}
+  - {name: sabertooth, index: 4, position: {x: -75, y: -75}, exp: 700/1300}
+  - {name: hound, index: 5, position: {x: -120, y: -80}, level: 2, exp: 1627/1690}
+  - {name: hound, index: 6, position: {x: -210, y: -80}, level: 2, exp: 648/1690}
+  - {name: hound, index: 7, position: {x: 130, y: -150}, level: 2}
+  - {name: hound, index: 8, position: {x: -270, y: -90}, level: 2, exp: 757/1690}
+  - {name: hound, index: 9, position: {x: -30, y: -80}, exp: 250/750}
+  - {name: sabertooth, index: 10, position: {x: -265, y: -45}, exp: 1196/1300}
+  - {name: centurion, index: 11, position: {x: -125, y: -115}, exp: 1888/2250}
+  - {name: crawler, index: 12, position: {x: -135, y: -190}, exp: 83/450}
+  - {name: crawler, index: 13, position: {x: -170, y: -115}, exp: 67/450, rotated: true}
+  - {name: hound, index: 14, position: {x: 70, y: -120}, exp: 64/750}
+  - {name: sabertooth, index: 15, position: {x: 25, y: -95}, exp: 8/1300}
+  - {name: hound, index: 17, position: {x: 210, y: -150}}
+  - {name: hound, index: 18, position: {x: 270, y: -150}}
+  - {name: crawler, index: 19, position: {x: 250, y: -285}, rotated: true}
 red:
   officers: [training_specialist]
   techs:
@@ -47,22 +44,58 @@ red:
   tower_strengthen_levels: [1, 0]
   legacy_index: 14
   units:
-  - {name: void_eye, index: 0, position: {x: 110, y: -170}, level: 2, exp: 104/354/1465}
-  - {name: void_eye, index: 1, position: {x: -110, y: -170}, exp: 650/650/650}
-  - {name: void_eye, index: 2, position: {x: 0, y: -170}, exp: 650/650/650}
-  - {name: mustang, index: 3, position: {x: 95, y: -280}, level: 2, exp: 107/360/2704}
-  - {name: mustang, index: 4, position: {x: -65, y: -280}, level: 2, exp: 1587/1877/2704}
-  - {name: crawler, index: 5, position: {x: 120, y: -225}, exp: 136/191/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -120, y: -225}, exp: 311/417/450, rotated: true}
-  - {name: crawler, index: 7, position: {x: 290, y: -285}, exp: 63/105/450, rotated: true}
-  - {name: sledgehammer, index: 8, position: {x: 140, y: -135}, exp: 458/496/1300, rotated: true}
-  - {name: centurion, index: 9, position: {x: -55, y: -165}, level: 2, exp: 2165/2495/5070}
-  - {name: hound, index: 10, position: {x: -120, y: -190}, exp: 368/575/750}
-  - {name: hound, index: 11, position: {x: 120, y: -190}, exp: 129/170/750}
-  - {name: centurion, index: 12, position: {x: 55, y: -165}, level: 2, exp: 0/1395/5070}
-  - {name: hound, index: 13, position: {x: 160, y: -20}, exp: 137/249/750}
-  - {name: stormcaller, index: 14, position: {x: -5, y: -110}, level: 3, exp: 0/2416/3918}
-  - {name: centurion, index: 15, position: {x: -105, y: -115}, level: 2, exp: 0/1355/5070}
-  - {name: crawler, index: 16, position: {x: 310, y: 285}, level: 2, exp: 0/629/1014, travelling: true}
+  - {name: void_eye, index: 0, position: {x: 110, y: -170}, level: 2, exp: 104/1465}
+  - {name: void_eye, index: 1, position: {x: -110, y: -170}, exp: 650/650}
+  - {name: void_eye, index: 2, position: {x: 0, y: -170}, exp: 650/650}
+  - {name: mustang, index: 3, position: {x: 95, y: -280}, level: 2, exp: 107/2704}
+  - {name: mustang, index: 4, position: {x: -65, y: -280}, level: 2, exp: 1587/2704}
+  - {name: crawler, index: 5, position: {x: 120, y: -225}, exp: 136/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -120, y: -225}, exp: 311/450, rotated: true}
+  - {name: crawler, index: 7, position: {x: 290, y: -285}, exp: 63/450, rotated: true}
+  - {name: sledgehammer, index: 8, position: {x: 140, y: -135}, exp: 458/1300, rotated: true}
+  - {name: centurion, index: 9, position: {x: -55, y: -165}, level: 2, exp: 2165/5070}
+  - {name: hound, index: 10, position: {x: -120, y: -190}, exp: 368/750}
+  - {name: hound, index: 11, position: {x: 120, y: -190}, exp: 129/750}
+  - {name: centurion, index: 12, position: {x: 55, y: -165}, level: 2}
+  - {name: hound, index: 13, position: {x: 160, y: -20}, exp: 137/750}
+  - {name: stormcaller, index: 14, position: {x: -5, y: -110}, level: 3}
+  - {name: centurion, index: 15, position: {x: -105, y: -115}, level: 2}
+  - {name: crawler, index: 16, position: {x: 310, y: 285}, level: 2, travelling: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+outcome:
+  blue.core_damage: 1191
+  blue.units[0].exp: 506
+  blue.units[1].exp: 408
+  blue.units[2].exp: 346
+  blue.units[3].exp: 2493
+  blue.units[4].exp: 717
+  blue.units[5].exp: 1690
+  blue.units[6].exp: 1297
+  blue.units[7].exp: 8
+  blue.units[8].exp: 1357
+  blue.units[9].exp: 265
+  blue.units[10].exp: 1300
+  blue.units[11].exp: 2250
+  blue.units[12].exp: 259
+  blue.units[15].exp: 24
+  blue.units[16].exp: 77
+  blue.units[17].exp: 131
+  blue.units[18].exp: 9
+  red.units[0].exp: 354
+  red.units[3].exp: 360
+  red.units[4].exp: 1877
+  red.units[5].exp: 191
+  red.units[6].exp: 417
+  red.units[7].exp: 105
+  red.units[8].exp: 496
+  red.units[9].exp: 2495
+  red.units[10].exp: 575
+  red.units[11].exp: 170
+  red.units[12].exp: 1395
+  red.units[13].exp: 249
+  red.units[14].exp: 2416
+  red.units[15].exp: 1355
+  red.units[16].exp: 629
+ticks: 915
+hash: 23:fbf595aab629f6f02bd8ec41f6f11a2096c5b3f02056e16865cbd82a4a26ac19

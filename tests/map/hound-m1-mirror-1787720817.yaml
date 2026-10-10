@@ -5,16 +5,19 @@
 # blue's half.
 
 kind: fight
+source: game
 map_id: 1001
 seed: 1787720817
 round: 1
-source: game
-ticks: 458
-hash: 23:d0cebe1ca53ec20ed80af90efa5b5c08f93a1cecafae490679df5f8e94b9d81a
 blue:
-  core_damage: 20
   units:
-  - {name: hound, index: 0, position: {x: 0, y: -100}, exp: 0/160/750}
+  - {name: hound, index: 0, position: {x: 0, y: -100}}
 red:
   units:
-  - {name: hound, index: 0, position: {x: 0, y: -100}, exp: 0/180/750}
+  - {name: hound, index: 0, position: {x: 0, y: -100}}
+outcome:
+  blue.core_damage: 20
+  blue.units[0].exp: 160
+  red.units[0].exp: 180
+ticks: 458
+hash: 23:d0cebe1ca53ec20ed80af90efa5b5c08f93a1cecafae490679df5f8e94b9d81a

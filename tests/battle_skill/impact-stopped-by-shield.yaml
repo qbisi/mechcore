@@ -7,22 +7,26 @@
 # no buff. Red's other Marksman stands beyond the skill's 60 metres.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 758
-hash: 23:44434d798aee681ff56b3150a91bd2868aa6607f691b29f51fe003f687cafae4
 blue:
   units:
-  - {name: fortress, index: 0, position: {x: 60, y: -150}, exp: 0/800/1600}
+  - {name: fortress, index: 0, position: {x: 60, y: -150}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -1, y: 81}]}
 red:
-  core_damage: 350
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -80}}
   - {name: rhino, index: 1, position: {x: 5, y: -135}}
-  - {name: marksman, index: 2, position: {x: 60, y: -150}, exp: 0/200/650}
+  - {name: marksman, index: 2, position: {x: 60, y: -150}}
   contraptions:
-  - {name: shield, index: 3, position: {x: 1, y: -81}, retained: false}
+  - {name: shield, index: 3, position: {x: 1, y: -81}}
+outcome:
+  blue.units[0].exp: 800
+  red.core_damage: 350
+  red.units[2].exp: 200
+  red.contraptions[0].retained: false
+ticks: 758
+hash: 23:44434d798aee681ff56b3150a91bd2868aa6607f691b29f51fe003f687cafae4

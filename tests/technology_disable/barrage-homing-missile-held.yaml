@@ -5,22 +5,26 @@
 # missile skill, due again at t157, starts no attack while disabled.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 328
-hash: 23:9b6c8e4fb6f4a7858d81bc2fc48a269785b687e6ea0b2fde37bfa69ece150e68
 blue:
   techs:
     melting_point: [electromagnetic_barrage]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -150}, level: 6, exp: 0/8118/8118}
+  - {name: melting_point, index: 0, position: {x: 0, y: -150}, level: 6}
   - {name: rhino, index: 1, position: {x: 65, y: -145}, level: 6}
 red:
-  core_damage: 350
   techs:
     centurion: [homing_missile]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -75}, level: 6, exp: 0/1100/13047}
-  - {name: centurion, index: 1, position: {x: -45, y: -75}, level: 6, exp: 0/3300/13047}
+  - {name: centurion, index: 0, position: {x: 5, y: -75}, level: 6}
+  - {name: centurion, index: 1, position: {x: -45, y: -75}, level: 6}
+outcome:
+  blue.units[0].exp: 8118
+  red.core_damage: 350
+  red.units[0].exp: 1100
+  red.units[1].exp: 3300
+ticks: 328
+hash: 23:9b6c8e4fb6f4a7858d81bc2fc48a269785b687e6ea0b2fde37bfa69ece150e68

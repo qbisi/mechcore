@@ -6,19 +6,21 @@
 # locks.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 260
-hash: 23:a5d5d40e700395d8ffe1aa40b8fb761d0ec527e94933e47153548064ebb6509e
 blue:
   techs:
     farseer: [missile_interceptor]
   units:
-  - {name: farseer, index: 0, position: {x: 5, y: -105}, exp: 0/800/1800}
+  - {name: farseer, index: 0, position: {x: 5, y: -105}}
 red:
-  core_damage: 250
   units:
   - {name: stormcaller, index: 0, position: {x: 5, y: -40}}
   - {name: stormcaller, index: 1, position: {x: -55, y: -40}}
+outcome:
+  blue.units[0].exp: 800
+  red.core_damage: 250
+ticks: 260
+hash: 23:a5d5d40e700395d8ffe1aa40b8fb761d0ec527e94933e47153548064ebb6509e

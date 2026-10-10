@@ -5,19 +5,16 @@
 # blows record no one. The Arclight it fells after (t649) heals it by 4813.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 650
-hash: 23:10a69484a920497adc3e6171322ff3024f47704021eab444b98c425892efa8fd
 blue:
   techs:
     rhino: [wreckage_recycling]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -35}, exp: 0/1000/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -35}}
 red:
-  core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -20}}
   - {name: marksman, index: 1, position: {x: -40, y: -40}}
@@ -25,3 +22,8 @@ red:
   - {name: arclight, index: 3, position: {x: 280, y: -300}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 30}]}
+outcome:
+  blue.units[0].exp: 1000
+  red.core_damage: 200
+ticks: 650
+hash: 23:10a69484a920497adc3e6171322ff3024f47704021eab444b98c425892efa8fd

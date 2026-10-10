@@ -2,18 +2,22 @@
 # target distribution and avoidance between allies.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 373
-hash: 23:e551c325de161e644f07d5fe36dbd7a44bd68b1a8268fd93b80ce21008037b70
 blue:
-  core_damage: 100
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -140}, exp: 0/54/750}
-  - {name: arclight, index: 1, position: {x: 0, y: -80}, exp: 0/138/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -140}}
+  - {name: arclight, index: 1, position: {x: 0, y: -80}}
 red:
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -70}}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/400/650}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}}
+outcome:
+  blue.core_damage: 100
+  blue.units[0].exp: 54
+  blue.units[1].exp: 138
+  red.units[1].exp: 400
+ticks: 373
+hash: 23:e551c325de161e644f07d5fe36dbd7a44bd68b1a8268fd93b80ce21008037b70

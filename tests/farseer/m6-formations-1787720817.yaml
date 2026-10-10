@@ -2,18 +2,21 @@
 # target distribution and avoidance between allies.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 204
-hash: 23:291abf486ea2e4401a308fefb45018ee660be5a962999133214b5cefd10dac82
 blue:
   units:
-  - {name: farseer, index: 0, position: {x: -5, y: -125}, exp: 0/60/1800}
-  - {name: farseer, index: 1, position: {x: -5, y: -85}, exp: 0/332/1800}
+  - {name: farseer, index: 0, position: {x: -5, y: -125}}
+  - {name: farseer, index: 1, position: {x: -5, y: -85}}
 red:
-  core_damage: 500
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -70}}
   - {name: marksman, index: 1, position: {x: 0, y: -110}}
+outcome:
+  blue.units[0].exp: 60
+  blue.units[1].exp: 332
+  red.core_damage: 500
+ticks: 204
+hash: 23:291abf486ea2e4401a308fefb45018ee660be5a962999133214b5cefd10dac82

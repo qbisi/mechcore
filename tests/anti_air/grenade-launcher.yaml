@@ -4,19 +4,22 @@
 # moves 7 metres a tick, 140 metres a second of its row's 280.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 192
-hash: 23:0a077430be83f5f9a2051dd9ef7e4163630296460277b3d09de349f45260498c
 blue:
-  core_damage: 200
   techs:
     fang: [grenade_launcher]
   units:
   - {name: fang, index: 0, position: {x: 5, y: -100}}
 red:
   units:
-  - {name: arclight, index: 0, position: {x: -30, y: -80}, exp: 0/132/750}
-  - {name: arclight, index: 1, position: {x: 30, y: -80}, exp: 0/84/750}
+  - {name: arclight, index: 0, position: {x: -30, y: -80}}
+  - {name: arclight, index: 1, position: {x: 30, y: -80}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 132
+  red.units[1].exp: 84
+ticks: 192
+hash: 23:0a077430be83f5f9a2051dd9ef7e4163630296460277b3d09de349f45260498c

@@ -5,42 +5,62 @@
 # after the wind-up it lost rather than the interval's 132.
 
 kind: fight
+source: game
 map_id: 1011
 seed: 473683013
 round: 2
-source: game
-ticks: 780
-hash: 23:c5ea7082c72b8cb81ac295ce862b4637af3d39cc3a1ac2e008a169c86848d3f8
 blue:
-  core_damage: 680
   officers: [rhino_specialist, improved_phoenix]
   legacy_index: 7
   units:
-  - {name: marksman, index: 0, position: {x: 100, y: -170}, exp: 193/357/650}
-  - {name: marksman, index: 1, position: {x: -100, y: -170}, exp: 165/343/650}
-  - {name: marksman, index: 2, position: {x: 0, y: -170}, exp: 165/504/650}
-  - {name: fire_badger, index: 3, position: {x: -140, y: -135}, exp: 127/307/1400, rotated: true}
-  - {name: fire_badger, index: 4, position: {x: 140, y: -135}, exp: 168/235/1400, rotated: true}
-  - {name: crawler, index: 5, position: {x: 125, y: -190}, exp: 76/139/450}
-  - {name: crawler, index: 6, position: {x: -125, y: -190}, exp: 59/82/450}
-  - {name: crawler, index: 7, position: {x: 290, y: -285}, exp: 0/160/450, rotated: true}
-  - {name: crawler, index: 8, position: {x: -290, y: -285}, exp: 0/45/450, rotated: true}
-  - {name: crawler, index: 9, position: {x: 5, y: -230}, exp: 0/20/450}
+  - {name: marksman, index: 0, position: {x: 100, y: -170}, exp: 193/650}
+  - {name: marksman, index: 1, position: {x: -100, y: -170}, exp: 165/650}
+  - {name: marksman, index: 2, position: {x: 0, y: -170}, exp: 165/650}
+  - {name: fire_badger, index: 3, position: {x: -140, y: -135}, exp: 127/1400, rotated: true}
+  - {name: fire_badger, index: 4, position: {x: 140, y: -135}, exp: 168/1400, rotated: true}
+  - {name: crawler, index: 5, position: {x: 125, y: -190}, exp: 76/450}
+  - {name: crawler, index: 6, position: {x: -125, y: -190}, exp: 59/450}
+  - {name: crawler, index: 7, position: {x: 290, y: -285}, rotated: true}
+  - {name: crawler, index: 8, position: {x: -290, y: -285}, rotated: true}
+  - {name: crawler, index: 9, position: {x: 5, y: -230}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   officers: [giant_specialist]
   legacy_index: 7
   units:
-  - {name: marksman, index: 0, position: {x: -60, y: -190}, exp: 341/554/650}
-  - {name: marksman, index: 1, position: {x: 60, y: -190}, exp: 352/639/650}
-  - {name: marksman, index: 2, position: {x: 0, y: -190}, exp: 390/423/650}
-  - {name: sledgehammer, index: 3, position: {x: 65, y: -130}, exp: 256/578/1300}
-  - {name: sledgehammer, index: 4, position: {x: -65, y: -130}, exp: 198/476/1300}
-  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 198/233/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -140, y: -205}, exp: 62/175/450, rotated: true}
-  - {name: stormcaller, index: 7, position: {x: 135, y: -150}, exp: 0/477/1100}
-  - {name: stormcaller, index: 8, position: {x: -135, y: -150}, exp: 0/651/1100}
+  - {name: marksman, index: 0, position: {x: -60, y: -190}, exp: 341/650}
+  - {name: marksman, index: 1, position: {x: 60, y: -190}, exp: 352/650}
+  - {name: marksman, index: 2, position: {x: 0, y: -190}, exp: 390/650}
+  - {name: sledgehammer, index: 3, position: {x: 65, y: -130}, exp: 256/1300}
+  - {name: sledgehammer, index: 4, position: {x: -65, y: -130}, exp: 198/1300}
+  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 198/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -140, y: -205}, exp: 62/450, rotated: true}
+  - {name: stormcaller, index: 7, position: {x: 135, y: -150}}
+  - {name: stormcaller, index: 8, position: {x: -135, y: -150}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+outcome:
+  blue.core_damage: 680
+  blue.units[0].exp: 357
+  blue.units[1].exp: 343
+  blue.units[2].exp: 504
+  blue.units[3].exp: 307
+  blue.units[4].exp: 235
+  blue.units[5].exp: 139
+  blue.units[6].exp: 82
+  blue.units[7].exp: 160
+  blue.units[8].exp: 45
+  blue.units[9].exp: 20
+  red.units[0].exp: 554
+  red.units[1].exp: 639
+  red.units[2].exp: 423
+  red.units[3].exp: 578
+  red.units[4].exp: 476
+  red.units[5].exp: 233
+  red.units[6].exp: 175
+  red.units[7].exp: 477
+  red.units[8].exp: 651
+ticks: 780
+hash: 23:c5ea7082c72b8cb81ac295ce862b4637af3d39cc3a1ac2e008a169c86848d3f8
