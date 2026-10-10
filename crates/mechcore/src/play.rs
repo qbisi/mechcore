@@ -23,7 +23,7 @@ use crate::{
     kind::Kind,
 };
 
-pub(crate) const SCHEMA: &str = "mechcore.play-result.v2";
+pub(crate) const SCHEMA: &str = "mechcore.play-result";
 
 /// What `play` answers: the page it wrote and the fight on it.
 #[derive(Serialize)]

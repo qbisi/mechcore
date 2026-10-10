@@ -479,7 +479,7 @@ impl Database {
             tables.extend(recording.schema(self.attached.is_some())?);
         }
         Ok(Schema {
-            schema: "mechcore.query.schema.v1",
+            schema: "mechcore.query.schema",
             tables,
             queries: QUERIES
                 .iter()
@@ -938,7 +938,7 @@ impl Answer {
             Sql::Blob(blob) => Value::from(hex(blob)),
         };
         serde_json::json!({
-            "schema": "mechcore.query.v1",
+            "schema": "mechcore.query",
             "columns": self.columns,
             "rows": self.rows.iter().map(|row| row.iter().map(cell).collect::<Vec<_>>()).collect::<Vec<_>>(),
         })

@@ -27,7 +27,7 @@ fn played(arguments: &[&std::ffi::OsStr]) -> serde_json::Value {
 fn assert_a_page(page: &std::path::Path, ticks: u64) {
     let html = std::fs::read_to_string(page).unwrap();
     assert!(html.starts_with("<!doctype html>"));
-    assert!(html.contains(r#""schema":"mechcore.player.v1""#));
+    assert!(html.contains(r#""schema":"mechcore.player""#));
     assert!(html.contains(&format!(r#""ticks":{ticks},"#)));
     assert!(!html.contains("{{"));
 }
@@ -54,7 +54,7 @@ fn a_layout_is_fought_in_memory_and_played() {
         "7".as_ref(),
         "--no-open".as_ref(),
     ]);
-    assert_eq!(report["schema"], "mechcore.play-result.v2");
+    assert_eq!(report["schema"], "mechcore.play-result");
     assert_eq!(report["opened"], false);
     assert_eq!(report["kind"], "layout");
     assert_eq!(report["producer"], "simulator");

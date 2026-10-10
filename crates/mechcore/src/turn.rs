@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::cli::Failure;
 
-pub(crate) const SCHEMA: &str = "mechcore.match-turn.v1";
+pub(crate) const SCHEMA: &str = "mechcore.match-turn";
 
 /// Which side of a match, which is what an operation names itself by.
 ///
@@ -318,7 +318,7 @@ mod tests {
     fn a_half_written_or_foreign_file_holds_nothing() {
         let path = scratch("foreign");
         for text in [
-            "{\"schema\": \"mechcore.match-turn.v1\", \"round\": 3, \"op",
+            "{\"schema\": \"mechcore.match-turn\", \"round\": 3, \"op",
             "{\"schema\": \"something.else.v1\", \"round\": 3, \"opened\": \"\", \
              \"rebuilt\": false, \"sides\": {}}",
             "not json at all",

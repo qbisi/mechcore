@@ -96,7 +96,7 @@ impl Failure {
     /// exits, and both say the same thing in the same place.
     pub(crate) fn write(&self, operation: &str) {
         let error = serde_json::json!({
-            "schema": "mechcore.error.v1",
+            "schema": "mechcore.error",
             "kind": self.kind.name(),
             "operation": self.operation.as_deref().unwrap_or(operation),
             "reason": self.reason,

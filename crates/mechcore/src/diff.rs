@@ -17,7 +17,7 @@ use crate::cli::{Args, Failure, Format, Outcome};
 use crate::difference::{self, Selection};
 use crate::kind::Kind;
 
-const COMPARE_SCHEMA: &str = "mechcore.fight-compare-result.v3";
+const COMPARE_SCHEMA: &str = "mechcore.fight-compare-result";
 
 /// Reads `diff <left> <right>` off a command line.
 ///
@@ -89,14 +89,14 @@ pub(crate) fn diff(
                 .map_err(Failure::refused)
         };
         (
-            "mechcore.fight-diff-result.v1",
+            "mechcore.fight-diff-result",
             document_differences(&parse(&left_bytes)?, &parse(&right_bytes)?)
                 .map_err(Failure::failed)?,
         )
     } else {
         let parse = |bytes: &[u8]| mechcore_document::parse_yaml(bytes).map_err(Failure::refused);
         (
-            "mechcore.layout-diff-result.v2",
+            "mechcore.layout-diff-result",
             layout_differences(parse(&left_bytes)?, parse(&right_bytes)?)
                 .map_err(Failure::failed)?,
         )

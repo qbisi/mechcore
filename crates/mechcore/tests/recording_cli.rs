@@ -70,7 +70,7 @@ fn converting_without_an_output_answers_the_result_and_writes_nothing() {
         String::from_utf8_lossy(&command.stderr)
     );
     let report: serde_json::Value = serde_json::from_slice(&command.stdout).unwrap();
-    assert_eq!(report["schema"], "mechcore.simulation-result.v5");
+    assert_eq!(report["schema"], "mechcore.simulation-result");
     assert!(report.get("output").is_none());
     assert!(report["hashes"].get("scenario_hash").is_none());
     assert!(report["hashes"]["result_hash"].is_string());
@@ -165,14 +165,11 @@ fn verify_reports_the_first_divergent_tick_of_each_recording() {
     let [equal, divergent] = &reports[..] else {
         unreachable!()
     };
-    assert_eq!(equal["schema"], "mechcore.verify-result.v1");
+    assert_eq!(equal["schema"], "mechcore.verify-result");
     assert_eq!(equal["kind"], "mcfr");
     assert_eq!(equal["valid"], true);
     assert!(equal.get("error").is_none());
-    assert_eq!(
-        equal["comparison"]["schema"],
-        "mechcore.sim-compare-result.v3"
-    );
+    assert_eq!(equal["comparison"]["schema"], "mechcore.sim-compare-result");
     assert!(equal["comparison"]["first_divergence"].is_null());
     assert_eq!(divergent["valid"], false);
     assert!(
@@ -239,7 +236,7 @@ red:
     // The answer is yes: the recording answers everything its fight decided.
     assert_eq!(read.status.code(), Some(0));
     let outcome: serde_json::Value = serde_json::from_slice(&read.stdout).unwrap();
-    assert_eq!(outcome["schema"], "mechcore.fight-outcome.v4");
+    assert_eq!(outcome["schema"], "mechcore.fight-outcome");
     assert!(outcome["ticks"].as_u64().unwrap() > 0);
     assert_eq!(outcome["unresolved"], serde_json::json!([]), "{outcome}");
 
@@ -339,7 +336,7 @@ red:
     ]);
     assert!(from_layout.status.success());
     let report: serde_json::Value = serde_json::from_slice(&from_layout.stdout).unwrap();
-    assert_eq!(report["schema"], "mechcore.convert-fight-result.v1");
+    assert_eq!(report["schema"], "mechcore.convert-fight-result");
     assert_eq!(report["source"], "simulator");
     assert_eq!(fs::read_to_string(&written).unwrap(), document);
 
@@ -349,7 +346,7 @@ red:
     let compared = mechcore(&["diff".as_ref(), written.as_os_str(), written.as_os_str()]);
     assert_eq!(compared.status.code(), Some(0));
     let report: serde_json::Value = serde_json::from_slice(&compared.stdout).unwrap();
-    assert_eq!(report["schema"], "mechcore.fight-diff-result.v1");
+    assert_eq!(report["schema"], "mechcore.fight-diff-result");
     let changed = directory.path().join("changed.yaml");
     fs::write(
         &changed,
@@ -466,7 +463,7 @@ fn verify_fights_a_fight_document_again_and_names_what_differs() {
     // What the simulator wrote, it arrives at again.
     let (code, report) = verify("fight.yaml", &document);
     assert_eq!(code, Some(0), "{report}");
-    assert_eq!(report["schema"], "mechcore.verify-result.v1");
+    assert_eq!(report["schema"], "mechcore.verify-result");
     assert_eq!(report["kind"], "fight");
     assert_eq!(report["valid"], true);
     assert_eq!(
@@ -572,7 +569,7 @@ fn stats_read_a_tick_and_answer_every_formation() {
         .unwrap();
     assert!(read.status.success());
     let written: serde_json::Value = serde_json::from_slice(&read.stdout).unwrap();
-    assert_eq!(written["schema"], "mechcore.fight-stats.v4");
+    assert_eq!(written["schema"], "mechcore.fight-stats");
     assert_eq!(written["tick"], 1, "the first tick is the default");
     assert!(written["ticks"].as_u64().unwrap() > 1);
     // Every formation answers. A Marksman's description gives 8 m/s, 140 m
@@ -646,7 +643,7 @@ fn buildings_read_the_towers_a_map_gives_each_side() {
         .unwrap();
     assert!(read.status.success());
     let standing: serde_json::Value = serde_json::from_slice(&read.stdout).unwrap();
-    assert_eq!(standing["schema"], "mechcore.fight-buildings.v1");
+    assert_eq!(standing["schema"], "mechcore.fight-buildings");
     assert_eq!(standing["tick"], 1, "the first tick is the default");
     for side in ["blue", "red"] {
         let towers = standing["sides"][side]["towers"].as_array().unwrap();

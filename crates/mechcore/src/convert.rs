@@ -300,7 +300,7 @@ fn replay_to_match(grbr: &[u8], destination: &Path) -> Result<Answer, Failure> {
     write(destination, &yaml)?;
 
     let converted = MatchReport {
-        schema: "mechcore.replay-convert-result.v1",
+        schema: "mechcore.replay-convert-result",
         r#match: destination.display().to_string(),
         map_id: r#match.map_id,
         seed: r#match.seed,
@@ -386,7 +386,7 @@ fn match_to_replay(bytes: &[u8], destination: &Path) -> Result<Answer, Failure> 
     .map_err(Failure::refused)?;
     write(destination, replay)?;
     let written = MatchReplayReport {
-        schema: "mechcore.replay-convert-match-result.v1",
+        schema: "mechcore.replay-convert-match-result",
         replay: destination.display().to_string(),
         map_id: stated.map_id,
         seed: stated.seed,
@@ -427,7 +427,7 @@ fn layout_to_replay(
             .map_err(Failure::refused)?;
     write(destination, replay)?;
     let written = LayoutReplayReport {
-        schema: "mechcore.replay-convert-layout-result.v1",
+        schema: "mechcore.replay-convert-layout-result",
         replay: destination.display().to_string(),
         map_id: plan
             .map_id
@@ -492,7 +492,7 @@ fn project(bytes: &[u8], round: Option<i32>, output: Option<&Path>) -> Result<An
             write(output, &yaml)?;
             report(
                 &serde_json::json!({
-                    "schema": "mechcore.convert-layout-result.v1",
+                    "schema": "mechcore.convert-layout-result",
                     "layout": output.display().to_string(),
                     "round": round,
                 }),
@@ -697,7 +697,7 @@ fn written(fight: mechcore_document::Fight, output: Option<&Path>) -> Result<Ans
     write(output, &yaml)?;
     report(
         &serde_json::json!({
-            "schema": "mechcore.convert-fight-result.v1",
+            "schema": "mechcore.convert-fight-result",
             "fight": output.display().to_string(),
             "round": round,
             "source": source,

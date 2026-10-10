@@ -28,7 +28,7 @@ use crate::{
     turn::Side,
 };
 
-pub(crate) const SCHEMA: &str = "mechcore.fight-buildings.v1";
+pub(crate) const SCHEMA: &str = "mechcore.fight-buildings";
 
 /// Every standing object one tick of a recording holds.
 #[derive(Serialize)]

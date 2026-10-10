@@ -312,10 +312,7 @@ fn the_kind_is_read_from_the_content_and_an_unsupported_pair_names_it() {
         os("7"),
     ]);
     assert_eq!(code, Some(0), "{error}");
-    assert_eq!(
-        written["schema"],
-        "mechcore.replay-convert-layout-result.v1"
-    );
+    assert_eq!(written["schema"], "mechcore.replay-convert-layout-result");
     assert_eq!(written["seed"], 7);
 
     // An existing destination is replaced only when asked to.
