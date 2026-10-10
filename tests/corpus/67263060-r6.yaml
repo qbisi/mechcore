@@ -1,0 +1,106 @@
+# Replay 2328_20261008--67263060, round 6, map 1032. Blue's Phantom Ray 100
+# on a Mobile Beacon enters its attack on Steel Ball 258 on tick 635 and
+# stands from tick 640, the Steel Ball by its path. Blue wins on tick 994,
+# and the extra skills holding no lock stand as they were: Sticky Oil
+# Bombs cooling from that tick, Scorching Charges locking.
+kind: fight
+source: game
+map_id: 1032
+seed: 1749991361
+round: 6
+blue:
+  officers: [super_supply_enhancement, efficient_light_manufacturing, rhino_specialist]
+  techs:
+    fire_badger: [scorching_charge]
+    phantom_ray: [armor_enhancement, sticky_oil_bomb]
+    void_eye: [electromagnetic_armor]
+  blueprints: [attack_enhancement, defense_enhancement_ii]
+  tower_strengthen_levels: [2, 0]
+  units:
+  - {name: void_eye, index: 0, position: {x: 30, y: -100}, level: 2, exp: 1027/1465, source: legacy}
+  - {name: void_eye, index: 1, position: {x: 250, y: -100}, level: 2, exp: 950/1465, source: legacy}
+  - {name: void_eye, index: 2, position: {x: 140, y: -100}, level: 2, exp: 263/1465, source: legacy}
+  - {name: fire_badger, index: 3, position: {x: 195, y: -100}, exp: 671/1400, source: legacy}
+  - {name: fire_badger, index: 4, position: {x: 85, y: -100}, exp: 1277/1400, source: legacy}
+  - {name: crawler, index: 5, position: {x: 140, y: -135}, exp: 441/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: 140, y: -225}, exp: 450/450, rotated: true, source: legacy}
+  - {name: crawler, index: 8, position: {x: 290, y: -115}, exp: 290/450, rotated: true, source: legacy}
+  - {name: phantom_ray, index: 9, position: {x: 145, y: -190}, level: 3, source: legacy}
+  - {name: phantom_ray, index: 10, position: {x: 350, y: 35}, level: 2, source: legacy}
+  - {name: fire_badger, index: 12, position: {x: 275, y: -80}, exp: 1189/1400, source: legacy}
+  - {name: void_eye, index: 14, position: {x: 310, y: 30}, level: 2, exp: 206/1465, source: legacy}
+  - {name: phantom_ray, index: 15, position: {x: 145, y: -60}, level: 2, exp: 1977/2253, source: legacy}
+  - {name: phoenix, index: 16, position: {x: 230, y: -140}, level: 4}
+  - {name: void_eye, index: 17, position: {x: 90, y: -20}}
+  - {name: void_eye, index: 18, position: {x: 190, y: -20}}
+  - {name: phantom_ray, index: 19, position: {x: -240, y: -55}, rotated: true}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -236, y: -66}, {x: -36, y: -72}, {x: -61, y: 126}]}
+red:
+  officers: [advanced_power_system, speed_specialist]
+  techs:
+    melting_point: [energy_diffraction, range_enhancement]
+    sabertooth: [secondary_armament]
+    typhoon: [field_entrenchment]
+  units:
+  - {name: crawler, index: 0, position: {x: -70, y: -85}, exp: 400/450, rotated: true, source: legacy}
+  - {name: crawler, index: 1, position: {x: -150, y: -35}, exp: 450/450, rotated: true, source: legacy}
+  - {name: crawler, index: 2, position: {x: -230, y: -85}, exp: 450/450, rotated: true, source: legacy}
+  - {name: sabertooth, index: 3, position: {x: -185, y: -45}, exp: 1173/1300, source: legacy}
+  - {name: sabertooth, index: 4, position: {x: -125, y: -45}, exp: 1300/1300, source: legacy}
+  - {name: hound, index: 5, position: {x: -220, y: -50}, exp: 690/750, source: legacy}
+  - {name: hound, index: 6, position: {x: -80, y: -50}, exp: 505/750, source: legacy}
+  - {name: crawler, index: 7, position: {x: 325, y: 300}, exp: 450/450, rotated: true, source: legacy}
+  - {name: hound, index: 8, position: {x: 200, y: -40}, exp: 628/750, source: legacy}
+  - {name: hound, index: 9, position: {x: 280, y: -40}, exp: 449/750, source: legacy}
+  - {name: typhoon, index: 10, position: {x: -100, y: -80}, exp: 371/1950, rotated: true, source: legacy}
+  - {name: typhoon, index: 11, position: {x: -190, y: -80}, exp: 1310/1950, rotated: true, source: legacy}
+  - {name: typhoon, index: 13, position: {x: -140, y: -140}, exp: 192/1950, rotated: true, source: legacy}
+  - {name: crawler, index: 14, position: {x: 240, y: -35}, exp: 450/450, rotated: true, source: legacy}
+  - {name: steel_ball, index: 15, position: {x: 240, y: -85}, exp: 768/1000, rotated: true, source: legacy}
+  - {name: fang, index: 16, position: {x: 160, y: -205}, exp: 600/600, rotated: true, source: legacy}
+  - {name: fang, index: 17, position: {x: -150, y: -255}, exp: 17/600, rotated: true, source: legacy}
+  - {name: melting_point, index: 18, position: {x: -140, y: -100}}
+  - {name: melting_point, index: 19, position: {x: -220, y: -130}}
+  - {name: melting_point, index: 20, position: {x: -20, y: -120}}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 4, position: {x: 191, y: -10}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: 232, y: -38}, {x: 161, y: 130}, {x: 160, y: 141}]}
+outcome:
+  blue.units[0].exp: 1465
+  blue.units[1].exp: 1087
+  blue.units[2].exp: 818
+  blue.units[3].exp: 1090
+  blue.units[4].exp: 1400
+  blue.units[5].exp: 450
+  blue.units[7].exp: 450
+  blue.units[8].exp: 1773
+  blue.units[9].exp: 304
+  blue.units[10].exp: 1400
+  blue.units[11].exp: 500
+  blue.units[12].exp: 2253
+  blue.units[13].exp: 1412
+  blue.units[14].exp: 80
+  blue.units[15].exp: 74
+  blue.units[16].exp: 1000
+  red.core_damage: 1099
+  red.units[0].exp: 420
+  red.units[3].exp: 1265
+  red.units[5].exp: 731
+  red.units[6].exp: 584
+  red.units[8].exp: 674
+  red.units[9].exp: 470
+  red.units[10].exp: 450
+  red.units[11].exp: 1474
+  red.units[12].exp: 249
+  red.units[14].exp: 914
+  red.units[16].exp: 272
+  red.units[17].exp: 912
+  red.units[18].exp: 1400
+  red.units[19].exp: 1152
+  red.contraptions[0].retained: false
+ticks: 1003
+hash: 23:31d9a2d15cf1597abad328c9f5259655dc069a71240c9295b931e8e6ab8001e6
