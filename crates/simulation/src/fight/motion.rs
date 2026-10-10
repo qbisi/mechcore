@@ -1565,6 +1565,10 @@ impl Simulation {
     /// A Phantom Ray on a Mobile Beacon, cooling on the Tarantula its last
     /// check found, stops walking and turning as the Tarantula comes into
     /// range, and then attacks it as [`Self::attack_under_command`] does.
+    /// `MotionAttackState.Enter` calls `RVOControllerFixed.StopMove`, so the
+    /// solve the update falls before hands the agent no speed: a Phantom Ray
+    /// of replay 67263060's round 6 entering on a solve's update stands at
+    /// the next boundary, an enemy by its path holding it there.
     pub(in crate::fight) fn move_into_cooled_target(&mut self, actor_id: u64) -> Flow {
         let actor = &self.actors[&actor_id];
         let Some((_, Some(target))) = actor.skills.main.cooling() else {
@@ -1579,11 +1583,15 @@ impl Simulation {
             self.begin_transition(actor_id, MotionState::Moving, MotionState::Attacking);
             return Flow::Done;
         }
-        self.actors
+        let actor = self
+            .actors
             .get_mut(&actor_id)
-            .expect("actor identity is stable")
-            .motion
-            .state = MotionState::Attacking;
+            .expect("actor identity is stable");
+        actor.motion.state = MotionState::Attacking;
+        actor.motion.next_target_x_q32 = actor.x_q32;
+        actor.motion.next_target_z_q32 = actor.z_q32;
+        actor.motion.next_speed_q32 = 0;
+        actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
         Flow::Done
     }
 
