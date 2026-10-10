@@ -52,7 +52,7 @@ shell
 
 /// The commands a line may name beside the game's, which need no session.
 const SESSIONLESS: &[&str] = &[
-    "verify", "convert", "diff", "show", "play", "format", "schema", "man",
+    "verify", "convert", "diff", "show", "play", "format", "schema", "generate", "man",
 ];
 
 pub(crate) fn run() -> Result<(), String> {
