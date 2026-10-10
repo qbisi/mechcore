@@ -20,7 +20,8 @@ downloaded one, `<version>\<id>.rep.grbr`, is a server-side reconstruction
 and never admitted. A replay whose prefix is not the installed version's was
 recorded by another version and is left alone, as is one written in the last
 minute, which may still be growing. A name already in the corpus must hold the
-same bytes; the corpus is never rewritten.
+same bytes; the corpus is never rewritten. It fetches over HTTPS like `sync`
+and pushes over SSH through `ssh.github.com` on port 443.
 """
 
 import filecmp
@@ -37,6 +38,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import build_data  # noqa: E402
 
 REPOSITORY = "https://github.com/qbisi/mechcore-replay"
+# Pushes go over SSH on port 443, which networks that block port 22 still let through.
+PUSH_URL = "ssh://git@ssh.github.com:443/qbisi/mechcore-replay.git"
 ROOT = Path(__file__).resolve().parents[2]
 DESTINATION = ROOT / "work" / "replay"
 APP = Path(os.environ.get(
@@ -103,7 +106,7 @@ def publish():
         return
     git("add", "--", *(str(p.relative_to(DESTINATION)) for p in added))
     git("commit", "-q", "-m", f"replay: {len(added)} of {version}")
-    git("push", "-q", "origin", "HEAD:master")
+    git("push", "-q", PUSH_URL, "HEAD:master")
     print(f"{len(added)} replays of {version} published at {git('rev-parse', '--short', 'HEAD')}")
 
 
