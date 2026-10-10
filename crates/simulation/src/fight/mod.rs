@@ -731,7 +731,7 @@ impl Simulation {
         simulation.deploy_attack_intervals()?;
         simulation.face_constructions_at_fight_start(
             layout.round,
-            &layout.legacy_units,
+            &layout.legacy,
             &layout.delivered,
         );
         // `SiegeModeEffectSystem.OnEnterFight` digs its units in after each

@@ -16,6 +16,7 @@ use crate::DocumentKind;
 use crate::catalog::battle_skill_type_from_id;
 use crate::layout::{
     BattleSkillEntry, BattleSkillRelease, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, Side,
+    UnitSource,
 };
 use crate::r#match::{Release, SideState, SkillTarget, State};
 
@@ -39,22 +40,52 @@ pub fn project(
         map_id: Some(map_id),
         seed: Some(seed),
         round,
-        blue: Side {
-            legacy_index: legacy_index(&opening.blue),
-            ..project_side(&state.blue, "blue")?
-        },
-        red: Side {
-            legacy_index: legacy_index(&opening.red),
-            ..project_side(&state.red, "red")?
-        },
+        blue: with_sources(project_side(&state.blue, "blue")?, &opening.blue, round)?,
+        red: with_sources(project_side(&state.red, "red")?, &opening.red, round)?,
     })
 }
 
-/// The units a side carried into the round: those the allocator had named
-/// as it opened, the squads its officers delivered among them, and in the
-/// first round the advance team it chose before it.
-fn legacy_index(opening: &SideState) -> i32 {
-    opening.next_index.unit
+/// Each unit's source and the side's recovered squads, from where the side's
+/// unit allocator stood as its round opened, its officers' deliveries made.
+/// The allocator had named every unit the side carried in, in the first round
+/// the advance team it chose before it, and then the squads its officers
+/// delivered, one for each officer whose `opening_unit` the round activates,
+/// which take the indices just below it. A delivered squad the side no longer
+/// holds was recovered; a unit of a higher index joined during the round.
+///
+/// # Errors
+///
+/// Returns an error when the build's officer table cannot be read.
+pub fn assign_sources(side: &mut Side, allocator: i32, round: i32) -> Result<(), String> {
+    let economy = crate::economy::Economy::embedded()?;
+    let deliveries = side
+        .officers
+        .iter()
+        .filter(|officer| {
+            economy
+                .officer(**officer)
+                .is_some_and(|row| row.opening_unit.is_some() && row.active_round.contains(&round))
+        })
+        .count();
+    let delivered_from = allocator - i32::try_from(deliveries).unwrap_or(i32::MAX);
+    for unit in &mut side.units {
+        unit.source = if unit.index >= allocator {
+            UnitSource::Joined
+        } else if unit.index >= delivered_from {
+            UnitSource::Delivered
+        } else {
+            UnitSource::Legacy
+        };
+    }
+    side.recovered = (delivered_from..allocator)
+        .filter(|index| side.units.iter().all(|unit| unit.index != *index))
+        .collect();
+    Ok(())
+}
+
+fn with_sources(mut side: Side, opening: &SideState, round: i32) -> Result<Side, String> {
+    assign_sources(&mut side, opening.next_index.unit, round)?;
+    Ok(side)
 }
 
 /// Projects every round of a match both ways and compiles each layout.
@@ -103,7 +134,8 @@ pub fn every_round(
     Ok(layouts)
 }
 
-/// Projects one side of a position, every unit joining it during the round.
+/// Projects one side of a position, every unit joining it during the round:
+/// the units' sources are the round's opening position's to say.
 ///
 /// # Errors
 ///
@@ -121,7 +153,7 @@ pub fn project_side(state: &SideState, side_name: &str) -> Result<Side, String> 
         blueprints: chain_blueprints(&state.blueprints),
         energy_tower_skills: energy_tower_skills(&state.energy_tower_skills),
         tower_strengthen_levels: tower_strengthen_levels(&state.tower_strengthen_levels),
-        legacy_index: 0,
+        recovered: Vec::new(),
         units: state
             .units
             .iter()

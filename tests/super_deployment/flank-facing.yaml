@@ -11,17 +11,15 @@ map_id: 1021
 seed: 4242
 round: 3
 blue:
-  legacy_index: 3
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: hound, index: 1, position: {x: -330, y: 60}}
-  - {name: arclight, index: 2, position: {x: 330, y: 100}}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, source: legacy}
+  - {name: hound, index: 1, position: {x: -330, y: 60}, source: legacy}
+  - {name: arclight, index: 2, position: {x: 330, y: 100}, source: legacy}
 red:
-  legacy_index: 3
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: hound, index: 1, position: {x: -330, y: 200}}
-  - {name: arclight, index: 2, position: {x: 330, y: 250}}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, source: legacy}
+  - {name: hound, index: 1, position: {x: -330, y: 200}, source: legacy}
+  - {name: arclight, index: 2, position: {x: 330, y: 250}, source: legacy}
 outcome:
   blue.units[1].exp: 400
   blue.units[2].exp: 400

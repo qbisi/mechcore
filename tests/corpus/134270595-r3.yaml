@@ -1,7 +1,7 @@
 # Replay 2324_20260925--134270595, round 3, map 1011. Red's Anti-Armor
 # Turret has stood since round 1. As the fight starts it turns to the
 # nearest of what it can fire at among blue's towers and legacy units,
-# those below blue's legacy_index; the units blue bought this round are not
+# those whose source is legacy; the units blue bought this round are not
 # among them.
 
 kind: fight
@@ -11,37 +11,35 @@ seed: 1079409969
 round: 3
 blue:
   officers: [additional_deployment_slot, training_specialist]
-  legacy_index: 10
   units:
-  - {name: crawler, index: 0, position: {x: 160, y: -105}, level: 2, rotated: true}
-  - {name: crawler, index: 1, position: {x: 135, y: -190}, level: 2}
-  - {name: crawler, index: 2, position: {x: 70, y: -35}, exp: 50/450, rotated: true}
-  - {name: tarantula, index: 3, position: {x: 115, y: -55}, exp: 1109/1500}
-  - {name: tarantula, index: 4, position: {x: 25, y: -55}, exp: 139/1500}
-  - {name: void_eye, index: 5, position: {x: 160, y: -70}, level: 3}
-  - {name: void_eye, index: 6, position: {x: 70, y: -70}, exp: 526/650}
-  - {name: tarantula, index: 7, position: {x: 285, y: -25}, level: 2}
-  - {name: crawler, index: 8, position: {x: 310, y: 35}, exp: 30/450}
-  - {name: fang, index: 9, position: {x: -10, y: -35}, exp: 65/600, rotated: true}
+  - {name: crawler, index: 0, position: {x: 160, y: -105}, level: 2, rotated: true, source: legacy}
+  - {name: crawler, index: 1, position: {x: 135, y: -190}, level: 2, source: legacy}
+  - {name: crawler, index: 2, position: {x: 70, y: -35}, exp: 50/450, rotated: true, source: legacy}
+  - {name: tarantula, index: 3, position: {x: 115, y: -55}, exp: 1109/1500, source: legacy}
+  - {name: tarantula, index: 4, position: {x: 25, y: -55}, exp: 139/1500, source: legacy}
+  - {name: void_eye, index: 5, position: {x: 160, y: -70}, level: 3, source: legacy}
+  - {name: void_eye, index: 6, position: {x: 70, y: -70}, exp: 526/650, source: legacy}
+  - {name: tarantula, index: 7, position: {x: 285, y: -25}, level: 2, source: legacy}
+  - {name: crawler, index: 8, position: {x: 310, y: 35}, exp: 30/450, source: legacy}
+  - {name: fang, index: 9, position: {x: -10, y: -35}, exp: 65/600, rotated: true, source: legacy}
   - {name: crawler, index: 10, position: {x: 290, y: -85}, rotated: true}
   - {name: crawler, index: 11, position: {x: 30, y: -175}, rotated: true}
   - {name: fang, index: 12, position: {x: 230, y: -35}, rotated: true}
 red:
   officers: [additional_deployment_slot, marksman_specialist]
   blueprints: [attack_enhancement]
-  legacy_index: 11
   units:
-  - {name: hound, index: 0, position: {x: -120, y: -190}, exp: 525/750}
-  - {name: hound, index: 1, position: {x: 0, y: -190}, exp: 530/750}
-  - {name: hound, index: 2, position: {x: 120, y: -190}, exp: 141/750}
-  - {name: sabertooth, index: 3, position: {x: 115, y: -145}, exp: 643/1300}
-  - {name: sabertooth, index: 4, position: {x: 5, y: -145}, exp: 1184/1300}
-  - {name: crawler, index: 5, position: {x: 0, y: -225}, exp: 128/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 120, y: -225}, exp: 184/450, rotated: true}
-  - {name: marksman, index: 7, position: {x: -190, y: -210}, level: 3, exp: 432/2315}
-  - {name: hound, index: 8, position: {x: -260, y: -190}, exp: 164/750}
-  - {name: crawler, index: 9, position: {x: -140, y: -135}, exp: 76/450, rotated: true}
-  - {name: crawler, index: 10, position: {x: 0, y: -285}, exp: 51/450, rotated: true}
+  - {name: hound, index: 0, position: {x: -120, y: -190}, exp: 525/750, source: legacy}
+  - {name: hound, index: 1, position: {x: 0, y: -190}, exp: 530/750, source: legacy}
+  - {name: hound, index: 2, position: {x: 120, y: -190}, exp: 141/750, source: legacy}
+  - {name: sabertooth, index: 3, position: {x: 115, y: -145}, exp: 643/1300, source: legacy}
+  - {name: sabertooth, index: 4, position: {x: 5, y: -145}, exp: 1184/1300, source: legacy}
+  - {name: crawler, index: 5, position: {x: 0, y: -225}, exp: 128/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: 120, y: -225}, exp: 184/450, rotated: true, source: legacy}
+  - {name: marksman, index: 7, position: {x: -190, y: -210}, level: 3, exp: 432/2315, source: legacy}
+  - {name: hound, index: 8, position: {x: -260, y: -190}, exp: 164/750, source: legacy}
+  - {name: crawler, index: 9, position: {x: -140, y: -135}, exp: 76/450, rotated: true, source: legacy}
+  - {name: crawler, index: 10, position: {x: 0, y: -285}, exp: 51/450, rotated: true, source: legacy}
   - {name: sabertooth, index: 11, position: {x: -115, y: -145}}
   - {name: crawler, index: 12, position: {x: 310, y: 255}, travelling: true}
   - {name: crawler, index: 13, position: {x: -120, y: -225}, rotated: true}

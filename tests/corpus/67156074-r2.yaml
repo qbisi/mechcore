@@ -10,15 +10,14 @@ seed: 718623077
 round: 2
 blue:
   officers: [training_specialist]
-  legacy_index: 7
   units:
-  - {name: void_eye, index: 0, position: {x: 50, y: -140}, exp: 154/650}
-  - {name: void_eye, index: 1, position: {x: -10, y: -140}, exp: 103/650}
-  - {name: void_eye, index: 2, position: {x: 110, y: -140}, level: 2, exp: 332/1465}
-  - {name: mustang, index: 3, position: {x: 225, y: -240}, exp: 394/1200}
-  - {name: mustang, index: 4, position: {x: 105, y: -240}, exp: 615/1200}
-  - {name: crawler, index: 5, position: {x: 140, y: -285}, exp: 291/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 140, y: -205}, exp: 139/450, rotated: true}
+  - {name: void_eye, index: 0, position: {x: 50, y: -140}, exp: 154/650, source: legacy}
+  - {name: void_eye, index: 1, position: {x: -10, y: -140}, exp: 103/650, source: legacy}
+  - {name: void_eye, index: 2, position: {x: 110, y: -140}, level: 2, exp: 332/1465, source: legacy}
+  - {name: mustang, index: 3, position: {x: 225, y: -240}, exp: 394/1200, source: legacy}
+  - {name: mustang, index: 4, position: {x: 105, y: -240}, exp: 615/1200, source: legacy}
+  - {name: crawler, index: 5, position: {x: 140, y: -285}, exp: 291/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: 140, y: -205}, exp: 139/450, rotated: true, source: legacy}
   - {name: marksman, index: 7, position: {x: -120, y: -170}}
   - {name: marksman, index: 8, position: {x: -60, y: -170}}
   - {name: mustang, index: 9, position: {x: -105, y: -240}}
@@ -27,15 +26,14 @@ blue:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   officers: [sabertooth_specialist]
-  legacy_index: 7
   units:
-  - {name: fang, index: 0, position: {x: -155, y: -120}, exp: 53/600}
-  - {name: fang, index: 1, position: {x: 155, y: -120}, exp: 161/600}
-  - {name: fang, index: 2, position: {x: 0, y: -105}, exp: 86/600, rotated: true}
-  - {name: steel_ball, index: 3, position: {x: -185, y: -280}, exp: 69/1000}
-  - {name: steel_ball, index: 4, position: {x: 185, y: -280}, exp: 572/1000}
-  - {name: crawler, index: 5, position: {x: 140, y: -285}, exp: 41/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -140, y: -285}, exp: 20/450, rotated: true}
+  - {name: fang, index: 0, position: {x: -155, y: -120}, exp: 53/600, source: legacy}
+  - {name: fang, index: 1, position: {x: 155, y: -120}, exp: 161/600, source: legacy}
+  - {name: fang, index: 2, position: {x: 0, y: -105}, exp: 86/600, rotated: true, source: legacy}
+  - {name: steel_ball, index: 3, position: {x: -185, y: -280}, exp: 69/1000, source: legacy}
+  - {name: steel_ball, index: 4, position: {x: 185, y: -280}, exp: 572/1000, source: legacy}
+  - {name: crawler, index: 5, position: {x: 140, y: -285}, exp: 41/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: -140, y: -285}, exp: 20/450, rotated: true, source: legacy}
   - {name: phantom_ray, index: 7, position: {x: -185, y: -250}}
   - {name: arclight, index: 8, position: {x: -140, y: -150}}
   - {name: arclight, index: 9, position: {x: 0, y: -150}}

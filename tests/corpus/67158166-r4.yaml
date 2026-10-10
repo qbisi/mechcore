@@ -15,41 +15,39 @@ blue:
   techs:
     rhino: [whirlwind, armor_enhancement]
   blueprints: [defense_enhancement]
-  legacy_index: 14
   units:
-  - {name: vortex, index: 0, position: {x: -140, y: -70}, level: 2}
-  - {name: vortex, index: 1, position: {x: -90, y: -70}, level: 2, exp: 1025/1690}
-  - {name: vortex, index: 2, position: {x: -20, y: -70}, level: 2}
-  - {name: fire_badger, index: 3, position: {x: -175, y: -70}, exp: 835/1400}
-  - {name: fire_badger, index: 4, position: {x: -55, y: -70}, exp: 829/1400}
-  - {name: crawler, index: 5, position: {x: -140, y: -105}, exp: 450/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -20, y: -105}, exp: 450/450, rotated: true}
-  - {name: fang, index: 7, position: {x: 160, y: -175}, exp: 352/600, rotated: true}
-  - {name: fang, index: 8, position: {x: -160, y: -175}, rotated: true}
-  - {name: fang, index: 9, position: {x: -140, y: -35}, exp: 326/600, rotated: true}
-  - {name: rhino, index: 10, position: {x: -165, y: -95}, exp: 1068/1150, equipment: [haste_module]}
-  - {name: rhino, index: 11, position: {x: -45, y: -95}, exp: 58/1150}
-  - {name: fire_badger, index: 12, position: {x: 5, y: -160}, exp: 113/1400}
-  - {name: fang, index: 13, position: {x: -20, y: -35}, exp: 193/600, rotated: true}
+  - {name: vortex, index: 0, position: {x: -140, y: -70}, level: 2, source: legacy}
+  - {name: vortex, index: 1, position: {x: -90, y: -70}, level: 2, exp: 1025/1690, source: legacy}
+  - {name: vortex, index: 2, position: {x: -20, y: -70}, level: 2, source: legacy}
+  - {name: fire_badger, index: 3, position: {x: -175, y: -70}, exp: 835/1400, source: legacy}
+  - {name: fire_badger, index: 4, position: {x: -55, y: -70}, exp: 829/1400, source: legacy}
+  - {name: crawler, index: 5, position: {x: -140, y: -105}, exp: 450/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: -20, y: -105}, exp: 450/450, rotated: true, source: legacy}
+  - {name: fang, index: 7, position: {x: 160, y: -175}, exp: 352/600, rotated: true, source: legacy}
+  - {name: fang, index: 8, position: {x: -160, y: -175}, rotated: true, source: legacy}
+  - {name: fang, index: 9, position: {x: -140, y: -35}, exp: 326/600, rotated: true, source: legacy}
+  - {name: rhino, index: 10, position: {x: -165, y: -95}, exp: 1068/1150, equipment: [haste_module], source: legacy}
+  - {name: rhino, index: 11, position: {x: -45, y: -95}, exp: 58/1150, source: legacy}
+  - {name: fire_badger, index: 12, position: {x: 5, y: -160}, exp: 113/1400, source: legacy}
+  - {name: fang, index: 13, position: {x: -20, y: -35}, exp: 193/600, rotated: true, source: legacy}
   - {name: rhino, index: 14, position: {x: 205, y: -95}}
   - {name: rhino, index: 15, position: {x: -115, y: -95}}
 red:
   officers: [cost_control_specialist]
   blueprints: [attack_enhancement]
-  legacy_index: 14
   units:
-  - {name: crawler, index: 0, position: {x: -100, y: -205}, exp: 86/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: -290, y: -265}, exp: 450/450, rotated: true}
-  - {name: crawler, index: 2, position: {x: 290, y: -265}, exp: 33/450, rotated: true}
-  - {name: marksman, index: 5, position: {x: -120, y: -170}, exp: 641/650}
-  - {name: marksman, index: 6, position: {x: 120, y: -170}, exp: 504/650}
-  - {name: vulcan, index: 7, position: {x: 80, y: -140}, exp: 1286/2200}
-  - {name: crawler, index: 8, position: {x: 110, y: -135}, exp: 94/450, rotated: true}
-  - {name: sledgehammer, index: 9, position: {x: 210, y: -115}, exp: 57/1300, rotated: true}
-  - {name: sledgehammer, index: 10, position: {x: 10, y: -115}, exp: 238/1300, rotated: true}
-  - {name: melting_point, index: 11, position: {x: 40, y: -130}, exp: 696/1400}
-  - {name: crawler, index: 12, position: {x: 120, y: -285}, rotated: true}
-  - {name: crawler, index: 13, position: {x: 40, y: -205}, exp: 55/450, rotated: true}
+  - {name: crawler, index: 0, position: {x: -100, y: -205}, exp: 86/450, rotated: true, source: legacy}
+  - {name: crawler, index: 1, position: {x: -290, y: -265}, exp: 450/450, rotated: true, source: legacy}
+  - {name: crawler, index: 2, position: {x: 290, y: -265}, exp: 33/450, rotated: true, source: legacy}
+  - {name: marksman, index: 5, position: {x: -120, y: -170}, exp: 641/650, source: legacy}
+  - {name: marksman, index: 6, position: {x: 120, y: -170}, exp: 504/650, source: legacy}
+  - {name: vulcan, index: 7, position: {x: 80, y: -140}, exp: 1286/2200, source: legacy}
+  - {name: crawler, index: 8, position: {x: 110, y: -135}, exp: 94/450, rotated: true, source: legacy}
+  - {name: sledgehammer, index: 9, position: {x: 210, y: -115}, exp: 57/1300, rotated: true, source: legacy}
+  - {name: sledgehammer, index: 10, position: {x: 10, y: -115}, exp: 238/1300, rotated: true, source: legacy}
+  - {name: melting_point, index: 11, position: {x: 40, y: -130}, exp: 696/1400, source: legacy}
+  - {name: crawler, index: 12, position: {x: 120, y: -285}, rotated: true, source: legacy}
+  - {name: crawler, index: 13, position: {x: 40, y: -205}, exp: 55/450, rotated: true, source: legacy}
   - {name: melting_point, index: 14, position: {x: 140, y: -130}}
   - {name: vulcan, index: 15, position: {x: 180, y: -140}}
   - {name: crawler, index: 16, position: {x: -40, y: -285}, rotated: true}

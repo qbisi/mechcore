@@ -285,7 +285,7 @@ fn fight_side(side: mechcore_document::Side, read: SideReading) -> Result<FightS
         blueprints: side.blueprints,
         energy_tower_skills: side.energy_tower_skills,
         tower_strengthen_levels: side.tower_strengthen_levels,
-        legacy_index: side.legacy_index,
+        recovered: side.recovered,
         units: side
             .units
             .into_iter()
@@ -300,6 +300,7 @@ fn fight_side(side: mechcore_document::Side, read: SideReading) -> Result<FightS
                     rotated: unit.rotated,
                     equipment: unit.equipment,
                     travelling: unit.travelling,
+                    source: unit.source,
                 })
             })
             .collect::<Result<_, Failure>>()?,

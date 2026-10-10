@@ -117,15 +117,12 @@ pub struct Side {
     pub energy_tower_skills: Vec<i32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tower_strengthen_levels: Vec<i32>,
-    /// The units of a lower index are legacy: the side carried them into
-    /// the round, the squads its officers delivered as the round opened and
-    /// the first round's advance team among them. Every other unit joined it
-    /// during the round. `0`, every unit joined during the round, is the
-    /// default.
-    #[serde(default, skip_serializing_if = "is_zero")]
-    #[schemars(range(min = 0))]
-    pub legacy_index: i32,
     pub units: Vec<UnitPlacement>,
+    /// The index of each squad an officer delivered as the round opened that
+    /// the side recovered during the deployment, in ascending order: the fight
+    /// sees nothing of it, and a layout replay recovers it by this index.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub recovered: Vec<i32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub constructions: Vec<StaticPlacement>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -134,11 +131,6 @@ pub struct Side {
     /// this round's releases in release order.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub battle_skills: Vec<BattleSkillEntry>,
-}
-
-#[allow(clippy::trivially_copy_pass_by_ref)]
-pub(crate) fn is_zero(value: &i32) -> bool {
-    *value == 0
 }
 
 /// What a compiled side holds of officers and technologies, as the adapter and
@@ -174,6 +166,33 @@ pub struct UnitPlacement {
     pub equipment: Vec<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub travelling: Option<bool>,
+    /// How the unit came to its side; `joined`, the default, is not written.
+    #[serde(default, skip_serializing_if = "UnitSource::is_joined")]
+    pub source: UnitSource,
+}
+
+/// How a unit came to its side, which a fight tells apart as it starts.
+#[derive(
+    Clone, Copy, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum UnitSource {
+    /// The side carried it into the round: a unit of an earlier round, or the
+    /// first round's advance team. The round's snapshot holds it.
+    Legacy,
+    /// A squad an officer delivered as the round opened.
+    Delivered,
+    /// It joined the side during the round: bought, taken as a reinforcement
+    /// or added.
+    #[default]
+    Joined,
+}
+
+impl UnitSource {
+    #[allow(clippy::trivially_copy_pass_by_ref)]
+    pub(crate) fn is_joined(source: &Self) -> bool {
+        *source == Self::Joined
+    }
 }
 
 /// A formation's experience within its level, as a gauge written

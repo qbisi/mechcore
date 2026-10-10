@@ -11,15 +11,14 @@ seed: 473683013
 round: 2
 blue:
   officers: [rhino_specialist, improved_phoenix]
-  legacy_index: 7
   units:
-  - {name: marksman, index: 0, position: {x: 100, y: -170}, exp: 193/650}
-  - {name: marksman, index: 1, position: {x: -100, y: -170}, exp: 165/650}
-  - {name: marksman, index: 2, position: {x: 0, y: -170}, exp: 165/650}
-  - {name: fire_badger, index: 3, position: {x: -140, y: -135}, exp: 127/1400, rotated: true}
-  - {name: fire_badger, index: 4, position: {x: 140, y: -135}, exp: 168/1400, rotated: true}
-  - {name: crawler, index: 5, position: {x: 125, y: -190}, exp: 76/450}
-  - {name: crawler, index: 6, position: {x: -125, y: -190}, exp: 59/450}
+  - {name: marksman, index: 0, position: {x: 100, y: -170}, exp: 193/650, source: legacy}
+  - {name: marksman, index: 1, position: {x: -100, y: -170}, exp: 165/650, source: legacy}
+  - {name: marksman, index: 2, position: {x: 0, y: -170}, exp: 165/650, source: legacy}
+  - {name: fire_badger, index: 3, position: {x: -140, y: -135}, exp: 127/1400, rotated: true, source: legacy}
+  - {name: fire_badger, index: 4, position: {x: 140, y: -135}, exp: 168/1400, rotated: true, source: legacy}
+  - {name: crawler, index: 5, position: {x: 125, y: -190}, exp: 76/450, source: legacy}
+  - {name: crawler, index: 6, position: {x: -125, y: -190}, exp: 59/450, source: legacy}
   - {name: crawler, index: 7, position: {x: 290, y: -285}, rotated: true}
   - {name: crawler, index: 8, position: {x: -290, y: -285}, rotated: true}
   - {name: crawler, index: 9, position: {x: 5, y: -230}}
@@ -27,15 +26,14 @@ blue:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   officers: [giant_specialist]
-  legacy_index: 7
   units:
-  - {name: marksman, index: 0, position: {x: -60, y: -190}, exp: 341/650}
-  - {name: marksman, index: 1, position: {x: 60, y: -190}, exp: 352/650}
-  - {name: marksman, index: 2, position: {x: 0, y: -190}, exp: 390/650}
-  - {name: sledgehammer, index: 3, position: {x: 65, y: -130}, exp: 256/1300}
-  - {name: sledgehammer, index: 4, position: {x: -65, y: -130}, exp: 198/1300}
-  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 198/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -140, y: -205}, exp: 62/450, rotated: true}
+  - {name: marksman, index: 0, position: {x: -60, y: -190}, exp: 341/650, source: legacy}
+  - {name: marksman, index: 1, position: {x: 60, y: -190}, exp: 352/650, source: legacy}
+  - {name: marksman, index: 2, position: {x: 0, y: -190}, exp: 390/650, source: legacy}
+  - {name: sledgehammer, index: 3, position: {x: 65, y: -130}, exp: 256/1300, source: legacy}
+  - {name: sledgehammer, index: 4, position: {x: -65, y: -130}, exp: 198/1300, source: legacy}
+  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 198/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: -140, y: -205}, exp: 62/450, rotated: true, source: legacy}
   - {name: stormcaller, index: 7, position: {x: 135, y: -150}}
   - {name: stormcaller, index: 8, position: {x: -135, y: -150}}
   constructions:

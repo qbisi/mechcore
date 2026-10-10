@@ -18,30 +18,29 @@ blue:
     phoenix: [range_enhancement]
   blueprints: [attack_enhancement, defense_enhancement]
   energy_tower_skills: [enhanced_range]
-  legacy_index: 23
   units:
-  - {name: fang, index: 0, position: {x: -110, y: -135}, level: 2, rotated: true}
-  - {name: fang, index: 1, position: {x: 0, y: -125}, level: 2, exp: 32/1352, rotated: true}
-  - {name: fang, index: 2, position: {x: 110, y: -135}, level: 2, rotated: true}
-  - {name: sabertooth, index: 3, position: {x: -45, y: -165}, level: 3}
-  - {name: sabertooth, index: 4, position: {x: 45, y: -165}, level: 2, exp: 919/2929}
-  - {name: sledgehammer, index: 5, position: {x: -55, y: -130}, level: 2, exp: 2026/2929}
-  - {name: sledgehammer, index: 6, position: {x: 55, y: -130}, level: 2, exp: 2082/2929}
-  - {name: fang, index: 7, position: {x: -135, y: -210}, level: 2}
-  - {name: fang, index: 8, position: {x: 135, y: -210}, exp: 378/600}
-  - {name: crawler, index: 9, position: {x: -5, y: -300}, exp: 335/450}
-  - {name: phoenix, index: 10, position: {x: -180, y: -250}, exp: 932/1300}
-  - {name: phoenix, index: 11, position: {x: 180, y: -250}, level: 3}
-  - {name: sledgehammer, index: 12, position: {x: 185, y: -130}, level: 2}
-  - {name: fang, index: 13, position: {x: 240, y: -165}, level: 2, rotated: true}
-  - {name: fang, index: 14, position: {x: -240, y: -165}, exp: 432/600, rotated: true}
-  - {name: sledgehammer, index: 15, position: {x: -185, y: -130}, exp: 554/1300}
-  - {name: wasp, index: 16, position: {x: -85, y: -210}, exp: 303/900}
-  - {name: wasp, index: 17, position: {x: 85, y: -210}, level: 2}
-  - {name: crawler, index: 19, position: {x: -155, y: -80}, exp: 11/450}
-  - {name: crawler, index: 20, position: {x: 145, y: -80}, exp: 94/450}
-  - {name: fang, index: 21, position: {x: 240, y: -215}, exp: 141/600, rotated: true}
-  - {name: fang, index: 22, position: {x: -240, y: -215}, exp: 546/600, rotated: true}
+  - {name: fang, index: 0, position: {x: -110, y: -135}, level: 2, rotated: true, source: legacy}
+  - {name: fang, index: 1, position: {x: 0, y: -125}, level: 2, exp: 32/1352, rotated: true, source: legacy}
+  - {name: fang, index: 2, position: {x: 110, y: -135}, level: 2, rotated: true, source: legacy}
+  - {name: sabertooth, index: 3, position: {x: -45, y: -165}, level: 3, source: legacy}
+  - {name: sabertooth, index: 4, position: {x: 45, y: -165}, level: 2, exp: 919/2929, source: legacy}
+  - {name: sledgehammer, index: 5, position: {x: -55, y: -130}, level: 2, exp: 2026/2929, source: legacy}
+  - {name: sledgehammer, index: 6, position: {x: 55, y: -130}, level: 2, exp: 2082/2929, source: legacy}
+  - {name: fang, index: 7, position: {x: -135, y: -210}, level: 2, source: legacy}
+  - {name: fang, index: 8, position: {x: 135, y: -210}, exp: 378/600, source: legacy}
+  - {name: crawler, index: 9, position: {x: -5, y: -300}, exp: 335/450, source: legacy}
+  - {name: phoenix, index: 10, position: {x: -180, y: -250}, exp: 932/1300, source: legacy}
+  - {name: phoenix, index: 11, position: {x: 180, y: -250}, level: 3, source: legacy}
+  - {name: sledgehammer, index: 12, position: {x: 185, y: -130}, level: 2, source: legacy}
+  - {name: fang, index: 13, position: {x: 240, y: -165}, level: 2, rotated: true, source: legacy}
+  - {name: fang, index: 14, position: {x: -240, y: -165}, exp: 432/600, rotated: true, source: legacy}
+  - {name: sledgehammer, index: 15, position: {x: -185, y: -130}, exp: 554/1300, source: legacy}
+  - {name: wasp, index: 16, position: {x: -85, y: -210}, exp: 303/900, source: legacy}
+  - {name: wasp, index: 17, position: {x: 85, y: -210}, level: 2, source: legacy}
+  - {name: crawler, index: 19, position: {x: -155, y: -80}, exp: 11/450, source: legacy}
+  - {name: crawler, index: 20, position: {x: 145, y: -80}, exp: 94/450, source: legacy}
+  - {name: fang, index: 21, position: {x: 240, y: -215}, exp: 141/600, rotated: true, source: legacy}
+  - {name: fang, index: 22, position: {x: -240, y: -215}, exp: 546/600, rotated: true, source: legacy}
   - {name: crawler, index: 23, position: {x: 290, y: -245}, rotated: true}
   - {name: crawler, index: 24, position: {x: -290, y: -245}, rotated: true}
   - {name: phoenix, index: 25, position: {x: 0, y: -280}}
@@ -58,28 +57,27 @@ red:
   blueprints: [attack_enhancement, defense_enhancement]
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [0, 1]
-  legacy_index: 25
   units:
-  - {name: void_eye, index: 0, position: {x: -140, y: -70}, exp: 631/650}
-  - {name: void_eye, index: 1, position: {x: -230, y: -70}, exp: 650/650}
-  - {name: void_eye, index: 2, position: {x: -50, y: -70}, exp: 466/650}
-  - {name: crawler, index: 5, position: {x: -50, y: -35}, exp: 132/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -230, y: -35}, exp: 360/450, rotated: true}
-  - {name: fang, index: 7, position: {x: -140, y: -225}, level: 2, exp: 1303/1352, rotated: true}
-  - {name: fang, index: 8, position: {x: 140, y: -225}, level: 2, exp: 758/1352, rotated: true}
-  - {name: fang, index: 9, position: {x: 140, y: -105}, level: 4, exp: 361/2694, rotated: true}
-  - {name: centurion, index: 12, position: {x: -195, y: -215}, level: 2, exp: 3522/5070}
-  - {name: centurion, index: 13, position: {x: 195, y: -215}, level: 3, exp: 927/8014}
-  - {name: fang, index: 14, position: {x: -140, y: -115}, exp: 600/600, rotated: true}
-  - {name: fang, index: 15, position: {x: -275, y: -20}, level: 2, exp: 355/1352}
-  - {name: fang, index: 16, position: {x: -350, y: 285}, exp: 505/600}
-  - {name: fang, index: 17, position: {x: 275, y: -20}, exp: 461/600}
-  - {name: centurion, index: 19, position: {x: -85, y: -215}, exp: 1354/2250}
-  - {name: centurion, index: 20, position: {x: 85, y: -215}, exp: 2250/2250}
-  - {name: centurion, index: 21, position: {x: 195, y: -115}, exp: 2250/2250}
-  - {name: fang, index: 22, position: {x: -275, y: -170}, exp: 109/600}
-  - {name: fang, index: 23, position: {x: 350, y: 285}, exp: 109/600}
-  - {name: fang, index: 24, position: {x: 0, y: -115}, exp: 154/600, rotated: true}
+  - {name: void_eye, index: 0, position: {x: -140, y: -70}, exp: 631/650, source: legacy}
+  - {name: void_eye, index: 1, position: {x: -230, y: -70}, exp: 650/650, source: legacy}
+  - {name: void_eye, index: 2, position: {x: -50, y: -70}, exp: 466/650, source: legacy}
+  - {name: crawler, index: 5, position: {x: -50, y: -35}, exp: 132/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: -230, y: -35}, exp: 360/450, rotated: true, source: legacy}
+  - {name: fang, index: 7, position: {x: -140, y: -225}, level: 2, exp: 1303/1352, rotated: true, source: legacy}
+  - {name: fang, index: 8, position: {x: 140, y: -225}, level: 2, exp: 758/1352, rotated: true, source: legacy}
+  - {name: fang, index: 9, position: {x: 140, y: -105}, level: 4, exp: 361/2694, rotated: true, source: legacy}
+  - {name: centurion, index: 12, position: {x: -195, y: -215}, level: 2, exp: 3522/5070, source: legacy}
+  - {name: centurion, index: 13, position: {x: 195, y: -215}, level: 3, exp: 927/8014, source: legacy}
+  - {name: fang, index: 14, position: {x: -140, y: -115}, exp: 600/600, rotated: true, source: legacy}
+  - {name: fang, index: 15, position: {x: -275, y: -20}, level: 2, exp: 355/1352, source: legacy}
+  - {name: fang, index: 16, position: {x: -350, y: 285}, exp: 505/600, source: legacy}
+  - {name: fang, index: 17, position: {x: 275, y: -20}, exp: 461/600, source: legacy}
+  - {name: centurion, index: 19, position: {x: -85, y: -215}, exp: 1354/2250, source: legacy}
+  - {name: centurion, index: 20, position: {x: 85, y: -215}, exp: 2250/2250, source: legacy}
+  - {name: centurion, index: 21, position: {x: 195, y: -115}, exp: 2250/2250, source: legacy}
+  - {name: fang, index: 22, position: {x: -275, y: -170}, exp: 109/600, source: legacy}
+  - {name: fang, index: 23, position: {x: 350, y: 285}, exp: 109/600, source: legacy}
+  - {name: fang, index: 24, position: {x: 0, y: -115}, exp: 154/600, rotated: true, source: legacy}
   - {name: centurion, index: 25, position: {x: -265, y: -95}, level: 2}
   - {name: centurion, index: 26, position: {x: -205, y: -95}, level: 2}
   - {name: centurion, index: 27, position: {x: -235, y: -95}, level: 2}

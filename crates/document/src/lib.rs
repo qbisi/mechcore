@@ -59,8 +59,8 @@ pub use layout::{
     BattleSkillEntry, BattleSkillRelease, ContraptionPlacement, Experience,
     FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, MAX_TOWER_STRENGTHEN_LEVEL,
     MOVEMENT_ENHANCEMENT_SKILL, OilArea, Position, RANGE_ENHANCEMENT_SKILL, Region, Side, Standing,
-    StaticPlacement, TOWER_COUNT, Techs, UnitPlacement, canonical_embedded_yaml, canonical_yaml,
-    parse_embedded_yaml, parse_yaml,
+    StaticPlacement, TOWER_COUNT, Techs, UnitPlacement, UnitSource, canonical_embedded_yaml,
+    canonical_yaml, parse_embedded_yaml, parse_yaml,
 };
 
 /// Names the kind of document a file carries.
@@ -591,9 +591,9 @@ red:
         let plan = compile(&json!({
             "kind": "layout",
             "round": 3,
-            "blue": {"legacy_index": 2, "units": [
-                {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}},
-                {"index": 1, "name": "marksman", "position": {"x": -310, "y": 20}},
+            "blue": {"units": [
+                {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}, "source": "legacy"},
+                {"index": 1, "name": "marksman", "position": {"x": -310, "y": 20}, "source": "legacy"},
                 {"index": 2, "name": "arclight", "position": {"x": 310, "y": 20}, "travelling": true}
             ], "contraptions": [
                 {"index": 0, "name": "interceptor", "position": {"x": 5, "y": -85}}
@@ -660,7 +660,7 @@ red:
                 .contains("stands on a flank without travelling")
         );
         let mut legacy = layout(3, false);
-        legacy["blue"]["legacy_index"] = json!(1);
+        legacy["blue"]["units"][0]["source"] = json!("legacy");
         assert!(!compile(&legacy).unwrap().blue.units[0].travelling);
     }
 

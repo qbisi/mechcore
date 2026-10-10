@@ -11,13 +11,12 @@ seed: 746343185
 round: 1
 blue:
   officers: [quick_supply_specialist]
-  legacy_index: 5
   units:
-  - {name: arclight, index: 0, position: {x: 50, y: -70}}
-  - {name: arclight, index: 1, position: {x: 140, y: -70}}
-  - {name: arclight, index: 2, position: {x: 230, y: -70}}
-  - {name: sabertooth, index: 3, position: {x: 185, y: -65}}
-  - {name: sabertooth, index: 4, position: {x: 95, y: -65}}
+  - {name: arclight, index: 0, position: {x: 50, y: -70}, source: legacy}
+  - {name: arclight, index: 1, position: {x: 140, y: -70}, source: legacy}
+  - {name: arclight, index: 2, position: {x: 230, y: -70}, source: legacy}
+  - {name: sabertooth, index: 3, position: {x: 185, y: -65}, source: legacy}
+  - {name: sabertooth, index: 4, position: {x: 95, y: -65}, source: legacy}
   - {name: crawler, index: 5, position: {x: 90, y: -125}, rotated: true}
   - {name: crawler, index: 6, position: {x: 190, y: -125}, rotated: true}
   constructions:
@@ -25,13 +24,12 @@ blue:
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
 red:
   officers: [fortified_specialist]
-  legacy_index: 5
   units:
-  - {name: crawler, index: 0, position: {x: 290, y: -265}, rotated: true}
-  - {name: crawler, index: 1, position: {x: -290, y: -255}, rotated: true}
-  - {name: crawler, index: 2, position: {x: -135, y: -190}}
-  - {name: sabertooth, index: 3, position: {x: 5, y: -105}}
-  - {name: sabertooth, index: 4, position: {x: -75, y: -105}}
+  - {name: crawler, index: 0, position: {x: 290, y: -265}, rotated: true, source: legacy}
+  - {name: crawler, index: 1, position: {x: -290, y: -255}, rotated: true, source: legacy}
+  - {name: crawler, index: 2, position: {x: -135, y: -190}, source: legacy}
+  - {name: sabertooth, index: 3, position: {x: 5, y: -105}, source: legacy}
+  - {name: sabertooth, index: 4, position: {x: -75, y: -105}, source: legacy}
   - {name: crawler, index: 5, position: {x: 145, y: -190}}
   - {name: crawler, index: 6, position: {x: 0, y: -255}, rotated: true}
   constructions:

@@ -11,17 +11,16 @@ seed: 865572396
 round: 3
 blue:
   officers: [elite_specialist]
-  legacy_index: 9
   units:
-  - {name: arclight, index: 0, position: {x: -90, y: -60}, exp: 400/750}
-  - {name: arclight, index: 1, position: {x: -190, y: -60}, exp: 251/750}
-  - {name: arclight, index: 2, position: {x: 180, y: -210}, exp: 600/750}
-  - {name: steel_ball, index: 3, position: {x: -225, y: -50}, exp: 598/1000}
-  - {name: steel_ball, index: 4, position: {x: -125, y: -70}, exp: 441/1000}
-  - {name: crawler, index: 5, position: {x: -125, y: -50}, level: 2, exp: 125/1014}
-  - {name: crawler, index: 6, position: {x: -225, y: -70}, level: 2, exp: 336/1014}
-  - {name: crawler, index: 7, position: {x: -310, y: 35}, level: 2, exp: 70/1014}
-  - {name: crawler, index: 8, position: {x: -170, y: -35}, level: 2, exp: 38/1014, rotated: true}
+  - {name: arclight, index: 0, position: {x: -90, y: -60}, exp: 400/750, source: legacy}
+  - {name: arclight, index: 1, position: {x: -190, y: -60}, exp: 251/750, source: legacy}
+  - {name: arclight, index: 2, position: {x: 180, y: -210}, exp: 600/750, source: legacy}
+  - {name: steel_ball, index: 3, position: {x: -225, y: -50}, exp: 598/1000, source: legacy}
+  - {name: steel_ball, index: 4, position: {x: -125, y: -70}, exp: 441/1000, source: legacy}
+  - {name: crawler, index: 5, position: {x: -125, y: -50}, level: 2, exp: 125/1014, source: legacy}
+  - {name: crawler, index: 6, position: {x: -225, y: -70}, level: 2, exp: 336/1014, source: legacy}
+  - {name: crawler, index: 7, position: {x: -310, y: 35}, level: 2, exp: 70/1014, source: legacy}
+  - {name: crawler, index: 8, position: {x: -170, y: -35}, level: 2, exp: 38/1014, rotated: true, source: legacy}
   - {name: wasp, index: 9, position: {x: -260, y: -205}, rotated: true}
   - {name: wasp, index: 10, position: {x: 235, y: -50}}
   - {name: steel_ball, index: 11, position: {x: 235, y: -70}, level: 2}
@@ -34,17 +33,16 @@ blue:
 red:
   officers: [fortified_specialist]
   blueprints: [attack_enhancement, defense_enhancement]
-  legacy_index: 9
   units:
-  - {name: void_eye, index: 0, position: {x: 80, y: -70}, exp: 432/650}
-  - {name: void_eye, index: 1, position: {x: 180, y: -70}, exp: 482/650}
-  - {name: void_eye, index: 2, position: {x: 280, y: -70}, exp: 280/650}
-  - {name: tarantula, index: 3, position: {x: 85, y: -115}, level: 2}
-  - {name: tarantula, index: 4, position: {x: 185, y: -115}, exp: 1364/1500}
-  - {name: vortex, index: 5, position: {x: 110, y: -130}, level: 2, exp: 1017/1690}
-  - {name: vortex, index: 6, position: {x: 150, y: -130}, exp: 748/750}
-  - {name: crawler, index: 7, position: {x: 80, y: -155}, exp: 101/450, rotated: true}
-  - {name: crawler, index: 8, position: {x: 190, y: -155}, exp: 160/450, rotated: true}
+  - {name: void_eye, index: 0, position: {x: 80, y: -70}, exp: 432/650, source: legacy}
+  - {name: void_eye, index: 1, position: {x: 180, y: -70}, exp: 482/650, source: legacy}
+  - {name: void_eye, index: 2, position: {x: 280, y: -70}, exp: 280/650, source: legacy}
+  - {name: tarantula, index: 3, position: {x: 85, y: -115}, level: 2, source: legacy}
+  - {name: tarantula, index: 4, position: {x: 185, y: -115}, exp: 1364/1500, source: legacy}
+  - {name: vortex, index: 5, position: {x: 110, y: -130}, level: 2, exp: 1017/1690, source: legacy}
+  - {name: vortex, index: 6, position: {x: 150, y: -130}, exp: 748/750, source: legacy}
+  - {name: crawler, index: 7, position: {x: 80, y: -155}, exp: 101/450, rotated: true, source: legacy}
+  - {name: crawler, index: 8, position: {x: 190, y: -155}, exp: 160/450, rotated: true, source: legacy}
   - {name: wasp, index: 9, position: {x: -350, y: 175}, travelling: true}
   - {name: wasp, index: 10, position: {x: -350, y: 255}, travelling: true}
   - {name: tarantula, index: 11, position: {x: 275, y: -95}}

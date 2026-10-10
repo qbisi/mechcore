@@ -14,22 +14,21 @@ blue:
     sabertooth: [field_maintenance]
     hound: [range_enhancement]
   blueprints: [attack_enhancement, defense_enhancement]
-  legacy_index: 14
   units:
-  - {name: fang, index: 0, position: {x: 160, y: -175}, exp: 365/600, rotated: true}
-  - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 50/600, rotated: true}
-  - {name: fang, index: 2, position: {x: -160, y: -35}, exp: 276/600, rotated: true}
-  - {name: sabertooth, index: 3, position: {x: -165, y: -75}, level: 2}
-  - {name: sabertooth, index: 4, position: {x: -75, y: -75}, exp: 339/1300}
-  - {name: hound, index: 5, position: {x: -120, y: -80}, level: 2}
-  - {name: hound, index: 6, position: {x: -210, y: -80}, level: 2}
-  - {name: hound, index: 7, position: {x: 130, y: -150}, exp: 315/750}
-  - {name: hound, index: 8, position: {x: -270, y: -90}, level: 2}
-  - {name: hound, index: 9, position: {x: -30, y: -80}, exp: 72/750}
-  - {name: sabertooth, index: 10, position: {x: -265, y: -45}, exp: 1003/1300}
-  - {name: centurion, index: 11, position: {x: -125, y: -115}, exp: 714/2250}
-  - {name: crawler, index: 12, position: {x: -135, y: -190}, exp: 49/450}
-  - {name: crawler, index: 13, position: {x: -170, y: -115}, exp: 67/450, rotated: true}
+  - {name: fang, index: 0, position: {x: 160, y: -175}, exp: 365/600, rotated: true, source: legacy}
+  - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 50/600, rotated: true, source: legacy}
+  - {name: fang, index: 2, position: {x: -160, y: -35}, exp: 276/600, rotated: true, source: legacy}
+  - {name: sabertooth, index: 3, position: {x: -165, y: -75}, level: 2, source: legacy}
+  - {name: sabertooth, index: 4, position: {x: -75, y: -75}, exp: 339/1300, source: legacy}
+  - {name: hound, index: 5, position: {x: -120, y: -80}, level: 2, source: legacy}
+  - {name: hound, index: 6, position: {x: -210, y: -80}, level: 2, source: legacy}
+  - {name: hound, index: 7, position: {x: 130, y: -150}, exp: 315/750, source: legacy}
+  - {name: hound, index: 8, position: {x: -270, y: -90}, level: 2, source: legacy}
+  - {name: hound, index: 9, position: {x: -30, y: -80}, exp: 72/750, source: legacy}
+  - {name: sabertooth, index: 10, position: {x: -265, y: -45}, exp: 1003/1300, source: legacy}
+  - {name: centurion, index: 11, position: {x: -125, y: -115}, exp: 714/2250, source: legacy}
+  - {name: crawler, index: 12, position: {x: -135, y: -190}, exp: 49/450, source: legacy}
+  - {name: crawler, index: 13, position: {x: -170, y: -115}, exp: 67/450, rotated: true, source: legacy}
   - {name: hound, index: 14, position: {x: 70, y: -120}}
   - {name: sabertooth, index: 15, position: {x: 25, y: -95}}
   battle_skills:
@@ -39,20 +38,19 @@ red:
   techs:
     hound: [incendiary_bomb]
     centurion: [range_enhancement]
-  legacy_index: 12
   units:
-  - {name: void_eye, index: 0, position: {x: 110, y: -170}, level: 2, exp: 27/1465}
-  - {name: void_eye, index: 1, position: {x: -110, y: -170}, exp: 650/650}
-  - {name: void_eye, index: 2, position: {x: 0, y: -170}, exp: 559/650}
-  - {name: mustang, index: 3, position: {x: 95, y: -280}, level: 2}
-  - {name: mustang, index: 4, position: {x: -65, y: -280}, level: 2, exp: 1034/2704}
-  - {name: crawler, index: 5, position: {x: 120, y: -225}, exp: 99/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -120, y: -225}, exp: 242/450, rotated: true}
-  - {name: crawler, index: 7, position: {x: 290, y: -285}, exp: 11/450, rotated: true}
-  - {name: sledgehammer, index: 8, position: {x: 140, y: -135}, exp: 421/1300, rotated: true}
-  - {name: centurion, index: 9, position: {x: -55, y: -165}, level: 2, exp: 1286/5070}
-  - {name: hound, index: 10, position: {x: -120, y: -190}}
-  - {name: hound, index: 11, position: {x: 120, y: -190}, exp: 86/750}
+  - {name: void_eye, index: 0, position: {x: 110, y: -170}, level: 2, exp: 27/1465, source: legacy}
+  - {name: void_eye, index: 1, position: {x: -110, y: -170}, exp: 650/650, source: legacy}
+  - {name: void_eye, index: 2, position: {x: 0, y: -170}, exp: 559/650, source: legacy}
+  - {name: mustang, index: 3, position: {x: 95, y: -280}, level: 2, source: legacy}
+  - {name: mustang, index: 4, position: {x: -65, y: -280}, level: 2, exp: 1034/2704, source: legacy}
+  - {name: crawler, index: 5, position: {x: 120, y: -225}, exp: 99/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: -120, y: -225}, exp: 242/450, rotated: true, source: legacy}
+  - {name: crawler, index: 7, position: {x: 290, y: -285}, exp: 11/450, rotated: true, source: legacy}
+  - {name: sledgehammer, index: 8, position: {x: 140, y: -135}, exp: 421/1300, rotated: true, source: legacy}
+  - {name: centurion, index: 9, position: {x: -55, y: -165}, level: 2, exp: 1286/5070, source: legacy}
+  - {name: hound, index: 10, position: {x: -120, y: -190}, source: legacy}
+  - {name: hound, index: 11, position: {x: 120, y: -190}, exp: 86/750, source: legacy}
   - {name: centurion, index: 12, position: {x: 55, y: -165}}
   - {name: hound, index: 13, position: {x: 160, y: -20}}
   constructions:

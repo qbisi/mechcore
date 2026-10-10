@@ -780,7 +780,7 @@ impl Simulation {
     pub(in crate::fight) fn face_constructions_at_fight_start(
         &mut self,
         round: u32,
-        legacy_units: &BTreeMap<u32, i32>,
+        legacy: &BTreeSet<(u32, i32)>,
         delivered: &BTreeSet<(u32, i32)>,
     ) {
         let ids = self
@@ -832,14 +832,9 @@ impl Simulation {
                 }
             }
             for actor in self.actors.values() {
-                let delivered_squad =
-                    delivered.contains(&(actor.placement.team, actor.placement.formation_index));
-                let old =
-                    delivered_squad
-                        || (round > 1
-                            && legacy_units.get(&actor.placement.team).is_some_and(
-                                |&legacy_index| actor.placement.formation_index < legacy_index,
-                            ));
+                let formation = (actor.placement.team, actor.placement.formation_index);
+                let delivered_squad = delivered.contains(&formation);
+                let old = delivered_squad || (round > 1 && legacy.contains(&formation));
                 if actor.placement.team != source.team
                     && old
                     && actor.alive()

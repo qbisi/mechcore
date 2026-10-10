@@ -15,22 +15,21 @@ blue:
     sandworm: [burrow_maintenance, armor_enhancement]
   blueprints: [attack_enhancement, defense_enhancement]
   energy_tower_skills: [enhanced_range]
-  legacy_index: 16
   units:
-  - {name: fang, index: 0, position: {x: 140, y: -205}, exp: 342/600, rotated: true}
-  - {name: fang, index: 1, position: {x: -140, y: -205}, exp: 456/600, rotated: true}
-  - {name: fang, index: 2, position: {x: 0, y: -205}, exp: 505/600, rotated: true}
-  - {name: crawler, index: 5, position: {x: 290, y: -235}, exp: 105/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -290, y: -235}, exp: 108/450, rotated: true}
-  - {name: crawler, index: 7, position: {x: 0, y: -255}, exp: 35/450, rotated: true}
-  - {name: crawler, index: 8, position: {x: -140, y: -255}, exp: 53/450, rotated: true}
-  - {name: crawler, index: 9, position: {x: 140, y: -255}, exp: 98/450, rotated: true}
-  - {name: mustang, index: 10, position: {x: -175, y: -300}, level: 2, exp: 1865/2704}
-  - {name: sandworm, index: 11, position: {x: 170, y: -250}, exp: 1089/2000, equipment: [amplifying_core]}
-  - {name: sandworm, index: 12, position: {x: -170, y: -250}, exp: 418/2000}
-  - {name: sandworm, index: 13, position: {x: -30, y: -250}, exp: 573/2000}
-  - {name: fang, index: 14, position: {x: -140, y: -95}, rotated: true}
-  - {name: fang, index: 15, position: {x: 140, y: -95}, exp: 85/600, rotated: true}
+  - {name: fang, index: 0, position: {x: 140, y: -205}, exp: 342/600, rotated: true, source: legacy}
+  - {name: fang, index: 1, position: {x: -140, y: -205}, exp: 456/600, rotated: true, source: legacy}
+  - {name: fang, index: 2, position: {x: 0, y: -205}, exp: 505/600, rotated: true, source: legacy}
+  - {name: crawler, index: 5, position: {x: 290, y: -235}, exp: 105/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: -290, y: -235}, exp: 108/450, rotated: true, source: legacy}
+  - {name: crawler, index: 7, position: {x: 0, y: -255}, exp: 35/450, rotated: true, source: legacy}
+  - {name: crawler, index: 8, position: {x: -140, y: -255}, exp: 53/450, rotated: true, source: legacy}
+  - {name: crawler, index: 9, position: {x: 140, y: -255}, exp: 98/450, rotated: true, source: legacy}
+  - {name: mustang, index: 10, position: {x: -175, y: -300}, level: 2, exp: 1865/2704, source: legacy}
+  - {name: sandworm, index: 11, position: {x: 170, y: -250}, exp: 1089/2000, equipment: [amplifying_core], source: legacy}
+  - {name: sandworm, index: 12, position: {x: -170, y: -250}, exp: 418/2000, source: legacy}
+  - {name: sandworm, index: 13, position: {x: -30, y: -250}, exp: 573/2000, source: legacy}
+  - {name: fang, index: 14, position: {x: -140, y: -95}, rotated: true, source: legacy}
+  - {name: fang, index: 15, position: {x: 140, y: -95}, exp: 85/600, rotated: true, source: legacy}
   - {name: sandworm, index: 16, position: {x: 30, y: -250}}
   - {name: fang, index: 17, position: {x: 0, y: -95}, rotated: true}
 red:
@@ -39,21 +38,20 @@ red:
     melting_point: [energy_absorption]
     fire_badger: [range_enhancement]
   blueprints: [attack_enhancement]
-  legacy_index: 15
   units:
-  - {name: hound, index: 0, position: {x: 190, y: -50}, exp: 750/750}
-  - {name: hound, index: 1, position: {x: 90, y: -50}, exp: 750/750}
-  - {name: hound, index: 2, position: {x: -140, y: -200}, exp: 750/750, rotated: true}
-  - {name: void_eye, index: 5, position: {x: 90, y: -80}, exp: 650/650}
-  - {name: void_eye, index: 6, position: {x: -190, y: -170}, exp: 353/650}
-  - {name: hound, index: 7, position: {x: -280, y: -200}, exp: 577/750, rotated: true}
-  - {name: marksman, index: 8, position: {x: 190, y: -130}, level: 2}
-  - {name: marksman, index: 9, position: {x: 110, y: -130}, exp: 574/650}
-  - {name: mustang, index: 10, position: {x: 185, y: -220}, level: 3}
-  - {name: crawler, index: 11, position: {x: -280, y: -245}, exp: 171/450, rotated: true}
-  - {name: crawler, index: 12, position: {x: 260, y: -285}, exp: 299/450, rotated: true}
-  - {name: melting_point, index: 13, position: {x: -160, y: -140}, exp: 747/1400}
-  - {name: melting_point, index: 14, position: {x: 220, y: -140}, exp: 1156/1400}
+  - {name: hound, index: 0, position: {x: 190, y: -50}, exp: 750/750, source: legacy}
+  - {name: hound, index: 1, position: {x: 90, y: -50}, exp: 750/750, source: legacy}
+  - {name: hound, index: 2, position: {x: -140, y: -200}, exp: 750/750, rotated: true, source: legacy}
+  - {name: void_eye, index: 5, position: {x: 90, y: -80}, exp: 650/650, source: legacy}
+  - {name: void_eye, index: 6, position: {x: -190, y: -170}, exp: 353/650, source: legacy}
+  - {name: hound, index: 7, position: {x: -280, y: -200}, exp: 577/750, rotated: true, source: legacy}
+  - {name: marksman, index: 8, position: {x: 190, y: -130}, level: 2, source: legacy}
+  - {name: marksman, index: 9, position: {x: 110, y: -130}, exp: 574/650, source: legacy}
+  - {name: mustang, index: 10, position: {x: 185, y: -220}, level: 3, source: legacy}
+  - {name: crawler, index: 11, position: {x: -280, y: -245}, exp: 171/450, rotated: true, source: legacy}
+  - {name: crawler, index: 12, position: {x: 260, y: -285}, exp: 299/450, rotated: true, source: legacy}
+  - {name: melting_point, index: 13, position: {x: -160, y: -140}, exp: 747/1400, source: legacy}
+  - {name: melting_point, index: 14, position: {x: 220, y: -140}, exp: 1156/1400, source: legacy}
   - {name: fire_badger, index: 15, position: {x: 220, y: -95}, rotated: true}
   - {name: fire_badger, index: 16, position: {x: -140, y: -95}, rotated: true}
   - {name: fire_badger, index: 17, position: {x: 120, y: -95}, rotated: true}

@@ -10,26 +10,24 @@ seed: 584983421
 round: 1
 blue:
   officers: [missile_specialist]
-  legacy_index: 5
   units:
-  - {name: void_eye, index: 0, position: {x: 70, y: -180}}
-  - {name: void_eye, index: 1, position: {x: 110, y: -180}}
-  - {name: void_eye, index: 2, position: {x: 170, y: -180}}
-  - {name: mustang, index: 3, position: {x: 140, y: -285}, rotated: true}
-  - {name: mustang, index: 4, position: {x: -140, y: -285}, rotated: true}
+  - {name: void_eye, index: 0, position: {x: 70, y: -180}, source: legacy}
+  - {name: void_eye, index: 1, position: {x: 110, y: -180}, source: legacy}
+  - {name: void_eye, index: 2, position: {x: 170, y: -180}, source: legacy}
+  - {name: mustang, index: 3, position: {x: 140, y: -285}, rotated: true, source: legacy}
+  - {name: mustang, index: 4, position: {x: -140, y: -285}, rotated: true, source: legacy}
   - {name: mustang, index: 5, position: {x: 255, y: -300}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 red:
   officers: [secondary_equipment_expert]
-  legacy_index: 5
   units:
-  - {name: crawler, index: 0, position: {x: -140, y: -265}, rotated: true}
-  - {name: crawler, index: 1, position: {x: 140, y: -265}, rotated: true}
-  - {name: crawler, index: 2, position: {x: 0, y: -265}, rotated: true}
-  - {name: steel_ball, index: 3, position: {x: -185, y: -280}}
-  - {name: steel_ball, index: 4, position: {x: 185, y: -280}}
+  - {name: crawler, index: 0, position: {x: -140, y: -265}, rotated: true, source: legacy}
+  - {name: crawler, index: 1, position: {x: 140, y: -265}, rotated: true, source: legacy}
+  - {name: crawler, index: 2, position: {x: 0, y: -265}, rotated: true, source: legacy}
+  - {name: steel_ball, index: 3, position: {x: -185, y: -280}, source: legacy}
+  - {name: steel_ball, index: 4, position: {x: 185, y: -280}, source: legacy}
   - {name: vortex, index: 5, position: {x: -140, y: -140}}
   - {name: vortex, index: 6, position: {x: 140, y: -140}}
   constructions:

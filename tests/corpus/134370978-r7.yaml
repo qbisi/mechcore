@@ -22,28 +22,27 @@ blue:
   blueprints: [attack_enhancement]
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [2, 0]
-  legacy_index: 22
   units:
-  - {name: fang, index: 0, position: {x: 135, y: -190}, exp: 600/600}
-  - {name: fang, index: 1, position: {x: -135, y: -190}, exp: 576/600}
-  - {name: fang, index: 2, position: {x: 100, y: -95}, exp: 401/600, rotated: true}
-  - {name: hound, index: 5, position: {x: 50, y: -140}, level: 3, exp: 353/2671}
-  - {name: hound, index: 6, position: {x: 150, y: -140}, level: 2, exp: 1690/1690}
-  - {name: hound, index: 7, position: {x: 230, y: -130}, level: 2, exp: 1264/1690}
-  - {name: hound, index: 8, position: {x: -30, y: -140}, level: 2, exp: 176/1690}
-  - {name: hound, index: 9, position: {x: 100, y: -150}, level: 2, exp: 1690/1690, rotated: true}
-  - {name: void_eye, index: 10, position: {x: 30, y: -170}, level: 3}
-  - {name: void_eye, index: 11, position: {x: 230, y: -160}, level: 3, exp: 926/2315, rotated: true}
-  - {name: void_eye, index: 12, position: {x: 170, y: -170}, level: 4}
-  - {name: melting_point, index: 13, position: {x: 70, y: -170}, exp: 1400/1400}
-  - {name: crawler, index: 14, position: {x: 170, y: -205}, level: 2, exp: 244/1014, rotated: true}
-  - {name: crawler, index: 15, position: {x: 30, y: -205}, level: 2, exp: 176/1014, rotated: true}
-  - {name: melting_point, index: 16, position: {x: 190, y: -140}, level: 2, exp: 1593/3154}
-  - {name: crawler, index: 17, position: {x: -40, y: -175}, level: 2, exp: 12/1014, rotated: true}
-  - {name: crawler, index: 18, position: {x: 235, y: -190}, level: 2, exp: 228/1014}
-  - {name: void_eye, index: 19, position: {x: 10, y: -140}, level: 2, exp: 406/1465, rotated: true}
-  - {name: void_eye, index: 20, position: {x: 80, y: -130}, level: 3, rotated: true}
-  - {name: void_eye, index: 21, position: {x: 270, y: -130}, level: 2, exp: 1216/1465, rotated: true}
+  - {name: fang, index: 0, position: {x: 135, y: -190}, exp: 600/600, source: legacy}
+  - {name: fang, index: 1, position: {x: -135, y: -190}, exp: 576/600, source: legacy}
+  - {name: fang, index: 2, position: {x: 100, y: -95}, exp: 401/600, rotated: true, source: legacy}
+  - {name: hound, index: 5, position: {x: 50, y: -140}, level: 3, exp: 353/2671, source: legacy}
+  - {name: hound, index: 6, position: {x: 150, y: -140}, level: 2, exp: 1690/1690, source: legacy}
+  - {name: hound, index: 7, position: {x: 230, y: -130}, level: 2, exp: 1264/1690, source: legacy}
+  - {name: hound, index: 8, position: {x: -30, y: -140}, level: 2, exp: 176/1690, source: legacy}
+  - {name: hound, index: 9, position: {x: 100, y: -150}, level: 2, exp: 1690/1690, rotated: true, source: legacy}
+  - {name: void_eye, index: 10, position: {x: 30, y: -170}, level: 3, source: legacy}
+  - {name: void_eye, index: 11, position: {x: 230, y: -160}, level: 3, exp: 926/2315, rotated: true, source: legacy}
+  - {name: void_eye, index: 12, position: {x: 170, y: -170}, level: 4, source: legacy}
+  - {name: melting_point, index: 13, position: {x: 70, y: -170}, exp: 1400/1400, source: legacy}
+  - {name: crawler, index: 14, position: {x: 170, y: -205}, level: 2, exp: 244/1014, rotated: true, source: legacy}
+  - {name: crawler, index: 15, position: {x: 30, y: -205}, level: 2, exp: 176/1014, rotated: true, source: legacy}
+  - {name: melting_point, index: 16, position: {x: 190, y: -140}, level: 2, exp: 1593/3154, source: legacy}
+  - {name: crawler, index: 17, position: {x: -40, y: -175}, level: 2, exp: 12/1014, rotated: true, source: legacy}
+  - {name: crawler, index: 18, position: {x: 235, y: -190}, level: 2, exp: 228/1014, source: legacy}
+  - {name: void_eye, index: 19, position: {x: 10, y: -140}, level: 2, exp: 406/1465, rotated: true, source: legacy}
+  - {name: void_eye, index: 20, position: {x: 80, y: -130}, level: 3, rotated: true, source: legacy}
+  - {name: void_eye, index: 21, position: {x: 270, y: -130}, level: 2, exp: 1216/1465, rotated: true, source: legacy}
   - {name: scorpion, index: 22, position: {x: -35, y: -105}}
   - {name: scorpion, index: 23, position: {x: 285, y: -85}}
   - {name: void_eye, index: 24, position: {x: 230, y: -80}, level: 2}
@@ -61,28 +60,27 @@ red:
     raiden: [range_enhancement]
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [enhanced_range]
-  legacy_index: 22
   units:
-  - {name: crawler, index: 0, position: {x: 140, y: -135}, exp: 450/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 165/450, rotated: true}
-  - {name: crawler, index: 2, position: {x: 0, y: -225}, exp: 450/450, rotated: true}
-  - {name: fire_badger, index: 3, position: {x: 135, y: -100}, level: 2, exp: 502/3154}
-  - {name: fire_badger, index: 4, position: {x: -135, y: -100}, exp: 1205/1400}
-  - {name: marksman, index: 5, position: {x: -120, y: -150}, level: 3}
-  - {name: marksman, index: 6, position: {x: 120, y: -150}, level: 2, exp: 500/1465}
-  - {name: marksman, index: 7, position: {x: 0, y: -140}, level: 4}
-  - {name: sabertooth, index: 8, position: {x: -55, y: -95}, level: 2, exp: 1880/2929, equipment: [photon_coating]}
-  - {name: crawler, index: 9, position: {x: -250, y: -285}, exp: 450/450, rotated: true}
-  - {name: wasp, index: 12, position: {x: -215, y: -270}, level: 2, exp: 664/2028}
-  - {name: wasp, index: 13, position: {x: 235, y: -260}, exp: 900/900}
-  - {name: crawler, index: 14, position: {x: -290, y: -165}, exp: 220/450, rotated: true}
-  - {name: crawler, index: 15, position: {x: 0, y: -285}, exp: 333/450, rotated: true}
-  - {name: stormcaller, index: 16, position: {x: 55, y: -120}, level: 2, equipment: [enhancement_module]}
-  - {name: stormcaller, index: 17, position: {x: -195, y: -130}, level: 2, exp: 648/2479}
-  - {name: stormcaller, index: 18, position: {x: -65, y: -120}, level: 2, exp: 864/2479}
-  - {name: arclight, index: 19, position: {x: -250, y: -130}, exp: 321/750}
-  - {name: arclight, index: 20, position: {x: -120, y: -120}, exp: 349/750}
-  - {name: arclight, index: 21, position: {x: 0, y: -120}, exp: 615/750}
+  - {name: crawler, index: 0, position: {x: 140, y: -135}, exp: 450/450, rotated: true, source: legacy}
+  - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 165/450, rotated: true, source: legacy}
+  - {name: crawler, index: 2, position: {x: 0, y: -225}, exp: 450/450, rotated: true, source: legacy}
+  - {name: fire_badger, index: 3, position: {x: 135, y: -100}, level: 2, exp: 502/3154, source: legacy}
+  - {name: fire_badger, index: 4, position: {x: -135, y: -100}, exp: 1205/1400, source: legacy}
+  - {name: marksman, index: 5, position: {x: -120, y: -150}, level: 3, source: legacy}
+  - {name: marksman, index: 6, position: {x: 120, y: -150}, level: 2, exp: 500/1465, source: legacy}
+  - {name: marksman, index: 7, position: {x: 0, y: -140}, level: 4, source: legacy}
+  - {name: sabertooth, index: 8, position: {x: -55, y: -95}, level: 2, exp: 1880/2929, equipment: [photon_coating], source: legacy}
+  - {name: crawler, index: 9, position: {x: -250, y: -285}, exp: 450/450, rotated: true, source: legacy}
+  - {name: wasp, index: 12, position: {x: -215, y: -270}, level: 2, exp: 664/2028, source: legacy}
+  - {name: wasp, index: 13, position: {x: 235, y: -260}, exp: 900/900, source: legacy}
+  - {name: crawler, index: 14, position: {x: -290, y: -165}, exp: 220/450, rotated: true, source: legacy}
+  - {name: crawler, index: 15, position: {x: 0, y: -285}, exp: 333/450, rotated: true, source: legacy}
+  - {name: stormcaller, index: 16, position: {x: 55, y: -120}, level: 2, equipment: [enhancement_module], source: legacy}
+  - {name: stormcaller, index: 17, position: {x: -195, y: -130}, level: 2, exp: 648/2479, source: legacy}
+  - {name: stormcaller, index: 18, position: {x: -65, y: -120}, level: 2, exp: 864/2479, source: legacy}
+  - {name: arclight, index: 19, position: {x: -250, y: -130}, exp: 321/750, source: legacy}
+  - {name: arclight, index: 20, position: {x: -120, y: -120}, exp: 349/750, source: legacy}
+  - {name: arclight, index: 21, position: {x: 0, y: -120}, exp: 615/750, source: legacy}
   - {name: raiden, index: 22, position: {x: -90, y: -160}, level: 2}
   - {name: fire_badger, index: 23, position: {x: -350, y: 285}, travelling: true}
   - {name: crawler, index: 24, position: {x: -310, y: 255}, travelling: true}

@@ -9,26 +9,24 @@ seed: 865572396
 round: 1
 blue:
   officers: [elite_specialist]
-  legacy_index: 5
   units:
-  - {name: arclight, index: 0, position: {x: -90, y: -60}}
-  - {name: arclight, index: 1, position: {x: -190, y: -60}}
-  - {name: arclight, index: 2, position: {x: 180, y: -210}}
-  - {name: steel_ball, index: 3, position: {x: -225, y: -50}}
-  - {name: steel_ball, index: 4, position: {x: -125, y: -70}}
+  - {name: arclight, index: 0, position: {x: -90, y: -60}, source: legacy}
+  - {name: arclight, index: 1, position: {x: -190, y: -60}, source: legacy}
+  - {name: arclight, index: 2, position: {x: 180, y: -210}, source: legacy}
+  - {name: steel_ball, index: 3, position: {x: -225, y: -50}, source: legacy}
+  - {name: steel_ball, index: 4, position: {x: -125, y: -70}, source: legacy}
   - {name: crawler, index: 5, position: {x: -125, y: -50}, level: 2}
   - {name: crawler, index: 6, position: {x: -225, y: -70}, level: 2}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
   officers: [fortified_specialist]
-  legacy_index: 5
   units:
-  - {name: void_eye, index: 0, position: {x: 80, y: -70}}
-  - {name: void_eye, index: 1, position: {x: 180, y: -70}}
-  - {name: void_eye, index: 2, position: {x: 280, y: -70}}
-  - {name: tarantula, index: 3, position: {x: 85, y: -115}}
-  - {name: tarantula, index: 4, position: {x: 185, y: -115}}
+  - {name: void_eye, index: 0, position: {x: 80, y: -70}, source: legacy}
+  - {name: void_eye, index: 1, position: {x: 180, y: -70}, source: legacy}
+  - {name: void_eye, index: 2, position: {x: 280, y: -70}, source: legacy}
+  - {name: tarantula, index: 3, position: {x: 85, y: -115}, source: legacy}
+  - {name: tarantula, index: 4, position: {x: 185, y: -115}, source: legacy}
   - {name: vortex, index: 5, position: {x: 110, y: -130}}
   - {name: vortex, index: 6, position: {x: 150, y: -130}}
   constructions:

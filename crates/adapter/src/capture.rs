@@ -4467,9 +4467,13 @@ fn read_native_layout_inner(
         )
         .map_err(|error| format!("team {team}: {error}"))?;
         // The units the allocator had named as a replayed round opened are
-        // legacy, the first round's advance team among them. What the
-        // Training Ground places joins during the round.
-        side.legacy_index = opening_next_units.map_or(0, |next_units| next_units[team]);
+        // legacy, the first round's advance team among them, but for the
+        // squads its officers delivered last. What the Training Ground places
+        // joins during the round.
+        if let Some(next_units) = opening_next_units {
+            mechcore_document::project::assign_sources(&mut side, next_units[team], round)
+                .map_err(|error| format!("team {team}: {error}"))?;
+        }
         sides[team] = Some(side);
     }
     let layout = Layout {
@@ -4548,6 +4552,7 @@ fn read_native_side(
                 rotated: Some(rotated),
                 equipment,
                 travelling: Some(travelling),
+                source: mechcore_document::UnitSource::Joined,
             },
         ));
     }
@@ -4596,8 +4601,8 @@ fn read_native_side(
             .collect(),
         energy_tower_skills: read_native_energy_tower_skills(api, controller)?,
         tower_strengthen_levels: read_native_tower_strengthen_levels(api, controller)?,
-        legacy_index: 0,
         units: formations,
+        recovered: Vec::new(),
         constructions,
         contraptions,
         battle_skills,

@@ -15,13 +15,12 @@ seed: 953550766
 round: 1
 blue:
   officers: [quick_supply_specialist]
-  legacy_index: 5
   units:
-  - {name: fang, index: 0, position: {x: -140, y: -135}, rotated: true}
-  - {name: fang, index: 1, position: {x: 50, y: -135}, rotated: true}
-  - {name: fang, index: 2, position: {x: 140, y: -135}, rotated: true}
-  - {name: steel_ball, index: 3, position: {x: -215, y: -230}}
-  - {name: steel_ball, index: 4, position: {x: 215, y: -230}}
+  - {name: fang, index: 0, position: {x: -140, y: -135}, rotated: true, source: legacy}
+  - {name: fang, index: 1, position: {x: 50, y: -135}, rotated: true, source: legacy}
+  - {name: fang, index: 2, position: {x: 140, y: -135}, rotated: true, source: legacy}
+  - {name: steel_ball, index: 3, position: {x: -215, y: -230}, source: legacy}
+  - {name: steel_ball, index: 4, position: {x: 215, y: -230}, source: legacy}
   - {name: marksman, index: 5, position: {x: -100, y: -170}}
   - {name: marksman, index: 6, position: {x: 100, y: -170}}
   - {name: marksman, index: 7, position: {x: 180, y: -170}}
@@ -29,13 +28,12 @@ blue:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   officers: [speed_specialist]
-  legacy_index: 5
   units:
-  - {name: arclight, index: 0, position: {x: 210, y: -150}}
-  - {name: arclight, index: 1, position: {x: 140, y: -150}}
-  - {name: arclight, index: 2, position: {x: 70, y: -150}}
-  - {name: sledgehammer, index: 3, position: {x: 185, y: -130}}
-  - {name: sledgehammer, index: 4, position: {x: 95, y: -130}}
+  - {name: arclight, index: 0, position: {x: 210, y: -150}, source: legacy}
+  - {name: arclight, index: 1, position: {x: 140, y: -150}, source: legacy}
+  - {name: arclight, index: 2, position: {x: 70, y: -150}, source: legacy}
+  - {name: sledgehammer, index: 3, position: {x: 185, y: -130}, source: legacy}
+  - {name: sledgehammer, index: 4, position: {x: 95, y: -130}, source: legacy}
   - {name: crawler, index: 5, position: {x: 140, y: -205}, rotated: true}
   - {name: crawler, index: 6, position: {x: 290, y: -285}, rotated: true}
   constructions:

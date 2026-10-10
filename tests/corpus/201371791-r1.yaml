@@ -11,26 +11,24 @@ seed: 802997336
 round: 1
 blue:
   officers: [sabertooth_specialist]
-  legacy_index: 5
   units:
-  - {name: fang, index: 0, position: {x: 160, y: -175}, rotated: true}
-  - {name: fang, index: 1, position: {x: -140, y: -225}, rotated: true}
-  - {name: fang, index: 2, position: {x: -160, y: -35}, rotated: true}
-  - {name: sabertooth, index: 3, position: {x: -165, y: -75}}
-  - {name: sabertooth, index: 4, position: {x: -75, y: -75}}
+  - {name: fang, index: 0, position: {x: 160, y: -175}, rotated: true, source: legacy}
+  - {name: fang, index: 1, position: {x: -140, y: -225}, rotated: true, source: legacy}
+  - {name: fang, index: 2, position: {x: -160, y: -35}, rotated: true, source: legacy}
+  - {name: sabertooth, index: 3, position: {x: -165, y: -75}, source: legacy}
+  - {name: sabertooth, index: 4, position: {x: -75, y: -75}, source: legacy}
   - {name: hound, index: 5, position: {x: -120, y: -80}}
   - {name: hound, index: 6, position: {x: -210, y: -80}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
   officers: [training_specialist]
-  legacy_index: 5
   units:
-  - {name: void_eye, index: 0, position: {x: 110, y: -170}}
-  - {name: void_eye, index: 1, position: {x: -110, y: -170}}
-  - {name: void_eye, index: 2, position: {x: 0, y: -170}}
-  - {name: mustang, index: 3, position: {x: 95, y: -280}}
-  - {name: mustang, index: 4, position: {x: -65, y: -280}, exp: 1200/1200}
+  - {name: void_eye, index: 0, position: {x: 110, y: -170}, source: legacy}
+  - {name: void_eye, index: 1, position: {x: -110, y: -170}, source: legacy}
+  - {name: void_eye, index: 2, position: {x: 0, y: -170}, source: legacy}
+  - {name: mustang, index: 3, position: {x: 95, y: -280}, source: legacy}
+  - {name: mustang, index: 4, position: {x: -65, y: -280}, exp: 1200/1200, source: legacy}
   - {name: crawler, index: 5, position: {x: 120, y: -225}, rotated: true}
   - {name: crawler, index: 6, position: {x: -120, y: -225}, rotated: true}
   constructions:

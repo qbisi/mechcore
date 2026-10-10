@@ -11,14 +11,13 @@ seed: 886311192
 round: 2
 blue:
   officers: [giant_specialist]
-  legacy_index: 7
   units:
-  - {name: void_eye, index: 1, position: {x: 150, y: -120}, exp: 70/650}
-  - {name: void_eye, index: 2, position: {x: -140, y: -110}, exp: 55/650, rotated: true}
-  - {name: tarantula, index: 3, position: {x: -135, y: -145}, exp: 131/1500}
-  - {name: tarantula, index: 4, position: {x: 135, y: -145}, exp: 280/1500}
-  - {name: fang, index: 5, position: {x: -120, y: -185}, exp: 21/600, rotated: true}
-  - {name: fang, index: 6, position: {x: 120, y: -185}, exp: 411/600, rotated: true}
+  - {name: void_eye, index: 1, position: {x: 150, y: -120}, exp: 70/650, source: legacy}
+  - {name: void_eye, index: 2, position: {x: -140, y: -110}, exp: 55/650, rotated: true, source: legacy}
+  - {name: tarantula, index: 3, position: {x: -135, y: -145}, exp: 131/1500, source: legacy}
+  - {name: tarantula, index: 4, position: {x: 135, y: -145}, exp: 280/1500, source: legacy}
+  - {name: fang, index: 5, position: {x: -120, y: -185}, exp: 21/600, rotated: true, source: legacy}
+  - {name: fang, index: 6, position: {x: 120, y: -185}, exp: 411/600, rotated: true, source: legacy}
   - {name: sabertooth, index: 7, position: {x: -85, y: -145}}
   - {name: crawler, index: 8, position: {x: 140, y: -205}, rotated: true}
   - {name: crawler, index: 9, position: {x: -140, y: -205}, rotated: true}
@@ -28,14 +27,13 @@ blue:
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 red:
   officers: [speed_specialist]
-  legacy_index: 7
   units:
-  - {name: vortex, index: 1, position: {x: 140, y: -150}, exp: 536/750}
-  - {name: vortex, index: 2, position: {x: -140, y: -150}, exp: 687/750}
-  - {name: tarantula, index: 3, position: {x: -95, y: -135}, exp: 93/1500}
-  - {name: tarantula, index: 4, position: {x: 95, y: -135}, exp: 711/1500}
-  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 19/450}
-  - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 27/450}
+  - {name: vortex, index: 1, position: {x: 140, y: -150}, exp: 536/750, source: legacy}
+  - {name: vortex, index: 2, position: {x: -140, y: -150}, exp: 687/750, source: legacy}
+  - {name: tarantula, index: 3, position: {x: -95, y: -135}, exp: 93/1500, source: legacy}
+  - {name: tarantula, index: 4, position: {x: 95, y: -135}, exp: 711/1500, source: legacy}
+  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 19/450, source: legacy}
+  - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 27/450, source: legacy}
   - {name: phoenix, index: 7, position: {x: 180, y: -210}}
   - {name: centurion, index: 8, position: {x: -115, y: -165}}
   - {name: crawler, index: 9, position: {x: 0, y: -205}, rotated: true}

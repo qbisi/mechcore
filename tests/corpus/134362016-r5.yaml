@@ -19,22 +19,21 @@ blue:
     mustang: [high_explosive_ammo]
     farseer: [electromagnetic_explosion]
     centurion: [dual_wield]
-  legacy_index: 14
   units:
-  - {name: crawler, index: 0, position: {x: 70, y: -285}, exp: 331/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: -290, y: -205}, exp: 450/450, rotated: true}
-  - {name: crawler, index: 2, position: {x: -60, y: -285}, exp: 450/450, rotated: true}
-  - {name: mustang, index: 3, position: {x: 140, y: -285}, exp: 1200/1200, rotated: true}
-  - {name: mustang, index: 4, position: {x: -130, y: -285}, exp: 386/1200, rotated: true}
-  - {name: sledgehammer, index: 5, position: {x: -55, y: -170}, exp: 1300/1300}
-  - {name: sledgehammer, index: 6, position: {x: 65, y: -170}, exp: 961/1300}
-  - {name: marksman, index: 7, position: {x: 50, y: -190}, level: 2, exp: 66/1465}
-  - {name: centurion, index: 8, position: {x: -175, y: -225}, exp: 748/2250, equipment: [secondary_heavy_armor]}
-  - {name: centurion, index: 9, position: {x: -215, y: -145}, exp: 415/2250, rotated: true, equipment: [secondary_fire_control_system]}
-  - {name: centurion, index: 10, position: {x: 75, y: -195}, exp: 1024/2250, equipment: [secondary_fire_control_system]}
-  - {name: centurion, index: 11, position: {x: 235, y: -195}, exp: 27/2250}
-  - {name: centurion, index: 12, position: {x: -65, y: -195}, exp: 120/2250, equipment: [secondary_laser_sight]}
-  - {name: crawler, index: 13, position: {x: -210, y: -285}, exp: 12/450, rotated: true}
+  - {name: crawler, index: 0, position: {x: 70, y: -285}, exp: 331/450, rotated: true, source: legacy}
+  - {name: crawler, index: 1, position: {x: -290, y: -205}, exp: 450/450, rotated: true, source: legacy}
+  - {name: crawler, index: 2, position: {x: -60, y: -285}, exp: 450/450, rotated: true, source: legacy}
+  - {name: mustang, index: 3, position: {x: 140, y: -285}, exp: 1200/1200, rotated: true, source: legacy}
+  - {name: mustang, index: 4, position: {x: -130, y: -285}, exp: 386/1200, rotated: true, source: legacy}
+  - {name: sledgehammer, index: 5, position: {x: -55, y: -170}, exp: 1300/1300, source: legacy}
+  - {name: sledgehammer, index: 6, position: {x: 65, y: -170}, exp: 961/1300, source: legacy}
+  - {name: marksman, index: 7, position: {x: 50, y: -190}, level: 2, exp: 66/1465, source: legacy}
+  - {name: centurion, index: 8, position: {x: -175, y: -225}, exp: 748/2250, equipment: [secondary_heavy_armor], source: legacy}
+  - {name: centurion, index: 9, position: {x: -215, y: -145}, exp: 415/2250, rotated: true, equipment: [secondary_fire_control_system], source: legacy}
+  - {name: centurion, index: 10, position: {x: 75, y: -195}, exp: 1024/2250, equipment: [secondary_fire_control_system], source: legacy}
+  - {name: centurion, index: 11, position: {x: 235, y: -195}, exp: 27/2250, source: legacy}
+  - {name: centurion, index: 12, position: {x: -65, y: -195}, exp: 120/2250, equipment: [secondary_laser_sight], source: legacy}
+  - {name: crawler, index: 13, position: {x: -210, y: -285}, exp: 12/450, rotated: true, source: legacy}
   - {name: farseer, index: 14, position: {x: -175, y: -195}, level: 2}
   - {name: farseer, index: 15, position: {x: 205, y: -195}}
   - {name: sabertooth, index: 16, position: {x: -245, y: -145}}
@@ -47,22 +46,21 @@ red:
     rhino: [whirlwind, armor_enhancement]
     fang: [mechanical_rage, ignite]
   blueprints: [attack_enhancement, defense_enhancement]
-  legacy_index: 18
   units:
-  - {name: fang, index: 0, position: {x: -75, y: -60}, exp: 441/600}
-  - {name: fang, index: 1, position: {x: 5, y: -60}, exp: 266/600}
-  - {name: fang, index: 2, position: {x: -155, y: -60}, exp: 236/600}
-  - {name: fang, index: 5, position: {x: -235, y: -60}, level: 2}
-  - {name: fang, index: 6, position: {x: 85, y: -60}, exp: 172/600}
-  - {name: rhino, index: 8, position: {x: 345, y: 235}, level: 2}
-  - {name: rhino, index: 9, position: {x: 345, y: 135}, level: 2}
-  - {name: phoenix, index: 10, position: {x: -180, y: -40}, exp: 940/1300}
-  - {name: fang, index: 12, position: {x: 310, y: 135}, exp: 215/600}
-  - {name: fang, index: 13, position: {x: 310, y: 235}, exp: 334/600}
-  - {name: rhino, index: 14, position: {x: -285, y: -25}, level: 2}
-  - {name: rhino, index: 15, position: {x: 285, y: -25}, exp: 625/1150}
-  - {name: fang, index: 16, position: {x: 310, y: 35}, level: 2}
-  - {name: fang, index: 17, position: {x: -310, y: 35}, exp: 334/600}
+  - {name: fang, index: 0, position: {x: -75, y: -60}, exp: 441/600, source: legacy}
+  - {name: fang, index: 1, position: {x: 5, y: -60}, exp: 266/600, source: legacy}
+  - {name: fang, index: 2, position: {x: -155, y: -60}, exp: 236/600, source: legacy}
+  - {name: fang, index: 5, position: {x: -235, y: -60}, level: 2, source: legacy}
+  - {name: fang, index: 6, position: {x: 85, y: -60}, exp: 172/600, source: legacy}
+  - {name: rhino, index: 8, position: {x: 345, y: 235}, level: 2, source: legacy}
+  - {name: rhino, index: 9, position: {x: 345, y: 135}, level: 2, source: legacy}
+  - {name: phoenix, index: 10, position: {x: -180, y: -40}, exp: 940/1300, source: legacy}
+  - {name: fang, index: 12, position: {x: 310, y: 135}, exp: 215/600, source: legacy}
+  - {name: fang, index: 13, position: {x: 310, y: 235}, exp: 334/600, source: legacy}
+  - {name: rhino, index: 14, position: {x: -285, y: -25}, level: 2, source: legacy}
+  - {name: rhino, index: 15, position: {x: 285, y: -25}, exp: 625/1150, source: legacy}
+  - {name: fang, index: 16, position: {x: 310, y: 35}, level: 2, source: legacy}
+  - {name: fang, index: 17, position: {x: -310, y: 35}, exp: 334/600, source: legacy}
   - {name: stormcaller, index: 19, position: {x: 135, y: -20}}
   - {name: fang, index: 20, position: {x: -245, y: -20}}
   - {name: fang, index: 21, position: {x: 245, y: -20}}

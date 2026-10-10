@@ -13,20 +13,19 @@ blue:
     void_eye: [suppression_shots]
   blueprints: [attack_enhancement, defense_enhancement]
   tower_strengthen_levels: [1, 0]
-  legacy_index: 12
   units:
-  - {name: void_eye, index: 0, position: {x: 50, y: -90}, level: 2, exp: 395/1465}
-  - {name: void_eye, index: 1, position: {x: 150, y: -70}, level: 2, equipment: [secondary_laser_sight]}
-  - {name: void_eye, index: 2, position: {x: 240, y: -80}, level: 2, exp: 251/1465}
-  - {name: fire_badger, index: 3, position: {x: 105, y: -70}, exp: 875/1400}
-  - {name: fire_badger, index: 4, position: {x: 195, y: -70}, exp: 895/1400}
-  - {name: crawler, index: 5, position: {x: 50, y: -125}, exp: 450/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 240, y: -115}, exp: 450/450, rotated: true}
-  - {name: phoenix, index: 7, position: {x: 110, y: -150}, level: 2, equipment: [secondary_laser_sight]}
-  - {name: crawler, index: 8, position: {x: -275, y: -20}, exp: 166/450}
-  - {name: wasp, index: 9, position: {x: -275, y: -40}, level: 2, equipment: [secondary_laser_sight]}
-  - {name: crawler, index: 10, position: {x: 335, y: 210}, exp: 49/450, rotated: true}
-  - {name: crawler, index: 11, position: {x: 250, y: -285}, exp: 183/450, rotated: true}
+  - {name: void_eye, index: 0, position: {x: 50, y: -90}, level: 2, exp: 395/1465, source: legacy}
+  - {name: void_eye, index: 1, position: {x: 150, y: -70}, level: 2, equipment: [secondary_laser_sight], source: legacy}
+  - {name: void_eye, index: 2, position: {x: 240, y: -80}, level: 2, exp: 251/1465, source: legacy}
+  - {name: fire_badger, index: 3, position: {x: 105, y: -70}, exp: 875/1400, source: legacy}
+  - {name: fire_badger, index: 4, position: {x: 195, y: -70}, exp: 895/1400, source: legacy}
+  - {name: crawler, index: 5, position: {x: 50, y: -125}, exp: 450/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: 240, y: -115}, exp: 450/450, rotated: true, source: legacy}
+  - {name: phoenix, index: 7, position: {x: 110, y: -150}, level: 2, equipment: [secondary_laser_sight], source: legacy}
+  - {name: crawler, index: 8, position: {x: -275, y: -20}, exp: 166/450, source: legacy}
+  - {name: wasp, index: 9, position: {x: -275, y: -40}, level: 2, equipment: [secondary_laser_sight], source: legacy}
+  - {name: crawler, index: 10, position: {x: 335, y: 210}, exp: 49/450, rotated: true, source: legacy}
+  - {name: crawler, index: 11, position: {x: 250, y: -285}, exp: 183/450, rotated: true, source: legacy}
   - {name: fire_badger, index: 12, position: {x: 5, y: -70}}
   - {name: crawler, index: 13, position: {x: 310, y: 35}, travelling: true}
   battle_skills:
@@ -35,18 +34,17 @@ red:
   officers: [fortified_specialist]
   techs:
     hound: [range_enhancement]
-  legacy_index: 13
   units:
-  - {name: crawler, index: 0, position: {x: -90, y: -225}, exp: 98/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: -5, y: -300}, exp: 149/450}
-  - {name: crawler, index: 2, position: {x: 80, y: -225}, exp: 118/450, rotated: true}
-  - {name: hound, index: 5, position: {x: -120, y: -190}, exp: 515/750}
-  - {name: hound, index: 6, position: {x: 120, y: -190}, exp: 216/750}
-  - {name: centurion, index: 8, position: {x: -115, y: -165}, exp: 873/2250}
-  - {name: hound, index: 9, position: {x: -210, y: -190}, exp: 79/750}
-  - {name: centurion, index: 10, position: {x: -205, y: -165}, exp: 238/2250}
-  - {name: centurion, index: 11, position: {x: 115, y: -165}, exp: 377/2250}
-  - {name: hound, index: 12, position: {x: 210, y: -190}, exp: 163/750}
+  - {name: crawler, index: 0, position: {x: -90, y: -225}, exp: 98/450, rotated: true, source: legacy}
+  - {name: crawler, index: 1, position: {x: -5, y: -300}, exp: 149/450, source: legacy}
+  - {name: crawler, index: 2, position: {x: 80, y: -225}, exp: 118/450, rotated: true, source: legacy}
+  - {name: hound, index: 5, position: {x: -120, y: -190}, exp: 515/750, source: legacy}
+  - {name: hound, index: 6, position: {x: 120, y: -190}, exp: 216/750, source: legacy}
+  - {name: centurion, index: 8, position: {x: -115, y: -165}, exp: 873/2250, source: legacy}
+  - {name: hound, index: 9, position: {x: -210, y: -190}, exp: 79/750, source: legacy}
+  - {name: centurion, index: 10, position: {x: -205, y: -165}, exp: 238/2250, source: legacy}
+  - {name: centurion, index: 11, position: {x: 115, y: -165}, exp: 377/2250, source: legacy}
+  - {name: hound, index: 12, position: {x: 210, y: -190}, exp: 163/750, source: legacy}
   - {name: hound, index: 13, position: {x: -280, y: -190}}
   - {name: hound, index: 14, position: {x: 0, y: -190}}
   - {name: centurion, index: 15, position: {x: 5, y: -165}}

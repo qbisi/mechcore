@@ -794,6 +794,7 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
                 equipment: unit.equipments.entries.iter().map(|item| item.id).collect(),
                 // No recorded field states it; see docs/spec/document/match.md.
                 travelling: None,
+                source: crate::layout::UnitSource::Joined,
             },
         });
     }
@@ -1619,6 +1620,7 @@ mod tests {
                 rotated: None,
                 equipment: Vec::new(),
                 travelling: None,
+                source: crate::layout::UnitSource::Joined,
             },
             value: None,
             movable: true,

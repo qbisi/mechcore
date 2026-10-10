@@ -17,17 +17,16 @@ blue:
   techs:
     sledgehammer: [armor_piercing_bullets]
   blueprints: [attack_enhancement, defense_enhancement]
-  legacy_index: 9
   units:
-  - {name: hound, index: 0, position: {x: -40, y: -180}, exp: 203/750}
-  - {name: hound, index: 1, position: {x: 40, y: -180}, exp: 79/750}
-  - {name: hound, index: 2, position: {x: 0, y: -180}, exp: 189/750}
-  - {name: sledgehammer, index: 3, position: {x: 35, y: -160}, exp: 1009/1300}
-  - {name: sledgehammer, index: 4, position: {x: -15, y: -160}, exp: 409/1300}
-  - {name: wasp, index: 5, position: {x: 5, y: -300}, exp: 651/900}
-  - {name: sledgehammer, index: 6, position: {x: -65, y: -160}, exp: 141/1300}
-  - {name: hound, index: 7, position: {x: -80, y: -180}, exp: 55/750}
-  - {name: sabertooth, index: 8, position: {x: -105, y: -155}}
+  - {name: hound, index: 0, position: {x: -40, y: -180}, exp: 203/750, source: legacy}
+  - {name: hound, index: 1, position: {x: 40, y: -180}, exp: 79/750, source: legacy}
+  - {name: hound, index: 2, position: {x: 0, y: -180}, exp: 189/750, source: legacy}
+  - {name: sledgehammer, index: 3, position: {x: 35, y: -160}, exp: 1009/1300, source: legacy}
+  - {name: sledgehammer, index: 4, position: {x: -15, y: -160}, exp: 409/1300, source: legacy}
+  - {name: wasp, index: 5, position: {x: 5, y: -300}, exp: 651/900, source: legacy}
+  - {name: sledgehammer, index: 6, position: {x: -65, y: -160}, exp: 141/1300, source: legacy}
+  - {name: hound, index: 7, position: {x: -80, y: -180}, exp: 55/750, source: legacy}
+  - {name: sabertooth, index: 8, position: {x: -105, y: -155}, source: delivered}
   - {name: sledgehammer, index: 9, position: {x: 85, y: -160}}
   - {name: sledgehammer, index: 10, position: {x: 175, y: -160}}
   constructions:
@@ -37,18 +36,17 @@ blue:
   - {name: incendiary_bomb, positions: [{x: -68, y: 126}, {x: 71, y: 124}]}
 red:
   officers: [giant_specialist]
-  legacy_index: 10
   units:
-  - {name: hound, index: 0, position: {x: -60, y: -220}, exp: 129/750}
-  - {name: hound, index: 1, position: {x: 60, y: -220}, exp: 200/750}
-  - {name: hound, index: 2, position: {x: 0, y: -230}, exp: 159/750}
-  - {name: sabertooth, index: 3, position: {x: 35, y: -185}, exp: 727/1300}
-  - {name: sabertooth, index: 4, position: {x: -35, y: -185}, exp: 548/1300}
-  - {name: marksman, index: 5, position: {x: -30, y: -210}, exp: 372/650}
-  - {name: marksman, index: 6, position: {x: 30, y: -210}, exp: 589/650}
-  - {name: phoenix, index: 7, position: {x: 280, y: -300}, exp: 627/1300}
-  - {name: phoenix, index: 8, position: {x: -280, y: -300}, exp: 264/1300}
-  - {name: marksman, index: 9, position: {x: 0, y: -210}, exp: 507/650}
+  - {name: hound, index: 0, position: {x: -60, y: -220}, exp: 129/750, source: legacy}
+  - {name: hound, index: 1, position: {x: 60, y: -220}, exp: 200/750, source: legacy}
+  - {name: hound, index: 2, position: {x: 0, y: -230}, exp: 159/750, source: legacy}
+  - {name: sabertooth, index: 3, position: {x: 35, y: -185}, exp: 727/1300, source: legacy}
+  - {name: sabertooth, index: 4, position: {x: -35, y: -185}, exp: 548/1300, source: legacy}
+  - {name: marksman, index: 5, position: {x: -30, y: -210}, exp: 372/650, source: legacy}
+  - {name: marksman, index: 6, position: {x: 30, y: -210}, exp: 589/650, source: legacy}
+  - {name: phoenix, index: 7, position: {x: 280, y: -300}, exp: 627/1300, source: legacy}
+  - {name: phoenix, index: 8, position: {x: -280, y: -300}, exp: 264/1300, source: legacy}
+  - {name: marksman, index: 9, position: {x: 0, y: -210}, exp: 507/650, source: legacy}
   - {name: phoenix, index: 10, position: {x: -240, y: -300}}
   - {name: phoenix, index: 11, position: {x: 240, y: -300}}
   constructions:

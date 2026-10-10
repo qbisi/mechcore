@@ -17,25 +17,24 @@ blue:
     wasp: [energy_shield]
     phantom_ray: [armor_enhancement]
   blueprints: [attack_enhancement]
-  legacy_index: 17
   units:
-  - {name: arclight, index: 0, position: {x: 120, y: -120}, level: 2, exp: 1578/1690}
-  - {name: arclight, index: 1, position: {x: -100, y: -120}, level: 2}
-  - {name: arclight, index: 2, position: {x: 200, y: -120}, exp: 483/750}
-  - {name: steel_ball, index: 3, position: {x: -255, y: -250}, exp: 888/1000}
-  - {name: steel_ball, index: 4, position: {x: 255, y: -250}, level: 2}
-  - {name: crawler, index: 5, position: {x: -290, y: -285}, exp: 258/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 290, y: -285}, exp: 238/450, rotated: true}
-  - {name: phantom_ray, index: 7, position: {x: -195, y: -250}, level: 4}
-  - {name: crawler, index: 8, position: {x: 120, y: -155}, exp: 15/450, rotated: true}
-  - {name: wasp, index: 9, position: {x: -195, y: -230}, level: 2, exp: 1898/2028}
-  - {name: wasp, index: 10, position: {x: 125, y: -230}, exp: 262/900}
-  - {name: phantom_ray, index: 11, position: {x: 125, y: -250}, level: 3, exp: 2418/3562}
-  - {name: wasp, index: 12, position: {x: 195, y: -230}, exp: 361/900}
-  - {name: phantom_ray, index: 13, position: {x: 195, y: -250}, exp: 524/1000}
-  - {name: fortress, index: 14, position: {x: -130, y: -130}, level: 2}
-  - {name: phantom_ray, index: 15, position: {x: -105, y: -250}, level: 2}
-  - {name: phantom_ray, index: 16, position: {x: -105, y: -230}, exp: 392/1000}
+  - {name: arclight, index: 0, position: {x: 120, y: -120}, level: 2, exp: 1578/1690, source: legacy}
+  - {name: arclight, index: 1, position: {x: -100, y: -120}, level: 2, source: legacy}
+  - {name: arclight, index: 2, position: {x: 200, y: -120}, exp: 483/750, source: legacy}
+  - {name: steel_ball, index: 3, position: {x: -255, y: -250}, exp: 888/1000, source: legacy}
+  - {name: steel_ball, index: 4, position: {x: 255, y: -250}, level: 2, source: legacy}
+  - {name: crawler, index: 5, position: {x: -290, y: -285}, exp: 258/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: 290, y: -285}, exp: 238/450, rotated: true, source: legacy}
+  - {name: phantom_ray, index: 7, position: {x: -195, y: -250}, level: 4, source: legacy}
+  - {name: crawler, index: 8, position: {x: 120, y: -155}, exp: 15/450, rotated: true, source: legacy}
+  - {name: wasp, index: 9, position: {x: -195, y: -230}, level: 2, exp: 1898/2028, source: legacy}
+  - {name: wasp, index: 10, position: {x: 125, y: -230}, exp: 262/900, source: legacy}
+  - {name: phantom_ray, index: 11, position: {x: 125, y: -250}, level: 3, exp: 2418/3562, source: legacy}
+  - {name: wasp, index: 12, position: {x: 195, y: -230}, exp: 361/900, source: legacy}
+  - {name: phantom_ray, index: 13, position: {x: 195, y: -250}, exp: 524/1000, source: legacy}
+  - {name: fortress, index: 14, position: {x: -130, y: -130}, level: 2, source: legacy}
+  - {name: phantom_ray, index: 15, position: {x: -105, y: -250}, level: 2, source: legacy}
+  - {name: phantom_ray, index: 16, position: {x: -105, y: -230}, exp: 392/1000, source: legacy}
   - {name: steel_ball, index: 17, position: {x: 255, y: -230}}
   - {name: steel_ball, index: 18, position: {x: -255, y: -230}}
   constructions:
@@ -50,28 +49,27 @@ red:
     mustang: [aerial_specialization, range_enhancement]
     arclight: [range_enhancement]
   energy_tower_skills: [enhanced_range]
-  legacy_index: 21
   units:
-  - {name: vortex, index: 0, position: {x: -120, y: -170}, exp: 750/750}
-  - {name: vortex, index: 1, position: {x: 150, y: -150}, exp: 750/750}
-  - {name: vortex, index: 2, position: {x: 130, y: -150}, exp: 750/750}
-  - {name: tarantula, index: 3, position: {x: 95, y: -145}, level: 2, exp: 1241/3380, equipment: [photon_coating]}
-  - {name: tarantula, index: 4, position: {x: 195, y: -145}, exp: 288/1500}
-  - {name: arclight, index: 5, position: {x: 70, y: -180}, exp: 750/750}
-  - {name: arclight, index: 6, position: {x: 210, y: -180}, level: 2, exp: 208/1690}
-  - {name: arclight, index: 7, position: {x: -200, y: -210}, level: 2, exp: 930/1690}
-  - {name: arclight, index: 8, position: {x: -100, y: -200}, level: 2, exp: 223/1690}
-  - {name: arclight, index: 9, position: {x: -140, y: -210}, level: 2, exp: 151/1690}
-  - {name: marksman, index: 10, position: {x: 160, y: -170}, level: 2, exp: 285/1465}
-  - {name: marksman, index: 11, position: {x: 120, y: -170}, level: 2}
-  - {name: marksman, index: 12, position: {x: -160, y: -220}, level: 2}
-  - {name: arclight, index: 13, position: {x: 180, y: -180}, level: 2, exp: 74/1690}
-  - {name: mustang, index: 15, position: {x: -95, y: -300}, exp: 1127/1200}
-  - {name: mustang, index: 16, position: {x: -185, y: -300}, exp: 1041/1200}
-  - {name: mustang, index: 17, position: {x: 175, y: -250}, level: 2, exp: 1036/2704}
-  - {name: fortress, index: 18, position: {x: -170, y: -180}, exp: 511/1600}
-  - {name: mustang, index: 19, position: {x: 125, y: -250}, exp: 420/1200}
-  - {name: mustang, index: 20, position: {x: 75, y: -250}, exp: 140/1200}
+  - {name: vortex, index: 0, position: {x: -120, y: -170}, exp: 750/750, source: legacy}
+  - {name: vortex, index: 1, position: {x: 150, y: -150}, exp: 750/750, source: legacy}
+  - {name: vortex, index: 2, position: {x: 130, y: -150}, exp: 750/750, source: legacy}
+  - {name: tarantula, index: 3, position: {x: 95, y: -145}, level: 2, exp: 1241/3380, equipment: [photon_coating], source: legacy}
+  - {name: tarantula, index: 4, position: {x: 195, y: -145}, exp: 288/1500, source: legacy}
+  - {name: arclight, index: 5, position: {x: 70, y: -180}, exp: 750/750, source: legacy}
+  - {name: arclight, index: 6, position: {x: 210, y: -180}, level: 2, exp: 208/1690, source: legacy}
+  - {name: arclight, index: 7, position: {x: -200, y: -210}, level: 2, exp: 930/1690, source: legacy}
+  - {name: arclight, index: 8, position: {x: -100, y: -200}, level: 2, exp: 223/1690, source: legacy}
+  - {name: arclight, index: 9, position: {x: -140, y: -210}, level: 2, exp: 151/1690, source: legacy}
+  - {name: marksman, index: 10, position: {x: 160, y: -170}, level: 2, exp: 285/1465, source: legacy}
+  - {name: marksman, index: 11, position: {x: 120, y: -170}, level: 2, source: legacy}
+  - {name: marksman, index: 12, position: {x: -160, y: -220}, level: 2, source: legacy}
+  - {name: arclight, index: 13, position: {x: 180, y: -180}, level: 2, exp: 74/1690, source: legacy}
+  - {name: mustang, index: 15, position: {x: -95, y: -300}, exp: 1127/1200, source: legacy}
+  - {name: mustang, index: 16, position: {x: -185, y: -300}, exp: 1041/1200, source: legacy}
+  - {name: mustang, index: 17, position: {x: 175, y: -250}, level: 2, exp: 1036/2704, source: legacy}
+  - {name: fortress, index: 18, position: {x: -170, y: -180}, exp: 511/1600, source: legacy}
+  - {name: mustang, index: 19, position: {x: 125, y: -250}, exp: 420/1200, source: legacy}
+  - {name: mustang, index: 20, position: {x: 75, y: -250}, exp: 140/1200, source: legacy}
   - {name: fortress, index: 21, position: {x: 150, y: -200}}
   - {name: mustang, index: 22, position: {x: -145, y: -280}}
   constructions:

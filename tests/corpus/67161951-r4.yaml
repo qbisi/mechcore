@@ -16,17 +16,16 @@ blue:
   techs:
     abyss: [disintegration]
   tower_strengthen_levels: [1, 0]
-  legacy_index: 10
   units:
-  - {name: hound, index: 0, position: {x: 140, y: -60}, exp: 56/750, rotated: true}
-  - {name: hound, index: 1, position: {x: -180, y: -170}, exp: 200/750}
-  - {name: hound, index: 2, position: {x: 220, y: -60}, exp: 197/750, rotated: true}
-  - {name: mustang, index: 3, position: {x: 255, y: -100}, exp: 308/1200}
-  - {name: mustang, index: 4, position: {x: 50, y: -115}, exp: 364/1200, rotated: true}
-  - {name: crawler, index: 5, position: {x: 275, y: -20}, exp: 80/450}
-  - {name: crawler, index: 6, position: {x: 145, y: -190}, exp: 109/450}
-  - {name: crawler, index: 8, position: {x: 290, y: -285}, exp: 10/450, rotated: true}
-  - {name: crawler, index: 9, position: {x: 95, y: -20}, exp: 98/450}
+  - {name: hound, index: 0, position: {x: 140, y: -60}, exp: 56/750, rotated: true, source: legacy}
+  - {name: hound, index: 1, position: {x: -180, y: -170}, exp: 200/750, source: legacy}
+  - {name: hound, index: 2, position: {x: 220, y: -60}, exp: 197/750, rotated: true, source: legacy}
+  - {name: mustang, index: 3, position: {x: 255, y: -100}, exp: 308/1200, source: legacy}
+  - {name: mustang, index: 4, position: {x: 50, y: -115}, exp: 364/1200, rotated: true, source: legacy}
+  - {name: crawler, index: 5, position: {x: 275, y: -20}, exp: 80/450, source: legacy}
+  - {name: crawler, index: 6, position: {x: 145, y: -190}, exp: 109/450, source: legacy}
+  - {name: crawler, index: 8, position: {x: 290, y: -285}, exp: 10/450, rotated: true, source: legacy}
+  - {name: crawler, index: 9, position: {x: 95, y: -20}, exp: 98/450, source: legacy}
   - {name: tarantula, index: 10, position: {x: 25, y: -25}, level: 3, equipment: [anti_interference_module]}
   - {name: abyss, index: 11, position: {x: 95, y: -85}}
   constructions:
@@ -34,18 +33,17 @@ blue:
 red:
   officers: [fortified_specialist]
   tower_strengthen_levels: [1, 0]
-  legacy_index: 10
   units:
-  - {name: vortex, index: 0, position: {x: -240, y: -70}, level: 2}
-  - {name: vortex, index: 1, position: {x: -80, y: -90}, exp: 318/750}
-  - {name: vortex, index: 2, position: {x: -140, y: -70}, exp: 718/750}
-  - {name: sledgehammer, index: 3, position: {x: -85, y: -70}, exp: 770/1300}
-  - {name: sledgehammer, index: 4, position: {x: -195, y: -70}, exp: 872/1300}
-  - {name: crawler, index: 5, position: {x: -120, y: -175}, exp: 400/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -190, y: -105}, exp: 124/450, rotated: true}
-  - {name: fire_badger, index: 7, position: {x: -265, y: -90}, exp: 974/1400}
-  - {name: crawler, index: 8, position: {x: -210, y: -255}, exp: 450/450, rotated: true}
-  - {name: centurion, index: 9, position: {x: -165, y: -95}, level: 2, exp: 2620/5070}
+  - {name: vortex, index: 0, position: {x: -240, y: -70}, level: 2, source: legacy}
+  - {name: vortex, index: 1, position: {x: -80, y: -90}, exp: 318/750, source: legacy}
+  - {name: vortex, index: 2, position: {x: -140, y: -70}, exp: 718/750, source: legacy}
+  - {name: sledgehammer, index: 3, position: {x: -85, y: -70}, exp: 770/1300, source: legacy}
+  - {name: sledgehammer, index: 4, position: {x: -195, y: -70}, exp: 872/1300, source: legacy}
+  - {name: crawler, index: 5, position: {x: -120, y: -175}, exp: 400/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: -190, y: -105}, exp: 124/450, rotated: true, source: legacy}
+  - {name: fire_badger, index: 7, position: {x: -265, y: -90}, exp: 974/1400, source: legacy}
+  - {name: crawler, index: 8, position: {x: -210, y: -255}, exp: 450/450, rotated: true, source: legacy}
+  - {name: centurion, index: 9, position: {x: -165, y: -95}, level: 2, exp: 2620/5070, source: legacy}
   - {name: marksman, index: 10, position: {x: -230, y: -100}, level: 3}
   - {name: marksman, index: 11, position: {x: -40, y: -110}, level: 3}
   - {name: fang, index: 12, position: {x: -70, y: -35}, rotated: true}

@@ -10,14 +10,13 @@ seed: 1231717251
 round: 2
 blue:
   officers: [aerial_specialist]
-  legacy_index: 7
   units:
-  - {name: fang, index: 0, position: {x: 200, y: -235}, rotated: true}
-  - {name: fang, index: 1, position: {x: 0, y: -205}, rotated: true}
-  - {name: fang, index: 2, position: {x: -190, y: -225}, rotated: true}
-  - {name: fire_badger, index: 3, position: {x: -30, y: -205}, rotated: true}
-  - {name: hound, index: 5, position: {x: -190, y: -190}}
-  - {name: hound, index: 6, position: {x: 200, y: -200}}
+  - {name: fang, index: 0, position: {x: 200, y: -235}, rotated: true, source: legacy}
+  - {name: fang, index: 1, position: {x: 0, y: -205}, rotated: true, source: legacy}
+  - {name: fang, index: 2, position: {x: -190, y: -225}, rotated: true, source: legacy}
+  - {name: fire_badger, index: 3, position: {x: -30, y: -205}, rotated: true, source: legacy}
+  - {name: hound, index: 5, position: {x: -190, y: -190}, source: legacy}
+  - {name: hound, index: 6, position: {x: 200, y: -200}, source: legacy}
   - {name: centurion, index: 8, position: {x: -65, y: -215}}
   - {name: centurion, index: 9, position: {x: 35, y: -215}}
   constructions:
@@ -27,15 +26,14 @@ red:
   officers: [cost_control_specialist]
   techs:
     rhino: [combat_evolvement]
-  legacy_index: 7
   units:
-  - {name: marksman, index: 0, position: {x: 160, y: -170}, exp: 80/650}
-  - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 212/650}
-  - {name: marksman, index: 2, position: {x: -140, y: -150}, exp: 146/650}
-  - {name: tarantula, index: 3, position: {x: 115, y: -165}, exp: 244/1500}
-  - {name: tarantula, index: 4, position: {x: -115, y: -165}, exp: 294/1500}
-  - {name: tarantula, index: 5, position: {x: 5, y: -155}, exp: 371/1500}
-  - {name: marksman, index: 6, position: {x: 30, y: -160}, exp: 246/650}
+  - {name: marksman, index: 0, position: {x: 160, y: -170}, exp: 80/650, source: legacy}
+  - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 212/650, source: legacy}
+  - {name: marksman, index: 2, position: {x: -140, y: -150}, exp: 146/650, source: legacy}
+  - {name: tarantula, index: 3, position: {x: 115, y: -165}, exp: 244/1500, source: legacy}
+  - {name: tarantula, index: 4, position: {x: -115, y: -165}, exp: 294/1500, source: legacy}
+  - {name: tarantula, index: 5, position: {x: 5, y: -155}, exp: 371/1500, source: legacy}
+  - {name: marksman, index: 6, position: {x: 30, y: -160}, exp: 246/650, source: legacy}
   - {name: rhino, index: 7, position: {x: 265, y: -295}}
   - {name: rhino, index: 8, position: {x: -265, y: -295}}
   - {name: marksman, index: 9, position: {x: -20, y: -160}}

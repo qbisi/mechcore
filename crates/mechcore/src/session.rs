@@ -278,10 +278,17 @@ impl Session {
         seed: Option<i32>,
     ) -> Result<Value, String> {
         let plan = mechcore_document::compile(&layout)?;
-        if plan.blue.legacy_unit > 0 || plan.red.legacy_unit > 0 {
+        let carried = |side: &mechcore_document::SidePlan| {
+            side.units
+                .iter()
+                .any(|unit| unit.source != mechcore_document::UnitSource::Joined)
+                || !side.recovered.is_empty()
+        };
+        if carried(&plan.blue) || carried(&plan.red) {
             return Err(
                 "apply_layout adds every unit during the layout's round, so a layout with \
-                 legacy units is fought from its replay: convert --to mcfr --backend game"
+                 legacy or delivered units is fought from its replay: convert --to mcfr \
+                 --backend game"
                     .to_owned(),
             );
         }

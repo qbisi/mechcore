@@ -11,15 +11,14 @@ seed: 1079409969
 round: 2
 blue:
   officers: [training_specialist]
-  legacy_index: 7
   units:
-  - {name: crawler, index: 0, position: {x: 160, y: -105}, exp: 55/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 54/450}
-  - {name: crawler, index: 2, position: {x: 70, y: -35}, exp: 15/450, rotated: true}
-  - {name: tarantula, index: 3, position: {x: 115, y: -55}, exp: 251/1500}
-  - {name: tarantula, index: 4, position: {x: 25, y: -55}, exp: 24/1500}
-  - {name: void_eye, index: 5, position: {x: 160, y: -70}, level: 2, exp: 397/1465}
-  - {name: void_eye, index: 6, position: {x: 70, y: -70}, exp: 305/650}
+  - {name: crawler, index: 0, position: {x: 160, y: -105}, exp: 55/450, rotated: true, source: legacy}
+  - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 54/450, source: legacy}
+  - {name: crawler, index: 2, position: {x: 70, y: -35}, exp: 15/450, rotated: true, source: legacy}
+  - {name: tarantula, index: 3, position: {x: 115, y: -55}, exp: 251/1500, source: legacy}
+  - {name: tarantula, index: 4, position: {x: 25, y: -55}, exp: 24/1500, source: legacy}
+  - {name: void_eye, index: 5, position: {x: 160, y: -70}, level: 2, exp: 397/1465, source: legacy}
+  - {name: void_eye, index: 6, position: {x: 70, y: -70}, exp: 305/650, source: legacy}
   - {name: tarantula, index: 7, position: {x: 285, y: -25}}
   - {name: crawler, index: 8, position: {x: 310, y: 35}, travelling: true}
   - {name: fang, index: 9, position: {x: -10, y: -35}, rotated: true}
@@ -27,16 +26,15 @@ blue:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   officers: [marksman_specialist]
-  legacy_index: 8
   units:
-  - {name: hound, index: 0, position: {x: -120, y: -190}, exp: 265/750}
-  - {name: hound, index: 1, position: {x: 0, y: -190}, exp: 424/750}
-  - {name: hound, index: 2, position: {x: 120, y: -190}, exp: 16/750}
-  - {name: sabertooth, index: 3, position: {x: 115, y: -145}, exp: 547/1300}
-  - {name: sabertooth, index: 4, position: {x: 5, y: -145}, exp: 788/1300}
-  - {name: crawler, index: 5, position: {x: 0, y: -225}, exp: 46/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 120, y: -225}, exp: 77/450, rotated: true}
-  - {name: marksman, index: 7, position: {x: -190, y: -210}, level: 3}
+  - {name: hound, index: 0, position: {x: -120, y: -190}, exp: 265/750, source: legacy}
+  - {name: hound, index: 1, position: {x: 0, y: -190}, exp: 424/750, source: legacy}
+  - {name: hound, index: 2, position: {x: 120, y: -190}, exp: 16/750, source: legacy}
+  - {name: sabertooth, index: 3, position: {x: 115, y: -145}, exp: 547/1300, source: legacy}
+  - {name: sabertooth, index: 4, position: {x: 5, y: -145}, exp: 788/1300, source: legacy}
+  - {name: crawler, index: 5, position: {x: 0, y: -225}, exp: 46/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: 120, y: -225}, exp: 77/450, rotated: true, source: legacy}
+  - {name: marksman, index: 7, position: {x: -190, y: -210}, level: 3, source: delivered}
   - {name: hound, index: 8, position: {x: -260, y: -190}}
   - {name: crawler, index: 9, position: {x: -140, y: -135}, rotated: true}
   - {name: crawler, index: 10, position: {x: 0, y: -285}, rotated: true}

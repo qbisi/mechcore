@@ -133,11 +133,11 @@ pub(crate) struct CompiledLayout {
     /// The oil earlier rounds left, blue's and then red's, each side's in the
     /// order its layout lists them.
     pub(crate) standing_oil: Vec<StandingOil>,
-    /// Each side's `legacy_index`: a formation of a lower index is one the
-    /// side carried into the round.
-    pub(crate) legacy_units: BTreeMap<u32, i32>,
+    /// The formations each side carried into the round, by side and layout
+    /// index: its units whose source is `legacy`.
+    pub(crate) legacy: BTreeSet<(u32, i32)>,
     /// The formations an officer delivered as the round opened, by side and
-    /// layout index: the last of each side's legacy formations.
+    /// layout index: its units whose source is `delivered`.
     pub(crate) delivered: BTreeSet<(u32, i32)>,
     /// Each side's `superDeploymentTimeChangeRate`, Q32.32, where an officer
     /// sets one.
@@ -184,7 +184,7 @@ impl CompiledLayout {
             shields: Vec::new(),
             battle_skills: Vec::new(),
             standing_oil: Vec::new(),
-            legacy_units: BTreeMap::new(),
+            legacy: BTreeSet::new(),
             delivered: BTreeSet::new(),
             travel_time_rates: BTreeMap::new(),
             tower_levels: BTreeMap::new(),
@@ -297,21 +297,19 @@ fn registry_refusals(sides: &[(&str, u32, &SidePlan); 2]) -> Refusals {
     refused
 }
 
-/// The formations a side's officers delivered as the round opened, by side
-/// and layout index, or none when the side's units cannot be those squads.
-fn delivered_formations(
-    (name, team, side): (&str, u32, &SidePlan),
-    round: i32,
-    refused: &mut Refusals,
-) -> Vec<(u32, i32)> {
-    refused
-        .hold(
-            mechcore_document::layout_replay::delivered_units(side, round)
-                .map_err(|reason| Error::new(format!("side {name}: {reason}"))),
-        )
-        .unwrap_or_default()
-        .into_iter()
-        .filter_map(|at| side.units[at].index.map(|index| (team, index)))
+/// Both sides' formations of one source, by side and layout index.
+fn formations_of(
+    sides: &[(&str, u32, &SidePlan); 2],
+    source: mechcore_document::UnitSource,
+) -> BTreeSet<(u32, i32)> {
+    sides
+        .iter()
+        .flat_map(|(_, team, side)| {
+            side.units
+                .iter()
+                .filter(move |unit| unit.source == source)
+                .filter_map(move |unit| unit.index.map(|index| (*team, index)))
+        })
         .collect()
 }
 
@@ -342,7 +340,6 @@ pub(crate) fn compile_with_seed(
     let mut battle_skills = Vec::new();
     let mut standing_oil = Vec::new();
     let mut tower_levels = BTreeMap::new();
-    let mut delivered = BTreeSet::new();
     let mut death_summons = BTreeMap::new();
     for (name, team, side) in sides {
         for (index, formation) in side.units.iter().enumerate() {
@@ -395,11 +392,6 @@ pub(crate) fn compile_with_seed(
         if let Some(levels) = refused.hold(tower_strengthen_levels(side)) {
             tower_levels.insert(team, levels);
         }
-        delivered.extend(delivered_formations(
-            (name, team, side),
-            plan.round,
-            &mut refused,
-        ));
     }
     refused.settle()?;
 
@@ -414,11 +406,8 @@ pub(crate) fn compile_with_seed(
             shields,
             battle_skills,
             standing_oil,
-            legacy_units: sides
-                .iter()
-                .map(|(_, team, side)| (*team, side.legacy_unit))
-                .collect(),
-            delivered,
+            legacy: formations_of(&sides, mechcore_document::UnitSource::Legacy),
+            delivered: formations_of(&sides, mechcore_document::UnitSource::Delivered),
             // The rate a side's officers set on its travel time, where one does.
             travel_time_rates: travel_time_rates(&sides, &loadouts.officers),
             tower_levels,

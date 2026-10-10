@@ -14,16 +14,15 @@ seed: 953550766
 round: 2
 blue:
   officers: [quick_supply_specialist]
-  legacy_index: 8
   units:
-  - {name: fang, index: 0, position: {x: -140, y: -135}, exp: 95/600, rotated: true}
-  - {name: fang, index: 1, position: {x: 50, y: -135}, exp: 82/600, rotated: true}
-  - {name: fang, index: 2, position: {x: 140, y: -135}, rotated: true}
-  - {name: steel_ball, index: 3, position: {x: -215, y: -230}, exp: 43/1000}
-  - {name: steel_ball, index: 4, position: {x: 215, y: -230}, exp: 562/1000}
-  - {name: marksman, index: 5, position: {x: -100, y: -170}, exp: 123/650}
-  - {name: marksman, index: 6, position: {x: 100, y: -170}, exp: 258/650}
-  - {name: marksman, index: 7, position: {x: 180, y: -170}, exp: 450/650}
+  - {name: fang, index: 0, position: {x: -140, y: -135}, exp: 95/600, rotated: true, source: legacy}
+  - {name: fang, index: 1, position: {x: 50, y: -135}, exp: 82/600, rotated: true, source: legacy}
+  - {name: fang, index: 2, position: {x: 140, y: -135}, rotated: true, source: legacy}
+  - {name: steel_ball, index: 3, position: {x: -215, y: -230}, exp: 43/1000, source: legacy}
+  - {name: steel_ball, index: 4, position: {x: 215, y: -230}, exp: 562/1000, source: legacy}
+  - {name: marksman, index: 5, position: {x: -100, y: -170}, exp: 123/650, source: legacy}
+  - {name: marksman, index: 6, position: {x: 100, y: -170}, exp: 258/650, source: legacy}
+  - {name: marksman, index: 7, position: {x: 180, y: -170}, exp: 450/650, source: legacy}
   - {name: arclight, index: 8, position: {x: 100, y: -150}}
   - {name: arclight, index: 9, position: {x: -160, y: -170}}
   - {name: marksman, index: 10, position: {x: -180, y: -170}}
@@ -33,15 +32,14 @@ blue:
   - {name: shield_airdrop, positions: [{x: -146, y: -160}]}
 red:
   officers: [speed_specialist]
-  legacy_index: 7
   units:
-  - {name: arclight, index: 0, position: {x: 210, y: -150}, exp: 372/750}
-  - {name: arclight, index: 1, position: {x: 140, y: -150}, exp: 353/750}
-  - {name: arclight, index: 2, position: {x: 70, y: -150}, exp: 199/750}
-  - {name: sledgehammer, index: 3, position: {x: 185, y: -130}, exp: 346/1300}
-  - {name: sledgehammer, index: 4, position: {x: 95, y: -130}, exp: 254/1300}
-  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 192/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 290, y: -285}, exp: 450/450, rotated: true}
+  - {name: arclight, index: 0, position: {x: 210, y: -150}, exp: 372/750, source: legacy}
+  - {name: arclight, index: 1, position: {x: 140, y: -150}, exp: 353/750, source: legacy}
+  - {name: arclight, index: 2, position: {x: 70, y: -150}, exp: 199/750, source: legacy}
+  - {name: sledgehammer, index: 3, position: {x: 185, y: -130}, exp: 346/1300, source: legacy}
+  - {name: sledgehammer, index: 4, position: {x: 95, y: -130}, exp: 254/1300, source: legacy}
+  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 192/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: 290, y: -285}, exp: 450/450, rotated: true, source: legacy}
   - {name: fang, index: 7, position: {x: -180, y: -185}, rotated: true}
   - {name: fang, index: 8, position: {x: 70, y: -235}, rotated: true}
   - {name: crawler, index: 9, position: {x: 70, y: -285}, rotated: true}
