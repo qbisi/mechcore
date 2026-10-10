@@ -9,20 +9,23 @@
 # `sabertooth-range-enhancement-control.yaml`.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 219
-hash: 23:9e3d07de3f708697883131608e7d210c61d964741cbdb646efbf6c25a2fc0d19
 blue:
-  core_damage: 67
   techs:
     sabertooth: [range_enhancement, secondary_armament, anti_air_missile]
   units:
-  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/668/1300}
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}}
 red:
   units:
   - {name: marksman, index: 0, position: {x: -40, y: -100}}
   - {name: marksman, index: 1, position: {x: 40, y: -100}}
-  - {name: phantom_ray, index: 2, position: {x: 5, y: -100}, exp: 0/400/1000}
+  - {name: phantom_ray, index: 2, position: {x: 5, y: -100}}
+outcome:
+  blue.core_damage: 67
+  blue.units[0].exp: 668
+  red.units[2].exp: 400
+ticks: 219
+hash: 23:9e3d07de3f708697883131608e7d210c61d964741cbdb646efbf6c25a2fc0d19

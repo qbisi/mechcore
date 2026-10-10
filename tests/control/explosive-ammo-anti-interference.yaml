@@ -4,16 +4,19 @@
 # 5 metres of the one it is on, up to four at once here.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 270
-hash: 23:2d678f447185389f402f8a21ba1232af713bd44c9d22ff8a2c849967943c0a26
 blue:
-  core_damage: 36
   units:
-  - {name: hacker, index: 0, position: {x: -5, y: -105}, exp: 0/120/560, equipment: [explosive_ammo]}
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, equipment: [explosive_ammo]}
 red:
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/400/450, equipment: [anti_interference_module]}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, equipment: [anti_interference_module]}
+outcome:
+  blue.core_damage: 36
+  blue.units[0].exp: 120
+  red.units[0].exp: 400
+ticks: 270
+hash: 23:2d678f447185389f402f8a21ba1232af713bd44c9d22ff8a2c849967943c0a26

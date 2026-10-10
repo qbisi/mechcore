@@ -3,19 +3,23 @@
 # and 25 ahead, turned by its facing, at t1 and once.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 362
-hash: 23:526bcf05732a4a798bcd1f44368810f0fe20af452bfa7436f5d135f5718edced
 blue:
-  core_damage: 100
   techs:
     centurion: [summon_hounds]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -145}, exp: 0/400/2250}
+  - {name: centurion, index: 0, position: {x: 5, y: -145}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/50/1150}
-  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/630/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 60, y: -100}}
+outcome:
+  blue.core_damage: 100
+  blue.units[0].exp: 400
+  red.units[0].exp: 50
+  red.units[1].exp: 630
+ticks: 362
+hash: 23:526bcf05732a4a798bcd1f44368810f0fe20af452bfa7436f5d135f5718edced

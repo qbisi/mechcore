@@ -1,18 +1,21 @@
 # M2: a single large ground target, which cannot hit back.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 188
-hash: 23:b69984e3868f2453505c507581bdb56dbce3eafa2dc5f7e291f91f0303ca1f62
 blue:
   units:
   - {name: overlord, index: 0, position: {x: -5, y: -225}}
-  - {name: overlord, index: 1, position: {x: -5, y: -165}, exp: 0/100/1750}
-  - {name: overlord, index: 2, position: {x: -5, y: -105}, exp: 0/300/1750}
+  - {name: overlord, index: 1, position: {x: -5, y: -165}}
+  - {name: overlord, index: 2, position: {x: -5, y: -105}}
 red:
-  core_damage: 1200
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.units[1].exp: 100
+  blue.units[2].exp: 300
+  red.core_damage: 1200
+ticks: 188
+hash: 23:b69984e3868f2453505c507581bdb56dbce3eafa2dc5f7e291f91f0303ca1f62

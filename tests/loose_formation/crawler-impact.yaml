@@ -5,20 +5,22 @@
 # simulator parts from the game on tick 64.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 261
-hash: 23:f2fa63c2cf5e62b260d10aa68e5eb1fef30916bd85eee47725b6160271b547fc
 blue:
-  core_damage: 200
   techs:
     crawler: [loose_formation]
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -65}, exp: 0/192/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -65}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 95}]}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 192
+ticks: 261
+hash: 23:f2fa63c2cf5e62b260d10aa68e5eb1fef30916bd85eee47725b6160271b547fc

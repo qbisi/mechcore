@@ -5,16 +5,18 @@
 # corrections.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 120
-hash: 23:d0c997ed8bdc268cb1f13558503f823c795592aabe60a33b72ba5bc550d300d4
 blue:
-  core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 200
+ticks: 120
+hash: 23:d0c997ed8bdc268cb1f13558503f823c795592aabe60a33b72ba5bc550d300d4

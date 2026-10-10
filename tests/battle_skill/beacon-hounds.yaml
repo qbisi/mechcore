@@ -4,20 +4,24 @@
 # last.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 1392
-hash: 23:c6d43f892477763d594651b0be3a6c1e61605a5af392cab4497106dc008f2a89
 blue:
   units:
-  - {name: hound, index: 0, position: {x: -150, y: -200}, exp: 0/400/750}
+  - {name: hound, index: 0, position: {x: -150, y: -200}}
   - {name: marksman, index: 1, position: {x: 100, y: -150}}
   battle_skills:
   - {name: mobile_beacon, positions: [{x: -150, y: -200}, {x: -250, y: -100}, {x: -250, y: 50}]}
 red:
-  core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/400/650}
-  - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/200/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 100
+  red.units[0].exp: 400
+  red.units[1].exp: 200
+ticks: 1392
+hash: 23:c6d43f892477763d594651b0be3a6c1e61605a5af392cab4497106dc008f2a89

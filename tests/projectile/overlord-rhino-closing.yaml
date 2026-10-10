@@ -6,16 +6,18 @@
 # projectile 5's height off from tick 94.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 117
-hash: 23:7036738f779101d57802cb6c7a8aa04abb3f2643fb1793f07cfd2367a2c8451f
 blue:
-  core_damage: 400
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -45}}
 red:
   units:
-  - {name: overlord, index: 0, position: {x: 5, y: -45}, exp: 0/400/1750}
+  - {name: overlord, index: 0, position: {x: 5, y: -45}}
+outcome:
+  blue.core_damage: 400
+  red.units[0].exp: 400
+ticks: 117
+hash: 23:7036738f779101d57802cb6c7a8aa04abb3f2643fb1793f07cfd2367a2c8451f

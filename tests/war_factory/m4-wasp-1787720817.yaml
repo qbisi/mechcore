@@ -2,21 +2,28 @@
 # formations win before any tower falls.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 400
-hash: 23:429e86539e500188d4ca946983b76eaa99cfc5e5597c6cd12dd136c1267e72e2
 blue:
-  core_damage: 1224
   units:
   - {name: war_factory, index: 0, position: {x: 5, y: -105}}
 red:
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/133/900}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/133/900}
-  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/133/900}
-  - {name: wasp, index: 3, position: {x: -55, y: -100}, exp: 0/900/900}
-  - {name: wasp, index: 4, position: {x: -55, y: -140}, exp: 0/133/900}
-  - {name: wasp, index: 5, position: {x: -55, y: -180}, exp: 0/133/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}}
+  - {name: wasp, index: 3, position: {x: -55, y: -100}}
+  - {name: wasp, index: 4, position: {x: -55, y: -140}}
+  - {name: wasp, index: 5, position: {x: -55, y: -180}}
+outcome:
+  blue.core_damage: 1224
+  red.units[0].exp: 133
+  red.units[1].exp: 133
+  red.units[2].exp: 133
+  red.units[3].exp: 900
+  red.units[4].exp: 133
+  red.units[5].exp: 133
+ticks: 400
+hash: 23:429e86539e500188d4ca946983b76eaa99cfc5e5597c6cd12dd136c1267e72e2

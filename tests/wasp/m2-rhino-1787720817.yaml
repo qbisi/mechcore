@@ -1,18 +1,22 @@
 # M2: a single large ground target, which cannot hit back.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 304
-hash: 23:02a30f8531114e2ab00ad4d61c2280398b74b7f88363157d191ee141b4546a23
 blue:
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -180}, exp: 0/266/900}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/66/900}
-  - {name: wasp, index: 2, position: {x: 5, y: -100}, exp: 0/66/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -180}}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}}
+  - {name: wasp, index: 2, position: {x: 5, y: -100}}
 red:
-  core_damage: 612
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.units[0].exp: 266
+  blue.units[1].exp: 66
+  blue.units[2].exp: 66
+  red.core_damage: 612
+ticks: 304
+hash: 23:02a30f8531114e2ab00ad4d61c2280398b74b7f88363157d191ee141b4546a23

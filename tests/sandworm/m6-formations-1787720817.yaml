@@ -2,18 +2,21 @@
 # target distribution and avoidance between allies.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 367
-hash: 23:41860bfd6ac4ddad52920d9f97a5f67e048c3db272979743c95fe69b9c6ee9f4
 blue:
   units:
-  - {name: sandworm, index: 0, position: {x: 0, y: -130}, exp: 0/134/2000}
-  - {name: sandworm, index: 1, position: {x: 0, y: -80}, exp: 0/258/2000}
+  - {name: sandworm, index: 0, position: {x: 0, y: -130}}
+  - {name: sandworm, index: 1, position: {x: 0, y: -80}}
 red:
-  core_damage: 700
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -70}}
   - {name: marksman, index: 1, position: {x: 0, y: -110}}
+outcome:
+  blue.units[0].exp: 134
+  blue.units[1].exp: 258
+  red.core_damage: 700
+ticks: 367
+hash: 23:41860bfd6ac4ddad52920d9f97a5f67e048c3db272979743c95fe69b9c6ee9f4

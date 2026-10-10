@@ -4,16 +4,18 @@
 # lands on what it covers: the shield takes nothing all fight.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 376
-hash: 23:e02404cbfeabcfbc78a7c2570024d32e7b05dd2476a45294117eb8042127e6d6
 blue:
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/192/1600, equipment: [barrier]}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, equipment: [barrier]}
 red:
-  core_damage: 350
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 192
+  red.core_damage: 350
+ticks: 376
+hash: 23:e02404cbfeabcfbc78a7c2570024d32e7b05dd2476a45294117eb8042127e6d6

@@ -7,20 +7,24 @@
 # (t350), while red's at blue lands as 76 on each of the eight.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 530
-hash: 23:de314114f84071b47e7d3c3fa80b90c456640c50bbdd27b3aa000d166586efa3
 blue:
   techs:
     sledgehammer: [damage_sharing]
   units:
-  - {name: sledgehammer, index: 0, position: {x: -45, y: -100}, exp: 0/420/1300}
-  - {name: sledgehammer, index: 1, position: {x: 5, y: -100}, exp: 0/540/1300}
+  - {name: sledgehammer, index: 0, position: {x: -45, y: -100}}
+  - {name: sledgehammer, index: 1, position: {x: 5, y: -100}}
 red:
-  core_damage: 320
   units:
-  - {name: hacker, index: 0, position: {x: -45, y: -105}, exp: 0/160/560}
+  - {name: hacker, index: 0, position: {x: -45, y: -105}}
   - {name: hacker, index: 1, position: {x: 35, y: -105}}
+outcome:
+  blue.units[0].exp: 420
+  blue.units[1].exp: 540
+  red.core_damage: 320
+  red.units[0].exp: 160
+ticks: 530
+hash: 23:de314114f84071b47e7d3c3fa80b90c456640c50bbdd27b3aa000d166586efa3

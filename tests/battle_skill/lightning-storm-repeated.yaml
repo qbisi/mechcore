@@ -6,22 +6,26 @@
 # unit.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 747
-hash: 23:2d2dbb50a6e5ca588103bf90d26002c2966fdb22bde82d6db444418f2a9f868c
 blue:
   units:
-  - {name: fortress, index: 0, position: {x: -60, y: -160}, exp: 0/1600/1600}
-  - {name: fortress, index: 1, position: {x: 60, y: -160}, exp: 0/1600/1600}
+  - {name: fortress, index: 0, position: {x: -60, y: -160}}
+  - {name: fortress, index: 1, position: {x: 60, y: -160}}
   battle_skills:
   - {name: lightning_storm, positions: [{x: 0, y: 40}]}
 red:
-  core_damage: 350
   units:
   - {name: sledgehammer, index: 0, position: {x: -45, y: -60}, level: 3}
   - {name: sledgehammer, index: 1, position: {x: 5, y: -60}, level: 3}
   - {name: sledgehammer, index: 2, position: {x: 55, y: -60}, level: 3}
-  - {name: fortress, index: 3, position: {x: 0, y: -110}, exp: 0/800/1600}
+  - {name: fortress, index: 3, position: {x: 0, y: -110}}
+outcome:
+  blue.units[0].exp: 1600
+  blue.units[1].exp: 1600
+  red.core_damage: 350
+  red.units[3].exp: 800
+ticks: 747
+hash: 23:2d2dbb50a6e5ca588103bf90d26002c2966fdb22bde82d6db444418f2a9f868c

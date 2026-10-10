@@ -4,17 +4,20 @@
 # wins on tick 319 with five Mustangs left.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 319
-hash: 23:d225f4f908699ecec6faea9feb5283d5b23a7f419fb5b310290e1004bf3216fb
 blue:
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/400/1600, equipment: [mustang_production_line]}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, equipment: [mustang_production_line]}
 red:
-  core_damage: 370
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -100}}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/102/650}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 370
+  red.units[1].exp: 102
+ticks: 319
+hash: 23:d225f4f908699ecec6faea9feb5283d5b23a7f419fb5b310290e1004bf3216fb

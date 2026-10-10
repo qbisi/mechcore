@@ -8,19 +8,21 @@
 # the Rhino's edge.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 539
-hash: 23:aecaca0c3da04b0dfe6d70420b1f9328cd302ded8cc3f67719aa1480559015eb
 blue:
   techs:
     centurion: [homing_missile]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -295}, exp: 0/400/2250}
+  - {name: centurion, index: 0, position: {x: 5, y: -295}}
 red:
-  core_damage: 250
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -295}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 250
+ticks: 539
+hash: 23:aecaca0c3da04b0dfe6d70420b1f9328cd302ded8cc3f67719aa1480559015eb

@@ -4,17 +4,20 @@
 # row's `scope`, 0, changes nothing in the fight.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 64
-hash: 23:631adbe4e364b53b6d2ceb4ab8454f23d0f3e77e672cd13bd2429a6de551a3df
 blue:
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -40}, exp: 0/192/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -40}}
   battle_skills:
   - {name: heavy_missile_strike, positions: [{x: 0, y: 0}]}
 red:
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -40}, exp: 0/192/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -40}}
+outcome:
+  blue.units[0].exp: 192
+  red.units[0].exp: 192
+ticks: 64
+hash: 23:631adbe4e364b53b6d2ceb4ab8454f23d0f3e77e672cd13bd2429a6de551a3df

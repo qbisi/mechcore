@@ -7,20 +7,24 @@
 # the officer, each taking its whole 250.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 259
-hash: 23:ddf9139f7fcf3e2d9efcec984c091378722edcc323708669c370b05f3cda8ead
 blue:
-  core_damage: 224
   officers: [advanced_missile_device]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/144/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
   contraptions:
-  - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
+  - {name: missile, index: 0, position: {x: 1, y: -11}}
 red:
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -45}}
-  - {name: crawler, index: 1, position: {x: 45, y: -40}, exp: 0/200/450}
+  - {name: crawler, index: 1, position: {x: 45, y: -40}}
+outcome:
+  blue.core_damage: 224
+  blue.units[0].exp: 144
+  blue.contraptions[0].retained: false
+  red.units[1].exp: 200
+ticks: 259
+hash: 23:ddf9139f7fcf3e2d9efcec984c091378722edcc323708669c370b05f3cda8ead

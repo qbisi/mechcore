@@ -4,18 +4,20 @@
 # it, not 118 and not the two summed.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 175
-hash: 23:1984cffdb4a3bd4341d618e7f86ec3418b1b7712f2f1afde3ee1c7b70f3ccb46
 blue:
   techs:
     steel_ball: [energy_absorption]
   units:
-  - {name: steel_ball, index: 0, position: {x: 5, y: -100}, exp: 0/400/1000, equipment: [absorption_module]}
+  - {name: steel_ball, index: 0, position: {x: 5, y: -100}, equipment: [absorption_module]}
 red:
-  core_damage: 200
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 200
+ticks: 175
+hash: 23:1984cffdb4a3bd4341d618e7f86ec3418b1b7712f2f1afde3ee1c7b70f3ccb46

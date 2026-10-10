@@ -3,24 +3,30 @@
 # all arrive on tick 161, and their secondary guns fight from then.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 1128
-hash: 23:a3252d3ae84f7910602f4f597a6ccf17af7fb2cbe77c8f0306baa71e3664b394
 blue:
-  core_damage: 200
   techs:
     sabertooth: [secondary_armament]
   units:
-  - {name: sabertooth, index: 0, position: {x: -335, y: 205}, exp: 0/600/1300, travelling: true}
-  - {name: sabertooth, index: 1, position: {x: 335, y: 205}, exp: 0/200/1300, travelling: true}
+  - {name: sabertooth, index: 0, position: {x: -335, y: 205}, travelling: true}
+  - {name: sabertooth, index: 1, position: {x: 335, y: 205}, travelling: true}
   - {name: sabertooth, index: 2, position: {x: 5, y: -95}}
 red:
   techs:
     sabertooth: [secondary_armament]
   units:
-  - {name: sabertooth, index: 0, position: {x: -335, y: 205}, exp: 0/600/1300, travelling: true}
-  - {name: sabertooth, index: 1, position: {x: 335, y: 205}, exp: 0/200/1300, travelling: true}
-  - {name: sabertooth, index: 2, position: {x: 5, y: -95}, exp: 0/400/1300}
+  - {name: sabertooth, index: 0, position: {x: -335, y: 205}, travelling: true}
+  - {name: sabertooth, index: 1, position: {x: 335, y: 205}, travelling: true}
+  - {name: sabertooth, index: 2, position: {x: 5, y: -95}}
+outcome:
+  blue.core_damage: 200
+  blue.units[0].exp: 600
+  blue.units[1].exp: 200
+  red.units[0].exp: 600
+  red.units[1].exp: 200
+  red.units[2].exp: 400
+ticks: 1128
+hash: 23:a3252d3ae84f7910602f4f597a6ccf17af7fb2cbe77c8f0306baa71e3664b394

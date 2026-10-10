@@ -1,16 +1,18 @@
 # M5: the formation rotated, its target off to one side.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 60
-hash: 23:0a554c505afa50f273442c889faeeacaead7a56cee3cdc2977d488e0d6d378a8
 blue:
   units:
-  - {name: mountain, index: 0, position: {x: -65, y: -65}, exp: 0/400/3200, rotated: true}
+  - {name: mountain, index: 0, position: {x: -65, y: -65}, rotated: true}
 red:
-  core_damage: 500
   units:
   - {name: rhino, index: 0, position: {x: -35, y: -95}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 500
+ticks: 60
+hash: 23:0a554c505afa50f273442c889faeeacaead7a56cee3cdc2977d488e0d6d378a8

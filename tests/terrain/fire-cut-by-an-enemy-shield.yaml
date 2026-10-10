@@ -6,22 +6,27 @@
 # nothing.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 312
-hash: 23:664e3d74c14bf2c859bb6cea11cdcbcb2941b621b9f24a41967117f62ea81740
 blue:
-  core_damage: 200
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/96/650}
-  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/96/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -150}}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -60, y: 70}, {x: 60, y: 70}]}
 red:
   units:
-  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/100/1300}
-  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/300/450}
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}}
   contraptions:
   - {name: shield, index: 0, position: {x: 0, y: -120}}
+outcome:
+  blue.core_damage: 200
+  blue.units[0].exp: 96
+  blue.units[1].exp: 96
+  red.units[0].exp: 100
+  red.units[1].exp: 300
+ticks: 312
+hash: 23:664e3d74c14bf2c859bb6cea11cdcbcb2941b621b9f24a41967117f62ea81740

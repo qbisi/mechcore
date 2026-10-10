@@ -12,16 +12,18 @@
 # Laser Sights at 170 m: the range acts, and the first shot comes sooner.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 140
-hash: 23:871796f47e718a0a10e5681a5ed7b5ba1563e0c19f27becfce1b44ba2e9698e0
 blue:
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/200/650, equipment: [laser_sights]}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [laser_sights]}
 red:
-  core_damage: 100
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -120}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 100
+ticks: 140
+hash: 23:871796f47e718a0a10e5681a5ed7b5ba1563e0c19f27becfce1b44ba2e9698e0

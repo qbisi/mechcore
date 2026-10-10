@@ -7,20 +7,25 @@
 # the units leave them and they stay, one round left.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 373
-hash: 23:34f10c1d516d9965332e2bd0eb9a5abb6aaac4a2961f10aa62d9854bf12fcc32
 blue:
-  core_damage: 196
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/98/650}
-  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/102/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -150}}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}}
   battle_skills:
   - {name: sticky_oil_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
 red:
   units:
-  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/300/1300}
-  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/100/450}
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}}
+outcome:
+  blue.core_damage: 196
+  blue.units[0].exp: 98
+  blue.units[1].exp: 102
+  red.units[0].exp: 300
+  red.units[1].exp: 100
+ticks: 373
+hash: 23:34f10c1d516d9965332e2bd0eb9a5abb6aaac4a2961f10aa62d9854bf12fcc32

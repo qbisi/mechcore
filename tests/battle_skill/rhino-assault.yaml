@@ -6,18 +6,19 @@
 # snapshots until it joins on tick 48, and moves from tick 56.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 259
-hash: 23:f61f44a7d24436fb016f7e37262a8c754f307925b4614e04e87c994e9e37abaf
 blue:
   units:
   - {name: marksman, index: 0, position: {x: -100, y: -150}}
   battle_skills:
   - {name: rhino_assault, positions: [{x: 0, y: -60}]}
 red:
-  core_damage: 150
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
+outcome:
+  red.core_damage: 150
+ticks: 259
+hash: 23:f61f44a7d24436fb016f7e37262a8c754f307925b4614e04e87c994e9e37abaf

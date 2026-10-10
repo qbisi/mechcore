@@ -2,16 +2,18 @@
 # turning. The target stands nearer than either enemy tower.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 233
-hash: 23:eac134b66969be4715b737b3142dbd2d93c8130bba17122d32dee3dc9ec44f53
 blue:
-  core_damage: 200
   units:
   - {name: tarantula, index: 0, position: {x: -65, y: -65}, rotated: true}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: -35, y: -95}, exp: 0/400/1150}
+  - {name: rhino, index: 0, position: {x: -35, y: -95}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 400
+ticks: 233
+hash: 23:eac134b66969be4715b737b3142dbd2d93c8130bba17122d32dee3dc9ec44f53

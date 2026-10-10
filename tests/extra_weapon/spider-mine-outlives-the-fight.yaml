@@ -7,20 +7,25 @@
 # to one logic tick.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 341
-hash: 23:730213e69d543ec5f89ddfb9432134a62b65366eff86bac3e6b0e6ecc0557937
 blue:
   techs:
     tarantula: [spider_mine]
   units:
-  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/17/1500}
-  - {name: mustang, index: 1, position: {x: 65, y: -110}, exp: 0/200/1200}
-  - {name: mustang, index: 2, position: {x: -75, y: -110}, exp: 0/374/1200}
+  - {name: tarantula, index: 0, position: {x: -5, y: -105}}
+  - {name: mustang, index: 1, position: {x: 65, y: -110}}
+  - {name: mustang, index: 2, position: {x: -75, y: -110}}
 red:
-  core_damage: 542
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -250}, exp: 0/137/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -250}}
+outcome:
+  blue.units[0].exp: 17
+  blue.units[1].exp: 200
+  blue.units[2].exp: 374
+  red.core_damage: 542
+  red.units[0].exp: 137
+ticks: 341
+hash: 23:730213e69d543ec5f89ddfb9432134a62b65366eff86bac3e6b0e6ecc0557937

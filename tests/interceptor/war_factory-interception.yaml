@@ -5,19 +5,21 @@
 # t193; the War Factory's main skill never locks.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 247
-hash: 23:5c734ec5ddaa38572e80d8a6d642e1abd918adcba0a2bf07375e12674a511e6b
 blue:
   techs:
     war_factory: [missile_interceptor]
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -125}, exp: 0/800/3200}
+  - {name: war_factory, index: 0, position: {x: 5, y: -125}}
 red:
-  core_damage: 500
   units:
   - {name: stormcaller, index: 0, position: {x: 5, y: -40}}
   - {name: stormcaller, index: 1, position: {x: -55, y: -40}}
+outcome:
+  blue.units[0].exp: 800
+  red.core_damage: 500
+ticks: 247
+hash: 23:5c734ec5ddaa38572e80d8a6d642e1abd918adcba0a2bf07375e12674a511e6b

@@ -4,18 +4,21 @@
 # a shot.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 203
-hash: 23:49d10c67a2e7a61c2ec716a4521e410a705d7378804408ff1cc9f6fbbddbc162
 blue:
-  core_damage: 100
   techs:
     tarantula: [anti_aircraft_ammunition]
   units:
-  - {name: tarantula, index: 0, position: {x: 5, y: -105}, exp: 0/200/1500}
+  - {name: tarantula, index: 0, position: {x: 5, y: -105}}
 red:
   units:
-  - {name: phoenix, index: 0, position: {x: 20, y: -90}, exp: 0/400/1300}
+  - {name: phoenix, index: 0, position: {x: 20, y: -90}}
+outcome:
+  blue.core_damage: 100
+  blue.units[0].exp: 200
+  red.units[0].exp: 400
+ticks: 203
+hash: 23:49d10c67a2e7a61c2ec716a4521e410a705d7378804408ff1cc9f6fbbddbc162

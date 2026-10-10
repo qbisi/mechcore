@@ -3,17 +3,19 @@
 # widens by the officer's 4: a shot strikes up to ten Crawlers.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 151
-hash: 23:c6d5f3d993e10ab306a1418c2f6fe9c9b1ceb20684a08772dd4db25bd473c112
 blue:
   officers: [improved_tarantula]
   units:
-  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/192/1500}
+  - {name: tarantula, index: 0, position: {x: -5, y: -105}}
 red:
-  core_damage: 200
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 192
+  red.core_damage: 200
+ticks: 151
+hash: 23:c6d5f3d993e10ab306a1418c2f6fe9c9b1ceb20684a08772dd4db25bd473c112

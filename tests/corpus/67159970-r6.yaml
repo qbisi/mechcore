@@ -5,12 +5,10 @@
 # Point's beam at a Phoenix in the air splashes no Tarantula standing under it.
 
 kind: fight
+source: game
 map_id: 1032
 seed: 886311192
 round: 6
-source: game
-ticks: 778
-hash: 23:c1ad7176c0996d39c862d48952acab9005f6078c1e663b628f55fc349d236f54
 blue:
   officers: [advanced_offensive_tactics, giant_specialist, efficient_giant_manufacturing]
   techs:
@@ -18,28 +16,27 @@ blue:
     melting_point: [range_enhancement]
   legacy_index: 20
   units:
-  - {name: void_eye, index: 2, position: {x: -140, y: -110}, exp: 612/612/650, rotated: true}
-  - {name: fang, index: 5, position: {x: -120, y: -185}, exp: 600/600/600, rotated: true}
-  - {name: fang, index: 6, position: {x: 120, y: -185}, exp: 600/600/600, rotated: true}
-  - {name: crawler, index: 8, position: {x: 140, y: -205}, exp: 285/335/450, rotated: true}
-  - {name: crawler, index: 9, position: {x: -140, y: -205}, exp: 165/214/450, rotated: true}
-  - {name: fang, index: 10, position: {x: -180, y: -115}, exp: 591/591/600, rotated: true}
-  - {name: vulcan, index: 11, position: {x: -170, y: -160}, exp: 1067/1615/2200}
-  - {name: fang, index: 12, position: {x: -120, y: -235}, exp: 90/90/600, rotated: true}
-  - {name: crawler, index: 13, position: {x: -290, y: -285}, exp: 154/198/450, rotated: true}
-  - {name: vulcan, index: 14, position: {x: 170, y: -160}, level: 2, exp: 0/1373/5453, equipment: [tank_production_line]}
+  - {name: void_eye, index: 2, position: {x: -140, y: -110}, exp: 612/650, rotated: true}
+  - {name: fang, index: 5, position: {x: -120, y: -185}, exp: 600/600, rotated: true}
+  - {name: fang, index: 6, position: {x: 120, y: -185}, exp: 600/600, rotated: true}
+  - {name: crawler, index: 8, position: {x: 140, y: -205}, exp: 285/450, rotated: true}
+  - {name: crawler, index: 9, position: {x: -140, y: -205}, exp: 165/450, rotated: true}
+  - {name: fang, index: 10, position: {x: -180, y: -115}, exp: 591/600, rotated: true}
+  - {name: vulcan, index: 11, position: {x: -170, y: -160}, exp: 1067/2200}
+  - {name: fang, index: 12, position: {x: -120, y: -235}, exp: 90/600, rotated: true}
+  - {name: crawler, index: 13, position: {x: -290, y: -285}, exp: 154/450, rotated: true}
+  - {name: vulcan, index: 14, position: {x: 170, y: -160}, level: 2, equipment: [tank_production_line]}
   - {name: fang, index: 15, position: {x: 120, y: -235}, rotated: true}
-  - {name: crawler, index: 16, position: {x: 290, y: -285}, exp: 77/111/450, rotated: true}
-  - {name: melting_point, index: 17, position: {x: 50, y: -160}, level: 2, exp: 0/3012/3154}
-  - {name: vulcan, index: 18, position: {x: 90, y: -160}, exp: 1587/2200/2200}
-  - {name: fang, index: 19, position: {x: 80, y: -115}, exp: 415/475/600, rotated: true}
-  - {name: vulcan, index: 20, position: {x: -90, y: -160}, exp: 0/1280/2200}
-  - {name: melting_point, index: 21, position: {x: -50, y: -160}, exp: 0/1400/1400}
+  - {name: crawler, index: 16, position: {x: 290, y: -285}, exp: 77/450, rotated: true}
+  - {name: melting_point, index: 17, position: {x: 50, y: -160}, level: 2}
+  - {name: vulcan, index: 18, position: {x: 90, y: -160}, exp: 1587/2200}
+  - {name: fang, index: 19, position: {x: 80, y: -115}, exp: 415/600, rotated: true}
+  - {name: vulcan, index: 20, position: {x: -90, y: -160}}
+  - {name: melting_point, index: 21, position: {x: -50, y: -160}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 red:
-  core_damage: 1506
   officers: [advanced_offensive_tactics, speed_specialist]
   techs:
     tarantula: [range_enhancement]
@@ -47,23 +44,53 @@ red:
   blueprints: [attack_enhancement]
   legacy_index: 18
   units:
-  - {name: tarantula, index: 3, position: {x: -95, y: -135}, level: 3, exp: 0/691/5343, equipment: [absorption_module]}
-  - {name: tarantula, index: 4, position: {x: 95, y: -135}, level: 2, exp: 3211/3380/3380}
-  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 87/87/450}
-  - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 449/450/450}
-  - {name: phoenix, index: 7, position: {x: -90, y: -210}, level: 2, exp: 82/115/2929}
-  - {name: centurion, index: 8, position: {x: -115, y: -165}, exp: 1541/1662/2250}
-  - {name: crawler, index: 9, position: {x: 0, y: -205}, exp: 395/411/450, rotated: true}
-  - {name: centurion, index: 10, position: {x: 115, y: -165}, level: 2, exp: 0/230/5070}
-  - {name: crawler, index: 11, position: {x: 290, y: -285}, exp: 316/328/450, rotated: true}
-  - {name: crawler, index: 12, position: {x: -290, y: -285}, exp: 105/105/450, rotated: true}
-  - {name: crawler, index: 13, position: {x: 140, y: -235}, exp: 60/60/450, rotated: true}
-  - {name: centurion, index: 14, position: {x: 165, y: -165}, exp: 1030/2214/2250}
-  - {name: tarantula, index: 15, position: {x: 195, y: -135}, exp: 739/1500/1500}
-  - {name: crawler, index: 16, position: {x: 0, y: -285}, exp: 20/34/450, rotated: true}
-  - {name: crawler, index: 17, position: {x: 0, y: -135}, exp: 42/50/450, rotated: true}
-  - {name: centurion, index: 18, position: {x: -165, y: -165}, exp: 0/260/2250}
-  - {name: crawler, index: 19, position: {x: -290, y: -185}, exp: 0/4/450, rotated: true}
-  - {name: phoenix, index: 20, position: {x: 90, y: -210}, exp: 0/36/1300}
+  - {name: tarantula, index: 3, position: {x: -95, y: -135}, level: 3, equipment: [absorption_module]}
+  - {name: tarantula, index: 4, position: {x: 95, y: -135}, level: 2, exp: 3211/3380}
+  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 87/450}
+  - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 449/450}
+  - {name: phoenix, index: 7, position: {x: -90, y: -210}, level: 2, exp: 82/2929}
+  - {name: centurion, index: 8, position: {x: -115, y: -165}, exp: 1541/2250}
+  - {name: crawler, index: 9, position: {x: 0, y: -205}, exp: 395/450, rotated: true}
+  - {name: centurion, index: 10, position: {x: 115, y: -165}, level: 2}
+  - {name: crawler, index: 11, position: {x: 290, y: -285}, exp: 316/450, rotated: true}
+  - {name: crawler, index: 12, position: {x: -290, y: -285}, exp: 105/450, rotated: true}
+  - {name: crawler, index: 13, position: {x: 140, y: -235}, exp: 60/450, rotated: true}
+  - {name: centurion, index: 14, position: {x: 165, y: -165}, exp: 1030/2250}
+  - {name: tarantula, index: 15, position: {x: 195, y: -135}, exp: 739/1500}
+  - {name: crawler, index: 16, position: {x: 0, y: -285}, exp: 20/450, rotated: true}
+  - {name: crawler, index: 17, position: {x: 0, y: -135}, exp: 42/450, rotated: true}
+  - {name: centurion, index: 18, position: {x: -165, y: -165}}
+  - {name: crawler, index: 19, position: {x: -290, y: -185}, rotated: true}
+  - {name: phoenix, index: 20, position: {x: 90, y: -210}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+outcome:
+  blue.units[3].exp: 335
+  blue.units[4].exp: 214
+  blue.units[6].exp: 1615
+  blue.units[8].exp: 198
+  blue.units[9].exp: 1373
+  blue.units[11].exp: 111
+  blue.units[12].exp: 3012
+  blue.units[13].exp: 2200
+  blue.units[14].exp: 475
+  blue.units[15].exp: 1280
+  blue.units[16].exp: 1400
+  red.core_damage: 1506
+  red.units[0].exp: 691
+  red.units[1].exp: 3380
+  red.units[3].exp: 450
+  red.units[4].exp: 115
+  red.units[5].exp: 1662
+  red.units[6].exp: 411
+  red.units[7].exp: 230
+  red.units[8].exp: 328
+  red.units[11].exp: 2214
+  red.units[12].exp: 1500
+  red.units[13].exp: 34
+  red.units[14].exp: 50
+  red.units[15].exp: 260
+  red.units[16].exp: 4
+  red.units[17].exp: 36
+ticks: 778
+hash: 23:c1ad7176c0996d39c862d48952acab9005f6078c1e663b628f55fc349d236f54

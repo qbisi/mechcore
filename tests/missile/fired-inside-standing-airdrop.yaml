@@ -7,20 +7,23 @@
 # Rhino takes 5000 and the shield nothing.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 415
-hash: 23:992ac1117b9f03d45e7de21e2c58f8259ab40c2b2e60ebf37069055ef3ee0ce4
 blue:
-  core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
   contraptions:
-  - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
+  - {name: missile, index: 0, position: {x: 1, y: -11}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}}
   battle_skills:
   - {name: shield_airdrop, standing: {position: {x: -1, y: 11}}}
+outcome:
+  blue.core_damage: 200
+  blue.contraptions[0].retained: false
+  red.units[0].exp: 200
+ticks: 415
+hash: 23:992ac1117b9f03d45e7de21e2c58f8259ab40c2b2e60ebf37069055ef3ee0ce4

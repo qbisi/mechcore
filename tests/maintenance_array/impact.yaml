@@ -3,20 +3,22 @@
 # ticks 189 and 258. Hurt by red's Rhino, they repair nothing.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 258
-hash: 23:f950b5539db37bda0482646716087bb07f26f12523dc5799414224b09ba7c0b2
 blue:
-  core_damage: 200
   techs:
     typhoon: [maintenance_array]
   units:
   - {name: typhoon, index: 0, position: {x: 0, y: -100}, level: 6}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}, level: 6, exp: 0/6600/6669}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, level: 6}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: 0, y: 100}]}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 6600
+ticks: 258
+hash: 23:f950b5539db37bda0482646716087bb07f26f12523dc5799414224b09ba7c0b2

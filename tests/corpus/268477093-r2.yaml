@@ -5,26 +5,23 @@
 # nearer Sledgehammer its weapon faces 15 degrees away from.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 2020722719
 round: 2
-source: game
-ticks: 822
-hash: 23:631a3f7c7f525006bae0de546762dbd292ef8c013079eaa731573a130c022ad8
 blue:
-  core_damage: 721
   officers: [fortified_specialist]
   legacy_index: 7
   units:
-  - {name: hound, index: 0, position: {x: 160, y: -110}, exp: 179/236/750, rotated: true}
-  - {name: hound, index: 1, position: {x: 250, y: -100}, exp: 251/273/750, rotated: true}
-  - {name: hound, index: 2, position: {x: 60, y: -120}, exp: 16/200/750, rotated: true}
-  - {name: sledgehammer, index: 3, position: {x: 210, y: -125}, exp: 499/1000/1300, rotated: true}
-  - {name: sledgehammer, index: 4, position: {x: 100, y: -125}, exp: 256/558/1300, rotated: true, equipment: [haste_module]}
-  - {name: crawler, index: 5, position: {x: 60, y: -165}, exp: 16/34/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 160, y: -155}, exp: 31/70/450, rotated: true}
-  - {name: fang, index: 7, position: {x: -140, y: -205}, exp: 0/102/600, rotated: true}
-  - {name: fang, index: 8, position: {x: 140, y: -205}, exp: 0/306/600, rotated: true}
+  - {name: hound, index: 0, position: {x: 160, y: -110}, exp: 179/750, rotated: true}
+  - {name: hound, index: 1, position: {x: 250, y: -100}, exp: 251/750, rotated: true}
+  - {name: hound, index: 2, position: {x: 60, y: -120}, exp: 16/750, rotated: true}
+  - {name: sledgehammer, index: 3, position: {x: 210, y: -125}, exp: 499/1300, rotated: true}
+  - {name: sledgehammer, index: 4, position: {x: 100, y: -125}, exp: 256/1300, rotated: true, equipment: [haste_module]}
+  - {name: crawler, index: 5, position: {x: 60, y: -165}, exp: 16/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 160, y: -155}, exp: 31/450, rotated: true}
+  - {name: fang, index: 7, position: {x: -140, y: -205}, rotated: true}
+  - {name: fang, index: 8, position: {x: 140, y: -205}, rotated: true}
   - {name: crawler, index: 9, position: {x: 270, y: -285}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -32,17 +29,39 @@ red:
   officers: [missile_specialist]
   legacy_index: 7
   units:
-  - {name: void_eye, index: 0, position: {x: 170, y: -170}, exp: 257/489/650}
-  - {name: void_eye, index: 1, position: {x: -170, y: -170}, exp: 164/592/650}
-  - {name: void_eye, index: 2, position: {x: 0, y: -180}, level: 2, exp: 0/219/1465}
-  - {name: fire_badger, index: 3, position: {x: -75, y: -180}, exp: 337/576/1400}
-  - {name: fire_badger, index: 4, position: {x: 75, y: -180}, exp: 405/989/1400}
-  - {name: fang, index: 5, position: {x: -140, y: -205}, exp: 110/364/600, rotated: true}
-  - {name: fang, index: 6, position: {x: 140, y: -205}, exp: 111/124/600, rotated: true}
-  - {name: fire_badger, index: 7, position: {x: -225, y: -170}, exp: 0/388/1400}
-  - {name: fang, index: 8, position: {x: -140, y: -135}, exp: 0/176/600, rotated: true}
+  - {name: void_eye, index: 0, position: {x: 170, y: -170}, exp: 257/650}
+  - {name: void_eye, index: 1, position: {x: -170, y: -170}, exp: 164/650}
+  - {name: void_eye, index: 2, position: {x: 0, y: -180}, level: 2}
+  - {name: fire_badger, index: 3, position: {x: -75, y: -180}, exp: 337/1400}
+  - {name: fire_badger, index: 4, position: {x: 75, y: -180}, exp: 405/1400}
+  - {name: fang, index: 5, position: {x: -140, y: -205}, exp: 110/600, rotated: true}
+  - {name: fang, index: 6, position: {x: 140, y: -205}, exp: 111/600, rotated: true}
+  - {name: fire_badger, index: 7, position: {x: -225, y: -170}}
+  - {name: fang, index: 8, position: {x: -140, y: -135}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
   battle_skills:
   - {name: wasp_swarm, positions: [{x: 0, y: 259}]}
+outcome:
+  blue.core_damage: 721
+  blue.units[0].exp: 236
+  blue.units[1].exp: 273
+  blue.units[2].exp: 200
+  blue.units[3].exp: 1000
+  blue.units[4].exp: 558
+  blue.units[5].exp: 34
+  blue.units[6].exp: 70
+  blue.units[7].exp: 102
+  blue.units[8].exp: 306
+  red.units[0].exp: 489
+  red.units[1].exp: 592
+  red.units[2].exp: 219
+  red.units[3].exp: 576
+  red.units[4].exp: 989
+  red.units[5].exp: 364
+  red.units[6].exp: 124
+  red.units[7].exp: 388
+  red.units[8].exp: 176
+ticks: 822
+hash: 23:631a3f7c7f525006bae0de546762dbd292ef8c013079eaa731573a130c022ad8

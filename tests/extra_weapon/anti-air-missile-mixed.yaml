@@ -5,20 +5,24 @@
 # Marksman and kills it at t110.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 135
-hash: 23:b252e351d821859ccbb7d64308f4c276a8afbd2459e5ffc62091c160b2d732e9
 blue:
-  core_damage: 270
   techs:
     sabertooth: [anti_air_missile]
   units:
-  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/268/1300}
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}}
 red:
   units:
   - {name: marksman, index: 0, position: {x: -40, y: -100}}
-  - {name: marksman, index: 1, position: {x: 40, y: -100}, exp: 0/300/650}
-  - {name: wasp, index: 2, position: {x: 5, y: -100}, exp: 0/100/900}
+  - {name: marksman, index: 1, position: {x: 40, y: -100}}
+  - {name: wasp, index: 2, position: {x: 5, y: -100}}
+outcome:
+  blue.core_damage: 270
+  blue.units[0].exp: 268
+  red.units[1].exp: 300
+  red.units[2].exp: 100
+ticks: 135
+hash: 23:b252e351d821859ccbb7d64308f4c276a8afbd2459e5ffc62091c160b2d732e9

@@ -7,19 +7,23 @@
 # The control is `anti-air-missile-control.yaml`.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 157
-hash: 23:36c52e8f98e41c66e079daaaad79df3d9cf23ed395c0ce94e1ac5475a9c2eaf4
 blue:
-  core_damage: 338
   techs:
     sabertooth: [anti_air_missile]
   units:
-  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/134/1300}
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}}
 red:
   units:
-  - {name: phantom_ray, index: 0, position: {x: -45, y: -100}, exp: 0/300/1000}
-  - {name: wasp, index: 1, position: {x: 45, y: -100}, exp: 0/100/900}
+  - {name: phantom_ray, index: 0, position: {x: -45, y: -100}}
+  - {name: wasp, index: 1, position: {x: 45, y: -100}}
+outcome:
+  blue.core_damage: 338
+  blue.units[0].exp: 134
+  red.units[0].exp: 300
+  red.units[1].exp: 100
+ticks: 157
+hash: 23:36c52e8f98e41c66e079daaaad79df3d9cf23ed395c0ce94e1ac5475a9c2eaf4

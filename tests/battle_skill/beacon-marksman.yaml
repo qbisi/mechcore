@@ -5,12 +5,10 @@
 # walks on as it fires.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 294
-hash: 23:495e697a0c2bbe24fe2a572868fa128c0cdaa8e23f8efc2940bab6a69041d158
 blue:
   units:
   - {name: marksman, index: 0, position: {x: -100, y: -150}}
@@ -19,5 +17,10 @@ blue:
   - {name: mobile_beacon, positions: [{x: -100, y: -150}, {x: 0, y: -100}, {x: 100, y: -50}]}
 red:
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
-  - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/200/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}}
+outcome:
+  red.units[0].exp: 200
+  red.units[1].exp: 200
+ticks: 294
+hash: 23:495e697a0c2bbe24fe2a572868fa128c0cdaa8e23f8efc2940bab6a69041d158

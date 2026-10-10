@@ -10,17 +10,19 @@
 # Control System's damage both land, 2838 of life and shots of 3842.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 83
-hash: 23:5fb92d0c5fbf97e86f213138ea9f354ec888796ba4d18678a77360b0c516d434
 blue:
   officers: [equipment_expansion]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/200/650, equipment: [heavy_armor, improved_firepower_control_system]}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [heavy_armor, improved_firepower_control_system]}
 red:
-  core_damage: 100
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -50}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 100
+ticks: 83
+hash: 23:5fb92d0c5fbf97e86f213138ea9f354ec888796ba4d18678a77360b0c516d434

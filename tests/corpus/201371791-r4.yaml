@@ -4,12 +4,10 @@
 # towers over as it searches (t621).
 
 kind: fight
+source: game
 map_id: 1021
 seed: 802997336
 round: 4
-source: game
-ticks: 1250
-hash: 23:3512a5dac1f2a9b05746b23761c8d0362817d586db29f67536304e8f60f7ff45
 blue:
   officers: [sabertooth_specialist]
   techs:
@@ -18,47 +16,78 @@ blue:
   blueprints: [attack_enhancement, defense_enhancement]
   legacy_index: 14
   units:
-  - {name: fang, index: 0, position: {x: 160, y: -175}, exp: 365/488/600, rotated: true}
-  - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 50/210/600, rotated: true}
-  - {name: fang, index: 2, position: {x: -160, y: -35}, exp: 276/316/600, rotated: true}
-  - {name: sabertooth, index: 3, position: {x: -165, y: -75}, level: 2, exp: 0/2073/2929}
-  - {name: sabertooth, index: 4, position: {x: -75, y: -75}, exp: 339/767/1300}
-  - {name: hound, index: 5, position: {x: -120, y: -80}, level: 2, exp: 0/1025/1690}
-  - {name: hound, index: 6, position: {x: -210, y: -80}, level: 2, exp: 0/1012/1690}
-  - {name: hound, index: 7, position: {x: 130, y: -150}, exp: 315/565/750}
-  - {name: hound, index: 8, position: {x: -270, y: -90}, level: 2, exp: 0/899/1690}
-  - {name: hound, index: 9, position: {x: -30, y: -80}, exp: 72/250/750}
-  - {name: sabertooth, index: 10, position: {x: -265, y: -45}, exp: 1003/1241/1300}
-  - {name: centurion, index: 11, position: {x: -125, y: -115}, exp: 714/1837/2250}
-  - {name: crawler, index: 12, position: {x: -135, y: -190}, exp: 49/101/450}
-  - {name: crawler, index: 13, position: {x: -170, y: -115}, exp: 67/67/450, rotated: true}
-  - {name: hound, index: 14, position: {x: 70, y: -120}, exp: 0/64/750}
-  - {name: sabertooth, index: 15, position: {x: 25, y: -95}, exp: 0/8/1300}
+  - {name: fang, index: 0, position: {x: 160, y: -175}, exp: 365/600, rotated: true}
+  - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 50/600, rotated: true}
+  - {name: fang, index: 2, position: {x: -160, y: -35}, exp: 276/600, rotated: true}
+  - {name: sabertooth, index: 3, position: {x: -165, y: -75}, level: 2}
+  - {name: sabertooth, index: 4, position: {x: -75, y: -75}, exp: 339/1300}
+  - {name: hound, index: 5, position: {x: -120, y: -80}, level: 2}
+  - {name: hound, index: 6, position: {x: -210, y: -80}, level: 2}
+  - {name: hound, index: 7, position: {x: 130, y: -150}, exp: 315/750}
+  - {name: hound, index: 8, position: {x: -270, y: -90}, level: 2}
+  - {name: hound, index: 9, position: {x: -30, y: -80}, exp: 72/750}
+  - {name: sabertooth, index: 10, position: {x: -265, y: -45}, exp: 1003/1300}
+  - {name: centurion, index: 11, position: {x: -125, y: -115}, exp: 714/2250}
+  - {name: crawler, index: 12, position: {x: -135, y: -190}, exp: 49/450}
+  - {name: crawler, index: 13, position: {x: -170, y: -115}, exp: 67/450, rotated: true}
+  - {name: hound, index: 14, position: {x: 70, y: -120}}
+  - {name: sabertooth, index: 15, position: {x: 25, y: -95}}
   battle_skills:
   - {name: underground_threat, positions: [{x: 2, y: -278}]}
 red:
-  core_damage: 480
   officers: [training_specialist]
   techs:
     hound: [incendiary_bomb]
     centurion: [range_enhancement]
   legacy_index: 12
   units:
-  - {name: void_eye, index: 0, position: {x: 110, y: -170}, level: 2, exp: 27/104/1465}
-  - {name: void_eye, index: 1, position: {x: -110, y: -170}, exp: 650/650/650}
-  - {name: void_eye, index: 2, position: {x: 0, y: -170}, exp: 559/650/650}
-  - {name: mustang, index: 3, position: {x: 95, y: -280}, level: 2, exp: 0/107/2704}
-  - {name: mustang, index: 4, position: {x: -65, y: -280}, level: 2, exp: 1034/2022/2704}
-  - {name: crawler, index: 5, position: {x: 120, y: -225}, exp: 99/136/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -120, y: -225}, exp: 242/313/450, rotated: true}
-  - {name: crawler, index: 7, position: {x: 290, y: -285}, exp: 11/63/450, rotated: true}
-  - {name: sledgehammer, index: 8, position: {x: 140, y: -135}, exp: 421/458/1300, rotated: true}
-  - {name: centurion, index: 9, position: {x: -55, y: -165}, level: 2, exp: 1286/2622/5070}
-  - {name: hound, index: 10, position: {x: -120, y: -190}, exp: 0/388/750}
-  - {name: hound, index: 11, position: {x: 120, y: -190}, exp: 86/129/750}
-  - {name: centurion, index: 12, position: {x: 55, y: -165}, exp: 0/525/2250}
-  - {name: hound, index: 13, position: {x: 160, y: -20}, exp: 0/137/750}
+  - {name: void_eye, index: 0, position: {x: 110, y: -170}, level: 2, exp: 27/1465}
+  - {name: void_eye, index: 1, position: {x: -110, y: -170}, exp: 650/650}
+  - {name: void_eye, index: 2, position: {x: 0, y: -170}, exp: 559/650}
+  - {name: mustang, index: 3, position: {x: 95, y: -280}, level: 2}
+  - {name: mustang, index: 4, position: {x: -65, y: -280}, level: 2, exp: 1034/2704}
+  - {name: crawler, index: 5, position: {x: 120, y: -225}, exp: 99/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -120, y: -225}, exp: 242/450, rotated: true}
+  - {name: crawler, index: 7, position: {x: 290, y: -285}, exp: 11/450, rotated: true}
+  - {name: sledgehammer, index: 8, position: {x: 140, y: -135}, exp: 421/1300, rotated: true}
+  - {name: centurion, index: 9, position: {x: -55, y: -165}, level: 2, exp: 1286/5070}
+  - {name: hound, index: 10, position: {x: -120, y: -190}}
+  - {name: hound, index: 11, position: {x: 120, y: -190}, exp: 86/750}
+  - {name: centurion, index: 12, position: {x: 55, y: -165}}
+  - {name: hound, index: 13, position: {x: 160, y: -20}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   battle_skills:
   - {name: underground_threat, positions: [{x: -2, y: 273}]}
+outcome:
+  blue.units[0].exp: 488
+  blue.units[1].exp: 210
+  blue.units[2].exp: 316
+  blue.units[3].exp: 2073
+  blue.units[4].exp: 767
+  blue.units[5].exp: 1025
+  blue.units[6].exp: 1012
+  blue.units[7].exp: 565
+  blue.units[8].exp: 899
+  blue.units[9].exp: 250
+  blue.units[10].exp: 1241
+  blue.units[11].exp: 1837
+  blue.units[12].exp: 101
+  blue.units[14].exp: 64
+  blue.units[15].exp: 8
+  red.core_damage: 480
+  red.units[0].exp: 104
+  red.units[2].exp: 650
+  red.units[3].exp: 107
+  red.units[4].exp: 2022
+  red.units[5].exp: 136
+  red.units[6].exp: 313
+  red.units[7].exp: 63
+  red.units[8].exp: 458
+  red.units[9].exp: 2622
+  red.units[10].exp: 388
+  red.units[11].exp: 129
+  red.units[12].exp: 525
+  red.units[13].exp: 137
+ticks: 1250
+hash: 23:3512a5dac1f2a9b05746b23761c8d0362817d586db29f67536304e8f60f7ff45

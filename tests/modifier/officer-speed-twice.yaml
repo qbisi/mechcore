@@ -13,17 +13,19 @@
 # 16 m/s becomes 22: the two entries sum.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 92
-hash: 23:68efffdbc853e18ed740e3ed361e3d8b333f902925ba9f940c4400f996c97881
 blue:
-  core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}}
 red:
   officers: [advanced_power_system, speed_specialist]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 200
+ticks: 92
+hash: 23:68efffdbc853e18ed740e3ed361e3d8b333f902925ba9f940c4400f996c97881

@@ -4,20 +4,25 @@
 # it, credited to no one, and red wins.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 301
-hash: 23:b27e3e57fc6267984e5fd52808f3179cee0e811539478234ec81fd06785d6700
 blue:
-  core_damage: 100
   units:
   - {name: marksman, index: 0, position: {x: -20, y: -50}, equipment: [dominion_core]}
-  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/400/650, equipment: [dominion_core]}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, equipment: [dominion_core]}
   - {name: fortress, index: 2, position: {x: 0, y: -250}}
 red:
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/33/750}
-  - {name: arclight, index: 1, position: {x: 30, y: -50}, exp: 0/233/750}
-  - {name: arclight, index: 2, position: {x: -30, y: -50}, exp: 0/133/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -50}}
+  - {name: arclight, index: 1, position: {x: 30, y: -50}}
+  - {name: arclight, index: 2, position: {x: -30, y: -50}}
+outcome:
+  blue.core_damage: 100
+  blue.units[1].exp: 400
+  red.units[0].exp: 33
+  red.units[1].exp: 233
+  red.units[2].exp: 133
+ticks: 301
+hash: 23:b27e3e57fc6267984e5fd52808f3179cee0e811539478234ec81fd06785d6700

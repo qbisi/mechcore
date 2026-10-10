@@ -6,20 +6,25 @@
 # of a beam lands as 1, 5, 7 or 44 on every tank (t132 on).
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 219
-hash: 23:02ad9533a523bf014eea7483feb6109e08d9704b34e39b79260fc2d7d8bf5dd1
 blue:
-  core_damage: 350
   techs:
     sledgehammer: [damage_sharing]
   units:
-  - {name: sledgehammer, index: 0, position: {x: -45, y: -100}, exp: 0/25/1300}
-  - {name: sledgehammer, index: 1, position: {x: 5, y: -100}, exp: 0/75/1300}
+  - {name: sledgehammer, index: 0, position: {x: -45, y: -100}}
+  - {name: sledgehammer, index: 1, position: {x: 5, y: -100}}
 red:
   units:
-  - {name: steel_ball, index: 0, position: {x: -45, y: -60}, exp: 0/200/1000}
-  - {name: steel_ball, index: 1, position: {x: 55, y: -60}, exp: 0/600/1000}
+  - {name: steel_ball, index: 0, position: {x: -45, y: -60}}
+  - {name: steel_ball, index: 1, position: {x: 55, y: -60}}
+outcome:
+  blue.core_damage: 350
+  blue.units[0].exp: 25
+  blue.units[1].exp: 75
+  red.units[0].exp: 200
+  red.units[1].exp: 600
+ticks: 219
+hash: 23:02ad9533a523bf014eea7483feb6109e08d9704b34e39b79260fc2d7d8bf5dd1

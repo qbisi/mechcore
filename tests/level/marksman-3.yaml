@@ -7,16 +7,18 @@
 # level: 3 times, or 4.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 18
-hash: 23:1cbe83b173e33971abff68189e943c32dddf99f190da1d3feb703492dae3f0ff
 blue:
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, level: 3, exp: 0/200/2315}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, level: 3}
 red:
-  core_damage: 100
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -50}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 100
+ticks: 18
+hash: 23:1cbe83b173e33971abff68189e943c32dddf99f190da1d3feb703492dae3f0ff

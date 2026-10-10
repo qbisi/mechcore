@@ -16,14 +16,11 @@
 # tells the two apart.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 137
-hash: 23:f1e62f3eee06855f67eb416fb6b34ca0e13fd1ecd669a3b1695557cd754fdffe
 blue:
-  core_damage: 200
   officers: [extended_range_arclight]
   techs:
     arclight: [range_enhancement]
@@ -31,4 +28,9 @@ blue:
   - {name: arclight, index: 0, position: {x: 0, y: -50}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 200
+ticks: 137
+hash: 23:f1e62f3eee06855f67eb416fb6b34ca0e13fd1ecd669a3b1695557cd754fdffe

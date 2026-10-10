@@ -1,16 +1,19 @@
 # M1: the mirror. One formation each, 200 m apart.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 340
-hash: 23:fe0cd56f4dcb103342400e1e01fd14abc1e815320d67cee9238e42c940530662
 blue:
   units:
-  - {name: fang, index: 0, position: {x: 5, y: -100}, exp: 0/210/600}
+  - {name: fang, index: 0, position: {x: 5, y: -100}}
 red:
-  core_damage: 24
   units:
-  - {name: fang, index: 0, position: {x: 5, y: -100}, exp: 0/156/600}
+  - {name: fang, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 210
+  red.core_damage: 24
+  red.units[0].exp: 156
+ticks: 340
+hash: 23:fe0cd56f4dcb103342400e1e01fd14abc1e815320d67cee9238e42c940530662

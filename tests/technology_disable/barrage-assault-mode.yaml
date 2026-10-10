@@ -9,22 +9,24 @@
 # equipment's corrections would stay; it carries none.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 556
-hash: 23:976102bdd823f24196082609095b01bc13d313ec64d21b4921be2a87c6326fb6
 blue:
   techs:
     melting_point: [electromagnetic_barrage]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -170}, exp: 0/600/1400}
+  - {name: melting_point, index: 0, position: {x: 0, y: -170}}
 red:
-  core_damage: 350
   techs:
     marksman: [assault_mode]
     sledgehammer: [range_enhancement, armor_piercing_bullets]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -60}}
   - {name: sledgehammer, index: 1, position: {x: 65, y: -60}}
+outcome:
+  blue.units[0].exp: 600
+  red.core_damage: 350
+ticks: 556
+hash: 23:976102bdd823f24196082609095b01bc13d313ec64d21b4921be2a87c6326fb6

@@ -6,20 +6,22 @@
 # Rhino takes 2269 of its life.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 311
-hash: 23:c67c04403353c710059a6d8624ff6df8f733053c0b3e416ff5660166cac1e3ab
 blue:
   techs:
     rhino: [armor_enhancement]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/600/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}}
 red:
-  core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: -40, y: -100}}
   - {name: marksman, index: 1, position: {x: 0, y: -110}}
   - {name: marksman, index: 2, position: {x: 40, y: -100}}
+outcome:
+  blue.units[0].exp: 600
+  red.core_damage: 200
+ticks: 311
+hash: 23:c67c04403353c710059a6d8624ff6df8f733053c0b3e416ff5660166cac1e3ab

@@ -111,6 +111,21 @@ def states(match_doc: Path) -> dict[int, dict]:
     return found
 
 
+def results_on_entries(fight: dict) -> dict:
+    """The fight's sides with each `outcome` result written onto the entry its
+    path names, ``fight.md``'s paths read back: a side's `core_damage`, a
+    unit's `exp` as the experience it ends on, an entry's `retained` and
+    `grid_rows`."""
+    for path, value in (fight.get("outcome") or {}).items():
+        found = re.fullmatch(r"(blue|red)\.(?:(\w+)\[(\d+)\]\.)?(\w+)", path)
+        if not found:
+            raise ValueError(f"outcome path {path} is not a fight path")
+        side, field_list, position, field = found.groups()
+        target = fight[side] if field_list is None else fight[side][field_list][int(position)]
+        target["ended" if field == "exp" else field] = value
+    return fight
+
+
 def fight_leaves(mechcore: Path, recording: str, cores: dict, number: int) -> dict:
     """What the fight recorded decided, against what the match document's next
     state says it did, field by field. A field is ``equal`` or says how the two
@@ -122,7 +137,7 @@ def fight_leaves(mechcore: Path, recording: str, cores: dict, number: int) -> di
     if result.returncode != 0:
         refused = "not converted: " + reason(result.stdout + result.stderr)
         return {field: refused for field in FIELDS}
-    fight = parse_yaml(result.stdout)
+    fight = results_on_entries(parse_yaml(result.stdout))
     before, after = cores[number], cores[number + 1]
     compared = {field: [] for field in FIELDS}
     for side in ("blue", "red"):
@@ -134,7 +149,8 @@ def fight_leaves(mechcore: Path, recording: str, cores: dict, number: int) -> di
             )
         units = {unit["index"]: unit for unit in now.get("units", [])}
         for unit in fought.get("units", []):
-            ended = int(str(unit.get("exp", "0/0/0")).split("/")[1])
+            started = int(str(unit.get("exp", "0/0")).split("/")[0])
+            ended = int(unit.get("ended", started))
             if unit["index"] not in units:
                 compared["exp"].append(f"{side} unit {unit['index']} is not in the next state")
                 continue

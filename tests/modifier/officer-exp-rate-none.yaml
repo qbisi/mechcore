@@ -6,17 +6,20 @@
 # killer and a share of 4 as the formation that hit it alone.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 172
-hash: 23:8415eb43c930371ffc16383ae7282bb2a9fb069d8d588a3cb16480b0e9de16ac
 blue:
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/34/650}
-  - {name: arclight, index: 1, position: {x: 20, y: -150}, exp: 0/158/750}
+  - {name: marksman, index: 0, position: {x: -20, y: -150}}
+  - {name: arclight, index: 1, position: {x: 20, y: -150}}
 red:
-  core_damage: 200
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -40}}
+outcome:
+  blue.units[0].exp: 34
+  blue.units[1].exp: 158
+  red.core_damage: 200
+ticks: 172
+hash: 23:8415eb43c930371ffc16383ae7282bb2a9fb069d8d588a3cb16480b0e9de16ac

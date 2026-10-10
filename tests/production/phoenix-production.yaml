@@ -6,19 +6,22 @@
 # draws of blue's stream, x then z. The fight ends before its next batch.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 341
-hash: 23:5e08af4ea730feb0cdbcddcb25952e95f50c182b3e34033bda5ee2acefee1383
 blue:
   techs:
     war_factory: [phoenix_production]
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -145}, exp: 0/600/3200}
+  - {name: war_factory, index: 0, position: {x: 5, y: -145}}
 red:
-  core_damage: 500
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/200/650}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}}
+outcome:
+  blue.units[0].exp: 600
+  red.core_damage: 500
+  red.units[1].exp: 200
+ticks: 341
+hash: 23:5e08af4ea730feb0cdbcddcb25952e95f50c182b3e34033bda5ee2acefee1383

@@ -7,18 +7,20 @@
 # It re-locks when its splash kills its lock.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 161
-hash: 23:b81260b41884c9f04f3595a445df841ceaf28f04f66d136ae91bc8f2f8be53cc
 blue:
-  core_damage: 100
   units:
   - {name: crawler, index: 0, position: {x: -145, y: -100}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   units:
-  - {name: arclight, index: 0, position: {x: 40, y: -20}, exp: 0/192/750}
+  - {name: arclight, index: 0, position: {x: 40, y: -20}}
+outcome:
+  blue.core_damage: 100
+  red.units[0].exp: 192
+ticks: 161
+hash: 23:b81260b41884c9f04f3595a445df841ceaf28f04f66d136ae91bc8f2f8be53cc

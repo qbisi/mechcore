@@ -6,20 +6,24 @@
 # (projectile 1, at the squad by it), then the first one's.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 24
-hash: 23:4f1dd82e8aaa0f572074e436a15d04c6cabc3b54fdc54f5ef014c0fd10abf56b
 blue:
-  core_damage: 200
   units:
   - {name: crawler, index: 0, position: {x: -95, y: -20}}
   - {name: crawler, index: 1, position: {x: 105, y: -20}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -295}, exp: 0/384/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -295}}
   contraptions:
-  - {name: missile, index: 1, position: {x: -100, y: -40}, retained: false}
-  - {name: missile, index: 2, position: {x: 100, y: -40}, retained: false}
+  - {name: missile, index: 1, position: {x: -100, y: -40}}
+  - {name: missile, index: 2, position: {x: 100, y: -40}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 384
+  red.contraptions[0].retained: false
+  red.contraptions[1].retained: false
+ticks: 24
+hash: 23:4f1dd82e8aaa0f572074e436a15d04c6cabc3b54fdc54f5ef014c0fd10abf56b

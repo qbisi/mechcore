@@ -1,16 +1,18 @@
 # A sweep at a Fortress carrying a Barrier.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 378
-hash: 23:4fee43e87fe713a4d46e386bfb046d59469f2b65875daad12d0ff3f313df72ea
 blue:
   units:
-  - {name: abyss, index: 0, position: {x: -5, y: -105}, exp: 0/800/4800}
+  - {name: abyss, index: 0, position: {x: -5, y: -105}}
 red:
-  core_damage: 500
   units:
   - {name: fortress, index: 0, position: {x: 0, y: -100}, equipment: [barrier]}
+outcome:
+  blue.units[0].exp: 800
+  red.core_damage: 500
+ticks: 378
+hash: 23:4fee43e87fe713a4d46e386bfb046d59469f2b65875daad12d0ff3f313df72ea

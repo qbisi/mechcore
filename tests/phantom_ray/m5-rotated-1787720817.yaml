@@ -2,16 +2,19 @@
 # turning. An air unit's target is a Marksman, which shoots back.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 165
-hash: 23:a34f9d2fa2b31042134cde826cb9d3f7a734b7180118e5d9fd625207fcc32ea3
 blue:
   units:
-  - {name: phantom_ray, index: 0, position: {x: -60, y: -65}, exp: 0/200/1000, rotated: true}
+  - {name: phantom_ray, index: 0, position: {x: -60, y: -65}, rotated: true}
 red:
-  core_damage: 134
   units:
-  - {name: marksman, index: 0, position: {x: -40, y: -100}, exp: 0/134/650}
+  - {name: marksman, index: 0, position: {x: -40, y: -100}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 134
+  red.units[0].exp: 134
+ticks: 165
+hash: 23:a34f9d2fa2b31042134cde826cb9d3f7a734b7180118e5d9fd625207fcc32ea3

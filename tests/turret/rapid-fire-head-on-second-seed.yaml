@@ -4,18 +4,20 @@
 # 307, where the fight ends.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 307
-hash: 23:55cc0bb96991c58caf0fa5dc0b999e4cb3ff7105f9d127bd5c355b29b698c65f
 blue:
   units:
-  - {name: marksman, index: 0, position: {x: -290, y: -150}, exp: 0/192/650}
+  - {name: marksman, index: 0, position: {x: -290, y: -150}}
   constructions:
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
 red:
-  core_damage: 100
   units:
   - {name: crawler, index: 0, position: {x: -145, y: -100}}
+outcome:
+  blue.units[0].exp: 192
+  red.core_damage: 100
+ticks: 307
+hash: 23:55cc0bb96991c58caf0fa5dc0b999e4cb3ff7105f9d127bd5c355b29b698c65f

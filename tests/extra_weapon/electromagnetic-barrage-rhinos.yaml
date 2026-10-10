@@ -9,20 +9,24 @@
 # aimed at (t330), and the skill names it until its last shell is out.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 463
-hash: 23:5178307d694ccd36e7e414edb44790daa7f7b07b15e43055d217cef33377c493
 blue:
-  core_damage: 116
   techs:
     melting_point: [electromagnetic_barrage]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -120}, exp: 0/552/1400}
+  - {name: melting_point, index: 0, position: {x: 0, y: -120}}
 red:
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: crawler, index: 1, position: {x: 65, y: -90}, exp: 0/200/450}
-  - {name: crawler, index: 2, position: {x: -55, y: -130}, exp: 0/450/450}
+  - {name: crawler, index: 1, position: {x: 65, y: -90}}
+  - {name: crawler, index: 2, position: {x: -55, y: -130}}
+outcome:
+  blue.core_damage: 116
+  blue.units[0].exp: 552
+  red.units[1].exp: 200
+  red.units[2].exp: 450
+ticks: 463
+hash: 23:5178307d694ccd36e7e414edb44790daa7f7b07b15e43055d217cef33377c493

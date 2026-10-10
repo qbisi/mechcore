@@ -6,14 +6,11 @@
 # Whirlwind for 6031, 4983 times 1.36 and 0.89, truncated once.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 158
-hash: 23:e5bd8638b86b4d9a9e3ccf24f81dcb48db759405f87eb5fe21d7e114ea958f19
 blue:
-  core_damage: 400
   officers: [cost_control_specialist]
   techs:
     rhino: [whirlwind]
@@ -22,5 +19,11 @@ blue:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: -25, y: -95}, exp: 0/300/1150}
-  - {name: rhino, index: 1, position: {x: 35, y: -95}, exp: 0/100/1150}
+  - {name: rhino, index: 0, position: {x: -25, y: -95}}
+  - {name: rhino, index: 1, position: {x: 35, y: -95}}
+outcome:
+  blue.core_damage: 400
+  red.units[0].exp: 300
+  red.units[1].exp: 100
+ticks: 158
+hash: 23:e5bd8638b86b4d9a9e3ccf24f81dcb48db759405f87eb5fe21d7e114ea958f19

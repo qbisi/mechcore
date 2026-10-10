@@ -6,25 +6,30 @@
 # t356 while the other two keep their rates until it dies at t377.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 384
-hash: 23:e558952d315684ac9fb7f09e79dc63fc17571a804ae66f22072d6e392837bdc0
 blue:
-  core_damage: 450
   techs:
     rhino: [combat_evolvement]
     vortex: [mobile_power_station]
   units:
-  - {name: vortex, index: 0, position: {x: 0, y: -120}, exp: 0/46/750}
-  - {name: rhino, index: 1, position: {x: 35, y: -115}, exp: 0/146/1150}
+  - {name: vortex, index: 0, position: {x: 0, y: -120}}
+  - {name: rhino, index: 1, position: {x: 35, y: -115}}
   - {name: marksman, index: 2, position: {x: -40, y: -120}}
 red:
   techs:
     wraith: [degeneration_beam]
   units:
-  - {name: wraith, index: 0, position: {x: 5, y: -105}, exp: 0/300/2250}
-  - {name: rhino, index: 1, position: {x: 45, y: -115}, exp: 0/500/1150}
+  - {name: wraith, index: 0, position: {x: 5, y: -105}}
+  - {name: rhino, index: 1, position: {x: 45, y: -115}}
   - {name: crawler, index: 2, position: {x: -35, y: -100}}
+outcome:
+  blue.core_damage: 450
+  blue.units[0].exp: 46
+  blue.units[1].exp: 146
+  red.units[0].exp: 300
+  red.units[1].exp: 500
+ticks: 384
+hash: 23:e558952d315684ac9fb7f09e79dc63fc17571a804ae66f22072d6e392837bdc0

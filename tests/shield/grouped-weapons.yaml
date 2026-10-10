@@ -8,22 +8,26 @@
 # third weapon names nothing until it locks anew on tick 359.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 472
-hash: 23:80d350b3df9f7795a144de135c1ee31f47916b95b95c4e6d01d6fb5af83cfe4b
 blue:
   units:
   - {name: vortex, index: 0, position: {x: -40, y: -150}}
-  - {name: raiden, index: 1, position: {x: 40, y: -150}, exp: 0/400/2400}
+  - {name: raiden, index: 1, position: {x: 40, y: -150}}
   battle_skills:
   - {name: nuke, positions: [{x: -60, y: 130}]}
 red:
-  core_damage: 350
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -80}}
-  - {name: marksman, index: 1, position: {x: 60, y: -130}, exp: 0/200/650}
+  - {name: marksman, index: 1, position: {x: 60, y: -130}}
   contraptions:
-  - {name: shield, index: 2, position: {x: 1, y: -81}, retained: false}
+  - {name: shield, index: 2, position: {x: 1, y: -81}}
+outcome:
+  blue.units[1].exp: 400
+  red.core_damage: 350
+  red.units[1].exp: 200
+  red.contraptions[0].retained: false
+ticks: 472
+hash: 23:80d350b3df9f7795a144de135c1ee31f47916b95b95c4e6d01d6fb5af83cfe4b

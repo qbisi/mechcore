@@ -5,16 +5,18 @@
 # 127 where it fell on tick 91, and the buff is cleared as the fight ends.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 127
-hash: 23:a6be4ace78cb5a42aebca7087bee77b0216535a93d50839c480bb9472acbdb81
 blue:
-  core_damage: 100
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [photon_coating]}
 red:
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/200/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -50}}
+outcome:
+  blue.core_damage: 100
+  red.units[0].exp: 200
+ticks: 127
+hash: 23:a6be4ace78cb5a42aebca7087bee77b0216535a93d50839c480bb9472acbdb81

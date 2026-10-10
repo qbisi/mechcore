@@ -6,12 +6,10 @@
 # selector scores best.
 
 kind: fight
+source: game
 map_id: 1031
 seed: 1010934271
 round: 3
-source: game
-ticks: 1248
-hash: 23:f17bf56a1ffd6b6f3ca33bf6a2fec6b9d672acfd081b30bafbdd215b116524d0
 blue:
   officers: [typhoon_specialist]
   techs:
@@ -19,38 +17,63 @@ blue:
   blueprints: [attack_enhancement]
   legacy_index: 8
   units:
-  - {name: marksman, index: 0, position: {x: -190, y: -120}, exp: 116/301/650}
-  - {name: marksman, index: 1, position: {x: 90, y: -190}, exp: 474/650/650}
-  - {name: marksman, index: 2, position: {x: 210, y: -200}, exp: 153/567/650}
-  - {name: tarantula, index: 3, position: {x: 115, y: -215}, exp: 906/1500/1500}
-  - {name: tarantula, index: 4, position: {x: 185, y: -175}, exp: 889/1500/1500}
-  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 39/83/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 210, y: -235}, exp: 79/161/450, rotated: true}
-  - {name: crawler, index: 7, position: {x: -290, y: -245}, exp: 60/139/450, rotated: true}
-  - {name: mustang, index: 8, position: {x: -185, y: -270}, exp: 0/394/1200}
-  - {name: scorpion, index: 9, position: {x: 225, y: -145}, exp: 0/214/1500}
+  - {name: marksman, index: 0, position: {x: -190, y: -120}, exp: 116/650}
+  - {name: marksman, index: 1, position: {x: 90, y: -190}, exp: 474/650}
+  - {name: marksman, index: 2, position: {x: 210, y: -200}, exp: 153/650}
+  - {name: tarantula, index: 3, position: {x: 115, y: -215}, exp: 906/1500}
+  - {name: tarantula, index: 4, position: {x: 185, y: -175}, exp: 889/1500}
+  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 39/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 210, y: -235}, exp: 79/450, rotated: true}
+  - {name: crawler, index: 7, position: {x: -290, y: -245}, exp: 60/450, rotated: true}
+  - {name: mustang, index: 8, position: {x: -185, y: -270}}
+  - {name: scorpion, index: 9, position: {x: 225, y: -145}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
   contraptions:
-  - {name: missile, index: 0, position: {x: -143, y: -76}, retained: false}
+  - {name: missile, index: 0, position: {x: -143, y: -76}}
 red:
-  core_damage: 600
   officers: [additional_deployment_slot, secondary_equipment_expert]
   blueprints: [attack_enhancement]
   legacy_index: 10
   units:
-  - {name: fang, index: 0, position: {x: 160, y: -185}, exp: 123/256/600, rotated: true}
-  - {name: fang, index: 1, position: {x: -160, y: -185}, exp: 185/191/600, rotated: true}
-  - {name: fang, index: 2, position: {x: 0, y: -105}, exp: 110/165/600, rotated: true}
-  - {name: sabertooth, index: 3, position: {x: 55, y: -165}, level: 2, exp: 0/594/2929, equipment: [secondary_heavy_armor]}
-  - {name: sabertooth, index: 4, position: {x: -55, y: -165}, level: 2, exp: 0/618/2929, equipment: [secondary_fire_control_system]}
-  - {name: hound, index: 5, position: {x: -110, y: -170}, exp: 224/327/750}
-  - {name: hound, index: 6, position: {x: 0, y: -170}, exp: 90/133/750}
-  - {name: hound, index: 7, position: {x: -210, y: -170}, exp: 129/252/750}
-  - {name: crawler, index: 8, position: {x: -210, y: -215}, exp: 54/86/450, rotated: true}
-  - {name: crawler, index: 9, position: {x: 55, y: -280}, exp: 401/424/450}
+  - {name: fang, index: 0, position: {x: 160, y: -185}, exp: 123/600, rotated: true}
+  - {name: fang, index: 1, position: {x: -160, y: -185}, exp: 185/600, rotated: true}
+  - {name: fang, index: 2, position: {x: 0, y: -105}, exp: 110/600, rotated: true}
+  - {name: sabertooth, index: 3, position: {x: 55, y: -165}, level: 2, equipment: [secondary_heavy_armor]}
+  - {name: sabertooth, index: 4, position: {x: -55, y: -165}, level: 2, equipment: [secondary_fire_control_system]}
+  - {name: hound, index: 5, position: {x: -110, y: -170}, exp: 224/750}
+  - {name: hound, index: 6, position: {x: 0, y: -170}, exp: 90/750}
+  - {name: hound, index: 7, position: {x: -210, y: -170}, exp: 129/750}
+  - {name: crawler, index: 8, position: {x: -210, y: -215}, exp: 54/450, rotated: true}
+  - {name: crawler, index: 9, position: {x: 55, y: -280}, exp: 401/450}
   - {name: hound, index: 10, position: {x: 100, y: -170}}
-  - {name: hound, index: 11, position: {x: 210, y: -170}, exp: 0/80/750}
+  - {name: hound, index: 11, position: {x: 210, y: -170}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+outcome:
+  blue.units[0].exp: 301
+  blue.units[1].exp: 650
+  blue.units[2].exp: 567
+  blue.units[3].exp: 1500
+  blue.units[4].exp: 1500
+  blue.units[5].exp: 83
+  blue.units[6].exp: 161
+  blue.units[7].exp: 139
+  blue.units[8].exp: 394
+  blue.units[9].exp: 214
+  blue.contraptions[0].retained: false
+  red.core_damage: 600
+  red.units[0].exp: 256
+  red.units[1].exp: 191
+  red.units[2].exp: 165
+  red.units[3].exp: 594
+  red.units[4].exp: 618
+  red.units[5].exp: 327
+  red.units[6].exp: 133
+  red.units[7].exp: 252
+  red.units[8].exp: 86
+  red.units[9].exp: 424
+  red.units[11].exp: 80
+ticks: 1248
+hash: 23:f17bf56a1ffd6b6f3ca33bf6a2fec6b9d672acfd081b30bafbdd215b116524d0

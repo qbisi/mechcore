@@ -89,8 +89,10 @@ from before the standard layouts, which the RVO module and the skill state
 were first held to.
 
 **A pinned fight is a [fight document](../docs/spec/document/fight.md)** in its
-topic's directory: the layout, the seed, and what the game's
-recording of them decided, its tick count and hash among it, in one file. A
+topic's directory: the layout, the seed, the outcome the game's recording of
+them decided, and its tick count and hash, in one file. A fixture keeps its
+trajectory: the outcome alone is what a document states once a change to the
+rules has moved the hash and the fight is not yet recorded again. A
 comment at the top of the file says what the fight measures. A fixture's
 `source` is `game`: a fight the simulator computed states what is being
 checked, and is never a fixture. A layout stays a layout file only while

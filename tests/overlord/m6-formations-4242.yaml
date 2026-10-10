@@ -5,18 +5,21 @@
 # before any falls.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 362
-hash: 23:1ca00b4f3a8198bad7bcb1907ba1fe49a6ef3863d51a476ee43db71f70abc840
 blue:
   units:
-  - {name: overlord, index: 0, position: {x: -75, y: -105}, exp: 0/320/1750}
-  - {name: overlord, index: 1, position: {x: 65, y: -105}, exp: 0/72/1750}
+  - {name: overlord, index: 0, position: {x: -75, y: -105}}
+  - {name: overlord, index: 1, position: {x: 65, y: -105}}
 red:
-  core_damage: 800
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -70}}
   - {name: marksman, index: 1, position: {x: 0, y: -110}}
+outcome:
+  blue.units[0].exp: 320
+  blue.units[1].exp: 72
+  red.core_damage: 800
+ticks: 362
+hash: 23:1ca00b4f3a8198bad7bcb1907ba1fe49a6ef3863d51a476ee43db71f70abc840

@@ -9,18 +9,20 @@
 # left on the tick it is released, its first update its climb.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 95
-hash: 23:2d581c286f1865a0f8c5ccecdbf7020751561a8b142c90df939ee58ceddca031
 blue:
   techs:
     sabertooth: [secondary_armament]
   units:
-  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/400/1300}
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}}
 red:
-  core_damage: 200
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 200
+ticks: 95
+hash: 23:2d581c286f1865a0f8c5ccecdbf7020751561a8b142c90df939ee58ceddca031

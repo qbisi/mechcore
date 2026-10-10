@@ -2,18 +2,22 @@
 # it can target nothing.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 258
-hash: 23:24539e3f8e48d6e5d613e096d5903919b88fb5acc60934609d5078d4f22fe257
 blue:
-  core_damage: 612
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
 red:
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/66/900}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/66/900}
-  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/266/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}}
+outcome:
+  blue.core_damage: 612
+  red.units[0].exp: 66
+  red.units[1].exp: 66
+  red.units[2].exp: 266
+ticks: 258
+hash: 23:24539e3f8e48d6e5d613e096d5903919b88fb5acc60934609d5078d4f22fe257

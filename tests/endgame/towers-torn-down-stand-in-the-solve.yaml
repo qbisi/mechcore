@@ -7,22 +7,27 @@
 # tick 384 and their positions on tick 385.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 385
-hash: 23:a2ad0907544e7458f758f069cfea604bcd49720813f3bd1f274f4fcd91497034
 blue:
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -150}, level: 4, exp: 0/318/8756}
-  - {name: rhino, index: 1, position: {x: -35, y: -125}, level: 4, exp: 0/227/5164}
-  - {name: rhino, index: 2, position: {x: 45, y: -125}, level: 4, exp: 0/613/5164}
-  - {name: wasp, index: 3, position: {x: 5, y: -180}, exp: 0/216/900}
+  - {name: typhoon, index: 0, position: {x: 0, y: -150}, level: 4}
+  - {name: rhino, index: 1, position: {x: -35, y: -125}, level: 4}
+  - {name: rhino, index: 2, position: {x: 45, y: -125}, level: 4}
+  - {name: wasp, index: 3, position: {x: 5, y: -180}}
 red:
-  core_damage: 854
   units:
   - {name: fortress, index: 0, position: {x: 0, y: -180}}
   - {name: crawler, index: 1, position: {x: 5, y: -40}}
   - {name: crawler, index: 2, position: {x: -45, y: -40}}
   - {name: crawler, index: 3, position: {x: 55, y: -40}}
+outcome:
+  blue.units[0].exp: 318
+  blue.units[1].exp: 227
+  blue.units[2].exp: 613
+  blue.units[3].exp: 216
+  red.core_damage: 854
+ticks: 385
+hash: 23:a2ad0907544e7458f758f069cfea604bcd49720813f3bd1f274f4fcd91497034

@@ -2,18 +2,23 @@
 # target distribution and avoidance between allies.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 293
-hash: 23:106a0fea61b48081ce38b5fd14be19b4d1ef36bae930a567b2543ad46c09bbe9
 blue:
   units:
-  - {name: sledgehammer, index: 0, position: {x: -5, y: -120}, exp: 0/50/1300}
-  - {name: sledgehammer, index: 1, position: {x: -5, y: -80}, exp: 0/342/1300}
+  - {name: sledgehammer, index: 0, position: {x: -5, y: -120}}
+  - {name: sledgehammer, index: 1, position: {x: -5, y: -80}}
 red:
-  core_damage: 320
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/20/450}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/140/650}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}}
+outcome:
+  blue.units[0].exp: 50
+  blue.units[1].exp: 342
+  red.core_damage: 320
+  red.units[0].exp: 20
+  red.units[1].exp: 140
+ticks: 293
+hash: 23:106a0fea61b48081ce38b5fd14be19b4d1ef36bae930a567b2543ad46c09bbe9

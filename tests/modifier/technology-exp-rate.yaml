@@ -11,19 +11,22 @@
 # game at t84, the first gain.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 193
-hash: 23:38ada31318872305373a3f00d9e7d0545ccbbb0bc924462314032711249dde53
 blue:
   techs:
     vortex: [machine_learning]
   units:
-  - {name: vortex, index: 0, position: {x: -20, y: -150}, exp: 0/112/750}
-  - {name: arclight, index: 1, position: {x: 20, y: -150}, exp: 0/136/750}
+  - {name: vortex, index: 0, position: {x: -20, y: -150}}
+  - {name: arclight, index: 1, position: {x: 20, y: -150}}
 red:
-  core_damage: 200
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -40}}
+outcome:
+  blue.units[0].exp: 112
+  blue.units[1].exp: 136
+  red.core_damage: 200
+ticks: 193
+hash: 23:38ada31318872305373a3f00d9e7d0545ccbbb0bc924462314032711249dde53

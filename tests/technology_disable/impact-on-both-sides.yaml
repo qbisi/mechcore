@@ -7,21 +7,25 @@
 # drawn 60 becoming its plain 62.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 187
-hash: 23:b6a77257e258bf3e846070f91adb070eced95814c6e9bc80f0290a0a9e652d14
 blue:
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -40}, exp: 0/400/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -40}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: 0, y: 60}]}
 red:
-  core_damage: 68
   techs:
     marksman: [assault_mode]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -60}, exp: 0/153/650}
-  - {name: marksman, index: 1, position: {x: 30, y: -60}, exp: 0/119/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -60}}
+  - {name: marksman, index: 1, position: {x: 30, y: -60}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 68
+  red.units[0].exp: 153
+  red.units[1].exp: 119
+ticks: 187
+hash: 23:b6a77257e258bf3e846070f91adb070eced95814c6e9bc80f0290a0a9e652d14

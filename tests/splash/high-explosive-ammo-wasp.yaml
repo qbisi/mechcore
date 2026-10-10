@@ -3,19 +3,21 @@
 # damage. A shot that struck one Crawler strikes those around it, up to 8 on one tick.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 404
-hash: 23:c015182e95f203726cd0955fdb5fc963a5323d4b73c67569028a8cf23eacb4d1
 blue:
   techs:
     wasp: [high_explosive_ammo]
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/384/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}}
 red:
-  core_damage: 204
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -70}}
   - {name: crawler, index: 1, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 384
+  red.core_damage: 204
+ticks: 404
+hash: 23:c015182e95f203726cd0955fdb5fc963a5323d4b73c67569028a8cf23eacb4d1

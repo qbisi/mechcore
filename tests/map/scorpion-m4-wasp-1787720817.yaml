@@ -7,18 +7,22 @@
 # at (95.48, -360.93), to (95, -361).
 
 kind: fight
+source: game
 map_id: 1001
 seed: 1787720817
 round: 1
-source: game
-ticks: 244
-hash: 23:4f3ab697dd7c23255e37d939b0d9692c0f9476b73089955d56a21486c6437218
 blue:
-  core_damage: 612
   units:
   - {name: scorpion, index: 0, position: {x: -5, y: -105}}
 red:
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/100/900}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/100/900}
-  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/400/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}}
+outcome:
+  blue.core_damage: 612
+  red.units[0].exp: 100
+  red.units[1].exp: 100
+  red.units[2].exp: 400
+ticks: 244
+hash: 23:4f3ab697dd7c23255e37d939b0d9692c0f9476b73089955d56a21486c6437218

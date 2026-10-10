@@ -5,22 +5,27 @@
 # its level's life.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 283
-hash: 23:49eafd72e99502d4670341d445439778d5bf8a993beae1befbc2a65286a17605
 blue:
   techs:
     typhoon: [maintenance_array]
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -100}, level: 4, exp: 0/273/8756}
-  - {name: rhino, index: 1, position: {x: -55, y: -95}, level: 4, exp: 0/517/5164}
-  - {name: rhino, index: 2, position: {x: 65, y: -95}, level: 4, exp: 0/100/5164}
-  - {name: wasp, index: 3, position: {x: 5, y: -130}, exp: 0/101/900}
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, level: 4}
+  - {name: rhino, index: 1, position: {x: -55, y: -95}, level: 4}
+  - {name: rhino, index: 2, position: {x: 65, y: -95}, level: 4}
+  - {name: wasp, index: 3, position: {x: 5, y: -130}}
 red:
-  core_damage: 854
   units:
   - {name: fortress, index: 0, position: {x: 0, y: -150}}
   - {name: crawler, index: 1, position: {x: 5, y: -60}}
+outcome:
+  blue.units[0].exp: 273
+  blue.units[1].exp: 517
+  blue.units[2].exp: 100
+  blue.units[3].exp: 101
+  red.core_damage: 854
+ticks: 283
+hash: 23:49eafd72e99502d4670341d445439778d5bf8a993beae1befbc2a65286a17605

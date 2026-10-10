@@ -10,19 +10,23 @@
 # appear 40 ticks after each batch.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 728
-hash: 23:31a1654ae7cee10d6b87672d375047d8f1da9c289701e82f6ae11976be32685d
 blue:
-  core_damage: 280
   techs:
     tarantula: [spider_mine]
   units:
-  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/240/1500}
+  - {name: tarantula, index: 0, position: {x: -5, y: -105}}
 red:
   units:
-  - {name: sledgehammer, index: 0, position: {x: -5, y: -300}, exp: 0/100/1300}
-  - {name: sledgehammer, index: 1, position: {x: 55, y: -300}, exp: 0/330/1300}
+  - {name: sledgehammer, index: 0, position: {x: -5, y: -300}}
+  - {name: sledgehammer, index: 1, position: {x: 55, y: -300}}
+outcome:
+  blue.core_damage: 280
+  blue.units[0].exp: 240
+  red.units[0].exp: 100
+  red.units[1].exp: 330
+ticks: 728
+hash: 23:31a1654ae7cee10d6b87672d375047d8f1da9c289701e82f6ae11976be32685d

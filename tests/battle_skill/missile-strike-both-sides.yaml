@@ -6,17 +6,20 @@
 # four towers fall that tick, and the fight's last tick records them.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 64
-hash: 23:cdd7f14ef1acf6dc4396af094999c62ac1ce18e8e219b2bb92aeb87ff360a0cf
 blue:
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -40}, exp: 0/192/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -40}}
   battle_skills:
   - {name: missile_strike, positions: [{x: 0, y: 0}]}
 red:
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -40}, exp: 0/192/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -40}}
+outcome:
+  blue.units[0].exp: 192
+  red.units[0].exp: 192
+ticks: 64
+hash: 23:cdd7f14ef1acf6dc4396af094999c62ac1ce18e8e219b2bb92aeb87ff360a0cf

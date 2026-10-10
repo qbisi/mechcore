@@ -1,16 +1,18 @@
 # M4: a ground unit that shoots air, against wasps.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 150
-hash: 23:158c021f44b29ddc25d48b13b5db2df1d8324fee8a9339407892ee08994ce609
 blue:
   units:
-  - {name: farseer, index: 0, position: {x: -5, y: -105}, exp: 0/408/1800}
+  - {name: farseer, index: 0, position: {x: -5, y: -105}}
 red:
-  core_damage: 250
   units:
   - {name: wasp, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 408
+  red.core_damage: 250
+ticks: 150
+hash: 23:158c021f44b29ddc25d48b13b5db2df1d8324fee8a9339407892ee08994ce609

@@ -7,18 +7,20 @@
 # The fight ends first, and the buff is cleared on its last tick.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 309
-hash: 23:dd78fd056422166efd7d759563044ea4a0b38203aa849ad2588578297f4d6672
 blue:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}}
 red:
-  core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 45}]}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 200
+ticks: 309
+hash: 23:dd78fd056422166efd7d759563044ea4a0b38203aa849ad2588578297f4d6672

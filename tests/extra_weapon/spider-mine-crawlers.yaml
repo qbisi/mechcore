@@ -6,18 +6,20 @@
 # Crawlers' life caps.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 139
-hash: 23:72af0391db05f477c84f59b369246206f819055449c49fd7ac4cf9754ce1ba1a
 blue:
   techs:
     tarantula: [spider_mine]
   units:
-  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/56/1500}
+  - {name: tarantula, index: 0, position: {x: -5, y: -105}}
 red:
-  core_damage: 200
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 56
+  red.core_damage: 200
+ticks: 139
+hash: 23:72af0391db05f477c84f59b369246206f819055449c49fd7ac4cf9754ce1ba1a

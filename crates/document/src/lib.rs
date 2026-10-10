@@ -52,7 +52,7 @@ pub use compile::{BattleSkill, Placement, Plan, SidePlan, compile, compile_layou
 pub use economy::game_build;
 pub use fight::{
     Fight, FightBattleSkill, FightContraption, FightExperience, FightHash, FightKind, FightRelease,
-    FightSide, FightStanding, FightUnit, Source,
+    FightSide, FightStanding, FightUnit, Source, Trajectory,
 };
 pub use grbr::{GrbrRoundRetained, GrbrStanding, retained_from_grbr_round, rotate_oil_grid_rows};
 pub use layout::{

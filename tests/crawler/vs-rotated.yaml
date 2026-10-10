@@ -2,16 +2,19 @@
 # and where each Crawler is sent, a sample the RVO module is held to
 # (docs/spec/simulation/rvo.md). Map 1021, seed 1787833929.
 kind: fight
+source: game
 map_id: 1021
 seed: 1787833929
 round: 1
-source: game
-ticks: 271
-hash: 23:2bfb26c11bfbe4b8f8caeedc17d78d7d6810e39795f5aaba7fe1905ede6e7b08
 blue:
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/192/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}
 red:
-  core_damage: 36
   units:
-  - {name: crawler, index: 0, position: {x: 0, y: -105}, exp: 0/120/450, rotated: true}
+  - {name: crawler, index: 0, position: {x: 0, y: -105}, rotated: true}
+outcome:
+  blue.units[0].exp: 192
+  red.core_damage: 36
+  red.units[0].exp: 120
+ticks: 271
+hash: 23:2bfb26c11bfbe4b8f8caeedc17d78d7d6810e39795f5aaba7fe1905ede6e7b08

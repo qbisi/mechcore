@@ -11,7 +11,7 @@ that fixes it.
 
 A round is pinned from the game's own fight of it, not from the match document:
 the game fights the replay's round, and the recording read back as a fight
-states its ticks and hash as well as the result, so a pin holds the whole
+states its ticks and hash as well as the outcome, so a pin holds the whole
 trajectory.
 
 ```sh

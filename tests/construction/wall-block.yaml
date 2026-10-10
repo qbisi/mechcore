@@ -13,18 +13,21 @@
 # and take four of the five before the fight ends.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 209
-hash: 23:0e325addaeeee277fc119042cbc7ffa8fd8771bbe2e9509560f512395397f8bc
 blue:
-  core_damage: 84
   units:
-  - {name: marksman, index: 0, position: {x: -140, y: -100}, exp: 0/24/650}
+  - {name: marksman, index: 0, position: {x: -140, y: -100}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   units:
-  - {name: crawler, index: 0, position: {x: 145, y: -20}, exp: 0/248/450}
+  - {name: crawler, index: 0, position: {x: 145, y: -20}}
+outcome:
+  blue.core_damage: 84
+  blue.units[0].exp: 24
+  red.units[0].exp: 248
+ticks: 209
+hash: 23:0e325addaeeee277fc119042cbc7ffa8fd8771bbe2e9509560f512395397f8bc

@@ -1,18 +1,21 @@
 # A sweep at a Marksman inside red's battlefield shield.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 191
-hash: 23:1f719c1d0b11524e9b893ee7da68110e7790f49941e725e0f744d16f58322661
 blue:
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -155}, exp: 0/200/4800}
+  - {name: abyss, index: 0, position: {x: 5, y: -155}}
 red:
-  core_damage: 500
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -80}}
   contraptions:
-  - {name: shield, index: 1, position: {x: 1, y: -81}, retained: false}
+  - {name: shield, index: 1, position: {x: 1, y: -81}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 500
+  red.contraptions[0].retained: false
+ticks: 191
+hash: 23:1f719c1d0b11524e9b893ee7da68110e7790f49941e725e0f744d16f58322661

@@ -2,19 +2,23 @@
 # each side: they reach a travelling unit from the first tick.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 1107
-hash: 23:3c396bd8e61369e9ccf4dc141c533e1016d2cbecfdc67f2a124eb4ba65f0ac7d
 blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/200/750, travelling: true}
+  - {name: arclight, index: 1, position: {x: -310, y: 20}, travelling: true}
 red:
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
-  - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/600/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}}
+outcome:
+  blue.units[1].exp: 200
+  red.units[0].exp: 200
+  red.units[1].exp: 600
+ticks: 1107
+hash: 23:3c396bd8e61369e9ccf4dc141c533e1016d2cbecfdc67f2a124eb4ba65f0ac7d

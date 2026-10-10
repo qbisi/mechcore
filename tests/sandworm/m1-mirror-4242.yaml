@@ -1,16 +1,18 @@
 # M1: the mirror. One formation each, 200 m apart.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 428
-hash: 23:ecfc5528253b9692dd0e2c9959f14ab4873f2b020b62b7aa3897df29b9d1a35c
 blue:
   units:
-  - {name: sandworm, index: 0, position: {x: 0, y: -100}, exp: 0/800/2000}
+  - {name: sandworm, index: 0, position: {x: 0, y: -100}}
 red:
-  core_damage: 350
   units:
   - {name: sandworm, index: 0, position: {x: 0, y: -100}}
+outcome:
+  blue.units[0].exp: 800
+  red.core_damage: 350
+ticks: 428
+hash: 23:ecfc5528253b9692dd0e2c9959f14ab4873f2b020b62b7aa3897df29b9d1a35c

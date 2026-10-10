@@ -4,14 +4,11 @@
 # layout that no longer holds the squad's index fights.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1448139111
 round: 3
-source: game
-ticks: 997
-hash: 23:ee327884641736b83369083c6580122395510d0fbc7f09d16d2a7e97e25bb117
 blue:
-  core_damage: 601
   officers: [fire_badger_specialist]
   techs:
     arclight: [charged_shot]
@@ -19,21 +16,21 @@ blue:
   blueprints: [attack_enhancement]
   legacy_index: 10
   units:
-  - {name: arclight, index: 0, position: {x: 120, y: -170}, exp: 168/339/750}
-  - {name: arclight, index: 1, position: {x: -120, y: -170}, exp: 163/314/750}
-  - {name: arclight, index: 2, position: {x: -60, y: -170}, exp: 304/429/750}
-  - {name: sledgehammer, index: 3, position: {x: -90, y: -135}, exp: 304/516/1300, rotated: true}
-  - {name: sledgehammer, index: 4, position: {x: -30, y: -135}, exp: 476/713/1300, rotated: true}
-  - {name: crawler, index: 5, position: {x: -90, y: -205}, exp: 51/107/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -30, y: -205}, exp: 55/113/450, rotated: true}
-  - {name: arclight, index: 7, position: {x: -250, y: -180}, exp: 80/270/750}
-  - {name: arclight, index: 8, position: {x: 250, y: -180}, exp: 0/240/750}
-  - {name: void_eye, index: 10, position: {x: -130, y: -150}, exp: 0/71/650}
-  - {name: void_eye, index: 11, position: {x: 10, y: -150}, exp: 0/148/650}
-  - {name: void_eye, index: 12, position: {x: 130, y: -150}, exp: 0/89/650}
-  - {name: arclight, index: 13, position: {x: 60, y: -170}, exp: 0/161/750}
-  - {name: phoenix, index: 14, position: {x: -200, y: -250}, exp: 0/643/1300}
-  - {name: fang, index: 15, position: {x: -290, y: -155}, exp: 0/10/600, rotated: true}
+  - {name: arclight, index: 0, position: {x: 120, y: -170}, exp: 168/750}
+  - {name: arclight, index: 1, position: {x: -120, y: -170}, exp: 163/750}
+  - {name: arclight, index: 2, position: {x: -60, y: -170}, exp: 304/750}
+  - {name: sledgehammer, index: 3, position: {x: -90, y: -135}, exp: 304/1300, rotated: true}
+  - {name: sledgehammer, index: 4, position: {x: -30, y: -135}, exp: 476/1300, rotated: true}
+  - {name: crawler, index: 5, position: {x: -90, y: -205}, exp: 51/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -30, y: -205}, exp: 55/450, rotated: true}
+  - {name: arclight, index: 7, position: {x: -250, y: -180}, exp: 80/750}
+  - {name: arclight, index: 8, position: {x: 250, y: -180}}
+  - {name: void_eye, index: 10, position: {x: -130, y: -150}}
+  - {name: void_eye, index: 11, position: {x: 10, y: -150}}
+  - {name: void_eye, index: 12, position: {x: 130, y: -150}}
+  - {name: arclight, index: 13, position: {x: 60, y: -170}}
+  - {name: phoenix, index: 14, position: {x: -200, y: -250}}
+  - {name: fang, index: 15, position: {x: -290, y: -155}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
@@ -41,17 +38,47 @@ red:
   blueprints: [attack_enhancement]
   legacy_index: 9
   units:
-  - {name: hound, index: 0, position: {x: 120, y: -190}, exp: 384/512/750}
-  - {name: hound, index: 1, position: {x: -120, y: -190}, exp: 244/301/750}
-  - {name: hound, index: 2, position: {x: 0, y: -190}, exp: 287/401/750}
-  - {name: sabertooth, index: 3, position: {x: 115, y: -165}, exp: 1300/1300/1300}
-  - {name: sabertooth, index: 4, position: {x: -115, y: -165}, exp: 952/1300/1300}
-  - {name: crawler, index: 5, position: {x: 120, y: -225}, exp: 76/123/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -120, y: -225}, exp: 72/119/450, rotated: true}
-  - {name: phoenix, index: 7, position: {x: 230, y: -240}, exp: 819/1300/1300}
-  - {name: hound, index: 8, position: {x: 250, y: -190}, exp: 20/92/750}
-  - {name: phantom_ray, index: 9, position: {x: -75, y: -260}, exp: 0/978/1000}
-  - {name: phantom_ray, index: 10, position: {x: -260, y: -285}, exp: 0/904/1000, rotated: true}
+  - {name: hound, index: 0, position: {x: 120, y: -190}, exp: 384/750}
+  - {name: hound, index: 1, position: {x: -120, y: -190}, exp: 244/750}
+  - {name: hound, index: 2, position: {x: 0, y: -190}, exp: 287/750}
+  - {name: sabertooth, index: 3, position: {x: 115, y: -165}, exp: 1300/1300}
+  - {name: sabertooth, index: 4, position: {x: -115, y: -165}, exp: 952/1300}
+  - {name: crawler, index: 5, position: {x: 120, y: -225}, exp: 76/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -120, y: -225}, exp: 72/450, rotated: true}
+  - {name: phoenix, index: 7, position: {x: 230, y: -240}, exp: 819/1300}
+  - {name: hound, index: 8, position: {x: 250, y: -190}, exp: 20/750}
+  - {name: phantom_ray, index: 9, position: {x: -75, y: -260}}
+  - {name: phantom_ray, index: 10, position: {x: -260, y: -285}, rotated: true}
   - {name: hound, index: 11, position: {x: -240, y: -190}}
-  - {name: crawler, index: 12, position: {x: -240, y: -225}, exp: 0/39/450, rotated: true}
+  - {name: crawler, index: 12, position: {x: -240, y: -225}, rotated: true}
   - {name: crawler, index: 13, position: {x: -5, y: -160}}
+outcome:
+  blue.core_damage: 601
+  blue.units[0].exp: 339
+  blue.units[1].exp: 314
+  blue.units[2].exp: 429
+  blue.units[3].exp: 516
+  blue.units[4].exp: 713
+  blue.units[5].exp: 107
+  blue.units[6].exp: 113
+  blue.units[7].exp: 270
+  blue.units[8].exp: 240
+  blue.units[9].exp: 71
+  blue.units[10].exp: 148
+  blue.units[11].exp: 89
+  blue.units[12].exp: 161
+  blue.units[13].exp: 643
+  blue.units[14].exp: 10
+  red.units[0].exp: 512
+  red.units[1].exp: 301
+  red.units[2].exp: 401
+  red.units[4].exp: 1300
+  red.units[5].exp: 123
+  red.units[6].exp: 119
+  red.units[7].exp: 1300
+  red.units[8].exp: 92
+  red.units[9].exp: 978
+  red.units[10].exp: 904
+  red.units[12].exp: 39
+ticks: 997
+hash: 23:ee327884641736b83369083c6580122395510d0fbc7f09d16d2a7e97e25bb117

@@ -9,16 +9,19 @@
 # now: they take the one just turned.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 381
-hash: 23:f470a5601b0b0075d351b00fddec463073a0fe02201cc68bf4d2ea937fbd86f6
 blue:
-  core_damage: 64
   units:
-  - {name: hacker, index: 0, position: {x: -5, y: -105}, exp: 0/64/560}
+  - {name: hacker, index: 0, position: {x: -5, y: -105}}
 red:
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/450/450, equipment: [portable_shield]}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, equipment: [portable_shield]}
+outcome:
+  blue.core_damage: 64
+  blue.units[0].exp: 64
+  red.units[0].exp: 450
+ticks: 381
+hash: 23:f470a5601b0b0075d351b00fddec463073a0fe02201cc68bf4d2ea937fbd86f6

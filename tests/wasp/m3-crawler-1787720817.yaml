@@ -1,18 +1,22 @@
 # M3: a swarm of ground targets, which cannot hit back.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 388
-hash: 23:8474bc0f2335c55765fb4dd8e0d6c43f8663a1d4dffe7d17593e9237b7dd6c69
 blue:
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -180}, exp: 0/48/900}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/72/900}
-  - {name: wasp, index: 2, position: {x: 5, y: -100}, exp: 0/70/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -180}}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}}
+  - {name: wasp, index: 2, position: {x: 5, y: -100}}
 red:
-  core_damage: 612
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 48
+  blue.units[1].exp: 72
+  blue.units[2].exp: 70
+  red.core_damage: 612
+ticks: 388
+hash: 23:8474bc0f2335c55765fb4dd8e0d6c43f8663a1d4dffe7d17593e9237b7dd6c69

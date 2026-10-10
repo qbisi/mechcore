@@ -10,19 +10,22 @@
 # is written again while it runs (t325), and goes as its Wraith dies.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 606
-hash: 23:8320ff992eda6add3c88f58cda51a0563c11f126c7a59166f16d1cc597da5c21
 blue:
-  core_damage: 250
   techs:
     typhoon: [air_defense_mark]
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/600/1950}
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}}
 red:
   units:
   - {name: wraith, index: 0, position: {x: 5, y: -175}}
-  - {name: wraith, index: 1, position: {x: -55, y: -175}, exp: 0/600/2250}
+  - {name: wraith, index: 1, position: {x: -55, y: -175}}
+outcome:
+  blue.core_damage: 250
+  blue.units[0].exp: 600
+  red.units[1].exp: 600
+ticks: 606
+hash: 23:8320ff992eda6add3c88f58cda51a0563c11f126c7a59166f16d1cc597da5c21

@@ -3,22 +3,26 @@
 # to where it moves rather than to its target.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 695
-hash: 23:01da57e08f58a30719422c9420dd972aa893215b25c8e9643aee32663a949f01
 blue:
-  core_damage: 154
   units:
-  - {name: overlord, index: 0, position: {x: -105, y: -155}, exp: 0/108/1750}
+  - {name: overlord, index: 0, position: {x: -105, y: -155}}
   - {name: wraith, index: 1, position: {x: 105, y: -145}}
   battle_skills:
   - {name: mobile_beacon, positions: [{x: -105, y: -155}, {x: -250, y: -155}, {x: -250, y: -30}]}
   - {name: mobile_beacon, positions: [{x: 105, y: -145}, {x: 250, y: -145}, {x: 250, y: -30}]}
 red:
   units:
-  - {name: marksman, index: 0, position: {x: 100, y: -50}, exp: 0/650/650}
-  - {name: marksman, index: 1, position: {x: -100, y: -50}, exp: 0/650/650}
+  - {name: marksman, index: 0, position: {x: 100, y: -50}}
+  - {name: marksman, index: 1, position: {x: -100, y: -50}}
   - {name: fang, index: 2, position: {x: 5, y: -100}}
+outcome:
+  blue.core_damage: 154
+  blue.units[0].exp: 108
+  red.units[0].exp: 650
+  red.units[1].exp: 650
+ticks: 695
+hash: 23:01da57e08f58a30719422c9420dd972aa893215b25c8e9643aee32663a949f01

@@ -8,20 +8,25 @@
 # it joined, a Crawler already turned aside from it on tick 32.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 340
-hash: 23:29515a962b824abf7d1559b96edc196966dc2d74832c0063bb65345d757c2df4
 blue:
-  core_damage: 124
   units:
-  - {name: marksman, index: 0, position: {x: -100, y: -150}, exp: 0/504/650}
+  - {name: marksman, index: 0, position: {x: -100, y: -150}}
   battle_skills:
   - {name: rhino_assault, positions: [{x: -20, y: 20}]}
 red:
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -50}, exp: 0/316/450}
-  - {name: rhino, index: 1, position: {x: 55, y: -45}, exp: 0/66/1150}
-  - {name: marksman, index: 2, position: {x: -50, y: -40}, exp: 0/216/650}
+  - {name: crawler, index: 0, position: {x: 5, y: -50}}
+  - {name: rhino, index: 1, position: {x: 55, y: -45}}
+  - {name: marksman, index: 2, position: {x: -50, y: -40}}
+outcome:
+  blue.core_damage: 124
+  blue.units[0].exp: 504
+  red.units[0].exp: 316
+  red.units[1].exp: 66
+  red.units[2].exp: 216
+ticks: 340
+hash: 23:29515a962b824abf7d1559b96edc196966dc2d74832c0063bb65345d757c2df4

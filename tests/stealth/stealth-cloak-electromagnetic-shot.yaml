@@ -4,21 +4,23 @@
 # seen already.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 220
-hash: 23:296cc8a071052367758e3a5fe0dfeeb2f6de3593393d379be6dc7b1ff5624b24
 blue:
   techs:
     phantom_ray: [stealth_cloak]
   units:
-  - {name: phantom_ray, index: 0, position: {x: 5, y: -170}, exp: 0/400/1000}
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -170}}
 red:
-  core_damage: 201
   techs:
     marksman: [electromagnetic_shot]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -60}}
   - {name: marksman, index: 1, position: {x: 40, y: -60}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 201
+ticks: 220
+hash: 23:296cc8a071052367758e3a5fe0dfeeb2f6de3593393d379be6dc7b1ff5624b24

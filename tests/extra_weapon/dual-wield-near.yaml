@@ -6,20 +6,23 @@
 # main gun, its own lock gone, takes the side arm's in place of a search.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 160
-hash: 23:4f7661b35e6f648f159b01917ff43c3290135c84605f309976bd981a44140a26
 blue:
-  core_damage: 100
   techs:
     centurion: [dual_wield]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -45}, exp: 0/400/2250}
+  - {name: centurion, index: 0, position: {x: 5, y: -45}}
 red:
   units:
   - {name: marksman, index: 0, position: {x: -20, y: -110}}
-  - {name: marksman, index: 1, position: {x: 0, y: -120}, exp: 0/600/650}
+  - {name: marksman, index: 1, position: {x: 0, y: -120}}
   - {name: marksman, index: 2, position: {x: 20, y: -110}}
+outcome:
+  blue.core_damage: 100
+  blue.units[0].exp: 400
+  red.units[1].exp: 600
+ticks: 160
+hash: 23:4f7661b35e6f648f159b01917ff43c3290135c84605f309976bd981a44140a26

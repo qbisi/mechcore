@@ -4,19 +4,23 @@
 # of a unit's destroying itself. Red wins on tick 52.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 52
-hash: 23:a5556a604b99f9c3c81ce2d0cc55898f73c90a38b934b6cdcb17ec7588a8e300
 blue:
-  core_damage: 300
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [dominion_core]}
   - {name: marksman, index: 1, position: {x: 40, y: -250}, equipment: [portable_shield]}
 red:
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/133/750}
-  - {name: arclight, index: 1, position: {x: 30, y: -50}, exp: 0/33/750}
-  - {name: arclight, index: 2, position: {x: -30, y: -50}, exp: 0/33/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -50}}
+  - {name: arclight, index: 1, position: {x: 30, y: -50}}
+  - {name: arclight, index: 2, position: {x: -30, y: -50}}
+outcome:
+  blue.core_damage: 300
+  red.units[0].exp: 133
+  red.units[1].exp: 33
+  red.units[2].exp: 33
+ticks: 52
+hash: 23:a5556a604b99f9c3c81ce2d0cc55898f73c90a38b934b6cdcb17ec7588a8e300

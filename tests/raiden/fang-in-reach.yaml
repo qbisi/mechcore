@@ -3,18 +3,22 @@
 # at nine Fangs one blow each kills, in the order the Raidens update.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 99
-hash: 23:5fb7bb67e1bd704f996d50cf664172a88872c32561161beb61fcc457af6162b0
 blue:
   units:
-  - {name: raiden, index: 0, position: {x: 0, y: -110}, exp: 0/54/2400}
-  - {name: raiden, index: 1, position: {x: 0, y: -70}, exp: 0/54/2400}
-  - {name: raiden, index: 2, position: {x: 0, y: -30}, exp: 0/108/2400}
+  - {name: raiden, index: 0, position: {x: 0, y: -110}}
+  - {name: raiden, index: 1, position: {x: 0, y: -70}}
+  - {name: raiden, index: 2, position: {x: 0, y: -30}}
 red:
-  core_damage: 1050
   units:
   - {name: fang, index: 0, position: {x: 5, y: -20}}
+outcome:
+  blue.units[0].exp: 54
+  blue.units[1].exp: 54
+  blue.units[2].exp: 108
+  red.core_damage: 1050
+ticks: 99
+hash: 23:5fb7bb67e1bd704f996d50cf664172a88872c32561161beb61fcc457af6162b0

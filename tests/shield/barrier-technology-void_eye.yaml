@@ -9,22 +9,26 @@
 # its plain 36.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 1624
-hash: 23:8e88041ee4063eed9d72e7c8b9da80724857030f400fe7e0f4c95859377b1106
 blue:
-  core_damage: 408
   techs:
     fortress: [barrier]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, level: 2, exp: 0/598/3605}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, level: 2}
 red:
   techs:
     void_eye: [electromagnetic_armor]
   units:
   - {name: void_eye, index: 0, position: {x: 0, y: -60}}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/600/900}
-  - {name: wasp, index: 2, position: {x: -55, y: -100}, exp: 0/900/900}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}}
+  - {name: wasp, index: 2, position: {x: -55, y: -100}}
+outcome:
+  blue.core_damage: 408
+  blue.units[0].exp: 598
+  red.units[1].exp: 600
+  red.units[2].exp: 900
+ticks: 1624
+hash: 23:8e88041ee4063eed9d72e7c8b9da80724857030f400fe7e0f4c95859377b1106

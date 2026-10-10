@@ -7,20 +7,26 @@
 # it last stood, still naming it as its owner.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 416
-hash: 23:5d95067c2288252916e8da8bfba3845846213fa124a8999d1d63a890828edced
 blue:
-  core_damage: 1020
   units:
   - {name: fortress, index: 0, position: {x: 0, y: -100}, equipment: [barrier]}
 red:
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/80/900}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/80/900}
-  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/80/900}
-  - {name: wasp, index: 3, position: {x: -55, y: -100}, exp: 0/80/900}
-  - {name: wasp, index: 4, position: {x: 65, y: -100}, exp: 0/480/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}}
+  - {name: wasp, index: 3, position: {x: -55, y: -100}}
+  - {name: wasp, index: 4, position: {x: 65, y: -100}}
+outcome:
+  blue.core_damage: 1020
+  red.units[0].exp: 80
+  red.units[1].exp: 80
+  red.units[2].exp: 80
+  red.units[3].exp: 80
+  red.units[4].exp: 480
+ticks: 416
+hash: 23:5d95067c2288252916e8da8bfba3845846213fa124a8999d1d63a890828edced

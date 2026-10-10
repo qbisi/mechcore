@@ -6,53 +6,82 @@
 # the tree no longer answers the Centurion for its square.
 
 kind: fight
+source: game
 map_id: 1001
 seed: 1951618914
 round: 4
-source: game
-ticks: 1177
-hash: 23:6e01db41fe752d523c3709bcdeb2a9bd9c69b227f9ec4fca829e99f959c49d1b
 blue:
   officers: [super_supply_enhancement, missile_specialist]
   legacy_index: 13
   units:
-  - {name: fang, index: 0, position: {x: 140, y: -225}, level: 2, exp: 0/484/1352, rotated: true}
-  - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 582/600/600, rotated: true}
-  - {name: fang, index: 2, position: {x: 0, y: -135}, exp: 450/461/600, rotated: true}
-  - {name: sledgehammer, index: 3, position: {x: -105, y: -130}, exp: 1300/1300/1300}
-  - {name: sledgehammer, index: 4, position: {x: 105, y: -130}, level: 2, exp: 0/847/2929}
-  - {name: marksman, index: 5, position: {x: -110, y: -190}, level: 4, exp: 342/1290/2919}
-  - {name: marksman, index: 6, position: {x: 110, y: -190}, level: 2, exp: 0/1465/1465}
-  - {name: crawler, index: 7, position: {x: 140, y: -285}, exp: 295/382/450, rotated: true}
-  - {name: crawler, index: 8, position: {x: -140, y: -285}, exp: 262/393/450, rotated: true}
-  - {name: centurion, index: 9, position: {x: -25, y: -165}, exp: 1399/1759/2250}
-  - {name: centurion, index: 10, position: {x: 25, y: -165}, exp: 1199/1502/2250}
-  - {name: crawler, index: 11, position: {x: -145, y: -190}, exp: 136/158/450}
-  - {name: crawler, index: 12, position: {x: 145, y: -190}, exp: 213/237/450}
-  - {name: centurion, index: 13, position: {x: 165, y: -165}, level: 2, exp: 0/3010/5070}
-  - {name: crawler, index: 14, position: {x: 0, y: -265}, exp: 0/17/450, rotated: true}
+  - {name: fang, index: 0, position: {x: 140, y: -225}, level: 2, rotated: true}
+  - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 582/600, rotated: true}
+  - {name: fang, index: 2, position: {x: 0, y: -135}, exp: 450/600, rotated: true}
+  - {name: sledgehammer, index: 3, position: {x: -105, y: -130}, exp: 1300/1300}
+  - {name: sledgehammer, index: 4, position: {x: 105, y: -130}, level: 2}
+  - {name: marksman, index: 5, position: {x: -110, y: -190}, level: 4, exp: 342/2919}
+  - {name: marksman, index: 6, position: {x: 110, y: -190}, level: 2}
+  - {name: crawler, index: 7, position: {x: 140, y: -285}, exp: 295/450, rotated: true}
+  - {name: crawler, index: 8, position: {x: -140, y: -285}, exp: 262/450, rotated: true}
+  - {name: centurion, index: 9, position: {x: -25, y: -165}, exp: 1399/2250}
+  - {name: centurion, index: 10, position: {x: 25, y: -165}, exp: 1199/2250}
+  - {name: crawler, index: 11, position: {x: -145, y: -190}, exp: 136/450}
+  - {name: crawler, index: 12, position: {x: 145, y: -190}, exp: 213/450}
+  - {name: centurion, index: 13, position: {x: 165, y: -165}, level: 2}
+  - {name: crawler, index: 14, position: {x: 0, y: -265}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
 red:
-  core_damage: 350
   officers: [super_supply_enhancement, elite_specialist]
   techs:
     arclight: [range_enhancement]
   blueprints: [attack_enhancement]
   legacy_index: 12
   units:
-  - {name: fang, index: 0, position: {x: 0, y: -135}, exp: 300/373/600, rotated: true}
-  - {name: fang, index: 1, position: {x: -140, y: -215}, level: 2, exp: 0/139/1352, rotated: true}
-  - {name: fang, index: 2, position: {x: 140, y: -135}, exp: 290/365/600, rotated: true}
-  - {name: steel_ball, index: 3, position: {x: 225, y: -300}, exp: 221/351/1000}
-  - {name: steel_ball, index: 4, position: {x: -275, y: -300}, exp: 509/860/1000}
-  - {name: arclight, index: 5, position: {x: 80, y: -170}, level: 2, exp: 1041/1690/1690}
-  - {name: arclight, index: 6, position: {x: -80, y: -170}, level: 2, exp: 1157/1690/1690}
-  - {name: fang, index: 7, position: {x: -140, y: -135}, level: 2, exp: 179/555/1352, rotated: true}
-  - {name: arclight, index: 8, position: {x: 0, y: -210}, level: 3, exp: 766/2671/2671}
-  - {name: centurion, index: 9, position: {x: -75, y: -235}, level: 2, exp: 0/1180/5070}
-  - {name: crawler, index: 10, position: {x: 75, y: -300}, level: 2, exp: 89/159/1014}
-  - {name: crawler, index: 11, position: {x: -125, y: -300}, level: 2, exp: 82/124/1014}
-  - {name: crawler, index: 12, position: {x: 275, y: -300}, level: 2, exp: 0/104/1014}
-  - {name: crawler, index: 13, position: {x: -225, y: -300}, level: 2, exp: 0/74/1014}
+  - {name: fang, index: 0, position: {x: 0, y: -135}, exp: 300/600, rotated: true}
+  - {name: fang, index: 1, position: {x: -140, y: -215}, level: 2, rotated: true}
+  - {name: fang, index: 2, position: {x: 140, y: -135}, exp: 290/600, rotated: true}
+  - {name: steel_ball, index: 3, position: {x: 225, y: -300}, exp: 221/1000}
+  - {name: steel_ball, index: 4, position: {x: -275, y: -300}, exp: 509/1000}
+  - {name: arclight, index: 5, position: {x: 80, y: -170}, level: 2, exp: 1041/1690}
+  - {name: arclight, index: 6, position: {x: -80, y: -170}, level: 2, exp: 1157/1690}
+  - {name: fang, index: 7, position: {x: -140, y: -135}, level: 2, exp: 179/1352, rotated: true}
+  - {name: arclight, index: 8, position: {x: 0, y: -210}, level: 3, exp: 766/2671}
+  - {name: centurion, index: 9, position: {x: -75, y: -235}, level: 2}
+  - {name: crawler, index: 10, position: {x: 75, y: -300}, level: 2, exp: 89/1014}
+  - {name: crawler, index: 11, position: {x: -125, y: -300}, level: 2, exp: 82/1014}
+  - {name: crawler, index: 12, position: {x: 275, y: -300}, level: 2}
+  - {name: crawler, index: 13, position: {x: -225, y: -300}, level: 2}
+outcome:
+  blue.units[0].exp: 484
+  blue.units[1].exp: 600
+  blue.units[2].exp: 461
+  blue.units[4].exp: 847
+  blue.units[5].exp: 1290
+  blue.units[6].exp: 1465
+  blue.units[7].exp: 382
+  blue.units[8].exp: 393
+  blue.units[9].exp: 1759
+  blue.units[10].exp: 1502
+  blue.units[11].exp: 158
+  blue.units[12].exp: 237
+  blue.units[13].exp: 3010
+  blue.units[14].exp: 17
+  red.core_damage: 350
+  red.units[0].exp: 373
+  red.units[1].exp: 139
+  red.units[2].exp: 365
+  red.units[3].exp: 351
+  red.units[4].exp: 860
+  red.units[5].exp: 1690
+  red.units[6].exp: 1690
+  red.units[7].exp: 555
+  red.units[8].exp: 2671
+  red.units[9].exp: 1180
+  red.units[10].exp: 159
+  red.units[11].exp: 124
+  red.units[12].exp: 104
+  red.units[13].exp: 74
+ticks: 1177
+hash: 23:6e01db41fe752d523c3709bcdeb2a9bd9c69b227f9ec4fca829e99f959c49d1b

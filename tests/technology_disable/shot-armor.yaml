@@ -8,14 +8,11 @@
 # end clears it (t262).
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 262
-hash: 23:370d3fadbe308fe9b50a1e39abaee528f3ff1b96d955223a9cd551d42c1549c6
 blue:
-  core_damage: 404
   techs:
     marksman: [electromagnetic_shot]
   units:
@@ -24,5 +21,11 @@ red:
   techs:
     rhino: [armor_enhancement]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/50/1150}
-  - {name: wasp, index: 1, position: {x: 65, y: -100}, exp: 0/150/900}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: wasp, index: 1, position: {x: 65, y: -100}}
+outcome:
+  blue.core_damage: 404
+  red.units[0].exp: 50
+  red.units[1].exp: 150
+ticks: 262
+hash: 23:370d3fadbe308fe9b50a1e39abaee528f3ff1b96d955223a9cd551d42c1549c6

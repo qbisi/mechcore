@@ -10,22 +10,27 @@
 # unit.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 138
-hash: 23:809b00f77fcdf15addd4bcc76675bc0f063e35dd84d02255364117e58c71998c
 blue:
   officers: [advanced_targeting_system]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -210}}
   - {name: arclight, index: 1, position: {x: 0, y: -180}}
   - {name: fang, index: 2, position: {x: 5, y: -150}}
-  - {name: steel_ball, index: 3, position: {x: 5, y: -120}, exp: 0/266/1000}
-  - {name: crawler, index: 4, position: {x: 5, y: -90}, exp: 0/66/450}
-  - {name: rhino, index: 5, position: {x: 5, y: -55}, exp: 0/66/1150}
+  - {name: steel_ball, index: 3, position: {x: 5, y: -120}}
+  - {name: crawler, index: 4, position: {x: 5, y: -90}}
+  - {name: rhino, index: 5, position: {x: 5, y: -55}}
 red:
-  core_damage: 776
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/56/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+outcome:
+  blue.units[3].exp: 266
+  blue.units[4].exp: 66
+  blue.units[5].exp: 66
+  red.core_damage: 776
+  red.units[0].exp: 56
+ticks: 138
+hash: 23:809b00f77fcdf15addd4bcc76675bc0f063e35dd84d02255364117e58c71998c

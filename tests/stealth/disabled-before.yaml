@@ -7,22 +7,26 @@
 # triggered.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 143
-hash: 23:05c0dd4d855b9767c2ec3b89cc640dbd8b84bae3838a95f8b2b7d195c4220ed9
 blue:
-  core_damage: 300
   techs:
     vortex: [emergency_armor]
   units:
   - {name: vortex, index: 0, position: {x: 0, y: -100}}
 red:
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -100}, exp: 0/33/650}
-  - {name: marksman, index: 1, position: {x: 0, y: -100}, exp: 0/133/650}
-  - {name: marksman, index: 2, position: {x: 20, y: -100}, exp: 0/33/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -100}}
+  - {name: marksman, index: 1, position: {x: 0, y: -100}}
+  - {name: marksman, index: 2, position: {x: 20, y: -100}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: 0, y: 80}]}
+outcome:
+  blue.core_damage: 300
+  red.units[0].exp: 33
+  red.units[1].exp: 133
+  red.units[2].exp: 33
+ticks: 143
+hash: 23:05c0dd4d855b9767c2ec3b89cc640dbd8b84bae3838a95f8b2b7d195c4220ed9

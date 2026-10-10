@@ -6,18 +6,21 @@
 # removed.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 383
-hash: 23:994d2b227c924726c06cbf0544d72456415d178ee5538fbdc4d1d9a702c81d46
 blue:
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -150}, exp: 0/200/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -150}}
 red:
-  core_damage: 136
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/136/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 150}]}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 136
+  red.units[0].exp: 136
+ticks: 383
+hash: 23:994d2b227c924726c06cbf0544d72456415d178ee5538fbdc4d1d9a702c81d46

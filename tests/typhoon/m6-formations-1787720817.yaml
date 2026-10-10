@@ -2,18 +2,21 @@
 # target distribution and avoidance between allies.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 239
-hash: 23:2a0b897a7b78069e9ad3f1ec2739d9236e8f0c2df9aa410db42097285f06b7ae
 blue:
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -120}, exp: 0/18/1950}
-  - {name: typhoon, index: 1, position: {x: 0, y: -80}, exp: 0/374/1950}
+  - {name: typhoon, index: 0, position: {x: 0, y: -120}}
+  - {name: typhoon, index: 1, position: {x: 0, y: -80}}
 red:
-  core_damage: 500
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -70}}
   - {name: marksman, index: 1, position: {x: 0, y: -110}}
+outcome:
+  blue.units[0].exp: 18
+  blue.units[1].exp: 374
+  red.core_damage: 500
+ticks: 239
+hash: 23:2a0b897a7b78069e9ad3f1ec2739d9236e8f0c2df9aa410db42097285f06b7ae

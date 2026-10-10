@@ -5,16 +5,19 @@
 # blue's half.
 
 kind: fight
+source: game
 map_id: 1001
 seed: 4242
 round: 1
-source: game
-ticks: 248
-hash: 23:eb92d1a696766b253b75079ee351a9e30724f323e88223182f6525742341222e
 blue:
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -100}, exp: 0/350/1100}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -100}}
 red:
-  core_damage: 50
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -100}, exp: 0/200/1100}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 350
+  red.core_damage: 50
+  red.units[0].exp: 200
+ticks: 248
+hash: 23:eb92d1a696766b253b75079ee351a9e30724f323e88223182f6525742341222e

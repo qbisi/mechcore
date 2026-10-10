@@ -6,24 +6,31 @@
 # circle, uncut by the shield that stands over it.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 231
-hash: 23:d2303952f3fb49e0478890a60edb97a088ff6bfc9fa7d86814f823233ac67f03
 blue:
-  core_damage: 608
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/80/650}
-  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/88/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -150}}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}}
   battle_skills:
   - {name: shield_airdrop, standing: {position: {x: 0, y: 0}}}
   - {name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: -40}, {x: 60, y: -40}], grid_rows: {0: [240, 1020, 2046, 2046, 1023, 255, 63, 31, 14, 6, 0, 0], 3: [], 6: [0, 0, 6, 14, 31, 63, 255, 1023, 2046, 2046, 1020, 240]}}}
 red:
   units:
-  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/33/1300}
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}}
   - {name: crawler, index: 1, position: {x: 5, y: -110}}
-  - {name: crawler, index: 2, position: {x: -55, y: -110}, exp: 0/33/450}
-  - {name: sledgehammer, index: 3, position: {x: -45, y: -60}, exp: 0/133/1300}
-  - {name: marksman, index: 4, position: {x: 40, y: -110}, exp: 0/200/650}
+  - {name: crawler, index: 2, position: {x: -55, y: -110}}
+  - {name: sledgehammer, index: 3, position: {x: -45, y: -60}}
+  - {name: marksman, index: 4, position: {x: 40, y: -110}}
+outcome:
+  blue.core_damage: 608
+  blue.units[0].exp: 80
+  blue.units[1].exp: 88
+  red.units[0].exp: 33
+  red.units[2].exp: 33
+  red.units[3].exp: 133
+  red.units[4].exp: 200
+ticks: 231
+hash: 23:d2303952f3fb49e0478890a60edb97a088ff6bfc9fa7d86814f823233ac67f03

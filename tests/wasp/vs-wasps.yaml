@@ -1,16 +1,19 @@
 # A Wasp formation against another: approach, targeting, blows and death of
 # aircraft in a mirror. Map 1021, seed 1787829131.
 kind: fight
+source: game
 map_id: 1021
 seed: 1787829131
 round: 1
-source: game
-ticks: 196
-hash: 23:38a8187838569dd897707da5c72197be8cf8c41e83bb0748cfe045d8f47cb546
 blue:
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/408/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}}
 red:
-  core_damage: 51
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/289/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 408
+  red.core_damage: 51
+  red.units[0].exp: 289
+ticks: 196
+hash: 23:38a8187838569dd897707da5c72197be8cf8c41e83bb0748cfe045d8f47cb546

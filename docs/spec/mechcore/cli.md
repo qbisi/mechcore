@@ -209,9 +209,10 @@ batch still runs.
 - A **fight** is fought again as [`convert --to fight`](#convert) fights a
   layout: its projection, with its seed, through the simulator and the one
   reader. It verifies when the simulator's document states what it states, as
-  [fight.md](../document/fight.md#root-fields) says a fight is checked: every
-  result field, and `ticks` and `hash`.
-  `compared` names which of the two were, and `differences` lists each path
+  [fight.md](../document/fight.md#root-fields) says a fight is checked: its
+  outcome, and `ticks` and `hash` when the document states them.
+  `compared` names which of the two were, `outcome` alone for a document with
+  no trajectory, and `differences` lists each path
   they part on, as `diff` spells one, with the document's value as `expected`
   and the simulator's as `actual`. A document holds no tick of its fight, so a
   hash that differs names no tick; `verify` over the recording it was read
@@ -347,10 +348,10 @@ there and answers its path, round and source.
 
 The recording holds the fight's objects under its own identities, so each
 layout entry is found by what the two share. A formation is paired with its
-placement as [`show --view outcome`](#show) pairs it, and its `after` is the
-formation's experience at the last tick, cut to a whole number as the fight's
-end cuts it; the formation has to open the fight holding the layout's
-`before`, and its bar has to be the table's. `core_damage` is what
+placement as [`show --view outcome`](#show) pairs it, and its outcome `exp` is
+the formation's experience at the last tick, cut to a whole number as the
+fight's end cuts it; the formation has to open the fight holding the layout's
+experience, and its bar has to be the table's. `core_damage` is what
 [reactor_damage.md](../../rules/reactor_damage.md) states, from the units
 standing at the last tick. A shield contraption, a standing Shield Airdrop and
 an interceptor are the shield, or the building, of the side standing exactly

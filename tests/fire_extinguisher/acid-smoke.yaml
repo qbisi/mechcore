@@ -4,21 +4,23 @@
 # tick 106, and goes as its grid is depleted.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 284
-hash: 23:2c8c3fd22fe488095c7587cacc90d3de8dd7d31032481ad2ceb9b0ca3b51f1b0
 blue:
-  core_damage: 350
   techs:
     hound: [fire_extinguisher]
   units:
   - {name: hound, index: 0, position: {x: 0, y: -60}}
 red:
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -150}, exp: 0/200/1600}
+  - {name: fortress, index: 0, position: {x: 0, y: -150}}
   battle_skills:
   - {name: acid_blast, positions: [{x: -60, y: 0}, {x: 60, y: 0}]}
   - {name: smoke_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
+outcome:
+  blue.core_damage: 350
+  red.units[0].exp: 200
+ticks: 284
+hash: 23:2c8c3fd22fe488095c7587cacc90d3de8dd7d31032481ad2ceb9b0ca3b51f1b0

@@ -7,22 +7,24 @@
 # game at t20 on the rockets' life. Blue wins at t238.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 238
-hash: 23:626273099cf5c69ca659cd8d7a2aba440c6ef69440b50d69d86270a2dec7efa3
 blue:
   techs:
     stormcaller: [heavy_missile]
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/400/1100}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 5, y: -85}}
 red:
-  core_damage: 200
   units:
   - {name: stormcaller, index: 0, position: {x: 5, y: -40}}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 5, y: -85}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 200
+ticks: 238
+hash: 23:626273099cf5c69ca659cd8d7a2aba440c6ef69440b50d69d86270a2dec7efa3

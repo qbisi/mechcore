@@ -4,20 +4,24 @@
 # its side's travel, and the survivors of both sides arrive on tick 161.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 598
-hash: 23:6fd54e456c5f702f99398c77a2cbc901789f237e3f6f17315b868d9754aa7fce
 blue:
-  core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
   - {name: hound, index: 1, position: {x: -330, y: 60}, travelling: true}
   - {name: arclight, index: 2, position: {x: 330, y: 100}, travelling: true}
 red:
   units:
-  - {name: marksman, index: 0, position: {x: 280, y: -100}, exp: 0/400/650}
-  - {name: marksman, index: 1, position: {x: -280, y: -100}, exp: 0/350/650}
-  - {name: hound, index: 2, position: {x: -330, y: 200}, exp: 0/50/750, travelling: true}
+  - {name: marksman, index: 0, position: {x: 280, y: -100}}
+  - {name: marksman, index: 1, position: {x: -280, y: -100}}
+  - {name: hound, index: 2, position: {x: -330, y: 200}, travelling: true}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 400
+  red.units[1].exp: 350
+  red.units[2].exp: 50
+ticks: 598
+hash: 23:6fd54e456c5f702f99398c77a2cbc901789f237e3f6f17315b868d9754aa7fce

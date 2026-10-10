@@ -4,18 +4,20 @@
 # shield its damage effect, 179 a hit, and turns nothing.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 181
-hash: 23:b83361bcee0f3fc07fc587e087dfaf9c6aee75ccb69c6bd3e5ce4bdaf7398fc2
 blue:
-  core_damage: 100
   units:
   - {name: hacker, index: 0, position: {x: 5, y: -155}}
 red:
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -80}, exp: 0/400/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -80}}
   contraptions:
   - {name: shield, index: 1, position: {x: 1, y: -81}}
+outcome:
+  blue.core_damage: 100
+  red.units[0].exp: 400
+ticks: 181
+hash: 23:b83361bcee0f3fc07fc587e087dfaf9c6aee75ccb69c6bd3e5ce4bdaf7398fc2

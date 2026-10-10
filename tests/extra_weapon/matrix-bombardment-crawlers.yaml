@@ -8,20 +8,24 @@
 # took, slot 3's, not slot 7's.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 258
-hash: 23:0f4d7fc92550aee49f6b1318926c80153d68bb7f4910d8b14939e1e2f8848408
 blue:
   techs:
     wraith: [floating_artillery_array]
   units:
-  - {name: wraith, index: 0, position: {x: 5, y: -175}, exp: 0/8/2250}
-  - {name: wraith, index: 1, position: {x: 5, y: -135}, exp: 0/40/2250}
-  - {name: wraith, index: 2, position: {x: 5, y: -95}, exp: 0/144/2250}
+  - {name: wraith, index: 0, position: {x: 5, y: -175}}
+  - {name: wraith, index: 1, position: {x: 5, y: -135}}
+  - {name: wraith, index: 2, position: {x: 5, y: -95}}
 red:
-  core_damage: 750
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 8
+  blue.units[1].exp: 40
+  blue.units[2].exp: 144
+  red.core_damage: 750
+ticks: 258
+hash: 23:0f4d7fc92550aee49f6b1318926c80153d68bb7f4910d8b14939e1e2f8848408

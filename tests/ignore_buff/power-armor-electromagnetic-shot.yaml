@@ -6,14 +6,11 @@
 # Armor's quarter of life leaves it.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 328
-hash: 23:966d464ca9ff5b1277e70d956803a32b0db634a6114bc0c675d856f5de737d44
 blue:
-  core_damage: 200
   techs:
     marksman: [electromagnetic_shot]
   units:
@@ -22,4 +19,9 @@ red:
   techs:
     rhino: [power_armor]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 200
+ticks: 328
+hash: 23:966d464ca9ff5b1277e70d956803a32b0db634a6114bc0c675d856f5de737d44

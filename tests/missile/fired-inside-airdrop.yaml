@@ -8,20 +8,23 @@
 # 5000 and the splash reaches the shield, which takes 5000 too.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 523
-hash: 23:d2082ff62095130654de587c4ccdbc3843e800ac50dfa815a87152afd1af8ed4
 blue:
-  core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
   contraptions:
-  - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
+  - {name: missile, index: 0, position: {x: 1, y: -11}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -205}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -205}}
   battle_skills:
   - {name: shield_airdrop, positions: [{x: -1, y: 11}]}
+outcome:
+  blue.core_damage: 200
+  blue.contraptions[0].retained: false
+  red.units[0].exp: 200
+ticks: 523
+hash: 23:d2082ff62095130654de587c4ccdbc3843e800ac50dfa815a87152afd1af8ed4

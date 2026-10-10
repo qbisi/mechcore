@@ -4,19 +4,22 @@
 # line of several positions draws no scatter.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 272
-hash: 23:9684850f21022614c64983026862ede7900a3d0ed4c2a122598ac95f4638a1ba
 blue:
-  core_damage: 300
   techs:
     marksman: [shooting_squad]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/239/1150}
-  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/9/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 60, y: -100}}
+outcome:
+  blue.core_damage: 300
+  red.units[0].exp: 239
+  red.units[1].exp: 9
+ticks: 272
+hash: 23:9684850f21022614c64983026862ede7900a3d0ed4c2a122598ac95f4638a1ba

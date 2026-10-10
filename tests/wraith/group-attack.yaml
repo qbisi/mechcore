@@ -5,20 +5,27 @@
 # core's 60: a main child skill reaches its parent's range plus 10 m.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787857041
 round: 1
-source: game
-ticks: 647
-hash: 23:6a50cb7fb6fba7c9421e39666faa8a2bccb5c29eacf0e1bf926854222890ca66
 blue:
   units:
-  - {name: wraith, index: 0, position: {x: -5, y: -95}, exp: 0/869/2250}
-  - {name: crawler, index: 1, position: {x: 0, y: -135}, exp: 0/48/450, rotated: true}
-  - {name: steel_ball, index: 2, position: {x: 20, y: -135}, exp: 0/273/1000, rotated: true}
+  - {name: wraith, index: 0, position: {x: -5, y: -95}}
+  - {name: crawler, index: 1, position: {x: 0, y: -135}, rotated: true}
+  - {name: steel_ball, index: 2, position: {x: 20, y: -135}, rotated: true}
 red:
-  core_damage: 250
   units:
-  - {name: wraith, index: 0, position: {x: -5, y: -95}, exp: 0/345/2250}
-  - {name: crawler, index: 1, position: {x: 0, y: -135}, exp: 0/47/450, rotated: true}
-  - {name: steel_ball, index: 2, position: {x: 20, y: -135}, exp: 0/199/1000, rotated: true}
+  - {name: wraith, index: 0, position: {x: -5, y: -95}}
+  - {name: crawler, index: 1, position: {x: 0, y: -135}, rotated: true}
+  - {name: steel_ball, index: 2, position: {x: 20, y: -135}, rotated: true}
+outcome:
+  blue.units[0].exp: 869
+  blue.units[1].exp: 48
+  blue.units[2].exp: 273
+  red.core_damage: 250
+  red.units[0].exp: 345
+  red.units[1].exp: 47
+  red.units[2].exp: 199
+ticks: 647
+hash: 23:6a50cb7fb6fba7c9421e39666faa8a2bccb5c29eacf0e1bf926854222890ca66

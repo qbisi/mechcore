@@ -6,21 +6,23 @@
 # recorded after the death.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 518
-hash: 23:785a05660ef6da3dba14d96a7df13c3b1b65bced8fc2724a1ee2090422fd465d
 blue:
   techs:
     rhino: [wreckage_recycling]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -35}, exp: 0/1000/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -35}}
 red:
-  core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -20}}
   - {name: marksman, index: 1, position: {x: -40, y: -40}}
   - {name: marksman, index: 2, position: {x: 40, y: -60}}
   - {name: arclight, index: 3, position: {x: 280, y: -300}}
+outcome:
+  blue.units[0].exp: 1000
+  red.core_damage: 200
+ticks: 518
+hash: 23:785a05660ef6da3dba14d96a7df13c3b1b65bced8fc2724a1ee2090422fd465d

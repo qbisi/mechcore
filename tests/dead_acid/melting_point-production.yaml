@@ -3,20 +3,24 @@
 # recording numbers as it numbers the made Crawlers.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 490
-hash: 23:cccd3e2768ee541f3813dc734cfacb2dd48df4b4e999004837bb0c9449580d4f
 blue:
   techs:
     melting_point: [crawler_production]
     crawler: [acidic_explosion]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -150}, exp: 0/600/1400}
+  - {name: melting_point, index: 0, position: {x: 0, y: -150}}
 red:
-  core_damage: 350
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/16/1150}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/48/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}}
+outcome:
+  blue.units[0].exp: 600
+  red.core_damage: 350
+  red.units[0].exp: 16
+  red.units[1].exp: 48
+ticks: 490
+hash: 23:cccd3e2768ee541f3813dc734cfacb2dd48df4b4e999004837bb0c9449580d4f

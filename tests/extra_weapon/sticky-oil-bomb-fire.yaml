@@ -6,21 +6,25 @@
 # row's 7 seconds, and the later bombs, landing on no fire, leave oils.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 435
-hash: 23:9df51fbe6218000ca7f0c53177173625ed5b7d6727f99b4eab5a4e6d267f9ea3
 blue:
   techs:
     phantom_ray: [sticky_oil_bomb]
     hound: [incendiary_bomb]
   units:
-  - {name: phantom_ray, index: 0, position: {x: 5, y: -50}, exp: 0/800/1000}
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -50}}
   - {name: hound, index: 1, position: {x: 70, y: -50}}
 red:
-  core_damage: 201
   units:
-  - {name: rhino, index: 0, position: {x: -45, y: -95}, exp: 0/130/1150}
-  - {name: rhino, index: 1, position: {x: 45, y: -95}, exp: 0/70/1150}
+  - {name: rhino, index: 0, position: {x: -45, y: -95}}
+  - {name: rhino, index: 1, position: {x: 45, y: -95}}
+outcome:
+  blue.units[0].exp: 800
+  red.core_damage: 201
+  red.units[0].exp: 130
+  red.units[1].exp: 70
+ticks: 435
+hash: 23:9df51fbe6218000ca7f0c53177173625ed5b7d6727f99b4eab5a4e6d267f9ea3

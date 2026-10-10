@@ -9,20 +9,22 @@
 # again. Both interceptors stand at the end.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 338
-hash: 23:ab41b9230fac5062fac8d6b6879d5715696416aee3e86d67d3260b82b92b557c
 blue:
-  units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/400/1100}
-  contraptions:
-  - {name: interceptor, index: 0, position: {x: 5, y: -85}}
-red:
-  core_damage: 200
   units:
   - {name: stormcaller, index: 0, position: {x: 5, y: -40}}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 5, y: -85}}
+red:
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 5, y: -85}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 200
+ticks: 338
+hash: 23:ab41b9230fac5062fac8d6b6879d5715696416aee3e86d67d3260b82b92b557c

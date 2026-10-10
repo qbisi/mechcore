@@ -2,19 +2,23 @@
 # batch within the Overlord's radius.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 402
-hash: 23:c189d24bff2fabc55090aa3377df52fc7bc531f909057dd4c53becce43cae03d
 blue:
   techs:
     overlord: [mothership]
   units:
-  - {name: overlord, index: 0, position: {x: 5, y: -145}, exp: 0/600/1750}
+  - {name: overlord, index: 0, position: {x: 5, y: -145}}
 red:
-  core_damage: 400
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/25/1150}
-  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/144/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 60, y: -100}}
+outcome:
+  blue.units[0].exp: 600
+  red.core_damage: 400
+  red.units[0].exp: 25
+  red.units[1].exp: 144
+ticks: 402
+hash: 23:c189d24bff2fabc55090aa3377df52fc7bc531f909057dd4c53becce43cae03d

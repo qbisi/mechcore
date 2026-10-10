@@ -8,19 +8,21 @@
 # sixth after its arrival, on tick 189, 202.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 220
-hash: 23:e3d43dda53de255cc23da9f7dd751c57fc570aa8400142c036736d1fe82c957f
 blue:
   techs:
     typhoon: [reactive_armor]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: typhoon, index: 1, position: {x: -310, y: 40}, level: 4, exp: 0/408/8756, travelling: true}
+  - {name: typhoon, index: 1, position: {x: -310, y: 40}, level: 4, travelling: true}
 red:
-  core_damage: 350
   units:
   - {name: wasp, index: 0, position: {x: 275, y: -60}}
+outcome:
+  blue.units[1].exp: 408
+  red.core_damage: 350
+ticks: 220
+hash: 23:e3d43dda53de255cc23da9f7dd751c57fc570aa8400142c036736d1fe82c957f

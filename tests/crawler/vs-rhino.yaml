@@ -2,16 +2,18 @@
 # sample the RVO module is held to (docs/spec/simulation/rvo.md). Map 1021,
 # seed 1787757964.
 kind: fight
+source: game
 map_id: 1021
 seed: 1787757964
 round: 1
-source: game
-ticks: 280
-hash: 23:135e99b20c06a99ac00bd9bc7ed921035aecb69dc5988f26873bb26b50504f97
 blue:
-  core_damage: 200
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -105}, exp: 0/192/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -105}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 192
+ticks: 280
+hash: 23:135e99b20c06a99ac00bd9bc7ed921035aecb69dc5988f26873bb26b50504f97

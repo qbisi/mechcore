@@ -2,18 +2,23 @@
 # target distribution and avoidance between allies.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 462
-hash: 23:6fc4aa8a8cf0fb8fed0ec151daa4aa5d3de5897b7bcc2993c49dd0945ae81ec5
 blue:
-  core_damage: 44
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -140}, exp: 0/68/1100}
-  - {name: stormcaller, index: 1, position: {x: 5, y: -80}, exp: 0/36/1100}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -140}}
+  - {name: stormcaller, index: 1, position: {x: 5, y: -80}}
 red:
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/450/450}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/150/650}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}}
+outcome:
+  blue.core_damage: 44
+  blue.units[0].exp: 68
+  blue.units[1].exp: 36
+  red.units[0].exp: 450
+  red.units[1].exp: 150
+ticks: 462
+hash: 23:6fc4aa8a8cf0fb8fed0ec151daa4aa5d3de5897b7bcc2993c49dd0945ae81ec5

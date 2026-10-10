@@ -4,18 +4,20 @@
 # 3.99999, whose whole part is 3.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 104
-hash: 23:876ade52f9a0d374c86b9406e56c4a652def692566c0d60f17dbf961c779235b
 blue:
   techs:
     melting_point: [energy_absorption]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -100}, exp: 0/200/1400}
+  - {name: melting_point, index: 0, position: {x: 0, y: -100}}
 red:
-  core_damage: 350
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 350
+ticks: 104
+hash: 23:876ade52f9a0d374c86b9406e56c4a652def692566c0d60f17dbf961c779235b

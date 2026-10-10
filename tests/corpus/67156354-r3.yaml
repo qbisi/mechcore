@@ -8,54 +8,76 @@
 # began, towers, then units, then constructions.
 
 kind: fight
+source: game
 map_id: 1031
 seed: 1544021023
 round: 3
-source: game
-ticks: 971
-hash: 23:fc7f5e9a761a1c5d5540def77dda34618e8259e27c35ab0a9b33ad573c069288
 blue:
   officers: [training_specialist]
   techs:
     arclight: [range_enhancement]
   legacy_index: 11
   units:
-  - {name: arclight, index: 0, position: {x: 140, y: -70}, exp: 339/522/750}
-  - {name: arclight, index: 1, position: {x: 0, y: -70}, level: 2, exp: 0/819/1690}
-  - {name: arclight, index: 2, position: {x: 70, y: -70}, level: 2, exp: 1044/1347/1690}
-  - {name: sabertooth, index: 3, position: {x: 35, y: -65}, exp: 1245/1300/1300}
-  - {name: sabertooth, index: 4, position: {x: 105, y: -65}, exp: 742/1108/1300}
-  - {name: fang, index: 5, position: {x: 140, y: -35}, exp: 118/118/600, rotated: true}
-  - {name: fang, index: 6, position: {x: 0, y: -35}, exp: 50/50/600, rotated: true}
-  - {name: marksman, index: 7, position: {x: 0, y: -90}, level: 3, exp: 1189/1989/2315}
-  - {name: crawler, index: 8, position: {x: 0, y: -135}, exp: 225/225/450, rotated: true}
-  - {name: crawler, index: 9, position: {x: -140, y: -135}, exp: 0/24/450, rotated: true}
-  - {name: crawler, index: 10, position: {x: 140, y: -135}, exp: 159/159/450, rotated: true}
-  - {name: marksman, index: 11, position: {x: 70, y: -90}, exp: 0/321/650}
-  - {name: marksman, index: 12, position: {x: -70, y: -90}, exp: 0/650/650}
+  - {name: arclight, index: 0, position: {x: 140, y: -70}, exp: 339/750}
+  - {name: arclight, index: 1, position: {x: 0, y: -70}, level: 2}
+  - {name: arclight, index: 2, position: {x: 70, y: -70}, level: 2, exp: 1044/1690}
+  - {name: sabertooth, index: 3, position: {x: 35, y: -65}, exp: 1245/1300}
+  - {name: sabertooth, index: 4, position: {x: 105, y: -65}, exp: 742/1300}
+  - {name: fang, index: 5, position: {x: 140, y: -35}, exp: 118/600, rotated: true}
+  - {name: fang, index: 6, position: {x: 0, y: -35}, exp: 50/600, rotated: true}
+  - {name: marksman, index: 7, position: {x: 0, y: -90}, level: 3, exp: 1189/2315}
+  - {name: crawler, index: 8, position: {x: 0, y: -135}, exp: 225/450, rotated: true}
+  - {name: crawler, index: 9, position: {x: -140, y: -135}, rotated: true}
+  - {name: crawler, index: 10, position: {x: 140, y: -135}, exp: 159/450, rotated: true}
+  - {name: marksman, index: 11, position: {x: 70, y: -90}}
+  - {name: marksman, index: 12, position: {x: -70, y: -90}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   battle_skills:
   - {name: underground_threat, positions: [{x: 0, y: 274}]}
 red:
-  core_damage: 100
   officers: [aerial_specialist]
   blueprints: [defense_enhancement]
   legacy_index: 10
   units:
-  - {name: void_eye, index: 0, position: {x: -110, y: -220}, exp: 90/267/650}
-  - {name: void_eye, index: 1, position: {x: 110, y: -220}, exp: 229/650/650}
-  - {name: void_eye, index: 2, position: {x: -50, y: -220}, exp: 48/189/650}
-  - {name: tarantula, index: 3, position: {x: 115, y: -175}, exp: 413/675/1500}
-  - {name: tarantula, index: 4, position: {x: -115, y: -175}, exp: 319/408/1500}
-  - {name: void_eye, index: 5, position: {x: 50, y: -220}, exp: 331/486/650}
-  - {name: void_eye, index: 6, position: {x: 0, y: -220}, exp: 257/402/650}
-  - {name: fire_badger, index: 7, position: {x: -75, y: -150}, exp: 113/138/1400}
-  - {name: phoenix, index: 8, position: {x: 0, y: -160}, exp: 48/139/1300}
-  - {name: phoenix, index: 9, position: {x: 80, y: -230}, exp: 150/272/1300, rotated: true}
-  - {name: phoenix, index: 10, position: {x: -80, y: -230}, exp: 0/1300/1300, rotated: true}
-  - {name: tarantula, index: 11, position: {x: -35, y: -175}, exp: 0/132/1500}
+  - {name: void_eye, index: 0, position: {x: -110, y: -220}, exp: 90/650}
+  - {name: void_eye, index: 1, position: {x: 110, y: -220}, exp: 229/650}
+  - {name: void_eye, index: 2, position: {x: -50, y: -220}, exp: 48/650}
+  - {name: tarantula, index: 3, position: {x: 115, y: -175}, exp: 413/1500}
+  - {name: tarantula, index: 4, position: {x: -115, y: -175}, exp: 319/1500}
+  - {name: void_eye, index: 5, position: {x: 50, y: -220}, exp: 331/650}
+  - {name: void_eye, index: 6, position: {x: 0, y: -220}, exp: 257/650}
+  - {name: fire_badger, index: 7, position: {x: -75, y: -150}, exp: 113/1400}
+  - {name: phoenix, index: 8, position: {x: 0, y: -160}, exp: 48/1300}
+  - {name: phoenix, index: 9, position: {x: 80, y: -230}, exp: 150/1300, rotated: true}
+  - {name: phoenix, index: 10, position: {x: -80, y: -230}, rotated: true}
+  - {name: tarantula, index: 11, position: {x: -35, y: -175}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -123, y: -39}, {x: 16, y: -28}]}
+outcome:
+  blue.units[0].exp: 522
+  blue.units[1].exp: 819
+  blue.units[2].exp: 1347
+  blue.units[3].exp: 1300
+  blue.units[4].exp: 1108
+  blue.units[7].exp: 1989
+  blue.units[9].exp: 24
+  blue.units[11].exp: 321
+  blue.units[12].exp: 650
+  red.core_damage: 100
+  red.units[0].exp: 267
+  red.units[1].exp: 650
+  red.units[2].exp: 189
+  red.units[3].exp: 675
+  red.units[4].exp: 408
+  red.units[5].exp: 486
+  red.units[6].exp: 402
+  red.units[7].exp: 138
+  red.units[8].exp: 139
+  red.units[9].exp: 272
+  red.units[10].exp: 1300
+  red.units[11].exp: 132
+ticks: 971
+hash: 23:fc7f5e9a761a1c5d5540def77dda34618e8259e27c35ab0a9b33ad573c069288

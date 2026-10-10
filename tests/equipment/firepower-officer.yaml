@@ -7,17 +7,19 @@
 # With Advanced Offensive Tactics: the two rates sum, 4541.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 83
-hash: 23:8bea92490bcaabdf1f0798d7dc6eb956384a681774c0ba64bf7f03291d802351
 blue:
   officers: [advanced_offensive_tactics]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/200/650, equipment: [improved_firepower_control_system]}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [improved_firepower_control_system]}
 red:
-  core_damage: 100
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -50}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 100
+ticks: 83
+hash: 23:8bea92490bcaabdf1f0798d7dc6eb956384a681774c0ba64bf7f03291d802351

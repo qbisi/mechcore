@@ -3,19 +3,21 @@
 # `DynamicMechLevel.Parent`), four times a first-level Phoenix's life.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 200
-hash: 23:a3b529f4ca9375372388da72d3c20314fd4b0242ba228efeffcbf5f9b351e533
 blue:
   techs:
     war_factory: [phoenix_production]
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -145}, level: 4, exp: 0/400/14369}
+  - {name: war_factory, index: 0, position: {x: 5, y: -145}, level: 4}
 red:
-  core_damage: 525
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
   - {name: marksman, index: 1, position: {x: 0, y: -150}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 525
+ticks: 200
+hash: 23:a3b529f4ca9375372388da72d3c20314fd4b0242ba228efeffcbf5f9b351e533

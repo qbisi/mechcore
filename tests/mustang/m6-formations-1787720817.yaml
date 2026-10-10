@@ -2,18 +2,23 @@
 # target distribution and avoidance between allies.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 260
-hash: 23:d8220e56527b594d6803931ee92ad5f29bc480acb7d38bb117203713e474d5cc
 blue:
   units:
-  - {name: mustang, index: 0, position: {x: 5, y: -140}, exp: 0/124/1200}
-  - {name: mustang, index: 1, position: {x: 5, y: -80}, exp: 0/268/1200}
+  - {name: mustang, index: 0, position: {x: 5, y: -140}}
+  - {name: mustang, index: 1, position: {x: 5, y: -80}}
 red:
-  core_damage: 340
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/17/450}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/119/650}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}}
+outcome:
+  blue.units[0].exp: 124
+  blue.units[1].exp: 268
+  red.core_damage: 340
+  red.units[0].exp: 17
+  red.units[1].exp: 119
+ticks: 260
+hash: 23:d8220e56527b594d6803931ee92ad5f29bc480acb7d38bb117203713e474d5cc

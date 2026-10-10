@@ -8,20 +8,24 @@
 # while it suits.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 182
-hash: 23:218d56b3d948c3852737ee97ed597f16c5a9b89778a40dd30d341dd015ad5239
 blue:
-  core_damage: 200
   techs:
     centurion: [dual_wield]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -45}, exp: 0/200/2250}
+  - {name: centurion, index: 0, position: {x: 5, y: -45}}
 red:
   units:
   - {name: marksman, index: 0, position: {x: -20, y: -130}}
-  - {name: marksman, index: 1, position: {x: 0, y: -140}, exp: 0/450/650}
-  - {name: marksman, index: 2, position: {x: 30, y: -130}, exp: 0/150/650}
+  - {name: marksman, index: 1, position: {x: 0, y: -140}}
+  - {name: marksman, index: 2, position: {x: 30, y: -130}}
+outcome:
+  blue.core_damage: 200
+  blue.units[0].exp: 200
+  red.units[1].exp: 450
+  red.units[2].exp: 150
+ticks: 182
+hash: 23:218d56b3d948c3852737ee97ed597f16c5a9b89778a40dd30d341dd015ad5239

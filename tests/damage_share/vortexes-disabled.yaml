@@ -9,26 +9,33 @@
 # falls (t570).
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 639
-hash: 23:ad5ef750a927b76d20ab923f1b727fb5066912da9e950972843217134ce2e01a
 blue:
-  core_damage: 350
   techs:
     vortex: [grid_integration]
   units:
-  - {name: vortex, index: 0, position: {x: -60, y: -100}, exp: 0/40/750}
-  - {name: vortex, index: 1, position: {x: -30, y: -100}, exp: 0/90/750}
-  - {name: vortex, index: 2, position: {x: 0, y: -100}, exp: 0/290/750}
-  - {name: vortex, index: 3, position: {x: 30, y: -100}, exp: 0/90/750}
-  - {name: vortex, index: 4, position: {x: 60, y: -100}, exp: 0/290/750}
+  - {name: vortex, index: 0, position: {x: -60, y: -100}}
+  - {name: vortex, index: 1, position: {x: -30, y: -100}}
+  - {name: vortex, index: 2, position: {x: 0, y: -100}}
+  - {name: vortex, index: 3, position: {x: 30, y: -100}}
+  - {name: vortex, index: 4, position: {x: 60, y: -100}}
 red:
   units:
   - {name: rhino, index: 0, position: {x: -45, y: -105}}
   - {name: rhino, index: 1, position: {x: 5, y: -105}}
-  - {name: melting_point, index: 2, position: {x: 0, y: -200}, exp: 0/1000/1400}
+  - {name: melting_point, index: 2, position: {x: 0, y: -200}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: 75, y: 62}]}
+outcome:
+  blue.core_damage: 350
+  blue.units[0].exp: 40
+  blue.units[1].exp: 90
+  blue.units[2].exp: 290
+  blue.units[3].exp: 90
+  blue.units[4].exp: 290
+  red.units[2].exp: 1000
+ticks: 639
+hash: 23:ad5ef750a927b76d20ab923f1b727fb5066912da9e950972843217134ce2e01a

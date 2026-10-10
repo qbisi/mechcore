@@ -7,18 +7,21 @@
 # beam fells block 4 turns onto the Marksman behind it on that tick.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 242
-hash: 23:dba48ea38bae6f8746ef52481a6e2dd4a3891a9dccf70a2ecc515f3a86a200b3
 blue:
-  core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: -140, y: -100}, exp: 0/200/650}
+  - {name: marksman, index: 0, position: {x: -140, y: -100}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   units:
-  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/248/1000}
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}}
+outcome:
+  blue.core_damage: 100
+  blue.units[0].exp: 200
+  red.units[0].exp: 248
+ticks: 242
+hash: 23:dba48ea38bae6f8746ef52481a6e2dd4a3891a9dccf70a2ecc515f3a86a200b3

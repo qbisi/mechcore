@@ -5,22 +5,25 @@
 # searches and fires from where its first gun points.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 364
-hash: 23:87c4ef1dbe6b3768f354b259e6964d8acaa5ecd69bd4c3a1cf628c98be982d51
 blue:
   techs:
     overlord: [overlord_artillery]
   units:
-  - {name: overlord, index: 0, position: {x: -95, y: -95}, exp: 0/736/1750}
-  - {name: overlord, index: 1, position: {x: 105, y: -95}, exp: 0/472/1750}
+  - {name: overlord, index: 0, position: {x: -95, y: -95}}
+  - {name: overlord, index: 1, position: {x: 105, y: -95}}
 red:
-  core_damage: 800
   units:
   - {name: rhino, index: 0, position: {x: -135, y: -55}}
   - {name: sledgehammer, index: 1, position: {x: 115, y: -60}}
   - {name: crawler, index: 2, position: {x: 5, y: -70}}
   - {name: fang, index: 3, position: {x: 185, y: -130}}
+outcome:
+  blue.units[0].exp: 736
+  blue.units[1].exp: 472
+  red.core_damage: 800
+ticks: 364
+hash: 23:87c4ef1dbe6b3768f354b259e6964d8acaa5ecd69bd4c3a1cf628c98be982d51

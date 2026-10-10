@@ -2,16 +2,18 @@
 # without the technology, the main gun alone.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 128
-hash: 23:b33411b0cb0ffa06428651c302f14c61f12b7b5f532d93711bc7a37e5e427d90
 blue:
   units:
-  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/400/1300}
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}}
 red:
-  core_damage: 200
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 200
+ticks: 128
+hash: 23:b33411b0cb0ffa06428651c302f14c61f12b7b5f532d93711bc7a37e5e427d90

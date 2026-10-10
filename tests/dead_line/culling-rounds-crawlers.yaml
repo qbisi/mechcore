@@ -6,18 +6,20 @@
 # the line, 320, as taken.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 120
-hash: 23:375a0eeaacf4329a1aebf3fddc9a9961c8dcd793a6c73cc93a71ae7a86d33615
 blue:
   techs:
     mustang: [culling_rounds]
   units:
-  - {name: mustang, index: 0, position: {x: 5, y: -100}, exp: 0/192/1200}
+  - {name: mustang, index: 0, position: {x: 5, y: -100}}
 red:
-  core_damage: 204
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 192
+  red.core_damage: 204
+ticks: 120
+hash: 23:375a0eeaacf4329a1aebf3fddc9a9961c8dcd793a6c73cc93a71ae7a86d33615

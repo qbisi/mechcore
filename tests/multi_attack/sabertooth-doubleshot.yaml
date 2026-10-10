@@ -4,18 +4,20 @@
 # skill has two weapons, and with no random range both leave weapon 0.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 158
-hash: 23:b4b2a0a714f80dcd12e0895b9531bb2177c75ace9a41c4d4491bf08bbf696e4c
 blue:
   techs:
     sabertooth: [doubleshot]
   units:
-  - {name: sabertooth, index: 0, position: {x: -5, y: -105}, exp: 0/400/1300}
+  - {name: sabertooth, index: 0, position: {x: -5, y: -105}}
 red:
-  core_damage: 200
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 200
+ticks: 158
+hash: 23:b4b2a0a714f80dcd12e0895b9531bb2177c75ace9a41c4d4491bf08bbf696e4c

@@ -6,22 +6,28 @@
 # at (329.6, 100.5), not the recorded (329.5, 99.6).
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 3
-source: game
-ticks: 1250
-hash: 23:7b6149c7bb546fa78b38cb989240b0ea8754fe7021a5a349b385080d1b48e366
 blue:
   legacy_index: 3
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: hound, index: 1, position: {x: -330, y: 60}, exp: 0/400/750}
-  - {name: arclight, index: 2, position: {x: 330, y: 100}, exp: 0/400/750}
+  - {name: hound, index: 1, position: {x: -330, y: 60}}
+  - {name: arclight, index: 2, position: {x: 330, y: 100}}
 red:
-  core_damage: 140
   legacy_index: 3
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
-  - {name: hound, index: 1, position: {x: -330, y: 200}, exp: 0/200/750}
-  - {name: arclight, index: 2, position: {x: 330, y: 250}, exp: 0/320/750}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: hound, index: 1, position: {x: -330, y: 200}}
+  - {name: arclight, index: 2, position: {x: 330, y: 250}}
+outcome:
+  blue.units[1].exp: 400
+  blue.units[2].exp: 400
+  red.core_damage: 140
+  red.units[0].exp: 200
+  red.units[1].exp: 200
+  red.units[2].exp: 320
+ticks: 1250
+hash: 23:7b6149c7bb546fa78b38cb989240b0ea8754fe7021a5a349b385080d1b48e366

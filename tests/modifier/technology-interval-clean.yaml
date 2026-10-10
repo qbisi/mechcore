@@ -16,18 +16,20 @@
 # together, each on the number it belongs to.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 274
-hash: 23:b7205366868008a16b73c51a02c3333e688252e62266df9255f6c5d5731a37b0
 blue:
-  core_damage: 200
   techs:
     stormcaller: [launcher_overload]
   units:
   - {name: stormcaller, index: 0, position: {x: 5, y: -100}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/400/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 400
+ticks: 274
+hash: 23:b7205366868008a16b73c51a02c3333e688252e62266df9255f6c5d5731a37b0

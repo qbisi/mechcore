@@ -7,12 +7,10 @@
 # keeps its target until `DeadEffectSystem` calls its `OnDead`.
 
 kind: fight
+source: game
 map_id: 1032
 seed: 712905480
 round: 6
-source: game
-ticks: 1136
-hash: 23:40047babf37214e630131035e8851630f3622b376cdf667567e6b59b0c9549e8
 blue:
   officers: [training_specialist, advanced_defensive_tactics]
   techs:
@@ -21,24 +19,24 @@ blue:
   blueprints: [attack_enhancement]
   legacy_index: 17
   units:
-  - {name: arclight, index: 0, position: {x: 120, y: -120}, level: 2, exp: 1578/1690/1690}
+  - {name: arclight, index: 0, position: {x: 120, y: -120}, level: 2, exp: 1578/1690}
   - {name: arclight, index: 1, position: {x: -100, y: -120}, level: 2}
-  - {name: arclight, index: 2, position: {x: 200, y: -120}, exp: 483/706/750}
-  - {name: steel_ball, index: 3, position: {x: -255, y: -250}, exp: 888/1000/1000}
-  - {name: steel_ball, index: 4, position: {x: 255, y: -250}, level: 2, exp: 0/114/2253}
-  - {name: crawler, index: 5, position: {x: -290, y: -285}, exp: 258/390/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 290, y: -285}, exp: 238/238/450, rotated: true}
-  - {name: phantom_ray, index: 7, position: {x: -195, y: -250}, level: 4, exp: 0/3396/4490}
-  - {name: crawler, index: 8, position: {x: 120, y: -155}, exp: 15/24/450, rotated: true}
-  - {name: wasp, index: 9, position: {x: -195, y: -230}, level: 2, exp: 1898/2028/2028}
-  - {name: wasp, index: 10, position: {x: 125, y: -230}, exp: 262/289/900}
-  - {name: phantom_ray, index: 11, position: {x: 125, y: -250}, level: 3, exp: 2418/3562/3562}
-  - {name: wasp, index: 12, position: {x: 195, y: -230}, exp: 361/394/900}
-  - {name: phantom_ray, index: 13, position: {x: 195, y: -250}, exp: 524/606/1000}
-  - {name: fortress, index: 14, position: {x: -130, y: -130}, level: 2, exp: 0/2245/3605}
-  - {name: phantom_ray, index: 15, position: {x: -105, y: -250}, level: 2, exp: 0/767/2253}
-  - {name: phantom_ray, index: 16, position: {x: -105, y: -230}, exp: 392/818/1000}
-  - {name: steel_ball, index: 17, position: {x: 255, y: -230}, exp: 0/1/1000}
+  - {name: arclight, index: 2, position: {x: 200, y: -120}, exp: 483/750}
+  - {name: steel_ball, index: 3, position: {x: -255, y: -250}, exp: 888/1000}
+  - {name: steel_ball, index: 4, position: {x: 255, y: -250}, level: 2}
+  - {name: crawler, index: 5, position: {x: -290, y: -285}, exp: 258/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 290, y: -285}, exp: 238/450, rotated: true}
+  - {name: phantom_ray, index: 7, position: {x: -195, y: -250}, level: 4}
+  - {name: crawler, index: 8, position: {x: 120, y: -155}, exp: 15/450, rotated: true}
+  - {name: wasp, index: 9, position: {x: -195, y: -230}, level: 2, exp: 1898/2028}
+  - {name: wasp, index: 10, position: {x: 125, y: -230}, exp: 262/900}
+  - {name: phantom_ray, index: 11, position: {x: 125, y: -250}, level: 3, exp: 2418/3562}
+  - {name: wasp, index: 12, position: {x: 195, y: -230}, exp: 361/900}
+  - {name: phantom_ray, index: 13, position: {x: 195, y: -250}, exp: 524/1000}
+  - {name: fortress, index: 14, position: {x: -130, y: -130}, level: 2}
+  - {name: phantom_ray, index: 15, position: {x: -105, y: -250}, level: 2}
+  - {name: phantom_ray, index: 16, position: {x: -105, y: -230}, exp: 392/1000}
+  - {name: steel_ball, index: 17, position: {x: 255, y: -230}}
   - {name: steel_ball, index: 18, position: {x: -255, y: -230}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -46,7 +44,6 @@ blue:
   battle_skills:
   - {name: rhino_assault, positions: [{x: -270, y: 285}]}
 red:
-  core_damage: 1020
   officers: [rhino_specialist, extended_range_phoenix]
   techs:
     fortress: [anti_air_barrage]
@@ -55,29 +52,67 @@ red:
   energy_tower_skills: [enhanced_range]
   legacy_index: 21
   units:
-  - {name: vortex, index: 0, position: {x: -120, y: -170}, exp: 750/750/750}
-  - {name: vortex, index: 1, position: {x: 150, y: -150}, exp: 750/750/750}
-  - {name: vortex, index: 2, position: {x: 130, y: -150}, exp: 750/750/750}
-  - {name: tarantula, index: 3, position: {x: 95, y: -145}, level: 2, exp: 1241/1384/3380, equipment: [photon_coating]}
-  - {name: tarantula, index: 4, position: {x: 195, y: -145}, exp: 288/317/1500}
-  - {name: arclight, index: 5, position: {x: 70, y: -180}, exp: 750/750/750}
-  - {name: arclight, index: 6, position: {x: 210, y: -180}, level: 2, exp: 208/499/1690}
-  - {name: arclight, index: 7, position: {x: -200, y: -210}, level: 2, exp: 930/1690/1690}
-  - {name: arclight, index: 8, position: {x: -100, y: -200}, level: 2, exp: 223/390/1690}
-  - {name: arclight, index: 9, position: {x: -140, y: -210}, level: 2, exp: 151/522/1690}
-  - {name: marksman, index: 10, position: {x: 160, y: -170}, level: 2, exp: 285/491/1465}
-  - {name: marksman, index: 11, position: {x: 120, y: -170}, level: 2, exp: 0/123/1465}
-  - {name: marksman, index: 12, position: {x: -160, y: -220}, level: 2, exp: 0/357/1465}
-  - {name: arclight, index: 13, position: {x: 180, y: -180}, level: 2, exp: 74/230/1690}
-  - {name: mustang, index: 15, position: {x: -95, y: -300}, exp: 1127/1200/1200}
-  - {name: mustang, index: 16, position: {x: -185, y: -300}, exp: 1041/1200/1200}
-  - {name: mustang, index: 17, position: {x: 175, y: -250}, level: 2, exp: 1036/1780/2704}
-  - {name: fortress, index: 18, position: {x: -170, y: -180}, exp: 511/1255/1600}
-  - {name: mustang, index: 19, position: {x: 125, y: -250}, exp: 420/761/1200}
-  - {name: mustang, index: 20, position: {x: 75, y: -250}, exp: 140/439/1200}
-  - {name: fortress, index: 21, position: {x: 150, y: -200}, exp: 0/952/1600}
-  - {name: mustang, index: 22, position: {x: -145, y: -280}, exp: 0/490/1200}
+  - {name: vortex, index: 0, position: {x: -120, y: -170}, exp: 750/750}
+  - {name: vortex, index: 1, position: {x: 150, y: -150}, exp: 750/750}
+  - {name: vortex, index: 2, position: {x: 130, y: -150}, exp: 750/750}
+  - {name: tarantula, index: 3, position: {x: 95, y: -145}, level: 2, exp: 1241/3380, equipment: [photon_coating]}
+  - {name: tarantula, index: 4, position: {x: 195, y: -145}, exp: 288/1500}
+  - {name: arclight, index: 5, position: {x: 70, y: -180}, exp: 750/750}
+  - {name: arclight, index: 6, position: {x: 210, y: -180}, level: 2, exp: 208/1690}
+  - {name: arclight, index: 7, position: {x: -200, y: -210}, level: 2, exp: 930/1690}
+  - {name: arclight, index: 8, position: {x: -100, y: -200}, level: 2, exp: 223/1690}
+  - {name: arclight, index: 9, position: {x: -140, y: -210}, level: 2, exp: 151/1690}
+  - {name: marksman, index: 10, position: {x: 160, y: -170}, level: 2, exp: 285/1465}
+  - {name: marksman, index: 11, position: {x: 120, y: -170}, level: 2}
+  - {name: marksman, index: 12, position: {x: -160, y: -220}, level: 2}
+  - {name: arclight, index: 13, position: {x: 180, y: -180}, level: 2, exp: 74/1690}
+  - {name: mustang, index: 15, position: {x: -95, y: -300}, exp: 1127/1200}
+  - {name: mustang, index: 16, position: {x: -185, y: -300}, exp: 1041/1200}
+  - {name: mustang, index: 17, position: {x: 175, y: -250}, level: 2, exp: 1036/2704}
+  - {name: fortress, index: 18, position: {x: -170, y: -180}, exp: 511/1600}
+  - {name: mustang, index: 19, position: {x: 125, y: -250}, exp: 420/1200}
+  - {name: mustang, index: 20, position: {x: 75, y: -250}, exp: 140/1200}
+  - {name: fortress, index: 21, position: {x: 150, y: -200}}
+  - {name: mustang, index: 22, position: {x: -145, y: -280}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -238, y: -51}, {x: -98, y: -51}]}
+outcome:
+  blue.units[0].exp: 1690
+  blue.units[2].exp: 706
+  blue.units[3].exp: 1000
+  blue.units[4].exp: 114
+  blue.units[5].exp: 390
+  blue.units[7].exp: 3396
+  blue.units[8].exp: 24
+  blue.units[9].exp: 2028
+  blue.units[10].exp: 289
+  blue.units[11].exp: 3562
+  blue.units[12].exp: 394
+  blue.units[13].exp: 606
+  blue.units[14].exp: 2245
+  blue.units[15].exp: 767
+  blue.units[16].exp: 818
+  blue.units[17].exp: 1
+  red.core_damage: 1020
+  red.units[3].exp: 1384
+  red.units[4].exp: 317
+  red.units[6].exp: 499
+  red.units[7].exp: 1690
+  red.units[8].exp: 390
+  red.units[9].exp: 522
+  red.units[10].exp: 491
+  red.units[11].exp: 123
+  red.units[12].exp: 357
+  red.units[13].exp: 230
+  red.units[14].exp: 1200
+  red.units[15].exp: 1200
+  red.units[16].exp: 1780
+  red.units[17].exp: 1255
+  red.units[18].exp: 761
+  red.units[19].exp: 439
+  red.units[20].exp: 952
+  red.units[21].exp: 490
+ticks: 1136
+hash: 23:40047babf37214e630131035e8851630f3622b376cdf667567e6b59b0c9549e8

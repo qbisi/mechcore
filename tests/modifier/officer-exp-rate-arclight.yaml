@@ -6,18 +6,21 @@
 # 276.5, cut to 276; the Marksman's gains are the control's.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 172
-hash: 23:3d6332a12d2ad0dd8eea21838fe65622f14b2183d538e66b35314d10adef4b1f
 blue:
   officers: [smart_arclight]
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/34/650}
-  - {name: arclight, index: 1, position: {x: 20, y: -150}, exp: 0/276/750}
+  - {name: marksman, index: 0, position: {x: -20, y: -150}}
+  - {name: arclight, index: 1, position: {x: 20, y: -150}}
 red:
-  core_damage: 200
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -40}}
+outcome:
+  blue.units[0].exp: 34
+  blue.units[1].exp: 276
+  red.core_damage: 200
+ticks: 172
+hash: 23:3d6332a12d2ad0dd8eea21838fe65622f14b2183d538e66b35314d10adef4b1f

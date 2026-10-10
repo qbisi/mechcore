@@ -37,6 +37,58 @@ pub(crate) fn document(root: &Value) -> Result<String, String> {
     Ok(out)
 }
 
+/// [`document`], with the root's `listed` field written one entry a line:
+/// each key bare when it reads back as itself, a path such as
+/// `blue.units[0].exp` among them, and each value in flow style.
+///
+/// # Errors
+///
+/// As [`document`].
+pub(crate) fn document_listing(root: &Value, listed: &str) -> Result<String, String> {
+    let Value::Mapping(fields) = root else {
+        return Err("a document is a mapping".into());
+    };
+    let mut out = String::new();
+    for (key, value) in fields {
+        let mut one = serde_yaml::Mapping::new();
+        one.insert(key.clone(), value.clone());
+        match (key.as_str(), value) {
+            (Some(name), Value::Mapping(entries)) if name == listed => {
+                out.push_str(name);
+                out.push_str(":\n");
+                for (entry, value) in entries {
+                    out.push_str("  ");
+                    listing_key(entry, &mut out)?;
+                    out.push_str(": ");
+                    flow(value, &mut out)?;
+                    out.push('\n');
+                }
+            }
+            _ => block_mapping(&one, 0, &mut out)?,
+        }
+    }
+    Ok(out)
+}
+
+/// A block mapping's key: bare when the reader takes it back as this string,
+/// which a path's brackets allow outside flow style.
+fn listing_key(key: &Value, out: &mut String) -> Result<(), String> {
+    if let Value::String(text) = key {
+        let bare = !text.is_empty()
+            && text.chars().all(|character| {
+                character.is_ascii_alphanumeric() || matches!(character, '_' | '.' | '[' | ']')
+            })
+            && !text.starts_with('[')
+            && serde_yaml::from_str::<serde_yaml::Mapping>(&format!("{text}: 0"))
+                .is_ok_and(|read| read.contains_key(text.as_str()));
+        if bare {
+            out.push_str(text);
+            return Ok(());
+        }
+    }
+    flow(key, out)
+}
+
 fn block_mapping(
     fields: &serde_yaml::Mapping,
     indent: usize,

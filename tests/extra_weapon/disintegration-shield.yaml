@@ -9,23 +9,26 @@
 # Abyss's sweep breaks it at t742.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 747
-hash: 23:043f9da5086cf8926ae6cb2037a316a0827212c153ac0d8042453c512413426d
 blue:
   techs:
     abyss: [disintegration]
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -45}, exp: 0/1192/4800}
+  - {name: abyss, index: 0, position: {x: 5, y: -45}}
 red:
-  core_damage: 500
   units:
   - {name: rhino, index: 0, position: {x: -35, y: -25}}
   - {name: rhino, index: 1, position: {x: -75, y: -25}}
   - {name: marksman, index: 2, position: {x: 120, y: -80}}
   - {name: crawler, index: 3, position: {x: -45, y: -110}}
   contraptions:
-  - {name: shield, index: 4, position: {x: 125, y: -85}, retained: false}
+  - {name: shield, index: 4, position: {x: 125, y: -85}}
+outcome:
+  blue.units[0].exp: 1192
+  red.core_damage: 500
+  red.contraptions[0].retained: false
+ticks: 747
+hash: 23:043f9da5086cf8926ae6cb2037a316a0827212c153ac0d8042453c512413426d

@@ -8,19 +8,21 @@
 # and a damage rate of -0.7 on its main skill. The Mirage outlives its Vortex.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 258
-hash: 23:3de1f622eb962cdf571ba386c5e35abf9168824763dce2f3e0016899a263ee6a
 blue:
-  core_damage: 300
   techs:
     vortex: [electromagnetic_twin]
   units:
   - {name: vortex, index: 0, position: {x: 0, y: -120}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/400/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
   - {name: marksman, index: 1, position: {x: 0, y: -150}}
+outcome:
+  blue.core_damage: 300
+  red.units[0].exp: 400
+ticks: 258
+hash: 23:3de1f622eb962cdf571ba386c5e35abf9168824763dce2f3e0016899a263ee6a

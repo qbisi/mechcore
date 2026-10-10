@@ -6,12 +6,10 @@
 # lands its shell that tick for the debuffed 7.
 
 kind: fight
+source: game
 map_id: 1031
 seed: 1171883115
 round: 4
-source: game
-ticks: 978
-hash: 23:1f9a2cb29c8d5ada8cb953415ffa444f1cddbca6ddaba5aa52b8542bdbf45282
 blue:
   officers: [supply_specialist]
   techs:
@@ -19,42 +17,71 @@ blue:
   blueprints: [defense_enhancement]
   legacy_index: 14
   units:
-  - {name: vortex, index: 0, position: {x: -140, y: -70}, level: 2, exp: 0/585/1690}
-  - {name: vortex, index: 1, position: {x: -90, y: -70}, level: 2, exp: 1025/1690/1690}
-  - {name: vortex, index: 2, position: {x: -20, y: -70}, level: 2, exp: 0/1413/1690}
-  - {name: fire_badger, index: 3, position: {x: -175, y: -70}, exp: 835/1101/1400}
-  - {name: fire_badger, index: 4, position: {x: -55, y: -70}, exp: 829/1166/1400}
-  - {name: crawler, index: 5, position: {x: -140, y: -105}, exp: 450/450/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -20, y: -105}, exp: 450/450/450, rotated: true}
-  - {name: fang, index: 7, position: {x: 160, y: -175}, exp: 352/352/600, rotated: true}
-  - {name: fang, index: 8, position: {x: -160, y: -175}, exp: 0/7/600, rotated: true}
-  - {name: fang, index: 9, position: {x: -140, y: -35}, exp: 326/371/600, rotated: true}
-  - {name: rhino, index: 10, position: {x: -165, y: -95}, exp: 1068/1150/1150, equipment: [haste_module]}
-  - {name: rhino, index: 11, position: {x: -45, y: -95}, exp: 58/187/1150}
-  - {name: fire_badger, index: 12, position: {x: 5, y: -160}, exp: 113/410/1400}
-  - {name: fang, index: 13, position: {x: -20, y: -35}, exp: 193/441/600, rotated: true}
-  - {name: rhino, index: 14, position: {x: 205, y: -95}, exp: 0/1045/1150}
-  - {name: rhino, index: 15, position: {x: -115, y: -95}, exp: 0/197/1150}
+  - {name: vortex, index: 0, position: {x: -140, y: -70}, level: 2}
+  - {name: vortex, index: 1, position: {x: -90, y: -70}, level: 2, exp: 1025/1690}
+  - {name: vortex, index: 2, position: {x: -20, y: -70}, level: 2}
+  - {name: fire_badger, index: 3, position: {x: -175, y: -70}, exp: 835/1400}
+  - {name: fire_badger, index: 4, position: {x: -55, y: -70}, exp: 829/1400}
+  - {name: crawler, index: 5, position: {x: -140, y: -105}, exp: 450/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -20, y: -105}, exp: 450/450, rotated: true}
+  - {name: fang, index: 7, position: {x: 160, y: -175}, exp: 352/600, rotated: true}
+  - {name: fang, index: 8, position: {x: -160, y: -175}, rotated: true}
+  - {name: fang, index: 9, position: {x: -140, y: -35}, exp: 326/600, rotated: true}
+  - {name: rhino, index: 10, position: {x: -165, y: -95}, exp: 1068/1150, equipment: [haste_module]}
+  - {name: rhino, index: 11, position: {x: -45, y: -95}, exp: 58/1150}
+  - {name: fire_badger, index: 12, position: {x: 5, y: -160}, exp: 113/1400}
+  - {name: fang, index: 13, position: {x: -20, y: -35}, exp: 193/600, rotated: true}
+  - {name: rhino, index: 14, position: {x: 205, y: -95}}
+  - {name: rhino, index: 15, position: {x: -115, y: -95}}
 red:
-  core_damage: 554
   officers: [cost_control_specialist]
   blueprints: [attack_enhancement]
   legacy_index: 14
   units:
-  - {name: crawler, index: 0, position: {x: -100, y: -205}, exp: 86/160/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: -290, y: -265}, exp: 450/450/450, rotated: true}
-  - {name: crawler, index: 2, position: {x: 290, y: -265}, exp: 33/83/450, rotated: true}
-  - {name: marksman, index: 5, position: {x: -120, y: -170}, exp: 641/641/650}
-  - {name: marksman, index: 6, position: {x: 120, y: -170}, exp: 504/650/650}
-  - {name: vulcan, index: 7, position: {x: 80, y: -140}, exp: 1286/1549/2200}
-  - {name: crawler, index: 8, position: {x: 110, y: -135}, exp: 94/143/450, rotated: true}
-  - {name: sledgehammer, index: 9, position: {x: 210, y: -115}, exp: 57/513/1300, rotated: true}
-  - {name: sledgehammer, index: 10, position: {x: 10, y: -115}, exp: 238/494/1300, rotated: true}
-  - {name: melting_point, index: 11, position: {x: 40, y: -130}, exp: 696/1400/1400}
-  - {name: crawler, index: 12, position: {x: 120, y: -285}, exp: 0/74/450, rotated: true}
-  - {name: crawler, index: 13, position: {x: 40, y: -205}, exp: 55/61/450, rotated: true}
-  - {name: melting_point, index: 14, position: {x: 140, y: -130}, exp: 0/1036/1400}
-  - {name: vulcan, index: 15, position: {x: 180, y: -140}, exp: 0/884/2200}
-  - {name: crawler, index: 16, position: {x: -40, y: -285}, exp: 0/89/450, rotated: true}
+  - {name: crawler, index: 0, position: {x: -100, y: -205}, exp: 86/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: -290, y: -265}, exp: 450/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: 290, y: -265}, exp: 33/450, rotated: true}
+  - {name: marksman, index: 5, position: {x: -120, y: -170}, exp: 641/650}
+  - {name: marksman, index: 6, position: {x: 120, y: -170}, exp: 504/650}
+  - {name: vulcan, index: 7, position: {x: 80, y: -140}, exp: 1286/2200}
+  - {name: crawler, index: 8, position: {x: 110, y: -135}, exp: 94/450, rotated: true}
+  - {name: sledgehammer, index: 9, position: {x: 210, y: -115}, exp: 57/1300, rotated: true}
+  - {name: sledgehammer, index: 10, position: {x: 10, y: -115}, exp: 238/1300, rotated: true}
+  - {name: melting_point, index: 11, position: {x: 40, y: -130}, exp: 696/1400}
+  - {name: crawler, index: 12, position: {x: 120, y: -285}, rotated: true}
+  - {name: crawler, index: 13, position: {x: 40, y: -205}, exp: 55/450, rotated: true}
+  - {name: melting_point, index: 14, position: {x: 140, y: -130}}
+  - {name: vulcan, index: 15, position: {x: 180, y: -140}}
+  - {name: crawler, index: 16, position: {x: -40, y: -285}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+outcome:
+  blue.units[0].exp: 585
+  blue.units[1].exp: 1690
+  blue.units[2].exp: 1413
+  blue.units[3].exp: 1101
+  blue.units[4].exp: 1166
+  blue.units[8].exp: 7
+  blue.units[9].exp: 371
+  blue.units[10].exp: 1150
+  blue.units[11].exp: 187
+  blue.units[12].exp: 410
+  blue.units[13].exp: 441
+  blue.units[14].exp: 1045
+  blue.units[15].exp: 197
+  red.core_damage: 554
+  red.units[0].exp: 160
+  red.units[2].exp: 83
+  red.units[4].exp: 650
+  red.units[5].exp: 1549
+  red.units[6].exp: 143
+  red.units[7].exp: 513
+  red.units[8].exp: 494
+  red.units[9].exp: 1400
+  red.units[10].exp: 74
+  red.units[11].exp: 61
+  red.units[12].exp: 1036
+  red.units[13].exp: 884
+  red.units[14].exp: 89
+ticks: 978
+hash: 23:1f9a2cb29c8d5ada8cb953415ffa444f1cddbca6ddaba5aa52b8542bdbf45282

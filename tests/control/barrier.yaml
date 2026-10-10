@@ -3,16 +3,18 @@
 # 179 a hit, as at a battlefield shield, and nothing is turned.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 245
-hash: 23:e3afbb24bcf614b5deacdbf99e9c926a8d9b93326a5d8241b745819a7cce5ef7
 blue:
-  core_damage: 350
   units:
   - {name: hacker, index: 0, position: {x: -5, y: -105}}
 red:
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/400/1600, equipment: [barrier]}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, equipment: [barrier]}
+outcome:
+  blue.core_damage: 350
+  red.units[0].exp: 400
+ticks: 245
+hash: 23:e3afbb24bcf614b5deacdbf99e9c926a8d9b93326a5d8241b745819a7cce5ef7

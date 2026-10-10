@@ -1,18 +1,22 @@
 # M2: a single large ground target, which cannot hit back.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 174
-hash: 23:e86913cea32f95b44a2141a7592af35f711add0ec84fc90bdf32fadd166e3d73
 blue:
   units:
-  - {name: phantom_ray, index: 0, position: {x: -5, y: -180}, exp: 0/66/1000}
-  - {name: phantom_ray, index: 1, position: {x: -5, y: -140}, exp: 0/66/1000}
-  - {name: phantom_ray, index: 2, position: {x: -5, y: -100}, exp: 0/266/1000}
+  - {name: phantom_ray, index: 0, position: {x: -5, y: -180}}
+  - {name: phantom_ray, index: 1, position: {x: -5, y: -140}}
+  - {name: phantom_ray, index: 2, position: {x: -5, y: -100}}
 red:
-  core_damage: 603
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.units[0].exp: 66
+  blue.units[1].exp: 66
+  blue.units[2].exp: 266
+  red.core_damage: 603
+ticks: 174
+hash: 23:e86913cea32f95b44a2141a7592af35f711add0ec84fc90bdf32fadd166e3d73

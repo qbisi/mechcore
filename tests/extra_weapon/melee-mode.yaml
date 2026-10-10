@@ -7,21 +7,24 @@
 # life kept; on the fight's last tick, t534, the melee mode's numbers leave it.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 534
-hash: 23:5a35fdb69cc225ee13886793ee0e282731962751395a81223d5707371989bfef
 blue:
   techs:
     centurion: [melee_mode]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -165}, exp: 0/212/2250}
-  - {name: fortress, index: 1, position: {x: 0, y: -120}, exp: 0/372/1600}
+  - {name: centurion, index: 0, position: {x: 5, y: -165}}
+  - {name: fortress, index: 1, position: {x: 0, y: -120}}
 red:
-  core_damage: 600
   units:
   - {name: crawler, index: 0, position: {x: -45, y: -60}}
   - {name: crawler, index: 1, position: {x: 45, y: -60}}
   - {name: marksman, index: 2, position: {x: 0, y: -40}}
+outcome:
+  blue.units[0].exp: 212
+  blue.units[1].exp: 372
+  red.core_damage: 600
+ticks: 534
+hash: 23:5a35fdb69cc225ee13886793ee0e282731962751395a81223d5707371989bfef

@@ -7,26 +7,35 @@
 # apart, ungrouped, at 1570 (t240).
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 314
-hash: 23:10053f85532a826aafbdb5f45c643fccaea478d7ac291d1c869170682dffea84
 blue:
-  core_damage: 600
   techs:
     vortex: [grid_integration]
   units:
-  - {name: vortex, index: 0, position: {x: -60, y: -100}, exp: 0/266/750}
-  - {name: vortex, index: 1, position: {x: -30, y: -100}, exp: 0/66/750}
-  - {name: vortex, index: 2, position: {x: 0, y: -100}, exp: 0/133/750}
-  - {name: vortex, index: 3, position: {x: 30, y: -100}, exp: 0/66/750}
-  - {name: vortex, index: 4, position: {x: 60, y: -100}, exp: 0/266/750}
+  - {name: vortex, index: 0, position: {x: -60, y: -100}}
+  - {name: vortex, index: 1, position: {x: -30, y: -100}}
+  - {name: vortex, index: 2, position: {x: 0, y: -100}}
+  - {name: vortex, index: 3, position: {x: 30, y: -100}}
+  - {name: vortex, index: 4, position: {x: 60, y: -100}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: -85, y: -105}, exp: 0/333/1150}
+  - {name: rhino, index: 0, position: {x: -85, y: -105}}
   - {name: rhino, index: 1, position: {x: -45, y: -105}}
-  - {name: rhino, index: 2, position: {x: 5, y: -105}, exp: 0/433/1150}
+  - {name: rhino, index: 2, position: {x: 5, y: -105}}
   - {name: rhino, index: 3, position: {x: 45, y: -105}}
-  - {name: rhino, index: 4, position: {x: 85, y: -105}, exp: 0/233/1150}
+  - {name: rhino, index: 4, position: {x: 85, y: -105}}
+outcome:
+  blue.core_damage: 600
+  blue.units[0].exp: 266
+  blue.units[1].exp: 66
+  blue.units[2].exp: 133
+  blue.units[3].exp: 66
+  blue.units[4].exp: 266
+  red.units[0].exp: 333
+  red.units[2].exp: 433
+  red.units[4].exp: 233
+ticks: 314
+hash: 23:10053f85532a826aafbdb5f45c643fccaea478d7ac291d1c869170682dffea84

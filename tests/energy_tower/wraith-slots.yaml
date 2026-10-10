@@ -3,19 +3,23 @@
 # slots, not only its main one, and +3 into its speed.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 330
-hash: 23:4c36fdd5b77c7a8fbc422df013bb01dfd6606638d9261fbe6fe84fff69af958d
 blue:
-  core_damage: 200
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: wraith, index: 1, position: {x: 65, y: -145}, exp: 0/216/2250}
+  - {name: wraith, index: 1, position: {x: 65, y: -145}}
 red:
   units:
-  - {name: marksman, index: 0, position: {x: -60, y: -150}, exp: 0/150/650}
-  - {name: marksman, index: 1, position: {x: 60, y: -150}, exp: 0/450/650}
+  - {name: marksman, index: 0, position: {x: -60, y: -150}}
+  - {name: marksman, index: 1, position: {x: 60, y: -150}}
   - {name: fang, index: 2, position: {x: 5, y: -100}}
+outcome:
+  blue.core_damage: 200
+  blue.units[0].exp: 216
+  red.units[0].exp: 150
+  red.units[1].exp: 450
+ticks: 330
+hash: 23:4c36fdd5b77c7a8fbc422df013bb01dfd6606638d9261fbe6fe84fff69af958d

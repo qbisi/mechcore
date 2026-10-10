@@ -3,19 +3,22 @@
 # reads 16, as a plain technology's speed value does.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 1111
-hash: 23:435673e981e7b92ce91cd2b9d3623593e8e5ea6eab82870fed4b4ab48f22110b
 blue:
-  core_damage: 300
   techs:
     wasp: [jump_drive]
   units:
   - {name: wasp, index: 0, position: {x: 5, y: -100}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/485/1150}
-  - {name: marksman, index: 1, position: {x: 60, y: -150}, exp: 0/323/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: marksman, index: 1, position: {x: 60, y: -150}}
+outcome:
+  blue.core_damage: 300
+  red.units[0].exp: 485
+  red.units[1].exp: 323
+ticks: 1111
+hash: 23:435673e981e7b92ce91cd2b9d3623593e8e5ea6eab82870fed4b4ab48f22110b

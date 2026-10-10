@@ -9,19 +9,21 @@
 # the fight's end resets the linker on tick 386.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 386
-hash: 23:e085b9db9e3993161c926c68f5e964432d902578753c2819f9d15c083f85a4e9
 blue:
   techs:
     sandworm: [strike]
   units:
-  - {name: sandworm, index: 0, position: {x: 0, y: -140}, exp: 0/600/2000}
+  - {name: sandworm, index: 0, position: {x: 0, y: -140}}
 red:
-  core_damage: 350
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
   - {name: marksman, index: 1, position: {x: 0, y: -150}}
+outcome:
+  blue.units[0].exp: 600
+  red.core_damage: 350
+ticks: 386
+hash: 23:e085b9db9e3993161c926c68f5e964432d902578753c2819f9d15c083f85a4e9

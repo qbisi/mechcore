@@ -7,19 +7,22 @@
 # Arclight.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 240
-hash: 23:b16bbfc3d7b8dd1a39f4a726c4add7676873d8a3c7612118117c328321c36db7
 blue:
   techs:
     phantom_ray: [ground_targeting]
   units:
-  - {name: phantom_ray, index: 0, position: {x: 5, y: -100}, exp: 0/600/1000}
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -100}}
 red:
-  core_damage: 67
   units:
   - {name: arclight, index: 0, position: {x: 30, y: -60}}
-  - {name: phoenix, index: 1, position: {x: -20, y: -90}, exp: 0/268/1300}
+  - {name: phoenix, index: 1, position: {x: -20, y: -90}}
+outcome:
+  blue.units[0].exp: 600
+  red.core_damage: 67
+  red.units[1].exp: 268
+ticks: 240
+hash: 23:b16bbfc3d7b8dd1a39f4a726c4add7676873d8a3c7612118117c328321c36db7

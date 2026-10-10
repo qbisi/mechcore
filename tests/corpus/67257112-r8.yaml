@@ -3,14 +3,11 @@
 # block (`IsEnableBlock`) and so not in the way, from tick 362.
 
 kind: fight
+source: game
 map_id: 1001
 seed: 320755103
 round: 8
-source: game
-ticks: 1221
-hash: 23:56ebb0469cd5097794adaeaf728fe02ce26e5cc98ef500165933543ad7e6b63f
 blue:
-  core_damage: 450
   officers: [elite_specialist]
   techs:
     mustang: [aerial_specialization, range_enhancement]
@@ -22,32 +19,32 @@ blue:
   blueprints: [attack_enhancement, defense_enhancement]
   legacy_index: 22
   units:
-  - {name: void_eye, index: 0, position: {x: -80, y: -170}, level: 3, exp: 1396/2136/2315}
-  - {name: void_eye, index: 1, position: {x: 80, y: -170}, level: 3, exp: 0/2315/2315}
-  - {name: void_eye, index: 2, position: {x: 0, y: -170}, level: 3, exp: 603/952/2315, rotated: true}
-  - {name: mustang, index: 3, position: {x: 105, y: -260}, level: 3, exp: 1193/3793/4274}
-  - {name: mustang, index: 4, position: {x: -105, y: -260}, level: 3, exp: 1091/3585/4274}
-  - {name: crawler, index: 5, position: {x: -55, y: -300}, level: 2, exp: 821/1014/1014}
-  - {name: crawler, index: 6, position: {x: 55, y: -300}, level: 3, exp: 279/416/1603}
-  - {name: crawler, index: 7, position: {x: -275, y: -260}, level: 2, exp: 577/602/1014}
-  - {name: crawler, index: 8, position: {x: 275, y: -260}, level: 3, exp: 9/372/1603}
-  - {name: vortex, index: 9, position: {x: -160, y: -170}, level: 2, exp: 1177/1202/1690}
-  - {name: vortex, index: 10, position: {x: 0, y: -140}, level: 2, exp: 501/1669/1690}
-  - {name: vortex, index: 11, position: {x: 160, y: -170}, exp: 598/667/750}
-  - {name: vortex, index: 12, position: {x: -90, y: -150}, level: 2, exp: 646/742/1690}
-  - {name: vortex, index: 13, position: {x: 90, y: -150}, level: 2, exp: 890/1299/1690}
-  - {name: fire_badger, index: 14, position: {x: -195, y: -190}, level: 2, exp: 3154/3154/3154}
-  - {name: fire_badger, index: 15, position: {x: 195, y: -190}, level: 2, exp: 2982/3135/3154}
-  - {name: arclight, index: 16, position: {x: -140, y: -150}, level: 3, exp: 1667/1716/2671}
-  - {name: arclight, index: 17, position: {x: 140, y: -150}, level: 3, exp: 1816/1841/2671}
-  - {name: scorpion, index: 18, position: {x: -185, y: -145}, level: 2, exp: 2003/2676/3380}
-  - {name: scorpion, index: 19, position: {x: 185, y: -145}, level: 2, exp: 3380/3380/3380}
-  - {name: mustang, index: 20, position: {x: -275, y: -240}, level: 2, exp: 935/2704/2704}
-  - {name: mustang, index: 21, position: {x: 275, y: -240}, level: 2, exp: 1109/2704/2704}
-  - {name: wasp, index: 22, position: {x: -105, y: -300}, level: 2, exp: 0/35/2028}
-  - {name: wasp, index: 23, position: {x: 105, y: -300}, level: 2, exp: 0/644/2028}
-  - {name: mustang, index: 24, position: {x: -175, y: -240}, level: 2, exp: 0/1244/2704}
-  - {name: mustang, index: 25, position: {x: 175, y: -240}, level: 2, exp: 0/546/2704}
+  - {name: void_eye, index: 0, position: {x: -80, y: -170}, level: 3, exp: 1396/2315}
+  - {name: void_eye, index: 1, position: {x: 80, y: -170}, level: 3}
+  - {name: void_eye, index: 2, position: {x: 0, y: -170}, level: 3, exp: 603/2315, rotated: true}
+  - {name: mustang, index: 3, position: {x: 105, y: -260}, level: 3, exp: 1193/4274}
+  - {name: mustang, index: 4, position: {x: -105, y: -260}, level: 3, exp: 1091/4274}
+  - {name: crawler, index: 5, position: {x: -55, y: -300}, level: 2, exp: 821/1014}
+  - {name: crawler, index: 6, position: {x: 55, y: -300}, level: 3, exp: 279/1603}
+  - {name: crawler, index: 7, position: {x: -275, y: -260}, level: 2, exp: 577/1014}
+  - {name: crawler, index: 8, position: {x: 275, y: -260}, level: 3, exp: 9/1603}
+  - {name: vortex, index: 9, position: {x: -160, y: -170}, level: 2, exp: 1177/1690}
+  - {name: vortex, index: 10, position: {x: 0, y: -140}, level: 2, exp: 501/1690}
+  - {name: vortex, index: 11, position: {x: 160, y: -170}, exp: 598/750}
+  - {name: vortex, index: 12, position: {x: -90, y: -150}, level: 2, exp: 646/1690}
+  - {name: vortex, index: 13, position: {x: 90, y: -150}, level: 2, exp: 890/1690}
+  - {name: fire_badger, index: 14, position: {x: -195, y: -190}, level: 2, exp: 3154/3154}
+  - {name: fire_badger, index: 15, position: {x: 195, y: -190}, level: 2, exp: 2982/3154}
+  - {name: arclight, index: 16, position: {x: -140, y: -150}, level: 3, exp: 1667/2671}
+  - {name: arclight, index: 17, position: {x: 140, y: -150}, level: 3, exp: 1816/2671}
+  - {name: scorpion, index: 18, position: {x: -185, y: -145}, level: 2, exp: 2003/3380}
+  - {name: scorpion, index: 19, position: {x: 185, y: -145}, level: 2, exp: 3380/3380}
+  - {name: mustang, index: 20, position: {x: -275, y: -240}, level: 2, exp: 935/2704}
+  - {name: mustang, index: 21, position: {x: 275, y: -240}, level: 2, exp: 1109/2704}
+  - {name: wasp, index: 22, position: {x: -105, y: -300}, level: 2}
+  - {name: wasp, index: 23, position: {x: 105, y: -300}, level: 2}
+  - {name: mustang, index: 24, position: {x: -175, y: -240}, level: 2}
+  - {name: mustang, index: 25, position: {x: 175, y: -240}, level: 2}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -66,30 +63,77 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   legacy_index: 20
   units:
-  - {name: fang, index: 0, position: {x: 95, y: -130}, exp: 431/431/600}
-  - {name: fang, index: 1, position: {x: -105, y: -130}, exp: 401/421/600}
-  - {name: fang, index: 2, position: {x: -5, y: -140}, exp: 548/600/600}
-  - {name: sledgehammer, index: 3, position: {x: -105, y: -170}, level: 2, exp: 2501/2929/2929, equipment: [secondary_laser_sight]}
-  - {name: sledgehammer, index: 4, position: {x: 105, y: -170}, exp: 1300/1300/1300, equipment: [secondary_heavy_armor]}
-  - {name: fang, index: 5, position: {x: 175, y: -130}, exp: 600/600/600}
-  - {name: fang, index: 6, position: {x: -195, y: -140}, exp: 600/600/600}
-  - {name: mustang, index: 7, position: {x: 205, y: -300}, level: 2, exp: 675/1345/2704, equipment: [secondary_fire_control_system]}
-  - {name: mustang, index: 8, position: {x: -155, y: -300}, level: 2, exp: 1256/2704/2704, equipment: [secondary_fire_control_system]}
-  - {name: marksman, index: 9, position: {x: -120, y: -150}, level: 3, exp: 0/1211/2315}
-  - {name: marksman, index: 10, position: {x: 110, y: -150}, level: 3, exp: 1471/2158/2315, equipment: [secondary_fire_control_system]}
-  - {name: mustang, index: 11, position: {x: 255, y: -280}, exp: 1200/1200/1200, equipment: [secondary_laser_sight]}
-  - {name: mustang, index: 12, position: {x: 135, y: -300}, level: 2, exp: 1603/2199/2704}
-  - {name: phoenix, index: 13, position: {x: -100, y: -300}, level: 2, exp: 2107/2468/2929}
-  - {name: phoenix, index: 14, position: {x: -230, y: -300}, level: 2, exp: 2364/2493/2929}
-  - {name: vulcan, index: 15, position: {x: 170, y: -160}, level: 3, exp: 0/8620/8620, equipment: [nano_repair_kit]}
-  - {name: vulcan, index: 16, position: {x: -170, y: -170}, level: 2, exp: 5143/5453/5453, equipment: [small_amplifying_core]}
-  - {name: phoenix, index: 17, position: {x: 250, y: -300}, level: 2, exp: 2007/2323/2929}
-  - {name: marksman, index: 18, position: {x: -220, y: -200}, level: 2, exp: 891/1465/1465}
-  - {name: marksman, index: 19, position: {x: 210, y: -170}, level: 2, exp: 301/1465/1465}
-  - {name: wasp, index: 20, position: {x: -275, y: -300}, level: 2, exp: 0/212/2028}
-  - {name: wasp, index: 21, position: {x: 75, y: -300}, level: 2, exp: 0/429/2028, equipment: [secondary_fire_control_system]}
-  - {name: wasp, index: 22, position: {x: -45, y: -300}, level: 2, exp: 0/327/2028}
-  - {name: wasp, index: 23, position: {x: 15, y: -300}, level: 2, exp: 0/514/2028}
+  - {name: fang, index: 0, position: {x: 95, y: -130}, exp: 431/600}
+  - {name: fang, index: 1, position: {x: -105, y: -130}, exp: 401/600}
+  - {name: fang, index: 2, position: {x: -5, y: -140}, exp: 548/600}
+  - {name: sledgehammer, index: 3, position: {x: -105, y: -170}, level: 2, exp: 2501/2929, equipment: [secondary_laser_sight]}
+  - {name: sledgehammer, index: 4, position: {x: 105, y: -170}, exp: 1300/1300, equipment: [secondary_heavy_armor]}
+  - {name: fang, index: 5, position: {x: 175, y: -130}, exp: 600/600}
+  - {name: fang, index: 6, position: {x: -195, y: -140}, exp: 600/600}
+  - {name: mustang, index: 7, position: {x: 205, y: -300}, level: 2, exp: 675/2704, equipment: [secondary_fire_control_system]}
+  - {name: mustang, index: 8, position: {x: -155, y: -300}, level: 2, exp: 1256/2704, equipment: [secondary_fire_control_system]}
+  - {name: marksman, index: 9, position: {x: -120, y: -150}, level: 3}
+  - {name: marksman, index: 10, position: {x: 110, y: -150}, level: 3, exp: 1471/2315, equipment: [secondary_fire_control_system]}
+  - {name: mustang, index: 11, position: {x: 255, y: -280}, exp: 1200/1200, equipment: [secondary_laser_sight]}
+  - {name: mustang, index: 12, position: {x: 135, y: -300}, level: 2, exp: 1603/2704}
+  - {name: phoenix, index: 13, position: {x: -100, y: -300}, level: 2, exp: 2107/2929}
+  - {name: phoenix, index: 14, position: {x: -230, y: -300}, level: 2, exp: 2364/2929}
+  - {name: vulcan, index: 15, position: {x: 170, y: -160}, level: 3, equipment: [nano_repair_kit]}
+  - {name: vulcan, index: 16, position: {x: -170, y: -170}, level: 2, exp: 5143/5453, equipment: [small_amplifying_core]}
+  - {name: phoenix, index: 17, position: {x: 250, y: -300}, level: 2, exp: 2007/2929}
+  - {name: marksman, index: 18, position: {x: -220, y: -200}, level: 2, exp: 891/1465}
+  - {name: marksman, index: 19, position: {x: 210, y: -170}, level: 2, exp: 301/1465}
+  - {name: wasp, index: 20, position: {x: -275, y: -300}, level: 2}
+  - {name: wasp, index: 21, position: {x: 75, y: -300}, level: 2, equipment: [secondary_fire_control_system]}
+  - {name: wasp, index: 22, position: {x: -45, y: -300}, level: 2}
+  - {name: wasp, index: 23, position: {x: 15, y: -300}, level: 2}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+outcome:
+  blue.core_damage: 450
+  blue.units[0].exp: 2136
+  blue.units[1].exp: 2315
+  blue.units[2].exp: 952
+  blue.units[3].exp: 3793
+  blue.units[4].exp: 3585
+  blue.units[5].exp: 1014
+  blue.units[6].exp: 416
+  blue.units[7].exp: 602
+  blue.units[8].exp: 372
+  blue.units[9].exp: 1202
+  blue.units[10].exp: 1669
+  blue.units[11].exp: 667
+  blue.units[12].exp: 742
+  blue.units[13].exp: 1299
+  blue.units[15].exp: 3135
+  blue.units[16].exp: 1716
+  blue.units[17].exp: 1841
+  blue.units[18].exp: 2676
+  blue.units[20].exp: 2704
+  blue.units[21].exp: 2704
+  blue.units[22].exp: 35
+  blue.units[23].exp: 644
+  blue.units[24].exp: 1244
+  blue.units[25].exp: 546
+  red.units[1].exp: 421
+  red.units[2].exp: 600
+  red.units[3].exp: 2929
+  red.units[7].exp: 1345
+  red.units[8].exp: 2704
+  red.units[9].exp: 1211
+  red.units[10].exp: 2158
+  red.units[12].exp: 2199
+  red.units[13].exp: 2468
+  red.units[14].exp: 2493
+  red.units[15].exp: 8620
+  red.units[16].exp: 5453
+  red.units[17].exp: 2323
+  red.units[18].exp: 1465
+  red.units[19].exp: 1465
+  red.units[20].exp: 212
+  red.units[21].exp: 429
+  red.units[22].exp: 327
+  red.units[23].exp: 514
+ticks: 1221
+hash: 23:56ebb0469cd5097794adaeaf728fe02ce26e5cc98ef500165933543ad7e6b63f

@@ -1,16 +1,18 @@
 # M1: the mirror. One formation each, 200 m apart, outside every reference unit's range.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 209
-hash: 23:86148ceb943f7942b5d707bf80d3b8ad0e4d6984f2ccd1225c4c1d3f4c869cae
 blue:
-  core_damage: 200
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 400
+ticks: 209
+hash: 23:86148ceb943f7942b5d707bf80d3b8ad0e4d6984f2ccd1225c4c1d3f4c869cae

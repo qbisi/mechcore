@@ -3,19 +3,23 @@
 # damage. Its blows strike up to 9 Crawlers on one tick.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 619
-hash: 23:c06dcf7849e3ddb02d0aa7d195a00add8d141bbf25cf0834ca2dd028bf11e84b
 blue:
   techs:
     overlord: [high_explosive_ammo]
   units:
-  - {name: overlord, index: 0, position: {x: -5, y: -105}, exp: 0/384/1750}
+  - {name: overlord, index: 0, position: {x: -5, y: -105}}
 red:
-  core_damage: 400
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/150/450}
-  - {name: crawler, index: 1, position: {x: 5, y: -100}, exp: 0/50/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}}
+  - {name: crawler, index: 1, position: {x: 5, y: -100}}
+outcome:
+  blue.units[0].exp: 384
+  red.core_damage: 400
+  red.units[0].exp: 150
+  red.units[1].exp: 50
+ticks: 619
+hash: 23:c06dcf7849e3ddb02d0aa7d195a00add8d141bbf25cf0834ca2dd028bf11e84b

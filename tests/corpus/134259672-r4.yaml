@@ -8,12 +8,10 @@
 # Impact's buff off and switches them on again, 5628 of 7599.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1685333659
 round: 4
-source: game
-ticks: 1124
-hash: 23:c65423047c0aeacae5c27dbfe4f0dce4e98294683dd300dd8d7f357c01874fc3
 blue:
   officers: [typhoon_specialist]
   techs:
@@ -22,47 +20,76 @@ blue:
   blueprints: [attack_enhancement]
   legacy_index: 14
   units:
-  - {name: void_eye, index: 1, position: {x: 150, y: -70}, exp: 650/650/650}
-  - {name: void_eye, index: 2, position: {x: 230, y: -70}, exp: 650/650/650}
-  - {name: tarantula, index: 3, position: {x: 105, y: -55}, exp: 586/1326/1500}
-  - {name: tarantula, index: 4, position: {x: 195, y: -55}, exp: 1294/1500/1500}
-  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 198/314/450}
-  - {name: crawler, index: 6, position: {x: 150, y: -105}, exp: 125/162/450, rotated: true}
-  - {name: tarantula, index: 8, position: {x: -185, y: -55}, exp: 672/1058/1500}
-  - {name: crawler, index: 9, position: {x: -190, y: -95}, exp: 52/109/450, rotated: true}
-  - {name: fire_badger, index: 10, position: {x: -330, y: 285}, exp: 213/709/1400}
-  - {name: fire_badger, index: 11, position: {x: 330, y: 285}, exp: 444/811/1400}
+  - {name: void_eye, index: 1, position: {x: 150, y: -70}, exp: 650/650}
+  - {name: void_eye, index: 2, position: {x: 230, y: -70}, exp: 650/650}
+  - {name: tarantula, index: 3, position: {x: 105, y: -55}, exp: 586/1500}
+  - {name: tarantula, index: 4, position: {x: 195, y: -55}, exp: 1294/1500}
+  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 198/450}
+  - {name: crawler, index: 6, position: {x: 150, y: -105}, exp: 125/450, rotated: true}
+  - {name: tarantula, index: 8, position: {x: -185, y: -55}, exp: 672/1500}
+  - {name: crawler, index: 9, position: {x: -190, y: -95}, exp: 52/450, rotated: true}
+  - {name: fire_badger, index: 10, position: {x: -330, y: 285}, exp: 213/1400}
+  - {name: fire_badger, index: 11, position: {x: 330, y: 285}, exp: 444/1400}
   - {name: crawler, index: 12, position: {x: 310, y: 285}}
-  - {name: typhoon, index: 13, position: {x: 270, y: -20}, exp: 0/326/1950}
-  - {name: tarantula, index: 14, position: {x: -95, y: -55}, level: 2, exp: 0/1569/3380}
-  - {name: tarantula, index: 15, position: {x: -5, y: -55}, level: 2, exp: 0/1992/3380}
+  - {name: typhoon, index: 13, position: {x: 270, y: -20}}
+  - {name: tarantula, index: 14, position: {x: -95, y: -55}, level: 2}
+  - {name: tarantula, index: 15, position: {x: -5, y: -55}, level: 2}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
-  core_damage: 400
   officers: [training_specialist]
   techs:
     mustang: [range_enhancement]
   legacy_index: 12
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -150}, level: 2, exp: 1690/1690/1690}
-  - {name: arclight, index: 1, position: {x: 140, y: -150}, exp: 254/398/750}
-  - {name: arclight, index: 2, position: {x: -140, y: -150}, exp: 551/594/750}
-  - {name: sledgehammer, index: 3, position: {x: 75, y: -130}, exp: 1081/1097/1300}
-  - {name: sledgehammer, index: 4, position: {x: -75, y: -130}, exp: 578/673/1300}
-  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 344/404/450}
-  - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 40/101/450}
-  - {name: mustang, index: 8, position: {x: -75, y: -240}, exp: 1065/1200/1200}
-  - {name: mustang, index: 9, position: {x: -205, y: -240}, exp: 486/1200/1200}
-  - {name: mustang, index: 10, position: {x: 205, y: -240}, level: 2, exp: 765/1359/2704, equipment: [haste_module]}
-  - {name: crawler, index: 11, position: {x: -135, y: -300}, exp: 16/143/450}
-  - {name: hacker, index: 12, position: {x: 205, y: -215}, exp: 0/178/560}
-  - {name: hacker, index: 13, position: {x: -205, y: -215}, exp: 0/560/560}
-  - {name: arclight, index: 14, position: {x: -230, y: -220}, exp: 0/300/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -150}, level: 2, exp: 1690/1690}
+  - {name: arclight, index: 1, position: {x: 140, y: -150}, exp: 254/750}
+  - {name: arclight, index: 2, position: {x: -140, y: -150}, exp: 551/750}
+  - {name: sledgehammer, index: 3, position: {x: 75, y: -130}, exp: 1081/1300}
+  - {name: sledgehammer, index: 4, position: {x: -75, y: -130}, exp: 578/1300}
+  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 344/450}
+  - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 40/450}
+  - {name: mustang, index: 8, position: {x: -75, y: -240}, exp: 1065/1200}
+  - {name: mustang, index: 9, position: {x: -205, y: -240}, exp: 486/1200}
+  - {name: mustang, index: 10, position: {x: 205, y: -240}, level: 2, exp: 765/2704, equipment: [haste_module]}
+  - {name: crawler, index: 11, position: {x: -135, y: -300}, exp: 16/450}
+  - {name: hacker, index: 12, position: {x: 205, y: -215}}
+  - {name: hacker, index: 13, position: {x: -205, y: -215}}
+  - {name: arclight, index: 14, position: {x: -230, y: -220}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   contraptions:
-  - {name: shield, index: 0, position: {x: 174, y: -200}, retained: false}
-  - {name: shield, index: 1, position: {x: -179, y: -194}, retained: false}
+  - {name: shield, index: 0, position: {x: 174, y: -200}}
+  - {name: shield, index: 1, position: {x: -179, y: -194}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -323, y: -250}]}
+outcome:
+  blue.units[2].exp: 1326
+  blue.units[3].exp: 1500
+  blue.units[4].exp: 314
+  blue.units[5].exp: 162
+  blue.units[6].exp: 1058
+  blue.units[7].exp: 109
+  blue.units[8].exp: 709
+  blue.units[9].exp: 811
+  blue.units[11].exp: 326
+  blue.units[12].exp: 1569
+  blue.units[13].exp: 1992
+  red.core_damage: 400
+  red.units[1].exp: 398
+  red.units[2].exp: 594
+  red.units[3].exp: 1097
+  red.units[4].exp: 673
+  red.units[5].exp: 404
+  red.units[6].exp: 101
+  red.units[7].exp: 1200
+  red.units[8].exp: 1200
+  red.units[9].exp: 1359
+  red.units[10].exp: 143
+  red.units[11].exp: 178
+  red.units[12].exp: 560
+  red.units[13].exp: 300
+  red.contraptions[0].retained: false
+  red.contraptions[1].retained: false
+ticks: 1124
+hash: 23:c65423047c0aeacae5c27dbfe4f0dce4e98294683dd300dd8d7f357c01874fc3

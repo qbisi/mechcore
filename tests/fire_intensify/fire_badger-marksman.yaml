@@ -5,18 +5,21 @@
 # correction.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 252
-hash: 23:1a595e8db469e400ddac20619ff49283efff31f2e2b808bdf15d5e280ef3f457
 blue:
   techs:
     fire_badger: [napalm]
   units:
-  - {name: fire_badger, index: 0, position: {x: 5, y: -100}, exp: 0/200/1400}
+  - {name: fire_badger, index: 0, position: {x: 5, y: -100}}
 red:
-  core_damage: 134
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/134/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -100}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 134
+  red.units[0].exp: 134
+ticks: 252
+hash: 23:1a595e8db469e400ddac20619ff49283efff31f2e2b808bdf15d5e280ef3f457

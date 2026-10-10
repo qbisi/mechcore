@@ -7,20 +7,25 @@
 # the trees prepared as the tick opened still held it on red's side.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 568
-hash: 23:945589c1f1f94b8327af13b950d80f113fa9ac83f611a97a67034514b028bc15
 blue:
   techs:
     hacker: [multi_control]
   units:
-  - {name: hacker, index: 0, position: {x: 5, y: -205}, exp: 0/92/560}
-  - {name: hacker, index: 1, position: {x: -35, y: -205}, exp: 0/96/560}
+  - {name: hacker, index: 0, position: {x: 5, y: -205}}
+  - {name: hacker, index: 1, position: {x: -35, y: -205}}
 red:
-  core_damage: 406
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/100/450}
-  - {name: marksman, index: 1, position: {x: 60, y: -150}, exp: 0/36/650}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: marksman, index: 1, position: {x: 60, y: -150}}
+outcome:
+  blue.units[0].exp: 92
+  blue.units[1].exp: 96
+  red.core_damage: 406
+  red.units[0].exp: 100
+  red.units[1].exp: 36
+ticks: 568
+hash: 23:945589c1f1f94b8327af13b950d80f113fa9ac83f611a97a67034514b028bc15

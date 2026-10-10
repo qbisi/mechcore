@@ -5,20 +5,23 @@
 # 2175.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 742
-hash: 23:f45e97fe57b320eb096ad4fd60bed44591032f467c47210764cec891f6db569c
 blue:
   techs:
     rhino: [wreckage_recycling]
   units:
-  - {name: rhino, index: 0, position: {x: -15, y: -35}, exp: 0/550/1150}
-  - {name: rhino, index: 1, position: {x: 25, y: -35}, exp: 0/850/1150}
+  - {name: rhino, index: 0, position: {x: -15, y: -35}}
+  - {name: rhino, index: 1, position: {x: 25, y: -35}}
 red:
-  core_damage: 400
   units:
   - {name: vulcan, index: 0, position: {x: 0, y: -30}}
   - {name: arclight, index: 1, position: {x: 280, y: -300}}
+outcome:
+  blue.units[0].exp: 550
+  blue.units[1].exp: 850
+  red.core_damage: 400
+ticks: 742
+hash: 23:f45e97fe57b320eb096ad4fd60bed44591032f467c47210764cec891f6db569c

@@ -6,14 +6,11 @@
 # written by the squad's first Phoenix whichever of its two shot.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 232
-hash: 23:a4d841614f206e17a07794e3531840a138743e72a65016d0eb94fda110ad232e
 blue:
-  core_damage: 300
   techs:
     phoenix: [electromagnetic_shot]
   units:
@@ -23,4 +20,9 @@ red:
     rhino: [armor_enhancement]
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/400/650}
+  - {name: marksman, index: 1, position: {x: 60, y: -100}}
+outcome:
+  blue.core_damage: 300
+  red.units[1].exp: 400
+ticks: 232
+hash: 23:a4d841614f206e17a07794e3531840a138743e72a65016d0eb94fda110ad232e

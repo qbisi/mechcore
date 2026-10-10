@@ -4,18 +4,21 @@
 # last Crawler. Red wins on tick 132.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 132
-hash: 23:0839829d786e50dc800f192edd35d3662b56cc871267bbdb28badf33ce6abc89
 blue:
-  core_damage: 200
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -50}, equipment: [dominion_core]}
   - {name: fortress, index: 1, position: {x: 0, y: -250}}
 red:
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/112/750}
-  - {name: arclight, index: 1, position: {x: 30, y: -50}, exp: 0/80/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -50}}
+  - {name: arclight, index: 1, position: {x: 30, y: -50}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 112
+  red.units[1].exp: 80
+ticks: 132
+hash: 23:0839829d786e50dc800f192edd35d3662b56cc871267bbdb28badf33ce6abc89

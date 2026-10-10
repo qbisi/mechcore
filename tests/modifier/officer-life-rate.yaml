@@ -9,17 +9,19 @@
 # `19297 * 1.3 = 25086` whole, less the Marksman's two hits of 2329.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 120
-hash: 23:565e5bf8c16cc0d8074593b2db2db0feb7c3fe3a2cc4362e8794ae7486ff5462
 blue:
-  core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}}
 red:
   officers: [advanced_defensive_tactics]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 200
+ticks: 120
+hash: 23:565e5bf8c16cc0d8074593b2db2db0feb7c3fe3a2cc4362e8794ae7486ff5462

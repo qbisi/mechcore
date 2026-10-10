@@ -5,20 +5,24 @@
 # not by unit id.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 364
-hash: 23:e66531ed52df282141aa43ad5b990a36486aa23e64f87348a4e993990f408a46
 blue:
   techs:
     steel_ball: [mechanical_division]
     crawler: [subterranean_blitz]
   units:
-  - {name: steel_ball, index: 0, position: {x: 5, y: -140}, exp: 0/600/1000}
+  - {name: steel_ball, index: 0, position: {x: 5, y: -140}}
 red:
-  core_damage: 104
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/140/1150}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/108/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}}
+outcome:
+  blue.units[0].exp: 600
+  red.core_damage: 104
+  red.units[0].exp: 140
+  red.units[1].exp: 108
+ticks: 364
+hash: 23:e66531ed52df282141aa43ad5b990a36486aa23e64f87348a4e993990f408a46

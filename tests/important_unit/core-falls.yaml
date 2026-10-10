@@ -5,20 +5,24 @@
 # Red wins on tick 52.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 52
-hash: 23:671b0a22e8c8ae63d468c231cc18a62c3063cc7a646e0eaaa55e255009824734
 blue:
-  core_damage: 300
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [dominion_core]}
   - {name: fortress, index: 1, position: {x: 0, y: -250}}
   - {name: marksman, index: 2, position: {x: 40, y: -250}}
 red:
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/133/750}
-  - {name: arclight, index: 1, position: {x: 30, y: -50}, exp: 0/33/750}
-  - {name: arclight, index: 2, position: {x: -30, y: -50}, exp: 0/33/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -50}}
+  - {name: arclight, index: 1, position: {x: 30, y: -50}}
+  - {name: arclight, index: 2, position: {x: -30, y: -50}}
+outcome:
+  blue.core_damage: 300
+  red.units[0].exp: 133
+  red.units[1].exp: 33
+  red.units[2].exp: 33
+ticks: 52
+hash: 23:671b0a22e8c8ae63d468c231cc18a62c3063cc7a646e0eaaa55e255009824734

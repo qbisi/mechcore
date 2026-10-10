@@ -6,23 +6,28 @@
 # and named so as the fight opens.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 497
-hash: 23:acc8dcddf2e3b305a384a64f65874d6c6a0e5937cf12c380bcc95f65783a33d6
 blue:
-  core_damage: 216
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/112/650}
-  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/48/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -150}}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}}
   battle_skills:
   - {name: sticky_oil_bomb, standing: {control_points: [{x: -100, y: 60}, {x: -100, y: -60}], grid_rows: {0: [], 3: [], 6: []}}}
   - {name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: -40}, {x: 60, y: -40}]}}
 red:
   units:
-  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/200/1300}
-  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/200/450}
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}}
   battle_skills:
   - {name: sticky_oil_bomb, standing: {control_points: [{x: 80, y: -30}, {x: -40, y: -30}]}}
+outcome:
+  blue.core_damage: 216
+  blue.units[0].exp: 112
+  blue.units[1].exp: 48
+  red.units[0].exp: 200
+  red.units[1].exp: 200
+ticks: 497
+hash: 23:acc8dcddf2e3b305a384a64f65874d6c6a0e5937cf12c380bcc95f65783a33d6

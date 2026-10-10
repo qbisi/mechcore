@@ -9,19 +9,21 @@
 # and moves on at t153.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 568
-hash: 23:a955ba7a0e994bd26a07534646a343bb92958a9f9cf95d92b0f1d0474c61c125
 blue:
   techs:
     sabertooth: [field_entrenchment]
   units:
-  - {name: sabertooth, index: 0, position: {x: 5, y: -35}, exp: 0/600/1300}
+  - {name: sabertooth, index: 0, position: {x: 5, y: -35}}
 red:
-  core_damage: 200
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -20}}
   - {name: arclight, index: 1, position: {x: 280, y: -300}}
+outcome:
+  blue.units[0].exp: 600
+  red.core_damage: 200
+ticks: 568
+hash: 23:a955ba7a0e994bd26a07534646a343bb92958a9f9cf95d92b0f1d0474c61c125

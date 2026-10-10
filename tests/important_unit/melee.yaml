@@ -3,18 +3,21 @@
 # Fortress dies after it on that tick, credited to no one. Red wins.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 124
-hash: 23:bddfda52cd50f1f5b8858b92739f6b47a2e9fe418f344b77c6b07c016019f958
 blue:
-  core_damage: 400
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [dominion_core]}
   - {name: fortress, index: 1, position: {x: 0, y: -250}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/150/1150}
-  - {name: rhino, index: 1, position: {x: 35, y: -55}, exp: 0/50/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: rhino, index: 1, position: {x: 35, y: -55}}
+outcome:
+  blue.core_damage: 400
+  red.units[0].exp: 150
+  red.units[1].exp: 50
+ticks: 124
+hash: 23:bddfda52cd50f1f5b8858b92739f6b47a2e9fe418f344b77c6b07c016019f958

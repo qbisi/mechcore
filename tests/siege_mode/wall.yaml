@@ -8,20 +8,22 @@
 # t142, 141 updates after the start.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 1167
-hash: 23:e39d206a11bd2ffb44c1eae1694d23274471d4abbd0e24aea88ff6c7dcfabdd9
 blue:
   techs:
     sabertooth: [field_entrenchment]
   units:
-  - {name: sabertooth, index: 0, position: {x: 135, y: -25}, exp: 0/636/1300}
+  - {name: sabertooth, index: 0, position: {x: 135, y: -25}}
 red:
-  core_damage: 200
   units:
   - {name: arclight, index: 0, position: {x: 280, y: -300}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+outcome:
+  blue.units[0].exp: 636
+  red.core_damage: 200
+ticks: 1167
+hash: 23:e39d206a11bd2ffb44c1eae1694d23274471d4abbd0e24aea88ff6c7dcfabdd9

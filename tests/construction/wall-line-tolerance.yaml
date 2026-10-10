@@ -29,21 +29,25 @@
 # after both of them.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 19
-hash: 23:dd29cade5cc45a6b7f07070d1fc9efe0d23c05fc4c7f389119d53da3d632edb0
 blue:
-  core_damage: 300
   units:
   - {name: marksman, index: 0, position: {x: -90, y: -90}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   units:
-  - {name: marksman, index: 0, position: {x: 200, y: -20}, exp: 0/12/650}
+  - {name: marksman, index: 0, position: {x: 200, y: -20}}
   - {name: marksman, index: 1, position: {x: 160, y: -20}}
-  - {name: marksman, index: 2, position: {x: 140, y: -20}, exp: 0/12/650}
-  - {name: marksman, index: 3, position: {x: 120, y: -20}, exp: 0/200/650}
+  - {name: marksman, index: 2, position: {x: 140, y: -20}}
+  - {name: marksman, index: 3, position: {x: 120, y: -20}}
+outcome:
+  blue.core_damage: 300
+  red.units[0].exp: 12
+  red.units[2].exp: 12
+  red.units[3].exp: 200
+ticks: 19
+hash: 23:dd29cade5cc45a6b7f07070d1fc9efe0d23c05fc4c7f389119d53da3d632edb0

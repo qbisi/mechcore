@@ -6,23 +6,31 @@
 # Rhino's Crawlers first move at t276 and the first Marksman's at t392.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 394
-hash: 23:03bbc69b71a778a91318146317af856cc6c1f79e90f3aef62fb36024245c3490
 blue:
   techs:
     crawler: [replicate]
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -120}, exp: 0/300/450}
-  - {name: crawler, index: 1, position: {x: -55, y: -120}, exp: 0/100/450}
-  - {name: crawler, index: 2, position: {x: 65, y: -120}, exp: 0/200/450}
-  - {name: crawler, index: 3, position: {x: 5, y: -150}, exp: 0/100/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -120}}
+  - {name: crawler, index: 1, position: {x: -55, y: -120}}
+  - {name: crawler, index: 2, position: {x: 65, y: -120}}
+  - {name: crawler, index: 3, position: {x: 5, y: -150}}
 red:
-  core_damage: 202
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -115}, exp: 0/344/1150}
-  - {name: marksman, index: 1, position: {x: -40, y: -120}, exp: 0/32/650}
-  - {name: marksman, index: 2, position: {x: 50, y: -120}, exp: 0/40/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -115}}
+  - {name: marksman, index: 1, position: {x: -40, y: -120}}
+  - {name: marksman, index: 2, position: {x: 50, y: -120}}
+outcome:
+  blue.units[0].exp: 300
+  blue.units[1].exp: 100
+  blue.units[2].exp: 200
+  blue.units[3].exp: 100
+  red.core_damage: 202
+  red.units[0].exp: 344
+  red.units[1].exp: 32
+  red.units[2].exp: 40
+ticks: 394
+hash: 23:03bbc69b71a778a91318146317af856cc6c1f79e90f3aef62fb36024245c3490

@@ -6,20 +6,22 @@
 # a missile's 2000 kills the Marksman it strikes, at 1622.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 120
-hash: 23:d1c922a3dadbbd614fe490e398428aecc2d0ef6ac7d554fba8ef5cd775c74b09
 blue:
   techs:
     centurion: [homing_missile]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -45}, exp: 0/600/2250}
+  - {name: centurion, index: 0, position: {x: 5, y: -45}}
 red:
-  core_damage: 250
   units:
   - {name: marksman, index: 0, position: {x: -40, y: -100}}
   - {name: marksman, index: 1, position: {x: 0, y: -110}}
   - {name: marksman, index: 2, position: {x: 40, y: -100}}
+outcome:
+  blue.units[0].exp: 600
+  red.core_damage: 250
+ticks: 120
+hash: 23:d1c922a3dadbbd614fe490e398428aecc2d0ef6ac7d554fba8ef5cd775c74b09

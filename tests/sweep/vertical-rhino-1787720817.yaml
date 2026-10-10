@@ -2,18 +2,20 @@
 # line to the target and runs one way every attack.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 170
-hash: 23:43f8810b06fe46c3b4ffa27f17adf0a89a80af40800e112c8fcebb4bfd27a43e
 blue:
   techs:
     abyss: [vertical_sweep]
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -105}, exp: 0/400/4800}
+  - {name: abyss, index: 0, position: {x: 5, y: -105}}
 red:
-  core_damage: 500
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -105}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 500
+ticks: 170
+hash: 23:43f8810b06fe46c3b4ffa27f17adf0a89a80af40800e112c8fcebb4bfd27a43e

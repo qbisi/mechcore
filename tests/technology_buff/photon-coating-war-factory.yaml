@@ -4,14 +4,11 @@
 # Ignite, and the Vulcan dies at t173.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 181
-hash: 23:fd0f02f69acb892821b5d1089fa82571a5794b74856dd985c13e1b67cb29ca69
 blue:
-  core_damage: 500
   techs:
     vulcan: [ignite]
   units:
@@ -20,4 +17,9 @@ red:
   techs:
     war_factory: [photon_coating]
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -95}, exp: 0/800/3200}
+  - {name: war_factory, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.core_damage: 500
+  red.units[0].exp: 800
+ticks: 181
+hash: 23:fd0f02f69acb892821b5d1089fa82571a5794b74856dd985c13e1b67cb29ca69

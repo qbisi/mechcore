@@ -4,12 +4,10 @@
 # that no longer holds the squad's index fights.
 
 kind: fight
+source: game
 map_id: 1032
 seed: 1860661941
 round: 4
-source: game
-ticks: 856
-hash: 23:437b0d8e8c3923430c0455ae2f78415e57e58ab2b4699856cfb8b69a6b1b2a5f
 blue:
   officers: [advanced_power_system, typhoon_specialist]
   techs:
@@ -17,24 +15,23 @@ blue:
     fire_badger: [range_enhancement]
   legacy_index: 14
   units:
-  - {name: marksman, index: 0, position: {x: 100, y: -80}, exp: 445/650/650}
-  - {name: marksman, index: 1, position: {x: 250, y: -100}, exp: 308/524/650}
-  - {name: marksman, index: 2, position: {x: 180, y: -80}, exp: 650/650/650}
-  - {name: fire_badger, index: 3, position: {x: 85, y: -60}, exp: 560/1400/1400}
-  - {name: fire_badger, index: 4, position: {x: 195, y: -60}, exp: 769/935/1400}
-  - {name: crawler, index: 5, position: {x: 140, y: -105}, exp: 348/450/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 230, y: -35}, exp: 437/437/450, rotated: true}
-  - {name: fire_badger, index: 7, position: {x: -145, y: -150}, exp: 456/991/1400}
-  - {name: crawler, index: 8, position: {x: -135, y: -190}, exp: 108/147/450}
-  - {name: crawler, index: 9, position: {x: 135, y: -190}, exp: 69/420/450}
-  - {name: scorpion, index: 10, position: {x: -185, y: -155}, exp: 126/818/1500}
-  - {name: fire_badger, index: 11, position: {x: -255, y: -170}, exp: 1344/1400/1400}
-  - {name: crawler, index: 12, position: {x: -290, y: -205}, exp: 32/115/450, rotated: true}
-  - {name: scorpion, index: 14, position: {x: 155, y: -55}, exp: 0/474/1500}
-  - {name: scorpion, index: 15, position: {x: 45, y: -65}, exp: 0/1500/1500}
-  - {name: crawler, index: 16, position: {x: -80, y: -245}, exp: 0/86/450, rotated: true}
+  - {name: marksman, index: 0, position: {x: 100, y: -80}, exp: 445/650}
+  - {name: marksman, index: 1, position: {x: 250, y: -100}, exp: 308/650}
+  - {name: marksman, index: 2, position: {x: 180, y: -80}, exp: 650/650}
+  - {name: fire_badger, index: 3, position: {x: 85, y: -60}, exp: 560/1400}
+  - {name: fire_badger, index: 4, position: {x: 195, y: -60}, exp: 769/1400}
+  - {name: crawler, index: 5, position: {x: 140, y: -105}, exp: 348/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 230, y: -35}, exp: 437/450, rotated: true}
+  - {name: fire_badger, index: 7, position: {x: -145, y: -150}, exp: 456/1400}
+  - {name: crawler, index: 8, position: {x: -135, y: -190}, exp: 108/450}
+  - {name: crawler, index: 9, position: {x: 135, y: -190}, exp: 69/450}
+  - {name: scorpion, index: 10, position: {x: -185, y: -155}, exp: 126/1500}
+  - {name: fire_badger, index: 11, position: {x: -255, y: -170}, exp: 1344/1400}
+  - {name: crawler, index: 12, position: {x: -290, y: -205}, exp: 32/450, rotated: true}
+  - {name: scorpion, index: 14, position: {x: 155, y: -55}}
+  - {name: scorpion, index: 15, position: {x: 45, y: -65}}
+  - {name: crawler, index: 16, position: {x: -80, y: -245}, rotated: true}
 red:
-  core_damage: 1318
   officers: [advanced_power_system, fortified_specialist, improved_phoenix]
   techs:
     tarantula: [range_enhancement]
@@ -42,19 +39,46 @@ red:
   tower_strengthen_levels: [0, 1]
   legacy_index: 12
   units:
-  - {name: crawler, index: 0, position: {x: 240, y: -135}, exp: 450/450/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: 130, y: -135}, exp: 450/450/450, rotated: true}
-  - {name: crawler, index: 2, position: {x: 130, y: -205}, exp: 450/450/450, rotated: true}
-  - {name: tarantula, index: 3, position: {x: 185, y: -85}, level: 2, exp: 0/518/3380}
-  - {name: tarantula, index: 4, position: {x: 75, y: -85}, level: 2, exp: 0/108/3380}
-  - {name: void_eye, index: 5, position: {x: 240, y: -100}, level: 2, exp: 0/400/1465}
-  - {name: void_eye, index: 6, position: {x: 130, y: -100}, level: 2, exp: 0/107/1465}
-  - {name: mustang, index: 7, position: {x: 195, y: -180}, exp: 1044/1191/1200}
-  - {name: crawler, index: 8, position: {x: 260, y: -285}, exp: 74/94/450, rotated: true}
-  - {name: crawler, index: 10, position: {x: 310, y: 35}, exp: 14/14/450}
-  - {name: tarantula, index: 11, position: {x: -125, y: -295}, exp: 488/864/1500}
-  - {name: phoenix, index: 12, position: {x: 190, y: -110}, exp: 0/378/1300}
+  - {name: crawler, index: 0, position: {x: 240, y: -135}, exp: 450/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: 130, y: -135}, exp: 450/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: 130, y: -205}, exp: 450/450, rotated: true}
+  - {name: tarantula, index: 3, position: {x: 185, y: -85}, level: 2}
+  - {name: tarantula, index: 4, position: {x: 75, y: -85}, level: 2}
+  - {name: void_eye, index: 5, position: {x: 240, y: -100}, level: 2}
+  - {name: void_eye, index: 6, position: {x: 130, y: -100}, level: 2}
+  - {name: mustang, index: 7, position: {x: 195, y: -180}, exp: 1044/1200}
+  - {name: crawler, index: 8, position: {x: 260, y: -285}, exp: 74/450, rotated: true}
+  - {name: crawler, index: 10, position: {x: 310, y: 35}, exp: 14/450}
+  - {name: tarantula, index: 11, position: {x: -125, y: -295}, exp: 488/1500}
+  - {name: phoenix, index: 12, position: {x: 190, y: -110}}
   - {name: crawler, index: 13, position: {x: 20, y: -135}, rotated: true}
-  - {name: void_eye, index: 14, position: {x: 20, y: -100}, exp: 0/33/650}
+  - {name: void_eye, index: 14, position: {x: 20, y: -100}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+outcome:
+  blue.units[0].exp: 650
+  blue.units[1].exp: 524
+  blue.units[3].exp: 1400
+  blue.units[4].exp: 935
+  blue.units[5].exp: 450
+  blue.units[7].exp: 991
+  blue.units[8].exp: 147
+  blue.units[9].exp: 420
+  blue.units[10].exp: 818
+  blue.units[11].exp: 1400
+  blue.units[12].exp: 115
+  blue.units[13].exp: 474
+  blue.units[14].exp: 1500
+  blue.units[15].exp: 86
+  red.core_damage: 1318
+  red.units[3].exp: 518
+  red.units[4].exp: 108
+  red.units[5].exp: 400
+  red.units[6].exp: 107
+  red.units[7].exp: 1191
+  red.units[8].exp: 94
+  red.units[10].exp: 864
+  red.units[11].exp: 378
+  red.units[13].exp: 33
+ticks: 856
+hash: 23:437b0d8e8c3923430c0455ae2f78415e57e58ab2b4699856cfb8b69a6b1b2a5f

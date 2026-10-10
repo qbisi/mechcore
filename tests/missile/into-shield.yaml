@@ -6,20 +6,23 @@
 # no slow, and the removal names the shield.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 213
-hash: 23:d1c5e0375188324e4375fb04f06ff6e6b29458514eb0326367f4c4d69d07cec6
 blue:
-  core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
   contraptions:
-  - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
+  - {name: missile, index: 0, position: {x: 1, y: -11}}
 red:
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}}
   contraptions:
   - {name: shield, index: 1, position: {x: 1, y: -81}}
+outcome:
+  blue.core_damage: 200
+  blue.contraptions[0].retained: false
+  red.units[0].exp: 200
+ticks: 213
+hash: 23:d1c5e0375188324e4375fb04f06ff6e6b29458514eb0326367f4c4d69d07cec6

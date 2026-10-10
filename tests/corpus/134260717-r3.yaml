@@ -2,27 +2,24 @@
 # Combat Evolvement stack their buff while they are hit.
 
 kind: fight
+source: game
 map_id: 1011
 seed: 1231717251
 round: 3
-source: game
-ticks: 1180
-hash: 23:920275bb2f8f372ca0c270d3a8ba5fc9382b98f3cebafd0a3a87db3477654e6c
 blue:
-  core_damage: 800
   officers: [aerial_specialist]
   legacy_index: 10
   units:
-  - {name: fang, index: 0, position: {x: 200, y: -235}, exp: 0/66/600, rotated: true}
-  - {name: fang, index: 1, position: {x: 0, y: -205}, exp: 100/100/600, rotated: true}
+  - {name: fang, index: 0, position: {x: 200, y: -235}, rotated: true}
+  - {name: fang, index: 1, position: {x: 0, y: -205}, exp: 100/600, rotated: true}
   - {name: fang, index: 2, position: {x: -190, y: -225}, rotated: true}
-  - {name: fire_badger, index: 3, position: {x: -30, y: -205}, exp: 116/216/1400, rotated: true}
+  - {name: fire_badger, index: 3, position: {x: -30, y: -205}, exp: 116/1400, rotated: true}
   - {name: hound, index: 5, position: {x: -190, y: -190}}
   - {name: hound, index: 6, position: {x: 200, y: -200}}
-  - {name: centurion, index: 8, position: {x: -65, y: -215}, exp: 866/966/2250}
-  - {name: centurion, index: 9, position: {x: 35, y: -215}, exp: 2116/2250/2250}
-  - {name: centurion, index: 10, position: {x: 235, y: -245}, exp: 0/666/2250, equipment: [amplifying_core]}
-  - {name: fang, index: 11, position: {x: 140, y: -205}, exp: 0/66/600, rotated: true}
+  - {name: centurion, index: 8, position: {x: -65, y: -215}, exp: 866/2250}
+  - {name: centurion, index: 9, position: {x: 35, y: -215}, exp: 2116/2250}
+  - {name: centurion, index: 10, position: {x: 235, y: -245}, equipment: [amplifying_core]}
+  - {name: fang, index: 11, position: {x: 140, y: -205}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -34,15 +31,36 @@ red:
   blueprints: [attack_enhancement]
   legacy_index: 10
   units:
-  - {name: marksman, index: 0, position: {x: 160, y: -170}, exp: 287/398/650}
-  - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 482/650/650}
-  - {name: marksman, index: 2, position: {x: -140, y: -150}, exp: 412/650/650}
-  - {name: tarantula, index: 3, position: {x: 115, y: -165}, exp: 314/528/1500}
-  - {name: tarantula, index: 4, position: {x: -115, y: -165}, exp: 965/1218/1500}
-  - {name: tarantula, index: 5, position: {x: 5, y: -155}, exp: 471/471/1500}
-  - {name: marksman, index: 6, position: {x: 30, y: -160}, exp: 246/650/650}
-  - {name: rhino, index: 7, position: {x: 265, y: -295}, exp: 256/851/1150, equipment: [amplifying_core]}
-  - {name: rhino, index: 8, position: {x: -265, y: -295}, exp: 517/536/1150}
-  - {name: marksman, index: 9, position: {x: -20, y: -160}, exp: 33/100/650}
-  - {name: marksman, index: 10, position: {x: 90, y: -170}, exp: 0/650/650}
-  - {name: marksman, index: 11, position: {x: 60, y: -170}, exp: 0/451/650}
+  - {name: marksman, index: 0, position: {x: 160, y: -170}, exp: 287/650}
+  - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 482/650}
+  - {name: marksman, index: 2, position: {x: -140, y: -150}, exp: 412/650}
+  - {name: tarantula, index: 3, position: {x: 115, y: -165}, exp: 314/1500}
+  - {name: tarantula, index: 4, position: {x: -115, y: -165}, exp: 965/1500}
+  - {name: tarantula, index: 5, position: {x: 5, y: -155}, exp: 471/1500}
+  - {name: marksman, index: 6, position: {x: 30, y: -160}, exp: 246/650}
+  - {name: rhino, index: 7, position: {x: 265, y: -295}, exp: 256/1150, equipment: [amplifying_core]}
+  - {name: rhino, index: 8, position: {x: -265, y: -295}, exp: 517/1150}
+  - {name: marksman, index: 9, position: {x: -20, y: -160}, exp: 33/650}
+  - {name: marksman, index: 10, position: {x: 90, y: -170}}
+  - {name: marksman, index: 11, position: {x: 60, y: -170}}
+outcome:
+  blue.core_damage: 800
+  blue.units[0].exp: 66
+  blue.units[3].exp: 216
+  blue.units[6].exp: 966
+  blue.units[7].exp: 2250
+  blue.units[8].exp: 666
+  blue.units[9].exp: 66
+  red.units[0].exp: 398
+  red.units[1].exp: 650
+  red.units[2].exp: 650
+  red.units[3].exp: 528
+  red.units[4].exp: 1218
+  red.units[6].exp: 650
+  red.units[7].exp: 851
+  red.units[8].exp: 536
+  red.units[9].exp: 100
+  red.units[10].exp: 650
+  red.units[11].exp: 451
+ticks: 1180
+hash: 23:920275bb2f8f372ca0c270d3a8ba5fc9382b98f3cebafd0a3a87db3477654e6c

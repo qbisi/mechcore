@@ -2,18 +2,23 @@
 # target distribution and avoidance between allies.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 337
-hash: 23:c84a9d90b96622c0d88adc9f38f4b07ba67c688adee7146139c6dd1f7ded3892
 blue:
-  core_damage: 136
   units:
-  - {name: void_eye, index: 0, position: {x: 0, y: -120}, exp: 0/66/650}
-  - {name: void_eye, index: 1, position: {x: 0, y: -80}, exp: 0/54/650}
+  - {name: void_eye, index: 0, position: {x: 0, y: -120}}
+  - {name: void_eye, index: 1, position: {x: 0, y: -80}}
 red:
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/198/450}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/198/650}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}}
+outcome:
+  blue.core_damage: 136
+  blue.units[0].exp: 66
+  blue.units[1].exp: 54
+  red.units[0].exp: 198
+  red.units[1].exp: 198
+ticks: 337
+hash: 23:c84a9d90b96622c0d88adc9f38f4b07ba67c688adee7146139c6dd1f7ded3892

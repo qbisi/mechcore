@@ -6,19 +6,23 @@
 # shots until the one on tick 505 breaks it.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 548
-hash: 23:4e2e3fbb52c69234ab9874b6ef1e2017dd736076cad9e225c8882817f232518f
 blue:
-  core_damage: 350
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/200/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -100}}
   battle_skills:
-  - {name: shield_airdrop, positions: [{x: 0, y: -100}], retained: false}
+  - {name: shield_airdrop, positions: [{x: 0, y: -100}]}
 red:
   units:
-  - {name: fortress, index: 0, position: {x: -60, y: -150}, exp: 0/200/1600}
+  - {name: fortress, index: 0, position: {x: -60, y: -150}}
   - {name: marksman, index: 1, position: {x: 40, y: -150}}
+outcome:
+  blue.core_damage: 350
+  blue.units[0].exp: 200
+  blue.battle_skills[0].retained: false
+  red.units[0].exp: 200
+ticks: 548
+hash: 23:4e2e3fbb52c69234ab9874b6ef1e2017dd736076cad9e225c8882817f232518f

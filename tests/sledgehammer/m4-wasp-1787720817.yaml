@@ -2,18 +2,22 @@
 # it can target nothing.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 1787720817
 round: 1
-source: game
-ticks: 266
-hash: 23:aa41fc2bdb2312abd0f555ad04bc71a4da5e665cc885d96b4768a2586b4965ed
 blue:
-  core_damage: 612
   units:
   - {name: sledgehammer, index: 0, position: {x: -5, y: -100}}
 red:
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/153/900}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/113/900}
-  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/133/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}}
+outcome:
+  blue.core_damage: 612
+  red.units[0].exp: 153
+  red.units[1].exp: 113
+  red.units[2].exp: 133
+ticks: 266
+hash: 23:aa41fc2bdb2312abd0f555ad04bc71a4da5e665cc885d96b4768a2586b4965ed

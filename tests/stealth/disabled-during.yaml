@@ -6,24 +6,30 @@
 # it is shown at once.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 92
-hash: 23:a778662a7e1ae751c7e3b1598d57511d495f0f5b55ec884d991a64c377742f9a
 blue:
-  core_damage: 400
   techs:
     vortex: [emergency_armor]
   units:
-  - {name: vortex, index: 0, position: {x: 0, y: -30}, exp: 0/200/750}
+  - {name: vortex, index: 0, position: {x: 0, y: -30}}
 red:
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -60}, exp: 0/125/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -60}}
   - {name: marksman, index: 1, position: {x: 0, y: -60}}
-  - {name: marksman, index: 2, position: {x: 20, y: -60}, exp: 0/25/650}
-  - {name: marksman, index: 3, position: {x: -20, y: -80}, exp: 0/25/650}
-  - {name: marksman, index: 4, position: {x: 20, y: -80}, exp: 0/25/650}
+  - {name: marksman, index: 2, position: {x: 20, y: -60}}
+  - {name: marksman, index: 3, position: {x: -20, y: -80}}
+  - {name: marksman, index: 4, position: {x: 20, y: -80}}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: 0, y: 10}]}
+outcome:
+  blue.core_damage: 400
+  blue.units[0].exp: 200
+  red.units[0].exp: 125
+  red.units[2].exp: 25
+  red.units[3].exp: 25
+  red.units[4].exp: 25
+ticks: 92
+hash: 23:a778662a7e1ae751c7e3b1598d57511d495f0f5b55ec884d991a64c377742f9a

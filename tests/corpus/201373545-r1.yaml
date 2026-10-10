@@ -9,37 +9,52 @@
 # ends at tick 1067.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 953550766
 round: 1
-source: game
-ticks: 1385
-hash: 23:eb40ac950f87dcbf64e493f3ef933e0efb70b3b495f25bb5e9c9cf89a72ecf52
 blue:
-  core_damage: 284
   officers: [quick_supply_specialist]
   legacy_index: 5
   units:
-  - {name: fang, index: 0, position: {x: -140, y: -135}, exp: 0/95/600, rotated: true}
-  - {name: fang, index: 1, position: {x: 50, y: -135}, exp: 0/82/600, rotated: true}
+  - {name: fang, index: 0, position: {x: -140, y: -135}, rotated: true}
+  - {name: fang, index: 1, position: {x: 50, y: -135}, rotated: true}
   - {name: fang, index: 2, position: {x: 140, y: -135}, rotated: true}
-  - {name: steel_ball, index: 3, position: {x: -215, y: -230}, exp: 0/43/1000}
-  - {name: steel_ball, index: 4, position: {x: 215, y: -230}, exp: 0/562/1000}
-  - {name: marksman, index: 5, position: {x: -100, y: -170}, exp: 0/123/650}
-  - {name: marksman, index: 6, position: {x: 100, y: -170}, exp: 0/258/650}
-  - {name: marksman, index: 7, position: {x: 180, y: -170}, exp: 0/450/650}
+  - {name: steel_ball, index: 3, position: {x: -215, y: -230}}
+  - {name: steel_ball, index: 4, position: {x: 215, y: -230}}
+  - {name: marksman, index: 5, position: {x: -100, y: -170}}
+  - {name: marksman, index: 6, position: {x: 100, y: -170}}
+  - {name: marksman, index: 7, position: {x: 180, y: -170}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   officers: [speed_specialist]
   legacy_index: 5
   units:
-  - {name: arclight, index: 0, position: {x: 210, y: -150}, exp: 0/372/750}
-  - {name: arclight, index: 1, position: {x: 140, y: -150}, exp: 0/353/750}
-  - {name: arclight, index: 2, position: {x: 70, y: -150}, exp: 0/199/750}
-  - {name: sledgehammer, index: 3, position: {x: 185, y: -130}, exp: 0/346/1300}
-  - {name: sledgehammer, index: 4, position: {x: 95, y: -130}, exp: 0/254/1300}
-  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 0/192/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 290, y: -285}, exp: 0/450/450, rotated: true}
+  - {name: arclight, index: 0, position: {x: 210, y: -150}}
+  - {name: arclight, index: 1, position: {x: 140, y: -150}}
+  - {name: arclight, index: 2, position: {x: 70, y: -150}}
+  - {name: sledgehammer, index: 3, position: {x: 185, y: -130}}
+  - {name: sledgehammer, index: 4, position: {x: 95, y: -130}}
+  - {name: crawler, index: 5, position: {x: 140, y: -205}, rotated: true}
+  - {name: crawler, index: 6, position: {x: 290, y: -285}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+outcome:
+  blue.core_damage: 284
+  blue.units[0].exp: 95
+  blue.units[1].exp: 82
+  blue.units[3].exp: 43
+  blue.units[4].exp: 562
+  blue.units[5].exp: 123
+  blue.units[6].exp: 258
+  blue.units[7].exp: 450
+  red.units[0].exp: 372
+  red.units[1].exp: 353
+  red.units[2].exp: 199
+  red.units[3].exp: 346
+  red.units[4].exp: 254
+  red.units[5].exp: 192
+  red.units[6].exp: 450
+ticks: 1385
+hash: 23:eb40ac950f87dcbf64e493f3ef933e0efb70b3b495f25bb5e9c9cf89a72ecf52

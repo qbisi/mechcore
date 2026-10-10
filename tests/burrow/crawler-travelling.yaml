@@ -4,20 +4,24 @@
 # burrow from tick 162.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 2
-source: game
-ticks: 763
-hash: 23:4c2a5698166ea303196475c9b8569a82d7b1b78954128adac45ff21c5c8400fd
 blue:
   techs:
     crawler: [subterranean_blitz]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: crawler, index: 1, position: {x: -330, y: 45}, exp: 0/400/450, travelling: true}
+  - {name: crawler, index: 1, position: {x: -330, y: 45}, travelling: true}
 red:
-  core_damage: 84
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
-  - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/24/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}}
+outcome:
+  blue.units[1].exp: 400
+  red.core_damage: 84
+  red.units[0].exp: 200
+  red.units[1].exp: 24
+ticks: 763
+hash: 23:4c2a5698166ea303196475c9b8569a82d7b1b78954128adac45ff21c5c8400fd

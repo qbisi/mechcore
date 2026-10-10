@@ -6,18 +6,20 @@
 # range: 1 at t20, 6 at t70, and 8 at t80, two stacks in one step.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 332
-hash: 23:f85b49016ca670a3af18062a9bdaf5f78f3784f69ecd1d68b830c802be81189b
 blue:
-  core_damage: 350
   techs:
     steel_ball: [kinetic_charge]
   units:
   - {name: steel_ball, index: 0, position: {x: 5, y: -170}}
 red:
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -170}, exp: 0/400/1600}
+  - {name: fortress, index: 0, position: {x: 0, y: -170}}
+outcome:
+  blue.core_damage: 350
+  red.units[0].exp: 400
+ticks: 332
+hash: 23:f85b49016ca670a3af18062a9bdaf5f78f3784f69ecd1d68b830c802be81189b

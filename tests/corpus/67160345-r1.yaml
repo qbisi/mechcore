@@ -7,36 +7,51 @@
 # buff of blue's lost tower is cleared on the 14 survivors.
 
 kind: fight
+source: game
 map_id: 1031
 seed: 2086664373
 round: 1
-source: game
-ticks: 1052
-hash: 23:0ac9b430b5073fd82956438a7f2e59c9900902a5f6a8e8b2325a712944d578da
 blue:
   officers: [cost_control_specialist]
   legacy_index: 5
   units:
-  - {name: vortex, index: 0, position: {x: 140, y: -150}, exp: 0/168/750}
-  - {name: vortex, index: 1, position: {x: 0, y: -150}, exp: 0/625/750}
-  - {name: vortex, index: 2, position: {x: -140, y: -150}, exp: 0/147/750}
-  - {name: tarantula, index: 3, position: {x: 95, y: -135}, exp: 0/488/1500}
-  - {name: tarantula, index: 4, position: {x: -95, y: -135}, exp: 0/473/1500}
-  - {name: crawler, index: 5, position: {x: -135, y: -190}, exp: 0/22/450}
-  - {name: crawler, index: 6, position: {x: 135, y: -190}, exp: 0/117/450}
+  - {name: vortex, index: 0, position: {x: 140, y: -150}}
+  - {name: vortex, index: 1, position: {x: 0, y: -150}}
+  - {name: vortex, index: 2, position: {x: -140, y: -150}}
+  - {name: tarantula, index: 3, position: {x: 95, y: -135}}
+  - {name: tarantula, index: 4, position: {x: -95, y: -135}}
+  - {name: crawler, index: 5, position: {x: -135, y: -190}}
+  - {name: crawler, index: 6, position: {x: 135, y: -190}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
-  core_damage: 444
   officers: [marksman_specialist]
   legacy_index: 5
   units:
-  - {name: hound, index: 0, position: {x: 70, y: -60}, exp: 0/2/750}
-  - {name: hound, index: 1, position: {x: 150, y: -70}, exp: 0/372/750}
-  - {name: hound, index: 2, position: {x: 230, y: -70}, exp: 0/407/750}
-  - {name: sledgehammer, index: 3, position: {x: 110, y: -45}, exp: 0/113/1300, rotated: true}
-  - {name: sledgehammer, index: 4, position: {x: 195, y: -40}, exp: 0/136/1300}
-  - {name: crawler, index: 5, position: {x: 150, y: -35}, exp: 0/34/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 160, y: -175}, exp: 0/30/450, rotated: true}
+  - {name: hound, index: 0, position: {x: 70, y: -60}}
+  - {name: hound, index: 1, position: {x: 150, y: -70}}
+  - {name: hound, index: 2, position: {x: 230, y: -70}}
+  - {name: sledgehammer, index: 3, position: {x: 110, y: -45}, rotated: true}
+  - {name: sledgehammer, index: 4, position: {x: 195, y: -40}}
+  - {name: crawler, index: 5, position: {x: 150, y: -35}, rotated: true}
+  - {name: crawler, index: 6, position: {x: 160, y: -175}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+outcome:
+  blue.units[0].exp: 168
+  blue.units[1].exp: 625
+  blue.units[2].exp: 147
+  blue.units[3].exp: 488
+  blue.units[4].exp: 473
+  blue.units[5].exp: 22
+  blue.units[6].exp: 117
+  red.core_damage: 444
+  red.units[0].exp: 2
+  red.units[1].exp: 372
+  red.units[2].exp: 407
+  red.units[3].exp: 113
+  red.units[4].exp: 136
+  red.units[5].exp: 34
+  red.units[6].exp: 30
+ticks: 1052
+hash: 23:0ac9b430b5073fd82956438a7f2e59c9900902a5f6a8e8b2325a712944d578da

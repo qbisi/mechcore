@@ -8,19 +8,21 @@
 # t302.
 
 kind: fight
+source: game
 map_id: 1021
 seed: 4242
 round: 1
-source: game
-ticks: 302
-hash: 23:ed98a3d8173a8fff600293a97ba9e469d5e180aff3bc8cf00164822b4eb59608
 blue:
   techs:
     scorpion: [acid_attack]
   units:
-  - {name: scorpion, index: 0, position: {x: 5, y: -145}, exp: 0/800/1500}
+  - {name: scorpion, index: 0, position: {x: 5, y: -145}}
 red:
-  core_damage: 250
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
   - {name: rhino, index: 1, position: {x: 45, y: -95}}
+outcome:
+  blue.units[0].exp: 800
+  red.core_damage: 250
+ticks: 302
+hash: 23:ed98a3d8173a8fff600293a97ba9e469d5e180aff3bc8cf00164822b4eb59608

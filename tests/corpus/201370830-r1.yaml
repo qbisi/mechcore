@@ -3,36 +3,51 @@
 # -508953624579 first, and the fight updates them in x order, the other first.
 
 kind: fight
+source: game
 map_id: 1011
 seed: 865572396
 round: 1
-source: game
-ticks: 2267
-hash: 23:313dd61e3c6259351e781ef10456839508f011ec79312b7ed47e571d304d7546
 blue:
-  core_damage: 300
   officers: [elite_specialist]
   legacy_index: 5
   units:
-  - {name: arclight, index: 0, position: {x: -90, y: -60}, exp: 0/104/750}
-  - {name: arclight, index: 1, position: {x: -190, y: -60}, exp: 0/145/750}
-  - {name: arclight, index: 2, position: {x: 180, y: -210}, exp: 0/400/750}
-  - {name: steel_ball, index: 3, position: {x: -225, y: -50}, exp: 0/331/1000}
-  - {name: steel_ball, index: 4, position: {x: -125, y: -70}, exp: 0/357/1000}
-  - {name: crawler, index: 5, position: {x: -125, y: -50}, level: 2, exp: 0/79/1014}
-  - {name: crawler, index: 6, position: {x: -225, y: -70}, level: 2, exp: 0/222/1014}
+  - {name: arclight, index: 0, position: {x: -90, y: -60}}
+  - {name: arclight, index: 1, position: {x: -190, y: -60}}
+  - {name: arclight, index: 2, position: {x: 180, y: -210}}
+  - {name: steel_ball, index: 3, position: {x: -225, y: -50}}
+  - {name: steel_ball, index: 4, position: {x: -125, y: -70}}
+  - {name: crawler, index: 5, position: {x: -125, y: -50}, level: 2}
+  - {name: crawler, index: 6, position: {x: -225, y: -70}, level: 2}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
   officers: [fortified_specialist]
   legacy_index: 5
   units:
-  - {name: void_eye, index: 0, position: {x: 80, y: -70}, exp: 0/157/650}
-  - {name: void_eye, index: 1, position: {x: 180, y: -70}, exp: 0/148/650}
-  - {name: void_eye, index: 2, position: {x: 280, y: -70}, exp: 0/100/650}
-  - {name: tarantula, index: 3, position: {x: 85, y: -115}, exp: 0/1003/1500}
-  - {name: tarantula, index: 4, position: {x: 185, y: -115}, exp: 0/407/1500}
-  - {name: vortex, index: 5, position: {x: 110, y: -130}, exp: 0/750/750}
-  - {name: vortex, index: 6, position: {x: 150, y: -130}, exp: 0/364/750}
+  - {name: void_eye, index: 0, position: {x: 80, y: -70}}
+  - {name: void_eye, index: 1, position: {x: 180, y: -70}}
+  - {name: void_eye, index: 2, position: {x: 280, y: -70}}
+  - {name: tarantula, index: 3, position: {x: 85, y: -115}}
+  - {name: tarantula, index: 4, position: {x: 185, y: -115}}
+  - {name: vortex, index: 5, position: {x: 110, y: -130}}
+  - {name: vortex, index: 6, position: {x: 150, y: -130}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+outcome:
+  blue.core_damage: 300
+  blue.units[0].exp: 104
+  blue.units[1].exp: 145
+  blue.units[2].exp: 400
+  blue.units[3].exp: 331
+  blue.units[4].exp: 357
+  blue.units[5].exp: 79
+  blue.units[6].exp: 222
+  red.units[0].exp: 157
+  red.units[1].exp: 148
+  red.units[2].exp: 100
+  red.units[3].exp: 1003
+  red.units[4].exp: 407
+  red.units[5].exp: 750
+  red.units[6].exp: 364
+ticks: 2267
+hash: 23:313dd61e3c6259351e781ef10456839508f011ec79312b7ed47e571d304d7546
