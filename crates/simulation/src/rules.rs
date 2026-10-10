@@ -4,43 +4,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result};
 
-const DEFAULT_UNITS: [&str; 35] = [
-    include_str!("../../../config/units/marksman.yaml"),
-    include_str!("../../../config/units/rhino.yaml"),
-    include_str!("../../../config/units/wasp.yaml"),
-    include_str!("../../../config/units/mustang.yaml"),
-    include_str!("../../../config/units/steel_ball.yaml"),
-    include_str!("../../../config/units/fang.yaml"),
-    include_str!("../../../config/units/crawler.yaml"),
-    include_str!("../../../config/units/stormcaller.yaml"),
-    include_str!("../../../config/units/sledgehammer.yaml"),
-    include_str!("../../../config/units/hacker.yaml"),
-    include_str!("../../../config/units/arclight.yaml"),
-    include_str!("../../../config/units/phoenix.yaml"),
-    include_str!("../../../config/units/wraith.yaml"),
-    include_str!("../../../config/units/scorpion.yaml"),
-    include_str!("../../../config/units/fire_badger.yaml"),
-    include_str!("../../../config/units/sabertooth.yaml"),
-    include_str!("../../../config/units/typhoon.yaml"),
-    include_str!("../../../config/units/tarantula.yaml"),
-    include_str!("../../../config/units/phantom_ray.yaml"),
-    include_str!("../../../config/units/farseer.yaml"),
-    include_str!("../../../config/units/hound.yaml"),
-    include_str!("../../../config/units/void_eye.yaml"),
-    include_str!("../../../config/units/vortex.yaml"),
-    include_str!("../../../config/units/fortress.yaml"),
-    include_str!("../../../config/units/vulcan.yaml"),
-    include_str!("../../../config/units/melting_point.yaml"),
-    include_str!("../../../config/units/overlord.yaml"),
-    include_str!("../../../config/units/raiden.yaml"),
-    include_str!("../../../config/units/centurion.yaml"),
-    include_str!("../../../config/units/sandworm.yaml"),
-    include_str!("../../../config/units/mountain.yaml"),
-    include_str!("../../../config/units/war_factory.yaml"),
-    include_str!("../../../config/units/abyss.yaml"),
-    include_str!("../../../config/units/spider_mine.yaml"),
-    include_str!("../../../config/units/larva.yaml"),
-];
 const DEFAULT_TOWERS: &str = include_str!("../../../config/towers.yaml");
 const DEFAULT_MAPS: &str = include_str!("../../../config/maps.yaml");
 
@@ -459,14 +422,7 @@ pub(crate) enum UnitDomain {
     Air,
 }
 
-/// `UnitType`: what a row targeting small, medium or huge units reads.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub(crate) enum UnitSize {
-    Small,
-    Medium,
-    Huge,
-}
+pub(crate) use mechcore_document::targets::UnitSize;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -1005,7 +961,7 @@ impl BuildingConfig {
 
 impl UnitConfigs {
     pub(crate) fn load() -> Result<Self> {
-        let configs = DEFAULT_UNITS
+        let configs = mechcore_document::catalog::UNIT_CONFIGS
             .iter()
             .map(|text| parse(text.as_bytes(), "embedded unit config"))
             .collect::<Result<Vec<_>>>()?;
@@ -1042,6 +998,16 @@ impl UnitConfigs {
 }
 
 impl UnitConfig {
+    /// What `UnitUtility.IsEffectTarget` reads of the unit.
+    pub(crate) fn category(&self) -> mechcore_document::targets::Category<'_> {
+        mechcore_document::targets::Category {
+            type_name: &self.type_name,
+            melee: self.attack.melee,
+            ground: self.domain == UnitDomain::Ground,
+            size: self.size,
+        }
+    }
+
     fn validate(&self) -> Result<()> {
         if self.schema != "mechcore.unit" {
             return Err(Error::new("unsupported unit config type"));

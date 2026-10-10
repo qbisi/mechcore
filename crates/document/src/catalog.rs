@@ -425,3 +425,43 @@ pub(crate) fn unit_id_from_type(type_name: &str) -> Option<i32> {
         NativeFormation::Construction(_) | NativeFormation::Contraption(_) => None,
     }
 }
+
+/// Every unit type's `config/units` file: what the simulator builds a unit
+/// from, and what a layout reads a unit's category from.
+pub const UNIT_CONFIGS: [&str; 35] = [
+    include_str!("../../../config/units/marksman.yaml"),
+    include_str!("../../../config/units/rhino.yaml"),
+    include_str!("../../../config/units/wasp.yaml"),
+    include_str!("../../../config/units/mustang.yaml"),
+    include_str!("../../../config/units/steel_ball.yaml"),
+    include_str!("../../../config/units/fang.yaml"),
+    include_str!("../../../config/units/crawler.yaml"),
+    include_str!("../../../config/units/stormcaller.yaml"),
+    include_str!("../../../config/units/sledgehammer.yaml"),
+    include_str!("../../../config/units/hacker.yaml"),
+    include_str!("../../../config/units/arclight.yaml"),
+    include_str!("../../../config/units/phoenix.yaml"),
+    include_str!("../../../config/units/wraith.yaml"),
+    include_str!("../../../config/units/scorpion.yaml"),
+    include_str!("../../../config/units/fire_badger.yaml"),
+    include_str!("../../../config/units/sabertooth.yaml"),
+    include_str!("../../../config/units/typhoon.yaml"),
+    include_str!("../../../config/units/tarantula.yaml"),
+    include_str!("../../../config/units/phantom_ray.yaml"),
+    include_str!("../../../config/units/farseer.yaml"),
+    include_str!("../../../config/units/hound.yaml"),
+    include_str!("../../../config/units/void_eye.yaml"),
+    include_str!("../../../config/units/vortex.yaml"),
+    include_str!("../../../config/units/fortress.yaml"),
+    include_str!("../../../config/units/vulcan.yaml"),
+    include_str!("../../../config/units/melting_point.yaml"),
+    include_str!("../../../config/units/overlord.yaml"),
+    include_str!("../../../config/units/raiden.yaml"),
+    include_str!("../../../config/units/centurion.yaml"),
+    include_str!("../../../config/units/sandworm.yaml"),
+    include_str!("../../../config/units/mountain.yaml"),
+    include_str!("../../../config/units/war_factory.yaml"),
+    include_str!("../../../config/units/abyss.yaml"),
+    include_str!("../../../config/units/spider_mine.yaml"),
+    include_str!("../../../config/units/larva.yaml"),
+];

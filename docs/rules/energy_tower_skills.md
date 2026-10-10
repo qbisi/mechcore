@@ -67,7 +67,7 @@ opens. A skill activated again is written again.
 ## What is refused
 
 A skill whose targeting is not a single type that
-[`targets.rs`](../../crates/simulation/src/modifier/targets.rs) resolves is
+[`targets.rs`](../../crates/document/src/targets.rs) resolves is
 refused by name, as an officer's is.
 
 ## Evidence

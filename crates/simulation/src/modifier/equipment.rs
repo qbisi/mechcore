@@ -38,8 +38,8 @@ use super::{
         AutoRecovery, BuffSource, CarriedShield, EnergyShield, LifeSteal, ProductionLine,
         RecoveryState,
     },
-    targets::Targets,
 };
+use mechcore_document::targets::Targets;
 
 const DEFAULT_EQUIPMENT_EFFECTS: &str = include_str!("../../../../config/equipment_effects.yaml");
 
@@ -476,7 +476,11 @@ impl EquipmentEffects {
             .effect
             .as_ref()
             .map_err(|why| Error::new(why.clone()))?;
-        if !equipment.targets.reaches(unit)? {
+        if !equipment
+            .targets
+            .reaches(&unit.category())
+            .map_err(Error::new)?
+        {
             return Ok(None);
         }
         Ok(Some(equipment))
