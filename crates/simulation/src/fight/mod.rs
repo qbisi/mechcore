@@ -608,7 +608,7 @@ impl Simulation {
         seed: i32,
     ) -> Result<Self> {
         let mut simulation = Self::new_unprepared(layout, configs, towers, maps, seed)?;
-        simulation.initialize_presearch_targets()?;
+        simulation.prepare_and_enter_fight()?;
         Ok(simulation)
     }
 
@@ -734,12 +734,25 @@ impl Simulation {
             &layout.legacy,
             &layout.delivered,
         );
-        // `SiegeModeEffectSystem.OnEnterFight` digs its units in after each
-        // skill drew its first interval as it was deployed, from the
-        // interval the trench has not shortened yet.
-        simulation.enter_siege_fight()?;
         simulation.snapshot_search_ranges();
         Ok(simulation)
+    }
+
+    /// `FightPrepareState`, then `FightingState.Enter`. The prepare state
+    /// runs the presearch (`PresearchTargetController.Start`), and only the
+    /// fighting state enters the modules into the fight, so the presearch
+    /// scores every unit as it was deployed: a Typhoon of replay 67263060's
+    /// round 5 with Field Entrenchment presearches with its 100 metres, not
+    /// the 120 its trench gives it from the first tick, and locks a Phantom
+    /// Ray out of either reach over a Void Eye 115 metres off.
+    /// `SiegeModeEffectSystem.OnEnterFight` digs its units in after each
+    /// skill drew its first interval as it was deployed, from the interval
+    /// the trench has not shortened yet.
+    pub(in crate::fight) fn prepare_and_enter_fight(&mut self) -> Result<()> {
+        self.initialize_presearch_targets()?;
+        self.enter_siege_fight()?;
+        self.snapshot_search_ranges();
+        Ok(())
     }
 
     /// A unit joining the fight later takes the next number, and its

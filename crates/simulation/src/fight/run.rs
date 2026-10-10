@@ -345,7 +345,7 @@ pub(in crate::fight) fn execute(
     let mut simulation =
         Simulation::new_unprepared(layout, &config.units, &config.towers, &config.maps, seed)?;
     let mut writer = writer(record, replay_layout, seed, config, &context)?;
-    simulation.initialize_presearch_targets()?;
+    simulation.prepare_and_enter_fight()?;
     costs.prepare = prepare_started.elapsed();
     let mut steps = 0;
     let mut numbering = mechcore_mcfr::UnitNumbering::default();

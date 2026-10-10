@@ -506,8 +506,12 @@ it stands after, 0.3. Its rate on its unit's move speed no fight code reads.
 (`AddSiegeModeOwner`), which registers with its main skill's blows
 (`RegisterMainSkillPerformAttack`); a unit it already holds is passed over.
 
-**It digs in as the fight starts.** Each skill has drawn its first interval
-as its unit was deployed, from the interval the trench has not shortened.
+**It digs in as the fight starts, after the presearch.** Each skill has
+drawn its first interval as its unit was deployed, from the interval the
+trench has not shortened, and has its first lock from the presearch, which
+`FightPrepareState` runs (`PresearchTargetController.Start`) before
+`FightingState.Enter` enters the modules into the fight: the presearch scores
+with the range the unit was deployed with, not the trench's.
 `OnEnterFight` then digs each held unit in (`AddEffect`): the rates and
 values go on its main skill (`FightSkill.AddData`) and the rate on its life
 (`FightMech.AddData`), the life refreshed to the new maximum as a buff's
@@ -1647,7 +1651,9 @@ derive (a minimum range):
   arrives, and one dies in its trench:
   `tests/siege_mode/turned.yaml`,
   `tests/siege_mode/travel.yaml`,
-  `tests/siege_mode/dies.yaml`.
+  `tests/siege_mode/dies.yaml`. A Typhoon presearches with its 100
+  metres and locks a Phantom Ray out of either reach over a Void Eye that
+  its trench's 120 would reach: `tests/corpus/67263060-r5.yaml`.
 - Wreckage Recycling heals its unit by the maximum life of each enemy it
   struck as that enemy dies, held to what it lacks, and nothing at its whole
   life: `tests/wreckage/rhino.yaml`,
