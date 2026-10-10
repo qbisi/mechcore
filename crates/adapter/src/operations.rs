@@ -859,9 +859,10 @@ pub(crate) fn fight_replay(
 /// `ClientAgent.CreateHost`. The rounds after `round` are dropped from the
 /// record first, so the match ends with the round asked for.
 /// `StartFastBattleSimulation` sets `ExternalConfig.fastBattleSimulation`
-/// and clears `fastFightSimulation` for good, and while the first is set
-/// `CreateHost` refuses every match that is not a replay, so both are put
-/// back.
+/// and clears `fastFightSimulation` and `enableBattleView` for good: while
+/// the first is set `CreateHost` refuses every match that is not a replay,
+/// and without the view a later match's units have no model to pose, so all
+/// three are put back.
 fn fight_replay_inner(runtime: &Runtime, path: &Path, round: i32) -> Result<Value, OperationError> {
     if !runtime.current_match().is_null() {
         return Err(OperationError::InvalidState(
@@ -907,8 +908,10 @@ fn fight_replay_inner(runtime: &Runtime, path: &Path, round: i32) -> Result<Valu
     })?;
     let fast_battle = api.field(extra_class, "fastBattleSimulation")?;
     let fast_fight = api.field(extra_class, "fastFightSimulation")?;
+    let battle_view = api.field(extra_class, "enableBattleView")?;
     let saved_battle = api.field_value::<bool>(extra, fast_battle)?;
     let saved_fight = api.field_value::<bool>(extra, fast_fight)?;
+    let saved_view = api.field_value::<bool>(extra, battle_view)?;
     let client_utility = api.class("GRClient.dll", "GameRiver.Client", "MatchUtility")?;
     let fought = api.invoke_static(
         client_utility,
@@ -917,6 +920,7 @@ fn fight_replay_inner(runtime: &Runtime, path: &Path, round: i32) -> Result<Valu
     );
     Api::set_field_value(extra, fast_battle, saved_battle)?;
     Api::set_field_value(extra, fast_fight, saved_fight)?;
+    Api::set_field_value(extra, battle_view, saved_view)?;
     fought?;
     Ok(json!({"fought": true, "round": round}))
 }
