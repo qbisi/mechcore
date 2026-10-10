@@ -421,14 +421,14 @@ impl Simulation {
         reached: &[u64],
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        self.write_skill_buff((&release.name, release.team), None, buff, reached, events)
+        self.write_skill_buff(release.team, None, buff, reached, events)
     }
 
     /// `BuffSystem.AddBuff` of the skill's row on every unit it reached,
     /// from `source`, the actor that adds it, if one does.
     pub(in crate::fight) fn write_skill_buff(
         &mut self,
-        (name, team): (&str, u32),
+        team: u32,
         source: Option<ObjectRef>,
         buff: &SkillBuff,
         reached: &[u64],
@@ -481,12 +481,6 @@ impl Simulation {
             // may have killed what its circle reached.
             if !self.actors[&id].alive() || !self.buff_reaches(id, &row)? {
                 continue;
-            }
-            if let Some(running) = self.actors[&id].buff_not_beside(&row) {
-                return Err(Error::new(format!(
-                    "{name} reaches unit {id}, which runs buff {running}, and a skill's buff \
-                     beside it is not measured"
-                )));
             }
             self.write_buff(id, source, team, &row, events)?;
         }

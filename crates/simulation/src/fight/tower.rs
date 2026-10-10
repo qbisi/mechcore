@@ -349,25 +349,6 @@ impl TowersConfig {
 }
 
 impl super::Actor {
-    /// The row of a buff running on this unit beside which `row` is not
-    /// measured, if one runs: one that corrects a number `row` does other
-    /// than the speed. Two buffs run side by side in `BuffManager`, and
-    /// their speeds compose in `MoveSpeedProperty.Refresh`; how their other
-    /// rates do, a tower's kept apart in `towerBuffDatas`, is not recorded.
-    pub(in crate::fight) fn buff_not_beside(&self, row: &BuffRow) -> Option<u32> {
-        let buffs = &self.stats.overlays;
-        self.buffs
-            .iter()
-            .filter(|running| !same_buff(running, row))
-            .find(|running| {
-                row.entries.iter().any(|entry| {
-                    entry.index != Index::MoveSpeed
-                        && buffs.buff_writes(running.source, entry.index)
-                })
-            })
-            .map(|running| running.buff_id)
-    }
-
     /// `BuffManager.IsInvincible`: whether a running buff makes the unit
     /// invincible.
     pub(in crate::fight) fn invincible(&self) -> bool {
