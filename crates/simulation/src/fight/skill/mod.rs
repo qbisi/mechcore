@@ -1387,10 +1387,7 @@ impl Simulation {
         // `FightCrystal.IsTower`. A unit that updates after the last enemy
         // died takes one on the tick the fight is decided.
         let located = |error: Error| {
-            Error::new(format!(
-                "logic step {step} actor {}: {error}",
-                skill_ref.owner.id()
-            ))
+            error.context(format!("logic step {step} actor {}", skill_ref.owner.id()))
         };
         let grouped_core = skill_ref.owner.unit_id().is_some()
             && self.skill(skill_ref).is_grouped()

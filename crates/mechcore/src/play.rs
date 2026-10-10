@@ -95,7 +95,7 @@ pub(crate) fn play(
     kind.require("play")?;
     let page = page.map_or_else(|| input.with_extension("html"), Path::to_path_buf);
     let fought = |result: Result<SimulationResult, mechcore_simulation::Error>| {
-        let result = result.map_err(|error| Failure::refused(error.to_string()))?;
+        let result = result.map_err(|error| Failure::unsimulated(&error))?;
         let recording = result
             .recording
             .ok_or_else(|| Failure::failed("the simulator kept no recording of the fight"))?;

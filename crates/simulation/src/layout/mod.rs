@@ -204,12 +204,8 @@ pub(crate) fn load(
 ) -> Result<(Option<i32>, CompiledLayout, String)> {
     let bytes = fs::read(path)
         .map_err(|error| Error::new(format!("failed to read {}: {error}", path.display())))?;
-    read(&bytes, units).map_err(|error| {
-        Error::new(format!(
-            "cannot simulate layout {}: {error}",
-            path.display()
-        ))
-    })
+    read(&bytes, units)
+        .map_err(|error| error.context(format!("cannot simulate layout {}", path.display())))
 }
 
 /// A layout held in memory, compiled and kept in its normal form.
@@ -264,28 +260,36 @@ impl Loadouts {
 /// same refusal is named once: an officer the build cannot compose refuses
 /// every formation it would reach with the same words.
 #[derive(Default)]
-struct Refusals(Vec<String>);
+struct Refusals(Vec<Error>);
 
 impl Refusals {
+    #[track_caller]
     fn push(&mut self, why: impl Into<String>) {
-        let why = why.into();
-        if !self.0.contains(&why) {
-            self.0.push(why);
+        self.keep(Error::new(why));
+    }
+
+    fn keep(&mut self, error: Error) {
+        if !self.0.iter().any(|kept| kept.message == error.message) {
+            self.0.push(error);
         }
     }
 
     /// The value, or nothing with its refusal kept.
     fn hold<T>(&mut self, result: Result<T>) -> Option<T> {
-        result.map_err(|error| self.push(error.to_string())).ok()
+        result.map_err(|error| self.keep(error)).ok()
     }
 
-    /// Whether anything was refused, and if so every refusal as one error.
+    /// Whether anything was refused, and if so every refusal as one error,
+    /// each raised where it was.
     fn settle(self) -> Result<()> {
-        if self.0.is_empty() {
-            Ok(())
-        } else {
-            Err(Error::new(self.0.join("; ")))
-        }
+        let mut refusals = self.0.into_iter();
+        let Some(first) = refusals.next() else {
+            return Ok(());
+        };
+        Err(refusals.fold(first, |joined, error| Error {
+            message: format!("{}; {}", joined.message, error.message),
+            sites: [joined.sites, error.sites].concat(),
+        }))
     }
 }
 
@@ -658,7 +662,7 @@ fn compile_contraptions(
     // The side's officers rate its shield and missile kinds alike.
     let rates = officers.contraption_rates(&side.techs.officers);
     for placement in &side.contraptions {
-        let located = |error: Error| Error::new(format!("side {name}: {error}"));
+        let located = |error: Error| error.context(format!("side {name}"));
         match placement.type_name.as_str() {
             "interceptor" => interceptors
                 .extend(refused.hold(contraptions.interceptor(team, placement).map_err(located))),
@@ -701,7 +705,7 @@ fn compile_standing(
     skill_effects: &CommanderSkillEffects,
     refused: &mut Refusals,
 ) -> (Vec<ShieldPlacement>, Vec<StandingOil>) {
-    let named = |error: Error| Error::new(format!("side {name}: {error}"));
+    let named = |error: Error| error.context(format!("side {name}"));
     let shields = side
         .standing_shields
         .iter()
@@ -734,7 +738,7 @@ fn compile_battle_skills(
         let Some(mut release) = refused.hold(
             skill_effects
                 .release(team, skill, units)
-                .map_err(|error| Error::new(format!("side {name}: {error}"))),
+                .map_err(|error| error.context(format!("side {name}"))),
         ) else {
             continue;
         };
@@ -784,7 +788,7 @@ fn compile_constructions(
         let Some(mut buildings) = refused.hold(
             table
                 .buildings(team, placement)
-                .map_err(|error| Error::new(format!("side {name}: {error}"))),
+                .map_err(|error| error.context(format!("side {name}"))),
         ) else {
             continue;
         };
@@ -826,7 +830,7 @@ fn compile_formation(
     let fired = refused.hold(
         rules
             .fired()
-            .map_err(|error| Error::new(format!("side {side_name}: {error}"))),
+            .map_err(|error| error.context(format!("side {side_name}"))),
     );
     let fits = refused.hold(validate_formation_footprint(side_name, formation, rules));
     let level = i64::from(formation.level.unwrap_or(1));
@@ -932,7 +936,7 @@ fn production_of(
                 loadouts
                     .equipment
                     .production(id, rules)
-                    .map_err(|error| Error::new(format!("side {side_name}: {error}"))),
+                    .map_err(|error| error.context(format!("side {side_name}"))),
             )?,
         );
     }
@@ -943,7 +947,7 @@ fn production_of(
             loadouts
                 .technologies
                 .production(&side.techs.units, &rules.type_name)
-                .map_err(|error| Error::new(format!("side {side_name}: {error}"))),
+                .map_err(|error| error.context(format!("side {side_name}"))),
         )?,
     );
     lines.extend(
@@ -1309,7 +1313,7 @@ fn loadout(
     loadouts: &Loadouts,
     refused: &mut Refusals,
 ) -> Option<Worn> {
-    let on_side = |error: Error| Error::new(format!("side {side_name}: {error}"));
+    let on_side = |error: Error| error.context(format!("side {side_name}"));
     let asked = side
         .techs
         .officers
@@ -1355,9 +1359,9 @@ fn loadout(
         return None;
     }
     let refusal = |error: Error| {
-        Error::new(format!(
-            "side {side_name} unit type {type_name:?} carries a loadout this \
-             build cannot resolve: {error}"
+        error.context(format!(
+            "side {side_name} unit type {type_name:?} carries a loadout this build cannot \
+             resolve"
         ))
     };
     let experience_rate = refused.hold(
@@ -1487,11 +1491,11 @@ fn worn(
     corrections: Vec<(Channel, Entry)>,
     refused: &mut Refusals,
 ) -> Option<UnitEffects> {
-    let on_side = |error: Error| Error::new(format!("side {side_name}: {error}"));
+    let on_side = |error: Error| error.context(format!("side {side_name}"));
     let refusal = |error: Error| {
-        Error::new(format!(
-            "side {side_name} unit type {type_name:?} carries a loadout this \
-             build cannot resolve: {error}"
+        error.context(format!(
+            "side {side_name} unit type {type_name:?} carries a loadout this build cannot \
+             resolve"
         ))
     };
     // Every source of an interface reaches the unit's one provider of it,
@@ -1841,8 +1845,8 @@ fn extra_weapons(
     {
         let named = format!("technology {}", weapon.technology);
         let on_unit = |error: Error| {
-            Error::new(format!(
-                "side {side_name} unit type {type_name:?} technology {}: {error}",
+            error.context(format!(
+                "side {side_name} unit type {type_name:?} technology {}",
                 weapon.technology
             ))
         };

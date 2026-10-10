@@ -511,7 +511,7 @@ fn project(bytes: &[u8], round: Option<i32>, output: Option<&Path>) -> Result<An
 fn simulate(layout: &Path, seed: Option<i32>, output: Option<&Path>) -> Result<Answer, Failure> {
     let simulate = |at: Option<&Path>| {
         mechcore_simulation::simulate_layout(layout, at.map_or(Record::Hash, Record::File), seed)
-            .map_err(|error| Failure::refused(error.to_string()))
+            .map_err(|error| Failure::unsimulated(&error))
     };
     let Some(output) = output.filter(|output| output.exists()) else {
         return report(&simulate(output)?, None);
@@ -678,8 +678,7 @@ pub(crate) fn fought(
     )
         -> Result<mechcore_simulation::SimulationResult, mechcore_simulation::Error>,
 ) -> Result<mechcore_document::Fight, Failure> {
-    let simulated =
-        simulate(Record::Memory).map_err(|error| Failure::refused(error.to_string()))?;
+    let simulated = simulate(Record::Memory).map_err(|error| Failure::unsimulated(&error))?;
     let recording = simulated
         .recording
         .ok_or_else(|| Failure::failed("the simulator kept no recording of the fight"))?;
