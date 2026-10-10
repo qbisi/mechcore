@@ -750,7 +750,12 @@ one slot, and each officer its side holds adds that officer's
 `equipment_slots` from [`config/officers.yaml`](../../../config/officers.yaml),
 which is `CardElement.GetEquipmentSlotCount`: one plus the side's
 `EquipmentSlotCount`. A unit that lists more items than its side gives it
-slots is refused.
+slots is refused, and so is an item the unit may not wear, which
+`EquipmentManager.CanUseEquipment` refuses and the game then fights the unit
+without: one on a unit whose card clears `canAddEquipment` (`wears_equipment:
+false` in [`config/unit_prices.yaml`](../../../config/unit_prices.yaml): War
+Factory, Mountain and Abyss), or one whose `mech_type` does not reach the
+unit, as `UnitUtility.IsEffectTarget` reads it.
 `travelling` is an optional boolean and defaults to `false`. It has semantic
 effect only for an ambush-zone unit. `travelling: true` is invalid outside the
 ambush zones, and `travelling: false` is invalid for an ambush-zone unit in

@@ -106,6 +106,8 @@ The generator never assigns such a pair:
 - `lead.depth: flank` with `lead.source: legacy` in round `2`, whose flank
   units are all travelling;
 - `lead.modification` beyond the number of officers that modify `lead.type`;
+- `lead.equipment` an item `lead.type` may not wear, which the
+  [layout](layout.md) refuses;
 - `lead.techs` other than none for a type that has no technologies;
 - `second.level` with `second.type` none;
 - the same officer in `officer.first` and `officer.second`, unless its card

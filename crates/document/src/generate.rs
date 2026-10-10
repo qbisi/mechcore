@@ -352,6 +352,8 @@ impl Space {
                 || matches!((depth, source, round), (Some(FLANK), Some(LEGACY), Some(1)))
                 || matches!((lead, at(Role::LeadModification)), (Some((_, name, _)), Some(value))
                     if value > self.modifications.get(name).map_or(0, Vec::len))
+                || matches!((lead, at(Role::LeadEquipment)), (Some((id, name, _)), Some(value))
+                    if value > 0 && crate::compile::wears(name, id, self.equipment[value - 1]).is_err())
                 || matches!((lead, at(Role::LeadTechs)), (Some((id, _, _)), Some(value))
                     if value > 0 && self.technologies.get(&id).is_none_or(Vec::is_empty))
                 || matches!((at(Role::SecondType), at(Role::SecondLevel)), (Some(0), Some(level)) if level != 0)
