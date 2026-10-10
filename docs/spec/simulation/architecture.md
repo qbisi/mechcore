@@ -508,8 +508,8 @@ filling modules rather than by editing the kernel:
 | the recording's columns | what each layer is accepted against, per tick |
 
 A module that is not implemented is present, claims its fields, and refuses
-them. The count of tracked rounds a layout compiles for is the progress bar, and
-[`scripts/corpus/fight-coverage.py`](../../../scripts/corpus/fight-coverage.py) reports it.
+them, and [`scripts/corpus/verify-matches.py`](../../../scripts/corpus/verify-matches.py)
+reports a corpus round the simulator refuses with the refusal.
 
 ## Determinism invariants
 

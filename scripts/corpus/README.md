@@ -12,22 +12,19 @@ here make the corpus, fetch it, and read it:
 | `collect-replays.py` | watches live standard 1v1 matches unattended and keeps each one in the game's replay directory; it needs the game |
 | `replay.py` | `sync` fetches the corpus into the untracked `work/replay/`; `publish` adds the replays this machine's game recorded under the installed version, and pushes them |
 | `export-replay-corpus.py` | converts this checkout's version's replays into `work/match/<version>/`, writes each match back as a replay and converts it again, and fails on one that does not come back the same |
-| `verify-matches.py` | runs `mechcore verify` over those matches, adds up the transition coverage, and lists every round the simulator fights whose result differs from the match, with whether `tests/corpus/` pins it |
+| `verify-matches.py` | runs `mechcore verify` over those matches, adds up the transition coverage, and lists every round the simulator fights whose result differs from the match, with whether `tests/corpus/` pins it, and every round it refuses, each match's last round fought on its own |
 | `match-replays.py` | fights every round of both replays, the corpus's and the one its match writes, in the game, and compares the two |
 | `corpus-fights.py` | fights every corpus round in the game into the fight document it records, under `work/fight/<version>/`, each a fixture candidate for `tests/corpus/`; it needs the game |
-| `fight-coverage.py` | how many recorded rounds the simulator fights, a round a side concedes left out, and what it names as missing for the rest, by refusal, by system and by layout field; and how many of the unit technologies the game has it fights, each on one unit against a Rhino, the rest by unit with each one's id, kind and cause, and again those whose name another id shares |
-| `distance-report.py` | the two reports above as one Markdown table, beside an earlier commit's, with the rounds fought wrong and which of them the change brings or fixes, and the unit technologies refused by unit, with their ids, and by a shared name |
-| `divergence-issue.py` | the rounds a master commit fights wrong that its parent did not, as one issue, from the two runs' reports |
+| `divergence-issue.py` | the rounds a master commit fights wrong or refuses that its parent did not, as one issue naming the pull request it merged, from the two runs' `verify-matches.py` reports |
 
 The test suite and the gate read no replay: the converter is not bound to
 read every version the corpus holds, and a replay added there must not keep a
 change from merging. [`corpus.yml`](../../.github/workflows/corpus.yml) reads
-it outside the gate. On every pull request and master commit it fetches the
-corpus, converts this version's replays, runs `fight-coverage.py` and
-`verify-matches.py`, and keeps the reports; on a pull request it also keeps one
-comment with `distance-report.py`'s table, compared with the master commit the
-pull request is based on; on a master commit, `divergence-issue.py` opens one
-issue for the rounds it newly fights wrong.
+it outside the gate, on master commits alone. On each it fetches the corpus,
+converts this version's replays, runs `verify-matches.py` and keeps its
+reports; `divergence-issue.py` compares them with the parent commit's, and the
+workflow opens one issue for the rounds the commit newly fights wrong or
+refuses and comments on the pull request it merged with the issue's link.
 
 **A replay is evidence.** It is copied from the Steam installation byte for
 byte and never rewritten. Only a locally recorded replay is admitted: the

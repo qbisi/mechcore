@@ -7,9 +7,9 @@ priority, no labels, no status beyond open. The only thing that happens to it
 is that it leaves.
 
 One label exists, `divergence`: an issue the simulator fights differently
-from the game. The corpus workflow opens one on a master commit for the corpus
-rounds that commit newly fights wrong, and a finding of the same kind carries
-it too. It leaves as any other: once the cause is found, by the fix's
+from the game, or refuses to fight. The corpus workflow opens one on a master
+commit for the corpus rounds that commit newly fights wrong or refuses, and a
+finding of the same kind carries it too. It leaves as any other: once the cause is found, by the fix's
 `Closes #n`, or into the issue of another round found to part on the same
 cause.
 

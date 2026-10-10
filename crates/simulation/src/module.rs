@@ -392,8 +392,7 @@ pub(crate) fn unsupported(side: &SidePlan) -> Vec<(Field, &'static str)> {
 /// What a refusal says: every field at once, each with the module that owes it.
 ///
 /// Naming all of them rather than the first is what lets a caller see how far a
-/// deployment is from being fought, and what
-/// `scripts/corpus/fight-coverage.py` counts.
+/// deployment is from being fought.
 pub(crate) fn refusal(side_name: &str, missing: &[(Field, &'static str)]) -> String {
     let listed = missing
         .iter()

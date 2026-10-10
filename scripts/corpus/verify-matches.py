@@ -11,12 +11,18 @@ opening. This script adds the reports up by field group, lists every unequal
 leaf, says for each match how many rounds it fought as the match says before
 the first that is not and where that was, and lists every round the simulator
 fights whose result differs from the match, the divergences left to find, with
-whether `tests/corpus/` pins the round already.
+whether `tests/corpus/` pins the round already. It lists every round the
+simulator refuses, or that does not project onto a layout, with the reason:
+`verify` fights only the rounds the match states a position after, so the
+script fights each match's last round on its own, `convert --to layout` then
+`convert --to mcfr`, unless a side concedes it, as a concession ends the match
+unfought.
 The documents are the ones `scripts/corpus/export-replay-corpus.py` converts from the
 corpus's replays of this checkout's version.
 
 The exit status is 0 only when every match verifies, which needs no unequal
-and no unimplemented leaf anywhere, and every round fought as the match says.
+and no unimplemented leaf anywhere, and every round fought as the match says,
+and no last round is refused.
 
 Run from anywhere inside the checkout, after a release build and a corpus
 fetch:
@@ -34,8 +40,10 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
+import tempfile
 from typing import Any
 import unicodedata
 
@@ -93,6 +101,59 @@ def verify(executable: Path, matches: list[Path]) -> list[dict[str, Any]]:
     return reports
 
 
+def last_round(path: Path) -> int | None:
+    """The match's last round, which no position follows, unless a side
+    concedes it: a concession ends the match with no fight."""
+    text = path.read_text()
+    stated = sum(1 for line in text.splitlines() if line == "kind: state")
+    for segment in re.split(r"^---$", text, flags=re.MULTILINE):
+        found = re.match(r"\s*kind: action\nround: (\d+)$", segment, flags=re.MULTILINE)
+        if (
+            found
+            and int(found.group(1)) == stated
+            and re.search(r"^- \{type: concede\}$", segment, flags=re.MULTILINE)
+        ):
+            return None
+    return stated or None
+
+
+def fight_last_round(executable: Path, path: Path, room: Path) -> dict[str, Any] | None:
+    """The last round fought on its own: why it does not project or the
+    simulator refuses it, or nothing when it is fought."""
+    round_number = last_round(path)
+    if round_number is None:
+        return None
+    layout = room / "last-round.yaml"
+    projected = subprocess.run(
+        [str(executable), "convert", str(path), "--to", "layout", "--round", str(round_number),
+         str(layout), "--force"],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if projected.returncode != 0:
+        return {"round": round_number, "result": "not_projected", "reason": reason_of(projected.stderr)}
+    fought = subprocess.run(
+        [str(executable), "convert", str(layout), "--to", "mcfr"],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if fought.returncode != 0:
+        return {"round": round_number, "result": "unsupported", "reason": reason_of(fought.stderr)}
+    return None
+
+
+def reason_of(stderr: str) -> str:
+    """The reason a refusal names, from the error object it prints."""
+    for line in reversed(stderr.splitlines()):
+        try:
+            return json.loads(line)["reason"]
+        except (ValueError, KeyError, TypeError):
+            continue
+    return stderr.strip()
+
+
 def add(total: dict[str, int], counts: dict[str, Any]) -> None:
     for name in CLASSES:
         total[name] = total.get(name, 0) + int(counts.get(name, 0))
@@ -109,14 +170,27 @@ def pinned(path: Path, round_number: int) -> bool:
     return (root / "tests/corpus" / f"{match_id(path)}-r{round_number}.yaml").is_file()
 
 
-def summarize(matches: list[Path], reports: list[dict[str, Any]]) -> dict[str, Any]:
+def refusal(path: Path, fought: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "match": path.name,
+        "id": match_id(path),
+        "round": fought["round"],
+        "result": fought["result"],
+        "reason": fought["reason"],
+    }
+
+
+def summarize(
+    matches: list[Path], reports: list[dict[str, Any]], last: list[dict[str, Any] | None]
+) -> dict[str, Any]:
     total: dict[str, int] = {}
     fields: dict[str, dict[str, int]] = {}
     files = []
     unequal = []
     equal = 0
     differing = []
-    for path, report in zip(matches, reports):
+    refused = []
+    for path, report, last_fought in zip(matches, reports, last):
         coverage = report.get("coverage") or {}
         counts = coverage.get("total") or {}
         add(total, counts)
@@ -145,6 +219,10 @@ def summarize(matches: list[Path], reports: list[dict[str, Any]]) -> dict[str, A
                         ],
                     }
                 )
+            elif fought["result"] in ("unsupported", "not_projected"):
+                refused.append(refusal(path, fought))
+        if last_fought:
+            refused.append(refusal(path, last_fought))
         files.append(
             {
                 "match": path.name,
@@ -171,6 +249,7 @@ def summarize(matches: list[Path], reports: list[dict[str, Any]]) -> dict[str, A
         "unequal": unequal,
         "equal": equal,
         "differing": differing,
+        "refused": refused,
     }
 
 
@@ -251,6 +330,15 @@ def print_summary(summary: dict[str, Any], limit: int) -> None:
         print(table(rows, {1}))
     print()
 
+    refused = summary["refused"]
+    print("rounds the simulator refuses, or that do not project onto a layout")
+    if refused:
+        rows = [["match", "round", "result", "reason"]]
+        for found in refused:
+            rows.append([found["id"], str(found["round"]), found["result"], found["reason"]])
+        print(table(rows, {1}))
+    print()
+
     stops = ", ".join(f"{count} {result}" for result, count in summary["stops"].items())
     print(f"{summary['fought']} rounds fought as the match says before the first that is not"
           + (f"; stopped: {stops}" if stops else ""))
@@ -258,6 +346,7 @@ def print_summary(summary: dict[str, Any], limit: int) -> None:
         f"{summary['equal']} of {fought} rounds the simulator fights come out as the match says;"
         f" {len(differing)} differ"
     )
+    print(f"{len(refused)} rounds refused")
     print(f"{summary['valid']}/{summary['matches']} matches verify")
 
 
@@ -278,14 +367,17 @@ def main() -> int:
         print(f"no match YAML in {match_dir}; run scripts/corpus/export-replay-corpus.py", file=sys.stderr)
         return 2
 
-    summary = summarize(matches, verify(executable, matches))
+    with tempfile.TemporaryDirectory() as room:
+        last = [fight_last_round(executable, path, Path(room)) for path in matches]
+    summary = summarize(matches, verify(executable, matches), last)
     if args.json_out:
         args.json_out.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n")
     if args.json:
         print(json.dumps(summary, ensure_ascii=False, indent=2))
     else:
         print_summary(summary, args.limit)
-    return 0 if summary["valid"] == summary["matches"] else 1
+    complete = summary["valid"] == summary["matches"] and not summary["refused"]
+    return 0 if complete else 1
 
 
 if __name__ == "__main__":
