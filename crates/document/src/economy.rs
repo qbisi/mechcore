@@ -103,7 +103,8 @@ struct CommanderSkillRow {
     cooldown: Cooldown,
 }
 
-/// What one unit costs to buy, to unlock and to raise one level.
+/// What one unit costs to buy, to unlock and to raise one level, and whether
+/// its card wears equipment.
 #[derive(Clone, Copy, Debug, Deserialize)]
 pub struct UnitPrice {
     pub unit_id: i32,
@@ -111,6 +112,14 @@ pub struct UnitPrice {
     pub upgrade_supply: i32,
     #[serde(default)]
     pub unlock_supply: i32,
+    /// `CardData.canAddEquipment`, which `CardElement.CanAddEquipment` reads
+    /// before any slot.
+    #[serde(default = "wears_equipment")]
+    pub wears_equipment: bool,
+}
+
+const fn wears_equipment() -> bool {
+    true
 }
 
 /// What kind of thing a card is, and so what taking it changes.

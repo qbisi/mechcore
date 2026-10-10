@@ -310,6 +310,63 @@ fn validate_sources(side_name: &str, units: &[Placement], recovered: &[i32]) -> 
     Ok(())
 }
 
+#[derive(serde::Deserialize)]
+struct EquipmentFile {
+    equipment: Vec<EquipmentRow>,
+}
+
+#[derive(serde::Deserialize)]
+struct EquipmentRow {
+    id: i32,
+    name: String,
+    #[serde(default)]
+    mech_type: Vec<i32>,
+    #[serde(default)]
+    units: Vec<String>,
+}
+
+/// Whether a unit of `type_name` may wear item `equipment`, as
+/// `EquipmentManager.CanUseEquipment` asks besides a free slot: its card has
+/// to set `canAddEquipment` (`CardElement.CanAddEquipment`), and the item's
+/// own targets have to reach it (`UnitUtility.IsEffectTarget`). The game
+/// fights a unit it refuses one to without it.
+///
+/// # Errors
+///
+/// Returns why the unit may not wear it.
+pub fn wears(type_name: &str, unit_id: i32, equipment: i32) -> Result<(), String> {
+    static ROWS: std::sync::OnceLock<Result<Vec<EquipmentRow>, String>> =
+        std::sync::OnceLock::new();
+    let rows = ROWS
+        .get_or_init(|| {
+            serde_yaml::from_str::<EquipmentFile>(include_str!(
+                "../../../config/equipment_effects.yaml"
+            ))
+            .map(|file| file.equipment)
+            .map_err(|error| format!("config/equipment_effects.yaml: {error}"))
+        })
+        .as_ref()
+        .map_err(Clone::clone)?;
+    if !crate::economy::Economy::embedded()?
+        .unit(unit_id)
+        .is_none_or(|card| card.wears_equipment)
+    {
+        return Err(format!("the {type_name} card wears no equipment"));
+    }
+    let row = rows
+        .iter()
+        .find(|row| row.id == equipment)
+        .ok_or_else(|| format!("equipment {equipment} is not in the equipment table"))?;
+    let category = crate::targets::category(type_name)
+        .ok_or_else(|| format!("unit type {type_name:?} has no unit file"))?;
+    let who = format!("equipment {} ({})", row.id, row.name);
+    if crate::targets::Targets::of_list(&row.mech_type, &row.units, &who).reaches(&category)? {
+        Ok(())
+    } else {
+        Err(format!("{who} does not reach a {type_name}"))
+    }
+}
+
 #[allow(clippy::too_many_lines)]
 fn compile_units(
     side_name: &str,
@@ -404,6 +461,15 @@ fn compile_units(
                     position.y,
                     equipment.len()
                 ));
+            }
+            for &item in &equipment {
+                wears(&type_name, unit_id, item).map_err(|why| {
+                    format!(
+                        "side {side_name} unit type {type_name:?} at ({}, {}) cannot wear \
+                         equipment {item}: {why}",
+                        position.x, position.y
+                    )
+                })?;
             }
             validate_unit_placement(side_name, &type_name, position, travelling, round)?;
             Ok(Placement {
@@ -1287,4 +1353,27 @@ fn validate_side_modifiers(side_name: &str, side: &Side) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::wears;
+
+    const BARRIER: i32 = 1_307_001;
+    const LASER_SIGHTS: i32 = 13_030_001;
+    const HASTE_MODULE: i32 = 13_030_005;
+
+    #[test]
+    fn a_unit_wears_what_its_card_and_the_item_allow() {
+        // Huge and ground, which Barrier's `mech_type: [7, 2]` asks.
+        assert!(wears("fortress", 1, BARRIER).is_ok());
+        // A wasp is neither.
+        assert!(wears("wasp", 6, BARRIER).is_err());
+        // Laser Sights reach a ranged unit, and a crawler is melee.
+        assert!(wears("marksman", 2, LASER_SIGHTS).is_ok());
+        assert!(wears("crawler", 10, LASER_SIGHTS).is_err());
+        // Haste Module reaches every unit, but a War Factory's card wears none.
+        assert!(wears("wraith", 18, HASTE_MODULE).is_ok());
+        assert!(wears("war_factory", 17, HASTE_MODULE).is_err());
+    }
 }

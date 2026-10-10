@@ -95,6 +95,7 @@ units:
     supply: 800
     members: 1
     unlock_supply: 350
+    wears_equipment: false
     upgrade_supply: 400
   - type: wraith
     unit_id: 18
@@ -163,6 +164,7 @@ units:
     supply: 800
     members: 1
     unlock_supply: 350
+    wears_equipment: false
     upgrade_supply: 400
   - type: void_eye
     unit_id: 30
@@ -185,4 +187,5 @@ units:
     supply: 800
     members: 1
     unlock_supply: 350
+    wears_equipment: false
     upgrade_supply: 400

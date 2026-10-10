@@ -135,3 +135,51 @@ impl Targets {
         }
     }
 }
+
+#[derive(Deserialize)]
+struct UnitRow {
+    type_name: String,
+    domain: Domain,
+    size: UnitSize,
+    attack: AttackRow,
+}
+
+#[derive(Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum Domain {
+    Ground,
+    Air,
+}
+
+#[derive(Deserialize)]
+struct AttackRow {
+    #[serde(default)]
+    melee: bool,
+}
+
+/// What `IsEffectTarget` reads of a unit type as its card deploys it, from
+/// its `config/units` file, or `None` for a type no file names.
+///
+/// # Panics
+///
+/// Panics if an embedded unit file does not parse, which the simulator's
+/// own load refuses first.
+#[must_use]
+pub fn category(type_name: &str) -> Option<Category<'static>> {
+    static UNITS: std::sync::OnceLock<Vec<UnitRow>> = std::sync::OnceLock::new();
+    UNITS
+        .get_or_init(|| {
+            crate::catalog::UNIT_CONFIGS
+                .iter()
+                .map(|text| serde_yaml::from_str(text).expect("an embedded unit file parses"))
+                .collect()
+        })
+        .iter()
+        .find(|row| row.type_name == type_name)
+        .map(|row| Category {
+            type_name: &row.type_name,
+            melee: row.attack.melee,
+            ground: row.domain == Domain::Ground,
+            size: row.size,
+        })
+}

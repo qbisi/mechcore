@@ -589,6 +589,10 @@ def main():
         economy.append(f"    members: {card['mechCount']}")
         if card["unlockPrice"]:
             economy.append(f"    unlock_supply: {card['unlockPrice']}")
+        # `CardData.canAddEquipment`, which `CardElement.CanAddEquipment` reads
+        # before any slot: a card that clears it wears nothing.
+        if not card["canAddEquipment"]:
+            economy.append("    wears_equipment: false")
         economy.append(f"    upgrade_supply: {levels[unit_id]['upgradeSupplyLv2']}")
 
     # A card with no price of its own is sold at its level's price.
