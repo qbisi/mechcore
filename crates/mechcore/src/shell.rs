@@ -45,6 +45,8 @@ without the game
   verify | convert | diff | show  files, whose kind is read from what they hold
   play <file> [<page.html>]       the page that plays a fight back
   format | schema                 documents
+  generate --seed n --count n <dir>
+                                  layouts that cover every pair of fight decisions
   man [<topic>|<kind>]            the manual this binary carries
 shell
   help                            this list
@@ -52,7 +54,7 @@ shell
 
 /// The commands a line may name beside the game's, which need no session.
 const SESSIONLESS: &[&str] = &[
-    "verify", "convert", "diff", "show", "play", "format", "schema", "man",
+    "verify", "convert", "diff", "show", "play", "format", "schema", "generate", "man",
 ];
 
 pub(crate) fn run() -> Result<(), String> {

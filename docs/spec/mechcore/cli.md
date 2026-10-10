@@ -618,6 +618,25 @@ which is what a reader validates against and what a writer generates from; it
 says nothing about what the fields mean, which is the document's own spec. A
 kind this contract does not name is refused.
 
+## `generate`
+
+`generate --seed <u64> --count <n> <dir>` draws the first `n` layouts of the
+batch the seed starts, so that every pair of values of two factors the rules
+admit appears in one of them, as [generate.md](../document/generate.md)
+defines. It writes each into `<dir>` as `<seed>-<index>.yaml`, refusing to
+replace one without `--force`, and answers `mechcore.generate-result`: each
+layout's path and the pairs it was the first to cover, how many pairs the rules
+admit and how many the batch covers, and each pair it does not, with the
+refusal of the last candidate dropped while holding it.
+
+`generate --seed <u64> --index <i>` writes layout `i` of that batch on
+standard output, the same layout a batch of any count above `i` writes. It
+names no directory.
+
+A generated layout is fought as any other: `convert` writes it as a replay or
+fights it in the simulator, and the game's recording of it is what the
+simulator's is compared with.
+
 ## `match`
 
 A match is a [match](../document/match.md) document and a turn file beside

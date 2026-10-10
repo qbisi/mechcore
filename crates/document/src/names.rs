@@ -225,6 +225,24 @@ pub fn equipment_name(id: i32) -> Option<&'static str> {
     names().equipment.name(id)
 }
 
+/// An officer's name, which a report quotes.
+#[must_use]
+pub fn officer_name(id: i32) -> Option<&'static str> {
+    names().officers.name(id)
+}
+
+/// Every equipment item the build names, by ascending ID.
+#[must_use]
+pub fn equipment_ids() -> Vec<i32> {
+    names().equipment.names.keys().copied().collect()
+}
+
+/// Every commander skill the build names, by ascending ID.
+#[must_use]
+pub fn commander_skill_ids() -> Vec<i32> {
+    names().commander_skills.names.keys().copied().collect()
+}
+
 /// A kind of named row, as the serde helpers below use it.
 pub(crate) trait Kind {
     const WHAT: &'static str;

@@ -7,6 +7,7 @@ mod diff;
 mod difference;
 mod format;
 mod game;
+mod generate;
 mod instant;
 mod kind;
 mod man;
@@ -39,6 +40,9 @@ fn usage(program: &str) {
         "       {program} play <layout|fight|recording> [<page.html>] [--seed <i32>] [--no-open]"
     );
     eprintln!("       {program} format <document.yaml> [--write]");
+    eprintln!(
+        "       {program} generate --seed <u64> --count <n> <dir> | --seed <u64> --index <i>"
+    );
     eprintln!("       {program} schema <layout|fight|match|state|action>...");
     eprintln!("       {program} match new <match.yaml> [--seed <i32>] [--map <i32>]");
     eprintln!("       {program} match show <match.yaml> --side blue|red [--wait [<seconds>]]");
@@ -86,6 +90,7 @@ pub(crate) fn dispatch(command: &str, arguments: Args) -> Option<Outcome> {
         "query" => query::run(arguments),
         "play" => play::run(arguments),
         "format" => format::run(arguments),
+        "generate" => generate::run(arguments),
         "schema" => schema::run(arguments),
         "match" => r#match::run(arguments),
         "game" => game::run(arguments),

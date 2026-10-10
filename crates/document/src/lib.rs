@@ -25,6 +25,7 @@ pub mod coverage;
 pub mod economy;
 pub mod experience;
 pub mod fight;
+pub mod generate;
 mod grbr;
 pub mod landing;
 pub mod layout;

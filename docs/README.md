@@ -199,7 +199,7 @@ being specified.
 | --- | --- | --- |
 | Document format | [layout](spec/document/layout.md), [fight](spec/document/fight.md), [state](spec/document/state.md), [match](spec/document/match.md), [action](spec/document/action.md), [layout replay](spec/document/layout-replay.md), [match replay](spec/document/match-replay.md), [turn](spec/mechcore/turn.md), [mcfr](spec/mcfr/mcfr.md), [unit-rules](spec/simulation/unit-rules.md) | the shape of the document, `Normal form`, `Excluded fields` |
 | Interface contract | [adapter](spec/adapter/adapter.md), [cli](spec/mechcore/cli.md), [session](spec/mechcore/session.md) | each operation with its arguments, its result and what it refuses; an error taxonomy |
-| Algorithm contract | [architecture](spec/simulation/architecture.md), [rvo](spec/simulation/rvo.md), [quadtree](spec/simulation/quadtree.md) | the determinism invariants; the fidelity boundary |
+| Algorithm contract | [layout generation](spec/document/generate.md), [architecture](spec/simulation/architecture.md), [rvo](spec/simulation/rvo.md), [quadtree](spec/simulation/quadtree.md) | the determinism invariants; the fidelity boundary |
 
 A required section may be delegated to the sibling that owns it, and the spec
 that delegates says where. What is not allowed is silence: a missing section
