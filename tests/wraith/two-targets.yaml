@@ -9,7 +9,8 @@
 # reading.
 #
 # The slots take u3, u2, u3, u3: a slot that finds every unit held doubles
-# up, so sharing is not even allocation.
+# up, so sharing is not even allocation. Its assert reads each slot's lock on
+# tick 10.
 
 kind: fight
 source: game
@@ -26,5 +27,8 @@ red:
 outcome:
   blue.units[0].exp: 400
   red.core_damage: 250
+asserts:
+- sql: "SELECT tick, unit_id, skill_slot, enabled__lock_target__kind, enabled__lock_target__id FROM units__skills WHERE unit_id = 1 AND tick = 10 ORDER BY skill_slot"
+  rows: [[10, 1, 0, unit, 3], [10, 1, 1, unit, 2], [10, 1, 2, unit, 3], [10, 1, 3, unit, 3]]
 ticks: 96
 hash: 23:de67a8f035bfdbc91e5b9d2f7dec9eee8b8d997f6ef72891fa70d9981c1afc91

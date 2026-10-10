@@ -9,17 +9,6 @@ mod skill;
 use super::skill::PendingRelease;
 use super::*;
 
-/// The layout a pinned fight starts from: a fight document under `tests/`,
-/// projected onto the layout the game recorded it from.
-pub(super) fn pinned_layout(fight: &[u8], units: &crate::rules::UnitConfigs) -> CompiledLayout {
-    let fight = mechcore_document::fight::parse_yaml(fight).unwrap();
-    let layout =
-        mechcore_document::canonical_yaml(mechcore_document::fight::project(&fight)).unwrap();
-    crate::layout::compile_with_seed(layout.as_bytes(), units)
-        .unwrap()
-        .1
-}
-
 pub(super) fn unit_target(id: u64) -> FightActorRef {
     FightActorRef::Unit(id)
 }
