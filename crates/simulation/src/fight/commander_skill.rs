@@ -353,9 +353,9 @@ impl Simulation {
     }
 
     /// `PerformNegativeEffect`'s hit: `CommanderSkillDamageProvider`'s damage
-    /// over the skill's circle where it landed or stopped, on everything of
-    /// either side it reaches, with no owner. A shield takes what the skill's
-    /// damage modifier adds to it.
+    /// over the skill's circle where it landed or stopped, on every unit and
+    /// construction of either side it reaches, with no owner. A shield takes
+    /// what the skill's damage modifier adds to it.
     fn strike_circle(
         &mut self,
         release: &SkillRelease,
@@ -363,10 +363,13 @@ impl Simulation {
         (x_q32, y_q32, z_q32): (i64, i64, i64),
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        // A battle skill's circle reaches units alone.
+        // `PrepareRangeTargets` asks `CalculateRangeActors` with
+        // `includeBuilding` off, which still takes every actor of each side's
+        // target tree: towers and constructions as well as units. The hit is
+        // a special attack, which passes over the towers.
         let hit = DamageHit {
             crosses_shields: circle.crosses_shields,
-            strikes_buildings: false,
+            provider: Provider::CommanderSkill,
             shield_damage: circle
                 .shield_damage
                 .filter(|&added| added > 0)
@@ -379,40 +382,9 @@ impl Simulation {
                 q32_to_space_rounded(circle.range_q32),
             )
         };
-        // `PrepareRangeTargets` asks `CalculateRangeActors` with
-        // `includeBuilding` off: a tower is never struck. Whether a
-        // construction is, as one of its side's actors, is not measured;
-        // a hit that deals a unit nothing takes nothing from it either way.
-        if circle.damage > 0
-            && let Some(block) = self.construction_in_reach(x_q32, z_q32, circle.range_q32)
-        {
-            return Err(Error::new(format!(
-                "{} reaches construction building {block}, and whether a battle skill strikes \
-                 a construction is not measured",
-                release.name
-            )));
-        }
         let struck = self.perform_damage(hit, events)?;
         self.record_ends(struck.ends, events);
         Ok(())
-    }
-
-    /// The first standing construction block whose edge a circle reaches.
-    fn construction_in_reach(&self, x_q32: i64, z_q32: i64, range_q32: i64) -> Option<u64> {
-        self.buildings
-            .iter()
-            .filter(|building| {
-                building_alive(building) && self.constructions.contains_key(&building.building_id)
-            })
-            .find(|building| {
-                native_q32_magnitude(
-                    building.position.x.saturating_sub(x_q32),
-                    building.position.z.saturating_sub(z_q32),
-                )
-                .saturating_sub(space_to_q32(building_radius(building)))
-                    <= range_q32
-            })
-            .map(|building| building.building_id)
     }
 
     /// `RangeTargetCalculator.CalculateRangeActors` as the sub-effect asks it,

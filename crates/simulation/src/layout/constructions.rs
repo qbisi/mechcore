@@ -234,6 +234,15 @@ impl Constructions {
             ))
         })?;
         let named = format!("construction {id} ({})", row.name);
+        // `FightCalculator.PerformHitTargetEffect` takes this rate off a
+        // special attack's hit on a construction, a battle skill's or a
+        // summon's drop; every row's is zero.
+        if row.special_damage_reduce_rate != 0 {
+            return Err(Error::new(format!(
+                "{named} takes {} off a battle skill's hit, which no construction does",
+                row.special_damage_reduce_rate
+            )));
+        }
         let skill = if row.damage == 0 {
             None
         } else {

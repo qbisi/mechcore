@@ -56,8 +56,8 @@ pub(in crate::fight) struct DamageHit {
     /// `canCrossAdvancedShield`, or a performer that
     /// `IsInterceptByAdvancedEnergyShield` is false for.
     pub(in crate::fight) crosses_shields: bool,
-    /// Whether its splash strikes buildings as well as units: a unit's and
-    /// a missile's does, and a battle skill's reaches units alone.
+    /// Whether its splash strikes buildings as well as units: every hit's
+    /// does but a chain's.
     pub(in crate::fight) strikes_buildings: bool,
     pub(in crate::fight) splash_radius: i64,
     /// Its `IDamageProvider.GetDamageType` is `EDamageType.Fire`: it sets
@@ -217,6 +217,8 @@ impl DamageHit {
 pub(in crate::fight) enum Provider {
     /// `SupportUnitDamageProvider`: a summon's drop.
     SupportUnit,
+    /// `CommanderSkillDamageProvider`: a battle skill's strike.
+    CommanderSkill,
     /// `FightProjectile`.
     Projectile,
     /// `SkillDamageProvider`, of a skill whose attack is melee or not.
@@ -231,6 +233,12 @@ impl Provider {
     /// (`2 - IsMelee`), and every other answers `None`.
     const fn remote(self) -> bool {
         matches!(self, Self::Projectile | Self::Skill { melee: false })
+    }
+
+    /// `IDamageProvider.IsSpecialAttack`: a battle skill's strike and a
+    /// summon's drop are, and every other provider is not.
+    const fn special_attack(self) -> bool {
+        matches!(self, Self::SupportUnit | Self::CommanderSkill)
     }
 }
 
@@ -804,6 +812,14 @@ impl Simulation {
     ) -> Result<Struck> {
         let mut struck = Struck::default();
         for target in targets {
+            // A special attack passes over a tower its splash reached, and
+            // over a unit whose main skill is the empty one
+            // (`FightMech.IsSimulateMech`), which no unit here has; a
+            // construction it strikes as any hit does, less the row's
+            // `specialDamageReduceRate`, which every row has at zero.
+            if hit.provider.special_attack() && self.is_tower(target) {
+                continue;
+            }
             // `DamagePerformer.PerformHitTargetEffect` hands the target to the
             // hit's pre-hit effects first, and a target they destroyed takes
             // nothing more of it.

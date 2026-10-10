@@ -218,6 +218,11 @@ order the target trees hold them. The deaths and falls it causes come at the
 end of the tick, in the order they were struck, and a unit that dies leaves the
 tree at once.
 
+**A battle skill strikes a construction too.** A damage strike and a summon's
+air drop take the constructions their circle reaches as they take the units,
+of either side, for their whole damage, where they stand in the tree after
+the units; [`battle_skill.md`](battle_skill.md#a-damage-strike) states it.
+
 **A block falls after the shot that felled it is recorded.** The three events
 one hit produces arrive in the order `damage`, `projectile_removed`,
 `building_destroyed`, and the destruction comes after *every* projectile the
@@ -298,6 +303,9 @@ The map's own buildings are the exception and are named: each side gets one
 - A splash takes the units on a block it hits and a block behind a unit it
   hits, in target-tree order, and a unit re-locks when its splash kills its
   lock: `tests/construction/`.
+- A battle skill's strike and a summon's drop strike constructions:
+  `tests/battle_skill/strike-construction.yaml`,
+  `tests/battle_skill/drop-spares-tower.yaml`.
 
 ### Read
 

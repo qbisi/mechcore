@@ -1,0 +1,27 @@
+# A Missile Strike on a turret and a wall.
+#
+# Blue's Missile Strike lands on tick 63 between red's Anti-Armor Cannon and
+# its Defensive Wall. Its 3000 strikes the turret and then four of the
+# wall's five blocks, which fall for their 1112 each, in the order red's
+# target tree holds them: a battle skill strikes a construction as any hit
+# does. Red's towers stand out of reach.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 514
+hash: {profile: mcfr-content-0.23.0, result: 933f3d94e46de1af9d801b7e2fd5554f1466f264f07a50e4d2892536d1861d3f}
+blue:
+  core_damage: 100
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -250}, exp: 0/48/650}
+  battle_skills:
+  - {name: missile_strike, positions: [{x: -25, y: 100}]}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 150, y: -230}, exp: 0/200/650}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 0, y: -105}}
+  - {name: anti_armor_turret, index: 1, position: {x: 50, y: -100}}

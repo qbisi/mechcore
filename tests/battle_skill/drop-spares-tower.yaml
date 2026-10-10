@@ -1,0 +1,26 @@
+# A Rhino's air drop beside its own side's tower and wall.
+#
+# Blue drops Rhino Assault 15 metres from its own tower, whose edge the
+# Rhino's 11 metres reach, and 10 metres from its own wall. On joining, on
+# tick 48, the drop deals 1112 to the wall's middle block, which falls, and
+# nothing to the tower: a summon's drop is a special attack, which passes
+# over towers. The Rhino loses the 1112 it dealt.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 406
+hash: {profile: mcfr-content-0.23.0, result: 1b0e58435e4e868c4fde06886d85f647bd89bf343320f281189adbdf18b72226}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 100, y: -250}}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -145}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: -140, y: -155}]}
+red:
+  core_damage: 150
+  units:
+  - {name: marksman, index: 0, position: {x: 150, y: -230}, exp: 0/12/650}

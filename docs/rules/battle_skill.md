@@ -272,8 +272,9 @@ the update before the next solve, and moves from the solve after.
 
 **An air drop.** A summon of `appearType` 2 that does not fly, the Rhino of
 Rhino Assault or the Vulcan of Vulcan's Descent, deals its life, as it joins,
-to every unit whose edge its own collision radius covers, of either side,
-ground and air, blue's first, in the order its side's tree holds them. The
+to every unit and construction whose edge its own collision radius covers, of
+either side, ground and air, blue's first, in the order its side's tree holds
+them. A tower it covers takes nothing: the drop is a special attack. The
 hit has no owner: its damage and the deaths it causes are credited to no one,
 under the summon's side, and a kill counts for the dead unit's enemies. The
 summon then loses the life its hit took in all, with no rate on damage taken,
@@ -284,10 +285,18 @@ and counts that as taken.
 A damage skill that strikes one circle, a row of `damageCommanderSkills` with
 `effectRangeType` 0 (Missile Strike, Heavy Missile Strike, Nuke, Orbital
 Javelin), lands as any `CSRC_Common` skill does. Where it lands it deals its
-row's `subEffectDamage` to every unit, of either side and either domain, whose
-edge its `effectRange` reaches in the plane, as a hit with no owner: its
-damage and the deaths it causes are credited to no one, under the releasing
-side, and a kill counts for the dead unit's enemies. A tower is never struck.
+row's `subEffectDamage` to every unit, of either side and either domain, and
+every construction whose edge its `effectRange` reaches in the plane, in the
+order each side's target tree holds them, as a hit with no owner: its damage
+and the deaths it causes are credited to no one, under the releasing side, and
+a kill counts for the dead unit's enemies.
+
+A battle skill's strike and a summon's drop are special attacks
+(`IDamageProvider.IsSpecialAttack`). Their range takes every actor of each
+side's tree, towers included, but a special attack passes over each tower it
+reached, and strikes a construction as any hit does, less the construction
+row's `specialDamageReduceRate`, which every row holds at zero. A tower is so
+never struck.
 The hit meets shields as a splash does, which
 [`contraptions.md`](contraptions.md) states.
 
@@ -519,6 +528,11 @@ drawn from any stream, and no event is written.
   `tests/battle_skill/heavy-missile-strike.yaml`,
   `tests/battle_skill/strike-spares-tower.yaml`,
   `tests/battle_skill/nuke-beside-shield.yaml`.
+- A strike deals its whole damage to the constructions it reaches, in the
+  order their side's tree holds them after the units, and a summon's drop
+  strikes its side's own wall and spares its side's own tower:
+  `tests/battle_skill/strike-construction.yaml`,
+  `tests/battle_skill/drop-spares-tower.yaml`.
 - A falling strike stops at a shield, and one that crosses shields does not:
   `tests/battle_skill/strike-stopped-by-shield.yaml`,
   `tests/battle_skill/javelin-crosses-shield.yaml`.
@@ -664,11 +678,22 @@ drawn from any stream, and no event is written.
   `FightCalculator.CalculateHitActorDamage`.
 - A summon takes no experience: `ExpSystem.IsValidOwner`.
 - A damage strike is `CommanderSkillDamageProvider`'s damage over the skill's
-  range, on every group, with no owner, never a tower:
+  range, on every group, with no owner:
   `CommanderSkillDamageProvider.GetDamage`,
   `CommanderSkillDamageProvider.GetEffectTargetType`,
   `DamagePerformer.PrepareRangeTargets`,
   `RangeTargetCalculator.CalculateRangeActors`.
+- Its range takes every actor of each side's tree, towers and constructions
+  among them, as a unit's splash does: `FightTeam.AddTower`,
+  `FightTeam.AddConstruction`, `FightTeam.AddActor`,
+  `RangeTargetCalculator.CalculateRangeActorsInternal`.
+- A special attack, a battle skill's or a summon's drop, passes over a tower
+  and a unit whose main skill is empty, and strikes a construction less its
+  special damage rate: `CommanderSkillDamageProvider.IsSpecialAttack`,
+  `SupportUnitDamageProvider.IsSpecialAttack`,
+  `DamagePerformer.PerformHitTargetsEffect`, `FightCrystal.IsTower`,
+  `FightMech.IsSimulateMech`, `FightCalculator.PerformHitTargetEffect`,
+  `FightConstruction.GetSpecialDamageReduceRate`.
 - A sub-effect writes on either side when its buff is harmful and on its own
   side's group otherwise: `CommanderSkillSubEffectController.PerformHitEffect`,
   `CS_Buff.IsHarmful`, `BuffData.IsHarmful`, `BuffData.HarmfulCheck`,
@@ -747,8 +772,6 @@ drawn from any stream, and no event is written.
 
 ### Not established
 
-- **A strike reaching a construction.** Whether a construction is among the
-  actors a battle skill's circle takes is not read; the simulator refuses it.
 - **A strike's buff beside a shield.** A Lightning Storm's list is read to
   leave out what its own side's shields hold, as an Electromagnetic Impact's
   is recorded to, and no fight pins it.
