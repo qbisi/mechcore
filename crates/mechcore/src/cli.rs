@@ -47,6 +47,8 @@ pub(crate) struct Failure {
     /// The operation this failed in, when it is narrower than the namespace
     /// the command line dispatched.
     operation: Option<String>,
+    /// Where in the simulator each reason of a refused fight was raised.
+    sites: Vec<String>,
 }
 
 impl Failure {
@@ -56,6 +58,15 @@ impl Failure {
 
     pub(crate) fn refused(reason: impl Into<String>) -> Self {
         Self::new(Kind::Refused, reason)
+    }
+
+    /// A fight the simulator refuses, with where in it each reason was
+    /// raised.
+    pub(crate) fn unsimulated(error: &mechcore_simulation::Error) -> Self {
+        Self {
+            sites: error.sites(),
+            ..Self::refused(error.to_string())
+        }
     }
 
     pub(crate) fn unavailable(reason: impl Into<String>) -> Self {
@@ -71,6 +82,7 @@ impl Failure {
             kind,
             reason: reason.into(),
             operation: None,
+            sites: Vec::new(),
         }
     }
 
@@ -95,12 +107,15 @@ impl Failure {
     /// A prompt writes one and reads the next line; a command writes one and
     /// exits, and both say the same thing in the same place.
     pub(crate) fn write(&self, operation: &str) {
-        let error = serde_json::json!({
+        let mut error = serde_json::json!({
             "schema": "mechcore.error",
             "kind": self.kind.name(),
             "operation": self.operation.as_deref().unwrap_or(operation),
             "reason": self.reason,
         });
+        if !self.sites.is_empty() {
+            error["sites"] = serde_json::json!(self.sites);
+        }
         eprintln!("{error}");
     }
 

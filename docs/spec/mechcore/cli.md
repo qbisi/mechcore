@@ -170,6 +170,12 @@ A failure is one JSON object on standard error and an exit code:
 | 4 | `unavailable` | The game is absent, busy or unresponsive, as [session.md](session.md) classifies it | the environment |
 | 5 | `failed` | The operation could not be carried out: unreadable input, unwritable output, a broken file | the environment |
 
+A fight the simulator refuses adds `sites`, where in the simulator's source
+each of its reasons was raised, as `file:line` in the order the reasons are
+given. A site is the same for every fight one binary refuses for that reason,
+so a batch of fights counts its refusals by site; it names nothing a caller
+can change, and moves with the source from one build to the next.
+
 Exit 1 is an answer, not an error, and carries a result rather than an error
 object. The four error kinds are distinguished so that an agent can tell a
 decision it should not repeat (3) from a platform it should wait for (4).

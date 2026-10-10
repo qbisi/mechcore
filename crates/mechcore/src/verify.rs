@@ -256,7 +256,7 @@ fn verify_fight(path: &Path, bytes: &[u8]) -> Result<Report, String> {
             mechcore_simulation::Record::File(&recording),
             None,
         )
-        .map_err(|error| Failure::refused(error.to_string()))
+        .map_err(|error| Failure::unsimulated(&error))
         .and_then(|_| crate::outcome::fight(&recording))
     };
     let simulated = match fought {

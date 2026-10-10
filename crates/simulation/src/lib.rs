@@ -34,26 +34,56 @@ pub enum Record<'a> {
     Memory,
 }
 
+/// Why the simulator does not fight something, and where in it each reason
+/// was raised.
 #[derive(Debug)]
-pub struct Error(String);
+pub struct Error {
+    message: String,
+    sites: Vec<&'static std::panic::Location<'static>>,
+}
 
 impl Error {
+    #[track_caller]
     fn new(message: impl Into<String>) -> Self {
-        Self(message.into())
+        Self {
+            message: message.into(),
+            sites: vec![std::panic::Location::caller()],
+        }
+    }
+
+    /// The same reasons under a prefix that says where they arose, raised
+    /// where they were.
+    fn context(self, prefix: impl fmt::Display) -> Self {
+        Self {
+            message: format!("{prefix}: {}", self.message),
+            sites: self.sites,
+        }
+    }
+
+    /// Where in the simulator's source each reason was raised, as
+    /// `file:line`, in the order the reasons are given. A batch of fights
+    /// counts its refusals by them.
+    #[must_use]
+    pub fn sites(&self) -> Vec<String> {
+        self.sites
+            .iter()
+            .map(|site| format!("{}:{}", site.file(), site.line()))
+            .collect()
     }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(&self.0)
+        formatter.write_str(&self.message)
     }
 }
 
 impl std::error::Error for Error {}
 
 impl From<mechcore_mcfr::Error> for Error {
+    #[track_caller]
     fn from(error: mechcore_mcfr::Error) -> Self {
-        Self(error.to_string())
+        Self::new(error.to_string())
     }
 }
 
@@ -135,7 +165,7 @@ pub fn compare_recording(recording: &mechcore_mcfr::McfrReader) -> Result<Simula
     let config = rules::SimulationConfig::load()?;
     let (seed, layout) =
         layout::compile_with_seed(recording.layout_yaml().as_bytes(), &config.units)
-            .map_err(|error| Error::new(format!("cannot simulate embedded layout: {error}")))?;
+            .map_err(|error| error.context("cannot simulate embedded layout"))?;
     let seed = seed.ok_or_else(|| {
         Error::new("embedded layout has no seed, so the recording cannot be reproduced")
     })?;
@@ -162,4 +192,17 @@ fn generate_seed(layout_path: &Path) -> Result<i32> {
     // A recording embeds its resolved seed, and a layout cannot carry 0, so a
     // generated seed must never land on the sentinel.
     Ok(if seed == 0 { 1 } else { seed })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Error;
+
+    #[test]
+    fn a_reason_keeps_where_it_was_raised_under_a_prefix() {
+        let line = line!() + 1;
+        let error = Error::new("not measured").context("side blue");
+        assert_eq!(error.to_string(), "side blue: not measured");
+        assert_eq!(error.sites(), [format!("{}:{line}", file!())]);
+    }
 }
