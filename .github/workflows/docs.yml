@@ -17,6 +17,8 @@ jobs:
       # shallow export. Everything else it uses is in the Python standard
       # library, so there is nothing to install.
       - run: python3 scripts/check/check-docs.py
+      # No crate's code reads a fixture under the root tests/: crates/README.md.
+      - run: python3 scripts/check/check-fixture-readers.py
       # `models/` is the player's sprites exported as SVG, so a sprite changed
       # without its files fails here. Node comes with the runner.
       - run: node scripts/player/export-models.mjs --check
