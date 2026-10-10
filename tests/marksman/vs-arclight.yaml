@@ -1,8 +1,8 @@
 # One Marksman against one Arclight. The control equipment/, level/,
 # lifesteal/, repair/, energy_shield/, equipment_buff/ and construction/
-# change one thing about; crates/simulation/tests/fight.rs reads a unit's lock
-# and motion state from it, and mechcore's play and recording tests take it as
-# their input. Map 1021, seed 1787720817.
+# change one thing about; mechcore's play and recording tests take it as their
+# input. Its assert: the fight ends with no unit holding a lock. Map 1021, seed
+# 1787720817.
 kind: fight
 source: game
 map_id: 1021
@@ -17,5 +17,8 @@ red:
 outcome:
   blue.core_damage: 100
   red.units[0].exp: 200
+asserts:
+- sql: "SELECT count(*) FROM units WHERE tick = (SELECT max(tick) FROM units) AND has_mech_lock_target"
+  rows: [[0]]
 ticks: 91
 hash: 23:9519331bf708332a5f8ab12ceb3554898b8dcaf78ea052795a55681ec7387bbe

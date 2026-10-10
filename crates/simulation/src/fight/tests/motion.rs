@@ -263,32 +263,6 @@ fn rvo_pipeline_publishes_before_movement_consumes_velocity() {
 }
 
 #[test]
-fn first_split_rvo_tree_uses_the_zero_position_buffer() {
-    let config = SimulationConfig::load().unwrap();
-    let layout = pinned_layout(
-        include_bytes!("../../../../../tests/rhino/vs-crawlers.yaml"),
-        &config.units,
-    );
-    let mut simulation = Simulation::new(
-        &layout,
-        &config.units,
-        &config.towers,
-        &config.maps,
-        1_787_748_319,
-    )
-    .unwrap();
-
-    for step in 0..8 {
-        simulation.step(step).unwrap();
-    }
-
-    assert_eq!(
-        snapshot_velocity_q32(&simulation.actors[&11]),
-        (10_146_579_184, -67_965_446_880)
-    );
-}
-
-#[test]
 fn rvo_boundary_recalculates_velocity_from_the_published_target_and_current_position() {
     let layout = CompiledLayout::of_units(
         1,

@@ -5,6 +5,11 @@
 # overlapping block 3, is pushed off it: to the other side a block is an
 # immovable obstacle on the wall's own collider layer. The Steel Ball whose
 # beam fells block 4 turns onto the Marksman behind it on that tick.
+#
+# Its assert reads Steel Ball 4: preparing a beam on the Marksman on tick 145,
+# when block 3 has come 11.447 metres off its line, inside the 11.5 the line
+# is wide; idle with no lock and no weapon target on 146, the prepared attack
+# ended; on 147 its weapon on block 3, its lock back on the Marksman.
 
 kind: fight
 source: game
@@ -23,5 +28,8 @@ outcome:
   blue.core_damage: 100
   blue.units[0].exp: 200
   red.units[0].exp: 248
+asserts:
+- sql: "SELECT u.tick, u.unit_id, u.motion_state, u.mech_lock_target__kind, u.mech_lock_target__id, k.enabled__state, k.enabled__attack_target__kind, k.enabled__attack_target__id FROM units u JOIN units__skills k ON k.tick = u.tick AND k.unit_id = u.unit_id AND k.skill_slot = 0 WHERE u.unit_id = 4 AND u.tick IN (145, 146, 147) ORDER BY u.tick"
+  rows: [[145, 4, attacking, unit, 1, prepare, unit, 1], [146, 4, idle, null, null, idle, null, null], [147, 4, attacking, unit, 1, idle, building, 3]]
 ticks: 242
 hash: 23:dba48ea38bae6f8746ef52481a6e2dd4a3891a9dccf70a2ecc515f3a86a200b3

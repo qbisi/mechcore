@@ -5,7 +5,6 @@ mod math;
 mod motion;
 mod search;
 mod skill;
-mod walls;
 
 use super::skill::PendingRelease;
 use super::*;

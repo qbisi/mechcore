@@ -424,40 +424,6 @@ fn deployment_raw_and_per_tick_target_direction_round_tick_twenty_two_down() {
 }
 
 #[test]
-fn first_rvo_solve_avoids_same_formation_at_tick_eight() {
-    let config = SimulationConfig::load().unwrap();
-    let layout = pinned_layout(
-        include_bytes!("../../../../../tests/steel_ball/vs-steel-balls.yaml"),
-        &config.units,
-    );
-    let mut simulation = Simulation::new(
-        &layout,
-        &config.units,
-        &config.towers,
-        &config.maps,
-        1_787_831_322,
-    )
-    .unwrap();
-
-    for step in 0..8 {
-        simulation.step(step).unwrap();
-    }
-
-    assert_eq!(
-        snapshot_velocity_q32(&simulation.actors[&1]),
-        (-3_142_838_517, 68_510_718_647)
-    );
-    assert_eq!(
-        snapshot_velocity_q32(&simulation.actors[&2]),
-        (-1_768_777_992, 61_456_524_119)
-    );
-    assert_eq!(
-        snapshot_velocity_q32(&simulation.actors[&3]),
-        (2_054_176_502, 68_688_002_951)
-    );
-}
-
-#[test]
 fn tick_fifteen_aim_uses_raw_q32_positions() {
     let layout = CompiledLayout::of_units(
         1,

@@ -23,6 +23,11 @@
 # The block the Marksman destroys is neither the nearest block nor the one
 # its line passes closest to: it is the nearest of the blocks the line
 # reaches, block 6, and everything else stands.
+#
+# Its assert reads red's Marksman: from tick 2 its lock is on blue's Marksman
+# while its weapon is on block 6, the body and the weapons keeping separate
+# targets; it fells block 6 on tick 18, and on 19 reads idle with no lock and
+# its weapon still on block 6, not on block 7, the next in its line.
 
 kind: fight
 source: game
@@ -41,5 +46,8 @@ outcome:
   blue.units[0].exp: 200
   red.core_damage: 100
   red.units[0].exp: 12
+asserts:
+- sql: "SELECT u.tick, u.unit_id, u.motion_state, u.mech_lock_target__kind, u.mech_lock_target__id, k.enabled__state, k.enabled__attack_target__kind, k.enabled__attack_target__id FROM units u JOIN units__skills k ON k.tick = u.tick AND k.unit_id = u.unit_id AND k.skill_slot = 0 WHERE u.team_id = 1 AND u.tick IN (2, 18, 19) ORDER BY u.tick"
+  rows: [[2, 2, attacking, unit, 1, prepare, building, 6], [18, 2, attacking, unit, 1, attack, building, 6], [19, 2, idle, null, null, cooling, building, 6]]
 ticks: 20
 hash: 23:c8404bd207587872658702b89ffdbb014f49383dcbf77bdbae61b81deebb7c64

@@ -240,64 +240,6 @@ fn an_attacking_sibling_gives_up_a_shared_unit_by_its_blows() {
     );
 }
 
-/// Every slot of a grouped skill takes the construction in its way, and
-/// every slot is dropped with the lock.
-///
-/// The Wraith of `tests/construction/wall-weapon-group.yaml` was
-/// recorded doing all of it: its core engages block 3 at tick 32 and the
-/// other three slots follow eight ticks later, while the lock stays on the
-/// Marksman; block 3 falls at tick 59 and all four slots read empty at
-/// tick 60; the core engages block 4 at tick 74 and the children are
-/// allocated again eight ticks after that, not at once.
-#[test]
-fn grouped_slots_take_the_wall_and_are_dropped_with_the_lock() {
-    let config = SimulationConfig::load().unwrap();
-    let layout = pinned_layout(
-        include_bytes!("../../../../../tests/construction/wall-weapon-group.yaml"),
-        &config.units,
-    );
-    let mut simulation =
-        Simulation::new(&layout, &config.units, &config.towers, &config.maps, 4242).unwrap();
-    let slots_at = |simulation: &mut Simulation, tick: u64, done: &mut u64| {
-        while *done < tick {
-            simulation.step(*done).unwrap();
-            *done += 1;
-        }
-        let wraith = simulation
-            .actors
-            .values()
-            .find(|actor| actor.placement.team == 1)
-            .map(|actor| simulation.unit_snapshot(actor.placement.unit_id))
-            .unwrap();
-        (
-            wraith.mech_lock_target,
-            wraith
-                .skills
-                .iter()
-                .map(|skill| skill.enabled.as_ref().unwrap().attack_target)
-                .collect::<Vec<_>>(),
-        )
-    };
-    let building = |id| Some(ObjectRef::new(ObjectKind::Building, id));
-    let marksman = Some(ObjectRef::new(ObjectKind::Unit, 1));
-    let mut done = 0;
-
-    let (lock, slots) = slots_at(&mut simulation, 41, &mut done);
-    assert_eq!(lock, marksman, "the lock stays on the unit behind the wall");
-    assert_eq!(slots, vec![building(3); 4], "all four slots on block 3");
-
-    let (lock, slots) = slots_at(&mut simulation, 60, &mut done);
-    assert_eq!(lock, None, "block 3 has fallen and the lock is dropped");
-    assert_eq!(slots, vec![None; 4], "and every slot with it");
-
-    let (_, slots) = slots_at(&mut simulation, 78, &mut done);
-    assert_eq!(
-        slots,
-        vec![building(4), None, None, None],
-        "the core has block 4; the children wait to be allocated again"
-    );
-}
-
 mod oracle {
     use super::*;
     use serde_json::Value;

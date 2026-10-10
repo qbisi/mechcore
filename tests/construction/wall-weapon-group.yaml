@@ -18,6 +18,11 @@
 # in the way, a shot at one block splashes the next for its full damage, the
 # slots are dropped with the lock when a block falls, and the Wraith turns
 # back to the Marksman once the blocks in its way are gone.
+#
+# Its assert: on tick 41 all four slots are on block 3 while the lock stays on
+# the Marksman; block 3 has fallen by 60, and the lock and every slot read
+# empty; on 78 the core has block 4 and the other three are not yet allocated
+# again.
 
 kind: fight
 source: game
@@ -35,5 +40,8 @@ red:
 outcome:
   blue.core_damage: 250
   red.units[0].exp: 236
+asserts:
+- sql: "SELECT u.tick, u.unit_id, u.motion_state, u.mech_lock_target__kind, u.mech_lock_target__id, k.skill_slot, k.enabled__attack_target__kind, k.enabled__attack_target__id FROM units u JOIN units__skills k ON k.tick = u.tick AND k.unit_id = u.unit_id WHERE u.team_id = 1 AND u.tick IN (41, 60, 78) ORDER BY u.tick, k.skill_slot"
+  rows: [[41, 2, attacking, unit, 1, 0, building, 3], [41, 2, attacking, unit, 1, 1, building, 3], [41, 2, attacking, unit, 1, 2, building, 3], [41, 2, attacking, unit, 1, 3, building, 3], [60, 2, idle, null, null, 0, null, null], [60, 2, idle, null, null, 1, null, null], [60, 2, idle, null, null, 2, null, null], [60, 2, idle, null, null, 3, null, null], [78, 2, attacking, unit, 1, 0, building, 4], [78, 2, attacking, unit, 1, 1, null, null], [78, 2, attacking, unit, 1, 2, null, null], [78, 2, attacking, unit, 1, 3, null, null]]
 ticks: 242
 hash: 23:885d853e48772e8b4ddd54192ce40ccdf7b44760f0dc3dc800319dd6a154b08a

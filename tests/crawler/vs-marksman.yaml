@@ -3,6 +3,11 @@
 # of 8, which puts every Crawler on the edge of the comparison that decides
 # whether it is sent to the Marksman's centre or to a computed point: the eight
 # in front go to the centre and the sixteen behind do not.
+#
+# Its assert: the Marksman's shot kills Crawler 8 on tick 136 before its
+# attack is over, and the Crawler the selector answers, 4, is out of its
+# attack angle; so from 137 to 140 it reads idle with no lock and its weapon
+# on Crawler 4, on 141 the weapon clears, and on 142 it locks Crawler 7.
 
 kind: fight
 source: game
@@ -19,5 +24,8 @@ outcome:
   blue.core_damage: 84
   blue.units[0].exp: 24
   red.units[0].exp: 200
+asserts:
+- sql: "SELECT u.tick, u.unit_id, u.motion_state, u.mech_lock_target__kind, u.mech_lock_target__id, k.skill_slot, k.enabled__attack_target__kind, k.enabled__attack_target__id FROM units u JOIN units__skills k ON k.tick = u.tick AND k.unit_id = u.unit_id AND k.skill_slot = 0 WHERE u.unit_id = 1 AND u.tick BETWEEN 137 AND 142 ORDER BY u.tick"
+  rows: [[137, 1, idle, null, null, 0, unit, 4], [138, 1, idle, null, null, 0, unit, 4], [139, 1, idle, null, null, 0, unit, 4], [140, 1, idle, null, null, 0, unit, 4], [141, 1, idle, null, null, 0, null, null], [142, 1, attacking, unit, 7, 0, unit, 7]]
 ticks: 161
 hash: 23:2595408f448f9ea969ced3c7f4d61f70e6d7050589e6134bea550e142caa73f5

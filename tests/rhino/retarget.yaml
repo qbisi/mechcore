@@ -1,5 +1,6 @@
-# One Rhino against two Arclights; crates/simulation/tests/fight.rs reads that
-# the Rhino waits idle, then moves and attacks. Map 1021, seed 1787720956.
+# One Rhino against two Arclights. Its assert: having killed the first, the
+# Rhino waits idle through tick 232, moves from 233, and is attacking the
+# second by 308. Map 1021, seed 1787720956.
 kind: fight
 source: game
 map_id: 1021
@@ -15,5 +16,8 @@ red:
 outcome:
   blue.units[0].exp: 400
   red.core_damage: 200
+asserts:
+- sql: "SELECT tick, motion_state FROM units WHERE unit_id = 1 AND tick IN (222, 232, 233, 308) ORDER BY tick"
+  rows: [[222, idle], [232, idle], [233, moving], [308, attacking]]
 ticks: 336
 hash: 23:2932aaa5071bc0df11e504adb3a1550c514d4bd9ef0523459ede97d55eafba67
