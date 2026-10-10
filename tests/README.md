@@ -98,7 +98,9 @@ its recording and the rows the game answered
 ([fight.md](../docs/spec/document/fight.md#asserts)), so the claim is checked
 and outlives the hash; its rows are recorded from the game, never written by
 hand. A
-comment at the top of the file says what the fight measures. A fixture's
+comment at the top of the file says what the fight measures. `verify` alone
+reads a fixture; no crate's test does
+([crates/README.md](../crates/README.md#what-a-test-reads)). A fixture's
 `source` is `game`: a fight the simulator computed states what is being
 checked, and is never a fixture. A layout stays a layout file only while
 something reads it as a layout: a probe no fight pins, or a stage for
