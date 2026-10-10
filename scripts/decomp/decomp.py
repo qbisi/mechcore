@@ -3,7 +3,6 @@
 
     scripts/decomp/decomp.py sync [--build BUILD]   clone qbisi/mechcore-decomp into work/decomp, one build, and index it
     scripts/decomp/decomp.py path [BUILD]           print work/decomp/<build>
-    scripts/decomp/decomp.py publish BUILD          commit a build scripts/decomp/decompile.py made
 
 The decompilation lives in the private repository
 https://github.com/qbisi/mechcore-decomp, one directory per game build. The
@@ -28,16 +27,13 @@ attached, or a read-only token in `MECHCORE_DECOMP_TOKEN` on this repository
 alone, which is what a Codex container gets.
 
 A new build comes from `scripts/decomp/decompile.py`, which decompiles the installed
-game into `work/decomp/<build>`. `publish` is the only verb here that writes:
-it commits that directory to the repository and pushes it. Only a machine with
-the game has anything to publish.
+game into `work/decomp/<build>`.
 """
 
 import json
 import os
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 import decompile
@@ -137,33 +133,6 @@ def path(build):
     print(DESTINATION / build)
 
 
-def publish(build):
-    directory = DESTINATION / build
-    for required in ("cpp2il/IsilDump", "cpp2il/DiffableCs", "config-data-container.json",
-                     "game-manifest.json", INDEX):
-        if not (directory / required).exists():
-            fail(f"{directory} has no {required}; run scripts/decomp/decompile.py first")
-    if not (DESTINATION / ".git").exists():
-        fail(f"{DESTINATION} is not a clone of {REPOSITORY}; run sync first")
-    if subprocess.run(["git", "sparse-checkout", "list"], cwd=DESTINATION, capture_output=True).returncode == 0:
-        run("git", "sparse-checkout", "add", build, cwd=DESTINATION)
-    run("git", "add", "--", build, cwd=DESTINATION)
-    status = run("git", "status", "--porcelain", "--", build, cwd=DESTINATION)
-    if status:
-        run("git", "commit", "--quiet", "-m",
-            f"decomp: build {build}, Cpp2IL dump and stubs, manifest, config", cwd=DESTINATION)
-    # A push that failed last time is retried by running publish again.
-    for attempt in range(5):
-        pushed = subprocess.run(["git", "push", "--quiet", "origin", "HEAD"], cwd=DESTINATION,
-                                capture_output=True, text=True)
-        if pushed.returncode == 0:
-            break
-        if attempt == 4:
-            fail(f"git push failed:\n{pushed.stderr.strip()}")
-        time.sleep(5)
-    print(f"{REPOSITORY}: {build} pushed")
-
-
 def main(argv):
     if len(argv) >= 2 and argv[1] == "sync":
         if len(argv) == 2:
@@ -172,8 +141,6 @@ def main(argv):
             sync(argv[3])
         else:
             fail("usage: sync [--build BUILD]")
-    elif len(argv) == 3 and argv[1] == "publish":
-        publish(argv[2])
     elif len(argv) in (2, 3) and argv[1] == "path":
         path(argv[2] if len(argv) == 3 else None)
     else:
