@@ -10,8 +10,7 @@ use std::collections::BTreeMap;
 use serde::Deserialize;
 
 use crate::catalog::{
-    CHAIN_BLUEPRINTS, battle_skill_type_from_id, construction_type_from_id,
-    resolve_battle_skill_type, unit_type_from_id,
+    CHAIN_BLUEPRINTS, battle_skill_type_from_id, resolve_battle_skill_type, unit_type_from_id,
 };
 use crate::compile::{compile_layout, grid_center_remainder};
 use crate::economy::{Economy, OpeningKind};
@@ -19,7 +18,7 @@ use crate::layout::{
     BattleSkillEntry, BattleSkillRelease, ContraptionPlacement, Experience, Layout, Position, Side,
     StaticPlacement, UnitPlacement, UnitSource,
 };
-use crate::layout_replay::layout_replay;
+use crate::layout_replay::{DEFAULT_MAP_ID, layout_replay};
 use crate::{DocumentKind, MOVEMENT_ENHANCEMENT_SKILL, RANGE_ENHANCEMENT_SKILL};
 
 const OFFICER_EFFECTS: &str = include_str!("../../../config/officer_effects.yaml");
@@ -131,12 +130,13 @@ impl Stream {
         }
     }
 
-    /// A layout's own seed, which is never `0`.
+    /// A layout's own seed, which is positive: the opening its constructions
+    /// come from is dealt for a positive seed.
     #[allow(clippy::cast_possible_truncation)]
     fn seed(&mut self) -> i32 {
         loop {
-            let seed = self.next() as i32;
-            if seed != 0 {
+            let seed = (self.next() >> 33) as i32;
+            if seed > 0 {
                 return seed;
             }
         }
@@ -244,7 +244,7 @@ impl Space {
             Role::LeadType => self.types.len(),
             Role::LeadLevel | Role::SecondLevel => LEVELS,
             Role::LeadSource | Role::LeadRotated => 2,
-            Role::LeadExp | Role::LeadTechs | Role::TowerLevels => 3,
+            Role::LeadExp | Role::LeadTechs | Role::TowerLevels | Role::Construction => 3,
             Role::LeadEquipment => 1 + self.equipment.len(),
             Role::LeadModification => 1 + MAX_MODIFICATIONS,
             Role::LeadDepth | Role::TowerSkills | Role::Contraption => 4,
@@ -252,7 +252,6 @@ impl Space {
             Role::OfficerFirst | Role::OfficerSecond => 1 + self.generic.len(),
             Role::Opening => 1 + self.openings.len(),
             Role::Blueprint => 1 + CHAIN_BLUEPRINTS.len(),
-            Role::Construction => 5,
             Role::BattleSkill => 1 + self.skills.len(),
         }
     }
@@ -322,12 +321,8 @@ impl Space {
                 ["none", "random", "max"][value].to_owned(),
             ),
             Role::Construction => (
-                "construction",
-                none(value, &|at| {
-                    construction_type_from_id(i32::try_from(at + 1).unwrap_or(0))
-                        .map_or("?", |(name, _)| name)
-                        .to_owned()
-                }),
+                "constructions",
+                ["none", "opening", "part"][value].to_owned(),
             ),
             Role::Contraption => (
                 "contraption",
@@ -689,14 +684,31 @@ fn realize(space: &Space, assignment: &[usize], stream: &mut Stream) -> Result<L
     let round = ROUNDS[assignment[0]];
     let mut last = String::new();
     for _ in 0..PLACEMENT_TRIES {
+        let seed = stream.seed();
+        // The constructions a side may hold are the ones its seed lays.
+        let opening = crate::opening::predict(Economy::embedded()?, seed, DEFAULT_MAP_ID)?;
         let layout = Layout {
             kind: DocumentKind::Layout,
             game_build: crate::economy::this_build(),
             map_id: None,
-            seed: Some(stream.seed()),
+            seed: Some(seed),
             round,
-            blue: side(space, assignment, 0, round, stream),
-            red: side(space, assignment, 1, round, stream),
+            blue: side(
+                space,
+                assignment,
+                0,
+                round,
+                &opening.constructions.blue,
+                stream,
+            ),
+            red: side(
+                space,
+                assignment,
+                1,
+                round,
+                &opening.constructions.red,
+                stream,
+            ),
         };
         let checked = compile_layout(layout.clone())
             .and_then(|plan| layout_replay(&plan, &layout.game_build).map(|_| ()));
@@ -764,7 +776,14 @@ fn level(value: usize) -> i32 {
 }
 
 #[allow(clippy::too_many_lines)]
-fn side(space: &Space, assignment: &[usize], side: usize, round: i32, stream: &mut Stream) -> Side {
+fn side(
+    space: &Space,
+    assignment: &[usize],
+    side: usize,
+    round: i32,
+    opening: &[StaticPlacement],
+    stream: &mut Stream,
+) -> Side {
     let at = |role| assignment[factor(side, role)];
     let economy = Economy::embedded().ok();
 
@@ -896,15 +915,15 @@ fn side(space: &Space, assignment: &[usize], side: usize, round: i32, stream: &m
         unit.index = i32::try_from(index).unwrap_or_default();
     }
 
+    // A part keeps each of the seed's constructions on an even draw, and its
+    // index with it: one an earlier round destroyed leaves a gap.
     let constructions = match at(Role::Construction) {
         0 => Vec::new(),
-        value => construction_type_from_id(i32::try_from(value).unwrap_or_default())
-            .map(|(name, footprint)| StaticPlacement {
-                type_name: name.to_owned(),
-                index: 0,
-                position: place(stream, footprint, MAIN_X, MAIN_Y, MAIN_Y),
-            })
-            .into_iter()
+        1 => opening.to_vec(),
+        _ => opening
+            .iter()
+            .filter(|_| stream.below(2) == 0)
+            .cloned()
             .collect(),
     };
     let contraptions = match at(Role::Contraption) {
