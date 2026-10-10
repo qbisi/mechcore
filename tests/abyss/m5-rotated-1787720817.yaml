@@ -6,7 +6,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 92
-hash: {profile: mcfr-content-0.23.0, result: f80f1d904add9356c8105735a7cc9942c3151f95d53da7d394bdff98e55b56db}
+hash: 23:f80f1d904add9356c8105735a7cc9942c3151f95d53da7d394bdff98e55b56db
 blue:
   units:
   - {name: abyss, index: 0, position: {x: -65, y: -65}, exp: 0/400/4800, rotated: true}

@@ -11,7 +11,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 260
-hash: {profile: mcfr-content-0.23.0, result: a5d5d40e700395d8ffe1aa40b8fb761d0ec527e94933e47153548064ebb6509e}
+hash: 23:a5d5d40e700395d8ffe1aa40b8fb761d0ec527e94933e47153548064ebb6509e
 blue:
   techs:
     farseer: [missile_interceptor]

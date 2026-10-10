@@ -6,7 +6,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 353
-hash: {profile: mcfr-content-0.23.0, result: 309802056d75c62f6129503c1ff4d0c337d9bad9a7ab227450fae3b6d2149458}
+hash: 23:309802056d75c62f6129503c1ff4d0c337d9bad9a7ab227450fae3b6d2149458
 blue:
   units:
   - {name: fang, index: 0, position: {x: 5, y: -100}, exp: 0/192/600}

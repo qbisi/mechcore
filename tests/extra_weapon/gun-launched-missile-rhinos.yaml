@@ -14,7 +14,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 225
-hash: {profile: mcfr-content-0.23.0, result: 8a192e246becf7416455d20c2bb7624061b0fd0234a45be74d73f7292a3ea08e}
+hash: 23:8a192e246becf7416455d20c2bb7624061b0fd0234a45be74d73f7292a3ea08e
 blue:
   techs:
     mountain: [gun_launched_missile]

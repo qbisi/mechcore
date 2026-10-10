@@ -11,7 +11,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 259
-hash: {profile: mcfr-content-0.23.0, result: f61f44a7d24436fb016f7e37262a8c754f307925b4614e04e87c994e9e37abaf}
+hash: 23:f61f44a7d24436fb016f7e37262a8c754f307925b4614e04e87c994e9e37abaf
 blue:
   units:
   - {name: marksman, index: 0, position: {x: -100, y: -150}}

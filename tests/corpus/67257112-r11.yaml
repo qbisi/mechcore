@@ -9,7 +9,7 @@ seed: 320755103
 round: 11
 source: game
 ticks: 1341
-hash: {profile: mcfr-content-0.23.0, result: c10fb086fd764ce555ad32632ac90eabb36b28aa206c6ef8f5e5ebc7dec9869a}
+hash: 23:c10fb086fd764ce555ad32632ac90eabb36b28aa206c6ef8f5e5ebc7dec9869a
 blue:
   core_damage: 922
   officers: [advanced_defensive_tactics, elite_specialist]

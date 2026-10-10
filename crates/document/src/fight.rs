@@ -85,14 +85,48 @@ impl Source {
 }
 
 /// A trajectory hash and the profile that defines it,
-/// `docs/spec/mcfr/mcfr.md`'s `hash_profile` and `result_hash`.
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
+/// `docs/spec/mcfr/mcfr.md`'s `hash_profile` and `result_hash`, written as
+/// one string: the profile's number, a colon, and 64 lowercase hex digits
+/// (`23:e4ed…`).
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(try_from = "String", into = "String")]
 pub struct FightHash {
     pub profile: String,
     /// 64 lowercase hex digits.
-    #[schemars(regex(pattern = r"^[0-9a-f]{64}$"))]
     pub result: String,
+}
+
+impl TryFrom<String> for FightHash {
+    type Error = String;
+
+    fn try_from(written: String) -> Result<Self, String> {
+        let (profile, result) = written
+            .split_once(':')
+            .ok_or_else(|| format!("fight hash {written:?} is not <profile>:<hex>"))?;
+        Ok(Self {
+            profile: profile.to_owned(),
+            result: result.to_owned(),
+        })
+    }
+}
+
+impl From<FightHash> for String {
+    fn from(hash: FightHash) -> Self {
+        format!("{}:{}", hash.profile, hash.result)
+    }
+}
+
+impl JsonSchema for FightHash {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "FightHash".into()
+    }
+
+    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        schemars::json_schema!({
+            "type": "string",
+            "pattern": "^[0-9]+:[0-9a-f]{64}$",
+        })
+    }
 }
 
 /// One side of a fight: the layout's side, what the fight took off its
@@ -633,14 +667,9 @@ fn validate_trajectory(fight: &Fight) -> Result<(), String> {
     if fight.ticks == 0 {
         return Err("fight ticks must be at least 1".to_owned());
     }
-    if hash.profile.is_empty()
-        || !hash
-            .profile
-            .bytes()
-            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || b"-.".contains(&byte))
-    {
+    if hash.profile.is_empty() || !hash.profile.bytes().all(|byte| byte.is_ascii_digit()) {
         return Err(format!(
-            "fight hash profile {:?} is not a profile name",
+            "fight hash profile {:?} is not a profile number",
             hash.profile
         ));
     }
@@ -718,7 +747,7 @@ seed: 4242
 round: 3
 source: game
 ticks: 870
-hash: {profile: mcfr-content-0.23.0, result: 380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef}
+hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
 blue:
   officers: [extended_range_marksman]
   units:
@@ -796,7 +825,7 @@ seed: 4242
 round: 3
 source: game
 ticks: 870
-hash: {profile: mcfr-content-0.23.0, result: 380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef}
+hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
 blue:
   core_damage: 0
   units:
@@ -823,7 +852,7 @@ seed: 4242
 round: 3
 source: game
 ticks: 870
-hash: {profile: mcfr-content-0.23.0, result: 380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef}
+hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
 blue:
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 12/170/650}
@@ -917,8 +946,12 @@ red:
         assert!(error.contains("replay"), "{error}");
         assert!(edited("ticks: 870\n", "").is_err());
         assert!(edited("source: game", "source: simulator").is_ok());
-        let error = edited("result: 380d", "result: 380D").unwrap_err();
+        let error = edited("23:380d", "23:380D").unwrap_err();
         assert!(error.contains("64 lowercase hex"), "{error}");
+        let error = edited("hash: 23:", "hash: mcfr-23:").unwrap_err();
+        assert!(error.contains("not a profile number"), "{error}");
+        let error = edited("hash: 23:380d", "hash: 380d").unwrap_err();
+        assert!(error.contains("<profile>:<hex>"), "{error}");
         let error = edited("ticks: 870", "ticks: 0").unwrap_err();
         assert!(error.contains("at least 1"), "{error}");
     }

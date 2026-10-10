@@ -13,7 +13,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 384
-hash: {profile: mcfr-content-0.23.0, result: f6b17bcb071837f0856caac756068c2741b806a607193279a89fc80759571ab4}
+hash: 23:f6b17bcb071837f0856caac756068c2741b806a607193279a89fc80759571ab4
 blue:
   techs:
     war_factory: [steel_ball_production]

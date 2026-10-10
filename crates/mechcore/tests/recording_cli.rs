@@ -316,7 +316,7 @@ red:
     // The simulator wrote the recording, so the document says so.
     assert!(document.contains("\nsource: simulator\n"), "{document}");
     assert!(document.contains("\nticks: "), "{document}");
-    assert!(document.contains("\nhash: {profile: mcfr-content-0.23.0, result: "));
+    assert!(document.contains("\nhash: 23:"));
     // Blue alone stands, so red's core takes the three deployed level 1
     // Marksmen's scores and blue's takes nothing.
     assert!(
@@ -493,7 +493,7 @@ fn verify_fights_a_fight_document_again_and_names_what_differs() {
     assert!(report["error"].as_str().unwrap().contains(path), "{report}");
 
     // The trajectory's hash moved: the hash, and nothing else.
-    let hash = document.find("result: ").unwrap() + "result: ".len();
+    let hash = document.find("hash: 23:").unwrap() + "hash: 23:".len();
     let flipped = if &document[hash..=hash] == "0" {
         "1"
     } else {
@@ -502,7 +502,7 @@ fn verify_fights_a_fight_document_again_and_names_what_differs() {
     let rehashed = format!("{}{flipped}{}", &document[..hash], &document[hash + 1..]);
     let (code, report) = verify("hash.yaml", &rehashed);
     assert_eq!(code, Some(1), "{report}");
-    assert_eq!(report["differences"][0]["path"], "/hash/result");
+    assert_eq!(report["differences"][0]["path"], "/hash");
     assert_eq!(report["differences"].as_array().unwrap().len(), 1);
 }
 
@@ -689,7 +689,9 @@ fn a_fight_converts_to_the_recording_it_pins() {
         serde_yaml::from_str(&fs::read_to_string(&fight).unwrap()).unwrap();
     assert_eq!(
         report["hashes"]["result_hash"].as_str(),
-        document["hash"]["result"].as_str()
+        document["hash"]
+            .as_str()
+            .and_then(|hash| hash.strip_prefix("23:"))
     );
     let seeded = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["convert", "--to", "mcfr", "--seed", "7"])

@@ -2104,7 +2104,10 @@ fn read_ticks(member: MemberSlice) -> Result<TickColumns> {
             "ticks.parquet metadata game_build must not be empty",
         ));
     }
-    if required_metadata(metadata, "hash_profile")? != HASH_PROFILE {
+    // A recording made while the profile was named by the format names it
+    // so; only a game recording reproduces one, and none is kept in git.
+    let profile = required_metadata(metadata, "hash_profile")?;
+    if profile != HASH_PROFILE && profile != crate::model::HASH_PROFILE_SPELLED_BY_FORMAT {
         return Err(Error::invalid("unsupported hash profile"));
     }
     let hashes = Hashes {

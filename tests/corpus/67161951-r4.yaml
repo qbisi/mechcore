@@ -12,7 +12,7 @@ seed: 167380757
 round: 4
 source: game
 ticks: 869
-hash: {profile: mcfr-content-0.23.0, result: 98a86619d34d4c6c5621828759f2a8c9292e102c61e5ef77e7f544634ebe8763}
+hash: 23:98a86619d34d4c6c5621828759f2a8c9292e102c61e5ef77e7f544634ebe8763
 blue:
   core_damage: 1067
   officers: [giant_specialist]

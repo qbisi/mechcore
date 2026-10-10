@@ -11,7 +11,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 518
-hash: {profile: mcfr-content-0.23.0, result: 785a05660ef6da3dba14d96a7df13c3b1b65bced8fc2724a1ee2090422fd465d}
+hash: 23:785a05660ef6da3dba14d96a7df13c3b1b65bced8fc2724a1ee2090422fd465d
 blue:
   techs:
     rhino: [wreckage_recycling]

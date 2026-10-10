@@ -9,7 +9,7 @@ seed: 584983421
 round: 1
 source: game
 ticks: 1467
-hash: {profile: mcfr-content-0.23.0, result: 510a82acb23b0a54c44d232590b559a0c2ec53aab3c25489ac32de291260bbeb}
+hash: 23:510a82acb23b0a54c44d232590b559a0c2ec53aab3c25489ac32de291260bbeb
 blue:
   officers: [missile_specialist]
   legacy_index: 5

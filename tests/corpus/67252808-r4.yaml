@@ -11,7 +11,7 @@ seed: 732025289
 round: 4
 source: game
 ticks: 1256
-hash: {profile: mcfr-content-0.23.0, result: dddfad78f37c004fa479c29d5a3113797019b3bde4bf7ce1ec0a69c06f94237b}
+hash: 23:dddfad78f37c004fa479c29d5a3113797019b3bde4bf7ce1ec0a69c06f94237b
 blue:
   officers: [rhino_specialist]
   techs:

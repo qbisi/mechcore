@@ -8,7 +8,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 149
-hash: {profile: mcfr-content-0.23.0, result: ad27f25febc1dd1c2e6a6cd7c21069e4cd84130a2fe91975573f95c422037318}
+hash: 23:ad27f25febc1dd1c2e6a6cd7c21069e4cd84130a2fe91975573f95c422037318
 blue:
   techs:
     tarantula: [high_explosive_ammo]

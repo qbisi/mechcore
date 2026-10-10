@@ -14,7 +14,7 @@ seed: 321076513
 round: 5
 source: game
 ticks: 553
-hash: {profile: mcfr-content-0.23.0, result: 1eac9f2770fa9ac37a911fc2c46ece88bf96cf853dc3e1fa9d6a4429b7df7bd2}
+hash: 23:1eac9f2770fa9ac37a911fc2c46ece88bf96cf853dc3e1fa9d6a4429b7df7bd2
 blue:
   core_damage: 1932
   officers: [secondary_equipment_expert, improved_wasp]

@@ -10,7 +10,7 @@ seed: 857911261
 round: 2
 source: game
 ticks: 1334
-hash: {profile: mcfr-content-0.23.0, result: ae4cc43b16cc24a51702b59fa9c715dfde8fbb4352894c4127803144754a3bf8}
+hash: 23:ae4cc43b16cc24a51702b59fa9c715dfde8fbb4352894c4127803144754a3bf8
 blue:
   core_damage: 420
   officers: [secondary_equipment_expert]

@@ -9,7 +9,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 147
-hash: {profile: mcfr-content-0.23.0, result: 7a3def764fca98d32b6c0132700e299b6965eb1e94376616adc308ba977c12c5}
+hash: 23:7a3def764fca98d32b6c0132700e299b6965eb1e94376616adc308ba977c12c5
 blue:
   techs:
     mustang: [culling_rounds]

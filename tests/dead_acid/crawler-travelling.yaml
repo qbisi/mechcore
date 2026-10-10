@@ -9,7 +9,7 @@ seed: 4242
 round: 2
 source: game
 ticks: 1274
-hash: {profile: mcfr-content-0.23.0, result: 25b0f5b881f22b8be730a51794a3063077fc72573d9796f93e2923e8d9c77bd5}
+hash: 23:25b0f5b881f22b8be730a51794a3063077fc72573d9796f93e2923e8d9c77bd5
 blue:
   techs:
     crawler: [acidic_explosion]

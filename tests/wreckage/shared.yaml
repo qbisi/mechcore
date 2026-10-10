@@ -10,7 +10,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 528
-hash: {profile: mcfr-content-0.23.0, result: 19ccbb35dab8e923c8691c1af531418e2d44db85209af18aecacbb184e1acb4a}
+hash: 23:19ccbb35dab8e923c8691c1af531418e2d44db85209af18aecacbb184e1acb4a
 blue:
   techs:
     abyss: [wreckage_recycling]
