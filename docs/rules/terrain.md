@@ -164,7 +164,9 @@ unit's rate on damage taken does not touch (`isAmplifyDamageAffected` false),
 so the buff's own 1.5 does not raise it; the unit's shield takes it first, as
 any hit. A kill it makes counts as a fire's does. A step that kills the unit
 ends its buffs' update, and the buffs before it in the list neither age nor
-step that tick. With the fight over, from the tick after a side is decided, no
+step that tick. The buffs update last in the unit's update, after its motion
+has moved it, so a unit walking through the acid dies where that tick's move
+took it. With the fight over, from the tick after a side is decided, no
 buff steps.
 
 **As the fight ends**, after the buffs the units still run are cleared, every
@@ -344,6 +346,8 @@ already exists.
 
 ### Recorded
 
+- A unit an acid's step kills as it walks dies where that tick's move took
+  it: `tests/terrain/acid-step-kills-walking.yaml`.
 - A controller past its twentieth item finds its units node by node: 150
   fires of a Fire Badger's Napalm burn its own units and a Rhino as the game
   does, and 32 of a Stormcaller's Incendiary Bomb a Rhino:
@@ -427,6 +431,8 @@ already exists.
   rewrite leaves: `Buff.Init`, `Buff.Update`, `Buff.Reset`,
   `BuffManager.Update`, `IBEC_ChangeLIfe.Update`,
   `FightCalculator.PerformHitTargetEffect`.
+- A unit's buffs update after its motion moves its body: `FightMech.Update`,
+  `MotionController.Update`, `BuffManager.Update`.
 - A new fire takes the oils it reaches, and a new oil a fire reaches burns:
   `RangeItemSystem.Init` (the controllers and `interactiveInfos`),
   `RangeItemSystem.AddItem`, `RangeItemSystem.DoAddItem`,

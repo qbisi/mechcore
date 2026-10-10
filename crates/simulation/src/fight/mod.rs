@@ -1164,16 +1164,20 @@ impl Simulation {
                     .get_mut(&actor_id)
                     .expect("actor identity is stable")
                     .searched_attack = true;
-                self.step_actor_with_target_order(
+                let buffs_due = self.step_actor_before_buffs(
                     actor_id,
                     step,
                     &target_search_order,
                     &mut events,
                 )?;
                 // `MotionController.Update` asks its radius change after its
-                // state machine and before it moves the body.
+                // state machine and before it moves the body, and
+                // `BuffManager.Update` runs after it.
                 self.try_update_rvo_change(actor_id);
                 self.step_actor_rvo_position(actor_id);
+                if buffs_due {
+                    self.step_actor_buffs(actor_id, &mut events)?;
+                }
                 self.follow_owner(actor_id);
                 self.perform_command(actor_id);
             }
