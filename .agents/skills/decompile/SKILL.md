@@ -1,6 +1,6 @@
 ---
 name: decompile
-description: Decompile the installed Mechabellum build into work/decomp/<build>, publish it to mechcore-decomp, and diff it against another build. Use when the game updates, when a build's dump or config is missing locally, or when asked what changed between two builds.
+description: Decompile the installed Mechabellum build into work/decomp/<build> and diff it against another build. Use when the game updates, when a build's dump or config is missing locally, or when asked what changed between two builds.
 ---
 
 # Decompile a build
@@ -8,11 +8,10 @@ description: Decompile the installed Mechabellum build into work/decomp/<build>,
 Only a session on the machine that has the game installed can make a new
 build. Every other session fetches one with `scripts/decomp/decomp.py sync`.
 
-## Make and publish
+## Make
 
 ```bash
 python3 scripts/decomp/decompile.py
-python3 scripts/decomp/decomp.py publish <build>
 ```
 
 - `decompile.py` reads the build number and Unity version from the game's
@@ -28,9 +27,6 @@ python3 scripts/decomp/decomp.py publish <build>
   a directory whose `game-manifest.json` was made from other files, and
   `--force all` replaces it. The manifest records Steam's `buildid` as the
   directory's provenance.
-- `publish` commits the build directory to `qbisi/mechcore-decomp` and
-  pushes. Rerun it if a push fails. The index is not published: `sync`
-  builds it from the dump on each machine.
 
 Do not change the fixed choices the script's docstring lists (the x86_64
 slice, the Cpp2IL processors, the stripped attribute lines, loading the

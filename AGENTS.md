@@ -94,7 +94,7 @@ anchors moved, each reread on the new version (see `docs/README.md`).
 
 For a new version, the session with the game runs `scripts/decomp/decompile.py`,
 which reads the build from the installed game and fetches its pinned tools
-into `work/tools/`, then `scripts/decomp/decomp.py publish <build>`.
+into `work/tools/`.
 `scripts/decomp/decomp-diff.py <old> <new>` compares two builds, and `--config`
 their tables. Where the ISIL is hard to follow, `scripts/decomp/ghidra.py
 decompile Class.Method` writes a method's C from a Ghidra project of the
