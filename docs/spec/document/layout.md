@@ -547,9 +547,11 @@ side chose before it, five units in a standard 1v1, which its snapshot holds
 and the allocator has named, so they are legacy too.
 
 A fight sees the difference once, as it starts: a construction that fires turns
-to the best scored of the other side's targets, legacy units among them but
-never a unit that joined, and a squad an officer delivered as the round opened
-scored as if it stood at the origin
+to the best scored of the other side's targets, legacy units among them from
+the second round on, never a unit that joined, and never a legacy unit in the
+first round, the advance team included, which the game has not yet counted
+as old; a squad an officer delivered as the round opened is among them, scored
+as if it stood at the origin
 ([turrets](../../rules/turrets.md#as-the-fight-starts-it-faces-the-target-its-selector-scores-best)).
 The deliveries are the last legacy units, one squad for each officer whose
 `opening_unit` the round activates, so a side that two such officers deliver

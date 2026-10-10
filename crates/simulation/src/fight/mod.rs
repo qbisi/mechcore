@@ -729,7 +729,11 @@ impl Simulation {
         simulation.start_side_streams(layout.round);
         simulation.place_sub_effects()?;
         simulation.deploy_attack_intervals()?;
-        simulation.face_constructions_at_fight_start(&layout.legacy_units, &layout.delivered);
+        simulation.face_constructions_at_fight_start(
+            layout.round,
+            &layout.legacy_units,
+            &layout.delivered,
+        );
         // `SiegeModeEffectSystem.OnEnterFight` digs its units in after each
         // skill drew its first interval as it was deployed, from the
         // interval the trench has not shortened yet.

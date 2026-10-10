@@ -770,10 +770,16 @@ impl Simulation {
     /// onto the best of the targets it finds of the other side, scored as its
     /// skill's selector scores them from where the construction stands and
     /// points. It finds the other side's towers, the constructions a search
-    /// finds, and its legacy units; a unit that joined its side during the
-    /// round is not among them.
+    /// finds, and its old units (`MechTeam.IsOldUnit`, a round count above
+    /// zero): from the second round on its legacy units, which
+    /// `UnitSystem.OnEnterDeployment` counts as the round opens, and a squad
+    /// an officer delivered, which `UnitOfficerController.AddExtraUnit` counts
+    /// as it arrives. In the first round a legacy unit, the advance team
+    /// among them, is restored with a round count of `0` and counted by no
+    /// one, as a unit that joined its side during the round is.
     pub(in crate::fight) fn face_constructions_at_fight_start(
         &mut self,
+        round: u32,
         legacy_units: &BTreeMap<u32, i32>,
         delivered: &BTreeSet<(u32, i32)>,
     ) {
@@ -826,11 +832,16 @@ impl Simulation {
                 }
             }
             for actor in self.actors.values() {
-                let legacy = legacy_units
-                    .get(&actor.placement.team)
-                    .is_some_and(|&legacy_index| actor.placement.formation_index < legacy_index);
+                let delivered_squad =
+                    delivered.contains(&(actor.placement.team, actor.placement.formation_index));
+                let old =
+                    delivered_squad
+                        || (round > 1
+                            && legacy_units.get(&actor.placement.team).is_some_and(
+                                |&legacy_index| actor.placement.formation_index < legacy_index,
+                            ));
                 if actor.placement.team != source.team
-                    && legacy
+                    && old
                     && actor.alive()
                     && source.targets.accepts(actor.domain)
                 {
@@ -839,9 +850,7 @@ impl Simulation {
                     // there and `CalculateMechDirection` turns towards its
                     // `FightTransform.recordPosition`, which the delivery
                     // leaves unset.
-                    let (x_q32, z_q32) = if delivered
-                        .contains(&(actor.placement.team, actor.placement.formation_index))
-                    {
+                    let (x_q32, z_q32) = if delivered_squad {
                         (0, 0)
                     } else {
                         (actor.x_q32, actor.z_q32)
