@@ -58,7 +58,14 @@ unit, whose type and level are:
 `y=[-60,-10]`, `middle` in `y=[-180,-60]`, `back` in `y=[-310,-180]` of the
 main half, and `flank` on one of the two flanks. A band is where the centre stands; a
 footprint taller than its band stands as near it as the main half allows.
-Every other placement stands anywhere in the main half.
+Every other unit and contraption stands anywhere in the main half.
+
+A construction is never placed. The constructions a side may hold are the
+ones the [opening](../../rules/opening.md#defensive-construction-layout)
+lays for the layout's own seed on the map it is fought on, where they stand
+and with their indices: all of them, or a part, each kept on an even draw,
+as an earlier round's fighting leaves them. A construction no seed lays is
+in no layout.
 
 The side's own factors:
 
@@ -69,7 +76,7 @@ The side's own factors:
 | `blueprint` | none, or one of the four enhancement chains' levels |
 | `energy_tower_skills` | none, `enhanced_range`, `high_mobility`, both |
 | `tower_strengthen_levels` | none, both towers at a random level, both at `4` |
-| `construction` | none, or one of the four construction types |
+| `constructions` | none, the ones the layout's seed lays, or a part of them |
 | `contraption` | none, `shield`, `interceptor`, `missile` |
 | `battle_skill` | none, or a release of one battle skill the layout supports |
 
@@ -148,7 +155,8 @@ A batch is a function of its seed and the binary that drew it:
 - layout `i` of a batch is the same whatever count the batch was drawn with,
   since the layouts before it are the only ones that decide which pairs are
   still uncovered;
-- each layout's own `seed` is drawn from the stream, and is never `0`.
+- each layout's own `seed` is drawn from the stream, and is positive, the
+  seeds the opening that lays its constructions is dealt for.
 
 The space is read from the build's tables, so the same seed draws another
 batch on another build. A batch is named by its seed and the index of each
