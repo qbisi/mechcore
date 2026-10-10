@@ -89,20 +89,24 @@ restore: a
 Shield Airdrop as one centre with no lifetime, and an oil area as the release's
 two control points, the points still standing as a `ByteMask`, each standing
 point's `12 x 12` grid or nothing for a whole one, and one round left. Red's
-grids are turned half a turn, as its coordinates are.
+grids are turned half a turn, as its coordinates are. Last, when the round
+recovers a delivered squad, it holds a Field Recovery slot, ready, which moves
+no other slot.
 
 ## The round's decisions
 
 The layout round's `actionRecords` hold, in this order:
 
-1. each delivered squad upgraded to its layout level, fitted, and moved to its
+1. each delivered squad the layout no longer holds recovered from the Field
+   Recovery slot, by its index;
+2. each delivered squad upgraded to its layout level, fitted, and moved to its
    layout position and facing;
-2. each unit that joins during the round, in index order, added, fitted, and
+3. each unit that joins during the round, in index order, added, fitted, and
    moved to its layout position and facing;
-3. each Energy Tower skill activated;
-4. each battle skill released from its slot, at its positions, in the layout's
+4. each Energy Tower skill activated;
+5. each battle skill released from its slot, at its positions, in the layout's
    order, which is the order its side's skills draw their scatter in;
-5. `PAD_FinishDeploy`, when any decision precedes it.
+6. `PAD_FinishDeploy`, when any decision precedes it.
 
 The layout's `legacy_index` divides a side's units. One below it is legacy:
 the snapshot holds it, but for a squad an officer delivers. Every other unit
@@ -129,11 +133,13 @@ allocator, so an allocator left behind would hand that squad an index a
 joining unit already holds.
 
 A squad an officer's schedule hands out as the round opens arrives on top of
-the snapshot, so the snapshot does not hold it again. It becomes the layout's
-unit of the same type, at that squad's level or above, without experience,
-and its decisions upgrade, fit and move it. It is the last legacy unit: the
-allocator opens at its index, which the delivery takes, one below
-`legacy_index`. Without a delivery the allocator opens at `legacy_index`. A
+the snapshot, so the snapshot does not hold it again. It is the last legacy
+unit: the allocator opens at its index, which the delivery takes, one below
+`legacy_index`. The layout's unit at that index is the squad, of its type, at
+its level or above and without experience, and its decisions upgrade, fit and
+move it. A layout that holds no unit at that index recovered the squad before
+the fight, and a decision recovers it, which the game's own replay of the
+round agrees with tick for tick. Without a delivery the allocator opens at `legacy_index`. A
 standard 1v1 never deals a side two officers that deliver in one round, and
 the order two would deliver in is not recorded, so a side that two deliver to
 is refused.
@@ -145,9 +151,8 @@ and the refusal names each part:
 
 - no seed;
 - two officers that each deliver a squad as the round opens;
-- a squad an officer delivers as the round opens with no unit of the side to
-  become;
-- squads that are not the last legacy units;
+- a unit at a delivered squad's index that is not of the squad's type, below
+  its level, or with experience;
 - an officer that delivers a squad as the next round opens, beside joining
   units that skip an index, since they leave the allocator behind them;
 - a unit that joins during the round with experience, since a round's
