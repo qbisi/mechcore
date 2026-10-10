@@ -274,6 +274,13 @@ content, as `tests/turret/` replays them.
   blue unit, and `tests/corpus/67158946-r3.yaml`, where blue's faces a
   red tower although an old red unit's centre is nearer, and red's faces
   blue's turret. With no old unit it faces a tower: `tests/turret/`.
+- A turret does not turn to the advance team as round 1 starts, and turns to
+  the same unit as an old unit in round 3: red's Anti-Armor Turret at world
+  (140, 100) faces 180° and locks the Marksman straight ahead in round 1, and
+  faces 204.045° and locks the one off its line in round 3, as each fixture's
+  assert reads the turret's lock and weapon on tick 1:
+  `tests/turret/anti-armor-advance-team-not-old.yaml`,
+  `tests/turret/anti-armor-old-unit.yaml`.
 - A squad an officer delivers as the round opens is scored and faced at the
   origin, wherever it is moved: red's turret at world (140, 100) faces 234.44
   degrees, and at world (-140, 100) faces 125.56, with nothing of blue's on
@@ -361,14 +368,6 @@ content, as `tests/turret/` replays them.
   `BattleSystem.OnPlayerReleaseConstruction`.
 
 ### Not established
-
-- **The first round's facing, in a recording.** A turret in round 1 does not
-  turn to the other side's advance team: in the game its first search scores
-  from 180°, its attack facing, where the same unit as an old unit of round 3
-  turns it to 204°, read from the `target_candidate` instrument channel. No
-  recording holds a construction's weapon or lock, and in every fight tried
-  the weapon has turned onto its lock before the lock is in reach, so no pin
-  holds it.
 
 - **Which rotation the fight-start score is taken from.**
   `ScoreRatingTargetSelector` reads it through the attacker's

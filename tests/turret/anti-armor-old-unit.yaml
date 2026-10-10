@@ -1,0 +1,33 @@
+# A turret turns to an old unit as the fight starts.
+#
+# `anti-armor-advance-team-not-old.yaml` in round 3: the Marksman at (60, -80)
+# is now an old unit, and red's Anti-Armor Turret at world (140, 100) turns
+# to it as the fight starts, to 204.045 degrees, before blue's tower straight
+# ahead. Its first search from there locks that Marksman rather than the one
+# straight ahead that joined this round. Its assert reads the turret's lock
+# and its weapon's facing on tick 1.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 3
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 60, y: -80}, source: legacy}
+  - {name: marksman, index: 1, position: {x: 140, y: -80}}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, source: legacy}
+  constructions:
+  - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}
+outcome:
+  blue.units[0].exp: 30
+  blue.units[1].exp: 490
+  red.core_damage: 100
+  red.units[0].exp: 200
+asserts:
+- sql: "SELECT b.tick, b.building_id, b.skill__lock_target__kind, b.skill__lock_target__id, w.rotation FROM buildings b JOIN buildings__skill__weapons w ON w.tick = b.tick AND w.building_id = b.building_id WHERE b.team_id = 1 AND b.has_skill AND b.tick = 1"
+  rows: [[1, 5, unit, 1, 876368176351]]
+ticks: 423
+hash: 23:b1ef516d8bc42e8c1e4dc003f31117e7fc2afd6ba053811158ce856f6c3d571c

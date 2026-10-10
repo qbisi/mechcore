@@ -17,13 +17,14 @@ use mechcore_document::{
     chain_blueprint, construction_type_from_id, contraption_type_from_id, unit_type_from_id,
 };
 use mechcore_mcfr::{
-    AttackPhase, BuffDataKind, BuffDataRef, BuffRemovedReason, BuffState, BuildingState,
-    ControlState, Domain, DurableContext, EnabledSkill, Event, EventPayload, GaugeI32,
-    LiveUnitState, MotionState, ObjectKind, ObjectRef, PersonalShieldState, ProjectileState,
-    QPlanar, QPose, QVec3, Rational, RebirthState, ShieldDestroyedReason, ShieldRoundPolicy,
-    ShieldSourceKind, ShieldState, SkillMachineState, SkillState, TerrainApplicationState,
-    TerrainEffectClock, TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState,
-    TerrainType, TransitionEvents, Visibility, WeaponState, WorldSnapshot,
+    AttackPhase, BuffDataKind, BuffDataRef, BuffRemovedReason, BuffState, BuildingSkill,
+    BuildingState, BuildingWeapon, ControlState, Domain, DurableContext, EnabledSkill, Event,
+    EventPayload, GaugeI32, LiveUnitState, MotionState, ObjectKind, ObjectRef, PersonalShieldState,
+    ProjectileState, QPlanar, QPose, QVec3, Rational, RebirthState, ShieldDestroyedReason,
+    ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillMachineState, SkillState,
+    TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
+    TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents, Visibility, WeaponState,
+    WorldSnapshot,
 };
 use mechcore_mcfr::{
     CheckedSkill, ExpRange, PoseClip, ProjectileReach, RvoNeighbour, RvoSolve, RvoVo,
@@ -4349,6 +4350,9 @@ struct SkillStateFields {
 struct RawBuilding {
     pointer: usize,
     state: BuildingState,
+    /// A searching construction's `FightSkill.lockTarget`, resolved once
+    /// every object is numbered; 0 for none.
+    skill_lock: usize,
 }
 
 // Capture-local identity is independent of layout order and native counters.
@@ -5818,7 +5822,12 @@ fn snapshot(
                     }
                     continue;
                 }
-                raw_buildings.push(read_building(runtime.api, building, team_id)?);
+                raw_buildings.push(read_building(
+                    runtime.api,
+                    building,
+                    team_id,
+                    &capture.metadata,
+                )?);
             }
         }
         raw_shields.extend(read_team_shields(
@@ -5934,6 +5943,7 @@ fn snapshot(
 
     sort_buildings(&mut raw_buildings)?;
     let mut buildings = Vec::with_capacity(raw_buildings.len());
+    let mut raw_building_locks = Vec::new();
     for mut building in raw_buildings {
         let id = match capture.building_ids.get(&building.pointer) {
             Some(id) => *id,
@@ -5945,6 +5955,9 @@ fn snapshot(
             ObjectRef::new(ObjectKind::Building, id),
             building.state.team_id,
         );
+        if building.skill_lock != 0 {
+            raw_building_locks.push((buildings.len(), building.skill_lock));
+        }
         buildings.push(building.state);
     }
     // Earlier snapshots establish temporary identities for native event hooks.
@@ -6016,6 +6029,14 @@ fn snapshot(
         for (buff, source) in units[unit_index].buffs.iter_mut().zip(sources) {
             buff.source = resolve_target_ref(runtime.api, source, "Buff.source", capture)?;
         }
+    }
+    for (building_index, lock) in raw_building_locks {
+        let lock_target = resolve_target_ref(runtime.api, lock, "FightSkill.lockTarget", capture)?;
+        buildings[building_index]
+            .skill
+            .as_mut()
+            .expect("a lock is kept for a building with a skill only")
+            .lock_target = lock_target;
     }
     for (unit_index, skill_index, lock, attack) in raw_skill_targets {
         let lock_target = resolve_target_ref(runtime.api, lock, "FightSkill.lockTarget", capture)?;
@@ -7009,7 +7030,64 @@ fn read_buffs(api: Api, manager: *mut Object) -> Result<Vec<(BuffState, usize)>,
     Ok(buffs)
 }
 
-fn read_building(api: Api, building: *mut Object, team_id: u32) -> Result<RawBuilding, String> {
+/// A searching construction's main skill, as a recording holds it, and its
+/// `FightSkill.lockTarget` pointer to resolve; none for a tower, a wall, or
+/// any construction whose row does not search
+/// (`ConstructionData.IsEnableSearchTarget`).
+fn read_building_skill(
+    api: Api,
+    building: *mut Object,
+    metadata: &Metadata,
+) -> Result<Option<(BuildingSkill, usize)>, String> {
+    if api.object_class_name(building) != "FightConstruction" {
+        return Ok(None);
+    }
+    let data = invoke_object(api, building, "GetConstructionData")
+        .map_err(|error| format!("FightConstruction.GetConstructionData: {error}"))?;
+    if !invoke_value::<bool>(api, data, "IsEnableSearchTarget")? {
+        return Ok(None);
+    }
+    let skill = invoke_object(api, building, "GetMainSkill")
+        .map_err(|error| format!("FightConstruction.GetMainSkill: {error}"))?;
+    let lock_field = metadata
+        .fight_skill_lock_target
+        .ok_or("FightSkill.lockTarget is unresolved")?;
+    let lock = api
+        .field_value::<*mut Object>(skill, lock_field as *mut FieldInfo)
+        .map_err(|error| error.to_string())? as usize;
+    let weapons = read_weapons(api, skill)
+        .map_err(|error| format!("FightConstruction main skill GetWeapons: {error}"))?
+        .into_iter()
+        .map(|weapon| {
+            weapon
+                .pose
+                .map(|pose| BuildingWeapon {
+                    rotation: pose.rotation,
+                    weapon_index: weapon.weapon_index,
+                })
+                .ok_or_else(|| {
+                    format!(
+                        "a searching construction's weapon {} has no FightTransform",
+                        weapon.weapon_index
+                    )
+                })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    Ok(Some((
+        BuildingSkill {
+            lock_target: None,
+            weapons,
+        },
+        lock,
+    )))
+}
+
+fn read_building(
+    api: Api,
+    building: *mut Object,
+    team_id: u32,
+    metadata: &Metadata,
+) -> Result<RawBuilding, String> {
     let transform = invoke_object(api, building, "GetFightTransform")
         .map_err(|error| format!("FightCrystal.GetFightTransform: {error}"))?;
     let position = vec3(invoke_value::<FixedVec3>(
@@ -7028,8 +7106,11 @@ fn read_building(api: Api, building: *mut Object, team_id: u32) -> Result<RawBui
         .map_err(|error| error.to_string())?;
     let data = invoke_object(api, building, "GetBuildingData")?;
     let collision_enabled = invoke_value::<bool>(api, data, "get_EnableCollision")?;
+    let (skill, skill_lock) = read_building_skill(api, building, metadata)?
+        .map_or((None, 0), |(skill, lock)| (Some(skill), lock));
     Ok(RawBuilding {
         pointer: building as usize,
+        skill_lock,
         state: BuildingState {
             building_id: 0,
             team_id,
@@ -7045,6 +7126,7 @@ fn read_building(api: Api, building: *mut Object, team_id: u32) -> Result<RawBui
             available,
             targetable,
             collision_enabled,
+            skill,
         },
     })
 }
@@ -9032,6 +9114,7 @@ mod tests {
             available: true,
             targetable: true,
             collision_enabled: true,
+            skill: None,
         }
     }
 
@@ -9430,6 +9513,7 @@ mod tests {
                     RawBuilding {
                         pointer: 100 - id,
                         state,
+                        skill_lock: 0,
                     }
                 })
                 .collect::<Vec<_>>();
@@ -9444,10 +9528,12 @@ mod tests {
             RawBuilding {
                 pointer: 1,
                 state: building(0),
+                skill_lock: 0,
             },
             RawBuilding {
                 pointer: 2,
                 state: building(0),
+                skill_lock: 0,
             },
         ];
         assert!(

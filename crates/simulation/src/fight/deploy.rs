@@ -545,6 +545,28 @@ fn interceptor_building(building: &InterceptorBuilding) -> RawBuilding {
 /// them, which is `BuildingManager.buildings`' order and the key
 /// `tower_strengthen_levels` is written in: a level adds its life and chooses
 /// the buff the tower's loss writes.
+/// What a recording holds of a building as the fight starts; a searching
+/// construction's skill is read with each snapshot.
+fn building_state(building: &RawBuilding, building_id: u64) -> Result<BuildingState> {
+    let life = i32::try_from(building.life).map_err(|_| Error::new("building life exceeds i32"))?;
+    Ok(BuildingState {
+        building_id,
+        team_id: building.team_id,
+        building_type_id: building.building_type_id,
+        position: point(building.x, building.z),
+        bounds_width: space_to_q32(building.radius.saturating_mul(2)),
+        bounds_height: space_to_q32(building.radius.saturating_mul(2)),
+        life: GaugeI32 {
+            current: life,
+            maximum: life,
+        },
+        available: true,
+        targetable: building.life > 0,
+        collision_enabled: building.collision_enabled,
+        skill: None,
+    })
+}
+
 pub(in crate::fight) fn initialize_buildings(
     towers: &TowersConfig,
     constructions: &[ConstructionBuilding],
@@ -595,26 +617,7 @@ pub(in crate::fight) fn initialize_buildings(
         .collect::<BTreeSet<_>>();
     let states = raw
         .iter()
-        .map(|building| {
-            let building_id = normalized_ids[&building_key(building)];
-            Ok(BuildingState {
-                building_id,
-                team_id: building.team_id,
-                building_type_id: building.building_type_id,
-                position: point(building.x, building.z),
-                bounds_width: space_to_q32(building.radius.saturating_mul(2)),
-                bounds_height: space_to_q32(building.radius.saturating_mul(2)),
-                life: GaugeI32 {
-                    current: i32::try_from(building.life)
-                        .map_err(|_| Error::new("building life exceeds i32"))?,
-                    maximum: i32::try_from(building.life)
-                        .map_err(|_| Error::new("building life exceeds i32"))?,
-                },
-                available: true,
-                targetable: building.life > 0,
-                collision_enabled: building.collision_enabled,
-            })
-        })
+        .map(|building| building_state(building, normalized_ids[&building_key(building)]))
         .collect::<Result<Vec<_>>>()?;
     let tower_losses = raw
         .iter()
