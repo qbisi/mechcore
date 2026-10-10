@@ -1406,21 +1406,33 @@ impl Simulation {
                 // `FightMech.OnFightEnd` hands the motion back to the main
                 // skill (`SetMotionAttackerAfterSkill`).
                 actor.motion.attacker = SkillSlot::Main;
-                // Every skill of the unit lets its target go, its extra
-                // skills' as its main one's. A won fight runs on without
-                // `FightSkill.ExitFight` until it ends: a skill already
-                // cooling goes on cooling at what it named, and only the end
-                // of the fight ends it. A cooling this very tick would have
-                // begun is not one the build's attack state has entered yet,
-                // and goes idle with it.
-                let skills = std::iter::once(&mut actor.skills.main)
-                    .filter(|_| !holding_fire)
-                    .chain(actor.skills.extras.iter_mut().map(|extra| &mut extra.skill));
-                for skill in skills {
+                // The main skill lets its target go. A won fight runs on
+                // without `FightSkill.ExitFight` until it ends: a skill
+                // already cooling goes on cooling at what it named, and only
+                // the end of the fight ends it. A cooling this very tick
+                // would have begun is not one the build's attack state has
+                // entered yet, and goes idle with it.
+                if !holding_fire {
+                    let skill = &mut actor.skills.main;
                     skill.drop_lock();
                     skill.attack_target_left = None;
                     let cooling_before = skill.cooling().is_some_and(|(started, _)| started < step);
                     if ready_to_finish || !cooling_before {
+                        skill.set_cooling(None);
+                        skill.set_phase(FightSkillPhase::Idle);
+                    }
+                }
+                // An extra skill leaves the fight only while it holds a
+                // lock; one that holds none is not updated, and stands in
+                // whatever state it was in until the fight ends: a Phantom
+                // Ray's Sticky Oil Bomb cooling from the deciding tick, and
+                // a Fire Badger's Scorching Charge locking, of replay
+                // 67263060's round 6.
+                for extra in &mut actor.skills.extras {
+                    let skill = &mut extra.skill;
+                    if ready_to_finish || skill.lock_target.is_some() {
+                        skill.drop_lock();
+                        skill.attack_target_left = None;
                         skill.set_cooling(None);
                         skill.set_phase(FightSkillPhase::Idle);
                     }

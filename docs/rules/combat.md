@@ -1242,6 +1242,10 @@ not the game's native attack-type enum.
 - A cooling that does not run through a won fight, a Raiden's grouped slot's
   among them: `tests/corpus/201477923-r5.yaml`, ticks 1618 to 1625,
   Phantom Rays 56 and 58 and Raiden 19's second gun.
+- An extra skill holding no lock as the fight is won stands as it was, a
+  Sticky Oil Bomb that began cooling on the deciding tick still cooling and
+  a Scorching Charge still locking: `tests/corpus/67263060-r6.yaml`,
+  ticks 994 to 1003, Phantom Rays 25 and 100 and Fire Badger 75.
 - Wasps still on a Mobile Beacon when the fight is won going on moving and
   turning until the fight ends, and idle at its end:
   `tests/battle_skill/beacon-wasps-won.yaml`,

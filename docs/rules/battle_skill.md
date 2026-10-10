@@ -583,7 +583,11 @@ drawn from any stream, and no event is written.
   shots of a burst, turning to it, and change to moving only once the burst
   is out; one moving through its cooling with no lock changes to attacking
   as the Tarantula its cooling names comes into range:
-  `tests/corpus/67160345-r4.yaml`, ticks 237, 246 and 357.
+  `tests/corpus/67160345-r4.yaml`, ticks 237, 246 and 357. Entering the
+  attack asks its agent for no speed (`MotionAttackState.Enter`,
+  `RVOControllerFixed.StopMove`), so one that enters on a solve's update,
+  an enemy by its path holding it, stands at the next boundary:
+  `tests/corpus/67263060-r6.yaml`, Phantom Ray 100 on ticks 635 to 640.
 
 ### Replayed
 
