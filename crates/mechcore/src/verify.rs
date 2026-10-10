@@ -239,9 +239,27 @@ fn verify_fight(path: &Path, bytes: &[u8]) -> Result<Report, String> {
         }),
     };
     let layout = mechcore_document::canonical_yaml(mechcore_document::fight::project(&document))?;
-    let simulated = match crate::convert::fought(|record| {
-        mechcore_simulation::simulate_document(layout.as_bytes(), record, None)
-    }) {
+    // An assert asks the recording, so a document with one has the simulator
+    // write its recording where the query can open it.
+    let staged = tempfile::Builder::new()
+        .prefix("mechcore-verify-")
+        .tempdir()
+        .map_err(|error| format!("cannot stage the recording: {error}"))?;
+    let recording = staged.path().join("fight.mcfr");
+    let fought = if document.asserts.is_empty() {
+        crate::convert::fought(|record| {
+            mechcore_simulation::simulate_document(layout.as_bytes(), record, None)
+        })
+    } else {
+        mechcore_simulation::simulate_document(
+            layout.as_bytes(),
+            mechcore_simulation::Record::File(&recording),
+            None,
+        )
+        .map_err(|error| Failure::refused(error.to_string()))
+        .and_then(|_| crate::outcome::fight(&recording))
+    };
+    let simulated = match fought {
         Ok(simulated) => simulated.normalized(),
         Err(refused) => {
             return Ok(report(
@@ -259,6 +277,7 @@ fn verify_fight(path: &Path, bytes: &[u8]) -> Result<Report, String> {
             .trajectory
             .as_ref()
             .and(simulated.trajectory.clone()),
+        asserts: answered(&document.asserts, &recording)?,
         ..simulated
     };
     let (error, differences) = compared(&document, &actual, "the simulator's fight")?;
@@ -266,14 +285,34 @@ fn verify_fight(path: &Path, bytes: &[u8]) -> Result<Report, String> {
 }
 
 /// What a fight document states and so what `verify` compares: its outcome,
-/// and its trajectory when it states one. A document without a trajectory
-/// is held to its outcome alone, so the fight it is compared with is too.
-fn compared_parts(document: &mechcore_document::Fight) -> &'static [&'static str] {
-    if document.trajectory.is_some() {
-        &["outcome", "trajectory"]
-    } else {
-        &["outcome"]
-    }
+/// its asserts when it makes any, and its trajectory when it states one. A
+/// document without a trajectory is held to the rest alone, so the fight it
+/// is compared with is too.
+fn compared_parts(document: &mechcore_document::Fight) -> Vec<&'static str> {
+    std::iter::once("outcome")
+        .chain((!document.asserts.is_empty()).then_some("asserts"))
+        .chain(document.trajectory.is_some().then_some("trajectory"))
+        .collect()
+}
+
+/// A document's asserts as `recording` answers them: each query, and the
+/// rows the recording gives it.
+fn answered(
+    asserts: &[mechcore_document::fight::Assert],
+    recording: &Path,
+) -> Result<Vec<mechcore_document::fight::Assert>, String> {
+    asserts
+        .iter()
+        .map(|assert| {
+            Ok(mechcore_document::fight::Assert {
+                sql: assert.sql.clone(),
+                rows: Some(
+                    crate::query::rows(recording, &assert.sql)
+                        .map_err(|failure| failure.reason().to_owned())?,
+                ),
+            })
+        })
+        .collect()
 }
 
 /// Where `actual` differs from what `document` states, and the error that
@@ -299,6 +338,12 @@ fn compared(
         .map(|difference| difference.path.as_str())
         .collect::<Vec<_>>()
         .join(", ");
+    let unrecorded = if document.asserts.iter().any(|assert| assert.rows.is_none()) {
+        "; an assert states no rows until `verify --backend game --update` records the \
+         game's answer"
+    } else {
+        ""
+    };
     let incomparable = document
         .trajectory
         .as_ref()
@@ -315,7 +360,7 @@ fn compared(
         .unwrap_or_default();
     Ok((
         Some(format!(
-            "{fought} differs from the document in {paths}{incomparable}"
+            "{fought} differs from the document in {paths}{incomparable}{unrecorded}"
         )),
         differences,
     ))
@@ -350,7 +395,10 @@ async fn fight_in_game(
     let layout = serde_json::to_value(mechcore_document::fight::project(&document))
         .map_err(|error| format!("cannot write the fight's layout: {error}"))?;
     let recorded = match record(layout, Vec::new(), staged.path(), session).await {
-        Ok((recorded, _)) => recorded,
+        Ok((recorded, recording)) => mechcore_document::Fight {
+            asserts: answered(&document.asserts, &recording)?,
+            ..recorded
+        },
         Err(refused) => return Ok(game_report(path, "fight", Some(refused), &[], false)),
     };
     let actual = if update {

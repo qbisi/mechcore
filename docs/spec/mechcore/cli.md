@@ -210,9 +210,9 @@ batch still runs.
   layout: its projection, with its seed, through the simulator and the one
   reader. It verifies when the simulator's document states what it states, as
   [fight.md](../document/fight.md#root-fields) says a fight is checked: its
-  outcome, and `ticks` and `hash` when the document states them.
-  `compared` names which of the two were, `outcome` alone for a document with
-  no trajectory, and `differences` lists each path
+  outcome, its asserts' rows when it makes any, the simulator's recording
+  asked each assert's query, and `ticks` and `hash` when the document states
+  them. `compared` names which were, and `differences` lists each path
   they part on, as `diff` spells one, with the document's value as `expected`
   and the simulator's as `actual`. A document holds no tick of its fight, so a
   hash that differs names no tick; `verify` over the recording it was read
@@ -230,8 +230,9 @@ match holds no fight and is checked as without it. No game answering is
 
 `--update`, only with `--backend game`, writes the game's fight back to each
 file it differs from: a fight document becomes what `convert --to fight`
-reads from the new recording, with its leading comment kept and no
-`game_build` where it stated none, and a recording is replaced by the new one.
+reads from the new recording, with its leading comment kept, no
+`game_build` where it stated none, and each assert's rows the new
+recording's answer to its query, and a recording is replaced by the new one.
 A recording that no longer reads as a fight, one of an older MCFR format, is
 recorded again from its layout all the same. The report says `updated`, still
 lists the `differences` it wrote over, and is valid. The simulator never

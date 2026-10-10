@@ -87,6 +87,7 @@ path, and so no result. A fight only reports on what it started with.
 | `source` | who fought it: `game` or `simulator` |
 | the layout's root fields | `game_build`, `map_id`, `seed`, `round`, `blue`, `red`, as [layout.md](layout.md) writes them; `seed` is required |
 | `outcome` | what the fight left, [below](#outcome); absent when it left nothing |
+| `asserts` | what the document claims about how the fight went, [below](#asserts); absent when it claims nothing |
 | `ticks` | the fight's logical ticks, the recording's `tick_count` |
 | `hash` | `<profile>:<result>`: the recording's `hash_profile` and `result_hash`, as `23:e4ed…` |
 
@@ -119,8 +120,9 @@ profiles. A reader checks the form; a hash under a profile the checker does not
 compute is not comparable, which is the checker's to report.
 
 So a fight is checked by fighting its projection with its seed and comparing
-what the fight arrives at with what the document states: the outcome, and the
-trajectory when the document carries it, each reported on its own. The layout
+what the fight arrives at with what the document states: the outcome, the
+asserts when it makes any, and the trajectory when it carries one, each
+reported on its own. The layout
 needs no comparing, since both fights start from the one projection.
 [`verify`](../mechcore/cli.md#verify) is the command that checks one.
 
@@ -194,21 +196,56 @@ fight's round, and nothing else carries one:
 - Every other release carries nothing: its product is gone before the round
   that would carry it opens.
 
+## Asserts
+
+The outcome says what a fight hands on and the hash that it went exactly as
+recorded; neither says what a fixture was made to show. `asserts` does: each
+is a query of the fight's recording and the rows the game's recording of the
+fight answered it with.
+
+```yaml
+asserts:
+- sql: "SELECT tick, target__kind, target__id, amount FROM events WHERE type = 'damage' AND source__kind IS NULL AND tick = 63 ORDER BY ordinal"
+  rows: [[63, building, 5, 3000], [63, building, 6, 1112]]
+```
+
+| Field | Meaning |
+| --- | --- |
+| `sql` | the query, as [`query`](../mechcore/cli.md#query) asks a recording |
+| `rows` | what the game's recording answered, row by row, each cell as `query` writes it; absent until recorded |
+
+An assert is checked by asking the fight being compared the same query and
+comparing its rows. Whether it is bound to a tick, as the example is, or only
+to the order things happened in, is the query's: what it selects, and what it
+orders by. A claim that the two buffs' rates sum, whichever tick a hit lands
+on, asks for no tick.
+
+The rows are the game's. `verify --backend game --update` writes each
+assert's rows from the game's recording, and nothing else writes them: an
+assert written by hand states its `sql` and no `rows`, and does not verify
+until the game has answered it. So an assert outlives the hash: a change to
+the rules that moves the trajectory leaves every assert about what it did not
+move standing, and says, by which fail, what moved.
+
 ## Normal form
 
 A fight document is in normal form when its projection is a layout in normal
 form, and:
 
 - the root fields come in the order `kind`, `source`, then the layout's root
-  fields in the layout's order, then `outcome`, `ticks`, `hash`;
+  fields in the layout's order, then `outcome`, `asserts`, `ticks`, `hash`;
 - `outcome` lists blue's paths before red's; within a side, the side's own
   field first, then `units`, `contraptions` and `battle_skills`, each by
   position, and an entry's `grid_rows` before its `retained`;
 - no result at its default is written, and an empty `outcome` is absent.
 
+- `asserts` keep the order they are written in, each with `sql` before
+  `rows`.
+
 The canonical writer spells a fight by the layout's three rules: each
 `outcome` entry is one line, its key the path, and a `grid_rows` value a flow
-mapping on that line.
+mapping on that line; each assert's `sql` and `rows` are a line each, `rows`
+in flow style.
 
 ## Excluded fields
 

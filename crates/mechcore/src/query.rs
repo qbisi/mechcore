@@ -214,6 +214,23 @@ pub(crate) fn answer(
     }
 }
 
+/// The rows one recording answers one query with, each cell as `query`
+/// writes it: what a fight document's assert is checked against.
+///
+/// # Errors
+///
+/// As [`answer`].
+pub(crate) fn rows(recording: &Path, sql: &str) -> Result<Vec<Vec<Value>>, Failure> {
+    let answered = answer(
+        &Inputs::One(recording.to_path_buf()),
+        Store::Memory,
+        Asked::Sql(sql.to_owned()),
+        &BTreeMap::new(),
+    )?;
+    serde_json::from_value(answered["rows"].clone())
+        .map_err(|error| Failure::failed(format!("cannot read the query's rows: {error}")))
+}
+
 fn answer_text(
     inputs: &Inputs,
     store: Store,

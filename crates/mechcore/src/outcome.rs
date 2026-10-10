@@ -260,6 +260,9 @@ impl Reading {
                 ticks: self.ticks,
                 hash: self.hash,
             }),
+            // A recording answers queries; which ones a fixture asks is the
+            // fixture's.
+            asserts: Vec::new(),
             blue: fight_side(blue, blue_reading)?,
             red: fight_side(red, red_reading)?,
         };

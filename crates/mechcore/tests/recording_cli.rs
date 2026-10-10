@@ -512,6 +512,46 @@ fn verify_fights_a_fight_document_again_and_names_what_differs() {
     assert_eq!(report["compared"], serde_json::json!(["outcome"]));
 }
 
+/// An assert is checked by asking the simulator's recording its query, and
+/// one whose rows nobody recorded does not verify.
+#[test]
+fn verify_asks_each_assert_of_the_recording() {
+    let directory = tempfile::tempdir().unwrap();
+    let document = simulated_fight(directory.path());
+    let verify = |name: &str, text: &str| verify_text(directory.path(), name, text);
+    let with = |rows: &str| {
+        document.replace(
+            "\nticks:",
+            &format!("\nasserts:\n- sql: \"SELECT count(*) FROM events WHERE type = 'unit_died'\"{rows}\nticks:"),
+        )
+    };
+
+    // Unrecorded: the report names the assert and how to record it.
+    let (code, report) = verify("unrecorded.yaml", &with(""));
+    assert_eq!(code, Some(1), "{report}");
+    assert_eq!(
+        report["compared"],
+        serde_json::json!(["outcome", "asserts", "trajectory"])
+    );
+    assert_eq!(report["differences"][0]["path"], "/asserts/0/rows");
+    assert!(
+        report["error"]
+            .as_str()
+            .unwrap()
+            .contains("--backend game --update"),
+        "{report}"
+    );
+    let deaths = &report["differences"][0]["actual"][0][0];
+
+    // Recorded as the fight answers it, it verifies; one count off does not.
+    let (code, report) = verify("asserted.yaml", &with(&format!("\n  rows: [[{deaths}]]")));
+    assert_eq!(code, Some(0), "{report}");
+    let wrong = deaths.as_i64().unwrap() + 1;
+    let (code, report) = verify("wrong.yaml", &with(&format!("\n  rows: [[{wrong}]]")));
+    assert_eq!(code, Some(1), "{report}");
+    assert_eq!(report["differences"][0]["path"], "/asserts/0/rows/0/0");
+}
+
 /// A game's fight is compared on its result and its trajectory alike.
 #[test]
 fn verify_compares_a_game_fight() {
