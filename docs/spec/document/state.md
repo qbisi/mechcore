@@ -54,11 +54,13 @@ unlocked units, the reinforcement offer, the allocators, and the parts of the sk
 that neither stand on the battlefield nor were released this round.
 
 One thing a fight observes is read from the position the round opened with
-rather than the one projected: which units are legacy. A layout's
-`legacy_index` is the side's unit allocator as its round opened, the squads
-its officers delivered counted, and in the first round the advance team the
-side chose before it. A position the round's decisions reached has moved the allocator
-past what they created, so it cannot say.
+rather than the one projected: each unit's `source`. A unit below the side's
+unit allocator as its round opened is `legacy`, in the first round the advance
+team the side chose before it among them; a squad its officers delivered as
+the round opened is `delivered`, and one of those the round's decisions
+recovered is listed in `recovered`; every other unit is `joined`. A position
+the round's decisions reached has moved the allocator past what they created,
+so it cannot say.
 
 Six side fields project unchanged: `officers`, `techs`, `units`,
 `constructions`, `contraptions` and `tower_strengthen_levels`. Two more reach a

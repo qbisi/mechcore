@@ -338,7 +338,7 @@ when omitted:
 - `energy_tower_skills` defaults to `[]`.
 - `tower_strengthen_levels` defaults to `[]`, which puts every tower at level
   `0`.
-- `legacy_index` defaults to `0`: every unit joined the side during the round.
+- `recovered` defaults to `[]`: no squad an officer delivered was recovered.
 - `constructions` defaults to `[]`.
 - `contraptions` defaults to `[]`.
 - `battle_skills` defaults to `[]`.
@@ -347,6 +347,7 @@ when omitted:
 - A unit's `rotated` defaults to `false`.
 - A unit's `equipment` defaults to `[]`.
 - A unit's `travelling` defaults to `false`.
+- A unit's `source` defaults to `joined`.
 
 Unknown fields must be rejected, and so is a document whose `kind` is absent or
 names another kind, and a name the build does not carry.
@@ -531,41 +532,53 @@ readback that verifies an apply and the capture that exports a side read both
 lists, so one of these Officers is neither reported missing right after it was
 installed nor dropped from a capture of the side that holds it.
 
-### `legacy_index`
+### `source` and `recovered`
 
 ```yaml
-legacy_index: 7
+units:
+- {name: marksman, index: 3, position: {x: 0, y: -50}, source: legacy}
+- {name: sabertooth, index: 8, position: {x: -105, y: -155}, source: delivered}
+- {name: rhino, index: 9, position: {x: 40, y: -60}}
+recovered: [8]
 ```
 
-A unit whose `index` is below `legacy_index` is legacy: the side carried it
-into the round, the squads its officers delivered as the round opened among
-them. Every other unit joined the side during the round, bought, taken as a
-reinforcement or added. The unit allocator names units in the order they are
-created, so one number divides the two: the allocator as the round opened, the
-officers' deliveries made. The first round opens with the advance team each
-side chose before it, five units in a standard 1v1, which its snapshot holds
-and the allocator has named, so they are legacy too.
+A unit's `source` says how it came to the side, because a fight tells the
+three apart:
+
+| `source` | The unit |
+| --- | --- |
+| `legacy` | the side carried it into the round: a unit of an earlier round, or in the first round the advance team the side chose before it, five units in a standard 1v1. The round's snapshot holds it. |
+| `delivered` | a squad an officer delivered as the round opened, one for each officer whose `opening_unit` the round activates, of its type, at its level or above and without experience |
+| `joined` | it joined the side during the round: bought, taken as a reinforcement or added. Not written, being the default. |
+
+The unit allocator names units in the order they are created, so the three
+come in that order: every legacy unit's index is below every delivered
+squad's, and every delivered squad's below every joined unit's. A document
+that breaks the order is refused. A unit stands on a flank during the round
+only by travelling there, so one that stands on a flank without travelling is
+legacy.
 
 A fight sees the difference once, as it starts: a construction that fires turns
-to the best scored of the other side's targets, legacy units among them from
-the second round on, never a unit that joined, and never a legacy unit in the
-first round, the advance team included, which the game has not yet counted
-as old; a squad an officer delivered as the round opened is among them, scored
-as if it stood at the origin
+to the best scored of the other side's targets, among them its legacy units
+from the second round on and its delivered squads, never a unit that joined,
+and never a legacy unit in the first round, the advance team included, which
+the game has not yet counted as old. A delivered squad is scored as if it stood
+at the origin
 ([turrets](../../rules/turrets.md#as-the-fight-starts-it-faces-the-target-its-selector-scores-best)).
-The deliveries are the last legacy units, one squad for each officer whose
-`opening_unit` the round activates, so a side that two such officers deliver
-to in one round is refused: the order they deliver in is not recorded. A squad
-recovered during the deployment, as Field Recovery recovers one, leaves its
-index absent: the fight sees nothing of it, and a layout states nothing of the
-recovery.
-A unit reaches a flank during the round only by travelling there, so a unit
-that stands on a flank without travelling is legacy.
 
-A capture reads `legacy_index` from the allocator as a replayed round opens.
-The Training Ground adds every unit during the round, so it applies no layout
-with a legacy unit, and a layout replay holds its legacy units in the round's
-snapshot ([layout-replay.md](layout-replay.md#the-rounds-decisions)).
+`recovered` lists the index of each squad an officer delivered as the round
+opened that the side recovered during the deployment, as Field Recovery
+recovers one. The fight sees nothing of it, so it has no unit entry; the
+index is what a [layout replay](layout-replay.md#the-rounds-decisions)
+recovers it by. Its indices come where delivered squads' do, and an index is
+not both recovered and a unit's.
+
+A capture reads each unit's source as a replayed round opens: legacy below the
+allocator, delivered for the squads the officers' deliveries make, joined for
+the rest. The Training Ground adds every unit during the round, so it applies
+no layout with a legacy or delivered unit, and a layout replay holds its legacy
+units in the round's snapshot
+([layout-replay.md](layout-replay.md#the-rounds-decisions)).
 
 ### `units`
 
@@ -583,6 +596,8 @@ semantic `name` instead of exposing its native numeric ID:
   integers, and the pair is one field because it is one value.
 - `index` is the required stable, non-negative native unit index. Indices must
   be strictly increasing in unit declaration order and may contain gaps.
+- `source` is how the unit came to the side, [above](#source-and-recovered):
+  `legacy`, `delivered` or `joined`.
 - `exp` is the unit's experience within its current level, written
   `current/maximum` as in `124/450`. `current` is a non-negative integer and
   `maximum` is the level's full bar, which the
@@ -1088,7 +1103,7 @@ Applying a layout is fail-closed:
 1. The game must be in a fresh deterministic round-one Training Ground
    deployment, and `round` must satisfy the ambush/travelling rules above.
    The executor places every unit during the layout's round, so it refuses a
-   layout with a legacy unit.
+   layout with a legacy or delivered unit.
 2. Both sides must exist and the adapter must be able to select each side
    explicitly.
 3. Types, type-specific fields, side-local coordinates, static battle-skill
