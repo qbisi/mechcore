@@ -13,26 +13,24 @@ seed: 1685333659
 round: 1
 blue:
   officers: [typhoon_specialist]
-  legacy_index: 5
   units:
-  - {name: void_eye, index: 0, position: {x: 70, y: -70}}
-  - {name: void_eye, index: 1, position: {x: 150, y: -70}}
-  - {name: void_eye, index: 2, position: {x: 230, y: -70}}
-  - {name: tarantula, index: 3, position: {x: 105, y: -55}}
-  - {name: tarantula, index: 4, position: {x: 195, y: -55}}
+  - {name: void_eye, index: 0, position: {x: 70, y: -70}, source: legacy}
+  - {name: void_eye, index: 1, position: {x: 150, y: -70}, source: legacy}
+  - {name: void_eye, index: 2, position: {x: 230, y: -70}, source: legacy}
+  - {name: tarantula, index: 3, position: {x: 105, y: -55}, source: legacy}
+  - {name: tarantula, index: 4, position: {x: 195, y: -55}, source: legacy}
   - {name: crawler, index: 5, position: {x: 135, y: -190}}
   - {name: crawler, index: 6, position: {x: 150, y: -105}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   officers: [training_specialist]
-  legacy_index: 5
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -150}, level: 2}
-  - {name: arclight, index: 1, position: {x: 140, y: -150}}
-  - {name: arclight, index: 2, position: {x: -140, y: -150}}
-  - {name: sledgehammer, index: 3, position: {x: 75, y: -130}}
-  - {name: sledgehammer, index: 4, position: {x: -75, y: -130}}
+  - {name: arclight, index: 0, position: {x: 0, y: -150}, level: 2, source: legacy}
+  - {name: arclight, index: 1, position: {x: 140, y: -150}, source: legacy}
+  - {name: arclight, index: 2, position: {x: -140, y: -150}, source: legacy}
+  - {name: sledgehammer, index: 3, position: {x: 75, y: -130}, source: legacy}
+  - {name: sledgehammer, index: 4, position: {x: -75, y: -130}, source: legacy}
   - {name: crawler, index: 5, position: {x: 135, y: -190}}
   - {name: crawler, index: 6, position: {x: -135, y: -190}}
   constructions:

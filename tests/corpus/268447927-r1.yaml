@@ -12,13 +12,12 @@ seed: 857911261
 round: 1
 blue:
   officers: [secondary_equipment_expert]
-  legacy_index: 5
   units:
-  - {name: marksman, index: 0, position: {x: -220, y: -130}}
-  - {name: marksman, index: 1, position: {x: -140, y: -100}}
-  - {name: marksman, index: 2, position: {x: -70, y: -120}}
-  - {name: tarantula, index: 3, position: {x: -105, y: -75}}
-  - {name: tarantula, index: 4, position: {x: -185, y: -75}, rotated: true, equipment: [secondary_fire_control_system]}
+  - {name: marksman, index: 0, position: {x: -220, y: -130}, source: legacy}
+  - {name: marksman, index: 1, position: {x: -140, y: -100}, source: legacy}
+  - {name: marksman, index: 2, position: {x: -70, y: -120}, source: legacy}
+  - {name: tarantula, index: 3, position: {x: -105, y: -75}, source: legacy}
+  - {name: tarantula, index: 4, position: {x: -185, y: -75}, rotated: true, equipment: [secondary_fire_control_system], source: legacy}
   - {name: crawler, index: 5, position: {x: -90, y: -115}, rotated: true}
   - {name: crawler, index: 6, position: {x: -200, y: -115}, rotated: true}
   constructions:
@@ -26,13 +25,12 @@ blue:
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
 red:
   officers: [typhoon_specialist]
-  legacy_index: 5
   units:
-  - {name: marksman, index: 0, position: {x: -140, y: -150}}
-  - {name: marksman, index: 1, position: {x: 140, y: -150}}
-  - {name: marksman, index: 2, position: {x: -100, y: -150}}
-  - {name: sledgehammer, index: 3, position: {x: 105, y: -130}}
-  - {name: sledgehammer, index: 4, position: {x: -105, y: -130}}
+  - {name: marksman, index: 0, position: {x: -140, y: -150}, source: legacy}
+  - {name: marksman, index: 1, position: {x: 140, y: -150}, source: legacy}
+  - {name: marksman, index: 2, position: {x: -100, y: -150}, source: legacy}
+  - {name: sledgehammer, index: 3, position: {x: 105, y: -130}, source: legacy}
+  - {name: sledgehammer, index: 4, position: {x: -105, y: -130}, source: legacy}
   - {name: marksman, index: 5, position: {x: -60, y: -150}}
   - {name: marksman, index: 6, position: {x: 100, y: -150}}
   constructions:

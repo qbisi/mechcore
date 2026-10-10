@@ -14,23 +14,22 @@ blue:
   techs:
     vulcan: [range_enhancement]
     melting_point: [range_enhancement]
-  legacy_index: 20
   units:
-  - {name: void_eye, index: 2, position: {x: -140, y: -110}, exp: 612/650, rotated: true}
-  - {name: fang, index: 5, position: {x: -120, y: -185}, exp: 600/600, rotated: true}
-  - {name: fang, index: 6, position: {x: 120, y: -185}, exp: 600/600, rotated: true}
-  - {name: crawler, index: 8, position: {x: 140, y: -205}, exp: 285/450, rotated: true}
-  - {name: crawler, index: 9, position: {x: -140, y: -205}, exp: 165/450, rotated: true}
-  - {name: fang, index: 10, position: {x: -180, y: -115}, exp: 591/600, rotated: true}
-  - {name: vulcan, index: 11, position: {x: -170, y: -160}, exp: 1067/2200}
-  - {name: fang, index: 12, position: {x: -120, y: -235}, exp: 90/600, rotated: true}
-  - {name: crawler, index: 13, position: {x: -290, y: -285}, exp: 154/450, rotated: true}
-  - {name: vulcan, index: 14, position: {x: 170, y: -160}, level: 2, equipment: [tank_production_line]}
-  - {name: fang, index: 15, position: {x: 120, y: -235}, rotated: true}
-  - {name: crawler, index: 16, position: {x: 290, y: -285}, exp: 77/450, rotated: true}
-  - {name: melting_point, index: 17, position: {x: 50, y: -160}, level: 2}
-  - {name: vulcan, index: 18, position: {x: 90, y: -160}, exp: 1587/2200}
-  - {name: fang, index: 19, position: {x: 80, y: -115}, exp: 415/600, rotated: true}
+  - {name: void_eye, index: 2, position: {x: -140, y: -110}, exp: 612/650, rotated: true, source: legacy}
+  - {name: fang, index: 5, position: {x: -120, y: -185}, exp: 600/600, rotated: true, source: legacy}
+  - {name: fang, index: 6, position: {x: 120, y: -185}, exp: 600/600, rotated: true, source: legacy}
+  - {name: crawler, index: 8, position: {x: 140, y: -205}, exp: 285/450, rotated: true, source: legacy}
+  - {name: crawler, index: 9, position: {x: -140, y: -205}, exp: 165/450, rotated: true, source: legacy}
+  - {name: fang, index: 10, position: {x: -180, y: -115}, exp: 591/600, rotated: true, source: legacy}
+  - {name: vulcan, index: 11, position: {x: -170, y: -160}, exp: 1067/2200, source: legacy}
+  - {name: fang, index: 12, position: {x: -120, y: -235}, exp: 90/600, rotated: true, source: legacy}
+  - {name: crawler, index: 13, position: {x: -290, y: -285}, exp: 154/450, rotated: true, source: legacy}
+  - {name: vulcan, index: 14, position: {x: 170, y: -160}, level: 2, equipment: [tank_production_line], source: legacy}
+  - {name: fang, index: 15, position: {x: 120, y: -235}, rotated: true, source: legacy}
+  - {name: crawler, index: 16, position: {x: 290, y: -285}, exp: 77/450, rotated: true, source: legacy}
+  - {name: melting_point, index: 17, position: {x: 50, y: -160}, level: 2, source: legacy}
+  - {name: vulcan, index: 18, position: {x: 90, y: -160}, exp: 1587/2200, source: legacy}
+  - {name: fang, index: 19, position: {x: 80, y: -115}, exp: 415/600, rotated: true, source: legacy}
   - {name: vulcan, index: 20, position: {x: -90, y: -160}}
   - {name: melting_point, index: 21, position: {x: -50, y: -160}}
   constructions:
@@ -42,23 +41,22 @@ red:
     tarantula: [range_enhancement]
     centurion: [homing_missile]
   blueprints: [attack_enhancement]
-  legacy_index: 18
   units:
-  - {name: tarantula, index: 3, position: {x: -95, y: -135}, level: 3, equipment: [absorption_module]}
-  - {name: tarantula, index: 4, position: {x: 95, y: -135}, level: 2, exp: 3211/3380}
-  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 87/450}
-  - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 449/450}
-  - {name: phoenix, index: 7, position: {x: -90, y: -210}, level: 2, exp: 82/2929}
-  - {name: centurion, index: 8, position: {x: -115, y: -165}, exp: 1541/2250}
-  - {name: crawler, index: 9, position: {x: 0, y: -205}, exp: 395/450, rotated: true}
-  - {name: centurion, index: 10, position: {x: 115, y: -165}, level: 2}
-  - {name: crawler, index: 11, position: {x: 290, y: -285}, exp: 316/450, rotated: true}
-  - {name: crawler, index: 12, position: {x: -290, y: -285}, exp: 105/450, rotated: true}
-  - {name: crawler, index: 13, position: {x: 140, y: -235}, exp: 60/450, rotated: true}
-  - {name: centurion, index: 14, position: {x: 165, y: -165}, exp: 1030/2250}
-  - {name: tarantula, index: 15, position: {x: 195, y: -135}, exp: 739/1500}
-  - {name: crawler, index: 16, position: {x: 0, y: -285}, exp: 20/450, rotated: true}
-  - {name: crawler, index: 17, position: {x: 0, y: -135}, exp: 42/450, rotated: true}
+  - {name: tarantula, index: 3, position: {x: -95, y: -135}, level: 3, equipment: [absorption_module], source: legacy}
+  - {name: tarantula, index: 4, position: {x: 95, y: -135}, level: 2, exp: 3211/3380, source: legacy}
+  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 87/450, source: legacy}
+  - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 449/450, source: legacy}
+  - {name: phoenix, index: 7, position: {x: -90, y: -210}, level: 2, exp: 82/2929, source: legacy}
+  - {name: centurion, index: 8, position: {x: -115, y: -165}, exp: 1541/2250, source: legacy}
+  - {name: crawler, index: 9, position: {x: 0, y: -205}, exp: 395/450, rotated: true, source: legacy}
+  - {name: centurion, index: 10, position: {x: 115, y: -165}, level: 2, source: legacy}
+  - {name: crawler, index: 11, position: {x: 290, y: -285}, exp: 316/450, rotated: true, source: legacy}
+  - {name: crawler, index: 12, position: {x: -290, y: -285}, exp: 105/450, rotated: true, source: legacy}
+  - {name: crawler, index: 13, position: {x: 140, y: -235}, exp: 60/450, rotated: true, source: legacy}
+  - {name: centurion, index: 14, position: {x: 165, y: -165}, exp: 1030/2250, source: legacy}
+  - {name: tarantula, index: 15, position: {x: 195, y: -135}, exp: 739/1500, source: legacy}
+  - {name: crawler, index: 16, position: {x: 0, y: -285}, exp: 20/450, rotated: true, source: legacy}
+  - {name: crawler, index: 17, position: {x: 0, y: -135}, exp: 42/450, rotated: true, source: legacy}
   - {name: centurion, index: 18, position: {x: -165, y: -165}}
   - {name: crawler, index: 19, position: {x: -290, y: -185}, rotated: true}
   - {name: phoenix, index: 20, position: {x: 90, y: -210}}

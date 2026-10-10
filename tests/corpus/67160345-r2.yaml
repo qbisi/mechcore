@@ -12,15 +12,14 @@ blue:
   officers: [cost_control_specialist]
   techs:
     tarantula: [spider_mine]
-  legacy_index: 7
   units:
-  - {name: vortex, index: 0, position: {x: 140, y: -150}, exp: 168/750}
-  - {name: vortex, index: 1, position: {x: 0, y: -150}, exp: 625/750}
-  - {name: vortex, index: 2, position: {x: -140, y: -150}, exp: 147/750}
-  - {name: tarantula, index: 3, position: {x: 95, y: -135}, exp: 488/1500}
-  - {name: tarantula, index: 4, position: {x: -95, y: -135}, exp: 473/1500}
-  - {name: crawler, index: 5, position: {x: -135, y: -190}, exp: 22/450}
-  - {name: crawler, index: 6, position: {x: 135, y: -190}, exp: 117/450}
+  - {name: vortex, index: 0, position: {x: 140, y: -150}, exp: 168/750, source: legacy}
+  - {name: vortex, index: 1, position: {x: 0, y: -150}, exp: 625/750, source: legacy}
+  - {name: vortex, index: 2, position: {x: -140, y: -150}, exp: 147/750, source: legacy}
+  - {name: tarantula, index: 3, position: {x: 95, y: -135}, exp: 488/1500, source: legacy}
+  - {name: tarantula, index: 4, position: {x: -95, y: -135}, exp: 473/1500, source: legacy}
+  - {name: crawler, index: 5, position: {x: -135, y: -190}, exp: 22/450, source: legacy}
+  - {name: crawler, index: 6, position: {x: 135, y: -190}, exp: 117/450, source: legacy}
   - {name: vortex, index: 7, position: {x: -190, y: -150}}
   - {name: vortex, index: 8, position: {x: -90, y: -160}}
   - {name: crawler, index: 9, position: {x: -290, y: -185}, rotated: true}
@@ -31,16 +30,15 @@ blue:
 red:
   officers: [marksman_specialist]
   blueprints: [attack_enhancement]
-  legacy_index: 8
   units:
-  - {name: hound, index: 0, position: {x: 70, y: -60}, exp: 2/750}
-  - {name: hound, index: 1, position: {x: 150, y: -70}, exp: 372/750}
-  - {name: hound, index: 2, position: {x: 230, y: -70}, exp: 407/750}
-  - {name: sledgehammer, index: 3, position: {x: 110, y: -45}, exp: 113/1300, rotated: true}
-  - {name: sledgehammer, index: 4, position: {x: 195, y: -40}, exp: 136/1300}
-  - {name: crawler, index: 5, position: {x: 150, y: -35}, exp: 34/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 160, y: -175}, exp: 30/450, rotated: true}
-  - {name: marksman, index: 7, position: {x: 70, y: -80}, level: 3}
+  - {name: hound, index: 0, position: {x: 70, y: -60}, exp: 2/750, source: legacy}
+  - {name: hound, index: 1, position: {x: 150, y: -70}, exp: 372/750, source: legacy}
+  - {name: hound, index: 2, position: {x: 230, y: -70}, exp: 407/750, source: legacy}
+  - {name: sledgehammer, index: 3, position: {x: 110, y: -45}, exp: 113/1300, rotated: true, source: legacy}
+  - {name: sledgehammer, index: 4, position: {x: 195, y: -40}, exp: 136/1300, source: legacy}
+  - {name: crawler, index: 5, position: {x: 150, y: -35}, exp: 34/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: 160, y: -175}, exp: 30/450, rotated: true, source: legacy}
+  - {name: marksman, index: 7, position: {x: 70, y: -80}, level: 3, source: delivered}
   - {name: phantom_ray, index: 8, position: {x: 235, y: -90}}
   - {name: crawler, index: 9, position: {x: -140, y: -285}, rotated: true}
   constructions:

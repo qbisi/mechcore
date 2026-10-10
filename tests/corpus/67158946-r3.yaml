@@ -15,16 +15,15 @@ blue:
   techs:
     tarantula: [range_enhancement]
   blueprints: [attack_enhancement]
-  legacy_index: 8
   units:
-  - {name: marksman, index: 0, position: {x: -190, y: -120}, exp: 116/650}
-  - {name: marksman, index: 1, position: {x: 90, y: -190}, exp: 474/650}
-  - {name: marksman, index: 2, position: {x: 210, y: -200}, exp: 153/650}
-  - {name: tarantula, index: 3, position: {x: 115, y: -215}, exp: 906/1500}
-  - {name: tarantula, index: 4, position: {x: 185, y: -175}, exp: 889/1500}
-  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 39/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 210, y: -235}, exp: 79/450, rotated: true}
-  - {name: crawler, index: 7, position: {x: -290, y: -245}, exp: 60/450, rotated: true}
+  - {name: marksman, index: 0, position: {x: -190, y: -120}, exp: 116/650, source: legacy}
+  - {name: marksman, index: 1, position: {x: 90, y: -190}, exp: 474/650, source: legacy}
+  - {name: marksman, index: 2, position: {x: 210, y: -200}, exp: 153/650, source: legacy}
+  - {name: tarantula, index: 3, position: {x: 115, y: -215}, exp: 906/1500, source: legacy}
+  - {name: tarantula, index: 4, position: {x: 185, y: -175}, exp: 889/1500, source: legacy}
+  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 39/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: 210, y: -235}, exp: 79/450, rotated: true, source: legacy}
+  - {name: crawler, index: 7, position: {x: -290, y: -245}, exp: 60/450, rotated: true, source: legacy}
   - {name: mustang, index: 8, position: {x: -185, y: -270}}
   - {name: scorpion, index: 9, position: {x: 225, y: -145}}
   constructions:
@@ -35,18 +34,17 @@ blue:
 red:
   officers: [additional_deployment_slot, secondary_equipment_expert]
   blueprints: [attack_enhancement]
-  legacy_index: 10
   units:
-  - {name: fang, index: 0, position: {x: 160, y: -185}, exp: 123/600, rotated: true}
-  - {name: fang, index: 1, position: {x: -160, y: -185}, exp: 185/600, rotated: true}
-  - {name: fang, index: 2, position: {x: 0, y: -105}, exp: 110/600, rotated: true}
-  - {name: sabertooth, index: 3, position: {x: 55, y: -165}, level: 2, equipment: [secondary_heavy_armor]}
-  - {name: sabertooth, index: 4, position: {x: -55, y: -165}, level: 2, equipment: [secondary_fire_control_system]}
-  - {name: hound, index: 5, position: {x: -110, y: -170}, exp: 224/750}
-  - {name: hound, index: 6, position: {x: 0, y: -170}, exp: 90/750}
-  - {name: hound, index: 7, position: {x: -210, y: -170}, exp: 129/750}
-  - {name: crawler, index: 8, position: {x: -210, y: -215}, exp: 54/450, rotated: true}
-  - {name: crawler, index: 9, position: {x: 55, y: -280}, exp: 401/450}
+  - {name: fang, index: 0, position: {x: 160, y: -185}, exp: 123/600, rotated: true, source: legacy}
+  - {name: fang, index: 1, position: {x: -160, y: -185}, exp: 185/600, rotated: true, source: legacy}
+  - {name: fang, index: 2, position: {x: 0, y: -105}, exp: 110/600, rotated: true, source: legacy}
+  - {name: sabertooth, index: 3, position: {x: 55, y: -165}, level: 2, equipment: [secondary_heavy_armor], source: legacy}
+  - {name: sabertooth, index: 4, position: {x: -55, y: -165}, level: 2, equipment: [secondary_fire_control_system], source: legacy}
+  - {name: hound, index: 5, position: {x: -110, y: -170}, exp: 224/750, source: legacy}
+  - {name: hound, index: 6, position: {x: 0, y: -170}, exp: 90/750, source: legacy}
+  - {name: hound, index: 7, position: {x: -210, y: -170}, exp: 129/750, source: legacy}
+  - {name: crawler, index: 8, position: {x: -210, y: -215}, exp: 54/450, rotated: true, source: legacy}
+  - {name: crawler, index: 9, position: {x: 55, y: -280}, exp: 401/450, source: legacy}
   - {name: hound, index: 10, position: {x: 100, y: -170}}
   - {name: hound, index: 11, position: {x: 210, y: -170}}
   constructions:

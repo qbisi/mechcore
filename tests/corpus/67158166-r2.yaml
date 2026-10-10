@@ -14,15 +14,14 @@ round: 2
 blue:
   officers: [supply_specialist]
   blueprints: [defense_enhancement]
-  legacy_index: 7
   units:
-  - {name: vortex, index: 0, position: {x: -140, y: -70}, exp: 138/750}
-  - {name: vortex, index: 1, position: {x: -90, y: -70}, exp: 346/750}
-  - {name: vortex, index: 2, position: {x: -20, y: -70}, exp: 413/750}
-  - {name: fire_badger, index: 3, position: {x: -175, y: -70}, exp: 185/1400}
-  - {name: fire_badger, index: 4, position: {x: -55, y: -70}, exp: 350/1400}
-  - {name: crawler, index: 5, position: {x: -140, y: -105}, exp: 436/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -20, y: -105}, exp: 365/450, rotated: true}
+  - {name: vortex, index: 0, position: {x: -140, y: -70}, exp: 138/750, source: legacy}
+  - {name: vortex, index: 1, position: {x: -90, y: -70}, exp: 346/750, source: legacy}
+  - {name: vortex, index: 2, position: {x: -20, y: -70}, exp: 413/750, source: legacy}
+  - {name: fire_badger, index: 3, position: {x: -175, y: -70}, exp: 185/1400, source: legacy}
+  - {name: fire_badger, index: 4, position: {x: -55, y: -70}, exp: 350/1400, source: legacy}
+  - {name: crawler, index: 5, position: {x: -140, y: -105}, exp: 436/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: -20, y: -105}, exp: 365/450, rotated: true, source: legacy}
   - {name: fang, index: 7, position: {x: 160, y: -175}, rotated: true}
   - {name: fang, index: 8, position: {x: -160, y: -175}, rotated: true}
   - {name: fang, index: 9, position: {x: -140, y: -35}, rotated: true}
@@ -32,14 +31,13 @@ blue:
   - {name: wasp_swarm, positions: [{x: 263, y: 283}]}
 red:
   officers: [cost_control_specialist]
-  legacy_index: 7
   units:
-  - {name: crawler, index: 0, position: {x: -100, y: -205}, exp: 18/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: -290, y: -265}, exp: 362/450, rotated: true}
-  - {name: crawler, index: 2, position: {x: 290, y: -265}, rotated: true}
-  - {name: steel_ball, index: 4, position: {x: -65, y: -240}, exp: 34/1000}
-  - {name: marksman, index: 5, position: {x: -120, y: -170}, exp: 5/650}
-  - {name: marksman, index: 6, position: {x: 120, y: -170}, exp: 24/650}
+  - {name: crawler, index: 0, position: {x: -100, y: -205}, exp: 18/450, rotated: true, source: legacy}
+  - {name: crawler, index: 1, position: {x: -290, y: -265}, exp: 362/450, rotated: true, source: legacy}
+  - {name: crawler, index: 2, position: {x: 290, y: -265}, rotated: true, source: legacy}
+  - {name: steel_ball, index: 4, position: {x: -65, y: -240}, exp: 34/1000, source: legacy}
+  - {name: marksman, index: 5, position: {x: -120, y: -170}, exp: 5/650, source: legacy}
+  - {name: marksman, index: 6, position: {x: 120, y: -170}, exp: 24/650, source: legacy}
   - {name: vulcan, index: 7, position: {x: 80, y: -140}}
   - {name: crawler, index: 8, position: {x: 110, y: -135}, rotated: true}
   constructions:

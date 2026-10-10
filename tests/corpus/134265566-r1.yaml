@@ -10,26 +10,24 @@ seed: 505043195
 round: 1
 blue:
   officers: [giant_specialist]
-  legacy_index: 5
   units:
-  - {name: void_eye, index: 0, position: {x: -190, y: -150}}
-  - {name: void_eye, index: 1, position: {x: -20, y: -150}}
-  - {name: void_eye, index: 2, position: {x: -100, y: -150}}
-  - {name: sledgehammer, index: 3, position: {x: -90, y: -115}, rotated: true}
-  - {name: sledgehammer, index: 4, position: {x: -180, y: -115}, rotated: true}
+  - {name: void_eye, index: 0, position: {x: -190, y: -150}, source: legacy}
+  - {name: void_eye, index: 1, position: {x: -20, y: -150}, source: legacy}
+  - {name: void_eye, index: 2, position: {x: -100, y: -150}, source: legacy}
+  - {name: sledgehammer, index: 3, position: {x: -90, y: -115}, rotated: true, source: legacy}
+  - {name: sledgehammer, index: 4, position: {x: -180, y: -115}, rotated: true, source: legacy}
   - {name: crawler, index: 5, position: {x: -190, y: -185}, rotated: true}
   - {name: crawler, index: 6, position: {x: -100, y: -185}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
   officers: [cost_control_specialist]
-  legacy_index: 5
   units:
-  - {name: crawler, index: 0, position: {x: 135, y: -190}}
-  - {name: crawler, index: 1, position: {x: -140, y: -135}, rotated: true}
-  - {name: crawler, index: 2, position: {x: 140, y: -135}, rotated: true}
-  - {name: sabertooth, index: 3, position: {x: 95, y: -95}}
-  - {name: sabertooth, index: 4, position: {x: -95, y: -95}}
+  - {name: crawler, index: 0, position: {x: 135, y: -190}, source: legacy}
+  - {name: crawler, index: 1, position: {x: -140, y: -135}, rotated: true, source: legacy}
+  - {name: crawler, index: 2, position: {x: 140, y: -135}, rotated: true, source: legacy}
+  - {name: sabertooth, index: 3, position: {x: 95, y: -95}, source: legacy}
+  - {name: sabertooth, index: 4, position: {x: -95, y: -95}, source: legacy}
   - {name: arclight, index: 5, position: {x: 140, y: -100}}
   - {name: arclight, index: 6, position: {x: -140, y: -100}}
   constructions:

@@ -13,26 +13,24 @@ seed: 2086664373
 round: 1
 blue:
   officers: [cost_control_specialist]
-  legacy_index: 5
   units:
-  - {name: vortex, index: 0, position: {x: 140, y: -150}}
-  - {name: vortex, index: 1, position: {x: 0, y: -150}}
-  - {name: vortex, index: 2, position: {x: -140, y: -150}}
-  - {name: tarantula, index: 3, position: {x: 95, y: -135}}
-  - {name: tarantula, index: 4, position: {x: -95, y: -135}}
+  - {name: vortex, index: 0, position: {x: 140, y: -150}, source: legacy}
+  - {name: vortex, index: 1, position: {x: 0, y: -150}, source: legacy}
+  - {name: vortex, index: 2, position: {x: -140, y: -150}, source: legacy}
+  - {name: tarantula, index: 3, position: {x: 95, y: -135}, source: legacy}
+  - {name: tarantula, index: 4, position: {x: -95, y: -135}, source: legacy}
   - {name: crawler, index: 5, position: {x: -135, y: -190}}
   - {name: crawler, index: 6, position: {x: 135, y: -190}}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
   officers: [marksman_specialist]
-  legacy_index: 5
   units:
-  - {name: hound, index: 0, position: {x: 70, y: -60}}
-  - {name: hound, index: 1, position: {x: 150, y: -70}}
-  - {name: hound, index: 2, position: {x: 230, y: -70}}
-  - {name: sledgehammer, index: 3, position: {x: 110, y: -45}, rotated: true}
-  - {name: sledgehammer, index: 4, position: {x: 195, y: -40}}
+  - {name: hound, index: 0, position: {x: 70, y: -60}, source: legacy}
+  - {name: hound, index: 1, position: {x: 150, y: -70}, source: legacy}
+  - {name: hound, index: 2, position: {x: 230, y: -70}, source: legacy}
+  - {name: sledgehammer, index: 3, position: {x: 110, y: -45}, rotated: true, source: legacy}
+  - {name: sledgehammer, index: 4, position: {x: 195, y: -40}, source: legacy}
   - {name: crawler, index: 5, position: {x: 150, y: -35}, rotated: true}
   - {name: crawler, index: 6, position: {x: 160, y: -175}, rotated: true}
   constructions:

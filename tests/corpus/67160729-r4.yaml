@@ -14,34 +14,32 @@ blue:
   officers: [supply_specialist, additional_deployment_slot, mass_production_heavy_armor]
   techs:
     sledgehammer: [armor_enhancement]
-  legacy_index: 12
   units:
-  - {name: fang, index: 0, position: {x: 180, y: -115}, exp: 266/600, rotated: true}
-  - {name: fang, index: 1, position: {x: -120, y: -185}, exp: 156/600, rotated: true}
-  - {name: fang, index: 2, position: {x: 120, y: -185}, exp: 283/600, rotated: true}
-  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 386/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -140, y: -205}, exp: 450/450, rotated: true}
-  - {name: wasp, index: 7, position: {x: -255, y: -300}, exp: 900/900}
-  - {name: sledgehammer, index: 8, position: {x: -105, y: -70}, exp: 677/1300, equipment: [secondary_heavy_armor]}
-  - {name: sledgehammer, index: 9, position: {x: -235, y: -70}, exp: 1022/1300}
-  - {name: sledgehammer, index: 10, position: {x: 245, y: -70}, exp: 1084/1300, equipment: [secondary_heavy_armor]}
-  - {name: sledgehammer, index: 11, position: {x: 105, y: -70}, exp: 495/1300, equipment: [secondary_heavy_armor]}
+  - {name: fang, index: 0, position: {x: 180, y: -115}, exp: 266/600, rotated: true, source: legacy}
+  - {name: fang, index: 1, position: {x: -120, y: -185}, exp: 156/600, rotated: true, source: legacy}
+  - {name: fang, index: 2, position: {x: 120, y: -185}, exp: 283/600, rotated: true, source: legacy}
+  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 386/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: -140, y: -205}, exp: 450/450, rotated: true, source: legacy}
+  - {name: wasp, index: 7, position: {x: -255, y: -300}, exp: 900/900, source: legacy}
+  - {name: sledgehammer, index: 8, position: {x: -105, y: -70}, exp: 677/1300, equipment: [secondary_heavy_armor], source: legacy}
+  - {name: sledgehammer, index: 9, position: {x: -235, y: -70}, exp: 1022/1300, source: legacy}
+  - {name: sledgehammer, index: 10, position: {x: 245, y: -70}, exp: 1084/1300, equipment: [secondary_heavy_armor], source: legacy}
+  - {name: sledgehammer, index: 11, position: {x: 105, y: -70}, exp: 495/1300, equipment: [secondary_heavy_armor], source: legacy}
   - {name: abyss, index: 12, position: {x: 225, y: -115}}
 red:
   officers: [mass_production_fire_control_system, giant_specialist]
   techs:
     fire_badger: [scorching_charge]
     mountain: [extended_range_ammo]
-  legacy_index: 10
   units:
-  - {name: crawler, index: 0, position: {x: -290, y: -285}, exp: 428/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: 0, y: -285}, exp: 87/450, rotated: true}
-  - {name: crawler, index: 2, position: {x: 290, y: -285}, exp: 372/450, rotated: true}
-  - {name: mustang, index: 3, position: {x: 235, y: -300}, exp: 1147/1200, equipment: [secondary_fire_control_system]}
-  - {name: mustang, index: 4, position: {x: -235, y: -300}, exp: 1135/1200, equipment: [secondary_fire_control_system]}
-  - {name: fang, index: 7, position: {x: -155, y: -90}, exp: 37/600}
-  - {name: fire_badger, index: 8, position: {x: 235, y: -40}, exp: 15/1400}
-  - {name: fire_badger, index: 9, position: {x: 105, y: -40}, exp: 84/1400}
+  - {name: crawler, index: 0, position: {x: -290, y: -285}, exp: 428/450, rotated: true, source: legacy}
+  - {name: crawler, index: 1, position: {x: 0, y: -285}, exp: 87/450, rotated: true, source: legacy}
+  - {name: crawler, index: 2, position: {x: 290, y: -285}, exp: 372/450, rotated: true, source: legacy}
+  - {name: mustang, index: 3, position: {x: 235, y: -300}, exp: 1147/1200, equipment: [secondary_fire_control_system], source: legacy}
+  - {name: mustang, index: 4, position: {x: -235, y: -300}, exp: 1135/1200, equipment: [secondary_fire_control_system], source: legacy}
+  - {name: fang, index: 7, position: {x: -155, y: -90}, exp: 37/600, source: legacy}
+  - {name: fire_badger, index: 8, position: {x: 235, y: -40}, exp: 15/1400, source: legacy}
+  - {name: fire_badger, index: 9, position: {x: 105, y: -40}, exp: 84/1400, source: legacy}
   - {name: mountain, index: 10, position: {x: 95, y: -145}}
   - {name: crawler, index: 11, position: {x: -310, y: 195}, travelling: true}
 outcome:

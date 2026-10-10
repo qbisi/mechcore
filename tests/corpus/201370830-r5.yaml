@@ -15,23 +15,22 @@ blue:
   officers: [elite_specialist, fortified_mustang]
   techs:
     mustang: [armor_piercing_bullets]
-  legacy_index: 15
   units:
-  - {name: arclight, index: 0, position: {x: -90, y: -60}, exp: 750/750}
-  - {name: arclight, index: 1, position: {x: -190, y: -60}, exp: 750/750}
-  - {name: arclight, index: 2, position: {x: 180, y: -210}, exp: 600/750}
-  - {name: steel_ball, index: 3, position: {x: -225, y: -50}, exp: 1000/1000}
-  - {name: steel_ball, index: 4, position: {x: -125, y: -70}, exp: 705/1000}
-  - {name: crawler, index: 5, position: {x: -125, y: -50}, level: 2, exp: 221/1014}
-  - {name: crawler, index: 6, position: {x: -225, y: -70}, level: 2, exp: 464/1014}
-  - {name: crawler, index: 7, position: {x: -310, y: 35}, level: 2, exp: 70/1014}
-  - {name: crawler, index: 8, position: {x: -170, y: -35}, level: 2, exp: 118/1014, rotated: true}
-  - {name: wasp, index: 9, position: {x: -260, y: -205}, exp: 900/900, rotated: true}
-  - {name: wasp, index: 10, position: {x: 235, y: -50}, exp: 900/900}
-  - {name: steel_ball, index: 11, position: {x: 235, y: -70}, level: 2, exp: 2073/2253}
-  - {name: crawler, index: 12, position: {x: 235, y: -20}, level: 2, exp: 716/1014}
-  - {name: crawler, index: 13, position: {x: 290, y: -205}, level: 2, exp: 453/1014, rotated: true}
-  - {name: mustang, index: 14, position: {x: 210, y: -205}, level: 2, exp: 1989/2704, rotated: true}
+  - {name: arclight, index: 0, position: {x: -90, y: -60}, exp: 750/750, source: legacy}
+  - {name: arclight, index: 1, position: {x: -190, y: -60}, exp: 750/750, source: legacy}
+  - {name: arclight, index: 2, position: {x: 180, y: -210}, exp: 600/750, source: legacy}
+  - {name: steel_ball, index: 3, position: {x: -225, y: -50}, exp: 1000/1000, source: legacy}
+  - {name: steel_ball, index: 4, position: {x: -125, y: -70}, exp: 705/1000, source: legacy}
+  - {name: crawler, index: 5, position: {x: -125, y: -50}, level: 2, exp: 221/1014, source: legacy}
+  - {name: crawler, index: 6, position: {x: -225, y: -70}, level: 2, exp: 464/1014, source: legacy}
+  - {name: crawler, index: 7, position: {x: -310, y: 35}, level: 2, exp: 70/1014, source: legacy}
+  - {name: crawler, index: 8, position: {x: -170, y: -35}, level: 2, exp: 118/1014, rotated: true, source: legacy}
+  - {name: wasp, index: 9, position: {x: -260, y: -205}, exp: 900/900, rotated: true, source: legacy}
+  - {name: wasp, index: 10, position: {x: 235, y: -50}, exp: 900/900, source: legacy}
+  - {name: steel_ball, index: 11, position: {x: 235, y: -70}, level: 2, exp: 2073/2253, source: legacy}
+  - {name: crawler, index: 12, position: {x: 235, y: -20}, level: 2, exp: 716/1014, source: legacy}
+  - {name: crawler, index: 13, position: {x: 290, y: -205}, level: 2, exp: 453/1014, rotated: true, source: legacy}
+  - {name: mustang, index: 14, position: {x: 210, y: -205}, level: 2, exp: 1989/2704, rotated: true, source: legacy}
   - {name: mustang, index: 15, position: {x: -125, y: -90}, level: 2}
   - {name: mustang, index: 16, position: {x: 210, y: -255}, level: 2, rotated: true}
   constructions:
@@ -46,23 +45,22 @@ red:
     wasp: [range_enhancement]
     phantom_ray: [armor_enhancement]
   blueprints: [attack_enhancement, defense_enhancement]
-  legacy_index: 15
   units:
-  - {name: void_eye, index: 0, position: {x: 80, y: -70}, level: 2, exp: 386/1465}
-  - {name: void_eye, index: 1, position: {x: 180, y: -70}, level: 2, exp: 370/1465}
-  - {name: void_eye, index: 2, position: {x: 280, y: -70}, level: 2}
-  - {name: tarantula, index: 3, position: {x: 85, y: -115}, level: 2, exp: 2357/3380}
-  - {name: tarantula, index: 4, position: {x: 185, y: -115}, level: 2, exp: 1527/3380}
-  - {name: vortex, index: 5, position: {x: 110, y: -130}, level: 3, exp: 544/2671}
-  - {name: vortex, index: 6, position: {x: 150, y: -130}, level: 2, exp: 756/1690}
-  - {name: crawler, index: 7, position: {x: 80, y: -155}, level: 2, rotated: true}
-  - {name: crawler, index: 8, position: {x: 190, y: -155}, level: 2, rotated: true}
-  - {name: wasp, index: 9, position: {x: -350, y: 175}, exp: 250/900}
-  - {name: wasp, index: 10, position: {x: -350, y: 255}, level: 2, equipment: [laser_sights]}
-  - {name: tarantula, index: 11, position: {x: 275, y: -95}, exp: 1472/1500}
-  - {name: crawler, index: 12, position: {x: 190, y: -205}, exp: 136/450, rotated: true}
-  - {name: phantom_ray, index: 13, position: {x: -330, y: 175}, exp: 37/1000}
-  - {name: phantom_ray, index: 14, position: {x: -330, y: 255}, exp: 109/1000}
+  - {name: void_eye, index: 0, position: {x: 80, y: -70}, level: 2, exp: 386/1465, source: legacy}
+  - {name: void_eye, index: 1, position: {x: 180, y: -70}, level: 2, exp: 370/1465, source: legacy}
+  - {name: void_eye, index: 2, position: {x: 280, y: -70}, level: 2, source: legacy}
+  - {name: tarantula, index: 3, position: {x: 85, y: -115}, level: 2, exp: 2357/3380, source: legacy}
+  - {name: tarantula, index: 4, position: {x: 185, y: -115}, level: 2, exp: 1527/3380, source: legacy}
+  - {name: vortex, index: 5, position: {x: 110, y: -130}, level: 3, exp: 544/2671, source: legacy}
+  - {name: vortex, index: 6, position: {x: 150, y: -130}, level: 2, exp: 756/1690, source: legacy}
+  - {name: crawler, index: 7, position: {x: 80, y: -155}, level: 2, rotated: true, source: legacy}
+  - {name: crawler, index: 8, position: {x: 190, y: -155}, level: 2, rotated: true, source: legacy}
+  - {name: wasp, index: 9, position: {x: -350, y: 175}, exp: 250/900, source: legacy}
+  - {name: wasp, index: 10, position: {x: -350, y: 255}, level: 2, equipment: [laser_sights], source: legacy}
+  - {name: tarantula, index: 11, position: {x: 275, y: -95}, exp: 1472/1500, source: legacy}
+  - {name: crawler, index: 12, position: {x: 190, y: -205}, exp: 136/450, rotated: true, source: legacy}
+  - {name: phantom_ray, index: 13, position: {x: -330, y: 175}, exp: 37/1000, source: legacy}
+  - {name: phantom_ray, index: 14, position: {x: -330, y: 255}, exp: 109/1000, source: legacy}
   - {name: crawler, index: 15, position: {x: -310, y: 255}, travelling: true}
   - {name: crawler, index: 16, position: {x: -310, y: 175}, travelling: true}
   - {name: mustang, index: 17, position: {x: 195, y: -240}}

@@ -562,10 +562,9 @@ fn byte_mask(flags: &[bool]) -> i32 {
     value.cast_signed()
 }
 
-/// How a side's units reach the layout. A legacy unit, one below the
-/// layout's `legacy_index`, opens the round in the snapshot, but for a squad
-/// an officer hands out as the round opens, which the side then upgrades, fits
-/// and moves. Every other unit joins during the round: `MAD_AddUnit` adds it
+/// How a side's units reach the layout. A `legacy` unit opens the round in
+/// the snapshot; a `delivered` squad an officer hands out as the round opens,
+/// which the side then upgrades, fits and moves. Every other unit joins during the round: `MAD_AddUnit` adds it
 /// where the side deploys, as the Training Ground does, and the side fits it
 /// and moves it into place. Moving onto a flank from elsewhere is what makes
 /// a unit travel.
@@ -585,34 +584,11 @@ struct Deployment {
     /// officers deliver.
     next_unit: i32,
     /// Whether the units that join take the allocator's next indices, from
-    /// `legacy_index` on, so that the allocator hands them out.
+    /// where the deliveries leave it, so that the allocator hands them out.
     allocated: bool,
     /// The indices of the delivered squads the layout no longer holds, which
     /// the round's first decisions recover.
     recovered: Vec<i32>,
-}
-
-/// The units of a side that its officers delivered as the round opened, as
-/// positions in its `units`: the squad each officer's `opening_unit` names in
-/// a round its `active_round` holds. The unit allocator names them in
-/// delivery order as the round opens, so they are the side's last legacy
-/// units. A squad whose index the side no longer holds was recovered before
-/// the fight, and is none of them.
-///
-/// # Errors
-///
-/// Returns why the side's units cannot be those squads, or that two officers
-/// deliver in one round, which a standard 1v1 never deals.
-pub fn delivered_units(side: &SidePlan, round: i32) -> Result<Vec<usize>, String> {
-    let economy = crate::economy::Economy::embedded()?;
-    delivered_squads(economy, side, round)
-        .map(|delivered| {
-            delivered
-                .into_iter()
-                .filter_map(|squad| squad.unit.map(|(at, _)| at))
-                .collect()
-        })
-        .map_err(|reasons| reasons.join("; "))
 }
 
 /// One squad an officer delivers as the round opens.
@@ -625,13 +601,11 @@ struct Squad {
     unit: Option<(usize, i32)>,
 }
 
-/// Each squad the side's officers deliver as the round opens, in delivery
-/// order, or why the side's units cannot be them. The allocator names the
-/// squads as the round opens, so they take the indices just below
-/// `legacy_index`, the first officer's first. Each index the side still holds
-/// is a unit of the squad's type, at its level or above and without
-/// experience; one it no longer holds was recovered during the deployment,
-/// which retires the index and leaves the fight nothing of it.
+/// Each squad the side's officers deliver as the round opens, in index order,
+/// or why the layout's delivered units and recovered indices cannot be them.
+/// Each officer whose `opening_unit` the round activates delivers one, which
+/// the layout states as a `delivered` unit, of the squad's type, at its level
+/// or above and without experience, or as a `recovered` index.
 fn delivered_squads(
     economy: &crate::economy::Economy,
     side: &SidePlan,
@@ -649,8 +623,9 @@ fn delivered_squads(
             Some((*officer, squad))
         })
         .collect();
-    // Which of two officers delivers first is not recorded, and a standard
-    // 1v1 never deals a side two officers that deliver in the same round.
+    // Which of two officers delivers first is the game's, not the layout's,
+    // and a standard 1v1 never deals a side two officers that deliver in the
+    // same round.
     if squads.len() > 1 {
         let officers: Vec<String> = squads
             .iter()
@@ -658,16 +633,28 @@ fn delivered_squads(
             .collect();
         return Err(vec![format!(
             "officers {} each deliver a squad as round {round} opens: a standard 1v1 never \
-             deals a side two officers that deliver in one round, and the order they deliver \
-             in is not recorded",
+             deals a side two officers that deliver in one round, and which delivers first is \
+             the game's",
             officers.join(" and ")
         )]);
     }
-    let first = side.legacy_unit - i32::try_from(squads.len()).unwrap_or(i32::MAX);
+    let mut stated: Vec<(i32, Option<usize>)> = (0..side.units.len())
+        .filter(|at| side.units[*at].source == crate::layout::UnitSource::Delivered)
+        .map(|at| (self::index(&side.units[at]), Some(at)))
+        .chain(side.recovered.iter().map(|&index| (index, None)))
+        .collect();
+    stated.sort_by_key(|(index, _)| *index);
+    if stated.len() != squads.len() {
+        return Err(vec![format!(
+            "{} delivered unit(s) and recovered index(es) for {} officer(s) delivering a squad \
+             as round {round} opens: each delivery is stated once",
+            stated.len(),
+            squads.len()
+        )]);
+    }
     let mut reasons = Vec::new();
     let mut delivered = Vec::new();
-    for ((officer, squad), index) in squads.into_iter().zip(first..) {
-        let at = (0..side.units.len()).find(|at| self::index(&side.units[*at]) == index);
+    for ((officer, squad), (index, at)) in squads.into_iter().zip(stated) {
         if let Some(at) = at {
             let unit = &side.units[at];
             if unit_type(unit) != squad.unit
@@ -675,9 +662,9 @@ fn delivered_squads(
                 || unit.exp.is_some_and(|exp| exp != 0)
             {
                 reasons.push(format!(
-                    "unit {} at index {index}, which officer {officer}'s level {} {} squad \
-                     becomes as round {round} opens: the squad's unit is of that type, at that \
-                     level or above and without experience",
+                    "delivered unit {} at index {index}, which officer {officer}'s level {} {} \
+                     squad becomes as round {round} opens: the squad's unit is of that type, at \
+                     that level or above and without experience",
                     unit.type_name,
                     squad.level,
                     crate::catalog::unit_type_from_id(squad.unit)
@@ -716,11 +703,9 @@ fn deployment(
         .map(|squad| squad.index)
         .collect();
     let delivered: Vec<(usize, i32)> = squads.iter().filter_map(|squad| squad.unit).collect();
-    let legacy = side.legacy_unit;
     let squad_count = i32::try_from(squads.len()).unwrap_or(i32::MAX);
-    let is_delivered = |at: usize| delivered.iter().any(|(unit, _)| *unit == at);
     let settled: Vec<usize> = (0..side.units.len())
-        .filter(|at| index(&side.units[*at]) < legacy && !is_delivered(*at))
+        .filter(|at| side.units[*at].source == crate::layout::UnitSource::Legacy)
         .collect();
     // A legacy unit travels only when its round moves it onto a flank from
     // another region, which only something that frees it to move allows.
@@ -745,9 +730,28 @@ fn deployment(
         }
     }
     let mut joined: Vec<usize> = (0..side.units.len())
-        .filter(|at| index(&side.units[*at]) >= legacy)
+        .filter(|at| side.units[*at].source == crate::layout::UnitSource::Joined)
         .collect();
     joined.sort_by_key(|at| index(&side.units[*at]));
+    // The allocator opens where the round opened it: at the first squad an
+    // officer delivers, which takes its index; with none, where the first
+    // unit to join is named, or one past every index the side holds.
+    let opened = squads.first().map_or_else(
+        || {
+            joined.first().map_or_else(
+                || {
+                    side.units
+                        .iter()
+                        .map(|unit| index(unit) + 1)
+                        .max()
+                        .unwrap_or(0)
+                },
+                |at| index(&side.units[*at]),
+            )
+        },
+        |squad| squad.index,
+    );
+    let legacy = opened + squad_count;
     for at in &joined {
         let unit = &side.units[*at];
         if unit.exp.is_some_and(|exp| exp != 0) {
@@ -773,8 +777,8 @@ fn deployment(
         for officer in delivering(economy, side, round + 1) {
             reasons.push(format!(
                 "officer {officer}, who delivers a squad as round {} opens: the units that join \
-                 skip an index, so they state theirs, which leaves the allocator at \
-                 legacy_index, where one of them already stands",
+                 skip an index, so they state theirs, which leaves the allocator where the \
+                 deliveries left it, where one of them already stands",
                 round + 1
             ));
         }
@@ -787,7 +791,7 @@ fn deployment(
         delivered,
         redeployed,
         joined,
-        next_unit: legacy - squad_count,
+        next_unit: opened,
         allocated,
         recovered,
     })
@@ -1164,27 +1168,30 @@ mod tests {
 
     #[test]
     fn a_squad_an_officer_delivers_is_a_unit_of_the_layout() {
-        let layout = |units: serde_json::Value| {
+        let legacy = json!({"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}, "source": "legacy"});
+        let layout = |units: serde_json::Value, recovered: serde_json::Value| {
             json!({
                 "kind": "layout",
                 "seed": 4242,
                 "round": 2,
-                "blue": {"officers": ["marksman_specialist"], "legacy_index": 2, "units": units},
+                "blue": {"officers": ["marksman_specialist"], "units": units, "recovered": recovered},
                 "red": {"units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -50}}]},
             })
         };
-        // A layout without the squad's index recovered it: the round's first
-        // decision recovers it from a Field Recovery slot, the panel's last.
-        let lone =
-            layout(json!([{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}]));
+        // A squad the layout lists as recovered: the round's first decision
+        // recovers it from a Field Recovery slot, the panel's last.
+        let lone = layout(json!([legacy.clone()]), json!([1]));
         let replay = layout_replay(&plan(&lone), crate::game_build()).unwrap();
         let xml = embedded_xml(&replay);
         assert!(xml.contains("<index>0</index><id>900001</id>"), "{xml}");
         assert!(xml.contains("<SkillIndex>0</SkillIndex><Positions /><UnitIndex>1</UnitIndex>"));
-        let held = layout(json!([
-            {"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}},
-            {"name": "marksman", "index": 1, "level": 4, "position": {"x": -100, "y": -100}},
-        ]));
+        let held = layout(
+            json!([
+                legacy.clone(),
+                {"name": "marksman", "index": 1, "level": 4, "position": {"x": -100, "y": -100}, "source": "delivered"},
+            ]),
+            json!([]),
+        );
         let replay = layout_replay(&plan(&held), crate::game_build()).unwrap();
         let xml = embedded_xml(&replay);
         // The round opens with the allocator at the squad's index, which the
@@ -1192,12 +1199,15 @@ mod tests {
         assert!(xml.contains("<unitIndex>1</unitIndex>"));
         assert!(xml.contains("xsi:type=\"PAD_UpgradeUnit\""));
         assert!(xml.contains("<position><x>-100</x><y>-100</y></position>"));
-        // The squad is the last unit the round opens with: the unit below
-        // the allocator is the squad's, and one that cannot be it is refused.
-        let mut joined = held;
-        joined["blue"]["legacy_index"] = json!(1);
-        let error = layout_replay(&plan(&joined), crate::game_build()).unwrap_err();
+        // A delivered unit that cannot be the officer's squad is refused, and
+        // so is a delivery the layout does not state.
+        let mut wrong = held.clone();
+        wrong["blue"]["units"][1]["name"] = json!("arclight");
+        let error = layout_replay(&plan(&wrong), crate::game_build()).unwrap_err();
         assert!(error.contains("level 3 marksman squad"), "{error}");
+        let unstated = layout(json!([legacy]), json!([]));
+        let error = layout_replay(&plan(&unstated), crate::game_build()).unwrap_err();
+        assert!(error.contains("each delivery is stated once"), "{error}");
     }
 
     #[test]
@@ -1205,13 +1215,13 @@ mod tests {
         let travelling = |index: i32, x: i32, y: i32| json!({"name": "marksman", "index": index, "travelling": true, "position": {"x": x, "y": y}});
         let layout = json!({
             "kind": "layout", "seed": 4242, "round": 3,
-            "blue": {"legacy_index": 1, "units": [
-                {"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}},
+            "blue": {"units": [
+                {"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}, "source": "legacy"},
                 travelling(1, -330, 100),
                 {"name": "marksman", "index": 2, "position": {"x": 100, "y": -60}},
                 travelling(3, 330, 100),
             ]},
-            "red": {"legacy_index": 1, "units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -50}}]},
+            "red": {"units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -50}, "source": "legacy"}]},
         });
         let replay = layout_replay(&plan(&layout), crate::game_build()).unwrap();
         let xml = embedded_xml(&replay);
@@ -1268,10 +1278,10 @@ mod tests {
         let layout = |equipment: serde_json::Value| {
             json!({
                 "kind": "layout", "seed": 4242, "round": 3,
-                "blue": {"legacy_index": 1, "units": [
-                    {"name": "wasp", "index": 0, "travelling": true, "equipment": equipment, "position": {"x": 330, "y": 285}},
+                "blue": {"units": [
+                    {"name": "wasp", "index": 0, "travelling": true, "equipment": equipment, "position": {"x": 330, "y": 285}, "source": "legacy"},
                 ]},
-                "red": {"legacy_index": 1, "units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -50}}]},
+                "red": {"units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -50}, "source": "legacy"}]},
             })
         };
         let replay = layout_replay(

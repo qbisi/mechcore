@@ -13,7 +13,7 @@ use crate::layout::{
     BattleSkillEntry, BattleSkillRelease, ContraptionPlacement, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS,
     Layout, MAX_TOWER_STRENGTHEN_LEVEL, OIL_TERRAIN_GRID_MASK, OIL_TERRAIN_GRID_SIZE,
     OIL_TERRAIN_POINT_COUNT, OilArea, Position, Region, Side, Standing, StaticPlacement,
-    TOWER_COUNT, Techs, UnitPlacement, require_layout_kind,
+    TOWER_COUNT, Techs, UnitPlacement, UnitSource, require_layout_kind,
 };
 use serde_json::Value;
 #[derive(Debug, PartialEq, Eq)]
@@ -35,6 +35,8 @@ pub struct Placement {
     pub rotated: bool,
     pub equipment: Vec<i32>,
     pub travelling: bool,
+    /// How a unit came to its side; a construction or contraption joined.
+    pub source: UnitSource,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -42,9 +44,9 @@ pub struct SidePlan {
     pub techs: Techs,
     pub energy_tower_skills: Vec<i32>,
     pub tower_strengthen_levels: Vec<i32>,
-    /// The layout's `legacy_index`: a unit of a lower index is legacy.
-    pub legacy_unit: i32,
     pub units: Vec<Placement>,
+    /// The delivered squads the side recovered before the fight, by index.
+    pub recovered: Vec<i32>,
     pub constructions: Vec<Placement>,
     pub contraptions: Vec<Placement>,
     /// The Shield Airdrops earlier releases left standing, installed after
@@ -181,8 +183,8 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
         blueprints,
         energy_tower_skills,
         tower_strengthen_levels,
-        legacy_index,
         units,
+        recovered,
         constructions,
         contraptions,
         battle_skills,
@@ -198,7 +200,7 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
     officers.sort_unstable();
     let slots = crate::economy::Economy::embedded()?.equipment_slots(&officers);
     let units = compile_units(side_name, units, round, slots)?;
-    validate_legacy_index(side_name, legacy_index, &units)?;
+    validate_sources(side_name, &units, &recovered)?;
     let constructions = compile_constructions(side_name, constructions)?;
     let contraptions = compile_contraptions(side_name, contraptions)?;
     let mut standing_shields = Vec::new();
@@ -234,8 +236,8 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
         },
         energy_tower_skills,
         tower_strengthen_levels,
-        legacy_unit: legacy_index,
         units,
+        recovered,
         constructions,
         contraptions,
         standing_shields,
@@ -244,25 +246,64 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
     })
 }
 
-/// A unit reaches a flank during the round only by travelling there, so one
-/// that stands on a flank without travelling is legacy.
-fn validate_legacy_index(
-    side_name: &str,
-    legacy_index: i32,
-    units: &[Placement],
-) -> Result<(), String> {
-    if legacy_index < 0 {
-        return Err(format!("{side_name} legacy_index must not be negative"));
+/// The allocator names units in the order they are created, so every legacy
+/// unit's index is below every delivered or recovered squad's, and those below
+/// every joined unit's. A unit reaches a flank during the round only by
+/// travelling there, so one that stands on a flank without travelling is
+/// legacy.
+fn validate_sources(side_name: &str, units: &[Placement], recovered: &[i32]) -> Result<(), String> {
+    if let Some(index) = recovered.iter().find(|index| **index < 0) {
+        return Err(format!(
+            "{side_name} recovered index {index} must not be negative"
+        ));
+    }
+    if !recovered.windows(2).all(|pair| pair[0] < pair[1]) {
+        return Err(format!("{side_name} recovered must list ascending indices"));
+    }
+    if let Some(index) = recovered
+        .iter()
+        .find(|index| units.iter().any(|unit| unit.index == Some(**index)))
+    {
+        return Err(format!(
+            "{side_name} recovered index {index} is a unit's: a recovered squad has no entry"
+        ));
+    }
+    let rank = |source: UnitSource| match source {
+        UnitSource::Legacy => 0,
+        UnitSource::Delivered => 1,
+        UnitSource::Joined => 2,
+    };
+    let mut ranked: Vec<(i32, u8, String)> = units
+        .iter()
+        .filter_map(|unit| {
+            unit.index
+                .map(|index| (index, rank(unit.source), format!("{:?}", unit.source)))
+        })
+        .chain(
+            recovered
+                .iter()
+                .map(|&index| (index, 1, "recovered".to_owned())),
+        )
+        .collect();
+    ranked.sort_unstable();
+    if let Some(pair) = ranked.windows(2).find(|pair| pair[0].1 > pair[1].1) {
+        return Err(format!(
+            "{side_name} index {} is {} and index {} after it is {}: the allocator names \
+             legacy units, then delivered squads, then joined units",
+            pair[0].0,
+            pair[0].2.to_lowercase(),
+            pair[1].0,
+            pair[1].2.to_lowercase()
+        ));
     }
     if let Some(unit) = units.iter().find(|unit| {
         !unit.travelling
             && Region::of(unit.position).is_flank()
-            && unit.index.is_some_and(|index| index >= legacy_index)
+            && unit.source != UnitSource::Legacy
     }) {
         return Err(format!(
-            "{side_name} unit {} at ({}, {}) stands on a flank without travelling, and its \
-             index is not below legacy_index {legacy_index}: a unit that joins during the \
-             round reaches a flank by travelling",
+            "{side_name} unit {} at ({}, {}) stands on a flank without travelling, and is not \
+             legacy: a unit that joins during the round reaches a flank by travelling",
             unit.type_name, unit.position.x, unit.position.y
         ));
     }
@@ -288,6 +329,7 @@ fn compile_units(
                 rotated,
                 equipment,
                 travelling,
+                source,
             } = formation;
             let spec = resolve_unit_type(&type_name).ok_or_else(|| {
                 if resolve_construction_type(&type_name).is_some() {
@@ -375,6 +417,7 @@ fn compile_units(
                 rotated,
                 equipment,
                 travelling,
+                source,
             })
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -445,6 +488,7 @@ fn compile_constructions(
                 rotated: false,
                 equipment: Vec::new(),
                 travelling: false,
+                source: UnitSource::Joined,
             })
         })
         .collect::<Result<Vec<_>, String>>()
@@ -483,6 +527,7 @@ fn compile_contraptions(
                 rotated: false,
                 equipment: Vec::new(),
                 travelling: false,
+                source: UnitSource::Joined,
             })
         })
         .collect::<Result<Vec<_>, String>>()

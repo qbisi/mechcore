@@ -14,26 +14,24 @@ seed: 1171883115
 round: 1
 blue:
   officers: [supply_specialist]
-  legacy_index: 5
   units:
-  - {name: vortex, index: 0, position: {x: -140, y: -70}}
-  - {name: vortex, index: 1, position: {x: -90, y: -70}}
-  - {name: vortex, index: 2, position: {x: -20, y: -70}}
-  - {name: fire_badger, index: 3, position: {x: -175, y: -70}}
-  - {name: fire_badger, index: 4, position: {x: -55, y: -70}}
+  - {name: vortex, index: 0, position: {x: -140, y: -70}, source: legacy}
+  - {name: vortex, index: 1, position: {x: -90, y: -70}, source: legacy}
+  - {name: vortex, index: 2, position: {x: -20, y: -70}, source: legacy}
+  - {name: fire_badger, index: 3, position: {x: -175, y: -70}, source: legacy}
+  - {name: fire_badger, index: 4, position: {x: -55, y: -70}, source: legacy}
   - {name: crawler, index: 5, position: {x: -140, y: -105}, rotated: true}
   - {name: crawler, index: 6, position: {x: -20, y: -105}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
   officers: [cost_control_specialist]
-  legacy_index: 5
   units:
-  - {name: crawler, index: 0, position: {x: -100, y: -205}, rotated: true}
-  - {name: crawler, index: 1, position: {x: -290, y: -265}, rotated: true}
-  - {name: crawler, index: 2, position: {x: 290, y: -265}, rotated: true}
-  - {name: steel_ball, index: 3, position: {x: -175, y: -230}}
-  - {name: steel_ball, index: 4, position: {x: -65, y: -240}}
+  - {name: crawler, index: 0, position: {x: -100, y: -205}, rotated: true, source: legacy}
+  - {name: crawler, index: 1, position: {x: -290, y: -265}, rotated: true, source: legacy}
+  - {name: crawler, index: 2, position: {x: 290, y: -265}, rotated: true, source: legacy}
+  - {name: steel_ball, index: 3, position: {x: -175, y: -230}, source: legacy}
+  - {name: steel_ball, index: 4, position: {x: -65, y: -240}, source: legacy}
   - {name: marksman, index: 5, position: {x: -120, y: -170}}
   - {name: marksman, index: 6, position: {x: 120, y: -170}}
   constructions:

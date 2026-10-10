@@ -10,26 +10,24 @@ seed: 2074685504
 round: 1
 blue:
   officers: [supply_specialist]
-  legacy_index: 5
   units:
-  - {name: fang, index: 0, position: {x: 180, y: -115}, rotated: true}
-  - {name: fang, index: 1, position: {x: -120, y: -185}, rotated: true}
-  - {name: fang, index: 2, position: {x: 120, y: -185}, rotated: true}
-  - {name: fire_badger, index: 3, position: {x: 125, y: -130}}
-  - {name: fire_badger, index: 4, position: {x: 215, y: -130}}
+  - {name: fang, index: 0, position: {x: 180, y: -115}, rotated: true, source: legacy}
+  - {name: fang, index: 1, position: {x: -120, y: -185}, rotated: true, source: legacy}
+  - {name: fang, index: 2, position: {x: 120, y: -185}, rotated: true, source: legacy}
+  - {name: fire_badger, index: 3, position: {x: 125, y: -130}, source: legacy}
+  - {name: fire_badger, index: 4, position: {x: 215, y: -130}, source: legacy}
   - {name: crawler, index: 5, position: {x: 140, y: -205}, rotated: true}
   - {name: crawler, index: 6, position: {x: -140, y: -205}, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
   officers: [giant_specialist]
-  legacy_index: 5
   units:
-  - {name: crawler, index: 0, position: {x: -290, y: -285}, rotated: true}
-  - {name: crawler, index: 1, position: {x: 0, y: -285}, rotated: true}
-  - {name: crawler, index: 2, position: {x: 290, y: -285}, rotated: true}
-  - {name: mustang, index: 3, position: {x: 235, y: -300}}
-  - {name: mustang, index: 4, position: {x: -235, y: -300}}
+  - {name: crawler, index: 0, position: {x: -290, y: -285}, rotated: true, source: legacy}
+  - {name: crawler, index: 1, position: {x: 0, y: -285}, rotated: true, source: legacy}
+  - {name: crawler, index: 2, position: {x: 290, y: -285}, rotated: true, source: legacy}
+  - {name: mustang, index: 3, position: {x: 235, y: -300}, source: legacy}
+  - {name: mustang, index: 4, position: {x: -235, y: -300}, source: legacy}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 outcome:

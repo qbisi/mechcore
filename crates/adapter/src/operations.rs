@@ -4248,6 +4248,7 @@ mod tests {
             rotated: false,
             equipment: Vec::new(),
             travelling: false,
+            source: mechcore_document::UnitSource::Joined,
         };
         let Err(error) = layout_world_position(&placement, true) else {
             panic!("red coordinate rotation unexpectedly succeeded")

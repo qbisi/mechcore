@@ -388,6 +388,7 @@ mod tests {
             rotated: false,
             equipment: Vec::new(),
             travelling: false,
+            source: mechcore_document::UnitSource::Joined,
         }
     }
 

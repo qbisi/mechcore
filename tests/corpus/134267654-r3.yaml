@@ -12,16 +12,15 @@ blue:
   techs:
     fang: [grenade_launcher]
   tower_strengthen_levels: [1, 0]
-  legacy_index: 10
   units:
-  - {name: crawler, index: 0, position: {x: 290, y: -265}, exp: 129/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: 90, y: -55}, exp: 59/450, rotated: true}
-  - {name: crawler, index: 2, position: {x: 140, y: -135}, exp: 86/450, rotated: true}
-  - {name: fang, index: 5, position: {x: 185, y: -20}, exp: 439/600}
-  - {name: fang, index: 6, position: {x: 275, y: -20}, exp: 418/600}
-  - {name: fang, index: 7, position: {x: 330, y: 215}, exp: 600/600}
-  - {name: fang, index: 8, position: {x: 330, y: 125}, exp: 433/600}
-  - {name: fang, index: 9, position: {x: 185, y: -60}, exp: 380/600}
+  - {name: crawler, index: 0, position: {x: 290, y: -265}, exp: 129/450, rotated: true, source: legacy}
+  - {name: crawler, index: 1, position: {x: 90, y: -55}, exp: 59/450, rotated: true, source: legacy}
+  - {name: crawler, index: 2, position: {x: 140, y: -135}, exp: 86/450, rotated: true, source: legacy}
+  - {name: fang, index: 5, position: {x: 185, y: -20}, exp: 439/600, source: legacy}
+  - {name: fang, index: 6, position: {x: 275, y: -20}, exp: 418/600, source: legacy}
+  - {name: fang, index: 7, position: {x: 330, y: 215}, exp: 600/600, source: legacy}
+  - {name: fang, index: 8, position: {x: 330, y: 125}, exp: 433/600, source: legacy}
+  - {name: fang, index: 9, position: {x: 185, y: -60}, exp: 380/600, source: legacy}
   - {name: farseer, index: 10, position: {x: 235, y: -95}}
   - {name: fortress, index: 11, position: {x: 340, y: 170}, travelling: true}
   - {name: fang, index: 12, position: {x: 275, y: -60}}
@@ -32,17 +31,16 @@ red:
   techs:
     wraith: [degeneration_beam]
   blueprints: [attack_enhancement]
-  legacy_index: 9
   units:
-  - {name: vortex, index: 0, position: {x: -250, y: -80}, exp: 274/750}
-  - {name: vortex, index: 1, position: {x: -30, y: -80}, exp: 257/750}
-  - {name: vortex, index: 2, position: {x: -140, y: -80}, exp: 371/750}
-  - {name: fire_badger, index: 3, position: {x: -85, y: -80}, exp: 1393/1400}
-  - {name: fire_badger, index: 4, position: {x: -195, y: -80}, exp: 489/1400}
-  - {name: fang, index: 5, position: {x: -200, y: -35}, exp: 175/600, rotated: true}
-  - {name: fang, index: 6, position: {x: -80, y: -35}, exp: 393/600, rotated: true}
-  - {name: centurion, index: 7, position: {x: -185, y: -105}, exp: 390/2250}
-  - {name: fang, index: 8, position: {x: -290, y: -35}, exp: 65/600, rotated: true}
+  - {name: vortex, index: 0, position: {x: -250, y: -80}, exp: 274/750, source: legacy}
+  - {name: vortex, index: 1, position: {x: -30, y: -80}, exp: 257/750, source: legacy}
+  - {name: vortex, index: 2, position: {x: -140, y: -80}, exp: 371/750, source: legacy}
+  - {name: fire_badger, index: 3, position: {x: -85, y: -80}, exp: 1393/1400, source: legacy}
+  - {name: fire_badger, index: 4, position: {x: -195, y: -80}, exp: 489/1400, source: legacy}
+  - {name: fang, index: 5, position: {x: -200, y: -35}, exp: 175/600, rotated: true, source: legacy}
+  - {name: fang, index: 6, position: {x: -80, y: -35}, exp: 393/600, rotated: true, source: legacy}
+  - {name: centurion, index: 7, position: {x: -185, y: -105}, exp: 390/2250, source: legacy}
+  - {name: fang, index: 8, position: {x: -290, y: -35}, exp: 65/600, rotated: true, source: legacy}
   - {name: wraith, index: 10, position: {x: -245, y: -205}}
   - {name: wraith, index: 11, position: {x: 255, y: -145}}
   constructions:

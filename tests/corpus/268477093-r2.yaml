@@ -11,15 +11,14 @@ seed: 2020722719
 round: 2
 blue:
   officers: [fortified_specialist]
-  legacy_index: 7
   units:
-  - {name: hound, index: 0, position: {x: 160, y: -110}, exp: 179/750, rotated: true}
-  - {name: hound, index: 1, position: {x: 250, y: -100}, exp: 251/750, rotated: true}
-  - {name: hound, index: 2, position: {x: 60, y: -120}, exp: 16/750, rotated: true}
-  - {name: sledgehammer, index: 3, position: {x: 210, y: -125}, exp: 499/1300, rotated: true}
-  - {name: sledgehammer, index: 4, position: {x: 100, y: -125}, exp: 256/1300, rotated: true, equipment: [haste_module]}
-  - {name: crawler, index: 5, position: {x: 60, y: -165}, exp: 16/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 160, y: -155}, exp: 31/450, rotated: true}
+  - {name: hound, index: 0, position: {x: 160, y: -110}, exp: 179/750, rotated: true, source: legacy}
+  - {name: hound, index: 1, position: {x: 250, y: -100}, exp: 251/750, rotated: true, source: legacy}
+  - {name: hound, index: 2, position: {x: 60, y: -120}, exp: 16/750, rotated: true, source: legacy}
+  - {name: sledgehammer, index: 3, position: {x: 210, y: -125}, exp: 499/1300, rotated: true, source: legacy}
+  - {name: sledgehammer, index: 4, position: {x: 100, y: -125}, exp: 256/1300, rotated: true, equipment: [haste_module], source: legacy}
+  - {name: crawler, index: 5, position: {x: 60, y: -165}, exp: 16/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: 160, y: -155}, exp: 31/450, rotated: true, source: legacy}
   - {name: fang, index: 7, position: {x: -140, y: -205}, rotated: true}
   - {name: fang, index: 8, position: {x: 140, y: -205}, rotated: true}
   - {name: crawler, index: 9, position: {x: 270, y: -285}, rotated: true}
@@ -27,15 +26,14 @@ blue:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   officers: [missile_specialist]
-  legacy_index: 7
   units:
-  - {name: void_eye, index: 0, position: {x: 170, y: -170}, exp: 257/650}
-  - {name: void_eye, index: 1, position: {x: -170, y: -170}, exp: 164/650}
-  - {name: void_eye, index: 2, position: {x: 0, y: -180}, level: 2}
-  - {name: fire_badger, index: 3, position: {x: -75, y: -180}, exp: 337/1400}
-  - {name: fire_badger, index: 4, position: {x: 75, y: -180}, exp: 405/1400}
-  - {name: fang, index: 5, position: {x: -140, y: -205}, exp: 110/600, rotated: true}
-  - {name: fang, index: 6, position: {x: 140, y: -205}, exp: 111/600, rotated: true}
+  - {name: void_eye, index: 0, position: {x: 170, y: -170}, exp: 257/650, source: legacy}
+  - {name: void_eye, index: 1, position: {x: -170, y: -170}, exp: 164/650, source: legacy}
+  - {name: void_eye, index: 2, position: {x: 0, y: -180}, level: 2, source: legacy}
+  - {name: fire_badger, index: 3, position: {x: -75, y: -180}, exp: 337/1400, source: legacy}
+  - {name: fire_badger, index: 4, position: {x: 75, y: -180}, exp: 405/1400, source: legacy}
+  - {name: fang, index: 5, position: {x: -140, y: -205}, exp: 110/600, rotated: true, source: legacy}
+  - {name: fang, index: 6, position: {x: 140, y: -205}, exp: 111/600, rotated: true, source: legacy}
   - {name: fire_badger, index: 7, position: {x: -225, y: -170}}
   - {name: fang, index: 8, position: {x: -140, y: -135}, rotated: true}
   constructions:

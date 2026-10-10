@@ -193,7 +193,7 @@ fn unfought(side: Side) -> FightSide {
         blueprints: side.blueprints,
         energy_tower_skills: side.energy_tower_skills,
         tower_strengthen_levels: side.tower_strengthen_levels,
-        legacy_index: side.legacy_index,
+        recovered: side.recovered.clone(),
         units: side
             .units
             .into_iter()
@@ -210,6 +210,7 @@ fn unfought(side: Side) -> FightSide {
                 rotated: unit.rotated,
                 equipment: unit.equipment,
                 travelling: unit.travelling,
+                source: unit.source,
             })
             .collect(),
         constructions: side.constructions,
@@ -526,8 +527,8 @@ pub struct FightSide {
     pub blueprints: Vec<i32>,
     pub energy_tower_skills: Vec<i32>,
     pub tower_strengthen_levels: Vec<i32>,
-    pub legacy_index: i32,
     pub units: Vec<FightUnit>,
+    pub recovered: Vec<i32>,
     pub constructions: Vec<StaticPlacement>,
     pub contraptions: Vec<FightContraption>,
     pub battle_skills: Vec<FightBattleSkill>,
@@ -544,6 +545,7 @@ pub struct FightUnit {
     pub rotated: Option<bool>,
     pub equipment: Vec<i32>,
     pub travelling: Option<bool>,
+    pub source: crate::layout::UnitSource,
 }
 
 /// A unit's experience across a fight.
@@ -640,7 +642,7 @@ fn project_side(side: &FightSide) -> Side {
         blueprints: side.blueprints.clone(),
         energy_tower_skills: side.energy_tower_skills.clone(),
         tower_strengthen_levels: side.tower_strengthen_levels.clone(),
-        legacy_index: side.legacy_index,
+        recovered: side.recovered.clone(),
         units: side
             .units
             .iter()
@@ -659,6 +661,7 @@ fn project_side(side: &FightSide) -> Side {
                 rotated: unit.rotated,
                 equipment: unit.equipment.clone(),
                 travelling: unit.travelling,
+                source: unit.source,
             })
             .collect(),
         constructions: side.constructions.clone(),

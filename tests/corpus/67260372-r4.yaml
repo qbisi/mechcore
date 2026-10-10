@@ -12,21 +12,20 @@ seed: 1951618914
 round: 4
 blue:
   officers: [super_supply_enhancement, missile_specialist]
-  legacy_index: 13
   units:
-  - {name: fang, index: 0, position: {x: 140, y: -225}, level: 2, rotated: true}
-  - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 582/600, rotated: true}
-  - {name: fang, index: 2, position: {x: 0, y: -135}, exp: 450/600, rotated: true}
-  - {name: sledgehammer, index: 3, position: {x: -105, y: -130}, exp: 1300/1300}
-  - {name: sledgehammer, index: 4, position: {x: 105, y: -130}, level: 2}
-  - {name: marksman, index: 5, position: {x: -110, y: -190}, level: 4, exp: 342/2919}
-  - {name: marksman, index: 6, position: {x: 110, y: -190}, level: 2}
-  - {name: crawler, index: 7, position: {x: 140, y: -285}, exp: 295/450, rotated: true}
-  - {name: crawler, index: 8, position: {x: -140, y: -285}, exp: 262/450, rotated: true}
-  - {name: centurion, index: 9, position: {x: -25, y: -165}, exp: 1399/2250}
-  - {name: centurion, index: 10, position: {x: 25, y: -165}, exp: 1199/2250}
-  - {name: crawler, index: 11, position: {x: -145, y: -190}, exp: 136/450}
-  - {name: crawler, index: 12, position: {x: 145, y: -190}, exp: 213/450}
+  - {name: fang, index: 0, position: {x: 140, y: -225}, level: 2, rotated: true, source: legacy}
+  - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 582/600, rotated: true, source: legacy}
+  - {name: fang, index: 2, position: {x: 0, y: -135}, exp: 450/600, rotated: true, source: legacy}
+  - {name: sledgehammer, index: 3, position: {x: -105, y: -130}, exp: 1300/1300, source: legacy}
+  - {name: sledgehammer, index: 4, position: {x: 105, y: -130}, level: 2, source: legacy}
+  - {name: marksman, index: 5, position: {x: -110, y: -190}, level: 4, exp: 342/2919, source: legacy}
+  - {name: marksman, index: 6, position: {x: 110, y: -190}, level: 2, source: legacy}
+  - {name: crawler, index: 7, position: {x: 140, y: -285}, exp: 295/450, rotated: true, source: legacy}
+  - {name: crawler, index: 8, position: {x: -140, y: -285}, exp: 262/450, rotated: true, source: legacy}
+  - {name: centurion, index: 9, position: {x: -25, y: -165}, exp: 1399/2250, source: legacy}
+  - {name: centurion, index: 10, position: {x: 25, y: -165}, exp: 1199/2250, source: legacy}
+  - {name: crawler, index: 11, position: {x: -145, y: -190}, exp: 136/450, source: legacy}
+  - {name: crawler, index: 12, position: {x: 145, y: -190}, exp: 213/450, source: legacy}
   - {name: centurion, index: 13, position: {x: 165, y: -165}, level: 2}
   - {name: crawler, index: 14, position: {x: 0, y: -265}, rotated: true}
   constructions:
@@ -37,20 +36,19 @@ red:
   techs:
     arclight: [range_enhancement]
   blueprints: [attack_enhancement]
-  legacy_index: 12
   units:
-  - {name: fang, index: 0, position: {x: 0, y: -135}, exp: 300/600, rotated: true}
-  - {name: fang, index: 1, position: {x: -140, y: -215}, level: 2, rotated: true}
-  - {name: fang, index: 2, position: {x: 140, y: -135}, exp: 290/600, rotated: true}
-  - {name: steel_ball, index: 3, position: {x: 225, y: -300}, exp: 221/1000}
-  - {name: steel_ball, index: 4, position: {x: -275, y: -300}, exp: 509/1000}
-  - {name: arclight, index: 5, position: {x: 80, y: -170}, level: 2, exp: 1041/1690}
-  - {name: arclight, index: 6, position: {x: -80, y: -170}, level: 2, exp: 1157/1690}
-  - {name: fang, index: 7, position: {x: -140, y: -135}, level: 2, exp: 179/1352, rotated: true}
-  - {name: arclight, index: 8, position: {x: 0, y: -210}, level: 3, exp: 766/2671}
-  - {name: centurion, index: 9, position: {x: -75, y: -235}, level: 2}
-  - {name: crawler, index: 10, position: {x: 75, y: -300}, level: 2, exp: 89/1014}
-  - {name: crawler, index: 11, position: {x: -125, y: -300}, level: 2, exp: 82/1014}
+  - {name: fang, index: 0, position: {x: 0, y: -135}, exp: 300/600, rotated: true, source: legacy}
+  - {name: fang, index: 1, position: {x: -140, y: -215}, level: 2, rotated: true, source: legacy}
+  - {name: fang, index: 2, position: {x: 140, y: -135}, exp: 290/600, rotated: true, source: legacy}
+  - {name: steel_ball, index: 3, position: {x: 225, y: -300}, exp: 221/1000, source: legacy}
+  - {name: steel_ball, index: 4, position: {x: -275, y: -300}, exp: 509/1000, source: legacy}
+  - {name: arclight, index: 5, position: {x: 80, y: -170}, level: 2, exp: 1041/1690, source: legacy}
+  - {name: arclight, index: 6, position: {x: -80, y: -170}, level: 2, exp: 1157/1690, source: legacy}
+  - {name: fang, index: 7, position: {x: -140, y: -135}, level: 2, exp: 179/1352, rotated: true, source: legacy}
+  - {name: arclight, index: 8, position: {x: 0, y: -210}, level: 3, exp: 766/2671, source: legacy}
+  - {name: centurion, index: 9, position: {x: -75, y: -235}, level: 2, source: legacy}
+  - {name: crawler, index: 10, position: {x: 75, y: -300}, level: 2, exp: 89/1014, source: legacy}
+  - {name: crawler, index: 11, position: {x: -125, y: -300}, level: 2, exp: 82/1014, source: legacy}
   - {name: crawler, index: 12, position: {x: 275, y: -300}, level: 2}
   - {name: crawler, index: 13, position: {x: -225, y: -300}, level: 2}
 outcome:

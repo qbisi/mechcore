@@ -13,16 +13,15 @@ blue:
   officers: [missile_specialist]
   techs:
     void_eye: [range_enhancement]
-  legacy_index: 8
   units:
-  - {name: void_eye, index: 0, position: {x: 70, y: -180}, level: 2}
-  - {name: void_eye, index: 1, position: {x: 110, y: -180}, exp: 578/650}
-  - {name: void_eye, index: 2, position: {x: 170, y: -180}, exp: 342/650}
-  - {name: mustang, index: 3, position: {x: 140, y: -285}, exp: 934/1200, rotated: true}
-  - {name: mustang, index: 4, position: {x: -140, y: -285}, exp: 299/1200, rotated: true}
-  - {name: mustang, index: 5, position: {x: 255, y: -300}, exp: 1176/1200}
-  - {name: mustang, index: 6, position: {x: 50, y: -285}, exp: 551/1200, rotated: true}
-  - {name: mustang, index: 7, position: {x: -65, y: -300}, exp: 229/1200}
+  - {name: void_eye, index: 0, position: {x: 70, y: -180}, level: 2, source: legacy}
+  - {name: void_eye, index: 1, position: {x: 110, y: -180}, exp: 578/650, source: legacy}
+  - {name: void_eye, index: 2, position: {x: 170, y: -180}, exp: 342/650, source: legacy}
+  - {name: mustang, index: 3, position: {x: 140, y: -285}, exp: 934/1200, rotated: true, source: legacy}
+  - {name: mustang, index: 4, position: {x: -140, y: -285}, exp: 299/1200, rotated: true, source: legacy}
+  - {name: mustang, index: 5, position: {x: 255, y: -300}, exp: 1176/1200, source: legacy}
+  - {name: mustang, index: 6, position: {x: 50, y: -285}, exp: 551/1200, rotated: true, source: legacy}
+  - {name: mustang, index: 7, position: {x: -65, y: -300}, exp: 229/1200, source: legacy}
   - {name: arclight, index: 8, position: {x: 140, y: -150}, level: 2}
   - {name: arclight, index: 9, position: {x: -140, y: -150}, level: 2}
   - {name: void_eye, index: 10, position: {x: -110, y: -180}}
@@ -36,17 +35,16 @@ red:
   officers: [secondary_equipment_expert]
   techs:
     steel_ball: [kinetic_charge]
-  legacy_index: 9
   units:
-  - {name: crawler, index: 0, position: {x: -140, y: -265}, exp: 117/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: 140, y: -265}, exp: 136/450, rotated: true}
-  - {name: crawler, index: 2, position: {x: 0, y: -265}, exp: 144/450, rotated: true}
-  - {name: steel_ball, index: 3, position: {x: -185, y: -280}, exp: 397/1000}
-  - {name: steel_ball, index: 4, position: {x: 185, y: -280}, level: 2}
-  - {name: vortex, index: 5, position: {x: -140, y: -140}, exp: 68/750}
-  - {name: vortex, index: 6, position: {x: 140, y: -140}, exp: 526/750}
-  - {name: mustang, index: 7, position: {x: -185, y: -250}, exp: 422/1200, equipment: [secondary_fire_control_system]}
-  - {name: mustang, index: 8, position: {x: 185, y: -250}, exp: 657/1200, equipment: [secondary_fire_control_system]}
+  - {name: crawler, index: 0, position: {x: -140, y: -265}, exp: 117/450, rotated: true, source: legacy}
+  - {name: crawler, index: 1, position: {x: 140, y: -265}, exp: 136/450, rotated: true, source: legacy}
+  - {name: crawler, index: 2, position: {x: 0, y: -265}, exp: 144/450, rotated: true, source: legacy}
+  - {name: steel_ball, index: 3, position: {x: -185, y: -280}, exp: 397/1000, source: legacy}
+  - {name: steel_ball, index: 4, position: {x: 185, y: -280}, level: 2, source: legacy}
+  - {name: vortex, index: 5, position: {x: -140, y: -140}, exp: 68/750, source: legacy}
+  - {name: vortex, index: 6, position: {x: 140, y: -140}, exp: 526/750, source: legacy}
+  - {name: mustang, index: 7, position: {x: -185, y: -250}, exp: 422/1200, equipment: [secondary_fire_control_system], source: legacy}
+  - {name: mustang, index: 8, position: {x: 185, y: -250}, exp: 657/1200, equipment: [secondary_fire_control_system], source: legacy}
   - {name: wasp, index: 9, position: {x: 280, y: -165}, rotated: true}
   - {name: wasp, index: 10, position: {x: -280, y: -175}, rotated: true, equipment: [small_amplifying_core]}
   - {name: crawler, index: 11, position: {x: 250, y: -155}, rotated: true}

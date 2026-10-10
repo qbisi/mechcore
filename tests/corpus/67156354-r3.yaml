@@ -16,19 +16,18 @@ blue:
   officers: [training_specialist]
   techs:
     arclight: [range_enhancement]
-  legacy_index: 11
   units:
-  - {name: arclight, index: 0, position: {x: 140, y: -70}, exp: 339/750}
-  - {name: arclight, index: 1, position: {x: 0, y: -70}, level: 2}
-  - {name: arclight, index: 2, position: {x: 70, y: -70}, level: 2, exp: 1044/1690}
-  - {name: sabertooth, index: 3, position: {x: 35, y: -65}, exp: 1245/1300}
-  - {name: sabertooth, index: 4, position: {x: 105, y: -65}, exp: 742/1300}
-  - {name: fang, index: 5, position: {x: 140, y: -35}, exp: 118/600, rotated: true}
-  - {name: fang, index: 6, position: {x: 0, y: -35}, exp: 50/600, rotated: true}
-  - {name: marksman, index: 7, position: {x: 0, y: -90}, level: 3, exp: 1189/2315}
-  - {name: crawler, index: 8, position: {x: 0, y: -135}, exp: 225/450, rotated: true}
-  - {name: crawler, index: 9, position: {x: -140, y: -135}, rotated: true}
-  - {name: crawler, index: 10, position: {x: 140, y: -135}, exp: 159/450, rotated: true}
+  - {name: arclight, index: 0, position: {x: 140, y: -70}, exp: 339/750, source: legacy}
+  - {name: arclight, index: 1, position: {x: 0, y: -70}, level: 2, source: legacy}
+  - {name: arclight, index: 2, position: {x: 70, y: -70}, level: 2, exp: 1044/1690, source: legacy}
+  - {name: sabertooth, index: 3, position: {x: 35, y: -65}, exp: 1245/1300, source: legacy}
+  - {name: sabertooth, index: 4, position: {x: 105, y: -65}, exp: 742/1300, source: legacy}
+  - {name: fang, index: 5, position: {x: 140, y: -35}, exp: 118/600, rotated: true, source: legacy}
+  - {name: fang, index: 6, position: {x: 0, y: -35}, exp: 50/600, rotated: true, source: legacy}
+  - {name: marksman, index: 7, position: {x: 0, y: -90}, level: 3, exp: 1189/2315, source: legacy}
+  - {name: crawler, index: 8, position: {x: 0, y: -135}, exp: 225/450, rotated: true, source: legacy}
+  - {name: crawler, index: 9, position: {x: -140, y: -135}, rotated: true, source: legacy}
+  - {name: crawler, index: 10, position: {x: 140, y: -135}, exp: 159/450, rotated: true, source: legacy}
   - {name: marksman, index: 11, position: {x: 70, y: -90}}
   - {name: marksman, index: 12, position: {x: -70, y: -90}}
   constructions:
@@ -38,18 +37,17 @@ blue:
 red:
   officers: [aerial_specialist]
   blueprints: [defense_enhancement]
-  legacy_index: 10
   units:
-  - {name: void_eye, index: 0, position: {x: -110, y: -220}, exp: 90/650}
-  - {name: void_eye, index: 1, position: {x: 110, y: -220}, exp: 229/650}
-  - {name: void_eye, index: 2, position: {x: -50, y: -220}, exp: 48/650}
-  - {name: tarantula, index: 3, position: {x: 115, y: -175}, exp: 413/1500}
-  - {name: tarantula, index: 4, position: {x: -115, y: -175}, exp: 319/1500}
-  - {name: void_eye, index: 5, position: {x: 50, y: -220}, exp: 331/650}
-  - {name: void_eye, index: 6, position: {x: 0, y: -220}, exp: 257/650}
-  - {name: fire_badger, index: 7, position: {x: -75, y: -150}, exp: 113/1400}
-  - {name: phoenix, index: 8, position: {x: 0, y: -160}, exp: 48/1300}
-  - {name: phoenix, index: 9, position: {x: 80, y: -230}, exp: 150/1300, rotated: true}
+  - {name: void_eye, index: 0, position: {x: -110, y: -220}, exp: 90/650, source: legacy}
+  - {name: void_eye, index: 1, position: {x: 110, y: -220}, exp: 229/650, source: legacy}
+  - {name: void_eye, index: 2, position: {x: -50, y: -220}, exp: 48/650, source: legacy}
+  - {name: tarantula, index: 3, position: {x: 115, y: -175}, exp: 413/1500, source: legacy}
+  - {name: tarantula, index: 4, position: {x: -115, y: -175}, exp: 319/1500, source: legacy}
+  - {name: void_eye, index: 5, position: {x: 50, y: -220}, exp: 331/650, source: legacy}
+  - {name: void_eye, index: 6, position: {x: 0, y: -220}, exp: 257/650, source: legacy}
+  - {name: fire_badger, index: 7, position: {x: -75, y: -150}, exp: 113/1400, source: legacy}
+  - {name: phoenix, index: 8, position: {x: 0, y: -160}, exp: 48/1300, source: legacy}
+  - {name: phoenix, index: 9, position: {x: 80, y: -230}, exp: 150/1300, rotated: true, source: legacy}
   - {name: phoenix, index: 10, position: {x: -80, y: -230}, rotated: true}
   - {name: tarantula, index: 11, position: {x: -35, y: -175}}
   constructions:

@@ -97,7 +97,7 @@ no other slot.
 
 The layout round's `actionRecords` hold, in this order:
 
-1. each delivered squad the layout no longer holds recovered from the Field
+1. each squad the layout lists in `recovered` recovered from the Field
    Recovery slot, by its index;
 2. each delivered squad upgraded to its layout level, fitted, and moved to its
    layout position and facing;
@@ -108,9 +108,9 @@ The layout round's `actionRecords` hold, in this order:
    order, which is the order its side's skills draw their scatter in;
 6. `PAD_FinishDeploy`, when any decision precedes it.
 
-The layout's `legacy_index` divides a side's units. One below it is legacy:
-the snapshot holds it, but for a squad an officer delivers. Every other unit
-joins during the round. A `MAD_AddUnit` adds it, carried by a
+A unit's `source` says where the round takes it from. A `legacy` unit the
+snapshot holds; a `delivered` squad an officer delivers; a `joined` unit joins
+during the round. A `MAD_AddUnit` adds it, carried by a
 `PAD_TestCommand`, because a replay plays a match action as the test command
 that carries it, as the Training Ground performs one. The action names the
 side's seat, 0 for blue and 1 for red, the unit's type, its layout level and
@@ -124,25 +124,28 @@ it wears or its type's Jump Drive. The snapshot holds it at the same place on
 the other flank, and the round's move onto its own flank makes it travel, as
 the match's move across did; the fight does not read where it came from.
 
-When the side's joining units are the allocator's next indices, from
-`legacy_index` on, the action's index is `-1` and the allocator hands each its
+The snapshot's allocator is where the round opened it: the first delivered or
+recovered squad's index when an officer delivers one, since the delivery takes
+the allocator's index, and otherwise one past the highest legacy unit's. When
+the side's joining units are the allocator's next indices, from where the
+deliveries left it, the action's index is `-1` and the allocator hands each its
 own, as buying it did; otherwise each states its own, which leaves the
-allocator at `legacy_index`. As the round ends the game enters the next
+allocator where the deliveries left it. As the round ends the game enters the next
 round's deployment, and an officer due then delivers its squad at the
 allocator, so an allocator left behind would hand that squad an index a
 joining unit already holds.
 
 A squad an officer's schedule hands out as the round opens arrives on top of
-the snapshot, so the snapshot does not hold it again. It is the last legacy
-unit: the allocator opens at its index, which the delivery takes, one below
-`legacy_index`. The layout's unit at that index is the squad, of its type, at
-its level or above and without experience, and its decisions upgrade, fit and
-move it. A layout that holds no unit at that index recovered the squad before
-the fight, and a decision recovers it, which the game's own replay of the
-round agrees with tick for tick. Without a delivery the allocator opens at `legacy_index`. A
-standard 1v1 never deals a side two officers that deliver in one round, and
-the order two would deliver in is not recorded, so a side that two deliver to
-is refused.
+the snapshot, so the snapshot does not hold it again. The allocator opens at
+its index, which the delivery takes. The layout's `delivered` unit is the
+squad, of its type, at its level or above and without experience, and its
+decisions upgrade, fit and move it. A squad the layout lists in `recovered`
+was recovered before the fight, and a decision recovers it by that index,
+which the game's own replay of the round agrees with tick for tick. Each
+officer whose `opening_unit` the round activates delivers one squad, which
+the layout states once, as a delivered unit or recovered. A standard 1v1 never
+deals a side two officers that deliver in one round, and which delivers first
+is the game's, not the layout's, so a side that two deliver to is refused.
 
 ## What a layout replay refuses
 
@@ -151,8 +154,11 @@ and the refusal names each part:
 
 - no seed;
 - two officers that each deliver a squad as the round opens;
-- a unit at a delivered squad's index that is not of the squad's type, below
+- a delivered unit that is not of the delivering officer's squad's type, below
   its level, or with experience;
+- an officer that delivers a squad as the round opens and no delivered unit
+  or recovered index for it, or a delivered unit or recovered index with no
+  officer delivering one;
 - an officer that delivers a squad as the next round opens, beside joining
   units that skip an index, since they leave the allocator behind them;
 - a unit that joins during the round with experience, since a round's

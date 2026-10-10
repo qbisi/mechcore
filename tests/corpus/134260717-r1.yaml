@@ -10,12 +10,11 @@ seed: 1231717251
 round: 1
 blue:
   officers: [aerial_specialist]
-  legacy_index: 5
   units:
-  - {name: fang, index: 0, position: {x: 200, y: -235}, rotated: true}
-  - {name: fang, index: 1, position: {x: 0, y: -205}, rotated: true}
-  - {name: fang, index: 2, position: {x: -190, y: -225}, rotated: true}
-  - {name: fire_badger, index: 3, position: {x: -30, y: -205}, rotated: true}
+  - {name: fang, index: 0, position: {x: 200, y: -235}, rotated: true, source: legacy}
+  - {name: fang, index: 1, position: {x: 0, y: -205}, rotated: true, source: legacy}
+  - {name: fang, index: 2, position: {x: -190, y: -225}, rotated: true, source: legacy}
+  - {name: fire_badger, index: 3, position: {x: -30, y: -205}, rotated: true, source: legacy}
   - {name: hound, index: 5, position: {x: -190, y: -190}}
   - {name: hound, index: 6, position: {x: 200, y: -200}}
   constructions:
@@ -23,13 +22,12 @@ blue:
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
 red:
   officers: [cost_control_specialist]
-  legacy_index: 5
   units:
-  - {name: marksman, index: 0, position: {x: 160, y: -170}}
-  - {name: marksman, index: 1, position: {x: 140, y: -150}}
-  - {name: marksman, index: 2, position: {x: -140, y: -150}}
-  - {name: tarantula, index: 3, position: {x: 115, y: -165}}
-  - {name: tarantula, index: 4, position: {x: -115, y: -165}}
+  - {name: marksman, index: 0, position: {x: 160, y: -170}, source: legacy}
+  - {name: marksman, index: 1, position: {x: 140, y: -150}, source: legacy}
+  - {name: marksman, index: 2, position: {x: -140, y: -150}, source: legacy}
+  - {name: tarantula, index: 3, position: {x: 115, y: -165}, source: legacy}
+  - {name: tarantula, index: 4, position: {x: -115, y: -165}, source: legacy}
   - {name: tarantula, index: 5, position: {x: 5, y: -155}}
   - {name: marksman, index: 6, position: {x: 30, y: -160}}
   constructions:

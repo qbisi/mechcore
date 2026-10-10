@@ -148,8 +148,8 @@ opened a round: `UnitSystem.OnEnterDeployment` counts each unit on the board
 as a round opens, and a squad an officer delivers or a unit a snapshot
 restores is counted as it arrives. A unit bought or taken as a reinforcement
 during the round is not among them, wherever it stands, and in the first
-round no unit is. What a layout calls legacy is its `legacy_index`
-([layout.md](../spec/document/layout.md#legacy_index)). Neither call turns
+round no unit is. A layout states each unit's `source`
+([layout.md](../spec/document/layout.md#source-and-recovered)). Neither call turns
 through `RotateTo` or `RotateWeaponTo`, so the weapon starts the fight facing
 the same way, and a lock the turret then finds may already be in its attack
 angle.

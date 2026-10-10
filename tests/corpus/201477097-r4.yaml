@@ -14,23 +14,22 @@ blue:
   techs:
     hound: [range_enhancement]
   blueprints: [attack_enhancement]
-  legacy_index: 15
   units:
-  - {name: hound, index: 0, position: {x: 130, y: -190}, exp: 656/750}
-  - {name: hound, index: 1, position: {x: -130, y: -190}, exp: 544/750}
-  - {name: hound, index: 2, position: {x: 0, y: -190}, exp: 437/750}
-  - {name: sledgehammer, index: 3, position: {x: -90, y: -115}, exp: 990/1300, rotated: true}
-  - {name: sledgehammer, index: 4, position: {x: 90, y: -115}, exp: 754/1300, rotated: true}
-  - {name: crawler, index: 5, position: {x: 130, y: -225}, exp: 169/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -130, y: -225}, exp: 450/450, rotated: true}
-  - {name: phoenix, index: 7, position: {x: -200, y: -80}, level: 2}
-  - {name: crawler, index: 8, position: {x: 0, y: -285}, exp: 172/450, rotated: true}
-  - {name: crawler, index: 9, position: {x: -245, y: -20}}
-  - {name: hound, index: 10, position: {x: -200, y: -60}, exp: 509/750}
-  - {name: crawler, index: 11, position: {x: -200, y: -115}, exp: 36/450, rotated: true}
-  - {name: mustang, index: 12, position: {x: -215, y: -150}, exp: 846/1200}
-  - {name: fang, index: 13, position: {x: 170, y: -225}, exp: 163/600, rotated: true}
-  - {name: rhino, index: 14, position: {x: -245, y: -65}, level: 2}
+  - {name: hound, index: 0, position: {x: 130, y: -190}, exp: 656/750, source: legacy}
+  - {name: hound, index: 1, position: {x: -130, y: -190}, exp: 544/750, source: legacy}
+  - {name: hound, index: 2, position: {x: 0, y: -190}, exp: 437/750, source: legacy}
+  - {name: sledgehammer, index: 3, position: {x: -90, y: -115}, exp: 990/1300, rotated: true, source: legacy}
+  - {name: sledgehammer, index: 4, position: {x: 90, y: -115}, exp: 754/1300, rotated: true, source: legacy}
+  - {name: crawler, index: 5, position: {x: 130, y: -225}, exp: 169/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: -130, y: -225}, exp: 450/450, rotated: true, source: legacy}
+  - {name: phoenix, index: 7, position: {x: -200, y: -80}, level: 2, source: legacy}
+  - {name: crawler, index: 8, position: {x: 0, y: -285}, exp: 172/450, rotated: true, source: legacy}
+  - {name: crawler, index: 9, position: {x: -245, y: -20}, source: legacy}
+  - {name: hound, index: 10, position: {x: -200, y: -60}, exp: 509/750, source: legacy}
+  - {name: crawler, index: 11, position: {x: -200, y: -115}, exp: 36/450, rotated: true, source: legacy}
+  - {name: mustang, index: 12, position: {x: -215, y: -150}, exp: 846/1200, source: legacy}
+  - {name: fang, index: 13, position: {x: 170, y: -225}, exp: 163/600, rotated: true, source: legacy}
+  - {name: rhino, index: 14, position: {x: -245, y: -65}, level: 2, source: delivered}
   - {name: crawler, index: 15, position: {x: -290, y: -155}, rotated: true}
   - {name: crawler, index: 16, position: {x: 290, y: -285}, rotated: true}
   - {name: crawler, index: 17, position: {x: -140, y: -35}, rotated: true}
@@ -40,22 +39,21 @@ red:
   officers: [additional_deployment_slot, fire_badger_specialist]
   techs:
     arclight: [charged_shot]
-  legacy_index: 15
   units:
-  - {name: arclight, index: 0, position: {x: -140, y: -80}, level: 2}
-  - {name: arclight, index: 1, position: {x: -230, y: -80}, level: 2}
-  - {name: arclight, index: 2, position: {x: -50, y: -80}, level: 2}
-  - {name: steel_ball, index: 3, position: {x: -185, y: -160}, level: 2}
-  - {name: steel_ball, index: 4, position: {x: -95, y: -160}, level: 2}
-  - {name: crawler, index: 5, position: {x: -50, y: -115}, exp: 73/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -230, y: -115}, exp: 228/450, rotated: true}
-  - {name: phoenix, index: 7, position: {x: -230, y: -170}, exp: 285/1300}
-  - {name: arclight, index: 8, position: {x: 50, y: -120}, exp: 157/750}
-  - {name: arclight, index: 9, position: {x: 160, y: -150}, exp: 371/750}
-  - {name: fang, index: 10, position: {x: 160, y: -185}, exp: 145/600, rotated: true}
-  - {name: fang, index: 12, position: {x: 110, y: -95}, exp: 84/600, rotated: true}
-  - {name: fang, index: 13, position: {x: -140, y: -205}, exp: 565/600, rotated: true}
-  - {name: arclight, index: 14, position: {x: 250, y: -150}, exp: 144/750}
+  - {name: arclight, index: 0, position: {x: -140, y: -80}, level: 2, source: legacy}
+  - {name: arclight, index: 1, position: {x: -230, y: -80}, level: 2, source: legacy}
+  - {name: arclight, index: 2, position: {x: -50, y: -80}, level: 2, source: legacy}
+  - {name: steel_ball, index: 3, position: {x: -185, y: -160}, level: 2, source: legacy}
+  - {name: steel_ball, index: 4, position: {x: -95, y: -160}, level: 2, source: legacy}
+  - {name: crawler, index: 5, position: {x: -50, y: -115}, exp: 73/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: -230, y: -115}, exp: 228/450, rotated: true, source: legacy}
+  - {name: phoenix, index: 7, position: {x: -230, y: -170}, exp: 285/1300, source: legacy}
+  - {name: arclight, index: 8, position: {x: 50, y: -120}, exp: 157/750, source: legacy}
+  - {name: arclight, index: 9, position: {x: 160, y: -150}, exp: 371/750, source: legacy}
+  - {name: fang, index: 10, position: {x: 160, y: -185}, exp: 145/600, rotated: true, source: legacy}
+  - {name: fang, index: 12, position: {x: 110, y: -95}, exp: 84/600, rotated: true, source: legacy}
+  - {name: fang, index: 13, position: {x: -140, y: -205}, exp: 565/600, rotated: true, source: legacy}
+  - {name: arclight, index: 14, position: {x: 250, y: -150}, exp: 144/750, source: legacy}
   - {name: crawler, index: 15, position: {x: 250, y: -115}, rotated: true}
   - {name: crawler, index: 16, position: {x: 50, y: -155}, rotated: true}
   - {name: arclight, index: 17, position: {x: 110, y: -130}}

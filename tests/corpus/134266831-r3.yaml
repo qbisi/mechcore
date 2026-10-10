@@ -11,18 +11,17 @@ round: 3
 blue:
   officers: [quick_supply_specialist]
   blueprints: [attack_enhancement, defense_enhancement]
-  legacy_index: 10
   units:
-  - {name: arclight, index: 0, position: {x: 50, y: -70}, exp: 177/750}
-  - {name: arclight, index: 1, position: {x: 140, y: -70}, exp: 720/750}
-  - {name: arclight, index: 2, position: {x: 230, y: -70}, exp: 505/750}
-  - {name: sabertooth, index: 3, position: {x: 185, y: -65}, exp: 477/1300}
-  - {name: sabertooth, index: 4, position: {x: 95, y: -65}, exp: 536/1300}
-  - {name: crawler, index: 5, position: {x: 90, y: -125}, exp: 450/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 190, y: -125}, exp: 450/450, rotated: true}
-  - {name: arclight, index: 7, position: {x: -140, y: -140}, exp: 445/750}
-  - {name: crawler, index: 8, position: {x: 140, y: -225}, exp: 165/450, rotated: true}
-  - {name: fang, index: 9, position: {x: 70, y: -35}, exp: 381/600, rotated: true}
+  - {name: arclight, index: 0, position: {x: 50, y: -70}, exp: 177/750, source: legacy}
+  - {name: arclight, index: 1, position: {x: 140, y: -70}, exp: 720/750, source: legacy}
+  - {name: arclight, index: 2, position: {x: 230, y: -70}, exp: 505/750, source: legacy}
+  - {name: sabertooth, index: 3, position: {x: 185, y: -65}, exp: 477/1300, source: legacy}
+  - {name: sabertooth, index: 4, position: {x: 95, y: -65}, exp: 536/1300, source: legacy}
+  - {name: crawler, index: 5, position: {x: 90, y: -125}, exp: 450/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: 190, y: -125}, exp: 450/450, rotated: true, source: legacy}
+  - {name: arclight, index: 7, position: {x: -140, y: -140}, exp: 445/750, source: legacy}
+  - {name: crawler, index: 8, position: {x: 140, y: -225}, exp: 165/450, rotated: true, source: legacy}
+  - {name: fang, index: 9, position: {x: 70, y: -35}, exp: 381/600, rotated: true, source: legacy}
   - {name: mustang, index: 10, position: {x: -175, y: -210}}
   - {name: mustang, index: 11, position: {x: 135, y: -140}}
   - {name: crawler, index: 12, position: {x: 290, y: -285}, rotated: true}
@@ -30,16 +29,15 @@ blue:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   officers: [fortified_specialist]
-  legacy_index: 9
   units:
-  - {name: crawler, index: 0, position: {x: 290, y: -265}, exp: 238/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: -290, y: -255}, exp: 22/450, rotated: true}
-  - {name: crawler, index: 2, position: {x: -135, y: -190}, exp: 42/450}
-  - {name: sabertooth, index: 3, position: {x: 5, y: -105}, exp: 549/1300}
-  - {name: crawler, index: 5, position: {x: 145, y: -190}, exp: 385/450}
-  - {name: crawler, index: 6, position: {x: 0, y: -255}, exp: 116/450, rotated: true}
-  - {name: wasp, index: 7, position: {x: -275, y: -300}, exp: 160/900}
-  - {name: crawler, index: 8, position: {x: -130, y: -265}, exp: 41/450, rotated: true}
+  - {name: crawler, index: 0, position: {x: 290, y: -265}, exp: 238/450, rotated: true, source: legacy}
+  - {name: crawler, index: 1, position: {x: -290, y: -255}, exp: 22/450, rotated: true, source: legacy}
+  - {name: crawler, index: 2, position: {x: -135, y: -190}, exp: 42/450, source: legacy}
+  - {name: sabertooth, index: 3, position: {x: 5, y: -105}, exp: 549/1300, source: legacy}
+  - {name: crawler, index: 5, position: {x: 145, y: -190}, exp: 385/450, source: legacy}
+  - {name: crawler, index: 6, position: {x: 0, y: -255}, exp: 116/450, rotated: true, source: legacy}
+  - {name: wasp, index: 7, position: {x: -275, y: -300}, exp: 160/900, source: legacy}
+  - {name: crawler, index: 8, position: {x: -130, y: -265}, exp: 41/450, rotated: true, source: legacy}
   - {name: centurion, index: 9, position: {x: -95, y: -145}}
   - {name: centurion, index: 10, position: {x: -35, y: -145}}
   - {name: crawler, index: 11, position: {x: 120, y: -265}, rotated: true}

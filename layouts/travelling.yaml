@@ -4,12 +4,10 @@
 kind: layout
 round: 3
 blue:
-  legacy_index: 1
   units:
-    - {name: marksman, index: 0, position: {x: 0, y: -50}}
+    - {name: marksman, index: 0, position: {x: 0, y: -50}, source: legacy}
     - {name: marksman, index: 1, travelling: true, position: {x: -330, y: 100}}
 red:
-  legacy_index: 2
   units:
-    - {name: arclight, index: 0, position: {x: 0, y: -50}}
-    - {name: arclight, index: 1, position: {x: 330, y: 100}}
+    - {name: arclight, index: 0, position: {x: 0, y: -50}, source: legacy}
+    - {name: arclight, index: 1, position: {x: 330, y: 100}, source: legacy}

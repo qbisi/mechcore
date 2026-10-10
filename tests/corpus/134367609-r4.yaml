@@ -12,20 +12,19 @@ blue:
   officers: [supply_specialist]
   techs:
     hound: [incendiary_bomb]
-  legacy_index: 13
   units:
-  - {name: hound, index: 0, position: {x: 0, y: -190}, exp: 132/750}
-  - {name: hound, index: 1, position: {x: -120, y: -190}, exp: 295/750}
-  - {name: hound, index: 2, position: {x: 120, y: -190}, exp: 750/750}
-  - {name: steel_ball, index: 3, position: {x: 235, y: -300}, exp: 749/1000}
-  - {name: crawler, index: 5, position: {x: 270, y: -285}, exp: 187/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 120, y: -225}, exp: 115/450, rotated: true}
-  - {name: wasp, index: 7, position: {x: -290, y: -285}, exp: 900/900, rotated: true}
-  - {name: mustang, index: 8, position: {x: 185, y: -300}, exp: 675/1200}
-  - {name: crawler, index: 9, position: {x: -270, y: -285}, exp: 63/450, rotated: true}
-  - {name: crawler, index: 10, position: {x: 0, y: -225}, exp: 47/450, rotated: true}
-  - {name: hound, index: 11, position: {x: -240, y: -190}, exp: 3/750}
-  - {name: hound, index: 12, position: {x: 240, y: -190}, exp: 251/750}
+  - {name: hound, index: 0, position: {x: 0, y: -190}, exp: 132/750, source: legacy}
+  - {name: hound, index: 1, position: {x: -120, y: -190}, exp: 295/750, source: legacy}
+  - {name: hound, index: 2, position: {x: 120, y: -190}, exp: 750/750, source: legacy}
+  - {name: steel_ball, index: 3, position: {x: 235, y: -300}, exp: 749/1000, source: legacy}
+  - {name: crawler, index: 5, position: {x: 270, y: -285}, exp: 187/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: 120, y: -225}, exp: 115/450, rotated: true, source: legacy}
+  - {name: wasp, index: 7, position: {x: -290, y: -285}, exp: 900/900, rotated: true, source: legacy}
+  - {name: mustang, index: 8, position: {x: 185, y: -300}, exp: 675/1200, source: legacy}
+  - {name: crawler, index: 9, position: {x: -270, y: -285}, exp: 63/450, rotated: true, source: legacy}
+  - {name: crawler, index: 10, position: {x: 0, y: -225}, exp: 47/450, rotated: true, source: legacy}
+  - {name: hound, index: 11, position: {x: -240, y: -190}, exp: 3/750, source: legacy}
+  - {name: hound, index: 12, position: {x: 240, y: -190}, exp: 251/750, source: legacy}
   - {name: war_factory, index: 13, position: {x: -95, y: -145}}
   - {name: fang, index: 14, position: {x: -160, y: -235}, rotated: true}
   battle_skills:
@@ -35,19 +34,18 @@ red:
   techs:
     arclight: [range_enhancement]
     fire_badger: [scorching_charge]
-  legacy_index: 12
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -150}, exp: 373/750}
-  - {name: arclight, index: 1, position: {x: 140, y: -150}, level: 2, exp: 84/1690}
-  - {name: arclight, index: 2, position: {x: -70, y: -150}, level: 2}
-  - {name: sabertooth, index: 4, position: {x: -35, y: -145}, exp: 824/1300}
-  - {name: crawler, index: 5, position: {x: -140, y: -205}, exp: 154/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 140, y: -205}, exp: 323/450, rotated: true}
-  - {name: fire_badger, index: 7, position: {x: 145, y: -40}, exp: 886/1400}
-  - {name: mustang, index: 8, position: {x: -55, y: -280}, exp: 1166/1200}
-  - {name: mustang, index: 9, position: {x: -125, y: -280}, exp: 814/1200}
-  - {name: fire_badger, index: 10, position: {x: -135, y: -40}, exp: 278/1400}
-  - {name: fang, index: 11, position: {x: 180, y: -205}, exp: 424/600, rotated: true}
+  - {name: arclight, index: 0, position: {x: 0, y: -150}, exp: 373/750, source: legacy}
+  - {name: arclight, index: 1, position: {x: 140, y: -150}, level: 2, exp: 84/1690, source: legacy}
+  - {name: arclight, index: 2, position: {x: -70, y: -150}, level: 2, source: legacy}
+  - {name: sabertooth, index: 4, position: {x: -35, y: -145}, exp: 824/1300, source: legacy}
+  - {name: crawler, index: 5, position: {x: -140, y: -205}, exp: 154/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: 140, y: -205}, exp: 323/450, rotated: true, source: legacy}
+  - {name: fire_badger, index: 7, position: {x: 145, y: -40}, exp: 886/1400, source: legacy}
+  - {name: mustang, index: 8, position: {x: -55, y: -280}, exp: 1166/1200, source: legacy}
+  - {name: mustang, index: 9, position: {x: -125, y: -280}, exp: 814/1200, source: legacy}
+  - {name: fire_badger, index: 10, position: {x: -135, y: -40}, exp: 278/1400, source: legacy}
+  - {name: fang, index: 11, position: {x: 180, y: -205}, exp: 424/600, rotated: true, source: legacy}
   - {name: scorpion, index: 12, position: {x: -105, y: -145}}
   - {name: arclight, index: 13, position: {x: -140, y: -150}}
   constructions:
