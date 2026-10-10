@@ -1,6 +1,6 @@
-# One Rhino against one Arclight: a melee unit closing on a ranged one;
-# crates/simulation/tests/fight.rs reads that the fight ends with no lock. Map
-# 1021, seed 1787720897.
+# One Rhino against one Arclight: a melee unit closing on a ranged one. Its
+# assert: the fight ends with no unit holding a lock. Map 1021, seed
+# 1787720897.
 kind: fight
 source: game
 map_id: 1021
@@ -15,5 +15,8 @@ red:
 outcome:
   blue.units[0].exp: 200
   red.core_damage: 200
+asserts:
+- sql: "SELECT count(*) FROM units WHERE tick = (SELECT max(tick) FROM units) AND has_mech_lock_target"
+  rows: [[0]]
 ticks: 235
 hash: 23:d94cc976af4585a0e2dca16e8cc6024af9202a6246aeb4183572f9e2e133f921

@@ -11,6 +11,11 @@
 # Twenty-four Crawlers pushed along the wall as they strike it change blocks
 # between blows, go straight on when a block they had not yet struck falls,
 # and take four of the five before the fight ends.
+#
+# Its assert: Crawler 2, pushed along the wall while striking block 4, reads
+# idle with no lock on tick 96 as its swing ends, and has block 3 on 97;
+# Crawlers 7 and 23, closing on block 4 without having struck it when another
+# fells it, are moving on the Marksman on 119.
 
 kind: fight
 source: game
@@ -29,5 +34,8 @@ outcome:
   blue.core_damage: 84
   blue.units[0].exp: 24
   red.units[0].exp: 248
+asserts:
+- sql: "SELECT u.tick, u.unit_id, u.motion_state, u.mech_lock_target__kind, u.mech_lock_target__id, k.enabled__state, k.enabled__attack_target__kind, k.enabled__attack_target__id FROM units u JOIN units__skills k ON k.tick = u.tick AND k.unit_id = u.unit_id AND k.skill_slot = 0 WHERE (u.unit_id = 2 AND u.tick IN (96, 97)) OR (u.unit_id IN (7, 23) AND u.tick = 119) ORDER BY u.tick, u.unit_id"
+  rows: [[96, 2, idle, null, null, idle, null, null], [97, 2, attacking, unit, 1, idle, building, 3], [119, 7, moving, unit, 1, idle, unit, 1], [119, 23, moving, unit, 1, idle, unit, 1]]
 ticks: 209
 hash: 23:0e325addaeeee277fc119042cbc7ffa8fd8771bbe2e9509560f512395397f8bc

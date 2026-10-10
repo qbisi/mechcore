@@ -1,6 +1,6 @@
 # One Rhino against a Crawler formation: a large unit among many small ones.
-# The simulation's motion tests embed it for the first split RVO tree. Map
-# 1021, seed 1787748319.
+# Its assert: Crawler 11's velocity at tick 8, the first solve whose RVO tree
+# splits, which reads the zero position buffer. Map 1021, seed 1787748319.
 kind: fight
 source: game
 map_id: 1021
@@ -15,5 +15,8 @@ red:
 outcome:
   blue.units[0].exp: 192
   red.core_damage: 200
+asserts:
+- sql: "SELECT tick, unit_id, velocity__x, velocity__z FROM units WHERE tick = 8 AND unit_id = 11"
+  rows: [[8, 11, 10146579184, -67965446880]]
 ticks: 377
 hash: 23:59eee526fa2df09d58d5164087a7cace9dbc9c65e0b04bee89e59b04c8cea1f2
