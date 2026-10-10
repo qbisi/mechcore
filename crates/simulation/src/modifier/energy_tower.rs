@@ -24,10 +24,8 @@ use crate::{
     rules::UnitConfig,
 };
 
-use super::{
-    effects::{self, Fields},
-    targets::Targets,
-};
+use super::effects::{self, Fields};
+use mechcore_document::targets::Targets;
 
 const DEFAULT_ENERGY_TOWER_SKILL_EFFECTS: &str =
     include_str!("../../../../config/energy_tower_skill_effects.yaml");
@@ -118,7 +116,11 @@ impl EnergyTowerSkillEffects {
             let Some(skill) = self.skills.get(id) else {
                 continue;
             };
-            if !skill.targets.reaches(unit)? {
+            if !skill
+                .targets
+                .reaches(&unit.category())
+                .map_err(Error::new)?
+            {
                 continue;
             }
             written.extend(skill.effect.iter().map(|(channel, index, correction)| {

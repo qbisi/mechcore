@@ -21,10 +21,8 @@ use crate::{
     rules::UnitConfig,
 };
 
-use super::{
-    effects::{self, Fields},
-    targets::Targets,
-};
+use super::effects::{self, Fields};
+use mechcore_document::targets::Targets;
 
 const DEFAULT_OFFICER_EFFECTS: &str = include_str!("../../../../config/officer_effects.yaml");
 
@@ -287,7 +285,7 @@ impl Officer {
     /// over it would refuse a side for carrying an officer whose effect is
     /// not a unit's at all.
     fn reaches(&self, unit: &UnitConfig) -> Result<bool> {
-        self.targets.reaches(unit)
+        self.targets.reaches(&unit.category()).map_err(Error::new)
     }
 }
 

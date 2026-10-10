@@ -6,8 +6,8 @@
 //! called from `MAP_AddUnit` — so they are applied as the fight is built, into
 //! the overlays [`crate::data`] resolves. [`effects`] is what every table
 //! writes; [`officers`], [`technologies`], [`equipment`] and
-//! [`energy_tower`] read their own table, [`targets`] says which units a
-//! row's targeting category reaches, and [`sources`] is what an equipment or
+//! [`energy_tower`] read their own table, `mechcore_document::targets` says
+//! which units a row's targeting category reaches, and [`sources`] is what an equipment or
 //! a technology hands its unit beyond its numbers.
 
 mod buffs;
@@ -17,7 +17,6 @@ mod equipment;
 mod officers;
 mod providers;
 mod sources;
-mod targets;
 mod technologies;
 
 pub(crate) use energy_tower::EnergyTowerSkillEffects;

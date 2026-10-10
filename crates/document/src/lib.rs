@@ -42,6 +42,7 @@ pub mod reactor_damage;
 pub mod record;
 pub mod reinforcement;
 mod spelling;
+pub mod targets;
 pub mod territory;
 pub mod transition;
 

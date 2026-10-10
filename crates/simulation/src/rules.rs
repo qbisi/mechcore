@@ -459,14 +459,7 @@ pub(crate) enum UnitDomain {
     Air,
 }
 
-/// `UnitType`: what a row targeting small, medium or huge units reads.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub(crate) enum UnitSize {
-    Small,
-    Medium,
-    Huge,
-}
+pub(crate) use mechcore_document::targets::UnitSize;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -1042,6 +1035,16 @@ impl UnitConfigs {
 }
 
 impl UnitConfig {
+    /// What `UnitUtility.IsEffectTarget` reads of the unit.
+    pub(crate) fn category(&self) -> mechcore_document::targets::Category<'_> {
+        mechcore_document::targets::Category {
+            type_name: &self.type_name,
+            melee: self.attack.melee,
+            ground: self.domain == UnitDomain::Ground,
+            size: self.size,
+        }
+    }
+
     fn validate(&self) -> Result<()> {
         if self.schema != "mechcore.unit" {
             return Err(Error::new("unsupported unit config type"));

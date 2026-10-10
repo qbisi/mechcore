@@ -3,16 +3,33 @@
 //! Officers, equipment, energy-tower skills and unit reinforcements all ask
 //! that one method, which switches on the row's `UnitEffectTargetType`. So a
 //! category means the same thing whichever table names it, and it is resolved
-//! here rather than by each table.
+//! here rather than by each table, for the simulator and the layout alike.
 
-use crate::{
-    Error, Result,
-    rules::{UnitConfig, UnitDomain, UnitSize},
-};
+use serde::{Deserialize, Serialize};
+
+/// `UnitType`: what a row targeting small, medium or huge units reads.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum UnitSize {
+    Small,
+    Medium,
+    Huge,
+}
+
+/// What `IsEffectTarget` reads of a unit.
+#[derive(Debug, Clone, Copy)]
+pub struct Category<'a> {
+    pub type_name: &'a str,
+    /// The main skill's `SkillData.isMeleeAttack`.
+    pub melee: bool,
+    /// `IUnitStateEffect.GetUnitStateType`: whether it is a ground unit.
+    pub ground: bool,
+    pub size: UnitSize,
+}
 
 /// A row's `UnitEffectTargetType`, for the categories this build resolves.
 #[derive(Debug, Clone)]
-pub(crate) enum Targets {
+pub enum Targets {
     /// `All` (0): every unit.
     Every,
     /// `mech_type` 1 and 10: the units the row lists.
@@ -34,7 +51,8 @@ pub(crate) enum Targets {
 
 impl Targets {
     /// The category `mech_type` names, for a row `who` describes.
-    pub(crate) fn of(mech_type: i32, units: &[String], who: &str) -> Self {
+    #[must_use]
+    pub fn of(mech_type: i32, units: &[String], who: &str) -> Self {
         match mech_type {
             0 => Self::Every,
             1 | 10 => Self::Listed(units.to_vec()),
@@ -59,7 +77,8 @@ impl Targets {
 
     /// The categories a row's `mech_type` list names, every one of which a
     /// unit has to be in.
-    pub(crate) fn of_list(mech_types: &[i32], units: &[String], who: &str) -> Self {
+    #[must_use]
+    pub fn of_list(mech_types: &[i32], units: &[String], who: &str) -> Self {
         match mech_types {
             [mech_type] => Self::of(*mech_type, units, who),
             _ => Self::AllOf(
@@ -74,7 +93,8 @@ impl Targets {
     /// Whether the category names a unit by whether it flies
     /// (`IUnitStateEffect.GetUnitStateType`), which a technology that turns
     /// its unit's domain changes in the fight.
-    pub(crate) fn by_domain(&self) -> bool {
+    #[must_use]
+    pub fn by_domain(&self) -> bool {
         match self {
             Self::Ground => true,
             Self::AllOf(every) => every.iter().any(Self::by_domain),
@@ -90,19 +110,18 @@ impl Targets {
     /// Whether the row writes onto this unit.
     ///
     /// `IsEffectTarget` reads Melee and Ranged from the unit's main
-    /// `SkillData.isMeleeAttack`, which is [`crate::rules::AttackConfig`]'s
-    /// `melee`.
+    /// `SkillData.isMeleeAttack`.
     ///
     /// # Errors
     ///
     /// Returns the refusal of a category this build does not resolve.
-    pub(crate) fn reaches(&self, unit: &UnitConfig) -> Result<bool> {
+    pub fn reaches(&self, unit: &Category<'_>) -> Result<bool, String> {
         match self {
             Self::Every => Ok(true),
-            Self::Listed(units) => Ok(units.contains(&unit.type_name)),
-            Self::Melee => Ok(unit.attack.melee),
-            Self::Ranged => Ok(!unit.attack.melee),
-            Self::Ground => Ok(unit.domain == UnitDomain::Ground),
+            Self::Listed(units) => Ok(units.iter().any(|name| name == unit.type_name)),
+            Self::Melee => Ok(unit.melee),
+            Self::Ranged => Ok(!unit.melee),
+            Self::Ground => Ok(unit.ground),
             Self::Size(size) => Ok(unit.size == *size),
             Self::AllOf(every) => {
                 for targets in every {
@@ -112,7 +131,7 @@ impl Targets {
                 }
                 Ok(true)
             }
-            Self::Refused(reason) => Err(Error::new(reason.clone())),
+            Self::Refused(reason) => Err(reason.clone()),
         }
     }
 }
