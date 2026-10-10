@@ -315,7 +315,8 @@ score lower by at least 44 raw replaces it. The gradient score is the sum of:
   truncated `0.1` terms added together.
 
 The best point becomes the new target point delta directly, and the solved speed
-is `min(|point|, max_speed)`. No further multiplication by a time step happens
+is `FPoint.Min(|point|, max_speed)`, so a length within 43 raw of the maximum
+solves to the maximum (`tests/corpus/67262689-r6.yaml`, Fang 158 on tick 212). No further multiplication by a time step happens
 here: the target point delta and the speed are two independent outputs of the
 native `CalculateVelocity`.
 

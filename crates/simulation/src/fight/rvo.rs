@@ -812,9 +812,13 @@ fn solve_agent(agent: &AgentInput, obstacles: &[VelocityObstacle]) -> AgentSolut
     if inside {
         let calculated =
             gradient_descent(agent, obstacles, agent.current_velocity, desired, desired);
+        // `CalculateVelocity` clamps with `FPoint.Min`, whose tolerant
+        // comparison returns the maximum for a speed within 43 raw of it: a
+        // Fang of replay 67262689's round 6 whose velocity measures 16 raw
+        // under its 6 metres a second goes on at 6.
         AgentSolution {
             target_delta: calculated,
-            speed: calculated.magnitude().min(agent.max_speed),
+            speed: fpoint_min(calculated.magnitude(), agent.max_speed),
         }
     } else {
         // The unobstructed branch preserves the submitted target point rather

@@ -1,0 +1,91 @@
+# Replay 2328_20261008--67262689, round 6. Blue's Fang 158, attacking with
+# no speed asked, is pushed on at its current velocity, whose length the
+# solver's square root puts 16 raw under its 6 metres a second; FPoint.Min
+# counts that as equal and publishes 6 on tick 212.
+kind: fight
+source: game
+map_id: 1001
+seed: 613165757
+round: 6
+blue:
+  officers: [mass_produced_laser_sight, advanced_targeting_system, typhoon_specialist]
+  techs:
+    marksman: [range_enhancement]
+    mustang: [aerial_specialization]
+    fang: [portable_shield]
+    scorpion: [range_enhancement]
+  units:
+  - {name: fang, index: 0, position: {x: 35, y: -40}, level: 2, source: legacy}
+  - {name: fang, index: 1, position: {x: 245, y: -40}, level: 2, exp: 1093/1352, source: legacy}
+  - {name: fang, index: 2, position: {x: 145, y: -80}, level: 2, exp: 1110/1352, source: legacy}
+  - {name: steel_ball, index: 3, position: {x: 195, y: -100}, exp: 1000/1000, source: legacy}
+  - {name: steel_ball, index: 4, position: {x: 85, y: -90}, exp: 1000/1000, source: legacy}
+  - {name: fang, index: 5, position: {x: 195, y: -60}, level: 3, exp: 910/2137, source: legacy}
+  - {name: fang, index: 6, position: {x: 85, y: -60}, level: 2, exp: 672/1352, source: legacy}
+  - {name: fang, index: 7, position: {x: 145, y: -40}, level: 2, exp: 295/1352, source: legacy}
+  - {name: fang, index: 8, position: {x: 245, y: -80}, level: 2, exp: 930/1352, source: legacy}
+  - {name: marksman, index: 9, position: {x: -110, y: -160}, exp: 274/650, source: legacy}
+  - {name: scorpion, index: 10, position: {x: -175, y: -165}, exp: 1500/1500, equipment: [secondary_laser_sight], source: legacy}
+  - {name: typhoon, index: 11, position: {x: 20, y: -90}, exp: 89/1950, source: legacy}
+  - {name: marksman, index: 12, position: {x: -180, y: -190}, exp: 224/650, source: legacy}
+  - {name: marksman, index: 13, position: {x: -90, y: -180}, exp: 317/650, equipment: [secondary_laser_sight], source: legacy}
+  - {name: mustang, index: 14, position: {x: -180, y: -225}, exp: 335/1200, rotated: true, source: legacy}
+  - {name: mustang, index: 15, position: {x: 160, y: -215}, exp: 634/1200, rotated: true, source: legacy}
+  - {name: fang, index: 16, position: {x: -25, y: -40}}
+  - {name: fang, index: 17, position: {x: -25, y: -80}}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 22, y: 280}]}
+red:
+  officers: [elite_specialist]
+  techs:
+    fire_badger: [field_maintenance, counter_fire]
+    sabertooth: [doubleshot, range_enhancement]
+  blueprints: [attack_enhancement, defense_enhancement]
+  units:
+  - {name: fire_badger, index: 3, position: {x: 205, y: -50}, exp: 1309/1400, source: legacy}
+  - {name: fire_badger, index: 4, position: {x: 125, y: -50}, level: 3, exp: 3694/4987, equipment: [portable_shield], source: legacy}
+  - {name: crawler, index: 5, position: {x: 170, y: -135}, level: 2, exp: 1014/1014, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: -290, y: -35}, level: 2, exp: 468/1014, rotated: true, source: legacy}
+  - {name: sabertooth, index: 7, position: {x: 165, y: -55}, level: 3, equipment: [haste_module], source: legacy}
+  - {name: wasp, index: 8, position: {x: -325, y: 300}, level: 2, exp: 2028/2028, rotated: true, source: legacy}
+  - {name: mustang, index: 9, position: {x: -5, y: -160}, level: 3, exp: 2164/4274, source: legacy}
+  - {name: crawler, index: 10, position: {x: 310, y: 225}, level: 2, source: legacy}
+  - {name: sabertooth, index: 11, position: {x: 135, y: -125}, level: 2, exp: 1610/2929, source: legacy}
+  - {name: crawler, index: 12, position: {x: -290, y: -235}, level: 2, rotated: true, source: legacy}
+  - {name: sabertooth, index: 13, position: {x: 265, y: -65}, level: 2}
+  - {name: mustang, index: 14, position: {x: 215, y: -220}, level: 2}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 158, y: -80}}
+  - {name: missile, index: 2, position: {x: 292, y: -224}}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: 14, y: 280}]}
+outcome:
+  blue.core_damage: 937
+  blue.units[0].exp: 728
+  blue.units[1].exp: 1352
+  blue.units[2].exp: 1352
+  blue.units[5].exp: 1154
+  blue.units[6].exp: 1352
+  blue.units[7].exp: 813
+  blue.units[8].exp: 1207
+  blue.units[9].exp: 597
+  blue.units[11].exp: 124
+  blue.units[12].exp: 421
+  blue.units[13].exp: 390
+  blue.units[14].exp: 865
+  blue.units[15].exp: 1200
+  red.units[0].exp: 1400
+  red.units[1].exp: 4987
+  red.units[3].exp: 540
+  red.units[4].exp: 1015
+  red.units[6].exp: 3602
+  red.units[8].exp: 2239
+  red.units[10].exp: 1170
+  red.units[11].exp: 1708
+ticks: 1087
+hash: 23:edfb56428fb8994df5a254e6af48e023cebcb58d0964af18372ca76ac0f14ece
