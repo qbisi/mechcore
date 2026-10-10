@@ -1,0 +1,28 @@
+# Phoenix Production on blue's War Factory and Crawler Production on red's
+# Melting Point: each side's line makes a unit on the first tick. Blue's
+# Phoenix waits out its `productTime` before it joins, so it is not an initial
+# unit, though the build numbered it before red's Crawlers, which join at once:
+# the recording numbers the first snapshot's units first and the Phoenix after
+# them, as `crates/mcfr/src/numbering.rs` states.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  techs:
+    war_factory: [phoenix_production]
+  units:
+  - {name: war_factory, index: 0, position: {x: 5, y: -145}}
+red:
+  techs:
+    melting_point: [crawler_production]
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -150}}
+outcome:
+  blue.units[0].exp: 848
+  red.core_damage: 525
+  red.units[0].exp: 200
+ticks: 396
+hash: 23:e25bced769348fdf86bfbe5a068dc125717d6e4d46bb585a5ab3defb724cc17d

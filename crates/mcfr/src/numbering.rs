@@ -7,9 +7,11 @@
 //! them. A producer that numbers the units it places before the fight, and a
 //! unit made during the first tick after them, holds a first snapshot out of
 //! that order when such a unit joins at once: a production line whose makes
-//! appear with no delay. [`UnitNumbering`] renames the producer's units and
-//! formations into the normal form's, and leaves every one first numbered
-//! later as it is.
+//! appear with no delay. A unit made on the first tick that joins later took its
+//! number with them and is not an initial unit: it takes the numbers after the
+//! first snapshot's, in the producer's order. [`UnitNumbering`] renames the
+//! producer's units and formations into the normal form's, and leaves every one
+//! first numbered later as it is.
 
 use std::collections::BTreeMap;
 
@@ -27,21 +29,44 @@ pub struct UnitNumbering {
 
 impl UnitNumbering {
     /// The renaming that brings a first snapshot's units into the normal
-    /// form, the producer's own IDs handed out again in its order.
+    /// form, the producer's own IDs handed out again in its order: those of
+    /// the snapshot's units first, then those of the units its events made
+    /// that have not joined.
     #[must_use]
-    pub fn of_first_snapshot(snapshot: &WorldSnapshot) -> Self {
+    pub fn of_first_snapshot(snapshot: &WorldSnapshot, events: &[Event]) -> Self {
         let mut sorted = snapshot.live_units.iter().collect::<Vec<_>>();
         sorted.sort_by(|left, right| {
             compare_initial_unit_order(left.team_id, &left.position, right.team_id, &right.position)
         });
-        let mut unit_ids = sorted.iter().map(|unit| unit.unit_id).collect::<Vec<_>>();
-        unit_ids.sort_unstable();
+        let mut order = sorted.iter().map(|unit| unit.unit_id).collect::<Vec<_>>();
         let mut met = Vec::new();
         for unit in &sorted {
             if !met.contains(&unit.formation_id) {
                 met.push(unit.formation_id);
             }
         }
+        let mut waiting = Vec::new();
+        let mut waiting_formations = Vec::new();
+        for event in events {
+            if let (Some(subject), EventPayload::UnitCreated { formation_id, .. }) =
+                (event.subject, &event.payload)
+            {
+                if subject.kind == ObjectKind::Unit && !order.contains(&subject.id) {
+                    waiting.push(subject.id);
+                }
+                if !met.contains(formation_id) {
+                    waiting_formations.push(*formation_id);
+                }
+            }
+        }
+        waiting.sort_unstable();
+        waiting.dedup();
+        waiting_formations.sort_unstable();
+        waiting_formations.dedup();
+        order.extend(waiting);
+        met.extend(waiting_formations);
+        let mut unit_ids = order.clone();
+        unit_ids.sort_unstable();
         let mut formation_ids = met.clone();
         formation_ids.sort_unstable();
         let changed = |pairs: Vec<(u64, u64)>| {
@@ -51,13 +76,7 @@ impl UnitNumbering {
                 .collect::<BTreeMap<_, _>>()
         };
         Self {
-            units: changed(
-                sorted
-                    .iter()
-                    .map(|unit| unit.unit_id)
-                    .zip(unit_ids)
-                    .collect(),
-            ),
+            units: changed(order.into_iter().zip(unit_ids).collect()),
             formations: changed(met.into_iter().zip(formation_ids).collect()),
         }
     }

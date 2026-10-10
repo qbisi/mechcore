@@ -442,7 +442,7 @@ impl Simulation {
         let mut state = self.snapshot();
         state.canonicalize();
         if tick == 1 {
-            *numbering = mechcore_mcfr::UnitNumbering::of_first_snapshot(&state);
+            *numbering = mechcore_mcfr::UnitNumbering::of_first_snapshot(&state, events);
         }
         numbering.apply(&mut state, events);
         state
