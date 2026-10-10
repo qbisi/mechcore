@@ -41,6 +41,7 @@ ALGORITHM_CONTRACT = {
     "docs/spec/simulation/architecture.md",
     "docs/spec/simulation/rvo.md",
     "docs/spec/simulation/quadtree.md",
+    "docs/spec/document/generate.md",
 }
 
 # Specs that predate the convention. Structure checks are skipped for these and
