@@ -10,7 +10,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 364
-hash: {profile: mcfr-content-0.23.0, result: e66531ed52df282141aa43ad5b990a36486aa23e64f87348a4e993990f408a46}
+hash: 23:e66531ed52df282141aa43ad5b990a36486aa23e64f87348a4e993990f408a46
 blue:
   techs:
     steel_ball: [mechanical_division]

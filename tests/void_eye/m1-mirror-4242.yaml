@@ -6,7 +6,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 209
-hash: {profile: mcfr-content-0.23.0, result: 81edf855b752ab3ad4631dec2ec47116d99ee1f005383b1b3d8038ca86584bc4}
+hash: 23:81edf855b752ab3ad4631dec2ec47116d99ee1f005383b1b3d8038ca86584bc4
 blue:
   units:
   - {name: void_eye, index: 0, position: {x: 0, y: -100}, exp: 0/132/650}

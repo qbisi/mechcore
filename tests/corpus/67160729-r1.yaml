@@ -9,7 +9,7 @@ seed: 2074685504
 round: 1
 source: game
 ticks: 1559
-hash: {profile: mcfr-content-0.23.0, result: e7f541d568e069f4196f8a8ab598d26efbee90dcac943e0dd97e59fbbf6f892d}
+hash: 23:e7f541d568e069f4196f8a8ab598d26efbee90dcac943e0dd97e59fbbf6f892d
 blue:
   officers: [supply_specialist]
   legacy_index: 5

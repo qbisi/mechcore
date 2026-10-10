@@ -95,8 +95,8 @@ pub(crate) fn flow(value: &Value, out: &mut String) -> Result<(), String> {
         Value::Number(value) => out.push_str(&value.to_string()),
         Value::String(value) => {
             // An identifier, a gauge such as `124/450`, a team such as
-            // `vortex-fire_badger` or a version such as `0.0.0.0.1` is
-            // written bare, unless the reader would take it for something
+            // `vortex-fire_badger`, a version such as `0.0.0.0.1` or a hash
+            // such as `23:e4ed…` is written bare, unless the reader would take it for something
             // other than this string, as it would `true`, `null`, `12` or
             // `1.5`.
             let plain = value
@@ -104,7 +104,8 @@ pub(crate) fn flow(value: &Value, out: &mut String) -> Result<(), String> {
                 .next()
                 .is_some_and(|first| first.is_ascii_alphanumeric())
                 && value.chars().all(|character| {
-                    character.is_ascii_alphanumeric() || matches!(character, '_' | '/' | '-' | '.')
+                    character.is_ascii_alphanumeric()
+                        || matches!(character, '_' | '/' | '-' | '.' | ':')
                 })
                 && serde_yaml::from_str::<Value>(value).is_ok_and(|read| read == *value.as_str());
             if plain {
@@ -167,10 +168,11 @@ mod tests {
             "124/450",
             "0.0.0.0.1",
             "1a",
+            "23:e4ed",
         ] {
             assert_eq!(written(bare), bare);
         }
-        for quoted in ["12", "1.5", "true", "null", "", "a b", "a:b"] {
+        for quoted in ["12", "1.5", "true", "null", "", "a b", "a: b", "a:"] {
             assert_eq!(
                 written(quoted),
                 format!("{quoted:?}"),

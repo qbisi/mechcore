@@ -12,7 +12,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 534
-hash: {profile: mcfr-content-0.23.0, result: 2f11a72fcba8690b8d8e655d7f3782807173c4021ec20dd182868d5ca6700460}
+hash: 23:2f11a72fcba8690b8d8e655d7f3782807173c4021ec20dd182868d5ca6700460
 blue:
   techs:
     vortex: [accumulator_shield]

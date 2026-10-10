@@ -7,7 +7,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 239
-hash: {profile: mcfr-content-0.23.0, result: 510655929064153ecb2f2eb2e9da8274baff185c318e39175b8e859c9df0030e}
+hash: 23:510655929064153ecb2f2eb2e9da8274baff185c318e39175b8e859c9df0030e
 blue:
   core_damage: 612
   units:

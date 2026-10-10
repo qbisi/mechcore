@@ -14,7 +14,7 @@ seed: 4242
 round: 3
 source: game
 ticks: 870
-hash: {profile: mcfr-content-0.23.0, result: 380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef}
+hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
 blue:
   officers: [extended_range_marksman]
   units:
@@ -88,7 +88,7 @@ After the layout's own root fields, `kind` apart, a fight states:
 | `seed` | the match seed the fight was fought with; required |
 | `source` | who fought it: `game` or `simulator` |
 | `ticks` | the fight's logical ticks, the recording's `tick_count` |
-| `hash` | `{profile, result}`: the recording's `hash_profile` and `result_hash` |
+| `hash` | `<profile>:<result>`: the recording's `hash_profile` and `result_hash`, as `23:e4ed…` |
 
 `source` says who fought the fight, and so what the document is:
 
@@ -115,11 +115,12 @@ what the fight arrives at with what the document states: every result field,
 start from the one projection. [`verify`](../mechcore/cli.md#verify) is the
 command that checks one.
 
-`ticks` and `hash` are required. `ticks` is at least `1`; `hash.result` is 64
-lowercase hex digits, and `hash.profile` names the definition that computed
-it, as [mcfr.md](../mcfr/mcfr.md#the-hash) names profiles. A reader checks the
-profile's form; a hash under a profile the checker does not compute
-is not comparable, which is the checker's to report.
+`ticks` and `hash` are required. `ticks` is at least `1`; `hash` is the
+profile's number, a colon, and the result hash's 64 lowercase hex digits. The
+profile names the definition that computed it, as
+[mcfr.md](../mcfr/mcfr.md#the-hash) numbers profiles. A reader checks the
+form; a hash under a profile the checker does not compute is not comparable,
+which is the checker's to report.
 
 ## Side fields
 

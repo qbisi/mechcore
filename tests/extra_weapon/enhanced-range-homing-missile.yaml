@@ -13,7 +13,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 539
-hash: {profile: mcfr-content-0.23.0, result: aecaca0c3da04b0dfe6d70420b1f9328cd302ded8cc3f67719aa1480559015eb}
+hash: 23:aecaca0c3da04b0dfe6d70420b1f9328cd302ded8cc3f67719aa1480559015eb
 blue:
   techs:
     centurion: [homing_missile]

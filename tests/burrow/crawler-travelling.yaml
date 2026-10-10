@@ -9,7 +9,7 @@ seed: 4242
 round: 2
 source: game
 ticks: 763
-hash: {profile: mcfr-content-0.23.0, result: 4c2a5698166ea303196475c9b8569a82d7b1b78954128adac45ff21c5c8400fd}
+hash: 23:4c2a5698166ea303196475c9b8569a82d7b1b78954128adac45ff21c5c8400fd
 blue:
   techs:
     crawler: [subterranean_blitz]

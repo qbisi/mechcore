@@ -16,7 +16,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 193
-hash: {profile: mcfr-content-0.23.0, result: 38ada31318872305373a3f00d9e7d0545ccbbb0bc924462314032711249dde53}
+hash: 23:38ada31318872305373a3f00d9e7d0545ccbbb0bc924462314032711249dde53
 blue:
   techs:
     vortex: [machine_learning]

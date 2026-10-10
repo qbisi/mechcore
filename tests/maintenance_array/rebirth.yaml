@@ -9,7 +9,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 268
-hash: {profile: mcfr-content-0.23.0, result: 0dd8b7c1842ccba8cae12a41bedfe321384e6a00f5b8879d4090e5bfc13079ef}
+hash: 23:0dd8b7c1842ccba8cae12a41bedfe321384e6a00f5b8879d4090e5bfc13079ef
 blue:
   techs:
     typhoon: [field_reassembly, maintenance_array]

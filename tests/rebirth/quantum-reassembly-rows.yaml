@@ -11,7 +11,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 383
-hash: {profile: mcfr-content-0.23.0, result: 5436125c940843cdfd48875e64a2b206fb202a67d79d217a8f1a9f3f81192f86}
+hash: 23:5436125c940843cdfd48875e64a2b206fb202a67d79d217a8f1a9f3f81192f86
 blue:
   techs:
     phoenix: [quantum_reassembly]

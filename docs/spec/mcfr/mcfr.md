@@ -126,7 +126,7 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 | `producer` | `game` or `simulator` | what wrote the recording: the game, through the adapter, or the simulator |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
-| `hash_profile` | exactly `mcfr-content-0.23.0` | the hash definition, named by the format it belongs to |
+| `hash_profile` | exactly `23` | the hash definition's number, [below](#the-hash); a recording written before it was a number reads `mcfr-content-0.23.0`, profile 23 |
 | `result_hash` | 64 lowercase hex digits | ordered digest of every `tick_hash`; what regression compares |
 | `tick_count` | canonical decimal `u32` | logical ticks recorded, counting from `S(1)` |
 | `terminal_tick` | canonical decimal `u32` | the confirmed final logical boundary, equal to `tick_count` on a continuous timeline |
@@ -1020,11 +1020,13 @@ result_hash  = H_content-result-0.23.0(
 )
 ```
 
-The definition is named by the format: `hash_profile` is
-`mcfr-content-<format>` and the domain strings carry the format, so every
-format is its own definition. A format change moves every hash, even one that
-leaves `S(t)` and `E(t)` encoding the same, and every pin is recorded again
-with it; a hash is never compared across two formats.
+The definition is numbered on its own, apart from the format: `hash_profile`
+is that number, and the domain strings spell profile `n` as `0.n.0`, the form
+they were written in while the profile was the format's, so profile 23's are
+the strings above. The profile moves when what the hash reads or how changes,
+and with it every hash and every pin, which is recorded again; a change to the
+format that leaves `S(t)` and `E(t)` encoding the same leaves it, and the pins.
+A hash is never compared across two profiles.
 
 `mechcore diff` and `mechcore verify` decide `equal` and the
 first divergence from this hash. `diff` also says where two recordings

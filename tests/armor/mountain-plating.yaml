@@ -10,7 +10,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 50
-hash: {profile: mcfr-content-0.23.0, result: 35e6abfe774e7a797e99b36d4f7129d6895621fce3541742edb71ec12e5cdf7b}
+hash: 23:35e6abfe774e7a797e99b36d4f7129d6895621fce3541742edb71ec12e5cdf7b
 blue:
   techs:
     mountain: [mountain_plating]

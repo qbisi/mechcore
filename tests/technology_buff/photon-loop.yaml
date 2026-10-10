@@ -11,7 +11,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 647
-hash: {profile: mcfr-content-0.23.0, result: 4fe6eec324171ebe601d4ebddedd0650243e52bf5e7fd2a075317f0cd899c684}
+hash: 23:4fe6eec324171ebe601d4ebddedd0650243e52bf5e7fd2a075317f0cd899c684
 blue:
   techs:
     mountain: [photon_loop]

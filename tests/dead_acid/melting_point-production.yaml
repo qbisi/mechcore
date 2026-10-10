@@ -8,7 +8,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 490
-hash: {profile: mcfr-content-0.23.0, result: cccd3e2768ee541f3813dc734cfacb2dd48df4b4e999004837bb0c9449580d4f}
+hash: 23:cccd3e2768ee541f3813dc734cfacb2dd48df4b4e999004837bb0c9449580d4f
 blue:
   techs:
     melting_point: [crawler_production]

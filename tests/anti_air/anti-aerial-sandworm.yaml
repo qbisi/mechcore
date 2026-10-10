@@ -10,7 +10,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 277
-hash: {profile: mcfr-content-0.23.0, result: 3352717044d279cde569207d5525ef2aef63bcd3403c78872c0681fe158ec069}
+hash: 23:3352717044d279cde569207d5525ef2aef63bcd3403c78872c0681fe158ec069
 blue:
   techs:
     sandworm: [anti_aerial]

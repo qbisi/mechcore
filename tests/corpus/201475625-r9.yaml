@@ -12,7 +12,7 @@ seed: 1448139111
 round: 9
 source: game
 ticks: 1402
-hash: {profile: mcfr-content-0.23.0, result: 19c23851a5a39798ebd02dd951eaa1f18d7902d6ea91a0bc702deb244a662824}
+hash: 23:19c23851a5a39798ebd02dd951eaa1f18d7902d6ea91a0bc702deb244a662824
 blue:
   core_damage: 275
   officers: [fire_badger_specialist]

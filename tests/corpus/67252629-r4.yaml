@@ -8,7 +8,7 @@ seed: 896303705
 round: 4
 source: game
 ticks: 752
-hash: {profile: mcfr-content-0.23.0, result: a277f67ef40369e44ef6339b35553eb888779fabddd7a483bf8fd7729ee5b616}
+hash: 23:a277f67ef40369e44ef6339b35553eb888779fabddd7a483bf8fd7729ee5b616
 blue:
   core_damage: 1110
   officers: [mass_produced_laser_sight, aerial_specialist]

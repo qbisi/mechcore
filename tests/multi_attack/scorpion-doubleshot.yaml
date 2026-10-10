@@ -7,7 +7,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 99
-hash: {profile: mcfr-content-0.23.0, result: 0e3c1a9a289abff3ab43450688993b8dd976463462d5e8a03318f44220f1625c}
+hash: 23:0e3c1a9a289abff3ab43450688993b8dd976463462d5e8a03318f44220f1625c
 blue:
   techs:
     scorpion: [doubleshot]

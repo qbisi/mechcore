@@ -12,7 +12,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 534
-hash: {profile: mcfr-content-0.23.0, result: 5a35fdb69cc225ee13886793ee0e282731962751395a81223d5707371989bfef}
+hash: 23:5a35fdb69cc225ee13886793ee0e282731962751395a81223d5707371989bfef
 blue:
   techs:
     centurion: [melee_mode]

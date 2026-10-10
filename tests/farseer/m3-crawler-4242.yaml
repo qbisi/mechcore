@@ -6,7 +6,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 219
-hash: {profile: mcfr-content-0.23.0, result: 2a510cb96590431502f0d7c1a29e2ad9fe874350966bb30db7341eb3e1921a8d}
+hash: 23:2a510cb96590431502f0d7c1a29e2ad9fe874350966bb30db7341eb3e1921a8d
 blue:
   units:
   - {name: farseer, index: 0, position: {x: -5, y: -105}, exp: 0/192/1800}

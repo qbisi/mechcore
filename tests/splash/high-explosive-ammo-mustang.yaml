@@ -8,7 +8,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 200
-hash: {profile: mcfr-content-0.23.0, result: a23de0129970847fad480cd7fc929e534abd0d7953d82aadea64e291fb882009}
+hash: 23:a23de0129970847fad480cd7fc929e534abd0d7953d82aadea64e291fb882009
 blue:
   techs:
     mustang: [high_explosive_ammo]

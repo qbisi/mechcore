@@ -4,19 +4,30 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-/// The format, which also names the hash definition: every format is its own
-/// profile and domain strings, so a recording's hash is never read across
-/// two formats.
+/// The format: how a recording is stored, which the hash does not read.
 macro_rules! format_version {
     () => {
         "0.23.0"
     };
 }
-pub(crate) use format_version;
+
+/// The hash definition, numbered on its own: it moves when what the hash
+/// reads, or how, changes, and with it every pin; a change to the format that
+/// leaves the hashed content alone leaves it. Its domain strings spell profile
+/// `n` as `0.n.0`, the form it was written in while it was the format's.
+macro_rules! hash_profile {
+    () => {
+        "23"
+    };
+}
+pub(crate) use hash_profile;
 
 pub const MCFR_FORMAT: &str = format_version!();
-/// Names the hash definition by the format it belongs to.
-pub const HASH_PROFILE: &str = concat!("mcfr-content-", format_version!());
+/// The hash definition's number, which a fight document writes before its
+/// hash (`23:<hex>`).
+pub const HASH_PROFILE: &str = hash_profile!();
+/// How a recording written before the profile was a number names profile 23.
+pub(crate) const HASH_PROFILE_SPELLED_BY_FORMAT: &str = "mcfr-content-0.23.0";
 
 /// What wrote a recording: the game, through the Adapter, or the simulator.
 ///

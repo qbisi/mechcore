@@ -9,7 +9,7 @@ seed: 1860661941
 round: 4
 source: game
 ticks: 856
-hash: {profile: mcfr-content-0.23.0, result: 437b0d8e8c3923430c0455ae2f78415e57e58ab2b4699856cfb8b69a6b1b2a5f}
+hash: 23:437b0d8e8c3923430c0455ae2f78415e57e58ab2b4699856cfb8b69a6b1b2a5f
 blue:
   officers: [advanced_power_system, typhoon_specialist]
   techs:
