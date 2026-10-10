@@ -1,3 +1,14 @@
+# A mirror match, each side a Wraith, a Crawler formation and a Steel Ball
+# formation: sibling exclusion, fallback and a child's range, read from a
+# longer fight than two-targets.yaml.
+#
+# Its asserts read the slots' locks of Wraith 30 on tick 131 (u23, u19, u25,
+# u21) and of Wraith 29 on tick 206 (u41, u30, u48, u55); that the unit's
+# lock is then the latest a slot took, the fourth's, u55, while the core
+# keeps its own, u41; and that u55 stands 60.959 metres edge to edge from
+# Wraith 29, beyond the core's 60 and within each child's 70: a child's range
+# is its parent's plus ten metres.
+
 # Wraiths among a crowd, read with each unit's `skills` and the
 # `skill_attackable_checker` channel (`tests/README.md`). At tick 131 u30's fourth
 # slot switches to u21, leaving out u25, which a sibling holds. At tick 205
@@ -27,5 +38,12 @@ outcome:
   red.units[0].exp: 345
   red.units[1].exp: 47
   red.units[2].exp: 199
+asserts:
+- sql: "SELECT tick, unit_id, skill_slot, enabled__lock_target__kind, enabled__lock_target__id FROM units__skills WHERE (unit_id = 30 AND tick = 131) OR (unit_id = 29 AND tick = 206) ORDER BY tick, skill_slot"
+  rows: [[131, 30, 0, unit, 23], [131, 30, 1, unit, 19], [131, 30, 2, unit, 25], [131, 30, 3, unit, 21], [206, 29, 0, unit, 41], [206, 29, 1, unit, 30], [206, 29, 2, unit, 48], [206, 29, 3, unit, 55]]
+- sql: "SELECT tick, unit_id, mech_lock_target__kind, mech_lock_target__id FROM units WHERE unit_id = 29 AND tick = 206"
+  rows: [[206, 29, unit, 55]]
+- sql: "SELECT k.skill_slot, hypot(q32(t.position__x - s.position__x), q32(t.position__z - s.position__z)) - q32(s.collision_radius) - q32(t.collision_radius) <= q32(k.enabled__attack_range) AS reaches FROM units s JOIN units t ON t.tick = s.tick AND t.unit_id = 55 JOIN units__skills k ON k.tick = s.tick AND k.unit_id = s.unit_id WHERE s.unit_id = 29 AND s.tick = 206 ORDER BY k.skill_slot"
+  rows: [[0, 0], [1, 1], [2, 1], [3, 1]]
 ticks: 647
 hash: 23:6a50cb7fb6fba7c9421e39666faa8a2bccb5c29eacf0e1bf926854222890ca66
