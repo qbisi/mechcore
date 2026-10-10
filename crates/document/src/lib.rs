@@ -1310,12 +1310,11 @@ red:
     }
 
     #[test]
-    fn construction_specs_cover_the_four_constructions() {
+    fn construction_specs_cover_the_three_constructions() {
         for (type_name, footprint) in [
             ("defensive_wall", (60, 10)),
             ("anti_armor_turret", (20, 20)),
             ("rapid_fire_turret", (20, 20)),
-            ("magnetic_barrier", (50, 10)),
         ] {
             let spec = resolve_construction_type(type_name).unwrap();
             assert!(matches!(spec.native, NativeFormation::Construction(_)));
@@ -1542,7 +1541,7 @@ red:
     }
 
     #[test]
-    fn compiles_all_four_construction_types_in_document_order() {
+    fn compiles_all_three_construction_types_in_document_order() {
         let plan = compile(&json!({
             "kind": "layout",
             "round": 1,
@@ -1552,7 +1551,6 @@ red:
                 {"index": 0, "name": "rapid_fire_turret", "position": {"x": 140, "y": -60}},
                 {"index": 1, "name": "defensive_wall", "position": {"x": 140, "y": -105}},
                 {"index": 2, "name": "anti_armor_turret", "position": {"x": -140, "y": -60}},
-                {"index": 3, "name": "magnetic_barrier", "position": {"x": -165, "y": -105}}
             ]},
             "red": {"units": [{"index": 0,
                 "name": "marksman", "position": {"x": 0, "y": -50}
@@ -1561,14 +1559,14 @@ red:
         .unwrap();
 
         assert_eq!(plan.unit_count(), 2);
-        assert_eq!(plan.construction_count(), 4);
+        assert_eq!(plan.construction_count(), 3);
         assert_eq!(
             plan.blue
                 .constructions
                 .iter()
                 .map(|placement| placement.index)
                 .collect::<Vec<_>>(),
-            [Some(0), Some(1), Some(2), Some(3)]
+            [Some(0), Some(1), Some(2)]
         );
         assert_eq!(
             plan.blue
@@ -1580,7 +1578,6 @@ red:
                 NativeFormation::Construction(3),
                 NativeFormation::Construction(1),
                 NativeFormation::Construction(2),
-                NativeFormation::Construction(4),
             ]
         );
     }
@@ -1922,10 +1919,7 @@ red:
                 Some(native)
             );
         }
-        let constructions = [
-            ("defensive_wall", NativeFormation::Construction(1)),
-            ("magnetic_barrier", NativeFormation::Construction(4)),
-        ];
+        let constructions = [("defensive_wall", NativeFormation::Construction(1))];
         for (type_name, native) in constructions {
             assert_eq!(
                 resolve_construction_type(type_name).map(|spec| spec.native),

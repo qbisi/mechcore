@@ -677,7 +677,7 @@ layout coordinates, its center must therefore lie in
 `x=[-230,230], y=[-240,-80]`.
 
 The footprint provider covers all 32 public ordinary units validated against
-the build's card catalog, the four ordinary opening constructions,
+the build's card catalog, the three opening constructions,
 and the interceptor:
 
 - `arclight`, `marksman`, and `vortex`: `20 x 20`;
@@ -691,7 +691,6 @@ and the interceptor:
 - `abyss`, `mountain`, and `war_factory`: `70 x 70`;
 - `defensive_wall`: `60 x 10`;
 - `anti_armor_turret` and `rapid_fire_turret`: `20 x 20`;
-- `magnetic_barrier`: `50 x 10`;
 - `interceptor`: `30 x 30`.
 
 Any unknown placement type remains rejected fail-closed; the compiler does not
@@ -721,8 +720,8 @@ following values form the closed public `name` vocabulary for each field:
   `sabertooth`, `sandworm`, `scorpion`, `sledgehammer`, `steel_ball`,
   `stormcaller`, `tarantula`, `typhoon`, `void_eye`, `vortex`, `vulcan`,
   `war_factory`, `wasp`, and `wraith`.
-- Constructions: `defensive_wall`, `anti_armor_turret`,
-  `rapid_fire_turret`, and `magnetic_barrier`.
+- Constructions: `defensive_wall`, `anti_armor_turret`, and
+  `rapid_fire_turret`, the three a standard 1v1 opening lays.
 - Contraptions: `shield`, `interceptor`, and `missile`.
 
 #### Unit

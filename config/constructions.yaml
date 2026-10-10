@@ -9,7 +9,7 @@ schema: mechcore.constructions
 # building, so `max_life` is one block's life and a Defensive Wall's five
 # blocks hold 5560 between them.
 #
-# `layout_name` is present on the four a layout can place. The rest are the
+# `layout_name` is present on the three a layout can place. The rest are the
 # build's own rows, carried because leaving them out would make the table
 # look like the whole of what the build holds.
 #
@@ -103,7 +103,6 @@ constructions:
     quick_search_target: false
   - id: 4
     name: Magnetic Barricade
-    layout_name: magnetic_barrier
     count: 10
     max_life: 300
     damage: 0

@@ -172,12 +172,11 @@ def yaml_units(rows, body):
     return "\n".join(lines) + "\n"
 
 
-# The four a layout can name, in the crate's own words.
+# The three a layout can name, in the crate's own words.
 CONSTRUCTION_TYPES = {
     1: "defensive_wall",
     2: "anti_armor_turret",
     3: "rapid_fire_turret",
-    4: "magnetic_barrier",
 }
 
 GRANTS = (

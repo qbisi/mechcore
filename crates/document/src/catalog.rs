@@ -99,7 +99,6 @@ pub(crate) const fn resolve_construction_type(type_name: &str) -> Option<Formati
         b"defensive_wall" => Some(construction_spec(1, 60, 10)),
         b"anti_armor_turret" => Some(construction_spec(2, 20, 20)),
         b"rapid_fire_turret" => Some(construction_spec(3, 20, 20)),
-        b"magnetic_barrier" => Some(construction_spec(4, 50, 10)),
         _ => None,
     }
 }
@@ -164,7 +163,6 @@ pub const fn construction_type_from_id(id: i32) -> Option<(&'static str, (i64, i
         1 => Some(("defensive_wall", (60, 10))),
         2 => Some(("anti_armor_turret", (20, 20))),
         3 => Some(("rapid_fire_turret", (20, 20))),
-        4 => Some(("magnetic_barrier", (50, 10))),
         _ => None,
     }
 }

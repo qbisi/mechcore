@@ -2174,21 +2174,6 @@ red:
         );
     }
 
-    /// A construction this build will not place refuses the side that carries
-    /// it, and the refusal names the construction rather than the field: the
-    /// field is understood and this one member of it is not.
-    #[test]
-    fn a_magnetic_barrier_refuses_the_side_that_placed_it() {
-        let value = LAYOUT.replace(
-            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
-            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  constructions: [{name: magnetic_barrier, index: 0, position: {x: -145, y: -55}}]",
-        );
-        let refused = compile_default(&value).unwrap_err().to_string();
-        assert!(refused.contains("side blue"), "{refused}");
-        assert!(refused.contains("construction 4"), "{refused}");
-        assert!(refused.contains("10 objects over 2 rows"), "{refused}");
-    }
-
     /// A turret beside an officer and a technology is placed as it is alone:
     /// neither reaches a construction, so its skill keeps the row's numbers.
     #[test]

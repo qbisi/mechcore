@@ -8,9 +8,9 @@ way. What a construction *does* on its own is not here: a turret's skill is
 The machine-readable table is
 [`config/constructions.yaml`](../../config/constructions.yaml), and
 `scripts/extract/extract-constructions.py` writes it from
-`ConfigDataContainer.constructionDatas`. A layout can name four of its rows'
-constructions: the Defensive Wall, the Anti-Armor Turret, the Rapid-Fire
-Turret and the Magnetic Barrier.
+`ConfigDataContainer.constructionDatas`. A layout can name the three of its rows'
+constructions a standard 1v1 opening lays: the Defensive Wall, the Anti-Armor
+Turret and the Rapid-Fire Turret.
 
 ## A construction is several objects
 
@@ -359,8 +359,7 @@ The map's own buildings are the exception and are named: each side gets one
   key is not quite a 2D centre distance.
 - **What a release needs beyond the opening's own constructions.** A release
   away from them has been refused, so every construction placed so far is one
-  an opening dealt. No Magnetic Barrier, the only row with two rows of objects,
-  has been placed.
+  an opening dealt.
 - **A unit too large for the gaps between blocks**, and every construction
   other than the wall moving against a unit.
 - **That a turret can be locked.** Its row answers
@@ -368,6 +367,5 @@ The map's own buildings are the exception and are named: each side gets one
   target an enemy turret.
 - **Whether a unit's weapons follow its lock** when it turns past a felled
   block.
-- **What a Magnetic Barrier does**, what destroying a construction pays, and
-  what any of it costs; [`economy.yaml`](../../config/economy.yaml) carries the
+- **What destroying a construction pays**, and what any of it costs; [`economy.yaml`](../../config/economy.yaml) carries the
   recovery price and nothing here does.

@@ -34,8 +34,8 @@ const SPECIAL: u32 = 3;
 ///
 /// It is not derived from the table, and `docs/rules/constructions.md` says
 /// why: `block_width` and `space` span 83 metres across a footprint 60 wide,
-/// and the one row that would settle a general rule — the Magnetic Barrier,
-/// whose `real_row_count` is 2 — cannot be placed by this build.
+/// and no construction an opening lays places its objects in more than one
+/// row.
 /// `layouts/construction-shape.yaml` is the measurement.
 const MEASURED_SPACING: &[(i32, i64)] = &[(1, 12)];
 
@@ -373,7 +373,7 @@ impl Row {
 
 #[cfg(test)]
 mod tests {
-    use super::{Constructions, MEASURED_SPACING};
+    use super::Constructions;
     use mechcore_document::{NativeFormation, Placement, Position};
 
     fn placement(name: &str, id: i32, x: i32, y: i32) -> Placement {
@@ -455,23 +455,5 @@ mod tests {
         assert_eq!(skill.range(), 125_000);
         assert_eq!(skill.magazine.map(|magazine| magazine.capacity), Some(6));
         assert_eq!(built[0].radius, 12_000);
-    }
-
-    /// The one row that would settle how a multi-row construction is laid out
-    /// is refused rather than guessed, which is the same thing
-    /// `docs/rules/constructions.md` says is open.
-    #[test]
-    fn a_construction_with_two_rows_is_refused() {
-        let table = Constructions::load().unwrap();
-        let refusal = table
-            .buildings(0, &placement("magnetic_barrier", 4, -145, -55))
-            .unwrap_err()
-            .to_string();
-        assert!(refusal.contains("10 objects over 2 rows"), "{refusal}");
-        assert_eq!(
-            MEASURED_SPACING.len(),
-            1,
-            "one measurement, and adding a second means measuring it"
-        );
     }
 }

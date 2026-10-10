@@ -72,7 +72,6 @@ constructions:
   - {type: defensive_wall, id: 1, recovers: 50}
   - {type: anti_armor_turret, id: 2, recovers: 100}
   - {type: rapid_fire_turret, id: 3, recovers: 100}
-  - {type: magnetic_barrier, id: 4, recovers: 50}
 
 # The income rule every versus map shares, checked across the
 # 18 of them. A survival map caps at 2000 instead, and

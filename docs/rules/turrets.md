@@ -386,8 +386,6 @@ content, as `tests/turret/` replays them.
 - **A construction skill with a wind-up, a swing, a cooling, a burst or a
   scattered target.** The two turrets have none. A row that has one is refused
   by name.
-- **The Magnetic Barrier.** It is refused for where its objects stand, as
-  [`constructions.md`](constructions.md) says, before its skill is asked about.
 - **What the construction's own lock is for.** The build keeps it beside the
   skill's and nothing read here aims or fires from it.
 - **Whether the attack counts the search timer down, or entering it resets it.**
