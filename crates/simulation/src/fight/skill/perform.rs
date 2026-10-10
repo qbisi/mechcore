@@ -312,6 +312,7 @@ impl Simulation {
                     offset_z_q32: z,
                     climb_target,
                     aims_at_release: radius == 0,
+                    targetless: false,
                     weapon_index: first_weapon + index % turns,
                     skill_slot,
                 });
@@ -377,10 +378,10 @@ impl Simulation {
                 .expect("a draw within the list is an index");
             targets.swap(index, drawn);
         }
-        if targets.is_empty()
-            && let FightActorRef::Unit(id) = target
-        {
-            targets.push(id);
+        // With none within reach the list is the skill's target alone,
+        // a building as a unit: an Abyss shelling a tower.
+        if targets.is_empty() {
+            targets.push(target);
         }
         let each = count.checked_div(targets.len()).unwrap_or(0);
         let left = count - each * targets.len();
@@ -394,7 +395,7 @@ impl Simulation {
                 .expect("a draw within the list is an index");
             drawn.push(undrawn.remove(index));
         }
-        let mut offsets = BTreeMap::<u64, Vec<(i64, i64)>>::new();
+        let mut offsets = BTreeMap::<FightActorRef, Vec<(i64, i64)>>::new();
         for _ in 0..each {
             for &unit in &targets {
                 offsets
@@ -414,6 +415,10 @@ impl Simulation {
             SkillSlot::Main => 0,
             SkillSlot::Extra(index) => self.skills(skill_ref.owner).extras[index].weapon,
         };
+        // `OnStartFirstPerform` hands `Prepare` where the skill aims at its
+        // target (`CalculateAttackPosition`, in three dimensions), which it
+        // keeps as `lastAttackPos` while that is still the origin `Reset` left.
+        let first_aim = self.attack_position(skill_ref.owner, skill_slot, target, 0, true)?;
         let Performer::Projectile { pending, evenly } = &mut self.skill_mut(skill_ref).performer
         else {
             return Err(Error::new("a burst needs a projectile performer"));
@@ -422,7 +427,8 @@ impl Simulation {
             targets,
             offsets,
             weapon: 0,
-            last_attack: target_q32,
+            last_attack: first_aim,
+            last_target: None,
         }));
         // What each projectile fires at is taken as it leaves.
         let placeholder = |index: usize| PendingProjectileRelease {
@@ -436,6 +442,7 @@ impl Simulation {
             offset_z_q32: 0,
             climb_target: (target_q32.0, target_q32.1, 0),
             aims_at_release: false,
+            targetless: false,
             weapon_index: first_weapon,
             skill_slot,
         };
@@ -443,11 +450,14 @@ impl Simulation {
         self.release_pending_projectile(skill_ref, placeholder(0), events)
     }
 
-    /// `RangeTargetCalculator.CalculateRangeTargets` of units alone, fully
-    /// visible: the other sides' units, side by side in the order their trees
-    /// answer a square twice the range wide, each whose distance from the
-    /// point less its radius and the source's is within the range
-    /// (`FightCalculator.IsInRange2D`).
+    /// `RangeTargetCalculator.CalculateRangeTargets` with no building, fully
+    /// visible: the other sides' units and towers, the members of their
+    /// teams' trees (`FightTeam`'s `FightQuadtree<FightActor>`), side by side
+    /// in the order the trees answer a square twice the range wide, each
+    /// whose distance from the point less its radius and the source's is
+    /// within the range (`FightCalculator.IsInRange2D`). A construction is
+    /// `BuildingSystem`'s, which no building leaves out: an Abyss's burst at a
+    /// tower draws its list's shuffle with the tower in it.
     pub(in crate::fight) fn range_targets(
         &self,
         team: u32,
@@ -455,27 +465,28 @@ impl Simulation {
         self_radius_q32: i64,
         range_q32: i64,
         accepted: AttackTargets,
-    ) -> Vec<u64> {
+    ) -> Vec<FightActorRef> {
         self.target_quadtrees
             .iter()
             .filter(|(side, _)| **side != team)
             .flat_map(|(_, tree)| tree.query_square(x_q32, z_q32, range_q32.saturating_mul(2)))
-            .filter_map(|candidate| {
-                let FightActorRef::Unit(id) = candidate else {
-                    return None;
+            .filter(|&candidate| {
+                if matches!(candidate, FightActorRef::Building(_)) && !self.is_tower(candidate) {
+                    return false;
+                }
+                let Some(view) = self.fight_actor(candidate) else {
+                    return false;
                 };
-                let actor = self.actors.get(&id)?;
                 let distance = native_q32_magnitude(
-                    actor.x_q32.saturating_sub(x_q32),
-                    actor.z_q32.saturating_sub(z_q32),
+                    view.x_q32.saturating_sub(x_q32),
+                    view.z_q32.saturating_sub(z_q32),
                 )
-                .saturating_sub(space_to_q32(actor.rules.collision_radius()))
+                .saturating_sub(space_to_q32(view.radius))
                 .saturating_sub(self_radius_q32);
-                (actor.alive()
-                    && actor.visibility == Visibility::Normal
-                    && accepted.accepts(actor.domain)
-                    && fpoint_less_or_equal(distance, range_q32))
-                .then_some(id)
+                view.alive
+                    && view.visibility == Visibility::Normal
+                    && accepted.accepts(view.domain)
+                    && fpoint_less_or_equal(distance, range_q32)
             })
             .collect()
     }
@@ -486,15 +497,18 @@ impl Simulation {
     /// the two weapons in turn; `GetTargetPosition` aims at where the unit
     /// stands now; and `GetAndDeletePositionOffsets` takes the unit's next
     /// offset, none when its own have run out. A burst whose every unit is
-    /// gone is not measured. A burst allocated otherwise leaves as it was
-    /// scheduled.
+    /// gone fires on at nothing ([`Self::allocate_to_nothing`]). A burst
+    /// allocated otherwise leaves as it was scheduled.
     fn allocate_evenly(
         &mut self,
         skill_ref: SkillRef,
         pending: PendingProjectileRelease,
     ) -> Result<PendingProjectileRelease> {
-        let alive =
-            |simulation: &Self, id: u64| simulation.actors.get(&id).is_some_and(Actor::alive);
+        let alive = |simulation: &Self, target: FightActorRef| {
+            simulation
+                .fight_actor(target)
+                .is_some_and(|view| view.alive)
+        };
         let Performer::Projectile {
             evenly: Some(evenly),
             ..
@@ -514,13 +528,9 @@ impl Simulation {
             }
         };
         let Some(current) = current else {
-            return Err(Error::new(
-                "an evenly allocated burst whose every unit is gone is not measured",
-            ));
+            return self.allocate_to_nothing(skill_ref, pending);
         };
-        let actor = &self.actors[&current];
-        let (x_q32, z_q32) = (actor.x_q32, actor.z_q32);
-        let height = unit_height(actor.domain);
+        let (x_q32, z_q32, height) = self.climb_target(current)?;
         // `GetTargetPosition`: where the skill aims at the unit
         // (`CalculateAttackPosition`, reaching its extra search range too, on
         // the ground), its offset added.
@@ -538,7 +548,7 @@ impl Simulation {
         let (aimed_x_q32, aimed_y_q32, aimed_z_q32) = self.attack_position(
             skill_ref.owner,
             pending.skill_slot,
-            FightActorRef::Unit(current),
+            current,
             extra_search_range_q32,
             false,
         )?;
@@ -552,7 +562,8 @@ impl Simulation {
         evenly.targets = targets;
         let weapon = evenly.weapon;
         evenly.weapon = usize::from(weapon == 0);
-        evenly.last_attack = (x_q32, z_q32);
+        evenly.last_attack = (aimed_x_q32, aimed_y_q32, aimed_z_q32);
+        evenly.last_target = Some(current);
         let (offset_x_q32, offset_z_q32) = match evenly.offsets.get_mut(&current) {
             Some(offsets) if !offsets.is_empty() => {
                 let offset = offsets.remove(0);
@@ -564,14 +575,70 @@ impl Simulation {
             _ => (0, 0),
         };
         Ok(PendingProjectileRelease {
-            target_kind: ObjectKind::Unit,
-            target: current,
+            target_kind: current.kind(),
+            target: current.id(),
             target_x_q32: aimed_x_q32.saturating_add(offset_x_q32),
             target_y_q32: aimed_y_q32,
             target_z_q32: aimed_z_q32.saturating_add(offset_z_q32),
             offset_x_q32,
             offset_z_q32,
             climb_target: (x_q32, z_q32, height),
+            weapon_index: pending.weapon_index + weapon,
+            ..pending
+        })
+    }
+
+    /// The controller with every unit of its list gone: `UpdateCurrentTarget`
+    /// finds none alive, `GetTargetPosition` answers `lastAttackPos`, where
+    /// the last projectile was aimed (where the burst aimed as it began,
+    /// before the first), and
+    /// `GetAndDeletePositionOffsets` draws an offset afresh, a
+    /// `FightUtility.RandomInsideSphere` about that point within the skill's
+    /// target offset radius, from its side's stream. The projectile leaves
+    /// for that point with no target (`ProjectileSystem.Create`), and fails
+    /// `IsValidTarget` as one whose target died does.
+    fn allocate_to_nothing(
+        &mut self,
+        skill_ref: SkillRef,
+        pending: PendingProjectileRelease,
+    ) -> Result<PendingProjectileRelease> {
+        let source = self
+            .skill_attacker(skill_ref)
+            .ok_or_else(|| Error::new("projectile owner is absent"))?;
+        let team = source.team;
+        let radius_centimeters = i32::try_from(source.projectile_target_offset_radius() / 10)
+            .map_err(|_| Error::new("projectile target offset radius exceeds native range"))?;
+        let random = self
+            .team_random
+            .get_mut(&team)
+            .ok_or_else(|| Error::new("projectile owner team random stream is absent"))?;
+        let (offset_x_q32, offset_z_q32) = random_inside_sphere(random, radius_centimeters);
+        let Performer::Projectile {
+            evenly: Some(evenly),
+            ..
+        } = &mut self.skill_mut(skill_ref).performer
+        else {
+            unreachable!("an allocated burst holds its controller");
+        };
+        evenly.targets.clear();
+        let weapon = evenly.weapon;
+        evenly.weapon = usize::from(weapon == 0);
+        let (x_q32, y_q32, z_q32) = evenly.last_attack;
+        let (target_kind, target) = evenly
+            .last_target
+            .map_or((pending.target_kind, pending.target), |last| {
+                (last.kind(), last.id())
+            });
+        Ok(PendingProjectileRelease {
+            target_kind,
+            target,
+            target_x_q32: x_q32.saturating_add(offset_x_q32),
+            target_y_q32: y_q32,
+            target_z_q32: z_q32.saturating_add(offset_z_q32),
+            offset_x_q32,
+            offset_z_q32,
+            aims_at_release: false,
+            targetless: true,
             weapon_index: pending.weapon_index + weapon,
             ..pending
         })
@@ -754,6 +821,7 @@ impl Simulation {
                     offset_z_q32: z,
                     climb_target,
                     aims_at_release: false,
+                    targetless: false,
                     weapon_index: slot,
                     skill_slot: slot,
                 });
@@ -896,6 +964,45 @@ impl Simulation {
         )
     }
 
+    /// `ProjectileSystem.Create` with no target: the projectile flies to the
+    /// point it was handed, a target of no radius, and its release names
+    /// none.
+    fn release_targetless(
+        &mut self,
+        skill_ref: SkillRef,
+        pending: PendingProjectileRelease,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        self.release_projectile_to(
+            skill_ref,
+            pending.target_kind,
+            pending.target,
+            (
+                pending.target_x_q32,
+                pending.target_y_q32,
+                pending.target_z_q32,
+            ),
+            0,
+            pending.skill_slot,
+            pending.weapon_index,
+            events,
+        )?;
+        let projectile = self
+            .projectiles
+            .last_mut()
+            .expect("a projectile was just released");
+        projectile.targetless = true;
+        projectile.lock_target = false;
+        let released = projectile.object_ref();
+        if let Some(event) = events.iter_mut().rev().find(|event| {
+            event.subject == Some(released)
+                && matches!(event.payload, EventPayload::ProjectileReleased { .. })
+        }) {
+            event.target = None;
+        }
+        Ok(())
+    }
+
     pub(in crate::fight) fn release_pending_projectile(
         &mut self,
         skill_ref: SkillRef,
@@ -903,6 +1010,9 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let pending = self.allocate_evenly(skill_ref, pending)?;
+        if pending.targetless {
+            return self.release_targetless(skill_ref, pending, events);
+        }
         match pending.target_kind {
             ObjectKind::Unit => {
                 // A projectile leaves for where its burst aimed it, the
@@ -1092,6 +1202,7 @@ impl Simulation {
             skill_slot,
             target_kind,
             target: target_id,
+            targetless: false,
             x: source.x,
             y: source.y,
             z: source.z,

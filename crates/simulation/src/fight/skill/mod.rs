@@ -48,6 +48,11 @@ pub(in crate::fight) struct PendingProjectileRelease {
     /// second after the first, leaves for where its target stood the tick
     /// before, and the first for where it stood as the burst began.
     pub(in crate::fight) aims_at_release: bool,
+    /// Whether it leaves for no unit: an evenly allocated burst whose every
+    /// unit is gone fires on at the point it last aimed at
+    /// (`EvenlyAllocatedAttackTargetPositionController.currentTarget` null),
+    /// `target` naming the last unit it fired at, dead.
+    pub(in crate::fight) targetless: bool,
     pub(in crate::fight) weapon_index: usize,
     /// The skill of the unit that fires it: a standalone weapon's own.
     pub(in crate::fight) skill_slot: usize,
@@ -186,17 +191,21 @@ impl Performer {
 /// each as the burst began.
 #[derive(Debug, Clone)]
 pub(in crate::fight) struct EvenlyAllocated {
-    /// `targets`: the units it fires at, the next one first. Each
+    /// `targets`: what it fires at, the next one first: the units within its
+    /// reach, or, with none, the skill's target, a building as a unit. Each
     /// projectile takes the first that lives and puts it last.
-    pub(in crate::fight) targets: Vec<u64>,
+    pub(in crate::fight) targets: Vec<FightActorRef>,
     /// `positionOffsets`: what is left of each unit's offsets, the next one
     /// first.
-    pub(in crate::fight) offsets: BTreeMap<u64, Vec<(i64, i64)>>,
+    pub(in crate::fight) offsets: BTreeMap<FightActorRef, Vec<(i64, i64)>>,
     /// `WeaponIndex`: the weapon the next projectile leaves, of the two.
     pub(in crate::fight) weapon: usize,
     /// `lastAttackPos`: where the last projectile was aimed, before its
-    /// offset.
-    pub(in crate::fight) last_attack: (i64, i64),
+    /// offset; before the first, where the skill aimed at its target as the
+    /// burst began (`Prepare`).
+    pub(in crate::fight) last_attack: (i64, i64, i64),
+    /// What the last projectile was fired at, if one was.
+    pub(in crate::fight) last_target: Option<FightActorRef>,
 }
 
 /// The skill's state, as `SkillStateController` holds it.
