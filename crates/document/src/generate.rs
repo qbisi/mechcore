@@ -19,6 +19,7 @@ use crate::layout::{
     StaticPlacement, UnitPlacement, UnitSource,
 };
 use crate::layout_replay::{DEFAULT_MAP_ID, layout_replay};
+use crate::targets::Targets;
 use crate::{DocumentKind, MOVEMENT_ENHANCEMENT_SKILL, RANGE_ENHANCEMENT_SKILL};
 
 const OFFICER_EFFECTS: &str = include_str!("../../../config/officer_effects.yaml");
@@ -27,6 +28,10 @@ const OFFICER_EFFECTS: &str = include_str!("../../../config/officer_effects.yaml
 const CANDIDATES: usize = 10;
 /// The placements tried for one candidate before it is dropped.
 const PLACEMENT_TRIES: usize = 20;
+/// The shuffled orders tried for one candidate before its pair is given up.
+const ORDER_TRIES: usize = 20;
+/// Why a pair no shuffled order completes stays uncovered.
+const INCOMPLETE: &str = "no order of the other factors completed the pair";
 /// The draws tried for one layout once every pair is covered.
 const RANDOM_TRIES: usize = 100;
 
@@ -154,6 +159,54 @@ struct EffectRow {
     mech_type: i32,
     #[serde(default)]
     units: Vec<String>,
+    energy_shield_rate: Option<i64>,
+    land_mine_rate: Option<i64>,
+    super_deployment_time_rate: Option<i64>,
+}
+
+/// What a side has to hold for an officer to change its fight, beside the
+/// officer itself: the spec's "Officers that need something to change".
+#[derive(Clone, Debug)]
+enum Need {
+    /// A unit the layout places that the officer's row reaches.
+    Reach(Targets),
+    /// The contraption, by its value, whose number the officer corrects.
+    Contraption(usize),
+    /// A travelling unit, whose travel time the officer corrects.
+    Travel,
+    /// One of the rounds the officer delivers its squad in, which is all it
+    /// does to a fight.
+    Round(Vec<i32>),
+}
+
+impl Need {
+    /// What an officer's effect row asks for, or none when it changes every
+    /// fight its side has.
+    fn of(row: &EffectRow) -> Option<Self> {
+        if row.mech_type == 11 {
+            return if row.energy_shield_rate.is_some() {
+                Some(Self::Contraption(contraption("shield")))
+            } else if row.land_mine_rate.is_some() {
+                Some(Self::Contraption(contraption("missile")))
+            } else if row.super_deployment_time_rate.is_some() {
+                Some(Self::Travel)
+            } else {
+                None
+            };
+        }
+        match Targets::of(row.mech_type, &row.units, &row.id.to_string()) {
+            Targets::Every => None,
+            targets => Some(Self::Reach(targets)),
+        }
+    }
+}
+
+/// The `contraption` value that places `name`.
+fn contraption(name: &str) -> usize {
+    1 + CONTRAPTIONS
+        .iter()
+        .position(|placed| *placed == name)
+        .unwrap_or_default()
 }
 
 /// What each factor's values stand for, read from the build's tables.
@@ -166,6 +219,10 @@ struct Space {
     /// Which generic officers a side may hold twice.
     repeatable: Vec<bool>,
     openings: Vec<i32>,
+    /// The squad each opening delivers, by type value, and the rounds it does.
+    squads: Vec<Option<(usize, Vec<i32>)>>,
+    /// What a generic officer or an opening needs to change a fight, by ID.
+    needs: BTreeMap<i32, Need>,
     skills: Vec<&'static str>,
     sizes: Vec<usize>,
 }
@@ -214,6 +271,30 @@ impl Space {
             }
         }
         generic.sort_unstable();
+        let mut needs: BTreeMap<i32, Need> = effects
+            .officers
+            .iter()
+            .filter(|row| generic.contains(&row.id) || openings.contains(&row.id))
+            .filter_map(|row| Need::of(row).map(|need| (row.id, need)))
+            .collect();
+        let squads = openings
+            .iter()
+            .map(|id| {
+                let officer = economy.officer(*id)?;
+                let squad = officer.opening_unit.as_ref()?;
+                let value = types.iter().position(|(unit, _, _)| *unit == squad.unit)?;
+                Some((value, officer.active_round.clone()))
+            })
+            .collect::<Vec<_>>();
+        for (id, squad) in openings.iter().zip(&squads) {
+            // An opening without an effect row changes a fight only by the
+            // squad it delivers.
+            if let Some((_, rounds)) = squad
+                && !effects.officers.iter().any(|row| row.id == *id)
+            {
+                needs.insert(*id, Need::Round(rounds.clone()));
+            }
+        }
         let skills = crate::names::commander_skill_ids()
             .into_iter()
             .filter_map(battle_skill_type_from_id)
@@ -230,6 +311,8 @@ impl Space {
                 .collect::<Result<_, _>>()?,
             generic,
             openings,
+            squads,
+            needs,
             skills,
             sizes: Vec::new(),
         };
@@ -337,7 +420,8 @@ impl Space {
     }
 
     /// Whether the values assigned so far may stand together, by the rules
-    /// the spec's "Values that need others" lists.
+    /// the spec's "Values that need others" and "Officers that need something
+    /// to change" list.
     fn admits(&self, assigned: &[Option<usize>]) -> bool {
         let round = assigned[0];
         (0..SIDES.len()).all(|side| {
@@ -358,8 +442,104 @@ impl Space {
                     if value > 0 && self.technologies.get(&id).is_none_or(Vec::is_empty))
                 || matches!((at(Role::SecondType), at(Role::SecondLevel)), (Some(0), Some(level)) if level != 0)
                 || matches!((at(Role::OfficerFirst), at(Role::OfficerSecond)), (Some(first), Some(second))
-                    if first > 0 && first == second && !self.repeatable[first - 1]))
+                    if first > 0 && first == second && !self.repeatable[first - 1])
+                || self.idle(round, &at))
+        }) && !self.apart(assigned)
+    }
+
+    /// Whether the two sides' openings deliver their squads, all either
+    /// changes, in no round they share.
+    fn apart(&self, assigned: &[Option<usize>]) -> bool {
+        let rounds = |side| {
+            let value = assigned[factor(side, Role::Opening)]?.checked_sub(1)?;
+            match self.needs.get(&self.openings[value]) {
+                Some(Need::Round(rounds)) => Some(rounds),
+                _ => None,
+            }
+        };
+        rounds(0)
+            .zip(rounds(1))
+            .is_some_and(|(blue, red)| !blue.iter().any(|round| red.contains(round)))
+    }
+
+    /// Whether an officer the side holds is known to change nothing in its
+    /// fight, for want of what its need names.
+    fn idle(&self, round: Option<usize>, at: &dyn Fn(Role) -> Option<usize>) -> bool {
+        let held = [
+            (Role::OfficerFirst, &self.generic),
+            (Role::OfficerSecond, &self.generic),
+            (Role::Opening, &self.openings),
+        ];
+        held.into_iter().any(|(role, officers)| {
+            let Some(value) = at(role).filter(|value| *value > 0) else {
+                return false;
+            };
+            match self.needs.get(&officers[value - 1]) {
+                None => false,
+                Some(Need::Contraption(placed)) => {
+                    at(Role::Contraption).is_some_and(|value| value != *placed)
+                        || self.contraptions(at).any(|other| other != *placed)
+                }
+                Some(Need::Travel) => {
+                    round == Some(0)
+                        || at(Role::LeadDepth).is_some_and(|depth| depth != FLANK)
+                        || at(Role::LeadSource) == Some(LEGACY)
+                        || at(Role::LeadExp).is_some_and(|exp| exp != 0)
+                        || at(Role::LeadType).is_some_and(|value| {
+                            let (_, _, (width, height)) = self.types[value];
+                            width.min(height) > FLANK_WIDTH
+                        })
+                }
+                Some(Need::Round(rounds)) => {
+                    round.is_some_and(|round| !rounds.contains(&ROUNDS[round]))
+                }
+                Some(Need::Reach(targets)) => self.placed(round, at).is_some_and(|types| {
+                    !types.into_iter().any(|value| {
+                        crate::targets::category(self.types[value].1)
+                            .is_none_or(|category| targets.reaches(&category).unwrap_or(true))
+                    })
+                }),
+            }
         })
+    }
+
+    /// The contraptions the side's officers need, which it holds one of.
+    fn contraptions<'a>(
+        &'a self,
+        at: &'a dyn Fn(Role) -> Option<usize>,
+    ) -> impl Iterator<Item = usize> + 'a {
+        [
+            (Role::OfficerFirst, &self.generic),
+            (Role::OfficerSecond, &self.generic),
+        ]
+        .into_iter()
+        .filter_map(move |(role, officers)| {
+            let value = at(role)?.checked_sub(1)?;
+            match self.needs.get(&officers[value]) {
+                Some(Need::Contraption(placed)) => Some(*placed),
+                _ => None,
+            }
+        })
+    }
+
+    /// The types of the units a side places, by value: its lead, its second
+    /// and the squad its opening delivers; none until each is assigned.
+    fn placed(
+        &self,
+        round: Option<usize>,
+        at: &dyn Fn(Role) -> Option<usize>,
+    ) -> Option<Vec<usize>> {
+        let mut types = vec![at(Role::LeadType)?];
+        if let Some(second) = at(Role::SecondType)?.checked_sub(1) {
+            types.push(second);
+        }
+        if let Some(opening) = at(Role::Opening)?.checked_sub(1)
+            && let Some((squad, rounds)) = &self.squads[opening]
+            && rounds.contains(&ROUNDS[round?])
+        {
+            types.push(*squad);
+        }
+        Some(types)
     }
 }
 
@@ -527,8 +707,13 @@ pub fn generate(seed: u64, count: usize) -> Result<Batch, String> {
                     break;
                 };
                 // A candidate whose shuffled order reaches a factor no value
-                // of which stands with those before it is drawn again.
-                let Some(assignment) = candidate(&space, &pairs, &mut stream, start) else {
+                // of which stands with those before it is drawn again, and a
+                // pair no order completes is given up.
+                let Some(assignment) =
+                    (0..ORDER_TRIES).find_map(|_| candidate(&space, &pairs, &mut stream, start))
+                else {
+                    refusals.insert(start, INCOMPLETE.to_owned());
+                    pairs.drop_open(start);
                     continue;
                 };
                 candidates.push((pairs.gain(&assignment), start, assignment));
@@ -990,7 +1175,7 @@ fn side(
 
 #[cfg(test)]
 mod tests {
-    use super::{Space, generate};
+    use super::{FLANK, Role, Space, factor, generate};
     use crate::{canonical_yaml, compile_layout};
 
     #[test]
@@ -1031,5 +1216,78 @@ mod tests {
             "a chain's officer is a blueprint's"
         );
         assert_eq!(space.modifications["marksman"][0], 30201);
+    }
+
+    /// An officer whose effect needs a contraption, a travelling unit, a
+    /// round or a unit it reaches is never beside a side without it.
+    #[test]
+    fn an_officer_stands_only_beside_what_it_changes() {
+        let space = Space::read().expect("the tables read");
+        let generic = |id: i32| 1 + space.generic.iter().position(|o| *o == id).unwrap();
+        let opening = |id: i32| 1 + space.openings.iter().position(|o| *o == id).unwrap();
+        let unit = |name: &str| space.types.iter().position(|(_, n, _)| *n == name).unwrap();
+        let blue = |role| factor(0, role);
+        let admits = |values: &[(usize, usize)]| {
+            let mut assigned = vec![None; space.sizes.len()];
+            for (factor, value) in values {
+                assigned[*factor] = Some(*value);
+            }
+            space.admits(&assigned)
+        };
+        let shield_device = generic(10_007);
+        assert!(admits(&[
+            (blue(Role::OfficerFirst), shield_device),
+            (blue(Role::Contraption), 1)
+        ]));
+        assert!(!admits(&[
+            (blue(Role::OfficerFirst), shield_device),
+            (blue(Role::Contraption), 3)
+        ]));
+        let teleport = generic(10_009);
+        assert!(!admits(&[(0, 0), (blue(Role::OfficerSecond), teleport)]));
+        assert!(!admits(&[
+            (blue(Role::LeadDepth), 0),
+            (blue(Role::OfficerSecond), teleport)
+        ]));
+        assert!(admits(&[
+            (0, 2),
+            (blue(Role::LeadDepth), FLANK),
+            (blue(Role::LeadSource), 1),
+            (blue(Role::OfficerSecond), teleport)
+        ]));
+        // Marksman Specialist delivers in round 2 and does nothing else.
+        let marksman = opening(20_029);
+        assert!(admits(&[(0, 1), (blue(Role::Opening), marksman)]));
+        assert!(!admits(&[(0, 0), (blue(Role::Opening), marksman)]));
+        // Advanced Targeting System reaches ranged units, a delivered squad's too.
+        let targeting = generic(20_006);
+        let rhino = unit("rhino");
+        let melee_side = [
+            (blue(Role::OfficerFirst), targeting),
+            (blue(Role::LeadType), rhino),
+            (blue(Role::SecondType), 0),
+        ];
+        assert!(admits(&melee_side[..2]), "a pair alone is admitted");
+        assert!(!admits(&[
+            (0, 1),
+            (blue(Role::Opening), 0),
+            melee_side[0],
+            melee_side[1],
+            melee_side[2]
+        ]));
+        assert!(admits(&[
+            (0, 1),
+            (blue(Role::Opening), marksman),
+            melee_side[0],
+            melee_side[1],
+            melee_side[2]
+        ]));
+        assert!(admits(&[
+            (0, 1),
+            (blue(Role::Opening), 0),
+            melee_side[0],
+            melee_side[1],
+            (blue(Role::SecondType), 1 + unit("marksman"))
+        ]));
     }
 }
