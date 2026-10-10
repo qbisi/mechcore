@@ -503,9 +503,9 @@ impl Simulation {
     /// unit's level or its rate of the unit's base damage, its splash and its
     /// interval, and its own weapon, which
     /// turns on a transform of its own, as what its attack angle is measured
-    /// against. No correction reaches an extra skill here but a damage one on
-    /// a skill with a damage rate: the layout refuses a unit any other would
-    /// reach.
+    /// against. Its damage, interval and splash read its `DataSet` as the
+    /// main skill's do: the main skill's for a skill with a damage rate, its own
+    /// otherwise.
     #[allow(
         clippy::too_many_lines,
         reason = "one answer per field of the owner's, each with why it differs"
@@ -630,10 +630,19 @@ impl Simulation {
                 .damage_with(own, &extra.skill_corrections, against)
                 .ok()?
         };
-        attacker.splash_radius = rules.attack.splash_radius();
-        attacker.attack_interval_q32 = crate::data::attack_interval_property(
-            time_units_to_seconds_q32(rules.attack.interval_time_units()),
-        );
+        // Its splash and interval are its row's through its own `DataSet`,
+        // read as the main skill's are: the main skill's corrections for a
+        // skill with a damage rate, its own otherwise.
+        let own = (rules.damage_rate <= 0.0).then_some(extra.skill_corrections.as_slice());
+        attacker.splash_radius = actor
+            .stats
+            .splash_of(rules.attack.splash_radius(), own)
+            .ok()?
+            .max(0);
+        attacker.attack_interval_q32 = actor
+            .stats
+            .interval_of(rules.attack.interval_time_units(), own)
+            .ok()?;
         // A weapon without a transform of its own points where what it is
         // mounted on points: the turret it is mounted on, or the unit. The
         // Hound's bombs score from the unit's rotation, as its main skill
