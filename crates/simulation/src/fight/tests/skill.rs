@@ -345,7 +345,7 @@ fn final_same_tick_allied_kill_retains_the_dead_backswing_target() {
     simulation.actors.get_mut(&2).unwrap().life = 0;
 
     simulation
-        .step_actor_with_target_order(1, 10, &target_search_order, &mut Vec::new())
+        .step_actor_before_buffs(1, 10, &target_search_order, &mut Vec::new())
         .unwrap();
 
     let source = &simulation.actors[&1];

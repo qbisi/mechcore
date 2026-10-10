@@ -1456,24 +1456,30 @@ impl Simulation {
     ) -> Result<()> {
         self.refresh_target_query_snapshot();
         let target_search_order = self.target_search_order();
-        self.step_actor_with_target_order(actor_id, step, &target_search_order, events)
+        if self.step_actor_before_buffs(actor_id, step, &target_search_order, events)? {
+            self.step_actor_buffs(actor_id, events)?;
+        }
+        Ok(())
     }
 
     /// One unit's update, in the order `FightMech.Update` runs it: its skill,
-    /// then its motion, then, while the fight is on, its buffs.
+    /// then its motion, then, while the fight is on, its buffs. The motion
+    /// moves the body ([`Self::step_actor_rvo_position`]) between the two,
+    /// which the caller does, so this answers whether the buffs are still to
+    /// run ([`Self::step_actor_buffs`]).
     ///
     /// The skill's part starts its attack once what it fires at is in its
     /// attack area (`SkillIdleState.TryPerform`); the motion's part,
     /// `update_motion`, attacks a target in range and leaves one out of range
     /// or walks towards it. `BuffManager.Update` runs whichever way the two
     /// before it ended.
-    pub(in crate::fight) fn step_actor_with_target_order(
+    pub(in crate::fight) fn step_actor_before_buffs(
         &mut self,
         actor_id: u64,
         step: u64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
         events: &mut Vec<Event>,
-    ) -> Result<()> {
+    ) -> Result<bool> {
         if !self.actors[&actor_id].alive() {
             let actor = self
                 .actors
@@ -1488,10 +1494,10 @@ impl Simulation {
                 actor.exit_fight_on_death();
             }
             self.sync_beam(actor_id);
-            if died_this_tick {
-                return Ok(());
+            if !died_this_tick {
+                self.drop_buffs_of_the_dead(actor_id)?;
             }
-            return self.drop_buffs_of_the_dead(actor_id);
+            return Ok(false);
         }
         // `FightMech.Update` runs the unit's own search before its skills.
         self.update_mech_search(actor_id, target_search_order)?;
@@ -1499,9 +1505,17 @@ impl Simulation {
         self.sync_beam(actor_id);
         // With the fight over, `FightMech.Update` returns before
         // `BuffManager.Update`: no buff runs on, steps or runs out.
-        if self.ending.stop_step.is_some() {
-            return Ok(());
-        }
+        Ok(self.ending.stop_step.is_none())
+    }
+
+    /// `BuffManager.Update`, last in `FightMech.Update`, after the motion
+    /// moved the body: a unit a buff's step kills dies where it has just
+    /// moved to.
+    pub(in crate::fight) fn step_actor_buffs(
+        &mut self,
+        actor_id: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
         self.update_buffs(actor_id, events)?;
         self.invoke_delayed_buffs(actor_id, events)
     }
