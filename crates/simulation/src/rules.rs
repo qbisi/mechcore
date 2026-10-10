@@ -168,6 +168,11 @@ pub(crate) struct ExtraWeaponConfig {
     /// skill (`SkillDataModifier.AvaliableCheck`).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub(crate) ignore_equipment: bool,
+    /// `SkillData.isLoadingType` on a skill whose magazine is never reloaded:
+    /// its projectiles spend its unit's pooled rounds, as the main skill's do
+    /// (`AmmoSkillPool.CollectPoolSkills`).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub(crate) loading_type: bool,
     /// `ExtraWeaponTechnologyData.energyShieldDamage`, where it is not
     /// negative: what its hit deals a shield it strikes, in place of the
     /// hit's damage (`ExtraWeaponTech.ChangeHitEnergyShieldDamage`).

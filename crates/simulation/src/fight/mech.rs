@@ -64,6 +64,15 @@ impl Actor {
             placement.effects.single.rvo_radius_change,
             placement.travelling,
         );
+        // `MeleeModeEffectSystem.UpdateMainSkillAmmoCapacity` and
+        // `AmmoSkillPool.OnEnterFight`: the main skill holds the technology's
+        // rounds, and none more.
+        let ammo = placement
+            .effects
+            .single
+            .melee
+            .as_ref()
+            .map(|melee| crate::layout::melee_rounds(melee, &placement.effects.extra_weapons));
         let mut actor = Self {
             x,
             z,
@@ -102,12 +111,10 @@ impl Actor {
             cloak: None,
             shield_hits: 0,
             spawned_shields: 0,
-            // `MeleeModeEffectSystem.UpdateMainSkillAmmoCapacity` and
-            // `AmmoSkillPool.OnEnterFight`: the main skill holds the
-            // technology's rounds, and none more.
-            ammo: placement.effects.single.melee.map(|melee| melee.ammo),
+            ammo,
             melee_transition_at: None,
             melee_written: false,
+            body_disabled: false,
             reactive_armor: super::reactive_armor::ReactiveArmorState::of(&placement),
             placement,
             rules,
@@ -177,7 +184,7 @@ impl Actor {
     /// skill's lock before its main skill holds one; without, they are the
     /// skill's own, which no recording carries.
     pub(in crate::fight) fn turn_extra_weapons_to(&mut self, aimed: Option<(i64, i64)>) {
-        if !self.rules.has_body {
+        if !self.has_body() {
             return;
         }
         let bearing_q32 = aimed.map_or_else(
@@ -219,7 +226,7 @@ impl Actor {
     /// its missile skill holds the motion), one without its root
     /// (`ISkillOwner.RotateTo`).
     pub(in crate::fight) fn extra_attack_rotate(&mut self, bearing_q32: i64) {
-        if self.rules.has_body {
+        if self.has_body() {
             self.rotate_weapons_towards(bearing_q32);
             self.turn_to_move_direction();
         } else {
@@ -239,7 +246,7 @@ impl Actor {
         target_z_q32: i64,
         solve_due: bool,
     ) {
-        if !self.rules.has_body {
+        if !self.has_body() {
             self.aim_rotation = self.body_rotation;
         }
         if !solve_due {
@@ -328,6 +335,13 @@ impl Actor {
             return extra.skill.lock_target;
         }
         self.skills.main.unit_lock()
+    }
+
+    /// `FightMech.IsHaveBody`: a unit of a type with a body whose body no
+    /// skill has disabled. A Centurion's melee skill disables it, and the
+    /// Centurion turns, aims and measures its attack angle from its root.
+    pub(in crate::fight) const fn has_body(&self) -> bool {
+        self.rules.has_body && !self.body_disabled
     }
 
     pub(in crate::fight) fn alive(&self) -> bool {
@@ -532,10 +546,14 @@ impl Actor {
 
     /// Where a weapon without a transform of its own points: where what it
     /// is mounted on points, the turret it is mounted on, or the unit's root.
-    /// A unit without a body has no turret, and its weapons point as it does.
+    /// A unit without a body has no turret, and its weapons point as it does,
+    /// as do a unit's whose body a skill disabled (`FightSkill.GetMainTransform`
+    /// asks `FightMech.IsHaveBody`).
     pub(in crate::fight) fn mount_rotation_q32(&self, mount: WeaponMount) -> i64 {
         match (mount, self.turret_rotation()) {
-            (WeaponMount::MechBody | WeaponMount::Default, Some(turret)) => turret,
+            (WeaponMount::MechBody | WeaponMount::Default, Some(turret)) if self.has_body() => {
+                turret
+            }
             _ => self.body_rotation_q32,
         }
     }

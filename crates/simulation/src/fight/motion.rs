@@ -1613,7 +1613,7 @@ impl Simulation {
         }
         let bearing_q32 = direction_degrees_q32_raw(dx, dz);
         actor.rotate_body_towards(bearing_q32);
-        if actor.rules.has_body {
+        if actor.has_body() {
             actor.rotate_weapons_towards(bearing_q32);
         } else {
             actor.aim_rotation = actor.body_rotation;
@@ -1831,7 +1831,7 @@ impl Simulation {
         if skill.in_the_way.is_none_or(|(wall, _)| wall != building) {
             return;
         }
-        let has_body = self.actors[&actor_id].rules.has_body;
+        let has_body = self.actors[&actor_id].has_body();
         let facing = skill
             .lock_target
             .filter(|lock| self.fight_actor_is_alive(*lock));
@@ -1875,7 +1875,7 @@ impl Simulation {
     /// is not recorded, so it answers `None`.
     fn lock_rotation_for_bodyless(&self, actor_id: u64) -> Option<i64> {
         let actor = &self.actors[&actor_id];
-        if actor.rules.has_body {
+        if actor.has_body() {
             return None;
         }
         let lock = actor
@@ -1982,7 +1982,7 @@ impl Simulation {
             let completed_attack_reentry_rejected = entered_attack
                 && backswing_just_finished
                 && actor.rules.attack.melee
-                && !actor.rules.has_body
+                && !actor.has_body()
                 && !in_attack_angle;
             if completed_attack_reentry_rejected {
                 actor.motion.state = MotionState::Idle;
@@ -1999,9 +1999,9 @@ impl Simulation {
                 // FightSkill while the root transform is outside the
                 // attack cone. MotionController clears this hold only
                 // after it has observed and corrected the facing.
-                actor.motion.attack_hold_fire = !actor.rules.has_body && !in_attack_angle;
+                actor.motion.attack_hold_fire = !actor.has_body() && !in_attack_angle;
             }
-            let invalid_attack_angle_barrier = !actor.rules.has_body
+            let invalid_attack_angle_barrier = !actor.has_body()
                 && !stopped
                 && !entered_attack
                 && !actor.motion.attack_hold_fire
@@ -2105,7 +2105,7 @@ impl Simulation {
         if let Some(rotation) = target_rotation_q32 {
             actor.rotate_weapons_towards(rotation);
         }
-        if actor.rules.has_body {
+        if actor.has_body() {
             actor.aim_rotation = degrees_q32_to_mdeg(
                 actor
                     .skills
@@ -2144,7 +2144,7 @@ impl Simulation {
             // makes the attack eligible on the following logic tick.
             actor.motion.attack_hold_fire = false;
         }
-        if actor.rules.has_body
+        if actor.has_body()
             && (actor.motion.current_velocity_x_q32 != 0
                 || actor.motion.current_velocity_z_q32 != 0)
         {
@@ -2232,7 +2232,7 @@ impl Simulation {
         if vx != 0 || vz != 0 {
             actor.rotate_weapons_towards(direction_degrees_q32_raw(vx, vz));
         }
-        if actor.rules.has_body {
+        if actor.has_body() {
             actor.aim_rotation = degrees_q32_to_mdeg(
                 actor
                     .skills
@@ -2324,7 +2324,7 @@ impl Simulation {
             return Flow::Done;
         }
         if actor.motion.state == MotionState::Attacking
-            && !actor.rules.has_body
+            && !actor.has_body()
             && !actor.motion.attack_hold_fire
             && actor.skills.main.pending().is_none()
             && !burst_releasing
@@ -2358,7 +2358,7 @@ impl Simulation {
         }
         if attack_point_rejected
             && actor.rules.attack.melee
-            && !actor.rules.has_body
+            && !actor.has_body()
             && actor.motion.state == MotionState::Attacking
             && actor.skills.main.pending().is_none()
             && actor.skills.main.backswing_finish_step().is_none()
@@ -2375,7 +2375,7 @@ impl Simulation {
             actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
             return Flow::Done;
         }
-        if backswing_just_finished && actor.rules.attack.melee && !actor.rules.has_body {
+        if backswing_just_finished && actor.rules.attack.melee && !actor.has_body() {
             // SkillAttackState rechecks its retained target after the attack
             // controller finishes. If that target has left the legal attack
             // area, Finish synchronously enters SkillIdleState; SimpleFSM does
@@ -2415,7 +2415,7 @@ impl Simulation {
         // unit setting off turns nothing, whichever state it leaves.
         if !entered_move {
             actor.rotate_weapons_towards(target_rotation_q32);
-            if actor.rules.has_body {
+            if actor.has_body() {
                 actor.aim_rotation = degrees_q32_to_mdeg(
                     actor
                         .skills

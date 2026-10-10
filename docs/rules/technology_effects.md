@@ -1302,16 +1302,25 @@ permanent preemptive skill locked from the start, and makes its main skill
 spend rounds (`IsLoadingTypeValue`, `LoadingCapacityValue`): `ammoCount`, 20,
 which no reload refills, and `extraAmmoCount` more beside an extra skill the
 melee skill names incompatible, Dual Wield's side arm, which then shares
-them. That sharing is refused, not measured. Its source answers
+them: `AmmoSkillPool.CollectPoolSkills` pools the main skill and every extra
+skill of a loading type (`isLoadingType`), the side arm's, whose magazine is
+never reloaded. Its source answers
 `CanDisable` false (`ignoreElectricEffect`): nothing switches it off.
 
-**The last round brings the melee skill.** Each projectile of the main skill
+**The last round brings the melee skill.** Each projectile of a pooled skill
 takes a round (`ReduceLoadingRemainCount`). Once none is left, the melee
-skill's condition holds (`AmmoEmptyController`) after the unit's skills have
-updated: the main skill locks for good and its weapon stays where the unit
-points, the incompatible extra skills lock, the unit takes its whole life
+skill's condition holds (`AmmoEmptyController`), checked as a pooled skill's
+blow ends (`SkillAttackController.ChangeToIdle`,
+`SkillManager.TryTriggerAmmoEmptyPreemptiveCheck`), before its weapon turns,
+and after the unit's skills have updated: the main skill locks for good, the
+body turns to where the unit points (`IFightMechBody.UpdateRotation`) and the
+melee skill disables it (`MeleeModeTech.DisableBody`,
+`MechDataChangeInt.DisableBody`), so that `FightMech.IsHaveBody` answers false
+and the unit turns its root to what it attacks (`MotionAttackState.AttackRotate`)
+and its skills measure their angles from the root
+(`FightSkill.GetMainTransform`), the incompatible extra skills lock, the unit takes its whole life
 back whatever holds its recovery off (`OnMeleeSkillActive`,
-`FightMech.ForceRecoveryLife`), and the melee skill waits out its
+`FightMech.ForceRecoveryLife`, which shows no life bar), and the melee skill waits out its
 transition, the condition's 1.5 seconds, locked, the motion stopped
 (`StartActiveTransition`). Then it idles and takes the motion
 (`FinishActiveTransition`), and the melee mode writes its numbers
@@ -1748,6 +1757,11 @@ derive (a minimum range):
 - Melee Mode takes a Centurion's melee skill up after its twentieth round,
   stopped for 1.5 seconds, then at 28 speed and four times its life, which
   the fight's end takes away: `tests/extra_weapon/melee-mode.yaml`.
+- With Dual Wield the main gun and the side arm spend forty rounds between
+  them, the side arm's last bringing the melee skill as its blow ends; the
+  melee skill then strikes, the Centurion turning its root to each Crawler
+  and choosing the next by the root's facing, its body held:
+  `tests/extra_weapon/melee-mode-dual-wield.yaml`.
 - Subterranean Blitz burrows its Crawlers from the first tick and brings
   each up as its enemy comes within 50: `tests/burrow/crawler-rhino.yaml`.
   Burrowed, they take a Marksman's shot less 0.4; one that dies burrowed,
@@ -2486,8 +2500,6 @@ derive (a minimum range):
 
 ### Not established
 
-- **A Centurion with Melee Mode that deals melee blows**: the recorded
-  fight ends before its melee skill strikes.
 - **A second spawned shield, and one standing as the fight ends**: read,
   not recorded.
 - **A Phantom Ray switched off while cloaked**, and one whose technologies

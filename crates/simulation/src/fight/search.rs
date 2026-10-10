@@ -746,7 +746,7 @@ impl Simulation {
                 // at 90° a second against its body's 120°, have no transform
                 // for `GetMainTransform` to return, and its search reads the
                 // root's facing, as a Vortex's does in `m6-formations`.
-                if actor.rules.has_body {
+                if actor.has_body() {
                     actor
                         .skills.main
                         .weapon_rotations_q32

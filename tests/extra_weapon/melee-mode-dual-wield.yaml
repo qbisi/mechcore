@@ -1,0 +1,48 @@
+# Melee Mode with Dual Wield: a level-3 Centurion with the side arm, a
+# Fortress before it, against six Crawlers and two Marksmen. The melee skill
+# names Dual Wield's skill incompatible, so
+# `MeleeModeEffectSystem.UpdateMainSkillAmmoCapacity` gives the main skill the
+# technology's 20 rounds and its 20 extra, and the side arm, a skill of a
+# loading type, spends them with it (`AmmoSkillPool.CollectPoolSkills`): the
+# main gun and the side arm fire 20 each, and the side arm's last, at t420,
+# takes the melee skill up as its blow ends
+# (`SkillManager.TryTriggerAmmoEmptyPreemptiveCheck`), its weapon held where it
+# points. The melee skill disables the body (`MechDataChangeInt.DisableBody`):
+# from t450 it attacks, the Centurion turning its root to the Crawler it
+# strikes and choosing the next by the root's facing, the body held at 3.73°.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  techs:
+    centurion: [melee_mode, dual_wield]
+  units:
+  - {name: centurion, index: 0, position: {x: 5, y: -165}, level: 3}
+  - {name: fortress, index: 1, position: {x: 0, y: -120}, level: 3}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: -45, y: -60}}
+  - {name: crawler, index: 1, position: {x: 45, y: -60}}
+  - {name: crawler, index: 2, position: {x: -95, y: -60}}
+  - {name: crawler, index: 3, position: {x: 95, y: -60}}
+  - {name: crawler, index: 4, position: {x: -45, y: -100}}
+  - {name: crawler, index: 5, position: {x: 45, y: -100}}
+  - {name: marksman, index: 6, position: {x: 0, y: -40}, level: 3}
+  - {name: marksman, index: 7, position: {x: 60, y: -40}, level: 3}
+outcome:
+  blue.core_damage: 252
+  blue.units[0].exp: 744
+  blue.units[1].exp: 304
+  red.units[0].exp: 250
+  red.units[1].exp: 450
+  red.units[2].exp: 450
+  red.units[3].exp: 450
+  red.units[4].exp: 450
+  red.units[5].exp: 450
+  red.units[6].exp: 2000
+  red.units[7].exp: 500
+ticks: 678
+hash: 23:2a8041138cd5596eef35251b128973e083f91f8ba3ad1c2509186e768809f8fc

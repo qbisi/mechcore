@@ -64,8 +64,14 @@ impl Simulation {
         let was_idle = matches!(self.skill(skill_ref).state, SkillState::Idle { .. });
         let was_attacking = self.skill(skill_ref).phase() == FightSkillPhase::Attack;
         let attack_state_before = matches!(self.skill(skill_ref).state, SkillState::Attack(_));
+        let performed_before = self.skill(skill_ref).perform_count;
         if let Some(update) = self.update_skill(skill_ref, step, target_search_order, events)? {
             self.attack_in_reach(skill_ref, step, update, events)?;
+        }
+        self.check_ammo_on_idle(skill_ref, performed_before, events)?;
+        // Locked as it ran the rounds out, it updates no further.
+        if self.skill(skill_ref).state == SkillState::Locked {
+            return Ok(());
         }
         // `SkillAttackState.Update` counts the search timer down after the
         // check and the blow, which a skill of a group reads to give its

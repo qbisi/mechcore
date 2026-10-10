@@ -281,7 +281,7 @@ fn a_purchase_answers_the_index_the_board_gave_it() {
 }
 
 #[test]
-fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
+fn a_committed_round_is_written_and_fought() {
     let directory = tempfile::tempdir().unwrap();
     let path = dealt(directory.path());
     open_the_match(&path);
@@ -323,10 +323,9 @@ fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
     assert_eq!(third["phase"], "deploy", "{third}");
     assert_eq!(third["round"], 3);
 
-    // A layout the simulator cannot fight is refused, as a Centurion's Melee
-    // Mode beside Dual Wield, whose side arm shares its rounds, is. The fight
-    // is run from the position the round ends in, so what stops it is what
-    // the simulator says about that position.
+    // A Centurion's Melee Mode beside Dual Wield, whose side arm shares its
+    // rounds, is fought from the position the round ends in, and the fourth
+    // round opens.
     for decision in [
         "{type: unlock_unit, name: centurion}",
         "{type: buy_unit, name: centurion, position: {x: 45, y: -275}}",
@@ -339,21 +338,13 @@ fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
         decline(&path, side);
     }
     run(&["match", "commit", &path, "--side", "red"]).ok();
-    let stopped = run(&["match", "commit", &path, "--side", "blue"]).ok();
-    assert_eq!(stopped["phase"], "fight");
-    let unresolved = stopped["unresolved"].as_str().unwrap();
+    let fourth = run(&["match", "commit", &path, "--side", "blue"]).ok();
+    assert_eq!(fourth["phase"], "deploy", "{fourth}");
+    assert_eq!(fourth["round"], 4);
     assert!(
-        unresolved.starts_with(
-            "round 3 is not fought: side red unit type \"centurion\" technology 110321"
-        ),
-        "{unresolved}"
+        fourth.get("unresolved").is_none_or(Value::is_null),
+        "{fourth}"
     );
-
-    // Nothing is approximated: the round stands unfought and both commits
-    // stand with it, so the next caller finds the same fight waiting.
-    let view = run(&["match", "show", &path, "--side", "blue"]).ok();
-    assert_eq!(view["phase"], "fight");
-    assert_eq!(view["round"], 3);
     assert_eq!(verify(&path)["valid"], true);
 }
 
