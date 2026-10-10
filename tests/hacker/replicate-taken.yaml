@@ -1,0 +1,27 @@
+# Blue's Hacker against red's Crawlers with Replicate: a Crawler the Hacker
+# takes over still lays Replicate's buff, and a unit that dies under it
+# summons Crawlers for the side that holds that Crawler now.
+# `IBEC_DeadSummon.OnMechDead` makes them through `SummonSystem.CreateMech`
+# for its parent's `currentTeamController`, and `FightController.CreateMech`
+# describes each from that side's technologies: blue's, which hold none for
+# the Crawler.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  units:
+  - {name: hacker, index: 0, position: {x: -5, y: -105}}
+red:
+  techs:
+    crawler: [replicate]
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.core_damage: 58
+  blue.units[0].exp: 48
+  red.units[0].exp: 332
+ticks: 382
+hash: 23:4f0d3a94725c22eca136741649d30d1f4a76faa21e7d10909f31c85bd485bebb

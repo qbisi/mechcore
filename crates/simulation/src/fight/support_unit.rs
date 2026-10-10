@@ -49,6 +49,8 @@ pub(in crate::fight) struct SupportUnitSystem {
     pub(in crate::fight) appearing: Vec<Appearing>,
     /// What each side's buffs make a dying unit summon, by side and type id.
     pub(in crate::fight) death_summons: BTreeMap<(u32, u32, i64), crate::layout::DeathSummon>,
+    /// Why a side could not describe a summon a control would hand it.
+    pub(in crate::fight) taken_summon_refusals: BTreeMap<u32, String>,
     /// The units that died this tick, in the order they died:
     /// `DeadEffectSystem.deadActors`, whose `OnDead` waits for that module's
     /// update.
@@ -71,6 +73,7 @@ impl SupportUnitSystem {
             creators: Vec::new(),
             appearing: Vec::new(),
             death_summons: layout.death_summons.clone(),
+            taken_summon_refusals: layout.taken_summon_refusals.clone(),
             dying: Vec::new(),
             summoned_events: BTreeMap::new(),
         }
@@ -947,6 +950,18 @@ impl Simulation {
         Ok(())
     }
 
+    /// A summon the layout holds no description of: one of the other side's,
+    /// handed by a control, that its new side could not describe, refused
+    /// with why; any other was not prepared.
+    fn unprepared(&self, team: u32, summoned: &str) -> Error {
+        match self.support.taken_summon_refusals.get(&team) {
+            Some(why) => Error::new(format!("{summoned}, which a control handed it: {why}")),
+            None => Error::new(format!(
+                "{summoned}, which that side's layout did not prepare"
+            )),
+        }
+    }
+
     /// One `IBEC_DeadSummon.OnMechDead`: `SummonSystem.CreateMech` of the
     /// parent's side, each summon at `CardLevel.Level1` and in a formation of
     /// its own, scattered by two draws of that side's stream.
@@ -972,10 +987,12 @@ impl Simulation {
         };
         let team = parent.placement.team;
         let Some(made) = self.support.death_summons.get(&(team, type_id, 1)).cloned() else {
-            return Err(Error::new(format!(
-                "unit {dead_id} dies under a buff that has team {team} summon unit {type_id}, \
-                 which that side's layout did not prepare"
-            )));
+            return Err(self.unprepared(
+                team,
+                &format!(
+                    "unit {dead_id} dies under a buff that has team {team} summon unit {type_id}"
+                ),
+            ));
         };
         let dead = &self.actors[&dead_id];
         if made.rules.domain != dead.rules.domain {
@@ -1003,9 +1020,8 @@ impl Simulation {
         let (type_id, count) = (summon.unit_type_id, summon.count);
         let key = (team, type_id, summon.level);
         let Some(made) = self.support.death_summons.get(&key).cloned() else {
-            return Err(Error::new(format!(
-                "unit {dead_id} dies with a technology that has team {team} summon unit \
-                 {type_id}, which that side's layout did not prepare"
+            return Err(self.unprepared(team, &format!(
+                "unit {dead_id} dies with a technology that has team {team} summon unit {type_id}"
             )));
         };
         self.summon_around(

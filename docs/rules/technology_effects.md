@@ -2321,8 +2321,13 @@ derive (a minimum range):
   least 1, for `SummonSystem.CreateMech` at the dead unit's position, with
   its radius as `CreateSummonMechInfo.randomRange` and the buff's
   `Buff.source` as parent. `Buff.GetSummonMechID` answers the source's type
-  below 1. `SummonSystem.DoCreateMech` calls `FightController.CreateMech`
-  with the parent's `MechData.IsChildInheritTechnologyEffect` and, with no
+  below 1. `CreateSummonMechInfo`'s constructor sets its rotation to
+  `FightUtility.Angle0`, so the summon faces the world's 0 on either side.
+  `SummonSystem.CreateMech` makes it for the parent's
+  `FightMech.currentTeamController`, so a parent a control has taken summons
+  for the side that holds it, and `SummonSystem.DoCreateMech` calls
+  `FightController.CreateMech` with that side and
+  the parent's `MechData.IsChildInheritTechnologyEffect` and, with no
   `CreateSummonMechInfo.delayTime`, `SummonSystem.AddMech`. `Buff.Reset`
   takes the new source of a buff that summons when its `FightMech.level` is
   the higher. `FPCSMath.PowFastest` is `FPCSMath.LogFastest` times the
@@ -2551,9 +2556,6 @@ derive (a minimum range):
   from the build; no recording holds a recorded unit dying after its time,
   nor a share smaller than what each holder lacks.
 
-- **Which way a buff's summon faces.** `CreateSummonMechInfo`'s constructor
-  reads its rotation from a static the build was not read for; a summon
-  faces its side's way here, which only blue's summons have recorded.
 - **That one a buff summoned summons nothing as it dies.** Read from the
   build, and no recording holds a summoned unit dying under the buff.
 
