@@ -205,6 +205,11 @@ lands on tick `s + 2`, 14. Its buff, `40000`, takes 0.3 off the damage the unit
 takes and makes it invincible for 20 seconds, so a debuff, the Electromagnetic
 Impact's among them, does not reach it while the buff runs.
 
+A sub-effect with no speed is never tested against a shield: it is finished
+where it stands, without moving. Photon Emission released inside a shield
+lands on tick 14 as it does with none, and writes its buff on the units the
+shield holds as on any other.
+
 Whose units a buff skill reaches turns on its buff (`BuffData.IsHarmful`). A
 harmful one, which slows or raises the damage taken, as the Electromagnetic
 Impact's does, reaches every unit in range of either side
@@ -216,7 +221,8 @@ Emission's reaches no enemy, however near.
 
 A support skill, a row of `supportUnitCommanderSkills`, lands as any
 `CSRC_Common` skill does; with no fall, its sub-effect lands on tick
-`max(1, s) + 2`. Its landing hands the side a creator, which
+`max(1, s) + 2`, and, with no speed, is never tested against a shield, so a
+summon is made inside a shield of either side as anywhere else. Its landing hands the side a creator, which
 [`config/commander_skill_effects.yaml`](../../config/commander_skill_effects.yaml)
 reads off the row.
 
@@ -521,6 +527,13 @@ drawn from any stream, and no event is written.
   buff, whether the Impact stopped or landed:
   `tests/battle_skill/impact-stopped-by-shield.yaml`,
   `tests/battle_skill/impact-beside-shield.yaml`.
+- A sub-effect with no speed lands inside a shield as it does with none:
+  Photon Emission writes its buff on the units its own side's shield holds,
+  and a support skill makes its summons inside an enemy shield, a Rhino's
+  air drop striking the units the shield holds:
+  `tests/battle_skill/photon-in-shield.yaml`,
+  `tests/battle_skill/rhino-in-shield.yaml`,
+  `tests/battle_skill/underground-in-shield.yaml`.
 - A Shield Airdrop lands on tick `s + 3`, and stands a full shield on the
   ground at its release point, which takes shots until it breaks:
   `tests/shield/airdrop-lands.yaml`.
@@ -702,6 +715,10 @@ drawn from any stream, and no event is written.
   `CSD_EnergyShield.GetAdvancedEnergyShieldValue`.
 - Its fall crosses every shield: `CS_EnergyShield.CanCrossAdvancedEnergyShield`,
   `CommanderSkillSubEffectAgent.Update`.
+- A sub-effect whose row gives it no speed is finished where it stands, never
+  moved or tested against a shield: `CommanderSkillSubEffectAgent.Update`,
+  `CommanderSkillBase.GetSubEffectMoveSpeed`. A support skill's crosses no
+  shield, as no override of `CanCrossAdvancedEnergyShield` is its own.
 - It stands into the next round, refilled, as a contraption's shield does:
   `CS_EnergyShield.IsShortLifeTime`, `CS_EnergyShield.IsResetNextRound`,
   `GroupAdvancedEnergyShieldManager.OnFightEnd`,
@@ -735,10 +752,6 @@ drawn from any stream, and no event is written.
 - **A strike's buff beside a shield.** A Lightning Storm's list is read to
   leave out what its own side's shields hold, as an Electromagnetic Impact's
   is recorded to, and no fight pins it.
-- **A skill that is not harmful beside a shield.** Photon Emission's
-  sub-effect does not fall, and whether it stops at a shield it stands
-  inside is not read; the simulator refuses it in a fight with a
-  battlefield shield.
 - **How a beacon's `LineRange` meets a unit's circle.** The simulator reads it
   as the distance to the segment against the width and the radius, which the
   recordings agree with and the build's `LineRange.Overlaps` is not read for.

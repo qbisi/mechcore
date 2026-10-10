@@ -1,0 +1,29 @@
+# Photon Emission released inside its own side's shield.
+#
+# Blue's shield stands over its Marksman and Rhino, and blue releases Photon
+# Emission at its centre. The skill's sub-effect has no speed, so it is never
+# tested against the shield: it lands on tick 14 as it does with no shield
+# and writes buff 40000 on blue's three units, the two the shield holds
+# among them. The shield keeps its 40000.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 693
+hash: {profile: mcfr-content-0.23.0, result: 1e5207ffc4416082c118257f27a7739fdf3730b6a786aa13fd8deb0def337e36}
+blue:
+  core_damage: 350
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -110}, exp: 0/33/650}
+  - {name: rhino, index: 1, position: {x: 5, y: -105}, exp: 0/33/1150}
+  - {name: marksman, index: 2, position: {x: 60, y: -150}, exp: 0/133/650}
+  contraptions:
+  - {name: shield, index: 3, position: {x: 0, y: -110}, retained: false}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: 0, y: -110}]}
+red:
+  units:
+  - {name: arclight, index: 0, position: {x: -30, y: -100}}
+  - {name: fortress, index: 1, position: {x: 0, y: -140}, exp: 0/800/1600}

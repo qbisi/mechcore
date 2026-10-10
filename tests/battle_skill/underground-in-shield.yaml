@@ -1,0 +1,26 @@
+# Underground Threat released inside an enemy shield.
+#
+# Blue releases Underground Threat 20 metres inside red's shield. Its
+# creator makes its thirty-six Crawlers from tick 28 to tick 68 as it does
+# with no shield, inside and about the shield, which takes nothing from
+# their making.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 276
+hash: {profile: mcfr-content-0.23.0, result: 8f1c4d9bf157c98ca7ef603034f974ee8d401fed0697c97b1632a01a623c6316}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: -100, y: -150}, exp: 0/8/650}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: 0, y: 60}]}
+red:
+  core_damage: 119
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/28/650}
+  - {name: crawler, index: 1, position: {x: 5, y: -70}, exp: 0/108/450}
+  contraptions:
+  - {name: shield, index: 2, position: {x: 0, y: -80}}

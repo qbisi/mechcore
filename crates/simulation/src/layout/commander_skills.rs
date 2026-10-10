@@ -408,12 +408,19 @@ pub(crate) struct Fall {
     pub(crate) floor_q32: i64,
     /// `FPoint` raw metres a tick.
     pub(crate) step_q32: i64,
+    /// Whether its row gives it a speed: `CommanderSkillSubEffectAgent.Update`
+    /// finishes one with none where it stands, without moving it or testing
+    /// it against a shield.
+    pub(crate) moves: bool,
 }
 
 impl Fall {
     /// Where it stands on a tick of its fall, `FPoint` raw metres up: none
-    /// before it moves.
+    /// before it moves, and none ever for one that does not move.
     pub(crate) fn height_on(&self, tick: u64) -> Option<i64> {
+        if !self.moves {
+            return None;
+        }
         let moves = i64::try_from(tick.checked_sub(self.first_move_on)? + 1).ok()?;
         Some(
             self.start_q32
@@ -810,6 +817,15 @@ fn released(
         return Err(Error::new(format!(
             "{named} has effect type {} over range type {}, which this build does not read",
             common.effect_type, common.effect_range_type
+        )));
+    }
+    // A support skill's sub-effect that falls would be tested against the
+    // shields it comes inside (`CommanderSkillSubEffectAgent.Update`), and
+    // stopped there by `InterruptEffect`; every row gives it no speed, so it
+    // lands where it is released.
+    if matches!(effect, SkillEffect::Summon(_)) && common.move_speed != 0 {
+        return Err(Error::new(format!(
+            "{named}'s sub-effect falls, which no support skill's does"
         )));
     }
     let line = matches!(
@@ -1412,6 +1428,7 @@ fn fall(start_raw: i64, move_time_raw: i64, speed_raw: i64, floor_raw: i64) -> R
         start_q32: floor_raw.saturating_add(multiply(speed_raw, start_raw.min(move_time_raw))),
         floor_q32: floor_raw,
         step_q32: multiply(speed_raw, LOGIC_DELTA_RAW),
+        moves: speed_raw != 0,
     })
 }
 

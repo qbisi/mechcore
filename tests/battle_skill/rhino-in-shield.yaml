@@ -1,0 +1,28 @@
+# Rhino Assault dropped at the centre of an enemy shield.
+#
+# Blue releases Rhino Assault on red's shield. A support skill's sub-effect
+# has no speed and is never tested against a shield: the creator makes the
+# Rhino on tick 28 exactly on the release point, inside the shield, and on
+# joining, on tick 48, it deals its life around it as it lands, 1622 to red's
+# Marksman and 250 to each of three of its Crawlers, all inside the shield. The shield
+# keeps its 40000.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 246
+hash: {profile: mcfr-content-0.23.0, result: babb7479d497e37b3b45a821370c555ea9212d2eee404d806bd999f36a4cccd6}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: -100, y: -150}, exp: 0/224/650}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: -1, y: 81}]}
+red:
+  core_damage: 150
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -80}}
+  - {name: crawler, index: 1, position: {x: 15, y: -100}}
+  contraptions:
+  - {name: shield, index: 2, position: {x: 1, y: -81}}
