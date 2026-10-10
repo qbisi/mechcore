@@ -700,9 +700,11 @@ that `PlayReplayCommand.StartReplay` builds for a replay (`MatchType.Replay`, th
 record's map, both players replayed, the requested start round) and hands it to
 `MatchUtility.StartFastBattleSimulation` rather than to `ClientAgent.CreateHost`.
 That call sets `ExternalConfig.fastBattleSimulation` and clears
-`fastFightSimulation` and never puts them back; while the first is set,
-`CreateHost` refuses every match that is not a replay, so the Adapter restores
-both before it returns.
+`fastFightSimulation` and `enableBattleView` and never puts them back; while
+the first is set, `CreateHost` refuses every match that is not a replay, and
+without the battle view a later match's units have no model, so its
+`unit_pose` channel is empty. The Adapter restores all three before it
+returns.
 
 A round opens from its `PlayerRoundRecord` snapshot, not from the actions of the
 rounds before it. The fight draws only from streams the game derives from the
