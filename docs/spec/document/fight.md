@@ -2,33 +2,39 @@
 
 ## Scope
 
-A fight document is one fight and its result, written onto the
-[layout](layout.md) the fight starts from: the layout, the seed it was fought
-with, and what the fight left, each part of the result on the object it
-belongs to. A simulator that fights the layout with the seed has to arrive at
-the result.
+A fight document is one fight and its result: the [layout](layout.md) the
+fight starts from, the seed it was fought with, and what the fight left, kept
+apart. The layout is written as a layout writes it, and the result in an
+`outcome` that names each object it is about by its path in the layout. A
+simulator that fights the layout with the seed has to arrive at the result.
 
 ```yaml
 kind: fight
+source: game
 seed: 4242
 round: 3
-source: game
-ticks: 870
-hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
 blue:
   officers: [extended_range_marksman]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 12/170/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 12/650}
   contraptions:
-  - {name: interceptor, index: 0, position: {x: 5, y: -95}, retained: false}
+  - {name: interceptor, index: 0, position: {x: 5, y: -95}}
   battle_skills:
-  - {name: shield_airdrop, standing: {position: {x: -150, y: -150}}, retained: false}
+  - {name: shield_airdrop, standing: {position: {x: -150, y: -150}}}
 red:
-  core_damage: 37
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/40/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -100}}
   battle_skills:
-  - {name: sticky_oil_bomb, positions: [{x: -30, y: 150}, {x: 60, y: 150}], grid_rows: {2: [], 3: [], 4: []}}
+  - {name: sticky_oil_bomb, positions: [{x: -30, y: 150}, {x: 60, y: 150}]}
+outcome:
+  blue.units[0].exp: 170
+  blue.contraptions[0].retained: false
+  blue.battle_skills[0].retained: false
+  red.core_damage: 37
+  red.units[0].exp: 40
+  red.battle_skills[0].grid_rows: {2: [], 3: [], 4: []}
+ticks: 870
+hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
 ```
 
 Here the fight ended with blue's marksman at 170 of its 650, its interceptor
@@ -37,12 +43,11 @@ gained 40, red's reactor core lost 37, and the oil red released this round is
 left on three of its seven points, each whole.
 
 A fight is one edge of a [match](match.md): the layout is what a round's
-deployment projects to, and the result is what the fight hands the next round,
-the fields [match.md](match.md#transition-coverage) puts in the `fight` class.
-This document defines how the result is written and how it relates to the
-layout it is written onto. The layout's own fields are
-[layout.md](layout.md)'s and are not restated here; the trajectory hash is
-[mcfr.md](../mcfr/mcfr.md#the-hash)'s.
+deployment projects to, and the outcome is what the fight hands the next
+round, the fields [match.md](match.md#transition-coverage) puts in the `fight`
+class. This document defines how the outcome is written and how it refers to
+the layout. The layout's own fields are [layout.md](layout.md)'s and are not
+restated here; the trajectory hash is [mcfr.md](../mcfr/mcfr.md#the-hash)'s.
 
 A fight document states the outcome of a fight, not how it got there. What
 happened tick by tick is in a recording, and a fight document reaches it only
@@ -55,38 +60,33 @@ checks the simulator against. Which fight documents a regression may pin is
 
 ## Relation to a layout
 
-A fight document is a layout with the result written in:
+A fight document is a layout with its outcome beside it:
 
 ```text
 layout = project(fight)
 ```
 
-The projection drops `source`, `ticks` and `hash`, each side's `core_damage`,
-and every object's result fields, and keeps a unit's `exp` at its first term:
-`before/after/maximum` becomes `before/maximum`, and nothing when `before` is
-`0`. Every other field is copied unchanged, `seed` included. The projection of
-a fight in normal form is a layout in normal form.
+The projection drops `source`, `outcome`, `ticks` and `hash`, and names the
+document `kind: layout`; every other field is copied unchanged, `seed`
+included. No result is written inside the layout, so the projection takes
+nothing out of `blue` or `red`, and the projection of a fight in normal form is
+a layout in normal form.
 
 A fight document whose projection is not a valid layout is refused, whatever
-its result. A document of `kind: layout` that carries a result field is
-refused as a layout with a field it does not have; `kind` is what says a
-document is a fight.
-
-`seed` is required here, where a layout leaves it optional: a result is the
-result of one seed.
+its outcome. `seed` is required here, where a layout leaves it optional: a
+result is the result of one seed.
 
 A unit, a shield or an area the fight creates that is not in the layout has no
-entry, and so no result. A fight only reports on what it started with.
+path, and so no result. A fight only reports on what it started with.
 
 ## Root fields
-
-After the layout's own root fields, `kind` apart, a fight states:
 
 | Field | Meaning |
 | --- | --- |
 | `kind` | exactly `fight` |
-| `seed` | the match seed the fight was fought with; required |
 | `source` | who fought it: `game` or `simulator` |
+| the layout's root fields | `game_build`, `map_id`, `seed`, `round`, `blue`, `red`, as [layout.md](layout.md) writes them; `seed` is required |
+| `outcome` | what the fight left, [below](#outcome); absent when it left nothing |
 | `ticks` | the fight's logical ticks, the recording's `tick_count` |
 | `hash` | `<profile>:<result>`: the recording's `hash_profile` and `result_hash`, as `23:e4ed…` |
 
@@ -109,59 +109,69 @@ A recording says which it is: its `producer` is `game` or `simulator`
 the same name. The hash cannot say it, since both producers write the same
 timeline for the same fight.
 
+`ticks` and `hash` are the trajectory, and come together or not at all. A
+document read from a recording carries both; one written without them states
+the outcome alone, which a change to the rules that leaves every outcome where
+it was does not move. `ticks` is at least `1`; `hash` is the profile's number,
+a colon, and the result hash's 64 lowercase hex digits. The profile names the
+definition that computed it, as [mcfr.md](../mcfr/mcfr.md#the-hash) numbers
+profiles. A reader checks the form; a hash under a profile the checker does not
+compute is not comparable, which is the checker's to report.
+
 So a fight is checked by fighting its projection with its seed and comparing
-what the fight arrives at with what the document states: every result field,
-`ticks` and `hash`. The layout fields need no comparing, since both fights
-start from the one projection. [`verify`](../mechcore/cli.md#verify) is the
-command that checks one.
+what the fight arrives at with what the document states: the outcome, and the
+trajectory when the document carries it, each reported on its own. The layout
+needs no comparing, since both fights start from the one projection.
+[`verify`](../mechcore/cli.md#verify) is the command that checks one.
 
-`ticks` and `hash` are required. `ticks` is at least `1`; `hash` is the
-profile's number, a colon, and the result hash's 64 lowercase hex digits. The
-profile names the definition that computed it, as
-[mcfr.md](../mcfr/mcfr.md#the-hash) numbers profiles. A reader checks the
-form; a hash under a profile the checker does not compute is not comparable,
-which is the checker's to report.
+## Outcome
 
-## Side fields
+`outcome` is a mapping from a path to a result. A path names an object of the
+layout and one of its result fields:
 
-| Field | Meaning |
-| --- | --- |
-| `core_damage` | what the fight took off the side's reactor core, which [reactor_damage.md](../../rules/reactor_damage.md) states; a non-negative integer, absent when `0` |
+```text
+<side>.<field>                        red.core_damage
+<side>.<list>[<position>].<field>     blue.units[0].exp
+```
 
-## Object fields
+`<side>` is `blue` or `red`; `<list>` is `units`, `contraptions` or
+`battle_skills`; `<position>` is the entry's place in that list, counted from
+`0`, in the layout's normal form. A position is not an entry's `index`: it
+names the line, whatever the entry's own fields say. A path that names no
+object of the layout, or a field the object cannot carry, is refused.
 
-| Object | Field | Meaning |
+| Path | Field | Meaning |
 | --- | --- | --- |
-| `units` | `exp: before/after/maximum` | the layout's `current`, the experience the unit ends the fight with, and the level's full bar |
-| `contraptions` | `retained` | whether the contraption stands when the fight ends |
-| `battle_skills`, a standing `shield_airdrop` | `retained` | whether the shield stands when the fight ends |
-| `battle_skills`, a `shield_airdrop` release | `retained` | whether the shield it airdropped stands when the fight ends |
-| `battle_skills`, a `sticky_oil_bomb` release | `retained`, `grid_rows` | whether any of its area is left when the fight ends, and which of it |
+| a side | `core_damage` | what the fight took off the side's reactor core, which [reactor_damage.md](../../rules/reactor_damage.md) states; a positive integer |
+| a unit | `exp` | the experience the unit ends the fight with |
+| a contraption | `retained` | `false`: the contraption does not stand when the fight ends |
+| a standing `shield_airdrop` | `retained` | `false`: the shield does not stand when the fight ends |
+| a `shield_airdrop` release | `retained` | `false`: the shield it airdropped does not stand when the fight ends |
+| a `sticky_oil_bomb` release | `retained`, `grid_rows` | what is left of its area when the fight ends |
+
+An outcome states only what the fight changed. A result at its default is not
+written: no `core_damage` is `0`, no `exp` is the experience the unit started
+with, no `retained` is `true`, no `grid_rows` is all seven points whole. An
+absent `outcome` is a fight that changed none of them.
 
 ### Experience
 
-`exp` extends the layout's `current/maximum` gauge with the fight's end between
-its two terms. `before` and `maximum` are the layout's, with the layout's rule
-that `maximum` is the bar the [unit experience
-index](../../rules/unit_experience.md) gives the unit's type and level; a
-fight states that bar even where `before` is `0` and the projection keeps no
-gauge.
-
-`before <= after <= maximum`. A fight only adds experience, and a full bar
-takes no further share of what a fight hands out
+A unit's `exp` is a whole number between the experience the layout gives the
+unit, its gauge's `current` or `0`, and the bar the [unit experience
+index](../../rules/unit_experience.md) gives the unit's type and level. A
+fight only adds experience, and a full bar takes no further share of what a
+fight hands out
 ([unit_experience.md](../../rules/unit_experience.md#what-a-full-bar-means)),
-so a bar filled during the fight ends it at `maximum`. `after` is a whole
-number, since the fight's end cuts each formation's experience to one
-([unit_experience.md](../../rules/unit_experience.md#what-a-kill-hands-out)). `exp` is absent only
-when `before` and `after` are both `0`.
+so a bar filled during the fight ends it at the bar. It is whole because the
+fight's end cuts each formation's experience to one
+([unit_experience.md](../../rules/unit_experience.md#what-a-kill-hands-out)).
+An `exp` equal to the unit's start is refused, being the default.
 
 ### What is left standing
 
-`retained` defaults to `true` and is written only as `false`. Whatever
-disappears in a fight has a fight event behind it, a destruction or an
-interception, so `false` is the value that says something happened.
-
-A contraption of any kind carries `retained`.
+`retained` is written only as `false`. Whatever disappears in a fight has a
+fight event behind it, a destruction or an interception, so `false` is the
+value that says something happened.
 
 In `battle_skills`, a result belongs to whatever of a skill can outlive the
 fight's round, and nothing else carries one:
@@ -177,36 +187,28 @@ fight's round, and nothing else carries one:
   encoding a standing area uses. Its control points are its `positions`.
   `grid_rows` states which of the seven generated points survive and each
   clipped point's mask, exactly as a standing area's
-  [`grid_rows`](layout.md#standing-entries) does, and an absent `grid_rows`
-  means all seven survive whole. `retained: false` means none survives, and a
-  release carries it or a non-empty `grid_rows`, never both. What a retained
-  release states is what the next round's standing entry for the area states.
+  [`grid_rows`](layout.md#standing-entries) does. `retained: false` means none
+  survives, and a release carries it or `grid_rows`, never both. What a
+  retained release states is what the next round's standing entry for the area
+  states.
 - Every other release carries nothing: its product is gone before the round
   that would carry it opens.
-
-`retained` anywhere else, or `grid_rows` on any entry but a Sticky Oil Bomb
-release, is refused. A standing area's own `grid_rows` stays inside its
-`standing` as the layout writes it.
 
 ## Normal form
 
 A fight document is in normal form when its projection is a layout in normal
-form, each result field sits on the object it belongs to wherever the layout's
-normal form puts that object, and:
+form, and:
 
-- the root fields come in the layout's order, `kind`, `game_build`, `map_id`,
-  `seed`, `round`, followed by `source`, `ticks`, `hash`, then `blue` and
-  `red`;
-- a side's `core_damage` comes before the side's layout fields, and is absent
-  when `0`;
-- a unit's `exp` stands where the layout's does, and is absent when both
-  `before` and `after` are `0`;
-- `retained` and `grid_rows` follow an entry's layout fields, `grid_rows`
-  first; `retained` is absent when `true`, and a release's `grid_rows` that
-  lists all seven points whole is absent, as a standing area's is.
+- the root fields come in the order `kind`, `source`, then the layout's root
+  fields in the layout's order, then `outcome`, `ticks`, `hash`;
+- `outcome` lists blue's paths before red's; within a side, the side's own
+  field first, then `units`, `contraptions` and `battle_skills`, each by
+  position, and an entry's `grid_rows` before its `retained`;
+- no result at its default is written, and an empty `outcome` is absent.
 
-The canonical writer spells a fight by the layout's three rules, so every
-entry, its result included, is one line.
+The canonical writer spells a fight by the layout's three rules: each
+`outcome` entry is one line, its key the path, and a `grid_rows` value a flow
+mapping on that line.
 
 ## Excluded fields
 
@@ -218,7 +220,7 @@ entry, its result included, is one line.
 | the recording's per-tick state | a fight document states an outcome; the recording and its hash hold the path |
 | instrument channels | they describe how a fight did what it did, and are outside the hash |
 | the recording's build | the layout's `game_build` states the build the fight is read against, and a reader refuses another |
-| a result for what the fight creates | it is not in the layout, so it has no entry to carry one |
+| a result for what the fight creates | it is not in the layout, so it has no path to carry one |
 
 ## Unresolved
 
