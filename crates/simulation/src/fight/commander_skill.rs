@@ -145,14 +145,6 @@ impl Simulation {
                 ..
             } = &release.effect
             {
-                // A skill that is not harmful stops at a shield as any other
-                // does, which is not measured for one that falls nowhere.
-                if !harmful && !self.shield.standing.is_empty() {
-                    return Err(Error::new(format!(
-                        "{} lands in a fight with a battlefield shield, which is not measured",
-                        release.name
-                    )));
-                }
                 let circle = Circle {
                     range_q32: *range_q32,
                     damage: *damage,
@@ -207,17 +199,10 @@ impl Simulation {
             if release.lands_on != tick {
                 continue;
             }
-            // A support skill's falling sub-effect stops at the first
-            // shield it enters too, which is not measured. A Shield
-            // Airdrop's crosses shields whatever its row says
-            // (`CS_EnergyShield.CanCrossAdvancedEnergyShield`).
-            if !self.shield.standing.is_empty() && matches!(release.effect, SkillEffect::Summon(_))
-            {
-                return Err(Error::new(format!(
-                    "{} lands in a fight with a battlefield shield, which is not measured",
-                    release.name
-                )));
-            }
+            // Neither a support skill's sub-effect, which does not move, nor
+            // a Shield Airdrop's, which crosses shields whatever its row says
+            // (`CS_EnergyShield.CanCrossAdvancedEnergyShield`), is tested
+            // against a shield.
             match &release.effect {
                 // A strike's sub-effects land above, and a path is given out
                 // as the fight starts and never lands.
@@ -249,6 +234,7 @@ impl Simulation {
     /// activated: one that lands on this tick performs where it lands, and
     /// one that cannot cross shields stops at the first it comes inside as it
     /// falls, before it would land, and performs there (`InterruptEffect`).
+    /// One that does not move, as Photon Emission's, is never tested.
     /// Answers the ones still to land.
     fn step_sub_effects(
         &mut self,
