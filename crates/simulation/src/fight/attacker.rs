@@ -286,25 +286,26 @@ impl Simulation {
     /// list and `FightTeamController.AddActor` appends it to its new one's,
     /// so it updates after every unit already there.
     pub(in crate::fight) fn joins_side_last(&mut self, unit_id: u64) {
-        self.unit_update_order.retain(|&id| id != unit_id);
-        self.unit_update_order.push(unit_id);
+        let unit = FightActorRef::Unit(unit_id);
+        self.active_actors.retain(|&actor| actor != unit);
+        self.active_actors.push(unit);
     }
 
-    /// Every unit in the order its side updates it: the deployed ones in the
-    /// fight's update order, then each summon and each unit turned in the
-    /// order it joined, and anything else made since in identity order.
+    /// Every unit in the order its side updates it (`activeActors`): the
+    /// deployed ones in the fight's update order, then each summon and each
+    /// unit turned in the order it joined, and anything else made since in
+    /// identity order.
     pub(in crate::fight) fn units_in_update_order(&self) -> Vec<u64> {
-        let deployed = self
-            .unit_update_order
-            .iter()
-            .copied()
-            .filter(|id| self.actors.contains_key(id));
+        let listed = self.active_actors.iter().filter_map(|&actor| match actor {
+            FightActorRef::Unit(id) if self.actors.contains_key(&id) => Some(id),
+            _ => None,
+        });
         let made = self
             .actors
             .keys()
             .copied()
-            .filter(|id| !self.unit_update_order.contains(id));
-        deployed.chain(made).collect()
+            .filter(|&id| !self.active_actors.contains(&FightActorRef::Unit(id)));
+        listed.chain(made).collect()
     }
 
     /// The owner of a skill, as its skill sees it.

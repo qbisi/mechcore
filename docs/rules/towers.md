@@ -29,7 +29,8 @@ The hit that fells a tower runs its `OnDead`, and
 actor list when `isAddTowerBuffToOwnerTeam` is set (`SetAddTowerBuffTarget`,
 which `towerDefaultDatas.addBufToOwner` feeds), and the group's actor list
 otherwise. Every live unit of the side takes it, in the order the units
-joined the side: the deployed ones, then a unit a beam turned onto it. A tower is a
+joined the side: the deployed ones, then a unit made in the fight or a beam
+turned onto it. A tower is a
 `FightTower : FightCrystal, IBuffTarget` with a `BuffManager` of its own, and
 `buffDatas` rows carry `canAffectTower`, so the standing tower may take the
 loss as well.
@@ -68,11 +69,17 @@ times their damage, the enhancements summed.
 ## A construction takes the loss too
 
 The side's actor list holds its constructions as well as its units, so a
-construction standing when its side loses a tower takes the buff after every
-unit of the side, when both the buff row's `canAffectConstruction` and the
-construction row's `canBeEffectedByTowerBuff` are set. `config/constructions.yaml`
+construction standing when its side loses a tower takes the buff too, when
+both the buff row's `canAffectConstruction` and the construction row's
+`canBeEffectedByTowerBuff` are set. `config/constructions.yaml`
 says which rows set the second; `config/towers.yaml` says the buff sets the
 first. A layout's Defensive Wall does not set it, and both turrets do.
+
+The list is `FightTeam.activeActors`, which `FightTeam.PrepareActors` builds
+as the fight starts: the side's units, its crystals and then its
+constructions, each sorted by `FightUtility.ActorComparer`. What joins the
+side later, a unit made or turned onto it, is appended, so a construction
+takes the buff after the deployed units and before every unit made since.
 
 On a turret the buff does what it does on a unit. Its shots deal the damage
 the rates leave, a tenth of the row's; every hit it takes is scaled by the
@@ -149,11 +156,14 @@ rest of the fight. A unit with no lock goes straight to its point.
   `tests/tower/`.
 - A second loss inside the first's debuff lengthens it by the new row's
   duration and does not stack the rates: `tests/tower/`.
-- A turret standing through the loss takes the buff after the side's units,
-  fires at a tenth of its damage, takes hits raised by the rate on damage
-  taken, and loses the buff when it expires or, cleared, just before it falls:
+- A turret standing through the loss takes the buff after the side's deployed
+  units, fires at a tenth of its damage, takes hits raised by the rate on
+  damage taken, and loses the buff when it expires or, cleared, just before
+  it falls:
   `tests/tower/turret-falls-under-the-loss.yaml`,
   `tests/tower/turret-outlasts-the-loss.yaml`.
+- A unit made in the fight takes the buff after the turret, though it was
+  made before the tower fell: `tests/tower/loss-reaches-a-make-after-the-turret.yaml`.
 - A unit that dies under the buff has it written as cleared after its death,
   a projectile's kill as any other: `tests/tower/`.
 - The buff counts from the tick after the tower falls on the side updated
@@ -190,6 +200,10 @@ rest of the fight. A unit with no lock goes straight to its point.
 
 ### Read
 
+- A side's actor list is its towers while they are shown, its units, its
+  crystals and its constructions as the fight starts, and what joins it
+  later is appended: `FightTeam.PrepareActors`, `FightTeam.AddActor`,
+  `FightTeam.ActiveMech`, `FightTeam.DeactiveMech`.
 - A tower's loss hands its buff on through one call, to the side's own actors
   or the group's: `FightTeamController.OnTowerDestoryed`,
   `BuildingSystem.OnTowerDestroyed`, `BuildingSystem.SetAddTowerBuffTarget`,

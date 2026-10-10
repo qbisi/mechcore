@@ -15,8 +15,9 @@
 //! duration in additive mode, and restarts it otherwise. `BuffManager.Update`
 //! runs last in `FightMech.Update` and `FightConstruction.Update`, after the
 //! skill and the motion, and a buff ends on the update its elapsed ticks reach
-//! its duration. The side's objects are its units and then its constructions
-//! whose row lets a tower's buff reach them.
+//! its duration. The side's objects are its units and its constructions whose
+//! row lets a tower's buff reach them, in the order they joined the side: the
+//! units deployed, the constructions, then every unit made since.
 //!
 //! Each of these is an event: `buff_applied` for every object the loss
 //! reaches, after the tower's `building_destroyed`, naming the running buff's
@@ -32,7 +33,9 @@ use crate::{
     rules::{TowerLevel, TowersConfig},
 };
 
-use super::{LOGIC_TICK_TIME_UNITS, Simulation, TIME_UNITS_PER_SECOND, event, math::q32_div};
+use super::{
+    FightActorRef, LOGIC_TICK_TIME_UNITS, Simulation, TIME_UNITS_PER_SECOND, event, math::q32_div,
+};
 use crate::modifier::{DeadSummon, StackCondition};
 use mechcore_mcfr::{BuffRemovedReason, Event, EventPayload, ObjectKind, ObjectRef};
 
@@ -619,8 +622,9 @@ impl Simulation {
     }
 
     /// `FightTeamController.OnTowerDestoryed`: the fallen building's buff, on
-    /// every live object of its side, `FightTeam.activeActors`: its units,
-    /// then its constructions whose row lets a tower's buff reach them.
+    /// every live object of its side, `FightTeam.activeActors`, in the order
+    /// they joined it: its units, and its constructions whose row lets a
+    /// tower's buff reach them.
     pub(in crate::fight) fn lose_tower(&mut self, building_id: u64) -> Result<()> {
         let Some(loss) = self.towers.losses.get(&building_id).copied() else {
             return Ok(());
@@ -655,55 +659,57 @@ impl Simulation {
             current_life_rate: 0,
         };
         let mut applied = Vec::new();
-        // `activeActors` holds a side's units in the order they joined it: a
-        // unit a beam turned onto it comes after every unit already there.
-        let actor_ids = self
-            .units_in_update_order()
-            .into_iter()
-            .filter(|id| {
-                let actor = &self.actors[id];
-                actor.placement.team == loss.team && actor.alive()
+        // `activeActors` holds a side's units and constructions in the order
+        // they joined it: the units deployed, then the constructions, then
+        // every unit made or turned onto the side since.
+        let reaches_constructions = self.towers.config.reaches_constructions();
+        let reached = self
+            .active_actors
+            .iter()
+            .copied()
+            .filter(|&actor| match actor {
+                FightActorRef::Unit(id) => self
+                    .actors
+                    .get(&id)
+                    .is_some_and(|actor| actor.placement.team == loss.team && actor.alive()),
+                FightActorRef::Building(id) => {
+                    reaches_constructions
+                        && self.towers.buffed_constructions.contains(&id)
+                        && self.buildings.iter().any(|building| {
+                            building.building_id == id
+                                && building.team_id == loss.team
+                                && building.life.current > 0
+                        })
+                }
             })
             .collect::<Vec<_>>();
-        for actor_id in actor_ids {
-            if self.buff_reaches(actor_id, &row)? {
-                self.write_buff(actor_id, None, loss.team, &row, &mut applied)?;
-            }
-        }
-        let reached = if self.towers.config.reaches_constructions() {
-            self.buildings
-                .iter()
-                .filter(|building| {
-                    building.team_id == loss.team
-                        && building.life.current > 0
-                        && self
-                            .towers
-                            .buffed_constructions
-                            .contains(&building.building_id)
-                })
-                .map(|building| building.building_id)
-                .collect::<Vec<_>>()
-        } else {
-            Vec::new()
-        };
-        for construction_id in reached {
-            let buffed = self
-                .buffs
-                .building_buffs
-                .entry(construction_id)
-                .or_default();
-            let (running, added, written) =
-                add_buff(&mut buffed.buffs, &row, (None, false), loss.team, false);
-            applied.push(buff_applied(
-                ObjectRef::new(ObjectKind::Building, construction_id),
-                loss.team,
-                &running,
-            ));
-            if added {
-                for entry in &written {
-                    buffed.overlays.channel(Channel::Buff).write(*entry);
+        for actor in reached {
+            match actor {
+                FightActorRef::Unit(actor_id) => {
+                    if self.buff_reaches(actor_id, &row)? {
+                        self.write_buff(actor_id, None, loss.team, &row, &mut applied)?;
+                    }
                 }
-                self.refresh_construction(construction_id)?;
+                FightActorRef::Building(construction_id) => {
+                    let buffed = self
+                        .buffs
+                        .building_buffs
+                        .entry(construction_id)
+                        .or_default();
+                    let (running, added, written) =
+                        add_buff(&mut buffed.buffs, &row, (None, false), loss.team, false);
+                    applied.push(buff_applied(
+                        ObjectRef::new(ObjectKind::Building, construction_id),
+                        loss.team,
+                        &running,
+                    ));
+                    if added {
+                        for entry in &written {
+                            buffed.overlays.channel(Channel::Buff).write(*entry);
+                        }
+                        self.refresh_construction(construction_id)?;
+                    }
+                }
             }
         }
         self.buffs.tower_events.insert(building_id, applied);

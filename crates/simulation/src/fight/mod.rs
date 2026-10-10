@@ -523,9 +523,10 @@ struct Simulation {
     dead_exits: Vec<u64>,
     /// The step being simulated, which what happens inside a hit reads.
     step_now: u64,
-    /// The order the fight updates its deployed units in, which is not their
-    /// identity order: see [`deploy::update_order`].
-    unit_update_order: Vec<u64>,
+    /// Every side's `FightTeam.activeActors`, the order it updates its units
+    /// in and hands a buff for all of it out: see [`deploy::prepare_actors`].
+    /// The sides share the list, and each reads its own in it.
+    active_actors: Vec<FightActorRef>,
     team_random: BTreeMap<u32, GrRandom>,
     projectiles: Vec<Projectile>,
     /// Each side's interceptors, `InterceptSystem`'s sources.
@@ -634,7 +635,6 @@ impl Simulation {
         }
         let mut actors = initialize_actors(layout, configs, seed)?;
         let travels = super_deployment::enter_travel(&mut actors, &layout.travel_time_rates)?;
-        let unit_update_order = deploy::update_order(&actors);
         let InitialBuildings {
             states: buildings,
             unsearchable,
@@ -645,12 +645,14 @@ impl Simulation {
             construction_groups,
             building_exp,
             interceptors,
+            crystals,
         } = initialize_buildings(
             towers,
             &layout.constructions,
             &layout.interceptors,
             &layout.tower_levels,
         )?;
+        let active_actors = deploy::prepare_actors(&actors, &buildings, &crystals);
         let constructions = initialize_constructions(&buildings, &layout.constructions)?;
         let grounds = formation_grounds(layout, configs)?;
         let map_crystals = map_crystals(maps.buildings(layout.map_id)?, &grounds);
@@ -671,7 +673,7 @@ impl Simulation {
             dead_explosions: Vec::new(),
             dead_exits: Vec::new(),
             step_now: 0,
-            unit_update_order,
+            active_actors,
             team_random: BTreeMap::new(),
             projectiles: Vec::new(),
             interceptors,

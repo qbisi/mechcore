@@ -4,6 +4,9 @@ use super::*;
 pub(in crate::fight) struct InitialBuildings {
     /// The interceptors, each side's in the order its layout releases them.
     pub(in crate::fight) interceptors: Vec<Interceptor>,
+    /// The interceptors' buildings: a side's crystals (`FightCrystal`), which
+    /// are no construction.
+    pub(in crate::fight) crystals: BTreeSet<u64>,
     pub(in crate::fight) states: Vec<BuildingState>,
     /// The ones a unit looking for a target may not find.
     pub(in crate::fight) unsearchable: BTreeSet<u64>,
@@ -636,6 +639,10 @@ pub(in crate::fight) fn initialize_buildings(
         .collect();
     let (construction_groups, building_exp, tower_buffed_constructions) =
         construction_groups(&raw, |building| normalized_ids[&building_key(building)]);
+    let crystals = raw[placed_interceptors..]
+        .iter()
+        .map(|building| normalized_ids[&building_key(building)])
+        .collect();
     let interceptors = raw[placed_interceptors..]
         .iter()
         .zip(interceptors)
@@ -646,6 +653,7 @@ pub(in crate::fight) fn initialize_buildings(
         .collect();
     Ok(InitialBuildings {
         interceptors,
+        crystals,
         states,
         unsearchable,
         colliders,
@@ -673,10 +681,10 @@ impl Simulation {
     pub(in crate::fight) fn initialize_presearch_targets(&mut self) -> Result<()> {
         // `PresearchTargetController.CreateMechDatas` takes each side's
         // mechs in their team's order, the order they update in
-        // ([`update_order`]), not their identities': a Mustang a few raw
+        // ([`prepare_actors`]), not their identities': a Mustang a few raw
         // units behind its neighbour in `z` and left of it in `x` falls in
         // the earlier batch and searches a tick sooner.
-        let actor_ids = self.unit_update_order.clone();
+        let actor_ids = self.units_in_update_order();
         // The build's PresearchTargetController::CalculateCountPerTime returns
         // ceil(mech_count / 10). SearchTarget assigns the zero-based batch
         // ordinal to the main FightSkill search controller before selecting
@@ -869,36 +877,69 @@ impl Simulation {
     }
 }
 
-/// The order a fight updates its deployed units in: each side's units by
-/// `FightUtility.PositionComparer` on where they spawned, world `z` unless
-/// `FPoint`'s tolerant inequality finds two within 43 raw of each other, and
-/// world `x` then. Identities follow `z` strictly, so two units a few raw
-/// units apart in `z` update in the order their `x` gives, not their
-/// identities': recorded in replays 201370830 and 67152171, round 1, where two
-/// such units draw their first intervals, and act each tick, in that order.
-/// The comparison is no total order, which `sort_by` may refuse, so each unit
-/// is inserted after every unit it does not precede.
-pub(in crate::fight) fn update_order(actors: &BTreeMap<u64, Actor>) -> Vec<u64> {
-    const TOLERANCE: u64 = 43;
-    let order = |left: &Actor, right: &Actor| {
-        left.placement
-            .team
-            .cmp(&right.placement.team)
-            .then_with(|| {
-                if left.z_q32.abs_diff(right.z_q32) > TOLERANCE {
-                    left.z_q32.cmp(&right.z_q32)
-                } else {
-                    left.x_q32.cmp(&right.x_q32)
-                }
-            })
+/// `FightTeam.PrepareActors`: each side's `activeActors` as the fight starts,
+/// its units, then its crystals (the interceptors), then its constructions,
+/// each sorted by `FightUtility.ActorComparer` on where it stands. A side's
+/// towers lead the list while they are shown, and nothing that walks it here
+/// acts on a tower, so they are left out. Whatever joins the side later is
+/// appended (`FightTeam.AddActor`, `ActiveMech`), after every construction.
+///
+/// The units' part is the order the fight updates its deployed units in.
+/// Identities follow `z` strictly, so two units a few raw units apart in `z`
+/// update in the order their `x` gives, not their identities': recorded in
+/// replays 201370830 and 67152171, round 1, where two such units draw their
+/// first intervals, and act each tick, in that order.
+pub(in crate::fight) fn prepare_actors(
+    actors: &BTreeMap<u64, Actor>,
+    buildings: &[BuildingState],
+    interceptors: &BTreeSet<u64>,
+) -> Vec<FightActorRef> {
+    let units = sort_by_actor_comparer(actors, |(_, actor)| {
+        (actor.placement.team, actor.z_q32, actor.x_q32)
+    })
+    .into_iter()
+    .map(|(&id, _)| FightActorRef::Unit(id));
+    let placed = |crystals: bool| {
+        sort_by_actor_comparer(
+            buildings.iter().filter(move |building| {
+                building.building_type_id == CONSTRUCTION_BUILDING_TYPE
+                    && interceptors.contains(&building.building_id) == crystals
+            }),
+            |building| (building.team_id, building.position.z, building.position.x),
+        )
+        .into_iter()
+        .map(|building| FightActorRef::Building(building.building_id))
     };
-    let mut sorted: Vec<u64> = Vec::with_capacity(actors.len());
-    for (&id, actor) in actors {
+    units.chain(placed(true)).chain(placed(false)).collect()
+}
+
+/// `List.Sort` by `FightUtility.ActorComparer`, each side apart: world `z`
+/// unless `FPoint`'s tolerant inequality finds two within 43 raw of each
+/// other, and world `x` then. The comparison is no total order, which
+/// `sort_by` may refuse, so each item is inserted after every item it does
+/// not precede. `key` answers an item's side, `z` and `x`.
+fn sort_by_actor_comparer<T: Copy>(
+    items: impl IntoIterator<Item = T>,
+    key: impl Fn(T) -> (u32, i64, i64),
+) -> Vec<T> {
+    const TOLERANCE: u64 = 43;
+    let order = |left: T, right: T| {
+        let ((left_team, left_z, left_x), (right_team, right_z, right_x)) = (key(left), key(right));
+        left_team.cmp(&right_team).then_with(|| {
+            if left_z.abs_diff(right_z) > TOLERANCE {
+                left_z.cmp(&right_z)
+            } else {
+                left_x.cmp(&right_x)
+            }
+        })
+    };
+    let mut sorted: Vec<T> = Vec::new();
+    for item in items {
         let at = sorted
             .iter()
-            .rposition(|placed| order(&actors[placed], actor) != Ordering::Greater)
+            .rposition(|&placed| order(placed, item) != Ordering::Greater)
             .map_or(0, |index| index + 1);
-        sorted.insert(at, id);
+        sorted.insert(at, item);
     }
     sorted
 }

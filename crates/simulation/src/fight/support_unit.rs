@@ -809,7 +809,7 @@ impl Simulation {
             .collect::<Vec<_>>();
         self.support.lines.extend(lines);
         self.actors.insert(unit_id, actor);
-        self.unit_update_order.push(unit_id);
+        self.active_actors.push(FightActorRef::Unit(unit_id));
         // `FightEffectSystem` activates its effects as it joins.
         self.active_effect(unit_id)?;
         self.draw_owner_first_intervals(FightActorRef::Unit(unit_id))
@@ -855,8 +855,10 @@ impl Simulation {
         for actor in moved {
             self.actors.insert(actor.placement.unit_id, actor);
         }
-        for id in &mut self.unit_update_order {
-            if let Some(&(unit_id, _)) = renamed.get(id) {
+        for actor in &mut self.active_actors {
+            if let FightActorRef::Unit(id) = actor
+                && let Some(&(unit_id, _)) = renamed.get(id)
+            {
                 *id = unit_id;
             }
         }

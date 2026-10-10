@@ -1,0 +1,37 @@
+# A tower's loss hands its buff out in the order blue's objects joined the
+# side (`FightTeam.activeActors`): the units deployed, then the
+# constructions, then a unit made in the fight, after the turret though it
+# was made before the tower fell.
+#
+# Blue's Vulcan makes a Marksman with Best Partner at t1, and its Anti-Armor
+# Turret stands in the far corner when red's Steel Ball takes blue's Energy
+# Tower at t231, as in turret-outlasts-the-loss.yaml, which this fight takes
+# as its control. The game writes buff 1 on the Fangs, the Vulcan (unit 19),
+# the turret (building 3) and then the Marksman (unit 24).
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  techs:
+    vulcan: [best_partner]
+  units:
+  - {name: fang, index: 0, position: {x: 145, y: -300}}
+  - {name: vulcan, index: 1, position: {x: -220, y: -280}}
+  constructions:
+  - {name: anti_armor_turret, index: 2, position: {x: -280, y: -300}}
+red:
+  units:
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}}
+outcome:
+  blue.units[0].exp: 300
+  blue.units[1].exp: 100
+  red.core_damage: 108
+  red.units[0].exp: 1000
+asserts:
+- sql: "SELECT target__kind, target__id FROM events WHERE type = 'buff_applied' AND tick = 231 AND (target__kind = 'building' OR target__id IN (19, 24)) ORDER BY ordinal"
+  rows: [[unit, 19], [building, 3], [unit, 24]]
+ticks: 583
+hash: 23:2aea3b32354b9563e4c10815bfb91fc1cc76ff5f16b2117b0e45ce74c60b44b9
