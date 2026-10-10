@@ -553,7 +553,10 @@ scored as if it stood at the origin
 ([turrets](../../rules/turrets.md#as-the-fight-starts-it-faces-the-target-its-selector-scores-best)).
 The deliveries are the last legacy units, one squad for each officer whose
 `opening_unit` the round activates, so a side that two such officers deliver
-to in one round is refused: the order they deliver in is not recorded.
+to in one round is refused: the order they deliver in is not recorded. A squad
+recovered during the deployment, as Field Recovery recovers one, leaves its
+index absent: the fight sees nothing of it, and a layout states nothing of the
+recovery.
 A unit reaches a flank during the round only by travelling there, so a unit
 that stands on a flank without travelling is legacy.
 
