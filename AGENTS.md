@@ -122,11 +122,12 @@ disproved the old belief and what evidence did; which numbers were read from
 the game and which were measured; what was verified and how, and what was
 not. Every sentence will later be quoted as fact.
 
-The corpus distance is not one of the numbers an author measures. The corpus
-workflow (`.github/workflows/corpus.yml`) measures every pull request against
-the master commit it is based on and keeps the numbers in a comment on it; a
-body leaves them to that comment and builds no master baseline locally. What
-only the machine with the game has, its recordings, is still verified there.
+Whether a change fights the corpus rounds as their matches say is not
+measured by its author. The corpus workflow (`.github/workflows/corpus.yml`)
+runs on each master commit, and for the rounds a commit newly fights wrong or
+refuses it opens a `divergence` issue and comments on the pull request it merged; a body
+builds no master baseline locally. What only the machine with the game has,
+its recordings, is still verified there.
 
 Write an issue or pull request number only for a dependency: `Closes #n`,
 `Blocked by #n`, or a decision that moves another item. A tracked file never
