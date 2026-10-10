@@ -1,8 +1,7 @@
 # One Marksman against one Arclight. The control equipment/, level/,
 # lifesteal/, repair/, energy_shield/, equipment_buff/ and construction/
-# change one thing about; mechcore's play and recording tests take it as their
-# input. Its assert: the fight ends with no unit holding a lock. Map 1021, seed
-# 1787720817.
+# change one thing about. Its assert: the fight ends with no unit holding a
+# lock. Map 1021, seed 1787720817.
 kind: fight
 source: game
 map_id: 1021

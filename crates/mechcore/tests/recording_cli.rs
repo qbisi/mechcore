@@ -715,11 +715,12 @@ fn buildings_read_the_towers_a_map_gives_each_side() {
 }
 
 /// A fight document converts to the recording of the fight it states: its
-/// projection, fought with its own seed, lands on the hash it pins.
+/// projection, fought with its own seed, lands on the hash it states.
 #[test]
 fn a_fight_converts_to_the_recording_it_pins() {
-    let fight =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/marksman/vs-arclight.yaml");
+    let directory = tempfile::tempdir().unwrap();
+    let fight = directory.path().join("fight.yaml");
+    fs::write(&fight, simulated_fight(directory.path())).unwrap();
     let command = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["convert", "--to", "mcfr"])
         .arg(&fight)
