@@ -1768,8 +1768,9 @@ fn main_fire(
 /// `SkillDataModifier.AvaliableCheck` lets it ([`reaching_extra_skills`]):
 /// an officer and a technology of the units these weapons serve only a skill
 /// with a damage rate, and an equipment through its `extraSkillEffect` and
-/// an Energy Tower skill always. How such a correction composes on an extra
-/// skill is not measured, so a unit it reaches is refused.
+/// an Energy Tower skill always. An extra skill reads its damage, its range,
+/// its interval and its splash through that `DataSet` as the main skill does;
+/// a unit another correction reaches is refused.
 fn extra_weapons(
     side_name: &str,
     (type_name, level): (&str, i64),
@@ -1966,9 +1967,17 @@ fn reaching_extra_skill(
     // A range reaches a skill of its own range without a damage rate, which
     // holds what reaches it alone; a melee skill's range reads no correction.
     let range_read = parent_range || weapon.attack.melee || !rated;
+    // Its damage, interval and splash read its `DataSet` as the main skill's
+    // do ([`crate::data::Stats::interval_of`], [`crate::data::Stats::splash_of`]).
     let read = |index: Index| {
-        matches!(index, Index::AttackDamage | Index::DamageReduceRateBase)
-            || (index == Index::AttackRange && range_read)
+        matches!(
+            index,
+            Index::AttackDamage
+                | Index::DamageReduceRateBase
+                | Index::DamagePerKill
+                | Index::AttackInterval
+                | Index::SplashRange
+        ) || (index == Index::AttackRange && range_read)
     };
     let mut sources = Vec::new();
     for &id in equipment {

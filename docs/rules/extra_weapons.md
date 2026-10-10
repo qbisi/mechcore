@@ -679,10 +679,19 @@ Energy Tower skill that adds 15 metres to every ranged unit, takes a Homing
 Missile's 160 metres to 175: a Centurion's first missile leaves 172 metres
 from its Rhino's edge. A melee skill reads no correction of its range, so
 Scorching Charge's charge still strikes at its 1 metre, though the skill's
-slot records the main skill's 15 metres with its other numbers. Any other
-number than damage and range a source corrects on an extra skill is not read,
-nor a range on a skill with a damage rate whose range is its own and that is
-not melee, so the simulator refuses it.
+slot records the main skill's 15 metres with its other numbers.
+
+Its interval and its splash compose what it holds as the main skill's do
+(`AttackIntervalProperty`, `FightSkill.GetSplashRange`): Mechanical Rage's
+interval reaches Whirlwind, and Explosive Ammo's splash Energy Diffraction's
+beams. A skill with a damage rate counts its unit's kills too:
+`FightMech.AddKillCount` adds one to every skill of
+`SkillManager.mainSkillDataAffectedSkills`, so Berserk Rhino's damage per
+kill raises Whirlwind's blows as it does the main skill's. A grouped row's
+skills that join the main skill's group attack on its numbers, which hold
+these already. Any other number a source corrects on an extra skill is not
+read, nor a range on a skill with a damage rate whose range is its own and
+that is not melee, so the simulator refuses it.
 
 ## Evidence
 
@@ -694,6 +703,13 @@ not melee, so the simulator refuses it.
   without a damage rate, and a melee one's slot records it without its range
   moving: `tests/extra_weapon/enhanced-range-homing-missile.yaml`,
   `tests/extra_weapon/enhanced-range-scorching-charge.yaml`.
+- An extra skill's interval, splash and damage per kill compose what its
+  `DataSet` holds as the main skill's do:
+  `tests/extra_weapon/whirlwind-mechanical-rage.yaml`,
+  `tests/extra_weapon/energy-diffraction-explosive-ammo.yaml`,
+  `tests/extra_weapon/whirlwind-berserk-rhino.yaml`; a grouped row's slots
+  attack on the main skill's:
+  `tests/extra_weapon/matrix-bombardment-land-cruiser.yaml`.
 - A Secondary Armament gun at the edge of its arc whose Crawler walks out of
   it takes the next Crawler within the arc on its check:
   `tests/corpus/201340110-r5.yaml`, blue's Sabertooth 179, tick 143.
@@ -1113,8 +1129,8 @@ not melee, so the simulator refuses it.
   Nor is a shield covering what the blow was aimed at recorded, nor a wave's
   timer ordered against a summon's that is due on the same tick: the
   simulator runs the summons first.
-- **A correction other than damage composing on an extra skill**, an Energy
-  Tower skill's range among them. Refused.
+- **A correction other than damage, range, interval and splash composing on
+  an extra skill.** Refused.
 - **What invincibility keeps off.** A fire burns an invincible Fire Badger;
   whether a shot or a blow does is not recorded, and the simulator lets every
   hit through.
@@ -1122,9 +1138,8 @@ not melee, so the simulator refuses it.
   and the extraction refuses, and its self splash at a target that is not
   visible (`SkillAttackRangeChecker.IsAttackTargetInAttackRange`), which no
   recording reaches.
-- **A correction other than damage on a skill with a damage rate**, a range
-  on a skill that reads its own range or an interval reaching it through the
-  main skill. Refused.
+- **A range on a skill with a damage rate that reads its own range.**
+  Refused.
 - **The other preemptive skills and conditions.** A transition to wait out
   (condition type 2), an ammunition condition, an extra weapon buff and an
   incompatible skill are read in part and refused by the extraction.

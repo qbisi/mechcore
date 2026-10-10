@@ -1,0 +1,23 @@
+# Explosive Ammo's splash on Energy Diffraction, a skill with a damage rate
+# that holds the main skill's `DataSet`: `energy-diffraction-rhino.yaml`
+# with the item, its splash read by `FightSkill.GetSplashRange` as the main
+# skill's is.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  techs:
+    melting_point: [energy_diffraction]
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -100}, equipment: [explosive_ammo]}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 350
+ticks: 174
+hash: 23:8a6418c7cf79c5d8af32d7107bd4e1d629af495a23f2d7872372594ec39f623e

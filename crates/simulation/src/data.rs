@@ -953,18 +953,7 @@ impl Stats {
         self.attack_damage_air =
             self.overlays
                 .resolve_damage(base_damage, self.kills, false, UnitDomain::Air)?;
-        // A value is Q32.32 seconds already, and so is the interval.
-        let composed = self.overlays.resolve(
-            Index::AttackInterval,
-            time_to_q32(
-                i64::try_from(rules.attack.interval_time_units())
-                    .map_err(|_| Error::new("attack interval is outside the signed range"))?,
-            ),
-        )?;
-        if composed < 0 {
-            return Err(Error::new("attack interval resolved below zero"));
-        }
-        self.attack_interval_q32 = attack_interval_property(composed);
+        self.attack_interval_q32 = self.interval_of(rules.attack.interval_time_units(), None)?;
         // `AttackRangeProperty` reads no correction of a melee skill's range,
         // neither its `DataSet`'s values and rates nor a buff's: a Sandworm
         // with Anti-Aerial records the technology's 20 metres and reaches 60.
@@ -981,8 +970,58 @@ impl Stats {
                 ONE,
             )?;
         }
-        self.splash_radius = resolve(Index::SplashRange, rules.attack.splash_radius())?;
+        self.splash_radius = self.splash_of(rules.attack.splash_radius(), None)?;
         Ok(())
+    }
+
+    /// The overlays one of the unit's skills reads: the main skill's, or,
+    /// for a skill whose `DataSet` holds what reaches it alone, that with
+    /// the unit's and the buffs'.
+    fn skill_overlays(&self, skill: Option<&[Entry]>) -> std::borrow::Cow<'_, Overlays> {
+        match skill {
+            None => std::borrow::Cow::Borrowed(&self.overlays),
+            Some(skill) => std::borrow::Cow::Owned(Overlays {
+                skill: Overlay::of(skill),
+                ..self.overlays.clone()
+            }),
+        }
+    }
+
+    /// A skill's interval from its row's, Q32.32 seconds, as its
+    /// `AttackIntervalProperty` answers: the main skill's and every skill
+    /// that holds its `DataSet` (`skill` none) read it alike. Of the buffs',
+    /// `AttackIntervalProperty.Refresh` reads the main skill's rates for the
+    /// main skill and `GetExtraAttackIntervalChangeAddRate` and its reduce
+    /// for any other; no buff here holds either, since one that sets an
+    /// interval is refused as it is read.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the interval leaves the signed range or resolves
+    /// below zero; see [`Overlays::resolve`].
+    pub(crate) fn interval_of(&self, time_units: u64, skill: Option<&[Entry]>) -> Result<i64> {
+        // A value is Q32.32 seconds already, and so is the interval.
+        let composed = self.skill_overlays(skill).resolve(
+            Index::AttackInterval,
+            time_to_q32(
+                i64::try_from(time_units)
+                    .map_err(|_| Error::new("attack interval is outside the signed range"))?,
+            ),
+        )?;
+        if composed < 0 {
+            return Err(Error::new("attack interval resolved below zero"));
+        }
+        Ok(attack_interval_property(composed))
+    }
+
+    /// A skill's splash from its row's, `FightSkill.GetSplashRange`: the
+    /// row's with its `DataSet`'s `SplashRangeValue` added.
+    ///
+    /// # Errors
+    ///
+    /// See [`Overlays::resolve`].
+    pub(crate) fn splash_of(&self, base: i64, skill: Option<&[Entry]>) -> Result<i64> {
+        self.skill_overlays(skill).resolve(Index::SplashRange, base)
     }
 
     /// `DamageCalculator.AddKillCount` on each of its skills: one more kill,
@@ -1050,13 +1089,15 @@ impl Stats {
     /// Another skill's damage from its own base, as this unit's corrections
     /// leave it: `DamageProperty.CalculateDamage` over a skill whose `DataSet`
     /// holds the same corrections as the main skill's, and the buffs', with
-    /// none of the main skill's kills.
+    /// the unit's kills: `FightMech.AddKillCount` counts a kill on every
+    /// skill of `SkillManager.mainSkillDataAffectedSkills`.
     ///
     /// # Errors
     ///
     /// Returns an error when the damage leaves the signed range.
     pub(crate) fn damage_from(&self, base: i64, against: UnitDomain) -> Result<i64> {
-        self.overlays.resolve_damage(base, 0, false, against)
+        self.overlays
+            .resolve_damage(base, self.kills, false, against)
     }
 
     /// An extra skill's range from its own, millimetres, as
@@ -1091,11 +1132,9 @@ impl Stats {
         skill: &[Entry],
         against: UnitDomain,
     ) -> Result<i64> {
-        let overlays = Overlays {
-            skill: Overlay::of(skill),
-            ..self.overlays.clone()
-        };
-        overlays.resolve_damage(base, 0, false, against)
+        // Not among `mainSkillDataAffectedSkills`, it counts no kill.
+        self.skill_overlays(Some(skill))
+            .resolve_damage(base, 0, false, against)
     }
 
     /// The laser's base damage is truncated after its ramp multiplier, before

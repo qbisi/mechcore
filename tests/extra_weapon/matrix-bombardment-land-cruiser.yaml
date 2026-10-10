@@ -1,0 +1,31 @@
+# High-Explosive Ammo's splash and Land Cruiser's interval with Matrix
+# Bombardment: `matrix-bombardment-rhino.yaml` with both technologies. The
+# row's skills are slots of the main skill's group
+# (`FightSkillFactory.PrepareGroupedSkill`) and attack on its numbers, the
+# technologies' splash and interval among them.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  techs:
+    wraith: [high_explosive_ammo, land_cruiser, floating_artillery_array]
+  units:
+  - {name: wraith, index: 0, position: {x: 5, y: -255}}
+  - {name: wraith, index: 1, position: {x: 5, y: -215}}
+  - {name: wraith, index: 2, position: {x: 5, y: -175}}
+  - {name: wraith, index: 3, position: {x: 5, y: -135}}
+  - {name: wraith, index: 4, position: {x: 5, y: -95}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+outcome:
+  blue.units[1].exp: 50
+  blue.units[2].exp: 50
+  blue.units[3].exp: 250
+  blue.units[4].exp: 50
+  red.core_damage: 1250
+ticks: 210
+hash: 23:5a1f9825a2c345132afc3dab7258cd8ad28bbb81acf47ad85f9d727eb7794f63

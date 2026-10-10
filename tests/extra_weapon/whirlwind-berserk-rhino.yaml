@@ -1,0 +1,25 @@
+# Berserk Rhino's damage per kill on Whirlwind: `FightMech.AddKillCount`
+# counts each of the Rhino's kills on every skill that holds the main skill's
+# `DataSet`, Whirlwind among them, so its blows rise with the Crawlers it
+# kills as the main skill's do.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  officers: [berserk_rhino]
+  techs:
+    rhino: [whirlwind]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: crawler, index: 1, position: {x: 5, y: -140}}
+outcome:
+  blue.units[0].exp: 384
+  red.core_damage: 200
+ticks: 162
+hash: 23:c729166edba6c7a344363005f51d7a6ddb1b86a9fa1bc33426984fcd7bdb1e2c
