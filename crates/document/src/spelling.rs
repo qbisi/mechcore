@@ -37,23 +37,24 @@ pub(crate) fn document(root: &Value) -> Result<String, String> {
     Ok(out)
 }
 
-/// [`document`], with the root's `listed` field written one entry a line:
-/// each key bare when it reads back as itself, a path such as
-/// `blue.units[0].exp` among them, and each value in flow style.
+/// [`document`], with each of the root's `listed` fields written one entry
+/// a line: a mapping's entries each on its own line, each key bare when it
+/// reads back as itself, a path such as `blue.units[0].exp` among them; a
+/// sequence of mappings with each item's fields on lines of their own. Every
+/// value is in flow style.
 ///
 /// # Errors
 ///
 /// As [`document`].
-pub(crate) fn document_listing(root: &Value, listed: &str) -> Result<String, String> {
+pub(crate) fn document_listing(root: &Value, listed: &[&str]) -> Result<String, String> {
     let Value::Mapping(fields) = root else {
         return Err("a document is a mapping".into());
     };
     let mut out = String::new();
     for (key, value) in fields {
-        let mut one = serde_yaml::Mapping::new();
-        one.insert(key.clone(), value.clone());
-        match (key.as_str(), value) {
-            (Some(name), Value::Mapping(entries)) if name == listed => {
+        let name = key.as_str().filter(|name| listed.contains(name));
+        match (name, value) {
+            (Some(name), Value::Mapping(entries)) => {
                 out.push_str(name);
                 out.push_str(":\n");
                 for (entry, value) in entries {
@@ -64,7 +65,27 @@ pub(crate) fn document_listing(root: &Value, listed: &str) -> Result<String, Str
                     out.push('\n');
                 }
             }
-            _ => block_mapping(&one, 0, &mut out)?,
+            (Some(name), Value::Sequence(items))
+                if items.iter().all(|item| matches!(item, Value::Mapping(_))) =>
+            {
+                out.push_str(name);
+                out.push_str(":\n");
+                for item in items {
+                    let Value::Mapping(item) = item else { continue };
+                    for (at, (field, value)) in item.iter().enumerate() {
+                        out.push_str(if at == 0 { "- " } else { "  " });
+                        listing_key(field, &mut out)?;
+                        out.push_str(": ");
+                        flow(value, &mut out)?;
+                        out.push('\n');
+                    }
+                }
+            }
+            _ => {
+                let mut one = serde_yaml::Mapping::new();
+                one.insert(key.clone(), value.clone());
+                block_mapping(&one, 0, &mut out)?;
+            }
         }
     }
     Ok(out)

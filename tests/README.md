@@ -92,7 +92,12 @@ were first held to.
 topic's directory: the layout, the seed, the outcome the game's recording of
 them decided, and its tick count and hash, in one file. A fixture keeps its
 trajectory: the outcome alone is what a document states once a change to the
-rules has moved the hash and the fight is not yet recorded again. A
+rules has moved the hash and the fight is not yet recorded again. What the
+comment claims the fight shows, a fixture can state as an assert, a query of
+its recording and the rows the game answered
+([fight.md](../docs/spec/document/fight.md#asserts)), so the claim is checked
+and outlives the hash; its rows are recorded from the game, never written by
+hand. A
 comment at the top of the file says what the fight measures. A fixture's
 `source` is `game`: a fight the simulator computed states what is being
 checked, and is never a fixture. A layout stays a layout file only while

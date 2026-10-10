@@ -41,9 +41,32 @@ pub struct Fight {
     /// The fight's ticks and trajectory hash, which a document states
     /// together or not at all.
     pub trajectory: Option<Trajectory>,
+    /// What the fixture claims about how the fight went, each a query of its
+    /// recording and the rows the game's recording answered.
+    pub asserts: Vec<Assert>,
     pub blue: FightSide,
     pub red: FightSide,
 }
+
+/// One claim about a fight's recording: a query, as `mechcore query` reads
+/// one, and the rows the game's recording of the fight answered it with.
+///
+/// The rows are the game's, recorded by `verify --backend game --update`,
+/// and an assert whose rows nobody recorded states none. Whether the claim
+/// is bound to a tick or only to the order of what happened is the query's
+/// to say, by what it selects and orders by.
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct Assert {
+    /// The SQL the recording is asked.
+    pub sql: String,
+    /// What the game's recording answered, row by row, each cell as the
+    /// query answers it; absent until it is recorded.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rows: Option<Vec<Vec<serde_json::Value>>>,
+}
+
+impl Eq for Assert {}
 
 /// A fight's logical ticks, the recording's `tick_count`, and its trajectory
 /// hash.
@@ -90,6 +113,9 @@ struct WrittenFight {
     #[serde(default, skip_serializing_if = "serde_yaml::Mapping::is_empty")]
     #[schemars(with = "BTreeMap<String, serde_json::Value>")]
     outcome: serde_yaml::Mapping,
+    /// What the fixture claims about how the fight went.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    asserts: Vec<Assert>,
     /// The fight's logical ticks, stated with `hash` or not at all.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(range(min = 1))]
@@ -115,6 +141,7 @@ impl TryFrom<WrittenFight> for Fight {
             round: written.round,
             source: written.source,
             trajectory,
+            asserts: written.asserts,
             blue: unfought(written.blue),
             red: unfought(written.red),
         }
@@ -149,6 +176,7 @@ impl From<Fight> for WrittenFight {
             blue: project_side(&fight.blue),
             red: project_side(&fight.red),
             outcome,
+            asserts: fight.asserts,
             ticks,
             hash,
         }
@@ -761,7 +789,7 @@ pub fn canonical_yaml(fight: Fight) -> Result<String, String> {
     validate(&fight)?;
     let value = serde_yaml::to_value(fight.normalized())
         .map_err(|error| format!("cannot serialize fight YAML: {error}"))?;
-    crate::spelling::document_listing(&value, "outcome")
+    crate::spelling::document_listing(&value, &["outcome", "asserts"])
 }
 
 #[derive(Deserialize)]
@@ -1199,6 +1227,29 @@ hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
         )
         .unwrap_err();
         assert!(error.contains("not written"), "{error}");
+    }
+
+    #[test]
+    fn an_assert_is_a_query_and_the_rows_the_game_answered() {
+        let asserted = EXAMPLE.replace(
+            "\nticks:",
+            "\nasserts:\n- sql: \"SELECT tick FROM events WHERE type = 'damage'\"\n  rows: [[63], [64]]\n- sql: \"SELECT 1\"\nticks:",
+        );
+        let fight = parse_yaml(asserted.as_bytes()).unwrap();
+        assert_eq!(fight.asserts.len(), 2);
+        assert_eq!(
+            fight.asserts[0].rows,
+            Some(vec![vec![63.into()], vec![64.into()]])
+        );
+        assert_eq!(fight.asserts[1].rows, None);
+        assert_eq!(canonical_yaml(fight).unwrap(), asserted);
+        let error = parse_yaml(
+            EXAMPLE
+                .replace("\nticks:", "\nasserts:\n- rows: [[1]]\nticks:")
+                .as_bytes(),
+        )
+        .unwrap_err();
+        assert!(error.contains("sql"), "{error}");
     }
 
     #[test]
