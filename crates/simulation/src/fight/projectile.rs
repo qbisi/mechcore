@@ -10,6 +10,10 @@ pub(in crate::fight) struct Projectile {
     pub(in crate::fight) skill_slot: u16,
     pub(in crate::fight) target_kind: ObjectKind,
     pub(in crate::fight) target: u64,
+    /// Whether it was released at no target, `target` naming the dead unit
+    /// its burst last fired at, which it fails `IsValidTarget` against as
+    /// one whose target died does: a recording names none.
+    pub(in crate::fight) targetless: bool,
     pub(in crate::fight) x: i64,
     pub(in crate::fight) y: i64,
     pub(in crate::fight) z: i64,
@@ -75,6 +79,12 @@ impl Shooter {
 }
 
 impl Projectile {
+    /// What a recording names as its target: none for one released at no
+    /// target.
+    pub(in crate::fight) fn target_ref(&self) -> Option<ObjectRef> {
+        (!self.targetless).then(|| ObjectRef::new(self.target_kind, self.target))
+    }
+
     pub(in crate::fight) fn object_ref(&self) -> ObjectRef {
         ObjectRef::new(ObjectKind::Projectile, self.id)
     }
@@ -89,7 +99,7 @@ impl Projectile {
                 y: self.y_q32,
                 z: self.z_q32,
             },
-            target: Some(ObjectRef::new(self.target_kind, self.target)),
+            target: self.target_ref(),
             cached_target_position: QVec3 {
                 x: self.cached_target_x_q32,
                 y: self.cached_target_y_q32,
@@ -651,7 +661,7 @@ fn spent_on_nothing(projectile: &Projectile) -> Event {
         Some(projectile.object_ref()),
         source,
         source.map(|_| projectile.team),
-        Some(ObjectRef::new(projectile.target_kind, projectile.target)),
+        projectile.target_ref(),
         EventPayload::ProjectileRemoved {
             position: QVec3 {
                 x: projectile.x_q32,

@@ -578,10 +578,12 @@ two Overlords shooting at each other at the same height, order them so.
 **A burst that allocates evenly shares its projectiles among units.** A skill
 whose row sets `isEvenlyAllocated` aims its burst with
 `EvenlyAllocatedAttackTargetPositionController`. On its first projectile
-(`Prepare`) it takes the other sides' units within the skill's range and its
-`extraSearchRange` of the unit, each measured less both radii, in the order
-their trees answer a square twice that wide (`RangeTargetCalculator.CalculateRangeTargets`,
-units only, fully visible), or the attack target alone when none is. It
+(`Prepare`) it takes the other sides' units and towers within the skill's range
+and its `extraSearchRange` of the unit, each measured less both radii, in the
+order their teams' trees answer a square twice that wide
+(`RangeTargetCalculator.CalculateRangeTargets`, fully visible, with no
+building: a construction is `BuildingSystem`'s, and a tower a member of its
+team's tree), or the attack target alone when none is, a building as a unit. It
 shuffles them by the side's stream, each place swapped with one drawn from the
 whole list (`IListExtensions.ShuffleSync`); each unit takes the burst's count
 over theirs, and the rest go one each to units drawn one by one from those not
@@ -592,7 +594,10 @@ it leaves takes the first unit of the list that lives, dropping the dead, and
 puts it last (`UpdateCurrentTarget`), leaves the next of the two weapons in
 turn (`GetWeaponIndex`), aims at where its unit stands then
 (`GetTargetPosition`), and takes that unit's next offset, none once they have
-run out (`GetAndDeletePositionOffsets`). Its climb is measured to where its
+run out (`GetAndDeletePositionOffsets`). With none of the list alive it leaves
+at no target for the point the burst last aimed at, `lastAttackPos`, an offset
+drawn afresh from the side's stream about it. An Abyss shelling a tower takes
+the tower into its list, and its shuffle draws once for it. Its climb is measured to where its
 unit stands. Swarm Missiles' 46 share two units 23 each.
 
 **A projectile may climb before it flies.** A skill with a pre-flight height
@@ -1674,6 +1679,13 @@ not the game's native attack-type enum.
 
 ### Not established
 
+- **An evenly allocated burst whose list has no unit left alive.** Its
+  missile leaving at no target is read from the build and not recorded. The
+  game aimed an Abyss's last Swarm Missile at t639 at a Fortress the same
+  tick's sweep had struck for all its 3748 life before the release, and
+  recorded the strike first; how a strike's life lands within the tick so
+  that the Fortress still lives for the release is not read, and the
+  simulator finds the list gone there.
 - **A projectile's offset beyond its splash.** That one misses every unit
   follows from the read hit; no pinned fight of this version records it, the
   Homing Missile that showed it now drawing no offset.

@@ -487,7 +487,7 @@ impl Simulation {
                 Some(projectile.object_ref()),
                 projectile.shooter.actor().map(FightActorRef::object_ref),
                 projectile.shooter.actor().map(|_| projectile.team),
-                Some(ObjectRef::new(projectile.target_kind, projectile.target)),
+                projectile.target_ref(),
                 EventPayload::ProjectileRemoved {
                     position: QVec3 {
                         x: projectile.x_q32,
