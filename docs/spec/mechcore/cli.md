@@ -727,6 +727,18 @@ The view carries the phase, the round, that side's own position with its
 uncommitted decisions applied, the round's reinforcement offers, whether the
 other side has committed, and what the next section leaves of the other side.
 
+**A side knows which side it is, and the map.** Every answer to a side names
+it, blue or red, and the header names the map: a player is owed both, and no
+option hides them. A position is written in the side's own coordinates, its
+territory toward negative `y`, which is what a player sees, but the ground
+under them is not the same on both sides. Of the neutral crystals inside the
+battlefield of `config/maps.yaml`, about one in ten on Desert, and four of
+191 on Grass, has a twin at the point opposite through the centre; only
+Military Base's four are all point-symmetric. So one placement in a side's
+own coordinates stands among different obstacles as blue and as red, and is
+two different fights: a player could tell its side from the ground alone, and
+an agent that is not told it would reason about a board it does not have.
+
 ### What a side sees of the other
 
 **The other side's past is visible and its round in progress is not.** The
