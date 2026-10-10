@@ -49,11 +49,6 @@ with the `reverse_x` transform observed in replay R002. In blue's side-local
 frame the Defensive Wall sits at `(-140, -55)`, the Rapid-Fire Turret at
 `(140, -100)` and the Anti-Armor Turret at `(-140, -100)`. Red uses the
 side-local coordinates that compile back to R002's recorded world positions.
-Magnetic Barrier is absent because it is not part of that opening group, and
-because this build cannot place one: a layout compiles it and the release is
-then refused by the game, as
-[constructions.md](../docs/rules/constructions.md#where-the-objects-stand)
-records.
 
 [`../construction/`](../tests/construction/) is the directory that
 measures what a construction becomes; this one is where a construction appears
@@ -138,7 +133,6 @@ with one seed, and compared equal field by field:
 | `experience.yaml` | experience within a level |
 | `contraptions.yaml` | contraptions, with gaps in their indices |
 | `blueprints.yaml` | both enhancement chains |
-| `magnetic-barrier.yaml` | the construction no corpus snapshot holds |
 | `round-3.yaml` | a later round, with a settled flank unit |
 | `orbital-first.yaml` | two battle skills released in order |
 | `energy-tower.yaml` | Energy Tower skills |

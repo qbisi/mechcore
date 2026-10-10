@@ -84,7 +84,7 @@ def catalog_footprints():
     """What the layout catalog names a construction, and the box it reserves.
 
     The catalog was written from placements the game accepted, so it is an
-    independent reading of the same four constructions.
+    independent reading of the same three constructions.
     """
     text = CATALOG.read_text(encoding="utf-8")
     body = text.split("pub(crate) const fn resolve_construction_type", 1)[1].split("}", 1)[0]
@@ -258,7 +258,7 @@ def render(entries, skills):
         "# building, so `max_life` is one block's life and a Defensive Wall's five",
         "# blocks hold 5560 between them.",
         "#",
-        "# `layout_name` is present on the four a layout can place. The rest are the",
+        "# `layout_name` is present on the three a layout can place. The rest are the",
         "# build's own rows, carried because leaving them out would make the table",
         "# look like the whole of what the build holds.",
         "#",

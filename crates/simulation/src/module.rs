@@ -18,9 +18,8 @@
 //!
 //! A module that understands a field can still refuse one member of it, and
 //! the refusal then names the thing rather than the field:
-//! `FightConstructionSystem` places a Defensive Wall and a turret and refuses
-//! a Magnetic Barrier, because where its two rows of objects stand has not
-//! been measured.
+//! `FightConstructionSystem` places a construction whose objects stand where
+//! they have been measured, and refuses one whose objects have not.
 
 use mechcore_document::SidePlan;
 

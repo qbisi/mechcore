@@ -95,5 +95,4 @@ A name below is written in its official form, not the one beside it.
 | Marksman | Longbow | the build's animation clips say `Longbow_*`, a name the game no longer shows |
 | Redeployment | Redeploy | the game names commander skill `1000001` Redeployment |
 | Anti-Armor Cannon, Rapid-Fire Cannon | Anti-Armor Turret, Rapid-Fire Turret | the game's names; a sprite keeps its snake-case id |
-| Magnetic Barricade | Magnetic Barrier | the game's name |
 | commander skill | battle skill | one term in prose; `battle_skills` stays the document field's name |
