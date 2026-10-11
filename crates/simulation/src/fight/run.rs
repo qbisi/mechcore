@@ -431,8 +431,9 @@ pub(in crate::fight) fn execute(
 impl Simulation {
     /// The tick's snapshot as a recording numbers it: a unit made on the
     /// first tick that joins at once is an initial unit to the recording,
-    /// which numbers it among the layout's, and every tick after keeps that
-    /// numbering.
+    /// which numbers it among the layout's, every tick after keeps that
+    /// numbering, and the units a later tick makes are numbered as that
+    /// tick's snapshot finds them.
     fn recorded(
         &self,
         tick: u32,
@@ -443,6 +444,8 @@ impl Simulation {
         state.canonicalize();
         if tick == 1 {
             *numbering = mechcore_mcfr::UnitNumbering::of_first_snapshot(&state, events);
+        } else {
+            numbering.number_new_units(&state, events);
         }
         numbering.apply(&mut state, events);
         state
