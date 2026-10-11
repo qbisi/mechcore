@@ -28,13 +28,33 @@ impl Actor {
         self.rules.domain == UnitDomain::Air
     }
 
-    /// `FightMech.SetTechFly`: the unit flies or stands on the ground.
+    /// `FightMech.SetTechFly`: the unit flies or stands on the ground. What
+    /// its side's officers write by whether it flies follows it
+    /// (`FightEffectMananger.RefreshOtherEffect`, as the technology's state
+    /// is added or removed): an officer of the domain it leaves takes its
+    /// data away, one of the domain it enters adds it, and the life is
+    /// refreshed. A Wraith with Land Cruiser loses Aerial Specialist's
+    /// rates as the fight starts.
     fn set_tech_fly(&mut self, fly: bool) {
+        let before = self.domain;
         self.domain = if fly {
             UnitDomain::Air
         } else {
             UnitDomain::Ground
         };
+        if before == self.domain || self.placement.effects.domain_corrections.is_empty() {
+            return;
+        }
+        for &(held_in, channel, entry) in &self.placement.effects.domain_corrections {
+            let overlay = self.stats.overlays.channel(channel);
+            if held_in == before {
+                overlay.remove(entry);
+            } else if held_in == self.domain {
+                overlay.write(entry);
+            }
+        }
+        self.refresh_life_data()
+            .expect("the layout verified the officers' corrections");
     }
 }
 

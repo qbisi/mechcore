@@ -1,0 +1,29 @@
+# Aerial Specialist rates units that fly, `UnitEffectTargetType.Air`; the
+# units its row lists are the flying types and are not read. A Wraith with
+# Land Cruiser lands as the fight starts, and
+# `FightEffectMananger.RefreshOtherEffect` takes the officer's data away as
+# the technology's state is added: it starts at its bare 14115, not
+# 14115 × 1.13. A fight drawn by hand, recorded with the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1
+round: 1
+blue:
+  officers: [aerial_specialist]
+  techs:
+    wraith: [land_cruiser]
+  units:
+  - {name: wraith, index: 0, position: {x: 5, y: -105}}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 250
+ticks: 192
+hash: 23:49d3b10ec53ae7e1d89f2083ac6c642f71b86b512c5a533ef4c0a0dca5b07db6
+asserts:
+- sql: "SELECT life__maximum, domain FROM units WHERE tick = 1 AND unit_id = 1"
+  rows: [[14115, ground]]

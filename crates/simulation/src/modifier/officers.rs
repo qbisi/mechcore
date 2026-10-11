@@ -18,11 +18,11 @@ use serde::Deserialize;
 use crate::{
     Error, Result,
     data::{Channel, Correction, Entry, ExperienceRate, Index},
-    rules::UnitConfig,
+    rules::{UnitConfig, UnitDomain},
 };
 
 use super::effects::{self, Fields};
-use mechcore_document::targets::Targets;
+use mechcore_document::targets::{Category, Targets};
 
 const DEFAULT_OFFICER_EFFECTS: &str = include_str!("../../../../config/officer_effects.yaml");
 
@@ -189,14 +189,6 @@ impl OfficerEffects {
         )
     }
 
-    /// Whether any of the officers `held` that has an effect names its
-    /// units by whether they fly.
-    pub(crate) fn any_by_domain(&self, held: &[i32]) -> bool {
-        held.iter()
-            .filter_map(|id| self.officers.get(id))
-            .any(|officer| officer.targets.by_domain())
-    }
-
     /// Every correction this side's officers write onto one unit.
     ///
     /// An id the table does not hold writes nothing: the table carries the
@@ -235,6 +227,58 @@ impl OfficerEffects {
         }
         Ok(written)
     }
+
+    /// What this side's officers that name their units by whether they fly
+    /// write onto one unit, each entry with the domain the unit has to stand
+    /// in for it: `FightEffectMananger.RefreshOtherEffect` removes such an
+    /// officer's data from a unit as a technology turns it out of that domain
+    /// and adds it as it turns back. An officer that reaches the unit in
+    /// both domains, or in neither, is not here.
+    ///
+    /// # Errors
+    ///
+    /// Returns the refusal of a targeting category this build does not
+    /// resolve.
+    pub(crate) fn by_domain(
+        &self,
+        held: &[i32],
+        unit: &UnitConfig,
+    ) -> Result<Vec<(UnitDomain, Channel, Entry)>> {
+        let mut written = Vec::new();
+        for id in held {
+            let Some(officer) = self.officers.get(id) else {
+                continue;
+            };
+            if officer.effect.is_empty() || !officer.targets.by_domain() {
+                continue;
+            }
+            let reaches = |ground: bool| {
+                let category = Category {
+                    ground,
+                    ..unit.category()
+                };
+                officer.targets.reaches(&category).map_err(Error::new)
+            };
+            let domain = match (reaches(true)?, reaches(false)?) {
+                (true, false) => UnitDomain::Ground,
+                (false, true) => UnitDomain::Air,
+                _ => continue,
+            };
+            for &(channel, index, correction) in &officer.effect {
+                written.push((
+                    domain,
+                    channel,
+                    Entry {
+                        index,
+                        source: SOURCE,
+                        correction,
+                    },
+                ));
+            }
+        }
+        Ok(written)
+    }
+
     /// The rate this side's officers put on what a formation of this unit
     /// gains: each one that reaches the unit writes its `expChangeRate` onto
     /// the unit's card, which hands the aggregate to the formation.

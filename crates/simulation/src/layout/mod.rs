@@ -1222,6 +1222,11 @@ pub(crate) struct UnitEffects {
     /// layout is compiled, which is the only place that can name the side and
     /// the officer in a refusal.
     pub(crate) corrections: Vec<(Channel, Entry)>,
+    /// For a unit a technology turns, what the side's officers that name
+    /// their units by whether they fly write onto it, each with the domain
+    /// it holds in: the fight writes and takes them away as the unit's domain
+    /// turns (`FightEffectMananger.RefreshOtherEffect`).
+    pub(crate) domain_corrections: Vec<(UnitDomain, Channel, Entry)>,
     /// The `ILifeSteal` its `LifeStealEffectProvider` enables, if its
     /// technologies or equipment hand it one.
     pub(crate) lifesteal: Option<LifeSteal>,
@@ -1582,22 +1587,20 @@ fn worn(
         .map_err(on_side),
     )?;
     switch_air_attack(&main_skill, rules, &mut corrections, &mut extra_weapons);
+    let mut domain_corrections = Vec::new();
     if let Some(fly) = sources.single.fly {
-        // `FightEffectMananger.RefreshOtherEffect` adds and removes an
-        // officer's effect named by whether its unit flies as the unit's
-        // domain turns, which is not read.
-        if loadouts.officers.any_by_domain(&side.techs.officers) {
-            refused.push(format!(
-                "side {side_name} unit type {type_name:?} turns its domain while an officer \
-                 names units by whether they fly, which is not read"
-            ));
-            return None;
-        }
+        domain_corrections = refused.hold(
+            loadouts
+                .officers
+                .by_domain(&side.techs.officers, rules)
+                .map_err(on_side),
+        )?;
         invert_air_attack(fly, rules, &mut corrections, &mut extra_weapons);
     }
     let in_force = |error: String| refusal(Error::new(error));
     Some(UnitEffects {
         corrections,
+        domain_corrections,
         lifesteal: refused.hold(current_source(&lifesteal).map_err(in_force))?,
         auto_recovery: refused.hold(current_source(&auto_recovery).map_err(in_force))?,
         energy_shield: refused.hold(current_source(&energy_shield).map_err(in_force))?,

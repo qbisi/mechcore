@@ -1076,10 +1076,18 @@ on a unit in its type's domain, gives it the technology's at once and stops
 the timer (`DoEnableInFight`); switched on before the second is out, the unit
 never left the technology's domain.
 
-A unit whose side's officers name units by whether they fly is refused:
-`FightEffectMananger.RefreshOtherEffect` adds or removes such an officer's
-effect as the unit's domain turns, which is not read. Read from the build;
-no recording holds either technology.
+**An officer named by domain follows the unit.** An officer whose row names
+units by whether they fly (`UnitEffectTargetType.Air` or `Ground`) reaches
+the unit's card if its type stands in that domain or a technology it can hold
+turns it there (`UnitUtility.IsEffectTarget`, `IsUnitInterestedEffect`).
+As the technology's state is added or taken away,
+`FightEffectMananger.RefreshOtherEffect` takes such an officer's data off the
+unit when the domain it now stands in is not the officer's, and adds it back
+when it is, and the unit's life is refreshed. Aerial Specialist rates units
+that fly, and the units its row lists are not read: a Wraith with Land
+Cruiser lands as the fight starts and loses its rates
+([`aerial-specialist-leaves-a-landed-wraith.yaml`](../../tests/fly/aerial-specialist-leaves-a-landed-wraith.yaml)).
+What a formation gains is still rated on the card by the type's domain alone.
 
 ## Ignoring a buff effect
 
