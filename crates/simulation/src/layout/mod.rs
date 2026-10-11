@@ -1680,13 +1680,29 @@ fn joins_as_main_slots(weapon: &ExtraWeaponConfig, rules: &UnitConfig) -> bool {
         && weapon.explosion.is_none()
 }
 
-/// The fire an extra weapon's hit leaves: its skill's splash wide
-/// (`ExtraSkillProvider.AddEffect` writes `GetSplashRange` onto the unit as
-/// the fire's range) and burning its row's first `fireLifeTime`
-/// (`ExtraWeaponTechnologyData.GetFireLifeTime`).
-fn extra_weapon_fire(weapon: &ExtraWeaponConfig, loadouts: &Loadouts) -> Result<TerrainSpec> {
-    let [range, life] = ground_fire(weapon);
+/// The fire an extra weapon's hit leaves: the unit's, as wide and as long as
+/// the unit's `DataSet` says. `ExtraSkillProvider.AddEffect` adds each
+/// burning extra weapon's splash and first `fireLifeTime` there through
+/// `MechDataModifer.AddData`, each under its own source, so a Vulcan with
+/// Incendiary Bomb and Sticky Oil Bomb burns its fires twice as wide and
+/// twice as long as either row alone. `unit_fire` is that sum
+/// ([`unit_ground_fire`]).
+fn extra_weapon_fire(unit_fire: [i64; 2], loadouts: &Loadouts) -> Result<TerrainSpec> {
+    let [range, life] = unit_fire;
     loadouts.skill_effects.unit_fire(range, life)
+}
+
+/// The fire range and life time a unit's burning extra weapons sum on it.
+fn unit_ground_fire<'a>(weapons: impl Iterator<Item = &'a ExtraWeaponConfig>) -> [i64; 2] {
+    weapons.map(ground_fire).filter(|[_, life]| *life > 0).fold(
+        [0, 0],
+        |[range, life], [more_range, more_life]| {
+            [
+                range.saturating_add(more_range),
+                life.saturating_add(more_life),
+            ]
+        },
+    )
 }
 
 /// The terrain an extra weapon's hit leaves: the unit's fire, the
@@ -1698,6 +1714,7 @@ fn extra_weapon_terrain(
     weapon: &ExtraWeaponConfig,
     named: &str,
     buff: Option<SkillBuff>,
+    unit_fire: [i64; 2],
     loadouts: &Loadouts,
 ) -> Result<Option<TerrainSpec>> {
     match (&weapon.fire, &weapon.oil, buff) {
@@ -1711,7 +1728,9 @@ fn extra_weapon_terrain(
             },
             burns: None,
         })),
-        (Some(_), None, _) if weapon.fog.is_none() => extra_weapon_fire(weapon, loadouts).map(Some),
+        (Some(_), None, _) if weapon.fog.is_none() => {
+            extra_weapon_fire(unit_fire, loadouts).map(Some)
+        }
         (None, Some(_), Some(buff)) if weapon.fog.is_none() => {
             let [range, life] = ground_fire(weapon);
             loadouts
@@ -1839,11 +1858,9 @@ fn extra_weapons(
     refused: &mut Refusals,
 ) -> Option<Vec<ExtraWeapon>> {
     let mut weapons = Vec::new();
-    for weapon in rules
-        .extra_weapons
-        .iter()
-        .filter(|weapon| side.techs.units.contains(&weapon.technology))
-    {
+    let researched = |weapon: &&ExtraWeaponConfig| side.techs.units.contains(&weapon.technology);
+    let unit_fire = unit_ground_fire(rules.extra_weapons.iter().filter(researched));
+    for weapon in rules.extra_weapons.iter().filter(researched) {
         let named = format!("technology {}", weapon.technology);
         let on_unit = |error: Error| {
             error.context(format!(
@@ -1855,8 +1872,9 @@ fn extra_weapons(
             None => None,
             Some(buff) => Some(refused.hold(technology_buff(&named, buff).map_err(on_unit))?),
         };
-        let terrain =
-            refused.hold(extra_weapon_terrain(weapon, &named, buff, loadouts).map_err(on_unit))?;
+        let terrain = refused.hold(
+            extra_weapon_terrain(weapon, &named, buff, unit_fire, loadouts).map_err(on_unit),
+        )?;
         let dead_fire = match weapon
             .explosion
             .as_ref()

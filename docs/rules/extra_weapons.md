@@ -312,6 +312,11 @@ Bomb's fire reaches 12 metres from where it lands and burns for 10 seconds;
 the Vulcan's, of its own row, 18 metres for 12 seconds, ten shells a volley
 scattered within 70 metres of the target.
 
+Each row writes under its own source, so two rows that burn sum on the unit:
+a Vulcan with Incendiary Bomb and Sticky Oil Bomb burns its Incendiary
+Bomb's fires 36 metres wide for 24 seconds, each row's 18 metres and 12 seconds summed,
+while the oil, the technology's own, stays as wide as its own splash.
+
 ## An oil where it lands, and a buff on what it strikes
 
 A row with a `buffID` writes that buff on every unit its hit struck, from the
@@ -697,6 +702,9 @@ that is not melee, so the simulator refuses it.
 
 ### Recorded
 
+- Two extra weapons that burn sum their fires on the unit: a Vulcan with
+  Incendiary Bomb and Sticky Oil Bomb burns 36 metres for 480 ticks:
+  `tests/fire_intensify/two-weapons-burn-summed.yaml`.
 - A dead Tarantula's line makes no more mines, its living partner's makes
   on: `tests/corpus/67160345-r2.yaml`, ticks 191 and 301.
 - An Energy Tower skill's range reaches an extra skill of its own range
