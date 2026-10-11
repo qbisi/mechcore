@@ -253,7 +253,10 @@ kind ends its own way:
 
 - **A shield** stands until the fight destroys its shield.
 - **An interceptor** is a building of its side, and stands until the fight
-  destroys that building.
+  destroys that building. The fight's end does not: when a side loses its
+  last unit, `FightCoreSystem.TryDstroyTower` takes down its towers and then
+  its constructions, in the order `PrepareActors` sorted them, and leaves its
+  interceptor, a crystal of the side's, standing.
 - **A missile fires once.** When an enemy comes within its trigger range it
   launches one missile, a projectile no unit owns, from where it stands, and is
   spent. A missile that fired is gone from the next round, and one that did not
@@ -263,6 +266,9 @@ kind ends its own way:
 
 ### Recorded
 
+- A losing side's interceptor stands as its towers, its turret and then its
+  wall's blocks fall at the fight's end:
+  `tests/interceptor/stands-as-its-side-falls.yaml`.
 - An interceptor a Raiden fells still updates on that tick and draws from its
   side's stream: a Hound of its side draws the stream's next value but one on
   the tick after, `tests/corpus/134370978-r7.yaml`, ticks 359 and 360.

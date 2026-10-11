@@ -1372,8 +1372,19 @@ impl Simulation {
             .into_iter()
             .filter(|&team| self.appearing_on(team) || self.rebirthing_on(team))
             .collect::<BTreeSet<_>>();
+        // `TryDstroyTower` takes down a side's towers and its constructions;
+        // an interceptor, a crystal of the side's, stands to the fight's end.
+        let crystals = self
+            .interceptors
+            .iter()
+            .filter_map(|interceptor| match interceptor.owner {
+                intercept::InterceptorOwner::Building { building_id, .. } => Some(building_id),
+                intercept::InterceptorOwner::Unit { .. } => None,
+            })
+            .collect::<BTreeSet<_>>();
         for building in self.buildings.iter_mut().filter(|building| {
             towers_fall
+                && !crystals.contains(&building.building_id)
                 && building_alive(building)
                 && team_alive_counts
                     .get(&building.team_id)
@@ -1385,6 +1396,25 @@ impl Simulation {
             queued_late_building_events = true;
             self.ending.torn_down_buildings.push(building.building_id);
         }
+        // A side's towers fall first and then its constructions, in the
+        // order its `constructions` list holds them (`FightTeam.
+        // GetConstructions`), the order `PrepareActors` sorted them in: a
+        // Rapid-Fire Turret behind a wall falls before the wall's blocks.
+        let order = |building_id: u64| {
+            self.active_actors
+                .iter()
+                .position(|&actor| actor == FightActorRef::Building(building_id))
+        };
+        let mut falling = std::mem::take(&mut self.ending.torn_down_buildings);
+        falling.sort_by_key(|&building_id| {
+            let team = self
+                .buildings
+                .iter()
+                .find(|building| building.building_id == building_id)
+                .map_or(0, |building| building.team_id);
+            (team, order(building_id))
+        });
+        self.ending.torn_down_buildings = falling;
         if queued_late_building_events {
             self.ending.terminal_drain_pending = true;
             self.ending.late_building_events_pending = true;
