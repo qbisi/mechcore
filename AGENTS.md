@@ -27,11 +27,11 @@ which is how CI's Linux jobs build; code that only holds on macOS goes behind
 Run `cargo fmt --all` before committing; CI checks it.
 
 Master requires the `gate` status, which `.github/workflows/gate.yml` posts
-when every check is green. Pull requests merge as merge commits, the only
-method allowed: `gh pr merge <n> --auto --merge`, set only after the last
-push. Branch commits land on master as they are, so tidy them before opening
-the pull request, and catch a branch up with master by rebase, not by merging
-master into it.
+when every check is green. Pull requests merge by rebase, the only method
+allowed: `gh pr merge <n> --auto --rebase`, set only after the last push. A
+pull request's commits land on master as they are and its description lands
+nowhere, so tidy the commits before opening the pull request, and catch a
+branch up with master by rebase, not by merging master into it.
 
 While a `refactor` pull request is open, other work waits for it: commit on
 the branch locally, and push and open the pull request only after the
@@ -112,10 +112,11 @@ recordings first differ.
 # Commits
 
 Follow [Conventional Commits](https://www.conventionalcommits.org/), in
-English. A pull request's title and body become its merge commit; its branch
-commits land too, and each follows the same form. One pull request is one
-purpose: split by what caused a change, not by layer or by what happened to
-be found together, and land a mechanical move on its own.
+English. A pull request's commits are what lands, each in the same form; its
+title and body describe it for review and land nowhere, so what the history
+must keep is in the commits. One pull request is one purpose: split by what
+caused a change, not by layer or by what happened to be found together, and
+land a mechanical move on its own.
 
 The body says what the diff cannot: before and after, with numbers; what
 disproved the old belief and what evidence did; which numbers were read from
