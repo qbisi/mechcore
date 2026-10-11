@@ -930,6 +930,17 @@ pub(crate) fn fpoint_less_than(left: i64, right: i64) -> bool {
     difference < 0 && (difference.wrapping_add(43) as u64) >= 87
 }
 
+/// `FPoint.op_Equality`: within 43 raw either way, false against the
+/// sentinel.
+#[allow(
+    clippy::cast_sign_loss,
+    reason = "the unsigned comparison reproduces the build's tolerance test"
+)]
+pub(crate) fn fpoint_equal(left: i64, right: i64) -> bool {
+    const SENTINEL: i64 = i64::MIN + 1;
+    left != SENTINEL && right != SENTINEL && (left.wrapping_sub(right).wrapping_add(43) as u64) < 87
+}
+
 /// `FPoint.op_GreaterThan`: the same 43-raw tolerance, the other way.
 pub(crate) fn fpoint_greater_than(left: i64, right: i64) -> bool {
     fpoint_less_than(right, left)

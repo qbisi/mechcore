@@ -256,8 +256,12 @@ impl Simulation {
                         terrain.provider_team == provider_team
                             && terrain.provider_area == provider_area
                             && terrain.name == name
-                            && (terrain.x_q32, terrain.y_q32, terrain.z_q32)
-                                == (x_q32, y_q32, z_q32)
+                            // `FVector3.op_Equality`, each axis as tolerant
+                            // as `FPoint`'s: a Fire Badger's shots at one
+                            // building land a few raw apart and keep one fire.
+                            && super::rvo::fpoint_equal(terrain.x_q32, x_q32)
+                            && super::rvo::fpoint_equal(terrain.y_q32, y_q32)
+                            && super::rvo::fpoint_equal(terrain.z_q32, z_q32)
                     })
             })
         {

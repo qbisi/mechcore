@@ -190,9 +190,11 @@ the fire that lit it, and it lands as any fire does, so it takes the oils it
 reaches in turn: a fire that reaches one oil of a line burns the line. An oil
 that lands where a fire already burns (`AddItem`, through the fire
 controller's `IsInteractable`) turns at once to such a fire, of its own
-side. A fire of a provider that already has one standing at the same place
-is not made again; the standing one burns from the start
-(`GetRepeatItem`, `FightGroundFire.Reset`). Taking an oil away does not
+side. A fire of a provider that already has one standing at the same place,
+each axis within `FPoint`'s 43 raw (`FVector3.op_Equality`), is not made
+again; the standing one burns from the start (`GetRepeatItem`,
+`FightGroundFire.Reset`): a Fire Badger's shots at one turret land a few raw
+apart and keep one fire. Taking an oil away does not
 release the units in it: its controller lets them go on its next update. In
 a tick, a side's battle skills land in the order it released them.
 
@@ -346,6 +348,8 @@ already exists.
 
 ### Recorded
 
+- A fire landing a few raw from its unit's standing fire restarts that fire
+  rather than making another: `tests/terrain/fire-at-one-building-kept.yaml`.
 - A unit an acid's step kills as it walks dies where that tick's move took
   it: `tests/terrain/acid-step-kills-walking.yaml`.
 - A controller past its twentieth item finds its units node by node: 150
