@@ -1,0 +1,27 @@
+# A Hacker with Electromagnetic Interference turns a Centurion. The
+# technology's buff source listens for hits, and each hit of the control
+# beam performs it (`BuffCycleController.PerformHitEffect`): the Centurion
+# takes buff 1014 on tick 12 and again each 6 ticks, until it is turned. A
+# fight drawn by hand, recorded with the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1
+round: 1
+blue:
+  units:
+  - {name: centurion, index: 0, position: {x: -85, y: -25}}
+red:
+  techs:
+    hacker: [electromagnetic_interference]
+  units:
+  - {name: hacker, index: 0, position: {x: 75, y: -55}, rotated: true}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 250
+ticks: 41
+hash: 23:ffccbe4e3a684c69c2103858206a76f07cdfbc2f3f808a6d068ee2f148d819ec
+asserts:
+- sql: "SELECT tick, target__id FROM events WHERE type = 'buff_applied' AND buff_id = 1014 ORDER BY tick, ordinal LIMIT 4"
+  rows: [[12, 1], [18, 1], [24, 1], [30, 1]]

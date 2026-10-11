@@ -44,7 +44,11 @@ and its splash nothing either; but after it adds its power, the unit it is on
 raises `OnMechBeHit` with the beam's owner as the attacker
 (`ControllEffect.Perform`), as a unit a hit reaches does. What listens to it
 answers the Hacker: a Void Eye with Electromagnetic Armor switches the
-Hacker's technologies off.
+Hacker's technologies off. Then the hit's effects are performed on that unit, as
+any hit's (`BuffCycleController.PerformHitEffect`): a Hacker with
+Electromagnetic Interference writes its buff on the unit each beam's hit
+turns
+([`interference-on-each-beam-hit.yaml`](../../tests/control/interference-on-each-beam-hit.yaml)).
 
 ## Progress and the turn
 
