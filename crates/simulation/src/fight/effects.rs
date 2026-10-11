@@ -89,11 +89,19 @@ impl Simulation {
                 EffectProvider::Buff => self.activate_buff_cycles(unit),
                 EffectProvider::SupportUnit => self.activate_production(unit),
                 EffectProvider::AdvancedEnergyShield => self.activate_carried_shield(unit),
+                EffectProvider::AutoRecovery => self.add_auto_recovery(unit),
+                EffectProvider::EnergyShield => {
+                    if let Some(shield) = self
+                        .actors
+                        .get_mut(&unit)
+                        .and_then(|actor| actor.shield.as_mut())
+                    {
+                        shield.open();
+                    }
+                }
                 // The rest are read from the unit where the fight acts, which
                 // passes over a unit still travelling or rising.
                 EffectProvider::LifeSteal
-                | EffectProvider::AutoRecovery
-                | EffectProvider::EnergyShield
                 | EffectProvider::SweepSkillIntensify
                 | EffectProvider::ArmorStrengthen
                 | EffectProvider::SearchTargetSpecific

@@ -115,6 +115,14 @@ off as it arrives does not rise (`EffectProvider.ActiveCheck` finds the
 source locked), nor later, since `EnableEffect` acts only on a shield its
 disabling found available.
 
+**A unit's own shield and its repair wait for the arrival too.** The shield
+closes with the effects (`EnergyShieldProvider.DoDeactive`) and stands empty
+on the way; arriving opens it full (`DoActive`). The repair leaves its side's
+(`AutoRecoveryEffectProvider.DoDeactive`, `AutoRecoverySystem.RemoveMech`),
+so the travel's heals are a travelling unit's only ones, and arriving adds it
+back reset (`DoActive`, `AutoRecoverySystem.AddMech`): its start clock runs
+from the arrival.
+
 ## Evidence
 
 ### Recorded
@@ -146,6 +154,9 @@ disabling found available.
 - A travelling Fortress's Barrier stands inactive and empty until tick 161
   and rises full as the Fortress arrives:
   `tests/super_deployment/barrier-rises-on-arrival.yaml`.
+- Two travelling Phoenixes' own shields stand empty until tick 161 and open
+  full then, and their Nano Repair Kit repairs nothing on the way and first
+  on tick 181: `tests/super_deployment/own-shield-and-repair-wait.yaml`.
 - A squad that arrives together is solved once with none of its members among
   another's RVO neighbours, and walks off where a squad whose members saw each
   other would stand blocked: `tests/corpus/134270595-r2.yaml`.
@@ -175,6 +186,11 @@ disabling found available.
   `AdvancedEnergyShieldProvider.DoActive`,
   `AdvancedEnergyShieldSystem.ActiveEnergyShield`,
   `EffectProvider.ActiveCheck`, `EffectProvider.IsLockedEffect`.
+- A unit's own shield closes and opens with its effects, and its repair
+  leaves and rejoins its side's: `EnergyShieldProvider.DoDeactive`,
+  `EnergyShieldProvider.DoActive`, `AutoRecoveryEffectProvider.DoDeactive`,
+  `AutoRecoveryEffectProvider.DoActive`, `AutoRecoverySystem.RemoveMech`,
+  `AutoRecoverySystem.AddMech`.
 
 ### Not established
 

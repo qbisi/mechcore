@@ -48,6 +48,21 @@ impl RecoveryClock {
 }
 
 impl Simulation {
+    /// `AutoRecoveryEffectProvider.DoActive` as a unit's effects are
+    /// activated: `AutoRecoverySystem.AddMech` gives a unit with a repair and
+    /// no controller a new one, reset. A unit arriving from a flank starts its
+    /// repair clocks then.
+    pub(in crate::fight) fn add_auto_recovery(&mut self, unit: u64) {
+        let Some(actor) = self.actors.get_mut(&unit) else {
+            return;
+        };
+        if actor.recovery.is_none()
+            && let Some(source) = &actor.placement.effects.auto_recovery
+        {
+            actor.recovery = Some(RecoveryClock::reset(source));
+        }
+    }
+
     /// `AutoRecoverySystem.Update`: each side's `TeamAutoRecoveryManager.
     /// Update`, blue's first, its controllers in the order their units joined.
     /// A controller disabled or out of its condition is passed over, its
