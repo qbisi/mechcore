@@ -264,6 +264,13 @@ pub fn step_placing(
                 .ok_or(Unsettled::Unpriced("upgrade"))?;
         }
         Action::UnlockUnit { unit } => {
+            // The shop unlocks out of what it holds locked, and a type it has
+            // unlocked is no longer there to unlock.
+            if state.unlocked_units.contains(unit) {
+                return Err(Unsettled::Refused(
+                    "unlocking a unit the shop has already unlocked",
+                ));
+            }
             next.supply -= purse.unlock(*unit).ok_or(Unsettled::Unpriced("unlock"))?;
             next.shop.unlocks_remaining -= 1;
             unlock(&mut next, *unit);
@@ -2018,6 +2025,18 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 "{activated:?}"
             );
         }
+    }
+
+    /// A type the shop has unlocked is not unlocked again, where stepping it
+    /// would pay the unlock and spend the round's allowance a second time.
+    #[test]
+    fn an_unlocked_unit_is_not_unlocked_again() {
+        let economy = Economy::embedded().unwrap();
+        let unlocked = Action::UnlockUnit { unit: 2 };
+        assert!(matches!(
+            step(economy, &solvent(), &unlocked),
+            Err(Unsettled::Refused(_))
+        ));
     }
 
     /// A release is the only decision that moves the contraption allocator.

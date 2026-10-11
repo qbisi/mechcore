@@ -206,6 +206,7 @@ type, less what the unit's equipment discounts, floored at zero.
 ```
 
 Adds the unit type `name` to `unlocked_units`. Costs the unit's unlock price.
+A type already in `unlocked_units` is refused.
 
 ### `upgrade_technology`
 
