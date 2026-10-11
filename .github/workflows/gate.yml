@@ -3,7 +3,7 @@ name: gate
 # Says whether a pull request may be merged, and merges nothing. Its answer is
 # a commit status named `gate` on the pull request's head, which a ruleset on
 # master requires; whoever merges, an agent or a person, asks GitHub to merge
-# once the gate is green (`gh pr merge --auto --merge`), and GitHub does.
+# once the gate is green (`gh pr merge --auto --rebase`), and GitHub does.
 #
 # Runs after ci or docs finishes rather than on the pull request itself, so
 # the answer is taken with the run's result already in hand, and the one of
