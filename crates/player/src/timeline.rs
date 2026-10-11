@@ -10,7 +10,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use mechcore_document::{Layout, Region, StaticPlacement};
+use mechcore_document::{Layout, Position, Region};
 use mechcore_mcfr::{
     BuildingState, Domain, Event, EventPayload, LiveUnitState, MotionState, ObjectKind, ObjectRef,
     ProjectileState, QVec3, Recording, ShieldSourceKind, ShieldState, UnitPose,
@@ -187,6 +187,10 @@ pub struct Projectile {
     pub owner: Option<Ref>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub target: Option<Ref>,
+    /// What fired it when no unit or building did: `missile` for a Sentry
+    /// Missile, the contraption that is its own projectile.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
     pub from: u32,
     pub to: u32,
     pub x: Track,
@@ -543,6 +547,7 @@ impl<'a> Builder<'a> {
 
     fn projectile(&mut self, tick: u32, state: &ProjectileState) {
         let position = centimetres3(state.position);
+        let layout = self.layout;
         let projectile = self
             .projectiles
             .entry(state.projectile_id)
@@ -551,6 +556,11 @@ impl<'a> Builder<'a> {
                 team: state.team_id,
                 owner: state.owner.map(Ref),
                 target: state.target.map(Ref),
+                kind: state
+                    .owner
+                    .is_none()
+                    .then(|| launcher(layout, state.team_id, position))
+                    .flatten(),
                 from: tick,
                 to: tick,
                 x: Track::default(),
@@ -827,25 +837,54 @@ fn building_kind(layout: Option<&Layout>, state: &BuildingState) -> (String, Opt
         3 => {}
         other => return (format!("building_{other}"), None),
     }
-    let placements: &[StaticPlacement] = match (layout, state.team_id) {
-        (Some(layout), 0) => &layout.blue.constructions,
-        (Some(layout), 1) => &layout.red.constructions,
-        _ => &[],
-    };
-    // Red's board is blue's turned around.
-    let turn = if state.team_id == 0 { 1 } else { -1 };
+    // A Missile Interceptor is a building of the same type, placed among the
+    // side's contraptions.
     let (x, _, z) = centimetres3(state.position);
-    placements
-        .iter()
-        .min_by_key(|placement| {
-            let dx = i64::from(placement.position.x) * 100 * turn - x;
-            let dz = i64::from(placement.position.y) * 100 * turn - z;
-            dx * dx + dz * dz
-        })
+    placements(layout, state.team_id)
+        .min_by_key(|&(_, _, px, pz)| (px - x).pow(2) + (pz - z).pow(2))
         .map_or_else(
             || ("construction".to_owned(), None),
-            |placement| (placement.type_name.clone(), Some(placement.index)),
+            |(name, index, _, _)| (name.to_owned(), Some(index)),
         )
+}
+
+/// Each construction and contraption a side's layout places: its name, its
+/// index and where it stands in the world, in centimetres.
+fn placements(layout: Option<&Layout>, team: u32) -> impl Iterator<Item = (&str, i32, i64, i64)> {
+    let side = match (layout, team) {
+        (Some(layout), 0) => Some(&layout.blue),
+        (Some(layout), 1) => Some(&layout.red),
+        _ => None,
+    };
+    // Red's board is blue's turned around.
+    let turn = if team == 0 { 1 } else { -1 };
+    let world = move |position: &Position| {
+        (
+            i64::from(position.x) * 100 * turn,
+            i64::from(position.y) * 100 * turn,
+        )
+    };
+    side.into_iter().flat_map(move |side| {
+        let constructions = side.constructions.iter().map(move |placement| {
+            let (x, z) = world(&placement.position);
+            (placement.type_name.as_str(), placement.index, x, z)
+        });
+        let contraptions = side.contraptions.iter().map(move |placement| {
+            let (x, z) = world(&placement.position);
+            (placement.type_name.as_str(), placement.index, x, z)
+        });
+        constructions.chain(contraptions)
+    })
+}
+
+/// What fired a projectile no unit or building owns: a Sentry Missile is its
+/// own projectile, released where the layout placed it, so one that starts
+/// within 10 m of its side's `missile` placement is that missile.
+fn launcher(layout: Option<&Layout>, team: u32, (x, _, z): (i64, i64, i64)) -> Option<String> {
+    placements(layout, team)
+        .filter(|&(name, _, _, _)| name == "missile")
+        .any(|(_, _, px, pz)| (px - x).pow(2) + (pz - z).pow(2) <= 1000 * 1000)
+        .then(|| "missile".to_owned())
 }
 
 #[cfg(test)]
