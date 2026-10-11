@@ -126,7 +126,7 @@ choices, so both are this one action.
 `name` names it: a card dealt, or `decline_offer`, the decline the round always
 offers after its cards. The two have to agree, so a decision that names a card
 at another card's position, or the decline anywhere but after the cards, is
-refused.
+refused. A side answers once a round, so a second answer is refused.
 
 A card is named by what it grants, and a card of units as its unit, squads and
 level, `sledgehammer_2x_lv2`. Two unit cards can share those and differ only in

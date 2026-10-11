@@ -550,3 +550,20 @@ fn a_request_stream_plays_one_match() {
     assert_eq!(answer.code, 2);
     assert_eq!(answer.error["kind"], "usage");
 }
+
+#[test]
+fn a_round_takes_one_reinforcement_answer() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    for side in ["blue", "red"] {
+        run(&["match", "commit", &path, "--side", side]).ok();
+    }
+
+    decline(&path, "blue");
+    let view = run(&["match", "show", &path, "--side", "blue"]).ok();
+    let last = view["reinforce_offers"].as_array().unwrap().len() - 1;
+    let again = format!("{{type: choose_reinforce_item, index: {last}, name: decline_offer}}");
+    let refused = run(&["match", "act", &path, "--side", "blue", &again]).refused();
+    assert!(refused.contains("one answer"), "{refused}");
+}

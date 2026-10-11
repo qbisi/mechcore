@@ -867,6 +867,9 @@ impl Game {
     /// The opening is dealt to the side privately, so a side may take one of
     /// its own four and no other; nothing else may be taken in round zero, and
     /// an opening may not be taken in any other round.
+    ///
+    /// A side takes one reinforcement answer a round, which only the round's
+    /// decisions so far can say.
     fn allowed(&self, side: Side, decision: &Action) -> Result<(), Failure> {
         let opening = self.round() == 0;
         match decision {
@@ -901,6 +904,17 @@ impl Game {
                 "round zero holds one decision, and it is the opening",
             )),
             Action::ChooseReinforceItem { index: offer, id } => {
+                if self
+                    .turn
+                    .side(side)
+                    .decisions
+                    .iter()
+                    .any(|taken| matches!(taken, Action::ChooseReinforceItem { .. }))
+                {
+                    return Err(Failure::refused(
+                        "this side has answered this round's reinforcement offer, and a round takes one answer",
+                    ));
+                }
                 let Some(offers) = self
                     .r#match
                     .turns
