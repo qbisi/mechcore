@@ -149,7 +149,9 @@ centre, as wide as its row's `range` and holding its row's `energy`, both in
 by its side's officers (below). It is active from
 the start, is no actor, and takes no part in movement. A side's shields are in
 the order `CompareEnergyShield` sorts them at the fight's start: their centre's
-x, then its z, then their energy and radius. A shield covers what its sphere
+x, then its z, then their energy and radius. A shield a unit carries in while it travels on a flank
+comes after every shield its side stands
+([`carried-shield-numbered-after-its-side.yaml`](../../tests/super_deployment/carried-shield-numbered-after-its-side.yaml)). A shield covers what its sphere
 holds strictly inside, in three dimensions, while it has energy left.
 
 A hit meant for a unit or a tower its side's shield covers lands on the

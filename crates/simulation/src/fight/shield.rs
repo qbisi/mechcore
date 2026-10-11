@@ -147,9 +147,13 @@ fn initialize_shields(
             energy_record: 0,
         }))
         .collect::<Vec<_>>();
+    // A shield whose owner travels in comes after its side's others: of 14
+    // seed-5 recordings with one, each numbers it after every shield its side
+    // stood, the others still by place.
     shields.sort_by_key(|shield| {
         (
             shield.team,
+            !shield.active,
             shield.x_q32,
             shield.z_q32,
             shield.energy,
