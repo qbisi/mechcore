@@ -447,6 +447,7 @@ impl Simulation {
             );
             actor.x_q32 = actor.x_q32.saturating_add(movement_x_q32);
             actor.z_q32 = actor.z_q32.saturating_add(movement_z_q32);
+            actor.placed_domain = actor.domain;
             if actor.motion.state != MotionState::Moving
                 && actor.motion.published_speed_q32 == 0
                 && (movement_x_q32 != 0 || movement_z_q32 != 0)

@@ -1048,7 +1048,10 @@ as the fight starts, or as it lands, joins or rises again; a unit still
 travelling keeps its type's domain until it lands. `SetTechFly` moves the
 unit's agent to the layer of its new domain at its height
 (`RVOControllerFixed.RefreshMainLayer`), and the unit stands at the height of
-its new domain from its next placing (`FightMech.SetPosition`). Everything
+its new domain from its next placing (`FightMech.SetPosition`): a
+Void Eye with Aerial Mode that arrives from a flank is recorded in the air but
+at the ground's height on the tick it arrives
+([`rises-at-its-next-placing.yaml`](../../tests/fly/rises-at-its-next-placing.yaml)). Everything
 that asks whether a unit flies asks `FightMech.IsFly`: its own search and
 the searches that find it, its attack range and damage against it, what a
 splash, a projectile or a terrain reaches of it, its agent, and the domain

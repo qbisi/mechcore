@@ -104,6 +104,7 @@ impl Actor {
             sand_fog_held: true,
             surfacing_line_held: true,
             domain: rules.domain,
+            placed_domain: rules.domain,
             fly_reverts_at: None,
             ignores_speed_rate: false,
             life_priority: false,
@@ -421,6 +422,7 @@ impl Actor {
     /// searches and its agent find it.
     pub(in crate::fight) fn set_position(&mut self, x_q32: i64, z_q32: i64) {
         self.x_q32 = x_q32;
+        self.placed_domain = self.domain;
         self.z_q32 = z_q32;
         self.x = q32_to_space_rounded(x_q32);
         self.z = q32_to_space_rounded(z_q32);
@@ -632,7 +634,7 @@ impl Actor {
     pub(in crate::fight) fn recorded_position(&self) -> QVec3 {
         QVec3 {
             x: self.x_q32,
-            y: space_to_q32(unit_height(self.domain)),
+            y: space_to_q32(unit_height(self.placed_domain)),
             z: self.z_q32,
         }
     }
