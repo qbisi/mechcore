@@ -34,6 +34,7 @@ const MODELS = [
   ['fire_badger', false],
   ['sabertooth', false],
   ['tarantula', false],
+  ['phantom_ray', false],
   ['energy_tower', true],
   ['research_center', true], ['anti_armor_turret', true], ['rapid_fire_turret', true],
   ['defensive_wall', true],
