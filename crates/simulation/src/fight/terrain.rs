@@ -171,13 +171,14 @@ impl Simulation {
         spec: TerrainSpec,
         position: (i64, i64, i64),
     ) -> Result<()> {
-        let key = self.add_item(
-            (team, name, None),
-            team,
-            spec,
-            position,
-            Layout::Cut { converted: false },
-        )?;
+        let layout = match spec.kind {
+            // `FogSandController.CreateRangeItemEffectLayer` overrides to
+            // `RangeItemEffectLayerNormal`, whose `OnAddRangeItem` generates no
+            // grid cells; other controllers use `RangeItemEffectLayerGrid`.
+            TerrainKind::FogSand => Layout::Circle,
+            _ => Layout::Cut { converted: false },
+        };
+        let key = self.add_item((team, name, None), team, spec, position, layout)?;
         if let Some(fire) = spec.burning()
             && self.fire_reaches((position.0, position.2, spec.radius_q32))?
         {
