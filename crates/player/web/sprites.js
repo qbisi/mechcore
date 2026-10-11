@@ -48,6 +48,7 @@ const Sprites = (() => {
     centurion: '#ff9513',
     fortress: '#ffe525',
     vulcan: '#9dcdc7',
+    melting_point: '#ffe116',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -71,6 +72,7 @@ const Sprites = (() => {
     centurion: [19.6, 32.6],
     fortress: [34.8, 28.4],
     vulcan: [30.6, 35.4],
+    melting_point: [33.8, 33.2],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -2094,6 +2096,94 @@ const Sprites = (() => {
     }
   }
 
+  // Melting Point, as it fires: a platform on four legs out to its corners,
+  // each on a heavy foot armoured in the team's colour, and on it a round
+  // body under an arched white frame, a golden emitter across its middle
+  // that glows and blazes as it fires, gold canisters round it.
+  function melting_point(c, p) {
+    const T = p.team;
+    const pulse = 0.7 + 0.3 * Math.sin(p.t * 5);
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      c.save();
+      c.translate(sx * 13.0, sy * 12.6);
+      c.rotate(Math.atan2(sx, -sy));
+      rr(c, -2.0, 2.0, 4.0, 10.0, 0.6);
+      paint(c, M.mid);
+      rr(c, -1.2, 3.0, 2.4, 5.0, 0.3);
+      paint(c, M.white, null);
+      rr(c, -2.8, -2.8, 5.6, 5.6, 0.6);
+      paint(c, M.dark);
+      rr(c, -2.4, -2.4, 4.8, 1.2, 0.2);
+      paint(c, T.accent);
+      rr(c, -2.4, 1.2, 4.8, 1.2, 0.2);
+      paint(c, T.accent);
+      rr(c, -1.4, -1.0, 2.8, 2.0, 0.6);
+      paint(c, M.pale);
+      c.restore();
+      c.save();
+      c.translate(sx * 6.4, sy * 6.3);
+      c.rotate(sx * sy * Math.PI / 4);
+      rr(c, -0.6, -1.2, 1.2, 2.4, 0.4);
+      paint(c, '#e8b53c');
+      c.restore();
+    }
+    // the body
+    circle(c, 0, 0, 6.4);
+    paint(c, M.darker);
+    for (let i = 0; i < 5; i++) {
+      const a = -Math.PI / 2 + (i - 2) * 0.55;
+      c.save();
+      c.rotate(a + Math.PI / 2);
+      poly(c, [-0.8, -8.2, 0.8, -8.2, 1.0, -6.6, -1.0, -6.6]);
+      paint(c, M.white);
+      c.restore();
+    }
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 7.5 - 1.5, -2.5, 3.0, 4.0, 0.3);
+      paint(c, T.accent);
+      circle(c, sx * 8.3, -3.0, 0.8);
+      paint(c, M.pale);
+      rr(c, sx * 10.0 - 0.6, -1.5, 1.2, 3.0, 0.2);
+      paint(c, M.mid);
+    }
+    rr(c, -10.5, 2.5, 21.0, 0.5, 0.1);
+    paint(c, '#9fd8e6', null);
+    circle(c, 0, -0.4, 3.6);
+    paint(c, T.deep);
+    circle(c, 0, -0.4, 3.1);
+    paint(c, M.black, null);
+    // the arched frame
+    c.beginPath();
+    c.arc(0, 0.6, 5.2, Math.PI, 0);
+    c.lineWidth = 0.9;
+    c.strokeStyle = M.white;
+    c.stroke();
+    c.beginPath();
+    c.arc(0, 0.6, 5.2, Math.PI, 0);
+    c.lineWidth = 0.25;
+    c.strokeStyle = '#9fd8e6';
+    c.stroke();
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 2.05 - 0.35, -5.0, 0.7, 9.0, 0.1);
+      paint(c, M.mid);
+      rr(c, sx * 2.05 - 0.45, -5.2, 0.9, 1.2, 0.1);
+      paint(c, T.accent);
+    }
+    // the emitter
+    glow(c, 0, 0.25, 3.0, GLOW.melting_point, 0.5 * pulse + (p.fireAge < 0.5 ? 0.5 : 0));
+    rr(c, -3.0, -0.5, 6.0, 1.5, 0.2);
+    paint(c, '#e8b53c');
+    line(c, -2.8, 0.25, 2.8, 0.25, GLOW.melting_point, 0.3);
+    flash(c, 0, 0.25, 3.6, GLOW.melting_point, p.fireAge, 0.25, p.fireIndex);
+    // the back
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 2.6 - 1.0, 7.6, 2.0, 3.0, 0.3);
+      paint(c, M.dark);
+      rr(c, sx * 2.6 - 0.5, 7.9, 1.0, 0.5, 0.1);
+      paint(c, T.accent, null);
+    }
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -2115,7 +2205,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion, fortress, vulcan };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion, fortress, vulcan, melting_point };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];

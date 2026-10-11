@@ -50,6 +50,7 @@ the game is in them.
 | `centurion` | Centurion | ![](centurion.svg) |
 | `fortress` | Fortress | ![](fortress.svg) |
 | `vulcan` | Vulcan | ![](vulcan.svg) |
+| `melting_point` | Melting Point | ![](melting_point.svg) |
 | `energy_tower` | Energy Tower | ![](energy_tower.svg) |
 | `research_center` | Research Center | ![](research_center.svg) |
 | `anti_armor_turret` | Anti-Armor Cannon | ![](anti_armor_turret.svg) |
