@@ -21,8 +21,10 @@ import random
 import sys
 
 # The side's own half, in its own coordinates: its territory is toward
-# negative y. A place the board does not take is refused and drawn again.
-X = range(-200, 201, 10)
+# negative y. A place the board does not take is refused and drawn again; a
+# formation an odd number of cells wide stands on a centre half a cell off the
+# grid, so x is drawn in half cells.
+X = range(-200, 201, 5)
 Y = range(-260, -59, 10)
 
 # How many refusals in a row end a round's buying.
