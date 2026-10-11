@@ -29,12 +29,13 @@ const Sprites = (() => {
   // Each unit's emissive colour, read off its model's emission texture.
   const GLOW = {
     marksman: '#5ff2ff', arclight: '#b3f2ff', rhino: '#ffa236', crawler: '#ffb648',
-    sledgehammer: '#55e8f4', wasp: '#ffd84e',
+    sledgehammer: '#55e8f4', wasp: '#ffd84e', phoenix: '#00eaff',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
     marksman: [12, 22], arclight: [18, 13], rhino: [28, 24], crawler: [4.2, 5.2],
-    sledgehammer: [7.6, 13], wasp: [7.4, 6.6], energy_tower: [22, 22], research_center: [22, 22],
+    sledgehammer: [7.6, 13], wasp: [7.4, 6.6], phoenix: [18.4, 12.8],
+    energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
 
@@ -679,6 +680,62 @@ const Sprites = (() => {
     }
   }
 
+  // Phoenix, as its model flies: a long pointed nose over a short body, a
+  // tail boom each side of it ending in fins, a white pylon outboard of
+  // each boom, and from each pylon a long panel in the team's colour swept
+  // back and out. Its exhausts glow in its emissive colour.
+  function phoenix(c, p) {
+    const T = p.team;
+    const bob = Math.sin(p.t * 2.4 + p.walk) * 0.03;
+    c.scale(1 + bob, 1 + bob);
+    for (const sx of [-1, 1]) {
+      // the swept panel, from the pylon back and out to its capped tip
+      poly(c, [sx * 4.4, -0.3, sx * 8.7, 2.2, sx * 7.9, 3.8, sx * 4.1, 1.5]);
+      paint(c, T.accent);
+      line(c, sx * 4.6, 0.6, sx * 8.3, 2.9, T.deep, 0.25);
+      poly(c, [sx * 8.55, 2.0, sx * 9.2, 2.4, sx * 8.4, 4.05, sx * 7.75, 3.7]);
+      paint(c, T.deep);
+      // the strut out to the pylon
+      poly(c, [sx * 1.0, -0.9, sx * 4.0, -0.7, sx * 4.0, 0.5, sx * 1.0, 0.6]);
+      paint(c, M.dark);
+      rr(c, sx * 2.75 - 0.25, -1.7, 0.5, 1.0, 0.1);
+      paint(c, T.accent, M.line, 0.6);
+      // the pylon
+      poly(c, [sx * 3.95, -3.5, sx * 4.6, -3.5, sx * 4.65, 1.9, sx * 4.3, 3.2, sx * 3.9, 2.2]);
+      paint(c, M.white);
+      rr(c, sx * 4.25 - 0.3, -4.1, 0.6, 0.7, 0.1);
+      paint(c, M.mid);
+      // the tail boom, widening into its tailplane, red fins at its end
+      poly(c, [sx * 1.25, -0.8, sx * 2.15, -0.8, sx * 2.25, 3.2, sx * 3.9, 5.3, sx * 3.8, 5.9, sx * 2.1, 5.2, sx * 1.6, 6.3, sx * 1.35, 3.3]);
+      paint(c, M.white);
+      poly(c, [sx * 1.5, -0.5, sx * 1.9, -0.5, sx * 1.95, 2.8, sx * 1.6, 2.8]);
+      paint(c, M.mid, null);
+      for (const [x, y0, y1] of [[1.75, 4.7, 6.3], [3.85, 4.6, 6.0]]) {
+        rr(c, sx * x - 0.17, y0, 0.34, y1 - y0, 0.1);
+        paint(c, T.accent, M.line, 0.6);
+      }
+    }
+    // the body behind the cockpit, its dark intake under it
+    rr(c, -0.65, 0.4, 1.3, 1.6, 0.25);
+    paint(c, '#2c3a55');
+    // the exhausts under the intake's back, which glow
+    for (const sx of [-1, 1]) glow(c, sx * 0.45, 1.9, 0.9, GLOW.phoenix, 0.7 + 0.3 * Math.sin(p.t * 23 + sx));
+    rr(c, -0.5, -0.9, 1.0, 1.35, 0.15);
+    paint(c, M.white);
+    // the collar around the nose's root
+    poly(c, sym([0, -1.9, 0.9, -1.6, 1.5, -0.95, 0.9, -0.85, 0, -1.05]));
+    paint(c, M.white);
+    // the nose, striped in the team's colour, its canopy along the middle
+    poly(c, sym([0, -6.3, 0.3, -5.2, 0.75, -2.6, 0.95, -1.0, 0, -0.9]));
+    paint(c, M.white);
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 0.32, -5.0, sx * 0.55, -3.9, sx * 0.85, -1.9, sx * 0.62, -2.0, sx * 0.4, -3.9]);
+      paint(c, T.accent, null);
+    }
+    poly(c, sym([0, -2.7, 0.24, -2.4, 0.24, -1.0, 0, -0.95]));
+    paint(c, '#9fd6f5', M.line, 0.6);
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -700,7 +757,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
