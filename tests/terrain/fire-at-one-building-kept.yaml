@@ -1,0 +1,32 @@
+# A fire landing where its unit's fire already burns is not made again, and
+# "where" is `FVector3.op_Equality`, each axis within FPoint's 43 raw: the
+# standing fire burns from the start instead (`RangeItemSystem.GetRepeatItem`,
+# `FightGroundFire.Reset`). Red's Fire Badger with Napalm shoots at blue's
+# Anti-Armor Turret, and its shots at the turret land on points a few raw
+# apart; the game makes 68 fires in the fight where exact equality made 72.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: -250, y: -280}}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+red:
+  officers: [advanced_offensive_tactics]
+  techs:
+    fire_badger: [napalm, range_enhancement, scorching_charge]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 205, y: -40}, level: 2, equipment: [amplifying_core]}
+outcome:
+  blue.core_damage: 201
+  red.units[0].exp: 520
+asserts:
+- sql: "SELECT count(*) FROM events WHERE type = 'terrain_created'"
+  rows: [[68]]
+ticks: 342
+hash: 23:1c8cb3a999ff448e8f78ca75f01b725a420d1f63941376350ad76bc890e9d34c
