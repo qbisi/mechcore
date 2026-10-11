@@ -53,6 +53,7 @@ const Sprites = (() => {
     war_factory: '#b9ca6e',
     sandworm: '#32677e',
     raiden: '#00c2ff',
+    abyss: '#f975ff',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -81,6 +82,7 @@ const Sprites = (() => {
     war_factory: [67.4, 72.6],
     sandworm: [22.4, 39.8],
     raiden: [30.4, 45.8],
+    abyss: [53.4, 54.4],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -2516,6 +2518,90 @@ const Sprites = (() => {
     paint(c, M.pale, null);
   }
 
+  // Abyss: a great flying ship. A white crested head at its front, at its
+  // middle a ring in the team's colour round a dark core glowing violet, a
+  // ringed pod and a drum out each side, white wings and turbines astern
+  // and two long feelers trailing behind.
+  function abyss(c, p) {
+    const T = p.team;
+    const pulse = 0.7 + 0.3 * Math.sin(p.t * 3);
+    const trail = Math.sin(p.t * 1.3) * 0.6;
+    // the feelers
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 16.4, 19.5, sx * 17.2, 19.5, sx * 19.2 + trail, 32.6, sx * 18.8 + trail, 32.6]);
+      paint(c, T.accent);
+    }
+    // the wings and turbines astern
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 10.0, 12.0, sx * 20.0, 13.0, sx * 24.0, 17.0, sx * 21.0, 25.0, sx * 10.0, 24.0]);
+      paint(c, M.white);
+      for (let i = 0; i < 5; i++) line(c, sx * (12.0 + i * 2.0), 15.0, sx * (12.5 + i * 2.0), 23.0, M.pale, 0.4);
+      rr(c, sx * 8.6 - 3.0, 14.0, 6.0, 10.6, 1.4);
+      paint(c, M.mid);
+      for (let y = 15.0; y < 24.0; y += 1.2) line(c, sx * 6.2, y, sx * 11.0, y, M.dark, 0.3);
+    }
+    rr(c, -3.6, 11.0, 7.2, 14.0, 0.8);
+    paint(c, T.accent);
+    for (let y = 13.5; y < 24.0; y += 2.0) line(c, -2.6, y, 2.6, y, T.deep, 0.5);
+    // the body round the core
+    rr(c, -16.0, -1.0, 32.0, 13.0, 3.0);
+    paint(c, M.dark);
+    for (const sx of [-1, 1]) {
+      // the drum outboard
+      rr(c, sx > 0 ? 21.6 : -25.6, -0.8, 4.0, 11.6, 1.6);
+      paint(c, T.accent);
+      rr(c, sx > 0 ? 18.5 : -21.5, 3.2, 3.0, 3.6, 0.3);
+      paint(c, M.darker);
+      // the ringed pod
+      rr(c, sx > 0 ? 7.0 : -12.0, 2.4, 5.0, 4.0, 1.0);
+      paint(c, M.mid);
+      circle(c, sx * 13.8, 4.2, 3.2);
+      paint(c, T.accent);
+      circle(c, sx * 13.8, 4.2, 1.8);
+      paint(c, M.darker);
+    }
+    circle(c, 0, 5.0, 7.6);
+    paint(c, T.accent);
+    circle(c, 0, 5.0, 5.0);
+    paint(c, M.black);
+    glow(c, 0, 5.0, 4.6, GLOW.abyss, 0.6 * pulse);
+    circle(c, 0, 5.0, 1.6);
+    paint(c, GLOW.abyss, null);
+    for (let i = 0; i < 8; i++) {
+      const a = (i * Math.PI) / 4;
+      rr(c, Math.cos(a) * 6.3 - 0.4, 5.0 + Math.sin(a) * 6.3 - 0.4, 0.8, 0.8, 0.1);
+      paint(c, T.deep, null);
+    }
+    flash(c, 0, 5.0, 6.0, GLOW.abyss, p.fireAge, 0.25, p.fireIndex);
+    // the shoulders and the head
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 13.0, -12.0, sx * 19.5, -10.0, sx * 21.5, -6.0, sx * 19.5, -2.0, sx * 13.0, -2.0]);
+      paint(c, M.mid);
+      poly(c, [sx * 19.8, -9.0, sx * 22.6, -7.0, sx * 22.6, -2.4, sx * 20.0, -2.4]);
+      paint(c, T.accent);
+      rr(c, sx * 10.2 - 1.0, -9.0, 2.0, 3.6, 0.6);
+      paint(c, '#f2a66b');
+      circle(c, sx * 16.4, -4.6, 1.4);
+      paint(c, M.steel);
+    }
+    poly(c, [0, -21.6, 4.6, -20.6, 8.0, -17.0, 12.0, -14.0, 15.4, -10.0, 13.0, -3.0, 6.0, -1.0, -6.0, -1.0, -13.0, -3.0, -15.4, -10.0, -12.0, -14.0, -8.0, -17.0, -4.6, -20.6]);
+    paint(c, M.white);
+    poly(c, [-3.4, -21.4, 3.4, -21.4, 4.4, -19.2, -4.4, -19.2]);
+    paint(c, T.accent);
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 6.0, -16.0, sx * 9.0, -12.0, sx * 6.4, -10.6]);
+      paint(c, M.darker, null);
+      poly(c, [sx * 9.0, -9.0, sx * 13.0, -7.0, sx * 9.6, -5.6]);
+      paint(c, M.darker, null);
+    }
+    poly(c, [0, -15.0, 2.6, -12.6, 2.0, -6.0, -2.0, -6.0, -2.6, -12.6]);
+    paint(c, T.accent, null);
+    rr(c, -1.4, -10.6, 2.8, 8.0, 0.4);
+    paint(c, M.mid);
+    rr(c, -5.0, -6.4, 10.0, 1.6, 0.4);
+    paint(c, M.mid);
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -2537,7 +2623,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion, fortress, vulcan, melting_point, overlord, war_factory, sandworm, raiden };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion, fortress, vulcan, melting_point, overlord, war_factory, sandworm, raiden, abyss };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
