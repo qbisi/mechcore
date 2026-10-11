@@ -34,6 +34,56 @@ the round opens, before its refresh. Restoring a round replays the log onto the
 pool the seed initializes and sorts the pools again, so the order the players
 chose in is kept without deciding anything.
 
+## What the pools hold
+
+A round deals from one of two pools, and which one is the unit round pool's
+to say (see [Unit reinforcement](#unit-reinforcement)).
+
+**The ordinary pool** holds three kinds of card, filed by level, 1 to 5:
+officers, commander skills and equipment
+([reinforce_items.md](reinforce_items.md) says what taking each changes). A
+card is in it when its `scope` is the ordinary pool's and its `limitedScene` is
+empty or names standard versus. An officer with a positive `typeID` belongs to
+a type group, and the group enters the pool as one representative, drawn as the
+opening initializes; its other variants stay out and arrive only as that
+representative's replacement. An officer whose `typeID` is zero, and every
+commander skill and equipment card, enters on its own.
+[`config/reinforcements.yaml`](../../config/reinforcements.yaml) lists every
+card the ordinary pool can hold, with its level, group, round window and
+whether it may be taken again.
+
+**The unit pool** holds the unit reinforcement cards, whose `scope` is the
+unit pool's: each hands out squads of one unit type at a level, and is dealt
+only in the round its `activeRound` names, in a unit round.
+
+## What a deal never offers
+
+Whatever the pools hold, a card is left out of a deal for any of these
+reasons, each of which the sections below state in full:
+
+- **Outside its round window.** A card is a candidate only from its
+  `earliestRound` and, when its `latestRound` is positive, up to it.
+- **Taken already.** A card that may not be taken again leaves the pool when a
+  side takes it, and takes its group's other variants with it. Declining, and
+  taking a card that may be taken again, remove nothing.
+- **Failing its appearance condition.** An officer that asks for a unit type
+  to be absent leaves while either side fields one, and an officer that asks
+  for a low investment share leaves while either side has more than its share
+  in the unit. Each is replaced from its group when a variant passes, and
+  otherwise not at all.
+- **A level-4 commander skill after one was offered.** A deal that offers one
+  keeps every level-4 commander skill out of the next round's deal.
+- **An empty level.** A level with no candidate left is not drawn.
+- **In a unit round**, a unit type a side fields is left out of the first
+  pass, a type an active officer prevents is left out of both, and no deal
+  offers one unit type twice.
+
+The cards no deal ever offers are the ones outside both pools:
+the commander skills a blueprint grants, the specialists that belong to the
+opening, the officers neither route reaches, and the cards of other modes;
+[reinforce_items.md](reinforce_items.md#what-the-pool-will-not-deal) names
+them.
+
 ## Ordinary reinforcement
 
 `ReinforcePool.OnNewRound` asks `CheckReinforeCondition` of every officer card
@@ -193,6 +243,14 @@ levels differ.
 
 ### Read
 
+- A card is in the ordinary pool by its scope and scene, an officer type group
+  by one representative, and the unit pool holds the unit cards; a card is a
+  candidate inside its round window, and one that may not be taken again leaves
+  when it is: `ReinforceItemData.scope`, `ItemData.limitedScene`,
+  `OfficerData.typeID`, `ReinforcementRandomObject_Common.RandomTypeGroup`,
+  `UnitReinforceData`, `ReinforceItemData.earliestRound`,
+  `ReinforceItemData.latestRound`, `ReinforceItemData.canRepeated`,
+  `OfficerData.preventUnitReinforcements`.
 - A round's deal is generated as the round's deployment opens, by the match's
   reinforcement object: `ReinforcementSystem.OnEnterDeployment`,
   `ReinforcementSystem.GenerateReinforceItems`,
