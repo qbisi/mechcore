@@ -1,0 +1,32 @@
+# A construction's lock names its target as the recording numbers the units
+# of its first snapshot. Red's Fortress makes its Fangs with Fang Production
+# on tick 1, and they join at once, so the first snapshot counts them among
+# the initial units and numbers the Fortress among them by position. Blue's
+# Rapid-Fire Turret locks the Fortress as tick 1 begins, before the Fangs are
+# made, and the recording names that lock by the Fortress's number in the
+# first snapshot, unit 6, not by the number it took before the Fangs.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -250}}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+red:
+  techs:
+    fortress: [fang_production]
+  units:
+  - {name: fortress, index: 0, position: {x: 80, y: -60}}
+outcome:
+  blue.core_damage: 354
+  blue.units[0].exp: 48
+  red.units[0].exp: 520
+asserts:
+- sql: "SELECT b.skill__lock_target__id, u.unit_type_id FROM buildings b JOIN units u ON u.unit_id = b.skill__lock_target__id AND u.tick = b.tick WHERE b.has_skill AND b.tick = 1"
+  rows: [[6, 1]]
+ticks: 475
+hash: 23:689f87f9885c50fa2f95344bd3d0d751173f4d5f15369ed3cdb15fa066166d49
