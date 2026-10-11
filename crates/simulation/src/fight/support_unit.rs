@@ -64,10 +64,31 @@ pub(in crate::fight) struct SupportUnitSystem {
 impl SupportUnitSystem {
     /// The production lines units carry, and what the side's buffs make a
     /// dying unit summon; nothing created yet.
+    ///
+    /// `TeamSupportUnitManager.OnFightStart` sorts a side's lines by the unit
+    /// type each makes (`SupportUnitData.GetUnitID`), then by the technology
+    /// or item that hands it (`GetID`), then by where its owner stands
+    /// (`FightUtility.PositionComparer`). `UpdateCreators` walks the list
+    /// from its end, so on a tick two lines are both due, the one making the
+    /// higher unit type makes first: a War Factory's Phoenix, then its
+    /// Sledgehammers, then its Steel Balls.
     pub(in crate::fight) fn new(
         lines: Vec<Creator>,
         layout: &crate::layout::CompiledLayout,
     ) -> Self {
+        let order = super::deploy::sort_by_actor_comparer(0..lines.len(), |index| {
+            let creator = &lines[index];
+            (
+                (creator.summon.rules.unit_type_id, creator.source_id),
+                creator.z_q32,
+                creator.x_q32,
+            )
+        });
+        let mut lines = lines.into_iter().map(Some).collect::<Vec<_>>();
+        let lines = order
+            .into_iter()
+            .filter_map(|index| lines[index].take())
+            .collect();
         Self {
             lines,
             creators: Vec::new(),
@@ -132,6 +153,9 @@ pub(in crate::fight) struct Creator {
     /// gates, a support skill (`FightSupportSkill.Disable`) the line it
     /// gates.
     technology: Option<i32>,
+    /// `SupportUnitData.GetID` of a unit's line: the technology or the item
+    /// that hands it. None for a battle skill's creator.
+    source_id: Option<i32>,
 }
 
 /// What a support skill makes of its production line.
@@ -228,6 +252,7 @@ impl Creator {
             updates: 0,
             enabled: true,
             technology: None,
+            source_id: None,
         }
     }
 
@@ -283,6 +308,7 @@ impl Creator {
             // so its lines make nothing until it arrives.
             enabled: !owner.travelling,
             technology: line.technology,
+            source_id: Some(line.source_id),
         }
     }
 }

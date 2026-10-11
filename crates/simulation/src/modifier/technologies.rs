@@ -665,6 +665,7 @@ fn surfacing_line_of(row: &Row, who: &str) -> std::result::Result<Option<Product
     }
     Ok(Some(ProductionLine {
         unit_type_id: block.support_unit_id,
+        source_id: row.id,
         max_batch: block.max_batch,
         max_alive: block.max_alive,
         per_time: block.create_count_per_time,
@@ -1225,7 +1226,8 @@ impl SupportBlock {
     /// appear any way but at once or in their time at their offsets, at a
     /// level of their own, whose attack range the row corrects, capped in
     /// all, made in its intensify mode or without its side's technologies.
-    fn line(&self, who: &str) -> std::result::Result<ProductionLine, String> {
+    /// `id` is the technology's.
+    fn line(&self, id: i32, who: &str) -> std::result::Result<ProductionLine, String> {
         let unread = [
             (
                 ![IMMEDIATE, IMMEDIATE_WITH_EFFECT, TRANSITION, COMES_OUT]
@@ -1263,6 +1265,7 @@ impl SupportBlock {
         }
         Ok(ProductionLine {
             unit_type_id: self.support_unit_id,
+            source_id: id,
             max_batch: self.max_batch,
             max_alive: self.max_alive,
             per_time: self.create_count_per_time,
@@ -2376,7 +2379,7 @@ fn subclass_of(
             .ok_or_else(|| format!("{who} carries no production line"))?;
         Some(ProductionLine {
             technology: Some(row.id),
-            ..block.line(who)?
+            ..block.line(row.id, who)?
         })
     } else {
         None

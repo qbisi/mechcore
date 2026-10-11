@@ -607,6 +607,9 @@ pub(crate) struct ReactiveArmor {
 pub(crate) struct ProductionLine {
     /// `GetUnitID`: the unit type it makes.
     pub(crate) unit_type_id: u32,
+    /// `SupportUnitData.GetID`, its `ISupportDataSource`'s: the id of the
+    /// technology or the item that hands it.
+    pub(crate) source_id: i32,
     /// `GetBatchMaxCount`: how many batches it makes in all.
     pub(crate) max_batch: u32,
     /// `GetMaxCount`: how many of its makes may live at once.

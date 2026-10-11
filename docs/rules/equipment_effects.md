@@ -174,14 +174,21 @@ make due after its wearer has fallen.
 **A unit runs every line it is handed, each its own creator.** Its
 equipment's, its technologies' and its extra weapons' lines each reach it as
 a source, and `SupportUnitProvider.AddEffect` has `SupportUnitSystem.
-AddSkillOwner` make a `SupportUnitCreator` of each, in the order the provider
-holds them: `EffectProvider.Sort` orders them by priority, every one the
-same, and `List.Sort` keeps so few in the order they came. Each runs as a
-line alone does, and a buff that disables technology switches only those its
+AddSkillOwner` make a `SupportUnitCreator` of each. Each runs as a line alone
+does, and a buff that disables technology switches only those its
 technologies hand it (`SupportUnitSystem.Disable` finds a creator by its
-owner and its source). A War Factory with Phoenix, Steel Ball and
-Sledgehammer Production runs all three. Read from the build; no recording
-holds two lines on one unit.
+owner and its source).
+
+**Lines due on one tick make by the unit type they make, the highest first.**
+As the fight starts, `TeamSupportUnitManager.OnFightStart` sorts the side's
+lines by the unit type each makes (`SupportUnitData.GetUnitID`), then by the
+technology or item that hands it (`GetID`), then by where its owner stands
+(`FightUtility.PositionComparer`), and `UpdateCreators` walks the list from
+its end. A War Factory with Phoenix, Steel Ball and Sledgehammer Production
+makes its Phoenix, then its Sledgehammers, then its Steel Balls, whatever
+order its technologies were researched in; a Vulcan with a Tank Production
+Line and Best Partner makes its Sledgehammers before its Marksman. A line
+that joins later, a make's own, is appended after them.
 
 ## An important unit
 
@@ -244,6 +251,9 @@ carries:
   `create_duration` later, each make where its offset turned by the wearer's
   facing puts it, and the fight ends while the line could still make:
   `tests/production/`.
+- Lines due on one tick make by the unit type they make, the highest first,
+  whatever order the technologies are listed in:
+  `tests/production/lines-make-by-unit-type.yaml`.
 - A side's last important unit dying destroys the rest of the side on that
   tick, after it and credited to no one, through a full shield and whether a
   shot or a direct hit killed it; one dying while another stands destroys
@@ -288,6 +298,10 @@ carries:
   good since `IgnoreBuffEquipment.GetDuration` is zero, and
   `BuffSystem.DoAddBuff` adds no buff its target `IsIgnoredBuff`; a permanent
   effect is activated during deployment by `EffectProvider.ActiveCheck`.
+- A side's lines are sorted as the fight starts and walked from the end:
+  `TeamSupportUnitManager.OnFightStart`, its comparison
+  `<OnFightStart>b__10_0`, `SupportUnitData.GetUnitID`, `SupportUnitData.GetID`,
+  `FightUtility.PositionComparer`, `TeamSupportUnitManager.UpdateCreators`.
 - A production line's creator: `TeamSupportUnitManager.AddCreator` adds it to
   `creators`, where a battle skill's goes to `temporaryCreator` by
   `TeamSupportUnitManager.AddTemporaryCreator`; `TeamSupportUnitManager.Update`

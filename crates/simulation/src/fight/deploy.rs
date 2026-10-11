@@ -913,19 +913,20 @@ pub(in crate::fight) fn prepare_actors(
     units.chain(placed(true)).chain(placed(false)).collect()
 }
 
-/// `List.Sort` by `FightUtility.ActorComparer`, each side apart: world `z`
-/// unless `FPoint`'s tolerant inequality finds two within 43 raw of each
-/// other, and world `x` then. The comparison is no total order, which
-/// `sort_by` may refuse, so each item is inserted after every item it does
-/// not precede. `key` answers an item's side, `z` and `x`.
-fn sort_by_actor_comparer<T: Copy>(
+/// `List.Sort` by `FightUtility.ActorComparer` (`PositionComparer` on where
+/// each stands), after a key that comes first: world `z` unless `FPoint`'s
+/// tolerant inequality finds two within 43 raw of each other, and world `x`
+/// then. The comparison is no total order, which `sort_by` may refuse, so
+/// each item is inserted after every item it does not precede. `key` answers
+/// an item's leading key (its side, say), `z` and `x`.
+pub(in crate::fight) fn sort_by_actor_comparer<T: Copy, K: Ord>(
     items: impl IntoIterator<Item = T>,
-    key: impl Fn(T) -> (u32, i64, i64),
+    key: impl Fn(T) -> (K, i64, i64),
 ) -> Vec<T> {
     const TOLERANCE: u64 = 43;
     let order = |left: T, right: T| {
-        let ((left_team, left_z, left_x), (right_team, right_z, right_x)) = (key(left), key(right));
-        left_team.cmp(&right_team).then_with(|| {
+        let ((left_key, left_z, left_x), (right_key, right_z, right_x)) = (key(left), key(right));
+        left_key.cmp(&right_key).then_with(|| {
             if left_z.abs_diff(right_z) > TOLERANCE {
                 left_z.cmp(&right_z)
             } else {

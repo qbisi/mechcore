@@ -1,0 +1,34 @@
+# Two or more production lines due on one tick make in the order of the
+# unit type each makes, the highest first: `TeamSupportUnitManager.
+# OnFightStart` sorts a side's lines by `SupportUnitData.GetUnitID`, then by
+# the technology or item that hands each, then by where its owner stands, and
+# `UpdateCreators` walks them from the end. The order the layout lists the
+# technologies in changes nothing.
+#
+# Blue's War Factory researches Phoenix, Steel Ball and Sledgehammer
+# Production. On tick 1 it makes its Phoenix (unit type 16) first, scattered
+# by the first draw of blue's stream, then its Sledgehammers (13), then its
+# Steel Balls (8), where the technologies' own order would put Steel Balls
+# before Sledgehammers.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  techs:
+    war_factory: [phoenix_production, steel_ball_production, sledgehammer_production]
+  units:
+  - {name: war_factory, index: 0, position: {x: 5, y: -205}}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+outcome:
+  red.core_damage: 557
+  red.units[0].exp: 100
+asserts:
+- sql: "SELECT unit_type_id FROM events WHERE type = 'unit_created' AND tick = 1 ORDER BY ordinal"
+  rows: [[16], [13], [8]]
+ticks: 257
+hash: 23:681d00b33ec0ceb9958745a5d59d9bc1aff3f5abffd3f74da0b890dca1fe3f31
