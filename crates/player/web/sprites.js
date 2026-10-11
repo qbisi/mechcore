@@ -45,6 +45,7 @@ const Sprites = (() => {
     scorpion: '#c8ffef',
     typhoon: '#00b9fa',
     farseer: '#c1b936',
+    centurion: '#ff9513',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -65,6 +66,7 @@ const Sprites = (() => {
     scorpion: [27, 24.2],
     typhoon: [21.8, 21.4],
     farseer: [16, 23.6],
+    centurion: [19.6, 32.6],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -1877,6 +1879,88 @@ const Sprites = (() => {
     glow(c, 0, 6.8, 1.6, GLOW.farseer, 0.35);
   }
 
+  // Centurion, as it fires: a great biped, its right arm one long gun in
+  // the team's colour, its left reaching out to a white fist, a heavy
+  // shield in the team's colour on its back and a lance slung behind it.
+  // Its gun's vents glow, and kick back as it fires.
+  function centurion(c, p) {
+    const T = p.team;
+    const kick = recoil(p.fireAge, 0.6) * 0.8;
+    // the lance
+    c.save();
+    c.translate(2.5, 13.8);
+    c.rotate(0.42);
+    rr(c, -0.55, -5.4, 1.1, 10.4, 0.55);
+    paint(c, '#e8b48c');
+    rr(c, -0.7, -1.2, 1.4, 1.2, 0.3);
+    paint(c, M.dark);
+    c.restore();
+    // the shield on its back
+    c.save();
+    c.translate(-3.6, 5.6);
+    c.rotate(-0.45);
+    rr(c, -4.2, -4.8, 8.4, 9.6, 1.6);
+    paint(c, T.accent);
+    rr(c, -2.4, -3.0, 2.0, 2.4, 0.3);
+    paint(c, M.dark);
+    rr(c, 0.4, -1.0, 2.0, 2.6, 0.3);
+    paint(c, M.white);
+    line(c, -3.0, 2.6, 3.0, 2.6, T.deep, 0.3);
+    c.restore();
+    // the legs and the torso
+    for (const sx of [-1, 1]) {
+      rr(c, 1.0 + sx * 2.2 - 1.3, 0.5, 2.6, 6.0, 0.5);
+      paint(c, M.white);
+    }
+    rr(c, -3.4, -3.8, 8.2, 8.0, 1.4);
+    paint(c, M.pale);
+    rr(c, -1.6, -2.4, 4.4, 4.2, 0.6);
+    paint(c, M.dark, null);
+    // the right shoulder
+    poly(c, [5.0, -1.8, 8.0, -1.0, 9.6, 2.4, 9.2, 7.8, 6.4, 9.0, 4.6, 6.0]);
+    paint(c, T.accent);
+    poly(c, [6.0, 0.0, 7.6, 0.6, 8.1, 3.6, 6.6, 4.4]);
+    paint(c, M.white, null);
+    // the left arm out to its fist
+    c.save();
+    c.translate(-2.2, -2.8);
+    c.rotate(-0.9);
+    rr(c, -1.0, -7.2, 2.0, 7.2, 0.5);
+    paint(c, M.dark);
+    rr(c, -1.3, -5.6, 2.6, 1.0, 0.3);
+    paint(c, T.accent);
+    rr(c, -1.3, -2.8, 2.6, 1.0, 0.3);
+    paint(c, T.accent);
+    rr(c, -1.7, -9.6, 3.4, 2.8, 0.6);
+    paint(c, M.white);
+    rr(c, -1.9, -9.9, 3.8, 0.9, 0.3);
+    paint(c, T.accent);
+    c.restore();
+    // the head
+    rr(c, -0.4, -4.6, 2.0, 1.8, 0.5);
+    paint(c, T.accent);
+    rr(c, 0.1, -4.3, 1.0, 0.5, 0.1);
+    paint(c, M.darker, null);
+    // the gun arm, kicked back as it fires
+    c.save();
+    c.translate(0, kick);
+    rr(c, 3.6, -11.5, 2.8, 12.0, 0.5);
+    paint(c, T.accent);
+    rr(c, 4.2, -9.6, 1.6, 3.4, 0.2);
+    paint(c, M.darker, null);
+    rr(c, 4.3, -13.4, 1.4, 2.0, 0.3);
+    paint(c, M.white);
+    rr(c, 3.5, -0.4, 3.0, 0.8, 0.1);
+    paint(c, M.darker);
+    for (let i = 0; i < 6; i++) {
+      rr(c, 3.7 + i * 0.45, -0.3, 0.2, 0.6, 0.04);
+      paint(c, GLOW.centurion, null);
+    }
+    glow(c, 5.0, 0, 1.2, GLOW.centurion, 0.5);
+    flash(c, 5.0, -13.9, 2.4, '#ffb347', p.fireAge, 0.15, p.fireIndex);
+    c.restore();
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -1898,7 +1982,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
