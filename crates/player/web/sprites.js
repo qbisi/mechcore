@@ -35,6 +35,7 @@ const Sprites = (() => {
     vortex: '#76f9fe',
     mustang: '#12878d',
     steel_ball: '#ffd114',
+    stormcaller: '#65f9ff',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -45,6 +46,7 @@ const Sprites = (() => {
     vortex: [7.8, 7.0],
     mustang: [5.8, 9.2],
     steel_ball: [10.6, 16],
+    stormcaller: [8.8, 11.8],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -1121,6 +1123,59 @@ const Sprites = (() => {
     if (p.strike >= 0 || p.fireAge < 0.3) glow(c, 0, 0, 3.0, GLOW.steel_ball, 0.6);
   }
 
+  // Stormcaller, as it fires every launcher: a tracked rocket carrier, a rack
+  // of red launch tubes each side reaching ahead of it, missiles at their
+  // mouths, and between them the cab with its glass canopy.
+  function stormcaller(c, p) {
+    const T = p.team;
+    const kick = recoil(p.fireAge, 0.5) * 0.5;
+    for (const sx of [-1, 1]) {
+      // the rack's white back
+      poly(c, [sx * 2.0, 1.0, sx * 4.1, 1.0, sx * 4.1, 3.2, sx * 3.5, 4.3, sx * 2.0, 4.3]);
+      paint(c, M.white);
+      rr(c, sx * 3.0 - 0.45, 1.6, 0.9, 2.4, 0.15);
+      paint(c, M.pale, null);
+      c.save();
+      c.translate(0, kick);
+      // the missiles in the outer tubes
+      poly(c, [sx * 3.7, -6.7, sx * 3.95, -6.0, sx * 3.95, -5.0, sx * 3.45, -5.0, sx * 3.45, -6.0]);
+      paint(c, M.white);
+      // the tubes
+      rr(c, sx * 3.95 - 0.38, -5.1, 0.76, 5.7, 0.2);
+      paint(c, T.accent);
+      rr(c, sx * 2.95 - 0.38, -5.3, 0.76, 2.6, 0.2);
+      paint(c, T.accent);
+      rr(c, sx * 2.95 - 0.38, -2.7, 0.76, 3.8, 0.2);
+      paint(c, T.accent);
+      line(c, sx * 3.95, -4.8, sx * 3.95, 0.3, T.deep, 0.18);
+      line(c, sx * 2.95, -2.4, sx * 2.95, 0.8, T.deep, 0.18);
+      for (const x of [3.95, 2.95]) flash(c, sx * x, -5.6, 1.2, '#ffb347', p.fireAge, 0.18, p.fireIndex + x);
+      c.restore();
+    }
+    // the cab: a grey wedge, its white front under the canopy
+    poly(c, [-0.6, -3.3, 0.6, -3.3, 1.9, -1.6, 1.9, 1.2, 1.2, 2.0, -1.2, 2.0, -1.9, 1.2, -1.9, -1.6]);
+    paint(c, M.mid);
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 1.15 - 0.3, -0.3, 0.6, 1.4, 0.1);
+      paint(c, M.pale);
+      rr(c, sx * 1.1 - 0.45, 1.5, 0.9, 1.0, 0.1);
+      paint(c, M.darker);
+      glow(c, sx * 1.0, -2.3, 0.5, GLOW.stormcaller, 0.5);
+    }
+    poly(c, [-0.65, -2.0, 0.65, -2.0, 0.6, 0.6, -0.6, 0.6]);
+    paint(c, M.white);
+    for (const x of [-0.25, 0.05]) {
+      rr(c, x, -0.6, 0.18, 1.0, 0.04);
+      paint(c, M.dark, null);
+    }
+    rr(c, -0.55, 0.9, 1.1, 1.1, 0.1);
+    paint(c, M.dark);
+    poly(c, [-0.35, -4.2, 0.35, -4.2, 0.55, -2.6, 0.35, -1.85, -0.35, -1.85, -0.55, -2.6]);
+    paint(c, M.dark);
+    poly(c, [-0.25, -3.95, 0.25, -3.95, 0.42, -2.6, 0.25, -2.0, -0.25, -2.0, -0.42, -2.6]);
+    paint(c, M.glass, M.line, 0.6);
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -1142,7 +1197,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
