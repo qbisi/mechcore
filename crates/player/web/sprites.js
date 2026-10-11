@@ -36,6 +36,7 @@ const Sprites = (() => {
     mustang: '#12878d',
     steel_ball: '#ffd114',
     stormcaller: '#65f9ff',
+    hacker: '#1cfefc',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -47,6 +48,7 @@ const Sprites = (() => {
     mustang: [5.8, 9.2],
     steel_ball: [10.6, 16],
     stormcaller: [8.8, 11.8],
+    hacker: [21.4, 21.8],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -1176,6 +1178,92 @@ const Sprites = (() => {
     paint(c, M.glass, M.line, 0.6);
   }
 
+  // Hacker, as it attacks: a round body with a glowing core, a pod angled
+  // out ahead each side of it, a tail pod behind, and four black cables
+  // looping out from it, the two outer ones raised to spiked heads ringed
+  // in its glow.
+  const HACKER_CABLES = [
+    [[-2.5, 2.0], [-4.0, 3.5], [-9.8, 6.0], [-10.6, 5.5], [-10.1, -2.0], [-10.0, -7.8]],
+    [[2.5, 1.5], [4.5, 3.0], [9.0, 7.2], [9.8, 6.8], [8.0, -1.0], [8.2, -6.2]],
+    [[-1.8, 3.5], [-3.2, 9.5], [-3.8, 10.3], [-4.9, 8.7], [-4.8, -1.0]],
+    [[1.9, 3.6], [3.5, 9.6], [4.1, 10.2], [4.8, 8.5], [4.8, -1.0]],
+  ];
+  function hacker(c, p) {
+    const T = p.team;
+    const pulse = 0.7 + 0.3 * Math.sin(p.t * 6);
+    const sway = Math.sin(p.t * 1.7) * 0.15;
+    // the cables
+    c.lineJoin = 'round';
+    c.lineCap = 'round';
+    for (const cable of HACKER_CABLES) {
+      c.beginPath();
+      cable.forEach(([x, y], i) => {
+        const dx = i > 1 ? sway * i : 0;
+        if (i) c.lineTo(x + dx, y); else c.moveTo(x, y);
+      });
+      c.lineWidth = 0.55;
+      c.strokeStyle = M.black;
+      c.stroke();
+    }
+    c.lineCap = 'butt';
+    // the spiked heads on the raised cables
+    for (const [x, y] of [[-10.0 + sway * 5, -8.3], [8.2 + sway * 5, -6.8]]) {
+      circle(c, x, y + 0.1, 0.5);
+      paint(c, M.white);
+      rr(c, x - 0.45, y - 0.85, 0.9, 0.5, 0.1);
+      paint(c, GLOW.hacker);
+      poly(c, [x - 0.55, y - 0.85, x + 0.55, y - 0.85, x, y - 2.9]);
+      paint(c, M.dark);
+      glow(c, x, y - 0.6, 0.9, GLOW.hacker, 0.6 * pulse);
+    }
+    // the tail pod
+    poly(c, [-1.5, 3.0, 1.5, 3.0, 1.3, 8.0, -1.3, 8.0]);
+    paint(c, M.white);
+    poly(c, [-0.9, 4.2, 0.9, 4.2, 0.7, 7.6, -0.7, 7.6]);
+    paint(c, T.accent, null);
+    rr(c, -1.15, 7.8, 2.3, 1.1, 0.3);
+    paint(c, M.dark);
+    // the pods angled out ahead, a cup ringed in its glow under each
+    for (const sx of [-1, 1]) {
+      c.save();
+      c.translate(sx * 4.5, -2.8);
+      c.rotate(sx * 0.68);
+      rr(c, -1.15, -2.9, 2.3, 4.6, 0.9);
+      paint(c, M.white);
+      rr(c, -0.8, -2.4, 1.6, 3.1, 0.6);
+      paint(c, T.accent, null);
+      rr(c, -0.9, -3.3, 1.8, 0.7, 0.3);
+      paint(c, M.pale);
+      c.restore();
+      poly(c, [sx * 4.05, -1.6, sx * 5.15, -1.6, sx * 4.95, -0.4, sx * 4.25, -0.4]);
+      paint(c, M.white);
+      rr(c, sx * 4.6 - 0.55, -1.75, 1.1, 0.22, 0.05);
+      paint(c, GLOW.hacker, null);
+      rr(c, sx * 4.6 - 0.12, -3.0, 0.24, 1.3, 0.05);
+      paint(c, M.white);
+    }
+    // the body: a white ring, its red rim and dark face round the core
+    circle(c, 0, 1.0, 3.1);
+    paint(c, M.white);
+    for (let i = 0; i < 12; i++) {
+      const a = (i * Math.PI) / 6;
+      poly(c, [Math.cos(a) * 2.2, 1.0 + Math.sin(a) * 2.2, Math.cos(a + 0.18) * 3.05, 1.0 + Math.sin(a + 0.18) * 3.05, Math.cos(a - 0.18) * 3.05, 1.0 + Math.sin(a - 0.18) * 3.05]);
+      paint(c, M.dark, null);
+    }
+    circle(c, 0, 1.0, 2.1);
+    paint(c, T.accent);
+    circle(c, 0, 1.0, 1.8);
+    paint(c, M.darker);
+    circle(c, -2.85, 1.0, 0.55);
+    paint(c, M.pale);
+    glow(c, 0, 1.0, 2.0, GLOW.hacker, pulse);
+    circle(c, 0, 1.0, 0.95);
+    paint(c, '#1b6f8a');
+    circle(c, 0, 1.0, 0.6);
+    paint(c, GLOW.hacker, null);
+    flash(c, 0, 1.0, 2.4, GLOW.hacker, p.fireAge, 0.2, p.fireIndex);
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -1197,7 +1285,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
