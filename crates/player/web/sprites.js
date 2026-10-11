@@ -31,12 +31,14 @@ const Sprites = (() => {
     marksman: '#5ff2ff', arclight: '#b3f2ff', rhino: '#ffa236', crawler: '#ffb648',
     sledgehammer: '#55e8f4', wasp: '#ffd84e', phoenix: '#00eaff', fang: '#e7d512',
     hound: '#ffba19',
+    void_eye: '#bc55ff',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
     marksman: [12, 22], arclight: [18, 13], rhino: [28, 24], crawler: [4.2, 5.2],
     sledgehammer: [7.6, 13], wasp: [7.4, 6.6], phoenix: [18.4, 12.8], fang: [6.6, 5.4],
     hound: [7.8, 10],
+    void_eye: [8.8, 8.6],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -868,6 +870,58 @@ const Sprites = (() => {
     c.restore();
   }
 
+  // Void Eye, as it attacks the ground: a flyer whose white head comes to a
+  // spike, a red claw curving forward round each side of it, two white pods
+  // trailing behind, and its eye glowing under the head's jaw.
+  function void_eye(c, p) {
+    const T = p.team;
+    const bob = Math.sin(p.t * 2.2 + p.walk) * 0.03;
+    c.scale(1 + bob, 1 + bob);
+    const pulse = 0.7 + 0.3 * Math.sin(p.t * 5);
+    // the pods behind
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 0.85, 0.35, sx * 1.75, 0.35, sx * 1.7, 2.0, sx * 1.55, 3.4, sx * 1.2, 3.4, sx * 0.9, 2.0]);
+      paint(c, M.white);
+      line(c, sx * 1.3, 0.8, sx * 1.35, 2.9, M.pale, 0.2);
+      circle(c, sx * 2.1, 0.6, 0.35);
+      paint(c, M.steel);
+    }
+    // the body between the pods
+    rr(c, -1.0, -0.2, 2.0, 1.8, 0.3);
+    paint(c, M.dark);
+    rr(c, -0.35, 0.3, 0.7, 0.35, 0.08);
+    paint(c, '#8a6234', null);
+    // the claws, each round its side, and the white blade inside it
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 2.0, -4.9, sx * 1.5, -4.55, sx * 1.6, -1.6, sx * 2.3, -1.8, sx * 2.45, -3.1]);
+      paint(c, M.white);
+      poly(c, [sx * 1.95, -5.0, sx * 3.0, -4.3, sx * 3.8, -3.2, sx * 4.2, -1.8, sx * 4.3, -0.8, sx * 4.0, 0.6, sx * 3.3, 1.6, sx * 2.5, 1.7, sx * 2.2, 0.8, sx * 2.45, -0.6, sx * 2.9, -1.6, sx * 3.0, -3.0, sx * 2.5, -4.2]);
+      paint(c, T.accent);
+      poly(c, [sx * 3.9, -2.6, sx * 4.2, -1.6, sx * 4.1, 0.2, sx * 3.75, 0.0, sx * 3.85, -1.6]);
+      paint(c, T.deep, null);
+      rr(c, sx * 3.2 - 0.2, -2.3, 0.4, 0.75, 0.1);
+      paint(c, M.black, null);
+      circle(c, sx * 3.15, -3.2, 0.22);
+      paint(c, M.steel);
+    }
+    // the eye under the jaw
+    glow(c, 0, -0.35, 1.2, GLOW.void_eye, pulse);
+    poly(c, [-0.55, -0.35, 0, -0.55, 0.55, -0.35, 0, -0.2]);
+    paint(c, GLOW.void_eye, null);
+    // the head, a white shield ending in a spike, a dark slot down its brow
+    poly(c, [0, -5.05, 0.45, -3.4, 1.35, -3.15, 1.45, -1.6, 1.15, -0.85, 0.6, -0.45, -0.6, -0.45, -1.15, -0.85, -1.45, -1.6, -1.35, -3.15, -0.45, -3.4]);
+    paint(c, M.white);
+    poly(c, [-1.4, -1.6, -0.6, -1.9, 0, -1.5, 0.6, -1.9, 1.4, -1.6, 1.1, -0.85, 0.55, -0.5, -0.55, -0.5, -1.1, -0.85]);
+    paint(c, M.pale, null);
+    rr(c, -0.2, -3.2, 0.45, 1.2, 0.15);
+    paint(c, M.dark, null);
+    for (let i = 0; i < 6; i++) {
+      rr(c, -0.65 + i * 0.25, -0.35, 0.12, 0.25, 0.03);
+      paint(c, M.caution, null);
+    }
+    flash(c, 0, -0.35, 1.6, GLOW.void_eye, p.fireAge, 0.18, p.fireIndex);
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -889,7 +943,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
