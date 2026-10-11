@@ -51,6 +51,7 @@ const Sprites = (() => {
     melting_point: '#ffe116',
     overlord: '#fec21b',
     war_factory: '#b9ca6e',
+    sandworm: '#32677e',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -77,6 +78,7 @@ const Sprites = (() => {
     melting_point: [33.8, 33.2],
     overlord: [44.6, 57],
     war_factory: [67.4, 72.6],
+    sandworm: [22.4, 39.8],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -2358,6 +2360,80 @@ const Sprites = (() => {
     c.restore();
   }
 
+  // Sandworm, risen to strike: a segmented worm seen from above, its white
+  // segments plated in the team's colour trailing behind, its long head
+  // between two arms that each end in a toothed saw, spinning faster as it
+  // strikes.
+  const SANDWORM_SEGMENTS = [[0, 4.5, 5.0], [-0.5, 10.5, 4.4], [-0.7, 15.5, 3.8], [-0.4, 19.6, 3.2]];
+  function sandworm(c, p) {
+    const T = p.team;
+    const sway = Math.sin(p.t * 1.2) * 0.4;
+    // the segments, the last first
+    for (let i = SANDWORM_SEGMENTS.length - 1; i >= 0; i--) {
+      const [x, y, r] = SANDWORM_SEGMENTS[i];
+      const dx = x + sway * i * 0.6;
+      rr(c, dx - r, y - r * 0.8, r * 2, r * 1.6, r * 0.4);
+      paint(c, M.white);
+      rr(c, dx - r - 0.3, y - r * 0.4, 1.2, r * 0.8, 0.3);
+      paint(c, T.accent);
+      rr(c, dx + r - 0.9, y - r * 0.4, 1.2, r * 0.8, 0.3);
+      paint(c, T.accent);
+      poly(c, [dx, y - r * 0.6, dx + r * 0.45, y + r * 0.4, dx - r * 0.45, y + r * 0.4]);
+      paint(c, M.darker, null);
+    }
+    // the arms out to the saws
+    const spin = p.t * (p.strike >= 0 || p.fireAge < 0.6 ? 14 : 4);
+    for (const sx of [-1, 1]) {
+      c.beginPath();
+      c.moveTo(sx * 2.5, -1.5);
+      c.lineTo(sx * 7.5, -4.0);
+      c.lineTo(sx * 7.0, -7.0);
+      c.lineWidth = 1.6;
+      c.strokeStyle = M.white;
+      c.stroke();
+      c.save();
+      c.translate(sx * 6.6, -7.6);
+      c.rotate(sx * 0.4);
+      rr(c, -1.3, -2.0, 2.6, 4.0, 0.5);
+      paint(c, T.accent);
+      c.restore();
+      // the saw
+      c.save();
+      c.translate(sx * 5.6, -11.5);
+      c.rotate(spin * sx);
+      for (let i = 0; i < 10; i++) {
+        c.save();
+        c.rotate((i * Math.PI) / 5);
+        poly(c, [-0.5, -2.6, 0.6, -2.6, 1.1, -3.6]);
+        paint(c, M.pale, null);
+        c.restore();
+      }
+      circle(c, 0, 0, 2.7);
+      paint(c, M.white);
+      circle(c, 0, 0, 1.9);
+      paint(c, M.darker);
+      circle(c, 0, 0, 1.4);
+      paint(c, T.accent);
+      rr(c, -0.4, -1.4, 0.8, 2.8, 0.1);
+      paint(c, T.deep, null);
+      c.restore();
+    }
+    // the head
+    poly(c, [0, -12.6, 1.8, -11.0, 2.6, -4.0, 1.6, -1.5, -1.6, -1.5, -2.6, -4.0, -1.8, -11.0]);
+    paint(c, M.white);
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 1.9, -10.5, sx * 2.6, -4.2, sx * 2.1, -4.2, sx * 1.4, -10.5]);
+      paint(c, T.accent, null);
+      poly(c, [sx * 3.0, -4.6, sx * 3.8, -3.0, sx * 3.0, -2.6]);
+      paint(c, M.dark);
+    }
+    rr(c, -0.6, -10.0, 1.2, 6.5, 0.2);
+    paint(c, M.pale, null);
+    rr(c, -1.0, -3.0, 2.0, 1.6, 0.2);
+    paint(c, T.accent);
+    glow(c, 0, -2.2, 1.0, GLOW.sandworm, 0.5);
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -2379,7 +2455,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion, fortress, vulcan, melting_point, overlord, war_factory };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion, fortress, vulcan, melting_point, overlord, war_factory, sandworm };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
