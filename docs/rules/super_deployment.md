@@ -151,6 +151,9 @@ from the arrival.
 - A travelling Raiden's Tank Production Line makes its first Tanks on tick
   161, as the Raiden arrives, and every 260 ticks after:
   `tests/super_deployment/production-waits-for-arrival.yaml`.
+- A travelling Tarantula's Spider Mine, a support skill's line, lays its first
+  two mines on tick 161, as the Tarantula arrives, and two each 300 ticks
+  after: `tests/super_deployment/support-skill-lays-on-arrival.yaml`.
 - A travelling Fortress's Barrier stands inactive and empty until tick 161
   and rises full as the Fortress arrives:
   `tests/super_deployment/barrier-rises-on-arrival.yaml`.

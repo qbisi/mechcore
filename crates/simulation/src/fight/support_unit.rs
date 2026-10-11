@@ -439,12 +439,13 @@ impl Simulation {
     }
 
     /// `SupportUnitProvider.Active` (`SupportUnitSystem.Enable`) as a unit's
-    /// effects are activated: each line its provider hands it enabled. A
-    /// unit that arrives from a flank makes its first batch on its lines'
-    /// next update, its interval having run out on the way.
+    /// effects are activated: each of its lines enabled, a support skill's
+    /// as well as an item's. A unit that arrives from a flank makes its first
+    /// batch on its lines' next update, its interval having run out on the
+    /// way: a Tarantula with Spider Mine lays two mines as it arrives.
     pub(in crate::fight) fn activate_production(&mut self, owner: u64) {
         for creator in &mut self.support.lines {
-            if creator.owner == Some(owner) && creator.gate == Gate::None {
+            if creator.owner == Some(owner) {
                 creator.enabled = true;
             }
         }
