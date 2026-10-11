@@ -53,7 +53,7 @@ fn usage(program: &str) {
     eprintln!(
         "       {program} arena run <match.yaml|dir> --blue <command> --red <command> [--matches <n>]"
     );
-    eprintln!("       {program} game launch [--headless] [--offline] [--level <0-4>]");
+    eprintln!("       {program} game launch [--gui] [--online] [--level <0-4>]");
     eprintln!("       {program} game <operation> [--level <0-4>]");
     eprintln!("       {program} man [<topic>|<kind>] [--lang <code>]");
     eprintln!("       {program} shell [<match.yaml> --side blue|red [--json]]");

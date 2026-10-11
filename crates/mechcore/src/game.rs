@@ -53,10 +53,7 @@ fn one(verb: &str, mut arguments: Args) -> Outcome {
     }
     let level = crate::acquire::level(&mut arguments)?;
     if verb == "launch" {
-        let how = Launch {
-            headless: arguments.flag("--headless")?,
-            offline: arguments.flag("--offline")?,
-        };
+        let how = Launch::read(&mut arguments)?;
         arguments.finish()?;
         return launch(how, level);
     }

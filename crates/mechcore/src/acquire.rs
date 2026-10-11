@@ -61,6 +61,21 @@ pub(crate) struct Launch {
     pub(crate) offline: bool,
 }
 
+impl Launch {
+    /// How `game launch` starts a game: headless and offline, which every
+    /// recording needs, unless `--gui` asks for a window or `--online` for
+    /// the network.
+    pub(crate) fn read(arguments: &mut crate::cli::Args) -> Result<Self, crate::cli::Failure> {
+        // The defaults' old spellings, still in callers' scripts, say nothing.
+        arguments.flag("--headless")?;
+        arguments.flag("--offline")?;
+        Ok(Self {
+            headless: !arguments.flag("--gui")?,
+            offline: !arguments.flag("--online")?,
+        })
+    }
+}
+
 impl Mode {
     pub(crate) const fn as_str(self) -> &'static str {
         match self {
@@ -672,6 +687,37 @@ mod tests {
         let failure = Failure::new("foreign_game", "detail");
         assert_eq!(failure.code, "foreign_game");
         assert_eq!(failure.to_string(), "foreign_game: detail");
+    }
+
+    #[test]
+    fn a_launch_is_headless_and_offline_unless_asked_otherwise() {
+        let read = |items: &[&str]| {
+            Launch::read(&mut crate::cli::Args::new(
+                items.iter().map(|item| (*item).to_owned()),
+            ))
+            .unwrap()
+        };
+        assert_eq!(
+            read(&[]),
+            Launch {
+                headless: true,
+                offline: true
+            }
+        );
+        assert_eq!(
+            read(&["--headless", "--offline"]),
+            Launch {
+                headless: true,
+                offline: true
+            }
+        );
+        assert_eq!(
+            read(&["--gui", "--online"]),
+            Launch {
+                headless: false,
+                offline: false
+            }
+        );
     }
 
     #[test]
