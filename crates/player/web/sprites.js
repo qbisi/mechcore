@@ -33,6 +33,7 @@ const Sprites = (() => {
     hound: '#ffba19',
     void_eye: '#bc55ff',
     vortex: '#76f9fe',
+    mustang: '#12878d',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -41,6 +42,7 @@ const Sprites = (() => {
     hound: [7.8, 10],
     void_eye: [8.8, 8.6],
     vortex: [7.8, 7.0],
+    mustang: [5.8, 9.2],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -998,6 +1000,62 @@ const Sprites = (() => {
     }
   }
 
+  // Mustang, as it fires: a fast wheeled car, a red armoured flipper over
+  // each front wheel, big rear wheels under white fenders, and on top a long
+  // white gun housing with its cockpit, which turns to its target.
+  function mustang(c, p) {
+    const T = p.team;
+    const roll = (p.walk * 2.0) % 0.8;
+    // the wheels
+    for (const sx of [-1, 1]) {
+      for (const [y, r] of [[-1.6, 0.75], [3.3, 0.95]]) {
+        circle(c, sx * 1.6, y, r);
+        paint(c, M.black);
+        line(c, sx * 1.6 - r * 0.8, y - r + roll, sx * 1.6 + r * 0.8, y - r + roll, M.steel, 0.12);
+      }
+    }
+    for (const sx of [-1, 1]) {
+      // the track pod along the side
+      rr(c, sx * 1.65 - 0.4, -0.6, 0.8, 1.5, 0.15);
+      paint(c, M.dark);
+      // the rear fender
+      poly(c, [sx * 1.55, 1.4, sx * 2.2, 1.6, sx * 2.25, 4.1, sx * 1.95, 4.35, sx * 1.6, 4.1]);
+      paint(c, M.white);
+      rr(c, sx * 1.25 - 0.15, 2.5, 0.3, 0.9, 0.08);
+      paint(c, T.accent);
+      // the flipper over the front wheel, a grey blade ahead of it
+      poly(c, [sx * 1.6, -4.6, sx * 2.3, -4.2, sx * 2.5, -3.0, sx * 1.65, -3.0]);
+      paint(c, M.mid);
+      poly(c, [sx * 2.0, -3.4, sx * 2.6, -3.0, sx * 2.8, -1.0, sx * 2.5, -0.4, sx * 2.0, -0.6]);
+      paint(c, T.accent);
+      rr(c, sx * 1.8 - 0.22, -3.2, 0.44, 3.9, 0.08);
+      paint(c, M.darker);
+      rr(c, sx * 1.8 - 0.12, -2.8, 0.24, 0.9, 0.04);
+      paint(c, M.mid, null);
+    }
+    // the chassis under the gun
+    rr(c, -1.4, -0.4, 2.8, 3.1, 0.4);
+    paint(c, M.dark);
+    // the gun housing and cockpit, turning about its mount
+    c.save();
+    c.translate(0, 0.8);
+    c.rotate(p.turret);
+    c.translate(0, recoil(p.fireAge, 0.4) * 0.5 - 0.8);
+    poly(c, [-0.45, -3.15, 0.45, -3.15, 0.7, -1.5, 1.15, 0.0, 1.35, 1.6, 0.6, 2.2, -0.6, 2.2, -1.35, 1.6, -1.15, 0.0, -0.7, -1.5]);
+    paint(c, M.white);
+    rr(c, -0.2, -3.25, 0.4, 0.3, 0.05);
+    paint(c, M.dark);
+    poly(c, [-0.35, -1.1, 0.35, -1.1, 0.3, 0.2, -0.3, 0.2]);
+    paint(c, M.glass, M.line, 0.6);
+    glow(c, 0, -0.45, 0.8, GLOW.mustang, 0.5);
+    rr(c, -0.5, 0.35, 1.0, 1.6, 0.15);
+    paint(c, M.darker);
+    rr(c, -0.25, 0.75, 0.5, 0.6, 0.08);
+    paint(c, M.pale, null);
+    flash(c, 0, -3.5, 1.2, '#ffcf70', p.fireAge, 0.12, p.fireIndex);
+    c.restore();
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -1019,7 +1077,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
