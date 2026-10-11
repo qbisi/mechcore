@@ -56,6 +56,7 @@ the game is in them.
 | `sandworm` | Sandworm | ![](sandworm.svg) |
 | `raiden` | Raiden | ![](raiden.svg) |
 | `abyss` | Abyss | ![](abyss.svg) |
+| `mountain` | Mountain | ![](mountain.svg) |
 | `energy_tower` | Energy Tower | ![](energy_tower.svg) |
 | `research_center` | Research Center | ![](research_center.svg) |
 | `anti_armor_turret` | Anti-Armor Cannon | ![](anti_armor_turret.svg) |

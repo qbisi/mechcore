@@ -54,6 +54,7 @@ const Sprites = (() => {
     sandworm: '#32677e',
     raiden: '#00c2ff',
     abyss: '#f975ff',
+    mountain: '#fb9a39',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -83,6 +84,7 @@ const Sprites = (() => {
     sandworm: [22.4, 39.8],
     raiden: [30.4, 45.8],
     abyss: [53.4, 54.4],
+    mountain: [66.4, 40.6],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -2602,6 +2604,60 @@ const Sprites = (() => {
     paint(c, M.mid);
   }
 
+  // Mountain: a titan with a rank of eight launch pods across its
+  // shoulders, four each side, the outermost and innermost in the team's
+  // colour; between them a pointed white head over a hexagonal core whose
+  // orange ring glows, and its feet behind. Each pod's mouth flashes as it
+  // fires.
+  const MOUNTAIN_PODS = [[6.2, 2.6, -14.5, 10.0, true], [14.5, 2.0, -13.5, 12.0, false], [19.8, 1.8, -13.0, 12.0, false], [27.5, 2.6, -19.0, 13.0, true]];
+  function mountain(c, p) {
+    const T = p.team;
+    // the feet
+    for (const [x, w] of [[-11, 6], [11, 6], [0, 4]]) {
+      rr(c, x - w / 2, 15.6, w, 5.6, 0.6);
+      paint(c, M.pale);
+    }
+    rr(c, -0.8, 13.6, 1.6, 7.6, 0.2);
+    paint(c, M.white);
+    // the shoulders under the pods
+    rr(c, -30.0, -6.0, 60.0, 12.0, 2.0);
+    paint(c, M.dark);
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 30.0, 3.0, sx * 33.0, 4.4, sx * 32.4, 11.0, sx * 30.0, 11.4]);
+      paint(c, T.accent);
+      MOUNTAIN_PODS.forEach(([x, hw, y0, y1, red], i) => {
+        rr(c, sx * x - hw, y0, hw * 2, y1 - y0, 0.6);
+        paint(c, red ? T.accent : M.mid);
+        rr(c, sx * x - hw * 0.55, y0 + (y1 - y0) * 0.35, hw * 1.1, (y1 - y0) * 0.2, 0.2);
+        paint(c, M.white, null);
+        rr(c, sx * x - hw * 0.7, y0 + 0.6, hw * 1.4, 2.2, 0.3);
+        paint(c, red ? T.deep : M.darker, null);
+        rr(c, sx * x - hw, y1 - 3.0, hw * 2, 2.4, 0.3);
+        paint(c, red ? M.white : T.accent, null);
+        flash(c, sx * x, y0 - 0.4, 2.6, '#ffb347', p.fireAge, 0.18, p.fireIndex + i * sx);
+      });
+    }
+    // the head and the core
+    poly(c, [0, -18.6, 2.6, -17.0, 6.2, -13.0, 6.6, -6.0, 3.4, -2.6, -3.4, -2.6, -6.6, -6.0, -6.2, -13.0, -2.6, -17.0]);
+    paint(c, M.white);
+    rr(c, -0.7, -16.6, 1.4, 3.0, 0.2);
+    paint(c, M.white, M.line, 0.8);
+    poly(c, [-2.4, -10.0, 2.4, -10.0, 2.0, -3.4, -2.0, -3.4]);
+    paint(c, M.mid, null);
+    poly(c, [0, 2.0, 3.0, 3.7, 3.0, 7.3, 0, 9.0, -3.0, 7.3, -3.0, 3.7]);
+    paint(c, M.darker);
+    c.beginPath();
+    c.moveTo(0, 2.4);
+    [[2.7, 3.9], [2.7, 7.1], [0, 8.6], [-2.7, 7.1], [-2.7, 3.9]].forEach(([x, y]) => c.lineTo(x, y));
+    c.closePath();
+    c.lineWidth = 0.35;
+    c.strokeStyle = GLOW.mountain;
+    c.stroke();
+    glow(c, 0, 5.5, 2.4, GLOW.mountain, 0.5 + 0.2 * Math.sin(p.t * 3));
+    circle(c, 0, 5.5, 0.9);
+    paint(c, T.accent);
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -2623,7 +2679,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion, fortress, vulcan, melting_point, overlord, war_factory, sandworm, raiden, abyss };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion, fortress, vulcan, melting_point, overlord, war_factory, sandworm, raiden, abyss, mountain };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];

@@ -48,6 +48,7 @@ const MODELS = [
   ['sandworm', false],
   ['raiden', false],
   ['abyss', false],
+  ['mountain', false],
   ['energy_tower', true],
   ['research_center', true], ['anti_armor_turret', true], ['rapid_fire_turret', true],
   ['defensive_wall', true],
