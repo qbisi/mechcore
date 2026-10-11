@@ -194,6 +194,10 @@ fn a_side_sees_its_own_plans_and_the_other_side_only_on_the_board() {
     // The seed deals both openings and every offer, so neither player is told
     // it.
     assert!(view["seed"].is_null(), "{view}");
+    // Each side's own seed, which a player may draw its decisions from, is
+    // shown to both.
+    assert!(own["seed"].is_number(), "{own}");
+    assert!(other["seed"].is_number(), "{other}");
 
     // A loadout is shown for what a side has fielded, which after the opening
     // is the two unit types its team arrived with.
