@@ -241,14 +241,7 @@ fn write_player(
         })?;
     xml.push_str("</playerData>");
     let choose = format!("<Index>{}</Index><ID>{team}</ID>", opening.choose);
-    write_records(
-        xml,
-        &[
-            ("PAD_ChooseAdvanceTeam", choose),
-            ("PAD_FinishDeploy", String::new()),
-        ],
-        PREPARE_TIME,
-    );
+    write_records(xml, &[("PAD_ChooseAdvanceTeam", choose)], PREPARE_TIME);
     xml.push_str("</PlayerRoundRecord>");
 
     let mut previous: &[Action] = &[];

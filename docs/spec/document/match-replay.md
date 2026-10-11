@@ -84,6 +84,8 @@ pool again, so the order decides nothing, and conversion accepts either
 The opening holds nothing: the map's reactor core and the dealt constructions.
 Its one decision is `PAD_ChooseAdvanceTeam`, at the offer the side takes and
 naming that offer's team; the specialist is read back from round 1's officers.
+No `PAD_FinishDeploy` follows it: the game writes none in the opening, and
+replaying one there finishes round 1's deployment before its decisions play.
 
 ## Every later round
 
@@ -111,8 +113,8 @@ areas its earlier releases left, are written in that slot's `rangeItems`.
 
 ## The decisions
 
-A round's decisions are written in order, each side's ending with
-`PAD_FinishDeploy` unless it concedes:
+From round 1, a round's decisions are written in order, each side's ending
+with `PAD_FinishDeploy` unless it concedes:
 
 | Decision | Recorded as |
 | --- | --- |
