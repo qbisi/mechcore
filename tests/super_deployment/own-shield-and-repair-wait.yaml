@@ -1,0 +1,37 @@
+# A unit travelling in from a flank has its own shield empty and its repair
+# off until it arrives. Blue's two Phoenixes, with Energy Shield and a Nano
+# Repair Kit, travel onto the left flank beside a Marksman, as in
+# arrives.yaml, which this fight takes as its control. Placing them switched
+# their effects off: each shield stands at 0 of 1491 and the kit repairs
+# nothing, so their life rises by the travel's heals alone, 596 to 1373 by
+# tick 160. On tick 161, as they arrive, each shield opens full
+# (`EnergyShieldProvider.DoActive`), and the kit's repair starts its clocks
+# anew (`AutoRecoverySystem.AddMech`); the travel's last heal leaves them at
+# 1484, under their 1491, and the first repair lands on tick 181.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 2
+blue:
+  techs:
+    phoenix: [energy_shield]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: phoenix, index: 1, position: {x: -330, y: 200}, equipment: [nano_repair_kit], travelling: true}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}}
+outcome:
+  blue.units[1].exp: 400
+  red.core_damage: 200
+  red.units[0].exp: 200
+asserts:
+- sql: "SELECT tick, personal_shield__energy__current, count(*) FROM units WHERE unit_type_id = 16 AND tick IN (160, 161) GROUP BY tick, personal_shield__energy__current ORDER BY tick"
+  rows: [[160, 0, 2], [161, 1491, 2]]
+- sql: "SELECT min(tick) FROM events WHERE type = 'healing'"
+  rows: [[181]]
+ticks: 642
+hash: 23:3772b86b5142dcff4c87f31133fb260600ec10b589bebdaa1ca392e28173b880

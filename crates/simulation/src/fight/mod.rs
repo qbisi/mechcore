@@ -420,6 +420,13 @@ impl PersonalShield {
     fn available(&self) -> bool {
         self.enabled && self.energy > 0
     }
+
+    /// `EnergyShieldProvider.DoActive` as its unit's effects are activated,
+    /// which opens the shield full: a unit arriving from a flank brings up
+    /// the shield its placement closed.
+    fn open(&mut self) {
+        self.energy = self.maximum;
+    }
 }
 
 /// The production lines the units run, one creator each, made as the fight

@@ -85,6 +85,16 @@ pub(in crate::fight) fn enter_travel(
         }
         actor.travelling = true;
         actor.searched_attack = false;
+        // Its effects are deactivated as it is placed, and its own shield
+        // closes with them (`EnergyShieldProvider.DoDeactive`): it holds
+        // nothing until the unit arrives.
+        if let Some(shield) = actor.shield.as_mut() {
+            shield.energy = 0;
+        }
+        // Its repair leaves its side's with them
+        // (`AutoRecoveryEffectProvider.DoDeactive`, `AutoRecoverySystem.
+        // RemoveMech`) and comes back as it arrives.
+        actor.recovery = None;
         let withheld = actor
             .stats
             .overlays
