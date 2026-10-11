@@ -32,6 +32,7 @@ const Sprites = (() => {
     sledgehammer: '#55e8f4', wasp: '#ffd84e', phoenix: '#00eaff', fang: '#e7d512',
     hound: '#ffba19',
     void_eye: '#bc55ff',
+    vortex: '#76f9fe',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -39,6 +40,7 @@ const Sprites = (() => {
     sledgehammer: [7.6, 13], wasp: [7.4, 6.6], phoenix: [18.4, 12.8], fang: [6.6, 5.4],
     hound: [7.8, 10],
     void_eye: [8.8, 8.6],
+    vortex: [7.8, 7.0],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -922,6 +924,80 @@ const Sprites = (() => {
     flash(c, 0, -0.35, 1.6, GLOW.void_eye, p.fireAge, 0.18, p.fireIndex);
   }
 
+  // Vortex, as it attacks: a crab-like walker with two great claws reaching
+  // ahead, a leg out to each side and one to each back corner on red feet,
+  // a round coil housing at its middle and two coils at its back; its claw
+  // tips and coils glow, and arc as it fires.
+  function vortex(c, p) {
+    const T = p.team;
+    const stride = Math.min(1, p.speed / 4) * 0.3;
+    const ph = p.walk * Math.PI * 2 / 4;
+    const pulse = 0.7 + 0.3 * Math.sin(p.t * 9);
+    for (const sx of [-1, 1]) {
+      const off = Math.sin(ph + (sx > 0 ? 0 : Math.PI)) * stride;
+      // the back leg, out to its corner
+      c.save();
+      c.translate(sx * 2.4, 2.4 + off);
+      c.rotate(sx * Math.PI / 4);
+      rr(c, -0.75, -1.1, 1.5, 1.4, 0.3);
+      paint(c, M.white);
+      rr(c, -0.55, -0.55, 1.1, 1.1, 0.12);
+      paint(c, T.accent);
+      c.restore();
+      poly(c, [sx * 1.2, 1.4, sx * 1.9, 1.7, sx * 2.2, 2.1, sx * 1.6, 2.5, sx * 1.0, 2.0]);
+      paint(c, M.dark);
+      // the side leg
+      poly(c, [sx * 1.6, -1.2, sx * 3.7, -1.25, sx * 3.85, -0.5, sx * 3.6, -0.1, sx * 1.6, -0.1]);
+      paint(c, M.white);
+      rr(c, sx * 3.05 - 0.4, -1.05 - off, 0.8, 0.85, 0.12);
+      paint(c, T.accent);
+      // the body plates and the knob at each side
+      poly(c, [sx * 1.0, 0.0, sx * 2.4, 0.05, sx * 2.5, 1.0, sx * 1.6, 1.4, sx * 1.0, 1.2]);
+      paint(c, M.white);
+      for (let i = 0; i < 3; i++) {
+        rr(c, sx * (1.0 + i * 0.22) - 0.07, 0.55, 0.14, 0.45, 0.04);
+        paint(c, M.mid, null);
+      }
+      circle(c, sx * 2.35, 0.8, 0.3);
+      paint(c, M.pale);
+    }
+    // the back: a white plate, the coils and a red block
+    rr(c, -1.35, 1.2, 2.7, 1.4, 0.4);
+    paint(c, M.white);
+    rr(c, -0.5, 2.4, 1.0, 0.6, 0.1);
+    paint(c, T.accent);
+    for (const sx of [-1, 1]) {
+      circle(c, sx * 0.85, 2.05, 0.38);
+      paint(c, M.pale);
+      circle(c, sx * 0.85, 2.05, 0.18);
+      paint(c, '#2d6f7a', null);
+      glow(c, sx * 0.85, 2.05, 0.7, GLOW.vortex, 0.5 * pulse);
+    }
+    // the coil housing at the middle, its bar ahead
+    circle(c, 0, 0.85, 1.15);
+    paint(c, M.darker);
+    circle(c, 0, 0.85, 0.48);
+    paint(c, M.white);
+    circle(c, 0, 0.85, 0.33);
+    paint(c, M.dark, null);
+    rr(c, -0.28, -0.95, 0.56, 1.2, 0.08);
+    paint(c, T.accent);
+    rr(c, -0.12, -0.75, 0.24, 0.8, 0.05);
+    paint(c, M.darker, null);
+    // the claws, white with a stripe of the team's colour down the outside,
+    // their tips glowing and arcing as it fires
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 2.3, -3.5, sx * 1.45, -3.3, sx * 0.8, -2.2, sx * 0.7, -1.2, sx * 1.0, -0.5, sx * 1.9, -0.1, sx * 2.65, 0.0, sx * 2.85, -1.0, sx * 2.85, -2.3]);
+      paint(c, M.white);
+      poly(c, [sx * 2.15, -3.1, sx * 2.65, -2.3, sx * 2.65, -0.05, sx * 2.05, -0.1, sx * 1.95, -2.4]);
+      paint(c, T.accent, null);
+      poly(c, [sx * 1.1, -2.3, sx * 1.5, -2.9, sx * 1.6, -1.4, sx * 1.2, -1.0]);
+      paint(c, M.pale, null);
+      glow(c, sx * 1.85, -3.4, 0.7, GLOW.vortex, 0.6 * pulse);
+      flash(c, sx * 1.85, -3.6, 1.4, GLOW.vortex, p.fireAge, 0.2, p.fireIndex + sx);
+    }
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -943,7 +1019,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
