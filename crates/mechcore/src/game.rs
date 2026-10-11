@@ -4,7 +4,8 @@
 //! `docs/spec/adapter/adapter.md` gives them, and one argument reader serves
 //! both the shell and a one-shot command. How a process acquires the game is
 //! `docs/spec/mechcore/session.md`: `launch` starts one and leaves it for the
-//! commands after it, and every other verb joins one somebody started.
+//! commands after it, `record` of a file starts one when none is running, and
+//! every other verb joins one somebody started.
 
 use std::{path::PathBuf, sync::Arc};
 
@@ -116,22 +117,44 @@ fn launch(how: Launch, level: u8) -> Outcome {
 /// Returns `unavailable` when no game answers, and what the recording
 /// refuses.
 pub(crate) fn record_attached(record: Record, force: bool, level: u8) -> Outcome {
-    let value = with_game(level, async |session| record.run(session, force).await)??;
+    // The scene is somebody's, so it is joined; anything fought from a file
+    // takes its turn in whatever game runs, and a watched match needs the
+    // network.
+    let mode = match record {
+        Record::Scene { .. } => Mode::Attach,
+        Record::Watch { .. } => Mode::Join(Launch {
+            headless: true,
+            offline: false,
+        }),
+        _ => Mode::Join(JOB_LAUNCH),
+    };
+    let value = with_session(mode, level, async |session| {
+        record.run(session, force).await
+    })
+    .map(|(_, answer)| answer)??;
     println!("{value}");
     Ok(Verdict::Yes)
 }
 
-/// Runs `work` against a game somebody started, attached for its whole
-/// length, so a batch holds the game once rather than once per file.
+/// How a game is launched for requests that find none: no window and no
+/// network, which is all a fight fought from a file needs.
+const JOB_LAUNCH: Launch = Launch {
+    headless: true,
+    offline: true,
+};
+
+/// Runs `work` against the running game, connected for its whole length, and
+/// starts one when none is running. Each recording waits its turn in the
+/// game's line, so a batch shares the game with everyone else's.
 ///
 /// # Errors
 ///
-/// Returns `unavailable` when no game answers.
+/// Returns `unavailable` when no game answers and none can be started.
 pub(crate) fn with_game<T>(
     level: u8,
     work: impl AsyncFnOnce(&Arc<Session>) -> T,
 ) -> Result<T, Failure> {
-    with_session(Mode::Attach, level, work).map(|(_, answer)| answer)
+    with_session(Mode::Join(JOB_LAUNCH), level, work).map(|(_, answer)| answer)
 }
 
 /// Runs `work` against a game acquired as `mode` says, and leaves it.
@@ -200,7 +223,11 @@ pub(crate) async fn operate(
     match verb {
         "status" => {
             arguments.finish()?;
-            Ok(session.current_status())
+            let mut status = session.current_status();
+            let queue = session.queue().await.map_err(refusal)?;
+            status["queue"] = serde_json::to_value(queue)
+                .map_err(|error| Failure::failed(format!("cannot write the queue: {error}")))?;
+            Ok(status)
         }
         "start_test" => {
             let map_id = arguments.parsed::<i32>("--map-id", "an integer")?;

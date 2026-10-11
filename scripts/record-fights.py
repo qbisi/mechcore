@@ -11,9 +11,8 @@ verify --backend game``.
     scripts/record-fights.py --instrument skill_attackable_checker \\
         --out /tmp/mechcore/wraith/slots tests/wraith/*.yaml
 
-A command joins a game somebody started, so the first fight that finds none
-starts one with ``mechcore game launch --headless``, after which the game
-lingers for its next client. Recordings already on disk
+Each fight takes its turn in the running game, which the first one starts
+when none runs and which lingers for the next. Recordings already on disk
 are kept, so an interrupted run resumes where it stopped; ``--force`` records
 them again.
 """
@@ -45,13 +44,6 @@ def run(command: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(command, capture_output=True, text=True, cwd=ROOT)
 
 
-def launch(mechcore: Path) -> None:
-    """Starts a headless game that lingers for the next command."""
-    launched = run([str(mechcore), "game", "launch", "--headless"])
-    if launched.returncode != 0:
-        sys.exit(f"cannot launch the game: {launched.stdout[-400:]}{launched.stderr[-400:]}")
-
-
 def refusal(result: subprocess.CompletedProcess[str]) -> dict:
     for stream in (result.stdout, result.stderr):
         for line in reversed(stream.strip().splitlines()):
@@ -63,22 +55,16 @@ def refusal(result: subprocess.CompletedProcess[str]) -> dict:
 
 
 def record(arguments: argparse.Namespace, fight: Path, output: Path) -> dict | None:
-    """Records one fight, starting a game once if none answers. Answers the
-    refusal when the game would not record it."""
+    """Records one fight. Answers the refusal when the game would not record
+    it."""
     command = [str(arguments.mechcore), "convert", str(fight), "--to", "mcfr",
                "--backend", "game", str(output), "--force"]
     if arguments.instrument:
         command += ["--instrument", arguments.instrument]
-    for attempt in range(2):
-        result = run(command)
-        if result.returncode == 0:
-            return None
-        answer = refusal(result)
-        if attempt == 0 and answer.get("kind") == "unavailable":
-            launch(arguments.mechcore)
-            continue
-        return answer
-    return None
+    result = run(command)
+    if result.returncode == 0:
+        return None
+    return refusal(result)
 
 
 def main() -> int:

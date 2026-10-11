@@ -269,6 +269,9 @@ fn execute_inner(runtime: &mut Runtime, request: &Request) -> Result<Value, Oper
         Operation::ApplyLayout => Err(OperationError::InvalidState(
             "apply_layout requires the runtime round-series coordinator".into(),
         )),
+        Operation::Lease | Operation::Queue => Err(OperationError::InvalidState(
+            "lease and queue are the scheduler's, not the game's".into(),
+        )),
     }
 }
 

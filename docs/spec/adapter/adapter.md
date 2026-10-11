@@ -2,9 +2,10 @@
 
 ## Scope
 
-This contract defines the socket an in-process adapter exposes to one client at
-a time: how a client claims the game, which operations it may then request,
-what each returns, and what each refuses.
+This contract defines the socket an in-process adapter exposes to the clients
+that share the game: how a client claims it, which operations it may then
+request, in what order they reach the game, what each returns, and what each
+refuses.
 
 It does not define the documents that cross that socket. A layout is
 [layout.md](../document/layout.md) and a recording is
@@ -68,8 +69,8 @@ corresponding output directory. Distribute both files together. A running game
 keeps the Adapter it loaded, including when using `attach`. A game `mechcore`
 launched lingers after its last client, and the next `game launch`, as a
 command or in a shell, retires it and starts a new one when the Adapter it
-loaded is not the one beside `mechcore`, so a rebuilt Adapter is loaded without
-quitting anything by hand. A game started any other way is joined with the
+loaded is not the one beside `mechcore` and no other client is connected, so a
+rebuilt Adapter is loaded without quitting anything by hand. A game started any other way is joined with the
 Adapter it has; `quit_game` is a plain operation any client can call for that
 reason. When the wire contract itself changed, the running game answers with
 the old `protocol` name and every new client is refused with
@@ -124,34 +125,36 @@ how it differs from Unity's own `Player.log`.
 
 ## Wire protocol
 
-The adapter creates a Unix domain socket and waits for one client. When
-`MECHCORE_ADAPTER_SOCKET` is absent, the endpoint is
+The adapter creates a Unix domain socket and serves every client that claims
+it. When `MECHCORE_ADAPTER_SOCKET` is absent, the endpoint is
 `/tmp/mechcore-adapter-<uid>.sock`. A configured path must be absolute and no
 longer than 100 bytes. The adapter refuses to replace a non-socket or a socket
 owned by another user, creates the endpoint with mode `0600`, and admits only a
 peer with the same effective UID.
 
 Messages are UTF-8 JSON, one object per line, with a maximum encoded size of
-1 MiB. A new connection speaks first, and says what it is worth:
+1 MiB. A new connection speaks first, and says who it is and what it is worth:
 
 ```json
-{"kind":"claim","protocol":"mechcore.adapter.v11","level":1}
+{"kind":"claim","protocol":"mechcore.adapter.v12","level":1,"client":"mechcore-divergence"}
 ```
 
-The level is `0..=4`. It orders clients and nothing else: a claim strictly
-above the level of the client being served takes the game from it, and an equal
-or lower one is refused. Two clients that matter the same amount cannot each
-decide the other should stop. A connection that says nothing within three
-seconds is dropped, and anything that is not a claim is answered
+`client` names whose requests these are, and is what turns are shared out by:
+the commands one session runs, each on its own connection, are one client.
+`mechcore` takes it from `MECHCORE_CLIENT`, and otherwise from the name of the
+directory it runs in, which is a session's own checkout. The level is `0..=4`.
+It orders requests and nothing else ([Turns](#turns)). A connection that says
+nothing within three seconds is dropped, and anything that is not a claim, or a
+claim that names no client, is answered
 `{"kind":"refused","protocol":"...","reason":"..."}` so it is not mistaken for
 an adapter that stopped answering.
 
-An admitted claim receives:
+Every claim receives:
 
 ```json
 {
   "kind": "hello",
-  "protocol": "mechcore.adapter.v11",
+  "protocol": "mechcore.adapter.v12",
   "capabilities": [
     "status",
     "start_test",
@@ -162,7 +165,9 @@ An admitted claim receives:
     "toggle_fight",
     "speed_up",
     "quit_match",
-    "quit_game"
+    "quit_game",
+    "lease",
+    "queue"
   ],
   "game": {
     "adapter": "9f2c…",
@@ -185,54 +190,34 @@ running can do its work
 
 A game lingers only when it was started with `MECHCORE_ADAPTER_LINGER_SECONDS`,
 a positive number of seconds, which `mechcore` sets on every game it launches;
-any other value stops the Adapter from starting. Once a lingering game's client
-leaves, the Adapter takes the game back to the main menu, since nobody else is
-left to. When no claim arrives for that long, it quits the game from the main
-menu, answers every claim that arrives meanwhile `evicting`, and ends the
-process itself if it has not exited 30 s later.
-
-A claim that does not win is answered instead:
-
-```json
-{"kind":"busy","protocol":"mechcore.adapter.v11","holder_level":1,"evicting":true}
-```
-
-`holder_level` is what the claim lost to, or is taking the game from.
-`evicting` says the claim did win: the game is being handed back right now, and
-the client is expected to connect again rather than give up. The adapter admits
-its next client only once the interrupted match has been left and the main menu
-is up, which is why the winner is told to come back rather than handed a
-connection immediately.
-
-The client being served is told before its connection closes:
-
-```json
-{"kind":"evicted","protocol":"mechcore.adapter.v11","by_level":3}
-```
-
-That notice is the difference between a taken game and a crashed one. A client
-that reads it must leave the game process alone: the adapter is keeping it at
-the main menu for whoever claimed it. An operation still in flight is answered
-first, with the error code `evicted`.
-
-Eviction is the adapter's, not the client's, and it is unconditional. Every
-wait inside a long operation stops at its next polling point, a capture
-included; a client that is between operations is closed without waiting for it
-to speak; and the game is returned to the main menu before the next client is
-admitted. Nothing partial is ever published: an abandoned capture is torn down
-and an abandoned match simply produces no recording.
+any other value stops the Adapter from starting. A game lingers from the moment
+nobody is connected and nothing is asked of it. When no claim arrives for that
+long, it quits the game from the main menu, answers every claim that arrives
+meanwhile `{"kind":"leaving","protocol":"..."}`, and ends the process itself
+if it has not exited 30 s later. A client told `leaving` waits for the game to
+be gone and starts another.
 
 A request contains a caller-chosen identifier:
 
 ```json
-{"id":1,"operation":"status","arguments":{}}
+{"id":1,"operation":"record_replay_round","arguments":{"grbr":"…","round":6,"output":"…"}}
 ```
 
 Success and failure responses preserve that identifier:
 
 ```json
-{"kind":"response","id":1,"ok":true,"result":{"status":"main_menu"}}
+{"kind":"response","id":1,"ok":true,"result":{"recorded":true}}
 {"kind":"response","id":2,"ok":false,"error":{"code":"invalid_game_state","message":"no active match"}}
+```
+
+A request that waits for its turn is told so first, with where it stands in
+line counting from one, and again when it starts, which is where its own time
+begins; a client's timeout for the operation runs from `started`, not from the
+request:
+
+```json
+{"kind":"queued","id":1,"position":3}
+{"kind":"started","id":1}
 ```
 
 Request arguments are typed, and their types live in `mechcore-protocol`
@@ -242,12 +227,82 @@ is what keeps a caller from inventing a field the adapter will refuse, which is
 otherwise only observable with the game running. `apply_layout` carries a layout
 document, whose type the same crate names and `mechcore-document` validates.
 
+### Turns
+
+The game is one, and its clients are many. How a request reaches it depends on
+the operation:
+
+- **At once.** `status`, `queue` and `quit_game` are answered whoever holds the
+  game. `status` asked by anyone but the lease holder is what the game last
+  answered, read at least once a second while it is free and after every turn:
+  asking the game itself would wait for somebody else's turn to end.
+- **In its turn.** `record_replay_round`, `record_watch_replay` and `lease`
+  wait in line. The first two start and end at the main menu, so a turn needs
+  nothing from the one before it.
+- **Under the lease.** `start_test`, `apply_layout`, `record_fight`,
+  `toggle_fight`, `speed_up` and `quit_match` act on a scene, which outlives
+  the request that made it, so only the client holding the lease may ask for
+  them; anyone else is refused with `no_lease`. The holder's requests, of every
+  kind, go before anyone else's. The lease goes with the connection that took
+  it: when that connection closes, the game is returned to the main menu before
+  the next turn.
+
+Whenever the game is free, the next request is one of the highest level
+waiting, and among those, one from the client served longest ago, and among
+its requests, the first asked. A batch of a thousand rounds and a single round
+asked for after them therefore share the game turn by turn, rather than one
+waiting for the other to end.
+
+A started request runs to its end, unless a request of a strictly higher level
+arrives: that stops it at its next polling point, a capture included, and it
+answers `evicted`. A request of a higher level likewise takes the lease back,
+as does any request at all once the lease has gone 60 s without a scene request:
+the holder is told
+
+```json
+{"kind":"evicted","protocol":"mechcore.adapter.v12","by_level":3}
+```
+
+and its connection closes. That notice is the difference between a taken game
+and a crashed one. A client that reads it must leave the game process alone:
+the adapter is keeping it for whoever outranked it. Requests of one level never
+stop each other, so a batch that is willing to give way asks for level 0.
+
+A connection that closes takes its waiting requests with it, and its running
+request is abandoned at its next polling point. `quit_game` stops everything:
+the running request is abandoned, every waiting one is answered
+`game_stopped`, and the game returns to the main menu and quits.
+
+`queue` reports what the game is doing for whom:
+
+```json
+{
+  "ready": true,
+  "lease": null,
+  "running": {"client": "mechcore-divergence", "level": 1, "operation": "record_replay_round", "seconds": 2.4},
+  "queued": [{"client": "scheduler", "level": 1, "operation": "record_replay_round", "seconds": 0.8}],
+  "clients": [
+    {"client": "mechcore-divergence", "connections": 1, "queued": 0, "done": 41, "failed": 0, "cancelled": 0},
+    {"client": "scheduler", "connections": 1, "queued": 1, "done": 3, "failed": 0, "cancelled": 1}
+  ]
+}
+```
+
+`ready` is whether the game has reached its main menu since it started; no
+turn starts before it has. `queued` is in the order the requests would be
+served now. `clients` counts each client's requests since the game started,
+`cancelled` being those dropped because their connection closed or the game
+stopped.
+
+### Execution
+
 The hello capability list is authoritative. Operations not present in that
 list are rejected even if private implementation helpers still exist inside
-the dylib. Every request is parsed on the socket thread. Individual native
-actions execute synchronously on Unity's main dispatch queue; the socket thread
-coordinates the multiple short actions and status samples required by a
-multi-round `apply_layout`. A failed or disconnected mutation must not be
+the dylib. Each connection's requests are read and parsed on a thread of its
+own, which answers what is answered at once and queues the rest; one worker
+thread runs the turns. Individual native actions execute synchronously on
+Unity's main dispatch queue; the worker coordinates the multiple short actions
+and status samples required by a multi-round `apply_layout`. A failed or disconnected mutation must not be
 automatically retried.
 
 The adapter returns after the native call or readback completes. `apply_layout`
@@ -257,8 +312,8 @@ atomic MCFR publication. `record_replay_round` additionally owns replay
 loading and round selection; it fights the replay without a scene, so it starts
 and ends at the main menu.
 `record_watch_replay` owns live matchmaking-scene selection, the complete
-spectated match, native GRBR publication, and return to the main menu; a higher
-claim ends it early and without a recording.
+spectated match, native GRBR publication, and return to the main menu; a
+request of a higher level ends it early and without a recording.
 Other cross-scene readiness belongs to the session layer, which observes the status
 stream before returning from a lifecycle operation.
 
@@ -337,10 +392,11 @@ Typical output:
 {"requested":true,"exit_code":0}
 ```
 
-The operation invokes Unity application shutdown. It refuses with
-`invalid_game_state` unless the game is at the main menu with no current match.
-The adapter confirms the request; the session additionally waits for the
-Adapter to disconnect.
+The operation ends the game for every client, and is answered at once rather
+than in a turn ([Turns](#turns)): the running request is abandoned, every
+waiting one is answered `game_stopped`, any match is left, and Unity
+application shutdown is invoked from the main menu. The adapter confirms the
+request; the session additionally waits for the Adapter to disconnect.
 
 ### record_fight
 
@@ -762,8 +818,8 @@ explicit different directory receives a create-new copy and reports
 `published_copy: true`; explicitly naming the native Replay directory is
 equivalent to omitting the field.
 
-A higher claim stops the operation at its next poll, wherever it is, and it
-fails with the `evicted` code rather than returning a recording. Abandoning the match is the
+A request of a higher level stops the operation at its next poll, wherever it
+is, and it fails with the `evicted` code rather than returning a recording. Abandoning the match is the
 price of handing the machine over within seconds rather than hours.
 
 The operation admits only a round-one, normal `VS_1_1` scene from the server
@@ -785,7 +841,7 @@ There is no `force` field: a basename collision in `output_dir` aborts rather
 than replacing corpus data. The native replay is never deleted, and neither is
 a copy that reached the corpus directory: a published copy survives even when
 only the match-exit check fails, and the failed result is what keeps it out of
-an accepted manifest until someone looks at it. A collector claims the lowest
+an accepted manifest until someone looks at it. A collector asks at the lowest
 level, so anything else takes the machine from it;
 `scripts/corpus/collect-replays.py` runs one `game record --watch` at level 0
 per match and stops at the first that does not succeed.
@@ -796,6 +852,25 @@ it only when one result has `operation.recorded` and
 file `mechcore convert --to match` can open carrying the build and a non-negative seat, and
 no managed exception in either log. That decode is the reviewer's check on a new
 build, not a step the collector performs per match.
+
+### lease
+
+Input is an empty object.
+
+Output:
+
+```json
+{"lease":true}
+```
+
+The operation waits for its turn and then holds the game for this connection,
+at the main menu, until the connection closes or the lease is taken back
+([Turns](#turns)). Asked again by the holder, it answers at once.
+
+### queue
+
+Input is an empty object, and the output is described under
+[Turns](#turns). It refuses nothing and waits for nothing.
 
 ### quit_match
 
@@ -951,11 +1026,14 @@ the same game state fails the same way. Something has to move the game first.
 | `game_rejected_operation` | the game was in the right state and refused the native action anyway |
 | `il2cpp_error` | a call into the game failed; a managed exception is named by its class and the managed frames it was thrown through |
 
-**The game was taken.** `evicted` means a higher claim arrived. It is the one
-failure that asks the caller to come back: the adapter holds the game at the
-main menu for the winner, so a client that reads it must leave the process
-alone and reconnect rather than treat the adapter as crashed. An operation in
-flight is answered with this code before the connection closes.
+**The game was taken.** `evicted` means a request of a higher level arrived,
+or the lease went unused while someone waited. It is the one failure that asks
+the caller to come back: the adapter keeps the game for whoever outranked it,
+so a client that reads it must leave the process alone and ask again rather
+than treat the adapter as crashed. `game_stopped` means `quit_game` ended the
+game: whatever was running or waiting is answered with it, and the game is on
+its way out. A scene operation asked without the lease is refused `no_lease`,
+which asking for `lease` first answers.
 
 **The operation did not finish.** `operation_timeout` and
 `main_thread_dispatch_failed` say the work did not complete, not that it did

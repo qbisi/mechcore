@@ -9,7 +9,7 @@ use crate::acquire::{self, Mode, Ownership};
 use crate::adapter;
 use mechcore_protocol::{
     InstrumentChannel, MAX_WATCH_MATCH_TIMEOUT_SECONDS, MAX_WATCH_SCENE_WAIT_SECONDS, Operation,
-    RecordFightArguments, RecordReplayRoundArguments, RecordWatchReplayArguments,
+    QueueSnapshot, RecordFightArguments, RecordReplayRoundArguments, RecordWatchReplayArguments,
     StartTestArguments,
 };
 use serde::Serialize;
@@ -59,6 +59,8 @@ pub(crate) struct Session {
     /// game down: the adapter is holding that process at the main menu for
     /// whoever claimed it.
     evicted: AtomicBool,
+    /// Whether this connection holds the lease.
+    leased: AtomicBool,
 }
 impl Session {
     pub(crate) fn new() -> Arc<Self> {
@@ -71,6 +73,7 @@ impl Session {
             last_applied_layout: Mutex::new(None),
             status,
             evicted: AtomicBool::new(false),
+            leased: AtomicBool::new(false),
         })
     }
 
@@ -107,6 +110,7 @@ impl Session {
 
     pub(crate) async fn disconnect_adapter(&self) {
         *self.adapter.lock().await = None;
+        self.leased.store(false, Ordering::SeqCst);
         self.publish(json!({"status": "game_off"}));
     }
 
@@ -137,9 +141,9 @@ impl Session {
             }
             _ => ADAPTER_REQUEST_TIMEOUT,
         };
-        match tokio::time::timeout(request_timeout, client.request(operation, arguments)).await {
-            Ok(Ok(value)) => Ok(value),
-            Ok(Err(error)) => {
+        match client.request(operation, arguments, request_timeout).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
                 let fatal = error.is_fatal();
                 if error.is_evicted() {
                     self.evicted.store(true, Ordering::SeqCst);
@@ -150,13 +154,6 @@ impl Session {
                     self.publish(json!({"status": "unknown"}));
                 }
                 Err(message)
-            }
-            Err(_) => {
-                *adapter = None;
-                self.publish(json!({"status": "unknown"}));
-                Err(format!(
-                    "adapter request {operation} timed out; its outcome is unknown and it was not retried"
-                ))
             }
         }
     }
@@ -209,11 +206,39 @@ impl Session {
             .await
             .map_err(|failure| format!("{} refused, {failure}", mode.as_str()))?;
         self.install_client(client).await?;
-        self.wait_status("the main menu", READY_TIMEOUT, |status| {
-            is_status(status, "main_menu")
-        })
-        .await?;
+        let deadline = Instant::now() + READY_TIMEOUT;
+        while !self.queue().await?.ready {
+            if Instant::now() >= deadline {
+                return Err(format!(
+                    "the game did not reach its main menu within {}s",
+                    READY_TIMEOUT.as_secs()
+                ));
+            }
+            sleep(STATUS_INTERVAL).await;
+        }
         Ok(ownership)
+    }
+
+    /// What the game is doing for whom.
+    pub(crate) async fn queue(&self) -> Result<QueueSnapshot, String> {
+        let snapshot = self.adapter_request(Operation::Queue, json!({})).await?;
+        serde_json::from_value(snapshot)
+            .map_err(|error| format!("cannot read the adapter's queue: {error}"))
+    }
+
+    /// Hold the game between requests, for work on a scene.
+    ///
+    /// A scene outlives the request that made it, so whoever works on one
+    /// keeps the game until it leaves, and waits its turn for that once. The
+    /// lease goes with the connection; a higher request takes it back.
+    async fn lease(&self) -> Result<(), String> {
+        if !self.leased.swap(true, Ordering::SeqCst)
+            && let Err(error) = self.adapter_request(Operation::Lease, json!({})).await
+        {
+            self.leased.store(false, Ordering::SeqCst);
+            return Err(error);
+        }
+        Ok(())
     }
 
     /// Leave the game.
@@ -248,6 +273,7 @@ impl Session {
         map_id: Option<i32>,
     ) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
+        self.lease().await?;
         self.require_status("main_menu").await?;
         *self.last_applied_layout.lock().await = None;
         let result = self
@@ -303,6 +329,7 @@ impl Session {
         let activation_round = i64::from(plan.round);
         let seed = seed.or(plan.seed);
         let _operation = self.operation.lock().await;
+        self.lease().await?;
         let status = self.current_status();
         if !is_status(&status, "main_menu") {
             return Err(format!(
@@ -360,6 +387,7 @@ impl Session {
         instrument: Vec<InstrumentChannel>,
     ) -> Result<Value, Value> {
         let _operation = self.operation.lock().await;
+        self.lease().await.map_err(error_body)?;
         let before = self.refresh_status().await.map_err(error_body)?;
         if !is_training_deployment(&before) {
             return Err(error_body(format!(
@@ -472,7 +500,6 @@ impl Session {
         instrument: Vec<InstrumentChannel>,
     ) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
-        self.require_status("main_menu").await?;
         if !grbr.is_absolute() {
             return Err("record_replay_round grbr must be an absolute path".into());
         }
@@ -509,13 +536,7 @@ impl Session {
                 "adapter did not confirm replay round recording: {result}"
             ));
         }
-        let status = self.refresh_status().await?;
-        if !is_status(&status, "main_menu") {
-            return Err(format!(
-                "record_replay_round completed outside main_menu: {status}"
-            ));
-        }
-        Ok(json!({"operation": result, "status": status}))
+        Ok(json!({"operation": result, "status": self.current_status()}))
     }
 
     /// Fight a layout in the game without a scene and record it.
@@ -585,7 +606,6 @@ impl Session {
             match_timeout_seconds,
         )?;
         let _operation = self.operation.lock().await;
-        self.require_status("main_menu").await?;
         *self.last_applied_layout.lock().await = None;
 
         let result = self
@@ -603,17 +623,12 @@ impl Session {
                 "adapter did not confirm watched replay recording: {result}"
             ));
         }
-        let status = self.refresh_status().await?;
-        if !is_status(&status, "main_menu") {
-            return Err(format!(
-                "record_watch_replay completed outside main_menu: {status}"
-            ));
-        }
-        Ok(json!({"operation": result, "status": status}))
+        Ok(json!({"operation": result, "status": self.current_status()}))
     }
 
     pub(crate) async fn toggle_fight(&self) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
+        self.lease().await?;
         let before = self.refresh_status().await?;
         if !is_training_deployment(&before) {
             return Err(format!(
@@ -646,6 +661,7 @@ impl Session {
 
     pub(crate) async fn speed_up(&self) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
+        self.lease().await?;
         let status = self.refresh_status().await?;
         if status.get("status").and_then(Value::as_str) != Some("training_ground")
             || status.get("fighting").and_then(Value::as_bool) != Some(true)
@@ -663,6 +679,7 @@ impl Session {
 
     pub(crate) async fn quit_match(&self) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
+        self.lease().await?;
         let status = self.refresh_status().await?;
         if !matches!(
             status.get("status").and_then(Value::as_str),
@@ -687,7 +704,6 @@ impl Session {
 
     pub(crate) async fn quit_game(&self) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
-        self.require_status("main_menu").await?;
         let result = self.adapter_request(Operation::QuitGame, json!({})).await?;
         let status = self
             .wait_status(
@@ -1159,11 +1175,11 @@ mod tests {
             .await
             .unwrap_err();
 
-        // Reaching the game-state check is the point: a standing oil area is
-        // compiled, not rejected as unsupported.
+        // Reaching the game is the point: a standing oil area is compiled, not
+        // rejected as unsupported, and the lease is asked for next.
         assert!(
-            error.contains("starts from the main menu"),
-            "expected the state precondition, got {error}"
+            error.contains("not connected"),
+            "expected the lease request, got {error}"
         );
     }
 }

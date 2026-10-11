@@ -5,7 +5,7 @@
 //! native operation reaches this module on its own.
 
 use crate::adapter::{Client, ConnectError};
-use mechcore_protocol::{GameIdentity, MAX_LEVEL, Operation};
+use mechcore_protocol::{GameIdentity, MAX_LEVEL, Operation, QueueSnapshot};
 use std::ffi::OsString;
 #[cfg(target_os = "macos")]
 use std::ffi::c_void;
@@ -20,20 +20,11 @@ const PROC_ALL_PIDS: u32 = 1;
 const GREETING_DEADLINE: Duration = Duration::from_secs(3);
 const LAUNCH_TIMEOUT: Duration = Duration::from_secs(60);
 const LAUNCH_POLL_INTERVAL: Duration = Duration::from_millis(200);
-/// How long the adapter is given to hand the game over.
-///
-/// Nothing waits for a claim: every operation abandons itself at its next
-/// polling point, so this budget is the one thing that is still allowed to
-/// take time, leaving the match and settling at the main menu.
-const EVICTION_TIMEOUT: Duration = Duration::from_secs(120);
-/// How long a client that finds the game served waits for the holder to be
-/// gone before it is refused. A command that has just released the game has
-/// closed its connection before the Adapter has seen it close, so the next
-/// command in a pipeline finds the slot still taken for a moment; measured
-/// over a pipeline of 82 recordings, never longer than 0.4 s.
-const HANDOVER: Duration = Duration::from_secs(1);
-const HANDOVER_POLL_INTERVAL: Duration = Duration::from_millis(50);
-const EVICTION_POLL_INTERVAL: Duration = Duration::from_millis(500);
+/// How long a game that is quitting is given to be gone.
+const LEAVING_TIMEOUT: Duration = Duration::from_secs(120);
+const LEAVING_POLL_INTERVAL: Duration = Duration::from_millis(500);
+/// Names the client a claim is made for, in place of the directory.
+const CLIENT_ENV: &str = "MECHCORE_CLIENT";
 /// How long a launched game waits for its next client before it quits itself.
 ///
 /// Long enough to carry a game from one script to the next in a batch, short
@@ -55,6 +46,10 @@ const DEFAULT_GAME_SUFFIX: &str = "Library/Application Support/Steam/steamapps/c
 pub(crate) enum Mode {
     Launch(Launch),
     Attach,
+    /// Join whatever game is running, and launch one as `Launch` says only
+    /// when none is: a request that only needs its turn can take it in any
+    /// game, and a game started for it serves everyone after.
+    Join(Launch),
 }
 
 /// How a launched game runs.
@@ -71,6 +66,7 @@ impl Mode {
         match self {
             Self::Launch(_) => "launch",
             Self::Attach => "attach",
+            Self::Join(_) => "join",
         }
     }
 }
@@ -126,7 +122,7 @@ impl std::fmt::Display for Failure {
 enum Probe {
     NoListener,
     Idle(Box<Client>),
-    Busy { holder_level: u8, evicting: bool },
+    Leaving,
     Unresponsive(String),
     Protocol(String),
 }
@@ -169,34 +165,24 @@ pub(crate) fn parse_level(value: &str) -> Result<u8, String> {
 
 /// Acquire the game at `level`, returning the connected client and ownership.
 ///
-/// The level is what decides an occupied endpoint: a higher one takes the game
-/// and the adapter hands it back at the main menu, an equal or lower one is
-/// refused. Ownership still follows who started the process, so taking over a
+/// Every claim on a running game is greeted: the game is shared, and the level
+/// orders this client's requests against everyone else's once it asks for
+/// something. Ownership still follows who started the process, so joining a
 /// running game never makes this session responsible for shutting it down.
 pub(crate) async fn acquire(
     mode: Mode,
     level: u8,
     endpoint: &Path,
 ) -> Result<(Client, Ownership), Box<Failure>> {
-    let mut probe = probe_endpoint(endpoint, level).await;
-    if let Probe::Busy { evicting: true, .. } = probe {
-        probe = wait_for_the_game(endpoint, level).await;
-    }
-    let handover = tokio::time::Instant::now() + HANDOVER;
-    while matches!(
-        probe,
-        Probe::Busy {
-            evicting: false,
-            ..
-        }
-    ) && tokio::time::Instant::now() < handover
-    {
-        tokio::time::sleep(HANDOVER_POLL_INTERVAL).await;
-        probe = probe_endpoint(endpoint, level).await;
+    let client = client_name();
+    let mut probe = probe_endpoint(endpoint, level, &client).await;
+    if matches!(probe, Probe::Leaving) {
+        probe = wait_for_the_game(endpoint, level, &client).await;
     }
     // A game left running by an earlier launch is this launch's to reuse, but
     // only if it can do the work; otherwise it is retired and a new one
-    // started, as if it had already quit.
+    // started, as if it had already quit. A game somebody else is using is
+    // not retired under them.
     let probe = match (mode, probe) {
         (Mode::Launch(how), Probe::Idle(client)) => match unfit(client.game(), how)? {
             Some(reason) => retire(*client, endpoint, &reason).await?,
@@ -207,13 +193,14 @@ pub(crate) async fn acquire(
     let running = game_processes();
 
     match (mode, running.first(), probe) {
-        // E and F apply to both verbs: something outranks this client, or the
-        // adapter stopped answering. Neither verb may proceed.
-        (_, _, Probe::Busy { holder_level, .. }) => Err(Box::new(Failure::new(
-            "adapter_busy",
+        // A game that never finished quitting, or an adapter that stopped
+        // answering: no verb may proceed.
+        (_, _, Probe::Leaving) => Err(Box::new(Failure::new(
+            "adapter_unresponsive",
             format!(
-                "a level {holder_level} client is serving {}, and level {level} does not outrank it",
-                endpoint.display()
+                "the game at {} is quitting and did not go within {}s",
+                endpoint.display(),
+                LEAVING_TIMEOUT.as_secs()
             ),
         ))),
         (_, _, Probe::Unresponsive(detail)) => Err(Box::new(Failure::new(
@@ -239,8 +226,7 @@ pub(crate) async fn acquire(
             ),
         ))),
 
-        // D: an adapter is available, either because it was idle or because
-        // this claim just took the game. Both verbs use it, whoever started it.
+        // D: an adapter is listening. Every verb joins it, whoever started it.
         (_, _, Probe::Idle(client)) => Ok((*client, Ownership::Attached)),
 
         // A and B: nothing to join.
@@ -258,8 +244,29 @@ pub(crate) async fn acquire(
                 }
             ),
         ))),
-        (Mode::Launch(how), None, Probe::NoListener) => launch(endpoint, level, how).await,
+        (Mode::Launch(how) | Mode::Join(how), None, Probe::NoListener) => {
+            launch(endpoint, level, &client, how).await
+        }
     }
+}
+
+/// The name this process's requests take turns under.
+///
+/// A session works in its own checkout, and every command it runs, a script's
+/// included, runs there: the directory is the client unless
+/// [`CLIENT_ENV`] names one.
+pub(crate) fn client_name() -> String {
+    std::env::var(CLIENT_ENV)
+        .ok()
+        .filter(|name| !name.is_empty())
+        .or_else(|| {
+            std::env::current_dir().ok().and_then(|directory| {
+                directory
+                    .file_name()
+                    .map(|name| name.to_string_lossy().into_owned())
+            })
+        })
+        .unwrap_or_else(|| "mechcore".to_owned())
 }
 
 /// Unity's own switches for a game with no window and no graphics device.
@@ -283,6 +290,7 @@ const OFFLINE_RULES: &str = "(version 1)(allow default)\
 async fn launch(
     endpoint: &Path,
     level: u8,
+    client: &str,
     how: Launch,
 ) -> Result<(Client, Ownership), Box<Failure>> {
     let dylib = adapter_dylib()?;
@@ -342,21 +350,12 @@ async fn launch(
 
     let deadline = tokio::time::Instant::now() + LAUNCH_TIMEOUT;
     loop {
-        match probe_endpoint(endpoint, level).await {
+        match probe_endpoint(endpoint, level, client).await {
             Probe::Idle(client) => return Ok((*client, Ownership::Launched { log })),
             Probe::Protocol(detail) => {
                 return Err(Box::new(Failure::new("protocol_mismatch", detail)));
             }
-            Probe::Busy { holder_level, .. } => {
-                return Err(Box::new(Failure::new(
-                    "adapter_busy",
-                    format!(
-                        "the game we started at {} was taken by a level {holder_level} client",
-                        endpoint.display()
-                    ),
-                )));
-            }
-            Probe::NoListener | Probe::Unresponsive(_) => {}
+            Probe::NoListener | Probe::Leaving | Probe::Unresponsive(_) => {}
         }
         if tokio::time::Instant::now() >= deadline {
             return Err(Box::new(Failure::new(
@@ -405,9 +404,34 @@ fn unfit(game: Option<&GameIdentity>, how: Launch) -> Result<Option<String>, Box
 }
 
 /// Ask a lingering game to quit, and wait until it has gone.
+///
+/// A game somebody else is using is not retired under them: quitting it would
+/// end their requests too.
 async fn retire(mut client: Client, endpoint: &Path, reason: &str) -> Result<Probe, Box<Failure>> {
+    let queue = client
+        .request(Operation::Queue, serde_json::json!({}), GREETING_DEADLINE)
+        .await
+        .ok()
+        .and_then(|value| serde_json::from_value::<QueueSnapshot>(value).ok());
+    let others = queue.as_ref().map_or(0, |queue| {
+        queue
+            .clients
+            .iter()
+            .map(|client| client.connections)
+            .sum::<usize>()
+            .saturating_sub(1)
+    });
+    if others > 0 {
+        return Err(Box::new(Failure::new(
+            "adapter_busy",
+            format!(
+                "the game left running cannot be reused, as {reason}, and {others} other \
+                 connection(s) are using it; launch again once they are done"
+            ),
+        )));
+    }
     client
-        .request(Operation::QuitGame, serde_json::json!({}))
+        .request(Operation::QuitGame, serde_json::json!({}), RETIRE_TIMEOUT)
         .await
         .map_err(|error| {
             Box::new(Failure::new(
@@ -418,7 +442,7 @@ async fn retire(mut client: Client, endpoint: &Path, reason: &str) -> Result<Pro
     drop(client);
     let deadline = tokio::time::Instant::now() + RETIRE_TIMEOUT;
     loop {
-        tokio::time::sleep(EVICTION_POLL_INTERVAL).await;
+        tokio::time::sleep(LEAVING_POLL_INTERVAL).await;
         if game_processes().is_empty() && !endpoint.exists() {
             return Ok(Probe::NoListener);
         }
@@ -446,22 +470,19 @@ fn adapter_digest(dylib: &Path) -> Result<String, Box<Failure>> {
     Ok(blake3::hash(&bytes).to_hex().to_string())
 }
 
-/// Keep claiming until the adapter hands the game over, or gives up on it.
+/// Keep claiming until a game that is quitting has gone.
 ///
-/// The winning claim is told the game is coming back, not given it: the
-/// adapter admits its next client only once the match it interrupted has been
-/// left and the main menu is up. Waiting here is what turns that into one
-/// acquisition from the caller's side. A game that is quitting tells every
-/// claim to wait the same way, and then goes: its endpoint is removed as the
-/// process exits, so an endpoint gone with the process still there is the
-/// game on its way out, not a game without the Adapter.
-async fn wait_for_the_game(endpoint: &Path, level: u8) -> Probe {
-    let deadline = tokio::time::Instant::now() + EVICTION_TIMEOUT;
+/// A game that is quitting tells every claim to wait, and then goes: its
+/// endpoint is removed as the process exits, so an endpoint gone with the
+/// process still there is the game on its way out, not a game without the
+/// Adapter.
+async fn wait_for_the_game(endpoint: &Path, level: u8, client: &str) -> Probe {
+    let deadline = tokio::time::Instant::now() + LEAVING_TIMEOUT;
     loop {
-        tokio::time::sleep(EVICTION_POLL_INTERVAL).await;
-        let probe = probe_endpoint(endpoint, level).await;
+        tokio::time::sleep(LEAVING_POLL_INTERVAL).await;
+        let probe = probe_endpoint(endpoint, level, client).await;
         let leaving = matches!(probe, Probe::NoListener) && !game_processes().is_empty();
-        if !matches!(probe, Probe::Busy { .. }) && !leaving {
+        if !matches!(probe, Probe::Leaving) && !leaving {
             return probe;
         }
         if tokio::time::Instant::now() >= deadline {
@@ -470,16 +491,10 @@ async fn wait_for_the_game(endpoint: &Path, level: u8) -> Probe {
     }
 }
 
-async fn probe_endpoint(endpoint: &Path, level: u8) -> Probe {
-    match tokio::time::timeout(GREETING_DEADLINE, Client::connect(endpoint, level)).await {
+async fn probe_endpoint(endpoint: &Path, level: u8, client: &str) -> Probe {
+    match tokio::time::timeout(GREETING_DEADLINE, Client::connect(endpoint, level, client)).await {
         Ok(Ok(client)) => Probe::Idle(Box::new(client)),
-        Ok(Err(ConnectError::Busy {
-            holder_level,
-            evicting,
-        })) => Probe::Busy {
-            holder_level,
-            evicting,
-        },
+        Ok(Err(ConnectError::Leaving)) => Probe::Leaving,
         Ok(Err(ConnectError::Unavailable(detail))) => {
             let _ = detail;
             Probe::NoListener

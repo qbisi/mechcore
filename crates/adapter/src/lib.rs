@@ -14,6 +14,7 @@ mod reach;
 mod rebirth;
 mod runtime;
 mod rvo;
+mod scheduler;
 mod selector;
 mod statistics;
 mod video;

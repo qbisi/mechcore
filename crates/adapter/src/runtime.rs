@@ -2,11 +2,12 @@ use crate::capture::{self, CaptureMessage, InstrumentRows};
 use crate::il2cpp::{Api, Class, Error as Il2CppError, FieldInfo, Object};
 use crate::layout::{self, Plan};
 use crate::operations;
+use crate::scheduler::{ConnectionId, Next, Scheduler, Waiting};
 use mechcore_protocol::{
-    Busy, Claim, EVICTED_CODE, Evicted, GameIdentity, Hello, InstrumentChannel, MAX_LEVEL,
-    MAX_STAGED_ROUND, MAX_WATCH_MATCH_TIMEOUT_SECONDS, MAX_WATCH_SCENE_WAIT_SECONDS, Operation,
-    PROTOCOL, RecordFightArguments, RecordReplayRoundArguments, RecordWatchReplayArguments,
-    Refused, Request, Response,
+    Admission, Claim, EVICTED_CODE, Evicted, GAME_STOPPED_CODE, GameIdentity, Hello,
+    InstrumentChannel, Leaving, MAX_LEVEL, MAX_STAGED_ROUND, MAX_WATCH_MATCH_TIMEOUT_SECONDS,
+    MAX_WATCH_SCENE_WAIT_SECONDS, Operation, PROTOCOL, Queued, RecordFightArguments,
+    RecordReplayRoundArguments, RecordWatchReplayArguments, Refused, Request, Response, Started,
 };
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -14,14 +15,14 @@ use std::env;
 use std::ffi::{CString, c_void};
 use std::fs;
 use std::io::{self, BufRead, BufReader, Read, Write};
+use std::net::Shutdown;
 use std::os::fd::AsRawFd;
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
-use std::sync::mpsc::RecvTimeoutError;
-use std::sync::{Arc, OnceLock, mpsc};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard, OnceLock, PoisonError};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime};
 
@@ -36,10 +37,13 @@ const QUIT_GRACE: Duration = Duration::from_secs(30);
 const MAX_MESSAGE_BYTES: usize = 1024 * 1024;
 /// How long a new connection has to state its level.
 const CLAIM_DEADLINE: Duration = Duration::from_secs(3);
-/// How often a served client's socket is checked while it is quiet.
-const CLIENT_POLL_INTERVAL: Duration = Duration::from_millis(250);
-/// How long a served client may say nothing before it is dropped.
-const CLIENT_SILENCE_TIMEOUT: Duration = Duration::from_secs(30);
+/// How long a write to a client may block before the client is given up on.
+const WRITE_TIMEOUT: Duration = Duration::from_secs(30);
+/// How often the game is asked its status while it is free, which is what a
+/// client that does not hold it is told.
+const STATUS_INTERVAL: Duration = Duration::from_secs(1);
+/// How long the free game sleeps when nothing wakes it.
+const WAKE_INTERVAL: Duration = Duration::from_millis(250);
 const LAYOUT_SERIES_TIMEOUT: Duration = Duration::from_secs(55);
 const LAYOUT_STATUS_INTERVAL: Duration = Duration::from_millis(50);
 const LAYOUT_DEPLOYMENT_STABLE_SAMPLES: usize = 3;
@@ -395,6 +399,50 @@ pub fn worker() {
     }
 }
 
+/// What the sockets and the game share: the line, and how to reach whoever is
+/// in it.
+struct Shared {
+    state: Mutex<State>,
+    wake: Condvar,
+}
+
+struct State {
+    scheduler: Scheduler,
+    writers: BTreeMap<ConnectionId, Writer>,
+    /// What the game last answered `status`, which is what a client that does
+    /// not hold the game is told.
+    status: Value,
+    /// Who asked `quit_game`, and with which request.
+    stopping: Option<(ConnectionId, u64)>,
+    /// A lease ended where its holder left the scene: the game owes the next
+    /// turn a main menu.
+    scene_left: bool,
+    /// When the game was last asked its status.
+    status_read: Option<Instant>,
+}
+
+type Writer = Arc<Mutex<UnixStream>>;
+
+impl Shared {
+    fn lock(&self) -> MutexGuard<'_, State> {
+        self.state.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+}
+
+/// What the game does next, decided under the lock and done outside it.
+enum Work {
+    Run(Waiting, Option<Writer>),
+    Revoke(Option<Writer>, u8),
+    Stop {
+        asker: Option<Writer>,
+        request_id: u64,
+        cancelled: Vec<(Option<Writer>, u64)>,
+    },
+    ReturnToMenu,
+    ReadStatus,
+    Quit(Duration),
+}
+
 fn run() -> Result<(), RuntimeError> {
     let api = loop {
         // SAFETY: failure is handled and retried until GameAssembly has loaded.
@@ -417,59 +465,187 @@ fn run() -> Result<(), RuntimeError> {
     arm_endpoint_cleanup(&endpoint);
     let _cleanup = SocketCleanup(endpoint);
 
-    let serving = Arc::new(AtomicBool::new(false));
-    let (sender, receiver) = mpsc::sync_channel::<UnixStream>(0);
+    let shared = Arc::new(Shared {
+        state: Mutex::new(State {
+            scheduler: Scheduler::new(Instant::now()),
+            writers: BTreeMap::new(),
+            status: serde_json::json!({"status": "unknown"}),
+            stopping: None,
+            scene_left: false,
+            status_read: None,
+        }),
+        wake: Condvar::new(),
+    });
     thread::spawn({
-        let serving = Arc::clone(&serving);
-        move || greet_clients(&listener, &serving, &sender)
+        let shared = Arc::clone(&shared);
+        move || greet_clients(&listener, &shared, &identity)
     });
 
     loop {
-        let stream = match linger {
-            None => match receiver.recv() {
-                Ok(stream) => stream,
-                Err(_) => break,
-            },
-            Some(linger) => match receiver.recv_timeout(linger) {
-                Ok(stream) => stream,
-                // A claim that is being handed over holds the slot already;
-                // it is taken on the next turn instead of quitting under it.
-                Err(RecvTimeoutError::Timeout) => {
-                    if serving
-                        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-                        .is_ok()
-                    {
-                        quit_after_linger(&mut runtime, linger);
-                    }
-                    continue;
+        match next_work(&shared, linger) {
+            Work::Run(waiting, writer) => serve(&mut runtime, &shared, &waiting, writer.as_ref()),
+            Work::Revoke(writer, by_level) => {
+                if let Some(writer) = writer {
+                    let mut stream = writer.lock().unwrap_or_else(PoisonError::into_inner);
+                    let _ = write_json_line(&mut stream, &Evicted::current(by_level));
+                    let _ = stream.shutdown(Shutdown::Both);
                 }
-                Err(RecvTimeoutError::Disconnected) => break,
-            },
-        };
-        let result = serve_client(&mut runtime, stream, &identity);
-        // An evicted client leaves the game wherever its last operation
-        // stopped. The adapter owes the next client a main menu, and only
-        // then is the slot free: admitting anyone earlier would hand over a
-        // half-finished match. A game that lingers owes it the same to
-        // whoever comes next, since nobody is left to take the game back.
-        if evicting() || linger.is_some() {
-            if let Err(response) = return_to_main_menu(&mut runtime, 0) {
-                let detail = response
-                    .error
-                    .as_ref()
-                    .map_or("unknown error", |error| error.message.as_str());
-                eprintln!(
-                    "mechcore-adapter: cannot reach the main menu for the next client: {detail}"
+            }
+            Work::Stop {
+                asker,
+                request_id,
+                cancelled,
+            } => {
+                for (writer, id) in cancelled {
+                    answer(
+                        writer.as_ref(),
+                        &Response::<Value>::failure(id, GAME_STOPPED_CODE, STOPPED_MESSAGE),
+                    );
+                }
+                quit(
+                    &mut runtime,
+                    asker.as_ref(),
+                    request_id,
+                    "quit_game was asked",
                 );
             }
-            EVICTING_FOR.store(NO_CLAIM, Ordering::SeqCst);
+            Work::ReturnToMenu => {
+                if let Err(response) = return_to_main_menu(&mut runtime, 0) {
+                    let detail = response
+                        .error
+                        .as_ref()
+                        .map_or("unknown error", |error| error.message.as_str());
+                    eprintln!(
+                        "mechcore-adapter: cannot reach the main menu for the next turn: {detail}"
+                    );
+                }
+            }
+            Work::ReadStatus => {
+                let status = execute_on_main(&mut runtime, &status_request());
+                let mut state = shared.lock();
+                if let Some(status) = status.result {
+                    if status.get("status").and_then(Value::as_str) == Some("main_menu") {
+                        state.scheduler.ready = true;
+                    }
+                    state.status = status;
+                }
+                state.status_read = Some(Instant::now());
+            }
+            Work::Quit(linger) => quit(
+                &mut runtime,
+                None,
+                0,
+                &format!("no client for {}s", linger.as_secs()),
+            ),
         }
-        serving.store(false, Ordering::SeqCst);
-        if let Err(error) = result {
-            eprintln!("mechcore-adapter: client disconnected: {error}");
+        shared.wake.notify_all();
+    }
+}
+
+/// Wait until the game has something to do, and take it.
+fn next_work(shared: &Shared, linger: Option<Duration>) -> Work {
+    let mut state = shared.lock();
+    loop {
+        let now = Instant::now();
+        if let Some((asker, request_id)) = state.stopping {
+            let cancelled = state
+                .scheduler
+                .drain()
+                .into_iter()
+                .map(|(connection, id)| (state.writers.get(&connection).cloned(), id))
+                .collect();
+            return Work::Stop {
+                asker: state.writers.get(&asker).cloned(),
+                request_id,
+                cancelled,
+            };
+        }
+        if state.scene_left {
+            state.scene_left = false;
+            ABANDON.store(KEEP, Ordering::SeqCst);
+            return Work::ReturnToMenu;
+        }
+        if state
+            .status_read
+            .is_none_or(|read| now.duration_since(read) >= STATUS_INTERVAL)
+        {
+            return Work::ReadStatus;
+        }
+        match state.scheduler.next(now) {
+            Next::Run(waiting) => {
+                // Whatever abandoned the last request is not this one's.
+                ABANDON.store(KEEP, Ordering::SeqCst);
+                let writer = state.writers.get(&waiting.connection).cloned();
+                return Work::Run(waiting, writer);
+            }
+            Next::Revoke { holder, by_level } => {
+                let writer = state.writers.remove(&holder);
+                state.scheduler.close(holder, now);
+                state.scene_left = true;
+                return Work::Revoke(writer, by_level);
+            }
+            Next::Wait => {}
+        }
+        if let Some(linger) = linger
+            && state
+                .scheduler
+                .idle_for(now)
+                .is_some_and(|idle| idle >= linger)
+        {
+            // Under the lock, so that no claim is greeted by a game that is
+            // about to go: the greeter reads this flag under the same lock.
+            QUITTING.store(true, Ordering::SeqCst);
+            return Work::Quit(linger);
+        }
+        state = shared
+            .wake
+            .wait_timeout(state, WAKE_INTERVAL)
+            .unwrap_or_else(PoisonError::into_inner)
+            .0;
+    }
+}
+
+/// Run one request that waited for its turn, and answer it.
+fn serve(runtime: &mut Runtime, shared: &Shared, waiting: &Waiting, writer: Option<&Writer>) {
+    let request = &waiting.request;
+    answer(writer, &Started::current(request.id));
+    let response = match request.operation {
+        Operation::Lease => Response::success(request.id, serde_json::json!({"lease": true})),
+        Operation::ApplyLayout => execute_layout_series(runtime, request),
+        Operation::RecordFight => execute_recording_series(
+            runtime,
+            request,
+            capture::CaptureStartMode::TrainingGround,
+            None,
+        ),
+        Operation::RecordReplayRound => execute_replay_recording_series(runtime, request),
+        Operation::RecordWatchReplay => execute_watch_replay_series(runtime, request),
+        _ => execute_on_main(runtime, request),
+    };
+    answer(writer, &response);
+    let mut state = shared.lock();
+    state.scheduler.finish(response.ok, Instant::now());
+    // The next bystander is told what the game is now, not before this turn.
+    state.status_read = None;
+}
+
+/// Write to a client, if it is still there to read it. A client that has
+/// gone is found out by its reader, which closes it.
+fn answer(writer: Option<&Writer>, message: &impl serde::Serialize) {
+    if let Some(writer) = writer {
+        let mut stream = writer.lock().unwrap_or_else(PoisonError::into_inner);
+        if let Err(error) = write_json_line(&mut stream, message) {
+            eprintln!("mechcore-adapter: cannot answer a client: {error}");
         }
     }
-    Ok(())
+}
+
+fn status_request() -> Request {
+    Request {
+        id: 0,
+        operation: Operation::Status,
+        arguments: serde_json::json!({}),
+    }
 }
 
 /// How long this game waits for its next client, from [`LINGER_ENV`].
@@ -515,31 +691,31 @@ fn adapter_digest() -> Result<String, RuntimeError> {
     Ok(blake3::hash(&bytes).to_hex().to_string())
 }
 
-/// End a game nobody claimed within its linger.
+/// End the game: a lingering one nobody wanted, or any one `quit_game` was
+/// asked of.
 ///
-/// Unity is asked to quit from the main menu, as `quit_game` would be. The
-/// process is ended here only if that does not happen, so that a game whose
-/// main thread no longer answers still goes away.
-fn quit_after_linger(runtime: &mut Runtime, linger: Duration) -> ! {
+/// Unity is asked to quit from the main menu. The process is ended here only
+/// if that does not happen, so that a game whose main thread no longer answers
+/// still goes away. Every claim from here on is told the game is leaving.
+fn quit(runtime: &mut Runtime, asker: Option<&Writer>, request_id: u64, why: &str) -> ! {
     QUITTING.store(true, Ordering::SeqCst);
-    eprintln!(
-        "mechcore-adapter: no client for {}s; quitting",
-        linger.as_secs()
-    );
+    eprintln!("mechcore-adapter: {why}; quitting");
+    // Whatever stopped the last request has done so; leaving the match on
+    // the way out is not to be stopped by it too.
+    ABANDON.store(KEEP, Ordering::SeqCst);
     let quit = Request {
-        id: 0,
+        id: request_id,
         operation: Operation::QuitGame,
         arguments: serde_json::json!({}),
     };
-    let quit = return_to_main_menu(runtime, 0)
-        .and_then(|_| successful_result(execute_on_main(runtime, &quit)));
-    if let Err(response) = quit {
-        let detail = response
-            .error
-            .as_ref()
-            .map_or("unknown error", |error| error.message.as_str());
-        eprintln!("mechcore-adapter: cannot quit the game: {detail}");
+    let response = match return_to_main_menu(runtime, request_id) {
+        Ok(_) => execute_on_main(runtime, &quit),
+        Err(response) => response,
+    };
+    if let Some(error) = &response.error {
+        eprintln!("mechcore-adapter: cannot quit the game: {}", error.message);
     }
+    answer(asker, &response);
     thread::sleep(QUIT_GRACE);
     eprintln!(
         "mechcore-adapter: the game did not exit within {}s; ending it",
@@ -548,17 +724,13 @@ fn quit_after_linger(runtime: &mut Runtime, linger: Duration) -> ! {
     std::process::exit(1);
 }
 
-/// Accepts connections and hands the single serving slot to the worker loop.
+/// Accepts connections and greets every claim.
 ///
-/// The worker serves one client at a time, so a connection arriving while the
-/// slot is taken would otherwise wait in the backlog and look identical to an
-/// unresponsive adapter. Answering here keeps occupancy a protocol fact, and
-/// the claim's level is what decides between being refused and taking over.
-fn greet_clients(
-    listener: &UnixListener,
-    serving: &AtomicBool,
-    sender: &mpsc::SyncSender<UnixStream>,
-) {
+/// Answering here, rather than leaving a connection in the backlog, keeps
+/// readiness a protocol fact: a client that is not greeted within its deadline
+/// is talking to an adapter that stopped answering, not one that is busy.
+fn greet_clients(listener: &UnixListener, shared: &Arc<Shared>, identity: &GameIdentity) {
+    let mut next_id: ConnectionId = 0;
     for stream in listener.incoming() {
         let mut stream = match stream {
             Ok(stream) => stream,
@@ -572,43 +744,50 @@ fn greet_clients(
             eprintln!("mechcore-adapter: rejected peer: {error}");
             continue;
         }
-        let level = match read_claim(&mut stream) {
-            Ok(level) => level,
+        let claim = match read_claim(&mut stream) {
+            Ok(claim) => claim,
             Err(error) => {
                 eprintln!("mechcore-adapter: rejected claim: {error}");
                 continue;
             }
         };
-        if serving.swap(true, Ordering::SeqCst) {
-            let holder = HOLDER_LEVEL.load(Ordering::SeqCst);
-            // Equal levels do not preempt: two clients that matter the same
-            // amount cannot each decide the other should stop. A game that is
-            // quitting is on its way to every claim alike: each is told to
-            // wait, and finds the game gone.
-            let quitting = QUITTING.load(Ordering::SeqCst);
-            let evicting = quitting || level > holder;
-            if evicting && !quitting {
-                claim_eviction(level);
+        let greeted = (|| {
+            stream.set_read_timeout(None)?;
+            stream.set_write_timeout(Some(WRITE_TIMEOUT))?;
+            let writer = Arc::new(Mutex::new(stream.try_clone()?));
+            let mut state = shared.lock();
+            // A game that is quitting is on its way to every claim alike:
+            // each is told to wait, and finds the game gone.
+            if QUITTING.load(Ordering::SeqCst) {
+                drop(state);
+                write_json_line(&mut stream, &Leaving::current())?;
+                return Ok(None);
             }
-            if let Err(error) = write_json_line(&mut stream, &Busy::current(holder, evicting)) {
-                eprintln!("mechcore-adapter: cannot answer busy: {error}");
+            write_json_line(&mut stream, &Hello::current(identity.clone()))?;
+            next_id += 1;
+            state
+                .scheduler
+                .connect(next_id, claim.client, claim.level, Instant::now());
+            state.writers.insert(next_id, writer);
+            Ok::<_, io::Error>(Some(next_id))
+        })();
+        match greeted {
+            Ok(Some(id)) => {
+                let shared = Arc::clone(shared);
+                thread::spawn(move || read_requests(id, stream, &shared));
             }
-            continue;
-        }
-        HOLDER_LEVEL.store(level, Ordering::SeqCst);
-        if sender.send(stream).is_err() {
-            serving.store(false, Ordering::SeqCst);
-            return;
+            Ok(None) => {}
+            Err(error) => eprintln!("mechcore-adapter: cannot greet a client: {error}"),
         }
     }
 }
 
-/// Read the claim that opens a connection, and greet the client it admits.
+/// Read the claim that opens a connection.
 ///
-/// The level arrives before the greeting because the greeting is the answer to
-/// it. A client that says nothing is dropped rather than served: the slot is
-/// the scarce thing here, and an unidentified client cannot be ranked.
-fn read_claim(stream: &mut UnixStream) -> io::Result<u8> {
+/// The claim arrives before the greeting because the greeting is the answer to
+/// it. A client that says nothing is dropped rather than served: an
+/// unidentified client cannot be ranked or given turns.
+fn read_claim(stream: &mut UnixStream) -> io::Result<Claim> {
     stream.set_read_timeout(Some(CLAIM_DEADLINE))?;
     let mut line = String::new();
     {
@@ -637,7 +816,108 @@ fn read_claim(stream: &mut UnixStream) -> io::Result<u8> {
     if claim.level > MAX_LEVEL {
         return refuse("claim level is above the highest run level");
     }
-    Ok(claim.level)
+    if claim.client.is_empty() {
+        return refuse("claim names no client");
+    }
+    Ok(claim)
+}
+
+/// Read one client's requests until it goes, then take it out of the line.
+fn read_requests(id: ConnectionId, stream: UnixStream, shared: &Shared) {
+    let mut reader = BufReader::new(stream);
+    let mut bytes = Vec::new();
+    loop {
+        bytes.clear();
+        match reader
+            .by_ref()
+            .take(MAX_MESSAGE_BYTES as u64 + 1)
+            .read_until(b'\n', &mut bytes)
+        {
+            Ok(0) | Err(_) => break,
+            Ok(_) => {}
+        }
+        if bytes.len() > MAX_MESSAGE_BYTES || !bytes.ends_with(b"\n") {
+            break;
+        }
+        match serde_json::from_slice::<Request>(&bytes) {
+            Ok(request) => admit(id, request, shared),
+            Err(error) => {
+                let writer = shared.lock().writers.get(&id).cloned();
+                answer(
+                    writer.as_ref(),
+                    &Response::<Value>::failure(0, "invalid_request", error.to_string()),
+                );
+            }
+        }
+    }
+    let mut state = shared.lock();
+    state.writers.remove(&id);
+    let closed = state.scheduler.close(id, Instant::now());
+    if closed.running {
+        ABANDON.store(DISCONNECTED, Ordering::SeqCst);
+    }
+    if closed.held_lease {
+        state.scene_left = true;
+    }
+    drop(state);
+    shared.wake.notify_all();
+}
+
+/// Answer a request at once, or put it in line for its turn.
+fn admit(id: ConnectionId, request: Request, shared: &Shared) {
+    let mut state = shared.lock();
+    let writer = state.writers.get(&id).cloned();
+    let request_id = request.id;
+    let refuse = |code: &str, message: &str| {
+        answer(
+            writer.as_ref(),
+            &Response::<Value>::failure(request_id, code, message),
+        );
+    };
+    if state.stopping.is_some() && request.operation.admission() != Admission::Immediate {
+        return refuse(GAME_STOPPED_CODE, STOPPED_MESSAGE);
+    }
+    let holder = state.scheduler.holds_lease(id);
+    match (request.operation.admission(), request.operation) {
+        (_, Operation::Queue) => {
+            let snapshot = state.scheduler.snapshot(Instant::now());
+            answer(writer.as_ref(), &Response::success(request.id, snapshot));
+        }
+        (_, Operation::QuitGame) => {
+            if state.stopping.is_none() {
+                state.stopping = Some((id, request.id));
+                ABANDON.store(STOPPED, Ordering::SeqCst);
+            }
+        }
+        // Whoever does not hold the game is told what it last said; asking
+        // the game itself would wait for somebody else's turn to end.
+        (_, Operation::Status) if !holder => {
+            answer(
+                writer.as_ref(),
+                &Response::success(request.id, state.status.clone()),
+            );
+        }
+        (_, Operation::Lease) if holder => {
+            answer(
+                writer.as_ref(),
+                &Response::success(request.id, serde_json::json!({"lease": true})),
+            );
+        }
+        (Admission::Leased, _) if !holder => refuse(
+            "no_lease",
+            "a scene operation needs the lease; ask for it with lease first",
+        ),
+        _ => {
+            let position = state.scheduler.enqueue(id, request, Instant::now());
+            answer(writer.as_ref(), &Queued::current(request_id, position));
+            if let Some(level) = state.scheduler.outranks_running(id) {
+                ABANDON_LEVEL.store(level, Ordering::SeqCst);
+                ABANDON.store(OUTRANKED, Ordering::SeqCst);
+            }
+        }
+    }
+    drop(state);
+    shared.wake.notify_all();
 }
 
 fn socket_path() -> Result<PathBuf, RuntimeError> {
@@ -685,101 +965,6 @@ fn bind_listener(path: &Path) -> Result<UnixListener, RuntimeError> {
     let listener = UnixListener::bind(path)?;
     fs::set_permissions(path, fs::Permissions::from_mode(0o600))?;
     Ok(listener)
-}
-
-fn serve_client(
-    runtime: &mut Runtime,
-    mut stream: UnixStream,
-    identity: &GameIdentity,
-) -> io::Result<()> {
-    verify_peer(&stream)?;
-    // Short reads rather than one long one: a client that is between steps is
-    // still holding the game, and a higher claim must not have to wait for it
-    // to speak before the game can be taken back.
-    stream.set_read_timeout(Some(CLIENT_POLL_INTERVAL))?;
-    stream.set_write_timeout(Some(Duration::from_secs(30)))?;
-    let hello = Hello::current(identity.clone());
-    write_json_line(&mut stream, &hello)?;
-    let mut reader = BufReader::new(stream.try_clone()?);
-    let mut bytes = Vec::new();
-    let mut quiet_since = Instant::now();
-    loop {
-        if evicting() {
-            return evict(&mut stream);
-        }
-        let remaining = (MAX_MESSAGE_BYTES + 1 - bytes.len()) as u64;
-        match reader
-            .by_ref()
-            .take(remaining)
-            .read_until(b'\n', &mut bytes)
-        {
-            Ok(0) => return Ok(()),
-            Ok(_) => {}
-            Err(error) if would_block(&error) => {
-                if quiet_since.elapsed() >= CLIENT_SILENCE_TIMEOUT {
-                    return Err(io::Error::new(
-                        io::ErrorKind::TimedOut,
-                        "client said nothing for 30s",
-                    ));
-                }
-                continue;
-            }
-            Err(error) => return Err(error),
-        }
-        if bytes.len() > MAX_MESSAGE_BYTES {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "request exceeds size limit",
-            ));
-        }
-        if !bytes.ends_with(b"\n") {
-            return Ok(());
-        }
-        quiet_since = Instant::now();
-        let parsed = serde_json::from_slice::<Request>(&bytes);
-        bytes.clear();
-        let request: Request = match parsed {
-            Ok(request) => request,
-            Err(error) => {
-                let response: Response<Value> =
-                    Response::failure(0, "invalid_request", error.to_string());
-                write_json_line(&mut stream, &response)?;
-                continue;
-            }
-        };
-        let response = match request.operation {
-            Operation::ApplyLayout => execute_layout_series(runtime, &request),
-            Operation::RecordFight => execute_recording_series(
-                runtime,
-                &request,
-                capture::CaptureStartMode::TrainingGround,
-                None,
-            ),
-            Operation::RecordReplayRound => execute_replay_recording_series(runtime, &request),
-            Operation::RecordWatchReplay => execute_watch_replay_series(runtime, &request),
-            _ => execute_on_main(runtime, &request),
-        };
-        write_json_line(&mut stream, &response)?;
-        if evicting() {
-            return evict(&mut stream);
-        }
-    }
-}
-
-fn would_block(error: &io::Error) -> bool {
-    matches!(
-        error.kind(),
-        io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut
-    )
-}
-
-/// Tell a client it lost the game, then close the connection.
-///
-/// The notice is the difference between a taken game and a crashed one: a
-/// client that reads it knows the game process is still there and being kept
-/// for someone else, so it must not shut it down on its way out.
-fn evict(stream: &mut UnixStream) -> io::Result<()> {
-    write_json_line(stream, &Evicted::current(evicting_level()))
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -881,8 +1066,8 @@ fn execute_watch_replay_series(runtime: &mut Runtime, request: &Request) -> Resp
     let scene_deadline = Instant::now() + Duration::from_secs(arguments.wait_for_scene_seconds);
     let mut last_selection = Value::Null;
     let scene = loop {
-        if evicting() {
-            return evicted_response(request.id);
+        if abandoning() {
+            return abandoned_response(request.id);
         }
         if Instant::now() >= scene_deadline {
             return watch_failure_after_cleanup(
@@ -921,7 +1106,7 @@ fn execute_watch_replay_series(runtime: &mut Runtime, request: &Request) -> Resp
                     description: "round-one watch match entry",
                     stable_samples: LAYOUT_DEPLOYMENT_STABLE_SAMPLES,
                 },
-                evicting,
+                abandoning,
                 |status| {
                     status.get("status").and_then(Value::as_str) == Some("spectating")
                         && status.get("round_count").and_then(Value::as_i64) == Some(1)
@@ -930,7 +1115,7 @@ fn execute_watch_replay_series(runtime: &mut Runtime, request: &Request) -> Resp
             );
             match entry {
                 Ok(_) => break selection,
-                Err(response) if evicted(&response) => return response,
+                Err(response) if abandoned(&response) => return response,
                 Err(response)
                     if response
                         .error
@@ -969,7 +1154,7 @@ fn execute_watch_replay_series(runtime: &mut Runtime, request: &Request) -> Resp
             description: "watched match finish",
             stable_samples: 1,
         },
-        evicting,
+        abandoning,
         |status| {
             status.get("status").and_then(Value::as_str) == Some("spectating")
                 && status.get("finished").and_then(Value::as_bool) == Some(true)
@@ -979,7 +1164,7 @@ fn execute_watch_replay_series(runtime: &mut Runtime, request: &Request) -> Resp
         // The match is abandoned mid-way and writes no recording. The adapter
         // returns the game to the main menu once this client is gone, so the
         // operation does not clean up on its way out.
-        if evicted(&response) {
+        if abandoned(&response) {
             return response;
         }
         return watch_response_after_cleanup(runtime, request.id, &response);
@@ -989,14 +1174,14 @@ fn execute_watch_replay_series(runtime: &mut Runtime, request: &Request) -> Resp
         &replay_dir,
         &baseline,
         Instant::now() + WATCH_AUTOSAVE_GRACE,
-        evicting,
+        abandoning,
     ) {
         Ok(Some(path)) => path,
         Ok(None) => {
             // Waiting for the file to settle is a wait like any other: a claim
             // ends it, and the game's own recording stays where it wrote it.
-            if evicting() {
-                return evicted_response(request.id);
+            if abandoning() {
+                return abandoned_response(request.id);
             }
             if let Err(response) = successful_result(execute_internal_on_main(
                 runtime,
@@ -1009,10 +1194,10 @@ fn execute_watch_replay_series(runtime: &mut Runtime, request: &Request) -> Resp
                 &replay_dir,
                 &baseline,
                 Instant::now() + WATCH_EXPLICIT_SAVE_TIMEOUT,
-                evicting,
+                abandoning,
             ) {
                 Ok(Some(path)) => path,
-                Ok(None) if evicting() => return evicted_response(request.id),
+                Ok(None) if abandoning() => return abandoned_response(request.id),
                 Ok(None) => {
                     return watch_failure_after_cleanup(
                         runtime,
@@ -1211,20 +1396,16 @@ fn copy_new_file(source: &Path, destination: &Path) -> io::Result<()> {
     Ok(())
 }
 
-/// Whether a failed wait stopped because a higher claim took the game.
-fn evicted(response: &Response<Value>) -> bool {
-    response
-        .error
-        .as_ref()
-        .is_some_and(|error| error.code == EVICTED_CODE)
+/// Whether a failed wait stopped because the request was abandoned.
+fn abandoned(response: &Response<Value>) -> bool {
+    response.error.as_ref().is_some_and(|error| {
+        [EVICTED_CODE, GAME_STOPPED_CODE, CANCELLED_CODE].contains(&error.code.as_str())
+    })
 }
 
-fn evicted_response(request_id: u64) -> Response<Value> {
-    Response::failure(
-        request_id,
-        EVICTED_CODE,
-        format!("level {} claimed the game", evicting_level()),
-    )
+fn abandoned_response(request_id: u64) -> Response<Value> {
+    let (code, message) = abandonment();
+    Response::failure(request_id, code, message)
 }
 
 fn watch_response_after_cleanup(
@@ -1559,11 +1740,9 @@ fn drain_recording(
         // A capture in flight is abandoned like any other wait. Nothing is
         // published, the video is torn down with it, and the
         // claim is answered now rather than up to three minutes from now.
-        if evicting() {
-            return Drained::Failed(
-                EVICTED_CODE,
-                format!("level {} claimed the game", evicting_level()),
-            );
+        if abandoning() {
+            let (code, message) = abandonment();
+            return Drained::Failed(code, message);
         }
         if Instant::now() >= deadline {
             return Drained::Failed(
@@ -2032,7 +2211,7 @@ fn wait_layout_status(
             description,
             stable_samples,
         },
-        evicting,
+        abandoning,
         predicate,
     )
 }
@@ -2074,13 +2253,11 @@ fn wait_status(
     let mut last = Value::Null;
     loop {
         if stop() {
+            let (code, message) = abandonment();
             return Err(Response::failure(
                 request_id,
-                EVICTED_CODE,
-                format!(
-                    "level {} claimed the game while waiting for {description}",
-                    evicting_level()
-                ),
+                code,
+                format!("{message} while waiting for {description}"),
             ));
         }
         if Instant::now() >= deadline {
@@ -2160,39 +2337,50 @@ impl Drop for SocketCleanup {
 static ENDPOINT_PATH: OnceLock<CString> = OnceLock::new();
 static ENDPOINT_ARMED: AtomicBool = AtomicBool::new(false);
 
-/// `EVICTING_FOR` when no claim is taking the game.
+/// Why the running request is to be abandoned at its next polling point.
 ///
-/// The level of a claim is stored one above its value, which leaves zero to
-/// mean "nobody", and lets a second, higher claim raise the pending one with a
-/// single `fetch_max`.
-const NO_CLAIM: u8 = 0;
+/// Nothing waits for a request to finish on its own once it has to stop: every
+/// wait inside a long operation reads this, a capture included, and the
+/// operation answers with the code [`abandonment`] names.
+static ABANDON: AtomicU8 = AtomicU8::new(KEEP);
+/// The level that outranked a running lease request, meaningful while
+/// [`ABANDON`] is [`OUTRANKED`].
+static ABANDON_LEVEL: AtomicU8 = AtomicU8::new(0);
+const KEEP: u8 = 0;
+/// A request of a strictly higher level is waiting.
+const OUTRANKED: u8 = 1;
+/// The client that asked has gone, so nobody is left to answer.
+const DISCONNECTED: u8 = 2;
+/// `quit_game` was asked.
+const STOPPED: u8 = 3;
 
-/// The level of the client currently being served.
-static HOLDER_LEVEL: AtomicU8 = AtomicU8::new(0);
-
-/// The level that is taking the game, set by the accept thread.
-///
-/// It outlives the operation it interrupts, so a claim cannot be lost in the
-/// gap between two of them, and is cleared once the game is back at the main
-/// menu and the slot is free.
-static EVICTING_FOR: AtomicU8 = AtomicU8::new(NO_CLAIM);
-
-/// Set once a lingering game has started to quit.
+/// Set once the game has started to quit.
 static QUITTING: AtomicBool = AtomicBool::new(false);
 
-/// Whether a higher claim is taking the game from the serving client.
-fn evicting() -> bool {
-    EVICTING_FOR.load(Ordering::SeqCst) != NO_CLAIM
+const STOPPED_MESSAGE: &str = "the game was stopped with quit_game";
+const CANCELLED_CODE: &str = "cancelled";
+
+/// Whether the running request is to stop where it is.
+fn abandoning() -> bool {
+    ABANDON.load(Ordering::SeqCst) != KEEP
 }
 
-/// The level that is taking the game, meaningless unless [`evicting`].
-fn evicting_level() -> u8 {
-    EVICTING_FOR.load(Ordering::SeqCst).saturating_sub(1)
-}
-
-/// Record that a claim is taking the game, keeping the highest one.
-fn claim_eviction(level: u8) {
-    EVICTING_FOR.fetch_max(level + 1, Ordering::SeqCst);
+/// The error code and message an abandoned request answers with.
+fn abandonment() -> (&'static str, String) {
+    match ABANDON.load(Ordering::SeqCst) {
+        OUTRANKED => (
+            EVICTED_CODE,
+            format!(
+                "a level {} request took the game",
+                ABANDON_LEVEL.load(Ordering::SeqCst)
+            ),
+        ),
+        STOPPED => (GAME_STOPPED_CODE, STOPPED_MESSAGE.to_owned()),
+        _ => (
+            CANCELLED_CODE,
+            "the client closed its connection".to_owned(),
+        ),
+    }
 }
 
 extern "C" fn remove_endpoint_at_exit() {
@@ -2390,45 +2578,75 @@ mod tests {
         drop(listener);
     }
 
-    /// A claim is how a connection identifies itself, and the only thing that
-    /// decides between being served, being refused, and taking the game.
+    fn shared() -> Arc<Shared> {
+        Arc::new(Shared {
+            state: Mutex::new(State {
+                scheduler: Scheduler::new(Instant::now()),
+                writers: BTreeMap::new(),
+                status: serde_json::json!({"status": "main_menu"}),
+                stopping: None,
+                scene_left: false,
+                status_read: None,
+            }),
+            wake: Condvar::new(),
+        })
+    }
+
+    /// Every claim is greeted: the game has many clients, and what one of
+    /// them may do is decided per request, not per connection.
     #[test]
-    fn a_claim_decides_between_being_served_refused_and_taking_over() {
+    fn every_claim_is_greeted_and_requests_wait_their_turn() {
         let path = PathBuf::from(format!(
             "/tmp/mechcore-adapter-claim-{}.sock",
             std::process::id()
         ));
         let _ = fs::remove_file(&path);
         let listener = bind_listener(&path).unwrap();
-        let serving = Arc::new(AtomicBool::new(false));
-        let (sender, receiver) = mpsc::sync_channel::<UnixStream>(0);
-        let greeter = thread::spawn({
-            let serving = Arc::clone(&serving);
-            move || greet_clients(&listener, &serving, &sender)
+        let shared = shared();
+        let identity = GameIdentity {
+            adapter: "ab".into(),
+            headless: true,
+            offline: true,
+            linger_seconds: Some(30),
+        };
+        thread::spawn({
+            let shared = Arc::clone(&shared);
+            move || greet_clients(&listener, &shared, &identity)
         });
 
-        // The first client claims level 1 and takes the single serving slot.
-        let held = claim(&path, 1);
-        let served = receiver.recv().unwrap();
-        assert!(serving.load(Ordering::SeqCst));
-        assert_eq!(HOLDER_LEVEL.load(Ordering::SeqCst), 1);
-        assert!(!evicting());
+        let (mut first, answer) = claim_and_read(&path, 1, "batch");
+        assert_eq!(answer["kind"], "hello");
+        let (mut second, answer) = claim_and_read(&path, 1, "shell");
+        assert_eq!(answer["kind"], "hello");
 
-        // An equal claim is refused: two clients that matter the same amount
-        // cannot each decide the other should stop.
-        let (equal, answer) = claim_and_read(&path, 1);
-        assert_eq!(answer["kind"], "busy");
-        assert_eq!(answer["holder_level"], 1);
-        assert_eq!(answer["evicting"], false);
-        assert!(!evicting());
+        // A round waits for its turn; the game is not ready yet.
+        let answer = request(&mut first, 1, "record_replay_round");
+        assert_eq!(
+            answer,
+            serde_json::json!({"kind": "queued", "id": 1, "position": 1})
+        );
+        // A scene operation needs the lease.
+        let answer = request(&mut second, 1, "apply_layout");
+        assert_eq!(answer["error"]["code"], "no_lease");
+        // Status is what the game last said, without waiting.
+        let answer = request(&mut second, 2, "status");
+        assert_eq!(answer["result"]["status"], "main_menu");
+        let answer = request(&mut second, 3, "queue");
+        assert_eq!(answer["result"]["queued"][0]["client"], "batch");
+        assert_eq!(answer["result"]["ready"], false);
 
-        // A higher claim takes the game, and is told to come back for it.
-        let (higher, answer) = claim_and_read(&path, 3);
-        assert_eq!(answer["kind"], "busy");
-        assert_eq!(answer["holder_level"], 1);
-        assert_eq!(answer["evicting"], true);
-        assert!(evicting());
-        assert_eq!(evicting_level(), 3);
+        // A client that goes takes its waiting requests with it.
+        drop(first);
+        let deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            let answer = request(&mut second, 4, "queue");
+            if answer["result"]["queued"] == serde_json::json!([]) {
+                assert_eq!(answer["result"]["clients"][0]["cancelled"], 1);
+                break;
+            }
+            assert!(Instant::now() < deadline, "the closed client stayed queued");
+            thread::sleep(Duration::from_millis(20));
+        }
 
         // Anything that is not a claim is refused as such, not left to look
         // like an adapter that stopped answering.
@@ -2443,36 +2661,33 @@ mod tests {
             serde_json::from_str::<Value>(&line).unwrap()["kind"],
             "refused"
         );
-
-        EVICTING_FOR.store(NO_CLAIM, Ordering::SeqCst);
-        drop(held);
-        drop(equal);
-        drop(higher);
-        drop(stranger);
-        drop(served);
-
-        // Free the slot, close the channel, then knock once: the greeter
-        // observes the dropped receiver on its next send and returns. Without
-        // the knock it would stay blocked in accept forever.
-        serving.store(false, Ordering::SeqCst);
-        drop(receiver);
-        let knock = claim(&path, 0);
-        let _ = greeter.join();
-        drop(knock);
+        drop(second);
         let _ = fs::remove_file(path);
     }
 
-    fn claim(path: &Path, level: u8) -> UnixStream {
+    fn claim_and_read(path: &Path, level: u8, client: &str) -> (UnixStream, Value) {
         let mut stream = UnixStream::connect(path).unwrap();
-        write_json_line(&mut stream, &Claim::current(level)).unwrap();
-        stream
+        write_json_line(&mut stream, &Claim::current(level, client)).unwrap();
+        let answer = read_line(&stream);
+        (stream, answer)
     }
 
-    fn claim_and_read(path: &Path, level: u8) -> (UnixStream, Value) {
-        let stream = claim(path, level);
+    fn request(stream: &mut UnixStream, id: u64, operation: &str) -> Value {
+        write_json_line(
+            stream,
+            &serde_json::json!({"id": id, "operation": operation, "arguments": {}}),
+        )
+        .unwrap();
+        read_line(stream)
+    }
+
+    fn read_line(stream: &UnixStream) -> Value {
         let mut line = String::new();
-        BufReader::new(&stream).read_line(&mut line).unwrap();
-        let answer = serde_json::from_str(&line).unwrap();
-        (stream, answer)
+        let mut byte = [0u8; 1];
+        let mut stream = stream;
+        while stream.read(&mut byte).unwrap() == 1 && byte[0] != b'\n' {
+            line.push(byte[0] as char);
+        }
+        serde_json::from_str(&line).unwrap()
     }
 }

@@ -1,11 +1,14 @@
 use mechcore_protocol::{
-    Busy, Claim, EVICTED_CODE, Evicted, GameIdentity, Hello, Operation, PROTOCOL, Request, Response,
+    Claim, EVICTED_CODE, Evicted, GAME_STOPPED_CODE, GameIdentity, Hello, Operation, PROTOCOL,
+    Request, Response,
 };
 use serde::Deserialize;
 use serde_json::Value;
 use std::path::Path;
+use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{UnixStream, unix::OwnedWriteHalf};
+use tokio::time::{Instant, timeout_at};
 
 const MAX_MESSAGE_BYTES: usize = 1024 * 1024;
 
@@ -19,16 +22,14 @@ pub struct Client {
 /// Why an endpoint could not be turned into a live client.
 ///
 /// The variants map onto the states in `docs/spec/mechcore/session.md`; callers must keep
-/// `Busy` and `Unresponsive` distinct, because only the latter indicates a
+/// `Leaving` and `Unresponsive` distinct, because only the latter indicates a
 /// wedged adapter.
 pub enum ConnectError {
     /// No listener: the endpoint is absent or stale.
     Unavailable(String),
-    /// A client of at least this level holds the game.
-    ///
-    /// `evicting` means this claim won and the game is being handed back: the
-    /// endpoint is worth waiting for rather than giving up on.
-    Busy { holder_level: u8, evicting: bool },
+    /// The game has started to quit: the endpoint is worth waiting for to be
+    /// gone rather than giving up on.
+    Leaving,
     /// Connected, but no greeting arrived.
     Unresponsive(String),
     /// Greeting arrived but did not match this build's contract.
@@ -41,22 +42,7 @@ impl std::fmt::Display for ConnectError {
             Self::Unavailable(message) => {
                 write!(formatter, "cannot connect to adapter: {message}")
             }
-            Self::Busy {
-                holder_level,
-                evicting,
-            } => {
-                if *evicting {
-                    write!(
-                        formatter,
-                        "adapter is taking the game back from its level {holder_level} client"
-                    )
-                } else {
-                    write!(
-                        formatter,
-                        "adapter is serving a client at level {holder_level}"
-                    )
-                }
-            }
+            Self::Leaving => formatter.write_str("the game is quitting"),
             Self::Unresponsive(message) => {
                 write!(formatter, "adapter sent no greeting: {message}")
             }
@@ -88,8 +74,9 @@ impl RequestError {
         }
     }
 
-    /// The game went to a higher claim. Fatal for this connection, and the one
-    /// disconnection that must not be answered by shutting the game down.
+    /// The game went to a higher request, or was stopped. Fatal for this
+    /// connection, and the one disconnection that must not be answered by
+    /// shutting the game down.
     fn evicted(message: impl Into<String>) -> Self {
         Self {
             message: message.into(),
@@ -114,44 +101,38 @@ impl std::fmt::Display for RequestError {
 }
 
 impl Client {
-    /// Connect and claim the game at `level`.
+    /// Connect and claim the game at `level`, as `client`.
     ///
     /// The claim goes first, because the adapter cannot answer a connection
-    /// until it knows what the connection is worth: it greets a client that
-    /// outranks the one it is serving, and refuses one that does not.
-    pub async fn connect(path: &Path, level: u8) -> Result<Self, ConnectError> {
+    /// until it knows who it is and what it is worth: the name is what turns
+    /// are shared by, and the level orders every request this client makes.
+    pub async fn connect(path: &Path, level: u8, client: &str) -> Result<Self, ConnectError> {
         let stream = UnixStream::connect(path)
             .await
             .map_err(|error| ConnectError::Unavailable(error.to_string()))?;
         let (reader, writer) = stream.into_split();
-        let mut client = Self {
+        let mut connection = Self {
             reader: BufReader::new(reader),
             writer,
             next_id: 1,
             game: None,
         };
-        let mut claim = serde_json::to_vec(&Claim::current(level))
+        let mut claim = serde_json::to_vec(&Claim::current(level, client))
             .map_err(|error| ConnectError::Protocol(format!("cannot encode the claim: {error}")))?;
         claim.push(b'\n');
-        client.writer.write_all(&claim).await.map_err(|error| {
+        connection.writer.write_all(&claim).await.map_err(|error| {
             ConnectError::Unavailable(format!("cannot claim the game: {error}"))
         })?;
-        client.writer.flush().await.map_err(|error| {
+        connection.writer.flush().await.map_err(|error| {
             ConnectError::Unavailable(format!("cannot flush the claim: {error}"))
         })?;
-        let greeting: Value = client
+        let greeting: Value = connection
             .read_line()
             .await
             .map_err(ConnectError::Unresponsive)?;
         let kind = greeting.get("kind").and_then(Value::as_str).unwrap_or("");
-        if kind == "busy" {
-            let busy: Busy = serde_json::from_value(greeting).map_err(|error| {
-                ConnectError::Protocol(format!("cannot decode the refusal: {error}"))
-            })?;
-            return Err(ConnectError::Busy {
-                holder_level: busy.holder_level,
-                evicting: busy.evicting,
-            });
+        if kind == "leaving" {
+            return Err(ConnectError::Leaving);
         }
         if kind == "refused" {
             let reason = greeting
@@ -181,8 +162,8 @@ impl Client {
                 hello.capabilities
             )));
         }
-        client.game = Some(hello.game);
-        Ok(client)
+        connection.game = Some(hello.game);
+        Ok(connection)
     }
 
     /// The game this client was admitted to, as its greeting described it.
@@ -190,10 +171,16 @@ impl Client {
         self.game.as_ref()
     }
 
+    /// Ask for `operation` and wait for its answer.
+    ///
+    /// `timeout` is the operation's own time. A request that waits for its
+    /// turn is told so, and waits for as long as the line takes: its time
+    /// starts when the adapter says it has started.
     pub async fn request(
         &mut self,
         operation: Operation,
         arguments: Value,
+        timeout: Duration,
     ) -> Result<Value, RequestError> {
         let id = self.next_id;
         self.next_id = self
@@ -217,13 +204,34 @@ impl Client {
             RequestError::fatal(format!("cannot flush adapter request: {error}"))
         })?;
 
-        let message: Value = self.read_line().await.map_err(RequestError::fatal)?;
+        let mut deadline = Some(Instant::now() + timeout);
+        let message = loop {
+            let message: Value = match deadline {
+                Some(deadline) => timeout_at(deadline, self.read_line())
+                    .await
+                    .map_err(|_| {
+                        RequestError::fatal(format!(
+                            "adapter request {operation} timed out; its outcome is unknown and it was not retried"
+                        ))
+                    })?,
+                None => self.read_line().await,
+            }
+            .map_err(RequestError::fatal)?;
+            let frame_id = message.get("id").and_then(Value::as_u64);
+            match message.get("kind").and_then(Value::as_str) {
+                Some("queued") if frame_id == Some(id) => deadline = None,
+                Some("started") if frame_id == Some(id) => {
+                    deadline = Some(Instant::now() + timeout);
+                }
+                _ => break message,
+            }
+        };
         if message.get("kind").and_then(Value::as_str) == Some("evicted") {
             let notice: Evicted = serde_json::from_value(message).map_err(|error| {
                 RequestError::fatal(format!("cannot decode the eviction notice: {error}"))
             })?;
             return Err(RequestError::evicted(format!(
-                "the game went to a level {} client",
+                "the game went to a level {} request",
                 notice.by_level
             )));
         }
@@ -244,7 +252,7 @@ impl Client {
                 .error
                 .ok_or_else(|| RequestError::fatal("adapter failure response omitted error"))?;
             let detail = format!("{}: {}", error.code, error.message);
-            if error.code == EVICTED_CODE {
+            if error.code == EVICTED_CODE || error.code == GAME_STOPPED_CODE {
                 return Err(RequestError::evicted(detail));
             }
             Err(RequestError::local(detail))
