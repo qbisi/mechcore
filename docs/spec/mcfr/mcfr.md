@@ -942,7 +942,11 @@ position.x)` and take `unit_id = 1..N` in that order. Initial units on one team
 have unique `(z, x)`, which is what lets an adapter and a simulator number the
 same scene identically. A unit first appearing during combat takes the next
 number in the namespace, which increases monotonically from 1, and a historical
-reference keeps whatever number the object first received.
+reference keeps whatever number the object first received. The units one
+snapshot finds new are numbered together: those it holds by `(team_id,
+position.z, position.x)`, then those the tick made that have not joined yet,
+in the order they were made, so a production line's batch that joins at once
+takes its numbers by where its makes stand.
 
 **Formations.** `formation_id` is assigned to formations in the order the unit
 ordering above first meets them, so initial formation IDs are exactly `1..F` by

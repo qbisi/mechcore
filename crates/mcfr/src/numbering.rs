@@ -13,7 +13,7 @@
 //! producer's units and formations into the normal form's, and leaves every one
 //! first numbered later as it is.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::model::{
     Event, EventPayload, ObjectKind, ObjectRef, RecorderKind, WorldSnapshot,
@@ -25,6 +25,9 @@ use crate::model::{
 pub struct UnitNumbering {
     units: BTreeMap<u64, u64>,
     formations: BTreeMap<u64, u64>,
+    /// The producer's units and formations already numbered.
+    seen_units: BTreeSet<u64>,
+    seen_formations: BTreeSet<u64>,
 }
 
 impl UnitNumbering {
@@ -76,9 +79,74 @@ impl UnitNumbering {
                 .collect::<BTreeMap<_, _>>()
         };
         Self {
+            seen_units: order.iter().copied().collect(),
+            seen_formations: met.iter().copied().collect(),
             units: changed(order.into_iter().zip(unit_ids).collect()),
             formations: changed(met.into_iter().zip(formation_ids).collect()),
         }
+    }
+
+    /// The renaming extended to the units a later snapshot finds new, the
+    /// way a recording numbers them: those the snapshot holds by
+    /// `(team_id, position.z, position.x)`, then those the tick's events made
+    /// that have not joined, each taking the producer's next ID in turn, and
+    /// their formations in the order those units meet them. A production
+    /// line's batch that joins at once takes its numbers by where its makes
+    /// stand, and a battle skill's summons, still appearing, in the order they
+    /// were made. A unit or formation numbered before keeps its number.
+    pub fn number_new_units(&mut self, snapshot: &WorldSnapshot, events: &[Event]) {
+        let seen = &self.seen_units;
+        let mut joined = snapshot
+            .live_units
+            .iter()
+            .filter(|unit| !seen.contains(&unit.unit_id))
+            .collect::<Vec<_>>();
+        joined.sort_by(|left, right| {
+            compare_initial_unit_order(left.team_id, &left.position, right.team_id, &right.position)
+        });
+        let mut order = joined.iter().map(|unit| unit.unit_id).collect::<Vec<_>>();
+        let mut met = joined
+            .iter()
+            .map(|unit| unit.formation_id)
+            .collect::<Vec<_>>();
+        let mut waiting = Vec::new();
+        for event in events {
+            if let (Some(subject), EventPayload::UnitCreated { formation_id, .. }) =
+                (event.subject, &event.payload)
+                && subject.kind == ObjectKind::Unit
+                && !seen.contains(&subject.id)
+                && !order.contains(&subject.id)
+            {
+                waiting.push((subject.id, *formation_id));
+            }
+        }
+        waiting.sort_unstable();
+        waiting.dedup();
+        order.extend(waiting.iter().map(|&(unit, _)| unit));
+        met.extend(waiting.iter().map(|&(_, formation)| formation));
+        let mut formations = Vec::new();
+        for formation in met {
+            if !self.seen_formations.contains(&formation) && !formations.contains(&formation) {
+                formations.push(formation);
+            }
+        }
+        let mut unit_ids = order.clone();
+        unit_ids.sort_unstable();
+        let formations_seen = formations.clone();
+        let mut formation_ids = formations.clone();
+        formation_ids.sort_unstable();
+        for (old, new) in order.iter().zip(unit_ids) {
+            if *old != new {
+                self.units.insert(*old, new);
+            }
+        }
+        for (old, new) in formations.into_iter().zip(formation_ids) {
+            if old != new {
+                self.formations.insert(old, new);
+            }
+        }
+        self.seen_formations.extend(formations_seen);
+        self.seen_units.extend(order);
     }
 
     /// Whether it renames nothing.

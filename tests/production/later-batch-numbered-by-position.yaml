@@ -1,0 +1,34 @@
+# A production line's batch that joins at once is numbered as the snapshot
+# that finds it numbers new units: by side, then where each make stands, z
+# and then x, not in the order the line made them. Red's Fortress makes its
+# Fangs with Fang Production; once blue's Marksmen and Arclight have killed
+# the first batch, the next eight join on tick 721. They are made in the
+# line's order, which their unit_created events keep, and take units 13 to
+# 20 by position: the first one made is the sixth by z, unit 18.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -280}}
+  - {name: marksman, index: 1, position: {x: 120, y: -280}}
+  - {name: arclight, index: 2, position: {x: 60, y: -200}}
+red:
+  techs:
+    fortress: [fang_production]
+  units:
+  - {name: fortress, index: 0, position: {x: 80, y: -60}}
+outcome:
+  blue.core_damage: 363
+  blue.units[0].exp: 12
+  blue.units[1].exp: 12
+  blue.units[2].exp: 12
+  red.units[0].exp: 800
+asserts:
+- sql: "SELECT object__id FROM events WHERE type = 'unit_created' AND tick = 721 ORDER BY ordinal LIMIT 3"
+  rows: [[18], [13], [20]]
+ticks: 888
+hash: 23:ec51a06f540b37525cfa7daed5fde29f73fea72dd6956c706310c6cc9de9c4d4
