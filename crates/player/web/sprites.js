@@ -50,6 +50,7 @@ const Sprites = (() => {
     vulcan: '#9dcdc7',
     melting_point: '#ffe116',
     overlord: '#fec21b',
+    war_factory: '#b9ca6e',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -75,6 +76,7 @@ const Sprites = (() => {
     vulcan: [30.6, 35.4],
     melting_point: [33.8, 33.2],
     overlord: [44.6, 57],
+    war_factory: [67.4, 72.6],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -2265,6 +2267,97 @@ const Sprites = (() => {
     paint(c, GLOW.overlord, null);
   }
 
+  // War Factory: a moving fortress. Four white track pods at its corners
+  // and a pod of machinery each side, a white wedge at its front, its
+  // middle armoured in bands and an X in the team's colour, two turbine
+  // fans spinning at its back, and on top a heavy gun that turns to its
+  // target.
+  function war_factory(c, p) {
+    const T = p.team;
+    const spin = p.t * 6;
+    for (const sx of [-1, 1]) {
+      // the corner pods, front and back
+      for (const [y0, y1] of [[-33.0, -16.5], [17.5, 35.0]]) {
+        rr(c, sx > 0 ? 13.5 : -21.5, y0, 8.0, y1 - y0, 0.8);
+        paint(c, M.white);
+        rr(c, sx > 0 ? 15.0 : -20.0, y0 + 3.0, 5.0, y1 - y0 - 6.0, 0.4);
+        paint(c, M.pale, null);
+        line(c, sx * 17.5, y0 + 2.0, sx * 17.5, y1 - 2.0, M.mid, 0.4);
+      }
+      circle(c, sx * 13.5, -14.8, 1.2);
+      paint(c, T.accent);
+      circle(c, sx * 13.5, 24.0, 1.2);
+      paint(c, T.accent);
+      // the side pod
+      rr(c, sx > 0 ? 22.0 : -31.0, -13.0, 9.0, 30.5, 1.0);
+      paint(c, M.white);
+      for (const y of [-1.5, 12.5]) {
+        rr(c, sx * 25.5 - 2.5, y - 2.5, 5.0, 5.0, 0.6);
+        paint(c, M.dark);
+        circle(c, sx * 25.5, y, 1.6);
+        paint(c, T.accent);
+      }
+      circle(c, sx * 32.0, 5.6, 1.5);
+      paint(c, M.pale);
+      rr(c, sx > 0 ? 15.5 : -22.0, 3.5, 6.5, 4.0, 0.4);
+      paint(c, M.dark);
+    }
+    // the body: the bands, then the armour with its X
+    rr(c, -15.0, -13.0, 30.0, 23.0, 1.0);
+    paint(c, M.dark);
+    rr(c, -12.0, -12.6, 24.0, 8.6, 0.6);
+    paint(c, T.accent);
+    for (let y = -11.6; y < -4.5; y += 1.6) line(c, -11.4, y, 11.4, y, T.deep, 0.35);
+    for (const sx of [-1, 1]) {
+      rr(c, sx > 0 ? 2.8 : -14.6, -1.5, 11.8, 11.5, 0.6);
+      paint(c, M.white);
+      poly(c, [sx * 3.2, -1.0, sx * 8.6, 4.2, sx * 3.2, 9.6]);
+      paint(c, T.accent, null);
+      poly(c, [sx * 14.2, -1.0, sx * 8.8, 4.2, sx * 14.2, 9.6]);
+      paint(c, T.accent, null);
+      rr(c, sx > 0 ? 11.8 : -15.6, 4.0, 3.8, 2.2, 0.8);
+      paint(c, M.darker);
+    }
+    // the front wedge
+    poly(c, [-6.2, -35.6, 6.2, -35.6, 7.4, -16.0, -7.4, -16.0]);
+    paint(c, M.white);
+    poly(c, [3.6, -35.0, 6.4, -30.0, -4.2, -16.4, -6.6, -17.6]);
+    paint(c, M.darker, null);
+    // the back: the fans, a block between them, a white wedge astern
+    for (const sx of [-1, 1]) {
+      circle(c, sx * 8.7, 18.7, 3.3);
+      paint(c, M.white);
+      circle(c, sx * 8.7, 18.7, 2.6);
+      paint(c, M.darker);
+      for (let i = 0; i < 8; i++) {
+        const a = spin * sx + (i * Math.PI) / 4;
+        line(c, sx * 8.7, 18.7, sx * 8.7 + Math.cos(a) * 2.4, 18.7 + Math.sin(a) * 2.4, M.pale, 0.3);
+      }
+      glow(c, sx * 8.7, 18.7, 2.4, GLOW.war_factory, 0.3);
+    }
+    rr(c, -5.0, 14.0, 10.0, 12.0, 0.6);
+    paint(c, M.dark);
+    rr(c, -1.6, 19.5, 3.2, 2.5, 0.3);
+    paint(c, T.accent);
+    poly(c, [-6.0, 25.5, 6.0, 25.5, 0, 32.5]);
+    paint(c, M.white);
+    // the gun
+    c.save();
+    c.translate(0, -7.0);
+    c.rotate(p.turret);
+    const kick = recoil(p.fireAge, 0.8) * 2.0;
+    circle(c, 0, 0, 4.2);
+    paint(c, M.dark);
+    circle(c, 0, 0, 2.8);
+    paint(c, T.accent);
+    rr(c, -1.0, -17.0 + kick, 2.0, 15.0, 0.4);
+    paint(c, M.darker);
+    rr(c, -1.4, -19.0 + kick, 2.8, 3.0, 0.4);
+    paint(c, T.accent);
+    flash(c, 0, -19.8 + kick, 4.0, '#ffb347', p.fireAge, 0.2, p.fireIndex);
+    c.restore();
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -2286,7 +2379,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion, fortress, vulcan, melting_point, overlord };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion, fortress, vulcan, melting_point, overlord, war_factory };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
