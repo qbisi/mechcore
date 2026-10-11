@@ -4,7 +4,7 @@
 // toward -y, so the page turns it by the recorded facing and scales it by the
 // zoom. The shapes and proportions follow each model as its prefab assembles
 // it in its attack pose, seen from straight above: the parts a unit moves in
-// a fight (legs, turret, barrels, arms, stinger) are drawn apart so the page
+// a fight (legs, turret, barrels, arms) are drawn apart so the page
 // can move them. The colours follow the models' textures: white armour over
 // gunmetal, the team colour where the texture masks it, and each unit's own
 // emissive colour.
@@ -34,7 +34,7 @@ const Sprites = (() => {
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
     marksman: [12, 22], arclight: [18, 13], rhino: [28, 24], crawler: [4.2, 5.2],
-    sledgehammer: [7.6, 13], wasp: [9, 11], energy_tower: [22, 22], research_center: [22, 22],
+    sledgehammer: [7.6, 13], wasp: [7.4, 6.6], energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
 
@@ -613,39 +613,70 @@ const Sprites = (() => {
     c.restore();
   }
 
-  // Wasp (Bee): a flying fuselage between two engine pods, with a stinger
-  // tail it thrusts forward as it fires.
+  // Wasp (Bee), seen from above without its abdomen and stinger, which
+  // hang under the body where the top view cannot see them, nor the small
+  // wings on its engines' flanks: a pointed fuselage with its canopy at the
+  // nose and two fins at its tail, a white thruster pod each side of it,
+  // and outboard on struts the two long engines, armoured in the team's
+  // colour on their outer flanks, that hold it up.
   function wasp(c, p) {
     const T = p.team;
     const bob = Math.sin(p.t * 3 + p.walk) * 0.04;
     c.scale(1 + bob, 1 + bob);
-    // stinger
-    const thrust = p.fireAge < 0.5 ? Math.sin(Math.min(1, p.fireAge / 0.5) * Math.PI) : 0;
-    c.save();
-    c.translate(0, 2.4);
-    c.scale(1, 1 - thrust * 1.6);
-    poly(c, [-0.5, 0, 0.5, 0, 0.3, 3.4, 0, 4.4, -0.3, 3.4]);
-    paint(c, T.accent);
-    c.restore();
-    // engine pods and their struts
+    const pulse = 0.75 + 0.25 * Math.sin(p.t * 29);
     for (const sx of [-1, 1]) {
-      poly(c, [sx * 0.8, -1.0, sx * 3.0, -1.4, sx * 3.0, 0.2, sx * 0.8, 0.8]);
+      // the strut out to the engine
+      poly(c, [sx * 1.0, -0.9, sx * 2.3, -0.8, sx * 2.3, 0.4, sx * 1.0, 0.3]);
       paint(c, M.dark);
-      poly(c, [sx * 3.0, -4.0, sx * 3.6, -3.0, sx * 3.7, 2.6, sx * 3.3, 3.4, sx * 2.9, 2.6, sx * 2.6, -3.0]);
-      paint(c, M.white);
-      rr(c, sx * 3.15 - 0.25, -2.4, 0.5, 4.0, 0.2);
-      paint(c, M.darker, null);
-      poly(c, [sx * 3.6, -1.6, sx * 4.6, -0.6, sx * 4.6, 0.4, sx * 3.7, 0.0]);
+      // the engine's armour, outboard
+      poly(c, [sx * 2.8, -1.25, sx * 3.45, -1.05, sx * 3.55, -0.25, sx * 3.0, 0.15, sx * 2.75, -0.2]);
       paint(c, T.accent);
-      glow(c, sx * 3.3, 3.6, 1.6, GLOW.wasp, 0.7 + 0.3 * Math.sin(p.t * 31 + sx));
+      poly(c, [sx * 2.85, 0.05, sx * 3.15, 0.3, sx * 2.95, 0.65, sx * 2.7, 0.4]);
+      paint(c, M.darker);
+      // the engine: a long white body, twin prongs at its head and its
+      // nozzles glowing at the back
+      for (const dx of [-0.12, 0.12]) {
+        rr(c, sx * 2.55 + dx - 0.06, -2.5, 0.12, 0.6, 0.05);
+        paint(c, M.steel, M.line, 0.5);
+      }
+      poly(c, [sx * 2.55, -2.05, sx * 2.9, -1.4, sx * 2.95, 0.6, sx * 2.75, 1.8, sx * 2.35, 1.8, sx * 2.15, 0.6, sx * 2.2, -1.4]);
+      paint(c, M.white);
+      poly(c, [sx * 2.5, -1.7, sx * 2.6, -1.7, sx * 2.65, 1.6, sx * 2.45, 1.6]);
+      paint(c, M.mid, null);
+      for (const dx of [-0.12, 0.12]) {
+        rr(c, sx * 2.55 + dx - 0.07, 1.75, 0.14, 0.4, 0.05);
+        paint(c, M.dark, M.line, 0.5);
+      }
+      glow(c, sx * 2.55, 2.1, 1.0, GLOW.wasp, 0.75 * pulse);
+      // the thruster pod beside the fuselage
+      rr(c, sx * 1.3 - 0.35, -1.05, 0.7, 2.35, 0.3);
+      paint(c, M.white);
+      poly(c, [sx * 1.3, -0.95, sx * 1.48, -0.55, sx * 1.4, -0.2, sx * 1.2, -0.2, sx * 1.12, -0.55]);
+      paint(c, M.mid, null);
     }
-    poly(c, sym([0, -5.4, 0.8, -3.6, 1.1, 0.4, 0.7, 2.8, 0, 3.1]));
+    // the tail fins
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 0.2, 1.3, sx * 0.85, 1.55, sx * 1.1, 3.0, sx * 0.7, 2.95, sx * 0.25, 2.3]);
+      paint(c, M.white);
+      poly(c, [sx * 0.35, 1.25, sx * 0.75, 1.3, sx * 0.8, 1.75, sx * 0.4, 1.7]);
+      paint(c, T.accent);
+    }
+    // the fuselage: pointed at the nose, widest behind the canopy
+    poly(c, sym([0, -3.2, 0.45, -2.5, 0.85, -1.3, 1.0, -0.4, 0.8, 0.9, 0.45, 1.4, 0, 1.5]));
     paint(c, M.white);
-    poly(c, sym([0, -4.9, 0.45, -3.6, 0.5, -2.4, 0, -2.1]));
+    poly(c, sym([0, 0.05, 0.75, -1.1, 0.7, -0.2, 0.3, 0.2]));
+    paint(c, M.dark, null);
+    // the canopy
+    poly(c, sym([0, -2.75, 0.3, -2.6, 0.45, -1.2, 0, -1.1]));
     paint(c, '#bfefff', M.line, 0.6);
-    poly(c, sym([0, -1.4, 0.7, -0.6, 0.6, 1.8, 0, 2.2]));
-    paint(c, T.accent, null);
-    flash(c, 0, 7.0 - thrust * 7.4, 1.4, GLOW.wasp, p.fireAge, 0.15, p.fireIndex);
+    // the back: a white block between the team-coloured mountings the
+    // abdomen hangs from
+    rr(c, -0.33, -0.25, 0.66, 1.0, 0.1);
+    paint(c, M.pale, M.line, 0.6);
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 0.4, 0.75, sx * 0.85, 0.7, sx * 0.75, 1.4, sx * 0.4, 1.35]);
+      paint(c, T.accent, M.line, 0.6);
+    }
   }
 
   // A unit the page has no sprite for: a disc of its collision size, marked.
