@@ -20,7 +20,7 @@ use crate::layout_replay::{
     binary_formatter, build_number, oil_range_data, shield_range_data, write_ints,
     write_technology_rows,
 };
-use crate::r#match::{Action, SideState, SkillTarget, Turn};
+use crate::r#match::{Action, DEFAULT_DEPLOY_TIME, SideState, SkillTarget, Turn};
 use crate::opening::{Stated, StatedSide, Stream};
 use crate::reinforcement::Pool;
 use std::fmt::Write as _;
@@ -28,13 +28,17 @@ use std::fmt::Write as _;
 /// Energy tower skill `1`, whose price the next round's income repays.
 const RAPID_SUPPLY_SKILL: i32 = 1;
 const BATTLE_ID: &str = "battle";
+/// The opening round's clock, the game's `PrepareTime`.
+const PREPARE_TIME: i32 = 30;
+/// The game's ticks per second, the resolution of a decision's `LocalTime`.
+const TICKS_PER_SECOND: i64 = 20;
 
 /// Writes `stated` as a replay `convert --to match` reads back as the same match.
 ///
 /// # Errors
 ///
 /// Returns an error when the match holds what a replay cannot record: a
-/// deployment clock, a position after its last decisions, a side without an
+/// position after its last decisions, a side without an
 /// opening or a seed, or a round whose opening cannot be undone onto a
 /// position that opens back onto the match's.
 pub fn match_replay(
@@ -42,9 +46,6 @@ pub fn match_replay(
     stated: &Stated,
     game_build: &str,
 ) -> Result<Vec<u8>, String> {
-    if stated.deploy_time.is_some() {
-        return Err("a replay records no deployment clock, and this match states one".into());
-    }
     if !stated.ends_on_actions {
         return Err(
             "a replay records no position after its last decisions, and this match states one"
@@ -89,7 +90,7 @@ pub fn match_replay(
         xml,
         "</matchDatas><reinforceItems /><Version>{version}</Version><Seat>0</Seat><BattleInfo>\
          <gameRules /><StartTime>0</StartTime><SystemSeed>{}</SystemSeed>\
-         <BattleID>{BATTLE_ID}</BattleID><PrepareTime>30</PrepareTime><DeployTime>100</DeployTime>\
+         <BattleID>{BATTLE_ID}</BattleID><PrepareTime>30</PrepareTime><DeployTime>{}</DeployTime>\
          <FightTime>120</FightTime><MapID>{}</MapID><MaxRound>40</MaxRound>\
          <BlueprintIncreaseSupply>0</BlueprintIncreaseSupply>\
          <EnableAdvanceTeam>true</EnableAdvanceTeam><EnableReinforcement>true</EnableReinforcement>\
@@ -98,7 +99,9 @@ pub fn match_replay(
          <MatchMode>VS_1_1</MatchMode><ScoreMode>ReduceScore</ScoreMode><HostID>0</HostID>\
          <SurviveModeDifficulty>VeryEasy</SurviveModeDifficulty></BattleInfo>\
          <CreateTime>0001-01-01T00:00:00</CreateTime></BattleRecord>",
-        stated.seed, stated.map_id
+        stated.seed,
+        deploy_time(stated),
+        stated.map_id
     );
     Ok(binary_formatter(
         BATTLE_ID,
@@ -237,15 +240,17 @@ fn write_player(
                 opening.choose
             )
         })?;
-    let _ = write!(
+    xml.push_str("</playerData>");
+    let choose = format!("<Index>{}</Index><ID>{team}</ID>", opening.choose);
+    write_records(
         xml,
-        "</playerData><actionRecords>\
-         <MatchActionData xsi:type=\"PAD_ChooseAdvanceTeam\"><Time>1</Time><LocalTime>0</LocalTime>\
-         <Index>{}</Index><ID>{team}</ID></MatchActionData>\
-         <MatchActionData xsi:type=\"PAD_FinishDeploy\"><Time>2</Time><LocalTime>0</LocalTime>\
-         </MatchActionData></actionRecords></PlayerRoundRecord>",
-        opening.choose
+        &[
+            ("PAD_ChooseAdvanceTeam", choose),
+            ("PAD_FinishDeploy", String::new()),
+        ],
+        PREPARE_TIME,
     );
+    xml.push_str("</PlayerRoundRecord>");
 
     let mut previous: &[Action] = &[];
     let mut earlier_officers: Vec<i32> = Vec::new();
@@ -281,7 +286,15 @@ fn write_player(
         xml.push_str("</playerData>");
         // The round's decisions are taken from the position it opened with,
         // deliveries and all, which is the match's.
-        write_actions(xml, economy, state, turn, actions, sign)?;
+        write_actions(
+            xml,
+            economy,
+            state,
+            turn,
+            actions,
+            sign,
+            deploy_time(stated),
+        )?;
         xml.push_str("</PlayerRoundRecord>");
         earlier_officers.clone_from(&snapshot.officers);
         previous = actions;
@@ -675,6 +688,7 @@ fn write_actions(
     turn: &Turn,
     actions: &[Action],
     sign: i32,
+    deploy_time: i32,
 ) -> Result<(), String> {
     let mut records: Vec<(&str, String)> = Vec::new();
     let offers = turn.state.reinforce_offers.as_ref();
@@ -727,17 +741,44 @@ fn write_actions(
     if !matches!(actions.last(), Some(Action::Concede)) {
         records.push(("PAD_FinishDeploy", String::new()));
     }
+    write_records(xml, &records, deploy_time);
+    Ok(())
+}
+
+/// Writes a round's records on the clock a player would have taken them on.
+///
+/// The game stamps each decision with `LocalTime`, the seconds since the round
+/// opened, in steps of its 0.05-second tick, and leaves `Time` at zero. A match
+/// keeps only the order, so the records are placed two seconds apart, as a
+/// player takes them, and closer when that would run past the round's clock.
+fn write_records(xml: &mut String, records: &[(&str, String)], clock: i32) {
+    let ticks = i64::from(clock) * TICKS_PER_SECOND;
+    let count = i64::try_from(records.len()).unwrap_or(i64::MAX);
+    let step = (2 * TICKS_PER_SECOND)
+        .min(ticks / count.saturating_add(1))
+        .max(1);
     xml.push_str("<actionRecords>");
-    for (time, (kind, fields)) in records.iter().enumerate() {
+    for (at, (kind, fields)) in (1..).zip(records) {
+        let tick = step * at;
+        let seconds = tick / TICKS_PER_SECOND;
+        let hundredths = tick % TICKS_PER_SECOND * (100 / TICKS_PER_SECOND);
+        let local = match hundredths {
+            0 => seconds.to_string(),
+            h if h % 10 == 0 => format!("{seconds}.{}", h / 10),
+            h => format!("{seconds}.{h:02}"),
+        };
         let _ = write!(
             xml,
-            "<MatchActionData xsi:type=\"{kind}\"><Time>{}</Time><LocalTime>0</LocalTime>{fields}\
-             </MatchActionData>",
-            time + 1
+            "<MatchActionData xsi:type=\"{kind}\"><Time>0</Time><LocalTime>{local}</LocalTime>\
+             {fields}</MatchActionData>"
         );
     }
     xml.push_str("</actionRecords>");
-    Ok(())
+}
+
+/// The round's deployment clock, which the match states or the standard one.
+fn deploy_time(stated: &Stated) -> i32 {
+    stated.deploy_time.unwrap_or(DEFAULT_DEPLOY_TIME)
 }
 
 /// What recording one decision needs from the position it is taken from.

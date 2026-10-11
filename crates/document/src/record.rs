@@ -32,6 +32,9 @@ pub struct BattleInfo {
     pub system_seed: i32,
     #[serde(rename = "MapID")]
     pub map_id: i32,
+    /// How long a side has to deploy a round, in seconds.
+    #[serde(rename = "DeployTime")]
+    pub deploy_time: i32,
     #[serde(rename = "BattleID")]
     pub battle_id: String,
     #[serde(rename = "MatchMode")]
