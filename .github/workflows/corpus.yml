@@ -30,6 +30,10 @@ jobs:
       actions: read
       pull-requests: write
       issues: write
+    # Built as ci's scripts job builds it, whose cache this job reads.
+    env:
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 16
+      CARGO_PROFILE_RELEASE_LTO: false
     steps:
       - uses: actions/checkout@v4
 
@@ -42,8 +46,8 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             target
-          key: cargo-scripts-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
-          restore-keys: cargo-scripts-${{ runner.os }}-
+          key: cargo-scripts-fast-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: cargo-scripts-fast-${{ runner.os }}-
 
       - name: Release build, without the Adapter
         run: cargo build --release -p mechcore --no-default-features

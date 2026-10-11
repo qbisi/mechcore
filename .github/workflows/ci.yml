@@ -26,6 +26,14 @@ jobs:
   # without the `adapter` feature that would build it.
   test:
     runs-on: ubuntu-latest
+    # The workspace's own crates are compiled afresh on every run, since a
+    # checkout gives every file a new time, so incremental state and full
+    # debug information are written only to be thrown away, and saved they
+    # made a cache of 2.4 GB that took 90 s to restore. Line tables keep a
+    # failing test's backtrace readable.
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
     steps:
       - uses: actions/checkout@v4
 
@@ -46,8 +54,8 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             target
-          key: cargo-test-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
-          restore-keys: cargo-test-${{ runner.os }}-
+          key: cargo-test-lean-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: cargo-test-lean-${{ runner.os }}-
 
       # The cheapest check in the file, and the one whose answer is never worth
       # arguing about, so it runs before the ones that take minutes.
@@ -59,6 +67,12 @@ jobs:
 
       - name: Tests
         run: cargo test --workspace --exclude mechcore-adapter --no-default-features
+
+      # What the next run builds again anyway is not worth storing: the cache
+      # keeps the dependencies alone.
+      - name: Leave the workspace's own crates out of the cache
+        if: github.ref == 'refs/heads/master' && steps.cache.outputs.cache-hit != 'true'
+        run: cargo clean -p mechcore -p mechcore-document -p mechcore-mcfr -p mechcore-player -p mechcore-protocol -p mechcore-simulation
 
       # Saved only on master, and only when the exact key missed: a key
       # already stored cannot be written again.
@@ -78,6 +92,14 @@ jobs:
   # grows, and a converter need not read every version it holds.
   scripts:
     runs-on: ubuntu-latest
+    # The release profile's single codegen unit and LTO make the fastest
+    # binary, and its build took two minutes here; with sixteen units and no
+    # LTO it takes half as long, and every pinned fight verifies as fast and
+    # with the same hash. The corpus workflow builds the same way, so the two
+    # share one cache.
+    env:
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 16
+      CARGO_PROFILE_RELEASE_LTO: false
     steps:
       - uses: actions/checkout@v4
 
@@ -89,8 +111,8 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             target
-          key: cargo-scripts-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
-          restore-keys: cargo-scripts-${{ runner.os }}-
+          key: cargo-scripts-fast-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: cargo-scripts-fast-${{ runner.os }}-
 
       - name: Release build, without the Adapter
         run: cargo build --release -p mechcore --no-default-features
