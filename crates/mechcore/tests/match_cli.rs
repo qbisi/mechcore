@@ -326,6 +326,9 @@ fn a_committed_round_is_written_and_fought() {
     // A Centurion's Melee Mode beside Dual Wield, whose side arm shares its
     // rounds, is fought from the position the round ends in, and the fourth
     // round opens.
+    for side in ["red", "blue"] {
+        decline(&path, side);
+    }
     for decision in [
         "{type: unlock_unit, name: centurion}",
         "{type: buy_unit, name: centurion, position: {x: 45, y: -275}}",
@@ -333,9 +336,6 @@ fn a_committed_round_is_written_and_fought() {
         "{type: upgrade_technology, unit: centurion, tech: dual_wield}",
     ] {
         run(&["match", "act", &path, "--side", "red", decision]).ok();
-    }
-    for side in ["red", "blue"] {
-        decline(&path, side);
     }
     run(&["match", "commit", &path, "--side", "red"]).ok();
     let fourth = run(&["match", "commit", &path, "--side", "blue"]).ok();
@@ -617,4 +617,25 @@ fn a_side_answers_the_offer_before_it_commits() {
     assert!(refused.contains("answers it"), "{refused}");
     decline(&path, "blue");
     run(&["match", "commit", &path, "--side", "blue"]).ok();
+}
+
+#[test]
+fn a_round_opens_with_its_reinforcement_answer() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    for side in ["blue", "red"] {
+        run(&["match", "commit", &path, "--side", side]).ok();
+    }
+
+    let view = run(&["match", "show", &path, "--side", "blue"]).ok();
+    let bought = view["sides"]["blue"]["position"]["unlocked_units"][0]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let buy = format!("{{type: buy_unit, name: {bought}, position: {{x: 40, y: -280}}}}");
+    let refused = run(&["match", "act", &path, "--side", "blue", "--dry-run", &buy]).refused();
+    assert!(refused.contains("first decision"), "{refused}");
+    decline(&path, "blue");
+    run(&["match", "act", &path, "--side", "blue", "--dry-run", &buy]).ok();
 }

@@ -904,14 +904,20 @@ impl Game {
             _ if opening => Err(Failure::refused(
                 "round zero holds one decision, and it is the opening",
             )),
+            // A round that deals an offer opens with its answer; only giving up
+            // comes before it.
+            _ if !matches!(
+                decision,
+                Action::ChooseReinforceItem { .. } | Action::Concede
+            ) && self.offered()
+                && !self.answered(side) =>
+            {
+                Err(Failure::refused(
+                    "this round deals a reinforcement offer, and its answer is the side's first decision",
+                ))
+            }
             Action::ChooseReinforceItem { index: offer, id } => {
-                if self
-                    .turn
-                    .side(side)
-                    .decisions
-                    .iter()
-                    .any(|taken| matches!(taken, Action::ChooseReinforceItem { .. }))
-                {
+                if self.answered(side) {
                     return Err(Failure::refused(
                         "this side has answered this round's reinforcement offer, and a round takes one answer",
                     ));
@@ -958,6 +964,23 @@ impl Game {
         }
     }
 
+    /// Whether the round in progress deals a reinforcement offer.
+    fn offered(&self) -> bool {
+        self.r#match
+            .turns
+            .last()
+            .is_some_and(|turn| turn.state.reinforce_offers.is_some())
+    }
+
+    /// Whether `side` has answered the round's offer.
+    fn answered(&self, side: Side) -> bool {
+        self.turn
+            .side(side)
+            .decisions
+            .iter()
+            .any(|taken| matches!(taken, Action::ChooseReinforceItem { .. }))
+    }
+
     /// Writes this side's decisions into the document.
     fn commit(&mut self, side: Side, held: &mut Held) -> Result<(), Failure> {
         if !self.phase().decides() {
@@ -974,17 +997,13 @@ impl Game {
         }
         // A round that deals an offer is written with one answer from each
         // side, unless the side gave up.
-        let decisions = &self.turn.side(side).decisions;
-        let offered = self
-            .r#match
-            .turns
-            .last()
-            .is_some_and(|turn| turn.state.reinforce_offers.is_some());
-        if offered
-            && !decisions
-                .iter()
-                .any(|taken| matches!(taken, Action::ChooseReinforceItem { .. } | Action::Concede))
-        {
+        let conceded = self
+            .turn
+            .side(side)
+            .decisions
+            .iter()
+            .any(|taken| matches!(taken, Action::Concede));
+        if self.offered() && !self.answered(side) && !conceded {
             return Err(Failure::refused(
                 "this round deals a reinforcement offer, and a side answers it before it commits",
             ));
