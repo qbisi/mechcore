@@ -40,6 +40,7 @@ const Sprites = (() => {
     fire_badger: '#b18926',
     sabertooth: '#ffff7b',
     tarantula: '#9eff22',
+    phantom_ray: '#5a91a7',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -55,6 +56,7 @@ const Sprites = (() => {
     fire_badger: [14.2, 19.4],
     sabertooth: [20.4, 26.4],
     tarantula: [23, 28.6],
+    phantom_ray: [15.4, 17.4],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -1504,6 +1506,75 @@ const Sprites = (() => {
     c.restore();
   }
 
+  // Phantom Ray, as it fires: a flyer with a rounded white body, a wing
+  // each side carrying a rack of red missiles, two engine pods in the
+  // team's colour behind, and a long boom out to a tail with red fins. Its
+  // missiles leave the racks as it fires.
+  function phantom_ray(c, p) {
+    const T = p.team;
+    const bob = Math.sin(p.t * 2.0 + p.walk) * 0.03;
+    c.scale(1 + bob, 1 + bob);
+    const fired = p.fireAge < 0.4 ? 1 - p.fireAge / 0.4 : 0;
+    // the tail
+    for (const x of [-0.75, 0.35]) {
+      rr(c, x - 0.3, 3.2, 0.6, 4.0, 0.15);
+      paint(c, M.white);
+    }
+    poly(c, [-3.3, 7.6, -1.2, 6.9, 1.2, 6.9, 2.3, 7.6, 1.8, 8.4, -2.8, 8.4]);
+    paint(c, M.white);
+    for (const x of [-3.5, 2.2]) {
+      poly(c, [x, 7.4, x + 0.8, 7.3, x + 1.1, 9.4, x + 0.5, 9.6]);
+      paint(c, T.accent);
+    }
+    // the engine pods
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 3.4 - 1.2, 0.8, 2.4, 4.0, 0.9);
+      paint(c, T.accent);
+      rr(c, sx * 3.4 - 0.75, 0.9, 1.5, 0.9, 0.35);
+      paint(c, M.darker);
+      rr(c, sx * 3.4 - 0.25, 2.5, 0.5, 1.4, 0.15);
+      paint(c, M.dark, null);
+      rr(c, sx * 3.4 - 0.4, 4.7, 0.8, 0.6, 0.15);
+      paint(c, M.black);
+    }
+    // the wings and their racks
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 2.0, -2.3, sx * 5.0, -2.3, sx * 4.4, -1.2, sx * 2.0, -1.0]);
+      paint(c, M.white);
+      rr(c, sx * 4.65 - 1.85, -4.45, 3.7, 1.8, 0.15);
+      paint(c, M.dark);
+      rr(c, sx * 4.65 - 1.85, -5.0, 3.7, 0.65, 0.15);
+      paint(c, T.accent);
+      for (const x of [3.5, 4.4, 5.3]) {
+        if (fired && Math.round(x * 2) % 3 === p.fireIndex % 3) continue;
+        rr(c, sx * x - 0.25, -4.3, 0.5, 2.0, 0.2);
+        paint(c, T.accent);
+        circle(c, sx * x, -4.4, 0.25);
+        paint(c, M.pale);
+      }
+      rr(c, sx * 6.9 - 0.45, -5.6, 0.9, 3.5, 0.35);
+      paint(c, sx < 0 ? M.white : M.dark);
+    }
+    // the body and the guns ahead of it
+    for (const sx of [-1, 1]) {
+      line(c, sx * 2.2, -5.0, sx * 2.2, -7.4, M.mid, 0.12);
+      line(c, sx * 1.3, -5.0, sx * 1.3, -6.9, M.mid, 0.12);
+      rr(c, sx * 1.65 - 0.45, -5.9, 0.9, 1.2, 0.2);
+      paint(c, M.dark);
+    }
+    rr(c, -1.1, -0.5, 2.2, 3.7, 0.4);
+    paint(c, M.mid);
+    poly(c, [0, -5.1, 1.2, -4.8, 2.1, -3.0, 2.1, -1.0, 1.4, 0.6, -1.4, 0.6, -2.1, -1.0, -2.1, -3.0, -1.2, -4.8]);
+    paint(c, M.white);
+    poly(c, [-0.8, -4.95, 0.8, -4.95, 0.5, -4.6, -0.5, -4.6]);
+    paint(c, GLOW.phantom_ray, null);
+    poly(c, [0, -2.2, 0.75, -1.5, 0.5, -0.4, -0.5, -0.4, -0.75, -1.5]);
+    paint(c, T.accent);
+    rr(c, -1.3, 2.4, 2.6, 0.9, 0.2);
+    paint(c, M.white);
+    flash(c, 0, -5.6, 1.4, '#ffcf70', p.fireAge, 0.15, p.fireIndex);
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -1525,7 +1596,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];

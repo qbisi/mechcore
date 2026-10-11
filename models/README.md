@@ -42,6 +42,7 @@ the game is in them.
 | `fire_badger` | Fire Badger | ![](fire_badger.svg) |
 | `sabertooth` | Sabertooth | ![](sabertooth.svg) |
 | `tarantula` | Tarantula | ![](tarantula.svg) |
+| `phantom_ray` | Phantom Ray | ![](phantom_ray.svg) |
 | `energy_tower` | Energy Tower | ![](energy_tower.svg) |
 | `research_center` | Research Center | ![](research_center.svg) |
 | `anti_armor_turret` | Anti-Armor Cannon | ![](anti_armor_turret.svg) |
