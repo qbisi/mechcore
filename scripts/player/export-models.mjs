@@ -43,6 +43,7 @@ const MODELS = [
   ['fortress', false],
   ['vulcan', false],
   ['melting_point', false],
+  ['overlord', false],
   ['energy_tower', true],
   ['research_center', true], ['anti_armor_turret', true], ['rapid_fire_turret', true],
   ['defensive_wall', true],

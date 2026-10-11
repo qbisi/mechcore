@@ -49,6 +49,7 @@ const Sprites = (() => {
     fortress: '#ffe525',
     vulcan: '#9dcdc7',
     melting_point: '#ffe116',
+    overlord: '#fec21b',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -73,6 +74,7 @@ const Sprites = (() => {
     fortress: [34.8, 28.4],
     vulcan: [30.6, 35.4],
     melting_point: [33.8, 33.2],
+    overlord: [44.6, 57],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -2184,6 +2186,85 @@ const Sprites = (() => {
     }
   }
 
+  // Overlord: a great airship, its long grey prow carrying two guns ahead
+  // and a glass core glowing at its middle, a white arc each side of it on
+  // a turret pod in the team's colour, and white engines and fins astern.
+  function overlord(c, p) {
+    const T = p.team;
+    const pulse = 0.7 + 0.3 * Math.sin(p.t * 3);
+    // the engines and fins astern
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 13.0, 9.0, sx * 21.5, 10.4, sx * 21.0, 12.8, sx * 13.0, 13.4]);
+      paint(c, M.white);
+      for (const [x0, x1] of [[5.0, 8.0], [10.0, 13.0]]) {
+        rr(c, sx > 0 ? x0 : -x1, 4.5, x1 - x0, 15.5, 0.4);
+        paint(c, M.white);
+        rr(c, (sx > 0 ? x0 : -x1) + 0.6, 6.0, x1 - x0 - 1.2, 5.0, 0.2);
+        paint(c, M.pale, null);
+      }
+      rr(c, sx > 0 ? 8.0 : -10.0, 7.0, 2.0, 10.0, 0.2);
+      paint(c, M.dark);
+    }
+    rr(c, -4.5, 3.0, 9.0, 14.0, 0.6);
+    paint(c, M.dark);
+    rr(c, -1.6, 5.0, 3.2, 3.6, 0.4);
+    paint(c, T.accent);
+    // the arcs
+    for (const sx of [-1, 1]) {
+      c.beginPath();
+      if (sx < 0) c.arc(0, 1.5, 14.0, Math.PI * 0.78, Math.PI * 1.25);
+      else c.arc(0, 1.5, 14.0, -Math.PI * 0.25, Math.PI * 0.22);
+      c.lineWidth = 2.2;
+      c.strokeStyle = M.white;
+      c.stroke();
+      circle(c, sx * 13.8, -13.4, 1.9);
+      paint(c, T.accent);
+      circle(c, sx * 13.8, -13.4, 0.9);
+      paint(c, M.darker, null);
+      // the red plates and discs by the core
+      poly(c, [sx * 6.0, -5.2, sx * 11.2, -5.2, sx * 12.2, -1.0, sx * 6.0, -1.0]);
+      paint(c, T.accent);
+      for (let i = 0; i < 4; i++) line(c, sx * (7.0 + i), -4.6, sx * (7.4 + i), -1.6, T.deep, 0.2);
+      circle(c, sx * 6.6, 0.8, 1.4);
+      paint(c, M.mid);
+    }
+    // the prow
+    poly(c, [0, -31.6, 1.4, -30.6, 4.2, -28.8, 5.6, -25.0, 9.4, -21.4, 9.6, -19.6, 5.2, -18.8, 4.6, -12.0, 4.2, -1.0, 2.0, 2.4, -2.0, 2.4, -4.2, -1.0, -4.6, -12.0, -5.2, -18.8, -9.6, -19.6, -9.4, -21.4, -5.6, -25.0, -4.2, -28.8, -1.4, -30.6]);
+    paint(c, M.mid);
+    poly(c, [0, -29.0, 3.2, -26.0, 3.6, -13.0, 0, -11.0, -3.6, -13.0, -3.2, -26.0]);
+    paint(c, M.pale, null);
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 6.0 - 0.5, -26.0, 1.0, 4.0, 0.15);
+      paint(c, T.accent);
+    }
+    rr(c, -0.55, -29.5, 1.1, 19.0, 0.2);
+    paint(c, M.dark, null);
+    for (let y = -17; y < -11; y += 1.5) {
+      rr(c, -1.6, y, 0.8, 0.8, 0.05);
+      paint(c, M.dark, null);
+      rr(c, 0.8, y, 0.8, 0.8, 0.05);
+      paint(c, M.dark, null);
+    }
+    poly(c, [0, -31.8, 0.9, -30.2, -0.9, -30.2]);
+    paint(c, T.accent);
+    // the guns ahead
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 2.8 - 0.35, -33.0, 0.7, 3.0, 0.1);
+      paint(c, M.white);
+      rr(c, sx * 2.8 - 0.8, -37.0, 1.6, 4.2, 0.4);
+      paint(c, T.accent);
+      flash(c, sx * 2.8, -37.6, 2.6, '#ffb347', p.fireAge, 0.15, p.fireIndex + sx);
+    }
+    // the core
+    rr(c, -1.3, -9.5, 2.6, 6.5, 0.6);
+    paint(c, '#a8e4ee');
+    poly(c, [0, -2.0, 1.3, -1.25, 1.3, 0.25, 0, 1.0, -1.3, 0.25, -1.3, -1.25]);
+    paint(c, T.accent);
+    glow(c, 0, -0.5, 1.8, GLOW.overlord, pulse);
+    poly(c, [0, -1.2, 0.6, 0.0, -0.6, 0.0]);
+    paint(c, GLOW.overlord, null);
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -2205,7 +2286,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion, fortress, vulcan, melting_point };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion, fortress, vulcan, melting_point, overlord };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
