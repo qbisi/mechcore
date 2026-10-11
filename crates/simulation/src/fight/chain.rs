@@ -170,15 +170,9 @@ impl Simulation {
             return Ok(None);
         };
         let aimed = FightActorRef::Unit(target);
-        if let Some(shield) = self.shield_around(aimed)
-            && !self.shield_holds(shield, FightActorRef::Unit(jump.owner))
-        {
-            return Err(Error::new(format!(
-                "unit {}'s chain jumps at unit {target}, which shield {shield} covers, and a \
-                 jump into a battlefield shield is not measured",
-                jump.owner
-            )));
-        }
+        let shield = self
+            .shield_around(aimed)
+            .filter(|&shield| !self.shield_holds(shield, FightActorRef::Unit(jump.owner)));
         let owner = &self.actors[&jump.owner];
         let skill = self.skill_at_slot(FightActorRef::Unit(jump.owner), usize::from(jump.slot));
         let damage = self
@@ -204,7 +198,7 @@ impl Simulation {
             hits_aimed: true,
             center_q32: (x_q32, z_q32),
             center_y_q32: space_to_q32(unit_height(struck_unit.domain)),
-            shield: None,
+            shield,
             crosses_shields: false,
             strikes_buildings: false,
             splash_radius: 0,

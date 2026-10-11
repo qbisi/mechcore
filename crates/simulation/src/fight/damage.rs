@@ -1424,7 +1424,7 @@ impl Simulation {
             skill.attack.self_splash,
             skill.attack.diffusion,
         );
-        let shield = self.blow_shield(actor_id, target);
+        let shield = self.slot_blow_shield(skill_ref, skill_slot, target);
         let attacker = &self.actors[&actor_id];
         let (center_q32, center_y_q32) = if let Some(shield) = shield {
             self.shield_hit_center(skill_ref.owner, target, shield)
@@ -1561,6 +1561,25 @@ impl Simulation {
             return None;
         }
         let shield = self.target_energy_shield(skill_ref.owner, target, attacker.shield_range())?;
+        (!self.shield_holds(shield, skill_ref.owner)).then_some(shield)
+    }
+
+    /// The same for a slot of the skill `skill_ref` holds, which reaches
+    /// with its slot's own range (`FightSkill.GetAttackRange`).
+    pub(in crate::fight) fn slot_blow_shield(
+        &self,
+        skill_ref: SkillRef,
+        skill_slot: usize,
+        target: FightActorRef,
+    ) -> Option<u64> {
+        let attacker = self.skill_attacker(skill_ref)?;
+        if attacker.attack.crosses_shields {
+            return None;
+        }
+        let range = self
+            .slot_attack_range(skill_ref, Some(skill_slot))
+            .saturating_add(self.skill_rules(skill_ref).extra_shield_range());
+        let shield = self.target_energy_shield(skill_ref.owner, target, range)?;
         (!self.shield_holds(shield, skill_ref.owner)).then_some(shield)
     }
 
