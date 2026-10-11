@@ -8,7 +8,7 @@ use std::path::PathBuf;
 /// A running game keeps the Adapter it was started with, so a rebuilt Adapter
 /// and a running game can differ. Naming the contract is what turns that into
 /// one clear refusal at connect time instead of a desynchronised stream.
-pub const PROTOCOL: &str = "mechcore.adapter.v11";
+pub const PROTOCOL: &str = "mechcore.adapter.v12";
 /// Highest round `apply_layout` will stage.
 ///
 /// This is the executor's timeout budget for advancing through every earlier
@@ -23,10 +23,11 @@ pub const MAX_WATCH_MATCH_TIMEOUT_SECONDS: u64 = 4 * 60 * 60;
 
 /// Highest run level a client may claim.
 ///
-/// Levels order clients, nothing else: a claim strictly above the level of the
-/// client being served takes the game from it. Five is enough to separate a
-/// background corpus batch from ordinary work, and few enough that a number is
-/// still a decision rather than a habit.
+/// Levels order requests, nothing else: the next request served is one of the
+/// highest level waiting, and a lease is revoked for a request strictly above
+/// its holder's. Five is enough to separate a background corpus batch from
+/// ordinary work, and few enough that a number is still a decision rather than
+/// a habit.
 pub const MAX_LEVEL: u8 = 4;
 
 /// The level a client runs at when its script does not say.
@@ -45,10 +46,12 @@ pub enum Operation {
     SpeedUp,
     QuitMatch,
     QuitGame,
+    Lease,
+    Queue,
 }
 
 impl Operation {
-    pub const ALL: [Self; 10] = [
+    pub const ALL: [Self; 12] = [
         Self::Status,
         Self::StartTest,
         Self::ApplyLayout,
@@ -59,6 +62,8 @@ impl Operation {
         Self::SpeedUp,
         Self::QuitMatch,
         Self::QuitGame,
+        Self::Lease,
+        Self::Queue,
     ];
 
     #[must_use]
@@ -74,8 +79,41 @@ impl Operation {
             Self::SpeedUp => "speed_up",
             Self::QuitMatch => "quit_match",
             Self::QuitGame => "quit_game",
+            Self::Lease => "lease",
+            Self::Queue => "queue",
         }
     }
+
+    /// How the adapter admits this operation.
+    #[must_use]
+    pub const fn admission(self) -> Admission {
+        match self {
+            Self::Status | Self::Queue | Self::QuitGame => Admission::Immediate,
+            Self::RecordReplayRound | Self::RecordWatchReplay | Self::Lease => Admission::Turn,
+            Self::StartTest
+            | Self::ApplyLayout
+            | Self::RecordFight
+            | Self::ToggleFight
+            | Self::SpeedUp
+            | Self::QuitMatch => Admission::Leased,
+        }
+    }
+}
+
+/// How a request reaches the game.
+///
+/// The game is one, and its clients are many: a request either needs no turn,
+/// waits for one, or belongs to the client holding the lease.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Admission {
+    /// Answered at once, whoever holds the game: `status`, `queue`, and
+    /// `quit_game`, which ends every client's work.
+    Immediate,
+    /// Waits for its turn and starts and ends at the main menu: a sceneless
+    /// recording, a watched match, or the lease itself.
+    Turn,
+    /// Acts on a scene, so only the client holding the lease may ask for it.
+    Leased,
 }
 
 impl std::fmt::Display for Operation {
@@ -136,51 +174,49 @@ pub struct GameIdentity {
 
 /// The first message a client sends, before it is greeted or refused.
 ///
-/// A client says what it is worth before it asks for anything, because that is
-/// what the adapter needs in order to answer: the game goes to the higher
-/// level, and the claim is the only place that level is ever stated.
+/// A client says who it is and what it is worth before it asks for anything:
+/// the level orders its requests against everyone else's, and the name is what
+/// turns are shared out by, so that a client with many connections, one per
+/// command, is still one client.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Claim {
     pub kind: String,
     pub protocol: String,
     pub level: u8,
+    pub client: String,
 }
 
 impl Claim {
     #[must_use]
-    pub fn current(level: u8) -> Self {
+    pub fn current(level: u8, client: impl Into<String>) -> Self {
         Self {
             kind: "claim".into(),
             protocol: PROTOCOL.into(),
             level,
+            client: client.into(),
         }
     }
 }
 
-/// Answer to a claim that does not outrank the client being served.
+/// Answer to a claim on a game that has started to quit.
 ///
-/// `holder_level` is what it lost to. `evicting` says the claim did win and
-/// the game is being handed back right now: the client is expected to connect
-/// again rather than to give up, because the adapter admits its next client
-/// only once the game is at the main menu.
+/// Every claim is otherwise greeted. A game that is quitting is on its way to
+/// every claim alike, so the client is expected to wait for it to go rather
+/// than to give up.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Busy {
+pub struct Leaving {
     pub kind: String,
     pub protocol: String,
-    pub holder_level: u8,
-    pub evicting: bool,
 }
 
-impl Busy {
+impl Leaving {
     #[must_use]
-    pub fn current(holder_level: u8, evicting: bool) -> Self {
+    pub fn current() -> Self {
         Self {
-            kind: "busy".into(),
+            kind: "leaving".into(),
             protocol: PROTOCOL.into(),
-            holder_level,
-            evicting,
         }
     }
 }
@@ -208,11 +244,11 @@ impl Refused {
     }
 }
 
-/// Last message to a client that is losing the game to a higher claim.
+/// Last message to a client whose lease went to a higher request.
 ///
 /// The connection closes immediately after it. It is what separates a taken
 /// game from a crashed one, and a client that reads it must leave the game
-/// process alone: the adapter is keeping it for whoever claimed it.
+/// process alone: the adapter is keeping it for whoever outranked it.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Evicted {
@@ -232,8 +268,99 @@ impl Evicted {
     }
 }
 
-/// Error code carried by an operation the adapter abandoned for a higher claim.
+/// Error code carried by an operation the adapter abandoned for a higher
+/// request.
 pub const EVICTED_CODE: &str = "evicted";
+/// Error code carried by every request `quit_game` ended, running or waiting.
+pub const GAME_STOPPED_CODE: &str = "game_stopped";
+
+/// Sent when a request that waits for its turn is put in line.
+///
+/// `position` counts from one, the request served next, and is where it stands
+/// when it is queued: a higher request arriving later goes in front of it.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Queued {
+    pub kind: String,
+    pub id: u64,
+    pub position: usize,
+}
+
+impl Queued {
+    #[must_use]
+    pub fn current(id: u64, position: usize) -> Self {
+        Self {
+            kind: "queued".into(),
+            id,
+            position,
+        }
+    }
+}
+
+/// Sent when a request that waited for its turn begins to run, which is
+/// where its own time starts.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Started {
+    pub kind: String,
+    pub id: u64,
+}
+
+impl Started {
+    #[must_use]
+    pub fn current(id: u64) -> Self {
+        Self {
+            kind: "started".into(),
+            id,
+        }
+    }
+}
+
+/// What the game is doing for whom: the answer to [`Operation::Queue`].
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct QueueSnapshot {
+    /// Whether the game has reached its main menu and serves turns.
+    pub ready: bool,
+    /// The client holding the lease.
+    pub lease: Option<String>,
+    pub running: Option<RunningRequest>,
+    /// Waiting requests, in the order they would be served now.
+    pub queued: Vec<WaitingRequest>,
+    pub clients: Vec<ClientProgress>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RunningRequest {
+    pub client: String,
+    pub level: u8,
+    pub operation: Operation,
+    pub seconds: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WaitingRequest {
+    pub client: String,
+    pub level: u8,
+    pub operation: Operation,
+    pub seconds: f64,
+}
+
+/// One client's requests since the game started.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ClientProgress {
+    pub client: String,
+    /// Open connections under this name.
+    pub connections: usize,
+    pub queued: u64,
+    pub done: u64,
+    pub failed: u64,
+    /// Requests dropped because their connection closed or the game stopped.
+    pub cancelled: u64,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -434,6 +561,8 @@ mod tests {
                 "speed_up",
                 "quit_match",
                 "quit_game",
+                "lease",
+                "queue",
             ]
         );
     }
@@ -476,7 +605,7 @@ mod tests {
             .unwrap(),
             serde_json::json!({
                 "kind": "hello",
-                "protocol": "mechcore.adapter.v11",
+                "protocol": "mechcore.adapter.v12",
                 "capabilities": [
                     "status",
                     "start_test",
@@ -488,6 +617,8 @@ mod tests {
                     "speed_up",
                     "quit_match",
                     "quit_game",
+                    "lease",
+                    "queue",
                 ],
                 "game": {"adapter": "ab", "headless": true, "offline": true, "linger_seconds": 30},
             })
@@ -495,39 +626,70 @@ mod tests {
     }
 
     #[test]
-    fn a_client_states_its_level_before_it_is_greeted_or_refused() {
+    fn a_client_states_its_level_and_name_before_it_is_greeted_or_refused() {
         assert_eq!(
-            serde_json::to_value(Claim::current(DEFAULT_LEVEL)).unwrap(),
+            serde_json::to_value(Claim::current(DEFAULT_LEVEL, "corpus")).unwrap(),
             serde_json::json!({
                 "kind": "claim",
-                "protocol": "mechcore.adapter.v11",
+                "protocol": "mechcore.adapter.v12",
                 "level": 1,
+                "client": "corpus",
             })
         );
         assert_eq!(
-            serde_json::to_value(Busy::current(3, true)).unwrap(),
-            serde_json::json!({
-                "kind": "busy",
-                "protocol": "mechcore.adapter.v11",
-                "holder_level": 3,
-                "evicting": true,
-            })
+            serde_json::to_value(Leaving::current()).unwrap(),
+            serde_json::json!({"kind": "leaving", "protocol": "mechcore.adapter.v12"})
         );
         assert_eq!(
             serde_json::to_value(Evicted::current(4)).unwrap(),
             serde_json::json!({
                 "kind": "evicted",
-                "protocol": "mechcore.adapter.v11",
+                "protocol": "mechcore.adapter.v12",
                 "by_level": 4,
             })
         );
         // A claim that carries anything else is not this message.
         assert!(
-            serde_json::from_value::<Claim>(
-                serde_json::json!({"kind": "claim", "protocol": PROTOCOL, "level": 1, "force": true})
-            )
+            serde_json::from_value::<Claim>(serde_json::json!({
+                "kind": "claim", "protocol": PROTOCOL, "level": 1, "client": "a", "force": true
+            }))
             .is_err()
         );
+    }
+
+    #[test]
+    fn a_waiting_request_is_told_it_waits_and_when_it_starts() {
+        assert_eq!(
+            serde_json::to_value(Queued::current(7, 2)).unwrap(),
+            serde_json::json!({"kind": "queued", "id": 7, "position": 2})
+        );
+        assert_eq!(
+            serde_json::to_value(Started::current(7)).unwrap(),
+            serde_json::json!({"kind": "started", "id": 7})
+        );
+    }
+
+    #[test]
+    fn only_scene_operations_need_the_lease() {
+        let leased: Vec<_> = Operation::ALL
+            .into_iter()
+            .filter(|operation| operation.admission() == Admission::Leased)
+            .map(Operation::as_str)
+            .collect();
+        assert_eq!(
+            leased,
+            [
+                "start_test",
+                "apply_layout",
+                "record_fight",
+                "toggle_fight",
+                "speed_up",
+                "quit_match"
+            ]
+        );
+        assert_eq!(Operation::Lease.admission(), Admission::Turn);
+        assert_eq!(Operation::RecordReplayRound.admission(), Admission::Turn);
+        assert_eq!(Operation::QuitGame.admission(), Admission::Immediate);
     }
 
     /// The field names are the contract, so state them once outside the types.

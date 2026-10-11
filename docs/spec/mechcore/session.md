@@ -1,4 +1,4 @@
-# Game session acquisition
+| `adapter_unresponsive` | connected, no greeting before deadline, or a game quitting that did not go | endpoint path, deadline |# Game session acquisition
 
 ## Scope
 
@@ -50,106 +50,89 @@ started without the Adapter".
 **2. Connect result.** `connect()` on the endpoint. `ENOENT` means no file;
 `ECONNREFUSED` means a stale file with no listener.
 
-**3. Greeting.** A client claims the game at its level, and the Adapter answers
-that claim. A client that connects, claims, and receives no line has not been
+**3. Greeting.** A client claims the game, and the Adapter answers that claim. A client that connects, claims, and receives no line has not been
 accepted by a serving loop.
 
-Because the Adapter's accept loop is serial, a second client's `connect()`
-succeeds while its answer waits in the backlog. The Adapter therefore answers
-an already-occupied endpoint explicitly rather than leaving the caller to infer
-occupancy from a timeout:
+The game is shared ([adapter.md](../adapter/adapter.md#turns)), so every claim
+is greeted, however many clients are connected and whatever they are doing:
 
 ```json
-{"kind":"hello","protocol":"mechcore.adapter.v7","capabilities":["status", "..."],"game":{"adapter":"…","headless":true,"offline":true,"linger_seconds":30}}
-{"kind":"busy","protocol":"mechcore.adapter.v7","holder_level":1,"evicting":false}
+{"kind":"hello","protocol":"mechcore.adapter.v12","capabilities":["status", "..."],"game":{"adapter":"…","headless":true,"offline":true,"linger_seconds":30}}
+{"kind":"leaving","protocol":"mechcore.adapter.v12"}
 ```
 
-A `busy` answer is peer-verified like any other connection and is followed by
-an immediate close. A greeting timeout after a successful connect is therefore
-**not** normal occupancy; it indicates an unresponsive Adapter and must be
-reported as such.
+The one other answer is `leaving`, from a game that has started to quit. A
+greeting timeout after a successful connect is therefore never occupancy; it
+indicates an unresponsive Adapter and must be reported as such.
 
-The two are distinguishable precisely because answering `busy` requires the
-greeter to run. State **F** is reproduced by stopping the game process: the
+The greeting is written by a thread that does nothing else, so its absence is
+the Adapter's, not a client's. State **F** is reproduced by stopping the game process: the
 kernel still completes the connection from its listen backlog, but no thread
 writes a greeting, and `attach` reports `adapter_unresponsive` at the deadline.
-Continuing the process restores `busy`, so **F** is a momentary reading rather
-than a latched state.
+Continuing the process restores the greeting, so **F** is a momentary reading
+rather than a latched state.
 
 ## State matrix
 
-| Process | Endpoint | Probe | State | `launch` | `attach` |
-| --- | --- | --- | --- | --- | --- |
-| absent | absent | — | **A** clean | launch | fail `no_game` |
-| absent | present | connect refused | **B** stale endpoint | launch | fail `no_game` |
-| present | absent | — | **C** foreign game | fail `foreign_game` | fail `foreign_game` |
-| present | present | `hello` | **D** adapter idle | join, or retire and launch | join |
-| present | present | `busy`, `evicting` | **E1** outranked holder, or a game quitting | wait, then as found | same |
-| present | present | `busy` | **E2** adapter occupied | fail `adapter_busy` | fail `adapter_busy` |
-| present | present | no greeting | **F** adapter unresponsive | fail `adapter_unresponsive` | fail `adapter_unresponsive` |
+| Process | Endpoint | Probe | State | `launch` | `join` | `attach` |
+| --- | --- | --- | --- | --- | --- | --- |
+| absent | absent | — | **A** clean | launch | launch | fail `no_game` |
+| absent | present | connect refused | **B** stale endpoint | launch | launch | fail `no_game` |
+| present | absent | — | **C** foreign game | fail `foreign_game` | fail `foreign_game` | fail `foreign_game` |
+| present | present | `hello` | **D** adapter listening | join, or retire and launch | join | join |
+| present | present | `leaving` | **E** a game quitting | wait, then as found | same | same |
+| present | present | no greeting | **F** adapter unresponsive | fail `adapter_unresponsive` | same | same |
 
 State **C** is the player's own game. The Adapter cannot be injected into a
 live process, and starting a second instance would corrupt both. Both verbs
 fail closed and name the running PID.
 
-The two verbs differ in states **A** and **B**, where `launch` starts a game
-and `attach` refuses to, and in **D**, where only a launch judges the game it
-found. Everywhere else both mean "give me
-the game", and what decides is the level, not the verb.
+The verbs differ in states **A** and **B**, where `launch` and `join` start a
+game and `attach` refuses to, and in **D**, where only a launch judges the game
+it found. `join` is what a request that only needs its turn acquires with
+([Declaration](#declaration)): any game can serve it, and one started for it
+serves everyone after.
 
 In state **D** a launch looks at the game it found. A game `mechcore` launched
-and nobody holds is [lingering](#leaving-the-game), and a launch reuses it when
+is [lingering](#leaving-the-game) once nobody uses it, and a launch reuses it when
 it can do the work, which is the point of lingering: a batch of commands pays
 for one game start. It cannot when it loaded an Adapter other than the one
 beside this `mechcore`, as it does after a rebuild, when it runs headless and
 the launch wants a window, or when it is offline and the launch is not, or the
 other way round. The launch then asks it to quit, waits until
 the process and its endpoint are gone, and starts a new game as in state
-**A**. A game started any other way is joined as it is, window or not, stale
-Adapter or not.
+**A**; a game another client is connected to is not retired under it, and the
+launch fails `adapter_busy` instead. A game started any other way is joined as
+it is, window or not, stale Adapter or not.
 
 State **B** does not unlink anything. The Adapter clears the stale endpoint
 when the newly launched game binds.
 
-States **E1** and **E2** are the same endpoint seen by two different clients.
 Every acquisition carries a level in `0..=4`, declared where the acquisition is
 made — `game launch --level` in a prompt or as a command, `--level` on any
-other command — and defaulting to `1`. A claim strictly above the
-holder's takes the game; an equal or lower one is refused with the holder's
-level named.
+other command — and defaulting to `1`. A level orders this client's requests
+against everyone else's ([adapter.md](../adapter/adapter.md#turns)): it decides
+who goes first, and a strictly higher one stops a running request or takes a
+lease back. Requests of one level take turns by client, and never stop each
+other.
 
-Taking the game is the Adapter's work, not the claimant's. It stops the
-holder's current operation at its next polling point, closes that connection
-with an `evicted` notice, returns the game to the main menu, and only then
-admits the next client. The claimant is told `evicting` and connects again
-until it is greeted, which is one acquisition from its own side; the wait ends
-after two minutes with `adapter_busy` if the hand-over never completes.
+An evicted client has nothing left to release: the game is being kept for
+whoever outranked it. Its run ends where it was interrupted, reports
+`{"operation":"evicted","completed":false}`, and exits successfully.
 
-Nothing waits for a claim. Every wait inside a long operation abandons itself
-at its next polling point, a capture included: the recording in flight is torn
-down and published nowhere. Leaving the match and settling at the main menu is
-the only part of a hand-over that still takes time.
-
-An evicted client has nothing left to release: the game is being kept at the
-main menu for the client that claimed it. Its run ends where it was
-interrupted, reports `{"operation":"evicted","completed":false}`, and exits
-successfully.
-
-A lingering game that has started to quit answers every claim `evicting`,
-whatever its level, and then goes. Its endpoint is removed as the process
-exits, so for that moment the process is there with no endpoint, which a claim
-that was told to wait reads as the game on its way out rather than as state
-**C**; it then finds state **A**.
-
-Nothing else evicts. A client that is refused waits, retries or gives up, and
-no client can take the game by any means other than outranking its holder.
+A game that has started to quit answers every claim `leaving`, whatever its
+level, and then goes. Its endpoint is removed as the process exits, so for
+that moment the process is there with no endpoint, which a claim that was told
+to wait reads as the game on its way out rather than as state **C**; it then
+finds state **A**.
 
 ## Leaving the game
 
 No session shuts the game down on its way out, whether it launched the game or
 joined it. A game `mechcore` launched **lingers**: `mechcore` starts it with
-`MECHCORE_ADAPTER_LINGER_SECONDS=30`, and once its last client has left, the
-Adapter takes it back to the main menu and waits 30 s for the next one. A
+`MECHCORE_ADAPTER_LINGER_SECONDS=30`, and once its last client has left and
+nothing is asked of it, the game is at the main menu and waits 30 s for the
+next one. A
 claim in that time is served at once, by the same process. A game nobody
 claims quits itself from the main menu; if the process has not exited 30 s
 after asking Unity to quit, the Adapter ends it.
@@ -157,7 +140,8 @@ after asking Unity to quit, the Adapter ends it.
 A game started any other way, with the Adapter injected by hand, has no linger
 and waits for ever. It belongs to whoever started it.
 
-`quit_game` is an operation any client may call to end the game now. A running
+`quit_game` is an operation any client may call to end the game now, for
+everyone: whatever runs or waits is answered `game_stopped`. A running
 game keeps the Adapter it started with, and a launch retires a lingering game
 whose Adapter is not the one beside it, so a rebuilt Adapter is loaded by the
 next launch without quitting anything by hand.
@@ -182,7 +166,9 @@ A shell opens without a game and reports how to acquire when a game operation is
 asked for. Acquiring is an operation and not an option: the prompt is a
 session, and a session says so in a line rather than in the command that
 started it. `--level` rides on the line that claims, defaulting to `1`, so
-what a session outranks is stated where it is claimed and nowhere else.
+what a session's requests outrank is stated where it is claimed and nowhere
+else. A session's first scene operation takes the lease, which it keeps until
+it leaves the game.
 
 A session may therefore start without a game, run a comparison, and take
 the game only when it needs one. `game detach` and `quit` leave the game as
@@ -191,8 +177,12 @@ any exit does ([Leaving the game](#leaving-the-game)).
 ### mechcore game
 
 A command is one operation and then an exit. `game launch` starts a game,
-answers once it stands at the main menu, and leaves it to linger; every other
-command joins a game whoever is keeping it alive and leaves it to them:
+answers once it stands at the main menu, and leaves it to linger. A command
+that fights a file, `game record` of a layout, a fight or a replay's round,
+`convert --backend game` and `verify --backend game`, joins the running game
+and takes its turns in it, and starts a headless, offline game when none runs;
+`game record --watch` starts one with the network. Every other command joins a
+game whoever is keeping it alive and leaves it to them:
 
 ```sh
 mechcore game launch --headless
@@ -205,7 +195,8 @@ any other command is refused and names `game launch`; `attach` and `detach`
 hold a game for longer than one command, so only a shell takes them.
 
 `--level` is the one acquisition option a command takes, because a command
-claims like any other client.
+claims like any other client. `game status` reports the game's line beside its
+status, under `queue`.
 
 ## Headless
 
@@ -291,13 +282,14 @@ concrete next action.
 | --- | --- | --- |
 | `no_game` | `attach` with no running game | endpoint path probed |
 | `foreign_game` | game running without the Adapter | PID, executable path |
-| `adapter_busy` | a client of the same or higher level holds the endpoint | endpoint path, holder level |
+| `adapter_busy` | a launch would retire a game other clients are connected to | why the game cannot be reused, how many others |
 | `adapter_unresponsive` | connected, no greeting before deadline | endpoint path, deadline |
 | `protocol_mismatch` | greeting protocol or capability set differs | expected and observed |
 | `launch_failed` | Adapter dylib or game executable missing | resolved paths tried |
 
 `adapter_busy` and `adapter_unresponsive` are distinct states and must not be
-collapsed into one message.
+collapsed into one message: the first is a game that answers and is in use,
+the second one that does not answer.
 
 ## Resolved paths
 
@@ -355,9 +347,4 @@ must be given the same override. The alternative is for detection to read the
 endpoint from the process it already found, which would remove a class of
 confusing failure at the cost of a fourth detection signal.
 
-**Whose number is the hand-over deadline?** State **E1** waits two minutes for
-a hand-over and then reports `adapter_busy`. The limit is not declarable, and a
-caller cannot say that it is willing to wait longer for a capture it knows is
-long. Whether that belongs in the declaration, in the adapter, or nowhere is
-open.
 

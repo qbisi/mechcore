@@ -44,12 +44,13 @@ once is cheaper than every branch racing it.
 Research runs one question at a time, on a branch of this repository. These
 rules hold whoever does it:
 
-- **One game, one recorder.** A recording claims the game when it starts:
-  `game launch`, `convert --backend game`, `verify --backend game`,
-  `game record` and `scripts/record-fights.py`. Start it directly,
-  without asking another session first: the claim is the lock, and
-  `docs/spec/mechcore/session.md` says how levels decide it. A claim answered
-  `adapter_busy` is retried later, never forced by raising its level. CI
+- **One game, shared by turns.** `convert --backend game`,
+  `verify --backend game`, `game record` and `scripts/record-fights.py` join
+  the running game, or start one, and each recording waits its turn in the
+  game's line beside every other session's. Start it directly, without asking
+  another session first: `docs/spec/adapter/adapter.md` says how turns and
+  levels are decided, and `mechcore game status` shows the line. A level is
+  never raised to go first; a batch that may give way asks for level 0. CI
   verifies every fight document under `tests/`, and `tests/README.md` says
   where one lives: one home by where it came from, cited by every other topic
   it bears on.
