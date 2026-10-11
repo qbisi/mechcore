@@ -39,6 +39,7 @@ const MODELS = [
   ['scorpion', false],
   ['typhoon', false],
   ['farseer', false],
+  ['centurion', false],
   ['energy_tower', true],
   ['research_center', true], ['anti_armor_turret', true], ['rapid_fire_turret', true],
   ['defensive_wall', true],

@@ -33,6 +33,7 @@
     scorpion: 'Scorpion',
     typhoon: 'Typhoon',
     farseer: 'Farseer',
+    centurion: 'Centurion',
     energy_tower: 'Energy Tower',
     research_center: 'Research Center', anti_armor_turret: 'Anti-Armor Cannon',
     rapid_fire_turret: 'Rapid-Fire Cannon', defensive_wall: 'Defensive Wall',
