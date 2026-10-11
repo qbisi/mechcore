@@ -56,6 +56,12 @@
   // it lasts, in seconds. A Rhino's FiringAL and FiringAR last 0.72 s and
   // land their blow 0.39 of the way through, as the game's poses show.
   const SWING = { rhino: [0.28, 0.72], crawler: [0.2, 0.5] };
+  // A spin that strikes all about its unit, as a Rhino's Whirlwind does: the
+  // skill slot that strikes it, how long before the blow it starts and how
+  // long it lasts, in seconds. A Rhino spins with TechAttack, 1.7 s; its
+  // Whirlwind enters its attack 13 ticks before the blow lands, 0.65 s, half
+  // way through its turn.
+  const SPINS = { rhino: { slot: 1, windup: 0.65, length: 1.7, clip: 'Rhinoceros_FiringA_03' } };
   // How the game animates a unit's attack, read off its recorded poses: the
   // clip a shot or blow plays in, its length in seconds as played, and for a
   // melee unit the side each clip strikes with. A recording that holds poses
@@ -121,7 +127,7 @@
       L: decode(u.life, n), S: u.shield ? decode(u.shield, n) : null,
       Mo: decode(u.motion, n), A: decode(u.aim, n),
       PC: u.pose ? decode(u.pose.clip, n) : null, PT: u.pose ? decode(u.pose.time, n, 0.001) : null,
-      fires: [], strikes: [], hits: [], death: null,
+      fires: [], strikes: [], spins: [], hits: [], death: null,
     };
     o.D = new Float64Array(n);
     for (let i = 1; i < n; i++) o.D[i] = o.D[i - 1] + Math.hypot(o.X[i] - o.X[i - 1], o.Z[i] - o.Z[i - 1]);
@@ -194,7 +200,15 @@
         const target = ref(c.at);
         if (target && target.hits) target.hits.push(c.t);
         const by = ref(c.by);
-        if (by && by.what === 'unit' && c.p === undefined && by.strikes[by.strikes.length - 1] !== c.t) {
+        const spin = by && by.what === 'unit' && c.p === undefined && SPINS[by.kind];
+        if (spin && spin.slot === c.slot) {
+          // a spin's blows land on one tick, and it whirls once about its unit
+          c.spin = true;
+          if (by.spins[by.spins.length - 1] !== c.t) {
+            by.spins.push(c.t);
+            c.whirl = true;
+          }
+        } else if (by && by.what === 'unit' && c.p === undefined && by.strikes[by.strikes.length - 1] !== c.t) {
           by.strikes.push(c.t);
         }
         // a blow that splashes rings its splash once, however many it hits
@@ -390,6 +404,17 @@
         if (s >= 0 && s <= 1) { pose.strike = s; pose.strikeIndex = j; break; }
       }
     }
+    if (o.spins && o.spins.length) {
+      const { windup, length } = SPINS[o.kind];
+      const k = before(o.spins, tau + windup * TPS + 0.5);
+      for (const j of [k, k - 1]) {
+        if (j < 0) continue;
+        const s = ((tau - (o.spins[j] - 0.5)) / TPS + windup) / length;
+        // a strike after its blow cuts the spin's settling short
+        const after = pose.strike >= 0 && o.strikes[pose.strikeIndex] > o.spins[j];
+        if (s >= 0 && s <= 1 && !after) { pose.spin = s; break; }
+      }
+    }
     const hit = before(o.hits, tau);
     pose.hurt = hit >= 0 ? Math.max(0, 1 - (tau - o.hits[hit]) / (0.15 * TPS)) : 0;
   }
@@ -406,6 +431,7 @@
       p.strike = side === undefined ? -1 : phase;
       p.strikeIndex = side === undefined ? 0 : side;
     }
+    if (SPINS[kind]) p.spin = clip === SPINS[kind].clip ? phase : -1;
     if (action.fire) p.fireAge = clip === action.fire ? phase * action.fireLength : Infinity;
     if (action.charge) {
       p.chargeIn = clip === action.charge ? (1 - phase) * action.chargeLength : Infinity;
@@ -639,6 +665,7 @@
     p.chargeIn = Infinity;
     p.strike = -1;
     p.strikeIndex = 0;
+    p.spin = -1;
     p.attacking = false;
     p.life = 1;
     p.hurt = 0;
@@ -1243,6 +1270,12 @@
             const by = ref(c.by);
             const at = placeOf(c.at, c.t);
             const from = placeOf(c.by, c.t);
+            if (c.spin) {
+              // a spin whirls about its unit, and rings what it reaches there
+              if (c.whirl && from) whirlwind(from.x, from.z, c.ring || 0, age, c.seed);
+              if (c.ring && from) splashRing(from.x, from.z, c.ring, age, '#ffc46b');
+              break;
+            }
             const offset = from && muzzle(by, c.slot, c.t);
             if (offset) { from.x += offset.x; from.z += offset.z; }
             if (by && at && from && BEAMS[by.kind]) beam(from, at, age, BEAMS[by.kind], c.seed);
@@ -1365,6 +1398,77 @@
     ctx.stroke();
     ctx.restore();
   }
+  // A Rhino's Whirlwind about it, out to `radius`, after
+  // efx_2018_mech_xiniu_rotate: a warm swirl (#ffe1b0 at 0.39) turning for
+  // 0.75 s, white blade arcs cutting round it clockwise for 0.58 s, orange
+  // sparks (#ffa13a) flung out for a second.
+  function whirlwind(x, z, radius, age, seed) {
+    if (age < 0 || age > 1) return;
+    const r = Math.max(radius, 8);
+    const rnd = random(seed);
+    place(x, z);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    if (age < 0.75) {
+      const k = age / 0.75;
+      const fade = 1 - Sprites.ease(k);
+      const g = ctx.createRadialGradient(0, 0, r * 0.15, 0, 0, r * (0.6 + 0.4 * Sprites.ease(Math.min(1, k * 4))));
+      g.addColorStop(0, 'rgba(255,225,176,0.39)');
+      g.addColorStop(0.7, 'rgba(255,225,176,0.18)');
+      g.addColorStop(1, 'rgba(255,225,176,0)');
+      ctx.globalAlpha = fade;
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fill();
+      // the swirl's arms, curling out as it turns
+      ctx.strokeStyle = '#ffe1b0';
+      ctx.lineCap = 'round';
+      const turn = age * 14;
+      for (let i = 0; i < 6; i++) {
+        const a0 = turn + (i * Math.PI) / 3;
+        ctx.globalAlpha = 0.35 * fade;
+        ctx.lineWidth = r * 0.05;
+        ctx.beginPath();
+        for (let j = 0; j <= 12; j++) {
+          const f = j / 12;
+          const a = a0 + f * 1.6;
+          const d = r * (0.2 + 0.75 * f);
+          if (j === 0) ctx.moveTo(Math.sin(a) * d, -Math.cos(a) * d);
+          else ctx.lineTo(Math.sin(a) * d, -Math.cos(a) * d);
+        }
+        ctx.stroke();
+      }
+    }
+    if (age < 0.58) {
+      // the blades: white arcs at their own radii, sweeping on clockwise
+      const k = age / 0.58;
+      const fade = 1 - k;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineCap = 'round';
+      for (let i = 0; i < 8; i++) {
+        const d = r * (0.45 + 0.5 * rnd());
+        const a = rnd() * Math.PI * 2 + age * 16;
+        const span = 0.6 + 0.6 * rnd();
+        ctx.globalAlpha = (i % 4 === 1 ? 0.5 : 1) * fade;
+        ctx.lineWidth = Math.max(0.3, r * 0.035 * fade);
+        ctx.beginPath();
+        ctx.arc(0, 0, d, a - Math.PI / 2 - span, a - Math.PI / 2);
+        ctx.stroke();
+      }
+    }
+    // sparks thrown out from the blades' edge
+    ctx.fillStyle = '#ffa13a';
+    for (let i = 0; i < 24; i++) {
+      const a = rnd() * Math.PI * 2;
+      const d = r * (0.4 + 0.5 * rnd()) + age * (5 + 10 * rnd());
+      ctx.globalAlpha = Math.max(0, 1 - age);
+      const sz = 0.5 * (1 - age * 0.5);
+      ctx.fillRect(Math.sin(a) * d - sz / 2, -Math.cos(a) * d - sz / 2, sz, sz);
+    }
+    ctx.restore();
+  }
+
   // A splash takes its weapon's colour: its shot's, its beam's, else its
   // side's.
   function splashColour(by) {

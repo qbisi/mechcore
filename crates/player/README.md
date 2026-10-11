@@ -47,6 +47,9 @@ showed it. A recording with no poses, as every
 fight the simulator makes, is animated from its units' motion and its events,
 with the timings `scripts/player/pose-timing.py` reads off a recording that
 has them: `SWING` and `ACTIONS` in `web/player.js`.
+A Rhino's Whirlwind spins it once round with both chainsaws out, its blow
+landing half way through the turn, and whirls about it out to the skill's
+splash, as the game's TechAttack clip and its whirlwind effect do: `SPINS`.
 
 A unit type with no sprite is still drawn, as a disc of its collision size
 under its name. The ground is simplified, under each side's three deployment
