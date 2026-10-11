@@ -43,6 +43,7 @@ const Sprites = (() => {
     phantom_ray: '#5a91a7',
     wraith: '#caff98',
     scorpion: '#c8ffef',
+    typhoon: '#00b9fa',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -61,6 +62,7 @@ const Sprites = (() => {
     phantom_ray: [15.4, 17.4],
     wraith: [26.8, 26.8],
     scorpion: [27, 24.2],
+    typhoon: [21.8, 21.4],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -1712,6 +1714,82 @@ const Sprites = (() => {
     c.restore();
   }
 
+  // Typhoon, as it fires: four legs out to its corners on heavy feet, and
+  // on them a turret that turns to its target: a white body with a dome at
+  // its front, a gatling each side of the dome spinning as it fires, a
+  // white shield hung outboard each side and a missile slung on its right.
+  function typhoon(c, p) {
+    const T = p.team;
+    const stride = Math.min(1, p.speed / 4) * 0.5;
+    const ph = p.walk * Math.PI * 2 / 8;
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      const off = Math.sin(ph + (sx * sy > 0 ? 0 : Math.PI)) * stride;
+      c.save();
+      c.translate(sx * 7.6, sy * 7.6 + off);
+      c.rotate(Math.atan2(sx, -sy));
+      rr(c, -1.1, 1.0, 2.2, 6.0, 0.5);
+      paint(c, M.dark);
+      rr(c, -2.0, -2.6, 4.0, 4.6, 1.0);
+      paint(c, M.white);
+      rr(c, -2.0, -2.6, 0.6, 4.6, 0.3);
+      paint(c, T.accent, null);
+      rr(c, -0.75, -0.6, 1.5, 1.5, 0.2);
+      paint(c, T.accent);
+      rr(c, -1.3, -2.4, 2.6, 1.3, 0.3);
+      paint(c, M.darker, null);
+      c.restore();
+    }
+    c.save();
+    c.rotate(p.turret);
+    const spin = p.fireAge < 0.6 ? p.t * 40 : 0;
+    // the gatlings
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 4.3 - 0.9, -3.6, 1.8, 2.2, 0.2);
+      paint(c, M.darker);
+      rr(c, sx * 4.3 - 0.75, -8.6, 1.5, 5.2, 0.3);
+      paint(c, M.dark);
+      for (let i = 0; i < 3; i++) {
+        const x = sx * 4.3 + Math.sin(spin + (i * 2 * Math.PI) / 3) * 0.45;
+        line(c, x, -8.4, x, -3.6, M.steel, 0.16);
+      }
+      rr(c, sx * 4.3 - 0.75, -9.6, 1.5, 1.2, 0.2);
+      paint(c, M.white);
+      flash(c, sx * 4.3, -10.0, 1.6, '#ffcf70', p.fireAge, 0.1, p.fireIndex + sx * Math.floor(p.t * 12));
+    }
+    // the shields
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 6.6 - 1.7, -1.1, 3.4, 4.3, 0.5);
+      paint(c, M.white);
+      if (sx < 0) {
+        rr(c, -8.3, -1.0, 0.6, 4.1, 0.2);
+        paint(c, T.accent);
+      }
+      line(c, sx * 6.6, -0.6, sx * 6.6, 2.8, M.pale, 0.2);
+    }
+    poly(c, [6.6, -2.8, 7.0, -2.0, 7.05, 3.0, 6.25, 3.0, 6.3, -2.0]);
+    paint(c, M.white);
+    // the body
+    rr(c, -5.2, -2.0, 10.4, 5.6, 0.8);
+    paint(c, M.white);
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 2.4 - 0.6, -3.6, 1.2, 2.0, 0.2);
+      paint(c, T.accent);
+      poly(c, [sx * 0.9, 0.0, sx * 1.6, 0.0, sx * 1.6, 2.2, sx * 1.1, 2.4]);
+      paint(c, '#f2d544', null);
+      line(c, sx * 1.4, 2.8, sx * 1.4, 5.6, M.mid, 0.12);
+    }
+    rr(c, -1.0, -0.4, 2.0, 3.6, 0.2);
+    paint(c, M.dark, null);
+    circle(c, 0, -3.1, 1.25);
+    paint(c, '#b98a62');
+    circle(c, 0, -3.1, 0.6);
+    paint(c, M.white, null);
+    glow(c, 0, -3.1, 0.6, GLOW.typhoon, 0.4);
+    rr(c, -2.6, 3.2, 5.2, 0.4, 0.2);
+    paint(c, M.pale, null);
+    c.restore();
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -1733,7 +1811,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
