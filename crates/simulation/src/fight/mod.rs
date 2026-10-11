@@ -1113,20 +1113,11 @@ impl Simulation {
         self.settle_intervals(false, step);
         let publish_late_building_events = self.ending.late_building_events_pending;
         self.ending.late_building_events_pending = false;
-        let drain_tick = self.ending.terminal_drain_pending;
         if self.ending.terminal_drain_pending {
             self.ending.terminal_drain_pending = false;
         }
         self.step_now = step;
         let fight_was_finished = self.naturally_finished();
-        if drain_tick && fight_was_finished {
-            // The fight ends on this tick, and every mech has left it
-            // (`MotionController.ExitFight`) before any updates: a Sandworm
-            // still underground is cleared and stands where it was.
-            for actor in self.actors.values_mut() {
-                actor.exit_fight_move_ability();
-            }
-        }
         let winner_was_decided = self.winner().is_some();
         self.ending.stop_step = winner_was_decided.then_some(step);
         self.refresh_target_query_snapshot();
@@ -1443,8 +1434,9 @@ impl Simulation {
                         .as_ref()
                         .is_some_and(|underground| underground.below);
                 if ready_to_finish {
-                    actor.exit_fight_move_ability();
-                    actor.stop_in_place(entered_idle);
+                    // `FightingState.Update` leaves the fight after the
+                    // modules updated, including this tick's motion.
+                    actor.exit_fight();
                     // Leaving the fight drops the unit's own lock too.
                     if let Some(group) = &mut actor.skills.main.group {
                         group.mech_lock = None;
@@ -1494,10 +1486,6 @@ impl Simulation {
                         // ends.
                         skill.clear_slots_cooling_before((!ready_to_finish).then_some(step));
                     }
-                }
-                if ready_to_finish {
-                    actor.motion.current_velocity_x_q32 = 0;
-                    actor.motion.current_velocity_z_q32 = 0;
                 }
             }
             for construction in self.constructions.values_mut() {

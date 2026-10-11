@@ -371,6 +371,30 @@ impl Actor {
         self.motion.published_speed_q32 = 0;
     }
 
+    /// The motion and visibility of `FightMech.ExitFight`, after the tick's
+    /// motion update. `MotionController.ExitFight` deactivates the RVO agent
+    /// before entering idle, so `MotionIdleState.Enter`
+    /// publishes no stop. Leave its buffered movement alone, exit the old
+    /// state, and clear a move ability only when the motion changes to idle.
+    pub(in crate::fight) fn exit_fight(&mut self) {
+        // `RVOControllerFixed.GetVelocity` reads zero after `Deactive`
+        // removes the agent; its final movement has already been applied.
+        self.motion.current_velocity_x_q32 = 0;
+        self.motion.current_velocity_z_q32 = 0;
+        if self.motion.state != MotionState::Idle {
+            if self.motion.state == MotionState::Transitioning {
+                self.end_move_ability_transition();
+            }
+            self.motion.state = MotionState::Idle;
+            self.motion.transition_to = None;
+            self.motion.attack_hold_fire = false;
+            self.clear_move_ability();
+        }
+        // `FightMech.ExitFight` resets `ActorVisibility` after the motion
+        // exits, including an idle unit whose move ability was not cleared.
+        self.visibility = Visibility::Normal;
+    }
+
     /// The motion when the skill lets its target go. `AutoMoveBehaviour` is
     /// no longer active and the motion stops idle; a command stays active,
     /// and `MotionAttackState` changes to `MotionMoveState` instead. A unit
