@@ -994,6 +994,11 @@ fn segments_of(r#match: &Match) -> Vec<Segment<'_>> {
             blue: &turn.state.blue,
             red: &turn.state.red,
         }));
+        // A destroyed reactor core ends the match on the state that states
+        // it, so the round it opens has no decisions to write.
+        if turn.state.blue.reactor_core <= 0 || turn.state.red.reactor_core <= 0 {
+            break;
+        }
         segments.push(Segment::Action(ActionSegment {
             round: turn.round,
             blue: Cow::Borrowed(&turn.actions.blue),
@@ -1490,6 +1495,51 @@ mod tests {
                 .unwrap_err()
                 .contains("follows a destroyed reactor core")
         );
+    }
+
+    /// A match a fight has just ended is written as one a reader takes: its
+    /// stream stops on the state that destroyed a reactor core, with no
+    /// decisions after it.
+    #[test]
+    fn a_match_ended_by_a_fight_is_written_without_a_round_after_it() {
+        let side = || super::MatchSide {
+            opening: super::Opening {
+                choose: None,
+                offers: Vec::new(),
+            },
+            constructions: Vec::new(),
+            tech_loadout: std::collections::BTreeMap::new(),
+            seed: None,
+        };
+        let state = |round, blue| super::Turn {
+            round,
+            state: super::State {
+                reinforce_offers: None,
+                blue: super::SideState {
+                    reactor_core: blue,
+                    ..Default::default()
+                },
+                red: super::SideState {
+                    reactor_core: 4800,
+                    ..Default::default()
+                },
+            },
+            actions: super::TurnActions::default(),
+        };
+        let ended = super::Match {
+            game_build: crate::game_build().to_owned(),
+            map_id: 1021,
+            seed: 1,
+            deploy_time: None,
+            blue: side(),
+            red: side(),
+            turns: vec![state(1, 4800), state(2, 0)],
+        };
+        let written = super::canonical_yaml(&ended).unwrap();
+        let segments = read(&written).unwrap();
+        assert_eq!(segments.rounds.len(), 2);
+        assert!(segments.rounds[0].actions.is_some());
+        assert!(segments.rounds[1].actions.is_none(), "{written}");
     }
 
     /// A state segment is the position a round opens with, so no decision of
