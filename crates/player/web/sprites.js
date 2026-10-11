@@ -42,6 +42,7 @@ const Sprites = (() => {
     tarantula: '#9eff22',
     phantom_ray: '#5a91a7',
     wraith: '#caff98',
+    scorpion: '#c8ffef',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -59,6 +60,7 @@ const Sprites = (() => {
     tarantula: [23, 28.6],
     phantom_ray: [15.4, 17.4],
     wraith: [26.8, 26.8],
+    scorpion: [27, 24.2],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -1648,6 +1650,68 @@ const Sprites = (() => {
     flash(c, 0, 0, 3.0, GLOW.wraith, p.fireAge, 0.2, p.fireIndex);
   }
 
+  // Scorpion, as it fires: a six-legged walker, each leg out to a white
+  // foot armoured in the team's colour, its white body carrying a long
+  // rail launcher in the team's colour that turns to its target and kicks
+  // back as it fires.
+  const SCORPION_LEGS = [[-3.0, -3.5, -10.2, -10.0], [3.0, -3.5, 9.6, -9.0], [-4.5, 0.8, -12.0, 0.8], [4.5, 0.8, 12.6, 0.9], [-3.0, 5.0, -9.6, 9.6], [3.0, 5.0, 10.0, 8.8]];
+  function scorpion(c, p) {
+    const T = p.team;
+    const stride = Math.min(1, p.speed / 4) * 0.6;
+    const ph = p.walk * Math.PI * 2 / 8;
+    SCORPION_LEGS.forEach(([hx, hy, fx, fy], i) => {
+      const off = Math.sin(ph + (i % 2 ? Math.PI : 0)) * stride;
+      const [ex, ey] = [fx, fy + off];
+      c.save();
+      c.translate(ex, ey);
+      c.rotate(Math.atan2(ex - hx, -(ey - hy)));
+      const len = Math.hypot(ex - hx, ey - hy);
+      rr(c, -1.0, 0.5, 2.0, len - 1.0, 0.4);
+      paint(c, M.dark);
+      rr(c, -1.6, -2.3, 3.2, 4.2, 0.8);
+      paint(c, M.white);
+      rr(c, -1.6, -2.3, 0.7, 4.2, 0.3);
+      paint(c, T.accent, null);
+      rr(c, -0.6, -1.6, 1.2, 1.5, 0.15);
+      paint(c, M.darker, null);
+      line(c, -0.2, -1.45, -0.2, -0.3, '#9fd8e6', 0.15);
+      line(c, 0.2, -1.45, 0.2, -0.3, '#9fd8e6', 0.15);
+      c.restore();
+    });
+    // the body
+    poly(c, [-2.9, -6.8, 2.9, -6.8, 5.6, -1.7, 5.6, 1.6, 3.2, 4.4, 3.0, 9.0, -3.0, 9.0, -3.2, 4.4, -5.6, 1.6, -5.6, -1.7]);
+    paint(c, M.white);
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 3.2, -5.6, sx * 5.0, -1.8, sx * 3.6, -0.4]);
+      paint(c, M.darker, null);
+    }
+    circle(c, -3.8, -0.6, 0.6);
+    paint(c, M.pale);
+    // the launcher, turning about the body's middle
+    c.save();
+    c.rotate(p.turret);
+    c.translate(0, recoil(p.fireAge, 0.8) * 1.2);
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 1.0, 0.5, sx * 2.6, 1.0, sx * 3.6, 7.8, sx * 2.6, 8.6, sx * 1.0, 8.0]);
+      paint(c, T.accent);
+      line(c, sx * 2.0, -1.8, sx * 2.0, 0.6, '#9fd8e6', 0.3);
+      for (const y of [8.6, 9.6]) {
+        circle(c, sx * 1.4, y, 0.55);
+        paint(c, T.accent);
+      }
+    }
+    rr(c, -0.95, -6.0, 1.9, 17.0, 0.9);
+    paint(c, M.darker);
+    line(c, 0, -5.4, 0, 10.4, M.steel, 0.25);
+    rr(c, -1.25, -6.3, 2.5, 5.3, 0.4);
+    paint(c, T.accent);
+    rr(c, -0.7, -7.0, 1.4, 0.9, 0.3);
+    paint(c, M.dark);
+    glow(c, 0, -1.6, 0.8, GLOW.scorpion, 0.5);
+    flash(c, 0, -7.4, 2.6, '#ffb347', p.fireAge, 0.2, p.fireIndex);
+    c.restore();
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -1669,7 +1733,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
