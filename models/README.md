@@ -46,6 +46,7 @@ the game is in them.
 | `wraith` | Wraith | ![](wraith.svg) |
 | `scorpion` | Scorpion | ![](scorpion.svg) |
 | `typhoon` | Typhoon | ![](typhoon.svg) |
+| `farseer` | Farseer | ![](farseer.svg) |
 | `energy_tower` | Energy Tower | ![](energy_tower.svg) |
 | `research_center` | Research Center | ![](research_center.svg) |
 | `anti_armor_turret` | Anti-Armor Cannon | ![](anti_armor_turret.svg) |
