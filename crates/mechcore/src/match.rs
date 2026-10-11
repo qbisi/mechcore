@@ -972,6 +972,23 @@ impl Game {
                 self.round()
             )));
         }
+        // A round that deals an offer is written with one answer from each
+        // side, unless the side gave up.
+        let decisions = &self.turn.side(side).decisions;
+        let offered = self
+            .r#match
+            .turns
+            .last()
+            .is_some_and(|turn| turn.state.reinforce_offers.is_some());
+        if offered
+            && !decisions
+                .iter()
+                .any(|taken| matches!(taken, Action::ChooseReinforceItem { .. } | Action::Concede))
+        {
+            return Err(Failure::refused(
+                "this round deals a reinforcement offer, and a side answers it before it commits",
+            ));
+        }
         // A commit that cannot be made leaves the draft where it was, so
         // nothing is taken out of the round until it is going to be written.
         if self.round() == 0 {
