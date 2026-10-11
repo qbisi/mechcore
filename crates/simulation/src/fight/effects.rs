@@ -87,6 +87,7 @@ impl Simulation {
                 EffectProvider::SkillSearchTarget => self.switch_life_priority(unit, true),
                 EffectProvider::MoveAbilityDynamic => self.activate_cloak(unit),
                 EffectProvider::Buff => self.activate_buff_cycles(unit),
+                EffectProvider::SupportUnit => self.activate_production(unit),
                 // The rest are read from the unit where the fight acts, which
                 // passes over a unit still travelling or rising.
                 EffectProvider::LifeSteal
@@ -97,7 +98,6 @@ impl Simulation {
                 | EffectProvider::SearchTargetSpecific
                 | EffectProvider::AirAttack
                 | EffectProvider::SecondaryDamageIntensify
-                | EffectProvider::SupportUnit
                 | EffectProvider::DeadEffect
                 | EffectProvider::MoveAbilitySummon
                 | EffectProvider::ExtraSkill
