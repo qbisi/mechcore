@@ -1,0 +1,30 @@
+# A Hacker with Barrier travels in on the left flank, its shield inactive
+# until it arrives, and blue's Shield contraption stands to its right. The
+# recording numbers the contraption's shield 1 and the travelling unit's 2,
+# though the travelling one stands further left: a shield whose owner
+# travels comes after the shields its side stands, which keep their order by
+# place. A fight drawn by hand, recorded with the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1
+round: 3
+blue:
+  techs:
+    hacker: [barrier]
+  units:
+  - {name: hacker, index: 0, position: {x: -315, y: 85}, travelling: true}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -110, y: -135}}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 225
+ticks: 797
+hash: 23:06578c181c52044c110d35162a81ca9bc77721132fddb89c0a9a5f38556c8377
+asserts:
+- sql: "SELECT shield_id, owner__id, active FROM shields WHERE tick = 1 ORDER BY shield_id"
+  rows: [[1, null, 1], [2, 1, 0]]
