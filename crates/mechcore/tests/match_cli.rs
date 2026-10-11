@@ -567,3 +567,39 @@ fn a_round_takes_one_reinforcement_answer() {
     let refused = run(&["match", "act", &path, "--side", "blue", &again]).refused();
     assert!(refused.contains("one answer"), "{refused}");
 }
+
+#[test]
+fn a_technology_outside_the_loadout_is_refused() {
+    let directory = tempfile::tempdir().unwrap();
+    let loadout = directory.path().join("loadout.yaml");
+    fs::write(&loadout, "arclight: [charged_shot]\n").unwrap();
+    let path = directory.path().join("m.yaml").display().to_string();
+    let loadout = loadout.display().to_string();
+    run(&[
+        "match",
+        "new",
+        &path,
+        "--seed",
+        "12345",
+        "--map",
+        "1011",
+        "--loadout",
+        &loadout,
+    ])
+    .ok();
+    run(&["match", "new", &path]).ok();
+    open_the_match(&path);
+
+    let research = "{type: upgrade_technology, unit: arclight, tech: range_enhancement}";
+    let refused = run(&[
+        "match",
+        "act",
+        &path,
+        "--side",
+        "blue",
+        "--dry-run",
+        research,
+    ])
+    .refused();
+    assert!(refused.contains("loadout"), "{refused}");
+}

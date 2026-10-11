@@ -216,7 +216,8 @@ A type already in `unlocked_units` is refused.
 
 Researches `tech`, which belongs to `unit`, and adds it to that unit's row of
 `techs`. A technology's name is only unique within its unit, and `unit` is what
-resolves it.
+resolves it. A technology outside `unit`'s row of the side's `tech_loadout` is
+refused.
 
 The price rises with how many technologies that unit already holds: each one
 already active adds a fixed step to the next one's own price. The count is per
