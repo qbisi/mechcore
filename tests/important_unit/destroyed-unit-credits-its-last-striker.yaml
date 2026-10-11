@@ -1,0 +1,50 @@
+# A unit its side's last important unit takes down with it names the last
+# unit that struck it as its killer. Red's Sledgehammers wear Dominion Core;
+# blue's Phoenix strikes red's Rhino on tick 352, and when the last
+# Sledgehammer dies on tick 358 the Rhino is destroyed (`DestroySelf`) and
+# its unit_died names the Phoenix, unit 1, though no damage of that tick
+# reached it. A unit nothing struck names none, as core-crawlers.yaml's
+# Fortress does. A fight drawn by the generator, recorded with the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 176233926
+round: 4
+blue:
+  officers: [advanced_missile_device, improved_phoenix]
+  techs:
+    phoenix: [energy_shield]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: phoenix, index: 0, position: {x: -20, y: -280}, level: 2, exp: 1464/2929, rotated: true, equipment: [deployment_module], source: legacy}
+  - {name: sabertooth, index: 1, position: {x: -235, y: -85}, level: 9}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 295, y: -35}}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: 30, y: -130}]}
+red:
+  officers: [advanced_offensive_tactics, rhino_specialist, extended_range_sledgehammer]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: sledgehammer, index: 0, position: {x: -245, y: -210}, level: 4, exp: 5837/5837, equipment: [dominion_core], source: legacy}
+  - {name: rhino, index: 1, position: {x: 155, y: -195}, level: 2, source: delivered}
+  - {name: melting_point, index: 2, position: {x: -50, y: -130}, level: 2}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -30, y: -150}}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: 10, y: 40}, {x: -300, y: -95}]}
+outcome:
+  blue.units[0].exp: 2864
+  blue.units[1].exp: 2800
+  blue.contraptions[0].retained: false
+  red.core_damage: 300
+  red.units[2].exp: 1600
+asserts:
+- sql: "SELECT object__id, source__kind, source__id FROM events WHERE type = 'unit_died' AND object__id = 4"
+  rows: [[4, unit, 1]]
+ticks: 358
+hash: 23:0c1ed1e27b1fedf566b8a86b1bed558909a1b10653f117d07bc8739b4227fa64

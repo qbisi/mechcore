@@ -65,9 +65,11 @@ impl Simulation {
                     .get_mut(&unit_id)
                     .expect("actor identity is stable");
                 // `DestroySelf` is a suicide's `ReduceLife` of its whole life:
-                // no shield takes it, and no one dealt it.
+                // no shield takes it, and its death names the last unit that
+                // struck it, as any death does: a Sledgehammer a Phoenix
+                // struck six ticks before reads it as its killer, a Fang
+                // nothing ever struck reads none.
                 unit.life = 0;
-                unit.last_damage_source = None;
                 let position = QVec3 {
                     x: unit.x_q32,
                     y: space_to_q32(unit_height(unit.domain)),
