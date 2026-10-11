@@ -867,6 +867,10 @@ impl Game {
     /// The opening is dealt to the side privately, so a side may take one of
     /// its own four and no other; nothing else may be taken in round zero, and
     /// an opening may not be taken in any other round.
+    ///
+    /// A side researches out of the loadout it brought, which the match states
+    /// and the position does not, and it takes one reinforcement answer a
+    /// round, which only the round's decisions so far can say.
     fn allowed(&self, side: Side, decision: &Action) -> Result<(), Failure> {
         let opening = self.round() == 0;
         match decision {
@@ -901,6 +905,17 @@ impl Game {
                 "round zero holds one decision, and it is the opening",
             )),
             Action::ChooseReinforceItem { index: offer, id } => {
+                if self
+                    .turn
+                    .side(side)
+                    .decisions
+                    .iter()
+                    .any(|taken| matches!(taken, Action::ChooseReinforceItem { .. }))
+                {
+                    return Err(Failure::refused(
+                        "this side has answered this round's reinforcement offer, and a round takes one answer",
+                    ));
+                }
                 let Some(offers) = self
                     .r#match
                     .turns
@@ -923,6 +938,20 @@ impl Game {
                     "offer {offer} is not what this round offers there: it deals {} and declines at {}",
                     offers.dealt.len(),
                     offers.decline_index()
+                )))
+            }
+            Action::UpgradeTechnology { unit, tech } => {
+                let brought = self
+                    .match_side(side)
+                    .tech_loadout
+                    .get(unit)
+                    .is_some_and(|techs| techs.contains(tech));
+                if brought {
+                    return Ok(());
+                }
+                Err(Failure::refused(format!(
+                    "technology {tech} is not in the loadout {} brought for unit {unit}",
+                    side.name()
                 )))
             }
             _ => Ok(()),

@@ -550,3 +550,56 @@ fn a_request_stream_plays_one_match() {
     assert_eq!(answer.code, 2);
     assert_eq!(answer.error["kind"], "usage");
 }
+
+#[test]
+fn a_round_takes_one_reinforcement_answer() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    for side in ["blue", "red"] {
+        run(&["match", "commit", &path, "--side", side]).ok();
+    }
+
+    decline(&path, "blue");
+    let view = run(&["match", "show", &path, "--side", "blue"]).ok();
+    let last = view["reinforce_offers"].as_array().unwrap().len() - 1;
+    let again = format!("{{type: choose_reinforce_item, index: {last}, name: decline_offer}}");
+    let refused = run(&["match", "act", &path, "--side", "blue", &again]).refused();
+    assert!(refused.contains("one answer"), "{refused}");
+}
+
+#[test]
+fn a_technology_outside_the_loadout_is_refused() {
+    let directory = tempfile::tempdir().unwrap();
+    let loadout = directory.path().join("loadout.yaml");
+    fs::write(&loadout, "arclight: [charged_shot]\n").unwrap();
+    let path = directory.path().join("m.yaml").display().to_string();
+    let loadout = loadout.display().to_string();
+    run(&[
+        "match",
+        "new",
+        &path,
+        "--seed",
+        "12345",
+        "--map",
+        "1011",
+        "--loadout",
+        &loadout,
+    ])
+    .ok();
+    run(&["match", "new", &path]).ok();
+    open_the_match(&path);
+
+    let research = "{type: upgrade_technology, unit: arclight, tech: range_enhancement}";
+    let refused = run(&[
+        "match",
+        "act",
+        &path,
+        "--side",
+        "blue",
+        "--dry-run",
+        research,
+    ])
+    .refused();
+    assert!(refused.contains("loadout"), "{refused}");
+}
