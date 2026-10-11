@@ -1,0 +1,29 @@
+# A control beam's warm-up is its damage times the multiplier in FPoint,
+# whose raw for a thousandth falls short of it. A level 5 Hacker with
+# Advanced Power System deals 3000: its warm-up hits turn red's Rhino by 2
+# each, not 3, so its progress reads 2, 4, 6 and then 3006 at the first full
+# hit, and the recording reads its beam's damage as 2
+# (`ControlBeamDamageCalculator.GetAttackDamage`).
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  officers: [advanced_power_system]
+  units:
+  - {name: hacker, index: 0, position: {x: 5, y: -205}, level: 5}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 250
+asserts:
+- sql: "SELECT enabled__attack_damage FROM units__skills WHERE unit_id = 1 AND skill_slot = 0 AND tick = 1"
+  rows: [[2]]
+- sql: "SELECT DISTINCT control__progress FROM units WHERE unit_id = 2 AND has_control AND control__progress < 4000 ORDER BY 1"
+  rows: [[0], [2], [4], [6], [3006]]
+ticks: 172
+hash: 23:1d08a5688c131f79992626db532a0a7c0fa654dfd4219a2ebbf166a7d90dcee2
