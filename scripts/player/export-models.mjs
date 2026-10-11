@@ -35,6 +35,7 @@ const MODELS = [
   ['sabertooth', false],
   ['tarantula', false],
   ['phantom_ray', false],
+  ['wraith', false],
   ['energy_tower', true],
   ['research_center', true], ['anti_armor_turret', true], ['rapid_fire_turret', true],
   ['defensive_wall', true],

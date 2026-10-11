@@ -41,6 +41,7 @@ const Sprites = (() => {
     sabertooth: '#ffff7b',
     tarantula: '#9eff22',
     phantom_ray: '#5a91a7',
+    wraith: '#caff98',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -57,6 +58,7 @@ const Sprites = (() => {
     sabertooth: [20.4, 26.4],
     tarantula: [23, 28.6],
     phantom_ray: [15.4, 17.4],
+    wraith: [26.8, 26.8],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -1575,6 +1577,77 @@ const Sprites = (() => {
     flash(c, 0, -5.6, 1.4, '#ffcf70', p.fireAge, 0.15, p.fireIndex);
   }
 
+  // Wraith: a flying ring. Its outer ring, four heavy white plates on a dark
+  // band with red blades along its rim, turns about a disc crossed by four
+  // beams, ringed with yellow armour and holding a toothed disc in the
+  // team's colour round its glowing hub.
+  function arcBand(c, r, width, a0, a1, colour) {
+    c.beginPath();
+    c.arc(0, 0, r, a0, a1);
+    c.lineWidth = width;
+    c.strokeStyle = colour;
+    c.stroke();
+  }
+  function wraith(c, p) {
+    const T = p.team;
+    const pulse = 0.7 + 0.3 * Math.sin(p.t * 4);
+    // the disc
+    circle(c, 0, 0, 9.4);
+    paint(c, M.dark);
+    arcBand(c, 8.6, 0.25, 0, Math.PI * 2, M.white);
+    for (let k = 0; k < 4; k++) {
+      c.save();
+      c.rotate((k * Math.PI) / 2);
+      rr(c, -0.5, -8.8, 1.0, 6.8, 0.1);
+      paint(c, M.darker);
+      rr(c, -1.0, -8.8, 2.0, 0.6, 0.1);
+      paint(c, M.white);
+      // the yellow armour along each quarter
+      for (const a of [-0.17, 0, 0.17, 0.6, 0.8]) {
+        const x = Math.sin(a) * 6.5, y = -Math.cos(a) * 6.5;
+        poly(c, [x - 0.65, y, x - 0.33, y - 0.56, x + 0.33, y - 0.56, x + 0.65, y, x + 0.33, y + 0.56, x - 0.33, y + 0.56]);
+        paint(c, '#e8b53c');
+      }
+      c.restore();
+    }
+    // the toothed disc and the hub
+    circle(c, 0, 0, 4.0);
+    paint(c, T.accent);
+    for (let i = 0; i < 16; i++) {
+      const a = (i * Math.PI) / 8;
+      poly(c, [Math.cos(a - 0.1) * 2.7, Math.sin(a - 0.1) * 2.7, Math.cos(a) * 3.5, Math.sin(a) * 3.5, Math.cos(a + 0.1) * 2.7, Math.sin(a + 0.1) * 2.7]);
+      paint(c, T.deep, null);
+    }
+    circle(c, 0, 0, 2.1);
+    paint(c, M.darker);
+    glow(c, 0, 0, 2.2, GLOW.wraith, 0.5 * pulse);
+    circle(c, 0, 0, 1.0);
+    paint(c, M.steel);
+    // the outer ring, turning
+    c.save();
+    c.rotate(p.t * 0.5);
+    arcBand(c, 10.2, 1.6, 0, Math.PI * 2, M.darker);
+    for (let k = 0; k < 4; k++) {
+      const a = (k * Math.PI) / 2 - 1.75;
+      arcBand(c, 11.0, 2.8, a, a + 0.95, M.white);
+      arcBand(c, 11.0, 0.35, a + 0.15, a + 0.8, M.pale);
+      arcBand(c, 12.9, 0.45, a - 0.2, a + 0.75, T.accent);
+      for (let i = 0; i < 5; i++) {
+        const b = a - 0.15 + i * 0.2;
+        poly(c, [Math.cos(b) * 12.6, Math.sin(b) * 12.6, Math.cos(b + 0.08) * 13.4, Math.sin(b + 0.08) * 13.4, Math.cos(b + 0.12) * 12.6, Math.sin(b + 0.12) * 12.6]);
+        paint(c, T.accent, null);
+      }
+      const m = a + 1.25;
+      c.save();
+      c.rotate(m + Math.PI / 2);
+      rr(c, -0.7, -10.6, 1.4, 1.0, 0.15);
+      paint(c, M.pale);
+      c.restore();
+    }
+    c.restore();
+    flash(c, 0, 0, 3.0, GLOW.wraith, p.fireAge, 0.2, p.fireIndex);
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -1596,7 +1669,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
