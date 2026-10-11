@@ -292,7 +292,7 @@ fn a_committed_round_is_written_and_fought() {
         &path,
         "--side",
         "blue",
-        "{type: unlock_unit, name: marksman}",
+        "{type: unlock_unit, name: rhino}",
     ])
     .ok();
     let after = run(&["match", "commit", &path, "--side", "blue"]).ok();
@@ -302,7 +302,7 @@ fn a_committed_round_is_written_and_fought() {
     // has decided anything.
     let written = fs::read_to_string(&path).unwrap();
     assert!(
-        written.ends_with("blue:\n- {type: unlock_unit, name: marksman}\nred: []\n"),
+        written.ends_with("blue:\n- {type: unlock_unit, name: rhino}\nred: []\n"),
         "{written}"
     );
 
