@@ -1135,6 +1135,7 @@ impl Game {
         Ok(SideView {
             given: self.turn.side(side).given,
             committed: self.turn.side(side).committed,
+            seed: self.match_side(side).seed,
             position,
             tech_loadout: named_loadout(&loadout)?,
             rounds: self.played(side, own),
@@ -1241,6 +1242,9 @@ impl Views {
 struct SideView {
     given: bool,
     committed: bool,
+    /// The side's own seed, which both sides see.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    seed: Option<i32>,
     position: Value,
     tech_loadout: Value,
     /// The rounds this side has played, in order.

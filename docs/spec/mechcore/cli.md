@@ -738,7 +738,7 @@ document's, and so is a document that is not a match.
 
 Answers the side the caller was given, the header, and that side's opening
 offers and initial constructions. Each side is also given a seed of its own,
-drawn as the match seed is, which the header keeps and no answer shows.
+drawn as the match seed is, which the header keeps and every view shows.
 
 The deal follows from the seed, which [match.md](../document/match.md)
 defines. What else that seed decides, the streams and pools a match is dealt
@@ -790,8 +790,13 @@ consequence stands on the board and one whose consequence is only an option:
 | the other side's `unlocked_units` | a unit type unlocked and never bought leaves nothing to see |
 | its `unlock_unit` decisions, in every round | the same fact, said as a decision |
 | the header's `seed` | it deals this match: every opening and every round's offers follow from it |
-| each side's own header `seed`, the caller's included | it decides what an officer that draws hands out in every later round |
 | the other side's opening `offers` | the four combinations are dealt to a side privately, as [match.md](../document/match.md) says |
+
+Each side's own `seed` is shown to both, as `sides.<side>.seed`. It decides
+which item an officer that draws hands out each round, so a player can read
+its own and the other side's coming hand-outs; it is shown because a player
+may draw its own decisions from it, as the game's computer opponent draws from
+its side's.
 
 Everything else a committed round reached is visible: the units with their
 levels, experience, equipment and facing, the reactor core, the towers, the
