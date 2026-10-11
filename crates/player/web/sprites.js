@@ -30,11 +30,13 @@ const Sprites = (() => {
   const GLOW = {
     marksman: '#5ff2ff', arclight: '#b3f2ff', rhino: '#ffa236', crawler: '#ffb648',
     sledgehammer: '#55e8f4', wasp: '#ffd84e', phoenix: '#00eaff', fang: '#e7d512',
+    hound: '#ffba19',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
     marksman: [12, 22], arclight: [18, 13], rhino: [28, 24], crawler: [4.2, 5.2],
     sledgehammer: [7.6, 13], wasp: [7.4, 6.6], phoenix: [18.4, 12.8], fang: [6.6, 5.4],
+    hound: [7.8, 10],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -796,6 +798,76 @@ const Sprites = (() => {
     c.restore();
   }
 
+  // Hound, as it fires: a four-legged walker whose back is one white hood
+  // over a twin-barrelled gun, a red ammunition drum on each flank behind
+  // the forelegs, and two red plates trailing from its tail.
+  function hound(c, p) {
+    const T = p.team;
+    const stride = Math.min(1, p.speed / 4) * 0.6;
+    const ph = p.walk * Math.PI * 2 / 5;
+    const kick = recoil(p.fireAge, 0.45) * 0.4;
+    // the hind legs and the tail plates
+    for (const sx of [-1, 1]) {
+      const off = Math.sin(ph + (sx > 0 ? 0 : Math.PI)) * stride;
+      poly(c, [sx * 1.6, 3.4 + off, sx * 3.2, 3.5 + off, sx * 3.0, 5.0 + off, sx * 2.2, 5.3 + off, sx * 1.7, 4.7 + off]);
+      paint(c, M.dark);
+      rr(c, sx * 1.05 - 0.4, 3.9, 0.8, 2.1, 0.12);
+      paint(c, T.accent);
+      line(c, sx * 1.05, 4.1, sx * 1.05, 5.8, T.deep, 0.15);
+    }
+    // the forelegs, white, their claws ahead
+    for (const sx of [-1, 1]) {
+      const off = Math.sin(ph + (sx > 0 ? Math.PI : 0)) * stride;
+      const y = sx > 0 ? -0.5 : 0;
+      c.save();
+      c.translate(0, off);
+      for (const dx of [-0.45, 0.45]) {
+        rr(c, sx * 2.85 + dx - 0.3, y - 3.3, 0.6, 0.7, 0.15);
+        paint(c, M.black);
+      }
+      rr(c, sx * 2.85 - 0.85, y - 2.75, 1.7, 3.0, 0.5);
+      paint(c, M.white);
+      rr(c, sx * 2.85 - 0.45, y - 1.6, 0.9, 1.0, 0.2);
+      paint(c, M.mid, null);
+      c.restore();
+    }
+    // the body under the hood, and its back
+    rr(c, -1.6, 1.4, 3.2, 3.0, 0.4);
+    paint(c, M.dark);
+    circle(c, 0, 2.95, 0.5);
+    paint(c, M.pale);
+    rr(c, -0.3, 3.6, 0.6, 0.7, 0.1);
+    paint(c, M.darker, null);
+    // the drums on the flanks
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 2.45 - 0.6, 0.55, 1.2, 2.9, 0.5);
+      paint(c, T.accent);
+      line(c, sx * 2.25, 0.9, sx * 2.25, 3.1, 'rgba(255,255,255,0.45)', 0.18);
+    }
+    // the hood, kicked back by a shot, the barrels' mouths at its front
+    c.save();
+    c.translate(0, kick);
+    for (const sx of [-1, 1]) line(c, sx * 1.1, -2.4, sx * 1.1, -3.4, M.steel, 0.1);
+    poly(c, [-1.35, -2.5, 1.35, -2.5, 1.65, -1.2, 1.95, 0.1, 1.6, 1.3, 0.6, 1.6, -0.6, 1.6, -1.6, 1.3, -1.95, 0.1, -1.65, -1.2]);
+    paint(c, M.white);
+    line(c, 0, -2.1, 0, 1.4, M.mid, 0.12);
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 0.15, -1.8, sx * 1.2, -1.6, sx * 1.6, 0.3, sx * 0.3, 0.9]);
+      paint(c, M.pale, null);
+      circle(c, sx * 0.5, -2.3, 0.38);
+      paint(c, M.darker);
+      circle(c, sx * 0.5, -2.3, 0.2);
+      paint(c, M.black, null);
+    }
+    poly(c, [-0.55, 1.1, 0.55, 1.1, 0.45, 2.3, -0.45, 2.3]);
+    paint(c, T.accent);
+    poly(c, [-0.13, -0.85, 0.13, -0.85, 0, -1.1]);
+    paint(c, GLOW.hound, null);
+    glow(c, 0, -0.95, 0.5, GLOW.hound, 0.6);
+    for (const sx of [-1, 1]) flash(c, sx * 0.5, -2.75, 1.3, '#ffcf70', p.fireAge, 0.14, p.fireIndex + sx);
+    c.restore();
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -817,7 +889,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];

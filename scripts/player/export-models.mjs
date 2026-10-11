@@ -24,6 +24,7 @@ const OUT = join(ROOT, 'models');
 const MODELS = [
   ['marksman', false], ['arclight', false], ['rhino', false], ['crawler', false],
   ['sledgehammer', false], ['wasp', false], ['phoenix', false], ['fang', false],
+  ['hound', false],
   ['energy_tower', true],
   ['research_center', true], ['anti_armor_turret', true], ['rapid_fire_turret', true],
   ['defensive_wall', true],
