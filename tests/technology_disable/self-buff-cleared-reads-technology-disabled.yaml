@@ -1,0 +1,30 @@
+# A buff a unit added itself that the disabling of its technologies clears
+# is recorded `technology_disabled`. Blue's Vortex runs Mobile Power
+# Station's buff on itself; red's Stormcaller's Electromagnetic Explosion
+# switches its technologies off on tick 236, and
+# `BuffManager.ClearSelfResourceBuffByDisableTech` removes the buff, which
+# the recording reads as technology_disabled (reason 3), not removed (1).
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  techs:
+    vortex: [mobile_power_station]
+  units:
+  - {name: vortex, index: 0, position: {x: 0, y: -200}}
+red:
+  techs:
+    stormcaller: [electromagnetic_explosion]
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -100}}
+outcome:
+  blue.core_damage: 200
+  red.units[0].exp: 200
+asserts:
+- sql: "SELECT tick, reason FROM events WHERE type = 'buff_removed' AND buff_id = 10001"
+  rows: [[236, 3]]
+ticks: 374
+hash: 23:90a0ed2d2a6214dfaa7291e22b11621051f27ce674175f236d98f60de00428d1

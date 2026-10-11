@@ -1531,6 +1531,9 @@ whose own `DisableEffect` it does not mirror.
 - **A buff its unit added itself is cleared, if its row says so**
   (`isClearSelfBuffWhenDisableTech`): `FightMech.DisableTechnology` raises
   `BuffManager.ClearSelfResourceBuffByDisableTech` after the effects are off.
+  One it removes is recorded `technology_disabled`: a Vortex's Mobile Power
+  Station buff that an Electromagnetic Explosion clears reads so,
+  `tests/technology_disable/self-buff-cleared-reads-technology-disabled.yaml`.
   One that stacks keeps its stack and writes its rates at none
   (`ResetAdditiveEffectStackByDisableTech`), and adds no stack at its steps
   while the technologies are off (`AddAdditiveStack`). Its life rate stays

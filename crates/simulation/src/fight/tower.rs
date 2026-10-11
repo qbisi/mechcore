@@ -512,7 +512,9 @@ impl super::Actor {
     /// (`ResetAdditiveEffectStackByDisableTech`), which leaves its stack and
     /// its life rate until its next step; any other is removed
     /// (`BuffManager.RemoveBuff`), what it wrote taken away and the life
-    /// refreshed (`Buff.Exit`), as a buff that runs out is.
+    /// refreshed (`Buff.Exit`), as a buff that runs out is, and recorded
+    /// `technology_disabled`: a Vortex's Mobile Power Station buff that an
+    /// Electromagnetic Shot clears reads so.
     pub(in crate::fight) fn clear_self_buffs(&mut self, events: &mut Vec<Event>) -> Result<()> {
         let unit = self.object_ref();
         for index in (0..self.buffs.len()).rev() {
@@ -524,7 +526,11 @@ impl super::Actor {
                 continue;
             }
             let buff = self.buffs.remove(index);
-            events.push(buff_removed(unit, buff.buff_id, BuffRemovedReason::Removed));
+            events.push(buff_removed(
+                unit,
+                buff.buff_id,
+                BuffRemovedReason::TechnologyDisabled,
+            ));
             self.withdraw_buff(&buff);
             self.refresh_life_data()?;
         }
