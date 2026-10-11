@@ -22,7 +22,8 @@ Every action passes `PAP_<Action>.Check` before it is performed. An action that
 the performer carries out by issuing a match action passes that match action's
 `MAP_<Action>.Check` too: `use_equipment`, `move_unit`, `upgrade_unit`,
 `release_contraption` and `active_energy_tower_skill` do. An action is legal
-when both layers answer `OK`.
+when both layers answer `OK`. An action is a deployment decision: none is taken
+outside a round's deployment.
 
 `buy_unit` lands the formation where the board has room and then moves it to
 the position the action names, so a purchase is checked as a purchase and its
@@ -46,6 +47,11 @@ position as a move.
   item is in the offer of the side's current reinforcement step (`InvalidItem`).
 - The side has a reinforcement step left to choose in: one choice per step, and
   a step chosen in is not chosen in again (`RepeatAction`).
+- A standard 1v1 deals an offer in every round from the second, and each side
+  answers it with its first decision of the round, a card or the decline. A
+  side that concedes is the only one whose round holds no answer. A match
+  that turns reinforcement off, as the Training Ground can, deals none and
+  holds none.
 
 ### `buy_unit`
 
@@ -76,10 +82,9 @@ position as a move.
 - The side holds the formation (`InvalidUnit`).
 - The formation is below its last level (`LevelMax`), in both layers.
 - The side holds the upgrade price (`NotEnoughSupply`).
-- A formation that holds experience has a full bar (`NotEnoughExp`): the
-  check compares the formation's experience with its next level's whenever
-  the experience is not negative. A formation that joined this round, or
-  levelled this round, buys its next level without one.
+- A formation that holds experience has a full bar (`NotEnoughExp`). One that
+  has earned none since it joined or last levelled, which is every formation
+  that joined or levelled this round, buys its next level without one.
 
 ### `upgrade_technology`
 
@@ -175,14 +180,17 @@ Nothing is checked.
 
 ## Finishing a round
 
-A side ends its deployment with a finish, which the game checks for nothing:
-it is taken whether or not the side answered its reinforcement offer, and the
-round is fought without the answer.
+A side ends its deployment with a finish, which the game checks for nothing.
+The answer to the round's offer is required of the round, which opens with
+it, and not of the finish.
 
 ## Evidence
 
 ### Replayed
 
+- Every round from the second holds one answer from each side, its first
+  decision, unless the side conceded: every match of this version's corpus,
+  `scripts/corpus/verify-matches.py`.
 - A formation that has fought is upgraded only with a full bar, Intensive
   Training's among them, and one that joined or levelled in the round is
   upgraded without one: every match of this version's corpus,
@@ -199,6 +207,7 @@ round is fought without the answer.
   `BattleOpeningController.IsSelected`, `BattleOpeningController.GetOpeningData`,
   `PlayerController.CanSelectAdvanceTeam`,
   `AdvanceTeamSystem.GetAdvanceteamTeam`, `ReinforcementManager.IsChooseFinished`.
+- Whether a match deals offers: `ReinforcementSystem.IsReinforcementEnabled`.
 - A reinforcement choice: `PAP_ChooseReinforceItem.Check`,
   `ReinforcementManager.CanChooseReinforceItem`, `ReinforcementManager.GetItem`,
   `ReinforcementManager.roundReinforceItems`,
@@ -259,14 +268,3 @@ round is fought without the answer.
   `ContraptionManager.RemainCount`, `ContraptionManager.GetAvailableRegion`,
   `LandMineContraption`,
   `InterceptContraption`.
-
-### Not established
-
-- **What leaves a formation's experience negative.** That a formation that
-  joined or levelled this round upgrades without a full bar is what the
-  replays show; which writes of `MechTeam.expFloat` make it so is not read.
-- **What an unanswered offer leaves.** A round fought without a side's answer
-  is fought; what the next round deals that side, and whether a deadline
-  answers for it, is not read.
-- **Whether a check runs outside deployment.** What refuses an action taken in
-  another phase is not read here.
