@@ -37,6 +37,7 @@ const Sprites = (() => {
     steel_ball: '#ffd114',
     stormcaller: '#65f9ff',
     hacker: '#1cfefc',
+    fire_badger: '#b18926',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -49,6 +50,7 @@ const Sprites = (() => {
     steel_ball: [10.6, 16],
     stormcaller: [8.8, 11.8],
     hacker: [21.4, 21.8],
+    fire_badger: [14.2, 19.4],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -1264,6 +1266,91 @@ const Sprites = (() => {
     flash(c, 0, 1.0, 2.4, GLOW.hacker, p.fireAge, 0.2, p.fireIndex);
   }
 
+  // Fire Badger, as it attacks: a heavy carrier on four white track pods,
+  // an orange radiator drum across its back, and on a red mount at its
+  // middle a long flamethrower, its fuel glowing violet through the glass,
+  // reaching out past its front, which turns to its target.
+  function fire_badger(c, p) {
+    const T = p.team;
+    const roll = (p.walk * 1.5) % 1.0;
+    for (const sx of [-1, 1]) {
+      // the front pod: armour, teeth ahead, rollers outboard
+      for (const y of [-4.0, -2.9]) {
+        rr(c, sx * 6.65 - 0.45, y - 0.45, 0.9, 0.9, 0.3);
+        paint(c, M.steel);
+      }
+      poly(c, [sx * 2.5, -8.6, sx * 6.0, -8.6, sx * 6.3, -6.0, sx * 6.2, -2.2, sx * 2.6, -2.2]);
+      paint(c, M.white);
+      rr(c, sx * 4.4 - 1.0, -6.5, 2.0, 2.4, 0.2);
+      paint(c, M.pale, null);
+      for (const x of [3.9, 5.4]) {
+        rr(c, sx * x - 0.45, -10.4 + roll * 0.2, 0.9, 1.8, 0.15);
+        paint(c, M.white);
+        rr(c, sx * x - 0.25, -8.6, 0.5, 0.6, 0.08);
+        paint(c, T.accent);
+      }
+      // the back pod
+      poly(c, [sx * 2.5, 0.5, sx * 5.4, 0.5, sx * 5.9, 1.5, sx * 5.9, 6.0, sx * 2.5, 6.0]);
+      paint(c, M.white);
+      rr(c, sx * 3.85 - 0.7, 2.0, 1.4, 1.5, 0.15);
+      paint(c, M.darker);
+      for (const x of [1.4, 4.6]) {
+        rr(c, sx * x - 0.45, 7.6, 0.9, 1.2, 0.15);
+        paint(c, M.dark);
+      }
+    }
+    // the radiator drum across the back
+    rr(c, -4.6, 4.6, 9.2, 3.1, 0.5);
+    paint(c, T.deep);
+    rr(c, -4.2, 4.8, 8.4, 2.6, 0.4);
+    paint(c, '#ff7a3c');
+    for (let y = 5.0; y < 7.3; y += 0.35) line(c, -4.0, y, 4.0, y, 'rgba(120,30,0,0.45)', 0.08);
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 1.45 - 0.45, 5.3, 0.9, 1.9, 0.12);
+      paint(c, M.dark);
+    }
+    // the hoses from the mount to the drum
+    for (const sx of [-1, 1]) {
+      c.beginPath();
+      c.moveTo(sx * 0.8, 2.0);
+      c.lineTo(sx * 2.0, 3.6);
+      c.lineTo(sx * 4.6, 3.8);
+      c.lineTo(sx * 5.0, 5.0);
+      c.lineWidth = 0.4;
+      c.strokeStyle = M.black;
+      c.stroke();
+    }
+    // the mount and the flamethrower on it, turning about the mount
+    c.save();
+    c.rotate(p.turret);
+    poly(c, [-3.4, -1.0, -2.0, -2.3, 2.0, -2.3, 3.4, -1.0, 3.0, 1.6, -3.0, 1.6]);
+    paint(c, T.accent);
+    poly(c, [-1.2, -1.6, 1.2, -1.6, 1.0, 1.2, -1.0, 1.2]);
+    paint(c, T.deep, null);
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 0.65 - 0.35, -2.6, 0.7, 1.4, 0.2);
+      paint(c, '#b77ce8');
+    }
+    rr(c, -1.3, -3.7, 2.6, 0.55, 0.15);
+    paint(c, M.caution);
+    rr(c, -1.3, -6.4, 2.6, 2.7, 0.3);
+    paint(c, M.mid);
+    rr(c, -1.3, -5.3, 2.6, 0.6, 0.1);
+    paint(c, M.darker, null);
+    rr(c, -0.85, -8.4, 1.7, 2.1, 0.3);
+    paint(c, '#d98cf5');
+    for (const x of [-0.45, 0, 0.45]) line(c, x, -8.2, x, -6.6, '#f4d6ff', 0.1);
+    poly(c, [-1.3, -8.4, 1.3, -8.4, 1.15, -9.4, 0.6, -10.0, -0.6, -10.0, -1.15, -9.4]);
+    paint(c, M.pale);
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 1.2, -8.0, sx * 2.0, -9.5, sx * 1.7, -10.1, sx * 1.15, -9.2]);
+      paint(c, M.dark);
+    }
+    glow(c, 0, -2.0, 0.8, GLOW.fire_badger, 0.5);
+    flash(c, 0, -10.6, 2.4, '#ff8a3c', p.fireAge, 0.3, p.fireIndex);
+    c.restore();
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -1285,7 +1372,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
