@@ -53,15 +53,19 @@ position as a move.
   (`InvalidPosition`).
 - The shop has unlocked the unit (`InvalidUnit`).
 - When the shop sets a same-unit limit, the side holds fewer formations of the
-  unit than it (`UnitCountLimit`).
+  unit than it (`UnitCountLimit`). Only a game rule's officer sets one, so a
+  standard match has none.
 - The side holds the unit's price (`NotEnoughSupply`).
 - When the shop limits purchases, a purchase is left this round and the unit
-  has a purchase left of its own (`NotEnoughCount`).
+  has a purchase left of its own (`NotEnoughCount`). Nothing in a standard
+  match turns that limit on, so a purchase is held only to the round's
+  allowance, which the side's own count says.
 - The position it moves to passes `move_unit`'s conditions.
 
 ### `unlock_unit`
 
-- The shop allows unlocking (`InvalidAction`).
+- The shop allows unlocking (`InvalidAction`), which only the survival mode
+  turns off.
 - The unit is one the shop still holds locked; a unit already unlocked is
   refused (`InvalidUnit`).
 - The side holds the unlock price (`NotEnoughSupply`), and an unlock is left
@@ -94,7 +98,11 @@ The check does not ask whether the shop has unlocked the unit.
 ### `active_blueprint`
 
 - The blueprint is one the side can activate (`InvalidItem`) and not already
-  active (`RepeatAction`).
+  active (`RepeatAction`). The side can activate the first level of each
+  blueprint the match's map offers, and the Research Center's research
+  blueprints only where a game rule enables research. Activating a chain's
+  first level puts its second in its place, so the second is refused before
+  the first is active and the first after the second has replaced it.
 - The match has reached its unlock round (`RoundLimit`).
 - A blueprint that takes rounds to research needs a free research slot
   (`Researching`).
@@ -114,7 +122,8 @@ The check does not ask whether the shop has unlocked the unit.
 ### `strengthen_tower`
 
 - The tower is one of the side's and its strengthen option is open
-  (`InvalidTarget`).
+  (`InvalidTarget`). Only the tutorial and a restored snapshot change the
+  option, so in a standard match it is open for both towers.
 - A next level exists (`LevelMax`).
 - The side holds that level's price (`NotEnoughSupply`).
 
@@ -145,20 +154,30 @@ The check does not ask whether the shop has unlocked the unit.
   active (`RepeatAction`) or cooling (`Cooling`), and for a target the side does
   not hold (`UnknownTarget`) or the skill does not take (`InvalidTarget`).
   [commander_skills.md](commander_skills.md) says what cools a skill; a release
-  aimed at an area is checked for where it falls, not for the slot.
+  aimed at an area is checked for where it falls, not for the slot, and
+  [battle_skill.md](battle_skill.md) says where each may fall.
 
 ### `release_contraption`
 
-- The contraption is one the side holds (`InvalidItem`).
+- The contraption is one the side holds (`InvalidItem`): every contraption the
+  build ships, which the side is given as the match starts.
 - The side holds its price (`NotEnoughSupply`) and a release is left this round
   (`NotEnoughCount`).
 - The position is inside the contraption's available region
-  (`InvalidPosition`), and an interceptor's footprint fits there as a move's
+  (`InvalidPosition`): the main region, an Interceptor's and a mine's as it
+  is and every other contraption's drawn in on each side by a margin the
+  contraption gives, and an interceptor's footprint fits there as a move's
   would.
 
 ### `concede`
 
 Nothing is checked.
+
+## Finishing a round
+
+A side ends its deployment with a finish, which the game checks for nothing:
+it is taken whether or not the side answered its reinforcement offer, and the
+round is fought without the answer.
 
 ## Evidence
 
@@ -210,6 +229,20 @@ Nothing is checked.
 - A tower: `PAP_StrengthenTower.Check`, `BuildingManager.CanStrengthenTower`,
   `BuildingManager.hasStrengthenOption`, `BuildingManager.GetTowerStrengthenData`,
   `MatchUtility.GetMinLevelTowerStrengthenData`.
+- What the shop limits: `SystemOfficerController.ChangeSameUnitCount` writes
+  `ShopDataChangeInt.SameUnitCount` from `OfficerData.sameUnitCount`, which
+  only a game rule's officer sets; nothing calls `ShopManager.SetBuyCountPerUnit`
+  or `ShopManager.AddBuyCountLimit`; only `SurviveGameplayController.OnMatchStart`
+  calls `ShopManager.DisableUnlockUnit`.
+- What a side can activate or hold: `BlueprintManager.PrepareBlueprint` adds
+  `MatchSetting.blueprints` that `BlueprintData.IsFirstLevel`, the research
+  ones only under `GameRuleManager.IsEnableBlueprintResearch`;
+  `BlueprintManager.Active` calls `BlueprintManager.ReplaceBlueprint`;
+  `ContraptionManager.Init` creates every row of `Config.GetContraptionDatas`;
+  only `GuiderGameController.SetGuiderConfig` and
+  `PlayerSnapshotController.ApplyTowerSnapshot` call
+  `BuildingManager.ChangeHasStrengthenOption`.
+- A finish: `PAP_FinishDeploy.Check`.
 - Equipment: `MAP_UseEquipment.Check`, `EquipmentManager.CanUseEquipment`,
   `Equipment.owner`, `CardElement.CanAddEquipment`, `CardData.canAddEquipment`,
   `UnitDataChangeInt.EquipmentSlotCount`, `UnitManager.HasUnit`,
@@ -224,6 +257,7 @@ Nothing is checked.
 - A contraption: `ContraptionManager.CanRelease`,
   `ContraptionManager.IsReadyToRelease`, `ContraptionManager.contraptions`,
   `ContraptionManager.RemainCount`, `ContraptionManager.GetAvailableRegion`,
+  `LandMineContraption`,
   `InterceptContraption`.
 
 ### Not established
@@ -231,11 +265,8 @@ Nothing is checked.
 - **What leaves a formation's experience negative.** That a formation that
   joined or levelled this round upgrades without a full bar is what the
   replays show; which writes of `MechTeam.expFloat` make it so is not read.
-- **Whether a standard match limits purchases per unit or the same unit.** The
-  conditions are read; whether `ShopManager.hasBuyCountLimit` or
-  `ShopDataChangeInt.SameUnitCount` is set in a standard match is not.
-- **Which blueprints and contraptions a side can activate or hold.** The check
-  asks the side's own list; what fills it, and whether a chain's second level
-  is in it before its first is active, is not read.
+- **What an unanswered offer leaves.** A round fought without a side's answer
+  is fought; what the next round deals that side, and whether a deadline
+  answers for it, is not read.
 - **Whether a check runs outside deployment.** What refuses an action taken in
   another phase is not read here.
