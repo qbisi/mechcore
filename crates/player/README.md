@@ -26,7 +26,12 @@ a blow or a death is animated from the event that records it, never inferred:
 a weapon recoils when the recording releases its projectile, a melee unit
 swings so its blow lands on the tick its damage does, and a construction,
 whose facing the recording does not hold, turns its gun toward each shot it
-fires.
+fires. A shot flies its recorded path, its shadow cast by its height, and
+looks as the effect the game flies for its weapon: a streak, a shell, a
+missile, a jet of fire or a ball of light, in that effect's colours. A
+weapon that strikes at range without a projectile, as a Vortex's or a
+Melting Point's does, draws its blow from the attacker to its target, an
+arc or a beam.
 
 A recording made with the `unit_pose` instrument channel also says how the
 game drew each unit: the clip its model played and how far through. The page
