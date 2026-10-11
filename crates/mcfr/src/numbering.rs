@@ -122,6 +122,11 @@ impl UnitNumbering {
                 control.sources.iter_mut().for_each(reference);
             }
         }
+        for building in &mut snapshot.buildings {
+            if let Some(skill) = &mut building.skill {
+                optional(&mut skill.lock_target);
+            }
+        }
         for projectile in &mut snapshot.projectiles {
             optional(&mut projectile.owner);
             optional(&mut projectile.target);
