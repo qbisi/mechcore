@@ -422,6 +422,15 @@ the unit carries none.
   one until the tick ends (`DeadEffectSystem`): the beam kills red's last
   unit, a Centurion, and the barrage still releases a shell at it on that
   tick.
+- **It passes over a building no shield holds.** A skill that deals no
+  damage and changes a shield's (`IsChangeHitEnergyShieldDamage`) keeps a
+  building its search found only while a shield of the building's side holds
+  it (`ExtraSkillSearchTargetController.PerformNormalSkillSearch`,
+  `IsActorInEnergyShield`). Otherwise it selects again over every enemy it
+  attacks, alive, but that building and any other no shield holds: with red's
+  Rapid-Fire Turret in reach and its Farseer beyond, the beam locks the
+  turret and the barrage the Farseer
+  ([`barrage-passes-over-a-turret.yaml`](../../tests/extra_weapon/barrage-passes-over-a-turret.yaml)).
 
 ## A preemptive strike about its unit
 
