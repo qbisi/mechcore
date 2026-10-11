@@ -39,6 +39,7 @@ const Sprites = (() => {
     hacker: '#1cfefc',
     fire_badger: '#b18926',
     sabertooth: '#ffff7b',
+    tarantula: '#9eff22',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -53,6 +54,7 @@ const Sprites = (() => {
     hacker: [21.4, 21.8],
     fire_badger: [14.2, 19.4],
     sabertooth: [20.4, 26.4],
+    tarantula: [23, 28.6],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -1426,6 +1428,82 @@ const Sprites = (() => {
     c.restore();
   }
 
+  // Tarantula, as it fires: a four-legged walker, a white leg armoured in
+  // the team's colour out to each corner, carrying a turret that turns to
+  // its target: a white octagonal deck round a spine in the team's colour,
+  // two long thin cannons ahead and a pair of launch blocks behind.
+  function tarantula(c, p) {
+    const T = p.team;
+    const stride = Math.min(1, p.speed / 4) * 0.5;
+    const ph = p.walk * Math.PI * 2 / 8;
+    // the legs, out to the corners
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      const off = Math.sin(ph + (sx * sy > 0 ? 0 : Math.PI)) * stride;
+      c.save();
+      c.translate(sx * 5.4, sy * (sy < 0 ? 5.2 : 5.4) + off);
+      c.rotate(Math.atan2(sx, -sy));
+      rr(c, -1.6, -6.0, 3.2, 5.8, 1.3);
+      paint(c, M.white);
+      rr(c, -1.3, -4.6, 2.6, 2.9, 0.4);
+      paint(c, T.accent);
+      circle(c, 0, -0.2, 0.9);
+      paint(c, M.dark);
+      c.restore();
+    }
+    // the turret
+    c.save();
+    c.rotate(p.turret);
+    const kick = recoil(p.fireAge, 0.5);
+    // the launch blocks behind
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 4.85 - 2.65, 5.4, 5.3, 8.1, 0.6);
+      paint(c, T.accent);
+      for (const y of [7.6, 9.8, 12.0]) line(c, sx * 2.4, y, sx * 7.3, y, T.deep, 0.3);
+      rr(c, sx * 3.05 - 0.6, 5.6, 1.2, 7.6, 0.2);
+      paint(c, M.white, null);
+    }
+    poly(c, [-1.6, 1.0, 1.6, 1.0, 1.3, 10.0, -1.3, 10.0]);
+    paint(c, M.white);
+    for (let i = 0; i < 6; i++) line(c, -0.8 + i * 0.32, 9.2, -0.8 + i * 0.32, 9.9, M.mid, 0.12);
+    // the deck
+    poly(c, [-2.0, -5.6, 2.0, -5.6, 6.6, -2.0, 6.6, 1.8, 2.4, 4.4, -2.4, 4.4, -6.6, 1.8, -6.6, -2.0]);
+    paint(c, M.white);
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 2.6, -4.2, sx * 5.8, -1.6, sx * 3.0, 2.6, sx * 2.0, -1.0]);
+      paint(c, M.pale, null);
+      for (const y of [-1.6, 1.4]) {
+        circle(c, sx * 5.3, y, 0.4);
+        paint(c, M.white, M.line, 0.8);
+      }
+      rr(c, sx * 6.0 - 0.45, -0.9, 0.9, 2.0, 0.1);
+      paint(c, M.mid, null);
+      rr(c, sx * 2.6 - 0.9, 1.3, 1.8, 0.7, 0.1);
+      paint(c, M.dark, null);
+    }
+    // the cannons, kicked back by their shot
+    for (const sx of [-1, 1]) {
+      c.save();
+      c.translate(0, kick * 1.0);
+      rr(c, sx * 2.55 - 0.42, -13.4, 0.84, 7.6, 0.15);
+      paint(c, T.accent);
+      rr(c, sx * 2.55 - 0.3, -14.3, 0.6, 1.0, 0.1);
+      paint(c, T.deep);
+      flash(c, sx * 2.55, -14.6, 1.6, '#ffcf70', p.fireAge, 0.14, p.fireIndex + sx);
+      c.restore();
+    }
+    // the spine and its cap
+    rr(c, -1.3, -8.8, 2.6, 3.2, 0.5);
+    paint(c, M.mid);
+    rr(c, -1.45, -5.7, 2.9, 5.7, 0.9);
+    paint(c, T.accent);
+    for (const sx of [-1, 1]) {
+      circle(c, sx * 1.85, -1.1, 0.32);
+      paint(c, GLOW.tarantula, null);
+      glow(c, sx * 1.85, -1.1, 0.7, GLOW.tarantula, 0.6);
+    }
+    c.restore();
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -1447,7 +1525,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
