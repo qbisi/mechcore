@@ -292,7 +292,18 @@ impl Simulation {
         // Then the unit it turns raises `OnMechBeHit` with the beam's owner
         // as the attacker, as a hit's `FightMech.OnHitted` does: a Void Eye
         // with Electromagnetic Armor switches the Hacker's technologies off.
-        self.on_mech_be_hit(lock, owner, events)
+        self.on_mech_be_hit(lock, owner, events)?;
+        // And the hit's effects are performed on it, as any hit's
+        // (`BuffCycleController.PerformHitEffect`): a Hacker with
+        // Electromagnetic Interference writes its buff on the unit each of
+        // its beams turns.
+        let lock = FightActorRef::Unit(lock);
+        let center = self
+            .position_3d(lock)
+            .ok_or_else(|| Error::new("a control beam's lock is absent"))?;
+        let slot = u16::try_from(self.skill_slot(skill_ref) + offset)
+            .map_err(|_| Error::new("a skill slot fits u16"))?;
+        self.add_hit_buffs(actor_id, slot, (&[lock], center), false, events)
     }
 
     /// `TeamTranslationSystem.Update`: every unit whose progress has reached
