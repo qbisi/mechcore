@@ -640,8 +640,15 @@
         ctx.globalAlpha = 0.24 * dying;
         ctx.fillStyle = '#000';
         ctx.beginPath();
-        ctx.ellipse(0, -1, u.radius * 0.45, u.radius * 1.3, 0, 0, Math.PI * 2);
-        ctx.ellipse(0, 0, u.radius * 1.2, u.radius * 0.35, 0, 0, Math.PI * 2);
+        // a flyer with a sprite casts the size its sprite is drawn; one
+        // without, a cross the size of its collision
+        const size = Sprites.SIZE[u.kind];
+        if (size) {
+          ctx.ellipse(0, 0, size[0] * 0.42, size[1] * 0.42, 0, 0, Math.PI * 2);
+        } else {
+          ctx.ellipse(0, -1, u.radius * 0.45, u.radius * 1.3, 0, 0, Math.PI * 2);
+          ctx.ellipse(0, 0, u.radius * 1.2, u.radius * 0.35, 0, 0, Math.PI * 2);
+        }
         ctx.fill();
       } else {
         place(s.x, s.z, s.body, big);
