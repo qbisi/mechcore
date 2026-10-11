@@ -8,11 +8,19 @@
 //! without a game and takes the game with `game launch` or `game attach`, each
 //! carrying the level it claims at. A prompt is a session, and a session
 //! acquires by saying so. See `docs/spec/mechcore/session.md`.
+//!
+//! A shell may also hold a match and the side it plays, named when it opens
+//! or by the first line that opens one, so that match's verbs are written
+//! without the document and the side. With `--json` the prompt is the request
+//! stream an arena speaks to a player instead, which `requests` answers.
 
 use crate::acquire::{Launch, Mode, Ownership};
-use crate::cli::Args;
+use crate::cli::{Args, Failure, emit};
 use crate::session::Session;
+use crate::turn::Side;
 use serde_json::Value;
+use std::io::{BufRead, Write};
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
@@ -48,6 +56,13 @@ without the game
   generate --seed n --count n <dir>
                                   layouts that cover every pair of fight decisions
   man [<topic>|<kind>]            the manual this binary carries
+a match, once a line has opened one or the shell was opened on it
+  match new <match.yaml>          deal a match, or join one, and play the side handed out
+  match show <match.yaml> --side blue|red
+                                  play that side of a match already dealt
+  show [--wait [<seconds>]]       the side's view of the match
+  act <decision> [--dry-run]      take one decision, such as {type: buy_unit, name: marksman}
+  commit                          write this round's decisions
 shell
   help                            this list
   quit | exit                     leave the shell";
@@ -57,15 +72,37 @@ const SESSIONLESS: &[&str] = &[
     "verify", "convert", "diff", "show", "play", "format", "schema", "generate", "man",
 ];
 
-pub(crate) fn run() -> Result<(), String> {
+/// A match and the side a shell plays of it.
+pub(crate) type Bound = (PathBuf, Side);
+
+pub(crate) fn run(bound: Option<Bound>) -> Result<(), String> {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .map_err(|error| format!("cannot create async runtime: {error}"))?
-        .block_on(run_async())
+        .block_on(run_async(bound))
 }
 
-async fn run_async() -> Result<(), String> {
+/// Answers a request stream on the match and side the shell was opened on:
+/// one JSON request per line in, one JSON result per line out, and nothing
+/// else on standard output.
+pub(crate) fn run_json((path, side): Bound) -> Result<(), String> {
+    let mut out = std::io::stdout().lock();
+    for line in std::io::stdin().lock().lines() {
+        let line = line.map_err(|error| format!("cannot read input: {error}"))?;
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        let answer = crate::requests::answer(&path, side, line, &|| false);
+        writeln!(out, "{answer}")
+            .and_then(|()| out.flush())
+            .map_err(|error| format!("cannot write a result: {error}"))?;
+    }
+    Ok(())
+}
+
+async fn run_async(mut bound: Option<Bound>) -> Result<(), String> {
     let session = Session::new();
     let monitor = tokio::spawn(Session::monitor_status(session.clone()));
     let mut ownership: Option<Ownership> = None;
@@ -76,8 +113,11 @@ async fn run_async() -> Result<(), String> {
         "shell without a game; `game launch` or `game attach` to acquire one, `help` for commands\n",
     )
     .await;
+    if let Some(bound) = &bound {
+        write(&mut out, &playing(bound)).await;
+    }
 
-    let looped = repl(&session, &mut ownership, &mut out).await;
+    let looped = repl(&session, &mut ownership, &mut bound, &mut out).await;
     session.release().await;
     monitor.abort();
     looped
@@ -86,11 +126,20 @@ async fn run_async() -> Result<(), String> {
 async fn repl(
     session: &Arc<Session>,
     ownership: &mut Option<Ownership>,
+    bound: &mut Option<Bound>,
     out: &mut tokio::io::Stdout,
 ) -> Result<(), String> {
     let mut lines = BufReader::new(tokio::io::stdin()).lines();
     loop {
-        write(out, &prompt(ownership.as_ref(), session)).await;
+        let playing = bound.as_ref().map_or_else(String::new, |(path, side)| {
+            let file = path.file_name().unwrap_or(path.as_os_str());
+            format!("{} {} · ", side.name(), file.to_string_lossy())
+        });
+        write(
+            out,
+            &format!("{playing}{}", prompt(ownership.as_ref(), session)),
+        )
+        .await;
         let Some(line) = lines
             .next_line()
             .await
@@ -102,7 +151,7 @@ async fn repl(
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
-        match dispatch(line, session, ownership, out).await {
+        match dispatch(line, session, ownership, bound, out).await {
             Flow::Continue => {}
             Flow::Quit => return Ok(()),
         }
@@ -118,11 +167,42 @@ async fn dispatch(
     line: &str,
     session: &Arc<Session>,
     ownership: &mut Option<Ownership>,
+    bound: &mut Option<Bound>,
     out: &mut tokio::io::Stdout,
 ) -> Flow {
-    let mut words = line.split_whitespace().map(str::to_owned);
+    let mut words = words(line).into_iter();
     let namespace = words.next().unwrap_or_default();
-    let mut arguments = Args::new(words);
+    let rest: Vec<String> = words.collect();
+    // `show <file> --view <view>` is the file verb, and a `show` without a
+    // view is the match's.
+    let file_show = namespace == "show" && rest.iter().any(|word| word == "--view");
+    if matches!(namespace.as_str(), "act" | "commit") || namespace == "show" && !file_show {
+        match bound {
+            Some((path, side)) => {
+                let mut arguments = vec![
+                    namespace.clone(),
+                    path.display().to_string(),
+                    "--side".into(),
+                    side.name().into(),
+                ];
+                arguments.extend(rest);
+                let outcome =
+                    tokio::task::block_in_place(|| crate::r#match::run(Args::new(arguments)));
+                if let Err(failure) = outcome {
+                    failure.write(&format!("match.{namespace}"));
+                }
+            }
+            None => {
+                write(
+                    out,
+                    &format!("{namespace} needs a match; open one with `match new <match.yaml>`\n"),
+                )
+                .await;
+            }
+        }
+        return Flow::Continue;
+    }
+    let mut arguments = Args::new(rest);
 
     match namespace.as_str() {
         "help" => {
@@ -132,6 +212,18 @@ async fn dispatch(
         "quit" | "exit" => Flow::Quit,
         "game" => {
             game(session, ownership, out, arguments).await;
+            Flow::Continue
+        }
+        "match" => {
+            let opened = tokio::task::block_in_place(|| open(arguments));
+            match opened {
+                Ok(Some(opened)) => {
+                    write(out, &playing(&opened)).await;
+                    *bound = Some(opened);
+                }
+                Ok(None) => {}
+                Err(failure) => failure.write("match"),
+            }
             Flow::Continue
         }
         command if SESSIONLESS.contains(&command) => {
@@ -217,6 +309,77 @@ async fn game(
     }
 }
 
+/// Runs a `match` line, and answers the match and side it opens: `new`
+/// opens the side it handed out, and `show` the side it names.
+fn open(mut arguments: Args) -> Result<Option<Bound>, Failure> {
+    let format = arguments.format()?;
+    let verb = arguments.operand("a verb: new, show, act or commit")?;
+    let mut words = vec![verb.clone()];
+    words.extend(arguments.rest());
+    let names_side = words.iter().any(|word| word == "--side");
+    let view = crate::r#match::answer(Args::new(words))?;
+    emit(&view, format)?;
+    if verb != "new" && !(verb == "show" && names_side) {
+        return Ok(None);
+    }
+    let path = view.get("match").and_then(Value::as_str).map(PathBuf::from);
+    let side = view.get("side").and_then(Value::as_str).map(Side::parse);
+    Ok(match (path, side) {
+        (Some(path), Some(side)) => Some((path, side?)),
+        _ => None,
+    })
+}
+
+fn playing((path, side): &Bound) -> String {
+    format!(
+        "playing {} in {}; `show`, `act <decision>` and `commit` play it\n",
+        side.name(),
+        path.display()
+    )
+}
+
+/// A line split into words at its spaces, except the spaces inside brackets,
+/// braces or quotes, so a decision such as `{type: buy_unit, name: marksman}`
+/// is one word.
+fn words(line: &str) -> Vec<String> {
+    let mut words = Vec::new();
+    let mut word = String::new();
+    let mut depth = 0_usize;
+    let mut quote: Option<char> = None;
+    for character in line.chars() {
+        match (quote, character) {
+            (Some(open), _) if character == open => {
+                quote = None;
+                // A quote at the top of a line only groups; inside a
+                // decision it is the decision's own.
+                if depth == 0 {
+                    continue;
+                }
+            }
+            (None, '"' | '\'') => {
+                quote = Some(character);
+                if depth == 0 {
+                    continue;
+                }
+            }
+            (None, '{' | '[') => depth += 1,
+            (None, '}' | ']') => depth = depth.saturating_sub(1),
+            (None, _) if character.is_whitespace() && depth == 0 => {
+                if !word.is_empty() {
+                    words.push(std::mem::take(&mut word));
+                }
+                continue;
+            }
+            (Some(_) | None, _) => {}
+        }
+        word.push(character);
+    }
+    if !word.is_empty() {
+        words.push(word);
+    }
+    words
+}
+
 fn banner(ownership: &Ownership, session: &Arc<Session>) -> String {
     let endpoint = session.endpoint().display();
     match ownership.log() {
@@ -282,6 +445,28 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    /// A decision is one word however many spaces it holds, and a quoted
+    /// word keeps its spaces.
+    #[test]
+    fn a_decision_is_one_word() {
+        assert_eq!(
+            words("act  {type: buy_unit, name: marksman} --dry-run"),
+            ["act", "{type: buy_unit, name: marksman}", "--dry-run"]
+        );
+        assert_eq!(
+            words("act {type: move_unit, index: 7, position: {x: 40, y: -150}}"),
+            [
+                "act",
+                "{type: move_unit, index: 7, position: {x: 40, y: -150}}"
+            ]
+        );
+        assert_eq!(words("show 'a b.mcfr'"), ["show", "a b.mcfr"]);
+        assert_eq!(
+            words(r#"act {type: buy_unit, name: "marksman"}"#),
+            ["act", r#"{type: buy_unit, name: "marksman"}"#]
+        );
+    }
+
     #[test]
     fn a_prompt_without_a_game_claims_none() {
         let session = Session::new();
@@ -317,6 +502,10 @@ mod tests {
             assert!(HELP.contains(command), "{command} missing from help");
         }
         for command in SESSIONLESS.iter().copied().chain([
+            "match new",
+            "match show",
+            "act",
+            "commit",
             "game launch",
             "game attach",
             "game detach",

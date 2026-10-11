@@ -35,13 +35,27 @@ const SCHEMA: &str = "mechcore.match";
 /// promptly and long enough not to hold the lock against the side playing it.
 const POLL: std::time::Duration = std::time::Duration::from_millis(200);
 
-/// Dispatches one of the namespace's verbs.
+/// Dispatches one of the namespace's verbs and writes what it answers.
 ///
 /// # Errors
 ///
 /// Returns a usage failure for a verb this namespace does not hold, and
 /// whatever the verb returns otherwise.
 pub(crate) fn run(mut arguments: Args) -> Outcome {
+    let format = arguments.format()?;
+    let view = answer(arguments)?;
+    emit(&view, format)?;
+    Ok(Verdict::Yes)
+}
+
+/// Runs one of the namespace's verbs and answers its view, which a command
+/// writes and a prompt or an arena hands on as one JSON line.
+///
+/// # Errors
+///
+/// Returns a usage failure for a verb this namespace does not hold, and
+/// whatever the verb returns otherwise.
+pub(crate) fn answer(mut arguments: Args) -> Result<Value, Failure> {
     let verb = arguments.operand("a verb: new, show, act or commit")?;
     let outcome = match verb.as_str() {
         "new" => new(arguments),
@@ -51,15 +65,18 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
         other => Err(Failure::usage(format!(
             "match has no verb {other:?}; it has new, show, act and commit"
         ))),
-    };
+    }
+    .and_then(|view| {
+        serde_json::to_value(&view)
+            .map_err(|error| Failure::failed(format!("cannot write the result: {error}")))
+    });
     // An error object names the operation, and a verb of this namespace is
     // one: a caller reads `match.act` and knows which request to rewrite.
     outcome.map_err(|failure| failure.at(format!("match.{verb}")))
 }
 
 /// Deals a match, or joins one already dealt.
-fn new(mut arguments: Args) -> Outcome {
-    let format = arguments.format()?;
+fn new(mut arguments: Args) -> Result<View, Failure> {
     let seed = arguments.parsed::<i32>("--seed", "an integer")?;
     let map = arguments.parsed::<i32>("--map", "a map ID")?;
     let deploy_time = arguments.parsed::<i32>("--deploy-time", "a number of seconds")?;
@@ -81,11 +98,7 @@ fn new(mut arguments: Args) -> Outcome {
         )
     };
     match outcome {
-        Ok(game) => {
-            let view = game.view(Some(game.side()), false)?;
-            emit(&view, format)?;
-            Ok(Verdict::Yes)
-        }
+        Ok(game) => game.view(Some(game.side()), false),
         Err(failure) => {
             // Taking the lock creates the turn file. A match that was not
             // dealt leaves nothing behind, because a refused operation writes
@@ -198,8 +211,7 @@ fn join(
 }
 
 /// Answers one side's view of the match.
-fn show(mut arguments: Args) -> Outcome {
-    let format = arguments.format()?;
+fn show(mut arguments: Args) -> Result<View, Failure> {
     let omniscient = arguments.flag("--omniscient")?;
     let wait = arguments.optional_number("--wait")?;
     let side = side_option(&mut arguments, !omniscient)?;
@@ -220,24 +232,21 @@ fn show(mut arguments: Args) -> Outcome {
             game.view(side, omniscient)?
         };
         let Some((since, bound)) = deadline else {
-            emit(&view, format)?;
-            return Ok(Verdict::Yes);
+            return Ok(view);
         };
         // A wait is over when the match is waiting for this side again, and a
         // wait that reaches its own bound answers the phase it is still in.
         let waiting = view.phase == Phase::Over
             || side.is_none_or(|side| !view.sides.of(side).committed && view.phase.decides());
         if waiting || bound.is_some_and(|bound| since.elapsed() >= bound) {
-            emit(&view, format)?;
-            return Ok(Verdict::Yes);
+            return Ok(view);
         }
         std::thread::sleep(POLL);
     }
 }
 
 /// Takes one decision for one side.
-fn act(mut arguments: Args) -> Outcome {
-    let format = arguments.format()?;
+fn act(mut arguments: Args) -> Result<View, Failure> {
     let dry_run = arguments.flag("--dry-run")?;
     let side = side_option(&mut arguments, true)?.unwrap_or(Side::Blue);
     let path = arguments.path("a match document")?;
@@ -261,14 +270,12 @@ fn act(mut arguments: Args) -> Outcome {
     }
     let mut view = game.view(Some(side), false)?;
     view.events = Some(events);
-    emit(&view, format)?;
-    Ok(Verdict::Yes)
+    Ok(view)
 }
 
 /// Writes that side's decisions into the match, which is what playing them
 /// means.
-fn commit(mut arguments: Args) -> Outcome {
-    let format = arguments.format()?;
+fn commit(mut arguments: Args) -> Result<View, Failure> {
     let side = side_option(&mut arguments, true)?.unwrap_or(Side::Blue);
     let path = arguments.path("a match document")?;
     arguments.finish()?;
@@ -278,8 +285,7 @@ fn commit(mut arguments: Args) -> Outcome {
     let mut game = game.settle(&mut held)?;
     game.commit(side, &mut held)?;
     let game = game.settle(&mut held)?;
-    emit(&game.view(Some(side), false)?, format)?;
-    Ok(Verdict::Yes)
+    game.view(Some(side), false)
 }
 
 /// Reads `--side`, which every operation but `new` names itself by.

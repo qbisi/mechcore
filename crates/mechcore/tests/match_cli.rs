@@ -477,3 +477,76 @@ fn a_command_without_a_side_says_so() {
     assert_eq!(answer.error["kind"], "usage");
     assert_eq!(answer.error["operation"], "match.show");
 }
+
+/// Writes request lines to a shell opened on one side of a match, and answers
+/// the result lines it wrote back, one per request.
+fn requests(path: &str, side: &str, lines: &[String]) -> Vec<Value> {
+    use std::io::Write;
+    let mut child = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args(["shell", path, "--side", side, "--json"])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut input = child.stdin.take().unwrap();
+    for line in lines {
+        writeln!(input, "{line}").unwrap();
+    }
+    drop(input);
+    let output = child.wait_with_output().unwrap();
+    assert!(output.status.success());
+    String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect()
+}
+
+#[test]
+fn a_request_stream_plays_the_side_its_shell_was_opened_on() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    let view = run(&["match", "show", &path, "--side", "red"]).ok();
+    let offer = &view["sides"]["red"]["offers"][0];
+    let decision = serde_json::json!({
+        "type": "choose_advance_team",
+        "index": 0,
+        "name": offer["team"],
+        "specialist": offer["specialist"],
+    });
+    let answers = requests(
+        &path,
+        "red",
+        &[
+            r#"{"op": "match.show"}"#.to_owned(),
+            serde_json::json!({"op": "match.act", "decision": decision, "dry_run": true})
+                .to_string(),
+            r#"{"op": "match.commit"}"#.to_owned(),
+            serde_json::json!({"op": "match.act", "decision": decision}).to_string(),
+            r#"{"op": "match.commit"}"#.to_owned(),
+            r#"{"op": "match.show", "wait": 0.2}"#.to_owned(),
+        ],
+    );
+    assert_eq!(answers.len(), 6);
+    // A request names no side, and every answer is the side the shell plays.
+    assert_eq!(answers[0]["side"], "red");
+    assert_eq!(answers[0]["phase"], "opening");
+    // A dry run keeps nothing, so the commit after it has nothing to write
+    // and is answered with the refusal, on the line its result would be.
+    assert_eq!(
+        answers[1]["sides"]["red"]["decisions"][0]["type"],
+        "choose_advance_team"
+    );
+    assert_eq!(answers[2]["schema"], "mechcore.error");
+    assert_eq!(answers[2]["operation"], "match.commit");
+    assert_eq!(answers[4]["sides"]["red"]["committed"], true);
+    // Blue has not opened, so a bounded wait answers the phase it is still in.
+    assert_eq!(answers[5]["phase"], "opening");
+}
+
+#[test]
+fn a_request_stream_plays_one_match() {
+    let answer = run(&["shell", "--json"]);
+    assert_eq!(answer.code, 2);
+    assert_eq!(answer.error["kind"], "usage");
+}

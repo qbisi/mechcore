@@ -997,8 +997,8 @@ reaches the game reaches it here, rather than around it.
 
 `shell` opens a prompt whose every line is a command with the program name
 dropped, so a line in the shell and a command are the same text.
-Options: `--json`, and a match document to open with the `--side` to play it
-as. The game is not among them: a prompt is a session, and a session acquires
+Operands: a match document to open, which then needs the `--side` to play it
+as. Options: `--side blue|red`, and `--json`, which needs the match. The game is not among them: a prompt is a session, and a session acquires
 by saying so, with `game launch --level 3` or `game attach`. A shell opens
 without a game and refuses the game's operations until it holds one.
 
@@ -1020,9 +1020,35 @@ is told once and nothing after that repeats what it already holds.
 `--json` makes the prompt a request stream: one JSON request per line in, one
 JSON result per line out, which is the protocol `arena` speaks to a player.
 Those requests name neither the document nor the side, exactly as an arena's do
-not, so a program written against one runs under the other unchanged. The shell
-holds a session between lines, so a game acquired by one line is still
-acquired for the next.
+not, so a program written against one runs under the other unchanged. A stream
+plays the one match it was opened on, so `--json` takes the match and its
+`--side` too, and a stream has nothing else to say: the game's operations and
+the file verbs stay the prompt's, whose session holds a game acquired by one
+line for the next.
+
+A request is one of `match`'s operations, named by `op`, with that operation's
+options as its fields:
+
+```json
+{"op": "match.show"}
+{"op": "match.show", "wait": 30}
+{"op": "match.act", "decision": {"type": "buy_unit", "name": "marksman"}, "dry_run": true}
+{"op": "match.commit"}
+```
+
+`wait` is `--wait`: `true` waits as long as it takes and a number of seconds
+bounds it. `decision` is the decision as the [action](../document/action.md)
+spec writes it, and `dry_run` is `--dry-run`, false when left out. A field the
+operation does not take is refused rather than ignored. The result is what the
+operation answers as a command, on one line; a failure is the error object a
+command writes to standard error, written on that same line instead, since a
+stream has one place to answer in, and the next request is read as if nothing
+had failed.
+
+In the prompt a decision is one word however many spaces it holds:
+`act {type: move_unit, index: 7, position: {x: 40, y: -150}}` splits at no
+space inside its braces, and a quoted word, such as a path with a space in it,
+keeps its spaces and drops its quotes.
 
 ## `man`
 

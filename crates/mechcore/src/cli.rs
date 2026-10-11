@@ -107,6 +107,12 @@ impl Failure {
     /// A prompt writes one and reads the next line; a command writes one and
     /// exits, and both say the same thing in the same place.
     pub(crate) fn write(&self, operation: &str) {
+        eprintln!("{}", self.object(operation));
+    }
+
+    /// The contract's error object, which a request stream answers in place
+    /// of a result.
+    pub(crate) fn object(&self, operation: &str) -> serde_json::Value {
         let mut error = serde_json::json!({
             "schema": "mechcore.error",
             "kind": self.kind.name(),
@@ -116,7 +122,7 @@ impl Failure {
         if !self.sites.is_empty() {
             error["sites"] = serde_json::json!(self.sites);
         }
-        eprintln!("{error}");
+        error
     }
 
     /// Writes the failure and answers the exit code its kind decides.
@@ -321,6 +327,12 @@ impl Args {
             Some(value) => Format::parse(&value),
             None => Ok(Format::default()),
         }
+    }
+
+    /// Everything left, options and operands alike, for a caller that hands
+    /// the line on to another reader.
+    pub(crate) fn rest(self) -> Vec<String> {
+        self.items
     }
 
     /// Whether anything is left to read.
