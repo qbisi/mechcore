@@ -16,6 +16,10 @@ use crate::kind::Kind;
 /// link between two documents names a topic the same way a reader would.
 static TOPICS: &[(&str, &str)] = &[
     (
+        "rules/action_legality",
+        include_str!("../../../docs/rules/action_legality.md"),
+    ),
+    (
         "rules/battle_skill",
         include_str!("../../../docs/rules/battle_skill.md"),
     ),
