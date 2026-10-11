@@ -49,9 +49,12 @@ const MODELS = [
   ['raiden', false],
   ['abyss', false],
   ['mountain', false],
+  ['larva', false],
+  ['spider_mine', false],
+  ['sentry_missile', false],
   ['energy_tower', true],
   ['research_center', true], ['anti_armor_turret', true], ['rapid_fire_turret', true],
-  ['defensive_wall', true],
+  ['defensive_wall', true], ['interceptor', true],
 ];
 const PIXELS_PER_METRE = 16;
 

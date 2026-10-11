@@ -43,9 +43,13 @@
     raiden: 'Raiden',
     abyss: 'Abyss',
     mountain: 'Mountain',
+    larva: 'Larva',
+    spider_mine: 'Spider Mine',
+    sentry_missile: 'Sentry Missile',
     energy_tower: 'Energy Tower',
     research_center: 'Research Center', anti_armor_turret: 'Anti-Armor Cannon',
     rapid_fire_turret: 'Rapid-Fire Cannon', defensive_wall: 'Defensive Wall',
+    interceptor: 'Missile Interceptor',
   };
   const MOTION = ['idle', 'moving', 'attacking', 'stopped', 'transitioning'];
   // A melee strike's swing: how long before the blow it starts, and how long
@@ -141,7 +145,7 @@
   for (const p of data.projectiles) {
     const n = p.to - p.from + 1;
     const o = {
-      what: 'projectile', id: p.id, team: p.team, owner: p.owner, target: p.target,
+      what: 'projectile', id: p.id, team: p.team, owner: p.owner, target: p.target, kind: p.kind,
       from: p.from, to: p.to, n,
       X: decode(p.x, n, 0.01), Y: decode(p.y, n, 0.01), Z: decode(p.z, n, 0.01), gone: null, by: null,
     };
@@ -763,6 +767,29 @@
       const head = projectileAt(p, tau);
       if (!head) continue;
       const kind = p.by ? p.by.kind : '';
+      if (p.kind === 'missile') {
+        // a Sentry Missile is its own projectile: drawn along its flight,
+        // over the smoke it trails
+        const back = projectileAt(p, Math.max(p.from - 1, tau - 0.6)) || head;
+        const facing = (Math.atan2(head.x - back.x, head.z - back.z) * 1800) / Math.PI;
+        screen();
+        ctx.save();
+        ctx.lineCap = 'round';
+        const g = ctx.createLinearGradient(sx(back.x), sy(back.z), sx(head.x), sy(head.z));
+        g.addColorStop(0, 'rgba(160,160,160,0)');
+        g.addColorStop(1, 'rgba(200,200,200,0.5)');
+        ctx.strokeStyle = g;
+        ctx.lineWidth = Math.max(2, 1.6 * view.s);
+        ctx.beginPath();
+        ctx.moveTo(sx(back.x), sy(back.z));
+        ctx.lineTo(sx(head.x), sy(head.z));
+        ctx.stroke();
+        ctx.restore();
+        const pose = resetPose(p.team);
+        place(head.x, head.z, facing);
+        Sprites.drawUnit(ctx, 'sentry_missile', pose, 1);
+        continue;
+      }
       if (kind === 'arclight') {
         // the ring and the fainter puffs it has shed behind it, swelling as
         // they go

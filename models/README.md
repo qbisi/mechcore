@@ -57,8 +57,12 @@ the game is in them.
 | `raiden` | Raiden | ![](raiden.svg) |
 | `abyss` | Abyss | ![](abyss.svg) |
 | `mountain` | Mountain | ![](mountain.svg) |
+| `larva` | Larva | ![](larva.svg) |
+| `spider_mine` | Spider Mine | ![](spider_mine.svg) |
+| `sentry_missile` | Sentry Missile | ![](sentry_missile.svg) |
 | `energy_tower` | Energy Tower | ![](energy_tower.svg) |
 | `research_center` | Research Center | ![](research_center.svg) |
 | `anti_armor_turret` | Anti-Armor Cannon | ![](anti_armor_turret.svg) |
 | `rapid_fire_turret` | Rapid-Fire Cannon | ![](rapid_fire_turret.svg) |
 | `defensive_wall` | Defensive Wall, one block | ![](defensive_wall.svg) |
+| `interceptor` | Missile Interceptor | ![](interceptor.svg) |

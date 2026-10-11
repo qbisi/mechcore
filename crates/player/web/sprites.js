@@ -55,6 +55,9 @@ const Sprites = (() => {
     raiden: '#00c2ff',
     abyss: '#f975ff',
     mountain: '#fb9a39',
+    larva: '#32677e',
+    spider_mine: '#81d01c',
+    sentry_missile: '#ff8809',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -85,7 +88,11 @@ const Sprites = (() => {
     raiden: [30.4, 45.8],
     abyss: [53.4, 54.4],
     mountain: [66.4, 40.6],
+    larva: [11.6, 20],
+    spider_mine: [4.6, 4.8],
+    sentry_missile: [1.6, 15.4],
     energy_tower: [22, 22], research_center: [22, 22],
+    interceptor: [8, 9.8],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
 
@@ -2658,6 +2665,64 @@ const Sprites = (() => {
     paint(c, T.accent);
   }
 
+  // Larva: a Sandworm's young, its model the Sandworm's own mesh at half its
+  // size (Mech_Default_1001_1, 11.5 m by 19.8 m against 22.3 m by 39.6 m).
+  function larva(c, p) {
+    c.scale(0.5, 0.5);
+    sandworm(c, p);
+  }
+
+  // Spider Mine: a red drum on four splayed legs, each foot white with an
+  // orange lamp, a slot across the drum's top; it lights as it goes off.
+  function spider_mine(c, p) {
+    const T = p.team;
+    const stride = Math.min(1, p.speed / 4) * 0.25;
+    const ph = p.walk * Math.PI * 2 / 2;
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      const off = Math.sin(ph + (sx * sy > 0 ? 0 : Math.PI)) * stride;
+      c.save();
+      c.translate(sx * 1.45, sy * 1.45 + off);
+      c.rotate(Math.atan2(sx, -sy));
+      rr(c, -0.12, 0.1, 0.24, 0.9, 0.05);
+      paint(c, M.dark);
+      rr(c, -0.42, -0.75, 0.84, 1.0, 0.2);
+      paint(c, M.white);
+      rr(c, -0.22, -0.15, 0.44, 0.3, 0.05);
+      paint(c, M.caution, null);
+      c.restore();
+    }
+    circle(c, 0, 0, 0.92);
+    paint(c, T.accent);
+    circle(c, 0, 0.05, 0.55);
+    paint(c, T.deep, null);
+    rr(c, -0.12, -0.9, 0.24, 1.5, 0.05);
+    paint(c, M.darker, null);
+    glow(c, 0, -0.1, 0.6, GLOW.spider_mine, 0.4 + (p.strike >= 0 ? 0.6 : 0));
+  }
+
+  // Sentry Missile, in flight: a long dark missile with an orange nose and
+  // band, its engine at the tail burning; it is drawn along its flight.
+  function sentry_missile(c, p) {
+    const T = p.team;
+    glow(c, 0, 7.6, 2.0, GLOW.sentry_missile, 0.9);
+    rr(c, -0.7, 3.4, 1.4, 3.0, 0.2);
+    paint(c, M.dark);
+    poly(c, [-0.2, 3.9, 0.2, 3.9, 0, 5.9]);
+    paint(c, GLOW.sentry_missile, null);
+    rr(c, -0.55, 6.5, 1.1, 0.8, 0.1);
+    paint(c, M.darker);
+    rr(c, -0.45, 1.6, 0.9, 1.6, 0.1);
+    paint(c, '#e8894a');
+    rr(c, -0.62, -6.1, 1.24, 7.6, 0.3);
+    paint(c, M.mid);
+    rr(c, -0.12, -6.0, 0.24, 7.4, 0.05);
+    paint(c, M.white, null);
+    poly(c, [0, -7.6, 0.6, -7.0, 0.62, -6.0, -0.62, -6.0, -0.6, -7.0]);
+    paint(c, T.accent);
+    poly(c, [0, -7.6, 0.2, -7.3, 0.2, -6.0, -0.2, -6.0, -0.2, -7.3]);
+    paint(c, M.white, null);
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -2679,7 +2744,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion, fortress, vulcan, melting_point, overlord, war_factory, sandworm, raiden, abyss, mountain };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion, fortress, vulcan, melting_point, overlord, war_factory, sandworm, raiden, abyss, mountain, larva, spider_mine, sentry_missile };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
@@ -2902,6 +2967,53 @@ const Sprites = (() => {
     c.restore();
   }
 
+  // Missile Interceptor: a pod landed on four splayed legs, white plates
+  // round a domed top, and a gatling in the team's colour that turns to the
+  // missile it shoots down.
+  function interceptor(c, p) {
+    const T = p.team;
+    for (const [x, y, a] of [[-2.7, -2.6, -0.8], [2.7, -2.6, 0.8], [-3.5, 0.9, -1.9], [3.5, 0.9, 1.9], [0, 3.3, Math.PI]]) {
+      c.save();
+      c.translate(x, y);
+      c.rotate(a);
+      rr(c, -0.55, -0.7, 1.1, 1.4, 0.2);
+      paint(c, M.dark);
+      rr(c, -0.35, 0.6, 0.7, 1.6, 0.1);
+      paint(c, M.steel);
+      c.restore();
+    }
+    rr(c, -2.6, -1.2, 1.4, 2.6, 0.3);
+    paint(c, M.white);
+    rr(c, 1.4, -0.5, 1.4, 1.2, 0.3);
+    paint(c, M.white);
+    for (const [x, y] of [[-1.6, -1.6], [1.6, -1.6], [-1.6, 1.7], [1.6, 1.7]]) {
+      circle(c, x, y, 0.35);
+      paint(c, M.mid);
+    }
+    c.save();
+    c.translate(0, 0.4);
+    c.rotate(p.turret);
+    const spin = p.fireAge < 0.3 ? p.t * 40 : 0;
+    rr(c, -0.45, -6.4, 0.9, 4.0, 0.15);
+    paint(c, M.darker);
+    for (let i = 0; i < 3; i++) {
+      const x = Math.sin(spin + (i * 2 * Math.PI) / 3) * 0.25;
+      line(c, x, -6.3, x, -2.6, M.steel, 0.1);
+    }
+    poly(c, [-0.55, -2.9, 0.55, -2.9, 0.75, -1.3, -0.75, -1.3]);
+    paint(c, T.accent);
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 0.55, -2.4, sx * 0.95, -2.6, sx * 0.9, -2.0]);
+      paint(c, M.white);
+    }
+    circle(c, 0, 0, 1.45);
+    paint(c, M.white);
+    circle(c, 0, 0, 0.6);
+    paint(c, M.pale, null);
+    flash(c, 0, -6.7, 1.2, '#ffcf70', p.fireAge, 0.08, p.fireIndex);
+    c.restore();
+  }
+
   // One block of a Defensive Wall, its capped front toward the enemy.
   function wallBlock(c, p) {
     const T = p.team;
@@ -2942,6 +3054,7 @@ const Sprites = (() => {
     anti_armor_turret: antiArmorTurret,
     rapid_fire_turret: rapidFireTurret,
     defensive_wall: wallBlock,
+    interceptor,
   };
 
   function drawBuilding(c, kind, p, width, depth) {
