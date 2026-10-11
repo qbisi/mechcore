@@ -269,6 +269,10 @@ pub enum Cue {
         at: Option<Ref>,
         #[serde(skip_serializing_if = "Option::is_none")]
         weapon: Option<i32>,
+        /// The radius the firing skill splashes over, in centimetres, as its
+        /// `splash_range` stood on the tick it fired; none when it does not.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        splash: Option<i64>,
     },
     /// `at` lost `n` life or energy, carried by projectile `p` if one did.
     Hit {
@@ -279,6 +283,10 @@ pub enum Cue {
         n: i32,
         #[serde(skip_serializing_if = "Option::is_none")]
         p: Option<u64>,
+        /// The radius the blow splashes over, in centimetres, when no
+        /// projectile carried it and its skill splashes.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        splash: Option<i64>,
     },
     Heal {
         t: u32,
@@ -375,6 +383,9 @@ struct Builder<'a> {
     /// holds poses: the clip's index and the normalized time in thousandths.
     poses: Option<HashMap<(u32, u64), (i64, i64)>>,
     clips: Vec<String>,
+    /// Each unit's skills' splash radius in centimetres, by unit and skill
+    /// slot, as it stood on the last tick read.
+    splashes: BTreeMap<(u64, u16), i64>,
 }
 
 impl<'a> Builder<'a> {
@@ -389,6 +400,7 @@ impl<'a> Builder<'a> {
             reach: (0, 0),
             poses: None,
             clips: Vec::new(),
+            splashes: BTreeMap::new(),
         }
     }
 
@@ -428,6 +440,14 @@ impl<'a> Builder<'a> {
 
     fn unit(&mut self, tick: u32, state: &LiveUnitState) {
         let position = centimetres3(state.position);
+        for skill in &state.skills {
+            let splash = skill
+                .enabled
+                .as_ref()
+                .map_or(0, |enabled| centimetres(enabled.splash_range));
+            self.splashes
+                .insert((state.unit_id, skill.skill_slot), splash);
+        }
         self.reach(position.0, position.2);
         let unit = self.units.entry(state.unit_id).or_insert_with(|| Unit {
             id: state.unit_id,
@@ -622,31 +642,61 @@ impl<'a> Builder<'a> {
         shield.active.push(i64::from(state.active));
     }
 
+    /// The splash radius of a unit's skill, in centimetres, as it stood on the
+    /// last tick read; none when the source is no unit, the slot is unknown
+    /// or the skill does not splash.
+    fn splash(&self, source: Option<ObjectRef>, slot: Option<u16>) -> Option<i64> {
+        let source = source.filter(|source| source.kind == ObjectKind::Unit)?;
+        let splash = *self.splashes.get(&(source.id, slot?))?;
+        (splash > 0).then_some(splash)
+    }
+
+    /// The cue a released projectile makes.
+    fn fire(&self, t: u32, event: &Event, weapon: Option<i32>, slot: Option<u16>) -> Option<Cue> {
+        let projectile = event.subject?;
+        Some(Cue::Fire {
+            t,
+            p: projectile.id,
+            by: event.source.map(Ref),
+            at: event.target.map(Ref),
+            weapon,
+            splash: self.splash(event.source, slot),
+        })
+    }
+
+    /// The cue a blow makes: its splash when no projectile carried it.
+    fn hit(&self, t: u32, event: &Event, amount: i32, slot: Option<u16>) -> Option<Cue> {
+        let target = event.target?;
+        let p = event.subject.map(|projectile| projectile.id);
+        Some(Cue::Hit {
+            t,
+            at: Ref(target),
+            by: event.source.map(Ref),
+            n: amount,
+            p,
+            splash: p
+                .is_none()
+                .then(|| self.splash(event.source, slot))
+                .flatten(),
+        })
+    }
+
     fn cue(&mut self, t: u32, event: &Event) {
         let cue = match &event.payload {
-            EventPayload::ProjectileReleased { weapon_index, .. } => {
-                let Some(projectile) = event.subject else {
+            EventPayload::ProjectileReleased {
+                weapon_index,
+                skill_slot,
+            } => {
+                let Some(cue) = self.fire(t, event, *weapon_index, *skill_slot) else {
                     return;
                 };
-                Cue::Fire {
-                    t,
-                    p: projectile.id,
-                    by: event.source.map(Ref),
-                    at: event.target.map(Ref),
-                    weapon: *weapon_index,
-                }
+                cue
             }
-            EventPayload::Damage { amount, .. } => {
-                let Some(target) = event.target else {
+            EventPayload::Damage { amount, skill_slot } => {
+                let Some(cue) = self.hit(t, event, *amount, *skill_slot) else {
                     return;
                 };
-                Cue::Hit {
-                    t,
-                    at: Ref(target),
-                    by: event.source.map(Ref),
-                    n: *amount,
-                    p: event.subject.map(|projectile| projectile.id),
-                }
+                cue
             }
             EventPayload::Healing { amount } => {
                 let Some(target) = event.target else {
