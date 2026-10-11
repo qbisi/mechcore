@@ -147,6 +147,8 @@ A match is refused when a replay cannot hold it, and the refusal names why:
 
 - a position after its last decisions, which no replay records;
 - a side without an opening or without a seed;
+- a deal that does not verify, such as a round two answers of one side take,
+  since the random streams a replay records are where the deal leaves them;
 - a round whose undone position does not open onto the match's, or whose
   decisions do not step, or put something where the board already has
   something, which the game would refuse;

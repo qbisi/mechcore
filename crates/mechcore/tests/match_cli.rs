@@ -639,3 +639,35 @@ fn a_round_opens_with_its_reinforcement_answer() {
     decline(&path, "blue");
     run(&["match", "act", &path, "--side", "blue", "--dry-run", &buy]).ok();
 }
+
+#[test]
+fn a_match_whose_deal_does_not_verify_is_not_written_as_a_replay() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    for side in ["blue", "red"] {
+        run(&["match", "commit", &path, "--side", side]).ok();
+    }
+    for side in ["blue", "red"] {
+        decline(&path, side);
+        run(&["match", "commit", &path, "--side", side]).ok();
+    }
+
+    // A second answer in one round is one `match act` refuses, so it is
+    // written into the document by hand.
+    let document = fs::read_to_string(&path).unwrap();
+    let round = "kind: action\nround: 2\nblue:\n";
+    let at = document.find(round).unwrap() + round.len();
+    let answer = &document[at..=at + document[at..].find('\n').unwrap()];
+    assert!(answer.contains("decline_offer"), "{answer}");
+    fs::write(
+        &path,
+        format!("{}{answer}{}", &document[..at], &document[at..]),
+    )
+    .unwrap();
+
+    let replay = directory.path().join("m.grbr").display().to_string();
+    let refused = run(&["convert", &path, "--to", "grbr", &replay]).refused();
+    assert!(refused.contains("deal does not verify"), "{refused}");
+    assert!(!Path::new(&replay).exists());
+}
