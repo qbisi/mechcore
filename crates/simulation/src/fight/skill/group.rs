@@ -664,6 +664,18 @@ impl Simulation {
                 // that fells a block reads `performCount` 1 that tick.
                 if self.skill(skill_ref).kind == SkillKind::Strike {
                     self.direct_effect(actor_id, target, skill_index, events)?;
+                } else if self.skill(skill_ref).standalone() {
+                    // A standalone weapon's skill fires its burst at a block
+                    // as at a unit, each projectile at its own offset: a
+                    // Mountain's three side launchers land about a wall's
+                    // centre, not on it.
+                    self.release_standalone_projectile(
+                        actor_id,
+                        skill_index,
+                        target,
+                        step,
+                        events,
+                    )?;
                 } else {
                     let aimed = self.attack_position(
                         skill_ref.owner,
@@ -831,10 +843,19 @@ impl Simulation {
             return;
         }
         // `CalculateTargetDirection` asks the weapon holding the motion for
-        // its lock (`GetLockTarget`), idle or not.
+        // its lock (`GetLockTarget`), idle or not, and turns to the skill's
+        // attack target where it holds a valid one
+        // (`FightSkill.TryGetValidAttackTarget`): a Mountain locked on a
+        // tower turns onto the block of wall its guns fire at.
         let holder = skill.group.as_ref().map_or(0, |group| group.motion_slot);
         let aim = skill
             .slot_lock(holder)
+            .map(|lock| {
+                skill
+                    .group_attack_target(holder)
+                    .filter(|&target| self.fight_actor_is_alive(target))
+                    .unwrap_or(lock)
+            })
             .and_then(|target| self.fight_actor(target))
             .map(|view| {
                 direction_degrees_q32_raw(

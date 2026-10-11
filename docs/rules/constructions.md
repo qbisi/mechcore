@@ -306,6 +306,10 @@ The map's own buildings are the exception and are named: each side gets one
 - A battle skill's strike and a summon's drop strike constructions:
   `tests/battle_skill/strike-construction.yaml`,
   `tests/battle_skill/drop-spares-tower.yaml`.
+- A Mountain locked on a tower fires its four standalone guns at the block in
+  their way, each shot at its own offset about the block as at a unit, and
+  turns its turret onto the block, its attack target:
+  `tests/mountain/guns-fire-at-a-wall-in-the-way.yaml`.
 
 ### Read
 
