@@ -232,7 +232,8 @@ Overlord and `1616` for Phoenix.
 ```
 
 Activates a Research Center blueprint and adds it to `blueprints`. A blueprint
-that grants a commander skill puts it on `battle_skills`.
+that grants a commander skill puts it on `battle_skills`. A blueprint already in
+`blueprints` is refused.
 
 A chain's second level replaces its first in `blueprints` rather than joining
 it. A chain blueprint also hands the side an Officer, but a state names the
@@ -247,7 +248,8 @@ documents are complete; they disagree on purpose.
 ```
 
 Activates one Energy Tower skill for this round. Every one of them is a
-one-round effect, so nothing carries into the next round's Settled group.
+one-round effect, so nothing carries into the next round's Settled group. A
+skill already active this round is refused.
 
 Costs the skill's price less what it grants back at once. A skill may also owe
 against the next round's income, and one raises the shop's level for the rest of

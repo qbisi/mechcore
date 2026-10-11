@@ -290,6 +290,10 @@ pub fn step_placing(
             free_to_move(&mut next);
         }
         Action::ActiveBlueprint { id } => {
+            // `BlueprintManager.CanActive` answers `RepeatAction` for one active.
+            if state.blueprints.contains(id) {
+                return Err(Unsettled::Refused("activating a blueprint already active"));
+            }
             next.supply -= economy
                 .blueprint(*id)
                 .ok_or(Unsettled::Unpriced("blueprint"))?;
@@ -303,6 +307,13 @@ pub fn step_placing(
             }
         }
         Action::ActiveEnergyTowerSkill { skill } => {
+            // `EnergyTowerManager.CanActiveSkill` answers `RepeatAction` for one
+            // active this round.
+            if state.energy_tower_skills.contains(skill) {
+                return Err(Unsettled::Refused(
+                    "activating an energy tower skill already active this round",
+                ));
+            }
             let row = economy
                 .energy_tower_skill(*skill)
                 .ok_or(Unsettled::Unpriced("energy tower skill"))?;
@@ -1989,6 +2000,24 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             step(economy, &state, &fitted),
             Err(Unsettled::Missing("equipment"))
         );
+    }
+
+    /// A blueprint or an energy tower skill already active is not activated
+    /// again: the game answers `RepeatAction`, where stepping it would pay a
+    /// second Rapid Resupply or put a second skill on the panel.
+    #[test]
+    fn an_active_item_is_not_activated_again() {
+        let economy = Economy::embedded().unwrap();
+        for activated in [
+            Action::ActiveEnergyTowerSkill { skill: 1 },
+            Action::ActiveBlueprint { id: 2 },
+        ] {
+            let once = step(economy, &solvent(), &activated).unwrap();
+            assert!(
+                matches!(step(economy, &once, &activated), Err(Unsettled::Refused(_))),
+                "{activated:?}"
+            );
+        }
     }
 
     /// A release is the only decision that moves the contraption allocator.
