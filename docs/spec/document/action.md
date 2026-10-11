@@ -360,7 +360,9 @@ Releases the skill in panel slot `index`, which holds the skill `name`. The slot
 is what the game releases and what a retraction matches on; the skill is stated
 beside it so that a release reads without the panel. A release whose slot does
 not hold that skill at that point in the round is refused, and the panel can change
-within a round, since a card or a blueprint adds a skill to it.
+within a round, since a card or a blueprint adds a skill to it. A release aimed at a
+unit or a construction is refused while its slot is `used`, holds a release or
+has a `cooldown` above zero; one aimed at an area is not.
 
 `target` is a mapping with exactly one of three keys, never two:
 

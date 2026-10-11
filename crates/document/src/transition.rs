@@ -457,16 +457,28 @@ fn release(
             .count(),
     )
     .unwrap_or(0);
-    let id = next
+    let held = next
         .battle_skills
         .iter()
         .find(|skill| skill.index == slot)
-        .map(|skill| skill.id)
         .ok_or(Unsettled::Missing("panel slot"))?;
+    let id = held.id;
     // The slot is what the game releases; a decision naming another skill
     // there describes a panel this position does not hold.
     if id != named {
         return Err(Unsettled::Missing("panel skill"));
+    }
+    // A release aimed at an object is refused while its slot is active or
+    // cooling; one aimed at an area is checked for where it falls alone.
+    if !matches!(target, SkillTarget::Area(_)) {
+        if held.used || held.release.is_some() {
+            return Err(Unsettled::Refused(
+                "releasing a skill already released this round",
+            ));
+        }
+        if held.cooldown > 0 {
+            return Err(Unsettled::Refused("releasing a skill still cooling"));
+        }
     }
     if crate::mobility::REDEPLOY_SKILLS.contains(&id) {
         let SkillTarget::Unit(index) = target else {
@@ -2249,6 +2261,33 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             step(economy, &state, &released),
             Err(Unsettled::Missing("panel skill"))
         );
+    }
+
+    /// A slot aimed at a formation is not released again in its round, nor
+    /// while it cools.
+    #[test]
+    fn an_active_or_cooling_slot_is_not_released_at_a_formation() {
+        let economy = Economy::embedded().unwrap();
+        let mut state = side_holding(&[
+            (5, Position { x: 0, y: -160 }),
+            (6, Position { x: 40, y: -160 }),
+        ]);
+        state.battle_skills = vec![slot(0, 900_001, 0)];
+        let at = |unit| Action::ReleaseCommanderSkill {
+            index: 0,
+            id: 900_001,
+            target: crate::r#match::SkillTarget::Unit(unit),
+        };
+        let once = step(economy, &state, &at(5)).unwrap();
+        assert!(matches!(
+            step(economy, &once, &at(6)),
+            Err(Unsettled::Refused(_))
+        ));
+        state.battle_skills = vec![slot(0, 900_001, 1)];
+        assert!(matches!(
+            step(economy, &state, &at(5)),
+            Err(Unsettled::Refused(_))
+        ));
     }
 
     /// Field Recovery pays back what a formation cost and returns what it wore.
