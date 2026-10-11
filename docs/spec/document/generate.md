@@ -113,6 +113,36 @@ The generator never assigns such a pair:
 - the same officer in `officer.first` and `officer.second`, unless its card
   may be taken again.
 
+### Officers that need something to change
+
+Some officers change a fight only through something else its side holds, and
+beside a side without it they change nothing, so the pair they appear in is
+covered by a layout that never tests it. The generator never assigns an
+officer in `officer.first`, `officer.second` or `opening` to a side that holds
+nothing it reaches:
+
+- one whose row in [`config/officer_effects.yaml`](../../../config/officer_effects.yaml)
+  targets units by a category rather than all of them, `mech_type` other than
+  `0` and `11`, beside a side none of whose placed units it reaches, as
+  `IsEffectTarget` reads them: Aerial Specialist with no air unit, Advanced
+  Targeting System with only melee ones;
+- Advanced Shield Device, whose `energy_shield_rate` corrects the shield, with
+  `contraption` other than `shield`, and Advanced Missile Device, whose
+  `land_mine_rate` corrects the missile, with `contraption` other than
+  `missile`;
+- Quick Teleport, whose `super_deployment_time_rate` corrects travel, beside a
+  side whose lead unit does not travel: in round `1`, at a `lead.depth` other
+  than `flank`, with `lead.source: legacy`, or of a type no flank takes;
+- an opening specialist with no row there, which changes a fight only by the
+  squad it delivers, in a round that is not one of its rounds, or beside
+  another on the other side whose rounds it shares none of.
+
+A side's placed units are its lead unit, its second and the squad its opening
+delivers. A unit a fight makes, a summon or a production line's, is not
+asked: an officer it alone would reach is still never assigned. These rules
+read up to four factors together, so a pair they hold apart is still
+admitted, and only the layouts that complete it are constrained.
+
 A value that is legal with every other value on its own may still meet a
 combination the layout refuses, such as a footprint no free cell takes. Those
 are found by realizing the layout, below, and not listed here.
