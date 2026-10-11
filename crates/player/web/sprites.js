@@ -44,6 +44,7 @@ const Sprites = (() => {
     wraith: '#caff98',
     scorpion: '#c8ffef',
     typhoon: '#00b9fa',
+    farseer: '#c1b936',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -63,6 +64,7 @@ const Sprites = (() => {
     wraith: [26.8, 26.8],
     scorpion: [27, 24.2],
     typhoon: [21.8, 21.4],
+    farseer: [16, 23.6],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -1790,6 +1792,91 @@ const Sprites = (() => {
     c.restore();
   }
 
+  // Farseer: an eight-wheeled rover, a red bumper and wheel guards at its
+  // front, a white hull carrying a small turret and a red sensor ball ahead,
+  // a cable reel on its right, and at its back, between two red blocks, a
+  // faceted dome whose facets turn.
+  const FARSEER_FACETS = ['#c7a6f0', '#f2d544', '#3f5fa8', '#e8ecf1', '#9fd6f2', '#d9d0b0'];
+  function farseer(c, p) {
+    const T = p.team;
+    const roll = (p.walk * 1.5) % 1.1;
+    // the wheels
+    for (const sx of [-1, 1]) {
+      for (const y of [-9.0, -3.3, 2.6, 8.3]) {
+        rr(c, sx * 6.5 - 1.0, y - 2.2, 2.0, 4.4, 0.8);
+        paint(c, '#6b5a48');
+        c.save();
+        rr(c, sx * 6.5 - 1.0, y - 2.2, 2.0, 4.4, 0.8);
+        c.clip();
+        for (let k = y - 2.6 + roll; k < y + 2.2; k += 1.1) line(c, sx * 5.5, k, sx * 7.5, k, '#4a3d31', 0.25);
+        c.restore();
+      }
+    }
+    // the bumper and the guards at the front
+    rr(c, -7.9, -10.6, 15.8, 1.2, 0.2);
+    paint(c, T.accent);
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 7.45 - 0.45, -12.3, 0.9, 5.7, 0.2);
+      paint(c, T.accent);
+      circle(c, sx * 7.2, -8.6, 0.25);
+      paint(c, M.pale);
+    }
+    // the hull
+    poly(c, [-3.4, -11.3, 3.4, -11.3, 5.4, -7.0, 5.4, 2.6, 3.0, 3.6, 3.0, 10.2, -3.0, 10.2, -3.0, 3.6, -5.4, 2.6, -5.4, -7.0]);
+    paint(c, M.white);
+    rr(c, -1.2, -10.2, 2.4, 0.6, 0.1);
+    paint(c, '#6b4a2a', null);
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 2.6 - 0.9, -9.0, 1.8, 1.0, 0.15);
+      paint(c, M.darker, null);
+      rr(c, sx * 2.0 - 0.6, -1.9, 1.2, 0.7, 0.1);
+      paint(c, T.accent);
+    }
+    poly(c, [-1.6, -2.4, 1.6, -2.4, 1.2, 2.4, -1.2, 2.4]);
+    paint(c, M.dark, null);
+    poly(c, [-2.2, -6.3, 2.2, -6.3, 2.0, -2.8, -2.0, -2.8]);
+    paint(c, T.accent);
+    // the reel on the right
+    circle(c, 5.6, -0.6, 1.2);
+    paint(c, M.dark);
+    rr(c, 4.5, -0.85, 2.2, 0.5, 0.1);
+    paint(c, T.accent, null);
+    circle(c, 5.6, -0.6, 0.4);
+    paint(c, M.pale);
+    // the sensor ball and the turret ahead
+    circle(c, -3.6, -4.3, 1.4);
+    paint(c, T.accent);
+    rr(c, -3.9, -7.6, 0.6, 2.6, 0.1);
+    paint(c, M.pale);
+    c.save();
+    c.translate(0, -7.4);
+    c.rotate(p.turret);
+    rr(c, -0.2, -2.4, 0.4, 1.6, 0.1);
+    paint(c, M.mid);
+    poly(c, [0, -1.5, 1.3, -0.75, 1.3, 0.75, 0, 1.5, -1.3, 0.75, -1.3, -0.75]);
+    paint(c, T.accent);
+    flash(c, 0, -2.6, 1.0, '#ffcf70', p.fireAge, 0.1, p.fireIndex);
+    c.restore();
+    // the back: red blocks, the dome between them
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 2.5, 3.8, sx * 5.3, 4.2, sx * 5.3, 9.3, sx * 2.5, 9.3]);
+      paint(c, T.accent);
+      poly(c, [sx * 3.0, 5.0, sx * 4.8, 7.0, sx * 3.0, 9.0]);
+      paint(c, T.deep, null);
+    }
+    rr(c, -2.7, 9.5, 5.4, 1.0, 0.2);
+    paint(c, M.white);
+    circle(c, 0, 6.8, 2.05);
+    paint(c, M.white);
+    const turn = p.t * 0.6;
+    for (let i = 0; i < 6; i++) {
+      const a = turn + (i * Math.PI) / 3;
+      poly(c, [0, 6.8, Math.cos(a) * 1.9, 6.8 + Math.sin(a) * 1.9, Math.cos(a + 0.7) * 1.9, 6.8 + Math.sin(a + 0.7) * 1.9]);
+      paint(c, FARSEER_FACETS[i], null);
+    }
+    glow(c, 0, 6.8, 1.6, GLOW.farseer, 0.35);
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -1811,7 +1898,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
