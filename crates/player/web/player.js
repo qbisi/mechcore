@@ -706,16 +706,68 @@
     }
   }
 
-  // A projectile's look follows the weapon that fired it.
+  // A projectile's look follows the weapon that fired it, after the effect
+  // the game flies for that weapon: its colours are the start colours of
+  // the effect's particle systems, its lengths their sizes and stretch.
+  //   bolt: a glowing streak, `colour` at its head fading back along
+  //         `trail` metres, `core` at the head and `tail` its far colour;
+  //   shell: a dark slug trailing smoke and `sparks`;
+  //   missile: a missile `length` metres long, its exhaust burning `flame`
+  //         over a trail of smoke;
+  //   flame: a jet of burning fuel;
+  //   orb: a ball of light `size` metres across, ringed.
   const SHOTS = {
-    marksman: { colour: Sprites.GLOW.marksman, trail: 34, head: 0.9, width: 0.7 },
-    sledgehammer: { colour: '#ffb347', trail: 9, head: 1.0, width: 0.9 },
-    wasp: { colour: Sprites.GLOW.wasp, trail: 7, head: 0.55, width: 0.45 },
-    rapid_fire_turret: { colour: '#ffd36b', trail: 10, head: 0.45, width: 0.4 },
-    anti_armor_turret: { colour: '#ff9b3d', trail: 12, head: 1.3, width: 1.1 },
-    energy_tower: { colour: '#6ff0ff', trail: 14, head: 1.1, width: 0.9 },
+    // efx_2011_mech_changgong_bullet: Bullet #5790ff, a 5 m trail
+    marksman: { style: 'bolt', colour: '#5790ff', trail: 34, head: 0.9, width: 0.7 },
+    // efx_2012_mech_jianya_bullet: arrow #0080ff, 1.5 m
+    fang: { style: 'bolt', colour: '#0080ff', trail: 8, head: 0.5, width: 0.4 },
+    // Oculus_LaserProjectile: Bullet #5790ff, its trail #bc35ff
+    void_eye: { style: 'bolt', colour: '#5790ff', tail: '#bc35ff', trail: 16, head: 0.6, width: 0.6 },
+    // efx_2024_mech_tarantula_bullet: arrow #ff6a31 over #ff3c00, light #ffa900
+    tarantula: { style: 'bolt', colour: '#ff6a31', core: '#ffa900', trail: 12, head: 0.9, width: 0.8 },
+    // efx_2015_mech_fenghuang_bullet_New: core #ff6950, trails #acf6ff
+    phoenix: { style: 'bolt', colour: '#ff6950', tail: '#acf6ff', trail: 18, head: 0.9, width: 0.7 },
+    // efx_2033_Centurion_bullet: an autocannon shell tinted (0.78, 0.59, 0.27)
+    centurion: { style: 'bolt', colour: '#c8964a', tail: '#ffffff', trail: 14, head: 0.8, width: 0.7 },
+    // FX_Mech_Yema_AutoCannonFire: Bullet #ff9242
+    mustang: { style: 'bolt', colour: '#ff9242', trail: 10, head: 0.5, width: 0.45 },
+    wasp: { style: 'bolt', colour: Sprites.GLOW.wasp, trail: 7, head: 0.55, width: 0.45 },
+    // efx_2004_mechtiechui_bullet: glow #fff999, sparks #ffa368
+    sledgehammer: { style: 'shell', colour: '#fff999', sparks: '#ffa368', head: 0.9 },
+    // efx_2001_mech_baolei_03_bullet, Tiger_MainCannonBullet: a 1.5 m shell,
+    // sparks #ff9898
+    fortress: { style: 'shell', colour: '#ffd0b0', sparks: '#ff9898', head: 1.2, smoke: 1 },
+    sabertooth: { style: 'shell', colour: '#ffd0b0', sparks: '#ff9898', head: 1.2, smoke: 1 },
+    // WarFactory_bullet: sparks #99d3ff, a smoke trail
+    war_factory: { style: 'shell', colour: '#dff0ff', sparks: '#99d3ff', head: 1.4, smoke: 1.6 },
+    // no effect of their own found: the large cannon's, FX_LargeCannonFire,
+    // light #ffc06b
+    typhoon: { style: 'shell', colour: '#ffc06b', sparks: '#ffac7b', head: 0.8 },
+    mountain: { style: 'shell', colour: '#ffc06b', sparks: '#ffac7b', head: 1.2, smoke: 1 },
+    // Mech_11_Missile: 7.8 m, sparks #99faff
+    overlord: { style: 'missile', length: 7.8, width: 1.8, flame: '#99faff', smoke: 1.2 },
+    // Mech_12_Projectile: 6.5 m, smoke #ffd9ba
+    stormcaller: { style: 'missile', length: 6.5, width: 1.3, flame: '#ffd9ba', smoke: 1.6 },
+    // Hound_FlameMissile: 3.6 m, sparks #ffdf99
+    hound: { style: 'missile', length: 3.6, width: 0.8, flame: '#ffdf99', smoke: 0.8 },
+    // PhantomRayMissile: 3.0 m
+    phantom_ray: { style: 'missile', length: 3.0, width: 0.85, flame: '#ffffff', smoke: 0.8 },
+    // ProphetAntiAirMissile, KrakenMissile: 4.1 m, muzzle fire #3c87d8
+    farseer: { style: 'missile', length: 4.1, width: 1.2, flame: '#3c87d8', smoke: 1 },
+    abyss: { style: 'missile', length: 4.1, width: 1.2, flame: '#3c87d8', smoke: 1 },
+    // FireBadger_Attack, efx_2020_FireBadger_LongAttack: fuel #ff9485
+    fire_badger: { style: 'flame', colour: '#ff9485', size: 6 },
+    // efx_2008_mech_huoshen_cast
+    vulcan: { style: 'flame', colour: '#ff8a3c', size: 8 },
+    // Mech19_Projectile_Normal: lighten #99ddff, lightning #80ffff
+    scorpion: { style: 'orb', colour: '#99ddff', ring: '#80ffff', size: 5 },
+    // UfoBullet: glow #535585, sparks #fffae8
+    wraith: { style: 'orb', colour: '#c9c8ff', ring: '#fffae8', size: 3 },
+    rapid_fire_turret: { style: 'bolt', colour: '#ffd36b', trail: 10, head: 0.45, width: 0.4 },
+    anti_armor_turret: { style: 'bolt', colour: '#ff9b3d', trail: 12, head: 1.3, width: 1.1 },
+    energy_tower: { style: 'bolt', colour: '#6ff0ff', trail: 14, head: 1.1, width: 0.9 },
   };
-  const DEFAULT_SHOT = { colour: '#f4f4f4', trail: 8, head: 0.6, width: 0.5 };
+  const DEFAULT_SHOT = { style: 'bolt', colour: '#f4f4f4', trail: 8, head: 0.6, width: 0.5 };
 
   // An Arclight's shot is a vortex ring, a smoke ring of light rolling
   // through the air, and it bursts over its splash: config/units/arclight.yaml
@@ -807,29 +859,142 @@
         continue;
       }
       const look = SHOTS[kind] || DEFAULT_SHOT;
-      const tail = projectileAt(p, Math.max(p.from - 1, tau - look.trail / 40));
-      screen();
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.lineCap = 'round';
-      const g = ctx.createLinearGradient(sx(tail.x), sy(tail.z), sx(head.x), sy(head.z));
-      g.addColorStop(0, 'rgba(255,255,255,0)');
-      g.addColorStop(1, look.colour);
-      ctx.strokeStyle = g;
-      ctx.lineWidth = Math.max(1, look.width * view.s);
+      // a shot in the air casts a shadow, away from the sun by its height
+      if (head.y > 1) {
+        place(head.x + head.y * AIR_SHADOW[0], head.z + head.y * AIR_SHADOW[1]);
+        ctx.globalAlpha = 0.2;
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(0, 0, Math.max(0.5, (look.length || look.size || look.head * 2) * 0.4), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      SHOT_STYLES[look.style](p, head, look);
+    }
+  }
+
+  // Where a shot was `ago` seconds since, and the facing it flies on.
+  function flight(p, head, ago) {
+    const back = projectileAt(p, Math.max(p.from - 1, tau - ago * TPS)) || head;
+    const facing = (Math.atan2(head.x - back.x, head.z - back.z) * 1800) / Math.PI;
+    return [back, facing];
+  }
+  function streak(from, to, colour, tail, width, alpha = 1) {
+    screen();
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = alpha;
+    ctx.lineCap = 'round';
+    const g = ctx.createLinearGradient(sx(from.x), sy(from.z), sx(to.x), sy(to.z));
+    g.addColorStop(0, tail);
+    g.addColorStop(1, colour);
+    ctx.strokeStyle = g;
+    ctx.lineWidth = Math.max(1, width * view.s);
+    ctx.beginPath();
+    ctx.moveTo(sx(from.x), sy(from.z));
+    ctx.lineTo(sx(to.x), sy(to.z));
+    ctx.stroke();
+    ctx.restore();
+  }
+  // A trail of smoke puffs behind a shot, older puffs wider and fainter.
+  function smokeTrail(p, head, scale) {
+    for (let j = 1; j <= 5; j++) {
+      const at = projectileAt(p, Math.max(p.from - 1, tau - j * 1.6));
+      if (!at || at === head) continue;
+      place(at.x, at.z);
+      ctx.globalAlpha = 0.16 * (1 - j / 6);
+      ctx.fillStyle = '#c8c8c8';
       ctx.beginPath();
-      ctx.moveTo(sx(tail.x), sy(tail.z));
-      ctx.lineTo(sx(head.x), sy(head.z));
-      ctx.stroke();
-      ctx.restore();
+      ctx.arc(0, 0, scale * (0.8 + j * 0.45), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  const SHOT_STYLES = {
+    bolt(p, head, look) {
+      const [tail] = flight(p, head, look.trail / 40 / TPS);
+      const far = look.tail ? look.tail.replace('#', '') : null;
+      streak(tail, head, look.colour, far ? `rgba(${parseInt(far.slice(0, 2), 16)},${parseInt(far.slice(2, 4), 16)},${parseInt(far.slice(4, 6), 16)},0)` : 'rgba(255,255,255,0)', look.width);
+      if (look.tail) streak(tail, head, look.tail, 'rgba(255,255,255,0)', look.width * 0.45, 0.8);
       place(head.x, head.z);
-      Sprites.glow(ctx, 0, 0, look.head * 3, look.colour, 1);
+      Sprites.glow(ctx, 0, 0, look.head * 3, look.core || look.colour, 1);
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.arc(0, 0, look.head * 0.5, 0, Math.PI * 2);
       ctx.fill();
-    }
-  }
+    },
+    shell(p, head, look) {
+      const [tail, facing] = flight(p, head, 0.25);
+      if (look.smoke) smokeTrail(p, head, look.smoke);
+      streak(tail, head, look.sparks, 'rgba(255,255,255,0)', 0.35);
+      place(head.x, head.z, facing);
+      Sprites.glow(ctx, 0, 0, look.head * 2.4, look.colour, 0.9);
+      ctx.fillStyle = '#3a3f47';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, look.head * 0.32, look.head * 0.62, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = look.colour;
+      ctx.beginPath();
+      ctx.ellipse(0, -look.head * 0.3, look.head * 0.2, look.head * 0.25, 0, 0, Math.PI * 2);
+      ctx.fill();
+    },
+    missile(p, head, look) {
+      const [, facing] = flight(p, head, 0.3);
+      smokeTrail(p, head, look.smoke);
+      const L = look.length, W = look.width;
+      place(head.x, head.z, facing);
+      Sprites.glow(ctx, 0, L * 0.55, W * 2.2, look.flame, 0.9);
+      ctx.fillStyle = '#d9dde3';
+      ctx.strokeStyle = '#0a0c0f';
+      ctx.lineWidth = 0.12;
+      ctx.beginPath();
+      ctx.moveTo(0, -L / 2);
+      ctx.lineTo(W / 2, -L / 2 + W);
+      ctx.lineTo(W / 2, L / 2);
+      ctx.lineTo(-W / 2, L / 2);
+      ctx.lineTo(-W / 2, -L / 2 + W);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = TEAMS[p.team] ? TEAMS[p.team].accent : '#888';
+      ctx.fillRect(-W / 2, -L / 2 + W, W, W * 0.5);
+      ctx.fillStyle = '#3a3f47';
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(s * W / 2, L / 2 - W);
+        ctx.lineTo(s * W * 1.1, L / 2);
+        ctx.lineTo(s * W / 2, L / 2);
+        ctx.closePath();
+        ctx.fill();
+      }
+    },
+    flame(p, head, look) {
+      const [tail] = flight(p, head, 0.3);
+      const rnd = random(p.id * 13 + Math.floor(tau * 3));
+      for (let j = 0; j < 6; j++) {
+        const f = j / 6;
+        const x = head.x + (tail.x - head.x) * f + (rnd() - 0.5) * look.size * 0.3;
+        const z = head.z + (tail.z - head.z) * f + (rnd() - 0.5) * look.size * 0.3;
+        place(x, z);
+        Sprites.glow(ctx, 0, 0, look.size * (0.5 + f * 0.6), j < 2 ? '#fff1b0' : look.colour, 0.75 * (1 - f * 0.7));
+      }
+    },
+    orb(p, head, look) {
+      const [tail] = flight(p, head, 0.15);
+      streak(tail, head, look.ring, 'rgba(255,255,255,0)', look.size * 0.25, 0.7);
+      place(head.x, head.z);
+      Sprites.glow(ctx, 0, 0, look.size * 1.4, look.colour, 0.9);
+      ctx.strokeStyle = look.ring;
+      ctx.lineWidth = Math.max(0.15, look.size * 0.06);
+      ctx.beginPath();
+      ctx.arc(0, 0, look.size * 0.45, tau * 0.7, tau * 0.7 + Math.PI * 1.4);
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(0, 0, look.size * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+    },
+  };
 
   function shieldAt(sh, tau2) {
     const s = slot(sh, tau2);
@@ -969,6 +1134,76 @@
     ctx.globalAlpha = 1;
   }
 
+  // A weapon that strikes at range without a projectile draws its blow from
+  // the attacker to the target, after the effect the game plays for it:
+  //   lightning: a jagged arc (FX_TeslaCrab_Attack, FX_ThunderboltAttack:
+  //              lightning #3b5ad9 and #6d83dd, electric #77fffc);
+  //   laser:     a straight beam over a glow (efx_2013_mech_rongdian_rays:
+  //              rings #3f78ff; efx_2014_mech_gangqiu_RayEffect: white);
+  //   control:   a beam and a chain (ControllBeam: #0021ff, #3200ff, chain
+  //              #ff00a0);
+  //   sweep:     a violet ray (Kraken_Laser: trails #bc35ff, #ac88ff).
+  const BEAMS = {
+    vortex: { style: 'lightning', outer: '#6d83dd', inner: '#e8f6ff', end: '#77fffc', width: 1.0, life: 0.25 },
+    raiden: { style: 'lightning', outer: '#3b5ad9', inner: '#e8f6ff', end: '#77fffc', width: 1.8, life: 0.35 },
+    melting_point: { style: 'laser', outer: '#3f78ff', inner: '#ffffff', width: 2.4, life: 0.3 },
+    steel_ball: { style: 'laser', outer: '#ffffff', inner: '#ffffff', width: 1.0, life: 0.15 },
+    hacker: { style: 'control', outer: '#3200ff', inner: '#9fb6ff', chain: '#ff00a0', width: 1.2, life: 0.5 },
+    abyss: { style: 'laser', outer: '#bc35ff', inner: '#f1e0ff', width: 2.0, life: 0.4 },
+  };
+  function beam(from, to, age, look, seed) {
+    if (age > look.life) return;
+    const k = 1 - age / look.life;
+    const ax = from.x, az = from.z, bx = to.x, bz = to.z;
+    const len = Math.hypot(bx - ax, bz - az);
+    const pts = [[ax, az]];
+    if (look.style === 'lightning') {
+      // a new jag every frame of the arc's life
+      const rnd = random(seed * 31 + Math.floor(age * 30));
+      const nx = -(bz - az) / (len || 1), nz = (bx - ax) / (len || 1);
+      const steps = Math.max(2, Math.round(len / 3));
+      for (let i = 1; i < steps; i++) {
+        const f = i / steps;
+        const off = (rnd() - 0.5) * 2.4;
+        pts.push([ax + (bx - ax) * f + nx * off, az + (bz - az) * f + nz * off]);
+      }
+    }
+    pts.push([bx, bz]);
+    screen();
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const path = () => {
+      ctx.beginPath();
+      pts.forEach(([x, z], i) => (i ? ctx.lineTo(sx(x), sy(z)) : ctx.moveTo(sx(x), sy(z))));
+    };
+    path();
+    ctx.globalAlpha = 0.5 * k;
+    ctx.strokeStyle = look.outer;
+    ctx.lineWidth = Math.max(2, look.width * view.s);
+    ctx.stroke();
+    path();
+    ctx.globalAlpha = k;
+    ctx.strokeStyle = look.inner;
+    ctx.lineWidth = Math.max(1, look.width * 0.3 * view.s);
+    ctx.stroke();
+    if (look.chain) {
+      path();
+      ctx.setLineDash([Math.max(2, view.s * 1.2), Math.max(2, view.s * 0.8)]);
+      ctx.lineDashOffset = -age * 60 * view.s;
+      ctx.strokeStyle = look.chain;
+      ctx.lineWidth = Math.max(1, look.width * 0.35 * view.s);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
+    place(bx, bz);
+    Sprites.glow(ctx, 0, 0, look.width * 2.5, look.end || look.outer, k);
+    place(ax, az);
+    Sprites.glow(ctx, 0, 0, look.width * 1.6, look.outer, k * 0.8);
+  }
+
   function drawEffects(numbers) {
     const start = firstCue(tau - LONGEST_EFFECT);
     for (let i = start; i < cues.length; i++) {
@@ -991,7 +1226,18 @@
           else if (kind === 'arclight') arcSplash(x, z, age, c.seed);
           else if (kind === 'marksman') burst(x, z, age, 0.35, 3.2, Sprites.GLOW.marksman, c.seed, 6);
           else if (kind === 'wasp') burst(x, z, age, 0.3, 2.0, '#ffcf40', c.seed, 4);
-          else burst(x, z, age, 0.25, 1.6, '#ffe08a', c.seed, 3);
+          else {
+            // the rest burst as their shot looks: a missile or a shell with
+            // smoke, a ball of light in its own colour, fuel as fire
+            const look = SHOTS[kind] || DEFAULT_SHOT;
+            if (look.style === 'missile' || look.style === 'shell') {
+              const r = look.style === 'missile' ? look.length * 0.7 : look.head * 3.5;
+              smoke(x, z, age, 1.4, r, c.seed);
+              burst(x, z, age, 0.5, r, '#ff9a3a', c.seed, 8);
+            } else if (look.style === 'orb') burst(x, z, age, 0.45, look.size * 1.4, look.colour, c.seed, 8);
+            else if (look.style === 'flame') burst(x, z, age, 0.5, look.size * 0.8, look.colour, c.seed, 6);
+            else burst(x, z, age, 0.25, Math.max(1.6, look.head * 2.5), look.core || look.colour, c.seed, 3);
+          }
           break;
         }
         case 'hit': {
@@ -999,7 +1245,9 @@
           if (c.p === undefined && c.by) {
             const by = ref(c.by);
             const at = placeOf(c.at, c.t);
-            if (by && at && by.what === 'unit') slash(at.x, at.z, age, by.kind, c.seed, by.team);
+            const from = placeOf(c.by, c.t);
+            if (by && at && from && BEAMS[by.kind]) beam(from, at, age, BEAMS[by.kind], c.seed);
+            else if (by && at && by.what === 'unit') slash(at.x, at.z, age, by.kind, c.seed, by.team);
           }
           if (numbers) {
             const at = placeOf(c.at, c.t);
