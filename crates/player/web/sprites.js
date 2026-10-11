@@ -52,6 +52,7 @@ const Sprites = (() => {
     overlord: '#fec21b',
     war_factory: '#b9ca6e',
     sandworm: '#32677e',
+    raiden: '#00c2ff',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -79,6 +80,7 @@ const Sprites = (() => {
     overlord: [44.6, 57],
     war_factory: [67.4, 72.6],
     sandworm: [22.4, 39.8],
+    raiden: [30.4, 45.8],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -2434,6 +2436,86 @@ const Sprites = (() => {
     glow(c, 0, -2.2, 1.0, GLOW.sandworm, 0.5);
   }
 
+  // Raiden: a flyer shaped like a fork, two white prongs lined in the
+  // team's colour reaching ahead, each with a rail gun along its inside
+  // whose coils glow and blaze as it fires, a dark ring joining them to a
+  // white body with a dome and twin guns, an arm each side, and two engines
+  // in the team's colour astern, their exhausts glowing.
+  function raiden(c, p) {
+    const T = p.team;
+    const bob = Math.sin(p.t * 1.6 + p.walk) * 0.02;
+    c.scale(1 + bob, 1 + bob);
+    const pulse = 0.7 + 0.3 * Math.sin(p.t * 7);
+    // the engines astern
+    rr(c, -2.0, 12.5, 4.0, 8.5, 0.4);
+    paint(c, M.mid);
+    for (const sx of [-1, 1]) {
+      rr(c, sx > 0 ? 3.5 : -8.5, 14.5, 5.0, 7.0, 0.6);
+      paint(c, T.accent);
+      rr(c, sx > 0 ? 3.8 : -8.2, 14.6, 4.4, 1.6, 0.3);
+      paint(c, M.darker);
+      for (const x of [4.3, 7.0]) {
+        glow(c, sx * x, 22.0, 1.4, GLOW.raiden, pulse);
+        rr(c, sx * x - 0.7, 21.3, 1.4, 1.0, 0.3);
+        paint(c, '#bfefff', null);
+      }
+    }
+    // the ring
+    c.beginPath();
+    c.arc(0, 3.0, 10.0, Math.PI * 0.95, Math.PI * 2.05);
+    c.lineWidth = 2.2;
+    c.strokeStyle = M.dark;
+    c.stroke();
+    // the body
+    poly(c, [-12.0, 3.5, 12.0, 3.5, 12.4, 9.0, 9.6, 13.4, -9.6, 13.4, -12.4, 9.0]);
+    paint(c, M.white);
+    poly(c, [-9.0, 4.4, 9.0, 4.4, 9.0, 9.0, -9.0, 9.0]);
+    paint(c, M.pale, null);
+    // the arms out to the sides
+    for (const sx of [-1, 1]) {
+      rr(c, sx > 0 ? 10.8 : -14.2, -7.0, 3.4, 9.0, 0.6);
+      paint(c, M.mid);
+      line(c, sx * 13.2, -7.0, sx * 13.2, -9.4, M.pale, 0.15);
+      poly(c, [sx * 13.6, -1.2, sx * 14.7, 0.5, sx * 13.6, 2.2, sx * 12.5, 0.5]);
+      paint(c, T.accent);
+    }
+    // the prongs and their rail guns
+    for (const sx of [-1, 1]) {
+      for (const y of [-15.2, -12.6]) {
+        circle(c, sx * 9.9, y, 0.9);
+        paint(c, M.darker);
+      }
+      poly(c, [sx * 9.0, -21.0, sx * 6.0, -21.0, sx * 4.4, -13.0, sx * 4.0, -6.0, sx * 5.6, -3.8, sx * 9.6, -3.8, sx * 11.0, -8.0, sx * 10.4, -14.0]);
+      paint(c, M.white);
+      poly(c, [sx * 6.4, -20.2, sx * 5.4, -20.2, sx * 4.6, -6.4, sx * 5.8, -5.2]);
+      paint(c, T.accent, null);
+      rr(c, sx * 3.9 - 0.5, -21.2, 1.0, 19.0, 0.3);
+      paint(c, M.white);
+      rr(c, sx * 3.9 - 0.25, -16.4, 0.5, 6.4, 0.1);
+      paint(c, GLOW.raiden, null);
+      for (let y = -8.4; y < -2.6; y += 0.9) {
+        rr(c, sx * 3.9 - 0.5, y, 1.0, 0.4, 0.05);
+        paint(c, M.dark, null);
+      }
+      glow(c, sx * 3.9, -13.2, 1.2, GLOW.raiden, 0.4 * pulse);
+      flash(c, sx * 3.9, -21.8, 2.4, GLOW.raiden, p.fireAge, 0.2, p.fireIndex + sx);
+    }
+    // the dome and its guns
+    rr(c, -0.4, -5.2, 0.8, 4.2, 0.15);
+    paint(c, M.pale);
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 1.1 - 0.4, 0.0, 0.8, 3.6, 0.2);
+      paint(c, M.white);
+      rr(c, sx > 0 ? 3.0 : -6.0, 5.0, 3.0, 3.5, 0.3);
+      paint(c, M.mid);
+      for (let i = 0; i < 3; i++) line(c, sx * (3.6 + i * 0.8), 5.3, sx * (3.6 + i * 0.8), 8.2, '#a06a4a', 0.25);
+    }
+    circle(c, 0, 7.3, 2.8);
+    paint(c, M.white);
+    circle(c, 0, 7.3, 1.6);
+    paint(c, M.pale, null);
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -2455,7 +2537,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion, fortress, vulcan, melting_point, overlord, war_factory, sandworm };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion, fortress, vulcan, melting_point, overlord, war_factory, sandworm, raiden };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];

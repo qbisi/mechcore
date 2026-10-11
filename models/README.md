@@ -54,6 +54,7 @@ the game is in them.
 | `overlord` | Overlord | ![](overlord.svg) |
 | `war_factory` | War Factory | ![](war_factory.svg) |
 | `sandworm` | Sandworm | ![](sandworm.svg) |
+| `raiden` | Raiden | ![](raiden.svg) |
 | `energy_tower` | Energy Tower | ![](energy_tower.svg) |
 | `research_center` | Research Center | ![](research_center.svg) |
 | `anti_armor_turret` | Anti-Armor Cannon | ![](anti_armor_turret.svg) |
