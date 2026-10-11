@@ -160,9 +160,7 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
         game_build: crate::economy::game_build().to_owned(),
         map_id: record.info.map_id,
         seed: record.info.system_seed,
-        // A replay was played under the game's own clock, not under this
-        // platform's rule for running out of one, so it states none.
-        deploy_time: None,
+        deploy_time: Some(record.info.deploy_time),
         blue: match_side(economy, &blue, Seat::Blue, dealt.blue)?,
         red: match_side(economy, &red, Seat::Red, dealt.red)?,
         turns,

@@ -25,13 +25,13 @@ pub struct Match {
     pub game_build: String,
     pub map_id: i32,
     pub seed: i32,
-    /// How long a side has to commit a round, in seconds, when the document
-    /// is a match this platform is playing.
+    /// How long a side has to commit a round, in seconds.
     ///
-    /// A converted replay states none: the clock is the platform's own rule,
-    /// which `docs/spec/mechcore/cli.md` states, and a recorded match was not
-    /// played under it. A reader that needs a figure uses
-    /// [`DEFAULT_DEPLOY_TIME`].
+    /// A converted replay states the game's own `DeployTime`, which its
+    /// rounds were deployed under, and a match replay writes it back. What
+    /// running out of it does is this platform's own rule, which
+    /// `docs/spec/mechcore/cli.md` states. A document that states none deploys
+    /// under [`DEFAULT_DEPLOY_TIME`].
     pub deploy_time: Option<i32>,
     pub blue: MatchSide,
     pub red: MatchSide,

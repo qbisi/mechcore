@@ -40,6 +40,8 @@ match's map, and the two players `{id: 1, name: blue}` and `{id: 2, name: red}`.
 standard 1v1 constants, with advance teams, reinforcement, unit reinforcement
 and construction on, and no game rules and no match type. `Version` is the build
 number and `Seat` is 0, a locally recorded replay.
+`DeployTime` is the match's `deploy_time`, or the standard 100 seconds when it
+states none.
 
 Each `PlayerRecord`, blue first, holds the side's `seed`, the map's reactor core,
 the round income every versus map shares, and its tech loadout as `unitDatas`.
@@ -132,11 +134,17 @@ A match holds its decisions in an order the board allows each one in
 and none is held back or reordered. A move that clears another's way is one the
 match states.
 
+A decision's `Time` is zero and its `LocalTime` the seconds since its round
+opened, in the game's 0.05-second ticks, as every tracked replay records them.
+A match keeps the order and not the clock, so a round's records are written
+two seconds apart, the first at two seconds, and closer when the round's
+`DeployTime`, or the opening's `PrepareTime` of 30, would not hold them.
+Conversion reads none of them back.
+
 ## What a match replay refuses
 
 A match is refused when a replay cannot hold it, and the refusal names why:
 
-- a deployment clock, which only a match played on this platform states;
 - a position after its last decisions, which no replay records;
 - a side without an opening or without a seed;
 - a round whose undone position does not open onto the match's, or whose
@@ -154,7 +162,6 @@ round's decisions come in the match's order.
 
 | Field | Why it is not written |
 | --- | --- |
-| `MatchActionData.Time`, `LocalTime` | Decisions are numbered in order; a match keeps no clock |
 | `PAD_Undo`, `PAD_Redo`, `PAD_CancelReleaseCommanderSkill` | A match holds the net decisions they leave |
 | `PAD_MoveUnit.positionRecord`, `rotateRecord`, `superDeployRecord` | They restate the position before the move |
 | `PlayerRecord.name`, `id`, `ad`, `data.style` | Account identity and skins |

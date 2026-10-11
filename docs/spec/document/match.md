@@ -105,14 +105,20 @@ The header holds what every round of the match shares.
 | `game_build` | the build whose tables the match is written against |
 | `seed` | `BattleInfo.SystemSeed` |
 | `map_id` | `BattleInfo.MapID` |
+| `deploy_time` | `BattleInfo.DeployTime` |
 
 `seed` and `map_id` keep the meaning and the optionality a layout gives them.
 `game_build` is the one a [layout](layout.md#document-shape) states: a
 writer leaves out the build it carries, a reader refuses another build, and a
 match that states none is the reader's own.
 
+`deploy_time` is how many seconds a side has to deploy a round, which every
+tracked replay records as 100. A match this platform plays runs out by it, as
+[cli.md](../mechcore/cli.md#match) says, and a match that states none deploys
+under 100.
+
 The rest of the match header is a property of the standard 1v1 rule set rather
-than of a match: the phase durations, the round cap, the advance team,
+than of a match: the other phase durations, the round cap, the advance team,
 reinforcement and construction flags, the game and score modes. A match states
 the mode once by being this format, rather than restating its consequences in
 every segment. A mode that changes them is a different format.
