@@ -71,6 +71,12 @@ impl Simulation {
             .collect::<Vec<_>>();
         for unit in held {
             self.add_fly_unit(unit);
+            // Its agent places it before the first tick is recorded.
+            let actor = self
+                .actors
+                .get_mut(&unit)
+                .expect("actor identity is stable");
+            actor.placed_domain = actor.domain;
         }
     }
 

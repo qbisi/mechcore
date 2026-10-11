@@ -332,6 +332,10 @@ struct Actor {
     /// technology turned it (`FightMech.SetTechFly`). Everything in the
     /// fight that asks whether it flies reads this.
     pub(in crate::fight) domain: UnitDomain,
+    /// The domain it last stood at the height of: `FightMech.SetPosition`
+    /// places it at its domain's height, so a unit whose domain turns
+    /// stands at the old height until its agent next places it.
+    pub(in crate::fight) placed_domain: UnitDomain,
     /// The step its technology's `GRTimerManager` timer gives it its type's
     /// domain back, after its technologies were switched off.
     fly_reverts_at: Option<u64>,

@@ -1,0 +1,28 @@
+# A Void Eye with Aerial Mode travels in on a flank and arrives on tick 161:
+# its technology takes it into the air at once, and the recording holds it
+# in the air on that tick but still at the ground's height. Its agent places
+# it at its new domain's height on the next tick (`FightMech.SetPosition`).
+# A fight drawn by hand, recorded with the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1
+round: 3
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}}
+red:
+  techs:
+    void_eye: [aerial_mode]
+  units:
+  - {name: void_eye, index: 0, position: {x: -340, y: 20}, rotated: true, travelling: true}
+outcome:
+  blue.core_damage: 66
+  blue.units[0].exp: 266
+  red.units[0].exp: 400
+ticks: 772
+hash: 23:d22bbb6f802be7626a4433ba0182f2e3629b896911b31c5f52a4c71f9c92df6b
+asserts:
+- sql: "SELECT tick, position__y, domain FROM units WHERE unit_id = 2 AND tick BETWEEN 160 AND 162 ORDER BY tick"
+  rows: [[160, 0, ground], [161, 0, air], [162, 300647710720, air]]
