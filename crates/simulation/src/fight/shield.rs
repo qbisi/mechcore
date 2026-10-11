@@ -60,6 +60,8 @@ pub(in crate::fight) struct CarriedShieldPlacement {
     pub(in crate::fight) radius_q32: i64,
     pub(in crate::fight) energy: i64,
     pub(in crate::fight) owner: u64,
+    /// Whether its owner opens the fight travelling in from a flank.
+    pub(in crate::fight) travelling: bool,
 }
 
 /// `AdvancedEnergyShieldSystem`: every battlefield shield standing, and what
@@ -132,11 +134,15 @@ fn initialize_shields(
             x_q32: shield.x_q32,
             z_q32: shield.z_q32,
             radius_q32: shield.radius_q32,
-            energy: shield.energy,
+            // A unit placed on a flank has its effects deactivated as it is
+            // placed (`AdvancedEnergyShieldProvider.DoDeactive`,
+            // `AdvancedEnergyShieldSystem.DeactiveEnergyShield`): its shield
+            // holds nothing and shields nothing until it arrives.
+            energy: if shield.travelling { 0 } else { shield.energy },
             max_energy: shield.energy,
             source_kind: ShieldSourceKind::OwnerAdvanced,
             owner: Some(shield.owner),
-            active: true,
+            active: !shield.travelling,
             enabled: true,
             energy_record: 0,
         }))
@@ -286,6 +292,47 @@ impl Simulation {
         }
         shield.active = true;
         let shield = self.shield.standing.remove(index);
+        let after = self
+            .shield
+            .standing
+            .iter()
+            .rposition(|standing| standing.team <= shield.team)
+            .map_or(0, |index| index + 1);
+        self.shield.standing.insert(after, shield);
+    }
+
+    /// `AdvancedEnergyShieldProvider.DoActive` as a unit's effects are
+    /// activated: `AdvancedEnergyShieldSystem.ActiveEnergyShield` with a
+    /// reset, which refills the shield it carries (`FightEnergyShield.Active`)
+    /// and adds it to its side's active shields after every other. A unit
+    /// arriving from a flank brings up the shield its placement deactivated.
+    /// A shield already active is left as it is, and so is a technology's
+    /// while a buff holds its owner's technologies off: `ActiveCheck` finds
+    /// the source locked (`IsLockedEffect`), and `EnableEffect` later acts
+    /// only on a shield its disabling found available, so it never comes up.
+    pub(in crate::fight) fn activate_carried_shield(&mut self, actor_id: u64) {
+        let locked = self.actors.get(&actor_id).is_some_and(|actor| {
+            actor.technology_disabled()
+                && actor
+                    .placement
+                    .effects
+                    .carried_shield
+                    .is_some_and(|carried| carried.priority == 0)
+        });
+        if locked {
+            return;
+        }
+        let Some(index) = self
+            .shield
+            .standing
+            .iter()
+            .position(|shield| shield.owner == Some(actor_id) && !shield.active)
+        else {
+            return;
+        };
+        let mut shield = self.shield.standing.remove(index);
+        shield.active = true;
+        shield.energy = shield.max_energy;
         let after = self
             .shield
             .standing
