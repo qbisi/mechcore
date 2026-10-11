@@ -1,0 +1,46 @@
+# Chain jump into battlefield shield:
+# When a chain technology's hit jumps at a target covered by a battlefield shield,
+# the damage is absorbed by the energy shield rather than refusing or hitting
+# the covered unit. Raiden equipped with chain and fork attacks units near
+# red's Fortress barrier shield; slot attacks respect shield coverage and jumps
+# at covered units deal damage directly to the shield.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 124205572
+round: 2
+blue:
+  officers: [marksman_specialist, assault_raiden]
+  techs:
+    raiden: [energy_shield, electromagnetic_shot, chain, ionization, range_enhancement, fork]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: raiden, index: 0, position: {x: 260, y: -150}, level: 4, exp: 10777/10777, rotated: true, equipment: [steel_ball_production_line], source: legacy}
+  - {name: marksman, index: 1, position: {x: 60, y: -190}, level: 3, source: delivered}
+  - {name: typhoon, index: 2, position: {x: -170, y: -20}, level: 5}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 100, y: -225}}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: -200, y: 195}]}
+red:
+  officers: [advanced_defensive_tactics, advanced_targeting_system, speed_specialist, extended_range_fortress]
+  techs:
+    fortress: [doubleshot, barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: fortress, index: 0, position: {x: 220, y: -30}, level: 4, exp: 7184/7184, equipment: [secondary_laser_sight], source: legacy}
+  - {name: phantom_ray, index: 1, position: {x: -235, y: -20}, level: 5}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 135, y: -145}}
+  battle_skills:
+  - {name: nuke, positions: [{x: -235, y: -245}]}
+outcome:
+  red.core_damage: 374
+  red.units[1].exp: 100
+ticks: 1621
+hash: 23:4e6554619f56b97a06f2b9777d882f220a097f5979b1ae4bbbb8a140ad7d2339
