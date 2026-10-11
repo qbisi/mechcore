@@ -32,8 +32,11 @@ pub struct Category<'a> {
 pub enum Targets {
     /// `All` (0): every unit.
     Every,
-    /// `mech_type` 1 and 10: the units the row lists.
+    /// `Custom` (10): the units the row lists.
     Listed(Vec<String>),
+    /// `Air` (1): a unit that flies. The units such a row lists are the
+    /// flying types, and `IsEffectTarget` does not read them.
+    Air,
     /// `Melee` (3): a unit whose main skill's `isMeleeAttack` is set.
     Melee,
     /// `Ranged` (4): a unit whose main skill's `isMeleeAttack` is clear.
@@ -55,7 +58,8 @@ impl Targets {
     pub fn of(mech_type: i32, units: &[String], who: &str) -> Self {
         match mech_type {
             0 => Self::Every,
-            1 | 10 => Self::Listed(units.to_vec()),
+            1 => Self::Air,
+            10 => Self::Listed(units.to_vec()),
             2 => Self::Ground,
             3 => Self::Melee,
             4 => Self::Ranged,
@@ -96,7 +100,7 @@ impl Targets {
     #[must_use]
     pub fn by_domain(&self) -> bool {
         match self {
-            Self::Ground => true,
+            Self::Air | Self::Ground => true,
             Self::AllOf(every) => every.iter().any(Self::by_domain),
             Self::Every
             | Self::Listed(_)
@@ -121,6 +125,7 @@ impl Targets {
             Self::Listed(units) => Ok(units.iter().any(|name| name == unit.type_name)),
             Self::Melee => Ok(unit.melee),
             Self::Ranged => Ok(!unit.melee),
+            Self::Air => Ok(!unit.ground),
             Self::Ground => Ok(unit.ground),
             Self::Size(size) => Ok(unit.size == *size),
             Self::AllOf(every) => {
