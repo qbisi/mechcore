@@ -167,6 +167,7 @@
   // ------------------------------------------------------------- the cues
   const cues = data.cues;
   const decals = [];
+  const rings = new Set();
   const fallen = new Map();
   for (let i = 0; i < cues.length; i++) {
     const c = cues[i];
@@ -176,7 +177,7 @@
         const owner = ref(c.by);
         const projectile = projectiles.get(c.p);
         if (owner) owner.fires.push(c.t);
-        if (projectile) projectile.by = owner || null;
+        if (projectile) { projectile.by = owner || null; projectile.splash = (c.splash || 0) / 100; }
         if (owner && owner.what === 'building' && projectile) {
           const dx = projectile.X[0] - owner.x;
           const dz = projectile.Z[0] - owner.z;
@@ -191,11 +192,16 @@
         if (by && by.what === 'unit' && c.p === undefined && by.strikes[by.strikes.length - 1] !== c.t) {
           by.strikes.push(c.t);
         }
+        // a blow that splashes rings its splash once, however many it hits
+        if (c.splash && !rings.has(`${c.by}@${c.t}`)) {
+          rings.add(`${c.by}@${c.t}`);
+          c.ring = c.splash / 100;
+        }
         break;
       }
       case 'gone': {
         const projectile = projectiles.get(c.p);
-        if (projectile) { projectile.gone = c; c.by = projectile.by; }
+        if (projectile) { projectile.gone = c; c.by = projectile.by; c.splash = projectile.splash; }
         break;
       }
       case 'die': {
@@ -772,7 +778,8 @@
   };
   const DEFAULT_SHOT = { style: 'bolt', colour: '#f4f4f4', trail: 8, head: 0.6, width: 0.5 };
 
-  // An Arclight's shot bursts over its splash: config/units/arclight.yaml
+  // An Arclight's shot bursts over its splash, the radius its fire cue
+  // carries; config/units/arclight.yaml
   // gives that a radius of 7 metres.
   const ARCLIGHT_SPLASH = 7;
 
@@ -1168,9 +1175,10 @@
           }
           if (c.intercepted) { burst(x, z, age, 0.35, 2.5, '#ffffff', c.seed, 6); break; }
           const kind = c.by ? c.by.kind : '';
+          if (c.splash > 0 && kind !== 'arclight') splashRing(x, z, c.splash, age, splashColour(c.by));
           if (kind === 'sledgehammer') { smoke(x, z, age, 1.6, 4.5, c.seed); burst(x, z, age, 0.55, 5, '#ff8a2a', c.seed, 10); }
           else if (kind === 'anti_armor_turret') { smoke(x, z, age, 1.6, 4, c.seed); burst(x, z, age, 0.6, 4.5, '#ff7a2a', c.seed, 10); }
-          else if (kind === 'arclight') arcSplash(x, z, age, c.seed);
+          else if (kind === 'arclight') arcSplash(x, z, age, c.seed, c.splash || ARCLIGHT_SPLASH);
           else if (kind === 'marksman') burst(x, z, age, 0.35, 3.2, Sprites.GLOW.marksman, c.seed, 6);
           else if (kind === 'wasp') burst(x, z, age, 0.3, 2.0, '#ffcf40', c.seed, 4);
           else {
@@ -1195,6 +1203,7 @@
             const from = placeOf(c.by, c.t);
             if (by && at && from && BEAMS[by.kind]) beam(from, at, age, BEAMS[by.kind], c.seed);
             else if (by && at && by.what === 'unit') slash(at.x, at.z, age, by.kind, c.seed, by.team);
+            if (c.ring && at) splashRing(at.x, at.z, c.ring, age, splashColour(by));
           }
           if (numbers) {
             const at = placeOf(c.at, c.t);
@@ -1284,12 +1293,51 @@
     ctx.restore();
   }
 
+  // The ground a splash covers, its radius the one its weapon's skill held
+  // when it fired: an edge running out to it, then holding as it and a
+  // faint wash inside it fade. A dark line under the edge lets it read over
+  // a white hull as well as the ground.
+  function splashRing(x, z, radius, age, colour) {
+    const life = 0.6;
+    if (age < 0 || age > life) return;
+    const out = Sprites.ease(Math.min(1, age / 0.15));
+    const fade = 1 - Sprites.ease(age / life);
+    const r = radius * (0.25 + 0.75 * out);
+    place(x, z);
+    ctx.save();
+    ctx.globalAlpha = 0.35 * fade;
+    ctx.lineWidth = 0.9;
+    ctx.strokeStyle = '#0b0d10';
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.14 * fade;
+    ctx.fillStyle = colour;
+    ctx.fill();
+    ctx.globalAlpha = 0.9 * fade;
+    ctx.lineWidth = 0.4;
+    ctx.strokeStyle = colour;
+    ctx.stroke();
+    ctx.restore();
+  }
+  // A splash takes its weapon's colour: its shot's, its beam's, else its
+  // side's.
+  function splashColour(by) {
+    if (!by) return '#ffe08a';
+    const shot = SHOTS[by.kind];
+    if (shot) return shot.core || shot.colour;
+    const beamLook = BEAMS[by.kind];
+    if (beamLook) return beamLook.outer;
+    return (TEAMS[by.team] || TEAMS[0]).accent;
+  }
+
   // An Arclight's shot bursting where it lands, after
   // efx_2016_mech_huguang_behit: a white flash in a wide dark-red glow
   // (#804040), white rings running out over its splash, pink sparks
   // (#ffaeae) thrown outward and grey smoke left behind.
-  function arcSplash(x, z, age, seed) {
-    if (age < 3) smoke(x, z, age, 3, ARCLIGHT_SPLASH * 0.8, seed);
+  function arcSplash(x, z, age, seed, radius) {
+    if (age < 3) smoke(x, z, age, 3, radius * 0.8, seed);
     const life = 0.5;
     if (age > life) return;
     const k = age / life;
@@ -1297,8 +1345,8 @@
     const fade = 1 - Sprites.ease(k);
     const rnd = random(seed);
     place(x, z);
-    Sprites.glow(ctx, 0, 0, ARCLIGHT_SPLASH * 1.6, '#804040', 0.8 * fade);
-    Sprites.glow(ctx, 0, 0, ARCLIGHT_SPLASH * 0.7, '#ffffff', age < 0.2 ? 1 - age / 0.2 : 0);
+    Sprites.glow(ctx, 0, 0, radius * 1.6, '#804040', 0.8 * fade);
+    Sprites.glow(ctx, 0, 0, radius * 0.7, '#ffffff', age < 0.2 ? 1 - age / 0.2 : 0);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.strokeStyle = '#ffffff';
@@ -1306,7 +1354,7 @@
       ctx.globalAlpha = fade * 0.9;
       ctx.lineWidth = width;
       ctx.beginPath();
-      ctx.arc(0, 0, ARCLIGHT_SPLASH * scale * (0.3 + 0.7 * out), 0, Math.PI * 2);
+      ctx.arc(0, 0, radius * scale * (0.3 + 0.7 * out), 0, Math.PI * 2);
       ctx.stroke();
     }
     ctx.strokeStyle = '#ffaeae';
@@ -1314,7 +1362,7 @@
     ctx.lineWidth = 0.25;
     for (let j = 0; j < 10; j++) {
       const a = rnd() * Math.PI * 2;
-      const d0 = ARCLIGHT_SPLASH * (0.2 + 0.9 * out) * (0.6 + 0.4 * rnd());
+      const d0 = radius * (0.2 + 0.9 * out) * (0.6 + 0.4 * rnd());
       ctx.globalAlpha = fade;
       ctx.beginPath();
       ctx.moveTo(Math.sin(a) * d0, -Math.cos(a) * d0);
