@@ -1,5 +1,6 @@
 mod acquire;
 mod adapter;
+mod arena;
 mod buildings;
 mod cli;
 mod convert;
@@ -16,6 +17,7 @@ mod outcome;
 mod play;
 mod profile;
 mod query;
+mod requests;
 mod scene;
 mod schema;
 mod session;
@@ -48,10 +50,13 @@ fn usage(program: &str) {
     eprintln!("       {program} match show <match.yaml> --side blue|red [--wait [<seconds>]]");
     eprintln!("       {program} match act <match.yaml> --side blue|red <decision> [--dry-run]");
     eprintln!("       {program} match commit <match.yaml> --side blue|red");
+    eprintln!(
+        "       {program} arena run <match.yaml|dir> --blue <command> --red <command> [--matches <n>]"
+    );
     eprintln!("       {program} game launch [--headless] [--offline] [--level <0-4>]");
     eprintln!("       {program} game <operation> [--level <0-4>]");
     eprintln!("       {program} man [<topic>|<kind>] [--lang <code>]");
-    eprintln!("       {program} shell");
+    eprintln!("       {program} shell [<match.yaml> --side blue|red [--json]]");
     eprintln!();
     eprintln!("A file's kind is read from what it holds; `man <kind>` lists the verbs it takes.");
     eprintln!("Every command takes --format json|yaml|text and answers on standard output.");
@@ -93,6 +98,7 @@ pub(crate) fn dispatch(command: &str, arguments: Args) -> Option<Outcome> {
         "generate" => generate::run(arguments),
         "schema" => schema::run(arguments),
         "match" => r#match::run(arguments),
+        "arena" => arena::run(arguments),
         "game" => game::run(arguments),
         "man" => man::run(arguments),
         "shell" => run_shell(arguments),
@@ -100,13 +106,44 @@ pub(crate) fn dispatch(command: &str, arguments: Args) -> Option<Outcome> {
     })
 }
 
-/// Opens the prompt, which starts without a game.
+/// Opens the prompt, which starts without a game, on the match and side it
+/// names if it names one.
 ///
 /// Acquiring the game is an operation rather than an option, so a shell takes
-/// one with `game launch` or `game attach` once it is open.
-fn run_shell(arguments: Args) -> Outcome {
+/// one with `game launch` or `game attach` once it is open. `--json` makes the
+/// prompt the request stream a player speaks, which plays the match it was
+/// opened on.
+fn run_shell(mut arguments: Args) -> Outcome {
+    let json = arguments.flag("--json")?;
+    let side = arguments.value("--side")?;
+    let path = if arguments.is_empty() {
+        None
+    } else {
+        Some(arguments.path("a match document")?)
+    };
     arguments.finish()?;
-    shell::run()
-        .map_err(Failure::unavailable)
-        .map(|()| Verdict::Yes)
+    let bound = match (path, side) {
+        (Some(path), Some(side)) => Some((path, turn::Side::parse(&side)?)),
+        (None, None) => None,
+        (Some(_), None) => {
+            return Err(Failure::usage(
+                "a shell opened on a match names the side it plays, with --side blue|red",
+            ));
+        }
+        (None, Some(_)) => {
+            return Err(Failure::usage(
+                "--side names the side of a match the shell opens",
+            ));
+        }
+    };
+    let ran = match (json, bound) {
+        (true, Some(bound)) => shell::run_json(bound),
+        (true, None) => {
+            return Err(Failure::usage(
+                "a request stream plays one match: shell <match.yaml> --side blue|red --json",
+            ));
+        }
+        (false, bound) => shell::run(bound),
+    };
+    ran.map_err(Failure::unavailable).map(|()| Verdict::Yes)
 }
