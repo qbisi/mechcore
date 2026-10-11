@@ -31,6 +31,7 @@ the game is in them.
 | `sledgehammer` | Sledgehammer | ![](sledgehammer.svg) |
 | `wasp` | Wasp | ![](wasp.svg) |
 | `phoenix` | Phoenix | ![](phoenix.svg) |
+| `fang` | Fang | ![](fang.svg) |
 | `energy_tower` | Energy Tower | ![](energy_tower.svg) |
 | `research_center` | Research Center | ![](research_center.svg) |
 | `anti_armor_turret` | Anti-Armor Cannon | ![](anti_armor_turret.svg) |
