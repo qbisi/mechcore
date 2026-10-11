@@ -200,7 +200,8 @@ has updated and every shot landed, the death of an important unit that
 leaves its side none standing destroys every other unit of the side still
 standing. Each loses its whole life, which no shield takes and no damage event
 records, and dies after every other death of the tick, in its side's order,
-credited to no one. An important unit that dies while another of its side
+credited to the last unit that struck it, as any death is, and to no one if
+nothing ever did. An important unit that dies while another of its side
 stands destroys nothing.
 
 A side whose last important unit dies while a summon of it is still
@@ -255,9 +256,11 @@ carries:
   whatever order the technologies are listed in:
   `tests/production/lines-make-by-unit-type.yaml`.
 - A side's last important unit dying destroys the rest of the side on that
-  tick, after it and credited to no one, through a full shield and whether a
-  shot or a direct hit killed it; one dying while another stands destroys
-  nothing: `tests/important_unit/`.
+  tick, after it, through a full shield and whether a shot or a direct hit
+  killed it; one dying while another stands destroys nothing:
+  `tests/important_unit/`. A destroyed unit nothing struck is credited to no
+  one, and one a Phoenix struck six ticks before to the Phoenix:
+  `tests/important_unit/destroyed-unit-credits-its-last-striker.yaml`.
 
 ### Replayed
 
