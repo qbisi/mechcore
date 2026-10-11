@@ -30,6 +30,7 @@ the game is in them.
 | `crawler` | Crawler | ![](crawler.svg) |
 | `sledgehammer` | Sledgehammer | ![](sledgehammer.svg) |
 | `wasp` | Wasp | ![](wasp.svg) |
+| `phoenix` | Phoenix | ![](phoenix.svg) |
 | `energy_tower` | Energy Tower | ![](energy_tower.svg) |
 | `research_center` | Research Center | ![](research_center.svg) |
 | `anti_armor_turret` | Anti-Armor Cannon | ![](anti_armor_turret.svg) |

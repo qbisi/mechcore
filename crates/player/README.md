@@ -69,5 +69,5 @@ not.
 | --- | --- |
 | `src/` | the timeline the page plays and the page that carries it |
 | `web/` | the page's shell, style, sprites and player, built into the binary |
-| `scenes/` | `six-units.yaml`, the demo the test fights: the six units with sprites, each side's constructions and a shield |
+| `scenes/` | `six-units.yaml`, the demo the test fights: six of the units with sprites, each side's constructions and a shield |
 | `tests/` | the demo fought by the simulator and read back from the page |
