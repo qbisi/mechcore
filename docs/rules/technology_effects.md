@@ -1052,7 +1052,9 @@ its new domain from its next placing (`FightMech.SetPosition`). Everything
 that asks whether a unit flies asks `FightMech.IsFly`: its own search and
 the searches that find it, its attack range and damage against it, what a
 splash, a projectile or a terrain reaches of it, its agent, and the domain
-the recording holds of it each tick. As it dies, `DoDeactive` gives it its
+the recording holds of it each tick. A Marksman strikes a Wraith with Land
+Cruiser
+([`projectile-strikes-a-landed-wraith.yaml`](../../tests/fly/projectile-strikes-a-landed-wraith.yaml)). As it dies, `DoDeactive` gives it its
 type's domain back.
 
 **Its skills turn onto or off aircraft.** `SkillDataModifier.AddData` asks

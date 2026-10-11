@@ -1,0 +1,27 @@
+# A Wraith with Land Cruiser stands on the ground, and a Marksman, whose skill
+# reaches the ground alone, strikes it: its first round lands on tick 79 for
+# 2329. A projectile reaches its target in the domain the target stands in
+# (`FightMech.IsFly`), not its type's. A fight drawn by hand, recorded with
+# the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1
+round: 1
+blue:
+  techs:
+    wraith: [land_cruiser]
+  units:
+  - {name: wraith, index: 0, position: {x: 5, y: -105}}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}}
+outcome:
+  blue.units[0].exp: 200
+  red.core_damage: 250
+ticks: 192
+hash: 23:49d3b10ec53ae7e1d89f2083ac6c642f71b86b512c5a533ef4c0a0dca5b07db6
+asserts:
+- sql: "SELECT tick, amount FROM events WHERE type = 'damage' AND target__kind = 'unit' AND target__id = 1 ORDER BY tick, ordinal LIMIT 1"
+  rows: [[79, 2329]]

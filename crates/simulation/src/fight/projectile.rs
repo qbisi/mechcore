@@ -443,7 +443,6 @@ impl Simulation {
                 .actors
                 .get(&projectile.target)
                 .ok_or_else(|| Error::new("projectile target is absent"))?
-                .rules
                 .domain;
             (
                 FightActorRef::Unit(projectile.target),
