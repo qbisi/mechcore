@@ -130,7 +130,12 @@ const TIME_UNITS_PER_SECOND: u64 = 2_000;
 
 const LOGIC_TICK_TIME_UNITS: u64 = 100;
 
-const FIGHT_TIME_SECONDS: u64 = 120;
+/// How long a round's fight runs before time ends it: the replay's
+/// `FightTime`, 120 seconds, less the two the fight spends preparing before
+/// its first update (`FightPrepareState`), which the game counts against it.
+/// A fight both sides survive ends on tick 2360 in every recording of one;
+/// that the two seconds are the prepare state's is inferred, not read.
+const FIGHT_TIME_SECONDS: u64 = 118;
 
 const FORMATION_JITTER_RANGE_TENTHS: i32 = 8;
 
@@ -1724,13 +1729,14 @@ impl Simulation {
     /// as the fight finishes, and `BattleSystem.OnFightOver` prunes each
     /// formation's experience to a whole number and clears every skill's
     /// kills before the last state is read.
-    /// A fight that runs out of time is scored here, after the tick's last
-    /// event; one that finishes was scored as it left
-    /// ([`Self::score_the_fight`]).
-    fn close_tick(&mut self, out_of_time: bool, events: &mut Vec<Event>) -> Result<()> {
+    /// A fight that finishes was scored as it left ([`Self::score_the_fight`]).
+    /// A fight time ends goes through none of it on its last recorded tick:
+    /// its recordings end on tick 2360 with no `team_scored` and its
+    /// formations' experience unpruned, `OnFightOver` coming after.
+    fn close_tick(&mut self, events: &mut Vec<Event>) -> Result<()> {
         self.name_turned_formations();
         self.settle_intervals_if_finishing();
-        if self.ready_to_finish() || out_of_time {
+        if self.ready_to_finish() {
             // `SkillManager.ExitFight` deactivates a permanent preemptive
             // skill, and a melee mode takes its numbers away
             // (`RemoveMeleeModeDataModifier`).
