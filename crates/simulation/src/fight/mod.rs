@@ -1449,6 +1449,11 @@ impl Simulation {
                         skill.attack_target_left = None;
                         skill.set_cooling(None);
                         skill.set_phase(FightSkillPhase::Idle);
+                        // Its slots leave with it, as the main skill's do:
+                        // Multi Control's four beams cooling on the Rhino
+                        // the Hacker has just turned read idle as the fight
+                        // ends.
+                        skill.clear_slots_cooling_before((!ready_to_finish).then_some(step));
                     }
                 }
                 if ready_to_finish {

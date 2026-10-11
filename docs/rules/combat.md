@@ -1095,6 +1095,10 @@ decision is still cooling when the fight ends. A slot of a grouped skill is a
 skill of its own: a Raiden's second gun cooling as the fight is decided goes
 on naming the Vortex it fired at, as its core lets its lock go. A skill that was attacking
 still holds its lock, leaves the fight, and names nothing.
+When the fight ends, every skill leaves it, an extra skill's slots with it:
+a Hacker whose Multi Control beams were cooling on the Rhino it had just
+turned reads all five idle on the last tick,
+`tests/hacker/multi-control-slots-leave-at-the-end.yaml`.
 
 ## Reference unit fields
 

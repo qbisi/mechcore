@@ -1,0 +1,27 @@
+# An extra skill's slots leave the fight with it. A level 5 Hacker with
+# Multi Control turns red's only Rhino on tick 208, its main beam and Multi
+# Control's four beams cooling on it, and the fight ends on tick 209: every
+# one of the five reads idle and names nothing, Multi Control's slots as its
+# first, where they had gone on cooling at the Rhino.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  techs:
+    hacker: [multi_control]
+  units:
+  - {name: hacker, index: 0, position: {x: 5, y: -205}, level: 5}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+outcome:
+  blue.units[0].exp: 400
+  red.core_damage: 250
+asserts:
+- sql: "SELECT skill_slot, enabled__state, enabled__attack_target__id FROM units__skills WHERE unit_id = 1 AND tick = 209 ORDER BY skill_slot"
+  rows: [[0, idle, null], [1, idle, null], [2, idle, null], [3, idle, null], [4, idle, null]]
+ticks: 209
+hash: 23:3aa8730c52068385c7102ff8da6518cd05a05906d96fce5b97e5749cbf83367c
