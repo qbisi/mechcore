@@ -177,7 +177,12 @@
         const owner = ref(c.by);
         const projectile = projectiles.get(c.p);
         if (owner) owner.fires.push(c.t);
-        if (projectile) { projectile.by = owner || null; projectile.splash = (c.splash || 0) / 100; }
+        if (projectile) {
+          projectile.by = owner || null;
+          projectile.splash = (c.splash || 0) / 100;
+          projectile.slot = c.slot;
+          projectile.fired = c.t;
+        }
         if (owner && owner.what === 'building' && projectile) {
           const dx = projectile.X[0] - owner.x;
           const dz = projectile.Z[0] - owner.z;
@@ -303,9 +308,46 @@
     }
     return null;
   }
-  // A projectile's position, from the muzzle one tick before its first
-  // recorded place to where it was removed.
+  // Where a skill of a weapon group leaves its unit, by skill slot, in the
+  // sprite's metres (front toward -y), turned with the unit's turret. The
+  // recording releases every shot at its unit's centre; only the page moves
+  // one out to its own launcher, and by less as it nears where it lands.
+  // A Wraith's eight launchers are its eight skills, along the front of its
+  // disc; a Melting Point's Energy Diffraction beams are its skills 1 to 4,
+  // one from each leg.
+  const MUZZLES = {
+    wraith: Array.from({ length: 8 }, (_, k) => [Math.sin(((k - 3.5) * Math.PI) / 6) * 9, -Math.cos(((k - 3.5) * Math.PI) / 6) * 9]),
+    melting_point: [null, [-9, -9], [9, -9], [-9, 9], [9, 9]],
+  };
+  // A muzzle's offset in the world from its unit's centre at tick `t`.
+  function muzzle(o, slot, t) {
+    const point = o && o.what === 'unit' && slot !== undefined && MUZZLES[o.kind] && MUZZLES[o.kind][slot];
+    if (!point) return null;
+    const s = unitAt(o, Math.min(Math.max(t, o.from), o.to));
+    if (!s) return null;
+    const a = rad(s.turret);
+    const [px, py] = point;
+    return { x: Math.cos(a) * px - Math.sin(a) * py, z: -(Math.sin(a) * px + Math.cos(a) * py) };
+  }
+  // A projectile's position, drawn from its muzzle: its recorded flight
+  // carried out by its muzzle's offset in proportion to how far it has yet
+  // to fly.
   function projectileAt(p, tau) {
+    const at = flownAt(p, tau);
+    if (!at) return at;
+    if (p.span === undefined) {
+      p.muzzle = muzzle(p.by, p.slot, p.fired);
+      const last = p.n - 1;
+      p.end = p.gone ? { x: p.gone.x / 100, z: p.gone.z / 100 } : { x: p.X[last], z: p.Z[last] };
+      p.span = Math.hypot(p.end.x - p.X[0], p.end.z - p.Z[0]);
+    }
+    if (!p.muzzle) return at;
+    const k = p.span > 0 ? Math.min(1, Math.hypot(p.end.x - at.x, p.end.z - at.z) / p.span) : 0;
+    return { x: at.x + p.muzzle.x * k, y: at.y, z: at.z + p.muzzle.z * k };
+  }
+  // A projectile's recorded position, from the muzzle one tick before its
+  // first recorded place to where it was removed.
+  function flownAt(p, tau) {
     if (tau < p.from - 1 || tau >= (p.gone ? p.gone.t : p.to + 1)) return null;
     if (tau < p.from) {
       const f = tau - (p.from - 1);
@@ -1201,6 +1243,8 @@
             const by = ref(c.by);
             const at = placeOf(c.at, c.t);
             const from = placeOf(c.by, c.t);
+            const offset = from && muzzle(by, c.slot, c.t);
+            if (offset) { from.x += offset.x; from.z += offset.z; }
             if (by && at && from && BEAMS[by.kind]) beam(from, at, age, BEAMS[by.kind], c.seed);
             else if (by && at && by.what === 'unit') slash(at.x, at.z, age, by.kind, c.seed, by.team);
             if (c.ring && at) splashRing(at.x, at.z, c.ring, age, splashColour(by));
