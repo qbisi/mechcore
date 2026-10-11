@@ -15,7 +15,8 @@ One JSON line per capture goes to standard output, the recording's result, so
 the per-file path, publication mode and scene metadata can travel with the
 corpus. The collector fails closed: it stops at the first capture that does
 not succeed, and exits 1. A command joins a game somebody started, so when
-none answers it starts one, headless, which lingers for the next capture.
+none answers it starts one, headless and online, since watching needs the
+network, which lingers for the next capture.
 """
 
 from __future__ import annotations
@@ -42,9 +43,10 @@ def parse_arguments() -> argparse.Namespace:
 
 
 def launch(mechcore: Path) -> None:
-    """Starts a headless game at level 0 that lingers for the next capture."""
+    """Starts a headless, online game at level 0 that lingers for the next
+    capture."""
     launched = subprocess.run(
-        [str(mechcore), "game", "launch", "--headless", "--level", "0"],
+        [str(mechcore), "game", "launch", "--online", "--level", "0"],
         capture_output=True, text=True, cwd=ROOT,
     )
     if launched.returncode != 0:

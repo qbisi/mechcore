@@ -384,9 +384,9 @@ def unavailable(output: str) -> bool:
 
 
 def launch(mechcore: Path) -> None:
-    """Starts a headless game that lingers for the next command, and truncates
-    its log."""
-    launched = run([str(mechcore), "game", "launch", "--headless"])
+    """Starts a headless, offline game that lingers for the next command, and
+    truncates its log."""
+    launched = run([str(mechcore), "game", "launch"])
     if launched.returncode != 0:
         sys.exit(f"cannot launch the game: {reason(launched.stdout + launched.stderr)}")
 

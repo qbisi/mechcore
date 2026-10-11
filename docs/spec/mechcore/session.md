@@ -156,8 +156,8 @@ where a launched game's output goes.
 ```sh
 mechcore shell
 > game launch
-> game launch --headless
-> game launch --headless --offline
+> game launch --online
+> game launch --gui --online
 > game attach --level 3
 > game detach
 ```
@@ -177,7 +177,11 @@ any exit does ([Leaving the game](#leaving-the-game)).
 ### mechcore game
 
 A command is one operation and then an exit. `game launch` starts a game,
-answers once it stands at the main menu, and leaves it to linger. A command
+headless and offline unless `--gui` asks for a window or `--online` for the
+network, answers once it stands at the main menu, and leaves it to linger.
+Every launch is headless and offline by default because a window takes the
+desktop of whoever sits at the machine, and nothing a recording reads needs
+one or the network. A command
 that fights a file, `game record` of a layout, a fight or a replay's round,
 `convert --backend game` and `verify --backend game`, joins the running game
 and takes its turns in it, and starts a headless, offline game when none runs;
@@ -185,7 +189,7 @@ and takes its turns in it, and starts a headless, offline game when none runs;
 game whoever is keeping it alive and leaves it to them:
 
 ```sh
-mechcore game launch --headless
+mechcore game launch
 mechcore game status
 mechcore game apply_layout layout.yaml --level 3
 ```

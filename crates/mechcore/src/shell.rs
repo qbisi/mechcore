@@ -29,9 +29,9 @@ A line is a command with `mechcore` dropped, so `verify x.yaml` here and
 `mechcore verify x.yaml` outside are the same command.
 
 the game
-  game launch [--level 0-4] [--headless] [--offline]
-                                  start a game; headless opens no window, offline
-                                  has no network, Steam's included
+  game launch [--level 0-4] [--gui] [--online]
+                                  start a game, headless and offline unless --gui
+                                  opens a window or --online gives it the network
   game attach [--level 0-4]       join a running game, leaving it to its owner
   game detach                     leave the game, which a launched one outlives by 30s
   game status                     current status snapshot
@@ -262,13 +262,7 @@ async fn game(
                 Err(failure) => return failure.write(&format!("game.{verb}")),
             };
             let mode = if verb == "launch" {
-                let how = arguments.flag("--headless").and_then(|headless| {
-                    Ok(Launch {
-                        headless,
-                        offline: arguments.flag("--offline")?,
-                    })
-                });
-                match how {
+                match Launch::read(&mut arguments) {
                     Ok(how) => Mode::Launch(how),
                     Err(failure) => return failure.write("game.launch"),
                 }

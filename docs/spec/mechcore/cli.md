@@ -1008,8 +1008,9 @@ Three more belong to the session rather than the game:
 [session.md](session.md) defines `launch`, `attach` and `detach`, their
 `--level` and what each refuses. **Acquiring the game is an operation, not an
 option.** A shell takes the game by naming one of those three. A command is
-one operation and then an exit, so `game launch [--headless] [--offline]`
-starts a game, answers once it stands at the main menu, and leaves it to
+one operation and then an exit, so `game launch [--gui] [--online]` starts
+a game, headless and offline unless `--gui` asks for a window or `--online`
+for the network, answers once it stands at the main menu, and leaves it to
 linger for the commands after it; every other command joins a game somebody
 started, including one a launch or a shell left to linger. So a command takes
 `--level <0-4>`, which orders it against other clients, and nothing else; one
