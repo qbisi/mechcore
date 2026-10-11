@@ -52,6 +52,7 @@ the game is in them.
 | `vulcan` | Vulcan | ![](vulcan.svg) |
 | `melting_point` | Melting Point | ![](melting_point.svg) |
 | `overlord` | Overlord | ![](overlord.svg) |
+| `war_factory` | War Factory | ![](war_factory.svg) |
 | `energy_tower` | Energy Tower | ![](energy_tower.svg) |
 | `research_center` | Research Center | ![](research_center.svg) |
 | `anti_armor_turret` | Anti-Armor Cannon | ![](anti_armor_turret.svg) |
