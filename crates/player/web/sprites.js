@@ -29,12 +29,12 @@ const Sprites = (() => {
   // Each unit's emissive colour, read off its model's emission texture.
   const GLOW = {
     marksman: '#5ff2ff', arclight: '#b3f2ff', rhino: '#ffa236', crawler: '#ffb648',
-    sledgehammer: '#55e8f4', wasp: '#ffd84e', phoenix: '#00eaff',
+    sledgehammer: '#55e8f4', wasp: '#ffd84e', phoenix: '#00eaff', fang: '#e7d512',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
     marksman: [12, 22], arclight: [18, 13], rhino: [28, 24], crawler: [4.2, 5.2],
-    sledgehammer: [7.6, 13], wasp: [7.4, 6.6], phoenix: [18.4, 12.8],
+    sledgehammer: [7.6, 13], wasp: [7.4, 6.6], phoenix: [18.4, 12.8], fang: [6.6, 5.4],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -736,6 +736,66 @@ const Sprites = (() => {
     paint(c, '#9fd6f5', M.line, 0.6);
   }
 
+  // Fang, as it fires from the ground: a small biped carrying a heavy gun
+  // on its right arm, a big pack on its back to its left, a glass dome for
+  // a head and two vents glowing at the back of its chest.
+  function fang(c, p) {
+    const T = p.team;
+    const kick = recoil(p.fireAge, 0.4) * 0.35;
+    // the feet
+    for (const sx of [-1, 1]) {
+      rr(c, 0.1 + sx * 0.38 - 0.28, 1.2, 0.56, 0.75, 0.25);
+      paint(c, M.black);
+    }
+    // the pack, slung behind on the left
+    rr(c, -1.95, 0.6, 0.95, 1.3, 0.2);
+    paint(c, M.pale);
+    poly(c, [-3.7, 0.95, -3.3, 0.65, -1.9, 0.6, -1.85, 2.3, -2.6, 2.45, -3.45, 2.3, -3.75, 1.6]);
+    paint(c, M.white);
+    poly(c, [-3.7, 0.95, -3.3, 0.65, -2.55, 0.7, -2.9, 1.25, -3.65, 1.3]);
+    paint(c, T.accent, null);
+    line(c, -3.4, 1.75, -2.1, 1.75, M.mid, 0.12);
+    // the left shoulder
+    rr(c, -1.8, -0.8, 0.85, 1.4, 0.2);
+    paint(c, M.dark);
+    rr(c, -1.5, -0.65, 0.22, 0.75, 0.08);
+    paint(c, M.black, null);
+    // the body: white plates round a dark core, the vents at its back
+    poly(c, [-0.8, 0.1, -0.35, -0.2, 0.55, -0.2, 0.85, 0.15, 0.8, 1.35, -0.75, 1.35]);
+    paint(c, M.white);
+    rr(c, -0.3, 0.1, 0.75, 1.15, 0.12);
+    paint(c, M.dark, null);
+    for (const x of [-0.4, 0.37]) {
+      rr(c, x - 0.08, 0.4, 0.16, 0.4, 0.04);
+      paint(c, GLOW.fang, null);
+    }
+    rr(c, -0.2, 1.2, 0.42, 0.45, 0.08);
+    paint(c, T.accent);
+    // the right shoulder
+    poly(c, [0.82, 0.3, 1.55, 0.25, 1.85, 0.7, 1.7, 1.45, 0.85, 1.4]);
+    paint(c, M.white);
+    // the dome
+    circle(c, 0.13, -0.1, 0.28);
+    paint(c, M.glass, M.line, 0.7);
+    // the arm and the gun on it, kicked back by its shot
+    c.save();
+    c.translate(0, kick);
+    rr(c, 1.35, -0.6, 0.6, 0.95, 0.15);
+    paint(c, M.dark);
+    rr(c, 1.9, -1.35, 0.5, 0.85, 0.2);
+    paint(c, M.pale);
+    poly(c, [1.95, -1.0, 2.6, -0.85, 1.95, -0.6]);
+    paint(c, T.accent);
+    poly(c, [0.92, -2.62, 1.55, -2.7, 1.98, -0.2, 1.28, -0.12]);
+    paint(c, T.accent);
+    poly(c, [1.18, -2.35, 1.38, -2.37, 1.62, -0.6, 1.42, -0.58]);
+    paint(c, M.darker, null);
+    rr(c, 1.05, -2.8, 0.45, 0.25, 0.08);
+    paint(c, M.dark);
+    flash(c, 1.27, -2.95, 1.0, GLOW.fang, p.fireAge, 0.12, p.fireIndex);
+    c.restore();
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -757,7 +817,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];

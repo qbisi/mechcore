@@ -23,7 +23,8 @@ const OUT = join(ROOT, 'models');
 // The sprites the page draws, and whether each is a building.
 const MODELS = [
   ['marksman', false], ['arclight', false], ['rhino', false], ['crawler', false],
-  ['sledgehammer', false], ['wasp', false], ['phoenix', false], ['energy_tower', true],
+  ['sledgehammer', false], ['wasp', false], ['phoenix', false], ['fang', false],
+  ['energy_tower', true],
   ['research_center', true], ['anti_armor_turret', true], ['rapid_fire_turret', true],
   ['defensive_wall', true],
 ];
