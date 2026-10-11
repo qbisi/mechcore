@@ -46,6 +46,7 @@ const Sprites = (() => {
     typhoon: '#00b9fa',
     farseer: '#c1b936',
     centurion: '#ff9513',
+    fortress: '#ffe525',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -67,6 +68,7 @@ const Sprites = (() => {
     typhoon: [21.8, 21.4],
     farseer: [16, 23.6],
     centurion: [19.6, 32.6],
+    fortress: [34.8, 28.4],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -1961,6 +1963,67 @@ const Sprites = (() => {
     c.restore();
   }
 
+  // Fortress, braced to fire: a giant biped, a long cannon in the team's
+  // colour on each shoulder, a heavy armoured block on each arm and a long
+  // white blade outboard of it, its great feet in the team's colour behind.
+  // Its cannons kick back in turn as they fire.
+  function fortress(c, p) {
+    const T = p.team;
+    for (const sx of [-1, 1]) {
+      // the foot
+      rr(c, sx * 6.6 - 3.0, 4.0, 6.0, 7.6, 0.8);
+      paint(c, T.accent);
+      for (const x of [5.0, 6.6, 8.2]) line(c, sx * x, 4.6, sx * x, 11.0, T.deep, 0.3);
+      // the wing between body and arm
+      poly(c, [sx * 3.4, -4.0, sx * 9.6, -3.4, sx * 9.6, 4.0, sx * 3.4, 4.2]);
+      paint(c, M.mid);
+      circle(c, sx * 11.6, 6.0, 0.6);
+      paint(c, M.steel);
+      // the blade
+      poly(c, [sx * 13.2, -12.6, sx * 12.0, -12.0, sx * 13.4, 0.0, sx * 15.2, 5.0, sx * 16.6, 3.0, sx * 15.6, -3.0]);
+      paint(c, M.white);
+      poly(c, [sx * 12.9, -11.0, sx * 13.9, 0.0, sx * 14.6, -0.2, sx * 13.6, -10.5]);
+      paint(c, M.dark, null);
+      poly(c, [sx * 15.8, -1.8, sx * 14.5, -1.4, sx * 14.6, 0.4, sx * 15.9, 0.4]);
+      paint(c, T.accent, null);
+      // the arm's armour
+      rr(c, sx * 11.6 - 1.7, -8.3, 3.4, 3.0, 0.4);
+      paint(c, T.accent);
+      rr(c, sx * 11.4 - 1.9, -3.0, 3.8, 6.3, 0.6);
+      paint(c, T.accent);
+      rr(c, sx * 11.4 - 0.9, -1.6, 1.8, 3.4, 0.2);
+      paint(c, M.white, null);
+    }
+    // the body
+    poly(c, [0, -6.8, 3.4, -5.2, 3.4, 4.0, -3.4, 4.0, -3.4, -5.2]);
+    paint(c, M.mid);
+    rr(c, -1.3, -2.4, 2.6, 3.2, 0.3);
+    paint(c, M.darker);
+    circle(c, 0, -0.6, 0.6);
+    paint(c, M.glass);
+    glow(c, 0, 6.1, 0.8, GLOW.fortress, 0.6);
+    // the cannons
+    for (const sx of [-1, 1]) {
+      const kick = recoil(p.fireAge, 0.7) * (p.fireIndex % 2 === (sx > 0 ? 1 : 0) ? 1.6 : 0.3);
+      c.save();
+      c.translate(0, kick);
+      rr(c, sx * 5.6 - 2.1, -9.0, 4.2, 10.0, 0.6);
+      paint(c, T.accent);
+      rr(c, sx * 5.6 - 1.0, -7.2, 2.0, 1.2, 0.2);
+      paint(c, M.darker);
+      poly(c, [sx * 5.6, -4.6, sx * 6.3, -1.2, sx * 4.9, -1.2]);
+      paint(c, M.white, null);
+      rr(c, sx * 5.6 - 1.5, -10.6, 3.0, 0.8, 0.2);
+      paint(c, T.accent);
+      rr(c, sx * 5.6 - 0.6, -12.6, 1.2, 2.2, 0.1);
+      paint(c, M.dark);
+      rr(c, sx * 5.6 - 0.85, -16.6, 1.7, 4.2, 0.3);
+      paint(c, T.accent);
+      flash(c, sx * 5.6, -17.2, 2.8, '#ffb347', p.fireAge, 0.16, p.fireIndex + sx);
+      c.restore();
+    }
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -1982,7 +2045,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion, fortress };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
