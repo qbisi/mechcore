@@ -38,8 +38,8 @@ const TICKS_PER_SECOND: i64 = 20;
 /// # Errors
 ///
 /// Returns an error when the match holds what a replay cannot record: a
-/// position after its last decisions, a side without an
-/// opening or a seed, or a round whose opening cannot be undone onto a
+/// position after its last decisions, a side without an opening or a seed, a
+/// deal that does not verify, or a round whose opening cannot be undone onto a
 /// position that opens back onto the match's.
 pub fn match_replay(
     economy: &Economy,
@@ -118,13 +118,12 @@ pub fn match_replay(
 /// that deals nothing holds the one before it.
 fn match_states(economy: &Economy, stated: &Stated) -> Result<(Vec<[u64; 4]>, Vec<Pool>), String> {
     let seeded = crate::opening::initialize(stated.seed)?.stream.state();
+    // The streams a replay records are where the match's deal leaves them, so
+    // a match whose deal does not verify has none to write.
     let deal = crate::opening::verify(economy, stated)
         .and_then(|opening| crate::reinforcement::verify(economy, stated, &opening))
-        .ok();
-    let dealt = |round: i32| {
-        deal.as_ref()
-            .and_then(|deal| deal.rounds.iter().find(|entry| entry.round == round))
-    };
+        .map_err(|reason| format!("the match's deal does not verify: {reason}"))?;
+    let dealt = |round: i32| deal.rounds.iter().find(|entry| entry.round == round);
     let mut recorded = vec![seeded];
     for turn in &stated.turns {
         let previous = *recorded.last().expect("round 0 is written");
@@ -134,12 +133,12 @@ fn match_states(economy: &Economy, stated: &Stated) -> Result<(Vec<[u64; 4]>, Ve
         );
         recorded.push(state);
     }
-    Ok((recorded, deal.map(|deal| deal.pools).unwrap_or_default()))
+    Ok((recorded, deal.pools))
 }
 
 /// The pool's log and the rounds excluding the level-4 commander skills, each
-/// listing them in the build's order. A round without a pool, round 0 or a
-/// match whose deal is not modelled, restores the one the seed initializes.
+/// listing them in the build's order. Round 0, which has no pool, restores the
+/// one the seed initializes.
 fn write_pool(xml: &mut String, pool: Option<&Pool>, level_four_skills: &[i32]) {
     let (log, excluded) = pool.map_or((&[][..], &[][..]), |pool| {
         (pool.log.as_slice(), pool.excluded.as_slice())
