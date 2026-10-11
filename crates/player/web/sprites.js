@@ -38,6 +38,7 @@ const Sprites = (() => {
     stormcaller: '#65f9ff',
     hacker: '#1cfefc',
     fire_badger: '#b18926',
+    sabertooth: '#ffff7b',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -51,6 +52,7 @@ const Sprites = (() => {
     stormcaller: [8.8, 11.8],
     hacker: [21.4, 21.8],
     fire_badger: [14.2, 19.4],
+    sabertooth: [20.4, 26.4],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -1351,6 +1353,79 @@ const Sprites = (() => {
     c.restore();
   }
 
+  // Sabertooth: a great tank on four white track pods, the front two
+  // topped in the team's colour, a pointed white hull between them, and on
+  // its turret two long cannons in the team's colour, which turn to their
+  // target and kick back in turn as they fire.
+  function sabertooth(c, p) {
+    const T = p.team;
+    for (const sx of [-1, 1]) {
+      // the back pod
+      rr(c, sx * 5.45 - 1.85, 4.0, 3.7, 8.6, 0.6);
+      paint(c, M.white);
+      rr(c, sx * 5.5 - 1.3, 5.5, 2.6, 4.0, 0.3);
+      paint(c, M.dark);
+      for (const y of [10.4, 11.4]) line(c, sx * 4.0, y, sx * 7.0, y, M.mid, 0.2);
+      // the side wing and its drum
+      poly(c, [sx * 3.0, -2.8, sx * 8.6, -2.8, sx * 9.6, -0.6, sx * 9.6, 3.2, sx * 8.6, 4.2, sx * 3.0, 4.2]);
+      paint(c, M.white);
+      for (let i = 0; i < 4; i++) line(c, sx * (4.0 + i * 0.9), -2.4, sx * (4.0 + i * 0.9), 3.8, M.pale, 0.25);
+      circle(c, sx * 8.4, 1.3, 1.1);
+      paint(c, T.accent);
+      circle(c, sx * 8.4, 1.3, 0.5);
+      paint(c, T.deep, null);
+      // the front pod
+      rr(c, sx * 6.0 - 2.0, -12.6, 4.0, 8.4, 0.6);
+      paint(c, M.white);
+      rr(c, sx * 5.95 - 1.35, -12.4, 2.7, 4.2, 0.3);
+      paint(c, T.accent);
+      rr(c, sx * 5.95 - 1.1, -7.6, 2.2, 1.4, 0.2);
+      paint(c, M.dark);
+      rr(c, sx * 5.95 - 1.2, -5.8, 2.4, 1.2, 0.2);
+      paint(c, M.pale, null);
+      // a stripe of the team's colour along the back of the hull
+      rr(c, sx * 2.8 - 0.4, 3.6, 0.8, 6.0, 0.15);
+      paint(c, T.accent);
+    }
+    // the hull
+    poly(c, [0, -11.3, 2.2, -9.5, 2.4, 9.8, -2.4, 9.8, -2.2, -9.5]);
+    paint(c, M.white);
+    rr(c, -1.3, 2.6, 2.6, 6.9, 0.3);
+    paint(c, M.dark);
+    rr(c, -0.6, 3.6, 1.2, 2.0, 0.15);
+    paint(c, M.mid, null);
+    circle(c, -2.8, 7.8, 0.7);
+    paint(c, M.white);
+    for (const sx of [-1, 1]) glow(c, sx * 1.6, 4.6, 0.5, GLOW.sabertooth, 0.5);
+    // the turret, turning about its middle
+    c.save();
+    c.translate(0, -1.0);
+    c.rotate(p.turret);
+    c.translate(0, 1.0);
+    rr(c, -2.1, -3.6, 4.2, 5.2, 0.5);
+    paint(c, M.mid);
+    for (const sx of [-1, 1]) {
+      const kick = recoil(p.fireAge, 0.6) * (p.fireIndex % 2 === (sx > 0 ? 1 : 0) ? 1.2 : 0.2);
+      c.save();
+      c.translate(0, kick);
+      rr(c, sx * 2.75 - 0.75, -6.6, 1.5, 9.1, 0.3);
+      paint(c, T.accent);
+      line(c, sx * 2.75, -6.2, sx * 2.75, 2.0, T.deep, 0.25);
+      rr(c, sx * 2.75 - 0.35, -8.3, 0.7, 1.8, 0.1);
+      paint(c, '#a8e4ee');
+      rr(c, sx * 2.75 - 0.6, -13.2, 1.2, 5.0, 0.2);
+      paint(c, T.accent);
+      for (let y = -12.6; y < -9.4; y += 0.45) line(c, sx * 2.55, y, sx * 2.95, y, M.darker, 0.15);
+      flash(c, sx * 2.75, -13.6, 2.2, '#ffb347', p.fireAge, 0.16, p.fireIndex + sx);
+      c.restore();
+    }
+    poly(c, [0, -7.0, 1.6, -6.1, 1.6, -4.3, 0, -3.4, -1.6, -4.3, -1.6, -6.1]);
+    paint(c, M.dark);
+    circle(c, 0, -5.3, 0.65);
+    paint(c, T.accent);
+    c.restore();
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -1372,7 +1447,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
