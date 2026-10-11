@@ -1,0 +1,33 @@
+# A Mountain locked on a tower fires its four guns at the block of wall in
+# their way, each shot about the block's centre at its own offset, and turns
+# its turret onto the block. Red's Mountain locks blue's Energy Tower behind
+# blue's Defensive Wall. On tick 2 its four standalone guns fire at a block
+# (building 6, centred at 152, -55) within a metre of its centre, each drawing
+# its offset as a gun firing at a unit does (`randomTargetRange`), and its
+# turret turns from 184.21 to 182.03 degrees, onto the block: the motion's
+# weapon aims at its valid attack target over its lock
+# (`MotionController.CalculateTargetDirection`,
+# `FightSkill.TryGetValidAttackTarget`).
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: -250, y: -280}}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+red:
+  units:
+  - {name: mountain, index: 0, position: {x: -155, y: -45}}
+outcome:
+  blue.core_damage: 500
+  blue.units[0].exp: 200
+  red.units[0].exp: 636
+asserts:
+- sql: "SELECT tick, round(q32(turret_rotation), 2) FROM units WHERE unit_type_id = 2002 AND tick IN (1, 2)"
+  rows: [[1, 184.21], [2, 182.03]]
+ticks: 1236
+hash: 23:81840a548c1581b9bcb557de3cb42db178d5caa695afa6135ef03116c8dd824d
