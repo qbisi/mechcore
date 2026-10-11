@@ -456,6 +456,7 @@ fn carried_shields(actors: &BTreeMap<u64, Actor>) -> Vec<shield::CarriedShieldPl
                     radius_q32: carried.radius << 32,
                     energy: carried.energy,
                     owner: id,
+                    travelling: actor.travelling,
                 })
         })
         .collect()

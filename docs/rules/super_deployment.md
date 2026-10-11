@@ -105,6 +105,16 @@ and arriving enables them (`SupportUnitProvider.Active`). The interval has run
 out by then, so a line makes its first batch on its first update after the
 arrival, tick 161, and its next ones every interval from there.
 
+**A Barrier rises as its unit arrives.** Switching the effects off
+deactivates the shield a unit carries (`AdvancedEnergyShieldProvider.
+DoDeactive`, `AdvancedEnergyShieldSystem.DeactiveEnergyShield`): it stands
+from the first tick, inactive and empty. Arriving activates it with a reset
+(`DoActive`, `ActiveEnergyShield`), full, after every other active shield of
+its side. A technology's Barrier on a unit whose technologies a buff holds
+off as it arrives does not rise (`EffectProvider.ActiveCheck` finds the
+source locked), nor later, since `EnableEffect` acts only on a shield its
+disabling found available.
+
 ## Evidence
 
 ### Recorded
@@ -133,6 +143,9 @@ arrival, tick 161, and its next ones every interval from there.
 - A travelling Raiden's Tank Production Line makes its first Tanks on tick
   161, as the Raiden arrives, and every 260 ticks after:
   `tests/super_deployment/production-waits-for-arrival.yaml`.
+- A travelling Fortress's Barrier stands inactive and empty until tick 161
+  and rises full as the Fortress arrives:
+  `tests/super_deployment/barrier-rises-on-arrival.yaml`.
 - A squad that arrives together is solved once with none of its members among
   another's RVO neighbours, and walks off where a squad whose members saw each
   other would stand blocked: `tests/corpus/134270595-r2.yaml`.
@@ -157,6 +170,11 @@ arrival, tick 161, and its next ones every interval from there.
 - A production line is disabled with its unit's effects and enabled with
   them: `SupportUnitProvider.Deactive`, `SupportUnitProvider.Active`,
   `SupportUnitSystem.Disable`, `SupportUnitSystem.Enable`.
+- A carried shield is deactivated with its unit's effects and activated,
+  refilled, with them: `AdvancedEnergyShieldProvider.DoDeactive`,
+  `AdvancedEnergyShieldProvider.DoActive`,
+  `AdvancedEnergyShieldSystem.ActiveEnergyShield`,
+  `EffectProvider.ActiveCheck`, `EffectProvider.IsLockedEffect`.
 
 ### Not established
 

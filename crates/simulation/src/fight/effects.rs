@@ -88,6 +88,7 @@ impl Simulation {
                 EffectProvider::MoveAbilityDynamic => self.activate_cloak(unit),
                 EffectProvider::Buff => self.activate_buff_cycles(unit),
                 EffectProvider::SupportUnit => self.activate_production(unit),
+                EffectProvider::AdvancedEnergyShield => self.activate_carried_shield(unit),
                 // The rest are read from the unit where the fight acts, which
                 // passes over a unit still travelling or rising.
                 EffectProvider::LifeSteal
@@ -104,7 +105,6 @@ impl Simulation {
                 | EffectProvider::DeadLine
                 | EffectProvider::MoveAbilityAttackIntensify
                 | EffectProvider::MoveAbilityRangeItem
-                | EffectProvider::AdvancedEnergyShield
                 | EffectProvider::FireIntensify
                 | EffectProvider::RvoRadiusChange
                 | EffectProvider::ClearRangeItem

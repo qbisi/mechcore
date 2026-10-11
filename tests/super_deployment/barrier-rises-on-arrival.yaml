@@ -1,0 +1,31 @@
+# A Barrier on a unit travelling in from a flank holds nothing on the way and
+# rises full as its unit arrives. Blue's Fortress wears a Barrier on the
+# right flank beside a Marksman, as in arrives.yaml, which this fight takes as
+# its control. Placing it deactivated its effects, the shield with them
+# (`AdvancedEnergyShieldProvider.DoDeactive`): the shield stands from tick 1
+# inactive and empty, and on tick 161, as the Fortress arrives, `DoActive`
+# brings it up at its full 60000 and adds it to blue's active shields.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 2
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: fortress, index: 1, position: {x: 320, y: 290}, equipment: [barrier], travelling: true}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}}
+outcome:
+  blue.units[1].exp: 400
+  red.core_damage: 350
+  red.units[0].exp: 200
+  red.units[1].exp: 200
+asserts:
+- sql: "SELECT tick, active, energy__current FROM shields WHERE has_owner AND tick IN (1, 160, 161) ORDER BY tick"
+  rows: [[1, 0, 0], [160, 0, 0], [161, 1, 60000]]
+ticks: 1215
+hash: 23:d8dfb70a5ce381e054efdd1b5b457787d0de897fe8f0684c2024f492171a0b09
