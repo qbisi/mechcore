@@ -925,22 +925,46 @@ here nothing but the pipe can be read around.
 Operands: the match document, or the directory a batch writes into. Options:
 `--blue <command>`, `--red <command>`, `--matches <n>` for how many to play,
 `--seed`, `--map` and `--deploy-time` as `match new` takes them, and
-`--request-timeout <seconds>`.
+`--request-timeout <seconds>`. A player's command is run by `sh -c`, so it may
+carry its own arguments.
 
 The arena deals each match rather than joining one: it runs `match new`, hands
 one player blue and the other red, and varies the seed across a batch, which is
-what makes a batch a comparison rather than one match played twice.
+what makes a batch a comparison rather than one match played twice. A document
+that is already there is refused rather than joined. A batch writes
+`match-0000.yaml` onward into its directory, each from the seed after the one
+before it when `--seed` names the first, and from a seed of its own otherwise.
 
 A player that exits, crashes or stops answering is not answered for. It simply
 stops committing, and the deployment clock ends the match against it, which is
 [the rule a round runs out by](#match). `--request-timeout` bounds one request
-rather than the round: a player that has not answered by then is killed, and
-the clock does the rest. A player's own standard error is kept beside the match
-rather than read as protocol, so a program may log where it likes.
+rather than the round: a player that has not sent its next request that long
+after its last answer is killed, and the clock does the rest. The time the
+arena takes to answer, a wait or a fight among it, is not the player's. A bound
+nobody chose is the match's deployment time, since a player silent for that
+long has lost the round it was silent in anyway. A player's own standard error
+is kept beside the match as `<match>.blue.log` and `<match>.red.log` rather
+than read as protocol, so a program may log where it likes.
+
+The opening has no clock, so a player that leaves before it is committed
+cannot lose by one, and the other side would wait for it for good. The arena
+stops a match there instead: both players are stopped, and the match is
+answered in the `opening` phase with no winner, which is what it is, a match
+nobody has played. A fight that nothing resolves stops the match the same way,
+in its `fight` phase with its `unresolved` reason. Once a match is over, a
+player is sent nothing more, and one that has not left a moment after is
+killed.
 
 Answers one match's outcome, or one per line and a summary for a batch: the
-last round, the phase it ended in, each side's reactor core, and the document
-it was written to.
+document it was written to, its seed and map, the last round, the phase it
+ended in, each side's reactor core, the `winner`, and for each player how its
+part `ended` (`over`, `exited`, `timed_out`, or `stopped` by the arena), its
+exit `code` and its `log`. The winner is the one side that neither conceded,
+which is also how a side that ran out of time is written, nor had its reactor
+core destroyed; a match that is not over, and one both sides lost in the same
+round, has none. A batch's summary counts the matches each side won, the ones
+over with no winner as `drawn`, and the ones that stopped before they were over
+as `unfinished`.
 
 One match is one document. A series, a rating and a tournament are things a
 caller builds out of matches, and this namespace plays them rather than

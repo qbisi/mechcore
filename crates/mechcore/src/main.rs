@@ -1,5 +1,6 @@
 mod acquire;
 mod adapter;
+mod arena;
 mod buildings;
 mod cli;
 mod convert;
@@ -49,6 +50,9 @@ fn usage(program: &str) {
     eprintln!("       {program} match show <match.yaml> --side blue|red [--wait [<seconds>]]");
     eprintln!("       {program} match act <match.yaml> --side blue|red <decision> [--dry-run]");
     eprintln!("       {program} match commit <match.yaml> --side blue|red");
+    eprintln!(
+        "       {program} arena run <match.yaml|dir> --blue <command> --red <command> [--matches <n>]"
+    );
     eprintln!("       {program} game launch [--headless] [--offline] [--level <0-4>]");
     eprintln!("       {program} game <operation> [--level <0-4>]");
     eprintln!("       {program} man [<topic>|<kind>] [--lang <code>]");
@@ -94,6 +98,7 @@ pub(crate) fn dispatch(command: &str, arguments: Args) -> Option<Outcome> {
         "generate" => generate::run(arguments),
         "schema" => schema::run(arguments),
         "match" => r#match::run(arguments),
+        "arena" => arena::run(arguments),
         "game" => game::run(arguments),
         "man" => man::run(arguments),
         "shell" => run_shell(arguments),
