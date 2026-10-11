@@ -342,9 +342,11 @@ const Sprites = (() => {
     const T = p.team;
     const pace = Math.min(1, p.speed / 6) * (1 - p.stance);
     const ph = p.walk * Math.PI * 2 / 9;
-    // which side strikes, -1 left and 1 right, and the strike's key there
-    const side = p.strike >= 0 ? (p.strikeIndex % 2 === 0 ? -1 : 1) : 0;
-    const key = slashAt(side ? p.strike : 0, side || -1);
+    // which side strikes, -1 left and 1 right, and the strike's key there; a
+    // spin strikes with both, over any strike
+    const spinning = p.spin >= 0;
+    const side = !spinning && p.strike >= 0 ? (p.strikeIndex % 2 === 0 ? -1 : 1) : 0;
+    const key = spinning ? slashAt(p.spin, -1, RHINO_SPIN) : slashAt(side ? p.strike : 0, side || -1);
     // the legs, white thighs reaching back to a wheel each, turning with the
     // hips
     c.save();
@@ -374,6 +376,7 @@ const Sprites = (() => {
       return { arm, joints: swung(mixJoints(mirrorJoints(RHINO_WALK, arm), fight, p.stance), arm * walking) };
     });
     if (side && p.stance > 0.5) slashTrail(c, p.strike, side);
+    if (spinning) spinTrail(c, p.spin);
     // the torso, turning and shifting about the spine
     c.save();
     c.translate(key.shift[0] * p.stance, RHINO_SPINE + key.shift[1] * p.stance);
@@ -431,12 +434,44 @@ const Sprites = (() => {
     [1.0, 0, 0, 0.0, 0.0, -5.0, 1.1, -6.4, 3.9, -6.9, 2.9, -8.5, 5.7, -11.1, -0.3, 5.0, 1.1, 6.4, 3.9, 6.9, 2.9, 8.5, 5.7, 11.1, -0.3],
   ];
 
+  // A Rhino's TechAttack, the spin it strikes Whirlwind with, as
+  // scripts/player/rhino-slash.py prints it, keyed as RHINO_SLASH is: the
+  // chainsaws spread, the left ahead and the right behind, and the torso turns
+  // once round clockwise, its turn counted on to 360 degrees.
+  const RHINO_SPIN = [
+    [0.0, 0, 0, 0.0, 0.0, -5.0, 1.1, -6.4, 3.9, -6.9, 2.9, -8.5, 5.7, -11.1, -0.3, 5.0, 1.1, 6.4, 3.9, 6.9, 2.9, 8.5, 5.7, 11.1, -0.3],
+    [0.078, 1, 0, 0.1, 0.1, -5.1, 1.2, -6.5, 3.7, -7.0, 2.4, -7.8, 6.9, -11.9, -1.4, 5.0, 1.2, 6.9, 4.0, 7.5, 3.1, 8.2, 2.8, 12.2, 2.4],
+    [0.157, 0, 0, 0.2, 0.4, -5.0, 1.6, -6.5, 2.6, -6.9, 0.9, -9.3, 3.4, -15.0, -8.5, 5.1, 1.6, 8.2, 3.8, 9.3, 2.6, 10.7, 1.8, 18.4, 11.0],
+    [0.196, -3, 0, 0.2, 0.5, -5.0, 1.8, -6.4, 1.4, -6.7, -0.5, -9.2, 2.4, -14.7, -11.1, 5.1, 1.7, 6.7, 4.4, 7.5, 3.3, 10.1, 3.5, 10.4, 17.0],
+    [0.235, -8, 0, 0.3, 0.4, -5.0, 1.7, -6.0, 0.7, -6.2, -1.3, -8.7, 2.0, -13.2, -12.3, 5.1, 1.6, 6.8, 4.4, 7.8, 3.3, 10.3, 2.6, 8.9, 18.1],
+    [0.275, -9, 0, 0.3, 0.6, -5.0, 1.9, -5.9, 0.9, -6.3, -1.0, -8.8, 2.6, -12.8, -11.6, 5.1, 1.8, 6.9, 4.1, 7.7, 2.5, 10.4, 2.3, 8.9, 18.0],
+    [0.294, 2, 0, 0.3, 0.6, -5.0, 2.0, -5.9, 1.2, -6.4, -0.6, -8.9, 3.2, -12.3, -11.0, 5.1, 1.9, 6.8, 3.9, 7.5, 2.1, 10.3, 2.0, 9.5, 17.6],
+    [0.314, 30, 0, 0.3, 0.6, -5.0, 2.2, -5.7, 1.3, -6.2, -0.6, -9.0, 3.2, -10.1, -11.4, 5.1, 2.2, 7.0, 4.1, 7.9, 2.4, 10.4, 2.3, 9.4, 18.0],
+    [0.333, 69, 0, 0.3, 0.6, -4.9, 2.4, -5.6, 1.4, -6.0, -0.6, -9.1, 3.1, -8.8, -11.9, 5.2, 2.4, 7.5, 4.2, 8.5, 2.5, 10.8, 2.3, 9.9, 18.0],
+    [0.353, 113, 0, 0.3, 0.6, -4.8, 2.4, -5.8, 1.9, -6.3, -0.1, -9.3, 3.4, -8.1, -11.7, 5.3, 2.4, 7.8, 3.9, 8.9, 2.0, 11.0, 2.1, 10.5, 17.6],
+    [0.373, 172, 0, 0.3, 0.6, -5.1, 2.3, -6.4, 1.0, -7.3, -0.8, -9.6, 3.0, -11.2, -11.9, 5.0, 2.3, 7.5, 3.3, 8.2, 1.0, 10.5, 1.2, 12.4, 16.0],
+    [0.392, 227, 0, 0.3, 0.5, -5.2, 2.5, -6.9, 1.2, -8.1, -0.4, -9.8, 3.4, -13.1, -11.1, 4.8, 2.5, 7.1, 3.5, 7.5, 1.1, 10.1, 1.5, 12.2, 15.7],
+    [0.412, 273, 0, 0.3, 0.5, -5.1, 2.5, -6.9, 1.3, -8.0, -0.2, -9.8, 3.2, -12.5, -11.2, 5.0, 2.4, 7.2, 3.5, 7.6, 1.0, 10.3, 1.7, 12.0, 15.4],
+    [0.431, 312, 0, 0.3, 0.5, -4.9, 2.1, -6.7, 1.5, -7.7, 0.2, -9.8, 2.6, -10.8, -11.0, 5.2, 2.1, 7.2, 2.7, 7.6, 0.2, 10.3, 1.0, 11.7, 14.5],
+    [0.451, 340, 0, 0.3, 0.5, -5.0, 1.8, -6.6, 1.7, -7.3, 0.7, -9.8, 2.2, -9.3, -10.4, 5.1, 1.8, 6.7, 1.9, 7.0, -0.7, 10.1, 0.2, 10.3, 13.7],
+    [0.471, 350, 0, 0.3, 0.5, -5.0, 1.7, -6.4, 1.7, -7.0, 0.8, -9.8, 1.8, -7.6, -10.6, 5.1, 1.7, 6.4, 1.7, 6.9, -0.8, 10.0, 0.3, 8.6, 14.0],
+    [0.49, 359, 0, 0.3, 0.5, -5.1, 1.7, -6.4, 1.8, -6.7, 0.9, -9.8, 1.8, -6.6, -10.7, 5.0, 1.6, 6.3, 1.6, 6.7, -0.8, 9.9, 0.2, 8.4, 14.2],
+    [0.529, 367, 0, 0.3, 0.4, -5.0, 1.7, -6.1, 2.0, -6.1, 0.9, -9.6, 1.7, -4.7, -10.9, 5.1, 1.7, 6.5, 1.9, 7.3, -0.3, 10.3, 1.0, 6.4, 15.0],
+    [0.588, 364, 0, 0.3, 0.6, -5.0, 2.0, -6.1, 2.0, -6.1, 0.7, -9.6, 2.1, -5.3, -11.7, 5.1, 2.0, 6.6, 2.6, 7.5, 0.4, 10.2, 1.6, 9.0, 13.7],
+    [0.647, 360, 0, 0.3, 0.8, -5.0, 2.3, -6.1, 2.3, -6.5, 0.9, -9.4, 3.8, -10.1, -10.7, 5.1, 2.3, 7.0, 3.2, 7.3, 0.8, 9.8, 2.0, 14.7, 4.7],
+    [0.706, 359, 0, 0.2, 0.6, -5.1, 2.1, -6.4, 3.5, -7.0, 1.9, -9.3, 5.2, -12.0, -7.1, 5.0, 2.1, 7.5, 3.8, 7.5, 0.9, 10.1, 4.9, 13.0, -6.9],
+    [0.784, 359, 0, 0.1, 0.2, -5.1, 1.5, -6.5, 4.1, -7.2, 2.8, -9.2, 5.2, -12.4, -2.5, 5.0, 1.5, 6.3, 4.1, 6.7, 2.0, 9.3, 6.3, 11.2, -5.4],
+    [0.882, 360, 0, 0.0, 0.0, -5.0, 1.1, -6.4, 4.0, -7.0, 3.0, -8.6, 5.6, -11.5, -0.6, 5.0, 1.1, 6.3, 3.9, 6.8, 2.6, 8.8, 6.4, 11.1, -1.6],
+    [1.0, 360, 0, 0.0, 0.0, -5.0, 1.1, -6.4, 3.9, -6.9, 2.9, -8.5, 5.7, -11.1, -0.3, 5.0, 1.1, 6.4, 3.9, 6.9, 2.9, 8.5, 5.7, 11.1, -0.3],
+  ];
+
   // A Rhino's strike `s` of the way through its clip, struck with `side`'s
-  // arm, -1 left: FiringAR is FiringAL mirrored. Angles are in radians.
-  function slashAt(s, side) {
+  // arm, -1 left: FiringAR is FiringAL mirrored. Angles are in radians. A
+  // spin is keyed from RHINO_SPIN, its left arm the striking one.
+  function slashAt(s, side, keys = RHINO_SLASH) {
     let i = 0;
-    while (i + 2 < RHINO_SLASH.length && RHINO_SLASH[i + 1][0] <= s) i++;
-    const [a, b] = [RHINO_SLASH[i], RHINO_SLASH[i + 1]];
+    while (i + 2 < keys.length && keys[i + 1][0] <= s) i++;
+    const [a, b] = [keys[i], keys[i + 1]];
     const k = Math.max(0, Math.min(1, (s - a[0]) / (b[0] - a[0])));
     const v = a.map((x, j) => x + (b[j] - x) * k);
     const flip = -side;
@@ -557,6 +592,35 @@ const Sprites = (() => {
       paint(c, '#ffc46b', null);
       // the nose's own path, brightest
       line(c, a1[0], a1[1], b1[0], b1[1], '#fff1d6', 0.5 * ((i + 1) / steps));
+    }
+    c.restore();
+  }
+
+  // Both saws' paths through a spin, `s` of the way through TechAttack: a
+  // bright arc behind each nose over the last tenth of a turn's worth of
+  // clip, from the turn's start to a little past its end.
+  function spinTrail(c, s) {
+    if (s < 0.29 || s > 0.56) return;
+    const sweep = (at, arm) => {
+      const key = slashAt(at, -1, RHINO_SPIN);
+      const [, , , top, nose] = arm ? key.other : key.striking;
+      const cos = Math.cos(key.torso), sin = Math.sin(key.torso);
+      const place = ([x, y]) => [key.shift[0] + x * cos - y * sin, RHINO_SPINE + key.shift[1] + x * sin + y * cos];
+      return [place([(top[0] + nose[0]) / 2, (top[1] + nose[1]) / 2]), place(nose)];
+    };
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    const steps = 12;
+    const fade = s < 0.49 ? 1 : 1 - (s - 0.49) / 0.07;
+    for (const arm of [0, 1]) {
+      for (let i = 0; i < steps; i++) {
+        const [a0, a1] = sweep(Math.max(0.29, s - (0.07 * (steps - i)) / steps), arm);
+        const [b0, b1] = sweep(Math.max(0.29, s - (0.07 * (steps - i - 1)) / steps), arm);
+        c.globalAlpha = fade * ((i + 1) / steps) * 0.6;
+        poly(c, [a0[0], a0[1], a1[0], a1[1], b1[0], b1[1], b0[0], b0[1]]);
+        paint(c, '#ffc46b', null);
+        line(c, a1[0], a1[1], b1[0], b1[1], '#fff1d6', 0.6 * ((i + 1) / steps));
+      }
     }
     c.restore();
   }
