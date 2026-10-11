@@ -17,7 +17,8 @@
   // The game's English names, as docs/terminology/ lists them.
   const NAMES = {
     marksman: 'Marksman', arclight: 'Arclight', rhino: 'Rhino', crawler: 'Crawler',
-    sledgehammer: 'Sledgehammer', wasp: 'Wasp', phoenix: 'Phoenix', energy_tower: 'Energy Tower',
+    sledgehammer: 'Sledgehammer', wasp: 'Wasp', phoenix: 'Phoenix', fang: 'Fang',
+    energy_tower: 'Energy Tower',
     research_center: 'Research Center', anti_armor_turret: 'Anti-Armor Cannon',
     rapid_fire_turret: 'Rapid-Fire Cannon', defensive_wall: 'Defensive Wall',
   };
