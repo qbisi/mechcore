@@ -38,6 +38,7 @@ directory alone keeps a readme, for the rules of pinning a round:
 | [`missile/`](missile/) | when a missile fires, at what, and what its hit writes | [`contraptions.md`](../docs/rules/contraptions.md) |
 | [`fire_extinguisher/`](fire_extinguisher/) | which terrain a fire extinguisher clears about its unit, and when | [`technology_effects.md`](../docs/rules/technology_effects.md#fire-extinguisher-technologies) |
 | [`fire_intensify/`](fire_intensify/) | where a fire technology's unit leaves fires as its main skill hits | [`technology_effects.md`](../docs/rules/technology_effects.md#fire-technologies) |
+| [`fly/`](fly/) | what a technology that turns its unit's domain changes about what reaches it and what writes onto it | [`technology_effects.md`](../docs/rules/technology_effects.md#flying-and-landing-technologies) |
 | [`rebirth/`](rebirth/) | when a rebirth technology brings its unit back after it dies, where, and what its side and the score make of it meanwhile | [`technology_effects.md`](../docs/rules/technology_effects.md#rebirth-technologies) |
 | [`reactive_armor/`](reactive_armor/) | what a reactive armor technology takes off the hits on its unit, and for how many | [`technology_effects.md`](../docs/rules/technology_effects.md#reactive-armor-technologies) |
 | [`multi_attack/`](multi_attack/) | how many projectiles a multi-attack technology adds its unit's bursts, how far apart in time and space, and from which weapon | [`technology_effects.md`](../docs/rules/technology_effects.md#multi-attack-technologies) |
