@@ -250,6 +250,9 @@ impl<E: Copy + Ord> FightQuadtree<E> {
 
     /// Takes an element out, keeping the order of the rest.
     pub(in crate::fight) fn remove(&mut self, candidate: E) {
+        if !self.ranges.contains_key(&candidate) {
+            return;
+        }
         let mut path = Vec::new();
         if !self.root.find_path(candidate, &mut path) {
             return;
