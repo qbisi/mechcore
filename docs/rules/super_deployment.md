@@ -98,6 +98,13 @@ does from tick 161 on, every tick before differing only in that charge. A
 recording therefore reads no skill of a travelling unit
 ([mcfr.md](../spec/mcfr/mcfr.md#skills)).
 
+**A production line makes nothing on the way.** Switching a travelling unit's
+effects off disables its lines (`SupportUnitProvider.Deactive`,
+`SupportUnitSystem.Disable`), which count their interval on and make nothing,
+and arriving enables them (`SupportUnitProvider.Active`). The interval has run
+out by then, so a line makes its first batch on its first update after the
+arrival, tick 161, and its next ones every interval from there.
+
 ## Evidence
 
 ### Recorded
@@ -123,6 +130,9 @@ recording therefore reads no skill of a travelling unit
   `tests/corpus/201370830-r7.yaml`.
 - Quick Teleport halves the travel, with four heals of a quarter of 0.6:
   `tests/super_deployment/quick-teleport.yaml`.
+- A travelling Raiden's Tank Production Line makes its first Tanks on tick
+  161, as the Raiden arrives, and every 260 ticks after:
+  `tests/super_deployment/production-waits-for-arrival.yaml`.
 - A squad that arrives together is solved once with none of its members among
   another's RVO neighbours, and walks off where a squad whose members saw each
   other would stand blocked: `tests/corpus/134270595-r2.yaml`.
@@ -144,14 +154,17 @@ recording therefore reads no skill of a travelling unit
   them on: `BattleSystem.OnEnterSuperDeployment`,
   `FightEffectSystem.DeactiveEffect`, `SuperDeploymentController.ExitTravel`,
   `FightEffectSystem.ActiveEffect`, `ExtraSkillProvider.DisableSkill`.
+- A production line is disabled with its unit's effects and enabled with
+  them: `SupportUnitProvider.Deactive`, `SupportUnitProvider.Active`,
+  `SupportUnitSystem.Disable`, `SupportUnitSystem.Enable`.
 
 ### Not established
 
 
 - **The order of two sides' travelling units in the list**, beyond the
   identity order the recordings agree with.
-- **A travelling unit whose buffs, summons or generic effect providers
-  activate on arrival**, which travel's `ActiveCheck` does gate. Each is read
-  from the build, a buff's from `BuffCycleController.Active`
+- **A travelling unit whose buffs or generic effect providers activate on
+  arrival**, which travel's `ActiveCheck` does gate. Each is read from the
+  build, a buff's from `BuffCycleController.Active`
   ([equipment_effects.md](equipment_effects.md#buff-items)); no recording
-  holds one.
+  holds one. A production line's is recorded above.

@@ -277,7 +277,11 @@ impl Creator {
             made: Vec::new(),
             created: 0,
             updates: 0,
-            enabled: true,
+            // A unit placed on a flank has its effects deactivated as it is
+            // placed (`BattleSystem.OnEnterSuperDeployment`,
+            // `SupportUnitProvider.Deactive`, `SupportUnitSystem.Disable`),
+            // so its lines make nothing until it arrives.
+            enabled: !owner.travelling,
             technology: line.technology,
         }
     }
@@ -404,6 +408,18 @@ impl Simulation {
                     .is_some_and(|technology| switched.contains(&technology))
             {
                 creator.enabled = on;
+            }
+        }
+    }
+
+    /// `SupportUnitProvider.Active` (`SupportUnitSystem.Enable`) as a unit's
+    /// effects are activated: each line its provider hands it enabled. A
+    /// unit that arrives from a flank makes its first batch on its lines'
+    /// next update, its interval having run out on the way.
+    pub(in crate::fight) fn activate_production(&mut self, owner: u64) {
+        for creator in &mut self.support.lines {
+            if creator.owner == Some(owner) && creator.gate == Gate::None {
+                creator.enabled = true;
             }
         }
     }

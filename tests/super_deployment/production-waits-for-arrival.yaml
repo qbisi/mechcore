@@ -1,0 +1,31 @@
+# A production line on a unit travelling in from a flank makes nothing on
+# the way. Blue's Raiden carries a Tank Production Line onto the left flank
+# beside a Marksman, as in arrives.yaml, which this fight takes as its
+# control. Its effects were switched off as it was placed, the line with
+# them, and it makes its first two Tanks on tick 161, as it arrives, where a
+# Raiden on the ground makes them on tick 1; its next batches follow every
+# 260 ticks from there, at 421 and 681.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 2
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: raiden, index: 1, position: {x: -330, y: 40}, equipment: [tank_production_line], travelling: true}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}}
+outcome:
+  blue.units[1].exp: 400
+  red.core_damage: 400
+  red.units[0].exp: 200
+  red.units[1].exp: 280
+asserts:
+- sql: "SELECT tick, count(*) FROM events WHERE type = 'unit_created' AND tick <= 700 GROUP BY tick ORDER BY tick"
+  rows: [[161, 2], [421, 2], [681, 2]]
+ticks: 930
+hash: 23:0e79f6aaa62ef03362c09b23976063f4e31743c3fddfc03380784d6867779790
