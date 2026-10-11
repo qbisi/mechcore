@@ -213,14 +213,22 @@ locked on a Sandworm as it burrows go on walking towards it.
 
 ## The end of the fight
 
-`MotionController.ExitFight` changes the motion to idle directly and clears the
-ability (`UndergroundMoveAbility.Clear`). A unit still underground surfaces
+`FightingState.Update` updates every module before leaving a finished fight.
+The last motion update therefore runs before `FightMech.ExitFight`: a unit
+still in its burrowing or surfacing transition stays locked during that
+update, while an unlocked unit completes its buffered movement.
+
+`MotionController.ExitFight` deactivates the RVO agent, and only a motion not
+already idle changes directly to idle and clears its ability
+(`UndergroundMoveAbility.Clear`). The state change exits the old state first,
+so a transition ends before idle is entered. `MotionIdleState.Enter` asks for
+a stop only while the RVO controller is active; it publishes no new stop
+after deactivation. A unit still underground surfaces
 there and then: `DoExitMoveBegin(false)` locks its agent and
 `DoExitMoveEnd(false)` shows the unit, puts its agent on the ground and takes
 the range correction away, and does not let the agent go, which only a normal
-exit does. The fight's last tick, the one after its towers are torn down,
-leaves every mech before it updates, so a Sandworm that was travelling below
-stands where it was on that tick while every other unit moves.
+exit does. `FightMech.ExitFight` then resets the unit's visibility to normal,
+including a unit already idle whose ability was not cleared.
 
 ## Evidence
 
@@ -253,6 +261,9 @@ stands where it was on that tick while every other unit moves.
   surfacing on each other, a Sandworm turning aside from an ally surfacing,
   a shot spent on a burrowed Sandworm, and a Sandworm below as the fight
   ends, each as above: `tests/sandworm/`, both seeds of each layout.
+- A Larva still surfacing stays in place on the final tick, and surviving
+  Larvae are shown as the fight exits:
+  `tests/endgame/exit-fight-transition-and-move.yaml`.
 
 ### Read
 
@@ -281,7 +292,9 @@ stands where it was on that tick while every other unit moves.
   `DistanceScoreCalculator.Calculate`,
   `SkillAttackRangeChecker.IsActorInAttackRange`, `FightActor.IsValidTarget`,
   `FightProjectile.Update`.
-- The end of the fight: `MotionController.ExitFight`,
+- The end of the fight: `FightingState.Update`, `FightingState.Exit`,
+  `FightMech.ExitFight`, `MotionController.ExitFight`, `SimpleFSM.ChangeState`,
+  `MotionIdleState.Enter`, `RVOControllerFixed.Deactive`,
   `UndergroundMoveAbility.Clear`.
 - A sand fog as it surfaces: `MoveAbilityRangeItemProvider.DoActive`,
   `MoveAbilityRangeItemSystem.AddMech`, `MoveAbilityRangeItemSystem.EnableEffect`,

@@ -209,21 +209,15 @@ impl Actor {
 }
 
 impl Actor {
-    /// `MotionController.ExitFight`'s part for a move ability: the motion
-    /// changes to `MotionIdleState` without a transition, and
     /// `UndergroundMoveAbility.Clear` ends a burrow there and then
     /// (`DoExitMoveBegin(false)` and `DoExitMoveEnd(false)`): the unit shows
     /// itself and its agent is back on the ground. `DoExitMoveBegin` locked the agent, and `DoExitMoveEnd`
-    /// lets it go only on a normal exit, so it stays locked: a Sandworm that
-    /// was burrowing on when the fight ended stands still on its last tick,
-    /// while every other unit moves. A transition under way is ended as its
-    /// state's `Exit` ends it.
-    pub(in crate::fight) fn exit_fight_move_ability(&mut self) {
+    /// lets it go only on a normal exit, so a cleared burrow stays locked.
+    /// `SimpleFSM.ChangeState` has already exited any transition before this
+    /// is called from `MotionController.ExitFight`.
+    pub(in crate::fight) fn clear_move_ability(&mut self) {
         if self.underground.is_none() {
             return;
-        }
-        if self.motion.state == MotionState::Transitioning {
-            self.end_transition_state();
         }
         let underground = self.underground.as_mut().expect("checked above");
         if underground.state == AbilityState::Moving {
@@ -356,7 +350,21 @@ impl Simulation {
             .underground
             .as_ref()
             .is_some_and(|underground| underground.state == AbilityState::Exit);
-        actor.end_transition_state();
+        actor.end_move_ability_transition();
+        let next = actor
+            .motion
+            .transition_to
+            .take()
+            .expect("a transition knows the state it leads to");
+        actor.motion.state = next;
+        // `MotionIdleState.Enter` and `MotionAttackState.Enter` stop the
+        // agent where it stands after the old transition has exited.
+        if matches!(next, MotionState::Idle | MotionState::Attacking) {
+            actor.motion.next_target_x_q32 = actor.x_q32;
+            actor.motion.next_target_z_q32 = actor.z_q32;
+            actor.motion.next_speed_q32 = 0;
+            actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
+        }
         let fog = actor
             .placement
             .effects
@@ -398,9 +406,9 @@ impl Simulation {
 }
 
 impl Actor {
-    /// `TransitionState.Exit`, the ability's `OnTransitionEnd`, and the next
-    /// state entered, `range` what its main skill's `GetAttackRange` answers.
-    fn end_transition_state(&mut self) {
+    /// `MoveAbility.IStateTransitionBehaviour.OnTransitionEnd`, called by
+    /// `TransitionState.Exit` before the next motion state is entered.
+    pub(in crate::fight) fn end_move_ability_transition(&mut self) {
         let alive = self.alive();
         let underground = self
             .underground
@@ -430,20 +438,6 @@ impl Actor {
                 self.set_underground_recovery(true);
             }
             AbilityState::None | AbilityState::Moving => {}
-        }
-        let next = self
-            .motion
-            .transition_to
-            .take()
-            .expect("a transition knows the state it leads to");
-        self.motion.state = next;
-        // `MotionIdleState.Enter` and `MotionAttackState.Enter` stop the
-        // agent where it stands.
-        if matches!(next, MotionState::Idle | MotionState::Attacking) {
-            self.motion.next_target_x_q32 = self.x_q32;
-            self.motion.next_target_z_q32 = self.z_q32;
-            self.motion.next_speed_q32 = 0;
-            self.motion.next_max_speed_q32 = self.rvo_max_speed_q32;
         }
     }
 }
