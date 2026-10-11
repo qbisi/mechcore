@@ -247,6 +247,14 @@ pub fn step_placing(
         }
         Action::UpgradeUnit { index } => {
             let formation = formation_mut(&mut next, *index)?;
+            // A formation that has earned experience buys its next level only once
+            // the bar is full; one that has not fought since it joined or levelled
+            // holds none and buys it whenever.
+            if formation.unit.exp.is_some_and(|exp| !exp.is_full()) {
+                return Err(Unsettled::Refused(
+                    "upgrading a unit whose experience bar is not full",
+                ));
+            }
             let unit =
                 unit_id_from_type(&formation.unit.type_name).ok_or(Unsettled::Unpriced("unit"))?;
             let worn = formation.unit.equipment.clone();
@@ -2139,6 +2147,22 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         assert_eq!(next.units[0].unit.level, Some(2));
         assert_eq!(next.units[0].unit.exp, None);
         assert!(next.supply < state.supply);
+    }
+
+    /// A formation partway along its bar does not buy its next level.
+    #[test]
+    fn an_upgrade_waits_for_a_full_bar() {
+        let economy = Economy::embedded().unwrap();
+        let mut state = side_holding(&[(0, Position { x: 0, y: -160 })]);
+        state.supply = 1000;
+        state.units[0].unit.exp = Some(Experience {
+            current: 157,
+            maximum: 650,
+        });
+        assert!(matches!(
+            step(economy, &state, &Action::UpgradeUnit { index: 0 }),
+            Err(Unsettled::Refused(_))
+        ));
     }
 
     /// A card that hands out squads also puts their unit in the shop.
