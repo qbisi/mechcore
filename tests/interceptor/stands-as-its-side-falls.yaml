@@ -1,0 +1,55 @@
+# The fight's end takes down the losing side's towers and then its
+# constructions, and leaves its interceptor standing
+# (`FightCoreSystem.TryDstroyTower` walks `towers` and `GetConstructions`
+# alone). Blue's last unit dies on tick 187: on tick 188 its two towers fall,
+# then its Rapid-Fire Turret, then the five blocks of its Defensive Wall, in
+# the order `PrepareActors` sorted its constructions, the turret standing
+# behind the wall; its Interceptor, building 3, stands to the end. A fight
+# drawn by the generator, recorded with the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1276164085
+round: 1
+blue:
+  officers: [advanced_targeting_system, cost_control_specialist, improved_wasp]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [3, 1]
+  units:
+  - {name: wasp, index: 0, position: {x: -85, y: -20}, level: 6, exp: 5219/5219, equipment: [improved_firepower_control_system], source: legacy}
+  - {name: void_eye, index: 1, position: {x: 0, y: -210}, level: 9}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -205, y: -165}}
+  battle_skills:
+  - {name: ion_blast, positions: [{x: -100, y: -270}, {x: 140, y: 75}]}
+red:
+  officers: [advanced_missile_device, advanced_offensive_tactics, fortified_specialist]
+  techs:
+    sabertooth: [field_entrenchment]
+  blueprints: [defense_enhancement]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -125, y: -265}, level: 7, rotated: true, equipment: [super_heavy_armor], source: legacy}
+  - {name: wasp, index: 1, position: {x: -215, y: -240}, level: 4}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 20, y: -65}}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: -275, y: 115}]}
+outcome:
+  blue.core_damage: 404
+  red.units[0].exp: 3927
+  red.units[1].exp: 3927
+  red.contraptions[0].retained: false
+asserts:
+- sql: "SELECT object__id FROM events WHERE type = 'building_destroyed' AND tick = 188 ORDER BY ordinal"
+  rows: [[1], [2], [4], [5], [6], [7], [8], [9]]
+- sql: "SELECT building_id, life__current FROM buildings WHERE tick = 188 AND building_id = 3"
+  rows: [[3, 4000]]
+ticks: 188
+hash: 23:9948738c5847f98c17b1db036171758a91f1e5e711d485d277f6be32bc128d5f
