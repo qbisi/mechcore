@@ -185,7 +185,7 @@ impl Simulation {
 
     /// `ControlBeamDamageCalculator.GetAttackDamage`: the skill's damage,
     /// and for the hits up to `warmup_attack_count`, counted from zero, that
-    /// damage times the warm-up multiplier, at least one. The damage is the
+    /// damage times the warm-up multiplier ([`warm_up`]). The damage is the
     /// skill's own, which a technology's `DamageReduceRateBase` has lowered
     /// already: Multi Control's beams turn by 102 a hit of a Hacker's 600,
     /// and by 1 a warm-up hit.
@@ -205,25 +205,36 @@ impl Simulation {
         if attack_count > i32::try_from(warmup_attack_count).unwrap_or(i32::MAX) {
             return damage;
         }
-        #[allow(
-            clippy::cast_precision_loss,
-            clippy::cast_possible_truncation,
-            reason = "the multiplier is the build's float, applied as the build applies it"
-        )]
-        let warm = ((damage as f64) * warmup_damage_multiplier) as i64;
-        warm.max(1)
+        warm_up(damage, warmup_damage_multiplier)
     }
 
     /// What a recording reads as a beam's damage: its damage calculator
     /// with the default attack count, zero, which is the first warmup hit
-    /// whatever the beam is on. The Hacker reads 1 against a unit it may
-    /// turn, a unit wearing the Anti-Interference Module and a shield alike.
+    /// whatever the beam is on, over the unit's damage as `GetNormalDamage`
+    /// reads it, without the skill's `DamageReduceRateBase`. A level 5
+    /// Hacker of 2997 reads 2, and one of 3588 reads 3 on its main beam and
+    /// on each of Multi Control's, whose -0.83 lowers only what they deal.
     pub(in crate::fight) fn beam_snapshot_damage(&self, skill_ref: SkillRef) -> Option<i32> {
         if self.skill(skill_ref).kind != SkillKind::ControlBeam {
             return None;
         }
-        let damage = self.beam_damage(skill_ref, 0);
-        Some(i32::try_from(damage).unwrap_or(i32::MAX))
+        let actor = &self.actors[&skill_ref.owner.id()];
+        let AttackPath::ControlBeam {
+            warmup_damage_multiplier,
+            ..
+        } = self
+            .skill_attacker(skill_ref)
+            .expect("skill owner identity is stable")
+            .attack
+            .path
+        else {
+            unreachable!("a control beam's damage needs a control beam's path")
+        };
+        let warm = warm_up(
+            actor.stats.normal_damage(&actor.rules),
+            warmup_damage_multiplier,
+        );
+        Some(i32::try_from(warm).unwrap_or(i32::MAX))
     }
 
     /// `NormalAttackPerformer.TryPerformEffect` for a control beam, the
@@ -693,4 +704,17 @@ impl Simulation {
         }
         Ok(true)
     }
+}
+
+/// A warm-up hit's damage: `damage` times the multiplier in `FPoint`, whose
+/// raw falls short of a thousandth, rounded down and at least one. A Hacker
+/// of 3000 warms up at 2, not 3.
+fn warm_up(damage: i64, multiplier: f64) -> i64 {
+    #[allow(
+        clippy::cast_possible_truncation,
+        reason = "the multiplier is the build's FPoint, its raw a whole number"
+    )]
+    let multiplier_raw = (multiplier * 4_294_967_296.0).round() as i64;
+    let warm = (i128::from(damage) * i128::from(multiplier_raw)) >> 32;
+    i64::try_from(warm).unwrap_or(i64::MAX).max(1)
 }

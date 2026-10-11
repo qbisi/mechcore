@@ -19,10 +19,16 @@ damage.
 
 A hit's damage is `ControlBeamDamageCalculator.GetAttackDamage` of the skill's
 attack count, counted from zero: up to `warmup_attack_count` it is the damage
-times `warmup_damage_multiplier`, rounded down and at least 1, and full after.
-The Hacker's three first hits deal 1, and every later one 600. A recording
-reads the beam's damage as the calculator's at the default count, zero: the
-Hacker reads 1 all fight, whatever it is on.
+times `warmup_damage_multiplier`, multiplied in `FPoint`, whose raw for a
+thousandth falls short of it, rounded down and at least 1, and full after.
+A level 1 Hacker's three first hits deal 1, and every later one 600; a level
+5 Hacker of 3000 warms up at 2, not 3. A recording reads the beam's damage as
+the calculator's at the default count, zero, over its damage property, the
+unit's damage as `GetNormalDamage` reads it: a level 1 Hacker reads 1 all
+fight, whatever it is on, and Multi Control's rate on damage dealt
+(`DamageReduceRateBase`, -0.83) lowers what its beams deal but not what they
+read, so each of a Hacker's five beams reads its warm-up of the unit's whole
+damage.
 
 A hit that strikes deals `FightControllBeamSkill.GetDamage`: the calculator's
 damage times `DAMAGE_MODIFIER`, three tenths in `FPoint`, rounded down. A full
@@ -192,6 +198,8 @@ the shield does not count against the turn.
 
 ### Recorded
 
+- A level 5 Hacker of 3000 warms up at 2 a hit and reads 2:
+  `tests/hacker/warm-up-reads-unreduced-damage.yaml`.
 - Enhanced Control brings two Crawlers a Fang left at 171 up to 250 as the
   Hacker turns them, and gives two turned whole nothing:
   `tests/control/enhanced-control.yaml`.
