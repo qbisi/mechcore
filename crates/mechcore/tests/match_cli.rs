@@ -603,3 +603,18 @@ fn a_technology_outside_the_loadout_is_refused() {
     .refused();
     assert!(refused.contains("loadout"), "{refused}");
 }
+
+#[test]
+fn a_side_answers_the_offer_before_it_commits() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    for side in ["blue", "red"] {
+        run(&["match", "commit", &path, "--side", side]).ok();
+    }
+
+    let refused = run(&["match", "commit", &path, "--side", "blue"]).refused();
+    assert!(refused.contains("answers it"), "{refused}");
+    decline(&path, "blue");
+    run(&["match", "commit", &path, "--side", "blue"]).ok();
+}

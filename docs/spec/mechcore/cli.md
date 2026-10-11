@@ -869,7 +869,9 @@ committed, and the round is fought when the other side has committed too.
 Answers the phase the match is now in; a side that wants the next round waits
 for it with `show --wait`.
 
-A commit cannot be taken back, and a side commits a round once.
+A commit cannot be taken back, and a side commits a round once. A round that
+deals a reinforcement offer is written with one answer from each side, so a
+side that has neither answered it nor conceded is refused the commit.
 
 A decision the rules refuse is refused and may be replaced by another: nothing
 about a refusal ends a round or a match. What ends a match beside its own
