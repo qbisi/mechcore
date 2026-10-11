@@ -1,0 +1,31 @@
+# A Melting Point with Electromagnetic Barrage, red's Rapid-Fire Turret in
+# the barrage's reach and red's Farseer beyond it. The main skill locks the
+# turret; the barrage, which deals nothing but a shield's damage, passes over
+# a building no shield holds and locks the Farseer
+# (`ExtraSkillSearchTargetController.PerformNormalSkillSearch`). A fight
+# drawn by hand, recorded with the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1
+round: 3
+blue:
+  techs:
+    melting_point: [electromagnetic_barrage]
+  units:
+  - {name: melting_point, index: 0, position: {x: 60, y: -90}}
+red:
+  units:
+  - {name: farseer, index: 0, position: {x: 205, y: -45}}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+outcome:
+  blue.units[0].exp: 920
+  red.core_damage: 350
+  red.units[0].exp: 200
+ticks: 825
+hash: 23:a981a8d35ddea6103c3f0b3a8afc0f1e4e96233430bebb050a8027961732ca9b
+asserts:
+- sql: "SELECT skill_slot, enabled__lock_target__kind, enabled__lock_target__id FROM units__skills WHERE tick = 1 AND unit_id = 1 ORDER BY skill_slot"
+  rows: [[0, building, 5], [1, unit, 2]]

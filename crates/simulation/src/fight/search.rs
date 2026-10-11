@@ -954,11 +954,42 @@ impl Simulation {
         let source = self
             .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("target selector source is absent"))?;
-        Ok(self.perform_normal_skill_search(
+        let found = self.perform_normal_skill_search(
             &source,
             target_search_order,
             !use_live_candidate_positions,
-        ))
+        );
+        if skill_ref.slot == SkillSlot::Main {
+            return Ok(found);
+        }
+        Ok(self.search_extra_skill(&source, target_search_order, found))
+    }
+
+    /// `ExtraSkillSearchTargetController.PerformNormalSkillSearch`: an extra
+    /// skill that deals no damage but a shield's
+    /// (`IDamageModifier.IsChangeHitEnergyShieldDamage`) keeps a building it
+    /// found only while a shield of the building's side holds it
+    /// (`FightCalculator.IsActorInEnergyShield`). Otherwise it selects again
+    /// over every enemy its skill attacks (`OpponentController.GetActors`),
+    /// alive, but that building and any building no shield holds. A Melting
+    /// Point's Electromagnetic Barrage with no unit in reach locks the
+    /// nearest unit beyond it rather than a turret within.
+    fn search_extra_skill(
+        &self,
+        source: &super::attacker::Attacker<'_>,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+        found: Option<FightActorRef>,
+    ) -> Option<FightActorRef> {
+        let Some(building @ FightActorRef::Building(_)) = found else {
+            return found;
+        };
+        if source.attack_damage != 0
+            || self.skill_shield_damage(source.skill).is_none()
+            || self.shield_around(building).is_some()
+        {
+            return found;
+        }
+        self.select_in_square(source, target_search_order, true, None, Some(building))
     }
 
     /// `SkillSearchTargetController.PerformNormalSkillSearch`.
@@ -995,7 +1026,8 @@ impl Simulation {
                 }
                 FightActorRef::Building(_) => *source,
             };
-            match self.select_in_square(&prepared_source, target_search_order, false, Some(0)) {
+            match self.select_in_square(&prepared_source, target_search_order, false, Some(0), None)
+            {
                 Some(chosen)
                     if self
                         .fight_actor(chosen)
@@ -1003,15 +1035,15 @@ impl Simulation {
                 Some(chosen) if self.fight_actor(chosen).is_some_and(|target| target.alive) => {
                     return Some(chosen);
                 }
-                _ => return self.select_in_square(source, target_search_order, true, None),
+                _ => return self.select_in_square(source, target_search_order, true, None, None),
             }
         }
         [0, 200, 500]
             .into_iter()
             .find_map(|widening| {
-                self.select_in_square(source, target_search_order, true, Some(widening))
+                self.select_in_square(source, target_search_order, true, Some(widening), None)
             })
-            .or_else(|| self.select_in_square(source, target_search_order, true, None))
+            .or_else(|| self.select_in_square(source, target_search_order, true, None, None))
     }
 
     /// [`Simulation::select_normal_target_with_order`] for a given source.
@@ -1029,19 +1061,23 @@ impl Simulation {
             target_search_order,
             use_live_candidate_positions,
             Some(0),
+            None,
         )
     }
 
     /// `ScoreRatingTargetSelector.Select`, or `TrySelect` for a search
     /// prepared at the tick's start, over the candidates the target trees
     /// answer for the search's square widened by `widening` metres, or over
-    /// every enemy for none.
+    /// every enemy for none. With `passed_over`, that actor is not among the
+    /// candidates, nor a building no shield of its side holds
+    /// ([`Simulation::search_extra_skill`]).
     fn select_in_square(
         &self,
         source: &super::attacker::Attacker<'_>,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
         use_live_candidate_positions: bool,
         widening: Option<i64>,
+        passed_over: Option<FightActorRef>,
     ) -> Option<FightActorRef> {
         let owner = source.owner;
         let nearby = widening.and_then(|widening| {
@@ -1099,6 +1135,11 @@ impl Simulation {
                         if self.unsearchable_buildings.contains(&id))
                     || (!tower_attackable && self.is_tower(candidate))
                     || !source.targets.accepts(target.domain)
+                    || passed_over.is_some_and(|passed| {
+                        candidate == passed
+                            || (matches!(candidate, FightActorRef::Building(_))
+                                && self.shield_around(candidate).is_none())
+                    })
                 {
                     continue;
                 }
