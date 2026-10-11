@@ -296,6 +296,14 @@ impl Simulation {
     /// unit turned in the order it joined, and anything else made since in
     /// identity order.
     pub(in crate::fight) fn units_in_update_order(&self) -> Vec<u64> {
+        let active_units = self
+            .active_actors
+            .iter()
+            .filter_map(|&actor| match actor {
+                FightActorRef::Unit(id) => Some(id),
+                FightActorRef::Building(_) => None,
+            })
+            .collect::<BTreeSet<_>>();
         let listed = self.active_actors.iter().filter_map(|&actor| match actor {
             FightActorRef::Unit(id) if self.actors.contains_key(&id) => Some(id),
             _ => None,
@@ -304,7 +312,7 @@ impl Simulation {
             .actors
             .keys()
             .copied()
-            .filter(|&id| !self.active_actors.contains(&FightActorRef::Unit(id)));
+            .filter(|id| !active_units.contains(id));
         listed.chain(made).collect()
     }
 
