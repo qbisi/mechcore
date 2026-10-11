@@ -34,6 +34,7 @@ const Sprites = (() => {
     void_eye: '#bc55ff',
     vortex: '#76f9fe',
     mustang: '#12878d',
+    steel_ball: '#ffd114',
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
@@ -43,6 +44,7 @@ const Sprites = (() => {
     void_eye: [8.8, 8.6],
     vortex: [7.8, 7.0],
     mustang: [5.8, 9.2],
+    steel_ball: [10.6, 16],
     energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -1056,6 +1058,69 @@ const Sprites = (() => {
     c.restore();
   }
 
+  // Steel Ball: a great ball it rolls on, between two tall white blades,
+  // a pod each side armoured in the team's colour with prongs reaching
+  // ahead, and two long stabilisers trailing from a frame at its back.
+  function steel_ball(c, p) {
+    const T = p.team;
+    const roll = (p.walk * 1.5) % 1.2;
+    // the stabilisers trailing behind
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 1.35, 6.2, sx * 1.65, 6.2, sx * 1.95, 10.2, sx * 1.75, 10.3]);
+      paint(c, M.white);
+      circle(c, sx * 1.5, 6.1, 0.3);
+      paint(c, M.pale);
+    }
+    rr(c, -2.0, 4.3, 4.0, 1.3, 0.3);
+    paint(c, M.mid);
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 1.5 - 0.35, 5.2, 0.7, 0.8, 0.15);
+      paint(c, M.dark);
+    }
+    // the ball, its ridges rolling as it goes
+    rr(c, -1.5, -4.1, 3.0, 8.5, 1.4);
+    paint(c, M.dark);
+    c.save();
+    rr(c, -1.5, -4.1, 3.0, 8.5, 1.4);
+    c.clip();
+    for (let y = -4.6 + roll; y < 4.6; y += 1.2) line(c, -1.6, y, 1.6, y, M.steel, 0.3);
+    c.restore();
+    // the back: a white crest over a ring
+    circle(c, 0, 4.2, 0.6);
+    paint(c, M.pale);
+    circle(c, 0, 4.2, 0.35);
+    paint(c, M.darker, null);
+    poly(c, [0, 2.4, 0.8, 2.95, 0.5, 3.5, -0.5, 3.5, -0.8, 2.95]);
+    paint(c, M.white);
+    for (const sx of [-1, 1]) {
+      // the rear fins
+      poly(c, [sx * 1.5, 1.8, sx * 2.1, 1.9, sx * 2.1, 4.4, sx * 1.6, 4.3]);
+      paint(c, T.accent);
+      poly(c, [sx * 2.8, 2.6, sx * 4.0, 2.6, sx * 3.6, 4.1, sx * 2.8, 4.1]);
+      paint(c, T.accent);
+      // the blade beside the ball
+      poly(c, [sx * 2.0, -4.75, sx * 1.6, -4.6, sx * 1.4, -1.0, sx * 1.8, 2.0, sx * 2.3, 1.8, sx * 2.45, -1.0]);
+      paint(c, M.white);
+      // the side pod: a white hexagon with its slots, the armour outboard
+      poly(c, [sx * 4.0, -2.45, sx * 4.6, -2.0, sx * 5.25, -1.8, sx * 5.25, 1.6, sx * 4.6, 1.85, sx * 4.0, 2.35, sx * 3.6, 2.2, sx * 3.6, -2.3]);
+      paint(c, M.white);
+      rr(c, sx * 4.9 - 0.32, -1.9, 0.64, 3.6, 0.2);
+      paint(c, T.accent);
+      poly(c, [sx * 2.4, -1.4, sx * 3.0, -2.1, sx * 3.6, -1.4, sx * 3.6, 1.0, sx * 3.0, 1.7, sx * 2.4, 1.0]);
+      paint(c, M.pale);
+      for (const y of [-0.35, 0.35]) {
+        rr(c, sx * 3.0 - 0.6, y - 0.12, 1.2, 0.24, 0.06);
+        paint(c, T.accent, null);
+      }
+      // the prong ahead of the pod
+      poly(c, [sx * 3.25, -5.6, sx * 3.45, -5.6, sx * 3.6, -3.0, sx * 2.8, -3.0, sx * 2.95, -4.6]);
+      paint(c, T.deep);
+      rr(c, sx * 3.35 - 0.12, -5.7, 0.24, 0.8, 0.05);
+      paint(c, M.white, null);
+    }
+    if (p.strike >= 0 || p.fireAge < 0.3) glow(c, 0, 0, 3.0, GLOW.steel_ball, 0.6);
+  }
+
   // A unit the page has no sprite for: a disc of its collision size, marked.
   function generic(c, p, radius, label) {
     circle(c, 0, 0, radius);
@@ -1077,7 +1142,7 @@ const Sprites = (() => {
     }
   }
 
-  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang };
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball };
 
   function drawUnit(c, kind, p, radius) {
     const draw = UNITS[kind];
