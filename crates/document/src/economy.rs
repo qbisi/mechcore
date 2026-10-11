@@ -664,6 +664,14 @@ impl Economy {
         }
     }
 
+    /// The blueprint this one replaces, if it is the second of a chain.
+    #[must_use]
+    pub fn blueprint_predecessor(&self, blueprint: i32) -> Option<i32> {
+        [4, 5]
+            .into_iter()
+            .find(|first| self.blueprint_successor(*first) == Some(blueprint))
+    }
+
     /// What raising a tower to `level` costs.
     #[must_use]
     pub fn tower_strengthen(&self, level: i32) -> Option<i32> {

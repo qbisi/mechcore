@@ -235,7 +235,8 @@ Overlord and `1616` for Phoenix.
 
 Activates a Research Center blueprint and adds it to `blueprints`. A blueprint
 that grants a commander skill puts it on `battle_skills`. A blueprint already in
-`blueprints` is refused.
+`blueprints` is refused. A chain's second level is refused before its first is in
+`blueprints`, and its first once the second has replaced it.
 
 A chain's second level replaces its first in `blueprints` rather than joining
 it. A chain blueprint also hands the side an Officer, but a state names the

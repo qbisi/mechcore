@@ -309,6 +309,24 @@ pub fn step_placing(
             if state.blueprints.contains(id) {
                 return Err(Unsettled::Refused("activating a blueprint already active"));
             }
+            // The Research Center offers a chain's first level, and offers its
+            // second in its place once the first is active.
+            if economy
+                .blueprint_predecessor(*id)
+                .is_some_and(|first| !state.blueprints.contains(&first))
+            {
+                return Err(Unsettled::Refused(
+                    "activating a chain's second level before its first",
+                ));
+            }
+            if economy
+                .blueprint_successor(*id)
+                .is_some_and(|second| state.blueprints.contains(&second))
+            {
+                return Err(Unsettled::Refused(
+                    "activating a chain's first level after its second replaced it",
+                ));
+            }
             next.supply -= economy
                 .blueprint(*id)
                 .ok_or(Unsettled::Unpriced("blueprint"))?;
@@ -2045,6 +2063,25 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 "{activated:?}"
             );
         }
+    }
+
+    /// A chain's second level follows its first, and the first is not taken
+    /// again once the second has replaced it.
+    #[test]
+    fn a_chain_is_activated_in_order() {
+        let economy = Economy::embedded().unwrap();
+        let first = Action::ActiveBlueprint { id: 4 };
+        let second = Action::ActiveBlueprint { id: 401 };
+        assert!(matches!(
+            step(economy, &solvent(), &second),
+            Err(Unsettled::Refused(_))
+        ));
+        let started = step(economy, &solvent(), &first).unwrap();
+        let replaced = step(economy, &started, &second).unwrap();
+        assert!(matches!(
+            step(economy, &replaced, &first),
+            Err(Unsettled::Refused(_))
+        ));
     }
 
     /// A type the shop has unlocked is not unlocked again, where stepping it
