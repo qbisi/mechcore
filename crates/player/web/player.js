@@ -717,6 +717,9 @@
   //   flame: a jet of burning fuel;
   //   orb: a ball of light `size` metres across, ringed.
   const SHOTS = {
+    // efx_2016_mech_huguang_projectile: arrow #ff3636 stretched 10 m, white
+    // trails, sparks #ff6000
+    arclight: { style: 'bolt', colour: '#ff3636', core: '#ff6000', tail: '#ffffff', trail: 40, head: 1.0, width: 0.9 },
     // efx_2011_mech_changgong_bullet: Bullet #5790ff, a 5 m trail
     marksman: { style: 'bolt', colour: '#5790ff', trail: 34, head: 0.9, width: 0.7 },
     // efx_2012_mech_jianya_bullet: arrow #0080ff, 1.5 m
@@ -769,49 +772,9 @@
   };
   const DEFAULT_SHOT = { style: 'bolt', colour: '#f4f4f4', trail: 8, head: 0.6, width: 0.5 };
 
-  // An Arclight's shot is a vortex ring, a smoke ring of light rolling
-  // through the air, and it bursts over its splash: config/units/arclight.yaml
+  // An Arclight's shot bursts over its splash: config/units/arclight.yaml
   // gives that a radius of 7 metres.
   const ARCLIGHT_SPLASH = 7;
-
-  // A vortex ring at the transform's origin, flying toward -y: seen from
-  // above, a ring standing across its path, `size` metres across, its tube
-  // rolling forward as it flies.
-  function vortexRing(size, roll, alpha) {
-    const colour = Sprites.GLOW.arclight;
-    const rx = size / 2;
-    const ry = size * 0.22;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    // the smoke of the tube, soft and wide
-    ctx.globalAlpha = 0.4 * alpha;
-    ctx.lineWidth = size * 0.32;
-    ctx.strokeStyle = colour;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    // its bright core
-    ctx.globalAlpha = 0.9 * alpha;
-    ctx.lineWidth = size * 0.09;
-    ctx.strokeStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    // the tube rolling: streaks curling round it, the front edge running out
-    ctx.lineWidth = size * 0.05;
-    ctx.strokeStyle = colour;
-    for (let i = 0; i < 8; i++) {
-      const at = (i / 8) * Math.PI * 2 + roll;
-      const x = Math.cos(at) * rx;
-      const y = Math.sin(at) * ry;
-      const curl = size * 0.12;
-      ctx.globalAlpha = alpha * (0.5 + 0.5 * Math.sin(at * 2 + roll * 3));
-      ctx.beginPath();
-      ctx.arc(x, y, curl, roll * 4 + i, roll * 4 + i + 2.2);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
 
   function drawProjectiles() {
     for (const p of projectiles.values()) {
@@ -840,22 +803,6 @@
         const pose = resetPose(p.team);
         place(head.x, head.z, facing);
         Sprites.drawUnit(ctx, 'sentry_missile', pose, 1);
-        continue;
-      }
-      if (kind === 'arclight') {
-        // the ring and the fainter puffs it has shed behind it, swelling as
-        // they go
-        const back = projectileAt(p, Math.max(p.from - 1, tau - 0.5)) || head;
-        const facing = (Math.atan2(head.x - back.x, head.z - back.z) * 1800) / Math.PI;
-        const flown = Math.max(0, tau - (p.from - 1)) / TPS;
-        for (let j = 3; j >= 0; j--) {
-          const at = j ? projectileAt(p, Math.max(p.from - 1, tau - j * 0.45)) : head;
-          if (!at) continue;
-          place(at.x, at.z, facing);
-          vortexRing(4 + Math.min(2, flown * 8) - j * 0.4, flown * 9, j ? 0.4 / j : 1);
-        }
-        place(head.x, head.z);
-        Sprites.glow(ctx, 0, 0, 4.5, Sprites.GLOW.arclight, 0.6);
         continue;
       }
       const look = SHOTS[kind] || DEFAULT_SHOT;
@@ -1337,62 +1284,44 @@
     ctx.restore();
   }
 
-  // An Arclight's ring bursting where its shot lands: a shockwave running out
-  // to the edge of its splash and holding there as it fades, over the ground
-  // it covers, and the ring's smoke curling outward.
+  // An Arclight's shot bursting where it lands, after
+  // efx_2016_mech_huguang_behit: a white flash in a wide dark-red glow
+  // (#804040), white rings running out over its splash, pink sparks
+  // (#ffaeae) thrown outward and grey smoke left behind.
   function arcSplash(x, z, age, seed) {
-    const life = 0.55;
+    if (age < 3) smoke(x, z, age, 3, ARCLIGHT_SPLASH * 0.8, seed);
+    const life = 0.5;
     if (age > life) return;
     const k = age / life;
-    const out = Sprites.ease(Math.min(1, age / 0.12));
-    const r = ARCLIGHT_SPLASH * (0.35 + 0.65 * out);
+    const out = Sprites.ease(Math.min(1, age / 0.25));
     const fade = 1 - Sprites.ease(k);
-    const colour = Sprites.GLOW.arclight;
     const rnd = random(seed);
     place(x, z);
+    Sprites.glow(ctx, 0, 0, ARCLIGHT_SPLASH * 1.6, '#804040', 0.8 * fade);
+    Sprites.glow(ctx, 0, 0, ARCLIGHT_SPLASH * 0.7, '#ffffff', age < 0.2 ? 1 - age / 0.2 : 0);
     ctx.save();
-    // a shadow of smoke under the shockwave, so that it reads over a white
-    // hull as well as the ground
-    ctx.globalAlpha = 0.45 * fade;
-    ctx.lineWidth = 1.8;
-    ctx.strokeStyle = '#0d2a33';
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.stroke();
     ctx.globalCompositeOperation = 'lighter';
-    // the ground the splash covers
-    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-    g.addColorStop(0, 'rgba(179,242,255,0.05)');
-    g.addColorStop(0.75, 'rgba(179,242,255,0.12)');
-    g.addColorStop(1, 'rgba(179,242,255,0.28)');
-    ctx.globalAlpha = fade;
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.fill();
-    // the shockwave at its edge, soft outside and bright within
-    ctx.lineWidth = 1.4;
-    ctx.strokeStyle = colour;
-    ctx.globalAlpha = 0.5 * fade;
-    ctx.stroke();
-    ctx.lineWidth = 0.35;
     ctx.strokeStyle = '#ffffff';
-    ctx.globalAlpha = fade;
-    ctx.stroke();
-    // the ring's smoke, curling outward
-    ctx.lineWidth = 0.4;
-    ctx.strokeStyle = colour;
-    for (let j = 0; j < 7; j++) {
-      const a = (j / 7) * Math.PI * 2 + rnd() * 0.6;
-      const d = r * (0.55 + 0.25 * rnd());
-      const curl = 0.8 + 1.2 * out;
-      ctx.globalAlpha = 0.7 * fade;
+    for (const [scale, width] of [[1, 0.5], [0.55, 0.3]]) {
+      ctx.globalAlpha = fade * 0.9;
+      ctx.lineWidth = width;
       ctx.beginPath();
-      ctx.arc(Math.sin(a) * d, -Math.cos(a) * d, curl, a + k * 5, a + k * 5 + 3.4);
+      ctx.arc(0, 0, ARCLIGHT_SPLASH * scale * (0.3 + 0.7 * out), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = '#ffaeae';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 0.25;
+    for (let j = 0; j < 10; j++) {
+      const a = rnd() * Math.PI * 2;
+      const d0 = ARCLIGHT_SPLASH * (0.2 + 0.9 * out) * (0.6 + 0.4 * rnd());
+      ctx.globalAlpha = fade;
+      ctx.beginPath();
+      ctx.moveTo(Math.sin(a) * d0, -Math.cos(a) * d0);
+      ctx.lineTo(Math.sin(a) * (d0 + 1.6), -Math.cos(a) * (d0 + 1.6));
       ctx.stroke();
     }
     ctx.restore();
-    Sprites.glow(ctx, 0, 0, 4, colour, (1 - k) * (1 - out * 0.6));
   }
 
   // A melee blow where it landed: a rhino's blade cuts an arc, a crawler's

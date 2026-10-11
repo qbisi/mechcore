@@ -25,7 +25,8 @@ mv = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mv)
 
 EFFECTS = [
-    "efx_2011_mech_changgong_bullet", "efx_2012_mech_jianya_bullet", "Oculus_LaserProjectile",
+    "efx_2016_mech_huguang_projectile", "efx_2016_mech_huguang_behit",
+  "efx_2011_mech_changgong_bullet", "efx_2012_mech_jianya_bullet", "Oculus_LaserProjectile",
     "efx_2024_mech_tarantula_bullet", "efx_2015_mech_fenghuang_bullet_New", "efx_2033_Centurion_bullet",
     "FX_Mech_Yema_AutoCannonFire", "efx_2004_mechtiechui_bullet", "efx_2001_mech_baolei_03_bullet",
     "Tiger_MainCannonBullet", "WarFactory_bullet", "FX_LargeCannonFire", "Mech_11_Missile",
