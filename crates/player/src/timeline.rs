@@ -269,6 +269,9 @@ pub enum Cue {
         at: Option<Ref>,
         #[serde(skip_serializing_if = "Option::is_none")]
         weapon: Option<i32>,
+        /// The firing skill's slot among its unit's skills.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        slot: Option<u16>,
         /// The radius the firing skill splashes over, in centimetres, as its
         /// `splash_range` stood on the tick it fired; none when it does not.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -283,6 +286,9 @@ pub enum Cue {
         n: i32,
         #[serde(skip_serializing_if = "Option::is_none")]
         p: Option<u64>,
+        /// The slot of the skill that struck, when no projectile carried it.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        slot: Option<u16>,
         /// The radius the blow splashes over, in centimetres, when no
         /// projectile carried it and its skill splashes.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -660,6 +666,7 @@ impl<'a> Builder<'a> {
             by: event.source.map(Ref),
             at: event.target.map(Ref),
             weapon,
+            slot,
             splash: self.splash(event.source, slot),
         })
     }
@@ -674,6 +681,7 @@ impl<'a> Builder<'a> {
             by: event.source.map(Ref),
             n: amount,
             p,
+            slot: p.is_none().then_some(slot).flatten(),
             splash: p
                 .is_none()
                 .then(|| self.splash(event.source, slot))

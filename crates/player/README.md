@@ -33,7 +33,10 @@ shot or a blow that splashes rings the ground it covers, as wide as its
 weapon's skill splashed when it fired. A
 weapon that strikes at range without a projectile, as a Vortex's or a
 Melting Point's does, draws its blow from the attacker to its target, an
-arc or a beam.
+arc or a beam. The recording releases every shot at its unit's centre; the
+skills of a weapon group, a Wraith's eight launchers and a Melting Point's
+Energy Diffraction beams, leave from launchers of their own, the shot
+carried out to its launcher by less as it nears where it lands.
 
 A recording made with the `unit_pose` instrument channel also says how the
 game drew each unit: the clip its model played and how far through. The page
