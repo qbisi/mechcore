@@ -191,6 +191,15 @@ impl Index {
         matches!(self, Self::AttackRange)
     }
 
+    /// Whether this number's property multiplies an `FPoint` of it by its
+    /// enhancements and then by its remainders, each product truncated in
+    /// `FPoint`, before it casts to a whole number: `FightMech.CalculateMaxLife`
+    /// does, so a level-6 Crawler's 1500 with +0.3, +0.45 and -0.4 comes to
+    /// 1575, where one factor of the rates leaves 1574.
+    const fn multiplies_fpoints_in_turn(self) -> bool {
+        matches!(self, Self::MaxLife)
+    }
+
     const fn name(self) -> &'static str {
         match self {
             Self::MoveSpeed => "move speed",
@@ -770,6 +779,9 @@ impl Overlays {
         let corrected_base = i128::from(base) + value_scale(total.value);
         let scaled = if index.multiplies_rates_in_turn() {
             corrected_base * (ONE + total.enhance) / ONE * total.remaining / ONE * reduce_base / ONE
+        } else if index.multiplies_fpoints_in_turn() {
+            let raised = ((corrected_base << 32) * (ONE + total.enhance)) >> 32;
+            (((raised * total.remaining) >> 32) * reduce_base / ONE) >> 32
         } else {
             let factor = (ONE + total.enhance) * total.remaining / ONE * reduce_base / ONE;
             corrected_base * factor / ONE

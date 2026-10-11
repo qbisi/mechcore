@@ -1,0 +1,31 @@
+# A level-6 Crawler's life, 250 × 6 = 1500, under the Absorption Module's
+# +0.3, Defense Enhancement II's +0.45 and Loose Formation's -0.4.
+# `FightMech.CalculateMaxLife` multiplies an FPoint of the base by one plus the
+# summed enhancements, then that by the impairments' remainder, each product
+# truncated in FPoint, and casts the result: 1575. One factor of the rates
+# first, `1.75 × 0.6` truncated to `4509715660 / 2^32`, leaves 1574.99999 and
+# truncates to 1574. A fight drawn by hand, recorded with the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1
+round: 1
+blue:
+  units:
+  - {name: wasp, index: 0, position: {x: -25, y: -90}}
+red:
+  techs:
+    crawler: [loose_formation]
+  blueprints: [defense_enhancement_ii]
+  units:
+  - {name: crawler, index: 0, position: {x: -135, y: -220}, level: 6, equipment: [absorption_module]}
+outcome:
+  blue.units[0].exp: 900
+  red.core_damage: 204
+  red.units[0].exp: 400
+ticks: 1834
+hash: 23:604c8cd361b2a47793d79f6a64b855b5f3c09d10931a1f555b2436459f7873d6
+asserts:
+- sql: "SELECT DISTINCT life__maximum FROM units WHERE tick = 1 AND unit_type_id = 10"
+  rows: [[1575]]

@@ -70,6 +70,13 @@ Specialist's `0.11` and Mass-Produced Rhino's `0.2` on one Rhino leave
 `0.89 × 0.8 = 0.712`, not `1 − 0.31 = 0.69`, and the build stores the combined
 reduction `1 − 0.89 × 0.8`.
 
+**A unit's life multiplies in turn.** `FightMech.CalculateMaxLife` multiplies
+an FPoint of the base by `1 + Σ enhance`, then that by `Π (1 − impair)`, each
+product truncated in FPoint, and truncates only the cast to a whole number. A
+level-6 Crawler's 1500 under `+0.3`, `+0.45` and `−0.4` comes to 1575, where
+one factor of the rates, `1.75 × 0.6` truncated, would leave 1574
+([`life-rates-multiply-in-turn.yaml`](../../tests/modifier/life-rates-multiply-in-turn.yaml)).
+
 **A value is added in the number's own unit**, a range value in metres, and it
 sums across sources: a technology's range value and an officer's are stored as
 one entry. Which is why this rule is
