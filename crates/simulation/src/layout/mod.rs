@@ -1118,6 +1118,7 @@ fn technology_line(
     let metres = crate::rules::metres_q32;
     ProductionLine {
         unit_type_id: production.unit_type_id,
+        source_id: technology,
         max_batch: production.max_batch,
         max_alive: production.max_alive,
         per_time: production.per_time,

@@ -593,6 +593,7 @@ fn production_of(row: &Row, who: &str) -> std::result::Result<Option<ProductionL
     }
     Ok(Some(ProductionLine {
         unit_type_id: line.support_unit_id,
+        source_id: row.id,
         max_batch: line.max_batch,
         max_alive: line.max_alive,
         per_time: line.create_count_per_time,
