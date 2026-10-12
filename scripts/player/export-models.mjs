@@ -1,4 +1,4 @@
-// Export the player's sprites as SVG files into `models/`.
+// Export the player's sprites as SVG files into `assets/models/`.
 //
 //     node scripts/player/export-models.mjs [--check]
 //
@@ -6,7 +6,7 @@
 // building on a canvas, its moving parts placed by a pose. This runs that file
 // unchanged against a context that records the drawing as SVG instead of
 // painting it, in each sprite's rest pose and the first team's colours, and
-// writes `models/<sprite>.svg`. Lengths stay in metres, the sprite's front up
+// writes `assets/models/<sprite>.svg`. Lengths stay in metres, the sprite's front up
 // the page. `--check` writes nothing and fails when a file differs from what
 // the sprites draw now, which is how CI holds the directory to the code.
 //
@@ -20,7 +20,7 @@ import vm from 'node:vm';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const SPRITES = join(ROOT, 'crates/player/web/sprites.js');
 const SNAPSHOT = join(ROOT, 'crates/player/web/snapshot.js');
-const OUT = join(ROOT, 'models');
+const OUT = join(ROOT, 'assets/models');
 // The sprites the page draws, and whether each is a building.
 const MODELS = [
   ['marksman', false], ['arclight', false], ['rhino', false], ['crawler', false],
@@ -99,7 +99,7 @@ function main() {
     if (!check) unlinkSync(join(OUT, file));
   }
   if (check && stale.length) {
-    console.error(`models/ is not what crates/player/web/sprites.js draws: ${stale.join(', ')}`);
+    console.error(`assets/models/ is not what crates/player/web/sprites.js draws: ${stale.join(', ')}`);
     console.error('run: node scripts/player/export-models.mjs');
     process.exit(1);
   }
