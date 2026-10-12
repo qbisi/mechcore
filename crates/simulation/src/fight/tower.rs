@@ -1297,16 +1297,16 @@ impl Simulation {
             .technology_disable
             .corrections
             .clone();
-        // A unit with no technology has nothing to refresh: the Wasps an
-        // Electromagnetic Impact reaches keep the intervals they drew. One
-        // whose technologies wrote nothing still refreshes: a Fortress with
-        // Barrier's drawn 35 becomes its plain 36.
-        if actor
-            .placement
-            .effects
-            .technology_disable
-            .technologies
-            .is_empty()
+        // Only a source the provider actually switches emits its data change.
+        // A superseded shield technology leaves no source to refresh; a
+        // switching provider without numeric corrections still refreshes.
+        if corrections.is_empty()
+            && actor
+                .placement
+                .effects
+                .technology_disable
+                .providers
+                .is_empty()
         {
             return Ok(());
         }

@@ -1394,13 +1394,7 @@ fn loadout(
         refused,
     )?;
     effects.technology_disable = technology_disable(
-        type_name,
-        level,
-        side,
-        loadouts,
-        &effects.extra_weapons,
-        &on_side,
-        refused,
+        type_name, level, side, loadouts, &effects, &on_side, refused,
     )?;
     let stats =
         refused.hold(Stats::corrected(rules, level, &effects.corrections).map_err(refusal))?;
@@ -1421,7 +1415,7 @@ fn technology_disable(
     level: i64,
     side: &SidePlan,
     loadouts: &Loadouts,
-    extra_weapons: &[ExtraWeapon],
+    effects: &UnitEffects,
     on_side: &dyn Fn(Error) -> Error,
     refused: &mut Refusals,
 ) -> Option<TechnologyDisable> {
@@ -1429,7 +1423,15 @@ fn technology_disable(
     // Only a technology that `CanDisable` switches: a Centurion's Dual
     // Wield keeps its gun and its range.
     let held = &technologies.switched(&side.techs.units, type_name);
-    let providers = technologies.providers(held, type_name);
+    let mut providers = technologies.providers(held, type_name);
+    // SingleEffectProvider.IsAvaliableEffect admits only the selected source:
+    // an equipment shield supersedes the technology and cannot be disabled.
+    if !effects
+        .energy_shield
+        .is_some_and(|source| source.can_disable)
+    {
+        providers.remove(&crate::modifier::EffectProvider::EnergyShield);
+    }
     Some(TechnologyDisable {
         corrections: refused.hold(
             technologies
@@ -1440,7 +1442,8 @@ fn technology_disable(
                 })
                 .map_err(on_side),
         )?,
-        unmeasured: extra_weapons
+        unmeasured: effects
+            .extra_weapons
             .iter()
             // An extra skill switched off neither searches nor starts from
             // idle and ends its attack between blows (`FightSkill.Disable`

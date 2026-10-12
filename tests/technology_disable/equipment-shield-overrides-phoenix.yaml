@@ -1,0 +1,45 @@
+# Electromagnetic Armor disables technology while Portable Shield remains the selected source.
+# The equipment shield stays enabled and the Phoenix keeps its drawn attack interval.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 196259920
+round: 1
+blue:
+  core_damage: 113
+  officers: [advanced_power_system, aerial_specialist]
+  techs:
+    phoenix: [energy_shield]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [2, 2]
+  units:
+  - {name: phoenix, index: 0, position: {x: 250, y: -220}, level: 9, exp: 4373/5297/8746, equipment: [portable_shield], source: legacy}
+  - {name: typhoon, index: 1, position: {x: -240, y: -110}, level: 8, exp: 0/3800/13118}
+  battle_skills:
+  - {name: orbital_javelin, positions: [{x: 240, y: -270}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, cost_control_specialist, improved_void_eye]
+  techs:
+    void_eye: [energy_shield, energy_absorption, aerial_mode, range_enhancement, charged_shot, suppression_shots, electromagnetic_armor]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [3, 1]
+  units:
+  - {name: void_eye, index: 0, position: {x: -200, y: -110}, level: 4, exp: 0/2919/2919, equipment: [improved_firepower_control_system]}
+  - {name: sledgehammer, index: 1, position: {x: -85, y: -140}, level: 8, exp: 0/4700/8746}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 235, y: -15}, retained: false}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: 240, y: 115}, {x: -300, y: -30}, {x: 155, y: -35}]}
+asserts:
+- sql: |-
+    SELECT u.tick, u.unit_id, u.personal_shield__enabled, s.enabled__current_attack_interval AS attack_interval FROM units u JOIN units__skills s USING(tick,unit_id) WHERE u.unit_id=1 AND s.skill_slot=0 AND u.tick BETWEEN 158 AND 160 ORDER BY u.tick
+  rows:
+  - [158, 1, 1, 57]
+  - [159, 1, 1, 57]
+  - [160, 1, 1, 57]
+ticks: 1577
+hash: 24:cfa4053ee663a60b186008f32a14e53cdf33ce06e25b316c307d9bd0f32449fd
