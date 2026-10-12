@@ -2,8 +2,8 @@
 
 The player's sprites as SVG files: each unit and building it draws, seen from
 straight above in its rest pose. Every file here is written by
-[`scripts/player/export-models.mjs`](../scripts/player/export-models.mjs) from
-[`crates/player/web/sprites.js`](../crates/player/web/sprites.js), and none is
+[`scripts/player/export-models.mjs`](../../scripts/player/export-models.mjs) from
+[`crates/player/web/sprites.js`](../../crates/player/web/sprites.js), and none is
 edited by hand. The sprites are the source: a shape that looks wrong is
 changed there, and the script writes the files again.
 
@@ -18,7 +18,7 @@ A file is `<sprite>.svg`, in the first team's blue; the page draws the other
 team the same, red where these are blue. Lengths are metres with the front up
 the page, rendered at 16 pixels to the metre, so the files are to scale with
 one another. The sprites are drawn after the game's models, assembled and
-posed as [`scripts/player/model-views.py`](../scripts/player/model-views.py)
+posed as [`scripts/player/model-views.py`](../../scripts/player/model-views.py)
 renders them, but they are drawings of their own: no geometry or texture of
 the game is in them.
 

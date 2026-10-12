@@ -19,7 +19,7 @@ jobs:
       - run: python3 scripts/check/check-docs.py
       # No crate's code reads a fixture under the root tests/: crates/README.md.
       - run: python3 scripts/check/check-fixture-readers.py
-      # `models/` is the player's sprites exported as SVG, so a sprite changed
+      # `assets/models/` is the player's sprites exported as SVG, so a sprite changed
       # without its files fails here. Node comes with the runner.
       - run: node scripts/player/export-models.mjs --check
       - run: node --test crates/player/tests/snapshot.test.mjs

@@ -77,7 +77,7 @@ renders the views the sprites follow from the installed game, into the
 untracked `work/player/models/`, so a sprite is checked against its model
 again whenever either changes.
 
-The sprites are also files: [`models/`](../../models/README.md)
+The sprites are also files: [`assets/models/`](../../assets/models/README.md)
 holds each one as SVG, written from this code by
 `scripts/player/export-models.mjs`. That script runs `sprites.js` itself
 against a context that records SVG, so a sprite draws only with the canvas
