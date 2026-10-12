@@ -588,9 +588,9 @@ cannot be written is read in memory, which standard error says.
 `play <file> [<page>] [--seed <i32>] [--no-open]` writes the page that plays a fight back:
 one HTML file, carrying its script and the whole fight, that a browser opens
 offline and plays the battlefield from above at any speed. Without `<page>` it
-writes beside the file, under the file's name with `.html`, replacing a page
-already there, and it answers the page's path, the kind of the file, who
-fought the fight (`producer`), its ticks and, for a fight fought here, the seed
+writes in the system temporary directory, under the file's name with `.html`,
+replacing a page already there, and it answers the page's path, the kind of
+the file, who fought the fight (`producer`), its ticks and, for a fight fought here, the seed
 it was fought with and where that seed came from.
 
 Once the page is written the command asks the system to open it in its

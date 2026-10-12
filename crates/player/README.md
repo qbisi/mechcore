@@ -8,8 +8,8 @@ moving and fighting as the recording says they did.
 mechcore play crates/player/scenes/six-units.yaml
 ```
 
-writes `six-units.html` beside the layout: one file that carries its style,
-its script and the whole fight, and plays offline in any browser. `play` takes
+writes `six-units.html` in the system temporary directory: one file that
+carries its style, its script and the whole fight, and plays offline in any browser. `play` takes
 a recording too, and a layout or fight document it fights in memory first;
 [cli.md](../../docs/spec/mechcore/cli.md#play) is its contract. This crate is
 the library it plays with: [`timeline`](src/timeline.rs) lays any
