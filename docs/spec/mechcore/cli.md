@@ -599,7 +599,7 @@ and answers `opened` for whether the system took the request. A page the
 system cannot open is still written: the command does not fail for it, and
 says so on standard error. `--no-open` only writes the page.
 
-The page's SVG button pauses at the current tick, rounded down, and downloads
+The page's download button pauses at the current tick, rounded down, and downloads
 the battlefield as a standalone vector image at the current pan and zoom.
 It includes the enabled life bars, aim lines and damage numbers, but not the
 HTML controls or roster panels. The image's title names the fight and tick;

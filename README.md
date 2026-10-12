@@ -15,7 +15,7 @@ cargo run --release -p mechcore --no-default-features -- play tests/corpus/67158
 
 Space pauses, the timeline seeks, and the mouse wheel zooms. The exported HTML
 plays offline, with its code and battle data in one file.
-The SVG button exports the current tick as a vector image.
+The download button exports the current tick as an SVG vector image.
 
 [CLI manual](docs/spec/mechcore/cli.md) · [Game rules](docs/rules/combat.md) ·
 [Terminology](docs/terminology/README.md)
