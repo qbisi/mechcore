@@ -106,7 +106,9 @@ from the end): the object of the other side whose
 edge is nearest, a unit of either domain or a building that is not a tower,
 its distance measured in two dimensions from the missile to its centre less
 its radius and required to be under the row's `range`. The first of equals is
-taken. A missile fires once, and is spent.
+taken. Hidden actors cannot trigger it; stealth actors can
+(`TeamMineManager.TryActiveMine` requires visibility below `Hide`). A missile
+fires once, and is spent.
 
 **What it fires.** A projectile of its own, which no unit owns: it leaves from
 `mineFlyHeight`, 60 metres, above where the missile stands, at the row's
@@ -285,6 +287,9 @@ kind ends its own way:
   and writes its slow on every unit it struck that still stands:
   `tests/missile/crawlers.yaml`, `tests/missile/rhino-slowed.yaml`,
   `tests/missile/wasps.yaml`, `tests/missile/turret.yaml`.
+- A burrowed Sandworm does not trigger a missile while hidden; the missile
+  remains available to fire at another enemy:
+  `tests/missile/burrowed-sandworm.yaml`.
 - Interceptors take missiles' projectiles out of the air:
   `tests/interceptor/missiles.yaml`.
 - Two missiles of one side firing on one tick fire the last released first:

@@ -6,7 +6,8 @@
 //! each missile of each side whether an enemy has come into its trigger
 //! range: the nearest object of the other side by its edge, a unit of either
 //! domain or a building that is not a tower, under the range by the missile's
-//! own two-dimensional distance. One that has fires a projectile at it from
+//! own two-dimensional distance. Hidden actors cannot trigger it. One that
+//! has fires a projectile at it from
 //! `mineFlyHeight` above where it stands and is spent. The projectile follows
 //! its target, carries the missile's own damage and splash, and its hit writes
 //! the missile's buff on every unit it strikes. `docs/rules/contraptions.md`
@@ -103,6 +104,11 @@ impl Simulation {
                 let Some(view) = self.fight_actor(candidate) else {
                     continue;
                 };
+                // `TryActiveMine` admits visibility below Hide, including
+                // Stealth, but a burrowed unit cannot trigger a missile.
+                if view.visibility == Visibility::Hide {
+                    continue;
+                }
                 let distance = native_q32_magnitude(
                     view.x_q32.saturating_sub(mine.x_q32),
                     view.z_q32.saturating_sub(mine.z_q32),
