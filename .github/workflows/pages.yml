@@ -1,0 +1,65 @@
+name: pages
+
+# Build the same demo on pull requests; publish only from master. The HTML
+# carries its scripts and timeline, so the deployment needs no game or MCFR.
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # Read the release cache the scripts CI job owns; do not write a second
+    # copy of it from this workflow.
+    env:
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 16
+      CARGO_PROFILE_RELEASE_LTO: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-scripts-fast-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: cargo-scripts-fast-${{ runner.os }}-
+
+      - name: Build the CLI without the Adapter
+        run: cargo build --release -p mechcore --no-default-features
+
+      - name: Verify and export the demo
+        run: |
+          target/release/mechcore verify tests/corpus/67158166-r5.yaml
+          mkdir -p work/pages
+          target/release/mechcore play tests/corpus/67158166-r5.yaml work/pages/index.html --no-open
+
+      - name: Upload the static player
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: work/pages
+
+  deploy:
+    if: github.ref == 'refs/heads/master'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Deploy the static player
+        id: deployment
+        uses: actions/deploy-pages@v4
