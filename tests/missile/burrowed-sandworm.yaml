@@ -1,0 +1,53 @@
+# A hidden Sandworm comes within missile trigger range. Native missiles
+# ignore it and later fire at other units; the fight reaches forced timeout
+# with both sides surviving. Visibility and releases measured from game.
+kind: fight
+source: game
+map_id: 1021
+seed: 1369507154
+round: 1
+blue:
+  core_damage: 298
+  officers: [advanced_missile_device, advanced_offensive_tactics, fortified_specialist, mass_produced_sandworm]
+  techs:
+    sandworm: [replicate]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: sandworm, index: 0, position: {x: -160, y: -80}, level: 9, exp: 6727/9577/13455, equipment: [tank_production_line], source: legacy}
+  - {name: mustang, index: 1, position: {x: 195, y: -90}, level: 4}
+  constructions:
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 5, y: -230}, retained: false}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: -45, y: -15}]}
+red:
+  core_damage: 350
+  officers: [advanced_missile_device, advanced_power_system, fortified_specialist, improved_wraith]
+  techs:
+    wraith: [high_explosive_ammo]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [1, 2]
+  units:
+  - {name: wraith, index: 0, position: {x: -175, y: -235}, level: 9, exp: 15137/15137/15137, equipment: [deployment_module], source: legacy}
+  - {name: stormcaller, index: 1, position: {x: 265, y: -140}, level: 4, exp: 0/240/4939}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 40, y: -85}, retained: false}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: 155, y: -70}]}
+ticks: 2360
+hash: 24:c2d9dfe37490d35b7845199e43f91d2605304669d3cac97991cc15b5a545dadc
+asserts:
+- sql: |-
+    SELECT tick,unit_id,targetable,visibility FROM units WHERE unit_id=13 AND tick BETWEEN 128 AND 130 ORDER BY tick
+  rows:
+  - [128, 13, 0, hide]
+  - [129, 13, 0, hide]
+  - [130, 13, 0, hide]
+- sql: |-
+    SELECT tick, type, object__id, source__id, target__id FROM events WHERE type='projectile_released' AND (tick=129 OR source__id IS NULL) ORDER BY tick,ordinal
+  rows:
+  - [129, projectile_released, 34, 32, 19]
+  - [258, projectile_released, 123, null, 33]
+  - [864, projectile_released, 285, null, 18]
