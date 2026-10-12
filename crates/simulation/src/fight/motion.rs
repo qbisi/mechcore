@@ -1054,8 +1054,9 @@ impl Simulation {
     /// starts on that tick: a Sandworm that travelled below with its target
     /// already in its range strikes as soon as it has surfaced. Any other
     /// unit asks whether its target is in reach ([`Self::motion_in_reach`]);
-    /// `None` once the unit surfaces. A lock within an energy shield, which
-    /// the ability measures through the shield, is refused.
+    /// `None` once the unit surfaces. The native ability returns true when
+    /// the main skill can cross advanced shields. Otherwise a lock within an
+    /// energy shield requires its unmeasured shield-distance branch.
     fn reach_or_surface(
         &mut self,
         actor_id: u64,
@@ -1069,7 +1070,10 @@ impl Simulation {
             .as_ref()
             .filter(|_| actor.motion.state == MotionState::Moving)
             .and_then(|underground| underground.lock_in_exit_range(lock_edge_distance_q32));
-        if below == Some(true) && self.shield_around(lock).is_some() {
+        if below == Some(true)
+            && !actor.rules.attack.crosses_shields
+            && self.shield_around(lock).is_some()
+        {
             return Err(Error::new(format!(
                 "unit {actor_id} moves below on a lock within an energy shield, and what \
                  UndergroundMoveAbility.IsLockTargetInRange reads through a shield is not \
@@ -2454,5 +2458,61 @@ impl Simulation {
             false,
             solve_due,
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn underground_shield_refusal_applies_only_to_skills_that_cannot_cross() {
+        for crosses in [true, false] {
+            let configs = crate::rules::SimulationConfig::load().unwrap();
+            let (_, layout) = crate::layout::compile_with_seed(
+                b"kind: layout\nround: 1\nblue:\n  units:\n  - {name: sandworm, index: 0, position: {x: 0, y: -120}}\nred:\n  units:\n  - {name: vulcan, index: 0, position: {x: 0, y: -120}, equipment: [barrier]}\n",
+                &configs.units,
+            ).unwrap();
+            let mut simulation = super::super::Simulation::new(
+                &layout,
+                &configs.units,
+                &configs.towers,
+                &configs.maps,
+                4242,
+            )
+            .unwrap();
+            let id = simulation
+                .actors
+                .iter()
+                .find_map(|(&id, actor)| (actor.rules.type_name == "sandworm").then_some(id))
+                .unwrap();
+            let target_id = simulation
+                .actors
+                .iter()
+                .find_map(|(&id, actor)| (actor.rules.type_name == "vulcan").then_some(id))
+                .unwrap();
+            let lock = super::super::FightActorRef::Unit(target_id);
+            assert!(simulation.shield_around(lock).is_some());
+            let target_z = simulation.actors[&target_id].z_q32;
+            let actor = simulation.actors.get_mut(&id).unwrap();
+            actor.z_q32 = target_z - (50 << 32);
+            actor.rules.attack.crosses_shields = crosses;
+            actor.motion.state = super::MotionState::Moving;
+            actor.underground.as_mut().unwrap().state =
+                super::super::underground::AbilityState::Moving;
+            let edge = (50 << 32)
+                - super::super::space_to_q32(actor.rules.collision_radius())
+                - super::super::space_to_q32(
+                    simulation.actors[&target_id].rules.collision_radius(),
+                );
+            let result = simulation.reach_or_surface(id, (lock, edge), (lock, edge), true);
+            if crosses {
+                assert_eq!(result.unwrap(), None);
+                assert_eq!(
+                    simulation.actors[&id].motion.state,
+                    super::MotionState::Transitioning
+                );
+            } else {
+                assert!(result.unwrap_err().to_string().contains("energy shield"));
+            }
+        }
     }
 }
