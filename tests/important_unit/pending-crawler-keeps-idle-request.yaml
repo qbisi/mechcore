@@ -1,0 +1,53 @@
+# Dominion Core kills the active red units before Underground Threat joins.
+# Its Crawlers join while the core waits, already idle, and retain their
+# zero-max-speed agent request. They are not pushed by the other summons
+# before their first movement request; rows measured from the game.
+kind: fight
+source: game
+map_id: 1021
+seed: 1476934379
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_targeting_system, sabertooth_specialist, improved_overlord]
+  techs:
+    overlord: [high_explosive_ammo, field_maintenance, overlord_artillery, mothership, jump_drive, armor_enhancement, range_enhancement, launcher_overload, photon_emission]
+  blueprints: [attack_enhancement_ii]
+  tower_strengthen_levels: [3, 4]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -255, y: -35}, exp: 0/227/1300, source: delivered}
+  - {name: overlord, index: 1, position: {x: -175, y: -35}, level: 4, exp: 0/1983/7858, equipment: [laser_sights]}
+  - {name: vortex, index: 2, position: {x: 70, y: -70}, level: 4, exp: 0/72/3368}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 0, y: -295}}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: 50, y: 150}]}
+red:
+  core_damage: 700
+  officers: [advanced_missile_device, quick_teleport, sabertooth_specialist]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 3]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 25, y: -255}, source: delivered}
+  - {name: typhoon, index: 1, position: {x: 350, y: 70}, level: 2, equipment: [dominion_core], travelling: true}
+  - {name: phoenix, index: 2, position: {x: 180, y: -230}, level: 2}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 220, y: -175}, retained: false}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: 95, y: -230}]}
+ticks: 412
+hash: 24:5d07b50e9e82f21073123ce09035ed4a9289dbd6a6063bde8511edd672d952bb
+asserts:
+- sql: |-
+    SELECT tick, unit_id, motion_state, velocity__x, velocity__z
+    FROM units WHERE unit_id=15 AND tick IN (48,49,52,56,57) ORDER BY tick
+  rows:
+  - [48, 15, idle, 0, 0]
+  - [49, 15, moving, 0, 0]
+  - [52, 15, moving, 0, 0]
+  - [56, 15, moving, 34732242733, 12645349856]
+  - [57, 15, moving, 34732242733, 12645349856]

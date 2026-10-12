@@ -1448,7 +1448,10 @@ impl Simulation {
                     if let Some(group) = &mut actor.skills.main.group {
                         group.mech_lock = None;
                     }
-                } else if !holding_fire {
+                } else if !holding_fire && entered_idle {
+                    // `MotionIdleState.Enter` publishes StopMove only on a
+                    // transition. Already idle summons keep their untouched
+                    // agent request while the core waits for pending units.
                     actor.lose_target_motion(entered_idle);
                 }
                 actor
