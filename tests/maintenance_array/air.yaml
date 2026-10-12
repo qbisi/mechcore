@@ -18,10 +18,15 @@ red:
   units:
   - {name: mustang, index: 0, position: {x: 5, y: -100}}
 outcome:
-  blue.units[0].exp: 150
-  blue.units[1].exp: 167
-  blue.units[2].exp: 90
-  red.core_damage: 488
-  red.units[0].exp: 340
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 150/8756}
+    - {index: 1, exp: 167/900}
+    - {index: 2, exp: 90/900}
+  red:
+    core_damage: 488
+    units:
+    - {index: 0, exp: 340/1200}
 ticks: 216
 hash: 23:e5c54b4366d8f19a2a960464074cbacea63594fa59a5d14808f91203f09c7363

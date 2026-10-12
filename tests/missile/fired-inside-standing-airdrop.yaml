@@ -22,8 +22,13 @@ red:
   battle_skills:
   - {name: shield_airdrop, standing: {position: {x: -1, y: 11}}}
 outcome:
-  blue.core_damage: 200
-  blue.contraptions[0].retained: false
-  red.units[0].exp: 200
+  blue:
+    core_damage: 200
+    contraptions:
+    - {index: 0, retained: false}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 200/1150}
 ticks: 415
 hash: 23:992ac1117b9f03d45e7de21e2c58f8259ab40c2b2e60ebf37069055ef3ee0ce4

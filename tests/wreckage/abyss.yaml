@@ -23,7 +23,10 @@ red:
   - {name: marksman, index: 2, position: {x: 60, y: -40}}
   - {name: arclight, index: 3, position: {x: 280, y: -300}}
 outcome:
-  blue.units[0].exp: 1408
-  red.core_damage: 500
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 1408/4800}
+  red: {core_damage: 500}
 ticks: 897
 hash: 23:03749441d3324584a7d43ada40488608fda1ce44c0c92df2e4e112f9dd8acd20

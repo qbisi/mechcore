@@ -43,21 +43,26 @@ red:
   - {name: mountain, index: 10, position: {x: 95, y: -145}}
   - {name: crawler, index: 11, position: {x: -310, y: 195}, travelling: true}
 outcome:
-  blue.units[0].exp: 372
-  blue.units[1].exp: 196
-  blue.units[2].exp: 339
-  blue.units[3].exp: 450
-  blue.units[6].exp: 679
-  blue.units[7].exp: 1300
-  blue.units[8].exp: 1300
-  blue.units[9].exp: 866
-  blue.units[10].exp: 2329
-  red.core_damage: 500
-  red.units[1].exp: 327
-  red.units[2].exp: 408
-  red.units[3].exp: 1200
-  red.units[6].exp: 26
-  red.units[7].exp: 770
-  red.units[8].exp: 1950
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 372/600}
+    - {index: 1, exp: 196/600}
+    - {index: 2, exp: 339/600}
+    - {index: 5, exp: 450/450}
+    - {index: 8, exp: 679/1300}
+    - {index: 9, exp: 1300/1300}
+    - {index: 10, exp: 1300/1300}
+    - {index: 11, exp: 866/1300}
+    - {index: 12, exp: 2329/4800}
+  red:
+    core_damage: 500
+    units:
+    - {index: 1, exp: 327/450}
+    - {index: 2, exp: 408/450}
+    - {index: 3, exp: 1200/1200}
+    - {index: 8, exp: 26/1400}
+    - {index: 9, exp: 770/1400}
+    - {index: 10, exp: 1950/3200}
 ticks: 1679
 hash: 23:b62fd87c4d4c713408b79fecbb213a260293cb873ea332b8065cc10fb2a46a1d

@@ -99,54 +99,61 @@ red:
   - {name: missile, index: 3, position: {x: -292, y: -195}}
   - {name: missile, index: 6, position: {x: -94, y: -17}}
 outcome:
-  blue.units[1].exp: 600
-  blue.units[2].exp: 415
-  blue.units[3].exp: 790
-  blue.units[4].exp: 264
-  blue.units[5].exp: 406
-  blue.units[6].exp: 525
-  blue.units[7].exp: 106
-  blue.units[8].exp: 2315
-  blue.units[9].exp: 1748
-  blue.units[10].exp: 1709
-  blue.units[12].exp: 595
-  blue.units[13].exp: 257
-  blue.units[14].exp: 3154
-  blue.units[15].exp: 47
-  blue.units[16].exp: 803
-  blue.units[17].exp: 1465
-  blue.units[18].exp: 1388
-  blue.units[19].exp: 560
-  blue.units[20].exp: 1500
-  blue.units[21].exp: 1500
-  blue.units[22].exp: 666
-  blue.units[23].exp: 400
-  blue.units[24].exp: 512
-  blue.units[25].exp: 2
-  blue.units[26].exp: 2
-  blue.units[27].exp: 10
-  blue.contraptions[2].retained: false
-  blue.contraptions[3].retained: false
-  red.core_damage: 1340
-  red.units[1].exp: 252
-  red.units[3].exp: 1780
-  red.units[4].exp: 1408
-  red.units[5].exp: 958
-  red.units[6].exp: 1168
-  red.units[7].exp: 2202
-  red.units[8].exp: 2279
-  red.units[10].exp: 1909
-  red.units[12].exp: 450
-  red.units[14].exp: 392
-  red.units[15].exp: 1270
-  red.units[16].exp: 750
-  red.units[19].exp: 5408
-  red.units[20].exp: 613
-  red.units[22].exp: 1816
-  red.units[23].exp: 1226
-  red.units[24].exp: 2400
-  red.units[25].exp: 310
-  red.contraptions[0].retained: false
-  red.contraptions[1].retained: false
+  blue:
+    core_damage: 0
+    units:
+    - {index: 1, exp: 600/600}
+    - {index: 2, exp: 415/600}
+    - {index: 5, exp: 790/2671}
+    - {index: 6, exp: 264/2671}
+    - {index: 7, exp: 406/2671}
+    - {index: 8, exp: 525/1690}
+    - {index: 9, exp: 106/2671}
+    - {index: 10, exp: 2315/2315}
+    - {index: 11, exp: 1748/2315}
+    - {index: 12, exp: 1709/2919}
+    - {index: 14, exp: 595/1014}
+    - {index: 15, exp: 257/1014}
+    - {index: 16, exp: 3154/3154}
+    - {index: 17, exp: 47/1014}
+    - {index: 18, exp: 803/1014}
+    - {index: 19, exp: 1465/1465}
+    - {index: 20, exp: 1388/2315}
+    - {index: 21, exp: 560/2315}
+    - {index: 22, exp: 1500/1500}
+    - {index: 23, exp: 1500/1500}
+    - {index: 24, exp: 666/1465}
+    - {index: 25, exp: 400/1465}
+    - {index: 26, exp: 512/1465}
+    - {index: 27, exp: 2/1014}
+    - {index: 28, exp: 2/1014}
+    - {index: 29, exp: 10/1014}
+    contraptions:
+    - {index: 4, retained: false}
+    - {index: 5, retained: false}
+  red:
+    core_damage: 1340
+    units:
+    - {index: 1, exp: 252/450}
+    - {index: 3, exp: 1780/3154}
+    - {index: 4, exp: 1408/3154}
+    - {index: 5, exp: 958/2315}
+    - {index: 6, exp: 1168/1465}
+    - {index: 7, exp: 2202/2919}
+    - {index: 8, exp: 2279/2929}
+    - {index: 12, exp: 1909/2028}
+    - {index: 14, exp: 450/450}
+    - {index: 17, exp: 392/3918}
+    - {index: 18, exp: 1270/2479}
+    - {index: 19, exp: 750/750}
+    - {index: 22, exp: 5408/5408}
+    - {index: 23, exp: 613/1400}
+    - {index: 25, exp: 1816/5408}
+    - {index: 26, exp: 1226/2400}
+    - {index: 27, exp: 2400/2400}
+    - {index: 28, exp: 310/750}
+    contraptions:
+    - {index: 3, retained: false}
+    - {index: 6, retained: false}
 ticks: 807
 hash: 23:ffbf4c43d940ac84e61d62aa2d70fa0d61be7a9feb01cccab03cf15222122ba0

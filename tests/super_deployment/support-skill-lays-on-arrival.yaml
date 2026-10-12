@@ -18,10 +18,18 @@ red:
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -100}}
 outcome:
-  red.core_damage: 200
-  red.units[0].exp: 230
+  blue: {core_damage: 0}
+  red:
+    core_damage: 200
+    units:
+    - {index: 0, exp: 230/650}
+asserts:
+- sql: |-
+    SELECT tick, object__id FROM events WHERE type = 'unit_created' AND unit_type_id = 1002 ORDER BY tick, ordinal LIMIT 4
+  rows:
+  - [161, 3]
+  - [161, 4]
+  - [461, 5]
+  - [461, 6]
 ticks: 905
 hash: 23:022b074edf301f22ca81edb2daaabb2a23d8be3e1d892249515ce611af6f9ed4
-asserts:
-- sql: "SELECT tick, object__id FROM events WHERE type = 'unit_created' AND unit_type_id = 1002 ORDER BY tick, ordinal LIMIT 4"
-  rows: [[161, 3], [161, 4], [461, 5], [461, 6]]

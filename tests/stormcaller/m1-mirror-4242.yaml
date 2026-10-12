@@ -12,8 +12,13 @@ red:
   units:
   - {name: stormcaller, index: 0, position: {x: 5, y: -100}}
 outcome:
-  blue.units[0].exp: 300
-  red.core_damage: 100
-  red.units[0].exp: 150
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 300/1100}
+  red:
+    core_damage: 100
+    units:
+    - {index: 0, exp: 150/1100}
 ticks: 120
 hash: 23:a785382ecd1fb6196eb927a07da168f3de674a6a8f032f8afd0a868979a9213b

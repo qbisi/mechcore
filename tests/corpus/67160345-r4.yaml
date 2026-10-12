@@ -62,31 +62,36 @@ red:
   battle_skills:
   - {name: mobile_beacon, positions: [{x: 232, y: -66}, {x: 232, y: 34}, {x: 180, y: 111}]}
 outcome:
-  blue.core_damage: 564
-  blue.units[0].exp: 393
-  blue.units[2].exp: 503
-  blue.units[3].exp: 842
-  blue.units[4].exp: 936
-  blue.units[5].exp: 221
-  blue.units[6].exp: 450
-  blue.units[7].exp: 202
-  blue.units[8].exp: 306
-  blue.units[11].exp: 1117
-  blue.units[12].exp: 185
-  blue.units[13].exp: 466
-  blue.units[14].exp: 218
-  blue.units[15].exp: 490
-  blue.units[16].exp: 408
-  red.units[0].exp: 186
-  red.units[1].exp: 750
-  red.units[3].exp: 113
-  red.units[4].exp: 450
-  red.units[5].exp: 2245
-  red.units[6].exp: 997
-  red.units[8].exp: 1000
-  red.units[9].exp: 85
-  red.units[10].exp: 2142
-  red.units[11].exp: 120
-  red.units[12].exp: 1000
+  blue:
+    core_damage: 564
+    units:
+    - {index: 0, exp: 393/750}
+    - {index: 2, exp: 503/750}
+    - {index: 3, exp: 842/1500}
+    - {index: 4, exp: 936/1500}
+    - {index: 5, exp: 221/450}
+    - {index: 6, exp: 450/450}
+    - {index: 7, exp: 202/750}
+    - {index: 8, exp: 306/750}
+    - {index: 11, exp: 1117/2250}
+    - {index: 12, exp: 185/450}
+    - {index: 13, exp: 466/4394}
+    - {index: 14, exp: 218/2250}
+    - {index: 15, exp: 490/2250}
+    - {index: 16, exp: 408/450}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 186/750}
+    - {index: 1, exp: 750/750}
+    - {index: 5, exp: 113/450}
+    - {index: 6, exp: 450/450}
+    - {index: 7, exp: 2245/2315}
+    - {index: 8, exp: 997/2253}
+    - {index: 10, exp: 1000/1000}
+    - {index: 11, exp: 85/600}
+    - {index: 12, exp: 2142/4394}
+    - {index: 13, exp: 120/750}
+    - {index: 14, exp: 1000/1000}
 ticks: 1274
 hash: 23:35f8daa24042801cfd503b6c15792c1e5e0e83adf712528774819de41d76b254

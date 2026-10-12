@@ -74,35 +74,40 @@ red:
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: 144, y: 248}]}
 outcome:
-  blue.core_damage: 1932
-  blue.units[0].exp: 333
-  blue.units[4].exp: 388
-  blue.units[6].exp: 977
-  blue.units[7].exp: 130
-  blue.units[8].exp: 750
-  blue.units[9].exp: 485
-  blue.units[10].exp: 1142
-  blue.units[11].exp: 197
-  blue.units[12].exp: 371
-  blue.units[13].exp: 38
-  blue.units[14].exp: 92
-  blue.units[15].exp: 110
-  blue.units[16].exp: 58
-  red.units[0].exp: 600
-  red.units[1].exp: 600
-  red.units[2].exp: 600
-  red.units[3].exp: 452
-  red.units[5].exp: 1105
-  red.units[6].exp: 1653
-  red.units[7].exp: 1300
-  red.units[8].exp: 507
-  red.units[9].exp: 600
-  red.units[10].exp: 1017
-  red.units[11].exp: 916
-  red.units[12].exp: 486
-  red.units[14].exp: 800
-  red.units[15].exp: 597
-  red.units[16].exp: 424
-  red.units[17].exp: 15
+  blue:
+    core_damage: 1932
+    units:
+    - {index: 0, exp: 333/450}
+    - {index: 4, exp: 388/1200}
+    - {index: 6, exp: 977/1300}
+    - {index: 7, exp: 130/1465}
+    - {index: 8, exp: 750/2250}
+    - {index: 9, exp: 485/2250}
+    - {index: 10, exp: 1142/2250}
+    - {index: 11, exp: 197/2250}
+    - {index: 12, exp: 371/2250}
+    - {index: 13, exp: 38/450}
+    - {index: 14, exp: 92/4056}
+    - {index: 15, exp: 110/1800}
+    - {index: 16, exp: 58/1300}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 600/600}
+    - {index: 1, exp: 600/600}
+    - {index: 2, exp: 600/600}
+    - {index: 5, exp: 452/1352}
+    - {index: 8, exp: 1105/2591}
+    - {index: 9, exp: 1653/2591}
+    - {index: 10, exp: 1300/1300}
+    - {index: 12, exp: 507/600}
+    - {index: 13, exp: 600/600}
+    - {index: 14, exp: 1017/2591}
+    - {index: 15, exp: 916/1150}
+    - {index: 16, exp: 486/1352}
+    - {index: 19, exp: 800/1100}
+    - {index: 20, exp: 597/600}
+    - {index: 21, exp: 424/600}
+    - {index: 22, exp: 15/600}
 ticks: 553
 hash: 23:2f26bbbc574c2c49eac4b9928870dd5e2e3dfa35b505e02e004a30faf1fc3f1a

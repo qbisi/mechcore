@@ -12,6 +12,10 @@ red:
   units:
   - {name: fortress, index: 0, position: {x: 0, y: -100}}
 outcome:
-  blue.units[0].exp: 800
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 800/1600}
+  red: {core_damage: 0}
 ticks: 369
 hash: 23:540f9399e4e3f0da3b26c8b30aae9482b081b1aa726c1fb27ddced2194fd2aa6

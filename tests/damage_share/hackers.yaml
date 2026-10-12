@@ -22,9 +22,14 @@ red:
   - {name: hacker, index: 0, position: {x: -45, y: -105}}
   - {name: hacker, index: 1, position: {x: 35, y: -105}}
 outcome:
-  blue.units[0].exp: 420
-  blue.units[1].exp: 540
-  red.core_damage: 320
-  red.units[0].exp: 160
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 420/1300}
+    - {index: 1, exp: 540/1300}
+  red:
+    core_damage: 320
+    units:
+    - {index: 0, exp: 160/560}
 ticks: 530
 hash: 23:de314114f84071b47e7d3c3fa80b90c456640c50bbdd27b3aa000d166586efa3

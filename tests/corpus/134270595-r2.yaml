@@ -44,27 +44,32 @@ red:
   battle_skills:
   - {name: shield_airdrop, positions: [{x: 56, y: -186}]}
 outcome:
-  blue.units[0].exp: 450
-  blue.units[1].exp: 450
-  blue.units[2].exp: 50
-  blue.units[3].exp: 1109
-  blue.units[4].exp: 139
-  blue.units[5].exp: 1465
-  blue.units[6].exp: 526
-  blue.units[7].exp: 130
-  blue.units[8].exp: 30
-  blue.units[9].exp: 65
-  red.core_damage: 339
-  red.units[0].exp: 525
-  red.units[1].exp: 530
-  red.units[2].exp: 141
-  red.units[3].exp: 643
-  red.units[4].exp: 1184
-  red.units[5].exp: 128
-  red.units[6].exp: 184
-  red.units[7].exp: 432
-  red.units[8].exp: 164
-  red.units[9].exp: 76
-  red.units[10].exp: 51
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 450/450}
+    - {index: 1, exp: 450/450}
+    - {index: 2, exp: 50/450}
+    - {index: 3, exp: 1109/1500}
+    - {index: 4, exp: 139/1500}
+    - {index: 5, exp: 1465/1465}
+    - {index: 6, exp: 526/650}
+    - {index: 7, exp: 130/1500}
+    - {index: 8, exp: 30/450}
+    - {index: 9, exp: 65/600}
+  red:
+    core_damage: 339
+    units:
+    - {index: 0, exp: 525/750}
+    - {index: 1, exp: 530/750}
+    - {index: 2, exp: 141/750}
+    - {index: 3, exp: 643/1300}
+    - {index: 4, exp: 1184/1300}
+    - {index: 5, exp: 128/450}
+    - {index: 6, exp: 184/450}
+    - {index: 7, exp: 432/2315}
+    - {index: 8, exp: 164/750}
+    - {index: 9, exp: 76/450}
+    - {index: 10, exp: 51/450}
 ticks: 939
 hash: 23:01df88e6574c12e2240ab474ebe5833a538fda7fdc408f5b408f81cf5b58c563

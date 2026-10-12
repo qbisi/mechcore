@@ -30,12 +30,17 @@ red:
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: 75, y: 62}]}
 outcome:
-  blue.core_damage: 350
-  blue.units[0].exp: 40
-  blue.units[1].exp: 90
-  blue.units[2].exp: 290
-  blue.units[3].exp: 90
-  blue.units[4].exp: 290
-  red.units[2].exp: 1000
+  blue:
+    core_damage: 350
+    units:
+    - {index: 0, exp: 40/750}
+    - {index: 1, exp: 90/750}
+    - {index: 2, exp: 290/750}
+    - {index: 3, exp: 90/750}
+    - {index: 4, exp: 290/750}
+  red:
+    core_damage: 0
+    units:
+    - {index: 2, exp: 1000/1400}
 ticks: 639
 hash: 23:ad5ef750a927b76d20ab923f1b727fb5066912da9e950972843217134ce2e01a

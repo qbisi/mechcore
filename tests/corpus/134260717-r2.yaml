@@ -38,19 +38,24 @@ red:
   - {name: rhino, index: 8, position: {x: -265, y: -295}}
   - {name: marksman, index: 9, position: {x: -20, y: -160}}
 outcome:
-  blue.units[1].exp: 100
-  blue.units[3].exp: 116
-  blue.units[6].exp: 866
-  blue.units[7].exp: 2116
-  red.core_damage: 250
-  red.units[0].exp: 299
-  red.units[1].exp: 494
-  red.units[2].exp: 650
-  red.units[3].exp: 314
-  red.units[4].exp: 614
-  red.units[5].exp: 471
-  red.units[7].exp: 256
-  red.units[8].exp: 541
-  red.units[9].exp: 33
+  blue:
+    core_damage: 0
+    units:
+    - {index: 1, exp: 100/600}
+    - {index: 3, exp: 116/1400}
+    - {index: 8, exp: 866/2250}
+    - {index: 9, exp: 2116/2250}
+  red:
+    core_damage: 250
+    units:
+    - {index: 0, exp: 299/650}
+    - {index: 1, exp: 494/650}
+    - {index: 2, exp: 650/650}
+    - {index: 3, exp: 314/1500}
+    - {index: 4, exp: 614/1500}
+    - {index: 5, exp: 471/1500}
+    - {index: 7, exp: 256/1150}
+    - {index: 8, exp: 541/1150}
+    - {index: 9, exp: 33/650}
 ticks: 1473
 hash: 23:d12b1052350e42534ed5ca8738960919972b1a422b39e33880009432623cb5e5

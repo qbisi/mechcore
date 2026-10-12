@@ -319,13 +319,17 @@ red:
     assert!(document.contains("\nhash: 23:"));
     // Blue alone stands, so red's core takes the three deployed level 1
     // Marksmen's scores and blue's takes nothing.
-    assert!(
-        document.contains("\n  red.core_damage: 300\n"),
-        "{document}"
-    );
-    assert!(!document.contains("blue.core_damage"), "{document}");
+    let parsed = mechcore_document::fight::parse_yaml(document.as_bytes()).unwrap();
+    assert_eq!(parsed.red.core_damage, 300);
+    assert_eq!(parsed.blue.core_damage, 0);
     // The Arclight fell to the Marksmen, and its experience went to them.
-    assert!(document.contains("\n  blue.units[0].exp: "), "{document}");
+    assert!(
+        parsed
+            .blue
+            .units
+            .iter()
+            .any(|unit| unit.exp.is_some_and(|exp| exp.after > exp.before))
+    );
 
     let from_layout = mechcore(&[
         "convert".as_ref(),
@@ -356,7 +360,7 @@ red:
     let compared = mechcore(&["diff".as_ref(), written.as_os_str(), changed.as_os_str()]);
     assert_eq!(compared.status.code(), Some(1));
     let report: serde_json::Value = serde_json::from_slice(&compared.stdout).unwrap();
-    assert_eq!(report["differences"][0]["path"], "/outcome/red.core_damage");
+    assert_eq!(report["differences"][0]["path"], "/outcome/red/core_damage");
     let schema = mechcore(&["schema".as_ref(), "fight".as_ref()]);
     assert!(schema.status.success());
 }
@@ -394,9 +398,16 @@ fn a_formation_opens_the_simulated_fight_with_the_experience_its_layout_brings()
     // recording of this layout does: the Marksmen gain the Arclight's
     // experience, and the Arclight ends with what it opened with.
     assert!(document.contains("level: 2, exp: 700/1465}"), "{document}");
-    assert!(document.contains("].exp: 900\n"), "{document}");
+    assert!(document.contains("exp: 900/1465}"), "{document}");
     assert!(document.contains("exp: 300/750}"), "{document}");
-    assert_eq!(document.matches("].exp: ").count(), 1, "{document}");
+    let parsed: serde_yaml::Value = serde_yaml::from_str(&document).unwrap();
+    assert_eq!(
+        parsed["outcome"]["blue"]["units"]
+            .as_sequence()
+            .unwrap()
+            .len(),
+        1
+    );
 }
 
 /// The fight document the simulator fights a small layout into, written by
@@ -472,22 +483,22 @@ fn verify_fights_a_fight_document_again_and_names_what_differs() {
     assert_eq!(report["differences"], serde_json::json!([]));
 
     // One unit's experience moved: that path, both values.
-    let exp = document.find("].exp: ").unwrap() + "].exp: ".len();
-    let after = &document[exp..document[exp..].find('\n').unwrap() + exp];
-    let moved = format!(
-        "{}{}{}",
-        &document[..exp],
-        after.parse::<u32>().unwrap() + 1,
-        &document[exp + after.len()..]
-    );
+    let mut value: serde_yaml::Value = serde_yaml::from_str(&document).unwrap();
+    let exp = value["outcome"]["blue"]["units"][0]["exp"]
+        .as_str()
+        .unwrap();
+    let (after, maximum) = exp.split_once('/').unwrap();
+    value["outcome"]["blue"]["units"][0]["exp"] =
+        format!("{}/{maximum}", after.parse::<u32>().unwrap() + 1).into();
+    let moved = serde_yaml::to_string(&value).unwrap();
     let (code, report) = verify("exp.yaml", &moved);
     assert_eq!(code, Some(1), "{report}");
     assert_eq!(report["valid"], false);
     let differences = report["differences"].as_array().unwrap();
     assert_eq!(differences.len(), 1, "{report}");
     let path = differences[0]["path"].as_str().unwrap();
-    assert!(path.starts_with("/outcome/blue.units["), "{path}");
-    assert!(path.ends_with("].exp"), "{path}");
+    assert!(path.starts_with("/outcome/blue/units/"), "{path}");
+    assert!(path.ends_with("/exp"), "{path}");
     assert_ne!(differences[0]["expected"], differences[0]["actual"]);
     assert!(report["error"].as_str().unwrap().contains(path), "{report}");
 
@@ -522,7 +533,7 @@ fn verify_asks_each_assert_of_the_recording() {
     let with = |rows: &str| {
         document.replace(
             "\nticks:",
-            &format!("\nasserts:\n- sql: \"SELECT count(*) FROM events WHERE type = 'unit_died'\"{rows}\nticks:"),
+            &format!("\nasserts:\n- sql: |-\n    SELECT count(*)\n    FROM events\n    WHERE type = 'unit_died'{rows}\nticks:"),
         )
     };
 
@@ -568,14 +579,14 @@ fn verify_compares_a_game_fight() {
     );
     let (code, report) = verify(
         "game-damage.yaml",
-        &replay.replace("core_damage: ", "core_damage: 1"),
+        &replay.replacen("core_damage: 0", "core_damage: 1", 1),
     );
     assert_eq!(code, Some(1), "{report}");
     assert!(
         report["differences"][0]["path"]
             .as_str()
             .unwrap()
-            .ends_with(".core_damage"),
+            .ends_with("/core_damage"),
         "{report}"
     );
 }

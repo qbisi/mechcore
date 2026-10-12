@@ -12,7 +12,10 @@ red:
   units:
   - {name: sandworm, index: 0, position: {x: 0, y: -100}}
 outcome:
-  blue.units[0].exp: 800
-  red.core_damage: 350
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 800/2000}
+  red: {core_damage: 350}
 ticks: 427
 hash: 23:8b954fa3472bb65227d41fb958638efdf052c8c447f3aefff61ddd11ef498f83

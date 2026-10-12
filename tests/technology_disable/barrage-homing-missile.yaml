@@ -26,9 +26,14 @@ red:
   - {name: rhino, index: 0, position: {x: 5, y: -35}, level: 9}
   - {name: centurion, index: 1, position: {x: 5, y: -75}, level: 9}
 outcome:
-  blue.units[0].exp: 8118
-  blue.units[1].exp: 5100
-  red.core_damage: 350
-  red.units[1].exp: 6800
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 8118/8118}
+    - {index: 1, exp: 5100/7736}
+  red:
+    core_damage: 350
+    units:
+    - {index: 1, exp: 6800/15137}
 ticks: 357
 hash: 23:fc49af202723586e56165674d52d23208a0f45171a4cddb3993266487de7a95d

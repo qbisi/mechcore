@@ -20,7 +20,10 @@ red:
   - {name: wraith, index: 1, position: {x: 5, y: -175}}
   - {name: wraith, index: 2, position: {x: -55, y: -175}}
 outcome:
-  blue.units[0].exp: 1600
-  red.core_damage: 350
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 1600/1600}
+  red: {core_damage: 350}
 ticks: 979
 hash: 23:fbcb2fb8d3bba96b82a37f41206dfc867d92969b30f747d040cb5c2823637216

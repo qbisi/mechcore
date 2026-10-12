@@ -13,10 +13,15 @@ red:
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
 outcome:
-  blue.units[0].exp: 192
-  red.core_damage: 200
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 192/1150}
+  red: {core_damage: 200}
 asserts:
-- sql: "SELECT tick, unit_id, velocity__x, velocity__z FROM units WHERE tick = 8 AND unit_id = 11"
-  rows: [[8, 11, 10146579184, -67965446880]]
+- sql: |-
+    SELECT tick, unit_id, velocity__x, velocity__z FROM units WHERE tick = 8 AND unit_id = 11
+  rows:
+  - [8, 11, 10146579184, -67965446880]
 ticks: 377
 hash: 23:59eee526fa2df09d58d5164087a7cace9dbc9c65e0b04bee89e59b04c8cea1f2

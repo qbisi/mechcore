@@ -15,10 +15,15 @@ red:
   - {name: crawler, index: 0, position: {x: 5, y: -80}}
   - {name: stormcaller, index: 1, position: {x: 5, y: -120}}
 outcome:
-  blue.core_damage: 4
-  blue.units[0].exp: 138
-  blue.units[1].exp: 346
-  red.units[0].exp: 387
-  red.units[1].exp: 105
+  blue:
+    core_damage: 4
+    units:
+    - {index: 0, exp: 138/450}
+    - {index: 1, exp: 346/1100}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 387/450}
+    - {index: 1, exp: 105/1100}
 ticks: 763
 hash: 23:2d21e10316e312e4b4cf5f12b2c6e1b4689d8262725d5a54b6ee9760d0cbc3aa

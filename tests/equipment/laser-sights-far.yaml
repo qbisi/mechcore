@@ -23,7 +23,10 @@ red:
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -120}}
 outcome:
-  blue.units[0].exp: 200
-  red.core_damage: 100
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 200/650}
+  red: {core_damage: 100}
 ticks: 140
 hash: 23:871796f47e718a0a10e5681a5ed7b5ba1563e0c19f27becfce1b44ba2e9698e0

@@ -21,8 +21,13 @@ red:
   contraptions:
   - {name: shield, index: 1, position: {x: 1, y: -81}}
 outcome:
-  blue.core_damage: 200
-  blue.contraptions[0].retained: false
-  red.units[0].exp: 200
+  blue:
+    core_damage: 200
+    contraptions:
+    - {index: 0, retained: false}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 200/1150}
 ticks: 213
 hash: 23:d1c5e0375188324e4375fb04f06ff6e6b29458514eb0326367f4c4d69d07cec6

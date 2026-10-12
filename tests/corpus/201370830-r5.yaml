@@ -67,36 +67,42 @@ red:
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 outcome:
-  blue.core_damage: 868
-  blue.units[2].exp: 702
-  blue.units[4].exp: 909
-  blue.units[5].exp: 300
-  blue.units[6].exp: 653
-  blue.units[8].exp: 129
-  blue.units[11].exp: 2088
-  blue.units[12].exp: 916
-  blue.units[13].exp: 580
-  blue.units[14].exp: 2704
-  blue.units[15].exp: 1136
-  blue.units[16].exp: 1667
-  blue.contraptions[2].retained: false
-  red.units[0].exp: 794
-  red.units[1].exp: 750
-  red.units[2].exp: 353
-  red.units[3].exp: 3380
-  red.units[4].exp: 2812
-  red.units[5].exp: 2094
-  red.units[6].exp: 1488
-  red.units[7].exp: 297
-  red.units[8].exp: 241
-  red.units[9].exp: 696
-  red.units[10].exp: 474
-  red.units[11].exp: 1500
-  red.units[12].exp: 216
-  red.units[13].exp: 371
-  red.units[14].exp: 360
-  red.units[15].exp: 28
-  red.units[16].exp: 61
-  red.units[17].exp: 1081
+  blue:
+    core_damage: 868
+    units:
+    - {index: 2, exp: 702/750}
+    - {index: 4, exp: 909/1000}
+    - {index: 5, exp: 300/1014}
+    - {index: 6, exp: 653/1014}
+    - {index: 8, exp: 129/1014}
+    - {index: 11, exp: 2088/2253}
+    - {index: 12, exp: 916/1014}
+    - {index: 13, exp: 580/1014}
+    - {index: 14, exp: 2704/2704}
+    - {index: 15, exp: 1136/2704}
+    - {index: 16, exp: 1667/2704}
+    contraptions:
+    - {index: 3, retained: false}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 794/1465}
+    - {index: 1, exp: 750/1465}
+    - {index: 2, exp: 353/1465}
+    - {index: 3, exp: 3380/3380}
+    - {index: 4, exp: 2812/3380}
+    - {index: 5, exp: 2094/2671}
+    - {index: 6, exp: 1488/1690}
+    - {index: 7, exp: 297/1014}
+    - {index: 8, exp: 241/1014}
+    - {index: 9, exp: 696/900}
+    - {index: 10, exp: 474/2028}
+    - {index: 11, exp: 1500/1500}
+    - {index: 12, exp: 216/450}
+    - {index: 13, exp: 371/1000}
+    - {index: 14, exp: 360/1000}
+    - {index: 15, exp: 28/450}
+    - {index: 16, exp: 61/450}
+    - {index: 17, exp: 1081/1200}
 ticks: 1010
 hash: 23:b6431ff7e6bda0e58bc0c55901f0e72f8cfb2ebf49f991a2074557949a207803

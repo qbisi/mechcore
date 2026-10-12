@@ -21,10 +21,16 @@ red:
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -100}}
 outcome:
-  blue.units[0].exp: 400
-  red.core_damage: 225
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 400/560}
+  red: {core_damage: 225}
+asserts:
+- sql: |-
+    SELECT shield_id, owner__id, active FROM shields WHERE tick = 1 ORDER BY shield_id
+  rows:
+  - [1, null, 1]
+  - [2, 1, 0]
 ticks: 797
 hash: 23:06578c181c52044c110d35162a81ca9bc77721132fddb89c0a9a5f38556c8377
-asserts:
-- sql: "SELECT shield_id, owner__id, active FROM shields WHERE tick = 1 ORDER BY shield_id"
-  rows: [[1, null, 1], [2, 1, 0]]

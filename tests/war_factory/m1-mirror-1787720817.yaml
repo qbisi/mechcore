@@ -12,6 +12,10 @@ red:
   units:
   - {name: war_factory, index: 0, position: {x: 5, y: -105}}
 outcome:
-  blue.units[0].exp: 1600
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 1600/3200}
+  red: {core_damage: 0}
 ticks: 343
 hash: 23:6bee5546f0103dd5b75277389d376712df1436fc0fedad0e70305a30efee4e13

@@ -67,40 +67,46 @@ red:
   battle_skills:
   - {name: sticky_oil_bomb, positions: [{x: 128, y: 57}, {x: 165, y: 155}]}
 outcome:
-  blue.units[0].exp: 750
-  blue.units[1].exp: 650
-  blue.units[2].exp: 750
-  blue.units[3].exp: 735
-  blue.units[4].exp: 156
-  blue.units[5].exp: 2929
-  blue.units[6].exp: 310
-  blue.units[7].exp: 244
-  blue.units[9].exp: 290
-  blue.units[10].exp: 1962
-  blue.units[11].exp: 1769
-  blue.units[12].exp: 418
-  blue.units[14].exp: 179
-  blue.units[15].exp: 228
-  blue.units[16].exp: 750
-  blue.units[17].exp: 170
-  red.core_damage: 325
-  red.units[0].exp: 750
-  red.units[1].exp: 1690
-  red.units[2].exp: 328
-  red.units[3].exp: 1400
-  red.units[4].exp: 405
-  red.units[6].exp: 432
-  red.units[7].exp: 1486
-  red.units[8].exp: 168
-  red.units[9].exp: 2007
-  red.units[10].exp: 525
-  red.units[11].exp: 486
-  red.units[12].exp: 115
-  red.units[13].exp: 336
-  red.units[15].exp: 346
-  red.units[16].exp: 82
-  red.units[17].exp: 67
-  red.units[18].exp: 750
-  red.battle_skills[0].retained: false
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 750/750}
+    - {index: 1, exp: 650/750}
+    - {index: 2, exp: 750/750}
+    - {index: 3, exp: 735/2929}
+    - {index: 4, exp: 156/2929}
+    - {index: 5, exp: 2929/2929}
+    - {index: 6, exp: 310/450}
+    - {index: 7, exp: 244/450}
+    - {index: 9, exp: 290/600}
+    - {index: 10, exp: 1962/4394}
+    - {index: 11, exp: 1769/2929}
+    - {index: 12, exp: 418/600}
+    - {index: 14, exp: 179/450}
+    - {index: 15, exp: 228/1300}
+    - {index: 16, exp: 750/750}
+    - {index: 17, exp: 170/450}
+  red:
+    core_damage: 325
+    units:
+    - {index: 0, exp: 750/750}
+    - {index: 1, exp: 1690/1690}
+    - {index: 2, exp: 328/750}
+    - {index: 3, exp: 1400/1400}
+    - {index: 4, exp: 405/1400}
+    - {index: 6, exp: 432/450}
+    - {index: 7, exp: 1486/5070}
+    - {index: 8, exp: 168/450}
+    - {index: 10, exp: 2007/2704}
+    - {index: 11, exp: 525/750}
+    - {index: 12, exp: 486/750}
+    - {index: 13, exp: 115/450}
+    - {index: 14, exp: 336/1690}
+    - {index: 16, exp: 346/2250}
+    - {index: 17, exp: 82/450}
+    - {index: 18, exp: 67/750}
+    - {index: 19, exp: 750/750}
+    battle_skills:
+    - {at: 0, retained: false}
 ticks: 1334
 hash: 23:0c574d4cecf1a76365aef983b780d714cc809c0f5b0f08d70513301f90fdd97e

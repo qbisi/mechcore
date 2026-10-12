@@ -12,6 +12,10 @@ red:
   units:
   - {name: centurion, index: 0, position: {x: -5, y: -105}}
 outcome:
-  red.units[0].exp: 600
+  blue: {core_damage: 0}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 600/2250}
 ticks: 275
 hash: 23:027ff917926968e1db0cd0c173af3d614e1ca9d876a15babf3987d60a66ab5a6

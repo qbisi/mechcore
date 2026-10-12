@@ -21,8 +21,13 @@ red:
   units:
   - {name: steel_ball, index: 0, position: {x: 145, y: -20}}
 outcome:
-  blue.core_damage: 150
-  blue.units[0].exp: 100
-  red.units[0].exp: 536
+  blue:
+    core_damage: 150
+    units:
+    - {index: 0, exp: 100/600}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 536/1000}
 ticks: 970
 hash: 23:68e35892992e3a99136633e7b8cf0e92c10f4daed4d9bcaa64eed030d50eabd5

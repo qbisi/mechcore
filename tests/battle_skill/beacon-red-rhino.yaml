@@ -19,9 +19,14 @@ red:
   battle_skills:
   - {name: mobile_beacon, positions: [{x: 105, y: -145}, {x: 250, y: -100}, {x: 250, y: 50}]}
 outcome:
-  blue.core_damage: 300
-  blue.units[1].exp: 200
-  red.units[0].exp: 200
-  red.units[2].exp: 400
+  blue:
+    core_damage: 300
+    units:
+    - {index: 1, exp: 200/750}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 200/1150}
+    - {index: 2, exp: 400/650}
 ticks: 686
 hash: 23:5d79246a203ade9920b669b8e663d16fdf9f044fc210823504dd978ff74a80de

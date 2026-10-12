@@ -42,23 +42,28 @@ red:
   - {name: marksman, index: 10, position: {x: 90, y: -170}}
   - {name: marksman, index: 11, position: {x: 60, y: -170}}
 outcome:
-  blue.core_damage: 800
-  blue.units[0].exp: 66
-  blue.units[3].exp: 216
-  blue.units[6].exp: 966
-  blue.units[7].exp: 2250
-  blue.units[8].exp: 666
-  blue.units[9].exp: 66
-  red.units[0].exp: 398
-  red.units[1].exp: 650
-  red.units[2].exp: 650
-  red.units[3].exp: 528
-  red.units[4].exp: 1218
-  red.units[6].exp: 650
-  red.units[7].exp: 851
-  red.units[8].exp: 536
-  red.units[9].exp: 100
-  red.units[10].exp: 650
-  red.units[11].exp: 451
+  blue:
+    core_damage: 800
+    units:
+    - {index: 0, exp: 66/600}
+    - {index: 3, exp: 216/1400}
+    - {index: 8, exp: 966/2250}
+    - {index: 9, exp: 2250/2250}
+    - {index: 10, exp: 666/2250}
+    - {index: 11, exp: 66/600}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 398/650}
+    - {index: 1, exp: 650/650}
+    - {index: 2, exp: 650/650}
+    - {index: 3, exp: 528/1500}
+    - {index: 4, exp: 1218/1500}
+    - {index: 6, exp: 650/650}
+    - {index: 7, exp: 851/1150}
+    - {index: 8, exp: 536/1150}
+    - {index: 9, exp: 100/650}
+    - {index: 10, exp: 650/650}
+    - {index: 11, exp: 451/650}
 ticks: 1180
 hash: 23:b6d473cd21faa30875ef330e76b029e8e390f4f6f4106e885c46fee00badff1f

@@ -21,6 +21,7 @@ red:
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
 outcome:
-  red.core_damage: 150
+  blue: {core_damage: 0}
+  red: {core_damage: 150}
 ticks: 214
 hash: 23:7ebc99a580a66cd94cf41068fd3ba548ce8dc6111910501df0e1961f2f53a8bb

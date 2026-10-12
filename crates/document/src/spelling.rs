@@ -37,77 +37,81 @@ pub(crate) fn document(root: &Value) -> Result<String, String> {
     Ok(out)
 }
 
-/// [`document`], with each of the root's `listed` fields written one entry
-/// a line: a mapping's entries each on its own line, each key bare when it
-/// reads back as itself, a path such as `blue.units[0].exp` among them; a
-/// sequence of mappings with each item's fields on lines of their own. Every
-/// value is in flow style.
-///
-/// # Errors
-///
-/// As [`document`].
-pub(crate) fn document_listing(root: &Value, listed: &[&str]) -> Result<String, String> {
+/// Fight results use the layout's spelling; assertions keep SQL literal
+/// and each answer row on its own line, preserving the SQL string exactly.
+pub(crate) fn fight(root: &Value) -> Result<String, String> {
     let Value::Mapping(fields) = root else {
         return Err("a document is a mapping".into());
     };
     let mut out = String::new();
     for (key, value) in fields {
-        let name = key.as_str().filter(|name| listed.contains(name));
-        match (name, value) {
-            (Some(name), Value::Mapping(entries)) => {
-                out.push_str(name);
-                out.push_str(":\n");
-                for (entry, value) in entries {
-                    out.push_str("  ");
-                    listing_key(entry, &mut out)?;
-                    out.push_str(": ");
-                    flow(value, &mut out)?;
+        if key.as_str() != Some("asserts") {
+            let mut one = serde_yaml::Mapping::new();
+            one.insert(key.clone(), value.clone());
+            block_mapping(&one, 0, &mut out)?;
+            continue;
+        }
+        let items = value.as_sequence().ok_or("asserts is not a sequence")?;
+        out.push_str("asserts:\n");
+        for item in items {
+            let fields = item.as_mapping().ok_or("an assert is not a mapping")?;
+            let sql = fields
+                .get("sql")
+                .and_then(Value::as_str)
+                .ok_or("an assert has no SQL")?;
+            if sql
+                .chars()
+                .any(|character| character.is_control() && !matches!(character, '\n' | '\t'))
+            {
+                // YAML literal blocks normalize carriage returns; quote these
+                // strings so formatting cannot change the SQL value.
+                out.push_str("- sql: ");
+                flow(&Value::String(sql.to_owned()), &mut out)?;
+                out.push('\n');
+            } else {
+                let ending =
+                    if sql.ends_with("\n\n") || (sql.trim().is_empty() && sql.ends_with('\n')) {
+                        "+"
+                    } else if sql.ends_with('\n') {
+                        ""
+                    } else {
+                        "-"
+                    };
+                let indentation = if sql
+                    .lines()
+                    .find(|line| !line.is_empty())
+                    .is_none_or(|line| line.starts_with([' ', '\t']))
+                {
+                    "2"
+                } else {
+                    ""
+                };
+                out.push_str("- sql: |");
+                out.push_str(indentation);
+                out.push_str(ending);
+                out.push('\n');
+                for line in sql.split_terminator('\n') {
+                    out.push_str("    ");
+                    out.push_str(line);
                     out.push('\n');
                 }
             }
-            (Some(name), Value::Sequence(items))
-                if items.iter().all(|item| matches!(item, Value::Mapping(_))) =>
-            {
-                out.push_str(name);
-                out.push_str(":\n");
-                for item in items {
-                    let Value::Mapping(item) = item else { continue };
-                    for (at, (field, value)) in item.iter().enumerate() {
-                        out.push_str(if at == 0 { "- " } else { "  " });
-                        listing_key(field, &mut out)?;
-                        out.push_str(": ");
-                        flow(value, &mut out)?;
+            if let Some(rows) = fields.get("rows") {
+                let rows = rows.as_sequence().ok_or("assert rows is not a sequence")?;
+                if rows.is_empty() {
+                    out.push_str("  rows: []\n");
+                } else {
+                    out.push_str("  rows:\n");
+                    for row in rows {
+                        out.push_str("  - ");
+                        flow(row, &mut out)?;
                         out.push('\n');
                     }
                 }
             }
-            _ => {
-                let mut one = serde_yaml::Mapping::new();
-                one.insert(key.clone(), value.clone());
-                block_mapping(&one, 0, &mut out)?;
-            }
         }
     }
     Ok(out)
-}
-
-/// A block mapping's key: bare when the reader takes it back as this string,
-/// which a path's brackets allow outside flow style.
-fn listing_key(key: &Value, out: &mut String) -> Result<(), String> {
-    if let Value::String(text) = key {
-        let bare = !text.is_empty()
-            && text.chars().all(|character| {
-                character.is_ascii_alphanumeric() || matches!(character, '_' | '.' | '[' | ']')
-            })
-            && !text.starts_with('[')
-            && serde_yaml::from_str::<serde_yaml::Mapping>(&format!("{text}: 0"))
-                .is_ok_and(|read| read.contains_key(text.as_str()));
-        if bare {
-            out.push_str(text);
-            return Ok(());
-        }
-    }
-    flow(key, out)
 }
 
 fn block_mapping(

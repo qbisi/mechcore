@@ -89,49 +89,54 @@ red:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 outcome:
-  blue.core_damage: 450
-  blue.units[0].exp: 2136
-  blue.units[1].exp: 2315
-  blue.units[2].exp: 952
-  blue.units[3].exp: 3793
-  blue.units[4].exp: 3585
-  blue.units[5].exp: 1014
-  blue.units[6].exp: 416
-  blue.units[7].exp: 602
-  blue.units[8].exp: 372
-  blue.units[9].exp: 1202
-  blue.units[10].exp: 1669
-  blue.units[11].exp: 667
-  blue.units[12].exp: 742
-  blue.units[13].exp: 1299
-  blue.units[15].exp: 3135
-  blue.units[16].exp: 1716
-  blue.units[17].exp: 1841
-  blue.units[18].exp: 2676
-  blue.units[20].exp: 2704
-  blue.units[21].exp: 2704
-  blue.units[22].exp: 35
-  blue.units[23].exp: 644
-  blue.units[24].exp: 1244
-  blue.units[25].exp: 546
-  red.units[1].exp: 421
-  red.units[2].exp: 600
-  red.units[3].exp: 2929
-  red.units[7].exp: 1345
-  red.units[8].exp: 2704
-  red.units[9].exp: 1211
-  red.units[10].exp: 2158
-  red.units[12].exp: 2199
-  red.units[13].exp: 2468
-  red.units[14].exp: 2493
-  red.units[15].exp: 8620
-  red.units[16].exp: 5453
-  red.units[17].exp: 2323
-  red.units[18].exp: 1465
-  red.units[19].exp: 1465
-  red.units[20].exp: 212
-  red.units[21].exp: 429
-  red.units[22].exp: 327
-  red.units[23].exp: 514
+  blue:
+    core_damage: 450
+    units:
+    - {index: 0, exp: 2136/2315}
+    - {index: 1, exp: 2315/2315}
+    - {index: 2, exp: 952/2315}
+    - {index: 3, exp: 3793/4274}
+    - {index: 4, exp: 3585/4274}
+    - {index: 5, exp: 1014/1014}
+    - {index: 6, exp: 416/1603}
+    - {index: 7, exp: 602/1014}
+    - {index: 8, exp: 372/1603}
+    - {index: 9, exp: 1202/1690}
+    - {index: 10, exp: 1669/1690}
+    - {index: 11, exp: 667/750}
+    - {index: 12, exp: 742/1690}
+    - {index: 13, exp: 1299/1690}
+    - {index: 15, exp: 3135/3154}
+    - {index: 16, exp: 1716/2671}
+    - {index: 17, exp: 1841/2671}
+    - {index: 18, exp: 2676/3380}
+    - {index: 20, exp: 2704/2704}
+    - {index: 21, exp: 2704/2704}
+    - {index: 22, exp: 35/2028}
+    - {index: 23, exp: 644/2028}
+    - {index: 24, exp: 1244/2704}
+    - {index: 25, exp: 546/2704}
+  red:
+    core_damage: 0
+    units:
+    - {index: 1, exp: 421/600}
+    - {index: 2, exp: 600/600}
+    - {index: 3, exp: 2929/2929}
+    - {index: 7, exp: 1345/2704}
+    - {index: 8, exp: 2704/2704}
+    - {index: 9, exp: 1211/2315}
+    - {index: 10, exp: 2158/2315}
+    - {index: 12, exp: 2199/2704}
+    - {index: 13, exp: 2468/2929}
+    - {index: 14, exp: 2493/2929}
+    - {index: 15, exp: 8620/8620}
+    - {index: 16, exp: 5453/5453}
+    - {index: 17, exp: 2323/2929}
+    - {index: 18, exp: 1465/1465}
+    - {index: 19, exp: 1465/1465}
+    - {index: 20, exp: 212/2028}
+    - {index: 21, exp: 429/2028}
+    - {index: 22, exp: 327/2028}
+    - {index: 23, exp: 514/2028}
 ticks: 1221
 hash: 23:dcf36ceb253313571598c3c52a682347e25fddab50f20bdc26c7a328a8998f25

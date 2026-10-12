@@ -40,25 +40,30 @@ red:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 outcome:
-  blue.core_damage: 680
-  blue.units[0].exp: 357
-  blue.units[1].exp: 343
-  blue.units[2].exp: 504
-  blue.units[3].exp: 307
-  blue.units[4].exp: 235
-  blue.units[5].exp: 139
-  blue.units[6].exp: 82
-  blue.units[7].exp: 160
-  blue.units[8].exp: 45
-  blue.units[9].exp: 20
-  red.units[0].exp: 554
-  red.units[1].exp: 639
-  red.units[2].exp: 423
-  red.units[3].exp: 578
-  red.units[4].exp: 476
-  red.units[5].exp: 233
-  red.units[6].exp: 175
-  red.units[7].exp: 477
-  red.units[8].exp: 651
+  blue:
+    core_damage: 680
+    units:
+    - {index: 0, exp: 357/650}
+    - {index: 1, exp: 343/650}
+    - {index: 2, exp: 504/650}
+    - {index: 3, exp: 307/1400}
+    - {index: 4, exp: 235/1400}
+    - {index: 5, exp: 139/450}
+    - {index: 6, exp: 82/450}
+    - {index: 7, exp: 160/450}
+    - {index: 8, exp: 45/450}
+    - {index: 9, exp: 20/450}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 554/650}
+    - {index: 1, exp: 639/650}
+    - {index: 2, exp: 423/650}
+    - {index: 3, exp: 578/1300}
+    - {index: 4, exp: 476/1300}
+    - {index: 5, exp: 233/450}
+    - {index: 6, exp: 175/450}
+    - {index: 7, exp: 477/1100}
+    - {index: 8, exp: 651/1100}
 ticks: 780
 hash: 23:1bc8122a4ce95ef41aed17421ed642ed098c9fda422178af083cb71860b4756c

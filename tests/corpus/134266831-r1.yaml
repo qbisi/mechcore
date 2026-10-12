@@ -36,18 +36,23 @@ red:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
 outcome:
-  blue.units[1].exp: 560
-  blue.units[2].exp: 307
-  blue.units[3].exp: 377
-  blue.units[5].exp: 285
-  blue.units[6].exp: 450
-  red.core_damage: 408
-  red.units[0].exp: 238
-  red.units[1].exp: 9
-  red.units[2].exp: 34
-  red.units[3].exp: 366
-  red.units[4].exp: 438
-  red.units[5].exp: 374
-  red.units[6].exp: 73
+  blue:
+    core_damage: 0
+    units:
+    - {index: 1, exp: 560/750}
+    - {index: 2, exp: 307/750}
+    - {index: 3, exp: 377/1300}
+    - {index: 5, exp: 285/450}
+    - {index: 6, exp: 450/450}
+  red:
+    core_damage: 408
+    units:
+    - {index: 0, exp: 238/450}
+    - {index: 1, exp: 9/450}
+    - {index: 2, exp: 34/450}
+    - {index: 3, exp: 366/1300}
+    - {index: 4, exp: 438/1300}
+    - {index: 5, exp: 374/450}
+    - {index: 6, exp: 73/450}
 ticks: 1165
 hash: 23:d29f9590afd507df29439f9c893c0c8a94391cd87f40e2eb2035eafdda5dd08e

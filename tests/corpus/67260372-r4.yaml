@@ -52,34 +52,39 @@ red:
   - {name: crawler, index: 12, position: {x: 275, y: -300}, level: 2}
   - {name: crawler, index: 13, position: {x: -225, y: -300}, level: 2}
 outcome:
-  blue.units[0].exp: 484
-  blue.units[1].exp: 600
-  blue.units[2].exp: 461
-  blue.units[4].exp: 847
-  blue.units[5].exp: 1290
-  blue.units[6].exp: 1465
-  blue.units[7].exp: 382
-  blue.units[8].exp: 393
-  blue.units[9].exp: 1759
-  blue.units[10].exp: 1502
-  blue.units[11].exp: 158
-  blue.units[12].exp: 237
-  blue.units[13].exp: 3010
-  blue.units[14].exp: 17
-  red.core_damage: 350
-  red.units[0].exp: 373
-  red.units[1].exp: 139
-  red.units[2].exp: 365
-  red.units[3].exp: 351
-  red.units[4].exp: 860
-  red.units[5].exp: 1690
-  red.units[6].exp: 1690
-  red.units[7].exp: 555
-  red.units[8].exp: 2671
-  red.units[9].exp: 1180
-  red.units[10].exp: 159
-  red.units[11].exp: 124
-  red.units[12].exp: 104
-  red.units[13].exp: 74
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 484/1352}
+    - {index: 1, exp: 600/600}
+    - {index: 2, exp: 461/600}
+    - {index: 4, exp: 847/2929}
+    - {index: 5, exp: 1290/2919}
+    - {index: 6, exp: 1465/1465}
+    - {index: 7, exp: 382/450}
+    - {index: 8, exp: 393/450}
+    - {index: 9, exp: 1759/2250}
+    - {index: 10, exp: 1502/2250}
+    - {index: 11, exp: 158/450}
+    - {index: 12, exp: 237/450}
+    - {index: 13, exp: 3010/5070}
+    - {index: 14, exp: 17/450}
+  red:
+    core_damage: 350
+    units:
+    - {index: 0, exp: 373/600}
+    - {index: 1, exp: 139/1352}
+    - {index: 2, exp: 365/600}
+    - {index: 3, exp: 351/1000}
+    - {index: 4, exp: 860/1000}
+    - {index: 5, exp: 1690/1690}
+    - {index: 6, exp: 1690/1690}
+    - {index: 7, exp: 555/1352}
+    - {index: 8, exp: 2671/2671}
+    - {index: 9, exp: 1180/5070}
+    - {index: 10, exp: 159/1014}
+    - {index: 11, exp: 124/1014}
+    - {index: 12, exp: 104/1014}
+    - {index: 13, exp: 74/1014}
 ticks: 1177
 hash: 23:fcefdd851f12ef8a34075c921271922be43a8b07665a3d6f7297ec428976d76e

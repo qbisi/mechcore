@@ -22,12 +22,19 @@ red:
   constructions:
   - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}
 outcome:
-  blue.units[0].exp: 30
-  blue.units[1].exp: 490
-  red.core_damage: 100
-  red.units[0].exp: 200
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 30/650}
+    - {index: 1, exp: 490/650}
+  red:
+    core_damage: 100
+    units:
+    - {index: 0, exp: 200/650}
 asserts:
-- sql: "SELECT b.tick, b.building_id, b.skill__lock_target__kind, b.skill__lock_target__id, w.rotation FROM buildings b JOIN buildings__skill__weapons w ON w.tick = b.tick AND w.building_id = b.building_id WHERE b.team_id = 1 AND b.has_skill AND b.tick = 1"
-  rows: [[1, 5, unit, 1, 876368176351]]
+- sql: |-
+    SELECT b.tick, b.building_id, b.skill__lock_target__kind, b.skill__lock_target__id, w.rotation FROM buildings b JOIN buildings__skill__weapons w ON w.tick = b.tick AND w.building_id = b.building_id WHERE b.team_id = 1 AND b.has_skill AND b.tick = 1
+  rows:
+  - [1, 5, unit, 1, 876368176351]
 ticks: 423
 hash: 23:b1ef516d8bc42e8c1e4dc003f31117e7fc2afd6ba053811158ce856f6c3d571c

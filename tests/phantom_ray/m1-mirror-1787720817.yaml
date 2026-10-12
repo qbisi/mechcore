@@ -12,7 +12,13 @@ red:
   units:
   - {name: phantom_ray, index: 0, position: {x: -5, y: -100}}
 outcome:
-  blue.units[0].exp: 134
-  red.units[0].exp: 402
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 134/1000}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 402/1000}
 ticks: 164
 hash: 23:a2ec90f23e7f08948766ac39bdf6e51030234bf17630e82cf5ed5959148312bc

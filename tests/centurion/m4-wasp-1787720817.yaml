@@ -12,7 +12,10 @@ red:
   units:
   - {name: wasp, index: 0, position: {x: 5, y: -100}}
 outcome:
-  blue.units[0].exp: 408
-  red.core_damage: 250
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 408/2250}
+  red: {core_damage: 250}
 ticks: 253
 hash: 23:9ad2f18c83c6b19c4d443be81a914c7e3d88bd62dff25bab52dc03c5d91e6ca4

@@ -35,11 +35,16 @@ red:
   battle_skills:
   - {name: vulcans_descent, positions: [{x: -220, y: -200}]}
 outcome:
-  blue.units[0].exp: 13455
-  blue.units[1].exp: 25
-  red.core_damage: 458
-  red.units[0].exp: 9118
-  red.units[1].exp: 50
-  red.units[2].exp: 150
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 13455/13455}
+    - {index: 1, exp: 25/11334}
+  red:
+    core_damage: 458
+    units:
+    - {index: 0, exp: 9118/9118}
+    - {index: 1, exp: 50/1400}
+    - {index: 2, exp: 150/5837}
 ticks: 1371
 hash: 23:ca00b32d3efd1a60d2ad6dc9b6878cfa15028f73386200d528a7f6a1a6e66d19

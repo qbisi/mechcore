@@ -70,37 +70,43 @@ red:
   battle_skills:
   - {name: mobile_beacon, positions: [{x: 232, y: -38}, {x: 161, y: 130}, {x: 160, y: 141}]}
 outcome:
-  blue.units[0].exp: 1465
-  blue.units[1].exp: 1087
-  blue.units[2].exp: 818
-  blue.units[3].exp: 1090
-  blue.units[4].exp: 1400
-  blue.units[5].exp: 450
-  blue.units[7].exp: 450
-  blue.units[8].exp: 1773
-  blue.units[9].exp: 304
-  blue.units[10].exp: 1400
-  blue.units[11].exp: 500
-  blue.units[12].exp: 2253
-  blue.units[13].exp: 1412
-  blue.units[14].exp: 80
-  blue.units[15].exp: 74
-  blue.units[16].exp: 1000
-  red.core_damage: 1099
-  red.units[0].exp: 420
-  red.units[3].exp: 1265
-  red.units[5].exp: 731
-  red.units[6].exp: 584
-  red.units[8].exp: 674
-  red.units[9].exp: 470
-  red.units[10].exp: 450
-  red.units[11].exp: 1474
-  red.units[12].exp: 249
-  red.units[14].exp: 914
-  red.units[16].exp: 272
-  red.units[17].exp: 912
-  red.units[18].exp: 1400
-  red.units[19].exp: 1152
-  red.contraptions[0].retained: false
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 1465/1465}
+    - {index: 1, exp: 1087/1465}
+    - {index: 2, exp: 818/1465}
+    - {index: 3, exp: 1090/1400}
+    - {index: 4, exp: 1400/1400}
+    - {index: 5, exp: 450/450}
+    - {index: 8, exp: 450/450}
+    - {index: 9, exp: 1773/3562}
+    - {index: 10, exp: 304/2253}
+    - {index: 12, exp: 1400/1400}
+    - {index: 14, exp: 500/1465}
+    - {index: 15, exp: 2253/2253}
+    - {index: 16, exp: 1412/5837}
+    - {index: 17, exp: 80/650}
+    - {index: 18, exp: 74/650}
+    - {index: 19, exp: 1000/1000}
+  red:
+    core_damage: 1099
+    units:
+    - {index: 0, exp: 420/450}
+    - {index: 3, exp: 1265/1300}
+    - {index: 5, exp: 731/750}
+    - {index: 6, exp: 584/750}
+    - {index: 8, exp: 674/750}
+    - {index: 9, exp: 470/750}
+    - {index: 10, exp: 450/1950}
+    - {index: 11, exp: 1474/1950}
+    - {index: 13, exp: 249/1950}
+    - {index: 15, exp: 914/1000}
+    - {index: 17, exp: 272/600}
+    - {index: 18, exp: 912/1400}
+    - {index: 19, exp: 1400/1400}
+    - {index: 20, exp: 1152/1400}
+    contraptions:
+    - {index: 4, retained: false}
 ticks: 1003
 hash: 23:31d9a2d15cf1597abad328c9f5259655dc069a71240c9295b931e8e6ab8001e6

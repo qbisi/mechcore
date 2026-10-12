@@ -17,7 +17,10 @@ red:
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
 outcome:
-  blue.units[0].exp: 400
-  red.core_damage: 200
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 400/1150}
+  red: {core_damage: 200}
 ticks: 212
 hash: 23:46f357e0aae94ad32a716c5f7e9a325a9727b50ccd0b4d5934889385e299ce8b

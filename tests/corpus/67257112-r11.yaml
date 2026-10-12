@@ -104,41 +104,46 @@ red:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 outcome:
-  blue.core_damage: 922
-  blue.units[1].exp: 2919
-  blue.units[2].exp: 2235
-  blue.units[3].exp: 4271
-  blue.units[4].exp: 2171
-  blue.units[6].exp: 729
-  blue.units[9].exp: 1690
-  blue.units[12].exp: 1007
-  blue.units[13].exp: 1623
-  blue.units[16].exp: 2005
-  blue.units[17].exp: 1969
-  blue.units[19].exp: 2368
-  blue.units[22].exp: 466
-  blue.units[24].exp: 1498
-  blue.units[25].exp: 2013
-  blue.units[29].exp: 570
-  blue.units[30].exp: 267
-  blue.units[32].exp: 3154
-  red.units[0].exp: 466
-  red.units[1].exp: 452
-  red.units[9].exp: 1346
-  red.units[10].exp: 2919
-  red.units[12].exp: 4274
-  red.units[14].exp: 631
-  red.units[15].exp: 7968
-  red.units[16].exp: 13197
-  red.units[17].exp: 3520
-  red.units[18].exp: 980
-  red.units[19].exp: 1600
-  red.units[20].exp: 1311
-  red.units[21].exp: 1000
-  red.units[24].exp: 1200
-  red.units[26].exp: 3550
-  red.units[27].exp: 4106
-  red.units[28].exp: 220
-  red.units[29].exp: 60
+  blue:
+    core_damage: 922
+    units:
+    - {index: 1, exp: 2919/2919}
+    - {index: 2, exp: 2235/2315}
+    - {index: 3, exp: 4271/5388}
+    - {index: 4, exp: 2171/5388}
+    - {index: 6, exp: 729/1603}
+    - {index: 9, exp: 1690/1690}
+    - {index: 12, exp: 1007/1690}
+    - {index: 13, exp: 1623/1690}
+    - {index: 16, exp: 2005/2671}
+    - {index: 17, exp: 1969/2671}
+    - {index: 19, exp: 2368/5343}
+    - {index: 22, exp: 466/2028}
+    - {index: 24, exp: 1498/4274}
+    - {index: 25, exp: 2013/4274}
+    - {index: 29, exp: 570/3605}
+    - {index: 30, exp: 267/3605}
+    - {index: 32, exp: 3154/3154}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 466/600}
+    - {index: 1, exp: 452/600}
+    - {index: 9, exp: 1346/2919}
+    - {index: 10, exp: 2919/2919}
+    - {index: 12, exp: 4274/4274}
+    - {index: 14, exp: 631/4630}
+    - {index: 15, exp: 7968/12609}
+    - {index: 16, exp: 13197/14033}
+    - {index: 17, exp: 3520/4630}
+    - {index: 18, exp: 980/2919}
+    - {index: 19, exp: 1600/2919}
+    - {index: 20, exp: 1311/2028}
+    - {index: 21, exp: 1000/2028}
+    - {index: 24, exp: 1200/1200}
+    - {index: 26, exp: 3550/5070}
+    - {index: 27, exp: 4106/5070}
+    - {index: 28, exp: 220/2250}
+    - {index: 29, exp: 60/2250}
 ticks: 1341
 hash: 23:3baf12bbfd5406b2f5c4724317285724c0de0526243a22d8d7426bf886d80eb4

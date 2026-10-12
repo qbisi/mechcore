@@ -18,10 +18,19 @@ red:
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
 outcome:
-  blue.units[0].exp: 400
-  red.core_damage: 250
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 400/2918}
+  red: {core_damage: 250}
 asserts:
-- sql: "SELECT skill_slot, enabled__state, enabled__attack_target__id FROM units__skills WHERE unit_id = 1 AND tick = 209 ORDER BY skill_slot"
-  rows: [[0, idle, null], [1, idle, null], [2, idle, null], [3, idle, null], [4, idle, null]]
+- sql: |-
+    SELECT skill_slot, enabled__state, enabled__attack_target__id FROM units__skills WHERE unit_id = 1 AND tick = 209 ORDER BY skill_slot
+  rows:
+  - [0, idle, null]
+  - [1, idle, null]
+  - [2, idle, null]
+  - [3, idle, null]
+  - [4, idle, null]
 ticks: 209
 hash: 23:3aa8730c52068385c7102ff8da6518cd05a05906d96fce5b97e5749cbf83367c

@@ -115,74 +115,81 @@ red:
   battle_skills:
   - {name: mobile_beacon, positions: [{x: -284, y: -101}, {x: -161, y: -123}, {x: -68, y: -122}]}
 outcome:
-  blue.units[0].exp: 2572
-  blue.units[1].exp: 2671
-  blue.units[2].exp: 2487
-  blue.units[3].exp: 972
-  blue.units[4].exp: 450
-  blue.units[6].exp: 3463
-  blue.units[7].exp: 450
-  blue.units[8].exp: 234
-  blue.units[9].exp: 336
-  blue.units[10].exp: 297
-  blue.units[11].exp: 637
-  blue.units[14].exp: 270
-  blue.units[15].exp: 119
-  blue.units[16].exp: 149
-  blue.units[17].exp: 250
-  blue.units[18].exp: 121
-  blue.units[19].exp: 2068
-  blue.units[20].exp: 1150
-  blue.units[21].exp: 750
-  blue.units[22].exp: 2127
-  blue.units[23].exp: 1093
-  blue.units[24].exp: 2438
-  blue.units[25].exp: 1200
-  blue.units[26].exp: 2388
-  blue.units[27].exp: 400
-  blue.units[28].exp: 87
-  blue.units[29].exp: 55
-  blue.units[30].exp: 264
-  blue.units[32].exp: 613
-  blue.units[33].exp: 779
-  blue.contraptions[0].retained: false
-  blue.contraptions[1].retained: false
-  blue.contraptions[3].retained: false
-  blue.contraptions[4].retained: false
-  red.core_damage: 1471
-  red.units[0].exp: 1779
-  red.units[1].exp: 2671
-  red.units[2].exp: 2671
-  red.units[3].exp: 359
-  red.units[5].exp: 2401
-  red.units[6].exp: 316
-  red.units[7].exp: 1690
-  red.units[8].exp: 440
-  red.units[9].exp: 379
-  red.units[11].exp: 1819
-  red.units[12].exp: 327
-  red.units[13].exp: 110
-  red.units[14].exp: 938
-  red.units[15].exp: 181
-  red.units[16].exp: 22
-  red.units[17].exp: 2929
-  red.units[18].exp: 1690
-  red.units[19].exp: 643
-  red.units[20].exp: 200
-  red.units[21].exp: 825
-  red.units[22].exp: 592
-  red.units[23].exp: 292
-  red.units[24].exp: 1957
-  red.units[25].exp: 120
-  red.units[26].exp: 1200
-  red.units[27].exp: 284
-  red.units[28].exp: 1200
-  red.units[29].exp: 553
-  red.units[30].exp: 1300
-  red.units[31].exp: 275
-  red.units[32].exp: 272
-  red.units[33].exp: 54
-  red.units[34].exp: 240
-  red.contraptions[1].retained: false
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 2572/2671}
+    - {index: 1, exp: 2671/2671}
+    - {index: 2, exp: 2487/2671}
+    - {index: 4, exp: 972/2929}
+    - {index: 5, exp: 450/450}
+    - {index: 7, exp: 3463/5837}
+    - {index: 8, exp: 450/450}
+    - {index: 9, exp: 234/450}
+    - {index: 10, exp: 336/2671}
+    - {index: 11, exp: 297/450}
+    - {index: 12, exp: 637/4274}
+    - {index: 16, exp: 270/450}
+    - {index: 17, exp: 119/450}
+    - {index: 18, exp: 149/1690}
+    - {index: 19, exp: 250/450}
+    - {index: 20, exp: 121/1690}
+    - {index: 21, exp: 2068/2929}
+    - {index: 22, exp: 1150/1150}
+    - {index: 23, exp: 750/750}
+    - {index: 25, exp: 2127/2929}
+    - {index: 26, exp: 1093/2929}
+    - {index: 27, exp: 2438/2704}
+    - {index: 28, exp: 1200/1200}
+    - {index: 29, exp: 2388/2929}
+    - {index: 30, exp: 400/750}
+    - {index: 31, exp: 87/450}
+    - {index: 32, exp: 55/1300}
+    - {index: 33, exp: 264/8014}
+    - {index: 35, exp: 613/1200}
+    - {index: 36, exp: 779/1200}
+    contraptions:
+    - {index: 4, retained: false}
+    - {index: 5, retained: false}
+    - {index: 7, retained: false}
+    - {index: 8, retained: false}
+  red:
+    core_damage: 1471
+    units:
+    - {index: 0, exp: 1779/2671}
+    - {index: 1, exp: 2671/2671}
+    - {index: 2, exp: 2671/2671}
+    - {index: 5, exp: 359/450}
+    - {index: 7, exp: 2401/2929}
+    - {index: 8, exp: 316/2671}
+    - {index: 9, exp: 1690/1690}
+    - {index: 10, exp: 440/600}
+    - {index: 12, exp: 379/600}
+    - {index: 14, exp: 1819/2671}
+    - {index: 15, exp: 327/450}
+    - {index: 16, exp: 110/450}
+    - {index: 17, exp: 938/2671}
+    - {index: 19, exp: 181/1300}
+    - {index: 20, exp: 22/450}
+    - {index: 21, exp: 2929/2929}
+    - {index: 22, exp: 1690/1690}
+    - {index: 23, exp: 643/750}
+    - {index: 24, exp: 200/450}
+    - {index: 25, exp: 825/2704}
+    - {index: 26, exp: 592/2704}
+    - {index: 28, exp: 292/2704}
+    - {index: 29, exp: 1957/2929}
+    - {index: 30, exp: 120/450}
+    - {index: 31, exp: 1200/1200}
+    - {index: 32, exp: 284/450}
+    - {index: 33, exp: 1200/1200}
+    - {index: 34, exp: 553/1300}
+    - {index: 35, exp: 1300/1300}
+    - {index: 36, exp: 275/1600}
+    - {index: 37, exp: 272/1600}
+    - {index: 38, exp: 54/1600}
+    - {index: 39, exp: 240/1600}
+    contraptions:
+    - {index: 10, retained: false}
 ticks: 769
 hash: 23:24b87d851ee3bd2c8bcb90bb72f138fdc58a2424ac1ec62353cf154aefd92ddc

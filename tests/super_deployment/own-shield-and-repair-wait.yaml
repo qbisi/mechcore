@@ -25,13 +25,23 @@ red:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
   - {name: marksman, index: 1, position: {x: -60, y: -150}}
 outcome:
-  blue.units[1].exp: 400
-  red.core_damage: 200
-  red.units[0].exp: 200
+  blue:
+    core_damage: 0
+    units:
+    - {index: 1, exp: 400/1300}
+  red:
+    core_damage: 200
+    units:
+    - {index: 0, exp: 200/650}
 asserts:
-- sql: "SELECT tick, personal_shield__energy__current, count(*) FROM units WHERE unit_type_id = 16 AND tick IN (160, 161) GROUP BY tick, personal_shield__energy__current ORDER BY tick"
-  rows: [[160, 0, 2], [161, 1491, 2]]
-- sql: "SELECT min(tick) FROM events WHERE type = 'healing'"
-  rows: [[181]]
+- sql: |-
+    SELECT tick, personal_shield__energy__current, count(*) FROM units WHERE unit_type_id = 16 AND tick IN (160, 161) GROUP BY tick, personal_shield__energy__current ORDER BY tick
+  rows:
+  - [160, 0, 2]
+  - [161, 1491, 2]
+- sql: |-
+    SELECT min(tick) FROM events WHERE type = 'healing'
+  rows:
+  - [181]
 ticks: 642
 hash: 23:3772b86b5142dcff4c87f31133fb260600ec10b589bebdaa1ca392e28173b880

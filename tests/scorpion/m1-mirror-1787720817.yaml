@@ -12,7 +12,10 @@ red:
   units:
   - {name: scorpion, index: 0, position: {x: -5, y: -105}}
 outcome:
-  blue.core_damage: 250
-  red.units[0].exp: 600
+  blue: {core_damage: 250}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 600/1500}
 ticks: 234
 hash: 23:d675d67e83efd917898546dc1d553730f0df2571e228da59efa132adb0e0ac0f

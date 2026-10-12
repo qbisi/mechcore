@@ -26,12 +26,21 @@ red:
   units:
   - {name: steel_ball, index: 0, position: {x: 145, y: -20}}
 outcome:
-  blue.units[0].exp: 300
-  blue.units[1].exp: 100
-  red.core_damage: 108
-  red.units[0].exp: 1000
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 300/600}
+    - {index: 1, exp: 100/2200}
+  red:
+    core_damage: 108
+    units:
+    - {index: 0, exp: 1000/1000}
 asserts:
-- sql: "SELECT target__kind, target__id FROM events WHERE type = 'buff_applied' AND tick = 231 AND (target__kind = 'building' OR target__id IN (19, 24)) ORDER BY ordinal"
-  rows: [[unit, 19], [building, 3], [unit, 24]]
+- sql: |-
+    SELECT target__kind, target__id FROM events WHERE type = 'buff_applied' AND tick = 231 AND (target__kind = 'building' OR target__id IN (19, 24)) ORDER BY ordinal
+  rows:
+  - [unit, 19]
+  - [building, 3]
+  - [unit, 24]
 ticks: 583
 hash: 23:2aea3b32354b9563e4c10815bfb91fc1cc76ff5f16b2117b0e45ce74c60b44b9

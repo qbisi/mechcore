@@ -16,8 +16,13 @@ red:
   units:
   - {name: hound, index: 0, position: {x: 0, y: -100}}
 outcome:
-  blue.core_damage: 20
-  blue.units[0].exp: 160
-  red.units[0].exp: 180
+  blue:
+    core_damage: 20
+    units:
+    - {index: 0, exp: 160/750}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 180/750}
 ticks: 458
 hash: 23:d0cebe1ca53ec20ed80af90efa5b5c08f93a1cecafae490679df5f8e94b9d81a
