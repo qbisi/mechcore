@@ -6,6 +6,7 @@ use crate::Timeline;
 const SHELL: &str = include_str!("../web/index.html");
 const STYLE: &str = include_str!("../web/player.css");
 const SPRITES: &str = include_str!("../web/sprites.js");
+const SNAPSHOT: &str = include_str!("../web/snapshot.js");
 const PLAYER: &str = include_str!("../web/player.js");
 
 /// Writes the page that plays `timeline`, titled `title`.
@@ -21,6 +22,7 @@ pub fn page(timeline: &Timeline, title: &str) -> Result<String, serde_json::Erro
         .replace("{{title}}", &escape(title))
         .replace("/*{{style}}*/", STYLE)
         .replace("/*{{sprites}}*/", SPRITES)
+        .replace("/*{{snapshot}}*/", SNAPSHOT)
         .replace("/*{{player}}*/", PLAYER)
         .replace("{{timeline}}", &data))
 }

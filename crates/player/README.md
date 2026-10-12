@@ -17,6 +17,14 @@ the library it plays with: [`timeline`](src/timeline.rs) lays any
 Shift), the wheel zooms, a drag pans, and the bar at the bottom seeks, with
 each side's losses marked along it.
 
+The SVG button pauses at the current integer tick and downloads a vector
+image of the battlefield in the current pan and zoom, with the enabled life
+bars, aim lines and damage numbers. It carries the ground, grid, buildings,
+units and effects as paths, gradients and text, with no embedded bitmap.
+The page's HTML controls and roster panels are not part of the image.
+`window.player.snapshot(tick)` returns the same SVG for an integer tick
+from 1 through the recording's last tick.
+
 ## What it shows and what it does not
 
 The page reads only what the recording holds. `src/timeline.rs` turns the
@@ -69,12 +77,17 @@ renders the views the sprites follow from the installed game, into the
 untracked `work/player/models/`, so a sprite is checked against its model
 again whenever either changes.
 
-The sprites are also files: [`models/`](../../models/README.md) at the top of
-the repository holds each one as SVG, written from this code by
+The sprites are also files: [`models/`](../../models/README.md)
+holds each one as SVG, written from this code by
 `scripts/player/export-models.mjs`. That script runs `sprites.js` itself
 against a context that records SVG, so a sprite draws only with the canvas
 calls the script records. CI fails when a sprite changes and its file does
 not.
+
+`web/snapshot.js` is the Canvas drawing vocabulary used by both the model exporter
+and the page's SVG button. Exporting a battle runs the page's normal frame
+drawing with that context, including a vector version of the cached ground;
+it does not assemble a separate illustration from the recording.
 
 ## The directory
 
@@ -83,4 +96,4 @@ not.
 | `src/` | the timeline the page plays and the page that carries it |
 | `web/` | the page's shell, style, sprites and player, built into the binary |
 | `scenes/` | `six-units.yaml`, the demo the test fights: six of the units with sprites, each side's constructions and a shield |
-| `tests/` | the demo fought by the simulator and read back from the page |
+| `tests/` | the demo fought by the simulator and read back from the page; the SVG drawing context's Canvas semantics, checked with `node --test crates/player/tests/snapshot.test.mjs` |

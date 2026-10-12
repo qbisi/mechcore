@@ -124,5 +124,5 @@
 <path d="M0 6.8L-1.9 6.8L-1.45 5.58Z" fill="#e8ecf1"/>
 <path d="M0 6.8L-0.95 5.15L0.33 4.93Z" fill="#9fd6f2"/>
 <path d="M0 6.8L0.95 5.15L1.79 6.15Z" fill="#d9d0b0"/>
-<path d="M-1.6 5.2L1.6 5.2L1.6 8.4L-1.6 8.4Z" fill="url(#g9)" opacity="0.35"/>
+<path d="M-1.6 5.2L1.6 5.2L1.6 8.4L-1.6 8.4Z" fill="url(#g9)" opacity="0.35" style="mix-blend-mode:plus-lighter"/>
 </svg>

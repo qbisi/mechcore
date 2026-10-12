@@ -22,5 +22,5 @@
 <path d="M-0.35 -1.5L0.35 -1.5L0.45 1.8L-0.45 1.8Z" fill="#363b43"/>
 <path d="M-1.4 -0.6L-1.25 1.2L-0.85 1.4L-0.95 -0.6Z" fill="#3d8dff"/>
 <path d="M1.4 -0.6L1.25 1.2L0.85 1.4L0.95 -0.6Z" fill="#3d8dff"/>
-<path d="M-0.9 -2.1L0.9 -2.1L0.9 -0.3L-0.9 -0.3Z" fill="url(#g2)" opacity="0.9"/>
+<path d="M-0.9 -2.1L0.9 -2.1L0.9 -0.3L-0.9 -0.3Z" fill="url(#g2)" opacity="0.9" style="mix-blend-mode:plus-lighter"/>
 </svg>
