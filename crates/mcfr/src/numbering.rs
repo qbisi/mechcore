@@ -155,6 +155,18 @@ impl UnitNumbering {
         self.units.is_empty() && self.formations.is_empty()
     }
 
+    /// Renames final formation experience with the timeline's identities.
+    pub fn apply_settlement(&self, settlement: &mut crate::Settlement) {
+        for row in &mut settlement.formations {
+            row.formation_id = self
+                .formations
+                .get(&row.formation_id)
+                .copied()
+                .unwrap_or(row.formation_id);
+        }
+        settlement.formations.sort_by_key(|row| row.formation_id);
+    }
+
     /// The snapshot and the tick's events with every unit and formation the
     /// renaming names under its new ID, the snapshot put back in order.
     pub fn apply(&self, snapshot: &mut WorldSnapshot, events: &mut [Event]) {
