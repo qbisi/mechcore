@@ -14,4 +14,4 @@ red:
   units:
   - {name: hound, index: 0, position: {x: 0, y: -100}, exp: 0/200/750}
 ticks: 395
-hash: 23:7537e3db8efa9b194220dbc0561fe3177ffc579b5b219ba33d2d038dbcb1fb21
+hash: 24:9aa146949141ae9d1c60ec15630f2877062eade50c5c52fd710b5aca575aa460

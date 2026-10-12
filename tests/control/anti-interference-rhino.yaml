@@ -19,4 +19,4 @@ red:
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150, equipment: [anti_interference_module]}
 ticks: 203
-hash: 23:f7b29650a2eaef1cff2ee1223e544a726cab44a649e686322604c4ffbbabd44f
+hash: 24:68194a1ccc823d2acca092dbddd0f8a2e3251091d2ef920bbe4ccd12434f6683

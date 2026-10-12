@@ -24,4 +24,4 @@ red:
   constructions:
   - {name: rapid_fire_turret, index: 0, position: {x: 140, y: -100}}
 ticks: 394
-hash: 23:2f745c98f8d83f8f429668b5c191d3d33a0663e2fca0d1ddf931c24138a95e00
+hash: 24:1fccfea7ac5e5b6c510726178c0eba8980a2b3f30793091bb8fa79871e9c3d2a

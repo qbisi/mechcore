@@ -14,4 +14,4 @@ red:
   units:
   - {name: phoenix, index: 0, position: {x: 0, y: -100}, exp: 0/400/1300}
 ticks: 76
-hash: 23:0df2ba3b60e219549249bfba24fbd94c1f6f8e0ae8ff34e8249bc9f18d02fa0c
+hash: 24:7cef02ec7f203e415d839536274c302f3ddd94e42a78ca7eb7490f1ddbb944ab

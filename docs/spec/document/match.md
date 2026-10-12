@@ -124,10 +124,9 @@ the mode once by being this format, rather than restating its consequences in
 every segment. A mode that changes them is a different format.
 
 `FightTime` is the only header constant a simulator reads, and it is 120
-seconds. A fight both sides survive ends on tick 2360, two seconds short of
-it, with no `team_scored` and its formations' experience unpruned on that
-tick: every recording of one does, and that the two seconds are the fight's
-prepare state is inferred.
+seconds including preparation. A forced timeout ends combat after 2360 logic
+ticks and settles without another combat update. The MCFR settlement records
+final scores and pruned experience independently of that last snapshot.
 
 ### Game rules are the premise, so the match carries them
 

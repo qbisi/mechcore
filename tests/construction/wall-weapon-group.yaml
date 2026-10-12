@@ -56,4 +56,4 @@ asserts:
   - [78, 2, attacking, unit, 1, 2, null, null]
   - [78, 2, attacking, unit, 1, 3, null, null]
 ticks: 242
-hash: 23:885d853e48772e8b4ddd54192ce40ccdf7b44760f0dc3dc800319dd6a154b08a
+hash: 24:a3068e0eec7f96f9c2cd0e75db1a227ae1312b411f0b8578f1c823c2eae630c5

@@ -88,9 +88,6 @@ EventPayload::shield_created.team_id: integer(uint32)
 EventPayload::shield_destroyed
 EventPayload::shield_destroyed.position: QVec3
 EventPayload::shield_destroyed.reason: ShieldDestroyedReason
-EventPayload::team_scored
-EventPayload::team_scored.amount: integer(int32)
-EventPayload::team_scored.team_id: integer(uint32)
 EventPayload::terrain_converted
 EventPayload::terrain_converted.position: QVec3
 EventPayload::terrain_created
@@ -177,6 +174,8 @@ RebirthState.unit_id: integer(uint64)
 RecorderKind::construction
 RecorderKind::formation
 RecorderKind::unit
+Settlement.formations: [FormationState]
+Settlement.teams: [TeamSettlement]
 ShieldDestroyedReason::energy_depleted
 ShieldDestroyedReason::owner_destroyed
 ShieldDestroyedReason::round_end
@@ -207,6 +206,8 @@ SkillMachineState::prepare
 SkillMachineState::reloading
 SkillState.enabled: EnabledSkill | null
 SkillState.skill_slot: integer(uint16)
+TeamSettlement.score: integer(int32)
+TeamSettlement.team_id: integer(uint32)
 TerrainApplicationState.periodic_clock: TerrainEffectClock | null
 TerrainApplicationState.unit_id: integer(uint64)
 TerrainEffectClock.duration: integer(int32)

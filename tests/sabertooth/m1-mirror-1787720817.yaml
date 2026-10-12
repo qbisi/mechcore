@@ -14,4 +14,4 @@ red:
   units:
   - {name: sabertooth, index: 0, position: {x: -5, y: -105}, exp: 0/400/1300}
 ticks: 258
-hash: 23:7683ba273e22a42e950883f5674d463b6969427d122b4bc49b87e6254d5c7bb0
+hash: 24:8103433eb39a7829dbc985893ded79188a2586d219d3cb85bb5ca205af987750

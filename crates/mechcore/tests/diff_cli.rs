@@ -227,7 +227,7 @@ fn write_recording(path: &Path, seed: i32, damages: &[i32]) {
             )
             .unwrap();
     }
-    writer.finish().unwrap();
+    writer.finish(&test_settlement()).unwrap();
 }
 
 fn write_shield_recording(path: &Path, source_kind: ShieldSourceKind) {
@@ -261,5 +261,61 @@ fn write_shield_recording(path: &Path, source_kind: ShieldSourceKind) {
             },
         )
         .unwrap();
-    writer.finish().unwrap();
+    writer.finish(&test_settlement()).unwrap();
+}
+
+fn test_settlement() -> mechcore_mcfr::Settlement {
+    mechcore_mcfr::Settlement {
+        formations: Vec::new(),
+        teams: vec![
+            mechcore_mcfr::TeamSettlement {
+                score: 0,
+                team_id: 0,
+            },
+            mechcore_mcfr::TeamSettlement {
+                score: 0,
+                team_id: 1,
+            },
+        ],
+    }
+}
+
+#[test]
+fn settlement_only_diff_has_no_divergent_tick_and_selects_as_its_own_group() {
+    let directory = tempfile::tempdir().unwrap();
+    let left = directory.path().join("left.mcfr");
+    let right = directory.path().join("right.mcfr");
+    write_recording(&left, 42, &[1]);
+    let reader = mechcore_mcfr::McfrReader::open(&left).unwrap();
+    let mut writer = mechcore_mcfr::McfrWriter::create(
+        &right,
+        reader.producer(),
+        reader.game_build(),
+        reader.context(),
+        reader.layout_yaml(),
+    )
+    .unwrap();
+    for tick in 1..=reader.tick_count() {
+        let slice = reader.tick(tick).unwrap();
+        writer.append_tick(slice.state, &slice.events).unwrap();
+    }
+    let mut settlement = reader.settlement().clone();
+    settlement.teams[0].score = 200;
+    writer.finish(&settlement).unwrap();
+    let output = compare(&left, &right);
+    assert_eq!(output.status.code(), Some(1));
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["equal"], false);
+    assert!(report["first_divergence"].is_null());
+    assert_eq!(report["fields_equal"], true);
+    assert_eq!(report["settlement"][0]["path"], "/teams/0/score");
+    for (fields, code) in [("settlement.teams.score", 1), ("units", 0)] {
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_mechcore"))
+            .args(["diff", "--fields", fields])
+            .arg(&left)
+            .arg(&right)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(code));
+    }
 }

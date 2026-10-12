@@ -410,6 +410,14 @@ groups and everything under them, and makes their agreement the verdict, so
 [mcfr.md](../mcfr/mcfr.md) defines what a recording holds and what makes two of
 them equal.
 
+A recording `diff` includes a `settlement` array of field differences.
+`--fields settlement` selects its results, with field prefixes such as
+`settlement.teams.score`. A settlement-only mismatch makes `equal` false while
+`first_divergence` stays null and the per-tick field comparisons can all agree.
+`verify` compares the complete content hash, including settlement. Converting
+to a fight reads final experience from settlement rather than truncating the
+last snapshot.
+
 ## `show`
 
 `show <file> --view <view>` answers one view of what a file holds. A recording
@@ -582,6 +590,12 @@ system clears; a platform without `/tmp` uses its temporary directory.
 Queries of one recording at once share its file, each table filled once.
 `--no-cache` keeps the tables in memory for the one query, and a cache that
 cannot be written is read in memory, which standard error says.
+
+`query` also exposes `settlement_teams(team_id, score, core_damage)` and
+`settlement_formations(formation_id, team_id, experience, max_experience)`
+from `ticks.parquet`'s settlement metadata. They have no tick column. Formation
+experience and maximum retain Q32.32 encoding and can be read with `q32()`;
+core damage is the opposing team's score. `--schema` lists both views.
 
 ## `play`
 

@@ -25,4 +25,4 @@ red:
   units:
   - {name: sledgehammer, index: 0, position: {x: 5, y: -40}, level: 2}
 ticks: 293
-hash: 23:6fdb585a40783dcf000963cdaa0fc51a69ebe53c1393727fe7330143f46e4e36
+hash: 24:30d78ce35c96c207bc21a146f1fb895cd045490092555480446248b5becf5c60

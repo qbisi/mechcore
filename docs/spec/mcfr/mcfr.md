@@ -1,4 +1,4 @@
-# MCFR, format 0.23.0
+# MCFR, format 0.24.0
 
 ## Scope
 
@@ -7,7 +7,7 @@ schema of each, the identity and ordering rules that make two recordings of one
 fight the same recording, and what a reader must validate before trusting one.
 
 ```text
-format = "0.23.0"
+format = "0.24.0"
 ```
 
 The native field mapping is bound to the game version the repository pins in
@@ -19,7 +19,7 @@ restated here. The operation that captures a recording is
 [adapter.md](../adapter/adapter.md). What this document owns is what ends up
 inside the file.
 
-One hash is specified, over everything the timeline holds. Two recordings are
+One hash is specified, over the timeline and complete fight settlement. Two recordings are
 the same fight when every field of every tick agrees: the hash never lets a
 difference go unseen to spare a re-record. What it reads is admitted field by
 field, under [Admission to the hash](#admission-to-the-hash).
@@ -113,7 +113,7 @@ tick_hash  : FIXED_LEN_BYTE_ARRAY(32) required
 ```
 
 The legal `tick` sequence is exactly `1..=tick_count`. `tick_hash` covers that
-tick's complete `S(t)` and `E(t)`, and `result_hash` covers every `tick_hash` in
+tick's complete `S(t)` and `E(t)`, and `result_hash` covers settlement and every `tick_hash` in
 order. Both are defined under [The hash](#the-hash).
 
 ### File metadata
@@ -122,12 +122,13 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.23.0` | the logical and physical contract version |
+| `format` | exactly `0.24.0` | the logical and physical contract version |
 | `producer` | `game` or `simulator` | what wrote the recording: the game, through the adapter, or the simulator |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
-| `hash_profile` | exactly `23` | the hash definition's number, [below](#the-hash); a recording written before it was a number reads `mcfr-content-0.23.0`, profile 23 |
-| `result_hash` | 64 lowercase hex digits | ordered digest of every `tick_hash`; what regression compares |
+| `settlement` | canonical JSON | complete native results after exiting the fight, independent of combat ticks |
+| `hash_profile` | exactly `24` | the hash definition's number, [below](#the-hash) |
+| `result_hash` | 64 lowercase hex digits | ordered digest of every `tick_hash` and settlement; what regression compares |
 | `tick_count` | canonical decimal `u32` | logical ticks recorded, counting from `S(1)` |
 | `terminal_tick` | canonical decimal `u32` | the confirmed final logical boundary, equal to `tick_count` on a continuous timeline |
 
@@ -610,6 +611,36 @@ every instance that spans at least one snapshot boundary; a producer with native
 lifecycle hooks may additionally record an instance created and removed inside
 one logic advance, which a diff cannot see.
 
+## Settlement
+
+`ticks.parquet` metadata holds one required `settlement`, canonical compact
+JSON after `BattleSystem.OnFightOver` has pruned experience and
+`FightResultController.CalculateResult` has scored both sides. Publication
+waits for this result, whether the fight ends naturally or by forced timeout.
+Missing results are refused, never supplied as zero. Settlement belongs to no
+combat tick and does not overwrite the last snapshot or add a tick.
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `formations` | array of `FormationState` | every formation's experience and full bar after `MechTeam.PruneExp`, including dead formations |
+| `teams` | array of `TeamSettlement` | exactly teams 0 and 1, in that order |
+| `TeamSettlement.score` | nonnegative `i32` | native `FightResultController.CalculateScore(team, true)` after fight exit |
+| `TeamSettlement.team_id` | `u32` | 0 for blue, 1 for red |
+
+Formations sort by `formation_id`, without duplicates, and use the timeline's
+identities. Their experience is whole Q32.32, the native -1 sentinel permitted
+until any gain, and their maximum is positive and whole. The settlement holds
+the same formations as the timeline. Core damage is derived from the opposing
+side's score, as [reactor_damage.md](../../rules/reactor_damage.md) defines;
+experience gains are derived from the starting layout and the final value.
+Neither is stored a second time. Retained contraptions and skills are read
+from the recorded object states and lifecycles.
+
+Natural endings wait for the projectile system to drain. Forced timeout exits
+immediately, discards projectiles without resolving pending hits and settles
+without another combat update. Its last snapshot can therefore precede
+experience truncation and exit cleanup.
+
 ## Statistics
 
 `statistics.parquet` holds `BattleStatisticManager`'s current round at each
@@ -699,7 +730,7 @@ contiguously from 0. The whole table is strictly ascending by
 | --- | --- | --- |
 | `tick` | `UINT32` required | the advance this event belongs to |
 | `ordinal` | `UINT32` required | observation order within the tick |
-| `type` | `UINT8` required | the event kind tag, the row number of the table below counting from 0 (`0=projectile_released` … `15=team_scored`) |
+| `type` | `UINT8` required | the event kind tag, the row number of the table below counting from 0 (`0=projectile_released` … `14=buff_removed`) |
 | `object` | `ObjectRef` nullable | the subject |
 | `source` | `ObjectRef` nullable | the direct source |
 | `source_team_id` | `UINT32` nullable | the team of the source or subject at the event boundary |
@@ -732,7 +763,6 @@ field its type does not carry or lacks one it requires.
 | `healing` | `target` | `amount: i32` | one positive recovery result |
 | `buff_applied` | `target`; `source` is the actor that put it on, if one did, and `source_team_id` its side's | `buff_id: u32`, `duration: i32` | a buff put on the target, or put on again; `buff_id` is its data's `GetID()`, `duration` the ticks left on it once applied |
 | `buff_removed` | `target` | `buff_id: u32`, `reason: BuffRemovedReason` | a buff taken off the target |
-| `team_scored` | none: every reference is null | `team_id: u32`, `amount: i32` | what the side's units standing at the fight's end score; one per side, blue first, the last events of the fight's last tick |
 
 `projectile_removed` admits exactly three combinations. Native interception is
 `intercepted=true, absorbed_by=null`. Absorption by a battlefield shield is
@@ -769,7 +799,6 @@ producer can actually observe is narrower, and the adapter covers:
 | `unit_created` | `FightController.CreateMech(team, mech, position, rotation, createType, mechTeam, isRebirth)`, the funnel deployment, summons, spawns on death, production and air drops all pass. Only calls inside the logic tick are recorded, which leaves deployment out, and a unit rising from its death passes it again with `isRebirth` set and is not recorded. The position is the unit's once the call returns |
 | `unit_died` | the `FightMech.OnDead` trace |
 | `building_destroyed` | the `FightCrystal.OnDead` trace |
-| `team_scored` | `FightResultController.CalculateScore(team, isAlive)`, which `BattleSystem.OnFightOver` calls inside the fight's last logic update, for each side once for its units standing and once for its fallen. The standing call is recorded, with the side's `FightTeam.GetTeamIndex()` |
 | `healing` | `FightActor.AddLife(value, isShowLifeBar)`, which units, towers and crystals heal through, and `FightConstruction.AddLife`. The amount is the life read after the call less the life read before it, since the gauge clamps at full life and the call returns nothing. Every heal shows the life bar; the three that do not, the refill of a unit rising from its death, the heal a super deployment gives each second a unit travels ([super_deployment.md](../../rules/super_deployment.md)) and the whole life a melee mode gives back as its skill takes over (`FightMech.ForceRecoveryLife`), are not recorded. No `source`: the call does not carry one |
 | `shield_created` | first entry into the full `GetEnergyShields(fightGroup)` collection between adjacent sampling boundaries. Shields that join between the same two boundaries are written in identity order, which is the order the snapshot reads them in, team by team and each team's collection in its own order, not in the order of their native addresses |
 | `shield_destroyed` | disappearance from that collection. The reason is read as `GroupAdvancedEnergyShieldManager.Destroy(FightEnergyShield)`, the one method that takes a shield out of it, begins: spent energy is `energy_depleted`, since only damage empties a shield before destroying it; a shield with an owner is `owner_destroyed`; any other is `scripted`. A shield leaving as the round ends goes after the last recorded tick, so `round_end` is not written. Shields that leave between the same two boundaries are written in identity order |
@@ -879,7 +908,9 @@ On opening a container, a reader verifies:
 - ObjectRefs, enum tags, initial identity order and list order;
 - the contiguity, width and encoding of the tick hash column, the encoding of
   the result hash and its profile, and that the result hash is the digest of
-  the tick hash column.
+  the tick hash column and settlement;
+- complete settlement scores, canonical JSON, whole experience and formation
+  identities and bars agreeing with the terminal snapshot.
 
 A reader trusts the tick hashes the recording persisted.
 `McfrReader::open()` does not rebuild `S(t)` and `E(t)` tick by tick to
@@ -935,7 +966,7 @@ Identity is what makes two recordings of one fight the same recording, so
 every namespace numbers its objects by a rule that depends on the scene rather
 than on the pointer that happened to be observed first.
 
-Format `0.23.0` uses `team_zx_sequential_v1`.
+Format `0.24.0` uses `team_zx_sequential_v1`.
 
 **Units.** Initial units sort strictly ascending by `(team_id, position.z,
 position.x)` and take `unit_id = 1..N` in that order. Initial units on one team
@@ -1011,7 +1042,7 @@ lowercase hex digits, and the Parquet tick column holds the raw 32 bytes.
 
 State and events are first encoded as canonical JSON: UTF-8, compact
 encoding, every object's keys in the order its type declares them, and the
-array order the schema defines. Every type of `S(t)` and `E(t)` declares its
+array order the schema defines. Every type of `S(t)`, `E(t)` and settlement declares its
 fields in byte order, so an object's keys are sorted, but for an event's
 `payload`, whose `kind` comes first and its other keys after it in byte order.
 The JSON is what `serde_json` writes for the value as it is, so no object is
@@ -1020,24 +1051,24 @@ the crate's tests hold every declaration to byte order. A unit's
 `rebirth_count` is left out of the JSON while it is 0, its null in
 `units.parquet`, so a unit never reborn encodes as it would without the field,
 and a building's `skill` while it is null, so a building that does not search
-encodes as it would without it; every other field is written, null included. The hash covers every
-`S(t)` and `E(t)` field. It carries neither the layout, nor the
-DurableContext, nor any other file metadata.
+encodes as it would without it; every other field is written, null included. The hash covers every `S(t)` and `E(t)` field and every settlement field.
+It excludes the layout, DurableContext, provenance and digest metadata.
 
 ```text
-tick_hash(t) = H_content-tick-0.23.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
-result_hash  = H_content-result-0.23.0(
+tick_hash(t) = H_content-tick-0.24.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
+result_hash  = H_content-result-0.24.0(
     LE_u32(tick_count),
-    tick_hash(1)..tick_hash(n)
+    tick_hash(1)..tick_hash(n),
+    JSON(settlement)
 )
 ```
 
 The definition is numbered on its own, apart from the format: `hash_profile`
 is that number, and the domain strings spell profile `n` as `0.n.0`, the form
-they were written in while the profile was the format's, so profile 23's are
+they were written in while the profile was the format's, so profile 24's are
 the strings above. The profile moves when what the hash reads or how changes,
 and with it every hash and every pin, which is recorded again; a change to the
-format that leaves `S(t)` and `E(t)` encoding the same leaves it, and the pins.
+format that leaves `S(t)`, `E(t)` and settlement encoding the same leaves it, and the pins.
 A hash is never compared across two profiles.
 
 `mechcore diff` and `mechcore verify` decide `equal` and the
@@ -1049,7 +1080,7 @@ differ field by field, which a hash cannot:
 
 The hash is what a simulator is scored against, so what it reads is a decision
 of its own. `crates/mcfr/hashed-content.txt` lists every field, variant, enum
-and enum value that `S(t)` and `E(t)` carry, and a test holds the
+and enum value that `S(t)`, `E(t)` and settlement carry, and a test holds the
 types to it: a change to what the hash reads is a change to that file.
 
 **The hash reports a divergence on the tick it happens.** A simulator that

@@ -19,4 +19,4 @@ red:
   units:
   - {name: hacker, index: 0, position: {x: -5, y: -105}, exp: 0/400/560, equipment: [anti_interference_module]}
 ticks: 169
-hash: 23:7f2fc7ecc6506cad9a0389c800b30ff68dc43dbc9eeefeabca562dd626b89ba3
+hash: 24:053b844eca7abfb5267e87848971f8730188a4f8d320da0cd4a47f21c67a5c92

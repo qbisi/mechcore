@@ -14,4 +14,4 @@ red:
   units:
   - {name: scorpion, index: 0, position: {x: -5, y: -105}, exp: 0/600/1500}
 ticks: 237
-hash: 23:99148f0d345f0a7b4522e889eba2310a57c0f8f9fb79e965a2a7833e6a92cc7b
+hash: 24:2f41f41068d2c830b2d1cfcc1f5084a74140cb0e54a5e8d3ca2994ea65e6b0be

@@ -72,9 +72,8 @@ and taken out again before the score is compared, so it does not count either.
 
 ### Recorded
 
-- A fight's last tick records each side's score as the game computes it, its
-  `team_scored`, and the simulator answers the same score on every pinned
-  fight: the Rhino that wins scores its row's 200 for red,
+- A fight's settlement records each side's score as the game computes it:
+  the Rhino that wins scores its row's 200 for red,
   `tests/control/anti-interference-rhino.yaml`, and a Missile Strike
   that leaves neither side standing scores 0 for both,
   `tests/battle_skill/heavy-missile-strike.yaml`.

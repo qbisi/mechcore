@@ -14,4 +14,4 @@ red:
   units:
   - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/600/1950}
 ticks: 543
-hash: 23:a2e0f58d4176d702bfff1e361dbe2c02ada5173567dfea8960dd315adfc4f66d
+hash: 24:05b9722005f998695ef500806054db3536926d8b8e912b95470adb68f56287f8

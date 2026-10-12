@@ -18,6 +18,9 @@ pub trait Recording {
 
     fn hashes(&self) -> &Hashes;
 
+    /// Complete native settlement, outside the tick timeline.
+    fn settlement(&self) -> &crate::Settlement;
+
     /// The last tick, which is the tick count: a recording holds every tick
     /// from 1 to it.
     fn terminal_tick(&self) -> u32;
@@ -54,6 +57,10 @@ impl Recording for McfrReader {
         McfrReader::hashes(self)
     }
 
+    fn settlement(&self) -> &crate::Settlement {
+        McfrReader::settlement(self)
+    }
+
     fn terminal_tick(&self) -> u32 {
         McfrReader::terminal_tick(self)
     }
@@ -74,6 +81,7 @@ pub struct MemoryRecording {
     pub(crate) producer: Producer,
     pub(crate) layout_yaml: String,
     pub(crate) hashes: Hashes,
+    pub(crate) settlement: crate::Settlement,
     /// Tick `t`'s state and events at index `t - 1`.
     pub(crate) ticks: Vec<(WorldSnapshot, TransitionEvents)>,
 }
@@ -101,6 +109,10 @@ impl Recording for MemoryRecording {
 
     fn hashes(&self) -> &Hashes {
         &self.hashes
+    }
+
+    fn settlement(&self) -> &crate::Settlement {
+        &self.settlement
     }
 
     fn terminal_tick(&self) -> u32 {

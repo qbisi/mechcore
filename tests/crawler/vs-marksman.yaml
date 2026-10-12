@@ -33,4 +33,4 @@ asserts:
   - [141, 1, idle, null, null, 0, null, null]
   - [142, 1, attacking, unit, 7, 0, unit, 7]
 ticks: 161
-hash: 23:2595408f448f9ea969ced3c7f4d61f70e6d7050589e6134bea550e142caa73f5
+hash: 24:43319c8cbe85d518d7755c2453065087176b7101f761c5502b67cf2c02a86457

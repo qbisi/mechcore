@@ -81,4 +81,4 @@ red:
   - {name: heavy_missile_strike, positions: [{x: -210, y: 134}]}
   - {name: electromagnetic_impact, positions: [{x: 179, y: 240}]}
 ticks: 1129
-hash: 23:7d7adfdf56f330fe49428f60dd3bc41bfe55591b0c25fa11d96feee7a17bdb34
+hash: 24:ed3c022be914f39aec14253a43d44fe358d2a0ef9926bc4fcfc117550f885247

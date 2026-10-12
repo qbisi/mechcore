@@ -26,4 +26,4 @@ red:
   units:
   - {name: fire_badger, index: 0, position: {x: 5, y: -40}}
 ticks: 160
-hash: 23:53028c04c47337d70c248e3e4e6e49266d55edbf05cb431fc0c9db4045cfe0e8
+hash: 24:7cf01e1d86e1f9a65532b4c8b19675b87b979c9b6bb7dbdf2db68433ff9f7640

@@ -30,4 +30,4 @@ red:
   - {name: rhino, index: 3, position: {x: 45, y: -105}}
   - {name: rhino, index: 4, position: {x: 85, y: -105}, exp: 0/233/1150}
 ticks: 314
-hash: 23:10053f85532a826aafbdb5f45c643fccaea478d7ac291d1c869170682dffea84
+hash: 24:42b3d9029b5f74566fa53b4c60bc6d58bb7c8305c408f5e44a70260fcaef3ad1

@@ -505,6 +505,7 @@ struct Ending {
     torn_down_buildings: Vec<u64>,
     /// Whether `FightResultController.CalculateResult` has scored the fight.
     scored: bool,
+    scores: [i32; 2],
 }
 
 struct Simulation {
@@ -1540,7 +1541,7 @@ impl Simulation {
             events.extend(torn_down);
             if leaves_now {
                 self.clear_buffs_as_the_fight_ends(&mut events)?;
-                self.score_the_fight(&mut events)?;
+                self.score_the_fight()?;
                 self.clear_terrains_as_the_fight_ends()?;
                 self.end_stealth_as_the_fight_ends();
                 self.end_siege_as_the_fight_ends()?;
@@ -1574,7 +1575,7 @@ impl Simulation {
         // everything else the tick did.
         if !(publish_late_building_events && leaves_now) && self.ready_to_finish() {
             self.clear_buffs_as_the_fight_ends(&mut events)?;
-            self.score_the_fight(&mut events)?;
+            self.score_the_fight()?;
             self.clear_terrains_as_the_fight_ends()?;
             self.end_stealth_as_the_fight_ends();
             self.end_siege_as_the_fight_ends()?;
@@ -1764,10 +1765,9 @@ impl Simulation {
     /// formation's experience to a whole number and clears every skill's
     /// kills before the last state is read.
     /// A fight that finishes was scored as it left ([`Self::score_the_fight`]).
-    /// A fight time ends goes through none of it on its last recorded tick:
-    /// its recordings end on tick 2360 with no `team_scored` and its
-    /// formations' experience unpruned, `OnFightOver` coming after.
-    fn close_tick(&mut self, events: &mut Vec<Event>) -> Result<()> {
+    /// Forced timeout settles after its last recorded tick; that snapshot
+    /// retains unpruned experience, and settlement records the final value.
+    fn close_tick(&mut self) -> Result<()> {
         self.name_turned_formations();
         self.settle_intervals_if_finishing();
         if self.ready_to_finish() {
@@ -1779,7 +1779,7 @@ impl Simulation {
             }
             self.prune_experience();
             self.clear_kills()?;
-            self.score_the_fight(events)?;
+            self.score_the_fight()?;
         }
         Ok(())
     }
@@ -1787,26 +1787,53 @@ impl Simulation {
     /// `FightResultController.CalculateResult`, once: each side scored,
     /// blue first, after the units' buffs are cleared and before the
     /// terrains go (`RangeItemController.OnExitFight`).
-    fn score_the_fight(&mut self, events: &mut Vec<Event>) -> Result<()> {
+    fn score_the_fight(&mut self) -> Result<()> {
         if self.ending.scored {
             return Ok(());
         }
-        self.ending.scored = true;
         for team in [0, 1] {
-            let amount = i32::try_from(self.team_score(team)?)
+            self.ending.scores[team as usize] = i32::try_from(self.team_score(team)?)
                 .map_err(|_| Error::new("a side's score exceeds i32"))?;
-            events.push(event(
-                None,
-                None,
-                None,
-                None,
-                EventPayload::TeamScored {
-                    amount,
-                    team_id: team,
-                },
-            ));
         }
+        self.ending.scored = true;
         Ok(())
+    }
+
+    /// Forced `StopFight`: exit without advancing any projectile or logic tick.
+    fn stop_fight(&mut self) -> Result<()> {
+        self.projectiles.clear();
+        let mut ignored = Vec::new();
+        self.clear_buffs_as_the_fight_ends(&mut ignored)?;
+        self.clear_terrains_as_the_fight_ends()?;
+        self.end_stealth_as_the_fight_ends();
+        self.end_siege_as_the_fight_ends()?;
+        self.end_wreckage_as_the_fight_ends();
+        self.end_rebirths_as_the_fight_ends();
+        for actor in self.actors.values_mut() {
+            actor.exit_melee_mode()?;
+        }
+        self.prune_experience();
+        self.clear_kills()?;
+        self.score_the_fight()
+    }
+
+    fn settlement(&self) -> Result<mechcore_mcfr::Settlement> {
+        if !self.ending.scored {
+            return Err(Error::new("fight has not settled"));
+        }
+        Ok(mechcore_mcfr::Settlement {
+            formations: self.formation_states(),
+            teams: self
+                .ending
+                .scores
+                .iter()
+                .enumerate()
+                .map(|(team, score)| mechcore_mcfr::TeamSettlement {
+                    score: *score,
+                    team_id: u32::try_from(team).expect("a fight has two teams"),
+                })
+                .collect(),
+        })
     }
 
     /// `FightResultController.CalculateScore(team, true)`: what the side's

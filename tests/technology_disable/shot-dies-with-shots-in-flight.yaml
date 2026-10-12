@@ -26,4 +26,4 @@ red:
   - {name: phoenix, index: 1, position: {x: 60, y: -150}, exp: 0/133/1300}
   - {name: fortress, index: 2, position: {x: 70, y: -100}, exp: 0/533/1600}
 ticks: 290
-hash: 23:a078de662f4fd82479deb768b8579e9fac10abde1cf9394b24278d812406d5f0
+hash: 24:97312b4e9d4f9217602e377b79274d097d398f1322b9c59476a3d521c3a3408f

@@ -1736,6 +1736,8 @@ fn drain_recording(
     let mut writer = None;
     let mut video = None;
     let mut recorded_tick = 0_u64;
+    let mut settlement = None;
+    let mut terminal_seen = false;
     loop {
         // A capture in flight is abandoned like any other wait. Nothing is
         // published, the video is torn down with it, and the
@@ -1837,16 +1839,21 @@ fn drain_recording(
                     }
                     (None, None) => {}
                 }
-                terminal
+                terminal_seen |= terminal;
+                terminal_seen && settlement.is_some()
+            }
+            Some(CaptureMessage::Settlement(value)) => {
+                if settlement.replace(value).is_some() {
+                    return Drained::Failed("capture_failed", "capture settled twice".into());
+                }
+                terminal_seen
             }
             Some(CaptureMessage::Failure(error)) => {
                 return Drained::Failed("capture_failed", error);
             }
-            // The headless call returns once the fight is over, having
-            // captured each of its ticks. A fight that runs out of time ends
-            // outside `FightController.Update`, where the capture never sees
-            // it end, so the tick last captured is its terminal one; with none
-            // captured, the round never reached the fight.
+            // Forced timeout settles outside FightController.Update. The
+            // headless completion confirms the last captured combat tick;
+            // complete settlement must already have arrived through its hook.
             None if fight.is_some_and(thread::JoinHandle::is_finished) => {
                 if let Some(message) = capture::poll() {
                     pending = Some(message);
@@ -1856,6 +1863,12 @@ fn drain_recording(
                     return Drained::Failed(
                         "capture_failed",
                         "the replay ended without fighting the requested round".into(),
+                    );
+                }
+                if settlement.is_none() {
+                    return Drained::Failed(
+                        "capture_failed",
+                        "fight ended without complete settlement".into(),
                     );
                 }
                 true
@@ -1875,7 +1888,11 @@ fn drain_recording(
                 },
                 None => None,
             };
-            let hashes = match writer.take().expect("writer checked above").finish() {
+            let hashes = match writer
+                .take()
+                .expect("writer checked above")
+                .finish(settlement.as_ref().expect("settlement checked above"))
+            {
                 Ok(hashes) => hashes,
                 Err(error) => {
                     remove_published(arguments.video_output.as_deref());

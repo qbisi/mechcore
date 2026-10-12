@@ -153,7 +153,8 @@ pub(crate) fn read(reader: &dyn Recording) -> Result<Reading, Failure> {
     let layout = scene::layout(reader)?;
     let last = reader.terminal_tick();
     let opened = scene::snapshot(reader, FIRST_TICK)?;
-    let ended = scene::snapshot(reader, last)?;
+    let mut ended = scene::snapshot(reader, last)?;
+    ended.formations.clone_from(&reader.settlement().formations);
     let formations = scene::formations(&layout, &opened)?;
     let timeline = Timeline::read(reader)?;
     let started = members(&formations, &opened);
@@ -410,56 +411,24 @@ fn raw(position: Position, side: Side) -> (i64, i64) {
     (x * ONE, z * ONE)
 }
 
-/// Each side's score, `TeamScoreCalculator.CalculateTeamScore`: what the
-/// units alive at the fight's end score for the side they then serve, as the
-/// recording's last tick states it (`team_scored`,
-/// `FightResultController.CalculateScore`).
+/// The native scores, recorded after exit independently of combat ticks.
 fn scores(
     reader: &dyn Recording,
-    unresolved: &mut Vec<String>,
+    _unresolved: &mut Vec<String>,
 ) -> Result<[Option<i64>; 2], Failure> {
-    let last = reader.terminal_tick();
-    let events = reader.events(last).map_err(|error| {
-        Failure::refused(format!("recording has no events at tick {last}: {error}"))
-    })?;
-    let mut scores = [None, None];
-    for event in events.events {
-        if let EventPayload::TeamScored { amount, team_id } = event.payload {
-            let side = match team_id {
-                0 => Side::Blue,
-                1 => Side::Red,
-                other => {
-                    return Err(Failure::refused(format!(
-                        "recording scores team {other}, and a match has two"
-                    )));
-                }
-            };
-            scores[side.seat()] = Some(i64::from(amount));
-        }
-    }
-    for side in Side::BOTH {
-        if scores[side.seat()].is_none() {
-            unresolved.push(format!(
-                "{} core_damage: the recording's last tick scores no {} side",
-                side.other().name(),
-                side.name()
-            ));
-        }
-    }
-    Ok(scores)
+    let settlement = reader.settlement();
+    settlement
+        .validate()
+        .map_err(|error| Failure::refused(error.to_string()))?;
+    Ok([
+        Some(i64::from(settlement.teams[0].score)),
+        Some(i64::from(settlement.teams[1].score)),
+    ])
 }
 
-/// Each unit's experience across the fight: the layout's before, the
-/// formation's `experience` at the last tick after, and its bar.
-///
-/// A formation's experience is `MechTeam.expFloat`, which holds -1.0 until the
-/// formation first gains any. The fight's end cuts it to a whole number,
-/// `MechTeam.PruneExp`, which the last tick already holds when a side was
-/// destroyed and does not when the fight ran out of time, so the last tick's
-/// experience is cut here as the fight's end cuts it. The formation opens the
-/// fight holding what the layout says, which is how the pairing of formation
-/// to placement is checked, and its bar is the table's for the placement's
-/// type and level.
+/// Each unit's experience: layout before, recorded settlement after and maximum.
+/// The first snapshot checks the layout pairing; no final value is inferred
+/// from a combat snapshot or truncated by the consumer.
 fn experience(
     layout: &Layout,
     side: Side,
@@ -475,11 +444,6 @@ fn experience(
     };
     let whole = |raw: i64| (raw % ONE == 0).then_some(raw / ONE);
     let gained = |raw: i64| if raw == -ONE { Some(0) } else { whole(raw) };
-    let cut = |raw: i64| match raw {
-        _ if raw == -ONE => Some(0),
-        0.. => Some(raw / ONE),
-        _ => None,
-    };
     scene::units_of(layout, side)
         .iter()
         .map(|placement| {
@@ -489,8 +453,13 @@ fn experience(
                 placement.index,
                 placement.type_name
             );
-            let answer =
-                unit_experience(placement, side, scene, &recorded, [&gained, &cut, &whole]);
+            let answer = unit_experience(
+                placement,
+                side,
+                scene,
+                &recorded,
+                [&gained, &gained, &whole],
+            );
             answer
                 .map_err(|reason| unresolved.push(format!("{at}: {reason}")))
                 .ok()
@@ -503,7 +472,7 @@ fn unit_experience(
     side: Side,
     scene: &Scene,
     recorded: &dyn Fn(&WorldSnapshot, u64) -> Option<mechcore_mcfr::FormationState>,
-    [gained, cut, whole]: [&dyn Fn(i64) -> Option<i64>; 3],
+    [gained, final_value, whole]: [&dyn Fn(i64) -> Option<i64>; 3],
 ) -> Result<FightExperience, String> {
     let formation = scene
         .formations
@@ -538,12 +507,14 @@ fn unit_experience(
             ended.max_experience
         ));
     }
-    let after = cut(ended.experience).and_then(to_i32).ok_or_else(|| {
-        format!(
-            "formation {formation} ends holding {} raw, which is no experience",
-            ended.experience
-        )
-    })?;
+    let after = final_value(ended.experience)
+        .and_then(to_i32)
+        .ok_or_else(|| {
+            format!(
+                "formation {formation} ends holding {} raw, which is no experience",
+                ended.experience
+            )
+        })?;
     if after > bar {
         return Err(format!(
             "formation {formation} ends holding {after}, past its bar {bar}, which the build \

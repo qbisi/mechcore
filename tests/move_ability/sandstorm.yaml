@@ -24,4 +24,4 @@ red:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
   - {name: marksman, index: 1, position: {x: 0, y: -150}}
 ticks: 415
-hash: 23:f69944cbefea060264a3c94bcf84d5a0f93eb48a06d0ac6177497dcc4512c197
+hash: 24:5088a3a53cca0f12d69afc51b7f8557ae01366516448ff9978e5cdfab2b647d1

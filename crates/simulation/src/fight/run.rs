@@ -160,12 +160,13 @@ pub(crate) fn run(
     } = execution;
     debug_assert!(first_divergence.is_none());
     let finish_started = Instant::now();
+    let settlement = simulation.settlement()?;
     let (hashes, recording) = match record {
         Record::Memory => {
-            let recording = writer.finish_in_memory()?;
+            let recording = writer.finish_in_memory(settlement)?;
             (recording.hashes().clone(), Some(recording))
         }
-        Record::Hash | Record::File(_) => (writer.finish()?, None),
+        Record::Hash | Record::File(_) => (writer.finish(&settlement)?, None),
     };
     let output = match record {
         Record::File(path) => Some(path),
@@ -280,6 +281,7 @@ pub(crate) fn compare(
     }
     let execution = execute(layout, config, seed, Record::Hash, Some(recording), None)?;
     let Execution {
+        simulation,
         writer,
         steps,
         first_divergence,
@@ -287,22 +289,17 @@ pub(crate) fn compare(
         ..
     } = execution;
     let simulation_hashes = if first_divergence.is_none() {
-        Some(writer.finish()?)
+        Some(writer.finish(&simulation.settlement()?)?)
     } else {
         None
     };
-    if let Some(hashes) = &simulation_hashes
-        && hashes.result_hash != recording.hashes().result_hash
-    {
-        return Err(Error::new(
-            "result hashes differ although every compared tick hash matches",
-        ));
-    }
     Ok(SimulationComparison {
         schema: "mechcore.sim-compare-result",
         game_build: config.game_build.clone(),
         seed,
-        equal: first_divergence.is_none(),
+        equal: simulation_hashes
+            .as_ref()
+            .is_some_and(|hashes| hashes == recording.hashes()),
         recording: TimelineSummary {
             result_hash: Some(recording.hashes().result_hash.clone()),
             tick_count: recording.tick_count(),
@@ -356,13 +353,14 @@ pub(in crate::fight) fn execute(
         .div_ceil(LOGIC_TICK_TIME_UNITS);
     let mut end_reason = loop {
         if steps >= max_steps {
+            simulation.stop_fight()?;
             break "forced_time_limit";
         }
         let step_started = Instant::now();
         let mut events = simulation.step(steps)?;
         steps += 1;
         let tick = u32::try_from(steps).map_err(|_| Error::new("tick index exceeds u32"))?;
-        simulation.close_tick(&mut events.events)?;
+        simulation.close_tick()?;
         let stepped = step_started.elapsed();
         let snapshot_started = Instant::now();
         let state = simulation.recorded(tick, &mut numbering, &mut events.events);

@@ -639,11 +639,14 @@ again, `RebirthTask.GetPosAndRotation`, called with the task's own two `out`
 vectors. A unit's `rebirth_count` is `FightMech.rebirthCount`, read with the
 rest of its row.
 
-`team_scored` comes from a hook on `FightResultController.CalculateScore(team,
-isAlive)`, which `BattleSystem.OnFightOver` calls inside the fight's last logic
-update, while the capture is armed: the call for the standing units is
-recorded with its answer and the side's `FightTeam.GetTeamIndex()`, and the
-call for the fallen is not.
+Settlement scores come from the hook on
+`FightResultController.CalculateScore(team, isAlive)`. While capture is armed,
+each standing-unit answer is kept with `FightTeam.GetTeamIndex()`, including
+calls outside `FightController.Update` at forced timeout. After both answers,
+`MechTeam.expFloat` and `maxExpFloat` are read for every recorded formation;
+`BattleSystem.OnFightOver` has already pruned experience. The recording is
+published only after complete settlement and the last combat snapshot or
+headless completion. No score event is appended to a combat tick.
 
 `exp_range` records each kill's search for the formations near enough to share
 its experience. `ExpSystem.DoCalculateExp` lists the formations that hit the

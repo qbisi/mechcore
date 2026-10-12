@@ -21,4 +21,4 @@ red:
   units:
   - {name: fortress, index: 0, position: {x: 0, y: -170}, exp: 0/400/1600}
 ticks: 332
-hash: 23:f85b49016ca670a3af18062a9bdaf5f78f3784f69ecd1d68b830c802be81189b
+hash: 24:47d96d7516545be5988fa2362ef619f1dee21da9ee9addca4743feeb5879eb84

@@ -450,3 +450,41 @@ impl Simulation {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod settlement_tests {
+    use super::*;
+
+    #[test]
+    fn forced_exit_records_pruned_experience_without_rewriting_the_last_snapshot() {
+        let config = SimulationConfig::load().unwrap();
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
+                super::super::tests::test_placement(0, 0, 0, 0),
+                super::super::tests::test_placement(1, 0, 0, 100),
+            ],
+        );
+        let mut simulation = super::super::tests::raw_test_simulation(&layout, &config, 7);
+        let fractional = (200_i64 << 32) + (1_i64 << 31);
+        for formation in simulation.exp.formations.values_mut() {
+            formation.experience = fractional;
+        }
+        let last_snapshot = simulation.snapshot();
+        simulation.stop_fight().unwrap();
+        assert!(
+            last_snapshot
+                .formations
+                .iter()
+                .all(|row| row.experience == fractional)
+        );
+        assert!(
+            simulation
+                .settlement()
+                .unwrap()
+                .formations
+                .iter()
+                .all(|row| row.experience == 200_i64 << 32)
+        );
+    }
+}

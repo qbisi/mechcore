@@ -56,7 +56,7 @@ impl Selection {
         self.0.is_empty()
     }
 
-    fn admits(&self, group: &str) -> bool {
+    pub(crate) fn admits(&self, group: &str) -> bool {
         self.0.is_empty()
             || self.0.iter().any(|name| {
                 group == name

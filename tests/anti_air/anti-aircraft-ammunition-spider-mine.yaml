@@ -23,4 +23,4 @@ red:
   - {name: overlord, index: 0, position: {x: -35, y: -75}, exp: 0/306/1750}
   - {name: arclight, index: 1, position: {x: 30, y: -80}, exp: 0/118/750}
 ticks: 264
-hash: 23:00854b91874b5279ae7666fae29dd1098b909509704e1e8dafa12c590d054ba6
+hash: 24:aa46eb868bc0f43e294f23c02e47f80d3b73e63e18a747f02f83b4367a2bbc4d

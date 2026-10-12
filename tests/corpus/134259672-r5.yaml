@@ -74,4 +74,4 @@ red:
   - {name: missile, index: 2, position: {x: 299, y: -287}, retained: false}
   - {name: missile, index: 3, position: {x: -299, y: -289}, retained: false}
 ticks: 586
-hash: 23:fe7a6bcf816fd6eb1293702dd7a31b4be841d4cefcc3d9bebe2682c6751b8943
+hash: 24:a55a31058ddd7f73b51cba7d8155fdf2a0d852bd4685b9526003789fcce61ffc

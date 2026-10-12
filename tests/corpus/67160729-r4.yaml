@@ -45,4 +45,4 @@ red:
   - {name: mountain, index: 10, position: {x: 95, y: -145}, exp: 0/1950/3200}
   - {name: crawler, index: 11, position: {x: -310, y: 195}, travelling: true}
 ticks: 1679
-hash: 23:b62fd87c4d4c713408b79fecbb213a260293cb873ea332b8065cc10fb2a46a1d
+hash: 24:1c1faa668c6b301d943aa8eaca74bdd54c07f13bd6c0a6688d6b6bbe127242dd

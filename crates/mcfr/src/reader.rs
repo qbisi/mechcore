@@ -26,7 +26,7 @@ pub struct Published {
 
 impl McfrReader {
     /// Opens an MCFR and validates its ZIP64/Parquet structure and metadata.
-    /// The result hash is checked against the stored tick hashes; the tick
+    /// The result hash is checked against settlement and the stored tick hashes; the tick
     /// hashes are trusted, and timeline content is not rehashed until
     /// [`Self::tick`] reads it.
     ///
@@ -55,12 +55,27 @@ impl McfrReader {
             storage,
         };
         IdentityAllocator::from_initial(&reader.state(1)?)?;
+        let final_state = reader.state(reader.terminal_tick)?;
+        if reader
+            .settlement()
+            .formations
+            .iter()
+            .map(|f| (f.formation_id, f.team_id, f.max_experience))
+            .ne(final_state
+                .formations
+                .iter()
+                .map(|f| (f.formation_id, f.team_id, f.max_experience)))
+        {
+            return Err(Error::invalid(
+                "settlement formation identities or bars differ from the terminal snapshot",
+            ));
+        }
         Ok(reader)
     }
 
     /// A published container's hashes and sizes, read from its
     /// `ticks.parquet` without its timeline: the result hash is held to the
-    /// tick hash column, and neither is held to the states and events.
+    /// tick hash column and settlement, and neither is held to the states and events.
     ///
     /// # Errors
     ///
@@ -97,6 +112,11 @@ impl McfrReader {
     #[must_use]
     pub fn layout_yaml(&self) -> &str {
         self.storage.layout_yaml()
+    }
+
+    #[must_use]
+    pub fn settlement(&self) -> &crate::Settlement {
+        &self.storage.metadata().settlement
     }
 
     #[must_use]

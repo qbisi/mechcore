@@ -25,4 +25,4 @@ red:
   constructions:
   - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}
 ticks: 698
-hash: 23:8b1f5a4a9eb7899b62f7f59fc985df61337d16dd7ba09bcc7ece3f73b8fcfcf0
+hash: 24:b63f17261d53241fa9ef7ae41c2f4ed9b3316f7b0dac9fdb1a1f355ca83e667d

@@ -23,4 +23,4 @@ red:
   - {name: arclight, index: 0, position: {x: 30, y: -80}}
   - {name: phoenix, index: 1, position: {x: -20, y: -90}, exp: 0/136/1300}
 ticks: 215
-hash: 23:0820d8d58b17e101352ac2be5b523d5f75f90b802da77041faf7eb7ecd5882b2
+hash: 24:b55a5c2225506ce12a2089f2c697ce92c346c7a0b0deb533f26225aacd389900

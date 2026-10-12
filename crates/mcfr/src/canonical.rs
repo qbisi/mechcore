@@ -70,8 +70,8 @@ pub(crate) fn tick_hash(tick: u32, state: &[u8], events: &[u8]) -> [u8; HASH_BYT
     hasher.finalize()
 }
 
-/// The whole fight's hash: the tick count, then every tick's hash in order.
-pub(crate) fn result_hash(tick_hashes: &[[u8; HASH_BYTES]]) -> [u8; HASH_BYTES] {
+/// The whole fight's hash: tick count, ordered tick hashes and native settlement.
+pub(crate) fn result_hash(tick_hashes: &[[u8; HASH_BYTES]], settlement: &[u8]) -> [u8; HASH_BYTES] {
     let mut hasher = CanonicalHasher::new(concat!(
         "content-result-0.",
         crate::model::hash_profile!(),
@@ -82,6 +82,7 @@ pub(crate) fn result_hash(tick_hashes: &[[u8; HASH_BYTES]]) -> [u8; HASH_BYTES] 
     for tick_hash in tick_hashes {
         hasher.update(tick_hash);
     }
+    hasher.update(settlement);
     hasher.finalize()
 }
 

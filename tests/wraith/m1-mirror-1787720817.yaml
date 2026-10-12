@@ -14,4 +14,4 @@ red:
   units:
   - {name: wraith, index: 0, position: {x: 5, y: -95}, exp: 0/600/2250}
 ticks: 429
-hash: 23:93f76e95203b497837b126f2120ba22c950ef563d88dfcdb727ced4a3aa32810
+hash: 24:072997cd0fe852ae7c8613e52a02736b18746e8c29d2dd2cd6c558b3bc6f3174
