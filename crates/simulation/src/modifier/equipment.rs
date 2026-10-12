@@ -14,7 +14,8 @@
 //! kind whose subclass does nothing more in a fight is applied for its
 //! numbers; one whose subclass does more (a buff, lifesteal, a shield) is
 //! refused by name until its mechanism lands, rather than applied for its
-//! numbers alone.
+//! numbers alone. The extraction includes only equipment obtainable in
+//! standard 1v1, including items granted by its officers.
 //!
 //! An equipment this build cannot apply is refused by name rather than partly
 //! applied: a kind whose mechanism is not here, a lifetime this build has not
@@ -713,12 +714,10 @@ mod tests {
     const HEAVY_ARMOR: i32 = 13_030_002;
     const IMPROVED_FIREPOWER: i32 = 13_030_003;
     const DOMINION_CORE: i32 = 13_030_010;
-    const RAPID_LOADER: i32 = 13_030_011;
     const DEPLOYMENT_MODULE: i32 = 13_040_001;
     const ABSORPTION_MODULE: i32 = 1_309_001;
     const NANO_REPAIR_KIT: i32 = 13_020_001;
     const PHOTON_COATING: i32 = 1_305_003;
-    const CHARGED_AMMO: i32 = 1_305_001;
     const ANTI_INTERFERENCE_MODULE: i32 = 1_308_001;
     const PORTABLE_SHIELD: i32 = 13_010_001;
     const BARRIER_ITEM: i32 = 1_307_001;
@@ -859,9 +858,7 @@ mod tests {
         );
     }
 
-    /// Photon Coating adds buff 4000 to its unit as the fight starts; Charged
-    /// Ammo adds buff 1100, which disables technology, on a hit, and an item
-    /// is not switched off with its unit's technologies.
+    /// Photon Coating adds buff 4000 to its unit as the fight starts.
     #[test]
     fn a_buff_item_adds_its_buff_as_the_fight_starts() {
         let equipment = EquipmentEffects::load().unwrap();
@@ -873,12 +870,6 @@ mod tests {
         assert_eq!(buff.buff_id, 4000);
         assert!(buff.invincible && !buff.debuff);
         assert_eq!(buff.amplify_damage_rate, -1_288_490_188);
-        let charged = equipment
-            .buff_source(CHARGED_AMMO, &marksman)
-            .unwrap()
-            .unwrap();
-        assert_eq!(charged.trigger, crate::modifier::BuffTrigger::Hit);
-        assert!(charged.disables_technology && charged.debuff && !charged.can_disable);
     }
 
     /// Anti-Interference Module, a permanent effect, makes its unit ignore
@@ -972,14 +963,39 @@ mod tests {
     }
 
     #[test]
-    fn an_equipment_this_build_cannot_apply_is_refused_by_name() {
+    fn an_unobtainable_equipment_is_absent() {
         let equipment = EquipmentEffects::load().unwrap();
         let marksman = unit("marksman");
         let refused = equipment
-            .corrections(RAPID_LOADER, &marksman)
+            .corrections(13_030_011, &marksman)
             .unwrap_err()
             .to_string();
-        assert!(refused.contains(&RAPID_LOADER.to_string()), "{refused}");
-        assert!(refused.contains("round_duration"), "{refused}");
+        assert!(refused.contains("13030011"), "{refused}");
+        assert!(refused.contains("not in the equipment table"), "{refused}");
+    }
+
+    #[test]
+    fn every_obtainable_equipment_has_its_effects_read() {
+        let equipment = EquipmentEffects::load().unwrap();
+        for (id, item) in &equipment.equipment {
+            assert!(item.effect.is_ok(), "equipment {id}: {:?}", item.effect);
+            for name in ["marksman", "rhino", "fortress", "phoenix"] {
+                equipment.corrections(*id, &unit(name)).unwrap();
+            }
+        }
+    }
+
+    #[test]
+    fn an_unimplemented_kind_is_refused_even_with_plain_corrections() {
+        let mut table: super::Table =
+            serde_yaml::from_str(super::DEFAULT_EQUIPMENT_EFFECTS).unwrap();
+        let row = table
+            .equipment
+            .iter_mut()
+            .find(|row| row.id == HEAVY_ARMOR)
+            .unwrap();
+        row.kind = "unimplementedEquipmentDatas".into();
+        let refused = super::corrections_of(row, "test equipment").unwrap_err();
+        assert!(refused.contains("unimplementedEquipmentDatas"), "{refused}");
     }
 }
