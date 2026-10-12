@@ -9,42 +9,32 @@ map_id: 1021
 seed: 1637547163
 round: 3
 blue:
+  core_damage: 0
   officers: [advanced_offensive_tactics, speed_specialist, improved_sandworm]
   techs:
     sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
   blueprints: [attack_enhancement]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: sandworm, index: 0, position: {x: 10, y: -190}, level: 8, exp: 6727/13455, rotated: true, equipment: [secondary_fire_control_system], source: legacy}
-  - {name: farseer, index: 1, position: {x: 265, y: -165}, level: 7}
+  - {name: sandworm, index: 0, position: {x: 10, y: -190}, level: 8, exp: 6727/13455/13455, rotated: true, equipment: [secondary_fire_control_system], source: legacy}
+  - {name: farseer, index: 1, position: {x: 265, y: -165}, level: 7, exp: 0/25/11334}
   battle_skills:
   - {name: shield_airdrop, positions: [{x: -285, y: -290}]}
 red:
+  core_damage: 458
   officers: [advanced_defensive_tactics, advanced_targeting_system, fire_badger_specialist]
   techs:
     overlord: [high_explosive_ammo, field_maintenance, overlord_artillery, mothership, jump_drive, armor_enhancement, range_enhancement, launcher_overload, photon_emission]
   blueprints: [attack_enhancement_ii]
   tower_strengthen_levels: [2, 2]
   units:
-  - {name: overlord, index: 0, position: {x: -65, y: -65}, level: 5, exp: 4559/9118, equipment: [amplifying_core], source: legacy}
-  - {name: fire_badger, index: 1, position: {x: 145, y: -230}, source: delivered}
-  - {name: sabertooth, index: 2, position: {x: 205, y: -225}, level: 4}
+  - {name: overlord, index: 0, position: {x: -65, y: -65}, level: 5, exp: 4559/9118/9118, equipment: [amplifying_core], source: legacy}
+  - {name: fire_badger, index: 1, position: {x: 145, y: -230}, exp: 0/50/1400, source: delivered}
+  - {name: sabertooth, index: 2, position: {x: 205, y: -225}, level: 4, exp: 0/150/5837}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
   battle_skills:
   - {name: vulcans_descent, positions: [{x: -220, y: -200}]}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 13455/13455}
-    - {index: 1, exp: 25/11334}
-  red:
-    core_damage: 458
-    units:
-    - {index: 0, exp: 9118/9118}
-    - {index: 1, exp: 50/1400}
-    - {index: 2, exp: 150/5837}
 ticks: 1371
 hash: 23:ca00b32d3efd1a60d2ad6dc9b6878cfa15028f73386200d528a7f6a1a6e66d19

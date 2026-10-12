@@ -13,12 +13,14 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: fortress, index: 0, position: {x: -60, y: -160}}
-  - {name: fortress, index: 1, position: {x: 60, y: -160}}
+  - {name: fortress, index: 0, position: {x: -60, y: -160}, exp: 0/784/1600}
+  - {name: fortress, index: 1, position: {x: 60, y: -160}, exp: 0/992/1600}
   battle_skills:
   - {name: orbital_bombardment, positions: [{x: 0, y: 30}]}
 red:
+  core_damage: 700
   units:
   - {name: sledgehammer, index: 0, position: {x: -45, y: -60}}
   - {name: sledgehammer, index: 1, position: {x: 5, y: -60}}
@@ -26,12 +28,5 @@ red:
   - {name: crawler, index: 3, position: {x: 5, y: -110}}
   - {name: crawler, index: 4, position: {x: -55, y: -110}}
   - {name: crawler, index: 5, position: {x: 65, y: -110}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 784/1600}
-    - {index: 1, exp: 992/1600}
-  red: {core_damage: 700}
 ticks: 571
 hash: 23:6407064f2c76be0d9fde273781da371ff0f9ffed01a6a9e154090e977dca92ae

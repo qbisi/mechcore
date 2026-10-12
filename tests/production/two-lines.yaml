@@ -11,23 +11,16 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   techs:
     war_factory: [phoenix_production]
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -145}}
+  - {name: war_factory, index: 0, position: {x: 5, y: -145}, exp: 0/848/3200}
 red:
+  core_damage: 525
   techs:
     melting_point: [crawler_production]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -150}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 848/3200}
-  red:
-    core_damage: 525
-    units:
-    - {index: 0, exp: 200/1400}
+  - {name: melting_point, index: 0, position: {x: 0, y: -150}, exp: 0/200/1400}
 ticks: 396
 hash: 23:e25bced769348fdf86bfbe5a068dc125717d6e4d46bb585a5ab3defb724cc17d

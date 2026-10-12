@@ -12,26 +12,17 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 363
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -280}}
-  - {name: marksman, index: 1, position: {x: 120, y: -280}}
-  - {name: arclight, index: 2, position: {x: 60, y: -200}}
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 0/12/650}
+  - {name: marksman, index: 1, position: {x: 120, y: -280}, exp: 0/12/650}
+  - {name: arclight, index: 2, position: {x: 60, y: -200}, exp: 0/12/750}
 red:
+  core_damage: 0
   techs:
     fortress: [fang_production]
   units:
-  - {name: fortress, index: 0, position: {x: 80, y: -60}}
-outcome:
-  blue:
-    core_damage: 363
-    units:
-    - {index: 0, exp: 12/650}
-    - {index: 1, exp: 12/650}
-    - {index: 2, exp: 12/750}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 800/1600}
+  - {name: fortress, index: 0, position: {x: 80, y: -60}, exp: 0/800/1600}
 asserts:
 - sql: |-
     SELECT object__id FROM events WHERE type = 'unit_created' AND tick = 721 ORDER BY ordinal LIMIT 3

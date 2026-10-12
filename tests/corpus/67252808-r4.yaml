@@ -11,6 +11,7 @@ map_id: 1032
 seed: 732025289
 round: 4
 blue:
+  core_damage: 0
   officers: [rhino_specialist]
   techs:
     rhino: [whirlwind]
@@ -19,87 +20,52 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [0, 1]
   units:
-  - {name: arclight, index: 0, position: {x: -90, y: -80}, exp: 692/750, source: legacy}
-  - {name: arclight, index: 2, position: {x: 140, y: -150}, exp: 750/750, source: legacy}
-  - {name: crawler, index: 5, position: {x: -245, y: -20}, exp: 68/450, source: legacy}
-  - {name: crawler, index: 6, position: {x: -140, y: -115}, exp: 104/450, rotated: true, source: legacy}
-  - {name: fang, index: 7, position: {x: 140, y: -225}, exp: 210/600, rotated: true, source: legacy}
-  - {name: fang, index: 8, position: {x: -140, y: -225}, exp: 116/600, rotated: true, source: legacy}
-  - {name: wraith, index: 9, position: {x: -285, y: -25}, exp: 838/2250, source: legacy}
+  - {name: arclight, index: 0, position: {x: -90, y: -80}, exp: 692/692/750, source: legacy}
+  - {name: arclight, index: 2, position: {x: 140, y: -150}, exp: 750/750/750, source: legacy}
+  - {name: crawler, index: 5, position: {x: -245, y: -20}, exp: 68/140/450, source: legacy}
+  - {name: crawler, index: 6, position: {x: -140, y: -115}, exp: 104/126/450, rotated: true, source: legacy}
+  - {name: fang, index: 7, position: {x: 140, y: -225}, exp: 210/324/600, rotated: true, source: legacy}
+  - {name: fang, index: 8, position: {x: -140, y: -225}, exp: 116/116/600, rotated: true, source: legacy}
+  - {name: wraith, index: 9, position: {x: -285, y: -25}, exp: 838/2250/2250, source: legacy}
   - {name: crawler, index: 10, position: {x: -90, y: -45}, rotated: true, source: legacy}
-  - {name: wraith, index: 11, position: {x: -345, y: 245}, exp: 542/2250, source: legacy}
-  - {name: crawler, index: 12, position: {x: -310, y: 245}, exp: 34/450, source: legacy}
-  - {name: crawler, index: 13, position: {x: -310, y: 35}, source: legacy}
-  - {name: rhino, index: 14, position: {x: -325, y: 195}, level: 2, travelling: true, source: delivered}
-  - {name: crawler, index: 15, position: {x: -310, y: 145}, travelling: true}
-  - {name: rhino, index: 16, position: {x: -195, y: -35}, level: 2}
+  - {name: wraith, index: 11, position: {x: -345, y: 245}, exp: 542/980/2250, source: legacy}
+  - {name: crawler, index: 12, position: {x: -310, y: 245}, exp: 34/34/450, source: legacy}
+  - {name: crawler, index: 13, position: {x: -310, y: 35}, exp: 0/38/450, source: legacy}
+  - {name: rhino, index: 14, position: {x: -325, y: 195}, level: 2, exp: 0/2183/2591, travelling: true, source: delivered}
+  - {name: crawler, index: 15, position: {x: -310, y: 145}, exp: 0/450/450, travelling: true}
+  - {name: rhino, index: 16, position: {x: -195, y: -35}, level: 2, exp: 0/1496/2591}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   battle_skills:
   - {name: shield_airdrop, standing: {position: {x: -338, y: 245}}}
 red:
+  core_damage: 356
   officers: [cost_control_specialist, improved_wasp]
   techs:
     void_eye: [suppression_shots]
   units:
-  - {name: void_eye, index: 0, position: {x: 140, y: -80}, exp: 370/650, source: legacy}
-  - {name: void_eye, index: 1, position: {x: 230, y: -80}, exp: 492/650, source: legacy}
-  - {name: void_eye, index: 2, position: {x: 50, y: -100}, exp: 468/650, source: legacy}
-  - {name: mustang, index: 3, position: {x: 85, y: -170}, level: 2, source: legacy}
-  - {name: mustang, index: 4, position: {x: 195, y: -170}, level: 2, exp: 807/2704, source: legacy}
-  - {name: tarantula, index: 5, position: {x: 185, y: -65}, exp: 898/1500, source: legacy}
-  - {name: void_eye, index: 6, position: {x: 270, y: -100}, exp: 639/650, source: legacy}
-  - {name: fang, index: 7, position: {x: 140, y: -225}, exp: 154/600, rotated: true, source: legacy}
+  - {name: void_eye, index: 0, position: {x: 140, y: -80}, exp: 370/641/650, source: legacy}
+  - {name: void_eye, index: 1, position: {x: 230, y: -80}, exp: 492/558/650, source: legacy}
+  - {name: void_eye, index: 2, position: {x: 50, y: -100}, exp: 468/650/650, source: legacy}
+  - {name: mustang, index: 3, position: {x: 85, y: -170}, level: 2, exp: 0/1149/2704, source: legacy}
+  - {name: mustang, index: 4, position: {x: 195, y: -170}, level: 2, exp: 807/1032/2704, source: legacy}
+  - {name: tarantula, index: 5, position: {x: 185, y: -65}, exp: 898/1142/1500, source: legacy}
+  - {name: void_eye, index: 6, position: {x: 270, y: -100}, exp: 639/650/650, source: legacy}
+  - {name: fang, index: 7, position: {x: 140, y: -225}, exp: 154/273/600, rotated: true, source: legacy}
   - {name: fang, index: 8, position: {x: -140, y: -135}, rotated: true, source: legacy}
-  - {name: tarantula, index: 9, position: {x: 95, y: -65}, exp: 885/1500, source: legacy}
-  - {name: crawler, index: 10, position: {x: 135, y: -190}, exp: 111/450, source: legacy}
-  - {name: fang, index: 11, position: {x: 240, y: -45}, exp: 240/600, rotated: true, source: legacy}
-  - {name: marksman, index: 12, position: {x: 240, y: -120}, exp: 214/650, source: legacy}
-  - {name: tarantula, index: 13, position: {x: 265, y: -75}, exp: 269/1500, source: legacy}
-  - {name: fang, index: 14, position: {x: -140, y: -225}, exp: 60/600, rotated: true, source: legacy}
-  - {name: farseer, index: 15, position: {x: 215, y: -115}}
-  - {name: farseer, index: 16, position: {x: 175, y: -195}}
+  - {name: tarantula, index: 9, position: {x: 95, y: -65}, exp: 885/1500/1500, source: legacy}
+  - {name: crawler, index: 10, position: {x: 135, y: -190}, exp: 111/152/450, source: legacy}
+  - {name: fang, index: 11, position: {x: 240, y: -45}, exp: 240/295/600, rotated: true, source: legacy}
+  - {name: marksman, index: 12, position: {x: 240, y: -120}, exp: 214/262/650, source: legacy}
+  - {name: tarantula, index: 13, position: {x: 265, y: -75}, exp: 269/414/1500, source: legacy}
+  - {name: fang, index: 14, position: {x: -140, y: -225}, exp: 60/120/600, rotated: true, source: legacy}
+  - {name: farseer, index: 15, position: {x: 215, y: -115}, exp: 0/82/1800}
+  - {name: farseer, index: 16, position: {x: 175, y: -195}, exp: 0/493/1800}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   contraptions:
-  - {name: missile, index: 0, position: {x: -140, y: -167}}
+  - {name: missile, index: 0, position: {x: -140, y: -167}, retained: false}
   battle_skills:
-  - {name: shield_airdrop, standing: {position: {x: 220, y: -109}}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 5, exp: 140/450}
-    - {index: 6, exp: 126/450}
-    - {index: 7, exp: 324/600}
-    - {index: 9, exp: 2250/2250}
-    - {index: 11, exp: 980/2250}
-    - {index: 13, exp: 38/450}
-    - {index: 14, exp: 2183/2591}
-    - {index: 15, exp: 450/450}
-    - {index: 16, exp: 1496/2591}
-  red:
-    core_damage: 356
-    units:
-    - {index: 0, exp: 641/650}
-    - {index: 1, exp: 558/650}
-    - {index: 2, exp: 650/650}
-    - {index: 3, exp: 1149/2704}
-    - {index: 4, exp: 1032/2704}
-    - {index: 5, exp: 1142/1500}
-    - {index: 6, exp: 650/650}
-    - {index: 7, exp: 273/600}
-    - {index: 9, exp: 1500/1500}
-    - {index: 10, exp: 152/450}
-    - {index: 11, exp: 295/600}
-    - {index: 12, exp: 262/650}
-    - {index: 13, exp: 414/1500}
-    - {index: 14, exp: 120/600}
-    - {index: 15, exp: 82/1800}
-    - {index: 16, exp: 493/1800}
-    contraptions:
-    - {index: 0, retained: false}
-    battle_skills:
-    - {at: 0, retained: false}
+  - {name: shield_airdrop, standing: {position: {x: 220, y: -109}}, retained: false}
 ticks: 1256
 hash: 23:dddfad78f37c004fa479c29d5a3113797019b3bde4bf7ce1ec0a69c06f94237b

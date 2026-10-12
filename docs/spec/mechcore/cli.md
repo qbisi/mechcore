@@ -355,7 +355,7 @@ there and answers its path, round and source.
 
 The recording holds the fight's objects under its own identities, so each
 layout entry is found by what the two share. A formation is paired with its
-placement as [`show --view outcome`](#show) pairs it, and its outcome `exp` is
+placement as [`show --view outcome`](#show) pairs it, and its embedded `exp` final term is
 the formation's experience at the last tick, cut to a whole number as the
 fight's end cuts it; the formation has to open the fight holding the layout's
 experience, and its bar has to be the table's. `core_damage` is what

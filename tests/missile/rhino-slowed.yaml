@@ -11,21 +11,14 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
   contraptions:
-  - {name: missile, index: 0, position: {x: 1, y: -11}}
+  - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
 red:
+  core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}}
-outcome:
-  blue:
-    core_damage: 200
-    contraptions:
-    - {index: 0, retained: false}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/200/1150}
 ticks: 391
 hash: 23:b41d82465b86644ea08eea1c938a1b707d7c629fc1897b9a412e95210cc7452f

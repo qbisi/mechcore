@@ -12,20 +12,16 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 200
   techs:
     vulcan: [ignite]
   units:
   - {name: vulcan, index: 0, position: {x: 0, y: -100}}
 red:
+  core_damage: 0
   techs:
     rhino: [photon_coating]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
-outcome:
-  blue: {core_damage: 200}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 800/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/800/1150}
 ticks: 342
 hash: 23:0adb1ee8f3ee3dfd0e85ad208d5b41340e74b008cb6a594f2a125c57168150e0

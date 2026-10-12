@@ -6,20 +6,14 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: wraith, index: 0, position: {x: 5, y: -175}}
-  - {name: wraith, index: 1, position: {x: 5, y: -135}}
-  - {name: wraith, index: 2, position: {x: 5, y: -95}}
+  - {name: wraith, index: 0, position: {x: 5, y: -175}, exp: 0/10/2250}
+  - {name: wraith, index: 1, position: {x: 5, y: -135}, exp: 0/38/2250}
+  - {name: wraith, index: 2, position: {x: 5, y: -95}, exp: 0/144/2250}
 red:
+  core_damage: 750
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 10/2250}
-    - {index: 1, exp: 38/2250}
-    - {index: 2, exp: 144/2250}
-  red: {core_damage: 750}
 ticks: 247
 hash: 23:4f7540b274dd6a117bca3991ea14e945a575600c55c11429f4cb6594392e32a5

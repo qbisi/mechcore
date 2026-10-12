@@ -10,6 +10,7 @@ map_id: 1021
 seed: 563028779
 round: 2
 blue:
+  core_damage: 510
   officers: [advanced_shield_device, quick_teleport, marksman_specialist, fortified_mustang]
   techs:
     mustang: [culling_rounds]
@@ -17,8 +18,8 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
   - {name: marksman, index: 0, position: {x: 150, y: -190}, level: 3, source: delivered}
-  - {name: mustang, index: 1, position: {x: 320, y: 155}, level: 6, equipment: [deployment_module], travelling: true}
-  - {name: sabertooth, index: 2, position: {x: -185, y: -125}, level: 6}
+  - {name: mustang, index: 1, position: {x: 320, y: 155}, level: 6, exp: 0/1200/6959, equipment: [deployment_module], travelling: true}
+  - {name: sabertooth, index: 2, position: {x: -185, y: -125}, level: 6, exp: 0/200/7539}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   contraptions:
@@ -26,6 +27,7 @@ blue:
   battle_skills:
   - {name: nuke, positions: [{x: 215, y: -290}]}
 red:
+  core_damage: 0
   officers: [advanced_shield_device, advanced_targeting_system, speed_specialist]
   techs:
     sandworm: [sandstorm]
@@ -33,20 +35,9 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sandworm, index: 0, position: {x: -20, y: -60}, level: 4, equipment: [super_heavy_armor], source: legacy}
-  - {name: sledgehammer, index: 1, position: {x: -215, y: -150}, level: 8}
+  - {name: sandworm, index: 0, position: {x: -20, y: -60}, level: 4, exp: 0/4700/8981, equipment: [super_heavy_armor], source: legacy}
+  - {name: sledgehammer, index: 1, position: {x: -215, y: -150}, level: 8, exp: 0/5588/8746}
   contraptions:
   - {name: shield, index: 0, position: {x: -60, y: -90}}
-outcome:
-  blue:
-    core_damage: 510
-    units:
-    - {index: 1, exp: 1200/6959}
-    - {index: 2, exp: 200/7539}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 4700/8981}
-    - {index: 1, exp: 5588/8746}
 ticks: 1069
 hash: 23:99558cacaf8004144ad6d7e1a1dea6d1a032333552d31ae7b35000075ab693d8

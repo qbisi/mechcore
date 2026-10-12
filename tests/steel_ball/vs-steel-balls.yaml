@@ -7,20 +7,13 @@ map_id: 1021
 seed: 1787831322
 round: 1
 blue:
+  core_damage: 50
   units:
-  - {name: steel_ball, index: 0, position: {x: 5, y: -100}}
+  - {name: steel_ball, index: 0, position: {x: 5, y: -100}, exp: 0/300/1000}
 red:
+  core_damage: 0
   units:
-  - {name: steel_ball, index: 0, position: {x: 5, y: -100}}
-outcome:
-  blue:
-    core_damage: 50
-    units:
-    - {index: 0, exp: 300/1000}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 400/1000}
+  - {name: steel_ball, index: 0, position: {x: 5, y: -100}, exp: 0/400/1000}
 asserts:
 - sql: |-
     SELECT tick, unit_id, velocity__x, velocity__z FROM units WHERE tick = 8 AND unit_id IN (1, 2, 3) ORDER BY unit_id

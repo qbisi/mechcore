@@ -12,16 +12,15 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   energy_tower_skills: [high_mobility]
   units:
   - {name: marksman, index: 0, position: {x: -100, y: -150}}
   battle_skills:
   - {name: rhino_assault, positions: [{x: 0, y: -60}]}
 red:
+  core_damage: 150
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-outcome:
-  blue: {core_damage: 0}
-  red: {core_damage: 150}
 ticks: 231
 hash: 23:9c1eb70442d305cbc9ed44bd10bd821297a61fcd019bfce37191dc80150e7d97

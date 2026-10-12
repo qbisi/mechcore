@@ -15,24 +15,17 @@ map_id: 1021
 seed: 4242
 round: 2
 blue:
+  core_damage: 0
   techs:
     phoenix: [energy_shield]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: phoenix, index: 1, position: {x: -330, y: 200}, equipment: [nano_repair_kit], travelling: true}
+  - {name: phoenix, index: 1, position: {x: -330, y: 200}, exp: 0/400/1300, equipment: [nano_repair_kit], travelling: true}
 red:
+  core_damage: 200
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
   - {name: marksman, index: 1, position: {x: -60, y: -150}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 1, exp: 400/1300}
-  red:
-    core_damage: 200
-    units:
-    - {index: 0, exp: 200/650}
 asserts:
 - sql: |-
     SELECT tick, personal_shield__energy__current, count(*) FROM units WHERE unit_type_id = 16 AND tick IN (160, 161) GROUP BY tick, personal_shield__energy__current ORDER BY tick

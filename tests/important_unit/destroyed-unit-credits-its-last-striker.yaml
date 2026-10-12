@@ -12,6 +12,7 @@ map_id: 1021
 seed: 176233926
 round: 4
 blue:
+  core_damage: 0
   officers: [advanced_missile_device, improved_phoenix]
   techs:
     phoenix: [energy_shield]
@@ -19,36 +20,25 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: phoenix, index: 0, position: {x: -20, y: -280}, level: 2, exp: 1464/2929, rotated: true, equipment: [deployment_module], source: legacy}
-  - {name: sabertooth, index: 1, position: {x: -235, y: -85}, level: 9}
+  - {name: phoenix, index: 0, position: {x: -20, y: -280}, level: 2, exp: 1464/2864/2929, rotated: true, equipment: [deployment_module], source: legacy}
+  - {name: sabertooth, index: 1, position: {x: -235, y: -85}, level: 9, exp: 0/2800/8746}
   contraptions:
-  - {name: missile, index: 0, position: {x: 295, y: -35}}
+  - {name: missile, index: 0, position: {x: 295, y: -35}, retained: false}
   battle_skills:
   - {name: mobilize_battleship, positions: [{x: 30, y: -130}]}
 red:
+  core_damage: 300
   officers: [advanced_offensive_tactics, rhino_specialist, extended_range_sledgehammer]
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: sledgehammer, index: 0, position: {x: -245, y: -210}, level: 4, exp: 5837/5837, equipment: [dominion_core], source: legacy}
+  - {name: sledgehammer, index: 0, position: {x: -245, y: -210}, level: 4, exp: 5837/5837/5837, equipment: [dominion_core], source: legacy}
   - {name: rhino, index: 1, position: {x: 155, y: -195}, level: 2, source: delivered}
-  - {name: melting_point, index: 2, position: {x: -50, y: -130}, level: 2}
+  - {name: melting_point, index: 2, position: {x: -50, y: -130}, level: 2, exp: 0/1600/3154}
   contraptions:
   - {name: shield, index: 0, position: {x: -30, y: -150}}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: 10, y: 40}, {x: -300, y: -95}]}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 2864/2929}
-    - {index: 1, exp: 2800/8746}
-    contraptions:
-    - {index: 0, retained: false}
-  red:
-    core_damage: 300
-    units:
-    - {index: 2, exp: 1600/3154}
 asserts:
 - sql: |-
     SELECT object__id, source__kind, source__id FROM events WHERE type = 'unit_died' AND object__id = 4

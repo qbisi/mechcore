@@ -11,18 +11,14 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 200
   techs:
     stormcaller: [incendiary_bomb]
   units:
   - {name: stormcaller, index: 0, position: {x: 5, y: -100}}
 red:
+  core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
-outcome:
-  blue: {core_damage: 200}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 400/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150}
 ticks: 305
 hash: 23:8f85cc2fd623daa5e5cd0698715bd7c508d2319d24ced1b94f5a508afc211ed4

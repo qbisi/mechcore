@@ -12,23 +12,16 @@ map_id: 1021
 seed: 1
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: -25, y: -90}}
+  - {name: wasp, index: 0, position: {x: -25, y: -90}, exp: 0/900/900}
 red:
+  core_damage: 204
   techs:
     crawler: [loose_formation]
   blueprints: [defense_enhancement_ii]
   units:
-  - {name: crawler, index: 0, position: {x: -135, y: -220}, level: 6, equipment: [absorption_module]}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 900/900}
-  red:
-    core_damage: 204
-    units:
-    - {index: 0, exp: 400/2609}
+  - {name: crawler, index: 0, position: {x: -135, y: -220}, level: 6, exp: 0/400/2609, equipment: [absorption_module]}
 asserts:
 - sql: |-
     SELECT DISTINCT life__maximum FROM units WHERE tick = 1 AND unit_type_id = 10

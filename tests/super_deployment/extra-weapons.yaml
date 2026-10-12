@@ -8,30 +8,20 @@ map_id: 1021
 seed: 4242
 round: 2
 blue:
+  core_damage: 200
   techs:
     sabertooth: [secondary_armament]
   units:
-  - {name: sabertooth, index: 0, position: {x: -335, y: 205}, travelling: true}
-  - {name: sabertooth, index: 1, position: {x: 335, y: 205}, travelling: true}
+  - {name: sabertooth, index: 0, position: {x: -335, y: 205}, exp: 0/600/1300, travelling: true}
+  - {name: sabertooth, index: 1, position: {x: 335, y: 205}, exp: 0/200/1300, travelling: true}
   - {name: sabertooth, index: 2, position: {x: 5, y: -95}}
 red:
+  core_damage: 0
   techs:
     sabertooth: [secondary_armament]
   units:
-  - {name: sabertooth, index: 0, position: {x: -335, y: 205}, travelling: true}
-  - {name: sabertooth, index: 1, position: {x: 335, y: 205}, travelling: true}
-  - {name: sabertooth, index: 2, position: {x: 5, y: -95}}
-outcome:
-  blue:
-    core_damage: 200
-    units:
-    - {index: 0, exp: 600/1300}
-    - {index: 1, exp: 200/1300}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 600/1300}
-    - {index: 1, exp: 200/1300}
-    - {index: 2, exp: 400/1300}
+  - {name: sabertooth, index: 0, position: {x: -335, y: 205}, exp: 0/600/1300, travelling: true}
+  - {name: sabertooth, index: 1, position: {x: 335, y: 205}, exp: 0/200/1300, travelling: true}
+  - {name: sabertooth, index: 2, position: {x: 5, y: -95}, exp: 0/400/1300}
 ticks: 1128
 hash: 23:a3252d3ae84f7910602f4f597a6ccf17af7fb2cbe77c8f0306baa71e3664b394

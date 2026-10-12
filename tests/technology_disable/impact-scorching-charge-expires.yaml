@@ -11,26 +11,18 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -60}}
+  - {name: wasp, index: 0, position: {x: 5, y: -60}, exp: 0/900/900}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 135}]}
 red:
+  core_damage: 204
   techs:
     fire_badger: [scorching_charge]
   units:
   - {name: fire_badger, index: 0, position: {x: 5, y: -130}}
-  - {name: rhino, index: 1, position: {x: 5, y: -55}}
-  - {name: rhino, index: 2, position: {x: -45, y: -55}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 900/900}
-  red:
-    core_damage: 204
-    units:
-    - {index: 1, exp: 200/1150}
-    - {index: 2, exp: 200/1150}
+  - {name: rhino, index: 1, position: {x: 5, y: -55}, exp: 0/200/1150}
+  - {name: rhino, index: 2, position: {x: -45, y: -55}, exp: 0/200/1150}
 ticks: 1637
 hash: 23:c6a9bcbda023f4888a45b4420a3eb253a367fd81eecad0c7ceb405dab58631be

@@ -11,20 +11,16 @@ map_id: 1021
 seed: 1
 round: 1
 blue:
+  core_damage: 0
   officers: [aerial_specialist]
   techs:
     wraith: [land_cruiser]
   units:
-  - {name: wraith, index: 0, position: {x: 5, y: -105}}
+  - {name: wraith, index: 0, position: {x: 5, y: -105}, exp: 0/200/2250}
 red:
+  core_damage: 250
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -100}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 200/2250}
-  red: {core_damage: 250}
 asserts:
 - sql: |-
     SELECT life__maximum, domain FROM units WHERE tick = 1 AND unit_id = 1

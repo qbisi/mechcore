@@ -9,18 +9,14 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   techs:
     melting_point: [energy_diffraction]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -100}, equipment: [explosive_ammo]}
+  - {name: melting_point, index: 0, position: {x: 0, y: -100}, exp: 0/400/1400, equipment: [explosive_ammo]}
 red:
+  core_damage: 350
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 400/1400}
-  red: {core_damage: 350}
 ticks: 174
 hash: 23:8a6418c7cf79c5d8af32d7107bd4e1d629af495a23f2d7872372594ec39f623e

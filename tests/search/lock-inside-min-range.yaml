@@ -15,25 +15,16 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/1150/1150}
   contraptions:
-  - {name: interceptor, index: 0, position: {x: 5, y: -145}}
+  - {name: interceptor, index: 0, position: {x: 5, y: -145}, retained: false}
 red:
+  core_damage: 200
   units:
   - {name: stormcaller, index: 0, position: {x: -55, y: -40}}
   - {name: stormcaller, index: 1, position: {x: 5, y: -40}}
-  - {name: stormcaller, index: 2, position: {x: 65, y: -40}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 1150/1150}
-    contraptions:
-    - {index: 0, retained: false}
-  red:
-    core_damage: 200
-    units:
-    - {index: 2, exp: 200/1100}
+  - {name: stormcaller, index: 2, position: {x: 65, y: -40}, exp: 0/200/1100}
 ticks: 689
 hash: 23:ff86f5d96409acb80f48ee345af5a4944b032faad21dc042b72e2f4e9b88cd47

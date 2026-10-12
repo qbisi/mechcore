@@ -12,23 +12,15 @@ map_id: 1021
 seed: 4242
 round: 2
 blue:
+  core_damage: 0
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: raiden, index: 1, position: {x: -330, y: 40}, equipment: [tank_production_line], travelling: true}
+  - {name: raiden, index: 1, position: {x: -330, y: 40}, exp: 0/400/2400, equipment: [tank_production_line], travelling: true}
 red:
+  core_damage: 400
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: marksman, index: 1, position: {x: -60, y: -150}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 1, exp: 400/2400}
-  red:
-    core_damage: 400
-    units:
-    - {index: 0, exp: 200/650}
-    - {index: 1, exp: 280/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/280/650}
 asserts:
 - sql: |-
     SELECT tick, count(*) FROM events WHERE type = 'unit_created' AND tick <= 700 GROUP BY tick ORDER BY tick

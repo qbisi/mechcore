@@ -7,18 +7,14 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   techs:
     abyss: [vertical_sweep]
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -105}}
+  - {name: abyss, index: 0, position: {x: 5, y: -105}, exp: 0/400/4800}
 red:
+  core_damage: 500
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -105}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 400/4800}
-  red: {core_damage: 500}
 ticks: 171
 hash: 23:93e04218c48eec3764f5e19410152f94f0676c56ecfb42688aa03a3b64842902

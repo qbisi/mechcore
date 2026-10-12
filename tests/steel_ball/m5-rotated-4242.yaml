@@ -7,19 +7,12 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: steel_ball, index: 0, position: {x: -60, y: -55}, rotated: true}
+  - {name: steel_ball, index: 0, position: {x: -60, y: -55}, exp: 0/400/1000, rotated: true}
 red:
+  core_damage: 150
   units:
-  - {name: rhino, index: 0, position: {x: -35, y: -95}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 400/1000}
-  red:
-    core_damage: 150
-    units:
-    - {index: 0, exp: 100/1150}
+  - {name: rhino, index: 0, position: {x: -35, y: -95}, exp: 0/100/1150}
 ticks: 173
 hash: 23:5f3da788fa1b052855f81458db6ac23c8055606aac843c043690c53c1db2490e

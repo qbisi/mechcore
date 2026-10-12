@@ -1407,34 +1407,24 @@ source: game
 seed: 4242
 round: 3
 blue:
+  core_damage: 37
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 12/650}
-  - {name: arclight, index: 1, position: {x: 60, y: -50}}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 12/170/650}
+  - {name: arclight, index: 1, position: {x: 60, y: -50}, exp: 0/40/750}
   - {name: arclight, index: 2, position: {x: -60, y: -50}}
   contraptions:
-  - {name: interceptor, index: 0, position: {x: 5, y: -95}}
+  - {name: interceptor, index: 0, position: {x: 5, y: -95}, retained: false}
   - {name: missile, index: 1, position: {x: -95, y: -95}}
   battle_skills:
-  - {name: shield_airdrop, standing: {position: {x: -150, y: -150}}}
+  - {name: shield_airdrop, standing: {position: {x: -150, y: -150}}, retained: false}
   - {name: shield_airdrop, standing: {position: {x: 150, y: -150}}}
   - {name: sticky_oil_bomb, standing: {control_points: [{x: -24, y: 11}, {x: 80, y: 1}]}}
   - {name: shield_airdrop, positions: [{x: 0, y: -150}]}
-  - {name: sticky_oil_bomb, positions: [{x: -30, y: 150}, {x: 60, y: 150}]}
+  - {name: sticky_oil_bomb, positions: [{x: -30, y: 150}, {x: 60, y: 150}], grid_rows: {2: [], 3: [], 4: []}}
 red:
+  core_damage: 0
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -100}}
-outcome:
-  blue:
-    core_damage: 37
-    units:
-    - {index: 0, exp: 170/650}
-    - {index: 1, exp: 40/750}
-    contraptions:
-    - {index: 0, retained: false}
-    battle_skills:
-    - {at: 0, retained: false}
-    - {at: 4, grid_rows: {2: [], 3: [], 4: []}}
-  red: {core_damage: 0}
 ticks: 870
 hash: 23:0000000000000000000000000000000000000000000000000000000000000000
 ",

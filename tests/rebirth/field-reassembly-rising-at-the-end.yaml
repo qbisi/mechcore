@@ -10,33 +10,20 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   techs:
     typhoon: [field_reassembly]
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -40}}
-  - {name: rhino, index: 1, position: {x: -55, y: -95}, level: 4}
-  - {name: rhino, index: 2, position: {x: 65, y: -95}, level: 4}
-  - {name: rhino, index: 3, position: {x: -15, y: -95}, level: 4}
-  - {name: rhino, index: 4, position: {x: 25, y: -95}, level: 4}
-  - {name: rhino, index: 5, position: {x: -95, y: -95}, level: 4}
-  - {name: rhino, index: 6, position: {x: 105, y: -95}, level: 4}
+  - {name: typhoon, index: 0, position: {x: 0, y: -40}, exp: 0/57/1950}
+  - {name: rhino, index: 1, position: {x: -55, y: -95}, level: 4, exp: 0/57/5164}
+  - {name: rhino, index: 2, position: {x: 65, y: -95}, level: 4, exp: 0/457/5164}
+  - {name: rhino, index: 3, position: {x: -15, y: -95}, level: 4, exp: 0/57/5164}
+  - {name: rhino, index: 4, position: {x: 25, y: -95}, level: 4, exp: 0/57/5164}
+  - {name: rhino, index: 5, position: {x: -95, y: -95}, level: 4, exp: 0/57/5164}
+  - {name: rhino, index: 6, position: {x: 105, y: -95}, level: 4, exp: 0/57/5164}
 red:
+  core_damage: 1231
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -40}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 57/1950}
-    - {index: 1, exp: 57/5164}
-    - {index: 2, exp: 457/5164}
-    - {index: 3, exp: 57/5164}
-    - {index: 4, exp: 57/5164}
-    - {index: 5, exp: 57/5164}
-    - {index: 6, exp: 57/5164}
-  red:
-    core_damage: 1231
-    units:
-    - {index: 0, exp: 600/1600}
+  - {name: fortress, index: 0, position: {x: 0, y: -40}, exp: 0/600/1600}
 ticks: 190
 hash: 23:21335f46e76fc721231d044302145b01282bd7f3b2590fb201ab2c759b7c303e

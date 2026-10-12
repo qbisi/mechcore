@@ -13,18 +13,14 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 200
   techs:
     scorpion: [siege_mode]
   units:
   - {name: scorpion, index: 0, position: {x: -5, y: -105}}
 red:
+  core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
-outcome:
-  blue: {core_damage: 200}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 600/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/600/1150}
 ticks: 302
 hash: 23:84c03ef073fb8d3e1f6d4173b3030ae7fbee1c87456b6997404f89d2d217440a

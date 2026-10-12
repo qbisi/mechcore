@@ -7,22 +7,14 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: fire_badger, index: 0, position: {x: -5, y: -120}}
-  - {name: fire_badger, index: 1, position: {x: -5, y: -80}}
+  - {name: fire_badger, index: 0, position: {x: -5, y: -120}, exp: 0/108/1400}
+  - {name: fire_badger, index: 1, position: {x: -5, y: -80}, exp: 0/284/1400}
 red:
+  core_damage: 268
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -70}}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 108/1400}
-    - {index: 1, exp: 284/1400}
-  red:
-    core_damage: 268
-    units:
-    - {index: 1, exp: 268/650}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/268/650}
 ticks: 350
 hash: 23:be06983bba1ea7e9356c6cd62c8c34e62acab385430bbc4cefd62b886667762f

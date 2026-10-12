@@ -11,25 +11,16 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 350
   techs:
     sledgehammer: [damage_sharing]
   units:
-  - {name: sledgehammer, index: 0, position: {x: -45, y: -100}}
-  - {name: sledgehammer, index: 1, position: {x: 5, y: -100}}
+  - {name: sledgehammer, index: 0, position: {x: -45, y: -100}, exp: 0/25/1300}
+  - {name: sledgehammer, index: 1, position: {x: 5, y: -100}, exp: 0/75/1300}
 red:
+  core_damage: 0
   units:
-  - {name: steel_ball, index: 0, position: {x: -45, y: -60}}
-  - {name: steel_ball, index: 1, position: {x: 55, y: -60}}
-outcome:
-  blue:
-    core_damage: 350
-    units:
-    - {index: 0, exp: 25/1300}
-    - {index: 1, exp: 75/1300}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 200/1000}
-    - {index: 1, exp: 600/1000}
+  - {name: steel_ball, index: 0, position: {x: -45, y: -60}, exp: 0/200/1000}
+  - {name: steel_ball, index: 1, position: {x: 55, y: -60}, exp: 0/600/1000}
 ticks: 219
 hash: 23:02ad9533a523bf014eea7483feb6109e08d9704b34e39b79260fc2d7d8bf5dd1

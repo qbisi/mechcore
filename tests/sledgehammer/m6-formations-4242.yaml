@@ -7,23 +7,14 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: sledgehammer, index: 0, position: {x: -5, y: -120}}
-  - {name: sledgehammer, index: 1, position: {x: -5, y: -80}}
+  - {name: sledgehammer, index: 0, position: {x: -5, y: -120}, exp: 0/48/1300}
+  - {name: sledgehammer, index: 1, position: {x: -5, y: -80}, exp: 0/344/1300}
 red:
+  core_damage: 320
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 48/1300}
-    - {index: 1, exp: 344/1300}
-  red:
-    core_damage: 320
-    units:
-    - {index: 0, exp: 20/450}
-    - {index: 1, exp: 140/650}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/20/450}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/140/650}
 ticks: 305
 hash: 23:5173b0505dc62b6e12eeb2e93ebbdf8d01cd0e4c3e04915c14a94368da824333

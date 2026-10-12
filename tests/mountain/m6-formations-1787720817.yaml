@@ -7,19 +7,14 @@ map_id: 1021
 seed: 1787720817
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: mountain, index: 0, position: {x: 5, y: -145}}
-  - {name: mountain, index: 1, position: {x: 5, y: -75}}
+  - {name: mountain, index: 0, position: {x: 5, y: -145}, exp: 0/30/3200}
+  - {name: mountain, index: 1, position: {x: 5, y: -75}, exp: 0/362/3200}
 red:
+  core_damage: 1000
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -70}}
   - {name: marksman, index: 1, position: {x: 0, y: -110}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 30/3200}
-    - {index: 1, exp: 362/3200}
-  red: {core_damage: 1000}
 ticks: 209
 hash: 23:e3d586e983e2b6bff6c88803680d5848af3f9f459d036d4b610ee572bc961a2b

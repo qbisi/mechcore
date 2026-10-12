@@ -6,16 +6,12 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: farseer, index: 0, position: {x: -5, y: -105}}
+  - {name: farseer, index: 0, position: {x: -5, y: -105}, exp: 0/192/1800}
 red:
+  core_damage: 250
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 192/1800}
-  red: {core_damage: 250}
 ticks: 219
 hash: 23:2a510cb96590431502f0d7c1a29e2ad9fe874350966bb30db7341eb3e1921a8d

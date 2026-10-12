@@ -17,37 +17,22 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 252
   techs:
     centurion: [melee_mode, dual_wield]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -165}, level: 3}
-  - {name: fortress, index: 1, position: {x: 0, y: -120}, level: 3}
+  - {name: centurion, index: 0, position: {x: 5, y: -165}, level: 3, exp: 0/744/8014}
+  - {name: fortress, index: 1, position: {x: 0, y: -120}, level: 3, exp: 0/304/5699}
 red:
+  core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: -45, y: -60}}
-  - {name: crawler, index: 1, position: {x: 45, y: -60}}
-  - {name: crawler, index: 2, position: {x: -95, y: -60}}
-  - {name: crawler, index: 3, position: {x: 95, y: -60}}
-  - {name: crawler, index: 4, position: {x: -45, y: -100}}
-  - {name: crawler, index: 5, position: {x: 45, y: -100}}
-  - {name: marksman, index: 6, position: {x: 0, y: -40}, level: 3}
-  - {name: marksman, index: 7, position: {x: 60, y: -40}, level: 3}
-outcome:
-  blue:
-    core_damage: 252
-    units:
-    - {index: 0, exp: 744/8014}
-    - {index: 1, exp: 304/5699}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 250/450}
-    - {index: 1, exp: 450/450}
-    - {index: 2, exp: 450/450}
-    - {index: 3, exp: 450/450}
-    - {index: 4, exp: 450/450}
-    - {index: 5, exp: 450/450}
-    - {index: 6, exp: 2000/2315}
-    - {index: 7, exp: 500/2315}
+  - {name: crawler, index: 0, position: {x: -45, y: -60}, exp: 0/250/450}
+  - {name: crawler, index: 1, position: {x: 45, y: -60}, exp: 0/450/450}
+  - {name: crawler, index: 2, position: {x: -95, y: -60}, exp: 0/450/450}
+  - {name: crawler, index: 3, position: {x: 95, y: -60}, exp: 0/450/450}
+  - {name: crawler, index: 4, position: {x: -45, y: -100}, exp: 0/450/450}
+  - {name: crawler, index: 5, position: {x: 45, y: -100}, exp: 0/450/450}
+  - {name: marksman, index: 6, position: {x: 0, y: -40}, level: 3, exp: 0/2000/2315}
+  - {name: marksman, index: 7, position: {x: 60, y: -40}, level: 3, exp: 0/500/2315}
 ticks: 678
 hash: 23:2a8041138cd5596eef35251b128973e083f91f8ba3ad1c2509186e768809f8fc

@@ -6,16 +6,12 @@ map_id: 1021
 seed: 1787720817
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -105}}
+  - {name: war_factory, index: 0, position: {x: 5, y: -105}, exp: 0/1600/3200}
 red:
+  core_damage: 0
   units:
   - {name: war_factory, index: 0, position: {x: 5, y: -105}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 1600/3200}
-  red: {core_damage: 0}
 ticks: 343
 hash: 23:6bee5546f0103dd5b75277389d376712df1436fc0fedad0e70305a30efee4e13

@@ -9,48 +9,30 @@ map_id: 1031
 seed: 505043195
 round: 1
 blue:
+  core_damage: 0
   officers: [giant_specialist]
   units:
-  - {name: void_eye, index: 0, position: {x: -190, y: -150}, source: legacy}
-  - {name: void_eye, index: 1, position: {x: -20, y: -150}, source: legacy}
-  - {name: void_eye, index: 2, position: {x: -100, y: -150}, source: legacy}
-  - {name: sledgehammer, index: 3, position: {x: -90, y: -115}, rotated: true, source: legacy}
-  - {name: sledgehammer, index: 4, position: {x: -180, y: -115}, rotated: true, source: legacy}
-  - {name: crawler, index: 5, position: {x: -190, y: -185}, rotated: true}
-  - {name: crawler, index: 6, position: {x: -100, y: -185}, rotated: true}
+  - {name: void_eye, index: 0, position: {x: -190, y: -150}, exp: 0/266/650, source: legacy}
+  - {name: void_eye, index: 1, position: {x: -20, y: -150}, exp: 0/70/650, source: legacy}
+  - {name: void_eye, index: 2, position: {x: -100, y: -150}, exp: 0/645/650, source: legacy}
+  - {name: sledgehammer, index: 3, position: {x: -90, y: -115}, exp: 0/337/1300, rotated: true, source: legacy}
+  - {name: sledgehammer, index: 4, position: {x: -180, y: -115}, exp: 0/163/1300, rotated: true, source: legacy}
+  - {name: crawler, index: 5, position: {x: -190, y: -185}, exp: 0/289/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -100, y: -185}, exp: 0/201/450, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
+  core_damage: 538
   officers: [cost_control_specialist]
   units:
-  - {name: crawler, index: 0, position: {x: 135, y: -190}, source: legacy}
-  - {name: crawler, index: 1, position: {x: -140, y: -135}, rotated: true, source: legacy}
+  - {name: crawler, index: 0, position: {x: 135, y: -190}, exp: 0/19/450, source: legacy}
+  - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 0/265/450, rotated: true, source: legacy}
   - {name: crawler, index: 2, position: {x: 140, y: -135}, rotated: true, source: legacy}
-  - {name: sabertooth, index: 3, position: {x: 95, y: -95}, source: legacy}
-  - {name: sabertooth, index: 4, position: {x: -95, y: -95}, source: legacy}
-  - {name: arclight, index: 5, position: {x: 140, y: -100}}
-  - {name: arclight, index: 6, position: {x: -140, y: -100}}
+  - {name: sabertooth, index: 3, position: {x: 95, y: -95}, exp: 0/227/1300, source: legacy}
+  - {name: sabertooth, index: 4, position: {x: -95, y: -95}, exp: 0/248/1300, source: legacy}
+  - {name: arclight, index: 5, position: {x: 140, y: -100}, exp: 0/165/750}
+  - {name: arclight, index: 6, position: {x: -140, y: -100}, exp: 0/25/750}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 266/650}
-    - {index: 1, exp: 70/650}
-    - {index: 2, exp: 645/650}
-    - {index: 3, exp: 337/1300}
-    - {index: 4, exp: 163/1300}
-    - {index: 5, exp: 289/450}
-    - {index: 6, exp: 201/450}
-  red:
-    core_damage: 538
-    units:
-    - {index: 0, exp: 19/450}
-    - {index: 1, exp: 265/450}
-    - {index: 3, exp: 227/1300}
-    - {index: 4, exp: 248/1300}
-    - {index: 5, exp: 165/750}
-    - {index: 6, exp: 25/750}
 ticks: 1019
 hash: 23:e66748a409e248f6b1524179bc0d61b365390db04a0c74df91754f31b855edd8

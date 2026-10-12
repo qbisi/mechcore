@@ -12,23 +12,16 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   techs:
     raiden: [chain]
   units:
-  - {name: raiden, index: 0, position: {x: 0, y: -170}}
+  - {name: raiden, index: 0, position: {x: 0, y: -170}, exp: 0/1424/2400}
 red:
+  core_damage: 350
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -50}}
+  - {name: fortress, index: 0, position: {x: 0, y: -50}, exp: 0/400/1600}
   - {name: fang, index: 1, position: {x: 45, y: -60}}
   - {name: mustang, index: 2, position: {x: -45, y: -40}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 1424/2400}
-  red:
-    core_damage: 350
-    units:
-    - {index: 0, exp: 400/1600}
 ticks: 1470
 hash: 23:283a770f37871eebc8a0e04f309e9efa7e994e7c470d8e719e8d0645258ab8d1

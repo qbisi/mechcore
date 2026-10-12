@@ -13,23 +13,16 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   techs:
     sabertooth: [secondary_armament]
   units:
-  - {name: sabertooth, index: 0, position: {x: 5, y: -45}}
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/600/1300}
 red:
+  core_damage: 0
   units:
   - {name: marksman, index: 0, position: {x: -50, y: -40}}
   - {name: marksman, index: 1, position: {x: 60, y: -40}}
-  - {name: rhino, index: 2, position: {x: 5, y: -75}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 600/1300}
-  red:
-    core_damage: 0
-    units:
-    - {index: 2, exp: 400/1150}
+  - {name: rhino, index: 2, position: {x: 5, y: -75}, exp: 0/400/1150}
 ticks: 188
 hash: 23:b6e1acaaabf9fcbf2bab67ae7ed6ea528d57901dd4796b2a045edafa84a3ae21

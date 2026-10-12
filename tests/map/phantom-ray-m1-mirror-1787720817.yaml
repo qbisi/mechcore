@@ -10,19 +10,12 @@ map_id: 1001
 seed: 1787720817
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}}
+  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}, exp: 0/134/1000}
 red:
+  core_damage: 0
   units:
-  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 134/1000}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 402/1000}
+  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}, exp: 0/402/1000}
 ticks: 235
 hash: 23:a98dd531d0b46a753d53915678f6e9d42c196644c7e2ba7eba8c0043beaf5c96

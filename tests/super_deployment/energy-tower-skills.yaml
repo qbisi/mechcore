@@ -7,24 +7,16 @@ map_id: 1021
 seed: 4242
 round: 2
 blue:
+  core_damage: 0
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: arclight, index: 1, position: {x: -310, y: 20}, travelling: true}
+  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/200/750, travelling: true}
 red:
+  core_damage: 0
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: marksman, index: 1, position: {x: -60, y: -150}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 1, exp: 200/750}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 200/650}
-    - {index: 1, exp: 600/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/600/650}
 ticks: 1107
 hash: 23:3c396bd8e61369e9ccf4dc141c533e1016d2cbecfdc67f2a124eb4ba65f0ac7d

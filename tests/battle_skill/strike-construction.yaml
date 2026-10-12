@@ -12,25 +12,18 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -250}}
+  - {name: marksman, index: 0, position: {x: 0, y: -250}, exp: 0/48/650}
   battle_skills:
   - {name: missile_strike, positions: [{x: -25, y: 100}]}
 red:
+  core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 150, y: -230}}
+  - {name: marksman, index: 0, position: {x: 150, y: -230}, exp: 0/200/650}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 0, y: -105}}
   - {name: anti_armor_turret, index: 1, position: {x: 50, y: -100}}
-outcome:
-  blue:
-    core_damage: 100
-    units:
-    - {index: 0, exp: 48/650}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 200/650}
 asserts:
 - sql: |-
     SELECT tick, target__kind, target__id, amount FROM events WHERE type = 'damage' AND source__kind IS NULL AND tick = 63 ORDER BY ordinal
