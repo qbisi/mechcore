@@ -46,5 +46,5 @@
 <path d="M2.8 0A2.8 2.8 0 0 1 -1.4 2.42A2.8 2.8 0 0 1 -1.4 -2.42A2.8 2.8 0 0 1 2.8 0" fill="#e6e9ee"/>
 <path d="M2.8 0A2.8 2.8 0 0 1 -1.4 2.42A2.8 2.8 0 0 1 -1.4 -2.42A2.8 2.8 0 0 1 2.8 0" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
 <path d="M2 0A2 2 0 0 1 -1 1.73A2 2 0 0 1 -1 -1.73A2 2 0 0 1 2 0" fill="#2fe3ff"/>
-<path d="M-4.55 -4.55L4.55 -4.55L4.55 4.55L-4.55 4.55Z" fill="url(#g1)" opacity="0.9"/>
+<path d="M-4.55 -4.55L4.55 -4.55L4.55 4.55L-4.55 4.55Z" fill="url(#g1)" opacity="0.9" style="mix-blend-mode:plus-lighter"/>
 </svg>

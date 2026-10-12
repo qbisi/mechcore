@@ -88,5 +88,5 @@
 <path d="M-1.7 1L1.7 1A0.5 0.5 0 0 1 2.2 1.5L2.2 3.8A0.5 0.5 0 0 1 1.7 4.3L-1.7 4.3A0.5 0.5 0 0 1 -2.2 3.8L-2.2 1.5A0.5 0.5 0 0 1 -1.7 1Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
 <path d="M0 -8.4L0.85 -7.4L0.7 0.6L-0.7 0.6L-0.85 -7.4Z" fill="#3d8dff"/>
 <path d="M0 -8.4L0.85 -7.4L0.7 0.6L-0.7 0.6L-0.85 -7.4Z" fill="none" stroke="#0a0c0f" stroke-width="0.06"/>
-<path d="M-2 0.6L2 0.6L2 4.6L-2 4.6Z" fill="url(#g3)" opacity="0.6"/>
+<path d="M-2 0.6L2 0.6L2 4.6L-2 4.6Z" fill="url(#g3)" opacity="0.6" style="mix-blend-mode:plus-lighter"/>
 </svg>

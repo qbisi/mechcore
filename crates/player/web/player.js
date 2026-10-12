@@ -452,7 +452,7 @@
 
   // ------------------------------------------------------------- the view
   const canvas = document.getElementById('field');
-  const ctx = canvas.getContext('2d');
+  let ctx = canvas.getContext('2d');
   const view = { x: 0, z: 0, s: 1, w: 1, h: 1, dpr: 1 };
   const options = { life: true, damage: false, aim: false };
   let tau = 1;
@@ -509,14 +509,18 @@
   // The map, simplified: a ground of worn plates and sand, each side's half
   // washed in its colour, and the centre line. `drawGround` lays the
   // deployment grid and each side's deployment regions over it.
-  const ground = (() => {
+  function makeGround(vector = false) {
     const hw = data.field.half_width / 100;
     const hd = data.field.half_depth / 100;
     const res = 3;
     const g = document.createElement('canvas');
     g.width = Math.round(hw * 2 * res);
     g.height = Math.round(hd * 2 * res);
-    const c = g.getContext('2d');
+    const c = vector ? new SnapshotContext() : g.getContext('2d');
+    if (vector) {
+      c.prefix = 'ground-';
+      c.width = g.width; c.height = g.height;
+    }
     const rnd = random(7);
     c.fillStyle = '#1b2125';
     c.fillRect(0, 0, g.width, g.height);
@@ -569,8 +573,10 @@
     v.addColorStop(1, 'rgba(0,0,0,0.55)');
     c.fillStyle = v;
     c.fillRect(0, 0, g.width, g.height);
-    return { canvas: g, hw, hd, res };
-  })();
+    return { canvas: vector ? c : g, hw, hd, res };
+  }
+  let ground = makeGround();
+  let vectorGround;
 
   function drawGround() {
     screen();
@@ -1787,6 +1793,37 @@
   function setTau(value) {
     tau = Math.max(1, Math.min(LAST, value));
   }
+
+  // Render the same frame through the vector context, including the ground.
+  // CSS pixels are the SVG viewBox; device pixel density does not affect it.
+  function snapshot(value = Math.floor(tau)) {
+    if (!Number.isInteger(value) || value < 1 || value > LAST) throw new RangeError(`tick must be an integer from 1 to ${LAST}`);
+    playing = false;
+    setTau(value);
+    const previous = [ctx, ground, view.dpr, hover];
+    const svg = new SnapshotContext();
+    try {
+      ctx = svg;
+      ground = vectorGround || (vectorGround = makeGround(true));
+      view.dpr = 1;
+      hover = null;
+      frame();
+      const title = `${document.title} · tick ${value}`;
+      return svg.snapshot(title, view.w, view.h);
+    } finally {
+      [ctx, ground, view.dpr, hover] = previous;
+      frame(); updateHud();
+    }
+  }
+  document.getElementById('export-svg').addEventListener('click', () => {
+    const svg = snapshot();
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${document.querySelector('#title b').textContent.replace(/[^a-zA-Z0-9_.-]/g, '_')}-tick-${tau}.svg`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
   function setSpeed(value) {
     speed = value;
     document.getElementById('speed').value = String(value);
@@ -1900,6 +1937,6 @@
   window.player = {
     data, units, buildings, projectiles, shields,
     seek: (t) => setTau(t), play: () => { playing = true; }, pause: () => { playing = false; },
-    get tau() { return tau; }, view, fit,
+    get tau() { return tau; }, view, fit, snapshot,
   };
 })();

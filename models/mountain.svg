@@ -63,7 +63,7 @@
 <path d="M0 2L3 3.7L3 7.3L0 9L-3 7.3L-3 3.7Z" fill="#23272d"/>
 <path d="M0 2L3 3.7L3 7.3L0 9L-3 7.3L-3 3.7Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
 <path d="M0 2.4L2.7 3.9L2.7 7.1L0 8.6L-2.7 7.1L-2.7 3.9Z" fill="none" stroke="#fb9a39" stroke-width="0.35"/>
-<path d="M-2.4 3.1L2.4 3.1L2.4 7.9L-2.4 7.9Z" fill="url(#g1)" opacity="0.5"/>
+<path d="M-2.4 3.1L2.4 3.1L2.4 7.9L-2.4 7.9Z" fill="url(#g1)" opacity="0.5" style="mix-blend-mode:plus-lighter"/>
 <path d="M0.9 5.5A0.9 0.9 0 0 1 -0.45 6.28A0.9 0.9 0 0 1 -0.45 4.72A0.9 0.9 0 0 1 0.9 5.5" fill="#3d8dff"/>
 <path d="M0.9 5.5A0.9 0.9 0 0 1 -0.45 6.28A0.9 0.9 0 0 1 -0.45 4.72A0.9 0.9 0 0 1 0.9 5.5" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
 </svg>

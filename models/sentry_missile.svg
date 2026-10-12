@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-2.25 -7.9 4.5 17.75" width="72" height="284">
 <title>sentry_missile</title>
 <defs><radialGradient id="g1" gradientUnits="userSpaceOnUse" cx="0" cy="7.6" r="2" fx="0" fy="7.6" fr="0"><stop offset="0" stop-color="#ff8809"/><stop offset="1" stop-color="#ff8809" stop-opacity="0"/></radialGradient></defs>
-<path d="M-2 5.6L2 5.6L2 9.6L-2 9.6Z" fill="url(#g1)" opacity="0.9"/>
+<path d="M-2 5.6L2 5.6L2 9.6L-2 9.6Z" fill="url(#g1)" opacity="0.9" style="mix-blend-mode:plus-lighter"/>
 <path d="M-0.5 3.4L0.5 3.4A0.2 0.2 0 0 1 0.7 3.6L0.7 6.2A0.2 0.2 0 0 1 0.5 6.4L-0.5 6.4A0.2 0.2 0 0 1 -0.7 6.2L-0.7 3.6A0.2 0.2 0 0 1 -0.5 3.4Z" fill="#363b43"/>
 <path d="M-0.5 3.4L0.5 3.4A0.2 0.2 0 0 1 0.7 3.6L0.7 6.2A0.2 0.2 0 0 1 0.5 6.4L-0.5 6.4A0.2 0.2 0 0 1 -0.7 6.2L-0.7 3.6A0.2 0.2 0 0 1 -0.5 3.4Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
 <path d="M-0.2 3.9L0.2 3.9L0 5.9Z" fill="#ff8809"/>

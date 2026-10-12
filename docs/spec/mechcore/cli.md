@@ -599,6 +599,14 @@ and answers `opened` for whether the system took the request. A page the
 system cannot open is still written: the command does not fail for it, and
 says so on standard error. `--no-open` only writes the page.
 
+The page's SVG button pauses at the current tick, rounded down, and downloads
+the battlefield as a standalone vector image at the current pan and zoom.
+It includes the enabled life bars, aim lines and damage numbers, but not the
+HTML controls or roster panels. The image's title names the fight and tick;
+its shapes, ground and effects remain vector elements rather than an embedded
+bitmap. `window.player.snapshot(tick)` returns that image for an integer tick
+from 1 through the recording's last tick.
+
 A recording is played as it holds the fight, and one made with the
 `unit_pose` instrument channel ([mcfr.md](../mcfr/mcfr.md#instrument-channels))
 is drawn in the poses it records: each unit takes its stance and the phase of
