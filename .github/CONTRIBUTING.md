@@ -1,21 +1,40 @@
 # Issues
 
-An issue here is a **finding**: something you found while doing something
-else, which disagrees with something you believed, and which you are
-deliberately not fixing now. It is a holding pen, not a backlog: no owner, no
-priority, no labels, no status beyond open. The only thing that happens to it
-is that it leaves.
+An issue records a finding, deferred work, or behavior reached by a
+reproducible input. It has no owner, priority or status beyond open.
 
-One label exists, `divergence`: an issue the simulator fights differently
-from the game, or refuses to fight. The corpus workflow opens one on a master
-commit for the corpus rounds that commit newly fights wrong or refuses, and a
-finding of the same kind carries it too. It leaves as any other: once the cause is found, by the fix's
-`Closes #n`, or into the issue of another round found to part on the same
-cause.
+| Kind | Label | What it records |
+| --- | --- | --- |
+| Finding | none | Something found while doing other work that contradicts an expectation and is deliberately not fixed now |
+| Plan | `plan` | Deferred work with a scope and a completion criterion |
+| Unimplemented | `unimplemented` | An actual layout reaches a simulator branch that refuses an unimplemented mechanism or unsupported shape |
+| Divergence | `divergence` | The simulator fights differently from the game, or newly refuses a corpus round |
+
+The corpus workflow opens a `divergence` on a master commit for rounds that
+commit newly fights wrong or refuses. Findings of the same kind carry it
+too. A refusal discovered by running a layout through an unimplemented
+branch carries `unimplemented`.
+
+## Plans and unimplemented branches
+
+The Plan template states the work's goal, scope and completion criterion.
+It does not require a discrepancy or a game recording. Close it when the
+stated work lands, or as not planned when the work is no longer intended.
+
+The Unimplemented template needs only the triggered error and a reproducing
+layout. Include the commit, command, exact diagnostic and source locations
+when available. Embed the complete layout, or link to one tracked at a pinned
+commit: a scratch path or a generation seed alone cannot reproduce it after
+the code changes. A hypothetical refusal found by reading code does not
+qualify. Group layouts reaching the same refusal branch in one issue.
+
+An unimplemented issue closes with the fix's `Closes #n`, or as not planned
+when investigation establishes that the refusal is correct. A plan or an
+unimplemented report does not need the Finding template's admission tests.
 
 ## Admission
 
-An observation has to pass all four:
+A finding has to pass all four:
 
 - **It was found, not sought.** Went looking? That is research, and it
   lands as a pull request.
@@ -33,7 +52,7 @@ dies and a reader on the web has no checkout.
 
 ## Exits
 
-An issue leaves in one of five ways, and the closing comment says which and
+A finding leaves in one of five ways, and the closing comment says which and
 where its content went:
 
 1. **to a spec's `Unresolved`**, when it is a design choice nobody made;
