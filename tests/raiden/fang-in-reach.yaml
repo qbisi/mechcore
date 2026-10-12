@@ -16,9 +16,12 @@ red:
   units:
   - {name: fang, index: 0, position: {x: 5, y: -20}}
 outcome:
-  blue.units[0].exp: 54
-  blue.units[1].exp: 54
-  blue.units[2].exp: 108
-  red.core_damage: 1050
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 54/2400}
+    - {index: 1, exp: 54/2400}
+    - {index: 2, exp: 108/2400}
+  red: {core_damage: 1050}
 ticks: 99
 hash: 23:5fb7bb67e1bd704f996d50cf664172a88872c32561161beb61fcc457af6162b0

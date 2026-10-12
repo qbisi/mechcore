@@ -62,38 +62,43 @@ red:
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 outcome:
-  blue.core_damage: 1191
-  blue.units[0].exp: 506
-  blue.units[1].exp: 408
-  blue.units[2].exp: 346
-  blue.units[3].exp: 2493
-  blue.units[4].exp: 717
-  blue.units[5].exp: 1690
-  blue.units[6].exp: 1297
-  blue.units[7].exp: 8
-  blue.units[8].exp: 1357
-  blue.units[9].exp: 265
-  blue.units[10].exp: 1300
-  blue.units[11].exp: 2250
-  blue.units[12].exp: 259
-  blue.units[15].exp: 24
-  blue.units[16].exp: 77
-  blue.units[17].exp: 131
-  blue.units[18].exp: 9
-  red.units[0].exp: 354
-  red.units[3].exp: 360
-  red.units[4].exp: 1877
-  red.units[5].exp: 191
-  red.units[6].exp: 417
-  red.units[7].exp: 105
-  red.units[8].exp: 496
-  red.units[9].exp: 2495
-  red.units[10].exp: 575
-  red.units[11].exp: 170
-  red.units[12].exp: 1395
-  red.units[13].exp: 249
-  red.units[14].exp: 2416
-  red.units[15].exp: 1355
-  red.units[16].exp: 629
+  blue:
+    core_damage: 1191
+    units:
+    - {index: 0, exp: 506/600}
+    - {index: 1, exp: 408/600}
+    - {index: 2, exp: 346/600}
+    - {index: 3, exp: 2493/2929}
+    - {index: 4, exp: 717/1300}
+    - {index: 5, exp: 1690/1690}
+    - {index: 6, exp: 1297/1690}
+    - {index: 7, exp: 8/1690}
+    - {index: 8, exp: 1357/1690}
+    - {index: 9, exp: 265/750}
+    - {index: 10, exp: 1300/1300}
+    - {index: 11, exp: 2250/2250}
+    - {index: 12, exp: 259/450}
+    - {index: 15, exp: 24/1300}
+    - {index: 17, exp: 77/750}
+    - {index: 18, exp: 131/750}
+    - {index: 19, exp: 9/450}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 354/1465}
+    - {index: 3, exp: 360/2704}
+    - {index: 4, exp: 1877/2704}
+    - {index: 5, exp: 191/450}
+    - {index: 6, exp: 417/450}
+    - {index: 7, exp: 105/450}
+    - {index: 8, exp: 496/1300}
+    - {index: 9, exp: 2495/5070}
+    - {index: 10, exp: 575/750}
+    - {index: 11, exp: 170/750}
+    - {index: 12, exp: 1395/5070}
+    - {index: 13, exp: 249/750}
+    - {index: 14, exp: 2416/3918}
+    - {index: 15, exp: 1355/5070}
+    - {index: 16, exp: 629/1014}
 ticks: 915
 hash: 23:fbf595aab629f6f02bd8ec41f6f11a2096c5b3f02056e16865cbd82a4a26ac19

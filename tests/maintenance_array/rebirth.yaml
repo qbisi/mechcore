@@ -23,13 +23,18 @@ red:
   units:
   - {name: fortress, index: 0, position: {x: 0, y: -40}, level: 4}
 outcome:
-  blue.units[0].exp: 466
-  blue.units[1].exp: 466
-  blue.units[2].exp: 466
-  blue.units[4].exp: 466
-  blue.units[5].exp: 466
-  blue.units[6].exp: 3266
-  red.core_damage: 1062
-  red.units[0].exp: 3400
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 466/1950}
+    - {index: 1, exp: 466/5164}
+    - {index: 2, exp: 466/5164}
+    - {index: 4, exp: 466/5164}
+    - {index: 5, exp: 466/5164}
+    - {index: 6, exp: 3266/5164}
+  red:
+    core_damage: 1062
+    units:
+    - {index: 0, exp: 3400/7184}
 ticks: 268
 hash: 23:0dd8b7c1842ccba8cae12a41bedfe321384e6a00f5b8879d4090e5bfc13079ef

@@ -23,11 +23,16 @@ red:
   - {name: marksman, index: 2, position: {x: -30, y: -140}}
   - {name: wasp, index: 3, position: {x: 5, y: -140}}
 outcome:
-  blue.core_damage: 421
-  blue.units[0].exp: 374
-  red.units[0].exp: 75
-  red.units[1].exp: 75
-  red.units[2].exp: 375
-  red.units[3].exp: 75
+  blue:
+    core_damage: 421
+    units:
+    - {index: 0, exp: 374/2250}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 75/650}
+    - {index: 1, exp: 75/900}
+    - {index: 2, exp: 375/650}
+    - {index: 3, exp: 75/900}
 ticks: 170
 hash: 23:add28a2cab97815d860e0b41e93c12eebfb242a9bbf8306f2131409d1a470ffe

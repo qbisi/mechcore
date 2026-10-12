@@ -21,9 +21,13 @@ red:
   - {name: missile, index: 1, position: {x: -100, y: -40}}
   - {name: missile, index: 2, position: {x: 100, y: -40}}
 outcome:
-  blue.core_damage: 200
-  red.units[0].exp: 384
-  red.contraptions[0].retained: false
-  red.contraptions[1].retained: false
+  blue: {core_damage: 200}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 384/1150}
+    contraptions:
+    - {index: 1, retained: false}
+    - {index: 2, retained: false}
 ticks: 24
 hash: 23:4f1dd82e8aaa0f572074e436a15d04c6cabc3b54fdc54f5ef014c0fd10abf56b

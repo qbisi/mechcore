@@ -24,9 +24,14 @@ red:
   - {name: sledgehammer, index: 0, position: {x: -5, y: -300}}
   - {name: sledgehammer, index: 1, position: {x: 55, y: -300}}
 outcome:
-  blue.core_damage: 280
-  blue.units[0].exp: 240
-  red.units[0].exp: 100
-  red.units[1].exp: 330
+  blue:
+    core_damage: 280
+    units:
+    - {index: 0, exp: 240/1500}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 100/1300}
+    - {index: 1, exp: 330/1300}
 ticks: 728
 hash: 23:31a1654ae7cee10d6b87672d375047d8f1da9c289701e82f6ae11976be32685d

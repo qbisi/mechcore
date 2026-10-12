@@ -30,8 +30,11 @@ red:
   battle_skills:
   - {name: orbital_bombardment, positions: [{x: 0, y: -160}]}
 outcome:
-  blue.units[0].exp: 728
-  blue.units[1].exp: 1048
-  red.core_damage: 700
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 728/1600}
+    - {index: 1, exp: 1048/1600}
+  red: {core_damage: 700}
 ticks: 579
 hash: 23:9d4e94718ef4105d6115849a2f008e7731574aae72620128ed4658ba603c33e8

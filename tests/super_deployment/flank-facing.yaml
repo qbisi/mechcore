@@ -21,11 +21,16 @@ red:
   - {name: hound, index: 1, position: {x: -330, y: 200}, source: legacy}
   - {name: arclight, index: 2, position: {x: 330, y: 250}, source: legacy}
 outcome:
-  blue.units[1].exp: 400
-  blue.units[2].exp: 400
-  red.core_damage: 140
-  red.units[0].exp: 200
-  red.units[1].exp: 200
-  red.units[2].exp: 320
+  blue:
+    core_damage: 0
+    units:
+    - {index: 1, exp: 400/750}
+    - {index: 2, exp: 400/750}
+  red:
+    core_damage: 140
+    units:
+    - {index: 0, exp: 200/650}
+    - {index: 1, exp: 200/750}
+    - {index: 2, exp: 320/750}
 ticks: 1250
 hash: 23:7b6149c7bb546fa78b38cb989240b0ea8754fe7021a5a349b385080d1b48e366

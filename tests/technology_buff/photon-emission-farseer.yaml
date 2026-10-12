@@ -28,10 +28,13 @@ red:
   - {name: vulcan, index: 0, position: {x: 0, y: -80}}
   - {name: vulcan, index: 1, position: {x: 100, y: -80}}
 outcome:
-  blue.units[0].exp: 633
-  blue.units[1].exp: 633
-  blue.units[2].exp: 233
-  blue.units[3].exp: 100
-  red.core_damage: 754
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 633/1800}
+    - {index: 1, exp: 633/1150}
+    - {index: 2, exp: 233/900}
+    - {index: 3, exp: 100/650}
+  red: {core_damage: 754}
 ticks: 437
 hash: 23:3662db5a9125cff3077245f262a1a9dc3efb46878566d733fb6487d79b85ba81

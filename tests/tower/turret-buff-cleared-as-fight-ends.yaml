@@ -21,7 +21,10 @@ red:
   constructions:
   - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}
 outcome:
-  blue.units[1].exp: 400
-  red.core_damage: 300
+  blue:
+    core_damage: 0
+    units:
+    - {index: 1, exp: 400/1300}
+  red: {core_damage: 300}
 ticks: 599
 hash: 23:7b1821cb1177f639d8b6c97ef00e390d6891057e522d0d941e838e8238f6d902

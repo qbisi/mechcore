@@ -22,10 +22,13 @@ red:
   - {name: fortress, index: 0, position: {x: 0, y: -150}}
   - {name: crawler, index: 1, position: {x: 5, y: -60}}
 outcome:
-  blue.units[0].exp: 273
-  blue.units[1].exp: 517
-  blue.units[2].exp: 100
-  blue.units[3].exp: 101
-  red.core_damage: 854
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 273/8756}
+    - {index: 1, exp: 517/5164}
+    - {index: 2, exp: 100/5164}
+    - {index: 3, exp: 101/900}
+  red: {core_damage: 854}
 ticks: 283
 hash: 23:49eafd72e99502d4670341d445439778d5bf8a993beae1befbc2a65286a17605

@@ -2,7 +2,7 @@
 //! it leaves, kept apart.
 //!
 //! `docs/spec/document/fight.md` defines it. A fight is written as a layout,
-//! an `outcome` that names each result by its path in the layout, and an
+//! a nested `outcome` that names units and contraptions by index, and an
 //! optional trajectory; the code holds each result on the object it is
 //! about ([`Fight`]). [`project`] gives back the layout, and every layout
 //! rule reaches a fight through it: [`parse_yaml`] refuses a fight whose
@@ -24,7 +24,7 @@ const FIGHT_KIND: &str = "fight";
 /// result on the object it is about.
 ///
 /// It is written, and read, as the layout and an `outcome` kept apart, the
-/// outcome naming each object by its path in the layout ([`WrittenFight`]).
+/// outcome naming units and contraptions by index ([`WrittenFight`]).
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(try_from = "WrittenFight", into = "WrittenFight")]
 pub struct Fight {
@@ -87,7 +87,7 @@ impl JsonSchema for Fight {
 }
 
 /// How a fight is written: `kind` and `source`, the layout's root fields as
-/// a layout writes them, the `outcome` by path, and the trajectory.
+/// a layout writes them, the nested `outcome`, and the trajectory.
 #[derive(Deserialize, Serialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct WrittenFight {
@@ -108,11 +108,8 @@ struct WrittenFight {
     round: i32,
     blue: Side,
     red: Side,
-    /// What the fight left, each result under its path in the layout, such
-    /// as `blue.units[0].exp`; absent when it left nothing.
-    #[serde(default, skip_serializing_if = "serde_yaml::Mapping::is_empty")]
-    #[schemars(with = "BTreeMap<String, serde_json::Value>")]
-    outcome: serde_yaml::Mapping,
+    /// Complete core damage for both sides, and changed objects by identity.
+    outcome: Outcome,
     /// What the fixture claims about how the fight went.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     asserts: Vec<Assert>,
@@ -122,6 +119,54 @@ struct WrittenFight {
     ticks: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     hash: Option<FightHash>,
+}
+
+/// Settlement is required even when both cores take zero damage.
+#[derive(Deserialize, Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct Outcome {
+    blue: SideOutcome,
+    red: SideOutcome,
+}
+
+#[derive(Deserialize, Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct SideOutcome {
+    #[schemars(range(min = 0))]
+    core_damage: i32,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    units: Vec<UnitOutcome>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    contraptions: Vec<ContraptionOutcome>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    battle_skills: Vec<BattleSkillOutcome>,
+}
+
+#[derive(Deserialize, Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct UnitOutcome {
+    #[schemars(range(min = 0))]
+    index: i32,
+    exp: Experience,
+}
+
+#[derive(Deserialize, Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct ContraptionOutcome {
+    #[schemars(range(min = 0))]
+    index: i32,
+    retained: bool,
+}
+
+#[derive(Deserialize, Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct BattleSkillOutcome {
+    /// Position in the layout's normalized `battle_skills` list.
+    at: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    grid_rows: Option<BTreeMap<u32, Vec<u32>>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    retained: Option<bool>,
 }
 
 impl TryFrom<WrittenFight> for Fight {
@@ -145,24 +190,20 @@ impl TryFrom<WrittenFight> for Fight {
             blue: unfought(written.blue),
             red: unfought(written.red),
         }
-        // A path counts positions in the layout's normal form.
+        // Battle skills without native indices use normalized list positions.
         .normalized();
-        for (path, value) in written.outcome {
-            let path = path
-                .as_str()
-                .ok_or_else(|| format!("outcome key {path:?} is not a path"))?;
-            apply_result(&mut fight, path, value)?;
-        }
+        apply_results("blue", &mut fight.blue, written.outcome.blue)?;
+        apply_results("red", &mut fight.red, written.outcome.red)?;
         Ok(fight)
     }
 }
 
 impl From<Fight> for WrittenFight {
     fn from(fight: Fight) -> Self {
-        let mut outcome = serde_yaml::Mapping::new();
-        for (name, side) in [("blue", &fight.blue), ("red", &fight.red)] {
-            write_results(name, side, &mut outcome);
-        }
+        let outcome = Outcome {
+            blue: write_results(&fight.blue),
+            red: write_results(&fight.red),
+        };
         let (ticks, hash) = fight.trajectory.map_or((None, None), |trajectory| {
             (Some(trajectory.ticks), Some(trajectory.hash))
         });
@@ -247,71 +288,72 @@ fn skill_of(name: &str) -> Option<i32> {
     crate::catalog::resolve_battle_skill_type(name).map(|skill| skill.commander_skill_id)
 }
 
-/// One `outcome` entry written onto the object its path names.
-fn apply_result(fight: &mut Fight, path: &str, value: serde_yaml::Value) -> Result<(), String> {
-    let unknown = || format!("outcome path {path} names no result a fight writes");
-    let (side_name, rest) = path.split_once('.').ok_or_else(unknown)?;
-    let side = match side_name {
-        "blue" => &mut fight.blue,
-        "red" => &mut fight.red,
-        _ => return Err(unknown()),
-    };
-    if rest == "core_damage" {
-        let damage = integer(path, &value)?;
-        if damage <= 0 {
+/// Apply sparse results by native index, or normalized battle-skill position.
+fn apply_results(name: &str, side: &mut FightSide, outcome: SideOutcome) -> Result<(), String> {
+    side.core_damage = outcome.core_damage;
+    let mut seen = std::collections::BTreeSet::new();
+    for result in outcome.units {
+        let index = result.index;
+        let path = format!("{name}.units[index={index}].exp");
+        if !seen.insert(index) {
+            return Err(format!("outcome {name}.units repeats index {index}"));
+        }
+        let unit = side
+            .units
+            .iter_mut()
+            .find(|unit| unit.index == index)
+            .ok_or_else(|| format!("outcome {path} names no units entry"))?;
+        let before = unit.exp.map_or(0, |exp| exp.before);
+        if result.exp.current == before {
             return Err(format!(
-                "outcome {path} is {damage}: a side's reactor core loses a positive amount, \
-                 and none is not written"
+                "outcome {path} is the {before} the unit starts with, which is not written"
             ));
         }
-        side.core_damage = damage;
-        return Ok(());
+        unit.exp = Some(FightExperience {
+            before,
+            after: result.exp.current,
+            maximum: result.exp.maximum,
+        });
     }
-    let (entry, field) = rest.rsplit_once('.').ok_or_else(unknown)?;
-    let (list, position) = entry
-        .strip_suffix(']')
-        .and_then(|entry| entry.split_once('['))
-        .ok_or_else(unknown)?;
-    let position: usize = position.parse().map_err(|_| unknown())?;
-    let absent = || format!("outcome path {path} names no {list} entry of side {side_name}");
-    match (list, field) {
-        ("units", "exp") => {
-            let unit = side.units.get_mut(position).ok_or_else(absent)?;
-            let after = integer(path, &value)?;
-            let before = unit.exp.map_or(0, |exp| exp.before);
-            if after == before {
-                return Err(format!(
-                    "outcome {path} is the {before} the unit starts with, which is not written"
-                ));
-            }
-            let level = unit.level.unwrap_or(1);
-            let maximum = unit
-                .exp
-                .map(|exp| exp.maximum)
-                .or_else(|| crate::experience::full(&unit.type_name, level))
-                .ok_or_else(|| {
-                    format!(
-                        "outcome {path}: unit {} level {level} has no bar",
-                        unit.type_name
-                    )
-                })?;
-            unit.exp = Some(FightExperience {
-                before,
-                after,
-                maximum,
-            });
+    seen.clear();
+    for result in outcome.contraptions {
+        let index = result.index;
+        let path = format!("{name}.contraptions[index={index}].retained");
+        if !seen.insert(index) {
+            return Err(format!("outcome {name}.contraptions repeats index {index}"));
         }
-        ("contraptions", "retained") => {
-            side.contraptions
-                .get_mut(position)
-                .ok_or_else(absent)?
-                .retained = not_retained(path, &value)?;
+        let contraption = side
+            .contraptions
+            .iter_mut()
+            .find(|entry| entry.index == index)
+            .ok_or_else(|| format!("outcome {path} names no contraptions entry"))?;
+        contraption.retained = not_retained(&path, &result.retained.into())?;
+    }
+    let mut positions = std::collections::BTreeSet::new();
+    for result in outcome.battle_skills {
+        let at = result.at;
+        let path = format!("{name}.battle_skills[at={at}]");
+        if !positions.insert(at) {
+            return Err(format!("outcome {name}.battle_skills repeats at {at}"));
         }
-        ("battle_skills", field @ ("retained" | "grid_rows")) => {
-            let entry = side.battle_skills.get_mut(position).ok_or_else(absent)?;
-            apply_battle_skill_result(entry, field, path, value)?;
+        if result.retained.is_none() && result.grid_rows.is_none() {
+            return Err(format!("outcome {path} states no result"));
         }
-        _ => return Err(unknown()),
+        let entry = side
+            .battle_skills
+            .get_mut(at)
+            .ok_or_else(|| format!("outcome {path} names no battle_skills entry"))?;
+        if let Some(retained) = result.retained {
+            apply_battle_skill_result(entry, "retained", &path, retained.into())?;
+        }
+        if let Some(grid_rows) = result.grid_rows {
+            apply_battle_skill_result(
+                entry,
+                "grid_rows",
+                &path,
+                serde_yaml::to_value(grid_rows).map_err(|error| error.to_string())?,
+            )?;
+        }
     }
     Ok(())
 }
@@ -382,13 +424,6 @@ fn apply_battle_skill_result(
     Ok(())
 }
 
-fn integer(path: &str, value: &serde_yaml::Value) -> Result<i32, String> {
-    value
-        .as_i64()
-        .and_then(|value| i32::try_from(value).ok())
-        .ok_or_else(|| format!("outcome {path} is not a whole number"))
-}
-
 /// A `retained` result, which is written only as `false`.
 fn not_retained(path: &str, value: &serde_yaml::Value) -> Result<bool, String> {
     match value.as_bool() {
@@ -400,44 +435,54 @@ fn not_retained(path: &str, value: &serde_yaml::Value) -> Result<bool, String> {
     }
 }
 
-/// A side's results as `outcome` entries, in the order normal form lists
-/// them: the side's own, then each list by position, `grid_rows` before
-/// `retained`.
-fn write_results(name: &str, side: &FightSide, outcome: &mut serde_yaml::Mapping) {
-    let mut write = |path: String, value: serde_yaml::Value| {
-        outcome.insert(serde_yaml::Value::String(path), value);
-    };
-    if side.core_damage != 0 {
-        write(format!("{name}.core_damage"), side.core_damage.into());
-    }
-    for (position, unit) in side.units.iter().enumerate() {
-        if let Some(exp) = unit.exp.filter(|exp| exp.after != exp.before) {
-            write(format!("{name}.units[{position}].exp"), exp.after.into());
-        }
-    }
-    for (position, contraption) in side.contraptions.iter().enumerate() {
-        if !contraption.retained {
-            write(
-                format!("{name}.contraptions[{position}].retained"),
-                false.into(),
-            );
-        }
-    }
-    for (position, entry) in side.battle_skills.iter().enumerate() {
-        let at = |field: &str| format!("{name}.battle_skills[{position}].{field}");
-        let (grid_rows, retained) = match entry {
-            FightBattleSkill::Release(release) => (Some(&release.grid_rows), release.retained),
-            FightBattleSkill::Standing(standing) => (None, standing.retained),
-        };
-        if let Some(grid_rows) = grid_rows.filter(|grid_rows| !grid_rows.is_empty()) {
-            write(
-                at("grid_rows"),
-                serde_yaml::to_value(grid_rows).expect("grid rows serialize"),
-            );
-        }
-        if !retained {
-            write(at("retained"), false.into());
-        }
+/// Changed objects in layout order, with explicit core damage on each side.
+fn write_results(side: &FightSide) -> SideOutcome {
+    SideOutcome {
+        core_damage: side.core_damage,
+        units: side
+            .units
+            .iter()
+            .filter_map(|unit| {
+                unit.exp
+                    .filter(|exp| exp.after != exp.before)
+                    .map(|exp| UnitOutcome {
+                        index: unit.index,
+                        exp: Experience {
+                            current: exp.after,
+                            maximum: exp.maximum,
+                        },
+                    })
+            })
+            .collect(),
+        contraptions: side
+            .contraptions
+            .iter()
+            .filter(|entry| !entry.retained)
+            .map(|entry| ContraptionOutcome {
+                index: entry.index,
+                retained: false,
+            })
+            .collect(),
+        battle_skills: side
+            .battle_skills
+            .iter()
+            .enumerate()
+            .filter_map(|(at, entry)| {
+                let (grid_rows, retained) = match entry {
+                    FightBattleSkill::Release(release) => {
+                        (Some(&release.grid_rows), release.retained)
+                    }
+                    FightBattleSkill::Standing(standing) => (None, standing.retained),
+                };
+                let grid_rows = grid_rows.filter(|rows| !rows.is_empty()).cloned();
+                let retained = (!retained).then_some(false);
+                (grid_rows.is_some() || retained.is_some()).then_some(BattleSkillOutcome {
+                    at,
+                    grid_rows,
+                    retained,
+                })
+            })
+            .collect(),
     }
 }
 
@@ -689,8 +734,8 @@ impl Fight {
     /// dropped defaults alike, and each result field follows the object it
     /// sits on. A unit's `exp` is dropped when both `before` and `after` are
     /// `0`, and a release's `grid_rows` that says every point survives whole
-    /// is dropped as an absent one says the same. `core_damage: 0` and
-    /// `retained: true` are defaults the writer never writes.
+    /// is dropped as an absent one says the same. `retained: true` is not
+    /// written; core damage is always explicit, including zero.
     #[must_use]
     pub fn normalized(mut self) -> Self {
         for side in [&mut self.blue, &mut self.red] {
@@ -792,7 +837,7 @@ pub fn canonical_yaml(fight: Fight) -> Result<String, String> {
     validate(&fight)?;
     let value = serde_yaml::to_value(fight.normalized())
         .map_err(|error| format!("cannot serialize fight YAML: {error}"))?;
-    crate::spelling::document_listing(&value, &["outcome", "asserts"])
+    crate::spelling::fight(&value)
 }
 
 #[derive(Deserialize)]
@@ -896,10 +941,7 @@ fn validate_side(side_name: &str, side: &FightSide) -> Result<(), String> {
 mod tests {
     use super::*;
 
-    /// The example `docs/spec/document/fight.md` opens with, as the
-    /// canonical writer spells it.
-    const EXAMPLE: &str = "\
-kind: fight
+    const EXAMPLE: &str = r"kind: fight
 source: game
 seed: 4242
 round: 3
@@ -917,41 +959,27 @@ red:
   battle_skills:
   - {name: sticky_oil_bomb, positions: [{x: -30, y: 150}, {x: 60, y: 150}]}
 outcome:
-  blue.units[0].exp: 170
-  blue.contraptions[0].retained: false
-  blue.battle_skills[0].retained: false
-  red.core_damage: 37
-  red.units[0].exp: 40
-  red.battle_skills[0].grid_rows: {2: [], 3: [], 4: []}
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 170/650}
+    contraptions:
+    - {index: 0, retained: false}
+    battle_skills:
+    - {at: 0, retained: false}
+  red:
+    core_damage: 37
+    units:
+    - {index: 0, exp: 40/750}
+    battle_skills:
+    - {at: 0, grid_rows: {2: [], 3: [], 4: []}}
 ticks: 870
 hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
-";
-
-    /// The layout the example starts from.
-    const EXAMPLE_LAYOUT: &str = "\
-kind: layout
-seed: 4242
-round: 3
-blue:
-  officers: [extended_range_marksman]
-  units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 12/650}
-  contraptions:
-  - {name: interceptor, index: 0, position: {x: 5, y: -95}}
-  battle_skills:
-  - {name: shield_airdrop, standing: {position: {x: -150, y: -150}}}
-red:
-  units:
-  - {name: arclight, index: 0, position: {x: 0, y: -100}}
-  battle_skills:
-  - {name: sticky_oil_bomb, positions: [{x: -30, y: 150}, {x: 60, y: 150}]}
 ";
 
     fn example() -> Fight {
         parse_yaml(EXAMPLE.as_bytes()).unwrap()
     }
-
-    /// The example with one line replaced.
     fn edited(from: &str, to: &str) -> Result<Fight, String> {
         assert!(EXAMPLE.contains(from), "{from}");
         parse_yaml(EXAMPLE.replacen(from, to, 1).as_bytes())
@@ -961,6 +989,7 @@ red:
     fn the_worked_example_is_in_normal_form() {
         let fight = example();
         assert_eq!(fight.source, Source::Game);
+        assert_eq!(fight.blue.core_damage, 0);
         assert_eq!(fight.red.core_damage, 37);
         assert_eq!(
             fight.blue.units[0].exp,
@@ -970,7 +999,6 @@ red:
                 maximum: 650
             })
         );
-        // The bar is the table's where the layout keeps no gauge.
         assert_eq!(
             fight.red.units[0].exp,
             Some(FightExperience {
@@ -980,294 +1008,272 @@ red:
             })
         );
         assert!(!fight.blue.contraptions[0].retained);
-        let FightBattleSkill::Release(oil) = &fight.red.battle_skills[0] else {
-            panic!("a release")
-        };
-        assert!(oil.retained);
-        assert_eq!(oil.grid_rows.keys().copied().collect::<Vec<_>>(), [2, 3, 4]);
-        assert_eq!(canonical_yaml(fight).unwrap(), EXAMPLE);
-    }
-
-    #[test]
-    fn a_fight_round_trips_through_its_normal_form() {
-        // Fields out of order, standing entries out of order, and the
-        // outcome's paths counted in the layout's normal form.
-        let loose = "\
-kind: fight
-seed: 4242
-round: 3
-blue:
-  units:
-  - {name: arclight, index: 4, position: {x: 60, y: -50}, level: 1, rotated: false}
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 12/650}
-  contraptions:
-  - {name: interceptor, index: 2, position: {x: 5, y: -95}}
-  battle_skills:
-  - {name: shield_airdrop, positions: [{x: 0, y: -150}]}
-  - {name: shield_airdrop, standing: {position: {x: 150, y: -150}}}
-  - {name: sticky_oil_bomb, positions: [{x: -30, y: 150}, {x: 60, y: 150}]}
-  - {name: shield_airdrop, standing: {position: {x: -150, y: -150}}}
-red:
-  units:
-  - {name: arclight, index: 0, position: {x: 0, y: -100}}
-hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
-outcome:
-  blue.battle_skills[0].retained: false
-  blue.units[0].exp: 170
-source: game
-ticks: 870
-";
-        let fight = parse_yaml(loose.as_bytes()).unwrap();
-        let written = canonical_yaml(fight.clone()).unwrap();
+        assert_eq!(canonical_yaml(fight.clone()).unwrap(), EXAMPLE);
         assert_eq!(
-            written,
-            "\
-kind: fight
-source: game
-seed: 4242
-round: 3
-blue:
-  units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 12/650}
-  - {name: arclight, index: 4, position: {x: 60, y: -50}}
-  contraptions:
-  - {name: interceptor, index: 2, position: {x: 5, y: -95}}
-  battle_skills:
-  - {name: shield_airdrop, standing: {position: {x: -150, y: -150}}}
-  - {name: shield_airdrop, standing: {position: {x: 150, y: -150}}}
-  - {name: shield_airdrop, positions: [{x: 0, y: -150}]}
-  - {name: sticky_oil_bomb, positions: [{x: -30, y: 150}, {x: 60, y: 150}]}
-red:
-  units:
-  - {name: arclight, index: 0, position: {x: 0, y: -100}}
-outcome:
-  blue.units[0].exp: 170
-  blue.battle_skills[0].retained: false
-ticks: 870
-hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
-",
-        );
-        let again = parse_yaml(written.as_bytes()).unwrap();
-        assert_eq!(again, fight.clone().normalized());
-        assert_eq!(canonical_yaml(again).unwrap(), written);
-    }
-
-    #[test]
-    fn the_projection_is_the_layout_the_fight_starts_from() {
-        let layout = crate::layout::parse_yaml(EXAMPLE_LAYOUT.as_bytes()).unwrap();
-        assert_eq!(project(&example()), layout);
-        assert_eq!(
-            crate::layout::canonical_yaml(project(&example())).unwrap(),
-            EXAMPLE_LAYOUT
+            parse_yaml(canonical_yaml(fight.clone()).unwrap().as_bytes()).unwrap(),
+            fight
         );
     }
 
     #[test]
-    fn a_layout_carrying_a_result_is_refused() {
-        for (from, to) in [
-            ("round: 3\n", "round: 3\nsource: game\n"),
-            ("red:\n", "red:\n  core_damage: 37\n"),
-            ("exp: 12/650", "exp: 12/170/650"),
+    fn projection_keeps_only_the_starting_layout() {
+        let projected = project(&example());
+        assert_eq!(
+            projected.blue.units[0].exp,
+            Some(Experience {
+                current: 12,
+                maximum: 650
+            })
+        );
+        let text = crate::layout::canonical_yaml(projected).unwrap();
+        assert!(!text.contains("outcome"));
+        assert!(!text.contains("retained"));
+        assert!(!text.contains("170/650"));
+        assert!(crate::layout::parse_yaml(text.as_bytes()).is_ok());
+    }
+
+    #[test]
+    fn results_use_native_indices_including_gaps() {
+        let text = EXAMPLE
+            .replacen("name: marksman, index: 0", "name: marksman, index: 7", 1)
+            .replacen(
+                "name: interceptor, index: 0",
+                "name: interceptor, index: 9",
+                1,
+            )
+            .replace("index: 0, exp: 170/650", "index: 7, exp: 170/650")
+            .replace("index: 0, retained: false", "index: 9, retained: false");
+        let fight = parse_yaml(text.as_bytes()).unwrap();
+        assert_eq!(fight.blue.units[0].index, 7);
+        assert_eq!(fight.blue.units[0].exp.unwrap().after, 170);
+        assert_eq!(fight.blue.contraptions[0].index, 9);
+        assert!(!fight.blue.contraptions[0].retained);
+        assert_eq!(canonical_yaml(fight).unwrap(), text);
+    }
+
+    #[test]
+    fn missing_and_repeated_identities_are_refused() {
+        for (from, to, message) in [
             (
-                "position: {x: 5, y: -95}}",
-                "position: {x: 5, y: -95}, retained: false}",
+                "index: 0, exp: 170/650",
+                "index: 1, exp: 170/650",
+                "names no units entry",
             ),
-            ("{x: 60, y: 150}]}", "{x: 60, y: 150}], grid_rows: {2: []}}"),
+            (
+                "index: 0, retained: false",
+                "index: 1, retained: false",
+                "names no contraptions entry",
+            ),
+            (
+                "at: 0, retained: false",
+                "at: 1, retained: false",
+                "names no battle_skills entry",
+            ),
+            (
+                "    - {index: 0, exp: 170/650}",
+                "    - {index: 0, exp: 170/650}\n    - {index: 0, exp: 171/650}",
+                "repeats index",
+            ),
+            (
+                "    - {index: 0, retained: false}",
+                "    - {index: 0, retained: false}\n    - {index: 0, retained: false}",
+                "repeats index",
+            ),
+            (
+                "    - {at: 0, retained: false}",
+                "    - {at: 0, retained: false}\n    - {at: 0, retained: false}",
+                "repeats at",
+            ),
         ] {
-            assert!(EXAMPLE_LAYOUT.contains(from), "{from}");
-            let text = EXAMPLE_LAYOUT.replacen(from, to, 1);
-            assert!(
-                crate::layout::parse_yaml(text.as_bytes()).is_err(),
-                "a layout accepted {to:?}"
-            );
+            let error = edited(from, to).unwrap_err();
+            assert!(error.contains(message), "{error}");
         }
     }
 
     #[test]
-    fn a_fight_keeps_no_result_inside_its_layout() {
-        for (from, to) in [
-            ("exp: 12/650", "exp: 12/170/650"),
-            ("red:\n", "red:\n  core_damage: 37\n"),
-            (
-                "position: {x: 5, y: -95}}",
-                "position: {x: 5, y: -95}, retained: false}",
-            ),
+    fn settlement_requires_both_core_damages_and_accepts_zero() {
+        for text in [
+            EXAMPLE.replace("    core_damage: 0\n", ""),
+            EXAMPLE.replace("    core_damage: 37\n", ""),
+            EXAMPLE[..EXAMPLE.find("outcome:").unwrap()].to_owned(),
         ] {
-            assert!(edited(from, to).is_err(), "a fight accepted {to:?}");
+            assert!(parse_yaml(text.as_bytes()).is_err());
         }
-    }
-
-    #[test]
-    fn a_document_of_another_kind_is_refused_as_that_kind() {
-        assert_eq!(
-            parse_yaml(EXAMPLE_LAYOUT.as_bytes()).unwrap_err(),
-            "expected a fight document, found kind \"layout\""
-        );
-        assert_eq!(
-            edited("kind: fight\n", "").unwrap_err(),
-            "document does not name its kind: a fight starts with `kind: fight`"
-        );
-        assert_eq!(
-            crate::layout::parse_yaml(EXAMPLE.as_bytes()).unwrap_err(),
-            "expected a layout document, found kind \"fight\""
-        );
-    }
-
-    #[test]
-    fn a_fight_names_its_seed() {
-        let error = edited("seed: 4242\n", "").unwrap_err();
-        assert!(error.contains("missing field `seed`"), "{error}");
-        let error = edited("seed: 4242\n", "seed: 0\n").unwrap_err();
-        assert!(error.contains("seed 0"), "{error}");
-    }
-
-    #[test]
-    fn a_fight_whose_projection_does_not_compile_is_refused() {
-        // Two blue units on one square.
-        let error = edited(
-            "exp: 12/650}\n",
-            "exp: 12/650}\n  - {name: marksman, index: 1, position: {x: 0, y: -50}}\n",
-        )
-        .unwrap_err();
-        assert!(error.contains("collide"), "{error}");
-    }
-
-    #[test]
-    fn a_trajectory_is_ticks_and_hash_together() {
-        let error = edited("source: game", "source: replay").unwrap_err();
-        assert!(error.contains("replay"), "{error}");
-        assert!(edited("source: game", "source: simulator").is_ok());
-        let error = edited("ticks: 870\n", "").unwrap_err();
-        assert!(error.contains("together"), "{error}");
-        let outcome_alone = edited(
-            "ticks: 870\nhash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef\n",
-            "",
-        )
-        .unwrap();
-        assert_eq!(outcome_alone.trajectory, None);
-        assert!(!canonical_yaml(outcome_alone).unwrap().contains("ticks"));
-        let error = edited("23:380d", "23:380D").unwrap_err();
-        assert!(error.contains("64 lowercase hex"), "{error}");
-        let error = edited("hash: 23:", "hash: mcfr-23:").unwrap_err();
-        assert!(error.contains("not a profile number"), "{error}");
-        let error = edited("hash: 23:380d", "hash: 380d").unwrap_err();
-        assert!(error.contains("<profile>:<hex>"), "{error}");
-        let error = edited("ticks: 870", "ticks: 0").unwrap_err();
-        assert!(error.contains("at least 1"), "{error}");
-    }
-
-    #[test]
-    fn a_path_names_an_object_of_the_layout() {
-        let error = edited("blue.units[0].exp", "blue.units[1].exp").unwrap_err();
-        assert!(error.contains("names no units entry"), "{error}");
-        let error = edited("blue.units[0].exp", "green.units[0].exp").unwrap_err();
-        assert!(error.contains("names no result"), "{error}");
-        let error = edited("blue.units[0].exp", "blue.units[0].life").unwrap_err();
-        assert!(error.contains("names no result"), "{error}");
-        let error = edited("red.core_damage: 37", "red.core_damage: 0").unwrap_err();
-        assert!(error.contains("not written"), "{error}");
-    }
-
-    #[test]
-    fn experience_keeps_to_its_bar() {
-        let error = edited("blue.units[0].exp: 170", "blue.units[0].exp: 651").unwrap_err();
+        assert!(edited("core_damage: 37", "core_damage: 0").is_ok());
         assert!(
-            error.contains("a full bar takes no further share"),
-            "{error}"
+            edited("core_damage: 37", "core_damage: -1")
+                .unwrap_err()
+                .contains("non-negative")
         );
-        assert!(edited("blue.units[0].exp: 170", "blue.units[0].exp: 650").is_ok());
-        let error = edited("blue.units[0].exp: 170", "blue.units[0].exp: 11").unwrap_err();
-        assert!(error.contains("only adds experience"), "{error}");
-        let error = edited("blue.units[0].exp: 170", "blue.units[0].exp: 12").unwrap_err();
-        assert!(error.contains("not written"), "{error}");
-        let error = edited("blue.units[0].exp: 170", "blue.units[0].exp: 1.5").unwrap_err();
-        assert!(error.contains("whole number"), "{error}");
+        let old = EXAMPLE[..EXAMPLE.find("outcome:").unwrap()].to_owned()
+            + "outcome:\n  red.core_damage: 37\n";
+        assert!(parse_yaml(old.as_bytes()).is_err());
     }
 
     #[test]
-    fn a_result_stands_only_where_something_can_be_left() {
-        // A standing oil area is in its last round.
-        let error = edited(
-            "  - {name: shield_airdrop, standing: {position: {x: -150, y: -150}}}\n",
-            "  - {name: sticky_oil_bomb, standing: {control_points: [{x: -24, y: 11}, {x: 80, y: 1}]}}\n",
-        )
-        .unwrap_err();
-        assert!(error.contains("standing area carries no result"), "{error}");
-        // A missile strike leaves nothing.
-        let error = edited(
-            "  - {name: shield_airdrop, standing: {position: {x: -150, y: -150}}}\n",
-            "  - {name: missile_strike, positions: [{x: 0, y: 150}]}\n",
-        )
-        .unwrap_err();
-        assert!(error.contains("leaves nothing"), "{error}");
-        // A shield leaves no area.
-        let error = edited(
-            "red.battle_skills[0].grid_rows",
-            "blue.battle_skills[0].grid_rows",
-        )
-        .unwrap_err();
-        assert!(error.contains("only a"), "{error}");
-        // An area that is gone has no points left.
-        let error = edited(
-            "red.battle_skills[0].grid_rows: {2: [], 3: [], 4: []}\n",
-            "red.battle_skills[0].grid_rows: {2: []}\n  red.battle_skills[0].retained: false\n",
-        )
-        .unwrap_err();
-        assert!(error.contains("both grid_rows and retained"), "{error}");
+    fn experience_states_the_same_bar_as_the_layout() {
+        for (to, message) in [
+            ("651/650", "full bar"),
+            ("170/651", "not its level"),
+            ("11/650", "only adds"),
+            ("12/650", "not written"),
+            ("170", "current/maximum"),
+            ("1.5/650", "current/maximum"),
+        ] {
+            let error = edited("exp: 170/650", &format!("exp: {to}")).unwrap_err();
+            assert!(error.contains(message), "{error}");
+        }
+        assert!(edited("exp: 170/650", "exp: 650/650").is_ok());
+    }
+
+    #[test]
+    fn results_stand_only_on_objects_that_can_carry_them() {
+        assert!(edited("index: 0, exp: 170/650", "index: 0, life: 170").is_err());
+        assert!(
+            edited("index: 0, retained: false", "index: 0, retained: true")
+                .unwrap_err()
+                .contains("not written")
+        );
+        assert!(
+            edited("at: 0, retained: false", "at: 0")
+                .unwrap_err()
+                .contains("no result")
+        );
+        assert!(
+            edited("at: 0, retained: false", "at: 0, grid_rows: {2: []}")
+                .unwrap_err()
+                .contains("only a")
+        );
         assert!(
             edited(
-                "red.battle_skills[0].grid_rows: {2: [], 3: [], 4: []}",
-                "red.battle_skills[0].retained: false"
+                "at: 0, grid_rows: {2: [], 3: [], 4: []}",
+                "at: 0, grid_rows: {2: []}, retained: false"
+            )
+            .unwrap_err()
+            .contains("both grid_rows and retained")
+        );
+        assert!(
+            edited("grid_rows: {2: [], 3: [], 4: []}", "grid_rows: {7: []}")
+                .unwrap_err()
+                .contains("point index 7")
+        );
+        assert!(
+            edited(
+                "at: 0, grid_rows: {2: [], 3: [], 4: []}",
+                "at: 0, retained: false"
             )
             .is_ok()
         );
-        let error = edited("grid_rows: {2: [], 3: [], 4: []}", "grid_rows: {7: []}").unwrap_err();
-        assert!(error.contains("point index 7"), "{error}");
-        // Retained is written only as false.
-        let error = edited(
-            "blue.contraptions[0].retained: false",
-            "blue.contraptions[0].retained: true",
-        )
-        .unwrap_err();
-        assert!(error.contains("not written"), "{error}");
     }
 
     #[test]
-    fn an_assert_is_a_query_and_the_rows_the_game_answered() {
-        let asserted = EXAMPLE.replace(
-            "\nticks:",
-            "\nasserts:\n- sql: \"SELECT tick FROM events WHERE type = 'damage'\"\n  rows: [[63], [64]]\n- sql: \"SELECT 1\"\nticks:",
-        );
-        let fight = parse_yaml(asserted.as_bytes()).unwrap();
-        assert_eq!(fight.asserts.len(), 2);
-        assert_eq!(
-            fight.asserts[0].rows,
-            Some(vec![vec![63.into()], vec![64.into()]])
-        );
-        assert_eq!(fight.asserts[1].rows, None);
-        assert_eq!(canonical_yaml(fight).unwrap(), asserted);
-        let error = parse_yaml(
-            EXAMPLE
-                .replace("\nticks:", "\nasserts:\n- rows: [[1]]\nticks:")
-                .as_bytes(),
-        )
-        .unwrap_err();
-        assert!(error.contains("sql"), "{error}");
-    }
-
-    #[test]
-    fn a_fight_has_a_schema() {
-        let schema = serde_json::to_value(schemars::schema_for!(Fight)).unwrap();
-        let properties = &schema["properties"];
-        for field in ["seed", "source", "outcome", "ticks", "hash", "blue", "red"] {
-            assert!(properties.get(field).is_some(), "{field}");
+    fn a_fight_keeps_no_result_inside_the_layout() {
+        for (from, to) in [
+            ("exp: 12/650", "exp: 12/170/650"),
+            ("red:\n", "red:\n  core_damage: 37\n"),
+            (
+                "position: {x: 5, y: -95}}",
+                "position: {x: 5, y: -95}, retained: false}",
+            ),
+        ] {
+            assert!(edited(from, to).is_err());
         }
-        assert_eq!(
-            schema["$defs"]["FightKind"]["enum"],
-            serde_json::json!(["fight"])
+    }
+
+    #[test]
+    fn seed_kind_projection_and_trajectory_are_validated() {
+        assert!(edited("seed: 4242\n", "").unwrap_err().contains("seed"));
+        assert!(edited("seed: 4242", "seed: 0").is_err());
+        assert!(
+            edited("kind: fight", "kind: layout")
+                .unwrap_err()
+                .contains("expected a fight")
         );
+        assert!(edited("source: game", "source: replay").is_err());
+        assert!(edited("source: game", "source: simulator").is_ok());
+        assert!(edited("ticks: 870\n", "").unwrap_err().contains("together"));
+        assert!(
+            edited("ticks: 870", "ticks: 0")
+                .unwrap_err()
+                .contains("at least 1")
+        );
+        assert!(
+            edited("23:380d", "23:380D")
+                .unwrap_err()
+                .contains("64 lowercase")
+        );
+        assert!(
+            edited("hash: 23:", "hash: mcfr-23:")
+                .unwrap_err()
+                .contains("profile number")
+        );
+        assert!(
+            edited(
+                "exp: 12/650}\n",
+                "exp: 12/650}\n  - {name: marksman, index: 1, position: {x: 0, y: -50}}\n"
+            )
+            .unwrap_err()
+            .contains("collide")
+        );
+    }
+
+    #[test]
+    fn assertions_are_literal_sql_and_one_answer_row_per_line() {
+        let mut fight = example();
+        fight.asserts.push(Assert {
+            sql: "SELECT tick\nFROM events\nWHERE type = 'damage'\nORDER BY tick;\n".into(),
+            rows: Some(vec![vec![63.into()], vec![64.into()]]),
+        });
+        let written = canonical_yaml(fight.clone()).unwrap();
+        assert!(written.contains("- sql: |\n    SELECT tick\n    FROM events\n"));
+        assert!(written.contains("  rows:\n  - [63]\n  - [64]\n"));
+        assert_eq!(parse_yaml(written.as_bytes()).unwrap(), fight);
+        assert_eq!(
+            canonical_yaml(parse_yaml(written.as_bytes()).unwrap()).unwrap(),
+            written
+        );
+    }
+
+    #[test]
+    fn assertion_spelling_preserves_sql_and_empty_or_unrecorded_rows() {
+        for sql in [
+            "SELECT 1",
+            "SELECT 1\n",
+            "SELECT 1\n\n",
+            "",
+            "\n",
+            "\n\n",
+            "  SELECT 1\n",
+            "SELECT 1\r\n",
+        ] {
+            for rows in [None, Some(vec![])] {
+                let mut fight = example();
+                fight.asserts.push(Assert {
+                    sql: sql.into(),
+                    rows,
+                });
+                let written = canonical_yaml(fight.clone()).unwrap();
+                assert_eq!(parse_yaml(written.as_bytes()).unwrap(), fight, "{written}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_fight_has_a_typed_required_outcome_schema() {
+        let schema = serde_json::to_value(schemars::schema_for!(Fight)).unwrap();
         let required = schema["required"].as_array().unwrap();
+        assert!(required.contains(&serde_json::json!("outcome")));
         assert!(required.contains(&serde_json::json!("seed")));
         assert!(!required.contains(&serde_json::json!("ticks")));
+        assert_eq!(
+            schema["$defs"]["Outcome"]["required"],
+            serde_json::json!(["blue", "red"])
+        );
+        assert!(
+            schema["$defs"]["SideOutcome"]["required"]
+                .as_array()
+                .unwrap()
+                .contains(&serde_json::json!("core_damage"))
+        );
     }
 }

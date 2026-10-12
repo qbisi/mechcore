@@ -90,47 +90,55 @@ red:
   battle_skills:
   - {name: sticky_oil_bomb, positions: [{x: -202, y: -38}, {x: -97, y: -36}]}
 outcome:
-  blue.units[1].exp: 1465
-  blue.units[2].exp: 1264
-  blue.units[3].exp: 2550
-  blue.units[4].exp: 1400
-  blue.units[6].exp: 450
-  blue.units[7].exp: 1400
-  blue.units[8].exp: 249
-  blue.units[11].exp: 3154
-  blue.units[12].exp: 160
-  blue.units[13].exp: 1500
-  blue.units[14].exp: 3380
-  blue.units[15].exp: 183
-  blue.units[16].exp: 61
-  blue.units[17].exp: 1500
-  blue.units[18].exp: 953
-  blue.units[19].exp: 820
-  blue.units[20].exp: 1045
-  blue.units[21].exp: 32
-  blue.units[22].exp: 596
-  blue.units[23].exp: 19
-  blue.units[24].exp: 11
-  blue.units[25].exp: 1000
-  blue.contraptions[0].retained: false
-  blue.battle_skills[0].retained: false
-  red.core_damage: 1184
-  red.units[3].exp: 2873
-  red.units[4].exp: 1512
-  red.units[5].exp: 1179
-  red.units[6].exp: 449
-  red.units[7].exp: 196
-  red.units[10].exp: 160
-  red.units[11].exp: 1654
-  red.units[12].exp: 123
-  red.units[13].exp: 256
-  red.units[14].exp: 1500
-  red.units[15].exp: 105
-  red.units[16].exp: 616
-  red.units[18].exp: 2929
-  red.units[19].exp: 11
-  red.units[20].exp: 168
-  red.units[21].exp: 274
-  red.contraptions[0].retained: false
+  blue:
+    core_damage: 0
+    units:
+    - {index: 1, exp: 1465/1465}
+    - {index: 2, exp: 1264/1465}
+    - {index: 3, exp: 2550/3154}
+    - {index: 4, exp: 1400/1400}
+    - {index: 6, exp: 450/450}
+    - {index: 7, exp: 1400/1400}
+    - {index: 8, exp: 249/450}
+    - {index: 11, exp: 3154/3154}
+    - {index: 12, exp: 160/450}
+    - {index: 14, exp: 1500/1500}
+    - {index: 15, exp: 3380/3380}
+    - {index: 16, exp: 183/450}
+    - {index: 17, exp: 61/450}
+    - {index: 18, exp: 1500/1500}
+    - {index: 19, exp: 953/1465}
+    - {index: 20, exp: 820/2000}
+    - {index: 21, exp: 1045/1400}
+    - {index: 22, exp: 32/450}
+    - {index: 23, exp: 596/1500}
+    - {index: 24, exp: 19/450}
+    - {index: 25, exp: 11/450}
+    - {index: 26, exp: 1000/1000}
+    contraptions:
+    - {index: 0, retained: false}
+    battle_skills:
+    - {at: 0, retained: false}
+  red:
+    core_damage: 1184
+    units:
+    - {index: 3, exp: 2873/3380}
+    - {index: 4, exp: 1512/3380}
+    - {index: 5, exp: 1179/1465}
+    - {index: 6, exp: 449/1465}
+    - {index: 7, exp: 196/2704}
+    - {index: 11, exp: 160/3380}
+    - {index: 12, exp: 1654/2929}
+    - {index: 13, exp: 123/450}
+    - {index: 14, exp: 256/650}
+    - {index: 15, exp: 1500/1500}
+    - {index: 16, exp: 105/450}
+    - {index: 17, exp: 616/2929}
+    - {index: 21, exp: 2929/2929}
+    - {index: 22, exp: 11/450}
+    - {index: 23, exp: 168/1500}
+    - {index: 24, exp: 274/2929}
+    contraptions:
+    - {index: 2, retained: false}
 ticks: 1166
 hash: 23:0a65b901c4ec005f56e14343c71d67861affcdf4e15460f6b5cf208cac683865

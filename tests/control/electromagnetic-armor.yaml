@@ -22,7 +22,10 @@ red:
   units:
   - {name: void_eye, index: 0, position: {x: -10, y: -60}}
 outcome:
-  blue.units[0].exp: 198
-  red.core_damage: 224
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 198/1262}
+  red: {core_damage: 224}
 ticks: 197
 hash: 23:16a58dfe7c0e250f9b1dbd0d62c9993c982b4d37e5e157cd3ddd83852d3a2645

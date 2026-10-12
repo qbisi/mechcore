@@ -53,29 +53,34 @@ red:
   - {name: fang, index: 13, position: {x: 140, y: -95}, rotated: true}
   - {name: vulcan, index: 14, position: {x: -140, y: -140}, level: 2, equipment: [amplifying_core]}
 outcome:
-  blue.core_damage: 450
-  blue.units[0].exp: 16
-  blue.units[1].exp: 28
-  blue.units[2].exp: 503
-  blue.units[3].exp: 1500
-  blue.units[4].exp: 1500
-  blue.units[5].exp: 173
-  blue.units[7].exp: 857
-  blue.units[8].exp: 1272
-  blue.units[10].exp: 963
-  blue.units[11].exp: 36
-  blue.units[12].exp: 300
-  blue.units[13].exp: 332
-  blue.units[14].exp: 312
-  blue.units[15].exp: 705
-  red.units[0].exp: 433
-  red.units[1].exp: 142
-  red.units[2].exp: 898
-  red.units[3].exp: 650
-  red.units[4].exp: 478
-  red.units[5].exp: 468
-  red.units[8].exp: 32
-  red.units[11].exp: 254
-  red.units[12].exp: 3625
+  blue:
+    core_damage: 450
+    units:
+    - {index: 0, exp: 16/1465}
+    - {index: 1, exp: 28/1465}
+    - {index: 2, exp: 503/650}
+    - {index: 3, exp: 1500/1500}
+    - {index: 4, exp: 1500/1500}
+    - {index: 5, exp: 173/450}
+    - {index: 7, exp: 857/1200}
+    - {index: 8, exp: 1272/1300}
+    - {index: 10, exp: 963/1300}
+    - {index: 11, exp: 36/1014}
+    - {index: 12, exp: 300/450}
+    - {index: 13, exp: 332/450}
+    - {index: 14, exp: 312/1300}
+    - {index: 15, exp: 705/1500}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 433/650}
+    - {index: 2, exp: 142/650}
+    - {index: 3, exp: 898/1400}
+    - {index: 5, exp: 650/650}
+    - {index: 6, exp: 478/1465}
+    - {index: 7, exp: 468/1200}
+    - {index: 10, exp: 32/1400}
+    - {index: 13, exp: 254/600}
+    - {index: 14, exp: 3625/5453}
 ticks: 1166
 hash: 23:d723c1da19b77426818930284d298c22f19dbe90fb3cd50f55748dfefd6fa2ba

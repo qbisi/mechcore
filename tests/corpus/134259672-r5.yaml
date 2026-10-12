@@ -72,39 +72,46 @@ red:
   - {name: missile, index: 2, position: {x: 299, y: -287}}
   - {name: missile, index: 3, position: {x: -299, y: -289}}
 outcome:
-  blue.units[2].exp: 1500
-  blue.units[3].exp: 634
-  blue.units[4].exp: 450
-  blue.units[5].exp: 262
-  blue.units[6].exp: 1500
-  blue.units[7].exp: 186
-  blue.units[8].exp: 712
-  blue.units[10].exp: 1853
-  blue.units[11].exp: 3380
-  blue.units[12].exp: 3095
-  blue.units[13].exp: 1227
-  blue.units[14].exp: 74
-  blue.units[15].exp: 41
-  blue.units[16].exp: 48
-  blue.contraptions[0].retained: false
-  red.core_damage: 1416
-  red.units[1].exp: 524
-  red.units[2].exp: 638
-  red.units[3].exp: 1218
-  red.units[4].exp: 845
-  red.units[5].exp: 450
-  red.units[6].exp: 138
-  red.units[7].exp: 311
-  red.units[8].exp: 55
-  red.units[9].exp: 1982
-  red.units[10].exp: 195
-  red.units[11].exp: 501
-  red.units[12].exp: 105
-  red.units[13].exp: 484
-  red.units[14].exp: 46
-  red.units[15].exp: 50
-  red.units[16].exp: 59
-  red.contraptions[0].retained: false
-  red.contraptions[1].retained: false
+  blue:
+    core_damage: 0
+    units:
+    - {index: 3, exp: 1500/1500}
+    - {index: 4, exp: 634/3380}
+    - {index: 5, exp: 450/450}
+    - {index: 6, exp: 262/450}
+    - {index: 8, exp: 1500/1500}
+    - {index: 9, exp: 186/450}
+    - {index: 10, exp: 712/1400}
+    - {index: 13, exp: 1853/1950}
+    - {index: 14, exp: 3380/3380}
+    - {index: 15, exp: 3095/3380}
+    - {index: 16, exp: 1227/3562}
+    - {index: 17, exp: 74/450}
+    - {index: 18, exp: 41/450}
+    - {index: 19, exp: 48/450}
+    contraptions:
+    - {index: 0, retained: false}
+  red:
+    core_damage: 1416
+    units:
+    - {index: 1, exp: 524/750}
+    - {index: 2, exp: 638/750}
+    - {index: 3, exp: 1218/1300}
+    - {index: 4, exp: 845/1300}
+    - {index: 5, exp: 450/450}
+    - {index: 6, exp: 138/450}
+    - {index: 8, exp: 311/2704}
+    - {index: 9, exp: 55/2704}
+    - {index: 10, exp: 1982/2704}
+    - {index: 11, exp: 195/450}
+    - {index: 12, exp: 501/560}
+    - {index: 13, exp: 105/1262}
+    - {index: 14, exp: 484/750}
+    - {index: 16, exp: 46/1465}
+    - {index: 17, exp: 50/1465}
+    - {index: 18, exp: 59/1262}
+    contraptions:
+    - {index: 2, retained: false}
+    - {index: 3, retained: false}
 ticks: 586
 hash: 23:fe7a6bcf816fd6eb1293702dd7a31b4be841d4cefcc3d9bebe2682c6751b8943

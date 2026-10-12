@@ -1424,12 +1424,17 @@ red:
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -100}}
 outcome:
-  blue.core_damage: 37
-  blue.units[0].exp: 170
-  blue.units[1].exp: 40
-  blue.contraptions[0].retained: false
-  blue.battle_skills[0].retained: false
-  blue.battle_skills[4].grid_rows: {2: [], 3: [], 4: []}
+  blue:
+    core_damage: 37
+    units:
+    - {index: 0, exp: 170/650}
+    - {index: 1, exp: 40/750}
+    contraptions:
+    - {index: 0, retained: false}
+    battle_skills:
+    - {at: 0, retained: false}
+    - {at: 4, grid_rows: {2: [], 3: [], 4: []}}
+  red: {core_damage: 0}
 ticks: 870
 hash: 23:0000000000000000000000000000000000000000000000000000000000000000
 ",

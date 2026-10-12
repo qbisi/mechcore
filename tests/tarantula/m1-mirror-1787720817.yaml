@@ -12,6 +12,10 @@ red:
   units:
   - {name: tarantula, index: 0, position: {x: -5, y: -105}}
 outcome:
-  red.units[0].exp: 400
+  blue: {core_damage: 0}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 400/1500}
 ticks: 484
 hash: 23:6263f62a7d39bb5f45cd0af61f90d0ea03c2e8a5f12c846cef64f4c89f3f9b16

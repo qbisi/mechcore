@@ -58,37 +58,42 @@ red:
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 outcome:
-  blue.units[0].exp: 586
-  blue.units[1].exp: 645
-  blue.units[2].exp: 642
-  blue.units[3].exp: 543
-  blue.units[4].exp: 1300
-  blue.units[5].exp: 2882
-  blue.units[6].exp: 194
-  blue.units[7].exp: 151
-  blue.units[8].exp: 450
-  blue.units[9].exp: 240
-  blue.units[10].exp: 1950
-  blue.units[11].exp: 1300
-  blue.units[12].exp: 359
-  blue.units[13].exp: 44
-  blue.units[14].exp: 111
-  red.core_damage: 450
-  red.units[0].exp: 411
-  red.units[1].exp: 750
-  red.units[2].exp: 168
-  red.units[3].exp: 1080
-  red.units[4].exp: 318
-  red.units[6].exp: 168
-  red.units[7].exp: 1225
-  red.units[8].exp: 113
-  red.units[9].exp: 1300
-  red.units[10].exp: 1339
-  red.units[11].exp: 377
-  red.units[12].exp: 326
-  red.units[13].exp: 73
-  red.units[14].exp: 209
-  red.units[15].exp: 11
-  red.units[16].exp: 132
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 586/750}
+    - {index: 1, exp: 645/750}
+    - {index: 2, exp: 642/750}
+    - {index: 3, exp: 543/2929}
+    - {index: 4, exp: 1300/1300}
+    - {index: 5, exp: 2882/2929}
+    - {index: 6, exp: 194/450}
+    - {index: 7, exp: 151/450}
+    - {index: 8, exp: 450/450}
+    - {index: 9, exp: 240/600}
+    - {index: 10, exp: 1950/1950}
+    - {index: 11, exp: 1300/1300}
+    - {index: 12, exp: 359/600}
+    - {index: 13, exp: 44/450}
+    - {index: 14, exp: 111/450}
+  red:
+    core_damage: 450
+    units:
+    - {index: 0, exp: 411/750}
+    - {index: 1, exp: 750/750}
+    - {index: 2, exp: 168/750}
+    - {index: 3, exp: 1080/1400}
+    - {index: 4, exp: 318/1400}
+    - {index: 6, exp: 168/450}
+    - {index: 7, exp: 1225/5070}
+    - {index: 8, exp: 113/450}
+    - {index: 9, exp: 1300/1300}
+    - {index: 10, exp: 1339/2704}
+    - {index: 11, exp: 377/750}
+    - {index: 12, exp: 326/750}
+    - {index: 13, exp: 73/450}
+    - {index: 14, exp: 209/1690}
+    - {index: 15, exp: 11/450}
+    - {index: 16, exp: 132/2250}
 ticks: 1251
 hash: 23:6f96acdb5cdddbfc6cb29aa1dc9141d0e6194b4f7819d84901097bdbd8198dd7

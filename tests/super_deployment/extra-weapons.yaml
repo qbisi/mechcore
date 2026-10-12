@@ -22,11 +22,16 @@ red:
   - {name: sabertooth, index: 1, position: {x: 335, y: 205}, travelling: true}
   - {name: sabertooth, index: 2, position: {x: 5, y: -95}}
 outcome:
-  blue.core_damage: 200
-  blue.units[0].exp: 600
-  blue.units[1].exp: 200
-  red.units[0].exp: 600
-  red.units[1].exp: 200
-  red.units[2].exp: 400
+  blue:
+    core_damage: 200
+    units:
+    - {index: 0, exp: 600/1300}
+    - {index: 1, exp: 200/1300}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 600/1300}
+    - {index: 1, exp: 200/1300}
+    - {index: 2, exp: 400/1300}
 ticks: 1128
 hash: 23:a3252d3ae84f7910602f4f597a6ccf17af7fb2cbe77c8f0306baa71e3664b394

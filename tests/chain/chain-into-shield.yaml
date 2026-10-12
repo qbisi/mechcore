@@ -40,7 +40,10 @@ red:
   battle_skills:
   - {name: nuke, positions: [{x: -235, y: -245}]}
 outcome:
-  red.core_damage: 374
-  red.units[1].exp: 100
+  blue: {core_damage: 0}
+  red:
+    core_damage: 374
+    units:
+    - {index: 1, exp: 100/5210}
 ticks: 1621
 hash: 23:4e6554619f56b97a06f2b9777d882f220a097f5979b1ae4bbbb8a140ad7d2339

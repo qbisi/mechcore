@@ -12,7 +12,13 @@ red:
   units:
   - {name: fire_badger, index: 0, position: {x: -5, y: -100}}
 outcome:
-  blue.units[0].exp: 402
-  red.units[0].exp: 201
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 402/1400}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 201/1400}
 ticks: 708
 hash: 23:1910c8a6e826418dba072e984197173104ab41f78b084287ab79ea8295daf89e

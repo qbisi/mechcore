@@ -77,40 +77,45 @@ red:
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -238, y: -51}, {x: -98, y: -51}]}
 outcome:
-  blue.units[0].exp: 1690
-  blue.units[2].exp: 706
-  blue.units[3].exp: 1000
-  blue.units[4].exp: 114
-  blue.units[5].exp: 390
-  blue.units[7].exp: 3396
-  blue.units[8].exp: 24
-  blue.units[9].exp: 2028
-  blue.units[10].exp: 289
-  blue.units[11].exp: 3562
-  blue.units[12].exp: 394
-  blue.units[13].exp: 606
-  blue.units[14].exp: 2245
-  blue.units[15].exp: 767
-  blue.units[16].exp: 818
-  blue.units[17].exp: 1
-  red.core_damage: 1020
-  red.units[3].exp: 1384
-  red.units[4].exp: 317
-  red.units[6].exp: 499
-  red.units[7].exp: 1690
-  red.units[8].exp: 390
-  red.units[9].exp: 522
-  red.units[10].exp: 491
-  red.units[11].exp: 123
-  red.units[12].exp: 357
-  red.units[13].exp: 230
-  red.units[14].exp: 1200
-  red.units[15].exp: 1200
-  red.units[16].exp: 1780
-  red.units[17].exp: 1255
-  red.units[18].exp: 761
-  red.units[19].exp: 439
-  red.units[20].exp: 952
-  red.units[21].exp: 490
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 1690/1690}
+    - {index: 2, exp: 706/750}
+    - {index: 3, exp: 1000/1000}
+    - {index: 4, exp: 114/2253}
+    - {index: 5, exp: 390/450}
+    - {index: 7, exp: 3396/4490}
+    - {index: 8, exp: 24/450}
+    - {index: 9, exp: 2028/2028}
+    - {index: 10, exp: 289/900}
+    - {index: 11, exp: 3562/3562}
+    - {index: 12, exp: 394/900}
+    - {index: 13, exp: 606/1000}
+    - {index: 14, exp: 2245/3605}
+    - {index: 15, exp: 767/2253}
+    - {index: 16, exp: 818/1000}
+    - {index: 17, exp: 1/1000}
+  red:
+    core_damage: 1020
+    units:
+    - {index: 3, exp: 1384/3380}
+    - {index: 4, exp: 317/1500}
+    - {index: 6, exp: 499/1690}
+    - {index: 7, exp: 1690/1690}
+    - {index: 8, exp: 390/1690}
+    - {index: 9, exp: 522/1690}
+    - {index: 10, exp: 491/1465}
+    - {index: 11, exp: 123/1465}
+    - {index: 12, exp: 357/1465}
+    - {index: 13, exp: 230/1690}
+    - {index: 15, exp: 1200/1200}
+    - {index: 16, exp: 1200/1200}
+    - {index: 17, exp: 1780/2704}
+    - {index: 18, exp: 1255/1600}
+    - {index: 19, exp: 761/1200}
+    - {index: 20, exp: 439/1200}
+    - {index: 21, exp: 952/1600}
+    - {index: 22, exp: 490/1200}
 ticks: 1136
 hash: 23:062d2def6b5f579aa685dcfef4d9f204f05924d024118ba62be0ee5434e7bcb0

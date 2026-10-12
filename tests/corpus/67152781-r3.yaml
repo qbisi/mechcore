@@ -57,29 +57,34 @@ red:
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -37, y: 72}, {x: 103, y: 72}]}
 outcome:
-  blue.core_damage: 1000
-  blue.units[0].exp: 228
-  blue.units[1].exp: 167
-  blue.units[2].exp: 237
-  blue.units[3].exp: 1157
-  blue.units[4].exp: 617
-  blue.units[5].exp: 759
-  blue.units[6].exp: 629
-  blue.units[7].exp: 76
-  blue.units[8].exp: 48
-  blue.units[9].exp: 368
-  blue.units[10].exp: 48
-  red.units[0].exp: 186
-  red.units[1].exp: 213
-  red.units[2].exp: 307
-  red.units[3].exp: 964
-  red.units[4].exp: 745
-  red.units[5].exp: 650
-  red.units[6].exp: 642
-  red.units[7].exp: 1103
-  red.units[8].exp: 824
-  red.units[9].exp: 650
-  red.units[10].exp: 611
-  red.units[11].exp: 713
+  blue:
+    core_damage: 1000
+    units:
+    - {index: 0, exp: 228/750}
+    - {index: 1, exp: 167/750}
+    - {index: 2, exp: 237/750}
+    - {index: 3, exp: 1157/1300}
+    - {index: 4, exp: 617/1300}
+    - {index: 5, exp: 759/900}
+    - {index: 6, exp: 629/1300}
+    - {index: 7, exp: 76/750}
+    - {index: 8, exp: 48/1300}
+    - {index: 9, exp: 368/1300}
+    - {index: 10, exp: 48/1300}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 186/750}
+    - {index: 1, exp: 213/750}
+    - {index: 2, exp: 307/750}
+    - {index: 3, exp: 964/1300}
+    - {index: 4, exp: 745/1300}
+    - {index: 5, exp: 650/650}
+    - {index: 6, exp: 642/650}
+    - {index: 7, exp: 1103/1300}
+    - {index: 8, exp: 824/1300}
+    - {index: 9, exp: 650/650}
+    - {index: 10, exp: 611/1300}
+    - {index: 11, exp: 713/1300}
 ticks: 712
 hash: 23:1a185503da2f74f1f53080649677c3d57cadc56abe7f20678e4e49c3b5e28e2a

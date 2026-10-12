@@ -15,10 +15,15 @@ red:
   - {name: arclight, index: 0, position: {x: 0, y: -100}}
   - {name: crawler, index: 1, position: {x: 0, y: -135}, rotated: true}
 outcome:
-  blue.core_damage: 100
-  blue.units[0].exp: 150
-  blue.units[1].exp: 42
-  red.units[0].exp: 356
-  red.units[1].exp: 36
+  blue:
+    core_damage: 100
+    units:
+    - {index: 0, exp: 150/750}
+    - {index: 1, exp: 42/450}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 356/750}
+    - {index: 1, exp: 36/450}
 ticks: 497
 hash: 23:ee34e792ab90ffd9dc3142668fb9104ae393d9f5e7aa55d9d90d75d1788358d8

@@ -22,8 +22,11 @@ red:
   - {name: sledgehammer, index: 0, position: {x: 5, y: -60}}
   - {name: crawler, index: 1, position: {x: 5, y: -110}}
 outcome:
-  blue.units[0].exp: 256
-  blue.units[1].exp: 336
-  red.core_damage: 200
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 256/650}
+    - {index: 1, exp: 336/650}
+  red: {core_damage: 200}
 ticks: 288
 hash: 23:3f82ab139fdf0d7c315fb108bd207979952e7a54c0c239c8b2acbea4476c01a9

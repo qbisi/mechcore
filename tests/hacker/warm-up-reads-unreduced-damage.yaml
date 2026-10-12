@@ -18,12 +18,23 @@ red:
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
 outcome:
-  blue.units[0].exp: 400
-  red.core_damage: 250
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 400/2918}
+  red: {core_damage: 250}
 asserts:
-- sql: "SELECT enabled__attack_damage FROM units__skills WHERE unit_id = 1 AND skill_slot = 0 AND tick = 1"
-  rows: [[2]]
-- sql: "SELECT DISTINCT control__progress FROM units WHERE unit_id = 2 AND has_control AND control__progress < 4000 ORDER BY 1"
-  rows: [[0], [2], [4], [6], [3006]]
+- sql: |-
+    SELECT enabled__attack_damage FROM units__skills WHERE unit_id = 1 AND skill_slot = 0 AND tick = 1
+  rows:
+  - [2]
+- sql: |-
+    SELECT DISTINCT control__progress FROM units WHERE unit_id = 2 AND has_control AND control__progress < 4000 ORDER BY 1
+  rows:
+  - [0]
+  - [2]
+  - [4]
+  - [6]
+  - [3006]
 ticks: 172
 hash: 23:1d08a5688c131f79992626db532a0a7c0fa654dfd4219a2ebbf166a7d90dcee2

@@ -22,9 +22,14 @@ red:
   - {name: centurion, index: 0, position: {x: 5, y: -75}, level: 6}
   - {name: centurion, index: 1, position: {x: -45, y: -75}, level: 6}
 outcome:
-  blue.units[0].exp: 8118
-  red.core_damage: 350
-  red.units[0].exp: 1100
-  red.units[1].exp: 3300
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 8118/8118}
+  red:
+    core_damage: 350
+    units:
+    - {index: 0, exp: 1100/13047}
+    - {index: 1, exp: 3300/13047}
 ticks: 328
 hash: 23:9b6c8e4fb6f4a7858d81bc2fc48a269785b687e6ea0b2fde37bfa69ece150e68

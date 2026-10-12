@@ -43,11 +43,20 @@ red:
   units:
   - {name: marksman, index: 0, position: {x: 170, y: -20}}
 outcome:
-  blue.units[0].exp: 200
-  red.core_damage: 100
-  red.units[0].exp: 12
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 200/650}
+  red:
+    core_damage: 100
+    units:
+    - {index: 0, exp: 12/650}
 asserts:
-- sql: "SELECT u.tick, u.unit_id, u.motion_state, u.mech_lock_target__kind, u.mech_lock_target__id, k.enabled__state, k.enabled__attack_target__kind, k.enabled__attack_target__id FROM units u JOIN units__skills k ON k.tick = u.tick AND k.unit_id = u.unit_id AND k.skill_slot = 0 WHERE u.team_id = 1 AND u.tick IN (2, 18, 19) ORDER BY u.tick"
-  rows: [[2, 2, attacking, unit, 1, prepare, building, 6], [18, 2, attacking, unit, 1, attack, building, 6], [19, 2, idle, null, null, cooling, building, 6]]
+- sql: |-
+    SELECT u.tick, u.unit_id, u.motion_state, u.mech_lock_target__kind, u.mech_lock_target__id, k.enabled__state, k.enabled__attack_target__kind, k.enabled__attack_target__id FROM units u JOIN units__skills k ON k.tick = u.tick AND k.unit_id = u.unit_id AND k.skill_slot = 0 WHERE u.team_id = 1 AND u.tick IN (2, 18, 19) ORDER BY u.tick
+  rows:
+  - [2, 2, attacking, unit, 1, prepare, building, 6]
+  - [18, 2, attacking, unit, 1, attack, building, 6]
+  - [19, 2, idle, null, null, cooling, building, 6]
 ticks: 20
 hash: 23:c8404bd207587872658702b89ffdbb014f49383dcbf77bdbae61b81deebb7c64

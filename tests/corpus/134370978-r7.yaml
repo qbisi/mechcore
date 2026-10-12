@@ -94,51 +94,58 @@ red:
   battle_skills:
   - {name: sticky_oil_bomb, standing: {control_points: [{x: -107, y: 85}, {x: -211, y: 79}]}}
 outcome:
-  blue.core_damage: 1839
-  blue.units[1].exp: 590
-  blue.units[2].exp: 407
-  blue.units[3].exp: 554
-  blue.units[5].exp: 1690
-  blue.units[6].exp: 232
-  blue.units[8].exp: 755
-  blue.units[9].exp: 1511
-  blue.units[10].exp: 358
-  blue.units[12].exp: 315
-  blue.units[13].exp: 195
-  blue.units[14].exp: 2623
-  blue.units[15].exp: 27
-  blue.units[16].exp: 340
-  blue.units[17].exp: 599
-  blue.units[18].exp: 428
-  blue.units[19].exp: 1465
-  blue.units[20].exp: 6
-  blue.units[21].exp: 261
-  blue.units[22].exp: 140
-  blue.units[23].exp: 70
-  blue.units[24].exp: 126
-  blue.contraptions[0].retained: false
-  blue.contraptions[1].retained: false
-  red.units[1].exp: 228
-  red.units[3].exp: 1466
-  red.units[4].exp: 1400
-  red.units[5].exp: 483
-  red.units[6].exp: 1036
-  red.units[7].exp: 2014
-  red.units[8].exp: 2125
-  red.units[10].exp: 1292
-  red.units[12].exp: 341
-  red.units[13].exp: 450
-  red.units[14].exp: 1289
-  red.units[15].exp: 2479
-  red.units[16].exp: 1246
-  red.units[17].exp: 592
-  red.units[18].exp: 750
-  red.units[19].exp: 750
-  red.units[20].exp: 3381
-  red.units[21].exp: 217
-  red.units[22].exp: 45
-  red.units[23].exp: 2400
-  red.contraptions[1].retained: false
-  red.contraptions[2].retained: false
+  blue:
+    core_damage: 1839
+    units:
+    - {index: 1, exp: 590/600}
+    - {index: 2, exp: 407/600}
+    - {index: 5, exp: 554/2671}
+    - {index: 7, exp: 1690/1690}
+    - {index: 8, exp: 232/1690}
+    - {index: 10, exp: 755/2315}
+    - {index: 11, exp: 1511/2315}
+    - {index: 12, exp: 358/2919}
+    - {index: 14, exp: 315/1014}
+    - {index: 15, exp: 195/1014}
+    - {index: 16, exp: 2623/3154}
+    - {index: 17, exp: 27/1014}
+    - {index: 18, exp: 340/1014}
+    - {index: 19, exp: 599/1465}
+    - {index: 20, exp: 428/2315}
+    - {index: 21, exp: 1465/1465}
+    - {index: 22, exp: 6/1500}
+    - {index: 23, exp: 261/1500}
+    - {index: 24, exp: 140/1465}
+    - {index: 25, exp: 70/1465}
+    - {index: 26, exp: 126/1465}
+    contraptions:
+    - {index: 0, retained: false}
+    - {index: 1, retained: false}
+  red:
+    core_damage: 0
+    units:
+    - {index: 1, exp: 228/450}
+    - {index: 3, exp: 1466/3154}
+    - {index: 4, exp: 1400/1400}
+    - {index: 5, exp: 483/2315}
+    - {index: 6, exp: 1036/1465}
+    - {index: 7, exp: 2014/2919}
+    - {index: 8, exp: 2125/2929}
+    - {index: 12, exp: 1292/2028}
+    - {index: 14, exp: 341/450}
+    - {index: 15, exp: 450/450}
+    - {index: 16, exp: 1289/2479}
+    - {index: 17, exp: 2479/2479}
+    - {index: 18, exp: 1246/2479}
+    - {index: 19, exp: 592/750}
+    - {index: 20, exp: 750/750}
+    - {index: 21, exp: 750/750}
+    - {index: 22, exp: 3381/5408}
+    - {index: 23, exp: 217/1400}
+    - {index: 24, exp: 45/450}
+    - {index: 25, exp: 2400/2400}
+    contraptions:
+    - {index: 4, retained: false}
+    - {index: 5, retained: false}
 ticks: 986
 hash: 23:148fd87b68fa73a078ccea7be3e773bad8c91f586ecd962bcb9712f95247db30

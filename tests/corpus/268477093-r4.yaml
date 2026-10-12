@@ -55,32 +55,37 @@ red:
   battle_skills:
   - {name: wasp_swarm, positions: [{x: -94, y: -280}]}
 outcome:
-  blue.core_damage: 901
-  blue.units[0].exp: 390
-  blue.units[1].exp: 304
-  blue.units[3].exp: 58
-  blue.units[4].exp: 137
-  blue.units[7].exp: 61
-  blue.units[8].exp: 490
-  blue.units[9].exp: 582
-  blue.units[10].exp: 1363
-  blue.units[11].exp: 1310
-  blue.units[12].exp: 1032
-  blue.units[13].exp: 981
-  blue.units[14].exp: 37
-  red.units[0].exp: 650
-  red.units[1].exp: 176
-  red.units[2].exp: 506
-  red.units[3].exp: 503
-  red.units[4].exp: 1112
-  red.units[5].exp: 440
-  red.units[6].exp: 172
-  red.units[7].exp: 1400
-  red.units[8].exp: 400
-  red.units[9].exp: 1232
-  red.units[10].exp: 204
-  red.units[11].exp: 650
-  red.units[12].exp: 121
-  red.units[13].exp: 1000
+  blue:
+    core_damage: 901
+    units:
+    - {index: 0, exp: 390/750}
+    - {index: 1, exp: 304/750}
+    - {index: 5, exp: 58/450}
+    - {index: 6, exp: 137/450}
+    - {index: 9, exp: 61/450}
+    - {index: 10, exp: 490/1690}
+    - {index: 11, exp: 582/1690}
+    - {index: 12, exp: 1363/2250}
+    - {index: 13, exp: 1310/2250}
+    - {index: 14, exp: 1032/1100}
+    - {index: 15, exp: 981/1100}
+    - {index: 16, exp: 37/450}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 650/650}
+    - {index: 1, exp: 176/1465}
+    - {index: 2, exp: 506/1465}
+    - {index: 3, exp: 503/3154}
+    - {index: 4, exp: 1112/3154}
+    - {index: 5, exp: 440/600}
+    - {index: 6, exp: 172/600}
+    - {index: 7, exp: 1400/1400}
+    - {index: 8, exp: 400/600}
+    - {index: 9, exp: 1232/1950}
+    - {index: 10, exp: 204/450}
+    - {index: 11, exp: 650/650}
+    - {index: 12, exp: 121/1000}
+    - {index: 13, exp: 1000/1000}
 ticks: 977
 hash: 23:019ab7b2cd3cb07904373c7e1a67e54127194139f0a56f0f25b8a5ac3c5aa152

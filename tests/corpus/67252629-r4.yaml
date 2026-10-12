@@ -54,28 +54,33 @@ red:
   battle_skills:
   - {name: orbital_bombardment, positions: [{x: -125, y: 52}]}
 outcome:
-  blue.core_damage: 1110
-  blue.units[0].exp: 483
-  blue.units[1].exp: 761
-  blue.units[2].exp: 370
-  blue.units[3].exp: 1007
-  blue.units[4].exp: 1105
-  blue.units[8].exp: 182
-  blue.units[9].exp: 165
-  blue.units[11].exp: 211
-  blue.units[12].exp: 79
-  red.units[0].exp: 240
-  red.units[1].exp: 341
-  red.units[2].exp: 288
-  red.units[3].exp: 750
-  red.units[4].exp: 573
-  red.units[5].exp: 1277
-  red.units[6].exp: 750
-  red.units[7].exp: 1792
-  red.units[8].exp: 528
-  red.units[9].exp: 284
-  red.units[10].exp: 750
-  red.units[11].exp: 661
-  red.units[12].exp: 964
+  blue:
+    core_damage: 1110
+    units:
+    - {index: 0, exp: 483/1465}
+    - {index: 1, exp: 761/1465}
+    - {index: 2, exp: 370/1465}
+    - {index: 3, exp: 1007/1400}
+    - {index: 4, exp: 1105/1400}
+    - {index: 8, exp: 182/450}
+    - {index: 9, exp: 165/2028}
+    - {index: 11, exp: 211/450}
+    - {index: 12, exp: 79/1400}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 240/450}
+    - {index: 1, exp: 341/450}
+    - {index: 2, exp: 288/450}
+    - {index: 5, exp: 750/750}
+    - {index: 6, exp: 573/750}
+    - {index: 8, exp: 1277/2250}
+    - {index: 9, exp: 750/750}
+    - {index: 10, exp: 1792/2250}
+    - {index: 11, exp: 528/2250}
+    - {index: 12, exp: 284/750}
+    - {index: 13, exp: 750/750}
+    - {index: 14, exp: 661/750}
+    - {index: 15, exp: 964/2250}
 ticks: 752
 hash: 23:809cf75d61821bf1dc2aaf1097365140a34d7736c256a0dde810fd638bfae342

@@ -62,36 +62,41 @@ red:
   battle_skills:
   - {name: mobile_beacon, positions: [{x: 230, y: -54}, {x: 154, y: 131}, {x: -41, y: 171}]}
 outcome:
-  blue.units[0].exp: 1027
-  blue.units[1].exp: 950
-  blue.units[2].exp: 263
-  blue.units[3].exp: 671
-  blue.units[4].exp: 1277
-  blue.units[5].exp: 441
-  blue.units[7].exp: 290
-  blue.units[8].exp: 2253
-  blue.units[9].exp: 1000
-  blue.units[10].exp: 1189
-  blue.units[11].exp: 630
-  blue.units[12].exp: 206
-  blue.units[13].exp: 1977
-  red.core_damage: 536
-  red.units[0].exp: 400
-  red.units[1].exp: 450
-  red.units[2].exp: 450
-  red.units[3].exp: 1173
-  red.units[4].exp: 1300
-  red.units[5].exp: 690
-  red.units[6].exp: 505
-  red.units[8].exp: 628
-  red.units[9].exp: 449
-  red.units[10].exp: 371
-  red.units[11].exp: 1310
-  red.units[12].exp: 1015
-  red.units[13].exp: 192
-  red.units[14].exp: 450
-  red.units[15].exp: 768
-  red.units[16].exp: 600
-  red.units[17].exp: 17
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 1027/1465}
+    - {index: 1, exp: 950/1465}
+    - {index: 2, exp: 263/1465}
+    - {index: 3, exp: 671/1400}
+    - {index: 4, exp: 1277/1400}
+    - {index: 5, exp: 441/450}
+    - {index: 8, exp: 290/450}
+    - {index: 9, exp: 2253/2253}
+    - {index: 10, exp: 1000/1000}
+    - {index: 12, exp: 1189/1400}
+    - {index: 13, exp: 630/2591}
+    - {index: 14, exp: 206/1465}
+    - {index: 15, exp: 1977/2253}
+  red:
+    core_damage: 536
+    units:
+    - {index: 0, exp: 400/450}
+    - {index: 1, exp: 450/450}
+    - {index: 2, exp: 450/450}
+    - {index: 3, exp: 1173/1300}
+    - {index: 4, exp: 1300/1300}
+    - {index: 5, exp: 690/750}
+    - {index: 6, exp: 505/750}
+    - {index: 8, exp: 628/750}
+    - {index: 9, exp: 449/750}
+    - {index: 10, exp: 371/1950}
+    - {index: 11, exp: 1310/1950}
+    - {index: 12, exp: 1015/1300}
+    - {index: 13, exp: 192/1950}
+    - {index: 14, exp: 450/450}
+    - {index: 15, exp: 768/1000}
+    - {index: 16, exp: 600/600}
+    - {index: 17, exp: 17/600}
 ticks: 1193
 hash: 23:66e4289281b85b0317ea5d43ab22a1b421aa5d177e28cb72c9237ebb69516c6d

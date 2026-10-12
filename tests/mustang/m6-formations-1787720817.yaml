@@ -15,10 +15,15 @@ red:
   - {name: crawler, index: 0, position: {x: 5, y: -70}}
   - {name: marksman, index: 1, position: {x: 0, y: -110}}
 outcome:
-  blue.units[0].exp: 124
-  blue.units[1].exp: 268
-  red.core_damage: 340
-  red.units[0].exp: 17
-  red.units[1].exp: 119
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 124/1200}
+    - {index: 1, exp: 268/1200}
+  red:
+    core_damage: 340
+    units:
+    - {index: 0, exp: 17/450}
+    - {index: 1, exp: 119/650}
 ticks: 260
 hash: 23:d8220e56527b594d6803931ee92ad5f29bc480acb7d38bb117203713e474d5cc

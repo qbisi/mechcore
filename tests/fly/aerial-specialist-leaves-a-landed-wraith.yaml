@@ -20,10 +20,15 @@ red:
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -100}}
 outcome:
-  blue.units[0].exp: 200
-  red.core_damage: 250
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 200/2250}
+  red: {core_damage: 250}
+asserts:
+- sql: |-
+    SELECT life__maximum, domain FROM units WHERE tick = 1 AND unit_id = 1
+  rows:
+  - [14115, ground]
 ticks: 192
 hash: 23:49d3b10ec53ae7e1d89f2083ac6c642f71b86b512c5a533ef4c0a0dca5b07db6
-asserts:
-- sql: "SELECT life__maximum, domain FROM units WHERE tick = 1 AND unit_id = 1"
-  rows: [[14115, ground]]

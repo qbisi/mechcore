@@ -12,6 +12,10 @@ red:
   units:
   - {name: overlord, index: 0, position: {x: -5, y: -105}}
 outcome:
-  red.units[0].exp: 1000
+  blue: {core_damage: 0}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 1000/1750}
 ticks: 195
 hash: 23:c717cbe40bb3e043a32e9d73a424b7085637ca7ac154dc6503bf3f6cd16f8223

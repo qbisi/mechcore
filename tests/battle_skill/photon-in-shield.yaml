@@ -25,11 +25,17 @@ red:
   - {name: arclight, index: 0, position: {x: -30, y: -100}}
   - {name: fortress, index: 1, position: {x: 0, y: -140}}
 outcome:
-  blue.core_damage: 350
-  blue.units[0].exp: 33
-  blue.units[1].exp: 33
-  blue.units[2].exp: 133
-  blue.contraptions[0].retained: false
-  red.units[1].exp: 800
+  blue:
+    core_damage: 350
+    units:
+    - {index: 0, exp: 33/650}
+    - {index: 1, exp: 33/1150}
+    - {index: 2, exp: 133/650}
+    contraptions:
+    - {index: 3, retained: false}
+  red:
+    core_damage: 0
+    units:
+    - {index: 1, exp: 800/1600}
 ticks: 693
 hash: 23:1e5207ffc4416082c118257f27a7739fdf3730b6a786aa13fd8deb0def337e36

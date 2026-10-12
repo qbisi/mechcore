@@ -58,34 +58,39 @@ red:
   battle_skills:
   - {name: underground_threat, positions: [{x: -2, y: 273}]}
 outcome:
-  blue.units[0].exp: 488
-  blue.units[1].exp: 210
-  blue.units[2].exp: 316
-  blue.units[3].exp: 2073
-  blue.units[4].exp: 767
-  blue.units[5].exp: 1025
-  blue.units[6].exp: 1012
-  blue.units[7].exp: 565
-  blue.units[8].exp: 899
-  blue.units[9].exp: 250
-  blue.units[10].exp: 1241
-  blue.units[11].exp: 1837
-  blue.units[12].exp: 101
-  blue.units[14].exp: 64
-  blue.units[15].exp: 8
-  red.core_damage: 480
-  red.units[0].exp: 104
-  red.units[2].exp: 650
-  red.units[3].exp: 107
-  red.units[4].exp: 2022
-  red.units[5].exp: 136
-  red.units[6].exp: 313
-  red.units[7].exp: 63
-  red.units[8].exp: 458
-  red.units[9].exp: 2622
-  red.units[10].exp: 388
-  red.units[11].exp: 129
-  red.units[12].exp: 525
-  red.units[13].exp: 137
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 488/600}
+    - {index: 1, exp: 210/600}
+    - {index: 2, exp: 316/600}
+    - {index: 3, exp: 2073/2929}
+    - {index: 4, exp: 767/1300}
+    - {index: 5, exp: 1025/1690}
+    - {index: 6, exp: 1012/1690}
+    - {index: 7, exp: 565/750}
+    - {index: 8, exp: 899/1690}
+    - {index: 9, exp: 250/750}
+    - {index: 10, exp: 1241/1300}
+    - {index: 11, exp: 1837/2250}
+    - {index: 12, exp: 101/450}
+    - {index: 14, exp: 64/750}
+    - {index: 15, exp: 8/1300}
+  red:
+    core_damage: 480
+    units:
+    - {index: 0, exp: 104/1465}
+    - {index: 2, exp: 650/650}
+    - {index: 3, exp: 107/2704}
+    - {index: 4, exp: 2022/2704}
+    - {index: 5, exp: 136/450}
+    - {index: 6, exp: 313/450}
+    - {index: 7, exp: 63/450}
+    - {index: 8, exp: 458/1300}
+    - {index: 9, exp: 2622/5070}
+    - {index: 10, exp: 388/750}
+    - {index: 11, exp: 129/750}
+    - {index: 12, exp: 525/2250}
+    - {index: 13, exp: 137/750}
 ticks: 1250
 hash: 23:3512a5dac1f2a9b05746b23761c8d0362817d586db29f67536304e8f60f7ff45

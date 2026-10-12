@@ -23,11 +23,19 @@ red:
   units:
   - {name: mountain, index: 0, position: {x: -155, y: -45}}
 outcome:
-  blue.core_damage: 500
-  blue.units[0].exp: 200
-  red.units[0].exp: 636
+  blue:
+    core_damage: 500
+    units:
+    - {index: 0, exp: 200/650}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 636/3200}
 asserts:
-- sql: "SELECT tick, round(q32(turret_rotation), 2) FROM units WHERE unit_type_id = 2002 AND tick IN (1, 2)"
-  rows: [[1, 184.21], [2, 182.03]]
+- sql: |-
+    SELECT tick, round(q32(turret_rotation), 2) FROM units WHERE unit_type_id = 2002 AND tick IN (1, 2)
+  rows:
+  - [1, 184.21]
+  - [2, 182.03]
 ticks: 1236
 hash: 23:81840a548c1581b9bcb557de3cb42db178d5caa695afa6135ef03116c8dd824d

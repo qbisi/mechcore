@@ -81,46 +81,51 @@ red:
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 outcome:
-  blue.core_damage: 200
-  blue.units[3].exp: 1447
-  blue.units[4].exp: 181
-  blue.units[5].exp: 552
-  blue.units[6].exp: 1014
-  blue.units[7].exp: 292
-  blue.units[8].exp: 311
-  blue.units[11].exp: 47
-  blue.units[13].exp: 767
-  blue.units[14].exp: 1322
-  blue.units[15].exp: 2704
-  blue.units[16].exp: 2116
-  blue.units[17].exp: 1922
-  blue.units[18].exp: 3154
-  blue.units[19].exp: 407
-  blue.units[20].exp: 3067
-  blue.units[21].exp: 89
-  red.units[0].exp: 1465
-  red.units[1].exp: 1465
-  red.units[2].exp: 685
-  red.units[3].exp: 3483
-  red.units[4].exp: 3608
-  red.units[5].exp: 2671
-  red.units[6].exp: 1183
-  red.units[7].exp: 932
-  red.units[8].exp: 699
-  red.units[9].exp: 1043
-  red.units[10].exp: 2028
-  red.units[11].exp: 2299
-  red.units[12].exp: 397
-  red.units[13].exp: 1000
-  red.units[14].exp: 1000
-  red.units[15].exp: 174
-  red.units[16].exp: 195
-  red.units[17].exp: 2235
-  red.units[18].exp: 1852
-  red.units[19].exp: 2018
-  red.units[20].exp: 1100
-  red.units[21].exp: 980
-  red.units[22].exp: 114
-  red.units[23].exp: 139
+  blue:
+    core_damage: 200
+    units:
+    - {index: 3, exp: 1447/2253}
+    - {index: 4, exp: 181/2253}
+    - {index: 5, exp: 552/1014}
+    - {index: 6, exp: 1014/1014}
+    - {index: 7, exp: 292/1014}
+    - {index: 8, exp: 311/1014}
+    - {index: 11, exp: 47/3562}
+    - {index: 13, exp: 767/1014}
+    - {index: 14, exp: 1322/4274}
+    - {index: 15, exp: 2704/2704}
+    - {index: 16, exp: 2116/2704}
+    - {index: 17, exp: 1922/2200}
+    - {index: 18, exp: 3154/3154}
+    - {index: 19, exp: 407/1014}
+    - {index: 20, exp: 3067/3154}
+    - {index: 21, exp: 89/1014}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 1465/1465}
+    - {index: 1, exp: 1465/1465}
+    - {index: 2, exp: 685/1465}
+    - {index: 3, exp: 3483/5343}
+    - {index: 4, exp: 3608/5343}
+    - {index: 5, exp: 2671/2671}
+    - {index: 6, exp: 1183/2671}
+    - {index: 7, exp: 932/1014}
+    - {index: 8, exp: 699/1014}
+    - {index: 9, exp: 1043/2028}
+    - {index: 10, exp: 2028/2028}
+    - {index: 11, exp: 2299/3380}
+    - {index: 12, exp: 397/450}
+    - {index: 13, exp: 1000/1000}
+    - {index: 14, exp: 1000/1000}
+    - {index: 15, exp: 174/450}
+    - {index: 16, exp: 195/450}
+    - {index: 17, exp: 2235/2704}
+    - {index: 18, exp: 1852/2250}
+    - {index: 19, exp: 2018/2250}
+    - {index: 20, exp: 1100/1300}
+    - {index: 21, exp: 980/2929}
+    - {index: 22, exp: 114/1150}
+    - {index: 23, exp: 139/450}
 ticks: 1438
 hash: 23:c3dfb5a4a2ad055313b7b44b70f79e2e741d5ab305e26fd034a0c185951a0e27

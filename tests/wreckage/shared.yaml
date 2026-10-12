@@ -21,8 +21,11 @@ red:
   - {name: mustang, index: 1, position: {x: 45, y: -20}}
   - {name: arclight, index: 2, position: {x: 280, y: -300}}
 outcome:
-  blue.units[0].exp: 782
-  blue.units[1].exp: 633
-  red.core_damage: 1000
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 782/4800}
+    - {index: 1, exp: 633/4800}
+  red: {core_damage: 1000}
 ticks: 528
 hash: 23:19ccbb35dab8e923c8691c1af531418e2d44db85209af18aecacbb184e1acb4a

@@ -38,13 +38,21 @@ red:
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: 10, y: 40}, {x: -300, y: -95}]}
 outcome:
-  blue.units[0].exp: 2864
-  blue.units[1].exp: 2800
-  blue.contraptions[0].retained: false
-  red.core_damage: 300
-  red.units[2].exp: 1600
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 2864/2929}
+    - {index: 1, exp: 2800/8746}
+    contraptions:
+    - {index: 0, retained: false}
+  red:
+    core_damage: 300
+    units:
+    - {index: 2, exp: 1600/3154}
 asserts:
-- sql: "SELECT object__id, source__kind, source__id FROM events WHERE type = 'unit_died' AND object__id = 4"
-  rows: [[4, unit, 1]]
+- sql: |-
+    SELECT object__id, source__kind, source__id FROM events WHERE type = 'unit_died' AND object__id = 4
+  rows:
+  - [4, unit, 1]
 ticks: 358
 hash: 23:0c1ed1e27b1fedf566b8a86b1bed558909a1b10653f117d07bc8739b4227fa64

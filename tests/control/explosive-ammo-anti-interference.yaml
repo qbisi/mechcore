@@ -15,8 +15,13 @@ red:
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}, equipment: [anti_interference_module]}
 outcome:
-  blue.core_damage: 36
-  blue.units[0].exp: 120
-  red.units[0].exp: 400
+  blue:
+    core_damage: 36
+    units:
+    - {index: 0, exp: 120/560}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 400/450}
 ticks: 270
 hash: 23:2d678f447185389f402f8a21ba1232af713bd44c9d22ff8a2c849967943c0a26

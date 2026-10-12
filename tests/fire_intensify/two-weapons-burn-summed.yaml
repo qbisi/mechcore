@@ -20,10 +20,16 @@ red:
   units:
   - {name: vulcan, index: 0, position: {x: 170, y: -60}}
 outcome:
-  blue.core_damage: 350
-  red.units[0].exp: 200
+  blue: {core_damage: 350}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 200/2200}
 asserts:
-- sql: "SELECT t.terrain_id, q32(t.radius), t.logic_lifetime__limit, t.terrain_type FROM terrains t WHERE t.terrain_id IN (1, 3) AND t.tick = (SELECT min(tick) FROM terrains u WHERE u.terrain_id = t.terrain_id) ORDER BY t.terrain_id"
-  rows: [[1, 36.0, 480, fire], [3, 18.0, null, oil]]
+- sql: |-
+    SELECT t.terrain_id, q32(t.radius), t.logic_lifetime__limit, t.terrain_type FROM terrains t WHERE t.terrain_id IN (1, 3) AND t.tick = (SELECT min(tick) FROM terrains u WHERE u.terrain_id = t.terrain_id) ORDER BY t.terrain_id
+  rows:
+  - [1, 36.0, 480, fire]
+  - [3, 18.0, null, oil]
 ticks: 435
 hash: 23:1ee04c472a85bb5a4d54b2839e7915592984db64924acab5144510da2543ff0f

@@ -12,7 +12,10 @@ red:
   units:
   - {name: abyss, index: 0, position: {x: 5, y: -105}}
 outcome:
-  blue.units[0].exp: 1600
-  red.core_damage: 500
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 1600/4800}
+  red: {core_damage: 500}
 ticks: 171
 hash: 23:f3e1d1a845d84670df2a8674cb7fcfac1c3fd9dbad0b7b33559c83be89e62241

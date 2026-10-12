@@ -55,29 +55,34 @@ red:
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 outcome:
-  blue.units[0].exp: 650
-  blue.units[1].exp: 524
-  blue.units[3].exp: 1400
-  blue.units[4].exp: 935
-  blue.units[5].exp: 450
-  blue.units[7].exp: 991
-  blue.units[8].exp: 147
-  blue.units[9].exp: 420
-  blue.units[10].exp: 818
-  blue.units[11].exp: 1400
-  blue.units[12].exp: 115
-  blue.units[13].exp: 474
-  blue.units[14].exp: 1500
-  blue.units[15].exp: 86
-  red.core_damage: 1318
-  red.units[3].exp: 518
-  red.units[4].exp: 108
-  red.units[5].exp: 400
-  red.units[6].exp: 107
-  red.units[7].exp: 1191
-  red.units[8].exp: 94
-  red.units[10].exp: 864
-  red.units[11].exp: 378
-  red.units[13].exp: 33
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 650/650}
+    - {index: 1, exp: 524/650}
+    - {index: 3, exp: 1400/1400}
+    - {index: 4, exp: 935/1400}
+    - {index: 5, exp: 450/450}
+    - {index: 7, exp: 991/1400}
+    - {index: 8, exp: 147/450}
+    - {index: 9, exp: 420/450}
+    - {index: 10, exp: 818/1500}
+    - {index: 11, exp: 1400/1400}
+    - {index: 12, exp: 115/450}
+    - {index: 14, exp: 474/1500}
+    - {index: 15, exp: 1500/1500}
+    - {index: 16, exp: 86/450}
+  red:
+    core_damage: 1318
+    units:
+    - {index: 3, exp: 518/3380}
+    - {index: 4, exp: 108/3380}
+    - {index: 5, exp: 400/1465}
+    - {index: 6, exp: 107/1465}
+    - {index: 7, exp: 1191/1200}
+    - {index: 8, exp: 94/450}
+    - {index: 11, exp: 864/1500}
+    - {index: 12, exp: 378/1300}
+    - {index: 14, exp: 33/650}
 ticks: 856
 hash: 23:437b0d8e8c3923430c0455ae2f78415e57e58ab2b4699856cfb8b69a6b1b2a5f

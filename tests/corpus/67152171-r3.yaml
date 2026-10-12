@@ -56,29 +56,35 @@ red:
   - {name: shield, index: 0, position: {x: 159, y: -230}}
   - {name: shield, index: 1, position: {x: -161, y: -229}}
 outcome:
-  blue.units[0].exp: 929
-  blue.units[1].exp: 650
-  blue.units[2].exp: 650
-  blue.units[3].exp: 1200
-  blue.units[4].exp: 702
-  blue.units[5].exp: 1200
-  blue.units[6].exp: 822
-  blue.units[7].exp: 493
-  blue.units[8].exp: 449
-  blue.units[9].exp: 402
-  blue.units[10].exp: 580
-  blue.units[11].exp: 168
-  red.core_damage: 571
-  red.units[0].exp: 272
-  red.units[1].exp: 231
-  red.units[2].exp: 211
-  red.units[3].exp: 1000
-  red.units[4].exp: 1529
-  red.units[6].exp: 750
-  red.units[7].exp: 680
-  red.units[8].exp: 1200
-  red.units[9].exp: 11
-  red.units[11].exp: 3
-  red.contraptions[1].retained: false
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 929/1465}
+    - {index: 1, exp: 650/650}
+    - {index: 2, exp: 650/650}
+    - {index: 3, exp: 1200/1200}
+    - {index: 4, exp: 702/1200}
+    - {index: 5, exp: 1200/1200}
+    - {index: 6, exp: 822/1200}
+    - {index: 7, exp: 493/1200}
+    - {index: 8, exp: 449/1690}
+    - {index: 9, exp: 402/1690}
+    - {index: 10, exp: 580/650}
+    - {index: 11, exp: 168/650}
+  red:
+    core_damage: 571
+    units:
+    - {index: 0, exp: 272/450}
+    - {index: 1, exp: 231/450}
+    - {index: 2, exp: 211/450}
+    - {index: 3, exp: 1000/1000}
+    - {index: 4, exp: 1529/2253}
+    - {index: 6, exp: 750/750}
+    - {index: 7, exp: 680/1200}
+    - {index: 8, exp: 1200/1200}
+    - {index: 9, exp: 11/900}
+    - {index: 11, exp: 3/450}
+    contraptions:
+    - {index: 1, retained: false}
 ticks: 1561
 hash: 23:ab068393cd50a263216df745dcf7d79ab98dc3b75219c823b83a9068195f8f58

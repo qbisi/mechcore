@@ -54,30 +54,36 @@ red:
   battle_skills:
   - {name: heavy_missile_strike, positions: [{x: 315, y: -267}]}
 outcome:
-  blue.units[0].exp: 600
-  blue.units[1].exp: 168
-  blue.units[2].exp: 129
-  blue.units[3].exp: 255
-  blue.units[4].exp: 362
-  blue.units[6].exp: 900
-  blue.units[7].exp: 258
-  blue.units[8].exp: 498
-  blue.units[10].exp: 769
-  blue.units[11].exp: 209
-  red.core_damage: 530
-  red.units[0].exp: 122
-  red.units[1].exp: 201
-  red.units[2].exp: 402
-  red.units[3].exp: 1230
-  red.units[4].exp: 1300
-  red.units[5].exp: 750
-  red.units[6].exp: 750
-  red.units[7].exp: 721
-  red.units[8].exp: 188
-  red.units[9].exp: 1096
-  red.units[10].exp: 115
-  red.units[11].exp: 441
-  red.units[12].exp: 47
-  red.contraptions[0].retained: false
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 600/600}
+    - {index: 1, exp: 168/600}
+    - {index: 2, exp: 129/600}
+    - {index: 4, exp: 255/1400}
+    - {index: 5, exp: 362/600}
+    - {index: 7, exp: 900/900}
+    - {index: 8, exp: 258/600}
+    - {index: 9, exp: 498/600}
+    - {index: 11, exp: 769/1300}
+    - {index: 12, exp: 209/600}
+  red:
+    core_damage: 530
+    units:
+    - {index: 0, exp: 122/600}
+    - {index: 1, exp: 201/600}
+    - {index: 2, exp: 402/600}
+    - {index: 3, exp: 1230/1300}
+    - {index: 4, exp: 1300/1300}
+    - {index: 5, exp: 750/750}
+    - {index: 6, exp: 750/750}
+    - {index: 7, exp: 721/750}
+    - {index: 8, exp: 188/750}
+    - {index: 9, exp: 1096/1300}
+    - {index: 10, exp: 115/450}
+    - {index: 11, exp: 441/750}
+    - {index: 12, exp: 47/450}
+    contraptions:
+    - {index: 1, retained: false}
 ticks: 1653
 hash: 23:ffa6048edbcb5364a9f226bc8d9d3a815adf4e0690e82c36f3e7627a7c2a7832

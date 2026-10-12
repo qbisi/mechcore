@@ -4,8 +4,8 @@
 
 A fight document is one fight and its result: the [layout](layout.md) the
 fight starts from, the seed it was fought with, and what the fight left, kept
-apart. The layout is written as a layout writes it, and the result in an
-`outcome` that names each object it is about by its path in the layout. A
+apart. The layout is written as a layout writes it, and the result in a nested
+`outcome` that names units and contraptions by their stable indices. A
 simulator that fights the layout with the seed has to arrive at the result.
 
 ```yaml
@@ -27,12 +27,20 @@ red:
   battle_skills:
   - {name: sticky_oil_bomb, positions: [{x: -30, y: 150}, {x: 60, y: 150}]}
 outcome:
-  blue.units[0].exp: 170
-  blue.contraptions[0].retained: false
-  blue.battle_skills[0].retained: false
-  red.core_damage: 37
-  red.units[0].exp: 40
-  red.battle_skills[0].grid_rows: {2: [], 3: [], 4: []}
+  blue:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 170/650}
+    contraptions:
+    - {index: 0, retained: false}
+    battle_skills:
+    - {at: 0, retained: false}
+  red:
+    core_damage: 37
+    units:
+    - {index: 0, exp: 40/750}
+    battle_skills:
+    - {at: 0, grid_rows: {2: [], 3: [], 4: []}}
 ticks: 870
 hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
 ```
@@ -66,7 +74,7 @@ A fight document is a layout with its outcome beside it:
 layout = project(fight)
 ```
 
-The projection drops `source`, `outcome`, `ticks` and `hash`, and names the
+The projection drops `source`, `outcome`, `asserts`, `ticks` and `hash`, and names the
 document `kind: layout`; every other field is copied unchanged, `seed`
 included. No result is written inside the layout, so the projection takes
 nothing out of `blue` or `red`, and the projection of a fight in normal form is
@@ -86,7 +94,7 @@ path, and so no result. A fight only reports on what it started with.
 | `kind` | exactly `fight` |
 | `source` | who fought it: `game` or `simulator` |
 | the layout's root fields | `game_build`, `map_id`, `seed`, `round`, `blue`, `red`, as [layout.md](layout.md) writes them; `seed` is required |
-| `outcome` | what the fight left, [below](#outcome); absent when it left nothing |
+| `outcome` | required settlement for both sides, [below](#outcome) |
 | `asserts` | what the document claims about how the fight went, [below](#asserts); absent when it claims nothing |
 | `ticks` | the fight's logical ticks, the recording's `tick_count` |
 | `hash` | `<profile>:<result>`: the recording's `hash_profile` and `result_hash`, as `23:e4ed…` |
@@ -128,46 +136,44 @@ needs no comparing, since both fights start from the one projection.
 
 ## Outcome
 
-`outcome` is a mapping from a path to a result. A path names an object of the
-layout and one of its result fields:
+`outcome` is a mapping with required `blue` and `red` entries. Each side
+states its non-negative `core_damage`, including zero, and may list changed
+`units`, `contraptions` and `battle_skills`. Missing settlement is invalid:
+an absent core damage never means zero.
 
-```text
-<side>.<field>                        red.core_damage
-<side>.<list>[<position>].<field>     blue.units[0].exp
-```
+A unit or contraption result names the layout object's stable `index`, not
+its position in a list. Indices can have gaps. A battle-skill result names
+`at`, its position in the layout's normalized `battle_skills` list, counted
+from zero; those entries have no stable native index. Each identity may occur
+at most once in its outcome collection. Unknown identities, empty result
+entries and fields the object cannot carry are refused.
 
-`<side>` is `blue` or `red`; `<list>` is `units`, `contraptions` or
-`battle_skills`; `<position>` is the entry's place in that list, counted from
-`0`, in the layout's normal form. A position is not an entry's `index`: it
-names the line, whatever the entry's own fields say. A path that names no
-object of the layout, or a field the object cannot carry, is refused.
+| Object | Identity | Result | Meaning |
+| --- | --- | --- | --- |
+| side | `blue` or `red` | `core_damage` | what the fight took off the side's reactor core, as [reactor_damage.md](../../rules/reactor_damage.md) states; required, non-negative |
+| unit | `index` | `exp` | final experience, as the layout's `current/maximum` gauge |
+| contraption | `index` | `retained` | `false`: it does not stand when the fight ends |
+| standing or released `shield_airdrop` | `at` | `retained` | `false`: its shield does not stand when the fight ends |
+| released `sticky_oil_bomb` | `at` | `retained`, `grid_rows` | what is left of its area when the fight ends |
 
-| Path | Field | Meaning |
-| --- | --- | --- |
-| a side | `core_damage` | what the fight took off the side's reactor core, which [reactor_damage.md](../../rules/reactor_damage.md) states; a positive integer |
-| a unit | `exp` | the experience the unit ends the fight with |
-| a contraption | `retained` | `false`: the contraption does not stand when the fight ends |
-| a standing `shield_airdrop` | `retained` | `false`: the shield does not stand when the fight ends |
-| a `shield_airdrop` release | `retained` | `false`: the shield it airdropped does not stand when the fight ends |
-| a `sticky_oil_bomb` release | `retained`, `grid_rows` | what is left of its area when the fight ends |
-
-An outcome states only what the fight changed. A result at its default is not
-written: no `core_damage` is `0`, no `exp` is the experience the unit started
-with, no `retained` is `true`, no `grid_rows` is all seven points whole. An
-absent `outcome` is a fight that changed none of them.
+Core damage is always written. Other results state only what changed: no
+`exp` equal to the unit's starting experience, no `retained: true`, and no
+`grid_rows` that leaves all seven points whole. Empty result collections are
+omitted. Both side entries and the outcome itself are always present.
 
 ### Experience
 
-A unit's `exp` is a whole number between the experience the layout gives the
-unit, its gauge's `current` or `0`, and the bar the [unit experience
-index](../../rules/unit_experience.md) gives the unit's type and level. A
+A unit's `exp` uses the layout's `current/maximum` spelling. Its maximum
+must equal the [unit experience index](../../rules/unit_experience.md)'s bar
+for its type and level. Its current is a whole number between the experience
+the layout gives the unit, its starting gauge's current or zero, and that bar. A
 fight only adds experience, and a full bar takes no further share of what a
 fight hands out
 ([unit_experience.md](../../rules/unit_experience.md#what-a-full-bar-means)),
-so a bar filled during the fight ends it at the bar. It is whole because the
+so a bar filled during the fight ends it at the bar. Its current is whole because the
 fight's end cuts each formation's experience to one
 ([unit_experience.md](../../rules/unit_experience.md#what-a-kill-hands-out)).
-An `exp` equal to the unit's start is refused, being the default.
+An outcome gauge whose current equals the unit's start is refused, being unchanged.
 
 ### What is left standing
 
@@ -205,8 +211,14 @@ fight answered it with.
 
 ```yaml
 asserts:
-- sql: "SELECT tick, target__kind, target__id, amount FROM events WHERE type = 'damage' AND source__kind IS NULL AND tick = 63 ORDER BY ordinal"
-  rows: [[63, building, 5, 3000], [63, building, 6, 1112]]
+- sql: |-
+    SELECT tick, target__kind, target__id, amount
+    FROM events
+    WHERE type = 'damage' AND source__kind IS NULL AND tick = 63
+    ORDER BY ordinal
+  rows:
+  - [63, building, 5, 3000]
+  - [63, building, 6, 1112]
 ```
 
 | Field | Meaning |
@@ -234,18 +246,24 @@ form, and:
 
 - the root fields come in the order `kind`, `source`, then the layout's root
   fields in the layout's order, then `outcome`, `asserts`, `ticks`, `hash`;
-- `outcome` lists blue's paths before red's; within a side, the side's own
-  field first, then `units`, `contraptions` and `battle_skills`, each by
-  position, and an entry's `grid_rows` before its `retained`;
-- no result at its default is written, and an empty `outcome` is absent.
+- `outcome` lists blue before red; each side writes `core_damage` first,
+  then `units`, `contraptions`, `battle_skills`;
+- unit and contraption results sort by `index`, battle-skill results by `at`;
+  each entry writes its identity first, and `grid_rows` before `retained`;
+- core damage is explicit; unchanged object results and empty result lists
+  are absent;
+- `asserts` keep their order, each with `sql` before `rows`.
 
-- `asserts` keep the order they are written in, each with `sql` before
-  `rows`.
-
-The canonical writer spells a fight by the layout's three rules: each
-`outcome` entry is one line, its key the path, and a `grid_rows` value a flow
-mapping on that line; each assert's `sql` and `rows` are a line each, `rows`
-in flow style.
+The layout and outcome use [layout.md](layout.md#normal-form)'s spelling:
+sequence items are flow mappings on their own lines, scalar-only collections
+are flow values, and other mappings are blocks. Assertion SQL uses a literal
+block and each answer row is a flow sequence on its own line. Empty recorded
+rows are `rows: []`; unrecorded rows are absent. Literal-block indicators
+preserve SQL exactly: `|-` strips its final newline, `|` preserves one, and
+`|+` preserves multiple. An explicit indentation indicator preserves leading
+whitespace when needed. The writer never reformats or tokenizes SQL.
+Strings containing control characters a literal block would normalize are
+quoted with escapes, preserving their value.
 
 ## Excluded fields
 

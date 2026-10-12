@@ -42,24 +42,29 @@ red:
   battle_skills:
   - {name: wasp_swarm, positions: [{x: 0, y: 259}]}
 outcome:
-  blue.core_damage: 721
-  blue.units[0].exp: 236
-  blue.units[1].exp: 273
-  blue.units[2].exp: 200
-  blue.units[3].exp: 1000
-  blue.units[4].exp: 558
-  blue.units[5].exp: 34
-  blue.units[6].exp: 70
-  blue.units[7].exp: 102
-  blue.units[8].exp: 306
-  red.units[0].exp: 489
-  red.units[1].exp: 592
-  red.units[2].exp: 219
-  red.units[3].exp: 576
-  red.units[4].exp: 989
-  red.units[5].exp: 364
-  red.units[6].exp: 124
-  red.units[7].exp: 388
-  red.units[8].exp: 176
+  blue:
+    core_damage: 721
+    units:
+    - {index: 0, exp: 236/750}
+    - {index: 1, exp: 273/750}
+    - {index: 2, exp: 200/750}
+    - {index: 3, exp: 1000/1300}
+    - {index: 4, exp: 558/1300}
+    - {index: 5, exp: 34/450}
+    - {index: 6, exp: 70/450}
+    - {index: 7, exp: 102/600}
+    - {index: 8, exp: 306/600}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 489/650}
+    - {index: 1, exp: 592/650}
+    - {index: 2, exp: 219/1465}
+    - {index: 3, exp: 576/1400}
+    - {index: 4, exp: 989/1400}
+    - {index: 5, exp: 364/600}
+    - {index: 6, exp: 124/600}
+    - {index: 7, exp: 388/1400}
+    - {index: 8, exp: 176/600}
 ticks: 822
 hash: 23:94145d9eec1d0582ff9e7a5c336106a98872476ec8b44d2a3b06378459de0237

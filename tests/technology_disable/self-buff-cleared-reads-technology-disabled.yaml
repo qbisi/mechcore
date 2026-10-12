@@ -21,10 +21,15 @@ red:
   units:
   - {name: stormcaller, index: 0, position: {x: 5, y: -100}}
 outcome:
-  blue.core_damage: 200
-  red.units[0].exp: 200
+  blue: {core_damage: 200}
+  red:
+    core_damage: 0
+    units:
+    - {index: 0, exp: 200/1100}
 asserts:
-- sql: "SELECT tick, reason FROM events WHERE type = 'buff_removed' AND buff_id = 10001"
-  rows: [[236, 3]]
+- sql: |-
+    SELECT tick, reason FROM events WHERE type = 'buff_removed' AND buff_id = 10001
+  rows:
+  - [236, 3]
 ticks: 374
 hash: 23:90a0ed2d2a6214dfaa7291e22b11621051f27ce674175f236d98f60de00428d1
