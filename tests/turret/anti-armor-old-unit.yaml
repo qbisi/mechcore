@@ -13,24 +13,16 @@ map_id: 1021
 seed: 4242
 round: 3
 blue:
+  core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 60, y: -80}, source: legacy}
-  - {name: marksman, index: 1, position: {x: 140, y: -80}}
+  - {name: marksman, index: 0, position: {x: 60, y: -80}, exp: 0/30/650, source: legacy}
+  - {name: marksman, index: 1, position: {x: 140, y: -80}, exp: 0/490/650}
 red:
+  core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -280}, source: legacy}
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 0/200/650, source: legacy}
   constructions:
   - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 30/650}
-    - {index: 1, exp: 490/650}
-  red:
-    core_damage: 100
-    units:
-    - {index: 0, exp: 200/650}
 asserts:
 - sql: |-
     SELECT b.tick, b.building_id, b.skill__lock_target__kind, b.skill__lock_target__id, w.rotation FROM buildings b JOIN buildings__skill__weapons w ON w.tick = b.tick AND w.building_id = b.building_id WHERE b.team_id = 1 AND b.has_skill AND b.tick = 1

@@ -6,16 +6,12 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -105}}
+  - {name: abyss, index: 0, position: {x: 5, y: -105}, exp: 0/400/4800}
 red:
+  core_damage: 500
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 400/4800}
-  red: {core_damage: 500}
 ticks: 171
 hash: 23:b0bdbd4d27fc2ab2f702eadf3b0c9107719fd0f9f6ebad6e121c229a224e76ad

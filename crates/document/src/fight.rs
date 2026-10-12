@@ -1,17 +1,12 @@
-//! The fight document: one fight, the layout it starts from and the outcome
-//! it leaves, kept apart.
+//! A fight writes its settlement on the layout objects it belongs to.
 //!
-//! `docs/spec/document/fight.md` defines it. A fight is written as a layout,
-//! a nested `outcome` that names units and contraptions by index, and an
-//! optional trajectory; the code holds each result on the object it is
-//! about ([`Fight`]). [`project`] gives back the layout, and every layout
-//! rule reaches a fight through it: [`parse_yaml`] refuses a fight whose
-//! projection does not compile. What this module adds is the outcome, where
-//! each result may stand, and the bounds it keeps.
+//! `docs/spec/document/fight.md` defines the embedded result fields, optional
+//! trajectory and assertions. [`project`] recovers the starting layout;
+//! [`parse_yaml`] validates that layout and each result's bounds.
 
 use crate::layout::{
-    BattleSkillEntry, BattleSkillRelease, Experience, Layout, Position, SHIELD_AIRDROP_SKILL,
-    STICKY_OIL_BOMB_SKILL, Side, Standing, StaticPlacement, UnitPlacement,
+    BattleSkillEntry, BattleSkillFields, BattleSkillRelease, Experience, Layout, Position,
+    SHIELD_AIRDROP_SKILL, STICKY_OIL_BOMB_SKILL, Side, Standing, StaticPlacement, UnitPlacement,
 };
 use crate::{DocumentKind, compile::compile_layout};
 use schemars::JsonSchema;
@@ -23,8 +18,8 @@ const FIGHT_KIND: &str = "fight";
 /// A fight document, as the code holds it: the layout's fields, with each
 /// result on the object it is about.
 ///
-/// It is written, and read, as the layout and an `outcome` kept apart, the
-/// outcome naming units and contraptions by index ([`WrittenFight`]).
+/// Settlement is embedded on each object; [`WrittenFight`] pairs the optional
+/// trajectory fields while keeping assertions independent.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(try_from = "WrittenFight", into = "WrittenFight")]
 pub struct Fight {
@@ -86,8 +81,7 @@ impl JsonSchema for Fight {
     }
 }
 
-/// How a fight is written: `kind` and `source`, the layout's root fields as
-/// a layout writes them, the nested `outcome`, and the trajectory.
+/// The embedded fight document and its optional trajectory.
 #[derive(Deserialize, Serialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct WrittenFight {
@@ -106,10 +100,8 @@ struct WrittenFight {
     seed: i32,
     #[schemars(range(min = 1))]
     round: i32,
-    blue: Side,
-    red: Side,
-    /// Complete core damage for both sides, and changed objects by identity.
-    outcome: Outcome,
+    blue: FightSide,
+    red: FightSide,
     /// What the fixture claims about how the fight went.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     asserts: Vec<Assert>,
@@ -121,54 +113,6 @@ struct WrittenFight {
     hash: Option<FightHash>,
 }
 
-/// Settlement is required even when both cores take zero damage.
-#[derive(Deserialize, Serialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
-struct Outcome {
-    blue: SideOutcome,
-    red: SideOutcome,
-}
-
-#[derive(Deserialize, Serialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
-struct SideOutcome {
-    #[schemars(range(min = 0))]
-    core_damage: i32,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    units: Vec<UnitOutcome>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    contraptions: Vec<ContraptionOutcome>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    battle_skills: Vec<BattleSkillOutcome>,
-}
-
-#[derive(Deserialize, Serialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
-struct UnitOutcome {
-    #[schemars(range(min = 0))]
-    index: i32,
-    exp: Experience,
-}
-
-#[derive(Deserialize, Serialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
-struct ContraptionOutcome {
-    #[schemars(range(min = 0))]
-    index: i32,
-    retained: bool,
-}
-
-#[derive(Deserialize, Serialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
-struct BattleSkillOutcome {
-    /// Position in the layout's normalized `battle_skills` list.
-    at: usize,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    grid_rows: Option<BTreeMap<u32, Vec<u32>>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    retained: Option<bool>,
-}
-
 impl TryFrom<WrittenFight> for Fight {
     type Error = String;
 
@@ -178,7 +122,7 @@ impl TryFrom<WrittenFight> for Fight {
             (None, None) => None,
             _ => return Err("a fight states ticks and hash together, or neither".to_owned()),
         };
-        let mut fight = Self {
+        let fight = Self {
             kind: written.kind,
             game_build: written.game_build,
             map_id: written.map_id,
@@ -187,23 +131,15 @@ impl TryFrom<WrittenFight> for Fight {
             source: written.source,
             trajectory,
             asserts: written.asserts,
-            blue: unfought(written.blue),
-            red: unfought(written.red),
-        }
-        // Battle skills without native indices use normalized list positions.
-        .normalized();
-        apply_results("blue", &mut fight.blue, written.outcome.blue)?;
-        apply_results("red", &mut fight.red, written.outcome.red)?;
+            blue: written.blue,
+            red: written.red,
+        };
         Ok(fight)
     }
 }
 
 impl From<Fight> for WrittenFight {
     fn from(fight: Fight) -> Self {
-        let outcome = Outcome {
-            blue: write_results(&fight.blue),
-            red: write_results(&fight.red),
-        };
         let (ticks, hash) = fight.trajectory.map_or((None, None), |trajectory| {
             (Some(trajectory.ticks), Some(trajectory.hash))
         });
@@ -214,275 +150,12 @@ impl From<Fight> for WrittenFight {
             map_id: fight.map_id,
             seed: fight.seed,
             round: fight.round,
-            blue: project_side(&fight.blue),
-            red: project_side(&fight.red),
-            outcome,
+            blue: fight.blue,
+            red: fight.red,
             asserts: fight.asserts,
             ticks,
             hash,
         }
-    }
-}
-
-/// A layout side as a fight holds it before any result: every unit at the
-/// experience it starts with, everything standing.
-fn unfought(side: Side) -> FightSide {
-    FightSide {
-        core_damage: 0,
-        officers: side.officers,
-        techs: side.techs,
-        blueprints: side.blueprints,
-        energy_tower_skills: side.energy_tower_skills,
-        tower_strengthen_levels: side.tower_strengthen_levels,
-        recovered: side.recovered.clone(),
-        units: side
-            .units
-            .into_iter()
-            .map(|unit| FightUnit {
-                exp: unit.exp.map(|exp| FightExperience {
-                    before: exp.current,
-                    after: exp.current,
-                    maximum: exp.maximum,
-                }),
-                type_name: unit.type_name,
-                index: unit.index,
-                position: unit.position,
-                level: unit.level,
-                rotated: unit.rotated,
-                equipment: unit.equipment,
-                travelling: unit.travelling,
-                source: unit.source,
-            })
-            .collect(),
-        constructions: side.constructions,
-        contraptions: side
-            .contraptions
-            .into_iter()
-            .map(|contraption| FightContraption {
-                type_name: contraption.type_name,
-                index: contraption.index,
-                position: contraption.position,
-                retained: true,
-            })
-            .collect(),
-        battle_skills: side
-            .battle_skills
-            .into_iter()
-            .map(|entry| match entry {
-                BattleSkillEntry::Release(release) => FightBattleSkill::Release(FightRelease {
-                    release,
-                    retained: true,
-                    grid_rows: BTreeMap::new(),
-                }),
-                BattleSkillEntry::Standing(standing) => FightBattleSkill::Standing(FightStanding {
-                    standing,
-                    retained: true,
-                }),
-            })
-            .collect(),
-    }
-}
-
-/// The commander skill a battle-skill name stands for, when it names one.
-fn skill_of(name: &str) -> Option<i32> {
-    crate::catalog::resolve_battle_skill_type(name).map(|skill| skill.commander_skill_id)
-}
-
-/// Apply sparse results by native index, or normalized battle-skill position.
-fn apply_results(name: &str, side: &mut FightSide, outcome: SideOutcome) -> Result<(), String> {
-    side.core_damage = outcome.core_damage;
-    let mut seen = std::collections::BTreeSet::new();
-    for result in outcome.units {
-        let index = result.index;
-        let path = format!("{name}.units[index={index}].exp");
-        if !seen.insert(index) {
-            return Err(format!("outcome {name}.units repeats index {index}"));
-        }
-        let unit = side
-            .units
-            .iter_mut()
-            .find(|unit| unit.index == index)
-            .ok_or_else(|| format!("outcome {path} names no units entry"))?;
-        let before = unit.exp.map_or(0, |exp| exp.before);
-        if result.exp.current == before {
-            return Err(format!(
-                "outcome {path} is the {before} the unit starts with, which is not written"
-            ));
-        }
-        unit.exp = Some(FightExperience {
-            before,
-            after: result.exp.current,
-            maximum: result.exp.maximum,
-        });
-    }
-    seen.clear();
-    for result in outcome.contraptions {
-        let index = result.index;
-        let path = format!("{name}.contraptions[index={index}].retained");
-        if !seen.insert(index) {
-            return Err(format!("outcome {name}.contraptions repeats index {index}"));
-        }
-        let contraption = side
-            .contraptions
-            .iter_mut()
-            .find(|entry| entry.index == index)
-            .ok_or_else(|| format!("outcome {path} names no contraptions entry"))?;
-        contraption.retained = not_retained(&path, &result.retained.into())?;
-    }
-    let mut positions = std::collections::BTreeSet::new();
-    for result in outcome.battle_skills {
-        let at = result.at;
-        let path = format!("{name}.battle_skills[at={at}]");
-        if !positions.insert(at) {
-            return Err(format!("outcome {name}.battle_skills repeats at {at}"));
-        }
-        if result.retained.is_none() && result.grid_rows.is_none() {
-            return Err(format!("outcome {path} states no result"));
-        }
-        let entry = side
-            .battle_skills
-            .get_mut(at)
-            .ok_or_else(|| format!("outcome {path} names no battle_skills entry"))?;
-        if let Some(retained) = result.retained {
-            apply_battle_skill_result(entry, "retained", &path, retained.into())?;
-        }
-        if let Some(grid_rows) = result.grid_rows {
-            apply_battle_skill_result(
-                entry,
-                "grid_rows",
-                &path,
-                serde_yaml::to_value(grid_rows).map_err(|error| error.to_string())?,
-            )?;
-        }
-    }
-    Ok(())
-}
-
-/// A `retained` or `grid_rows` result on a `battle_skills` entry, which only
-/// what can outlive the round carries.
-fn apply_battle_skill_result(
-    entry: &mut FightBattleSkill,
-    field: &str,
-    path: &str,
-    value: serde_yaml::Value,
-) -> Result<(), String> {
-    if field == "retained" {
-        let retained = not_retained(path, &value)?;
-        match entry {
-            FightBattleSkill::Standing(standing) => {
-                if !matches!(standing.standing, Standing::Shield { .. }) {
-                    return Err(format!(
-                        "outcome {path}: a standing area carries no result, as oil lasts \
-                         two rounds and a standing area is in its second"
-                    ));
-                }
-                standing.retained = retained;
-            }
-            FightBattleSkill::Release(release) => {
-                let name = &release.release.type_name;
-                if !matches!(
-                    skill_of(name),
-                    Some(SHIELD_AIRDROP_SKILL | STICKY_OIL_BOMB_SKILL)
-                ) {
-                    return Err(format!(
-                        "outcome {path}: battle skill {name}'s release leaves nothing that \
-                         outlives the round, so it carries no retained"
-                    ));
-                }
-                if !release.grid_rows.is_empty() {
-                    return Err(format!(
-                        "outcome {path}: battle skill {name}'s release states both grid_rows \
-                         and retained: false"
-                    ));
-                }
-                release.retained = retained;
-            }
-        }
-        return Ok(());
-    }
-    let FightBattleSkill::Release(release) = entry else {
-        return Err(format!(
-            "outcome {path}: a standing entry carries no grid_rows as a result; only a \
-             sticky_oil_bomb release does"
-        ));
-    };
-    let name = &release.release.type_name;
-    if skill_of(name) != Some(STICKY_OIL_BOMB_SKILL) {
-        return Err(format!(
-            "outcome {path}: battle skill {name}'s release carries grid_rows, and only a \
-             sticky_oil_bomb release leaves an area"
-        ));
-    }
-    if !release.retained {
-        return Err(format!(
-            "outcome {path}: battle skill {name}'s release states both grid_rows and \
-             retained: false"
-        ));
-    }
-    release.grid_rows = serde_yaml::from_value(value)
-        .map_err(|error| format!("outcome {path} is not a grid_rows mapping: {error}"))?;
-    Ok(())
-}
-
-/// A `retained` result, which is written only as `false`.
-fn not_retained(path: &str, value: &serde_yaml::Value) -> Result<bool, String> {
-    match value.as_bool() {
-        Some(false) => Ok(false),
-        Some(true) => Err(format!(
-            "outcome {path} is true, the default, which is not written"
-        )),
-        None => Err(format!("outcome {path} is not false")),
-    }
-}
-
-/// Changed objects in layout order, with explicit core damage on each side.
-fn write_results(side: &FightSide) -> SideOutcome {
-    SideOutcome {
-        core_damage: side.core_damage,
-        units: side
-            .units
-            .iter()
-            .filter_map(|unit| {
-                unit.exp
-                    .filter(|exp| exp.after != exp.before)
-                    .map(|exp| UnitOutcome {
-                        index: unit.index,
-                        exp: Experience {
-                            current: exp.after,
-                            maximum: exp.maximum,
-                        },
-                    })
-            })
-            .collect(),
-        contraptions: side
-            .contraptions
-            .iter()
-            .filter(|entry| !entry.retained)
-            .map(|entry| ContraptionOutcome {
-                index: entry.index,
-                retained: false,
-            })
-            .collect(),
-        battle_skills: side
-            .battle_skills
-            .iter()
-            .enumerate()
-            .filter_map(|(at, entry)| {
-                let (grid_rows, retained) = match entry {
-                    FightBattleSkill::Release(release) => {
-                        (Some(&release.grid_rows), release.retained)
-                    }
-                    FightBattleSkill::Standing(standing) => (None, standing.retained),
-                };
-                let grid_rows = grid_rows.filter(|rows| !rows.is_empty()).cloned();
-                let retained = (!retained).then_some(false);
-                (grid_rows.is_some() || retained.is_some()).then_some(BattleSkillOutcome {
-                    at,
-                    grid_rows,
-                    retained,
-                })
-            })
-            .collect(),
     }
 }
 
@@ -563,40 +236,97 @@ impl JsonSchema for FightHash {
 
 /// One side of a fight: the layout's side, what the fight took off its
 /// reactor core, and the result on each of its objects.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct FightSide {
-    /// What the fight took off the side's reactor core; absent when `0`.
+    /// Complete settlement, required even when zero.
+    #[schemars(range(min = 0))]
     pub core_damage: i32,
+    /// The officers the side holds, by name, a multiset in ascending ID. A
+    /// chain blueprint's officer is not one: `blueprints` states it.
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::officer::many"
+    )]
+    #[schemars(with = "Vec<String>")]
     pub officers: Vec<i32>,
+    /// Unit technologies, written grouped by the unit type they belong to.
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::technologies"
+    )]
+    #[schemars(with = "BTreeMap<String, Vec<String>>")]
     pub techs: Vec<i32>,
+    /// The Research Center's enhancement chains the side holds, by name: the
+    /// blueprints a fight sees. [`crate::catalog::CHAIN_BLUEPRINTS`] lists them.
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::blueprint::many"
+    )]
+    #[schemars(with = "Vec<String>")]
     pub blueprints: Vec<i32>,
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::energy_tower_skill::many"
+    )]
+    #[schemars(with = "Vec<String>")]
     pub energy_tower_skills: Vec<i32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tower_strengthen_levels: Vec<i32>,
     pub units: Vec<FightUnit>,
+    /// The index of each squad an officer delivered as the round opened that
+    /// the side recovered during the deployment, in ascending order: the fight
+    /// sees nothing of it, and a layout replay recovers it by this index.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub recovered: Vec<i32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub constructions: Vec<StaticPlacement>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub contraptions: Vec<FightContraption>,
+    /// The side's battle skills: what earlier releases left standing, then
+    /// this round's releases in release order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub battle_skills: Vec<FightBattleSkill>,
 }
 
-/// A layout unit whose `exp` also says what the fight ended it on.
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// A unit and its beginning/final/maximum experience.
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct FightUnit {
+    #[serde(rename = "name")]
     pub type_name: String,
     pub index: i32,
     pub position: Position,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub level: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub exp: Option<FightExperience>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub rotated: Option<bool>,
+    /// What the formation wears, in the order it was fitted. Build 2.0 lets a
+    /// formation wear more than one when its side's officers add slots.
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::equipment::many"
+    )]
+    #[schemars(with = "Vec<String>")]
     pub equipment: Vec<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub travelling: Option<bool>,
+    /// How the unit came to its side; `joined`, the default, is not written.
+    #[serde(default, skip_serializing_if = "crate::layout::UnitSource::is_joined")]
     pub source: crate::layout::UnitSource,
 }
 
 /// A unit's experience across a fight.
 ///
 /// `before` and `maximum` are the layout's `current` and the level's bar;
-/// `after` is what the unit ends the fight holding, the outcome's `exp`. A full bar takes no further share, so
+/// `after` is what the unit ends the fight holding. A full bar takes no further share, so
 /// `after` never passes `maximum`, and a fight only adds experience, so it
 /// never falls below `before`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -606,19 +336,77 @@ pub struct FightExperience {
     pub maximum: i32,
 }
 
+impl std::fmt::Display for FightExperience {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(formatter, "{}/{}/{}", self.before, self.after, self.maximum)
+    }
+}
+
+impl std::str::FromStr for FightExperience {
+    type Err = String;
+
+    fn from_str(text: &str) -> Result<Self, String> {
+        let malformed = || format!("experience {text:?} is not begin/final/max");
+        let terms = text
+            .split('/')
+            .map(|term| term.trim().parse::<i32>().map_err(|_| malformed()))
+            .collect::<Result<Vec<_>, _>>()?;
+        let [before, after, maximum] = terms[..] else {
+            return Err(malformed());
+        };
+        Ok(Self {
+            before,
+            after,
+            maximum,
+        })
+    }
+}
+
+impl Serialize for FightExperience {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(self)
+    }
+}
+
+impl<'de> Deserialize<'de> for FightExperience {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer)?
+            .parse()
+            .map_err(serde::de::Error::custom)
+    }
+}
+
+impl JsonSchema for FightExperience {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "FightExperience".into()
+    }
+
+    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        schemars::json_schema!({
+            "description": "Experience within the formation's level across the fight, written begin/final/max, where maximum is the level's full bar.",
+            "type": "string",
+            "pattern": "^-?[0-9]+/-?[0-9]+/[0-9]+$"
+        })
+    }
+}
+
 /// A layout contraption, and whether it still stands when the fight ends.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct FightContraption {
+    #[serde(rename = "name")]
     pub type_name: String,
     pub index: i32,
     pub position: Position,
     /// Written only as `false`.
+    #[serde(default = "yes", skip_serializing_if = "is_true")]
     pub retained: bool,
 }
 
 /// One `battle_skills` entry of a fight: the layout's entry and what the
 /// fight left of it.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(try_from = "FightBattleSkillFields", into = "FightBattleSkillFields")]
 pub enum FightBattleSkill {
     Release(FightRelease),
     Standing(FightStanding),
@@ -650,6 +438,127 @@ pub struct FightStanding {
     pub retained: bool,
 }
 
+/// How a fight's `battle_skills` entry is written: the layout's fields, and
+/// the result fields beside them.
+#[derive(Clone, Deserialize, Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct FightBattleSkillFields {
+    name: String,
+    /// This round's release, at these positions in order.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    positions: Option<Vec<Position>>,
+    /// What an earlier round's release left standing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    standing: Option<Standing>,
+    /// What a Sticky Oil Bomb released this round leaves, keyed by
+    /// generated-point index.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    grid_rows: BTreeMap<u32, Vec<u32>>,
+    /// Whether a shield or oil area is left when the fight ends; written only
+    /// as `false`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    retained: Option<bool>,
+}
+
+/// The commander skill a battle-skill name stands for, when it names one.
+fn skill_of(name: &str) -> Option<i32> {
+    crate::catalog::resolve_battle_skill_type(name).map(|skill| skill.commander_skill_id)
+}
+
+impl TryFrom<FightBattleSkillFields> for FightBattleSkill {
+    type Error = String;
+
+    fn try_from(fields: FightBattleSkillFields) -> Result<Self, String> {
+        let FightBattleSkillFields {
+            name,
+            positions,
+            standing,
+            grid_rows,
+            retained,
+        } = fields;
+        let entry = BattleSkillEntry::try_from(BattleSkillFields {
+            name: name.clone(),
+            positions,
+            standing,
+        })?;
+        match entry {
+            BattleSkillEntry::Standing(standing) => {
+                if !grid_rows.is_empty() {
+                    return Err(format!(
+                        "battle skill {name}'s standing entry carries grid_rows beside its \
+                         standing object: only a sticky_oil_bomb release carries them as a result"
+                    ));
+                }
+                if retained.is_some() && !matches!(standing, Standing::Shield { .. }) {
+                    return Err(format!(
+                        "battle skill {name}'s standing area carries no result: oil lasts two \
+                         rounds and a standing area is in its second"
+                    ));
+                }
+                Ok(Self::Standing(FightStanding {
+                    standing,
+                    retained: retained.unwrap_or(true),
+                }))
+            }
+            BattleSkillEntry::Release(release) => {
+                let skill = skill_of(&name);
+                let leaves = matches!(skill, Some(SHIELD_AIRDROP_SKILL | STICKY_OIL_BOMB_SKILL));
+                if retained.is_some() && !leaves {
+                    return Err(format!(
+                        "battle skill {name}'s release leaves nothing that outlives the round, \
+                         so it carries no retained"
+                    ));
+                }
+                if !grid_rows.is_empty() && skill != Some(STICKY_OIL_BOMB_SKILL) {
+                    return Err(format!(
+                        "battle skill {name}'s release carries grid_rows: only a sticky_oil_bomb \
+                         release leaves an area"
+                    ));
+                }
+                if !grid_rows.is_empty() && retained == Some(false) {
+                    return Err(format!(
+                        "battle skill {name}'s release states both grid_rows and retained: false"
+                    ));
+                }
+                Ok(Self::Release(FightRelease {
+                    release,
+                    retained: retained.unwrap_or(true),
+                    grid_rows,
+                }))
+            }
+        }
+    }
+}
+
+impl From<FightBattleSkill> for FightBattleSkillFields {
+    fn from(entry: FightBattleSkill) -> Self {
+        let (layout, grid_rows, retained) = match entry {
+            FightBattleSkill::Release(release) => (
+                BattleSkillEntry::Release(release.release),
+                release.grid_rows,
+                release.retained,
+            ),
+            FightBattleSkill::Standing(standing) => (
+                BattleSkillEntry::Standing(standing.standing),
+                BTreeMap::new(),
+                standing.retained,
+            ),
+        };
+        let BattleSkillFields {
+            name,
+            positions,
+            standing,
+        } = layout.into();
+        Self {
+            name,
+            positions,
+            standing,
+            grid_rows,
+            retained: (!retained).then_some(false),
+        }
+    }
+}
+
 impl FightBattleSkill {
     /// The layout entry, without the result.
     #[must_use]
@@ -661,8 +570,17 @@ impl FightBattleSkill {
     }
 }
 
-/// The layout a fight starts from: the fight with its outcome and
-/// trajectory dropped.
+const fn yes() -> bool {
+    true
+}
+
+#[allow(clippy::trivially_copy_pass_by_ref)]
+fn is_true(value: &bool) -> bool {
+    *value
+}
+
+/// The layout a fight starts from: embedded results, assertions and trajectory
+/// dropped, and experience reduced to its beginning/maximum gauge.
 ///
 /// Every layout field is copied unchanged, `seed` included, and a unit's
 /// experience is the one it starts with, nothing when that is `0`. The
@@ -924,6 +842,7 @@ fn validate_side(side_name: &str, side: &FightSide) -> Result<(), String> {
         }
     }
     for (entry_index, entry) in side.battle_skills.iter().enumerate() {
+        FightBattleSkill::try_from(FightBattleSkillFields::from(entry.clone()))?;
         if let FightBattleSkill::Release(release) = entry {
             crate::compile::validate_grid_rows(
                 &format!(
@@ -946,33 +865,20 @@ source: game
 seed: 4242
 round: 3
 blue:
+  core_damage: 0
   officers: [extended_range_marksman]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 12/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 12/170/650}
   contraptions:
-  - {name: interceptor, index: 0, position: {x: 5, y: -95}}
+  - {name: interceptor, index: 0, position: {x: 5, y: -95}, retained: false}
   battle_skills:
-  - {name: shield_airdrop, standing: {position: {x: -150, y: -150}}}
+  - {name: shield_airdrop, standing: {position: {x: -150, y: -150}}, retained: false}
 red:
+  core_damage: 37
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -100}}
+  - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/40/750}
   battle_skills:
-  - {name: sticky_oil_bomb, positions: [{x: -30, y: 150}, {x: 60, y: 150}]}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 170/650}
-    contraptions:
-    - {index: 0, retained: false}
-    battle_skills:
-    - {at: 0, retained: false}
-  red:
-    core_damage: 37
-    units:
-    - {index: 0, exp: 40/750}
-    battle_skills:
-    - {at: 0, grid_rows: {2: [], 3: [], 4: []}}
+  - {name: sticky_oil_bomb, positions: [{x: -30, y: 150}, {x: 60, y: 150}], grid_rows: {2: [], 3: [], 4: []}}
 ticks: 870
 hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
 ";
@@ -1040,9 +946,7 @@ hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
                 "name: interceptor, index: 0",
                 "name: interceptor, index: 9",
                 1,
-            )
-            .replace("index: 0, exp: 170/650", "index: 7, exp: 170/650")
-            .replace("index: 0, retained: false", "index: 9, retained: false");
+            );
         let fight = parse_yaml(text.as_bytes()).unwrap();
         assert_eq!(fight.blue.units[0].index, 7);
         assert_eq!(fight.blue.units[0].exp.unwrap().after, 170);
@@ -1052,52 +956,16 @@ hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
     }
 
     #[test]
-    fn missing_and_repeated_identities_are_refused() {
-        for (from, to, message) in [
-            (
-                "index: 0, exp: 170/650",
-                "index: 1, exp: 170/650",
-                "names no units entry",
-            ),
-            (
-                "index: 0, retained: false",
-                "index: 1, retained: false",
-                "names no contraptions entry",
-            ),
-            (
-                "at: 0, retained: false",
-                "at: 1, retained: false",
-                "names no battle_skills entry",
-            ),
-            (
-                "    - {index: 0, exp: 170/650}",
-                "    - {index: 0, exp: 170/650}\n    - {index: 0, exp: 171/650}",
-                "repeats index",
-            ),
-            (
-                "    - {index: 0, retained: false}",
-                "    - {index: 0, retained: false}\n    - {index: 0, retained: false}",
-                "repeats index",
-            ),
-            (
-                "    - {at: 0, retained: false}",
-                "    - {at: 0, retained: false}\n    - {at: 0, retained: false}",
-                "repeats at",
-            ),
-        ] {
-            let error = edited(from, to).unwrap_err();
-            assert!(error.contains(message), "{error}");
-        }
-    }
-
-    #[test]
     fn settlement_requires_both_core_damages_and_accepts_zero() {
         for text in [
-            EXAMPLE.replace("    core_damage: 0\n", ""),
-            EXAMPLE.replace("    core_damage: 37\n", ""),
-            EXAMPLE[..EXAMPLE.find("outcome:").unwrap()].to_owned(),
+            EXAMPLE.replace("  core_damage: 0\n", ""),
+            EXAMPLE.replace("  core_damage: 37\n", ""),
         ] {
-            assert!(parse_yaml(text.as_bytes()).is_err());
+            assert!(
+                parse_yaml(text.as_bytes())
+                    .unwrap_err()
+                    .contains("core_damage")
+            );
         }
         assert!(edited("core_damage: 37", "core_damage: 0").is_ok());
         assert!(
@@ -1105,49 +973,42 @@ hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
                 .unwrap_err()
                 .contains("non-negative")
         );
-        let old = EXAMPLE[..EXAMPLE.find("outcome:").unwrap()].to_owned()
-            + "outcome:\n  red.core_damage: 37\n";
-        assert!(parse_yaml(old.as_bytes()).is_err());
+        assert!(
+            parse_yaml(
+                format!(
+                    "{EXAMPLE}outcome: {{blue: {{core_damage: 0}}, red: {{core_damage: 37}}}}\n"
+                )
+                .as_bytes()
+            )
+            .is_err()
+        );
     }
 
     #[test]
-    fn experience_states_the_same_bar_as_the_layout() {
+    fn experience_states_begin_final_and_the_level_bar() {
         for (to, message) in [
-            ("651/650", "full bar"),
-            ("170/651", "not its level"),
-            ("11/650", "only adds"),
-            ("12/650", "not written"),
-            ("170", "current/maximum"),
-            ("1.5/650", "current/maximum"),
+            ("12/651/650", "full bar"),
+            ("12/170/651", "not its level"),
+            ("12/11/650", "only adds"),
+            ("12/650", "begin/final/max"),
+            ("12/1.5/650", "begin/final/max"),
         ] {
-            let error = edited("exp: 170/650", &format!("exp: {to}")).unwrap_err();
+            let error = edited("exp: 12/170/650", &format!("exp: {to}")).unwrap_err();
             assert!(error.contains(message), "{error}");
         }
-        assert!(edited("exp: 170/650", "exp: 650/650").is_ok());
+        for exp in ["12/12/650", "12/650/650", "0/170/650"] {
+            assert!(edited("exp: 12/170/650", &format!("exp: {exp}")).is_ok());
+        }
     }
 
     #[test]
     fn results_stand_only_on_objects_that_can_carry_them() {
-        assert!(edited("index: 0, exp: 170/650", "index: 0, life: 170").is_err());
-        assert!(
-            edited("index: 0, retained: false", "index: 0, retained: true")
-                .unwrap_err()
-                .contains("not written")
-        );
-        assert!(
-            edited("at: 0, retained: false", "at: 0")
-                .unwrap_err()
-                .contains("no result")
-        );
-        assert!(
-            edited("at: 0, retained: false", "at: 0, grid_rows: {2: []}")
-                .unwrap_err()
-                .contains("only a")
-        );
+        assert!(edited("exp: 12/170/650", "life: 170").is_err());
+        assert!(edited("retained: false", "grid_rows: {2: []}").is_err());
         assert!(
             edited(
-                "at: 0, grid_rows: {2: [], 3: [], 4: []}",
-                "at: 0, grid_rows: {2: []}, retained: false"
+                "grid_rows: {2: [], 3: [], 4: []}",
+                "grid_rows: {2: []}, retained: false"
             )
             .unwrap_err()
             .contains("both grid_rows and retained")
@@ -1157,27 +1018,33 @@ hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
                 .unwrap_err()
                 .contains("point index 7")
         );
+        assert!(edited("grid_rows: {2: [], 3: [], 4: []}", "retained: false").is_ok());
         assert!(
             edited(
-                "at: 0, grid_rows: {2: [], 3: [], 4: []}",
-                "at: 0, retained: false"
+                "name: sticky_oil_bomb, positions:",
+                "name: shield_airdrop, positions:"
             )
-            .is_ok()
+            .unwrap_err()
+            .contains("only a sticky_oil_bomb")
         );
+        assert!(edited("name: shield_airdrop, standing: {position: {x: -150, y: -150}}, retained: false", "name: sticky_oil_bomb, standing: {control_points: [{x: -150, y: -150}]}, retained: false").is_err());
     }
 
     #[test]
-    fn a_fight_keeps_no_result_inside_the_layout() {
-        for (from, to) in [
-            ("exp: 12/650", "exp: 12/170/650"),
-            ("red:\n", "red:\n  core_damage: 37\n"),
-            (
-                "position: {x: 5, y: -95}}",
-                "position: {x: 5, y: -95}, retained: false}",
-            ),
-        ] {
-            assert!(edited(from, to).is_err());
-        }
+    fn normalization_keeps_unchanged_nonzero_experience_and_drops_defaults() {
+        let mut fight = example();
+        fight.blue.units[0].exp.as_mut().unwrap().after = 12;
+        fight.red.units[0].exp = Some(FightExperience {
+            before: 0,
+            after: 0,
+            maximum: 750,
+        });
+        fight.blue.contraptions[0].retained = true;
+        let written = canonical_yaml(fight.clone()).unwrap();
+        assert!(written.contains("exp: 12/12/650"));
+        assert!(!written.contains("exp: 0/0/750"));
+        assert!(written.contains("core_damage: 0"));
+        assert_eq!(parse_yaml(written.as_bytes()).unwrap(), fight.normalized());
     }
 
     #[test]
@@ -1209,8 +1076,8 @@ hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
         );
         assert!(
             edited(
-                "exp: 12/650}\n",
-                "exp: 12/650}\n  - {name: marksman, index: 1, position: {x: 0, y: -50}}\n"
+                "exp: 12/170/650}\n",
+                "exp: 12/170/650}\n  - {name: marksman, index: 1, position: {x: 0, y: -50}}\n"
             )
             .unwrap_err()
             .contains("collide")
@@ -1259,21 +1126,23 @@ hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
     }
 
     #[test]
-    fn a_fight_has_a_typed_required_outcome_schema() {
+    fn schema_requires_embedded_core_damage_and_three_term_experience() {
         let schema = serde_json::to_value(schemars::schema_for!(Fight)).unwrap();
         let required = schema["required"].as_array().unwrap();
-        assert!(required.contains(&serde_json::json!("outcome")));
+        assert!(!required.contains(&serde_json::json!("outcome")));
         assert!(required.contains(&serde_json::json!("seed")));
         assert!(!required.contains(&serde_json::json!("ticks")));
-        assert_eq!(
-            schema["$defs"]["Outcome"]["required"],
-            serde_json::json!(["blue", "red"])
-        );
         assert!(
-            schema["$defs"]["SideOutcome"]["required"]
+            schema["$defs"]["FightSide"]["required"]
                 .as_array()
                 .unwrap()
                 .contains(&serde_json::json!("core_damage"))
+        );
+        assert!(
+            schema["$defs"]["FightExperience"]["pattern"]
+                .as_str()
+                .unwrap()
+                .contains('/')
         );
     }
 }

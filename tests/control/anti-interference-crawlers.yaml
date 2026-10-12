@@ -9,19 +9,12 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 80
   units:
-  - {name: hacker, index: 0, position: {x: -5, y: -105}}
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, exp: 0/32/560}
 red:
+  core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, equipment: [anti_interference_module]}
-outcome:
-  blue:
-    core_damage: 80
-    units:
-    - {index: 0, exp: 32/560}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 400/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/400/450, equipment: [anti_interference_module]}
 ticks: 241
 hash: 23:d186766e0e2581c6f4d0bcc4db4713d558208e8091085fbbd23ce1e7e5d3c490

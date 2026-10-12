@@ -11,21 +11,16 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   techs:
     melting_point: [energy_diffraction]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -130}}
-  - {name: melting_point, index: 1, position: {x: 0, y: -80}}
+  - {name: melting_point, index: 0, position: {x: 0, y: -130}, exp: 0/82/1400}
+  - {name: melting_point, index: 1, position: {x: 0, y: -80}, exp: 0/310/1400}
 red:
+  core_damage: 700
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -70}}
   - {name: marksman, index: 1, position: {x: 0, y: -110}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 82/1400}
-    - {index: 1, exp: 310/1400}
-  red: {core_damage: 700}
 ticks: 426
 hash: 23:d46e4acfd71102ca73d79ee9d6d0ce4951ac919305c506fd6fcb91906ed81d69

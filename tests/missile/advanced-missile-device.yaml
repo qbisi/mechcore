@@ -12,25 +12,16 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 224
   officers: [advanced_missile_device]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/144/650}
   contraptions:
-  - {name: missile, index: 0, position: {x: 1, y: -11}}
+  - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
 red:
+  core_damage: 0
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -45}}
-  - {name: crawler, index: 1, position: {x: 45, y: -40}}
-outcome:
-  blue:
-    core_damage: 224
-    units:
-    - {index: 0, exp: 144/650}
-    contraptions:
-    - {index: 0, retained: false}
-  red:
-    core_damage: 0
-    units:
-    - {index: 1, exp: 200/450}
+  - {name: crawler, index: 1, position: {x: 45, y: -40}, exp: 0/200/450}
 ticks: 259
 hash: 23:ddf9139f7fcf3e2d9efcec984c091378722edcc323708669c370b05f3cda8ead

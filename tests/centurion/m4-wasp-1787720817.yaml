@@ -6,16 +6,12 @@ map_id: 1021
 seed: 1787720817
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: centurion, index: 0, position: {x: -5, y: -105}}
+  - {name: centurion, index: 0, position: {x: -5, y: -105}, exp: 0/408/2250}
 red:
+  core_damage: 250
   units:
   - {name: wasp, index: 0, position: {x: 5, y: -100}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 408/2250}
-  red: {core_damage: 250}
 ticks: 253
 hash: 23:9ad2f18c83c6b19c4d443be81a914c7e3d88bd62dff25bab52dc03c5d91e6ca4

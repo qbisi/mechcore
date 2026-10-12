@@ -10,77 +10,49 @@ map_id: 1031
 seed: 1041759675
 round: 4
 blue:
+  core_damage: 450
   officers: [sabertooth_specialist]
   techs:
     tarantula: [range_enhancement]
   blueprints: [attack_enhancement, defense_enhancement]
   units:
-  - {name: void_eye, index: 0, position: {x: 140, y: -80}, level: 2, source: legacy}
-  - {name: void_eye, index: 1, position: {x: 230, y: -80}, level: 2, source: legacy}
-  - {name: void_eye, index: 2, position: {x: 50, y: -80}, exp: 423/650, source: legacy}
-  - {name: tarantula, index: 3, position: {x: 95, y: -65}, exp: 1421/1500, source: legacy}
-  - {name: tarantula, index: 4, position: {x: 185, y: -65}, exp: 1236/1500, source: legacy}
-  - {name: crawler, index: 5, position: {x: 80, y: -105}, exp: 165/450, rotated: true, source: legacy}
-  - {name: crawler, index: 6, position: {x: 170, y: -105}, exp: 217/450, rotated: true, source: legacy}
-  - {name: mustang, index: 7, position: {x: 225, y: -190}, exp: 813/1200, source: legacy}
-  - {name: phoenix, index: 8, position: {x: 140, y: -100}, exp: 1226/1300, source: legacy}
-  - {name: crawler, index: 9, position: {x: 135, y: -190}, exp: 124/450, source: legacy}
-  - {name: sabertooth, index: 10, position: {x: -285, y: -45}, exp: 610/1300, source: legacy}
-  - {name: crawler, index: 11, position: {x: -275, y: -20}, level: 2, source: legacy}
-  - {name: crawler, index: 12, position: {x: 260, y: -285}, exp: 244/450, rotated: true, source: legacy}
-  - {name: crawler, index: 13, position: {x: -260, y: -285}, exp: 10/450, rotated: true, source: legacy}
-  - {name: sabertooth, index: 14, position: {x: 285, y: -275}}
-  - {name: tarantula, index: 15, position: {x: -255, y: -75}}
+  - {name: void_eye, index: 0, position: {x: 140, y: -80}, level: 2, exp: 0/16/1465, source: legacy}
+  - {name: void_eye, index: 1, position: {x: 230, y: -80}, level: 2, exp: 0/28/1465, source: legacy}
+  - {name: void_eye, index: 2, position: {x: 50, y: -80}, exp: 423/503/650, source: legacy}
+  - {name: tarantula, index: 3, position: {x: 95, y: -65}, exp: 1421/1500/1500, source: legacy}
+  - {name: tarantula, index: 4, position: {x: 185, y: -65}, exp: 1236/1500/1500, source: legacy}
+  - {name: crawler, index: 5, position: {x: 80, y: -105}, exp: 165/173/450, rotated: true, source: legacy}
+  - {name: crawler, index: 6, position: {x: 170, y: -105}, exp: 217/217/450, rotated: true, source: legacy}
+  - {name: mustang, index: 7, position: {x: 225, y: -190}, exp: 813/857/1200, source: legacy}
+  - {name: phoenix, index: 8, position: {x: 140, y: -100}, exp: 1226/1272/1300, source: legacy}
+  - {name: crawler, index: 9, position: {x: 135, y: -190}, exp: 124/124/450, source: legacy}
+  - {name: sabertooth, index: 10, position: {x: -285, y: -45}, exp: 610/963/1300, source: legacy}
+  - {name: crawler, index: 11, position: {x: -275, y: -20}, level: 2, exp: 0/36/1014, source: legacy}
+  - {name: crawler, index: 12, position: {x: 260, y: -285}, exp: 244/300/450, rotated: true, source: legacy}
+  - {name: crawler, index: 13, position: {x: -260, y: -285}, exp: 10/332/450, rotated: true, source: legacy}
+  - {name: sabertooth, index: 14, position: {x: 285, y: -275}, exp: 0/312/1300}
+  - {name: tarantula, index: 15, position: {x: -255, y: -75}, exp: 0/705/1500}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
+  core_damage: 0
   officers: [fire_badger_specialist]
   techs:
     vulcan: [range_enhancement]
   blueprints: [attack_enhancement]
   units:
-  - {name: void_eye, index: 0, position: {x: 0, y: -170}, exp: 318/650, source: legacy}
-  - {name: void_eye, index: 2, position: {x: -60, y: -170}, exp: 128/650, source: legacy}
-  - {name: fire_badger, index: 3, position: {x: 135, y: -150}, exp: 608/1400, source: legacy}
-  - {name: marksman, index: 5, position: {x: -170, y: -190}, exp: 79/650, source: legacy}
-  - {name: marksman, index: 6, position: {x: 170, y: -190}, level: 2, exp: 30/1465, source: legacy}
-  - {name: mustang, index: 7, position: {x: -105, y: -300}, exp: 336/1200, source: legacy}
-  - {name: crawler, index: 8, position: {x: -250, y: -285}, exp: 46/450, rotated: true, source: legacy}
-  - {name: crawler, index: 9, position: {x: -135, y: -190}, exp: 88/450, source: legacy}
-  - {name: fire_badger, index: 10, position: {x: -350, y: 285}, source: legacy}
-  - {name: fang, index: 11, position: {x: -140, y: -225}, exp: 13/600, rotated: true, source: legacy}
-  - {name: fang, index: 12, position: {x: -140, y: -95}, exp: 84/600, rotated: true, source: legacy}
-  - {name: fang, index: 13, position: {x: 140, y: -95}, rotated: true}
-  - {name: vulcan, index: 14, position: {x: -140, y: -140}, level: 2, equipment: [amplifying_core]}
-outcome:
-  blue:
-    core_damage: 450
-    units:
-    - {index: 0, exp: 16/1465}
-    - {index: 1, exp: 28/1465}
-    - {index: 2, exp: 503/650}
-    - {index: 3, exp: 1500/1500}
-    - {index: 4, exp: 1500/1500}
-    - {index: 5, exp: 173/450}
-    - {index: 7, exp: 857/1200}
-    - {index: 8, exp: 1272/1300}
-    - {index: 10, exp: 963/1300}
-    - {index: 11, exp: 36/1014}
-    - {index: 12, exp: 300/450}
-    - {index: 13, exp: 332/450}
-    - {index: 14, exp: 312/1300}
-    - {index: 15, exp: 705/1500}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 433/650}
-    - {index: 2, exp: 142/650}
-    - {index: 3, exp: 898/1400}
-    - {index: 5, exp: 650/650}
-    - {index: 6, exp: 478/1465}
-    - {index: 7, exp: 468/1200}
-    - {index: 10, exp: 32/1400}
-    - {index: 13, exp: 254/600}
-    - {index: 14, exp: 3625/5453}
+  - {name: void_eye, index: 0, position: {x: 0, y: -170}, exp: 318/433/650, source: legacy}
+  - {name: void_eye, index: 2, position: {x: -60, y: -170}, exp: 128/142/650, source: legacy}
+  - {name: fire_badger, index: 3, position: {x: 135, y: -150}, exp: 608/898/1400, source: legacy}
+  - {name: marksman, index: 5, position: {x: -170, y: -190}, exp: 79/650/650, source: legacy}
+  - {name: marksman, index: 6, position: {x: 170, y: -190}, level: 2, exp: 30/478/1465, source: legacy}
+  - {name: mustang, index: 7, position: {x: -105, y: -300}, exp: 336/468/1200, source: legacy}
+  - {name: crawler, index: 8, position: {x: -250, y: -285}, exp: 46/46/450, rotated: true, source: legacy}
+  - {name: crawler, index: 9, position: {x: -135, y: -190}, exp: 88/88/450, source: legacy}
+  - {name: fire_badger, index: 10, position: {x: -350, y: 285}, exp: 0/32/1400, source: legacy}
+  - {name: fang, index: 11, position: {x: -140, y: -225}, exp: 13/13/600, rotated: true, source: legacy}
+  - {name: fang, index: 12, position: {x: -140, y: -95}, exp: 84/84/600, rotated: true, source: legacy}
+  - {name: fang, index: 13, position: {x: 140, y: -95}, exp: 0/254/600, rotated: true}
+  - {name: vulcan, index: 14, position: {x: -140, y: -140}, level: 2, exp: 0/3625/5453, equipment: [amplifying_core]}
 ticks: 1166
 hash: 23:d723c1da19b77426818930284d298c22f19dbe90fb3cd50f55748dfefd6fa2ba

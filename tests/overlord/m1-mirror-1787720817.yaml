@@ -6,16 +6,12 @@ map_id: 1021
 seed: 1787720817
 round: 1
 blue:
+  core_damage: 0
   units:
   - {name: overlord, index: 0, position: {x: -5, y: -105}}
 red:
+  core_damage: 0
   units:
-  - {name: overlord, index: 0, position: {x: -5, y: -105}}
-outcome:
-  blue: {core_damage: 0}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 1000/1750}
+  - {name: overlord, index: 0, position: {x: -5, y: -105}, exp: 0/1000/1750}
 ticks: 195
 hash: 23:c717cbe40bb3e043a32e9d73a424b7085637ca7ac154dc6503bf3f6cd16f8223

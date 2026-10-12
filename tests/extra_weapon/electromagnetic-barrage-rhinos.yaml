@@ -14,24 +14,16 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 116
   techs:
     melting_point: [electromagnetic_barrage]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -120}}
+  - {name: melting_point, index: 0, position: {x: 0, y: -120}, exp: 0/552/1400}
 red:
+  core_damage: 0
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: crawler, index: 1, position: {x: 65, y: -90}}
-  - {name: crawler, index: 2, position: {x: -55, y: -130}}
-outcome:
-  blue:
-    core_damage: 116
-    units:
-    - {index: 0, exp: 552/1400}
-  red:
-    core_damage: 0
-    units:
-    - {index: 1, exp: 200/450}
-    - {index: 2, exp: 450/450}
+  - {name: crawler, index: 1, position: {x: 65, y: -90}, exp: 0/200/450}
+  - {name: crawler, index: 2, position: {x: -55, y: -130}, exp: 0/450/450}
 ticks: 463
 hash: 23:5178307d694ccd36e7e414edb44790daa7f7b07b15e43055d217cef33377c493

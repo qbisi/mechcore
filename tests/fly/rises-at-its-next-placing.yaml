@@ -10,22 +10,15 @@ map_id: 1021
 seed: 1
 round: 3
 blue:
+  core_damage: 66
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -100}}
+  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/266/650}
 red:
+  core_damage: 0
   techs:
     void_eye: [aerial_mode]
   units:
-  - {name: void_eye, index: 0, position: {x: -340, y: 20}, rotated: true, travelling: true}
-outcome:
-  blue:
-    core_damage: 66
-    units:
-    - {index: 0, exp: 266/650}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 400/650}
+  - {name: void_eye, index: 0, position: {x: -340, y: 20}, exp: 0/400/650, rotated: true, travelling: true}
 asserts:
 - sql: |-
     SELECT tick, position__y, domain FROM units WHERE unit_id = 2 AND tick BETWEEN 160 AND 162 ORDER BY tick

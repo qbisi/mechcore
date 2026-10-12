@@ -7,23 +7,14 @@ map_id: 1021
 seed: 1787720817
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: fang, index: 0, position: {x: 5, y: -140}}
-  - {name: fang, index: 1, position: {x: 5, y: -80}}
+  - {name: fang, index: 0, position: {x: 5, y: -140}, exp: 0/224/600}
+  - {name: fang, index: 1, position: {x: 5, y: -80}, exp: 0/168/600}
 red:
+  core_damage: 126
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 224/600}
-    - {index: 1, exp: 168/600}
-  red:
-    core_damage: 126
-    units:
-    - {index: 0, exp: 81/450}
-    - {index: 1, exp: 99/650}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/81/450}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/99/650}
 ticks: 585
 hash: 23:ed902c41e40ca0b96985644f2fa0e6e365e5df47e630a8028f0a618f7badb865

@@ -15,19 +15,14 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   officers: [smart_marksman]
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -150}}
-  - {name: arclight, index: 1, position: {x: 20, y: -150}}
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/59/650}
+  - {name: arclight, index: 1, position: {x: 20, y: -150}, exp: 0/158/750}
 red:
+  core_damage: 200
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -40}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 59/650}
-    - {index: 1, exp: 158/750}
-  red: {core_damage: 200}
 ticks: 172
 hash: 23:fe3fca1c15957bffc4ae351d5c7a98d9086966659e64466681400183b32ea19a

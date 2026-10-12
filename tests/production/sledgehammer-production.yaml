@@ -8,22 +8,15 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 520
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/80/650}
 red:
+  core_damage: 0
   techs:
     war_factory: [sledgehammer_production]
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -145}}
-outcome:
-  blue:
-    core_damage: 520
-    units:
-    - {index: 1, exp: 80/650}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 600/3200}
+  - {name: war_factory, index: 0, position: {x: 5, y: -145}, exp: 0/600/3200}
 ticks: 349
 hash: 23:ddc095345edd5ffef79dcecae781b298e04ccb16ac90bf51e4ce49c9f3dcdc3b

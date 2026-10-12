@@ -6,16 +6,12 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -100}}
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/192/1950}
 red:
+  core_damage: 250
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 192/1950}
-  red: {core_damage: 250}
 ticks: 144
 hash: 23:364f41b6855e3413e79bb32d1526dad84082021a3a32adeae345f5d3720fb318

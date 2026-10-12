@@ -13,22 +13,15 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   techs:
     war_factory: [steel_ball_production]
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -145}}
+  - {name: war_factory, index: 0, position: {x: 5, y: -145}, exp: 0/600/3200}
 red:
+  core_damage: 500
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 600/3200}
-  red:
-    core_damage: 500
-    units:
-    - {index: 1, exp: 200/650}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/200/650}
 ticks: 384
 hash: 23:f6b17bcb071837f0856caac756068c2741b806a607193279a89fc80759571ab4

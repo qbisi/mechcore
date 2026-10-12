@@ -7,63 +7,41 @@ map_id: 1011
 seed: 1231717251
 round: 3
 blue:
+  core_damage: 800
   officers: [aerial_specialist]
   units:
-  - {name: fang, index: 0, position: {x: 200, y: -235}, rotated: true, source: legacy}
-  - {name: fang, index: 1, position: {x: 0, y: -205}, exp: 100/600, rotated: true, source: legacy}
+  - {name: fang, index: 0, position: {x: 200, y: -235}, exp: 0/66/600, rotated: true, source: legacy}
+  - {name: fang, index: 1, position: {x: 0, y: -205}, exp: 100/100/600, rotated: true, source: legacy}
   - {name: fang, index: 2, position: {x: -190, y: -225}, rotated: true, source: legacy}
-  - {name: fire_badger, index: 3, position: {x: -30, y: -205}, exp: 116/1400, rotated: true, source: legacy}
+  - {name: fire_badger, index: 3, position: {x: -30, y: -205}, exp: 116/216/1400, rotated: true, source: legacy}
   - {name: hound, index: 5, position: {x: -190, y: -190}, source: legacy}
   - {name: hound, index: 6, position: {x: 200, y: -200}, source: legacy}
-  - {name: centurion, index: 8, position: {x: -65, y: -215}, exp: 866/2250, source: legacy}
-  - {name: centurion, index: 9, position: {x: 35, y: -215}, exp: 2116/2250, source: legacy}
-  - {name: centurion, index: 10, position: {x: 235, y: -245}, equipment: [amplifying_core]}
-  - {name: fang, index: 11, position: {x: 140, y: -205}, rotated: true}
+  - {name: centurion, index: 8, position: {x: -65, y: -215}, exp: 866/966/2250, source: legacy}
+  - {name: centurion, index: 9, position: {x: 35, y: -215}, exp: 2116/2250/2250, source: legacy}
+  - {name: centurion, index: 10, position: {x: 235, y: -245}, exp: 0/666/2250, equipment: [amplifying_core]}
+  - {name: fang, index: 11, position: {x: 140, y: -205}, exp: 0/66/600, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
 red:
+  core_damage: 0
   officers: [cost_control_specialist]
   techs:
     marksman: [range_enhancement]
     rhino: [combat_evolvement]
   blueprints: [attack_enhancement]
   units:
-  - {name: marksman, index: 0, position: {x: 160, y: -170}, exp: 287/650, source: legacy}
-  - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 482/650, source: legacy}
-  - {name: marksman, index: 2, position: {x: -140, y: -150}, exp: 412/650, source: legacy}
-  - {name: tarantula, index: 3, position: {x: 115, y: -165}, exp: 314/1500, source: legacy}
-  - {name: tarantula, index: 4, position: {x: -115, y: -165}, exp: 965/1500, source: legacy}
-  - {name: tarantula, index: 5, position: {x: 5, y: -155}, exp: 471/1500, source: legacy}
-  - {name: marksman, index: 6, position: {x: 30, y: -160}, exp: 246/650, source: legacy}
-  - {name: rhino, index: 7, position: {x: 265, y: -295}, exp: 256/1150, equipment: [amplifying_core], source: legacy}
-  - {name: rhino, index: 8, position: {x: -265, y: -295}, exp: 517/1150, source: legacy}
-  - {name: marksman, index: 9, position: {x: -20, y: -160}, exp: 33/650, source: legacy}
-  - {name: marksman, index: 10, position: {x: 90, y: -170}}
-  - {name: marksman, index: 11, position: {x: 60, y: -170}}
-outcome:
-  blue:
-    core_damage: 800
-    units:
-    - {index: 0, exp: 66/600}
-    - {index: 3, exp: 216/1400}
-    - {index: 8, exp: 966/2250}
-    - {index: 9, exp: 2250/2250}
-    - {index: 10, exp: 666/2250}
-    - {index: 11, exp: 66/600}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 398/650}
-    - {index: 1, exp: 650/650}
-    - {index: 2, exp: 650/650}
-    - {index: 3, exp: 528/1500}
-    - {index: 4, exp: 1218/1500}
-    - {index: 6, exp: 650/650}
-    - {index: 7, exp: 851/1150}
-    - {index: 8, exp: 536/1150}
-    - {index: 9, exp: 100/650}
-    - {index: 10, exp: 650/650}
-    - {index: 11, exp: 451/650}
+  - {name: marksman, index: 0, position: {x: 160, y: -170}, exp: 287/398/650, source: legacy}
+  - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 482/650/650, source: legacy}
+  - {name: marksman, index: 2, position: {x: -140, y: -150}, exp: 412/650/650, source: legacy}
+  - {name: tarantula, index: 3, position: {x: 115, y: -165}, exp: 314/528/1500, source: legacy}
+  - {name: tarantula, index: 4, position: {x: -115, y: -165}, exp: 965/1218/1500, source: legacy}
+  - {name: tarantula, index: 5, position: {x: 5, y: -155}, exp: 471/471/1500, source: legacy}
+  - {name: marksman, index: 6, position: {x: 30, y: -160}, exp: 246/650/650, source: legacy}
+  - {name: rhino, index: 7, position: {x: 265, y: -295}, exp: 256/851/1150, equipment: [amplifying_core], source: legacy}
+  - {name: rhino, index: 8, position: {x: -265, y: -295}, exp: 517/536/1150, source: legacy}
+  - {name: marksman, index: 9, position: {x: -20, y: -160}, exp: 33/100/650, source: legacy}
+  - {name: marksman, index: 10, position: {x: 90, y: -170}, exp: 0/650/650}
+  - {name: marksman, index: 11, position: {x: 60, y: -170}, exp: 0/451/650}
 ticks: 1180
 hash: 23:b6d473cd21faa30875ef330e76b029e8e390f4f6f4106e885c46fee00badff1f

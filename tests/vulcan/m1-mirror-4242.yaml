@@ -6,16 +6,12 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   units:
   - {name: vulcan, index: 0, position: {x: 0, y: -100}}
 red:
+  core_damage: 0
   units:
-  - {name: vulcan, index: 0, position: {x: 0, y: -100}}
-outcome:
-  blue: {core_damage: 0}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 800/2200}
+  - {name: vulcan, index: 0, position: {x: 0, y: -100}, exp: 0/800/2200}
 ticks: 959
 hash: 23:3a9b388b9fc60707a08feb27613289fea504cd46fa9ff3c68a73fcffb974a9a8

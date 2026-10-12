@@ -7,19 +7,14 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 612
   units:
   - {name: stormcaller, index: 0, position: {x: 5, y: -100}}
 red:
+  core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/325/900}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/75/900}
   - {name: wasp, index: 2, position: {x: 5, y: -180}}
-outcome:
-  blue: {core_damage: 612}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 325/900}
-    - {index: 1, exp: 75/900}
 ticks: 213
 hash: 23:37c322c483481cf5af588ebd398be5d2976bb0a78bcdeb368ad06909a7f910a4

@@ -11,26 +11,16 @@ map_id: 1021
 seed: 4242
 round: 3
 blue:
+  core_damage: 0
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}, source: legacy}
-  - {name: hound, index: 1, position: {x: -330, y: 60}, source: legacy}
-  - {name: arclight, index: 2, position: {x: 330, y: 100}, source: legacy}
+  - {name: hound, index: 1, position: {x: -330, y: 60}, exp: 0/400/750, source: legacy}
+  - {name: arclight, index: 2, position: {x: 330, y: 100}, exp: 0/400/750, source: legacy}
 red:
+  core_damage: 140
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, source: legacy}
-  - {name: hound, index: 1, position: {x: -330, y: 200}, source: legacy}
-  - {name: arclight, index: 2, position: {x: 330, y: 250}, source: legacy}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 1, exp: 400/750}
-    - {index: 2, exp: 400/750}
-  red:
-    core_damage: 140
-    units:
-    - {index: 0, exp: 200/650}
-    - {index: 1, exp: 200/750}
-    - {index: 2, exp: 320/750}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650, source: legacy}
+  - {name: hound, index: 1, position: {x: -330, y: 200}, exp: 0/200/750, source: legacy}
+  - {name: arclight, index: 2, position: {x: 330, y: 250}, exp: 0/320/750, source: legacy}
 ticks: 1250
 hash: 23:7b6149c7bb546fa78b38cb989240b0ea8754fe7021a5a349b385080d1b48e366

@@ -360,7 +360,7 @@ red:
     let compared = mechcore(&["diff".as_ref(), written.as_os_str(), changed.as_os_str()]);
     assert_eq!(compared.status.code(), Some(1));
     let report: serde_json::Value = serde_json::from_slice(&compared.stdout).unwrap();
-    assert_eq!(report["differences"][0]["path"], "/outcome/red/core_damage");
+    assert_eq!(report["differences"][0]["path"], "/red/core_damage");
     let schema = mechcore(&["schema".as_ref(), "fight".as_ref()]);
     assert!(schema.status.success());
 }
@@ -397,17 +397,13 @@ fn a_formation_opens_the_simulated_fight_with_the_experience_its_layout_brings()
     // Each formation opens holding what the layout says, as the game's
     // recording of this layout does: the Marksmen gain the Arclight's
     // experience, and the Arclight ends with what it opened with.
-    assert!(document.contains("level: 2, exp: 700/1465}"), "{document}");
-    assert!(document.contains("exp: 900/1465}"), "{document}");
-    assert!(document.contains("exp: 300/750}"), "{document}");
-    let parsed: serde_yaml::Value = serde_yaml::from_str(&document).unwrap();
-    assert_eq!(
-        parsed["outcome"]["blue"]["units"]
-            .as_sequence()
-            .unwrap()
-            .len(),
-        1
+    assert!(
+        document.contains("level: 2, exp: 700/900/1465}"),
+        "{document}"
     );
+    assert!(document.contains("exp: 300/300/750}"), "{document}");
+    let parsed: serde_yaml::Value = serde_yaml::from_str(&document).unwrap();
+    assert_eq!(parsed["blue"]["units"].as_sequence().unwrap().len(), 1);
 }
 
 /// The fight document the simulator fights a small layout into, written by
@@ -484,12 +480,13 @@ fn verify_fights_a_fight_document_again_and_names_what_differs() {
 
     // One unit's experience moved: that path, both values.
     let mut value: serde_yaml::Value = serde_yaml::from_str(&document).unwrap();
-    let exp = value["outcome"]["blue"]["units"][0]["exp"]
-        .as_str()
-        .unwrap();
-    let (after, maximum) = exp.split_once('/').unwrap();
-    value["outcome"]["blue"]["units"][0]["exp"] =
-        format!("{}/{maximum}", after.parse::<u32>().unwrap() + 1).into();
+    let exp = value["blue"]["units"][0]["exp"].as_str().unwrap();
+    let terms = exp.split('/').collect::<Vec<_>>();
+    let [before, after, maximum] = terms[..] else {
+        panic!("{exp}")
+    };
+    value["blue"]["units"][0]["exp"] =
+        format!("{before}/{}/{maximum}", after.parse::<u32>().unwrap() + 1).into();
     let moved = serde_yaml::to_string(&value).unwrap();
     let (code, report) = verify("exp.yaml", &moved);
     assert_eq!(code, Some(1), "{report}");
@@ -497,7 +494,7 @@ fn verify_fights_a_fight_document_again_and_names_what_differs() {
     let differences = report["differences"].as_array().unwrap();
     assert_eq!(differences.len(), 1, "{report}");
     let path = differences[0]["path"].as_str().unwrap();
-    assert!(path.starts_with("/outcome/blue/units/"), "{path}");
+    assert!(path.starts_with("/blue/units/"), "{path}");
     assert!(path.ends_with("/exp"), "{path}");
     assert_ne!(differences[0]["expected"], differences[0]["actual"]);
     assert!(report["error"].as_str().unwrap().contains(path), "{report}");

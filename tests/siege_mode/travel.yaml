@@ -11,23 +11,16 @@ map_id: 1021
 seed: 4242
 round: 2
 blue:
+  core_damage: 0
   techs:
     sabertooth: [field_entrenchment]
   units:
-  - {name: sabertooth, index: 0, position: {x: -325, y: 25}, travelling: true}
+  - {name: sabertooth, index: 0, position: {x: -325, y: 25}, exp: 0/800/1300, travelling: true}
   - {name: arclight, index: 1, position: {x: 0, y: -300}}
 red:
+  core_damage: 200
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -20}}
+  - {name: arclight, index: 0, position: {x: 0, y: -20}, exp: 0/600/750}
   - {name: arclight, index: 1, position: {x: 280, y: -300}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 800/1300}
-  red:
-    core_damage: 200
-    units:
-    - {index: 0, exp: 600/750}
 ticks: 1815
 hash: 23:b87fa5d775243f5d448f4406004722d8362b7ee712253133496bcd923008be47

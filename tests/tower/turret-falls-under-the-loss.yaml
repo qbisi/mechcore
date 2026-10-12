@@ -13,21 +13,14 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 150
   units:
-  - {name: fang, index: 0, position: {x: 145, y: -300}}
+  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/100/600}
   constructions:
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -260}}
 red:
+  core_damage: 0
   units:
-  - {name: steel_ball, index: 0, position: {x: 145, y: -20}}
-outcome:
-  blue:
-    core_damage: 150
-    units:
-    - {index: 0, exp: 100/600}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 536/1000}
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/536/1000}
 ticks: 970
 hash: 23:68e35892992e3a99136633e7b8cf0e92c10f4daed4d9bcaa64eed030d50eabd5

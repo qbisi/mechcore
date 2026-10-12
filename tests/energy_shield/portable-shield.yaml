@@ -11,16 +11,12 @@ map_id: 1021
 seed: 1787720817
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [portable_shield]}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/200/650, equipment: [portable_shield]}
 red:
+  core_damage: 100
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -50}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 200/650}
-  red: {core_damage: 100}
 ticks: 139
 hash: 23:b9ea60feddbc973b8becad943f718757afec1d5a4bbd3c16cfc4111830c5856c

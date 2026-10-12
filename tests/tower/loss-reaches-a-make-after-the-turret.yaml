@@ -15,26 +15,18 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   techs:
     vulcan: [best_partner]
   units:
-  - {name: fang, index: 0, position: {x: 145, y: -300}}
-  - {name: vulcan, index: 1, position: {x: -220, y: -280}}
+  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/300/600}
+  - {name: vulcan, index: 1, position: {x: -220, y: -280}, exp: 0/100/2200}
   constructions:
   - {name: anti_armor_turret, index: 2, position: {x: -280, y: -300}}
 red:
+  core_damage: 108
   units:
-  - {name: steel_ball, index: 0, position: {x: 145, y: -20}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 300/600}
-    - {index: 1, exp: 100/2200}
-  red:
-    core_damage: 108
-    units:
-    - {index: 0, exp: 1000/1000}
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/1000/1000}
 asserts:
 - sql: |-
     SELECT target__kind, target__id FROM events WHERE type = 'buff_applied' AND tick = 231 AND (target__kind = 'building' OR target__id IN (19, 24)) ORDER BY ordinal

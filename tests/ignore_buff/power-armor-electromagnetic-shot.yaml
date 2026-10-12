@@ -11,20 +11,16 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 200
   techs:
     marksman: [electromagnetic_shot]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -170}}
 red:
+  core_damage: 0
   techs:
     rhino: [power_armor]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}}
-outcome:
-  blue: {core_damage: 200}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
 ticks: 328
 hash: 23:966d464ca9ff5b1277e70d956803a32b0db634a6114bc0c675d856f5de737d44

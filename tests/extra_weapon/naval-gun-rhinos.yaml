@@ -14,23 +14,16 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   techs:
     overlord: [overlord_artillery]
   units:
-  - {name: overlord, index: 0, position: {x: 5, y: -95}}
+  - {name: overlord, index: 0, position: {x: 5, y: -95}, exp: 0/992/1750}
 red:
+  core_damage: 400
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
   - {name: rhino, index: 1, position: {x: 65, y: -95}}
-  - {name: crawler, index: 2, position: {x: -55, y: -130}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 992/1750}
-  red:
-    core_damage: 400
-    units:
-    - {index: 2, exp: 200/450}
+  - {name: crawler, index: 2, position: {x: -55, y: -130}, exp: 0/200/450}
 ticks: 608
 hash: 23:bcb8d2becdd7f806e99e65c166a80984f86cf17f64163cbc88fe9d0a1b5bf34f

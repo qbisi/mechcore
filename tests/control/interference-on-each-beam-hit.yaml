@@ -10,19 +10,15 @@ map_id: 1021
 seed: 1
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: centurion, index: 0, position: {x: -85, y: -25}}
+  - {name: centurion, index: 0, position: {x: -85, y: -25}, exp: 0/400/2250}
 red:
+  core_damage: 250
   techs:
     hacker: [electromagnetic_interference]
   units:
   - {name: hacker, index: 0, position: {x: 75, y: -55}, rotated: true}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 400/2250}
-  red: {core_damage: 250}
 asserts:
 - sql: |-
     SELECT tick, target__id FROM events WHERE type = 'buff_applied' AND buff_id = 1014 ORDER BY tick, ordinal LIMIT 4

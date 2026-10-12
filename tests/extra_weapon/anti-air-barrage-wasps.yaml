@@ -13,20 +13,16 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   techs:
     fortress: [anti_air_barrage]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/1424/1600}
 red:
+  core_damage: 350
   units:
   - {name: wasp, index: 0, position: {x: 5, y: -100}}
   - {name: wasp, index: 1, position: {x: 5, y: -140}}
   - {name: wasp, index: 2, position: {x: 5, y: -180}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 1424/1600}
-  red: {core_damage: 350}
 ticks: 664
 hash: 23:d0860521cb67c2b1e06fd5776aca0c35dd454a81c4e2218460350a1964b2bf5c

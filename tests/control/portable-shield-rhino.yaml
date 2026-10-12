@@ -10,16 +10,12 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 200
   units:
   - {name: hacker, index: 0, position: {x: -5, y: -105}}
 red:
+  core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, equipment: [portable_shield]}
-outcome:
-  blue: {core_damage: 200}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 400/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150, equipment: [portable_shield]}
 ticks: 203
 hash: 23:fdba581bd72bc360e3fe07b1006ce66452ef221f04e634e94e5f0173cc023570

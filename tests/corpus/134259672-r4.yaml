@@ -13,87 +13,55 @@ map_id: 1021
 seed: 1685333659
 round: 4
 blue:
+  core_damage: 0
   officers: [typhoon_specialist]
   techs:
     fire_badger: [scorching_charge]
     tarantula: [range_enhancement]
   blueprints: [attack_enhancement]
   units:
-  - {name: void_eye, index: 1, position: {x: 150, y: -70}, exp: 650/650, source: legacy}
-  - {name: void_eye, index: 2, position: {x: 230, y: -70}, exp: 650/650, source: legacy}
-  - {name: tarantula, index: 3, position: {x: 105, y: -55}, exp: 586/1500, source: legacy}
-  - {name: tarantula, index: 4, position: {x: 195, y: -55}, exp: 1294/1500, source: legacy}
-  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 198/450, source: legacy}
-  - {name: crawler, index: 6, position: {x: 150, y: -105}, exp: 125/450, rotated: true, source: legacy}
-  - {name: tarantula, index: 8, position: {x: -185, y: -55}, exp: 672/1500, source: legacy}
-  - {name: crawler, index: 9, position: {x: -190, y: -95}, exp: 52/450, rotated: true, source: legacy}
-  - {name: fire_badger, index: 10, position: {x: -330, y: 285}, exp: 213/1400, source: legacy}
-  - {name: fire_badger, index: 11, position: {x: 330, y: 285}, exp: 444/1400, source: legacy}
+  - {name: void_eye, index: 1, position: {x: 150, y: -70}, exp: 650/650/650, source: legacy}
+  - {name: void_eye, index: 2, position: {x: 230, y: -70}, exp: 650/650/650, source: legacy}
+  - {name: tarantula, index: 3, position: {x: 105, y: -55}, exp: 586/1326/1500, source: legacy}
+  - {name: tarantula, index: 4, position: {x: 195, y: -55}, exp: 1294/1500/1500, source: legacy}
+  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 198/314/450, source: legacy}
+  - {name: crawler, index: 6, position: {x: 150, y: -105}, exp: 125/162/450, rotated: true, source: legacy}
+  - {name: tarantula, index: 8, position: {x: -185, y: -55}, exp: 672/1058/1500, source: legacy}
+  - {name: crawler, index: 9, position: {x: -190, y: -95}, exp: 52/109/450, rotated: true, source: legacy}
+  - {name: fire_badger, index: 10, position: {x: -330, y: 285}, exp: 213/709/1400, source: legacy}
+  - {name: fire_badger, index: 11, position: {x: 330, y: 285}, exp: 444/811/1400, source: legacy}
   - {name: crawler, index: 12, position: {x: 310, y: 285}, source: legacy}
-  - {name: typhoon, index: 13, position: {x: 270, y: -20}, source: delivered}
-  - {name: tarantula, index: 14, position: {x: -95, y: -55}, level: 2}
-  - {name: tarantula, index: 15, position: {x: -5, y: -55}, level: 2}
+  - {name: typhoon, index: 13, position: {x: 270, y: -20}, exp: 0/326/1950, source: delivered}
+  - {name: tarantula, index: 14, position: {x: -95, y: -55}, level: 2, exp: 0/1569/3380}
+  - {name: tarantula, index: 15, position: {x: -5, y: -55}, level: 2, exp: 0/1992/3380}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
+  core_damage: 400
   officers: [training_specialist]
   techs:
     mustang: [range_enhancement]
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -150}, level: 2, exp: 1690/1690, source: legacy}
-  - {name: arclight, index: 1, position: {x: 140, y: -150}, exp: 254/750, source: legacy}
-  - {name: arclight, index: 2, position: {x: -140, y: -150}, exp: 551/750, source: legacy}
-  - {name: sledgehammer, index: 3, position: {x: 75, y: -130}, exp: 1081/1300, source: legacy}
-  - {name: sledgehammer, index: 4, position: {x: -75, y: -130}, exp: 578/1300, source: legacy}
-  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 344/450, source: legacy}
-  - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 40/450, source: legacy}
-  - {name: mustang, index: 8, position: {x: -75, y: -240}, exp: 1065/1200, source: legacy}
-  - {name: mustang, index: 9, position: {x: -205, y: -240}, exp: 486/1200, source: legacy}
-  - {name: mustang, index: 10, position: {x: 205, y: -240}, level: 2, exp: 765/2704, equipment: [haste_module], source: legacy}
-  - {name: crawler, index: 11, position: {x: -135, y: -300}, exp: 16/450, source: legacy}
-  - {name: hacker, index: 12, position: {x: 205, y: -215}}
-  - {name: hacker, index: 13, position: {x: -205, y: -215}}
-  - {name: arclight, index: 14, position: {x: -230, y: -220}}
+  - {name: arclight, index: 0, position: {x: 0, y: -150}, level: 2, exp: 1690/1690/1690, source: legacy}
+  - {name: arclight, index: 1, position: {x: 140, y: -150}, exp: 254/398/750, source: legacy}
+  - {name: arclight, index: 2, position: {x: -140, y: -150}, exp: 551/594/750, source: legacy}
+  - {name: sledgehammer, index: 3, position: {x: 75, y: -130}, exp: 1081/1097/1300, source: legacy}
+  - {name: sledgehammer, index: 4, position: {x: -75, y: -130}, exp: 578/673/1300, source: legacy}
+  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 344/404/450, source: legacy}
+  - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 40/101/450, source: legacy}
+  - {name: mustang, index: 8, position: {x: -75, y: -240}, exp: 1065/1200/1200, source: legacy}
+  - {name: mustang, index: 9, position: {x: -205, y: -240}, exp: 486/1200/1200, source: legacy}
+  - {name: mustang, index: 10, position: {x: 205, y: -240}, level: 2, exp: 765/1359/2704, equipment: [haste_module], source: legacy}
+  - {name: crawler, index: 11, position: {x: -135, y: -300}, exp: 16/143/450, source: legacy}
+  - {name: hacker, index: 12, position: {x: 205, y: -215}, exp: 0/178/560}
+  - {name: hacker, index: 13, position: {x: -205, y: -215}, exp: 0/560/560}
+  - {name: arclight, index: 14, position: {x: -230, y: -220}, exp: 0/300/750}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   contraptions:
-  - {name: shield, index: 0, position: {x: 174, y: -200}}
-  - {name: shield, index: 1, position: {x: -179, y: -194}}
+  - {name: shield, index: 0, position: {x: 174, y: -200}, retained: false}
+  - {name: shield, index: 1, position: {x: -179, y: -194}, retained: false}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -323, y: -250}]}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 3, exp: 1326/1500}
-    - {index: 4, exp: 1500/1500}
-    - {index: 5, exp: 314/450}
-    - {index: 6, exp: 162/450}
-    - {index: 8, exp: 1058/1500}
-    - {index: 9, exp: 109/450}
-    - {index: 10, exp: 709/1400}
-    - {index: 11, exp: 811/1400}
-    - {index: 13, exp: 326/1950}
-    - {index: 14, exp: 1569/3380}
-    - {index: 15, exp: 1992/3380}
-  red:
-    core_damage: 400
-    units:
-    - {index: 1, exp: 398/750}
-    - {index: 2, exp: 594/750}
-    - {index: 3, exp: 1097/1300}
-    - {index: 4, exp: 673/1300}
-    - {index: 5, exp: 404/450}
-    - {index: 6, exp: 101/450}
-    - {index: 8, exp: 1200/1200}
-    - {index: 9, exp: 1200/1200}
-    - {index: 10, exp: 1359/2704}
-    - {index: 11, exp: 143/450}
-    - {index: 12, exp: 178/560}
-    - {index: 13, exp: 560/560}
-    - {index: 14, exp: 300/750}
-    contraptions:
-    - {index: 0, retained: false}
-    - {index: 1, retained: false}
 ticks: 1124
 hash: 23:c65423047c0aeacae5c27dbfe4f0dce4e98294683dd300dd8d7f357c01874fc3

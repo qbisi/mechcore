@@ -10,19 +10,15 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   techs:
     sandworm: [anti_aerial]
   units:
-  - {name: sandworm, index: 0, position: {x: 0, y: -100}}
+  - {name: sandworm, index: 0, position: {x: 0, y: -100}, exp: 0/1200/2000}
 red:
+  core_damage: 350
   units:
   - {name: overlord, index: 0, position: {x: -35, y: -75}}
   - {name: arclight, index: 1, position: {x: 30, y: -80}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 1200/2000}
-  red: {core_damage: 350}
 ticks: 277
 hash: 23:3352717044d279cde569207d5525ef2aef63bcd3403c78872c0681fe158ec069

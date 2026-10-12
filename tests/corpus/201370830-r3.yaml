@@ -10,75 +10,46 @@ map_id: 1011
 seed: 865572396
 round: 3
 blue:
+  core_damage: 502
   officers: [elite_specialist]
   units:
-  - {name: arclight, index: 0, position: {x: -90, y: -60}, exp: 400/750, source: legacy}
-  - {name: arclight, index: 1, position: {x: -190, y: -60}, exp: 251/750, source: legacy}
-  - {name: arclight, index: 2, position: {x: 180, y: -210}, exp: 600/750, source: legacy}
-  - {name: steel_ball, index: 3, position: {x: -225, y: -50}, exp: 598/1000, source: legacy}
-  - {name: steel_ball, index: 4, position: {x: -125, y: -70}, exp: 441/1000, source: legacy}
-  - {name: crawler, index: 5, position: {x: -125, y: -50}, level: 2, exp: 125/1014, source: legacy}
-  - {name: crawler, index: 6, position: {x: -225, y: -70}, level: 2, exp: 336/1014, source: legacy}
-  - {name: crawler, index: 7, position: {x: -310, y: 35}, level: 2, exp: 70/1014, source: legacy}
-  - {name: crawler, index: 8, position: {x: -170, y: -35}, level: 2, exp: 38/1014, rotated: true, source: legacy}
-  - {name: wasp, index: 9, position: {x: -260, y: -205}, rotated: true}
-  - {name: wasp, index: 10, position: {x: 235, y: -50}}
-  - {name: steel_ball, index: 11, position: {x: 235, y: -70}, level: 2}
-  - {name: crawler, index: 12, position: {x: 235, y: -20}, level: 2}
+  - {name: arclight, index: 0, position: {x: -90, y: -60}, exp: 400/750/750, source: legacy}
+  - {name: arclight, index: 1, position: {x: -190, y: -60}, exp: 251/480/750, source: legacy}
+  - {name: arclight, index: 2, position: {x: 180, y: -210}, exp: 600/600/750, source: legacy}
+  - {name: steel_ball, index: 3, position: {x: -225, y: -50}, exp: 598/836/1000, source: legacy}
+  - {name: steel_ball, index: 4, position: {x: -125, y: -70}, exp: 441/619/1000, source: legacy}
+  - {name: crawler, index: 5, position: {x: -125, y: -50}, level: 2, exp: 125/153/1014, source: legacy}
+  - {name: crawler, index: 6, position: {x: -225, y: -70}, level: 2, exp: 336/384/1014, source: legacy}
+  - {name: crawler, index: 7, position: {x: -310, y: 35}, level: 2, exp: 70/70/1014, source: legacy}
+  - {name: crawler, index: 8, position: {x: -170, y: -35}, level: 2, exp: 38/64/1014, rotated: true, source: legacy}
+  - {name: wasp, index: 9, position: {x: -260, y: -205}, exp: 0/649/900, rotated: true}
+  - {name: wasp, index: 10, position: {x: 235, y: -50}, exp: 0/847/900}
+  - {name: steel_ball, index: 11, position: {x: 235, y: -70}, level: 2, exp: 0/835/2253}
+  - {name: crawler, index: 12, position: {x: 235, y: -20}, level: 2, exp: 0/133/1014}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   contraptions:
   - {name: shield, index: 0, position: {x: -169, y: -81}}
   - {name: missile, index: 1, position: {x: -297, y: -187}}
 red:
+  core_damage: 0
   officers: [fortified_specialist]
   blueprints: [attack_enhancement, defense_enhancement]
   units:
-  - {name: void_eye, index: 0, position: {x: 80, y: -70}, exp: 432/650, source: legacy}
-  - {name: void_eye, index: 1, position: {x: 180, y: -70}, exp: 482/650, source: legacy}
-  - {name: void_eye, index: 2, position: {x: 280, y: -70}, exp: 280/650, source: legacy}
-  - {name: tarantula, index: 3, position: {x: 85, y: -115}, level: 2, source: legacy}
-  - {name: tarantula, index: 4, position: {x: 185, y: -115}, exp: 1364/1500, source: legacy}
-  - {name: vortex, index: 5, position: {x: 110, y: -130}, level: 2, exp: 1017/1690, source: legacy}
-  - {name: vortex, index: 6, position: {x: 150, y: -130}, exp: 748/750, source: legacy}
-  - {name: crawler, index: 7, position: {x: 80, y: -155}, exp: 101/450, rotated: true, source: legacy}
-  - {name: crawler, index: 8, position: {x: 190, y: -155}, exp: 160/450, rotated: true, source: legacy}
-  - {name: wasp, index: 9, position: {x: -350, y: 175}, travelling: true}
-  - {name: wasp, index: 10, position: {x: -350, y: 255}, travelling: true}
-  - {name: tarantula, index: 11, position: {x: 275, y: -95}}
-  - {name: crawler, index: 12, position: {x: 190, y: -205}, rotated: true}
+  - {name: void_eye, index: 0, position: {x: 80, y: -70}, exp: 432/650/650, source: legacy}
+  - {name: void_eye, index: 1, position: {x: 180, y: -70}, exp: 482/650/650, source: legacy}
+  - {name: void_eye, index: 2, position: {x: 280, y: -70}, exp: 280/569/650, source: legacy}
+  - {name: tarantula, index: 3, position: {x: 85, y: -115}, level: 2, exp: 0/1202/3380, source: legacy}
+  - {name: tarantula, index: 4, position: {x: 185, y: -115}, exp: 1364/1500/1500, source: legacy}
+  - {name: vortex, index: 5, position: {x: 110, y: -130}, level: 2, exp: 1017/1690/1690, source: legacy}
+  - {name: vortex, index: 6, position: {x: 150, y: -130}, exp: 748/750/750, source: legacy}
+  - {name: crawler, index: 7, position: {x: 80, y: -155}, exp: 101/282/450, rotated: true, source: legacy}
+  - {name: crawler, index: 8, position: {x: 190, y: -155}, exp: 160/368/450, rotated: true, source: legacy}
+  - {name: wasp, index: 9, position: {x: -350, y: 175}, exp: 0/136/900, travelling: true}
+  - {name: wasp, index: 10, position: {x: -350, y: 255}, exp: 0/819/900, travelling: true}
+  - {name: tarantula, index: 11, position: {x: 275, y: -95}, exp: 0/729/1500}
+  - {name: crawler, index: 12, position: {x: 190, y: -205}, exp: 0/74/450, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
-outcome:
-  blue:
-    core_damage: 502
-    units:
-    - {index: 0, exp: 750/750}
-    - {index: 1, exp: 480/750}
-    - {index: 3, exp: 836/1000}
-    - {index: 4, exp: 619/1000}
-    - {index: 5, exp: 153/1014}
-    - {index: 6, exp: 384/1014}
-    - {index: 8, exp: 64/1014}
-    - {index: 9, exp: 649/900}
-    - {index: 10, exp: 847/900}
-    - {index: 11, exp: 835/2253}
-    - {index: 12, exp: 133/1014}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 650/650}
-    - {index: 1, exp: 650/650}
-    - {index: 2, exp: 569/650}
-    - {index: 3, exp: 1202/3380}
-    - {index: 4, exp: 1500/1500}
-    - {index: 5, exp: 1690/1690}
-    - {index: 6, exp: 750/750}
-    - {index: 7, exp: 282/450}
-    - {index: 8, exp: 368/450}
-    - {index: 9, exp: 136/900}
-    - {index: 10, exp: 819/900}
-    - {index: 11, exp: 729/1500}
-    - {index: 12, exp: 74/450}
 ticks: 1349
 hash: 23:54939d1e7006982d6ff476912ed6bad0afc3b6d2c5bdb096b110a49dcaa34019

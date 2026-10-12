@@ -13,27 +13,17 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   techs:
     typhoon: [wreckage_detonation]
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -100}}
-  - {name: crawler, index: 1, position: {x: 5, y: -60}}
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/726/1950}
+  - {name: crawler, index: 1, position: {x: 5, y: -60}, exp: 0/96/450}
 red:
+  core_damage: 250
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -60}}
-  - {name: crawler, index: 1, position: {x: -55, y: -60}}
-  - {name: mustang, index: 2, position: {x: 5, y: -100}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 726/1950}
-    - {index: 1, exp: 96/450}
-  red:
-    core_damage: 250
-    units:
-    - {index: 0, exp: 2/450}
-    - {index: 1, exp: 23/450}
-    - {index: 2, exp: 135/1200}
+  - {name: crawler, index: 0, position: {x: 5, y: -60}, exp: 0/2/450}
+  - {name: crawler, index: 1, position: {x: -55, y: -60}, exp: 0/23/450}
+  - {name: mustang, index: 2, position: {x: 5, y: -100}, exp: 0/135/1200}
 ticks: 278
 hash: 23:95ab8b7c68e09f5bf77f16c39ac383915edb2510a0b1ff6fa07e76607a570176

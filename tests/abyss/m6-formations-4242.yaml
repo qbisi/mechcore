@@ -7,19 +7,14 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -145}}
-  - {name: abyss, index: 1, position: {x: 5, y: -75}}
+  - {name: abyss, index: 0, position: {x: 5, y: -145}, exp: 0/34/4800}
+  - {name: abyss, index: 1, position: {x: 5, y: -75}, exp: 0/358/4800}
 red:
+  core_damage: 1000
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -70}}
   - {name: marksman, index: 1, position: {x: 0, y: -110}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 34/4800}
-    - {index: 1, exp: 358/4800}
-  red: {core_damage: 1000}
 ticks: 271
 hash: 23:f38e930ddef563fb67686c5332f307078938ed253d8bbad846a048ae3770ec27

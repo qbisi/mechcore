@@ -12,50 +12,31 @@ map_id: 1021
 seed: 1685333659
 round: 1
 blue:
+  core_damage: 472
   officers: [typhoon_specialist]
   units:
-  - {name: void_eye, index: 0, position: {x: 70, y: -70}, source: legacy}
-  - {name: void_eye, index: 1, position: {x: 150, y: -70}, source: legacy}
-  - {name: void_eye, index: 2, position: {x: 230, y: -70}, source: legacy}
-  - {name: tarantula, index: 3, position: {x: 105, y: -55}, source: legacy}
-  - {name: tarantula, index: 4, position: {x: 195, y: -55}, source: legacy}
-  - {name: crawler, index: 5, position: {x: 135, y: -190}}
-  - {name: crawler, index: 6, position: {x: 150, y: -105}, rotated: true}
+  - {name: void_eye, index: 0, position: {x: 70, y: -70}, exp: 0/30/650, source: legacy}
+  - {name: void_eye, index: 1, position: {x: 150, y: -70}, exp: 0/92/650, source: legacy}
+  - {name: void_eye, index: 2, position: {x: 230, y: -70}, exp: 0/256/650, source: legacy}
+  - {name: tarantula, index: 3, position: {x: 105, y: -55}, exp: 0/282/1500, source: legacy}
+  - {name: tarantula, index: 4, position: {x: 195, y: -55}, exp: 0/182/1500, source: legacy}
+  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 0/50/450}
+  - {name: crawler, index: 6, position: {x: 150, y: -105}, exp: 0/64/450, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
+  core_damage: 0
   officers: [training_specialist]
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -150}, level: 2, source: legacy}
-  - {name: arclight, index: 1, position: {x: 140, y: -150}, source: legacy}
-  - {name: arclight, index: 2, position: {x: -140, y: -150}, source: legacy}
-  - {name: sledgehammer, index: 3, position: {x: 75, y: -130}, source: legacy}
-  - {name: sledgehammer, index: 4, position: {x: -75, y: -130}, source: legacy}
-  - {name: crawler, index: 5, position: {x: 135, y: -190}}
-  - {name: crawler, index: 6, position: {x: -135, y: -190}}
+  - {name: arclight, index: 0, position: {x: 0, y: -150}, level: 2, exp: 0/818/1690, source: legacy}
+  - {name: arclight, index: 1, position: {x: 140, y: -150}, exp: 0/9/750, source: legacy}
+  - {name: arclight, index: 2, position: {x: -140, y: -150}, exp: 0/145/750, source: legacy}
+  - {name: sledgehammer, index: 3, position: {x: 75, y: -130}, exp: 0/653/1300, source: legacy}
+  - {name: sledgehammer, index: 4, position: {x: -75, y: -130}, exp: 0/140/1300, source: legacy}
+  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 0/257/450}
+  - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 0/13/450}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
-outcome:
-  blue:
-    core_damage: 472
-    units:
-    - {index: 0, exp: 30/650}
-    - {index: 1, exp: 92/650}
-    - {index: 2, exp: 256/650}
-    - {index: 3, exp: 282/1500}
-    - {index: 4, exp: 182/1500}
-    - {index: 5, exp: 50/450}
-    - {index: 6, exp: 64/450}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 818/1690}
-    - {index: 1, exp: 9/750}
-    - {index: 2, exp: 145/750}
-    - {index: 3, exp: 653/1300}
-    - {index: 4, exp: 140/1300}
-    - {index: 5, exp: 257/450}
-    - {index: 6, exp: 13/450}
 ticks: 756
 hash: 23:ebcf1216cfde108c9e99ce2914bc682d337ca5e56149257f01b4cb5c68249adf

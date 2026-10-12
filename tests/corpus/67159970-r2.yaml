@@ -10,60 +10,36 @@ map_id: 1032
 seed: 886311192
 round: 2
 blue:
+  core_damage: 300
   officers: [giant_specialist]
   units:
-  - {name: void_eye, index: 1, position: {x: 150, y: -120}, exp: 70/650, source: legacy}
-  - {name: void_eye, index: 2, position: {x: -140, y: -110}, exp: 55/650, rotated: true, source: legacy}
-  - {name: tarantula, index: 3, position: {x: -135, y: -145}, exp: 131/1500, source: legacy}
-  - {name: tarantula, index: 4, position: {x: 135, y: -145}, exp: 280/1500, source: legacy}
-  - {name: fang, index: 5, position: {x: -120, y: -185}, exp: 21/600, rotated: true, source: legacy}
-  - {name: fang, index: 6, position: {x: 120, y: -185}, exp: 411/600, rotated: true, source: legacy}
-  - {name: sabertooth, index: 7, position: {x: -85, y: -145}}
-  - {name: crawler, index: 8, position: {x: 140, y: -205}, rotated: true}
-  - {name: crawler, index: 9, position: {x: -140, y: -205}, rotated: true}
-  - {name: fang, index: 10, position: {x: -180, y: -115}, rotated: true}
+  - {name: void_eye, index: 1, position: {x: 150, y: -120}, exp: 70/135/650, source: legacy}
+  - {name: void_eye, index: 2, position: {x: -140, y: -110}, exp: 55/405/650, rotated: true, source: legacy}
+  - {name: tarantula, index: 3, position: {x: -135, y: -145}, exp: 131/339/1500, source: legacy}
+  - {name: tarantula, index: 4, position: {x: 135, y: -145}, exp: 280/439/1500, source: legacy}
+  - {name: fang, index: 5, position: {x: -120, y: -185}, exp: 21/185/600, rotated: true, source: legacy}
+  - {name: fang, index: 6, position: {x: 120, y: -185}, exp: 411/465/600, rotated: true, source: legacy}
+  - {name: sabertooth, index: 7, position: {x: -85, y: -145}, exp: 0/1106/1300}
+  - {name: crawler, index: 8, position: {x: 140, y: -205}, exp: 0/30/450, rotated: true}
+  - {name: crawler, index: 9, position: {x: -140, y: -205}, exp: 0/38/450, rotated: true}
+  - {name: fang, index: 10, position: {x: -180, y: -115}, exp: 0/257/600, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 red:
+  core_damage: 0
   officers: [speed_specialist]
   units:
-  - {name: vortex, index: 1, position: {x: 140, y: -150}, exp: 536/750, source: legacy}
-  - {name: vortex, index: 2, position: {x: -140, y: -150}, exp: 687/750, source: legacy}
-  - {name: tarantula, index: 3, position: {x: -95, y: -135}, exp: 93/1500, source: legacy}
-  - {name: tarantula, index: 4, position: {x: 95, y: -135}, exp: 711/1500, source: legacy}
-  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 19/450, source: legacy}
-  - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 27/450, source: legacy}
-  - {name: phoenix, index: 7, position: {x: 180, y: -210}}
-  - {name: centurion, index: 8, position: {x: -115, y: -165}}
-  - {name: crawler, index: 9, position: {x: 0, y: -205}, rotated: true}
+  - {name: vortex, index: 1, position: {x: 140, y: -150}, exp: 536/691/750, source: legacy}
+  - {name: vortex, index: 2, position: {x: -140, y: -150}, exp: 687/750/750, source: legacy}
+  - {name: tarantula, index: 3, position: {x: -95, y: -135}, exp: 93/1330/1500, source: legacy}
+  - {name: tarantula, index: 4, position: {x: 95, y: -135}, exp: 711/873/1500, source: legacy}
+  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 19/46/450, source: legacy}
+  - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 27/77/450, source: legacy}
+  - {name: phoenix, index: 7, position: {x: 180, y: -210}, exp: 0/566/1300}
+  - {name: centurion, index: 8, position: {x: -115, y: -165}, exp: 0/458/2250}
+  - {name: crawler, index: 9, position: {x: 0, y: -205}, exp: 0/73/450, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
-outcome:
-  blue:
-    core_damage: 300
-    units:
-    - {index: 1, exp: 135/650}
-    - {index: 2, exp: 405/650}
-    - {index: 3, exp: 339/1500}
-    - {index: 4, exp: 439/1500}
-    - {index: 5, exp: 185/600}
-    - {index: 6, exp: 465/600}
-    - {index: 7, exp: 1106/1300}
-    - {index: 8, exp: 30/450}
-    - {index: 9, exp: 38/450}
-    - {index: 10, exp: 257/600}
-  red:
-    core_damage: 0
-    units:
-    - {index: 1, exp: 691/750}
-    - {index: 2, exp: 750/750}
-    - {index: 3, exp: 1330/1500}
-    - {index: 4, exp: 873/1500}
-    - {index: 5, exp: 46/450}
-    - {index: 6, exp: 77/450}
-    - {index: 7, exp: 566/1300}
-    - {index: 8, exp: 458/2250}
-    - {index: 9, exp: 73/450}
 ticks: 1493
 hash: 23:4a39c760ca5ca4c0dddd08ea332734603fb3e739fa32dff9dbe1050f23b412b3

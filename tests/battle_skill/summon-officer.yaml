@@ -13,16 +13,15 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   officers: [advanced_offensive_tactics]
   units:
   - {name: marksman, index: 0, position: {x: -100, y: -150}}
   battle_skills:
   - {name: rhino_assault, positions: [{x: 0, y: -60}]}
 red:
+  core_damage: 150
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-outcome:
-  blue: {core_damage: 0}
-  red: {core_damage: 150}
 ticks: 259
 hash: 23:931fdf9b7635580a45d2d3ac56192d50762e3fa195347d24c13b4f25dfb6e0cc

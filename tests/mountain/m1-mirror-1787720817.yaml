@@ -6,16 +6,12 @@ map_id: 1021
 seed: 1787720817
 round: 1
 blue:
+  core_damage: 0
   units:
   - {name: mountain, index: 0, position: {x: 5, y: -105}}
 red:
+  core_damage: 0
   units:
-  - {name: mountain, index: 0, position: {x: 5, y: -105}}
-outcome:
-  blue: {core_damage: 0}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 1600/3200}
+  - {name: mountain, index: 0, position: {x: 5, y: -105}, exp: 0/1600/3200}
 ticks: 306
 hash: 23:30e418e697c9f7fc9a5486c9f8b5b1e6ff57900fcfdf40a7e7e9da26d6d601b3

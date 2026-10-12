@@ -6,21 +6,14 @@ map_id: 1021
 seed: 1787720817
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -155}}
+  - {name: abyss, index: 0, position: {x: 5, y: -155}, exp: 0/200/4800}
 red:
+  core_damage: 500
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -80}}
   contraptions:
-  - {name: shield, index: 1, position: {x: 1, y: -81}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 200/4800}
-  red:
-    core_damage: 500
-    contraptions:
-    - {index: 1, retained: false}
+  - {name: shield, index: 1, position: {x: 1, y: -81}, retained: false}
 ticks: 191
 hash: 23:1f719c1d0b11524e9b893ee7da68110e7790f49941e725e0f744d16f58322661

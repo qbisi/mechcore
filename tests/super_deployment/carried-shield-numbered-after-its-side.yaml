@@ -11,21 +11,17 @@ map_id: 1021
 seed: 1
 round: 3
 blue:
+  core_damage: 0
   techs:
     hacker: [barrier]
   units:
-  - {name: hacker, index: 0, position: {x: -315, y: 85}, travelling: true}
+  - {name: hacker, index: 0, position: {x: -315, y: 85}, exp: 0/400/560, travelling: true}
   contraptions:
   - {name: shield, index: 0, position: {x: -110, y: -135}}
 red:
+  core_damage: 225
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -100}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 400/560}
-  red: {core_damage: 225}
 asserts:
 - sql: |-
     SELECT shield_id, owner__id, active FROM shields WHERE tick = 1 ORDER BY shield_id

@@ -8,19 +8,15 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   techs:
     wraith: [high_explosive_ammo]
   units:
-  - {name: wraith, index: 0, position: {x: 5, y: -95}}
+  - {name: wraith, index: 0, position: {x: 5, y: -95}, exp: 0/384/2250}
 red:
+  core_damage: 250
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -70}}
   - {name: crawler, index: 1, position: {x: 5, y: -100}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 384/2250}
-  red: {core_damage: 250}
 ticks: 445
 hash: 23:e63faacb84a292246a239cd860334cd48b1acec70046d0a8d04e78327f28448d

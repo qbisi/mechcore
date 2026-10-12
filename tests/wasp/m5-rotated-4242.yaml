@@ -8,19 +8,12 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: -60, y: -55}, rotated: true}
+  - {name: wasp, index: 0, position: {x: -60, y: -55}, exp: 0/200/900, rotated: true}
 red:
+  core_damage: 153
   units:
-  - {name: marksman, index: 0, position: {x: -40, y: -100}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 200/900}
-  red:
-    core_damage: 153
-    units:
-    - {index: 0, exp: 102/650}
+  - {name: marksman, index: 0, position: {x: -40, y: -100}, exp: 0/102/650}
 ticks: 189
 hash: 23:83c081baba6405fde017418cbde874859bf48a859c2da78cfcd983f5e62f9942

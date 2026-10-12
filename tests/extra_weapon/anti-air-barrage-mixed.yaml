@@ -10,20 +10,16 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   techs:
     fortress: [anti_air_barrage]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/1600/1600}
 red:
+  core_damage: 350
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}}
   - {name: wraith, index: 1, position: {x: 5, y: -175}}
   - {name: wraith, index: 2, position: {x: -55, y: -175}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 1600/1600}
-  red: {core_damage: 350}
 ticks: 979
 hash: 23:fbcb2fb8d3bba96b82a37f41206dfc867d92969b30f747d040cb5c2823637216

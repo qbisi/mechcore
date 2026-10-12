@@ -21,28 +21,17 @@ map_id: 1021
 seed: 1787857041
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: wraith, index: 0, position: {x: -5, y: -95}}
-  - {name: crawler, index: 1, position: {x: 0, y: -135}, rotated: true}
-  - {name: steel_ball, index: 2, position: {x: 20, y: -135}, rotated: true}
+  - {name: wraith, index: 0, position: {x: -5, y: -95}, exp: 0/869/2250}
+  - {name: crawler, index: 1, position: {x: 0, y: -135}, exp: 0/48/450, rotated: true}
+  - {name: steel_ball, index: 2, position: {x: 20, y: -135}, exp: 0/273/1000, rotated: true}
 red:
+  core_damage: 250
   units:
-  - {name: wraith, index: 0, position: {x: -5, y: -95}}
-  - {name: crawler, index: 1, position: {x: 0, y: -135}, rotated: true}
-  - {name: steel_ball, index: 2, position: {x: 20, y: -135}, rotated: true}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 869/2250}
-    - {index: 1, exp: 48/450}
-    - {index: 2, exp: 273/1000}
-  red:
-    core_damage: 250
-    units:
-    - {index: 0, exp: 345/2250}
-    - {index: 1, exp: 47/450}
-    - {index: 2, exp: 199/1000}
+  - {name: wraith, index: 0, position: {x: -5, y: -95}, exp: 0/345/2250}
+  - {name: crawler, index: 1, position: {x: 0, y: -135}, exp: 0/47/450, rotated: true}
+  - {name: steel_ball, index: 2, position: {x: 20, y: -135}, exp: 0/199/1000, rotated: true}
 asserts:
 - sql: |-
     SELECT tick, unit_id, skill_slot, enabled__lock_target__kind, enabled__lock_target__id FROM units__skills WHERE (unit_id = 30 AND tick = 131) OR (unit_id = 29 AND tick = 206) ORDER BY tick, skill_slot

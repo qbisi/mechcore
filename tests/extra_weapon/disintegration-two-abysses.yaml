@@ -14,26 +14,18 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   techs:
     abyss: [disintegration]
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -95}}
-  - {name: abyss, index: 1, position: {x: 85, y: -125}}
+  - {name: abyss, index: 0, position: {x: 5, y: -95}, exp: 0/802/4800}
+  - {name: abyss, index: 1, position: {x: 85, y: -125}, exp: 0/598/4800}
 red:
+  core_damage: 1000
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
   - {name: wasp, index: 1, position: {x: 65, y: -40}}
   - {name: crawler, index: 2, position: {x: -55, y: -100}}
-  - {name: rhino, index: 3, position: {x: 105, y: -85}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 802/4800}
-    - {index: 1, exp: 598/4800}
-  red:
-    core_damage: 1000
-    units:
-    - {index: 3, exp: 200/1150}
+  - {name: rhino, index: 3, position: {x: 105, y: -85}, exp: 0/200/1150}
 ticks: 545
 hash: 23:0cbfb3e4b93ba9a35bdde190633be377bc1f9361e18b1c57caa9d25d802406af

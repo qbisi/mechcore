@@ -10,19 +10,12 @@ map_id: 1001
 seed: 4242
 round: 1
 blue:
+  core_damage: 150
   units:
-  - {name: fang, index: 0, position: {x: 145, y: -300}}
+  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/100/600}
 red:
+  core_damage: 0
   units:
-  - {name: steel_ball, index: 0, position: {x: 145, y: -20}}
-outcome:
-  blue:
-    core_damage: 150
-    units:
-    - {index: 0, exp: 100/600}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 416/1000}
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/416/1000}
 ticks: 884
 hash: 23:f8ee27eb0fe1c320ef0f2701eeecfbe0f38ec4393a4b75a9382a49d8739531c8

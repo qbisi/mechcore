@@ -11,18 +11,14 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   officers: [advanced_power_system]
   units:
-  - {name: hacker, index: 0, position: {x: 5, y: -205}, level: 5}
+  - {name: hacker, index: 0, position: {x: 5, y: -205}, level: 5, exp: 0/400/2918}
 red:
+  core_damage: 250
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 400/2918}
-  red: {core_damage: 250}
 asserts:
 - sql: |-
     SELECT enabled__attack_damage FROM units__skills WHERE unit_id = 1 AND skill_slot = 0 AND tick = 1

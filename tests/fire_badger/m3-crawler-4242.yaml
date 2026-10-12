@@ -6,16 +6,12 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: fire_badger, index: 0, position: {x: -5, y: -100}}
+  - {name: fire_badger, index: 0, position: {x: -5, y: -100}, exp: 0/192/1400}
 red:
+  core_damage: 201
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 192/1400}
-  red: {core_damage: 201}
 ticks: 144
 hash: 23:e36e67c577a83093731c0b27d80555712efb8e8a2f94bb6e87ccd2be7dbfcc1b

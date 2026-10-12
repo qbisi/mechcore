@@ -14,20 +14,15 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   techs:
     vulcan: [best_partner]
   units:
   - {name: vulcan, index: 0, position: {x: 0, y: -150}}
 red:
+  core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: marksman, index: 1, position: {x: 60, y: -100}}
-outcome:
-  blue: {core_damage: 0}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 200/1150}
-    - {index: 1, exp: 650/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
+  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/650/650}
 ticks: 418
 hash: 23:6e7e9b4a174ab10bae68858dfcffac9c78a9bd9b383b66aeaefa20d06b9c26e5

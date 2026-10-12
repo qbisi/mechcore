@@ -11,23 +11,18 @@ map_id: 1021
 seed: 4242
 round: 3
 blue:
+  core_damage: 0
   officers: [sabertooth_specialist]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/650, source: legacy}
-  - {name: sabertooth, index: 1, position: {x: 105, y: -155}, source: delivered}
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/210/650, source: legacy}
+  - {name: sabertooth, index: 1, position: {x: 105, y: -155}, exp: 0/320/1300, source: delivered}
   constructions:
   - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}
 red:
+  core_damage: 300
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/650, source: legacy}
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/10/650, source: legacy}
   constructions:
   - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 210/650}
-    - {index: 1, exp: 320/1300}
-  red: {core_damage: 300}
 ticks: 698
 hash: 23:8b1f5a4a9eb7899b62f7f59fc985df61337d16dd7ba09bcc7ece3f73b8fcfcf0

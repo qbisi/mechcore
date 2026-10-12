@@ -9,18 +9,14 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/400/1150}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: 0, y: 0}]}
 red:
+  core_damage: 200
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -45}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 400/1150}
-  red: {core_damage: 200}
 ticks: 149
 hash: 23:38105f9ae300223e6b7ddf0610f21851c40ec6a7f6680f1d5512293130d100e5

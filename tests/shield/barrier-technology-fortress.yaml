@@ -10,29 +10,18 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 1020
   techs:
     fortress: [barrier]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, level: 2}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, level: 2, exp: 0/200/3605}
 red:
+  core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}}
-  - {name: wasp, index: 2, position: {x: 5, y: -180}}
-  - {name: wasp, index: 3, position: {x: -55, y: -100}}
-  - {name: wasp, index: 4, position: {x: 65, y: -100}}
-outcome:
-  blue:
-    core_damage: 1020
-    units:
-    - {index: 0, exp: 200/3605}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 240/900}
-    - {index: 1, exp: 900/900}
-    - {index: 2, exp: 240/900}
-    - {index: 3, exp: 240/900}
-    - {index: 4, exp: 240/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/240/900}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/900/900}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/240/900}
+  - {name: wasp, index: 3, position: {x: -55, y: -100}, exp: 0/240/900}
+  - {name: wasp, index: 4, position: {x: 65, y: -100}, exp: 0/240/900}
 ticks: 820
 hash: 23:3c42bba6be006a9da2cd9e8f86515937399d87f372cc8343873fb87ec89ae507

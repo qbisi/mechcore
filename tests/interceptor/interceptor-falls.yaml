@@ -13,25 +13,15 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 114
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -40}}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/314/1100}
   contraptions:
-  - {name: interceptor, index: 0, position: {x: -95, y: -85}}
+  - {name: interceptor, index: 0, position: {x: -95, y: -85}, retained: false}
 red:
+  core_damage: 0
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -40}}
-  - {name: crawler, index: 1, position: {x: 95, y: -40}}
-outcome:
-  blue:
-    core_damage: 114
-    units:
-    - {index: 0, exp: 314/1100}
-    contraptions:
-    - {index: 0, retained: false}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 100/1100}
-    - {index: 1, exp: 300/450}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/100/1100}
+  - {name: crawler, index: 1, position: {x: 95, y: -40}, exp: 0/300/450}
 ticks: 241
 hash: 23:0b1cbe99e307ae59faab515089cea9efe9f7cf71ca6f03746b32ac140b769c46

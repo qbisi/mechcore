@@ -7,23 +7,14 @@ map_id: 1021
 seed: 1787837829
 round: 1
 blue:
+  core_damage: 100
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -100}}
-  - {name: crawler, index: 1, position: {x: 0, y: -135}, rotated: true}
+  - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/150/750}
+  - {name: crawler, index: 1, position: {x: 0, y: -135}, exp: 0/42/450, rotated: true}
 red:
+  core_damage: 0
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -100}}
-  - {name: crawler, index: 1, position: {x: 0, y: -135}, rotated: true}
-outcome:
-  blue:
-    core_damage: 100
-    units:
-    - {index: 0, exp: 150/750}
-    - {index: 1, exp: 42/450}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 356/750}
-    - {index: 1, exp: 36/450}
+  - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/356/750}
+  - {name: crawler, index: 1, position: {x: 0, y: -135}, exp: 0/36/450, rotated: true}
 ticks: 497
 hash: 23:ee34e792ab90ffd9dc3142668fb9104ae393d9f5e7aa55d9d90d75d1788358d8

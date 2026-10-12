@@ -10,20 +10,16 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -80}, equipment: [dominion_core]}
   - {name: fortress, index: 1, position: {x: 0, y: -250}}
   battle_skills:
   - {name: mobilize_battleship, positions: [{x: 100, y: -60}]}
 red:
+  core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -80}, level: 3}
-outcome:
-  blue: {core_damage: 0}
-  red:
-    core_damage: 100
-    units:
-    - {index: 0, exp: 200/2315}
+  - {name: marksman, index: 0, position: {x: 0, y: -80}, level: 3, exp: 0/200/2315}
 asserts:
 - sql: |-
     SELECT tick, type, object__id, source__id, amount, team_id FROM events WHERE type IN ('unit_created', 'unit_died', 'team_scored') ORDER BY tick, ordinal

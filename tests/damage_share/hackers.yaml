@@ -12,24 +12,16 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
+  core_damage: 0
   techs:
     sledgehammer: [damage_sharing]
   units:
-  - {name: sledgehammer, index: 0, position: {x: -45, y: -100}}
-  - {name: sledgehammer, index: 1, position: {x: 5, y: -100}}
+  - {name: sledgehammer, index: 0, position: {x: -45, y: -100}, exp: 0/420/1300}
+  - {name: sledgehammer, index: 1, position: {x: 5, y: -100}, exp: 0/540/1300}
 red:
+  core_damage: 320
   units:
-  - {name: hacker, index: 0, position: {x: -45, y: -105}}
+  - {name: hacker, index: 0, position: {x: -45, y: -105}, exp: 0/160/560}
   - {name: hacker, index: 1, position: {x: 35, y: -105}}
-outcome:
-  blue:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 420/1300}
-    - {index: 1, exp: 540/1300}
-  red:
-    core_damage: 320
-    units:
-    - {index: 0, exp: 160/560}
 ticks: 530
 hash: 23:de314114f84071b47e7d3c3fa80b90c456640c50bbdd27b3aa000d166586efa3

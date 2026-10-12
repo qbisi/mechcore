@@ -10,19 +10,14 @@ map_id: 1021
 seed: 1787720817
 round: 1
 blue:
+  core_damage: 612
   units:
   - {name: hacker, index: 0, position: {x: -5, y: -105}}
 red:
+  core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/300/900}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/100/900}
   - {name: wasp, index: 2, position: {x: 5, y: -180}}
-outcome:
-  blue: {core_damage: 612}
-  red:
-    core_damage: 0
-    units:
-    - {index: 0, exp: 300/900}
-    - {index: 1, exp: 100/900}
 ticks: 175
 hash: 23:56d686d755f20dbfbf79d238eadb75591631a1d2fb030a5370b7db8c34be499b
