@@ -17,7 +17,7 @@ the library it plays with: [`timeline`](src/timeline.rs) lays any
 Shift), the wheel zooms, a drag pans, and the bar at the bottom seeks, with
 each side's losses marked along it.
 
-The SVG button pauses at the current integer tick and downloads a vector
+The download button pauses at the current integer tick and downloads a vector
 image of the battlefield in the current pan and zoom, with the enabled life
 bars, aim lines and damage numbers. It carries the ground, grid, buildings,
 units and effects as paths, gradients and text, with no embedded bitmap.
@@ -85,7 +85,7 @@ calls the script records. CI fails when a sprite changes and its file does
 not.
 
 `web/snapshot.js` is the Canvas drawing vocabulary used by both the model exporter
-and the page's SVG button. Exporting a battle runs the page's normal frame
+and the page's download button. Exporting a battle runs the page's normal frame
 drawing with that context, including a vector version of the cached ground;
 it does not assemble a separate illustration from the recording.
 
