@@ -373,6 +373,14 @@ impl Simulation {
             if self.support.list(list)[index].gate == Gate::Locked {
                 continue;
             }
+            // SupportUnitCreator.Update asks SpecialSupportUnitData.IsAvaliable
+            // before any clock advances: its parent FightActor must be alive.
+            if self.support.list(list)[index]
+                .owner
+                .is_some_and(|owner| !self.actors.get(&owner).is_some_and(Actor::alive))
+            {
+                continue;
+            }
             let alive = self.creator_alive(&self.support.list(list)[index]);
             let batch = {
                 let creator = &mut self.support.list_mut(list)[index];
@@ -700,10 +708,8 @@ impl Simulation {
         owner: u64,
         member: u32,
     ) -> Result<(i64, i64, i64)> {
-        // Nothing asks whether the owner lives (`SupportUnitCreator.Update`,
-        // `SummonSystem.CreateMech`, `SpecialSupportUnitData.GetPosition`): a
-        // line due on the tick its owner dies, before `OnDead` takes it away,
-        // makes its batch where the dead owner stands, as it faces.
+        // Update checked SpecialSupportUnitData.IsAvaliable before this batch;
+        // GetPosition then uses the living owner's position and facing.
         let Some(owner_actor) = self.actors.get(&owner) else {
             return Err(Error::new(format!(
                 "unit {owner}'s production line has no owner in the fight"
