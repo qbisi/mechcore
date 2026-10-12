@@ -142,7 +142,7 @@ fn verify_reports_the_first_divergent_tick_of_each_recording() {
         }
         writer.append_tick(slice.state, &slice.events).unwrap();
     }
-    let divergent_hashes = writer.finish().unwrap();
+    let divergent_hashes = writer.finish(recording.settlement()).unwrap();
     assert_ne!(divergent_hashes.result_hash, recording.hashes().result_hash);
 
     drop(recording);
@@ -316,7 +316,7 @@ red:
     // The simulator wrote the recording, so the document says so.
     assert!(document.contains("\nsource: simulator\n"), "{document}");
     assert!(document.contains("\nticks: "), "{document}");
-    assert!(document.contains("\nhash: 23:"));
+    assert!(document.contains("\nhash: 24:"));
     // Blue alone stands, so red's core takes the three deployed level 1
     // Marksmen's scores and blue's takes nothing.
     let parsed = mechcore_document::fight::parse_yaml(document.as_bytes()).unwrap();
@@ -500,7 +500,7 @@ fn verify_fights_a_fight_document_again_and_names_what_differs() {
     assert!(report["error"].as_str().unwrap().contains(path), "{report}");
 
     // The trajectory's hash moved: the hash, and nothing else.
-    let hash = document.find("hash: 23:").unwrap() + "hash: 23:".len();
+    let hash = document.find("hash: 24:").unwrap() + "hash: 24:".len();
     let flipped = if &document[hash..=hash] == "0" {
         "1"
     } else {
@@ -746,7 +746,7 @@ fn a_fight_converts_to_the_recording_it_pins() {
         report["hashes"]["result_hash"].as_str(),
         document["hash"]
             .as_str()
-            .and_then(|hash| hash.strip_prefix("23:"))
+            .and_then(|hash| hash.strip_prefix("24:"))
     );
     let seeded = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["convert", "--to", "mcfr", "--seed", "7"])

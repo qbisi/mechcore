@@ -15,4 +15,4 @@ red:
   units:
   - {name: fang, index: 0, position: {x: 5, y: -100}, exp: 0/204/600}
 ticks: 329
-hash: 23:7b7004b0e4d2c56f5a363f09b4265b9e856f8f19ba01f64925b648f8d8ff6a21
+hash: 24:5660a77a720e9927d05b1948e1917fb274f0a12dbcba91d4510175c2783d0ef2

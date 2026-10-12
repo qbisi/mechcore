@@ -68,6 +68,14 @@ impl McfrTables {
             }
             None => return Err(Error::invalid("ticks.parquet names no format")),
         }
+        let settlement: crate::Settlement = super::canonical::decode(
+            metadata
+                .get("settlement")
+                .ok_or_else(|| Error::invalid("missing settlement"))?
+                .as_bytes(),
+            "settlement",
+        )?;
+        settlement.validate()?;
         let layout = members
             .get("layout.yaml")
             .cloned()

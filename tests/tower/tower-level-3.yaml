@@ -16,4 +16,4 @@ red:
   units:
   - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/416/1000}
 ticks: 964
-hash: 23:cde63ec346c7f3cda44f520672c25bc92f43e601bf2941d0314ca45cc5e96ffc
+hash: 24:323fa26b0aca8d4d1158d157df768398c92f856ef8f0f03e8a3f48ad7bff3a79

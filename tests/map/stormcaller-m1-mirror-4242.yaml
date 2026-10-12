@@ -18,4 +18,4 @@ red:
   units:
   - {name: stormcaller, index: 0, position: {x: 5, y: -100}, exp: 0/200/1100}
 ticks: 248
-hash: 23:eb92d1a696766b253b75079ee351a9e30724f323e88223182f6525742341222e
+hash: 24:6e940d7a316767131e8ce7470c93d972e0160c13a521b81b712d8a3d07f44298

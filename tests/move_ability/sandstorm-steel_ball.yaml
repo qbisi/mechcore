@@ -20,4 +20,4 @@ red:
   - {name: steel_ball, index: 0, position: {x: 25, y: -50}}
   - {name: steel_ball, index: 1, position: {x: -25, y: -50}}
 ticks: 278
-hash: 23:cf616dd1badae1cd87dac667f745382cba6f00345d0eeab2b0e75fa799ed3c2a
+hash: 24:1fc68a45def1b0b7df4d5531ad046c2ecce9ff24676c962734cea7c9a4874adc

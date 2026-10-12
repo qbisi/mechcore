@@ -67,4 +67,4 @@ red:
   - {name: shield_airdrop, standing: {position: {x: 56, y: -186}}}
   - {name: mobile_beacon, positions: [{x: 265, y: -30}, {x: 146, y: 130}, {x: -50, y: 168}]}
 ticks: 1199
-hash: 23:a1b7aa91efdf90f80c647ad93619ea08940b6f7c363f681c9a37de64a4309b07
+hash: 24:52009f3a42fb5f20163258e9f00dbb4613c4644a4c5d55677b83f35bc42ca68b

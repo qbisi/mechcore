@@ -14,4 +14,4 @@ red:
   units:
   - {name: raiden, index: 0, position: {x: 0, y: -100}, exp: 0/800/2400}
 ticks: 351
-hash: 23:f349ff6942bdad171d10292688f2fa6443e6dd13889059559e52b22d10ea3b08
+hash: 24:cc209de7e2915da7a6e1381a31477f6b26a752d52ce3c6e2db194a301a758d0e

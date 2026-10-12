@@ -28,6 +28,7 @@ pub struct McfrWriter {
     state_bytes: Vec<u8>,
     event_bytes: Vec<u8>,
     poisoned: bool,
+    last_formations: Vec<crate::FormationState>,
 }
 
 impl McfrWriter {
@@ -75,6 +76,7 @@ impl McfrWriter {
             state_bytes: Vec::new(),
             event_bytes: Vec::new(),
             poisoned: false,
+            last_formations: Vec::new(),
         })
     }
 
@@ -99,6 +101,7 @@ impl McfrWriter {
             state_bytes: Vec::new(),
             event_bytes: Vec::new(),
             poisoned: false,
+            last_formations: Vec::new(),
         })
     }
 
@@ -130,6 +133,7 @@ impl McfrWriter {
             state_bytes: Vec::new(),
             event_bytes: Vec::new(),
             poisoned: false,
+            last_formations: Vec::new(),
         })
     }
 
@@ -157,6 +161,7 @@ impl McfrWriter {
         canonical::encode_into(&mut self.state_bytes, &state)?;
         canonical::encode_into(&mut self.event_bytes, events)?;
         let tick_hash = canonical::tick_hash(tick, &self.state_bytes, &self.event_bytes);
+        self.last_formations.clone_from(&state.formations);
         self.poisoned = true;
         if let Some(storage) = &mut self.storage {
             storage.append_tick(tick, &state, events, tick_hash)?;
@@ -204,7 +209,7 @@ impl McfrWriter {
     ///
     /// Returns an error for a writer that keeps no timeline, when no tick was
     /// written, and after a partial append failure.
-    pub fn finish_in_memory(mut self) -> Result<MemoryRecording> {
+    pub fn finish_in_memory(mut self, settlement: crate::Settlement) -> Result<MemoryRecording> {
         let ticks = self
             .memory
             .take()
@@ -216,11 +221,12 @@ impl McfrWriter {
             .layout_yaml
             .take()
             .ok_or_else(|| Error::invalid("writer layout is unavailable"))?;
-        let hashes = self.finish()?;
+        let hashes = self.finish(&settlement)?;
         Ok(MemoryRecording {
             producer,
             layout_yaml,
             hashes,
+            settlement,
             ticks,
         })
     }
@@ -231,7 +237,22 @@ impl McfrWriter {
     ///
     /// Returns an error when no tick was written, after a partial append failure, or if metadata
     /// finalization and atomic publication fail.
-    pub fn finish(mut self) -> Result<Hashes> {
+    pub fn finish(mut self, settlement: &crate::Settlement) -> Result<Hashes> {
+        settlement.validate()?;
+        if settlement
+            .formations
+            .iter()
+            .map(|f| (f.formation_id, f.team_id, f.max_experience))
+            .ne(self
+                .last_formations
+                .iter()
+                .map(|f| (f.formation_id, f.team_id, f.max_experience)))
+        {
+            return Err(Error::invalid(
+                "settlement must contain every terminal formation with its identity and bar",
+            ));
+        }
+        let settlement_bytes = canonical::encode(settlement)?;
         if self.poisoned {
             return Err(Error::invalid(
                 "cannot finish an MCFR after a partial write failure",
@@ -240,7 +261,7 @@ impl McfrWriter {
         if self.tick_hashes.is_empty() {
             return Err(Error::invalid("an MCFR must contain at least tick 1"));
         }
-        let hashes = Hashes::from_raw(canonical::result_hash(&self.tick_hashes));
+        let hashes = Hashes::from_raw(canonical::result_hash(&self.tick_hashes, &settlement_bytes));
         let Some(storage) = self.storage.take() else {
             return Ok(hashes);
         };
@@ -265,6 +286,7 @@ impl McfrWriter {
             &self.context_bytes,
             layout_yaml,
             &hashes,
+            &settlement_bytes,
         )?;
         parquet_storage::package_members(directory.path(), temporary)?;
         let verified = McfrReader::open(temporary)?;

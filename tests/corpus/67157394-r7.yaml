@@ -95,4 +95,4 @@ red:
   - {name: missile_strike, positions: [{x: 259, y: 187}]}
   - {name: mobile_beacon, positions: [{x: -238, y: -88}, {x: -229, y: 110}, {x: -60, y: 218}]}
 ticks: 772
-hash: 23:1be911de89ea643e16d1351e902c981f69ca79aeddfbbd1d75f0f6fdeb5114df
+hash: 24:866849d4fe811adcbf7c5a7510b2bf6f2af508f92eb530115ff18140cdbacdcb

@@ -112,10 +112,6 @@ impl Payload {
             EventPayload::Healing { amount } => {
                 flat.amount = Some(amount);
             }
-            EventPayload::TeamScored { amount, team_id } => {
-                flat.amount = Some(amount);
-                flat.team_id = Some(team_id);
-            }
             EventPayload::UnitCreated {
                 team_id,
                 formation_id,
@@ -256,10 +252,6 @@ impl Payload {
                 buff_id: required(self.buff_id.take(), label, "buff_id")?,
                 reason: decode_buff_reason(required(self.reason.take(), label, "reason")?)?,
             },
-            EventKind::TeamScored => EventPayload::TeamScored {
-                amount: required(self.amount.take(), label, "amount")?,
-                team_id: required(self.team_id.take(), label, "team_id")?,
-            },
         };
         self.refuse_stray(label)?;
         Ok(payload)
@@ -313,7 +305,6 @@ pub(crate) const fn payload_fields(kind: EventKind) -> &'static [&'static str] {
         EventKind::TerrainCreated => &["position", "team_id", "terrain_type", "radius"],
         EventKind::BuffApplied => &["buff_id", "duration"],
         EventKind::BuffRemoved => &["reason", "buff_id"],
-        EventKind::TeamScored => &["amount", "team_id"],
     }
 }
 
@@ -560,7 +551,7 @@ fn vec3(array: &StructArray, index: usize) -> Result<Option<QVec3>> {
     }))
 }
 
-pub(crate) const KINDS: [EventKind; 16] = [
+pub(crate) const KINDS: [EventKind; 15] = [
     EventKind::ProjectileReleased,
     EventKind::ProjectileRemoved,
     EventKind::Damage,
@@ -576,7 +567,6 @@ pub(crate) const KINDS: [EventKind; 16] = [
     EventKind::Healing,
     EventKind::BuffApplied,
     EventKind::BuffRemoved,
-    EventKind::TeamScored,
 ];
 
 fn encode_kind_tag(kind: EventKind) -> u8 {
@@ -611,7 +601,6 @@ pub(crate) fn kind_name(kind: EventKind) -> &'static str {
         EventKind::Healing => "healing",
         EventKind::BuffApplied => "buff_applied",
         EventKind::BuffRemoved => "buff_removed",
-        EventKind::TeamScored => "team_scored",
     }
 }
 

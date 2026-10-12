@@ -1,0 +1,33 @@
+# Final Blitz kills the armored Rhino after its attacker dies.
+# Both cores take zero damage; both dead formations keep their earned experience.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  core_damage: 0
+  techs:
+    rhino: [final_blitz]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
+red:
+  core_damage: 0
+  techs:
+    rhino: [armor_enhancement]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/400/1150}
+asserts:
+- sql: |-
+    SELECT team_id, score, core_damage FROM settlement_teams ORDER BY team_id
+  rows:
+  - [0, 0, 0]
+  - [1, 0, 0]
+- sql: |-
+    SELECT formation_id, experience >> 32 AS exp, max_experience >> 32 AS max_exp FROM settlement_formations ORDER BY formation_id
+  rows:
+  - [1, 200, 1150]
+  - [2, 400, 1150]
+ticks: 160
+hash: 24:9efec373ba5906111f0c1383deb77e4af28bf368aac0be6f4c9f6fae40f9552d

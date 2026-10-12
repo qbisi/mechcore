@@ -7,7 +7,7 @@ use crate::{Error, Result, canonical};
 /// The format: how a recording is stored, which the hash does not read.
 macro_rules! format_version {
     () => {
-        "0.23.0"
+        "0.24.0"
     };
 }
 
@@ -17,7 +17,7 @@ macro_rules! format_version {
 /// `n` as `0.n.0`, the form it was written in while it was the format's.
 macro_rules! hash_profile {
     () => {
-        "23"
+        "24"
     };
 }
 pub(crate) use hash_profile;
@@ -26,9 +26,6 @@ pub const MCFR_FORMAT: &str = format_version!();
 /// The hash definition's number, which a fight document writes before its
 /// hash (`23:<hex>`).
 pub const HASH_PROFILE: &str = hash_profile!();
-/// How a recording written before the profile was a number names profile 23.
-pub(crate) const HASH_PROFILE_SPELLED_BY_FORMAT: &str = "mcfr-content-0.23.0";
-
 /// What wrote a recording: the game, through the Adapter, or the simulator.
 ///
 /// Two recordings of one fight are the same fight whoever wrote them, so the
@@ -80,6 +77,60 @@ impl Hashes {
 
     pub(crate) fn validate_encoding(&self) -> Result<()> {
         canonical::parse_hex(&self.result_hash, "result_hash")?;
+        Ok(())
+    }
+}
+
+/// The native result after the fight exits, independently of combat ticks.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct Settlement {
+    pub formations: Vec<FormationState>,
+    pub teams: Vec<TeamSettlement>,
+}
+
+/// `FightResultController.CalculateScore(team, true)`, after exit cleanup.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct TeamSettlement {
+    pub score: i32,
+    pub team_id: u32,
+}
+
+impl Settlement {
+    /// Checks complete scores and ordered, whole, settled formation experience.
+    ///
+    /// # Errors
+    /// Returns an error for missing sides, negative scores or malformed experience.
+    pub fn validate(&self) -> Result<()> {
+        if self.teams.len() != 2
+            || self.teams[0].team_id != 0
+            || self.teams[1].team_id != 1
+            || self.teams.iter().any(|team| team.score < 0)
+        {
+            return Err(Error::invalid(
+                "settlement must score teams 0 and 1 in order",
+            ));
+        }
+        let one = 1_i64 << 32;
+        let mut previous = 0;
+        for formation in &self.formations {
+            if formation.formation_id <= previous
+                || formation.team_id > 1
+                || formation.max_experience <= 0
+                || formation.max_experience % one != 0
+                || formation.experience < -one
+                || formation.experience % one != 0
+                || formation.experience > formation.max_experience
+            {
+                return Err(Error::invalid(
+                    "settlement formation identity or experience is invalid",
+                ));
+            }
+            previous = formation.formation_id;
+        }
         Ok(())
     }
 }
@@ -1275,7 +1326,6 @@ pub enum EventKind {
     Healing,
     BuffApplied,
     BuffRemoved,
-    TeamScored,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1351,13 +1401,6 @@ pub enum EventPayload {
         buff_id: u32,
         reason: BuffRemovedReason,
     },
-    /// What a side's units standing at the fight's end score, on the
-    /// fight's last tick: `FightResultController.CalculateScore` of the
-    /// side's team, alive.
-    TeamScored {
-        amount: i32,
-        team_id: u32,
-    },
 }
 
 impl EventPayload {
@@ -1379,7 +1422,6 @@ impl EventPayload {
             Self::Healing { .. } => EventKind::Healing,
             Self::BuffApplied { .. } => EventKind::BuffApplied,
             Self::BuffRemoved { .. } => EventKind::BuffRemoved,
-            Self::TeamScored { .. } => EventKind::TeamScored,
         }
     }
 }

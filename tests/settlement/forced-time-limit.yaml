@@ -1,0 +1,57 @@
+# Forced timeout keeps the last combat tick and settles both surviving sides.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1635247472
+round: 1
+blue:
+  core_damage: 201
+  officers: [advanced_shield_device, advanced_offensive_tactics, fortified_specialist, improved_wraith]
+  techs:
+    wraith: [high_explosive_ammo, field_maintenance, armor_enhancement, land_cruiser, range_enhancement, floating_artillery_array, degeneration_beam]
+  blueprints: [defense_enhancement]
+  tower_strengthen_levels: [1, 1]
+  units:
+  - {name: wraith, index: 0, position: {x: -15, y: -55}, level: 8, exp: 7568/14888/15137, rotated: true, equipment: [haste_module], source: legacy}
+  - {name: fire_badger, index: 1, position: {x: 205, y: -270}, level: 6}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 95, y: -205}, retained: false}
+  battle_skills:
+  - {name: ion_blast, positions: [{x: 0, y: 255}, {x: 240, y: -170}]}
+red:
+  core_damage: 250
+  officers: [advanced_targeting_system, advanced_targeting_system, aerial_specialist]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: phantom_ray, index: 0, position: {x: -95, y: -50}, level: 6, exp: 0/4742/5799, equipment: [absorption_module]}
+  - {name: tarantula, index: 1, position: {x: -55, y: -85}, level: 9}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -150, y: -125}, retained: false}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: -75, y: 0}, {x: -285, y: -145}]}
+asserts:
+- sql: |-
+    SELECT team_id, score, core_damage FROM settlement_teams ORDER BY team_id
+  rows:
+  - [0, 250, 201]
+  - [1, 201, 250]
+- sql: |-
+    SELECT formation_id, experience >> 32 AS exp, max_experience >> 32 AS max_exp FROM settlement_formations ORDER BY formation_id
+  rows:
+  - [1, -1, 8118]
+  - [2, 14888, 15137]
+  - [3, 4742, 5799]
+  - [4, -1, 10091]
+- sql: |-
+    SELECT tick_count, terminal_tick, (SELECT count(*) FROM projectiles WHERE tick = fight.terminal_tick) AS pending_projectiles FROM fight
+  rows:
+  - [2360, 2360, 0]
+ticks: 2360
+hash: 24:398b48253cbe9dfdb28df360938ecbc13f0196f8e9076bdb53852f38e1dbe560

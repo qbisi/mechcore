@@ -17,4 +17,4 @@ red:
   - {name: crawler, index: 0, position: {x: 5, y: -70}}
   - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/400/650}
 ticks: 386
-hash: 23:f5c7fd83491104ee1c2c24075797fa1256fa05c4f1726b6503ac94ef40d780a6
+hash: 24:f2d4eba1b3ecb8cee6b8e919752d8e10f23e7e3f920bc60f707430d4bc9163e1

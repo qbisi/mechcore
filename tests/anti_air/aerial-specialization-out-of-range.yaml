@@ -22,4 +22,4 @@ red:
   - {name: overlord, index: 0, position: {x: 25, y: -95}, exp: 0/200/1750}
   - {name: mountain, index: 1, position: {x: -35, y: -95}}
 ticks: 133
-hash: 23:88d5c0f4cc8b2eb93989ef760dd934da4e42cf445821d57c1e4e550966296221
+hash: 24:5b99f52fe19f2e8a9554a4d332c9263d46391660b24a62a7dd6e6f8e2f6ac360

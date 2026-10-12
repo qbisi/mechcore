@@ -14,4 +14,4 @@ red:
   units:
   - {name: mustang, index: 0, position: {x: 5, y: -100}, exp: 0/374/1200}
 ticks: 254
-hash: 23:605979bd8c289d79ff4749940c16e89a81301c04d0a2893483faf168bdcb87da
+hash: 24:2c872226e4d915243a305a104b3844fddaf11f33ce09ca8f56746922c53f0225

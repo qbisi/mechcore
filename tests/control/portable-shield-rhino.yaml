@@ -18,4 +18,4 @@ red:
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150, equipment: [portable_shield]}
 ticks: 203
-hash: 23:fdba581bd72bc360e3fe07b1006ce66452ef221f04e634e94e5f0173cc023570
+hash: 24:07278cfdd848a7e0d923b46ea38eec4ad759b45a9b9815fdeefaae14ad1946ce

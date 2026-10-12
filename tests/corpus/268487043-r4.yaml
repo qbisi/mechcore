@@ -55,4 +55,4 @@ red:
   - {name: fang, index: 13, position: {x: 140, y: -95}, exp: 0/254/600, rotated: true}
   - {name: vulcan, index: 14, position: {x: -140, y: -140}, level: 2, exp: 0/3625/5453, equipment: [amplifying_core]}
 ticks: 1166
-hash: 23:d723c1da19b77426818930284d298c22f19dbe90fb3cd50f55748dfefd6fa2ba
+hash: 24:947a558273b0bbc7825717b081b6751c1f9d5cb7c2235e597cc3821e5d6fa52c

@@ -24,4 +24,4 @@ red:
   - {name: fortress, index: 0, position: {x: 0, y: -150}}
   - {name: crawler, index: 1, position: {x: 5, y: -60}}
 ticks: 283
-hash: 23:49eafd72e99502d4670341d445439778d5bf8a993beae1befbc2a65286a17605
+hash: 24:cd3e548d0f65fee4c73383b04d568fff7d6c7ca00359e08af9e6845667d0678e

@@ -14,4 +14,4 @@ red:
   units:
   - {name: sandworm, index: 0, position: {x: 0, y: -100}}
 ticks: 427
-hash: 23:8b954fa3472bb65227d41fb958638efdf052c8c447f3aefff61ddd11ef498f83
+hash: 24:0733c6ccf24751e989a43efcd983ffa7e5a5587e167c467dc2d36e37cf31d2b5

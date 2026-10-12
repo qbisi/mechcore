@@ -324,6 +324,7 @@ impl StorageWriter {
         context_bytes: &[u8],
         layout_yaml: &str,
         hashes: &Hashes,
+        settlement_bytes: &[u8],
     ) -> Result<TempDir> {
         self.flush()?;
         // A table nothing was written to is left out of the container.
@@ -362,6 +363,12 @@ impl StorageWriter {
             ("producer".to_owned(), producer.as_str().to_owned()),
             ("game_build".to_owned(), game_build.to_owned()),
             ("durable_context".to_owned(), context_json.to_owned()),
+            (
+                "settlement".to_owned(),
+                std::str::from_utf8(settlement_bytes)
+                    .map_err(|_| Error::invalid("settlement is not UTF-8"))?
+                    .to_owned(),
+            ),
             ("hash_profile".to_owned(), HASH_PROFILE.to_owned()),
             ("result_hash".to_owned(), hashes.result_hash.clone()),
             ("tick_count".to_owned(), tick_count.to_string()),
@@ -1828,14 +1835,6 @@ fn validate_event_refs(event: &Event) -> Result<()> {
     if matches!(event.payload, EventPayload::Healing { amount } if amount <= 0) {
         return Err(Error::invalid("healing amount must be positive"));
     }
-    if matches!(event.payload, EventPayload::TeamScored { .. })
-        && (event.subject.is_some()
-            || event.source.is_some()
-            || event.source_team_id.is_some()
-            || event.target.is_some())
-    {
-        return Err(Error::invalid("team_scored names no object"));
-    }
     Ok(())
 }
 
@@ -1856,7 +1855,6 @@ fn event_type_name(kind: crate::EventKind) -> &'static str {
         crate::EventKind::Healing => "healing",
         crate::EventKind::BuffApplied => "buff_applied",
         crate::EventKind::BuffRemoved => "buff_removed",
-        crate::EventKind::TeamScored => "team_scored",
     }
 }
 
@@ -1922,9 +1920,11 @@ pub(crate) struct StoredMetadata {
     pub(crate) tick_count: u32,
     pub(crate) terminal_tick: u32,
     pub(crate) hashes: Hashes,
+    pub(crate) settlement: crate::Settlement,
 }
 
 struct TickMetadata {
+    settlement: crate::Settlement,
     producer: Producer,
     game_build: String,
     context: StoredDurableContext,
@@ -1988,6 +1988,7 @@ impl StorageReader {
             tick_count,
             terminal_tick: tick_metadata.terminal_tick,
             hashes: tick_metadata.hashes,
+            settlement: tick_metadata.settlement,
         };
         let units = group_state_rows(
             table(&members, "units.parquet", read_units)?,
@@ -2195,9 +2196,14 @@ fn read_ticks(member: MemberSlice) -> Result<TickColumns> {
     // A recording made while the profile was named by the format names it
     // so; only a game recording reproduces one, and none is kept in git.
     let profile = required_metadata(metadata, "hash_profile")?;
-    if profile != HASH_PROFILE && profile != crate::model::HASH_PROFILE_SPELLED_BY_FORMAT {
+    if profile != HASH_PROFILE {
         return Err(Error::invalid("unsupported hash profile"));
     }
+    let settlement_bytes = required_metadata(metadata, "settlement")?
+        .as_bytes()
+        .to_vec();
+    let settlement: crate::Settlement = canonical::decode(&settlement_bytes, "settlement")?;
+    settlement.validate()?;
     let hashes = Hashes {
         result_hash: required_metadata(metadata, "result_hash")?.to_owned(),
     };
@@ -2236,13 +2242,16 @@ fn read_ticks(member: MemberSlice) -> Result<TickColumns> {
             expected_tick.saturating_sub(1)
         )));
     }
-    if canonical::hex(&canonical::result_hash(&tick_hashes_out)) != hashes.result_hash {
+    if canonical::hex(&canonical::result_hash(&tick_hashes_out, &settlement_bytes))
+        != hashes.result_hash
+    {
         return Err(Error::invalid(
             "result_hash metadata is not the hash of the tick_hash column",
         ));
     }
     Ok((
         TickMetadata {
+            settlement,
             producer,
             game_build,
             context,

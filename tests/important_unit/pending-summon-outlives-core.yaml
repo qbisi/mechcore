@@ -22,14 +22,12 @@ red:
   - {name: marksman, index: 0, position: {x: 0, y: -80}, level: 3, exp: 0/200/2315}
 asserts:
 - sql: |-
-    SELECT tick, type, object__id, source__id, amount, team_id FROM events WHERE type IN ('unit_created', 'unit_died', 'team_scored') ORDER BY tick, ordinal
+    SELECT tick, type, object__id, source__id, amount, team_id FROM events WHERE type IN ('unit_created', 'unit_died') ORDER BY tick, ordinal
   rows:
   - [28, unit_created, 4, null, null, 0]
   - [35, unit_died, 2, 3, null, null]
   - [35, unit_died, 1, null, null, null]
   - [121, unit_died, 3, 4, null, null]
-  - [135, team_scored, null, null, 100, 0]
-  - [135, team_scored, null, null, 0, 1]
 - sql: |-
     SELECT unit_id, min(tick) AS first_tick, max(tick) AS last_tick FROM units GROUP BY unit_id ORDER BY unit_id
   rows:
@@ -37,5 +35,10 @@ asserts:
   - [2, 1, 34]
   - [3, 1, 120]
   - [4, 48, 135]
+- sql: |-
+    SELECT team_id, score, core_damage FROM settlement_teams ORDER BY team_id
+  rows:
+  - [0, 100, 0]
+  - [1, 0, 100]
 ticks: 135
-hash: 23:e8224f433b5020e007fe61b509efa7719e2b6d44ec898b873446ab94b8ffe829
+hash: 24:b6d207784912cb875e0d95bbc10123f54284ff3cefa311e9b40141a6106e5ff8

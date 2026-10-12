@@ -28,4 +28,4 @@ red:
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: 0, y: 110}]}
 ticks: 451
-hash: 23:4423118babab76ccfba2a13cfecf289f03507761842cdccdfcc16f962c616d49
+hash: 24:5136357b2e06e117f7d72e9a0e1f33439a576bef2dd62656163db9c4bbba9a6a

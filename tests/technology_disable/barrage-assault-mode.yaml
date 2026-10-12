@@ -28,4 +28,4 @@ red:
   - {name: marksman, index: 0, position: {x: 0, y: -60}}
   - {name: sledgehammer, index: 1, position: {x: 65, y: -60}}
 ticks: 556
-hash: 23:976102bdd823f24196082609095b01bc13d313ec64d21b4921be2a87c6326fb6
+hash: 24:613126db4ab774ff93e931e1d509f6f2c8fe100bb1251470b37b320afb0077d0

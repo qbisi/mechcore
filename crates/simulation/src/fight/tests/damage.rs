@@ -496,3 +496,58 @@ fn projectile_raw_target_cache_preserves_rounding_sequence() {
     assert_eq!(raw_x, [-335, -170, -5, 160, 326]);
     assert_eq!(millimeter_x, [-335, -170, -4, 161, 326]);
 }
+
+#[test]
+fn forced_exit_discards_projectiles_and_prunes_experience_without_damage_or_movement() {
+    let config = SimulationConfig::load().unwrap();
+    let layout = CompiledLayout::of_units(
+        1,
+        vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
+    );
+    let mut simulation = raw_test_simulation(&layout, &config, 7);
+    simulation.projectiles.push(Projectile {
+        id: 1,
+        team: 0,
+        shooter: Shooter::Actor(FightActorRef::Unit(1)),
+        skill_slot: 0,
+        target_kind: ObjectKind::Unit,
+        target: 2,
+        targetless: false,
+        x: 0,
+        y: 0,
+        z: 0,
+        x_q32: 0,
+        y_q32: 0,
+        z_q32: 0,
+        cached_target_x: 0,
+        cached_target_y: 0,
+        cached_target_z: 1_000_000,
+        cached_target_x_q32: 0,
+        cached_target_y_q32: 0,
+        cached_target_z_q32: space_to_q32(1_000_000),
+        cached_target_radius: simulation.actors[&2].rules.collision_radius(),
+        speed: 1,
+        life: 1,
+        max_life: 1,
+        interceptible: false,
+        sources: Vec::new(),
+        locked_by: Vec::new(),
+        lock_target: false,
+        offset_x_q32: 0,
+        offset_z_q32: 0,
+        climb_to_q32: None,
+        spawn_shields: Vec::new(),
+        absorbed_by: None,
+        move_direction: (0, 0, 0),
+        move_range_q32: 0,
+    });
+    let before = simulation.snapshot();
+    simulation.stop_fight().unwrap();
+    let after = simulation.snapshot();
+    assert!(after.projectiles.is_empty());
+    for (before, after) in before.live_units.iter().zip(&after.live_units) {
+        assert_eq!(before.life, after.life);
+        assert_eq!(before.position, after.position);
+    }
+    assert_eq!(simulation.settlement().unwrap().teams.len(), 2);
+}

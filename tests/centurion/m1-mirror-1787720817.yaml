@@ -14,4 +14,4 @@ red:
   units:
   - {name: centurion, index: 0, position: {x: -5, y: -105}, exp: 0/600/2250}
 ticks: 273
-hash: 23:c5121c9324af0f6ae190f129a0d2427768cd5678ec10a9dbebbed66c2546eda0
+hash: 24:5f172afaea3dfaac49527489ac397766ffdfa3724e22350b9f9001ce5118e1ff

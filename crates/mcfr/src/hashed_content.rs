@@ -40,6 +40,7 @@ fn listing() -> Vec<String> {
     let mut definitions = BTreeMap::new();
     collect::<WorldSnapshot>(&mut definitions);
     collect::<TransitionEvents>(&mut definitions);
+    collect::<crate::Settlement>(&mut definitions);
     let mut lines = Vec::new();
     for (name, schema) in &definitions {
         describe_definition(name, schema, &mut lines);

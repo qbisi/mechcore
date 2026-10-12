@@ -22,4 +22,4 @@ red:
   - {name: fang, index: 0, position: {x: 5, y: -40}}
   - {name: marksman, index: 1, position: {x: 40, y: -60}, exp: 0/400/650}
 ticks: 390
-hash: 23:1da4d474892ed27fa5f7b2da0762a515bdaabc669af111dd2ff51e01f1b486a6
+hash: 24:b37befc32c80ebb18658ca76a03ccae4d284782da3a32bc75f7c446ea6ae239e

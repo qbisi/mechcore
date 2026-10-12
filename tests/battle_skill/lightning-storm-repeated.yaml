@@ -25,4 +25,4 @@ red:
   - {name: sledgehammer, index: 2, position: {x: 55, y: -60}, level: 3}
   - {name: fortress, index: 3, position: {x: 0, y: -110}, exp: 0/800/1600}
 ticks: 747
-hash: 23:2d2dbb50a6e5ca588103bf90d26002c2966fdb22bde82d6db444418f2a9f868c
+hash: 24:4059670a9bceb227feffc1f55ad63f1c9095c5ec045ad5b03b397c0f1fd81e14

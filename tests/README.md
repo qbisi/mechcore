@@ -66,6 +66,7 @@ directory alone keeps a readme, for the rules of pinning a round:
 | [`raiden/`](raiden/) | how a Raiden's three weapons choose targets and fire together, beside its standard fights | [`combat.md`](../docs/rules/combat.md#a-fusillade-fires-with-its-core) |
 | [`wreckage/`](wreckage/) | how a wreckage-recovery technology heals its unit as an enemy it struck dies | [`technology_effects.md`](../docs/rules/technology_effects.md#wreckage-recovery-technologies) |
 | [`wraith/`](wraith/) | how a Wraith's four slots choose their targets, beside its standard fights | [`combat.md`](../docs/rules/combat.md#a-grouped-slot-searches-around-its-siblings-locks) |
+| [`settlement/`](settlement/) | final scores and experience after natural endings and forced timeouts | [`reactor_damage.md`](../docs/rules/reactor_damage.md) |
 | [`corpus/`](corpus/README.md) | rounds of the replay corpus the simulator plays back, each named for its replay and round |  |
 | every other unit, `arclight/` to `wasp/` | that unit's [standard fights](#standard-unit-layouts) | [`combat.md`](../docs/rules/combat.md) |
 

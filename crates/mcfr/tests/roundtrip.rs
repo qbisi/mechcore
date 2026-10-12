@@ -36,7 +36,7 @@ fn writes_and_reads_every_table() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.23.0");
+    assert_eq!(MCFR_FORMAT, "0.24.0");
     assert_eq!(reader.producer(), Producer::Game);
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
@@ -220,7 +220,7 @@ fn hash_only_timeline_matches_published_mcfr_hashes_without_creating_storage() {
     let events = damage_events();
     let mut hash_only = McfrWriter::hash_only(&context()).unwrap();
     hash_only.append_tick(final_state.clone(), &events).unwrap();
-    let hashes = hash_only.finish().unwrap();
+    let hashes = hash_only.finish(&test_settlement()).unwrap();
     assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 0);
 
     let path = directory.path().join("fight.mcfr");
@@ -258,7 +258,7 @@ fn the_result_hash_is_golden() {
     let hashes = hash_tick(&context(), state(75), &damage_events());
     assert_eq!(
         hashes.result_hash,
-        "4fdad1c4e82f27dd4fbf20c1c192cfdd39cf6e09d8c51c0a71a0773383796ecb"
+        "3f1a960d418ef8b51c3c9a22adf4a4db0adaebecc1f0f29a5c4b1801e0e701d0"
     );
 }
 
@@ -354,7 +354,7 @@ fn embedded_layout_is_not_a_hash_input() {
     let mut writer =
         McfrWriter::create(&path, Producer::Game, "build-a", &context(), OTHER_LAYOUT).unwrap();
     writer.append_tick(state(75), &events).unwrap();
-    let right = writer.finish().unwrap();
+    let right = writer.finish(&test_settlement()).unwrap();
     assert_eq!(left, right);
     assert_eq!(McfrReader::open(path).unwrap().layout_yaml(), OTHER_LAYOUT);
 }
@@ -371,7 +371,7 @@ fn embedded_layout_preserves_adapter_state_outside_public_legality() {
     writer
         .append_tick(state(75), &TransitionEvents { events: Vec::new() })
         .unwrap();
-    writer.finish().unwrap();
+    writer.finish(&test_settlement()).unwrap();
     assert_eq!(
         McfrReader::open(path).unwrap().layout_yaml(),
         PARTIAL_LAYOUT
@@ -566,16 +566,6 @@ fn terrain_events_round_trip() {
                 target: Some(ObjectRef::new(ObjectKind::Unit, 2)),
                 payload: EventPayload::Healing { amount: 5 },
             },
-            Event {
-                subject: None,
-                source: None,
-                source_team_id: None,
-                target: None,
-                payload: EventPayload::TeamScored {
-                    amount: 262,
-                    team_id: 0,
-                },
-            },
         ],
     };
     write_fight(&path, "build-a", &context(), state(100), state(75), &events);
@@ -704,7 +694,7 @@ fn instrument_channels_ride_in_the_recording_outside_the_hash() {
         .unwrap();
     // Asked for and never filled: the channel is published empty.
     writer.append_instrument::<TargetSearch>(&[]).unwrap();
-    assert_eq!(writer.finish().unwrap(), plain);
+    assert_eq!(writer.finish(&test_settlement()).unwrap(), plain);
 
     let reader = McfrReader::open(&path).unwrap();
     assert_eq!(
@@ -758,7 +748,7 @@ fn projectile_reach_rows_read_back() {
     writer
         .append_instrument(std::slice::from_ref(&reach))
         .unwrap();
-    writer.finish().unwrap();
+    writer.finish(&test_settlement()).unwrap();
     let reader = McfrReader::open(&path).unwrap();
     assert_eq!(
         reader.instrument_channels().collect::<Vec<_>>(),
@@ -787,7 +777,7 @@ fn exp_range_rows_read_back() {
     writer
         .append_instrument(std::slice::from_ref(&range))
         .unwrap();
-    writer.finish().unwrap();
+    writer.finish(&test_settlement()).unwrap();
     let reader = McfrReader::open(&path).unwrap();
     assert_eq!(
         reader.instrument_channels().collect::<Vec<_>>(),
@@ -847,7 +837,7 @@ fn unit_pose_rows_read_back_with_their_clips() {
         },
     ];
     writer.append_instrument(&poses).unwrap();
-    writer.finish().unwrap();
+    writer.finish(&test_settlement()).unwrap();
     let reader = McfrReader::open(&path).unwrap();
     assert_eq!(
         reader.instrument_channels().collect::<Vec<_>>(),
@@ -931,7 +921,7 @@ fn rvo_channels_round_trip_with_their_nulls_and_kinds() {
         .append_instrument(std::slice::from_ref(&solve))
         .unwrap();
     writer.append_instrument(&neighbours).unwrap();
-    writer.finish().unwrap();
+    writer.finish(&test_settlement()).unwrap();
 
     let reader = McfrReader::open(&path).unwrap();
     assert_eq!(
@@ -982,7 +972,7 @@ fn target_channels_round_trip_with_unseen_terms() {
     writer
         .append_instrument(std::slice::from_ref(&candidate))
         .unwrap();
-    writer.finish().unwrap();
+    writer.finish(&test_settlement()).unwrap();
 
     let reader = McfrReader::open(&path).unwrap();
     assert_eq!(
@@ -1035,13 +1025,13 @@ fn write_fight(
     let mut writer =
         McfrWriter::create(path, Producer::Game, game_build, context, LAYOUT_YAML).unwrap();
     writer.append_tick(final_state, events).unwrap();
-    writer.finish().unwrap()
+    writer.finish(&test_settlement()).unwrap()
 }
 
 fn hash_tick(context: &DurableContext, state: WorldSnapshot, events: &TransitionEvents) -> Hashes {
     let mut writer = McfrWriter::hash_only(context).unwrap();
     writer.append_tick(state, events).unwrap();
-    writer.finish().unwrap()
+    writer.finish(&test_settlement()).unwrap()
 }
 
 fn context() -> DurableContext {
@@ -1218,4 +1208,59 @@ fn damage_events() -> TransitionEvents {
             },
         }],
     }
+}
+
+fn test_settlement() -> mechcore_mcfr::Settlement {
+    mechcore_mcfr::Settlement {
+        formations: Vec::new(),
+        teams: vec![
+            mechcore_mcfr::TeamSettlement {
+                score: 0,
+                team_id: 0,
+            },
+            mechcore_mcfr::TeamSettlement {
+                score: 0,
+                team_id: 1,
+            },
+        ],
+    }
+}
+
+#[test]
+fn settlement_is_hashed_without_changing_or_appending_a_tick() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut readers = Vec::new();
+    for (name, score) in [("a", 0), ("b", 200)] {
+        let path = directory.path().join(format!("{name}.mcfr"));
+        let mut writer =
+            McfrWriter::create(&path, Producer::Game, "build-a", &context(), LAYOUT_YAML).unwrap();
+        writer.append_tick(state(75), &damage_events()).unwrap();
+        let mut settlement = test_settlement();
+        settlement.teams[0].score = score;
+        writer.finish(&settlement).unwrap();
+        readers.push(McfrReader::open(path).unwrap());
+    }
+    assert_eq!(readers[0].tick_count(), 1);
+    assert_eq!(readers[0].first_divergence(&readers[1]).unwrap(), None);
+    assert_ne!(readers[0].hashes(), readers[1].hashes());
+    assert_eq!(readers[1].settlement().teams[0].score, 200);
+}
+
+#[test]
+fn incomplete_and_fractional_settlement_are_refused() {
+    let mut settlement = test_settlement();
+    settlement.teams.pop();
+    assert!(settlement.validate().is_err());
+    settlement = test_settlement();
+    settlement.formations.push(mechcore_mcfr::FormationState {
+        formation_id: 1,
+        team_id: 0,
+        experience: (1_i64 << 32) + 1,
+        max_experience: 1150_i64 << 32,
+    });
+    assert!(settlement.validate().is_err());
+    settlement.formations[0].experience = 200_i64 << 32;
+    assert!(settlement.validate().is_ok());
+    settlement.formations.push(settlement.formations[0]);
+    assert!(settlement.validate().is_err());
 }

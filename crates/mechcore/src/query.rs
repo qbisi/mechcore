@@ -568,6 +568,20 @@ fn make(
         )
         .map_err(sqlite)?;
     connection.execute_batch(layout::CREATE).map_err(sqlite)?;
+    connection.execute_batch(
+        "CREATE VIEW settlement_teams AS
+         SELECT json_extract(value, '$.team_id') AS team_id,
+                json_extract(value, '$.score') AS score,
+                json_extract((SELECT value FROM meta WHERE key = 'settlement'),
+                    '$.teams[' || (1 - json_extract(value, '$.team_id')) || '].score') AS core_damage
+         FROM json_each((SELECT value FROM meta WHERE key = 'settlement'), '$.teams');
+         CREATE VIEW settlement_formations AS
+         SELECT json_extract(value, '$.formation_id') AS formation_id,
+                json_extract(value, '$.team_id') AS team_id,
+                json_extract(value, '$.experience') AS experience,
+                json_extract(value, '$.max_experience') AS max_experience
+         FROM json_each((SELECT value FROM meta WHERE key = 'settlement'), '$.formations');"
+    ).map_err(sqlite)?;
     if let Some(events) = members.get("events") {
         for view in events::views(events) {
             connection.execute_batch(&view.create).map_err(sqlite)?;
@@ -586,6 +600,42 @@ fn make(
         .execute(("path", input.display().to_string()))
         .map_err(sqlite)?;
     Ok(())
+}
+
+/// The views of a complete settlement, independent of tick tables.
+fn settlement_schema(database: Option<&str>) -> Vec<SchemaTable> {
+    let mut tables = Vec::new();
+    for (name, key, columns) in [
+        (
+            "settlement_teams",
+            "team_id",
+            &["team_id", "score", "core_damage"][..],
+        ),
+        (
+            "settlement_formations",
+            "formation_id",
+            &["formation_id", "team_id", "experience", "max_experience"][..],
+        ),
+    ] {
+        tables.push(SchemaTable {
+            database: database.map(str::to_owned),
+            name: name.to_owned(),
+            member: "ticks.parquet metadata settlement".to_owned(),
+            origin: "settlement",
+            key: vec![key.to_owned()],
+            columns: columns
+                .iter()
+                .map(|name| SchemaColumn {
+                    name: (*name).to_owned(),
+                    sql_type: "INTEGER",
+                    nullable: false,
+                    path: (*name).to_owned(),
+                    tags: None,
+                })
+                .collect(),
+        });
+    }
+    tables
 }
 
 /// The tables a database records filled.
@@ -767,6 +817,7 @@ impl Attached {
                 });
             }
         }
+        tables.extend(settlement_schema(database.as_deref()));
         for table in layout::TABLES {
             let mut statement = self
                 .connection

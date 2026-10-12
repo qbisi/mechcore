@@ -18,4 +18,4 @@ red:
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
 ticks: 120
-hash: 23:d0c997ed8bdc268cb1f13558503f823c795592aabe60a33b72ba5bc550d300d4
+hash: 24:74586de80db7a94a29079e532f0aadf6ca9158c40b13a23b129a1899a6cda972

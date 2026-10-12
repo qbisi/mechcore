@@ -266,19 +266,28 @@ pub(crate) fn compare(
     let first_divergence = left
         .first_divergence(&right)
         .map_err(|error| error.to_string())?;
-    if first_divergence.is_none() && left.hashes().result_hash != right.hashes().result_hash {
-        return Err("result hashes differ although every stored tick hash matches".into());
-    }
+    let settlement = document_differences(left.settlement(), right.settlement())?
+        .into_iter()
+        .filter(|difference| {
+            let group = difference
+                .path
+                .split('/')
+                .filter(|part| !part.is_empty() && part.parse::<usize>().is_err())
+                .collect::<Vec<_>>()
+                .join(".");
+            selection.admits(&format!("settlement.{group}"))
+        })
+        .collect::<Vec<_>>();
     let fields = difference::fields(&left, &right, selection)?;
     let at = tick
         .or_else(|| fields.first_divergence())
         .map(|tick| difference::detail(&left, &right, tick, selection))
         .transpose()?;
-    let equal = first_divergence.is_none();
+    let equal = left.hashes() == right.hashes();
     let verdict = if selection.is_everything() {
         equal
     } else {
-        fields.equal()
+        fields.equal() && settlement.is_empty()
     };
     let report = CompareReport {
         schema: COMPARE_SCHEMA,
@@ -294,6 +303,7 @@ pub(crate) fn compare(
         first_divergence,
         compared_ticks: fields.compared_ticks,
         fields_equal: fields.equal(),
+        settlement,
         fields: fields.nested(),
         at,
     };
@@ -322,6 +332,14 @@ fn print_comparison(report: &serde_json::Value) {
         report["left"]["tick_count"],
         report["right"]["tick_count"],
     );
+    if let Some(differences) = report["settlement"].as_array() {
+        for difference in differences {
+            println!(
+                "settlement {}: {} -> {}",
+                difference["path"], difference["left"], difference["right"]
+            );
+        }
+    }
     let mut groups = Vec::new();
     collect_groups("", &report["fields"], &mut groups);
     groups.sort_by_key(|(group, first, _, _)| (*first, group.clone()));
@@ -411,6 +429,7 @@ struct CompareReport<'a> {
     left: RecordingSummary<'a>,
     right: RecordingSummary<'a>,
     first_divergence: Option<u32>,
+    settlement: Vec<FieldDifference>,
     compared_ticks: u32,
     fields_equal: bool,
     fields: serde_json::Value,

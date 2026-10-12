@@ -28,4 +28,4 @@ red:
   - {name: rhino, index: 0, position: {x: 5, y: -35}, level: 9}
   - {name: centurion, index: 1, position: {x: 5, y: -75}, level: 9, exp: 0/6800/15137}
 ticks: 357
-hash: 23:fc49af202723586e56165674d52d23208a0f45171a4cddb3993266487de7a95d
+hash: 24:19bb0e74f500abafae781d039b597bd4468406679dc76cba48122ee9afb1ac25

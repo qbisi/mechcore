@@ -243,6 +243,7 @@ pub(crate) enum CaptureMessage {
         terminal: bool,
         frame: Option<RawFrame>,
     },
+    Settlement(mechcore_mcfr::Settlement),
     Failure(String),
 }
 
@@ -396,6 +397,7 @@ pub(crate) struct CaptureState {
     /// entered that round's deployment, before its decisions replay.
     opening_next_units: Option<[i32; 2]>,
     queue: VecDeque<CaptureMessage>,
+    settlement_scores: [Option<i32>; 2],
     pub(crate) unit_ids: BTreeMap<usize, u64>,
     pub(crate) building_ids: BTreeMap<usize, u64>,
     pub(crate) projectile_ids: BTreeMap<usize, u64>,
@@ -458,6 +460,7 @@ impl CaptureState {
     fn reset_session(&mut self) {
         self.armed = false;
         self.initialized = false;
+        self.settlement_scores = [None, None];
         self.entered_fighting = false;
         self.restore_time_scale = None;
         self.replay_round = None;
@@ -1258,11 +1261,6 @@ enum NativeTrace {
     /// Life an actor gained, clamped at its full life.
     Healing {
         target: usize,
-        amount: i32,
-    },
-    /// What a side's units standing at the fight's end score.
-    TeamScored {
-        team_id: u32,
         amount: i32,
     },
     BuffApplied {
@@ -3314,10 +3312,8 @@ unsafe extern "C" fn create_mech_hook(
 type CalculateScoreFn =
     unsafe extern "C" fn(*mut Object, *mut Object, bool, *const MethodInfo) -> i32;
 
-/// `FightResultController.CalculateScore(team, isAlive)`, which
-/// `BattleSystem.OnFightOver` calls for each side inside the fight's last
-/// update, once for the units standing and once for the fallen. What the
-/// standing score is recorded.
+/// Records each standing score after native exit and experience pruning,
+/// inside a natural final update or outside updates at forced timeout.
 unsafe extern "C" fn calculate_score_hook(
     controller: *mut Object,
     team: *mut Object,
@@ -3345,17 +3341,49 @@ fn record_team_score(team: *mut Object, score: i32) {
     let mut state = capture_state()
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
-    if !state.armed || !state.in_update {
+    if !state.armed || !state.initialized {
         return;
     }
-    match invoke_value::<i32>(runtime.api, team, "GetTeamIndex")
-        .and_then(|index| u32::try_from(index).map_err(|_| format!("team index {index}")))
-    {
-        Ok(team_id) => state.traces.push(NativeTrace::TeamScored {
-            team_id,
-            amount: score,
-        }),
-        Err(error) => state.fail(format!("CalculateScore: reading the team: {error}")),
+    let result = (|| {
+        let team_id = invoke_value::<i32>(runtime.api, team, "GetTeamIndex")?;
+        let seat = usize::try_from(team_id).map_err(|_| "negative team index")?;
+        let entry = state
+            .settlement_scores
+            .get_mut(seat)
+            .ok_or("settlement scores an unknown team")?;
+        if entry.replace(score).is_some() {
+            return Err("settlement scores a team twice".into());
+        }
+        if let [Some(blue), Some(red)] = state.settlement_scores {
+            let formations = statistics::read_formations(
+                runtime.api,
+                state
+                    .metadata
+                    .statistics
+                    .as_ref()
+                    .ok_or("statistics metadata is unavailable")?,
+                &state,
+            )?;
+            let settlement = mechcore_mcfr::Settlement {
+                formations,
+                teams: vec![
+                    mechcore_mcfr::TeamSettlement {
+                        score: blue,
+                        team_id: 0,
+                    },
+                    mechcore_mcfr::TeamSettlement {
+                        score: red,
+                        team_id: 1,
+                    },
+                ],
+            };
+            settlement.validate().map_err(|error| error.to_string())?;
+            state.push(CaptureMessage::Settlement(settlement))?;
+        }
+        Ok::<(), String>(())
+    })();
+    if let Err(error) = result {
+        state.fail(format!("fight settlement: {error}"));
     }
 }
 
@@ -5570,8 +5598,7 @@ fn finalize_initial_shield_ids(
             | NativeTrace::UnitCreated { .. }
             | NativeTrace::Healing { .. }
             | NativeTrace::BuffApplied { .. }
-            | NativeTrace::BuffRemoved { .. }
-            | NativeTrace::TeamScored { .. } => {}
+            | NativeTrace::BuffRemoved { .. } => {}
         }
     }
     capture.shield_ids = ids;
@@ -7751,15 +7778,6 @@ fn transition_events(
                     EventPayload::Healing { amount },
                 ));
             }
-            NativeTrace::TeamScored { team_id, amount } => {
-                events.push(event(
-                    None,
-                    None,
-                    None,
-                    None,
-                    EventPayload::TeamScored { amount, team_id },
-                ));
-            }
         }
     }
     Ok(TransitionEvents { events })
@@ -7919,8 +7937,7 @@ fn renumber_unit_references(
             | NativeTrace::UnitCreated { .. }
             | NativeTrace::Healing { .. }
             | NativeTrace::BuffApplied { .. }
-            | NativeTrace::BuffRemoved { .. }
-            | NativeTrace::TeamScored { .. } => {}
+            | NativeTrace::BuffRemoved { .. } => {}
         }
     }
     Ok(())
@@ -9693,7 +9710,21 @@ mod tests {
         )
         .unwrap();
         writer.append_tick(state, &events).unwrap();
-        writer.finish().unwrap();
+        writer
+            .finish(&mechcore_mcfr::Settlement {
+                formations: Vec::new(),
+                teams: vec![
+                    mechcore_mcfr::TeamSettlement {
+                        score: 0,
+                        team_id: 0,
+                    },
+                    mechcore_mcfr::TeamSettlement {
+                        score: 0,
+                        team_id: 1,
+                    },
+                ],
+            })
+            .unwrap();
         let reader = mechcore_mcfr::McfrReader::open(path).unwrap();
         let events = reader.events(1).unwrap();
         assert_eq!(events.events.len(), 3);

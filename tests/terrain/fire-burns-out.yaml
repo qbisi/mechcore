@@ -21,4 +21,4 @@ red:
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}, level: 9, exp: 0/400/3027}
 ticks: 1150
-hash: 23:3bfcc90a23a02e57cb277394d784f4c92ef350e4b39d8b0c50d74199782fd803
+hash: 24:6c2ceae44ca9286e8a8c72a0f70f47f6cd89587bad20c3a367f06a1fc045792f

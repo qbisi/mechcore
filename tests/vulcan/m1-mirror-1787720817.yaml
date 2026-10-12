@@ -14,4 +14,4 @@ red:
   units:
   - {name: vulcan, index: 0, position: {x: 0, y: -100}, exp: 0/800/2200}
 ticks: 956
-hash: 23:9aea0a201787508d9c13fb1260f4135a252c5f9e4abc0c6401893cce4e1e07ca
+hash: 24:b261b9cdf0354a3098b84cf19b6d7416ac226e55f984dba5f3765e410ec9e55e

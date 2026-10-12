@@ -158,11 +158,9 @@ fn the_schema_names_every_table_and_query() {
         weapons["key"],
         serde_json::json!(["tick", "unit_id", "skills_ordinal", "ordinal"])
     );
-    assert!(
-        tables
-            .iter()
-            .all(|table| ["hashed", "layout", "view"].contains(&table["origin"].as_str().unwrap()))
-    );
+    assert!(tables.iter().all(|table| {
+        ["hashed", "layout", "view", "settlement"].contains(&table["origin"].as_str().unwrap())
+    }));
     assert!(tables.iter().any(|table| table["name"] == "layout_units"));
     assert_eq!(schema["queries"].as_array().unwrap().len(), 7);
 }
@@ -325,7 +323,7 @@ fn every_event_is_a_row_of_its_kinds_view() {
         .filter(|table| table["origin"] == "view")
         .map(|table| table["name"].as_str().unwrap().to_owned())
         .collect::<Vec<_>>();
-    assert_eq!(views.len(), 16);
+    assert_eq!(views.len(), 15);
     let total = views
         .iter()
         .map(|view| format!("(SELECT count(*) FROM {view})"))
@@ -442,4 +440,33 @@ fn a_statement_reads_what_an_earlier_one_made() {
     assert_eq!(code, 2);
     let (code, empty) = query(&path, &["--sql", "-- nothing"]);
     assert_eq!(code, 2, "{empty}");
+}
+
+#[test]
+fn settlement_views_report_complete_results_without_a_tick() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = recording(directory.path());
+    let (code, answer) = query(
+        &path,
+        &[
+            "--sql",
+            "SELECT team_id, score, core_damage FROM settlement_teams ORDER BY team_id",
+        ],
+    );
+    assert_eq!(code, 0, "{answer}");
+    let rows = answer["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0][0], 0);
+    assert_eq!(rows[1][0], 1);
+    assert_eq!(rows[0][1], rows[1][2]);
+    assert_eq!(rows[1][1], rows[0][2]);
+    let (code, answer) = query(
+        &path,
+        &[
+            "--sql",
+            "SELECT formation_id, q32(experience), q32(max_experience) FROM settlement_formations ORDER BY formation_id",
+        ],
+    );
+    assert_eq!(code, 0, "{answer}");
+    assert_eq!(answer["rows"].as_array().unwrap().len(), 2);
 }
