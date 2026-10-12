@@ -198,7 +198,7 @@ that joins later, a make's own, is appended after them.
 
 ## An important unit
 
-**A side does not outlive its last important unit.** Dominion Core's row sets
+**A side's active units die with its last important unit.** Dominion Core's row sets
 `important_unit`, and every unit wearing it is one: each Crawler of a
 formation that wears it. The row writes its life and damage rates as any
 ordinary row does, once. When the tick's deaths are taken, after every unit
@@ -210,8 +210,14 @@ credited to the last unit that struck it, as any death is, and to no one if
 nothing ever did. An important unit that dies while another of its side
 stands destroys nothing.
 
-A side whose last important unit dies while a summon of it is still
-appearing, or a unit of it still travelling, is refused by name.
+A summon still appearing is outside the side's active units: it survives
+and joins later. While only one side has active living or rebirthing units,
+the core module holds attacks and buffs; pending summons keep the fight
+open and keep the side's towers standing. An entering summon waits through
+that tick's unit updates before the core module observes both sides again.
+
+A side whose last important unit dies while a unit of it is still travelling
+is refused by name.
 
 ## What is refused
 
@@ -259,6 +265,9 @@ rather than applying only its plain corrections.
   `tests/important_unit/`. A destroyed unit nothing struck is credited to no
   one, and one a Phoenix struck six ticks before to the Phoenix:
   `tests/important_unit/destroyed-unit-credits-its-last-striker.yaml`.
+- A pending summon survives the last important unit's death and enters
+  later, with attacks paused until the step after it enters:
+  `tests/important_unit/pending-summon-outlives-core.yaml`.
 
 ### Replayed
 
@@ -324,6 +333,14 @@ rather than applying only its plain corrections.
   every unit of the side's `activeMeches` with life left by
   `FightActor.DestroySelf`, a suicide's `FightActor.ReduceLife` of its whole
   life, unless an important unit of the side remains.
+- Pending summons join the active units only in `SummonSystem.AddMech`.
+  `FightCoreSystem.TeamUpdate` passes the previous `isFightOver` to
+  `FightMech.Update`, which holds buffs when the fight is off;
+  `FightCoreSystem.IsStepFinish` counts active living or rebirthing units,
+  while `SummonSystem.IsStepFinish` keeps pending summons open and
+  `FightCoreSystem.TryDstroyTower` protects a team with processing mechs.
+  `FightSkill.RefreshAttackInterval` resets attack time to the composed
+  interval when the last lock leaves, making that skill ready on resumption.
 - Rule `999903` deals the items limited to scene 1300:
   `GameRule.replaceReinforceLabel`, `ItemData.limitedScene`.
 

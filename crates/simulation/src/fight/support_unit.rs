@@ -794,7 +794,18 @@ impl Simulation {
             if let Some(coming_out) = coming_out {
                 self.take_place(&mut actor, coming_out)?;
             }
+            let unit_id = actor.placement.unit_id;
             self.let_in(actor, drop_damage, events)?;
+            // `FightCoreSystem` still holds its previous step's isFightOver
+            // through TeamUpdate. A summon entering now waits with the active
+            // mechs until IsStepFinish observes both sides at the step's end.
+            if self.ending.stop_step.is_some() {
+                self.actors
+                    .get_mut(&unit_id)
+                    .expect("the summon has just joined")
+                    .skills
+                    .hold_attack_clocks();
+            }
         }
         Ok(())
     }

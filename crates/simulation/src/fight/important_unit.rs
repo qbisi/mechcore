@@ -1,4 +1,4 @@
-//! `DeadEffectSystem`'s important units: a side does not outlive its last.
+//! `DeadEffectSystem`'s important units: active mechs die with their last.
 //!
 //! An equipment row that sets `importantUnit`, Dominion Core's, marks the unit
 //! wearing it as it writes its numbers (`MechDataModifer.TryAddCommonData`),
@@ -37,17 +37,18 @@ impl Simulation {
                 continue;
             }
             // `CheckTeamImportantUnit` destroys its side's `activeMeches`:
-            // whether a summon still appearing or a unit still travelling is
-            // among them is not measured.
-            if self.appearing_on(team)
-                || self
-                    .actors
-                    .values()
-                    .any(|actor| actor.placement.team == team && actor.alive() && actor.travelling)
+            // a pending summon joins only through SummonSystem.AddMech, so
+            // it is not destroyed and can appear after the important unit
+            // dies. Pending summons are separate from self.actors here.
+            // Membership of a travelling unit is not measured.
+            if self
+                .actors
+                .values()
+                .any(|actor| actor.placement.team == team && actor.alive() && actor.travelling)
             {
                 return Err(Error::new(format!(
                     "unit {dead_id}, its side's last important unit, dies while a unit of its \
-                     side is still appearing or travelling, which is not measured"
+                    side is still travelling, which is not measured"
                 )));
             }
             let side = self
