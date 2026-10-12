@@ -364,6 +364,17 @@ def standard_commander_skills(structure):
     return held
 
 
+def standard_equipment(structure):
+    """Equipment a standard 1v1 can deal or one of its officers can grant."""
+    held = {row["id"] for row in group_rows("EquipmentGroupData").values()
+            if in_standard_scene(row) and row.get("scope") == DEALT_SCOPE
+            and not row.get("isTestData")}
+    officers = standard_officers(structure)
+    held |= {equipment for row in structure["officerDatas"] if row["id"] in officers
+             for equipment in row.get("equipmentIds") or []}
+    return held
+
+
 def write_advance_teams(structure):
     """What a side can pick in round 0, and what picking it does.
 

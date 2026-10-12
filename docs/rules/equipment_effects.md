@@ -51,9 +51,15 @@ simulator does not give a unit.
 ## The table
 
 [`config/equipment_effects.yaml`](../../config/equipment_effects.yaml) holds
-the rows of every `EquipmentGroupData` list a standard match can deal, which
+the rows of every `EquipmentGroupData` list a standard 1v1 can obtain, which
 [`extract-equipment-effects.py`](../../scripts/extract/extract-equipment-effects.py)
 reads from the build's typed export. A row's `kind` is the list it comes from.
+The table includes equipment the ordinary pool can deal (scope 1, with no
+scene restriction or scene 1), and equipment a standard officer grants
+through `equipmentIds`. Test rows and equipment obtainable only through
+other modes or experimental rules are excluded. The pool's selection is
+[reinforcements.md](reinforcements.md)'s; the officers a standard side can
+hold are [officers.md](officers.md)'s.
 Every class is an `EquipmentData`, and `Equipment.AddData` writes the
 correction of a row of any class: Absorption Module, a
 `LifestealEquipmentData`, also raises its unit's life by 0.3. What a subclass
@@ -209,21 +215,13 @@ appearing, or a unit of it still travelling, is refused by name.
 
 ## What is refused
 
-A layout is refused by name, rather than fought with part of an item, when it
-carries:
+A layout naming equipment outside the exported standard 1v1 table is
+refused as an unknown equipment ID. Experimental items such as Rapid
+Autoloader are outside that table.
 
-- an equipment of a class whose mechanism is not here, named by its kind.
-  Absorption Module's and Nano Repair Kit's classes are read: their life steal and repair are
-  [combat.md](combat.md#lifesteal)'s, Portable Shield's is
-  [combat.md](combat.md#personal-shield)'s and Barrier's
-  [contraptions.md](contraptions.md#a-shield)'s. So is Explosive Ammo's, which adds its
-  `splash_range` to the skill's splash as [combat.md](combat.md#damage-and-death)
-  states, Photon Coating's and Anti-Interference Module's, which
-  [Buff items](#buff-items) states, the production lines', which
-  [Production lines](#production-lines) states, and Dominion Core's, which
-  [An important unit](#an-important-unit) states;
-- a row that sets `roundDuration` (Rapid Autoloader, rule `999903`'s), whose
-  effect has not been recorded.
+Export eligibility does not establish a subclass's mechanism. The simulator
+also refuses an equipment by its kind when that mechanism is not implemented,
+rather than applying only its plain corrections.
 
 ## Evidence
 
@@ -274,6 +272,9 @@ carries:
   `SkillDataModifier.AddData`.
 - An item's target type is answered as an officer's is:
   `UnitUtility.IsEffectTarget`.
+- Ordinary equipment eligibility is its pool scope and scene restriction:
+  `ReinforceItemData.scope`, `ItemData.limitedScene`; officers grant equipment
+  through `OfficerData.equipmentIds`.
 - A line of no positions makes at its parent's transform, scattered within
   its radius: `SpecialSupportUnitData.GetPosition`,
   `SpecialSupportUnitData.GetRandomRange`, `IBuffTarget.GetRadius`. A make of

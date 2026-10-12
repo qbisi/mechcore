@@ -8,8 +8,9 @@ The rows are every list of `EquipmentGroupData` in `level0`, as
 `kind`. Every class is an `EquipmentData`, and `Equipment.AddData` writes its
 plain `ICommonMechDataChangeDataSource` correction whatever the class, so
 every row carries those fields; what a subclass does beyond them (a buff,
-lifesteal, a shield and the rest) is its kind's mechanism. Test rows and rows
-limited to Interstellar Expedition are left out. Q32.32 values are written as
+lifesteal, a shield and the rest) is its kind's mechanism. Only equipment
+the standard 1v1 pool can deal or a standard officer can grant is included.
+Test rows are left out. Q32.32 values are written as
 raw integers; only the comment beside one reads it as a decimal.
 """
 
@@ -19,6 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import build_data  # noqa: E402
 from buff_rows import buff_lines  # noqa: E402
+from extract_prices import standard_equipment  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 # The build's field for each column this table writes.
@@ -79,11 +81,12 @@ def raw(value):
 
 def extract():
     rows = []
+    obtainable = standard_equipment(build_data.container())
     for kind, entries in build_data.level0("EquipmentGroupData").items():
         if not isinstance(entries, list):
             continue
         for row in entries:
-            if row["isTestData"] or not build_data.in_standard(row):
+            if row["isTestData"] or row["id"] not in obtainable:
                 continue
             entry = {"id": row["id"], "name": row.get("name"), "kind": kind}
             entry.update({column: raw(row[field]) for column, field in FIELDS.items()})
