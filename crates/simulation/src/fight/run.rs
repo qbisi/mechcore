@@ -132,11 +132,20 @@ pub struct DivergentTick {
 pub(in crate::fight) struct Execution {
     pub(in crate::fight) simulation: Simulation,
     pub(in crate::fight) writer: McfrWriter,
+    numbering: mechcore_mcfr::UnitNumbering,
     pub(in crate::fight) steps: u64,
     pub(in crate::fight) end_reason: &'static str,
     pub(in crate::fight) first_divergence: Option<u32>,
     pub(in crate::fight) divergent_tick: Option<DivergentTick>,
     pub(in crate::fight) costs: Costs,
+}
+
+impl Execution {
+    fn settlement(&self) -> Result<mechcore_mcfr::Settlement> {
+        let mut settlement = self.simulation.settlement()?;
+        self.numbering.apply_settlement(&mut settlement);
+        Ok(settlement)
+    }
 }
 
 pub(crate) fn run(
@@ -149,6 +158,7 @@ pub(crate) fn run(
 ) -> Result<SimulationResult> {
     let generation_started = Instant::now();
     let execution = execute(layout, config, seed, record, None, Some(replay_layout))?;
+    let settlement = execution.settlement()?;
     let Execution {
         simulation,
         writer,
@@ -160,7 +170,6 @@ pub(crate) fn run(
     } = execution;
     debug_assert!(first_divergence.is_none());
     let finish_started = Instant::now();
-    let settlement = simulation.settlement()?;
     let (hashes, recording) = match record {
         Record::Memory => {
             let recording = writer.finish_in_memory(settlement)?;
@@ -280,8 +289,12 @@ pub(crate) fn compare(
         )));
     }
     let execution = execute(layout, config, seed, Record::Hash, Some(recording), None)?;
+    let settlement = execution
+        .first_divergence
+        .is_none()
+        .then(|| execution.settlement())
+        .transpose()?;
     let Execution {
-        simulation,
         writer,
         steps,
         first_divergence,
@@ -289,7 +302,7 @@ pub(crate) fn compare(
         ..
     } = execution;
     let simulation_hashes = if first_divergence.is_none() {
-        Some(writer.finish(&simulation.settlement()?)?)
+        Some(writer.finish(settlement.as_ref().expect("a complete execution settled"))?)
     } else {
         None
     };
@@ -418,6 +431,7 @@ pub(in crate::fight) fn execute(
     Ok(Execution {
         simulation,
         writer,
+        numbering,
         steps,
         end_reason,
         first_divergence,

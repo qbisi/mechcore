@@ -1,0 +1,59 @@
+# Red's final Typhoon dies on the last combat tick, with three shots still in flight.
+# Forced timeout settles the surviving blue Marksman without draining those shots.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1239937823
+round: 4
+blue:
+  core_damage: 0
+  officers: [quick_teleport, fortified_specialist, smart_marksman]
+  techs:
+    marksman: [doubleshot, shooting_squad, electromagnetic_shot, aerial_specialization, assault_mode, range_enhancement, quick_reload, elite_marksman]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: marksman, index: 0, position: {x: -320, y: 130}, level: 7, exp: 0/4093/4093, rotated: true, equipment: [heavy_armor], travelling: true}
+  - {name: melting_point, index: 1, position: {x: -110, y: -70}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -235, y: -285}}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: -80, y: -225}]}
+red:
+  core_damage: 100
+  officers: [advanced_missile_device, quick_teleport, typhoon_specialist]
+  techs:
+    typhoon: [field_reassembly, field_entrenchment, reactive_armor, maintenance_array, wreckage_detonation, range_enhancement, air_defense_mark]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: typhoon, index: 0, position: {x: 110, y: -170}, exp: 0/824/1950, source: delivered}
+  - {name: typhoon, index: 1, position: {x: -330, y: 90}, level: 6, exp: 0/200/11308, rotated: true, equipment: [portable_shield], travelling: true}
+  - {name: farseer, index: 2, position: {x: -55, y: -235}, level: 7, exp: 0/600/11334}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 5, y: -115}, retained: false}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: -20, y: -115}, {x: 120, y: -130}]}
+asserts:
+- sql: |-
+    SELECT team_id, score, core_damage FROM settlement_teams ORDER BY team_id
+  rows:
+  - [0, 100, 0]
+  - [1, 0, 100]
+- sql: |-
+    SELECT tick_count, terminal_tick, (SELECT count(*) FROM projectiles WHERE tick = fight.terminal_tick) AS in_flight FROM fight
+  rows:
+  - [2360, 2360, 3]
+- sql: |-
+    SELECT tick, object__id, source__id FROM events WHERE type = 'unit_died' AND tick = (SELECT terminal_tick FROM fight) ORDER BY ordinal
+  rows:
+  - [2360, 3, 2]
+- sql: |-
+    SELECT team_id, unit_type_id, count(*) AS alive FROM units WHERE tick = (SELECT terminal_tick FROM fight) GROUP BY team_id, unit_type_id ORDER BY team_id, unit_type_id
+  rows:
+  - [0, 2, 1]
+ticks: 2360
+hash: 24:bdefc2cc714a072f59cb55ab28cda8e966e400a2ab59eb20aaa942f834607a1c

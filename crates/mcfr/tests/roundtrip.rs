@@ -1264,3 +1264,35 @@ fn incomplete_and_fractional_settlement_are_refused() {
     settlement.formations.push(settlement.formations[0]);
     assert!(settlement.validate().is_err());
 }
+
+#[test]
+fn settlement_uses_the_same_renumbered_formations_as_the_timeline() {
+    let mut snapshot = state(75);
+    snapshot.live_units[0].unit_id = 2;
+    snapshot.live_units[0].formation_id = 2;
+    snapshot.live_units[1].unit_id = 1;
+    snapshot.live_units[1].formation_id = 1;
+    snapshot.formations = vec![
+        mechcore_mcfr::FormationState {
+            formation_id: 1,
+            team_id: 1,
+            experience: 50_i64 << 32,
+            max_experience: 100_i64 << 32,
+        },
+        mechcore_mcfr::FormationState {
+            formation_id: 2,
+            team_id: 0,
+            experience: 70_i64 << 32,
+            max_experience: 200_i64 << 32,
+        },
+    ];
+    let numbering = mechcore_mcfr::UnitNumbering::of_first_snapshot(&snapshot, &[]);
+    let mut settlement = test_settlement();
+    settlement.formations.clone_from(&snapshot.formations);
+    numbering.apply(&mut snapshot, &mut []);
+    numbering.apply_settlement(&mut settlement);
+    assert_eq!(settlement.formations, snapshot.formations);
+    assert_eq!(settlement.formations[0].team_id, 0);
+    assert_eq!(settlement.formations[0].experience, 70_i64 << 32);
+    settlement.validate().unwrap();
+}
