@@ -1077,11 +1077,15 @@ impl Simulation {
             if every_unit || held {
                 skill.current_attack_interval = interval;
                 skill.attack_time_anchor = anchor;
+                // RefreshAttackInterval(true) sets attackTime to the
+                // interval: the skill is ready when fighting resumes.
+                skill.next_attack_step = step;
             }
             for sibling in skill.siblings_mut() {
                 if every_unit || sibling.lock_target.is_some() {
                     sibling.current_attack_interval = interval;
                     sibling.attack_time_anchor = anchor;
+                    sibling.next_attack_step = step;
                 }
             }
         };
@@ -1104,8 +1108,9 @@ impl Simulation {
 
     #[allow(clippy::too_many_lines)]
     fn step(&mut self, step: u64) -> Result<TransitionEvents> {
-        if self.winner().is_some() {
-            // A fight already won updates no skill: no `attackTime` counts.
+        if self.core_step_finished() {
+            // With only one active side, no skill's attackTime counts,
+            // even when pending summons keep the fight open.
             for actor in self.actors.values_mut() {
                 actor.skills.hold_attack_clocks();
             }
@@ -1119,7 +1124,8 @@ impl Simulation {
         self.step_now = step;
         let fight_was_finished = self.naturally_finished();
         let winner_was_decided = self.winner().is_some();
-        self.ending.stop_step = winner_was_decided.then_some(step);
+        let core_step_was_finished = self.core_step_finished();
+        self.ending.stop_step = core_step_was_finished.then_some(step);
         self.refresh_target_query_snapshot();
         // `GRTimerManager.Update` runs before any module: the summons whose
         // second is up join the fight first. The tick's searches were
@@ -1415,7 +1421,7 @@ impl Simulation {
             self.ending.late_building_events_pending = true;
         }
         let ready_to_finish = self.ready_to_finish();
-        let stop_fight = ready_to_finish || winner_was_decided;
+        let stop_fight = ready_to_finish || core_step_was_finished;
         if stop_fight {
             for actor in self.actors.values_mut() {
                 // Every motion loses its target: one without a command enters
@@ -1731,17 +1737,23 @@ impl Simulation {
         }
     }
 
-    fn naturally_finished(&self) -> bool {
+    /// `FightCoreSystem.IsStepFinish` counts active living or rebirthing
+    /// mechs, independently of the summons that hold other modules open.
+    fn core_step_finished(&self) -> bool {
         let living_teams = self
             .actors
             .values()
             .filter(|actor| actor.alive() || actor.rebirthing)
             .map(|actor| actor.placement.team)
             .collect::<std::collections::BTreeSet<_>>();
+        living_teams.len() < 2
+    }
+
+    fn naturally_finished(&self) -> bool {
         // `SupportUnitSystem.IsStepFinish` and `SummonSystem.IsStepFinish`:
         // a battle skill's creator still alive, or a summon still appearing,
         // holds the fight; a production line never does.
-        living_teams.len() < 2
+        self.core_step_finished()
             && self.projectiles.is_empty()
             && self.support.creators.is_empty()
             && self.support.appearing.is_empty()
