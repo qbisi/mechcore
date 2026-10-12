@@ -106,15 +106,29 @@ fn a_fight_and_its_recording_play_the_same_fight() {
         recording.as_os_str(),
     ]);
     assert!(converted.status.success());
-    // Without a page named, the page is written beside the recording.
-    let report = played(&["play".as_ref(), recording.as_os_str(), "--no-open".as_ref()]);
+    // Without a page named, use the system temporary directory, even when
+    // the caller overrides it. The explicit page above stays beside its input.
+    let temporary = tempfile::tempdir().unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args(["play".as_ref(), recording.as_os_str(), "--no-open".as_ref()])
+        .env("TMPDIR", temporary.path())
+        .env("TMP", temporary.path())
+        .env("TEMP", temporary.path())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(report["kind"], "mcfr");
     assert_eq!(report["ticks"].as_u64().unwrap(), ticks);
     assert!(report.get("seed").is_none());
-    let beside = recording.with_extension("html");
-    assert_eq!(report["page"], beside.to_str().unwrap());
+    let page = temporary.path().join("fight.html");
+    assert_eq!(report["page"], page.to_str().unwrap());
     assert_eq!(
-        timeline(&beside),
+        timeline(&page),
         timeline(&from_fight),
         "a fight and the recording of it lay out the same timeline",
     );

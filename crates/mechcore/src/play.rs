@@ -78,8 +78,8 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
     Ok(Verdict::Yes)
 }
 
-/// Writes the page that plays `input` to `page`, or beside the input with an
-/// `.html` extension.
+/// Writes the page that plays `input` to `page`, or in the system temporary
+/// directory under the input's name with an `.html` extension.
 ///
 /// # Errors
 ///
@@ -93,7 +93,14 @@ pub(crate) fn play(
 ) -> Result<Played, Failure> {
     let (kind, bytes) = Kind::read(input)?;
     kind.require("play")?;
-    let page = page.map_or_else(|| input.with_extension("html"), Path::to_path_buf);
+    let page = page.map_or_else(
+        || {
+            std::env::temp_dir()
+                .join(input.file_name().unwrap_or_default())
+                .with_extension("html")
+        },
+        Path::to_path_buf,
+    );
     let fought = |result: Result<SimulationResult, mechcore_simulation::Error>| {
         let result = result.map_err(|error| Failure::unsimulated(&error))?;
         let recording = result

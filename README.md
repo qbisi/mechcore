@@ -10,7 +10,7 @@ Whirlwind and Armor Enhancement, from [a pinned corpus round](tests/corpus/67158
 Play it locally:
 
 ```sh
-cargo run --release -p mechcore --no-default-features -- play tests/corpus/67158166-r5.yaml /tmp/mechcore-demo.html
+cargo run --release -p mechcore --no-default-features -- play tests/corpus/67158166-r5.yaml
 ```
 
 Space pauses, the timeline seeks, and the mouse wheel zooms. The exported HTML
