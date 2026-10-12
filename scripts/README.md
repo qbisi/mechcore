@@ -26,3 +26,15 @@ A script under a directory imports `build_data` from here; one whose file name
 is not a module name is loaded by path. Scripts that write `config/` stamp the
 path they were run from into the file's header, so moving one is regenerating
 what it writes.
+
+`check/check-scripts.sh` verifies every tracked fight fixture in parallel and
+keeps a report for every fixture under a fresh run directory in
+`work/check/fixtures/`, or `FIXTURE_REPORT_DIR` when set. It prints complete
+JSON reports in fixture-path order after the workers finish. `results.jsonl`
+holds every report, `failures.jsonl` the failed ones, and `status.tsv` and
+`stderr.log` keep process failures that produced no verification report. The
+per-fixture files preserve stdout, stderr and the exit code separately.
+CI uploads the complete run as its `fixture-verify` artifact on success or
+failure. A fight document can report every outcome, assert, tick-count and
+hash difference; a hash alone cannot locate a differing tick. Comparing
+per-tick fields still needs the game's recording and `mechcore diff`.

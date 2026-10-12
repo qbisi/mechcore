@@ -121,7 +121,19 @@ jobs:
       # simulator and compared with what the game recorded, while recording
       # them stays a thing only a machine with the game can do.
       - name: Every pinned fight verifies
+        env:
+          FIXTURE_REPORT_DIR: reports/fixtures
         run: scripts/check/check-scripts.sh
+
+      # Keep every fixture's full report even when verification fails. The
+      # JSONL is assembled after parallel workers finish, so large diffs are
+      # neither discarded nor interleaved in the log or artifact.
+      - name: Upload complete fixture verification reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixture-verify
+          path: reports/fixtures/
 
       - uses: actions/cache/save@v4
         if: github.ref == 'refs/heads/master' && steps.cache.outputs.cache-hit != 'true'
