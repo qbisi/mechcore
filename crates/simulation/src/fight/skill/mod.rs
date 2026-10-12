@@ -1960,6 +1960,9 @@ impl Simulation {
         let blow_due = in_turn
             && skill.pending().is_none()
             && skill.backswing_finish_step().is_none()
+            // `TryPerformAttack` requires the attack controller to be idle,
+            // including while a burst or sweep still has work to perform.
+            && skill.performer.done()
             && skill.phase() == FightSkillPhase::Attack
             && !entered_skill_phase
             && skill.started_from_idle != Some(step)

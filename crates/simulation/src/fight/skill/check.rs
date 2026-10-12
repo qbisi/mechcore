@@ -218,11 +218,13 @@ impl Simulation {
         let SkillState::Attack(blow) = skill.state else {
             return Ok(());
         };
-        if blow == Blow::Waiting {
+        // An attacking controller remains current while its performer is
+        // releasing a burst or sweep, even with no wind-up or backswing.
+        if blow == Blow::Waiting && skill.performer.done() {
             return Ok(());
         }
-        let refresh = skill.performed_count(self.step_now) == 0
-            && !(matches!(blow, Blow::Before(_)) && attackable);
+        let winding_up = matches!(blow, Blow::Before(pending) if self.step_now < pending.step);
+        let refresh = skill.performed_count(self.step_now) == 0 && !(winding_up && attackable);
         let started = skill
             .next_attack_step
             .saturating_sub(skill.current_attack_interval);

@@ -1,0 +1,56 @@
+# A Stormcaller loses its target at its attack point. The game resets its
+# clock to the interval while retaining the current burst; it starts no
+# second blow before the first burst finishes. Rows measured from game.
+kind: fight
+source: game
+map_id: 1021
+seed: 547570182
+round: 4
+blue:
+  core_damage: 0
+  officers: [advanced_power_system, rhino_specialist, assault_vulcan]
+  techs:
+    vulcan: [incendiary_bomb, best_partner, armor_enhancement, range_enhancement, scorching_fire, sticky_oil_bomb, ignite]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: rhino, index: 0, position: {x: 255, y: -175}, level: 2, source: delivered}
+  - {name: vulcan, index: 1, position: {x: -190, y: -60}, level: 9, exp: 0/4092/16280, rotated: true, equipment: [tank_production_line]}
+  - {name: stormcaller, index: 2, position: {x: 15, y: -80}, level: 8, exp: 0/164/7400}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -275, y: -35}}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: 225, y: 20}]}
+red:
+  core_damage: 473
+  officers: [advanced_power_system, advanced_targeting_system, speed_specialist, improved_sabertooth]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -285, y: -135}, level: 3, exp: 4630/4630/4630, rotated: true, equipment: [improved_firepower_control_system], source: legacy}
+  - {name: crawler, index: 1, position: {x: -115, y: -210}, level: 6, exp: 0/2609/2609}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: -210, y: -90}]}
+ticks: 729
+hash: 24:0ec64c0a274bef7f436c7aec12af20de4772239ac7947da101973231c98aa077
+asserts:
+- sql: |-
+    SELECT tick, unit_id, enabled__attack_target__id AS target,
+           enabled__attack_phase AS phase, enabled__attack_time AS attack_time,
+           enabled__current_attack_interval AS attack_interval,
+           enabled__attack_count AS attack_count
+    FROM units__skills
+    WHERE unit_id=2 AND skill_slot=0 AND tick BETWEEN 179 AND 182
+    ORDER BY tick
+  rows:
+  - [179, 2, 29, before, 16, 132, 0]
+  - [180, 2, 29, attacking, 17, 132, 0]
+  - [181, 2, 19, attacking, 132, 132, 0]
+  - [182, 2, 19, attacking, 133, 132, 0]
