@@ -122,34 +122,6 @@ fn hit_cap(hit_caps: &[(i64, u32)], radius_q32: i64) -> u32 {
         .map_or(9999, |(_, hits)| *hits)
 }
 
-/// `LineRange.Overlaps(CircleRange)`: a circle on either end of the stretch,
-/// or one whose centre lies nearer the stretch than its radius and half the
-/// width (`FightUtility.CalculateIsDistanceFromPointToLineBiggerThanValue2D`).
-fn overlaps(stretch: SweepStretch, width_q32: i64, center: FixedVec2, radius_q32: i64) -> bool {
-    if center == stretch.start || center == stretch.end {
-        return true;
-    }
-    let from_start = center.sub(stretch.start);
-    let along = stretch.end.sub(stretch.start);
-    let length_sq = along.dot(along);
-    let distance_sq = if length_sq == 0 {
-        from_start.sqr_magnitude()
-    } else {
-        let dot = from_start.dot(along);
-        if dot < 1 {
-            from_start.sqr_magnitude()
-        } else if dot < length_sq {
-            let cross =
-                q32_mul(along.x, from_start.y).saturating_sub(q32_mul(along.y, from_start.x));
-            q32_div(q32_mul(cross, cross), length_sq)
-        } else {
-            center.sub(stretch.end).sqr_magnitude()
-        }
-    };
-    let reach = radius_q32.saturating_add(width_q32 / 2);
-    rvo::fpoint_less_than(distance_sq, q32_mul(reach, reach))
-}
-
 impl Sweep {
     /// `m_damagedTargets` counting each of these once more.
     fn count_struck(&mut self, targets: &[FightActorRef]) {
@@ -387,7 +359,13 @@ impl Simulation {
             .filter(|(target, count)| {
                 !circle(self, *target).is_some_and(|(center, radius)| {
                     *count < hit_cap(&shape.hit_caps, radius)
-                        && overlaps(stretch, shape.width_q32, center, radius)
+                        && line_overlaps_circle_q32(
+                            stretch.start,
+                            stretch.end,
+                            shape.width_q32,
+                            center,
+                            radius,
+                        )
                 })
             })
             .map(|(target, _)| *target)
@@ -446,7 +424,7 @@ impl Simulation {
                             && view.domain == domain
                     })
                     && circle(self, *candidate).is_some_and(|(center, radius)| {
-                        overlaps(area, shape.width_q32, center, radius)
+                        line_overlaps_circle_q32(area.start, area.end, shape.width_q32, center, radius)
                     })
                     // `FightSkill.IsActorProtectedByEnergyShield`: a unit a
                     // shield of its side covers, and the owner is outside of,

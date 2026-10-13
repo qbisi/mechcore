@@ -1,7 +1,8 @@
 use super::*;
 
-/// How far off the line of fire an enemy construction may stand and still take
-/// the shot, in space units.
+/// The combined half-width and block radius of the native line/circle check,
+/// in space units. Its squared cross product uses finite `FPoint` arithmetic
+/// and can wrap on long diagonal lines.
 ///
 /// `docs/rules/constructions.md` carries the measurement: 94 decisions over
 /// six unit types leave it in `[10.8, 11.8]` metres, and a Steel Ball of
@@ -803,12 +804,22 @@ impl Simulation {
             if min_range > 0 && distance < min_range {
                 continue;
             }
-            if distance_to_segment_q32(
-                (actor.x_q32, actor.z_q32),
-                (aimed_x_q32, aimed_z_q32),
-                (building.position.x, building.position.z),
-            ) > width
-            {
+            if !line_overlaps_circle_q32(
+                super::super::rvo::FixedVec2 {
+                    x: actor.x_q32,
+                    y: actor.z_q32,
+                },
+                super::super::rvo::FixedVec2 {
+                    x: aimed_x_q32,
+                    y: aimed_z_q32,
+                },
+                width.saturating_mul(2),
+                super::super::rvo::FixedVec2 {
+                    x: building.position.x,
+                    y: building.position.z,
+                },
+                0,
+            ) {
                 continue;
             }
             if nearest.is_none_or(|(best, _)| distance < best) {

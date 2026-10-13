@@ -1,0 +1,51 @@
+# Arclight locks a distant Stormcaller and fires at a defensive wall off
+# the nominal line strip. Native finite FPoint multiplication wraps the
+# squared cross product; line/circle overlap therefore admits that block.
+# Target rows measured from game, not inferred from geometric distance.
+kind: fight
+source: game
+map_id: 1021
+seed: 286926227
+round: 3
+blue:
+  core_damage: 100
+  officers: [advanced_targeting_system, fire_badger_specialist, extended_range_stormcaller]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [1, 2]
+  units:
+  - {name: stormcaller, index: 0, position: {x: 335, y: 210}, level: 8, exp: 7400/7400/7400, rotated: true, equipment: [laser_sights], source: legacy}
+  - {name: fire_badger, index: 1, position: {x: -225, y: -220}, source: delivered}
+  - {name: steel_ball, index: 2, position: {x: 115, y: -290}, level: 3}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: 175, y: -160}]}
+red:
+  core_damage: 0
+  officers: [advanced_power_system, fortified_specialist, extended_range_arclight]
+  techs:
+    arclight: [electromagnetic_shot, armor_enhancement, anti_aircraft_ammunition, shockwave, range_enhancement, elite_marksman, charged_shot]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: arclight, index: 0, position: {x: 90, y: -20}, level: 6, exp: 4349/4349/4349, rotated: true, equipment: [small_amplifying_core], source: legacy}
+  - {name: fang, index: 1, position: {x: -45, y: -160}, level: 4, exp: 0/2148/2694}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: -265, y: 65}, {x: -55, y: 60}]}
+ticks: 1443
+hash: 24:413b6a26acf38c5e595a7c34ff58599edc856acfc54b2a4d82ae508e40da793c
+asserts:
+- sql: |-
+    SELECT tick,unit_id,enabled__lock_target__kind,enabled__lock_target__id,
+           enabled__attack_target__kind,enabled__attack_target__id
+    FROM units__skills WHERE unit_id=12 AND skill_slot=0
+    AND tick BETWEEN 635 AND 637 ORDER BY tick
+  rows:
+  - [635, 12, null, null, null, null]
+  - [636, 12, unit, 8, building, 5]
+  - [637, 12, unit, 8, building, 5]

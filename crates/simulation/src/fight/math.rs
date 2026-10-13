@@ -101,38 +101,38 @@ pub(in crate::fight) fn rotation_distance_q32(left: i64, right: i64) -> i64 {
     ((right.rem_euclid(full) - left.rem_euclid(full) + full + half).rem_euclid(full) - half).abs()
 }
 
-/// How far a point lies from a segment, in the fixed point the fight holds.
-///
-/// The build asks `LineRange.Overlaps(CircleRange)`, a rectangle from the
-/// attacker to its target against a circle on the construction. This is the
-/// same test written as a distance, which is what makes it one comparison
-/// against a measured width.
-pub(in crate::fight) fn distance_to_segment_q32(
-    from: (i64, i64),
-    to: (i64, i64),
-    point: (i64, i64),
-) -> i64 {
-    let (dx, dz) = (
-        i128::from(to.0) - i128::from(from.0),
-        i128::from(to.1) - i128::from(from.1),
-    );
-    let (px, pz) = (
-        i128::from(point.0) - i128::from(from.0),
-        i128::from(point.1) - i128::from(from.1),
-    );
-    let length = dx * dx + dz * dz;
-    if length == 0 {
-        return magnitude(
-            i64::try_from(px).unwrap_or(i64::MAX),
-            i64::try_from(pz).unwrap_or(i64::MAX),
-        );
+/// `LineRange.Overlaps(CircleRange)`: a circle on either end of the stretch,
+/// or one whose centre lies nearer the stretch than its radius and half the
+/// width (`FightUtility.CalculateIsDistanceFromPointToLineBiggerThanValue2D`).
+pub(in crate::fight) fn line_overlaps_circle_q32(
+    start: super::rvo::FixedVec2,
+    end: super::rvo::FixedVec2,
+    width_q32: i64,
+    center: super::rvo::FixedVec2,
+    radius_q32: i64,
+) -> bool {
+    if center == start || center == end {
+        return true;
     }
-    let along = (px * dx + pz * dz).clamp(0, length);
-    let (nearest_x, nearest_z) = (dx * along / length, dz * along / length);
-    magnitude(
-        i64::try_from(px - nearest_x).unwrap_or(i64::MAX),
-        i64::try_from(pz - nearest_z).unwrap_or(i64::MAX),
-    )
+    let from_start = center.sub(start);
+    let along = end.sub(start);
+    let length_sq = along.dot(along);
+    let distance_sq = if length_sq == 0 {
+        from_start.sqr_magnitude()
+    } else {
+        let dot = from_start.dot(along);
+        if dot < 1 {
+            from_start.sqr_magnitude()
+        } else if dot < length_sq {
+            let cross =
+                q32_mul(along.x, from_start.y).saturating_sub(q32_mul(along.y, from_start.x));
+            q32_div(q32_mul(cross, cross), length_sq)
+        } else {
+            center.sub(end).sqr_magnitude()
+        }
+    };
+    let reach = radius_q32.saturating_add(width_q32 / 2);
+    rvo::fpoint_less_than(distance_sq, q32_mul(reach, reach))
 }
 
 pub(in crate::fight) fn magnitude(x: i64, z: i64) -> i64 {
@@ -168,14 +168,25 @@ pub(in crate::fight) fn q32_to_space_rounded(value: i64) -> i64 {
     i64::try_from(rounded).unwrap_or(if rounded < 0 { i64::MIN } else { i64::MAX })
 }
 
+/// `FPoint.op_Multiply`: finite products retain their low 64 bits; its
+/// infinity and NaN sentinels are handled before the ordinary product.
+#[allow(
+    clippy::cast_possible_truncation,
+    reason = "native finite FPoint multiplication wraps"
+)]
 pub(in crate::fight) fn q32_mul(left: i64, right: i64) -> i64 {
-    i64::try_from((i128::from(left) * i128::from(right)) >> 32).unwrap_or({
-        if (left < 0) == (right < 0) {
-            i64::MAX
-        } else {
-            i64::MIN
-        }
-    })
+    const NAN: i64 = i64::MIN + 1;
+    if left == NAN || right == NAN {
+        return NAN;
+    }
+    if [i64::MIN, i64::MAX].contains(&left) || [i64::MIN, i64::MAX].contains(&right) {
+        return match left.signum() * right.signum() {
+            0 => NAN,
+            1 => i64::MAX,
+            _ => i64::MIN,
+        };
+    }
+    ((i128::from(left) * i128::from(right)) >> 32) as i64
 }
 
 /// `FPoint.op_LessThanOrEqual`: differences of up to 43 raw count as equal.
