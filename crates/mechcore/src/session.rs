@@ -1160,7 +1160,7 @@ mod tests {
                     "kind": "layout",
                     "round": 1,
                     "blue": {
-                        "units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}],
+                        "units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}, "source": "joined"}],
                         "battle_skills": [{
                             "name": "sticky_oil_bomb",
                             "standing": {
@@ -1168,7 +1168,7 @@ mod tests {
                             }
                         }]
                     },
-                    "red": {"units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}]}
+                    "red": {"units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}, "source": "joined"}]}
                 }),
                 None,
             )

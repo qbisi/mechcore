@@ -868,6 +868,7 @@ pub fn open_round(
         }
         hand_out_round(&mut next, row, stream.as_mut())?;
         if let Some(opening) = row.opening_unit {
+            let index = next.next_index.unit;
             hand_out(
                 economy,
                 &mut next,
@@ -876,6 +877,7 @@ pub fn open_round(
                 opening.level,
                 placement,
             )?;
+            formation_mut(&mut next, index)?.unit.source = crate::layout::UnitSource::Delivered;
         }
     }
     Ok(next)
@@ -987,6 +989,11 @@ fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unse
     next.energy_tower_skills.clear();
     let techs = next.techs.clone();
     for entry in &mut next.units {
+        entry.unit.source = if round <= 1 {
+            crate::layout::UnitSource::Joined
+        } else {
+            crate::layout::UnitSource::Legacy
+        };
         entry.movable = round <= 1 || crate::mobility::free(&entry.unit, &techs);
     }
     Ok(())
@@ -1409,9 +1416,9 @@ round: 3
 blue:
   core_damage: 37
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 12/170/650}
-  - {name: arclight, index: 1, position: {x: 60, y: -50}, exp: 0/40/750}
-  - {name: arclight, index: 2, position: {x: -60, y: -50}}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 12/170/650, source: joined}
+  - {name: arclight, index: 1, position: {x: 60, y: -50}, exp: 0/40/750, source: joined}
+  - {name: arclight, index: 2, position: {x: -60, y: -50}, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 5, y: -95}, retained: false}
   - {name: missile, index: 1, position: {x: -95, y: -95}}
@@ -1424,7 +1431,7 @@ blue:
 red:
   core_damage: 0
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -100}}
+  - {name: arclight, index: 0, position: {x: 0, y: -100}, source: joined}
 ticks: 870
 hash: 23:0000000000000000000000000000000000000000000000000000000000000000
 ",
@@ -1748,6 +1755,18 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         };
         assert_eq!(movable(1), [true, true]);
         assert_eq!(movable(2), [false, true]);
+        let inherited = super::open_round(economy, &state, 2, &mut |_, _| None, None).unwrap();
+        assert!(
+            inherited
+                .units
+                .iter()
+                .all(|unit| unit.unit.source == crate::layout::UnitSource::Legacy)
+        );
+        assert!(
+            !serde_yaml::to_string(&inherited)
+                .unwrap()
+                .contains("source:")
+        );
     }
 
     /// The opening pays the map's schedule, the officers' income and what

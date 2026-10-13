@@ -5,9 +5,9 @@ kind: layout
 round: 2
 blue:
   units:
-    - {name: marksman, index: 0, position: {x: 0, y: -50}}
-    - {name: marksman, index: 1, travelling: true, level: 2, equipment: [heavy_armor], rotated: true, position: {x: -330, y: 100}}
+    - {name: marksman, index: 0, position: {x: 0, y: -50}, source: joined}
+    - {name: marksman, index: 1, travelling: true, level: 2, equipment: [heavy_armor], rotated: true, position: {x: -330, y: 100}, source: joined}
 red:
   units:
-    - {name: arclight, index: 0, position: {x: 0, y: -50}}
-    - {name: arclight, index: 1, travelling: true, position: {x: 330, y: 150}}
+    - {name: arclight, index: 0, position: {x: 0, y: -50}, source: joined}
+    - {name: arclight, index: 1, travelling: true, position: {x: 330, y: 150}, source: joined}

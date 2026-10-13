@@ -13,14 +13,14 @@ round: 3
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, source: legacy}
-  - {name: hound, index: 1, position: {x: -330, y: 60}, exp: 0/400/750, source: legacy}
-  - {name: arclight, index: 2, position: {x: 330, y: 100}, exp: 0/400/750, source: legacy}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: hound, index: 1, position: {x: -330, y: 60}, exp: 0/400/750}
+  - {name: arclight, index: 2, position: {x: 330, y: 100}, exp: 0/400/750}
 red:
   core_damage: 140
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650, source: legacy}
-  - {name: hound, index: 1, position: {x: -330, y: 200}, exp: 0/200/750, source: legacy}
-  - {name: arclight, index: 2, position: {x: 330, y: 250}, exp: 0/320/750, source: legacy}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
+  - {name: hound, index: 1, position: {x: -330, y: 200}, exp: 0/200/750}
+  - {name: arclight, index: 2, position: {x: 330, y: 250}, exp: 0/320/750}
 ticks: 1250
 hash: 24:074b52c9313cc387a11097e6b49731420a42e1d8b94a5cfb51c7bfa4fe50c7aa

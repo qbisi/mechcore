@@ -318,8 +318,8 @@ pub struct FightUnit {
     pub equipment: Vec<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub travelling: Option<bool>,
-    /// How the unit came to its side; `joined`, the default, is not written.
-    #[serde(default, skip_serializing_if = "crate::layout::UnitSource::is_joined")]
+    /// How the unit came to its side; `legacy`, the default, is not written.
+    #[serde(default, skip_serializing_if = "crate::layout::UnitSource::is_legacy")]
     pub source: crate::layout::UnitSource,
 }
 

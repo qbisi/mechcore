@@ -9,10 +9,10 @@ round: 1
 blue:
   techs: {mountain: [gun_launched_missile]}
   units:
-  - {name: mountain, index: 0, position: {x: 5, y: -205}}
+  - {name: mountain, index: 0, position: {x: 5, y: -205}, source: joined}
 red:
   units:
-  - {name: sledgehammer, index: 0, position: {x: -95, y: -60}}
-  - {name: crawler, index: 1, position: {x: 105, y: -30}}
-  - {name: rhino, index: 2, position: {x: 165, y: -135}}
-  - {name: fang, index: 3, position: {x: -175, y: -150}}
+  - {name: sledgehammer, index: 0, position: {x: -95, y: -60}, source: joined}
+  - {name: crawler, index: 1, position: {x: 105, y: -30}, source: joined}
+  - {name: rhino, index: 2, position: {x: 165, y: -135}, source: joined}
+  - {name: fang, index: 3, position: {x: -175, y: -150}, source: joined}

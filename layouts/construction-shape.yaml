@@ -31,8 +31,10 @@ blue:
       index: 0
       position: {x: 0, y: -150}
 
+      source: joined
 red:
   units:
     - name: marksman
       index: 0
       position: {x: 0, y: -150}
+      source: joined

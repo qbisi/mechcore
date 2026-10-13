@@ -4,8 +4,8 @@ kind: layout
 round: 3
 blue:
   units:
-    - {name: marksman, index: 0, position: {x: 0, y: -50}}
-    - {name: marksman, index: 1, position: {x: -260, y: -20}}
+    - {name: marksman, index: 0, position: {x: 0, y: -50}, source: joined}
+    - {name: marksman, index: 1, position: {x: -260, y: -20}, source: joined}
 red:
   units:
-    - {name: arclight, index: 0, position: {x: 0, y: -50}}
+    - {name: arclight, index: 0, position: {x: 0, y: -50}, source: joined}

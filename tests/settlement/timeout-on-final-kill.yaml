@@ -15,8 +15,8 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: marksman, index: 0, position: {x: -320, y: 130}, level: 7, exp: 0/4093/4093, rotated: true, equipment: [heavy_armor], travelling: true}
-  - {name: melting_point, index: 1, position: {x: -110, y: -70}}
+  - {name: marksman, index: 0, position: {x: -320, y: 130}, level: 7, exp: 0/4093/4093, rotated: true, equipment: [heavy_armor], travelling: true, source: joined}
+  - {name: melting_point, index: 1, position: {x: -110, y: -70}, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: -235, y: -285}}
   battle_skills:
@@ -31,8 +31,8 @@ red:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: typhoon, index: 0, position: {x: 110, y: -170}, exp: 0/824/1950, source: delivered}
-  - {name: typhoon, index: 1, position: {x: -330, y: 90}, level: 6, exp: 0/200/11308, rotated: true, equipment: [portable_shield], travelling: true}
-  - {name: farseer, index: 2, position: {x: -55, y: -235}, level: 7, exp: 0/600/11334}
+  - {name: typhoon, index: 1, position: {x: -330, y: 90}, level: 6, exp: 0/200/11308, rotated: true, equipment: [portable_shield], travelling: true, source: joined}
+  - {name: farseer, index: 2, position: {x: -55, y: -235}, level: 7, exp: 0/600/11334, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: 5, y: -115}, retained: false}
   battle_skills:

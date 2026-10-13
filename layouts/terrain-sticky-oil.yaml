@@ -7,6 +7,7 @@ blue:
       index: 0
       position: {x: 0, y: -280}
 
+      source: joined
   battle_skills:
     - name: sticky_oil_bomb
       positions:
@@ -18,6 +19,7 @@ red:
     - name: sledgehammer
       index: 0
       position: {x: 5, y: -100}
+      source: joined
   contraptions:
     - name: shield
       index: 0

@@ -15,11 +15,11 @@ blue:
   techs:
     melting_point: [electromagnetic_barrage]
   units:
-  - {name: melting_point, index: 0, position: {x: 60, y: -90}, exp: 0/920/1400}
+  - {name: melting_point, index: 0, position: {x: 60, y: -90}, exp: 0/920/1400, source: joined}
 red:
   core_damage: 350
   units:
-  - {name: farseer, index: 0, position: {x: 205, y: -45}, exp: 0/200/1800}
+  - {name: farseer, index: 0, position: {x: 205, y: -45}, exp: 0/200/1800, source: joined}
   constructions:
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
 asserts:

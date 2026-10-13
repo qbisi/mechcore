@@ -13,31 +13,31 @@ blue:
   core_damage: 721
   officers: [fortified_specialist]
   units:
-  - {name: hound, index: 0, position: {x: 160, y: -110}, exp: 179/236/750, rotated: true, source: legacy}
-  - {name: hound, index: 1, position: {x: 250, y: -100}, exp: 251/273/750, rotated: true, source: legacy}
-  - {name: hound, index: 2, position: {x: 60, y: -120}, exp: 16/200/750, rotated: true, source: legacy}
-  - {name: sledgehammer, index: 3, position: {x: 210, y: -125}, exp: 499/1000/1300, rotated: true, source: legacy}
-  - {name: sledgehammer, index: 4, position: {x: 100, y: -125}, exp: 256/558/1300, rotated: true, equipment: [haste_module], source: legacy}
-  - {name: crawler, index: 5, position: {x: 60, y: -165}, exp: 16/34/450, rotated: true, source: legacy}
-  - {name: crawler, index: 6, position: {x: 160, y: -155}, exp: 31/70/450, rotated: true, source: legacy}
-  - {name: fang, index: 7, position: {x: -140, y: -205}, exp: 0/102/600, rotated: true}
-  - {name: fang, index: 8, position: {x: 140, y: -205}, exp: 0/306/600, rotated: true}
-  - {name: crawler, index: 9, position: {x: 270, y: -285}, rotated: true}
+  - {name: hound, index: 0, position: {x: 160, y: -110}, exp: 179/236/750, rotated: true}
+  - {name: hound, index: 1, position: {x: 250, y: -100}, exp: 251/273/750, rotated: true}
+  - {name: hound, index: 2, position: {x: 60, y: -120}, exp: 16/200/750, rotated: true}
+  - {name: sledgehammer, index: 3, position: {x: 210, y: -125}, exp: 499/1000/1300, rotated: true}
+  - {name: sledgehammer, index: 4, position: {x: 100, y: -125}, exp: 256/558/1300, rotated: true, equipment: [haste_module]}
+  - {name: crawler, index: 5, position: {x: 60, y: -165}, exp: 16/34/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 160, y: -155}, exp: 31/70/450, rotated: true}
+  - {name: fang, index: 7, position: {x: -140, y: -205}, exp: 0/102/600, rotated: true, source: joined}
+  - {name: fang, index: 8, position: {x: 140, y: -205}, exp: 0/306/600, rotated: true, source: joined}
+  - {name: crawler, index: 9, position: {x: 270, y: -285}, rotated: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   core_damage: 0
   officers: [missile_specialist]
   units:
-  - {name: void_eye, index: 0, position: {x: 170, y: -170}, exp: 257/489/650, source: legacy}
-  - {name: void_eye, index: 1, position: {x: -170, y: -170}, exp: 164/592/650, source: legacy}
-  - {name: void_eye, index: 2, position: {x: 0, y: -180}, level: 2, exp: 0/219/1465, source: legacy}
-  - {name: fire_badger, index: 3, position: {x: -75, y: -180}, exp: 337/576/1400, source: legacy}
-  - {name: fire_badger, index: 4, position: {x: 75, y: -180}, exp: 405/989/1400, source: legacy}
-  - {name: fang, index: 5, position: {x: -140, y: -205}, exp: 110/364/600, rotated: true, source: legacy}
-  - {name: fang, index: 6, position: {x: 140, y: -205}, exp: 111/124/600, rotated: true, source: legacy}
-  - {name: fire_badger, index: 7, position: {x: -225, y: -170}, exp: 0/388/1400}
-  - {name: fang, index: 8, position: {x: -140, y: -135}, exp: 0/176/600, rotated: true}
+  - {name: void_eye, index: 0, position: {x: 170, y: -170}, exp: 257/489/650}
+  - {name: void_eye, index: 1, position: {x: -170, y: -170}, exp: 164/592/650}
+  - {name: void_eye, index: 2, position: {x: 0, y: -180}, level: 2, exp: 0/219/1465}
+  - {name: fire_badger, index: 3, position: {x: -75, y: -180}, exp: 337/576/1400}
+  - {name: fire_badger, index: 4, position: {x: 75, y: -180}, exp: 405/989/1400}
+  - {name: fang, index: 5, position: {x: -140, y: -205}, exp: 110/364/600, rotated: true}
+  - {name: fang, index: 6, position: {x: 140, y: -205}, exp: 111/124/600, rotated: true}
+  - {name: fire_badger, index: 7, position: {x: -225, y: -170}, exp: 0/388/1400, source: joined}
+  - {name: fang, index: 8, position: {x: -140, y: -135}, exp: 0/176/600, rotated: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}

@@ -13,8 +13,8 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
   - {name: typhoon, index: 0, position: {x: -90, y: -90}, exp: 0/870/1950, source: delivered}
-  - {name: melting_point, index: 1, position: {x: -10, y: -260}, level: 6, exp: 0/8118/8118, equipment: [barrier]}
-  - {name: scorpion, index: 2, position: {x: -85, y: -125}, level: 4, exp: 0/346/6735}
+  - {name: melting_point, index: 1, position: {x: -10, y: -260}, level: 6, exp: 0/8118/8118, equipment: [barrier], source: joined}
+  - {name: scorpion, index: 2, position: {x: -85, y: -125}, level: 4, exp: 0/346/6735, source: joined}
   constructions:
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
   contraptions:
@@ -28,9 +28,9 @@ red:
     crawler: [subterranean_blitz, acidic_explosion, loose_formation, mechanical_rage, impact_drill, replicate]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: crawler, index: 0, position: {x: 75, y: -290}, level: 4, exp: 1010/2021/2021, equipment: [secondary_fire_control_system], source: legacy}
+  - {name: crawler, index: 0, position: {x: 75, y: -290}, level: 4, exp: 1010/2021/2021, equipment: [secondary_fire_control_system]}
   - {name: typhoon, index: 1, position: {x: 190, y: -300}, source: delivered}
-  - {name: fortress, index: 2, position: {x: -260, y: -190}, level: 5, exp: 0/320/8337}
+  - {name: fortress, index: 2, position: {x: -260, y: -190}, level: 5, exp: 0/320/8337, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}

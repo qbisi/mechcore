@@ -20,8 +20,8 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: phoenix, index: 0, position: {x: -20, y: -280}, level: 2, exp: 1464/2864/2929, rotated: true, equipment: [deployment_module], source: legacy}
-  - {name: sabertooth, index: 1, position: {x: -235, y: -85}, level: 9, exp: 0/2800/8746}
+  - {name: phoenix, index: 0, position: {x: -20, y: -280}, level: 2, exp: 1464/2864/2929, rotated: true, equipment: [deployment_module]}
+  - {name: sabertooth, index: 1, position: {x: -235, y: -85}, level: 9, exp: 0/2800/8746, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: 295, y: -35}, retained: false}
   battle_skills:
@@ -32,9 +32,9 @@ red:
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: sledgehammer, index: 0, position: {x: -245, y: -210}, level: 4, exp: 5837/5837/5837, equipment: [dominion_core], source: legacy}
+  - {name: sledgehammer, index: 0, position: {x: -245, y: -210}, level: 4, exp: 5837/5837/5837, equipment: [dominion_core]}
   - {name: rhino, index: 1, position: {x: 155, y: -195}, level: 2, source: delivered}
-  - {name: melting_point, index: 2, position: {x: -50, y: -130}, level: 2, exp: 0/1600/3154}
+  - {name: melting_point, index: 2, position: {x: -50, y: -130}, level: 2, exp: 0/1600/3154, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -30, y: -150}}
   battle_skills:

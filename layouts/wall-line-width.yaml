@@ -39,14 +39,18 @@ blue:
       index: 0
       position: {x: -90, y: -90}
 
+      source: joined
 red:
   units:
     - name: marksman
       index: 0
       position: {x: 200, y: -20}
+      source: joined
     - name: fang
       index: 1
       position: {x: 145, y: -20}
+      source: joined
     - name: farseer
       index: 2
       position: {x: 135, y: -45}
+      source: joined

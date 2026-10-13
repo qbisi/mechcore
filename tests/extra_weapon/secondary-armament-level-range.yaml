@@ -19,11 +19,11 @@ blue:
   techs:
     sabertooth: [secondary_armament]
   units:
-  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, level: 2, exp: 0/400/2929, source: legacy}
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, level: 2, exp: 0/400/2929}
 red:
   core_damage: 200
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -100}, source: legacy}
-  - {name: marksman, index: 1, position: {x: 40, y: -100}, source: legacy}
+  - {name: marksman, index: 0, position: {x: 0, y: -100}}
+  - {name: marksman, index: 1, position: {x: 40, y: -100}}
 ticks: 96
 hash: 24:9a28946275497a481e3e18e8379c1edf3721ae7a50b4d9796a9b008d1a925cf3

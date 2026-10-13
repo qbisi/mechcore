@@ -14,8 +14,8 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: wasp, index: 0, position: {x: -35, y: -60}, exp: 900/900/900, equipment: [laser_sights], source: legacy}
-  - {name: hacker, index: 1, position: {x: -45, y: -175}, level: 2, exp: 0/1262/1262}
+  - {name: wasp, index: 0, position: {x: -35, y: -60}, exp: 900/900/900, equipment: [laser_sights]}
+  - {name: hacker, index: 1, position: {x: -45, y: -175}, level: 2, exp: 0/1262/1262, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
@@ -30,8 +30,8 @@ red:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: rhino, index: 0, position: {x: 155, y: -275}, level: 2, source: delivered}
-  - {name: overlord, index: 1, position: {x: 335, y: 55}, level: 7, exp: 0/473/11019, equipment: [mustang_production_line], travelling: true}
-  - {name: centurion, index: 2, position: {x: -5, y: -95}, level: 4, exp: 0/68/10103}
+  - {name: overlord, index: 1, position: {x: 335, y: 55}, level: 7, exp: 0/473/11019, equipment: [mustang_production_line], travelling: true, source: joined}
+  - {name: centurion, index: 2, position: {x: -5, y: -95}, level: 4, exp: 0/68/10103, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}

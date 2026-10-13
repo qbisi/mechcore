@@ -7,15 +7,12 @@ blue:
       index: 0
       position: {x: 310, y: 285}
       travelling: true
-      source: legacy
     - name: phantom_ray
       index: 1
       position: {x: 330, y: 285}
-      source: legacy
     - name: typhoon
       index: 2
       position: {x: 350, y: 290}
-      source: legacy
 
 red:
   units:

@@ -14,9 +14,9 @@ blue:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [1, 2]
   units:
-  - {name: stormcaller, index: 0, position: {x: 335, y: 210}, level: 8, exp: 7400/7400/7400, rotated: true, equipment: [laser_sights], source: legacy}
+  - {name: stormcaller, index: 0, position: {x: 335, y: 210}, level: 8, exp: 7400/7400/7400, rotated: true, equipment: [laser_sights]}
   - {name: fire_badger, index: 1, position: {x: -225, y: -220}, source: delivered}
-  - {name: steel_ball, index: 2, position: {x: 115, y: -290}, level: 3}
+  - {name: steel_ball, index: 2, position: {x: 115, y: -290}, level: 3, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   battle_skills:
@@ -30,8 +30,8 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: arclight, index: 0, position: {x: 90, y: -20}, level: 6, exp: 4349/4349/4349, rotated: true, equipment: [small_amplifying_core], source: legacy}
-  - {name: fang, index: 1, position: {x: -45, y: -160}, level: 4, exp: 0/2148/2694}
+  - {name: arclight, index: 0, position: {x: 90, y: -20}, level: 6, exp: 4349/4349/4349, rotated: true, equipment: [small_amplifying_core]}
+  - {name: fang, index: 1, position: {x: -45, y: -160}, level: 4, exp: 0/2148/2694, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
