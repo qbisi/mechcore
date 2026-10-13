@@ -715,6 +715,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "syntaqlite",
  "tempfile",
  "tokio",
 ]
@@ -1347,6 +1348,31 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "syntaqlite"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf945c4edea20803effd0c0860d9f5f385c9a7538b9f89114c38ded6e32576a3"
+dependencies = [
+ "syntaqlite-common",
+ "syntaqlite-syntax",
+]
+
+[[package]]
+name = "syntaqlite-common"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0526488e3b7a2f9a3f66a346dc3f4ecc2197f2275ed409803e78330521c2eedd"
+
+[[package]]
+name = "syntaqlite-syntax"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6302f749a134ab51918c5bd211c196c9065f21c0eabdd9a1f6260c430cbe981"
+dependencies = [
+ "cc",
 ]
 
 [[package]]

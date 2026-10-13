@@ -638,7 +638,16 @@ as `convert` refuses it.
 ## `format` and `schema`
 
 `format <document>` writes the document in its normal form, in place with
-`--write`. A layout and a fight are the kinds it takes.
+`--write`. A layout and a fight are the kinds it takes. The leading comment
+block and its blank lines are preserved verbatim; comments within the document
+are not retained. Leading blank lines without a comment are removed.
+
+Fight assertion SQL is formatted with `syntaqlite`'s built-in SQLite dialect
+and default style: 80-column lines, two-space indentation, uppercase keywords
+and statement-ending semicolons. SQL strings and comments are handled by the
+SQL formatter. An assertion whose SQL cannot be parsed is refused before the
+file is written. Reading a document and ordinary canonical serialization
+preserve its SQL string; this rewrite belongs to `format` alone.
 
 `schema <kind>...` takes the kinds a document declares in its own `kind` field:
 `layout`, `fight`, `state`, `match` and `action`. It answers the shape of the document,
