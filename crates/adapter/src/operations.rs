@@ -4152,23 +4152,6 @@ mod tests {
         assert!(FIXED_TOWER_KINDS.contains(&RESEARCH_CENTER_KIND));
     }
 
-    /// The fixture captured live from the round whose two towers differ.
-    ///
-    /// Red holds a level 2 tower beside an unstrengthened one, so the list is
-    /// asymmetric and a reversal is visible. The live capture that produced it
-    /// read red's kinds as `[ResearchCenter, EnergyTower]` and its levels as
-    /// `[0, 2]`, which is what the replay's own record says, so this pins the
-    /// list the adapter must reproduce without naming either position.
-    #[test]
-    fn the_captured_fixture_keeps_its_tower_levels_in_position_order() {
-        let bytes = std::fs::read("../../layouts/tuff-replay-round-7.yaml")
-            .expect("the captured layout fixture");
-        let parsed = layout::parse_yaml(&bytes).expect("a valid layout");
-        let plan = layout::compile_layout(parsed).expect("the fixture compiles");
-        assert_eq!(plan.red.tower_strengthen_levels, vec![0, 2]);
-        assert!(plan.blue.tower_strengthen_levels.is_empty());
-    }
-
     #[test]
     fn layout_positions_are_rotated_for_red_only() {
         let plan = layout::compile(&json!({

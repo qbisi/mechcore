@@ -2,8 +2,8 @@
 
 use std::{path::PathBuf, process::Command};
 
-fn repository() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
+fn fixture() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/marksman-vs-arclight.yaml")
 }
 
 fn mechcore(arguments: &[&std::ffi::OsStr]) -> std::process::Output {
@@ -45,7 +45,7 @@ fn timeline(page: &std::path::Path) -> serde_json::Value {
 fn a_layout_is_fought_in_memory_and_played() {
     let directory = tempfile::tempdir().unwrap();
     let page = directory.path().join("six.html");
-    let layout = repository().join("layouts/marksman-vs-arclight.yaml");
+    let layout = fixture();
     let report = played(&[
         "play".as_ref(),
         layout.as_os_str(),
@@ -72,7 +72,7 @@ fn a_fight_and_its_recording_play_the_same_fight() {
     // The simulator's fight of a tracked layout: a fight document whatever its
     // source, and one no fixture has to keep.
     let fight = directory.path().join("fight.yaml");
-    let layout = repository().join("layouts/marksman-vs-arclight.yaml");
+    let layout = fixture();
     let written = mechcore(&[
         "convert".as_ref(),
         layout.as_os_str(),

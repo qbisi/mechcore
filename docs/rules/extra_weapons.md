@@ -1145,8 +1145,8 @@ that is not melee, so the simulator refuses it.
   simulator starts a batch's first gun from the motion. A Mountain whose
   Gun-launched Missile held the motion and whose motion is idle starts its
   first gun in the game as soon as its target turns into its 10 degrees, four
-  ticks before the simulator: `layouts/gun-launched-missile-spread.yaml`,
-  t532, not pinned.
+  ticks before the simulator in the Mountain probe, at tick 532; this
+  observation is not pinned.
 - **What Electromagnetic Barrage's buff switches off** beyond a plain
   technology's numbers and an extra skill
   ([technology_effects.md](technology_effects.md)): a unit that carries any

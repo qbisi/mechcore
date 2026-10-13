@@ -739,8 +739,7 @@ mod tests {
     /// Nothing but a match takes this path.
     #[test]
     fn a_layout_is_not_a_match() {
-        let layout = std::fs::read("../../layouts/tuff-replay-round-7.yaml").unwrap();
-        assert!(stated(&layout).unwrap().is_none());
+        assert!(stated(b"kind: layout\nround: 1\n").unwrap().is_none());
         assert!(stated(b"not a document at all").unwrap().is_none());
     }
 

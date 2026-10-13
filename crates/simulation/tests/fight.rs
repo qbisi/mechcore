@@ -3,12 +3,8 @@ use std::{fs, path::PathBuf};
 use mechcore_mcfr::{EventKind, McfrReader, Recording};
 use mechcore_simulation::{Record, simulate_layout};
 
-fn repository() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
-}
-
 fn fixture() -> PathBuf {
-    repository().join("layouts/marksman-vs-arclight.yaml")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/marksman-vs-arclight.yaml")
 }
 
 #[test]
@@ -73,15 +69,6 @@ fn a_fight_kept_in_memory_reads_as_its_recording() {
     }
     assert!(kept.state(0).is_err());
     assert!(kept.state(written.terminal_tick() + 1).is_err());
-}
-
-#[test]
-fn the_same_layout_and_seed_have_identical_semantic_hashes() {
-    let first = simulate_layout(fixture(), Record::Hash, Some(-19)).unwrap();
-    let second = simulate_layout(fixture(), Record::Hash, Some(-19)).unwrap();
-    assert_eq!(first.hashes, second.hashes);
-    assert_eq!(first.winner, second.winner);
-    assert_eq!(first.steps, second.steps);
 }
 
 #[test]

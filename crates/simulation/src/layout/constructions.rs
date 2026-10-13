@@ -36,7 +36,7 @@ const SPECIAL: u32 = 3;
 /// why: `block_width` and `space` span 83 metres across a footprint 60 wide,
 /// and no construction an opening lays places its objects in more than one
 /// row.
-/// `layouts/construction-shape.yaml` is the measurement.
+/// The measured wall positions are stated by the geometry test below.
 const MEASURED_SPACING: &[(i32, i64)] = &[(1, 12)];
 
 /// One building a construction places.
@@ -392,7 +392,7 @@ mod tests {
         }
     }
 
-    /// The five blocks `layouts/construction-shape.yaml` read back,
+    /// The five blocks read back from the native wall geometry probe,
     /// which is the whole of what the geometry rests on.
     #[test]
     fn a_wall_is_five_blocks_twelve_metres_apart() {

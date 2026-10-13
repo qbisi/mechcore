@@ -1,7 +1,7 @@
 # Interceptors take each other's missiles out of the air.
 #
-# `layouts/shield-missile-battle.yaml` with each shield an interceptor on the
-# grid. Each side's missile fires on tick 1 at the Stormcaller across from it;
+# Each side places an interceptor, a missile and a Stormcaller. Each missile
+# fires on tick 1 at the Stormcaller across from it;
 # the other side's interceptor locks it three ticks at a time, and the sixth
 # hit, on tick 18, takes the last of its 327900 life, the attack having fallen
 # 1512 with each hit. Then the Stormcallers fight.

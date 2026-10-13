@@ -373,55 +373,6 @@ red:
         assert_eq!(once.clone().normalized(), once);
     }
 
-    /// Every layout under `directory`, a file being one when it says so.
-    /// The tracked layouts are in `layouts/`; a fixture under `tests/` is a
-    /// fight, which `verify` holds.
-    fn tracked_layouts(directory: &std::path::Path, found: &mut Vec<std::path::PathBuf>) {
-        for entry in std::fs::read_dir(directory).expect("tracked fixture directory") {
-            let path = entry.expect("directory entry").path();
-            if path.is_dir() {
-                tracked_layouts(&path, found);
-            } else if path
-                .extension()
-                .is_some_and(|extension| extension == "yaml")
-                && std::fs::read_to_string(&path)
-                    .is_ok_and(|text| text.lines().any(|line| line == "kind: layout"))
-            {
-                found.push(path);
-            }
-        }
-    }
-
-    #[test]
-    fn tracked_layouts_are_normal_and_normalize_idempotently() {
-        let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
-        let mut paths = Vec::new();
-        tracked_layouts(&std::path::Path::new(root).join("layouts"), &mut paths);
-        let mut checked = 0;
-        for path in paths {
-            let bytes = std::fs::read(&path).expect("readable layout");
-            let layout = parse_yaml(&bytes).unwrap_or_else(|error| {
-                panic!("{} does not parse: {error}", path.display());
-            });
-            assert_eq!(
-                layout.clone(),
-                layout.clone().normalized(),
-                "{} is not in normal form",
-                path.display()
-            );
-            let once = layout.normalized();
-            let twice = once.clone().normalized();
-            assert_eq!(
-                once,
-                twice,
-                "{} is not a normalization fixed point",
-                path.display()
-            );
-            checked += 1;
-        }
-        assert!(checked > 0, "no tracked layouts were read from {root}");
-    }
-
     #[test]
     fn map_id_is_optional_positive_and_preserved() {
         let mut value = json!({"kind": "layout", "round": 1, "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},

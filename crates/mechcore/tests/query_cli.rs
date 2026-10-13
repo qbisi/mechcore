@@ -9,7 +9,7 @@ fn recording(directory: &Path) -> PathBuf {
 fn recording_with_seed(directory: &Path, seed: u32) -> PathBuf {
     let output = directory.join(format!("fight-{seed}.mcfr"));
     let layout =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../layouts/marksman-vs-arclight.yaml");
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/marksman-vs-arclight.yaml");
     let command = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["convert", "--to", "mcfr"])
         .arg(layout)
