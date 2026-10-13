@@ -119,9 +119,17 @@ among the enemy's constructions,
   keep the ones within attack range of the attacker, edge to edge
       (centre distance <= range + attacker radius + block radius),
   pass over the ones whose centre stands nearer than the skill's minimum range,
-  keep the ones within 11.5 metres of the line from the attacker to its target,
+  test native line/circle overlap (11.5 metres combined reach for these blocks),
   take the nearest of those to the attacker.
 ```
+
+The overlap is the build's fixed-point calculation, not an unbounded
+Euclidean distance. `FPoint.op_Multiply` keeps the low 64 bits of finite
+products; the squared cross product in
+`FightUtility.CalculateIsDistanceFromPointToLineBiggerThanValue2D` can wrap
+on long diagonal lines. A negative wrapped square passes the overlap check,
+so a block outside the nominal strip can be selected. Recorded by
+`tests/construction/wall-on-long-diagonal.yaml`.
 
 **It is asked wherever the skill asks what to fire at**, which is one method,
 `FightSkill.SearchAttackTarget`: it takes the lock, finds the shield that
