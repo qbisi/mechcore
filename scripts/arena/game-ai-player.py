@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """A player modelled on the game's own computer opponent, for `mechcore arena run`.
 
-    mechcore arena run m.yaml --blue 'python3 scripts/arena/game-ai-player.py' \
+    mechcore arena run m.yaml --blue 'python3 scripts/arena/game-ai-player.py --seed 1' \
         --red 'python3 scripts/arena/random-player.py'
+
+Its random seed comes from `--seed`, independently of the match's player
+seed; when omitted, Python initializes it from system randomness.
 
 It is the arena's reference opponent: what the build's `SimpleDecision` does
 each round, read from the decompilation, reimplemented over the request
@@ -103,8 +106,7 @@ def blueprints():
 
 class Player:
     def __init__(self, seed):
-        self.seed = seed
-        self.draw = None
+        self.draw = random.Random(seed)
         self.units = catalogue()
         self.blueprints = blueprints()
         self.skills = set(sections(CONFIG / "names.yaml")["commander_skills"].values())
@@ -408,11 +410,6 @@ class Player:
                 print(f"cannot read the match: {view['reason']}", file=sys.stderr)
                 return 1
             self.side = view["side"]
-            if self.draw is None:
-                # The game's computer opponent draws from its side's own
-                # seed, which the match shows, unless one is given.
-                own = view["sides"][self.side].get("seed")
-                self.draw = random.Random(self.seed if self.seed is not None else own)
             phase = view["phase"]
             if phase == "over":
                 return 0
@@ -430,7 +427,7 @@ class Player:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--seed", type=int, help="the draw's seed; the side's own seed when not given")
+    parser.add_argument("--seed", type=int, help="the bot's random seed; independent of the player seed, random when omitted")
     return Player(parser.parse_args().seed).play()
 
 

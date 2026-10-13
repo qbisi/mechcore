@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """A player that takes legal decisions at random, for `mechcore arena run`.
 
-    mechcore arena run m.yaml --blue 'python3 scripts/arena/random-player.py' \
+    mechcore arena run m.yaml --blue 'python3 scripts/arena/random-player.py --seed 1' \
         --red 'python3 scripts/arena/random-player.py --seed 2'
+
+Its random seed comes from `--seed`, independently of the match's player
+seed; when omitted, Python initializes it from system randomness.
 
 It speaks the request stream of `docs/spec/mechcore/cli.md`'s `shell`: one
 JSON request per line on standard output, one JSON result per line on
@@ -96,7 +99,7 @@ def deploy(view, side, draw):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--seed", type=int, help="the draw's seed; drawn when not given")
+    parser.add_argument("--seed", type=int, help="the bot's random seed; independent of the player seed, random when omitted")
     draw = random.Random(parser.parse_args().seed)
 
     while True:
