@@ -227,6 +227,71 @@ red:
     assert_eq!(fs::read_to_string(layout).unwrap(), canonical);
 }
 
+/// Research headers survive both output modes and a second formatting pass.
+#[test]
+fn format_preserves_layout_and_fight_comment_headers() {
+    let directory = tempfile::tempdir().unwrap();
+    for kind in ["layout", "fight"] {
+        let header = if kind == "layout" {
+            "\r\n# Native measurement — 1 µm\r\n# Control and observation.\r\n\r\n"
+        } else {
+            "# Native measurement — 1 µm\n# Control and observation.\n\n"
+        };
+        let fields = if kind == "fight" {
+            "source: game\nseed: 7\nticks: 1\nhash: 23:0000000000000000000000000000000000000000000000000000000000000000\n"
+        } else {
+            ""
+        };
+        let outcome = if kind == "fight" {
+            "  core_damage: 0\n"
+        } else {
+            ""
+        };
+        let source = format!(
+            "{header}---\nkind: {kind}\nround: 1 # body comment\n{fields}blue:\n{outcome}  units:\n    - name: marksman\n      index: 0\n      position: {{x: 0, y: -50}}\n\nred:\n{outcome}  units: [{{name: arclight, index: 0, position: {{x: 0, y: -50}}}}]\n"
+        );
+        let path = directory.path().join(format!("{kind}.yaml"));
+        fs::write(&path, &source).unwrap();
+        let formatted = || {
+            let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+                .arg("format")
+                .arg(&path)
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            String::from_utf8(output.stdout).unwrap()
+        };
+        let canonical = formatted();
+        assert!(
+            canonical.starts_with(&format!("{header}kind: {kind}\n")),
+            "{canonical}"
+        );
+        assert!(!canonical.contains("body comment"));
+        assert_eq!(
+            serde_yaml::from_str::<serde_yaml::Value>(&source).unwrap(),
+            serde_yaml::from_str::<serde_yaml::Value>(&canonical).unwrap()
+        );
+        assert_eq!(fs::read_to_string(&path).unwrap(), source);
+        let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+            .arg("format")
+            .arg(&path)
+            .arg("--write")
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(fs::read_to_string(&path).unwrap(), canonical);
+        assert_eq!(formatted(), canonical);
+    }
+}
+
 #[test]
 fn diff_compares_normalized_fields() {
     let directory = tempfile::tempdir().unwrap();
@@ -371,4 +436,73 @@ fn the_kind_is_read_from_the_content_and_an_unsupported_pair_names_it() {
             .contains("verify does not take a state file"),
         "{report}"
     );
+}
+
+/// SQLite quoting, strings, comments, CTEs and windows survive SQL formatting.
+#[test]
+fn format_sql_preserves_sqlite_results_and_is_idempotent() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("fight.yaml");
+    let sql = r#"-- SELECT and FROM here are a comment
+with [values](n, [order]) as (values (1, 'FROM WHERE'), (2, 'a''b')) select n, [order], sum(n) over (order by n rows between unbounded preceding and current row) as total, hex(x'CAFE') as bytes, json_extract('{"SELECT":"FROM"}', '$.SELECT') as text from [values] where n between 1 and 2 order by n"#;
+    let mut source: serde_yaml::Value = serde_yaml::from_str(
+        "kind: fight\nsource: game\nseed: 7\nround: 1\nblue:\n  core_damage: 0\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\nred:\n  core_damage: 0\n  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\nticks: 1\nhash: 23:0000000000000000000000000000000000000000000000000000000000000000\n",
+    ).unwrap();
+    source["asserts"] =
+        serde_yaml::to_value(serde_json::json!([{"sql": sql, "rows": []}])).unwrap();
+    fs::write(
+        &path,
+        format!(
+            "# SQL formatting control.\n{}",
+            serde_yaml::to_string(&source).unwrap()
+        ),
+    )
+    .unwrap();
+    let run = || {
+        Command::new(env!("CARGO_BIN_EXE_mechcore"))
+            .arg("format")
+            .arg(&path)
+            .arg("--write")
+            .output()
+            .unwrap()
+    };
+    let output = run();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let formatted = fs::read_to_string(&path).unwrap();
+    assert!(formatted.starts_with("# SQL formatting control.\n"));
+    let mut result: serde_yaml::Value = serde_yaml::from_str(&formatted).unwrap();
+    let formatted_sql = result["asserts"][0]["sql"].as_str().unwrap().to_owned();
+    assert!(formatted_sql.contains("\nSELECT"), "{formatted_sql}");
+    assert!(formatted_sql.contains("-- SELECT and FROM here are a comment"));
+    let connection = rusqlite::Connection::open_in_memory().unwrap();
+    let rows = |query: &str| {
+        let mut statement = connection.prepare(query).unwrap();
+        let columns = statement.column_count();
+        statement
+            .query_map([], |row| {
+                (0..columns)
+                    .map(|column| row.get::<_, rusqlite::types::Value>(column))
+                    .collect::<Result<Vec<_>, _>>()
+            })
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap()
+    };
+    assert_eq!(rows(sql), rows(&formatted_sql));
+    result["asserts"][0]["sql"] = serde_yaml::Value::String(sql.to_owned());
+    assert_eq!(result, source, "only SQL spelling changes");
+    assert!(run().status.success());
+    assert_eq!(fs::read_to_string(&path).unwrap(), formatted);
+
+    result["asserts"][0]["sql"] = serde_yaml::Value::String("SELECT FROM".into());
+    let invalid = serde_yaml::to_string(&result).unwrap();
+    fs::write(&path, &invalid).unwrap();
+    let refused = run();
+    assert!(!refused.status.success());
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("asserts[0].sql"));
+    assert_eq!(fs::read_to_string(&path).unwrap(), invalid);
 }
