@@ -547,9 +547,9 @@ three apart:
 
 | `source` | The unit |
 | --- | --- |
-| `legacy` | the side carried it into the round: a unit of an earlier round, or in the first round the advance team the side chose before it, five units in a standard 1v1. The round's snapshot holds it. |
+| `legacy` | the side carried it from an earlier round. Round 1 has none. A layout replay holds it in the round's snapshot. |
 | `delivered` | a squad an officer delivered as the round opened, one for each officer whose `opening_unit` the round activates, of its type, at its level or above and without experience |
-| `joined` | it joined the side during the round: bought, taken as a reinforcement or added. Not written, being the default. |
+| `joined` | it arrived this round: the advance team in round 1, bought, taken as a reinforcement or added. Not written, being the default. |
 
 The unit allocator names units in the order they are created, so the three
 come in that order: every legacy unit's index is below every delivered
@@ -560,10 +560,10 @@ legacy.
 
 A fight sees the difference once, as it starts: a construction that fires turns
 to the best scored of the other side's targets, among them its legacy units
-from the second round on and its delivered squads, never a unit that joined,
-and never a legacy unit in the first round, the advance team included, which
-the game has not yet counted as old. A delivered squad is scored as if it stood
-at the origin
+and its delivered squads, never a joined unit, the first round's advance team
+included. Legacy units and delivered squads are the game's old units
+(`MechTeam.IsOldUnit`); joined units have not been counted as old. A delivered
+squad is scored as if it stood at the origin
 ([turrets](../../rules/turrets.md#as-the-fight-starts-it-faces-the-target-its-selector-scores-best)).
 
 `recovered` lists the index of each squad an officer delivered as the round
@@ -573,10 +573,10 @@ index is what a [layout replay](layout-replay.md#the-rounds-decisions)
 recovers it by. Its indices come where delivered squads' do, and an index is
 not both recovered and a unit's.
 
-A capture reads each unit's source as a replayed round opens: legacy below the
-allocator, delivered for the squads the officers' deliveries make, joined for
-the rest. The Training Ground adds every unit during the round, so it applies
-no layout with a legacy or delivered unit, and a layout replay holds its legacy
+A capture reads each unit's source as a replayed round opens: from round 2,
+legacy below the allocator before the officers' deliveries, delivered for
+those squads, and joined for the rest. In round 1 the advance team is joined.
+The Training Ground adds every unit during the round, so it applies no layout with a legacy or delivered unit, and a layout replay holds its legacy
 units in the round's snapshot
 ([layout-replay.md](layout-replay.md#the-rounds-decisions)).
 

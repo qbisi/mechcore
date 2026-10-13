@@ -14,7 +14,7 @@ blue:
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: sandworm, index: 0, position: {x: -160, y: -80}, level: 9, exp: 6727/9577/13455, equipment: [tank_production_line], source: legacy}
+  - {name: sandworm, index: 0, position: {x: -160, y: -80}, level: 9, exp: 6727/9577/13455, equipment: [tank_production_line]}
   - {name: mustang, index: 1, position: {x: 195, y: -90}, level: 4}
   constructions:
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
@@ -30,7 +30,7 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [1, 2]
   units:
-  - {name: wraith, index: 0, position: {x: -175, y: -235}, level: 9, exp: 15137/15137/15137, equipment: [deployment_module], source: legacy}
+  - {name: wraith, index: 0, position: {x: -175, y: -235}, level: 9, exp: 15137/15137/15137, equipment: [deployment_module]}
   - {name: stormcaller, index: 1, position: {x: 265, y: -140}, level: 4, exp: 0/240/4939}
   contraptions:
   - {name: missile, index: 0, position: {x: 40, y: -85}, retained: false}

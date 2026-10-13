@@ -33,8 +33,8 @@ of each side, so blue's and red's are different factors.
 | --- | --- |
 | `round` | `1`, `2`, `3`, `4` |
 
-`round` takes the rounds the rules turn on: the first, where no legacy unit is
-old; the second, where a flank unit is travelling; and the rounds an opening
+`round` takes the rounds the rules turn on: the first, which has no legacy
+units; the second, where a flank unit is travelling; and the rounds an opening
 specialist delivers its squad in.
 
 Each side has a lead unit, whose every property is a factor, and a second
@@ -98,6 +98,7 @@ nothing a fight sees beyond its effect.
 Some values say nothing, or are refused, beside some value of another factor.
 The generator never assigns such a pair:
 
+- `lead.source: legacy` in round `1`, which inherits no unit;
 - `lead.exp` other than `empty` with `lead.source: joined`: a unit that joins
   during the round holds no experience;
 - `lead.depth: flank` in round `1`, which has no flank;

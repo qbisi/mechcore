@@ -753,11 +753,7 @@ impl Simulation {
         simulation.start_side_streams(layout.round);
         simulation.place_sub_effects()?;
         simulation.deploy_attack_intervals()?;
-        simulation.face_constructions_at_fight_start(
-            layout.round,
-            &layout.legacy,
-            &layout.delivered,
-        );
+        simulation.face_constructions_at_fight_start(&layout.legacy, &layout.delivered);
         simulation.snapshot_search_ranges();
         Ok(simulation)
     }
