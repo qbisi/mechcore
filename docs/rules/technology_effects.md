@@ -1732,6 +1732,12 @@ derive (a minimum range):
   production line or summoned as a Steel Ball dies, they join one:
   `tests/loose_formation/melting_point-production.yaml`,
   `tests/loose_formation/steel_ball-death-summon.yaml`.
+  A delayed battle-skill summon activates its agent before its effects:
+  `SummonSystem.DoCreateMech` calls `ActiveMoveFunction` before the delayed
+  `AddMech` calls `FightEffectSystem.ActiveEffect`. Its move radius changes
+  afterwards but its agent joins no team, as with a unit landing from a flank.
+  Underground Threat Crawlers see this in
+  `tests/loose_formation/delayed-battle-skill-summon.yaml`.
 - Fire Extinguisher clears the fires within 44 metres of each Hound every
   second tick, a fire turning into a grid as it is first cleared:
   `tests/fire_extinguisher/fire.yaml`. It clears acid and fog alike,
@@ -2566,10 +2572,8 @@ derive (a minimum range):
   again, or one a battle skill summons.** Read from the build; no recording
   holds one. One with a grouped main skill or a batch of standalone weapons,
   whose nearest enemy no recording has read, is refused.
-- **A loose formation switched on again, or a battle skill's summon that
-  holds it.** Read from the build; no recording holds an Electromagnetic
-  Impact running out on Crawlers that hold it, and no battle skill summons
-  Crawlers.
+- **A loose formation switched on again.** Read from the build; no recording
+  holds an Electromagnetic Impact running out on Crawlers that hold it.
 - **A fire extinguisher switched on again, on a summon, or clearing a fire
   burnt from oil.** Read from the build; no recording holds an
   Electromagnetic Impact running out on Hounds that hold it, a battle skill

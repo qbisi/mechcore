@@ -121,11 +121,10 @@ pub(in crate::fight) struct RvoRadiusChangeState {
     /// Whether `RVOControllerFixed.Active` found the move radius above zero
     /// as it activated the agent, and put it in its unit type's team
     /// (`EnableTeamRadius`): a unit whose effects are active before its agent
-    /// is, in the fight as it starts (`MotionController.EnterFight`) or made
-    /// or summoned (`SummonSystem.DoCreateMech` runs `FightEffectSystem.
-    /// AddEffect` before `ActiveMoveFunction`), and not one landing from a
-    /// flank (`SuperDeploymentController.FinishTranvel` runs
-    /// `ActiveMoveFunction` before `ExitTravel`'s `ActiveEffect`).
+    /// is, at `EnterFight` or an immediate `AddMech`. A delayed summon activates
+    /// its agent in `DoCreateMech` before `AddMech` activates effects; a unit
+    /// landing from a flank activates movement before `ExitTravel` activates
+    /// effects. Neither joins a team.
     in_team: bool,
 }
 
@@ -140,15 +139,18 @@ enum Nearness {
 impl RvoRadiusChangeState {
     /// `RVORadiusChangeProvider.DoActive` (`ActiveRVOChangeRadius`): the
     /// source's move radius, switching. `RVOControllerFixed.Active` puts the
-    /// agent in the team of its unit type with that radius unless the unit
-    /// travels in.
-    pub(in crate::fight) fn of(source: Option<RvoRadiusChange>, travelling: bool) -> Option<Self> {
+    /// agent in the team of its unit type with that radius unless the agent
+    /// is already active when the effects are activated.
+    pub(in crate::fight) fn of(
+        source: Option<RvoRadiusChange>,
+        agent_active_before_effects: bool,
+    ) -> Option<Self> {
         source.map(|source| Self {
             source,
             enabled: true,
             near: Nearness::Unasked,
             team_radius_q32: source.move_radius_q32,
-            in_team: !travelling,
+            in_team: !agent_active_before_effects,
         })
     }
 
