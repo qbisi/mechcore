@@ -191,6 +191,21 @@ the unit behind the wall. The core takes the block first and the others follow
 when the group allocates its children, the same delay the group shows against
 units.
 
+**An independent weapon follows a blocking wall with its lock.** On a skill
+with no `SkillGroup`, `FightSkill.SearchAttackTarget` changes the lock to the
+blocking wall when its owner's `ISkillOwner.IsMechSearchTargetEnabled` is
+true. This applies to the War Factory's independent main weapons; an owner
+without mech search keeps its original lock. Every idle update runs
+`SkillIdleState.TrySearchAttackTarget`, even between scheduled lock searches,
+so the weapon can take another block as its position changes.
+When its normal search has no candidate, `MechSearchTargetController.SearchLockTarget`
+scores its complete opponent list with the alive selector, including blocking
+walls alongside aircraft. The skill controller instead offers blocking walls
+only after its other alive candidates have failed. The owner keeps its own
+rotation and full search turn for this fallback.
+`tests/construction/independent-weapons-follow-wall.yaml` sees the wall-lock
+transitions and the owner's fallback to a wall with only aircraft remaining.
+
 **Each slot's block is its own.** A slot's check asks again for its own block
 alone, and every other slot goes on naming the block it last took, even one
 that has since fallen. A slot whose block falls ends its attack on its own

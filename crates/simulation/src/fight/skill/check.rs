@@ -54,6 +54,15 @@ impl Simulation {
         self.skill_mut(skill_ref).in_the_way = found;
         self.skill_mut(skill_ref).target_shield = shield;
         self.skill_mut(skill_ref).kept_attack_target = None;
+        // A skill with no native SkillGroup also replaces its lock with the
+        // wall when ISkillOwner.IsMechSearchTargetEnabled is true.
+        if let Some((wall, _)) = found
+            && self.skill_owner_mech_search_enabled(skill_ref)
+            && (!self.skill(skill_ref).is_grouped() || self.skill(skill_ref).standalone())
+        {
+            self.skill_mut(skill_ref)
+                .write_lock(Some(FightActorRef::Building(wall)));
+        }
         // The siblings are asked for their blocks only once the core has
         // found one; a core with a clear line leaves each naming its own.
         if let Some((wall, _)) = found
@@ -65,6 +74,13 @@ impl Simulation {
                 self.refresh_group_walls(skill_ref, None);
             }
         }
+    }
+
+    pub(in crate::fight) fn skill_owner_mech_search_enabled(&self, skill_ref: SkillRef) -> bool {
+        skill_ref
+            .owner
+            .unit_id()
+            .is_some_and(|id| self.actors[&id].rules.mech_search)
     }
 
     /// `SearchAttackTarget` of a fusillade group's core that found a block:

@@ -50,6 +50,8 @@ impl Simulation {
             .map(|slot| (slot.lock_target, slot.in_the_way))
             .collect::<Vec<_>>();
         let owner = skill_ref.owner;
+        let replace_lock =
+            self.skill(skill_ref).standalone() && self.skill_owner_mech_search_enabled(skill_ref);
         let found = siblings
             .iter()
             .enumerate()
@@ -88,6 +90,10 @@ impl Simulation {
             .zip(found)
         {
             slot.in_the_way = in_the_way;
+            if replace_lock && let Some((wall, _)) = in_the_way {
+                slot.lock_target = Some(FightActorRef::Building(wall));
+                slot.attack_target_left = None;
+            }
             if searched {
                 slot.target_shield = shield;
             }
@@ -452,9 +458,11 @@ impl Simulation {
             sibling.lock_target = selected;
             sibling.attack_target_left = None;
             sibling.search_target_time = SEARCH_TARGET_RESET_TICKS;
-            self.refresh_group_walls(skill_ref, Some(slot));
             self.hand_standalone_motion(skill_ref, slot);
         }
+        // TrySearchAttackTarget runs on every idle update, even when
+        // TrySearchLockTarget keeps the lock between its scheduled searches.
+        self.refresh_group_walls(skill_ref, Some(slot));
         self.try_start_group_slot(skill_ref, slot, step, prepare_steps);
         Ok(())
     }
