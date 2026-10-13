@@ -18,31 +18,31 @@ blue:
     sabertooth: [missile_interceptor]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: vortex, index: 0, position: {x: 90, y: -160}, exp: 392/424/750, source: legacy}
-  - {name: vortex, index: 1, position: {x: -100, y: -160}, exp: 450/450/750, source: legacy}
-  - {name: vortex, index: 2, position: {x: -10, y: -160}, level: 2, exp: 0/186/1690, source: legacy}
-  - {name: mustang, index: 3, position: {x: -100, y: -285}, level: 2, exp: 970/970/2704, rotated: true, source: legacy}
-  - {name: mustang, index: 4, position: {x: 70, y: -285}, exp: 1020/1200/1200, rotated: true, source: legacy}
-  - {name: arclight, index: 5, position: {x: 40, y: -180}, level: 2, exp: 678/681/1690, source: legacy}
-  - {name: arclight, index: 6, position: {x: -60, y: -180}, level: 2, exp: 614/1690/1690, source: legacy}
-  - {name: arclight, index: 7, position: {x: -350, y: 270}, level: 2, exp: 614/714/1690, source: legacy}
-  - {name: arclight, index: 8, position: {x: -350, y: 190}, level: 2, exp: 497/540/1690, source: legacy}
-  - {name: sabertooth, index: 9, position: {x: -315, y: 235}, exp: 483/522/1300, equipment: [portable_shield], source: legacy}
-  - {name: marksman, index: 10, position: {x: 10, y: -180}, level: 2, exp: 1237/1465/1465, source: legacy}
-  - {name: marksman, index: 11, position: {x: -350, y: 220}, level: 2, exp: 643/666/1465, source: legacy}
-  - {name: marksman, index: 12, position: {x: -350, y: 300}, level: 2, exp: 743/786/1465, source: legacy}
-  - {name: fang, index: 13, position: {x: -320, y: 195}, level: 2, exp: 95/153/1352, source: legacy}
-  - {name: fang, index: 14, position: {x: -320, y: 125}, level: 2, exp: 307/345/1352, source: legacy}
-  - {name: fang, index: 15, position: {x: -320, y: 285}, level: 2, exp: 148/259/1352, source: legacy}
-  - {name: arclight, index: 16, position: {x: 170, y: -170}, level: 2, exp: 0/166/1690, source: legacy}
-  - {name: arclight, index: 17, position: {x: -350, y: 140}, exp: 598/678/750, source: legacy}
-  - {name: marksman, index: 18, position: {x: -350, y: 110}, exp: 369/391/650, source: legacy}
-  - {name: mustang, index: 19, position: {x: -350, y: 65}, exp: 286/431/1200, source: legacy}
-  - {name: mustang, index: 20, position: {x: -290, y: -55}, exp: 97/194/1200, rotated: true, source: legacy}
-  - {name: rhino, index: 21, position: {x: -115, y: -25}, level: 2, exp: 0/267/2591}
-  - {name: rhino, index: 22, position: {x: -155, y: -25}, level: 2, exp: 0/263/2591}
-  - {name: rhino, index: 23, position: {x: -75, y: -25}, exp: 0/227/1150}
-  - {name: rhino, index: 24, position: {x: -195, y: -25}, exp: 0/23/1150}
+  - {name: vortex, index: 0, position: {x: 90, y: -160}, exp: 392/424/750}
+  - {name: vortex, index: 1, position: {x: -100, y: -160}, exp: 450/450/750}
+  - {name: vortex, index: 2, position: {x: -10, y: -160}, level: 2, exp: 0/186/1690}
+  - {name: mustang, index: 3, position: {x: -100, y: -285}, level: 2, exp: 970/970/2704, rotated: true}
+  - {name: mustang, index: 4, position: {x: 70, y: -285}, exp: 1020/1200/1200, rotated: true}
+  - {name: arclight, index: 5, position: {x: 40, y: -180}, level: 2, exp: 678/681/1690}
+  - {name: arclight, index: 6, position: {x: -60, y: -180}, level: 2, exp: 614/1690/1690}
+  - {name: arclight, index: 7, position: {x: -350, y: 270}, level: 2, exp: 614/714/1690}
+  - {name: arclight, index: 8, position: {x: -350, y: 190}, level: 2, exp: 497/540/1690}
+  - {name: sabertooth, index: 9, position: {x: -315, y: 235}, exp: 483/522/1300, equipment: [portable_shield]}
+  - {name: marksman, index: 10, position: {x: 10, y: -180}, level: 2, exp: 1237/1465/1465}
+  - {name: marksman, index: 11, position: {x: -350, y: 220}, level: 2, exp: 643/666/1465}
+  - {name: marksman, index: 12, position: {x: -350, y: 300}, level: 2, exp: 743/786/1465}
+  - {name: fang, index: 13, position: {x: -320, y: 195}, level: 2, exp: 95/153/1352}
+  - {name: fang, index: 14, position: {x: -320, y: 125}, level: 2, exp: 307/345/1352}
+  - {name: fang, index: 15, position: {x: -320, y: 285}, level: 2, exp: 148/259/1352}
+  - {name: arclight, index: 16, position: {x: 170, y: -170}, level: 2, exp: 0/166/1690}
+  - {name: arclight, index: 17, position: {x: -350, y: 140}, exp: 598/678/750}
+  - {name: marksman, index: 18, position: {x: -350, y: 110}, exp: 369/391/650}
+  - {name: mustang, index: 19, position: {x: -350, y: 65}, exp: 286/431/1200}
+  - {name: mustang, index: 20, position: {x: -290, y: -55}, exp: 97/194/1200, rotated: true}
+  - {name: rhino, index: 21, position: {x: -115, y: -25}, level: 2, exp: 0/267/2591, source: joined}
+  - {name: rhino, index: 22, position: {x: -155, y: -25}, level: 2, exp: 0/263/2591, source: joined}
+  - {name: rhino, index: 23, position: {x: -75, y: -25}, exp: 0/227/1150, source: joined}
+  - {name: rhino, index: 24, position: {x: -195, y: -25}, exp: 0/23/1150, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
@@ -59,25 +59,25 @@ red:
     phantom_ray: [armor_enhancement]
   tower_strengthen_levels: [1, 2]
   units:
-  - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 56/397/450, rotated: true, source: legacy}
-  - {name: crawler, index: 1, position: {x: 120, y: -225}, exp: 127/127/450, rotated: true, source: legacy}
-  - {name: crawler, index: 2, position: {x: 0, y: -225}, exp: 0/141/450, rotated: true, source: legacy}
-  - {name: mustang, index: 3, position: {x: 245, y: -80}, level: 2, exp: 0/2452/2704, source: legacy}
-  - {name: mustang, index: 4, position: {x: 210, y: -165}, level: 2, exp: 0/1661/2704, rotated: true, source: legacy}
-  - {name: mustang, index: 6, position: {x: 205, y: -250}, level: 2, exp: 0/1142/2704, source: legacy}
-  - {name: phantom_ray, index: 7, position: {x: 240, y: -235}, level: 2, exp: 1289/1734/2253, rotated: true, source: legacy}
-  - {name: phantom_ray, index: 8, position: {x: -65, y: -230}, exp: 400/466/1000, source: legacy}
-  - {name: phantom_ray, index: 9, position: {x: 260, y: -235}, level: 2, exp: 2060/2253/2253, rotated: true, source: legacy}
-  - {name: crawler, index: 10, position: {x: 290, y: -235}, exp: 207/365/450, rotated: true, source: legacy}
-  - {name: wasp, index: 11, position: {x: 245, y: -280}, level: 4, exp: 2588/4041/4041, equipment: [portable_shield], source: legacy}
-  - {name: wasp, index: 12, position: {x: 255, y: -200}, level: 2, exp: 1675/2028/2028, source: legacy}
-  - {name: crawler, index: 13, position: {x: -290, y: -285}, rotated: true, source: legacy}
-  - {name: crawler, index: 14, position: {x: 290, y: -145}, exp: 138/232/450, rotated: true, source: legacy}
-  - {name: crawler, index: 15, position: {x: 275, y: -300}, exp: 135/288/450, source: legacy}
-  - {name: rhino, index: 16, position: {x: 255, y: -45}, level: 2, exp: 0/1517/2591}
-  - {name: rhino, index: 17, position: {x: 275, y: -105}, level: 2, exp: 0/1189/2591}
-  - {name: crawler, index: 18, position: {x: 290, y: -35}, exp: 0/21/450, rotated: true}
-  - {name: wasp, index: 19, position: {x: 255, y: -150}, exp: 0/900/900}
+  - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 56/397/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: 120, y: -225}, exp: 127/127/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: 0, y: -225}, exp: 0/141/450, rotated: true}
+  - {name: mustang, index: 3, position: {x: 245, y: -80}, level: 2, exp: 0/2452/2704}
+  - {name: mustang, index: 4, position: {x: 210, y: -165}, level: 2, exp: 0/1661/2704, rotated: true}
+  - {name: mustang, index: 6, position: {x: 205, y: -250}, level: 2, exp: 0/1142/2704}
+  - {name: phantom_ray, index: 7, position: {x: 240, y: -235}, level: 2, exp: 1289/1734/2253, rotated: true}
+  - {name: phantom_ray, index: 8, position: {x: -65, y: -230}, exp: 400/466/1000}
+  - {name: phantom_ray, index: 9, position: {x: 260, y: -235}, level: 2, exp: 2060/2253/2253, rotated: true}
+  - {name: crawler, index: 10, position: {x: 290, y: -235}, exp: 207/365/450, rotated: true}
+  - {name: wasp, index: 11, position: {x: 245, y: -280}, level: 4, exp: 2588/4041/4041, equipment: [portable_shield]}
+  - {name: wasp, index: 12, position: {x: 255, y: -200}, level: 2, exp: 1675/2028/2028}
+  - {name: crawler, index: 13, position: {x: -290, y: -285}, rotated: true}
+  - {name: crawler, index: 14, position: {x: 290, y: -145}, exp: 138/232/450, rotated: true}
+  - {name: crawler, index: 15, position: {x: 275, y: -300}, exp: 135/288/450}
+  - {name: rhino, index: 16, position: {x: 255, y: -45}, level: 2, exp: 0/1517/2591, source: joined}
+  - {name: rhino, index: 17, position: {x: 275, y: -105}, level: 2, exp: 0/1189/2591, source: joined}
+  - {name: crawler, index: 18, position: {x: 290, y: -35}, exp: 0/21/450, rotated: true, source: joined}
+  - {name: wasp, index: 19, position: {x: 255, y: -150}, exp: 0/900/900, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   battle_skills:

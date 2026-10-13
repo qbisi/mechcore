@@ -71,7 +71,7 @@ blue:
 
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [laser_sights]}
-  - {name: arclight, index: 1, position: {x: -310, y: 20}, travelling: true}
+  - {name: arclight, index: 1, position: {x: -310, y: 20}, travelling: true, source: joined}
 
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -105}}
@@ -347,7 +347,7 @@ when omitted:
 - A unit's `rotated` defaults to `false`.
 - A unit's `equipment` defaults to `[]`.
 - A unit's `travelling` defaults to `false`.
-- A unit's `source` defaults to `joined`.
+- A unit's `source` defaults to `legacy`; `joined` and `delivered` are written explicitly.
 
 Unknown fields must be rejected, and so is a document whose `kind` is absent or
 names another kind, and a name the build does not carry.
@@ -536,9 +536,9 @@ installed nor dropped from a capture of the side that holds it.
 
 ```yaml
 units:
-- {name: marksman, index: 3, position: {x: 0, y: -50}, source: legacy}
+- {name: marksman, index: 3, position: {x: 0, y: -50}}
 - {name: sabertooth, index: 8, position: {x: -105, y: -155}, source: delivered}
-- {name: rhino, index: 9, position: {x: 40, y: -60}}
+- {name: rhino, index: 9, position: {x: 40, y: -60}, source: joined}
 recovered: [8]
 ```
 
@@ -547,9 +547,9 @@ three apart:
 
 | `source` | The unit |
 | --- | --- |
-| `legacy` | the side carried it from an earlier round. Round 1 has none. A layout replay holds it in the round's snapshot. |
+| `legacy` | the side carried it from an earlier round. A layout may model this category in any round; a match's first-round advance team is joined. A layout replay holds it in the round's snapshot. Not written, being the default. |
 | `delivered` | a squad an officer delivered as the round opened, one for each officer whose `opening_unit` the round activates, of its type, at its level or above and without experience |
-| `joined` | it arrived this round: the advance team in round 1, bought, taken as a reinforcement or added. Not written, being the default. |
+| `joined` | it arrived this round: the advance team in round 1, bought, taken as a reinforcement or added. Written explicitly. |
 
 The unit allocator names units in the order they are created, so the three
 come in that order: every legacy unit's index is below every delivered

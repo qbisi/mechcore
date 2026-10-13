@@ -16,17 +16,17 @@ blue:
   techs:
     sledgehammer: [armor_enhancement]
   units:
-  - {name: fang, index: 0, position: {x: 180, y: -115}, exp: 266/372/600, rotated: true, source: legacy}
-  - {name: fang, index: 1, position: {x: -120, y: -185}, exp: 156/196/600, rotated: true, source: legacy}
-  - {name: fang, index: 2, position: {x: 120, y: -185}, exp: 283/339/600, rotated: true, source: legacy}
-  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 386/450/450, rotated: true, source: legacy}
-  - {name: crawler, index: 6, position: {x: -140, y: -205}, exp: 450/450/450, rotated: true, source: legacy}
-  - {name: wasp, index: 7, position: {x: -255, y: -300}, exp: 900/900/900, source: legacy}
-  - {name: sledgehammer, index: 8, position: {x: -105, y: -70}, exp: 677/679/1300, equipment: [secondary_heavy_armor], source: legacy}
-  - {name: sledgehammer, index: 9, position: {x: -235, y: -70}, exp: 1022/1300/1300, source: legacy}
-  - {name: sledgehammer, index: 10, position: {x: 245, y: -70}, exp: 1084/1300/1300, equipment: [secondary_heavy_armor], source: legacy}
-  - {name: sledgehammer, index: 11, position: {x: 105, y: -70}, exp: 495/866/1300, equipment: [secondary_heavy_armor], source: legacy}
-  - {name: abyss, index: 12, position: {x: 225, y: -115}, exp: 0/2329/4800}
+  - {name: fang, index: 0, position: {x: 180, y: -115}, exp: 266/372/600, rotated: true}
+  - {name: fang, index: 1, position: {x: -120, y: -185}, exp: 156/196/600, rotated: true}
+  - {name: fang, index: 2, position: {x: 120, y: -185}, exp: 283/339/600, rotated: true}
+  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 386/450/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -140, y: -205}, exp: 450/450/450, rotated: true}
+  - {name: wasp, index: 7, position: {x: -255, y: -300}, exp: 900/900/900}
+  - {name: sledgehammer, index: 8, position: {x: -105, y: -70}, exp: 677/679/1300, equipment: [secondary_heavy_armor]}
+  - {name: sledgehammer, index: 9, position: {x: -235, y: -70}, exp: 1022/1300/1300}
+  - {name: sledgehammer, index: 10, position: {x: 245, y: -70}, exp: 1084/1300/1300, equipment: [secondary_heavy_armor]}
+  - {name: sledgehammer, index: 11, position: {x: 105, y: -70}, exp: 495/866/1300, equipment: [secondary_heavy_armor]}
+  - {name: abyss, index: 12, position: {x: 225, y: -115}, exp: 0/2329/4800, source: joined}
 red:
   core_damage: 500
   officers: [mass_production_fire_control_system, giant_specialist]
@@ -34,15 +34,15 @@ red:
     fire_badger: [scorching_charge]
     mountain: [extended_range_ammo]
   units:
-  - {name: crawler, index: 0, position: {x: -290, y: -285}, exp: 428/428/450, rotated: true, source: legacy}
-  - {name: crawler, index: 1, position: {x: 0, y: -285}, exp: 87/327/450, rotated: true, source: legacy}
-  - {name: crawler, index: 2, position: {x: 290, y: -285}, exp: 372/408/450, rotated: true, source: legacy}
-  - {name: mustang, index: 3, position: {x: 235, y: -300}, exp: 1147/1200/1200, equipment: [secondary_fire_control_system], source: legacy}
-  - {name: mustang, index: 4, position: {x: -235, y: -300}, exp: 1135/1135/1200, equipment: [secondary_fire_control_system], source: legacy}
-  - {name: fang, index: 7, position: {x: -155, y: -90}, exp: 37/37/600, source: legacy}
-  - {name: fire_badger, index: 8, position: {x: 235, y: -40}, exp: 15/26/1400, source: legacy}
-  - {name: fire_badger, index: 9, position: {x: 105, y: -40}, exp: 84/770/1400, source: legacy}
-  - {name: mountain, index: 10, position: {x: 95, y: -145}, exp: 0/1950/3200}
-  - {name: crawler, index: 11, position: {x: -310, y: 195}, travelling: true}
+  - {name: crawler, index: 0, position: {x: -290, y: -285}, exp: 428/428/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: 0, y: -285}, exp: 87/327/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: 290, y: -285}, exp: 372/408/450, rotated: true}
+  - {name: mustang, index: 3, position: {x: 235, y: -300}, exp: 1147/1200/1200, equipment: [secondary_fire_control_system]}
+  - {name: mustang, index: 4, position: {x: -235, y: -300}, exp: 1135/1135/1200, equipment: [secondary_fire_control_system]}
+  - {name: fang, index: 7, position: {x: -155, y: -90}, exp: 37/37/600}
+  - {name: fire_badger, index: 8, position: {x: 235, y: -40}, exp: 15/26/1400}
+  - {name: fire_badger, index: 9, position: {x: 105, y: -40}, exp: 84/770/1400}
+  - {name: mountain, index: 10, position: {x: 95, y: -145}, exp: 0/1950/3200, source: joined}
+  - {name: crawler, index: 11, position: {x: -310, y: 195}, travelling: true, source: joined}
 ticks: 1679
 hash: 24:1c1faa668c6b301d943aa8eaca74bdd54c07f13bd6c0a6688d6b6bbe127242dd

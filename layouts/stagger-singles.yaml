@@ -18,11 +18,11 @@ round: 1
 
 blue:
   units:
-    - {name: wraith, index: 0, position: {x: 5, y: -55}}
-    - {name: marksman, index: 1, position: {x: 0, y: -100}}
-    - {name: arclight, index: 2, position: {x: 0, y: -150}}
-    - {name: marksman, index: 3, position: {x: 60, y: -200}}
+    - {name: wraith, index: 0, position: {x: 5, y: -55}, source: joined}
+    - {name: marksman, index: 1, position: {x: 0, y: -100}, source: joined}
+    - {name: arclight, index: 2, position: {x: 0, y: -150}, source: joined}
+    - {name: marksman, index: 3, position: {x: 60, y: -200}, source: joined}
 
 red:
   units:
-    - {name: rhino, index: 0, position: {x: 5, y: -55}}
+    - {name: rhino, index: 0, position: {x: 5, y: -55}, source: joined}

@@ -18,8 +18,8 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
   - {name: marksman, index: 0, position: {x: 150, y: -190}, level: 3, source: delivered}
-  - {name: mustang, index: 1, position: {x: 320, y: 155}, level: 6, exp: 0/1200/6959, equipment: [deployment_module], travelling: true}
-  - {name: sabertooth, index: 2, position: {x: -185, y: -125}, level: 6, exp: 0/200/7539}
+  - {name: mustang, index: 1, position: {x: 320, y: 155}, level: 6, exp: 0/1200/6959, equipment: [deployment_module], travelling: true, source: joined}
+  - {name: sabertooth, index: 2, position: {x: -185, y: -125}, level: 6, exp: 0/200/7539, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   contraptions:
@@ -35,8 +35,8 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sandworm, index: 0, position: {x: -20, y: -60}, level: 4, exp: 0/4700/8981, equipment: [super_heavy_armor], source: legacy}
-  - {name: sledgehammer, index: 1, position: {x: -215, y: -150}, level: 8, exp: 0/5588/8746}
+  - {name: sandworm, index: 0, position: {x: -20, y: -60}, level: 4, exp: 0/4700/8981, equipment: [super_heavy_armor]}
+  - {name: sledgehammer, index: 1, position: {x: -215, y: -150}, level: 8, exp: 0/5588/8746, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -60, y: -90}}
 ticks: 1069

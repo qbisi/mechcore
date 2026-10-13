@@ -6,6 +6,7 @@ blue:
     - name: stormcaller
       index: 0
       position: {x: 5, y: -120}
+      source: joined
   contraptions:
     - name: interceptor
       index: 0
@@ -16,6 +17,7 @@ red:
     - name: stormcaller
       index: 0
       position: {x: 5, y: -120}
+      source: joined
   contraptions:
     - name: interceptor
       index: 0

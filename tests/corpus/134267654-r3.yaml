@@ -14,17 +14,17 @@ blue:
     fang: [grenade_launcher]
   tower_strengthen_levels: [1, 0]
   units:
-  - {name: crawler, index: 0, position: {x: 290, y: -265}, exp: 129/154/450, rotated: true, source: legacy}
-  - {name: crawler, index: 1, position: {x: 90, y: -55}, exp: 59/80/450, rotated: true, source: legacy}
-  - {name: crawler, index: 2, position: {x: 140, y: -135}, exp: 86/134/450, rotated: true, source: legacy}
-  - {name: fang, index: 5, position: {x: 185, y: -20}, exp: 439/598/600, source: legacy}
-  - {name: fang, index: 6, position: {x: 275, y: -20}, exp: 418/600/600, source: legacy}
-  - {name: fang, index: 7, position: {x: 330, y: 215}, exp: 600/600/600, source: legacy}
-  - {name: fang, index: 8, position: {x: 330, y: 125}, exp: 433/600/600, source: legacy}
-  - {name: fang, index: 9, position: {x: 185, y: -60}, exp: 380/564/600, source: legacy}
-  - {name: farseer, index: 10, position: {x: 235, y: -95}, exp: 0/1800/1800}
-  - {name: fortress, index: 11, position: {x: 340, y: 170}, exp: 0/725/1600, travelling: true}
-  - {name: fang, index: 12, position: {x: 275, y: -60}, exp: 0/480/600}
+  - {name: crawler, index: 0, position: {x: 290, y: -265}, exp: 129/154/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: 90, y: -55}, exp: 59/80/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: 140, y: -135}, exp: 86/134/450, rotated: true}
+  - {name: fang, index: 5, position: {x: 185, y: -20}, exp: 439/598/600}
+  - {name: fang, index: 6, position: {x: 275, y: -20}, exp: 418/600/600}
+  - {name: fang, index: 7, position: {x: 330, y: 215}, exp: 600/600/600}
+  - {name: fang, index: 8, position: {x: 330, y: 125}, exp: 433/600/600}
+  - {name: fang, index: 9, position: {x: 185, y: -60}, exp: 380/564/600}
+  - {name: farseer, index: 10, position: {x: 235, y: -95}, exp: 0/1800/1800, source: joined}
+  - {name: fortress, index: 11, position: {x: 340, y: 170}, exp: 0/725/1600, travelling: true, source: joined}
+  - {name: fang, index: 12, position: {x: 275, y: -60}, exp: 0/480/600, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
@@ -34,17 +34,17 @@ red:
     wraith: [degeneration_beam]
   blueprints: [attack_enhancement]
   units:
-  - {name: vortex, index: 0, position: {x: -250, y: -80}, exp: 274/339/750, source: legacy}
-  - {name: vortex, index: 1, position: {x: -30, y: -80}, exp: 257/366/750, source: legacy}
-  - {name: vortex, index: 2, position: {x: -140, y: -80}, exp: 371/470/750, source: legacy}
-  - {name: fire_badger, index: 3, position: {x: -85, y: -80}, exp: 1393/1400/1400, source: legacy}
-  - {name: fire_badger, index: 4, position: {x: -195, y: -80}, exp: 489/681/1400, source: legacy}
-  - {name: fang, index: 5, position: {x: -200, y: -35}, exp: 175/275/600, rotated: true, source: legacy}
-  - {name: fang, index: 6, position: {x: -80, y: -35}, exp: 393/572/600, rotated: true, source: legacy}
-  - {name: centurion, index: 7, position: {x: -185, y: -105}, exp: 390/580/2250, source: legacy}
-  - {name: fang, index: 8, position: {x: -290, y: -35}, exp: 65/106/600, rotated: true, source: legacy}
-  - {name: wraith, index: 10, position: {x: -245, y: -205}, exp: 0/384/2250}
-  - {name: wraith, index: 11, position: {x: 255, y: -145}, exp: 0/200/2250}
+  - {name: vortex, index: 0, position: {x: -250, y: -80}, exp: 274/339/750}
+  - {name: vortex, index: 1, position: {x: -30, y: -80}, exp: 257/366/750}
+  - {name: vortex, index: 2, position: {x: -140, y: -80}, exp: 371/470/750}
+  - {name: fire_badger, index: 3, position: {x: -85, y: -80}, exp: 1393/1400/1400}
+  - {name: fire_badger, index: 4, position: {x: -195, y: -80}, exp: 489/681/1400}
+  - {name: fang, index: 5, position: {x: -200, y: -35}, exp: 175/275/600, rotated: true}
+  - {name: fang, index: 6, position: {x: -80, y: -35}, exp: 393/572/600, rotated: true}
+  - {name: centurion, index: 7, position: {x: -185, y: -105}, exp: 390/580/2250}
+  - {name: fang, index: 8, position: {x: -290, y: -35}, exp: 65/106/600, rotated: true}
+  - {name: wraith, index: 10, position: {x: -245, y: -205}, exp: 0/384/2250, source: joined}
+  - {name: wraith, index: 11, position: {x: 255, y: -145}, exp: 0/200/2250, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 ticks: 1816

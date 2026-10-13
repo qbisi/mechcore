@@ -13,25 +13,32 @@ blue:
     - name: sledgehammer
       index: 0
       position: {x: -55, y: -60}
+      source: joined
     - name: sledgehammer
       index: 1
       position: {x: 55, y: -60}
+      source: joined
     - name: crawler
       index: 2
       position: {x: -55, y: -100}
+      source: joined
     - name: crawler
       index: 3
       position: {x: 55, y: -100}
+      source: joined
     - name: marksman
       index: 4
       position: {x: -90, y: -140}
+      source: joined
     - name: marksman
       index: 5
       position: {x: 0, y: -140}
+      source: joined
     - name: marksman
       index: 6
       position: {x: 90, y: -140}
 
+      source: joined
   battle_skills:
     - name: missile_strike
       positions:
@@ -51,29 +58,36 @@ red:
     - name: fang
       index: 0
       position: {x: -55, y: -60}
+      source: joined
     - name: fang
       index: 1
       position: {x: 55, y: -60}
+      source: joined
     - name: wasp
       index: 2
       position: {x: -60, y: -95}
       level: 2
       rotated: true
+      source: joined
     - name: wasp
       index: 3
       position: {x: 60, y: -95}
       level: 2
       rotated: true
+      source: joined
     - name: arclight
       index: 4
       position: {x: -90, y: -140}
+      source: joined
     - name: arclight
       index: 5
       position: {x: 0, y: -140}
+      source: joined
     - name: arclight
       index: 6
       position: {x: 90, y: -140}
 
+      source: joined
   battle_skills:
     - name: mobile_beacon
       positions:

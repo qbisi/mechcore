@@ -624,7 +624,7 @@ red:
                 "kind": "layout",
                 "round": round,
                 "blue": {"units": [
-                    {"index": 0, "name": "marksman", "position": {"x": -310, "y": 20}, "travelling": travelling}
+                    {"index": 0, "name": "marksman", "position": {"x": -310, "y": 20}, "travelling": travelling, "source": "joined"}
                 ]},
                 "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
             })
@@ -648,7 +648,7 @@ red:
         let omitted = compile(&json!({
             "kind": "layout",
             "round": 2,
-            "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": -310, "y": 20}}]},
+            "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": -310, "y": 20}, "source": "joined"}]},
             "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
         }))
         .unwrap_err();
@@ -667,19 +667,35 @@ red:
     }
 
     #[test]
-    fn round_one_has_joined_units_and_no_legacy_units() {
+    fn a_layout_omits_legacy_and_keeps_joined_sources() {
+        let mut value = json!({
+            "kind": "layout", "round": 2,
+            "blue": {"units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -100}}]},
+            "red": {"units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -100}, "source": "joined"}]}
+        });
+        let layout: crate::layout::Layout = serde_json::from_value(value.clone()).unwrap();
+        assert_eq!(layout.blue.units[0].source, UnitSource::Legacy);
+        let written = crate::canonical_yaml(layout.clone()).unwrap();
+        assert!(!written.contains("source: legacy"));
+        assert_eq!(written.matches("source: joined").count(), 1);
+        assert_eq!(
+            serde_yaml::from_str::<crate::layout::Layout>(&written).unwrap(),
+            layout
+        );
+        value["round"] = json!(1);
+        assert!(compile(&value).is_ok());
+    }
+
+    #[test]
+    fn round_one_accepts_joined_and_legacy_units() {
         let mut layout = json!({
             "kind": "layout", "round": 1,
-            "blue": {"units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -100}}]},
+            "blue": {"units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -100}, "source": "joined"}]},
             "red": {"units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -100}}]}
         });
         assert!(compile(&layout).is_ok());
         layout["blue"]["units"][0]["source"] = json!("legacy");
-        assert!(
-            compile(&layout)
-                .unwrap_err()
-                .contains("legacy unit in round 1")
-        );
+        assert!(compile(&layout).is_ok());
         layout["round"] = json!(2);
         assert!(compile(&layout).is_ok());
     }

@@ -6,8 +6,8 @@ round: 1
 blue:
   blueprints: [attack_enhancement]
   units:
-    - {name: marksman, index: 0, position: {x: 0, y: -50}}
+    - {name: marksman, index: 0, position: {x: 0, y: -50}, source: joined}
 red:
   blueprints: [defense_enhancement_ii]
   units:
-    - {name: arclight, index: 0, position: {x: 0, y: -50}}
+    - {name: arclight, index: 0, position: {x: 0, y: -50}, source: joined}

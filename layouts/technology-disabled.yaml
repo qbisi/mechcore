@@ -24,6 +24,7 @@ blue:
       index: 0
       position: {x: 0, y: -110}
 
+      source: joined
 red:
   techs:
     rhino: [mechanical_rage]
@@ -31,3 +32,4 @@ red:
     - name: rhino
       index: 0
       position: {x: 5, y: -55}
+      source: joined

@@ -16,8 +16,8 @@ blue:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: rhino, index: 0, position: {x: 255, y: -175}, level: 2, source: delivered}
-  - {name: vulcan, index: 1, position: {x: -190, y: -60}, level: 9, exp: 0/4092/16280, rotated: true, equipment: [tank_production_line]}
-  - {name: stormcaller, index: 2, position: {x: 15, y: -80}, level: 8, exp: 0/164/7400}
+  - {name: vulcan, index: 1, position: {x: -190, y: -60}, level: 9, exp: 0/4092/16280, rotated: true, equipment: [tank_production_line], source: joined}
+  - {name: stormcaller, index: 2, position: {x: 15, y: -80}, level: 8, exp: 0/164/7400, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
@@ -32,8 +32,8 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sabertooth, index: 0, position: {x: -285, y: -135}, level: 3, exp: 4630/4630/4630, rotated: true, equipment: [improved_firepower_control_system], source: legacy}
-  - {name: crawler, index: 1, position: {x: -115, y: -210}, level: 6, exp: 0/2609/2609}
+  - {name: sabertooth, index: 0, position: {x: -285, y: -135}, level: 3, exp: 4630/4630/4630, rotated: true, equipment: [improved_firepower_control_system]}
+  - {name: crawler, index: 1, position: {x: -115, y: -210}, level: 6, exp: 0/2609/2609, source: joined}
   constructions:
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
   battle_skills:

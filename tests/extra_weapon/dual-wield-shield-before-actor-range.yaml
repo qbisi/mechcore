@@ -15,8 +15,8 @@ blue:
   tower_strengthen_levels: [3, 1]
   units:
   - {name: fire_badger, index: 0, position: {x: 215, y: -100}, source: delivered}
-  - {name: centurion, index: 1, position: {x: -195, y: -75}, level: 5, exp: 0/186/11724, rotated: true, equipment: [absorption_module]}
-  - {name: sandworm, index: 2, position: {x: -280, y: -170}, level: 9, exp: 0/246/13455}
+  - {name: centurion, index: 1, position: {x: -195, y: -75}, level: 5, exp: 0/186/11724, rotated: true, equipment: [absorption_module], source: joined}
+  - {name: sandworm, index: 2, position: {x: -280, y: -170}, level: 9, exp: 0/246/13455, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 255, y: -175}}
   battle_skills:
@@ -31,8 +31,8 @@ red:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: fire_badger, index: 0, position: {x: 15, y: -280}, exp: 0/1400/1400, source: delivered}
-  - {name: fortress, index: 1, position: {x: 10, y: -190}, level: 3, exp: 0/5699/5699, equipment: [steel_ball_production_line]}
-  - {name: marksman, index: 2, position: {x: -90, y: -270}, level: 4, exp: 0/402/2919}
+  - {name: fortress, index: 1, position: {x: 10, y: -190}, level: 3, exp: 0/5699/5699, equipment: [steel_ball_production_line], source: joined}
+  - {name: marksman, index: 2, position: {x: -90, y: -270}, level: 4, exp: 0/402/2919, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}

@@ -10,14 +10,18 @@ blue:
       index: 0
       position: {x: 0, y: -80}
 
+      source: joined
 red:
   units:
     - name: crawler
       index: 0
       position: {x: -45, y: -60}
+      source: joined
     - name: crawler
       index: 1
       position: {x: 5, y: -60}
+      source: joined
     - name: crawler
       index: 2
       position: {x: 55, y: -60}
+      source: joined

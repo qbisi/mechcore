@@ -14,9 +14,9 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [1, 1]
   units:
-  - {name: melting_point, index: 0, position: {x: 200, y: -60}, level: 9, exp: 9418/9418/9418, equipment: [secondary_heavy_armor], source: legacy}
+  - {name: melting_point, index: 0, position: {x: 200, y: -60}, level: 9, exp: 9418/9418/9418, equipment: [secondary_heavy_armor]}
   - {name: fire_badger, index: 1, position: {x: -185, y: -260}, source: delivered}
-  - {name: rhino, index: 2, position: {x: -135, y: -235}}
+  - {name: rhino, index: 2, position: {x: -135, y: -235}, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   contraptions:
@@ -32,8 +32,8 @@ red:
   tower_strengthen_levels: [4, 1]
   units:
   - {name: sabertooth, index: 0, position: {x: 25, y: -25}, exp: 0/200/1300, source: delivered}
-  - {name: melting_point, index: 1, position: {x: 320, y: 260}, level: 9, exp: 0/802/9418, rotated: true, equipment: [tank_production_line], travelling: true}
-  - {name: mountain, index: 2, position: {x: 55, y: -225}, level: 9, exp: 0/13600/21528}
+  - {name: melting_point, index: 1, position: {x: 320, y: 260}, level: 9, exp: 0/802/9418, rotated: true, equipment: [tank_production_line], travelling: true, source: joined}
+  - {name: mountain, index: 2, position: {x: 55, y: -225}, level: 9, exp: 0/13600/21528, source: joined}
   battle_skills:
   - {name: electromagnetic_blast, positions: [{x: 280, y: 215}]}
 ticks: 559

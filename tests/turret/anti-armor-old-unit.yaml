@@ -15,12 +15,12 @@ round: 3
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 60, y: -80}, exp: 0/30/650, source: legacy}
-  - {name: marksman, index: 1, position: {x: 140, y: -80}, exp: 0/490/650}
+  - {name: marksman, index: 0, position: {x: 60, y: -80}, exp: 0/30/650}
+  - {name: marksman, index: 1, position: {x: 140, y: -80}, exp: 0/490/650, source: joined}
 red:
   core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 0/200/650, source: legacy}
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 0/200/650}
   constructions:
   - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}
 asserts:

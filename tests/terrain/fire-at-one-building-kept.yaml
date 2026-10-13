@@ -13,7 +13,7 @@ round: 1
 blue:
   core_damage: 201
   units:
-  - {name: marksman, index: 0, position: {x: -250, y: -280}}
+  - {name: marksman, index: 0, position: {x: -250, y: -280}, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -23,7 +23,7 @@ red:
   techs:
     fire_badger: [napalm, range_enhancement, scorching_charge]
   units:
-  - {name: fire_badger, index: 0, position: {x: 205, y: -40}, level: 2, exp: 0/520/3154, equipment: [amplifying_core]}
+  - {name: fire_badger, index: 0, position: {x: 205, y: -40}, level: 2, exp: 0/520/3154, equipment: [amplifying_core], source: joined}
 asserts:
 - sql: |-
     SELECT count(*) FROM events WHERE type = 'terrain_created'

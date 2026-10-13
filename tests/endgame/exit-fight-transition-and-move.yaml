@@ -16,8 +16,8 @@ blue:
   blueprints: [attack_enhancement]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: sandworm, index: 0, position: {x: 10, y: -190}, level: 8, exp: 6727/13455/13455, rotated: true, equipment: [secondary_fire_control_system], source: legacy}
-  - {name: farseer, index: 1, position: {x: 265, y: -165}, level: 7, exp: 0/25/11334}
+  - {name: sandworm, index: 0, position: {x: 10, y: -190}, level: 8, exp: 6727/13455/13455, rotated: true, equipment: [secondary_fire_control_system]}
+  - {name: farseer, index: 1, position: {x: 265, y: -165}, level: 7, exp: 0/25/11334, source: joined}
   battle_skills:
   - {name: shield_airdrop, positions: [{x: -285, y: -290}]}
 red:
@@ -28,9 +28,9 @@ red:
   blueprints: [attack_enhancement_ii]
   tower_strengthen_levels: [2, 2]
   units:
-  - {name: overlord, index: 0, position: {x: -65, y: -65}, level: 5, exp: 4559/9118/9118, equipment: [amplifying_core], source: legacy}
+  - {name: overlord, index: 0, position: {x: -65, y: -65}, level: 5, exp: 4559/9118/9118, equipment: [amplifying_core]}
   - {name: fire_badger, index: 1, position: {x: 145, y: -230}, exp: 0/50/1400, source: delivered}
-  - {name: sabertooth, index: 2, position: {x: 205, y: -225}, level: 4, exp: 0/150/5837}
+  - {name: sabertooth, index: 2, position: {x: 205, y: -225}, level: 4, exp: 0/150/5837, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}

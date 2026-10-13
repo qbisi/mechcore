@@ -6,6 +6,7 @@ blue:
     - name: marksman
       index: 0
       position: {x: 0, y: -150}
+      source: joined
   constructions:
     # Replay R002: opening group 28 with reverse_x.
     - name: defensive_wall
@@ -23,6 +24,7 @@ red:
     - name: marksman
       index: 0
       position: {x: 0, y: -150}
+      source: joined
   constructions:
     # R002 world coordinates converted into red's side-local frame.
     - name: defensive_wall

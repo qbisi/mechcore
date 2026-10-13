@@ -16,11 +16,13 @@ blue:
       index: 0
       position: {x: 100, y: -80}
 
+      source: joined
     - name: sabertooth
       index: 1
       position: {x: -205, y: -295}
       equipment: [photon_coating]
 
+      source: joined
     - name: crawler
       index: 2
       position: {x: 310, y: 285}
@@ -28,10 +30,12 @@ blue:
 
     # Declared after Arclight at the same y to distinguish native z/x order
     # from YAML declaration order in the formation_id audit.
+      source: joined
     - name: mustang
       index: 3
       position: {x: -275, y: -80}
 
+      source: joined
   constructions:
     - name: rapid_fire_turret
       index: 0
@@ -60,6 +64,7 @@ red:
       index: 0
       position: {x: -205, y: -100}
 
+      source: joined
   constructions:
     - name: anti_armor_turret
       index: 0

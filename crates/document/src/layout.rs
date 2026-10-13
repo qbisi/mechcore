@@ -166,8 +166,8 @@ pub struct UnitPlacement {
     pub equipment: Vec<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub travelling: Option<bool>,
-    /// How the unit came to its side; `joined`, the default, is not written.
-    #[serde(default, skip_serializing_if = "UnitSource::is_joined")]
+    /// How the unit came to its side; `legacy`, the default, is not written.
+    #[serde(default, skip_serializing_if = "UnitSource::is_legacy")]
     pub source: UnitSource,
 }
 
@@ -178,20 +178,20 @@ pub struct UnitPlacement {
 #[serde(rename_all = "snake_case")]
 pub enum UnitSource {
     /// The side carried it from an earlier round. The round's snapshot holds it.
-    /// Round 1 has no legacy units.
+    /// A layout may model them in any round; a match's advance team is joined.
+    #[default]
     Legacy,
     /// A squad an officer delivered as the round opened.
     Delivered,
     /// It arrived this round: the first round's advance team, bought, taken
     /// as a reinforcement or added.
-    #[default]
     Joined,
 }
 
 impl UnitSource {
     #[allow(clippy::trivially_copy_pass_by_ref)]
-    pub(crate) fn is_joined(source: &Self) -> bool {
-        *source == Self::Joined
+    pub(crate) fn is_legacy(source: &Self) -> bool {
+        *source == Self::Legacy
     }
 }
 

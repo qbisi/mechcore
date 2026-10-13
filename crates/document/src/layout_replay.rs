@@ -1078,8 +1078,8 @@ mod tests {
             "kind": "layout",
             "seed": 4242,
             "round": 1,
-            "blue": {"units": [{"name": "rhino", "index": 0, "position": {"x": 5, "y": -95}}]},
-            "red": {"units": [{"name": "rhino", "index": 0, "position": {"x": 5, "y": -95}}]},
+            "blue": {"units": [{"name": "rhino", "index": 0, "position": {"x": 5, "y": -95}, "source": "joined"}]},
+            "red": {"units": [{"name": "rhino", "index": 0, "position": {"x": 5, "y": -95}, "source": "joined"}]},
         })
     }
 
@@ -1139,7 +1139,7 @@ mod tests {
         layout["round"] = json!(3);
         layout["blue"]["units"] = json!([{
             "name": "marksman", "index": 0, "travelling": true, "exp": "100/650",
-            "position": {"x": -330, "y": 100},
+            "position": {"x": -330, "y": 100}, "source": "joined",
         }]);
         let error = layout_replay(&plan(&layout), crate::game_build()).unwrap_err();
         assert!(
@@ -1175,7 +1175,7 @@ mod tests {
                 "seed": 4242,
                 "round": 2,
                 "blue": {"officers": ["marksman_specialist"], "units": units, "recovered": recovered},
-                "red": {"units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -50}}]},
+                "red": {"units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -50}, "source": "joined"}]},
             })
         };
         // A squad the layout lists as recovered: the round's first decision
@@ -1215,10 +1215,10 @@ mod tests {
         let layout = json!({
             "kind": "layout", "seed": 4242, "round": 1,
             "blue": {"units": [
-                {"name": "marksman", "index": 0, "position": {"x": 0, "y": -100}},
-                {"name": "marksman", "index": 1, "position": {"x": 40, "y": -100}}
+                {"name": "marksman", "index": 0, "position": {"x": 0, "y": -100}, "source": "joined"},
+                {"name": "marksman", "index": 1, "position": {"x": 40, "y": -100}, "source": "joined"}
             ]},
-            "red": {"units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -100}}]}
+            "red": {"units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -100}, "source": "joined"}]}
         });
         let replay = layout_replay(&plan(&layout), crate::game_build()).unwrap();
         let xml = embedded_xml(&replay);
@@ -1230,13 +1230,13 @@ mod tests {
 
     #[test]
     fn a_unit_that_joins_during_the_round_is_added_in_index_order() {
-        let travelling = |index: i32, x: i32, y: i32| json!({"name": "marksman", "index": index, "travelling": true, "position": {"x": x, "y": y}});
+        let travelling = |index: i32, x: i32, y: i32| json!({"name": "marksman", "index": index, "travelling": true, "position": {"x": x, "y": y}, "source": "joined"});
         let layout = json!({
             "kind": "layout", "seed": 4242, "round": 3,
             "blue": {"units": [
                 {"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}, "source": "legacy"},
                 travelling(1, -330, 100),
-                {"name": "marksman", "index": 2, "position": {"x": 100, "y": -60}},
+                {"name": "marksman", "index": 2, "position": {"x": 100, "y": -60}, "source": "joined"},
                 travelling(3, 330, 100),
             ]},
             "red": {"units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -50}, "source": "legacy"}]},
@@ -1263,12 +1263,12 @@ mod tests {
     /// take an index one of them stands at.
     #[test]
     fn units_that_skip_an_index_state_theirs() {
-        let unit = |index: i32, x: i32| json!({"name": "marksman", "index": index, "position": {"x": x, "y": -60}});
+        let unit = |index: i32, x: i32| json!({"name": "marksman", "index": index, "position": {"x": x, "y": -60}, "source": "joined"});
         let layout = |officers: serde_json::Value| {
             json!({
                 "kind": "layout", "seed": 4242, "round": 1,
                 "blue": {"officers": officers, "units": [unit(0, 0), unit(2, 100)]},
-                "red": {"units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -50}}]},
+                "red": {"units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -50}, "source": "joined"}]},
             })
         };
         let replay = layout_replay(&plan(&layout(json!([]))), crate::game_build()).unwrap();

@@ -397,12 +397,16 @@ fn a_formation_opens_the_simulated_fight_with_the_experience_its_layout_brings()
     // Each formation opens holding what the layout says, as the game's
     // recording of this layout does: the Marksmen gain the Arclight's
     // experience, and the Arclight ends with what it opened with.
-    assert!(
-        document.contains("level: 2, exp: 700/900/1465}"),
-        "{document}"
-    );
-    assert!(document.contains("exp: 300/300/750}"), "{document}");
     let parsed: serde_yaml::Value = serde_yaml::from_str(&document).unwrap();
+    assert_eq!(parsed["blue"]["units"][0]["level"].as_i64(), Some(2));
+    assert_eq!(
+        parsed["blue"]["units"][0]["exp"].as_str(),
+        Some("700/900/1465")
+    );
+    assert_eq!(
+        parsed["red"]["units"][0]["exp"].as_str(),
+        Some("300/300/750")
+    );
     assert_eq!(parsed["blue"]["units"].as_sequence().unwrap().len(), 1);
 }
 

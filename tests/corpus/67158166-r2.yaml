@@ -16,16 +16,16 @@ blue:
   officers: [supply_specialist]
   blueprints: [defense_enhancement]
   units:
-  - {name: vortex, index: 0, position: {x: -140, y: -70}, exp: 138/635/750, source: legacy}
-  - {name: vortex, index: 1, position: {x: -90, y: -70}, exp: 346/750/750, source: legacy}
-  - {name: vortex, index: 2, position: {x: -20, y: -70}, exp: 413/526/750, source: legacy}
-  - {name: fire_badger, index: 3, position: {x: -175, y: -70}, exp: 185/400/1400, source: legacy}
-  - {name: fire_badger, index: 4, position: {x: -55, y: -70}, exp: 350/589/1400, source: legacy}
-  - {name: crawler, index: 5, position: {x: -140, y: -105}, exp: 436/450/450, rotated: true, source: legacy}
-  - {name: crawler, index: 6, position: {x: -20, y: -105}, exp: 365/377/450, rotated: true, source: legacy}
-  - {name: fang, index: 7, position: {x: 160, y: -175}, exp: 0/160/600, rotated: true}
-  - {name: fang, index: 8, position: {x: -160, y: -175}, rotated: true}
-  - {name: fang, index: 9, position: {x: -140, y: -35}, exp: 0/121/600, rotated: true}
+  - {name: vortex, index: 0, position: {x: -140, y: -70}, exp: 138/635/750}
+  - {name: vortex, index: 1, position: {x: -90, y: -70}, exp: 346/750/750}
+  - {name: vortex, index: 2, position: {x: -20, y: -70}, exp: 413/526/750}
+  - {name: fire_badger, index: 3, position: {x: -175, y: -70}, exp: 185/400/1400}
+  - {name: fire_badger, index: 4, position: {x: -55, y: -70}, exp: 350/589/1400}
+  - {name: crawler, index: 5, position: {x: -140, y: -105}, exp: 436/450/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -20, y: -105}, exp: 365/377/450, rotated: true}
+  - {name: fang, index: 7, position: {x: 160, y: -175}, exp: 0/160/600, rotated: true, source: joined}
+  - {name: fang, index: 8, position: {x: -160, y: -175}, rotated: true, source: joined}
+  - {name: fang, index: 9, position: {x: -140, y: -35}, exp: 0/121/600, rotated: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   battle_skills:
@@ -34,14 +34,14 @@ red:
   core_damage: 252
   officers: [cost_control_specialist]
   units:
-  - {name: crawler, index: 0, position: {x: -100, y: -205}, exp: 18/23/450, rotated: true, source: legacy}
-  - {name: crawler, index: 1, position: {x: -290, y: -265}, exp: 362/386/450, rotated: true, source: legacy}
-  - {name: crawler, index: 2, position: {x: 290, y: -265}, exp: 0/33/450, rotated: true, source: legacy}
-  - {name: steel_ball, index: 4, position: {x: -65, y: -240}, exp: 34/170/1000, source: legacy}
-  - {name: marksman, index: 5, position: {x: -120, y: -170}, exp: 5/328/650, source: legacy}
-  - {name: marksman, index: 6, position: {x: 120, y: -170}, exp: 24/490/650, source: legacy}
-  - {name: vulcan, index: 7, position: {x: 80, y: -140}, exp: 0/1034/2200}
-  - {name: crawler, index: 8, position: {x: 110, y: -135}, exp: 0/43/450, rotated: true}
+  - {name: crawler, index: 0, position: {x: -100, y: -205}, exp: 18/23/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: -290, y: -265}, exp: 362/386/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: 290, y: -265}, exp: 0/33/450, rotated: true}
+  - {name: steel_ball, index: 4, position: {x: -65, y: -240}, exp: 34/170/1000}
+  - {name: marksman, index: 5, position: {x: -120, y: -170}, exp: 5/328/650}
+  - {name: marksman, index: 6, position: {x: 120, y: -170}, exp: 24/490/650}
+  - {name: vulcan, index: 7, position: {x: 80, y: -140}, exp: 0/1034/2200, source: joined}
+  - {name: crawler, index: 8, position: {x: 110, y: -135}, exp: 0/43/450, rotated: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 ticks: 767

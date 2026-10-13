@@ -10,9 +10,9 @@ seed: 4242
 round: 1
 blue:
   units:
-  - {name: crawler, index: 0, position: {x: -145, y: -110}}
+  - {name: crawler, index: 0, position: {x: -145, y: -110}, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   units:
-  - {name: raiden, index: 0, position: {x: 140, y: -40}}
+  - {name: raiden, index: 0, position: {x: 140, y: -40}, source: joined}
