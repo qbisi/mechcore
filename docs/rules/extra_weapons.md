@@ -186,11 +186,14 @@ unit; it does not turn towards its lock.
   covers the lock, as the main skill does with its own: a Centurion's Homing
   Missile, reaching 160 metres, fires at a block in the way that its 110 metre
   main gun passes by.
-- **A skill that deals nothing takes no tower, and no block in the way.**
-  `FightSkill.IsTowerAttackable` lets an extra skill take a tower only where
-  it deals damage of its own or a share of its unit's: Incendiary Bomb's skill
-  searches the units alone, passing over a tower its main skill takes, and
-  Scorching Charge's, of damage rate one, charges a tower.
+- **A skill that deals nothing passes crystals over.**
+  `AttackTargetFilter`'s `FightCrystal` visitor asks
+  `FightSkill.IsTowerAttackable` for towers and interceptors. An extra skill
+  needs damage of its own or a share of its unit's, or a shield damage
+  modifier while the candidate is covered by a battlefield shield.
+  Incendiary Bomb passes these crystals over; Scorching Charge, of damage
+  rate one, charges a tower. Constructions use a separate visitor, so
+  Incendiary Bomb may select a turret as its lock target.
   `WallConstructionTargetChecker.CheckWallConstruction` asks the same of the
   block it finds in the line of fire, so a Sticky Oil Bomb fires past a
   Rapid-Fire Turret at the unit behind it.
@@ -791,6 +794,8 @@ that is not melee, so the simulator refuses it.
 - A Hound's bomb skill whose target walks inside its 40 metre minimum range
   takes another on that update, and its search passes towers over:
   `tests/corpus/201371791-r4.yaml`, `tests/corpus/201371791-r5.yaml`.
+- A Hound's bomb skill passes an interceptor over and locks another Hound:
+  `tests/extra_weapon/incendiary-bomb-passes-interceptor.yaml`.
 - A Hound's main skill releases before its bombs on the update both release:
   `tests/extra_weapon/incendiary-bomb-with-main.yaml`.
 - A Hound's bomb skill scores every search from the unit's rotation as it
@@ -1039,10 +1044,11 @@ that is not melee, so the simulator refuses it.
   `SkillIdleState.Update`, `ProjectileSystem.Create`, `FightProjectile.IsFlying`.
 - Its damage: `SkillData.GetDamage`.
 - Its range: `FightSkill.GetAttackRange`; the attacking check's minimum range,
-  `SkillAttackableChecker.CheckWhenLoseTarget`; the towers it may take,
+  `SkillAttackableChecker.CheckWhenLoseTarget`; the buildings it may take,
   `FightSkill.IsTowerAttackable`, which
-  `WallConstructionTargetChecker.CheckWallConstruction` asks of the block in
-  the way it found.
+  `AttackTargetFilter.GameRiver.Fight.IFightActorVisitor.Visit` asks of each
+  crystal and `WallConstructionTargetChecker.CheckWallConstruction` asks of
+  the block in the way it found.
 - Its fire: `ExtraSkillProvider.PerformHitEffect`, `ExtraSkillProvider.AddEffect`,
   `ExtraWeaponTechnologyData.GetFireLifeTime`, `MechDataModifer.AddData`,
   `GroundFireController.GetFireMech`, `RangeItemSystem.AddItem`,

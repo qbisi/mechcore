@@ -1079,11 +1079,9 @@ impl Simulation {
         widening: Option<i64>,
         passed_over: Option<FightActorRef>,
     ) -> Option<FightActorRef> {
-        let owner = source.owner;
         let nearby = widening.and_then(|widening| {
-            self.search_candidates(owner, !use_live_candidate_positions, widening * 1000)
+            self.search_candidates(source.owner, !use_live_candidate_positions, widening * 1000)
         });
-        let tower_attackable = self.tower_attackable(source.skill);
         let mut scoring = Scoring::default();
         // `Selector.Calculate`: the first candidate strictly nearer than any
         // before it, under the skill's minimum range or not.
@@ -1133,7 +1131,9 @@ impl Simulation {
                     || !target.searchable(!use_live_candidate_positions)
                     || matches!(candidate, FightActorRef::Building(id)
                         if self.unsearchable_buildings.contains(&id))
-                    || (!tower_attackable && self.is_tower(candidate))
+                    || (matches!(candidate, FightActorRef::Building(_))
+                        && !self.is_construction(candidate)
+                        && !self.tower_attackable(source.skill, candidate))
                     || !source.targets.accepts(target.domain)
                     || passed_over.is_some_and(|passed| {
                         candidate == passed
