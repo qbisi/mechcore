@@ -30,7 +30,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::{
     Error, Result,
     data::{Channel, Correction, Entry, Index, Overlays},
-    rules::{TowerLevel, TowersConfig},
+    rules::{TowerLevel, TowersConfig, UnitDomain},
 };
 
 use super::{
@@ -1321,6 +1321,30 @@ impl Simulation {
             // the gauge immediately, before the next source changes it.
             if entry.index == Index::MaxLife {
                 actor.refresh_life_data()?;
+            }
+            if entry.index == Index::AttackValueFor(UnitDomain::Air)
+                && actor
+                    .placement
+                    .effects
+                    .technology_disable
+                    .inverse_air_extra_skills
+            {
+                for extra in actor
+                    .skills
+                    .extras
+                    .iter_mut()
+                    .filter(|extra| extra.rules.damage_rate <= 0.0)
+                {
+                    if on {
+                        extra.skill_corrections.push(entry);
+                    } else if let Some(index) = extra
+                        .skill_corrections
+                        .iter()
+                        .position(|candidate| *candidate == entry)
+                    {
+                        extra.skill_corrections.remove(index);
+                    }
+                }
             }
         }
         actor.refresh_life_data()?;

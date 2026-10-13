@@ -148,7 +148,16 @@ impl Simulation {
             return Ok(lock.is_some_and(|lock| self.fight_actor_is_alive(lock)));
         }
         let before = self.slot_attack_target(skill_ref, slot);
-        if lock.is_some_and(|lock| self.fight_actor_is_alive(lock)) {
+        // The native checker asks IsAirAttack/IsGroundAttack before keeping
+        // a live lock; technology removal may have changed those flags.
+        if lock.is_some_and(|lock| {
+            self.fight_actor(lock).is_some_and(|target| {
+                target.alive
+                    && self
+                        .skill_attacker(skill_ref)
+                        .is_some_and(|source| source.targets.accepts(target.domain))
+            })
+        }) {
             // Every skill of a group checks whether it gives its lock up but
             // the main skill's own first, which no `ParentSkill` parents: an
             // extra skill's group's first does.

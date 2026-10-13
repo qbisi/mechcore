@@ -1149,6 +1149,9 @@ pub(crate) struct TechnologyDisable {
     /// take away and write again (`IEffectProviderDataSource.RemoveData`,
     /// `AddData`).
     pub(crate) corrections: Vec<(Channel, Entry)>,
+    /// Whether the inverse-air-attack source also writes separate extra
+    /// skill datasets through `ICommonMechDataChangeDataSource`.
+    pub(crate) inverse_air_extra_skills: bool,
     /// The providers beside the numbers' its technologies reach, each of
     /// which `FightEffectMananger.DisableEffect` switches.
     pub(crate) providers: Vec<EffectProvider>,
@@ -1432,16 +1435,26 @@ fn technology_disable(
     {
         providers.remove(&crate::modifier::EffectProvider::EnergyShield);
     }
+    let air_attack = refused
+        .hold(technologies.main_skill(held, type_name).map_err(on_side))?
+        .air_attack;
     Some(TechnologyDisable {
         corrections: refused.hold(
             technologies
                 .corrections(held, type_name, level)
                 .and_then(|mut written| {
                     written.extend(technologies.armor(held, type_name, level)?);
+                    if air_attack.is_some() {
+                        written.extend(effects.corrections.iter().copied().filter(|(_, entry)| {
+                            entry.index == Index::AttackValueFor(UnitDomain::Air)
+                                && entry.source == TECHNOLOGY_SOURCE
+                        }));
+                    }
                     Ok(written)
                 })
                 .map_err(on_side),
         )?,
+        inverse_air_extra_skills: air_attack.is_some_and(|source| source.extra_skills),
         unmeasured: effects
             .extra_weapons
             .iter()

@@ -249,8 +249,9 @@ impl Simulation {
     /// - A sweep technology's changes leave its unit's sweep skill, which is
     ///   reset to its own, and are applied again
     ///   (`SweepSkillIntensifyEffectProvider.TryApply`).
-    /// - An air attack technology's switch stays: its provider's
-    ///   `DisableEffect` and `EnableEffect` do nothing.
+    /// - An air attack provider's typed `DisableEffect` and `EnableEffect`
+    ///   do nothing; Technology.RemoveData/AddData still switch its common
+    ///   inverse-air entry, handled with the numeric corrections.
     /// - An interception technology's interceptors are disabled and enabled,
     ///   each letting its target go and returning to idle
     ///   (`InterceptEffectBase.DoDisable`, `DoEnable`).
@@ -350,9 +351,9 @@ impl Simulation {
             // an armour's reduction among its numbers, and a buff its unit
             // added itself, which `BuffManager` clears as the disabling buff
             // enters. What the layout refuses switched does not reach here.
-            // `AirAttackEffectProvider.DisableEffect` and `EnableEffect` are
-            // `NormalEffectProvider`'s, which do nothing: the skills it turned
-            // onto or off aircraft stay so.
+            // The typed air-attack methods do nothing. Their wrapper first
+            // removes/adds the source's common data, including the inverse-
+            // air flag, which switch_technologies handles as a correction.
             EffectProvider::AirAttack
             | EffectProvider::WreckageRecovery
             | EffectProvider::LifeSteal
