@@ -693,11 +693,16 @@ impl Simulation {
         Some(attacker)
     }
 
-    /// `FightSkill.IsTowerAttackable`: a main skill may take a tower; an
-    /// extra skill only where it deals damage of its own or a share of its
-    /// unit's (`GetDamage`, `GetDamageRate`), which an explosion's rate of
-    /// one does. Incendiary Bomb's shell, dealing nothing, passes towers over.
-    pub(in crate::fight) fn tower_attackable(&self, skill_ref: SkillRef) -> bool {
+    /// `FightSkill.IsTowerAttackable`: a main skill may take a crystal; an
+    /// extra skill needs damage of its own or a share of its unit's, or shield
+    /// damage while the target is covered. `AttackTargetFilter.Visit` asks it
+    /// for crystals, including interceptors; constructions have their own
+    /// visitor. A block in the line of fire also asks it through its checker.
+    pub(in crate::fight) fn tower_attackable(
+        &self,
+        skill_ref: SkillRef,
+        target: FightActorRef,
+    ) -> bool {
         let SkillSlot::Extra(index) = skill_ref.slot else {
             return true;
         };
@@ -709,6 +714,8 @@ impl Simulation {
             || self
                 .skill_attacker(skill_ref)
                 .is_some_and(|attacker| attacker.attack_damage != 0)
+            || (self.skill_shield_damage(skill_ref).is_some()
+                && self.shield_around(target).is_some())
     }
 
     /// A skill's index in its owner's `FightMech.GetSkills()`, which a

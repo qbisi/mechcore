@@ -844,6 +844,6 @@ impl Simulation {
         }
         nearest
             .map(|(_, building_id)| building_id)
-            .filter(|_| self.tower_attackable(skill_ref))
+            .filter(|&id| self.tower_attackable(skill_ref, FightActorRef::Building(id)))
     }
 }
