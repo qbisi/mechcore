@@ -1,0 +1,80 @@
+# Independent main weapons replace their lock with a blocking wall, and
+# recheck the wall each idle update. The owner alive selector scores walls
+# alongside aircraft. Removing Overlord explosion enhancements keeps later
+# splash-event ordering outside this control. Rows read from the native game.
+kind: fight
+source: game
+map_id: 1021
+seed: 1176626765
+round: 4
+blue:
+  core_damage: 652
+  officers: [advanced_shield_device, quick_teleport, rhino_specialist, improved_overlord]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: rhino, index: 0, position: {x: 65, y: -175}, level: 2, source: delivered}
+  - {name: overlord, index: 1, position: {x: -335, y: 45}, level: 6, exp: 0/5720/10148, travelling: true}
+  - {name: vulcan, index: 2, position: {x: 50, y: -60}, level: 5}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -225, y: -80}}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: 235, y: -140}, {x: 105, y: 20}]}
+red:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, advanced_targeting_system, speed_specialist, improved_war_factory]
+  techs:
+    war_factory: [high_explosive_ammo, armor_enhancement, missile_interceptor, range_enhancement, launcher_overload, phoenix_production, steel_ball_production, sledgehammer_production, photon_coating]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: war_factory, index: 0, position: {x: 15, y: -95}, level: 5, exp: 0/8424/16673}
+  - {name: stormcaller, index: 1, position: {x: 165, y: -270}}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 25, y: -35}, retained: false}
+  battle_skills:
+  - {name: ion_blast, positions: [{x: 15, y: -225}, {x: 30, y: 140}]}
+ticks: 865
+hash: 24:7b784ed60f3833383b85d9259c9fddbb2652d7367502697264fb83fdbe7b3ed3
+asserts:
+- sql: SELECT tick,skill_slot,enabled__lock_target__kind,enabled__lock_target__id,enabled__attack_target__kind,enabled__attack_target__id
+    FROM units__skills WHERE unit_id=4 AND ((tick=92 AND skill_slot IN(1,3)) OR (tick=111
+    AND skill_slot IN(2,3))) ORDER BY tick,ordinal
+  rows:
+  - - 92
+    - 1
+    - building
+    - 3
+    - building
+    - 3
+  - - 92
+    - 3
+    - building
+    - 3
+    - building
+    - 3
+  - - 111
+    - 2
+    - building
+    - 5
+    - building
+    - 5
+  - - 111
+    - 3
+    - building
+    - 5
+    - building
+    - 5
+- sql: SELECT tick,unit_id,mech_lock_target__kind,mech_lock_target__id,motion_state
+    FROM units WHERE unit_id=4 AND tick=326
+  rows:
+  - - 326
+    - 4
+    - building
+    - 5
+    - attacking

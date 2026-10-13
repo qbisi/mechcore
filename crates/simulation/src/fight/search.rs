@@ -1285,11 +1285,13 @@ impl Simulation {
             Some(
                 match self.select_normal_target_from(&source, target_search_order, true) {
                     Some(found) => Some(found),
-                    None => self.select_alive_target(
+                    None => self.select_alive_target_from(
+                        &source,
                         SkillRef::main(FightActorRef::Unit(actor_id)),
                         None,
                         target_search_order,
-                    )?,
+                        false,
+                    ),
                 },
             )
         };
@@ -1351,6 +1353,20 @@ impl Simulation {
         let source = self
             .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("target selector source is absent"))?;
+        Ok(self.select_alive_target_from(&source, skill_ref, slot, target_search_order, true))
+    }
+
+    /// The alive selector scores the collection its controller supplies.
+    /// A skill supplies blocking constructions only after its actor search
+    /// fails; `MechSearchTargetController` supplies the complete actor list.
+    fn select_alive_target_from(
+        &self,
+        source: &super::attacker::Attacker<'_>,
+        skill_ref: SkillRef,
+        slot: Option<usize>,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+        separate_blocks: bool,
+    ) -> Option<FightActorRef> {
         let (rotation_q32, attack_range, rotation_window_q32) = match (skill_ref.owner, slot) {
             (FightActorRef::Unit(actor_id), Some(slot)) if slot > 0 => {
                 let actor = &self.actors[&actor_id];
@@ -1383,7 +1399,10 @@ impl Simulation {
                     };
                     let blocks = matches!(candidate, FightActorRef::Building(id)
                         if self.rvo.passable_constructions.contains(&id));
-                    if target.team != team || !target.alive || blocks != blocking {
+                    if target.team != team
+                        || !target.alive
+                        || (separate_blocks && blocks != blocking)
+                    {
                         continue;
                     }
                     let Some(score) = full_rotation_target_score_q32(
@@ -1408,7 +1427,7 @@ impl Simulation {
             }
             scoring.chosen(|next| self.target_in_attack_range(skill_ref, next))
         };
-        Ok(select(false).or_else(|| select(true)))
+        select(false).or_else(|| separate_blocks.then(|| select(true)).flatten())
     }
 }
 
