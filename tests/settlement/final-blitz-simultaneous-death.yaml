@@ -19,13 +19,16 @@ red:
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/400/1150}
 asserts:
-- sql: |-
-    SELECT team_id, score, core_damage FROM settlement_teams ORDER BY team_id
+- sql: |
+    SELECT team_id, score, core_damage FROM settlement_teams ORDER BY team_id;
   rows:
   - [0, 0, 0]
   - [1, 0, 0]
-- sql: |-
-    SELECT formation_id, experience >> 32 AS exp, max_experience >> 32 AS max_exp FROM settlement_formations ORDER BY formation_id
+- sql: |
+    SELECT formation_id, experience >> 32 AS exp, max_experience >> 32 AS max_exp
+    FROM settlement_formations
+    ORDER BY
+      formation_id;
   rows:
   - [1, 200, 1150]
   - [2, 400, 1150]

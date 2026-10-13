@@ -44,8 +44,14 @@ red:
   battle_skills:
   - {name: photon_emission, positions: [{x: -275, y: 115}]}
 asserts:
-- sql: |-
-    SELECT object__id FROM events WHERE type = 'building_destroyed' AND tick = 188 ORDER BY ordinal
+- sql: |
+    SELECT object__id
+    FROM events
+    WHERE
+      type = 'building_destroyed'
+      AND tick = 188
+    ORDER BY
+      ordinal;
   rows:
   - [1]
   - [2]
@@ -55,8 +61,12 @@ asserts:
   - [7]
   - [8]
   - [9]
-- sql: |-
-    SELECT building_id, life__current FROM buildings WHERE tick = 188 AND building_id = 3
+- sql: |
+    SELECT building_id, life__current
+    FROM buildings
+    WHERE
+      tick = 188
+      AND building_id = 3;
   rows:
   - [3, 4000]
 ticks: 188

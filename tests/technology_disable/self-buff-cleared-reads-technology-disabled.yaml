@@ -23,8 +23,8 @@ red:
   units:
   - {name: stormcaller, index: 0, position: {x: 5, y: -100}, exp: 0/200/1100}
 asserts:
-- sql: |-
-    SELECT tick, reason FROM events WHERE type = 'buff_removed' AND buff_id = 10001
+- sql: |
+    SELECT tick, reason FROM events WHERE type = 'buff_removed' AND buff_id = 10001;
   rows:
   - [236, 3]
 ticks: 374

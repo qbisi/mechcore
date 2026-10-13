@@ -22,8 +22,16 @@ red:
   - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
   - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/280/650}
 asserts:
-- sql: |-
-    SELECT tick, count(*) FROM events WHERE type = 'unit_created' AND tick <= 700 GROUP BY tick ORDER BY tick
+- sql: |
+    SELECT tick, count(*)
+    FROM events
+    WHERE
+      type = 'unit_created'
+      AND tick <= 700
+    GROUP BY
+      tick
+    ORDER BY
+      tick;
   rows:
   - [161, 2]
   - [421, 2]

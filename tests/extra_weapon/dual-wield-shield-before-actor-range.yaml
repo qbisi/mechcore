@@ -38,19 +38,28 @@ red:
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
   contraptions:
   - {name: shield, index: 0, position: {x: 145, y: -170}, retained: false}
-ticks: 509
-hash: 24:3a06457ddf64cc8bfc819c05a7eeee52a57daae77e50a5b7973e399b6f2f1af8
 asserts:
-- sql: |-
-    SELECT tick,unit_id,skill_slot,enabled__state,enabled__lock_target__id
-    FROM units__skills WHERE unit_id=5 AND skill_slot=2
-      AND tick IN (96,97,98) ORDER BY tick
+- sql: |
+    SELECT tick, unit_id, skill_slot, enabled__state, enabled__lock_target__id
+    FROM units__skills
+    WHERE
+      unit_id = 5
+      AND skill_slot = 2
+      AND tick IN (96, 97, 98)
+    ORDER BY
+      tick;
   rows:
   - [96, 5, 2, idle, 5]
   - [97, 5, 2, idle, 5]
   - [98, 5, 2, idle, 5]
-- sql: |-
-    SELECT min(tick) FROM units__skills
-    WHERE unit_id=5 AND skill_slot=2 AND enabled__state='prepare'
+- sql: |
+    SELECT min(tick)
+    FROM units__skills
+    WHERE
+      unit_id = 5
+      AND skill_slot = 2
+      AND enabled__state = 'prepare';
   rows:
   - [205]
+ticks: 509
+hash: 24:3a06457ddf64cc8bfc819c05a7eeee52a57daae77e50a5b7973e399b6f2f1af8

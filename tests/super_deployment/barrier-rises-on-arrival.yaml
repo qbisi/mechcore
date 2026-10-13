@@ -22,8 +22,14 @@ red:
   - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
   - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/200/650}
 asserts:
-- sql: |-
-    SELECT tick, active, energy__current FROM shields WHERE has_owner AND tick IN (1, 160, 161) ORDER BY tick
+- sql: |
+    SELECT tick, active, energy__current
+    FROM shields
+    WHERE
+      has_owner
+      AND tick IN (1, 160, 161)
+    ORDER BY
+      tick;
   rows:
   - [1, 0, 0]
   - [160, 0, 0]

@@ -25,8 +25,15 @@ red:
   - {name: defensive_wall, index: 0, position: {x: 0, y: -105}}
   - {name: anti_armor_turret, index: 1, position: {x: 50, y: -100}}
 asserts:
-- sql: |-
-    SELECT tick, target__kind, target__id, amount FROM events WHERE type = 'damage' AND source__kind IS NULL AND tick = 63 ORDER BY ordinal
+- sql: |
+    SELECT tick, target__kind, target__id, amount
+    FROM events
+    WHERE
+      type = 'damage'
+      AND source__kind IS NULL
+      AND tick = 63
+    ORDER BY
+      ordinal;
   rows:
   - [63, building, 5, 3000]
   - [63, building, 6, 1112]

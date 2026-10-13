@@ -36,18 +36,31 @@ red:
   - {name: missile, index: 0, position: {x: 40, y: -85}, retained: false}
   battle_skills:
   - {name: wasp_swarm, positions: [{x: 155, y: -70}]}
-ticks: 2360
-hash: 24:c2d9dfe37490d35b7845199e43f91d2605304669d3cac97991cc15b5a545dadc
 asserts:
-- sql: |-
-    SELECT tick,unit_id,targetable,visibility FROM units WHERE unit_id=13 AND tick BETWEEN 128 AND 130 ORDER BY tick
+- sql: |
+    SELECT tick, unit_id, targetable, visibility
+    FROM units
+    WHERE
+      unit_id = 13
+      AND tick BETWEEN 128 AND 130
+    ORDER BY
+      tick;
   rows:
   - [128, 13, 0, hide]
   - [129, 13, 0, hide]
   - [130, 13, 0, hide]
-- sql: |-
-    SELECT tick, type, object__id, source__id, target__id FROM events WHERE type='projectile_released' AND (tick=129 OR source__id IS NULL) ORDER BY tick,ordinal
+- sql: |
+    SELECT tick, type, object__id, source__id, target__id
+    FROM events
+    WHERE
+      type = 'projectile_released'
+      AND (tick = 129 OR source__id IS NULL)
+    ORDER BY
+      tick,
+      ordinal;
   rows:
   - [129, projectile_released, 34, 32, 19]
   - [258, projectile_released, 123, null, 33]
   - [864, projectile_released, 285, null, 18]
+ticks: 2360
+hash: 24:c2d9dfe37490d35b7845199e43f91d2605304669d3cac97991cc15b5a545dadc

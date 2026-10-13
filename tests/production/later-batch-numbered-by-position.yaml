@@ -24,8 +24,15 @@ red:
   units:
   - {name: fortress, index: 0, position: {x: 80, y: -60}, exp: 0/800/1600}
 asserts:
-- sql: |-
-    SELECT object__id FROM events WHERE type = 'unit_created' AND tick = 721 ORDER BY ordinal LIMIT 3
+- sql: |
+    SELECT object__id
+    FROM events
+    WHERE
+      type = 'unit_created'
+      AND tick = 721
+    ORDER BY
+      ordinal
+    LIMIT 3;
   rows:
   - [18]
   - [13]

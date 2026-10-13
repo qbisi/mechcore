@@ -40,8 +40,24 @@ red:
   units:
   - {name: wraith, index: 0, position: {x: 195, y: -25}, exp: 0/236/2250}
 asserts:
-- sql: |-
-    SELECT u.tick, u.unit_id, u.motion_state, u.mech_lock_target__kind, u.mech_lock_target__id, k.skill_slot, k.enabled__attack_target__kind, k.enabled__attack_target__id FROM units u JOIN units__skills k ON k.tick = u.tick AND k.unit_id = u.unit_id WHERE u.team_id = 1 AND u.tick IN (41, 60, 78) ORDER BY u.tick, k.skill_slot
+- sql: |
+    SELECT
+      u.tick,
+      u.unit_id,
+      u.motion_state,
+      u.mech_lock_target__kind,
+      u.mech_lock_target__id,
+      k.skill_slot,
+      k.enabled__attack_target__kind,
+      k.enabled__attack_target__id
+    FROM units u
+    JOIN units__skills k ON k.tick = u.tick AND k.unit_id = u.unit_id
+    WHERE
+      u.team_id = 1
+      AND u.tick IN (41, 60, 78)
+    ORDER BY
+      u.tick,
+      k.skill_slot;
   rows:
   - [41, 2, attacking, unit, 1, 0, building, 3]
   - [41, 2, attacking, unit, 1, 1, building, 3]

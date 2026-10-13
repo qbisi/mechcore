@@ -38,21 +38,18 @@ red:
   - {name: missile, index: 0, position: {x: 115, y: -175}}
   battle_skills:
   - {name: underground_threat, positions: [{x: 200, y: -220}]}
+asserts:
+- sql: |
+    SELECT tick, unit_id, velocity__x, velocity__z
+    FROM units
+    WHERE
+      tick = 56
+      AND unit_id IN (32, 33, 34)
+    ORDER BY
+      unit_id;
+  rows:
+  - [56, 32, 39921695100, -108875615481]
+  - [56, 33, 44042775273, -107263012671]
+  - [56, 34, 68675883704, -74680250304]
 ticks: 963
 hash: 24:d7f17c1b5a0476c706e681ceb87d5172e8075ea8470241afed1444262eab24ed
-asserts:
-- sql: SELECT tick,unit_id,velocity__x,velocity__z FROM units WHERE tick=56 AND unit_id
-    IN(32,33,34) ORDER BY unit_id
-  rows:
-  - - 56
-    - 32
-    - 39921695100
-    - -108875615481
-  - - 56
-    - 33
-    - 44042775273
-    - -107263012671
-  - - 56
-    - 34
-    - 68675883704
-    - -74680250304

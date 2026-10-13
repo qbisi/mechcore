@@ -37,20 +37,27 @@ red:
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -75, y: 0}, {x: -285, y: -145}]}
 asserts:
-- sql: |-
-    SELECT team_id, score, core_damage FROM settlement_teams ORDER BY team_id
+- sql: |
+    SELECT team_id, score, core_damage FROM settlement_teams ORDER BY team_id;
   rows:
   - [0, 250, 201]
   - [1, 201, 250]
-- sql: |-
-    SELECT formation_id, experience >> 32 AS exp, max_experience >> 32 AS max_exp FROM settlement_formations ORDER BY formation_id
+- sql: |
+    SELECT formation_id, experience >> 32 AS exp, max_experience >> 32 AS max_exp
+    FROM settlement_formations
+    ORDER BY
+      formation_id;
   rows:
   - [1, -1, 8118]
   - [2, 14888, 15137]
   - [3, 4742, 5799]
   - [4, -1, 10091]
-- sql: |-
-    SELECT tick_count, terminal_tick, (SELECT count(*) FROM projectiles WHERE tick = fight.terminal_tick) AS pending_projectiles FROM fight
+- sql: |
+    SELECT
+      tick_count,
+      terminal_tick,
+      (SELECT count(*) FROM projectiles WHERE tick = fight.terminal_tick) AS pending_projectiles
+    FROM fight;
   rows:
   - [2360, 2360, 0]
 ticks: 2360

@@ -36,12 +36,15 @@ red:
   - {name: shield, index: 0, position: {x: -175, y: -150}, retained: false}
   battle_skills:
   - {name: shield_airdrop, positions: [{x: 215, y: -205}]}
-ticks: 948
-hash: 24:47798226ea8420ce0ae847c58bdf8b23af00e76d7d8e8bd335cdb35ecf11a6ae
 asserts:
-- sql: |-
-    SELECT tick,type,object__id,target__id,amount FROM events
-    WHERE tick=96 AND type IN ('healing','damage') ORDER BY ordinal
+- sql: |
+    SELECT tick, type, object__id, target__id, amount
+    FROM events
+    WHERE
+      tick = 96
+      AND type IN ('healing', 'damage')
+    ORDER BY
+      ordinal;
   rows:
   - [96, damage, 6, 1, 2825]
   - [96, healing, null, 4, 3]
@@ -49,3 +52,5 @@ asserts:
   - [96, healing, null, 3, 3]
   - [96, damage, 4, 1, 2825]
   - [96, healing, null, 2, 3]
+ticks: 948
+hash: 24:47798226ea8420ce0ae847c58bdf8b23af00e76d7d8e8bd335cdb35ecf11a6ae

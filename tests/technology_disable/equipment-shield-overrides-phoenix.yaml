@@ -35,8 +35,20 @@ red:
   battle_skills:
   - {name: mobile_beacon, positions: [{x: 240, y: 115}, {x: -300, y: -30}, {x: 155, y: -35}]}
 asserts:
-- sql: |-
-    SELECT u.tick, u.unit_id, u.personal_shield__enabled, s.enabled__current_attack_interval AS attack_interval FROM units u JOIN units__skills s USING(tick,unit_id) WHERE u.unit_id=1 AND s.skill_slot=0 AND u.tick BETWEEN 158 AND 160 ORDER BY u.tick
+- sql: |
+    SELECT
+      u.tick,
+      u.unit_id,
+      u.personal_shield__enabled,
+      s.enabled__current_attack_interval AS attack_interval
+    FROM units u
+    JOIN units__skills s USING (tick, unit_id)
+    WHERE
+      u.unit_id = 1
+      AND s.skill_slot = 0
+      AND u.tick BETWEEN 158 AND 160
+    ORDER BY
+      u.tick;
   rows:
   - [158, 1, 1, 57]
   - [159, 1, 1, 57]

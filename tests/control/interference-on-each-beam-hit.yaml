@@ -20,8 +20,16 @@ red:
   units:
   - {name: hacker, index: 0, position: {x: 75, y: -55}, rotated: true}
 asserts:
-- sql: |-
-    SELECT tick, target__id FROM events WHERE type = 'buff_applied' AND buff_id = 1014 ORDER BY tick, ordinal LIMIT 4
+- sql: |
+    SELECT tick, target__id
+    FROM events
+    WHERE
+      type = 'buff_applied'
+      AND buff_id = 1014
+    ORDER BY
+      tick,
+      ordinal
+    LIMIT 4;
   rows:
   - [12, 1]
   - [18, 1]

@@ -24,8 +24,13 @@ red:
   units:
   - {name: fortress, index: 0, position: {x: 80, y: -60}, exp: 0/520/1600, source: joined}
 asserts:
-- sql: |-
-    SELECT b.skill__lock_target__id, u.unit_type_id FROM buildings b JOIN units u ON u.unit_id = b.skill__lock_target__id AND u.tick = b.tick WHERE b.has_skill AND b.tick = 1
+- sql: |
+    SELECT b.skill__lock_target__id, u.unit_type_id
+    FROM buildings b
+    JOIN units u ON u.unit_id = b.skill__lock_target__id AND u.tick = b.tick
+    WHERE
+      b.has_skill
+      AND b.tick = 1;
   rows:
   - [6, 1]
 ticks: 475

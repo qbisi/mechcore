@@ -23,8 +23,14 @@ red:
   constructions:
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
 asserts:
-- sql: |-
-    SELECT skill_slot, enabled__lock_target__kind, enabled__lock_target__id FROM units__skills WHERE tick = 1 AND unit_id = 1 ORDER BY skill_slot
+- sql: |
+    SELECT skill_slot, enabled__lock_target__kind, enabled__lock_target__id
+    FROM units__skills
+    WHERE
+      tick = 1
+      AND unit_id = 1
+    ORDER BY
+      skill_slot;
   rows:
   - [0, building, 5]
   - [1, unit, 2]

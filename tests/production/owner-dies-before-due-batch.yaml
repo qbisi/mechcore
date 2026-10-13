@@ -40,12 +40,24 @@ red:
   battle_skills:
   - {name: lightning_storm, positions: [{x: -60, y: 170}]}
 asserts:
-- sql: |-
-    SELECT tick, type, object__id, unit_type_id FROM events WHERE tick=741 AND type IN ('unit_created','unit_died') ORDER BY ordinal
+- sql: |
+    SELECT tick, type, object__id, unit_type_id
+    FROM events
+    WHERE
+      tick = 741
+      AND type IN ('unit_created', 'unit_died')
+    ORDER BY
+      ordinal;
   rows:
   - [741, unit_died, 14, null]
-- sql: |-
-    SELECT unit_id, team_id, original_team_id, unit_type_id FROM units WHERE tick=(SELECT terminal_tick FROM fight) AND unit_type_id=7 ORDER BY unit_id
+- sql: |
+    SELECT unit_id, team_id, original_team_id, unit_type_id
+    FROM units
+    WHERE
+      tick = (SELECT terminal_tick FROM fight)
+      AND unit_type_id = 7
+    ORDER BY
+      unit_id;
   rows:
   - [25, 0, 1, 7]
   - [27, 0, 1, 7]

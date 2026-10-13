@@ -40,8 +40,12 @@ red:
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: 10, y: 40}, {x: -300, y: -95}]}
 asserts:
-- sql: |-
-    SELECT object__id, source__kind, source__id FROM events WHERE type = 'unit_died' AND object__id = 4
+- sql: |
+    SELECT object__id, source__kind, source__id
+    FROM events
+    WHERE
+      type = 'unit_died'
+      AND object__id = 4;
   rows:
   - [4, unit, 1]
 ticks: 358

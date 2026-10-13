@@ -4,7 +4,7 @@ kind: layout
 round: 1
 blue:
   units:
-    - {name: marksman, index: 0, level: 2, exp: 700/1465, position: {x: 0, y: -50}, source: joined}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, level: 2, exp: 700/1465, source: joined}
 red:
   units:
-    - {name: arclight, index: 0, exp: 300/750, position: {x: 0, y: -50}, source: joined}
+  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 300/750, source: joined}

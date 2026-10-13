@@ -16,8 +16,12 @@ red:
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/200/750}
 asserts:
-- sql: |-
-    SELECT count(*) FROM units WHERE tick = (SELECT max(tick) FROM units) AND has_mech_lock_target
+- sql: |
+    SELECT count(*)
+    FROM units
+    WHERE
+      tick = (SELECT max(tick) FROM units)
+      AND has_mech_lock_target;
   rows:
   - [0]
 ticks: 91

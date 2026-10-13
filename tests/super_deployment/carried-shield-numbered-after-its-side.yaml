@@ -23,8 +23,13 @@ red:
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -100}}
 asserts:
-- sql: |-
-    SELECT shield_id, owner__id, active FROM shields WHERE tick = 1 ORDER BY shield_id
+- sql: |
+    SELECT shield_id, owner__id, active
+    FROM shields
+    WHERE
+      tick = 1
+    ORDER BY
+      shield_id;
   rows:
   - [1, null, 1]
   - [2, 1, 0]

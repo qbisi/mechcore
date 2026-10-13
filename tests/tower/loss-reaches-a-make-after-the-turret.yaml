@@ -28,8 +28,15 @@ red:
   units:
   - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/1000/1000}
 asserts:
-- sql: |-
-    SELECT target__kind, target__id FROM events WHERE type = 'buff_applied' AND tick = 231 AND (target__kind = 'building' OR target__id IN (19, 24)) ORDER BY ordinal
+- sql: |
+    SELECT target__kind, target__id
+    FROM events
+    WHERE
+      type = 'buff_applied'
+      AND tick = 231
+      AND (target__kind = 'building' OR target__id IN (19, 24))
+    ORDER BY
+      ordinal;
   rows:
   - [unit, 19]
   - [building, 3]

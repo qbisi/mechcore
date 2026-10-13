@@ -27,8 +27,14 @@ red:
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/100/650}
 asserts:
-- sql: |-
-    SELECT unit_type_id FROM events WHERE type = 'unit_created' AND tick = 1 ORDER BY ordinal
+- sql: |
+    SELECT unit_type_id
+    FROM events
+    WHERE
+      type = 'unit_created'
+      AND tick = 1
+    ORDER BY
+      ordinal;
   rows:
   - [16]
   - [13]
