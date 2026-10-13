@@ -11,8 +11,8 @@
 //! (`IterationEffectSystem.IsIteration`), starts one from where the hit
 //! landed (`HitEffectControl.Init`, `Perform`): a `GRTimer` of the delay,
 //! which strikes nothing yet. When it fires (`OnTimerOver`) it draws an
-//! enemy unit at random, from the owner's side's stream, among those within
-//! the preferred range of the point that its records do not pass over, or
+//! enemy unit or construction at random, from the owner's side's stream,
+//! among those within the preferred range of the point that its records do not pass over, or
 //! failing any, within the range (`GetTarget`): fully visible, of either
 //! domain, its edge within the range. It strikes the one drawn with the
 //! skill's damage now times the rate to the jump's number, the `FPoint`
@@ -165,11 +165,10 @@ impl Simulation {
             .chain
             .expect("a chain under way has its source");
         let preferred_q32 = source.preferred_range_q32.min(source.select_range_q32);
-        let Some(target) = self.chain_target(jump, source.select_range_q32, preferred_q32)? else {
+        let Some(aimed) = self.chain_target(jump, source.select_range_q32, preferred_q32)? else {
             self.end_chain(jump);
             return Ok(None);
         };
-        let aimed = FightActorRef::Unit(target);
         let shield = self
             .shield_around(aimed)
             .filter(|&shield| !self.shield_holds(shield, FightActorRef::Unit(jump.owner)));
@@ -183,8 +182,10 @@ impl Simulation {
             rate_q32 = q32_mul(rate_q32, source.damage_rate_q32);
         }
         let amount = q32_mul(damage << 32, rate_q32) >> 32;
-        let struck_unit = &self.actors[&target];
-        let (x_q32, z_q32) = (struck_unit.x_q32, struck_unit.z_q32);
+        let struck_actor = self
+            .fight_actor(aimed)
+            .expect("the selected actor is present");
+        let (x_q32, z_q32) = (struck_actor.x_q32, struck_actor.z_q32);
         let hit = DamageHit {
             source: Some(owner.object_ref()),
             source_team: jump.team,
@@ -197,14 +198,14 @@ impl Simulation {
             aimed: Some(aimed),
             hits_aimed: true,
             center_q32: (x_q32, z_q32),
-            center_y_q32: space_to_q32(unit_height(struck_unit.domain)),
+            center_y_q32: self.position_3d(aimed).map_or(0, |(_, y, _)| y),
             shield,
             crosses_shields: false,
-            strikes_buildings: false,
+            strikes_buildings: true,
             splash_radius: 0,
             fire: false,
             shield_damage: None,
-            reach: Reach::Domain(struck_unit.domain),
+            reach: Reach::Domain(struck_actor.domain),
         };
         let struck = self.perform_damage(hit, events)?;
         self.record_ends(struck.ends, events);
@@ -224,8 +225,8 @@ impl Simulation {
         Ok(None)
     }
 
-    /// `HitEffectControl.GetTarget`: the enemy units within `range` of the
-    /// point, their edge as `RangeTargetCalculator.CalculateRangeTargets`
+    /// `HitEffectControl.GetTarget`: the enemy units and constructions within
+    /// `range` of the point, their edge as `RangeTargetCalculator.CalculateRangeTargets`
     /// measures it, fully visible, of either domain, in the order each side's
     /// objects are searched; of them those within `preferred` the owner's
     /// records do not pass over, or failing any those within `range`, and
@@ -235,7 +236,7 @@ impl Simulation {
         jump: &ChainJump,
         range_q32: i64,
         preferred_q32: i64,
-    ) -> Result<Option<u64>> {
+    ) -> Result<Option<FightActorRef>> {
         let order = self.target_search_order();
         let records = &self.actors[&jump.owner].chain_records;
         let within = |limit_q32: i64| {
@@ -244,21 +245,23 @@ impl Simulation {
                 .filter(|(team, _)| **team != jump.team)
                 .flat_map(|(_, candidates)| candidates)
                 .filter_map(|&candidate| {
-                    let FightActorRef::Unit(id) = candidate else {
+                    if matches!(candidate, FightActorRef::Building(_))
+                        && !self.is_construction(candidate)
+                    {
                         return None;
-                    };
-                    let actor = self.actors.get(&id)?;
+                    }
+                    let actor = self.fight_actor(candidate)?;
                     let distance = native_q32_magnitude(
                         actor.x_q32.saturating_sub(jump.from_q32.0),
                         actor.z_q32.saturating_sub(jump.from_q32.1),
                     )
-                    .saturating_sub(space_to_q32(actor.rules.collision_radius()));
-                    (actor.alive()
-                        && actor.placement.team != jump.team
+                    .saturating_sub(space_to_q32(actor.radius));
+                    (actor.alive
+                        && actor.team != jump.team
                         && actor.visibility == Visibility::Normal
                         && fpoint_less_or_equal(distance, limit_q32)
                         && !records.contains(candidate))
-                    .then_some(id)
+                    .then_some(candidate)
                 })
                 .collect::<Vec<_>>()
         };

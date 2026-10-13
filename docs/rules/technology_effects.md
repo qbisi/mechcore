@@ -1206,7 +1206,7 @@ the main skill, each of the Raiden's three weapons its own skill.
 
 **A hit records what it struck and starts a jump.** After a first hit, not
 a second damage's, `IterationHitEffectProvider.PerformHitEffect` records
-every unit it struck with its skill in the unit's
+every target it struck with its skill in the unit's
 `FightMechIgnoreTargetManager` (`AddIgnoreBySkillHit`), and unless a chain of
 that skill is under way (`IterationEffectSystem.IsIteration`) starts one
 from where the hit landed (`HitEffectControl.Init`, `Perform`): a
@@ -1214,10 +1214,11 @@ from where the hit landed (`HitEffectControl.Init`, `Perform`): a
 `CanDisable` does nothing while its unit's technologies are disabled.
 
 **The jump strikes an enemy drawn at random.** As the timer fires
-(`OnTimerOver`, `GetTarget`), the enemy units fully visible whose edge
-stands within the range of the point, in the order each side's objects are
-searched, are taken; of those within the preferred range that no record of
-the unit passes over one is drawn from the side's stream
+(`OnTimerOver`, `GetTarget`), the fully visible enemy units and constructions
+whose edge stands within the range of the point, in the order each side's objects are
+searched, are taken. `GetTarget` removes `FightCrystal` objects except
+`FightConstruction`, excluding towers and interceptors. Of those within the
+preferred range that no record of the unit passes over one is drawn from the side's stream
 (`RandomElementSync`), or failing any, of those within the range. The one
 drawn takes the skill's damage now times the rate to the jump's number,
 the `FPoint` product's whole part, as the unit's hit under its skill
@@ -1782,6 +1783,8 @@ derive (a minimum range):
   `tests/additional_damage/ionization.yaml`.
 - Chain jumps each of a Raiden's weapons' hits on to another Mustang 0.2
   seconds later, killing it: `tests/chain/raiden-mustangs.yaml`.
+- Chain jumps from a destroyed defensive wall block to another block:
+  `tests/chain/chain-through-defensive-wall.yaml`.
 - Electromagnetic Cloud writes buff 1031 on the Rhino a Vortex strikes and
   the two Crawlers within 10 metres of it, switching Power Armor off:
   `tests/secondary_damage/electromagnetic-cloud.yaml`.
