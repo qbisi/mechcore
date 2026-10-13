@@ -225,7 +225,7 @@ already active adds a fixed step to the next one's own price. The count is per
 unit and not per side.
 
 A Jump Drive frees every unit of its type to move in this round
-and every later one, and sets their `movable`: `1606` for Wasp, `1611` for
+and every later one: `1606` for Wasp, `1611` for
 Overlord and `1616` for Phoenix.
 
 ### `active_blueprint`
@@ -288,8 +288,7 @@ unit is refused.
 Fitting is free, because the item was paid for when it was taken. What it can
 change is later: an item may discount every upgrade of its unit, or pay its
 side an income every round it is worn. Fitting the Deployment Module,
-`13040001`, frees its unit to move in this round and every later one, and
-sets its `movable`.
+`13040001`, frees its unit to move in this round and every later one.
 
 The inventory follows one identity across a round:
 
@@ -324,7 +323,7 @@ not a decision's. The identity covers what the decisions do to the stock.
 Moves the unit at `index` to `position`. `rotated` defaults to false and
 faces the unit the other way. Free, and writes nothing but the board.
 
-Only a unit whose `movable` is true may move, and a move of any other is
+Only a unit the deployment mobility rule frees may move; a move of any other is
 refused rather than applied. A move is refused too where its place is taken:
 the unit's footprint has to lie inside the region `position` lies in and
 overlap nothing standing there but the unit itself, the rule
@@ -404,8 +403,8 @@ The skill cannot target a unit at level 9 or one whose bar is already
 full, and a decision that does is refused rather than applied.
 
 Redeploy, `1000001`, is the other. It targets one of the side's own units
-with `{unit: <index>}` and sets its `movable`, so the unit may move for the rest of
-the round.
+with `{unit: <index>}` and frees it to move for the rest of the round.
+The effect is remembered internally while the round's actions are applied.
 
 ### `release_contraption`
 

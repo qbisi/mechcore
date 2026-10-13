@@ -571,11 +571,11 @@ owns it:
 | `battle_skills[].cooldown` | The recorded cooldowns are the previous round's. A slot the previous round spent restarts at its skill's cooldown, and every other drops by one to zero |
 | `energy_tower_skills` | The recorded list is a debt rather than an activation, so a round's start carries none |
 | `equipment` | The recorded inventory includes fitted items, which the units already name |
-| `movable` | No recorded field states it. Every unit of round 1 arrived with the opening, and a delivery arrived as its round opened; any other unit moves only if a Deployment Module or a Jump Drive frees it |
+| `units[].source` | The opening marks inherited units `legacy`, the first round's advance team `joined`, and a squad its officers deliver that round `delivered`; `legacy` is the omitted default |
 | Deliveries | The snapshot precedes what the round's officers deliver as it opens, so the squads, commander skills, equipment and unlocks each officer's schedule names are added to it, an officer that draws its item draws it from the side's own stream, and a delivered squad lands where [the board puts it](../../rules/landing.md) |
 
 Only `equipment` is rebuilt by conversion's own rule. The income, the
-allowances, the cooldowns, the energy tower skills, `movable` and the
+allowances, the cooldowns, the energy tower skills, unit sources and the
 deliveries are what a round's opening does, and conversion makes that opening
 rather than restating it: it reads the snapshot as it stands before the round
 opens, marks the slots the previous round's actions spent and the Rapid Supply

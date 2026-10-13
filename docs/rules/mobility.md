@@ -3,10 +3,9 @@
 Which units a side may move during deployment, and what frees a unit that may
 not.
 
-A state carries the answer per unit as `movable`;
-[`state.md`](../spec/document/state.md#a-unit-carries-two-fields-a-layout-does-not)
-defines the field and [`action.md`](../spec/document/action.md#move_unit) the
-decisions that write it.
+[`state.md`](../spec/document/state.md#a-unit-carries-its-source-and-recovery-value)
+defines how a position states a unit's arrival, and
+[`action.md`](../spec/document/action.md#move_unit) the deployment decisions.
 
 ## The rule
 
@@ -54,7 +53,7 @@ as a round opens can already read 1.
 - A unit that arrived this round, a unit wearing the Deployment Module and a
   unit whose type's Jump Drive is researched may move, and every other one from
   an earlier round may not: every recorded move of this version's corpus is of a
-  unit the rule lets move, and every formation's `movable` agrees, in matches
+  unit the rule lets move, in matches
   that fit the Module and matches that research a Jump Drive:
   `scripts/corpus/verify-matches.py`.
 
