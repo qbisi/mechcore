@@ -1317,6 +1317,11 @@ impl Simulation {
             } else {
                 channel.remove(entry);
             }
+            // FightMech.AddData/RemoveData for a life-rate modifier refresh
+            // the gauge immediately, before the next source changes it.
+            if entry.index == Index::MaxLife {
+                actor.refresh_life_data()?;
+            }
         }
         actor.refresh_life_data()?;
         let skill_ref = super::skill::SkillRef::main(super::FightActorRef::Unit(actor_id));
