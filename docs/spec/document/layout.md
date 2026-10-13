@@ -961,14 +961,6 @@ the release order, and that acquisition order is not layout state: a skill slot
 or acquisition index would record something no outcome depends on. The
 standing entries are not releases and take no place in this order.
 
-`layouts/orbital-first.yaml` and `lightning-first.yaml` beside it hold
-the same pair of releases at the same two positions and differ only in which is
-declared first, over a twelve-Crawler block that both circles cover. Recorded
-with the game under seed `20260907`, the two orders part at tick 63 and end at
-416 and 415 ticks, and the same order recorded twice gives byte-identical
-hashes. They are not pinned as fights, because a pinned fight is verified by
-simulating it and the Simulator has no battle-skill feature slice yet.
-
 Before any mutation, the compiler applies the build-pinned geometry and map
 rule from the battle-skill index against the map's `720 x 620` bound
 `x=[-360,360], y=[-310,310]` ([map.md](../../rules/map.md#the-board)). Circle and line footprints use their documented

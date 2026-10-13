@@ -1276,8 +1276,7 @@ impl Simulation {
     /// A Marksman's cooling is 0.2 seconds, four steps: its skill reads
     /// cooling for four ticks and idle, emptied, for one more, and prepares
     /// on the next — after a kill whose replacement is out of reach
-    /// (`crawlers-vs-marksman.yaml`) as after a fallen block
-    /// (`layouts/wall-line-width.yaml`).
+    /// (`crawlers-vs-marksman.yaml`) as after a fallen block.
     pub(in crate::fight) fn hold_through_cooling(
         &mut self,
         skill_ref: SkillRef,

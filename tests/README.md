@@ -138,9 +138,9 @@ Two kinds of fixture live outside `tests/`. The native replays themselves, and
 the match documents converted from them, are the corpus
 [`../scripts/corpus/`](../scripts/corpus/README.md) describes: `verify` over the
 match documents fights their rounds in order where the corpus is, and only a
-round pinned in [`corpus/`](corpus/README.md) is held by CI. Layouts built by
-hand that no script uses, and the one the crates' tests read as a plain
-layout, are in [`../layouts/`](../layouts/README.md).
+round pinned in [`corpus/`](corpus/README.md) is held by CI. Synthetic layouts
+used by crate tests live under their own crate's `tests/fixtures/`; they are
+inputs for software contracts, not native evidence.
 
 ## A match needs a witness
 

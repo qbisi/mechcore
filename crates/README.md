@@ -20,7 +20,7 @@ the game's evidence, recorded again whenever the rules or the version move,
 and `verify` checks every one in CI; a test that read one would fail for a
 re-recording rather than for the code it tests, and check again what that
 verify already checks. A test that needs a fight writes one, from a layout
-under [`layouts/`](../layouts/README.md) or one it states itself, and a test
+in its own crate's `tests/fixtures/` or one it states itself, and a test
 that needs a fixture's fact states it as the fixture's assert
 ([fight.md](../docs/spec/document/fight.md#asserts)).
 

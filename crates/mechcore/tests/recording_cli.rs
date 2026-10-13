@@ -7,7 +7,7 @@ fn converting_a_layout_to_mcfr_writes_it_and_prints_the_result() {
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("fight.mcfr");
     let layout =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../layouts/marksman-vs-arclight.yaml");
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/marksman-vs-arclight.yaml");
     let command = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["convert", "--to", "mcfr"])
         .arg(layout)
@@ -53,7 +53,7 @@ fn converting_without_an_output_answers_the_result_and_writes_nothing() {
     let directory = tempfile::tempdir().unwrap();
     let layout = directory.path().join("layout.yaml");
     fs::copy(
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../layouts/marksman-vs-arclight.yaml"),
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/marksman-vs-arclight.yaml"),
         &layout,
     )
     .unwrap();
@@ -111,7 +111,7 @@ fn verify_reports_the_first_divergent_tick_of_each_recording() {
     let recording_path = directory.path().join("equal.mcfr");
     let divergent_path = directory.path().join("divergent.mcfr");
     let layout =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../layouts/marksman-vs-arclight.yaml");
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/marksman-vs-arclight.yaml");
     let generated = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["convert", "--to", "mcfr"])
         .arg(&layout)
@@ -368,7 +368,7 @@ red:
 #[test]
 fn a_formation_opens_the_simulated_fight_with_the_experience_its_layout_brings() {
     let directory = tempfile::tempdir().unwrap();
-    let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../layouts/experience.yaml");
+    let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/experience.yaml");
     let recording = directory.path().join("fight.mcfr");
     let recorded = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["convert".as_ref(), layout.as_os_str()])
@@ -607,7 +607,7 @@ fn stats_read_a_tick_and_answer_every_formation() {
     let directory = tempfile::tempdir().unwrap();
     let recording = directory.path().join("fight.mcfr");
     let layout =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../layouts/marksman-vs-arclight.yaml");
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/marksman-vs-arclight.yaml");
     let run = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["convert", "--to", "mcfr"])
         .arg(&layout)
@@ -670,18 +670,15 @@ fn stats_read_a_tick_and_answer_every_formation() {
 /// What is standing in a fight, which is neither what it decided nor a unit's
 /// numbers.
 ///
-/// A simulated layout carries no construction yet — `FightConstructionSystem`
-/// is unimplemented and the closure refuses one — so what this reads is the
-/// other half of the answer: the two towers a map gives each side, named by
-/// the build's own `BuildingType`, and an empty construction list beside them.
-/// What a construction becomes was measured against the game from
-/// `layouts/construction-shape.yaml`.
+/// This layout places no constructions, so the answer holds the two towers
+/// a map gives each side, named by the build's own `BuildingType`, and an
+/// empty construction list beside them.
 #[test]
 fn buildings_read_the_towers_a_map_gives_each_side() {
     let directory = tempfile::tempdir().unwrap();
     let recording = directory.path().join("fight.mcfr");
     let layout =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../layouts/marksman-vs-arclight.yaml");
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/marksman-vs-arclight.yaml");
     let run = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["convert", "--to", "mcfr"])
         .arg(&layout)
@@ -764,8 +761,8 @@ fn a_fight_converts_to_the_recording_it_pins() {
 /// not open is refused rather than attempted; none of these reaches a game.
 #[test]
 fn the_game_backend_fights_into_a_recording_only() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let layout = root.join("layouts/marksman-vs-arclight.yaml");
+    let layout =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/marksman-vs-arclight.yaml");
     let refused = |arguments: &[&str]| {
         let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
             .args(arguments)

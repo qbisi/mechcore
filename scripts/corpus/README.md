@@ -41,5 +41,5 @@ recorded it; its header carries that version's last component (`2324`).
 
 **A match document is generated and never hand-corrected.** A value that looks
 wrong is a claim about the converter and belongs in
-`crates/document/src/convert.rs`. Layouts built by hand, and the one captured
-live from a replay's round, are in [`../../layouts/`](../../layouts/README.md).
+`crates/document/src/convert.rs`. A crate's tests keep any synthetic layout
+inputs they need under that crate's `tests/fixtures/`.
