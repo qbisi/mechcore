@@ -15,8 +15,12 @@ red:
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}}
 asserts:
-- sql: |-
-    SELECT tick, unit_id, velocity__x, velocity__z FROM units WHERE tick = 8 AND unit_id = 11
+- sql: |
+    SELECT tick, unit_id, velocity__x, velocity__z
+    FROM units
+    WHERE
+      tick = 8
+      AND unit_id = 11;
   rows:
   - [8, 11, 10146579184, -67965446880]
 ticks: 377

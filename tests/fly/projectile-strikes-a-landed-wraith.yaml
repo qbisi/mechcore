@@ -20,8 +20,17 @@ red:
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -100}}
 asserts:
-- sql: |-
-    SELECT tick, amount FROM events WHERE type = 'damage' AND target__kind = 'unit' AND target__id = 1 ORDER BY tick, ordinal LIMIT 1
+- sql: |
+    SELECT tick, amount
+    FROM events
+    WHERE
+      type = 'damage'
+      AND target__kind = 'unit'
+      AND target__id = 1
+    ORDER BY
+      tick,
+      ordinal
+    LIMIT 1;
   rows:
   - [79, 2329]
 ticks: 192

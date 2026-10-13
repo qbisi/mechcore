@@ -20,8 +20,14 @@ red:
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}}
 asserts:
-- sql: |-
-    SELECT skill_slot, enabled__state, enabled__attack_target__id FROM units__skills WHERE unit_id = 1 AND tick = 209 ORDER BY skill_slot
+- sql: |
+    SELECT skill_slot, enabled__state, enabled__attack_target__id
+    FROM units__skills
+    WHERE
+      unit_id = 1
+      AND tick = 209
+    ORDER BY
+      skill_slot;
   rows:
   - [0, idle, null]
   - [1, idle, null]

@@ -20,8 +20,16 @@ red:
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/230/650}
 asserts:
-- sql: |-
-    SELECT tick, object__id FROM events WHERE type = 'unit_created' AND unit_type_id = 1002 ORDER BY tick, ordinal LIMIT 4
+- sql: |
+    SELECT tick, object__id
+    FROM events
+    WHERE
+      type = 'unit_created'
+      AND unit_type_id = 1002
+    ORDER BY
+      tick,
+      ordinal
+    LIMIT 4;
   rows:
   - [161, 3]
   - [161, 4]

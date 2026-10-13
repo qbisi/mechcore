@@ -20,8 +20,14 @@ red:
   units:
   - {name: void_eye, index: 0, position: {x: -340, y: 20}, exp: 0/400/650, rotated: true, travelling: true}
 asserts:
-- sql: |-
-    SELECT tick, position__y, domain FROM units WHERE unit_id = 2 AND tick BETWEEN 160 AND 162 ORDER BY tick
+- sql: |
+    SELECT tick, position__y, domain
+    FROM units
+    WHERE
+      unit_id = 2
+      AND tick BETWEEN 160 AND 162
+    ORDER BY
+      tick;
   rows:
   - [160, 0, ground]
   - [161, 0, air]

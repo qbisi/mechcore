@@ -27,8 +27,19 @@ red:
   - {name: marksman, index: 0, position: {x: -20, y: -30}}
   - {name: marksman, index: 1, position: {x: 20, y: -30}}
 asserts:
-- sql: |-
-    SELECT tick, unit_id, skill_slot, enabled__lock_target__kind, enabled__lock_target__id FROM units__skills WHERE unit_id = 1 AND tick = 10 ORDER BY skill_slot
+- sql: |
+    SELECT
+      tick,
+      unit_id,
+      skill_slot,
+      enabled__lock_target__kind,
+      enabled__lock_target__id
+    FROM units__skills
+    WHERE
+      unit_id = 1
+      AND tick = 10
+    ORDER BY
+      skill_slot;
   rows:
   - [10, 1, 0, unit, 3]
   - [10, 1, 1, unit, 2]

@@ -38,21 +38,40 @@ red:
   battle_skills:
   - {name: sticky_oil_bomb, positions: [{x: -20, y: -115}, {x: 120, y: -130}]}
 asserts:
-- sql: |-
-    SELECT team_id, score, core_damage FROM settlement_teams ORDER BY team_id
+- sql: |
+    SELECT team_id, score, core_damage FROM settlement_teams ORDER BY team_id;
   rows:
   - [0, 100, 0]
   - [1, 0, 100]
-- sql: |-
-    SELECT tick_count, terminal_tick, (SELECT count(*) FROM projectiles WHERE tick = fight.terminal_tick) AS in_flight FROM fight
+- sql: |
+    SELECT
+      tick_count,
+      terminal_tick,
+      (SELECT count(*) FROM projectiles WHERE tick = fight.terminal_tick) AS in_flight
+    FROM fight;
   rows:
   - [2360, 2360, 3]
-- sql: |-
-    SELECT tick, object__id, source__id FROM events WHERE type = 'unit_died' AND tick = (SELECT terminal_tick FROM fight) ORDER BY ordinal
+- sql: |
+    SELECT tick, object__id, source__id
+    FROM events
+    WHERE
+      type = 'unit_died'
+      AND tick = (SELECT terminal_tick FROM fight)
+    ORDER BY
+      ordinal;
   rows:
   - [2360, 3, 2]
-- sql: |-
-    SELECT team_id, unit_type_id, count(*) AS alive FROM units WHERE tick = (SELECT terminal_tick FROM fight) GROUP BY team_id, unit_type_id ORDER BY team_id, unit_type_id
+- sql: |
+    SELECT team_id, unit_type_id, count(*) AS alive
+    FROM units
+    WHERE
+      tick = (SELECT terminal_tick FROM fight)
+    GROUP BY
+      team_id,
+      unit_type_id
+    ORDER BY
+      team_id,
+      unit_type_id;
   rows:
   - [0, 2, 1]
 ticks: 2360

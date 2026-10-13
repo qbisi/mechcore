@@ -36,19 +36,30 @@ red:
   - {name: shield, index: 0, position: {x: -175, y: -150}, retained: false}
   battle_skills:
   - {name: shield_airdrop, positions: [{x: 215, y: -205}]}
-ticks: 965
-hash: 24:a53b8300c01aacc2725b4844315edc44c5d8bd27f9aaacd5fb584ad0310e9953
 asserts:
-- sql: |-
-    WITH changes AS (
-      SELECT tick,unit_id,life__current,life__maximum,
-             lag(life__current) OVER (PARTITION BY unit_id ORDER BY tick) AS before_life,
-             lag(life__maximum) OVER (PARTITION BY unit_id ORDER BY tick) AS before_max
-      FROM units WHERE unit_id=5
-    )
-    SELECT tick,unit_id,before_life,before_max,life__current,life__maximum
-    FROM changes WHERE before_max IS NOT NULL AND before_max != life__maximum
-    ORDER BY tick
+- sql: |
+    WITH
+      changes AS (
+        SELECT
+          tick,
+          unit_id,
+          life__current,
+          life__maximum,
+          lag(life__current) OVER (PARTITION BY unit_id ORDER BY tick) AS before_life,
+          lag(life__maximum) OVER (PARTITION BY unit_id ORDER BY tick) AS before_max
+        FROM units
+        WHERE
+          unit_id = 5
+      )
+    SELECT tick, unit_id, before_life, before_max, life__current, life__maximum
+    FROM changes
+    WHERE
+      before_max IS NOT NULL
+      AND before_max != life__maximum
+    ORDER BY
+      tick;
   rows:
   - [864, 5, 252568, 257599, 148568, 151529]
   - [965, 5, 146591, 151529, 249203, 257599]
+ticks: 965
+hash: 24:a53b8300c01aacc2725b4844315edc44c5d8bd27f9aaacd5fb584ad0310e9953

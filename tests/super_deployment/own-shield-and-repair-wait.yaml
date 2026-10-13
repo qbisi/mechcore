@@ -27,13 +27,22 @@ red:
   - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
   - {name: marksman, index: 1, position: {x: -60, y: -150}}
 asserts:
-- sql: |-
-    SELECT tick, personal_shield__energy__current, count(*) FROM units WHERE unit_type_id = 16 AND tick IN (160, 161) GROUP BY tick, personal_shield__energy__current ORDER BY tick
+- sql: |
+    SELECT tick, personal_shield__energy__current, count(*)
+    FROM units
+    WHERE
+      unit_type_id = 16
+      AND tick IN (160, 161)
+    GROUP BY
+      tick,
+      personal_shield__energy__current
+    ORDER BY
+      tick;
   rows:
   - [160, 0, 2]
   - [161, 1491, 2]
-- sql: |-
-    SELECT min(tick) FROM events WHERE type = 'healing'
+- sql: |
+    SELECT min(tick) FROM events WHERE type = 'healing';
   rows:
   - [181]
 ticks: 642

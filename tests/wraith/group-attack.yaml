@@ -33,8 +33,20 @@ red:
   - {name: crawler, index: 1, position: {x: 0, y: -135}, exp: 0/47/450, rotated: true}
   - {name: steel_ball, index: 2, position: {x: 20, y: -135}, exp: 0/199/1000, rotated: true}
 asserts:
-- sql: |-
-    SELECT tick, unit_id, skill_slot, enabled__lock_target__kind, enabled__lock_target__id FROM units__skills WHERE (unit_id = 30 AND tick = 131) OR (unit_id = 29 AND tick = 206) ORDER BY tick, skill_slot
+- sql: |
+    SELECT
+      tick,
+      unit_id,
+      skill_slot,
+      enabled__lock_target__kind,
+      enabled__lock_target__id
+    FROM units__skills
+    WHERE
+      (unit_id = 30 AND tick = 131)
+      OR (unit_id = 29 AND tick = 206)
+    ORDER BY
+      tick,
+      skill_slot;
   rows:
   - [131, 30, 0, unit, 23]
   - [131, 30, 1, unit, 19]
@@ -44,12 +56,29 @@ asserts:
   - [206, 29, 1, unit, 30]
   - [206, 29, 2, unit, 48]
   - [206, 29, 3, unit, 55]
-- sql: |-
-    SELECT tick, unit_id, mech_lock_target__kind, mech_lock_target__id FROM units WHERE unit_id = 29 AND tick = 206
+- sql: |
+    SELECT tick, unit_id, mech_lock_target__kind, mech_lock_target__id
+    FROM units
+    WHERE
+      unit_id = 29
+      AND tick = 206;
   rows:
   - [206, 29, unit, 55]
-- sql: |-
-    SELECT k.skill_slot, hypot(q32(t.position__x - s.position__x), q32(t.position__z - s.position__z)) - q32(s.collision_radius) - q32(t.collision_radius) <= q32(k.enabled__attack_range) AS reaches FROM units s JOIN units t ON t.tick = s.tick AND t.unit_id = 55 JOIN units__skills k ON k.tick = s.tick AND k.unit_id = s.unit_id WHERE s.unit_id = 29 AND s.tick = 206 ORDER BY k.skill_slot
+- sql: |
+    SELECT
+      k.skill_slot,
+      hypot(q32(t.position__x - s.position__x), q32(t.position__z - s.position__z))
+      - q32(s.collision_radius)
+      - q32(t.collision_radius)
+      <= q32(k.enabled__attack_range) AS reaches
+    FROM units s
+    JOIN units t ON t.tick = s.tick AND t.unit_id = 55
+    JOIN units__skills k ON k.tick = s.tick AND k.unit_id = s.unit_id
+    WHERE
+      s.unit_id = 29
+      AND s.tick = 206
+    ORDER BY
+      k.skill_slot;
   rows:
   - [0, 0]
   - [1, 1]

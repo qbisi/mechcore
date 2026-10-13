@@ -33,8 +33,27 @@ red:
   units:
   - {name: crawler, index: 0, position: {x: 145, y: -20}, exp: 0/248/450}
 asserts:
-- sql: |-
-    SELECT u.tick, u.unit_id, u.motion_state, u.mech_lock_target__kind, u.mech_lock_target__id, k.enabled__state, k.enabled__attack_target__kind, k.enabled__attack_target__id FROM units u JOIN units__skills k ON k.tick = u.tick AND k.unit_id = u.unit_id AND k.skill_slot = 0 WHERE (u.unit_id = 2 AND u.tick IN (96, 97)) OR (u.unit_id IN (7, 23) AND u.tick = 119) ORDER BY u.tick, u.unit_id
+- sql: |
+    SELECT
+      u.tick,
+      u.unit_id,
+      u.motion_state,
+      u.mech_lock_target__kind,
+      u.mech_lock_target__id,
+      k.enabled__state,
+      k.enabled__attack_target__kind,
+      k.enabled__attack_target__id
+    FROM units u
+    JOIN units__skills k
+      ON k.tick = u.tick
+      AND k.unit_id = u.unit_id
+      AND k.skill_slot = 0
+    WHERE
+      (u.unit_id = 2 AND u.tick IN (96, 97))
+      OR (u.unit_id IN (7, 23) AND u.tick = 119)
+    ORDER BY
+      u.tick,
+      u.unit_id;
   rows:
   - [96, 2, idle, null, null, idle, null, null]
   - [97, 2, attacking, unit, 1, idle, building, 3]

@@ -38,19 +38,27 @@ red:
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
   battle_skills:
   - {name: photon_emission, positions: [{x: -210, y: -90}]}
-ticks: 729
-hash: 24:0ec64c0a274bef7f436c7aec12af20de4772239ac7947da101973231c98aa077
 asserts:
-- sql: |-
-    SELECT tick, unit_id, enabled__attack_target__id AS target,
-           enabled__attack_phase AS phase, enabled__attack_time AS attack_time,
-           enabled__current_attack_interval AS attack_interval,
-           enabled__attack_count AS attack_count
+- sql: |
+    SELECT
+      tick,
+      unit_id,
+      enabled__attack_target__id AS target,
+      enabled__attack_phase AS phase,
+      enabled__attack_time AS attack_time,
+      enabled__current_attack_interval AS attack_interval,
+      enabled__attack_count AS attack_count
     FROM units__skills
-    WHERE unit_id=2 AND skill_slot=0 AND tick BETWEEN 179 AND 182
-    ORDER BY tick
+    WHERE
+      unit_id = 2
+      AND skill_slot = 0
+      AND tick BETWEEN 179 AND 182
+    ORDER BY
+      tick;
   rows:
   - [179, 2, 29, before, 16, 132, 0]
   - [180, 2, 29, attacking, 17, 132, 0]
   - [181, 2, 19, attacking, 132, 132, 0]
   - [182, 2, 19, attacking, 133, 132, 0]
+ticks: 729
+hash: 24:0ec64c0a274bef7f436c7aec12af20de4772239ac7947da101973231c98aa077

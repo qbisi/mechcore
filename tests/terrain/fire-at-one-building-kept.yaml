@@ -25,8 +25,8 @@ red:
   units:
   - {name: fire_badger, index: 0, position: {x: 205, y: -40}, level: 2, exp: 0/520/3154, equipment: [amplifying_core], source: joined}
 asserts:
-- sql: |-
-    SELECT count(*) FROM events WHERE type = 'terrain_created'
+- sql: |
+    SELECT count(*) FROM events WHERE type = 'terrain_created';
   rows:
   - [68]
 ticks: 342

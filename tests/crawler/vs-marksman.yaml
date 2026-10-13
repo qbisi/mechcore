@@ -23,8 +23,26 @@ red:
   units:
   - {name: crawler, index: 0, position: {x: 145, y: -20}, exp: 0/200/450}
 asserts:
-- sql: |-
-    SELECT u.tick, u.unit_id, u.motion_state, u.mech_lock_target__kind, u.mech_lock_target__id, k.skill_slot, k.enabled__attack_target__kind, k.enabled__attack_target__id FROM units u JOIN units__skills k ON k.tick = u.tick AND k.unit_id = u.unit_id AND k.skill_slot = 0 WHERE u.unit_id = 1 AND u.tick BETWEEN 137 AND 142 ORDER BY u.tick
+- sql: |
+    SELECT
+      u.tick,
+      u.unit_id,
+      u.motion_state,
+      u.mech_lock_target__kind,
+      u.mech_lock_target__id,
+      k.skill_slot,
+      k.enabled__attack_target__kind,
+      k.enabled__attack_target__id
+    FROM units u
+    JOIN units__skills k
+      ON k.tick = u.tick
+      AND k.unit_id = u.unit_id
+      AND k.skill_slot = 0
+    WHERE
+      u.unit_id = 1
+      AND u.tick BETWEEN 137 AND 142
+    ORDER BY
+      u.tick;
   rows:
   - [137, 1, idle, null, null, 0, unit, 4]
   - [138, 1, idle, null, null, 0, unit, 4]

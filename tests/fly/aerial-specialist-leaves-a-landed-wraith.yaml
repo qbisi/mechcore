@@ -22,8 +22,8 @@ red:
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -100}}
 asserts:
-- sql: |-
-    SELECT life__maximum, domain FROM units WHERE tick = 1 AND unit_id = 1
+- sql: |
+    SELECT life__maximum, domain FROM units WHERE tick = 1 AND unit_id = 1;
   rows:
   - [14115, ground]
 ticks: 192

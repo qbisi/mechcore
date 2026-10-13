@@ -24,8 +24,21 @@ red:
   constructions:
   - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}
 asserts:
-- sql: |-
-    SELECT b.tick, b.building_id, b.skill__lock_target__kind, b.skill__lock_target__id, w.rotation FROM buildings b JOIN buildings__skill__weapons w ON w.tick = b.tick AND w.building_id = b.building_id WHERE b.team_id = 1 AND b.has_skill AND b.tick = 1
+- sql: |
+    SELECT
+      b.tick,
+      b.building_id,
+      b.skill__lock_target__kind,
+      b.skill__lock_target__id,
+      w.rotation
+    FROM buildings b
+    JOIN buildings__skill__weapons w
+      ON w.tick = b.tick
+      AND w.building_id = b.building_id
+    WHERE
+      b.team_id = 1
+      AND b.has_skill
+      AND b.tick = 1;
   rows:
   - [1, 5, unit, 1, 876368176351]
 ticks: 423
