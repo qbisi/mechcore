@@ -630,6 +630,14 @@ reloads and nothing else reads.
   gives the turn back (`ForceSideArmEndFireTurn`), and so does its attack
   ending, or its blow coming due out of its angle, in its turn with no blow
   under way.
+- **The lock is tested as an actor, even when a shield is reached first.**
+  `TrySideArmResetFireMark` asks `FightSkill.IsActorInAttackArea` of its lock
+  before `IsAttackTargetInAttackArea`. `NeedRefreshSideArmTarget` and its
+  selector also test the actor's range and angle. The shield surface within
+  range does not make an actor beyond it within range: the side arm gives
+  its turn back once its wait ends, while the main skill can fire at the
+  nearer shield. `tests/extra_weapon/dual-wield-shield-before-actor-range.yaml`
+  sees the side arm remain idle until the actor itself can be reached.
 - **It searches about the main skill's lock**
   (`SideArmSearchTargetController.PerformNormalSkillSearch`), or about the
   lock the main skill last changed from while it holds none

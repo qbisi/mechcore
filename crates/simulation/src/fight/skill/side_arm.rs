@@ -131,7 +131,7 @@ impl Simulation {
             {
                 return;
             }
-            if self.target_in_attack_area(skill_ref, lock) {
+            if self.actor_in_attack_area(skill_ref, lock) {
                 let skill = self.skill(skill_ref);
                 if skill.shield_target().is_some() {
                     if self.target_in_attack_range(skill_ref, lock) {
@@ -219,7 +219,7 @@ impl Simulation {
         let Some(lock) = lock.filter(|&lock| self.fight_actor_is_alive(lock)) else {
             return true;
         };
-        !self.target_in_attack_area(skill_ref, lock)
+        !self.actor_in_attack_area(skill_ref, lock)
     }
 
     /// `SideArmSearchTargetController.PerformNormalSkillSearch`: about the
@@ -240,7 +240,7 @@ impl Simulation {
         let anchor_view = self.fight_actor(anchor)?;
         let anchor_alive = self.fight_actor_is_alive(anchor);
         let range = self.side_arm_search_range(skill_ref);
-        let in_area = |target: FightActorRef| self.target_in_attack_area(skill_ref, target);
+        let in_area = |target: FightActorRef| self.actor_in_attack_area(skill_ref, target);
         if let Some(lock) = self.skill(skill_ref).lock_target
             && lock != anchor
             && self.fight_actor_is_alive(lock)
