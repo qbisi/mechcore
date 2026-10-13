@@ -766,9 +766,14 @@ impl Simulation {
             && hit.splash_radius == 0
         {
             let mut struck = Struck::default();
-            if self.hit_shield(shield, &hit, events)? > 0 {
+            let damage = self.hit_shield(shield, &hit, events)?;
+            if damage > 0 {
                 struck.shield = Some(shield);
             }
+            // `PerformSingleEffect` dispatches the energy taken with an
+            // empty actor list: skill hit effects still hear a shield hit.
+            let effects = self.dispatch_hit_damage(&hit, (&[], damage, false), events)?;
+            struck.absorb_ends(effects);
             return Ok(struck);
         }
         let mut targets = self.damage_targets(&hit)?;
