@@ -15,7 +15,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [2, 2]
   units:
-  - {name: phoenix, index: 0, position: {x: 250, y: -220}, level: 9, exp: 4373/5297/8746, equipment: [portable_shield], source: legacy}
+  - {name: phoenix, index: 0, position: {x: 250, y: -220}, level: 9, exp: 4373/5297/8746, equipment: [portable_shield]}
   - {name: typhoon, index: 1, position: {x: -240, y: -110}, level: 8, exp: 0/3800/13118}
   battle_skills:
   - {name: orbital_javelin, positions: [{x: 240, y: -270}]}

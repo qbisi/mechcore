@@ -4,7 +4,7 @@
 //! dropped, most of what it can is copied, and three fields are translated.
 //! A supply, a shop, a reinforcement offer and the two allocators do not
 //! survive; formations, constructions, contraptions and the tower levels do,
-//! and the units the round opened with are the legacy ones.
+//! and the units inherited from earlier rounds are the legacy ones.
 //!
 //! The three that are neither dropped nor copied are the Research Center's
 //! blueprints, of which a layout keeps only the two enhancement chains, the
@@ -47,11 +47,11 @@ pub fn project(
 
 /// Each unit's source and the side's recovered squads, from where the side's
 /// unit allocator stood as its round opened, its officers' deliveries made.
-/// The allocator had named every unit the side carried in, in the first round
-/// the advance team it chose before it, and then the squads its officers
-/// delivered, one for each officer whose `opening_unit` the round activates,
-/// which take the indices just below it. A delivered squad the side no longer
-/// holds was recovered; a unit of a higher index joined during the round.
+/// The allocator had named every unit the side carried in and then the squads
+/// its officers delivered, one for each officer whose `opening_unit` the round
+/// activates, which take the indices just below it. A delivered squad the side
+/// no longer holds was recovered; a unit of a higher index joined during the round.
+/// In round 1 the advance team also joined: no unit came from an earlier round.
 ///
 /// # Errors
 ///
@@ -69,7 +69,7 @@ pub fn assign_sources(side: &mut Side, allocator: i32, round: i32) -> Result<(),
         .count();
     let delivered_from = allocator - i32::try_from(deliveries).unwrap_or(i32::MAX);
     for unit in &mut side.units {
-        unit.source = if unit.index >= allocator {
+        unit.source = if unit.index >= allocator || (round == 1 && unit.index < delivered_from) {
             UnitSource::Joined
         } else if unit.index >= delivered_from {
             UnitSource::Delivered
@@ -270,4 +270,69 @@ fn project_releases(state: &SideState, side_name: &str) -> Result<Vec<BattleSkil
             })
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn side() -> Side {
+        serde_json::from_value(json!({"units": [
+            {"name": "marksman", "index": 0, "position": {"x": 0, "y": -100}},
+            {"name": "marksman", "index": 4, "position": {"x": 40, "y": -100}},
+            {"name": "marksman", "index": 5, "position": {"x": 80, "y": -100}},
+            {"name": "marksman", "index": 6, "position": {"x": 120, "y": -100}}
+        ]}))
+        .unwrap()
+    }
+
+    #[test]
+    fn the_advance_team_joins_round_one_and_is_legacy_later() {
+        let mut side = side();
+        assign_sources(&mut side, 5, 1).unwrap();
+        assert!(
+            side.units
+                .iter()
+                .all(|unit| unit.source == UnitSource::Joined)
+        );
+        assert!(side.recovered.is_empty());
+
+        assign_sources(&mut side, 6, 2).unwrap();
+        assert_eq!(
+            side.units
+                .iter()
+                .map(|unit| unit.source)
+                .collect::<Vec<_>>(),
+            [
+                UnitSource::Legacy,
+                UnitSource::Legacy,
+                UnitSource::Legacy,
+                UnitSource::Joined
+            ]
+        );
+    }
+
+    #[test]
+    fn deliveries_and_recoveries_keep_their_allocator_boundary() {
+        let mut side = side();
+        side.officers = vec![20029]; // Marksman Specialist delivers in round 2.
+        assign_sources(&mut side, 6, 2).unwrap();
+        assert_eq!(
+            side.units
+                .iter()
+                .map(|unit| unit.source)
+                .collect::<Vec<_>>(),
+            [
+                UnitSource::Legacy,
+                UnitSource::Legacy,
+                UnitSource::Delivered,
+                UnitSource::Joined
+            ]
+        );
+        assert!(side.recovered.is_empty());
+        side.units.retain(|unit| unit.index != 5);
+        assign_sources(&mut side, 6, 2).unwrap();
+        assert_eq!(side.recovered, [5]);
+    }
 }

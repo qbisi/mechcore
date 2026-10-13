@@ -13,7 +13,7 @@ blue:
   blueprints: [defense_enhancement]
   tower_strengthen_levels: [1, 1]
   units:
-  - {name: wraith, index: 0, position: {x: -15, y: -55}, level: 8, exp: 7568/14888/15137, rotated: true, equipment: [haste_module], source: legacy}
+  - {name: wraith, index: 0, position: {x: -15, y: -55}, level: 8, exp: 7568/14888/15137, rotated: true, equipment: [haste_module]}
   - {name: fire_badger, index: 1, position: {x: 205, y: -270}, level: 6}
   constructions:
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}

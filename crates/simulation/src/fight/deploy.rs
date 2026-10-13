@@ -782,15 +782,12 @@ impl Simulation {
     /// skill's selector scores them from where the construction stands and
     /// points. It finds the other side's towers, the constructions a search
     /// finds, and its old units (`MechTeam.IsOldUnit`, a round count above
-    /// zero): from the second round on its legacy units, which
-    /// `UnitSystem.OnEnterDeployment` counts as the round opens, and a squad
-    /// an officer delivered, which `UnitOfficerController.AddExtraUnit` counts
-    /// as it arrives. In the first round a legacy unit, the advance team
-    /// among them, is restored with a round count of `0` and counted by no
-    /// one, as a unit that joined its side during the round is.
+    /// zero): its legacy units, which `UnitSystem.OnEnterDeployment` counts as
+    /// the round opens, and a squad an officer delivered, which
+    /// `UnitOfficerController.AddExtraUnit` counts as it arrives. Joined units,
+    /// the first round's advance team among them, have a round count of `0`.
     pub(in crate::fight) fn face_constructions_at_fight_start(
         &mut self,
-        round: u32,
         legacy: &BTreeSet<(u32, i32)>,
         delivered: &BTreeSet<(u32, i32)>,
     ) {
@@ -845,7 +842,7 @@ impl Simulation {
             for actor in self.actors.values() {
                 let formation = (actor.placement.team, actor.placement.formation_index);
                 let delivered_squad = delivered.contains(&formation);
-                let old = delivered_squad || (round > 1 && legacy.contains(&formation));
+                let old = delivered_squad || legacy.contains(&formation);
                 if actor.placement.team != source.team
                     && old
                     && actor.alive()

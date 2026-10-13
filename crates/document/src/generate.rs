@@ -429,7 +429,8 @@ impl Space {
             let source = at(Role::LeadSource);
             let depth = at(Role::LeadDepth);
             let lead = at(Role::LeadType).map(|value| self.types[value]);
-            !(matches!((source, at(Role::LeadExp)), (Some(source), Some(exp)) if source != LEGACY && exp != 0)
+            !(matches!((source, round), (Some(LEGACY), Some(0)))
+                || matches!((source, at(Role::LeadExp)), (Some(source), Some(exp)) if source != LEGACY && exp != 0)
                 || matches!((depth, round), (Some(FLANK), Some(0)))
                 || matches!((depth, lead), (Some(FLANK), Some((_, _, (width, height))))
                     if width.min(height) > FLANK_WIDTH)
@@ -1175,7 +1176,7 @@ fn side(
 
 #[cfg(test)]
 mod tests {
-    use super::{FLANK, Role, Space, factor, generate};
+    use super::{FLANK, LEGACY, Role, Space, factor, generate};
     use crate::{canonical_yaml, compile_layout};
 
     #[test]
@@ -1244,6 +1245,8 @@ mod tests {
             (blue(Role::Contraption), 3)
         ]));
         let teleport = generic(10_009);
+        assert!(!admits(&[(0, 0), (blue(Role::LeadSource), LEGACY)]));
+        assert!(admits(&[(0, 0), (blue(Role::LeadSource), 1)]));
         assert!(!admits(&[(0, 0), (blue(Role::OfficerSecond), teleport)]));
         assert!(!admits(&[
             (blue(Role::LeadDepth), 0),

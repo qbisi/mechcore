@@ -177,13 +177,13 @@ pub struct UnitPlacement {
 )]
 #[serde(rename_all = "snake_case")]
 pub enum UnitSource {
-    /// The side carried it into the round: a unit of an earlier round, or the
-    /// first round's advance team. The round's snapshot holds it.
+    /// The side carried it from an earlier round. The round's snapshot holds it.
+    /// Round 1 has no legacy units.
     Legacy,
     /// A squad an officer delivered as the round opened.
     Delivered,
-    /// It joined the side during the round: bought, taken as a reinforcement
-    /// or added.
+    /// It arrived this round: the first round's advance team, bought, taken
+    /// as a reinforcement or added.
     #[default]
     Joined,
 }

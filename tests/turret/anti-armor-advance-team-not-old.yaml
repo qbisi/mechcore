@@ -1,12 +1,12 @@
 # A turret does not turn to the advance team as round 1 starts.
 #
-# Round 1. Blue's Marksman at (60, -80) is a legacy unit, the advance team,
+# Round 1. Blue's Marksman at (60, -80) is from the advance team,
 # and its Marksman at (140, -80) joined this round. Red's Anti-Armor Turret
 # at world (140, 100) faces 180 degrees, its attack facing, as the fight
 # starts: in the first round no unit is old (`MechTeam.IsOldUnit`), so it
 # scores only blue's towers. Its first search from 180 locks the Marksman
 # straight ahead. Its assert reads the turret's lock and its weapon's facing
-# on tick 1; `anti-armor-old-unit.yaml` is the same layout in round 3.
+# on tick 1; `anti-armor-old-unit.yaml` has the same units inherited into round 3.
 
 kind: fight
 source: game
@@ -16,12 +16,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 60, y: -80}, exp: 0/30/650, source: legacy}
+  - {name: marksman, index: 0, position: {x: 60, y: -80}, exp: 0/30/650}
   - {name: marksman, index: 1, position: {x: 140, y: -80}, exp: 0/490/650}
 red:
   core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 0/200/650, source: legacy}
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 0/200/650}
   constructions:
   - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}
 asserts:

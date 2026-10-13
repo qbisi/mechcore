@@ -13,11 +13,11 @@ blue:
   core_damage: 0
   officers: [quick_supply_specialist]
   units:
-  - {name: arclight, index: 0, position: {x: 50, y: -70}, source: legacy}
-  - {name: arclight, index: 1, position: {x: 140, y: -70}, exp: 0/560/750, source: legacy}
-  - {name: arclight, index: 2, position: {x: 230, y: -70}, exp: 0/307/750, source: legacy}
-  - {name: sabertooth, index: 3, position: {x: 185, y: -65}, exp: 0/377/1300, source: legacy}
-  - {name: sabertooth, index: 4, position: {x: 95, y: -65}, source: legacy}
+  - {name: arclight, index: 0, position: {x: 50, y: -70}}
+  - {name: arclight, index: 1, position: {x: 140, y: -70}, exp: 0/560/750}
+  - {name: arclight, index: 2, position: {x: 230, y: -70}, exp: 0/307/750}
+  - {name: sabertooth, index: 3, position: {x: 185, y: -65}, exp: 0/377/1300}
+  - {name: sabertooth, index: 4, position: {x: 95, y: -65}}
   - {name: crawler, index: 5, position: {x: 90, y: -125}, exp: 0/285/450, rotated: true}
   - {name: crawler, index: 6, position: {x: 190, y: -125}, exp: 0/450/450, rotated: true}
   constructions:
@@ -27,11 +27,11 @@ red:
   core_damage: 408
   officers: [fortified_specialist]
   units:
-  - {name: crawler, index: 0, position: {x: 290, y: -265}, exp: 0/238/450, rotated: true, source: legacy}
-  - {name: crawler, index: 1, position: {x: -290, y: -255}, exp: 0/9/450, rotated: true, source: legacy}
-  - {name: crawler, index: 2, position: {x: -135, y: -190}, exp: 0/34/450, source: legacy}
-  - {name: sabertooth, index: 3, position: {x: 5, y: -105}, exp: 0/366/1300, source: legacy}
-  - {name: sabertooth, index: 4, position: {x: -75, y: -105}, exp: 0/438/1300, source: legacy}
+  - {name: crawler, index: 0, position: {x: 290, y: -265}, exp: 0/238/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: -290, y: -255}, exp: 0/9/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: -135, y: -190}, exp: 0/34/450}
+  - {name: sabertooth, index: 3, position: {x: 5, y: -105}, exp: 0/366/1300}
+  - {name: sabertooth, index: 4, position: {x: -75, y: -105}, exp: 0/438/1300}
   - {name: crawler, index: 5, position: {x: 145, y: -190}, exp: 0/374/450}
   - {name: crawler, index: 6, position: {x: 0, y: -255}, exp: 0/73/450, rotated: true}
   constructions:

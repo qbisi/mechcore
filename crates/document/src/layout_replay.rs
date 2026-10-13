@@ -1211,6 +1211,24 @@ mod tests {
     }
 
     #[test]
+    fn round_one_units_join_through_actions_instead_of_the_snapshot() {
+        let layout = json!({
+            "kind": "layout", "seed": 4242, "round": 1,
+            "blue": {"units": [
+                {"name": "marksman", "index": 0, "position": {"x": 0, "y": -100}},
+                {"name": "marksman", "index": 1, "position": {"x": 40, "y": -100}}
+            ]},
+            "red": {"units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -100}}]}
+        });
+        let replay = layout_replay(&plan(&layout), crate::game_build()).unwrap();
+        let xml = embedded_xml(&replay);
+        assert!(!xml.contains("<NewUnitData>"));
+        assert_eq!(xml.matches("<UIDX>-1</UIDX><IsFixedPosition>").count(), 3);
+        assert!(xml.contains("</unitID><unitIndex>0</unitIndex>"));
+        assert!(xml.contains("</unitID><unitIndex>1</unitIndex>"));
+    }
+
+    #[test]
     fn a_unit_that_joins_during_the_round_is_added_in_index_order() {
         let travelling = |index: i32, x: i32, y: i32| json!({"name": "marksman", "index": index, "travelling": true, "position": {"x": x, "y": y}});
         let layout = json!({

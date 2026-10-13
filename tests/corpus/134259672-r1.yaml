@@ -15,11 +15,11 @@ blue:
   core_damage: 472
   officers: [typhoon_specialist]
   units:
-  - {name: void_eye, index: 0, position: {x: 70, y: -70}, exp: 0/30/650, source: legacy}
-  - {name: void_eye, index: 1, position: {x: 150, y: -70}, exp: 0/92/650, source: legacy}
-  - {name: void_eye, index: 2, position: {x: 230, y: -70}, exp: 0/256/650, source: legacy}
-  - {name: tarantula, index: 3, position: {x: 105, y: -55}, exp: 0/282/1500, source: legacy}
-  - {name: tarantula, index: 4, position: {x: 195, y: -55}, exp: 0/182/1500, source: legacy}
+  - {name: void_eye, index: 0, position: {x: 70, y: -70}, exp: 0/30/650}
+  - {name: void_eye, index: 1, position: {x: 150, y: -70}, exp: 0/92/650}
+  - {name: void_eye, index: 2, position: {x: 230, y: -70}, exp: 0/256/650}
+  - {name: tarantula, index: 3, position: {x: 105, y: -55}, exp: 0/282/1500}
+  - {name: tarantula, index: 4, position: {x: 195, y: -55}, exp: 0/182/1500}
   - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 0/50/450}
   - {name: crawler, index: 6, position: {x: 150, y: -105}, exp: 0/64/450, rotated: true}
   constructions:
@@ -28,11 +28,11 @@ red:
   core_damage: 0
   officers: [training_specialist]
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -150}, level: 2, exp: 0/818/1690, source: legacy}
-  - {name: arclight, index: 1, position: {x: 140, y: -150}, exp: 0/9/750, source: legacy}
-  - {name: arclight, index: 2, position: {x: -140, y: -150}, exp: 0/145/750, source: legacy}
-  - {name: sledgehammer, index: 3, position: {x: 75, y: -130}, exp: 0/653/1300, source: legacy}
-  - {name: sledgehammer, index: 4, position: {x: -75, y: -130}, exp: 0/140/1300, source: legacy}
+  - {name: arclight, index: 0, position: {x: 0, y: -150}, level: 2, exp: 0/818/1690}
+  - {name: arclight, index: 1, position: {x: 140, y: -150}, exp: 0/9/750}
+  - {name: arclight, index: 2, position: {x: -140, y: -150}, exp: 0/145/750}
+  - {name: sledgehammer, index: 3, position: {x: 75, y: -130}, exp: 0/653/1300}
+  - {name: sledgehammer, index: 4, position: {x: -75, y: -130}, exp: 0/140/1300}
   - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 0/257/450}
   - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 0/13/450}
   constructions:

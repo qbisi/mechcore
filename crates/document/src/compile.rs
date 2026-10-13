@@ -200,7 +200,7 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
     officers.sort_unstable();
     let slots = crate::economy::Economy::embedded()?.equipment_slots(&officers);
     let units = compile_units(side_name, units, round, slots)?;
-    validate_sources(side_name, &units, &recovered)?;
+    validate_sources(side_name, &units, &recovered, round)?;
     let constructions = compile_constructions(side_name, constructions)?;
     let contraptions = compile_contraptions(side_name, contraptions)?;
     let mut standing_shields = Vec::new();
@@ -251,7 +251,17 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
 /// every joined unit's. A unit reaches a flank during the round only by
 /// travelling there, so one that stands on a flank without travelling is
 /// legacy.
-fn validate_sources(side_name: &str, units: &[Placement], recovered: &[i32]) -> Result<(), String> {
+fn validate_sources(
+    side_name: &str,
+    units: &[Placement],
+    recovered: &[i32],
+    round: i32,
+) -> Result<(), String> {
+    if round == 1 && units.iter().any(|unit| unit.source == UnitSource::Legacy) {
+        return Err(format!(
+            "{side_name} has a legacy unit in round 1: no unit is inherited from an earlier round"
+        ));
+    }
     if let Some(index) = recovered.iter().find(|index| **index < 0) {
         return Err(format!(
             "{side_name} recovered index {index} must not be negative"

@@ -667,6 +667,24 @@ red:
     }
 
     #[test]
+    fn round_one_has_joined_units_and_no_legacy_units() {
+        let mut layout = json!({
+            "kind": "layout", "round": 1,
+            "blue": {"units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -100}}]},
+            "red": {"units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -100}}]}
+        });
+        assert!(compile(&layout).is_ok());
+        layout["blue"]["units"][0]["source"] = json!("legacy");
+        assert!(
+            compile(&layout)
+                .unwrap_err()
+                .contains("legacy unit in round 1")
+        );
+        layout["round"] = json!(2);
+        assert!(compile(&layout).is_ok());
+    }
+
+    #[test]
     fn rejects_round_2_ambush_fixture_that_omits_travelling() {
         let value = yaml_fixture(include_str!(
             "../tests/fixtures/invalid-round-2-ambush-travelling.yaml"

@@ -4498,10 +4498,9 @@ fn read_native_layout_inner(
             metadata,
         )
         .map_err(|error| format!("team {team}: {error}"))?;
-        // The units the allocator had named as a replayed round opened are
-        // legacy, the first round's advance team among them, but for the
-        // squads its officers delivered last. What the Training Ground places
-        // joins during the round.
+        // Units inherited from earlier rounds are legacy, and the officers'
+        // squads delivered last are delivered. The first round's advance team
+        // and what the Training Ground places are joined.
         if let Some(next_units) = opening_next_units {
             mechcore_document::project::assign_sources(&mut side, next_units[team], round)
                 .map_err(|error| format!("team {team}: {error}"))?;
