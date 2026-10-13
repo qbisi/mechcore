@@ -1381,6 +1381,17 @@ of the source it is handed (`FightSkill.IsBelongExtraSkill`). A Centurion
 with Dual Wield and Homing Missile struck by Electromagnetic Barrage keeps
 its second gun firing and its range 25 metres short, and loses the missiles.
 
+During super deployment, switching passes through `EffectProvider.EnableCheck`
+and `EffectProvider.ActiveCheck`: only a permanent source can act while
+`FightMech.IsSuperDeployment` is true. `Technology.IsPermanentEffect` returns
+false, so an EMP acquired in transit records the disabled state without
+removing the technology data. On arrival, `SuperDeploymentController.ExitTravel`
+activates the effects again, and `FightEffectMananger.ActiveEffect` refreshes
+the sources against the current unit-state effects: a still-running EMP
+then disables them before their next update. An equipment production line
+remains available. `tests/technology_disable/emp-during-super-deployment.yaml`
+sees the life rate stay until arrival and the technology production stop there.
+
 Every technology is an `IDataModifier`, whose numbers its provider takes
 away and writes again, and a class that answers an interface beside it is
 that interface's provider's source too: a `LifestealTech` the

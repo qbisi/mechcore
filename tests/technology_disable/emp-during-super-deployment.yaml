@@ -1,0 +1,49 @@
+# EMP acquired during super deployment leaves technology data until arrival.
+# On arrival it disables the sources before their next update.
+kind: fight
+source: game
+map_id: 1021
+seed: 1015350354
+round: 3
+blue:
+  core_damage: 1090
+  officers: [advanced_shield_device, advanced_targeting_system, fire_badger_specialist, mass_produced_melting_point]
+  techs:
+    melting_point: [energy_diffraction]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [1, 1]
+  units:
+  - {name: melting_point, index: 0, position: {x: 200, y: -60}, level: 9, exp: 9418/9418/9418, equipment: [secondary_heavy_armor], source: legacy}
+  - {name: fire_badger, index: 1, position: {x: -185, y: -260}, source: delivered}
+  - {name: rhino, index: 2, position: {x: -135, y: -235}}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -60, y: -85}}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: -45, y: -285}]}
+red:
+  core_damage: 0
+  officers: [quick_teleport, sabertooth_specialist, mass_produced_melting_point]
+  techs:
+    melting_point: [energy_absorption, electromagnetic_barrage, energy_diffraction, crawler_production, armor_enhancement, range_enhancement]
+  blueprints: [attack_enhancement_ii]
+  tower_strengthen_levels: [4, 1]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 25, y: -25}, exp: 0/200/1300, source: delivered}
+  - {name: melting_point, index: 1, position: {x: 320, y: 260}, level: 9, exp: 0/802/9418, rotated: true, equipment: [tank_production_line], travelling: true}
+  - {name: mountain, index: 2, position: {x: 55, y: -225}, level: 9, exp: 0/13600/21528}
+  battle_skills:
+  - {name: electromagnetic_blast, positions: [{x: 280, y: 215}]}
+ticks: 559
+hash: 24:22b144d4820bdc0817a5e2d465048fec4b071efca9544108011b0aaca5ac8a99
+asserts:
+- sql: |-
+    SELECT tick,unit_id,life__current,life__maximum FROM units
+    WHERE unit_id=6 AND tick IN (56,57,80,81) ORDER BY tick
+  rows:
+  - [56, 6, 326415, 467313]
+  - [57, 6, 326361, 467313]
+  - [80, 6, 395863, 467313]
+  - [81, 6, 221859, 222530]

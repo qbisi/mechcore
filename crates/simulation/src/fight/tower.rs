@@ -1253,6 +1253,12 @@ impl Simulation {
         on: bool,
         events: &mut Vec<Event>,
     ) -> Result<()> {
+        // EffectProvider.EnableCheck calls ActiveCheck first. During super
+        // deployment only permanent sources pass; Technology's
+        // IsPermanentEffect is false, so neither switching direction acts.
+        if self.actors[&actor_id].travelling {
+            return Ok(());
+        }
         let actor = self
             .actors
             .get_mut(&actor_id)

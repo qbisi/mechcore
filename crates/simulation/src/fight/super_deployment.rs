@@ -204,6 +204,12 @@ impl Simulation {
             actor.motion.rvo_tree_z_q32 = actor.z_q32;
             self.rvo.added_units.push(unit_id);
             self.active_effect(unit_id)?;
+            // ActiveEffect refreshes each source against the owner's current
+            // unit-state effects after ExitTravel. An EMP acquired in transit
+            // can now disable the non-permanent technology sources.
+            if self.actors[&unit_id].technology_disabled() {
+                self.switch_technologies(unit_id, false, &mut Vec::new())?;
+            }
         }
         Ok(())
     }
