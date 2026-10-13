@@ -1,0 +1,48 @@
+# Electromagnetic Armor removes Sandworm Anti-Aerial common data.
+# After its running blow finishes, the attackable checker rejects its
+# aerial lock and searches again. Control omits the red defensive wall to
+# separate wall target handling. State and lock rows measured from game.
+kind: fight
+source: game
+map_id: 1021
+seed: 1503386427
+round: 3
+blue:
+  core_damage: 398
+  officers: [quick_teleport, speed_specialist]
+  techs:
+    void_eye: [energy_shield, energy_absorption, aerial_mode, range_enhancement, charged_shot, suppression_shots, electromagnetic_armor]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: void_eye, index: 0, position: {x: 340, y: 110}, exp: 0/50/650, equipment: [small_amplifying_core], travelling: true}
+  - {name: centurion, index: 1, position: {x: 205, y: -65}, level: 9, exp: 0/150/15137}
+  battle_skills:
+  - {name: ion_blast, positions: [{x: 80, y: -90}, {x: -220, y: -270}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, quick_teleport, cost_control_specialist, mass_produced_sandworm]
+  techs:
+    sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sandworm, index: 0, position: {x: -340, y: 210}, level: 5, exp: 0/5498/10421, rotated: true, equipment: [barrier], travelling: true}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -175, y: -150}, retained: false}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: 215, y: -205}]}
+ticks: 1071
+hash: 24:9dd4fcd74c1de0ad8a12abae651982c5ad2024b02d32942323c64935a58ad736
+asserts:
+- sql: |-
+    SELECT tick,unit_id,enabled__state,enabled__lock_target__id,enabled__attack_target__id
+    FROM units__skills WHERE unit_id=5 AND skill_slot=0
+    AND tick IN (966,987,988,989) ORDER BY tick
+  rows:
+  - [966, 5, attack, 2, 2]
+  - [987, 5, attack, 2, 2]
+  - [988, 5, idle, null, null]
+  - [989, 5, idle, null, 1]

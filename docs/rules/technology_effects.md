@@ -1576,11 +1576,16 @@ whose own `DisableEffect` it does not mirror.
   nothing while the technologies are off for a source that `CanDisable`.
   Read from the build; no recording holds a cycling buff switched off.
 
-An air attack technology's switch stays while its unit's technologies are
-off: `AirAttackEffectProvider.DisableEffect` and `EnableEffect` are
-`NormalEffectProvider`'s, which do nothing, and its provider turned the skills
-as it activated (`SwitchMechAirAttackEnabled`), not among the numbers its
-technologies write. Read from the build; no recording holds it.
+An air attack technology loses its inverse-air entry while its technologies
+are off. The typed `AirAttackEffectProvider.DisableEffect` and `EnableEffect`
+do nothing, but their `NormalEffectProvider` wrapper first calls the source's
+`RemoveData` or `AddData`. `Technology.RemoveData` reads
+`ICommonMechDataChangeDataSource.GetIsInverseAirAttack` and removes that entry
+from the affected skills. The attackable checker revalidates the held
+target's domain before keeping its lock: a Sandworm whose Anti-Aerial is
+disabled finishes its running blow, then drops an aerial target it can no
+longer attack. Recorded by
+`tests/technology_disable/held-aerial-target-after-disable.yaml`.
 
 A surfacing line stops too: `MoveAbilitySummonProvider.DisableEffect` stops
 hearing the unit's ability change and takes the line's action off its move
