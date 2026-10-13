@@ -1,0 +1,56 @@
+# A side arm tests its locked actor rather than the shield surface when
+# deciding whether to retain its fire turn and refresh its target.
+# Rows measured in the native game, including its first prepare at t205.
+kind: fight
+source: game
+map_id: 1021
+seed: 1723274389
+round: 3
+blue:
+  core_damage: 664
+  officers: [advanced_defensive_tactics, advanced_power_system, fire_badger_specialist]
+  techs:
+    centurion: [summon_hounds, reactive_armor, melee_mode, range_enhancement, dual_wield, homing_missile]
+  blueprints: [attack_enhancement_ii]
+  tower_strengthen_levels: [3, 1]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 215, y: -100}, source: delivered}
+  - {name: centurion, index: 1, position: {x: -195, y: -75}, level: 5, exp: 0/186/11724, rotated: true, equipment: [absorption_module]}
+  - {name: sandworm, index: 2, position: {x: -280, y: -170}, level: 9, exp: 0/246/13455}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 255, y: -175}}
+  battle_skills:
+  - {name: nuke, positions: [{x: -300, y: 300}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_power_system, fire_badger_specialist, extended_range_fortress]
+  techs:
+    fortress: [doubleshot, barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 15, y: -280}, exp: 0/1400/1400, source: delivered}
+  - {name: fortress, index: 1, position: {x: 10, y: -190}, level: 3, exp: 0/5699/5699, equipment: [steel_ball_production_line]}
+  - {name: marksman, index: 2, position: {x: -90, y: -270}, level: 4, exp: 0/402/2919}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 145, y: -170}, retained: false}
+ticks: 509
+hash: 24:3a06457ddf64cc8bfc819c05a7eeee52a57daae77e50a5b7973e399b6f2f1af8
+asserts:
+- sql: |-
+    SELECT tick,unit_id,skill_slot,enabled__state,enabled__lock_target__id
+    FROM units__skills WHERE unit_id=5 AND skill_slot=2
+      AND tick IN (96,97,98) ORDER BY tick
+  rows:
+  - [96, 5, 2, idle, 5]
+  - [97, 5, 2, idle, 5]
+  - [98, 5, 2, idle, 5]
+- sql: |-
+    SELECT min(tick) FROM units__skills
+    WHERE unit_id=5 AND skill_slot=2 AND enabled__state='prepare'
+  rows:
+  - [205]

@@ -890,6 +890,24 @@ impl Simulation {
             && self.target_in_attack_angle(skill_ref, target)
     }
 
+    /// `FightSkill.IsActorInAttackArea` tests the actor itself, even when a
+    /// shield surface is the skill's current attack target.
+    pub(in crate::fight) fn actor_in_attack_area(
+        &self,
+        skill_ref: SkillRef,
+        target: FightActorRef,
+    ) -> bool {
+        let (Some(attacker), Some(view)) =
+            (self.skill_attacker(skill_ref), self.fight_actor(target))
+        else {
+            return false;
+        };
+        view.alive
+            && self.reaches_hidden(skill_ref.owner, view.visibility)
+            && attacker.reaches(view.x_q32, view.z_q32, view.radius)
+            && attacker.faces_point(view.x_q32, view.z_q32)
+    }
+
     /// `SkillManager.UpdateWeaponRotateion`: every weapon turns towards a
     /// bearing at the owner's rotate speed.
     pub(in crate::fight) fn turn_weapons_towards(&mut self, skill_ref: SkillRef, bearing_q32: i64) {
