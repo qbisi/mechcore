@@ -264,13 +264,20 @@ pub struct StateUnit {
     pub unit: UnitPlacement,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<i32>,
-    /// Whether the side may move the formation this round.
-    ///
-    /// A formation moves in the round it arrives and is fixed after that,
-    /// unless [`crate::mobility`] frees it. The round it arrived in is not
-    /// otherwise part of a position, so the answer is a field.
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub movable: bool,
+    /// A Redeploy action frees this formation for the remainder of deployment.
+    /// Round openings reset this internal flag; the match records the action.
+    #[serde(skip)]
+    pub(crate) redeployed: bool,
+}
+
+impl StateUnit {
+    /// Deployment movement follows the source, persistent mobility modifiers,
+    /// and any Redeploy action already taken in this round.
+    pub(crate) fn movable(&self, techs: &[i32]) -> bool {
+        self.unit.source != crate::layout::UnitSource::Legacy
+            || crate::mobility::free(&self.unit, techs)
+            || self.redeployed
+    }
 }
 
 /// An owned item no formation carries; a fitted one is named by its formation.
@@ -1382,7 +1389,8 @@ mod tests {
         read(formation).unwrap();
         for broken in [
             formation.replace("value: 100", "value: 100, typo: 1"),
-            formation.replace("value: 100", "value: 100, movable: yes"),
+            formation.replace("value: 100", "value: 100, movable: true"),
+            formation.replace("value: 100", "value: 100, redeployed: true"),
             formation.replace(", index: 0", ""),
         ] {
             assert!(read(&broken).is_err(), "{broken}");

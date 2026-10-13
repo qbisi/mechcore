@@ -301,8 +301,6 @@ pub fn step_placing(
                 .ok_or(Unsettled::Unpriced("technology"))?;
             next.techs.push(*tech);
             next.techs.sort_unstable();
-            // A Jump Drive frees every formation of its unit to move.
-            free_to_move(&mut next);
         }
         Action::ActiveBlueprint { id } => {
             // `BlueprintManager.CanActive` answers `RepeatAction` for one active.
@@ -385,16 +383,15 @@ pub fn step_placing(
             }
             formation.unit.equipment.push(*equipment);
             next.equipment.remove(position);
-            // A Deployment Module frees the formation that wears it to move.
-            free_to_move(&mut next);
         }
         Action::MoveUnit {
             index,
             position,
             rotated,
         } => {
+            let techs = &state.techs;
             let formation = formation_mut(&mut next, *index)?;
-            if !formation.movable {
+            if !formation.movable(techs) {
                 return Err(Unsettled::Refused("moving a unit fixed in place"));
             }
             let left = Region::of(formation.unit.position);
@@ -510,7 +507,7 @@ fn release(
         let SkillTarget::Unit(index) = target else {
             return Err(Unsettled::Missing("redeploy target"));
         };
-        formation_mut(next, *index)?.movable = true;
+        formation_mut(next, *index)?.redeployed = true;
         spend(next, slot)?;
         return Ok(());
     }
@@ -628,15 +625,6 @@ fn hand_out(
     Ok(())
 }
 
-/// Frees every formation that [`crate::mobility::free`] says moves in every
-/// round. A formation already free stays free.
-fn free_to_move(next: &mut SideState) {
-    let techs = next.techs.clone();
-    for entry in &mut next.units {
-        entry.movable |= crate::mobility::free(&entry.unit, &techs);
-    }
-}
-
 /// Puts one formation on the board under the next index.
 fn place(
     next: &mut SideState,
@@ -664,8 +652,7 @@ fn place(
             source: crate::layout::UnitSource::Joined,
         },
         value: Some(value),
-        // A formation moves in the round it arrives.
-        movable: true,
+        redeployed: false,
     });
     next.units.sort_by_key(|entry| entry.unit.index);
     Ok(())
@@ -987,14 +974,13 @@ fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unse
         crate::ledger::round_income(economy, round, &next.officers, economy.round_supply());
     next.supply += income + worn - owed;
     next.energy_tower_skills.clear();
-    let techs = next.techs.clone();
     for entry in &mut next.units {
         entry.unit.source = if round <= 1 {
             crate::layout::UnitSource::Joined
         } else {
             crate::layout::UnitSource::Legacy
         };
-        entry.movable = round <= 1 || crate::mobility::free(&entry.unit, &techs);
+        entry.redeployed = false;
     }
     Ok(())
 }
@@ -1315,8 +1301,7 @@ mod tests {
                         source: crate::layout::UnitSource::Joined,
                     },
                     value: None,
-                    // Placed this round, so free to move.
-                    movable: true,
+                    redeployed: false,
                 })
                 .collect(),
             ..solvent()
@@ -1338,7 +1323,7 @@ mod tests {
                 source: crate::layout::UnitSource::Joined,
             },
             value: None,
-            movable: false,
+            redeployed: false,
         };
         let contraption = |type_name: &str, index, x| crate::layout::ContraptionPlacement {
             type_name: type_name.into(),
@@ -1736,7 +1721,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 source: crate::layout::UnitSource::Joined,
             },
             value: Some(100),
-            movable: true,
+            redeployed: false,
         };
         let state = SideState {
             units: vec![
@@ -1750,7 +1735,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 .unwrap()
                 .units
                 .iter()
-                .map(|entry| entry.movable)
+                .map(|entry| entry.movable(&state.techs))
                 .collect::<Vec<_>>()
         };
         assert_eq!(movable(1), [true, true]);
@@ -1767,6 +1752,64 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 .unwrap()
                 .contains("source:")
         );
+    }
+
+    /// Opening source tags replace movement flags and survive a document round trip.
+    #[test]
+    fn opening_sources_survive_serialization_and_preserve_movement() {
+        let economy = Economy::embedded().unwrap();
+        let state = SideState {
+            officers: vec![20_029], // Marksman Specialist delivers in round 2.
+            next_index: crate::r#match::NextIndex {
+                unit: 1,
+                ..Default::default()
+            },
+            ..side_holding(&[(0, Position { x: 0, y: -160 })])
+        };
+        let opened = |round| {
+            super::open_round(
+                economy,
+                &state,
+                round,
+                &mut |_, _| Some(Position { x: 60, y: -160 }),
+                None,
+            )
+            .unwrap()
+        };
+        let shift = |index| Action::MoveUnit {
+            index,
+            position: Position { x: 20, y: -160 },
+            rotated: false,
+        };
+        let first = opened(1);
+        let first_yaml = serde_yaml::to_string(&first).unwrap();
+        assert_eq!(first_yaml.matches("source: joined").count(), 1);
+        assert!(!first_yaml.contains("movable"));
+        assert!(!first_yaml.contains("redeployed"));
+        let first_read: SideState = serde_yaml::from_str(&first_yaml).unwrap();
+        assert_eq!(first_read.units, first.units);
+        assert!(step(economy, &first_read, &shift(0)).is_ok());
+
+        let second = opened(2);
+        assert_eq!(second.units.len(), 2);
+        let second_yaml = serde_yaml::to_string(&second).unwrap();
+        assert!(!second_yaml.contains("source: legacy"));
+        assert!(!second_yaml.contains("source: joined"));
+        assert_eq!(second_yaml.matches("source: delivered").count(), 1);
+        assert!(!second_yaml.contains("movable"));
+        let second_read: SideState = serde_yaml::from_str(&second_yaml).unwrap();
+        assert_eq!(second_read.units, second.units);
+        assert!(step(economy, &second_read, &shift(0)).is_err());
+        assert!(step(economy, &second_read, &shift(1)).is_ok());
+        let third = super::open_round(economy, &second_read, 3, &mut |_, _| None, None).unwrap();
+        assert!(
+            third
+                .units
+                .iter()
+                .all(|entry| entry.unit.source == crate::layout::UnitSource::Legacy)
+        );
+        assert!(!serde_yaml::to_string(&third).unwrap().contains("source:"));
+        assert!(step(economy, &third, &shift(1)).is_err());
     }
 
     /// The opening pays the map's schedule, the officers' income and what
@@ -1789,7 +1832,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 source: crate::layout::UnitSource::Joined,
             },
             value: Some(100),
-            movable: false,
+            redeployed: false,
         };
         let state = SideState {
             supply: 10,
@@ -1830,7 +1873,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 (
                     entry.unit.type_name.as_str(),
                     entry.unit.level,
-                    entry.movable,
+                    entry.movable(&opened.techs),
                 )
             })
             .collect();
@@ -1865,7 +1908,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 source: crate::layout::UnitSource::Joined,
             },
             value: Some(100),
-            movable: false,
+            redeployed: false,
         });
         let predicted = super::predict(economy, 3, &state, &[], false, None, None).unwrap();
         assert_eq!(predicted.units[0].unit.travelling, None);
@@ -2003,7 +2046,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                     source: crate::layout::UnitSource::Joined,
                 },
                 value: Some(100),
-                movable: false,
+                redeployed: false,
             }],
             ..SideState::default()
         };
@@ -2464,7 +2507,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
     fn only_a_formation_free_to_move_moves() {
         let economy = Economy::embedded().unwrap();
         let mut fixed = side_holding(&[(0, Position { x: 0, y: -160 })]);
-        fixed.units[0].movable = false;
+        fixed.units[0].unit.source = crate::layout::UnitSource::Legacy;
         fixed.supply = 1000;
         let shift = Action::MoveUnit {
             index: 0,
@@ -2493,7 +2536,9 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             },
         )
         .unwrap();
-        assert!(fitted.units[0].movable);
+        assert!(fitted.units[0].movable(&fitted.techs));
+        let fitted: SideState =
+            serde_yaml::from_str(&serde_yaml::to_string(&fitted).unwrap()).unwrap();
         assert!(step(economy, &fitted, &shift).is_ok());
 
         // Redeploy frees its target and spends its slot without a release.
@@ -2516,10 +2561,18 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             },
         )
         .unwrap();
-        assert!(redeployed.units[0].movable);
+        assert!(redeployed.units[0].movable(&redeployed.techs));
         assert!(redeployed.battle_skills[0].used);
         assert!(redeployed.battle_skills[0].release.is_none());
         assert!(step(economy, &redeployed, &shift).is_ok());
+        let next_round =
+            super::open_round(economy, &redeployed, 2, &mut |_, _| None, None).unwrap();
+        assert!(!next_round.units[0].movable(&next_round.techs));
+        assert!(
+            !serde_yaml::to_string(&redeployed)
+                .unwrap()
+                .contains("redeployed:")
+        );
 
         // A Jump Drive frees every formation of its unit, and no other.
         let mut wasps = side_holding(&[
@@ -2529,7 +2582,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         wasps.supply = 1000;
         wasps.units[0].unit.type_name = "wasp".into();
         for entry in &mut wasps.units {
-            entry.movable = false;
+            entry.unit.source = crate::layout::UnitSource::Legacy;
         }
         let researched = step(
             economy,
@@ -2540,8 +2593,23 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             },
         )
         .unwrap();
-        assert!(researched.units[0].movable);
-        assert!(!researched.units[1].movable);
+        assert!(researched.units[0].movable(&researched.techs));
+        assert!(!researched.units[1].movable(&researched.techs));
+        let researched: SideState =
+            serde_yaml::from_str(&serde_yaml::to_string(&researched).unwrap()).unwrap();
+        assert!(step(economy, &researched, &shift).is_ok());
+        assert!(
+            step(
+                economy,
+                &researched,
+                &Action::MoveUnit {
+                    index: 1,
+                    position: Position { x: 20, y: -160 },
+                    rotated: false
+                }
+            )
+            .is_err()
+        );
     }
 
     /// A move writes the board and nothing else, travelling included.

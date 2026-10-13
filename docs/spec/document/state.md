@@ -53,14 +53,12 @@ What the projection drops is everything the fight cannot observe: supply, the
 unlocked units, the reinforcement offer, the allocators, and the parts of the skill panel
 that neither stand on the battlefield nor were released this round.
 
-One thing a fight observes is read from the position the round opened with
-rather than the one projected: each unit's `source`. A unit below the side's
-unit allocator before its officers' deliveries is `legacy` from round 2;
-in round 1 the advance team is `joined`. A squad its officers delivered as
-the round opened is `delivered`, and one of those the round's decisions
-recovered is listed in `recovered`; every other unit is `joined`. A position
-the round's decisions reached has moved the allocator past what they created,
-so it cannot say.
+Each unit carries its `source`. In an opening state, an inherited unit is
+`legacy` and leaves the field out; the first round's advance team is `joined`,
+and a squad an officer delivers as the round opens is `delivered`. Units bought
+or granted by the round's decisions are `joined` while applying those decisions.
+The projection also uses the opening allocator and officer delivery schedule
+to list delivered squads recovered during the round.
 
 Six side fields project unchanged: `officers`, `techs`, `units`,
 `constructions`, `contraptions` and `tower_strengthen_levels`. Two more reach a
@@ -198,27 +196,30 @@ The last four keys are layout fields that project unchanged, elided here
 because [the layout document](layout.md) already defines them. A side always
 writes `units`, and leaves out the other three where it holds nothing.
 
-### A unit carries two fields a layout does not
+### A unit carries its source and recovery value
 
 ```yaml
       units:
       - {name: crawler, index: 5, position: {x: -140, y: -135}, exp: 450/450, value: 100}
-      - {name: hound, index: 9, position: {x: 0, y: -160}, value: 100, movable: true}
+      - {name: marksman, index: 6, position: {x: 0, y: -160}, value: 0, source: delivered}
 ```
 
 `value` is what the side paid for the unit, at the prices its officers made
 at the time, and it is what recovering the unit pays back. Two units of
 one type and level can differ in it.
 
-`movable` says whether the side may move the unit this round, and is
-absent when it may not. A unit moves in the round it arrives, whether it
-was bought, handed out by a card, or delivered as the round opened, and stays
-where it is in every later round unless something frees it: a Deployment Module
-it wears, its unit's Jump Drive, or a Redeploy release this round.
+`source` uses the layout's three categories and defaults to `legacy`.
+A match writes only two opening exceptions: `joined` for the first round's
+advance team, and `delivered` for the squads its officers hand out that round.
+Every surviving unit becomes `legacy` at the next round's opening, including
+previous deliveries. Source describes arrival, not a permanent movement grant.
+
+`movable` is not a document field. Deployment movement is derived internally:
+a `joined` or `delivered` unit may move, and a `legacy` unit may move only if
+its Deployment Module or Jump Drive frees it, or a Redeploy action has freed
+it during this deployment. The Redeploy effect is remembered while applying
+those actions and cleared at the next opening; it is not serialized.
 [The mobility index](../../rules/mobility.md) gives the rule and its evidence.
-It is a field rather than a derivation because the round a unit arrived in
-is history no other field keeps. A layout does not carry it: the fight moves
-every unit.
 
 ### The allocators
 
@@ -576,8 +577,9 @@ The snapshot also precedes what the round's officers deliver as it opens, so
 those deliveries are made on top of it: the squads, skills, equipment and
 unlocks each officer's schedule names for the round. A delivered squad has no
 recorded landing, and lands where [the board puts it](../../rules/landing.md).
-`movable` has no recorded source either, and is rebuilt as
-[`match.md`](match.md#what-conversion-rebuilds) states.
+Unit sources are classified at the round opening as
+[`match.md`](match.md#what-conversion-rebuilds) states; movement permission is
+an internal derivation, not a written field.
 
 A slot's `standing` is copied from somewhere other than an object list. A
 skill that leaves an object standing keeps it in that skill's `rangeItems`, so

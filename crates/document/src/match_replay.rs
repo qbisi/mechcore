@@ -432,7 +432,7 @@ fn undo_reset(economy: &Economy, snapshot: &mut SideState, round: i32, previous:
     snapshot.supply -= income + worn - debt;
     snapshot.shop = crate::r#match::Allowances::default();
     for entry in &mut snapshot.units {
-        entry.movable = false;
+        entry.redeployed = false;
     }
 }
 

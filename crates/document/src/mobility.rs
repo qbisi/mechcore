@@ -3,8 +3,9 @@
 //! `docs/rules/mobility.md` states the rule and its evidence. A formation may
 //! move in the round it arrives, and in no later round unless something frees
 //! it: the Deployment Module, a Jump Drive technology, or a Redeploy release.
-//! A state carries the answer as `movable`, because the round a formation
-//! arrived in is history no other field records.
+//! The formation's source states whether it arrived this round; equipment
+//! and technologies supply persistent freedom, and Redeploy is remembered
+//! internally while applying this round's actions.
 
 use crate::layout::UnitPlacement;
 

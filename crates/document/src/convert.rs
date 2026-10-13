@@ -778,8 +778,7 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
         })?;
         formations.push(StateUnit {
             value: Some(unit.sell_supply),
-            // Settled by the opening, which knows the round.
-            movable: false,
+            redeployed: false,
             unit: UnitPlacement {
                 type_name: type_name.to_owned(),
                 index: unit.index,
@@ -792,7 +791,7 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
                 equipment: unit.equipments.entries.iter().map(|item| item.id).collect(),
                 // No recorded field states it; see docs/spec/document/match.md.
                 travelling: None,
-                source: crate::layout::UnitSource::Joined,
+                source: crate::layout::UnitSource::Legacy,
             },
         });
     }
@@ -1621,7 +1620,7 @@ mod tests {
                 source: crate::layout::UnitSource::Joined,
             },
             value: None,
-            movable: true,
+            redeployed: false,
         };
         crate::r#match::SideState {
             supply: 100_000,
