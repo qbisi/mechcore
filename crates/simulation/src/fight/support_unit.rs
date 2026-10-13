@@ -561,6 +561,15 @@ impl Simulation {
             (x_q32, z_q32),
         );
         let mut actor = Actor::at_generated_position(placement, rules, x_q32, z_q32);
+        if creator.appear_ticks > 0 && coming_out.is_none() {
+            // DoCreateMech activates the agent before a delayed AddMech
+            // activates effects. ActiveRVOChangeRadius then changes its
+            // radius but cannot put the already-active agent in a team.
+            actor.motion.rvo_radius_change = super::motion::RvoRadiusChangeState::of(
+                actor.placement.effects.single.rvo_radius_change,
+                true,
+            );
+        }
         if let Some(facing) = facing {
             actor.face(facing);
         }
