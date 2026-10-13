@@ -1,52 +1,88 @@
 # What a player knows about the other
 
-What the game gives a player about the other side, and the two answers that
-question has: what the client holds, which a replay shows, and what the
-interface shows a human, which nothing here does. What a match on this
-platform shows a player is not here; that is the `match` namespace of
-[`cli.md`](../spec/mechcore/cli.md), which decides it rather than reproducing
-it, and which names this document for the difference.
+What the game gives a player about the other side, and how information is
+divided across three tiers: what the client holds in data, what the interface
+shows a human player, and what `match show` exposes on this platform.
 
-## The client holds both sides in full
+## Three tiers of visibility
+
+Information visibility is structured across three distinct layers:
+
+1. **Client data**: fully transparent between both sides, except for the
+   opponent's in-progress decisions in the round currently being deployed.
+2. **Player interface**: what a human sees in the UI, which conceals hidden
+   seeds, unfielded options, and uncommitted deployment actions under the fog of
+   war.
+3. **Platform (`match show`)**: designed for fair and convenient match
+   automation and analysis; exposes the match file contents publicly, except
+   for the opponent's in-progress actions in the current uncommitted round.
+
+## The client layer: full transparency except in-progress decisions
 
 A locally recorded replay is written by the client that played the match, and
 it carries both players' round snapshots whole. One of those snapshots holds
 what no interface shows an opponent: the other player's supply, the units it
-has unlocked, its officers and its research.
+has unlocked (`shop.unlockedUnits`), its officers, and its research.
 
 A replay's `Seat` names the seat of the player who recorded it, and the other
-seat's round snapshots carry that player's `shop.unlockedUnits`, `officers` and
-`supply` in full.
+seat's round snapshots carry that player's data in full. Between game clients,
+all committed states and historical positions are bidirectionally transparent.
+The only information withheld from the client is the opponent's in-progress,
+uncommitted actions during the current round.
 
 So hiding is the interface's work, not the client's. A player's machine can
 answer any question about the other side; what the game decides is what it
 draws.
 
-## What the interface draws is not established here
+## The player layer: what the interface presents
 
-The deployment interface covers the other side and lifts that cover as the
-round settles: `FogOfWarController` shows and hides a fog volume over a player
-territory, and it takes `OnTeamFinishDeploy` as the moment to hide it. That is
-the shape of a mechanism read from names and call edges; what the fog covers,
-and for whom, is not closed.
+The interface draws and conceals information according to the following rules:
 
-These remain open, and none of them is answered by reading further:
+### Board visibility and deployment fog
 
-- What a player sees of the other side's board while both are deploying, and
-  what changes when one of them finishes.
-- Whether inspecting an enemy unit shows its level, its equipment and the
-  technologies it has been given.
-- Whether a reinforcement card a player takes is announced to the other, and
-  whether an officer's effect is visible anywhere but in what it does.
-- Whether the Research Center's blueprints, the Energy Tower's skills and a
-  commander skill's panel are visible before they are used.
+The deployment interface covers the other side under a fog volume
+(`FogOfWarController`):
 
-Each is a question about what is drawn, so each closes the same way: play a
-match and record what the interface shows at the moments the adapter captures
-the state, then compare. That is a research question with an observation, not
-a reading of the binary.
+- **Before committing deployment**: A player sees only the opponent's board
+  state from the previous round (standing units from earlier rounds), or in round
+  0, the opening advance team and specialist-delivered units. The opponent's
+  actions during the ongoing round remain hidden.
+- **After committing deployment**: When a player commits deployment, the fog
+  lifts (`FogOfWarController.OnTeamFinishDeploy`). The player can now observe
+  the opponent's entire board in real time, with the opponent's stacked actions
+  applied.
 
-## Why this matters to a document
+### Unit inspection
+
+Inspecting an enemy unit on the board reveals all of its configuration: its
+current level, its fitted equipment, and all unit technologies unlocked on it.
+
+### Public game state and panels
+
+The following components are mutually visible to both players:
+
+- Reinforcement offers and taken cards.
+- Officers and their statuses.
+- The commander skill panel.
+- The equipment panel and unfitted equipment.
+- Research Center blueprints.
+- Energy Tower skill statuses.
+
+### Concealed from the player
+
+The interface does not present:
+
+- The three random seeds: the match seed and each side's individual seed.
+- The opponent's shop unlocked unit list (`shop.unlockedUnits`).
+- Technology configurations of enemy unit types that have not yet been fielded.
+- Red vs. Blue seat identity is difficult to distinguish from the board alone,
+  as the UI renders each player's view oriented with their own territory toward
+  negative `y`.
+
+Aside from these concealed items, the player's potential knowledge aligns with
+the client data layer.
+
+## The platform layer: match show visibility
 
 A match document records an ordered list of decisions. A player never saw one:
 the game shows boards, and a human infers what happened by comparing the board
@@ -59,9 +95,11 @@ one board, so an ordered list says more than any interface could:
   the research in the position and nothing on the board;
 - a purchase moved three times and a purchase placed once stand in one place.
 
-Those are decisions a player would have no reason to take in that order, which
-is why a board is usually enough to infer the list. They are not impossible,
-and the difference is the platform's to decide rather than the game's.
+While [`cli.md`](../spec/mechcore/cli.md)'s `match show` was originally
+designed to mirror the human player's restricted perspective, the platform rule
+settles on transparency for fairness and convenience: all fields in the match
+document are publicly visible, except for the opponent's uncommitted actions in
+the round currently in progress.
 
 ## Evidence
 
@@ -76,8 +114,3 @@ and the difference is the platform's to decide rather than the game's.
 - The deployment fog is a client object shown and hidden over a territory, and
   a team finishing its deployment is when it hides: `FogOfWarController.Hide`,
   `FogOfWarController.OnTeamFinishDeploy`.
-
-### Not established
-
-- **What the interface draws of the other side**, for each of the questions
-  above.
