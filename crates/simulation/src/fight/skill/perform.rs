@@ -24,6 +24,81 @@ pub(in crate::fight) struct Launch {
 }
 
 impl Simulation {
+    /// Count properties affected by the owner's technology data, including
+    /// extra skills sharing that data.
+    pub(in crate::fight) fn projectile_counts(
+        &self,
+        owner: FightActorRef,
+    ) -> Vec<(SkillRef, usize)> {
+        std::iter::once(SkillSlot::Main)
+            .chain((0..self.skills(owner).extras.len()).map(SkillSlot::Extra))
+            .map(|slot| SkillRef { owner, slot })
+            .filter(|&skill_ref| self.skill(skill_ref).kind == SkillKind::Projectile)
+            .map(|skill_ref| {
+                let count = self
+                    .skill_attacker(skill_ref)
+                    .expect("an owner's skill exists")
+                    .projectile_count();
+                (skill_ref, count)
+            })
+            .collect()
+    }
+
+    /// Dispatch the count properties' data-change listeners after a source
+    /// writes or withdraws its corrections.
+    pub(in crate::fight) fn refresh_projectile_performers(
+        &mut self,
+        counts: Vec<(SkillRef, usize)>,
+    ) {
+        for (skill_ref, before) in counts {
+            let after = self
+                .skill_attacker(skill_ref)
+                .expect("an owner's skill exists")
+                .projectile_count();
+            if before != after {
+                self.prepare_projectile_performer(skill_ref);
+            }
+        }
+    }
+
+    /// `ProjectileSkillAttackController.Init` listens to the projectile
+    /// count property. `PrepareAttackPerformer` replaces the performer in
+    /// both the controller and its current `AttackingController`.
+    pub(in crate::fight) fn prepare_projectile_performer(&mut self, skill_ref: SkillRef) {
+        let skill = self.skill_mut(skill_ref);
+        let attacking = !skill.performer.done();
+        skill.performer = Performer::Projectile {
+            pending: Vec::new(),
+            restart: attacking,
+            evenly: None,
+        };
+    }
+
+    /// `AttackingController.Update`: a freshly replaced performer begins
+    /// without counting another blow; an existing one releases its due shots.
+    pub(in crate::fight) fn perform_projectile_burst(
+        &mut self,
+        skill_ref: SkillRef,
+        step: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        if let Performer::Projectile { restart, .. } = &mut self.skill_mut(skill_ref).performer
+            && std::mem::take(restart)
+        {
+            let target = self
+                .skill(skill_ref)
+                .attack_target()
+                .or(self.skill(skill_ref).lock_target)
+                .ok_or_else(|| Error::new("a replacement projectile performer has no target"))?;
+            self.start_projectile_burst(skill_ref, target, step, events)?;
+        }
+        let due = self.skill_mut(skill_ref).performer.take_due(step);
+        for pending in due {
+            self.release_pending_projectile(skill_ref, pending, events)?;
+        }
+        Ok(())
+    }
+
     /// `SkillAttackState.PerformAttack` at the attack point: the blow wound up
     /// lands, by the skill's path. Answers whether the attack point rejected
     /// it.
@@ -423,7 +498,9 @@ impl Simulation {
         // target (`CalculateAttackPosition`, in three dimensions), which it
         // keeps as `lastAttackPos` while that is still the origin `Reset` left.
         let first_aim = self.attack_position(skill_ref.owner, skill_slot, target, 0, true)?;
-        let Performer::Projectile { pending, evenly } = &mut self.skill_mut(skill_ref).performer
+        let Performer::Projectile {
+            pending, evenly, ..
+        } = &mut self.skill_mut(skill_ref).performer
         else {
             return Err(Error::new("a burst needs a projectile performer"));
         };

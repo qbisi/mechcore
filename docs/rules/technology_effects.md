@@ -328,6 +328,13 @@ weapons only when the performer makes a
 target, and the skill has two: a Sabertooth's and a Fortress's Doubleshot
 fire both from weapon 0.
 
+Changing the projectile count, including disabling or restoring its
+technology, replaces the skill's attack performer even during a burst.
+The next attacking update starts a fresh burst with the current count,
+spacing and random range, without counting another blow. Projectiles
+already in flight remain; unreleased shots and offsets of the old burst
+are discarded.
+
 Saturation Bombardment also [turns its unit's lock over](#turning-the-lock-over),
 and its four projectiles leave from each of a Mountain's standalone weapons,
 each weapon's burst its own ([standalone_weapons.md](standalone_weapons.md#a-batch-of-main-skills)).
@@ -1880,6 +1887,9 @@ derive (a minimum range):
   Farseer and ten from a Phantom Ray, 0.1 seconds apart, and Saturation
   Bombardment four from each of a Mountain's weapons, 0.65 seconds apart:
   `tests/multi_attack/`.
+- Disabling a Farseer's Burst Mode during its burst starts a fresh burst
+  with its ordinary count and offsets:
+  `tests/multi_attack/count-change-replaces-active-burst.yaml`.
 - A projectile life rate multiplies the life a skill's projectiles leave with:
   Heavy Missile's rockets leave with 126000, and fought without the rate the
   simulator parts from the game at t20:
@@ -2133,6 +2143,11 @@ derive (a minimum range):
   which the skill's properties add to its row's: `MultiAttackTech.AddData`,
   `ProjectileCountProperty.Refresh`, `ProjectileDurationProperty.Refresh`,
   `ProjectileRandomRangeProperty.Refresh`.
+- A count change replaces the performer in the controller and its
+  `AttackingController`: `ProjectileSkillAttackController.Init`,
+  `SkillAttackController.PrepareAttackPerformer`,
+  `ProjectileMultiAttackPerformer.TryPerformEffect`,
+  `ProjectileMultiAttackPerformer.OnStartFirstPerform`.
 - A burst's projectiles are `PROJECTILE_INTERVAL` apart when its duration is
   zero or less, and the performer makes a position controller only for a
   random range above zero, which takes turns between the weapons only for a

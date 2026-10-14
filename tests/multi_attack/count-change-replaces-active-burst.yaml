@@ -1,0 +1,79 @@
+# An electromagnetic hit disables Burst Mode during a Farseer burst.
+# The projectile-count change replaces the attacking performer: tick 10
+# starts a new two-projectile burst instead of firing the old fifth offset.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 2139065782
+round: 4
+blue:
+  core_damage: 420
+  officers: [advanced_shield_device, cost_control_specialist, mass_produced_farseer]
+  techs:
+    farseer: [burst_mode, electromagnetic_explosion, aerial_specialization, missile_interceptor, range_enhancement, photon_emission, scanning_radar]
+  blueprints: [attack_enhancement]
+  units:
+  - {name: farseer, index: 0, position: {x: 255, y: -55}, level: 4, exp: 4041/4041/8083, rotated: true, equipment: [deployment_module]}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -80, y: -105}}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: -125, y: -30}, {x: -35, y: 80}]}
+red:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_power_system, aerial_specialist, improved_wasp]
+  techs:
+    wasp: [energy_shield, high_explosive_ammo, ground_specialization, jump_drive, electromagnetic_shot, aerial_specialization, range_enhancement, armor_piercing_bullets, elite_marksman, ignite]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: wasp, index: 0, position: {x: -250, y: -35}, level: 9, exp: 0/4200/6055, rotated: true, equipment: [deployment_module], source: joined}
+  - {name: typhoon, index: 1, position: {x: -180, y: -200}, level: 3, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: 295, y: -75}, {x: -160, y: 90}]}
+ticks: 28
+hash: 25:fb8a3ecece1a7227c49824a0a3170dd9014cf813457b9b1b69fff528d88fca05
+asserts:
+- sql: 'SELECT tick, projectile_id, cached_target_position__x, cached_target_position__z
+
+    FROM projectiles WHERE owner__id = 1 AND tick IN (9, 10) ORDER BY tick, projectile_id;'
+  rows:
+  - - 9
+    - 1
+    - 1047652966836
+    - 60033108926
+  - - 9
+    - 14
+    - 1125597389951
+    - 92891673958
+  - - 9
+    - 15
+    - 1129533448354
+    - 79199196458
+  - - 9
+    - 16
+    - 1124766067035
+    - 35061535107
+  - - 10
+    - 1
+    - 1047652966836
+    - 60033108926
+  - - 10
+    - 14
+    - 1125597389951
+    - 92891673958
+  - - 10
+    - 15
+    - 1129533448354
+    - 79199196458
+  - - 10
+    - 16
+    - 1124766067035
+    - 35061535107
+  - - 10
+    - 17
+    - 1093584572890
+    - 59700045370
