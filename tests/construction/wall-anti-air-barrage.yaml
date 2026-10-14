@@ -1,0 +1,66 @@
+# Anti-Air Barrage does not divert its missiles to a defensive wall.
+# Fortress unit 5's slot 1 keeps air unit 26 as its attack target on ticks
+# 191-192 and remains idle. Without the IsGroundAttack gate it attacked
+# wall block 8 instead, settling red core damage at 362 instead of 363.
+# Removing the red defensive wall provides a native control; the ground
+# weapon paths are also held by wall-weapon-group.yaml and wall-block.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 518332598
+round: 4
+blue:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_power_system, extended_range_fortress]
+  techs:
+    fortress: [doubleshot, barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: fortress, index: 0, position: {x: 320, y: 150}, exp: 1600/1600/1600, equipment: [secondary_heavy_armor]}
+  - {name: vortex, index: 1, position: {x: -50, y: -80}, exp: 0/17/750, source: joined}
+  constructions:
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -135, y: -195}}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: -270, y: -105}]}
+red:
+  core_damage: 363
+  officers: [advanced_power_system, fortified_specialist]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: centurion, index: 0, position: {x: 55, y: -65}, level: 3, exp: 0/496/8014, rotated: true, equipment: [improved_firepower_control_system], source: joined}
+  - {name: typhoon, index: 1, position: {x: -130, y: -200}, level: 3, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: 135, y: -120}]}
+asserts:
+- sql: |
+    SELECT
+      tick,
+      unit_id,
+      skill_slot,
+      enabled__lock_target__kind,
+      enabled__lock_target__id,
+      enabled__attack_target__kind,
+      enabled__attack_target__id,
+      enabled__state
+    FROM units__skills
+    WHERE
+      unit_id = 5
+      AND skill_slot = 1
+      AND tick BETWEEN 190 AND 192
+    ORDER BY
+      tick;
+  rows:
+  - [190, 5, 1, unit, 30, unit, 30, idle]
+  - [191, 5, 1, unit, 26, unit, 26, idle]
+  - [192, 5, 1, unit, 26, unit, 26, idle]
+ticks: 914
+hash: 24:06307848a6a2d3e7e5c596064116a8b792aaa86afec653ce5c1a222147bb5ffe

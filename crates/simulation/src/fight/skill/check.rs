@@ -783,6 +783,10 @@ impl Simulation {
         // The skill's own reach: a Centurion's Homing Missile meets a block
         // its main gun is too short for.
         let actor = self.skill_attacker(skill_ref)?;
+        // `CheckWallConstruction` first asks `FightSkill.IsGroundAttack`.
+        if !actor.targets.ground {
+            return None;
+        }
         let range = self.slot_attack_range(skill_ref, slot);
         // A wall is considered when it is within reach edge to edge: the
         // attacker's range plus its own radius and the block's. A constant
