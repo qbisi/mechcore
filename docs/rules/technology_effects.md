@@ -1067,8 +1067,10 @@ whether the unit's main skill attacks aircraft, and where it does turns
 skill's own row, -1 for one that attacks aircraft and +1 for one that does
 not. The Void Eye in the air attacks aircraft as well as the ground; the
 Wraith on the ground and the extra skills its row reaches attack the ground
-alone. The turn is among its numbers, not switched off with its
-technologies.
+alone. The turn is a skill modifier removed as soon as its technology is
+switched off, while the unit stays in the technology's domain until its
+landing or flying timer expires. A still-airborne Void Eye whose Aerial Mode
+is disabled therefore loses the ability to target aircraft before it lands.
 
 **Switched off, it takes its type's domain back a second later.**
 `DisableEffect`, on a unit in the technology's domain, starts a
@@ -1642,6 +1644,9 @@ derive (a minimum range):
 ## Evidence
 
 ### Recorded
+
+- Disabling Aerial Mode removes its air attack modifier before the unit
+  lands: `tests/fly/emp-removes-air-attack-before-landing.yaml`.
 
 - Electromagnetic Armor does not react to incoming Electromagnetic Shot hits:
   `tests/technology_buff/electromagnetic-armor-emp-hit.yaml`.
