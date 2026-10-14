@@ -492,15 +492,21 @@ impl Simulation {
             .map(|shield| shield.id)
     }
 
-    /// Whether a shield holds an actor's centre.
-    /// Where a standing shield's centre stands, Q32.32 metres:
-    /// `FightEnergyShield.GetFightTransform`'s position.
-    pub(in crate::fight) fn shield_centre(&self, shield_id: u64) -> Option<(i64, i64)> {
-        self.shield
+    /// `FightEnergyShield.GetFightTransform`: the owner's transform when
+    /// carried, or the placed shield's transform with its default zero radius.
+    /// The shield's spherical coverage radius is a separate field.
+    pub(in crate::fight) fn shield_transform(&self, shield_id: u64) -> Option<(i64, i64, i64)> {
+        let shield = self
+            .shield
             .standing
             .iter()
-            .find(|shield| shield.id == shield_id)
-            .map(|shield| (shield.x_q32, shield.z_q32))
+            .find(|shield| shield.id == shield_id)?;
+        if let Some(owner) = shield.owner {
+            let actor = self.fight_actor(FightActorRef::Unit(owner))?;
+            Some((actor.x_q32, actor.z_q32, actor.radius))
+        } else {
+            Some((shield.x_q32, shield.z_q32, 0))
+        }
     }
 
     pub(in crate::fight) fn shield_holds(&self, shield_id: u64, actor: FightActorRef) -> bool {

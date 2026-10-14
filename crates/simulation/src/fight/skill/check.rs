@@ -786,7 +786,8 @@ impl Simulation {
         shield: Option<u64>,
     ) -> Option<u64> {
         let point = if let Some(shield) = shield {
-            self.shield_centre(shield)?
+            let (x, z, _) = self.shield_transform(shield)?;
+            (x, z)
         } else {
             let aimed = self.fight_actor(target)?;
             (aimed.x_q32, aimed.z_q32)
