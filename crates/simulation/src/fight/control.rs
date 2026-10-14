@@ -292,7 +292,12 @@ impl Simulation {
         // Then the unit it turns raises `OnMechBeHit` with the beam's owner
         // as the attacker, as a hit's `FightMech.OnHitted` does: a Void Eye
         // with Electromagnetic Armor switches the Hacker's technologies off.
-        self.on_mech_be_hit(lock, owner, events)?;
+        self.on_mech_be_hit(
+            lock,
+            owner,
+            self.can_disable_target_tech(skill_ref, false),
+            events,
+        )?;
         // And the hit's effects are performed on it, as any hit's
         // (`BuffCycleController.PerformHitEffect`): a Hacker with
         // Electromagnetic Interference writes its buff on the unit each of

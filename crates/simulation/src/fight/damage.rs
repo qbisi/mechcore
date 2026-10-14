@@ -484,7 +484,9 @@ impl Simulation {
         hit: (i64, bool),
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        for (struck, stroke) in self.strike(target, None, team, hit, Provider::Other, events)? {
+        for (struck, stroke) in
+            self.strike(target, None, team, hit, (Provider::Other, false), events)?
+        {
             self.count_hit(None, team, struck, &stroke)?;
             self.turned_unit_fell(struck, &stroke);
             if stroke.actual > 0 {
@@ -522,7 +524,7 @@ impl Simulation {
         source: Option<ObjectRef>,
         source_team: u32,
         hit: (i64, bool),
-        provider: Provider,
+        (provider, can_disable_tech): (Provider, bool),
         events: &mut Vec<Event>,
     ) -> Result<Vec<(FightActorRef, Stroke)>> {
         // `FightCalculator.PerformHitTargetEffect`'s first hit on a unit a
@@ -544,13 +546,19 @@ impl Simulation {
                     continue;
                 }
                 let stroke = self.land(member, (source, source_team), (share, share), events)?;
-                self.after_hit(FightActorRef::Unit(member), source, &stroke, events)?;
+                self.after_hit(
+                    FightActorRef::Unit(member),
+                    source,
+                    can_disable_tech,
+                    &stroke,
+                    events,
+                )?;
                 strokes.push((FightActorRef::Unit(member), stroke));
             }
             return Ok(strokes);
         }
         let stroke = self.strike_target(target, source, source_team, hit, provider, events)?;
-        self.after_hit(target, source, &stroke, events)?;
+        self.after_hit(target, source, can_disable_tech, &stroke, events)?;
         Ok(vec![(target, stroke)])
     }
 
@@ -560,13 +568,14 @@ impl Simulation {
         &mut self,
         target: FightActorRef,
         source: Option<ObjectRef>,
+        can_disable_tech: bool,
         stroke: &Stroke,
         events: &mut Vec<Event>,
     ) -> Result<()> {
         if let (FightActorRef::Unit(id), Some(attacker)) = (target, source)
             && stroke.reached_alive
         {
-            self.on_mech_be_hit(id, attacker, events)?;
+            self.on_mech_be_hit(id, attacker, can_disable_tech, events)?;
         }
         Ok(())
     }
@@ -806,6 +815,20 @@ impl Simulation {
             .and_then(|extra| extra.rules.shield_damage)
     }
 
+    /// `IDamageProvider.CanDisableTech` through its originating skill.
+    fn hit_can_disable_tech(&self, hit: &DamageHit, secondary: bool) -> bool {
+        let (Some(owner), Some(slot)) = (hit.source, hit.skill_slot) else {
+            return false;
+        };
+        if owner.kind != ObjectKind::Unit {
+            return false;
+        }
+        self.can_disable_target_tech(
+            self.skill_at_slot(FightActorRef::Unit(owner.id), usize::from(slot)),
+            secondary,
+        )
+    }
+
     /// `DamagePerformer.PerformHitTargetsEffect` and `DispatchHitDamageEvent`:
     /// one hit on each of its targets in turn, and then its skill's hit
     /// effects.
@@ -865,7 +888,7 @@ impl Simulation {
                     hit.source,
                     hit.source_team,
                     (amount, true),
-                    hit.provider,
+                    (hit.provider, self.hit_can_disable_tech(hit, false)),
                     events,
                 )?
             };
@@ -1056,7 +1079,7 @@ impl Simulation {
                 hit.source,
                 hit.source_team,
                 (amount, false),
-                hit.provider,
+                (hit.provider, self.hit_can_disable_tech(hit, true)),
                 events,
             )?;
             for (reached, stroke) in strokes {
@@ -1751,9 +1774,12 @@ impl Simulation {
             Some(attacker_ref),
             attacker_team,
             (damage, true),
-            Provider::Skill {
-                melee: self.actors[&actor_id].skill_melee(skill_slot),
-            },
+            (
+                Provider::Skill {
+                    melee: self.actors[&actor_id].skill_melee(skill_slot),
+                },
+                self.can_disable_target_tech(skill_ref, false),
+            ),
             events,
         )?;
         let (mut lost, mut fallen) = (0, Vec::new());
