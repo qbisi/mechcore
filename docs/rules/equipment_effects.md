@@ -149,6 +149,13 @@ nothing. It stops for good after `max_batch` batches, and makes none while
 finishes and never holds the fight: a fight ends while a line could still
 make.
 
+**A make belongs to its parent's current side.**
+`SpecialSupportUnitData.GetTeamController` reads its parent's `FightActor`'s
+current team when a batch is made. A controlled unit's line therefore makes
+for the side it has joined, with that side's officers, blueprints, technologies
+and Energy Tower skills on the made type. The creator keeps its own schedule
+and its source's corrections; control does not restart its interval.
+
 **Where a make stands.** The makes of a batch take the row's `positions` in
 turn, each an offset `x` to the right and `z` ahead of the wearer, turned by
 the wearer's facing about the vertical as `FQuaternion.AngleAxis` turns it,
@@ -232,6 +239,10 @@ rather than applying only its plain corrections.
 ## Evidence
 
 ### Recorded
+
+- A controlled Vulcan's next Tank Production Line batch changes its side and
+  loadout while the first batch remains on its original side:
+  `tests/production/captured-owner-current-side.yaml`.
 
 - Heavy Armor's life rate lands in the unit's channel, and sums with an
   officer's life rate in one aggregate: `tests/equipment/`.
