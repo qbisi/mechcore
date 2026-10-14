@@ -4607,10 +4607,13 @@ fn read_native_layout_inner(
             metadata,
         )
         .map_err(|error| format!("team {team}: {error}"))?;
-        // Units inherited from earlier rounds are legacy, and the officers'
-        // squads delivered last are delivered. The first round's advance team
-        // and what the Training Ground places are joined.
-        if let Some(next_units) = opening_next_units {
+        // From round two, the allocator separates inherited units, officer
+        // deliveries and additions. Round one's synthetic snapshot can already
+        // hold legacy units: keep the native old-unit flag read below. The real
+        // advance team has no old-unit flag and remains joined.
+        if let Some(next_units) = opening_next_units
+            && round > 1
+        {
             mechcore_document::project::assign_sources(&mut side, next_units[team], round)
                 .map_err(|error| format!("team {team}: {error}"))?;
         }
@@ -4636,7 +4639,7 @@ fn read_native_layout_inner(
     Ok(layout)
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 fn read_native_side(
     api: Api,
     controller: *mut Object,
@@ -4692,7 +4695,11 @@ fn read_native_side(
                 rotated: Some(rotated),
                 equipment,
                 travelling: Some(travelling),
-                source: mechcore_document::UnitSource::Joined,
+                source: if invoke_value::<bool>(api, mech_team, "IsOldUnit")? {
+                    mechcore_document::UnitSource::Legacy
+                } else {
+                    mechcore_document::UnitSource::Joined
+                },
             },
         ));
     }
