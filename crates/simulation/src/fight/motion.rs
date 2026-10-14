@@ -881,14 +881,13 @@ impl Simulation {
             batch_in_reach
         } else if actor.skills.main.mech_searches() {
             // `FightMech.IsActorInAttackRange`: the unit's own lock is in
-            // reach nearer than its main skill's range less a metre.
-            sees_target
-                && rvo::fpoint_less_than(
-                    edge_distance_q32,
-                    self.main_attack_range_q32(actor_id)
-                        .saturating_sub(1_i64 << 32),
-                )
-                && self.mech_attack_target_in_range(actor_id, target)
+            // reach nearer than its main skill's range less a metre. This
+            // distance check does not test the retained lock's visibility.
+            rvo::fpoint_less_than(
+                edge_distance_q32,
+                self.main_attack_range_q32(actor_id)
+                    .saturating_sub(1_i64 << 32),
+            ) && self.mech_attack_target_in_range(actor_id, target)
         } else if actor.skills.main.shield_target().is_some() {
             // A skill firing at a shield stops its unit once the shield's
             // surface is in reach, however far the lock stands behind it.
@@ -984,7 +983,8 @@ impl Simulation {
         let target_x_q32 = target_view.x_q32;
         let target_z_q32 = target_view.z_q32;
         let target_radius = target_view.radius;
-        // `IsAttackTargetInAttackRange` asks whether the target is visible.
+        // Skill-owned range checks include visibility; a unit searching
+        // for itself measures its retained lock without that condition.
         let sees_target =
             self.reaches_hidden(FightActorRef::Unit(actor_id), target_view.visibility);
         // Where the body goes when it moves is the lock's, not the weapons':

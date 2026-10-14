@@ -120,7 +120,9 @@ makes the unit itself its motion's attacker:
   (`FightMech`'s `IsLockTargetAvaliable`), walks on it, and turns the turret
   to it. It attacks once the lock is nearer than the main skill's range less
   a metre (`FightMech`'s `IsActorInAttackRange`), edge to edge where the units
-  stand as it updates. Within that range, a skill locking the same target in
+  stand as it updates. This distance check does not test the retained lock's
+  visibility: the unit's motion may remain attacking as that lock burrows,
+  although its guns cool and drop their own locks. Within that range, a skill locking the same target in
   any state except idle lets the motion attack. Otherwise, when a battlefield
   shield covers the lock, the unit stays moving until its edge distance to
   the shield's fight transform is strictly below its main range
@@ -197,6 +199,9 @@ The Mountain's motion follows one of its weapons, the one whose skill is
   them set at once on the edges of their arcs, and one turns four and a half
   degrees a tick: `tests/war_factory/m3-crawler-4242.yaml`, ticks 1
   to 3.
+- A War Factory's motion remains attacking on its own retained lock when
+  that Sandworm burrows; its guns cool and drop their locks:
+  `tests/mech_search/hidden-lock-keeps-motion-in-range.yaml`, ticks 20 to 22.
 - The War Factory's own lock stays on its first search's while its guns lock
   others, and changes on its next search, eleven updates on:
   `tests/war_factory/m6-formations-4242.yaml`, ticks 1 and 12.
