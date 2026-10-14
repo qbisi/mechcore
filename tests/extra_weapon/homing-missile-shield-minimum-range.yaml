@@ -1,0 +1,26 @@
+# Homing Missile uses its own minimum range when looking for a shield.
+# The nearby shield is inside that minimum, so the first attack keeps
+# the covered Mustang as its actor target instead of stalling on the shield.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 2058255756
+round: 2
+blue:
+  core_damage: 136
+  techs:
+    centurion: [homing_missile]
+  units:
+  - {name: centurion, index: 0, position: {x: -185, y: -25}, level: 2, exp: 0/1224/5070, rotated: true, source: joined}
+red:
+  core_damage: 0
+  units:
+  - {name: mustang, index: 1, position: {x: 175, y: -30}, level: 5, exp: 0/1800/6253, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 195, y: -95}}
+ticks: 171
+hash: 25:fd6d9bdc5f169a37c6dcd3c6d6ba6dc8e36e66762d3484f78ed7f7ba452b9348
+asserts:
+- sql: SELECT tick,skill_slot,enabled__state,enabled__attack_target__kind,enabled__attack_target__id FROM units__skills WHERE tick=1 AND unit_id=1 ORDER BY skill_slot
+  rows: [[1,0,prepare,unit,2],[1,1,attack,unit,8]]

@@ -160,6 +160,11 @@ square is negative, `FPCSMath.SqrtFastest` returns NaN. A shield's
 `FPoint.op_LessThan` containment test is false for that distance, rather than
 considering the point at its centre.
 
+A skill's shield query uses that skill's minimum range as well as its
+maximum, even when it is an extra weapon. A shield inside that minimum is
+not substituted for the covered actor; the skill can still start on the
+actor when the actor is in its attack area.
+
 A hit meant for a unit or a tower its side's shield covers lands on the
 shield, since the build asks whether any `FightActor` is covered, and a tower
 is one as a unit is:
@@ -374,6 +379,9 @@ kind ends its own way:
   the shield's surface 4.35 metres from its edge, within its 1 metre and the
   5 its skill adds for a shield, on the tick the 1 alone would leave one
   later: `tests/corpus/134369950-r7.yaml`.
+- Homing Missile starts on a covered Mustang when the shield is inside
+  the missile's minimum range, while its main gun has no such minimum:
+  `tests/extra_weapon/homing-missile-shield-minimum-range.yaml`.
 - A Stormcaller's shell that lands outside a shield short of the unit it
   covers leaves the shield alone: `tests/corpus/134369439-r8.yaml`,
   tick 275.
@@ -451,6 +459,10 @@ kind ends its own way:
   `FightSkill.GetTargetEnergyShield`, `FightSkill.IsActorProtectedByEnergyShield`,
   `SkillSearchTargetController.SearchTargetShield`,
   `SkillAttackRangeChecker.IsAttackTargetInAttackRange`.
+- A shield query uses the calling skill's minimum range, including an
+  extra skill's: `FightSkill.GetTargetEnergyShield`,
+  `FightSkill.IsInAttackRange(FPoint, bool, out bool)`,
+  `FightSkill.GetMinAttackRange`.
 - Both ask the range with `useExtraRange`, which adds
   `SkillData.extraShieldAttackRange` for a skill that does not cross shields;
   a unit's range is asked without it:
