@@ -804,9 +804,12 @@ an agent that is not told it would reason about a board it does not have.
 
 **The other side's past is visible and its round in progress is not.** The
 round it is deploying now is hidden whole, because deployment is simultaneous
-and that is what a round decides. Of the rounds it has committed, a player sees
-the position they reached and the decisions that reached it, less the five
-things below.
+and that is what a round decides. The opponent's current-round decisions stay
+hidden whether or not either side has committed, including decisions already
+written to the match document and the round-zero opening choice. A commit does
+not end the round or make its decisions visible. Of the rounds that have ended,
+a player sees the position they reached and the decisions that reached it, less
+the five things below.
 
 Those five stay hidden for good, not until the next round, because none of them
 reaches a board. A side that unlocks Fang in round 1 and buys none has shown
@@ -829,7 +832,7 @@ its own and the other side's coming hand-outs; it is shown because a player
 may draw its own decisions from it, as the game's computer opponent draws from
 its side's.
 
-Everything else a committed round reached is visible: the units with their
+Everything else a completed round reached is visible: the units with their
 levels, experience, equipment and facing, the reactor core, the towers, the
 constructions and contraptions, the officers, the
 technologies, the blueprints, the Energy Tower skills, the commander skill

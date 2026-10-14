@@ -15,7 +15,8 @@ Information visibility is structured across three distinct layers:
    war.
 3. **Platform (`match show`)**: designed for fair and convenient match
    automation and analysis; exposes the match file contents publicly, except
-   for the opponent's in-progress actions in the current uncommitted round.
+   for the opponent's actions in the round currently in progress, whether or
+   not that opponent has committed.
 
 ## The client layer: full transparency except in-progress decisions
 
@@ -95,11 +96,13 @@ one board, so an ordered list says more than any interface could:
   the research in the position and nothing on the board;
 - a purchase moved three times and a purchase placed once stand in one place.
 
-While [`cli.md`](../spec/mechcore/cli.md)'s `match show` was originally
-designed to mirror the human player's restricted perspective, the platform rule
-settles on transparency for fairness and convenience: all fields in the match
-document are publicly visible, except for the opponent's uncommitted actions in
-the round currently in progress.
+The platform contract in [`cli.md`](../spec/mechcore/cli.md) makes the match
+document public except for the opponent's actions in the round currently in
+progress. Those actions remain hidden whether or not either player has
+committed, including actions already written to the match document. This also
+applies to the round-zero opening choice. Committing does not make a round
+historical: the opponent's actions become visible when that round has ended.
+Both sides' round-opening states remain public throughout the round.
 
 ## Evidence
 
