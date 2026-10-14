@@ -1,0 +1,47 @@
+# A Crawler with a live lock has no search prepared when the tick starts.
+# Its conversion clears the lock and timer, but cannot enqueue a job
+# retroactively: it uses a live Select and picks Crawler 13, not 18.
+# The pin is from the original generated layout recorded in the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 801003766
+round: 2
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_power_system, aerial_specialist]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: crawler, index: 0, position: {x: -250, y: -265}, level: 3, exp: 0/1603/1603, rotated: true, equipment: [heavy_armor], source: joined}
+  - {name: phantom_ray, index: 1, position: {x: 265, y: -240}, level: 6, exp: 0/1240/5799, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 105, y: -75}, retained: false}
+  battle_skills:
+  - {name: nuke, positions: [{x: 180, y: -60}]}
+red:
+  core_damage: 32
+  officers: [advanced_defensive_tactics, advanced_offensive_tactics, aerial_specialist, fortified_overlord]
+  techs:
+    overlord: [range_enhancement]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: overlord, index: 0, position: {x: -135, y: -35}, exp: 875/875/1750, equipment: [tank_production_line]}
+  - {name: hacker, index: 1, position: {x: 45, y: -165}, level: 9, exp: 0/3767/3767, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -95, y: -285}}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: 230, y: -300}]}
+ticks: 739
+hash: 25:f76bc64a7952adb49d5c7b293460b74cb5c7747f6b1c50955e1b16a94851dded
+asserts:
+- sql: |
+    SELECT u.tick,u.team_id,s.enabled__lock_target__id
+    FROM units u JOIN units__skills s ON s.tick=u.tick AND s.unit_id=u.unit_id
+    WHERE u.unit_id=21 AND u.tick IN(288,289) AND s.skill_slot=0
+    ORDER BY u.tick
+  rows: [[288,0,29],[289,1,13]]

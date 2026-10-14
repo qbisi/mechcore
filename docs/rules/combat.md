@@ -479,7 +479,11 @@ its turn, and the candidates stay the ones prepared. An attacking skill is
 prepared only while its lock is absent or dead, an idle one when it can start a
 search as the tick opens, its search timer run out or its lock absent or dead,
 and a preparing or cooling one never: an idle Crawler whose lock dies during a
-tick its timer was not due searches with `PerformSearch`; the prepared scores are cleared every tick. So a
+tick its timer was not due searches with `PerformSearch`. Whether a search
+was prepared is fixed as that tick begins: a later team change clearing a
+skill's lock and timer cannot enqueue a job retroactively, and its next search
+uses `Select` over live candidates. The prepared scores are cleared every
+tick. So a
 Stormcaller whose live lock walks inside its minimum range during a tick
 searches past it and takes the next target that very tick. The ranges are
 the ones it was prepared with: a Fang whose Range Enhancement an
@@ -1168,6 +1172,8 @@ not the game's native attack-type enum.
   nothing, though a shield holds the spot, and another flying into a shield on
   its way is taken by it: `tests/corpus/67252976-r7.yaml`, ticks 137
   and 84.
+- A Crawler converted after preparation takes a live search when none was
+  queued at the tick's start: `tests/control/turned-crawler-unprepared-search.yaml`.
 - A prepared search scores the candidates the tree held about the searcher as
   the tick opened: `tests/corpus/67260372-r4.yaml`, tick 42, where
   Crawler 311 locks Centurion 159, which the tree by its turn no longer

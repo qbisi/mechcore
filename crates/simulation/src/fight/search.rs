@@ -777,6 +777,34 @@ impl Simulation {
                 && (skill.group_size() <= 1 || skill.standalone());
         }
         self.buildings_query_alive = super::standing_buildings(&self.buildings);
+        // `SkillIdleState.PreCalculate` and `SkillAttackState.PreCalculate`
+        // decide now whether a job is queued. A later team change can clear
+        // the lock and search timer, but cannot retroactively queue that job.
+        let queued = self
+            .actors
+            .iter()
+            .map(|(&id, actor)| {
+                let skill = &actor.skills.main;
+                let lock_gone = skill
+                    .lock_target
+                    .and_then(|lock| self.fight_actor(lock))
+                    .is_none_or(|lock| !lock.query_alive);
+                let requested = match skill.phase() {
+                    FightSkillPhase::Idle => lock_gone || skill.search_target_time < 1,
+                    FightSkillPhase::Attack => lock_gone,
+                    FightSkillPhase::Prepare { .. } => false,
+                };
+                (id, skill.search_prepared && requested)
+            })
+            .collect::<Vec<_>>();
+        for (id, prepared) in queued {
+            self.actors
+                .get_mut(&id)
+                .expect("the snapshotted unit exists")
+                .skills
+                .main
+                .search_prepared = prepared;
+        }
     }
 
     /// Whether this skill's search is one `FightCoreSystem.PreCalculate`
@@ -793,30 +821,8 @@ impl Simulation {
     /// does nothing, nor does a Wraith's, and their search is a `Select`. A summon that joins after the preparation is not among the
     /// attackers `TrySelect` answers for, and its first search is a `Select`
     /// too, which finds the summons that joined with it.
-    pub(in crate::fight) fn search_prepared(&self, skill_ref: SkillRef) -> bool {
-        self.skill(skill_ref).search_prepared
-    }
-
-    /// Whether the skill's state prepared its search as the tick opened, on
-    /// a skill [`Self::search_prepared`] lets prepare.
-    /// `SkillIdleState.PreCalculate` prepares it when `CanStartSearchTarget`
-    /// held then: its search timer due (`SearchTargetController.
-    /// CanStartSearch`), or its lock absent or dead; `SkillAttackState.
-    /// PreCalculate` only when its lock is absent or dead. A Crawler walking
-    /// on a tower whose timer was due searches with `TrySelect` when the
-    /// tower falls that tick; one whose timer was not, with `Select`.
     pub(in crate::fight) fn prepared_at_tick_start(&self, skill_ref: SkillRef) -> bool {
-        let skill = self.skill(skill_ref);
-        let lock_gone = skill
-            .lock_target
-            .and_then(|lock| self.fight_actor(lock))
-            .is_none_or(|lock| !lock.query_alive);
-        self.search_prepared(skill_ref)
-            && match skill.phase() {
-                FightSkillPhase::Idle => lock_gone || skill.search_target_time < 1,
-                FightSkillPhase::Attack => lock_gone,
-                FightSkillPhase::Prepare { .. } => false,
-            }
+        self.skill(skill_ref).search_prepared
     }
 
     pub(in crate::fight) fn target_search_order(&self) -> BTreeMap<u32, Vec<FightActorRef>> {
