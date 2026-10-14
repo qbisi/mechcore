@@ -250,7 +250,8 @@ impl Simulation {
 
 /// `PreemptiveSkillStartAttackChecker.IsMainSkillIdleState` for a skill that
 /// is not permanent: the main skill idle, or attacking between two blows
-/// after its first (`performCount` above zero and no `currentController`).
+/// after its first completed cycle (`performCount` above zero and no
+/// `currentController`): a projectile burst still running is not at rest.
 ///
 /// A backswing that ends on this update has ended for the build: the Rhino of
 /// `whirlwind-rhinos.yaml` whose first backswing runs out as its Whirlwind
@@ -264,7 +265,7 @@ impl Simulation {
         let main = &self.actors[&actor_id].skills.main;
         match main.state {
             SkillState::Idle { .. } => true,
-            SkillState::Attack(Blow::Waiting) => main.performed(),
+            SkillState::Attack(Blow::Waiting) => main.perform_count > 0 && main.performer.done(),
             SkillState::Attack(Blow::After { finish_step }) => finish_step <= self.step_now,
             _ => false,
         }

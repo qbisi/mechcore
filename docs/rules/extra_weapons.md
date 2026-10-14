@@ -444,8 +444,10 @@ would start its attack:
 
 - **No preemptive skill runs, and the main skill rests.** The main skill is
   idle with its target not yet in its attack area, or between two blows of
-  an attack that has struck: its backswing has run out and its next blow has
-  not begun.
+  an attack whose first cycle has finished (`performCount` above zero):
+  its current attack controller is absent and its next blow has not begun.
+  Starting a projectile burst does not finish the cycle; its attacking
+  performer must finish first.
 - **The skill's own target is in its attack area.**
 - **Enough enemies stand near.** Of the enemy units the side's unit quadtree
   answers for a square of the select radius about the unit, a node at a
@@ -922,6 +924,10 @@ that is not melee, so the simulator refuses it.
   each fist striking what its splash reaches for 12000; with the first
   condition for both punches the second is thrown from tick 377:
   `tests/extra_weapon/rocket-punch-rhinos.yaml`.
+- Rocket Punch waits through the main weapon's projectile burst, despite a
+  blow already having started: the main cycle is still attacking at tick 270,
+  and the punch takes over at tick 271:
+  `tests/extra_weapon/rocket-punch-waits-for-burst.yaml`.
 - Multi Control's four beams reach 95 metres beside the main beam's 85,
   share a Rhino four to one, each winds up its blow and counts its own
   warm-up, and every beam turns by 102 a hit:
