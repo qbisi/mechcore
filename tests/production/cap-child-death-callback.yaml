@@ -1,0 +1,80 @@
+# Mustang Production Line reaches its 20-child cap at tick 961.
+# Child 13 dies at 964, after the support update still reads the full cap.
+# The clock stays zero on 964, resumes at 965 and makes its next batch at
+# 1184. The life-derived control resumes at 964 and makes at 1183.
+# A generated layout, recorded twice with the game: 1651 ticks
+# and core damage 374/0. Assertions below are read from that native recording.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1020628181
+round: 3
+blue:
+  core_damage: 374
+  officers: [advanced_defensive_tactics, advanced_power_system, fire_badger_specialist, fortified_hacker]
+  techs:
+    hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement, multi_control]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: hacker, index: 0, position: {x: -135, y: -25}, level: 9, exp: 3767/3767/3767, equipment: [enhancement_module]}
+  - {name: fire_badger, index: 1, position: {x: -5, y: -70}, exp: 0/1120/1400, source: delivered}
+  - {name: vortex, index: 2, position: {x: -20, y: -240}, level: 5, exp: 0/2090/3908, source: joined}
+  battle_skills:
+  - {name: electromagnetic_blast, positions: [{x: 15, y: -75}]}
+red:
+  core_damage: 0
+  officers: [quick_teleport, advanced_targeting_system, fortified_specialist, mass_produced_melting_point]
+  techs:
+    melting_point: [electromagnetic_barrage]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: melting_point, index: 0, position: {x: -330, y: 170}, level: 7, exp: 0/8815/8815, equipment: [mustang_production_line], travelling: true, source: joined}
+  - {name: farseer, index: 1, position: {x: 95, y: -295}, level: 2, source: joined}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: -135, y: -75}]}
+ticks: 1651
+hash: 25:6a5c017e53a3212c42f78664fe85ed92d7aff8089517601973c366a154be56af
+asserts:
+- sql: SELECT tick,unit_id,source_id,interval_time_counter FROM units__production_lines WHERE unit_id=6 AND tick IN (961,964,965,1183,1184) ORDER BY tick
+  rows:
+  - - 961
+    - 6
+    - 1306002
+    - 0
+  - - 964
+    - 6
+    - 1306002
+    - 0
+  - - 965
+    - 6
+    - 1306002
+    - 1
+  - - 1183
+    - 6
+    - 1306002
+    - 219
+  - - 1184
+    - 6
+    - 1306002
+    - 0
+- sql: SELECT tick,COUNT(*) FROM events WHERE type='unit_created' AND unit_type_id=7 GROUP BY tick ORDER BY tick
+  rows:
+  - - 81
+    - 4
+  - - 301
+    - 4
+  - - 521
+    - 4
+  - - 741
+    - 4
+  - - 961
+    - 4
+  - - 1184
+    - 4
+  - - 1404
+    - 4
+  - - 1624
+    - 4

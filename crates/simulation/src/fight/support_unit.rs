@@ -139,7 +139,7 @@ pub(in crate::fight) struct Creator {
     /// `GetMaxAliveCount`: how many of its makes may stand at once, none for
     /// no bound.
     max_alive: u32,
-    /// Its makes, `AddMech`'s: `aliveMechCount` counts those not dead.
+    /// `AddMech` registrations, retained until `RemoveMech` handles `OnMechDead`.
     made: Vec<u64>,
     /// `intervalTimeCounter`.
     counter: u32,
@@ -383,7 +383,7 @@ impl Simulation {
             {
                 continue;
             }
-            let alive = self.creator_alive(&self.support.list(list)[index]);
+            let alive = Self::creator_alive(&self.support.list(list)[index]);
             let batch = {
                 let creator = &mut self.support.list_mut(list)[index];
                 // `IsBatchMax` stops it for good, before its life counts.
@@ -516,19 +516,24 @@ impl Simulation {
         lines
     }
 
-    /// `aliveMechCount`: a creator's makes still appearing or alive.
-    fn creator_alive(&self, creator: &Creator) -> usize {
-        let appearing = |id: u64| {
-            self.support
-                .appearing
-                .iter()
-                .any(|appearing| appearing.actor.placement.unit_id == id)
-        };
-        creator
-            .made
-            .iter()
-            .filter(|&&id| appearing(id) || self.actors.get(&id).is_some_and(Actor::alive))
-            .count()
+    /// `SupportUnitCreator.RemoveMech`, registered with `FightMech.OnMechDead`.
+    /// Support updates before that callback, so a child whose life reached zero
+    /// still occupies its production slot for this tick.
+    pub(in crate::fight) fn remove_produced_mech(&mut self, unit_id: u64) {
+        for creator in self
+            .support
+            .lines
+            .iter_mut()
+            .chain(&mut self.support.creators)
+        {
+            creator.made.retain(|&made| made != unit_id);
+        }
+    }
+
+    /// `aliveMechCount`: children registered by `AddMech`, including those
+    /// appearing and those waiting for their death callback.
+    fn creator_alive(creator: &Creator) -> usize {
+        creator.made.len()
     }
 
     /// `SupportSkillStartAttackChecker.Check` of a unit's support skill: no
@@ -552,7 +557,7 @@ impl Simulation {
         };
         let creator = &self.support.lines[index];
         let full = creator.max_alive > 0
-            && self.creator_alive(creator)
+            && Self::creator_alive(creator)
                 >= usize::try_from(creator.max_alive).unwrap_or(usize::MAX);
         let due = (creator.max_batch == 0 || creator.batches < creator.max_batch)
             && !full

@@ -1294,6 +1294,7 @@ impl Simulation {
             // `FightMech.OnDead` raises `OnMechDead`, which a side's
             // `TeamWreckageRecoveryManager` registered with for each unit
             // its holders struck.
+            self.remove_produced_mech(unit_id);
             self.wreckage_on_dead(unit_id)?;
             // `FightEffectSystem.DeactiveEffect` of the dead unit.
             self.deactive_effect(unit_id)?;

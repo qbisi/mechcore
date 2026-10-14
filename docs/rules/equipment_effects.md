@@ -149,6 +149,10 @@ nothing. It stops for good after `max_batch` batches, and makes none while
 finishes and never holds the fight: a fight ends while a line could still
 make.
 
+The cap counts children registered with the creator, including a child whose
+life reached zero during the actor update. Its death callback removes it
+after the support update, so the interval resumes on the following tick.
+
 **A make belongs to its parent's current side.**
 `SpecialSupportUnitData.GetTeamController` reads its parent's `FightActor`'s
 current team when a batch is made. A controlled unit's line therefore makes
@@ -270,6 +274,9 @@ rather than applying only its plain corrections.
 - Lines due on one tick make by the unit type they make, the highest first,
   whatever order the technologies are listed in:
   `tests/production/lines-make-by-unit-type.yaml`.
+- A capped line resumes its clock on the tick after a child dies, and its
+  next batch follows that resumed clock:
+  `tests/production/cap-child-death-callback.yaml`.
 - A side's last important unit dying destroys the rest of the side on that
   tick, after it, through a full shield and whether a shot or a direct hit
   killed it; one dying while another stands destroys nothing:
@@ -335,6 +342,10 @@ rather than applying only its plain corrections.
   `SupportUnitCreator.IsBatchMax` and its living makes against
   `SupportUnitCreator.IsMaxLimit`, and `SupportUnitCreator.CreateMech` places
   a make by its owner's rotation.
+  `SupportUnitCreator.AddMech` registers each child and subscribes
+  `SupportUnitCreator.RemoveMech` to `FightMech.OnMechDead`;
+  `SupportUnitSystem.Update` runs before `DeadEffectSystem.Update` raises
+  that callback through `FightMech.OnDead`.
 - An important unit: `MechDataModifer.TryAddCommonData` marks it by
   `FightMech.SetImportantUnitData` and goes on to write the row,
   `FightMech.IsImportant`; `DeadEffectSystem.Update` takes `deadActors` by
