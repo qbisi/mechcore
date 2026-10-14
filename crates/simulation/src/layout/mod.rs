@@ -1537,6 +1537,15 @@ fn technology_disable(
     {
         providers.remove(&crate::modifier::EffectProvider::EnergyShield);
     }
+    // The same SingleEffectProvider admission applies to a battlefield
+    // barrier: the selected equipment source has priority 1 and cannot be
+    // disabled; a technology source has priority 0.
+    if effects
+        .carried_shield
+        .is_none_or(|source| source.priority != 0)
+    {
+        providers.remove(&crate::modifier::EffectProvider::AdvancedEnergyShield);
+    }
     let air_attack = refused
         .hold(technologies.main_skill(held, type_name).map_err(on_side))?
         .air_attack;
