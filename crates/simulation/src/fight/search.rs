@@ -468,14 +468,17 @@ pub(in crate::fight) fn initialize_target_quadtrees(
     let mut trees = BTreeMap::new();
     for team in teams {
         let mut tree = TargetActorQuadtree::new();
-        let mut team_buildings = buildings
+        // `FightBuildingLoader.Load` registers buildings in their map order;
+        // `FightTeam.CreateQuadtree` retains that order. Recording IDs sort
+        // by type instead and reverse the red side's two fixed towers.
+        let team_buildings = buildings
             .iter()
             .filter(|building| building.team_id == team)
             .collect::<Vec<_>>();
-        team_buildings.sort_by_key(|building| building.building_id);
-        let (team_constructions, towers): (Vec<_>, Vec<_>) = team_buildings
+        let (mut team_constructions, towers): (Vec<_>, Vec<_>) = team_buildings
             .into_iter()
             .partition(|building| constructions.contains_key(&building.building_id));
+        team_constructions.sort_by_key(|building| building.building_id);
         let insert_building = |tree: &mut TargetActorQuadtree, building: &BuildingState| {
             tree.insert(
                 FightActorRef::Building(building.building_id),

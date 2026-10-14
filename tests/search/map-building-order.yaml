@@ -1,0 +1,54 @@
+# A Vulcan drops on the centre line and gives both red towers the same
+# score. FightBuildingLoader.Load registers Research Center before Energy
+# Tower on this side, so the first equal score selects Research Center.
+# Removing only Tank Production Line from the generated counterexample
+# leaves a complete native match without unrelated final attack-clock drift.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1517806675
+round: 3
+blue:
+  core_damage: 0
+  officers: [quick_teleport, advanced_offensive_tactics, sabertooth_specialist, mass_produced_sandworm]
+  techs:
+    sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [2, 1]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -225, y: -135}, source: delivered}
+  - {name: sandworm, index: 1, position: {x: -330, y: 80}, level: 5, exp: 0/5150/10421, rotated: true, travelling: true, source: joined}
+  - {name: steel_ball, index: 2, position: {x: -265, y: -270}, level: 7, exp: 0/1550/6296, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 105, y: -235}}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: 0, y: -65}]}
+red:
+  core_damage: 885
+  officers: [advanced_shield_device, advanced_offensive_tactics, sabertooth_specialist]
+  techs:
+    stormcaller: [heavy_missile]
+  blueprints: [attack_enhancement]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 205, y: -105}, source: delivered}
+  - {name: stormcaller, index: 1, position: {x: 35, y: -250}, equipment: [explosive_ammo], source: joined}
+  - {name: melting_point, index: 2, position: {x: -210, y: -230}, level: 4, exp: 0/12/6286, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -55, y: -95}}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: -175, y: -85}, {x: -115, y: 20}]}
+ticks: 847
+hash: 25:de51a4b95f67ab49b98b062ba6e65e54c2c73aaa0a67d77b79e5fcd803b7f35a
+asserts:
+- sql: |
+    SELECT u.tick,u.unit_id,u.mech_lock_target__kind,u.mech_lock_target__id,
+           b.building_type_id,q32(b.position__x)
+    FROM units u JOIN buildings b ON b.tick=u.tick AND b.building_id=u.mech_lock_target__id
+    WHERE u.tick=48 AND u.unit_type_id=3 AND u.mech_lock_target__kind='building'
+  rows: [[48,13,building,9,2,-140.0]]
