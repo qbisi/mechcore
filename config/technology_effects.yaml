@@ -211,18 +211,24 @@ technologies:
     name: Energy Absorption
     unit: melting_point
     kind: lifestealTechnologies
+    main_skill_effect: true
+    extra_skill_effect: false
     life_rate: [2576980377]  # +0.6
     lifesteal_multiplier: [3435973836]  # +0.8
   - id: 308
     name: Energy Absorption
     unit: steel_ball
     kind: lifestealTechnologies
+    main_skill_effect: true
+    extra_skill_effect: false
     life_rate: [1717986918]  # +0.4
     lifesteal_multiplier: [3435973836]  # +0.8
   - id: 330
     name: Energy Absorption
     unit: void_eye
     kind: lifestealTechnologies
+    main_skill_effect: true
+    extra_skill_effect: false
     life_rate: [2576980377]  # +0.6
     lifesteal_multiplier: [3435973836]  # +0.8
   - id: 406

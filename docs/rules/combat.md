@@ -722,13 +722,21 @@ damage, leaves that rate out. An extra weapon technology's
 
 **A unit's skill hands back a share of the life each of its hits took.** After
 a hit, the provider that dealt it hands the life it took from everything it
-struck, summed, to the skill's hit effects, and a lifesteal source's effect
+struck, summed with the energy its hit took from battlefield shields, to the
+skill's hit effects, and a lifesteal source's effect
 gives the skill's owner the whole part of that sum times the source's
 multiplier. It gives nothing to an owner that is dead or at its maximum life,
 and never past the maximum: what the owner was short of is what it gets. A
 direct blow, a beam with or without a splash and a projectile all hand their
-hit on, and so does a hit a shield took in part, for the life the rest took.
+hit on, including a hit absorbed wholly by a battlefield shield.
 A turret's, a mine's and a battle skill's hits reach no unit's skill.
+
+The active source registers its hit effect on the skills its main and extra
+skill flags admit. A main source also reaches its grouped extra weapons;
+an independent extra weapon admits a main source only when it has a positive
+damage rate. Energy Absorption therefore heals through Energy Diffraction,
+but not through the independent, unrated EMP Barrage. Absorption Module
+admits both main and extra skills.
 
 The multiplier is a fixed-point number, and the share is truncated: 0.8 is
 stored a little short of itself, so 5 of damage gives back 3.
@@ -1298,7 +1306,11 @@ not the game's native attack-type enum.
   `tests/lifesteal/absorption-module.yaml`,
   `tests/lifesteal/technology-lifesteal.yaml`,
   `tests/lifesteal/absorption-module-over-technology.yaml` and
-  `tests/lifesteal/technology-lifesteal-beam.yaml`.
+  `tests/lifesteal/technology-lifesteal-beam.yaml`. Battlefield shield
+  absorption reaches the ranged hit effect in
+  `tests/lifesteal/range-hit-on-battlefield-shield.yaml`, while EMP Barrage
+  does not register Energy Absorption in
+  `tests/lifesteal/energy-absorption-extra-skill-scope.yaml`.
 
 - A splash value widens a skill's splash, from an item onto a skill with
   none and onto one with its own, from a technology and from an officer:
@@ -1560,7 +1572,8 @@ not the game's native attack-type enum.
 
 - Lifesteal: `DamagePerformer.PerformSingleEffect` and
   `DamagePerformer.PerformRangeEffect` hand the sum `FightActor.ReduceLife`
-  returned to `IDamageProvider.DispatchHitDamageEvent`;
+  returned, plus the energy taken from battlefield shields, to
+  `IDamageProvider.DispatchHitDamageEvent`;
   `SkillDamageProvider` and `FightProjectile` pass it to
   `FightSkill.DispatchHitDamageEvent`, `SkillHitEffectController.PerformHitEffect`;
   `LifeStealEffectProvider.PerformHitEffect` checks the owner's life and
@@ -1570,7 +1583,10 @@ not the game's native attack-type enum.
   ``SingleEffectProvider`1.AddDataSource``'s first after sorting by
   `EffectProvider.IsOverrideEffect`, which compares `Equipment.GetPriority`
   and `Technology`'s; `Equipment`'s `CanDisable` is false and
-  `Technology.CanDisable` reads `ignoreElectricEffect`.
+  `Technology.CanDisable` reads `ignoreElectricEffect`. Its admitted skills
+  follow `SkillManager.AddHitEffect` and `SkillDataModifier.AvaliableCheck`
+  through the source's `mainSkillEffect`, `extraSkillEffect` and the extra
+  weapon's `GetDamageRate`.
 
 - A splash value: `SplashEquipment.AddData` writes its row through
   `MechDataModifer.TryAddCommonData` and then ``Equipment`1.AddSkillData`` of
