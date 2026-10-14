@@ -274,7 +274,7 @@ impl Simulation {
             return Ok(repeat);
         }
         let index = self.controller_for(spec);
-        let grid = self.lay_out((x_q32, z_q32, spec.radius_q32), layout)?;
+        let grid = self.lay_out((x_q32, z_q32, spec.radius_q32), y_q32, layout)?;
         self.terrain.next_key += 1;
         let key = self.terrain.next_key;
         self.terrain.terrains.insert(
@@ -428,7 +428,7 @@ impl Simulation {
     /// terrain's cells, or none for a circle. Every shield of every side
     /// cuts, and the first that reaches the terrain says whether its centre
     /// stands inside one (`FightCalculator.IsInRange3D`).
-    fn lay_out(&self, circle: Circle, layout: Layout) -> Result<Option<GridBlock>> {
+    fn lay_out(&self, circle: Circle, y_q32: i64, layout: Layout) -> Result<Option<GridBlock>> {
         let converted = match layout {
             Layout::Held(grid) => return Ok(Some(grid)),
             Layout::Circle => return Ok(None),
@@ -448,7 +448,8 @@ impl Simulation {
             return Ok(None);
         };
         let inside = fpoint_less_or_equal(
-            native_q32_magnitude(first.0 - circle.0, first.1 - circle.1).saturating_sub(first.2),
+            native_q32_magnitude_3d(first.0 - circle.0, y_q32, first.1 - circle.1)
+                .saturating_sub(first.2),
             0,
         );
         let mut grid = GridBlock::of_circle(circle)?;

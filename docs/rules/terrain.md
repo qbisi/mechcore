@@ -289,7 +289,8 @@ circle otherwise. Its grid then loses the cells every active shield's own grid
 covers (`GenerateGrid`, `GridBlockInt.TryDisableGrid`), unless it was turned
 from another kind (`isConvertFromOtherType`, a fire burnt from oil) or its
 centre stands inside the first shield that reaches it
-(`FightCalculator.IsInRange3D`); then it is a whole grid. A shield raised later
+(`FightCalculator.IsInRange3D`, using the terrain's full position,
+including its projectile impact height); then it is a whole grid. A shield raised later
 cuts nothing already standing. A terrain added with cells takes them
 (`GenerateGrid` with `detailMasks`, `Sync`): a fire burnt from a cut oil takes
 the oil's, and a standing oil a point's recorded cells. A standing oil with
@@ -406,6 +407,11 @@ already exists.
   counting last first, burns out after 700 ticks, and its removal is the
   last event of its tick: `tests/terrain/fire.yaml`,
   `tests/terrain/fire-burns-out.yaml`.
+
+- An elevated oil centre projected inside a shield is outside its sphere
+  when its height is included. Its new grid loses shield-covered cells on
+  the creation tick: `tests/terrain/elevated-terrain-outside-shield.yaml`,
+  tick 670. Fire uses the same terrain grid layer.
 
 ### Read
 
