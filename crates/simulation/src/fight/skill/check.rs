@@ -656,6 +656,11 @@ impl Simulation {
             .cooling()
             .is_some_and(|(_, named)| named.is_some());
         if let Some(actor) = self.moving_mut(skill_ref) {
+            // TransitionState updates its ability and enters the queued state;
+            // it does not ask whether the motion's skill became idle meanwhile.
+            if actor.motion.state == MotionState::Transitioning {
+                return;
+            }
             if names_target
                 && actor.command.is_some()
                 && actor.motion.state == MotionState::Attacking

@@ -45,7 +45,7 @@ directory alone keeps a readme, for the rules of pinning a round:
 | [`maintenance_array/`](maintenance_array/) | whom a repair technology's unit repairs about it, how often and from when | [`technology_effects.md`](../docs/rules/technology_effects.md#repair-technologies) |
 | [`wreckage_detonation/`](wreckage_detonation/) | which units a kill-explosion technology's unit's hits set off and whom each explosion strikes | [`technology_effects.md`](../docs/rules/technology_effects.md#kill-explosion-technologies) |
 | [`map/`](map/) | what a map's neutral crystals do to a fight | [`map.md`](../docs/rules/map.md) |
-| [`move_ability/`](move_ability/) | what a technology adds to its unit's move ability, and what it makes as the unit surfaces | [`underground.md`](../docs/rules/underground.md) |
+| [`move_ability/`](move_ability/) | what a unit's move ability does to its motion, and what a technology makes as the unit surfaces | [`underground.md`](../docs/rules/underground.md) |
 | [`modifier/`](modifier/) | how officers and technologies correct a unit's numbers | [`officer_effects.md`](../docs/rules/officer_effects.md) |
 | [`splash/`](splash/) | how a correction widens a skill's splash, and a skill with none given one | [`combat.md`](../docs/rules/combat.md#damage-and-death) |
 | [`super_deployment/`](super_deployment/) | what a formation deployed on a flank does in a fight, travelling in or settled | [`unit-rules.md`](../docs/spec/simulation/unit-rules.md) |

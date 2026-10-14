@@ -1,0 +1,59 @@
+# Mechanical Division's Larva enters an idle-to-attack motion transition.
+# Its skill ends its attack before that transition completes; the queued
+# attacking motion still enters, with no lock, rather than being forced idle.
+# replicate.yaml controls a Larva's transition with a retained target.
+# tests/battle_skill/acid-interrupted-buff.yaml controls the earlier
+# inherited terrain interruption needed by this generated layout.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 616760135
+round: 3
+blue:
+  core_damage: 674
+  officers: [advanced_offensive_tactics, advanced_power_system, sabertooth_specialist, mass_produced_sandworm]
+  techs:
+    sandworm: [mechanical_division]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 2]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -175, y: -175}, exp: 0/88/1300, source: delivered}
+  - {name: sandworm, index: 1, position: {x: -140, y: -110}, level: 6, exp: 0/8/11598, equipment: [steel_ball_production_line], source: joined}
+  - {name: marksman, index: 2, position: {x: 40, y: -100}, level: 6, exp: 0/1160/3769, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: -225, y: 310}, {x: -45, y: -20}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_targeting_system, cost_control_specialist]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: abyss, index: 0, position: {x: 125, y: -85}, level: 9, exp: 16145/30005/32291, rotated: true}
+  - {name: sledgehammer, index: 1, position: {x: -255, y: -150}, level: 7, exp: 0/2200/8185, source: joined}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 145, y: -180}}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: 70, y: -150}]}
+asserts:
+- sql: |
+    SELECT u.tick,u.motion_state,s.enabled__state,u.mech_lock_target__id
+    FROM units u
+    JOIN units__skills s ON s.tick=u.tick AND s.unit_id=u.unit_id
+    WHERE u.unit_id=51 AND u.tick BETWEEN 181 AND 185 AND s.skill_slot=0
+    ORDER BY u.tick;
+  rows:
+  - [181, idle, idle, null]
+  - [182, transitioning, attack, 35]
+  - [183, attacking, idle, null]
+  - [184, attacking, idle, 35]
+  - [185, attacking, attack, 35]
+ticks: 408
+hash: 24:d33a07330660f3f5aa9b580bf77b4411dc134afda6addfee340c5b06a97be8ff
