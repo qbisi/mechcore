@@ -62,7 +62,9 @@ fn own_field<T: Copy>(api: Api, object: *mut Object, name: &str) -> Result<T, St
         .map_err(|error| format!("{name}: {error}"))
 }
 
-/// Every unit being turned, with its entry.
+/// Every living unit being turned, with its entry. A dead translated unit's
+/// death callback can return before removing its translation data; the live
+/// unit snapshot does not carry that retained dictionary entry.
 pub(crate) fn read(
     api: Api,
     system: *mut Object,
@@ -97,6 +99,12 @@ pub(crate) fn read(
     for (index, data) in data.into_iter().enumerate() {
         let index = i32::try_from(index).map_err(|_| "a list index beyond i32")?;
         let target = list_item(api, keys, index)?;
+        if !api
+            .call0::<bool>(target, "IsAlive")
+            .map_err(|error| error.to_string())?
+        {
+            continue;
+        }
         let Some(unit) = object_ref_from_pointer(target as usize, capture) else {
             return Err("a unit being turned has no recorded identity".into());
         };

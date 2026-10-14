@@ -1,0 +1,39 @@
+# Native capture probe: a converted summoned Steel Ball dies while another
+# beam is turning it. Its translatingDatas entry can outlive its live-unit
+# row; capturing the complete fight must project only living targets.
+# Record with convert --to mcfr --backend game --level 0.
+
+kind: layout
+seed: 984540180
+round: 2
+blue:
+  officers: [advanced_offensive_tactics, advanced_targeting_system, marksman_specialist, assault_fang]
+  techs:
+    fang: [portable_shield, grenade_launcher, range_enhancement, mechanical_rage, armor_piercing_bullets, ignite]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: fang, index: 0, position: {x: 210, y: -285}, exp: 600/600, rotated: true, equipment: [small_amplifying_core]}
+  - {name: marksman, index: 1, position: {x: -20, y: -70}, level: 3, source: delivered}
+  - {name: hacker, index: 2, position: {x: 65, y: -195}, level: 8, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -115, y: -135}}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: 95, y: -230}]}
+red:
+  officers: [advanced_shield_device, advanced_power_system, marksman_specialist, fortified_hacker]
+  techs:
+    hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement, multi_control]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: hacker, index: 0, position: {x: 135, y: -285}, level: 9, rotated: true, equipment: [absorption_module]}
+  - {name: marksman, index: 1, position: {x: 270, y: -280}, level: 3, source: delivered}
+  - {name: war_factory, index: 2, position: {x: -65, y: -95}, level: 6, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 10, y: -125}}
+  battle_skills:
+  - {name: ion_blast, positions: [{x: 30, y: -240}, {x: -10, y: 30}]}
