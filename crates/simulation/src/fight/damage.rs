@@ -449,7 +449,6 @@ impl Simulation {
                 FightActorRef::Unit(candidate_id) => {
                     let candidate = &self.actors[&candidate_id];
                     candidate.alive()
-                        && hit.reach.touches(candidate.domain)
                         // `FightProjectile.Update` strikes what it aimed at
                         // only while `IsValidTarget(Stealth)`: a Wasp's shot
                         // that reaches a Sandworm as it burrows is spent.
@@ -462,7 +461,9 @@ impl Simulation {
                             && hit.splash_radius == 0
                             && Some(*candidate_ref) == hit.aimed
                             && candidate.visibility != Visibility::Hide)
-                            || (hit.splash_radius > 0 && hit.splashes(candidate, splash_q32)))
+                            || (hit.splash_radius > 0
+                                && hit.reach.touches(candidate.domain)
+                                && hit.splashes(candidate, splash_q32)))
                 }
                 FightActorRef::Building(building_id) => {
                     splash_reaches_buildings

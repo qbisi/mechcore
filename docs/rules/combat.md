@@ -534,6 +534,16 @@ from where a charging Rhino stands by then. A target already dead when the
 projectile is released is not followed: the projectile goes to the point the
 burst aimed it at when it began.
 
+**A projectile keeps the target domain it was created with.**
+`FightProjectile.Init` stores `targetType`, and `GetTargetType` returns that
+stored value for range damage. With a target, an air-only projectile skill
+keeps air; otherwise the target's current `IsFly` decides. With no
+target it takes both domains. A target taking off while a ground shell
+flies does not turn that shell's splash into an aerial hit. A single hit
+without a splash instead names its target directly
+(`DamagePerformer.PerformSingleEffect`); the target changing domain does not
+remove that hit.
+
 **A projectile with a splash strikes only what its splash reaches.**
 `DamagePerformer.Perform` performs a hit with a splash as `PerformRangeEffect`,
 over everything within the splash of where it lands, and only a hit without
@@ -670,7 +680,7 @@ hold them. A Steel Ball's beam has no splash and strikes its target alone.
 **A skill's own hit strikes only the domain of what it attacks.** A blow or a
 beam asks the skill whether its attack target, or its lock when it has none,
 flies, and its splash takes only units of that domain, as a projectile's
-takes only its target's: a Melting Point's beam at a Phoenix in the air
+takes only its target domain stored at creation: a Melting Point's beam at a Phoenix in the air
 splashes no Tarantula standing under it, whatever the beam could attack
 otherwise.
 
@@ -1377,6 +1387,11 @@ not the game's native attack-type enum.
   `tests/secondary_damage/shockwave-crawlers.yaml` and
   `tests/secondary_damage/shockwave-marksmen.yaml`.
 
+- A Stormcaller shell aimed at a ground Void Eye remains on the ground as
+  the target enters Aerial Mode at tick 81. Its tick-82 impact creates fire
+  without damaging the aerial units or their personal shields:
+  `tests/projectile/keeps-domain-when-target-takes-off.yaml`.
+
 ### Read
 
 - A target on the unit's own position is at angle 0 and is not turned to:
@@ -1397,6 +1412,10 @@ not the game's native attack-type enum.
   `MotionMoveState.NormalRotate`.
 - A manager holding fire updates its main skill whatever the fight does:
   `SkillManager.Update`, `SkillManager.EnterHoldFire`.
+- A projectile preserves its creation-time target domain for range damage;
+  a single hit names the target directly: `FightProjectile.Init`,
+  `FightProjectile.GetTargetType`, `FightSkillBase.GetAttackTargetType`,
+  `DamagePerformer.Perform`, `DamagePerformer.PerformSingleEffect`.
 - A projectile that locks its target is released with no damage out of its
   owner's reach: `FightProjectile.Update`, `FightProjectile.Init`,
   `FightProjectile.CalculateMaxMoveDistance`, `FightCalculator.IsInRange3D`,
