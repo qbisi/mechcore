@@ -1,0 +1,44 @@
+# Orbital Javelin reaches a battlefield shield's edge and a Vulcan beside it.
+# CanCrossAdvancedEnergyShield disables the commander's range shield
+# processing: the strike kills the Vulcan without taking shield energy.
+# orbital-javelin-personal-shield.yaml controls the independent direct-hit
+# flag; ordinary shield-intercepted battle strikes control the other branch.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  core_damage: 0
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -30}, exp: 0/162/1400, source: joined}
+  - {name: vulcan, index: 1, position: {x: -90, y: -80}, exp: 0/54/2200, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 0, y: -80}}
+red:
+  core_damage: 350
+  units:
+  - {name: fang, index: 0, position: {x: -5, y: -20}, exp: 0/600/600, source: joined}
+  battle_skills:
+  - {name: orbital_javelin, positions: [{x: 90, y: 80}]}
+asserts:
+- sql: |
+    SELECT tick,shield_id,energy__current
+    FROM shields
+    WHERE shield_id=1 AND tick BETWEEN 61 AND 63
+    ORDER BY tick;
+  rows:
+  - [61, 1, 37543]
+  - [62, 1, 37543]
+  - [63, 1, 37543]
+- sql: |
+    SELECT tick,type,target__kind,target__id,amount
+    FROM events
+    WHERE tick=62 AND type='damage'
+    ORDER BY ordinal;
+  rows:
+  - [62, damage, unit, 1, 30279]
+  - [62, damage, unit, 5, 5]
+ticks: 300
+hash: 24:7bb9006e073966edeca029a4534c68a06afcfd30af802e9777a510878e2bee7c

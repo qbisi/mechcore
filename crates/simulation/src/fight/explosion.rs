@@ -210,6 +210,7 @@ impl Simulation {
                 center_q32: (x_q32, z_q32),
                 center_y_q32,
                 shield: None,
+                intercept_shields: true,
                 crosses_shields: false,
                 strikes_buildings: true,
                 splash_radius,

@@ -201,6 +201,7 @@ impl Simulation {
             center_q32: (x_q32, z_q32),
             center_y_q32: self.position_3d(aimed).map_or(0, |(_, y, _)| y),
             shield,
+            intercept_shields: true,
             crosses_shields: false,
             strikes_buildings: true,
             splash_radius: 0,

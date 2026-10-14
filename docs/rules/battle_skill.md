@@ -275,6 +275,8 @@ Rhino Assault or the Vulcan of Vulcan's Descent, deals its life, as it joins,
 to every unit and construction whose edge its own collision radius covers, of
 either side, ground and air, blue's first, in the order its side's tree holds
 them. A tower it covers takes nothing: the drop is a special attack. The
+hit disables `DamagePerformer.IsInterceptByAdvancedEnergyShield`, so it neither
+filters its actors through battlefield shields nor takes shield energy. The
 hit has no owner: its damage and the deaths it causes are credited to no one,
 under the summon's side, and a kill counts for the dead unit's enemies. The
 summon then loses the life its hit took in all, with no rate on damage taken,
@@ -297,8 +299,14 @@ side's tree, towers included, but a special attack passes over each tower it
 reached, and strikes a construction as any hit does, less the construction
 row's `specialDamageReduceRate`, which every row holds at zero. A tower is so
 never struck.
-The hit meets shields as a splash does, which
-[`contraptions.md`](contraptions.md) states.
+When the skill does not cross shields, the hit meets them as a splash does,
+which [`contraptions.md`](contraptions.md) states. A skill that can cross them
+turns `DamagePerformer.IsInterceptByAdvancedEnergyShield` off in
+`CommanderSkillSubEffectController.PerformNegativeEffect`: its circle takes
+actors without processing battlefield shields and takes no shield energy.
+This switch is distinct from a normal damage provider's
+`CanCrossAdvancedEnergyShield`, whose splash still damages shields it reaches.
+Recorded by `tests/battle_skill/orbital-javelin-battlefield-shield.yaml`.
 
 A strike that does not cross shields (`isCrossAdvancedShield`) is tested as it
 falls: on the first tick of its fall that it stands strictly inside an active

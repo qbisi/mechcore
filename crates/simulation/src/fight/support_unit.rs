@@ -1209,7 +1209,7 @@ impl Simulation {
         let hit = DamageHit {
             // `PerformAirDropDamage` turns `IsInterceptByAdvancedEnergyShield`
             // off.
-            crosses_shields: true,
+            intercept_shields: false,
             provider: Provider::SupportUnit,
             ..DamageHit::unowned(
                 team,
