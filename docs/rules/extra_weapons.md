@@ -917,6 +917,8 @@ that is not melee, so the simulator refuses it.
   ([combat.md](combat.md#ordinary-projectiles)): two units 23 each,
   `tests/extra_weapon/swarm-missiles-mixed.yaml`; a Crawler swarm over
   three volleys, `tests/extra_weapon/swarm-missiles-crawlers.yaml`.
+- Swarm Missiles allocate across wall blocks in the opposing team tree as
+  well as units and towers: `tests/extra_weapon/swarm-missiles-wall.yaml`.
 - Swarm Missiles at a tower with no unit in reach take the tower into their
   list, whose shuffle draws once, and aim each missile at it with its offset:
   `tests/extra_weapon/swarm-missiles-tower.yaml`.

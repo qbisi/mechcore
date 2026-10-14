@@ -186,15 +186,20 @@ impl Simulation {
                 space_to_q32(attacker.attack_range),
                 attacker.targets,
             );
+            // `SiegeModeEffectSystem.<Update>b__7_0` removes
+            // FightConstruction after the shared range search.
+            let has_enemy = enemies.into_iter().any(|candidate| {
+                !matches!(candidate, FightActorRef::Building(_)) || self.is_tower(candidate)
+            });
             let (_, time) = self
                 .siege
                 .owners
                 .get_mut(&unit)
                 .expect("the unit was held above");
-            *time = if enemies.is_empty() {
-                time.saturating_add(NATIVE_LOGIC_DELTA_Q32)
-            } else {
+            *time = if has_enemy {
                 0
+            } else {
+                time.saturating_add(NATIVE_LOGIC_DELTA_Q32)
             };
         }
         Ok(())

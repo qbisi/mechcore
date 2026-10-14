@@ -1,0 +1,47 @@
+# Swarm Missiles allocate across the Rhino, Energy Tower and five wall
+# blocks already in the opposing team tree. Excluding construction blocks
+# changes the first missile offset and every later target allocation.
+# The complete generated layout and its pin come from the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 568408864
+round: 4
+blue:
+  core_damage: 887
+  officers: [advanced_shield_device, advanced_targeting_system, rhino_specialist]
+  techs:
+    typhoon: [maintenance_array]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: typhoon, index: 0, position: {x: -260, y: -120}, level: 2, exp: 0/665/4394, rotated: true, equipment: [deployment_module]}
+  - {name: rhino, index: 1, position: {x: 35, y: -135}, level: 2, source: delivered}
+  - {name: steel_ball, index: 2, position: {x: -215, y: -80}, exp: 0/42/1000, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -125, y: -240}, retained: false}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: -180, y: 145}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_power_system, typhoon_specialist]
+  techs:
+    abyss: [wreckage_recycling, vertical_sweep, range_enhancement, disintegration, dark_companion, swarm_missiles, photon_coating]
+  blueprints: [defense_enhancement]
+  tower_strengthen_levels: [2, 3]
+  units:
+  - {name: abyss, index: 0, position: {x: -265, y: -65}, level: 6, exp: 27835/27835/27835, rotated: true}
+  - {name: typhoon, index: 1, position: {x: 60, y: -210}, exp: 0/750/1950, source: delivered}
+  - {name: sabertooth, index: 2, position: {x: -285, y: -245}, level: 2, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 295, y: -205}}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: 240, y: -175}]}
+ticks: 714
+hash: 25:71aed22fd3d4722e99dfcd34dc131e8a5095d1c059753652c79a4923a964f6a9
+asserts:
+- sql: SELECT tick,target__kind,target__id FROM events WHERE type='projectile_released' AND source__kind='unit' AND source__id=9 AND tick BETWEEN 79 AND 85 ORDER BY tick,ordinal
+  rows: [[79,unit,1],[80,building,2],[81,building,7],[82,building,4],[83,building,5],[84,building,6],[85,building,3]]

@@ -590,16 +590,19 @@ ordered by the angle it sees, and the angle and the side are measured from the
 weapon's height to the target's: an Overlord shooting down at a Crawler, and
 two Overlords shooting at each other at the same height, order them so.
 
-**A burst that allocates evenly shares its projectiles among units.** A skill
+**A burst that allocates evenly shares its projectiles among actors.** A skill
 whose row sets `isEvenlyAllocated` aims its burst with
 `EvenlyAllocatedAttackTargetPositionController`. On its first projectile
-(`Prepare`) it takes the other sides' units and towers within the skill's range
-and its `extraSearchRange` of the unit, each measured less both radii, in the
+(`Prepare`) it takes the other sides' units, towers and construction blocks
+within the skill's range and its `extraSearchRange` of the unit, each measured
+less both radii, in the
 order their teams' trees answer a square twice that wide
-(`RangeTargetCalculator.CalculateRangeTargets`, fully visible, with no
-building: a construction is `BuildingSystem`'s, and a tower a member of its
-team's tree), or the attack target alone when none is, a building as a unit. It
-shuffles them by the side's stream, each place swapped with one drawn from the
+(`RangeTargetCalculator.CalculateRangeTargets`, fully visible, without its
+separate `BuildingSystem` search). A construction already in its team's tree
+remains a candidate; the range query does not apply the ordinary target
+selector's construction exclusion. It takes the attack target alone when
+none is, a building as a unit. It shuffles them by the side's stream, each
+place swapped with one drawn from the
 whole list (`IListExtensions.ShuffleSync`); each unit takes the burst's count
 over theirs, and the rest go one each to units drawn one by one from those not
 drawn yet (`GetRandomTargetsByRemain`, `RandomElementSync`). It draws the
