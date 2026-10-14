@@ -20,6 +20,18 @@ the tower's own life and buff, which no strengthen row names.
 `rvoRadius` per scene (`limitedScene`), and `addBufToOwner`, which the next
 section reads.
 
+## Registration order
+
+`FightBuildingLoader.Load` creates each side's buildings in its
+`BuildingManager.buildings` order; `FightTeam.AddTower` registers each with
+`AddActor`, and `FightTeam.CreateQuadtree` inserts `activeActors` in that order.
+The fixed tower order is therefore the map's, as
+[`config/towers.yaml`](../../config/towers.yaml) records it, rather than their
+building-kind or recording-ID order. Candidate order matters when scores tie:
+`ScoreRatingTargetSelector.Selector.CheckResultTarget` retains the first equal
+score. On the fixed map, the red Research Center precedes the red Energy
+Tower in the unsplit actor tree.
+
 ## What a loss writes
 
 The hit that fells a tower runs its `OnDead`, and
@@ -155,6 +167,9 @@ no lock goes straight to its point.
 ## Evidence
 
 ### Recorded
+
+- An air-dropped Vulcan equidistant from both red towers takes Research Center
+  first: `tests/search/map-building-order.yaml`.
 
 - Losing a tower at each strengthen level writes its level's buff on every live
   unit of the side, with the level's added life:
