@@ -531,14 +531,14 @@ impl Simulation {
         self.release_pending_projectile(skill_ref, placeholder(0), events)
     }
 
-    /// `RangeTargetCalculator.CalculateRangeTargets` with no building, fully
-    /// visible: the other sides' units and towers, the members of their
-    /// teams' trees (`FightTeam`'s `FightQuadtree<FightActor>`), side by side
+    /// `RangeTargetCalculator.CalculateRangeTargets` without the separate
+    /// `BuildingSystem` search, fully visible: all members of the other sides'
+    /// team trees (`FightTeam`'s `FightQuadtree<FightActor>`), side by side
     /// in the order the trees answer a square twice the range wide, each
     /// whose distance from the point less its radius and the source's is
-    /// within the range (`FightCalculator.IsInRange2D`). A construction is
-    /// `BuildingSystem`'s, which no building leaves out: an Abyss's burst at a
-    /// tower draws its list's shuffle with the tower in it.
+    /// within the range (`FightCalculator.IsInRange2D`). Constructions
+    /// already in the team tree stay in this result, alongside towers and
+    /// units; a caller's own type test can remove them afterwards.
     pub(in crate::fight) fn range_targets(
         &self,
         team: u32,
@@ -552,9 +552,6 @@ impl Simulation {
             .filter(|(side, _)| **side != team)
             .flat_map(|(_, tree)| tree.query_square(x_q32, z_q32, range_q32.saturating_mul(2)))
             .filter(|&candidate| {
-                if matches!(candidate, FightActorRef::Building(_)) && !self.is_tower(candidate) {
-                    return false;
-                }
                 let Some(view) = self.fight_actor(candidate) else {
                     return false;
                 };
