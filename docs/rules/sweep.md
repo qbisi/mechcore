@@ -17,7 +17,9 @@ Its first update lays out the strip (`SweepAttackPerformer.FirstPrepare`,
   inside a shield of its side, and the sweep does not cross shields, the
   shield's centre if that is nearer the unit
   (`FightSweepSkill.CheckIsLockTargetInEnergyShield`). Its line is the one from the
-  target back to the unit, turned a quarter turn where the skill's
+  original target back to the unit, calculated before a nearer shield moves
+  the centre; moving the centre does not turn this line. It is turned a
+  quarter turn where the skill's
   `isPerpendicular` is set, as the Abyss's is.
 - **It runs one way, then the other.** An attack whose
   `SkillAttackController.totalAttackCount` is even runs the opposite way to
@@ -147,6 +149,10 @@ unit does. Its configuration writes no arc for it.
   every second update until it breaks and the Marksman with the next strike:
   `tests/sweep/shield-4242.yaml`, ticks 164 to 190;
   `tests/sweep/shield-1787720817.yaml`.
+- A sweep locking a tower behind a nearer shield keeps the original
+  tower-to-unit direction while centring its strip on the shield. After
+  the shield breaks, it leaves the tower outside the remaining stretches:
+  `tests/sweep/covered-tower-direction.yaml`, ticks 638 to 662.
 - A sweep at a Fortress carrying a Barrier strikes the Barrier sixteen times,
   breaking it, and the Fortress from the next sweep:
   `tests/sweep/barrier-4242.yaml`, ticks 114 to 211;
@@ -202,11 +208,8 @@ unit does. Its configuration writes no arc for it.
 
 ### Not established
 
-- **The strip centred on a shield.** No recording separates a strip laid on
-  a shield's centre from one laid on the lock behind it: in
-  each recorded, the lock is the nearer, or the strikes land on the shield
-  either way. Nor is a shield struck twice capped by its radius, as a unit
-  is, recorded.
+- **Repeated shield hits capped by radius.** Whether a shield struck twice
+  is capped by its radius, as a unit is, is not recorded.
 - **A delay, a reversed strip, a changed size.** No sweep with a
   `damage_delay`, and no technology that reverses the strip or changes its
   width or length, is in the build's tables, so none is recorded.

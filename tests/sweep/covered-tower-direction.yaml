@@ -1,0 +1,46 @@
+# A sweep locks the Energy Tower behind a nearer battlefield shield.
+# Its strip shifts to the shield centre but keeps the tower-to-owner direction.
+# After the shield breaks at t640, this sweep does not strike the tower at t662.
+# Re-aiming the strip from the shield adds a 30872-damage tower hit there.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1238005304
+round: 4
+blue:
+  core_damage: 596
+  officers: [advanced_shield_device, advanced_power_system, typhoon_specialist]
+  blueprints: [attack_enhancement_ii]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: centurion, index: 0, position: {x: -185, y: -215}, exp: 1125/1275/2250, rotated: true, equipment: [amplifying_core]}
+  - {name: typhoon, index: 1, position: {x: -230, y: -250}, exp: 0/50/1950, source: delivered}
+  - {name: abyss, index: 2, position: {x: 255, y: -265}, level: 3, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -130, y: -135}, retained: false}
+  battle_skills:
+  - {name: smoke_bomb, positions: [{x: -50, y: 120}, {x: 145, y: -205}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_defensive_tactics, speed_specialist]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [2, 2]
+  units:
+  - {name: abyss, index: 0, position: {x: -255, y: -95}, level: 8, exp: 32291/32291/32291, rotated: true}
+  - {name: crawler, index: 1, position: {x: -235, y: -160}, level: 8, exp: 0/450/3027, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -180, y: -50}}
+  battle_skills:
+  - {name: orbital_javelin, positions: [{x: -230, y: -20}]}
+asserts:
+- sql: |
+    SELECT tick, target__kind, target__id, amount FROM events
+    WHERE type = 'damage' AND source__kind = 'unit' AND source__id = 5
+      AND tick BETWEEN 638 AND 662 ORDER BY tick;
+  rows:
+  - [638, shield, 1, 30872]
+  - [640, shield, 1, 25127]
+ticks: 960
+hash: 24:d1779f44244b750792a74abee265df009a0769e27d773ffd47b030f3cc823356

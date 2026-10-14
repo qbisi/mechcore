@@ -213,6 +213,9 @@ impl Simulation {
             x: actor.x_q32,
             y: actor.z_q32,
         };
+        // `CreateAttackArea` keeps the direction from the original target;
+        // a nearer shield shifts the centre without turning that direction.
+        let mut direction = owner.sub(center);
         // `FightSweepSkill.CheckIsLockTargetInEnergyShield`: a lock inside a
         // shield of its side, for a sweep that does not cross shields, has
         // the strip centred on the shield where that is nearer the unit.
@@ -225,7 +228,6 @@ impl Simulation {
                 center = shield_center;
             }
         }
-        let mut direction = owner.sub(center);
         if shape.perpendicular {
             direction = FixedVec2 {
                 x: direction.y,
