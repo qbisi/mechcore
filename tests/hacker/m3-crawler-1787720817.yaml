@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 64
   units:
-  - {name: hacker, index: 0, position: {x: -5, y: -105}, exp: 0/56/560}
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, exp: 0/56/560, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/450/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/450/450, source: joined}
 ticks: 333
-hash: 24:134f5c12bd843ca943aa295c078d98bc4ba1a8f1b3b408e14bcfcb1f3b0fa647
+hash: 25:b04426885b66876df241ffd22c0f17fdde9197f2845aa3db315eb8ede9c6e7f7

@@ -34,21 +34,52 @@ red:
   - {name: shield, index: 0, position: {x: 100, y: -230}}
   battle_skills:
   - {name: ion_blast, positions: [{x: -230, y: -275}, {x: 230, y: 140}]}
-asserts:
-- sql: |
-    SELECT tick,unit_id,visibility,targetable
-    FROM units
-    WHERE unit_id IN (7,8,9) AND tick BETWEEN 162 AND 164
-    ORDER BY tick,unit_id;
-  rows:
-  - [162, 7, normal, 1]
-  - [162, 8, normal, 1]
-  - [162, 9, normal, 1]
-  - [163, 7, disappear, 0]
-  - [163, 8, disappear, 0]
-  - [163, 9, disappear, 0]
-  - [164, 7, disappear, 0]
-  - [164, 8, disappear, 0]
-  - [164, 9, disappear, 0]
 ticks: 1140
-hash: 24:2ac95df92241d13c31596825f9a647df85c9fffe94ac99e7bef0829c5c488207
+hash: 25:71d675cdfea5294639c2da8106fbac7b47265450dcf400c317982bc4bc779314
+asserts:
+- sql: 'SELECT tick,unit_id,visibility,targetable
+
+    FROM units
+
+    WHERE unit_id IN (7,8,9) AND tick BETWEEN 162 AND 164
+
+    ORDER BY tick,unit_id;
+
+    '
+  rows:
+  - - 162
+    - 7
+    - normal
+    - 1
+  - - 162
+    - 8
+    - normal
+    - 1
+  - - 162
+    - 9
+    - normal
+    - 1
+  - - 163
+    - 7
+    - disappear
+    - 0
+  - - 163
+    - 8
+    - disappear
+    - 0
+  - - 163
+    - 9
+    - disappear
+    - 0
+  - - 164
+    - 7
+    - disappear
+    - 0
+  - - 164
+    - 8
+    - disappear
+    - 0
+  - - 164
+    - 9
+    - disappear
+    - 0

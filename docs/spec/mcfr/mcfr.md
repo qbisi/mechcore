@@ -1,4 +1,4 @@
-# MCFR, format 0.24.0
+# MCFR, format 0.25.0
 
 ## Scope
 
@@ -7,7 +7,7 @@ schema of each, the identity and ordering rules that make two recordings of one
 fight the same recording, and what a reader must validate before trusting one.
 
 ```text
-format = "0.24.0"
+format = "0.25.0"
 ```
 
 The native field mapping is bound to the game version the repository pins in
@@ -122,12 +122,12 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.24.0` | the logical and physical contract version |
+| `format` | exactly `0.25.0` | the logical and physical contract version |
 | `producer` | `game` or `simulator` | what wrote the recording: the game, through the adapter, or the simulator |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
 | `settlement` | canonical JSON | complete native results after exiting the fight, independent of combat ticks |
-| `hash_profile` | exactly `24` | the hash definition's number, [below](#the-hash) |
+| `hash_profile` | exactly `25` | the hash definition's number, [below](#the-hash) |
 | `result_hash` | 64 lowercase hex digits | ordered digest of every `tick_hash` and settlement; what regression compares |
 | `tick_count` | canonical decimal `u32` | logical ticks recorded, counting from `S(1)` |
 | `terminal_tick` | canonical decimal `u32` | the confirmed final logical boundary, equal to `tick_count` on a continuous timeline |
@@ -184,9 +184,30 @@ death survives as a `unit_died` event.
 | `move_speed` | `INT64 required` | the speed the fight moves the unit at, after every correction, Q32.32 raw | `FightMech.GetMoveSpeed()` |
 | `skills` | required list | every skill the unit holds, its state and its weapons | below |
 | `rebirth_count` | `UINT32 nullable` | the times the unit has been reborn in this fight; null for none, which is how a unit never reborn is written, and never 0 | `FightMech.rebirthCount`, which `RebirthTask.RebirthMech` raises through `AddRebirthCount` |
+| `production_lines` | list of structs, required | unit-owned production clocks, [below](#unit-owned-production-clocks) | `TeamSupportUnitManager.creators` |
 | `control` | nullable struct | while a control beam is turning the unit: `progress`, `INT32`, the power its beams' hits have added, and `sources`, `list<ObjectRef>`, the owners of the skills whose beams hold it, in the order the build keeps them; null while none is | the unit's entry in `TeamTranslationSystem.translatingDatas`: `TranslationData.progress` and `sources` |
 
-### `buffs`
+#### Unit-owned production clocks
+
+`production_lines` is a required Parquet list of structs on each live unit,
+empty when no permanent creator is owned by it. Empty lists are omitted from
+canonical JSON. It covers `TeamSupportUnitManager.creators`, not the temporary
+creators of battle skills. The owner comes from `SupportUnitData.GetParent()`;
+a permanent creator whose owner is not a `FightMech` is refused by name.
+
+| Field | Parquet type | Native source |
+| --- | --- | --- |
+| `source_id` | `INT32 required` | `SupportUnitData.GetID()` |
+| `interval_time_counter` | `INT32 required`, nonnegative | `SupportUnitCreator.intervalTimeCounter` |
+
+Lines are strictly ascending by `source_id`, with no duplicate source on one
+owner. The counter is read after all modules and death callbacks of the tick.
+It carries the elapsed production interval across ticks, including pauses at
+the alive cap; current life and the current snapshot do not determine it.
+The source identifies the unit's permanent line and remains fixed when its
+owner changes side. Rows are bounded by the number of unit-owned creators.
+
+## `buffs`
 
 ```text
 buffs = list<{
@@ -966,7 +987,7 @@ Identity is what makes two recordings of one fight the same recording, so
 every namespace numbers its objects by a rule that depends on the scene rather
 than on the pointer that happened to be observed first.
 
-Format `0.24.0` uses `team_zx_sequential_v1`.
+Format `0.25.0` uses `team_zx_sequential_v1`.
 
 **Units.** Initial units sort strictly ascending by `(team_id, position.z,
 position.x)` and take `unit_id = 1..N` in that order. Initial units on one team
@@ -1058,8 +1079,8 @@ encodes as it would without it; every other field is written, null included. The
 It excludes the layout, DurableContext, provenance and digest metadata.
 
 ```text
-tick_hash(t) = H_content-tick-0.24.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
-result_hash  = H_content-result-0.24.0(
+tick_hash(t) = H_content-tick-0.25.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
+result_hash  = H_content-result-0.25.0(
     LE_u32(tick_count),
     tick_hash(1)..tick_hash(n),
     JSON(settlement)
@@ -1068,7 +1089,7 @@ result_hash  = H_content-result-0.24.0(
 
 The definition is numbered on its own, apart from the format: `hash_profile`
 is that number, and the domain strings spell profile `n` as `0.n.0`, the form
-they were written in while the profile was the format's, so profile 24's are
+they were written in while the profile was the format's, so profile 25's are
 the strings above. The profile moves when what the hash reads or how changes,
 and with it every hash and every pin, which is recorded again; a change to the
 format that leaves `S(t)`, `E(t)` and settlement encoding the same leaves it, and the pins.

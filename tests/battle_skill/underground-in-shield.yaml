@@ -13,15 +13,15 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: -100, y: -150}, exp: 0/8/650}
+  - {name: marksman, index: 0, position: {x: -100, y: -150}, exp: 0/8/650, source: joined}
   battle_skills:
   - {name: underground_threat, positions: [{x: 0, y: 60}]}
 red:
   core_damage: 119
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/28/650}
-  - {name: crawler, index: 1, position: {x: 5, y: -70}, exp: 0/108/450}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/28/650, source: joined}
+  - {name: crawler, index: 1, position: {x: 5, y: -70}, exp: 0/108/450, source: joined}
   contraptions:
   - {name: shield, index: 2, position: {x: 0, y: -80}}
 ticks: 276
-hash: 24:0c0267fca1466849365393fe8307b79d422a82e25db3180a895fdf6cd50db4ba
+hash: 25:00b60d1929b983bc07bfb5cc43293d2daccb32e35f25185ce68876d419a8ee73

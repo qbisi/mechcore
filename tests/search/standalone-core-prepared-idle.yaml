@@ -36,18 +36,40 @@ red:
   - {name: shield, index: 0, position: {x: -40, y: -155}, retained: false}
   battle_skills:
   - {name: underground_threat, positions: [{x: 80, y: -5}]}
-asserts:
-- sql: |
-    SELECT tick,skill_slot,enabled__state,enabled__lock_target__id
-    FROM units__skills
-    WHERE unit_id=2 AND skill_slot IN (0,1) AND tick BETWEEN 67 AND 69
-    ORDER BY tick,skill_slot;
-  rows:
-  - [67, 0, idle, 20]
-  - [67, 1, idle, 39]
-  - [68, 0, idle, 39]
-  - [68, 1, attack, 39]
-  - [69, 0, attack, 39]
-  - [69, 1, attack, 39]
 ticks: 679
-hash: 24:31f1047ff49acc19a1fb87268a0caab5589ae92abcb64cc5c96eb3779dcd42dd
+hash: 25:23ee71358cc42c832a6ba3f9d1c373abd51200b7b44a199a773e56758beda27a
+asserts:
+- sql: 'SELECT tick,skill_slot,enabled__state,enabled__lock_target__id
+
+    FROM units__skills
+
+    WHERE unit_id=2 AND skill_slot IN (0,1) AND tick BETWEEN 67 AND 69
+
+    ORDER BY tick,skill_slot;
+
+    '
+  rows:
+  - - 67
+    - 0
+    - idle
+    - 20
+  - - 67
+    - 1
+    - idle
+    - 39
+  - - 68
+    - 0
+    - idle
+    - 39
+  - - 68
+    - 1
+    - attack
+    - 39
+  - - 69
+    - 0
+    - attack
+    - 39
+  - - 69
+    - 1
+    - attack
+    - 39

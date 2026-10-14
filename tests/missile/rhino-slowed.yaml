@@ -13,12 +13,12 @@ round: 1
 blue:
   core_damage: 200
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/200/1150, source: joined}
 ticks: 391
-hash: 24:192f6a3c6e7acdcfaa22c8981d9930342454c321b2d811bf34f537233a3de25b
+hash: 25:d732744299fa4a54a926b9863fea9c2d0a6968010ebe578c52604bef3470da67

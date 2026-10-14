@@ -12,15 +12,15 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -210}}
-  - {name: arclight, index: 1, position: {x: 0, y: -180}}
-  - {name: fang, index: 2, position: {x: 5, y: -150}}
-  - {name: steel_ball, index: 3, position: {x: 5, y: -120}, exp: 0/66/1000}
-  - {name: crawler, index: 4, position: {x: 5, y: -90}, exp: 0/66/450}
-  - {name: rhino, index: 5, position: {x: 5, y: -55}, exp: 0/266/1150}
+  - {name: marksman, index: 0, position: {x: 0, y: -210}, source: joined}
+  - {name: arclight, index: 1, position: {x: 0, y: -180}, source: joined}
+  - {name: fang, index: 2, position: {x: 5, y: -150}, source: joined}
+  - {name: steel_ball, index: 3, position: {x: 5, y: -120}, exp: 0/66/1000, source: joined}
+  - {name: crawler, index: 4, position: {x: 5, y: -90}, exp: 0/66/450, source: joined}
+  - {name: rhino, index: 5, position: {x: 5, y: -55}, exp: 0/266/1150, source: joined}
 red:
   core_damage: 768
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/72/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/72/1150, source: joined}
 ticks: 144
-hash: 24:f2f466c700359f4a80ed83505efaed5be7af815a541ea766526130a010dc217b
+hash: 25:e4988e867d578f968c71870b1cb1d3b0e6c062bcc9675f0f57963f3301af4f23

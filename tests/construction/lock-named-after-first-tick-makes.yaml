@@ -23,15 +23,12 @@ red:
     fortress: [fang_production]
   units:
   - {name: fortress, index: 0, position: {x: 80, y: -60}, exp: 0/520/1600, source: joined}
-asserts:
-- sql: |
-    SELECT b.skill__lock_target__id, u.unit_type_id
-    FROM buildings b
-    JOIN units u ON u.unit_id = b.skill__lock_target__id AND u.tick = b.tick
-    WHERE
-      b.has_skill
-      AND b.tick = 1;
-  rows:
-  - [6, 1]
 ticks: 475
-hash: 24:4563d2cfcaf586f19c6d0694e67d1725c0645eff32690d5844a89c3853a634ca
+hash: 25:b9bf23fa5ba367336de9bae2fcdbf96a241bad46dac76f98b6824fbe2fe90bd3
+asserts:
+- sql: "SELECT b.skill__lock_target__id, u.unit_type_id\nFROM buildings b\nJOIN units\
+    \ u ON u.unit_id = b.skill__lock_target__id AND u.tick = b.tick\nWHERE\n  b.has_skill\n\
+    \  AND b.tick = 1;\n"
+  rows:
+  - - 6
+    - 1

@@ -16,14 +16,14 @@ blue:
   techs:
     stormcaller: [heavy_missile]
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/400/1100}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/400/1100, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 5, y: -85}}
 red:
   core_damage: 200
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -40}}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 5, y: -85}}
 ticks: 238
-hash: 24:765d01face090513157078ac38244e8ca13a3741eba389f2fd4f04e2eb49332d
+hash: 25:8bb1f9395550e891a9f53df64e94d1fcb99e6a44e482ddb24fce57d592b54cb4

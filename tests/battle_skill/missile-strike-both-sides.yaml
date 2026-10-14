@@ -13,12 +13,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -40}, exp: 0/192/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -40}, exp: 0/192/450, source: joined}
   battle_skills:
   - {name: missile_strike, positions: [{x: 0, y: 0}]}
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -40}, exp: 0/192/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -40}, exp: 0/192/450, source: joined}
 ticks: 64
-hash: 24:83206c5edbb4e0dd1d297b69c54bcff0f811b1305f31ba0e23559c571240324d
+hash: 25:b19cef0c8b7929ba28c0d16f1738365027c4c6374e40c9cb1f04ca5369b59b11

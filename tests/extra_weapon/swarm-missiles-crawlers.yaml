@@ -17,11 +17,11 @@ blue:
   techs:
     abyss: [swarm_missiles]
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -205}, exp: 0/384/4800}
+  - {name: abyss, index: 0, position: {x: 5, y: -205}, exp: 0/384/4800, source: joined}
 red:
   core_damage: 500
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450}
-  - {name: crawler, index: 1, position: {x: -45, y: -100}, exp: 0/200/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450, source: joined}
+  - {name: crawler, index: 1, position: {x: -45, y: -100}, exp: 0/200/450, source: joined}
 ticks: 829
-hash: 24:dc2ca5a46ffb871cfc2fa8e4a365e528e17814bedfe2e6a3dbcab1d10f5265b0
+hash: 25:b500cbe97fdb271bd6cae763a040c96afff6090b4b1182561f6546a5dc674462

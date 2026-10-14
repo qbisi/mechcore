@@ -17,13 +17,13 @@ blue:
   techs:
     fire_badger: [scorching_charge]
   units:
-  - {name: fire_badger, index: 0, position: {x: 5, y: -40}, exp: 0/300/1400}
+  - {name: fire_badger, index: 0, position: {x: 5, y: -40}, exp: 0/300/1400, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: -40, y: -100}, exp: 0/22/650}
-  - {name: marksman, index: 1, position: {x: 0, y: -100}, exp: 0/22/650}
-  - {name: marksman, index: 2, position: {x: 40, y: -100}, exp: 0/22/650}
-  - {name: marksman, index: 3, position: {x: 160, y: -180}}
+  - {name: marksman, index: 0, position: {x: -40, y: -100}, exp: 0/22/650, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -100}, exp: 0/22/650, source: joined}
+  - {name: marksman, index: 2, position: {x: 40, y: -100}, exp: 0/22/650, source: joined}
+  - {name: marksman, index: 3, position: {x: 160, y: -180}, source: joined}
 ticks: 156
-hash: 24:5e17b1e03cd92003dfeea831f1c6770669aa5342a1d2f26340783600eb8fee36
+hash: 25:62560549674494582ae8d64f035d7f285d35ce81a685bf32c07bc456e3805644

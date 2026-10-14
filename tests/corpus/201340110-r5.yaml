@@ -69,4 +69,4 @@ red:
   battle_skills:
   - {name: sticky_oil_bomb, positions: [{x: 128, y: 57}, {x: 165, y: 155}], retained: false}
 ticks: 1334
-hash: 24:ea23b8806d41cf28661b4959286aefe342941f58d3dcb483a7c8e01fe874cfdc
+hash: 25:07f09e66a51f98def08414fade92391de681a48b66e3cfd639be96cab662f284

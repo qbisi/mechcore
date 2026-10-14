@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 64
   units:
-  - {name: void_eye, index: 0, position: {x: 0, y: -100}, exp: 0/64/650}
+  - {name: void_eye, index: 0, position: {x: 0, y: -100}, exp: 0/64/650, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/198/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/198/450, source: joined}
 ticks: 267
-hash: 24:e855a6ae02ce7365fed2ba8b319b5ed48ba9e875e8aa36add5265bb1f5dbe518
+hash: 25:e3d98a57fb46878dfbeccaa266c2f4ef0c7699fa8246d85e4742c8fd02267f93

@@ -15,11 +15,11 @@ blue:
     steel_ball: [mechanical_division]
     crawler: [subterranean_blitz]
   units:
-  - {name: steel_ball, index: 0, position: {x: 5, y: -140}, exp: 0/600/1000}
+  - {name: steel_ball, index: 0, position: {x: 5, y: -140}, exp: 0/600/1000, source: joined}
 red:
   core_damage: 104
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/140/1150}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/108/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/140/1150, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/108/650, source: joined}
 ticks: 364
-hash: 24:a8bf77d524ac91d45cf4c5c7ff9c35189a195079ac53efa0588b00c2a60b81ff
+hash: 25:683cf64547d4fb5e3bf228a9cd92e063c6ed37fae7e502bd224ca11964efb6f3

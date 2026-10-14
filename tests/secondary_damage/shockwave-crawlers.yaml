@@ -16,10 +16,10 @@ blue:
   techs:
     arclight: [shockwave]
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/192/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/192/750, source: joined}
 red:
   core_damage: 100
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
 ticks: 157
-hash: 24:5d942fb82a3835fe70edbc1d5092fecc61864ba6da9823354c420d30123416d4
+hash: 25:62c6ebbfe53bd1c345b306269c2859969be837ee9cca4193120ee921746b8123

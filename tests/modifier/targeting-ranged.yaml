@@ -18,15 +18,15 @@ blue:
   core_damage: 0
   officers: [advanced_targeting_system]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -210}}
-  - {name: arclight, index: 1, position: {x: 0, y: -180}}
-  - {name: fang, index: 2, position: {x: 5, y: -150}}
-  - {name: steel_ball, index: 3, position: {x: 5, y: -120}, exp: 0/266/1000}
-  - {name: crawler, index: 4, position: {x: 5, y: -90}, exp: 0/66/450}
-  - {name: rhino, index: 5, position: {x: 5, y: -55}, exp: 0/66/1150}
+  - {name: marksman, index: 0, position: {x: 0, y: -210}, source: joined}
+  - {name: arclight, index: 1, position: {x: 0, y: -180}, source: joined}
+  - {name: fang, index: 2, position: {x: 5, y: -150}, source: joined}
+  - {name: steel_ball, index: 3, position: {x: 5, y: -120}, exp: 0/266/1000, source: joined}
+  - {name: crawler, index: 4, position: {x: 5, y: -90}, exp: 0/66/450, source: joined}
+  - {name: rhino, index: 5, position: {x: 5, y: -55}, exp: 0/66/1150, source: joined}
 red:
   core_damage: 776
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/56/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/56/1150, source: joined}
 ticks: 138
-hash: 24:0c51c1b24a4bffc9d20cb0a6e6140885d634d0a86278ed5069d1d87c05607438
+hash: 25:955287f9ce8c8a7b8b0f211b5b4dbe67b6c2734ad1e758f1911310085c48d2cb

@@ -13,11 +13,11 @@ blue:
   techs:
     fang: [grenade_launcher]
   units:
-  - {name: fang, index: 0, position: {x: 5, y: -100}}
+  - {name: fang, index: 0, position: {x: 5, y: -100}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: arclight, index: 0, position: {x: -30, y: -80}, exp: 0/132/750}
-  - {name: arclight, index: 1, position: {x: 30, y: -80}, exp: 0/84/750}
+  - {name: arclight, index: 0, position: {x: -30, y: -80}, exp: 0/132/750, source: joined}
+  - {name: arclight, index: 1, position: {x: 30, y: -80}, exp: 0/84/750, source: joined}
 ticks: 192
-hash: 24:79603f0a9f73509abcbbca7efd743e58ab7045f92f73e18b315f0cc643a75256
+hash: 25:4705ed8332cb0c30320789ca49645e7698b0121f70c606f1c3c894737f328ead

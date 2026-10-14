@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/400/1600}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/400/1600, source: joined}
 red:
   core_damage: 350
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
 ticks: 155
-hash: 24:abfce4c5aaaa5e145c55aaf3287ddf9d40a17c4ab4ab5debab86a0b7263c660c
+hash: 25:ed7cadcec5434b63005238774b93548820f0bf1ff08fa5e74ee430366a267a43

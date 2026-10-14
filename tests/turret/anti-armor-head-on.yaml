@@ -17,12 +17,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 290, y: -150}, exp: 0/392/650}
+  - {name: marksman, index: 0, position: {x: 290, y: -150}, exp: 0/392/650, source: joined}
   constructions:
   - {name: anti_armor_turret, index: 2, position: {x: -140, y: -100}}
 red:
   core_damage: 100
   units:
-  - {name: crawler, index: 0, position: {x: 145, y: -100}, exp: 0/450/450}
+  - {name: crawler, index: 0, position: {x: 145, y: -100}, exp: 0/450/450, source: joined}
 ticks: 1397
-hash: 24:7b8dce497a5a5c0e9ac4024e3b8e96669141ba24f603d395a99fcf2905890ccf
+hash: 25:b14754c9c4f114b8636c18db2715be6243f01c8ba9fdb82f54b7e3fb5165ca0c

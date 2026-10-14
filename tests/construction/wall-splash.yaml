@@ -15,12 +15,12 @@ round: 1
 blue:
   core_damage: 100
   units:
-  - {name: crawler, index: 0, position: {x: -145, y: -100}}
+  - {name: crawler, index: 0, position: {x: -145, y: -100}, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   core_damage: 0
   units:
-  - {name: arclight, index: 0, position: {x: 140, y: -20}, exp: 0/204/750}
+  - {name: arclight, index: 0, position: {x: 140, y: -20}, exp: 0/204/750, source: joined}
 ticks: 158
-hash: 24:6c882902d3912e3b52b25783fd210178f3fb0dc8902f730fc48ab09594a53c40
+hash: 25:231e0b940079b75d51e801967b84bd1fbaf4f7c60da3a285d94057024db318c4

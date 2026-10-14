@@ -15,12 +15,12 @@ blue:
   techs:
     rhino: [mechanical_rage]
   units:
-  - {name: marksman, index: 0, position: {x: -100, y: -150}}
+  - {name: marksman, index: 0, position: {x: -100, y: -150}, source: joined}
   battle_skills:
   - {name: rhino_assault, positions: [{x: 0, y: -60}]}
 red:
   core_damage: 150
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, source: joined}
 ticks: 214
-hash: 24:b9db1703f97ef94f09030479e567bfe86c368604e47a957b8c4a4ae66a63f49a
+hash: 25:c1f5b829caa04661bd6cd4e885825b4964dbc5895edb37a63be867acedbf0231

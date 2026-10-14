@@ -11,10 +11,10 @@ blue:
   core_damage: 0
   officers: [improved_overlord]
   units:
-  - {name: overlord, index: 0, position: {x: -5, y: -105}, exp: 0/192/1750}
+  - {name: overlord, index: 0, position: {x: -5, y: -105}, exp: 0/192/1750, source: joined}
 red:
   core_damage: 400
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/400/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/400/450, source: joined}
 ticks: 821
-hash: 24:1e798d0b29f91b135de7b04640d35e93908fa4bf90051d6acb58f456b3f8bd99
+hash: 25:9847f051436a536d93b4cdb9b1ed47333a65dd185642d8b67f56f8f2bd4d0924

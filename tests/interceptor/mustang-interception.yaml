@@ -17,11 +17,11 @@ blue:
   techs:
     mustang: [missile_interceptor]
   units:
-  - {name: mustang, index: 0, position: {x: 5, y: -100}}
+  - {name: mustang, index: 0, position: {x: 5, y: -100}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/170/1100}
-  - {name: stormcaller, index: 1, position: {x: -55, y: -40}, exp: 0/238/1100}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/170/1100, source: joined}
+  - {name: stormcaller, index: 1, position: {x: -55, y: -40}, exp: 0/238/1100, source: joined}
 ticks: 341
-hash: 24:bccd36408856ecad5a42e362354c46c8d158cf6c1f6928a2e201d7e259728b10
+hash: 25:87ace223d36c3fb4cdb6a7f52c9aa0dde09a6214370892951efc9076b5d39bd1

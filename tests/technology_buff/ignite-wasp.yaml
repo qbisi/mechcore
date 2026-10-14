@@ -17,12 +17,12 @@ blue:
   techs:
     wasp: [ignite]
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/400/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/400/900, source: joined}
 red:
   core_damage: 204
   techs:
     rhino: [field_maintenance]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150, source: joined}
 ticks: 917
-hash: 24:6cc7794a16269a91332cb43446a4999b646f835f4ff49acd47048014662ad33f
+hash: 25:dc1a56286dacd04768de29a659fc35d109c92d7da740666ec3d985f2c818cc21

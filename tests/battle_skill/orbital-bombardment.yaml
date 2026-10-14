@@ -15,18 +15,18 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: fortress, index: 0, position: {x: -60, y: -160}, exp: 0/784/1600}
-  - {name: fortress, index: 1, position: {x: 60, y: -160}, exp: 0/992/1600}
+  - {name: fortress, index: 0, position: {x: -60, y: -160}, exp: 0/784/1600, source: joined}
+  - {name: fortress, index: 1, position: {x: 60, y: -160}, exp: 0/992/1600, source: joined}
   battle_skills:
   - {name: orbital_bombardment, positions: [{x: 0, y: 30}]}
 red:
   core_damage: 700
   units:
-  - {name: sledgehammer, index: 0, position: {x: -45, y: -60}}
-  - {name: sledgehammer, index: 1, position: {x: 5, y: -60}}
-  - {name: sledgehammer, index: 2, position: {x: 55, y: -60}}
-  - {name: crawler, index: 3, position: {x: 5, y: -110}}
-  - {name: crawler, index: 4, position: {x: -55, y: -110}}
-  - {name: crawler, index: 5, position: {x: 65, y: -110}}
+  - {name: sledgehammer, index: 0, position: {x: -45, y: -60}, source: joined}
+  - {name: sledgehammer, index: 1, position: {x: 5, y: -60}, source: joined}
+  - {name: sledgehammer, index: 2, position: {x: 55, y: -60}, source: joined}
+  - {name: crawler, index: 3, position: {x: 5, y: -110}, source: joined}
+  - {name: crawler, index: 4, position: {x: -55, y: -110}, source: joined}
+  - {name: crawler, index: 5, position: {x: 65, y: -110}, source: joined}
 ticks: 571
-hash: 24:b9474b83068f6e2d548b0f40a9dab94309d1caf1a7c0afd3b011aca1d9c077aa
+hash: 25:ab4208c957e9cf8f2ae20258dfc8f143432c578210864e5446248fad97ebbf5c

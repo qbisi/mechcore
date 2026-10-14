@@ -18,10 +18,10 @@ blue:
     typhoon: [reactive_armor]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: typhoon, index: 1, position: {x: -310, y: 40}, level: 4, exp: 0/408/8756, travelling: true}
+  - {name: typhoon, index: 1, position: {x: -310, y: 40}, level: 4, exp: 0/408/8756, travelling: true, source: joined}
 red:
   core_damage: 350
   units:
   - {name: wasp, index: 0, position: {x: 275, y: -60}}
 ticks: 220
-hash: 24:524821ef0b066f31ea4798399dade8efa5c954760687f71ec5e7e23c602f0f73
+hash: 25:13d5b06ddb639fe403465e24299b54f4d654ada85a40800ead9355dcb609dbf1

@@ -12,11 +12,11 @@ blue:
   techs:
     phoenix: [jump_drive]
   units:
-  - {name: phoenix, index: 0, position: {x: 0, y: -100}}
+  - {name: phoenix, index: 0, position: {x: 0, y: -100}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/50/1150}
-  - {name: marksman, index: 1, position: {x: 60, y: -150}, exp: 0/350/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/50/1150, source: joined}
+  - {name: marksman, index: 1, position: {x: 60, y: -150}, exp: 0/350/650, source: joined}
 ticks: 232
-hash: 24:a1c9adf6bd67dc2f0147827c2b14d93e28d147ec2f86141140b112cf7b4c46b9
+hash: 25:d0fd73ca71296c3b462742a04fe2759318acb98196c407ef7f69b05e9b444455

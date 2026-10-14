@@ -8,12 +8,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -155}, exp: 0/200/4800}
+  - {name: abyss, index: 0, position: {x: 5, y: -155}, exp: 0/200/4800, source: joined}
 red:
   core_damage: 500
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -80}}
+  - {name: marksman, index: 0, position: {x: 0, y: -80}, source: joined}
   contraptions:
   - {name: shield, index: 1, position: {x: 1, y: -81}, retained: false}
 ticks: 191
-hash: 24:d90a89f7f27bb618c772f0a661ee16bc966f6d5f8225311e7aec0cafc6e7858e
+hash: 25:e354a2f714787e381cc10c217b78b09ca7b1e800634ed993ed7892d8a2b1859e

@@ -13,16 +13,16 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: fortress, index: 0, position: {x: -60, y: -160}, exp: 0/1600/1600}
-  - {name: fortress, index: 1, position: {x: 60, y: -160}, exp: 0/1600/1600}
+  - {name: fortress, index: 0, position: {x: -60, y: -160}, exp: 0/1600/1600, source: joined}
+  - {name: fortress, index: 1, position: {x: 60, y: -160}, exp: 0/1600/1600, source: joined}
   battle_skills:
   - {name: lightning_storm, positions: [{x: 0, y: 40}]}
 red:
   core_damage: 350
   units:
-  - {name: sledgehammer, index: 0, position: {x: -45, y: -60}, level: 3}
-  - {name: sledgehammer, index: 1, position: {x: 5, y: -60}, level: 3}
-  - {name: sledgehammer, index: 2, position: {x: 55, y: -60}, level: 3}
-  - {name: fortress, index: 3, position: {x: 0, y: -110}, exp: 0/800/1600}
+  - {name: sledgehammer, index: 0, position: {x: -45, y: -60}, level: 3, source: joined}
+  - {name: sledgehammer, index: 1, position: {x: 5, y: -60}, level: 3, source: joined}
+  - {name: sledgehammer, index: 2, position: {x: 55, y: -60}, level: 3, source: joined}
+  - {name: fortress, index: 3, position: {x: 0, y: -110}, exp: 0/800/1600, source: joined}
 ticks: 747
-hash: 24:4059670a9bceb227feffc1f55ad63f1c9095c5ec045ad5b03b397c0f1fd81e14
+hash: 25:20a8b007498fac080a5a2cb91616f28214d9866ebe849f133a00fe6fc041f9a5

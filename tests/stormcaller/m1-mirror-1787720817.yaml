@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -100}, exp: 0/150/1100}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -100}, exp: 0/150/1100, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -100}, exp: 0/350/1100}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -100}, exp: 0/350/1100, source: joined}
 ticks: 248
-hash: 24:4b9b477e4610b4870d0a0cc0fafe00ddf4730a8cdefce57b399913421c9369be
+hash: 25:6559c77f29edb90209c4c7b221beb455db41a06a336da88493d8f4daffcac6f3

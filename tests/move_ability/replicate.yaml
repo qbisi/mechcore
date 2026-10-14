@@ -21,11 +21,11 @@ blue:
   techs:
     sandworm: [replicate]
   units:
-  - {name: sandworm, index: 0, position: {x: 0, y: -140}, exp: 0/600/2000}
+  - {name: sandworm, index: 0, position: {x: 0, y: -140}, exp: 0/600/2000, source: joined}
 red:
   core_damage: 362
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/100/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/100/650, source: joined}
 ticks: 425
-hash: 24:2c49f3be9f4f7cb0c9a4e93157905d4e6e3efc4bd1af72ef287f7b7b249fde19
+hash: 25:baef61df8a78260a8ce3a7afee789b916392209c9d577e856856ee94f1a9aac8

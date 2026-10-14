@@ -9,19 +9,15 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: -35, y: -105}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: -35, y: -105}, exp: 0/200/1150, source: joined}
 red:
   core_damage: 200
   units:
-  - {name: arclight, index: 0, position: {x: -40, y: -100}}
-asserts:
-- sql: |
-    SELECT count(*)
-    FROM units
-    WHERE
-      tick = (SELECT max(tick) FROM units)
-      AND has_mech_lock_target;
-  rows:
-  - [0]
+  - {name: arclight, index: 0, position: {x: -40, y: -100}, source: joined}
 ticks: 235
-hash: 24:0f95dbac67e2038efe271e2234526dce2ee190aae82e265df8df1b04e74d0dc2
+hash: 25:b04609d6ab4d5b64eef30e48ee45b6b6454a23d41cd8d06369abbe9d90a75819
+asserts:
+- sql: "SELECT count(*)\nFROM units\nWHERE\n  tick = (SELECT max(tick) FROM units)\n\
+    \  AND has_mech_lock_target;\n"
+  rows:
+  - - 0

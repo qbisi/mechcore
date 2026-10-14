@@ -14,10 +14,10 @@ blue:
   techs:
     arclight: [anti_aircraft_ammunition]
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/408/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/408/750, source: joined}
 red:
   core_damage: 100
   units:
-  - {name: wasp, index: 0, position: {x: 15, y: -90}}
+  - {name: wasp, index: 0, position: {x: 15, y: -90}, source: joined}
 ticks: 180
-hash: 24:9168292f35edf8e3c649211b9ec69ace6d5131c7f65a7110c327e6105e6d544d
+hash: 25:2f4da7ce343823e094de66799983b1dd987acdccd39ff51d37e3fb139f6f3b78

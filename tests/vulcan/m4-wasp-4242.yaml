@@ -9,12 +9,12 @@ round: 1
 blue:
   core_damage: 612
   units:
-  - {name: vulcan, index: 0, position: {x: 0, y: -100}}
+  - {name: vulcan, index: 0, position: {x: 0, y: -100}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/533/900}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/133/900}
-  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/133/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/533/900, source: joined}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/133/900, source: joined}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/133/900, source: joined}
 ticks: 301
-hash: 24:0a4299416981b6e043666ae640dcc386b8f736f9a8a4a708263e890a5a3c22a7
+hash: 25:7b84f7d9dd0b9e1de1fe1635aefed65795c0ec2391bfcdb10aa807103f1ed2bf

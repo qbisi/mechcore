@@ -9,12 +9,12 @@ round: 1
 blue:
   core_damage: 152
   units:
-  - {name: vortex, index: 0, position: {x: 0, y: -120}, exp: 0/54/750}
-  - {name: vortex, index: 1, position: {x: 0, y: -80}, exp: 0/34/750}
+  - {name: vortex, index: 0, position: {x: 0, y: -120}, exp: 0/54/750, source: joined}
+  - {name: vortex, index: 1, position: {x: 0, y: -80}, exp: 0/34/750, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/200/450}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/200/650}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/200/450, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/200/650, source: joined}
 ticks: 300
-hash: 24:0e7325df009faafe7887bf04f15a3220139316e280d80a7da0c48bb5e990060f
+hash: 25:5fd7a9cd870f644f77315a06a4f7c9819f300babc6cd6e1835b38978a5436e1b

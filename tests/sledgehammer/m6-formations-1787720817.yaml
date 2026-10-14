@@ -9,12 +9,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: sledgehammer, index: 0, position: {x: -5, y: -120}, exp: 0/50/1300}
-  - {name: sledgehammer, index: 1, position: {x: -5, y: -80}, exp: 0/342/1300}
+  - {name: sledgehammer, index: 0, position: {x: -5, y: -120}, exp: 0/50/1300, source: joined}
+  - {name: sledgehammer, index: 1, position: {x: -5, y: -80}, exp: 0/342/1300, source: joined}
 red:
   core_damage: 320
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/20/450}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/140/650}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/20/450, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/140/650, source: joined}
 ticks: 293
-hash: 24:191eb6338bd3dd9eb923143636a7421c7722bb6005bded3fbd21b74fed3bec23
+hash: 25:5e803d0a53be3fb447d5f8f2208dae6e705b21adeb53fb1c4f85f1b49de08b4b

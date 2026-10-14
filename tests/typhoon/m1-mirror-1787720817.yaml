@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -100}}
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/600/1950}
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/600/1950, source: joined}
 ticks: 543
-hash: 24:05b9722005f998695ef500806054db3536926d8b8e912b95470adb68f56287f8
+hash: 25:86b7678b5e9f974f4103fda578b345f5022b26eaa7b6ca345f397863a6072148

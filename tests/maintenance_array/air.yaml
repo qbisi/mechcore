@@ -12,12 +12,12 @@ blue:
   techs:
     typhoon: [maintenance_array]
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -150}, level: 4, exp: 0/150/8756}
-  - {name: wasp, index: 1, position: {x: 5, y: -130}, exp: 0/167/900}
-  - {name: wasp, index: 2, position: {x: 5, y: -170}, exp: 0/90/900}
+  - {name: typhoon, index: 0, position: {x: 0, y: -150}, level: 4, exp: 0/150/8756, source: joined}
+  - {name: wasp, index: 1, position: {x: 5, y: -130}, exp: 0/167/900, source: joined}
+  - {name: wasp, index: 2, position: {x: 5, y: -170}, exp: 0/90/900, source: joined}
 red:
   core_damage: 488
   units:
-  - {name: mustang, index: 0, position: {x: 5, y: -100}, exp: 0/340/1200}
+  - {name: mustang, index: 0, position: {x: 5, y: -100}, exp: 0/340/1200, source: joined}
 ticks: 216
-hash: 24:ef55894b24fd9270a33476ca884b74a703f65c477c13c2bffb3420e5d4e5234d
+hash: 25:092cb26afa86f012251c92bee64ec0f6234227b2f4c36d5def9b0732f4a2cf15

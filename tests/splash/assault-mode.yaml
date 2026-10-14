@@ -13,10 +13,10 @@ blue:
   techs:
     marksman: [assault_mode]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/192/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/192/650, source: joined}
 red:
   core_damage: 100
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
 ticks: 361
-hash: 24:3462f409a2654c7c47e91d29c7e591e86d38b83dea34c991c3510e93a5fe0da0
+hash: 25:df58065c87b21d0fe91d2a02d8757f5e190f14d2b3bf5ff910a6eb44a14f3e53

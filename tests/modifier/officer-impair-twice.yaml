@@ -13,11 +13,11 @@ round: 1
 blue:
   core_damage: 200
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, source: joined}
 red:
   core_damage: 0
   officers: [cost_control_specialist, mass_produced_rhino]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150, source: joined}
 ticks: 120
-hash: 24:fe75f7b0921b38152637179e5f6e38f84e4d459bbeba5313a900f6e4316aa6c0
+hash: 25:32c24c4d2ea39b46643812af226344f51847ae2be5354aaf2f89a9efb2cfd2fc

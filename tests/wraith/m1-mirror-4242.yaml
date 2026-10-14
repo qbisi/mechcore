@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: wraith, index: 0, position: {x: 5, y: -95}}
+  - {name: wraith, index: 0, position: {x: 5, y: -95}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: wraith, index: 0, position: {x: 5, y: -95}, exp: 0/600/2250}
+  - {name: wraith, index: 0, position: {x: 5, y: -95}, exp: 0/600/2250, source: joined}
 ticks: 430
-hash: 24:0cbf7f564a83b8fb4ca634ddb1ed85e637aaf484c66f12cbcf3edc9f25a3a709
+hash: 25:676ed3db2bcc5a604883cec3287c5c5b01551f7eb6d02271ffad2594354e9d5a

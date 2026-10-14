@@ -15,14 +15,14 @@ round: 1
 blue:
   core_damage: 100
   units:
-  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/200/600}
-  - {name: fortress, index: 1, position: {x: 0, y: -200}, exp: 0/200/1600}
+  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/200/600, source: joined}
+  - {name: fortress, index: 1, position: {x: 0, y: -200}, exp: 0/200/1600, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/1000/1000}
-  - {name: marksman, index: 1, position: {x: 0, y: -230}, exp: 0/192/650}
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/1000/1000, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -230}, exp: 0/192/650, source: joined}
   battle_skills:
   - {name: acid_blast, positions: [{x: -135, y: 245}, {x: 40, y: 160}]}
 ticks: 696
-hash: 24:eb126c75c8de5653df092ebbbb6c73e45ce5b534fdc4c3cc2506d0735d9b2a2c
+hash: 25:5e6bf3c0caefd5af39a73be6b3821c1242ff4266ea288f61bd96125d8f605e5b

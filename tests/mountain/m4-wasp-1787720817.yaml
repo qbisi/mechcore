@@ -9,15 +9,15 @@ round: 1
 blue:
   core_damage: 1224
   units:
-  - {name: mountain, index: 0, position: {x: 5, y: -105}}
+  - {name: mountain, index: 0, position: {x: 5, y: -105}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/133/900}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/133/900}
-  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/133/900}
-  - {name: wasp, index: 3, position: {x: -55, y: -100}, exp: 0/900/900}
-  - {name: wasp, index: 4, position: {x: -55, y: -140}, exp: 0/133/900}
-  - {name: wasp, index: 5, position: {x: -55, y: -180}, exp: 0/133/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/133/900, source: joined}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/133/900, source: joined}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/133/900, source: joined}
+  - {name: wasp, index: 3, position: {x: -55, y: -100}, exp: 0/900/900, source: joined}
+  - {name: wasp, index: 4, position: {x: -55, y: -140}, exp: 0/133/900, source: joined}
+  - {name: wasp, index: 5, position: {x: -55, y: -180}, exp: 0/133/900, source: joined}
 ticks: 436
-hash: 24:f9156cecaddbd728b0c8690602979130bcaca66a2f268a8c436ac01d3946fddf
+hash: 25:9cabed8162a81f5779cb8743e7e468d375f05bb1ec36fcf190f95339e808965e

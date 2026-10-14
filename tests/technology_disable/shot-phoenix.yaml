@@ -15,13 +15,13 @@ blue:
   techs:
     phoenix: [electromagnetic_shot]
   units:
-  - {name: phoenix, index: 0, position: {x: 0, y: -150}}
+  - {name: phoenix, index: 0, position: {x: 0, y: -150}, source: joined}
 red:
   core_damage: 0
   techs:
     rhino: [armor_enhancement]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/400/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, source: joined}
+  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/400/650, source: joined}
 ticks: 232
-hash: 24:334b7bf56e673277da450ca6496564086cf5ba3b7e97eb103429dd81cc5a1aab
+hash: 25:c1088df255aa6e21d62ec45920abbfd80d0b39ddec307470d3834d171a8fdf32

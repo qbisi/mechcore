@@ -8,12 +8,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: phantom_ray, index: 0, position: {x: -5, y: -180}, exp: 0/66/1000}
-  - {name: phantom_ray, index: 1, position: {x: -5, y: -140}, exp: 0/66/1000}
-  - {name: phantom_ray, index: 2, position: {x: -5, y: -100}, exp: 0/266/1000}
+  - {name: phantom_ray, index: 0, position: {x: -5, y: -180}, exp: 0/66/1000, source: joined}
+  - {name: phantom_ray, index: 1, position: {x: -5, y: -140}, exp: 0/66/1000, source: joined}
+  - {name: phantom_ray, index: 2, position: {x: -5, y: -100}, exp: 0/266/1000, source: joined}
 red:
   core_damage: 603
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
 ticks: 174
-hash: 24:14b44a4ff59b982c9bc899ceb20a7a3229b6d7ef4caa9ccba1347bca3f0a0a26
+hash: 25:d264cf81983eb982a0cc5a97d58d8f7ca4a1c165e74b709131f34c8359ff98b6

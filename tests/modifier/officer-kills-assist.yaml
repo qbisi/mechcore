@@ -18,11 +18,11 @@ blue:
   core_damage: 0
   officers: [berserk_rhino]
   units:
-  - {name: rhino, index: 0, position: {x: -25, y: -145}, exp: 0/540/1150}
-  - {name: rhino, index: 1, position: {x: 35, y: -145}, exp: 0/660/1150}
+  - {name: rhino, index: 0, position: {x: -25, y: -145}, exp: 0/540/1150, source: joined}
+  - {name: rhino, index: 1, position: {x: 35, y: -145}, exp: 0/660/1150, source: joined}
 red:
   core_damage: 400
   units:
-  - {name: sledgehammer, index: 0, position: {x: 5, y: -40}, level: 2}
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -40}, level: 2, source: joined}
 ticks: 293
-hash: 24:30d78ce35c96c207bc21a146f1fb895cd045490092555480446248b5becf5c60
+hash: 25:909a86931d31456c40d761baf8c29db2126ff21fac3f1395ad405e252a2e6b7e

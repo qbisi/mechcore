@@ -17,12 +17,12 @@ blue:
   techs:
     centurion: [dual_wield]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -45}, exp: 0/200/2250}
+  - {name: centurion, index: 0, position: {x: 5, y: -45}, exp: 0/200/2250, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -130}}
-  - {name: marksman, index: 1, position: {x: 0, y: -140}, exp: 0/450/650}
-  - {name: marksman, index: 2, position: {x: 30, y: -130}, exp: 0/150/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -130}, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -140}, exp: 0/450/650, source: joined}
+  - {name: marksman, index: 2, position: {x: 30, y: -130}, exp: 0/150/650, source: joined}
 ticks: 182
-hash: 24:3fe628c6e70bafa6a0ef32d8da41c8db6a3c288896d998c913d617e86f9cc417
+hash: 25:47102cbb3b15e8ec5303acfacf78a0f4e1d7435617797f66f442a9f365e034e4

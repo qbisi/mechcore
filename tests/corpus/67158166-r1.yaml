@@ -16,27 +16,27 @@ blue:
   core_damage: 0
   officers: [supply_specialist]
   units:
-  - {name: vortex, index: 0, position: {x: -140, y: -70}, exp: 0/138/750}
-  - {name: vortex, index: 1, position: {x: -90, y: -70}, exp: 0/346/750}
-  - {name: vortex, index: 2, position: {x: -20, y: -70}, exp: 0/413/750}
-  - {name: fire_badger, index: 3, position: {x: -175, y: -70}, exp: 0/185/1400}
-  - {name: fire_badger, index: 4, position: {x: -55, y: -70}, exp: 0/350/1400}
-  - {name: crawler, index: 5, position: {x: -140, y: -105}, exp: 0/436/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -20, y: -105}, exp: 0/365/450, rotated: true}
+  - {name: vortex, index: 0, position: {x: -140, y: -70}, exp: 0/138/750, source: joined}
+  - {name: vortex, index: 1, position: {x: -90, y: -70}, exp: 0/346/750, source: joined}
+  - {name: vortex, index: 2, position: {x: -20, y: -70}, exp: 0/413/750, source: joined}
+  - {name: fire_badger, index: 3, position: {x: -175, y: -70}, exp: 0/185/1400, source: joined}
+  - {name: fire_badger, index: 4, position: {x: -55, y: -70}, exp: 0/350/1400, source: joined}
+  - {name: crawler, index: 5, position: {x: -140, y: -105}, exp: 0/436/450, rotated: true, source: joined}
+  - {name: crawler, index: 6, position: {x: -20, y: -105}, exp: 0/365/450, rotated: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
   core_damage: 846
   officers: [cost_control_specialist]
   units:
-  - {name: crawler, index: 0, position: {x: -100, y: -205}, exp: 0/18/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: -290, y: -265}, exp: 0/362/450, rotated: true}
-  - {name: crawler, index: 2, position: {x: 290, y: -265}, rotated: true}
-  - {name: steel_ball, index: 3, position: {x: -175, y: -230}, exp: 0/99/1000}
-  - {name: steel_ball, index: 4, position: {x: -65, y: -240}, exp: 0/34/1000}
-  - {name: marksman, index: 5, position: {x: -120, y: -170}, exp: 0/5/650}
-  - {name: marksman, index: 6, position: {x: 120, y: -170}, exp: 0/24/650}
+  - {name: crawler, index: 0, position: {x: -100, y: -205}, exp: 0/18/450, rotated: true, source: joined}
+  - {name: crawler, index: 1, position: {x: -290, y: -265}, exp: 0/362/450, rotated: true, source: joined}
+  - {name: crawler, index: 2, position: {x: 290, y: -265}, rotated: true, source: joined}
+  - {name: steel_ball, index: 3, position: {x: -175, y: -230}, exp: 0/99/1000, source: joined}
+  - {name: steel_ball, index: 4, position: {x: -65, y: -240}, exp: 0/34/1000, source: joined}
+  - {name: marksman, index: 5, position: {x: -120, y: -170}, exp: 0/5/650, source: joined}
+  - {name: marksman, index: 6, position: {x: 120, y: -170}, exp: 0/24/650, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 ticks: 1475
-hash: 24:725da0b1ad551cdf0b3add7d3ec56864802aa7f2f1eaff27fb5d4a236e1311d2
+hash: 25:36aab057dbd43672f6bdcd0679292cd4a6608464521e52a6a5bb6a37eca5ea65

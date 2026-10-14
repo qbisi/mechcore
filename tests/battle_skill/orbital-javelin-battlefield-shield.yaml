@@ -22,23 +22,45 @@ red:
   - {name: fang, index: 0, position: {x: -5, y: -20}, exp: 0/600/600, source: joined}
   battle_skills:
   - {name: orbital_javelin, positions: [{x: 90, y: 80}]}
-asserts:
-- sql: |
-    SELECT tick,shield_id,energy__current
-    FROM shields
-    WHERE shield_id=1 AND tick BETWEEN 61 AND 63
-    ORDER BY tick;
-  rows:
-  - [61, 1, 37543]
-  - [62, 1, 37543]
-  - [63, 1, 37543]
-- sql: |
-    SELECT tick,type,target__kind,target__id,amount
-    FROM events
-    WHERE tick=62 AND type='damage'
-    ORDER BY ordinal;
-  rows:
-  - [62, damage, unit, 1, 30279]
-  - [62, damage, unit, 5, 5]
 ticks: 300
-hash: 24:7bb9006e073966edeca029a4534c68a06afcfd30af802e9777a510878e2bee7c
+hash: 25:a697de1f6798289f012b8080525fbb7d1b1a6dab3f43a3976f0347d5d4f4a061
+asserts:
+- sql: 'SELECT tick,shield_id,energy__current
+
+    FROM shields
+
+    WHERE shield_id=1 AND tick BETWEEN 61 AND 63
+
+    ORDER BY tick;
+
+    '
+  rows:
+  - - 61
+    - 1
+    - 37543
+  - - 62
+    - 1
+    - 37543
+  - - 63
+    - 1
+    - 37543
+- sql: 'SELECT tick,type,target__kind,target__id,amount
+
+    FROM events
+
+    WHERE tick=62 AND type=''damage''
+
+    ORDER BY ordinal;
+
+    '
+  rows:
+  - - 62
+    - damage
+    - unit
+    - 1
+    - 30279
+  - - 62
+    - damage
+    - unit
+    - 5
+    - 5

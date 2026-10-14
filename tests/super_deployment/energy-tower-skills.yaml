@@ -11,7 +11,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/200/750, travelling: true}
+  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/200/750, travelling: true, source: joined}
 red:
   core_damage: 0
   energy_tower_skills: [enhanced_range, high_mobility]
@@ -19,4 +19,4 @@ red:
   - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
   - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/600/650}
 ticks: 1107
-hash: 24:85317ab4798d0770bc0c2226be599e79611ca8814cb343df4245b44bbe271f91
+hash: 25:fc8c3fefc97b73095f59e95e5dfe22f1c2b1e623615a152caa15707a0907978f

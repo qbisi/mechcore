@@ -14,10 +14,10 @@ blue:
   techs:
     farseer: [burst_mode]
   units:
-  - {name: farseer, index: 0, position: {x: -5, y: -105}, exp: 0/400/1800}
+  - {name: farseer, index: 0, position: {x: -5, y: -105}, exp: 0/400/1800, source: joined}
 red:
   core_damage: 250
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
 ticks: 191
-hash: 24:4dc1627f126742bccb7a147e0e4b61b95c19664b9bb7335cd722cb6c9cf16887
+hash: 25:d171179769b1f96c108124282024e971b688b8a349e30d24f6947c3e21e773d7

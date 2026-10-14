@@ -20,14 +20,14 @@ blue:
   techs:
     melting_point: [electromagnetic_barrage]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -150}, level: 6, exp: 0/8118/8118}
-  - {name: rhino, index: 1, position: {x: 65, y: -145}, level: 9, exp: 0/5100/7736}
+  - {name: melting_point, index: 0, position: {x: 0, y: -150}, level: 6, exp: 0/8118/8118, source: joined}
+  - {name: rhino, index: 1, position: {x: 65, y: -145}, level: 9, exp: 0/5100/7736, source: joined}
 red:
   core_damage: 350
   techs:
     centurion: [dual_wield, homing_missile]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -35}, level: 9}
-  - {name: centurion, index: 1, position: {x: 5, y: -75}, level: 9, exp: 0/6800/15137}
+  - {name: rhino, index: 0, position: {x: 5, y: -35}, level: 9, source: joined}
+  - {name: centurion, index: 1, position: {x: 5, y: -75}, level: 9, exp: 0/6800/15137, source: joined}
 ticks: 339
-hash: 24:dd3e8bcb03936110470d1d8ef1ed2d3ae5f6f6afb07368ded3117b74944f3b13
+hash: 25:ce4762792bd3b6f7eaf3bebf4d535166e25f387ac391f2e1d3713f47dd805517

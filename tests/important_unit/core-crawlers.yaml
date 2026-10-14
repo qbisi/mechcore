@@ -11,12 +11,12 @@ round: 1
 blue:
   core_damage: 200
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -50}, equipment: [dominion_core]}
-  - {name: fortress, index: 1, position: {x: 0, y: -250}}
+  - {name: crawler, index: 0, position: {x: 5, y: -50}, equipment: [dominion_core], source: joined}
+  - {name: fortress, index: 1, position: {x: 0, y: -250}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/112/750}
-  - {name: arclight, index: 1, position: {x: 30, y: -50}, exp: 0/80/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/112/750, source: joined}
+  - {name: arclight, index: 1, position: {x: 30, y: -50}, exp: 0/80/750, source: joined}
 ticks: 132
-hash: 24:61f0441543a09eb03e96d730ff81cd4ce47174daf8b20281150ba41b43ff488d
+hash: 25:8243fe2087672c51810f9c91841c10e809432ea40da226ca7c902ad60b2c5454

@@ -14,25 +14,29 @@ blue:
   techs:
     hacker: [multi_control]
   units:
-  - {name: hacker, index: 0, position: {x: 5, y: -205}, level: 5, exp: 0/400/2918}
+  - {name: hacker, index: 0, position: {x: 5, y: -205}, level: 5, exp: 0/400/2918, source: joined}
 red:
   core_damage: 250
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}}
-asserts:
-- sql: |
-    SELECT skill_slot, enabled__state, enabled__attack_target__id
-    FROM units__skills
-    WHERE
-      unit_id = 1
-      AND tick = 209
-    ORDER BY
-      skill_slot;
-  rows:
-  - [0, idle, null]
-  - [1, idle, null]
-  - [2, idle, null]
-  - [3, idle, null]
-  - [4, idle, null]
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, source: joined}
 ticks: 209
-hash: 24:773a8382988fe74c9bc83131564dc16002404bf6d52e166e7597c1649933a30b
+hash: 25:c38bcd0ea76d8c4cd5b78cf59a01e006c5fbec8192142d56e0cb44435fa95fa8
+asserts:
+- sql: "SELECT skill_slot, enabled__state, enabled__attack_target__id\nFROM units__skills\n\
+    WHERE\n  unit_id = 1\n  AND tick = 209\nORDER BY\n  skill_slot;\n"
+  rows:
+  - - 0
+    - idle
+    - null
+  - - 1
+    - idle
+    - null
+  - - 2
+    - idle
+    - null
+  - - 3
+    - idle
+    - null
+  - - 4
+    - idle
+    - null

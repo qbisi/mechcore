@@ -14,11 +14,11 @@ blue:
     crawler: [loose_formation]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: crawler, index: 1, position: {x: -330, y: 45}, exp: 0/450/450, travelling: true}
+  - {name: crawler, index: 1, position: {x: -330, y: 45}, exp: 0/450/450, travelling: true, source: joined}
 red:
   core_damage: 72
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
   - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/248/650}
 ticks: 1207
-hash: 24:9af243ab8fcef171dc6bab2118be0df5de8d8279b1e505e8b2997c7d2ff2837b
+hash: 25:4eceb81dcb446a10ecb253dac41bbf05c7adee9e28e3cb0a8174b7664d54906e

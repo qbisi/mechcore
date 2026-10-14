@@ -12,10 +12,10 @@ round: 1
 blue:
   core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [photon_coating]}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [photon_coating], source: joined}
 red:
   core_damage: 0
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/200/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/200/750, source: joined}
 ticks: 127
-hash: 24:b510f303ea02ac0d3e22ed67e061ae0606e988e541bdc9f642b48de7edfefd2b
+hash: 25:e6245ede86d236ce0f323d5b1ddabaaac5624239f88493f581de8d19b2a7404e

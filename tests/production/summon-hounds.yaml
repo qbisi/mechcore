@@ -12,11 +12,11 @@ blue:
   techs:
     centurion: [summon_hounds]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -145}, exp: 0/400/2250}
+  - {name: centurion, index: 0, position: {x: 5, y: -145}, exp: 0/400/2250, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/50/1150}
-  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/630/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/50/1150, source: joined}
+  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/630/650, source: joined}
 ticks: 362
-hash: 24:68c71dc09f1a7de1375ac0df275f6522085091ac3297def385399756375697a5
+hash: 25:b9a9eea1fbe07fd2193d7b8719a927329c6fb22ea8957e9ff05e883eeb3a3d8e

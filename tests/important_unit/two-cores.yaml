@@ -11,14 +11,14 @@ round: 1
 blue:
   core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -50}, equipment: [dominion_core]}
-  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/400/650, equipment: [dominion_core]}
-  - {name: fortress, index: 2, position: {x: 0, y: -250}}
+  - {name: marksman, index: 0, position: {x: -20, y: -50}, equipment: [dominion_core], source: joined}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/400/650, equipment: [dominion_core], source: joined}
+  - {name: fortress, index: 2, position: {x: 0, y: -250}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/33/750}
-  - {name: arclight, index: 1, position: {x: 30, y: -50}, exp: 0/233/750}
-  - {name: arclight, index: 2, position: {x: -30, y: -50}, exp: 0/133/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/33/750, source: joined}
+  - {name: arclight, index: 1, position: {x: 30, y: -50}, exp: 0/233/750, source: joined}
+  - {name: arclight, index: 2, position: {x: -30, y: -50}, exp: 0/133/750, source: joined}
 ticks: 301
-hash: 24:da80fb449d36fccc9aa0dc4e049d502c099f502af13a7814a0318a48f02bbdbc
+hash: 25:1464aa3b28d4f5eb611b999d1a9e5359bd7a75a747bcd02660bcb98122c05610

@@ -13,7 +13,7 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -60}, exp: 0/900/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -60}, exp: 0/900/900, source: joined}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 135}]}
 red:
@@ -21,8 +21,8 @@ red:
   techs:
     fire_badger: [scorching_charge]
   units:
-  - {name: fire_badger, index: 0, position: {x: 5, y: -130}}
-  - {name: rhino, index: 1, position: {x: 5, y: -55}, exp: 0/200/1150}
-  - {name: rhino, index: 2, position: {x: -45, y: -55}, exp: 0/200/1150}
+  - {name: fire_badger, index: 0, position: {x: 5, y: -130}, source: joined}
+  - {name: rhino, index: 1, position: {x: 5, y: -55}, exp: 0/200/1150, source: joined}
+  - {name: rhino, index: 2, position: {x: -45, y: -55}, exp: 0/200/1150, source: joined}
 ticks: 1637
-hash: 24:6e2216f60e4812b71298a95f19e38c4d6378b473f724c538a8da9baf24ebd544
+hash: 25:2ade1c24741fbf4aa748f26d1d52e2c3c10054b298f36f7274bef5b257c581c9

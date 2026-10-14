@@ -16,15 +16,17 @@ blue:
   techs:
     wraith: [land_cruiser]
   units:
-  - {name: wraith, index: 0, position: {x: 5, y: -105}, exp: 0/200/2250}
+  - {name: wraith, index: 0, position: {x: 5, y: -105}, exp: 0/200/2250, source: joined}
 red:
   core_damage: 250
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -100}}
-asserts:
-- sql: |
-    SELECT life__maximum, domain FROM units WHERE tick = 1 AND unit_id = 1;
-  rows:
-  - [14115, ground]
+  - {name: marksman, index: 0, position: {x: 0, y: -100}, source: joined}
 ticks: 192
-hash: 24:409770c2a04470263dfda8449447715b9474b2e7c2227d160ba390d17ddf12de
+hash: 25:3b074f05cb06432a793231f718f0c5100a6c303608795d41edcf8ceaa6a21a2a
+asserts:
+- sql: 'SELECT life__maximum, domain FROM units WHERE tick = 1 AND unit_id = 1;
+
+    '
+  rows:
+  - - 14115
+    - ground

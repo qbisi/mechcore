@@ -790,6 +790,7 @@ impl Simulation {
     /// What a recording holds of one unit.
     pub(in crate::fight) fn unit_snapshot(&self, id: u64) -> LiveUnitState {
         let mut state = self.actors[&id].snapshot(self.skill_states(id));
+        state.production_lines = self.production_line_states(id);
         state.control = self
             .translations
             .iter()

@@ -16,14 +16,14 @@ blue:
   techs:
     raiden: [fork]
   units:
-  - {name: raiden, index: 0, position: {x: 0, y: -200}, exp: 0/133/2400}
-  - {name: raiden, index: 1, position: {x: 0, y: -150}, exp: 0/133/2400}
-  - {name: raiden, index: 2, position: {x: 0, y: -100}, exp: 0/733/2400}
+  - {name: raiden, index: 0, position: {x: 0, y: -200}, exp: 0/133/2400, source: joined}
+  - {name: raiden, index: 1, position: {x: 0, y: -150}, exp: 0/133/2400, source: joined}
+  - {name: raiden, index: 2, position: {x: 0, y: -100}, exp: 0/733/2400, source: joined}
 red:
   core_damage: 1050
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -155}}
-  - {name: rhino, index: 1, position: {x: 45, y: -155}}
-  - {name: marksman, index: 2, position: {x: -40, y: -150}}
+  - {name: rhino, index: 0, position: {x: 5, y: -155}, source: joined}
+  - {name: rhino, index: 1, position: {x: 45, y: -155}, source: joined}
+  - {name: marksman, index: 2, position: {x: -40, y: -150}, source: joined}
 ticks: 305
-hash: 24:349b5a43edcee3b66c54da6a6f8ec540f74a1e5e82677d0af7472584204cc838
+hash: 25:1370d3991b34aaeeac7b80c8d197e2ea2ee86b3aaa874a41677ca91805b24ece

@@ -35,26 +35,41 @@ red:
   - {name: missile, index: 0, position: {x: -275, y: -300}}
   battle_skills:
   - {name: electromagnetic_blast, positions: [{x: 205, y: -10}]}
-asserts:
-- sql: |
-    SELECT tick, amount FROM events
-    WHERE type = 'damage' AND target__kind = 'unit' AND target__id = 4
-    ORDER BY tick;
-  rows:
-  - [820, 3603]
-  - [833, 3603]
-  - [835, 3603]
-  - [884, 3603]
-  - [900, 3603]
-  - [906, 11619]
-  - [1100, 3603]
-  - [1111, 3603]
-  - [1169, 3603]
-  - [1181, 3603]
-  - [1246, 3603]
-- sql: |
-    SELECT rebirth_count FROM units WHERE tick = 1100 AND unit_id = 4;
-  rows:
-  - [1]
 ticks: 1252
-hash: 24:861b4ca07fcec3326d07b09aa5323e34033753c301d3f49cc1303c7a1e25fdfa
+hash: 25:20258350179c45a04594ac7a4389843741286d586d27ee9a07033900160bf212
+asserts:
+- sql: 'SELECT tick, amount FROM events
+
+    WHERE type = ''damage'' AND target__kind = ''unit'' AND target__id = 4
+
+    ORDER BY tick;
+
+    '
+  rows:
+  - - 820
+    - 3603
+  - - 833
+    - 3603
+  - - 835
+    - 3603
+  - - 884
+    - 3603
+  - - 900
+    - 3603
+  - - 906
+    - 11619
+  - - 1100
+    - 3603
+  - - 1111
+    - 3603
+  - - 1169
+    - 3603
+  - - 1181
+    - 3603
+  - - 1246
+    - 3603
+- sql: 'SELECT rebirth_count FROM units WHERE tick = 1100 AND unit_id = 4;
+
+    '
+  rows:
+  - - 1

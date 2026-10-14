@@ -18,14 +18,14 @@ blue:
   techs:
     melting_point: [electromagnetic_barrage]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -170}, exp: 0/600/1400}
+  - {name: melting_point, index: 0, position: {x: 0, y: -170}, exp: 0/600/1400, source: joined}
 red:
   core_damage: 350
   techs:
     marksman: [assault_mode]
     sledgehammer: [range_enhancement, armor_piercing_bullets]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -60}}
-  - {name: sledgehammer, index: 1, position: {x: 65, y: -60}}
+  - {name: marksman, index: 0, position: {x: 0, y: -60}, source: joined}
+  - {name: sledgehammer, index: 1, position: {x: 65, y: -60}, source: joined}
 ticks: 556
-hash: 24:613126db4ab774ff93e931e1d509f6f2c8fe100bb1251470b37b320afb0077d0
+hash: 25:47919694044b72da01d5f7f36fa49c3ddc417f90915d55ed41087799b2f435ec

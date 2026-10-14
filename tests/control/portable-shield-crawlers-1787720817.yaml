@@ -16,10 +16,10 @@ round: 1
 blue:
   core_damage: 64
   units:
-  - {name: hacker, index: 0, position: {x: -5, y: -105}, exp: 0/64/560}
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, exp: 0/64/560, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/450/450, equipment: [portable_shield]}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/450/450, equipment: [portable_shield], source: joined}
 ticks: 381
-hash: 24:11a96ce7fd33fec104eb9e37df9cc136fd669a2714c25f158dd7406fc3992c2b
+hash: 25:a32780821ae614c8b37f37e32b166eed381cedf91ddb4169a0b80265add69c76

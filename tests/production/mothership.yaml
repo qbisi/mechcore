@@ -11,11 +11,11 @@ blue:
   techs:
     overlord: [mothership]
   units:
-  - {name: overlord, index: 0, position: {x: 5, y: -145}, exp: 0/600/1750}
+  - {name: overlord, index: 0, position: {x: 5, y: -145}, exp: 0/600/1750, source: joined}
 red:
   core_damage: 400
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/25/1150}
-  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/144/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/25/1150, source: joined}
+  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/144/650, source: joined}
 ticks: 402
-hash: 24:209f76f26b8bd4c2115e53b7c855f27069332d7e5c4b7f6470b57ed023642163
+hash: 25:2ac60381a11cc42192120ca316fd2a46d9f6bb90bfd6f6798a3966e3dfb1421f

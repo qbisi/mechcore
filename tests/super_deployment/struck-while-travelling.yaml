@@ -12,13 +12,13 @@ blue:
   core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: hound, index: 1, position: {x: -330, y: 60}, travelling: true}
-  - {name: arclight, index: 2, position: {x: 330, y: 100}, travelling: true}
+  - {name: hound, index: 1, position: {x: -330, y: 60}, travelling: true, source: joined}
+  - {name: arclight, index: 2, position: {x: 330, y: 100}, travelling: true, source: joined}
 red:
   core_damage: 0
   units:
   - {name: marksman, index: 0, position: {x: 280, y: -100}, exp: 0/400/650}
   - {name: marksman, index: 1, position: {x: -280, y: -100}, exp: 0/350/650}
-  - {name: hound, index: 2, position: {x: -330, y: 200}, exp: 0/50/750, travelling: true}
+  - {name: hound, index: 2, position: {x: -330, y: 200}, exp: 0/50/750, travelling: true, source: joined}
 ticks: 598
-hash: 24:8a66875f1e9e47ff1171cc8378318e1629ab746ab9dd00e9655f2be4e5b4f81c
+hash: 25:2e6cc3898ff2059ad6414ccd2e038e6ef7ff7a40d8da2bf85017337f0eb8cda5

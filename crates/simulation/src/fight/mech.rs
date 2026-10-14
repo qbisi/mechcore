@@ -668,6 +668,7 @@ impl Actor {
     pub(in crate::fight) fn snapshot(&self, skills: Vec<SkillState>) -> LiveUnitState {
         let position = self.recorded_position();
         LiveUnitState {
+            production_lines: Vec::new(),
             unit_id: self.placement.unit_id,
             team_id: self.placement.team,
             original_team_id: self.original_team,

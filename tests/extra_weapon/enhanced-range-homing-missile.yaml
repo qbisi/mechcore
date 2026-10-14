@@ -18,10 +18,10 @@ blue:
     centurion: [homing_missile]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -295}, exp: 0/400/2250}
+  - {name: centurion, index: 0, position: {x: 5, y: -295}, exp: 0/400/2250, source: joined}
 red:
   core_damage: 250
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -295}}
+  - {name: rhino, index: 0, position: {x: 5, y: -295}, source: joined}
 ticks: 539
-hash: 24:5723683cb60ee834a38379a0477fae1514ae0b02549aa1248d068b2d758fc0f0
+hash: 25:daaec6c1b18515d9db0b3e518347b152e3ef9fe2efbb20ab46a94d2e16f6c9dc

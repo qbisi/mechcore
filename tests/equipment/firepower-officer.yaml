@@ -15,10 +15,10 @@ blue:
   core_damage: 0
   officers: [advanced_offensive_tactics]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/200/650, equipment: [improved_firepower_control_system]}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/200/650, equipment: [improved_firepower_control_system], source: joined}
 red:
   core_damage: 100
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -50}}
+  - {name: arclight, index: 0, position: {x: 0, y: -50}, source: joined}
 ticks: 83
-hash: 24:78ca48a4bbe2623d674d0c88015ecfddcc14d8b3096c1549fb9e97515186f2db
+hash: 25:a655efce885d74a9cc51fb43e97be4e472a4c92fa0e53c72a4115ebb9894d0b9

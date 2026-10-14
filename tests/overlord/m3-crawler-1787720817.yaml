@@ -10,14 +10,14 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: overlord, index: 0, position: {x: -105, y: -105}, exp: 0/15/1750}
-  - {name: overlord, index: 1, position: {x: -55, y: -105}, exp: 0/95/1750}
-  - {name: overlord, index: 2, position: {x: -5, y: -105}, exp: 0/9/1750}
-  - {name: overlord, index: 3, position: {x: 45, y: -105}, exp: 0/14/1750}
-  - {name: overlord, index: 4, position: {x: 95, y: -105}, exp: 0/58/1750}
+  - {name: overlord, index: 0, position: {x: -105, y: -105}, exp: 0/15/1750, source: joined}
+  - {name: overlord, index: 1, position: {x: -55, y: -105}, exp: 0/95/1750, source: joined}
+  - {name: overlord, index: 2, position: {x: -5, y: -105}, exp: 0/9/1750, source: joined}
+  - {name: overlord, index: 3, position: {x: 45, y: -105}, exp: 0/14/1750, source: joined}
+  - {name: overlord, index: 4, position: {x: 95, y: -105}, exp: 0/58/1750, source: joined}
 red:
   core_damage: 2000
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
 ticks: 374
-hash: 24:b25f66160da0c66822b4555b9705d72d9f78610e11c91f83a15aeacc45a73da6
+hash: 25:f9d067467e378aa1d855d43535d047f2d502ebf3f47f483777efb3a3c45d3b2b

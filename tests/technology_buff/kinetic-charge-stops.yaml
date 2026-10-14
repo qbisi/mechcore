@@ -13,13 +13,13 @@ blue:
   techs:
     steel_ball: [kinetic_charge]
   units:
-  - {name: steel_ball, index: 0, position: {x: 5, y: -170}, exp: 0/114/1000}
-  - {name: steel_ball, index: 1, position: {x: 65, y: -170}, exp: 0/158/1000}
+  - {name: steel_ball, index: 0, position: {x: 5, y: -170}, exp: 0/114/1000, source: joined}
+  - {name: steel_ball, index: 1, position: {x: 65, y: -170}, exp: 0/158/1000, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -60}, exp: 0/233/450}
-  - {name: crawler, index: 1, position: {x: 65, y: -60}, exp: 0/450/450}
-  - {name: fortress, index: 2, position: {x: 40, y: -200}, exp: 0/133/1600}
+  - {name: crawler, index: 0, position: {x: 5, y: -60}, exp: 0/233/450, source: joined}
+  - {name: crawler, index: 1, position: {x: 65, y: -60}, exp: 0/450/450, source: joined}
+  - {name: fortress, index: 2, position: {x: 40, y: -200}, exp: 0/133/1600, source: joined}
 ticks: 642
-hash: 24:f9a63342b16be6ab3f8fe1de0cfbe72c2e3335f96744040d8b47f8e4afa491e6
+hash: 25:8ddfec791e9f7dbeef76cabd9a5f6c764455f540c9d3921dddc6e433adbe7a7a

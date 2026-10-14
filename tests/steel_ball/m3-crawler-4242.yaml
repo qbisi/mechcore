@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 24
   units:
-  - {name: steel_ball, index: 0, position: {x: 5, y: -100}, exp: 0/144/1000}
+  - {name: steel_ball, index: 0, position: {x: 5, y: -100}, exp: 0/144/1000, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/400/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/400/450, source: joined}
 ticks: 454
-hash: 24:a6758093a3df299dd2e2974b9270e37b68ec098d058d1c74c8692d6391b1adad
+hash: 25:36e172ba16b1702f6650ff2cd82bf66b887b36193a9e5a6372241c31f363b31b

@@ -17,14 +17,14 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/1150/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/1150/1150, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 5, y: -145}, retained: false}
 red:
   core_damage: 200
   units:
-  - {name: stormcaller, index: 0, position: {x: -55, y: -40}}
-  - {name: stormcaller, index: 1, position: {x: 5, y: -40}}
-  - {name: stormcaller, index: 2, position: {x: 65, y: -40}, exp: 0/200/1100}
+  - {name: stormcaller, index: 0, position: {x: -55, y: -40}, source: joined}
+  - {name: stormcaller, index: 1, position: {x: 5, y: -40}, source: joined}
+  - {name: stormcaller, index: 2, position: {x: 65, y: -40}, exp: 0/200/1100, source: joined}
 ticks: 689
-hash: 24:4e35fca4199213f959e114e8c32f10371e66d03707b5ca5ef32ff62cf367167e
+hash: 25:ba4fbe7c96f9682d259f6d9923673fdbb55cbc31d98f0d5b1f91e513ac417537

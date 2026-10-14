@@ -12,11 +12,11 @@ blue:
   techs:
     tarantula: [high_explosive_ammo]
   units:
-  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/384/1500}
+  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/384/1500, source: joined}
 red:
   core_damage: 200
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}}
-  - {name: crawler, index: 1, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, source: joined}
+  - {name: crawler, index: 1, position: {x: 5, y: -100}, source: joined}
 ticks: 149
-hash: 24:29011f51252f10c338bde1438368bf2a3ee560031b92a09c16c90d2c6e055b5c
+hash: 25:257c3c465c7a87d4c2a6bbe262b81f9c99d767048710268d93ff8971a8f88254

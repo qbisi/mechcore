@@ -9,12 +9,12 @@ round: 1
 blue:
   core_damage: 612
   units:
-  - {name: sandworm, index: 0, position: {x: 0, y: -100}, exp: 0/400/2000}
+  - {name: sandworm, index: 0, position: {x: 0, y: -100}, exp: 0/400/2000, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/133/900}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/533/900}
-  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/133/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/133/900, source: joined}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/533/900, source: joined}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/133/900, source: joined}
 ticks: 1091
-hash: 24:599c3910ab33ceb4adb573a0b615a344d3328c98164d2354be41caa38f9d68cd
+hash: 25:f895d291f61bbfc77680110a378f1a67ba08214b91a5fd151b0790f8cfd4084b

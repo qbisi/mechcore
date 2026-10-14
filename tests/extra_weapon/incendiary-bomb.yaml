@@ -18,11 +18,11 @@ blue:
   techs:
     hound: [incendiary_bomb]
   units:
-  - {name: hound, index: 0, position: {x: 0, y: -40}, exp: 0/200/750}
+  - {name: hound, index: 0, position: {x: 0, y: -40}, exp: 0/200/750, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -60}, exp: 0/80/650}
-  - {name: marksman, index: 1, position: {x: 30, y: -70}, exp: 0/120/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -60}, exp: 0/80/650, source: joined}
+  - {name: marksman, index: 1, position: {x: 30, y: -70}, exp: 0/120/650, source: joined}
 ticks: 212
-hash: 24:dab949f7f5675d429a4bfb789744302c9a19653e97bd3d11e1f0401ec9d1edde
+hash: 25:0109d8cbb46fc6e2f10ec556077461134f4fce28254551f0b3374f2d7815628d

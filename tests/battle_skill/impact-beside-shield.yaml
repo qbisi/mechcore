@@ -15,16 +15,16 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: fortress, index: 0, position: {x: 60, y: -150}, exp: 0/800/1600}
+  - {name: fortress, index: 0, position: {x: 60, y: -150}, exp: 0/800/1600, source: joined}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -1, y: 30}]}
 red:
   core_damage: 350
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -90}}
-  - {name: rhino, index: 1, position: {x: 35, y: -45}}
-  - {name: marksman, index: 2, position: {x: -60, y: -150}}
+  - {name: marksman, index: 0, position: {x: 0, y: -90}, source: joined}
+  - {name: rhino, index: 1, position: {x: 35, y: -45}, source: joined}
+  - {name: marksman, index: 2, position: {x: -60, y: -150}, source: joined}
   contraptions:
   - {name: shield, index: 3, position: {x: 1, y: -141}}
 ticks: 417
-hash: 24:6feab2dc8aec1934635c1ad31040dd012b190793f17ba45f6441910418866b17
+hash: 25:11379cdce1d84e9e63f25440cad6b0453c58bc6f42ac6ce10dc90afe2c16d8bc

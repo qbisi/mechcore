@@ -11,10 +11,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/192/1600, equipment: [barrier]}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/192/1600, equipment: [barrier], source: joined}
 red:
   core_damage: 350
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
 ticks: 376
-hash: 24:9ee546cf523c921bceafd35bd28c5edb18d8bec18bd1b24d5d5fa3878413473c
+hash: 25:ab976207ddd3eaaa13f445ee527396c72e16834711b3fc2c390e02bc9694a403

@@ -15,10 +15,10 @@ blue:
   techs:
     tarantula: [spider_mine]
   units:
-  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/56/1500}
+  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/56/1500, source: joined}
 red:
   core_damage: 200
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
 ticks: 139
-hash: 24:37bf28a642d770ff1f244f51ba0eed34ca1791dc90f08d1261c48557fdef62bf
+hash: 25:5b6887134ba97575dffcb80d99451e9964aed8e7abe3d15ac7f3c2c559289464

@@ -13,12 +13,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -170}, exp: 0/900/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -170}, exp: 0/900/900, source: joined}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -60, y: -60}, {x: 60, y: -60}]}
 red:
   core_damage: 204
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, level: 9, exp: 0/400/3027}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, level: 9, exp: 0/400/3027, source: joined}
 ticks: 1150
-hash: 24:6c2ceae44ca9286e8a8c72a0f70f47f6cd89587bad20c3a367f06a1fc045792f
+hash: 25:4ac1774cc6377c4703e5ae088d364b4e63b57bc01fd81e8cbd1cdd8569752633

@@ -12,11 +12,11 @@ blue:
   techs:
     overlord: [high_explosive_ammo]
   units:
-  - {name: overlord, index: 0, position: {x: -5, y: -105}, exp: 0/384/1750}
+  - {name: overlord, index: 0, position: {x: -5, y: -105}, exp: 0/384/1750, source: joined}
 red:
   core_damage: 400
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/150/450}
-  - {name: crawler, index: 1, position: {x: 5, y: -100}, exp: 0/50/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/150/450, source: joined}
+  - {name: crawler, index: 1, position: {x: 5, y: -100}, exp: 0/50/450, source: joined}
 ticks: 619
-hash: 24:41d19be429fa24892c94c9d8070dae4e032bfbacff0d4d1d0cbff7fbdc9a4b3e
+hash: 25:b7bd3f4117857b37e0a82bc6e2bd59d36c6780ba80a60bf203b3aa76f728742c

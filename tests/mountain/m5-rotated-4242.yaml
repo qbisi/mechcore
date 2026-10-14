@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: mountain, index: 0, position: {x: -65, y: -65}, exp: 0/400/3200, rotated: true}
+  - {name: mountain, index: 0, position: {x: -65, y: -65}, exp: 0/400/3200, rotated: true, source: joined}
 red:
   core_damage: 500
   units:
-  - {name: rhino, index: 0, position: {x: -35, y: -95}}
+  - {name: rhino, index: 0, position: {x: -35, y: -95}, source: joined}
 ticks: 60
-hash: 24:65113684c0399ace62274ab9176c2a3bf843e07c446938a06aa37fbf27e53e1e
+hash: 25:c24c7d5398916bc946c392e6c99ccf143f6c765daf5130036173805d8cefd3ac

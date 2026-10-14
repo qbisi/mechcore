@@ -17,10 +17,10 @@ blue:
   techs:
     rhino: [mechanical_rage]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -65}, exp: 0/400/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -65}, exp: 0/400/1150, source: joined}
 red:
   core_damage: 200
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -65}}
+  - {name: rhino, index: 0, position: {x: 5, y: -65}, source: joined}
 ticks: 137
-hash: 24:43796f6bbb2ed2637aec29f22880c7cc6dc457a9c2bf02424cb7a632f5895076
+hash: 25:31c193791cefccdad8501cd0ce215406abc5833e68ff66bc0c122f1a17769415

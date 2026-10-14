@@ -9,12 +9,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -135}, exp: 0/268/1150}
-  - {name: rhino, index: 1, position: {x: 5, y: -75}, exp: 0/124/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -135}, exp: 0/268/1150, source: joined}
+  - {name: rhino, index: 1, position: {x: 5, y: -75}, exp: 0/124/1150, source: joined}
 red:
   core_damage: 200
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/400/650}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/400/650, source: joined}
 ticks: 386
-hash: 24:f2d4eba1b3ecb8cee6b8e919752d8e10f23e7e3f920bc60f707430d4bc9163e1
+hash: 25:1493f64764cd00a3be179a87bd5cf07b23a6a96dac249043cc2d908f7e0ce350

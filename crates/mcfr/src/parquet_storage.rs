@@ -618,6 +618,7 @@ fn unit_batch(rows: &[(u32, LiveUnitState)]) -> Result<Option<RecordBatch>> {
                     .iter()
                     .map(|row| (row.rebirth_count != 0).then_some(row.rebirth_count)),
             ),
+            production_line_values(units.iter().map(|row| &row.production_lines))?,
         ],
     )?))
 }
@@ -1166,6 +1167,54 @@ fn list_offsets(lengths: impl IntoIterator<Item = usize>) -> Result<OffsetBuffer
     Ok(OffsetBuffer::new(ScalarBuffer::from(offsets)))
 }
 
+fn production_line_fields() -> Fields {
+    vec![
+        Field::new("interval_time_counter", DataType::Int32, false),
+        Field::new("source_id", DataType::Int32, false),
+    ]
+    .into()
+}
+
+fn production_line_values<'a>(
+    values: impl IntoIterator<Item = &'a Vec<crate::ProductionLineState>>,
+) -> Result<ArrayRef> {
+    let values = values.into_iter().collect::<Vec<_>>();
+    let flat = values
+        .iter()
+        .flat_map(|value| value.iter())
+        .collect::<Vec<_>>();
+    let fields = production_line_fields();
+    let items = StructArray::new(
+        fields.clone(),
+        vec![
+            i32_values(flat.iter().map(|v| v.interval_time_counter)),
+            i32_values(flat.iter().map(|v| v.source_id)),
+        ],
+        None,
+    );
+    Ok(Arc::new(ListArray::new(
+        Arc::new(Field::new("item", DataType::Struct(fields), false)),
+        list_offsets(values.iter().map(|v| v.len()))?,
+        Arc::new(items),
+        None,
+    )))
+}
+
+fn read_production_lines(
+    array: &ListArray,
+    index: usize,
+) -> Result<Vec<crate::ProductionLineState>> {
+    let items = list_struct_items(array, index, "production_lines")?;
+    let counters = struct_child::<Int32Array>(&items, "interval_time_counter")?;
+    let sources = struct_child::<Int32Array>(&items, "source_id")?;
+    Ok((0..items.len())
+        .map(|item| crate::ProductionLineState {
+            interval_time_counter: counters.value(item),
+            source_id: sources.value(item),
+        })
+        .collect())
+}
+
 fn buff_list_values<'a>(values: impl IntoIterator<Item = &'a Vec<BuffState>>) -> Result<ArrayRef> {
     let values = values.into_iter().collect::<Vec<_>>();
     let flat = values
@@ -1414,6 +1463,7 @@ fn unit_schema() -> SchemaRef {
         list_field("skills", skill_fields()),
         struct_field("control", control_fields(), true),
         Field::new("rebirth_count", DataType::UInt32, true),
+        list_field("production_lines", production_line_fields()),
     ]))
 }
 
@@ -2365,6 +2415,7 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
         let skills = column::<ListArray>(&batch, "skills")?;
         let control = struct_column(&batch, "control")?;
         let rebirth_count = column::<UInt32Array>(&batch, "rebirth_count")?;
+        let production_lines = column::<ListArray>(&batch, "production_lines")?;
         for index in 0..batch.num_rows() {
             rows.push((
                 tick.value(index),
@@ -2394,6 +2445,7 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
                     skills: read_skill_list(skills, index)?,
                     control: read_control(control, index)?,
                     rebirth_count: read_rebirth_count(rebirth_count, index)?,
+                    production_lines: read_production_lines(production_lines, index)?,
                 },
             ));
         }

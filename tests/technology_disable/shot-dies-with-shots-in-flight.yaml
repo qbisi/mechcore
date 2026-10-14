@@ -16,14 +16,14 @@ blue:
   techs:
     vulcan: [scorching_fire]
   units:
-  - {name: vulcan, index: 0, position: {x: 0, y: -150}}
+  - {name: vulcan, index: 0, position: {x: 0, y: -150}, source: joined}
 red:
   core_damage: 0
   techs:
     phoenix: [electromagnetic_shot]
   units:
-  - {name: phoenix, index: 0, position: {x: 0, y: -150}, exp: 0/133/1300}
-  - {name: phoenix, index: 1, position: {x: 60, y: -150}, exp: 0/133/1300}
-  - {name: fortress, index: 2, position: {x: 70, y: -100}, exp: 0/533/1600}
+  - {name: phoenix, index: 0, position: {x: 0, y: -150}, exp: 0/133/1300, source: joined}
+  - {name: phoenix, index: 1, position: {x: 60, y: -150}, exp: 0/133/1300, source: joined}
+  - {name: fortress, index: 2, position: {x: 70, y: -100}, exp: 0/533/1600, source: joined}
 ticks: 290
-hash: 24:97312b4e9d4f9217602e377b79274d097d398f1322b9c59476a3d521c3a3408f
+hash: 25:33e1952eb8b1af3a5e6847b461b55ddd10c8d5e8a775389156edd5166203c832

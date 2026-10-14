@@ -18,10 +18,10 @@ blue:
   techs:
     crawler: [subterranean_blitz]
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450, source: joined}
 red:
   core_damage: 84
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -60}, exp: 0/24/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -60}, exp: 0/24/650, source: joined}
 ticks: 184
-hash: 24:cb51a9fc00106ea170412d6b045fa00e1adaba5848d0ff35e4b3f418342446a4
+hash: 25:9f4ed8e9c61a9f6829387d17a07d3af09bd1db166471eb6df8feaa13a53b8fa1

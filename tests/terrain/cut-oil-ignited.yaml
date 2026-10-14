@@ -26,4 +26,4 @@ red:
   - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/250/1300}
   - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/150/450}
 ticks: 242
-hash: 24:d33425a8c37f7e7b292318ce7aed43b30c65683b9eb3a6b32cb7509d2b359a00
+hash: 25:e2bfaf17951f9b5949279a1d1c9f8af2b029c011170f2d57ef586c2bf7f5ba36

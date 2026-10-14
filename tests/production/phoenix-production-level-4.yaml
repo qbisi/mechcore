@@ -12,11 +12,11 @@ blue:
   techs:
     war_factory: [phoenix_production]
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -145}, level: 4, exp: 0/400/14369}
+  - {name: war_factory, index: 0, position: {x: 5, y: -145}, level: 4, exp: 0/400/14369, source: joined}
 red:
   core_damage: 525
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, source: joined}
 ticks: 200
-hash: 24:dd238a2c9dcce76f8ca003786c3568e23b6360a48a888d28c7e9895edbafd501
+hash: 25:fa93e3f3c3f67bba8f7cb73cb186351d1e78129cf5c97af9915aeb3a1569a37a

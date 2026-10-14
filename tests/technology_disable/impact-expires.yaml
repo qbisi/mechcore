@@ -13,7 +13,7 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -60}, exp: 0/592/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -60}, exp: 0/592/900, source: joined}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 55}]}
 red:
@@ -22,7 +22,7 @@ red:
     rhino: [mechanical_rage]
     crawler: [mechanical_rage]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
-  - {name: crawler, index: 1, position: {x: -45, y: -60}, exp: 0/200/450}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150, source: joined}
+  - {name: crawler, index: 1, position: {x: -45, y: -60}, exp: 0/200/450, source: joined}
 ticks: 874
-hash: 24:1991a782238cd0687e3a22af367ddd36522bc474ac622945d1049f336ff79cbf
+hash: 25:4be9efaa5dc5ce8c59842dcf3d58ab41a465fb7dc4c90baf60315f899228c660

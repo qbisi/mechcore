@@ -12,11 +12,11 @@ blue:
   officers: [quick_teleport]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/200/750, travelling: true}
+  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/200/750, travelling: true, source: joined}
 red:
   core_damage: 0
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
   - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/600/650}
 ticks: 1198
-hash: 24:2759577648c90c39bcc4d499fd8abc9fe7c0442deac41cfbe256736e3130bbd7
+hash: 25:fe7ae3be5279fd93f18d6dee0e63315c7cce46fd929d4470adb6c6db73300b7d

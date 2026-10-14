@@ -43,21 +43,31 @@ red:
   - {name: shield, index: 0, position: {x: 205, y: -190}, retained: false}
   battle_skills:
   - {name: orbital_bombardment, positions: [{x: -205, y: 115}]}
-asserts:
-- sql: |
-    SELECT u.tick, u.motion_state,
-           sum(k.enabled__lock_target__kind = u.mech_lock_target__kind
-               AND k.enabled__lock_target__id = u.mech_lock_target__id
-               AND k.enabled__state != 'idle')
-    FROM units u JOIN units__skills k ON k.tick = u.tick AND k.unit_id = u.unit_id
-    WHERE u.unit_id = 7 AND u.tick IN (536, 537, 538, 545, 546, 547)
-    GROUP BY u.tick, u.motion_state ORDER BY u.tick;
-  rows:
-  - [536, "moving", 0]
-  - [537, "moving", 0]
-  - [538, "moving", 0]
-  - [545, "moving", 0]
-  - [546, "attacking", 2]
-  - [547, "attacking", 2]
 ticks: 726
-hash: 24:55804368cffd41f38de33999f59b597e974f4a0bdb50e7244afe5766b21282b7
+hash: 25:825e95d0b1cec10e1f648c52f12161fc5423cf9e2f124d09c2e505356c377276
+asserts:
+- sql: "SELECT u.tick, u.motion_state,\n       sum(k.enabled__lock_target__kind =\
+    \ u.mech_lock_target__kind\n           AND k.enabled__lock_target__id = u.mech_lock_target__id\n\
+    \           AND k.enabled__state != 'idle')\nFROM units u JOIN units__skills k\
+    \ ON k.tick = u.tick AND k.unit_id = u.unit_id\nWHERE u.unit_id = 7 AND u.tick\
+    \ IN (536, 537, 538, 545, 546, 547)\nGROUP BY u.tick, u.motion_state ORDER BY\
+    \ u.tick;\n"
+  rows:
+  - - 536
+    - moving
+    - 0
+  - - 537
+    - moving
+    - 0
+  - - 538
+    - moving
+    - 0
+  - - 545
+    - moving
+    - 0
+  - - 546
+    - attacking
+    - 2
+  - - 547
+    - attacking
+    - 2

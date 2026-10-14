@@ -43,18 +43,46 @@ red:
   - {name: missile, index: 0, position: {x: -125, y: -280}}
   battle_skills:
   - {name: nuke, positions: [{x: -215, y: -180}]}
-asserts:
-- sql: |
-    SELECT tick,skill_slot,enabled__state,enabled__lock_target__id,enabled__attack_target__id
-    FROM units__skills
-    WHERE unit_id=10 AND skill_slot IN (0,3) AND tick BETWEEN 601 AND 603
-    ORDER BY tick,skill_slot;
-  rows:
-  - [601, 0, prepare, 5, 7]
-  - [601, 3, attack, 4, 8]
-  - [602, 0, prepare, 5, 7]
-  - [602, 3, idle, null, null]
-  - [603, 0, attack, 5, 7]
-  - [603, 3, prepare, 4, 4]
 ticks: 723
-hash: 24:213a3c8e79c9cb2bce665be50191ae01f19cf625d24591507b4aa7f20061b843
+hash: 25:1b07e084434ffe44ab7dd6772147d3b151e1217c861c31abf9b6f1188cc7c327
+asserts:
+- sql: 'SELECT tick,skill_slot,enabled__state,enabled__lock_target__id,enabled__attack_target__id
+
+    FROM units__skills
+
+    WHERE unit_id=10 AND skill_slot IN (0,3) AND tick BETWEEN 601 AND 603
+
+    ORDER BY tick,skill_slot;
+
+    '
+  rows:
+  - - 601
+    - 0
+    - prepare
+    - 5
+    - 7
+  - - 601
+    - 3
+    - attack
+    - 4
+    - 8
+  - - 602
+    - 0
+    - prepare
+    - 5
+    - 7
+  - - 602
+    - 3
+    - idle
+    - null
+    - null
+  - - 603
+    - 0
+    - attack
+    - 5
+    - 7
+  - - 603
+    - 3
+    - prepare
+    - 4
+    - 4

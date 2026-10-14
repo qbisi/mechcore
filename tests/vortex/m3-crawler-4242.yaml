@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 72
   units:
-  - {name: vortex, index: 0, position: {x: 0, y: -100}, exp: 0/48/750}
+  - {name: vortex, index: 0, position: {x: 0, y: -100}, exp: 0/48/750, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450, source: joined}
 ticks: 285
-hash: 24:d75a24be07d6c1751672cc194fc8b06364e007400b665e723a89ecc785a583e5
+hash: 25:37847f486b77429e8d4f497d2ddd461378b7b5fe2b22b3f573ed9bc6252a618d

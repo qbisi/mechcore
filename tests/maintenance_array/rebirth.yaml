@@ -13,16 +13,16 @@ blue:
   techs:
     typhoon: [field_reassembly, maintenance_array]
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -40}, exp: 0/466/1950}
-  - {name: rhino, index: 1, position: {x: -55, y: -95}, level: 4, exp: 0/466/5164}
-  - {name: rhino, index: 2, position: {x: 65, y: -95}, level: 4, exp: 0/466/5164}
-  - {name: rhino, index: 3, position: {x: -15, y: -95}, level: 4}
-  - {name: rhino, index: 4, position: {x: 25, y: -95}, level: 4, exp: 0/466/5164}
-  - {name: rhino, index: 5, position: {x: -95, y: -95}, level: 4, exp: 0/466/5164}
-  - {name: rhino, index: 6, position: {x: 105, y: -95}, level: 4, exp: 0/3266/5164}
+  - {name: typhoon, index: 0, position: {x: 0, y: -40}, exp: 0/466/1950, source: joined}
+  - {name: rhino, index: 1, position: {x: -55, y: -95}, level: 4, exp: 0/466/5164, source: joined}
+  - {name: rhino, index: 2, position: {x: 65, y: -95}, level: 4, exp: 0/466/5164, source: joined}
+  - {name: rhino, index: 3, position: {x: -15, y: -95}, level: 4, source: joined}
+  - {name: rhino, index: 4, position: {x: 25, y: -95}, level: 4, exp: 0/466/5164, source: joined}
+  - {name: rhino, index: 5, position: {x: -95, y: -95}, level: 4, exp: 0/466/5164, source: joined}
+  - {name: rhino, index: 6, position: {x: 105, y: -95}, level: 4, exp: 0/3266/5164, source: joined}
 red:
   core_damage: 1062
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -40}, level: 4, exp: 0/3400/7184}
+  - {name: fortress, index: 0, position: {x: 0, y: -40}, level: 4, exp: 0/3400/7184, source: joined}
 ticks: 268
-hash: 24:36aa571b92b69a1c9391881b117cecda96f6928ba4469cc0c78387daacc8fbee
+hash: 25:822bbd05ea8ffca7e168c48aef4470066a4646ea24249a77892f1d0aec34a229

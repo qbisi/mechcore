@@ -11,11 +11,11 @@ blue:
   core_damage: 400
   tower_strengthen_levels: [0, 4]
   units:
-  - {name: fang, index: 0, position: {x: 5, y: -300}}
+  - {name: fang, index: 0, position: {x: 5, y: -300}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/314/1000}
-  - {name: steel_ball, index: 1, position: {x: -145, y: -20}, exp: 0/302/1000}
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/314/1000, source: joined}
+  - {name: steel_ball, index: 1, position: {x: -145, y: -20}, exp: 0/302/1000, source: joined}
 ticks: 641
-hash: 24:968779b15cd29fbd9f2d5bb1795c3ee32e53947d4e73ce782e041d487fbb0a6f
+hash: 25:827760dd16c7b43468606b492aaeac439aec0f96cfc594ac780c0503988939ad

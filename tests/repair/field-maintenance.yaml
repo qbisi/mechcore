@@ -13,10 +13,10 @@ blue:
   techs:
     rhino: [field_maintenance]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150, source: joined}
 red:
   core_damage: 200
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
 ticks: 212
-hash: 24:f1a92c44aacb77f4b484909904c50c8d095c4caa4de7b90668b02b6056221db7
+hash: 25:8c8206dfaf0e285b4156c427b38bb58e40fc271d40109a813610eb6e5d08dbf5

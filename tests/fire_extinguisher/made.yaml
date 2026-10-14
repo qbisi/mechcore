@@ -13,12 +13,12 @@ blue:
     hound: [fire_extinguisher]
     centurion: [summon_hounds]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -55}}
+  - {name: centurion, index: 0, position: {x: 5, y: -55}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -150}, exp: 0/680/1600}
+  - {name: fortress, index: 0, position: {x: 0, y: -150}, exp: 0/680/1600, source: joined}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
 ticks: 271
-hash: 24:28dbb9ecbe82d9c3bd23cfeb52fe048eb679359fcd55e070b592786c2b2f0828
+hash: 25:1e17d5c2a8d8b9c6e536b342c95b95372d886fb02711a814122a2edf0aefdcfc

@@ -13,12 +13,12 @@ blue:
   techs:
     vulcan: [ignite]
   units:
-  - {name: vulcan, index: 0, position: {x: 0, y: -100}}
+  - {name: vulcan, index: 0, position: {x: 0, y: -100}, source: joined}
 red:
   core_damage: 0
   techs:
     war_factory: [photon_coating]
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -95}, exp: 0/800/3200}
+  - {name: war_factory, index: 0, position: {x: 5, y: -95}, exp: 0/800/3200, source: joined}
 ticks: 181
-hash: 24:e2512a1df34cb1ce0568870aa65d9952b09057a520f5deefbf4180ea38095a7a
+hash: 25:b03bc0713a03e90db19b2d81fafc83d30ecf2b3255df4b2820fbfda6ccfff5aa

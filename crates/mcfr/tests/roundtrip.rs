@@ -36,7 +36,7 @@ fn writes_and_reads_every_table() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.24.0");
+    assert_eq!(MCFR_FORMAT, "0.25.0");
     assert_eq!(reader.producer(), Producer::Game);
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
@@ -258,7 +258,7 @@ fn the_result_hash_is_golden() {
     let hashes = hash_tick(&context(), state(75), &damage_events());
     assert_eq!(
         hashes.result_hash,
-        "3f1a960d418ef8b51c3c9a22adf4a4db0adaebecc1f0f29a5c4b1801e0e701d0"
+        "f03bcbc31deb44b36541017c88abfca0a062b2ce085650c94df9fa174c22c677"
     );
 }
 
@@ -1124,6 +1124,7 @@ fn state(enemy_life: i32) -> WorldSnapshot {
 fn unit(id: u64, team: u32, x: i64, life: i32, with_secondary: bool) -> LiveUnitState {
     let skill_count: u16 = if with_secondary { 2 } else { 1 };
     LiveUnitState {
+        production_lines: Vec::new(),
         unit_id: id,
         team_id: team,
         original_team_id: team,
@@ -1295,4 +1296,41 @@ fn settlement_uses_the_same_renumbered_formations_as_the_timeline() {
     assert_eq!(settlement.formations[0].team_id, 0);
     assert_eq!(settlement.formations[0].experience, 70_i64 << 32);
     settlement.validate().unwrap();
+}
+
+#[test]
+fn production_clock_roundtrip_and_hash_witness() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("production.mcfr");
+    let mut snapshot = state(100);
+    snapshot.live_units[0].production_lines = vec![mechcore_mcfr::ProductionLineState {
+        interval_time_counter: 219,
+        source_id: 1_306_002,
+    }];
+    write_fight(
+        &path,
+        "build-a",
+        &context(),
+        snapshot.clone(),
+        snapshot.clone(),
+        &TransitionEvents { events: Vec::new() },
+    );
+    assert_eq!(McfrReader::open(&path).unwrap().state(1).unwrap(), snapshot);
+    let original = hash_tick(
+        &context(),
+        snapshot.clone(),
+        &TransitionEvents { events: Vec::new() },
+    );
+    snapshot.live_units[0].production_lines[0].interval_time_counter += 1;
+    assert_ne!(
+        original,
+        hash_tick(
+            &context(),
+            snapshot.clone(),
+            &TransitionEvents { events: Vec::new() }
+        )
+    );
+    let duplicate = snapshot.live_units[0].production_lines[0].clone();
+    snapshot.live_units[0].production_lines.push(duplicate);
+    assert!(snapshot.object_keys().is_err());
 }

@@ -21,15 +21,15 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 290, y: -300}, exp: 0/650/650}
+  - {name: marksman, index: 0, position: {x: 290, y: -300}, exp: 0/650/650, source: joined}
   constructions:
   - {name: anti_armor_turret, index: 2, position: {x: -140, y: -100}}
 red:
   core_damage: 100
   units:
-  - {name: arclight, index: 0, position: {x: 140, y: -100}}
-  - {name: arclight, index: 1, position: {x: 140, y: -140}}
-  - {name: arclight, index: 2, position: {x: 140, y: -220}}
-  - {name: arclight, index: 3, position: {x: 140, y: -260}}
+  - {name: arclight, index: 0, position: {x: 140, y: -100}, source: joined}
+  - {name: arclight, index: 1, position: {x: 140, y: -140}, source: joined}
+  - {name: arclight, index: 2, position: {x: 140, y: -220}, source: joined}
+  - {name: arclight, index: 3, position: {x: 140, y: -260}, source: joined}
 ticks: 836
-hash: 24:f435e294c83620b6af7971b2d343ccba0a9a899381b6cfb911e744a3aedde35c
+hash: 25:bf695af01dfcef201f9103999b1c4f72cd06c7a22e016a4999263541ad474b06

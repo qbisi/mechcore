@@ -480,6 +480,42 @@ impl Simulation {
         }
     }
 
+    /// The `SupportUnitCreator.intervalTimeCounter` of the unit's permanent lines.
+    pub(in crate::fight) fn production_line_states(
+        &self,
+        unit_id: u64,
+    ) -> Vec<mechcore_mcfr::ProductionLineState> {
+        let mut lines = self
+            .support
+            .lines
+            .iter()
+            .filter(|creator| creator.owner == Some(unit_id))
+            .map(|creator| mechcore_mcfr::ProductionLineState {
+                // A gated line's ISupportDataSource is FightSupportSkill;
+                // GetID returns the skill id, not its provider technology id.
+                source_id: if creator.gate == Gate::None {
+                    creator.source_id.expect("a permanent line has a source")
+                } else {
+                    self.actors[&unit_id]
+                        .skills
+                        .extras
+                        .iter()
+                        .find(|extra| {
+                            Some(extra.rules.technology) == creator.technology
+                                && extra.skill.kind == SkillKind::Support
+                        })
+                        .expect("a gated line has its owner's support skill")
+                        .rules
+                        .skill
+                },
+                interval_time_counter: i32::try_from(creator.counter)
+                    .expect("the fight clock fits a native counter"),
+            })
+            .collect::<Vec<_>>();
+        lines.sort_by_key(|line| line.source_id);
+        lines
+    }
+
     /// `aliveMechCount`: a creator's makes still appearing or alive.
     fn creator_alive(&self, creator: &Creator) -> usize {
         let appearing = |id: u64| {

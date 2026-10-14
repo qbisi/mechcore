@@ -12,11 +12,11 @@ blue:
   techs:
     wasp: [high_explosive_ammo]
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/384/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/384/900, source: joined}
 red:
   core_damage: 204
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}}
-  - {name: crawler, index: 1, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, source: joined}
+  - {name: crawler, index: 1, position: {x: 5, y: -100}, source: joined}
 ticks: 404
-hash: 24:7e8b4d1c674d3961799c9ebedfb8df64c63e762492c29ae24edf70efff3a3c8f
+hash: 25:64b924eac8c452629654a9f7571dcc7f7e0ebd82e9ae82b902eb58592107acc1

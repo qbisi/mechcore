@@ -13,11 +13,11 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/400/1600, equipment: [tank_production_line]}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/400/1600, equipment: [tank_production_line], source: joined}
 red:
   core_damage: 380
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -100}}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/80/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -100}, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/80/650, source: joined}
 ticks: 298
-hash: 24:4e8bcbd8bb4179976f4e2f96f95160a21d6ee8323769e41e544577c1d9a18509
+hash: 25:ffc865b90c9d02913873b99f787005bf36baf2befd7a3c8723fd4722692cb80e

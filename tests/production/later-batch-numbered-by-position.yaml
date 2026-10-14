@@ -14,28 +14,21 @@ round: 1
 blue:
   core_damage: 363
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 0/12/650}
-  - {name: marksman, index: 1, position: {x: 120, y: -280}, exp: 0/12/650}
-  - {name: arclight, index: 2, position: {x: 60, y: -200}, exp: 0/12/750}
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 0/12/650, source: joined}
+  - {name: marksman, index: 1, position: {x: 120, y: -280}, exp: 0/12/650, source: joined}
+  - {name: arclight, index: 2, position: {x: 60, y: -200}, exp: 0/12/750, source: joined}
 red:
   core_damage: 0
   techs:
     fortress: [fang_production]
   units:
-  - {name: fortress, index: 0, position: {x: 80, y: -60}, exp: 0/800/1600}
-asserts:
-- sql: |
-    SELECT object__id
-    FROM events
-    WHERE
-      type = 'unit_created'
-      AND tick = 721
-    ORDER BY
-      ordinal
-    LIMIT 3;
-  rows:
-  - [18]
-  - [13]
-  - [20]
+  - {name: fortress, index: 0, position: {x: 80, y: -60}, exp: 0/800/1600, source: joined}
 ticks: 888
-hash: 24:d4a7069d3300fc5f5a1826793b2c930d1671094c6dd14cc24bebfd53b811cc93
+hash: 25:5e437b6c16a692d801ba0b2db0f41c5f03384209d55ccfc60f1b2fb1d45eb375
+asserts:
+- sql: "SELECT object__id\nFROM events\nWHERE\n  type = 'unit_created'\n  AND tick\
+    \ = 721\nORDER BY\n  ordinal\nLIMIT 3;\n"
+  rows:
+  - - 18
+  - - 13
+  - - 20

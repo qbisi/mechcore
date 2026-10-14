@@ -17,22 +17,20 @@ round: 1
 blue:
   core_damage: 500
   units:
-  - {name: marksman, index: 0, position: {x: -250, y: -280}, exp: 0/200/650}
+  - {name: marksman, index: 0, position: {x: -250, y: -280}, exp: 0/200/650, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
   core_damage: 0
   units:
-  - {name: mountain, index: 0, position: {x: -155, y: -45}, exp: 0/636/3200}
-asserts:
-- sql: |
-    SELECT tick, round(q32(turret_rotation), 2)
-    FROM units
-    WHERE
-      unit_type_id = 2002
-      AND tick IN (1, 2);
-  rows:
-  - [1, 184.21]
-  - [2, 182.03]
+  - {name: mountain, index: 0, position: {x: -155, y: -45}, exp: 0/636/3200, source: joined}
 ticks: 1236
-hash: 24:72f888e2eb1e682fb603947c40dfab8a771934af8002674f64c6d4183f9b84bf
+hash: 25:c169c36f8e00df8aa674e4343a6bccac50fd0da85970bae5310c33adc1c376f1
+asserts:
+- sql: "SELECT tick, round(q32(turret_rotation), 2)\nFROM units\nWHERE\n  unit_type_id\
+    \ = 2002\n  AND tick IN (1, 2);\n"
+  rows:
+  - - 1
+    - 184.21
+  - - 2
+    - 182.03

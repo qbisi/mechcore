@@ -11,10 +11,10 @@ blue:
   techs:
     abyss: [vertical_sweep]
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -105}, exp: 0/400/4800}
+  - {name: abyss, index: 0, position: {x: 5, y: -105}, exp: 0/400/4800, source: joined}
 red:
   core_damage: 500
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -105}}
+  - {name: rhino, index: 0, position: {x: 5, y: -105}, source: joined}
 ticks: 170
-hash: 24:f776df6cce9adb6a2c512bfbb15c83e039bdf0f80aee5dc53c55d0aaf41f3bdc
+hash: 25:deae0868e5c9cee61c0802879f83e27db71685a3f90505f649b10f60a8cf72a9

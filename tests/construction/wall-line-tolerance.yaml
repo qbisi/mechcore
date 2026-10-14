@@ -36,15 +36,15 @@ round: 1
 blue:
   core_damage: 300
   units:
-  - {name: marksman, index: 0, position: {x: -90, y: -90}}
+  - {name: marksman, index: 0, position: {x: -90, y: -90}, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 200, y: -20}, exp: 0/12/650}
-  - {name: marksman, index: 1, position: {x: 160, y: -20}}
-  - {name: marksman, index: 2, position: {x: 140, y: -20}, exp: 0/12/650}
-  - {name: marksman, index: 3, position: {x: 120, y: -20}, exp: 0/200/650}
+  - {name: marksman, index: 0, position: {x: 200, y: -20}, exp: 0/12/650, source: joined}
+  - {name: marksman, index: 1, position: {x: 160, y: -20}, source: joined}
+  - {name: marksman, index: 2, position: {x: 140, y: -20}, exp: 0/12/650, source: joined}
+  - {name: marksman, index: 3, position: {x: 120, y: -20}, exp: 0/200/650, source: joined}
 ticks: 19
-hash: 24:f8a9197298c24df85e1f62e11e42dfaaea727e5f9c5e71bc4f09ab21cbfaac22
+hash: 25:2d35f23efd01909ac4fb622a34c568d979bf47e15b043fe35c7a9794c0030fe8

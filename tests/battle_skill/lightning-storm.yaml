@@ -14,18 +14,18 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: fortress, index: 0, position: {x: -60, y: -160}, exp: 0/940/1600}
-  - {name: fortress, index: 1, position: {x: 60, y: -160}, exp: 0/836/1600}
+  - {name: fortress, index: 0, position: {x: -60, y: -160}, exp: 0/940/1600, source: joined}
+  - {name: fortress, index: 1, position: {x: 60, y: -160}, exp: 0/836/1600, source: joined}
   battle_skills:
   - {name: lightning_storm, positions: [{x: 0, y: -20}]}
 red:
   core_damage: 700
   units:
-  - {name: sledgehammer, index: 0, position: {x: -45, y: -60}}
-  - {name: sledgehammer, index: 1, position: {x: 5, y: -60}}
-  - {name: sledgehammer, index: 2, position: {x: 55, y: -60}}
-  - {name: crawler, index: 3, position: {x: 5, y: -110}}
-  - {name: crawler, index: 4, position: {x: -55, y: -110}}
-  - {name: crawler, index: 5, position: {x: 65, y: -110}}
+  - {name: sledgehammer, index: 0, position: {x: -45, y: -60}, source: joined}
+  - {name: sledgehammer, index: 1, position: {x: 5, y: -60}, source: joined}
+  - {name: sledgehammer, index: 2, position: {x: 55, y: -60}, source: joined}
+  - {name: crawler, index: 3, position: {x: 5, y: -110}, source: joined}
+  - {name: crawler, index: 4, position: {x: -55, y: -110}, source: joined}
+  - {name: crawler, index: 5, position: {x: 65, y: -110}, source: joined}
 ticks: 440
-hash: 24:a279a49055748bedda41e625ad7aee74f91ab9d6f4016694d6e79b37673ec64c
+hash: 25:4db4a310a39617815d579b5f8da071958118cfa4398f9c33167b3ec53d4a466a

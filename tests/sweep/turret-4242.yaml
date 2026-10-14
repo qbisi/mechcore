@@ -9,12 +9,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: abyss, index: 0, position: {x: 135, y: -105}, exp: 0/712/4800}
+  - {name: abyss, index: 0, position: {x: 135, y: -105}, exp: 0/712/4800, source: joined}
 red:
   core_damage: 500
   units:
-  - {name: crawler, index: 0, position: {x: 145, y: -120}, exp: 0/400/450}
+  - {name: crawler, index: 0, position: {x: 145, y: -120}, exp: 0/400/450, source: joined}
   constructions:
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
 ticks: 1515
-hash: 24:6767d3a33716a98994954f8781de4cc7075a527a4ec7f9558939ebfbf2b421ce
+hash: 25:91046230970264476512220125f55e0ce45a43219e6f656c848d41765df68045

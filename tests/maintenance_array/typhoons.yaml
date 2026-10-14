@@ -14,14 +14,14 @@ blue:
   techs:
     typhoon: [maintenance_array]
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -100}, level: 4, exp: 0/273/8756}
-  - {name: rhino, index: 1, position: {x: -55, y: -95}, level: 4, exp: 0/517/5164}
-  - {name: rhino, index: 2, position: {x: 65, y: -95}, level: 4, exp: 0/100/5164}
-  - {name: wasp, index: 3, position: {x: 5, y: -130}, exp: 0/101/900}
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, level: 4, exp: 0/273/8756, source: joined}
+  - {name: rhino, index: 1, position: {x: -55, y: -95}, level: 4, exp: 0/517/5164, source: joined}
+  - {name: rhino, index: 2, position: {x: 65, y: -95}, level: 4, exp: 0/100/5164, source: joined}
+  - {name: wasp, index: 3, position: {x: 5, y: -130}, exp: 0/101/900, source: joined}
 red:
   core_damage: 854
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -150}}
-  - {name: crawler, index: 1, position: {x: 5, y: -60}}
+  - {name: fortress, index: 0, position: {x: 0, y: -150}, source: joined}
+  - {name: crawler, index: 1, position: {x: 5, y: -60}, source: joined}
 ticks: 283
-hash: 24:cd3e548d0f65fee4c73383b04d568fff7d6c7ca00359e08af9e6845667d0678e
+hash: 25:48ea5c77cbc062c95e4ad66c16e473b788a049ce2ab21efff7b8e7053e34bfe0

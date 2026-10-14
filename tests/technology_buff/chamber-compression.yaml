@@ -16,10 +16,10 @@ blue:
   techs:
     hound: [chamber_compression]
   units:
-  - {name: hound, index: 0, position: {x: 0, y: -150}}
+  - {name: hound, index: 0, position: {x: 0, y: -150}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/200/1150, source: joined}
 ticks: 323
-hash: 24:1bf77fa06a971db9df6f37d63ed8ee9fa0776385b0c0de13b6e44281ed3636c6
+hash: 25:9e9829b18d4728087fc959c093ae4321bc7462ec38008c21d2234e6158e6b1b2

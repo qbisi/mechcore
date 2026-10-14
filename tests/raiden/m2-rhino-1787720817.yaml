@@ -8,12 +8,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: raiden, index: 0, position: {x: 0, y: -200}, exp: 0/66/2400}
-  - {name: raiden, index: 1, position: {x: 0, y: -150}, exp: 0/66/2400}
-  - {name: raiden, index: 2, position: {x: 0, y: -100}, exp: 0/266/2400}
+  - {name: raiden, index: 0, position: {x: 0, y: -200}, exp: 0/66/2400, source: joined}
+  - {name: raiden, index: 1, position: {x: 0, y: -150}, exp: 0/66/2400, source: joined}
+  - {name: raiden, index: 2, position: {x: 0, y: -100}, exp: 0/266/2400, source: joined}
 red:
   core_damage: 1050
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
 ticks: 155
-hash: 24:088a0cda680e73c38988fe7a4590994837de6edd9ae26a4fdb542ef4cb3f5a9f
+hash: 25:774a30a1e28825bbf5da1edf2e6076bd2307b23c79c1e4f2d02644671536cb82

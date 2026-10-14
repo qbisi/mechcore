@@ -16,8 +16,8 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: void_eye, index: 0, position: {x: 340, y: 110}, exp: 0/50/650, equipment: [small_amplifying_core], travelling: true}
-  - {name: centurion, index: 1, position: {x: 205, y: -65}, level: 9, exp: 0/150/15137}
+  - {name: void_eye, index: 0, position: {x: 340, y: 110}, exp: 0/50/650, equipment: [small_amplifying_core], travelling: true, source: joined}
+  - {name: centurion, index: 1, position: {x: 205, y: -65}, level: 9, exp: 0/150/15137, source: joined}
   battle_skills:
   - {name: ion_blast, positions: [{x: 80, y: -90}, {x: -220, y: -270}]}
 red:
@@ -29,7 +29,7 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sandworm, index: 0, position: {x: -340, y: 210}, level: 5, exp: 0/5498/10421, rotated: true, equipment: [barrier], travelling: true}
+  - {name: sandworm, index: 0, position: {x: -340, y: 210}, level: 5, exp: 0/5498/10421, rotated: true, equipment: [barrier], travelling: true, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -175, y: -150}, retained: false}
   battle_skills:
@@ -55,4 +55,4 @@ asserts:
   - [988, 5, idle, null, null]
   - [989, 5, idle, null, 1]
 ticks: 1071
-hash: 24:9dd4fcd74c1de0ad8a12abae651982c5ad2024b02d32942323c64935a58ad736
+hash: 25:88b838f53f84894ac2141ec6fa29a7c9300a4afc39430501ef3edef2a19ffca9

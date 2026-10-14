@@ -18,11 +18,11 @@ blue:
   techs:
     sabertooth: [field_entrenchment]
   units:
-  - {name: sabertooth, index: 0, position: {x: 5, y: -35}, exp: 0/600/1300}
+  - {name: sabertooth, index: 0, position: {x: 5, y: -35}, exp: 0/600/1300, source: joined}
 red:
   core_damage: 200
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -20}}
-  - {name: arclight, index: 1, position: {x: 280, y: -300}}
+  - {name: arclight, index: 0, position: {x: 0, y: -20}, source: joined}
+  - {name: arclight, index: 1, position: {x: 280, y: -300}, source: joined}
 ticks: 568
-hash: 24:1cab3d6a5f55e1a3a03f62df57e809358e692ea20fa68ce5aea9fe7cacb1fe0b
+hash: 25:aae6d9743d6e528d9b461abb79b3c4d36ceeb81de67ac5541592c91ce1b57b5a

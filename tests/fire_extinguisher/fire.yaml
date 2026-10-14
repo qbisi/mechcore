@@ -14,12 +14,12 @@ blue:
   techs:
     hound: [fire_extinguisher]
   units:
-  - {name: hound, index: 0, position: {x: 0, y: -60}}
+  - {name: hound, index: 0, position: {x: 0, y: -60}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -150}, exp: 0/200/1600}
+  - {name: fortress, index: 0, position: {x: 0, y: -150}, exp: 0/200/1600, source: joined}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
 ticks: 284
-hash: 24:af8b3d0a24b7b774ef8083df2b7cf2eca1a2eae9ce8ea599376c5899a408ee76
+hash: 25:0bbc2c8ec80cd1ddcf433c18bfc5b4b66167fdd1ef31a24e1cfcde2e2dc9174a

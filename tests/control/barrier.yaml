@@ -10,10 +10,10 @@ round: 1
 blue:
   core_damage: 350
   units:
-  - {name: hacker, index: 0, position: {x: -5, y: -105}}
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/400/1600, equipment: [barrier]}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/400/1600, equipment: [barrier], source: joined}
 ticks: 245
-hash: 24:2a0fa738aba0fb0aea34e08061356fbca964c24c245761947881ebebc356c612
+hash: 25:307c92ca2a42a64cf06ae3a6a83a4d7ae1e3420e1e435f1a3923a3671632d9e9

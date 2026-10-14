@@ -14,18 +14,20 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: -25, y: -90}, exp: 0/900/900}
+  - {name: wasp, index: 0, position: {x: -25, y: -90}, exp: 0/900/900, source: joined}
 red:
   core_damage: 204
   techs:
     crawler: [loose_formation]
   blueprints: [defense_enhancement_ii]
   units:
-  - {name: crawler, index: 0, position: {x: -135, y: -220}, level: 6, exp: 0/400/2609, equipment: [absorption_module]}
-asserts:
-- sql: |
-    SELECT DISTINCT life__maximum FROM units WHERE tick = 1 AND unit_type_id = 10;
-  rows:
-  - [1575]
+  - {name: crawler, index: 0, position: {x: -135, y: -220}, level: 6, exp: 0/400/2609, equipment: [absorption_module], source: joined}
 ticks: 1834
-hash: 24:850ae2c5dfa25b5b63909a8beb7b26416a982574bd179d7075a9386b224caa5e
+hash: 25:59c8458c0ce5b476640f4d7a6322ecc174921687edfbea9915e7c3cda28f420b
+asserts:
+- sql: 'SELECT DISTINCT life__maximum FROM units WHERE tick = 1 AND unit_type_id =
+    10;
+
+    '
+  rows:
+  - - 1575

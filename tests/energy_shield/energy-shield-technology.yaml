@@ -13,10 +13,10 @@ blue:
   techs:
     wasp: [energy_shield]
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/200/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/200/900, source: joined}
 red:
   core_damage: 187
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/34/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/34/650, source: joined}
 ticks: 194
-hash: 24:cad2deafea62955280a865f8e172c15c04dd5a08ebf0eea940d1701d3455892a
+hash: 25:030842009ee571b7957222780192855fb1f4bef9d6949ac9feb588adc1d79ee7

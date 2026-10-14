@@ -39,14 +39,12 @@ red:
   - {name: shield, index: 0, position: {x: -30, y: -150}}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: 10, y: 40}, {x: -300, y: -95}]}
-asserts:
-- sql: |
-    SELECT object__id, source__kind, source__id
-    FROM events
-    WHERE
-      type = 'unit_died'
-      AND object__id = 4;
-  rows:
-  - [4, unit, 1]
 ticks: 358
-hash: 24:7f6ec8f6e51aff9be80478c4b5103fadc01d407f384d2703c2a8c75221557b91
+hash: 25:299f449d4dbe5758bfeecd187b6b7e561bf5a6d8c7c7575085f34ec190fb4533
+asserts:
+- sql: "SELECT object__id, source__kind, source__id\nFROM events\nWHERE\n  type =\
+    \ 'unit_died'\n  AND object__id = 4;\n"
+  rows:
+  - - 4
+    - unit
+    - 1

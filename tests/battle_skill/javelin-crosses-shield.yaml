@@ -11,15 +11,15 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: fortress, index: 0, position: {x: 60, y: -150}, exp: 0/400/1600}
+  - {name: fortress, index: 0, position: {x: 60, y: -150}, exp: 0/400/1600, source: joined}
   battle_skills:
   - {name: orbital_javelin, positions: [{x: -1, y: 81}]}
 red:
   core_damage: 350
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -80}}
-  - {name: marksman, index: 1, position: {x: 60, y: -130}}
+  - {name: marksman, index: 0, position: {x: 0, y: -80}, source: joined}
+  - {name: marksman, index: 1, position: {x: 60, y: -130}, source: joined}
   contraptions:
   - {name: shield, index: 2, position: {x: 1, y: -81}}
 ticks: 395
-hash: 24:330d5b117101bce2942155a6c9efd3722ac1e3cd3819c05e4a699463e0eca44a
+hash: 25:5dd74a467bf763e0c35ca374a01bc854656b65f01e924dc5600c2fbb271c73d3

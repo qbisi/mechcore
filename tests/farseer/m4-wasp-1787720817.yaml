@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: farseer, index: 0, position: {x: -5, y: -105}, exp: 0/408/1800}
+  - {name: farseer, index: 0, position: {x: -5, y: -105}, exp: 0/408/1800, source: joined}
 red:
   core_damage: 250
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, source: joined}
 ticks: 150
-hash: 24:7ca3f24a93c24e7dfe81ffae46e841449493d967bd2af438fc64b894ab81cf6d
+hash: 25:0cb7b1de693d8bd59e3891dfc68415ca030f362cb2187c833c267790e0c08bbb

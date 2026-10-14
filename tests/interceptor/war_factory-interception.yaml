@@ -14,11 +14,11 @@ blue:
   techs:
     war_factory: [missile_interceptor]
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -125}, exp: 0/800/3200}
+  - {name: war_factory, index: 0, position: {x: 5, y: -125}, exp: 0/800/3200, source: joined}
 red:
   core_damage: 500
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -40}}
-  - {name: stormcaller, index: 1, position: {x: -55, y: -40}}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, source: joined}
+  - {name: stormcaller, index: 1, position: {x: -55, y: -40}, source: joined}
 ticks: 247
-hash: 24:6ea90bc664dcbf6978aad921a3908949ab6c22588da83fc9431c43857d520526
+hash: 25:0b5eae8c55a4e4c0b8ed11e4960c2b731092170df718d9d3b2ce8b1e56ecad71

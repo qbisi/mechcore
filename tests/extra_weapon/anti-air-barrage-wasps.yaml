@@ -17,12 +17,12 @@ blue:
   techs:
     fortress: [anti_air_barrage]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/1424/1600}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/1424/1600, source: joined}
 red:
   core_damage: 350
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}}
-  - {name: wasp, index: 2, position: {x: 5, y: -180}}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, source: joined}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, source: joined}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}, source: joined}
 ticks: 664
-hash: 24:e1a8ec16211d14623a8237a240880e31e58fea186f76af4ab414cbb22d78a4be
+hash: 25:a7f0ddb670c9d24791deefa88ed7657d5b8c8c516c96bf46feac537efe4b421a

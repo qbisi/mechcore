@@ -13,12 +13,12 @@ blue:
   techs:
     typhoon: [reactive_armor]
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/1224/1950}
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/1224/1950, source: joined}
 red:
   core_damage: 250
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}}
-  - {name: wasp, index: 2, position: {x: -55, y: -100}}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, source: joined}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, source: joined}
+  - {name: wasp, index: 2, position: {x: -55, y: -100}, source: joined}
 ticks: 340
-hash: 24:e77cf42dfb58476c27d3d5c759cf0830def4d1de2e0744538b623e3d6339a4d4
+hash: 25:edfc294cfbb27001bf6ca814c7d605004aa6f4f73e3e6fa21d41e61869e0f9ab

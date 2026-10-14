@@ -14,16 +14,16 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -150}, level: 4, exp: 0/318/8756}
-  - {name: rhino, index: 1, position: {x: -35, y: -125}, level: 4, exp: 0/227/5164}
-  - {name: rhino, index: 2, position: {x: 45, y: -125}, level: 4, exp: 0/613/5164}
-  - {name: wasp, index: 3, position: {x: 5, y: -180}, exp: 0/216/900}
+  - {name: typhoon, index: 0, position: {x: 0, y: -150}, level: 4, exp: 0/318/8756, source: joined}
+  - {name: rhino, index: 1, position: {x: -35, y: -125}, level: 4, exp: 0/227/5164, source: joined}
+  - {name: rhino, index: 2, position: {x: 45, y: -125}, level: 4, exp: 0/613/5164, source: joined}
+  - {name: wasp, index: 3, position: {x: 5, y: -180}, exp: 0/216/900, source: joined}
 red:
   core_damage: 854
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -180}}
-  - {name: crawler, index: 1, position: {x: 5, y: -40}}
-  - {name: crawler, index: 2, position: {x: -45, y: -40}}
-  - {name: crawler, index: 3, position: {x: 55, y: -40}}
+  - {name: fortress, index: 0, position: {x: 0, y: -180}, source: joined}
+  - {name: crawler, index: 1, position: {x: 5, y: -40}, source: joined}
+  - {name: crawler, index: 2, position: {x: -45, y: -40}, source: joined}
+  - {name: crawler, index: 3, position: {x: 55, y: -40}, source: joined}
 ticks: 385
-hash: 24:37e0edca9779d3647645470de8b7606f59bf5c682abbacb38f7de510809cc76c
+hash: 25:63ed49007c5cb069215e77bcb6beac7a7027fdc0edc4495fdc1c34c0aeb30049

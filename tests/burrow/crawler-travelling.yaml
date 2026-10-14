@@ -14,11 +14,11 @@ blue:
     crawler: [subterranean_blitz]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: crawler, index: 1, position: {x: -330, y: 45}, exp: 0/400/450, travelling: true}
+  - {name: crawler, index: 1, position: {x: -330, y: 45}, exp: 0/400/450, travelling: true, source: joined}
 red:
   core_damage: 84
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
   - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/24/650}
 ticks: 763
-hash: 24:6ba5055b90352ddd11ff790efaa2c67bb67e1572d2082bf6922f6ac4df946695
+hash: 25:58ec726aef171697ff5a4265083306bab2eee945d1d038c4cac8ab39b1684b1c

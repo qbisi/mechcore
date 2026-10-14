@@ -16,13 +16,13 @@ blue:
   techs:
     raiden: [ionization]
   units:
-  - {name: raiden, index: 0, position: {x: 0, y: -170}, exp: 0/836/2400}
+  - {name: raiden, index: 0, position: {x: 0, y: -170}, exp: 0/836/2400, source: joined}
 red:
   core_damage: 0
   techs:
     fang: [portable_shield]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -50}, exp: 0/200/1600}
-  - {name: fang, index: 1, position: {x: 45, y: -60}, exp: 0/600/600}
+  - {name: fortress, index: 0, position: {x: 0, y: -50}, exp: 0/200/1600, source: joined}
+  - {name: fang, index: 1, position: {x: 45, y: -60}, exp: 0/600/600, source: joined}
 ticks: 728
-hash: 24:ffd329dc5abc1e8f6db43540ffd38ef30b658b983c1ec8827cab5aaa5cdb1cf8
+hash: 25:deaa91936634e13c67e661736de3e8be7744114c27a263cc752e65f2c44d2892

@@ -12,12 +12,12 @@ blue:
   techs:
     hacker: [barrier]
   units:
-  - {name: hacker, index: 0, position: {x: -5, y: -105}, level: 2, exp: 0/50/1262}
-  - {name: marksman, index: 1, position: {x: 30, y: -110}, exp: 0/350/650}
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, level: 2, exp: 0/50/1262, source: joined}
+  - {name: marksman, index: 1, position: {x: 30, y: -110}, exp: 0/350/650, source: joined}
 red:
   core_damage: 300
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -100}}
-  - {name: marksman, index: 1, position: {x: 30, y: -100}}
+  - {name: marksman, index: 0, position: {x: 0, y: -100}, source: joined}
+  - {name: marksman, index: 1, position: {x: 30, y: -100}, source: joined}
 ticks: 219
-hash: 24:ee48432811cde2f5822fa3c03f32d5817c0d27fa2e0eaa7f7a2badd469e11c1b
+hash: 25:d2d69979c771ec14fc2aa34de51488ea9211a5272f5e671eb251924aa0cb337e

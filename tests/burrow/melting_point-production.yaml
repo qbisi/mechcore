@@ -13,11 +13,11 @@ blue:
     melting_point: [crawler_production]
     crawler: [subterranean_blitz]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -150}, exp: 0/600/1400}
+  - {name: melting_point, index: 0, position: {x: 0, y: -150}, exp: 0/600/1400, source: joined}
 red:
   core_damage: 350
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/42/1150}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/22/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/42/1150, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/22/650, source: joined}
 ticks: 444
-hash: 24:6e88a13edc8e04f3fa490532ba6a591a0911e7422f2c0eea1f65377c8765b3d3
+hash: 25:2205452ede664fbd8e313fb1b6a540fc8d13fbcacb351aad8571f9ff6404774f

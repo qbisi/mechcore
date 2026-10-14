@@ -13,11 +13,11 @@ blue:
     steel_ball: [mechanical_division]
     crawler: [loose_formation]
   units:
-  - {name: steel_ball, index: 0, position: {x: 5, y: -140}, exp: 0/600/1000}
+  - {name: steel_ball, index: 0, position: {x: 5, y: -140}, exp: 0/600/1000, source: joined}
 red:
   core_damage: 105
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/132/1150}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/108/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/132/1150, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/108/650, source: joined}
 ticks: 372
-hash: 24:619dbd58de6ea8ff776b3ee8a0b2ac51875168865f17481227d571fa2ab78e13
+hash: 25:9ce9a07b797e6f5a6e80091ebaa0960a44ff560581efdcb39952f67b0a8ecea4

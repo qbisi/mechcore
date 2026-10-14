@@ -17,13 +17,13 @@ blue:
   techs:
     melting_point: [electromagnetic_barrage]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -50}}
+  - {name: melting_point, index: 0, position: {x: 0, y: -50}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -45}, exp: 0/800/4800}
-  - {name: crawler, index: 1, position: {x: 125, y: -90}}
+  - {name: abyss, index: 0, position: {x: 5, y: -45}, exp: 0/800/4800, source: joined}
+  - {name: crawler, index: 1, position: {x: 125, y: -90}, source: joined}
   contraptions:
   - {name: shield, index: 2, position: {x: 125, y: -85}, retained: false}
 ticks: 107
-hash: 24:fe20bc2a4d86220cbbe102420a24360cd26d35423a7d8259121fe182753595ee
+hash: 25:22d1f77f6026917e01fc0434fe25f4b408a5588d914c8274d69ec9d04984aece

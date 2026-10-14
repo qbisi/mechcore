@@ -14,11 +14,11 @@ blue:
   techs:
     marksman: [aerial_specialization]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -100}}
+  - {name: marksman, index: 0, position: {x: 0, y: -100}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: overlord, index: 0, position: {x: -35, y: -75}, exp: 0/200/1750}
-  - {name: mountain, index: 1, position: {x: 35, y: -85}}
+  - {name: overlord, index: 0, position: {x: -35, y: -75}, exp: 0/200/1750, source: joined}
+  - {name: mountain, index: 1, position: {x: 35, y: -85}, source: joined}
 ticks: 119
-hash: 24:a9385b9f2e87caed7b64541628c43e91b73ed71891ea7e7fbd0e9acc206be3d8
+hash: 25:f75b58acf116ad3dafd2a988067abdef4eb9104c0b873b254b83dcea77db31c5

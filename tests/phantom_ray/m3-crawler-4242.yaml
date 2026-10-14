@@ -8,12 +8,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: phantom_ray, index: 0, position: {x: -5, y: -180}, exp: 0/41/1000}
-  - {name: phantom_ray, index: 1, position: {x: -5, y: -140}, exp: 0/63/1000}
-  - {name: phantom_ray, index: 2, position: {x: -5, y: -100}, exp: 0/87/1000}
+  - {name: phantom_ray, index: 0, position: {x: -5, y: -180}, exp: 0/41/1000, source: joined}
+  - {name: phantom_ray, index: 1, position: {x: -5, y: -140}, exp: 0/63/1000, source: joined}
+  - {name: phantom_ray, index: 2, position: {x: -5, y: -100}, exp: 0/87/1000, source: joined}
 red:
   core_damage: 603
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
 ticks: 181
-hash: 24:e651654f418490cb6d1e219c9c3dffbe3cf71dcc0a1e6075ebe74fe7873f45c8
+hash: 25:3d90367c2fa388fde6dda4c88aa08fb4e69543860526d7d1ed8982ce77b8e422

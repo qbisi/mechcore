@@ -42,19 +42,15 @@ red:
   - {name: missile, index: 0, position: {x: 165, y: -70}, retained: false}
   battle_skills:
   - {name: shield_airdrop, positions: [{x: -135, y: -215}]}
-asserts:
-- sql: |
-    SELECT tick, source__id, skill_slot, target__id, amount
-    FROM events
-    WHERE
-      type = 'damage'
-      AND source__kind = 'unit'
-      AND source__id = 2
-      AND target__kind = 'building'
-      AND tick = 6
-    ORDER BY
-      ordinal;
-  rows:
-  - [6, 2, 0, 9, 1112]
 ticks: 1004
-hash: 24:5eedc85fe12d5f0be559df5bedcfdfa0f09603b37c3119acc0ece81981b0af25
+hash: 25:f4dcaa43b0a1b615b7e1c75069c55846ef56dcd86653d0984f268b5375346872
+asserts:
+- sql: "SELECT tick, source__id, skill_slot, target__id, amount\nFROM events\nWHERE\n\
+    \  type = 'damage'\n  AND source__kind = 'unit'\n  AND source__id = 2\n  AND target__kind\
+    \ = 'building'\n  AND tick = 6\nORDER BY\n  ordinal;\n"
+  rows:
+  - - 6
+    - 2
+    - 0
+    - 9
+    - 1112

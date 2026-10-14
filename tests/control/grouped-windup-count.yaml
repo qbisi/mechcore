@@ -33,4 +33,4 @@ red:
   battle_skills:
   - {name: vulcans_descent, positions: [{x: -135, y: -75}]}
 ticks: 1641
-hash: 24:9560f8c6e808c95787d2339b1cb9a798cbb5fe08f1fda40ac6d4bc8416e90325
+hash: 25:4837e43c50cb55c419b3ce978027da23882875ae48e1341de8daa6c4cf7842a6

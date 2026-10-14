@@ -15,13 +15,13 @@ blue:
     fortress: [barrier]
     hound: [fire_extinguisher]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -60}, exp: 0/600/1600}
-  - {name: hound, index: 1, position: {x: 0, y: -110}, exp: 0/200/750}
+  - {name: fortress, index: 0, position: {x: 0, y: -60}, exp: 0/600/1600, source: joined}
+  - {name: hound, index: 1, position: {x: 0, y: -110}, exp: 0/200/750, source: joined}
 red:
   core_damage: 450
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -150}}
+  - {name: fortress, index: 0, position: {x: 0, y: -150}, source: joined}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
 ticks: 440
-hash: 24:bd56e5ae3a20a906df66686eff935795e05b40e62e3729cfb116497ea70ea113
+hash: 25:3a537df588ef4cea1988d28a9b2ebb657910097b45d005a3537d79a1afdb0d95

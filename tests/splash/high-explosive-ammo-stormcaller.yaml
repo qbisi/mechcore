@@ -12,11 +12,11 @@ blue:
   techs:
     stormcaller: [high_explosive_ammo]
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -100}, exp: 0/216/1100}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -100}, exp: 0/216/1100, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/400/450}
-  - {name: crawler, index: 1, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/400/450, source: joined}
+  - {name: crawler, index: 1, position: {x: 5, y: -100}, source: joined}
 ticks: 285
-hash: 24:a81047fa764e0fc8d33e9dc810ab3c882478d516bf5fec2228a226a581023365
+hash: 25:9490ab278ae09390b5c2e8e2ff700afff7ff7d7c19ac594289b400b1b4a1d3e1

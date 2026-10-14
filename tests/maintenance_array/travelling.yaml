@@ -13,11 +13,11 @@ blue:
     typhoon: [maintenance_array]
   units:
   - {name: rhino, index: 0, position: {x: -275, y: -35}, level: 4, exp: 0/962/5164}
-  - {name: typhoon, index: 1, position: {x: -310, y: 40}, level: 4, exp: 0/230/8756, travelling: true}
+  - {name: typhoon, index: 1, position: {x: -310, y: 40}, level: 4, exp: 0/230/8756, travelling: true, source: joined}
 red:
   core_damage: 450
   units:
   - {name: fortress, index: 0, position: {x: 0, y: -150}}
   - {name: crawler, index: 1, position: {x: 255, y: -30}}
 ticks: 763
-hash: 24:cf516afe650de87d83e00a66b5f78126a16a539d475a87daa54a2d14f1f5f6e8
+hash: 25:3042815b92c7ea4d2939ccda6a3fb2cd268b223e3f9c3a51b60998baec260f0f

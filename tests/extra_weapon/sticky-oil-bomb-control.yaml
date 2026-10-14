@@ -8,11 +8,11 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: phantom_ray, index: 0, position: {x: 5, y: -50}, exp: 0/800/1000}
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -50}, exp: 0/800/1000, source: joined}
 red:
   core_damage: 201
   units:
-  - {name: rhino, index: 0, position: {x: -45, y: -95}, exp: 0/200/1150}
-  - {name: rhino, index: 1, position: {x: 45, y: -95}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: -45, y: -95}, exp: 0/200/1150, source: joined}
+  - {name: rhino, index: 1, position: {x: 45, y: -95}, exp: 0/200/1150, source: joined}
 ticks: 942
-hash: 24:588bd9cb0cc1bf929fbca87df0b2e970374bc640033502e17de461b6b1123efe
+hash: 25:e40e58104ce34b3e62ebc11e488998b7930076a2c1846e29cf5d6e2f1138df67

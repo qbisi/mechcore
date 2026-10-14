@@ -9,12 +9,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: sandworm, index: 0, position: {x: 0, y: -130}, exp: 0/134/2000}
-  - {name: sandworm, index: 1, position: {x: 0, y: -80}, exp: 0/258/2000}
+  - {name: sandworm, index: 0, position: {x: 0, y: -130}, exp: 0/134/2000, source: joined}
+  - {name: sandworm, index: 1, position: {x: 0, y: -80}, exp: 0/258/2000, source: joined}
 red:
   core_damage: 700
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, source: joined}
 ticks: 366
-hash: 24:9b9bfcebbf69fa6b54df4fdc41e8ebdb67fc7109646e98209da7850f9acd284f
+hash: 25:3ed8d11f4eaaf1a7e7c0a830ae534f025283a001279bc7d4a2136a4a624448db

@@ -15,7 +15,7 @@ round: 1
 blue:
   core_damage: 300
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, source: joined}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: 15, y: 58}]}
 red:
@@ -24,7 +24,7 @@ red:
     marksman: [assault_mode]
     rhino: [mechanical_rage]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: marksman, index: 1, position: {x: -30, y: -60}, exp: 0/200/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, source: joined}
+  - {name: marksman, index: 1, position: {x: -30, y: -60}, exp: 0/200/650, source: joined}
 ticks: 126
-hash: 24:a5ba79f650def4289a118ea90abd55fada4ce84f232ad4afe5e84c723568c3aa
+hash: 25:c2824811341d5e88f7945be93ac830afa77d246afc4f2fabd209b03c97268072

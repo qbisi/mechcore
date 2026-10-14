@@ -17,11 +17,11 @@ blue:
   techs:
     war_factory: [steel_ball_production]
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -145}, exp: 0/600/3200}
+  - {name: war_factory, index: 0, position: {x: 5, y: -145}, exp: 0/600/3200, source: joined}
 red:
   core_damage: 500
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/200/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/200/650, source: joined}
 ticks: 384
-hash: 24:1c76609fe9d8251698d02df4cff697b02fc8aeb30db485ee182b8b551f1e37ac
+hash: 25:7c2cf38530bd1a39520755d8a66aee397ed9e94072c5ec6aaa54eaad0920d77b

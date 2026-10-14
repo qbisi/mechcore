@@ -15,10 +15,10 @@ blue:
   techs:
     steel_ball: [kinetic_charge]
   units:
-  - {name: steel_ball, index: 0, position: {x: 5, y: -170}}
+  - {name: steel_ball, index: 0, position: {x: 5, y: -170}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -170}, exp: 0/400/1600}
+  - {name: fortress, index: 0, position: {x: 0, y: -170}, exp: 0/400/1600, source: joined}
 ticks: 332
-hash: 24:47d96d7516545be5988fa2362ef619f1dee21da9ee9addca4743feeb5879eb84
+hash: 25:0dbff28d34c5f5b289e938a0c372b1e10b28c9095d9cc3918f989ff5b297ba2c

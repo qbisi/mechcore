@@ -18,16 +18,16 @@ blue:
   techs:
     farseer: [photon_emission]
   units:
-  - {name: farseer, index: 0, position: {x: 5, y: -145}, exp: 0/633/1800}
-  - {name: rhino, index: 1, position: {x: 55, y: -145}, exp: 0/633/1150}
-  - {name: wasp, index: 2, position: {x: -45, y: -150}, exp: 0/233/900}
-  - {name: marksman, index: 3, position: {x: 160, y: -150}, exp: 0/100/650}
+  - {name: farseer, index: 0, position: {x: 5, y: -145}, exp: 0/633/1800, source: joined}
+  - {name: rhino, index: 1, position: {x: 55, y: -145}, exp: 0/633/1150, source: joined}
+  - {name: wasp, index: 2, position: {x: -45, y: -150}, exp: 0/233/900, source: joined}
+  - {name: marksman, index: 3, position: {x: 160, y: -150}, exp: 0/100/650, source: joined}
 red:
   core_damage: 754
   techs:
     vulcan: [ignite]
   units:
-  - {name: vulcan, index: 0, position: {x: 0, y: -80}}
-  - {name: vulcan, index: 1, position: {x: 100, y: -80}}
+  - {name: vulcan, index: 0, position: {x: 0, y: -80}, source: joined}
+  - {name: vulcan, index: 1, position: {x: 100, y: -80}, source: joined}
 ticks: 437
-hash: 24:61f6c8123deaa2714264c1a4a5c92d2782476fd7110054dd9f6b5d9f1597cbf1
+hash: 25:cdb866e229b006069fd9c7e350b4f0f5e9d9df4a09f33123d4961e79b9861f46

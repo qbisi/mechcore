@@ -8,12 +8,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: overlord, index: 0, position: {x: -5, y: -225}}
-  - {name: overlord, index: 1, position: {x: -5, y: -165}, exp: 0/100/1750}
-  - {name: overlord, index: 2, position: {x: -5, y: -105}, exp: 0/300/1750}
+  - {name: overlord, index: 0, position: {x: -5, y: -225}, source: joined}
+  - {name: overlord, index: 1, position: {x: -5, y: -165}, exp: 0/100/1750, source: joined}
+  - {name: overlord, index: 2, position: {x: -5, y: -105}, exp: 0/300/1750, source: joined}
 red:
   core_damage: 1200
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
 ticks: 186
-hash: 24:60b6359315adbc620a36f92b7988e4efaf347550864c099742f0108a01de97d3
+hash: 25:5cfdab5f2f43b3935cf311713af5a0181772a48f5337879248de0677d6d13314

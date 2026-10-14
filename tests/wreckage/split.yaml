@@ -14,12 +14,12 @@ blue:
   techs:
     rhino: [wreckage_recycling]
   units:
-  - {name: rhino, index: 0, position: {x: -15, y: -35}, exp: 0/550/1150}
-  - {name: rhino, index: 1, position: {x: 25, y: -35}, exp: 0/850/1150}
+  - {name: rhino, index: 0, position: {x: -15, y: -35}, exp: 0/550/1150, source: joined}
+  - {name: rhino, index: 1, position: {x: 25, y: -35}, exp: 0/850/1150, source: joined}
 red:
   core_damage: 400
   units:
-  - {name: vulcan, index: 0, position: {x: 0, y: -30}}
-  - {name: arclight, index: 1, position: {x: 280, y: -300}}
+  - {name: vulcan, index: 0, position: {x: 0, y: -30}, source: joined}
+  - {name: arclight, index: 1, position: {x: 280, y: -300}, source: joined}
 ticks: 742
-hash: 24:e657fd5f959261a2abf705d1dbb4e59dcf024b021453bc126996f30e4ff1ffdd
+hash: 25:c2bc73d8d8db99d26439e0ee84ed90aa1cb638a54266c5a1e82627bab2e59736

@@ -34,13 +34,18 @@ red:
   - {name: missile, index: 0, position: {x: -180, y: -50}}
   battle_skills:
   - {name: orbital_javelin, positions: [{x: -230, y: -20}]}
-asserts:
-- sql: |
-    SELECT tick, target__kind, target__id, amount FROM events
-    WHERE type = 'damage' AND source__kind = 'unit' AND source__id = 5
-      AND tick BETWEEN 638 AND 662 ORDER BY tick;
-  rows:
-  - [638, shield, 1, 30872]
-  - [640, shield, 1, 25127]
 ticks: 960
-hash: 24:d1779f44244b750792a74abee265df009a0769e27d773ffd47b030f3cc823356
+hash: 25:c09f2856835fc34c3971656d633f6d51ae353c36812ea40e4a01368e8f60a840
+asserts:
+- sql: "SELECT tick, target__kind, target__id, amount FROM events\nWHERE type = 'damage'\
+    \ AND source__kind = 'unit' AND source__id = 5\n  AND tick BETWEEN 638 AND 662\
+    \ ORDER BY tick;\n"
+  rows:
+  - - 638
+    - shield
+    - 1
+    - 30872
+  - - 640
+    - shield
+    - 1
+    - 25127

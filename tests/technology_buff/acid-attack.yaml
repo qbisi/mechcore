@@ -17,11 +17,11 @@ blue:
   techs:
     scorpion: [acid_attack]
   units:
-  - {name: scorpion, index: 0, position: {x: 5, y: -145}, exp: 0/800/1500}
+  - {name: scorpion, index: 0, position: {x: 5, y: -145}, exp: 0/800/1500, source: joined}
 red:
   core_damage: 250
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
-  - {name: rhino, index: 1, position: {x: 45, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
+  - {name: rhino, index: 1, position: {x: 45, y: -95}, source: joined}
 ticks: 302
-hash: 24:8aed42004430212b63008c84e2bdc97c67d0be3a2329e9def5f55cbf0489b022
+hash: 25:008fc344a1a9b289989600241ba7325ee588cfebeaf70352cb2bcf93a973dccf

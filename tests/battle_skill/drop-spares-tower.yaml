@@ -14,7 +14,7 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 100, y: -250}}
+  - {name: marksman, index: 0, position: {x: 100, y: -250}, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -145}}
   battle_skills:
@@ -22,6 +22,6 @@ blue:
 red:
   core_damage: 150
   units:
-  - {name: marksman, index: 0, position: {x: 150, y: -230}, exp: 0/12/650}
+  - {name: marksman, index: 0, position: {x: 150, y: -230}, exp: 0/12/650, source: joined}
 ticks: 406
-hash: 24:12fc1afeaae51530044390b49f16cd589dea21af4b5f8968e7edb13a7b572131
+hash: 25:f6b6d1b295a70cb6d3da4873c39a5a986523a750398d58369b7f3178b314e549

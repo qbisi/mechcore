@@ -9,25 +9,23 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: -285, y: -105}, exp: 0/400/1150}
+  - {name: rhino, index: 0, position: {x: -285, y: -105}, exp: 0/400/1150, source: joined}
 red:
   core_damage: 200
   units:
-  - {name: arclight, index: 0, position: {x: 290, y: -100}}
-  - {name: arclight, index: 1, position: {x: 190, y: -100}}
-asserts:
-- sql: |
-    SELECT tick, motion_state
-    FROM units
-    WHERE
-      unit_id = 1
-      AND tick IN (222, 232, 233, 308)
-    ORDER BY
-      tick;
-  rows:
-  - [222, idle]
-  - [232, idle]
-  - [233, moving]
-  - [308, attacking]
+  - {name: arclight, index: 0, position: {x: 290, y: -100}, source: joined}
+  - {name: arclight, index: 1, position: {x: 190, y: -100}, source: joined}
 ticks: 336
-hash: 24:da9ac7732f641e124bd72934a15439367c3397236cfc038bfbcab25d1f7e360a
+hash: 25:b4143d9c29254c5008011c7e0caff3e3269abcebce45477f78e35f4e2f6d888c
+asserts:
+- sql: "SELECT tick, motion_state\nFROM units\nWHERE\n  unit_id = 1\n  AND tick IN\
+    \ (222, 232, 233, 308)\nORDER BY\n  tick;\n"
+  rows:
+  - - 222
+    - idle
+  - - 232
+    - idle
+  - - 233
+    - moving
+  - - 308
+    - attacking

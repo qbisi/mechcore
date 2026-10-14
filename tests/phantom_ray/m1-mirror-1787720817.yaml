@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}, exp: 0/134/1000}
+  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}, exp: 0/134/1000, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}, exp: 0/402/1000}
+  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}, exp: 0/402/1000, source: joined}
 ticks: 164
-hash: 24:8407c44c5ab0beb9c08102d0c4a7d2b587697a01331a4b46b0528e6888956abc
+hash: 25:1de7d10d3c770e72ddcf1574894171bae0ce7c4b1a72115cf19d765c92dbf536

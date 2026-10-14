@@ -11,26 +11,32 @@ blue:
   techs:
     rhino: [final_blitz]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150, source: joined}
 red:
   core_damage: 0
   techs:
     rhino: [armor_enhancement]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/400/1150}
-asserts:
-- sql: |
-    SELECT team_id, score, core_damage FROM settlement_teams ORDER BY team_id;
-  rows:
-  - [0, 0, 0]
-  - [1, 0, 0]
-- sql: |
-    SELECT formation_id, experience >> 32 AS exp, max_experience >> 32 AS max_exp
-    FROM settlement_formations
-    ORDER BY
-      formation_id;
-  rows:
-  - [1, 200, 1150]
-  - [2, 400, 1150]
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/400/1150, source: joined}
 ticks: 160
-hash: 24:9efec373ba5906111f0c1383deb77e4af28bf368aac0be6f4c9f6fae40f9552d
+hash: 25:74755a3c86b41d130abe79bb18a67e961c93adb48b25347a2b90877bf879940d
+asserts:
+- sql: 'SELECT team_id, score, core_damage FROM settlement_teams ORDER BY team_id;
+
+    '
+  rows:
+  - - 0
+    - 0
+    - 0
+  - - 1
+    - 0
+    - 0
+- sql: "SELECT formation_id, experience >> 32 AS exp, max_experience >> 32 AS max_exp\n\
+    FROM settlement_formations\nORDER BY\n  formation_id;\n"
+  rows:
+  - - 1
+    - 200
+    - 1150
+  - - 2
+    - 400
+    - 1150
