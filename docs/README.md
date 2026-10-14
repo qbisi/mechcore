@@ -1,14 +1,20 @@
 # Document conventions
 
-Two kinds of document live here, beside the
+Three kinds of document live here, beside the
 [terminology](terminology/README.md) that names what they talk about, and
 which kind a document is decides what it may contain and who has to change
 when reality disagrees with it.
 
 | Directory | Answerable to | When it disagrees with reality |
 | --- | --- | --- |
+| [`wiki/`](wiki/README.md) | the build | the document is wrong, and re-measuring is the fix |
 | `rules/` | the build | the document is wrong, and re-measuring is the fix |
 | `spec/` | its readers | the code is wrong, and changing the code is the fix |
+
+A [Wiki](wiki/README.md) page explains the game to players and agents in
+observable terms: what a decision does, what follows from it, and the
+exceptions that change a player's understanding, without carrying
+decompilation anchors, test fixture paths or simulator contracts in its prose.
 
 A rules document describes a mechanism the game decides. It is pinned to a
 build, it carries the evidence for what it claims, and it goes stale when the
@@ -19,9 +25,10 @@ A spec defines a shape something must conform to. `spec/` is filed by the crate
 that owns each contract, so a document and the code that must satisfy it are
 found the same way.
 
-The language rule below governs both. After it, the sections up to "A spec's
+The language rule below governs all three. After it, the sections up to "A spec's
 shared spine" state what a rules document may claim and on what evidence, and
-the rest of the file states the convention for a spec.
+the rest of the file states the convention for a spec; [`wiki/README.md`](wiki/README.md)
+states the convention for a Wiki page.
 
 ## Language
 

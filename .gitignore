@@ -2,4 +2,7 @@
 # the pages `mechcore play` writes beside a layout
 __pycache__
 /work/
+/node_modules/
+/docs/wiki/.vitepress/cache/
+/docs/wiki/.vitepress/dist/
 .DS_Store
