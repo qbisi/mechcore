@@ -1,0 +1,59 @@
+# The War Factory retains its own lock on a Sandworm as it burrows at t21.
+# Its gun skills cool and drop their locks, but the unit's motion still
+# measures the retained lock's distance without a visibility condition.
+# It remains attacking instead of moving and turning for a hidden target.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 993136110
+round: 4
+blue:
+  core_damage: 827
+  officers: [advanced_defensive_tactics, advanced_offensive_tactics, typhoon_specialist, mass_produced_sandworm]
+  techs:
+    sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sandworm, index: 0, position: {x: 340, y: 170}, level: 4, exp: 8981/8981/8981, rotated: true, equipment: [secondary_fire_control_system]}
+  - {name: typhoon, index: 1, position: {x: -280, y: -100}, exp: 0/120/1950, source: delivered}
+  - {name: sandworm, index: 2, position: {x: 150, y: -230}, level: 3, exp: 0/1300/7124, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 285, y: -55}, retained: false}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: 210, y: 85}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_power_system, fortified_specialist, extended_range_war_factory]
+  techs:
+    war_factory: [high_explosive_ammo, armor_enhancement, missile_interceptor, range_enhancement, launcher_overload, phoenix_production, steel_ball_production, sledgehammer_production, photon_coating]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: war_factory, index: 0, position: {x: -235, y: -95}, level: 3, exp: 5699/11398/11398, rotated: true}
+  - {name: arclight, index: 1, position: {x: 30, y: -130}, level: 4, exp: 0/344/3368, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -25, y: -145}}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: -250, y: -255}]}
+asserts:
+- sql: |
+    SELECT w.tick, s.visibility, w.motion_state,
+           w.mech_lock_target__kind, w.mech_lock_target__id
+    FROM units w JOIN units s ON s.tick = w.tick
+    WHERE w.unit_id = 5 AND s.unit_id = 4 AND w.tick BETWEEN 20 AND 22
+    ORDER BY w.tick;
+  rows:
+  - [20, normal, attacking, unit, 4]
+  - [21, hide, attacking, unit, 4]
+  - [22, hide, attacking, unit, 4]
+ticks: 1311
+hash: 24:8797266d90903b9f6339abeebe9ae1f46c80a0153719b0720086daa35d94764c
