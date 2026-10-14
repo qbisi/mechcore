@@ -753,6 +753,18 @@ impl Skill {
         }
     }
 
+    /// `FightSkill.RefreshDatas`: discard the sampled stagger while keeping
+    /// the attack clock and rescheduling its next blow with the new interval.
+    pub(in crate::fight) fn refresh_datas(&mut self, interval: u64) {
+        let started = self
+            .next_attack_step
+            .saturating_sub(self.current_attack_interval);
+        self.current_attack_interval = interval;
+        if self.next_attack_step > 0 {
+            self.next_attack_step = started.saturating_add(interval);
+        }
+    }
+
     /// `SkillAttackState.TryPerformAttack` once the interval is up: schedules
     /// the next attack after the interval drawn for it, and winds up a blow
     /// that lands after the attack point.
@@ -1031,6 +1043,7 @@ impl Skill {
                 continue;
             }
             *sibling = Self {
+                disabled: sibling.disabled,
                 current_attack_interval: sibling.current_attack_interval,
                 attack_time_anchor: sibling.attack_time_anchor,
                 beam: sibling.beam,

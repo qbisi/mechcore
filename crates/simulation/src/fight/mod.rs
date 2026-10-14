@@ -831,7 +831,7 @@ impl Simulation {
                 // A travelling unit's skills are not read until it arrives: it
                 // does not update, and they do nothing, its extra weapons
                 // whether a deployment action switched them off or not.
-                let enabled = (!holder.disabled && !actor.travelling).then(|| EnabledSkill {
+                let enabled = (!skill.disabled && !actor.travelling).then(|| EnabledSkill {
                     lock_target: skill.lock_target.map(FightActorRef::object_ref),
                     attack_target: actor
                         .slot_attack_target(slot)

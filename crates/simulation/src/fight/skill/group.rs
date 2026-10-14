@@ -483,6 +483,7 @@ impl Simulation {
     fn idle_group_slot(&mut self, skill_ref: SkillRef, slot: usize) {
         let sibling = self.skill_mut(skill_ref).sibling_mut(slot);
         *sibling = Skill {
+            disabled: sibling.disabled,
             next_attack_step: sibling.next_attack_step,
             current_attack_interval: sibling.current_attack_interval,
             attack_time_anchor: sibling.attack_time_anchor,

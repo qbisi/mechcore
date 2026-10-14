@@ -1361,12 +1361,9 @@ impl Simulation {
             .attack_interval_q32;
         let interval = super::math::seconds_q32_to_steps(interval_q32).max(1);
         let skill = self.skill_mut(skill_ref);
-        let started = skill
-            .next_attack_step
-            .saturating_sub(skill.current_attack_interval);
-        skill.current_attack_interval = interval;
-        if skill.next_attack_step > 0 {
-            skill.next_attack_step = started.saturating_add(interval);
+        skill.refresh_datas(interval);
+        for sibling in skill.siblings_mut() {
+            sibling.refresh_datas(interval);
         }
         Ok(())
     }

@@ -1,0 +1,35 @@
+# Electromagnetic Impact disables the Wraith floating artillery slots while
+# they attack a Rhino. At t57 the main slots refresh to the plain interval,
+# all four extra slots are disabled, and their exit to idle retains that flag.
+# The main skills continue; disabled extras stay off until the buff expires.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 3
+blue:
+  core_damage: 200
+  techs:
+    wraith: [high_explosive_ammo, field_maintenance, armor_enhancement, land_cruiser, range_enhancement, floating_artillery_array, degeneration_beam]
+  units:
+  - {name: wraith, index: 0, position: {x: 5, y: -75}, level: 2, exp: 2535/2535/5070, equipment: [secondary_fire_control_system]}
+red:
+  core_damage: 0
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -75}, level: 9, exp: 0/2000/7736}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -5, y: 75}]}
+asserts:
+- sql: |
+    SELECT tick, sum(has_enabled), sum(enabled__state = 'attack'),
+           min(enabled__current_attack_interval), max(enabled__current_attack_interval)
+    FROM units__skills
+    WHERE unit_id = 1 AND tick IN (56, 57, 58)
+    GROUP BY tick ORDER BY tick;
+  rows:
+  - [56, 8, 8, 41, 47]
+  - [57, 4, 0, 32, 32]
+  - [58, 4, 0, 32, 32]
+ticks: 726
+hash: 24:9fbb96b87cb041d3aec7ee1a9ae6c26cb1184cb78ee285502d2bc9ee24237d69
