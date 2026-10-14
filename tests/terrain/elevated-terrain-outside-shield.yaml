@@ -1,0 +1,60 @@
+# An elevated projectile leaves terrain whose horizontal centre is inside
+# a shield, but whose full 3D centre is outside it. The oil created at t670
+# keeps only grid cells outside the shield; treating its height as zero
+# incorrectly keeps the entire circle. Fire terrain uses the same grid layer.
+# Control: the generated case with the unrelated red Marksman and Vortex
+# removed, preserving the elevated projectile effects and a full native match.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 653811911
+round: 2
+blue:
+  core_damage: 375
+  officers: [advanced_shield_device, marksman_specialist, extended_range_arclight]
+  blueprints: [attack_enhancement_ii]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: arclight, index: 0, position: {x: -110, y: -60}, level: 7, exp: 2361/2361/4722, equipment: [explosive_ammo]}
+  - {name: marksman, index: 1, position: {x: -270, y: -150}, level: 3, source: delivered}
+  - {name: tarantula, index: 2, position: {x: 205, y: -255}, level: 8, exp: 0/248/10091, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 55, y: -95}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: 115, y: 240}, {x: -155, y: 95}, {x: -250, y: 130}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_power_system, assault_vulcan]
+  techs:
+    vulcan: [incendiary_bomb, best_partner, armor_enhancement, range_enhancement, scorching_fire, sticky_oil_bomb, ignite]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: vulcan, index: 0, position: {x: 50, y: -50}, level: 6, exp: 7016/12916/14033, rotated: true, equipment: [heavy_armor]}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 65, y: -190}}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: 145, y: 70}, {x: 135, y: -155}]}
+asserts:
+- sql: |
+    SELECT terrain_type, position__y FROM terrains
+    WHERE tick = 670 AND terrain_id = 28;
+  rows:
+  - [oil, 169985978803]
+- sql: |
+    SELECT value FROM terrains__grid__rows
+    WHERE tick = 670 AND terrain_id = 28 ORDER BY ordinal;
+  rows:
+  - [16]
+  - [96]
+  - [64]
+  - [64]
+  - [0]
+  - [0]
+  - [0]
+ticks: 1402
+hash: 24:732c1bc4ab9d458541060550f93a6f16a426e35ddd2cbb530bec88aa262da1d6
