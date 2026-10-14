@@ -53,8 +53,12 @@ def act(decision):
     return answer
 
 
+def opening_state(view):
+    return next(segment for segment in reversed(view["document"]) if segment["kind"] == "state")
+
+
 def opening(view, side, draw):
-    offers = view["sides"][side]["offers"]
+    offers = view["document"][0][side]["offers"]
     index = draw.randrange(len(offers))
     act({
         "type": "choose_advance_team",
@@ -65,9 +69,9 @@ def opening(view, side, draw):
 
 
 def reinforce(view, draw):
-    offers = view.get("reinforce_offers") or []
+    offers = opening_state(view).get("reinforce_offers") or []
     if not offers:
-        return
+        return view
     # Each card is tried in a random order, and the decline, the last offer,
     # is what is left when none is affordable.
     order = list(range(len(offers) - 1))
@@ -77,15 +81,15 @@ def reinforce(view, draw):
         name = card if isinstance(card, str) else card["name"]
         answer = act({"type": "choose_reinforce_item", "index": index, "name": name})
         if not failed(answer):
-            return
+            return answer
+    return view
 
 
 def deploy(view, side, draw):
-    reinforce(view, draw)
+    view = reinforce(view, draw)
     refused = 0
     while refused < PATIENCE:
-        view = ask({"op": "match.show"})
-        position = view["sides"][side]["position"]
+        position = view.get("position", opening_state(view)[side])
         unlocked = position.get("unlocked_units") or []
         if not unlocked:
             return
@@ -94,7 +98,11 @@ def deploy(view, side, draw):
             "name": draw.choice(unlocked),
             "position": {"x": draw.choice(X), "y": draw.choice(Y)},
         })
-        refused = refused + 1 if failed(answer) else 0
+        if failed(answer):
+            refused += 1
+        else:
+            view = answer
+            refused = 0
 
 
 def main():

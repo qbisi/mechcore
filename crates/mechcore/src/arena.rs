@@ -374,10 +374,11 @@ impl Played {
         let core = |side: Side| {
             last.map_or_else(
                 || {
-                    view.pointer(&format!("/sides/{}/position/reactor_core", side.name()))
-                        .and_then(Value::as_i64)
-                        .and_then(|core| i32::try_from(core).ok())
-                        .unwrap_or_default()
+                    mechcore_document::opening::reactor_core(
+                        played.map_id,
+                        usize::from(side == Side::Red),
+                    )
+                    .unwrap_or_default()
                 },
                 |turn| match side {
                     Side::Blue => turn.state.blue.reactor_core,

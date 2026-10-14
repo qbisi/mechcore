@@ -172,9 +172,10 @@ The opening deals a side four combinations of a team of units and a
 specialist officer, and taking one takes both. `offers` is the four in the
 order shown to the player.
 
-The deal is private: neither player sees the other's. That is why it sits under
-a side here and not beside a state's `reinforce_offers`, which both players
-choose from.
+Each side has its own deal, unlike a state's shared `reinforce_offers`, which
+both players choose from. The game's interface shows each side its own deal;
+[the platform view](../mechcore/cli.md#match-show) exposes both header lists,
+while the current round's choice remains hidden from the opponent.
 
 The deal belongs in the header rather than in a state because the opening has no
 position worth stating. Every side of every match enters it holding nothing:
