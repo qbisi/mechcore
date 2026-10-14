@@ -1,0 +1,40 @@
+# Native capture probe: Vulcan's Descent makes a unit on tick 28 that dies
+# on tick 48 before any snapshot holds it. Its temporary damage statistics
+# still need the side recorded by its creation event. This remains a layout
+# probe: the original comparison retains a settlement experience difference
+# while both core damage pairs agree.
+
+kind: layout
+seed: 1559675080
+round: 3
+blue:
+  officers: [advanced_shield_device, advanced_defensive_tactics, fire_badger_specialist]
+  techs:
+    mountain: [anti_aircraft_ammunition]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 95, y: -160}, source: delivered}
+  - {name: mountain, index: 1, position: {x: -175, y: -45}, source: joined}
+  - {name: farseer, index: 2, position: {x: 145, y: -105}, level: 5, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 110, y: -200}}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: -220, y: -55}]}
+red:
+  officers: [advanced_defensive_tactics, advanced_defensive_tactics, sabertooth_specialist, improved_steel_ball]
+  techs:
+    steel_ball: [energy_absorption, damage_sharing, mechanical_division, fortified_target_lock, armor_enhancement, range_enhancement, kinetic_charge]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 285, y: -245}, source: delivered}
+  - {name: steel_ball, index: 1, position: {x: -280, y: -55}, level: 2, rotated: true, equipment: [absorption_module], source: joined}
+  - {name: scorpion, index: 2, position: {x: 5, y: -65}, level: 8, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: -270, y: 160}, {x: -275, y: 275}]}

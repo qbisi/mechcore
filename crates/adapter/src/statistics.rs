@@ -186,8 +186,8 @@ fn row(
     };
     let team_id = match team_id {
         Some(team_id) => team_id,
-        // A recorder no team's dictionary holds, a mind-controlled unit, is
-        // counted under the side it serves now.
+        // A unit counted alone is outside the team dictionaries. Use its
+        // last observed side, including creation before any snapshot.
         None => capture
             .object_teams
             .get(&mechcore_mcfr::ObjectRef::new(

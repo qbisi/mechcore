@@ -7861,11 +7861,23 @@ fn number_fleeting_units(capture: &mut CaptureState) -> Result<(), String> {
                 team_id,
                 formation,
                 ..
-            } => Some((if *formation == 0 { *unit } else { *formation }, *team_id)),
+            } => Some((
+                *unit,
+                if *formation == 0 { *unit } else { *formation },
+                *team_id,
+            )),
             _ => None,
         })
         .collect::<Vec<_>>();
-    for (formation_key, team_id) in created {
+    for (unit, formation_key, team_id) in created {
+        // A created unit can die before any snapshot observes it. Its
+        // statistics still need the native creation team; a later observed
+        // current team takes precedence over that initial identity.
+        let unit_id = capture.unit_ids[&unit];
+        capture
+            .object_teams
+            .entry(ObjectRef::new(ObjectKind::Unit, unit_id))
+            .or_insert(team_id);
         if capture.formation_ids.contains_key(&formation_key) {
             continue;
         }
@@ -9634,6 +9646,7 @@ mod tests {
         let mut capture = CaptureState {
             next_unit_id: 3,
             next_formation_id: 3,
+            object_teams: BTreeMap::from([(ObjectRef::new(ObjectKind::Unit, 3), 1)]),
             traces: vec![
                 created(33),
                 created(44),
@@ -9650,6 +9663,14 @@ mod tests {
         assert_eq!(capture.unit_ids.get(&33), Some(&3));
         assert_eq!(capture.unit_ids.get(&44), Some(&4));
         assert_eq!(capture.fleeting_unit_pointers, vec![44]);
+        assert_eq!(
+            capture.object_teams[&ObjectRef::new(ObjectKind::Unit, 3)],
+            1
+        );
+        assert_eq!(
+            capture.object_teams[&ObjectRef::new(ObjectKind::Unit, 4)],
+            0
+        );
     }
 
     #[test]
