@@ -117,6 +117,8 @@ impl Actor {
             melee_written: false,
             body_disabled: false,
             reactive_armor: super::reactive_armor::ReactiveArmorState::of(&placement),
+            important_effect_enabled: placement.effects.important,
+            important_registered: placement.effects.important,
             placement,
             rules,
             stats,

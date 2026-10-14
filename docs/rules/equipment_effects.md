@@ -225,6 +225,14 @@ credited to the last unit that struck it, as any death is, and to no one if
 nothing ever did. An important unit that dies while another of its side
 stands destroys nothing.
 
+Control removes a living important unit from its original side's important
+list and disables the important modifier's data, including Dominion Core's
+life and damage rates. It does not become an important unit of the capturing
+side. Removing the last registered important unit destroys its original
+side's remaining active units, just as losing the last one does. Ordinary
+equipment corrections remain. When a translated unit dies and returns, its
+important data is restored without registering the dead unit again.
+
 A summon still appearing is outside the side's active units: it survives
 and joins later. While only one side has active living or rebirthing units,
 the core module holds attacks and buffs; pending summons keep the fight
@@ -292,6 +300,10 @@ rather than applying only its plain corrections.
 - A pending summon survives the last important unit's death and enters
   later, with attacks paused until the step after it enters:
   `tests/important_unit/pending-summon-outlives-core.yaml`.
+- Control removes an important unit's data and its original side loses the
+  remaining units when that was its last registered important unit:
+  `tests/important_unit/controlled-core.yaml`. Ordinary equipment data stays
+  on a controlled unit: `tests/important_unit/controlled-ordinary-equipment.yaml`.
 
 ### Replayed
 
@@ -367,6 +379,12 @@ rather than applying only its plain corrections.
   every unit of the side's `activeMeches` with life left by
   `FightActor.DestroySelf`, a suicide's `FightActor.ReduceLife` of its whole
   life, unless an important unit of the side remains.
+- An important unit leaving its original side is unregistered and loses its
+  important data while alive; a dead translated unit restores the data:
+  `DeadEffectSystem.OnMechChangeTeam`, `FightMech.RemoveImportantUnitEffect`,
+  `FightMech.AddImportantUnitEffect`, `MechDataModifer.RemoveCommonData`,
+  `SkillDataModifier.RemoveData`. `DeadEffectSystem.TryProcessDeadImportantUnit`
+  leaves a rebirthing unit registered.
 - Pending summons join the active units only in `SummonSystem.AddMech`.
   `FightCoreSystem.TeamUpdate` passes the previous `isFightOver` to
   `FightMech.Update`, which holds buffs when the fight is off;

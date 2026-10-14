@@ -435,15 +435,20 @@ impl Simulation {
     /// it was deployed on, and every skill still locked on it stops its
     /// attack (`FightSkill.OnChangeTeam`). A Crawler that updated after the
     /// blow has met the death in its own update already.
-    pub(in crate::fight) fn turned_unit_died(&mut self, unit_id: u64) {
+    pub(in crate::fight) fn turned_unit_died(
+        &mut self,
+        unit_id: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
         let Some(actor) = self.actors.get(&unit_id) else {
-            return;
+            return Ok(());
         };
         // `TeamTranslationSystem.IsMechInFightGroup`: a summon stands in no
         // side's `FightTeam`, and dies on the side that turned it.
         if actor.placement.team == actor.original_team || actor.summoned {
-            return;
+            return Ok(());
         }
+        let old_team = actor.placement.team;
         let (team, formation_id) = (actor.original_team, actor.original_formation);
         self.actor_change_team(unit_id, team);
         self.actors
@@ -452,6 +457,8 @@ impl Simulation {
             .placement
             .formation_id = formation_id;
         self.returned_dead.insert(unit_id);
+        self.important_unit_change_team(unit_id, old_team, events)?;
+        Ok(())
     }
 
     /// `FightActor.ChangeTeam`: the unit leaves its side's lists and trees
@@ -726,6 +733,7 @@ impl Simulation {
         {
             self.preemptive_enters_idle(unit_id);
         }
+        self.important_unit_change_team(unit_id, old_team, events)?;
         Ok(true)
     }
 }

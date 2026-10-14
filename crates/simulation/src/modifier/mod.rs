@@ -20,7 +20,7 @@ mod sources;
 mod technologies;
 
 pub(crate) use energy_tower::EnergyTowerSkillEffects;
-pub(crate) use equipment::EquipmentEffects;
+pub(crate) use equipment::{EquipmentEffects, IMPORTANT_SOURCE};
 pub(crate) use officers::{ContraptionRates, OfficerEffects};
 pub(crate) use providers::EffectProvider;
 pub(crate) use sources::{

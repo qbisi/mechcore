@@ -262,6 +262,10 @@ impl FightActorView {
 )]
 struct Actor {
     placement: Placement,
+    /// `FightMech.isImportantUnitEffectEnabled`, independent of its side.
+    important_effect_enabled: bool,
+    /// Membership in the original side's `TeamImportantUnitInfo.mechs`.
+    important_registered: bool,
     rules: UnitConfig,
     /// The numbers the fight reads, which are the description corrected by the
     /// overlays. `crate::data` is the layer; nothing here reads `rules` for a
@@ -1311,7 +1315,7 @@ impl Simulation {
             self.lose_interceptor(building_id);
         }
         for unit_id in std::mem::take(&mut self.turned_fallen) {
-            self.turned_unit_died(unit_id);
+            self.turned_unit_died(unit_id, &mut events)?;
         }
         self.clear_dead_summons()?;
         self.drop_dead_owners_lines();

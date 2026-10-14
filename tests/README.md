@@ -30,7 +30,7 @@ directory alone keeps a readme, for the rules of pinning a round:
 | [`equipment_buff/`](equipment_buff/) | what a buff item adds to the unit wearing it, and which buffs it keeps off | [`equipment_effects.md`](../docs/rules/equipment_effects.md#buff-items) |
 | [`ground_attack/`](ground_attack/) | what a technology changes about its unit's skill against ground units: reach, damage and search | [`combat.md`](../docs/rules/combat.md#aerial-and-ground-targets) |
 | [`ignore_buff/`](ignore_buff/) | which buff effect a technology makes its unit ignore, and when it stops | [`technology_effects.md`](../docs/rules/technology_effects.md#ignoring-a-buff-effect) |
-| [`important_unit/`](important_unit/) | what a side does when its last important unit dies | [`equipment_effects.md`](../docs/rules/equipment_effects.md#an-important-unit) |
+| [`important_unit/`](important_unit/) | what an important unit loses on control, and what its side does when its last dies or leaves | [`equipment_effects.md`](../docs/rules/equipment_effects.md#an-important-unit) |
 | [`interceptor/`](interceptor/) | how an interceptor takes projectiles out of the air, and what befalls it | [`contraptions.md`](../docs/rules/contraptions.md) |
 | [`level/`](level/) | how a unit level scales base life and damage before overlays | [`unit_levels.md`](../docs/rules/unit_levels.md) |
 | [`lifesteal/`](lifesteal/) | how a hit hands life back to the unit whose skill dealt it, and which lifesteal source does | [`combat.md`](../docs/rules/combat.md#lifesteal) |

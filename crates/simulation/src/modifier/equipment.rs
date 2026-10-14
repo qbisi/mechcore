@@ -113,6 +113,8 @@ const PRIORITY: i32 = 1;
 
 /// The module that tags every entry an equipment writes.
 pub(crate) const SOURCE: &str = "Modifier";
+/// The independently removable `FightMech.importantUnitDataModifier`.
+pub(crate) const IMPORTANT_SOURCE: &str = "ImportantUnitData";
 
 /// Every ordinary equipment's combat effect, by the id a layout compiles to.
 #[derive(Debug, Clone)]
@@ -338,7 +340,11 @@ impl EquipmentEffects {
                     *channel,
                     Entry {
                         index: *index,
-                        source: SOURCE,
+                        source: if equipment.important {
+                            IMPORTANT_SOURCE
+                        } else {
+                            SOURCE
+                        },
                         correction: *correction,
                     },
                 )
