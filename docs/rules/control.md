@@ -44,8 +44,10 @@ and its splash nothing either; but after it adds its power, the unit it is on
 raises `OnMechBeHit` with the beam's owner as the attacker
 (`ControllEffect.Perform`), as a unit a hit reaches does. What listens to it
 answers the Hacker: a Void Eye with Electromagnetic Armor switches the
-Hacker's technologies off. Then the hit's effects are performed on that unit, as
-any hit's (`BuffCycleController.PerformHitEffect`): a Hacker with
+Hacker's technologies off. Then `FightSkill.DispatchHitDamageEvent` performs
+its hit effects with the control power as damage, although no life was
+removed: Absorption Module heals its Hacker from that power. These are the
+same shared hit effects as a damaging hit's (`BuffCycleController.PerformHitEffect`): a Hacker with
 Electromagnetic Interference writes its buff on the unit each beam's hit
 turns
 ([`interference-on-each-beam-hit.yaml`](../../tests/control/interference-on-each-beam-hit.yaml)).
@@ -202,6 +204,9 @@ the shield does not count against the turn.
 
 ### Recorded
 
+- Absorption Module heals a Hacker from its control beam's power even though
+  control took no life: `tests/lifesteal/absorption-module-control.yaml`.
+
 - A level 5 Hacker of 3000 warms up at 2 a hit and reads 2:
   `tests/hacker/warm-up-reads-unreduced-damage.yaml`.
 - Enhanced Control brings two Crawlers a Fang left at 171 up to 250 as the
@@ -306,6 +311,10 @@ the shield does not count against the turn.
   game with `scripts/corpus/match-replays.py`.
 
 ### Read
+
+- A control hit dispatches its power through the shared skill hit effects:
+  `ControllEffect.Perform`, `FightSkill.DispatchHitDamageEvent`,
+  `LifeStealEffectProvider.GameRiver.Fight.IHitEffectPerformer.PerformHitEffect`.
 
 - Enhanced Control: `ControllBeamLifeRecoveryTechnologyData.GetRecoveryRate`,
   `ControllBeamLifeRecoveryTech.AddData`, `RemoveData`,

@@ -1,0 +1,55 @@
+# Control power is dispatched to hit effects, including Absorption Module.
+# Native Hacker unit 12 heals 5 on tick 24 without taking life off its control
+# target. Bypassing shared hit-effect dispatch missed this healing and yielded
+# red core damage 356 instead of 355. Existing control and lifesteal fixtures
+# provide ordinary control and damaging-hit controls.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1892488772
+round: 2
+blue:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_targeting_system, marksman_specialist, assault_melting_point]
+  techs:
+    melting_point: [crawler_production]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 1]
+  units:
+  - {name: melting_point, index: 0, position: {x: -60, y: -200}, level: 5, exp: 7295/7295/7295, rotated: true, equipment: [barrier]}
+  - {name: marksman, index: 1, position: {x: 290, y: -80}, level: 3, source: delivered}
+  - {name: sabertooth, index: 2, position: {x: 115, y: -25}, level: 5, exp: 0/500/6774, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 60, y: -155}}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: -5, y: -25}], retained: false}
+red:
+  core_damage: 355
+  officers: [advanced_offensive_tactics, advanced_offensive_tactics, marksman_specialist, fortified_hacker]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: hacker, index: 0, position: {x: -195, y: -35}, level: 6, exp: 1623/3247/3247, equipment: [absorption_module]}
+  - {name: marksman, index: 1, position: {x: 180, y: -190}, level: 3, exp: 0/516/2315, source: delivered}
+  - {name: sledgehammer, index: 2, position: {x: -85, y: -260}, level: 8, exp: 0/564/8746, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  battle_skills:
+  - {name: missile_strike, positions: [{x: 100, y: -295}]}
+asserts:
+- sql: |
+    SELECT tick, target__id, amount
+    FROM events
+    WHERE
+      tick BETWEEN 24 AND 28
+      AND type = 'healing'
+    ORDER BY
+      tick,
+      ordinal;
+  rows:
+  - [24, 12, 5]
+ticks: 1305
+hash: 24:aebf01f9401ca058c96201765d58b7833ada8d584a6a752861a3b4e9e369b216
