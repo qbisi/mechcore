@@ -54,16 +54,12 @@ impl Simulation {
             self.skill_mut(skill_ref)
                 .write_lock(Some(FightActorRef::Building(wall)));
         }
-        // The siblings are asked for their blocks only once the core has
-        // found one; a core with a clear line leaves each naming its own.
+        // Only a fusillade's SearchAttackTarget writes other skills' targets.
+        // Every other skill keeps its own target until its own check runs.
         if let Some((wall, _)) = found
-            && !self.skill(skill_ref).siblings().is_empty()
+            && self.skill(skill_ref).fusillade()
         {
-            if self.skill(skill_ref).fusillade() {
-                self.hand_fusillade_wall(skill_ref, wall, search_shield);
-            } else {
-                self.refresh_group_walls(skill_ref, None);
-            }
+            self.hand_fusillade_wall(skill_ref, wall, search_shield);
         }
     }
 
@@ -418,7 +414,7 @@ impl Simulation {
     }
 
     fn search_slot_attack_target(&mut self, skill_ref: SkillRef, slot: Option<usize>) {
-        if slot.is_some_and(|slot| slot > 0) {
+        if let Some(slot) = slot.filter(|&slot| slot > 0) {
             self.refresh_group_walls(skill_ref, slot);
         } else {
             self.search_attack_target(skill_ref);
@@ -455,7 +451,7 @@ impl Simulation {
             sibling.idle = idle;
             sibling.lock_target = selected;
             sibling.attack_target_left = None;
-            self.refresh_group_walls(skill_ref, Some(slot));
+            self.refresh_group_walls(skill_ref, slot);
             self.hand_standalone_motion(skill_ref, slot);
         }
         Ok(selected.is_some())

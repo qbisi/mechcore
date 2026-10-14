@@ -222,13 +222,12 @@ transitions and the owner's fallback to a wall with only aircraft remaining.
 alone, and every other slot goes on naming the block it last took, even one
 that has since fallen. A slot whose block falls ends its attack on its own
 check, its lock dropped though the unit it was found for lives, as a lone
-skill's does. The core's own search hands its siblings blocks only when it
-finds one itself: `FightSkill.SearchAttackTarget` asks
-`CheckWallConstructionForGroupedSkill` of each sibling after the core's
-`CheckWallConstruction` has found a wall, and with none it sets the core's
-attack target and returns. So a core whose line is clear leaves a sibling
-still naming a block that has fallen, and that sibling ends its attack on its
-own check.
+skill's does. The core's own search writes its siblings' targets only for a fusillade:
+`FightSkill.SearchAttackTarget` asks `IsFusillade` before it calls
+`CheckWallConstructionForGroupedSkill` for the other skills. A non-fusillade
+core leaves a sibling's last block alone even while the core takes a wall
+itself. The sibling therefore sees its fallen block on its own check and
+ends its attack.
 
 **A fusillade's siblings take no block of their own.** When the core of a
 fusillade group finds a block, `SearchAttackTarget` hands each other skill
@@ -297,6 +296,10 @@ The map's own buildings are the exception and are named: each side gets one
 ## Evidence
 
 ### Recorded
+
+- A non-fusillade core searching a living wall leaves a sibling naming its
+  fallen wall until the sibling ends its attack:
+  `tests/construction/grouped-slot-keeps-fallen-wall.yaml`.
 
 - Anti-Air Barrage keeps its aircraft target rather than a wall in the line
   of fire: `tests/construction/wall-anti-air-barrage.yaml`.

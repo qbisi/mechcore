@@ -1,0 +1,60 @@
+# A non-fusillade core searches a living wall while an Energy Diffraction
+# sibling still names another wall that just fell. The sibling ends its
+# attack on its own check; the core must not refresh away the fallen wall.
+# independent-weapons-follow-wall.yaml controls independent wall searches,
+# and tests/raiden/ controls the fusillade's shared wall-target writes.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 238405713
+round: 2
+blue:
+  core_damage: 618
+  officers: [advanced_shield_device, advanced_offensive_tactics, marksman_specialist, berserk_rhino]
+  techs:
+    rhino: [power_armor]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [2, 3]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -255}, level: 5, exp: 2996/3049/5992, rotated: true, equipment: [photon_coating]}
+  - {name: marksman, index: 1, position: {x: 150, y: -200}, level: 3, exp: 0/85/2315, source: delivered}
+  - {name: stormcaller, index: 2, position: {x: 185, y: -210}, level: 6, exp: 0/245/6379, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 140, y: -95}, retained: false}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: -130, y: 155}, {x: 45, y: 215}]}
+red:
+  core_damage: 0
+  officers: [advanced_targeting_system, speed_specialist, improved_melting_point]
+  techs:
+    melting_point: [energy_absorption, electromagnetic_barrage, energy_diffraction, crawler_production, armor_enhancement, range_enhancement]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [3, 3]
+  units:
+  - {name: melting_point, index: 0, position: {x: -30, y: -220}, level: 4, exp: 0/6286/6286, equipment: [tank_production_line], source: joined}
+  - {name: wraith, index: 1, position: {x: 115, y: -115}, level: 8, exp: 0/320/15137, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -125, y: -280}}
+  battle_skills:
+  - {name: nuke, positions: [{x: -215, y: -180}]}
+asserts:
+- sql: |
+    SELECT tick,skill_slot,enabled__state,enabled__lock_target__id,enabled__attack_target__id
+    FROM units__skills
+    WHERE unit_id=10 AND skill_slot IN (0,3) AND tick BETWEEN 601 AND 603
+    ORDER BY tick,skill_slot;
+  rows:
+  - [601, 0, prepare, 5, 7]
+  - [601, 3, attack, 4, 8]
+  - [602, 0, prepare, 5, 7]
+  - [602, 3, idle, null, null]
+  - [603, 0, attack, 5, 7]
+  - [603, 3, prepare, 4, 4]
+ticks: 723
+hash: 24:213a3c8e79c9cb2bce665be50191ae01f19cf625d24591507b4aa7f20061b843

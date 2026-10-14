@@ -22,78 +22,36 @@ fn may_start_group_slot(fusillade: bool, skill: &Skill) -> bool {
 }
 
 impl Simulation {
-    /// Asks each grouped slot which construction stands between the actor and
-    /// the unit that slot was allocated.
-    ///
-    /// Every slot of a Wraith takes the block its core took, eight ticks later,
-    /// when the group allocates its children. With one enemy unit the slots'
-    /// lines are the core's, so whether several blocks in reach would be
-    /// shared out among the slots is not something any recording has shown;
-    /// the build's `CheckWallConstructionForGroupedSkill` keeps a list of walls
-    /// already checked, which suggests it might, and nothing here assumes so.
-    ///
-    /// A slot's wall and shield are its own `SearchAttackTarget`'s, which
-    /// only that slot asks: `searching` names the slot, if one, whose search
-    /// this is, and every other slot keeps the wall and the shield it last
-    /// found, even ones that have since fallen or broken. A Wraith's gun
-    /// whose block another gun fells goes on naming the block until its own
-    /// check ends its attack.
-    pub(in crate::fight) fn refresh_group_walls(
-        &mut self,
-        skill_ref: SkillRef,
-        searching: Option<usize>,
-    ) {
-        let siblings = self
-            .skill(skill_ref)
-            .siblings()
-            .iter()
-            .map(|slot| (slot.lock_target, slot.in_the_way))
-            .collect::<Vec<_>>();
-        let owner = skill_ref.owner;
+    /// One slot's `SearchAttackTarget` asks its shield before its wall.
+    /// A non-fusillade core never refreshes another skill's target: a gun
+    /// whose wall another gun fells retains that wall until its own state
+    /// sees the death and ends its attack.
+    pub(in crate::fight) fn refresh_group_walls(&mut self, skill_ref: SkillRef, slot: usize) {
+        let lock = self.skill(skill_ref).sibling(slot).lock_target;
+        let shield = lock.and_then(|lock| {
+            self.search_target_shield_in(
+                skill_ref.owner,
+                lock,
+                self.slot_attack_range(skill_ref, Some(slot))
+                    .saturating_add(self.skill_rules(skill_ref).extra_shield_range()),
+            )
+        });
+        let wall = lock.and_then(|lock| {
+            self.wall_in_the_way(skill_ref, Some(slot), lock, shield)
+                .map(|building| (building, lock))
+        });
         let replace_lock =
             self.skill(skill_ref).standalone() && self.skill_owner_mech_search_enabled(skill_ref);
-        let found = siblings
-            .iter()
-            .enumerate()
-            .map(|(index, &(lock, kept))| {
-                if searching.is_some_and(|slot| slot != index + 1) {
-                    return (kept, None, false);
-                }
-                // Each slot asks its shield before the wall checker, as
-                // `FightSkill.SearchAttackTarget` does for the core.
-                let shield = lock.and_then(|lock| {
-                    self.search_target_shield_in(
-                        owner,
-                        lock,
-                        self.slot_attack_range(skill_ref, Some(index + 1))
-                            .saturating_add(self.skill_rules(skill_ref).extra_shield_range()),
-                    )
-                });
-                let wall = lock.and_then(|lock| {
-                    self.wall_in_the_way(skill_ref, Some(index + 1), lock, shield)
-                        .map(|building| (building, lock))
-                });
-                if searching != Some(index + 1) {
-                    return (wall, None, false);
-                }
-                let shield = wall.is_none().then_some(shield.zip(lock)).flatten();
-                (wall, shield, true)
-            })
-            .collect::<Vec<_>>();
-        for (slot, (in_the_way, shield, searched)) in self
-            .skill_mut(skill_ref)
-            .siblings_mut()
-            .iter_mut()
-            .zip(found)
-        {
-            slot.in_the_way = in_the_way;
-            if replace_lock && let Some((wall, _)) = in_the_way {
-                slot.lock_target = Some(FightActorRef::Building(wall));
-                slot.attack_target_left = None;
-            }
-            if searched {
-                slot.target_shield = shield;
-            }
+        let sibling = self.skill_mut(skill_ref).sibling_mut(slot);
+        sibling.in_the_way = wall;
+        sibling.target_shield = if wall.is_none() {
+            shield.zip(lock)
+        } else {
+            None
+        };
+        if replace_lock && let Some((wall, _)) = wall {
+            sibling.lock_target = Some(FightActorRef::Building(wall));
+            sibling.attack_target_left = None;
         }
     }
 
@@ -460,7 +418,7 @@ impl Simulation {
         }
         // TrySearchAttackTarget runs on every idle update, even when
         // TrySearchLockTarget keeps the lock between its scheduled searches.
-        self.refresh_group_walls(skill_ref, Some(slot));
+        self.refresh_group_walls(skill_ref, slot);
         self.try_start_group_slot(skill_ref, slot, step, prepare_steps);
         Ok(())
     }
