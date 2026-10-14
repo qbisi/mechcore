@@ -1683,7 +1683,7 @@ impl Simulation {
         if attacker.attack.crosses_shields {
             return None;
         }
-        let shield = self.target_energy_shield(skill_ref.owner, target, attacker.shield_range())?;
+        let shield = self.target_energy_shield(&attacker, target, attacker.shield_range())?;
         (!self.shield_holds(shield, skill_ref.owner)).then_some(shield)
     }
 
@@ -1702,7 +1702,7 @@ impl Simulation {
         let range = self
             .slot_attack_range(skill_ref, Some(skill_slot))
             .saturating_add(self.skill_rules(skill_ref).extra_shield_range());
-        let shield = self.target_energy_shield(skill_ref.owner, target, range)?;
+        let shield = self.target_energy_shield(&attacker, target, range)?;
         (!self.shield_holds(shield, skill_ref.owner)).then_some(shield)
     }
 

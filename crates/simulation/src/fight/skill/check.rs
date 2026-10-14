@@ -29,8 +29,7 @@ impl Simulation {
         let range = self
             .skill_attacker(skill_ref)
             .map_or(0, |attacker| attacker.shield_range());
-        let shield =
-            lock.and_then(|target| self.search_target_shield_in(skill_ref.owner, target, range));
+        let shield = lock.and_then(|target| self.search_target_shield_in(skill_ref, target, range));
         // Then `CheckWallConstruction`, whatever the lock is, a unit or a
         // building: toward the lock, or, when the skill fires at a shield,
         // toward the shield's centre, passing over a block inside it. A Fire

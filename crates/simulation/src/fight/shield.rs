@@ -617,17 +617,19 @@ impl Simulation {
     /// that covers it and whose surface, seen from the owner, is within the
     /// skill's reach, `range` with its `extraShieldAttackRange` added
     /// (`IsInAttackRange` with `useExtraRange`); a nearer one that covers it
-    /// too takes its place.
+    /// too takes its place. Both bounds belong to the calling skill:
+    /// Homing Missile's minimum is not its Centurion main gun's minimum
+    /// (`tests/extra_weapon/homing-missile-shield-minimum-range.yaml`).
     pub(in crate::fight) fn target_energy_shield(
         &self,
-        owner: FightActorRef,
+        attacker: &super::attacker::Attacker<'_>,
         target: FightActorRef,
         range: i64,
     ) -> Option<u64> {
+        let owner = attacker.owner;
         // Any `FightActor`: a tower a shield covers is fired at through it as
         // a unit is.
         let target_actor = self.fight_actor(target)?;
-        let attacker = self.attacker(owner)?;
         let (owner_x, owner_y, owner_z) = self.position_3d(owner)?;
         let (target_x, target_y, target_z) = self.position_3d(target)?;
         let mut best: Option<(u64, i64)> = None;
@@ -672,25 +674,23 @@ impl Simulation {
         target: FightActorRef,
     ) -> Option<u64> {
         let range = self.attacker(owner)?.shield_range();
-        self.search_target_shield_in(owner, target, range)
+        self.search_target_shield_in(SkillRef::main(owner), target, range)
     }
 
     /// The same for a skill of the given range: a grouped unit's slot reaches
     /// further than its core, and asks with its own.
     pub(in crate::fight) fn search_target_shield_in(
         &self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         target: FightActorRef,
         range: i64,
     ) -> Option<u64> {
-        if self
-            .attacker(owner)
-            .is_none_or(|attacker| attacker.attack.crosses_shields)
-        {
+        let attacker = self.skill_attacker(skill_ref)?;
+        if attacker.attack.crosses_shields {
             return None;
         }
-        let shield = self.target_energy_shield(owner, target, range)?;
-        (!self.shield_holds(shield, owner)).then_some(shield)
+        let shield = self.target_energy_shield(&attacker, target, range)?;
+        (!self.shield_holds(shield, skill_ref.owner)).then_some(shield)
     }
 
     /// `GetAttackPositionOnEnergyShield`: the point of a shield's surface on

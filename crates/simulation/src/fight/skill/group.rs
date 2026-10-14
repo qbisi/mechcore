@@ -30,7 +30,7 @@ impl Simulation {
         let lock = self.skill(skill_ref).sibling(slot).lock_target;
         let shield = lock.and_then(|lock| {
             self.search_target_shield_in(
-                skill_ref.owner,
+                skill_ref,
                 lock,
                 self.slot_attack_range(skill_ref, Some(slot))
                     .saturating_add(self.skill_rules(skill_ref).extra_shield_range()),
