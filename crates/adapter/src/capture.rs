@@ -411,6 +411,8 @@ pub(crate) struct CaptureState {
     live_shield_pointers: BTreeSet<usize>,
     retired_shield_pointers: BTreeSet<usize>,
     shield_last_states: BTreeMap<usize, ShieldState>,
+    /// Creation entries inside this tick, including shields no boundary sees.
+    shield_births: Vec<ShieldBirth>,
     live_terrain_pointers: BTreeSet<usize>,
     retired_terrain_pointers: BTreeSet<usize>,
     /// Why each shield left the build's collection, by pointer, as its
@@ -489,6 +491,7 @@ impl CaptureState {
         self.live_shield_pointers.clear();
         self.retired_shield_pointers.clear();
         self.shield_last_states.clear();
+        self.shield_births.clear();
         self.live_terrain_pointers.clear();
         self.retired_terrain_pointers.clear();
         self.shield_removal_reasons.clear();
@@ -1125,6 +1128,7 @@ static ORIGINAL_CALCULATE_SCORE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mu
 static ORIGINAL_FIGHT_ACTOR_ADD_LIFE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_FIGHT_CONSTRUCTION_ADD_LIFE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_SHIELD_MANAGER_DESTROY: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_SHIELD_MANAGER_CREATE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_RANGE_ITEM_REMOVE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_RANGE_ITEM_CONTROLLER_EXIT_FIGHT: AtomicPtr<c_void> =
     AtomicPtr::new(ptr::null_mut());
@@ -1607,6 +1611,20 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
                 )
             })
             .map_err(|error| error.to_string())?;
+        let shield_manager_create = api
+            .class(
+                "GRFight.dll",
+                "GameRiver.Fight",
+                "GroupAdvancedEnergyShieldManager",
+            )
+            .and_then(|class| {
+                api.class_method_with_parameter_types(
+                    class,
+                    "Create",
+                    &["GameRiver.Fight.FightEnergyShield"],
+                )
+            })
+            .map_err(|error| error.to_string())?;
         let range_item_remove = api
             .class("GRFight.dll", "GameRiver.Fight", "RangeItem")
             .and_then(|class| api.method(class, "Remove", 0))
@@ -1629,6 +1647,13 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             shield_manager_destroy_hook as *const c_void,
             &ORIGINAL_SHIELD_MANAGER_DESTROY,
             "GroupAdvancedEnergyShieldManager.Destroy",
+        )?;
+        install_inline_hook(
+            api,
+            shield_manager_create,
+            shield_manager_create_hook as *const c_void,
+            &ORIGINAL_SHIELD_MANAGER_CREATE,
+            "GroupAdvancedEnergyShieldManager.Create",
         )?;
         install_inline_hook(
             api,
@@ -3550,6 +3575,67 @@ fn record_healing(actor: *mut Object, before: i32) {
     }
 }
 
+/// `GroupAdvancedEnergyShieldManager.Create(FightEnergyShield)`: the shield
+/// is initialized before entry, and the method adds it to the collection.
+/// Remember its birth before the call's event dispatch can destroy it.
+unsafe extern "C" fn shield_manager_create_hook(
+    manager: *mut Object,
+    shield: *mut Object,
+    method: *const MethodInfo,
+) {
+    let original = ORIGINAL_SHIELD_MANAGER_CREATE.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        let runtime = RUNTIME.load(Ordering::Acquire);
+        if runtime.is_null() || shield.is_null() {
+            return;
+        }
+        // SAFETY: runtime is boxed for the adapter process lifetime.
+        let runtime = unsafe { &*runtime };
+        let mut state = capture_state()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if !state.armed || !state.in_update {
+            return;
+        }
+        let result = (|| {
+            let api = runtime.api;
+            let team = invoke_object(api, shield, "GetTeamController")?;
+            let team = invoke_value::<i32>(api, team, "GetTeamIndex")?;
+            let team_id =
+                u32::try_from(team).map_err(|_| format!("invalid shield birth team {team}"))?;
+            let data = invoke_object(api, shield, "get_EnergyShieldData")?;
+            let source_kind = shield_source_kind(api, data, &state.metadata)?;
+            let transform = invoke_object(api, shield, "GetFightTransform")?;
+            let position = vec3(invoke_value::<FixedVec3>(
+                api,
+                transform,
+                "GetPositionInt3D",
+            )?);
+            let pointer = shield as usize;
+            if state.retired_shield_pointers.contains(&pointer) {
+                state.shield_ids.remove(&pointer);
+            }
+            state.shield_births.push(ShieldBirth {
+                pointer,
+                team_id,
+                source_kind,
+                position,
+                destroyed_position: None,
+            });
+            Ok::<(), String>(())
+        })();
+        if let Err(error) = result {
+            state.fail(format!("shield creation trace failed: {error}"));
+        }
+    }));
+    // SAFETY: Create has the same two-object void ABI as Destroy; forward once.
+    let original: ShieldManagerDestroyFn = unsafe { std::mem::transmute(original) };
+    unsafe { original(manager, shield, method) };
+}
+
 /// `GroupAdvancedEnergyShieldManager.Destroy(FightEnergyShield)`, the one
 /// method that takes a shield out of the build's full collection. Why is read
 /// before it runs: a shield whose energy is spent was broken by damage, which
@@ -3578,13 +3664,20 @@ unsafe extern "C" fn shield_manager_destroy_hook(
             let owner: *mut Object = api
                 .field_value(shield, field("owner")?)
                 .map_err(|error| error.to_string())?;
-            Ok(RemovalReason::Shield(if energy <= 0 {
+            let reason = if energy <= 0 {
                 ShieldDestroyedReason::EnergyDepleted
             } else if owner.is_null() {
                 ShieldDestroyedReason::Scripted
             } else {
                 ShieldDestroyedReason::OwnerDestroyed
-            }))
+            };
+            let transform = invoke_object(api, shield, "GetFightTransform")?;
+            let position = vec3(invoke_value::<FixedVec3>(
+                api,
+                transform,
+                "GetPositionInt3D",
+            )?);
+            Ok(RemovalReason::Shield(reason, position))
         });
     }));
     // SAFETY: hook installer stored the trampoline for this exact method ABI.
@@ -3913,7 +4006,7 @@ fn record_buff_removed(buff: *mut Object) {
 }
 
 enum RemovalReason {
-    Shield(ShieldDestroyedReason),
+    Shield(ShieldDestroyedReason, QVec3),
     Terrain(TerrainRemovedReason),
 }
 
@@ -3936,8 +4029,16 @@ fn record_removal_reason(
         return;
     }
     match read(runtime.api, object) {
-        Ok(RemovalReason::Shield(reason)) => {
+        Ok(RemovalReason::Shield(reason, position)) => {
             state.shield_removal_reasons.insert(object as usize, reason);
+            if let Some(birth) = state
+                .shield_births
+                .iter_mut()
+                .rev()
+                .find(|birth| birth.pointer == object as usize)
+            {
+                birth.destroyed_position = Some(position);
+            }
         }
         Ok(RemovalReason::Terrain(reason)) => {
             state
@@ -4411,6 +4512,14 @@ struct RawShield {
     pointer: usize,
     owner: usize,
     state: ShieldState,
+}
+
+struct ShieldBirth {
+    pointer: usize,
+    team_id: u32,
+    source_kind: ShieldSourceKind,
+    position: QVec3,
+    destroyed_position: Option<QVec3>,
 }
 
 #[derive(Clone, Copy)]
@@ -5722,6 +5831,45 @@ fn trace_shield_membership(
         ));
     }
     let mut destroyed = Vec::new();
+    // Boundary-visible objects keep their existing numbering. Append shields
+    // born and destroyed between boundaries in native creation order, never
+    // pointer order, so damage and absorption references can resolve them.
+    for birth in std::mem::take(&mut capture.shield_births) {
+        if current.contains(&birth.pointer) || capture.live_shield_pointers.contains(&birth.pointer)
+        {
+            continue;
+        }
+        let Some(position) = birth.destroyed_position else {
+            return Err("new shield is absent without a destruction entry".into());
+        };
+        let reason = capture
+            .shield_removal_reasons
+            .remove(&birth.pointer)
+            .ok_or("fleeting shield has no destruction reason")?;
+        let shield_id = allocate(&mut capture.next_shield_id, "shield")?;
+        capture.shield_ids.insert(birth.pointer, shield_id);
+        capture
+            .object_teams
+            .insert(ObjectRef::new(ObjectKind::Shield, shield_id), birth.team_id);
+        capture.retired_shield_pointers.insert(birth.pointer);
+        created.push((
+            shield_id,
+            NativeTrace::ShieldCreated {
+                shield_id,
+                team_id: birth.team_id,
+                source_kind: birth.source_kind,
+                position: birth.position,
+            },
+        ));
+        destroyed.push((
+            shield_id,
+            NativeTrace::ShieldDestroyed {
+                shield_id,
+                position,
+                reason,
+            },
+        ));
+    }
     for pointer in capture.live_shield_pointers.difference(current) {
         let state = capture
             .shield_last_states
@@ -6033,8 +6181,8 @@ fn snapshot(
     if !initial {
         trace_shield_membership(capture, &current_shield_pointers)?;
     }
-    // A shield made and destroyed between two snapshots never joins the
-    // collection they see; its reason goes with it.
+    // Membership traces have consumed reasons for boundary-visible and
+    // fleeting shields alike; none carries into the next tick.
     capture.shield_removal_reasons.clear();
     capture.live_shield_pointers = current_shield_pointers;
     let terrains = read_terrains(runtime.api, range_item_system, capture, initial)
@@ -9411,6 +9559,103 @@ mod tests {
         assert_eq!(events[2].subject, Some(shield(4)));
         assert_eq!(events[3].subject, Some(shield(2)));
         assert_eq!(events[4].source, Some(shield(4)));
+    }
+
+    #[test]
+    fn fleeting_shield_lifecycle_resolves_damage_and_absorption_without_a_state_row() {
+        let mut capture = shield_identity_test_capture(&[0x3000]);
+        capture.unit_ids.insert(0x9000, 1);
+        capture.unit_ids.insert(0x9001, 2);
+        for (pointer, x) in [(0x2000, 10), (0x1000, 20)] {
+            let position = QVec3 { x, y: 0, z: 0 };
+            capture.shield_births.push(ShieldBirth {
+                pointer,
+                team_id: 1,
+                source_kind: ShieldSourceKind::SpawnedTemporary,
+                position,
+                destroyed_position: Some(position),
+            });
+            capture
+                .shield_removal_reasons
+                .insert(pointer, ShieldDestroyedReason::EnergyDepleted);
+        }
+        capture.traces = vec![
+            NativeTrace::DamageUnresolved {
+                source: Some(ObjectRef::new(ObjectKind::Unit, 1)),
+                source_team_id: Some(0),
+                target: 0x2000,
+                amount: 2000,
+                projectile: Some(ObjectRef::new(ObjectKind::Projectile, 12)),
+                skill_slot: Some(0),
+            },
+            NativeTrace::ProjectileRemoved {
+                projectile_id: 12,
+                owner: 0x9000,
+                target: 0x9001,
+                position: QVec3 { x: 10, y: 0, z: 0 },
+                intercepted: false,
+                absorbed_by: None,
+                absorbed_by_pointer: Some(0x2000),
+            },
+        ];
+        trace_shield_membership(&mut capture, &BTreeSet::from([0x3000])).unwrap();
+        assert_eq!(capture.shield_ids[&0x2000], 2);
+        assert_eq!(capture.shield_ids[&0x1000], 3);
+        assert!(!capture.shield_last_states.contains_key(&0x2000));
+        let events = transition_events(&capture.traces, &capture).unwrap().events;
+        assert_eq!(
+            events[0].target,
+            Some(ObjectRef::new(ObjectKind::Shield, 2))
+        );
+        assert!(matches!(
+            events[1].payload,
+            EventPayload::ProjectileRemoved {
+                absorbed_by: Some(ObjectRef {
+                    kind: ObjectKind::Shield,
+                    id: 2
+                }),
+                ..
+            }
+        ));
+        assert_eq!(
+            events[2..]
+                .iter()
+                .map(|event| event.subject.unwrap().id)
+                .collect::<Vec<_>>(),
+            [2, 3, 2, 3]
+        );
+        assert!(matches!(
+            events[2].payload,
+            EventPayload::ShieldCreated { .. }
+        ));
+        assert!(matches!(
+            events[4].payload,
+            EventPayload::ShieldDestroyed { .. }
+        ));
+        assert!(capture.shield_births.is_empty());
+    }
+
+    #[test]
+    fn a_shield_birth_seen_at_the_boundary_keeps_snapshot_membership_and_numbering() {
+        let mut capture = shield_identity_test_capture(&[20]);
+        let mut state = layout_test_shield(10, 222, 90, Some(1)).state;
+        state.shield_id = allocate(&mut capture.next_shield_id, "shield").unwrap();
+        let position = state.position;
+        capture.shield_ids.insert(10, state.shield_id);
+        capture.shield_last_states.insert(10, state);
+        capture.shield_births.push(ShieldBirth {
+            pointer: 10,
+            team_id: 1,
+            source_kind: ShieldSourceKind::Contraption,
+            position: QVec3 { x: 111, y: 0, z: 0 },
+            destroyed_position: None,
+        });
+        trace_shield_membership(&mut capture, &BTreeSet::from([20, 10])).unwrap();
+        assert_eq!(capture.shield_ids[&10], 2);
+        assert_eq!(capture.traces.len(), 1);
+        assert!(matches!(capture.traces[0], NativeTrace::ShieldCreated {
+            shield_id: 2, position: actual, ..
+        } if actual == position));
     }
 
     #[test]
