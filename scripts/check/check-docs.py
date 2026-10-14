@@ -2,11 +2,12 @@
 """Check what a machine can check about the documents.
 
 Relative links resolve, section anchors exist, readmes are spelled README.md,
-every spec follows the convention in docs/README.md, the name tables of
-docs/rules/ and docs/terminology/ are the ones config/localization.yaml
-gives, and config/README.md names the script that writes every file under
-config/, and Chinese is written only where docs/terminology/README.md says. Nothing here judges
-whether a sentence is true; that still needs a reader.
+every spec follows the convention in docs/README.md, player-facing Wiki pages
+follow docs/wiki/README.md, the name tables of docs/rules/ and
+docs/terminology/ are the ones config/localization.yaml gives, and
+config/README.md names the script that writes every file under config/, and
+Chinese is written only where docs/terminology/README.md says. Nothing here
+judges whether a sentence is true; that still needs a reader.
 
 Run from the repository root: python3 scripts/check/check-docs.py
 """
@@ -57,9 +58,13 @@ HEADING = re.compile(r"^(#{1,6})\s+(.*?)\s*$")
 
 def tracked_markdown():
     out = subprocess.run(
-        ["git", "ls-files", "*.md"], cwd=REPO, capture_output=True, text=True, check=True
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "*.md"],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=True,
     )
-    return [Path(line) for line in out.stdout.split() if line]
+    return sorted({Path(line) for line in out.stdout.split() if line and (REPO / line).exists()})
 
 
 def outside_fences(text):
@@ -117,7 +122,7 @@ def check_links(paths, fail):
 
 def check_readme_naming(fail):
     for path in REPO.rglob("readme*.md"):
-        if any(part in {"target", ".git", ".venv", "work"} for part in path.parts):
+        if any(part in {"target", ".git", ".venv", "work", "node_modules"} for part in path.parts):
             continue
         fail(f"{path.relative_to(REPO)}: readmes are spelled README.md")
 
@@ -222,6 +227,25 @@ ANCHOR = re.compile(r"`[A-Z][A-Za-z0-9_]*(?:\.[A-Z][A-Za-z0-9_]*)*\.[A-Za-z_][A-
 TESTS_PATH = re.compile(r"`(tests/[^`]+)`")
 
 
+def check_wiki_pages(fail):
+    """A player-facing Wiki page under docs/wiki/ leaves evidence in docs/rules/."""
+    wiki_dir = REPO / "docs" / "wiki"
+    if not wiki_dir.is_dir():
+        return
+    for path in sorted(wiki_dir.rglob("*.md")):
+        if path.name == "README.md":
+            continue
+        rel = path.relative_to(REPO)
+        for number, line in outside_fences(path.read_text()):
+            for pattern, why in UNREPRODUCIBLE:
+                if pattern.search(line):
+                    fail(f"{rel}:{number}: cites {why}")
+            if TESTS_PATH.search(line):
+                fail(f"{rel}:{number}: cites a test fixture in player-facing Wiki prose")
+            if ANCHOR.search(line):
+                fail(f"{rel}:{number}: cites a decompilation anchor in player-facing Wiki prose")
+
+
 def evidence_items(text):
     """{part: [item text]} for the `## Evidence` section, or None without one
     or when another section follows it."""
@@ -276,8 +300,12 @@ VERSION_WRITERS = {"GAME_VERSION"}
 
 
 def check_version_pins(fail):
-    listed = subprocess.run(["git", "ls-files", "-z"], cwd=REPO, check=True,
-                            capture_output=True).stdout.decode().split("\0")
+    listed = subprocess.run(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+        cwd=REPO,
+        check=True,
+        capture_output=True,
+    ).stdout.decode().split("\0")
     for name in filter(None, listed):
         if name in VERSION_WRITERS:
             continue
@@ -300,8 +328,12 @@ CHINESE_FILES = {"config/localization.yaml", "scripts/build_data.py", "scripts/e
 
 
 def check_chinese(fail):
-    listed = subprocess.run(["git", "ls-files", "-z"], cwd=REPO, check=True,
-                            capture_output=True).stdout.decode().split("\0")
+    listed = subprocess.run(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+        cwd=REPO,
+        check=True,
+        capture_output=True,
+    ).stdout.decode().split("\0")
     for name in filter(None, listed):
         if name.startswith(CHINESE_HOMES) or name in CHINESE_FILES:
             continue
@@ -358,6 +390,7 @@ def main():
     check_name_tables(problems.append)
     check_config_generators(problems.append)
     check_rules_evidence(problems.append)
+    check_wiki_pages(problems.append)
     check_version_pins(problems.append)
     check_chinese(problems.append)
     check_rules_evidence_sections(problems.append)

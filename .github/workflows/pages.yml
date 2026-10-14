@@ -1,7 +1,6 @@
 name: pages
 
-# Build the same demo on pull requests; publish only from master. The HTML
-# carries its scripts and timeline, so the deployment needs no game or MCFR.
+# Build the English Wiki on pull requests; publish only from master.
 on:
   push:
     branches: [master]
@@ -17,33 +16,22 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    # Read the release cache the scripts CI job owns; do not write a second
-    # copy of it from this workflow.
-    env:
-      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 16
-      CARGO_PROFILE_RELEASE_LTO: false
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache/restore@v4
+
+      - uses: actions/setup-node@v4
         with:
-          path: |
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/db
-            target
-          key: cargo-scripts-fast-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
-          restore-keys: cargo-scripts-fast-${{ runner.os }}-
+          node-version: 22
 
-      - name: Build the CLI without the Adapter
-        run: cargo build --release -p mechcore --no-default-features
+      - name: Check documentation conventions
+        run: python3 scripts/check/check-docs.py
 
-      - name: Verify and export the demo
+      - name: Build the static wiki
         run: |
-          target/release/mechcore verify tests/corpus/67158166-r5.yaml
-          mkdir -p work/pages
-          target/release/mechcore play tests/corpus/67158166-r5.yaml work/pages/index.html --no-open
+          npm install --no-save --no-package-lock vitepress@1.6.3
+          npx vitepress build docs/wiki
 
-      - name: Upload the static player
+      - name: Upload the static wiki
         uses: actions/upload-pages-artifact@v4
         with:
           path: work/pages
@@ -60,6 +48,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/configure-pages@v5
-      - name: Deploy the static player
+      - name: Deploy the static wiki
         id: deployment
         uses: actions/deploy-pages@v4
