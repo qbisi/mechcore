@@ -1643,6 +1643,9 @@ derive (a minimum range):
 
 ### Recorded
 
+- Electromagnetic Armor does not react to incoming Electromagnetic Shot hits:
+  `tests/technology_buff/electromagnetic-armor-emp-hit.yaml`.
+
 - A technology's range and an officer's range land in one `attack_range_value`,
   and the fight uses their sum: `tests/modifier/`.
 - A growing technology writes the entry for its unit's level: Elite Marksman
@@ -2340,8 +2343,13 @@ derive (a minimum range):
   adds `BuffCycleController.OnBeHit` to the unit's `FightMech.OnMechBeHit`,
   which `FightMech.OnHitted` raises after the hit's shield energy or
   `FightActor.ReduceLife`. `OnBeHit` returns while
-  `SuperDeploymentSystem.IsTravelling` holds for its unit, and for
-  `OpponentUnits` takes the hit's owner when it is a live `FightMech`. A buff
+  `SuperDeploymentSystem.IsTravelling` holds for its unit. A provider whose
+  `IDamageProvider.CanDisableTech` is true first marks non-invincible targets
+  with `FightMech.DisableTechnologyBegin`; `OnBeHit` returns during that mark
+  (`IsTechnologyEnterDisabled`), before the damaging hit's effects run, and
+  `DisableTechnologyEnd` clears the mark after dispatch. Thus Electromagnetic
+  Shot prevents Electromagnetic Armor's reaction to that hit. For
+  `OpponentUnits` it takes the hit's owner when it is a live `FightMech`. A buff
   whose `IBuffData.IsDisableTechnology` holds goes to the attacker's
   `BuffManager.AddBeHitDelayBuffInfo`, and any other to
   `BuffSystem.AddBuffByCheck`. `BuffManager.Update` ends with

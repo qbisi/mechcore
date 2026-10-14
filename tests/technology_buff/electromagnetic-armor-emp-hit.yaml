@@ -1,0 +1,58 @@
+# Electromagnetic Shot marks its target as entering technology disable before
+# OnMechBeHit. Electromagnetic Armor does not retaliate against those hits.
+# This native control omits Aerial Mode to isolate the reaction gate from a
+# flying unit's delayed landing and its separate attack-domain modifiers.
+# No armor disabling buff is applied on ticks 13-14. Ordinary retaliation is
+# held by tests/control/electromagnetic-armor.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1355375212
+round: 4
+blue:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_offensive_tactics, speed_specialist, mass_produced_wasp]
+  techs:
+    wasp: [energy_shield, high_explosive_ammo, ground_specialization, jump_drive, electromagnetic_shot, aerial_specialization, range_enhancement, armor_piercing_bullets, elite_marksman, ignite]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [3, 2]
+  units:
+  - {name: wasp, index: 0, position: {x: 145, y: -60}, level: 4, exp: 2020/4041/4041, equipment: [super_heavy_armor]}
+  - {name: stormcaller, index: 1, position: {x: 165, y: -190}, level: 8, exp: 0/3600/7400, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -95, y: -150}}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: 25, y: -150}, {x: -100, y: 55}, {x: -125, y: -85}]}
+red:
+  core_damage: 404
+  officers: [advanced_shield_device, advanced_targeting_system, typhoon_specialist, improved_void_eye]
+  techs:
+    void_eye: [energy_shield, energy_absorption, range_enhancement, charged_shot, suppression_shots, electromagnetic_armor]
+  units:
+  - {name: void_eye, index: 0, position: {x: -70, y: -80}, level: 4, exp: 1459/1579/2919, rotated: true, equipment: [heavy_armor]}
+  - {name: typhoon, index: 1, position: {x: -240, y: -300}, source: delivered}
+  - {name: war_factory, index: 2, position: {x: -15, y: -205}, level: 2, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -85, y: -90}, retained: false}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: -170, y: -150}]}
+asserts:
+- sql: |
+    SELECT count(*)
+    FROM events
+    WHERE
+      type = 'buff_applied'
+      AND buff_id = 10302
+      AND tick BETWEEN 13 AND 14;
+  rows:
+  - [0]
+ticks: 496
+hash: 24:882f3e50020799c4909f8825493163b2d902a9b351d4e7c154fa6a11394743aa

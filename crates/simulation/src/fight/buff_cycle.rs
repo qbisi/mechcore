@@ -411,6 +411,25 @@ impl Simulation {
 }
 
 impl Simulation {
+    /// `FightSkill.CanDisableTargetTech` of the skill's registered hit providers.
+    pub(in crate::fight) fn can_disable_target_tech(
+        &self,
+        skill: SkillRef,
+        secondary: bool,
+    ) -> bool {
+        let Some(owner) = skill.owner.unit_id().and_then(|id| self.actors.get(&id)) else {
+            return false;
+        };
+        owner
+            .corrected_skill_slots()
+            .contains(&self.skill_slot(skill))
+            && owner.placement.effects.buff_sources.iter().any(|source| {
+                source.trigger == BuffTrigger::Hit
+                    && source.disables_technology
+                    && (!secondary || source.on_second_damage)
+            })
+    }
+
     /// `BuffCycleController.OnBeHit` of each source of unit `id` whose
     /// listener is `BeHit`, as `FightMech.OnHitted` raises `OnMechBeHit`
     /// after a hit of `attacker`'s took what it took: a source that
@@ -423,11 +442,19 @@ impl Simulation {
         &mut self,
         id: u64,
         attacker: ObjectRef,
+        can_disable_tech: bool,
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let Some(owner) = self.actors.get(&id) else {
             return Ok(());
         };
+        // `AddDisableTechnologyMark` called `DisableTechnologyBegin` on the
+        // targets before the hit: an invincible unit is left unmarked.
+        // `OnBeHit` returns for that mark when the incoming provider can
+        // disable technology. The mark ends after this hit's dispatch.
+        if can_disable_tech && !owner.invincible() {
+            return Ok(());
+        }
         let sources = owner
             .placement
             .effects
