@@ -591,7 +591,7 @@ impl Game {
                         &position,
                         fought,
                         side.red(),
-                        self.stream(side, round),
+                        self.stream(side),
                     )
                     .map_err(unsettled)?
                 }
@@ -602,6 +602,8 @@ impl Game {
         self.r#match.turns.push(MatchTurn {
             round: round + 1,
             state: State {
+                random_state: [0; 4],
+                reinforce_pool: mechcore_document::r#match::PoolDelta::default(),
                 reinforce_offers: None,
                 blue,
                 red,
@@ -610,48 +612,28 @@ impl Game {
         });
         let dealt = self.deal()?;
         if let Some(opened) = self.r#match.turns.last_mut() {
-            opened.state.reinforce_offers = dealt;
+            opened.state.reinforce_offers = dealt.offers;
+            dealt.checkpoint.write_to(&mut opened.state);
         }
         self.turn = Turn::opening(round + 1, self.turn.given(), false);
         self.write(held)
             .map_err(|failure| failure.reason().to_owned())
     }
 
-    /// A side's own stream as `round + 1` opens: seeded by the header, and one
-    /// value on for every draw an officer made as each round up to `round`
-    /// opened, which is how `verify` reads a match's stream.
-    fn stream(&self, side: Side, round: i32) -> Option<Stream> {
-        let seed = self.match_side(side).seed?;
-        let draws = self
-            .r#match
+    /// Continues the player stream saved after this round's opening deliveries.
+    fn stream(&self, side: Side) -> Option<Stream> {
+        self.r#match
             .turns
-            .iter()
-            .filter(|turn| (1..=round).contains(&turn.round))
-            .map(|turn| {
-                transition::player_draws(
-                    self.economy,
-                    &state_of(&turn.state, side).officers,
-                    turn.round,
-                )
-            })
-            .sum();
-        let mut stream = Stream::seeded(seed);
-        stream.skip(draws);
-        Some(stream)
+            .last()
+            .and_then(|turn| Stream::from_state(state_of(&turn.state, side).random_state).ok())
     }
 
-    /// Deals the reinforcement offers of the round the match has just opened.
-    ///
-    /// The deal is stateful and the stream it runs on is the header's, so the
-    /// match hands the whole document over rather than keeping a dealer
-    /// between operations: a round is dealt the same way whichever process
-    /// opened it, and a turn file that was lost changes nothing.
-    fn deal(&self) -> Result<Option<Offers>, String> {
+    /// Deals from the preceding opening checkpoint and this round's position.
+    fn deal(&self) -> Result<mechcore_document::reinforcement::Dealt, String> {
         let yaml = mechcore_document::r#match::canonical_yaml(&self.r#match)?;
         let stated = mechcore_document::opening::stated(yaml.as_bytes())?
             .ok_or("a match in progress is not a match document")?;
-        let opening = opening::verify(self.economy, &stated)?;
-        mechcore_document::reinforcement::deal_last_round(self.economy, &stated, &opening)
+        mechcore_document::reinforcement::deal_checkpoint(self.economy, &stated)
     }
 
     /// Runs the round's fight and reads what it decided.
@@ -679,11 +661,15 @@ impl Game {
         }
         let [blue, red] = [positions.remove(0), positions.remove(0)];
         let state = State {
+            random_state: [0; 4],
+            reinforce_pool: mechcore_document::r#match::PoolDelta::default(),
             reinforce_offers: None,
             blue,
             red,
         };
         let opening = State {
+            random_state: [0; 4],
+            reinforce_pool: mechcore_document::r#match::PoolDelta::default(),
             reinforce_offers: None,
             blue: self
                 .opened(Side::Blue)
@@ -834,6 +820,8 @@ impl Game {
             Side::Red => (other.clone(), position.clone()),
         };
         let state = State {
+            random_state: [0; 4],
+            reinforce_pool: mechcore_document::r#match::PoolDelta::default(),
             reinforce_offers: None,
             blue,
             red,
@@ -844,6 +832,8 @@ impl Game {
             Side::Red => (other, own),
         };
         let opening = State {
+            random_state: [0; 4],
+            reinforce_pool: mechcore_document::r#match::PoolDelta::default(),
             reinforce_offers: None,
             blue,
             red,

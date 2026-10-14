@@ -350,6 +350,20 @@ fn a_committed_round_is_written_and_fought() {
         "{fourth}"
     );
     assert_eq!(verify(&path)["valid"], true);
+    // Continuing the deal needs just the preceding opening and its actions.
+    let bytes = fs::read(&path).unwrap();
+    let mut stated = mechcore_document::opening::stated(&bytes).unwrap().unwrap();
+    let tail = stated.turns.split_off(stated.turns.len() - 2);
+    stated.turns = tail;
+    let dealt = mechcore_document::reinforcement::deal_checkpoint(
+        mechcore_document::economy::Economy::embedded().unwrap(),
+        &stated,
+    )
+    .unwrap();
+    let expected = &stated.turns.last().unwrap().state;
+    assert_eq!(dealt.offers, expected.reinforce_offers);
+    assert_eq!(dealt.checkpoint.random_state, expected.random_state);
+    assert_eq!(dealt.checkpoint.reinforce_pool, expected.reinforce_pool);
 }
 
 #[test]

@@ -35,6 +35,39 @@ segment, followed by the [decisions](action.md) taken from it. A state segment
 carries `kind: state` and `round`, and leaves `map_id` and `seed` to the
 match's header, which states them once for every round.
 
+## Random streams and the ordinary reinforcement pool
+
+Every state carries three `random_state` arrays of four unsigned 64-bit words:
+one at the state root for the shared reinforcement stream, and one under each
+side for its player stream. None may be all zero. At a round opening these are
+the streams after the reinforcement deal and the officers' deliveries, before
+either side acts. A state's streams advance only when a rule draws from them.
+
+`reinforce_pool` states the effective membership changes relative to the
+ordinary pool initialized by the match header's seed:
+
+```yaml
+reinforce_pool:
+  removed: [mass_produced_fortress]
+  added: [extended_range_fortress]
+```
+
+Both lists use reinforcement card names, ordered by card ID without duplicates.
+`removed` contains only initial members no longer held; `added` contains only
+noninitial members now held. The lists are disjoint. Empty lists are omitted,
+and `reinforce_pool` itself is omitted when both are empty. This is a set
+difference, not an operation history. The initial pool is derived from the seed
+and is not repeated in the header. A pool holds at most one member of each
+positive card group.
+
+An opening checkpoint includes the current round's condition refresh. The
+round's nonrepeatable choices remove their cards before the next deal. Temporal
+exclusion of level-4 commander skills in the following round follows from this
+round's `reinforce_offers`, and is not a separate pool membership change.
+The checkpoint, decisions and header suffice to continue the random streams
+and the pool without earlier decisions; the fight still determines its own
+part of the next opening position.
+
 ## Relation to a layout
 
 A layout is not a different object from a state. It is the projection of a state
@@ -50,8 +83,8 @@ Ground scene would install to reproduce the match at that moment, which gives a
 finer failure signal than comparing a round's endpoints alone.
 
 What the projection drops is everything the fight cannot observe: supply, the
-unlocked units, the reinforcement offer, the allocators, and the parts of the skill panel
-that neither stand on the battlefield nor were released this round.
+unlocked units, the reinforcement offer, the random streams, the pool changes,
+the allocators, and the parts of the skill panel that neither stand on the battlefield nor were released this round.
 
 Each unit carries its `source`. In an opening state, an inherited unit is
 `legacy` and leaves the field out; the first round's advance team is `joined`,
@@ -545,6 +578,7 @@ absent when its `current` is `0`.
 | `techs` | ascending unit ID, each unit's technologies ascending ID |
 | `unlocked_units` | ascending unit ID |
 | `blueprints`, `energy_tower_skills` | ascending ID |
+| `reinforce_pool.removed`, `reinforce_pool.added` | ascending card ID, sets |
 | a slot's `standing` | a shield by ascending `(x, y)`, an oil area by its control points |
 | `reinforce_offers` | as dealt, then the decline; a choice names a position in it |
 | `tower_strengthen_levels` | by building-manager position |
@@ -599,27 +633,14 @@ it is read out of the recorded skill panel, onto the slot it is recorded under;
 | `NewUnitData.RoundCount`, `SellSupply` | Both follow from when the unit was bought and what it cost |
 | `ConstructionSnapshotData.durability` | One entry per segment, and inert |
 | `matchDatas.teamRanks` | Seat ordering; no mechanism reads it |
-| `matchDatas.poolOPs` | Reinforcement pool bookkeeping for later rounds, see below |
-| `matchDatas.RoundExcludeReinforce` | The same, per round rather than permanently |
-| `matchDatas.randomStateData` | Decides a later offer roll only |
-| `playerData.randomStateData` | Nothing draws from that stream |
+| `matchDatas.poolOPs` | Replaced by effective `reinforce_pool` membership changes |
+| `matchDatas.RoundExcludeReinforce` | Next-round exclusion follows from this round's offers |
 
 `IsSpecialSupply` is the latch the supply section names: when it is set, the
 round's income is computed, the latch cleared, and the income not added. It
 means "this supply was set directly, so do not stack this round's income on
 top". It is excluded because nothing under 1v1 rules ever sets it, and it
 matters anyway to an installer, which is where the supply section names it.
-
-`poolOPs` and `RoundExcludeReinforce` are the reinforcement pool's bookkeeping,
-and both are excluded on one argument: they decide what a *later* round may be
-offered, while this round's offer is already stated by `reinforce_offers`. A
-match does not lose them either: the deal that checks its offers makes them
-again ([match-replay.md](match-replay.md#the-reinforcement-pool)).
-
-They differ in kind, and neither can stand in for the other. `poolOPs` is a log
-of removals and promotions that changes pool membership permanently, undone only
-by a matching add. `RoundExcludeReinforce` does not touch membership at all: an
-excluded item stays in the pool and is merely invisible for one named round.
 
 ## Unresolved
 
@@ -633,10 +654,3 @@ cooling down when a specialist or a card hands them out, is not recorded.
 side's inventory, and a unit's `equipment` names only IDs. Under the game
 rule that makes equipment expire, a fitted item has a durability and this format
 has nowhere to put it.
-
-**Whether an installer may carry a random stream.** No state field holds one,
-which rests on nothing drawing from the player stream and on the match stream
-only deciding later offers. A use that rolls rather than supplies an offer would
-break the second half of that, and the format would need a field for the four
-words rather than a derivation.
-

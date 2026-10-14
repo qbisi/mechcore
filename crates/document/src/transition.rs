@@ -867,6 +867,9 @@ pub fn open_round(
             formation_mut(&mut next, index)?.unit.source = crate::layout::UnitSource::Delivered;
         }
     }
+    if let Some(stream) = stream {
+        next.random_state = stream.state();
+    }
     Ok(next)
 }
 
@@ -1991,6 +1994,29 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         assert_eq!(super::player_draws(economy, &state.officers, 1), 1);
         stream.skip(1);
         assert_eq!(handed(stream, 2), vec![13_030_522]);
+        let first = super::open_round(
+            economy,
+            &state,
+            1,
+            &mut |_, _| None,
+            Some(Stream::seeded(846_184_650)),
+        )
+        .unwrap();
+        let yaml = serde_yaml::to_string(&first).unwrap();
+        let checkpoint: SideState = serde_yaml::from_str(&yaml).unwrap();
+        let continued = Stream::from_state(checkpoint.random_state).unwrap();
+        let second =
+            super::open_round(economy, &checkpoint, 2, &mut |_, _| None, Some(continued)).unwrap();
+        assert_eq!(
+            second
+                .equipment
+                .iter()
+                .map(|item| item.id)
+                .collect::<Vec<_>>(),
+            vec![13_030_009, 13_030_522]
+        );
+        stream.skip(1);
+        assert_eq!(second.random_state, stream.state());
         assert!(super::open_round(economy, &state, 1, &mut |_, _| None, None).is_err());
     }
 

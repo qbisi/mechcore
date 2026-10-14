@@ -61,6 +61,9 @@ is what conversion checks:
   earlier round's officers drew.
 
 A round that deals offers lists them, as dealt, in its `reinforceItems`.
+The match's checkpoints stand after the current deal and player deliveries;
+replay snapshots stand before them. Replaying the header seeds verifies the
+checkpoints and supplies the earlier stream states the replay requires.
 
 ## The reinforcement pool
 
@@ -78,6 +81,11 @@ A round's two choices are logged blue before red. The match logged them in the
 order they were made, which a match does not keep; restoring a round sorts the
 pool again, so the order decides nothing, and conversion accepts either
 ([match.md](match.md#converting-a-replay)).
+
+The match carries effective `reinforce_pool.added` and `removed` sets rather
+than `poolOPs`. Replay output reconstructs the historical log from the complete
+match and checks the post-deal checkpoints. Continuing a match from a checkpoint
+needs neither this log nor earlier choices.
 
 ## Round 0
 

@@ -2,7 +2,7 @@
 
 use crate::catalog::{NativeFormation, resolve_unit_type};
 use crate::economy::Economy;
-use crate::r#match::{Action, Offers, SideState, Turn};
+use crate::r#match::{Action, Offers, PoolDelta, SideState, State, Turn};
 use crate::opening::{Prediction, Stated, Stream};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -208,6 +208,28 @@ pub struct Verified {
     /// The pool as each stated round opened, from round 1.
     #[serde(skip)]
     pub pools: Vec<Pool>,
+    #[serde(skip)]
+    pub checkpoints: Vec<Checkpoint>,
+}
+
+/// A deployment opening after its reinforcement deal, before either side acts.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Checkpoint {
+    pub random_state: [u64; 4],
+    pub reinforce_pool: PoolDelta,
+}
+
+impl Checkpoint {
+    pub fn write_to(&self, state: &mut State) {
+        state.random_state = self.random_state;
+        state.reinforce_pool.clone_from(&self.reinforce_pool);
+    }
+}
+
+/// An opening's offers and the checkpoint after dealing them.
+pub struct Dealt {
+    pub offers: Option<Offers>,
+    pub checkpoint: Checkpoint,
 }
 
 /// The pool as a round opens, in the terms a replay's `MatchSnapshotData`
@@ -296,6 +318,94 @@ impl Dealer {
             log: Vec::new(),
             choices: Vec::new(),
         })
+    }
+
+    fn members(&self) -> BTreeSet<i32> {
+        self.pools.values().flatten().copied().collect()
+    }
+
+    fn checkpoint(&self, initial: &BTreeSet<i32>) -> Checkpoint {
+        let members = self.members();
+        Checkpoint {
+            random_state: self.stream.state(),
+            reinforce_pool: PoolDelta {
+                removed: initial.difference(&members).copied().collect(),
+                added: members.difference(initial).copied().collect(),
+            },
+        }
+    }
+
+    fn restore(&mut self, state: &State) -> Result<(), String> {
+        self.stream = Stream::from_state(state.random_state)?;
+        let mut members = self.members();
+        for ids in [&state.reinforce_pool.removed, &state.reinforce_pool.added] {
+            if ids.windows(2).any(|pair| pair[0] >= pair[1]) {
+                return Err("reinforce_pool lists must be unique and in card ID order".into());
+            }
+        }
+        for id in &state.reinforce_pool.removed {
+            if !members.remove(id) {
+                return Err(format!(
+                    "reinforce_pool removes card {id} outside the initial pool"
+                ));
+            }
+        }
+        for id in &state.reinforce_pool.added {
+            if !self.config.cards.contains_key(id)
+                || !members.insert(*id)
+                || state.reinforce_pool.removed.contains(id)
+            {
+                return Err(format!("reinforce_pool adds invalid or initial card {id}"));
+            }
+        }
+        for variants in self.groups.values_mut() {
+            let held = variants.iter().filter(|id| members.contains(id)).count();
+            if held > 1 {
+                return Err("reinforce_pool holds multiple cards from one group".into());
+            }
+            if held == 0 {
+                variants.clear();
+            }
+        }
+        self.pools.clear();
+        for id in members {
+            self.pools
+                .entry(self.config.cards[&id].level)
+                .or_default()
+                .push(id);
+        }
+        Ok(())
+    }
+
+    fn deal(
+        &mut self,
+        economy: &Economy,
+        stated: &Stated,
+        turn: &Turn,
+    ) -> Result<Option<Offers>, String> {
+        if turn.round == 1 {
+            return Ok(None);
+        }
+        let context = self.context(economy, stated, turn)?;
+        let dealt = if self.config.pools[&self.pool_id]
+            .rounds
+            .contains(&turn.round)
+        {
+            self.unit_offers(
+                turn.round,
+                &context.units,
+                &context.officers,
+                &context.scores,
+            )?
+        } else {
+            self.ordinary(turn.round, &context)?
+        };
+        Ok(Some(Offers {
+            dealt,
+            refund: self
+                .config
+                .decline_supply(economy, self.pool_id, turn.round)?,
+        }))
     }
 
     fn refresh(&mut self, context: &Context) {
@@ -712,60 +822,89 @@ pub fn verify(
     stated: &Stated,
     opening: &Prediction,
 ) -> Result<Verified, String> {
-    walk(economy, stated, opening, false).map(|walked| walked.verified)
+    walk(economy, stated, opening, true)
 }
 
-/// Deals the offers of the round the match has just opened, which is its
-/// last, or nothing when that round is dealt none.
-///
-/// The deal is stateful, so this replays every earlier round first: each one's
-/// offers are dealt again and the choice taken from them applied. The last
-/// round's own `reinforce_offers` are the one thing not read, which is what
-/// makes this a deal rather than a check — a match writes what comes back into
-/// the state that round opens with, and [`verify`] then agrees with it.
+/// Fills the checkpoints while converting a complete replay; normal verification
+/// checks them against the seed rather than trusting them.
+#[cfg(feature = "convert")]
+pub(crate) fn fill_checkpoints(
+    economy: &Economy,
+    game: &mut crate::r#match::Match,
+) -> Result<(), String> {
+    let yaml = crate::r#match::canonical_yaml(game)?;
+    let stated = crate::opening::stated(yaml.as_bytes())?.ok_or("not a match")?;
+    let opening = crate::opening::verify(economy, &stated)?;
+    let walked = walk(economy, &stated, &opening, false)?;
+    for (turn, checkpoint) in game.turns.iter_mut().zip(walked.checkpoints) {
+        checkpoint.write_to(&mut turn.state);
+    }
+    Ok(())
+}
+
+/// Deals the last opening using only its header, the preceding opening and
+/// that round's decisions. Earlier turns are not read.
 ///
 /// # Errors
-/// The same as [`verify`], for every round but the last.
-pub fn deal_last_round(
-    economy: &Economy,
-    stated: &Stated,
-    opening: &Prediction,
-) -> Result<Option<Offers>, String> {
-    walk(economy, stated, opening, true).map(|walked| walked.dealt)
-}
-
-/// One match's rounds, replayed through the dealer.
-struct Walked {
-    verified: Verified,
-    /// The last round's offers, when they were dealt rather than checked.
-    dealt: Option<Offers>,
+/// Refuses a missing opening, nonconsecutive checkpoints, invalid pool changes
+/// or stream state, invalid choices, and an exhausted or unsupported deal.
+pub fn deal_checkpoint(economy: &Economy, stated: &Stated) -> Result<Dealt, String> {
+    let next = stated.turns.last().ok_or("no deployment opening to deal")?;
+    let opening = crate::opening::predict(economy, stated.seed, stated.map_id)?;
+    let mut dealer = Dealer::new(&opening)?;
+    let initial = dealer.members();
+    if next.round > 1 {
+        let current = stated
+            .turns
+            .iter()
+            .rev()
+            .nth(1)
+            .ok_or("next opening needs the preceding round checkpoint")?;
+        if current.round + 1 != next.round {
+            return Err("checkpoint rounds are not consecutive".into());
+        }
+        dealer.restore(&current.state)?;
+        let offers = current
+            .state
+            .reinforce_offers
+            .as_ref()
+            .map_or(&[][..], |o| o.dealt.as_slice());
+        if offers
+            .iter()
+            .any(|id| dealer.config.level_four_skills.contains(id))
+        {
+            dealer.excluded_rounds.insert(next.round);
+        }
+        dealer.apply_choices(current, offers, false)?;
+    }
+    let offers = dealer.deal(economy, stated, next)?;
+    Ok(Dealt {
+        offers,
+        checkpoint: dealer.checkpoint(&initial),
+    })
 }
 
 /// Replays every stated round through one stream.
-///
-/// `deal_last` decides what happens at the last round: a check compares the
-/// offers it states, and a deal answers the offers it should state.
 fn walk(
     economy: &Economy,
     stated: &Stated,
     opening: &Prediction,
-    deal_last: bool,
-) -> Result<Walked, String> {
+    check_state: bool,
+) -> Result<Verified, String> {
     // A match that has not opened its first round has no draw to check. That
     // is a match in progress rather than a match missing something: the
     // header and the openings are all a dealt match has.
     if stated.turns.is_empty() {
-        return Ok(Walked {
-            verified: Verified {
-                rounds: Vec::new(),
-                offers_checked: 0,
-                pools: Vec::new(),
-            },
-            dealt: None,
+        return Ok(Verified {
+            rounds: Vec::new(),
+            offers_checked: 0,
+            pools: Vec::new(),
+            checkpoints: Vec::new(),
         });
     }
-    let mut dealt = None;
     let mut dealer = Dealer::new(opening)?;
+    let initial = dealer.members();
+    let mut checkpoints = Vec::new();
     let mut rounds = Vec::new();
     let mut offers_checked = 0;
     let mut pools = Vec::new();
@@ -782,43 +921,38 @@ fn walk(
             choices: dealer.choices.clone(),
             excluded: dealer.excluded_rounds.iter().copied().collect(),
         });
-        let context = dealer
-            .context(economy, stated, turn)
-            .map_err(|error| format!("round {} reinforcement: {error}", turn.round))?;
         let before_state = dealer.stream.state();
         let before_offset = dealer.offset + dealer.stream.draws();
         let unit_reinforcement = dealer.config.pools[&dealer.pool_id]
             .rounds
             .contains(&turn.round);
-        let offers = if turn.round == 1 {
-            Ok(Vec::new())
-        } else if unit_reinforcement {
-            dealer.unit_offers(
-                turn.round,
-                &context.units,
-                &context.officers,
-                &context.scores,
-            )
-        } else {
-            dealer.ordinary(turn.round, &context)
-        }
-        .map_err(|error| format!("round {} reinforcement: {error}", turn.round))?;
+        let expected_offers = dealer
+            .deal(economy, stated, turn)
+            .map_err(|error| format!("round {} reinforcement: {error}", turn.round))?;
+        let offers = expected_offers
+            .as_ref()
+            .map_or_else(Vec::new, |offers| offers.dealt.clone());
         let last = at + 1 == stated.turns.len();
         let declined = dealer
             .config
             .decline_supply(economy, dealer.pool_id, turn.round)?;
-        let expected_offers = (turn.round > 1).then(|| Offers {
-            dealt: offers.clone(),
-            refund: declined,
-        });
-        if deal_last && last {
-            dealt = expected_offers;
-        } else if turn.state.reinforce_offers != expected_offers {
+        if turn.state.reinforce_offers != expected_offers {
             return Err(format!(
                 "round {} reinforcement offers disagree: predicted {expected_offers:?}, stated {:?}",
                 turn.round, turn.state.reinforce_offers
             ));
         }
+        let checkpoint = dealer.checkpoint(&initial);
+        if check_state
+            && (turn.state.random_state != checkpoint.random_state
+                || turn.state.reinforce_pool != checkpoint.reinforce_pool)
+        {
+            return Err(format!(
+                "round {} reinforcement checkpoint disagrees with its seeded deal",
+                turn.round
+            ));
+        }
+        checkpoints.push(checkpoint);
         dealer.apply_choices(turn, &offers, last)?;
         if turn.round > 1 {
             offers_checked += offers.len();
@@ -834,19 +968,114 @@ fn walk(
             });
         }
     }
-    Ok(Walked {
-        verified: Verified {
-            rounds,
-            offers_checked,
-            pools,
-        },
-        dealt,
+    Ok(Verified {
+        rounds,
+        offers_checked,
+        pools,
+        checkpoints,
     })
 }
 
 #[cfg(all(test, feature = "convert"))]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_pool_checkpoint_continues_without_earlier_draws_or_choices() {
+        let economy = Economy::embedded().unwrap();
+        let mut replacements = 0;
+        let mut removals = 0;
+        let mut exclusions = 0;
+        for seed in 1..=32 {
+            let opening = crate::opening::predict(economy, seed, 1011).unwrap();
+            let mut dealer = Dealer::new(&opening).unwrap();
+            let initial = dealer.members();
+            let mut context = Context::default();
+            let mut offers = dealer.ordinary(2, &context).unwrap();
+            for round in 2..=12 {
+                // Exercise disappearance and replacement as investment changes.
+                context.investments = vec![Investment {
+                    values: BTreeMap::from([(1, 400), (2, 600)]),
+                    total: 1000,
+                }];
+                if round >= 5 {
+                    context.units.insert(1);
+                }
+                if round >= 8 {
+                    context.units.insert(2);
+                }
+                let checkpoint = dealer.checkpoint(&initial);
+                replacements += checkpoint.reinforce_pool.added.len();
+                removals += checkpoint.reinforce_pool.removed.len();
+                let state = State {
+                    random_state: checkpoint.random_state,
+                    reinforce_pool: checkpoint.reinforce_pool,
+                    ..Default::default()
+                };
+                let mut resumed = Dealer::new(&opening).unwrap();
+                resumed.restore(&state).unwrap();
+                if offers
+                    .iter()
+                    .any(|id| dealer.config.level_four_skills.contains(id))
+                {
+                    resumed.excluded_rounds.insert(round + 1);
+                    exclusions += 1;
+                }
+                // Both players may select the same card; removal is idempotent.
+                for id in offers.iter().take(2) {
+                    dealer.choose(*id);
+                    dealer.choose(*id);
+                    resumed.choose(*id);
+                    resumed.choose(*id);
+                }
+                assert_eq!(dealer.members(), resumed.members());
+                offers = dealer.ordinary(round + 1, &context).unwrap();
+                assert_eq!(
+                    offers,
+                    resumed.ordinary(round + 1, &context).unwrap(),
+                    "seed {seed} round {round}"
+                );
+                assert_eq!(dealer.checkpoint(&initial), resumed.checkpoint(&initial));
+            }
+        }
+        assert!(replacements > 0 && removals > 0 && exclusions > 0);
+    }
+
+    #[test]
+    fn a_pool_checkpoint_refuses_noncanonical_or_impossible_membership() {
+        let opening = crate::opening::predict(Economy::embedded().unwrap(), 1, 1011).unwrap();
+        let initial = Dealer::new(&opening).unwrap();
+        let id = *initial.members().first().unwrap();
+        for delta in [
+            PoolDelta {
+                added: vec![id],
+                ..Default::default()
+            },
+            PoolDelta {
+                removed: vec![id, id],
+                ..Default::default()
+            },
+            PoolDelta {
+                removed: vec![id],
+                added: vec![id],
+            },
+            PoolDelta {
+                removed: vec![i32::MAX],
+                ..Default::default()
+            },
+        ] {
+            let mut restored = Dealer::new(&opening).unwrap();
+            assert!(
+                restored
+                    .restore(&State {
+                        random_state: initial.stream.state(),
+                        reinforce_pool: delta,
+                        ..Default::default()
+                    })
+                    .is_err()
+            );
+        }
+    }
 
     /// A unit-modification officer is dealt while its unit holds at most its
     /// ceiling of every player's investment, and a player who has invested

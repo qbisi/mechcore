@@ -124,6 +124,8 @@ pub fn every_round(
                 .map_err(|unsettled| format!("round {} does not deploy: {unsettled}", turn.round))
         };
         let state = State {
+            random_state: turn.state.random_state,
+            reinforce_pool: turn.state.reinforce_pool.clone(),
             reinforce_offers: turn.state.reinforce_offers.clone(),
             blue: deployed(&turn.state.blue, &turn.actions.blue, false)?,
             red: deployed(&turn.state.red, &turn.actions.red, true)?,
