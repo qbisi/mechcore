@@ -1,0 +1,36 @@
+# Multi Control redistribution compares started blows, including wind-up.
+# Control: generated three-formation fight with a level-9 Vortex; the original
+# level-5 Vortex independently exposes production-cap death timing. At tick 959,
+# the fourth beam keeps its lock and contributes the fourth control buff.
+kind: fight
+source: game
+map_id: 1021
+seed: 1020628181
+round: 3
+blue:
+  core_damage: 390
+  officers: [advanced_defensive_tactics, advanced_power_system, fire_badger_specialist, fortified_hacker]
+  techs:
+    hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement, multi_control]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: hacker, index: 0, position: {x: -135, y: -25}, level: 9, exp: 3767/3767/3767, equipment: [enhancement_module]}
+  - {name: fire_badger, index: 1, position: {x: -5, y: -70}, exp: 0/1400/1400, source: delivered}
+  - {name: vortex, index: 2, position: {x: -20, y: -240}, level: 9, exp: 0/1722/5046, source: joined}
+  battle_skills:
+  - {name: electromagnetic_blast, positions: [{x: 15, y: -75}]}
+red:
+  core_damage: 0
+  officers: [quick_teleport, advanced_targeting_system, fortified_specialist, mass_produced_melting_point]
+  techs:
+    melting_point: [electromagnetic_barrage]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: melting_point, index: 0, position: {x: -330, y: 170}, level: 7, exp: 0/8815/8815, equipment: [mustang_production_line], travelling: true, source: joined}
+  - {name: farseer, index: 1, position: {x: 95, y: -295}, level: 2, source: joined}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: -135, y: -75}]}
+ticks: 1641
+hash: 24:9560f8c6e808c95787d2339b1cb9a798cbb5fe08f1fda40ac6d4bc8416e90325

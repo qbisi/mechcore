@@ -342,6 +342,11 @@ group; an extra skill's group, which does not hold that skill, passes over
 none of its own ([extra_weapons.md](extra_weapons.md#a-group-of-beams)). The fixtures
 that separated the rest are [the Wraith fixtures](../../tests/wraith/).
 
+Redistribution compares `FightSkill.GetAttackCount`, the number of blows
+started, including a blow still winding up before its attack point. A sibling
+that has started as many keeps the current slot from yielding its shared lock.
+`tests/control/grouped-windup-count.yaml` records this for Multi Control.
+
 ## A fusillade fires with its core
 
 A skill whose data says `IsFusillade` gets a `GroupedSkillFusilladeBehaviour`

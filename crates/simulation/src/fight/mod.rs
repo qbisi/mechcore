@@ -850,14 +850,7 @@ impl Simulation {
                     .unwrap_or(i32::MAX),
                     current_attack_interval: i32::try_from(skill.current_attack_interval)
                         .unwrap_or(i32::MAX),
-                    // `SkillAttackController.attackCount` counts a blow as it
-                    // starts; this simulator counts it as its attack point
-                    // lets it through.
-                    attack_count: skill.attack_count
-                        + i32::from(matches!(
-                            skill.state,
-                            skill::SkillState::Attack(skill::Blow::Before(_))
-                        )),
+                    attack_count: skill.started_attack_count(),
                     perform_count: i32::try_from(skill.performed_count(self.step_now))
                         .unwrap_or(i32::MAX),
                     attack_range: self.slot_attack_range_q32(skill_ref, offset),

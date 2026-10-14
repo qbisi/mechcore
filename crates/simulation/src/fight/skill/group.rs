@@ -102,8 +102,8 @@ impl Simulation {
             .flat_map(|(_, skills)| skills.iter().copied())
             .filter(|&other| other != slot && (other != 0 || skill_ref.slot != SkillSlot::Main))
             .collect::<Vec<_>>();
-        let own = skill.group_skill(slot).attack_count;
-        let blows = |other: usize| skill.group_skill(other).attack_count;
+        let own = skill.group_skill(slot).started_attack_count();
+        let blows = |other: usize| skill.group_skill(other).started_attack_count();
         if others.iter().any(|&other| blows(other) <= own)
             || skill.group_skill(slot).search_target_time > 0
         {
