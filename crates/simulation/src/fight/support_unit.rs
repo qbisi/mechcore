@@ -872,8 +872,8 @@ impl Simulation {
         Ok(())
     }
 
-    /// `SummonSystem.AddMechDelay` for every summon whose second is up, in
-    /// the order they were created: an air drop's damage, then
+    /// `SummonSystem.AddMechDelay` for every summon whose timer is up, in
+    /// creation order among the due timers: an air drop's damage, then
     /// `FightTeam.ActiveMech`, which puts it in its side's trees.
     pub(in crate::fight) fn join_summons(
         &mut self,
@@ -881,18 +881,18 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let tick = step + 1;
-        while self
+        while let Some(index) = self
             .support
             .appearing
-            .first()
-            .is_some_and(|appearing| appearing.joins_on <= tick)
+            .iter()
+            .position(|appearing| appearing.joins_on <= tick)
         {
             let Appearing {
                 mut actor,
                 drop_damage,
                 coming_out,
                 ..
-            } = self.support.appearing.remove(0);
+            } = self.support.appearing.remove(index);
             if let Some(coming_out) = coming_out {
                 self.take_place(&mut actor, coming_out)?;
             }

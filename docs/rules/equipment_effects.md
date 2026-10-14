@@ -188,6 +188,11 @@ second as [battle_skill.md](battle_skill.md#a-summon) states. The rows are
 [`config/equipment_effects.yaml`](../../config/equipment_effects.yaml)'s
 `production`.
 
+Each delayed make has its own appearance timer. A later make with a shorter
+appearance time joins before an earlier make still waiting. Due callbacks run
+in their creation order (`SummonSystem.CreateMechDelay`,
+`GRTimerManager.StartForObject`, `GRTimerManager.Update`).
+
 A row with a `unit_level`, a `max_create_count`, a `unit_life_rate`, no
 `positions` or an `appear_type` other than 5 is refused by name, and so is a
 make due after its wearer has fallen.
@@ -289,6 +294,8 @@ rather than applying only its plain corrections.
 - A capped line resumes its clock on the tick after a child dies, and its
   next batch follows that resumed clock:
   `tests/production/cap-child-death-callback.yaml`.
+- A later Mustang batch joins while earlier Spider Mines are still appearing:
+  `tests/production/independent-appearance-timers.yaml`.
 - A due production batch fills only the remaining capacity when less than
   one full batch fits: `tests/production/batch-fills-remaining-capacity.yaml`.
 - A side's last important unit dying destroys the rest of the side on that
