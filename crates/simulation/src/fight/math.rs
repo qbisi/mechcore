@@ -135,6 +135,7 @@ pub(in crate::fight) fn line_overlaps_circle_q32(
     rvo::fpoint_less_than(distance_sq, q32_mul(reach, reach))
 }
 
+#[cfg(test)]
 pub(in crate::fight) fn magnitude(x: i64, z: i64) -> i64 {
     integer_sqrt(i128::from(x) * i128::from(x) + i128::from(z) * i128::from(z))
 }
@@ -493,6 +494,7 @@ pub(crate) fn fpcs_cos_fastest(value: i64) -> i64 {
     fpcs_sin_fastest(value.saturating_add(0x1_921F_B544))
 }
 
+#[cfg(test)]
 pub(in crate::fight) fn integer_sqrt(value: i128) -> i64 {
     if value <= 0 {
         return 0;

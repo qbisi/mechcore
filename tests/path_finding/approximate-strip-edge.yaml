@@ -1,0 +1,56 @@
+# A Melting Point detours around its own Energy Tower at the edge of
+# LineRange.Contains. Native fixed-point AngleRad and Sin keep the detour
+# for one more solve than exact cross products do. The independent late
+# electromagnetic barrage is absent so the whole fight matches.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1678283849
+round: 3
+blue:
+  core_damage: 0
+  officers: [quick_teleport, advanced_offensive_tactics, fortified_specialist, extended_range_fortress]
+  techs:
+    fortress: [doubleshot, barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: fortress, index: 0, position: {x: -340, y: 210}, level: 4, exp: 0/7184/7184, equipment: [steel_ball_production_line], travelling: true, source: joined}
+  - {name: war_factory, index: 1, position: {x: -215, y: -275}, exp: 0/368/3200, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -105, y: -25}, retained: false}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 150, y: -195}]}
+red:
+  core_damage: 350
+  officers: [advanced_missile_device, advanced_targeting_system, sabertooth_specialist, mass_produced_melting_point]
+  techs:
+    melting_point: [energy_absorption, energy_diffraction, crawler_production, armor_enhancement, range_enhancement]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [3, 1]
+  units:
+  - {name: melting_point, index: 0, position: {x: -140, y: -270}, level: 2, exp: 1577/3154/3154, equipment: [mustang_production_line]}
+  - {name: sabertooth, index: 1, position: {x: -65, y: -265}, exp: 0/50/1300, source: delivered}
+  - {name: farseer, index: 2, position: {x: 75, y: -295}, level: 8, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 200, y: -55}, retained: false}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: 105, y: 185}]}
+ticks: 1871
+hash: 25:2ab31ebd7f0ad797a7dce7e593e46945dfb2666758a8f871bb21037eb5d17543
+asserts:
+- sql: 'SELECT tick, velocity__x, velocity__z FROM units
+
+    WHERE unit_id = 6 AND tick IN (200, 204, 208) ORDER BY tick;'
+  rows:
+  - - 200
+    - -13539605949
+    - -36209798829
+  - - 204
+    - -14480137629
+    - -35844051888
+  - - 208
+    - -7591624687
+    - -36896917288
