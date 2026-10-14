@@ -137,6 +137,12 @@ square to the tower on the target's side, and turned towards the tower by up
 to 60 degrees as the tower's edge is further than those two radii. The first
 such tower in the side's list is the one turned around.
 
+The strip's containment test measures both endpoint angles with
+`FVector2.AngleRad`, rejects an angle beyond a right angle, and compares
+the distance from the start times the first angle's `FPoint.Sin` against
+the width. Those fixed-point approximations decide points at the strip's
+edge; an exact perpendicular distance does not give the same boundary.
+
 The point found is meant to hold for ten moves while the target stays within
 twice its radius of where it stood, but the record of where it stood keeps the
 target's `x` and nought for its depth, so a target away from the map's middle
@@ -196,6 +202,8 @@ no lock goes straight to its point.
 - A Fortress initially outside the near-tower range keeps checking and turns
   aside as it approaches its own tower:
   `tests/path_finding/keeps-checking-distant-towers.yaml`.
+- A Melting Point keeps its detour at the strip's edge under the fixed-point
+  angle and sine test: `tests/path_finding/approximate-strip-edge.yaml`.
 
 ### Replayed
 
@@ -259,15 +267,15 @@ no lock goes straight to its point.
   those within the requested range. No living tower sets
   `SimplePathFindingController.checkCount` to -1, which only
   `SimplePathFindingController.EnableAvoidanceCheck` resets.
+- The strip test: `LineRange.Contains`, `FVector2.AngleRad`,
+  `FPoint.RawSqrt`, `FPoint.Acos`, `FPoint.Sin`, and
+  `FightUtility.Radian90`.
 
 ### Not established
 
 - **What calls `SimplePathFindingController.EnableAvoidanceCheck`**, which
   would let a unit that stopped asking ask again; the call graph shows no
   caller.
-- **`LineRange.Contains` at its edge.** The build measures the angles and the
-  sine in its fixed point; the simulator asks the exact products, which may
-  answer differently for a tower on the strip's edge.
 - **What clears the buffs as the fight ends.** `BuffManager.Clear` is reached
   through `FightBehaviour.Clear`, whose caller the call graph does not show,
   so that units clear before constructions is recorded, not read, and two

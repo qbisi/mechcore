@@ -271,35 +271,55 @@ pub(in crate::fight) fn distance_2d(from: (i64, i64), radius: i64, to: &FightAct
 }
 
 /// `LineRange.Contains(FVector2)`: an end itself, or a point no further
-/// across the segment than its width and neither end's angle obtuse. The
-/// build measures the angles and the sine in its fixed point; this asks the
-/// same of the exact products.
+/// across the segment than its width and neither end's angle obtuse. Keep
+/// the build's approximate angles and sine: exact cross products disagree
+/// at the edge of the strip.
 fn line_range_contains(start: (i64, i64), end: (i64, i64), width: i64, point: (i64, i64)) -> bool {
+    // `FightUtility.Radian90`: `FPoint.Deg2Rad * 90`.
+    const RIGHT_ANGLE: i64 = 0x0477_D1A9 * 90;
     if point == start || point == end {
         return true;
     }
-    let (dx, dz) = (
-        i128::from(end.0) - i128::from(start.0),
-        i128::from(end.1) - i128::from(start.1),
-    );
-    let (px, pz) = (
-        i128::from(point.0) - i128::from(start.0),
-        i128::from(point.1) - i128::from(start.1),
-    );
-    let (qx, qz) = (
-        i128::from(point.0) - i128::from(end.0),
-        i128::from(point.1) - i128::from(end.1),
-    );
-    if px * dx + pz * dz < 0 || -(qx * dx + qz * dz) < 0 {
+    let direction = (end.0.wrapping_sub(start.0), end.1.wrapping_sub(start.1));
+    let from_start = (point.0.wrapping_sub(start.0), point.1.wrapping_sub(start.1));
+    let from_end = (point.0.wrapping_sub(end.0), point.1.wrapping_sub(end.1));
+    let angle = angle_rad(from_start, direction);
+    if !fpoint_less_or_equal(angle, RIGHT_ANGLE)
+        || !fpoint_less_or_equal(
+            angle_rad(
+                from_end,
+                (direction.0.wrapping_neg(), direction.1.wrapping_neg()),
+            ),
+            RIGHT_ANGLE,
+        )
+    {
         return false;
     }
-    // The distance across, |p × d| / |d|, against the width.
-    let across = (px * dz - pz * dx).abs();
-    let length = math::magnitude(
-        i64::try_from(dx).unwrap_or(i64::MAX),
-        i64::try_from(dz).unwrap_or(i64::MAX),
+    let across = q32_mul(
+        native_q32_magnitude(from_start.0, from_start.1),
+        math::fpcs_sin_fastest(angle),
     );
-    across <= i128::from(width) * i128::from(length)
+    fpoint_less_or_equal(across, width)
+}
+
+/// `FVector2.AngleRad`, including its overflow-avoiding square-root branch.
+fn angle_rad(from: (i64, i64), to: (i64, i64)) -> i64 {
+    let square = |v: (i64, i64)| q32_mul(v.0, v.0).wrapping_add(q32_mul(v.1, v.1));
+    let (first, second) = (square(from), square(to));
+    let denominator = if first.wrapping_add(second) < 0x1_6A09_0000_0001 {
+        math::fpcs_sqrt_fastest(q32_mul(first, second))
+    } else {
+        q32_mul(
+            math::fpcs_sqrt_fastest(first),
+            math::fpcs_sqrt_fastest(second),
+        )
+    };
+    // `FPoint.C1em9`.
+    if denominator <= 4 {
+        return 0;
+    }
+    let dot = q32_mul(from.0, to.0).wrapping_add(q32_mul(from.1, to.1));
+    math::fpcs_acos_fastest(q32_div(dot, denominator).clamp(-Q32_ONE, Q32_ONE))
 }
 
 /// `FVector3.Cross`.
