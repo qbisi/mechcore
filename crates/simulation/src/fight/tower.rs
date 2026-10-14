@@ -1260,6 +1260,8 @@ impl Simulation {
         if self.actors[&actor_id].travelling {
             return Ok(());
         }
+        let owner = super::FightActorRef::Unit(actor_id);
+        let projectile_counts = self.projectile_counts(owner);
         let actor = self
             .actors
             .get_mut(&actor_id)
@@ -1355,6 +1357,7 @@ impl Simulation {
             }
         }
         actor.refresh_life_data()?;
+        self.refresh_projectile_performers(projectile_counts);
         let skill_ref = super::skill::SkillRef::main(super::FightActorRef::Unit(actor_id));
         let interval_q32 = self
             .skill_attacker(skill_ref)

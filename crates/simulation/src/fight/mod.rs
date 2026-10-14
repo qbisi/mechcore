@@ -1964,7 +1964,7 @@ fn recorded_attack_phase(skill: &Skill, step: u64) -> Option<AttackPhase> {
             (step < finish_step).then_some(AttackPhase::After)
         }
         skill::SkillState::Attack(skill::Blow::Waiting) => match &skill.performer {
-            skill::Performer::Projectile { pending, .. } if !pending.is_empty() => {
+            skill::Performer::Projectile { .. } if !skill.performer.done() => {
                 Some(AttackPhase::Attacking)
             }
             // A sweep is released stretch by stretch until its last.

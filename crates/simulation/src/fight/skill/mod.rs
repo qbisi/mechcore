@@ -100,10 +100,13 @@ pub(in crate::fight) enum Performer {
     /// is released.
     Normal,
     /// A `ProjectileAttackPerformer`: a burst's projectiles, the first
-    /// released with the blow and the rest still to come. The build splits
-    /// it into a single and a multiple performer, which is not read.
+    /// released with the blow and the rest still to come. A count change
+    /// replaces it through `ProjectileSkillAttackController`'s listener.
     Projectile {
         pending: Vec<PendingProjectileRelease>,
+        /// A count-property notification replaced an attacking performer;
+        /// its first perform is due on the next controller update.
+        restart: bool,
         /// The burst's `EvenlyAllocatedAttackTargetPositionController`, for
         /// a skill whose row allocates its projectiles evenly.
         evenly: Option<Box<EvenlyAllocated>>,
@@ -119,6 +122,7 @@ impl Performer {
         match kind {
             SkillKind::Projectile => Self::Projectile {
                 pending: Vec::new(),
+                restart: false,
                 evenly: None,
             },
             SkillKind::Strike
@@ -136,7 +140,9 @@ impl Performer {
     pub(in crate::fight) fn done(&self) -> bool {
         match self {
             Self::Normal => true,
-            Self::Projectile { pending, .. } => pending.is_empty(),
+            Self::Projectile {
+                pending, restart, ..
+            } => pending.is_empty() && !restart,
             Self::Sweep(sweep) => sweep.over(),
         }
     }
@@ -159,8 +165,13 @@ impl Performer {
     /// Stops the burst: `StopAttack` ends a performer's work.
     pub(in crate::fight) fn stop(&mut self) {
         match self {
-            Self::Projectile { pending, evenly } => {
+            Self::Projectile {
+                pending,
+                restart,
+                evenly,
+            } => {
                 pending.clear();
+                *restart = false;
                 *evenly = None;
             }
             Self::Sweep(_) => *self = Self::Normal,
@@ -2277,10 +2288,7 @@ impl Simulation {
                 self.skill_mut(skill_ref).performer.stop();
                 return Ok(Flow::Done);
             }
-            let due = self.skill_mut(skill_ref).performer.take_due(step);
-            for pending in due {
-                self.release_pending_projectile(skill_ref, pending, events)?;
-            }
+            self.perform_projectile_burst(skill_ref, step, events)?;
             self.finish_attacking(skill_ref);
             return Ok(Flow::Done);
         }
@@ -2378,10 +2386,7 @@ impl Simulation {
         if released_this_step && self.motion_state(skill_ref.owner) != MotionState::Attacking {
             return Ok((Flow::Done, attack_point_rejected));
         }
-        let due = self.skill_mut(skill_ref).performer.take_due(step);
-        for pending in due {
-            self.release_pending_projectile(skill_ref, pending, events)?;
-        }
+        self.perform_projectile_burst(skill_ref, step, events)?;
         if self.skill(skill_ref).performer.sweeping()
             && let Some(actor_id) = skill_ref.owner.unit_id()
         {
