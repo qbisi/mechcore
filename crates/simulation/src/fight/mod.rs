@@ -907,12 +907,17 @@ impl Simulation {
                 if extra.rules.use_main_skill_range || extra.skill.is_grouped() {
                     self.main_attack_range_q32(id)
                         .saturating_add(math::space_to_q32(extra.rules.attack.range()))
+                } else if extra.rules.attack.melee {
+                    math::space_to_q32(extra.rules.attack.range())
                 } else {
-                    math::space_to_q32(
-                        self.skill_attacker(skill_ref)
-                            .expect("skill owner identity is stable")
-                            .attack_range,
-                    )
+                    self.actors[&id]
+                        .stats
+                        .extra_attack_range_q32(
+                            extra.rules.attack.range(),
+                            (extra.rules.damage_rate <= 0.0)
+                                .then_some(extra.skill_corrections.as_slice()),
+                        )
+                        .expect("the layout verified the skill's range corrections")
                 }
             }
         }

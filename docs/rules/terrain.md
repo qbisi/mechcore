@@ -115,15 +115,18 @@ makes them: fire, oil, fog, sand fog, acid, recovery zone.
    counts it back off and takes the effect again.
 
 **A fog** writes its row's `attackRangeChangeRate`, Smoke Bomb's `-0.35`, on
-every skill of a unit that enters it whose attack is not a melee one, as the
-skill's `attack_range_rate`, and takes it back as the unit leaves. The
-controller is the modifier, so a unit carries one fog's rate however many it
-stands in. A unit with a melee attack enters and is left alone. The range is
-then the description's times the rate in `FPoint`: a Sledgehammer's 95 metres
-are 61.75.
+every non-melee skill of a unit that enters it, as that skill's
+`attack_range_rate`, and takes it back as the unit leaves. `FogController`
+walks `FightMech.GetSkills` and checks each skill's `IsMeleeAttack`; each
+independent `DataSet` receives its own modifier. Skills sharing one set retain
+one copy of that controller's entry. The controller is the modifier, so a
+skill carries one fog's rate however many fogs its unit stands in. Melee
+skills receive no range correction. The range retains `FPoint` precision:
+a Sledgehammer's 95 metres become 61.75, and independent extra weapons
+receive and lose the correction through their own range properties.
 
-**A sand fog** writes its row's `FogAttackRangeChangeRate` on the skill
-range of a unit that enters it whose attack is not a melee one, as a fog
+**A sand fog** writes its row's `FogAttackRangeChangeRate` on the non-melee
+skills of a unit that enters it, as a fog
 does, and its `reduceDamageFromRemote` in every unit that enters it as the
 unit's `MechDataChangeFloatRate.ReduceDamageFromRemote`; it takes both back
 as the unit leaves, its controller the modifier of both. A hit whose
@@ -377,6 +380,8 @@ already exists.
   attack's range to 0.65 of it, leave melee units alone, and go as the fight
   ends, taking the rate back: `tests/terrain/smoke.yaml`,
   `tests/terrain/smoke-both-sides.yaml`.
+- A fog reduces both independent Fortress weapons and restores them on exit,
+  with their complete Q32 ranges: `tests/terrain/fog-extra-skill-range.yaml`.
 - An oil writes its slow as a unit enters and every 19 ticks it stays, and
   stands into the next round: `tests/terrain/oil.yaml`.
 - An acid's buff takes 1.5% of a unit's maximum life every ten ticks from its

@@ -586,19 +586,11 @@ impl Simulation {
         // reach 10 metres past the Melting Point's 85.
         // A grouped row of one skill makes no group, and has no parent:
         // Gun-launched Missile reaches its own 180 metres.
-        let parented = extra.skill.is_grouped();
         // A skill of its own range without a damage rate holds what reaches
         // it alone, an Energy Tower skill's among it: Enhanced Range takes a
         // Homing Missile's 160 metres to 175. A melee skill's
         // `AttackRangeProperty` reads no correction.
-        attacker.attack_range = if rules.use_main_skill_range || parented {
-            attacker.attack_range.saturating_add(rules.attack.range())
-        } else if rules.damage_rate > 0.0 || rules.attack.melee {
-            rules.attack.range()
-        } else {
-            crate::data::Stats::extra_attack_range(rules.attack.range(), &extra.skill_corrections)
-                .ok()?
-        };
+        attacker.attack_range = q32_to_space_rounded(self.slot_attack_range_q32(skill_ref, 0));
         // `SkillData.GetDamage`: the entry for the unit's level, the last for
         // a level beyond the list, and none for a row that lists none: an
         // Incendiary Bomb's hit leaves its fire and nothing else, and a

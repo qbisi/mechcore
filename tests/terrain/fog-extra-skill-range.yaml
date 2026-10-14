@@ -1,0 +1,54 @@
+# Smoke Bomb corrects every ranged skill, including the Fortress
+# Anti-Air Barrage and Rocket Punch DataSets. Their native ranges retain
+# Q32 precision, and both regain their full range as the Fortress leaves.
+# The complete generated layout and hash come from the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1628828689
+round: 2
+blue:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, aerial_specialist, improved_phoenix]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [3, 4]
+  units:
+  - {name: phoenix, index: 0, position: {x: 280, y: -60}, level: 7, exp: 4092/8185/8185, rotated: true, equipment: [explosive_ammo]}
+  - {name: crawler, index: 1, position: {x: -255, y: -80}, exp: 0/12/450, source: joined}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: 250, y: 180}]}
+red:
+  core_damage: 100
+  officers: [advanced_power_system, advanced_targeting_system, fortified_specialist, extended_range_fortress]
+  techs:
+    fortress: [doubleshot, barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [1, 4]
+  units:
+  - {name: fortress, index: 0, position: {x: 70, y: -40}, level: 6, exp: 0/606/9278, equipment: [super_heavy_armor], source: joined}
+  - {name: sledgehammer, index: 1, position: {x: 85, y: -90}, level: 4, exp: 0/1402/5837, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 185, y: -115}}
+  battle_skills:
+  - {name: smoke_bomb, positions: [{x: -75, y: -50}, {x: -55, y: 290}]}
+ticks: 2156
+hash: 25:f664c9d616ac1d460d1c3f4dd6cbf2b560fd53a4475f0ed1d2f351d89a656bde
+asserts:
+- sql: |
+    SELECT tick,skill_slot,enabled__attack_range FROM units__skills
+    WHERE unit_id=31 AND tick IN(504,505,720,721) AND skill_slot IN(1,2)
+    ORDER BY tick,skill_slot
+  rows:
+  - [504,1,730144440320]
+  - [504,2,773094113280]
+  - [505,1,474593886310]
+  - [505,2,502511173740]
+  - [720,1,474593886310]
+  - [720,2,502511173740]
+  - [721,1,730144440320]
+  - [721,2,773094113280]

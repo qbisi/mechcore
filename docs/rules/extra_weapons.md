@@ -166,7 +166,8 @@ unit; it does not turn towards its lock.
   skill whose `ParentSkill` is the main skill, its own `SkillDataFloat`
   range added: every beam of Energy Diffraction reaches 95 metres, the
   Melting Point's 85 and its row's 10. Any other extra skill reaches its
-  row's range.
+  row's range corrected by its own `DataSet`; a fog controller writes its
+  rate into each non-melee skill's set.
 - **Damage.** A skill whose row's `damageRate` is zero deals its own damage,
   the row's `damage` entry for the unit's level, the last entry for a level
   beyond the list (`SkillData.GetDamage`), and none where the row has no
@@ -707,6 +708,11 @@ Missile's 160 metres to 175: a Centurion's first missile leaves 172 metres
 from its Rhino's edge. A melee skill reads no correction of its range, so
 Scorching Charge's charge still strikes at its 1 metre, though the skill's
 slot records the main skill's 15 metres with its other numbers.
+
+Fog and sand-fog controllers walk every skill, so an independent skill's
+range also receives their source-tagged correction. It retains the complete
+`FPoint` value when recorded, and the controller removes it on exit:
+`tests/terrain/fog-extra-skill-range.yaml`.
 
 Its interval and its splash compose what it holds as the main skill's do
 (`AttackIntervalProperty`, `FightSkill.GetSplashRange`): Mechanical Rage's

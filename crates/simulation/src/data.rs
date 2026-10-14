@@ -1112,9 +1112,10 @@ impl Stats {
             .resolve_damage(base, self.kills, false, against)
     }
 
-    /// An extra skill's range from its own, millimetres, as
-    /// `AttackRangeProperty.GetAttackRange` reads it for a skill whose
-    /// `DataSet` holds what reaches it alone: what that holds, and no buff's.
+    /// An extra skill's range from its own, Q32.32 metres, as
+    /// `AttackRangeProperty.GetAttackRange` reads it from its skill `DataSet`:
+    /// the main skill's when shared, or the independent skill's corrections.
+    /// Fog controllers write those sets directly. Buffs are separate:
     /// A buff's `attackRangeChangeValue` is the main skill's
     /// (`BuffManager.GetAttackRangeAddValue`); an extra skill reads
     /// `extraAttackRangeChangeValue`, which no buff here writes.
@@ -1122,12 +1123,18 @@ impl Stats {
     /// # Errors
     ///
     /// Returns an error when the range leaves the signed range.
-    pub(crate) fn extra_attack_range(base: i64, skill: &[Entry]) -> Result<i64> {
+    pub(crate) fn extra_attack_range_q32(&self, base: i64, skill: Option<&[Entry]>) -> Result<i64> {
         Overlays {
-            skill: Overlay::of(skill),
+            skill: skill.map_or_else(|| self.overlays.skill.clone(), Overlay::of),
             ..Overlays::default()
         }
-        .resolve(Index::AttackRange, base)
+        .resolve_scaled(
+            Index::AttackRange,
+            space_to_q32(base),
+            |value| value * ONE / i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE),
+            0,
+            ONE,
+        )
     }
 
     /// Another skill's damage from its own base, with its own skill
