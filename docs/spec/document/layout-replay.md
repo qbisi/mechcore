@@ -79,7 +79,11 @@ The layout's round opens with this `playerData`:
 
 A unit is a `NewUnitData`: its type, `Index`, `Position`, `IsRotate`, the
 equipment it wears, `Level` counted from 0 where a layout counts from 1, and
-`Exp`, the experience within its level.
+`Exp`, the experience within its level. A synthetic first-round legacy unit
+stores native `RoundCount=1`: `MechTeam.IsOldUnit` requires a positive count,
+and first-round loading does not age the snapshot. Later rounds store zero
+and their entry ages it before combat. Joined units are added by the round's
+actions and retain their native new-unit state.
 
 The panel holds one slot per battle skill the layout releases, in release
 order, each ready this round. After them it holds one slot per standing

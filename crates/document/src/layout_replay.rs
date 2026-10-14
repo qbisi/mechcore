@@ -215,7 +215,7 @@ fn write_side(xml: &mut String, side: &SidePlan, deployment: &Deployment, sign: 
             (unit, position)
         })
         .collect();
-    write_units(xml, &settled, sign);
+    write_units(xml, &settled, sign, round);
     let _ = write!(xml, "<unitIndex>{}</unitIndex>", deployment.next_unit);
     write_ints(xml, "officers", &side.techs.officers);
     xml.push_str("<mainEffects /><lastRoundSupply>0</lastRoundSupply><reinforceShopStrengthens />");
@@ -336,7 +336,7 @@ fn index(placement: &Placement) -> i32 {
         .expect("a compiled placement carries its layout index")
 }
 
-fn write_units(xml: &mut String, units: &[(&Placement, Position)], sign: i32) {
+fn write_units(xml: &mut String, units: &[(&Placement, Position)], sign: i32, round: i32) {
     if units.is_empty() {
         xml.push_str("<units />");
         return;
@@ -348,13 +348,17 @@ fn write_units(xml: &mut String, units: &[(&Placement, Position)], sign: i32) {
         };
         // The record counts paid upgrades from zero, where a layout counts
         // levels from one, and holds the experience within the level.
+        // First-round loading does not age the snapshot's formations; a
+        // synthetic legacy formation needs a positive native count already
+        // (`MechTeam.IsOldUnit`). Later round entry ages a zero count.
         let _ = write!(
             xml,
-            "<NewUnitData><id>{type_id}</id><Index>{}</Index><RoundCount>0</RoundCount>\
+            "<NewUnitData><id>{type_id}</id><Index>{}</Index><RoundCount>{}</RoundCount>\
              <Durability>0</Durability><Exp>{}</Exp><Level>{}</Level><Position><x>{}</x>\
              <y>{}</y></Position><EquipmentID>0</EquipmentID><IsRotate>{}</IsRotate>\
              <SellSupply>0</SellSupply>",
             index(unit),
+            i32::from(round == 1),
             unit.exp.unwrap_or(0),
             unit.level.unwrap_or(1) - 1,
             sign * position.x,
@@ -1094,6 +1098,25 @@ mod tests {
             .unwrap()
             + 15;
         std::str::from_utf8(&replay[start + 3..end]).unwrap()
+    }
+
+    #[test]
+    fn a_first_round_legacy_snapshot_already_has_native_age() {
+        for (round, expected) in [(1, 1), (2, 0)] {
+            let mut layout = rhino_mirror();
+            layout["round"] = round.into();
+            for side in ["blue", "red"] {
+                layout[side]["units"][0]["source"] = "legacy".into();
+            }
+            let replay = layout_replay(&plan(&layout), crate::game_build()).unwrap();
+            let xml = embedded_xml(&replay);
+            let units = xml.split("<NewUnitData>").skip(1).collect::<Vec<_>>();
+            assert_eq!(units.len(), 2);
+            for unit in units {
+                let unit = unit.split("</NewUnitData>").next().unwrap();
+                assert!(unit.contains(&format!("<RoundCount>{expected}</RoundCount>")));
+            }
+        }
     }
 
     #[test]

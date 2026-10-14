@@ -575,7 +575,10 @@ not both recovered and a unit's.
 
 A capture reads each unit's source as a replayed round opens: from round 2,
 legacy below the allocator before the officers' deliveries, delivered for
-those squads, and joined for the rest. In round 1 the advance team is joined.
+those squads, and joined for the rest. In round 1 it reads the native
+`MechTeam.IsOldUnit` flag: the real advance team is joined, while a synthetic
+snapshot can carry legacy formations. A missing allocator uses that same
+native old-unit flag.
 The Training Ground adds every unit during the round, so it applies no layout with a legacy or delivered unit, and a layout replay holds its legacy
 units in the round's snapshot
 ([layout-replay.md](layout-replay.md#the-rounds-decisions)).
