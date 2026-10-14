@@ -605,7 +605,7 @@ pub(in crate::fight) struct Skill {
     /// Whether `FightCoreSystem.PreCalculate` put this skill among the
     /// attackers it prepared at the tick's start. `TrySelect` answers only for
     /// one of them; any other search is `PerformSearch`. See
-    /// [`Simulation::search_prepared`].
+    /// [`Simulation::prepared_at_tick_start`].
     pub(in crate::fight) search_prepared: bool,
     /// The step a bodyless skill whose motion already attacks started its
     /// attack state on, from its own update: the state is not updated on the
