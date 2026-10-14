@@ -90,6 +90,10 @@ impl Simulation {
         // The skill stays in `SkillAttackState` after the blow, until a check
         // fails or the attack finishes.
         skill.set_phase(FightSkillPhase::Attack);
+        if self.normal_attack_interrupted(skill_ref, None) {
+            self.finish_attacking(skill_ref);
+            return Ok(false);
+        }
         match kind {
             SkillKind::Sweep => {
                 let actor_id = skill_ref

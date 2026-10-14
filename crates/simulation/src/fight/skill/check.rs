@@ -500,6 +500,25 @@ impl Simulation {
                 .is_some_and(|pending| step <= pending.step)
     }
 
+    /// `AttackPerformer.Update` interrupts a normal performer when its lock
+    /// is hidden, even while its attack target is a live wall. Self-splash
+    /// ignores invalid locks (`NormalAttackPerformer.IsInterruptedByInvalidTarget`),
+    /// and a battlefield shield remains a valid target for the performer.
+    pub(in crate::fight) fn normal_attack_interrupted(
+        &self,
+        skill_ref: SkillRef,
+        slot: Option<usize>,
+    ) -> bool {
+        let skill = self.skill(skill_ref).group_skill(slot.unwrap_or(0));
+        !matches!(skill.kind, SkillKind::Projectile | SkillKind::Sweep)
+            && !self.skill_rules(skill_ref).self_splash
+            && skill.shield_target().is_none()
+            && skill.lock_target.is_some_and(|lock| {
+                self.fight_actor(lock)
+                    .is_some_and(|target| target.visibility == Visibility::Hide)
+            })
+    }
+
     /// `SkillAttackState.CheckAttackable`: an attack on a construction that
     /// has fallen is over; otherwise `FightSkill.CheckAttackable(true)`.
     ///

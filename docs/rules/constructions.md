@@ -95,6 +95,14 @@ A burst still releasing at the block goes on at it, and the unit with it, still
 attacking and turning to its lock: only a dead lock stops the motion of a
 unit whose burst lost its target.
 
+A normal attack also asks the validity of its lock before its effect runs,
+not only the block it is firing at. A hidden lock interrupts the effect even
+while the block lives; a self-splash or a battlefield shield does not take
+this interruption (`AttackPerformer.Update`,
+`NormalAttackPerformer.IsInterruptedByInvalidTarget`). A Crawler locked on
+an underground Sandworm enters its backswing without damaging the wall:
+`tests/construction/hidden-lock-interrupts-wall-hit.yaml`.
+
 Only a unit whose skill is attacking has an attack to finish. A unit closing on
 a block by its motion, its skill still idle, goes straight on to what is
 behind the block the tick after another unit fells it: the idle skill asks
