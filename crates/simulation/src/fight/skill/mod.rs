@@ -746,6 +746,13 @@ impl Skill {
         self.attack_count > ATTACK_COUNT_RESET
     }
 
+    /// `FightSkill.GetAttackCount`: `SkillAttackController.attackCount`
+    /// includes a blow whose wind-up has started, before its attack point.
+    /// Internally this simulator increments as that point lets it through.
+    pub(in crate::fight) fn started_attack_count(&self) -> i32 {
+        self.attack_count + i32::from(matches!(self.state, SkillState::Attack(Blow::Before(_))))
+    }
+
     /// A blow performed takes a round from the magazine, if the skill has one.
     pub(in crate::fight) fn fire_round(&mut self) {
         if let Some(rounds) = &mut self.rounds {
