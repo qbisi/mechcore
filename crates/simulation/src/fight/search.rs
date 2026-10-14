@@ -1465,6 +1465,10 @@ impl Simulation {
     /// `PerformGroupedSkillSearch` excludes the other slots' locks before
     /// scoring opponents. If sharing is allowed and that answer cannot be
     /// attacked, the same selector is asked about the held targets instead.
+    #[allow(
+        clippy::too_many_lines,
+        reason = "keep the native prepared, live and shared-target search branches together"
+    )]
     pub(in crate::fight) fn select_group_lock_replacement(
         &self,
         skill_ref: SkillRef,
@@ -1478,6 +1482,20 @@ impl Simulation {
         let source = &self.actors[&actor_id];
         let skill = self.skill(skill_ref);
         let attack = self.skill_rules(skill_ref);
+        // `PerformNormalSkillSearch` for this slot, from its own weapon and
+        // range, when no prepared result can be used.
+        let search_current = || {
+            let mut attacker = self
+                .skill_attacker(skill_ref)
+                .ok_or_else(|| Error::new("a grouped skill's owner is absent"))?;
+            let (rotation, window) = source
+                .default_search_frame(attack, slot)
+                .unwrap_or((source.slot_main_rotation_q32(attack, skill, slot), None));
+            attacker.query_rotation_q32 = rotation;
+            attacker.rotation_window_q32 = window;
+            attacker.attack_range = self.slot_attack_range(skill_ref, Some(slot));
+            Ok(self.perform_normal_skill_search(&attacker, target_search_order, false))
+        };
         // A standalone weapon's skill searches as a skill of its own: no
         // group keeps it off what the others hold.
         if skill.standalone() && slot == 0 {
@@ -1501,19 +1519,7 @@ impl Simulation {
             // the attacker, scoring from its own weapon and reaching its own
             // range. A Raiden's second gun whose Crawler died with its core's
             // takes the Crawler in its own reach that the core's would not.
-            let mut source = self
-                .skill_attacker(skill_ref)
-                .ok_or_else(|| Error::new("a grouped skill's owner is absent"))?;
-            let (rotation, window) = self.actors[&actor_id]
-                .default_search_frame(attack, slot)
-                .unwrap_or((
-                    self.actors[&actor_id].slot_main_rotation_q32(attack, skill, slot),
-                    None,
-                ));
-            source.query_rotation_q32 = rotation;
-            source.rotation_window_q32 = window;
-            source.attack_range = self.slot_attack_range(skill_ref, Some(slot));
-            return Ok(self.perform_normal_skill_search(&source, target_search_order, false));
+            return search_current();
         }
         // The group's skill searches with its own selector, which a
         // technology may have turned to `DistanceIntensify`.
@@ -1584,6 +1590,17 @@ impl Simulation {
         // (`take_from_siblings`).
         let fusillade_core = slot == 0 && skill.fusillade();
         let selected = select(false);
+        // Each standalone weapon is a main skill with a prepared search.
+        // As in `perform_normal_skill_search`, a winner now on its owner's
+        // side must be discarded and searched again against the live teams.
+        if skill.standalone()
+            && selected.is_some_and(|target| {
+                self.fight_actor(target)
+                    .is_some_and(|target| target.team == source.placement.team)
+            })
+        {
+            return search_current();
+        }
         if (attack.weapons.allow_same_target == Some(true) || fusillade_core)
             && selected.is_none_or(|target| {
                 !self.slot_target_in_attack_range(skill_ref, Some(slot), target)

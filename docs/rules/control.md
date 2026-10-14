@@ -118,8 +118,10 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
   without one enters `SkillIdleState` with its targets cleared, unless it is
   a main skill whose unit's permanent preemptive skill is active, which stays
   locked, and a permanent preemptive skill not yet active, which stays as it
-  is. The motion is left alone. The turned unit's own skills, its main skill
-  and each extra skill, end the same way: the beam's change runs before any
+  is. The motion is left alone. The turned unit's own skills, every slot of
+  its main skill and each extra skill, end the same way: each `FightSkill`
+  subscribes to its owner's `OnChangeTeam` in `EnterFight`. The beam's
+  change runs before any
   unit updates, so a skill sent cooling is updated in it on the same tick, and
   a Fire Badger turned while it charges keeps its main skill locked and its
   charge's buff. A main skill a running preemptive skill has locked is no
@@ -284,6 +286,9 @@ the shield does not count against the turn.
   red's side; a blue Fire Badger an Electromagnetic Impact switched off has
   the Impact's buff taken off as it turns, and its technologies back on:
   `tests/corpus/134259672-r4.yaml`, ticks 51, 76 and 142.
+- A converted War Factory stops every standalone main skill, and an idle
+  weapon rejects its now-friendly prepared winner and searches again:
+  `tests/control/converted-war-factory-all-weapons.yaml`.
 
 ### Replayed
 
@@ -340,7 +345,8 @@ the shield does not count against the turn.
   `IBuffData.IsSameBuff`.
 - The skills it stops: `FightSkill.OnChangeTeam`, `FightSkill.StopAttack`,
   `SkillManager.IsPermanentPreemptiveSkillActive`,
-  `SkillIdleState.Enter`, `SkillAttackState.Update`.
+  `SkillIdleState.Enter`, `SkillAttackState.Update`. `FightSkill.EnterFight`
+  subscribes each skill to its owner's `FightActor.OnChangeTeam`.
 - A turned unit's death: `FightTeamController.AddActor`, `FightTeam.AddMech`,
   `ExpSystem.AddRangeUnit`, `TeamTranslationSystem.OnMechDead`,
   `TeamTranslationSystem.IsMechInFightGroup`, `DeadEffectSystem.Update`.
@@ -351,11 +357,6 @@ the shield does not count against the turn.
 
 ### Not established
 
-- **The turned unit's own skills.** Nothing the build runs on a turn reaches
-  the turned unit's skills: only the skills locked on it are subscribed. Its
-  own, the main skill and each extra skill, read as if `FightSkill.OnChangeTeam`
-  had run on each, cooling where it cools and idle and searching where it does
-  not; which method does it is not read.
 - **The weapons at the fight's end.** That the end clears what an idle skill
   names is recorded where a turned unit's death ends the fight; which method
   clears it is not read.

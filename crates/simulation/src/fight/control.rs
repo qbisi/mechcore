@@ -700,21 +700,22 @@ impl Simulation {
         }
         self.interceptors_change_side(unit_id);
         self.joins_side_last(unit_id);
-        // Its own attack ends as a skill's whose lock changed side: what it
-        // was striking stands on its side now. A Hacker turned on its
-        // Hacker reads cooling at it on the tick it turns, and a Crawler,
-        // which has no cooling, idle and searched again. Which build method
-        // ends it is not established.
-        let mut locked = vec![(SkillRef::main(unit), 0)];
-        locked.extend((0..self.actors[&unit_id].skills.extras.len()).map(|index| {
-            (
-                SkillRef {
-                    owner: unit,
-                    slot: SkillSlot::Extra(index),
-                },
-                0,
+        // `FightSkill.EnterFight` subscribes each skill to its owner's
+        // OnChangeTeam, including every grouped main and extra skill.
+        let manager = &self.actors[&unit_id].skills;
+        let mut locked: Vec<_> = std::iter::once((SkillSlot::Main, &manager.main))
+            .chain(
+                manager
+                    .extras
+                    .iter()
+                    .enumerate()
+                    .map(|(index, extra)| (SkillSlot::Extra(index), &extra.skill)),
             )
-        }));
+            .flat_map(|(slot, skill)| {
+                (0..skill.group_size().max(1))
+                    .map(move |offset| (SkillRef { owner: unit, slot }, offset))
+            })
+            .collect();
         locked.extend(self.skills_locked_on(unit, None));
         let running_preemptive = self.actors[&unit_id].skills.running_preemptive;
         // The change runs before any unit updates, so a skill it sends into
