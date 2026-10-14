@@ -193,6 +193,7 @@ impl Simulation {
             effect: EffectTarget::Opponent,
             amount,
             provider: Provider::Other,
+            direct_hit: false,
             projectile: None,
             skill_slot: Some(jump.slot),
             aimed: Some(aimed),

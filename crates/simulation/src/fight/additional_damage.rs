@@ -60,13 +60,15 @@ impl Simulation {
             };
             let amount = q32_mul(life << 32, source.rate_q32) >> 32;
             let stroke = match target {
-                FightActorRef::Unit(id) => self.land(id, (None, team), (amount, amount), events)?,
+                FightActorRef::Unit(id) => {
+                    self.land(id, (None, team), (amount, amount, false), events)?
+                }
                 FightActorRef::Building(_) => self.strike_target(
                     target,
                     None,
                     team,
                     (amount, false),
-                    Provider::Other,
+                    (Provider::Other, false),
                     events,
                 )?,
             };

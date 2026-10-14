@@ -185,6 +185,7 @@ struct DamageSkillRow {
     sub_effect_range: i64,
     sub_effect_interval_time: i64,
     cross_advanced_shield: bool,
+    direct_hit: bool,
     /// The `buffDatas` row its `subEffectBuffID` names, when it names one.
     #[serde(default)]
     buff: Option<BuffRow>,
@@ -323,6 +324,8 @@ pub(crate) enum SkillEffect {
         damage: i64,
         /// `isCrossAdvancedShield`: it passes shields, falling and landing.
         crosses_shields: bool,
+        /// `ICommanderSkill.IsDirectHit` selects `ReduceLife` instead of `OnHitted`.
+        direct_hit: bool,
         /// `CS_Buff`'s `energyShieldDamage`, as its damage modifier holds
         /// it; none for a skill that is no damage modifier. A modifier makes
         /// the sub-effect a hit even when its damage is nothing
@@ -989,6 +992,7 @@ fn strike_effect(named: &str, row: &DamageSkillRow) -> Result<SkillEffect> {
         range_q32: row.sub_effect_range,
         damage: row.sub_effect_damage,
         crosses_shields: row.cross_advanced_shield,
+        direct_hit: row.direct_hit,
         shield_damage: None,
         harmful: true,
         buff,
@@ -1086,6 +1090,7 @@ fn buff_effect(named: &str, row: &BuffSkillRow) -> Result<SkillEffect> {
         range_q32: row.effect_range,
         damage: 0,
         crosses_shields: row.cross_advanced_shield,
+        direct_hit: false,
         shield_damage: Some(row.energy_shield_damage),
         harmful: buff.harmful(),
         buff: Some(buff),

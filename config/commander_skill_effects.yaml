@@ -182,6 +182,7 @@ damage_skills:
     sub_effect_default_height: 0  # 0
     sub_effect_interval_time: 0  # 0
     cross_advanced_shield: false
+    direct_hit: false
   - id: 300003
     name: Orbital Bombardment
     effect_range_type: 2
@@ -197,6 +198,7 @@ damage_skills:
     sub_effect_default_height: 0  # 0
     sub_effect_interval_time: 4294967296  # 1
     cross_advanced_shield: false
+    direct_hit: false
   - id: 300004
     name: Nuke
     effect_range_type: 0
@@ -212,6 +214,7 @@ damage_skills:
     sub_effect_default_height: 0  # 0
     sub_effect_interval_time: 0  # 0
     cross_advanced_shield: false
+    direct_hit: false
   - id: 300005
     name: Lightning Storm
     effect_range_type: 2
@@ -227,6 +230,7 @@ damage_skills:
     sub_effect_default_height: 0  # 0
     sub_effect_interval_time: 1717986918  # 0.4
     cross_advanced_shield: false
+    direct_hit: false
     buff:
       id: 20002
       divide: 0
@@ -256,6 +260,7 @@ damage_skills:
     sub_effect_default_height: 0  # 0
     sub_effect_interval_time: 1288490188  # 0.3
     cross_advanced_shield: false
+    direct_hit: false
   - id: 300007
     name: Orbital Javelin
     effect_range_type: 0
@@ -271,6 +276,7 @@ damage_skills:
     sub_effect_default_height: 0  # 0
     sub_effect_interval_time: 0  # 0
     cross_advanced_shield: true
+    direct_hit: true
   - id: 300016
     name: Heavy missile strike
     effect_range_type: 0
@@ -286,6 +292,7 @@ damage_skills:
     sub_effect_default_height: 0  # 0
     sub_effect_interval_time: 0  # 0
     cross_advanced_shield: false
+    direct_hit: false
 
 waypoint_skills:
   - id: 1500001
