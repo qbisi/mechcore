@@ -36,7 +36,10 @@ While the transition lasts the motion does nothing else: `TransitionState`
 updates only the ability, whose `Update` adds a tick to its time and answers
 whether the time has reached what the transition lasts, by `FPoint`'s
 comparison. Twenty ticks make a second exactly. The state it leads to is entered
-on that tick, and updated from the next.
+on that tick, and updated from the next. A skill that finishes its attack
+while the motion is still in `TransitionState` does not replace that queued
+state with idle: the transition enters its original next state, even when
+the skill no longer holds a lock.
 
 **Both ends stop every skill.** `SkillManager.Deactive` stops each skill's
 attack (`FightSkill.StopAttack`), which drops its lock and keeps its attack
@@ -233,6 +236,10 @@ including a unit already idle whose ability was not cleared.
 ## Evidence
 
 ### Recorded
+
+- A Larva's attack ending during its motion transition leaves the queued
+  attacking state intact, which enters without a lock:
+  `tests/move_ability/larva-pending-attack-transition.yaml`.
 
 - A Sandworm's attack interval stands still through its transitions: unit 265
   of `tests/corpus/201373545-r4.yaml` begins its next attack fifty
