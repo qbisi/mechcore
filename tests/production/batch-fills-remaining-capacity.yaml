@@ -1,0 +1,60 @@
+# Mustang Production Line has 19 registered children when its batch is due
+# at tick 1101. GetCreateCount limits that batch to the remaining one slot.
+# The uncapped control makes four. This control removes Acid Blast from the
+# generated counterexample to isolate production capacity and position state.
+# Birth rows and the pin are read from the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 431593590
+round: 3
+blue:
+  core_damage: 366
+  officers: [advanced_missile_device, quick_teleport, fire_badger_specialist, extended_range_arclight]
+  techs:
+    arclight: [electromagnetic_shot, armor_enhancement, anti_aircraft_ammunition, shockwave, range_enhancement, elite_marksman, charged_shot]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 125, y: -60}, exp: 0/420/1400, source: delivered}
+  - {name: arclight, index: 1, position: {x: 350, y: 130}, level: 3, exp: 0/1668/2671, equipment: [deployment_module], travelling: true, source: joined}
+  - {name: vulcan, index: 2, position: {x: -80, y: -180}, level: 7, exp: 0/58/15237, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 155, y: -175}, retained: false}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: -95, y: -50}]}
+red:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, advanced_targeting_system, cost_control_specialist, mass_produced_melting_point]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: melting_point, index: 0, position: {x: 110, y: -250}, level: 8, exp: 9418/9418/9418, rotated: true, equipment: [mustang_production_line]}
+  - {name: wasp, index: 1, position: {x: 245, y: -150}, level: 2, exp: 0/2028/2028, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 50, y: -80}}
+ticks: 1749
+hash: 25:6ab4a33ad129ba852e0e8da47b73b8fa3553f38e96b7ed80349dd10dcc3416c4
+asserts:
+- sql: SELECT tick,COUNT(*) FROM events WHERE type='unit_created' AND unit_type_id=7 GROUP BY tick ORDER BY tick
+  rows:
+  - - 1
+    - 4
+  - - 221
+    - 4
+  - - 441
+    - 4
+  - - 661
+    - 4
+  - - 881
+    - 4
+  - - 1101
+    - 1
+  - - 1624
+    - 4

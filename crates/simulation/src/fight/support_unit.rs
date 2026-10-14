@@ -220,6 +220,20 @@ struct ComingOut {
 }
 
 impl Creator {
+    /// `SupportUnitCreator.GetCreateCount`: one batch cannot exceed either
+    /// the total creation limit or the remaining registered-child capacity.
+    fn create_count(&self) -> u32 {
+        let count = self.summon.per_time.min(self.summon.count - self.created);
+        if self.max_alive == 0 {
+            count
+        } else {
+            count.min(
+                self.max_alive
+                    .saturating_sub(u32::try_from(self.made.len()).unwrap_or(u32::MAX)),
+            )
+        }
+    }
+
     /// The creator `MoveAbilitySummonSystem` hands a unit's side each time
     /// the unit begins to surface (`TeamSupportUnitManager.
     /// AddTemporaryCreator`): its line's, which `SupportUnitCreator.
@@ -401,10 +415,7 @@ impl Simulation {
                     creator.counter += 1;
                     if creator.enabled && creator.counter >= creator.summon.interval_ticks {
                         creator.counter = 0;
-                        batch = creator
-                            .summon
-                            .per_time
-                            .min(creator.summon.count - creator.created);
+                        batch = creator.create_count();
                         creator.created += batch;
                         creator.batches += 1;
                     }

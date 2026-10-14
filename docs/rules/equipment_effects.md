@@ -152,6 +152,8 @@ make.
 The cap counts children registered with the creator, including a child whose
 life reached zero during the actor update. Its death callback removes it
 after the support update, so the interval resumes on the following tick.
+Each due batch is limited to the remaining registered-child capacity and
+the remaining total creation count; a partly filled cap yields a partial batch.
 
 **A make belongs to its parent's current side.**
 `SpecialSupportUnitData.GetTeamController` reads its parent's `FightActor`'s
@@ -279,6 +281,8 @@ rather than applying only its plain corrections.
 - A capped line resumes its clock on the tick after a child dies, and its
   next batch follows that resumed clock:
   `tests/production/cap-child-death-callback.yaml`.
+- A due production batch fills only the remaining capacity when less than
+  one full batch fits: `tests/production/batch-fills-remaining-capacity.yaml`.
 - A side's last important unit dying destroys the rest of the side on that
   tick, after it, through a full shield and whether a shot or a direct hit
   killed it; one dying while another stands destroys nothing:
@@ -352,6 +356,8 @@ rather than applying only its plain corrections.
   `SupportUnitCreator.RemoveMech` to `FightMech.OnMechDead`;
   `SupportUnitSystem.Update` runs before `DeadEffectSystem.Update` raises
   that callback through `FightMech.OnDead`.
+  `SupportUnitCreator.GetCreateCount` limits the batch to both the remaining
+  maximum alive count and the remaining maximum creation count.
 - An important unit: `MechDataModifer.TryAddCommonData` marks it by
   `FightMech.SetImportantUnitData` and goes on to write the row,
   `FightMech.IsImportant`; `DeadEffectSystem.Update` takes `deadActors` by
