@@ -1,0 +1,63 @@
+# A War Factory approaches a tower under a battlefield shield. At t537
+# its own lock is within range, but every skill locking that tower is idle
+# and the shield transform is still too far; the motion remains moving.
+# At t546 two skills on the same lock leave idle and the motion attacks.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 107583946
+round: 4
+blue:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, advanced_targeting_system, typhoon_specialist, mass_produced_overlord]
+  techs:
+    overlord: [high_explosive_ammo, field_maintenance, overlord_artillery, mothership, jump_drive, armor_enhancement, range_enhancement, launcher_overload, photon_emission]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 2]
+  units:
+  - {name: overlord, index: 0, position: {x: 115, y: -265}, level: 8, exp: 5886/6122/11773, equipment: [steel_ball_production_line]}
+  - {name: typhoon, index: 1, position: {x: 40, y: -120}, exp: 0/62/1950, source: delivered}
+  - {name: war_factory, index: 2, position: {x: -95, y: -165}, level: 6, exp: 0/18556/18556, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 65, y: -190}}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: -25, y: -145}, {x: 10, y: 165}]}
+red:
+  core_damage: 1137
+  officers: [quick_teleport, advanced_targeting_system, typhoon_specialist, extended_range_fortress]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: typhoon, index: 0, position: {x: 180, y: -160}, exp: 0/12/1950, source: delivered}
+  - {name: fortress, index: 1, position: {x: 330, y: 80}, level: 8, exp: 0/96/10764, rotated: true, equipment: [explosive_ammo], travelling: true, source: joined}
+  - {name: sledgehammer, index: 2, position: {x: 85, y: -180}, level: 8, exp: 0/360/8746, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 205, y: -190}, retained: false}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: -205, y: 115}]}
+asserts:
+- sql: |
+    SELECT u.tick, u.motion_state,
+           sum(k.enabled__lock_target__kind = u.mech_lock_target__kind
+               AND k.enabled__lock_target__id = u.mech_lock_target__id
+               AND k.enabled__state != 'idle')
+    FROM units u JOIN units__skills k ON k.tick = u.tick AND k.unit_id = u.unit_id
+    WHERE u.unit_id = 7 AND u.tick IN (536, 537, 538, 545, 546, 547)
+    GROUP BY u.tick, u.motion_state ORDER BY u.tick;
+  rows:
+  - [536, "moving", 0]
+  - [537, "moving", 0]
+  - [538, "moving", 0]
+  - [545, "moving", 0]
+  - [546, "attacking", 2]
+  - [547, "attacking", 2]
+ticks: 726
+hash: 24:55804368cffd41f38de33999f59b597e974f4a0bdb50e7244afe5766b21282b7

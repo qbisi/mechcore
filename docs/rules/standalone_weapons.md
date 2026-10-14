@@ -120,7 +120,14 @@ makes the unit itself its motion's attacker:
   (`FightMech`'s `IsLockTargetAvaliable`), walks on it, and turns the turret
   to it. It attacks once the lock is nearer than the main skill's range less
   a metre (`FightMech`'s `IsActorInAttackRange`), edge to edge where the units
-  stand as it updates. An attacking motion whose lock is out of range changes
+  stand as it updates. Within that range, a skill locking the same target in
+  any state except idle lets the motion attack. Otherwise, when a battlefield
+  shield covers the lock, the unit stays moving until its edge distance to
+  the shield's fight transform is strictly below its main range
+  (`IsAttackTargetInAttackRange`). The transform is the owner's for a carried
+  shield, or the placed shield's own transform with zero radius; it is not
+  the shield's spherical coverage radius. An attacking motion whose lock is
+  out of range changes
   to its move state, and neither turns nor walks until the update after.
 - **Each gun starts and fires in its own update**, the first among them: none
   waits for the motion to attack.
@@ -157,6 +164,9 @@ The Mountain's motion follows one of its weapons, the one whose skill is
 
 ### Recorded
 
+- A War Factory keeps moving towards a shield-covered tower while all skills
+  locking that tower are idle, then enters attack as one leaves idle:
+  `tests/mech_search/covered-tower-motion.yaml`.
 - Four weapons hold three targets at once, each turning to its own:
   `tests/mountain/m3-crawler-1787720817.yaml`, ticks 72 to 75.
 - A weapon at the edge of its arc is set on it in one tick, further than it
@@ -243,6 +253,11 @@ The Mountain's motion follows one of its weapons, the one whose skill is
   `MotionController.ChangeToAutoMove`, `AutoMoveBehaviour.IsActive`,
   `AutoMoveBehaviour.IsIdle`, `FightSkill.ChangeLockTarget`,
   `FightSkill.ExitFight`.
+- The unit's range checks: `IAttacker.IsActorInAttackRange`,
+  `IAttacker.IsAttackTargetInAttackRange`, `FightSkill.GetLockTarget`,
+  `SkillStateController.IsIdleState`, `FightCalculator.IsActorInEnergyShield`,
+  `FightEnergyShield.GetFightTransform`, `FightTransform.Distance2D`,
+  `FightTransform.radius`.
 
 ### Not established
 

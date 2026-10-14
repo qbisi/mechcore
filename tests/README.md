@@ -36,6 +36,7 @@ directory alone keeps a readme, for the rules of pinning a round:
 | [`lifesteal/`](lifesteal/) | how a hit hands life back to the unit whose skill dealt it, and which lifesteal source does | [`combat.md`](../docs/rules/combat.md#lifesteal) |
 | [`loose_formation/`](loose_formation/) | how far apart a loose-formation technology keeps its unit's agents, and when they close up | [`technology_effects.md`](../docs/rules/technology_effects.md#loose-formation-technologies) |
 | [`missile/`](missile/) | when a missile fires, at what, and what its hit writes | [`contraptions.md`](../docs/rules/contraptions.md) |
+| [`mech_search/`](mech_search/) | how a unit's own lock and its skills direct its motion, including shields covering that lock | [`standalone_weapons.md`](../docs/rules/standalone_weapons.md#a-unit-that-searches-for-itself) |
 | [`path_finding/`](path_finding/) | when a huge ground unit keeps checking and walks around its side's towers | [`towers.md`](../docs/rules/towers.md#a-huge-unit-walks-around-its-own-sides-towers) |
 | [`fire_extinguisher/`](fire_extinguisher/) | which terrain a fire extinguisher clears about its unit, and when | [`technology_effects.md`](../docs/rules/technology_effects.md#fire-extinguisher-technologies) |
 | [`fire_intensify/`](fire_intensify/) | where a fire technology's unit leaves fires as its main skill hits | [`technology_effects.md`](../docs/rules/technology_effects.md#fire-technologies) |

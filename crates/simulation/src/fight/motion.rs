@@ -885,8 +885,10 @@ impl Simulation {
             sees_target
                 && rvo::fpoint_less_than(
                     edge_distance_q32,
-                    space_to_q32(self.main_attack_range(actor_id)).saturating_sub(1_i64 << 32),
+                    self.main_attack_range_q32(actor_id)
+                        .saturating_sub(1_i64 << 32),
                 )
+                && self.mech_attack_target_in_range(actor_id, target)
         } else if actor.skills.main.shield_target().is_some() {
             // A skill firing at a shield stops its unit once the shield's
             // surface is in reach, however far the lock stands behind it.
@@ -896,6 +898,42 @@ impl Simulation {
                 && edge_distance_q32 >= space_to_q32(self.main_min_range(actor_id))
                 && edge_distance_q32 <= space_to_q32(self.main_attack_range(actor_id))
         }
+    }
+
+    /// `FightMech.IAttacker.IsAttackTargetInAttackRange`, after its own lock
+    /// passes `IsActorInAttackRange`: a non-idle skill locking it suffices;
+    /// otherwise a shield covering it must have its transform within range.
+    fn mech_attack_target_in_range(&self, actor_id: u64, target: FightActorRef) -> bool {
+        let actor = &self.actors[&actor_id];
+        let slots = actor.skills.main_slots()
+            + actor
+                .skills
+                .extras
+                .iter()
+                .map(|extra| extra.skill.group_size().max(1))
+                .sum::<usize>();
+        if (0..slots).any(|slot| {
+            let (holder, offset) = actor.skills.at_slot(slot);
+            actor.skills.get(holder).group_skill(offset).lock_target == Some(target)
+                && !matches!(
+                    actor.skills.get(holder).group_skill(offset).state,
+                    super::skill::SkillState::Idle { .. }
+                )
+        }) {
+            return true;
+        }
+        let Some(shield) = self.shield_around(target) else {
+            return true;
+        };
+        let (x, z, radius) = self
+            .shield_transform(shield)
+            .expect("a covering shield stands");
+        let distance =
+            native_q32_magnitude(x.saturating_sub(actor.x_q32), z.saturating_sub(actor.z_q32))
+                .saturating_sub(space_to_q32(actor.rules.collision_radius()))
+                .saturating_sub(space_to_q32(radius))
+                .max(0);
+        rvo::fpoint_less_than(distance, self.main_attack_range_q32(actor_id))
     }
 
     #[allow(clippy::too_many_lines)]
