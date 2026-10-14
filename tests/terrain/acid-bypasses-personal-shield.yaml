@@ -1,0 +1,37 @@
+# Acid's periodic life-change controller marks the loss as a direct hit.
+# At t80 the Centurion loses 1424 life while its Portable Shield remains full.
+# Direct hits bypass the shield; the buff's amplification does not raise them.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 780224191
+round: 4
+blue:
+  core_damage: 0
+  blueprints: [attack_enhancement]
+  units:
+  - {name: rhino, index: 2, position: {x: 175, y: -115}, level: 8, exp: 0/5400/7736, source: joined}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: 130, y: -35}, {x: 295, y: 210}]}
+red:
+  core_damage: 200
+  blueprints: [defense_enhancement]
+  units:
+  - {name: centurion, index: 0, position: {x: -225, y: -45}, level: 5, exp: 5862/5862/11724, rotated: true, equipment: [portable_shield]}
+asserts:
+- sql: |
+    SELECT tick, life__current, personal_shield__energy__current FROM units
+    WHERE unit_id = 2 AND tick BETWEEN 79 AND 81 ORDER BY tick;
+  rows:
+  - [79, 94874, 94874]
+  - [80, 93450, 94874]
+  - [81, 93450, 94874]
+- sql: |
+    SELECT tick, amount FROM events WHERE type = 'damage'
+      AND source__kind IS NULL AND target__kind = 'unit' AND target__id = 2
+      AND tick = 80;
+  rows:
+  - [80, 1424]
+ticks: 210
+hash: 24:6b2f36d8e05af39f881a80a01051574f39bafe5d26348dc5699a7076a7670b6f
