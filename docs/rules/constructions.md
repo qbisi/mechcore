@@ -109,6 +109,10 @@ section says how.
 
 ## A wall is attacked because it is in the way
 
+`WallConstructionTargetChecker.CheckWallConstruction` first asks
+`FightSkill.IsGroundAttack`. A skill that cannot attack ground targets,
+such as Anti-Air Barrage, keeps firing at its lock rather than a wall.
+
 A unit keeps its target and shoots what stands between them: its **lock
 target** stays the unit behind the wall while its **attack target** becomes a
 block, and different members of one formation pick different blocks from the
@@ -285,6 +289,9 @@ The map's own buildings are the exception and are named: each side gets one
 ## Evidence
 
 ### Recorded
+
+- Anti-Air Barrage keeps its aircraft target rather than a wall in the line
+  of fire: `tests/construction/wall-anti-air-barrage.yaml`.
 
 - A Defensive Wall aside from a fight is five blocks at their spacing and
   changes nothing else: `tests/construction/`.
