@@ -1,0 +1,53 @@
+# A Mountain's idle core searches with siblings already holding a lock.
+# Its prepared selector keeps the prior tick's candidate, not a Crawler
+# that joins this tick. Slot 1's live search is the contrasting control;
+# tests/battle_skill/underground-threat-both-sides.yaml controls summons
+# entering together and searching without prepared inputs.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1815637980
+round: 3
+blue:
+  core_damage: 0
+  officers: [sabertooth_specialist, improved_phoenix]
+  blueprints: [attack_enhancement]
+  units:
+  - {name: phoenix, index: 0, position: {x: 310, y: 60}, level: 2, exp: 1464/2929/2929, equipment: [haste_module]}
+  - {name: sabertooth, index: 1, position: {x: 65, y: -45}, exp: 0/32/1300, source: delivered}
+  - {name: mountain, index: 2, position: {x: -235, y: -45}, level: 7, exp: 0/10512/20148, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 85, y: -205}}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: -75, y: -105}]}
+red:
+  core_damage: 703
+  officers: [advanced_offensive_tactics, advanced_power_system, sabertooth_specialist, fortified_farseer]
+  techs:
+    farseer: [range_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [1, 2]
+  units:
+  - {name: farseer, index: 0, position: {x: 135, y: -295}, level: 9, exp: 6054/6054/12109, equipment: [super_heavy_armor]}
+  - {name: sabertooth, index: 1, position: {x: 55, y: -255}, exp: 0/174/1300, source: delivered}
+  - {name: melting_point, index: 2, position: {x: 0, y: -270}, level: 2, exp: 0/386/3154, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -40, y: -155}, retained: false}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: 80, y: -5}]}
+asserts:
+- sql: |
+    SELECT tick,skill_slot,enabled__state,enabled__lock_target__id
+    FROM units__skills
+    WHERE unit_id=2 AND skill_slot IN (0,1) AND tick BETWEEN 67 AND 69
+    ORDER BY tick,skill_slot;
+  rows:
+  - [67, 0, idle, 20]
+  - [67, 1, idle, 39]
+  - [68, 0, idle, 39]
+  - [68, 1, attack, 39]
+  - [69, 0, attack, 39]
+  - [69, 1, attack, 39]
+ticks: 679
+hash: 24:31f1047ff49acc19a1fb87268a0caab5589ae92abcb64cc5c96eb3779dcd42dd

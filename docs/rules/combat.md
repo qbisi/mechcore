@@ -1291,6 +1291,9 @@ not the game's native attack-type enum.
   113 to 130.
 - A Melting Point's beam at a Phoenix splashing no Tarantula under it:
   `tests/corpus/67159970-r6.yaml`, tick 371.
+- An idle core in a batch of standalone weapons uses its prepared search
+  even while its siblings hold locks; a new summon on that tick is not among
+  those prepared inputs: `tests/search/standalone-core-prepared-idle.yaml`.
 - Summons that join on one tick searching where everything stands then, and
   locking the enemy summons that joined with them:
   `tests/battle_skill/underground-threat-both-sides.yaml`, tick 48.

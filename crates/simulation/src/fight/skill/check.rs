@@ -684,8 +684,7 @@ impl Simulation {
         skill_ref: SkillRef,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<Option<FightActorRef>> {
-        let prepared = self.skill(skill_ref).phase() == FightSkillPhase::Attack
-            && self.prepared_at_tick_start(skill_ref);
+        let prepared = self.prepared_at_tick_start(skill_ref);
         self.select_normal_target_with_order(skill_ref, target_search_order, !prepared)
     }
 
