@@ -109,6 +109,11 @@ pub(crate) struct Production {
     pub(crate) productions: Vec<Production>,
 }
 
+/// A line's make as each side describes it, keyed by side, source and level.
+/// An unread other-side loadout is refused only if control makes it reachable.
+pub(crate) type ProductionProfiles =
+    BTreeMap<(u32, i32, i64), std::result::Result<Production, String>>;
+
 #[derive(Debug, Clone)]
 pub(crate) struct CompiledLayout {
     pub(crate) round: u32,
@@ -155,6 +160,7 @@ pub(crate) struct CompiledLayout {
     /// Why a side could not describe a summon of the other side's units,
     /// which only a control hands it: refused when one is made, not before.
     pub(crate) taken_summon_refusals: BTreeMap<u32, String>,
+    pub(crate) production_profiles: ProductionProfiles,
 }
 
 /// A unit a side's buff makes a dying unit summon: its description, and its
@@ -194,6 +200,7 @@ impl CompiledLayout {
             map_id: mechcore_document::layout_replay::DEFAULT_MAP_ID,
             death_summons: BTreeMap::new(),
             taken_summon_refusals: BTreeMap::new(),
+            production_profiles: BTreeMap::new(),
         }
     }
 }
@@ -401,7 +408,7 @@ pub(crate) fn compile_with_seed(
             tower_levels.insert(team, levels);
         }
     }
-    let taken_summon_refusals = compile_taken_summons(
+    let (taken_summon_refusals, production_profiles) = compile_taken_loadouts(
         &sides,
         (&placements, &battle_skills),
         units,
@@ -431,8 +438,94 @@ pub(crate) fn compile_with_seed(
                 .unwrap_or(mechcore_document::layout_replay::DEFAULT_MAP_ID),
             death_summons,
             taken_summon_refusals,
+            production_profiles,
         },
     ))
+}
+
+/// The lines of these units and of everything their lines make.
+fn collect_production_lines(
+    productions: &[Production],
+    parent_level: i64,
+    pending: &mut Vec<(ProductionLine, i64)>,
+) {
+    for production in productions {
+        let level = if production.line.parent_level {
+            parent_level
+        } else {
+            1
+        };
+        pending.push((production.line.clone(), level));
+        collect_production_lines(&production.productions, level, pending);
+    }
+}
+
+/// `SpecialSupportUnitData.GetTeamController` uses the parent's current
+/// side. Its line remains in its original manager, but `CreateMech` describes
+/// each make from that current side's loadout, including its own lines.
+fn compile_production_profiles(
+    sides: &[(&str, u32, &SidePlan); 2],
+    placements: &[Placement],
+    battle_skills: &[SkillRelease],
+    death_summons: &BTreeMap<(u32, u32, i64), DeathSummon>,
+    units: &UnitConfigs,
+    loadouts: &Loadouts,
+) -> ProductionProfiles {
+    let mut pending = Vec::new();
+    for placement in placements {
+        collect_production_lines(&placement.productions, placement.level, &mut pending);
+        if let Some(production) = &placement.surfacing {
+            collect_production_lines(
+                std::slice::from_ref(production),
+                placement.level,
+                &mut pending,
+            );
+        }
+    }
+    for release in battle_skills {
+        if let SkillEffect::Summon(summon) = &release.effect {
+            collect_production_lines(&summon.productions, 1, &mut pending);
+        }
+    }
+    for summon in death_summons.values() {
+        collect_production_lines(
+            &summon.placement.productions,
+            summon.placement.level,
+            &mut pending,
+        );
+    }
+    let mut profiles = ProductionProfiles::new();
+    while let Some((line, level)) = pending.pop() {
+        for &(name, team, side) in sides {
+            let key = (team, line.source_id, level);
+            if profiles.contains_key(&key) {
+                continue;
+            }
+            let mut refused = Refusals::default();
+            let production = made_by(
+                name,
+                (line.clone(), 0),
+                level,
+                units,
+                side,
+                loadouts,
+                &mut refused,
+            );
+            let result = match (production, refused.settle()) {
+                (Some(production), Ok(())) => {
+                    collect_production_lines(&production.productions, level, &mut pending);
+                    Ok(production)
+                }
+                (_, Err(error)) => Err(error.to_string()),
+                (None, Ok(())) => Err(format!(
+                    "side {name}: production source {} is unread",
+                    line.source_id
+                )),
+            };
+            profiles.insert(key, result);
+        }
+    }
+    profiles
 }
 
 /// The unit types a unit summons as it dies, its buffs' and its
@@ -492,18 +585,17 @@ fn death_summon_template(team: u32, rules: &UnitConfig, level: i64, worn: Worn) 
     }
 }
 
-/// What each side summons as a unit dies that only a control hands it: the
-/// summons of the other side's units, described from its own technologies
-/// ([`compile_death_summons`]) where it has none of its own. Such a summon is
-/// refused only when one is made, so what a side cannot describe of them is
-/// kept by side rather than refusing the layout.
-fn compile_taken_summons(
+/// The other-side loadouts control can make reachable: a captured unit's
+/// death summons and the makes of its production lines. An unread loadout
+/// is refused only when a unit is made from it, rather than refusing a
+/// layout that never enters that branch.
+fn compile_taken_loadouts(
     sides: &[(&str, u32, &SidePlan); 2],
     (placements, battle_skills): (&[Placement], &[SkillRelease]),
     units: &UnitConfigs,
     loadouts: &Loadouts,
     death_summons: &mut BTreeMap<(u32, u32, i64), DeathSummon>,
-) -> BTreeMap<u32, String> {
+) -> (BTreeMap<u32, String>, ProductionProfiles) {
     let mut refusals = BTreeMap::new();
     for &(name, team, side) in sides {
         let mut taken = Refusals::default();
@@ -520,7 +612,17 @@ fn compile_taken_summons(
             refusals.insert(team, error.to_string());
         }
     }
-    refusals
+    (
+        refusals,
+        compile_production_profiles(
+            sides,
+            placements,
+            battle_skills,
+            death_summons,
+            units,
+            loadouts,
+        ),
+    )
 }
 
 /// The units a side's buffs and technologies make a unit summon as it dies

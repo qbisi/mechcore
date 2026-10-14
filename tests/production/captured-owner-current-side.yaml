@@ -1,0 +1,66 @@
+# A Tank Production Line's Vulcan changes side under Hacker control.
+# The first batch belongs to red; the next belongs to the parent's current
+# blue side and carries blue's loadout, including its life and speed.
+# tank-line.yaml and tank-dies.yaml control an owner that stays on its
+# original side.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 649400157
+round: 3
+blue:
+  core_damage: 51
+  officers: [advanced_offensive_tactics, advanced_power_system, sabertooth_specialist]
+  techs:
+    hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement, multi_control]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: hacker, index: 0, position: {x: -25, y: -135}, exp: 280/560/560, equipment: [improved_firepower_control_system]}
+  - {name: sabertooth, index: 1, position: {x: -5, y: -35}, exp: 0/998/1300, source: delivered}
+  - {name: steel_ball, index: 2, position: {x: 165, y: -280}, level: 5, exp: 0/5170/5210, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -255, y: -55}, retained: false}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: -200, y: 170}]}
+red:
+  core_damage: 595
+  officers: [advanced_missile_device, advanced_offensive_tactics, fire_badger_specialist, assault_vulcan]
+  techs:
+    vulcan: [ignite]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: vulcan, index: 0, position: {x: -120, y: -280}, level: 3, exp: 8620/8620/8620, rotated: true, equipment: [tank_production_line]}
+  - {name: fire_badger, index: 1, position: {x: 35, y: -210}, source: delivered}
+  - {name: wasp, index: 2, position: {x: 185, y: -230}, level: 3, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -250, y: -200}, retained: false}
+  battle_skills:
+  - {name: smoke_bomb, positions: [{x: 85, y: 240}, {x: 275, y: 130}]}
+asserts:
+- sql: |
+    SELECT tick,object__id,team_id,unit_type_id
+    FROM events
+    WHERE type='unit_created' AND unit_type_id=13 AND tick IN (1,521)
+    ORDER BY tick,ordinal;
+  rows:
+  - [1, 23, 1, 13]
+  - [1, 24, 1, 13]
+  - [521, 27, 0, 13]
+  - [521, 28, 0, 13]
+- sql: |
+    SELECT u.tick,u.unit_id,u.team_id,u.life__maximum,u.move_speed,s.enabled__attack_damage
+    FROM units u
+    JOIN units__skills s ON s.tick=u.tick AND s.unit_id=u.unit_id
+    WHERE u.unit_id IN (27,28) AND u.tick=541 AND s.skill_slot=0
+    ORDER BY u.unit_id;
+  rows:
+  - [541, 27, 0, 3999, 55834574848, 790]
+  - [541, 28, 0, 3999, 55834574848, 790]
+ticks: 2360
+hash: 24:b0b3e6e5d5107fba170ca8195af0a143928e8cf8c1d00d41c22513f7e5133f46

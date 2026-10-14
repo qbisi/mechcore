@@ -51,6 +51,7 @@ pub(in crate::fight) struct SupportUnitSystem {
     pub(in crate::fight) death_summons: BTreeMap<(u32, u32, i64), crate::layout::DeathSummon>,
     /// Why a side could not describe a summon a control would hand it.
     pub(in crate::fight) taken_summon_refusals: BTreeMap<u32, String>,
+    production_profiles: crate::layout::ProductionProfiles,
     /// The units that died this tick, in the order they died:
     /// `DeadEffectSystem.deadActors`, whose `OnDead` waits for that module's
     /// update.
@@ -95,6 +96,7 @@ impl SupportUnitSystem {
             appearing: Vec::new(),
             death_summons: layout.death_summons.clone(),
             taken_summon_refusals: layout.taken_summon_refusals.clone(),
+            production_profiles: layout.production_profiles.clone(),
             dying: Vec::new(),
             summoned_events: BTreeMap::new(),
         }
@@ -540,15 +542,38 @@ impl Simulation {
         tick: u64,
         events: &mut Vec<Event>,
     ) -> Result<u64> {
-        let team = creator.team;
-        let (x_q32, z_q32, facing, coming_out) = self.made_at(creator, member)?;
-        let rules = creator.summon.rules.clone();
-        // `CreateSummonMechInfo.level`: the owner's, for a make of
-        // `DynamicMechLevel.Parent`.
+        // SpecialSupportUnitData.GetTeamController asks its owner now,
+        // independently of the manager that still holds this creator.
+        let team = creator
+            .owner
+            .map_or(creator.team, |owner| self.actors[&owner].placement.team);
         let level = match creator.owner {
             Some(owner) if creator.parent_level => self.actors[&owner].placement.level,
             _ => 1,
         };
+        let mut current = creator.clone();
+        if team != creator.team {
+            let source = creator
+                .source_id
+                .ok_or_else(|| Error::new("a captured production has no source"))?;
+            let profile = self
+                .support
+                .production_profiles
+                .get(&(team, source, level))
+                .ok_or_else(|| {
+                    Error::new(format!(
+                        "production source {source} has no profile for team {team} level {level}"
+                    ))
+                })?
+                .as_ref()
+                .map_err(|why| Error::new(why.clone()))?;
+            current.team = team;
+            current.summon.effects = profile.effects.clone();
+            current.summon.productions = profile.productions.clone();
+        }
+        let creator = &current;
+        let (x_q32, z_q32, facing, coming_out) = self.made_at(creator, member)?;
+        let rules = creator.summon.rules.clone();
         let unit_id = self.ids.next_unit;
         self.ids.next_unit += 1;
         let formation_id = self.ids.next_formation;
