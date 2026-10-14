@@ -1,0 +1,38 @@
+# A Fortress starts outside the three-radius range of its own tower.
+# Living but distant towers keep the path finder active; it finds a detour
+# on the t12 solve, and publishes the changed movement velocity at t16.
+# The Sandworm holds the same target while the Fortress approaches.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1510020048
+round: 2
+blue:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, advanced_power_system, extended_range_fortress]
+  techs:
+    fortress: [doubleshot]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 3]
+  units:
+  - {name: fortress, index: 0, position: {x: -180, y: -220}, level: 9, exp: 5382/10764/10764, rotated: true, equipment: [absorption_module]}
+red:
+  core_damage: 350
+  officers: [quick_teleport, advanced_power_system, fortified_specialist, improved_overlord]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [2, 3]
+  units:
+  - {name: sandworm, index: 0, position: {x: 10, y: -60}, level: 9, source: joined}
+asserts:
+- sql: |
+    SELECT tick, velocity__x, velocity__z FROM units
+    WHERE unit_id = 1 AND tick IN (12, 16, 17) ORDER BY tick;
+  rows:
+  - [12, 12568718511, 46466282164]
+  - [16, 7379531916, 51012689532]
+  - [17, 7379531916, 51012689532]
+ticks: 336
+hash: 24:8222937890528136835c287603bb1c1f1e06addcfa44e7d0c05b9fe236240762

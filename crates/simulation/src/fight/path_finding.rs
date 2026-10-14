@@ -147,8 +147,8 @@ impl Simulation {
 
     /// `FindAvoidanceActor`: the first of the unit's side's towers within
     /// three of its radii (`GetNeighbours`) that stands in the strip from it
-    /// to the target, as wide as the larger of the two radii. A unit with no
-    /// tower that near stops asking for good (`checkCount` -1).
+    /// to the target, as wide as the larger of the two radii. Only the absence
+    /// of any living tower stops the checks (`GetNeighbours` returns false).
     fn find_avoidance_actor(
         &self,
         actor_id: u64,
@@ -173,18 +173,34 @@ impl Simulation {
             .filter(|&tower| self.is_tower(tower))
             .filter_map(|tower| self.fight_actor(tower).map(|view| (tower, view)))
             .filter(|(_, view)| view.alive)
-            .filter(|(_, view)| fpoint_less_or_equal(distance_2d(start, radius, view), range))
             .collect();
         if neighbours.is_empty() {
             path.check_count = -1;
             return None;
         }
-        neighbours
+        let nearest_distance = neighbours.iter().fold(i64::MAX, |nearest, (_, view)| {
+            let distance = distance_2d(start, radius, view);
+            if rvo::fpoint_less_than(distance, nearest) {
+                distance
+            } else {
+                nearest
+            }
+        });
+        let avoided = neighbours
             .into_iter()
+            .filter(|(_, view)| fpoint_less_or_equal(distance_2d(start, radius, view), range))
             .find(|(_, view)| {
                 line_range_contains(start, target_position, width, (view.x_q32, view.z_q32))
             })
-            .map(|(tower, _)| tower)
+            .map(|(tower, _)| tower);
+        if avoided.is_none() && actor.rules.move_speed() > 0 {
+            // `FindAvoidanceActor` keeps checking while any tower lives,
+            // recording its nearest edge distance in base-speed logic ticks.
+            let seconds = q32_div(nearest_distance, space_to_q32(actor.rules.move_speed()));
+            path.check_count =
+                i32::try_from(math::seconds_q32_to_steps(seconds)).unwrap_or(i32::MAX);
+        }
+        avoided
     }
 
     /// `CalculateAvoidancePoint`: two of the unit's radii from where it

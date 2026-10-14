@@ -140,9 +140,11 @@ such tower in the side's list is the one turned around.
 The point found is meant to hold for ten moves while the target stays within
 twice its radius of where it stood, but the record of where it stood keeps the
 target's `x` and nought for its depth, so a target away from the map's middle
-line is never inside it and the point is found anew on every move. A unit with
-no tower of its side within three of its radii on a move stops asking for the
-rest of the fight. A unit with no lock goes straight to its point.
+line is never inside it and the point is found anew on every move. While any
+tower of its side lives, a unit keeps checking even if no tower is near;
+approaching a tower can therefore start the detour later. Only the absence
+of any living tower stops the checks for the rest of the fight. A unit with
+no lock goes straight to its point.
 
 ## Evidence
 
@@ -191,6 +193,9 @@ rest of the fight. A unit with no lock goes straight to its point.
 - A huge unit walks two of its radii aside around its own side's tower in its
   way, finding the point anew on every move, and straight on once no tower of
   its side is near: red's Fortress, `tests/corpus/67154636-r6.yaml`.
+- A Fortress initially outside the near-tower range keeps checking and turns
+  aside as it approaches its own tower:
+  `tests/path_finding/keeps-checking-distant-towers.yaml`.
 
 ### Replayed
 
@@ -249,7 +254,9 @@ rest of the fight. A unit with no lock goes straight to its point.
   `SimplePathFindingController.CalculateAvoidancePoint`, `LineRange.Contains`,
   `FPlane.GetSide`, `FQuaternion.AngleAxis`. The record's centre goes through
   `FVector3.op_Implicit`, which keeps `x` and `y`, and
-  `FVector2.ToVector3XZ`. No tower near sets
+  `FVector2.ToVector3XZ`. `SimplePathFindingController.GetNeighbours` counts
+  every living tower, tracks the nearest edge distance and separately gathers
+  those within the requested range. No living tower sets
   `SimplePathFindingController.checkCount` to -1, which only
   `SimplePathFindingController.EnableAvoidanceCheck` resets.
 
