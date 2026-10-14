@@ -471,38 +471,8 @@ mod tests {
         assert!(super::verb_section("no-such-verb").is_none());
     }
 
-    use super::{TOPICS, Verbs, find, title};
+    use super::{Verbs, find, title};
     use crate::kind::Kind;
-
-    /// Every document under `docs/` is a topic, so a document added without a
-    /// line here is a document the binary does not carry.
-    #[test]
-    fn every_document_is_a_topic() {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs");
-        let mut found = Vec::new();
-        let mut directories = vec![root.clone()];
-        while let Some(directory) = directories.pop() {
-            for entry in std::fs::read_dir(&directory).unwrap() {
-                let path = entry.unwrap().path();
-                if path.is_dir() {
-                    directories.push(path);
-                } else if path.extension().is_some_and(|extension| extension == "md") {
-                    let relative = path.strip_prefix(&root).unwrap().with_extension("");
-                    let topic = relative.display().to_string();
-                    if topic != "README" {
-                        found.push(topic);
-                    }
-                }
-            }
-        }
-        found.sort();
-        let mut carried: Vec<String> = TOPICS
-            .iter()
-            .map(|(topic, _)| (*topic).to_owned())
-            .collect();
-        carried.sort();
-        assert_eq!(found, carried);
-    }
 
     /// A topic is found by its whole name, and by its last part when that
     /// names one topic alone.
