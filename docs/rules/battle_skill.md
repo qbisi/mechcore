@@ -304,8 +304,19 @@ A strike that does not cross shields (`isCrossAdvancedShield`) is tested as it
 falls: on the first tick of its fall that it stands strictly inside an active
 shield of either side, it strikes there instead of landing, at the point where
 its way met the shield's surface, half a metre out; of several such shields,
-the one its last point was nearest. `scope` and `isDirectHit` change nothing
+the one its last point was nearest. `scope` changes nothing
 in the fight.
+
+A damage strike's `isDirectHit` selects how it takes life.
+`CommanderSkillSubEffectController.PerformNegativeEffect` passes
+`ICommanderSkill.IsDirectHit` to `DamagePerformer`, and
+`FightCalculator.PerformHitTargetEffect` calls `FightActor.ReduceLife` for
+that hit instead of `FightMech.OnHitted`. It therefore bypasses the personal
+shield and the mech's hit callback, after the calculator's damage adjustments.
+Orbital Javelin is the standard damage row with this flag set; the other
+standard damage rows clear it. A buff skill inherits the false answer of
+`CommanderSkillBase.IsDirectHit`. Recorded against Fangs with Portable Shield:
+`tests/battle_skill/orbital-javelin-personal-shield.yaml`.
 
 ## A scattered strike
 

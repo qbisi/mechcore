@@ -40,6 +40,7 @@ struct Circle<'a> {
     range_q32: i64,
     damage: i64,
     crosses_shields: bool,
+    direct_hit: bool,
     shield_damage: Option<i64>,
     harmful: bool,
     buff: Option<&'a SkillBuff>,
@@ -138,6 +139,7 @@ impl Simulation {
                 range_q32,
                 damage,
                 crosses_shields,
+                direct_hit,
                 shield_damage,
                 harmful,
                 buff,
@@ -149,6 +151,7 @@ impl Simulation {
                     range_q32: *range_q32,
                     damage: *damage,
                     crosses_shields: *crosses_shields,
+                    direct_hit: *direct_hit,
                     shield_damage: *shield_damage,
                     harmful: *harmful,
                     buff: buff.as_ref(),
@@ -370,6 +373,7 @@ impl Simulation {
         let hit = DamageHit {
             crosses_shields: circle.crosses_shields,
             provider: Provider::CommanderSkill,
+            direct_hit: circle.direct_hit,
             shield_damage: circle
                 .shield_damage
                 .filter(|&added| added > 0)

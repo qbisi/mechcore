@@ -1,0 +1,75 @@
+# A generated Orbital Javelin fight in which the strike reaches its own
+# Fangs with Portable Shield. Their life and enabled shield energy are both
+# 269 before the strike; it kills them through the personal shields.
+# The native row's isDirectHit selects ReduceLife instead of OnHitted.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1014431228
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_offensive_tactics, fire_badger_specialist, improved_wasp]
+  techs:
+    wasp: [aerial_specialization]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 3]
+  units:
+  - {name: wasp, index: 0, position: {x: 100, y: -45}, level: 9, exp: 3027/6055/6055, rotated: true, equipment: [super_heavy_armor]}
+  - {name: fire_badger, index: 1, position: {x: 5, y: -90}, exp: 0/288/1400, source: delivered}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -180, y: -230}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 10, y: -160}]}
+red:
+  core_damage: 254
+  officers: [advanced_power_system, sabertooth_specialist]
+  techs:
+    fang: [portable_shield, grenade_launcher, range_enhancement, mechanical_rage, armor_piercing_bullets, ignite]
+  units:
+  - {name: fang, index: 0, position: {x: 115, y: -40}, level: 2, exp: 1352/1352/1352, equipment: [small_amplifying_core]}
+  - {name: sabertooth, index: 1, position: {x: 155, y: -55}, exp: 0/268/1300, source: delivered}
+  - {name: wasp, index: 2, position: {x: -95, y: -180}, level: 8, source: joined}
+  battle_skills:
+  - {name: orbital_javelin, positions: [{x: 70, y: -5}]}
+asserts:
+- sql: |
+    SELECT
+      tick,
+      unit_id,
+      life__current,
+      personal_shield__active,
+      personal_shield__enabled,
+      personal_shield__energy__current
+    FROM units
+    WHERE
+      tick = 61
+      AND unit_id IN (17, 20, 33)
+    ORDER BY
+      unit_id;
+  rows:
+  - [61, 17, 269, 1, 1, 269]
+  - [61, 20, 269, 1, 1, 269]
+  - [61, 33, 269, 1, 1, 269]
+- sql: |
+    SELECT tick, type, coalesce(target__id, object__id) AS unit_id, amount
+    FROM events
+    WHERE
+      tick = 62
+      AND ((type = 'damage'
+      AND target__kind = 'unit'
+      AND target__id IN (17, 20, 33))
+      OR (type = 'unit_died' AND object__id IN (17, 20, 33)))
+    ORDER BY
+      ordinal;
+  rows:
+  - [62, damage, 33, 269]
+  - [62, damage, 17, 269]
+  - [62, damage, 20, 269]
+  - [62, unit_died, 33, null]
+  - [62, unit_died, 17, null]
+  - [62, unit_died, 20, null]
+ticks: 448
+hash: 24:766c7228fd84573d18f18e993932160bd937b4d0b17437fab75413ebd97c4e95

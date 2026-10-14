@@ -215,9 +215,10 @@ DAMAGE_FIXED = (
     ("subEffectDefaultHeight", "sub_effect_default_height"),
     ("subEffectIntervalTime", "sub_effect_interval_time"),
 )
-# `isDirectHit` only rides on the hit's event, which nothing in the fight
-# reads.
 DAMAGE_FLAGS = (("isCrossAdvancedShield", "cross_advanced_shield"),)
+# PerformNegativeEffect hands IsDirectHit to DamagePerformer; the calculator
+# takes ReduceLife instead of OnHitted for a direct hit, bypassing the shield.
+HIT_FLAGS = (*DAMAGE_FLAGS, ("isDirectHit", "direct_hit"))
 
 
 # A terrain skill's row: a line of `subEffectCount` sub-effects, each leaving
@@ -301,7 +302,7 @@ def damage_lines(group, buffs, standard):
         for field, name in DAMAGE_FIXED:
             value = raw(row[field])
             lines.append(f"    {name}: {value}{reading(value)}")
-        for field, name in DAMAGE_FLAGS:
+        for field, name in HIT_FLAGS:
             lines.append(f"    {name}: {str(row[field]).lower()}")
         if row["subEffectBuffID"]:
             lines += buff_lines(buffs[row["subEffectBuffID"]])

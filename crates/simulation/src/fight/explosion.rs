@@ -202,6 +202,7 @@ impl Simulation {
                 },
                 amount,
                 provider: Provider::Other,
+                direct_hit: false,
                 projectile: None,
                 skill_slot: None,
                 aimed: None,

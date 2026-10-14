@@ -32,6 +32,8 @@ pub(in crate::fight) struct DamageHit {
     /// The class of `IDamageProvider` that deals it, where
     /// `PerformHitTargetEffect` tests it.
     pub(in crate::fight) provider: Provider,
+    /// `HitDamageInfo.isDirectHit`: `ReduceLife` bypasses `OnHitted` and its shield.
+    pub(in crate::fight) direct_hit: bool,
     /// The projectile that carried the hit, if one did.
     pub(in crate::fight) projectile: Option<ObjectRef>,
     /// The index of the skill that dealt it in its owner's skills.
@@ -98,6 +100,7 @@ impl DamageHit {
             provider: Provider::Skill {
                 melee: attacker.skill_melee(skill_slot),
             },
+            direct_hit: false,
             projectile: None,
             skill_slot: Some(skill_slot),
             aimed: Some(aimed),
@@ -132,6 +135,7 @@ impl DamageHit {
             effect: EffectTarget::Opponent,
             amount,
             provider: Provider::Projectile,
+            direct_hit: false,
             projectile: Some(projectile.object_ref()),
             skill_slot: None,
             aimed: Some(aimed),
@@ -192,6 +196,7 @@ impl DamageHit {
             effect: EffectTarget::Both,
             amount,
             provider: Provider::Other,
+            direct_hit: false,
             projectile: None,
             skill_slot: None,
             aimed: None,
@@ -484,9 +489,14 @@ impl Simulation {
         hit: (i64, bool),
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        for (struck, stroke) in
-            self.strike(target, None, team, hit, (Provider::Other, false), events)?
-        {
+        for (struck, stroke) in self.strike(
+            target,
+            None,
+            team,
+            hit,
+            (Provider::Other, false, false),
+            events,
+        )? {
             self.count_hit(None, team, struck, &stroke)?;
             self.turned_unit_fell(struck, &stroke);
             if stroke.actual > 0 {
@@ -524,7 +534,7 @@ impl Simulation {
         source: Option<ObjectRef>,
         source_team: u32,
         hit: (i64, bool),
-        (provider, can_disable_tech): (Provider, bool),
+        (provider, can_disable_tech, direct_hit): (Provider, bool, bool),
         events: &mut Vec<Event>,
     ) -> Result<Vec<(FightActorRef, Stroke)>> {
         // `FightCalculator.PerformHitTargetEffect`'s first hit on a unit a
@@ -545,11 +555,17 @@ impl Simulation {
                 if !self.actors[&member].alive() {
                     continue;
                 }
-                let stroke = self.land(member, (source, source_team), (share, share), events)?;
+                let stroke = self.land(
+                    member,
+                    (source, source_team),
+                    (share, share, direct_hit),
+                    events,
+                )?;
                 self.after_hit(
                     FightActorRef::Unit(member),
                     source,
                     can_disable_tech,
+                    direct_hit,
                     &stroke,
                     events,
                 )?;
@@ -557,8 +573,22 @@ impl Simulation {
             }
             return Ok(strokes);
         }
-        let stroke = self.strike_target(target, source, source_team, hit, provider, events)?;
-        self.after_hit(target, source, can_disable_tech, &stroke, events)?;
+        let stroke = self.strike_target(
+            target,
+            source,
+            source_team,
+            hit,
+            (provider, direct_hit),
+            events,
+        )?;
+        self.after_hit(
+            target,
+            source,
+            can_disable_tech,
+            direct_hit,
+            &stroke,
+            events,
+        )?;
         Ok(vec![(target, stroke)])
     }
 
@@ -569,11 +599,13 @@ impl Simulation {
         target: FightActorRef,
         source: Option<ObjectRef>,
         can_disable_tech: bool,
+        direct_hit: bool,
         stroke: &Stroke,
         events: &mut Vec<Event>,
     ) -> Result<()> {
         if let (FightActorRef::Unit(id), Some(attacker)) = (target, source)
             && stroke.reached_alive
+            && !direct_hit
         {
             self.on_mech_be_hit(id, attacker, can_disable_tech, events)?;
         }
@@ -628,7 +660,7 @@ impl Simulation {
         &mut self,
         unit_id: u64,
         (source, source_team): (Option<ObjectRef>, u32),
-        (amount, taken): (i64, i64),
+        (amount, taken, direct_hit): (i64, i64, bool),
         events: &mut Vec<Event>,
     ) -> Result<Stroke> {
         let unit = self
@@ -637,6 +669,7 @@ impl Simulation {
             .ok_or_else(|| Error::new("damage target unit is absent"))?;
         let previous_life = unit.life;
         if let Some(shield) = unit.shield.as_mut()
+            && !direct_hit
             && amount >= 1
             && shield.available()
         {
@@ -691,13 +724,18 @@ impl Simulation {
         source: Option<ObjectRef>,
         source_team: u32,
         (amount, amplified): (i64, bool),
-        provider: Provider,
+        (provider, direct_hit): (Provider, bool),
         events: &mut Vec<Event>,
     ) -> Result<Stroke> {
         match target {
             FightActorRef::Unit(unit_id) => {
                 let (taken, amount) = self.first_hit(unit_id, (amount, amplified), provider)?;
-                self.land(unit_id, (source, source_team), (amount, taken), events)
+                self.land(
+                    unit_id,
+                    (source, source_team),
+                    (amount, taken, direct_hit),
+                    events,
+                )
             }
             FightActorRef::Building(building_id) => {
                 let (amount, taken) = if amplified {
@@ -888,7 +926,11 @@ impl Simulation {
                     hit.source,
                     hit.source_team,
                     (amount, true),
-                    (hit.provider, self.hit_can_disable_tech(hit, false)),
+                    (
+                        hit.provider,
+                        self.hit_can_disable_tech(hit, false),
+                        hit.direct_hit,
+                    ),
                     events,
                 )?
             };
@@ -1079,7 +1121,11 @@ impl Simulation {
                 hit.source,
                 hit.source_team,
                 (amount, false),
-                (hit.provider, self.hit_can_disable_tech(hit, true)),
+                (
+                    hit.provider,
+                    self.hit_can_disable_tech(hit, true),
+                    hit.direct_hit,
+                ),
                 events,
             )?;
             for (reached, stroke) in strokes {
@@ -1779,6 +1825,7 @@ impl Simulation {
                     melee: self.actors[&actor_id].skill_melee(skill_slot),
                 },
                 self.can_disable_target_tech(skill_ref, false),
+                false,
             ),
             events,
         )?;
