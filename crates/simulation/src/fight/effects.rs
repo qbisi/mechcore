@@ -141,13 +141,13 @@ impl Simulation {
                 EffectProvider::SkillSearchTarget => self.switch_life_priority(unit, false),
                 EffectProvider::MoveAbilityDynamic => self.deactivate_cloak(unit),
                 EffectProvider::Buff => self.deactivate_buff_cycles(unit),
+                EffectProvider::ReactiveArmor => self.remove_reactive_armor(unit),
                 // Every dead unit's interceptors are deactivated together,
                 // after the summons the deaths make
                 // (`Simulation::deactivate_dead_interceptions`).
                 EffectProvider::InterceptMissile
-                // A dead unit's stealth and reactive armor end with it.
+                // A dead unit's stealth ends with it.
                 | EffectProvider::StealthTech
-                | EffectProvider::ReactiveArmor
                 | EffectProvider::LifeSteal
                 | EffectProvider::AutoRecovery
                 | EffectProvider::EnergyShield

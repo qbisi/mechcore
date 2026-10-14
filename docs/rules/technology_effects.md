@@ -481,6 +481,13 @@ summon or a make has it as it joins, with its whole count; no line, skill or
 buff of this build makes a Typhoon or a Centurion, so that is read and not
 recorded.
 
+**Deactivation removes the registration and count.**
+`ReactiveArmorTechEffectProvider.DoDeactive` calls
+`ReactiveArmorSystem.RemoveReactiveArmorOwner`, which removes the rate if
+active and both the source and remaining-count entries. A unit reactivated
+after Field Reassembly registers afresh with its full count. This differs
+from disabling the technology, which keeps the registration and count.
+
 **The rate is on the damage the unit takes.** `PerformHitTargetEffect`
 multiplies a hit on a unit by one plus its buffs' and its own
 `AmplifyDamageRate` increases, then by its buffs' decreases and its own: a
@@ -2000,6 +2007,8 @@ derive (a minimum range):
   both come back:
   `tests/technology_disable/impact-scorching-charge.yaml`,
   `tests/technology_disable/impact-scorching-charge-expires.yaml`.
+- Field Reassembly restores the five-hit count after Reactive Armor was
+  exhausted before death: `tests/reactive_armor/typhoon-reassembly.yaml`.
 - Reactive Armor takes the first five hits that take life from its unit at
   a fifth of their damage, the fifth included, and the next one, in the same
   tick, whole; switched off, it keeps its count:
@@ -2083,7 +2092,9 @@ derive (a minimum range):
   `RemoveEffect`, `OnReactiveArmorOwnerDamaged`, `DisableReactiveArmor`,
   `FightController.IsFighting` (which `DoActive` asks before writing the
   rate at once),
-  `EnableReactiveArmor`, `ReactiveArmorSystem.Init` (listening to
+  `EnableReactiveArmor`, `ReactiveArmorSystem.RemoveReactiveArmorOwner`,
+  `ReactiveArmorTechEffectProvider.DoDeactive`,
+  `ReactiveArmorSystem.Init` (listening to
   `FightController.OnActorHittedEvent`), `FightController.OnActorHitted`,
   `FightCalculator.PerformHitTargetEffect`, `FightMech.GetDataFloatAddRate`,
   `FightMech.GetDataFloatReduceRate`.
