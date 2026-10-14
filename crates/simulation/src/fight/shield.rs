@@ -176,11 +176,14 @@ impl EnergyShield {
     pub(in crate::fight) fn contains(&self, x_q32: i64, y_q32: i64, z_q32: i64) -> bool {
         self.active
             && self.energy > 0
-            && native_q32_magnitude_3d(
-                x_q32.saturating_sub(self.x_q32),
-                y_q32,
-                z_q32.saturating_sub(self.z_q32),
-            ) < self.radius_q32
+            && rvo::fpoint_less_than(
+                native_q32_magnitude_3d(
+                    x_q32.saturating_sub(self.x_q32),
+                    y_q32,
+                    z_q32.saturating_sub(self.z_q32),
+                ),
+                self.radius_q32,
+            )
     }
 
     /// `FightCalculator.IsInEnergyShield(position, shield, range)`: a circle

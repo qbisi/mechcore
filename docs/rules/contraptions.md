@@ -155,6 +155,10 @@ x, then its z, then their energy and radius. A shield a unit carries in while it
 comes after every shield its side stands
 ([`carried-shield-numbered-after-its-side.yaml`](../../tests/super_deployment/carried-shield-numbered-after-its-side.yaml)). A shield covers what its sphere
 holds strictly inside, in three dimensions, while it has energy left.
+`FVector3.SqrMagnitude` wraps its finite products and their sum; when this
+square is negative, `FPCSMath.SqrtFastest` returns NaN. A shield's
+`FPoint.op_LessThan` containment test is false for that distance, rather than
+considering the point at its centre.
 
 A hit meant for a unit or a tower its side's shield covers lands on the
 shield, since the build asks whether any `FightActor` is covered, and a tower
@@ -270,6 +274,10 @@ kind ends its own way:
 
 ### Recorded
 
+- A Lightning Storm sub-effect whose outer point has a negative wrapped
+  squared distance strikes the shield and leaves its covered Steel Ball
+  unharmed: `tests/battle_skill/lightning-storm-shield-overflow.yaml`.
+
 - A losing side's interceptor stands as its towers, its turret and then its
   wall's blocks fall at the fight's end:
   `tests/interceptor/stands-as-its-side-falls.yaml`.
@@ -374,6 +382,10 @@ kind ends its own way:
   document. The corpus holds each kind both kept and gone.
 
 ### Read
+
+- Shield containment uses native three-dimensional distance and a NaN-aware
+  comparison: `FightCalculator.IsInEnergyShield`, `FVector3.SqrMagnitude`,
+  `FPCSMath.SqrtFastest`, `FPoint.op_LessThan`.
 
 - Each kind is made by its own module: `CRC_EnergyShield.Perform` calls
   `AdvancedEnergyShieldSystem.Create`, `CRC_Interceptor.Perform` calls
@@ -525,9 +537,9 @@ kind ends its own way:
   no recording holds a tower falling beside one.
 - **A row whose hit can miss.** The one interceptor's probability is a
   certainty, and a row that is not is refused by name.
-- **A missile, or a battle skill, in a fight with a shield.** A missile's
-  projectile and a falling sub-effect each have shield branches no fight
-  pins; the simulator refuses both.
+- **A missile in a fight with a shield.** Its projectile has shield branches
+  beyond the falling battle skill pinned by
+  `tests/battle_skill/lightning-storm-shield-overflow.yaml`.
 - **A splashing blow or beam at a covered unit.** Its damage point is
   `SkillDamageProvider.CalculateDamagePosition`'s, which asks the shield
   before the self splash: where the way from the target out to the skill's

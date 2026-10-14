@@ -237,11 +237,11 @@ pub(in crate::fight) fn native_q32_magnitude(x: i64, z: i64) -> i64 {
 }
 
 pub(in crate::fight) fn native_q32_magnitude_3d(x: i64, y: i64, z: i64) -> i64 {
-    fpcs_sqrt_fastest(
-        q32_mul(x, x)
-            .saturating_add(q32_mul(y, y))
-            .saturating_add(q32_mul(z, z)),
-    )
+    // `FVector3.SqrMagnitude` adds finite products in this order, wrapping.
+    let square = q32_mul(y, y)
+        .wrapping_add(q32_mul(x, x))
+        .wrapping_add(q32_mul(z, z));
+    fpcs_sqrt_fastest(square)
 }
 
 /// `FPCSMath.LogFastest`: the natural log of a positive Q32.32 number, its
@@ -316,7 +316,10 @@ pub(in crate::fight) fn fpcs_pow_fastest(base: i64, exponent: i64) -> i64 {
 }
 
 pub(crate) fn fpcs_sqrt_fastest(value: i64) -> i64 {
-    if value <= 0 {
+    if value < 0 {
+        return i64::MIN + 1;
+    }
+    if value == 0 {
         return 0;
     }
     let exponent = 31 - i32::try_from(value.leading_zeros()).unwrap_or(64);
