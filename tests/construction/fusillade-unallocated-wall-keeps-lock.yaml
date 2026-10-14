@@ -1,0 +1,60 @@
+# A Raiden core finds a wall but its non-sharing siblings are allocated
+# no wall. They retain their existing unit locks and refresh their own
+# blockers instead of clearing and selecting a different unit. The control
+# moves the first Acid Blast endpoint from x=-30 to -50 to avoid one
+# unrelated acid-hit/tower-buff-expiration overlap. Pin from the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 893199902
+round: 2
+blue:
+  core_damage: 410
+  officers: [advanced_targeting_system]
+  units:
+  - {name: raiden, index: 0, position: {x: -20, y: -100}, level: 2, exp: 5408/5408/5408, equipment: [tank_production_line]}
+  - {name: fire_badger, index: 1, position: {x: 175, y: -120}, level: 5, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: -70, y: -135}]}
+red:
+  core_damage: 350
+  officers: [quick_teleport, aerial_specialist]
+  techs:
+    sandworm: [replicate]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: sandworm, index: 0, position: {x: 340, y: 250}, level: 7, exp: 0/1000/12593, rotated: true, equipment: [steel_ball_production_line], travelling: true, source: joined}
+  - {name: wasp, index: 1, position: {x: -75, y: -290}, level: 5, exp: 0/3722/4689, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 265, y: -195}, retained: false}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: -50, y: -280}, {x: 170, y: 190}]}
+ticks: 2360
+hash: 25:42a328cc0146c97b925995991b31bfebf4015141f946debffddb6b91ffd73271
+asserts:
+- sql: SELECT tick,skill_slot,enabled__lock_target__id,enabled__attack_target__id FROM units__skills WHERE unit_id=4 AND skill_slot=2 AND tick BETWEEN 1060 AND 1063 ORDER BY tick
+  rows:
+  - - 1060
+    - 2
+    - 62
+    - 13
+  - - 1061
+    - 2
+    - 62
+    - 13
+  - - 1062
+    - 2
+    - 62
+    - 13
+  - - 1063
+    - 2
+    - 62
+    - 13

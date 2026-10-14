@@ -75,10 +75,9 @@ impl Simulation {
     /// `CheckWallConstructionForGroupedSkill` of a list holding the core's
     /// block alone, as both the walls in range and the walls taken. A group
     /// whose skills may share a target (`CanAttackSameTarget`) takes the
-    /// core's block, and one whose skills may not takes none: its lock and
-    /// attack target are cleared (`ChangeLockTarget`, `ChangeAttackTarget`
-    /// with the core's searched shield). A Raiden's slots, whose core fires
-    /// at a Defensive Wall's block, strike no block.
+    /// core's block. When no block is allocated, `SearchAttackTarget` skips
+    /// `ChangeLockTarget` and `ChangeAttackTarget`, retaining the sibling's own
+    /// lock and attack target until its checker refreshes them.
     fn hand_fusillade_wall(
         &mut self,
         skill_ref: SkillRef,
@@ -88,8 +87,11 @@ impl Simulation {
         let shares = self
             .skill_attacker(skill_ref)
             .is_some_and(|attacker| attacker.attack.weapons.allow_same_target.unwrap_or(false));
+        if !shares {
+            return;
+        }
         for sibling in self.skill_mut(skill_ref).siblings_mut() {
-            sibling.lock_target = shares.then_some(FightActorRef::Building(wall));
+            sibling.lock_target = Some(FightActorRef::Building(wall));
             sibling.in_the_way = None;
             sibling.target_shield = search_shield;
             sibling.attack_target_left = None;
