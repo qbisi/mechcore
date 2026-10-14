@@ -1438,13 +1438,17 @@ fn technology_disable(
     let air_attack = refused
         .hold(technologies.main_skill(held, type_name).map_err(on_side))?
         .air_attack;
+    let fly = effects
+        .single
+        .fly
+        .filter(|_| providers.contains_key(&crate::modifier::EffectProvider::FlyTech));
     Some(TechnologyDisable {
         corrections: refused.hold(
             technologies
                 .corrections(held, type_name, level)
                 .and_then(|mut written| {
                     written.extend(technologies.armor(held, type_name, level)?);
-                    if air_attack.is_some() {
+                    if air_attack.is_some() || fly.is_some() {
                         written.extend(effects.corrections.iter().copied().filter(|(_, entry)| {
                             entry.index == Index::AttackValueFor(UnitDomain::Air)
                                 && entry.source == TECHNOLOGY_SOURCE
@@ -1454,7 +1458,8 @@ fn technology_disable(
                 })
                 .map_err(on_side),
         )?,
-        inverse_air_extra_skills: air_attack.is_some_and(|source| source.extra_skills),
+        inverse_air_extra_skills: air_attack.is_some_and(|source| source.extra_skills)
+            || fly.is_some_and(|source| source.extra_skills),
         unmeasured: effects
             .extra_weapons
             .iter()

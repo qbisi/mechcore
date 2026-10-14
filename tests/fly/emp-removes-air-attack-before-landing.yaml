@@ -1,0 +1,52 @@
+# Aerial Mode's air attack modifier is removed before its delayed landing.
+# Wasp EMP hits on tick 5. Void Eye 13 drops its aircraft lock on tick 6,
+# locks tower 1 on tick 7 while still airborne, and lands on tick 25.
+# This minimal native fight isolates the modifier from target-dependent range
+# technologies and retaliation. The timer is controlled by
+# projectile-strikes-a-landed-wraith.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1355375212
+round: 1
+blue:
+  core_damage: 0
+  techs:
+    wasp: [electromagnetic_shot]
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -20}, level: 4, exp: 0/1386/4041, source: joined}
+red:
+  core_damage: 204
+  techs:
+    void_eye: [aerial_mode]
+  units:
+  - {name: void_eye, index: 0, position: {x: 0, y: -20}, level: 4, source: joined}
+asserts:
+- sql: |
+    SELECT
+      u.tick,
+      u.unit_id,
+      u.domain,
+      k.enabled__lock_target__kind,
+      k.enabled__lock_target__id
+    FROM units u
+    JOIN units__skills k ON k.tick = u.tick AND k.unit_id = u.unit_id
+    WHERE
+      u.unit_id = 13
+      AND k.skill_slot = 0
+      AND u.tick IN (4, 5, 6, 7, 20, 24, 25, 26, 27)
+    ORDER BY
+      u.tick;
+  rows:
+  - [4, 13, air, unit, 10]
+  - [5, 13, air, unit, 10]
+  - [6, 13, air, null, null]
+  - [7, 13, air, building, 1]
+  - [20, 13, air, building, 1]
+  - [24, 13, air, building, 1]
+  - [25, 13, ground, building, 1]
+  - [26, 13, ground, building, 1]
+  - [27, 13, ground, building, 1]
+ticks: 43
+hash: 24:48335dca969afc30daab4e27e389c10997d83d336cde5d87dc316069da712b27
