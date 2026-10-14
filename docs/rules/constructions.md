@@ -229,15 +229,15 @@ core leaves a sibling's last block alone even while the core takes a wall
 itself. The sibling therefore sees its fallen block on its own check and
 ends its attack.
 
-**A fusillade's siblings take no block of their own.** When the core of a
+**A fusillade's core allocates blocks only when one is available.** When the core of a
 fusillade group finds a block, `SearchAttackTarget` hands each other skill
 `CheckWallConstructionForGroupedSkill` of one list, holding the core's block
 alone, as both the walls in range and the walls taken. A group whose skills
 may share a target (`CanAttackSameTarget`) takes the core's block; one whose
-skills may not takes none, and its lock and attack target are cleared
-(`ChangeLockTarget`, `ChangeAttackTarget`). The Raiden's slots, which may
-not share a target, strike no block while the core strikes one. A striking
-slot that does fire at a building strikes it as it strikes a unit.
+skills may not is allocated none. When no block is allocated, the core skips
+`ChangeLockTarget` and `ChangeAttackTarget`, preserving the sibling's current
+lock and attack target. Its own checker can still find a wall in that lock's
+line. A striking slot that fires at a building strikes it as it strikes a unit.
 
 **A shot at a block splashes the next one.** A splash that reaches a
 neighbouring block's edge damages it too: a shot at a building takes every
@@ -296,6 +296,10 @@ The map's own buildings are the exception and are named: each side gets one
 ## Evidence
 
 ### Recorded
+
+- A fusillade sibling keeps its unit lock when the core's wall allocation
+  returns no block, then continues checking the blocker in its own line:
+  `tests/construction/fusillade-unallocated-wall-keeps-lock.yaml`.
 
 - A non-fusillade core searching a living wall leaves a sibling naming its
   fallen wall until the sibling ends its attack:
@@ -384,6 +388,8 @@ The map's own buildings are the exception and are named: each side gets one
   `FightSkill.SearchAttackTarget`,
   `WallConstructionTargetChecker.CheckWallConstruction`,
   `WallConstructionTargetChecker.CheckWallConstructionForGroupedSkill`.
+  `FightSkill.SearchAttackTarget` changes a sibling's targets only when that
+  allocation returns a non-null block.
 - A grouped slot asks for its own wall with its own range, and its own attack
   state ends an attack on a fallen block before the checker:
   `FightSkill.GetAttackRange`,
