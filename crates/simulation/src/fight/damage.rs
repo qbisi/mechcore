@@ -55,9 +55,13 @@ pub(in crate::fight) struct DamageHit {
     /// the whole of it; with one it is the splash's main shield.
     pub(in crate::fight) shield: Option<u64>,
     /// Whether it passes battlefield shields: the skill's
-    /// `canCrossAdvancedShield`, or a performer that
-    /// `IsInterceptByAdvancedEnergyShield` is false for.
+    /// `canCrossAdvancedShield`; range shield processing itself is a
+    /// separate `DamagePerformer` switch.
     pub(in crate::fight) crosses_shields: bool,
+    /// DamagePerformer.IsInterceptByAdvancedEnergyShield: whether range
+    /// targets are processed against shields at all, independently of a
+    /// provider's `CanCrossAdvancedEnergyShield`.
+    pub(in crate::fight) intercept_shields: bool,
     /// Whether its splash strikes buildings as well as units: every hit's
     /// does but a chain's.
     pub(in crate::fight) strikes_buildings: bool,
@@ -108,6 +112,7 @@ impl DamageHit {
             center_q32: (attacker.x_q32, attacker.z_q32),
             center_y_q32: 0,
             shield: None,
+            intercept_shields: true,
             crosses_shields: attacker.rules.attack.crosses_shields,
             strikes_buildings: true,
             splash_radius: attacker.stats.splash_radius(),
@@ -143,6 +148,7 @@ impl DamageHit {
             center_q32: (projectile.x_q32, projectile.z_q32),
             center_y_q32: projectile.y_q32,
             shield: None,
+            intercept_shields: true,
             crosses_shields: false,
             strikes_buildings: true,
             splash_radius: 0,
@@ -204,6 +210,7 @@ impl DamageHit {
             center_q32,
             center_y_q32,
             shield: None,
+            intercept_shields: true,
             crosses_shields: false,
             strikes_buildings: true,
             splash_radius,
@@ -1397,6 +1404,9 @@ impl Simulation {
         hit: &DamageHit,
         targets: &mut Vec<FightActorRef>,
     ) -> Vec<u64> {
+        if !hit.intercept_shields {
+            return Vec::new();
+        }
         let (x_q32, z_q32) = hit.center_q32;
         let mut main = hit.shield;
         let mut listed = Vec::new();
@@ -1607,6 +1617,7 @@ impl Simulation {
             center_q32,
             center_y_q32,
             shield: Some(shield),
+            intercept_shields: true,
             crosses_shields: false,
             splash_radius,
             // `CalculateHitEnergyShieldDamage`: an extra skill's own damage

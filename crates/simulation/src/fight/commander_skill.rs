@@ -371,6 +371,9 @@ impl Simulation {
         // target tree: towers and constructions as well as units. The hit is
         // a special attack, which passes over the towers.
         let hit = DamageHit {
+            // PerformNegativeEffect disables range shield processing when
+            // the commander skill can cross advanced shields.
+            intercept_shields: !circle.crosses_shields,
             crosses_shields: circle.crosses_shields,
             provider: Provider::CommanderSkill,
             direct_hit: circle.direct_hit,
