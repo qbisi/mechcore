@@ -1,0 +1,66 @@
+# Accumulator Shield creates a temporary shield at t390; the same tick's
+# projectile damage spends all 2000 energy and destroys it before a snapshot.
+# No shield state row exists, but its birth, damage, absorption and destruction
+# references all retain Shield ID 1. A boundary-only capture refused this fight.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 481488675
+round: 1
+blue:
+  core_damage: 0
+  officers: [advanced_power_system, advanced_targeting_system, speed_specialist, assault_stormcaller]
+  techs:
+    stormcaller: [high_explosive_ammo, incendiary_bomb, electromagnetic_explosion, range_enhancement, launcher_overload, heavy_missile]
+  blueprints: [defense_enhancement_ii]
+  tower_strengthen_levels: [2, 4]
+  units:
+  - {name: stormcaller, index: 0, position: {x: -125, y: -130}, level: 5, exp: 0/1057/5732, equipment: [nano_repair_kit], source: joined}
+  - {name: crawler, index: 1, position: {x: -105, y: -240}, level: 3, exp: 0/803/1603, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 195, y: -195}}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: 205, y: -75}]}
+red:
+  core_damage: 248
+  officers: [advanced_missile_device, advanced_power_system, fortified_specialist]
+  techs:
+    vortex: [grid_integration, field_maintenance, electromagnetic_cloud, machine_learning, range_enhancement, electromagnetic_twin, mobile_power_station, accumulator_shield, emergency_armor]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: vortex, index: 0, position: {x: 240, y: -260}, level: 3, exp: 0/240/2671, equipment: [secondary_heavy_armor], source: joined}
+  - {name: farseer, index: 1, position: {x: 285, y: -115}, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -280, y: -85}}
+  battle_skills:
+  - {name: ion_blast, positions: [{x: -170, y: -285}, {x: -40, y: -230}]}
+asserts:
+- sql: |
+    SELECT count(*) FROM shields;
+  rows:
+  - [0]
+- sql: |
+    SELECT type, object__id FROM events
+    WHERE tick = 390 AND type IN ('shield_created', 'shield_destroyed')
+    ORDER BY ordinal;
+  rows:
+  - [shield_created, 1]
+  - [shield_destroyed, 1]
+- sql: |
+    SELECT target__id, amount FROM events
+    WHERE tick = 390 AND type = 'damage' AND target__kind = 'shield';
+  rows:
+  - [1, 2000]
+- sql: |
+    SELECT absorbed_by__kind, absorbed_by__id FROM events
+    WHERE tick = 390 AND type = 'projectile_removed' AND object__id = 46;
+  rows:
+  - [shield, 1]
+ticks: 478
+hash: 24:bfbe3ccb4c3cfcd87381e514177a8baa9ed08124b023394fa1a5d513dc907f11

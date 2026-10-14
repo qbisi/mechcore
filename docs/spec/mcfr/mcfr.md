@@ -800,7 +800,7 @@ producer can actually observe is narrower, and the adapter covers:
 | `unit_died` | the `FightMech.OnDead` trace |
 | `building_destroyed` | the `FightCrystal.OnDead` trace |
 | `healing` | `FightActor.AddLife(value, isShowLifeBar)`, which units, towers and crystals heal through, and `FightConstruction.AddLife`. The amount is the life read after the call less the life read before it, since the gauge clamps at full life and the call returns nothing. Every heal shows the life bar; the three that do not, the refill of a unit rising from its death, the heal a super deployment gives each second a unit travels ([super_deployment.md](../../rules/super_deployment.md)) and the whole life a melee mode gives back as its skill takes over (`FightMech.ForceRecoveryLife`), are not recorded. No `source`: the call does not carry one |
-| `shield_created` | first entry into the full `GetEnergyShields(fightGroup)` collection between adjacent sampling boundaries. Shields that join between the same two boundaries are written in identity order, which is the order the snapshot reads them in, team by team and each team's collection in its own order, not in the order of their native addresses |
+| `shield_created` | first entry into the full `GetEnergyShields(fightGroup)` collection between adjacent sampling boundaries. Shields that join between the same two boundaries are written in identity order, which is the order the snapshot reads them in, team by team and each team's collection in its own order, not in the order of their native addresses. `GroupAdvancedEnergyShieldManager.Create(FightEnergyShield)` retains births inside the tick; a shield also destroyed before the next boundary gets creation and destruction events despite having no state row |
 | `shield_destroyed` | disappearance from that collection. The reason is read as `GroupAdvancedEnergyShieldManager.Destroy(FightEnergyShield)`, the one method that takes a shield out of it, begins: spent energy is `energy_depleted`, since only damage empties a shield before destroying it; a shield with an owner is `owner_destroyed`; any other is `scripted`. A shield leaving as the round ends goes after the last recorded tick, so `round_end` is not written. Shields that leave between the same two boundaries are written in identity order |
 | `terrain_created` | first entry into the owning `RangeItemController.GetItems()` collection between adjacent boundaries |
 | `terrain_removed` | disappearance from that collection. The reason is read as `RangeItem.Remove()` begins: inside `RangeItemController.OnExitFight` it is `round_expired`, fire included, whose controller ends it with the fight whatever its round count; otherwise `IsTimeOver()` is `time_expired`, and a grid whose cells are all cleared is `grid_depleted`. Oil burnt into fire and oil cleared by a skill are `unknown`, and `cleared` is not written |
@@ -1008,7 +1008,10 @@ indistinguishable key fails the capture. This numbering happens exactly once,
 converting `E(1)` and cached references with it. Shields are never renumbered
 per tick from `active_order`, and an ID never changes because a shield
 deactivated, reactivated, or moved within the active set. Later shields are
-appended in first-observed order.
+appended in first-observed order. At a boundary, shields present in the
+collection are numbered first; shields created and destroyed since the
+previous boundary, with no state row, follow in native creation order. Their
+references remain valid for the recording, including damage and absorption.
 
 **Terrains.** Initial terrains take `(terrain_type, native controller item
 index)`, and later ones are appended in first-observed order.
