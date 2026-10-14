@@ -69,25 +69,24 @@ impl Cloak {
 
 impl Simulation {
     /// `TeamCloakManager.OnEnterFight` of every unit the fight starts with on
-    /// the ground, whose controller its activation during deployment made:
-    /// `ResetData` leaves it counting with its count full, so a ready unit
-    /// cloaks on its first update. A travelling unit's is made as it lands.
+    /// board, including inactive travellers. Deployment made their controllers;
+    /// `ResetData` fills their enter timer even while disabled. Activation on
+    /// arrival resets the state to None but retains that filled timer.
     pub(in crate::fight) fn enter_cloak_fight(&mut self) {
         let held = self
             .actors
             .iter()
-            .filter(|(_, actor)| {
-                !actor.travelling && actor.placement.effects.single.cloak.is_some()
-            })
+            .filter(|(_, actor)| actor.placement.effects.single.cloak.is_some())
             .map(|(&id, _)| id)
             .collect::<Vec<_>>();
         for unit in held {
             self.activate_cloak(unit);
-            let cloak = self
+            let actor = self
                 .actors
                 .get_mut(&unit)
-                .and_then(|actor| actor.cloak.as_mut())
-                .expect("made above");
+                .expect("actor identity is stable");
+            let cloak = actor.cloak.as_mut().expect("made above");
+            cloak.enabled = !actor.travelling;
             cloak.enter = cloak.enter_steps;
             cloak.exit = 0;
             cloak.state = CloakState::Entering;

@@ -1269,7 +1269,10 @@ itself (`delayExit`, 1), counted in updates (50 and 20).
 side's `TeamCloakManager` (`CloakSystem.Active`). The controller of a unit
 deployed on the field exists as the fight starts, and
 `TeamCloakManager.OnEnterFight` leaves it counting with its count full
-(`ResetData`). `CloakSystem` is the first module to update, each side's units
+(`ResetData`). A travelling unit's inactive controller is reset too. Its
+arrival activates the controller (`Active`), resetting its state to `None`
+but retaining that full enter timer: when ready it starts counting on its
+first update and cloaks on the next. `CloakSystem` is the first module to update, each side's units
 in the order `OnFightStart` sorts them. A unit is ready while the nearest
 unit its main skill's search measured stands beyond its range, edge to edge
 (`IsNothingAround`; `IsMainSearcherSkillIdle` reads `FightSkillBase.IsIdle`,
@@ -1796,6 +1799,9 @@ derive (a minimum range):
 - Electromagnetic Cloud writes buff 1031 on the Rhino a Vortex strikes and
   the two Crawlers within 10 metres of it, switching Power Armor off:
   `tests/secondary_damage/electromagnetic-cloud.yaml`.
+- Travelling Phantom Rays retain the filled enter timer through their
+  arrival, begin counting on their first update and cloak on the next:
+  `tests/stealth/travelling-cloak-enter-timer.yaml`.
 - Stealth Cloak cloaks three Phantom Rays from the first tick and shows each
   20 updates after an enemy comes within its reach:
   `tests/stealth/stealth-cloak.yaml`,
