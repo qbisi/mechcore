@@ -303,7 +303,15 @@ impl Simulation {
             .ok_or_else(|| Error::new("a control beam's lock is absent"))?;
         let slot = u16::try_from(self.skill_slot(skill_ref) + offset)
             .map_err(|_| Error::new("a skill slot fits u16"))?;
-        self.add_hit_buffs(actor_id, slot, (&[lock], center), false, events)
+        let attacker = &self.actors[&actor_id];
+        let hit = DamageHit {
+            center_q32: (center.0, center.2),
+            center_y_q32: center.1,
+            ..DamageHit::of_skill(attacker, slot, (lock, self.domain_of(lock)), damage)
+        };
+        let struck = self.dispatch_hit_damage(&hit, (&[lock], damage, false), events)?;
+        self.record_ends(struck.ends, events);
+        Ok(())
     }
 
     /// `TeamTranslationSystem.Update`: every unit whose progress has reached
