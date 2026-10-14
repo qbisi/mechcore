@@ -8,6 +8,8 @@ human-readable conceptual model of Mechabellum from the native game build that
 | --- | --- |
 | [`index.md`](index.md) | the site landing page and navigation entrypoint |
 | [`how-a-match-works.md`](how-a-match-works.md) | Getting Started: reverse-causal introduction to a standard 1v1 match and its round timeline |
+| [`a-rounds-decisions.md`](a-rounds-decisions.md) | Getting Started: the 14 deployment actions, phase ordering, per-round allowances, upgrade/tech/equipment/tower/blueprint/skill rules |
+| [`deployment-and-mobility.md`](deployment-and-mobility.md) | Game Mechanics: deployment regions, automatic 10m-grid landing, collisions, `legacy` movement locks and unlocks, and flank `travelling` |
 | `.vitepress/config.mjs` | VitePress site configuration, building `docs/wiki/` into `work/pages/` with `README.md` excluded |
 
 ## What a Wiki page may claim
