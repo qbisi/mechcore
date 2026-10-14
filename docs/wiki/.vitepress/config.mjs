@@ -22,7 +22,8 @@ export default {
     siteTitle: "Mechcore Wiki",
     nav: [
       { text: "Home", link: "/" },
-      { text: "How a Match Works", link: "/how-a-match-works" },
+      { text: "Getting Started", link: "/how-a-match-works" },
+      { text: "Mechanics", link: "/deployment-and-mobility" },
       { text: `Game ${gameVersion}`, link: "https://github.com/qbisi/mechcore" },
     ],
     sidebar: [
@@ -31,6 +32,16 @@ export default {
         items: [
           { text: "Overview", link: "/" },
           { text: "How a Match Works", link: "/how-a-match-works" },
+          { text: "A Round's Decisions", link: "/a-rounds-decisions" },
+        ],
+      },
+      {
+        text: "Game Mechanics",
+        items: [
+          {
+            text: "Deployment, Flanks, and Mobility",
+            link: "/deployment-and-mobility",
+          },
         ],
       },
     ],

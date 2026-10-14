@@ -19,13 +19,16 @@ a match backward from how it ends:
    fight.
 4. **What can I do?** Between fights, you choose reinforcements, unlock and buy
    unit formations, upgrade levels and unit technologies, fit equipment, place
-   contraptions, strengthen towers, and aim commander skills.
+   contraptions, strengthen towers, and aim commander skills (see
+   **[A Round's Decisions](a-rounds-decisions.md)**).
 5. **Why can't I buy or upgrade everything at once?** You are bounded by
    **supply**, per-round purchase and unlock allowances, and experience
    requirements for upgrading veterans.
 6. **Why do this round's choices shape the rest of the match?** Formations—even
    those wiped out during a fight—return next round with their levels,
-   experience, technologies, equipment, and board positions intact.
+   experience, technologies, equipment, and board positions intact, while most
+   existing formations stay locked at their positions unless freed (see
+   **[Deployment, Flanks, and Mobility](deployment-and-mobility.md)**).
 
 The sections below explain each link in that chain and close with the
 [chronological timeline of a match](#round-by-round-timeline).
@@ -190,89 +193,48 @@ automatically:
 
 ## What You Decide Before the Fight
 
-Every decision you make happens before combat begins—either in Round `0` (the
-opening) or during each round's deployment phase. Both sides make their
-deployment decisions secretly and simultaneously: neither player sees the
-other's new purchases, moves, or aimed skills until the fight begins.
+Every decision you make happens before combat begins—either in Round `0` (when
+each side privately picks an **advance team** paired with a **specialist**
+officer) or during each round's secret, simultaneous deployment phase.
 
-Across a match, all `14` player action types fall into six practical groups
-(finishing deployment simply closes the phase and is not a separate tactical
-action):
+Across a match, all `14` player action types fall into six practical goals:
 
-| Goal | What You Can Do | Recorded Action Types |
-| --- | --- | --- |
-| **1. Choose your opening (Round 0)** | Pick one of four private opening offers, each pairing an **advance team** of starting units with a **specialist** officer | `choose_advance_team` |
-| **2. Answer the reinforcement offer (Round 2+)** | Pick one of the four shared reinforcement cards (an officer, commander skill, equipment item, or unit squad grant) or **decline** the offer in exchange for supply | `choose_reinforce_item` |
-| **3. Expand and upgrade your army** | Unlock a unit type in the shop, buy a new formation onto the board, upgrade a formation's level, or research a unit technology from your match loadout | `unlock_unit`, `buy_unit`, `upgrade_unit`, `upgrade_technology` |
-| **4. Position and equip formations** | Move eligible formations within open deployment regions and fit owned equipment items onto formations that have a free slot | `move_unit`, `use_equipment` |
-| **5. Use towers, blueprints, skills, and contraptions** | Activate a Research Center blueprint, trigger a one-round Energy Tower skill, strengthen the Energy Tower or Research Center, release a commander skill from your panel, or buy and place a contraption | `active_blueprint`, `active_energy_tower_skill`, `strengthen_tower`, `release_commander_skill`, `release_contraption` |
-| **6. Concede the match** | Surrender the match immediately without fighting the current round | `concede` |
+1. **Choose your opening (Round `0`)** — Pick one of four private `(Advance Team + Specialist)` combinations.
+2. **Answer the reinforcement offer (Round `2+`)** — Pick one of the four shared reinforcement cards or decline the offer for supply.
+3. **Expand and upgrade your army** — Unlock unit types in the shop, buy new formations, upgrade formation levels, or research unit technologies.
+4. **Position and equip formations** — Move eligible formations within open deployment regions and fit owned equipment items onto formations.
+5. **Use towers, blueprints, skills, and contraptions** — Activate Research Center blueprints, trigger one-round Energy Tower skills, strengthen towers, release commander skills, or place contraptions.
+6. **Concede the match** — Surrender the match immediately without fighting the current round.
 
-## Supply, Allowances, and Upgrade Conditions
+For the exact phase order, action allowances, upgrade and research conditions,
+equipment slot rules, and skill cooldowns, see
+**[A Round's Decisions](a-rounds-decisions.md)**. For board regions, landing,
+collisions, and flank deployment, see
+**[Deployment, Flanks, and Mobility](deployment-and-mobility.md)**.
 
-You cannot buy or upgrade an unlimited army in a single round. Three distinct
-constraints govern what you can do during deployment.
+## Supply and Action Constraints
 
-### 1. Supply Income and Carryover
+Three constraints prevent either side from fielding or upgrading everything in a
+single round:
 
-**Supply** is the currency spent in the shop and on towers, blueprints,
-technologies, and reinforcement cards:
-
-- **Base round income:** On every standard 1v1 versus map, Round `1` grants
-  `200` base supply, and each later round adds `200` more (`200` in Round `1`,
-  `400` in Round `2`, `600` in Round `3`, and so on), following
-  `min(200 + (round - 1) × 200, 4000)`.
-- **Base income cap vs. held supply:** `4000` is the ceiling on a single
-  round's **base income**, not a cap on how much total supply you can hold.
-- **Unspent supply carries over:** Any supply you do not spend in a round stays
-  in your reserve for the next round (without earning interest).
-- **Other supply sources and deductions:**
-  - **Officers and equipment** held as a round opens can add bonus round supply,
-    first-round supply, or one-time supply, or discount unit, unlock, upgrade,
-    and technology costs.
-  - **Declining a reinforcement offer** (from Round `2` onward) grants supply
-    instead of a card: `50` supply in an ordinary reinforcement round, or the
-    round schedule's refund in a unit reinforcement round.
-  - **Recovering** one of your own formations or constructions with a recovery
-    commander skill (such as **Field Recovery**) removes it from the board and
-    refunds supply.
-  - **Energy Tower loans:** Activating the Energy Tower skill **Rapid Resupply**
-    costs `0` to trigger and grants `200` supply immediately, but deducts `300`
-    supply from your next round's income.
-  - **No combat supply in standard 1v1:** Nothing that happens during the fight
-    itself adds supply to your ledger between rounds.
-
-### 2. Per-Round Action Allowances
-
-Even if you have plenty of supply, each round limits how many shop expansions
-and devices you can deploy:
-
-- **Unit purchases:** At most **`2` formations bought per round** by default.
-  Activating the Energy Tower skill **Mass Recruitment** adds `1` purchase for
-  the current round, and taking the officer card **Additional Deployment Slot**
-  adds `1` purchase to the current round and every round after.
-- **Unit unlocks:** At most **`1` unit type unlocked per round** in the shop
-  (in addition to any unit types automatically unlocked by your opening, an
-  officer's schedule, or a unit reinforcement card).
-- **Contraption releases:** At most **`8` contraptions** (**Shield Generator**,
-  **Sentry Missile**, or **Missile Interceptor**) bought and placed per round.
-
-### 3. Experience Conditions for Upgrading a Formation
-
-Paying supply is **not** the only requirement to raise a formation's level
-(`upgrade_unit`):
-
-- **Veterans that have earned experience need a full experience bar:** Once a
-  formation has fought and holds experience toward its next level, you can pay
-  to upgrade it **only when its experience bar is full** (`current/maximum` has
-  reached `maximum`, either from kills and assists in combat or from targeting
-  the formation with the deployment skill **Intensive Training**).
-- **Newly arrived or just-leveled formations:** A formation that holds no
-  experience since it joined or last leveled—which includes every formation that
-  **arrived or leveled up in the current round**—can be upgraded immediately by
-  paying its upgrade supply cost, without needing a full experience bar.
-- **Upgrading resets experience:** Raising a formation's level starts the new
-  level with `0` experience, and no formation can be upgraded past level `9`.
+- **Supply income and carryover:** On standard 1v1 versus maps, Round `1` grants
+  `200` base supply, and each subsequent round increases the base grant by `200`
+  up to a **per-round base income cap of `4000`**
+  (`min(200 + (round - 1) × 200, 4000)`—this caps a single round's base income,
+  not how much total supply you can hold). Unspent supply carries over intact to
+  the next round without interest, while officers, fitted equipment, declining a
+  reinforcement offer (`50` supply in an ordinary round, or the schedule's
+  refund in a unit round), **Field Recovery**, and the Energy Tower loan
+  **Rapid Resupply** (`+200` now, `-300` next round) modify your available
+  supply. Standard 1v1 combat itself never adds supply to your ledger.
+- **Per-round action allowances:** By default, each round allows at most **`2`
+  unit purchases**, **`1` unit unlock**, and **`8` contraption releases** (see
+  **[A Round's Decisions — Per-Round Action Allowances](a-rounds-decisions.md#per-round-action-allowances)**).
+- **Experience conditions for upgrading:** A formation that has already fought
+  and holds experience can be upgraded only when its experience bar is **full**,
+  whereas a formation that arrived or leveled up in the current round (holding
+  zero experience) can be upgraded immediately by paying supply (see
+  **[A Round's Decisions — Upgrading a Formation's Level](a-rounds-decisions.md#upgrading-a-formations-level-upgrade_unit)**).
 
 ## What Persists Into the Next Round
 
@@ -290,30 +252,11 @@ combat casualties are restored**.
 | **Equipment** | Both unfitted items in stock and items fitted onto formations persist; recovering a formation returns its fitted equipment to stock | Nothing wears out in standard 1v1 |
 | **Constructions, Contraptions & Field Objects** | Surviving initial constructions, surviving contraptions, surviving **Shield Airdrop** domes, and **Sticky Oil Bomb** areas with remaining round duration stay on the board | Constructions, contraptions, and shields destroyed during combat do not regenerate; **Sticky Oil Bomb** areas count down each round and vanish at `0`; spent commander skills enter or tick down their cooldowns |
 
-### Why You Cannot Freely Move Old Formations Every Round
-
-Although your formations stay on the board from round to round, **their
-positions are mostly permanent commitments**:
-
-- **Arrival round:** A formation may move freely during the deployment phase of
-  the round in which it **arrives**—whether you bought it from the shop, took a
-  reinforcement card that granted it, or received it as an opening or officer
-  delivery at the start of the round.
-- **Later rounds (`legacy` formations):** Once a formation has stayed into a
-  later round, it is locked in place and **cannot move** unless one of three
-  things frees it:
-  1. **Deployment Module** (equipment): Frees the formation wearing it to move
-     in every round.
-  2. **Jump Drive** (unit technology on **Wasp**, **Overlord**, or **Phoenix**):
-     Frees every formation of that unit type to move in every round.
-  3. **Redeployment** (commander skill): Frees the single targeted formation to
-     move for the rest of the current round.
-
-In Round `1`, formations can only be placed inside your main deployment half.
-Starting in Round `2`, the two **flank** regions along the sides of the
-opponent's half open up as well; moving or buying a formation into a flank marks
-it as `travelling` for that round's fight, after which it stays settled there in
-later rounds.
+Although formations persist on the board, **existing formations (`legacy`) are
+locked in place in later rounds** unless freed by **Deployment Module**, **Jump
+Drive**, or **Redeployment**. See
+**[Deployment, Flanks, and Mobility](deployment-and-mobility.md)** for the full
+movement and flank arrival rules.
 
 ## Round-by-Round Timeline
 

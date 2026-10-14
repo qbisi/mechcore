@@ -12,6 +12,18 @@ decisions, and the exceptions that matter in play, within an explicit scope.
   and how surviving mechs damage the opponent's reactor core, then trace
   backward through automated combat, pre-battle deployment decisions, supply and
   reinforcements, and what carries over into the next round.
+- **[A Round's Decisions](a-rounds-decisions.md)** — The `14` deployment
+  decisions grouped by player goal, mandatory phase ordering, per-round action
+  allowances (`2` buys, `1` unlock, `8` contraptions), upgrade experience
+  conditions, technology and equipment rules, and commander skill cooldowns.
+
+## Game Mechanics
+
+- **[Deployment, Flanks, and Mobility](deployment-and-mobility.md)** — Main and
+  flank deployment regions, automatic `10`-meter grid landing, footprint
+  collisions and rotation, why carried-over (`legacy`) formations are locked in
+  place and the `3` ways to free them, and how the `8`-second flank arrival
+  (`travelling` / Super Deployment) works in combat.
 
 ## How This Wiki Is Organized
 
