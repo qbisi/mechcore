@@ -844,9 +844,6 @@ impl Simulation {
                     .actors
                     .get_mut(&unit)
                     .expect("actor identity is stable");
-                if actor.rules.attack.melee {
-                    return Ok(());
-                }
                 write_range_rate(actor, FOG_SOURCE, attack_range_rate);
                 actor.stats.refresh(&actor.rules)
             }
@@ -862,9 +859,7 @@ impl Simulation {
                     .actors
                     .get_mut(&unit)
                     .expect("actor identity is stable");
-                if !actor.rules.attack.melee {
-                    write_range_rate(actor, FOG_SAND_SOURCE, attack_range_rate);
-                }
+                write_range_rate(actor, FOG_SAND_SOURCE, attack_range_rate);
                 let own = actor.stats.overlays.channel(Channel::Unit);
                 own.withdraw(FOG_SAND_SOURCE);
                 own.write(Entry {
@@ -897,6 +892,11 @@ impl Simulation {
             .channel(Channel::Skill)
             .withdraw(source);
         actor.stats.overlays.channel(Channel::Unit).withdraw(source);
+        for extra in &mut actor.skills.extras {
+            extra
+                .skill_corrections
+                .retain(|entry| entry.source != source);
+        }
         actor.stats.refresh(&actor.rules)?;
         Ok(())
     }
@@ -1002,13 +1002,33 @@ const fn rate(raw: i64) -> Correction {
 
 /// A fog's rate on a unit's skill range, in place of any it wrote before.
 fn write_range_rate(actor: &mut Actor, source: &'static str, attack_range_rate: i64) {
-    let skill = actor.stats.overlays.channel(Channel::Skill);
-    skill.withdraw(source);
-    skill.write(Entry {
+    let entry = Entry {
         index: Index::AttackRange,
         source,
         correction: rate(attack_range_rate),
-    });
+    };
+    // Both controllers walk GetSkills and skip each melee skill. Skills
+    // sharing the main DataSet write the same modifier into that one set;
+    // independent skills need their own copy.
+    let reaches_main = !actor.rules.attack.melee
+        || actor
+            .skills
+            .extras
+            .iter()
+            .any(|extra| extra.rules.damage_rate > 0.0 && !extra.rules.attack.melee);
+    let skill = actor.stats.overlays.channel(Channel::Skill);
+    skill.withdraw(source);
+    if reaches_main {
+        skill.write(entry);
+    }
+    for extra in &mut actor.skills.extras {
+        extra
+            .skill_corrections
+            .retain(|entry| entry.source != source);
+        if extra.rules.damage_rate <= 0.0 && !extra.rules.attack.melee {
+            extra.skill_corrections.push(entry);
+        }
+    }
 }
 
 fn circles_overlap((x, z, radius): Circle, (other_x, other_z, other_radius): Circle) -> bool {
