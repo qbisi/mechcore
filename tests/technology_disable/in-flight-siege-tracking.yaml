@@ -1,0 +1,52 @@
+# EMP disables Scorpion Siege Mode on tick 133. Its already flying
+# shells read the skill's live tracking setting and follow their target
+# from tick 134. The native pin covers the complete generated fight.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 2112852330
+round: 2
+blue:
+  core_damage: 460
+  officers: [advanced_shield_device, advanced_power_system, speed_specialist, improved_scorpion]
+  techs:
+    scorpion: [doubleshot, field_maintenance, armor_enhancement, siege_mode, range_enhancement, convergent_fire, acid_attack]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: scorpion, index: 0, position: {x: -125, y: -135}, level: 3, rotated: true, equipment: [dominion_core], source: joined}
+  - {name: fire_badger, index: 1, position: {x: 45, y: -140}, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -145, y: -235}}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: 115, y: 85}, {x: -165, y: -70}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_offensive_tactics, marksman_specialist, extended_range_phoenix]
+  techs:
+    phoenix: [energy_shield, jump_drive, electromagnetic_shot, quantum_reassembly, range_enhancement, launcher_overload, elite_marksman, charged_shot]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [2, 1]
+  units:
+  - {name: phoenix, index: 0, position: {x: 220, y: -160}, level: 6, exp: 7539/7539/7539, equipment: [deployment_module]}
+  - {name: marksman, index: 1, position: {x: -80, y: -240}, level: 3, source: delivered}
+  - {name: sledgehammer, index: 2, position: {x: -115, y: -60}, level: 6, exp: 0/402/7539, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 170, y: -80}, retained: false}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: 120, y: -205}]}
+ticks: 184
+hash: 25:6382ca0f15e5ba83b3b448a36da09c6806609b8894e3366ebfbe896842787a4c
+asserts:
+- sql: |
+    SELECT p.tick,p.projectile_id,
+           p.cached_target_position__x=u.position__x AND
+           p.cached_target_position__z=u.position__z AS tracks_current_position
+    FROM projectiles p JOIN units u ON u.tick=p.tick AND u.unit_id=p.target__id
+    WHERE p.tick IN(133,134) AND p.projectile_id IN(9,11)
+    ORDER BY p.tick,p.projectile_id
+  rows: [[133,9,0],[133,11,0],[134,9,1],[134,11,1]]

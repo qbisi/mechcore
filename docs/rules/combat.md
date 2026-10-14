@@ -539,6 +539,14 @@ from where a charging Rhino stands by then. A target already dead when the
 projectile is released is not followed: the projectile goes to the point the
 burst aimed it at when it began.
 
+**Tracking reads the skill's current setting.** After its climb,
+`FightProjectile.Update` asks `IProjectileDataSource.IsLockTarget` on every
+update; `FightSkill.IsLockTarget` reads its current `DataSet`, rather than a
+setting copied into the projectile when it was made. A technology disabled
+while a shell flies can therefore change whether it follows the target.
+Disabling Scorpion Siege Mode turns its already flying shells from fixed
+points to tracking their targets: `tests/technology_disable/in-flight-siege-tracking.yaml`.
+
 **A projectile keeps the target domain it was created with.**
 `FightProjectile.Init` stores `targetType`, and `GetTargetType` returns that
 stored value for range damage. With a target, an air-only projectile skill

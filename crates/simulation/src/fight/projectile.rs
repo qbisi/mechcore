@@ -39,6 +39,8 @@ pub(in crate::fight) struct Projectile {
     pub(in crate::fight) sources: Vec<u64>,
     /// The interceptors locked on it.
     pub(in crate::fight) locked_by: Vec<u64>,
+    /// The data source's tracking setting, refreshed before each flying
+    /// update, shared by its target refresh, reach check and impact.
     pub(in crate::fight) lock_target: bool,
     /// Where a projectile that follows its target lands relative to it.
     pub(in crate::fight) offset_x_q32: i64,
@@ -167,6 +169,14 @@ impl Simulation {
                 // it flies.
                 retained.push(projectile);
                 continue;
+            }
+            // `FightProjectile.Update` asks its data source's IsLockTarget
+            // now: disabling a technology can change shots already in flight.
+            if let Some(owner) = projectile.shooter.actor() {
+                let source = self
+                    .skill_attacker(self.skill_at_slot(owner, usize::from(projectile.skill_slot)))
+                    .ok_or_else(|| Error::new("projectile data source is absent"))?;
+                projectile.lock_target = !projectile.targetless && source.lock_target;
             }
             // `FightProjectile.Update`: a projectile that locks its target
             // takes the target's position up again, its offset added, while
