@@ -52,6 +52,8 @@ pub(in crate::fight) struct SupportUnitSystem {
     /// Why a side could not describe a summon a control would hand it.
     pub(in crate::fight) taken_summon_refusals: BTreeMap<u32, String>,
     production_profiles: crate::layout::ProductionProfiles,
+    /// Config-owned UnitPositionDatas.index, shared by owners of that source.
+    position_indices: BTreeMap<i32, usize>,
     /// The units that died this tick, in the order they died:
     /// `DeadEffectSystem.deadActors`, whose `OnDead` waits for that module's
     /// update.
@@ -97,6 +99,7 @@ impl SupportUnitSystem {
             death_summons: layout.death_summons.clone(),
             taken_summon_refusals: layout.taken_summon_refusals.clone(),
             production_profiles: layout.production_profiles.clone(),
+            position_indices: BTreeMap::new(),
             dying: Vec::new(),
             summoned_events: BTreeMap::new(),
         }
@@ -409,8 +412,8 @@ impl Simulation {
                 batch
             };
             let creator = self.support.list(list)[index].clone();
-            for member in 0..batch {
-                let unit_id = self.create_summon(&creator, member, tick, events)?;
+            for _ in 0..batch {
+                let unit_id = self.create_summon(&creator, tick, events)?;
                 self.support.list_mut(list)[index].made.push(unit_id);
             }
             if creator.updates >= creator.summon.updates {
@@ -579,7 +582,6 @@ impl Simulation {
     fn create_summon(
         &mut self,
         creator: &Creator,
-        member: u32,
         tick: u64,
         events: &mut Vec<Event>,
     ) -> Result<u64> {
@@ -613,7 +615,7 @@ impl Simulation {
             current.summon.productions = profile.productions.clone();
         }
         let creator = &current;
-        let (x_q32, z_q32, facing, coming_out) = self.made_at(creator, member)?;
+        let (x_q32, z_q32, facing, coming_out) = self.made_at(creator)?;
         let rules = creator.summon.rules.clone();
         let unit_id = self.ids.next_unit;
         self.ids.next_unit += 1;
@@ -697,11 +699,7 @@ impl Simulation {
 
     /// Where a make is made, which way it faces, and, for one that comes out
     /// of its owner, where it will stand.
-    fn made_at(
-        &mut self,
-        creator: &Creator,
-        member: u32,
-    ) -> Result<(i64, i64, Option<i64>, Option<ComingOut>)> {
+    fn made_at(&mut self, creator: &Creator) -> Result<(i64, i64, Option<i64>, Option<ComingOut>)> {
         match creator.owner {
             // `SummonSystem.CreateMechDelaySetPos` makes it where the owner
             // stands (`SupportUnitData.GetPosition`).
@@ -712,11 +710,11 @@ impl Simulation {
                     owner_actor.z_q32,
                     owner_actor.body_rotation_q32,
                 );
-                let coming_out = self.come_out(creator, owner, member)?;
+                let coming_out = self.come_out(creator, owner)?;
                 Ok((x, z, Some(facing), Some(coming_out)))
             }
             Some(owner) => {
-                let (mut x, mut z, facing) = self.production_position(creator, owner, member)?;
+                let (mut x, mut z, facing) = self.production_position(creator, owner)?;
                 self.scatter(creator, &mut x, &mut z)?;
                 Ok((x, z, Some(facing), None))
             }
@@ -728,13 +726,30 @@ impl Simulation {
         }
     }
 
+    /// UnitPositionDatas.GetPosition wraps its carried index, then advances it.
+    /// The data source returns one config-owned object, shared across creators.
+    fn next_production_position(&mut self, creator: &Creator) -> Result<(i64, i64)> {
+        if creator.offsets.is_empty() {
+            return Ok((0, 0));
+        }
+        let source = creator
+            .source_id
+            .ok_or_else(|| Error::new("position data has no source identity"))?;
+        let index = self.support.position_indices.entry(source).or_default();
+        if *index >= creator.offsets.len() {
+            *index = 0;
+        }
+        let position = creator.offsets[*index];
+        *index += 1;
+        Ok(position)
+    }
+
     /// A make that comes out of its owner: its offset, the row's next
     /// position in whole metres (`Vector2Int`), and two draws of its side's
     /// stream of up to a metre each way, a hundredth a step, x then z, made
     /// as it is (`SummonSystem.CreateMechDelaySetPos`).
-    fn come_out(&mut self, creator: &Creator, owner: u64, member: u32) -> Result<ComingOut> {
-        let index = usize::try_from(member).unwrap_or(usize::MAX) % creator.offsets.len().max(1);
-        let (right, forward) = creator.offsets.get(index).copied().unwrap_or((0, 0));
+    fn come_out(&mut self, creator: &Creator, owner: u64) -> Result<ComingOut> {
+        let (right, forward) = self.next_production_position(creator)?;
         let mut drawn = [0_i64; 2];
         for axis in &mut drawn {
             *axis = hundredths(self.side_random(creator.team)?.next_in_range(100));
@@ -777,12 +792,8 @@ impl Simulation {
     /// GetPosition`'s next, by `FQuaternion.AngleAxis` of its owner's facing
     /// about the vertical, adds it to where the owner stands, and faces it as
     /// the owner faces.
-    fn production_position(
-        &self,
-        creator: &Creator,
-        owner: u64,
-        member: u32,
-    ) -> Result<(i64, i64, i64)> {
+    fn production_position(&mut self, creator: &Creator, owner: u64) -> Result<(i64, i64, i64)> {
+        let (right, forward) = self.next_production_position(creator)?;
         // Update checked SpecialSupportUnitData.IsAvaliable before this batch;
         // GetPosition then uses the living owner's position and facing.
         let Some(owner_actor) = self.actors.get(&owner) else {
@@ -792,8 +803,7 @@ impl Simulation {
         };
         // A line of no positions makes where its owner stands
         // (`SpecialSupportUnitData.GetPosition`).
-        let index = usize::try_from(member).unwrap_or(usize::MAX) % creator.offsets.len().max(1);
-        let (right, forward) = creator.offsets.get(index).copied().unwrap_or((0, 0));
+
         let facing = if creator.body_frame {
             owner_actor
                 .turret_rotation()

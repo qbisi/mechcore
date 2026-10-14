@@ -161,7 +161,9 @@ and Energy Tower skills on the made type. The creator keeps its own schedule
 and its source's corrections; control does not restart its interval.
 
 **Where a make stands.** The makes of a batch take the row's `positions` in
-turn, each an offset `x` to the right and `z` ahead of the wearer, turned by
+turn. The row's position data carries its next index across batches and
+across creators using that data, wrapping after its final position. Each
+position is an offset `x` to the right and `z` ahead of the wearer, turned by
 the wearer's facing about the vertical as `FQuaternion.AngleAxis` turns it,
 and face as the wearer faces. A line of one position that may keep two or
 more alive first scatters each make by a draw of up to a metre each way from
@@ -333,6 +335,10 @@ rather than applying only its plain corrections.
   `TeamSupportUnitManager.OnFightStart`, its comparison
   `<OnFightStart>b__10_0`, `SupportUnitData.GetUnitID`, `SupportUnitData.GetID`,
   `FightUtility.PositionComparer`, `TeamSupportUnitManager.UpdateCreators`.
+- `SupportUnitTechnologyData.PositionDatas` and
+  `SupportUnitEquipmentData.GetPositionDatas` return the configuration's
+  position data; `UnitPositionDatas.GetPosition` reads its next index,
+  wraps it against its position count and advances it.
 - A production line's creator: `TeamSupportUnitManager.AddCreator` adds it to
   `creators`, where a battle skill's goes to `temporaryCreator` by
   `TeamSupportUnitManager.AddTemporaryCreator`; `TeamSupportUnitManager.Update`
