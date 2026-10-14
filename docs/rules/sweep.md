@@ -72,6 +72,11 @@ A sweep that does not cross shields, as the Abyss's does not:
   (`FightCalculator.IsFightRangeInEnergyShield`,
   `FightCalculator.IsActorInEnergyShield`). The shield takes the skill's
   damage, and nothing else is struck.
+- **uses the aerial strike plane for an aerial target**, the height from
+  `IFightSetting.GetAirHeight` (`FightCalculator.IsFightRangeInEnergyShield`),
+  rather than projecting its sample points onto the ground. A ground shield
+  does not intercept points outside its sphere at that height even when their
+  horizontal projections are inside it.
 - **passes over a unit a shield covers** otherwise
   (`FightSkill.IsActorProtectedByEnergyShield`).
 
@@ -150,6 +155,8 @@ unit does. Its configuration writes no arc for it.
   Crawlers beside them, and one aimed at a Crawler no Wasp:
   `tests/sweep/domain-4242.yaml`, ticks 79 to 89 and 411 to 419;
   `tests/sweep/domain-1787720817.yaml`.
+- An aerial Vertical Sweep kills an Overlord above a ground shield without
+  damaging that shield: `tests/sweep/aerial-height-over-shield.yaml`.
 - A sweep at red's Anti-Armor Turret strikes it, and a sweep at a tower the
   tower: `tests/sweep/turret-4242.yaml`, ticks 153, 339 and 869.
 - With Vertical Sweep the strip runs along the line and one way: a Rhino is
@@ -182,6 +189,7 @@ unit does. Its configuration writes no arc for it.
 - Shields: `FightSweepSkill.CheckIsLockTargetInEnergyShield`,
   `SkillAttackRangeChecker.IsAttackTargetInAttackRange`,
   `FightCalculator.IsFightRangeInEnergyShield`,
+  `IFightSetting.GetAirHeight`,
   `FightCalculator.IsActorInEnergyShield`,
   `FightSkill.IsActorProtectedByEnergyShield`.
 - What it ignores: `SweepAttackPerformer.IsInterruptedByInvalidTarget`,

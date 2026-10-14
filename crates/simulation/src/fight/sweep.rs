@@ -382,7 +382,7 @@ impl Simulation {
         // middle or its start, at the aimed domain's height, inside a shield
         // of the other side. A sweep that does not cross shields strikes that
         // shield in place of every unit, unless the unit stands inside it.
-        let height = unit_height(domain);
+        let height = space_to_q32(unit_height(domain));
         let middle = area.start.add(area.end).div(2_i64 << 32);
         let shield_struck = if crosses {
             None

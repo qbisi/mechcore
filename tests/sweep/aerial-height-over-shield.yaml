@@ -1,0 +1,35 @@
+# Vertical Sweep targets an Overlord above a ground battlefield shield.
+# The aerial strike plane is above the shield coverage at the tested points;
+# the shield takes no damage, and the Overlord is killed at t38.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  core_damage: 0
+  techs:
+    abyss: [vertical_sweep]
+  units:
+  - {name: abyss, index: 0, position: {x: 5, y: -75}, level: 5, exp: 0/1000/25010, source: joined}
+red:
+  core_damage: 500
+  units:
+  - {name: overlord, index: 0, position: {x: 5, y: -75}, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 5, y: -85}}
+asserts:
+- sql: |
+    SELECT count(*) FROM events
+    WHERE type = 'damage' AND target__kind = 'shield';
+  rows:
+  - [0]
+- sql: |
+    SELECT tick, amount FROM events
+    WHERE type = 'damage' AND source__kind = 'unit' AND source__id = 1
+      AND target__kind = 'unit' AND target__id = 2 ORDER BY tick;
+  rows:
+  - [38, 21339]
+ticks: 39
+hash: 24:0fbf8a83c84865f842f6e9b8b3c973935deba196f990033008cb48da72b4d48f
