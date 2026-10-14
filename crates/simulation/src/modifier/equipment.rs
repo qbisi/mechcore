@@ -506,6 +506,8 @@ impl Equipment {
             multiplier_q32: row.lifesteal_multiplier.unwrap_or(0),
             priority: PRIORITY,
             can_disable: false,
+            main_skill_effect: row.main_skill_effect,
+            extra_skill_effect: row.extra_skill_effect,
         });
         // `AutoRecoveryEquipment` answers its row's three fields, and
         // `Normal` for its state.

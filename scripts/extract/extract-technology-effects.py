@@ -124,6 +124,8 @@ SUBCLASS_SCALARS = (
     ("group_purpose", "mechGroupPurpose", "damageShareTechnologies"),
     ("group_damage_rate", "floatRateValue", "damageShareTechnologies"),
     ("group_max_count", "maxCount", "damageShareTechnologies"),
+    ("main_skill_effect", "mainSkillEffect", "lifestealTechnologies"),
+    ("extra_skill_effect", "extraSkillEffect", "lifestealTechnologies"),
     ("main_skill_effect", "mainSkillEffect", "damageShareTechnologies"),
     ("extra_skill_effect", "extraSkillEffect", "damageShareTechnologies"),
     ("reactive_armor_rate", "damageReduceRate", "reactiveArmorTechDatas"),

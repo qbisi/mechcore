@@ -25,6 +25,9 @@ pub(crate) struct LifeSteal {
     /// it. `Equipment` answers false, and `Technology` true unless its row
     /// sets `ignoreElectricEffect`.
     pub(crate) can_disable: bool,
+    /// Scope used by `SkillManager.AddHitEffect` when the source is enabled.
+    pub(crate) main_skill_effect: bool,
+    pub(crate) extra_skill_effect: bool,
 }
 
 /// `AutoRecoveryStateType`: when an `IAutoRecovery` repairs. `Cloak`, which
@@ -732,11 +735,15 @@ mod tests {
         multiplier_q32: 3_865_470_566,
         priority: 1,
         can_disable: false,
+        main_skill_effect: true,
+        extra_skill_effect: true,
     };
     const ENERGY_DRAIN: LifeSteal = LifeSteal {
         multiplier_q32: 3_435_973_836,
         priority: 0,
         can_disable: true,
+        main_skill_effect: true,
+        extra_skill_effect: false,
     };
 
     /// An equipment's priority is the higher, so it is the one enabled.

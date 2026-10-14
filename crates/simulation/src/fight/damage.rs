@@ -313,7 +313,7 @@ pub(in crate::fight) struct Struck {
     pub(in crate::fight) fallen: Vec<(u64, QVec3)>,
     /// Every death and fall together, in the order the hit struck them.
     pub(in crate::fight) ends: Vec<(FightActorRef, QVec3)>,
-    /// The life it took in all, what `DamagePerformer.Perform` returns.
+    /// The life and shield energy it took, what `DamagePerformer.Perform` returns.
     pub(in crate::fight) lost: i64,
     /// The last shield it took energy from, which a recording names as the
     /// one that absorbed the projectile carrying the hit.
@@ -814,6 +814,7 @@ impl Simulation {
         {
             let mut struck = Struck::default();
             let damage = self.hit_shield(shield, &hit, events)?;
+            struck.lost = damage;
             if damage > 0 {
                 struck.shield = Some(shield);
             }
@@ -825,14 +826,17 @@ impl Simulation {
         }
         let mut targets = self.damage_targets(&hit)?;
         let mut shield = None;
+        let mut energy_taken = 0;
         if hit.splash_radius > 0 {
             for standing in self.shields_in_the_way(&hit, &mut targets) {
-                if self.hit_shield(standing, &hit, events)? > 0 {
+                let taken = self.hit_shield(standing, &hit, events)?;
+                energy_taken += taken;
+                if taken > 0 {
                     shield = Some(standing);
                 }
             }
         }
-        let mut struck = self.strike_targets(&hit, targets, events)?;
+        let mut struck = self.strike_targets(&hit, targets, energy_taken, events)?;
         struck.shield = shield;
         if let Some(secondary) = self.secondary_damage_of(&hit) {
             self.perform_secondary(&hit, secondary, &mut struck, events)?;
@@ -874,9 +878,15 @@ impl Simulation {
         &mut self,
         hit: &DamageHit,
         targets: Vec<FightActorRef>,
+        energy_taken: i64,
         events: &mut Vec<Event>,
     ) -> Result<Struck> {
-        let mut struck = Struck::default();
+        // PerformRangeEffect dispatches actor damage plus the shield energy
+        // already taken, once, to hit effects such as LifeStealEffectProvider.
+        let mut struck = Struck {
+            lost: energy_taken,
+            ..Struck::default()
+        };
         for target in targets {
             // A special attack passes over a tower its splash reached, and
             // over a unit whose main skill is the empty one
@@ -1202,7 +1212,7 @@ impl Simulation {
         match (hit.source, hit.skill_slot) {
             (Some(owner), Some(slot)) if owner.kind == ObjectKind::Unit => {
                 self.record_wreckage_hit(owner.id, slot, targets);
-                self.steal_life(owner.id, damage, events)?;
+                self.steal_life(owner.id, slot, damage, events)?;
                 let center = (hit.center_q32.0, hit.center_y_q32, hit.center_q32.1);
                 let skill = self.skill_at_slot(FightActorRef::Unit(owner.id), usize::from(slot));
                 let main = skill.slot == SkillSlot::Main;
@@ -1329,13 +1339,38 @@ impl Simulation {
     /// A source that `CanDisable` does nothing while the owner's
     /// technologies are disabled, which the provider reads as the hit's
     /// `isTechnologyDisabled`.
-    fn steal_life(&mut self, owner_id: u64, damage: i64, events: &mut Vec<Event>) -> Result<()> {
+    fn steal_life(
+        &mut self,
+        owner_id: u64,
+        slot: u16,
+        damage: i64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
         let Some(owner) = self.actors.get_mut(&owner_id) else {
             return Ok(());
         };
         let Some(lifesteal) = owner.placement.effects.lifesteal else {
             return Ok(());
         };
+        // SkillManager.AddHitEffect registers the source on its admitted
+        // skills: grouped extras take a main effect, and other extras ask
+        // SkillDataModifier.AvaliableCheck (extra effect or rated main effect).
+        let (held_by, _) = owner.skills.at_slot(usize::from(slot));
+        let registered = match held_by {
+            SkillSlot::Main => lifesteal.main_skill_effect,
+            SkillSlot::Extra(index) => {
+                let extra = &owner.skills.extras[index];
+                if extra.skill.is_grouped() && !extra.skill.standalone() {
+                    lifesteal.main_skill_effect
+                } else {
+                    lifesteal.extra_skill_effect
+                        || lifesteal.main_skill_effect && extra.rules.damage_rate > 0.0
+                }
+            }
+        };
+        if !registered {
+            return Ok(());
+        }
         if lifesteal.can_disable && owner.technology_disabled() {
             return Ok(());
         }
@@ -1860,7 +1895,7 @@ impl Simulation {
         }
         // The beam is its skill's `SkillDamageProvider`, which hands what it
         // took to the skill's hit effects as any hit does.
-        self.steal_life(actor_id, lost, events)?;
+        self.steal_life(actor_id, skill_slot, lost, events)?;
         // A building the beam fells is recorded at the end of the tick, as a
         // blow's and a projectile's are: in the tower-loss fight with two
         // lanes, the other lane's Steel Ball damages its tower between the

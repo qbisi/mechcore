@@ -154,7 +154,7 @@ impl Simulation {
         for shield in shields {
             self.hit_shield(shield, &hit, events)?;
         }
-        let struck = self.strike_targets(&hit, targets, events)?;
+        let struck = self.strike_targets(&hit, targets, 0, events)?;
         let center = (hit.center_q32.0, hit.center_y_q32, hit.center_q32.1);
         self.extra_hit_effect(skill_ref, &struck.targets, center, events)?;
         self.record_ends(struck.ends, events);

@@ -1,0 +1,40 @@
+# A hurt Melting Point's ranged beam hands shield energy to Energy Absorption.
+# Its first shield hits heal it by the truncated multiplier; the single-hit
+# Void Eye fight in single-hit-on-battlefield-shield.yaml is the control.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  core_damage: 0
+  techs:
+    melting_point: [energy_absorption]
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -30}, exp: 0/216/1400, source: joined}
+red:
+  core_damage: 350
+  units:
+  - {name: fang, index: 0, position: {x: -5, y: -20}, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 0, y: -80}, retained: false}
+asserts:
+- sql: |
+    SELECT tick, type, amount
+    FROM events
+    WHERE
+      tick IN (12,16,20,24) AND type IN ('damage','healing')
+    ORDER BY
+      tick,ordinal;
+  rows:
+  - [12, damage, 5]
+  - [12, healing, 3]
+  - [16, damage, 20]
+  - [16, healing, 15]
+  - [20, damage, 48]
+  - [20, healing, 38]
+  - [24, damage, 92]
+  - [24, healing, 73]
+ticks: 552
+hash: 24:b3ec82b6574623a7c4865f17c31b35bbcd22939a6ac54d5c5ed051b5b063aea5
