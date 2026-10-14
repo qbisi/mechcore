@@ -1,0 +1,77 @@
+# Two Marksmen carry Shooting Squad from the same technology data.
+# The delivered owner consumes positions 0 through 3 on tick 1; the flank
+# owner begins at position 4 on tick 81, then wraps to 0 through 2.
+# Resetting the cursor per batch places the second squad differently and
+# settles blue core damage 200 instead of the native 201. Two game recordings
+# agree for all 1459 ticks; the birth-position rows are read from the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 432097162
+round: 2
+blue:
+  core_damage: 201
+  officers: [quick_teleport, advanced_defensive_tactics, marksman_specialist, extended_range_fortress]
+  techs:
+    fortress: [fang_production]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: marksman, index: 0, position: {x: -80, y: -40}, level: 3, source: delivered}
+  - {name: fortress, index: 1, position: {x: -320, y: 100}, level: 4, exp: 0/1440/7184, equipment: [absorption_module], travelling: true, source: joined}
+  - {name: tarantula, index: 2, position: {x: 115, y: -65}, level: 9, exp: 0/4068/10091, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -95, y: -160}, retained: false}
+red:
+  core_damage: 0
+  officers: [quick_teleport, advanced_targeting_system, marksman_specialist]
+  techs:
+    marksman: [doubleshot, shooting_squad, electromagnetic_shot, aerial_specialization, assault_mode, range_enhancement, quick_reload, elite_marksman]
+  blueprints: [attack_enhancement_ii]
+  tower_strengthen_levels: [1, 2]
+  units:
+  - {name: marksman, index: 0, position: {x: 60, y: -160}, level: 3, exp: 0/2315/2315, source: delivered}
+  - {name: marksman, index: 1, position: {x: -320, y: 110}, level: 7, exp: 0/4093/4093, rotated: true, equipment: [deployment_module], travelling: true, source: joined}
+  - {name: tarantula, index: 2, position: {x: -285, y: -65}, level: 5, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -110, y: -45}, retained: false}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: 170, y: -20}]}
+ticks: 1459
+hash: 25:553025f35aec9d8c10cc3d100600001f6904e932de704a3b9c64c24ea23100e2
+asserts:
+- sql: SELECT tick,object__id,position__x,position__z FROM events WHERE type='unit_created' AND unit_type_id=9 AND team_id=1 ORDER BY tick,ordinal
+  rows:
+  - - 1
+    - 7
+    - -353783917354
+    - 610148671469
+  - - 1
+    - 8
+    - -311037794394
+    - 606140344819
+  - - 1
+    - 9
+    - -268291671434
+    - 602132018169
+  - - 1
+    - 10
+    - -225545548474
+    - 598123691519
+  - - 81
+    - 20
+    - 1316901975197
+    - -583220923985
+  - - 81
+    - 21
+    - 1262756019837
+    - -420112803785
+  - - 81
+    - 22
+    - 1276292508677
+    - -460889833835
+  - - 81
+    - 23
+    - 1289828997517
+    - -501666863885

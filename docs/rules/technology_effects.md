@@ -1659,6 +1659,12 @@ derive (a minimum range):
 
 ### Recorded
 
+- Two Shooting Squad owners sharing one technology data continue the same
+  position sequence when the second owner arrives on a flank:
+  `tests/production/shared-source-position-cursor.yaml`; opposing owners
+  also continue that sequence:
+  `tests/production/shared-source-position-cross-side.yaml`.
+
 - Disabling Aerial Mode removes its air attack modifier before the unit
   lands: `tests/fly/emp-removes-air-attack-before-landing.yaml`.
 
