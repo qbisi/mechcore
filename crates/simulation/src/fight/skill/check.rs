@@ -37,17 +37,8 @@ impl Simulation {
         // Badger whose lock stands in a shield beyond a wall off the line to
         // the shield keeps firing at the shield.
         let found = lock.and_then(|target| {
-            match shield {
-                Some(shield_id) => {
-                    let (x_q32, z_q32) = self.shield_centre(shield_id)?;
-                    self.wall_in_the_way_at(skill_ref, None, (x_q32, z_q32))
-                        .filter(|&wall| {
-                            !self.shield_holds(shield_id, FightActorRef::Building(wall))
-                        })
-                }
-                None => self.wall_in_the_way(skill_ref, None, target),
-            }
-            .map(|building| (building, target))
+            self.wall_in_the_way(skill_ref, None, target, shield)
+                .map(|building| (building, target))
         });
         let search_shield = shield.zip(lock);
         let shield = if found.is_none() { search_shield } else { None };
@@ -477,8 +468,13 @@ impl Simulation {
     /// performed; not through a burst after its first shot, nor during the
     /// backswing. Every `Check` call the game made across the unit pairings
     /// (each unit's `vs-*.yaml`) falls on one of these updates.
-    pub(in crate::fight) fn between_blows(&self, skill_ref: SkillRef, step: u64) -> bool {
-        let skill = self.skill(skill_ref);
+    pub(in crate::fight) fn between_blows(
+        &self,
+        skill_ref: SkillRef,
+        slot: Option<usize>,
+        step: u64,
+    ) -> bool {
+        let skill = self.skill(skill_ref).group_skill(slot.unwrap_or(0));
         let waiting = skill.pending().is_none()
             && skill.performer.pending().is_empty()
             && !skill.performer.sweeping()
@@ -486,7 +482,7 @@ impl Simulation {
                 .backswing_finish_step()
                 .is_none_or(|finish| finish < step);
         let winding_up = skill.pending().is_some_and(|pending| step <= pending.step)
-            && !self.self_splash_winding_up(skill_ref, step);
+            && !self.skill_rules(skill_ref).self_splash;
         skill.phase() == FightSkillPhase::Attack && (waiting || winding_up)
     }
 
@@ -768,9 +764,19 @@ impl Simulation {
         skill_ref: SkillRef,
         slot: Option<usize>,
         target: FightActorRef,
+        shield: Option<u64>,
     ) -> Option<u64> {
-        let aimed = self.fight_actor(target)?;
-        self.wall_in_the_way_at(skill_ref, slot, (aimed.x_q32, aimed.z_q32))
+        let point = if let Some(shield) = shield {
+            self.shield_centre(shield)?
+        } else {
+            let aimed = self.fight_actor(target)?;
+            (aimed.x_q32, aimed.z_q32)
+        };
+        self.wall_in_the_way_at(skill_ref, slot, point)
+            .filter(|&wall| {
+                shield
+                    .is_none_or(|shield| !self.shield_holds(shield, FightActorRef::Building(wall)))
+            })
     }
 
     /// [`Self::wall_in_the_way`] of the line to a point.
