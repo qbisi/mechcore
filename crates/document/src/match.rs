@@ -19,7 +19,7 @@ use std::collections::BTreeMap;
 /// [`canonical_yaml`] writes it as one: the header from `map_id`, `seed` and
 /// `sides`, the opening's decisions from each side's [`Opening`], and a state
 /// segment and an action segment per turn.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Match {
     /// The build whose tables this match is written against.
     pub game_build: String,
@@ -41,7 +41,7 @@ pub struct Match {
 }
 
 /// What a side holds for the whole match rather than for one round.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MatchSide {
     /// The opening this side was dealt and the one it took.
     pub opening: Opening,
@@ -67,7 +67,7 @@ pub struct MatchSide {
 /// The header states the four combinations and the round-zero action segment
 /// states the choice, so the two halves are written in different places. They
 /// are held together here because every reader of one needs the other.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Opening {
     /// Zero-based index of the combination taken from `offers`, absent while
     /// the side has not taken one.
@@ -124,7 +124,7 @@ impl Opening {
 
 /// One deployment round: the state it opens with and the decisions taken from
 /// it, which the stream writes as a state segment and an action segment.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Turn {
     pub round: i32,
     pub state: State,
@@ -414,7 +414,7 @@ pub struct NextIndex {
 
 /// Each side's decisions in one round, which a match writes as an action
 /// segment.
-#[derive(Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct TurnActions {
     pub blue: Vec<Action>,
@@ -862,15 +862,27 @@ const SEPARATOR: &str = "---\n";
 /// Returns an error when a segment cannot be serialized.
 pub fn canonical_yaml(r#match: &Match) -> Result<String, String> {
     let mut yaml = String::new();
-    for (at, segment) in segments_of(r#match).iter().enumerate() {
+    for (at, value) in segment_values(r#match)?.iter().enumerate() {
         if at > 0 {
             yaml.push_str(SEPARATOR);
         }
-        let value = serde_yaml::to_value(segment)
-            .map_err(|error| format!("cannot serialize match YAML: {error}"))?;
-        yaml.push_str(&crate::spelling::document(&value)?);
+        yaml.push_str(&crate::spelling::document(value)?);
     }
     Ok(yaml)
+}
+
+/// The match's YAML documents as values, in their written order and shape.
+///
+/// # Errors
+/// Returns an error when a segment cannot be serialized.
+pub fn segment_values(game: &Match) -> Result<Vec<Value>, String> {
+    segments_of(game)
+        .iter()
+        .map(|segment| {
+            serde_yaml::to_value(segment)
+                .map_err(|error| format!("cannot serialize match YAML: {error}"))
+        })
+        .collect()
 }
 
 /// The shape of each segment a match stream is written as.

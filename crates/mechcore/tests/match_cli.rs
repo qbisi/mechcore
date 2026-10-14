@@ -54,9 +54,36 @@ fn dealt(directory: &Path) -> String {
     path
 }
 
+/// The file's state and action segments, with no projected view schema.
+fn state(view: &Value) -> &Value {
+    view["document"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .rev()
+        .find(|segment| segment["kind"] == "state")
+        .unwrap()
+}
+
+fn decisions<'a>(view: &'a Value, side: &str) -> &'a Value {
+    &view["document"].as_array().unwrap().last().unwrap()[side]
+}
+
+fn disk_document(path: &str) -> Value {
+    use serde::Deserialize as _;
+    let yaml = fs::read_to_string(path).unwrap();
+    Value::Array(
+        serde_yaml::Deserializer::from_str(&yaml)
+            .map(|document| {
+                serde_json::to_value(serde_yaml::Value::deserialize(document).unwrap()).unwrap()
+            })
+            .collect(),
+    )
+}
+
 /// Takes the first opening a side was dealt, as the decision that takes it.
 fn opening(view: &Value, side: &str) -> String {
-    let offer = &view["sides"][side]["offers"][0];
+    let offer = &view["document"][0][side]["offers"][0];
     format!(
         "{{type: choose_advance_team, index: 0, name: {}, specialist: {}}}",
         offer["team"].as_str().unwrap(),
@@ -77,7 +104,7 @@ fn open_the_match(path: &str) {
 /// Declines the round's reinforcement offer, the last the side is offered.
 fn decline(path: &str, side: &str) {
     let view = run(&["match", "show", path, "--side", side]).ok();
-    let last = view["reinforce_offers"].as_array().unwrap().len() - 1;
+    let last = state(&view)["reinforce_offers"].as_array().unwrap().len() - 1;
     let decision = format!("{{type: choose_reinforce_item, index: {last}, name: decline_offer}}");
     run(&["match", "act", path, "--side", side, &decision]).ok();
 }
@@ -137,12 +164,12 @@ fn both_openings_open_the_first_round() {
     // and until then it is a round in progress like any other.
     let view = run(&["match", "show", &path, "--side", "red"]).ok();
     assert_eq!(
-        view["sides"]["blue"]["rounds"].as_array().unwrap().len(),
+        decisions(&view, "blue").as_array().unwrap().len(),
         0,
         "{view}"
     );
     assert_eq!(
-        view["sides"]["red"]["rounds"].as_array().unwrap().len(),
+        decisions(&view, "red").as_array().unwrap().len(),
         0,
         "{view}"
     );
@@ -157,7 +184,7 @@ fn both_openings_open_the_first_round() {
     assert_eq!(opened["round"], 1);
     // Once it has, both openings are what the board stands on.
     assert_eq!(
-        opened["sides"]["blue"]["rounds"][0]["decisions"][0]["type"],
+        opened["document"][1]["blue"][0]["type"],
         "choose_advance_team"
     );
     assert!(opened["remaining"].as_f64().unwrap() > 0.0);
@@ -168,11 +195,11 @@ fn both_openings_open_the_first_round() {
 }
 
 #[test]
-fn a_side_sees_its_own_plans_and_the_other_side_only_on_the_board() {
+fn a_view_exposes_the_document_except_the_opponents_current_actions() {
     let directory = tempfile::tempdir().unwrap();
     let path = dealt(directory.path());
     open_the_match(&path);
-
+    let before = disk_document(&path);
     run(&[
         "match",
         "act",
@@ -182,32 +209,74 @@ fn a_side_sees_its_own_plans_and_the_other_side_only_on_the_board() {
         "{type: unlock_unit, name: marksman}",
     ])
     .ok();
+    run(&[
+        "match",
+        "act",
+        &path,
+        "--side",
+        "blue",
+        "{type: unlock_unit, name: rhino}",
+    ])
+    .ok();
 
-    let view = run(&["match", "show", &path, "--side", "blue"]).ok();
-    let (own, other) = (&view["sides"]["blue"], &view["sides"]["red"]);
-    assert!(own["position"]["supply"].is_number(), "{own}");
-    assert!(own["offers"].is_array());
-    assert!(other["position"]["supply"].is_null(), "{other}");
-    assert!(other["position"]["unlocked_units"].is_null(), "{other}");
-    assert!(other["offers"].is_null(), "{other}");
-    assert!(other["decisions"].is_null(), "{other}");
-    // The seed deals both openings and every offer, so neither player is told
-    // it.
-    assert!(view["seed"].is_null(), "{view}");
-    // Each side's own seed, which a player may draw its decisions from, is
-    // shown to both.
-    assert!(own["seed"].is_number(), "{own}");
-    assert!(other["seed"].is_number(), "{other}");
+    let blue = run(&["match", "show", &path, "--side", "blue"]).ok();
+    let red = run(&["match", "show", &path, "--side", "red"]).ok();
+    for view in [&blue, &red] {
+        assert_eq!(view["document"][0], before[0]);
+        assert_eq!(state(view), &before[2]);
+        assert!(view.get("position").is_none());
+        assert!(view["document"][0]["seed"].is_number());
+        for side in ["blue", "red"] {
+            assert!(view["document"][0][side]["seed"].is_number());
+            assert!(view["document"][0][side]["offers"].is_array());
+            assert!(
+                view["document"][0][side]["tech_loadout"]
+                    .as_object()
+                    .unwrap()
+                    .len()
+                    > 2
+            );
+            assert!(state(view)[side]["supply"].is_number());
+            assert!(state(view)[side]["unlocked_units"].is_array());
+            assert_eq!(
+                state(view)[side]["random_state"].as_array().unwrap().len(),
+                4
+            );
+        }
+        assert_eq!(state(view)["random_state"].as_array().unwrap().len(), 4);
+    }
+    assert_eq!(decisions(&blue, "blue")[0]["name"], "rhino");
+    assert_eq!(decisions(&red, "red")[0]["name"], "marksman");
+    assert!(decisions(&blue, "red").as_array().unwrap().is_empty());
+    assert!(decisions(&red, "blue").as_array().unwrap().is_empty());
+    assert_eq!(
+        disk_document(&path),
+        before,
+        "show must not write pending decisions"
+    );
 
-    // A loadout is shown for what a side has fielded, which after the opening
-    // is the two unit types its team arrived with.
-    assert_eq!(other["tech_loadout"].as_object().unwrap().len(), 2);
-    assert!(own["tech_loadout"].as_object().unwrap().len() > 2);
-
+    run(&["match", "commit", &path, "--side", "red"]).ok();
+    let after = run(&["match", "show", &path, "--side", "blue"]).ok();
+    assert_eq!(after["sides"]["red"]["committed"], true);
+    assert_eq!(
+        after["document"], blue["document"],
+        "an opponent's commit reveals no actions"
+    );
+    assert_eq!(disk_document(&path)[3]["red"][0]["name"], "marksman");
     let all = run(&["match", "show", &path, "--omniscient"]).ok();
-    assert!(all["seed"].is_number(), "{all}");
-    assert!(all["sides"]["red"]["position"]["supply"].is_number());
-    assert!(all["sides"]["blue"]["position"]["supply"].is_number());
+    assert_eq!(decisions(&all, "red")[0]["name"], "marksman");
+    assert_eq!(decisions(&all, "blue")[0]["name"], "rhino");
+
+    run(&["match", "commit", &path, "--side", "blue"]).ok();
+    let next = run(&["match", "show", &path, "--side", "blue"]).ok();
+    assert_eq!(next["round"], 2);
+    assert_eq!(next["document"], disk_document(&path));
+    assert_eq!(next["document"][3]["red"][0]["type"], "unlock_unit");
+    assert_eq!(next["document"][3]["red"][0]["name"], "marksman");
+    assert_eq!(
+        state(&next)["reinforce_pool"],
+        disk_document(&path)[4]["reinforce_pool"]
+    );
 }
 
 #[test]
@@ -219,7 +288,7 @@ fn a_refused_decision_keeps_nothing_and_a_dry_run_keeps_nothing_either() {
     // A formation stands on the board's grid, so its moves keep the column
     // it was placed in and this one only changes rows.
     let view = run(&["match", "show", &path, "--side", "blue"]).ok();
-    let column = view["sides"]["blue"]["position"]["units"][0]["position"]["x"]
+    let column = state(&view)["blue"]["units"][0]["position"]["x"]
         .as_i64()
         .unwrap();
 
@@ -240,13 +309,10 @@ fn a_refused_decision_keeps_nothing_and_a_dry_run_keeps_nothing_either() {
 
     let legal = &format!("{{type: move_unit, index: 0, position: {{x: {column}, y: -280}}}}");
     let answered = run(&["match", "act", &path, "--side", "blue", "--dry-run", legal]).ok();
-    assert_eq!(
-        answered["sides"]["blue"]["position"]["units"][0]["position"]["y"],
-        -280
-    );
+    assert_eq!(answered["position"]["units"][0]["position"]["y"], -280);
     let view = run(&["match", "show", &path, "--side", "blue"]).ok();
     assert_eq!(
-        view["sides"]["blue"]["decisions"].as_array().unwrap().len(),
+        decisions(&view, "blue").as_array().unwrap().len(),
         0,
         "a dry run keeps nothing: {view}"
     );
@@ -254,10 +320,7 @@ fn a_refused_decision_keeps_nothing_and_a_dry_run_keeps_nothing_either() {
     let kept = run(&["match", "act", &path, "--side", "blue", legal]).ok();
     assert_eq!(kept["events"].as_array().unwrap().len(), 0);
     let view = run(&["match", "show", &path, "--side", "blue"]).ok();
-    assert_eq!(
-        view["sides"]["blue"]["decisions"].as_array().unwrap().len(),
-        1
-    );
+    assert_eq!(decisions(&view, "blue").as_array().unwrap().len(), 1);
 }
 
 #[test]
@@ -267,11 +330,8 @@ fn a_purchase_answers_the_index_the_board_gave_it() {
     open_the_match(&path);
 
     let view = run(&["match", "show", &path, "--side", "blue"]).ok();
-    let held = view["sides"]["blue"]["position"]["units"]
-        .as_array()
-        .unwrap()
-        .len();
-    let bought = view["sides"]["blue"]["position"]["unlocked_units"][0]
+    let held = state(&view)["blue"]["units"].as_array().unwrap().len();
+    let bought = state(&view)["blue"]["unlocked_units"][0]
         .as_str()
         .unwrap()
         .to_owned();
@@ -525,7 +585,7 @@ fn a_request_stream_plays_the_side_its_shell_was_opened_on() {
     let directory = tempfile::tempdir().unwrap();
     let path = dealt(directory.path());
     let view = run(&["match", "show", &path, "--side", "red"]).ok();
-    let offer = &view["sides"]["red"]["offers"][0];
+    let offer = &view["document"][0]["red"]["offers"][0];
     let decision = serde_json::json!({
         "type": "choose_advance_team",
         "index": 0,
@@ -552,7 +612,7 @@ fn a_request_stream_plays_the_side_its_shell_was_opened_on() {
     // A dry run keeps nothing, so the commit after it has nothing to write
     // and is answered with the refusal, on the line its result would be.
     assert_eq!(
-        answers[1]["sides"]["red"]["decisions"][0]["type"],
+        decisions(&answers[1], "red")[0]["type"],
         "choose_advance_team"
     );
     assert_eq!(answers[2]["schema"], "mechcore.error");
@@ -580,7 +640,7 @@ fn a_round_takes_one_reinforcement_answer() {
 
     decline(&path, "blue");
     let view = run(&["match", "show", &path, "--side", "blue"]).ok();
-    let last = view["reinforce_offers"].as_array().unwrap().len() - 1;
+    let last = state(&view)["reinforce_offers"].as_array().unwrap().len() - 1;
     let again = format!("{{type: choose_reinforce_item, index: {last}, name: decline_offer}}");
     let refused = run(&["match", "act", &path, "--side", "blue", &again]).refused();
     assert!(refused.contains("one answer"), "{refused}");
@@ -647,7 +707,7 @@ fn a_round_opens_with_its_reinforcement_answer() {
     }
 
     let view = run(&["match", "show", &path, "--side", "blue"]).ok();
-    let bought = view["sides"]["blue"]["position"]["unlocked_units"][0]
+    let bought = state(&view)["blue"]["unlocked_units"][0]
         .as_str()
         .unwrap()
         .to_owned();

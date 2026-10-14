@@ -17,7 +17,7 @@ def ask(request):
     print(json.dumps(request), flush=True)
     return json.loads(sys.stdin.readline())
 view = ask({"op": "match.show"})
-offer = view["sides"][view["side"]]["offers"][0]
+offer = view["document"][0][view["side"]]["offers"][0]
 ask({"op": "match.act", "decision": {"type": "choose_advance_team", "index": 0,
      "name": offer["team"], "specialist": offer["specialist"]}})
 ask({"op": "match.commit"})
@@ -34,7 +34,7 @@ def ask(request):
     print(json.dumps(request), flush=True)
     return json.loads(sys.stdin.readline())
 view = ask({"op": "match.show"})
-offer = view["sides"][view["side"]]["offers"][0]
+offer = view["document"][0][view["side"]]["offers"][0]
 ask({"op": "match.act", "decision": {"type": "choose_advance_team", "index": 0,
      "name": offer["team"], "specialist": offer["specialist"]}})
 ask({"op": "match.commit"})

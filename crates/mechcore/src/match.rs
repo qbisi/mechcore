@@ -6,8 +6,8 @@
 //! here takes the turn file's lock for the read and the write it does.
 //!
 //! A commit is a write. A side's decisions reach the document when that side
-//! commits and not before, which is what lets two processes deploy at once
-//! without reading each other's board.
+//! commits and not before. A view hides the opponent's current-round actions
+//! even after they are committed to that document.
 
 use std::{fs, path::PathBuf};
 
@@ -15,8 +15,8 @@ use mechcore_document::{
     economy::Economy,
     layout::StaticPlacement,
     r#match::{
-        Action, DEFAULT_DEPLOY_TIME, Match, MatchSide, Offers, Opening, OpeningOffer, SideState,
-        State, Turn as MatchTurn, TurnActions,
+        Action, DEFAULT_DEPLOY_TIME, Match, MatchSide, Opening, OpeningOffer, SideState, State,
+        Turn as MatchTurn, TurnActions,
     },
     opening::{self, Stream},
     transition,
@@ -270,6 +270,7 @@ fn act(mut arguments: Args) -> Result<View, Failure> {
     }
     let mut view = game.view(Some(side), false)?;
     view.events = Some(events);
+    view.position = Some(game.position(side)?);
     Ok(view)
 }
 
@@ -1057,128 +1058,61 @@ impl Game {
         } else {
             None
         };
-        let mut sides = Vec::new();
-        for each in Side::BOTH {
-            let own = omniscient || side == Some(each);
-            sides.push(self.side_view(each, own)?);
-        }
-        let [blue, red] = [sides.remove(0), sides.remove(0)];
+        let document = self.visible_document(side, omniscient)?;
+        let status = |side| SideView {
+            given: self.turn.side(side).given,
+            committed: self.turn.side(side).committed,
+        };
         Ok(View {
             schema: SCHEMA,
             path: self.path.display().to_string(),
             side,
             phase,
             round: self.round(),
-            game_build: mechcore_document::game_build(),
-            map_id: self.r#match.map_id,
-            // The seed deals both openings and every reinforcement offer, so
-            // a player that knew it would know what it is not dealt yet.
-            seed: omniscient.then_some(self.r#match.seed),
-            deploy_time: self.deploy_time(),
+            document,
             opened: self.turn.opened.clone(),
             rebuilt: self.turn.rebuilt,
             remaining,
-            reinforce_offers: self
-                .r#match
-                .turns
-                .last()
-                .and_then(|turn| turn.state.reinforce_offers.clone()),
             unresolved: self.unresolved.clone(),
             events: None,
-            sides: Views { blue, red },
+            position: None,
+            sides: Views {
+                blue: status(Side::Blue),
+                red: status(Side::Red),
+            },
         })
     }
 
-    /// One side as the caller may see it.
-    ///
-    /// A side sees its own in full. Of the other it sees the position the
-    /// round opened with, less what `docs/spec/mechcore/cli.md` hides: the
-    /// supply it holds, the units it has unlocked, and the technologies it
-    /// could research but has never fielded. Its round in progress is not
-    /// there at all.
-    fn side_view(&self, side: Side, own: bool) -> Result<SideView, Failure> {
-        let position = if own {
-            self.position(side)?
-        } else {
-            self.opened(side)?
-        };
-        let mut position = serde_json::to_value(&position)
-            .map_err(|error| Failure::failed(format!("cannot write a position: {error}")))?;
-        let loadout = if own {
-            self.match_side(side).tech_loadout.clone()
-        } else {
-            let fielded = self.fielded(side);
-            if let Some(fields) = position.as_object_mut() {
-                fields.remove("supply");
-                fields.remove("unlocked_units");
-            }
-            self.match_side(side)
-                .tech_loadout
-                .iter()
-                .filter(|(unit, _)| {
-                    mechcore_document::unit_type_from_id(**unit)
-                        .is_some_and(|(name, _)| fielded.contains(name))
-                })
-                .map(|(unit, techs)| (*unit, techs.clone()))
-                .collect()
-        };
-        Ok(SideView {
-            given: self.turn.side(side).given,
-            committed: self.turn.side(side).committed,
-            seed: self.match_side(side).seed,
-            position,
-            tech_loadout: named_loadout(&loadout)?,
-            rounds: self.played(side, own),
-            decisions: own.then(|| self.decisions(side)),
-            offers: own.then(|| self.opening(side).offers.clone()),
-        })
-    }
-
-    /// The rounds this side has played, which are the rounds before the one
-    /// in progress.
-    ///
-    /// A player sees of the other side the decisions that reached the position
-    /// it is looking at, less the unlocks: a unit type unlocked and never
-    /// bought reaches no board, so it stays hidden for good rather than until
-    /// the round is over.
-    fn played(&self, side: Side, own: bool) -> Vec<RoundView> {
-        let mut rounds = Vec::new();
-        let ended = self.round();
-        // An opening is dealt to a side privately and reaches the board as
-        // the first round opens, so the other side's is a round in progress
-        // until then however early it was committed.
-        if ended > 0 || (own && self.turn.side(side).committed) {
-            rounds.push(RoundView {
-                round: 0,
-                decisions: self.opening(side).action().into_iter().collect(),
-            });
-        }
-        for turn in &self.r#match.turns {
-            if turn.round >= ended {
-                break;
-            }
-            rounds.push(RoundView {
-                round: turn.round,
-                decisions: actions_of(&turn.actions, side)
-                    .iter()
-                    .filter(|action| own || !matches!(action, Action::UnlockUnit { .. }))
-                    .cloned()
-                    .collect(),
-            });
-        }
-        rounds
-    }
-
-    /// Every unit type this side has stood on the board, which is what its
-    /// technology loadout is shown for.
-    fn fielded(&self, side: Side) -> std::collections::BTreeSet<&str> {
-        let mut fielded = std::collections::BTreeSet::new();
-        for turn in &self.r#match.turns {
-            for unit in &state_of(&turn.state, side).units {
-                fielded.insert(unit.unit.type_name.as_str());
+    /// The same documents the writer emits, with pending visible decisions
+    /// overlaid and the opponent's current actions removed before serialization.
+    fn visible_document(
+        &self,
+        viewer: Option<Side>,
+        omniscient: bool,
+    ) -> Result<Vec<serde_yaml::Value>, Failure> {
+        let mut document = self.r#match.clone();
+        if self.phase() != Phase::Over {
+            for side in Side::BOTH {
+                let actions = if omniscient || viewer == Some(side) {
+                    self.decisions(side)
+                } else {
+                    Vec::new()
+                };
+                if self.round() == 0 {
+                    let choose = actions.iter().find_map(|action| match action {
+                        Action::ChooseAdvanceTeam { index, .. } => Some(*index),
+                        _ => None,
+                    });
+                    match side {
+                        Side::Blue => document.blue.opening.choose = choose,
+                        Side::Red => document.red.opening.choose = choose,
+                    }
+                } else if let Some(turn) = document.turns.last_mut() {
+                    *actions_of_mut(&mut turn.actions, side) = actions;
+                }
             }
         }
-        fielded
+        mechcore_document::r#match::segment_values(&document).map_err(Failure::failed)
     }
 }
 
@@ -1192,24 +1126,21 @@ struct View {
     side: Option<Side>,
     phase: Phase,
     round: i32,
-    game_build: &'static str,
-    map_id: i32,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    seed: Option<i32>,
-    deploy_time: i32,
+    document: Vec<serde_yaml::Value>,
     opened: String,
     rebuilt: bool,
     /// Seconds left to commit, which only a round being deployed has.
     #[serde(skip_serializing_if = "Option::is_none")]
     remaining: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    reinforce_offers: Option<Offers>,
     /// What stopped a fight this match is due, when one is.
     #[serde(skip_serializing_if = "Option::is_none")]
     unresolved: Option<String>,
     /// What the decision just taken did, which only `act` answers.
     #[serde(skip_serializing_if = "Option::is_none")]
     events: Option<Vec<Value>>,
+    /// Only act answers the resulting position; document states stay at the opening.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    position: Option<SideState>,
     sides: Views,
 }
 
@@ -1232,26 +1163,6 @@ impl Views {
 struct SideView {
     given: bool,
     committed: bool,
-    /// The side's own seed, which both sides see.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    seed: Option<i32>,
-    position: Value,
-    tech_loadout: Value,
-    /// The rounds this side has played, in order.
-    rounds: Vec<RoundView>,
-    /// This side's uncommitted decisions, which only this side sees.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    decisions: Option<Vec<Action>>,
-    /// The four openings this side was dealt, which only this side sees.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    offers: Option<Vec<OpeningOffer>>,
-}
-
-/// One round a side has played.
-#[derive(Serialize)]
-struct RoundView {
-    round: i32,
-    decisions: Vec<Action>,
 }
 
 /// What one decision did to a position, beyond leaving another one.
@@ -1308,12 +1219,6 @@ fn actions_of_mut(actions: &mut TurnActions, side: Side) -> &mut Vec<Action> {
     }
 }
 
-/// A technology loadout written by name, as a document writes it.
-fn named_loadout(loadout: &Loadout) -> Result<Value, Failure> {
-    mechcore_document::names::loadout::serialize(loadout, serde_json::value::Serializer)
-        .map_err(|error| Failure::failed(format!("cannot write a loadout: {error}")))
-}
-
 /// Where a seed and a map come from when nobody named one.
 ///
 /// A match nobody configured is as reproducible as one somebody did, because
@@ -1350,5 +1255,65 @@ impl Draw {
     /// A seed the opening deal is verified for, which is a non-negative one.
     fn seed(&mut self) -> i32 {
         i32::try_from(self.next() % u64::from(i32::MAX.unsigned_abs())).unwrap_or(0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn both_commits_do_not_reveal_actions_while_the_fight_is_pending() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("m.yaml");
+        let mut held = Held::take(&turn_path(&path)).unwrap();
+        let mut game = deal(&path, &mut held, (Some(12345), Some(1011), None), None).unwrap();
+        for side in Side::BOTH {
+            let offer = game.opening(side).offers[0];
+            game.turn
+                .side_mut(side)
+                .decisions
+                .push(Action::ChooseAdvanceTeam {
+                    index: 0,
+                    id: offer.team,
+                    specialist: offer.specialist,
+                });
+            game.commit(side, &mut held).unwrap();
+        }
+        // Resolving the opening reaches deployment without running a fight.
+        game = game.settle(&mut held).unwrap();
+        for (side, unit) in [(Side::Blue, 9), (Side::Red, 2)] {
+            let decision = Action::UnlockUnit { unit };
+            game.take(side, &decision).unwrap();
+            game.turn.side_mut(side).decisions.push(decision);
+            game.commit(side, &mut held).unwrap();
+        }
+        assert_eq!(game.phase(), Phase::Fight);
+        game.unresolved = Some("fight is pending".into());
+        let original = mechcore_document::r#match::canonical_yaml(&game.r#match).unwrap();
+        for side in Side::BOTH {
+            let view = serde_json::to_value(game.view(Some(side), false).unwrap()).unwrap();
+            assert_eq!(view["phase"], "fight");
+            let action = view["document"].as_array().unwrap().last().unwrap();
+            assert_eq!(action[side.name()][0]["type"], "unlock_unit");
+            assert!(action[side.other().name()].as_array().unwrap().is_empty());
+        }
+        assert_eq!(
+            mechcore_document::r#match::canonical_yaml(&game.r#match).unwrap(),
+            original
+        );
+        game.r#match
+            .turns
+            .last_mut()
+            .unwrap()
+            .actions
+            .blue
+            .push(Action::Concede);
+        let over = serde_json::to_value(game.view(Some(Side::Blue), false).unwrap()).unwrap();
+        assert_eq!(over["phase"], "over");
+        assert_eq!(
+            over["document"].as_array().unwrap().last().unwrap()["red"][0]["type"],
+            "unlock_unit"
+        );
     }
 }

@@ -784,9 +784,28 @@ Operands: the match document. Options: `--side blue|red`, `--wait
 [<seconds>]`, and `--omniscient` for both sides in full, which is what a
 spectator and a test read.
 
-The view carries the phase, the round, that side's own position with its
-uncommitted decisions applied, the round's reinforcement offers, whether the
-other side has committed, and what the next section leaves of the other side.
+The answer's `document` is an ordered array of the same segments the match
+file writes: its header, round-zero actions, then each round's opening state
+and actions. Each array element has exactly the YAML document's field names
+and values. This is also the answer shape of `match new`, `act` and `commit`.
+The header carries the map, match seed, both player seeds, both opening offer
+lists, constructions and full technology loadouts. State segments carry both
+sides in full, the reinforcement offers, pool differences and all three random
+states. Nothing is hidden except the current actions described below.
+
+The surrounding object carries `schema: mechcore.match`, `match` (the file
+path), `side` (absent for an omniscient view without a side), `phase`, `round`,
+`opened`, `rebuilt`, and `sides.blue` and `sides.red`, each holding `given` and
+`committed`. `remaining` is present during deployment, and `unresolved` names
+what stopped a fight when one could not settle. A commit with no actions cannot
+be distinguished from an uncommitted round by reading the document alone, so
+commit status belongs to this surrounding object.
+
+The caller's pending actions are overlaid on its current action segment without
+writing them to the match file. A state segment remains the round's opening
+position: the view does not apply those actions to the state or repeat a
+calculated position. To obtain the position reached, apply the visible actions
+to that opening state. `act` additionally answers the resulting position.
 
 **A side knows which side it is, and the map.** Every answer to a side names
 it, blue or red, and the header names the map: a player is owed both, and no
@@ -802,57 +821,20 @@ an agent that is not told it would reason about a board it does not have.
 
 ### What a side sees of the other
 
-**The other side's past is visible and its round in progress is not.** The
-round it is deploying now is hidden whole, because deployment is simultaneous
-and that is what a round decides. The opponent's current-round decisions stay
-hidden whether or not either side has committed, including decisions already
-written to the match document and the round-zero opening choice. A commit does
-not end the round or make its decisions visible. Of the rounds that have ended,
-a player sees the position they reached and the decisions that reached it, less
-the five things below.
+**The opponent's current-round actions remain hidden until the round ends.**
+The opponent's list in the current action segment is empty whether or not
+either side has committed, including actions already written to the match file.
+The same rule applies to the round-zero opening choice and while a fight remains
+unresolved. A commit changes status, not visibility. Both round-opening states
+and every earlier round's complete actions, including unlocks, remain visible.
+Once the match is over, the committed document is visible in full.
 
-Those five stay hidden for good, not until the next round, because none of them
-reaches a board. A side that unlocks Fang in round 1 and buys none has shown
-nothing: the unlock is not in its decisions, the unlocked type is not in its
-`unlocked_units`, and in round 2 its Fangs arrive beside whatever else it deployed, with no
-warning that they could. That is the difference between a decision whose
-consequence stands on the board and one whose consequence is only an option:
+`--omniscient` overlays both sides' pending actions and hides neither side's
+current action list. It is the spectator and test view, and players are not
+given it by the arena. Obtaining either view does not commit pending actions.
 
-| Hidden | Why |
-| --- | --- |
-| the other side's `supply` | what a player can afford is what a player plans, and no board shows it |
-| the other side's `unlocked_units` | a unit type unlocked and never bought leaves nothing to see |
-| its `unlock_unit` decisions, in every round | the same fact, said as a decision |
-| the header's `seed` | it deals this match: every opening and every round's offers follow from it |
-| the other side's opening `offers` | the four combinations are dealt to a side privately, as [match.md](../document/match.md) says |
-
-Each side's own `seed` is shown to both, as `sides.<side>.seed`. It decides
-which item an officer that draws hands out each round, so a player can read
-its own and the other side's coming hand-outs; it is shown because a player
-may draw its own decisions from it, as the game's computer opponent draws from
-its side's.
-
-Everything else a completed round reached is visible: the units with their
-levels, experience, equipment and facing, the reactor core, the towers, the
-constructions and contraptions, the officers, the
-technologies, the blueprints, the Energy Tower skills, the commander skill
-panel with what its earlier releases left standing, the equipment a side holds unfitted, and the allocator in `next_index`,
-which the units and the reinforcements a side took already account for. The
-round's `reinforce_offers` are the same array for both sides and stay whole.
-
-`tech_loadout` is shown for the unit types that have stood on that side's
-board, and for no others. A loadout is chosen before the match and it bounds
-what a side may research; the rows a player has seen fielded are the rows that
-player has been shown the consequences of.
-
-`--omniscient` answers both sides in full, which is what a spectator and a test
-read. It is not a view any player is given.
-
-What a human is shown by the game is a different question, and
-[the visibility index](../../rules/visibility.md) holds what is known about it:
-the client carries both sides in full, so hiding is the interface's work; what
-the interface draws is not established, and this contract decides rather than
-reproduces it.
+[The visibility index](../../rules/visibility.md) distinguishes this platform
+policy from what a human sees in the game's interface.
 
 `--wait` blocks until the match is waiting for that side again: a new round has
 opened, or the match is over. It is how a side that has committed learns what
@@ -868,7 +850,10 @@ spec writes it. Options: `--side blue|red`, and `--dry-run` to answer without
 keeping the decision.
 
 The decision joins that side's uncommitted decisions in the turn file, and the
-answer is that side's position after it, with the events the decision produced.
+answer contains the same visible `document` as `show`, plus top-level
+`position` for that side after the decision and `events` for what it produced.
+The document's state remains the opening state; `position` is a calculated
+result, not another state segment.
 An event is a one-key mapping naming what happened, such as `{created: {index:
 7, name: marksman, position: {x: -40, y: -160}}}`, so that a caller learns the
 index a purchase created and where the board put it without diffing two
