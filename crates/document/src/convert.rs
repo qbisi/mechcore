@@ -156,7 +156,7 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
 
     settle_concession(&mut turns)?;
 
-    Ok(Match {
+    let mut converted = Match {
         game_build: crate::economy::game_build().to_owned(),
         map_id: record.info.map_id,
         seed: record.info.system_seed,
@@ -164,7 +164,9 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
         blue: match_side(economy, &blue, Seat::Blue, dealt.blue)?,
         red: match_side(economy, &red, Seat::Red, dealt.red)?,
         turns,
-    })
+    };
+    crate::reinforcement::fill_checkpoints(economy, &mut converted)?;
+    Ok(converted)
 }
 
 /// Refuses a replay this converter does not read, by the property it fails.
@@ -240,6 +242,8 @@ fn turn(
     Ok(Turn {
         round,
         state: State {
+            random_state: [0; 4],
+            reinforce_pool: crate::r#match::PoolDelta::default(),
             reinforce_offers: offers,
             blue: blue_state,
             red: red_state,
@@ -265,11 +269,11 @@ pub struct Converted {
 /// hold something other than what was converted. And the seeded random stream
 /// has to land on every state the replay recorded: the match seed on the
 /// opening round's, and each round's reinforcement deal on the states that
-/// round and the next one recorded. Those states are not in the document, so
-/// once it is written nothing else can compare them.
+/// round and the next one recorded. The document carries post-deal checkpoints,
+/// so the native pre-deal boundaries are checked while the replay is available.
 ///
-/// A deal the rules cannot reproduce at all is not refused here: `verify`
-/// reports it against the document, and the conversion report carries it.
+/// A deal the rules cannot reproduce is refused: conversion cannot write its
+/// post-deal checkpoint.
 ///
 /// # Errors
 ///
@@ -628,6 +632,7 @@ fn side_state(
     unlocked_units.sort_unstable();
 
     let snapshot = SideState {
+        random_state: [0; 4],
         reactor_core: data.reactor_core,
         // The snapshot precedes the round's income, which the opening pays.
         supply: data.supply,

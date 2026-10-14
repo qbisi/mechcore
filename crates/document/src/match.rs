@@ -132,9 +132,14 @@ pub struct Turn {
 }
 
 /// A match position, which a match writes as a state segment.
-#[derive(Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct State {
+    /// The shared reinforcement stream after this round's deal.
+    pub random_state: [u64; 4],
+    /// Effective changes to the ordinary pool initialized by the header seed.
+    #[serde(default, skip_serializing_if = "PoolDelta::is_empty")]
+    pub reinforce_pool: PoolDelta,
     /// Absent in rounds 0 and 1, which are dealt no reinforcement offer.
     /// Written as card names, a unit card's read within this round, and then
     /// the decline.
@@ -147,6 +152,33 @@ pub struct State {
     pub reinforce_offers: Option<Offers>,
     pub blue: SideState,
     pub red: SideState,
+}
+
+/// Current membership relative to the seed's initial ordinary reinforcement pool.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct PoolDelta {
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::card::many"
+    )]
+    #[schemars(with = "Vec<String>")]
+    pub removed: Vec<i32>,
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::card::many"
+    )]
+    #[schemars(with = "Vec<String>")]
+    pub added: Vec<i32>,
+}
+
+impl PoolDelta {
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.removed.is_empty() && self.added.is_empty()
+    }
 }
 
 /// What a round offers both sides: the cards it dealt, in order, and the
@@ -190,6 +222,8 @@ enum OfferEntry {
 #[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct SideState {
+    /// The player stream after this round's officer deliveries.
+    pub random_state: [u64; 4],
     pub reactor_core: i32,
     pub supply: i32,
     /// Unit IDs, written as their type names in ID order.
@@ -801,6 +835,9 @@ impl<'a> HeaderSide<'a> {
 #[derive(Serialize)]
 struct StateSegment<'a> {
     round: i32,
+    random_state: [u64; 4],
+    #[serde(skip_serializing_if = "PoolDelta::is_empty")]
+    reinforce_pool: &'a PoolDelta,
     #[serde(skip_serializing_if = "Option::is_none")]
     reinforce_offers: Option<&'a Offers>,
     blue: &'a SideState,
@@ -882,6 +919,9 @@ pub mod schema {
     #[derive(Serialize, JsonSchema)]
     #[serde(deny_unknown_fields)]
     pub struct State {
+        pub random_state: [u64; 4],
+        #[serde(default, skip_serializing_if = "super::PoolDelta::is_empty")]
+        pub reinforce_pool: super::PoolDelta,
         pub kind: StateKind,
         pub round: i32,
         /// Absent in rounds 0 and 1, which are dealt no reinforcement offer.
@@ -997,6 +1037,8 @@ fn segments_of(r#match: &Match) -> Vec<Segment<'_>> {
     for turn in &r#match.turns {
         segments.push(Segment::State(StateSegment {
             round: turn.round,
+            random_state: turn.state.random_state,
+            reinforce_pool: &turn.state.reinforce_pool,
             reinforce_offers: turn.state.reinforce_offers.as_ref(),
             blue: &turn.state.blue,
             red: &turn.state.red,
@@ -1348,9 +1390,9 @@ mod tests {
         use super::{Offers, State};
         let state = |offers: &str| {
             format!(
-                "reinforce_offers: {offers}\nblue: {{reactor_core: 0, supply: 0, unlocked_units: [], \
+                "random_state: [1, 2, 3, 4]\nreinforce_offers: {offers}\nblue: {{random_state: [1, 2, 3, 4], reactor_core: 0, supply: 0, unlocked_units: [], \
                  tower_strengthen_levels: [], next_index: {{unit: 0, contraption: 0}}, units: []}}\n\
-                 red: {{reactor_core: 0, supply: 0, unlocked_units: [], tower_strengthen_levels: [], \
+                 red: {{random_state: [1, 2, 3, 4], reactor_core: 0, supply: 0, unlocked_units: [], tower_strengthen_levels: [], \
                  next_index: {{unit: 0, contraption: 0}}, units: []}}\n"
             )
         };
@@ -1379,6 +1421,39 @@ mod tests {
                 "{refused}"
             );
         }
+    }
+
+    #[test]
+    fn pool_changes_use_card_names_and_require_complete_random_states() {
+        let state = super::State {
+            random_state: [1, 2, 3, 4],
+            reinforce_pool: super::PoolDelta {
+                removed: vec![300_001],
+                added: vec![1_305_003],
+            },
+            blue: super::SideState {
+                random_state: [5, 6, 7, 8],
+                ..Default::default()
+            },
+            red: super::SideState {
+                random_state: [9, 10, 11, 12],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let yaml = serde_yaml::to_string(&state).unwrap();
+        assert!(yaml.contains("missile_strike"));
+        assert!(yaml.contains("photon_coating"));
+        assert_eq!(serde_yaml::from_str::<super::State>(&yaml).unwrap(), state);
+        for invalid in [
+            yaml.replacen("random_state:", "missing_state:", 1),
+            yaml.replacen("- 4\n", "", 1),
+            yaml.replace("missile_strike", "unknown_card"),
+        ] {
+            assert!(serde_yaml::from_str::<super::State>(&invalid).is_err());
+        }
+        let empty = serde_yaml::to_string(&super::State::default()).unwrap();
+        assert!(!empty.contains("reinforce_pool"));
     }
 
     #[test]
@@ -1522,6 +1597,8 @@ mod tests {
         let state = |round, blue| super::Turn {
             round,
             state: super::State {
+                random_state: [0; 4],
+                reinforce_pool: crate::r#match::PoolDelta::default(),
                 reinforce_offers: None,
                 blue: super::SideState {
                     reactor_core: blue,

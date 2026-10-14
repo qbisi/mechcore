@@ -356,9 +356,8 @@ pub struct MatchRound {
     pub reinforce_items: ReinforceItems,
     /// The match's reinforcement random stream as the round opened.
     ///
-    /// It is not a state field and no document holds it. The opening is dealt
-    /// from it, so the converter reads it to rebuild what the four
-    /// combinations were; `crate::opening` says how.
+    /// This snapshot precedes the deal; the match document carries the stream
+    /// after the deal instead. The opening is rebuilt from round zero's state.
     #[serde(default, rename = "randomStateData")]
     pub random_state: RandomStateData,
     /// The reinforcement pool's log as the round opened, which a restored

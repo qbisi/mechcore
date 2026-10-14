@@ -247,17 +247,15 @@ standard match draws from it is an officer that hands out one of its items
 rather than all of them: Secondary Equipment Expert draws one of its four as
 each round opens. [officers.md](../../rules/officers.md) states the rule.
 
-The seed belongs in the header rather than in a state for the reason the
-match seed does. A state already holds what the draw handed out, as it holds
-the round's `reinforce_offers`; the stream only decides what a later round is
-handed, and where it stands depends on how many rounds drew before, which is
-the match's history rather than a position. A check that needs the stream
-starts it from this seed and advances it once for every hand-out the earlier
-rounds drew.
+The seed belongs in the header as the stream's origin. Each state carries
+where it stands after that round's deliveries as `blue.random_state` or
+`red.random_state`; continuing from that checkpoint needs no earlier hand-outs.
+A check of the complete history may still start from the header seed.
 
-`seed` is optional. A match that states none cannot predict such a hand-out,
-and its prediction leaves that round unimplemented. A match this platform deals
-draws one for each side, as the game's server does.
+`seed` is optional. Without it the first delivery cannot be predicted from the
+header, but a later state supplies the player stream for subsequent deliveries.
+A match this platform deals draws one seed for each side, as the game's server
+does.
 
 ## The opening is round zero
 
@@ -296,7 +294,8 @@ the team and specialist that offer holds. It does not prove that a player chose 
 deployment or combat.
 
 The reinforcement check advances the same stream through contiguous rounds from
-round 1 and compares every round's complete ordered `reinforce_offers`, the
+round 1 and compares every round's shared `random_state`, effective
+`reinforce_pool` changes and complete ordered `reinforce_offers`, the
 decline's `refund` included. Each draw
 uses that round's stated units, shop unlocks, active technologies and
 officers, and the previous rounds' `choose_reinforce_item` decisions update the
@@ -531,10 +530,9 @@ read back as exactly the match converted into it, every state field and
 action operand included. And the random stream the header's seed starts has to
 land on every state the replay recorded: the match seed on round 0's, and each
 round's reinforcement deal on the state that round recorded before it and the
-state the next round recorded after it. Those states are not written into the
-document, so once it is written nothing else can compare them. A deal the rules
-cannot reproduce at all is reported rather than refused, and `verify`
-fails the document for it. The deal also leaves a pool, and every round has to
+state the next round recorded after it. The document stores the post-deal checkpoint rather than the replay's
+pre-deal snapshot. Conversion refuses a deal it cannot reconstruct, since it
+cannot produce the checkpoint for it. The deal also leaves a pool, and every round has to
 open on it: the log a round's snapshot recorded has to be the deal's, up to the
 order of each round's two choices, and so do the rounds it excludes the level-4
 commander skills from ([match-replay.md](match-replay.md#the-reinforcement-pool)).
@@ -561,11 +559,13 @@ refused.
 
 ### What conversion rebuilds
 
-Most fields are copied. Seven are not, and each is argued in the document that
-owns it:
+Most fields are copied. The following are rebuilt as their owning documents
+define:
 
 | Field | Why it is rebuilt |
 | --- | --- |
+| `random_state` | The replay snapshot precedes the current deal or deliveries; the state carries each stream after them |
+| `reinforce_pool` | The seed-derived pool plus the replayed deal gives effective membership changes, replacing the historical operation log |
 | `supply` | The snapshot precedes the round's income, which is added back from the map settings the record itself carries, plus what the equipment on the board the round opens with pays, less the energy tower debt |
 | `reinforce_offers`' `decline_offer` | The record lists the cards alone. The decline is offered after them in every round that deals any, and its `refund` is the map's figure, or in a unit round the schedule's for that round, from the pool the seed selects; a match whose opening this build cannot deal is refused |
 | `battle_skills[].cooldown` | The recorded cooldowns are the previous round's. A slot the previous round spent restarts at its skill's cooldown, and every other drops by one to zero |
@@ -574,7 +574,8 @@ owns it:
 | `units[].source` | The opening marks inherited units `legacy`, the first round's advance team `joined`, and a squad its officers deliver that round `delivered`; `legacy` is the omitted default |
 | Deliveries | The snapshot precedes what the round's officers deliver as it opens, so the squads, commander skills, equipment and unlocks each officer's schedule names are added to it, an officer that draws its item draws it from the side's own stream, and a delivered squad lands where [the board puts it](../../rules/landing.md) |
 
-Only `equipment` is rebuilt by conversion's own rule. The income, the
+The reinforcement dealer supplies the shared stream and pool checkpoint.
+`equipment` is rebuilt by conversion's own rule. The income, the
 allowances, the cooldowns, the energy tower skills, unit sources and the
 deliveries are what a round's opening does, and conversion makes that opening
 rather than restating it: it reads the snapshot as it stands before the round
@@ -668,7 +669,6 @@ sequence; a reader parses either style.
 | `PlayerRecord.data.team`, `isLeader`, `type` | A side is named by which side it is |
 | `PlayerRecord.data` supply and core settings | The map's row in `matchSettings` gives them, keyed by `map_id` |
 | `BattleRecord.reinforceItems` | Carries no offer; the per-round array does |
-| `PlayerRecord.seed` | Nothing draws from that stream, see the state document |
 | `PAD_GiveUp.Time`, `LocalTime` | A concession is placed by its segment; no rule reads a clock |
 | `BattleRecord.Version`, `CreateTime` | Provenance, see below |
 | The 1v1 header constants | Properties of the mode, above |

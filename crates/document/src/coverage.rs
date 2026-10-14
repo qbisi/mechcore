@@ -169,10 +169,6 @@ pub fn measure(economy: &Economy, stated: &Stated, deal: Result<&Verified, &str>
     if let Some(first) = stated.turns.first() {
         coverage.opening(economy, stated, first);
     }
-    // Each side's own stream, from the seed the header states, advanced once
-    // for every hand-out a recorded round drew.
-    let seeds = [stated.blue.seed, stated.red.seed];
-    let mut draws = [0_u32; 2];
     for pair in stated.turns.windows(2) {
         let [turn, next] = pair else { continue };
         // What a decline pays is the round's own offer to state.
@@ -182,16 +178,15 @@ pub fn measure(economy: &Economy, stated: &Stated, deal: Result<&Verified, &str>
             .as_ref()
             .map(|offers| offers.refund);
         let mut dealt_from = true;
-        for (at, (side, red)) in [("blue", false), ("red", true)].into_iter().enumerate() {
+        for (side, red) in [("blue", false), ("red", true)] {
             let (state, actions, recorded) = sides(turn, next, red);
-            draws[at] += crate::transition::player_draws(economy, &state.officers, turn.round);
             dealt_from &= coverage.side(
                 economy,
                 (turn.round, declined),
                 state,
                 actions,
                 recorded,
-                (side, player_stream(seeds[at], draws[at])),
+                (side, Stream::from_state(state.random_state).ok()),
             );
         }
         coverage.deal(turn, next, deal.ok(), dealt_from);
@@ -710,18 +705,8 @@ pub fn fights(
     mut fight: impl FnMut(&crate::layout::Layout) -> Result<crate::fight::Fight, String>,
 ) -> Fights {
     let mut found = Fights::default();
-    let seeds = [stated.blue.seed, stated.red.seed];
-    let mut draws = [0_u32; 2];
     for pair in stated.turns.windows(2) {
         let [turn, next] = pair else { continue };
-        for (at, red) in [(0, false), (1, true)] {
-            let state = if red {
-                &turn.state.red
-            } else {
-                &turn.state.blue
-            };
-            draws[at] += crate::transition::player_draws(economy, &state.officers, turn.round);
-        }
         let declined = deal
             .rounds
             .iter()
@@ -733,6 +718,8 @@ pub fn fights(
         };
         let position = deployed(&turn.state.blue, &turn.actions.blue, false).and_then(|blue| {
             deployed(&turn.state.red, &turn.actions.red, true).map(|red| crate::r#match::State {
+                random_state: turn.state.random_state,
+                reinforce_pool: turn.state.reinforce_pool.clone(),
                 reinforce_offers: turn.state.reinforce_offers.clone(),
                 blue,
                 red,
@@ -769,7 +756,7 @@ pub fn fights(
             }
         };
         let mut differences = Vec::new();
-        for (at, (side, red)) in [("blue", false), ("red", true)].into_iter().enumerate() {
+        for (side, red) in [("blue", false), ("red", true)] {
             let (deployed, fought_side, recorded) = if red {
                 (&position.red, &fought.red, &next.state.red)
             } else {
@@ -780,7 +767,7 @@ pub fn fights(
                 turn.round,
                 (deployed, fought_side, recorded),
                 (side, red),
-                player_stream(seeds[at], draws[at]),
+                Stream::from_state(deployed.random_state).ok(),
             ));
         }
         found.rounds.push(if differences.is_empty() {

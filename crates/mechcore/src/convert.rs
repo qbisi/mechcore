@@ -479,6 +479,8 @@ fn project(bytes: &[u8], round: Option<i32>, output: Option<&Path>) -> Result<An
         )
     };
     let state = mechcore_document::r#match::State {
+        random_state: [0; 4],
+        reinforce_pool: mechcore_document::r#match::PoolDelta::default(),
         reinforce_offers: None,
         blue: deployed(&turn.state.blue, &turn.actions.blue, false)?,
         red: deployed(&turn.state.red, &turn.actions.red, true)?,

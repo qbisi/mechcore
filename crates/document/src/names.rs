@@ -492,6 +492,29 @@ pub(crate) mod card {
         super::card_id(name).map_err(E::custom)
     }
 
+    /// Ordinary pool cards, whose names need no unit reinforcement round.
+    pub(crate) mod many {
+        use super::{Deserialize, Deserializer, Serializer};
+        pub(crate) fn serialize<S: Serializer>(
+            ids: &[i32],
+            serializer: S,
+        ) -> Result<S::Ok, S::Error> {
+            serializer.collect_seq(
+                ids.iter()
+                    .map(|id| super::name::<S::Error>(*id))
+                    .collect::<Result<Vec<_>, _>>()?,
+            )
+        }
+        pub(crate) fn deserialize<'de, D: Deserializer<'de>>(
+            deserializer: D,
+        ) -> Result<Vec<i32>, D::Error> {
+            Vec::<String>::deserialize(deserializer)?
+                .iter()
+                .map(|name| super::id::<D::Error>(name))
+                .collect()
+        }
+    }
+
     /// A reinforcement choice: the card taken, or the decline, written by
     /// [`crate::r#match::DECLINE_OFFER`].
     pub(crate) mod choice {
