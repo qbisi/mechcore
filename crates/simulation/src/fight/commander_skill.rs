@@ -13,7 +13,9 @@
 use super::*;
 use crate::{
     data::{Entry, Index},
-    layout::{Scatter, SkillBuff, SkillEffect, SkillRelease, SubEffect, TerrainSpec},
+    layout::{
+        Scatter, SkillBuff, SkillEffect, SkillRelease, SubEffect, TerrainEffect, TerrainSpec,
+    },
 };
 
 /// `CommanderSkillSystem`: the releases still to land.
@@ -125,6 +127,10 @@ impl Simulation {
 
     /// `CommanderSkillSystem`'s update: every release whose sub-effect lands
     /// on this tick, in the order the sides released them.
+    #[allow(
+        clippy::too_many_lines,
+        reason = "dispatches the native commander-skill controller overrides"
+    )]
     pub(in crate::fight) fn step_battle_skills(
         &mut self,
         step: u64,
@@ -159,6 +165,7 @@ impl Simulation {
                 let falling = self.step_sub_effects(
                     &release,
                     &circle,
+                    None,
                     sub_effects,
                     (tick, target_search_order),
                     events,
@@ -184,8 +191,26 @@ impl Simulation {
                 ..
             } = &release.effect
             {
-                let falling =
-                    self.land_terrains(&release, (*spec, *crosses_shields), sub_effects, tick)?;
+                let circle = Circle {
+                    range_q32: spec.radius_q32,
+                    damage: 0,
+                    crosses_shields: *crosses_shields,
+                    direct_hit: false,
+                    shield_damage: None,
+                    harmful: true,
+                    buff: match &spec.effect {
+                        TerrainEffect::Buff { buff, .. } => Some(buff),
+                        _ => None,
+                    },
+                };
+                let falling = self.step_sub_effects(
+                    &release,
+                    &circle,
+                    Some(*spec),
+                    sub_effects,
+                    (tick, target_search_order),
+                    events,
+                )?;
                 if falling.is_empty() {
                     self.commander.releases.remove(index);
                     continue;
@@ -238,11 +263,14 @@ impl Simulation {
     /// one that cannot cross shields stops at the first it comes inside as it
     /// falls, before it would land, and performs there (`InterruptEffect`).
     /// One that does not move, as Photon Emission's, is never tested.
+    /// `RangeItemEffectController` overrides the normal landing with `AddItem`,
+    /// but inherits `InterruptEffect`'s immediate `PerformHitEffect`.
     /// Answers the ones still to land.
     fn step_sub_effects(
         &mut self,
         release: &SkillRelease,
         circle: &Circle<'_>,
+        terrain: Option<TerrainSpec>,
         sub_effects: &[SubEffect],
         (tick, target_search_order): (u64, &BTreeMap<u32, Vec<FightActorRef>>),
         events: &mut Vec<Event>,
@@ -264,7 +292,12 @@ impl Simulation {
             }
             if sub_effect.lands_on == tick {
                 let point = (x_q32, 0, z_q32);
-                self.perform_hit_effect(release, circle, point, target_search_order, events)?;
+                if let Some(spec) = terrain {
+                    // RangeItemEffectController overrides PerformEffect only.
+                    self.add_terrain(release.team, &release.name, spec, point)?;
+                } else {
+                    self.perform_hit_effect(release, circle, point, target_search_order, events)?;
+                }
                 continue;
             }
             falling.push(*sub_effect);
@@ -316,43 +349,6 @@ impl Simulation {
             self.write_release_buff(release, buff, &reached, events)?;
         }
         Ok(())
-    }
-
-    /// `RangeItemEffectController.PerformEffect` for each of a terrain
-    /// skill's sub-effects that lands on this tick. One that cannot cross
-    /// shields is tested as it falls, as a strike's is, and ends on the first
-    /// shield it comes inside: `InterruptEffect`'s `PerformHitEffect` leaves
-    /// no terrain and deals the shield nothing. Answers the ones still to
-    /// land.
-    fn land_terrains(
-        &mut self,
-        release: &SkillRelease,
-        (spec, crosses_shields): (TerrainSpec, bool),
-        sub_effects: &[SubEffect],
-        tick: u64,
-    ) -> Result<Vec<SubEffect>> {
-        let mut falling = Vec::new();
-        for sub_effect in sub_effects {
-            let (x_q32, z_q32, fall) = (sub_effect.x_q32, sub_effect.z_q32, sub_effect.fall);
-            if !crosses_shields
-                && tick <= sub_effect.lands_on
-                && let Some(height) = fall.height_on(tick)
-            {
-                let last = fall.height_on(tick - 1).unwrap_or(fall.start_q32);
-                if self
-                    .falling_into_shield((x_q32, height, z_q32), (x_q32, last, z_q32))
-                    .is_some()
-                {
-                    continue;
-                }
-            }
-            if sub_effect.lands_on == tick {
-                self.add_terrain(release.team, &release.name, spec, (x_q32, 0, z_q32))?;
-                continue;
-            }
-            falling.push(*sub_effect);
-        }
-        Ok(falling)
     }
 
     /// `PerformNegativeEffect`'s hit: `CommanderSkillDamageProvider`'s damage

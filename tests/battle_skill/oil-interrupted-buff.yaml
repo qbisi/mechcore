@@ -1,0 +1,39 @@
+# The terrain sub-effect meets the enemy shield while still falling.
+# Its inherited InterruptEffect runs PerformHitEffect and writes the skill's
+# buff on the blue Melting Point outside its own shields, without creating
+# any terrain there. acid-interrupted-buff.yaml controls the other buff terrain;
+# tests/terrain/oil.yaml controls sub-effects that land.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  core_damage: 0
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -30}, exp: 0/216/1400, source: joined}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: 0, y: 20}, {x: 150, y: 200}], grid_rows: {3: [0, 512, 1792, 1984, 4080, 4095, 4095, 4095, 2046, 2046, 1020, 240], 4: [], 5: [], 6: []}}
+red:
+  core_damage: 350
+  units:
+  - {name: fang, index: 0, position: {x: -5, y: -20}, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 0, y: -80}, retained: false}
+asserts:
+- sql: |
+    SELECT tick,target__id,buff_id,duration
+    FROM events
+    WHERE type='buff_applied' AND tick=61
+    ORDER BY ordinal;
+  rows:
+  - [61, 7, 400001, 20]
+- sql: |
+    SELECT count(*) AS terrains
+    FROM terrains
+    WHERE tick=61;
+  rows:
+  - [0]
+ticks: 552
+hash: 24:4cb26091eb93fed13d4df8174e33ab1e242e43ad912e64af31acea0a926d2449
