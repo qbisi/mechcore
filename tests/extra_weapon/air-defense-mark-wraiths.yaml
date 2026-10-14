@@ -19,11 +19,11 @@ blue:
   techs:
     typhoon: [air_defense_mark]
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/600/1950}
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/600/1950, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: wraith, index: 0, position: {x: 5, y: -175}}
-  - {name: wraith, index: 1, position: {x: -55, y: -175}, exp: 0/600/2250}
+  - {name: wraith, index: 0, position: {x: 5, y: -175}, source: joined}
+  - {name: wraith, index: 1, position: {x: -55, y: -175}, exp: 0/600/2250, source: joined}
 ticks: 606
-hash: 24:951c6436966bfd477a9be4ce9e3a42160e2279b7cfc7708a385a8089bb45084a
+hash: 25:939c0046cbe64403fa8e5dc5e9eb73007863e2ca55a986437509634991f2ca51

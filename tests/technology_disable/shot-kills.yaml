@@ -15,10 +15,10 @@ blue:
   techs:
     marksman: [electromagnetic_shot]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/24/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/24/650, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -150}, exp: 0/200/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -150}, exp: 0/200/450, source: joined}
 ticks: 322
-hash: 24:a81e767fba56c8fd2fe7c10cbcf4bf4efa00320f3c86a8849e12e3de855d90a5
+hash: 25:33a8028d21394ff918d1dec5bcd1b0c58fa93a55c1511a34067fb860f62d73e1

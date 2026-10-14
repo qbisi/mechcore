@@ -19,27 +19,24 @@ blue:
   techs:
     vulcan: [best_partner]
   units:
-  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/300/600}
-  - {name: vulcan, index: 1, position: {x: -220, y: -280}, exp: 0/100/2200}
+  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/300/600, source: joined}
+  - {name: vulcan, index: 1, position: {x: -220, y: -280}, exp: 0/100/2200, source: joined}
   constructions:
   - {name: anti_armor_turret, index: 2, position: {x: -280, y: -300}}
 red:
   core_damage: 108
   units:
-  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/1000/1000}
-asserts:
-- sql: |
-    SELECT target__kind, target__id
-    FROM events
-    WHERE
-      type = 'buff_applied'
-      AND tick = 231
-      AND (target__kind = 'building' OR target__id IN (19, 24))
-    ORDER BY
-      ordinal;
-  rows:
-  - [unit, 19]
-  - [building, 3]
-  - [unit, 24]
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/1000/1000, source: joined}
 ticks: 583
-hash: 24:2b28934204398ba992296d11f9dc944ba4737f035c2f405675c5b734b16f8d5d
+hash: 25:4d70e4b6c70c11331dcd38a443f809e9759dddbaaa37c87ca19232b213a9440f
+asserts:
+- sql: "SELECT target__kind, target__id\nFROM events\nWHERE\n  type = 'buff_applied'\n\
+    \  AND tick = 231\n  AND (target__kind = 'building' OR target__id IN (19, 24))\n\
+    ORDER BY\n  ordinal;\n"
+  rows:
+  - - unit
+    - 19
+  - - building
+    - 3
+  - - unit
+    - 24

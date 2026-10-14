@@ -12,10 +12,10 @@ blue:
   techs:
     phantom_ray: [burst_mode]
   units:
-  - {name: phantom_ray, index: 0, position: {x: 5, y: -130}, exp: 0/400/1000}
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -130}, exp: 0/400/1000, source: joined}
 red:
   core_damage: 201
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
 ticks: 152
-hash: 24:30bb9204d567672f1a778092d37429c6f51cdbe78db8892eb529710f92c3f502
+hash: 25:6ca0b731cd9c2e03c9e4854094e368d636b4ed8eff4eede2cc3e13f53bee643a

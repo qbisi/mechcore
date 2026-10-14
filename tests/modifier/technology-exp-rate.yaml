@@ -20,11 +20,11 @@ blue:
   techs:
     vortex: [machine_learning]
   units:
-  - {name: vortex, index: 0, position: {x: -20, y: -150}, exp: 0/112/750}
-  - {name: arclight, index: 1, position: {x: 20, y: -150}, exp: 0/136/750}
+  - {name: vortex, index: 0, position: {x: -20, y: -150}, exp: 0/112/750, source: joined}
+  - {name: arclight, index: 1, position: {x: 20, y: -150}, exp: 0/136/750, source: joined}
 red:
   core_damage: 200
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -40}}
+  - {name: crawler, index: 0, position: {x: 5, y: -40}, source: joined}
 ticks: 193
-hash: 24:9198d3cf67b6b99a34d0cc925b9f46987e80999d3aa88a84342f072ecdfa9de9
+hash: 25:2419ab22deeca29463d44897bca0812a0d84ff7fe18464f372e3d19c345962bb

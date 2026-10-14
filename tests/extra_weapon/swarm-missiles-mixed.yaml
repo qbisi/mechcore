@@ -18,12 +18,12 @@ blue:
   techs:
     abyss: [swarm_missiles]
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -205}, exp: 0/1000/4800}
+  - {name: abyss, index: 0, position: {x: 5, y: -205}, exp: 0/1000/4800, source: joined}
 red:
   core_damage: 500
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -155}}
-  - {name: rhino, index: 1, position: {x: 45, y: -155}}
-  - {name: marksman, index: 2, position: {x: -40, y: -100}}
+  - {name: rhino, index: 0, position: {x: 5, y: -155}, source: joined}
+  - {name: rhino, index: 1, position: {x: 45, y: -155}, source: joined}
+  - {name: marksman, index: 2, position: {x: -40, y: -100}, source: joined}
 ticks: 323
-hash: 24:5f3535de25c8e2edc8cabebfa514b54f94bb69b021a8296602a8ffc4ee4e531e
+hash: 25:1dfa317e15a431fd9e3e5db9707b7f605bdeebd0c0b05ba6a83d98d8d0bfc537

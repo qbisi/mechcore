@@ -15,10 +15,10 @@ blue:
   techs:
     typhoon: [field_entrenchment]
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -40}, exp: 0/200/1950}
+  - {name: typhoon, index: 0, position: {x: 0, y: -40}, exp: 0/200/1950, source: joined}
 red:
   core_damage: 250
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -20}}
+  - {name: arclight, index: 0, position: {x: 0, y: -20}, source: joined}
 ticks: 113
-hash: 24:ac1ba0e97e99caaf18ce004adde4cf32efd856169912989913734ace992636e7
+hash: 25:5fbafdb6598e4113dd0a2e57c218bdc0eb753a0bc0191c6c1aae0ca61bc7d59f

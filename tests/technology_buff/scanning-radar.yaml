@@ -17,14 +17,14 @@ blue:
   techs:
     farseer: [scanning_radar]
   units:
-  - {name: farseer, index: 0, position: {x: 5, y: -145}}
-  - {name: marksman, index: 1, position: {x: 60, y: -150}}
-  - {name: rhino, index: 2, position: {x: -45, y: -145}}
-  - {name: marksman, index: 3, position: {x: 200, y: -150}, exp: 0/200/650}
+  - {name: farseer, index: 0, position: {x: 5, y: -145}, source: joined}
+  - {name: marksman, index: 1, position: {x: 60, y: -150}, source: joined}
+  - {name: rhino, index: 2, position: {x: -45, y: -145}, source: joined}
+  - {name: marksman, index: 3, position: {x: 200, y: -150}, exp: 0/200/650, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/1100/1600}
-  - {name: marksman, index: 1, position: {x: 100, y: -150}, exp: 0/300/650}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/1100/1600, source: joined}
+  - {name: marksman, index: 1, position: {x: 100, y: -150}, exp: 0/300/650, source: joined}
 ticks: 751
-hash: 24:367fdbf3b57be5b814fe469fc3aec8de754eacc4b9279d5f35dbc5e4717d85be
+hash: 25:c70476c86a5ccaf856dbb32eb3966c0ff4198cb9e707e4d72f8d091573fe92ea

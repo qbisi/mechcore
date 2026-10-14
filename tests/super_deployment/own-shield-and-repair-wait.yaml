@@ -20,7 +20,7 @@ blue:
     phoenix: [energy_shield]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: phoenix, index: 1, position: {x: -330, y: 200}, exp: 0/400/1300, equipment: [nano_repair_kit], travelling: true}
+  - {name: phoenix, index: 1, position: {x: -330, y: 200}, exp: 0/400/1300, equipment: [nano_repair_kit], travelling: true, source: joined}
 red:
   core_damage: 200
   units:
@@ -46,4 +46,4 @@ asserts:
   rows:
   - [181]
 ticks: 642
-hash: 24:6a87699cbd3f68211c1f1ab754614282b14e1c8f9ca167acb4ef8186e6114672
+hash: 25:a674337e1ecbaaf82baf6b6acbbef5c80483542272897896b3a74ead902b2acf

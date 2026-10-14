@@ -17,12 +17,12 @@ blue:
   techs:
     raiden: [fork]
   units:
-  - {name: raiden, index: 0, position: {x: 0, y: -200}, exp: 0/24/2400}
-  - {name: raiden, index: 1, position: {x: 0, y: -150}, exp: 0/80/2400}
-  - {name: raiden, index: 2, position: {x: 0, y: -100}, exp: 0/88/2400}
+  - {name: raiden, index: 0, position: {x: 0, y: -200}, exp: 0/24/2400, source: joined}
+  - {name: raiden, index: 1, position: {x: 0, y: -150}, exp: 0/80/2400, source: joined}
+  - {name: raiden, index: 2, position: {x: 0, y: -100}, exp: 0/88/2400, source: joined}
 red:
   core_damage: 1050
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
 ticks: 262
-hash: 24:59a3f3641f21f9b0d58d92dd59e4643e5723fbc797013b83eefaa606af55dccc
+hash: 25:b684ab018c2f73e41a77540c4388d42aac6faaba9f2b78ef7956303893a444f5

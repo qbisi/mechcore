@@ -14,12 +14,12 @@ blue:
   techs:
     rhino: [armor_enhancement]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}, level: 3, exp: 0/600/4096}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, level: 3, exp: 0/600/4096, source: joined}
 red:
   core_damage: 200
   units:
-  - {name: marksman, index: 0, position: {x: -40, y: -100}}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}}
-  - {name: marksman, index: 2, position: {x: 40, y: -100}}
+  - {name: marksman, index: 0, position: {x: -40, y: -100}, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, source: joined}
+  - {name: marksman, index: 2, position: {x: 40, y: -100}, source: joined}
 ticks: 311
-hash: 24:6a968c340463599cd285ad632789f7d6e1053f6ca4e32ac4dcc79b26b3da8402
+hash: 25:ef7c5aae92e060af20df5fc215a2a271a5eefd90c85686807fe45e9b771a25f5

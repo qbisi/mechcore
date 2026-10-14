@@ -16,11 +16,11 @@ blue:
   techs:
     tarantula: [anti_aircraft_ammunition, spider_mine]
   units:
-  - {name: tarantula, index: 0, position: {x: 5, y: -105}}
+  - {name: tarantula, index: 0, position: {x: 5, y: -105}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: overlord, index: 0, position: {x: -35, y: -75}, exp: 0/306/1750}
-  - {name: arclight, index: 1, position: {x: 30, y: -80}, exp: 0/118/750}
+  - {name: overlord, index: 0, position: {x: -35, y: -75}, exp: 0/306/1750, source: joined}
+  - {name: arclight, index: 1, position: {x: 30, y: -80}, exp: 0/118/750, source: joined}
 ticks: 264
-hash: 24:aa46eb868bc0f43e294f23c02e47f80d3b73e63e18a747f02f83b4367a2bbc4d
+hash: 25:b2f2c31786836e80f4486a9d5e77c88711148a098068a2027635bb8b79c6ba48

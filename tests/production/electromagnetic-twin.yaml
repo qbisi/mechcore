@@ -17,11 +17,11 @@ blue:
   techs:
     vortex: [electromagnetic_twin]
   units:
-  - {name: vortex, index: 0, position: {x: 0, y: -120}}
+  - {name: vortex, index: 0, position: {x: 0, y: -120}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/400/1150}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/400/1150, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, source: joined}
 ticks: 258
-hash: 24:c88bbc65fba5fe024061457f4364cc3fc8e1f1a30517f84035800bdf2aa00072
+hash: 25:9a0fb53195eab4cc4e71ada56aa6eed066f30cb62190e8e2b36bc1d69c5a84b7

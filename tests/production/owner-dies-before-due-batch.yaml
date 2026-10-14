@@ -39,27 +39,25 @@ red:
   - {name: shield, index: 0, position: {x: -170, y: -200}}
   battle_skills:
   - {name: lightning_storm, positions: [{x: -60, y: 170}]}
-asserts:
-- sql: |
-    SELECT tick, type, object__id, unit_type_id
-    FROM events
-    WHERE
-      tick = 741
-      AND type IN ('unit_created', 'unit_died')
-    ORDER BY
-      ordinal;
-  rows:
-  - [741, unit_died, 14, null]
-- sql: |
-    SELECT unit_id, team_id, original_team_id, unit_type_id
-    FROM units
-    WHERE
-      tick = (SELECT terminal_tick FROM fight)
-      AND unit_type_id = 7
-    ORDER BY
-      unit_id;
-  rows:
-  - [25, 0, 1, 7]
-  - [27, 0, 1, 7]
 ticks: 771
-hash: 24:9d1598bbfca50162e958037cbd796f456a2359ef16e66c37a38444c2522df95e
+hash: 25:142ad8703489fc6f1ce4bac3784e07859e37ff68627a1be4e1a446a89c31f40f
+asserts:
+- sql: "SELECT tick, type, object__id, unit_type_id\nFROM events\nWHERE\n  tick =\
+    \ 741\n  AND type IN ('unit_created', 'unit_died')\nORDER BY\n  ordinal;\n"
+  rows:
+  - - 741
+    - unit_died
+    - 14
+    - null
+- sql: "SELECT unit_id, team_id, original_team_id, unit_type_id\nFROM units\nWHERE\n\
+    \  tick = (SELECT terminal_tick FROM fight)\n  AND unit_type_id = 7\nORDER BY\n\
+    \  unit_id;\n"
+  rows:
+  - - 25
+    - 0
+    - 1
+    - 7
+  - - 27
+    - 0
+    - 1
+    - 7

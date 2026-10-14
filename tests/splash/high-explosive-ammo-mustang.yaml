@@ -12,11 +12,11 @@ blue:
   techs:
     mustang: [high_explosive_ammo]
   units:
-  - {name: mustang, index: 0, position: {x: 5, y: -100}, exp: 0/384/1200}
+  - {name: mustang, index: 0, position: {x: 5, y: -100}, exp: 0/384/1200, source: joined}
 red:
   core_damage: 204
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}}
-  - {name: crawler, index: 1, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, source: joined}
+  - {name: crawler, index: 1, position: {x: 5, y: -100}, source: joined}
 ticks: 200
-hash: 24:3f4e2093d432ad101c8970360788244fa2af8b78d637a76a8d47fc77429d6643
+hash: 25:cbdb3e4bae88118dbd63cf3546b1706288573ebb77db11792d649cdc85024337

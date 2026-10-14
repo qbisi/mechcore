@@ -11,10 +11,10 @@ blue:
   core_damage: 0
   officers: [improved_tarantula]
   units:
-  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/192/1500}
+  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/192/1500, source: joined}
 red:
   core_damage: 200
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
 ticks: 151
-hash: 24:c7a87d960a14da69501d2ca8a1dff6926bc7c0fe2f6547aa49b0eb9630443cc9
+hash: 25:f4032e7aa289cfe319981bca6fc2d65e33bb340b59161357d63cc6da2c09cbf3

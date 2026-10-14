@@ -12,11 +12,11 @@ blue:
   techs:
     overlord: [jump_drive]
   units:
-  - {name: overlord, index: 0, position: {x: -5, y: -105}, exp: 0/600/1750}
+  - {name: overlord, index: 0, position: {x: -5, y: -105}, exp: 0/600/1750, source: joined}
 red:
   core_damage: 400
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
-  - {name: marksman, index: 1, position: {x: 60, y: -150}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
+  - {name: marksman, index: 1, position: {x: 60, y: -150}, source: joined}
 ticks: 361
-hash: 24:3385521d089dd824026a094b76750492017e4b12c1211b462b72bff80020ed8e
+hash: 25:65977d5907f0bd7d80c3a12ae1c0e64ea78aeb0c75689aa63ebfe05a638e9e49

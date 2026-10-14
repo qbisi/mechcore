@@ -23,66 +23,80 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: wraith, index: 0, position: {x: -5, y: -95}, exp: 0/869/2250}
-  - {name: crawler, index: 1, position: {x: 0, y: -135}, exp: 0/48/450, rotated: true}
-  - {name: steel_ball, index: 2, position: {x: 20, y: -135}, exp: 0/273/1000, rotated: true}
+  - {name: wraith, index: 0, position: {x: -5, y: -95}, exp: 0/869/2250, source: joined}
+  - {name: crawler, index: 1, position: {x: 0, y: -135}, exp: 0/48/450, rotated: true, source: joined}
+  - {name: steel_ball, index: 2, position: {x: 20, y: -135}, exp: 0/273/1000, rotated: true, source: joined}
 red:
   core_damage: 250
   units:
-  - {name: wraith, index: 0, position: {x: -5, y: -95}, exp: 0/345/2250}
-  - {name: crawler, index: 1, position: {x: 0, y: -135}, exp: 0/47/450, rotated: true}
-  - {name: steel_ball, index: 2, position: {x: 20, y: -135}, exp: 0/199/1000, rotated: true}
-asserts:
-- sql: |
-    SELECT
-      tick,
-      unit_id,
-      skill_slot,
-      enabled__lock_target__kind,
-      enabled__lock_target__id
-    FROM units__skills
-    WHERE
-      (unit_id = 30 AND tick = 131)
-      OR (unit_id = 29 AND tick = 206)
-    ORDER BY
-      tick,
-      skill_slot;
-  rows:
-  - [131, 30, 0, unit, 23]
-  - [131, 30, 1, unit, 19]
-  - [131, 30, 2, unit, 25]
-  - [131, 30, 3, unit, 21]
-  - [206, 29, 0, unit, 41]
-  - [206, 29, 1, unit, 30]
-  - [206, 29, 2, unit, 48]
-  - [206, 29, 3, unit, 55]
-- sql: |
-    SELECT tick, unit_id, mech_lock_target__kind, mech_lock_target__id
-    FROM units
-    WHERE
-      unit_id = 29
-      AND tick = 206;
-  rows:
-  - [206, 29, unit, 55]
-- sql: |
-    SELECT
-      k.skill_slot,
-      hypot(q32(t.position__x - s.position__x), q32(t.position__z - s.position__z))
-      - q32(s.collision_radius)
-      - q32(t.collision_radius)
-      <= q32(k.enabled__attack_range) AS reaches
-    FROM units s
-    JOIN units t ON t.tick = s.tick AND t.unit_id = 55
-    JOIN units__skills k ON k.tick = s.tick AND k.unit_id = s.unit_id
-    WHERE
-      s.unit_id = 29
-      AND s.tick = 206
-    ORDER BY
-      k.skill_slot;
-  rows:
-  - [0, 0]
-  - [1, 1]
-  - [2, 1]
-  - [3, 1]
+  - {name: wraith, index: 0, position: {x: -5, y: -95}, exp: 0/345/2250, source: joined}
+  - {name: crawler, index: 1, position: {x: 0, y: -135}, exp: 0/47/450, rotated: true, source: joined}
+  - {name: steel_ball, index: 2, position: {x: 20, y: -135}, exp: 0/199/1000, rotated: true, source: joined}
 ticks: 647
-hash: 24:7a90feaf0e535c74dae58c531c89730fbe1a9dfd8b3152ecdf64a45d9d2e4590
+hash: 25:ee30fef0dea5f80a15f3533cf1dbd3aa7f36f97ac9573f3d2e9702dfc1598b26
+asserts:
+- sql: "SELECT\n  tick,\n  unit_id,\n  skill_slot,\n  enabled__lock_target__kind,\n\
+    \  enabled__lock_target__id\nFROM units__skills\nWHERE\n  (unit_id = 30 AND tick\
+    \ = 131)\n  OR (unit_id = 29 AND tick = 206)\nORDER BY\n  tick,\n  skill_slot;\n"
+  rows:
+  - - 131
+    - 30
+    - 0
+    - unit
+    - 23
+  - - 131
+    - 30
+    - 1
+    - unit
+    - 19
+  - - 131
+    - 30
+    - 2
+    - unit
+    - 25
+  - - 131
+    - 30
+    - 3
+    - unit
+    - 21
+  - - 206
+    - 29
+    - 0
+    - unit
+    - 41
+  - - 206
+    - 29
+    - 1
+    - unit
+    - 30
+  - - 206
+    - 29
+    - 2
+    - unit
+    - 48
+  - - 206
+    - 29
+    - 3
+    - unit
+    - 55
+- sql: "SELECT tick, unit_id, mech_lock_target__kind, mech_lock_target__id\nFROM units\n\
+    WHERE\n  unit_id = 29\n  AND tick = 206;\n"
+  rows:
+  - - 206
+    - 29
+    - unit
+    - 55
+- sql: "SELECT\n  k.skill_slot,\n  hypot(q32(t.position__x - s.position__x), q32(t.position__z\
+    \ - s.position__z))\n  - q32(s.collision_radius)\n  - q32(t.collision_radius)\n\
+    \  <= q32(k.enabled__attack_range) AS reaches\nFROM units s\nJOIN units t ON t.tick\
+    \ = s.tick AND t.unit_id = 55\nJOIN units__skills k ON k.tick = s.tick AND k.unit_id\
+    \ = s.unit_id\nWHERE\n  s.unit_id = 29\n  AND s.tick = 206\nORDER BY\n  k.skill_slot;\n"
+  rows:
+  - - 0
+    - 0
+  - - 1
+    - 1
+  - - 2
+    - 1
+  - - 3
+    - 1

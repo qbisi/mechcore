@@ -16,12 +16,12 @@ blue:
   techs:
     hacker: [barrier]
   units:
-  - {name: hacker, index: 0, position: {x: -5, y: -105}, level: 2, exp: 0/198/1262}
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, level: 2, exp: 0/198/1262, source: joined}
 red:
   core_damage: 224
   techs:
     void_eye: [electromagnetic_armor]
   units:
-  - {name: void_eye, index: 0, position: {x: -10, y: -60}}
+  - {name: void_eye, index: 0, position: {x: -10, y: -60}, source: joined}
 ticks: 197
-hash: 24:51acf1439146ef7c1dfce8fd97f65f17ca003228d371d1ff7ef491ab7f2fe9e5
+hash: 25:1cbf3a8c98bae18e24595b9a8304240048c1f4659ce8145583b2ab28b9d938f1

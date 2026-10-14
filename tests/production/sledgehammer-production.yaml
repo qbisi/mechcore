@@ -10,13 +10,13 @@ round: 1
 blue:
   core_damage: 520
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/80/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/80/650, source: joined}
 red:
   core_damage: 0
   techs:
     war_factory: [sledgehammer_production]
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -145}, exp: 0/600/3200}
+  - {name: war_factory, index: 0, position: {x: 5, y: -145}, exp: 0/600/3200, source: joined}
 ticks: 349
-hash: 24:ae1d5752d913cf35595cb0159ce33c4996fe07c277a237faad3e45455129726d
+hash: 25:85a384aa5bf4fb5bae227834a2548f75580aa9a077abeab829cf1f39cc773d15

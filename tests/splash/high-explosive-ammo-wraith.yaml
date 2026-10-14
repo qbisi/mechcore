@@ -12,11 +12,11 @@ blue:
   techs:
     wraith: [high_explosive_ammo]
   units:
-  - {name: wraith, index: 0, position: {x: 5, y: -95}, exp: 0/384/2250}
+  - {name: wraith, index: 0, position: {x: 5, y: -95}, exp: 0/384/2250, source: joined}
 red:
   core_damage: 250
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}}
-  - {name: crawler, index: 1, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, source: joined}
+  - {name: crawler, index: 1, position: {x: 5, y: -100}, source: joined}
 ticks: 445
-hash: 24:7302fb2118b17c67f9be0373364dfd76ab2e48401fb8d939693757bf62412c33
+hash: 25:9efdf1e172f4508e9fceb03bac9dc3ea5d2aa0f660fd93cfaa5b5dddde8a5980

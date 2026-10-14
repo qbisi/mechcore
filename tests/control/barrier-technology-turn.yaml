@@ -15,10 +15,10 @@ blue:
   techs:
     hacker: [barrier]
   units:
-  - {name: hacker, index: 0, position: {x: -5, y: -55}, level: 4, exp: 0/800/2515}
+  - {name: hacker, index: 0, position: {x: -5, y: -55}, level: 4, exp: 0/800/2515, source: joined}
 red:
   core_damage: 287
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -150}}
+  - {name: fortress, index: 0, position: {x: 0, y: -150}, source: joined}
 ticks: 278
-hash: 24:f60b2f45225bf6ee19eab02438a97b01301c9c8b92b5945b4fea69fc48f28f07
+hash: 25:736bb4de95d18074d73aedb77ef506e82ea943fc1e61d0a96e5d779c4458950e

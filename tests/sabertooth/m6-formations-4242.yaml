@@ -9,12 +9,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: sabertooth, index: 0, position: {x: -5, y: -125}, exp: 0/278/1300}
-  - {name: sabertooth, index: 1, position: {x: -5, y: -85}, exp: 0/114/1300}
+  - {name: sabertooth, index: 0, position: {x: -5, y: -125}, exp: 0/278/1300, source: joined}
+  - {name: sabertooth, index: 1, position: {x: -5, y: -85}, exp: 0/114/1300, source: joined}
 red:
   core_damage: 200
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/100/450}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/300/650}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/100/450, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/300/650, source: joined}
 ticks: 473
-hash: 24:fd6bba3b00b650d0a7fb64782e73db153414e69bf66f6bf77131d99942e69a95
+hash: 25:84567645e3750c9ac50ec3ea991c219d094ce8886d31547f092750a5cbb749db

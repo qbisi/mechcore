@@ -20,16 +20,25 @@ red:
   - {name: rhino, index: 0, position: {x: 5, y: -75}, level: 9, exp: 0/2000/7736}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 75}]}
-asserts:
-- sql: |
-    SELECT tick, sum(has_enabled), sum(enabled__state = 'attack'),
-           min(enabled__current_attack_interval), max(enabled__current_attack_interval)
-    FROM units__skills
-    WHERE unit_id = 1 AND tick IN (56, 57, 58)
-    GROUP BY tick ORDER BY tick;
-  rows:
-  - [56, 8, 8, 41, 47]
-  - [57, 4, 0, 32, 32]
-  - [58, 4, 0, 32, 32]
 ticks: 726
-hash: 24:9fbb96b87cb041d3aec7ee1a9ae6c26cb1184cb78ee285502d2bc9ee24237d69
+hash: 25:9aea6dd2e65c876f8ea2d7eae60f97fa2e40d38326de10174c89d63f33446aec
+asserts:
+- sql: "SELECT tick, sum(has_enabled), sum(enabled__state = 'attack'),\n       min(enabled__current_attack_interval),\
+    \ max(enabled__current_attack_interval)\nFROM units__skills\nWHERE unit_id = 1\
+    \ AND tick IN (56, 57, 58)\nGROUP BY tick ORDER BY tick;\n"
+  rows:
+  - - 56
+    - 8
+    - 8
+    - 41
+    - 47
+  - - 57
+    - 4
+    - 0
+    - 32
+    - 32
+  - - 58
+    - 4
+    - 0
+    - 32
+    - 32

@@ -14,11 +14,11 @@ blue:
   techs:
     rhino: [whirlwind]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/384/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/384/1150, source: joined}
 red:
   core_damage: 200
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
-  - {name: crawler, index: 1, position: {x: 5, y: -140}}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
+  - {name: crawler, index: 1, position: {x: 5, y: -140}, source: joined}
 ticks: 162
-hash: 24:8f3e436771a67fe8bc0a66c78bb74709ec4fde5c0ae6514ef9177175e46f1dc7
+hash: 25:e2e6457741d58d43101fc19fe90599344aeef75936a0dffa1fb5f87722b976de

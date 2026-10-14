@@ -17,11 +17,11 @@ blue:
   techs:
     sabertooth: [anti_air_missile]
   units:
-  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/134/1300}
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/134/1300, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: phantom_ray, index: 0, position: {x: -45, y: -100}, exp: 0/300/1000}
-  - {name: wasp, index: 1, position: {x: 45, y: -100}, exp: 0/100/900}
+  - {name: phantom_ray, index: 0, position: {x: -45, y: -100}, exp: 0/300/1000, source: joined}
+  - {name: wasp, index: 1, position: {x: 45, y: -100}, exp: 0/100/900, source: joined}
 ticks: 161
-hash: 24:7017ca863e8e704e5b8741df37aa00bd6f85b4887847ebfb94f87f47c8df9732
+hash: 25:6c94a0e59379fd05c4eb465f23e7275b888af4e8d08ecd4ce2a4dcc34a0a7d78

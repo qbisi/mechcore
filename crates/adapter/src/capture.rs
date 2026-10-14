@@ -1,5 +1,6 @@
 use crate::control::{self, ControlMetadata};
 use crate::exp_range;
+use crate::production::{self, ProductionMetadata};
 use crate::reach::{self, ReachMetadata};
 use crate::rebirth::{self, RebirthMetadata};
 use crate::rvo::{self, RawSolve, RvoChannels, RvoMetadata, RvoRows};
@@ -331,6 +332,7 @@ pub(crate) struct Metadata {
     checker_error: Option<String>,
     pub(crate) selector: Option<SelectorMetadata>,
     statistics: Option<StatisticsMetadata>,
+    production: ProductionMetadata,
     selector_error: Option<String>,
     pub(crate) rvo: Option<RvoMetadata>,
     rvo_error: Option<String>,
@@ -1736,6 +1738,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             selector,
             selector_error,
             statistics: Some(statistics::initialize(api)?),
+            production: production::initialize(api)?,
             checker,
             checker_error,
             rvo,
@@ -5944,6 +5947,19 @@ fn snapshot(
     let mut raw_buildings = Vec::new();
     let mut raw_shields = Vec::new();
     let mut raw_building_teams = BTreeMap::new();
+    // A controlled owner's creator remains registered with its original side.
+    // Collect by owner pointer across both managers before reading live units.
+    let mut production_lines = BTreeMap::new();
+    for team_offset in 0..team_count {
+        let controller = list_item(runtime.api, teams, team_offset)?;
+        for (owner, lines) in
+            production::read(runtime.api, controller, &capture.metadata.production)?
+        {
+            if production_lines.insert(owner, lines).is_some() {
+                return Err("a production owner is registered with two side managers".into());
+            }
+        }
+    }
     for team_offset in 0..team_count {
         let controller = list_item(runtime.api, teams, team_offset)?;
         let team_index = runtime
@@ -5965,13 +5981,17 @@ fn snapshot(
             if !invoke_value::<bool>(runtime.api, unit, "IsAlive")? {
                 continue;
             }
-            raw_units.push(read_unit(
+            let mut raw = read_unit(
                 runtime.api,
                 unit,
                 team_id,
                 &capture.metadata,
                 capture.instruments,
-            )?);
+            )?;
+            raw.state.production_lines = production_lines
+                .remove(&(unit as usize))
+                .unwrap_or_default();
+            raw_units.push(raw);
         }
         let towers = invoke_object(runtime.api, team, "GetTowers")?;
         let team_buildings: *mut Object = runtime
@@ -6952,6 +6972,7 @@ fn read_unit(
             move_speed: invoke_value::<FixedPoint>(api, unit, "GetMoveSpeed")?.raw,
             skills,
             control: None,
+            production_lines: Vec::new(),
             rebirth_count: u32::try_from(
                 api.field_value::<i32>(unit, metadata.rebirth.unit_count as *mut FieldInfo)
                     .map_err(|error| format!("FightMech.rebirthCount: {error}"))?,
@@ -7549,7 +7570,7 @@ fn read_rebirths(runtime: &Runtime, capture: &CaptureState) -> Result<Vec<Rebirt
     rebirth::read(runtime.api, system, &metadata, capture)
 }
 
-fn find_module(
+pub(crate) fn find_module(
     api: Api,
     modules: *mut Object,
     class: usize,
@@ -9242,6 +9263,7 @@ mod tests {
 
     fn unit(id: u64, team: u32, formation: u64) -> LiveUnitState {
         LiveUnitState {
+            production_lines: Vec::new(),
             unit_id: id,
             team_id: team,
             original_team_id: team,

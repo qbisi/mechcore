@@ -15,13 +15,13 @@ blue:
   techs:
     rhino: [wreckage_recycling]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -35}, exp: 0/1000/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -35}, exp: 0/1000/1150, source: joined}
 red:
   core_damage: 200
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -20}}
-  - {name: marksman, index: 1, position: {x: -40, y: -40}}
-  - {name: marksman, index: 2, position: {x: 40, y: -60}}
-  - {name: arclight, index: 3, position: {x: 280, y: -300}}
+  - {name: marksman, index: 0, position: {x: 0, y: -20}, source: joined}
+  - {name: marksman, index: 1, position: {x: -40, y: -40}, source: joined}
+  - {name: marksman, index: 2, position: {x: 40, y: -60}, source: joined}
+  - {name: arclight, index: 3, position: {x: 280, y: -300}, source: joined}
 ticks: 518
-hash: 24:1730bf623baead1d2e444215d89d1f598c71f0d03275a816a8802d95eb678890
+hash: 25:eaec1f39e86c16861c7767b3b201ab918b32ffd1d079218cec1ed0c045c95c09

@@ -18,12 +18,12 @@ blue:
   techs:
     marksman: [elite_marksman]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, level: 3, exp: 0/300/2315}
-  - {name: marksman, index: 1, position: {x: 100, y: -150}, exp: 0/100/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, level: 3, exp: 0/300/2315, source: joined}
+  - {name: marksman, index: 1, position: {x: 100, y: -150}, exp: 0/100/650, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}}
-  - {name: fortress, index: 1, position: {x: 100, y: -100}, exp: 0/1200/1600}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, source: joined}
+  - {name: fortress, index: 1, position: {x: 100, y: -100}, exp: 0/1200/1600, source: joined}
 ticks: 475
-hash: 24:da736aec29a7d7bb65b6fc7d8b857e6b3fdbe670d2fdcf53a39e8b9dbb30c3ae
+hash: 25:bd6d0d2e84e3b8335f4b7a04536584a7bec356cfe75d4196a8f867fd6abf1e95

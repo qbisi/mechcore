@@ -20,13 +20,13 @@ blue:
   techs:
     phoenix: [quantum_reassembly]
   units:
-  - {name: phoenix, index: 0, position: {x: -60, y: -40}}
-  - {name: phoenix, index: 1, position: {x: 120, y: -260}}
+  - {name: phoenix, index: 0, position: {x: -60, y: -40}, source: joined}
+  - {name: phoenix, index: 1, position: {x: 120, y: -260}, source: joined}
 red:
   core_damage: 0
   techs:
     fortress: [anti_air_barrage]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -40}, exp: 0/1200/1600}
+  - {name: fortress, index: 0, position: {x: 0, y: -40}, exp: 0/1200/1600, source: joined}
 ticks: 445
-hash: 24:4e5bdb4de5d6100023f85b4881a0708291b9a2e0aa6f0fbb59cace599f02c3a1
+hash: 25:f7649abbb9885fef422b0102e09b6b86c0a69d8a0b63b03945a6424840fd2872

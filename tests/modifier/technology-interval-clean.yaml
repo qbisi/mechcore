@@ -25,10 +25,10 @@ blue:
   techs:
     stormcaller: [launcher_overload]
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -100}}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -100}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/400/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/400/1150, source: joined}
 ticks: 274
-hash: 24:afc733e957e40734c5b006cb26d541d929a3b21ab7c6516e3b508a8a72e2e3fa
+hash: 25:e80ee7b5893cb37014c1bec6753c4bbddedab5d571b4e0610efb443d42392f85

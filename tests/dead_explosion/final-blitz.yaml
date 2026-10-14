@@ -15,13 +15,13 @@ blue:
   techs:
     rhino: [final_blitz]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -125}, exp: 0/217/1150}
-  - {name: crawler, index: 1, position: {x: 45, y: -150}, exp: 0/177/450}
+  - {name: rhino, index: 0, position: {x: 5, y: -125}, exp: 0/217/1150, source: joined}
+  - {name: crawler, index: 1, position: {x: 45, y: -150}, exp: 0/177/450, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -60}, exp: 0/305/650}
-  - {name: fang, index: 1, position: {x: 45, y: -60}, exp: 0/73/600}
-  - {name: sledgehammer, index: 2, position: {x: -45, y: -60}, exp: 0/121/1300}
+  - {name: marksman, index: 0, position: {x: 0, y: -60}, exp: 0/305/650, source: joined}
+  - {name: fang, index: 1, position: {x: 45, y: -60}, exp: 0/73/600, source: joined}
+  - {name: sledgehammer, index: 2, position: {x: -45, y: -60}, exp: 0/121/1300, source: joined}
 ticks: 228
-hash: 24:c4c8f8078f7ea75212d64519d9b29d5383f70fd6a7e8339ad8fdb78476514dc2
+hash: 25:5ec2a11c652d367d18e3459f18ed94df3b01b7f8a55d330f9f0f284aa391aa5d

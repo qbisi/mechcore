@@ -13,10 +13,10 @@ blue:
   techs:
     sabertooth: [doubleshot]
   units:
-  - {name: sabertooth, index: 0, position: {x: -5, y: -105}, exp: 0/400/1300}
+  - {name: sabertooth, index: 0, position: {x: -5, y: -105}, exp: 0/400/1300, source: joined}
 red:
   core_damage: 200
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
 ticks: 158
-hash: 24:75608f9aeb5f85335c7772d45dd0808d695ebac65fddbb957c200da60f323daa
+hash: 25:14e187d70ad51e08981b6fcbeee7220f4ca35ead6f36d78b3a83a915c23413e3

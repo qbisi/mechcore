@@ -21,19 +21,29 @@ red:
   - {name: fang, index: 0, position: {x: -5, y: -20}, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 0, y: -80}, retained: false}
-asserts:
-- sql: |
-    SELECT tick,target__id,buff_id,duration
-    FROM events
-    WHERE type='buff_applied' AND tick=61
-    ORDER BY ordinal;
-  rows:
-  - [61, 7, 400001, 20]
-- sql: |
-    SELECT count(*) AS terrains
-    FROM terrains
-    WHERE tick=61;
-  rows:
-  - [0]
 ticks: 552
-hash: 24:4cb26091eb93fed13d4df8174e33ab1e242e43ad912e64af31acea0a926d2449
+hash: 25:8c8726a9e91942879ed49298279e7464cf6b79d07b48e3694d9fca7bb21eba4d
+asserts:
+- sql: 'SELECT tick,target__id,buff_id,duration
+
+    FROM events
+
+    WHERE type=''buff_applied'' AND tick=61
+
+    ORDER BY ordinal;
+
+    '
+  rows:
+  - - 61
+    - 7
+    - 400001
+    - 20
+- sql: 'SELECT count(*) AS terrains
+
+    FROM terrains
+
+    WHERE tick=61;
+
+    '
+  rows:
+  - - 0

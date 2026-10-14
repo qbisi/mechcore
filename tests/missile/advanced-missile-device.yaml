@@ -15,13 +15,13 @@ blue:
   core_damage: 224
   officers: [advanced_missile_device]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/144/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/144/650, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}}
-  - {name: crawler, index: 1, position: {x: 45, y: -40}, exp: 0/200/450}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, source: joined}
+  - {name: crawler, index: 1, position: {x: 45, y: -40}, exp: 0/200/450, source: joined}
 ticks: 259
-hash: 24:e9213767d7a9c06a795bdbedb690ace8d5e143493991c91784aaae120b4862e7
+hash: 25:ea3ae445260b461007e27df918fa41d9fcc273d79a75f903a91e614890b0b989

@@ -15,17 +15,20 @@ blue:
   techs:
     vortex: [mobile_power_station]
   units:
-  - {name: vortex, index: 0, position: {x: 0, y: -200}}
+  - {name: vortex, index: 0, position: {x: 0, y: -200}, source: joined}
 red:
   core_damage: 0
   techs:
     stormcaller: [electromagnetic_explosion]
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -100}, exp: 0/200/1100}
-asserts:
-- sql: |
-    SELECT tick, reason FROM events WHERE type = 'buff_removed' AND buff_id = 10001;
-  rows:
-  - [236, 3]
+  - {name: stormcaller, index: 0, position: {x: 5, y: -100}, exp: 0/200/1100, source: joined}
 ticks: 374
-hash: 24:bfa86b2c8c6a04f8884a47ae13792c245686fd14b4377cc056e4c1ba422abe60
+hash: 25:aac6f75475129318293a4a4d564653c06a9f2bb02738fa8fb9278a21ea7b5cf6
+asserts:
+- sql: 'SELECT tick, reason FROM events WHERE type = ''buff_removed'' AND buff_id
+    = 10001;
+
+    '
+  rows:
+  - - 236
+    - 3

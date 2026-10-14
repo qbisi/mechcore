@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/192/1500}
+  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/192/1500, source: joined}
 red:
   core_damage: 200
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
 ticks: 184
-hash: 24:d63376286a9953b9244f2e37ddccfeb0e72450a2238d6ab709561beed2c78f9e
+hash: 25:7381970b22d989258efe7fd2c52f9c75eb943419df911b45d163b4b57c6ba021

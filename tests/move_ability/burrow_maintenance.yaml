@@ -17,11 +17,11 @@ blue:
   techs:
     sandworm: [burrow_maintenance]
   units:
-  - {name: sandworm, index: 0, position: {x: 0, y: -140}, exp: 0/600/2000}
+  - {name: sandworm, index: 0, position: {x: 0, y: -140}, exp: 0/600/2000, source: joined}
 red:
   core_damage: 350
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, source: joined}
 ticks: 415
-hash: 24:7346e4006344f3524b70efbd62ed74e1300f5800ab6f7df0318a231b6f5fda1a
+hash: 25:f333abe58dbcdf8cfe0c2cdf1660b8aeecaa3e07b05913cc77272d6ab4d2a681

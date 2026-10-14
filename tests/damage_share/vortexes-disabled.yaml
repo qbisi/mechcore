@@ -18,18 +18,18 @@ blue:
   techs:
     vortex: [grid_integration]
   units:
-  - {name: vortex, index: 0, position: {x: -60, y: -100}, exp: 0/40/750}
-  - {name: vortex, index: 1, position: {x: -30, y: -100}, exp: 0/90/750}
-  - {name: vortex, index: 2, position: {x: 0, y: -100}, exp: 0/290/750}
-  - {name: vortex, index: 3, position: {x: 30, y: -100}, exp: 0/90/750}
-  - {name: vortex, index: 4, position: {x: 60, y: -100}, exp: 0/290/750}
+  - {name: vortex, index: 0, position: {x: -60, y: -100}, exp: 0/40/750, source: joined}
+  - {name: vortex, index: 1, position: {x: -30, y: -100}, exp: 0/90/750, source: joined}
+  - {name: vortex, index: 2, position: {x: 0, y: -100}, exp: 0/290/750, source: joined}
+  - {name: vortex, index: 3, position: {x: 30, y: -100}, exp: 0/90/750, source: joined}
+  - {name: vortex, index: 4, position: {x: 60, y: -100}, exp: 0/290/750, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: -45, y: -105}}
-  - {name: rhino, index: 1, position: {x: 5, y: -105}}
-  - {name: melting_point, index: 2, position: {x: 0, y: -200}, exp: 0/1000/1400}
+  - {name: rhino, index: 0, position: {x: -45, y: -105}, source: joined}
+  - {name: rhino, index: 1, position: {x: 5, y: -105}, source: joined}
+  - {name: melting_point, index: 2, position: {x: 0, y: -200}, exp: 0/1000/1400, source: joined}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: 75, y: 62}]}
 ticks: 639
-hash: 24:e3e55a0ed685a45e54990a4369e329bed926f1e1e6ef155b5b53776ced1df4a3
+hash: 25:9a320488ce3192a567c82c3b6c408d5a50c792ffbac49705965e4b6625f9444a

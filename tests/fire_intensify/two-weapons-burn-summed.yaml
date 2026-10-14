@@ -14,25 +14,25 @@ round: 1
 blue:
   core_damage: 350
   units:
-  - {name: marksman, index: 0, position: {x: -250, y: -280}}
+  - {name: marksman, index: 0, position: {x: -250, y: -280}, source: joined}
 red:
   core_damage: 0
   techs:
     vulcan: [incendiary_bomb, sticky_oil_bomb]
   units:
-  - {name: vulcan, index: 0, position: {x: 170, y: -60}, exp: 0/200/2200}
-asserts:
-- sql: |
-    SELECT t.terrain_id, q32(t.radius), t.logic_lifetime__limit, t.terrain_type
-    FROM terrains t
-    WHERE
-      t.terrain_id IN (1, 3)
-      AND t.tick
-      = (SELECT min(tick) FROM terrains u WHERE u.terrain_id = t.terrain_id)
-    ORDER BY
-      t.terrain_id;
-  rows:
-  - [1, 36.0, 480, fire]
-  - [3, 18.0, null, oil]
+  - {name: vulcan, index: 0, position: {x: 170, y: -60}, exp: 0/200/2200, source: joined}
 ticks: 435
-hash: 24:755704e67652ea97e054aad2615d89cf2b6f3a96e3a78d2ce50064d459e5d8c3
+hash: 25:a19b28f8581e374510bed59dfec3bb93c44626070c27595c17a57a6f4eca73e8
+asserts:
+- sql: "SELECT t.terrain_id, q32(t.radius), t.logic_lifetime__limit, t.terrain_type\n\
+    FROM terrains t\nWHERE\n  t.terrain_id IN (1, 3)\n  AND t.tick\n  = (SELECT min(tick)\
+    \ FROM terrains u WHERE u.terrain_id = t.terrain_id)\nORDER BY\n  t.terrain_id;\n"
+  rows:
+  - - 1
+    - 36.0
+    - 480
+    - fire
+  - - 3
+    - 18.0
+    - null
+    - oil

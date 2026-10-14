@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -105}, exp: 0/400/3200}
+  - {name: war_factory, index: 0, position: {x: 5, y: -105}, exp: 0/400/3200, source: joined}
 red:
   core_damage: 500
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
 ticks: 105
-hash: 24:34a537c8d1e7b9c619566fbbb0782845c7610a2f27783f16edd48baa1e86cd71
+hash: 25:5ddaf5b3db307f82671b6206e8176a8d8462a5476b150a97e9e7f766fa948356

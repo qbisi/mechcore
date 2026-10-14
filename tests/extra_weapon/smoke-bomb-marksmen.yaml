@@ -19,12 +19,12 @@ blue:
   techs:
     mountain: [smoke_bomb]
   units:
-  - {name: mountain, index: 0, position: {x: 5, y: -205}, exp: 0/800/3200}
+  - {name: mountain, index: 0, position: {x: 5, y: -205}, exp: 0/800/3200, source: joined}
 red:
   core_damage: 500
   units:
-  - {name: marksman, index: 0, position: {x: -40, y: -100}}
-  - {name: marksman, index: 1, position: {x: 40, y: -100}}
-  - {name: rhino, index: 2, position: {x: 5, y: -155}}
+  - {name: marksman, index: 0, position: {x: -40, y: -100}, source: joined}
+  - {name: marksman, index: 1, position: {x: 40, y: -100}, source: joined}
+  - {name: rhino, index: 2, position: {x: 5, y: -155}, source: joined}
 ticks: 377
-hash: 24:4be123ea9cb55eaa417a8cc437506bc694b3f029409a29f8e870f9b928aff551
+hash: 25:46e5b856ee6efb7a42be23cde6f578abe27f15d1d3f5d8a30fee95910419b00f

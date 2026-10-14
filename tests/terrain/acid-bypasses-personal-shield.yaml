@@ -19,19 +19,26 @@ red:
   blueprints: [defense_enhancement]
   units:
   - {name: centurion, index: 0, position: {x: -225, y: -45}, level: 5, exp: 5862/5862/11724, rotated: true, equipment: [portable_shield]}
-asserts:
-- sql: |
-    SELECT tick, life__current, personal_shield__energy__current FROM units
-    WHERE unit_id = 2 AND tick BETWEEN 79 AND 81 ORDER BY tick;
-  rows:
-  - [79, 94874, 94874]
-  - [80, 93450, 94874]
-  - [81, 93450, 94874]
-- sql: |
-    SELECT tick, amount FROM events WHERE type = 'damage'
-      AND source__kind IS NULL AND target__kind = 'unit' AND target__id = 2
-      AND tick = 80;
-  rows:
-  - [80, 1424]
 ticks: 210
-hash: 24:6b2f36d8e05af39f881a80a01051574f39bafe5d26348dc5699a7076a7670b6f
+hash: 25:421e76c600ee3588839225b8d04ea63a98e407ca7209bc578f4a08642b489667
+asserts:
+- sql: 'SELECT tick, life__current, personal_shield__energy__current FROM units
+
+    WHERE unit_id = 2 AND tick BETWEEN 79 AND 81 ORDER BY tick;
+
+    '
+  rows:
+  - - 79
+    - 94874
+    - 94874
+  - - 80
+    - 93450
+    - 94874
+  - - 81
+    - 93450
+    - 94874
+- sql: "SELECT tick, amount FROM events WHERE type = 'damage'\n  AND source__kind\
+    \ IS NULL AND target__kind = 'unit' AND target__id = 2\n  AND tick = 80;\n"
+  rows:
+  - - 80
+    - 1424

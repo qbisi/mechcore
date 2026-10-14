@@ -12,11 +12,11 @@ blue:
   techs:
     phantom_ray: [high_explosive_ammo]
   units:
-  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}, exp: 0/384/1000}
+  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}, exp: 0/384/1000, source: joined}
 red:
   core_damage: 201
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}}
-  - {name: crawler, index: 1, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, source: joined}
+  - {name: crawler, index: 1, position: {x: 5, y: -100}, source: joined}
 ticks: 448
-hash: 24:554da4c7d85b7089458d9c94487d279c8d74a7bc2f678423d3c5e4b47c75b76d
+hash: 25:9abe52210cad1c7437f8d4e52cda6c8154c70ee121ecb70409fd2466b00fe409

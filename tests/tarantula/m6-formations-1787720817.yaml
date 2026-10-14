@@ -9,12 +9,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: tarantula, index: 0, position: {x: -5, y: -125}, exp: 0/28/1500}
-  - {name: tarantula, index: 1, position: {x: -5, y: -85}, exp: 0/364/1500}
+  - {name: tarantula, index: 0, position: {x: -5, y: -125}, exp: 0/28/1500, source: joined}
+  - {name: tarantula, index: 1, position: {x: -5, y: -85}, exp: 0/364/1500, source: joined}
 red:
   core_damage: 400
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, source: joined}
 ticks: 315
-hash: 24:43e2976a47b41a437c4354208f03a4bfd70a119e85ccc1d9bf1a8e6632559135
+hash: 25:8a58a2966886594d5bd83436fc05880245495a39826192408897e80b47b9f170

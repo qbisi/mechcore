@@ -9,12 +9,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: mustang, index: 0, position: {x: 5, y: -140}, exp: 0/226/1200}
-  - {name: mustang, index: 1, position: {x: 5, y: -80}, exp: 0/166/1200}
+  - {name: mustang, index: 0, position: {x: 5, y: -140}, exp: 0/226/1200, source: joined}
+  - {name: mustang, index: 1, position: {x: 5, y: -80}, exp: 0/166/1200, source: joined}
 red:
   core_damage: 340
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/8/450}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/127/650}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/8/450, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/127/650, source: joined}
 ticks: 255
-hash: 24:b03c205d0135f7bb05ded76797f56158a5454227d4fd2c6a6ed0564ad22bfdf7
+hash: 25:a6df69b490916cc753ef4e62477933c6002273de347e0852290da286f665dc88

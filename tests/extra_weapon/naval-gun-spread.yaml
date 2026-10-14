@@ -14,14 +14,14 @@ blue:
   techs:
     overlord: [overlord_artillery]
   units:
-  - {name: overlord, index: 0, position: {x: -95, y: -95}, exp: 0/736/1750}
-  - {name: overlord, index: 1, position: {x: 105, y: -95}, exp: 0/472/1750}
+  - {name: overlord, index: 0, position: {x: -95, y: -95}, exp: 0/736/1750, source: joined}
+  - {name: overlord, index: 1, position: {x: 105, y: -95}, exp: 0/472/1750, source: joined}
 red:
   core_damage: 800
   units:
-  - {name: rhino, index: 0, position: {x: -135, y: -55}}
-  - {name: sledgehammer, index: 1, position: {x: 115, y: -60}}
-  - {name: crawler, index: 2, position: {x: 5, y: -70}}
-  - {name: fang, index: 3, position: {x: 185, y: -130}}
+  - {name: rhino, index: 0, position: {x: -135, y: -55}, source: joined}
+  - {name: sledgehammer, index: 1, position: {x: 115, y: -60}, source: joined}
+  - {name: crawler, index: 2, position: {x: 5, y: -70}, source: joined}
+  - {name: fang, index: 3, position: {x: 185, y: -130}, source: joined}
 ticks: 364
-hash: 24:4fbd72290b9cf616a9dea7f91516a261df19115e19b92552b29ee62c9d07ef25
+hash: 25:5f904ce37f81a2519aa86eb18e2a3eabf0f947b2c212ab15bb5d862f07472efd

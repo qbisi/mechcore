@@ -18,12 +18,12 @@ blue:
   techs:
     fortress: [rocket_punch]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -200}, exp: 0/1200/1600}
+  - {name: fortress, index: 0, position: {x: 0, y: -200}, exp: 0/1200/1600, source: joined}
 red:
   core_damage: 350
   units:
-  - {name: rhino, index: 0, position: {x: -35, y: -155}}
-  - {name: rhino, index: 1, position: {x: 5, y: -155}}
-  - {name: rhino, index: 2, position: {x: 45, y: -155}}
+  - {name: rhino, index: 0, position: {x: -35, y: -155}, source: joined}
+  - {name: rhino, index: 1, position: {x: 5, y: -155}, source: joined}
+  - {name: rhino, index: 2, position: {x: 45, y: -155}, source: joined}
 ticks: 417
-hash: 24:5869c2769aa1dc41b5324f7eb95e6876f844eae10d202339112be7def88c5f21
+hash: 25:8e13993bc8c0b4df48cd6d8b396e8c0e44b6e7aaf2e4263ee6bb2670573e854a

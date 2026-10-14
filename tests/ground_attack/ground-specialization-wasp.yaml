@@ -16,11 +16,11 @@ blue:
   techs:
     wasp: [ground_specialization]
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/600/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/600/900, source: joined}
 red:
   core_damage: 136
   units:
-  - {name: arclight, index: 0, position: {x: 30, y: -80}}
-  - {name: phoenix, index: 1, position: {x: -20, y: -90}, exp: 0/136/1300}
+  - {name: arclight, index: 0, position: {x: 30, y: -80}, source: joined}
+  - {name: phoenix, index: 1, position: {x: -20, y: -90}, exp: 0/136/1300, source: joined}
 ticks: 215
-hash: 24:b55a5c2225506ce12a2089f2c697ce92c346c7a0b0deb533f26225aacd389900
+hash: 25:43d8e306e8d8ec5a0191cb58572f31088431d58512e88d113ffa615b41c817a7

@@ -9,12 +9,12 @@ round: 1
 blue:
   core_damage: 4
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -80}, exp: 0/138/450}
-  - {name: stormcaller, index: 1, position: {x: 5, y: -120}, exp: 0/346/1100}
+  - {name: crawler, index: 0, position: {x: 5, y: -80}, exp: 0/138/450, source: joined}
+  - {name: stormcaller, index: 1, position: {x: 5, y: -120}, exp: 0/346/1100, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -80}, exp: 0/387/450}
-  - {name: stormcaller, index: 1, position: {x: 5, y: -120}, exp: 0/105/1100}
+  - {name: crawler, index: 0, position: {x: 5, y: -80}, exp: 0/387/450, source: joined}
+  - {name: stormcaller, index: 1, position: {x: 5, y: -120}, exp: 0/105/1100, source: joined}
 ticks: 763
-hash: 24:d5a8e6f450fd5db9086117cf9139d949ba81f351668dc24c99add6bd95f5c118
+hash: 25:69b22523559b5a4badfde2c42f5d4bc7cf6dde0d5d39e4bf7a9385936011e6c0

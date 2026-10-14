@@ -16,10 +16,10 @@ blue:
   techs:
     fire_badger: [counter_fire]
   units:
-  - {name: fire_badger, index: 0, position: {x: 5, y: -100}, exp: 0/200/1400}
+  - {name: fire_badger, index: 0, position: {x: 5, y: -100}, exp: 0/200/1400, source: joined}
 red:
   core_damage: 201
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -30}}
+  - {name: marksman, index: 0, position: {x: 0, y: -30}, source: joined}
 ticks: 127
-hash: 24:b63b22460b36f3d74fe2c2b826406a3fb0c8be70777549a485afd2b9c787910f
+hash: 25:a81c4ae8685fe11ed2c74c6a634835d2cdb6b508861e70c749ecd36c86f9f019

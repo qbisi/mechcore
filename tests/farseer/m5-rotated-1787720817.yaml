@@ -9,10 +9,10 @@ round: 1
 blue:
   core_damage: 200
   units:
-  - {name: farseer, index: 0, position: {x: -65, y: -65}, rotated: true}
+  - {name: farseer, index: 0, position: {x: -65, y: -65}, rotated: true, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: -35, y: -95}, exp: 0/600/1150}
+  - {name: rhino, index: 0, position: {x: -35, y: -95}, exp: 0/600/1150, source: joined}
 ticks: 244
-hash: 24:b6f6ecb69e1df825180d5dcd9cc5f33d510081cc874ca9e84f23cb7f89903b79
+hash: 25:c94d6f24f485d91ed45079efd80b01e34b52f98badd7429cbc6126174b8b014a

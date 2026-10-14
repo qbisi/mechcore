@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: abyss, index: 0, position: {x: -5, y: -105}, exp: 0/800/4800}
+  - {name: abyss, index: 0, position: {x: -5, y: -105}, exp: 0/800/4800, source: joined}
 red:
   core_damage: 500
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, equipment: [barrier]}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, equipment: [barrier], source: joined}
 ticks: 377
-hash: 24:09d1c2f31102945efb469f7934aa95f046b2cf875ad328b74dbcc18b6cbebf4b
+hash: 25:cfeb23926194611e7cf997a4b13571c602af2f8e6e1b3b92b6d3ebd4dbbded3e

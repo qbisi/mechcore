@@ -13,10 +13,10 @@ blue:
   techs:
     tarantula: [anti_aircraft_ammunition]
   units:
-  - {name: tarantula, index: 0, position: {x: 5, y: -105}, exp: 0/200/1500}
+  - {name: tarantula, index: 0, position: {x: 5, y: -105}, exp: 0/200/1500, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: phoenix, index: 0, position: {x: 20, y: -90}, exp: 0/400/1300}
+  - {name: phoenix, index: 0, position: {x: 20, y: -90}, exp: 0/400/1300, source: joined}
 ticks: 203
-hash: 24:d56a1565c423a0c1a3941a65c74e9d4417a044f5dfe71bc32f883701365b9bfd
+hash: 25:d15991bcd211a0b5e16f22998f37ce74b018e2d695a26167fbd89c30e8e07774

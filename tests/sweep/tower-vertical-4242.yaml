@@ -12,11 +12,11 @@ blue:
   techs:
     abyss: [vertical_sweep]
   units:
-  - {name: abyss, index: 0, position: {x: -135, y: -45}, exp: 0/600/4800}
+  - {name: abyss, index: 0, position: {x: -135, y: -45}, exp: 0/600/4800, source: joined}
 red:
   core_damage: 500
   units:
-  - {name: marksman, index: 0, position: {x: 140, y: -140}}
-  - {name: marksman, index: 1, position: {x: -140, y: -140}}
+  - {name: marksman, index: 0, position: {x: 140, y: -140}, source: joined}
+  - {name: marksman, index: 1, position: {x: -140, y: -140}, source: joined}
 ticks: 445
-hash: 24:7e9ef834188bbba87bf3948f2e9b6462a0eede92edbc68eb42ad5f0a76297252
+hash: 25:b6032fd8e3d7822e00b31dc541d1257707de2a2480577c833099c0e37c895c8e

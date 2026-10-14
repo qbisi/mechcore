@@ -15,15 +15,15 @@ blue:
   techs:
     crawler: [replicate]
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -120}, exp: 0/300/450}
-  - {name: crawler, index: 1, position: {x: -55, y: -120}, exp: 0/100/450}
-  - {name: crawler, index: 2, position: {x: 65, y: -120}, exp: 0/200/450}
-  - {name: crawler, index: 3, position: {x: 5, y: -150}, exp: 0/100/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -120}, exp: 0/300/450, source: joined}
+  - {name: crawler, index: 1, position: {x: -55, y: -120}, exp: 0/100/450, source: joined}
+  - {name: crawler, index: 2, position: {x: 65, y: -120}, exp: 0/200/450, source: joined}
+  - {name: crawler, index: 3, position: {x: 5, y: -150}, exp: 0/100/450, source: joined}
 red:
   core_damage: 202
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -115}, exp: 0/344/1150}
-  - {name: marksman, index: 1, position: {x: -40, y: -120}, exp: 0/32/650}
-  - {name: marksman, index: 2, position: {x: 50, y: -120}, exp: 0/40/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -115}, exp: 0/344/1150, source: joined}
+  - {name: marksman, index: 1, position: {x: -40, y: -120}, exp: 0/32/650, source: joined}
+  - {name: marksman, index: 2, position: {x: 50, y: -120}, exp: 0/40/650, source: joined}
 ticks: 394
-hash: 24:643e1787d9dc6f04a1d08bef85f5d52908ea9b45f7999d17a772f29f77a821af
+hash: 25:27ea623213f6a1775a4b9cf9cf88059a1f810e24da85d5fa700fe7c3b61f7ad2

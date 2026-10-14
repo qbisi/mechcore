@@ -22,31 +22,56 @@ red:
     void_eye: [aerial_mode]
   units:
   - {name: void_eye, index: 0, position: {x: 0, y: -20}, level: 4, source: joined}
-asserts:
-- sql: |
-    SELECT
-      u.tick,
-      u.unit_id,
-      u.domain,
-      k.enabled__lock_target__kind,
-      k.enabled__lock_target__id
-    FROM units u
-    JOIN units__skills k ON k.tick = u.tick AND k.unit_id = u.unit_id
-    WHERE
-      u.unit_id = 13
-      AND k.skill_slot = 0
-      AND u.tick IN (4, 5, 6, 7, 20, 24, 25, 26, 27)
-    ORDER BY
-      u.tick;
-  rows:
-  - [4, 13, air, unit, 10]
-  - [5, 13, air, unit, 10]
-  - [6, 13, air, null, null]
-  - [7, 13, air, building, 1]
-  - [20, 13, air, building, 1]
-  - [24, 13, air, building, 1]
-  - [25, 13, ground, building, 1]
-  - [26, 13, ground, building, 1]
-  - [27, 13, ground, building, 1]
 ticks: 43
-hash: 24:48335dca969afc30daab4e27e389c10997d83d336cde5d87dc316069da712b27
+hash: 25:4ac6d953d0c26219183d311a616d7c9432f3428ce88c2acb505a5d517efaf528
+asserts:
+- sql: "SELECT\n  u.tick,\n  u.unit_id,\n  u.domain,\n  k.enabled__lock_target__kind,\n\
+    \  k.enabled__lock_target__id\nFROM units u\nJOIN units__skills k ON k.tick =\
+    \ u.tick AND k.unit_id = u.unit_id\nWHERE\n  u.unit_id = 13\n  AND k.skill_slot\
+    \ = 0\n  AND u.tick IN (4, 5, 6, 7, 20, 24, 25, 26, 27)\nORDER BY\n  u.tick;\n"
+  rows:
+  - - 4
+    - 13
+    - air
+    - unit
+    - 10
+  - - 5
+    - 13
+    - air
+    - unit
+    - 10
+  - - 6
+    - 13
+    - air
+    - null
+    - null
+  - - 7
+    - 13
+    - air
+    - building
+    - 1
+  - - 20
+    - 13
+    - air
+    - building
+    - 1
+  - - 24
+    - 13
+    - air
+    - building
+    - 1
+  - - 25
+    - 13
+    - ground
+    - building
+    - 1
+  - - 26
+    - 13
+    - ground
+    - building
+    - 1
+  - - 27
+    - 13
+    - ground
+    - building
+    - 1

@@ -39,22 +39,27 @@ red:
   - {name: shield, index: 0, position: {x: 65, y: -190}}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: 145, y: 70}, {x: 135, y: -155}]}
-asserts:
-- sql: |
-    SELECT terrain_type, position__y FROM terrains
-    WHERE tick = 670 AND terrain_id = 28;
-  rows:
-  - [oil, 169985978803]
-- sql: |
-    SELECT value FROM terrains__grid__rows
-    WHERE tick = 670 AND terrain_id = 28 ORDER BY ordinal;
-  rows:
-  - [16]
-  - [96]
-  - [64]
-  - [64]
-  - [0]
-  - [0]
-  - [0]
 ticks: 1402
-hash: 24:732c1bc4ab9d458541060550f93a6f16a426e35ddd2cbb530bec88aa262da1d6
+hash: 25:509650e02cd56c5542bbc0308a874735366311a46d0c2ab874fffc22d4e59d25
+asserts:
+- sql: 'SELECT terrain_type, position__y FROM terrains
+
+    WHERE tick = 670 AND terrain_id = 28;
+
+    '
+  rows:
+  - - oil
+    - 169985978803
+- sql: 'SELECT value FROM terrains__grid__rows
+
+    WHERE tick = 670 AND terrain_id = 28 ORDER BY ordinal;
+
+    '
+  rows:
+  - - 16
+  - - 96
+  - - 64
+  - - 64
+  - - 0
+  - - 0
+  - - 0

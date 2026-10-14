@@ -38,28 +38,29 @@ red:
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
   contraptions:
   - {name: shield, index: 0, position: {x: 145, y: -170}, retained: false}
-asserts:
-- sql: |
-    SELECT tick, unit_id, skill_slot, enabled__state, enabled__lock_target__id
-    FROM units__skills
-    WHERE
-      unit_id = 5
-      AND skill_slot = 2
-      AND tick IN (96, 97, 98)
-    ORDER BY
-      tick;
-  rows:
-  - [96, 5, 2, idle, 5]
-  - [97, 5, 2, idle, 5]
-  - [98, 5, 2, idle, 5]
-- sql: |
-    SELECT min(tick)
-    FROM units__skills
-    WHERE
-      unit_id = 5
-      AND skill_slot = 2
-      AND enabled__state = 'prepare';
-  rows:
-  - [205]
 ticks: 509
-hash: 24:3a06457ddf64cc8bfc819c05a7eeee52a57daae77e50a5b7973e399b6f2f1af8
+hash: 25:38eb2aa2f00dba232612804bd26904570a150eb93d1750c3d0b69ac301fae6bb
+asserts:
+- sql: "SELECT tick, unit_id, skill_slot, enabled__state, enabled__lock_target__id\n\
+    FROM units__skills\nWHERE\n  unit_id = 5\n  AND skill_slot = 2\n  AND tick IN\
+    \ (96, 97, 98)\nORDER BY\n  tick;\n"
+  rows:
+  - - 96
+    - 5
+    - 2
+    - idle
+    - 5
+  - - 97
+    - 5
+    - 2
+    - idle
+    - 5
+  - - 98
+    - 5
+    - 2
+    - idle
+    - 5
+- sql: "SELECT min(tick)\nFROM units__skills\nWHERE\n  unit_id = 5\n  AND skill_slot\
+    \ = 2\n  AND enabled__state = 'prepare';\n"
+  rows:
+  - - 205

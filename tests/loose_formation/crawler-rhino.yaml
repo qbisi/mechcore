@@ -14,10 +14,10 @@ blue:
   techs:
     crawler: [loose_formation]
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/192/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/192/1150, source: joined}
 ticks: 206
-hash: 24:48af5a45767440ab1d379d7df264e7d9414765ab248c78ff16dd74564e3a6e54
+hash: 25:def3d8b19656f24268b9a9569a919dda267eba882dfa271cf1cb9cea817f209f

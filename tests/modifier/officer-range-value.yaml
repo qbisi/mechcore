@@ -19,10 +19,10 @@ blue:
   core_damage: 200
   officers: [extended_range_arclight]
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -50}}
+  - {name: arclight, index: 0, position: {x: 0, y: -50}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150, source: joined}
 ticks: 137
-hash: 24:2751da45727048ff0309f919eb1a5d0ec8d456a1b9c209c5a8d5376e75cb0238
+hash: 25:8c688b90046442e7098b50ac8074f26214139b441b0e0afb006ad1c56c66642c

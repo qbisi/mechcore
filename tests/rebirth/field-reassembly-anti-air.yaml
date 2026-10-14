@@ -18,12 +18,12 @@ blue:
   techs:
     typhoon: [field_reassembly]
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -40}}
+  - {name: typhoon, index: 0, position: {x: 0, y: -40}, source: joined}
 red:
   core_damage: 0
   techs:
     fortress: [anti_air_barrage]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -40}, exp: 0/1200/1600}
+  - {name: fortress, index: 0, position: {x: 0, y: -40}, exp: 0/1200/1600, source: joined}
 ticks: 287
-hash: 24:f872befee3c8ea74ae354af4310935c7700f2ff5c3dddd1147172adef81485d3
+hash: 25:0792602f10b6dcc2cb1f84c30f881bbdb65c3283f0d897297d876a157bae889c

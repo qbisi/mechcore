@@ -13,10 +13,10 @@ blue:
   techs:
     steel_ball: [energy_absorption]
   units:
-  - {name: steel_ball, index: 0, position: {x: 5, y: -100}, exp: 0/400/1000, equipment: [absorption_module]}
+  - {name: steel_ball, index: 0, position: {x: 5, y: -100}, exp: 0/400/1000, equipment: [absorption_module], source: joined}
 red:
   core_damage: 200
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
 ticks: 175
-hash: 24:5369f5976c24301d01c8170d1fc2b900045df533e07e1c5b8fec55e3f92e5dc7
+hash: 25:4eb96fe4c28c2a98c0e5a30e06a38bebd6cf99be04acbfd1094e449ac48a2e7f

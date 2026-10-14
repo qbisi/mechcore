@@ -13,11 +13,11 @@ blue:
   techs:
     vulcan: [sticky_oil_bomb]
   units:
-  - {name: vulcan, index: 0, position: {x: 0, y: -50}}
+  - {name: vulcan, index: 0, position: {x: 0, y: -50}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: -45, y: -95}, exp: 0/200/1150}
-  - {name: rhino, index: 1, position: {x: 45, y: -95}, exp: 0/600/1150}
+  - {name: rhino, index: 0, position: {x: -45, y: -95}, exp: 0/200/1150, source: joined}
+  - {name: rhino, index: 1, position: {x: 45, y: -95}, exp: 0/600/1150, source: joined}
 ticks: 236
-hash: 24:e47c164f2649a64b482d10650e67698a8822ca68b9922e694cea98af767145fd
+hash: 25:d910ed1f98f15d26f5a65e856a0b9baa1ba0eec0dc8ce357c7dd6462ce470a99

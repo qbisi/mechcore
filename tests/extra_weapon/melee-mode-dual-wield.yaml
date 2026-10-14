@@ -21,18 +21,18 @@ blue:
   techs:
     centurion: [melee_mode, dual_wield]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -165}, level: 3, exp: 0/744/8014}
-  - {name: fortress, index: 1, position: {x: 0, y: -120}, level: 3, exp: 0/304/5699}
+  - {name: centurion, index: 0, position: {x: 5, y: -165}, level: 3, exp: 0/744/8014, source: joined}
+  - {name: fortress, index: 1, position: {x: 0, y: -120}, level: 3, exp: 0/304/5699, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: -45, y: -60}, exp: 0/250/450}
-  - {name: crawler, index: 1, position: {x: 45, y: -60}, exp: 0/450/450}
-  - {name: crawler, index: 2, position: {x: -95, y: -60}, exp: 0/450/450}
-  - {name: crawler, index: 3, position: {x: 95, y: -60}, exp: 0/450/450}
-  - {name: crawler, index: 4, position: {x: -45, y: -100}, exp: 0/450/450}
-  - {name: crawler, index: 5, position: {x: 45, y: -100}, exp: 0/450/450}
-  - {name: marksman, index: 6, position: {x: 0, y: -40}, level: 3, exp: 0/2000/2315}
-  - {name: marksman, index: 7, position: {x: 60, y: -40}, level: 3, exp: 0/500/2315}
+  - {name: crawler, index: 0, position: {x: -45, y: -60}, exp: 0/250/450, source: joined}
+  - {name: crawler, index: 1, position: {x: 45, y: -60}, exp: 0/450/450, source: joined}
+  - {name: crawler, index: 2, position: {x: -95, y: -60}, exp: 0/450/450, source: joined}
+  - {name: crawler, index: 3, position: {x: 95, y: -60}, exp: 0/450/450, source: joined}
+  - {name: crawler, index: 4, position: {x: -45, y: -100}, exp: 0/450/450, source: joined}
+  - {name: crawler, index: 5, position: {x: 45, y: -100}, exp: 0/450/450, source: joined}
+  - {name: marksman, index: 6, position: {x: 0, y: -40}, level: 3, exp: 0/2000/2315, source: joined}
+  - {name: marksman, index: 7, position: {x: 60, y: -40}, level: 3, exp: 0/500/2315, source: joined}
 ticks: 678
-hash: 24:4df0f2c3d9ce557666f64b07d38f8cd954b36b360eb068137791a0656f491de9
+hash: 25:75aca6680d974e5993acff4585808691e8168a3bc649d0a2e3272b3b6a106e86

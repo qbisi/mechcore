@@ -12,11 +12,11 @@ blue:
   techs:
     war_factory: [high_explosive_ammo]
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -105}, exp: 0/384/3200}
+  - {name: war_factory, index: 0, position: {x: 5, y: -105}, exp: 0/384/3200, source: joined}
 red:
   core_damage: 500
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}}
-  - {name: crawler, index: 1, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, source: joined}
+  - {name: crawler, index: 1, position: {x: 5, y: -100}, source: joined}
 ticks: 189
-hash: 24:49c8e16debc96b2070d49908529da868510d2fa5922c257c013414c580147763
+hash: 25:b737b581d13ad2b3209dc0d181a850059c113b5ee090bd5b2eedc9d232a834b6

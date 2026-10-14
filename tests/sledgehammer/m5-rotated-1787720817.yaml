@@ -9,10 +9,10 @@ round: 1
 blue:
   core_damage: 200
   units:
-  - {name: sledgehammer, index: 0, position: {x: -60, y: -65}, rotated: true}
+  - {name: sledgehammer, index: 0, position: {x: -60, y: -65}, rotated: true, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: -35, y: -95}, exp: 0/400/1150}
+  - {name: rhino, index: 0, position: {x: -35, y: -95}, exp: 0/400/1150, source: joined}
 ticks: 303
-hash: 24:84d7c5e984f0593c845c55a837677a3e6f93dba702ecc3b7daae04cce35325b6
+hash: 25:3d75293719a10e46e81c5457a658c35d4eb350d080021877104a32031841a82d

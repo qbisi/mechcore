@@ -14,12 +14,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -40}, exp: 0/160/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -40}, exp: 0/160/450, source: joined}
   battle_skills:
   - {name: vulcans_descent, positions: [{x: 0, y: 0}]}
 red:
   core_damage: 147
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -40}, exp: 0/72/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -40}, exp: 0/72/450, source: joined}
 ticks: 119
-hash: 24:b1f07ca0ac554cc28bae567272c6802a760033092b710d37de457ff8c792f8dd
+hash: 25:3940da8b5fe72dcaa01ad17f0df04af8ef53ade017af0144eed2d05a46523d8f

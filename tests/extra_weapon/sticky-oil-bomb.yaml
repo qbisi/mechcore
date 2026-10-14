@@ -19,11 +19,11 @@ blue:
   techs:
     phantom_ray: [sticky_oil_bomb]
   units:
-  - {name: phantom_ray, index: 0, position: {x: 5, y: -50}, exp: 0/800/1000}
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -50}, exp: 0/800/1000, source: joined}
 red:
   core_damage: 201
   units:
-  - {name: rhino, index: 0, position: {x: -45, y: -95}}
-  - {name: rhino, index: 1, position: {x: 45, y: -95}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: -45, y: -95}, source: joined}
+  - {name: rhino, index: 1, position: {x: 45, y: -95}, exp: 0/200/1150, source: joined}
 ticks: 707
-hash: 24:b575b45387ea4b266799af801d0cae0ad705efaa2d5dc9b8fff798106c17e588
+hash: 25:a931d9972cfca3838fd90c7464c4ef679a4b6c0f036cfcca98ccbdb1956b8d4f

@@ -22,17 +22,15 @@ red:
   - {name: farseer, index: 0, position: {x: 205, y: -45}, exp: 0/200/1800, source: joined}
   constructions:
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
-asserts:
-- sql: |
-    SELECT skill_slot, enabled__lock_target__kind, enabled__lock_target__id
-    FROM units__skills
-    WHERE
-      tick = 1
-      AND unit_id = 1
-    ORDER BY
-      skill_slot;
-  rows:
-  - [0, building, 5]
-  - [1, unit, 2]
 ticks: 825
-hash: 24:d73e9e1cd50fff27574aa6a8d4fe2eb4d707d030891b218e1a8a12753c973729
+hash: 25:4cfaf7f33c37669a6562254c18c6ec127891a300e86304ffac7a664be4fc3f8e
+asserts:
+- sql: "SELECT skill_slot, enabled__lock_target__kind, enabled__lock_target__id\n\
+    FROM units__skills\nWHERE\n  tick = 1\n  AND unit_id = 1\nORDER BY\n  skill_slot;\n"
+  rows:
+  - - 0
+    - building
+    - 5
+  - - 1
+    - unit
+    - 2

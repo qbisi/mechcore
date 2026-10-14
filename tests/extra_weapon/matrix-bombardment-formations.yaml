@@ -14,12 +14,12 @@ blue:
   techs:
     wraith: [floating_artillery_array]
   units:
-  - {name: wraith, index: 0, position: {x: 5, y: -135}}
-  - {name: wraith, index: 1, position: {x: 5, y: -75}, exp: 0/392/2250}
+  - {name: wraith, index: 0, position: {x: 5, y: -135}, source: joined}
+  - {name: wraith, index: 1, position: {x: 5, y: -75}, exp: 0/392/2250, source: joined}
 red:
   core_damage: 500
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, source: joined}
 ticks: 283
-hash: 24:61d6594b8e70c9656312ab960d6c58e74dc37c6d28d6897bfa59fc562c22579a
+hash: 25:1ad229963a636c349f72a677f50426505378d53689c7ccd6ad1f5b62ecdb1829

@@ -14,13 +14,13 @@ blue:
   techs:
     typhoon: [wreckage_detonation]
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/648/1950}
-  - {name: crawler, index: 1, position: {x: 5, y: -60}, exp: 0/138/450}
-  - {name: crawler, index: 2, position: {x: -55, y: -60}, exp: 0/28/450}
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/648/1950, source: joined}
+  - {name: crawler, index: 1, position: {x: 5, y: -60}, exp: 0/138/450, source: joined}
+  - {name: crawler, index: 2, position: {x: -55, y: -60}, exp: 0/28/450, source: joined}
 red:
   core_damage: 366
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -60}, exp: 0/72/900}
-  - {name: wasp, index: 1, position: {x: -55, y: -60}, exp: 0/80/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -60}, exp: 0/72/900, source: joined}
+  - {name: wasp, index: 1, position: {x: -55, y: -60}, exp: 0/80/900, source: joined}
 ticks: 215
-hash: 24:ec2e53b25c529abdf71d0147f695821f75c5d3576169c1d7a3183e374aedb333
+hash: 25:38424b510ca39f0de8c7c20fc15beb42622ad5fdd1ad6973a78141a514f63158

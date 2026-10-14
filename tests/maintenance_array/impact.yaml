@@ -12,12 +12,12 @@ blue:
   techs:
     typhoon: [maintenance_array]
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -100}, level: 6}
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, level: 6, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}, level: 6, exp: 0/6600/6669}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, level: 6, exp: 0/6600/6669, source: joined}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: 0, y: 100}]}
 ticks: 258
-hash: 24:b12bb67a1c77d3a7188801ce73b2455975ce077ba5bc18d4ab35ae2a69085666
+hash: 25:4a8f06753294acd138cea8c4def1e2b1fc7cb39d185fb4791a6cc80340e5f559

@@ -13,12 +13,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: -100, y: -150}}
+  - {name: marksman, index: 0, position: {x: -100, y: -150}, source: joined}
   battle_skills:
   - {name: underground_threat, positions: [{x: 0, y: -60}]}
 red:
   core_damage: 132
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/32/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/32/650, source: joined}
 ticks: 296
-hash: 24:ac5fdb118e563f9ccb14ab95cd03a2d2146fe65319fcfa1082b85cffd846e6c8
+hash: 25:163245ffce2da10b8aa7531cb47ec2b055318eb8cd0f0a7404d9164b2a6e8a77

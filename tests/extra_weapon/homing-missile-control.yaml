@@ -9,12 +9,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -45}, exp: 0/600/2250}
+  - {name: centurion, index: 0, position: {x: 5, y: -45}, exp: 0/600/2250, source: joined}
 red:
   core_damage: 250
   units:
-  - {name: marksman, index: 0, position: {x: -40, y: -100}}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}}
-  - {name: marksman, index: 2, position: {x: 40, y: -100}}
+  - {name: marksman, index: 0, position: {x: -40, y: -100}, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, source: joined}
+  - {name: marksman, index: 2, position: {x: 40, y: -100}, source: joined}
 ticks: 160
-hash: 24:609b472a3c195f813655d33299938b3c2f346d612e17cef8c831732bd3ed41bd
+hash: 25:b67e9041a4b7aa030fc9d1d79ddb5ea5f3503714acd465d8735a6980df91659c

@@ -11,11 +11,11 @@ blue:
   techs:
     melting_point: [crawler_production]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -150}, exp: 0/600/1400}
+  - {name: melting_point, index: 0, position: {x: 0, y: -150}, exp: 0/600/1400, source: joined}
 red:
   core_damage: 350
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/34/1150}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/30/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/34/1150, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/30/650, source: joined}
 ticks: 471
-hash: 24:540096a15eb21d7dc7d16d96b78cca5ca44519a737b0774a935165fdc28cf13a
+hash: 25:40e5341fcd8a6b3240547d74e9d22c6a1ce144d39a2edb051f77e0f38525009f

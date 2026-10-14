@@ -16,13 +16,13 @@ blue:
   techs:
     abyss: [wreckage_recycling]
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -55}, exp: 0/1408/4800}
+  - {name: abyss, index: 0, position: {x: 5, y: -55}, exp: 0/1408/4800, source: joined}
 red:
   core_damage: 500
   units:
-  - {name: mustang, index: 0, position: {x: 5, y: -20}}
-  - {name: marksman, index: 1, position: {x: -60, y: -40}}
-  - {name: marksman, index: 2, position: {x: 60, y: -40}}
-  - {name: arclight, index: 3, position: {x: 280, y: -300}}
+  - {name: mustang, index: 0, position: {x: 5, y: -20}, source: joined}
+  - {name: marksman, index: 1, position: {x: -60, y: -40}, source: joined}
+  - {name: marksman, index: 2, position: {x: 60, y: -40}, source: joined}
+  - {name: arclight, index: 3, position: {x: 280, y: -300}, source: joined}
 ticks: 897
-hash: 24:10dad0bda2ea39b6ee70ce1622c76e49b791d16d8164b02ae1c63869b0024051
+hash: 25:50485a82ce4add286d09a83e4502bbda3cf5c4dbd5ec5cfe21a8d41fc699c22c

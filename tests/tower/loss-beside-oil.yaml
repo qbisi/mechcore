@@ -16,14 +16,14 @@ round: 1
 blue:
   core_damage: 401
   units:
-  - {name: fang, index: 0, position: {x: 145, y: -300}}
-  - {name: rhino, index: 1, position: {x: -145, y: -295}}
+  - {name: fang, index: 0, position: {x: 145, y: -300}, source: joined}
+  - {name: rhino, index: 1, position: {x: -145, y: -295}, source: joined}
 red:
   core_damage: 0
   techs:
     phantom_ray: [sticky_oil_bomb]
   units:
-  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/606/1000}
-  - {name: phantom_ray, index: 1, position: {x: -145, y: -20}, exp: 0/410/1000}
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/606/1000, source: joined}
+  - {name: phantom_ray, index: 1, position: {x: -145, y: -20}, exp: 0/410/1000, source: joined}
 ticks: 605
-hash: 24:00b13acdfd6eae76a6e1755a30c748960cc1adf2ebffe1bbcfa38d207561f544
+hash: 25:5de57850366e2163635f509ea4e12090b4b4c885f57b3c44809aa9d47f904906

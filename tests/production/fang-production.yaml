@@ -19,11 +19,11 @@ blue:
   techs:
     fortress: [fang_production]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -150}, exp: 0/600/1600}
+  - {name: fortress, index: 0, position: {x: 0, y: -150}, exp: 0/600/1600, source: joined}
 red:
   core_damage: 355
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/36/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/36/650, source: joined}
 ticks: 405
-hash: 24:bf1dac689153778d59973259f1ece37a960784866e5c6d4beb3ffceac4b770f6
+hash: 25:5c7c7dab1286ee72b27c98d7dd8f0178ab80c5b0fce63266a0d984dde582816b

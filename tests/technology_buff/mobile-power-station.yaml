@@ -18,13 +18,13 @@ blue:
   techs:
     vortex: [mobile_power_station]
   units:
-  - {name: vortex, index: 0, position: {x: 0, y: -120}}
-  - {name: marksman, index: 1, position: {x: 20, y: -120}}
-  - {name: wasp, index: 2, position: {x: -45, y: -120}, exp: 0/600/900}
-  - {name: marksman, index: 3, position: {x: 60, y: -250}, exp: 0/200/650}
+  - {name: vortex, index: 0, position: {x: 0, y: -120}, source: joined}
+  - {name: marksman, index: 1, position: {x: 20, y: -120}, source: joined}
+  - {name: wasp, index: 2, position: {x: -45, y: -120}, exp: 0/600/900, source: joined}
+  - {name: marksman, index: 3, position: {x: 60, y: -250}, exp: 0/200/650, source: joined}
 red:
   core_damage: 304
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -150}, exp: 0/400/1600}
+  - {name: fortress, index: 0, position: {x: 0, y: -150}, exp: 0/400/1600, source: joined}
 ticks: 514
-hash: 24:bd6c13bc389e6534e8010418639252a24e43d9c182d9353be8e757ac9a7bb001
+hash: 25:3318fb09d03079a8f0bb22c2db0eb8fa3ab24ae1d2be6782c3fc8cede9833029

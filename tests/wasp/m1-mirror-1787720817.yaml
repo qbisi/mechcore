@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 51
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/306/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/306/900, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/408/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/408/900, source: joined}
 ticks: 219
-hash: 24:041ba86096396c223a91712b228554980324de047a30c57198a126ac299b04a5
+hash: 25:331e3e33c07b40436d9a76934e5137fb918fe13f387ed67ffa00236a77d7759f

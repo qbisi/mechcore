@@ -13,10 +13,10 @@ blue:
   techs:
     melting_point: [energy_diffraction]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -100}, exp: 0/400/1400, equipment: [explosive_ammo]}
+  - {name: melting_point, index: 0, position: {x: 0, y: -100}, exp: 0/400/1400, equipment: [explosive_ammo], source: joined}
 red:
   core_damage: 350
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
 ticks: 174
-hash: 24:3c33c2e6f112840fa194d5ad738be73aaad1e2c7bcfca32072a0b0f618c62443
+hash: 25:bc20de393aabe4f11572e20ad4b9451473719c580fa5094ca990bd3c2840cfc5

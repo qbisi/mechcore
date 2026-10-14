@@ -13,13 +13,13 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: vortex, index: 0, position: {x: -40, y: -150}, exp: 0/200/750}
-  - {name: raiden, index: 1, position: {x: 40, y: -150}}
+  - {name: vortex, index: 0, position: {x: -40, y: -150}, exp: 0/200/750, source: joined}
+  - {name: raiden, index: 1, position: {x: 40, y: -150}, source: joined}
 red:
   core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -80}, exp: 0/650/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -80}, exp: 0/650/650, source: joined}
   contraptions:
   - {name: shield, index: 1, position: {x: 1, y: -81}, retained: false}
 ticks: 626
-hash: 24:ec5ed42ef12dc42371c9bc2f784d3a7b9aac377b9a00225e79c756178e29a0b3
+hash: 25:e3a19b20fff1f2cd974d43e0877c85d17aa4e8ca27e77eff175a43ffeb2fd798

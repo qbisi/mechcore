@@ -17,11 +17,11 @@ blue:
   techs:
     void_eye: [electromagnetic_armor]
   units:
-  - {name: void_eye, index: 0, position: {x: 0, y: -150}, exp: 0/100/650}
-  - {name: void_eye, index: 1, position: {x: 60, y: -150}, exp: 0/300/650}
+  - {name: void_eye, index: 0, position: {x: 0, y: -150}, exp: 0/100/650, source: joined}
+  - {name: void_eye, index: 1, position: {x: 60, y: -150}, exp: 0/300/650, source: joined}
 red:
   core_damage: 132
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/132/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/132/1150, source: joined}
 ticks: 273
-hash: 24:020bcd30325ec9b7a60a46df1a1fe6cd825c4478e387156ec14593a6e918d448
+hash: 25:dc346f9901aa3bf27d7089f7808d3bd686abeab52587d953d6d0b7d62865a6db

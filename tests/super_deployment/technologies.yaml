@@ -12,11 +12,11 @@ blue:
     arclight: [range_enhancement, charged_shot]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/400/750, travelling: true}
+  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/400/750, travelling: true, source: joined}
 red:
   core_damage: 100
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
   - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/200/650}
 ticks: 1041
-hash: 24:86958264d4e5d4f7df049c1cc00d32ff3fc35f98b0dd5ef4b00898eea47cc58c
+hash: 25:448d5df5c74664866a0c0738b871b4ae5ce8b0d34bdd40e066c50d43da9c40b4

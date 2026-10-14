@@ -13,12 +13,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: -100, y: -150}}
+  - {name: marksman, index: 0, position: {x: -100, y: -150}, source: joined}
   battle_skills:
   - {name: rhino_assault, positions: [{x: 0, y: -60}]}
 red:
   core_damage: 150
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, source: joined}
 ticks: 259
-hash: 24:64f1179b08bd460f683c48183b59b3392f9a3e422170f524ae828bba44b482d9
+hash: 25:36226dbc358ce79967a7114415410bf0b3d06228de2b2908da9484fbfb60dd6e

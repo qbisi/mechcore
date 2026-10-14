@@ -12,12 +12,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: -100, y: -150}}
+  - {name: marksman, index: 0, position: {x: -100, y: -150}, source: joined}
   battle_skills:
   - {name: mobilize_battleship, positions: [{x: 0, y: -60}]}
 red:
   core_damage: 200
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, source: joined}
 ticks: 161
-hash: 24:66e0f0efe3a0202d544639a0f33d71cf96c2d948c349143f208eb743d565ba7e
+hash: 25:4dfe6c202bde824e576edeba7a7e6c8d14827a4346ab2120f036c26cf79b07f9

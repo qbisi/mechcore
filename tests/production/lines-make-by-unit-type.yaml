@@ -21,23 +21,17 @@ blue:
   techs:
     war_factory: [phoenix_production, steel_ball_production, sledgehammer_production]
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -205}}
+  - {name: war_factory, index: 0, position: {x: 5, y: -205}, source: joined}
 red:
   core_damage: 557
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/100/650}
-asserts:
-- sql: |
-    SELECT unit_type_id
-    FROM events
-    WHERE
-      type = 'unit_created'
-      AND tick = 1
-    ORDER BY
-      ordinal;
-  rows:
-  - [16]
-  - [13]
-  - [8]
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/100/650, source: joined}
 ticks: 257
-hash: 24:54e0fa7e99184e0065b678bac4343405ef778fa935171816448f385943dec007
+hash: 25:7eef9fc1d8e07ef0d40bea322faffef1ebe1be1f238833695479ac48597c98dc
+asserts:
+- sql: "SELECT unit_type_id\nFROM events\nWHERE\n  type = 'unit_created'\n  AND tick\
+    \ = 1\nORDER BY\n  ordinal;\n"
+  rows:
+  - - 16
+  - - 13
+  - - 8

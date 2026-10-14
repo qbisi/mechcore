@@ -12,12 +12,12 @@ blue:
   core_damage: 1000
   officers: [aerial_specialist]
   units:
-  - {name: fang, index: 0, position: {x: 200, y: -235}, rotated: true}
-  - {name: fang, index: 1, position: {x: 0, y: -205}, rotated: true}
-  - {name: fang, index: 2, position: {x: -190, y: -225}, rotated: true}
-  - {name: fire_badger, index: 3, position: {x: -30, y: -205}, rotated: true}
-  - {name: hound, index: 5, position: {x: -190, y: -190}}
-  - {name: hound, index: 6, position: {x: 200, y: -200}}
+  - {name: fang, index: 0, position: {x: 200, y: -235}, rotated: true, source: joined}
+  - {name: fang, index: 1, position: {x: 0, y: -205}, rotated: true, source: joined}
+  - {name: fang, index: 2, position: {x: -190, y: -225}, rotated: true, source: joined}
+  - {name: fire_badger, index: 3, position: {x: -30, y: -205}, rotated: true, source: joined}
+  - {name: hound, index: 5, position: {x: -190, y: -190}, source: joined}
+  - {name: hound, index: 6, position: {x: 200, y: -200}, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -25,14 +25,14 @@ red:
   core_damage: 0
   officers: [cost_control_specialist]
   units:
-  - {name: marksman, index: 0, position: {x: 160, y: -170}, exp: 0/80/650}
-  - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 0/212/650}
-  - {name: marksman, index: 2, position: {x: -140, y: -150}, exp: 0/146/650}
-  - {name: tarantula, index: 3, position: {x: 115, y: -165}, exp: 0/244/1500}
-  - {name: tarantula, index: 4, position: {x: -115, y: -165}, exp: 0/294/1500}
-  - {name: tarantula, index: 5, position: {x: 5, y: -155}, exp: 0/371/1500}
-  - {name: marksman, index: 6, position: {x: 30, y: -160}, exp: 0/246/650}
+  - {name: marksman, index: 0, position: {x: 160, y: -170}, exp: 0/80/650, source: joined}
+  - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 0/212/650, source: joined}
+  - {name: marksman, index: 2, position: {x: -140, y: -150}, exp: 0/146/650, source: joined}
+  - {name: tarantula, index: 3, position: {x: 115, y: -165}, exp: 0/244/1500, source: joined}
+  - {name: tarantula, index: 4, position: {x: -115, y: -165}, exp: 0/294/1500, source: joined}
+  - {name: tarantula, index: 5, position: {x: 5, y: -155}, exp: 0/371/1500, source: joined}
+  - {name: marksman, index: 6, position: {x: 30, y: -160}, exp: 0/246/650, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 ticks: 600
-hash: 24:24343d1612c1a30bf2e82c183997df71fadacaf8da604f04e71ceba70aaf5697
+hash: 25:5bfb32e4653718a0382b207e5b7a9af5525103ae9f7d832d5bcb8bd2805178d5

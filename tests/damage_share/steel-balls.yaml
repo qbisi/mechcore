@@ -13,12 +13,12 @@ blue:
   techs:
     steel_ball: [damage_sharing]
   units:
-  - {name: steel_ball, index: 0, position: {x: -35, y: -100}, exp: 0/250/1000}
-  - {name: steel_ball, index: 1, position: {x: 45, y: -100}, exp: 0/350/1000}
+  - {name: steel_ball, index: 0, position: {x: -35, y: -100}, exp: 0/250/1000, source: joined}
+  - {name: steel_ball, index: 1, position: {x: 45, y: -100}, exp: 0/350/1000, source: joined}
 red:
   core_damage: 400
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: marksman, index: 1, position: {x: 60, y: -100}}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, source: joined}
+  - {name: marksman, index: 1, position: {x: 60, y: -100}, source: joined}
 ticks: 292
-hash: 24:e87db165719ba80fb2dd044da7cd0e3f959647cfd8346f53a18fa5e918991a15
+hash: 25:759d785088750626c75c9fdca986ba0640204598ed5b367eb552a3c5dc118940

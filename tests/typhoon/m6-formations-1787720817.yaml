@@ -9,12 +9,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: typhoon, index: 0, position: {x: 0, y: -120}, exp: 0/18/1950}
-  - {name: typhoon, index: 1, position: {x: 0, y: -80}, exp: 0/374/1950}
+  - {name: typhoon, index: 0, position: {x: 0, y: -120}, exp: 0/18/1950, source: joined}
+  - {name: typhoon, index: 1, position: {x: 0, y: -80}, exp: 0/374/1950, source: joined}
 red:
   core_damage: 500
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, source: joined}
 ticks: 239
-hash: 24:fa9df676fceef6232bc609d8c4b54c86c59d7e3c3cd9d56da8121206d960a1a3
+hash: 25:8f280932b0d666195c81937a0ebaa6609f7a0b80521b544cdf26c1005645d9ab

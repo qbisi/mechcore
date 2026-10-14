@@ -18,15 +18,15 @@ round: 1
 blue:
   core_damage: 120
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/204/650}
-  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/148/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/204/650, source: joined}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/148/650, source: joined}
   battle_skills:
   - {name: sticky_oil_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}], retained: false}
   - {name: incendiary_bomb, positions: [{x: 60, y: -160}, {x: 60, y: -40}]}
 red:
   core_damage: 0
   units:
-  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/300/1300}
-  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/100/450}
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/300/1300, source: joined}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/100/450, source: joined}
 ticks: 242
-hash: 24:51a8ccf1d8ad48187a2a33eee3a8a8ff704224a2501361a2a0e5c025c2dbc06f
+hash: 25:bfdc42b1a45a9f57d0e5eb1e8d2d890573633c6b21d411c355e9c7b8d82d4466

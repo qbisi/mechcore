@@ -14,9 +14,9 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: -40, y: -100}, exp: 0/134/650}
-  - {name: marksman, index: 1, position: {x: 0, y: -100}, exp: 0/134/650}
-  - {name: marksman, index: 2, position: {x: 40, y: -100}, exp: 0/134/650}
+  - {name: marksman, index: 0, position: {x: -40, y: -100}, exp: 0/134/650, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -100}, exp: 0/134/650, source: joined}
+  - {name: marksman, index: 2, position: {x: 40, y: -100}, exp: 0/134/650, source: joined}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 30}]}
 red:
@@ -24,6 +24,6 @@ red:
   techs:
     fire_badger: [scorching_charge]
   units:
-  - {name: fire_badger, index: 0, position: {x: 5, y: -40}}
+  - {name: fire_badger, index: 0, position: {x: 5, y: -40}, source: joined}
 ticks: 160
-hash: 24:7cf01e1d86e1f9a65532b4c8b19675b87b979c9b6bb7dbdf2db68433ff9f7640
+hash: 25:63103af9eaa5c4958def8f258ce27982500ef9fcdb87cfe845cc4d7e46b0e4c7

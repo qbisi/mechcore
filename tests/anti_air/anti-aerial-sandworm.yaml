@@ -14,11 +14,11 @@ blue:
   techs:
     sandworm: [anti_aerial]
   units:
-  - {name: sandworm, index: 0, position: {x: 0, y: -100}, exp: 0/1200/2000}
+  - {name: sandworm, index: 0, position: {x: 0, y: -100}, exp: 0/1200/2000, source: joined}
 red:
   core_damage: 350
   units:
-  - {name: overlord, index: 0, position: {x: -35, y: -75}}
-  - {name: arclight, index: 1, position: {x: 30, y: -80}}
+  - {name: overlord, index: 0, position: {x: -35, y: -75}, source: joined}
+  - {name: arclight, index: 1, position: {x: 30, y: -80}, source: joined}
 ticks: 277
-hash: 24:39f0bbf099b7fc21da69bb3bc982ce2405460ac005ec24441bb41e76b8c8747a
+hash: 25:54e3a792545854f82f355e1339a28b35dce6e443fe81da4d70fd0c928c4a9abe

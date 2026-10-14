@@ -19,12 +19,12 @@ blue:
   techs:
     abyss: [disintegration]
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -95}, exp: 0/992/4800}
+  - {name: abyss, index: 0, position: {x: 5, y: -95}, exp: 0/992/4800, source: joined}
 red:
   core_damage: 500
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: rhino, index: 1, position: {x: 65, y: -95}}
-  - {name: crawler, index: 2, position: {x: -55, y: -130}, exp: 0/200/450}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, source: joined}
+  - {name: rhino, index: 1, position: {x: 65, y: -95}, source: joined}
+  - {name: crawler, index: 2, position: {x: -55, y: -130}, exp: 0/200/450, source: joined}
 ticks: 700
-hash: 24:1cc34d687e0822988e60c24a4449bc4898d56841c5d2794c9659a5b0177f0d14
+hash: 25:790ba6c25bfc3c99bef080bef1bd211528f2e2e94ffda13f1a526401b25e30c5

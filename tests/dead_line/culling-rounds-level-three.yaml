@@ -13,11 +13,11 @@ blue:
   techs:
     mustang: [culling_rounds]
   units:
-  - {name: mustang, index: 0, position: {x: 5, y: -100}, level: 3, exp: 0/400/4274}
+  - {name: mustang, index: 0, position: {x: 5, y: -100}, level: 3, exp: 0/400/4274, source: joined}
 red:
   core_damage: 136
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -100}, exp: 0/340/650}
-  - {name: marksman, index: 1, position: {x: 20, y: -100}, exp: 0/340/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -100}, exp: 0/340/650, source: joined}
+  - {name: marksman, index: 1, position: {x: 20, y: -100}, exp: 0/340/650, source: joined}
 ticks: 147
-hash: 24:f9b526d998184fe49ab2381b8fad95207507fa4aaaaa708cbec955392c3d6fcd
+hash: 25:4c3ef197744cc006ccfa9b5803279ac353c2fcdd7601414de6959578d766dfc4

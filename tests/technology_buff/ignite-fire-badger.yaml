@@ -16,12 +16,12 @@ blue:
   techs:
     fire_badger: [ignite]
   units:
-  - {name: fire_badger, index: 0, position: {x: 5, y: -100}}
+  - {name: fire_badger, index: 0, position: {x: 5, y: -100}, source: joined}
 red:
   core_damage: 0
   techs:
     rhino: [field_maintenance]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/402/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/402/1150, source: joined}
 ticks: 301
-hash: 24:791353b7eb2aa2da38ae96a7048871df5bb8c9fc63b86c1b10a512bb10e35d38
+hash: 25:751a8cd6b2d3d9ae8477c94e50d9430db1855a775fa80940c7a3538305a82bee

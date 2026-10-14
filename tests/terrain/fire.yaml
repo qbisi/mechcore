@@ -14,14 +14,14 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/256/650}
-  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/336/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/256/650, source: joined}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/336/650, source: joined}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
 red:
   core_damage: 200
   units:
-  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}}
-  - {name: crawler, index: 1, position: {x: 5, y: -110}}
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, source: joined}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}, source: joined}
 ticks: 288
-hash: 24:fc51eacbe2fb9883bc90de31f3edd87cec392759beea81275f01105d1e9ad51c
+hash: 25:5e1c814e2771638041a486d7851fff6e06ceb046872d16c70ab1ba84321c855b

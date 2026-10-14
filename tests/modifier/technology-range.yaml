@@ -26,10 +26,10 @@ blue:
   techs:
     arclight: [range_enhancement]
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -50}}
+  - {name: arclight, index: 0, position: {x: 0, y: -50}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150, source: joined}
 ticks: 137
-hash: 24:c53e86e2e8c17c062839036d7428273a0579c4f27b6d3b33ecc7f77e27e47ce3
+hash: 25:98933de188a73ad60626158bc6d251e60921dbd23e7c65e44044e0ce85926df1

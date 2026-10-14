@@ -10,12 +10,12 @@ round: 1
 blue:
   core_damage: 400
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [dominion_core]}
-  - {name: fortress, index: 1, position: {x: 0, y: -250}}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [dominion_core], source: joined}
+  - {name: fortress, index: 1, position: {x: 0, y: -250}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/150/1150}
-  - {name: rhino, index: 1, position: {x: 35, y: -55}, exp: 0/50/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/150/1150, source: joined}
+  - {name: rhino, index: 1, position: {x: 35, y: -55}, exp: 0/50/1150, source: joined}
 ticks: 124
-hash: 24:a08990e70461fea551d1a2489170dd4451363520f8e8bfb20bb260916e5f24d0
+hash: 25:348bd513f79551b9984973bc61b9db3c10a15b43a6f60bc919fb9ff518f9e8e3

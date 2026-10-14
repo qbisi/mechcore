@@ -7,7 +7,7 @@ use crate::{Error, Result, canonical};
 /// The format: how a recording is stored, which the hash does not read.
 macro_rules! format_version {
     () => {
-        "0.24.0"
+        "0.25.0"
     };
 }
 
@@ -17,7 +17,7 @@ macro_rules! format_version {
 /// `n` as `0.n.0`, the form it was written in while it was the format's.
 macro_rules! hash_profile {
     () => {
-        "24"
+        "25"
     };
 }
 pub(crate) use hash_profile;
@@ -343,6 +343,20 @@ impl WorldSnapshot {
             }
         }
         for unit in &self.live_units {
+            if unit
+                .production_lines
+                .windows(2)
+                .any(|pair| pair[0].source_id >= pair[1].source_id)
+                || unit
+                    .production_lines
+                    .iter()
+                    .any(|line| line.interval_time_counter < 0)
+            {
+                return Err(Error::invalid(format!(
+                    "unit {} production lines have invalid clocks or source order",
+                    unit.unit_id
+                )));
+            }
             if unit
                 .skills
                 .windows(2)
@@ -804,6 +818,9 @@ pub struct LiveUnitState {
     pub original_team_id: u32,
     pub personal_shield: PersonalShieldState,
     pub position: QVec3,
+    /// Unit-owned production lines, sorted by native support source id.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub production_lines: Vec<ProductionLineState>,
     /// `FightMech.rebirthCount`: how many times the unit has been reborn in
     /// this fight. Left out while it is 0, as it is for nearly every unit.
     #[serde(default, skip_serializing_if = "is_zero")]
@@ -822,6 +839,17 @@ pub struct LiveUnitState {
     pub unit_type_id: u32,
     pub velocity: QPlanar,
     pub visibility: Visibility,
+}
+
+/// The carried clock of a unit-owned `SupportUnitCreator`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct ProductionLineState {
+    /// `SupportUnitCreator.intervalTimeCounter`, logical updates.
+    pub interval_time_counter: i32,
+    /// `SupportUnitData.GetID()`.
+    pub source_id: i32,
 }
 
 /// A unit a control beam is turning: a `TranslationData`.

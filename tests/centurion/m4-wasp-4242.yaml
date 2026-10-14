@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: centurion, index: 0, position: {x: -5, y: -105}, exp: 0/408/2250}
+  - {name: centurion, index: 0, position: {x: -5, y: -105}, exp: 0/408/2250, source: joined}
 red:
   core_damage: 250
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, source: joined}
 ticks: 254
-hash: 24:5241d03638f38438f5b384efeb9c2c0051f5da3be8312c948480617ef7994024
+hash: 25:e2bfe0187cd04bbe83683159530c178467fb680a4828c142ed321f1b972990cc

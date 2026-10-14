@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: phoenix, index: 0, position: {x: 0, y: -100}, exp: 0/200/1300}
+  - {name: phoenix, index: 0, position: {x: 0, y: -100}, exp: 0/200/1300, source: joined}
 red:
   core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/200/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/200/650, source: joined}
 ticks: 100
-hash: 24:7fc4ba2e259ee31838fa65afd234556cb27134a4718773d74ad603fd7c89f36d
+hash: 25:70f0f763014f82609202474b273c665e042b956b8aec22ac56b47278ec206976

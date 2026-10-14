@@ -13,12 +13,12 @@ blue:
   techs:
     crawler: [subterranean_blitz]
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -65}, exp: 0/192/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -65}, exp: 0/192/1150, source: joined}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 95}]}
 ticks: 331
-hash: 24:1119c3f31acedbed7c06d4ca2f17a7c790e24d3e5cf49b9d15d4770b3fb667da
+hash: 25:95be3e61594380ada2ec485739efc74f4f9ef64102b249d386ffcc433763bd17

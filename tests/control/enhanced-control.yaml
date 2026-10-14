@@ -15,11 +15,11 @@ blue:
   techs:
     hacker: [enhanced_control]
   units:
-  - {name: hacker, index: 0, position: {x: -5, y: -125}, exp: 0/60/560}
-  - {name: fang, index: 1, position: {x: 45, y: -120}, exp: 0/132/600}
+  - {name: hacker, index: 0, position: {x: -5, y: -125}, exp: 0/60/560, source: joined}
+  - {name: fang, index: 1, position: {x: 45, y: -120}, exp: 0/132/600, source: joined}
 red:
   core_damage: 308
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/32/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/32/450, source: joined}
 ticks: 333
-hash: 24:bdd1e10236406331392f37ad196781b3b8132f556ae0edb61439b11f74e315db
+hash: 25:421634b3ee1261c1ce0d99ca356d59a90f7ebe384ef4be5cf3b788faf1ee3543

@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 40
   units:
-  - {name: sabertooth, index: 0, position: {x: -5, y: -105}, exp: 0/112/1300}
+  - {name: sabertooth, index: 0, position: {x: -5, y: -105}, exp: 0/112/1300, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/400/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/400/450, source: joined}
 ticks: 392
-hash: 24:f2862b1a2219cdedc9aa82c5e3462e0aae09f2a63ab9a03247cddda9421bf948
+hash: 25:2c786c6de99c0491173a2dffd3ea69a96da3c336f056787e1fd316b195005544

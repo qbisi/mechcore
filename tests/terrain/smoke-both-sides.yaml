@@ -12,18 +12,18 @@ round: 1
 blue:
   core_damage: 350
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/80/650}
-  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/200/650}
-  - {name: arclight, index: 2, position: {x: 60, y: -150}, exp: 0/320/750}
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/80/650, source: joined}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/200/650, source: joined}
+  - {name: arclight, index: 2, position: {x: 60, y: -150}, exp: 0/320/750, source: joined}
   battle_skills:
   - {name: smoke_bomb, positions: [{x: -60, y: -140}, {x: 60, y: -140}]}
 red:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -120}}
-  - {name: sledgehammer, index: 1, position: {x: 25, y: -100}, exp: 0/200/1300}
-  - {name: fortress, index: 2, position: {x: 0, y: -150}, exp: 0/400/1600}
+  - {name: marksman, index: 0, position: {x: -20, y: -120}, source: joined}
+  - {name: sledgehammer, index: 1, position: {x: 25, y: -100}, exp: 0/200/1300, source: joined}
+  - {name: fortress, index: 2, position: {x: 0, y: -150}, exp: 0/400/1600, source: joined}
   battle_skills:
   - {name: smoke_bomb, positions: [{x: 60, y: -40}, {x: -60, y: -40}]}
 ticks: 521
-hash: 24:c04dada396fe04ba6c9acb478152a38f3ce0564216ee36d11a5fc4927914bd95
+hash: 25:632d2a0ba38b143ad838b4a1ac78ef66782fd595371175281167c80031735f8d

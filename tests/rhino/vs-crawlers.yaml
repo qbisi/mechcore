@@ -9,19 +9,18 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -105}, exp: 0/192/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -105}, exp: 0/192/1150, source: joined}
 red:
   core_damage: 200
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
-asserts:
-- sql: |
-    SELECT tick, unit_id, velocity__x, velocity__z
-    FROM units
-    WHERE
-      tick = 8
-      AND unit_id = 11;
-  rows:
-  - [8, 11, 10146579184, -67965446880]
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
 ticks: 377
-hash: 24:d29311e936606e22e0920882369e63c6473ae4f2a066911cf40eb3f03280b6be
+hash: 25:216c4fa416f4cb5ce65322eb1b2f1885b3f6ee339f43d7490325340c48246a7b
+asserts:
+- sql: "SELECT tick, unit_id, velocity__x, velocity__z\nFROM units\nWHERE\n  tick\
+    \ = 8\n  AND unit_id = 11;\n"
+  rows:
+  - - 8
+    - 11
+    - 10146579184
+    - -67965446880

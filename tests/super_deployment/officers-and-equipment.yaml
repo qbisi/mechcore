@@ -13,11 +13,11 @@ blue:
   officers: [advanced_defensive_tactics, advanced_offensive_tactics]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/200/750, equipment: [heavy_armor], travelling: true}
+  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/200/750, equipment: [heavy_armor], travelling: true, source: joined}
 red:
   core_damage: 0
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
   - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/600/650}
 ticks: 1362
-hash: 24:92642c52ed4b9d33899e4e392ddf8385e58dc994200e82c1a89717295cfcbc23
+hash: 25:7fe54c2e1848851e679889070668577b43b69164a3ffa556e2bd9577fdb9f698

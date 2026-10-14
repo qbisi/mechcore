@@ -9,12 +9,12 @@ round: 1
 blue:
   core_damage: 100
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -140}, exp: 0/54/750}
-  - {name: arclight, index: 1, position: {x: 0, y: -80}, exp: 0/138/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -140}, exp: 0/54/750, source: joined}
+  - {name: arclight, index: 1, position: {x: 0, y: -80}, exp: 0/138/750, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/400/650}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/400/650, source: joined}
 ticks: 373
-hash: 24:6ffba4e5d76ed7a0f65a08e9d3df689b24ae6e0466110fdca23c3433b6a620fb
+hash: 25:e380645530b1a2a5930709eb745258735c405ebe9ef173aa76978896cde27518

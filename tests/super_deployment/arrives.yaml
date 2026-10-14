@@ -16,11 +16,11 @@ blue:
   core_damage: 100
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/200/750, travelling: true}
+  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/200/750, travelling: true, source: joined}
 red:
   core_damage: 0
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
   - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/600/650}
 ticks: 1257
-hash: 24:7a0c49d1cd7801d17115dfa531a275ce326bbb7de5114731c29ac413a9084ecf
+hash: 25:6bed5c3670b809739ff051123d51ae1b53dee2b99ab70ca7fb3122b629d3a1e8

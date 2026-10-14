@@ -8,11 +8,11 @@ round: 1
 blue:
   core_damage: 405
   units:
-  - {name: sabertooth, index: 0, position: {x: 5, y: -45}}
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: phantom_ray, index: 0, position: {x: -45, y: -100}, exp: 0/100/1000}
-  - {name: wasp, index: 1, position: {x: 45, y: -100}, exp: 0/300/900}
+  - {name: phantom_ray, index: 0, position: {x: -45, y: -100}, exp: 0/100/1000, source: joined}
+  - {name: wasp, index: 1, position: {x: 45, y: -100}, exp: 0/300/900, source: joined}
 ticks: 156
-hash: 24:3125aa0c302a5a363d88ee731ff05fdb3f968ad9b5ab1a10f4b51d0fe48b3a52
+hash: 25:a2b10cb5284cc0a1a6c0ed524770ceddf12a19c43e8963c2d34c1538e8cb5117

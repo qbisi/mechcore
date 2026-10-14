@@ -15,7 +15,7 @@ blue:
   core_damage: 0
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: raiden, index: 1, position: {x: -330, y: 40}, exp: 0/400/2400, equipment: [tank_production_line], travelling: true}
+  - {name: raiden, index: 1, position: {x: -330, y: 40}, exp: 0/400/2400, equipment: [tank_production_line], travelling: true, source: joined}
 red:
   core_damage: 400
   units:
@@ -37,4 +37,4 @@ asserts:
   - [421, 2]
   - [681, 2]
 ticks: 930
-hash: 24:11a5d4907e910071a5350161b69b89648cd15648f97bb780181e671f80323e6b
+hash: 25:35ed83f24a2db2eff62c7b0f3c024a258e2b1da8aa3d87dd3acc65abc049b6f8

@@ -13,8 +13,8 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/100/650}
-  - {name: wasp, index: 1, position: {x: 65, y: -60}, exp: 0/300/900}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/100/650, source: joined}
+  - {name: wasp, index: 1, position: {x: 65, y: -60}, exp: 0/300/900, source: joined}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 55}]}
 red:
@@ -22,6 +22,6 @@ red:
   techs:
     rhino: [armor_enhancement]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, source: joined}
 ticks: 207
-hash: 24:5143a914d061c121ec8ed6bdcaf65eedfa3d987dc2147b5f1cc0067163b5ea34
+hash: 25:aced6f6b63fc76b9683b5030b3bd42b7e14df72f7c48eee723b5cae41a8915a0

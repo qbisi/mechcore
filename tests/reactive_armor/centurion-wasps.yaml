@@ -13,12 +13,12 @@ blue:
   techs:
     centurion: [reactive_armor]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -95}, exp: 0/408/2250}
+  - {name: centurion, index: 0, position: {x: 5, y: -95}, exp: 0/408/2250, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/100/900}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/400/900}
-  - {name: wasp, index: 2, position: {x: -55, y: -100}, exp: 0/100/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/100/900, source: joined}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/400/900, source: joined}
+  - {name: wasp, index: 2, position: {x: -55, y: -100}, exp: 0/100/900, source: joined}
 ticks: 262
-hash: 24:f599ff09f3e3fd9f27e37d0a241ac5cb95ea0627683c0a234f27c42da842c70c
+hash: 25:83b5dbf48d6b360cfbe369fd67b178166e349d7f318bcc92dc16a5db61eddf09

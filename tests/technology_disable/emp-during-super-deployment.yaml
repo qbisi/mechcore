@@ -36,19 +36,25 @@ red:
   - {name: mountain, index: 2, position: {x: 55, y: -225}, level: 9, exp: 0/13600/21528, source: joined}
   battle_skills:
   - {name: electromagnetic_blast, positions: [{x: 280, y: 215}]}
-asserts:
-- sql: |
-    SELECT tick, unit_id, life__current, life__maximum
-    FROM units
-    WHERE
-      unit_id = 6
-      AND tick IN (56, 57, 80, 81)
-    ORDER BY
-      tick;
-  rows:
-  - [56, 6, 326415, 467313]
-  - [57, 6, 326361, 467313]
-  - [80, 6, 395863, 467313]
-  - [81, 6, 221859, 222530]
 ticks: 559
-hash: 24:22b144d4820bdc0817a5e2d465048fec4b071efca9544108011b0aaca5ac8a99
+hash: 25:cfa57dd6d802a451fefe1cde0627ff5d0962331e97d1879d0b4f4133cc2e6d62
+asserts:
+- sql: "SELECT tick, unit_id, life__current, life__maximum\nFROM units\nWHERE\n  unit_id\
+    \ = 6\n  AND tick IN (56, 57, 80, 81)\nORDER BY\n  tick;\n"
+  rows:
+  - - 56
+    - 6
+    - 326415
+    - 467313
+  - - 57
+    - 6
+    - 326361
+    - 467313
+  - - 80
+    - 6
+    - 395863
+    - 467313
+  - - 81
+    - 6
+    - 221859
+    - 222530

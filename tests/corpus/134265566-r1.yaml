@@ -12,27 +12,27 @@ blue:
   core_damage: 0
   officers: [giant_specialist]
   units:
-  - {name: void_eye, index: 0, position: {x: -190, y: -150}, exp: 0/266/650}
-  - {name: void_eye, index: 1, position: {x: -20, y: -150}, exp: 0/70/650}
-  - {name: void_eye, index: 2, position: {x: -100, y: -150}, exp: 0/645/650}
-  - {name: sledgehammer, index: 3, position: {x: -90, y: -115}, exp: 0/337/1300, rotated: true}
-  - {name: sledgehammer, index: 4, position: {x: -180, y: -115}, exp: 0/163/1300, rotated: true}
-  - {name: crawler, index: 5, position: {x: -190, y: -185}, exp: 0/289/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -100, y: -185}, exp: 0/201/450, rotated: true}
+  - {name: void_eye, index: 0, position: {x: -190, y: -150}, exp: 0/266/650, source: joined}
+  - {name: void_eye, index: 1, position: {x: -20, y: -150}, exp: 0/70/650, source: joined}
+  - {name: void_eye, index: 2, position: {x: -100, y: -150}, exp: 0/645/650, source: joined}
+  - {name: sledgehammer, index: 3, position: {x: -90, y: -115}, exp: 0/337/1300, rotated: true, source: joined}
+  - {name: sledgehammer, index: 4, position: {x: -180, y: -115}, exp: 0/163/1300, rotated: true, source: joined}
+  - {name: crawler, index: 5, position: {x: -190, y: -185}, exp: 0/289/450, rotated: true, source: joined}
+  - {name: crawler, index: 6, position: {x: -100, y: -185}, exp: 0/201/450, rotated: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
   core_damage: 538
   officers: [cost_control_specialist]
   units:
-  - {name: crawler, index: 0, position: {x: 135, y: -190}, exp: 0/19/450}
-  - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 0/265/450, rotated: true}
-  - {name: crawler, index: 2, position: {x: 140, y: -135}, rotated: true}
-  - {name: sabertooth, index: 3, position: {x: 95, y: -95}, exp: 0/227/1300}
-  - {name: sabertooth, index: 4, position: {x: -95, y: -95}, exp: 0/248/1300}
-  - {name: arclight, index: 5, position: {x: 140, y: -100}, exp: 0/165/750}
-  - {name: arclight, index: 6, position: {x: -140, y: -100}, exp: 0/25/750}
+  - {name: crawler, index: 0, position: {x: 135, y: -190}, exp: 0/19/450, source: joined}
+  - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 0/265/450, rotated: true, source: joined}
+  - {name: crawler, index: 2, position: {x: 140, y: -135}, rotated: true, source: joined}
+  - {name: sabertooth, index: 3, position: {x: 95, y: -95}, exp: 0/227/1300, source: joined}
+  - {name: sabertooth, index: 4, position: {x: -95, y: -95}, exp: 0/248/1300, source: joined}
+  - {name: arclight, index: 5, position: {x: 140, y: -100}, exp: 0/165/750, source: joined}
+  - {name: arclight, index: 6, position: {x: -140, y: -100}, exp: 0/25/750, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 ticks: 1019
-hash: 24:accace34d2d9c7ab64b35918071054f9a1de4257227d56fcd76c563161a241ad
+hash: 25:87e911a2c90bd8b8650e70655f8d1e484ac6109f4425ba19111f5d37da86e1e6

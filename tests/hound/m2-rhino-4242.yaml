@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 200
   units:
-  - {name: hound, index: 0, position: {x: 0, y: -100}}
+  - {name: hound, index: 0, position: {x: 0, y: -100}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/200/1150, source: joined}
 ticks: 272
-hash: 24:4134b9a13520e306ec14d294a76d4b988a685ff2378958fe7696f9681e74c356
+hash: 25:9013b07e80445e8ecb6b2f2b10dd36050f29e0f3bc91fab7eb93d795296ea2a9

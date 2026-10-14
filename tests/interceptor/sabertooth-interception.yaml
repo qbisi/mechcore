@@ -15,11 +15,11 @@ blue:
   techs:
     sabertooth: [missile_interceptor]
   units:
-  - {name: sabertooth, index: 0, position: {x: 5, y: -105}, exp: 0/200/1300}
+  - {name: sabertooth, index: 0, position: {x: 5, y: -105}, exp: 0/200/1300, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/300/1100}
-  - {name: stormcaller, index: 1, position: {x: -55, y: -40}, exp: 0/100/1100}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/300/1100, source: joined}
+  - {name: stormcaller, index: 1, position: {x: -55, y: -40}, exp: 0/100/1100, source: joined}
 ticks: 205
-hash: 24:813830c574704b1ffc4b016503bc302e49c47aa2b045115d6068a68e9e844f21
+hash: 25:523c51e8dfa407b0fc29080a9340ac086fa068042216c962834bbbf1d862848c

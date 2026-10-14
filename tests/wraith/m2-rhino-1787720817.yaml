@@ -9,14 +9,14 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: wraith, index: 0, position: {x: 5, y: -255}}
-  - {name: wraith, index: 1, position: {x: 5, y: -215}, exp: 0/50/2250}
-  - {name: wraith, index: 2, position: {x: 5, y: -175}, exp: 0/250/2250}
-  - {name: wraith, index: 3, position: {x: 5, y: -135}, exp: 0/50/2250}
-  - {name: wraith, index: 4, position: {x: 5, y: -95}, exp: 0/50/2250}
+  - {name: wraith, index: 0, position: {x: 5, y: -255}, source: joined}
+  - {name: wraith, index: 1, position: {x: 5, y: -215}, exp: 0/50/2250, source: joined}
+  - {name: wraith, index: 2, position: {x: 5, y: -175}, exp: 0/250/2250, source: joined}
+  - {name: wraith, index: 3, position: {x: 5, y: -135}, exp: 0/50/2250, source: joined}
+  - {name: wraith, index: 4, position: {x: 5, y: -95}, exp: 0/50/2250, source: joined}
 red:
   core_damage: 1250
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
 ticks: 286
-hash: 24:c7d56d4f08c1f194811d3f2e62145581f77cf5c684ee2cfb6297cef485b6fa8e
+hash: 25:09c53ac410b64913f5ae006c7c07d303f22b60aa7fcdaf8ee65c34b98281cc5d

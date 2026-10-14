@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}, exp: 0/200/1000}
+  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}, exp: 0/200/1000, source: joined}
 red:
   core_damage: 134
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/134/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/134/650, source: joined}
 ticks: 163
-hash: 24:c710fadba8f226865f2c135a79884a6efdc8fcc38895ba1ded92a788a415f8cf
+hash: 25:7cdfb31739fed138f85ee28f021b49ef2026a1cf44e435eff752741bb42ce825

@@ -15,7 +15,7 @@ blue:
   techs:
     hacker: [barrier]
   units:
-  - {name: hacker, index: 0, position: {x: -315, y: 85}, exp: 0/400/560, travelling: true}
+  - {name: hacker, index: 0, position: {x: -315, y: 85}, exp: 0/400/560, travelling: true, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -110, y: -135}}
 red:
@@ -34,4 +34,4 @@ asserts:
   - [1, null, 1]
   - [2, 1, 0]
 ticks: 797
-hash: 24:e76c13cec46dbc6d346e6da845f1bbb8358bfd3ac7e170d49ad6bc9253f4c1fa
+hash: 25:e62bbb84bab0700dcdf01863c264210a77f0489cafb0d467a534492c8deeda43

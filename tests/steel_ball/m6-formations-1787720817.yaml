@@ -9,12 +9,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: steel_ball, index: 0, position: {x: 5, y: -140}, exp: 0/308/1000}
-  - {name: steel_ball, index: 1, position: {x: 5, y: -80}, exp: 0/84/1000}
+  - {name: steel_ball, index: 0, position: {x: 5, y: -140}, exp: 0/308/1000, source: joined}
+  - {name: steel_ball, index: 1, position: {x: 5, y: -80}, exp: 0/84/1000, source: joined}
 red:
   core_damage: 150
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/175/450}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/325/650}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/175/450, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/325/650, source: joined}
 ticks: 507
-hash: 24:57475cdac3cd3983ff52b754f0286d4fd3585f1c3174c3a71af88265f613839a
+hash: 25:3ee4e9756f2001c5d8caf2e69b567d5edec3c73bde8f3883c56a18b5246eb57c

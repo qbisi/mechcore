@@ -12,16 +12,16 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: fortress, index: 0, position: {x: -60, y: -150}, exp: 0/200/1600}
-  - {name: fortress, index: 1, position: {x: 60, y: -150}, exp: 0/200/1600}
+  - {name: fortress, index: 0, position: {x: -60, y: -150}, exp: 0/200/1600, source: joined}
+  - {name: fortress, index: 1, position: {x: 60, y: -150}, exp: 0/200/1600, source: joined}
   battle_skills:
   - {name: nuke, positions: [{x: -60, y: 130}]}
 red:
   core_damage: 700
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -80}}
-  - {name: marksman, index: 1, position: {x: 60, y: -130}}
+  - {name: marksman, index: 0, position: {x: 0, y: -80}, source: joined}
+  - {name: marksman, index: 1, position: {x: 60, y: -130}, source: joined}
   contraptions:
   - {name: shield, index: 2, position: {x: 1, y: -81}, retained: false}
 ticks: 433
-hash: 24:86dfbd576631978a652c7630b19efa52ed9a31785301516c97941fed64d834b5
+hash: 25:e143a644b27f8715bec3fa14a9f0f06eaf22d83f145032096cfd99162d9c0ab5

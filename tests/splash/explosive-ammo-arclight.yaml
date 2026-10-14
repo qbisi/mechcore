@@ -10,10 +10,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/192/750, equipment: [explosive_ammo]}
+  - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/192/750, equipment: [explosive_ammo], source: joined}
 red:
   core_damage: 100
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
 ticks: 153
-hash: 24:1c889db6a58960e80aab137e0ac4a285284e9ecc1e84fab1d840784fd52386cd
+hash: 25:4383d0d08ba2a9507b097604f0e5c15eb324ef2b19fb286caab5fb68be72482e

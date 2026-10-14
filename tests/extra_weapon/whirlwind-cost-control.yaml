@@ -17,11 +17,11 @@ blue:
     rhino: [whirlwind]
   blueprints: [attack_enhancement_ii]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: -25, y: -95}, exp: 0/300/1150}
-  - {name: rhino, index: 1, position: {x: 35, y: -95}, exp: 0/100/1150}
+  - {name: rhino, index: 0, position: {x: -25, y: -95}, exp: 0/300/1150, source: joined}
+  - {name: rhino, index: 1, position: {x: 35, y: -95}, exp: 0/100/1150, source: joined}
 ticks: 158
-hash: 24:49cef8d2d49e8b882b04e2c1a3882ff147eaab78ec8a047f36d6fbda2bddf75c
+hash: 25:8e7dd424cee2e6b7538b9301ee4df1ae4077900ab971a6d567ea6b3d7d6b3a97

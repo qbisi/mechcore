@@ -9,10 +9,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: raiden, index: 0, position: {x: -60, y: -60}, exp: 0/200/2400, rotated: true}
+  - {name: raiden, index: 0, position: {x: -60, y: -60}, exp: 0/200/2400, rotated: true, source: joined}
 red:
   core_damage: 350
   units:
-  - {name: marksman, index: 0, position: {x: -40, y: -100}}
+  - {name: marksman, index: 0, position: {x: -40, y: -100}, source: joined}
 ticks: 98
-hash: 24:3ef3a85d1ec4bc30f8b679ba034f9eaa73e2235e1f84111df24b9b994383b45f
+hash: 25:6678ad01ee04d378e351df9a496fa62b7cb4983f20f020aa6d1413de83a37a00

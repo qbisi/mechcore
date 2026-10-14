@@ -16,11 +16,11 @@ blue:
   techs:
     phantom_ray: [ground_targeting]
   units:
-  - {name: phantom_ray, index: 0, position: {x: 5, y: -100}, exp: 0/600/1000}
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -100}, exp: 0/600/1000, source: joined}
 red:
   core_damage: 67
   units:
-  - {name: arclight, index: 0, position: {x: 30, y: -60}}
-  - {name: phoenix, index: 1, position: {x: -20, y: -90}, exp: 0/268/1300}
+  - {name: arclight, index: 0, position: {x: 30, y: -60}, source: joined}
+  - {name: phoenix, index: 1, position: {x: -20, y: -90}, exp: 0/268/1300, source: joined}
 ticks: 240
-hash: 24:82b77732711ce4230c8a18a44bab8e1781355e5b632d4ca1a55f6be2117bb320
+hash: 25:037d6996aac39129ab5c6119c3f3f3e9835fc718d60ffb6da30bb6fe141086ed

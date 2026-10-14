@@ -12,12 +12,12 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/200/1150, equipment: [anti_interference_module]}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/200/1150, equipment: [anti_interference_module], source: joined}
 red:
   core_damage: 200
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, source: joined}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 45}]}
 ticks: 216
-hash: 24:786055d6a12e2aec786da7765bdc2d397164fdb1ac980a5f8684a65d6f80d3c9
+hash: 25:c22722383d2c14a5405bfa0714394a5f0dc5f3e1076d35beead4e06e17f50ae1

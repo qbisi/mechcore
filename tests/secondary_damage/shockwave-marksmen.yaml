@@ -13,15 +13,15 @@ blue:
   techs:
     arclight: [shockwave]
   units:
-  - {name: arclight, index: 0, position: {x: -40, y: -100}, exp: 0/71/750}
-  - {name: arclight, index: 1, position: {x: 0, y: -100}, exp: 0/71/750}
-  - {name: arclight, index: 2, position: {x: 40, y: -100}, exp: 0/49/750}
+  - {name: arclight, index: 0, position: {x: -40, y: -100}, exp: 0/71/750, source: joined}
+  - {name: arclight, index: 1, position: {x: 0, y: -100}, exp: 0/71/750, source: joined}
+  - {name: arclight, index: 2, position: {x: 40, y: -100}, exp: 0/49/750, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
-  - {name: marksman, index: 1, position: {x: -40, y: -200}, exp: 0/200/650}
-  - {name: marksman, index: 2, position: {x: 0, y: -200}, exp: 0/200/650}
-  - {name: marksman, index: 3, position: {x: 40, y: -200}, exp: 0/200/650}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
+  - {name: marksman, index: 1, position: {x: -40, y: -200}, exp: 0/200/650, source: joined}
+  - {name: marksman, index: 2, position: {x: 0, y: -200}, exp: 0/200/650, source: joined}
+  - {name: marksman, index: 3, position: {x: 40, y: -200}, exp: 0/200/650, source: joined}
 ticks: 364
-hash: 24:4ad8898093b5ce7e227433d158dad871b5dac4ac08e7edb8cb70faeff1ca77fd
+hash: 25:83f6e15fdb22bac86d2ae5bbac898790181a9bbaf2027319412d62135ecd93da

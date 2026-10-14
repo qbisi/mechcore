@@ -17,12 +17,12 @@ blue:
   techs:
     vortex: [emergency_armor]
   units:
-  - {name: vortex, index: 0, position: {x: 0, y: -100}, exp: 0/200/750}
+  - {name: vortex, index: 0, position: {x: 0, y: -100}, exp: 0/200/750, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -100}, exp: 0/50/650}
-  - {name: marksman, index: 1, position: {x: 0, y: -100}}
-  - {name: marksman, index: 2, position: {x: 20, y: -100}, exp: 0/150/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -100}, exp: 0/50/650, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -100}, source: joined}
+  - {name: marksman, index: 2, position: {x: 20, y: -100}, exp: 0/150/650, source: joined}
 ticks: 193
-hash: 24:b326e3dbb7fe6c380f7658ebea1dcb0a543da8402cfecf3e8c8e83760a70257d
+hash: 25:a2209f08ab29573487e453ed5a4bfb07e1b1a6f06bcff4fdb2cfe73df6befb22

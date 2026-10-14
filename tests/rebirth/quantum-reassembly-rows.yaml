@@ -15,20 +15,20 @@ blue:
   techs:
     phoenix: [quantum_reassembly]
   units:
-  - {name: phoenix, index: 0, position: {x: -100, y: -40}, exp: 0/466/1300}
-  - {name: phoenix, index: 1, position: {x: -60, y: -40}, exp: 0/66/1300}
-  - {name: phoenix, index: 2, position: {x: -20, y: -40}}
-  - {name: phoenix, index: 3, position: {x: 20, y: -40}, exp: 0/466/1300}
-  - {name: phoenix, index: 4, position: {x: 60, y: -40}, exp: 0/66/1300}
-  - {name: phoenix, index: 5, position: {x: 100, y: -40}, exp: 0/266/1300}
-  - {name: phoenix, index: 6, position: {x: 120, y: -260}, exp: 0/666/1300}
+  - {name: phoenix, index: 0, position: {x: -100, y: -40}, exp: 0/466/1300, source: joined}
+  - {name: phoenix, index: 1, position: {x: -60, y: -40}, exp: 0/66/1300, source: joined}
+  - {name: phoenix, index: 2, position: {x: -20, y: -40}, source: joined}
+  - {name: phoenix, index: 3, position: {x: 20, y: -40}, exp: 0/466/1300, source: joined}
+  - {name: phoenix, index: 4, position: {x: 60, y: -40}, exp: 0/66/1300, source: joined}
+  - {name: phoenix, index: 5, position: {x: 100, y: -40}, exp: 0/266/1300, source: joined}
+  - {name: phoenix, index: 6, position: {x: 120, y: -260}, exp: 0/666/1300, source: joined}
 red:
   core_damage: 550
   techs:
     fortress: [anti_air_barrage]
   units:
-  - {name: fortress, index: 0, position: {x: -60, y: -40}, exp: 0/500/1600}
-  - {name: fortress, index: 1, position: {x: 60, y: -40}, exp: 0/950/1600}
-  - {name: fortress, index: 2, position: {x: 0, y: -80}, exp: 0/550/1600}
+  - {name: fortress, index: 0, position: {x: -60, y: -40}, exp: 0/500/1600, source: joined}
+  - {name: fortress, index: 1, position: {x: 60, y: -40}, exp: 0/950/1600, source: joined}
+  - {name: fortress, index: 2, position: {x: 0, y: -80}, exp: 0/550/1600, source: joined}
 ticks: 383
-hash: 24:ab342e67d95063950db39a733c884127ddc74b53a5c38eea244f0749e1ae220f
+hash: 25:ac02f6b02427d9058af6ccf0eb2631e89660a33cd4732bd3e20f776a0c3d3ca7

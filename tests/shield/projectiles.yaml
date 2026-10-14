@@ -15,13 +15,13 @@ round: 1
 blue:
   core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: -40, y: -150}}
-  - {name: arclight, index: 1, position: {x: 40, y: -150}}
+  - {name: marksman, index: 0, position: {x: -40, y: -150}, source: joined}
+  - {name: arclight, index: 1, position: {x: 40, y: -150}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -80}, exp: 0/400/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -80}, exp: 0/400/650, source: joined}
   contraptions:
   - {name: shield, index: 1, position: {x: 1, y: -81}}
 ticks: 326
-hash: 24:b9a0fc7f7ecef21bef547a8d4948cc736a3de343efdbdd30788acd8ac9e670cf
+hash: 25:70b70f8e305e9debf4ec0e5b693ee395c2fcc15878a83f2469bda5ab5c0924c6

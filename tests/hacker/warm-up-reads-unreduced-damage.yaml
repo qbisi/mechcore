@@ -14,35 +14,23 @@ blue:
   core_damage: 0
   officers: [advanced_power_system]
   units:
-  - {name: hacker, index: 0, position: {x: 5, y: -205}, level: 5, exp: 0/400/2918}
+  - {name: hacker, index: 0, position: {x: 5, y: -205}, level: 5, exp: 0/400/2918, source: joined}
 red:
   core_damage: 250
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}}
-asserts:
-- sql: |
-    SELECT enabled__attack_damage
-    FROM units__skills
-    WHERE
-      unit_id = 1
-      AND skill_slot = 0
-      AND tick = 1;
-  rows:
-  - [2]
-- sql: |
-    SELECT DISTINCT control__progress
-    FROM units
-    WHERE
-      unit_id = 2
-      AND has_control
-      AND control__progress < 4000
-    ORDER BY
-      1;
-  rows:
-  - [0]
-  - [2]
-  - [4]
-  - [6]
-  - [3006]
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, source: joined}
 ticks: 172
-hash: 24:1a1fa311faca4c498e3d6ff0549ff10c026e54ea9f862b359043a32d6dc521a1
+hash: 25:d18299a434080313642d8ac9d05ab25edd6ac15c838f160150680e332a350ffb
+asserts:
+- sql: "SELECT enabled__attack_damage\nFROM units__skills\nWHERE\n  unit_id = 1\n\
+    \  AND skill_slot = 0\n  AND tick = 1;\n"
+  rows:
+  - - 2
+- sql: "SELECT DISTINCT control__progress\nFROM units\nWHERE\n  unit_id = 2\n  AND\
+    \ has_control\n  AND control__progress < 4000\nORDER BY\n  1;\n"
+  rows:
+  - - 0
+  - - 2
+  - - 4
+  - - 6
+  - - 3006

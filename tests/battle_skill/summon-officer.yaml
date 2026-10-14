@@ -16,12 +16,12 @@ blue:
   core_damage: 0
   officers: [advanced_offensive_tactics]
   units:
-  - {name: marksman, index: 0, position: {x: -100, y: -150}}
+  - {name: marksman, index: 0, position: {x: -100, y: -150}, source: joined}
   battle_skills:
   - {name: rhino_assault, positions: [{x: 0, y: -60}]}
 red:
   core_damage: 150
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, source: joined}
 ticks: 259
-hash: 24:c312dd95d4f9453488071af47071f3df506fbe2c591393e49cfa77dd6e462968
+hash: 25:a616281425b01c09a29237b23d7cd4a1d37dcb5bf107c4ec24b368374916602d

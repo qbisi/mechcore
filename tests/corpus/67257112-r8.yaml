@@ -91,4 +91,4 @@ red:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 ticks: 1221
-hash: 24:f9b32db757c1af117ab9b829ebb12bdea17d38242a914f4239fdac39d939dfc9
+hash: 25:7cf1872702cb18e45104d56eef7ee4f97d17d136093c04998ad0a15484754eaf

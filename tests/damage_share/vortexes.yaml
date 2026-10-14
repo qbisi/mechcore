@@ -16,18 +16,18 @@ blue:
   techs:
     vortex: [grid_integration]
   units:
-  - {name: vortex, index: 0, position: {x: -60, y: -100}, exp: 0/266/750}
-  - {name: vortex, index: 1, position: {x: -30, y: -100}, exp: 0/66/750}
-  - {name: vortex, index: 2, position: {x: 0, y: -100}, exp: 0/133/750}
-  - {name: vortex, index: 3, position: {x: 30, y: -100}, exp: 0/66/750}
-  - {name: vortex, index: 4, position: {x: 60, y: -100}, exp: 0/266/750}
+  - {name: vortex, index: 0, position: {x: -60, y: -100}, exp: 0/266/750, source: joined}
+  - {name: vortex, index: 1, position: {x: -30, y: -100}, exp: 0/66/750, source: joined}
+  - {name: vortex, index: 2, position: {x: 0, y: -100}, exp: 0/133/750, source: joined}
+  - {name: vortex, index: 3, position: {x: 30, y: -100}, exp: 0/66/750, source: joined}
+  - {name: vortex, index: 4, position: {x: 60, y: -100}, exp: 0/266/750, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: -85, y: -105}, exp: 0/333/1150}
-  - {name: rhino, index: 1, position: {x: -45, y: -105}}
-  - {name: rhino, index: 2, position: {x: 5, y: -105}, exp: 0/433/1150}
-  - {name: rhino, index: 3, position: {x: 45, y: -105}}
-  - {name: rhino, index: 4, position: {x: 85, y: -105}, exp: 0/233/1150}
+  - {name: rhino, index: 0, position: {x: -85, y: -105}, exp: 0/333/1150, source: joined}
+  - {name: rhino, index: 1, position: {x: -45, y: -105}, source: joined}
+  - {name: rhino, index: 2, position: {x: 5, y: -105}, exp: 0/433/1150, source: joined}
+  - {name: rhino, index: 3, position: {x: 45, y: -105}, source: joined}
+  - {name: rhino, index: 4, position: {x: 85, y: -105}, exp: 0/233/1150, source: joined}
 ticks: 314
-hash: 24:42b3d9029b5f74566fa53b4c60bc6d58bb7c8305c408f5e44a70260fcaef3ad1
+hash: 25:687a4af9ebb7972d3744c635b1293cb8b0861493d3c67dcd17a8f0dd9c04d0de

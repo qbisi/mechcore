@@ -15,10 +15,10 @@ blue:
   techs:
     mustang: [culling_rounds]
   units:
-  - {name: mustang, index: 0, position: {x: 5, y: -100}, exp: 0/192/1200}
+  - {name: mustang, index: 0, position: {x: 5, y: -100}, exp: 0/192/1200, source: joined}
 red:
   core_damage: 204
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
 ticks: 120
-hash: 24:3073551b284c7b56bcaedac8b0738ee5e66c36098dd083fcc97702a3cf83a72f
+hash: 25:5d616b62bba4dc12ef8466801cec450d66f3ef84e788f294f4b1353451ba2e1c

@@ -15,15 +15,15 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: -100, y: -150}, exp: 0/224/650}
+  - {name: marksman, index: 0, position: {x: -100, y: -150}, exp: 0/224/650, source: joined}
   battle_skills:
   - {name: rhino_assault, positions: [{x: -1, y: 81}]}
 red:
   core_damage: 150
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -80}}
-  - {name: crawler, index: 1, position: {x: 15, y: -100}}
+  - {name: marksman, index: 0, position: {x: 0, y: -80}, source: joined}
+  - {name: crawler, index: 1, position: {x: 15, y: -100}, source: joined}
   contraptions:
   - {name: shield, index: 2, position: {x: 1, y: -81}}
 ticks: 246
-hash: 24:7158edfbf3eaa4dab804e4710e1080cee9221e1cf6c8311665ed7bad5d673dad
+hash: 25:53b5f111cbc9e606efefd27f0b613e55eda42751750138519fd0f719c5535b7c

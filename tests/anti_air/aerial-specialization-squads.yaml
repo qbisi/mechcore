@@ -16,14 +16,14 @@ blue:
     mustang: [aerial_specialization]
     farseer: [aerial_specialization]
   units:
-  - {name: wasp, index: 0, position: {x: -65, y: -100}, exp: 0/666/900}
-  - {name: mustang, index: 1, position: {x: 5, y: -100}, exp: 0/316/1200}
-  - {name: farseer, index: 2, position: {x: 65, y: -105}, exp: 0/816/1800}
+  - {name: wasp, index: 0, position: {x: -65, y: -100}, exp: 0/666/900, source: joined}
+  - {name: mustang, index: 1, position: {x: 5, y: -100}, exp: 0/316/1200, source: joined}
+  - {name: farseer, index: 2, position: {x: 65, y: -105}, exp: 0/816/1800, source: joined}
 red:
   core_damage: 522
   units:
-  - {name: overlord, index: 0, position: {x: -35, y: -75}, exp: 0/136/1750}
-  - {name: phoenix, index: 1, position: {x: 20, y: -90}, exp: 0/102/1300}
-  - {name: rhino, index: 2, position: {x: 35, y: -165}, exp: 0/34/1150}
+  - {name: overlord, index: 0, position: {x: -35, y: -75}, exp: 0/136/1750, source: joined}
+  - {name: phoenix, index: 1, position: {x: 20, y: -90}, exp: 0/102/1300, source: joined}
+  - {name: rhino, index: 2, position: {x: 35, y: -165}, exp: 0/34/1150, source: joined}
 ticks: 273
-hash: 24:86a5b5a20f11f5a2aeaaa7dd3e2201f9b4e3314af281158548e5d69d3c42eb58
+hash: 25:adc637cb7bf5b317b7de2d621a8044308f7f1399f9ec9a3289dcbdeef585bc41

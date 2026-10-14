@@ -12,28 +12,24 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: centurion, index: 0, position: {x: -85, y: -25}, exp: 0/400/2250}
+  - {name: centurion, index: 0, position: {x: -85, y: -25}, exp: 0/400/2250, source: joined}
 red:
   core_damage: 250
   techs:
     hacker: [electromagnetic_interference]
   units:
-  - {name: hacker, index: 0, position: {x: 75, y: -55}, rotated: true}
-asserts:
-- sql: |
-    SELECT tick, target__id
-    FROM events
-    WHERE
-      type = 'buff_applied'
-      AND buff_id = 1014
-    ORDER BY
-      tick,
-      ordinal
-    LIMIT 4;
-  rows:
-  - [12, 1]
-  - [18, 1]
-  - [24, 1]
-  - [30, 1]
+  - {name: hacker, index: 0, position: {x: 75, y: -55}, rotated: true, source: joined}
 ticks: 41
-hash: 24:9771d7e02ff951eaddcd4369de9dd2521dcffdc074f6c48e70377cba8701df3b
+hash: 25:19c22f443adbbdd87cf83fce06597501bc7790c7d9a348e3fe54c09d443c176a
+asserts:
+- sql: "SELECT tick, target__id\nFROM events\nWHERE\n  type = 'buff_applied'\n  AND\
+    \ buff_id = 1014\nORDER BY\n  tick,\n  ordinal\nLIMIT 4;\n"
+  rows:
+  - - 12
+    - 1
+  - - 18
+    - 1
+  - - 24
+    - 1
+  - - 30
+    - 1

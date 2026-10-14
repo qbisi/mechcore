@@ -15,16 +15,16 @@ blue:
   techs:
     vortex: [emergency_armor]
   units:
-  - {name: vortex, index: 0, position: {x: 0, y: -30}, exp: 0/200/750}
+  - {name: vortex, index: 0, position: {x: 0, y: -30}, exp: 0/200/750, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -60}, exp: 0/125/650}
-  - {name: marksman, index: 1, position: {x: 0, y: -60}}
-  - {name: marksman, index: 2, position: {x: 20, y: -60}, exp: 0/25/650}
-  - {name: marksman, index: 3, position: {x: -20, y: -80}, exp: 0/25/650}
-  - {name: marksman, index: 4, position: {x: 20, y: -80}, exp: 0/25/650}
+  - {name: marksman, index: 0, position: {x: -20, y: -60}, exp: 0/125/650, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -60}, source: joined}
+  - {name: marksman, index: 2, position: {x: 20, y: -60}, exp: 0/25/650, source: joined}
+  - {name: marksman, index: 3, position: {x: -20, y: -80}, exp: 0/25/650, source: joined}
+  - {name: marksman, index: 4, position: {x: 20, y: -80}, exp: 0/25/650, source: joined}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: 0, y: 10}]}
 ticks: 92
-hash: 24:5ba78ed62a9946596605b7a133c9ada88bca7f48e1ddc8c19868af1fe126c067
+hash: 25:51268e71db23764b353a791412a88b86dbe4a8d2f1eab39c01f3cee96901fc5d

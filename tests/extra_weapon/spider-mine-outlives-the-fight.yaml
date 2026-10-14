@@ -16,12 +16,12 @@ blue:
   techs:
     tarantula: [spider_mine]
   units:
-  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/17/1500}
-  - {name: mustang, index: 1, position: {x: 65, y: -110}, exp: 0/200/1200}
-  - {name: mustang, index: 2, position: {x: -75, y: -110}, exp: 0/374/1200}
+  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/17/1500, source: joined}
+  - {name: mustang, index: 1, position: {x: 65, y: -110}, exp: 0/200/1200, source: joined}
+  - {name: mustang, index: 2, position: {x: -75, y: -110}, exp: 0/374/1200, source: joined}
 red:
   core_damage: 542
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -250}, exp: 0/137/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -250}, exp: 0/137/900, source: joined}
 ticks: 341
-hash: 24:0673807c6839c92c9d297db4c1538779d358e0c1ae2d627f68e6df308b9cdf44
+hash: 25:455d05916727d33eaf19359327c146ea0f1643ad36c1dea625aa375e560f73d4

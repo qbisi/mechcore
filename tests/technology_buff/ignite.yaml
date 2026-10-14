@@ -16,12 +16,12 @@ blue:
   techs:
     vulcan: [ignite]
   units:
-  - {name: vulcan, index: 0, position: {x: 0, y: -100}, exp: 0/400/2200}
+  - {name: vulcan, index: 0, position: {x: 0, y: -100}, exp: 0/400/2200, source: joined}
 red:
   core_damage: 350
   techs:
     rhino: [field_maintenance]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
 ticks: 286
-hash: 24:676b112b89482c5cf653799037da4f43e0869948e5be150e30c5983748c723b8
+hash: 25:1ef105517c8b29ed7a4bbfab727e993462954a3d1881eef6a265d042839a646a

@@ -16,16 +16,16 @@ blue:
     rhino: [combat_evolvement]
     vortex: [mobile_power_station]
   units:
-  - {name: vortex, index: 0, position: {x: 0, y: -120}, exp: 0/46/750}
-  - {name: rhino, index: 1, position: {x: 35, y: -115}, exp: 0/146/1150}
-  - {name: marksman, index: 2, position: {x: -40, y: -120}}
+  - {name: vortex, index: 0, position: {x: 0, y: -120}, exp: 0/46/750, source: joined}
+  - {name: rhino, index: 1, position: {x: 35, y: -115}, exp: 0/146/1150, source: joined}
+  - {name: marksman, index: 2, position: {x: -40, y: -120}, source: joined}
 red:
   core_damage: 0
   techs:
     wraith: [degeneration_beam]
   units:
-  - {name: wraith, index: 0, position: {x: 5, y: -105}, exp: 0/300/2250}
-  - {name: rhino, index: 1, position: {x: 45, y: -115}, exp: 0/500/1150}
-  - {name: crawler, index: 2, position: {x: -35, y: -100}}
+  - {name: wraith, index: 0, position: {x: 5, y: -105}, exp: 0/300/2250, source: joined}
+  - {name: rhino, index: 1, position: {x: 45, y: -115}, exp: 0/500/1150, source: joined}
+  - {name: crawler, index: 2, position: {x: -35, y: -100}, source: joined}
 ticks: 384
-hash: 24:4cc90d20f696a565ba65bdb40f3746fdff765a7819f6463b1abf0c0302f56a66
+hash: 25:751ac8006590ce8f527c25b2aed8a85acc5cfa3f8d2d9a85cd3b0e9357a1c1ea

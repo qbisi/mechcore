@@ -12,12 +12,12 @@ blue:
   techs:
     crawler: [acidic_explosion]
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -65}, exp: 0/192/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -65}, exp: 0/192/1150, source: joined}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 95}]}
 ticks: 300
-hash: 24:88232980554b7388e3541cce2898c42f048d2400f7325f50ef146084c464ec61
+hash: 25:bfca238c6728baa19eec397ba78be3bbcfb950e291c1c9eb96a0f958df0878ea

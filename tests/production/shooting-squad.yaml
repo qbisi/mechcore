@@ -13,11 +13,11 @@ blue:
   techs:
     marksman: [shooting_squad]
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/239/1150}
-  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/9/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/239/1150, source: joined}
+  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/9/650, source: joined}
 ticks: 272
-hash: 24:e89f32f49906bfb1b79213da49b498dca4d369b401d5e7c75f279221693d1330
+hash: 25:6fab5f1eae94ab5f53a81a044d3e278a910f1ce21863bfb6d61c016f079788a0

@@ -14,12 +14,12 @@ blue:
   techs:
     sabertooth: [anti_air_missile]
   units:
-  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/268/1300}
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/268/1300, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: -40, y: -100}}
-  - {name: marksman, index: 1, position: {x: 40, y: -100}, exp: 0/300/650}
-  - {name: wasp, index: 2, position: {x: 5, y: -100}, exp: 0/100/900}
+  - {name: marksman, index: 0, position: {x: -40, y: -100}, source: joined}
+  - {name: marksman, index: 1, position: {x: 40, y: -100}, exp: 0/300/650, source: joined}
+  - {name: wasp, index: 2, position: {x: 5, y: -100}, exp: 0/100/900, source: joined}
 ticks: 135
-hash: 24:13672db7c02f7c46cb429ccfcf1fa88ca862fa8fd7b3721f29ec8cc64454918f
+hash: 25:8dde995d21bcc60317fef98a31bb5c1a4f5da5ddaf89179a936ec6a06eaf3922

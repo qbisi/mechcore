@@ -40,25 +40,32 @@ red:
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
   battle_skills:
   - {name: photon_emission, positions: [{x: -210, y: -295}]}
-asserts:
-- sql: |
-    SELECT tick, domain FROM units
-    WHERE unit_id = 7 AND tick BETWEEN 80 AND 82 ORDER BY tick;
-  rows:
-  - [80, ground]
-  - [81, air]
-  - [82, air]
-- sql: |
-    SELECT tick, cached_target_position__y FROM projectiles
-    WHERE projectile_id = 11 AND tick BETWEEN 80 AND 81 ORDER BY tick;
-  rows:
-  - [80, 0]
-  - [81, 0]
-- sql: |
-    SELECT count(*) FROM events
-    WHERE tick = 82 AND type = 'damage'
-      AND object__kind = 'projectile' AND object__id = 11;
-  rows:
-  - [0]
 ticks: 709
-hash: 24:bb033b201280a45f8f6488ff5757db8f79f3a2955e92fbcc6c8c073a293f01de
+hash: 25:362f71d7b9f1564f90f2cca543ccbd50b033aacc03704327df879df4a9c687cc
+asserts:
+- sql: 'SELECT tick, domain FROM units
+
+    WHERE unit_id = 7 AND tick BETWEEN 80 AND 82 ORDER BY tick;
+
+    '
+  rows:
+  - - 80
+    - ground
+  - - 81
+    - air
+  - - 82
+    - air
+- sql: 'SELECT tick, cached_target_position__y FROM projectiles
+
+    WHERE projectile_id = 11 AND tick BETWEEN 80 AND 81 ORDER BY tick;
+
+    '
+  rows:
+  - - 80
+    - 0
+  - - 81
+    - 0
+- sql: "SELECT count(*) FROM events\nWHERE tick = 82 AND type = 'damage'\n  AND object__kind\
+    \ = 'projectile' AND object__id = 11;\n"
+  rows:
+  - - 0

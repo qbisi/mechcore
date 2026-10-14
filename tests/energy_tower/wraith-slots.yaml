@@ -11,12 +11,12 @@ blue:
   core_damage: 200
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: wraith, index: 1, position: {x: 65, y: -145}, exp: 0/216/2250}
+  - {name: wraith, index: 1, position: {x: 65, y: -145}, exp: 0/216/2250, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: -60, y: -150}, exp: 0/150/650}
-  - {name: marksman, index: 1, position: {x: 60, y: -150}, exp: 0/450/650}
-  - {name: fang, index: 2, position: {x: 5, y: -100}}
+  - {name: marksman, index: 0, position: {x: -60, y: -150}, exp: 0/150/650, source: joined}
+  - {name: marksman, index: 1, position: {x: 60, y: -150}, exp: 0/450/650, source: joined}
+  - {name: fang, index: 2, position: {x: 5, y: -100}, source: joined}
 ticks: 330
-hash: 24:01280a68b9d9a1c098db8cb90962405081f6c1008fd0c1fa1373f3d1d94126aa
+hash: 25:e3dcf74c24cfdf3bd56d1c17639aa10f5c70fa152438eadb2113efb1c2989e10

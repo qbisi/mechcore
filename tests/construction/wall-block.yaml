@@ -25,39 +25,52 @@ round: 1
 blue:
   core_damage: 84
   units:
-  - {name: marksman, index: 0, position: {x: -140, y: -100}, exp: 0/24/650}
+  - {name: marksman, index: 0, position: {x: -140, y: -100}, exp: 0/24/650, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 145, y: -20}, exp: 0/248/450}
-asserts:
-- sql: |
-    SELECT
-      u.tick,
-      u.unit_id,
-      u.motion_state,
-      u.mech_lock_target__kind,
-      u.mech_lock_target__id,
-      k.enabled__state,
-      k.enabled__attack_target__kind,
-      k.enabled__attack_target__id
-    FROM units u
-    JOIN units__skills k
-      ON k.tick = u.tick
-      AND k.unit_id = u.unit_id
-      AND k.skill_slot = 0
-    WHERE
-      (u.unit_id = 2 AND u.tick IN (96, 97))
-      OR (u.unit_id IN (7, 23) AND u.tick = 119)
-    ORDER BY
-      u.tick,
-      u.unit_id;
-  rows:
-  - [96, 2, idle, null, null, idle, null, null]
-  - [97, 2, attacking, unit, 1, idle, building, 3]
-  - [119, 7, moving, unit, 1, idle, unit, 1]
-  - [119, 23, moving, unit, 1, idle, unit, 1]
+  - {name: crawler, index: 0, position: {x: 145, y: -20}, exp: 0/248/450, source: joined}
 ticks: 209
-hash: 24:2a2897b832e37a4af75ae682f5e226ad4790aadb44fc7293fb45d3d97b700ac3
+hash: 25:783d8cf385e48d0ec01611d4662f595b350227e5c5c1ff5f897e32757fef0ddd
+asserts:
+- sql: "SELECT\n  u.tick,\n  u.unit_id,\n  u.motion_state,\n  u.mech_lock_target__kind,\n\
+    \  u.mech_lock_target__id,\n  k.enabled__state,\n  k.enabled__attack_target__kind,\n\
+    \  k.enabled__attack_target__id\nFROM units u\nJOIN units__skills k\n  ON k.tick\
+    \ = u.tick\n  AND k.unit_id = u.unit_id\n  AND k.skill_slot = 0\nWHERE\n  (u.unit_id\
+    \ = 2 AND u.tick IN (96, 97))\n  OR (u.unit_id IN (7, 23) AND u.tick = 119)\n\
+    ORDER BY\n  u.tick,\n  u.unit_id;\n"
+  rows:
+  - - 96
+    - 2
+    - idle
+    - null
+    - null
+    - idle
+    - null
+    - null
+  - - 97
+    - 2
+    - attacking
+    - unit
+    - 1
+    - idle
+    - building
+    - 3
+  - - 119
+    - 7
+    - moving
+    - unit
+    - 1
+    - idle
+    - unit
+    - 1
+  - - 119
+    - 23
+    - moving
+    - unit
+    - 1
+    - idle
+    - unit
+    - 1

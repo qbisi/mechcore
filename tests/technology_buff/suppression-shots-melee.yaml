@@ -14,12 +14,12 @@ blue:
   techs:
     void_eye: [suppression_shots]
   units:
-  - {name: void_eye, index: 0, position: {x: 0, y: -170}}
+  - {name: void_eye, index: 0, position: {x: 0, y: -170}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -120}, exp: 0/99/650}
-  - {name: rhino, index: 1, position: {x: -45, y: -105}, exp: 0/99/1150}
-  - {name: fortress, index: 2, position: {x: 70, y: -150}}
+  - {name: marksman, index: 0, position: {x: 0, y: -120}, exp: 0/99/650, source: joined}
+  - {name: rhino, index: 1, position: {x: -45, y: -105}, exp: 0/99/1150, source: joined}
+  - {name: fortress, index: 2, position: {x: 70, y: -150}, source: joined}
 ticks: 299
-hash: 24:5839383ad69b99e07d94d5a34e49d68301e8f90482fe0ba5a3f2912273121df5
+hash: 25:42a5e52bec06fb6cabaa5f7508d65fb5abf18dfc72c2918350cf61c8604de857

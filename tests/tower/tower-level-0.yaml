@@ -9,10 +9,10 @@ round: 1
 blue:
   core_damage: 150
   units:
-  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/100/600}
+  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/100/600, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/416/1000}
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/416/1000, source: joined}
 ticks: 870
-hash: 24:83a51d0f08e3929beacdd12e5d58ddd99950825a6a86ff87ffa9da158ca16418
+hash: 25:7f1d1cb5bf7edfa0840d980b5537110043dfb34c677765cda1a56ac906ccdb0e

@@ -13,10 +13,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/200/650, equipment: [absorption_module]}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/200/650, equipment: [absorption_module], source: joined}
 red:
   core_damage: 100
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -50}}
+  - {name: arclight, index: 0, position: {x: 0, y: -50}, source: joined}
 ticks: 139
-hash: 24:305b48fa8621d35c783093f2ee6ec653a7a90f3e0a02afdda0d7714f380c5380
+hash: 25:2b0b168121c93e740b8b5659e88642a91fc1e7bdaf5a0a488339d92754c6a569

@@ -19,11 +19,11 @@ blue:
   techs:
     tarantula: [spider_mine]
   units:
-  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/240/1500}
+  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/240/1500, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: sledgehammer, index: 0, position: {x: -5, y: -300}, exp: 0/100/1300}
-  - {name: sledgehammer, index: 1, position: {x: 55, y: -300}, exp: 0/330/1300}
+  - {name: sledgehammer, index: 0, position: {x: -5, y: -300}, exp: 0/100/1300, source: joined}
+  - {name: sledgehammer, index: 1, position: {x: 55, y: -300}, exp: 0/330/1300, source: joined}
 ticks: 728
-hash: 24:a5003260205a26cc3394ebbe8f46a4e52e1db85aa3d828c1ff6f80df2e5ed466
+hash: 25:b77b3cd868658f3726e1b8a71faf5bbdd4659739e3e4b9d629682fc37539635c

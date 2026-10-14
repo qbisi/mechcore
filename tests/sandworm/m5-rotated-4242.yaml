@@ -9,10 +9,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: sandworm, index: 0, position: {x: -60, y: -60}, exp: 0/400/2000, rotated: true}
+  - {name: sandworm, index: 0, position: {x: -60, y: -60}, exp: 0/400/2000, rotated: true, source: joined}
 red:
   core_damage: 350
   units:
-  - {name: rhino, index: 0, position: {x: -35, y: -95}}
+  - {name: rhino, index: 0, position: {x: -35, y: -95}, source: joined}
 ticks: 204
-hash: 24:490d859ff20d5719ae0dc44e8f6655c7b696c4f03f2692c6d308d3157c144a76
+hash: 25:33617b0a88bc332826c12f2ebeab49b4f66bb6327a42519563c24361ccc8dcb8

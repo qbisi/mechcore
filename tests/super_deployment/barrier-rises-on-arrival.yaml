@@ -15,7 +15,7 @@ blue:
   core_damage: 0
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: fortress, index: 1, position: {x: 320, y: 290}, exp: 0/400/1600, equipment: [barrier], travelling: true}
+  - {name: fortress, index: 1, position: {x: 320, y: 290}, exp: 0/400/1600, equipment: [barrier], travelling: true, source: joined}
 red:
   core_damage: 350
   units:
@@ -35,4 +35,4 @@ asserts:
   - [160, 0, 0]
   - [161, 1, 60000]
 ticks: 1215
-hash: 24:ee806c81c3f4a12c2561ede286052fef9b34633e72d5e38abd75c2d9e6c76297
+hash: 25:cdb22ad71451b127200190d94ba7fa53e8ed29c0e5fa839138efa67a5e1066ce

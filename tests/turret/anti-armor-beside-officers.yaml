@@ -22,15 +22,15 @@ blue:
   techs:
     marksman: [range_enhancement]
   units:
-  - {name: marksman, index: 0, position: {x: 290, y: -300}, exp: 0/650/650}
+  - {name: marksman, index: 0, position: {x: 290, y: -300}, exp: 0/650/650, source: joined}
   constructions:
   - {name: anti_armor_turret, index: 2, position: {x: -140, y: -100}}
 red:
   core_damage: 100
   units:
-  - {name: arclight, index: 0, position: {x: 140, y: -100}}
-  - {name: arclight, index: 1, position: {x: 140, y: -140}}
-  - {name: arclight, index: 2, position: {x: 140, y: -220}}
-  - {name: arclight, index: 3, position: {x: 140, y: -260}}
+  - {name: arclight, index: 0, position: {x: 140, y: -100}, source: joined}
+  - {name: arclight, index: 1, position: {x: 140, y: -140}, source: joined}
+  - {name: arclight, index: 2, position: {x: 140, y: -220}, source: joined}
+  - {name: arclight, index: 3, position: {x: 140, y: -260}, source: joined}
 ticks: 837
-hash: 24:59307339411125f2ae04658ee229073fcece37584ae185587febaf109ae1531d
+hash: 25:879a01050468e892ce37ed50aee60f481cc366e3eed68a281ca893e06141bab7

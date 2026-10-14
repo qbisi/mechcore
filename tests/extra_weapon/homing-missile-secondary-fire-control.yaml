@@ -15,12 +15,12 @@ blue:
   techs:
     centurion: [homing_missile]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -45}, exp: 0/600/2250, equipment: [secondary_fire_control_system]}
+  - {name: centurion, index: 0, position: {x: 5, y: -45}, exp: 0/600/2250, equipment: [secondary_fire_control_system], source: joined}
 red:
   core_damage: 250
   units:
-  - {name: marksman, index: 0, position: {x: -40, y: -100}}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}}
-  - {name: marksman, index: 2, position: {x: 40, y: -100}}
+  - {name: marksman, index: 0, position: {x: -40, y: -100}, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, source: joined}
+  - {name: marksman, index: 2, position: {x: 40, y: -100}, source: joined}
 ticks: 84
-hash: 24:22e1845d0663386a7f197021f63c19aa11549124449dd210258bdd7c240f23c0
+hash: 25:7e839bb9fdd38d375061438eb2fa730b34cc174a303c02bc4107d975108e8e5e

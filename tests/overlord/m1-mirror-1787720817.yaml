@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: overlord, index: 0, position: {x: -5, y: -105}}
+  - {name: overlord, index: 0, position: {x: -5, y: -105}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: overlord, index: 0, position: {x: -5, y: -105}, exp: 0/1000/1750}
+  - {name: overlord, index: 0, position: {x: -5, y: -105}, exp: 0/1000/1750, source: joined}
 ticks: 195
-hash: 24:be0776cc11feed056519b28626ac6b137422b7a851f3f2cfb7e469ff7fa1057f
+hash: 25:1a9e32cefb1718311ff3169bb3c97a9dacd48ac92fb8e1fb69fccf34d7819a1e

@@ -16,31 +16,24 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 60, y: -80}, exp: 0/30/650}
-  - {name: marksman, index: 1, position: {x: 140, y: -80}, exp: 0/490/650}
+  - {name: marksman, index: 0, position: {x: 60, y: -80}, exp: 0/30/650, source: joined}
+  - {name: marksman, index: 1, position: {x: 140, y: -80}, exp: 0/490/650, source: joined}
 red:
   core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 0/200/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 0/200/650, source: joined}
   constructions:
   - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}
-asserts:
-- sql: |
-    SELECT
-      b.tick,
-      b.building_id,
-      b.skill__lock_target__kind,
-      b.skill__lock_target__id,
-      w.rotation
-    FROM buildings b
-    JOIN buildings__skill__weapons w
-      ON w.tick = b.tick
-      AND w.building_id = b.building_id
-    WHERE
-      b.team_id = 1
-      AND b.has_skill
-      AND b.tick = 1;
-  rows:
-  - [1, 5, unit, 2, 773094113251]
 ticks: 427
-hash: 24:1b455ba719b048f1b1ab31589543bae254adaceed919d17494f1dd5035af9b01
+hash: 25:c119a2c497ae90b44a9fc7c958ba0a7271a9155c0c94af643b21ef2c802b11c3
+asserts:
+- sql: "SELECT\n  b.tick,\n  b.building_id,\n  b.skill__lock_target__kind,\n  b.skill__lock_target__id,\n\
+    \  w.rotation\nFROM buildings b\nJOIN buildings__skill__weapons w\n  ON w.tick\
+    \ = b.tick\n  AND w.building_id = b.building_id\nWHERE\n  b.team_id = 1\n  AND\
+    \ b.has_skill\n  AND b.tick = 1;\n"
+  rows:
+  - - 1
+    - 5
+    - unit
+    - 2
+    - 773094113251

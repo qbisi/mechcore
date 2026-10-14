@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 200
   units:
-  - {name: vortex, index: 0, position: {x: 0, y: -100}}
+  - {name: vortex, index: 0, position: {x: 0, y: -100}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/200/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/200/1150, source: joined}
 ticks: 225
-hash: 24:3c309671194e8e9be31040f4c71538d5a86443661cf00f71f4b78b4166c2e8ed
+hash: 25:dbdbf091b89679176015715dc84ad59ab78f7677499b0f2ef098930d1203d9e6

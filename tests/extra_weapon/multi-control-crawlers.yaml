@@ -16,12 +16,12 @@ blue:
   techs:
     hacker: [multi_control]
   units:
-  - {name: hacker, index: 0, position: {x: 5, y: -205}, exp: 0/92/560}
-  - {name: hacker, index: 1, position: {x: -35, y: -205}, exp: 0/96/560}
+  - {name: hacker, index: 0, position: {x: 5, y: -205}, exp: 0/92/560, source: joined}
+  - {name: hacker, index: 1, position: {x: -35, y: -205}, exp: 0/96/560, source: joined}
 red:
   core_damage: 406
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/100/450}
-  - {name: marksman, index: 1, position: {x: 60, y: -150}, exp: 0/36/650}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/100/450, source: joined}
+  - {name: marksman, index: 1, position: {x: 60, y: -150}, exp: 0/36/650, source: joined}
 ticks: 568
-hash: 24:b3ddde0b3028a8fb41f54a281cb929e5bc95c4e34254c3705f0ce08cf1adc806
+hash: 25:7d7e70a9d65f409bee8e96a7fc304b8e77fafcddf0e6fb7bb5b64c9a54af62e7

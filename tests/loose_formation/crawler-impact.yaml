@@ -14,12 +14,12 @@ blue:
   techs:
     crawler: [loose_formation]
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -65}, exp: 0/192/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -65}, exp: 0/192/1150, source: joined}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 95}]}
 ticks: 261
-hash: 24:a367ca1b8d14e7d1ec290eb57b9cb765070997ded88c9c73c19cd41d66aaef23
+hash: 25:14ee25babf8d34bccb974351459e8e1b387e3527bde3a6baf01490384ab5afdd

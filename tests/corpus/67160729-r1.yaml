@@ -12,25 +12,25 @@ blue:
   core_damage: 0
   officers: [supply_specialist]
   units:
-  - {name: fang, index: 0, position: {x: 180, y: -115}, exp: 0/90/600, rotated: true}
-  - {name: fang, index: 1, position: {x: -120, y: -185}, exp: 0/112/600, rotated: true}
-  - {name: fang, index: 2, position: {x: 120, y: -185}, exp: 0/42/600, rotated: true}
-  - {name: fire_badger, index: 3, position: {x: 125, y: -130}, exp: 0/539/1400}
-  - {name: fire_badger, index: 4, position: {x: 215, y: -130}, exp: 0/660/1400}
-  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 0/323/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -140, y: -205}, exp: 0/24/450, rotated: true}
+  - {name: fang, index: 0, position: {x: 180, y: -115}, exp: 0/90/600, rotated: true, source: joined}
+  - {name: fang, index: 1, position: {x: -120, y: -185}, exp: 0/112/600, rotated: true, source: joined}
+  - {name: fang, index: 2, position: {x: 120, y: -185}, exp: 0/42/600, rotated: true, source: joined}
+  - {name: fire_badger, index: 3, position: {x: 125, y: -130}, exp: 0/539/1400, source: joined}
+  - {name: fire_badger, index: 4, position: {x: 215, y: -130}, exp: 0/660/1400, source: joined}
+  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 0/323/450, rotated: true, source: joined}
+  - {name: crawler, index: 6, position: {x: -140, y: -205}, exp: 0/24/450, rotated: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
   core_damage: 518
   officers: [giant_specialist]
   units:
-  - {name: crawler, index: 0, position: {x: -290, y: -285}, exp: 0/18/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: 0, y: -285}, exp: 0/40/450, rotated: true}
-  - {name: crawler, index: 2, position: {x: 290, y: -285}, exp: 0/345/450, rotated: true}
-  - {name: mustang, index: 3, position: {x: 235, y: -300}, exp: 0/673/1200}
-  - {name: mustang, index: 4, position: {x: -235, y: -300}, exp: 0/118/1200}
+  - {name: crawler, index: 0, position: {x: -290, y: -285}, exp: 0/18/450, rotated: true, source: joined}
+  - {name: crawler, index: 1, position: {x: 0, y: -285}, exp: 0/40/450, rotated: true, source: joined}
+  - {name: crawler, index: 2, position: {x: 290, y: -285}, exp: 0/345/450, rotated: true, source: joined}
+  - {name: mustang, index: 3, position: {x: 235, y: -300}, exp: 0/673/1200, source: joined}
+  - {name: mustang, index: 4, position: {x: -235, y: -300}, exp: 0/118/1200, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 ticks: 1559
-hash: 24:f924d8ec51ab3439afe072651bc7321fc92d15232b37bc61e2bd5677a572fc81
+hash: 25:65d0d747953e97ed5a0bcad5294cd9cd4ef51fd304c7cb99bbca49745c023e77

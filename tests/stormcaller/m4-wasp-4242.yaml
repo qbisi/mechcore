@@ -9,12 +9,12 @@ round: 1
 blue:
   core_damage: 612
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -100}}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -100}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/325/900}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/75/900}
-  - {name: wasp, index: 2, position: {x: 5, y: -180}}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/325/900, source: joined}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/75/900, source: joined}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}, source: joined}
 ticks: 213
-hash: 24:6213ecdbd3992edd7b2d29a796ed1c2cfb01d6f350e52f05948b6f6096bbce14
+hash: 25:fb191fcada8f77251dc41e8e2d7697005821662558c2a784351a5235dd094e9d

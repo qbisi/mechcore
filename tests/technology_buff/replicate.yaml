@@ -17,11 +17,11 @@ blue:
   techs:
     crawler: [replicate]
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -120}, exp: 0/200/450}
+  - {name: crawler, index: 0, position: {x: 5, y: -120}, exp: 0/200/450, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -120}, exp: 0/46/650}
-  - {name: fortress, index: 1, position: {x: 70, y: -150}, exp: 0/202/1600}
+  - {name: marksman, index: 0, position: {x: 0, y: -120}, exp: 0/46/650, source: joined}
+  - {name: fortress, index: 1, position: {x: 70, y: -150}, exp: 0/202/1600, source: joined}
 ticks: 492
-hash: 24:697f17dc833f160163898f79e9b61cd27196b6b84c46b6e04a74c08f72b04f60
+hash: 25:a732a136ef2f493f8adac0186a0eb88ce475d0976b0d48ae93ce8655f244f35e

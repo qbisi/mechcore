@@ -16,13 +16,13 @@ blue:
     fortress: [barrier]
     hacker: [barrier]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, level: 2, exp: 0/198/3605}
-  - {name: hacker, index: 1, position: {x: 155, y: -145}, level: 2}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, level: 2, exp: 0/198/3605, source: joined}
+  - {name: hacker, index: 1, position: {x: 155, y: -145}, level: 2, source: joined}
 red:
   core_damage: 550
   techs:
     void_eye: [electromagnetic_armor]
   units:
-  - {name: void_eye, index: 0, position: {x: 0, y: -60}}
+  - {name: void_eye, index: 0, position: {x: 0, y: -60}, source: joined}
 ticks: 240
-hash: 24:65695749c77702e90545c7877a5b5bb6bd336a18803e49303cf35efa9390f525
+hash: 25:563f0f93220d473abeb0fdd539a06c49cb6b1d7273690d0469dec620bddda4d7

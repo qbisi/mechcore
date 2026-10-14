@@ -15,10 +15,10 @@ blue:
   techs:
     melting_point: [energy_diffraction]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -100}, exp: 0/192/1400}
+  - {name: melting_point, index: 0, position: {x: 0, y: -100}, exp: 0/192/1400, source: joined}
 red:
   core_damage: 350
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
 ticks: 317
-hash: 24:2318b72d9cef29e1e77cf367048f898699ac55dc65ad880b5a81842cde1f790c
+hash: 25:8b11a73bced63f9b07602e25b89c615385535f6a108639fae0cf30890c211ca6

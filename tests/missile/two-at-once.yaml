@@ -13,14 +13,14 @@ round: 1
 blue:
   core_damage: 200
   units:
-  - {name: crawler, index: 0, position: {x: -95, y: -20}}
-  - {name: crawler, index: 1, position: {x: 105, y: -20}}
+  - {name: crawler, index: 0, position: {x: -95, y: -20}, source: joined}
+  - {name: crawler, index: 1, position: {x: 105, y: -20}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -295}, exp: 0/384/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -295}, exp: 0/384/1150, source: joined}
   contraptions:
   - {name: missile, index: 1, position: {x: -100, y: -40}, retained: false}
   - {name: missile, index: 2, position: {x: 100, y: -40}, retained: false}
 ticks: 24
-hash: 24:c2b1e3ccf266e1bd2ba1c095f6477f3a41f0fae4fd05e814911b767cdb5eab9c
+hash: 25:3fbb09d7d40062b16b3565fc97f2a346dbfb3c784e7775422f5c5b6fd66bbec9

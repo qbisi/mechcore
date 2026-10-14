@@ -9,15 +9,15 @@ round: 1
 blue:
   core_damage: 1224
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -105}}
+  - {name: war_factory, index: 0, position: {x: 5, y: -105}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/133/900}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/133/900}
-  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/133/900}
-  - {name: wasp, index: 3, position: {x: -55, y: -100}, exp: 0/900/900}
-  - {name: wasp, index: 4, position: {x: -55, y: -140}, exp: 0/133/900}
-  - {name: wasp, index: 5, position: {x: -55, y: -180}, exp: 0/133/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/133/900, source: joined}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/133/900, source: joined}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/133/900, source: joined}
+  - {name: wasp, index: 3, position: {x: -55, y: -100}, exp: 0/900/900, source: joined}
+  - {name: wasp, index: 4, position: {x: -55, y: -140}, exp: 0/133/900, source: joined}
+  - {name: wasp, index: 5, position: {x: -55, y: -180}, exp: 0/133/900, source: joined}
 ticks: 400
-hash: 24:fa04131c9c4efedae99fc0892e47ceda4713ee7c50c35ad70c4d23baf57a6fca
+hash: 25:de6411097aa145f61e17b49aa6448d888ecab29680fca73fce9cee6459b7c17d

@@ -15,10 +15,10 @@ blue:
   techs:
     fire_badger: [napalm]
   units:
-  - {name: fire_badger, index: 0, position: {x: 5, y: -100}}
+  - {name: fire_badger, index: 0, position: {x: 5, y: -100}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/402/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/402/1150, source: joined}
 ticks: 247
-hash: 24:210725d3465261260d285cd73a14caa65e77e397d3cd5a8de1515e3abed1a526
+hash: 25:c45747ab24e143e6551ea830c87f6f14ea44eb08d386a2b9d80ce107b88a0a45

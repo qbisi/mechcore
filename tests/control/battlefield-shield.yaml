@@ -11,12 +11,12 @@ round: 1
 blue:
   core_damage: 100
   units:
-  - {name: hacker, index: 0, position: {x: 5, y: -155}}
+  - {name: hacker, index: 0, position: {x: 5, y: -155}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -80}, exp: 0/400/650}
+  - {name: marksman, index: 0, position: {x: 0, y: -80}, exp: 0/400/650, source: joined}
   contraptions:
   - {name: shield, index: 1, position: {x: 1, y: -81}}
 ticks: 181
-hash: 24:6eeee848946ca7440904357274448ce6a0963919a25833cf9a57329b9c33f02b
+hash: 25:c6c57cb8bb59177180dbec9359c85d92c7cd422e1ff1baed56d24f72331c3608

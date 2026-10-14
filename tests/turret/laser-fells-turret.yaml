@@ -14,12 +14,12 @@ round: 1
 blue:
   core_damage: 50
   units:
-  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/300/600}
+  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/300/600, source: joined}
   constructions:
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
 red:
   core_damage: 0
   units:
-  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/536/1000}
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/536/1000, source: joined}
 ticks: 1083
-hash: 24:f6fc32af17713509d05bb99b2fd1e8528d21bf8d2a3a3d6d5cb685c7cda53a01
+hash: 25:69e01f1ae3cc9f9fa0434f7f3cfe74d593fa9cbbc3c93235625b3be5051296f3

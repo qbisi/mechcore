@@ -14,11 +14,11 @@ blue:
     crawler: [acidic_explosion]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/50/650}
-  - {name: crawler, index: 1, position: {x: -330, y: 45}, exp: 0/450/450, travelling: true}
+  - {name: crawler, index: 1, position: {x: -330, y: 45}, exp: 0/450/450, travelling: true, source: joined}
 red:
   core_damage: 48
   units:
   - {name: marksman, index: 0, position: {x: 280, y: -100}, exp: 0/40/650}
   - {name: marksman, index: 1, position: {x: -280, y: -100}, exp: 0/456/650}
 ticks: 1274
-hash: 24:5e22ec15438cd90f5686e3af6b1635e9a61ecd7419670c9366fe2a6e0278fa8e
+hash: 25:10b03ac639ed3a105c74642d355f5340b83c022b125d495a0bcc5d6cc64e8b20

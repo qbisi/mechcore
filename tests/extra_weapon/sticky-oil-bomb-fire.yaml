@@ -16,12 +16,12 @@ blue:
     phantom_ray: [sticky_oil_bomb]
     hound: [incendiary_bomb]
   units:
-  - {name: phantom_ray, index: 0, position: {x: 5, y: -50}, exp: 0/800/1000}
-  - {name: hound, index: 1, position: {x: 70, y: -50}}
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -50}, exp: 0/800/1000, source: joined}
+  - {name: hound, index: 1, position: {x: 70, y: -50}, source: joined}
 red:
   core_damage: 201
   units:
-  - {name: rhino, index: 0, position: {x: -45, y: -95}, exp: 0/130/1150}
-  - {name: rhino, index: 1, position: {x: 45, y: -95}, exp: 0/70/1150}
+  - {name: rhino, index: 0, position: {x: -45, y: -95}, exp: 0/130/1150, source: joined}
+  - {name: rhino, index: 1, position: {x: 45, y: -95}, exp: 0/70/1150, source: joined}
 ticks: 435
-hash: 24:23292c6b55642fb8d34c85895c33ab6a1156aef276d711eab6e4ddc8c796b886
+hash: 25:27ea9fcd1e18c33a82b23be1a1fb27e06c56164e0660f93f1705dd82e00bb6fb

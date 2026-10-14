@@ -18,13 +18,13 @@ round: 1
 blue:
   core_damage: 500
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/200/1600}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/200/1600, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: wraith, index: 0, position: {x: 5, y: -175}, exp: 0/200/2250}
-  - {name: wraith, index: 1, position: {x: -55, y: -175}, exp: 0/600/2250}
+  - {name: wraith, index: 0, position: {x: 5, y: -175}, exp: 0/200/2250, source: joined}
+  - {name: wraith, index: 1, position: {x: -55, y: -175}, exp: 0/600/2250, source: joined}
   contraptions:
   - {name: interceptor, index: 2, position: {x: 5, y: -125}, retained: false}
 ticks: 883
-hash: 24:67aae45ffe0873607aeb0e23f8411f6012f19dcefb9ccdba7fd491cc19e5fae3
+hash: 25:4cfdf036243b801ab4ee887642aac8f534d6e8b3cbed4b1ebea39ddf1f659f2b

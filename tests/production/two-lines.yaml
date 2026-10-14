@@ -15,12 +15,12 @@ blue:
   techs:
     war_factory: [phoenix_production]
   units:
-  - {name: war_factory, index: 0, position: {x: 5, y: -145}, exp: 0/848/3200}
+  - {name: war_factory, index: 0, position: {x: 5, y: -145}, exp: 0/848/3200, source: joined}
 red:
   core_damage: 525
   techs:
     melting_point: [crawler_production]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -150}, exp: 0/200/1400}
+  - {name: melting_point, index: 0, position: {x: 0, y: -150}, exp: 0/200/1400, source: joined}
 ticks: 396
-hash: 24:f25112cd0a61317f3e26bf0a67ff411b5a9732cf3a7f2757c9e87e196214cc82
+hash: 25:ac0ed05c073fbb44e3582e944b5e9bcf8793139429bd7bee682a4e3a177caed8

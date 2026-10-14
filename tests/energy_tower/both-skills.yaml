@@ -13,12 +13,12 @@ blue:
   core_damage: 200
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: marksman, index: 0, position: {x: -60, y: -150}}
-  - {name: rhino, index: 1, position: {x: 65, y: -145}, exp: 0/600/1150}
+  - {name: marksman, index: 0, position: {x: -60, y: -150}, source: joined}
+  - {name: rhino, index: 1, position: {x: 65, y: -145}, exp: 0/600/1150, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: -60, y: -150}}
-  - {name: rhino, index: 1, position: {x: 65, y: -145}, exp: 0/1000/1150}
+  - {name: marksman, index: 0, position: {x: -60, y: -150}, source: joined}
+  - {name: rhino, index: 1, position: {x: 65, y: -145}, exp: 0/1000/1150, source: joined}
 ticks: 1293
-hash: 24:17b381a381cb1b2e302b4e2001425e74b1df073b1930efbfad0a4f069ff9cedd
+hash: 25:e65b247b521d386dc81bb020f74da86ed4ef2717ce15f799010e7816a3d7f86a

@@ -13,10 +13,10 @@ blue:
   techs:
     melting_point: [energy_absorption]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -100}, exp: 0/200/1400}
+  - {name: melting_point, index: 0, position: {x: 0, y: -100}, exp: 0/200/1400, source: joined}
 red:
   core_damage: 350
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, source: joined}
 ticks: 104
-hash: 24:4e2bbba1effc71f5db9d92fd9ecc2c369e6793b0a2ae1a08ab49b4e5ed283812
+hash: 25:99f32ab7c03ca415a1fd40dd31fcc1b02cd68a00370e89719cf7eebb9dc8037b

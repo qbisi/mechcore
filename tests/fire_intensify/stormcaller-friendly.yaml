@@ -13,12 +13,12 @@ blue:
   techs:
     stormcaller: [incendiary_bomb]
   units:
-  - {name: stormcaller, index: 0, position: {x: 5, y: -150}, exp: 0/42/1100}
-  - {name: rhino, index: 1, position: {x: 5, y: -95}, exp: 0/126/1150}
+  - {name: stormcaller, index: 0, position: {x: 5, y: -150}, exp: 0/42/1100, source: joined}
+  - {name: rhino, index: 1, position: {x: 5, y: -95}, exp: 0/126/1150, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450}
-  - {name: rhino, index: 1, position: {x: 45, y: -95}, exp: 0/600/1150}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450, source: joined}
+  - {name: rhino, index: 1, position: {x: 45, y: -95}, exp: 0/600/1150, source: joined}
 ticks: 423
-hash: 24:d993729a18f64afb5cd7fb05b02a5e3a69262085e2e767a8eaa4c142c33fa3c5
+hash: 25:b0fe43f0597cef654ffef6e4bc3563ec6a3a32690156df0b18c50b12bd86d784

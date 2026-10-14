@@ -14,10 +14,10 @@ blue:
   techs:
     rhino: [whirlwind]
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150, source: joined}
 ticks: 210
-hash: 24:d05d02a1ee125ac442a8a6191c9fc6cde7cd4e7e481a9e86fb98d47cbe9164a1
+hash: 25:38009850653506689343867ee1a1eee7262e32b36ef075eeac70f56ed9ee99b9

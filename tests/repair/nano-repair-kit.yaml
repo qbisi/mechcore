@@ -12,10 +12,10 @@ round: 1
 blue:
   core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [nano_repair_kit]}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [nano_repair_kit], source: joined}
 red:
   core_damage: 0
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/200/750}
+  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/200/750, source: joined}
 ticks: 112
-hash: 24:78e4c6d5136b2c57f8ef57705b60963ee954e15135095c02ccb0009bc7d6886c
+hash: 25:f659d00c321ecdc894a72e1f930680a664adc5ca0919176f36ff45b03ba754b6

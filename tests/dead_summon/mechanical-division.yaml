@@ -16,11 +16,11 @@ blue:
   techs:
     steel_ball: [mechanical_division]
   units:
-  - {name: steel_ball, index: 0, position: {x: 5, y: -140}, exp: 0/600/1000}
+  - {name: steel_ball, index: 0, position: {x: 5, y: -140}, exp: 0/600/1000, source: joined}
 red:
   core_damage: 104
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/140/1150}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/108/650}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/140/1150, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/108/650, source: joined}
 ticks: 364
-hash: 24:67f4ff2f2e97525cf70b6aacdd484f49751e00560efcdcdbbafded201b64bc3c
+hash: 25:2001c3e32ba7e9c30649346693bb240b6ff6df1685a48833fc86823219a94279

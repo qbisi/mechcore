@@ -15,11 +15,11 @@ blue:
   techs:
     abyss: [dark_companion]
   units:
-  - {name: abyss, index: 0, position: {x: 5, y: -145}, exp: 0/600/4800}
+  - {name: abyss, index: 0, position: {x: 5, y: -145}, exp: 0/600/4800, source: joined}
 red:
   core_damage: 562
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -55}}
-  - {name: marksman, index: 1, position: {x: 0, y: -150}}
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, source: joined}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, source: joined}
 ticks: 350
-hash: 24:5beb034afef34405ac3645c257993c1a72729179414a1f552b6e26c3a1cbe4a5
+hash: 25:80857cd0ea128ef0211d90a3ef8c2da3022549f1c57f46ae6a88436eb5427bed

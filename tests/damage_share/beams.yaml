@@ -15,12 +15,12 @@ blue:
   techs:
     sledgehammer: [damage_sharing]
   units:
-  - {name: sledgehammer, index: 0, position: {x: -45, y: -100}, exp: 0/25/1300}
-  - {name: sledgehammer, index: 1, position: {x: 5, y: -100}, exp: 0/75/1300}
+  - {name: sledgehammer, index: 0, position: {x: -45, y: -100}, exp: 0/25/1300, source: joined}
+  - {name: sledgehammer, index: 1, position: {x: 5, y: -100}, exp: 0/75/1300, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: steel_ball, index: 0, position: {x: -45, y: -60}, exp: 0/200/1000}
-  - {name: steel_ball, index: 1, position: {x: 55, y: -60}, exp: 0/600/1000}
+  - {name: steel_ball, index: 0, position: {x: -45, y: -60}, exp: 0/200/1000, source: joined}
+  - {name: steel_ball, index: 1, position: {x: 55, y: -60}, exp: 0/600/1000, source: joined}
 ticks: 219
-hash: 24:68bb506e0519874f77d940d3a07457a133ae60d148561863e2855b2ea9aff4ea
+hash: 25:d0465f7abd83b308f9884c786302cb6e185c149d36d1d470ef7e953eea4bf1ae

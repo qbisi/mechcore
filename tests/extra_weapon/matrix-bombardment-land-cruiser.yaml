@@ -14,14 +14,14 @@ blue:
   techs:
     wraith: [high_explosive_ammo, land_cruiser, floating_artillery_array]
   units:
-  - {name: wraith, index: 0, position: {x: 5, y: -255}}
-  - {name: wraith, index: 1, position: {x: 5, y: -215}, exp: 0/50/2250}
-  - {name: wraith, index: 2, position: {x: 5, y: -175}, exp: 0/50/2250}
-  - {name: wraith, index: 3, position: {x: 5, y: -135}, exp: 0/250/2250}
-  - {name: wraith, index: 4, position: {x: 5, y: -95}, exp: 0/50/2250}
+  - {name: wraith, index: 0, position: {x: 5, y: -255}, source: joined}
+  - {name: wraith, index: 1, position: {x: 5, y: -215}, exp: 0/50/2250, source: joined}
+  - {name: wraith, index: 2, position: {x: 5, y: -175}, exp: 0/50/2250, source: joined}
+  - {name: wraith, index: 3, position: {x: 5, y: -135}, exp: 0/250/2250, source: joined}
+  - {name: wraith, index: 4, position: {x: 5, y: -95}, exp: 0/50/2250, source: joined}
 red:
   core_damage: 1250
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
 ticks: 210
-hash: 24:a45895cf5f789d59fc647b0e15de8a11563809d3a8480fbefce6519fa9dc7dc1
+hash: 25:246435bee7078406fe5ae3a51234591bb4bca8798e09a8afde91fc6024dd0203

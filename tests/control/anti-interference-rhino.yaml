@@ -13,10 +13,10 @@ round: 1
 blue:
   core_damage: 200
   units:
-  - {name: hacker, index: 0, position: {x: -5, y: -105}}
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150, equipment: [anti_interference_module]}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150, equipment: [anti_interference_module], source: joined}
 ticks: 203
-hash: 24:68194a1ccc823d2acca092dbddd0f8a2e3251091d2ef920bbe4ccd12434f6683
+hash: 25:23f5a86ba346fc573e199ef4bdf51ca77e35cdfef3eaf398d9622cfd97944df0

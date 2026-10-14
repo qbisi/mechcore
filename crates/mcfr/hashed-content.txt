@@ -128,6 +128,7 @@ LiveUnitState.move_speed: integer(int64)
 LiveUnitState.original_team_id: integer(uint32)
 LiveUnitState.personal_shield: PersonalShieldState
 LiveUnitState.position: QVec3
+LiveUnitState.production_lines: [ProductionLineState]
 LiveUnitState.rebirth_count: integer(uint32)
 LiveUnitState.skills: [SkillState]
 LiveUnitState.targetable: boolean
@@ -152,6 +153,8 @@ ObjectRef.kind: ObjectKind
 PersonalShieldState.active: boolean
 PersonalShieldState.enabled: boolean
 PersonalShieldState.energy: GaugeI32
+ProductionLineState.interval_time_counter: integer(int32)
+ProductionLineState.source_id: integer(int32)
 ProjectileState.cached_target_position: QVec3
 ProjectileState.cached_target_radius: integer(int64)
 ProjectileState.life: GaugeI32

@@ -14,10 +14,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, level: 3, exp: 0/200/2315}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, level: 3, exp: 0/200/2315, source: joined}
 red:
   core_damage: 100
   units:
-  - {name: arclight, index: 0, position: {x: 0, y: -50}}
+  - {name: arclight, index: 0, position: {x: 0, y: -50}, source: joined}
 ticks: 18
-hash: 24:cc45d2778b387f5e086fba6139d860d6821983646331453658f6f20eb1c657d5
+hash: 25:aa90577760772d5e1afd1fa1ce10c3deefb44161366d0aa70b9ae158a9022d84

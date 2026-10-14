@@ -11,10 +11,10 @@ blue:
   techs:
     scorpion: [doubleshot]
   units:
-  - {name: scorpion, index: 0, position: {x: -5, y: -105}, exp: 0/400/1500}
+  - {name: scorpion, index: 0, position: {x: -5, y: -105}, exp: 0/400/1500, source: joined}
 red:
   core_damage: 250
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, source: joined}
 ticks: 99
-hash: 24:01ba1d36a3cfbe23fc7f3ab35d496a40d74395c70f569dceb9d6520efa9b04e4
+hash: 25:715ec39559eca14e20d18719306b0db00d3ee12fd26c9fe113adb9f2845bfe22

@@ -12,16 +12,16 @@ blue:
   techs:
     sabertooth: [secondary_armament]
   units:
-  - {name: sabertooth, index: 0, position: {x: -335, y: 205}, exp: 0/600/1300, travelling: true}
-  - {name: sabertooth, index: 1, position: {x: 335, y: 205}, exp: 0/200/1300, travelling: true}
-  - {name: sabertooth, index: 2, position: {x: 5, y: -95}}
+  - {name: sabertooth, index: 0, position: {x: -335, y: 205}, exp: 0/600/1300, travelling: true, source: joined}
+  - {name: sabertooth, index: 1, position: {x: 335, y: 205}, exp: 0/200/1300, travelling: true, source: joined}
+  - {name: sabertooth, index: 2, position: {x: 5, y: -95}, source: joined}
 red:
   core_damage: 0
   techs:
     sabertooth: [secondary_armament]
   units:
-  - {name: sabertooth, index: 0, position: {x: -335, y: 205}, exp: 0/600/1300, travelling: true}
-  - {name: sabertooth, index: 1, position: {x: 335, y: 205}, exp: 0/200/1300, travelling: true}
-  - {name: sabertooth, index: 2, position: {x: 5, y: -95}, exp: 0/400/1300}
+  - {name: sabertooth, index: 0, position: {x: -335, y: 205}, exp: 0/600/1300, travelling: true, source: joined}
+  - {name: sabertooth, index: 1, position: {x: 335, y: 205}, exp: 0/200/1300, travelling: true, source: joined}
+  - {name: sabertooth, index: 2, position: {x: 5, y: -95}, exp: 0/400/1300, source: joined}
 ticks: 1128
-hash: 24:5b51528e958226ee1d16d76a09bfef8c34c898d1e41138c3f3f6c02308fb0d18
+hash: 25:15f9de34e0f7378f88bd156ea444986541b3c26c650677482b4ff6d979e4d4ae

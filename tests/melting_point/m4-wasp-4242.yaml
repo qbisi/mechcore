@@ -8,10 +8,10 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -100}, exp: 0/408/1400}
+  - {name: melting_point, index: 0, position: {x: 0, y: -100}, exp: 0/408/1400, source: joined}
 red:
   core_damage: 350
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, source: joined}
 ticks: 420
-hash: 24:78f7e79d7b5fa2cfa4d7d374809af2bdb4d05c8cf2257d37b86ce731bc517d87
+hash: 25:b93a2d1584715028912036363d9c5f125a251777c7196d33b1e780086cc2b626

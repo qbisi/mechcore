@@ -14,14 +14,14 @@ blue:
   techs:
     fortress: [barrier]
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, level: 2, exp: 0/200/3605}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, level: 2, exp: 0/200/3605, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/240/900}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/900/900}
-  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/240/900}
-  - {name: wasp, index: 3, position: {x: -55, y: -100}, exp: 0/240/900}
-  - {name: wasp, index: 4, position: {x: 65, y: -100}, exp: 0/240/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/240/900, source: joined}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/900/900, source: joined}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/240/900, source: joined}
+  - {name: wasp, index: 3, position: {x: -55, y: -100}, exp: 0/240/900, source: joined}
+  - {name: wasp, index: 4, position: {x: 65, y: -100}, exp: 0/240/900, source: joined}
 ticks: 820
-hash: 24:9e86757db348f270755d52ade4e1a22ea92fded284962ce619584a1b4219d995
+hash: 25:2aac6035dc9fc7592f4bb17e12e1b0b07ce655d431abd8d02b31ec93ab3c9909
