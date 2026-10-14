@@ -83,6 +83,28 @@ impl Simulation {
         state.active = true;
         actor.add_reactive_armor_effect();
     }
+
+    /// `ReactiveArmorSystem.RemoveReactiveArmorOwner`: deactivation removes
+    /// the rate and both dictionary entries. A later activation lists the
+    /// owner afresh with its whole count, including after a rebirth.
+    pub(in crate::fight) fn remove_reactive_armor(&mut self, unit: u64) {
+        let Some(actor) = self.actors.get_mut(&unit) else {
+            return;
+        };
+        let Some(state) = actor.reactive_armor.as_mut() else {
+            return;
+        };
+        if !state.listed {
+            return;
+        }
+        let active = state.active;
+        state.listed = false;
+        state.remaining = 0;
+        state.active = false;
+        if active {
+            actor.remove_reactive_armor_effect();
+        }
+    }
 }
 
 impl Actor {
