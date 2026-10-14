@@ -1429,7 +1429,9 @@ whose own `DisableEffect` it does not mirror.
   every unit technology of this build reaching the main skill
   (`mainSkillEffect`): a Fortress whose only technology is Barrier has its
   drawn 35 made its plain 36. A unit with no technology keeps the interval it
-  drew.
+  drew. A grouped main skill's siblings each refresh their own data too
+  (`FightSkillBatch.RefreshDatas`); refreshing the core alone does not refresh
+  the group's other clocks.
 - **A lifesteal's and a second damage's** providers take their hit effect
   away, which the fight asks of the unit at each hit.
 - **A Barrier's shield leaves its side's shields and comes back as it was.**
@@ -1472,7 +1474,9 @@ whose own `DisableEffect` it does not mirror.
   of a row's skills that joined the main skill's group, which
   `FightSkillFactory.PrepareGroupedSkill` only adds to that group: an idle
   one starts no attack, one attacking fails its check, and the main row's
-  skills go on. A control beam's skill has no `Disable` of its own: leaving
+  skills go on. Ending the attack drops its lock without enabling it
+  (`FightSkill.StopAttack`); only the provider's enable switches it back on.
+  A control beam's skill has no `Disable` of its own: leaving
   its attack stops its `ControllEffect`, which takes the skill off its
   target's entry, as any end of its attack does. Read from the build; no
   recording holds it.
@@ -1959,6 +1963,9 @@ derive (a minimum range):
   while disabled, and fires again as it is enabled:
   `tests/technology_disable/barrage-homing-missile.yaml`,
   `tests/technology_disable/barrage-homing-missile-held.yaml`.
+- A grouped extra row remains disabled as its attacking skills return to
+  idle, while the main row's siblings each refresh their current interval:
+  `tests/technology_disable/grouped-artillery-keeps-disabled.yaml`.
 - A search technology's ranges and offsets leave with it:
   `tests/technology_disable/impact-ground-targeting.yaml`.
 - A stacking buff its unit added writes no stack while the technologies are
