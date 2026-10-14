@@ -878,7 +878,7 @@ impl Simulation {
         match change.cmp(&0) {
             std::cmp::Ordering::Less => {
                 let target = super::FightActorRef::Unit(actor_id);
-                self.hit_with_no_object(target, team, (-change, true), events)
+                self.hit_with_no_object(target, team, (-change, true), false, events)
             }
             std::cmp::Ordering::Equal => Ok(()),
             std::cmp::Ordering::Greater => Err(Error::new(format!(
@@ -1187,12 +1187,13 @@ impl Simulation {
             }
             // `IBEC_ChangeLIfe.Update`: the unit's maximum life times the
             // rate, its whole part. A loss is a hit of no object under the
-            // buff's side that the rate on damage taken does not affect.
+            // buff's side that the rate on damage taken does not affect,
+            // marked `isDirectHit` to bypass the unit's personal shield.
             let change = actor.stats.max_life().saturating_mul(rate) >> 32;
             match change.cmp(&0) {
                 std::cmp::Ordering::Less => {
                     let target = super::FightActorRef::Unit(actor_id);
-                    self.hit_with_no_object(target, team, (-change, false), events)?;
+                    self.hit_with_no_object(target, team, (-change, false), true, events)?;
                 }
                 std::cmp::Ordering::Equal => {}
                 std::cmp::Ordering::Greater => {

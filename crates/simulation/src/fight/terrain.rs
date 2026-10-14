@@ -830,9 +830,13 @@ impl Simulation {
             // `GroundFireController.PerformItemEffect`: a hit of the fire's
             // damage through `PerformHitTargetEffect`, with no owner, under
             // the fire's side.
-            TerrainEffect::Fire { damage, .. } => {
-                self.hit_with_no_object(FightActorRef::Unit(unit), team, (damage, true), events)
-            }
+            TerrainEffect::Fire { damage, .. } => self.hit_with_no_object(
+                FightActorRef::Unit(unit),
+                team,
+                (damage, true),
+                false,
+                events,
+            ),
             // `FogController.PerformItemEffect`: the rate on every skill
             // that is not a melee attack, the controller its modifier.
             TerrainEffect::Fog { attack_range_rate } => {

@@ -161,8 +161,9 @@ controller takes the unit's maximum life times the rate in `FPoint`, its whole
 part, a loss rounded away from zero: 1.5% of 3478 is 52.17 and takes 53. The
 loss is a hit with no owner, under the side that wrote the buff, that the
 unit's rate on damage taken does not touch (`isAmplifyDamageAffected` false),
-so the buff's own 1.5 does not raise it; the unit's shield takes it first, as
-any hit. A kill it makes counts as a fire's does. A step that kills the unit
+so the buff's own 1.5 does not raise it. The controller sets `isDirectHit`
+true, so this loss bypasses the unit's personal shield rather than draining
+its energy. A kill it makes counts as a fire's does. A step that kills the unit
 ends its buffs' update, and the buffs before it in the list neither age nor
 step that tick. The buffs update last in the unit's update, after its motion
 has moved it, so a unit walking through the acid dies where that tick's move
@@ -412,6 +413,9 @@ already exists.
   when its height is included. Its new grid loses shield-covered cells on
   the creation tick: `tests/terrain/elevated-terrain-outside-shield.yaml`,
   tick 670. Fire uses the same terrain grid layer.
+
+- Acid's first periodic life loss bypasses a Centurion's full Portable
+  Shield: `tests/terrain/acid-bypasses-personal-shield.yaml`, tick 80.
 
 ### Read
 

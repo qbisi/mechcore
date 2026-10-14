@@ -489,12 +489,14 @@ impl Simulation {
 
     /// `PerformHitTargetEffect` of a hit no object dealt, only a side: a
     /// fire's, or a buff's step on the unit it runs on. It takes the life, is
-    /// counted for the side, and records the damage and any death.
+    /// counted for the side, and records the damage and any death. Preserve
+    /// the caller's `HitDamageInfo.isDirectHit` independently of amplification.
     pub(in crate::fight) fn hit_with_no_object(
         &mut self,
         target: FightActorRef,
         team: u32,
         hit: (i64, bool),
+        direct_hit: bool,
         events: &mut Vec<Event>,
     ) -> Result<()> {
         for (struck, stroke) in self.strike(
@@ -502,7 +504,7 @@ impl Simulation {
             None,
             team,
             hit,
-            (Provider::Other, false, false),
+            (Provider::Other, false, direct_hit),
             events,
         )? {
             self.count_hit(None, team, struck, &stroke)?;
