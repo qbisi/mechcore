@@ -15,8 +15,9 @@ match document. Nothing about a fight, a position or a transition is here;
 they are decided by the rules and written to the document.
 
 A match is cooperative. The file says which side each player was given and
-keeps each side's decisions apart until they are committed, so that two
-players deploying at once do not read each other's board. It is not a
+keeps each side's pending decisions apart. Committing moves those decisions
+into the match document; `match show` continues to hide the opponent's actions
+until the round has ended, whether or not either side has committed. It is not a
 permission system: a process that reads the file reads both sides, and nothing
 here stops one from naming a side it was not given.
 
