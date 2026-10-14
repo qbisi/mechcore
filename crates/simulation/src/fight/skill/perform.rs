@@ -996,6 +996,11 @@ impl Simulation {
             .last_mut()
             .expect("a projectile was just released");
         projectile.targetless = true;
+        // `FightProjectile.Init` with a null target uses both domains.
+        projectile.target_reach = Reach::Targets(crate::rules::AttackTargets {
+            ground: true,
+            air: true,
+        });
         projectile.lock_target = false;
         let released = projectile.object_ref();
         if let Some(event) = events.iter_mut().rev().find(|event| {
@@ -1199,13 +1204,28 @@ impl Simulation {
         };
         let skill_slot =
             u16::try_from(skill_slot).map_err(|_| Error::new("skill slot exceeds u16"))?;
-        let projectile = Projectile {
+        // `FightProjectile.Init`: an air-only projectile skill keeps air;
+        // otherwise use the actual target's domain at creation, not impact.
+        let skill_ref = self.skill_at_slot(source.owner, usize::from(skill_slot));
+        let air_only = self.skill(skill_ref).kind == SkillKind::Projectile
+            && self
+                .skill_attacker(skill_ref)
+                .is_some_and(|attacker| attacker.targets.air && !attacker.targets.ground);
+        let target_domain = if air_only {
+            UnitDomain::Air
+        } else if target_kind == ObjectKind::Building {
+            UnitDomain::Ground
+        } else {
+            self.actors[&target_id].domain
+        };
+        let mut projectile = Projectile {
             id: projectile_id,
             team: source.team,
             shooter: Shooter::Actor(source.owner),
             skill_slot,
             target_kind,
             target: target_id,
+            target_reach: Reach::Domain(target_domain),
             targetless: false,
             x: source.x,
             y: source.y,
@@ -1235,7 +1255,6 @@ impl Simulation {
             move_direction: (0, 0, 0),
             move_range_q32: data_source_range_q32.saturating_add(space_to_q32(target_radius)),
         };
-        let mut projectile = projectile;
         // `ProjectileController.Init`: the enemy shields that already hold it.
         projectile.spawn_shields = self.enemy_shields_at(
             source.team,

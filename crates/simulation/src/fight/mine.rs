@@ -146,6 +146,7 @@ impl Simulation {
             skill_slot: 0,
             target_kind,
             target: target_id,
+            target_reach: Reach::Domain(self.domain_of(target)),
             targetless: false,
             x: mine.x,
             y: MINE_FLY_HEIGHT,

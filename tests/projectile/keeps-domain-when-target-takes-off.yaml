@@ -1,0 +1,64 @@
+# A Stormcaller shell created for ground keeps that domain through impact.
+# Its Void Eye target arrives and switches to Aerial Mode at t81; projectile
+# 11 lands at t82 on its original ground plane, creating fire but dealing
+# no damage to the units now in the air, including their personal shields.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1705539865
+round: 3
+blue:
+  core_damage: 0
+  officers: [quick_teleport, advanced_defensive_tactics, fire_badger_specialist, improved_void_eye]
+  techs:
+    void_eye: [energy_shield, energy_absorption, aerial_mode, range_enhancement, charged_shot, suppression_shots, electromagnetic_armor]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 275, y: -150}, exp: 0/190/1400, source: delivered}
+  - {name: void_eye, index: 1, position: {x: -320, y: 260}, level: 3, exp: 0/2315/2315, equipment: [anti_interference_module], travelling: true, source: joined}
+  - {name: fire_badger, index: 2, position: {x: 225, y: -40}, level: 6, exp: 0/90/8118, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 205, y: -10}, retained: false}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: 20, y: -230}]}
+red:
+  core_damage: 501
+  officers: [advanced_power_system, advanced_targeting_system, sabertooth_specialist, extended_range_stormcaller]
+  techs:
+    stormcaller: [high_explosive_ammo, incendiary_bomb, electromagnetic_explosion, range_enhancement, launcher_overload, heavy_missile]
+  tower_strengthen_levels: [1, 2]
+  units:
+  - {name: stormcaller, index: 0, position: {x: 135, y: -230}, level: 6, exp: 3189/3249/6379, equipment: [secondary_heavy_armor]}
+  - {name: sabertooth, index: 1, position: {x: 5, y: -175}, exp: 0/200/1300, source: delivered}
+  - {name: hacker, index: 2, position: {x: 85, y: -215}, level: 3, source: joined}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: -210, y: -295}]}
+asserts:
+- sql: |
+    SELECT tick, domain FROM units
+    WHERE unit_id = 7 AND tick BETWEEN 80 AND 82 ORDER BY tick;
+  rows:
+  - [80, ground]
+  - [81, air]
+  - [82, air]
+- sql: |
+    SELECT tick, cached_target_position__y FROM projectiles
+    WHERE projectile_id = 11 AND tick BETWEEN 80 AND 81 ORDER BY tick;
+  rows:
+  - [80, 0]
+  - [81, 0]
+- sql: |
+    SELECT count(*) FROM events
+    WHERE tick = 82 AND type = 'damage'
+      AND object__kind = 'projectile' AND object__id = 11;
+  rows:
+  - [0]
+ticks: 709
+hash: 24:bb033b201280a45f8f6488ff5757db8f79f3a2955e92fbcc6c8c073a293f01de

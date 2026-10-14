@@ -10,6 +10,9 @@ pub(in crate::fight) struct Projectile {
     pub(in crate::fight) skill_slot: u16,
     pub(in crate::fight) target_kind: ObjectKind,
     pub(in crate::fight) target: u64,
+    /// `FightProjectile.targetType`, fixed by `Init` for range damage even
+    /// when the target changes its domain while the projectile flies.
+    pub(in crate::fight) target_reach: Reach,
     /// Whether it was released at no target, `target` naming the dead unit
     /// its burst last fired at, which it fails `IsValidTarget` against as
     /// one whose target died does: a recording names none.
@@ -431,24 +434,12 @@ impl Simulation {
         projectile: &Projectile,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let (aimed, reach) = if projectile.target_kind == ObjectKind::Building {
-            // A building stands on the ground, and a projectile narrows a
-            // dual-domain skill to its target's domain.
-            (
-                FightActorRef::Building(projectile.target),
-                Reach::Domain(UnitDomain::Ground),
-            )
+        let aimed = if projectile.target_kind == ObjectKind::Building {
+            FightActorRef::Building(projectile.target)
         } else {
-            let target_domain = self
-                .actors
-                .get(&projectile.target)
-                .ok_or_else(|| Error::new("projectile target is absent"))?
-                .domain;
-            (
-                FightActorRef::Unit(projectile.target),
-                Reach::Domain(target_domain),
-            )
+            FightActorRef::Unit(projectile.target)
         };
+        let reach = projectile.target_reach;
         let (struck, source) = match &projectile.shooter {
             Shooter::Actor(owner) => (
                 self.actor_hit(
