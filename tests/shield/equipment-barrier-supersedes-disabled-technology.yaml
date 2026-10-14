@@ -1,0 +1,60 @@
+# A travelling Fortress carries both Barrier equipment and technology.
+# EMP acquired in transit locks the technology; the selected equipment
+# shield still activates at arrival and absorbs the next hit.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1578154819
+round: 4
+blue:
+  core_damage: 500
+  officers: [quick_teleport, advanced_defensive_tactics, typhoon_specialist, extended_range_fortress]
+  techs:
+    fortress: [barrier]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [1, 3]
+  units:
+  - {name: typhoon, index: 0, position: {x: -40, y: -70}, source: delivered}
+  - {name: fortress, index: 1, position: {x: -340, y: 270}, exp: 0/500/1600, rotated: true, equipment: [barrier], travelling: true, source: joined}
+  - {name: tarantula, index: 2, position: {x: 25, y: -135}, level: 4, exp: 0/600/6735, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 135, y: -215}}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: -180, y: 5}]}
+red:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, advanced_power_system, typhoon_specialist, extended_range_stormcaller]
+  techs:
+    stormcaller: [high_explosive_ammo, incendiary_bomb, electromagnetic_explosion, range_enhancement, launcher_overload, heavy_missile]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 2]
+  units:
+  - {name: typhoon, index: 0, position: {x: -50, y: -110}, exp: 0/150/1950, source: delivered}
+  - {name: stormcaller, index: 1, position: {x: 245, y: -210}, level: 3, exp: 0/320/3918, equipment: [portable_shield], source: joined}
+  - {name: wraith, index: 2, position: {x: 245, y: -185}, level: 4, exp: 0/600/10103, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 285, y: -155}}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: -15, y: 5}]}
+ticks: 447
+hash: 25:a6fbecb2588c0a3e32851e1963d271c25780b04dc1205e74e406ef8d465270e2
+asserts:
+- sql: 'SELECT tick, energy__current, active FROM shields
+
+    WHERE shield_id = 1 AND tick IN (80, 81, 82) ORDER BY tick;'
+  rows:
+  - - 80
+    - 0
+    - 0
+  - - 81
+    - 60000
+    - 1
+  - - 82
+    - 52413
+    - 1

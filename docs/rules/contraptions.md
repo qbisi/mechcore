@@ -228,6 +228,9 @@ is written. The Barrier's shield neither recovers nor refills. A buff that
 disables technology deactivates the technology's and gives it back with the
 energy it had, after its side's other shields
 ([technology_effects.md](technology_effects.md#switched-off)).
+When Barrier equipment supersedes the technology, disabling the technology
+does not disable the equipment's shield. A unit arriving under an
+electromagnetic debuff still activates the equipment's shield.
 
 A shield takes a hit's damage up to the energy it has left, and a hit that
 empties it destroys it for the rest of the fight: the excess goes nowhere. The
@@ -364,6 +367,9 @@ kind ends its own way:
   active shields after the other Barrier:
   `tests/shield/barrier-technology-void_eye.yaml`,
   `tests/shield/barrier-technology-order.yaml`.
+- Barrier equipment superseding its technology still activates when a
+  Fortress arrives under an electromagnetic debuff:
+  `tests/shield/equipment-barrier-supersedes-disabled-technology.yaml`.
 - A Fire Badger's charge takes a Melting Point's Barrier for its target with
   the shield's surface 4.35 metres from its edge, within its 1 metre and the
   5 its skill adds for a shield, on the tick the 1 alone would leave one
@@ -515,10 +521,10 @@ kind ends its own way:
 - A technology's barrier beside an item's: the provider's `Current` is the
   source of the highest `GetPriority`, an item's 1 over a technology's 0, so
   a Fortress with Barrier the technology and Barrier the item carries the
-  item's 65-metre shield of 60000. The technology still switches it off and
-  on: `EffectProvider.EnableCheck` asks `ActiveCheck` and `CanDisable`, not
-  which source is current, and `AdvancedEnergyShieldProvider.DisableEffect`
-  acts on the unit's controller. No recording holds it.
+  item's 65-metre shield of 60000. `EffectProvider.EnableCheck` asks
+  `ActiveCheck`, `CanDisable` and the provider's `IsAvaliableEffect`;
+  `SingleEffectProvider.IsAvaliableEffect` admits only its `Current` source.
+  The superseded technology therefore cannot switch the item's shield.
 
 ### Not established
 
