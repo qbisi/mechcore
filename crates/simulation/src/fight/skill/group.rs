@@ -59,27 +59,24 @@ impl Simulation {
                 if searching.is_some_and(|slot| slot != index + 1) {
                     return (kept, None, false);
                 }
+                // Each slot asks its shield before the wall checker, as
+                // `FightSkill.SearchAttackTarget` does for the core.
+                let shield = lock.and_then(|lock| {
+                    self.search_target_shield_in(
+                        owner,
+                        lock,
+                        self.slot_attack_range(skill_ref, Some(index + 1))
+                            .saturating_add(self.skill_rules(skill_ref).extra_shield_range()),
+                    )
+                });
                 let wall = lock.and_then(|lock| {
-                    self.wall_in_the_way(skill_ref, Some(index + 1), lock)
+                    self.wall_in_the_way(skill_ref, Some(index + 1), lock, shield)
                         .map(|building| (building, lock))
                 });
-                // Each slot's `SearchTargetShield`, as the core's.
                 if searching != Some(index + 1) {
                     return (wall, None, false);
                 }
-                let shield = if wall.is_none() {
-                    lock.and_then(|lock| {
-                        self.search_target_shield_in(
-                            owner,
-                            lock,
-                            self.slot_attack_range(skill_ref, Some(index + 1))
-                                .saturating_add(self.skill_rules(skill_ref).extra_shield_range()),
-                        )
-                        .map(|shield| (shield, lock))
-                    })
-                } else {
-                    None
-                };
+                let shield = wall.is_none().then_some(shield.zip(lock)).flatten();
                 (wall, shield, true)
             })
             .collect::<Vec<_>>();
@@ -241,14 +238,15 @@ impl Simulation {
                 // `SkillAttackState.CheckAttackable` fails a skill that is
                 // not enabled before it asks anything else.
                 SkillState::Attack(blow) => {
-                    if self.skill(main).sibling(slot).disabled
-                        || self.attacks_fallen_construction(main, Some(slot))
-                        || !self.check_attackable_slot(
-                            main,
-                            Some(slot),
-                            true,
-                            target_search_order,
-                        )?
+                    if self.between_blows(main, Some(slot), step)
+                        && (self.skill(main).sibling(slot).disabled
+                            || self.attacks_fallen_construction(main, Some(slot))
+                            || !self.check_attackable_slot(
+                                main,
+                                Some(slot),
+                                true,
+                                target_search_order,
+                            )?)
                     {
                         self.finish_group_slot(main, slot, step, cooling_steps);
                     } else if let Blow::Before(pending) = blow {

@@ -1,0 +1,85 @@
+# A generated Mountain battle with a battlefield shield, walls and
+# Saturation Bombardment. Each standalone gun searches the shield before
+# its wall, finishes its running burst without another target check, and
+# keeps the extra skills from taking motion while any main gun holds a lock.
+# Red's four guns first fire at block 4, blue's second gun completes its
+# burst at tick 60, and red stays idle on a dead Rhino at tick 136 while
+# its remaining burst releases. The full native trajectory pins all three.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1010193077
+round: 2
+blue:
+  core_damage: 500
+  officers: [advanced_shield_device, advanced_targeting_system, speed_specialist]
+  techs:
+    mountain: [saturation_bombardment, mountain_plating, anti_aircraft_ammunition, range_enhancement, extended_range_ammo, gun_launched_missile, smoke_bomb, photon_loop]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: mountain, index: 0, position: {x: -115, y: -215}, level: 9, exp: 21528/21528/21528}
+  - {name: rhino, index: 1, position: {x: 15, y: -95}, level: 2, exp: 0/76/2591, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -110, y: -125}, retained: false}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: -130, y: -280}]}
+red:
+  core_damage: 528
+  officers: [advanced_defensive_tactics, speed_specialist]
+  techs:
+    mountain: [saturation_bombardment, mountain_plating, anti_aircraft_ammunition, range_enhancement, extended_range_ammo, gun_launched_missile, smoke_bomb, photon_loop]
+  blueprints: [attack_enhancement_ii]
+  tower_strengthen_levels: [1, 2]
+  units:
+  - {name: mountain, index: 0, position: {x: 225, y: -125}, level: 7, exp: 0/1630/20148}
+  - {name: rhino, index: 1, position: {x: -15, y: -265}, level: 2, exp: 0/120/2591, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 115, y: -245}}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: -10, y: -80}]}
+asserts:
+- sql: |
+    SELECT
+      u.tick,
+      u.unit_id,
+      u.motion_state,
+      k.skill_slot,
+      k.enabled__state,
+      k.enabled__attack_phase,
+      k.enabled__lock_target__kind,
+      k.enabled__lock_target__id,
+      k.enabled__attack_target__kind,
+      k.enabled__attack_target__id,
+      k.enabled__attack_count,
+      k.enabled__perform_count
+    FROM units u
+    JOIN units__skills k USING (tick, unit_id)
+    WHERE
+      (u.tick = 1 AND u.unit_id = 3 AND k.skill_slot BETWEEN 0 AND 3)
+      OR (u.tick = 60 AND u.unit_id = 1 AND k.skill_slot = 1)
+      OR (u.tick = 136 AND u.unit_id = 3 AND k.skill_slot BETWEEN 0 AND 3)
+    ORDER BY
+      u.tick,
+      u.unit_id,
+      k.skill_slot;
+  rows:
+  - [1, 3, attacking, 0, attack, null, building, 1, building, 4, -1, 0]
+  - [1, 3, attacking, 1, attack, null, building, 1, building, 4, -1, 0]
+  - [1, 3, attacking, 2, attack, null, building, 1, building, 4, -1, 0]
+  - [1, 3, attacking, 3, attack, null, building, 1, building, 4, -1, 0]
+  - [60, 1, attacking, 1, attack, null, building, 11, building, 14, 0, 1]
+  - [136, 3, idle, 0, cooling, null, null, null, building, 1, -1, 0]
+  - [136, 3, idle, 1, attack, attacking, unit, 2, unit, 2, 0, 0]
+  - [136, 3, idle, 2, attack, null, unit, 2, unit, 2, 0, 1]
+  - [136, 3, idle, 3, cooling, null, null, null, building, 1, -1, 0]
+ticks: 2360
+hash: 24:65d22d0aa731584b28492cc7cb043a55553d10c4a3a092b5f91cc8a34dd27777

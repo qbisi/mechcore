@@ -2036,7 +2036,7 @@ impl Simulation {
         }
         // `SkillAttackState.Update` asks `CheckAttackable` between two blows,
         // and a failed check finishes the attack.
-        if self.between_blows(skill_ref, step) {
+        if self.between_blows(skill_ref, None, step) {
             if !self.attack_state_check_attackable(skill_ref, target_search_order)? {
                 self.finish_attack(skill_ref, step);
                 return Ok(Flow::Done);

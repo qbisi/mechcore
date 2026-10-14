@@ -1202,7 +1202,15 @@ impl Simulation {
                 self.hand_standalone_motion(SkillRef::main(FightActorRef::Unit(actor_id)), 0);
             }
             SkillSlot::Extra(index) => {
-                if actor.skills.main.slot_lock(0).is_none()
+                // A standalone main searcher is the native FightSkillBatch:
+                // GetLockTarget reads the first lock any of its skills holds.
+                let main = &actor.skills.main;
+                let slots = if main.standalone() {
+                    main.group_size()
+                } else {
+                    1
+                };
+                if !(0..slots).any(|slot| main.slot_lock(slot).is_some())
                     && !actor.skills.extras[index].skill.is_grouped()
                 {
                     actor.motion.attacker = skill_ref.slot;

@@ -339,6 +339,11 @@ The map's own buildings are the exception and are named: each side gets one
   their way, each shot at its own offset about the block as at a unit, and
   turns its turret onto the block, its attack target:
   `tests/mountain/guns-fire-at-a-wall-in-the-way.yaml`.
+- Each standalone Mountain gun checks the wall on the line to a covering
+  battlefield shield's centre before firing. Its running burst finishes
+  without another angle check, and another main gun's retained lock keeps
+  an extra skill from taking the motion:
+  `tests/construction/standalone-shield-wall-burst.yaml`.
 
 ### Read
 
