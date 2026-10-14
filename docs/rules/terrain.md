@@ -272,8 +272,15 @@ centre.
 A terrain sub-effect that cannot cross shields (`isCrossAdvancedShield`, false
 for every terrain row) is tested as it falls, as a strike's is
 ([`battle_skill.md`](battle_skill.md)). On the first shield it comes inside it
-ends, and `InterruptEffect`'s `PerformHitEffect` leaves no terrain and deals
-the shield nothing.
+ends. `RangeItemEffectController` inherits
+`CommanderSkillSubEffectController.InterruptEffect`: it runs `PerformHitEffect` at the shield surface rather than
+`PerformEffect`, leaving no terrain and dealing the shield nothing. An oil or
+acid skill implements `IBuffDataSource`, so that immediate effect still writes
+its buff on units within `GetSubEffectRange`, of either side, except units
+held by their own side's shields. The persistent terrain's affected set does
+not hold those units: no terrain was made at that point. Recorded by
+`tests/battle_skill/acid-interrupted-buff.yaml` and
+`tests/battle_skill/oil-interrupted-buff.yaml`.
 
 A terrain added with `useGrid` and no cells of its own
 (`RangeItemEffectLayerGrid.OnAddRangeItem`) becomes a grid when an active
