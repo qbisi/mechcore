@@ -779,7 +779,9 @@ impl Actor {
             SkillSlot::Extra(index) => {
                 let skill = &self.skills.extras[index].skill;
                 if skill.is_grouped() {
-                    skill.group_attack_target(offset)
+                    skill
+                        .group_attack_target(offset)
+                        .filter(|_| skill.group_skill(offset).shield_target().is_none())
                 } else {
                     skill.named_attack_target()
                 }
