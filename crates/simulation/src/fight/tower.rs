@@ -941,9 +941,14 @@ impl Simulation {
         Ok(())
     }
 
-    /// The buffs a construction had when it fell, `cleared`, to follow its
+    /// The buffs a construction had when it fell, `cleared`, to precede its
     /// `building_destroyed`: last first, as `BuffManager.Clear` removes them.
     pub(in crate::fight) fn construction_buffs_cleared(&mut self, building_id: u64) -> Vec<Event> {
+        // `BuffManager.Clear` withdraws each effect from the construction's
+        // data too. Its in-flight projectiles read that damage when they hit.
+        if let Some(construction) = self.constructions.get_mut(&building_id) {
+            construction.attack_damage = construction.attack.base_damage;
+        }
         let subject = ObjectRef::new(ObjectKind::Building, building_id);
         self.buffs
             .building_buffs
