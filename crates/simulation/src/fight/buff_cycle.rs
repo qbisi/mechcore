@@ -462,6 +462,11 @@ impl Simulation {
         if can_disable_tech && !owner.invincible() {
             return Ok(());
         }
+        // `OnBeHit` returns while `SuperDeploymentSystem.IsTravelling`
+        // still holds, before selecting targets or queuing a reaction.
+        if owner.travelling {
+            return Ok(());
+        }
         let sources = owner
             .placement
             .effects

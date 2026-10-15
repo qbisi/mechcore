@@ -1,0 +1,52 @@
+# Electromagnetic Armor does not react while its Void Eye is travelling in.
+# Void Eye 4 dies to Sabertooth 1 at 13; the attacker receives no delayed
+# disabling buff at 14, and retains its corrected life and speed.
+# Control: electromagnetic-armor.yaml, whose Void Eye has entered the fight.
+# Native repeat recordings agree across all 340 ticks and settlement.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 787233183
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_power_system, sabertooth_specialist, mass_produced_sabertooth]
+  techs:
+    sabertooth: [doubleshot, missile_interceptor, field_entrenchment, range_enhancement, field_maintenance, secondary_armament, anti_air_missile]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 2]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -215, y: -95}, level: 9, exp: 4373/4571/8746, equipment: [nano_repair_kit]}
+  - {name: sabertooth, index: 1, position: {x: -165, y: -255}, exp: 0/396/1300, source: delivered}
+  - {name: wraith, index: 2, position: {x: 205, y: -205}, level: 7, exp: 0/1200/14167, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -195, y: -115}}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: -90, y: 195}, {x: -70, y: -15}]}
+red:
+  core_damage: 650
+  officers: [quick_teleport, advanced_defensive_tactics, speed_specialist, improved_void_eye]
+  techs:
+    void_eye: [energy_shield, energy_absorption, aerial_mode, range_enhancement, charged_shot, suppression_shots, electromagnetic_armor]
+  blueprints: [defense_enhancement]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: void_eye, index: 0, position: {x: 320, y: 240}, level: 2, equipment: [deployment_module], travelling: true, source: joined}
+  - {name: stormcaller, index: 1, position: {x: -225, y: -260}, level: 2, source: joined}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: -150, y: 70}, {x: -35, y: 25}]}
+asserts:
+- sql: |-
+    SELECT tick,unit_id,life__current,life__maximum,move_speed FROM units WHERE unit_id=1 AND tick BETWEEN 13 AND 15 ORDER BY tick
+  rows:
+  - [13, 1, 15273, 15273, 60129542144]
+  - [14, 1, 15273, 15273, 60129542144]
+  - [15, 1, 15273, 15273, 60129542144]
+- sql: |-
+    SELECT count(*) FROM units__buffs WHERE unit_id=1 AND tick BETWEEN 13 AND 15 AND data__id=10302
+  rows:
+  - [0]
+ticks: 340
+hash: 26:dd79dca9c11c20f2f2db96e2f71645d56dcc827167633af739394f18c3bb8e2c

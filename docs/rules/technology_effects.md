@@ -240,8 +240,9 @@ hit reaches 70 m further for 20 seconds. A source that reaches the unit's attack
 that hit it.** Each hit a live unit lands on it, once the hit has taken what
 it took (from its shield or its life), adds the buff to that unit, as written
 by the unit hit and under its side, unless the unit hit's technologies are
-disabled. A buff that disables technology waits on the attacker and is added
-as the attacker's buffs have updated, on its own update; any other is added
+disabled or the unit is still travelling in. A buff that disables technology
+waits on the attacker and is added as the attacker's buffs have updated,
+on its own update; any other is added
 at once. Electromagnetic Armor is one: a Void Eye hit switches off its
 attacker's technologies for 3 seconds and takes 40% off its speed.
 
@@ -2036,6 +2037,9 @@ derive (a minimum range):
 - Electromagnetic Armor's buff is on a Rhino from the tick its blow lands
   on a Void Eye, at t244 and again at t264:
   `tests/technology_buff/electromagnetic-armor.yaml`.
+- A Void Eye still travelling in does not react to a hit with
+  Electromagnetic Armor, including a hit that kills it:
+  `tests/technology_buff/void-eye-travelling-reaction.yaml`.
 - Electromagnetic Armor's buff on a Fortress whose only technology is
   Barrier deactivates its shield at 60614 and gives it back at 60614, and
   makes its drawn interval of 35 its plain 36; without the refresh the
