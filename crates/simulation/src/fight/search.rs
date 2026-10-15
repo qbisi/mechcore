@@ -825,6 +825,86 @@ impl Simulation {
         self.skill(skill_ref).search_prepared
     }
 
+    /// `OpponentController.Refresh`: the teams' active actors in list order,
+    /// with their shown towers first. Domain-specific lists retain that order.
+    pub(in crate::fight) fn refresh_opponent_actor_lists(&mut self) {
+        let mut order = BTreeMap::<u32, Vec<FightActorRef>>::new();
+        for building in self
+            .buildings
+            .iter()
+            .filter(|building| building.building_type_id != CONSTRUCTION_BUILDING_TYPE)
+        {
+            order
+                .entry(building.team_id)
+                .or_default()
+                .push(FightActorRef::Building(building.building_id));
+        }
+        for &reference in &self.active_actors {
+            if let Some(actor) = self.fight_actor(reference) {
+                order.entry(actor.team).or_default().push(reference);
+            }
+        }
+        let by_domain = |domain| {
+            order
+                .iter()
+                .map(|(&team, actors)| {
+                    (
+                        team,
+                        actors
+                            .iter()
+                            .copied()
+                            .filter(|&actor| self.domain_of(actor) == domain)
+                            .collect(),
+                    )
+                })
+                .collect()
+        };
+        let ground = by_domain(UnitDomain::Ground);
+        let air = by_domain(UnitDomain::Air);
+        self.opponent_ground_actors = ground;
+        self.opponent_air_actors = air;
+        self.opponent_actors = order;
+    }
+
+    /// `OpponentController.Remove`: a change of team withdraws the actor
+    /// from its old opponents' lists.
+    pub(in crate::fight) fn remove_opponent_actor(&mut self, actor: FightActorRef) {
+        for lists in [
+            &mut self.opponent_actors,
+            &mut self.opponent_ground_actors,
+            &mut self.opponent_air_actors,
+        ] {
+            for candidates in lists.values_mut() {
+                candidates.retain(|&candidate| candidate != actor);
+            }
+        }
+    }
+
+    /// `OpponentController.Add`: the old side immediately sees the turned
+    /// unit as an opponent, appended to the lists for its current domain.
+    pub(in crate::fight) fn add_opponent_actor(&mut self, actor: FightActorRef, team: u32) {
+        self.opponent_actors.entry(team).or_default().push(actor);
+        let domain = self.domain_of(actor);
+        let lists = match domain {
+            UnitDomain::Ground => &mut self.opponent_ground_actors,
+            UnitDomain::Air => &mut self.opponent_air_actors,
+        };
+        lists.entry(team).or_default().push(actor);
+    }
+
+    /// `OpponentController.GetActors(AttackTargetType)`: the lists keep
+    /// their domains from the refresh even if a module changes flight later.
+    fn opponent_actor_order(
+        &self,
+        targets: crate::rules::AttackTargets,
+    ) -> &BTreeMap<u32, Vec<FightActorRef>> {
+        match (targets.ground, targets.air) {
+            (true, false) => &self.opponent_ground_actors,
+            (false, true) => &self.opponent_air_actors,
+            _ => &self.opponent_actors,
+        }
+    }
+
     pub(in crate::fight) fn target_search_order(&self) -> BTreeMap<u32, Vec<FightActorRef>> {
         self.target_quadtrees
             .iter()
@@ -1088,6 +1168,12 @@ impl Simulation {
         widening: Option<i64>,
         passed_over: Option<FightActorRef>,
     ) -> Option<FightActorRef> {
+        // The unbounded fallback is `GetActors`, not a quadtree query.
+        let target_search_order = if widening.is_none() {
+            self.opponent_actor_order(source.targets)
+        } else {
+            target_search_order
+        };
         let nearby = widening.and_then(|widening| {
             self.search_candidates(source.owner, !use_live_candidate_positions, widening * 1000)
         });
@@ -1121,15 +1207,10 @@ impl Simulation {
                 if use_live_candidate_positions && target.team == source.team {
                     continue;
                 }
-                let candidate_alive = if use_live_candidate_positions {
-                    target.alive
+                let (candidate_alive, candidate_targetable) = if use_live_candidate_positions {
+                    (target.alive, target.targetable)
                 } else {
-                    target.query_alive
-                };
-                let candidate_targetable = if use_live_candidate_positions {
-                    target.targetable
-                } else {
-                    target.query_targetable
+                    (target.query_alive, target.query_targetable)
                 };
                 // The prepared job scores each unit as the tick opened, on
                 // the side it stood on then, a unit a beam has turned since
@@ -1298,7 +1379,6 @@ impl Simulation {
                         &source,
                         SkillRef::main(FightActorRef::Unit(actor_id)),
                         None,
-                        target_search_order,
                         false,
                     ),
                 },
@@ -1351,7 +1431,6 @@ impl Simulation {
         &self,
         skill_ref: SkillRef,
         slot: Option<usize>,
-        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<Option<FightActorRef>> {
         // It answers nothing for a skill that is no main searcher: an extra
         // skill's, unless it is the active permanent preemptive one, and a
@@ -1362,7 +1441,7 @@ impl Simulation {
         let source = self
             .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("target selector source is absent"))?;
-        Ok(self.select_alive_target_from(&source, skill_ref, slot, target_search_order, true))
+        Ok(self.select_alive_target_from(&source, skill_ref, slot, true))
     }
 
     /// The alive selector scores the collection its controller supplies.
@@ -1373,7 +1452,6 @@ impl Simulation {
         source: &super::attacker::Attacker<'_>,
         skill_ref: SkillRef,
         slot: Option<usize>,
-        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
         separate_blocks: bool,
     ) -> Option<FightActorRef> {
         let (rotation_q32, attack_range, rotation_window_q32) = match (skill_ref.owner, slot) {
@@ -1398,7 +1476,7 @@ impl Simulation {
         };
         let select = |blocking: bool| {
             let mut scoring = Scoring::default();
-            for (&team, candidates) in target_search_order {
+            for (&team, candidates) in &self.opponent_actors {
                 if team == source.team {
                     continue;
                 }
@@ -1536,9 +1614,16 @@ impl Simulation {
             .skill_attacker(skill_ref)
             .map(|attacker| (attacker.score_offsets, attacker.targets))
             .ok_or_else(|| Error::new("a grouped skill's owner is absent"))?;
+        // Standalone main skills consume their prepared spatial job, not
+        // `PerformGroupedSkillSearch`'s live `GetActors` collection.
+        let candidates = if skill.standalone() {
+            target_search_order
+        } else {
+            self.opponent_actor_order(targets)
+        };
         let select = |shared: bool| {
             let mut scoring = Scoring::default();
-            for (&team, candidates) in target_search_order {
+            for (&team, candidates) in candidates {
                 if team == source.placement.team {
                     continue;
                 }

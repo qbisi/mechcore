@@ -391,7 +391,7 @@ impl Simulation {
                 self.select_group_lock_replacement(skill_ref, slot, target_search_order)?;
             let idle = selected.is_none();
             let selected = if idle {
-                self.select_alive_target(skill_ref, Some(slot), target_search_order)?
+                self.select_alive_target(skill_ref, Some(slot))?
             } else {
                 selected
             };

@@ -323,6 +323,15 @@ scores alive opponents outside that list with the slot's selector, retaining
 the first strict score minimum. It does not allocate a sorted table of targets
 to all slots at once.
 
+A full-team selection reads the team's actor list, not spatial-tree
+traversal. The list keeps shown towers first, then the ordered deployed
+units and other actors; later joiners append. Equal scores retain the
+first candidate. Opponent lists and their air/ground partitions refresh
+after the tick's timers and before its modules, so summons whose timers
+expire are already present. A unit changing team leaves its old opponents'
+lists immediately and appends to its new opponents' lists on the same turn.
+The same order is used by ordinary full-team fallback and alive searches.
+
 When `CanAttackSameTarget` is true, a missing selection or one outside the
 slot's range makes the selector consider the held targets as well. A
 successful held-target selection replaces the first answer; without one, the
@@ -1310,6 +1319,9 @@ not the game's native attack-type enum.
 - A grouped slot whose siblings hold nothing searches from its own weapon and
   in its own reach: `tests/corpus/134370978-r8.yaml`, tick 145, Raiden
   386's second gun.
+- Raiden retains the first Crawler of its opponent's actor list when four
+  overlapping Crawlers score equally, while its Fork skills hold their own
+  targets: `tests/search/grouped-score-tie-team-order.yaml`, tick 293.
 - A Mountain's second gun keeps the hidden Sandworm when the visible
   replacement is outside its own range:
   `tests/search/grouped-visible-fallback-range.yaml`.
@@ -1582,6 +1594,11 @@ not the game's native attack-type enum.
   `DisableBody` takes the body away: `MotionAttackState.AttackRotate`,
   `FightMech.IsHaveBody`, `MechDataChangeInt.DisableBody`,
   `FightMech.lockTarget`.
+- Full-team candidate lists and their domain partitions keep actor order:
+  `OpponentController.Refresh`, `OpponentController.GetActors`,
+  `OpponentController.Remove`, `OpponentController.Add`, `FightController.Update`,
+  `FightTeam.GetActors`,
+  `FightTeam.PrepareActors`.
 - A grouped slot searches around its siblings' locks:
   `SkillSearchTargetController.PerformGroupedSkillSearch`,
   `SkillGroup.CanAttackSameTarget`,

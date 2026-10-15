@@ -1458,7 +1458,7 @@ impl Simulation {
         let idle = selected_candidate.is_none();
         if idle {
             selected_candidate = self
-                .select_alive_target(skill_ref, grouped_core.then_some(0), target_search_order)
+                .select_alive_target(skill_ref, grouped_core.then_some(0))
                 .map_err(located)?;
         }
         self.skill_mut(skill_ref).idle = idle;
@@ -1491,6 +1491,7 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         self.refresh_target_query_snapshot();
+        self.refresh_opponent_actor_lists();
         let target_search_order = self.target_search_order();
         if self.step_actor_before_buffs(actor_id, step, &target_search_order, events)? {
             self.step_actor_buffs(actor_id, events)?;
