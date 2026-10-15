@@ -285,6 +285,29 @@ impl Actor {
         self.move_mark_q32 = position;
     }
 
+    /// The scope branches of `SkillDataModifier.AvaliableCheck`: a grouped
+    /// skill takes the main scope; another extra takes the extra scope or
+    /// a rated main scope. Source-specific gates precede this check.
+    pub(in crate::fight) fn skill_modifier_scope_applies(
+        &self,
+        slot: usize,
+        main_skill_effect: bool,
+        extra_skill_effect: bool,
+    ) -> bool {
+        let (held_by, _) = self.skills.at_slot(slot);
+        match held_by {
+            SkillSlot::Main => main_skill_effect,
+            SkillSlot::Extra(index) => {
+                let extra = &self.skills.extras[index];
+                if extra.skill.is_grouped() && !extra.skill.standalone() {
+                    main_skill_effect
+                } else {
+                    extra_skill_effect || main_skill_effect && extra.rules.damage_rate > 0.0
+                }
+            }
+        }
+    }
+
     /// The skills of `FightMech.GetSkills()` whose `DataSet` holds the unit's
     /// skill corrections: the main skill's slots, and each extra skill with a
     /// damage rate, which takes what reaches the main skill

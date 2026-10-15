@@ -1373,19 +1373,11 @@ impl Simulation {
         // SkillManager.AddHitEffect registers the source on its admitted
         // skills: grouped extras take a main effect, and other extras ask
         // SkillDataModifier.AvaliableCheck (extra effect or rated main effect).
-        let (held_by, _) = owner.skills.at_slot(usize::from(slot));
-        let registered = match held_by {
-            SkillSlot::Main => lifesteal.main_skill_effect,
-            SkillSlot::Extra(index) => {
-                let extra = &owner.skills.extras[index];
-                if extra.skill.is_grouped() && !extra.skill.standalone() {
-                    lifesteal.main_skill_effect
-                } else {
-                    lifesteal.extra_skill_effect
-                        || lifesteal.main_skill_effect && extra.rules.damage_rate > 0.0
-                }
-            }
-        };
+        let registered = owner.skill_modifier_scope_applies(
+            usize::from(slot),
+            lifesteal.main_skill_effect,
+            lifesteal.extra_skill_effect,
+        );
         if !registered {
             return Ok(());
         }
