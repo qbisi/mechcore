@@ -1303,11 +1303,11 @@ impl Simulation {
     /// the command is the move behaviour, never idle and always active, and
     /// the extra skill is still asked for its range
     /// ([`Self::follow_extra_attacker_under_command`]).
+    #[allow(
+        clippy::too_many_lines,
+        reason = "the build's move, attack and stop states read the same current attacker"
+    )]
     fn follow_extra_attacker(&mut self, actor_id: u64, index: usize) {
-        // `MotionStopState`, a melee skill's transition: the unit holds.
-        if self.actors[&actor_id].motion.state == MotionState::Stopped {
-            return;
-        }
         let skill_ref = SkillRef {
             owner: FightActorRef::Unit(actor_id),
             slot: SkillSlot::Extra(index),
@@ -1326,6 +1326,31 @@ impl Simulation {
         let aimed = skill
             .attack_target()
             .and_then(|target| self.fight_actor(target));
+        if self.actors[&actor_id].motion.state == MotionState::Stopped {
+            // `MotionStopState.Update` still runs AttackRotate for its
+            // current attacker while the move behaviour is active and
+            // that attacker's target is in range. The locked agent stays.
+            let active = self.actors[&actor_id].command.is_some() || lock.is_some();
+            if active && in_range {
+                let point = aimed
+                    .filter(|view| view.alive)
+                    .or(lock)
+                    .map(|view| (view.x_q32, view.z_q32))
+                    .or_else(|| self.command_move_point(actor_id));
+                if let Some((x, z)) = point {
+                    let actor = self
+                        .actors
+                        .get_mut(&actor_id)
+                        .expect("actor identity is stable");
+                    let bearing = direction_degrees_q32_raw(
+                        x.saturating_sub(actor.x_q32),
+                        z.saturating_sub(actor.z_q32),
+                    );
+                    actor.extra_attack_rotate(bearing);
+                }
+            }
+            return;
+        }
         if self.actors[&actor_id].command.is_some() {
             let target = skill.attack_target();
             let in_range =
