@@ -844,10 +844,14 @@ impl Simulation {
     /// What the body walks on: the skill's lock, or the unit's own for a
     /// unit that searches for itself.
     fn walked_on(&self, actor_id: u64, target: FightActorRef) -> Option<FightActorRef> {
-        if self.actors[&actor_id].skills.main.mech_searches() {
+        let skill = &self.actors[&actor_id].skills.main;
+        if skill.mech_searches() {
             Some(target)
+        } else if skill.standalone() {
+            let holder = skill.group.as_ref().map_or(0, |group| group.motion_slot);
+            skill.slot_lock(holder)
         } else {
-            self.actors[&actor_id].skills.main.lock_target
+            skill.lock_target
         }
     }
 
@@ -1237,6 +1241,10 @@ impl Simulation {
         match skill_ref.slot {
             SkillSlot::Main => {
                 actor.motion.attacker = SkillSlot::Main;
+                if !actor.skills.main.standalone() {
+                    let lock = actor.skills.main.lock_target;
+                    actor.skills.main.set_mech_lock(lock);
+                }
                 self.hand_standalone_motion(SkillRef::main(FightActorRef::Unit(actor_id)), 0);
             }
             SkillSlot::Extra(index) => {
@@ -1278,6 +1286,10 @@ impl Simulation {
         if holder != slot && skill.slot_lock(holder).is_some() {
             return;
         }
+        // `SearchLockTarget` publishes the accepted attacker's lock even
+        // when `ChangeLockTarget` returned early for an unchanged target.
+        let lock = skill.slot_lock(slot);
+        actor.skills.main.set_mech_lock(lock);
         if let Some(group) = actor.skills.main.group.as_mut() {
             group.motion_slot = slot;
         }
@@ -2059,10 +2071,10 @@ impl Simulation {
                 actor.motion.attack_hold_fire = !actor.has_body() && !in_attack_angle;
             }
             let clear_hold_after_motion = actor.motion.attack_hold_fire && in_attack_angle;
-            if self.actors[&actor_id].skills.main.mech_searches() {
-                // Its first weapon's skill starts in its own update.
-            } else if self.actors[&actor_id].skills.main.standalone() {
-                self.start_standalone_core(actor_id, step, entered_attack, prepare_finished);
+            if self.actors[&actor_id].skills.main.standalone()
+                || self.actors[&actor_id].skills.main.mech_searches()
+            {
+                // These skills start in their own skill update.
             } else {
                 self.try_start_attack(
                     SkillRef::main(FightActorRef::Unit(actor_id)),

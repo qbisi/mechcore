@@ -1,0 +1,52 @@
+# Independent guns retain their own attack states and locks. A side gun
+# holds Mountain's motion on a tower while its first gun selects a unit.
+# The body keeps walking towards the side gun's lock; the first gun starts
+# its own attack while the motion still moves. Repeatedly selecting the same
+# lock does not publish a new unit lock. The full generated layout was
+# recorded twice with identical 1731-tick trajectories and settlement.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 405569463
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, fire_badger_specialist]
+  techs:
+    mountain: [saturation_bombardment, mountain_plating, anti_aircraft_ammunition, range_enhancement, extended_range_ammo, gun_launched_missile, smoke_bomb, photon_loop]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [3, 4]
+  units:
+  - {name: mountain, index: 0, position: {x: -225, y: -55}, level: 4, exp: 14369/14369/14369}
+  - {name: fire_badger, index: 1, position: {x: 205, y: -120}, source: delivered}
+  - {name: centurion, index: 2, position: {x: -125, y: -275}, level: 3, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 300, y: -50}, retained: false}
+  battle_skills:
+  - {name: missile_strike, positions: [{x: -130, y: -70}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_defensive_tactics, aerial_specialist, extended_range_phantom_ray]
+  techs:
+    phantom_ray: [energy_shield, high_explosive_ammo, burst_mode, armor_enhancement, ground_targeting, stealth_cloak, range_enhancement, sticky_oil_bomb]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: phantom_ray, index: 0, position: {x: -290, y: -185}, level: 7, exp: 6296/6296/6296, rotated: true, equipment: [secondary_fire_control_system]}
+  - {name: mountain, index: 1, position: {x: -245, y: -135}, level: 4, exp: 0/134/14369, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 35, y: -255}}
+  battle_skills:
+  - {name: electromagnetic_blast, positions: [{x: 170, y: 255}]}
+ticks: 1731
+hash: 25:695f2e0f3dfcbcca62fd3be12e64d380eef35ff2bb4cc5cf74718c029d4935fd
+asserts:
+- sql: SELECT tick,velocity__x,velocity__z,mech_lock_target__kind,mech_lock_target__id,motion_state FROM units WHERE unit_id=5 AND tick IN (519,520,525,526,616,617,618) ORDER BY tick
+  rows: [[519, 32869201077, 20336859513, unit, 6, moving], [520, 32869399356, 20336982201, unit, 6, moving], [525, 32869613538, 20337114717, building, 3, moving], [526, 32869613538, 20337114717, building, 3, moving], [616, 32874621660, 20340213345, building, 3, moving], [617, 32874621660, 20340213345, building, 3, moving], [618, 32874621660, 20340213345, building, 3, moving]]
+- sql: SELECT tick,skill_slot,enabled__lock_target__kind,enabled__lock_target__id,enabled__state FROM units__skills WHERE unit_id=5 AND skill_slot IN (0,1) AND tick IN (519,520,525,526,616,617,618) ORDER BY tick,skill_slot
+  rows: [[519, 0, unit, 6, idle], [519, 1, building, 3, idle], [520, 0, unit, 6, idle], [520, 1, building, 3, idle], [525, 0, unit, 6, idle], [525, 1, building, 3, idle], [526, 0, unit, 6, idle], [526, 1, building, 3, idle], [616, 0, unit, 9, idle], [616, 1, unit, 9, idle], [617, 0, unit, 9, attack], [617, 1, unit, 9, attack], [618, 0, unit, 9, attack], [618, 1, unit, 9, attack]]
+- sql: SELECT tick,source__kind,source__id,target__kind,target__id,skill_slot,weapon_index FROM events WHERE type='projectile_released' AND source__id=5 AND tick BETWEEN 616 AND 620 ORDER BY tick,ordinal
+  rows: [[618, unit, 5, unit, 9, 0, 3], [618, unit, 5, unit, 9, 1, 4]]

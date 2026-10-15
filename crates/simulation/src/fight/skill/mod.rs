@@ -1072,6 +1072,7 @@ impl Skill {
 
     /// `FightSkill.ChangeLockTarget`.
     pub(in crate::fight) fn write_lock(&mut self, lock: Option<FightActorRef>) {
+        let changed = lock != self.lock_target;
         if lock.is_some() {
             self.attack_target_left = None;
         }
@@ -1079,7 +1080,7 @@ impl Skill {
             self.prev_lock_for_side_arm = self.lock_target;
         }
         self.lock_target = lock;
-        self.lock_written = true;
+        self.lock_written |= changed;
     }
 
     pub(in crate::fight) const fn is_grouped(&self) -> bool {
@@ -1599,11 +1600,11 @@ impl Simulation {
             Some(update) => Some(self.perform_main_blow(actor_id, step, events, update)?),
             None => None,
         };
-        // A unit that searches for itself is its motion's attacker, so its
-        // first weapon's skill starts and fires in its own update
+        // Every independent gun starts and fires in its own skill update
         // (`SkillIdleState.TryStartAttack`, `SkillAttackState.TryPerformAttack`),
-        // as the others do.
-        if self.actors[&actor_id].skills.main.mech_searches()
+        // even when another gun holds the motion on a different target.
+        if (self.actors[&actor_id].skills.main.standalone()
+            || self.actors[&actor_id].skills.main.mech_searches())
             && matches!(
                 self.actors[&actor_id].skills.main.phase(),
                 FightSkillPhase::Idle | FightSkillPhase::Attack
