@@ -561,10 +561,12 @@ of range; a Typhoon 16199, its 9529 with 70% more, and 120.
 `SiegeModeEffectSystem` updates after `FightConstructionSystem`, before
 `StealthTechSystem`, last unit first. A unit whose time has reached the
 duration (`FPoint.op_GreaterThanOrEqual`) leaves its trench; any other's
-time is set back to none when the units in its main skill's range of it
-(`RangeTargetCalculator.CalculateRangeTargets`: no building, the unit's own
-radius, only the fully visible, the main skill's targets, and then no
-`FightConstruction`) are any, and counts the tick otherwise. Each blow of
+time is set back to none when the enemies in its main skill's range of it
+(`RangeTargetCalculator.CalculateRangeTargets`, without its separate building
+search: the unit's own radius, only the fully visible, the main skill's
+targets, and then no `FightConstruction`) are any, and counts the tick
+otherwise. Towers and interceptors already in the team tree remain:
+an interceptor is a `FightCrystal`, not a `FightConstruction`. Each blow of
 its main skill sets the time back too (`AttackingController.Update`,
 `FightMech.PerformMainSkillAttack`, `ResetTimer`), so a unit firing at a
 wall or a tower stays dug in. A tick's 0.05 seconds fall a few raw short, so
@@ -1695,6 +1697,10 @@ derive (a minimum range):
 ## Evidence
 
 ### Recorded
+
+- An enemy interceptor in range keeps Field Entrenchment's inactivity timer
+  reset until it falls, with the range and life bonuses removed only after
+  the ensuing duration: `tests/siege_mode/interceptor-keeps-trench.yaml`.
 
 - An EMP data refresh preserves the already elapsed clocks of Raiden's
   first fusillade, and both siblings fire with the core:

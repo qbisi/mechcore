@@ -175,6 +175,11 @@ it, so the technology brings its blow forward as well as its next one.
 
 ## Base facing
 
+`FightTransform.RotateTo` keeps its rotation when it compares equal to the
+converted target angle under `FPoint`'s tolerance. Otherwise `RotateLeft` or
+`RotateRight` takes `FPoint.Min(remaining angle, rotateDelta)`: values that
+compare equal select the second operand, the full rotation step.
+
 There is no `aim_tolerance` turn deadzone. A value like 20 is not a threshold
 the build applies.
 
@@ -1198,6 +1203,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- Summoned Wasps keep their facing for an equal-within-tolerance target
+  angle and take a full turn when its remaining angle compares equal to
+  the step: `tests/siege_mode/interceptor-keeps-trench.yaml`.
+
 - An exhausted evenly allocated burst still names the fallen tower its
   skill retains, preserving the tower's radius and its projectile climb:
   `tests/extra_weapon/exhausted-missiles-disintegration.yaml`.
@@ -1482,6 +1491,11 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- Turning keeps equal-within-tolerance angles and selects the full step on
+  a remaining-angle tie: `FightTransform.RotateTo`,
+  `FightTransform.RotateLeft`, `FightTransform.RotateRight`, `FPoint.Min`,
+  `FPoint.op_Equality`, `FPoint.op_LessThan`.
 
 - An after-wait disables target checks, and the next blow requires an idle
   attack controller: `SkillAttackController..ctor`,

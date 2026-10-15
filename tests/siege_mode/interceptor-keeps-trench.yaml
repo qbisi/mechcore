@@ -1,0 +1,65 @@
+# An interceptor is a FightCrystal rather than a FightConstruction: it
+# resets Field Entrenchment inactivity while it stands in range. Destroyed
+# at tick 8, it leaves Sabertooth dug in through 148, loses its bonuses at
+# 149 and moves at 155. The summoned Wasps also witness tolerant RotateTo
+# equality and FPoint.Min at ticks 57 and 64. Control: sabertooth.yaml.
+# Two native recordings agree for all 1199 ticks and settlement.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1966965990
+round: 3
+blue:
+  core_damage: 561
+  officers: [advanced_offensive_tactics, fortified_specialist, improved_sabertooth]
+  techs:
+    sabertooth: [doubleshot, missile_interceptor, field_entrenchment, range_enhancement, field_maintenance, secondary_armament, anti_air_missile]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -345, y: 55}, level: 7, exp: 4092/4902/8185, rotated: true, equipment: [secondary_heavy_armor]}
+  - {name: mustang, index: 1, position: {x: -25, y: -110}, level: 4, exp: 0/436/5388, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: ion_blast, positions: [{x: 260, y: -240}, {x: 0, y: -265}]}
+red:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, fire_badger_specialist, assault_melting_point]
+  techs:
+    melting_point: [energy_absorption, electromagnetic_barrage, energy_diffraction, crawler_production, armor_enhancement, range_enhancement]
+  blueprints: [attack_enhancement_ii]
+  units:
+  - {name: melting_point, index: 0, position: {x: -150, y: -100}, level: 3, exp: 4987/4987/4987, rotated: true, equipment: [explosive_ammo]}
+  - {name: fire_badger, index: 1, position: {x: 135, y: -230}, source: delivered}
+  - {name: rhino, index: 2, position: {x: -75, y: -55}, level: 8, exp: 0/360/7736, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 255, y: -45}, retained: false}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: 5, y: -30}]}
+asserts:
+- sql: |-
+    SELECT tick,unit_id,body_rotation FROM units WHERE (unit_id=30 AND tick IN (56,57)) OR (unit_id=32 AND tick IN (63,64)) ORDER BY tick,unit_id
+  rows:
+  - [56, 30, 773094113280]
+  - [57, 30, 773094113280]
+  - [63, 32, 798863916960]
+  - [64, 32, 773094113280]
+- sql: |-
+    SELECT u.tick,u.life__maximum,u.motion_state,k.enabled__attack_range FROM units u JOIN units__skills k USING(tick,unit_id) WHERE u.unit_id=13 AND k.skill_slot=0 AND u.tick IN (142,143,148,149,154,155) ORDER BY u.tick
+  rows:
+  - [142, 289062, stopped, 730144440320]
+  - [143, 289062, stopped, 730144440320]
+  - [148, 289062, stopped, 730144440320]
+  - [149, 239565, stopped, 644245094400]
+  - [154, 239565, stopped, 644245094400]
+  - [155, 239565, moving, 644245094400]
+- sql: |-
+    SELECT tick,type,object__kind,object__id FROM events WHERE tick=8 AND type='building_destroyed' AND object__id=11 ORDER BY ordinal
+  rows:
+  - [8, building_destroyed, building, 11]
+ticks: 1199
+hash: 26:0369523383e4c7260cf8ed34289788ff33f878b743c8a32d780a53029271d116

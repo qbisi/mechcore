@@ -140,6 +140,10 @@ the best scored, not the nearest: a turret faces a tower straight ahead rather
 than a unit whose centre is nearer but whose edge is not, or which stands off
 its line.
 
+This initialization assigns the angle directly and refreshes each weapon
+(`FightWeapon.UpdateRotation`, `RotationLimitFightTransform.RefreshRotation`);
+it does not use the tolerant, speed-limited `FightTransform.RotateTo`.
+
 The targets are the other side's towers, the constructions it could fire at,
 a turret but not a wall, and its old units, which a ground turret takes only
 on the ground. `OldMechTargetFilter` passes a unit only when

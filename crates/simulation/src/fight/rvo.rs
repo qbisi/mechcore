@@ -967,7 +967,7 @@ pub(crate) fn fpoint_less_or_equal(left: i64, right: i64) -> bool {
 /// above and return their second argument when the operands compare equal.
 /// Preserve that argument-order tie behaviour: quadtree bounds and branch
 /// radii feed their result back into later center and reach calculations.
-fn fpoint_min(first: i64, second: i64) -> i64 {
+pub(in crate::fight) fn fpoint_min(first: i64, second: i64) -> i64 {
     if fpoint_less_than(first, second) {
         first
     } else {
