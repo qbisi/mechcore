@@ -1,0 +1,77 @@
+# An idle skill's retained shield changes its automatic movement distance.
+# Spider Mine 65 changes locks after its target dies at t532. Its skill is
+# idle but still holds an energy shield: AutoMoveBehaviour's shield branch
+# omits its own radius. The point is published as velocity at t536. Always
+# adding the radius instead changed red core damage from native 200 to 202.
+# This full generated fight also pins current-side unit statistics: deployed
+# Crawlers 15 and 18 return to blue on death, while summoned Crawlers 51 and 54
+# turn red and die between snapshots. Their independent recorders keep their
+# counters and read the native current side, not a cached last-live side.
+# Native repeats 1197 ticks. Control: covered-tower-motion.yaml, whose mech
+# attacker answers IsAttackingEnergyShield false rather than the skill's cache.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1040414662
+round: 2
+blue:
+  core_damage: 0
+  officers: [quick_teleport, advanced_defensive_tactics, cost_control_specialist]
+  techs:
+    tarantula: [high_explosive_ammo, field_maintenance, armor_enhancement, anti_aircraft_ammunition, range_enhancement, mechanical_rage, armor_piercing_bullets, spider_mine]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [1, 3]
+  units:
+  - {name: tarantula, index: 0, position: {x: 335, y: 175}, level: 9, exp: 0/6100/10091, equipment: [haste_module], travelling: true, source: joined}
+  - {name: crawler, index: 1, position: {x: 125, y: -280}, level: 7, exp: 0/2833/2833, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 205, y: -275}, retained: false}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: -20, y: 20}]}
+red:
+  core_damage: 200
+  officers: [advanced_missile_device, quick_teleport, speed_specialist, fortified_hacker]
+  techs:
+    hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement, multi_control]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: hacker, index: 0, position: {x: -335, y: 255}, level: 8, exp: 0/3148/3767, equipment: [secondary_heavy_armor], travelling: true, source: joined}
+  - {name: hacker, index: 1, position: {x: 265, y: -55}, level: 2, exp: 0/174/1262, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -270, y: -190}, retained: false}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: -70, y: -65}]}
+asserts:
+- sql: |-
+    SELECT tick,unit_id,velocity__x,velocity__z FROM units WHERE unit_id=65 AND tick BETWEEN 532 AND 537 ORDER BY tick
+  rows:
+  - [532, 65, -50274446780, 74455479610]
+  - [533, 65, -50274446780, 74455479610]
+  - [534, 65, -50274446780, 74455479610]
+  - [535, 65, -50274446780, 74455479610]
+  - [536, 65, -55893925665, -101598406542]
+  - [537, 65, -55893925665, -101598406542]
+- sql: |-
+    SELECT tick,team_id,recorder_id,damage,damage_real,kills,damage_taken FROM statistics WHERE recorder='unit' AND ((recorder_id IN (15,18) AND tick IN (151,152,153)) OR (recorder_id IN (51,54) AND tick IN (1142,1143,1144))) ORDER BY tick,recorder_id
+  rows:
+  - [151, 1, 15, 1338, 1338, 0, 2007]
+  - [151, 1, 18, 1338, 1338, 0, 2007]
+  - [152, 0, 15, 1338, 1338, 0, 2676]
+  - [152, 0, 18, 1338, 1338, 0, 2676]
+  - [153, 0, 15, 1338, 1338, 0, 2676]
+  - [153, 0, 18, 1338, 1338, 0, 2676]
+  - [1142, 0, 51, 475, 293, 2, 0]
+  - [1142, 0, 54, 760, 669, 1, 0]
+  - [1143, 1, 51, 475, 293, 2, 27233]
+  - [1143, 1, 54, 760, 669, 1, 27233]
+  - [1144, 1, 51, 475, 293, 2, 27233]
+  - [1144, 1, 54, 760, 669, 1, 27233]
+ticks: 1197
+hash: 26:e4168d2dc7201bcc2db68fa73740f50f6a4a79c03db9cddcaec66814b7bcc978

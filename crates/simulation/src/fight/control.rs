@@ -500,6 +500,7 @@ impl Simulation {
             .expect("actor identity is stable")
             .placement
             .team = team;
+        self.unit_recorder_changes_side(unit_id, old_team, team);
         self.add_opponent_actor(unit, team);
         self.joins_side_last(unit_id);
         let step = self.step_now;
@@ -711,13 +712,7 @@ impl Simulation {
         actor.placement.formation_id = formation_id;
         // `OnChangeTeam` reaches `MechGrounpSystem.ChangeMechGroup`.
         self.change_group_side(unit_id, old_team);
-        let actor = self
-            .actors
-            .get_mut(&unit_id)
-            .expect("actor identity is stable");
-        if actor.summoned {
-            self.summon_changes_side(unit_id, old_team, team);
-        }
+        self.unit_recorder_changes_side(unit_id, old_team, team);
         self.interceptors_change_side(unit_id);
         self.add_opponent_actor(unit, team);
         self.joins_side_last(unit_id);

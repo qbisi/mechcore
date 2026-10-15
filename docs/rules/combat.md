@@ -229,6 +229,14 @@ stands in the line of fire.
 **The body travels toward the lock.** While `moving`, a unit's velocity points
 at its lock, up to the push of its neighbours in a formation.
 
+**A retained shield changes its automatic movement distance.**
+`AutoMoveBehaviour.CalculateTargetDistance` subtracts the lock's radius less
+attack range from the centre distance. Outside its shield branch it also
+subtracts the owner's radius from that stopping allowance. The shield branch
+therefore submits a nearer movement point. `IAttacker.IsAttackingEnergyShield`
+on a skill reads its cached `GetTargetEnergyShield`, even while its idle flag
+suppresses the attack target; a mech that searches for itself answers false.
+
 **Whether it travels is the attack target's.** `attacking` is entered when an
 attack target is in reach, whatever the lock is. `MotionAttackState.Enter`
 calls `RVOControllerFixed.StopMove`, and only `MotionMoveState` calls
@@ -1221,6 +1229,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- An idle Spider Mine retains a shield target after changing locks, submits
+  the shield branch's movement point and publishes the resulting velocity:
+  `tests/mech_search/idle-skill-keeps-shield-distance.yaml`.
+
 - Scattered projectiles retain their launch offsets when a disabling buff
   enables tracking in flight:
   `tests/technology_disable/in-flight-scatter-offset.yaml`.
@@ -1527,6 +1539,12 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- Automatic pursuit's shield and owner-radius branches:
+  `AutoMoveBehaviour.CalculateTargetDistance`, `MotionMoveState.MoveUpdate`,
+  `FightSkillBase.GameRiver.Fight.IAttacker.IsAttackingEnergyShield`,
+  `FightSkill.GetTargetEnergyShield`,
+  `FightMech.GameRiver.Fight.IAttacker.IsAttackingEnergyShield`.
 
 - A projectile stores its launch offset independently of tracking and uses it
   when current tracking becomes enabled: `FightProjectile.Init`,

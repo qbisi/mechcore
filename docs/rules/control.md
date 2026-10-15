@@ -208,6 +208,10 @@ the shield does not count against the turn.
 
 ### Recorded
 
+- Unit statistics follow the native unit's current side even when a deployed
+  unit returns on death or a summon turns and dies between snapshots:
+  `tests/mech_search/idle-skill-keeps-shield-distance.yaml`.
+
 - EMP disabling Multi Control leaves the winding beams' entries until their
   pending hits finish, using each extra beam's retained reduction:
   `tests/technology_disable/control-group-finishes-windup.yaml`.
