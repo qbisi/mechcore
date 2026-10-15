@@ -1299,6 +1299,13 @@ the skill's hit effects (`ApplySecondaryDamageToActors`,
 `DispatchSecondaryDamageEvent`). A source that `CanDisable` writes nothing
 while the Vortex's technologies are off, and no second damage is dealt then.
 
+**A Vortex travelling in retains its preparation-time Cloud hit controller.**
+Adding the unit during preparation registers one controller on its main
+skill. Arrival activates its effects and registers another after its other
+hit providers. Both controllers receive the main skill's hits, each applying
+the buff independently; a summoned Electromagnetic Twin has only its
+summon-time registration.
+
 ## Cloak technologies
 
 A row of `moveAbilityDynamicTechDatas` is a `MoveAbilityDynamicTech`, an
@@ -1715,6 +1722,10 @@ derive (a minimum range):
 ## Evidence
 
 ### Recorded
+
+- A travelling Vortex's Cloud applies twice on its main hit, its summoned
+  Twin once, beside the Sandworms' burrow transitions:
+  `tests/secondary_damage/travelling-cloud-and-burrow-idle.yaml`.
 
 - EMP refreshes each of a Fang's technology sources separately, leaving its
   main skill ready when an intermediate refresh reaches its clock:
@@ -2158,6 +2169,11 @@ derive (a minimum range):
   `tests/fire_intensify/fire_badger-marksman.yaml`.
 
 ### Read
+
+- Cloud controller creation and registration from preparation refresh and
+  travel arrival: `SecondaryDamageIntensifyEffectProvider.DoActive`,
+  `Clear`, `FightEffectSystem.Refresh`, `SuperDeploymentController.ExitTravel`,
+  `SkillHitEffectController.PerformHitEffect`.
 
 - Death exits every skill before rebirth enters them again:
   `FightMech.OnDead`, `FightMech.ExitFight`, `SkillManager.ExitFight`,

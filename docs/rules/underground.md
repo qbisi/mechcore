@@ -42,9 +42,11 @@ state with idle: the transition enters its original next state, even when
 the skill no longer holds a lock.
 
 **Both ends stop every skill.** `SkillManager.Deactive` stops each skill's
-attack (`FightSkill.StopAttack`), which drops its lock and keeps its attack
-target, leaves it idle, and stops the manager updating it. The manager is
-active again when the transition ends. A unit that burrows on its first tick
+attack (`FightSkill.StopAttack`), which drops its lock. A skill already idle
+keeps its actor attack target. Every other state enters Idle with target
+clearing enabled: both targets and the previous state's wait are cleared.
+The manager stops updating skills until the transition ends.
+A unit that burrows on its first tick
 has searched and locked on that tick, and reads no lock until the tick after
 it is below.
 
@@ -247,6 +249,10 @@ including a unit already idle whose ability was not cleared.
 
 ### Recorded
 
+- Sandworms entering a burrow from an attack clear their targets and old
+  wait; already idle Sandworms keep their actor attack targets:
+  `tests/secondary_damage/travelling-cloud-and-burrow-idle.yaml`.
+
 - A Larva's attack ending during its motion transition leaves the queued
   attacking state intact, which enters without a lock:
   `tests/move_ability/larva-pending-attack-transition.yaml`.
@@ -289,6 +295,10 @@ including a unit already idle whose ability was not cleared.
   `tests/endgame/exit-fight-transition-and-move.yaml`.
 
 ### Read
+
+- Deactivation enters Idle only from another state, clearing targets:
+  `SkillManager.Deactive`, `FightSkill.ChangeToIdleState`,
+  `SkillIdleState.Enter`, `SkillAttackState.Exit`.
 
 - A skill counts towards its next attack in its own update, and its count is
   cleared only as an attack starts or the fight begins: `FightSkill.Update`,

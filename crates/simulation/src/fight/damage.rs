@@ -1237,10 +1237,10 @@ impl Simulation {
                 // A second damage's own buff source writes on its hit too
                 // (`BuffCycleController.PerformHitEffect`).
                 if secondary {
-                    self.add_hit_buffs(owner.id, slot, (targets, center), true, events)?;
+                    self.add_hit_buffs(owner.id, slot, (targets, center), true, false, events)?;
                 }
                 if !secondary {
-                    self.add_hit_buffs(owner.id, slot, (targets, center), false, events)?;
+                    self.add_hit_buffs(owner.id, slot, (targets, center), false, false, events)?;
                     let point = self.hit_point(skill, targets, center);
                     self.start_chain(owner.id, slot, targets, (point.0, point.2));
                     ends.absorb_ends(self.take_life_share(owner.id, slot, targets, events)?);
@@ -1251,6 +1251,14 @@ impl Simulation {
                 ends.absorb_ends(self.explode_kills(owner.id, slot, targets, events)?);
                 if !secondary {
                     self.count_shield_hit(owner.id, slot);
+                }
+                // A unit placed in travel retains its preparation-time
+                // secondary buff controller. ExitTravel's ActiveEffect
+                // registers another after the other hit providers; both
+                // remain in SkillHitEffectController's list. Summons have
+                // no preparation-time registration.
+                if self.actors[&owner.id].placement.travelling {
+                    self.add_hit_buffs(owner.id, slot, (targets, center), secondary, true, events)?;
                 }
                 // `PerformMainSkillHitted`, which only a projectile raises.
                 if main

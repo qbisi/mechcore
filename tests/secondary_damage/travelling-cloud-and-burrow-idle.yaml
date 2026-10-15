@@ -1,0 +1,72 @@
+# A travelling Vortex retains its preparation-time Cloud hit controller;
+# arrival registers another after its other hit providers. Its first hit at
+# t907 applies buff 1031 twice, followed by its Twin's application once.
+# Sandworms 3 and 9 begin burrowing at t983 while attacking: Deactive enters
+# Idle, clearing their attack targets and the old state's wait. Sandworms 7
+# and 8 were already idle and retain their actor attack targets instead.
+# Keeping the old wait changed the later search and blue core damage.
+# Full generated layout, repeated natively for 1095 ticks, core damage 498/0.
+# Controls: electromagnetic-cloud.yaml for ordinary Cloud, and
+# ../move_ability/sandstorm-steel_ball.yaml for burrow transitions. Rows are native.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 2053820027
+round: 2
+blue:
+  core_damage: 498
+  officers: [advanced_missile_device, quick_teleport, speed_specialist]
+  techs:
+    vortex: [grid_integration, field_maintenance, electromagnetic_cloud, machine_learning, range_enhancement, electromagnetic_twin, mobile_power_station, accumulator_shield, emergency_armor]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: vortex, index: 0, position: {x: 350, y: 210}, level: 9, exp: 0/3400/5046, rotated: true, equipment: [heavy_armor], travelling: true, source: joined}
+  - {name: tarantula, index: 1, position: {x: 5, y: -225}, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -65, y: -290}}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: -75, y: -140}, {x: -190, y: 105}, {x: -120, y: 210}]}
+red:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_targeting_system, marksman_specialist, mass_produced_sandworm]
+  techs:
+    sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [4, 3]
+  units:
+  - {name: marksman, index: 0, position: {x: 130, y: -60}, level: 3, exp: 0/150/2315, source: delivered}
+  - {name: sandworm, index: 1, position: {x: 160, y: -40}, level: 8, exp: 0/2450/13455, equipment: [barrier], source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -115, y: -130}, retained: false}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: 250, y: 230}, {x: -35, y: 260}]}
+asserts:
+- sql: |-
+    SELECT tick,ordinal,type,source__id,target__kind,target__id,amount,buff_id,duration,skill_slot FROM events WHERE tick=907 AND (source__id IN (2,5)) AND (type='damage' OR buff_id=1031) ORDER BY ordinal
+  rows:
+  - [907, 4, "damage", 2, "unit", 3, 27921, null, null, 0]
+  - [907, 5, "buff_applied", 2, "unit", 3, null, 1031, 40, null]
+  - [907, 6, "buff_applied", 2, "unit", 3, null, 1031, 40, null]
+  - [907, 7, "damage", 5, "unit", 3, 946, null, null, 0]
+  - [907, 8, "buff_applied", 2, "unit", 3, null, 1031, 40, null]
+- sql: |-
+    SELECT tick,unit_id,enabled__lock_target__id,enabled__attack_target__id,enabled__state,enabled__attack_time FROM units__skills WHERE tick IN (982,983,1004) AND unit_id IN (3,7,8,9) ORDER BY tick,unit_id
+  rows:
+  - [982, 3, 2, 2, "attack", 19]
+  - [982, 7, null, 2, "idle", 654]
+  - [982, 8, null, 2, "idle", 398]
+  - [982, 9, 2, 2, "attack", 25]
+  - [983, 3, null, null, "idle", 20]
+  - [983, 7, null, 2, "idle", 654]
+  - [983, 8, null, 2, "idle", 398]
+  - [983, 9, null, null, "idle", 26]
+  - [1004, 3, 5, 5, "idle", 21]
+  - [1004, 7, 5, 5, "attack", 3]
+  - [1004, 8, null, 5, "idle", 399]
+  - [1004, 9, 5, 5, "idle", 27]
+ticks: 1095
+hash: 26:39e70fbf72992d154f95074995c08ff847cd852f4fa9a9984c297d069d19dd39
