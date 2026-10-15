@@ -107,17 +107,32 @@ jobs:
       # The rounds this commit fights wrong or refuses that its parent did
       # not, as one issue, and a comment on the pull request the commit merged. Which
       # mechanism a round parts on needs the game, which this run does not
-      # have.
+      # have. Resolve the PR only after a new divergence is found, retrying
+      # transient API failures before publishing the report with its attribution.
       - name: Open an issue for the rounds newly fought wrong or refused
         env:
           GH_TOKEN: ${{ github.token }}
           RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
-            --jq 'map(select(.merged_at != null)) | .[0].number // empty')
           python3 scripts/corpus/divergence-issue.py reports --before before \
-            --commit "$GITHUB_SHA" --run "$RUN" ${pr:+--pr "$pr"} --out issue
+            --commit "$GITHUB_SHA" --run "$RUN" --out issue
           if [ -f issue/issue.md ]; then
+            for attempt in 1 2 3; do
+              if pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
+                --jq 'map(select(.merged_at != null)) | .[0].number // empty'); then
+                break
+              fi
+              if [ "$attempt" -eq 3 ]; then
+                echo 'PR lookup failed after 3 attempts' >&2
+                exit 1
+              fi
+              echo "PR lookup failed on attempt $attempt; retrying" >&2
+              sleep "$((attempt * 2))"
+            done
+            if [ -n "$pr" ]; then
+              python3 scripts/corpus/divergence-issue.py reports --before before \
+                --commit "$GITHUB_SHA" --run "$RUN" --pr "$pr" --out issue
+            fi
             url=$(gh issue create --title "$(cat issue/issue-title.txt)" \
               --body-file issue/issue.md --label divergence)
             if [ -n "$pr" ]; then
