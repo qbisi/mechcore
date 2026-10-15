@@ -1,0 +1,32 @@
+# A dug-in Sabertooth starts its main and secondary blows on the same tick.
+# Its main skill still runs in skill-ID order while motion is stopped:
+# slot 0 releases before slot 2 at tick 189, drawing intervals 37 then 71.
+# The game supplies this control layout, complete trajectory and assertions.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 2
+blue:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, improved_war_factory]
+  techs:
+    war_factory: [photon_coating]
+  blueprints: [defense_enhancement_ii]
+  units:
+  - {name: war_factory, index: 0, position: {x: 85, y: -55}, exp: 0/1200/3200}
+red:
+  core_damage: 500
+  officers: [improved_sabertooth]
+  techs:
+    sabertooth: [doubleshot, field_entrenchment, field_maintenance, secondary_armament]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -85, y: -55}, level: 2, equipment: [super_heavy_armor]}
+ticks: 272
+hash: 25:cbb189e1633d5a34b0ea7581bda556c82561c1aa664ed7d1beb2e7b936667367
+asserts:
+- sql: SELECT ordinal,source__kind,source__id,target__kind,target__id,skill_slot,weapon_index FROM events WHERE tick=189 AND type='projectile_released' AND source__id=2 ORDER BY ordinal
+  rows: [[0,unit,2,unit,1,0,0],[1,unit,2,unit,1,2,5]]
+- sql: SELECT tick,skill_slot,enabled__current_attack_interval FROM units__skills WHERE unit_id=2 AND tick=189 AND skill_slot IN (0,2) ORDER BY skill_slot
+  rows: [[189,0,37],[189,2,71]]
