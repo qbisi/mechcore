@@ -76,6 +76,44 @@ fn grouped_child_range_is_parent_range_plus_ten_metres() {
     ));
 }
 
+#[test]
+fn an_unheld_childs_normal_search_uses_its_range_for_visible_fallback() {
+    let config = SimulationConfig::load().unwrap();
+    let layout = CompiledLayout::of_units(
+        1,
+        vec![
+            placement(0, "raiden", 0, 0, 0),
+            placement(1, "sandworm", 0, 0, 50),
+            test_placement(1, 1, 0, 140),
+        ],
+    );
+    let mut sim = raw_test_simulation(&layout, &config, 7);
+    set_actor_position(sim.actors.get_mut(&1).unwrap(), 0, 0);
+    sim.actors.get_mut(&2).unwrap().visibility = Visibility::Hide;
+    let radii = sim.actors[&1].rules.collision_radius() + sim.actors[&3].rules.collision_radius();
+    set_actor_position(sim.actors.get_mut(&3).unwrap(), 0, radii + 115_000);
+    sim.refresh_target_query_snapshot();
+    let order = sim.target_search_order();
+    let main = SkillRef::main(FightActorRef::Unit(1));
+    assert_eq!(
+        sim.select_group_lock_replacement(main, 0, &order).unwrap(),
+        Some(unit_target(2)),
+        "the visible unit is beyond the core's range"
+    );
+    assert_eq!(
+        sim.select_group_lock_replacement(main, 1, &order).unwrap(),
+        Some(unit_target(3)),
+        "with no held locks the child's normal search still reaches it"
+    );
+    set_actor_position(sim.actors.get_mut(&3).unwrap(), 0, radii + 120_100);
+    sim.refresh_target_query_snapshot();
+    assert_eq!(
+        sim.select_group_lock_replacement(main, 1, &order).unwrap(),
+        Some(unit_target(2)),
+        "beyond the child's own range it keeps the hidden best candidate"
+    );
+}
+
 /// A Wraith's sibling slot, to set up and read in place.
 fn slot(sim: &mut Simulation, slot: usize) -> &mut Skill {
     sim.actors
