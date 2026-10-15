@@ -310,7 +310,13 @@ its height kept, under the unit's side. The fire is the unit's own numbers:
 `fireLifeTime` (`ExtraWeaponTechnologyData.GetFireLifeTime`) onto the unit's
 `DataSet` as the fire's range and life time (`MechDataModifer.AddData`) when
 that life time is above zero, an oil's row's too, and `GetFireMech` reads them
-back. The fire burns as any fire does
+back on the first request for that unit, caching a `FireMech` from those
+values. Later requests reuse that provider. A summon's death clears its
+unit corrections; if its first fire is requested only by a later landing
+shot, the provider reads zero range and life. The empty fire remains a
+controller member until its next update, and a recording keeps it. A
+provider made before the corrections leave keeps the values it already
+read. The fire burns as any fire does
 ([terrain.md](terrain.md)), at the shared fire's damage and period. Incendiary
 Bomb's fire reaches 12 metres from where it lands and burns for 10 seconds;
 the Vulcan's, of its own row, 18 metres for 12 seconds, ten shells a volley
@@ -730,6 +736,15 @@ that is not melee, so the simulator refuses it.
 
 ### Recorded
 
+- A summoned Vulcan's first Incendiary Bomb fire is requested after its
+  death and the clearing of its unit corrections. Its empty fire is
+  recorded for one tick, while its Sticky Oil Bomb still leaves its
+  technology's own positive-radius oil:
+  `tests/extra_weapon/summon-first-fire-after-death.yaml`. Omitting
+  Fortress Doubleshot makes the first provider while the Vulcan lives;
+  later hits retain its positive range and life after the Vulcan dies:
+  `tests/extra_weapon/summon-fire-provider-before-death.yaml`.
+
 - Two extra weapons that burn sum their fires on the unit: a Vulcan with
   Incendiary Bomb and Sticky Oil Bomb burns 36 metres for 480 ticks:
   `tests/fire_intensify/two-weapons-burn-summed.yaml`.
@@ -1065,7 +1080,9 @@ that is not melee, so the simulator refuses it.
   the block in the way it found.
 - Its fire: `ExtraSkillProvider.PerformHitEffect`, `ExtraSkillProvider.AddEffect`,
   `ExtraWeaponTechnologyData.GetFireLifeTime`, `MechDataModifer.AddData`,
-  `GroundFireController.GetFireMech`, `RangeItemSystem.AddItem`,
+  `GroundFireController.GetFireMech`, `FireMech..ctor`, `RangeItemSystem.AddItem`,
+  `SummonSystem.RemoveMech`, `FightController.DestroyMech`,
+  `FightEffectSystem.ClearEffect`,
   `RangeItemSystem.DoAddItem`, `RangeItemSystem.GetRepeatItem`.
 - Its fog: `ExtraWeaponTech`'s `IFogProvider.GetAttackRangeChangeRate`,
   which reads its row's `fogAttackRangeChangeRate`, and its

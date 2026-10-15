@@ -20,6 +20,7 @@ use crate::{
     },
     rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs, UnitDomain},
 };
+pub(crate) use commander_skills::ticks as terrain_ticks;
 use commander_skills::{CommanderSkillEffects, technology_buff};
 pub(crate) use commander_skills::{
     ItemBuff, Scatter, SkillBuff, SkillEffect, SkillRelease, StandingOil, SubEffect, Summon,

@@ -1,0 +1,60 @@
+# Control for summon-first-fire-after-death.yaml: omit Fortress Doubleshot.
+# The summoned Vulcan now first burns at tick 134 while alive, dies at 140,
+# and its later hits reuse the cached 36-metre, 480-tick provider.
+kind: fight
+source: game
+map_id: 1021
+seed: 330742291
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, advanced_targeting_system, sabertooth_specialist, extended_range_fortress]
+  techs:
+    fortress: [barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: fortress, index: 0, position: {x: -260, y: -200}, exp: 1600/1600/1600, equipment: [heavy_armor]}
+  - {name: sabertooth, index: 1, position: {x: 265, y: -105}, exp: 0/68/1300, source: delivered}
+  - {name: mountain, index: 2, position: {x: 165, y: -125}, level: 8, exp: 0/3740/21528, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -95, y: -175}}
+  battle_skills:
+  - {name: missile_strike, positions: [{x: -110, y: 285}]}
+red:
+  core_damage: 350
+  officers: [advanced_defensive_tactics, advanced_offensive_tactics, fire_badger_specialist, extended_range_vulcan]
+  techs:
+    vulcan: [incendiary_bomb, best_partner, armor_enhancement, range_enhancement, scorching_fire, sticky_oil_bomb, ignite]
+  blueprints: [attack_enhancement]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 55, y: -80}, exp: 0/32/1400, source: delivered}
+  - {name: vulcan, index: 1, position: {x: -250, y: -260}, level: 9, exp: 0/16280/16280, equipment: [mustang_production_line], source: joined}
+  - {name: rhino, index: 2, position: {x: 185, y: -145}, level: 3, exp: 0/20/4096, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 255, y: -50}}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: 120, y: -20}]}
+ticks: 674
+hash: 25:60e23c7363337f02b30f074686f4589fef6694103d5b8b7dd5e893da4b837e64
+asserts:
+- sql: SELECT tick, type, object__id, source__id FROM events WHERE type='unit_died'
+    AND object__kind='unit' AND object__id=22 ORDER BY tick,ordinal;
+  rows:
+  - - 140
+    - unit_died
+    - 22
+    - 5
+- sql: "SELECT t.tick, t.terrain_id, q32(t.radius) AS radius,\n       t.logic_lifetime__limit\n\
+    FROM terrains t\nWHERE t.terrain_type = 'fire' AND q32(t.radius) = 36\n  AND t.tick\
+    \ = (SELECT min(b.tick) FROM terrains b WHERE b.terrain_id = t.terrain_id)\n \
+    \ AND t.tick IN (134, 142)\nORDER BY t.tick, t.terrain_id;"
+  rows:
+  - - 134
+    - 2
+    - 36.0
+    - 480
+  - - 142
+    - 11
+    - 36.0
+    - 480

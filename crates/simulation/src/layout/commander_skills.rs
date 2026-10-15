@@ -1469,7 +1469,7 @@ pub(crate) fn sand_fog(source: crate::modifier::MoveAbilityRangeItem) -> Result<
     })
 }
 
-fn ticks(seconds_raw: i64) -> Result<i64> {
+pub(crate) fn ticks(seconds_raw: i64) -> Result<i64> {
     let scaled = u128::from(seconds_raw.unsigned_abs()) << 32;
     let divisor = u128::from(LOGIC_DELTA_RAW.unsigned_abs());
     let magnitude = scaled / divisor + u128::from((scaled % divisor) * 2 >= divisor);

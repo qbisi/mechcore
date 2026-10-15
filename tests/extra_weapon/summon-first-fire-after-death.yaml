@@ -1,0 +1,118 @@
+# An inherited Incendiary Bomb first reaches the ground after its summoned
+# Vulcan dies. GetFireMech first reads the cleared DataSet, so the fire has
+# zero range and life, appears for one tick and does not ignite the oil.
+# Control: generated fight with Incendiary Bomb and Sticky Oil Bomb; a
+# deployed owner keeps their summed numbers in fire_intensify/two-weapons-burn-summed.yaml.
+kind: fight
+source: game
+map_id: 1021
+seed: 330742291
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, advanced_targeting_system, sabertooth_specialist, extended_range_fortress]
+  techs:
+    fortress: [doubleshot, barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: fortress, index: 0, position: {x: -260, y: -200}, exp: 1600/1600/1600, equipment: [heavy_armor]}
+  - {name: sabertooth, index: 1, position: {x: 265, y: -105}, exp: 0/68/1300, source: delivered}
+  - {name: mountain, index: 2, position: {x: 165, y: -125}, level: 8, exp: 0/3740/21528, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -95, y: -175}}
+  battle_skills:
+  - {name: missile_strike, positions: [{x: -110, y: 285}]}
+red:
+  core_damage: 358
+  officers: [advanced_defensive_tactics, advanced_offensive_tactics, fire_badger_specialist, extended_range_vulcan]
+  techs:
+    vulcan: [incendiary_bomb, best_partner, armor_enhancement, range_enhancement, scorching_fire, sticky_oil_bomb, ignite]
+  blueprints: [attack_enhancement]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 55, y: -80}, source: delivered}
+  - {name: vulcan, index: 1, position: {x: -250, y: -260}, level: 9, exp: 0/16280/16280, equipment: [mustang_production_line], source: joined}
+  - {name: rhino, index: 2, position: {x: 185, y: -145}, level: 3, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 255, y: -50}}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: 120, y: -20}]}
+ticks: 674
+hash: 25:892fb065ae503e6dc6cac28f7d864ee336b51a1072b03e2573fc315f1c280d36
+asserts:
+- sql: "SELECT tick, type, object__kind, object__id, source__kind, source__id,\n \
+    \      target__kind, target__id, skill_slot, weapon_index\nFROM events\nWHERE\
+    \ (type = 'unit_died' AND object__kind = 'unit' AND object__id = 22)\n   OR (type\
+    \ = 'projectile_released' AND source__id = 22 AND object__id IN (1, 2))\nORDER\
+    \ BY tick, ordinal;"
+  rows:
+  - - 49
+    - projectile_released
+    - projectile
+    - 1
+    - unit
+    - 22
+    - unit
+    - 7
+    - 1
+    - 2
+  - - 49
+    - projectile_released
+    - projectile
+    - 2
+    - unit
+    - 22
+    - unit
+    - 7
+    - 2
+    - 2
+  - - 105
+    - unit_died
+    - unit
+    - 22
+    - unit
+    - 5
+    - null
+    - null
+    - null
+    - null
+- sql: "SELECT tick, terrain_id, terrain_type, q32(radius) AS radius,\n       has_grid,\
+    \ has_logic_lifetime\nFROM terrains\nWHERE terrain_id IN (1, 2, 3) AND tick BETWEEN\
+    \ 133 AND 135\nORDER BY tick, terrain_id;"
+  rows:
+  - - 133
+    - 1
+    - oil
+    - 18.0
+    - 0
+    - 0
+  - - 134
+    - 1
+    - oil
+    - 18.0
+    - 0
+    - 0
+  - - 134
+    - 2
+    - fire
+    - 0.0
+    - 0
+    - 0
+  - - 134
+    - 3
+    - oil
+    - 18.0
+    - 1
+    - 0
+  - - 135
+    - 1
+    - oil
+    - 18.0
+    - 0
+    - 0
+  - - 135
+    - 3
+    - oil
+    - 18.0
+    - 1
+    - 0
