@@ -1,0 +1,47 @@
+# An Ignite attempt against photon protection rolls before being rejected.
+# The protected Fire Badger keeps only its photon buff; the consumed red
+# random draw is observed in the following Mustang attack interval.
+# Acid Blast is removed from the generated layout to isolate this question.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 470004233
+round: 3
+blue:
+  core_damage: 464
+  officers: [advanced_defensive_tactics, aerial_specialist]
+  techs:
+    fire_badger: [napalm, field_maintenance, range_enhancement, scorching_fire, scorching_charge, ignite, counter_fire]
+  blueprints: [defense_enhancement]
+  tower_strengthen_levels: [4, 2]
+  units:
+  - {name: fire_badger, index: 0, position: {x: -215, y: -250}, level: 9, exp: 9418/9418/9418, equipment: [improved_firepower_control_system]}
+  - {name: wasp, index: 1, position: {x: 225, y: -40}, level: 6, exp: 0/404/5219, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 195, y: -235}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: -10, y: 280}]}
+red:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, advanced_power_system, fire_badger_specialist, mass_produced_overlord]
+  techs:
+    overlord: [high_explosive_ammo, field_maintenance, overlord_artillery, mothership, jump_drive, armor_enhancement, range_enhancement, launcher_overload, photon_emission]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: overlord, index: 0, position: {x: 125, y: -55}, level: 4, exp: 3929/7858/7858, equipment: [mustang_production_line]}
+  - {name: fire_badger, index: 1, position: {x: 245, y: -70}, source: delivered}
+  - {name: tarantula, index: 2, position: {x: 25, y: -45}, level: 3, exp: 0/622/5343, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 275, y: -295}}
+ticks: 765
+hash: 25:48cefa164f13073fe2eddda7905704f9fbfd5bb19f42b09a8bac280b0af54739
+asserts:
+- sql: SELECT data__id FROM units__buffs WHERE tick=243 AND unit_id=24 ORDER BY ordinal
+  rows: [[40000]]
+- sql: SELECT tick,enabled__current_attack_interval FROM units__skills WHERE unit_id=33 AND skill_slot=0 AND tick IN (243,244,245) ORDER BY tick
+  rows: [[243,8],[244,6],[245,6]]
