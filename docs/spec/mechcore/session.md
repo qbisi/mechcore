@@ -316,10 +316,11 @@ is investigated.
 | Log | Written by | Contains |
 | --- | --- | --- |
 | `/tmp/mechcore-game-<uid>.log` | this tool, per launch | the game process's stdout and stderr, including every Adapter `eprintln!` |
-| `~/Library/Logs/GameRiver/Mechabellum/Player.log` | Unity, unless headless | engine startup, IL2CPP, and game-side exceptions |
+| `/tmp/mechcore-game-<uid>.unity.log` | Unity, headless launches | engine startup, IL2CPP, and game-side exceptions |
+| `~/Library/Logs/GameRiver/Mechabellum/Player.log` | Unity, launches with a window | engine startup, IL2CPP, and game-side exceptions |
 
-A headless game writes Unity's log to its standard output instead of
-`Player.log`, so both channels land in the launch log.
+A headless launch names its Unity log explicitly with `-logFile`, so native
+startup can use `Application.consoleLogPath`.
 
 **These do not overlap.** Unity writes `Player.log` through its own file
 handle, not through file descriptor 2, so Adapter diagnostics never reach it;
