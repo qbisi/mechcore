@@ -110,8 +110,9 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
   the unit fired before the turn still strikes the side it now stands on;
   its removal names the side the unit stands on as it lands, or, the unit
   dead by then, the side the recording last saw it on.
-- **stops every skill locked on it** (`FightSkill.OnChangeTeam`): `StopAttack`
-  drops the lock and keeps the attack target. A skill idle already stays idle,
+- **stops every skill locked on it**, whether a unit or a construction owns
+  it (`FightSkill.OnChangeTeam`): `ChangeLockTarget` subscribes the skill to
+  its lock's team change, and `StopAttack` drops the lock and keeps the attack target. A skill idle already stays idle,
   its weapons naming what they named until it takes another; a cooling one
   goes on cooling. Any other enters its cooling, naming what it fired at
   (nothing, when it fired at a battlefield shield), or
@@ -290,6 +291,10 @@ the shield does not count against the turn.
   weapon rejects its now-friendly prepared winner and searches again:
   `tests/control/converted-war-factory-all-weapons.yaml`.
 
+- A Rapid-Fire Turret drops its lock on a Fire Badger on the tick a Hacker
+  turns the Badger onto the turret's side:
+  `tests/control/construction-drops-turned-target.yaml`.
+
 ### Replayed
 
 - A Hacker turns a Spider Mine, which stays in its formation, and its death
@@ -343,7 +348,8 @@ the shield does not count against the turn.
 - The buffs it takes off: `TeamTranslationSystem.ChangeTeam`,
   `BuffManager.RemoveBuffEffect`, `Config.GetTeamTranslationIgnoredBuffs`,
   `IBuffData.IsSameBuff`.
-- The skills it stops: `FightSkill.OnChangeTeam`, `FightSkill.StopAttack`,
+- The skills it stops: `FightSkill.OnChangeTeam`, `FightSkill.ChangeLockTarget`,
+  `FightSkill.StopAttack`,
   `SkillManager.IsPermanentPreemptiveSkillActive`,
   `SkillIdleState.Enter`, `SkillAttackState.Update`. `FightSkill.EnterFight`
   subscribes each skill to its owner's `FightActor.OnChangeTeam`.

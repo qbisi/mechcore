@@ -511,23 +511,17 @@ impl Simulation {
     /// the unit (`FightSkillBase.IsMainSearcher`) hands the unit the dropped
     /// lock too, as `StopAttack` does.
     fn lock_changed_team(&mut self, skill_ref: SkillRef, offset: usize, cooling_from: u64) {
-        let FightActorRef::Unit(actor_id) = skill_ref.owner else {
-            unreachable!("only a unit's skill locks a unit that changes side")
-        };
         let cooling_steps =
             native_time_units_to_steps(self.skill_rules(skill_ref).cooling_time_units());
         // `OnChangeTeam` returns after `StopAttack` for a permanent
         // preemptive skill not yet active, and for the main skill while one
         // is active: the main skill that one has locked stays locked. A main
         // skill a running preemptive skill has locked leaves its lock state.
+        let manager = self.skills(skill_ref.owner);
         let permanent_holds = match skill_ref.slot {
-            SkillSlot::Main => self.actors[&actor_id].skills.preemptive_active,
+            SkillSlot::Main => manager.preemptive_active,
             SkillSlot::Extra(index) => {
-                !self.actors[&actor_id].skills.preemptive_active
-                    && self.actors[&actor_id].skills.extras[index]
-                        .rules
-                        .preemptive
-                        .is_some()
+                !manager.preemptive_active && manager.extras[index].rules.preemptive.is_some()
             }
         };
         let core = self.skill_mut(skill_ref);
@@ -543,7 +537,9 @@ impl Simulation {
         skill.drop_lock();
         skill.performer.stop();
         if permanent_holds {
-            self.sync_beam(actor_id);
+            if let FightActorRef::Unit(actor_id) = skill_ref.owner {
+                self.sync_beam(actor_id);
+            }
             return;
         }
         match skill.state {
@@ -563,24 +559,33 @@ impl Simulation {
                 skill.search_target_time = 0;
             }
         }
-        self.sync_beam(actor_id);
+        if let FightActorRef::Unit(actor_id) = skill_ref.owner {
+            self.sync_beam(actor_id);
+        }
     }
 
-    /// Every unit's skill locked on a unit, the main skill's and each extra
+    /// Every owner's skill locked on a unit, the main skill's and each extra
     /// skill's, each skill of a group its own, each a `FightSkill` that
-    /// hears its lock change side (`FightSkill.OnChangeTeam`): a Tarantula's
+    /// hears its lock change side (`FightSkill.OnChangeTeam`), including a
+    /// construction's skills: a Tarantula's
     /// Spider Mine skill drops a turned Crawler that dies and goes back to
     /// its side. `except` leaves one unit's out.
     fn skills_locked_on(&self, unit: FightActorRef, except: Option<u64>) -> Vec<(SkillRef, usize)> {
         self.actors
-            .iter()
-            .filter(|(id, _)| Some(**id) != except)
-            .flat_map(|(&id, actor)| {
-                let owner = FightActorRef::Unit(id);
-                std::iter::once((SkillSlot::Main, &actor.skills.main))
+            .keys()
+            .filter(|id| Some(**id) != except)
+            .map(|&id| FightActorRef::Unit(id))
+            .chain(
+                self.constructions
+                    .keys()
+                    .copied()
+                    .map(FightActorRef::Building),
+            )
+            .flat_map(|owner| {
+                let manager = self.skills(owner);
+                std::iter::once((SkillSlot::Main, &manager.main))
                     .chain(
-                        actor
-                            .skills
+                        manager
                             .extras
                             .iter()
                             .enumerate()
