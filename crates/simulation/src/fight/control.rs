@@ -189,11 +189,19 @@ impl Simulation {
     /// skill's own, which a technology's `DamageReduceRateBase` has lowered
     /// already: Multi Control's beams turn by 102 a hit of a Hacker's 600,
     /// and by 1 a warm-up hit.
-    fn beam_damage(&self, skill_ref: SkillRef, attack_count: i32) -> i64 {
+    fn beam_damage(&self, skill_ref: SkillRef, offset: usize, attack_count: i32) -> i64 {
         let attacker = self
             .skill_attacker(skill_ref)
             .expect("skill owner identity is stable");
-        let damage = attacker.attack_damage;
+        let damage = match skill_ref.slot {
+            SkillSlot::Main => self
+                .skill_damage_stats(skill_ref, offset)
+                .expect("compiled skill damage data resolves")
+                .attack_damage_against(
+                    self.attack_domain(self.skill(skill_ref).group_skill(offset).attack_target()),
+                ),
+            SkillSlot::Extra(_) => attacker.attack_damage,
+        };
         let AttackPath::ControlBeam {
             warmup_attack_count,
             warmup_damage_multiplier,
@@ -255,7 +263,7 @@ impl Simulation {
         self.sync_beam(actor_id);
         let skill = self.skill(skill_ref).group_skill(offset);
         let (attack_count, lock, beam) = (skill.attack_count, skill.lock_target, skill.beam);
-        let damage = self.beam_damage(skill_ref, attack_count);
+        let damage = self.beam_damage(skill_ref, offset, attack_count);
         if !beam.is_some_and(|beam| beam.control) {
             // `DamageEffect.Perform` reads the skill's current attack target,
             // falling back to its lock, after the wind-up's target checks.
