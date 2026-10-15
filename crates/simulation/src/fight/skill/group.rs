@@ -211,7 +211,7 @@ impl Simulation {
                         self.finish_group_slot(main, slot, step, cooling_steps);
                     } else if let Blow::Before(pending) = blow {
                         if step >= pending.step {
-                            self.land_group_slot(main, slot, pending.target, events)?;
+                            self.land_group_slot(main, slot, events)?;
                         }
                     } else if (!fusillade || core_blew)
                         && step >= self.skill(main).sibling(slot).next_attack_step
@@ -714,7 +714,6 @@ impl Simulation {
         &mut self,
         skill_ref: SkillRef,
         skill_index: usize,
-        target: FightActorRef,
         events: &mut Vec<Event>,
     ) -> Result<()> {
         if self.skill(skill_ref).kind != SkillKind::ControlBeam
@@ -730,7 +729,7 @@ impl Simulation {
         sibling.set_pending(None);
         sibling.attack_count += 1;
         if !self.attack_start_interrupted(skill_ref, Some(skill_index)) {
-            self.control_effect(skill_ref, skill_index, target, events)?;
+            self.control_effect(skill_ref, skill_index, events)?;
         }
         self.skill_mut(skill_ref)
             .sibling_mut(skill_index)
