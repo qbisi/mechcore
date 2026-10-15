@@ -329,6 +329,140 @@ fn a_refused_decision_keeps_nothing_and_a_dry_run_keeps_nothing_either() {
 }
 
 #[test]
+fn a_decision_sequence_uses_preceding_results_and_dry_run_keeps_nothing() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    let view = run(&["match", "show", &path, "--side", "blue"]).ok();
+    let index = state(&view)["blue"]["units"].as_array().unwrap().len();
+    let name = state(&view)["blue"]["unlocked_units"][0].clone();
+    let buy = serde_json::json!({
+        "type": "buy_unit", "name": name, "position": {"x": 40, "y": -280}
+    });
+    let movement = serde_json::json!({
+        "type": "move_unit", "index": index, "position": {"x": 40, "y": -260}
+    });
+    // The second step can only work after the first has created its formation.
+    let absent = run(&[
+        "match",
+        "act",
+        &path,
+        "--side",
+        "blue",
+        &movement.to_string(),
+    ]);
+    assert_eq!(absent.code, 3, "{}", absent.error);
+    assert_eq!(absent.error["details"]["decision_index"], 0);
+    assert_eq!(absent.error["details"]["decision"], movement);
+    let sequence = serde_json::json!([buy, movement]);
+    let document = fs::read(&path).unwrap();
+    let turn = fs::read(Path::new(&path).with_extension("turn")).unwrap();
+
+    // A YAML sequence on the CLI and a JSON array in the stream share a path.
+    let yaml = serde_yaml::to_string(&sequence).unwrap();
+    let trial = run(&["match", "act", &path, "--side", "blue", "--dry-run", &yaml]).ok();
+    assert_eq!(trial["position"]["units"][index]["position"]["y"], -260);
+    assert_eq!(decisions(&trial, "blue").as_array().unwrap().len(), 2);
+    assert_eq!(trial["events"][0]["created"]["index"], index);
+    assert_eq!(trial["events"][0]["created"]["position"]["y"], -280);
+    assert_eq!(fs::read(&path).unwrap(), document);
+    assert_eq!(
+        fs::read(Path::new(&path).with_extension("turn")).unwrap(),
+        turn
+    );
+
+    let answers = requests(
+        &path,
+        "blue",
+        &[
+            serde_json::json!({"op": "match.act", "decision": sequence}).to_string(),
+            r#"{"op": "match.show"}"#.to_owned(),
+        ],
+    );
+    assert_eq!(answers[0]["position"], trial["position"]);
+    assert_eq!(answers[0]["document"], trial["document"]);
+    assert_eq!(answers[0]["events"], trial["events"]);
+    assert_eq!(decisions(&answers[1], "blue"), decisions(&trial, "blue"));
+    assert_eq!(
+        fs::read(&path).unwrap(),
+        document,
+        "act still requires commit"
+    );
+}
+
+#[test]
+fn a_failed_sequence_keeps_prior_decisions_and_reports_the_first_failed_step() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    let view = run(&["match", "show", &path, "--side", "blue"]).ok();
+    let unchanged = serde_json::json!({
+        "type": "move_unit", "index": 0,
+        "position": state(&view)["blue"]["units"][0]["position"]
+    });
+    run(&[
+        "match",
+        "act",
+        &path,
+        "--side",
+        "blue",
+        &unchanged.to_string(),
+    ])
+    .ok();
+    let document = fs::read(&path).unwrap();
+    let turn = fs::read(Path::new(&path).with_extension("turn")).unwrap();
+    let buy = serde_json::json!({
+        "type": "buy_unit", "name": state(&view)["blue"]["unlocked_units"][0],
+        "position": {"x": 40, "y": -280}
+    });
+    let refused = serde_json::json!({
+        "type": "move_unit", "index": 99999, "position": {"x": 40, "y": -260}
+    });
+    let malformed = serde_json::json!({"type": "not_an_action"});
+    let answers = requests(&path, "blue", &[
+        serde_json::json!({"op": "match.act", "decision": [buy, refused, malformed]}).to_string(),
+        serde_json::json!({"op": "match.act", "decision": [buy, refused, malformed], "dry_run": true}).to_string(),
+        serde_json::json!({"op": "match.act", "decision": [buy, malformed]}).to_string(),
+        r#"{"op": "match.show"}"#.to_owned(),
+    ]);
+    for error in &answers[..2] {
+        assert_eq!(error["kind"], "refused", "{error}");
+        assert_eq!(error["operation"], "match.act");
+        assert_eq!(error["details"]["decision_index"], 1);
+        assert_eq!(error["details"]["decision"], refused);
+        assert!(!error["reason"].as_str().unwrap().is_empty());
+    }
+    assert_eq!(answers[2]["kind"], "usage", "{}", answers[2]);
+    assert_eq!(answers[2]["details"]["decision_index"], 1);
+    assert_eq!(answers[2]["details"]["decision"], malformed);
+    assert_eq!(decisions(&answers[3], "blue").as_array().unwrap().len(), 1);
+    assert_eq!(fs::read(&path).unwrap(), document);
+    assert_eq!(
+        fs::read(Path::new(&path).with_extension("turn")).unwrap(),
+        turn
+    );
+}
+
+#[test]
+fn an_empty_or_nested_sequence_is_not_a_decision() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    let turn = fs::read(Path::new(&path).with_extension("turn")).unwrap();
+    for written in ["[]", "[[{type: concede}]]", "[null]", "[17]"] {
+        let answer = run(&["match", "act", &path, "--side", "blue", written]);
+        assert_eq!(answer.code, 2, "{}", answer.error);
+        assert_eq!(answer.error["operation"], "match.act");
+        if written != "[]" {
+            assert_eq!(answer.error["details"]["decision_index"], 0);
+        }
+        assert_eq!(
+            fs::read(Path::new(&path).with_extension("turn")).unwrap(),
+            turn
+        );
+    }
+}
+
+#[test]
 fn a_purchase_answers_the_index_the_board_gave_it() {
     let directory = tempfile::tempdir().unwrap();
     let path = dealt(directory.path());
