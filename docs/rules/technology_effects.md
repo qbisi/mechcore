@@ -138,6 +138,12 @@ correction but a rate on what its unit gains, which
 
 ## Buff technologies
 
+**Availability belongs to each buff controller.** Disabling technology
+stops only controllers whose sources can be disabled. An equipment source
+such as Photon Coating stays available even when the same unit also holds a
+technology buff source. Activation and deactivation visit every controller;
+reenabling resets the time only of a controller that was unavailable.
+
 **A buff technology whose trigger is the fight's start adds its buff to its
 unit on the fight's first tick, once,** as a buff item does
 ([equipment_effects.md](equipment_effects.md#buff-items)): both are the same
@@ -153,7 +159,7 @@ less what it last spent, reaches the interval in whole ticks. A source whose
 targets are its unit alone gives the buff to its unit; any other gives it,
 once a trigger, to every live unit in reach of a target type it names, as a
 range cycle finds them. Like a range cycle, it stands still while its unit is
-dead or its technologies are disabled. Photon Emission covers its side's
+dead or its source can be disabled and its technologies are disabled. Photon Emission covers its side's
 other units within 100 m with 20 seconds of invincibility and 30% less
 damage taken, 0.6 seconds into the fight, once: the Overlord's of either
 domain, the Farseer's only on the ground. Photon Loop covers the Mountain for
@@ -173,7 +179,7 @@ unit whose main skill is not. Each of them takes the buff again, the
 ones it held before first and new ones after. The source's interval and delay
 never reach the cycle, so the buff is added on every tick, and its duration is
 how long it outlasts its unit leaving reach. The cycle stops while its unit is
-dead or its technologies are disabled. Mobile Power Station keeps 30% more
+dead or its source can be disabled and its technologies are disabled. Mobile Power Station keeps 30% more
 damage on its Vortex and its side's ground units within 100 m; Degeneration
 Beam keeps 40% less speed, 20% less damage and 30% more damage taken on the
 enemies of either domain within 120 m of the Wraith.
@@ -1681,6 +1687,10 @@ derive (a minimum range):
 
 ### Recorded
 
+- Photon Coating starts on arrival despite an EMP disabling the same unit's
+  technology buff controllers:
+  `tests/equipment_buff/photon-coating-arrives-with-disabled-tech.yaml`.
+
 - A travelling Wraith affected by EMP has all four exactly-ready clocks
   replaced with their new intervals on arrival:
   `tests/technology_disable/ready-clocks-on-arrival.yaml`. An EMP before
@@ -2589,6 +2599,7 @@ derive (a minimum range):
   `SearchTargetSpecificProvider.DoDisable`,
   `SearchTargetSpecificProvider.DoEnable`,
   `SearchTargetController.SetTargetSelector`,
+  `EffectProvider.EnableCheck`, `IEffectProviderDataSource.CanDisable`,
   `BuffEffectProvider.DisableEffect`, `BuffEffectProvider.DoDisableCycle`,
   `BuffEffectProvider.DoEnableCycle`, `BuffCycleController.RemoveListener`,
   `BuffManager.ClearSelfResourceBuffByDisableTech`,
