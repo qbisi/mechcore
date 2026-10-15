@@ -394,7 +394,7 @@ performer's own.
   for 5 seconds, which first takes 0.2 of its life now:
   `IBEC_ChangeCurrentLife.Perform` takes the whole part of the unit's life
   times `currentLifeDisposableChangeRate`, and deals it as a hit of no unit
-  under the buff's side that the unit's damage taken raises. A Rhino of 19297
+  under the buff's side, unaffected by damage amplification. A Rhino of 19297
   loses 3860, the whole part of −3859.4. The hit is recorded before the
   buff applied. A buff the unit already runs is renewed, and takes its share
   again (`Buff.ReEnableDisposableEffect` before `Buff.Reset`): two Abysses'
@@ -943,6 +943,11 @@ that is not melee, so the simulator refuses it.
 - Swarm Missiles at a tower with no unit in reach take the tower into their
   list, whose shuffle draws once, and aim each missile at it with its offset:
   `tests/extra_weapon/swarm-missiles-tower.yaml`.
+- After Swarm Missiles exhaust an allocation at a fallen tower, projectile
+  creation falls back to that tower while the skill still names it; its
+  radius and climb are retained. Disintegration's current-life hit ignores
+  the damage amplification from a lost tower:
+  `tests/extra_weapon/exhausted-missiles-disintegration.yaml`.
 - Rocket Punch throws at 83.8% of the Fortress's life and again at 51.4%,
   each fist striking what its splash reaches for 12000; with the first
   condition for both punches the second is thrown from tick 377:

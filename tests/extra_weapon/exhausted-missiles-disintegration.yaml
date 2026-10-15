@@ -1,0 +1,61 @@
+# Swarm Missiles exhaust their allocation after the main skill destroys
+# its tower, but ProjectileSystem.Create falls back to that dead target,
+# preserving its radius and climb. Disintegration then takes a fifth of
+# current life without applying the tower-loss damage amplification.
+# Controls: swarm-missiles-tower.yaml and disintegration-rhinos.yaml.
+# Two native recordings agree for all 1001 ticks and settlement.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 736994826
+round: 4
+blue:
+  core_damage: 562
+  officers: [quick_teleport, advanced_power_system, rhino_specialist, smart_marksman]
+  techs:
+    marksman: [electromagnetic_shot]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 3]
+  units:
+  - {name: rhino, index: 0, position: {x: 265, y: -155}, level: 2, source: delivered}
+  - {name: marksman, index: 1, position: {x: 320, y: 290}, level: 8, exp: 0/4373/4373, equipment: [secondary_laser_sight], travelling: true, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -195, y: -135}, retained: false}
+red:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, fortified_specialist]
+  techs:
+    abyss: [wreckage_recycling, vertical_sweep, range_enhancement, disintegration, dark_companion, swarm_missiles, photon_coating]
+  blueprints: [defense_enhancement]
+  units:
+  - {name: abyss, index: 0, position: {x: -95, y: -55}, exp: 2400/3800/4800, rotated: true}
+  - {name: abyss, index: 1, position: {x: 195, y: -135}, level: 9, exp: 0/3260/32291, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 15, y: -225}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 260, y: 50}]}
+asserts:
+- sql: |-
+    SELECT tick,projectile_id,target__kind,target__id,cached_target_radius,move_range FROM projectiles WHERE projectile_id IN (179,180,181) AND tick IN (453,454,455) ORDER BY tick,projectile_id
+  rows:
+  - [453, 179, building, 1, 42949672960, 816043786240]
+  - [454, 179, building, 1, 42949672960, 816043786240]
+  - [454, 180, building, 1, 42949672960, 816043786240]
+  - [455, 179, building, 1, 42949672960, 816043786240]
+  - [455, 180, building, 1, 42949672960, 816043786240]
+  - [455, 181, building, 1, 42949672960, 816043786240]
+- sql: |-
+    SELECT tick,type,target__kind,target__id,amount,buff_id FROM events WHERE (tick=454 AND type='buff_applied' AND target__id=2) OR (tick=455 AND target__kind='unit' AND target__id=2 AND type IN ('damage','buff_applied')) ORDER BY tick,ordinal
+  rows:
+  - [454, buff_applied, unit, 2, null, 5]
+  - [455, damage, unit, 2, 2744, null]
+  - [455, buff_applied, unit, 2, null, 4029]
+ticks: 1001
+hash: 26:5e4a7a7fa05b983bbe89f6814136086e07f1c1a50b82626ceaa26c6a9c8674aa

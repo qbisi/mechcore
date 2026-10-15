@@ -695,9 +695,9 @@ impl Simulation {
     /// before the first), and
     /// `GetAndDeletePositionOffsets` draws an offset afresh, a
     /// `FightUtility.RandomInsideSphere` about that point within the skill's
-    /// target offset radius, from its side's stream. The projectile leaves
-    /// for that point with no target (`ProjectileSystem.Create`), and fails
-    /// `IsValidTarget` as one whose target died does.
+    /// target offset radius, from its side's stream. The controller passes
+    /// no target; `ProjectileSystem.Create` falls back to the skill's attack
+    /// target or lock while keeping this point and offset.
     fn allocate_to_nothing(
         &mut self,
         skill_ref: SkillRef,
@@ -1115,9 +1115,20 @@ impl Simulation {
         pending: PendingProjectileRelease,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let pending = self.allocate_evenly(skill_ref, pending)?;
+        let mut pending = self.allocate_evenly(skill_ref, pending)?;
         if pending.targetless {
-            return self.release_targetless(skill_ref, pending, events);
+            // ProjectileSystem.Create replaces a null controller target with
+            // the skill's attack target, then its lock, without an alive check.
+            // Even an exhausted allocation can therefore name the dead tower
+            // the skill is still attacking and cache that tower's radius.
+            let skill = self.skill(skill_ref);
+            if let Some(target) = skill.attack_target().or(skill.lock_target) {
+                pending.target_kind = target.kind();
+                pending.target = target.id();
+                pending.targetless = false;
+            } else {
+                return self.release_targetless(skill_ref, pending, events);
+            }
         }
         match pending.target_kind {
             ObjectKind::Unit => {
