@@ -31,6 +31,7 @@ pub(crate) use sources::{
     current as current_source,
 };
 pub(crate) use technologies::{
-    ARMOR_SOURCE, DeadLine, GroupPurpose, MainSkill, MechGroup, SOURCE as TECHNOLOGY_SOURCE,
-    SecondaryDamage, SingleSources, TechnologyEffects, UnitInterception,
+    ARMOR_SOURCE, DeadLine, GroupPurpose, MainSkill, MechGroup, SEARCH_TARGET_SOURCE,
+    SOURCE as TECHNOLOGY_SOURCE, SecondaryDamage, SingleSources, TechnologyEffects,
+    UnitInterception,
 };

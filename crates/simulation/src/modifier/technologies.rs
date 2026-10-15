@@ -283,7 +283,7 @@ const UNDERGROUND: i64 = 1;
 /// equipment's 1 overrides.
 const PRIORITY: i32 = 0;
 
-/// The module that tags every entry a technology writes.
+/// The module that tags a technology's common modifier entries.
 pub(crate) const SOURCE: &str = "Modifier";
 
 /// What a production line writes onto its makes is its
@@ -294,6 +294,10 @@ const MAKE_SOURCE: &str = "SupportUnitData";
 /// `ArmorStrengthenEffectProvider`, which `FightEffectSystem.ActiveEffect`
 /// enables: a unit that travels in holds it once it arrives.
 pub(crate) const ARMOR_SOURCE: &str = "ArmorStrengthenEffectProvider";
+
+/// The ranges and search offsets written on activation by
+/// `SearchTargetSpecificProvider`, withheld until a travelling unit arrives.
+pub(crate) const SEARCH_TARGET_SOURCE: &str = "SearchTargetSpecificProvider";
 
 /// Every technology's combat effect, by the id a layout compiles to.
 #[derive(Debug, Clone)]
@@ -1893,7 +1897,12 @@ impl TechnologyEffects {
                     *channel,
                     Entry {
                         index: *index,
-                        source: SOURCE,
+                        source: match index {
+                            Index::ScoreOffsetFor(_) | Index::RangeAgainst(_) => {
+                                SEARCH_TARGET_SOURCE
+                            }
+                            _ => SOURCE,
+                        },
                         correction: *correction,
                     },
                 ));
@@ -2657,7 +2666,7 @@ fn at_level(row: &Row, level: usize) -> Written {
 /// each domain a `SearchTargetSpecificTech` reaches further at, the metres
 /// both into the range its `AttackRangeAirProperty` or
 /// `AttackRangeGroundProperty` adds and into what its search counts off a
-/// candidate of that domain (`SearchTargetSpecificProvider.DoEnable`), and
+/// candidate of that domain (`SearchTargetSpecificProvider.DoActive`), and
 /// the rate its damage on that domain gains, which
 /// `SearchTargetSpecificTech.AddData` and `DamageIntensifyTech.AddData` write
 /// alike: Ground Specialization's 2 triples a Wasp's damage on the ground.

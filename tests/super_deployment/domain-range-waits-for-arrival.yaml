@@ -1,0 +1,58 @@
+# A travelling Phantom Ray's Ground Targeting range waits for arrival.
+# Native presearch scores with 150 m, selecting Fire Badger 3 within that
+# range. The full 210 m range is enabled when travel ends at t81. Applying
+# the extra 60 m before presearch instead selected tower 1 and changed blue
+# core damage from 134 to 67. The complete generated fight repeats all 980
+# ticks; the asserts hold its first facing/lock and the arrival range.
+# Control: search-preference-waits.yaml holds the selector's domain bias.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 262436469
+round: 3
+blue:
+  core_damage: 134
+  officers: [advanced_missile_device, advanced_targeting_system, fire_badger_specialist, improved_melting_point]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [3, 4]
+  units:
+  - {name: melting_point, index: 0, position: {x: 110, y: -130}, level: 6, exp: 8118/8118/8118, equipment: [heavy_armor]}
+  - {name: fire_badger, index: 1, position: {x: -195, y: -110}, exp: 0/350/1400, source: delivered}
+  - {name: war_factory, index: 2, position: {x: -55, y: -45}, level: 2, exp: 0/850/7210, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 230, y: -135}}
+  battle_skills:
+  - {name: ion_blast, positions: [{x: 290, y: -65}, {x: -5, y: -155}]}
+red:
+  core_damage: 0
+  officers: [quick_teleport, advanced_power_system, sabertooth_specialist, extended_range_phantom_ray]
+  techs:
+    phantom_ray: [energy_shield, high_explosive_ammo, burst_mode, armor_enhancement, ground_targeting, stealth_cloak, range_enhancement, sticky_oil_bomb]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [1, 4]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 255, y: -185}, exp: 0/134/1300, source: delivered}
+  - {name: phantom_ray, index: 1, position: {x: 310, y: 215}, level: 8, exp: 0/6727/6727, equipment: [amplifying_core], travelling: true, source: joined}
+  - {name: fortress, index: 2, position: {x: -240, y: -60}, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -115, y: -155}, retained: false}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: 35, y: -125}]}
+asserts:
+- sql: |-
+    SELECT tick,unit_id,body_rotation,mech_lock_target__kind,mech_lock_target__id FROM units WHERE unit_id=6 AND tick IN (1,80,81) ORDER BY tick
+  rows:
+  - [1, 6, 169496868320, "unit", 3]
+  - [80, 6, 169496868320, "unit", 3]
+  - [81, 6, 169496868320, "unit", 3]
+- sql: |-
+    SELECT tick,unit_id,skill_slot,enabled__lock_target__id,enabled__attack_range FROM units__skills WHERE unit_id=6 AND skill_slot=0 AND tick IN (80,81,82) ORDER BY tick
+  rows:
+  - [80, 6, 0, null, null]
+  - [81, 6, 0, 3, 901943132160]
+  - [82, 6, 0, 3, 901943132160]
+ticks: 980
+hash: 26:9da7628386f1f850b9a545a85f753ea7ac439df61fd2814bf05799c5f99e8b2f

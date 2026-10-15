@@ -67,8 +67,9 @@ pub(in crate::fight) struct Travel {
     life_rate_q32: i64,
     /// What each unit's effect providers write, which
     /// `FightEffectSystem.ActiveEffect` enables only as the unit leaves its
-    /// travel (`ExitTravel`): its armour.
-    withheld: BTreeMap<u64, Vec<Entry>>,
+    /// travel (`ExitTravel`): its armour and the search provider's domain
+    /// ranges and offsets.
+    withheld: BTreeMap<u64, Vec<(Channel, Entry)>>,
 }
 
 /// `SuperDeploymentController.EnterTravel` for every travelling unit: each
@@ -95,11 +96,23 @@ pub(in crate::fight) fn enter_travel(
         // (`AutoRecoveryEffectProvider.DoDeactive`, `AutoRecoverySystem.
         // RemoveMech`) and comes back as it arrives.
         actor.recovery = None;
-        let withheld = actor
+        let mut withheld = actor
             .stats
             .overlays
             .channel(Channel::Unit)
-            .take(crate::modifier::ARMOR_SOURCE);
+            .take(crate::modifier::ARMOR_SOURCE)
+            .into_iter()
+            .map(|entry| (Channel::Unit, entry))
+            .collect::<Vec<_>>();
+        withheld.extend(
+            actor
+                .stats
+                .overlays
+                .channel(Channel::Skill)
+                .take(crate::modifier::SEARCH_TARGET_SOURCE)
+                .into_iter()
+                .map(|entry| (Channel::Skill, entry)),
+        );
         let max_life_q32 = actor.stats.max_life() << 32;
         actor.life = q32_mul(max_life_q32, config.life_rate) >> 32;
         travels
@@ -193,8 +206,8 @@ impl Simulation {
                 .actors
                 .get_mut(&unit_id)
                 .expect("a travelling unit is an actor");
-            for entry in withheld.remove(&unit_id).unwrap_or_default() {
-                actor.stats.overlays.channel(Channel::Unit).write(entry);
+            for (channel, entry) in withheld.remove(&unit_id).unwrap_or_default() {
+                actor.stats.overlays.channel(channel).write(entry);
             }
             actor.travelling = false;
             actor.motion.rvo_new_agent = true;
