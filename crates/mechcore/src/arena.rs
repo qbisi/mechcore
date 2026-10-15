@@ -58,6 +58,7 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
 struct Rules {
     blue: String,
     red: String,
+    names: [String; 2],
     map: Option<i32>,
     deploy_time: Option<i32>,
     request_timeout: Duration,
@@ -87,9 +88,17 @@ fn play(mut arguments: Args) -> Outcome {
             "--request-timeout {request_timeout} is not a number of seconds"
         ))
     })?;
+    if matches == Some(0) {
+        return Err(Failure::usage("--matches is at least one"));
+    }
+    let names = [
+        player_name(&blue, request_timeout)?,
+        player_name(&red, request_timeout)?,
+    ];
     let rules = Rules {
         blue,
         red,
+        names,
         map,
         deploy_time,
         request_timeout,
@@ -99,9 +108,6 @@ fn play(mut arguments: Args) -> Outcome {
         emit(&fight(&target, &rules, seed)?, format)?;
         return Ok(Verdict::Yes);
     };
-    if matches == 0 {
-        return Err(Failure::usage("--matches is at least one"));
-    }
     fs::create_dir_all(&target)
         .map_err(|error| Failure::failed(format!("cannot create {}: {error}", target.display())))?;
     let mut summary = Summary::default();
@@ -131,7 +137,12 @@ fn fight(path: &Path, rules: &Rules, seed: Option<i32>) -> Result<Played, Failur
         )));
     }
     let document = path.display().to_string();
-    let mut deal = vec!["new".to_owned(), document.clone()];
+    let mut deal = vec![
+        "new".to_owned(),
+        document.clone(),
+        "--name".to_owned(),
+        rules.names[0].clone(),
+    ];
     for (name, value) in [
         ("--seed", seed),
         ("--map", rules.map),
@@ -142,7 +153,12 @@ fn fight(path: &Path, rules: &Rules, seed: Option<i32>) -> Result<Played, Failur
         }
     }
     let blue = crate::r#match::answer(Args::new(deal))?;
-    let red = crate::r#match::answer(Args::new(["new".to_owned(), document]))?;
+    let red = crate::r#match::answer(Args::new([
+        "new".to_owned(),
+        document,
+        "--name".to_owned(),
+        rules.names[1].clone(),
+    ]))?;
     if blue["side"] != "blue" || red["side"] != "red" {
         return Err(Failure::failed(
             "the deal handed out the sides out of order",
@@ -201,6 +217,46 @@ fn fight(path: &Path, rules: &Rules, seed: Option<i32>) -> Result<Played, Failur
     }
     let [blue, red] = [players.remove(0), players.remove(0)];
     Played::read(&path, &view, Players { blue, red })
+}
+
+/// Queries each command once before dealing any match; naming is not part of
+/// the player's match request stream.
+fn player_name(command: &str, timeout: Duration) -> Result<String, Failure> {
+    let failed = |reason: String| Failure::failed(format!("{command:?} --name: {reason}"));
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|error| failed(error.to_string()))?;
+    let output = runtime
+        .block_on(async {
+            tokio::time::timeout(
+                timeout,
+                tokio::process::Command::new("sh")
+                    .args(["-c", &format!("{command} --name")])
+                    .stdin(Stdio::null())
+                    .kill_on_drop(true)
+                    .output(),
+            )
+            .await
+        })
+        .map_err(|_| failed("name query timed out".to_owned()))?
+        .map_err(|error| failed(error.to_string()))?;
+    if !output.status.success() {
+        return Err(failed(format!(
+            "exited with {}: {}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr).trim()
+        )));
+    }
+    let text =
+        String::from_utf8(output.stdout).map_err(|_| failed("name is not UTF-8".to_owned()))?;
+    let name = text.trim();
+    if name.is_empty() || name.chars().any(char::is_control) {
+        return Err(failed(
+            "expected one nonempty name line without control characters".to_owned(),
+        ));
+    }
+    Ok(name.to_owned())
 }
 
 /// Starts a player, with its standard error kept in a log beside the match.

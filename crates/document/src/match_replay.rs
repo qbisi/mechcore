@@ -206,9 +206,16 @@ fn write_player(
         .ok_or_else(|| format!("{name} takes no opening, and a replay records one"))?;
     let shared = economy.round_supply();
     let reactor = crate::opening::reactor_core(stated.map_id, usize::from(red))?;
+    let display_name = side
+        .name
+        .as_deref()
+        .unwrap_or(name)
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;");
     let _ = write!(
         xml,
-        "<PlayerRecord><id>{id}</id><name>{name}</name><seed>{seed}</seed><ad>0</ad><data>\
+        "<PlayerRecord><id>{id}</id><name>{display_name}</name><seed>{seed}</seed><ad>0</ad><data>\
          <reactorCore>{reactor}</reactorCore><MaxReactorCore>{reactor}</MaxReactorCore>\
          <maxRoundSupply>{}</maxRoundSupply><firstRoundSupply>{}</firstRoundSupply>\
          <roundSupplyIncreaseValue>{}</roundSupplyIncreaseValue><team>0</team>\

@@ -4,6 +4,8 @@
     mechcore arena run m.yaml --blue 'python3 scripts/arena/game-ai-player.py --seed 1' \
         --red 'python3 scripts/arena/random-player.py'
 
+`--name` prints `game-ai` and exits without reading a match.
+
 Its random seed comes from `--seed`, independently of the match's player
 seed; when omitted, Python initializes it from system randomness.
 
@@ -434,8 +436,13 @@ class Player:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument("--name", action="store_true", help="print the bot name and exit")
     parser.add_argument("--seed", type=int, help="the bot's random seed; independent of the player seed, random when omitted")
-    return Player(parser.parse_args().seed).play()
+    args = parser.parse_args()
+    if args.name:
+        print("game-ai")
+        return 0
+    return Player(args.seed).play()
 
 
 if __name__ == "__main__":

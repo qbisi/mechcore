@@ -54,6 +54,7 @@ pub struct PlayerRecords {
 
 #[derive(Debug, Deserialize)]
 pub struct PlayerRecord {
+    pub name: Option<String>,
     pub seed: i32,
     pub data: PlayerSetup,
     #[serde(rename = "playerRoundRecords")]
