@@ -1,5 +1,9 @@
 # Red's final Typhoon dies on the last combat tick, with three shots still in flight.
 # Forced timeout settles the surviving blue Marksman without draining those shots.
+# The last frame preserves the three projectiles at their final positions,
+# and the survivor's life and position. No later combat frame or event is
+# recorded. Fractional-experience settlement is covered by
+# ../production/captured-owner-current-side.yaml.
 
 kind: fight
 source: game
@@ -74,5 +78,29 @@ asserts:
       unit_type_id;
   rows:
   - [0, 2, 1]
+- sql: |
+    SELECT projectile_id, owner__id, target__id, position__x, position__y, position__z
+    FROM projectiles
+    WHERE tick = (SELECT terminal_tick FROM fight)
+    ORDER BY projectile_id;
+  rows:
+  - [852, 3, 1, -530181877711, 0, -722244058671]
+  - [853, 2, 3, -87530128592, 0, -360426631903]
+  - [854, 3, 1, -188695773323, 0, -684306551771]
+- sql: |
+    SELECT tick, unit_id, life__current, position__x, position__z
+    FROM units
+    WHERE unit_id = 2 AND tick >= (SELECT terminal_tick - 1 FROM fight)
+    ORDER BY tick;
+  rows:
+  - [2359, 2, 24767, -65983183122, 68548619276]
+  - [2360, 2, 24767, -65983183122, 68548619276]
+- sql: |
+    SELECT tick_count, terminal_tick,
+           (SELECT max(tick) FROM events) AS last_event,
+           (SELECT max(tick) FROM projectiles) AS last_projectile_frame
+    FROM fight;
+  rows:
+  - [2360, 2360, 2360, 2360]
 ticks: 2360
 hash: 26:c239b863fad39042fcd41448a7f21d962eabfb700626c3f0537b890a13182555

@@ -1,0 +1,46 @@
+# A Sandworm naturally burrows toward a Vulcan wearing a Barrier. It moves
+# from outside to inside the active shield while hidden, surfaces inside it,
+# and attacks the Vulcan without draining shield energy on the approach.
+# Its unshielded approach is pinned separately by ../sandworm/m2-rhino-4242.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  core_damage: 0
+  units:
+  - {name: sandworm, index: 0, position: {x: 0, y: -120}, exp: 0/800/2000}
+red:
+  core_damage: 350
+  units:
+  - {name: vulcan, index: 0, position: {x: 0, y: -120}, equipment: [barrier]}
+asserts:
+- sql: |
+    SELECT u.tick, u.motion_state, u.visibility, s.active, s.energy__current,
+           q32(u.position__x - s.position__x) * q32(u.position__x - s.position__x)
+           + q32(u.position__z - s.position__z) * q32(u.position__z - s.position__z)
+           < q32(s.radius) * q32(s.radius) AS inside_shield
+    FROM units u
+    JOIN shields s USING (tick)
+    WHERE u.unit_id = 1 AND u.tick IN (21, 190, 191, 192, 212, 222)
+    ORDER BY u.tick;
+  rows:
+  - [21, "moving", "hide", 1, 60000, 0]
+  - [190, "moving", "hide", 1, 60000, 1]
+  - [191, "moving", "hide", 1, 60000, 1]
+  - [192, "transitioning", "hide", 1, 60000, 1]
+  - [212, "transitioning", "normal", 1, 60000, 1]
+  - [222, "attacking", "normal", 1, 60000, 1]
+- sql: |
+    SELECT tick, source__id, target__id, skill_slot
+    FROM events
+    WHERE type = 'damage' AND source__kind = 'unit' AND source__id = 1
+      AND target__kind = 'unit' AND target__id = 2
+    ORDER BY tick, ordinal
+    LIMIT 1;
+  rows:
+  - [244, 1, 2, 0]
+ticks: 398
+hash: 26:ac6ee186dcb3da7a65353dd9687f9d0bf8db2ca69027eb9d1b95f244c4db5b6d

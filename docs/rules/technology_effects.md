@@ -1891,6 +1891,9 @@ derive (a minimum range):
 - Melee Mode takes a Centurion's melee skill up after its twentieth round,
   stopped for 1.5 seconds, then at 28 speed and four times its life, which
   the fight's end takes away: `tests/extra_weapon/melee-mode.yaml`.
+- A Centurion already in Melee Mode when EMP reaches it keeps its melee
+  skill and the mode's life and damage corrections, and strikes while EMP
+  is active: `tests/technology_disable/active-melee-mode.yaml`.
 - With Dual Wield the main gun and the side arm spend forty rounds between
   them, the side arm's last bringing the melee skill as its blow ends; the
   melee skill then strikes, the Centurion turning its root to each Crawler

@@ -357,6 +357,9 @@ kind ends its own way:
   again: `tests/shield/grouped-weapons.yaml`.
 - A skill that crosses shields strikes the covered unit:
   `tests/shield/crawlers-cross.yaml`.
+- A Sandworm approaches a covered Vulcan underground and surfaces inside
+  its active Barrier without draining shield energy on the approach:
+  `tests/shield/underground-sandworm-crosses.yaml`.
 - A unit locking a covered tower fires at the shield, its weapon naming no
   target, and the shield takes every shot:
   `tests/shield/tower-covered.yaml`.
