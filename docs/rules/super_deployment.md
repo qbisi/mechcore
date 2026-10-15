@@ -79,11 +79,13 @@ about travel. So a travelling unit starts on its share of its corrected life
 and heals by its corrected maximum. What travel holds back is
 `EffectProvider.ActiveCheck`; corrections owned by activation wait with it.
 
-**A search preference waits for arrival.** Deactivating a search-target
-technology's provider returns its skill's selector to `Normal`
-(`SearchTargetSpecificProvider.DoDeactive`). The presearch therefore counts
-no domain preference while it travels. Arrival's `DoActive` changes it back
-to `DistanceIntensify`, which again reads the domain's distance offset.
+**A search-target provider's ranges and preference wait for arrival.**
+Deactivating the provider removes its domain-specific range and search-offset
+entries and returns the selector to `Normal`
+(`SearchTargetSpecificProvider.DoDeactive`). Presearch therefore uses the
+shorter range without that domain preference while the unit travels.
+Arrival's `DoActive` writes those entries back and changes the selector to
+`DistanceIntensify`.
 
 **Whether a travelling unit's extra weapons are on does not change the fight.**
 A unit placed on a flank has its effects switched off
@@ -152,6 +154,9 @@ from the arrival.
   `tests/super_deployment/energy-tower-skills.yaml`.
 - Travelling units with extra weapons, on either flank of either side, fight
   from their arrival as units that did not travel: `tests/super_deployment/extra-weapons.yaml`.
+- A travelling Phantom Ray presearches without Ground Targeting's range
+  increase and retains that first lock; the domain range returns on arrival:
+  `tests/super_deployment/domain-range-waits-for-arrival.yaml`.
 - Travelling Wasps with Aerial Specialization presearch a tower without
   their domain preference, which returns on arrival:
   `tests/super_deployment/search-preference-waits.yaml`.
@@ -194,8 +199,9 @@ from the arrival.
 - The order of the systems: `FightController.AddModules`.
 - Corrections are written without regard to travel: `EffectProvider.AddEffect`,
   `EffectProvider.ActiveCheck`.
-- The search preference is deactivated during travel and activated on
-  arrival: `SearchTargetSpecificProvider.DoDeactive`,
+- Domain-specific range and search-offset entries are removed during
+  travel and restored on arrival with the selector's preference:
+  `SearchTargetSpecificProvider.DoDeactive`,
   `SearchTargetSpecificProvider.DoActive`, `FightSkill.ChangeSearchTargetType`.
 - Placing a unit on a flank switches its effects off and arriving switches
   them on: `BattleSystem.OnEnterSuperDeployment`,
