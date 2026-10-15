@@ -548,23 +548,30 @@ impl Simulation {
     pub(in crate::fight) fn attack_state_check_attackable(
         &mut self,
         skill_ref: SkillRef,
+        slot: Option<usize>,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
         // A skill that is not enabled fails between its blows: the blow under
         // way runs out, and its attack ends (`SkillAttackState.CheckAttackable`
         // asks `FightSkill.isEnable` while its controller is idle).
-        if self.skill(skill_ref).disabled {
+        let skill = self.skill(skill_ref).group_skill(slot.unwrap_or(0));
+        if skill.disabled {
             return Ok(false);
         }
         // A preemptive skill attacks once: its check fails once it has
         // performed (`SkillAttackController.IsPerformedOnce`).
-        if self.skill_is_preemptive(skill_ref) && self.skill(skill_ref).performed() {
+        if self.skill_is_preemptive(skill_ref) && skill.performed() {
             return Ok(false);
         }
-        if self.attacks_fallen_construction(skill_ref, None) {
+        if self.attacks_fallen_construction(skill_ref, slot) {
             return Ok(false);
         }
-        self.check_attackable(skill_ref, target_search_order)
+        match slot {
+            Some(slot) => {
+                self.check_attackable_slot(skill_ref, Some(slot), true, target_search_order)
+            }
+            None => self.check_attackable(skill_ref, target_search_order),
+        }
     }
 
     /// `SkillAttackState.CheckAttackable`'s own test, before it asks the
