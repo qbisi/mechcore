@@ -868,8 +868,11 @@ impl Simulation {
                 tx.saturating_sub(source.x_q32),
                 tz.saturating_sub(source.z_q32),
             );
+            // FightConstruction.UpdateRotation assigns the facing and
+            // refreshes its weapons; this is not a tolerance-limited turn.
             self.skill_mut(SkillRef::main(FightActorRef::Building(id)))
-                .turn_weapons_towards(bearing, 360_i64 << 32);
+                .weapon_rotations_q32
+                .fill(bearing);
         }
     }
 }

@@ -1,5 +1,6 @@
 //! `SiegeModeEffectSystem`: a unit that a technology digs in as the fight
-//! starts, until no enemy has stood in its main skill's range for a while.
+//! starts, until no enemy other than a construction has stood in its main
+//! skill's range for a while.
 //!
 //! `SiegeModeEffectProvider.DoActive` hands the system each unit whose
 //! technology is an `ISiegeModeEffectDataSource` (`AddSiegeModeOwner`). As
@@ -11,9 +12,9 @@
 //! the fight is dug in at once.
 //!
 //! `SiegeModeEffectSystem.Update` counts, for each unit dug in, the time no
-//! enemy unit has stood within its main skill's range of it
-//! (`RangeTargetCalculator.CalculateRangeTargets`, no building, the unit's
-//! own radius, only the fully visible, and no construction), and sets it back
+//! enemy has stood within its main skill's range of it
+//! (`RangeTargetCalculator.CalculateRangeTargets`, the unit's own radius,
+//! only the fully visible, and no construction), and sets it back
 //! to none on an update that finds one, as each blow of its main skill does
 //! (`RegisterMainSkillPerformAttack`, `ResetTimer`). Once the time reaches
 //! the source's duration the unit leaves its trench (`RemoveEffect`): what was
@@ -162,8 +163,8 @@ impl Simulation {
 
     /// `SiegeModeEffectSystem.Update`, last unit first: a unit whose time
     /// has reached its duration (`FPoint.op_GreaterThanOrEqual`) leaves its
-    /// trench; any other's time is set back to none when an enemy unit
-    /// stands in its main skill's range, and counts the tick otherwise.
+    /// trench; any other's time is set back to none when an enemy other than
+    /// a construction stands in its main skill's range, and counts otherwise.
     pub(in crate::fight) fn step_siege(&mut self) -> Result<()> {
         for index in (0..self.siege.active.len()).rev() {
             let unit = self.siege.active[index];
@@ -187,9 +188,11 @@ impl Simulation {
                 attacker.targets,
             );
             // `SiegeModeEffectSystem.<Update>b__7_0` removes
-            // FightConstruction after the shared range search.
-            let has_enemy = enemies.into_iter().any(|candidate| {
-                !matches!(candidate, FightActorRef::Building(_)) || self.is_tower(candidate)
+            // FightConstruction after the shared range search. An interceptor
+            // is a FightCrystal, not a construction, so it still counts.
+            let has_enemy = enemies.into_iter().any(|candidate| match candidate {
+                FightActorRef::Building(id) => !self.construction_blocks.contains(&id),
+                FightActorRef::Unit(_) => true,
             });
             let (_, time) = self
                 .siege

@@ -84,6 +84,11 @@ pub(in crate::fight) fn rotate_towards_q32_unwrapped(
     target: i64,
     maximum: i64,
 ) -> i64 {
+    // FightTransform.RotateTo returns before changing rotation when the
+    // converted angle compares equal under FPoint's tolerance.
+    if super::rvo::fpoint_equal(current, target) {
+        return current;
+    }
     let full = 360_i64 << 32;
     let half = 180_i64 << 32;
     let current = current.rem_euclid(full);
@@ -92,7 +97,10 @@ pub(in crate::fight) fn rotate_towards_q32_unwrapped(
     if super::rvo::fpoint_less_than(half, delta) {
         delta -= full;
     }
-    current + delta.clamp(-maximum, maximum)
+    // RotateLeft/RotateRight use FPoint.Min(distance, rotateDelta), whose
+    // equal-within-tolerance branch returns the second argument.
+    let turn = super::rvo::fpoint_min(delta.abs(), maximum);
+    current + if delta < 0 { -turn } else { turn }
 }
 
 pub(in crate::fight) fn rotation_distance_q32(left: i64, right: i64) -> i64 {
