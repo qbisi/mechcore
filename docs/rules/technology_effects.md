@@ -1454,7 +1454,10 @@ whose own `DisableEffect` it does not mirror.
   drawn 35 made its plain 36. A unit with no technology keeps the interval it
   drew. A grouped main skill's siblings each refresh their own data too
   (`FightSkillBatch.RefreshDatas`); refreshing the core alone does not refresh
-  the group's other clocks.
+  the group's other clocks. A clock exactly equal to the old interval
+  follows the new interval; any other elapsed clock keeps its time. A
+  refresh before the skill updates reads the counter before that update's
+  increment.
 - **A lifesteal's and a second damage's** providers take their hit effect
   away, which the fight asks of the unit at each hit.
 - **A Barrier's shield leaves its side's shields and comes back as it was.**
@@ -1677,6 +1680,12 @@ derive (a minimum range):
 ## Evidence
 
 ### Recorded
+
+- A travelling Wraith affected by EMP has all four exactly-ready clocks
+  replaced with their new intervals on arrival:
+  `tests/technology_disable/ready-clocks-on-arrival.yaml`. An EMP before
+  the unit update preserves a clock still below its old interval, which
+  then advances once: `tests/corpus/201477923-r6.yaml`.
 
 - Two Shooting Squad owners sharing one technology data continue the same
   position sequence when the second owner arrives on a flank:

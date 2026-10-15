@@ -163,6 +163,8 @@ impl Simulation {
             self.skill_mut(main).align_slots_to_core(true);
         }
         for slot in 1..self.skill(main).group_size() {
+            self.skill_mut(main).sibling_mut(slot).attack_time_step =
+                i64::try_from(step).unwrap_or(i64::MAX);
             let before = self.skill(main).sibling(slot).lock_target;
             let state = self.skill(main).sibling(slot).state;
             match state {
@@ -473,6 +475,7 @@ impl Simulation {
             next_attack_step: sibling.next_attack_step,
             current_attack_interval: sibling.current_attack_interval,
             attack_time_anchor: sibling.attack_time_anchor,
+            attack_time_step: sibling.attack_time_step,
             beam: sibling.beam,
             ..Skill::sibling_entering(sibling.kind)
         };

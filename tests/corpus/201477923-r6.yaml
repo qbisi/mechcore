@@ -6,6 +6,9 @@
 # Shields read disabled from that tick, and the searches prepared before it
 # landed score with the 130 metres Range Enhancement gave them, so three Fangs
 # take a Crawler within 130 metres over the one they held beyond it.
+# The Impact refreshes skill data before the Fangs update: a clock one tick
+# below its old interval keeps its time and then advances once, rather than
+# being made ready at the new interval.
 
 kind: fight
 source: game
@@ -82,3 +85,6 @@ red:
   - {name: electromagnetic_impact, positions: [{x: 179, y: 240}]}
 ticks: 1129
 hash: 25:42fc488617f8010482ce236ce8c133ebecb3bf9bbbe46312e1290a7d147ea7ae
+asserts:
+- sql: SELECT tick,unit_id,enabled__attack_time,enabled__current_attack_interval,enabled__state FROM units__skills WHERE unit_id=14 AND tick IN (56,57,58) AND skill_slot=0 ORDER BY tick
+  rows: [[56, 14, 14, 15, attack], [57, 14, 15, 30, idle], [58, 14, 16, 30, idle]]

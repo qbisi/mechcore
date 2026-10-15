@@ -1,0 +1,48 @@
+# A travelling Wraith acquires EMP before landing. Its four attack clocks
+# still equal their drawn intervals when the arrival disables its technology
+# data. RefreshDatas replaces both each interval and its exactly-ready clock.
+# Photon Coating is omitted to separate that equipment's independent buff
+# activation from this clock measurement. The game supplies the full pin.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 825431923
+round: 2
+blue:
+  core_damage: 0
+  officers: [quick_teleport, advanced_offensive_tactics, marksman_specialist]
+  techs:
+    wraith: [high_explosive_ammo, field_maintenance, armor_enhancement, land_cruiser, range_enhancement, floating_artillery_array, degeneration_beam]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: marksman, index: 0, position: {x: -100, y: -270}, level: 3, source: delivered}
+  - {name: wraith, index: 1, position: {x: -345, y: 25}, level: 2, travelling: true, source: joined}
+  - {name: marksman, index: 2, position: {x: -80, y: -300}, level: 3, exp: 0/600/2315, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -15, y: -180}}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: 255, y: -50}]}
+red:
+  core_damage: 100
+  officers: [advanced_missile_device, advanced_targeting_system, marksman_specialist, fortified_arclight]
+  techs:
+    arclight: [electromagnetic_shot, armor_enhancement, anti_aircraft_ammunition, shockwave, range_enhancement, elite_marksman, charged_shot]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [3, 3]
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -200}, level: 3, source: delivered}
+  - {name: arclight, index: 1, position: {x: 270, y: -70}, level: 2, exp: 0/1690/1690, equipment: [amplifying_core], source: joined}
+  - {name: hacker, index: 2, position: {x: 125, y: -255}, level: 4, exp: 0/1000/2515, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 125, y: -275}}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: -85, y: -10}]}
+ticks: 1883
+hash: 25:fbf9bda9e232ba70a64670fab58fade0420015fc003e1f48d7a8e645a7a91fc1
+asserts:
+- sql: SELECT tick,skill_slot,enabled__attack_time,enabled__current_attack_interval,enabled__state FROM units__skills WHERE unit_id=3 AND skill_slot<4 AND tick IN (81,82,83) ORDER BY tick,skill_slot
+  rows: [[81, 0, 32, 32, idle], [81, 1, 32, 32, idle], [81, 2, 32, 32, idle], [81, 3, 32, 32, idle], [82, 0, 33, 32, prepare], [82, 1, 33, 32, idle], [82, 2, 33, 32, idle], [82, 3, 33, 32, idle], [83, 0, 34, 32, prepare], [83, 1, 34, 32, idle], [83, 2, 34, 32, idle], [83, 3, 34, 32, idle]]

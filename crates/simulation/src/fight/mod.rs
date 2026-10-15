@@ -1086,6 +1086,7 @@ impl Simulation {
             if every_unit || held {
                 skill.current_attack_interval = interval;
                 skill.attack_time_anchor = anchor;
+                skill.attack_time_step = i64::try_from(step).unwrap_or(i64::MAX);
                 // RefreshAttackInterval(true) sets attackTime to the
                 // interval: the skill is ready when fighting resumes.
                 skill.next_attack_step = step;
@@ -1094,6 +1095,7 @@ impl Simulation {
                 if every_unit || sibling.lock_target.is_some() {
                     sibling.current_attack_interval = interval;
                     sibling.attack_time_anchor = anchor;
+                    sibling.attack_time_step = i64::try_from(step).unwrap_or(i64::MAX);
                     sibling.next_attack_step = step;
                 }
             }

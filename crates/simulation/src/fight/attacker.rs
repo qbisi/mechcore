@@ -1040,6 +1040,7 @@ impl Simulation {
             };
             skill.current_attack_interval = interval;
             skill.attack_time_anchor = now - 1 - i64::try_from(interval).unwrap_or(i64::MAX);
+            skill.attack_time_step = now - 1;
         }
         Ok(())
     }
