@@ -3,9 +3,9 @@
 
     scripts/decomp/decompile.py [--game APP] [--force STEP[,STEP...]]
 
-`scripts/decomp/decomp.py sync` fetches a build someone already decompiled; this makes
-one. It reads the build number from the game itself, fetches any tool it lacks
-into `work/tools/`, and writes the same shape every reader here expects:
+It reads the build number from the game itself, fetches any tool it lacks
+into `work/tools/`, and writes local artifacts in the shape every reader here
+expects. Decompilation artifacts are not uploaded or synchronized through Git:
 
     work/decomp/<build>/cpp2il/IsilDump/          the instruction dump, one file per class
     work/decomp/<build>/cpp2il/DiffableCs/        the C# stubs, with call-graph attributes

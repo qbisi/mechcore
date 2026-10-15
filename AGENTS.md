@@ -75,9 +75,10 @@ rules hold whoever does it:
   `tests/README.md`'s, and a rule lands in `docs/rules/` as `docs/README.md`
   says.
 
-The evidence lives outside this repository's history. The decompilation is in
-the private `mechcore-decomp`, put under `work/decomp/<build>/` by
-`scripts/decomp/decomp.py sync`, which builds `index.sqlite` from the dump locally.
+The evidence lives outside this repository's history. Decompilation and its
+`index.sqlite` are generated locally under `work/decomp/<build>/` by
+`scripts/decomp/decompile.py` on the machine with the game. These artifacts
+stay local and are not uploaded to a Git repository.
 The native replays are in the public `mechcore-replay`, fetched at master to
 `work/replay/` by `scripts/corpus/replay.py sync`. Recordings exist only on the
 machine that made them.
