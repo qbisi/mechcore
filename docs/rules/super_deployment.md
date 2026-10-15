@@ -110,10 +110,11 @@ deactivates the shield a unit carries (`AdvancedEnergyShieldProvider.
 DoDeactive`, `AdvancedEnergyShieldSystem.DeactiveEnergyShield`): it stands
 from the first tick, inactive and empty. Arriving activates it with a reset
 (`DoActive`, `ActiveEnergyShield`), full, after every other active shield of
-its side. A technology's Barrier on a unit whose technologies a buff holds
-off as it arrives does not rise (`EffectProvider.ActiveCheck` finds the
-source locked), nor later, since `EnableEffect` acts only on a shield its
-disabling found available.
+its side. If EMP holds the arriving unit's technologies off, activation
+still fills its Barrier: the effect manager then disables it and saves that
+energy. The battlefield shield remains inactive and empty until EMP ends,
+when enabling the controller restores the saved energy. The source lock
+checked by `EffectProvider.ActiveCheck` is its unit-state lock, not EMP.
 
 **A unit's own shield and its repair wait for the arrival too.** The shield
 closes with the effects (`EnergyShieldProvider.DoDeactive`) and stands empty
@@ -161,6 +162,9 @@ from the arrival.
 - A travelling Fortress's Barrier stands inactive and empty until tick 161
   and rises full as the Fortress arrives:
   `tests/super_deployment/barrier-rises-on-arrival.yaml`.
+- A travelling Fortress arriving under EMP saves its full Barrier energy
+  while keeping the battlefield shield inactive, then restores it when EMP
+  ends: `tests/super_deployment/barrier-restores-after-arrival-under-emp.yaml`.
 - Two travelling Phoenixes' own shields stand empty until tick 161 and open
   full then, and their Nano Repair Kit repairs nothing on the way and first
   on tick 181: `tests/super_deployment/own-shield-and-repair-wait.yaml`.
@@ -193,6 +197,13 @@ from the arrival.
   `AdvancedEnergyShieldProvider.DoActive`,
   `AdvancedEnergyShieldSystem.ActiveEnergyShield`,
   `EffectProvider.ActiveCheck`, `EffectProvider.IsLockedEffect`.
+- Activation precedes the disabling modifiers, so EMP saves a newly active
+  Barrier's energy for restoration: `FightEffectMananger.ActiveEffect`,
+  `FightEffectMananger.RefreshOtherEffect`,
+  `AdvancedEnergyShieldProvider.DisableEffect`,
+  `AdvancedEnergyShieldProvider.EnableEffect`,
+  `AdvancedEnergyShieldController.Disable`,
+  `AdvancedEnergyShieldController.Enable`.
 - A unit's own shield closes and opens with its effects, and its repair
   leaves and rejoins its side's: `EnergyShieldProvider.DoDeactive`,
   `EnergyShieldProvider.DoActive`, `AutoRecoveryEffectProvider.DoDeactive`,

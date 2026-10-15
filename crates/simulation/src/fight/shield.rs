@@ -326,22 +326,11 @@ impl Simulation {
     /// reset, which refills the shield it carries (`FightEnergyShield.Active`)
     /// and adds it to its side's active shields after every other. A unit
     /// arriving from a flank brings up the shield its placement deactivated.
-    /// A shield already active is left as it is, and so is a technology's
-    /// while a buff holds its owner's technologies off: `ActiveCheck` finds
-    /// the source locked (`IsLockedEffect`), and `EnableEffect` later acts
-    /// only on a shield its disabling found available, so it never comes up.
+    /// A shield already active is left as it is. Activation does not test
+    /// EMP: `ActiveCheck` tests the source's unit-state lock. The manager's
+    /// `RefreshOtherEffect` disables newly active technologies afterwards,
+    /// saving the full energy for `EnableEffect` to restore.
     pub(in crate::fight) fn activate_carried_shield(&mut self, actor_id: u64) {
-        let locked = self.actors.get(&actor_id).is_some_and(|actor| {
-            actor.technology_disabled()
-                && actor
-                    .placement
-                    .effects
-                    .carried_shield
-                    .is_some_and(|carried| carried.priority == 0)
-        });
-        if locked {
-            return;
-        }
         let Some(index) = self
             .shield
             .standing
