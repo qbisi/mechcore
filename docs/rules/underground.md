@@ -48,6 +48,12 @@ active again when the transition ends. A unit that burrows on its first tick
 has searched and locked on that tick, and reads no lock until the tick after
 it is below.
 
+An inactive manager also skips the non-fighting skill path after the last
+enemy dies. Its motion continues the transition and enters the queued state;
+reactivation during that motion update first permits a skill update on the
+next tick. Surfacing can therefore still create a Replicate Larva while the
+won fight is draining.
+
 **An attack interval stands still while the manager is not active.** A skill
 counts towards its next attack in its own update (`FightSkill.Update` adds to
 `attackTime`), so the ticks a transition lasts are not counted: a Sandworm
@@ -240,6 +246,10 @@ including a unit already idle whose ability was not cleared.
 - A Larva's attack ending during its motion transition leaves the queued
   attacking state intact, which enters without a lock:
   `tests/move_ability/larva-pending-attack-transition.yaml`.
+
+- A Sandworm's queued move survives the last kill, then its surfacing makes
+  a Replicate Larva while the won fight drains:
+  `tests/move_ability/transition-after-last-kill.yaml`.
 
 - A Sandworm's attack interval stands still through its transitions: unit 265
   of `tests/corpus/201373545-r4.yaml` begins its next attack fifty

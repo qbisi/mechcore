@@ -1052,6 +1052,12 @@ impl Simulation {
             .values()
             .filter(|actor| {
                 actor.alive()
+                    && (every_unit
+                        || (actor.skills_active
+                            && !actor
+                                .underground
+                                .as_ref()
+                                .is_some_and(|underground| underground.below)))
                     && alive_teams
                         .iter()
                         .all(|&other| other == actor.placement.team)
@@ -1120,10 +1126,18 @@ impl Simulation {
     #[allow(clippy::too_many_lines)]
     fn step(&mut self, step: u64) -> Result<TransitionEvents> {
         if self.core_step_finished() {
-            // With only one active side, no skill's attackTime counts,
-            // even when pending summons keep the fight open.
+            // SkillManager.Update(false) exits its skills only when active
+            // and not holding fire. Inactive managers pause their own clocks;
+            // holding fire updates the main skill even after the last kill.
             for actor in self.actors.values_mut() {
-                actor.skills.hold_attack_clocks();
+                if actor.skills_active
+                    && !actor
+                        .underground
+                        .as_ref()
+                        .is_some_and(|underground| underground.below)
+                {
+                    actor.skills.hold_attack_clocks();
+                }
             }
         }
         self.settle_intervals(false, step);
@@ -1212,6 +1226,7 @@ impl Simulation {
             .flat_map(|actor| [actor.placement.team, actor.original_team])
             .collect::<std::collections::BTreeSet<_>>();
         let mut team_alive_counts = BTreeMap::new();
+        let mut inactive_skill_managers = BTreeSet::new();
         for team_id in team_ids {
             team_alive_counts.insert(
                 team_id,
@@ -1239,6 +1254,9 @@ impl Simulation {
                     .get_mut(&actor_id)
                     .expect("actor identity is stable")
                     .searched_attack = true;
+                if !self.actors[&actor_id].skills_active {
+                    inactive_skill_managers.insert(actor_id);
+                }
                 let buffs_due = self.step_actor_before_buffs(
                     actor_id,
                     step,
@@ -1437,6 +1455,12 @@ impl Simulation {
         let stop_fight = ready_to_finish || core_step_was_finished;
         if stop_fight {
             for actor in self.actors.values_mut() {
+                // SkillManager.Update returns before its non-fighting path
+                // while inactive. A transition may reactivate it later in
+                // this same motion update, but that path was still skipped.
+                if !ready_to_finish && inactive_skill_managers.contains(&actor.placement.unit_id) {
+                    continue;
+                }
                 // Every motion loses its target: one without a command enters
                 // `MotionIdleState`, whose `Enter` asks `StopMove`, so a unit
                 // that took a tower on the last kill's tick publishes no speed
