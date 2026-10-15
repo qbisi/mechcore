@@ -20,7 +20,7 @@ names both corpus commits when the runs recorded them.
     python3 scripts/corpus/divergence-issue.py <after> --before <dir> --commit SHA \\
         [--run URL] [--pr N] --out <dir>
 
-`.github/workflows/corpus.yml` runs it on every master commit.
+Run explicitly when comparing two corpus measurements.
 """
 
 from __future__ import annotations

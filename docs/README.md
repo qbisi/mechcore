@@ -142,12 +142,11 @@ nothing for:
   re-recorded whenever the version moves, so these claims move with it.
 - `### Replayed`: each claim the replay corpus of the pinned version shows,
   citing `scripts/corpus/verify-matches.py`, which replays every round of the match
-  documents `scripts/corpus/export-replay-corpus.py` converts from that corpus, or
+  documents collected in that corpus or converted from its native replays by
+  `scripts/corpus/export-replay-corpus.py`, or
   `scripts/corpus/match-replays.py`, which fights every round of them with the game.
-  The corpus workflow runs `verify-matches.py` on every master commit,
-  outside the gate: a replay the corpus adds does not keep a
-  change from merging, so CI does not hold these claims the way it holds the
-  recorded ones. A claim the corpus of another version showed is not established here until
+  These are explicit research runs; CI does not hold these claims the way it
+  holds the recorded ones. A claim the corpus of another version showed is not established here until
   this version's corpus shows it too.
 - `### Read`: each claim read from the build, naming in backticks the members
   it rests on, `Class.member`, as the class declares them, a nested class as

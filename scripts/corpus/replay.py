@@ -1,38 +1,31 @@
 #!/usr/bin/env python3
-r"""Fetch the replay corpus, and add to it.
+"""Fetch the corpus and publish collected match documents.
 
-    scripts/corpus/replay.py sync             fetch qbisi/mechcore-replay's master into work/replay
-    scripts/corpus/replay.py path [VERSION]   print a version's replay directory (default: this checkout's)
-    scripts/corpus/replay.py publish          add this machine's new replays of the installed version, and push
+    uv run --with pyyaml python scripts/corpus/replay.py sync
+    uv run --with pyyaml python scripts/corpus/replay.py path [VERSION]
+    uv run --with pyyaml python scripts/corpus/replay.py publish [--source work/watch] [--dry-run]
 
-The native replays live in https://github.com/qbisi/mechcore-replay, one
-directory per game version, `replays/<version>/<name>.grbr`. The repository
-only grows, so it is read at `master` and a newer fetch never takes away what
-an older one had. `work/` is not tracked, so a checkout runs `sync` once, and
-again to pick up replays added since. The version this checkout describes is
-the one `scripts/build_data.py` reads. Nothing is generated in the corpus: `scripts/corpus/export-replay-corpus.py` converts a
-version's replays into `work/match/<version>/`.
+Requires PyYAML. The public qbisi/mechcore-replay repository is read at master
+under work/replay. New data is match YAML under matches/<GAME_VERSION>/,
+including partial matches collected by collect-replays.py. Native GRBR files
+are not uploaded; the earlier native archive remains in Git history.
 
-`publish` is the one writer. It files the replays the installed game recorded
-itself under the installed game's version: a locally recorded replay is named
-`<last version component>_<date>--<scene>_[<player>]VS[<player>].grbr`, and a
-downloaded one, `<version>\<id>.rep.grbr`, is a server-side reconstruction
-and never admitted. A replay whose prefix is not the installed version's was
-recorded by another version and is left alone, as is one written in the last
-minute, which may still be growing. A name already in the corpus must hold the
-same bytes; the corpus is never rewritten. It fetches over HTTPS like `sync`
-and pushes over SSH through `ssh.github.com` on port 443.
+Publish reads only BattleID-rN.yaml files in the source directory. Their match
+header must name this checkout's build or omit it, and the final captured state
+must be round N. An existing name must hold identical bytes; it is never
+replaced. --dry-run validates and reports without fetching, committing or
+pushing. Publication fetches over HTTPS and pushes over SSH port 443.
 """
 
+import argparse
 import filecmp
-import os
-import plistlib
 import re
 import shutil
 import subprocess
 import sys
-import time
 from pathlib import Path
+
+import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import build_data  # noqa: E402
@@ -42,9 +35,6 @@ REPOSITORY = "https://github.com/qbisi/mechcore-replay"
 PUSH_URL = "ssh://git@ssh.github.com:443/qbisi/mechcore-replay.git"
 ROOT = Path(__file__).resolve().parents[2]
 DESTINATION = ROOT / "work" / "replay"
-APP = Path(os.environ.get(
-    "MECHABELLUM_APP",
-    Path.home() / "Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app"))
 
 
 def fail(message):
@@ -71,55 +61,83 @@ def sync():
 
 def path(version):
     version = version or build_data.configured_build()
-    directory = DESTINATION / "replays" / version
+    directory = DESTINATION / "matches" / version
     if not directory.is_dir():
-        fail(f"no replays of {version} under work/replay; run scripts/corpus/replay.py sync")
+        fail(f"no matches of {version} under work/replay; run scripts/corpus/replay.py sync")
     print(directory)
 
 
-def publish():
-    info = plistlib.loads((APP / "Contents/Info.plist").read_bytes())
-    version = info["CFBundleShortVersionString"]
-    prefix = version.rsplit(".", 1)[-1]
-    local = re.compile(rf"^{re.escape(prefix)}_\d{{8}}--\d+_\[.*\]VS\[.*\]\.grbr$")
-    source = APP / "ProjectDatas" / "Replay"
-    fresh = time.time() - 60
-    replays = sorted(p for p in source.iterdir()
-                     if local.match(p.name) and p.stat().st_mtime < fresh)
+def publish(source, dry_run):
+    version = build_data.configured_build()
+    if not source.is_dir():
+        fail(f"match source is not a directory: {source}")
+    names = re.compile(r"^[A-Za-z0-9_.-]+-r([1-9][0-9]*)\.yaml$")
+    matches = sorted(source.glob("*.yaml"))
+    for match in matches:
+        identity = names.fullmatch(match.name)
+        if identity is None:
+            fail(f"match name is not BattleID-rN.yaml: {match.name}")
+        try:
+            segments = list(yaml.safe_load_all(match.read_text()))
+        except (OSError, UnicodeError, yaml.YAMLError) as error:
+            fail(f"cannot read {match.name}: {error}")
+        if not segments or not isinstance(segments[0], dict) or segments[0].get("kind") != "match":
+            fail(f"{match.name} is not a match document")
+        if segments[0].get("game_build", version) != version:
+            fail(f"{match.name} names another game build")
+        states = [segment for segment in segments[1:]
+                  if isinstance(segment, dict) and segment.get("kind") == "state"]
+        if not states or states[-1].get("round") != int(identity[1]):
+            fail(f"{match.name} does not end on its named captured round")
+    if dry_run:
+        print(f"{len(matches)} matches of {version} ready for matches/{version}/")
+        return
+    if not matches:
+        print(f"nothing new of {version} to publish")
+        return
     if not (DESTINATION / ".git").exists():
         sync()
+    if git("status", "--porcelain"):
+        fail("corpus checkout has local changes; preserve them before publishing")
     git("fetch", "-q", "--depth", "1", "origin", "master")
     git("checkout", "-q", "-B", "master", "FETCH_HEAD")
-    target = DESTINATION / "replays" / version
+    target = DESTINATION / "matches" / version
     target.mkdir(parents=True, exist_ok=True)
     added = []
-    for replay in replays:
-        kept = target / replay.name
+    for match in matches:
+        kept = target / match.name
         if kept.exists():
-            if not filecmp.cmp(replay, kept, shallow=False):
+            if not filecmp.cmp(match, kept, shallow=False):
                 fail(f"{kept.name} is already in the corpus with other bytes")
             continue
-        shutil.copy2(replay, kept)
-        added.append(kept)
+        added.append((match, kept))
     if not added:
         print(f"nothing new of {version} to publish")
         return
-    git("add", "--", *(str(p.relative_to(DESTINATION)) for p in added))
-    git("commit", "-q", "-m", f"replay: {len(added)} of {version}")
+    for source_match, kept in added:
+        shutil.copy2(source_match, kept)
+    git("add", "--", *(str(kept.relative_to(DESTINATION)) for _, kept in added))
+    git("commit", "-q", "-m", f"data: add {len(added)} matches of {version}\n\nCo-Authored-By: GPT-6 <noreply@openai.com>")
     git("push", "-q", PUSH_URL, "HEAD:master")
-    print(f"{len(added)} replays of {version} published at {git('rev-parse', '--short', 'HEAD')}")
+    print(f"{len(added)} matches of {version} published at {git('rev-parse', '--short', 'HEAD')}")
 
 
 def main(argv):
-    if argv[1:] == ["sync"]:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("sync")
+    directory = commands.add_parser("path")
+    directory.add_argument("version", nargs="?")
+    publication = commands.add_parser("publish")
+    publication.add_argument("--source", type=Path, default=ROOT / "work/watch")
+    publication.add_argument("--dry-run", action="store_true")
+    arguments = parser.parse_args(argv[1:])
+    if arguments.command == "sync":
         sync()
-    elif argv[1:] == ["publish"]:
-        publish()
-    elif len(argv) in (2, 3) and argv[1] == "path":
-        path(argv[2] if len(argv) == 3 else None)
+    elif arguments.command == "publish":
+        publish(arguments.source.resolve(), arguments.dry_run)
     else:
-        print(__doc__.strip(), file=sys.stderr)
-        sys.exit(2)
+        path(arguments.version)
 
 
 if __name__ == "__main__":

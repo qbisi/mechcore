@@ -44,7 +44,7 @@ the game
   game record <replay.grbr> <out.mcfr> --round n [--instrument c,..] [-f]
                                   one round of a replay
   game record --watch [--output-dir <dir>]
-                                  a live match the server makes
+                                  available partial replay of a live match
   game toggle_fight               start the current fight
   game speed_up                   request fight speed-up
   game quit_match                 leave the active test, replay or watch

@@ -8,7 +8,7 @@ use std::path::PathBuf;
 /// A running game keeps the Adapter it was started with, so a rebuilt Adapter
 /// and a running game can differ. Naming the contract is what turns that into
 /// one clear refusal at connect time instead of a desynchronised stream.
-pub const PROTOCOL: &str = "mechcore.adapter.v12";
+pub const PROTOCOL: &str = "mechcore.adapter.v13";
 /// Highest round `apply_layout` will stage.
 ///
 /// This is the executor's timeout budget for advancing through every earlier
@@ -17,9 +17,9 @@ pub const PROTOCOL: &str = "mechcore.adapter.v12";
 /// number must not be bounded by this value.
 pub const MAX_STAGED_ROUND: i32 = 15;
 pub const DEFAULT_WATCH_SCENE_WAIT_SECONDS: u64 = 15 * 60;
-pub const DEFAULT_WATCH_MATCH_TIMEOUT_SECONDS: u64 = 2 * 60 * 60;
+pub const DEFAULT_WATCH_ENTRY_TIMEOUT_SECONDS: u64 = 30;
 pub const MAX_WATCH_SCENE_WAIT_SECONDS: u64 = 24 * 60 * 60;
-pub const MAX_WATCH_MATCH_TIMEOUT_SECONDS: u64 = 4 * 60 * 60;
+pub const MAX_WATCH_ENTRY_TIMEOUT_SECONDS: u64 = 180;
 
 /// Highest run level a client may claim.
 ///
@@ -462,21 +462,17 @@ pub struct RecordReplayRoundArguments {
 /// Arguments for [`Operation::RecordWatchReplay`].
 ///
 /// The selection policy is deliberately fixed: a server-provided matchmaking
-/// scene must be a normal `VS_1_1` match in round one. This operation is a
+/// scene must be a normal `VS_1_1` match at round two or later. This operation is a
 /// corpus collector, not a general-purpose custom-room watcher.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RecordWatchReplayArguments {
-    /// Existing absolute directory that receives one newly published `.grbr`.
-    ///
-    /// When omitted, the game-owned Replay directory is used directly and no
-    /// corpus copy is created.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub output_dir: Option<PathBuf>,
-    /// Maximum time to wait for an eligible round-one matchmaking scene.
+    /// Existing absolute directory that receives `BattleID-rN.grbr` directly.
+    pub output_dir: PathBuf,
+    /// Total scene-selection and entry budget, including stale-room retries.
     pub wait_for_scene_seconds: u64,
-    /// Maximum time from stable round-one entry until the match finishes.
-    pub match_timeout_seconds: u64,
+    /// Maximum time for one selected room to expose its replay cache.
+    pub entry_timeout_seconds: u64,
 }
 
 /// An instrument channel a recording can carry: a view of the fight's inside,
@@ -605,7 +601,7 @@ mod tests {
             .unwrap(),
             serde_json::json!({
                 "kind": "hello",
-                "protocol": "mechcore.adapter.v12",
+                "protocol": "mechcore.adapter.v13",
                 "capabilities": [
                     "status",
                     "start_test",
@@ -631,20 +627,20 @@ mod tests {
             serde_json::to_value(Claim::current(DEFAULT_LEVEL, "corpus")).unwrap(),
             serde_json::json!({
                 "kind": "claim",
-                "protocol": "mechcore.adapter.v12",
+                "protocol": "mechcore.adapter.v13",
                 "level": 1,
                 "client": "corpus",
             })
         );
         assert_eq!(
             serde_json::to_value(Leaving::current()).unwrap(),
-            serde_json::json!({"kind": "leaving", "protocol": "mechcore.adapter.v12"})
+            serde_json::json!({"kind": "leaving", "protocol": "mechcore.adapter.v13"})
         );
         assert_eq!(
             serde_json::to_value(Evicted::current(4)).unwrap(),
             serde_json::json!({
                 "kind": "evicted",
-                "protocol": "mechcore.adapter.v12",
+                "protocol": "mechcore.adapter.v13",
                 "by_level": 4,
             })
         );
@@ -745,9 +741,9 @@ mod tests {
         );
 
         let watch = serde_json::to_value(RecordWatchReplayArguments {
-            output_dir: Some(PathBuf::from("/tmp/grbr-corpus")),
+            output_dir: PathBuf::from("/tmp/grbr-corpus"),
             wait_for_scene_seconds: 900,
-            match_timeout_seconds: 7_200,
+            entry_timeout_seconds: 30,
         })
         .unwrap();
         assert_eq!(
@@ -755,22 +751,16 @@ mod tests {
             serde_json::json!({
                 "output_dir": "/tmp/grbr-corpus",
                 "wait_for_scene_seconds": 900,
-                "match_timeout_seconds": 7200,
+                "entry_timeout_seconds": 30,
             })
         );
 
-        let native_watch = serde_json::to_value(RecordWatchReplayArguments {
-            output_dir: None,
-            wait_for_scene_seconds: 900,
-            match_timeout_seconds: 7_200,
-        })
-        .unwrap();
-        assert_eq!(
-            native_watch,
-            serde_json::json!({
+        assert!(
+            serde_json::from_value::<RecordWatchReplayArguments>(serde_json::json!({
                 "wait_for_scene_seconds": 900,
-                "match_timeout_seconds": 7200,
-            })
+                "entry_timeout_seconds": 30,
+            }))
+            .is_err()
         );
     }
 

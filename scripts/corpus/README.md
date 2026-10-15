@@ -1,46 +1,48 @@
 # Replay corpus
 
-The native replays this repository is held to live in
-[qbisi/mechcore-replay](https://github.com/qbisi/mechcore-replay), one
-directory per game version, `replays/<version>/<name>.grbr`, added to and
-never rewritten. That repository holds replays and nothing generated from
-them, so it is read at `master`: nothing here pins a commit of it. The scripts
-here make the corpus, fetch it, and read it:
+New collected match documents are published to
+[qbisi/mechcore-replay](https://github.com/qbisi/mechcore-replay), under
+`matches/<version>/<BattleID>-rN.yaml`. Complete prefixes and partial matches
+share that directory. The repository is append-only and read at `master` by
+`replay.py sync` into `work/replay/`. Native GRBR files are local inputs for
+recording studies; the earlier native archive remains in Git history.
 
 | Script | What it does |
 | --- | --- |
-| `collect-replays.py` | watches live standard 1v1 matches unattended and keeps each one in the game's replay directory; it needs the game |
-| `replay.py` | `sync` fetches the corpus into the untracked `work/replay/`; `publish` adds the replays this machine's game recorded under the installed version, and pushes them |
+| `collect-replays.py` | enters live standard 1v1 rooms at round 2 or later, saves the native cache, leaves, then converts it to `BattleID-rN.yaml` in `work/watch/` (or `--output-dir`); it needs the game |
+| `replay.py` | `sync` fetches the corpus into the untracked `work/replay/`; `path` prints its versioned match directory; `publish --source <dir>` validates and uploads collected match YAML, and `--dry-run` checks without publishing |
 | `export-replay-corpus.py` | converts this checkout's version's replays into `work/match/<version>/`, writes each match back as a replay and converts it again, and fails on one that does not come back the same |
 | `verify-matches.py` | runs `mechcore verify` over those matches, adds up the transition coverage, and lists every round the simulator fights whose result differs from the match, with whether `tests/corpus/` pins it, and every round it refuses, each match's last round fought on its own |
 | `match-replays.py` | fights every round of both replays, the corpus's and the one its match writes, in the game, and compares the two |
 | `corpus-fights.py` | fights every corpus round in the game into the fight document it records, under `work/fight/<version>/`, each a fixture candidate for `tests/corpus/`; it needs the game |
 | `divergence-issue.py` | the rounds a master commit fights wrong or refuses that its parent did not, as one issue naming the pull request it merged, from the two runs' `verify-matches.py` reports |
 
-The test suite and the gate read no replay: the converter is not bound to
-read every version the corpus holds, and a replay added there must not keep a
-change from merging. [`corpus.yml`](../../.github/workflows/corpus.yml) reads
-it outside the gate, on master commits alone. On each it fetches the corpus,
-converts this version's replays, runs `verify-matches.py` and keeps its
-reports; `divergence-issue.py` compares them with the parent commit's, and the
-workflow opens one issue for the rounds the commit newly fights wrong or
-refuses and comments on the pull request it merged with the issue's link.
-When this version has no replay, the workflow records a skip in its summary
-before building, and skips conversion, verification and reporting. With
-replays present, conversion and measurement errors still fail the run.
+Corpus checks are manual research tools; there is no automatic corpus CI job
+or automatic divergence issue publication. The gate continues to verify the
+tracked fight fixtures. `verify-matches.py --match-dir <dir>` can measure a
+collected match directory without fetching or converting native replays.
+The scripts that export, compare or record GRBRs need a local native archive;
+partial matches do not reconstruct missing native history.
 
-**A replay is evidence.** It is copied from the Steam installation byte for
-byte and never rewritten. Only a locally recorded replay is admitted: the
-downloaded class, named `<version>\<id>.rep.grbr` and carrying `Seat` -1, is a
-server-side reconstruction whose `IsSpecialSupply` and blueprint chains do not
-agree with the game's state.
+`collect-replays.py --duration-seconds 120` collects for two minutes and finishes
+the last room's cleanup. It does not wait for the round or match to finish, or
+write to the game's Replay directory. `game record --watch` itself saves only
+native GRBR. After it returns, the script converts that file, atomically publishes
+the match without overwriting, and removes GRBR on success. Conversion failure
+stops collection and retains GRBR for diagnosis. `N` is the captured spectator round,
+which may lag the lobby round. The output directory's `.watch-visits.json`
+excludes rooms for 60 seconds after leaving and gives unvisited rooms priority;
+an existing `BattleID-rN.yaml` is a duplicate and is never overwritten. These
+partial match captures stay in the work directory until an explicit
+`replay.py publish --source <dir>` uploads them.
 
-**A replay's version is its directory.** The game's version string is what the
-server matches players and admits spectators by, and every client of a match
-runs the same simulation, so it is the unit of one set of rules. Steam can ship
-new files under an unchanged version; the replays from before and after such an
-update share a directory. A replay is filed under the version of the game that
-recorded it; its header carries that version's last component (`2324`).
+**A match's version is its directory.** Publication files new matches under
+`matches/<GAME_VERSION>/`. `publish --source <dir>` reads that checkout's
+version, so the source must contain only captures made under it; an explicit
+`game_build` naming another build is refused. Names must be `BattleID-rN.yaml`,
+and the last captured state must be round N. An existing name must have the
+same bytes, and publication never replaces one with other bytes. Native files
+are not uploaded by this command.
 
 **A match document is generated and never hand-corrected.** A value that looks
 wrong is a claim about the converter and belongs in

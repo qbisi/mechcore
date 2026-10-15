@@ -8,7 +8,9 @@ A match replay is the `.grbr` file a [match](match.md) is written back as:
 mechcore convert <match.yaml> --to grbr <replay.grbr> [--force]
 ```
 
-Conversion is idempotent across the match format. A match written as a replay
+Conversion requires a complete prefix including round-zero decisions; a partial
+match is refused rather than supplied with invented history. Conversion is
+idempotent across complete match prefixes. A match written as a replay
 converts back ([match.md](match.md#converting-a-replay)) to the same match,
 byte for byte, so the two directions are one mapping and not two
 approximations of it. `record_replay_round` fights any of a match replay's

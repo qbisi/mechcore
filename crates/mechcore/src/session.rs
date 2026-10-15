@@ -8,7 +8,7 @@
 use crate::acquire::{self, Mode, Ownership};
 use crate::adapter;
 use mechcore_protocol::{
-    InstrumentChannel, MAX_WATCH_MATCH_TIMEOUT_SECONDS, MAX_WATCH_SCENE_WAIT_SECONDS, Operation,
+    InstrumentChannel, MAX_WATCH_ENTRY_TIMEOUT_SECONDS, MAX_WATCH_SCENE_WAIT_SECONDS, Operation,
     QueueSnapshot, RecordFightArguments, RecordReplayRoundArguments, RecordWatchReplayArguments,
     StartTestArguments,
 };
@@ -132,12 +132,7 @@ impl Session {
                     .and_then(Value::as_u64)
                     .unwrap_or(MAX_WATCH_SCENE_WAIT_SECONDS)
                     .min(MAX_WATCH_SCENE_WAIT_SECONDS);
-                let r#match = arguments
-                    .get("match_timeout_seconds")
-                    .and_then(Value::as_u64)
-                    .unwrap_or(MAX_WATCH_MATCH_TIMEOUT_SECONDS)
-                    .min(MAX_WATCH_MATCH_TIMEOUT_SECONDS);
-                Duration::from_secs(scene.saturating_add(r#match).saturating_add(480))
+                Duration::from_secs(scene.saturating_add(180))
             }
             _ => ADAPTER_REQUEST_TIMEOUT,
         };
@@ -589,7 +584,7 @@ impl Session {
         Ok(result)
     }
 
-    /// Watch one live round-one matchmaking match and publish its native GRBR.
+    /// Enter one live match, publish its available native replay, and leave.
     ///
     /// Scene selection, saving and cleanup are one adapter transaction, and the
     /// file it names is the one the game itself wrote. The batch cannot start
@@ -598,12 +593,12 @@ impl Session {
         &self,
         output_dir: Option<PathBuf>,
         wait_for_scene_seconds: u64,
-        match_timeout_seconds: u64,
+        entry_timeout_seconds: u64,
     ) -> Result<Value, String> {
         let output_dir = prepare_watch_output(
             output_dir.as_deref(),
             wait_for_scene_seconds,
-            match_timeout_seconds,
+            entry_timeout_seconds,
         )?;
         let _operation = self.operation.lock().await;
         *self.last_applied_layout.lock().await = None;
@@ -614,11 +609,14 @@ impl Session {
                 arguments(&RecordWatchReplayArguments {
                     output_dir: output_dir.clone(),
                     wait_for_scene_seconds,
-                    match_timeout_seconds,
+                    entry_timeout_seconds,
                 })?,
             )
             .await?;
-        if result.get("recorded").and_then(Value::as_bool) != Some(true) {
+        if result.get("recorded").and_then(Value::as_bool) != Some(true)
+            && result.get("duplicate").and_then(Value::as_bool) != Some(true)
+            && result.get("skipped").and_then(Value::as_bool) != Some(true)
+        {
             return Err(format!(
                 "adapter did not confirm watched replay recording: {result}"
             ));
@@ -733,24 +731,19 @@ impl Session {
 fn prepare_watch_output(
     output_dir: Option<&Path>,
     wait_for_scene_seconds: u64,
-    match_timeout_seconds: u64,
-) -> Result<Option<PathBuf>, String> {
+    entry_timeout_seconds: u64,
+) -> Result<PathBuf, String> {
     if !(1..=MAX_WATCH_SCENE_WAIT_SECONDS).contains(&wait_for_scene_seconds) {
         return Err(format!(
             "record_watch_replay wait_for_scene_seconds must be 1..={MAX_WATCH_SCENE_WAIT_SECONDS}"
         ));
     }
-    if !(60..=MAX_WATCH_MATCH_TIMEOUT_SECONDS).contains(&match_timeout_seconds) {
+    if !(1..=MAX_WATCH_ENTRY_TIMEOUT_SECONDS).contains(&entry_timeout_seconds) {
         return Err(format!(
-            "record_watch_replay match_timeout_seconds must be 60..={MAX_WATCH_MATCH_TIMEOUT_SECONDS}"
+            "record_watch_replay entry_timeout_seconds must be 1..={MAX_WATCH_ENTRY_TIMEOUT_SECONDS}"
         ));
     }
-    let Some(output_dir) = output_dir else {
-        return Ok(None);
-    };
-    if !output_dir.is_absolute() {
-        return Err("record_watch_replay output_dir must be absolute".into());
-    }
+    let output_dir = output_dir.unwrap_or_else(|| Path::new("work/watch"));
     std::fs::create_dir_all(output_dir).map_err(|error| {
         format!(
             "cannot create GRBR corpus directory {}: {error}",
@@ -769,7 +762,7 @@ fn prepare_watch_output(
             output_dir.display()
         ));
     }
-    Ok(Some(output_dir))
+    Ok(output_dir)
 }
 
 /// Refuse existing destinations, or remove them when the caller asked to.

@@ -114,11 +114,7 @@ pub fn every_round(
     let mut layouts = 0;
     for turn in &stated.turns {
         compiled(&turn.state, &turn.state, turn.round, "opening")?;
-        let declined = deal
-            .rounds
-            .iter()
-            .find(|dealt| dealt.round == turn.round)
-            .map(|dealt| dealt.declined);
+        let declined = deal.declined(turn);
         let deployed = |state, actions, red| {
             crate::transition::deployed(economy, state, actions, red, declined)
                 .map_err(|unsettled| format!("round {} does not deploy: {unsettled}", turn.round))

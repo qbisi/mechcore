@@ -21,6 +21,8 @@ use std::collections::BTreeMap;
 /// segment and an action segment per turn.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Match {
+    /// Whether the stream includes round zero; false for a captured suffix.
+    pub has_opening: bool,
     /// The build whose tables this match is written against.
     pub game_build: String,
     pub map_id: i32,
@@ -35,8 +37,9 @@ pub struct Match {
     pub deploy_time: Option<i32>,
     pub blue: MatchSide,
     pub red: MatchSide,
-    /// The deployment rounds, from the first one. The opening is round zero
-    /// and has no state to open it, so each side's [`Opening`] holds it.
+    /// The contiguous deployment rounds, starting at the first captured one.
+    /// The opening is round zero and has no state to open it, so each side's
+    /// [`Opening`] holds it when known.
     pub turns: Vec<Turn>,
 }
 
@@ -1026,6 +1029,7 @@ pub fn read(bytes: &[u8]) -> Result<Option<Match>, String> {
         })
     };
     Ok(Some(Match {
+        has_opening: stated.has_opening,
         game_build: crate::economy::this_build(),
         map_id: stated.map_id,
         seed: stated.seed,
@@ -1038,21 +1042,21 @@ pub fn read(bytes: &[u8]) -> Result<Option<Match>, String> {
 
 /// A match's segments, in stream order.
 fn segments_of(r#match: &Match) -> Vec<Segment<'_>> {
-    let mut segments = vec![
-        Segment::Match(Header {
-            game_build: &r#match.game_build,
-            map_id: r#match.map_id,
-            seed: r#match.seed,
-            deploy_time: r#match.deploy_time,
-            blue: HeaderSide::of(&r#match.blue),
-            red: HeaderSide::of(&r#match.red),
-        }),
-        Segment::Action(ActionSegment {
+    let mut segments = vec![Segment::Match(Header {
+        game_build: &r#match.game_build,
+        map_id: r#match.map_id,
+        seed: r#match.seed,
+        deploy_time: r#match.deploy_time,
+        blue: HeaderSide::of(&r#match.blue),
+        red: HeaderSide::of(&r#match.red),
+    })];
+    if r#match.has_opening {
+        segments.push(Segment::Action(ActionSegment {
             round: 0,
             blue: Cow::Owned(r#match.blue.opening.action().into_iter().collect()),
             red: Cow::Owned(r#match.red.opening.action().into_iter().collect()),
-        }),
-    ];
+        }));
+    }
     for turn in &r#match.turns {
         segments.push(Segment::State(StateSegment {
             round: turn.round,
@@ -1086,7 +1090,7 @@ fn segments_of(r#match: &Match) -> Vec<Segment<'_>> {
 pub struct Segments {
     pub header: Value,
     /// The round-zero action segment, absent from a stream that holds only its
-    /// header.
+    /// header, or from a partial match starting at a captured state.
     pub opening: Option<Value>,
     pub rounds: Vec<RoundSegments>,
 }
@@ -1105,8 +1109,9 @@ pub struct RoundSegments {
 /// match.
 ///
 /// A file is a match when its first document says `kind: match`. After that
-/// the stream alternates strictly: round zero's action segment, then each
-/// round's state followed by that round's actions. It may end after any
+/// a complete prefix starts with round zero's actions. A partial match starts
+/// with any positive round's state. Both then alternate consecutive states
+/// and same-round actions. It may end after any
 /// segment, except that nothing follows a concession or a state in which a
 /// reactor core has fallen to zero.
 ///
@@ -1148,10 +1153,14 @@ pub fn segments(bytes: &[u8]) -> Result<Option<Segments>, String> {
             .and_then(|round| i32::try_from(round).ok())
             .ok_or_else(|| format!("match segment {position} ({kind}) names no round"))?;
         let (expected_kind, expected_round) = match (&stream.opening, stream.rounds.last()) {
-            (None, _) => ("action", 0),
+            (None, None) if kind == "state" && round >= 1 => ("state", round),
+            (None, None) => ("action", 0),
             (Some(_), None) => ("state", 1),
-            (Some(_), Some(last)) if last.actions.is_none() => ("action", last.round),
-            (Some(_), Some(last)) => ("state", last.round + 1),
+            (_, Some(last)) if last.actions.is_none() => ("action", last.round),
+            (_, Some(last)) => (
+                "state",
+                last.round.checked_add(1).ok_or("match round overflow")?,
+            ),
         };
         if kind != expected_kind || round != expected_round {
             return Err(format!(
@@ -1548,12 +1557,25 @@ mod tests {
                 .unwrap_err()
                 .contains("the stream expects action round 1")
         );
-        let unopened = format!("{HEADER}{}", state(1, 4800));
-        assert!(
-            read(&unopened)
-                .unwrap_err()
-                .contains("the stream expects action round 0")
-        );
+        for first in [1, 7] {
+            let suffix = format!(
+                "{HEADER}{}{}{}",
+                state(first, 4800),
+                actions(first, "[]"),
+                state(first + 1, 4800)
+            );
+            let captured = read(&suffix).unwrap();
+            assert!(captured.opening.is_none());
+            assert_eq!(captured.rounds[0].round, first);
+            assert!(!read_ok(&format!("{suffix}{}", actions(first + 2, "[]"))));
+            assert!(!read_ok(&format!(
+                "{HEADER}{}{}{}",
+                state(first, 4800),
+                actions(first, "[]"),
+                state(first + 2, 4800)
+            )));
+        }
+        assert!(!read_ok(&format!("{HEADER}{}", state(0, 4800))));
     }
 
     #[test]
@@ -1632,6 +1654,7 @@ mod tests {
             actions: super::TurnActions::default(),
         };
         let ended = super::Match {
+            has_opening: true,
             game_build: crate::game_build().to_owned(),
             map_id: 1021,
             seed: 1,

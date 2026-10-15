@@ -212,6 +212,23 @@ pub struct Verified {
     pub checkpoints: Vec<Checkpoint>,
 }
 
+impl Verified {
+    /// A captured first deal is not a verified draw, but its refund is checked.
+    #[must_use]
+    pub fn declined(&self, turn: &Turn) -> Option<i32> {
+        self.rounds
+            .iter()
+            .find(|dealt| dealt.round == turn.round)
+            .map(|dealt| dealt.declined)
+            .or_else(|| {
+                turn.state
+                    .reinforce_offers
+                    .as_ref()
+                    .map(|offers| offers.refund)
+            })
+    }
+}
+
 /// A deployment opening after its reinforcement deal, before either side acts.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Checkpoint {
@@ -375,6 +392,52 @@ impl Dealer {
                 .push(id);
         }
         Ok(())
+    }
+
+    /// Continue from an available post-deal state without its earlier history.
+    fn continue_after(&mut self, economy: &Economy, turn: &Turn, last: bool) -> Result<(), String> {
+        self.restore(&turn.state)?;
+        self.offset = 0;
+        let refund = self
+            .config
+            .decline_supply(economy, self.pool_id, turn.round)?;
+        let count = if self.config.pools[&self.pool_id]
+            .rounds
+            .contains(&turn.round)
+        {
+            self.config.unit_count
+        } else {
+            self.config.ordinary_count
+        };
+        if (turn.round == 1 && turn.state.reinforce_offers.is_some())
+            || (turn.round > 1
+                && turn
+                    .state
+                    .reinforce_offers
+                    .as_ref()
+                    .is_none_or(|offers| offers.refund != refund || offers.dealt.len() != count))
+        {
+            return Err(format!(
+                "round {} captured reinforcement offer shape or refund disagrees",
+                turn.round
+            ));
+        }
+        let offers = turn
+            .state
+            .reinforce_offers
+            .as_ref()
+            .map_or(&[][..], |offers| offers.dealt.as_slice());
+        if offers
+            .iter()
+            .any(|id| self.config.level_four_skills.contains(id))
+        {
+            self.excluded_rounds.insert(
+                turn.round
+                    .checked_add(1)
+                    .ok_or("reinforcement round overflow")?,
+            );
+        }
+        self.apply_choices(turn, offers, last)
     }
 
     fn deal(
@@ -842,6 +905,88 @@ pub(crate) fn fill_checkpoints(
     Ok(())
 }
 
+/// Restore native pre-deal checkpoints when the spectator cache lacks history.
+/// The native pool log is cumulative; no missing decisions are inferred.
+#[cfg(feature = "convert")]
+pub(crate) fn fill_recorded_checkpoints(
+    economy: &Economy,
+    game: &mut crate::r#match::Match,
+    recorded: &[crate::record::MatchRound],
+) -> Result<(), String> {
+    let yaml = crate::r#match::canonical_yaml(game)?;
+    let stated = crate::opening::stated(yaml.as_bytes())?.ok_or("not a match")?;
+    let opening = crate::opening::verify(economy, &stated)?;
+    for (turn, source) in game.turns.iter_mut().zip(recorded.iter().skip(1)) {
+        let mut dealer = Dealer::new(&opening)?;
+        let initial = dealer.members();
+        let mut members = initial.clone();
+        for operation in &source.pool_operations.entries {
+            match operation.operation {
+                0 if members.remove(&operation.id) => {}
+                1 if dealer.config.cards.contains_key(&operation.id)
+                    && members.insert(operation.id) => {}
+                _ => {
+                    return Err(format!(
+                        "round {} has invalid pool operation {} on card {}",
+                        source.round, operation.operation, operation.id
+                    ));
+                }
+            }
+        }
+        let random_state = source
+            .random_state
+            .states
+            .values
+            .as_slice()
+            .try_into()
+            .map_err(|_| {
+                format!(
+                    "round {} requires a four-word reinforcement stream",
+                    source.round
+                )
+            })?;
+        dealer.restore(&State {
+            random_state,
+            reinforce_pool: PoolDelta {
+                removed: initial.difference(&members).copied().collect(),
+                added: members.difference(&initial).copied().collect(),
+            },
+            ..Default::default()
+        })?;
+        for exclusion in &source.excluded_rounds.entries {
+            if !same_excluded_cards(&exclusion.ids.values, &dealer.config.level_four_skills) {
+                return Err(format!(
+                    "round {} excludes unknown reinforcement cards",
+                    source.round
+                ));
+            }
+            dealer.excluded_rounds.insert(exclusion.round);
+        }
+        let offers = dealer
+            .deal(economy, &stated, turn)
+            .map_err(|error| format!("round {} reinforcement: {error}", turn.round))?;
+        if offers != turn.state.reinforce_offers {
+            return Err(format!(
+                "round {} native checkpoint deals {offers:?}, recorded {:?}",
+                turn.round, turn.state.reinforce_offers
+            ));
+        }
+        dealer.checkpoint(&initial).write_to(&mut turn.state);
+    }
+    // Check transitions between available checkpoints as well as each deal.
+    let yaml = crate::r#match::canonical_yaml(game)?;
+    let stated = crate::opening::stated(yaml.as_bytes())?.ok_or("not a match")?;
+    verify(economy, &stated, &opening)?;
+    Ok(())
+}
+
+/// Exclusions are membership tests; their serialized enumeration order is immaterial.
+#[cfg(feature = "convert")]
+pub(crate) fn same_excluded_cards(recorded: &[i32], expected: &[i32]) -> bool {
+    recorded.len() == expected.len()
+        && recorded.iter().copied().collect::<BTreeSet<_>>() == expected.iter().copied().collect()
+}
+
 /// Deals the last opening using only its header, the preceding opening and
 /// that round's decisions. Earlier turns are not read.
 ///
@@ -863,19 +1008,7 @@ pub fn deal_checkpoint(economy: &Economy, stated: &Stated) -> Result<Dealt, Stri
         if current.round + 1 != next.round {
             return Err("checkpoint rounds are not consecutive".into());
         }
-        dealer.restore(&current.state)?;
-        let offers = current
-            .state
-            .reinforce_offers
-            .as_ref()
-            .map_or(&[][..], |o| o.dealt.as_slice());
-        if offers
-            .iter()
-            .any(|id| dealer.config.level_four_skills.contains(id))
-        {
-            dealer.excluded_rounds.insert(next.round);
-        }
-        dealer.apply_choices(current, offers, false)?;
+        dealer.continue_after(economy, current, false)?;
     }
     let offers = dealer.deal(economy, stated, next)?;
     Ok(Dealt {
@@ -909,12 +1042,25 @@ fn walk(
     let mut offers_checked = 0;
     let mut pools = Vec::new();
     for (at, turn) in stated.turns.iter().enumerate() {
-        let expected = i32::try_from(at + 1).map_err(|error| error.to_string())?;
+        let first = if stated.has_opening {
+            1
+        } else {
+            stated.turns[0].round
+        };
+        let expected = first
+            .checked_add(i32::try_from(at).map_err(|error| error.to_string())?)
+            .ok_or("reinforcement round overflow")?;
         if turn.round != expected {
             return Err(format!(
                 "reinforcement turns must be contiguous: expected round {expected}, found {}",
                 turn.round
             ));
+        }
+        if at == 0 && !stated.has_opening {
+            // This state is already post-deal. Its missing prefix cannot be
+            // checked against the seed, only subsequent transitions can.
+            dealer.continue_after(economy, turn, at + 1 == stated.turns.len())?;
+            continue;
         }
         pools.push(Pool {
             log: dealer.log.clone(),
@@ -979,6 +1125,110 @@ fn walk(
 #[cfg(all(test, feature = "convert"))]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_native_suffix_deals_from_its_recorded_checkpoint() {
+        use crate::r#match::{Match, MatchSide, Opening, TurnActions};
+        use crate::record;
+
+        let economy = Economy::embedded().unwrap();
+        let opening = crate::opening::predict(economy, 12345, 1011).unwrap();
+        let side = |offers: Vec<_>, constructions| MatchSide {
+            name: "player".into(),
+            opening: Opening {
+                choose: None,
+                offers,
+            },
+            constructions,
+            tech_loadout: economy.unit_technologies(),
+            seed: Some(1),
+        };
+        let mut opened = SideState {
+            reactor_core: 4800,
+            random_state: [1, 2, 3, 4],
+            ..Default::default()
+        };
+        crate::transition::open_allowances(&mut opened);
+        let mut game = Match {
+            has_opening: false,
+            game_build: crate::game_build().into(),
+            map_id: 1011,
+            seed: 12345,
+            deploy_time: None,
+            blue: side(
+                opening.deal.blue.clone(),
+                opening.constructions.blue.clone(),
+            ),
+            red: side(opening.deal.red.clone(), opening.constructions.red.clone()),
+            turns: vec![Turn {
+                round: 5,
+                state: State {
+                    blue: opened.clone(),
+                    red: opened,
+                    ..Default::default()
+                },
+                actions: TurnActions::default(),
+            }],
+        };
+        let mut dealer = Dealer::new(&opening).unwrap();
+        let initial = dealer.members();
+        for round in 2..5 {
+            dealer.ordinary(round, &Context::default()).unwrap();
+        }
+        let mut native: record::MatchRound =
+            quick_xml::de::from_str("<MatchSnapshotData><round>5</round></MatchSnapshotData>")
+                .unwrap();
+        native.random_state.states.values = dealer.stream.state().to_vec();
+        native.pool_operations.entries = dealer
+            .log
+            .iter()
+            .map(|&(operation, id)| record::PoolOperation { operation, id })
+            .collect();
+        native.excluded_rounds.entries = dealer
+            .excluded_rounds
+            .iter()
+            .map(|&round| {
+                let mut values = dealer.config.level_four_skills.clone();
+                values.reverse();
+                record::ExcludedRound {
+                    round,
+                    ids: record::ExcludedIds { values },
+                }
+            })
+            .collect();
+        let stated =
+            crate::opening::stated(crate::r#match::canonical_yaml(&game).unwrap().as_bytes())
+                .unwrap()
+                .unwrap();
+        game.turns[0].state.reinforce_offers =
+            dealer.deal(economy, &stated, &game.turns[0]).unwrap();
+        let expected = dealer.checkpoint(&initial);
+        let placeholder =
+            quick_xml::de::from_str("<MatchSnapshotData><round>0</round></MatchSnapshotData>")
+                .unwrap();
+        let mut native = vec![placeholder, native];
+        fill_recorded_checkpoints(economy, &mut game, &native).unwrap();
+        assert_eq!(game.turns[0].state.random_state, expected.random_state);
+        assert_eq!(game.turns[0].state.reinforce_pool, expected.reinforce_pool);
+        let yaml = crate::r#match::canonical_yaml(&game).unwrap();
+        assert_eq!(
+            crate::r#match::read(yaml.as_bytes()).unwrap().unwrap(),
+            game
+        );
+        let stated = crate::opening::stated(yaml.as_bytes()).unwrap().unwrap();
+        assert!(!stated.has_opening);
+        assert_eq!(
+            verify(economy, &stated, &opening).unwrap().offers_checked,
+            0
+        );
+        assert!(
+            crate::match_replay::match_replay(economy, &stated, crate::game_build())
+                .unwrap_err()
+                .contains("partial match")
+        );
+        native[1].random_state.states.values = vec![0; 4];
+        assert!(fill_recorded_checkpoints(economy, &mut game, &native).is_err());
+    }
 
     #[test]
     fn a_pool_checkpoint_continues_without_earlier_draws_or_choices() {

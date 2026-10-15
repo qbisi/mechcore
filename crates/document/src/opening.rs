@@ -514,6 +514,7 @@ pub fn predict(economy: &Economy, seed: i32, map_id: i32) -> Result<Prediction, 
 /// read only part of them, but malformed payloads must never pass unnoticed.
 #[derive(Debug)]
 pub struct Stated {
+    pub has_opening: bool,
     pub map_id: i32,
     pub seed: i32,
     /// The header's deployment clock, which only a match states.
@@ -620,11 +621,16 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
     let header: StatedHeader = serde_yaml::from_value(stream.header)
         .map_err(|error| format!("match header is not readable: {error}"))?;
     crate::economy::require_this_build(&header.game_build)?;
-    let opening = stream
+    let has_opening = stream.opening.is_some();
+    if !has_opening && stream.rounds.is_empty() {
+        return Err("match states no round 0 opening decisions or captured state".into());
+    }
+    let opening: TurnActions = stream
         .opening
-        .ok_or("match states no round 0 opening decisions")?;
-    let opening: TurnActions = crate::r#match::payload(opening)
-        .map_err(|error| format!("round 0 action segment is not readable: {error}"))?;
+        .map(crate::r#match::payload)
+        .transpose()
+        .map_err(|error| format!("round 0 action segment is not readable: {error}"))?
+        .unwrap_or_default();
     let mut blue = header.blue;
     let mut red = header.red;
     blue.opening = StatedOpening::opening(&opening.blue, "blue")?;
@@ -657,6 +663,7 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         })
         .collect::<Result<_, String>>()?;
     Ok(Some(Stated {
+        has_opening,
         map_id: header.map_id,
         seed: header.seed,
         deploy_time: header.deploy_time,

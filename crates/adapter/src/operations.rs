@@ -10,7 +10,7 @@ use mechcore_document::{
 use mechcore_protocol::{GameStatus, Operation, Request, Response};
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -128,12 +128,12 @@ pub(crate) enum LayoutExecutionStage {
     Activation,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(crate) enum InternalOperation {
     Status,
     RefreshWatchScenes,
-    StartEligibleWatch,
-    SaveCurrentReplay,
+    StartEligibleWatch(crate::watch::Visits),
+    SaveCurrentReplay(PathBuf),
     StartCapture {
         mode: crate::capture::CaptureStartMode,
         visual: bool,
@@ -158,8 +158,8 @@ pub(crate) fn execute_internal(
     let result = match operation {
         InternalOperation::Status => Ok(status(runtime)),
         InternalOperation::RefreshWatchScenes => refresh_watch_scenes(runtime),
-        InternalOperation::StartEligibleWatch => start_eligible_watch(runtime),
-        InternalOperation::SaveCurrentReplay => save_current_replay(runtime),
+        InternalOperation::StartEligibleWatch(visits) => start_eligible_watch(runtime, &visits),
+        InternalOperation::SaveCurrentReplay(directory) => save_current_replay(runtime, &directory),
         InternalOperation::StartCapture {
             mode,
             visual,
@@ -399,9 +399,11 @@ fn refresh_watch_scenes(runtime: &Runtime) -> Result<Value, OperationError> {
     Ok(json!({"requested": true, "room_filter": "match_first"}))
 }
 
-/// Choose the least occupied eligible scene from the currently cached first
-/// page, then enter it through LobbyProxy.WatchScene.
-fn start_eligible_watch(runtime: &Runtime) -> Result<Value, OperationError> {
+/// Prefer unvisited scenes, then old visits, and fewer watchers within each group.
+fn start_eligible_watch(
+    runtime: &Runtime,
+    visits: &crate::watch::Visits,
+) -> Result<Value, OperationError> {
     if !runtime.current_match().is_null() {
         return Err(OperationError::InvalidState(
             "watch-scene selection requires main_menu with no active match".into(),
@@ -426,11 +428,18 @@ fn start_eligible_watch(runtime: &Runtime) -> Result<Value, OperationError> {
     }
 
     let (mut eligible, observed) = scan_watch_scenes(runtime, scenes)?;
-    eligible.sort_unstable();
+    let now = crate::watch::now();
+    let cooling_down = eligible
+        .iter()
+        .filter(|scene| visits.priority(scene.1, now).is_none())
+        .count();
+    eligible.retain(|scene| visits.priority(scene.1, now).is_some());
+    eligible.sort_unstable_by_key(|scene| (visits.priority(scene.1, now), *scene));
     let Some((watcher_num, scene_id, map_id, round, subtype)) = eligible.first().copied() else {
         return Ok(json!({
             "started": false,
             "eligible_scenes": 0,
+            "cooling_down": cooling_down,
             "observed": observed,
         }));
     };
@@ -446,6 +455,9 @@ fn start_eligible_watch(runtime: &Runtime) -> Result<Value, OperationError> {
         "subtype": subtype,
         "competition": false,
         "watcher_num": watcher_num,
+        "previously_visited": visits.priority(scene_id, now).is_some_and(|priority| priority.0),
+        "entered_at_ms": now,
+        "cooling_down": cooling_down,
         "observed": observed,
     }))
 }
@@ -466,18 +478,18 @@ fn scan_watch_scenes(
     runtime: &Runtime,
     scenes: *mut Object,
 ) -> Result<(Vec<EligibleWatchScene>, Value), OperationError> {
-    let (scanned, first_round_one) = scan_scenes(runtime, scenes)?;
+    let (scanned, first_eligible_round) = scan_scenes(runtime, scenes)?;
     let valid = |scene: &&ScannedScene| {
         scene.scene_id > 0
             && scene.map_id > 0
             && (0..MAX_WATCHERS_PER_SCENE).contains(&scene.watcher_num)
     };
-    let round_one = scanned
+    let later_rounds = scanned
         .iter()
         .filter(valid)
-        .filter(|scene| scene.round == 1)
+        .filter(|scene| scene.round >= 2)
         .collect::<Vec<_>>();
-    let eligible = round_one
+    let eligible = later_rounds
         .iter()
         .filter_map(|scene| {
             scene.standard_subtype.map(|subtype| {
@@ -496,15 +508,15 @@ fn scan_watch_scenes(
         json!({
             "total": list_count(runtime.api, scenes)?,
             "typed": scanned.len(),
-            "round_one": round_one.len(),
+            "round_two_or_later": later_rounds.len(),
             "standard": eligible.len(),
-            "first_round_one": first_round_one,
+            "first_eligible_round": first_eligible_round,
         }),
     ))
 }
 
 /// Every `WatchScene` of the page, with whether it is a standard 1v1, and the
-/// rule diagnostic of the first round-one scene for a refusal to show.
+/// rule diagnostic of the first scene at round two or later for a refusal to show.
 fn scan_scenes(
     runtime: &Runtime,
     scenes: *mut Object,
@@ -526,7 +538,7 @@ fn scan_scenes(
         deploy_time: api.field(custom_info_class, "DeployTime")?,
     };
     let config = config_instance(runtime)?;
-    let mut first_round_one = None;
+    let mut first_eligible_round = None;
     let mut scanned = Vec::new();
     for index in 0..list_count(api, scenes)? {
         let scene = list_item(api, scenes, index)?;
@@ -573,8 +585,8 @@ fn scan_scenes(
                 }
             }
         }
-        if round == 1 {
-            first_round_one.get_or_insert(diagnostic);
+        if round >= 2 {
+            first_eligible_round.get_or_insert(diagnostic);
         }
         scanned.push(ScannedScene {
             scene_id,
@@ -584,7 +596,7 @@ fn scan_scenes(
             standard_subtype,
         });
     }
-    Ok((scanned, first_round_one))
+    Ok((scanned, first_eligible_round))
 }
 
 fn observe_watch_rules(
@@ -624,23 +636,73 @@ fn observe_watch_rules(
     })
 }
 
-fn save_current_replay(runtime: &Runtime) -> Result<Value, OperationError> {
+/// The native `SaveReplayCommand`'s `Replay(record)`, followed by the explicit-path
+/// `MatchUtility.SaveReplay` branch: `GenerateBattleRecordData` and `SaveBinary`.
+/// Never call `MatchProxy.SaveReplay`, which chooses the game's Replay directory.
+fn save_current_replay(runtime: &Runtime, directory: &Path) -> Result<Value, OperationError> {
     let current = require_match(runtime)?;
     let api = runtime.api;
-    if !api.invoke_value::<bool>(current, "IsWatchMode", &mut [])?
-        || !api.invoke_value::<bool>(current, "get_IsFinished", &mut [])?
-    {
+    if !api.invoke_value::<bool>(current, "IsWatchMode", &mut [])? {
         return Err(OperationError::InvalidState(
-            "saving a watched replay requires a finished watch match".into(),
+            "saving a watched replay requires a watch match".into(),
         ));
     }
-    let proxy =
-        find_proxy(runtime, "MatchProxy", "GameRiver.Client.MatchProxy")?.ok_or_else(|| {
-            OperationError::InvalidState("MatchProxy is not registered in GameFacade".into())
-        })?;
-    let callback: *mut Object = std::ptr::null_mut();
-    api.invoke_void(proxy, "SaveReplay", &mut [object_argument(callback)])?;
-    Ok(json!({"requested": true}))
+    let module = find_match_module(runtime, current, "GameRiver", "ReplaySystem")?;
+    let recorder = api.invoke(module, "GetBattleRecorder", &mut [])?;
+    if recorder.is_null() {
+        return Ok(json!({"ready": false}));
+    }
+    let record = api.invoke(recorder, "GetCurrentRecord", &mut [])?;
+    if record.is_null() {
+        return Ok(json!({"ready": false}));
+    }
+    let mut round = api.invoke_value::<i32>(current, "get_RoundCount", &mut [])?;
+    if round < 1
+        || !api.invoke_value::<bool>(record, "IsAvaliableRound", &mut [argument(&mut round)])?
+    {
+        return Ok(json!({"ready": false, "round": round}));
+    }
+    let info = api.invoke(record, "get_BattleInfo", &mut [])?;
+    let battle_id = api.invoke(info, "get_BattleID", &mut [])?;
+    let battle_id = api.string_to_rust(battle_id.cast())?;
+    let (output, duplicate) = crate::watch::publish(directory, &battle_id, round, |path| {
+        let serialize = || -> Result<(), Il2CppError> {
+            let class = api.class("GRCore.dll", "GameRiver", "Replay")?;
+            let replay = api.allocate_object(class)?;
+            let constructor =
+                api.class_method_with_parameter_types(class, ".ctor", &["GameRiver.BattleRecord"])?;
+            api.invoke_raw(constructor, replay.cast(), &mut [object_argument(record)])?;
+            let date_time = api.class("mscorlib.dll", "System", "DateTime")?;
+            let now = api.invoke_static(date_time, "get_Now", &mut [])?;
+            let mut now = api.unbox::<u64>(now, "DateTime.Now")?;
+            api.invoke_void(replay, "set_CreateTime", &mut [argument(&mut now)])?;
+            api.invoke_void(replay, "GenerateBattleRecordData", &mut [])?;
+            let file = api.class("GRUtility.dll", "GameRiver", "FileUtility")?;
+            let save = api.class_method_with_parameter_types(
+                file,
+                "SaveBinary",
+                &["System.String", "System.Object"],
+            )?;
+            let path = api.string(&path.to_string_lossy())?;
+            api.invoke_raw(
+                save,
+                std::ptr::null_mut(),
+                &mut [object_argument(path), object_argument(replay)],
+            )?;
+            Ok(())
+        };
+        serialize().map_err(|error| error.to_string())
+    })
+    .map_err(OperationError::InvalidState)?;
+    Ok(json!({
+        "ready": true,
+        "recorded": !duplicate,
+        "duplicate": duplicate,
+        "output": output,
+        "battle_id": battle_id,
+        "round": round,
+        "finished": api.invoke_value::<bool>(current, "get_IsFinished", &mut [])?,
+    }))
 }
 
 /// Retrieve an application-owned `PureMVC` proxy without relying on a generic

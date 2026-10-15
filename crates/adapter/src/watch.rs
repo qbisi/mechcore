@@ -8,11 +8,92 @@
 //! `Ending` only, and `StateTime` only on a reconnection. The Adapter keeps a
 //! copy from `MH_MatchStageInfo.DoProcess` for `status` to report.
 
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
+use std::time::{SystemTime, UNIX_EPOCH};
 
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::il2cpp::{Api, MethodInfo, Object};
+
+/// Visits survive separate collector commands and game restarts in this work directory.
+#[derive(Clone, Default, Deserialize, Serialize)]
+pub(crate) struct Visits(BTreeMap<i32, u64>);
+
+impl Visits {
+    pub(crate) fn load(directory: &Path) -> Result<Self, String> {
+        match std::fs::read(directory.join(".watch-visits.json")) {
+            Ok(bytes) => serde_json::from_slice(&bytes).map_err(|error| error.to_string()),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(Self::default()),
+            Err(error) => Err(error.to_string()),
+        }
+    }
+
+    /// Never visited first, then oldest visits; exclude rooms left less than 60s ago.
+    pub(crate) fn priority(&self, scene: i32, now: u64) -> Option<(bool, u64)> {
+        match self.0.get(&scene).copied() {
+            None => Some((false, 0)),
+            Some(left) if now.saturating_sub(left) >= 60_000 => Some((true, left)),
+            Some(_) => None,
+        }
+    }
+
+    pub(crate) fn left(&mut self, directory: &Path, scene: i32) -> Result<(), String> {
+        self.0.insert(scene, now());
+        let mut pending = tempfile::NamedTempFile::new_in(directory).map_err(|e| e.to_string())?;
+        serde_json::to_writer(pending.as_file_mut(), self).map_err(|e| e.to_string())?;
+        pending
+            .persist(directory.join(".watch-visits.json"))
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+}
+
+pub(crate) fn now() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis()
+        .try_into()
+        .unwrap_or(u64::MAX)
+}
+
+/// Publish the native serializer's bytes atomically, without replacing an existing round.
+pub(crate) fn publish(
+    directory: &Path,
+    battle_id: &str,
+    round: i32,
+    write: impl FnOnce(&Path) -> Result<(), String>,
+) -> Result<(PathBuf, bool), String> {
+    if battle_id.is_empty()
+        || !battle_id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || b"-_.".contains(&byte))
+        || round < 1
+    {
+        return Err(format!(
+            "invalid replay identity {battle_id:?}, round {round}"
+        ));
+    }
+    let output = directory.join(format!("{battle_id}-r{round}.grbr"));
+    if output.try_exists().map_err(|e| e.to_string())? {
+        return Ok((output, true));
+    }
+    let pending = tempfile::NamedTempFile::new_in(directory).map_err(|e| e.to_string())?;
+    write(pending.path())?;
+    let file = pending.reopen().map_err(|e| e.to_string())?;
+    if file.metadata().map_err(|e| e.to_string())?.len() == 0 {
+        return Err("native replay serializer wrote an empty file".into());
+    }
+    file.sync_all().map_err(|e| e.to_string())?;
+    match pending.persist_noclobber(&output) {
+        Ok(_) => Ok((output, false)),
+        Err(error) if error.error.kind() == std::io::ErrorKind::AlreadyExists => Ok((output, true)),
+        Err(error) => Err(error.to_string()),
+    }
+}
 
 /// What the server said the match was doing when the spectator joined.
 #[derive(Clone, Copy)]
@@ -163,4 +244,52 @@ pub(crate) fn live(api: Api, server: Option<*mut Object>) -> Value {
             .then(|| state_elapsed.map(|elapsed| f64::from(stage.deploy_time) - elapsed))
             .flatten(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn visits_exclude_sixty_seconds_and_prefer_unvisited_rooms() {
+        let visits = Visits(BTreeMap::from([(10, 100_000), (20, 80_000)]));
+        assert_eq!(visits.priority(10, 159_999), None);
+        assert_eq!(visits.priority(10, 160_000), Some((true, 100_000)));
+        assert_eq!(visits.priority(10, 99_000), None);
+        assert!(visits.priority(30, 160_000) < visits.priority(20, 160_000));
+        assert!(visits.priority(20, 160_000) < visits.priority(10, 160_000));
+        let directory = tempfile::tempdir().unwrap();
+        let mut saved = Visits::default();
+        saved.left(directory.path(), 10).unwrap();
+        assert_eq!(
+            Visits::load(directory.path()).unwrap().priority(10, now()),
+            None
+        );
+    }
+
+    #[test]
+    fn publication_deduplicates_rounds_and_leaves_no_partial_file() {
+        let directory = tempfile::tempdir().unwrap();
+        let write = |path: &Path| std::fs::write(path, b"native replay").map_err(|e| e.to_string());
+        let (output, duplicate) = publish(directory.path(), "20261015--123", 2, write).unwrap();
+        assert!(!duplicate);
+        assert_eq!(output.file_name().unwrap(), "20261015--123-r2.grbr");
+        assert!(
+            publish(directory.path(), "20261015--123", 2, |_| panic!(
+                "must not serialize a duplicate"
+            ))
+            .unwrap()
+            .1
+        );
+        assert!(
+            publish(directory.path(), "20261015--123", 3, |path| {
+                write(path)?;
+                Err("interrupted".into())
+            })
+            .is_err()
+        );
+        assert!(publish(directory.path(), "../escape", 2, write).is_err());
+        assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 1);
+        assert_eq!(std::fs::read(output).unwrap(), b"native replay");
+    }
 }

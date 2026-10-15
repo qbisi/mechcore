@@ -136,7 +136,7 @@ Messages are UTF-8 JSON, one object per line, with a maximum encoded size of
 1 MiB. A new connection speaks first, and says who it is and what it is worth:
 
 ```json
-{"kind":"claim","protocol":"mechcore.adapter.v12","level":1,"client":"mechcore-divergence"}
+{"kind":"claim","protocol":"mechcore.adapter.v13","level":1,"client":"mechcore-divergence"}
 ```
 
 `client` names whose requests these are, and is what turns are shared out by:
@@ -154,7 +154,7 @@ Every claim receives:
 ```json
 {
   "kind": "hello",
-  "protocol": "mechcore.adapter.v12",
+  "protocol": "mechcore.adapter.v13",
   "capabilities": [
     "status",
     "start_test",
@@ -260,7 +260,7 @@ as does any request at all once the lease has gone 60 s without a scene request:
 the holder is told
 
 ```json
-{"kind":"evicted","protocol":"mechcore.adapter.v12","by_level":3}
+{"kind":"evicted","protocol":"mechcore.adapter.v13","by_level":3}
 ```
 
 and its connection closes. That notice is the difference between a taken game
@@ -311,8 +311,8 @@ also waits until the requested activation-round deployment is stable.
 atomic MCFR publication. `record_replay_round` additionally owns replay
 loading and round selection; it fights the replay without a scene, so it starts
 and ends at the main menu.
-`record_watch_replay` owns live matchmaking-scene selection, the complete
-spectated match, native GRBR publication, and return to the main menu; a
+`record_watch_replay` owns live matchmaking-scene selection, the available
+replay cache, native GRBR publication, and return to the main menu; a
 request of a higher level ends it early and without a recording.
 Other cross-scene readiness belongs to the session layer, which observes the status
 stream before returning from a lifecycle operation.
@@ -811,56 +811,58 @@ a `capture_failed` refusal as soon as it does, since nothing more can arrive.
 
 ### record_watch_replay
 
-Input names bounded scene/match timeouts and may name an absolute corpus
-directory:
+Input names an existing absolute work directory and bounded selection and
+entry timeouts:
 
 ```json
 {
+  "output_dir": "/absolute/work/watch",
   "wait_for_scene_seconds": 900,
-  "match_timeout_seconds": 7200
+  "entry_timeout_seconds": 30
 }
 ```
 
-With no `output_dir`, `output` is the game-owned file under
-`Mechabellum.app/ProjectDatas/Replay` and `published_copy` is `false`. An
-explicit different directory receives a create-new copy and reports
-`published_copy: true`; explicitly naming the native Replay directory is
-equivalent to omitting the field.
-
-A request of a higher level stops the operation at its next poll, wherever it
-is, and it fails with the `evicted` code rather than returning a recording. Abandoning the match is the
-price of handing the machine over within seconds rather than hours.
-
-The operation admits only a round-one, normal `VS_1_1` scene from the server
-matchmaking watch list. It watches to `Match.get_IsFinished`, waits ten seconds
-for the game's own autosave to produce a stable new native GRBR, requests
-`MatchProxy.SaveReplay` if none appears, copies the file without overwriting,
-and returns only after the native match quit reaches `main_menu`. The recording
-itself is the game's, and is published as written.
+The operation enters a normal `VS_1_1` scene displayed at round two or later,
+exports the available native replay cache, and immediately quits to
+`main_menu`. It waits for neither a complete round nor the match result. The
+native serializer writes directly into `output_dir`, never through the game's
+Replay directory. `wait_for_scene_seconds` bounds selection and entry retries
+together (1..86400); `entry_timeout_seconds` bounds each selected room's entry
+(1..180), within that total budget.
 
 The admissible scene is fixed, and no caller widens it:
 
 - the server's matchmaking watch list (`ERoomListFilter.MatchFirst`), without
   competition `matchInfo`;
 - exactly two players, subtype `Mod1V1`, no custom rule deltas, normal game
-  mode, `VS_1_1` map mode, and round one;
+  mode, `VS_1_1` map mode, and displayed round at least two;
 - fewer than the native 300-watcher limit.
 
-There is no `force` field: a basename collision in `output_dir` aborts rather
-than replacing corpus data. The native replay is never deleted, and neither is
-a copy that reached the corpus directory: a published copy survives even when
-only the match-exit check fails, and the failed result is what keeps it out of
-an accepted manifest until someone looks at it. A collector asks at the lowest
-level, so anything else takes the machine from it;
-`scripts/corpus/collect-replays.py` runs one `game record --watch` at level 0
-per match and stops at the first that does not succeed.
+Selection uses `SceneID`. The directory's `.watch-visits.json` excludes a
+visited scene until 60 seconds after leaving it. Unvisited scenes precede
+visited ones, then older visits and lower watcher counts decide priority.
 
-Requalifying this path after a game update means running a batch and accepting
-it only when one result has `operation.recorded` and
-`operation.cleanup.match_exited` true, a final status of `main_menu`, an output
-file `mechcore convert --to match` can open carrying the build and a non-negative seat, and
-no managed exception in either log. That decode is the reviewer's check on a new
-build, not a step the collector performs per match.
+The file is `BattleID-rN.grbr`, with both identity and round read from the
+available spectator cache. The lobby's live round can be ahead of the captured
+round. A result names `battle_id`, `round`, `output`, `recorded`, `duplicate`,
+`finished`, `scene`, `left_at_ms`, `cleanup.match_exited` and the final `status`.
+`finished` describes the match when captured; it need not be true. A duplicate
+has `recorded: false` and `duplicate: true` and leaves the existing file intact.
+Publication is atomic and never overwrites, including a concurrent collision.
+An unavailable scene or an entry timeout returns `skipped: true` with a reason;
+other failures remain errors. A published file survives a cleanup failure,
+which returns an error instead of accepting the capture.
+
+A request of a higher level stops the operation at its next poll with
+`evicted`; the scheduler returns the game to the main menu for its claimant.
+`scripts/corpus/collect-replays.py` asks at level 0 and stops at other errors.
+The CLI defaults `output_dir` to `work/watch/`; the raw adapter API requires it.
+
+After a game update, qualify this path with a live batch: every accepted entry
+must return to `main_menu` and publish a nonempty native replay under the
+requested work directory. Check that the default Replay directory has no new
+files and repeat entry after the cooldown to compare the same room's BattleID.
+Converting these partial replays to match documents is a separate task.
 
 ### lease
 
@@ -1061,7 +1063,7 @@ cause is addressed.
 | `match_publication_failed` | destination creation, source identity recheck, syncing or no-clobber publication failed |
 | `mcfr_error` | the recording could not be written, or did not read back as written |
 | `video_error`, `video_verification_failed` | the optional video output could not be written or did not verify |
-| `native_replay_directory` | the native replay directory could not be resolved |
+| `watch_history_io` | the work directory's visit history could not be read or saved |
 
 **The teardown failed.** `replay_cleanup_failed` and `watch_cleanup_failed`
 replace whatever code the operation would otherwise have returned, so the

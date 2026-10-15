@@ -32,7 +32,7 @@ fn run(arguments: &[&str]) -> Answer {
 
 impl Answer {
     fn ok(self) -> Value {
-        assert_eq!(self.code, 0, "{}", self.error);
+        assert_eq!(self.code, 0, "{} {}", self.error, self.out);
         self.out
     }
 
@@ -111,6 +111,40 @@ fn decline(path: &str, side: &str) {
 
 fn verify(path: &str) -> Value {
     run(&["verify", path]).ok()
+}
+
+#[test]
+fn a_partial_match_verifies_and_continues_from_its_first_checkpoint() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    for side in ["blue", "red"] {
+        run(&["match", "commit", &path, "--side", side]).ok();
+    }
+    for side in ["blue", "red"] {
+        decline(&path, side);
+        run(&["match", "commit", &path, "--side", side]).ok();
+    }
+    let mut game = mechcore_document::r#match::read(&fs::read(&path).unwrap())
+        .unwrap()
+        .unwrap();
+    game.has_opening = false;
+    game.blue.opening.choose = None;
+    game.red.opening.choose = None;
+    game.turns.retain(|turn| turn.round >= 2);
+    let suffix = directory.path().join("suffix.yaml").display().to_string();
+    fs::write(
+        &suffix,
+        mechcore_document::r#match::canonical_yaml(&game).unwrap(),
+    )
+    .unwrap();
+    let report = verify(&suffix);
+    assert_eq!(report["valid"], true, "{report}");
+    assert_eq!(report["reinforcement_rounds"], 1, "{report}");
+    let view = run(&["match", "show", &suffix, "--side", "blue"]).ok();
+    assert_eq!(state(&view)["round"], 3);
+    decline(&suffix, "blue");
+    run(&["match", "commit", &suffix, "--side", "blue"]).ok();
 }
 
 #[test]

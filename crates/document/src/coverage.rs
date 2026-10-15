@@ -166,7 +166,7 @@ fn player_stream(seed: Option<i32>, draws: u32) -> Option<Stream> {
 #[must_use]
 pub fn measure(economy: &Economy, stated: &Stated, deal: Result<&Verified, &str>) -> Coverage {
     let mut coverage = Coverage::default();
-    if let Some(first) = stated.turns.first() {
+    if let Some(first) = stated.turns.first().filter(|_| stated.has_opening) {
         coverage.opening(economy, stated, first);
     }
     for pair in stated.turns.windows(2) {
@@ -707,11 +707,7 @@ pub fn fights(
     let mut found = Fights::default();
     for pair in stated.turns.windows(2) {
         let [turn, next] = pair else { continue };
-        let declined = deal
-            .rounds
-            .iter()
-            .find(|dealt| dealt.round == turn.round)
-            .map(|dealt| dealt.declined);
+        let declined = deal.declined(turn);
         let deployed = |state, actions, red| {
             crate::transition::deployed(economy, state, actions, red, declined)
                 .map_err(|unsettled| format!("round {} does not deploy: {unsettled}", turn.round))
