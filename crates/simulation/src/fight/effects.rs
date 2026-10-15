@@ -142,6 +142,7 @@ impl Simulation {
                 EffectProvider::MoveAbilityDynamic => self.deactivate_cloak(unit),
                 EffectProvider::Buff => self.deactivate_buff_cycles(unit),
                 EffectProvider::ReactiveArmor => self.remove_reactive_armor(unit),
+                EffectProvider::AdvancedEnergyShield => self.deactivate_carried_shield(unit),
                 // Every dead unit's interceptors are deactivated together,
                 // after the summons the deaths make
                 // (`Simulation::deactivate_dead_interceptions`).
@@ -163,7 +164,6 @@ impl Simulation {
                 | EffectProvider::DeadLine
                 | EffectProvider::MoveAbilityAttackIntensify
                 | EffectProvider::MoveAbilityRangeItem
-                | EffectProvider::AdvancedEnergyShield
                 | EffectProvider::FireIntensify
                 | EffectProvider::RvoRadiusChange
                 | EffectProvider::ClearRangeItem

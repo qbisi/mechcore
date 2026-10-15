@@ -285,8 +285,7 @@ impl Simulation {
             }
             shield.enabled = false;
             shield.energy_record = shield.energy;
-            shield.active = false;
-            shield.energy = 0;
+            self.deactivate_carried_shield(actor_id);
             return;
         }
         if shield.enabled {
@@ -306,6 +305,20 @@ impl Simulation {
             .rposition(|standing| standing.team <= shield.team)
             .map_or(0, |index| index + 1);
         self.shield.standing.insert(after, shield);
+    }
+
+    /// `AdvancedEnergyShieldSystem.DeactiveEnergyShield`: clear the carried
+    /// shield's energy and remove it from its side's active shield list.
+    pub(in crate::fight) fn deactivate_carried_shield(&mut self, actor_id: u64) {
+        if let Some(shield) = self
+            .shield
+            .standing
+            .iter_mut()
+            .find(|shield| shield.owner == Some(actor_id))
+        {
+            shield.active = false;
+            shield.energy = 0;
+        }
     }
 
     /// `AdvancedEnergyShieldProvider.DoActive` as a unit's effects are
