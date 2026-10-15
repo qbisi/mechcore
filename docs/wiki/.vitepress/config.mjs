@@ -24,15 +24,18 @@ export default {
       { text: "Home", link: "/" },
       { text: "Getting Started", link: "/how-a-match-works" },
       { text: "Mechanics", link: "/deployment-and-mobility" },
+      { text: "Units", link: "/units" },
+      { text: "Glossary", link: "/glossary" },
       { text: `Game ${gameVersion}`, link: "https://github.com/qbisi/mechcore" },
     ],
     sidebar: [
       {
         text: "Getting Started",
         items: [
-          { text: "Overview", link: "/" },
+          { text: "Overview & Concept Portal", link: "/" },
           { text: "How a Match Works", link: "/how-a-match-works" },
           { text: "A Round's Decisions", link: "/a-rounds-decisions" },
+          { text: "Master Concept Glossary", link: "/glossary" },
         ],
       },
       {
@@ -41,6 +44,23 @@ export default {
           {
             text: "Deployment, Flanks, and Mobility",
             link: "/deployment-and-mobility",
+          },
+          {
+            text: "Experience & Unit Levels",
+            link: "/experience-and-levels",
+          },
+          {
+            text: "Reactor Core Settlement",
+            link: "/reactor-damage",
+          },
+        ],
+      },
+      {
+        text: "Game Encyclopedia",
+        items: [
+          {
+            text: "Units & Battlefield Objects",
+            link: "/units",
           },
         ],
       },
