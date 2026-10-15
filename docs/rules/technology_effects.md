@@ -1484,6 +1484,11 @@ whose own `DisableEffect` it does not mirror.
   increment. An already due first attack remains due when its interval is
   unchanged, including a clock initialized beyond that interval before the
   fight starts.
+  Each source refreshes separately, even if it changes no interval. A
+  refresh that discards an offset can leave the clock exactly at the new
+  interval; a later source's refresh then keeps it ready at its own new
+  interval. Applying every source and refreshing only once loses that
+  intermediate equality.
 - **A lifesteal's and a second damage's** providers take their hit effect
   away, which the fight asks of the unit at each hit.
 - **A Barrier's shield leaves its side's shields and comes back as it was.**
@@ -1706,6 +1711,10 @@ derive (a minimum range):
 ## Evidence
 
 ### Recorded
+
+- EMP refreshes each of a Fang's technology sources separately, leaving its
+  main skill ready when an intermediate refresh reaches its clock:
+  `tests/technology_disable/per-source-clock-refresh.yaml`.
 
 - Nano Repair Kit remains the selected auto-recovery source under EMP,
   and Field Maintenance's common maximum-life correction is retained:

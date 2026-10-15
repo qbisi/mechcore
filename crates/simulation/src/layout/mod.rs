@@ -1248,28 +1248,24 @@ fn technology_line(
 /// Energy Tower skills', which answer false.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct TechnologyDisable {
-    /// What its technologies wrote onto its numbers, which their providers
-    /// take away and write again (`IEffectProviderDataSource.RemoveData`,
-    /// `AddData`).
-    pub(crate) corrections: Vec<(Channel, Entry)>,
-    /// Whether the inverse-air-attack source also writes separate extra
-    /// skill datasets through `ICommonMechDataChangeDataSource`.
-    pub(crate) inverse_air_extra_skills: bool,
+    /// Sources admitted by their providers, kept separate because each
+    /// `SkillDataModifier.RemoveData`/`AddData` refreshes the skill's clock.
+    pub(crate) sources: Vec<TechnologySwitch>,
     /// The providers beside the numbers' its technologies reach, each of
     /// which `FightEffectMananger.DisableEffect` switches.
     pub(crate) providers: Vec<EffectProvider>,
-    /// The technologies it holds that switch, in the side's order: those
-    /// whose `Technology.CanDisable` answers true and whose provider admits
-    /// the source; the rest it keeps whole. Each one's
-    /// provider removes its data from the main skill and writes it again
-    /// (`SkillDataModifier.RemoveData`, `AddData`), which ends by refreshing
-    /// the skill's data (`FightSkill.RefreshDatas`) whether the technology
-    /// wrote numbers or none: every unit technology of this build reaches
-    /// the main skill (`mainSkillEffect`).
-    pub(crate) technologies: Vec<i32>,
     /// What it carries whose switching off is not measured, by name: an
     /// extra skill of a shape the fight does not fight disabled.
     pub(crate) unmeasured: Vec<String>,
+}
+
+/// One source's `IEffectProviderDataSource.RemoveData`/`AddData` call.
+#[derive(Debug, Clone)]
+pub(crate) struct TechnologySwitch {
+    pub(crate) technology: i32,
+    pub(crate) corrections: Vec<(Channel, Entry)>,
+    /// Whether this source writes separate extra-skill inverse-air data.
+    pub(crate) inverse_air_extra_skills: bool,
 }
 
 /// The interceptors a unit's technologies make it, from the one that makes
@@ -1562,31 +1558,44 @@ fn technology_disable(
         }
     }
     let held = &switched;
-    let air_attack = refused
-        .hold(technologies.main_skill(held, type_name).map_err(on_side))?
-        .air_attack;
-    let fly = effects
-        .single
-        .fly
-        .filter(|_| providers.contains_key(&crate::modifier::EffectProvider::FlyTech));
+    let sources = held
+        .iter()
+        .map(|&technology| {
+            let held = std::slice::from_ref(&technology);
+            let air_attack = refused
+                .hold(technologies.main_skill(held, type_name).map_err(on_side))?
+                .air_attack;
+            let fly = effects.single.fly.filter(|_| {
+                providers
+                    .get(&EffectProvider::FlyTech)
+                    .is_some_and(|ids| ids.contains(&technology))
+            });
+            Some(TechnologySwitch {
+                technology,
+                corrections: refused.hold(
+                    technologies
+                        .corrections(held, type_name, level)
+                        .and_then(|mut written| {
+                            written.extend(technologies.armor(held, type_name, level)?);
+                            if air_attack.is_some() || fly.is_some() {
+                                written.extend(effects.corrections.iter().copied().filter(
+                                    |(_, entry)| {
+                                        entry.index == Index::AttackValueFor(UnitDomain::Air)
+                                            && entry.source == TECHNOLOGY_SOURCE
+                                    },
+                                ));
+                            }
+                            Ok(written)
+                        })
+                        .map_err(on_side),
+                )?,
+                inverse_air_extra_skills: air_attack.is_some_and(|source| source.extra_skills)
+                    || fly.is_some_and(|source| source.extra_skills),
+            })
+        })
+        .collect::<Option<Vec<_>>>()?;
     Some(TechnologyDisable {
-        corrections: refused.hold(
-            technologies
-                .corrections(held, type_name, level)
-                .and_then(|mut written| {
-                    written.extend(technologies.armor(held, type_name, level)?);
-                    if air_attack.is_some() || fly.is_some() {
-                        written.extend(effects.corrections.iter().copied().filter(|(_, entry)| {
-                            entry.index == Index::AttackValueFor(UnitDomain::Air)
-                                && entry.source == TECHNOLOGY_SOURCE
-                        }));
-                    }
-                    Ok(written)
-                })
-                .map_err(on_side),
-        )?,
-        inverse_air_extra_skills: air_attack.is_some_and(|source| source.extra_skills)
-            || fly.is_some_and(|source| source.extra_skills),
+        sources,
         unmeasured: effects
             .extra_weapons
             .iter()
@@ -1623,7 +1632,6 @@ fn technology_disable(
             .map(|weapon| format!("technology {}", weapon.rules.technology))
             .collect(),
         providers: providers.into_keys().collect(),
-        technologies: held.clone(),
     })
 }
 

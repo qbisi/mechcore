@@ -448,8 +448,10 @@ impl Simulation {
             .placement
             .effects
             .technology_disable
-            .technologies
-            .clone();
+            .sources
+            .iter()
+            .map(|source| source.technology)
+            .collect::<Vec<_>>();
         for creator in &mut self.support.lines {
             if creator.owner == Some(owner)
                 && creator.gate == Gate::None
@@ -864,12 +866,7 @@ impl Simulation {
             }
             // Its technologies' providers are gone with the rest: a disable
             // that leaves it later writes nothing back.
-            actor
-                .placement
-                .effects
-                .technology_disable
-                .corrections
-                .clear();
+            actor.placement.effects.technology_disable.sources.clear();
             actor.stats.refresh(&actor.rules)?;
         }
         Ok(())
