@@ -1,0 +1,49 @@
+# A generated Anti-Armor Cannon fight exposed damage still reduced after
+# death cleared its tower-loss buff. This control changes only the cannon
+# to a Rapid-Fire Turret, so the post-death impact damage is not capped by
+# target life: its shot leaves at 287, the turret falls at 289, and the
+# shot lands for its full 82 at 293, rather than the earlier buffed 8.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1451862813
+round: 2
+blue:
+  core_damage: 0
+  officers: [quick_teleport, advanced_offensive_tactics, fortified_specialist, improved_overlord]
+  techs:
+    overlord: [armor_enhancement]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: overlord, index: 0, position: {x: 335, y: 225}, level: 8, exp: 0/320/11773, equipment: [mustang_production_line], travelling: true, source: joined}
+  - {name: tarantula, index: 1, position: {x: 15, y: -185}, level: 9, exp: 0/2400/10091, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 140, y: -115}}
+  battle_skills:
+  - {name: electromagnetic_blast, positions: [{x: 140, y: 155}]}
+red:
+  core_damage: 632
+  officers: [advanced_defensive_tactics, advanced_power_system, marksman_specialist]
+  techs:
+    hound: [armor_enhancement, fire_extinguisher, range_enhancement, mechanical_rage, incendiary_bomb, chamber_compression]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: marksman, index: 0, position: {x: 50, y: -170}, level: 3, source: delivered}
+  - {name: hound, index: 1, position: {x: 60, y: -60}, level: 3, rotated: true, equipment: [improved_firepower_control_system], source: joined}
+  - {name: steel_ball, index: 2, position: {x: 25, y: -110}, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 75, y: -215}}
+  battle_skills:
+  - {name: missile_strike, positions: [{x: -120, y: 225}]}
+ticks: 444
+hash: 25:9ab5a6e83b5cd2567356b0e17909e255892041c17facd47b3e864e391f856c21
+asserts:
+- sql: SELECT tick,type,object__kind,object__id,source__kind,source__id,target__kind,target__id,amount,skill_slot FROM events WHERE (object__kind='projectile' AND object__id=61) OR (object__kind='building' AND object__id=11 AND type='building_destroyed') ORDER BY tick,ordinal
+  rows: [[287, "projectile_released", "projectile", 61, "building", 11, "unit", 14, null, 0], [289, "building_destroyed", "building", 11, null, null, null, null, null, null], [293, "damage", "projectile", 61, "building", 11, "unit", 14, 82, 0], [293, "damage", "projectile", 61, "building", 11, "unit", 16, 82, 0], [293, "projectile_removed", "projectile", 61, "building", 11, "unit", 14, null, null]]

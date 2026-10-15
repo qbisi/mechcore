@@ -99,6 +99,9 @@ rate on damage taken; and `BuffManager.Update`, last in
 `FightConstruction.Update` as in `FightMech.Update`, ends it when its time is
 up. A construction that falls under the buff has it written as cleared just
 before its `building_destroyed`, where a unit's follows its `unit_died`.
+Clearing also withdraws the buff's damage correction at the construction's
+exit from the fight. A projectile still in flight reads the restored damage
+when it hits; it does not keep the reduced damage of its release.
 
 ## When
 
@@ -220,6 +223,10 @@ no lock goes straight to its point.
 - A Melting Point keeps its detour at the strip's edge under the fixed-point
   angle and sine test: `tests/path_finding/approximate-strip-edge.yaml`.
 
+- A turret's in-flight projectile dealing its restored damage after the
+  turret dies and clears its tower-loss buff:
+  `tests/tower/dead-turret-projectile-loses-buff.yaml`.
+
 ### Replayed
 
 - A tower's loss writes its buff on two blue units turned to red after every
@@ -227,6 +234,10 @@ no lock goes straight to its point.
   fought by the game with `scripts/corpus/match-replays.py`.
 
 ### Read
+
+- Construction death exits the fight and clears its buffs before publishing
+  its destruction: `FightConstruction.OnDead`, `FightConstruction.ExitFight`,
+  `BuffManager.Clear`, `BuffManager.RemoveBuff`, `Buff.RemoveEffect`.
 
 - A side's actor list is its towers while they are shown, its units, its
   crystals and its constructions as the fight starts, and what joins it
