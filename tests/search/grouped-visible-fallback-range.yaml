@@ -1,0 +1,44 @@
+# Mountain's second gun must use its own 115 m range when considering a
+# visible replacement for a hidden Sandworm. A Mustang at about 136 m is
+# beyond it; the first gun's longer range must not replace the lock.
+# The complete generated layout and pin come from the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1464758368
+round: 4
+blue:
+  core_damage: 848
+  officers: [advanced_shield_device, cost_control_specialist, fortified_mustang]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: mustang, index: 0, position: {x: -180, y: -255}, level: 5, exp: 0/68/6253, rotated: true, equipment: [deployment_module], source: joined}
+  - {name: mountain, index: 1, position: {x: -55, y: -115}, level: 9, exp: 0/136/21528, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -175, y: -110}}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: 20, y: 230}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_power_system, rhino_specialist]
+  techs:
+    sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: rhino, index: 0, position: {x: 125, y: -205}, level: 2, exp: 0/841/2591, source: delivered}
+  - {name: sandworm, index: 1, position: {x: 150, y: -30}, level: 7, exp: 0/12593/12593, equipment: [mustang_production_line], source: joined}
+  - {name: typhoon, index: 2, position: {x: -100, y: -20}, level: 6, exp: 0/7000/11308, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 125, y: -95}, retained: false}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: -125, y: 160}, {x: 275, y: -160}]}
+ticks: 504
+hash: 25:d4378127e87a0958543f05b98e465e0b84d25a295a517529529b5db4a873460b
+asserts:
+- sql: SELECT tick,enabled__state,enabled__lock_target__id,enabled__attack_target__id FROM units__skills WHERE unit_id=13 AND skill_slot=1 AND tick IN (33,34,35,45) ORDER BY tick
+  rows: [[33,idle,21,null],[34,idle,16,16],[35,idle,16,16],[45,idle,16,16]]

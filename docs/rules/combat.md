@@ -338,6 +338,10 @@ branch adds the Q32 literal `0xA00000000` to the parent's range, which is
 exactly 10 metres. The first skill has no parent and keeps its ordinary range.
 Both the selector's range penalty and its fallback range test use the slot's
 own range; the unit's recorded range remains its core's.
+This includes replacing an invisible best candidate with a visible one:
+that replacement must be in this slot's range. A Mountain's second gun
+keeps an underground Sandworm when the visible Mustang is beyond its
+115 metres, even while the first gun could reach the Mustang.
 
 `GroupedSkillAttackBehaviour.Update` and `OnStartAttack` are empty. The hooks
 do not perform a separate allocation pass. The checker's
@@ -1306,6 +1310,9 @@ not the game's native attack-type enum.
 - A grouped slot whose siblings hold nothing searches from its own weapon and
   in its own reach: `tests/corpus/134370978-r8.yaml`, tick 145, Raiden
   386's second gun.
+- A Mountain's second gun keeps the hidden Sandworm when the visible
+  replacement is outside its own range:
+  `tests/search/grouped-visible-fallback-range.yaml`.
 - A cooling that does not run through a won fight, a Raiden's grouped slot's
   among them: `tests/corpus/201477923-r5.yaml`, ticks 1618 to 1625,
   Phantom Rays 56 and 58 and Raiden 19's second gun.
@@ -1578,7 +1585,9 @@ not the game's native attack-type enum.
 - A grouped slot searches around its siblings' locks:
   `SkillSearchTargetController.PerformGroupedSkillSearch`,
   `SkillGroup.CanAttackSameTarget`,
-  `SkillAttackableChecker.TrySearchGroupSkillLockTarget`.
+  `SkillAttackableChecker.TrySearchGroupSkillLockTarget`; visible fallback
+  uses the passed attacker: `ScoreRatingTargetSelector.Select`,
+  `SkillAttackRangeChecker.IsActorInAttackRange`.
 - A main child skill reaches 10 metres beyond its parent:
   `FightSkillFactory.PrepareGroupedSkill`, `FightSkillBatch.Init`,
   `FightSkill.GetAttackRange`.

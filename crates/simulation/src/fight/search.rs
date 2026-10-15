@@ -1434,7 +1434,7 @@ impl Simulation {
                     scoring.consider(candidate, score, target.visible);
                 }
             }
-            scoring.chosen(|next| self.target_in_attack_range(skill_ref, next))
+            scoring.chosen(|next| self.slot_target_in_attack_range(skill_ref, slot, next))
         };
         select(false).or_else(|| separate_blocks.then(|| select(true)).flatten())
     }
@@ -1592,7 +1592,9 @@ impl Simulation {
                     scoring.consider(candidate, score, visible);
                 }
             }
-            scoring.chosen(|next| self.target_in_attack_range(skill_ref, next))
+            // `ITargetSelector.Select` receives this slot's attacker, so
+            // visible fallback uses its range, not the group's first gun.
+            scoring.chosen(|next| self.slot_target_in_attack_range(skill_ref, Some(slot), next))
         };
         // A fusillade's core falls back on what its siblings hold as a
         // group that shares does, and takes what it finds from them
