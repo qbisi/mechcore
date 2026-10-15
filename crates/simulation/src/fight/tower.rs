@@ -1315,6 +1315,9 @@ impl Simulation {
                     }
                 }
             }
+            if source.changes_domain {
+                actor.refresh_domain_effects(on);
+            }
             actor.refresh_life_data()?;
             let skill_ref = super::skill::SkillRef::main(super::FightActorRef::Unit(actor_id));
             let interval_q32 = self

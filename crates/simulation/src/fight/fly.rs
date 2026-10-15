@@ -21,6 +21,7 @@
 //! `docs/rules/technology_effects.md` states the rule.
 
 use super::*;
+use crate::data::Index;
 
 impl Actor {
     /// `IMechData.IsFly`: whether the unit's type flies.
@@ -28,13 +29,8 @@ impl Actor {
         self.rules.domain == UnitDomain::Air
     }
 
-    /// `FightMech.SetTechFly`: the unit flies or stands on the ground. What
-    /// its side's officers write by whether it flies follows it
-    /// (`FightEffectMananger.RefreshOtherEffect`, as the technology's state
-    /// is added or removed): an officer of the domain it leaves takes its
-    /// data away, one of the domain it enters adds it, and the life is
-    /// refreshed. A Wraith with Land Cruiser loses Aerial Specialist's
-    /// rates as the fight starts.
+    /// `FightMech.SetTechFly`: the unit physically flies or stands on the
+    /// ground, independently of the source's unit-state data.
     fn set_tech_fly(&mut self, fly: bool) {
         let before = self.domain;
         self.domain = if fly {
@@ -48,15 +44,38 @@ impl Actor {
         // `SetTechFly` refreshes the agent's layer and then calls
         // `SetPosition` with the current position, applying the new height now.
         self.placed_domain = self.domain;
+    }
+
+    /// `FightEffectMananger.RefreshOtherEffect`: adding or removing a
+    /// `FlyTech` unit-state source changes conditional data immediately,
+    /// even while the body's landing or flight timer is still pending.
+    pub(in crate::fight) fn refresh_domain_effects(&mut self, on: bool) {
+        let domain = if on {
+            match self.rules.domain {
+                UnitDomain::Air => UnitDomain::Ground,
+                UnitDomain::Ground => UnitDomain::Air,
+            }
+        } else {
+            self.rules.domain
+        };
+        let before = self.modifier_domain;
+        if before == domain {
+            return;
+        }
+        self.modifier_domain = domain;
         if self.placement.effects.domain_corrections.is_empty() {
             return;
         }
-        for &(held_in, channel, entry) in &self.placement.effects.domain_corrections {
+        for (held_in, channel, entry) in self.placement.effects.domain_corrections.clone() {
             let overlay = self.stats.overlays.channel(channel);
             if held_in == before {
                 overlay.remove(entry);
-            } else if held_in == self.domain {
+            } else if held_in == domain {
                 overlay.write(entry);
+            }
+            if entry.index == Index::MaxLife {
+                self.refresh_life_data()
+                    .expect("the layout verified the officers' corrections");
             }
         }
         self.refresh_life_data()
@@ -89,6 +108,7 @@ impl Simulation {
             .expect("actor identity is stable");
         if actor.placement.effects.single.fly.is_some() {
             let fly = !actor.type_flies();
+            actor.refresh_domain_effects(true);
             actor.set_tech_fly(fly);
         }
     }
@@ -103,6 +123,7 @@ impl Simulation {
             .expect("actor identity is stable");
         if actor.placement.effects.single.fly.is_some() {
             let fly = actor.type_flies();
+            actor.refresh_domain_effects(false);
             actor.set_tech_fly(fly);
             actor.fly_reverts_at = None;
         }

@@ -1130,8 +1130,11 @@ the unit's card if its type stands in that domain or a technology it can hold
 turns it there (`UnitUtility.IsEffectTarget`, `IsUnitInterestedEffect`).
 As the technology's state is added or taken away,
 `FightEffectMananger.RefreshOtherEffect` takes such an officer's data off the
-unit when the domain it now stands in is not the officer's, and adds it back
-when it is, and the unit's life is refreshed. Aerial Specialist rates units
+unit when its unit-state condition becomes inactive and adds it back when
+active, refreshing the unit's life. This follows the source's data change
+immediately, independently of the physical domain timer: EMP removing Land
+Cruiser restores Aerial Specialist's rates while the Wraith is still on the
+ground. Aerial Specialist rates units
 that fly, and the units its row lists are not read: a Wraith with Land
 Cruiser lands as the fight starts and loses its rates
 ([`aerial-specialist-leaves-a-landed-wraith.yaml`](../../tests/fly/aerial-specialist-leaves-a-landed-wraith.yaml)).
@@ -1723,6 +1726,10 @@ derive (a minimum range):
 
 ### Recorded
 
+- EMP removing Land Cruiser restores Aerial Specialist's life and damage
+  rates before the physical flight timer:
+  `tests/fly/land-cruiser-emp-domain-rates.yaml`.
+
 - A travelling Vortex's Cloud applies twice on its main hit, its summoned
   Twin once, beside the Sandworms' burrow transitions:
   `tests/secondary_damage/travelling-cloud-and-burrow-idle.yaml`.
@@ -2169,6 +2176,12 @@ derive (a minimum range):
   `tests/fire_intensify/fire_badger-marksman.yaml`.
 
 ### Read
+
+- Domain-dependent effects refresh when the unit-state source is added or
+  removed, separately from the physical timer:
+  `FightEffectMananger.RefreshOtherEffect`,
+  `UnitStateTypeExtension.IsIncompatibleType`, `EffectProvider.IsLockedEffect`,
+  `FlyTechEffectProvider.DisableEffect`, `DoDisableInFight`.
 
 - Cloud controller creation and registration from preparation refresh and
   travel arrival: `SecondaryDamageIntensifyEffectProvider.DoActive`,

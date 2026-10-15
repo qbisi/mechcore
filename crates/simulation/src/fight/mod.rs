@@ -336,6 +336,9 @@ struct Actor {
     /// technology turned it (`FightMech.SetTechFly`). Everything in the
     /// fight that asks whether it flies reads this.
     pub(in crate::fight) domain: UnitDomain,
+    /// The domain whose conditional data is currently written by
+    /// `RefreshOtherEffect`; a `FlyTech` timer can leave the body elsewhere.
+    modifier_domain: UnitDomain,
     /// The domain it last stood at the height of: `FightMech.SetPosition`
     /// applies it, including the call made by `SetTechFly` as its domain turns.
     pub(in crate::fight) placed_domain: UnitDomain,

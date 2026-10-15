@@ -104,6 +104,7 @@ impl Actor {
             sand_fog_held: true,
             surfacing_line_held: true,
             domain: rules.domain,
+            modifier_domain: rules.domain,
             placed_domain: rules.domain,
             fly_reverts_at: None,
             ignores_speed_rate: false,
