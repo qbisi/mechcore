@@ -219,6 +219,10 @@ locked on a Sandworm as it burrows go on walking towards it.
 - **Shots.** A projectile that reaches a target that is not
   `IsValidTarget(Stealth)` does not strike it, as for a dead target: a Wasp's
   shot that arrives as its Sandworm finishes burrowing is spent.
+  A shield intersection reaches damage on a separate path. If the shooter
+  stands inside that shield, `DamagePerformer.Perform` chooses the actor's
+  single-target effect, which checks life without checking visibility again;
+  that hit can damage the hidden owner without draining its Barrier.
 
 ## The end of the fight
 
@@ -246,6 +250,8 @@ including a unit already idle whose ability was not cleared.
 - A Larva's attack ending during its motion transition leaves the queued
   attacking state intact, which enters without a lock:
   `tests/move_ability/larva-pending-attack-transition.yaml`.
+- A shield-intersection hit from a shooter inside the Barrier damages its
+  hidden Sandworm owner: `tests/shield/inside-shooter-hidden-owner.yaml`.
 
 - A Sandworm's queued move survives the last kill, then its surfacing makes
   a Replicate Larva while the won fight drains:
@@ -309,6 +315,9 @@ including a unit already idle whose ability was not cleared.
   `DistanceScoreCalculator.Calculate`,
   `SkillAttackRangeChecker.IsActorInAttackRange`, `FightActor.IsValidTarget`,
   `FightProjectile.Update`.
+- The shield-intersection single-target path checks life:
+  `FightProjectile.CheckIsHitEnergyShield`, `DamagePerformer.Perform`,
+  `DamagePerformer.PerformSingleEffect`, `FightCalculator.IsInEnergyShield`.
 - The end of the fight: `FightingState.Update`, `FightingState.Exit`,
   `FightMech.ExitFight`, `MotionController.ExitFight`, `SimpleFSM.ChangeState`,
   `MotionIdleState.Enter`, `RVOControllerFixed.Deactive`,

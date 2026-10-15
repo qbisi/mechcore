@@ -1,0 +1,61 @@
+# A projectile intersects a burrowed Sandworm's Barrier while its
+# shooter stands inside it. DamagePerformer takes the actor single-target
+# branch, which checks life without repeating the arrival visibility test:
+# the Sandworm loses 536 at tick 97 while shield energy stays unchanged.
+# Controls: barrier-wasps.yaml and tests/sandworm/m4-wasp-4242.yaml.
+# Two native recordings agree for every tick and settlement.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 773325919
+round: 3
+blue:
+  core_damage: 201
+  officers: [advanced_offensive_tactics, advanced_power_system, fire_badger_specialist]
+  techs:
+    fang: [ignite]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [1, 3]
+  units:
+  - {name: fang, index: 0, position: {x: -160, y: -45}, level: 6, exp: 1739/1739/3479, rotated: true, equipment: [photon_coating]}
+  - {name: fire_badger, index: 1, position: {x: 255, y: -260}, exp: 0/953/1400, source: delivered}
+  - {name: mountain, index: 2, position: {x: 215, y: -125}, level: 6, exp: 0/3107/18556, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -285, y: -205}, retained: false}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: -285, y: -65}]}
+red:
+  core_damage: 634
+  officers: [advanced_defensive_tactics, advanced_defensive_tactics, speed_specialist, mass_produced_sandworm]
+  techs:
+    sandworm: [replicate]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [3, 1]
+  units:
+  - {name: sandworm, index: 0, position: {x: 50, y: -50}, level: 2, exp: 0/1816/4506, rotated: true, equipment: [barrier], source: joined}
+  - {name: phantom_ray, index: 1, position: {x: -255, y: -210}, level: 2, exp: 0/132/2253, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: 140, y: -160}, {x: 70, y: -210}]}
+asserts:
+- sql: |-
+    SELECT tick,unit_id,visibility,life__current FROM units WHERE unit_id=23 AND tick BETWEEN 96 AND 98 ORDER BY tick
+  rows:
+  - [96, 23, hide, 108964]
+  - [97, 23, hide, 108428]
+  - [98, 23, hide, 108428]
+- sql: |-
+    SELECT type,object__id,source__id,target__id,amount,absorbed_by__id FROM events WHERE tick=97 ORDER BY ordinal
+  rows:
+  - [projectile_released, 56, 18, 23, null, null]
+  - [damage, 56, 18, 23, 536, null]
+  - [projectile_removed, 56, 18, 23, null, null]
+- sql: |-
+    SELECT tick,shield_id,owner__id,energy__current FROM shields WHERE tick IN(96,97) ORDER BY tick,shield_id
+  rows:
+  - [96, 1, 23, 30520]
+  - [97, 1, 23, 30520]
+ticks: 2360
+hash: 26:0e84cbeee2e4c8210a21aee92e2bcfb9a785f79ed82cf94c2d775d7d64cddb92
