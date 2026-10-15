@@ -1,0 +1,49 @@
+# A dug-in Typhoon loses its main target while Air Defense Mark holds
+# another. MotionStopState still turns to the current extra attacker while
+# remaining stopped. The recorded turn on tick 425 changes the next main
+# search, and this complete generated layout settles 416/0 core damage.
+# Reassembly also resets its secondary skill earlier in the fight; that
+# lifecycle has its own minimal control in tests/rebirth/.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 167966723
+round: 3
+blue:
+  core_damage: 416
+  officers: [quick_teleport, advanced_power_system, sabertooth_specialist]
+  techs:
+    typhoon: [field_reassembly, field_entrenchment, reactive_armor, maintenance_array, wreckage_detonation, range_enhancement, air_defense_mark]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 275, y: -255}, source: delivered}
+  - {name: typhoon, index: 1, position: {x: -340, y: 150}, level: 7, exp: 0/5804/12278, rotated: true, equipment: [laser_sights], travelling: true, source: joined}
+  - {name: sandworm, index: 2, position: {x: -60, y: -280}, level: 3, exp: 0/200/7124, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: orbital_javelin, positions: [{x: -250, y: 30}]}
+red:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, advanced_power_system, cost_control_specialist, improved_overlord]
+  techs:
+    overlord: [high_explosive_ammo, field_maintenance, overlord_artillery, mothership, jump_drive, armor_enhancement, range_enhancement, launcher_overload, photon_emission]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: overlord, index: 0, position: {x: 125, y: -275}, level: 6, exp: 10148/10148/10148, equipment: [deployment_module]}
+  - {name: wraith, index: 1, position: {x: 145, y: -195}, level: 5, exp: 0/3900/11724, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -45, y: -90}, {x: -180, y: 70}, {x: 125, y: 185}]}
+ticks: 940
+hash: 25:e482af27cdfb2c346077786736e0698cf989620635c7a2f046624326480353f9
+asserts:
+- sql: SELECT tick,unit_id,motion_state,turret_rotation,mech_lock_target__kind,mech_lock_target__id FROM units WHERE unit_id=3 AND tick IN (424,425,426) ORDER BY tick
+  rows: [[424, 3, stopped, 429825866749, unit, 10], [425, 3, stopped, 404056063069, null, null], [426, 3, stopped, 392181023104, unit, 6]]
+- sql: SELECT tick,skill_slot,enabled__lock_target__kind,enabled__lock_target__id,enabled__state FROM units__skills WHERE unit_id=3 AND tick IN (424,425,426) ORDER BY tick,skill_slot
+  rows: [[424, 0, unit, 10, attack], [424, 1, unit, 10, attack], [425, 0, null, null, idle], [425, 1, unit, 9, attack], [426, 0, unit, 6, attack], [426, 1, unit, 9, attack]]
+- sql: SELECT tick,source__kind,source__id,target__kind,target__id,skill_slot FROM events WHERE type='damage' AND target__kind='unit' AND target__id=10 AND tick=424 ORDER BY ordinal
+  rows: [[424, unit, 3, unit, 10, 0]]

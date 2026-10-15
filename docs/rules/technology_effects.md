@@ -546,7 +546,10 @@ collider priority, at full priority (`RVOControllerFixed.Lock(true, false)`):
 it never moves, and its `Update` turns it to a target in range
 (`AttackUpdate`), whose skill starts and fires as it would from the attack
 state. The main skill begins each blow in its own skill update, retaining
-its place in skill-ID order relative to extra skills. A simultaneous main
+its place in skill-ID order relative to extra skills. The stop state's
+range check and turning ask the current attacker, including an extra skill
+that takes the motion after the main skill loses its lock; it remains
+stopped while turning to that extra skill's target. A simultaneous main
 and secondary blow therefore draw their intervals and release in that
 order even though motion remains stopped.
 Its skill letting a target go does not move it out of the stop. A
@@ -1691,6 +1694,10 @@ derive (a minimum range):
 
 ### Recorded
 
+- A dug-in Typhoon whose main skill loses its lock turns to the secondary
+  skill now holding motion, then searches its main target from that facing:
+  `tests/siege_mode/stopped-extra-attacker-aim.yaml`.
+
 - Air Defense Mark exits with its Typhoon and returns idle and ready after
   Field Reassembly, firing again before its old deadline:
   `tests/rebirth/secondary-skill-reenters-ready.yaml`.
@@ -2247,6 +2254,8 @@ derive (a minimum range):
   `SiegeModeEffectProvider.DisableEffect`,
   `SkillAttackController.AttackingController.Update`,
   `MotionStopState.Enter`, `MotionStopState.Update`,
+  `MotionController.CalculateTargetDirection`, `IAttacker.IsAttackTargetInAttackRange`,
+  `IAttacker.RotateWeaponTo`,
   `SkillManager.SortSkills`, `SkillAttackState.Update`,
   `SkillAttackState.TryPerformAttack`, `RVOControllerFixed.Lock`.
 - A wreckage-recovery technology records each unit its skills' hits strike,
