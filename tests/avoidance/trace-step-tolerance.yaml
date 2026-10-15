@@ -1,0 +1,39 @@
+# The trace step uses native FPoint.Max, which returns its second operand
+# within tolerance. Steel Ball's radius and one fifth of its desired speed
+# differ by six raw units; an integer max changes its tick-12 velocity.
+# The complete generated layout and pin come from the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 579928116
+round: 3
+blue:
+  core_damage: 416
+  officers: [advanced_missile_device, advanced_power_system, fire_badger_specialist, improved_steel_ball]
+  techs:
+    steel_ball: [fortified_target_lock]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: fire_badger, index: 0, position: {x: -165, y: -20}, exp: 0/338/1400, source: delivered}
+  - {name: steel_ball, index: 1, position: {x: 200, y: -275}, level: 2, exp: 0/289/2253, rotated: true, equipment: [haste_module], source: joined}
+  - {name: steel_ball, index: 2, position: {x: 45, y: -130}, level: 8, exp: 0/4141/6727, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -55, y: -130}}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: -90, y: -275}]}
+red:
+  core_damage: 0
+  officers: [quick_teleport, cost_control_specialist, fortified_overlord]
+  blueprints: [attack_enhancement]
+  units:
+  - {name: overlord, index: 0, position: {x: -335, y: 185}, level: 6, exp: 0/7534/10148, rotated: true, equipment: [mustang_production_line], travelling: true, source: joined}
+  - {name: marksman, index: 1, position: {x: -50, y: -70}, level: 9, source: joined}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: 275, y: -70}]}
+ticks: 1233
+hash: 25:017aaccf99c8bca8e23e4dcde9ff0370c031c8da4d3ac6c0668ba16c1375b2cf
+asserts:
+- sql: SELECT tick,velocity__x,velocity__z FROM units WHERE unit_id=4 AND tick IN (11,12,13) ORDER BY tick
+  rows: [[11,-53951942220,117015449100],[12,-49828964311,118808617084],[13,-49828964311,118808617084]]
