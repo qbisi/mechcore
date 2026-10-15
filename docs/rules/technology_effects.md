@@ -539,7 +539,11 @@ maximum life refreshes it, and its motion changes to `MotionStopState`
 collider priority, at full priority (`RVOControllerFixed.Lock(true, false)`):
 it never moves, and its `Update` turns it to a target in range
 (`AttackUpdate`), whose skill starts and fires as it would from the attack
-state. Its skill letting a target go does not move it out of the stop. A
+state. The main skill begins each blow in its own skill update, retaining
+its place in skill-ID order relative to extra skills. A simultaneous main
+and secondary blow therefore draw their intervals and release in that
+order even though motion remains stopped.
+Its skill letting a target go does not move it out of the stop. A
 unit travelling in digs in as it arrives (`DoActive` during the fight). A
 Sabertooth dug in has 21213 life, its 14142 with half more, and 115 metres
 of range; a Typhoon 16199, its 9529 with 70% more, and 120.
@@ -1729,6 +1733,9 @@ derive (a minimum range):
 - A Steel Ball dead under EMP does not regain its grouping distance when
   its buffs clear and cannot later dilute a living unit's incoming beam:
   `tests/damage_share/dead-disabled-member.yaml`.
+- A dug-in Sabertooth's main and secondary blows retain skill-ID order:
+  `tests/siege_mode/main-shot-before-secondary.yaml`, tick 189, intervals
+  37 then 71 and projectile sources, targets, slots and weapons.
 - Field Entrenchment digs its unit in from the first tick, a Sabertooth at
   21213 life and 115 metres, two Typhoons at 16199 and 120, and takes the
   trench away 141 updates after the last enemy left its range, the motion
@@ -2208,7 +2215,8 @@ derive (a minimum range):
   `SiegeModeEffectProvider.DisableEffect`,
   `SkillAttackController.AttackingController.Update`,
   `MotionStopState.Enter`, `MotionStopState.Update`,
-  `RVOControllerFixed.Lock`.
+  `SkillManager.SortSkills`, `SkillAttackState.Update`,
+  `SkillAttackState.TryPerformAttack`, `RVOControllerFixed.Lock`.
 - A wreckage-recovery technology records each unit its skills' hits strike,
   drops a record after its time, and heals the holders alive, hurt and
   within its distance by the dead unit's maximum life over their count as a

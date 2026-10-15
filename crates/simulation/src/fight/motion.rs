@@ -1479,9 +1479,13 @@ impl Simulation {
         // way to attacking, its skills active, fires all the same. A Larva
         // that has just surfaced into the fight fires on the tick its
         // transition ends.
-        let attacking = actor.motion.state == MotionState::Attacking
-            || (actor.motion.state == MotionState::Transitioning
-                && actor.motion.transition_to == Some(MotionState::Attacking));
+        // A trench's stopped motion also leaves the skill updating in its
+        // own place in SkillManager's order, before later extra skills.
+        let attacking = matches!(
+            actor.motion.state,
+            MotionState::Attacking | MotionState::Stopped
+        ) || (actor.motion.state == MotionState::Transitioning
+            && actor.motion.transition_to == Some(MotionState::Attacking));
         if !attacking
             || actor.motion.attacker != SkillSlot::Main
             || skill.phase() != FightSkillPhase::Attack
