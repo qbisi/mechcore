@@ -2068,6 +2068,9 @@ derive (a minimum range):
   `tests/technology_disable/grouped-artillery-keeps-disabled.yaml`.
 - A search technology's ranges and offsets leave with it:
   `tests/technology_disable/impact-ground-targeting.yaml`.
+- A search preference deactivated for travel is absent from the opening
+  presearch and returns on arrival:
+  `tests/super_deployment/search-preference-waits.yaml`.
 - A stacking buff its unit added writes no stack while the technologies are
   off, takes its life rate out at its next step with a second share of the
   life, and stacks on from the stack it kept:
