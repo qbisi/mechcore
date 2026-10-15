@@ -528,7 +528,7 @@ impl Simulation {
     /// nothing while the unit's technologies are disabled, and
     /// `BuffSystem.AddBuffByCheck` adds the buff to the unit itself, as
     /// written by it, while it lives or when the buff reaches the dead. A
-    /// Fire Badger with Counter-Fire hit by anything reaches 70 m further
+    /// Fire Badger with Counter-Fire hit while not travelling reaches 70 m further
     /// for the next 20 seconds.
     pub(in crate::fight) fn add_damaged_buffs(
         &mut self,
@@ -536,6 +536,11 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let owner = &self.actors[&id];
+        // `OnGetDamage` returns before selecting targets while its owner
+        // is still in `SuperDeploymentSystem.IsTravelling`.
+        if owner.travelling {
+            return Ok(());
+        }
         let sources = owner
             .placement
             .effects
