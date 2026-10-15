@@ -1,0 +1,30 @@
+# Every skill exits with its owner and reenters ready on reassembly. Two
+# Typhoons fire Air Defense Mark, die, and return before their old schedules
+# would permit the next mark. Their secondary skills stand idle and reset
+# at recorded ticks 115/210, then fire at 117/212 under their own slot and
+# weapon index. The minimal full-fight pin comes from the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  core_damage: 400
+  techs:
+    typhoon: [field_reassembly, air_defense_mark]
+  units:
+  - {name: typhoon, index: 0, position: {x: 0, y: -40}, source: joined}
+red:
+  core_damage: 0
+  units:
+  - {name: overlord, index: 0, position: {x: 5, y: -45}, level: 4, exp: 0/1200/7858, source: joined}
+ticks: 309
+hash: 25:b0b57e0f7912d72f6882316c01afe34dc95730e76bdd8c1f4388a495eea79e1d
+asserts:
+- sql: SELECT tick,unit_id,rebirth_count FROM units WHERE (unit_id=1 AND tick IN (115,116,117)) OR (unit_id=2 AND tick IN (210,211,212)) ORDER BY tick,unit_id
+  rows: [[115, 1, 1], [116, 1, 1], [117, 1, 1], [210, 2, 1], [211, 2, 1], [212, 2, 1]]
+- sql: SELECT tick,unit_id,skill_slot,enabled__state,enabled__lock_target__id,enabled__attack_count,enabled__perform_count,enabled__attack_time,enabled__current_attack_interval FROM units__skills WHERE skill_slot=1 AND ((unit_id=1 AND tick IN (115,116,117)) OR (unit_id=2 AND tick IN (210,211,212))) ORDER BY tick,unit_id
+  rows: [[115, 1, 1, idle, null, -1, 0, 200, 200], [116, 1, 1, attack, 3, -1, 0, 201, 200], [117, 1, 1, attack, 3, 0, 1, 0, 200], [210, 2, 1, idle, null, -1, 0, 200, 200], [211, 2, 1, attack, 3, -1, 0, 201, 200], [212, 2, 1, attack, 3, 0, 1, 0, 200]]
+- sql: SELECT tick,source__kind,source__id,target__kind,target__id,skill_slot,weapon_index FROM events WHERE type='projectile_released' AND skill_slot=1 ORDER BY tick,ordinal
+  rows: [[2, unit, 1, unit, 3, 1, 1], [2, unit, 2, unit, 3, 1, 1], [117, unit, 1, unit, 3, 1, 1], [212, unit, 2, unit, 3, 1, 1]]

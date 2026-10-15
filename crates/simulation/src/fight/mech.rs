@@ -353,12 +353,17 @@ impl Actor {
 
     pub(in crate::fight) fn exit_fight_on_death(&mut self) {
         self.motion.state = MotionState::Idle;
-        self.skills.main.set_pending(None);
-        self.skills.main.lock_target = None;
-        self.skills.main.search_target_time = SEARCH_TARGET_RESET_TICKS;
-        self.skills.main.set_phase(FightSkillPhase::Idle);
-        self.skills.main.clear_slots();
-        self.skills.main.performer.stop();
+        // `SkillManager.ExitFight` visits every skill, including extras.
+        for skill in std::iter::once(&mut self.skills.main)
+            .chain(self.skills.extras.iter_mut().map(|extra| &mut extra.skill))
+        {
+            skill.set_pending(None);
+            skill.lock_target = None;
+            skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
+            skill.set_phase(FightSkillPhase::Idle);
+            skill.clear_slots();
+            skill.performer.stop();
+        }
         self.motion.attack_hold_fire = false;
         self.motion.current_velocity_x_q32 = 0;
         self.motion.current_velocity_z_q32 = 0;
