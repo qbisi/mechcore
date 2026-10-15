@@ -750,9 +750,14 @@ alike, and a match that wants a longer one says so in `match new
 
 Deals a match, or joins one already dealt.
 
-Operands: the match document. Options: `--seed <i32>`, `--map <i32>`,
+Operands: the match document. Options: `--name <name>`, `--seed <i32>`, `--map <i32>`,
 `--loadout <file>` for that side's technology loadout, and `--deploy-time
 <seconds>`.
+
+`--name` sets the display name of the side this caller is given, on the deal
+or on the join. It is one nonempty line without control characters. When
+omitted, the side keeps its header name, defaulting to `blue` or `red`. It
+requires no later declaration and changes neither the seat nor any game rule.
 
 Every option may be left out. A seed nobody chose is drawn, a map nobody chose
 is drawn from the maps this build has an opening initialization for, and a
@@ -953,6 +958,16 @@ Operands: the match document, or the directory a batch writes into. Options:
 `--seed`, `--map` and `--deploy-time` as `match new` takes them, and
 `--request-timeout <seconds>`. A player's command is run by `sh -c`, so it may
 carry its own arguments.
+
+Before dealing any match, the arena runs each configured command with
+` --name` appended, also through `sh -c`, with standard input closed. That
+invocation prints one nonempty UTF-8 name line on standard output and exits
+successfully; surrounding whitespace is stripped and control characters in
+the remaining name are refused. Diagnostics belong on standard error. A name
+query that fails, returns invalid output, or exceeds `--request-timeout`
+fails the run before a match is dealt. Each side is queried once per run,
+including a batch; the arena passes those names to `match new --name` for
+every match. A normal player invocation speaks only the match request stream.
 
 The arena deals each match rather than joining one: it runs `match new`, hands
 one player blue and the other red, and varies the seed across a batch, which is

@@ -43,6 +43,8 @@ pub struct Match {
 /// What a side holds for the whole match rather than for one round.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MatchSide {
+    /// The player or bot display name; the seat remains blue or red.
+    pub name: String,
     /// The opening this side was dealt and the one it took.
     pub opening: Opening,
     /// The construction layout the map dealt this side before the first round.
@@ -813,6 +815,7 @@ struct Header<'a> {
 
 #[derive(Serialize)]
 struct HeaderSide<'a> {
+    name: &'a str,
     #[serde(skip_serializing_if = "Option::is_none")]
     seed: Option<i32>,
     offers: &'a [OpeningOffer],
@@ -824,6 +827,7 @@ struct HeaderSide<'a> {
 impl<'a> HeaderSide<'a> {
     fn of(side: &'a MatchSide) -> Self {
         Self {
+            name: &side.name,
             seed: side.seed,
             offers: &side.opening.offers,
             constructions: &side.constructions,
@@ -917,6 +921,8 @@ pub mod schema {
     #[derive(Serialize, JsonSchema)]
     #[serde(deny_unknown_fields)]
     pub struct Side {
+        /// Player display name; omitted, the seat name (blue or red).
+        pub name: Option<String>,
         /// The seed of the side's own stream.
         pub seed: Option<i32>,
         /// The four openings this side was dealt.
@@ -1009,6 +1015,7 @@ pub fn read(bytes: &[u8]) -> Result<Option<Match>, String> {
             }
         };
         Ok(MatchSide {
+            name: side.name.unwrap_or_else(|| name.to_owned()),
             opening: Opening {
                 choose,
                 offers: side.offers,
@@ -1598,6 +1605,7 @@ mod tests {
     #[test]
     fn a_match_ended_by_a_fight_is_written_without_a_round_after_it() {
         let side = || super::MatchSide {
+            name: "player".to_owned(),
             opening: super::Opening {
                 choose: None,
                 offers: Vec::new(),

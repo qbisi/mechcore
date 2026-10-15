@@ -43,8 +43,9 @@ number and `Seat` is 0, a locally recorded replay.
 `DeployTime` is the match's `deploy_time`, or the standard 100 seconds when it
 states none.
 
-Each `PlayerRecord`, blue first, holds the side's `seed`, the map's reactor core,
-the round income every versus map shares, and its tech loadout as `unitDatas`.
+Each `PlayerRecord`, blue first, holds the side's `name` (defaulting to `blue`
+or `red`) and `seed`, the map's reactor core, the round income every versus
+map shares, and its tech loadout as `unitDatas`.
 Its rounds run from 0 to the match's last, one `PlayerRoundRecord` each, and
 `matchDatas` holds one `MatchSnapshotData` per round.
 
@@ -176,7 +177,7 @@ round's decisions come in the match's order.
 | --- | --- |
 | `PAD_Undo`, `PAD_Redo`, `PAD_CancelReleaseCommanderSkill` | A match holds the net decisions they leave |
 | `PAD_MoveUnit.positionRecord`, `rotateRecord`, `superDeployRecord` | They restate the position before the move |
-| `PlayerRecord.name`, `id`, `ad`, `data.style` | Account identity and skins |
+| `PlayerRecord.id`, `ad`, `data.style` | Account identity and skins |
 | `BattleInfo.BattleID`, `CreateTime` | Provenance, which a match does not carry |
 | `NewUnitData.RoundCount` | No reading of the replay uses it |
 

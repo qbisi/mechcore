@@ -482,6 +482,10 @@ fn match_side(
         loadout.insert(row.id, techs);
     }
     Ok(MatchSide {
+        name: player.name.clone().unwrap_or_else(|| match seat {
+            Seat::Blue => "blue".to_owned(),
+            Seat::Red => "red".to_owned(),
+        }),
         opening: opening_taken(economy, player, seat, dealt)?,
         // The map deals the layout before the first round and nothing adds to
         // it, so the first round's list is the one the side started with.

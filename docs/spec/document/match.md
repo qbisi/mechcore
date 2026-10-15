@@ -147,15 +147,17 @@ breaks.
 
 Nothing else names a seat. The record's own `team` is the same value for both
 players, and its `Seat` names the client that recorded the file rather than a
-side. Player names and account IDs are not fields: nothing reads them, and a
-side is identified by which side it is.
+side. Each side's optional `name` is its player or bot display name, copied
+from `PlayerRecord.name` when converting a replay. Absent, it defaults to
+`blue` or `red`; canonical output writes it explicitly. Names need not be
+unique, do not identify a seat, and affect no game rule. Account IDs are not
+fields.
 
 ### What a side brings to the match
 
-Four per-side facts are properties of the match rather than of a round, and
-they are what the header holds under each side. Two of them are dealt before
-either player decides anything, the third bounds every round, and the fourth
-seeds what the side's own officers draw.
+Alongside its display name, each side holds four facts for the whole match.
+Two are dealt before either player decides anything, the third bounds every
+round, and the fourth seeds what the side's own officers draw.
 
 #### The opening offers
 
@@ -665,7 +667,7 @@ sequence; a reader parses either style.
 | A fight's result | The next state shows it; the last fight has no next state, see above |
 | `BattleInfo.BattleID` | Names a server record; no rule reads it |
 | `BattleRecord.Seat` | Which client recorded the file, not a property of the match |
-| `PlayerRecord.name`, `id`, `ad` | Account identity; nothing reads it |
+| `PlayerRecord.id`, `ad` | Account identity; nothing reads it |
 | `PlayerRecord.data.styleData` | Skins |
 | `PlayerRecord.data.team`, `isLeader`, `type` | A side is named by which side it is |
 | `PlayerRecord.data` supply and core settings | The map's row in `matchSettings` gives them, keyed by `map_id` |

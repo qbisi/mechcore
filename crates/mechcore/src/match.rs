@@ -77,6 +77,14 @@ pub(crate) fn answer(mut arguments: Args) -> Result<Value, Failure> {
 
 /// Deals a match, or joins one already dealt.
 fn new(mut arguments: Args) -> Result<View, Failure> {
+    let name = arguments.value("--name")?;
+    if let Some(name) = &name
+        && (name.trim().is_empty() || name.chars().any(char::is_control))
+    {
+        return Err(Failure::usage(
+            "--name is one nonempty line without control characters",
+        ));
+    }
     let seed = arguments.parsed::<i32>("--seed", "an integer")?;
     let map = arguments.parsed::<i32>("--map", "a map ID")?;
     let deploy_time = arguments.parsed::<i32>("--deploy-time", "a number of seconds")?;
@@ -88,13 +96,14 @@ fn new(mut arguments: Args) -> Result<View, Failure> {
     let existing = held.read()?;
     let dealt = existing.is_some() || path.exists();
     let outcome = if dealt {
-        join(&path, &mut held, existing, (seed, map, deploy_time))
+        join(&path, &mut held, existing, (seed, map, deploy_time), name)
     } else {
         deal(
             &path,
             &mut held,
             (seed, map, deploy_time),
             loadout.as_deref(),
+            name,
         )
     };
     match outcome {
@@ -118,6 +127,7 @@ fn deal(
     held: &mut Held,
     (seed, map, deploy_time): (Option<i32>, Option<i32>, Option<i32>),
     loadout: Option<&std::path::Path>,
+    name: Option<String>,
 ) -> Result<Game, Failure> {
     let economy = Economy::embedded().map_err(Failure::failed)?;
     let maps = opening::maps().map_err(Failure::failed)?;
@@ -148,22 +158,28 @@ fn deal(
     };
     // Each player brings a seed of its own, as the game's server hands one
     // out, which an officer that draws its hand-out draws from.
-    let mut side = |offers: &[OpeningOffer], constructions: &[StaticPlacement]| MatchSide {
-        opening: Opening {
-            choose: None,
-            offers: offers.to_vec(),
-        },
-        constructions: constructions.to_vec(),
-        tech_loadout: loadout.clone(),
-        seed: Some(draw.seed()),
-    };
+    let mut side =
+        |name: String, offers: &[OpeningOffer], constructions: &[StaticPlacement]| MatchSide {
+            name,
+            opening: Opening {
+                choose: None,
+                offers: offers.to_vec(),
+            },
+            constructions: constructions.to_vec(),
+            tech_loadout: loadout.clone(),
+            seed: Some(draw.seed()),
+        };
     let r#match = Match {
         game_build: mechcore_document::game_build().to_owned(),
         map_id,
         seed,
         deploy_time: Some(deploy_time),
-        blue: side(&dealt.deal.blue, &dealt.constructions.blue),
-        red: side(&dealt.deal.red, &dealt.constructions.red),
+        blue: side(
+            name.unwrap_or_else(|| "blue".to_owned()),
+            &dealt.deal.blue,
+            &dealt.constructions.blue,
+        ),
+        red: side("red".to_owned(), &dealt.deal.red, &dealt.constructions.red),
         turns: Vec::new(),
     };
     let turn = Turn::opening(0, [true, false], false);
@@ -185,6 +201,7 @@ fn join(
     held: &mut Held,
     existing: Option<Turn>,
     (seed, map, deploy_time): (Option<i32>, Option<i32>, Option<i32>),
+    name: Option<String>,
 ) -> Result<Game, Failure> {
     let mut game = Game::read(path, held, existing, Side::Blue)?;
     let stated = |name: &str, asked: Option<i32>, held: i32| match asked {
@@ -206,7 +223,15 @@ fn join(
     };
     game.side = free;
     game.turn.side_mut(free).given = true;
-    game.write_turn(held)?;
+    if let Some(name) = name {
+        match free {
+            Side::Blue => game.r#match.blue.name = name,
+            Side::Red => game.r#match.red.name = name,
+        }
+        game.write(held)?;
+    } else {
+        game.write_turn(held)?;
+    }
     Ok(game)
 }
 
@@ -1267,7 +1292,14 @@ mod tests {
         let directory = tempfile::tempdir().unwrap();
         let path = directory.path().join("m.yaml");
         let mut held = Held::take(&turn_path(&path)).unwrap();
-        let mut game = deal(&path, &mut held, (Some(12345), Some(1011), None), None).unwrap();
+        let mut game = deal(
+            &path,
+            &mut held,
+            (Some(12345), Some(1011), None),
+            None,
+            None,
+        )
+        .unwrap();
         for side in Side::BOTH {
             let offer = game.opening(side).offers[0];
             game.turn

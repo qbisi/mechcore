@@ -117,6 +117,11 @@ fn verify(path: &str) -> Value {
 fn a_match_is_dealt_once_joined_once_and_refuses_a_third() {
     let directory = tempfile::tempdir().unwrap();
     let path = dealt(directory.path());
+    let game = mechcore_document::r#match::read(&fs::read(&path).unwrap())
+        .unwrap()
+        .unwrap();
+    assert_eq!(game.blue.name, "blue");
+    assert_eq!(game.red.name, "red");
 
     let third = run(&["match", "new", &path]).refused();
     assert!(third.contains("both sides"), "{third}");
@@ -748,4 +753,23 @@ fn a_match_whose_deal_does_not_verify_is_not_written_as_a_replay() {
     let refused = run(&["convert", &path, "--to", "grbr", &replay]).refused();
     assert!(refused.contains("deal does not verify"), "{refused}");
     assert!(!Path::new(&replay).exists());
+}
+
+#[test]
+fn names_are_set_when_each_side_joins_and_survive_later_commands() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("named.yaml").display().to_string();
+    let blue = run(&["match", "new", &path, "--name", "Blue Bot", "--seed", "7"]).ok();
+    assert_eq!(blue["document"][0]["blue"]["name"], "Blue Bot");
+    assert_eq!(blue["document"][0]["red"]["name"], "red");
+    let red = run(&["match", "new", &path, "--name", "Red Bot"]).ok();
+    assert_eq!(red["document"][0]["blue"]["name"], "Blue Bot");
+    assert_eq!(red["document"][0]["red"]["name"], "Red Bot");
+    let shown = run(&["match", "show", &path, "--side", "blue"]).ok();
+    assert_eq!(shown["document"][0]["red"]["name"], "Red Bot");
+    let game = mechcore_document::r#match::read(&fs::read(path).unwrap())
+        .unwrap()
+        .unwrap();
+    assert_eq!(game.blue.name, "Blue Bot");
+    assert_eq!(game.red.name, "Red Bot");
 }

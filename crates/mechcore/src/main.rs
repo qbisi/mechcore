@@ -46,7 +46,9 @@ fn usage(program: &str) {
         "       {program} generate --seed <u64> --count <n> <dir> | --seed <u64> --index <i>"
     );
     eprintln!("       {program} schema <layout|fight|match|state|action>...");
-    eprintln!("       {program} match new <match.yaml> [--seed <i32>] [--map <i32>]");
+    eprintln!(
+        "       {program} match new <match.yaml> [--name <name>] [--seed <i32>] [--map <i32>]"
+    );
     eprintln!("       {program} match show <match.yaml> --side blue|red [--wait [<seconds>]]");
     eprintln!("       {program} match act <match.yaml> --side blue|red <decision> [--dry-run]");
     eprintln!("       {program} match commit <match.yaml> --side blue|red");
