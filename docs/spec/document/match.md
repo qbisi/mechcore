@@ -54,11 +54,22 @@ round's state and the next.
 
 ## The stream
 
-The segments come in one order:
+A complete prefix has this order:
 
 ```text
 match, action(0), state(1), action(1), state(2), action(2), ...
 ```
+
+A partial match omits the opening and missing earlier rounds:
+
+```text
+match, state(N), action(N), state(N+1), action(N+1), ...
+```
+
+`N` is any positive round, including 1. The first captured state is a checkpoint;
+its missing history is not reconstructed or claimed to have been verified.
+The header keeps the initial constructions and seeded opening offers, but no
+opening choice is invented.
 
 `round` counts up by one from each state to the next, and an action segment
 carries the round of the state before it. Round zero is the opening, which has
@@ -296,14 +307,20 @@ positions, and requires each opening decision to name an offer in range and
 the team and specialist that offer holds. It does not prove that a player chose that offer, and it does not validate
 deployment or combat.
 
-The reinforcement check advances the same stream through contiguous rounds from
-round 1 and compares every round's shared `random_state`, effective
+For a complete prefix, the reinforcement check advances the same stream through
+contiguous rounds from round 1 and compares every round's shared `random_state`, effective
 `reinforce_pool` changes and complete ordered `reinforce_offers`, the
 decline's `refund` included. Each draw
 uses that round's stated units, shop unlocks, active technologies and
 officers, and the previous rounds' `choose_reinforce_item` decisions update the
 pool. Offers being checked do not choose the stream position or seed the next
 draw.
+
+For a partial match, verification restores the first state's post-deal checkpoint
+and checks subsequent available transitions from there. It does not count the
+first deal as verified from the seed. Reported stream offsets in this case are
+relative to that first checkpoint. Conversion checks that deal separately
+against the native pre-deal random state and cumulative pool log.
 
 Round 1 carries no offers and no reinforcement choice. Every later round whose
 decisions are stated requires one choice per side; a round that ends the stream
@@ -510,7 +527,7 @@ mechcore convert <replay.grbr> --to match <match.yaml> [--force]
 ```
 
 Conversion needs no game. It reads the replay and nothing else, and it simulates
-no fight. It is also idempotent across this format: a match written back as a
+no fight. For a complete prefix it is also idempotent across this format: a match written back as a
 replay ([match-replay.md](match-replay.md)) converts to the same match, byte
 for byte.
 
@@ -520,7 +537,17 @@ carrying game rules, rounds that are not the contiguous sequence both sides
 share, an object this build's catalogues cannot name, and an action this format
 has no representation for are each an error naming what was found.
 
-The opening is read out of round 0: the replay records the team half of each
+A spectator cache may hold a round-zero placeholder and a contiguous suffix of
+deployment rounds shared by both sides. When the prefix is missing, conversion
+omits round zero, restores each recorded pre-deal shared stream and cumulative
+pool log, checks the recorded offers, and writes the resulting post-deal
+checkpoint. Player streams and previous-round activation flags come directly
+from the first available snapshot. Subsequent available actions and checkpoints
+are checked without inventing the absent prefix. The header's initial
+constructions and opening offers are computed from the seed and map. Partial
+matches are not converted back into complete native replays.
+
+For a complete prefix, the opening is read out of round 0: the replay records the team half of each
 side's decision, the specialist half is read back from round 1's officers, and
 the four offers are rebuilt from round 0's random state. A replay whose round 0
 stands for anything but one team choice per side is refused, and so is a missing

@@ -10,10 +10,10 @@ reproducible input. It has no owner, priority or status beyond open.
 | Unimplemented | `unimplemented` | An actual layout reaches a simulator branch that refuses an unimplemented mechanism or unsupported shape |
 | Divergence | `divergence` | The simulator fights differently from the game, or newly refuses a corpus round |
 
-The corpus workflow opens a `divergence` on a master commit for rounds that
-commit newly fights wrong or refuses. Findings of the same kind carry it
-too. A refusal discovered by running a layout through an unimplemented
-branch carries `unimplemented`.
+A corpus measurement can establish a `divergence` when a commit fights a
+round wrong or newly refuses it. Findings of the same kind carry it too. A
+refusal discovered by running a layout through an unimplemented branch carries
+`unimplemented`.
 
 ## Plans and unimplemented branches
 

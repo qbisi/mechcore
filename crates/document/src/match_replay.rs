@@ -46,6 +46,9 @@ pub fn match_replay(
     stated: &Stated,
     game_build: &str,
 ) -> Result<Vec<u8>, String> {
+    if !stated.has_opening {
+        return Err("a partial match cannot reconstruct a complete native replay".into());
+    }
     if !stated.ends_on_actions {
         return Err(
             "a replay records no position after its last decisions, and this match states one"

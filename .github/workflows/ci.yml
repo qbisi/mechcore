@@ -95,8 +95,7 @@ jobs:
     # The release profile's single codegen unit and LTO make the fastest
     # binary, and its build took two minutes here; with sixteen units and no
     # LTO it takes half as long, and every pinned fight verifies as fast and
-    # with the same hash. The corpus workflow builds the same way, so the two
-    # share one cache.
+    # with the same hash.
     env:
       CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 16
       CARGO_PROFILE_RELEASE_LTO: false

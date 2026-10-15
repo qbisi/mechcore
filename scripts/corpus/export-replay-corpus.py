@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Convert every replay of one game version into its match document.
+"""Convert the complete native replay archive of one version into match documents.
 
 The corpus is https://github.com/qbisi/mechcore-replay, fetched to
 ``work/replay`` by ``scripts/corpus/replay.py sync``: the replays of a version sit
 directly under ``replays/<version>/``. Each is converted without the game by
 ``mechcore convert --to match`` into the match YAML of the same basename under
-``work/match/<version>/``, replacing what is there. The corpus holds no
-documents; they are generated where they are read. A replay the converter
+``work/match/<version>/``, replacing what is there. New collected match documents live separately under
+``matches/<version>/`` and are not inputs to this native round-trip study. A replay the converter
 refuses is reported and makes the run fail, so a version the converter no
 longer reads cannot pass unnoticed.
 

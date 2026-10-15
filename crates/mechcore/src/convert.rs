@@ -469,10 +469,7 @@ fn project(bytes: &[u8], round: Option<i32>, output: Option<&Path>) -> Result<An
     let declined = mechcore_document::opening::verify(economy, &stated)
         .and_then(|opening| mechcore_document::reinforcement::verify(economy, &stated, &opening))
         .map_err(Failure::refused)?
-        .rounds
-        .iter()
-        .find(|dealt| dealt.round == round)
-        .map(|dealt| dealt.declined);
+        .declined(turn);
     let deployed = |state, actions, red| {
         mechcore_document::transition::deployed(economy, state, actions, red, declined).map_err(
             |unsettled| Failure::refused(format!("round {round} is not settled: {unsettled}")),

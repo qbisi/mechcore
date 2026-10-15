@@ -170,6 +170,7 @@ fn deal(
             seed: Some(draw.seed()),
         };
     let r#match = Match {
+        has_opening: true,
         game_build: mechcore_document::game_build().to_owned(),
         map_id,
         seed,

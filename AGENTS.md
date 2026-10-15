@@ -79,9 +79,11 @@ The evidence lives outside this repository's history. Decompilation and its
 `index.sqlite` are generated locally under `work/decomp/<build>/` by
 `scripts/decomp/decompile.py` on the machine with the game. These artifacts
 stay local and are not uploaded to a Git repository.
-The native replays are in the public `mechcore-replay`, fetched at master to
-`work/replay/` by `scripts/corpus/replay.py sync`. Recordings exist only on the
-machine that made them.
+Collected match documents are in the public `mechcore-replay`, under
+`matches/<version>/`, fetched at master to `work/replay/` by
+`scripts/corpus/replay.py sync`. Native GRBR files are local research inputs;
+the earlier public native archive remains in Git history. Recordings exist
+only on the machine that made them.
 
 **The game version is written only in `GAME_VERSION`**, one line, the game's
 own `Application.version`. The server matches games and spectators by it, so
@@ -125,12 +127,9 @@ disproved the old belief and what evidence did; which numbers were read from
 the game and which were measured; what was verified and how, and what was
 not. Every sentence will later be quoted as fact.
 
-Whether a change fights the corpus rounds as their matches say is not
-measured by its author. The corpus workflow (`.github/workflows/corpus.yml`)
-runs on each master commit, and for the rounds a commit newly fights wrong or
-refuses it opens a `divergence` issue and comments on the pull request it merged; a body
-builds no master baseline locally. What only the machine with the game has,
-its recordings, is still verified there.
+Corpus measurements are explicit research runs, not an automatic master CI job.
+A body builds no master baseline locally. What only the machine with the game
+has, its recordings, is still verified there.
 
 Write an issue or pull request number only for a dependency: `Closes #n`,
 `Blocked by #n`, or a decision that moves another item. A tracked file never

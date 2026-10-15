@@ -301,7 +301,7 @@ pub(crate) enum Record {
     Watch {
         output_dir: Option<PathBuf>,
         wait_for_scene_seconds: u64,
-        match_timeout_seconds: u64,
+        entry_timeout_seconds: u64,
     },
 }
 
@@ -318,7 +318,7 @@ pub(crate) struct RecordRequest {
     pub(crate) watch: bool,
     pub(crate) output_dir: Option<PathBuf>,
     pub(crate) wait_for_scene_seconds: Option<u64>,
-    pub(crate) match_timeout_seconds: Option<u64>,
+    pub(crate) entry_timeout_seconds: Option<u64>,
 }
 
 /// Refuses the first option given that `what` does not take.
@@ -345,7 +345,7 @@ impl RecordRequest {
             &[
                 (self.output_dir.is_some(), "an output directory"),
                 (self.wait_for_scene_seconds.is_some(), "a scene wait"),
-                (self.match_timeout_seconds.is_some(), "a match timeout"),
+                (self.entry_timeout_seconds.is_some(), "an entry timeout"),
             ],
             "anything but a watched match",
         )?;
@@ -421,9 +421,9 @@ impl RecordRequest {
             wait_for_scene_seconds: self
                 .wait_for_scene_seconds
                 .unwrap_or(mechcore_protocol::DEFAULT_WATCH_SCENE_WAIT_SECONDS),
-            match_timeout_seconds: self
-                .match_timeout_seconds
-                .unwrap_or(mechcore_protocol::DEFAULT_WATCH_MATCH_TIMEOUT_SECONDS),
+            entry_timeout_seconds: self
+                .entry_timeout_seconds
+                .unwrap_or(mechcore_protocol::DEFAULT_WATCH_ENTRY_TIMEOUT_SECONDS),
         })
     }
 
@@ -477,8 +477,8 @@ impl Record {
             output_dir: arguments.value("--output-dir")?.map(PathBuf::from),
             wait_for_scene_seconds: arguments
                 .parsed::<u64>("--wait-for-scene-seconds", "a number of seconds")?,
-            match_timeout_seconds: arguments
-                .parsed::<u64>("--match-timeout-seconds", "a number of seconds")?,
+            entry_timeout_seconds: arguments
+                .parsed::<u64>("--entry-timeout-seconds", "a number of seconds")?,
             ..RecordRequest::default()
         };
         let mut operands = arguments.operands()?.into_iter().map(PathBuf::from);
@@ -527,9 +527,9 @@ impl Record {
             Self::Watch {
                 output_dir,
                 wait_for_scene_seconds,
-                match_timeout_seconds,
+                entry_timeout_seconds,
             } => session
-                .record_watch_replay(output_dir, wait_for_scene_seconds, match_timeout_seconds)
+                .record_watch_replay(output_dir, wait_for_scene_seconds, entry_timeout_seconds)
                 .await
                 .map_err(refusal),
         }

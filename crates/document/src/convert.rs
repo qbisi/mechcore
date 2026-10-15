@@ -84,10 +84,14 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
         .iter()
         .map(|entry| entry.round)
         .collect();
-    let expected: Vec<i32> = (0..i32::try_from(match_rounds.len()).unwrap_or(i32::MAX)).collect();
-    if match_rounds != expected {
+    if match_rounds.first() != Some(&0)
+        || match_rounds.get(1).is_some_and(|round| *round < 1)
+        || match_rounds[match_rounds.len().min(1)..]
+            .windows(2)
+            .any(|pair| pair[0].checked_add(1) != Some(pair[1]))
+    {
         return Err(format!(
-            "match rounds {match_rounds:?} are not the contiguous sequence from zero"
+            "match rounds {match_rounds:?} are not round zero followed by a contiguous captured suffix"
         ));
     }
     for (seat, player) in [("blue", &blue), ("red", &red)] {
@@ -112,15 +116,15 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
     }
 
     let economy = Economy::embedded()?;
-    // What a decline pays depends on the unit reinforcement pool the seed
-    // selects. A match whose opening this build cannot deal still converts, as
-    // long as it declines nothing.
-    let pool = crate::opening::predict(economy, record.info.system_seed, record.info.map_id)
-        .map(|opening| opening.initialization.unit_round_pool)
-        .ok();
+    let has_opening = match_rounds[1] == 1
+        && [&blue, &red]
+            .iter()
+            .any(|player| !net_actions(&player.rounds.entries[0].actions.entries).is_empty());
+    let predicted = opening::predict(economy, record.info.system_seed, record.info.map_id)?;
+    let pool = predicted.initialization.unit_round_pool;
     // The opening is round 0, and it has no state: every side enters it holding
-    // nothing. Its one decision is read into each side's opening, and the turns
-    // start at round 1.
+    // nothing. Read its decision only when the captured prefix is complete;
+    // otherwise the turns start at the first available deployment.
     let mut turns = Vec::with_capacity(match_rounds.len() - 1);
     for (position, round) in match_rounds
         .iter()
@@ -135,11 +139,6 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
             .arrays
             .first()
             .map(|array| {
-                let pool = pool.ok_or_else(|| {
-                    format!(
-                        "round {round} offers a decline, and the opening does not deal its pool"
-                    )
-                })?;
                 Ok::<_, String>(Offers {
                     dealt: array.values.clone(),
                     refund: crate::reinforcement::decline_supply(economy, pool, round)?,
@@ -152,20 +151,35 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
     // The four combinations each side was dealt are recorded nowhere, and are
     // not lost: they are drawn from the match's reinforcement stream, which the
     // opening round's snapshot carries. `crate::opening` rebuilds them.
-    let dealt = opening_offers(economy, &record.match_rounds.entries[0])?;
+    let dealt = if has_opening {
+        opening_offers(economy, &record.match_rounds.entries[0])?
+    } else {
+        predicted.deal.clone()
+    };
 
     settle_concession(&mut turns)?;
 
     let mut converted = Match {
+        has_opening,
         game_build: crate::economy::game_build().to_owned(),
         map_id: record.info.map_id,
         seed: record.info.system_seed,
         deploy_time: Some(record.info.deploy_time),
-        blue: match_side(economy, &blue, Seat::Blue, dealt.blue)?,
-        red: match_side(economy, &red, Seat::Red, dealt.red)?,
+        blue: match_side(economy, &blue, Seat::Blue, dealt.blue, has_opening)?,
+        red: match_side(economy, &red, Seat::Red, dealt.red, has_opening)?,
         turns,
     };
-    crate::reinforcement::fill_checkpoints(economy, &mut converted)?;
+    if has_opening {
+        crate::reinforcement::fill_checkpoints(economy, &mut converted)?;
+    } else {
+        converted.blue.constructions = predicted.constructions.blue;
+        converted.red.constructions = predicted.constructions.red;
+        crate::reinforcement::fill_recorded_checkpoints(
+            economy,
+            &mut converted,
+            &record.match_rounds.entries,
+        )?;
+    }
     Ok(converted)
 }
 
@@ -291,7 +305,9 @@ pub fn document(economy: &Economy, grbr: &[u8]) -> Result<Converted, String> {
                 .into(),
         );
     }
-    deal_lands_on_the_record(economy, &record::read(grbr)?, &stated)?;
+    if stated.has_opening {
+        deal_lands_on_the_record(economy, &record::read(grbr)?, &stated)?;
+    }
     Ok(Converted {
         r#match,
         yaml,
@@ -399,11 +415,9 @@ fn pool_lands_on_the_recorded_log(
             .map(|excluded| excluded.round)
             .collect();
         if recorded != excluded
-            || entry
-                .excluded_rounds
-                .entries
-                .iter()
-                .any(|excluded| excluded.ids.values != level_four_skills)
+            || entry.excluded_rounds.entries.iter().any(|excluded| {
+                !crate::reinforcement::same_excluded_cards(&excluded.ids.values, &level_four_skills)
+            })
         {
             return Err(format!(
                 "round {} excludes other reinforcements than the deal does",
@@ -469,6 +483,7 @@ fn match_side(
     player: &record::PlayerRecord,
     seat: Seat,
     dealt: Vec<OpeningOffer>,
+    has_opening: bool,
 ) -> Result<MatchSide, String> {
     let mut loadout = BTreeMap::new();
     for row in &player.data.unit_datas.entries {
@@ -486,7 +501,14 @@ fn match_side(
             Seat::Blue => "blue".to_owned(),
             Seat::Red => "red".to_owned(),
         }),
-        opening: opening_taken(economy, player, seat, dealt)?,
+        opening: if has_opening {
+            opening_taken(economy, player, seat, dealt)?
+        } else {
+            Opening {
+                choose: None,
+                offers: dealt,
+            }
+        },
         // The map deals the layout before the first round and nothing adds to
         // it, so the first round's list is the one the side started with.
         constructions: constructions(&player.rounds.entries[OPENING_ROUNDS].data, seat)?,
@@ -573,10 +595,10 @@ fn side_state(
     // previous round's, and the slots the previous round spent are marked
     // for the opening to restart. The actions say which were spent, and the
     // snapshot marks the same ones active.
-    let spent: Vec<i32> = position
-        .checked_sub(1)
+    let previous = previous_round(player, position);
+    let spent: Vec<i32> = previous
         .map(|previous| {
-            net_actions(&player.rounds.entries[previous].actions.entries)
+            net_actions(&previous.actions.entries)
                 .iter()
                 .filter(|action| action.kind == "PAD_ReleaseCommanderSkill")
                 .filter_map(|action| action.skill_index)
@@ -588,8 +610,13 @@ fn side_state(
         .entries
         .iter()
         .map(|skill| {
-            let used = spent.contains(&skill.index);
-            if skill.active != used {
+            let previous_known = previous.is_some();
+            let used = if previous_known {
+                spent.contains(&skill.index)
+            } else {
+                skill.active
+            };
+            if previous_known && skill.active != used {
                 return Err(format!(
                     "round {round} {} marks slot {} {}, and the round before {} it",
                     seat.name(),
@@ -729,6 +756,38 @@ fn player_stream(
                 seat.name()
             )
         })?;
+    if player
+        .rounds
+        .entries
+        .get(1)
+        .is_some_and(|first| first.round != 1)
+        || player.rounds.entries[0].actions.entries.is_empty()
+    {
+        if let Some(previous) = previous_round(player, position) {
+            let state = previous
+                .data
+                .random_state
+                .states
+                .values
+                .as_slice()
+                .try_into()
+                .map_err(|_| "previous round records no player stream".to_owned())?;
+            let mut stream = Stream::from_state(state)?;
+            stream.skip(crate::transition::player_draws(
+                economy,
+                &previous.data.officers.values,
+                previous.round,
+            ));
+            if stream.state() != recorded {
+                return Err(format!(
+                    "round {} {} player stream disagrees with the preceding recorded round",
+                    entry.round,
+                    seat.name()
+                ));
+            }
+        }
+        return Stream::from_state(recorded);
+    }
     let draws: u32 = player.rounds.entries[..position]
         .iter()
         .map(|earlier| {
@@ -892,16 +951,26 @@ fn energy_tower_debt(
     seat: Seat,
 ) -> Result<bool, String> {
     let entry = &player.rounds.entries[position];
-    let owed = position.checked_sub(1).is_some_and(|previous| {
-        net_actions(&player.rounds.entries[previous].actions.entries)
-            .iter()
-            .any(|action| {
-                action.kind == "PAD_ActiveEnergyTowerSkill"
-                    && action.skill_id == Some(RAPID_SUPPLY_SKILL)
-            })
+    let recorded = entry.data.energy_tower_skills.values.as_slice();
+    let previous = previous_round(player, position);
+    if previous.is_none() {
+        return match recorded {
+            [] => Ok(false),
+            [RAPID_SUPPLY_SKILL] => Ok(true),
+            _ => Err(format!(
+                "{} round {} has unsupported energy tower debt {recorded:?}",
+                seat.name(),
+                entry.round
+            )),
+        };
+    }
+    let owed = previous.is_some_and(|previous| {
+        net_actions(&previous.actions.entries).iter().any(|action| {
+            action.kind == "PAD_ActiveEnergyTowerSkill"
+                && action.skill_id == Some(RAPID_SUPPLY_SKILL)
+        })
     });
     let expected: &[i32] = if owed { &[RAPID_SUPPLY_SKILL] } else { &[] };
-    let recorded = entry.data.energy_tower_skills.values.as_slice();
     if recorded == expected {
         return Ok(owed);
     }
@@ -911,6 +980,19 @@ fn energy_tower_debt(
         seat.name(),
         entry.round
     ))
+}
+
+/// A cached placeholder is not evidence of the preceding round's decisions.
+fn previous_round(player: &record::PlayerRecord, position: usize) -> Option<&PlayerRoundRecord> {
+    let entry = player.rounds.entries.get(position)?;
+    player
+        .rounds
+        .entries
+        .get(position.checked_sub(1)?)
+        .filter(|previous| {
+            previous.round.checked_add(1) == Some(entry.round)
+                && (previous.round > 0 || !previous.actions.entries.is_empty())
+        })
 }
 
 /// Collapses a recorded action list onto the decisions that took effect.

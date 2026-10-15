@@ -1059,7 +1059,11 @@ given one refuses and says so.
 
 The scene takes `--video <file>`, `--no-speed-up`, `--instrument a,b` and
 `--force`; a watch takes `--output-dir`, `--wait-for-scene-seconds` and
-`--match-timeout-seconds`. `apply_layout` and a recording of the scene remain
+`--entry-timeout-seconds`. The watch enters rooms displayed at round 2 or later,
+writes the available partial native replay to `work/watch/` by default as
+`BattleID-rN.grbr`, and leaves immediately. `--output-dir` accepts a relative
+or absolute directory. Duplicate rounds are skipped and rooms cool down for
+60 seconds after leaving. `apply_layout` and a recording of the scene remain
 the way to fight a layout a replay cannot state and to record a video.
 
 A [fight](../document/fight.md) document is recorded as its projection is,

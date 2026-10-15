@@ -5,7 +5,7 @@ use crate::operations;
 use crate::scheduler::{ConnectionId, Next, Scheduler, Waiting};
 use mechcore_protocol::{
     Admission, Claim, EVICTED_CODE, Evicted, GAME_STOPPED_CODE, GameIdentity, Hello,
-    InstrumentChannel, Leaving, MAX_LEVEL, MAX_STAGED_ROUND, MAX_WATCH_MATCH_TIMEOUT_SECONDS,
+    InstrumentChannel, Leaving, MAX_LEVEL, MAX_STAGED_ROUND, MAX_WATCH_ENTRY_TIMEOUT_SECONDS,
     MAX_WATCH_SCENE_WAIT_SECONDS, Operation, PROTOCOL, Queued, RecordFightArguments,
     RecordReplayRoundArguments, RecordWatchReplayArguments, Refused, Request, Response, Started,
 };
@@ -24,7 +24,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, OnceLock, PoisonError};
 use std::thread;
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, Instant};
 
 const SOCKET_ENV: &str = "MECHCORE_ADAPTER_SOCKET";
 /// Seconds a game waits for its next client before it quits itself. `mechcore`
@@ -52,12 +52,6 @@ const RECORDING_POLL_INTERVAL: Duration = Duration::from_millis(5);
 const REPLAY_LOAD_TIMEOUT: Duration = Duration::from_secs(60);
 const WATCH_LIST_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
 const WATCH_LIST_SETTLE_TIME: Duration = Duration::from_secs(1);
-const WATCH_ENTRY_TIMEOUT: Duration = Duration::from_secs(180);
-const WATCH_FINISH_POLL_INTERVAL: Duration = Duration::from_secs(1);
-const WATCH_FILE_POLL_INTERVAL: Duration = Duration::from_millis(250);
-const WATCH_AUTOSAVE_GRACE: Duration = Duration::from_secs(10);
-const WATCH_EXPLICIT_SAVE_TIMEOUT: Duration = Duration::from_secs(30);
-const WATCH_REPLAY_STABLE_SAMPLES: usize = 3;
 
 #[derive(Debug)]
 pub enum RuntimeError {
@@ -967,23 +961,15 @@ fn bind_listener(path: &Path) -> Result<UnixListener, RuntimeError> {
     Ok(listener)
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-struct ReplayFileState {
-    len: u64,
-    modified: SystemTime,
-}
-
-/// Own one watched match from main menu back to main menu. Keeping scene
-/// selection, native save detection and cleanup in one adapter request prevents
-/// another client from interleaving operations with a long unattended capture.
+/// Enter a later-round watch scene, export its available replay, and leave.
+/// Selection, native serialization and cleanup own one adapter turn throughout.
 #[allow(clippy::too_many_lines)]
 fn execute_watch_replay_series(runtime: &mut Runtime, request: &Request) -> Response<Value> {
     if crate::offline::sandboxed() {
         return Response::failure(
             request.id,
             "invalid_game_state",
-            "record_watch_replay watches the server's matches, and this game was started \
-             offline; launch it with the network to watch",
+            "record_watch_replay needs an online game; launch it with the network to watch",
         );
     }
     let arguments: RecordWatchReplayArguments =
@@ -993,59 +979,26 @@ fn execute_watch_replay_series(runtime: &mut Runtime, request: &Request) -> Resp
                 return Response::failure(request.id, "invalid_arguments", error.to_string());
             }
         };
-    if arguments.wait_for_scene_seconds == 0
-        || arguments.wait_for_scene_seconds > MAX_WATCH_SCENE_WAIT_SECONDS
+    if !(1..=MAX_WATCH_SCENE_WAIT_SECONDS).contains(&arguments.wait_for_scene_seconds)
+        || !(1..=MAX_WATCH_ENTRY_TIMEOUT_SECONDS).contains(&arguments.entry_timeout_seconds)
     {
         return Response::failure(
             request.id,
             "invalid_arguments",
-            format!("wait_for_scene_seconds must be 1..={MAX_WATCH_SCENE_WAIT_SECONDS}"),
+            "watch time budgets are out of range",
         );
     }
-    if arguments.match_timeout_seconds < 60
-        || arguments.match_timeout_seconds > MAX_WATCH_MATCH_TIMEOUT_SECONDS
-    {
+    let directory = &arguments.output_dir;
+    if !directory.is_absolute() || !directory.is_dir() {
         return Response::failure(
             request.id,
             "invalid_arguments",
-            format!("match_timeout_seconds must be 60..={MAX_WATCH_MATCH_TIMEOUT_SECONDS}"),
+            "output_dir must be an existing absolute directory",
         );
     }
-    let output_dir = match arguments.output_dir.as_deref() {
-        Some(path) if !path.is_absolute() || !path.is_dir() => {
-            return Response::failure(
-                request.id,
-                "invalid_arguments",
-                "record_watch_replay output_dir must be an existing absolute directory",
-            );
-        }
-        Some(path) => match path.canonicalize() {
-            Ok(path) => Some(path),
-            Err(error) => {
-                return Response::failure(
-                    request.id,
-                    "invalid_arguments",
-                    format!("cannot resolve output_dir: {error}"),
-                );
-            }
-        },
-        None => None,
-    };
-    let replay_dir = match native_replay_directory() {
-        Ok(path) => path,
-        Err(error) => {
-            return Response::failure(request.id, "native_replay_directory", error);
-        }
-    };
-    let baseline = match replay_snapshot(&replay_dir) {
-        Ok(snapshot) => snapshot,
-        Err(error) => {
-            return Response::failure(
-                request.id,
-                "native_replay_directory",
-                format!("cannot snapshot {}: {error}", replay_dir.display()),
-            );
-        }
+    let mut visits = match crate::watch::Visits::load(directory) {
+        Ok(visits) => visits,
+        Err(error) => return Response::failure(request.id, "watch_history_io", error),
     };
     let before = match successful_result(execute_internal_on_main(
         runtime,
@@ -1062,21 +1015,19 @@ fn execute_watch_replay_series(runtime: &mut Runtime, request: &Request) -> Resp
             format!("record_watch_replay requires main_menu: {before}"),
         );
     }
-
-    let scene_deadline = Instant::now() + Duration::from_secs(arguments.wait_for_scene_seconds);
+    let deadline = Instant::now() + Duration::from_secs(arguments.wait_for_scene_seconds);
     let mut last_selection = Value::Null;
-    let scene = loop {
+    loop {
         if abandoning() {
             return abandoned_response(request.id);
         }
-        if Instant::now() >= scene_deadline {
-            return watch_failure_after_cleanup(
-                runtime,
+        if Instant::now() >= deadline {
+            return Response::success(
                 request.id,
-                "operation_timeout",
-                format!(
-                    "timed out waiting for an eligible round-one standard 1v1 watch scene; last selection: {last_selection}"
-                ),
+                serde_json::json!({
+                    "recorded": false, "skipped": true, "reason": "no_eligible_scene",
+                    "scene": last_selection, "status": before,
+                }),
             );
         }
         if let Err(response) = successful_result(execute_internal_on_main(
@@ -1086,314 +1037,109 @@ fn execute_watch_replay_series(runtime: &mut Runtime, request: &Request) -> Resp
         )) {
             return watch_response_after_cleanup(runtime, request.id, &response);
         }
-        thread::sleep(WATCH_LIST_SETTLE_TIME);
+        thread::sleep(
+            WATCH_LIST_SETTLE_TIME.min(deadline.saturating_duration_since(Instant::now())),
+        );
+        if Instant::now() >= deadline {
+            continue;
+        }
         let selection = match successful_result(execute_internal_on_main(
             runtime,
             request.id,
-            operations::InternalOperation::StartEligibleWatch,
+            operations::InternalOperation::StartEligibleWatch(visits.clone()),
         )) {
             Ok(selection) => selection,
             Err(response) => return watch_response_after_cleanup(runtime, request.id, &response),
         };
         last_selection = selection.clone();
-        if selection.get("started").and_then(Value::as_bool) == Some(true) {
-            let entry = wait_status(
-                runtime,
-                request.id,
-                &StatusWait {
-                    deadline: Instant::now() + WATCH_ENTRY_TIMEOUT,
-                    interval: LAYOUT_STATUS_INTERVAL,
-                    description: "round-one watch match entry",
-                    stable_samples: LAYOUT_DEPLOYMENT_STABLE_SAMPLES,
-                },
-                abandoning,
-                |status| {
-                    status.get("status").and_then(Value::as_str) == Some("spectating")
-                        && status.get("round_count").and_then(Value::as_i64) == Some(1)
-                        && status.get("fight_ready").and_then(Value::as_bool) == Some(true)
-                },
+        if selection.get("started").and_then(Value::as_bool) != Some(true) {
+            thread::sleep(
+                WATCH_LIST_REFRESH_INTERVAL
+                    .saturating_sub(WATCH_LIST_SETTLE_TIME)
+                    .min(deadline.saturating_duration_since(Instant::now())),
             );
-            match entry {
-                Ok(_) => break selection,
-                Err(response) if abandoned(&response) => return response,
-                Err(response)
-                    if response
-                        .error
-                        .as_ref()
-                        .is_some_and(|error| error.code == "operation_timeout") =>
-                {
-                    if let Err(cleanup) = return_to_main_menu(runtime, request.id) {
-                        let cleanup = cleanup
-                            .error
-                            .as_ref()
-                            .map_or("unknown cleanup error", |error| error.message.as_str());
-                        return Response::failure(
-                            request.id,
-                            "watch_cleanup_failed",
-                            format!(
-                                "stale watch scene did not enter and cleanup failed: {cleanup}"
-                            ),
-                        );
-                    }
-                    continue;
-                }
-                Err(response) => {
-                    return watch_response_after_cleanup(runtime, request.id, &response);
-                }
-            }
+            continue;
         }
-        thread::sleep(WATCH_LIST_REFRESH_INTERVAL.saturating_sub(WATCH_LIST_SETTLE_TIME));
-    };
+        let scene_id = selection
+            .get("scene_id")
+            .and_then(Value::as_i64)
+            .and_then(|id| i32::try_from(id).ok())
+            .expect("selected scene id");
+        let entry_deadline =
+            deadline.min(Instant::now() + Duration::from_secs(arguments.entry_timeout_seconds));
+        let saved = collect_watch_cache(runtime, request.id, directory, entry_deadline);
+        if saved.as_ref().err().is_some_and(abandoned) {
+            // The scheduler owns cleanup on eviction. Remember this attempted entry too.
+            let _ = visits.left(directory, scene_id);
+            return saved.unwrap_err();
+        }
+        let cleanup = match return_to_main_menu(runtime, request.id) {
+            Ok(status) => status,
+            Err(response) => return response,
+        };
+        if let Err(error) = visits.left(directory, scene_id) {
+            return Response::failure(request.id, "watch_history_io", error);
+        }
+        let mut result = match saved {
+            Ok(result) => result,
+            Err(response)
+                if response
+                    .error
+                    .as_ref()
+                    .is_some_and(|error| error.code == "operation_timeout") =>
+            {
+                serde_json::json!({"recorded": false, "skipped": true, "reason": "entry_timeout", "detail": response.error})
+            }
+            Err(response) => return response,
+        };
+        result["scene"] = selection;
+        result["left_at_ms"] = serde_json::json!(crate::watch::now());
+        result["cleanup"] = serde_json::json!({"match_exited": true});
+        result["status"] = cleanup;
+        return Response::success(request.id, result);
+    }
+}
 
-    let finished = wait_status(
+fn collect_watch_cache(
+    runtime: &mut Runtime,
+    request_id: u64,
+    directory: &Path,
+    deadline: Instant,
+) -> Result<Value, Response<Value>> {
+    wait_status(
         runtime,
-        request.id,
+        request_id,
         &StatusWait {
-            deadline: Instant::now() + Duration::from_secs(arguments.match_timeout_seconds),
-            interval: WATCH_FINISH_POLL_INTERVAL,
-            description: "watched match finish",
+            deadline,
+            interval: LAYOUT_STATUS_INTERVAL,
+            description: "watch match entry",
             stable_samples: 1,
         },
         abandoning,
         |status| {
             status.get("status").and_then(Value::as_str) == Some("spectating")
-                && status.get("finished").and_then(Value::as_bool) == Some(true)
+                && status.get("fight_ready").and_then(Value::as_bool) == Some(true)
         },
-    );
-    if let Err(response) = finished {
-        // The match is abandoned mid-way and writes no recording. The adapter
-        // returns the game to the main menu once this client is gone, so the
-        // operation does not clean up on its way out.
-        if abandoned(&response) {
-            return response;
+    )?;
+    while Instant::now() < deadline {
+        if abandoning() {
+            return Err(abandoned_response(request_id));
         }
-        return watch_response_after_cleanup(runtime, request.id, &response);
-    }
-
-    let source = match wait_for_stable_replay(
-        &replay_dir,
-        &baseline,
-        Instant::now() + WATCH_AUTOSAVE_GRACE,
-        abandoning,
-    ) {
-        Ok(Some(path)) => path,
-        Ok(None) => {
-            // Waiting for the file to settle is a wait like any other: a claim
-            // ends it, and the game's own recording stays where it wrote it.
-            if abandoning() {
-                return abandoned_response(request.id);
-            }
-            if let Err(response) = successful_result(execute_internal_on_main(
-                runtime,
-                request.id,
-                operations::InternalOperation::SaveCurrentReplay,
-            )) {
-                return watch_response_after_cleanup(runtime, request.id, &response);
-            }
-            match wait_for_stable_replay(
-                &replay_dir,
-                &baseline,
-                Instant::now() + WATCH_EXPLICIT_SAVE_TIMEOUT,
-                abandoning,
-            ) {
-                Ok(Some(path)) => path,
-                Ok(None) if abandoning() => return abandoned_response(request.id),
-                Ok(None) => {
-                    return watch_failure_after_cleanup(
-                        runtime,
-                        request.id,
-                        "native_replay_missing",
-                        format!(
-                            "finished watch produced no stable .grbr in {}",
-                            replay_dir.display()
-                        ),
-                    );
-                }
-                Err(error) => {
-                    return watch_failure_after_cleanup(
-                        runtime,
-                        request.id,
-                        "native_replay_io",
-                        error,
-                    );
-                }
-            }
-        }
-        Err(error) => {
-            return watch_failure_after_cleanup(runtime, request.id, "native_replay_io", error);
-        }
-    };
-    let Some(file_name) = source.file_name() else {
-        return watch_failure_after_cleanup(
+        let result = successful_result(execute_internal_on_main(
             runtime,
-            request.id,
-            "native_replay_io",
-            format!("native replay has no file name: {}", source.display()),
-        );
-    };
-    let (output, published_copy) = match output_dir.as_deref() {
-        Some(directory) if directory != replay_dir => {
-            let output = directory.join(file_name);
-            if let Err(error) = copy_new_file(&source, &output) {
-                return watch_failure_after_cleanup(
-                    runtime,
-                    request.id,
-                    "publish_replay_failed",
-                    format!(
-                        "cannot publish {} to {}: {error}",
-                        source.display(),
-                        output.display()
-                    ),
-                );
-            }
-            (output, true)
+            request_id,
+            operations::InternalOperation::SaveCurrentReplay(directory.to_path_buf()),
+        ))?;
+        if result.get("ready").and_then(Value::as_bool) == Some(true) {
+            return Ok(result);
         }
-        _ => (source.clone(), false),
-    };
-
-    let cleanup = match return_to_main_menu(runtime, request.id) {
-        Ok(status) => status,
-        Err(response) => {
-            let message = response
-                .error
-                .as_ref()
-                .map_or("unknown cleanup error", |error| error.message.as_str());
-            return Response::failure(
-                request.id,
-                "watch_cleanup_failed",
-                format!(
-                    "published {}, but could not return to main_menu: {message}",
-                    output.display()
-                ),
-            );
-        }
-    };
-    Response::success(
-        request.id,
-        serde_json::json!({
-            "recorded": true,
-            "output": output,
-            "native_source": source,
-            "published_copy": published_copy,
-            "scene": scene,
-            "cleanup": {"match_exited": true},
-            "status": cleanup,
-        }),
-    )
-}
-
-fn native_replay_directory() -> Result<PathBuf, String> {
-    let executable =
-        env::current_exe().map_err(|error| format!("cannot locate game executable: {error}"))?;
-    native_replay_directory_from_executable(&executable)
-}
-
-fn native_replay_directory_from_executable(executable: &Path) -> Result<PathBuf, String> {
-    let app = executable.ancestors().nth(3).ok_or_else(|| {
-        format!(
-            "game executable is not inside a macOS app bundle: {}",
-            executable.display()
-        )
-    })?;
-    if app.extension().and_then(|value| value.to_str()) != Some("app") {
-        return Err(format!(
-            "game executable is not inside a macOS app bundle: {}",
-            executable.display()
-        ));
+        thread::sleep(LAYOUT_STATUS_INTERVAL);
     }
-    app.join("ProjectDatas")
-        .join("Replay")
-        .canonicalize()
-        .map_err(|error| format!("cannot resolve native Replay directory: {error}"))
-}
-
-fn replay_snapshot(directory: &Path) -> io::Result<BTreeMap<PathBuf, ReplayFileState>> {
-    let mut snapshot = BTreeMap::new();
-    for entry in fs::read_dir(directory)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.extension().and_then(|value| value.to_str()) != Some("grbr") {
-            continue;
-        }
-        let metadata = entry.metadata()?;
-        if metadata.is_file() {
-            snapshot.insert(
-                path,
-                ReplayFileState {
-                    len: metadata.len(),
-                    modified: metadata.modified()?,
-                },
-            );
-        }
-    }
-    Ok(snapshot)
-}
-
-fn newest_changed_replay(
-    baseline: &BTreeMap<PathBuf, ReplayFileState>,
-    current: &BTreeMap<PathBuf, ReplayFileState>,
-) -> Option<(PathBuf, ReplayFileState)> {
-    current
-        .iter()
-        .filter(|(path, state)| state.len > 0 && baseline.get(*path) != Some(*state))
-        .max_by(|(left_path, left), (right_path, right)| {
-            left.modified
-                .cmp(&right.modified)
-                .then_with(|| left_path.cmp(right_path))
-        })
-        .map(|(path, state)| (path.clone(), state.clone()))
-}
-
-fn wait_for_stable_replay(
-    directory: &Path,
-    baseline: &BTreeMap<PathBuf, ReplayFileState>,
-    deadline: Instant,
-    stop: impl Fn() -> bool,
-) -> Result<Option<PathBuf>, String> {
-    let mut last = None;
-    let mut stable = 0;
-    while Instant::now() < deadline && !stop() {
-        let current = replay_snapshot(directory)
-            .map_err(|error| format!("cannot read {}: {error}", directory.display()))?;
-        // An absent file is not a stable one: waiting out the whole deadline is
-        // what gives the game's own autosave its grace period.
-        if let Some(candidate) = newest_changed_replay(baseline, &current) {
-            if last.as_ref() == Some(&candidate) {
-                stable += 1;
-            } else {
-                last = Some(candidate);
-                stable = 1;
-            }
-            if stable >= WATCH_REPLAY_STABLE_SAMPLES {
-                return Ok(last.map(|(path, _)| path));
-            }
-        } else {
-            last = None;
-            stable = 0;
-        }
-        thread::sleep(WATCH_FILE_POLL_INTERVAL);
-    }
-    Ok(None)
-}
-
-fn copy_new_file(source: &Path, destination: &Path) -> io::Result<()> {
-    let mut input = fs::File::open(source)?;
-    let mut output = fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(destination)?;
-    let result = io::copy(&mut input, &mut output).and_then(|_| output.sync_all());
-    if let Err(error) = result {
-        drop(output);
-        if let Err(cleanup) = fs::remove_file(destination) {
-            eprintln!(
-                "mechcore-adapter: cannot remove partial watched replay {}: {cleanup}",
-                destination.display()
-            );
-        }
-        return Err(error);
-    }
-    Ok(())
+    Err(Response::failure(
+        request_id,
+        "operation_timeout",
+        "watched replay cache did not become available",
+    ))
 }
 
 /// Whether a failed wait stopped because the request was abandoned.
@@ -2428,68 +2174,6 @@ fn arm_endpoint_cleanup(endpoint: &Path) {
 mod tests {
     use super::*;
 
-    #[test]
-    fn native_replay_directory_is_derived_from_the_app_bundle() {
-        let root = tempfile::tempdir().unwrap();
-        let app = root.path().join("Mechabellum.app");
-        let replay = app.join("ProjectDatas/Replay");
-        fs::create_dir_all(&replay).unwrap();
-        let executable = app.join("Contents/MacOS/Mechabellum");
-        assert_eq!(
-            native_replay_directory_from_executable(&executable).unwrap(),
-            replay.canonicalize().unwrap()
-        );
-        assert!(native_replay_directory_from_executable(Path::new("/tmp/game")).is_err());
-    }
-
-    #[test]
-    fn newest_changed_replay_ignores_the_baseline_and_uses_mtime() {
-        let old = PathBuf::from("old.grbr");
-        let first = PathBuf::from("first.grbr");
-        let newest = PathBuf::from("newest.grbr");
-        let unchanged = ReplayFileState {
-            len: 10,
-            modified: SystemTime::UNIX_EPOCH + Duration::from_secs(1),
-        };
-        let baseline = BTreeMap::from([(old.clone(), unchanged.clone())]);
-        let current = BTreeMap::from([
-            (old, unchanged),
-            (
-                first,
-                ReplayFileState {
-                    len: 20,
-                    modified: SystemTime::UNIX_EPOCH + Duration::from_secs(2),
-                },
-            ),
-            (
-                newest.clone(),
-                ReplayFileState {
-                    len: 30,
-                    modified: SystemTime::UNIX_EPOCH + Duration::from_secs(3),
-                },
-            ),
-        ]);
-        assert_eq!(
-            newest_changed_replay(&baseline, &current).map(|(path, _)| path),
-            Some(newest)
-        );
-    }
-
-    #[test]
-    fn waiting_for_a_replay_gives_autosave_its_whole_grace_period() {
-        let root = tempfile::tempdir().unwrap();
-        let baseline = BTreeMap::new();
-        let grace = WATCH_FILE_POLL_INTERVAL * 4;
-        let started = Instant::now();
-        // This property is about an uninterrupted wait. Supplying that premise
-        // keeps a concurrent test of process-global eviction from changing it.
-        assert_eq!(
-            wait_for_stable_replay(root.path(), &baseline, started + grace, || false).unwrap(),
-            None
-        );
-        assert!(started.elapsed() >= grace, "returned before the deadline");
-    }
-
     /// A tick's rows answer exactly the channels asked for: a capture that
     /// drops one, or adds one nobody asked for, fails the recording rather
     /// than publishing a channel that means something else.
@@ -2541,18 +2225,6 @@ mod tests {
             asked,
         )
         .unwrap();
-    }
-
-    #[test]
-    fn replay_publication_is_create_new() {
-        let root = tempfile::tempdir().unwrap();
-        let source = root.path().join("native.grbr");
-        let output = root.path().join("corpus.grbr");
-        fs::write(&source, b"native recording").unwrap();
-        copy_new_file(&source, &output).unwrap();
-        assert_eq!(fs::read(&output).unwrap(), b"native recording");
-        assert!(copy_new_file(&source, &output).is_err());
-        assert_eq!(fs::read(&output).unwrap(), b"native recording");
     }
 
     #[test]

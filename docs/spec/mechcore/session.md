@@ -57,8 +57,8 @@ The game is shared ([adapter.md](../adapter/adapter.md#turns)), so every claim
 is greeted, however many clients are connected and whatever they are doing:
 
 ```json
-{"kind":"hello","protocol":"mechcore.adapter.v12","capabilities":["status", "..."],"game":{"adapter":"…","headless":true,"offline":true,"linger_seconds":30}}
-{"kind":"leaving","protocol":"mechcore.adapter.v12"}
+{"kind":"hello","protocol":"mechcore.adapter.v13","capabilities":["status", "..."],"game":{"adapter":"…","headless":true,"offline":true,"linger_seconds":30}}
+{"kind":"leaving","protocol":"mechcore.adapter.v13"}
 ```
 
 The one other answer is `leaving`, from a game that has started to quit. A
@@ -241,7 +241,7 @@ with a window every time. Where the exception was thrown was not caught, and a
 managed exception's error now names the frames it was thrown through, so the
 next one does. The sceneless path did not fail: the equipment fights record
 headless. Since the resolution check is answered, the scene path has passed
-headless online and offline, and `record_watch_replay` enters a round-one match
+headless online and offline, and `record_watch_replay` enters a live match
 headless, so every recording launches headless.
 
 A launch that finds an idle Adapter joins that game as it is, window or not,
