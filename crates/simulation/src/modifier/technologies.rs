@@ -1726,6 +1726,8 @@ impl TechnologyEffects {
                     time_q32: block.time,
                     distance: block.distance,
                     can_disable: true,
+                    main_skill_effect: row.main_skill_effect,
+                    extra_skill_effect: row.extra_skill_effect,
                 }),
                 rebirth,
                 dead_acid: row.dead_acid.as_ref().map(|block| {
@@ -2972,7 +2974,7 @@ mod tests {
             "schema: mechcore.technology_effects\n\
              technologies:\n\
              - {id: 9, name: probe, unit: rhino, kind: wreckageRecoveryTechnologies, \
-             wreckage: {time: 8589934592, distance: [15]}, damage_rate: [2576980377]}\n",
+             main_skill_effect: true, extra_skill_effect: true, wreckage: {time: 8589934592, distance: [15]}, damage_rate: [2576980377]}\n",
         )
         .unwrap();
         assert_eq!(table.corrections(&[9], "rhino", 1).unwrap().len(), 1);
@@ -2982,6 +2984,8 @@ mod tests {
                 time_q32: 2 << 32,
                 distance: vec![15],
                 can_disable: true,
+                main_skill_effect: true,
+                extra_skill_effect: true,
             })
         );
         assert_eq!(

@@ -958,12 +958,16 @@ technologies:
     name: Wreckage Recycling
     unit: rhino
     kind: wreckageRecoveryTechnologies
+    main_skill_effect: true
+    extra_skill_effect: true
     wreckage: {time: 8589934592, distance: [15]}  # 2 s
     damage_rate: [2576980377]  # +0.6
   - id: 2329
     name: Wreckage Recycling
     unit: abyss
     kind: wreckageRecoveryTechnologies
+    main_skill_effect: true
+    extra_skill_effect: true
     wreckage: {time: 8589934592, distance: [250]}  # 2 s
     damage_rate: [1503238553]  # +0.35
   - id: 2408
