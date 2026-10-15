@@ -1,0 +1,55 @@
+# Steel Balls keep attacking a shield as their dead lock is replaced.
+# Fang 3 dies at t491. Steel Balls 11 and 14 take Fortress 6 at t492,
+# continuing their attack and unit 14's shield hit on that tick. The native
+# quick-switch guard compares attackTarget, null on both sides of the shield
+# replacement, rather than the lock used for range and angle.
+# Full generated layout, native repeats 1437 ticks and core damage 0/351.
+# Comparing the locks instead stopped both attacks at t492 and settled 0/354.
+# Control: ../construction/wall-laser.yaml replaces an actor attack target.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 500249503
+round: 2
+blue:
+  core_damage: 0
+  officers: [advanced_targeting_system, cost_control_specialist, extended_range_fortress]
+  techs:
+    fortress: [doubleshot, barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: fortress, index: 0, position: {x: -260, y: -180}, level: 3, exp: 0/5699/5699, rotated: true, equipment: [dominion_core]}
+  - {name: wraith, index: 1, position: {x: 45, y: -105}, level: 6, exp: 0/1400/13047, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 65, y: -155}, retained: false}
+red:
+  core_damage: 351
+  officers: [advanced_shield_device, fortified_specialist, mass_produced_phoenix]
+  blueprints: [attack_enhancement_ii]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: phoenix, index: 0, position: {x: -110, y: -270}, level: 6, exp: 0/6908/7539, rotated: true, equipment: [haste_module], source: joined}
+  - {name: steel_ball, index: 1, position: {x: 85, y: -90}, level: 4, exp: 0/200/4490, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 180, y: -130}, retained: false}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: 210, y: 10}]}
+asserts:
+- sql: |-
+    SELECT tick,unit_id,enabled__lock_target__id,enabled__attack_target__id,enabled__state,enabled__attack_count,enabled__perform_count FROM units__skills WHERE tick BETWEEN 491 AND 493 AND unit_id IN (11,14) ORDER BY tick,unit_id
+  rows:
+  - [491, 11, 3, null, "attack", 18, 19]
+  - [491, 14, 3, null, "attack", 17, 18]
+  - [492, 11, 6, null, "attack", 18, 19]
+  - [492, 14, 6, null, "attack", 18, 19]
+  - [493, 11, 6, null, "attack", 19, 20]
+  - [493, 14, 6, null, "attack", 18, 19]
+- sql: |-
+    SELECT tick,source__id,target__kind,target__id,amount,skill_slot FROM events WHERE tick=492 AND type='damage' AND source__id=14 ORDER BY ordinal
+  rows:
+  - [492, 14, "shield", 1, 5136, 0]
+ticks: 1437
+hash: 26:b20acfeed3837c9f488af1db1e098d3a8a8ad6abf0c247ee929bfe7a778d9223
