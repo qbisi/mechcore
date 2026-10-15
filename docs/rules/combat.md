@@ -337,6 +337,12 @@ expire are already present. A unit changing team leaves its old opponents'
 lists immediately and appends to its new opponents' lists on the same turn.
 The same order is used by ordinary full-team fallback and alive searches.
 
+The spatial tree starts from `FightTeam.activeActors` in registration order:
+fixed towers, deployed units, crystal contraptions such as interceptors, then
+constructions. An interceptor precedes defensive wall blocks in this list.
+The tree retains the resulting node and element order when a range query
+collects candidates; a chain's random selection uses that order.
+
 When `CanAttackSameTarget` is true, a missing selection or one outside the
 slot's range makes the selector consider the held targets as well. A
 successful held-target selection replaces the first answer; without one, the
@@ -1211,6 +1217,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A crystal interceptor precedes defensive wall constructions in the initial
+  spatial tree, preserving which block a Raiden's chain randomly selects:
+  `tests/chain/interceptor-before-wall.yaml`.
+
 - Sandworm and Larva transitions continue after the last enemy dies,
   preserving inactive skill clocks and targets while holding-fire clocks
   still count: `tests/move_ability/transition-after-last-kill.yaml`.
@@ -1766,8 +1776,9 @@ not the game's native attack-type enum.
   ``FightQuadtree`1.Query``, and ``FightQuadtreeNode`1.Query`` takes the
   node's elements and then queries each node of its list.
 - A side's tree: `FightTeam.CreateQuadtree` inserts `activeActors` in
-  order, which `FightTeam.AddTower`, `FightTeam.AddMech` and
-  `FightTeam.AddConstruction` fill through `FightTeam.AddActor`;
+  order, which `FightTeam.AddTower`, `FightTeam.AddMech`,
+  `FightTeam.AddBuilding` and `FightTeam.AddConstruction` fill through
+  `FightTeam.AddActor`;
   ``FightQuadtreeNode`1.Split`` and ``FightQuadtreeNode`1.RemoveElement``.
 - Repair: `AutoRecoveryEffectProvider.DoActive` adds a unit to its side's
   `TeamAutoRecoveryManager`, whose `AutoRecoveryController` constructor
