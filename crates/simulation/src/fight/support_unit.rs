@@ -851,11 +851,14 @@ impl Simulation {
     /// technologies and Energy Tower skills wrote onto it. A shot it fired
     /// that lands later strikes without them. A deployed unit is no summon,
     /// and keeps them.
-    pub(in crate::fight) fn clear_dead_summons(&mut self) -> Result<()> {
-        for actor in self.actors.values_mut() {
-            if !actor.summoned || actor.alive() || actor.placement.effects.corrections.is_empty() {
-                continue;
-            }
+    /// This listener runs before a struck unit's wreckage-recovery listener,
+    /// so recovery reads the maximum life after these sources were removed.
+    pub(in crate::fight) fn clear_dead_summon(&mut self, unit_id: u64) -> Result<()> {
+        let actor = self
+            .actors
+            .get_mut(&unit_id)
+            .expect("actor identity is stable");
+        if actor.summoned && !actor.alive() {
             for (channel, entry) in std::mem::take(&mut actor.placement.effects.corrections) {
                 actor.stats.overlays.channel(channel).withdraw(entry.source);
             }

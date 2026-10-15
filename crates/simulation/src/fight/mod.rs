@@ -1333,10 +1333,14 @@ impl Simulation {
             // `FightMech.OnDead` raises `OnMechDead`, which a side's
             // `TeamWreckageRecoveryManager` registered with for each unit
             // its holders struck.
-            self.remove_produced_mech(unit_id);
-            self.wreckage_on_dead(unit_id)?;
             // `FightEffectSystem.DeactiveEffect` of the dead unit.
             self.deactive_effect(unit_id)?;
+            self.remove_produced_mech(unit_id);
+            // `SummonSystem.RemoveMech` was registered when the unit joined,
+            // before a later strike registered wreckage recovery. Destroying
+            // the summon removes its data before recovery reads its life.
+            self.clear_dead_summon(unit_id)?;
+            self.wreckage_on_dead(unit_id)?;
             // `SkillManager.OnOwnerDead` stops its skills, a control beam's
             // `ControllEffect` among them: the Rhino a Hacker was turning
             // holds no entry from the tick the Hacker dies.
@@ -1352,7 +1356,6 @@ impl Simulation {
         for unit_id in std::mem::take(&mut self.turned_fallen) {
             self.turned_unit_died(unit_id, &mut events)?;
         }
-        self.clear_dead_summons()?;
         self.drop_dead_owners_lines();
         self.deactivate_dead_interceptions();
         // Its `TryProcessDeadImportantUnit` too: a side whose last important

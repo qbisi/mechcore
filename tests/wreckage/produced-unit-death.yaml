@@ -1,0 +1,54 @@
+# A Rhino recycles a Tank Production Line Sledgehammer with Defense
+# Enhancement II. Unit 26 holds 5043 maximum life before death, but the
+# summon listener clears its effects before wreckage recovery reads 3478.
+# At tick 874 the Rhino gains 651 from stealing life and then 3478 from
+# the wreckage. The complete layout settles 440/0 in 973 ticks.
+# Controls: rhino.yaml and production/crawler-production.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1833411254
+round: 3
+blue:
+  core_damage: 440
+  officers: [advanced_shield_device, advanced_defensive_tactics, speed_specialist, mass_produced_rhino]
+  techs:
+    rhino: [field_maintenance, whirlwind, wreckage_recycling, power_armor, final_blitz, armor_enhancement, mechanical_rage, photon_coating, combat_evolvement]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: rhino, index: 0, position: {x: -175, y: -35}, level: 3, exp: 2048/4096/4096, rotated: true, equipment: [haste_module]}
+  - {name: sledgehammer, index: 1, position: {x: 105, y: -40}, level: 6, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -55, y: -130}, retained: false}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: -180, y: -100}]}
+red:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, aerial_specialist, improved_overlord]
+  techs:
+    overlord: [high_explosive_ammo, field_maintenance, overlord_artillery, mothership, jump_drive, armor_enhancement, range_enhancement, launcher_overload, photon_emission]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: overlord, index: 0, position: {x: -325, y: 225}, level: 2, exp: 3943/3943/3943, equipment: [tank_production_line]}
+  - {name: tarantula, index: 1, position: {x: -65, y: -85}, level: 6, exp: 0/2640/8698, source: joined}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: 245, y: 135}, {x: -220, y: -140}], grid_rows: {0: [], 1: [], 2: [240, 508, 510, 1022, 1023, 2047, 2047, 4095, 2046, 2046, 1020, 240], 3: [], 4: []}}
+asserts:
+- sql: |-
+    SELECT tick,type,object__kind,object__id,target__kind,target__id,amount FROM events WHERE tick=874 ORDER BY ordinal
+  rows:
+  - [874, "damage", null, null, "unit", 26, 5043]
+  - [874, "projectile_released", "projectile", 136, "unit", 6, null]
+  - [874, "healing", null, null, "unit", 6, 651]
+  - [874, "unit_died", "unit", 26, null, null, null]
+  - [874, "healing", null, null, "unit", 6, 3478]
+- sql: |-
+    SELECT tick,unit_id,life__current,life__maximum FROM units WHERE tick=873 AND unit_id=26 OR tick=874 AND unit_id=6 ORDER BY tick,unit_id
+  rows:
+  - [873, 26, 5043, 5043]
+  - [874, 6, 45578, 144727]
+ticks: 973
+hash: 26:92f3464a6e063cbb2ab0746de3003ca747c6d81e9c81800630b3f64c831da471

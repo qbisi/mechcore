@@ -650,6 +650,13 @@ A Rhino that fells a Marksman takes its 1622; two Rhinos that fell a Vulcan
 take half its 30279 each, held to what each lacks. A holder disabled still
 heals for what it struck before.
 
+A summoned unit's maximum is read after its summon listener destroys it
+(`SummonSystem.RemoveMech`, `FightController.DestroyMech`,
+`FightEffectSystem.ClearEffect`). That listener was registered as it joined,
+before a holder's hit registered recovery. The effects removed there no
+longer increase the life recovered; the life the unit had before death does
+not decide the share.
+
 ## Rebirth technologies
 
 A row of `rebirthEffectTechologyDatas` is a `RebirthTech`, an `IDeadEffect`
@@ -1805,6 +1812,9 @@ derive (a minimum range):
   Two Rhinos that fell a Vulcan both heal:
   `tests/wreckage/split.yaml`. Disabled, it heals for no one it
   strikes: `tests/wreckage/disabled.yaml`.
+  A produced Sledgehammer loses its Defense Enhancement II life correction
+  before its wreckage heals a Rhino:
+  `tests/wreckage/produced-unit-death.yaml`.
 - Field Reassembly brings each Typhoon back where it fell 100 updates after
   it dies, its whole life and its attack time at its interval, once: the
   second waits a tick longer as the first rises before it,
