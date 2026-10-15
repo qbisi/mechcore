@@ -199,14 +199,11 @@ impl Simulation {
                 // not enabled before it asks anything else.
                 SkillState::Attack(blow) => {
                     if self.between_blows(main, Some(slot), step)
-                        && (self.skill(main).sibling(slot).disabled
-                            || self.attacks_fallen_construction(main, Some(slot))
-                            || !self.check_attackable_slot(
-                                main,
-                                Some(slot),
-                                true,
-                                target_search_order,
-                            )?)
+                        && !self.attack_state_check_attackable(
+                            main,
+                            Some(slot),
+                            target_search_order,
+                        )?
                     {
                         self.finish_group_slot(main, slot, step, cooling_steps);
                     } else if let Blow::Before(pending) = blow {
