@@ -447,6 +447,12 @@ its backswing, and came back into its attack out of angle, fires on the first
 tick its target is in its angle
 (`tests/shield/barrier-fortress-vs-wasps.yaml`).
 
+A projectile burst already releasing suspends its skill's target checks.
+Its motion still tests range and turns towards the target; it does not add
+an independent attack-angle rejection. A bodyless unit keeps turning and
+releasing the burst when a close target crosses its arc. The skill's checks
+resume after the last projectile.
+
 ## Normal target scoring and pre-fight acquisition
 
 Among currently visible, fully rotated, unsplit-quadtree ordinary ground targets
@@ -1233,6 +1239,9 @@ not the game's native attack-type enum.
   `tests/corpus/268487043-r4.yaml`; in replay 134270595 round 4 the
   back row of a Fang formation faced 270 degrees and its other rows 0, read
   from `PresearchTargetController.SearchTarget` with a temporary hook.
+- A Phantom Ray keeps its close Steel Ball target through both projectiles
+  while its root turns, then resumes the skill check and cools:
+  `tests/projectile/bodyless-burst-target-crosses-arc.yaml`.
 - A Steel Ball's avoidance trace selects the slightly smaller speed term
   within tolerance and publishes the resulting velocity four ticks later:
   `tests/avoidance/trace-step-tolerance.yaml`.
@@ -1424,6 +1433,11 @@ not the game's native attack-type enum.
   `tests/projectile/keeps-domain-when-target-takes-off.yaml`.
 
 ### Read
+
+- A burst suspends skill target checks, while motion only tests range and
+  turns: `ProjectileMultiAttackPerformer.IsEnableCheckTarget`,
+  `SkillAttackState.Update`, `MotionAttackState.Update`,
+  `MotionAttackState.AttackRotate`.
 
 - Avoidance trace step-size ties use the speed term, and the next boundary
   publishes the solve: `GRPF.RVO.Sampled.Agent.Trace`, `FPoint.Max`,
