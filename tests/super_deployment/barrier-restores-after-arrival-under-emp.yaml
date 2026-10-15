@@ -1,0 +1,73 @@
+# A travelling Fortress receives EMP before arriving. Its technology Barrier
+# is activated full on arrival at tick 81, then disabled with 280000 energy
+# saved. The battlefield shield stays inactive and empty until EMP expires
+# at tick 141; enabling restores that energy. barrier-rises-on-arrival.yaml
+# is the control without EMP. The Farseer's EMP buff names unit 3 as its
+# source and the travelling Fortress, unit 27, as its target.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1766066050
+round: 3
+blue:
+  core_damage: 762
+  officers: [advanced_shield_device, advanced_targeting_system, sabertooth_specialist, fortified_farseer]
+  techs:
+    farseer: [burst_mode, electromagnetic_explosion, aerial_specialization, missile_interceptor, range_enhancement, photon_emission, scanning_radar]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: farseer, index: 0, position: {x: -285, y: -275}, level: 9, exp: 6054/6054/12109, equipment: [haste_module]}
+  - {name: sabertooth, index: 1, position: {x: 165, y: -55}, exp: 0/209/1300, source: delivered}
+  - {name: crawler, index: 2, position: {x: 115, y: -270}, level: 8, exp: 0/15/3027, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -80, y: -150}, retained: false}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: 295, y: -60}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, quick_teleport, fortified_specialist, extended_range_fortress]
+  techs:
+    fortress: [doubleshot, barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
+  blueprints: [attack_enhancement]
+  units:
+  - {name: fortress, index: 0, position: {x: 320, y: 70}, level: 7, exp: 0/10074/10074, equipment: [photon_coating], travelling: true, source: joined}
+  - {name: fortress, index: 1, position: {x: 180, y: -120}, level: 6, exp: 0/2680/9278, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 155, y: -130}}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: 245, y: -165}]}
+asserts:
+- sql: |
+    SELECT tick, active, energy__current, controller__enabled,
+           controller__energy_record
+    FROM shields
+    WHERE shield_id = 4 AND tick IN (1, 80, 81, 82, 140, 141)
+    ORDER BY tick;
+  rows:
+  - [1, 0, 0, 1, 0]
+  - [80, 0, 0, 1, 0]
+  - [81, 0, 0, 0, 280000]
+  - [82, 0, 0, 0, 280000]
+  - [140, 0, 0, 0, 280000]
+  - [141, 1, 280000, 1, 280000]
+- sql: |
+    SELECT tick, type, source__kind, source__id, target__kind, target__id, buff_id
+    FROM events
+    WHERE type = 'buff_applied' AND target__kind = 'unit'
+      AND target__id = 27 AND buff_id = 1026
+    ORDER BY tick
+    LIMIT 1;
+  rows:
+  - [41, "buff_applied", "unit", 3, "unit", 27, 1026]
+- sql: |
+    SELECT tick, type, target__kind, target__id, buff_id
+    FROM events
+    WHERE type = 'buff_removed' AND target__kind = 'unit'
+      AND target__id = 27 AND buff_id = 1026
+    ORDER BY tick;
+  rows:
+  - [141, "buff_removed", "unit", 27, 1026]
+ticks: 718
+hash: 26:d2540e8b89ff19b975316981017713cf9bae92411b87b4f377a6d88aa304af3e
