@@ -1,0 +1,71 @@
+# A decided fight still runs a Sandworm's inactive-manager transition.
+# Its queued move enters at 438, and its next surfacing creates a Larva
+# at 439. Holding-fire skills keep counting; inactive skills keep their
+# frozen clocks, rather than being made ready or stopped early.
+# Control: larva-pending-attack-transition.yaml. Two native recordings
+# agree for every tick and settlement.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1939902493
+round: 2
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_defensive_tactics, marksman_specialist]
+  techs:
+    sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sandworm, index: 0, position: {x: 30, y: -180}, exp: 1000/2000/2000, equipment: [barrier]}
+  - {name: marksman, index: 1, position: {x: 240, y: -150}, level: 3, exp: 0/1457/2315, source: delivered}
+  - {name: sandworm, index: 2, position: {x: -140, y: -140}, level: 5, exp: 0/3000/10421, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 225, y: -300}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 100, y: -170}]}
+red:
+  core_damage: 910
+  officers: [advanced_shield_device, advanced_power_system, marksman_specialist]
+  techs:
+    hacker: [enhanced_control]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: hacker, index: 0, position: {x: 45, y: -175}, level: 4, exp: 2515/2515/2515, rotated: true, equipment: [small_amplifying_core]}
+  - {name: marksman, index: 1, position: {x: -100, y: -270}, level: 3, source: delivered}
+  - {name: wasp, index: 2, position: {x: -85, y: -70}, level: 9, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -20, y: -200}}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: 285, y: 250}, {x: 95, y: -70}]}
+asserts:
+- sql: |-
+    SELECT u.tick,u.unit_id,u.motion_state,k.enabled__attack_time,k.enabled__current_attack_interval,k.enabled__attack_target__kind,k.enabled__attack_target__id FROM units u JOIN units__skills k USING(tick,unit_id) WHERE k.skill_slot=0 AND ((u.unit_id=3 AND u.tick IN (430,431,437,438,439,459)) OR (u.unit_id IN (1,20,21) AND u.tick IN(430,431,432))) ORDER BY u.tick,u.unit_id
+  rows:
+  - [430, 1, moving, 144, 34, unit, 17]
+  - [430, 3, transitioning, 36, 34, unit, 17]
+  - [430, 20, moving, 158, 40, building, 8]
+  - [430, 21, moving, 24, 40, building, 8]
+  - [431, 1, transitioning, 145, 34, null, null]
+  - [431, 3, transitioning, 36, 34, unit, 17]
+  - [431, 20, transitioning, 159, 40, null, null]
+  - [431, 21, transitioning, 25, 40, null, null]
+  - [432, 1, transitioning, 145, 34, null, null]
+  - [432, 20, transitioning, 159, 40, null, null]
+  - [432, 21, transitioning, 25, 40, null, null]
+  - [437, 3, transitioning, 36, 34, unit, 17]
+  - [438, 3, moving, 36, 34, unit, 17]
+  - [439, 3, transitioning, 37, 34, null, null]
+  - [459, 3, idle, 34, 34, null, null]
+- sql: |-
+    SELECT tick,type,object__id,unit_type_id,formation_id FROM events WHERE tick>=430 AND type='unit_created' ORDER BY tick,ordinal
+  rows:
+  - [431, unit_created, 22, 1001, 11]
+  - [439, unit_created, 23, 1001, 12]
+ticks: 459
+hash: 26:f7de545ecbfc1bfe07d4da49311e03fce6c4af2f7e76405f2e76b039d92edf23

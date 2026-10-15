@@ -1152,11 +1152,17 @@ last death has already searched this tick and holds what it held.
 unit, every unit updates with the fight off, and no skill runs its state
 machine. A skill that holds a lock leaves the fight: its attack stops, a
 burst still firing included, it goes idle, and its lock is cleared. A skill
-that holds none is not updated at all. A manager holding fire, a Sandworm's
-below, is the exception (`SkillManager.Update` asks `isHoldFire` first): it
+that holds none is not updated at all. An inactive manager returns before
+this path: its clocks and targets stay as they were, and its motion's
+transition continues. A manager holding fire, a Sandworm's below, is another
+exception (`SkillManager.Update` asks `isActive` before `isHoldFire`): it
 updates its main skill as in a fight, so a Sandworm below whose lock died
 with the fight searches, takes the defeated side's tower and walks on to it
 until the fight ends.
+
+A transition that reactivates its manager does so after that tick's skill
+update was skipped. Its queued motion state enters intact and updates on
+the following tick, even when the last enemy has already died.
 
 **When the fight stops, a unit's motion loses its target, and one that was
 moving stops.** `MotionIdleState.Enter` calls `RVOControllerFixed.StopMove`,
@@ -1202,6 +1208,10 @@ not the game's native attack-type enum.
 ## Evidence
 
 ### Recorded
+
+- Sandworm and Larva transitions continue after the last enemy dies,
+  preserving inactive skill clocks and targets while holding-fire clocks
+  still count: `tests/move_ability/transition-after-last-kill.yaml`.
 
 - Summoned Wasps keep their facing for an equal-within-tolerance target
   angle and take a full turn when its remaining angle compares equal to
@@ -1528,7 +1538,8 @@ not the game's native attack-type enum.
   nothing turns the tick the motion changes to moving: `FightWeapon.CanRotate`,
   `FightSkill.Update`, `MotionAttackState.AttackRotate`,
   `MotionMoveState.NormalRotate`.
-- A manager holding fire updates its main skill whatever the fight does:
+- An inactive manager skips its non-fighting path, while an active manager
+  holding fire updates its main skill whatever the fight does:
   `SkillManager.Update`, `SkillManager.EnterHoldFire`.
 - A projectile preserves its creation-time target domain for range damage;
   a single hit names the target directly: `FightProjectile.Init`,
