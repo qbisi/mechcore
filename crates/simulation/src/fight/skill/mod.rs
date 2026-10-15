@@ -366,9 +366,11 @@ impl SkillManager {
             .chain(self.extras.iter_mut().map(|extra| &mut extra.skill));
         for skill in skills {
             skill.attack_time_anchor += 1;
+            skill.attack_time_step += 1;
             skill.hold_cooling();
             for sibling in skill.siblings_mut() {
                 sibling.attack_time_anchor += 1;
+                sibling.attack_time_step += 1;
                 sibling.hold_cooling();
             }
         }
@@ -383,9 +385,11 @@ impl SkillManager {
         for skill in skills {
             skill.attack_time_anchor =
                 step - i64::try_from(skill.current_attack_interval).unwrap_or(i64::MAX);
+            skill.attack_time_step = step;
             for sibling in skill.siblings_mut() {
                 sibling.attack_time_anchor =
                     step - i64::try_from(sibling.current_attack_interval).unwrap_or(i64::MAX);
+                sibling.attack_time_step = step;
             }
         }
     }
@@ -400,10 +404,12 @@ impl SkillManager {
         for skill in skills {
             skill.next_attack_step = skill.next_attack_step.saturating_add(1);
             skill.attack_time_anchor += 1;
+            skill.attack_time_step += 1;
             skill.hold_cooling();
             for sibling in skill.siblings_mut() {
                 sibling.next_attack_step = sibling.next_attack_step.saturating_add(1);
                 sibling.attack_time_anchor += 1;
+                sibling.attack_time_step += 1;
                 sibling.hold_cooling();
             }
         }
@@ -567,6 +573,10 @@ pub(in crate::fight) struct Skill {
     /// a refresh of the interval sets to the interval. A recording carries
     /// `attackTime`; the attack itself is scheduled by `next_attack_step`.
     pub(in crate::fight) attack_time_anchor: i64,
+    /// The last clock boundary this skill reached. Before its update, a
+    /// data refresh reads the preceding boundary, not this tick's future
+    /// increment. Held clocks advance this boundary with their anchor.
+    pub(in crate::fight) attack_time_step: i64,
     /// What the mech's body is directed at: the target its search found, which
     /// it moves toward and which a unit with a body keeps facing while it
     /// attacks. A recording carries it as `mech_lock_target`.
@@ -707,6 +717,7 @@ impl Skill {
             next_attack_step: 0,
             current_attack_interval: 0,
             attack_time_anchor: 0,
+            attack_time_step: -1,
             lock_target: None,
             in_the_way: None,
             kept_attack_target: None,
@@ -771,14 +782,21 @@ impl Skill {
         }
     }
 
-    /// `FightSkill.RefreshDatas`: discard the sampled stagger while keeping
-    /// the attack clock and rescheduling its next blow with the new interval.
-    pub(in crate::fight) fn refresh_datas(&mut self, interval: u64) {
+    /// `FightSkill.RefreshDatas`: discard the sampled stagger. A clock
+    /// exactly at its previous interval follows the new interval; any other
+    /// clock keeps its elapsed time.
+    pub(in crate::fight) fn refresh_datas(&mut self, interval: u64, step: u64) {
         let started = self
             .next_attack_step
             .saturating_sub(self.current_attack_interval);
+        let now = self.attack_time_step;
+        let ready = now - self.attack_time_anchor
+            == i64::try_from(self.current_attack_interval).unwrap_or(i64::MAX);
         self.current_attack_interval = interval;
-        if self.next_attack_step > 0 {
+        if ready {
+            self.attack_time_anchor = now - i64::try_from(interval).unwrap_or(i64::MAX);
+            self.next_attack_step = step;
+        } else if self.next_attack_step > 0 {
             self.next_attack_step = started.saturating_add(interval);
         }
     }
@@ -1064,6 +1082,7 @@ impl Skill {
                 disabled: sibling.disabled,
                 current_attack_interval: sibling.current_attack_interval,
                 attack_time_anchor: sibling.attack_time_anchor,
+                attack_time_step: sibling.attack_time_step,
                 beam: sibling.beam,
                 ..Self::sibling_entering(kind)
             };
@@ -1179,10 +1198,12 @@ impl Skill {
             self.current_attack_interval,
             self.attack_time_anchor,
         );
+        let clock_step = self.attack_time_step;
         for sibling in self.siblings_mut() {
             sibling.next_attack_step = due;
             sibling.current_attack_interval = interval;
             sibling.attack_time_anchor = anchor - i64::from(siblings_to_update);
+            sibling.attack_time_step = clock_step.saturating_sub(i64::from(siblings_to_update));
         }
     }
 
@@ -1780,6 +1801,7 @@ impl Simulation {
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
         events: &mut Vec<Event>,
     ) -> Result<Option<SkillUpdate>> {
+        self.skill_mut(skill_ref).attack_time_step = i64::try_from(step).unwrap_or(i64::MAX);
         // `SkillLockState` does not update.
         if self.skill(skill_ref).state == SkillState::Locked {
             return Ok(None);

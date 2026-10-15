@@ -1361,10 +1361,10 @@ impl Simulation {
             .ok_or_else(|| Error::new("a unit whose technologies switch is absent"))?
             .attack_interval_q32;
         let interval = super::math::seconds_q32_to_steps(interval_q32).max(1);
-        let skill = self.skill_mut(skill_ref);
-        skill.refresh_datas(interval);
+        let (step, skill) = (self.step_now, self.skill_mut(skill_ref));
+        skill.refresh_datas(interval, step);
         for sibling in skill.siblings_mut() {
-            sibling.refresh_datas(interval);
+            sibling.refresh_datas(interval, step);
         }
         Ok(())
     }
