@@ -1470,7 +1470,9 @@ whose own `DisableEffect` it does not mirror.
   the group's other clocks. A clock exactly equal to the old interval
   follows the new interval; any other elapsed clock keeps its time. A
   refresh before the skill updates reads the counter before that update's
-  increment.
+  increment. An already due first attack remains due when its interval is
+  unchanged, including a clock initialized beyond that interval before the
+  fight starts.
 - **A lifesteal's and a second damage's** providers take their hit effect
   away, which the fight asks of the unit at each hit.
 - **A Barrier's shield leaves its side's shields and comes back as it was.**
@@ -1693,6 +1695,10 @@ derive (a minimum range):
 ## Evidence
 
 ### Recorded
+
+- An EMP data refresh preserves the already elapsed clocks of Raiden's
+  first fusillade, and both siblings fire with the core:
+  `tests/raiden/emp-ready-fusillade.yaml`.
 
 - A dug-in Typhoon whose main skill loses its lock turns to the secondary
   skill now holding motion, then searches its main target from that facing:

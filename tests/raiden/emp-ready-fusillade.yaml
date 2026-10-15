@@ -1,0 +1,65 @@
+# EMP refreshes a Raiden whose first fusillade is already due. RefreshDatas
+# preserves elapsed attack time even when its clock started before the fight;
+# both siblings fire with the core on tick 2. Control: m3-crawler-4242.yaml.
+# Two native recordings agree for all 1754 ticks and settlement.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1181970897
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_targeting_system, fire_badger_specialist, assault_raiden]
+  techs:
+    raiden: [energy_shield, electromagnetic_shot, chain, ionization, range_enhancement, fork]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: raiden, index: 0, position: {x: -200, y: -60}, level: 4, exp: 10777/10777/10777, rotated: true, equipment: [steel_ball_production_line]}
+  - {name: fire_badger, index: 1, position: {x: -205, y: -20}, exp: 0/60/1400, source: delivered}
+  - {name: hound, index: 2, position: {x: 30, y: -40}, level: 2, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -215, y: -275}, retained: false}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: -225, y: -100}]}
+red:
+  core_damage: 398
+  officers: [advanced_shield_device, sabertooth_specialist]
+  techs:
+    raiden: [electromagnetic_shot]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: raiden, index: 0, position: {x: 340, y: 30}, exp: 1200/1468/2400, equipment: [enhancement_module]}
+  - {name: sabertooth, index: 1, position: {x: -245, y: -185}, exp: 0/636/1300, source: delivered}
+  - {name: war_factory, index: 2, position: {x: 65, y: -175}, level: 3, exp: 0/1454/11398, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -45, y: -235}}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: 195, y: 170}, {x: -160, y: 110}, {x: 150, y: 160}]}
+asserts:
+- sql: |-
+    SELECT tick,skill_slot,enabled__attack_time,enabled__current_attack_interval,enabled__attack_count,enabled__perform_count FROM units__skills WHERE unit_id=10 AND tick IN (1,2) ORDER BY tick,skill_slot
+  rows:
+  - [1, 0, 93, 92, -1, 0]
+  - [1, 1, 94, 92, -1, 0]
+  - [1, 2, 94, 92, -1, 0]
+  - [2, 0, 0, 92, 0, 1]
+  - [2, 1, 0, 92, 0, 1]
+  - [2, 2, 0, 92, 0, 1]
+- sql: |-
+    SELECT tick,target__kind,target__id,amount,skill_slot FROM events WHERE tick=2 AND type='damage' AND source__kind='unit' AND source__id=10 ORDER BY ordinal
+  rows:
+  - [2, unit, 9, 5488, 0]
+  - [2, unit, 8, 5488, 1]
+  - [2, unit, 1, 6283, 2]
+ticks: 1754
+hash: 26:080615a0ce164d5d6085f0dc106d1f1f0841fcf7d900e2be8c4f295e689bcead
