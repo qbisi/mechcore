@@ -86,6 +86,6 @@ asserts:
 - sql: |-
     SELECT tick,source__id,target__kind,target__id,amount,skill_slot FROM events WHERE tick=336 AND type='damage' AND source__id=2 ORDER BY ordinal
   rows:
-  - [336, 2, "shield", 4, 23, 1]
+  - [336, 2, shield, 4, 23, 1]
 ticks: 619
-hash: 26:8fdb5d87028bbf0a15fc67988cf1afd8a950b8e9955595888df4a120d6298342
+hash: 26:0c5fe47d699d00f78845f454aa36dac557de23212bfdd7ec3780d18eb62f4432

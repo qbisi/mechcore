@@ -28,6 +28,7 @@ pub(crate) struct StatisticsMetadata {
     combination: usize,
     construction: usize,
     mech: usize,
+    mech_current_team_controller: usize,
     experience: usize,
     max_experience: usize,
 }
@@ -48,6 +49,7 @@ pub(crate) fn initialize(api: Api) -> Result<StatisticsMetadata, String> {
     let data = class("GameRiver", "UnitDamageStatisticData")?;
     let combination = class("GameRiver.Fight", "FightConstructionCombination")?;
     let mech_team = class("GameRiver.Fight", "MechTeam")?;
+    let mech = class("GameRiver.Fight", "FightMech")?;
     Ok(StatisticsMetadata {
         manager: field(fight, "battleStatisticManager")?,
         round: field(manager, "roundStatisticData")?,
@@ -61,7 +63,8 @@ pub(crate) fn initialize(api: Api) -> Result<StatisticsMetadata, String> {
         mech_team: mech_team as usize,
         combination: combination as usize,
         construction: class("GameRiver.Fight", "FightConstruction")? as usize,
-        mech: class("GameRiver.Fight", "FightMech")? as usize,
+        mech: mech as usize,
+        mech_current_team_controller: field(mech, "currentTeamController")?,
         experience: field(mech_team, "expFloat")?,
         max_experience: field(mech_team, "maxExpFloat")?,
     })
@@ -184,18 +187,25 @@ fn row(
             api.object_class_name(key)
         ));
     };
-    let team_id = match team_id {
-        Some(team_id) => team_id,
-        // A unit counted alone is outside the team dictionaries. Use its
-        // last observed side, including creation before any snapshot.
-        None => capture
-            .object_teams
-            .get(&mechcore_mcfr::ObjectRef::new(
-                mechcore_mcfr::ObjectKind::Unit,
-                recorder_id,
-            ))
-            .copied()
-            .ok_or("a unit counted alone has no current team")?,
+    let team_id = if let Some(team_id) = team_id {
+        team_id
+    } else {
+        // A unit counted alone is outside the team dictionaries. Read its
+        // current native side: it can turn and die between two snapshots,
+        // leaving the capture's last observed side stale forever.
+        if recorder != RecorderKind::Unit {
+            return Err("a temporary statistics recorder is not a unit".into());
+        }
+        let controller: *mut Object = value(
+            api,
+            key,
+            metadata.mech_current_team_controller,
+            "FightActor.currentTeamController",
+        )?;
+        let team = api
+            .invoke_value::<i32>(controller, "GetTeamIndex", &mut [])
+            .map_err(|error| format!("a statistics unit's current team: {error}"))?;
+        u32::try_from(team).map_err(|_| format!("invalid statistics team index {team}"))?
     };
     Ok(DamageStatistics {
         team_id,

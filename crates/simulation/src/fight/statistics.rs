@@ -98,11 +98,16 @@ impl Simulation {
         }
     }
 
-    /// A summon a beam turns keeps its own recorder, which reads the side the
-    /// summon stands on: its entry, and what it has counted, moves to the
-    /// new side. A deployed unit's formation entry stays where it is, and
-    /// the unit counts under a recorder of its own from the turn.
-    pub(in crate::fight) fn summon_changes_side(&mut self, unit_id: u64, from: u32, to: u32) {
+    /// A unit recorder is keyed by the native unit independently of side;
+    /// its recorded team reads that unit's current team, including a deployed
+    /// unit returned to its original side on death. Keep its counters while
+    /// projecting the new side. A formation's own entry never moves.
+    pub(in crate::fight) fn unit_recorder_changes_side(
+        &mut self,
+        unit_id: u64,
+        from: u32,
+        to: u32,
+    ) {
         if let Some(mut row) =
             self.statistics
                 .recorders

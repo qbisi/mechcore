@@ -368,6 +368,7 @@ pub(in crate::fight) fn native_auto_move_target_point(
     target_z_q32: i64,
     target_radius: i64,
     attack_range: i64,
+    attacking_shield: bool,
 ) -> (i64, i64) {
     let delta_x = target_x_q32.saturating_sub(source_x_q32);
     let delta_z = target_z_q32.saturating_sub(source_z_q32);
@@ -375,7 +376,11 @@ pub(in crate::fight) fn native_auto_move_target_point(
     let target_distance = center_distance
         .saturating_sub(space_to_q32(target_radius))
         .saturating_add(space_to_q32(attack_range))
-        .saturating_add(space_to_q32(source_radius));
+        .saturating_add(if attacking_shield {
+            0
+        } else {
+            space_to_q32(source_radius)
+        });
     let requested_distance = if target_distance > MIN_MOVE_DISTANCE_Q32 {
         // Whether the unit is farther than it needs to be is asked of the
         // squared distance, which is exact, against the squared stopping
@@ -1420,6 +1425,7 @@ impl Simulation {
             .skill_attacker(skill_ref)
             .expect("skill owner identity is stable")
             .attack_range;
+        let attacking_shield = self.motion_attacking_energy_shield(actor_id);
         let actor = self
             .actors
             .get_mut(&actor_id)
@@ -1472,6 +1478,7 @@ impl Simulation {
                     lock.z_q32,
                     lock.radius,
                     attack_range,
+                    attacking_shield,
                 );
                 actor.turn_to_move_direction();
                 self.move_body_to(actor_id, (x_q32, z_q32), false, solve_due);
@@ -2465,6 +2472,27 @@ impl Simulation {
         Flow::Next
     }
 
+    /// `IAttacker.IsAttackingEnergyShield`: a `FightMech` always answers false;
+    /// a `FightSkill` reads its cached `GetTargetEnergyShield` without the idle
+    /// or lock-validity filtering used for performing its attack. A standalone
+    /// child that took the motion is the attacker, rather than its siblings.
+    fn motion_attacking_energy_shield(&self, actor_id: u64) -> bool {
+        let actor = &self.actors[&actor_id];
+        match actor.motion.attacker {
+            SkillSlot::Main if actor.skills.main.mech_searches() => false,
+            SkillSlot::Main => {
+                let main = &actor.skills.main;
+                let slot = if main.standalone() {
+                    main.group.as_ref().map_or(0, |group| group.motion_slot)
+                } else {
+                    0
+                };
+                main.group_skill(slot).target_shield.is_some()
+            }
+            SkillSlot::Extra(index) => actor.skills.extras[index].skill.target_shield.is_some(),
+        }
+    }
+
     /// `MotionMoveState`: moves towards where the lock stands, turning first.
     fn approach(&mut self, actor_id: u64, approach: Approach) {
         let Approach {
@@ -2475,6 +2503,7 @@ impl Simulation {
         } = approach;
         let solve_due = self.rvo_solve_due();
         let attack_range = self.main_attack_range(actor_id);
+        let attacking_shield = self.motion_attacking_energy_shield(actor_id);
         let actor = self
             .actors
             .get_mut(&actor_id)
@@ -2517,6 +2546,7 @@ impl Simulation {
             body_z_q32,
             body_radius,
             attack_range,
+            attacking_shield,
         );
         actor.turn_to_move_direction();
         self.move_body_to(

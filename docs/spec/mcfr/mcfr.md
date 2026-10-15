@@ -701,7 +701,9 @@ skill or an air drop, credits nobody. A target already dead is skipped before
 anything counts. Every formation and construction group has its row, at zero,
 from deployment, and a formation that dies keeps it. A summon has no formation
 and is counted alone, from the first hit it counts; so is a mind-controlled
-unit, in the round's temporary dictionary, under the side it serves.
+unit, in the round's temporary dictionary, under the side it serves. A unit's
+side is its current side even when it changes side and dies between snapshots;
+its last live snapshot does not decide that recorder's side.
 
 The counters are the build's `int`, and each row restarts at zero with each
 fight.
