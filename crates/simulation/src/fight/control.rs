@@ -474,6 +474,7 @@ impl Simulation {
             actor.rules.collision_radius(),
         );
         let unit = FightActorRef::Unit(unit_id);
+        self.remove_opponent_actor(unit);
         for trees in [&mut self.target_quadtrees, &mut self.mech_quadtrees] {
             if let Some(tree) = trees.get_mut(&old_team) {
                 tree.remove(unit);
@@ -487,6 +488,7 @@ impl Simulation {
             .expect("actor identity is stable")
             .placement
             .team = team;
+        self.add_opponent_actor(unit, team);
         self.joins_side_last(unit_id);
         let step = self.step_now;
         for (skill_ref, offset) in self.skills_locked_on(unit, Some(unit_id)) {
@@ -663,6 +665,7 @@ impl Simulation {
         // `TeamTranslationSystem.ChangeTeam` first takes its buffs off.
         self.remove_buffs_on_turn(unit_id, kept, events)?;
         let unit = FightActorRef::Unit(unit_id);
+        self.remove_opponent_actor(unit);
         for trees in [&mut self.target_quadtrees, &mut self.mech_quadtrees] {
             if let Some(tree) = trees.get_mut(&old_team) {
                 tree.remove(unit);
@@ -699,6 +702,7 @@ impl Simulation {
             self.summon_changes_side(unit_id, old_team, team);
         }
         self.interceptors_change_side(unit_id);
+        self.add_opponent_actor(unit, team);
         self.joins_side_last(unit_id);
         // `FightSkill.EnterFight` subscribes each skill to its owner's
         // OnChangeTeam, including every grouped main and extra skill.

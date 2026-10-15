@@ -1,0 +1,45 @@
+# Raiden's grouped search scores four overlapping Crawlers equally at 293.
+# Full-team selection retains team actor-list order, not quadtree traversal:
+# the first Crawler remains locked. Its parent and Fork skills keep their
+# independent targets. The complete generated layout and pin are native.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 769162702
+round: 1
+blue:
+  core_damage: 772
+  officers: [speed_specialist]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sledgehammer, index: 0, position: {x: -95, y: -200}, level: 7, exp: 0/259/8185, equipment: [secondary_laser_sight], source: joined}
+  - {name: crawler, index: 1, position: {x: -175, y: -250}, level: 6, exp: 0/652/2609, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: -15, y: -215}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_targeting_system, speed_specialist, assault_raiden]
+  techs:
+    raiden: [fork]
+  blueprints: [attack_enhancement]
+  units:
+  - {name: raiden, index: 0, position: {x: 270, y: -90}, level: 6, exp: 0/7286/13917, rotated: true, equipment: [mustang_production_line], source: joined}
+  - {name: vulcan, index: 1, position: {x: -130, y: -70}, level: 4, exp: 0/642/10866, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -90, y: -295}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -180, y: 200}, {x: -190, y: -10}, {x: -120, y: -25}]}
+ticks: 1940
+hash: 25:869e97ed8a8e9242a3fce082526df630d36acb058e613321afeb3b750e6a40d5
+asserts:
+- sql: SELECT tick,body_rotation,mech_lock_target__kind,mech_lock_target__id FROM units WHERE unit_id=31 AND tick IN (282,292,293,294,304) ORDER BY tick
+  rows: [[282,681352558399,unit,1],[292,552503539999,unit,1],[293,539618638159,unit,1],[294,526733736319,unit,1],[304,397884717919,unit,1]]
+- sql: SELECT unit_id,life__current FROM units WHERE tick=293 AND unit_id IN (1,2,5,13) ORDER BY unit_id
+  rows: [[1,1724],[2,1724],[5,1724],[13,1724]]

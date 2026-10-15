@@ -437,7 +437,7 @@ impl Simulation {
         }
         let idle = selected.is_none();
         let selected = if idle {
-            self.select_alive_target(skill_ref, Some(slot), target_search_order)?
+            self.select_alive_target(skill_ref, Some(slot))?
         } else {
             selected
         };
@@ -725,7 +725,7 @@ impl Simulation {
         };
         let idle = selected.is_none();
         let selected = if idle {
-            self.select_alive_target(skill_ref, None, target_search_order)?
+            self.select_alive_target(skill_ref, None)?
         } else {
             selected
         };

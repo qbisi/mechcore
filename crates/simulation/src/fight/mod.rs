@@ -562,6 +562,11 @@ struct Simulation {
     /// travelling.
     travels: BTreeMap<u32, super_deployment::Travel>,
     buildings: Vec<BuildingState>,
+    /// `OpponentController.GetActors`: full-team lists prepared before the
+    /// tick's modules, distinct from spatial queries' traversal order.
+    opponent_actors: BTreeMap<u32, Vec<FightActorRef>>,
+    opponent_ground_actors: BTreeMap<u32, Vec<FightActorRef>>,
+    opponent_air_actors: BTreeMap<u32, Vec<FightActorRef>>,
     target_quadtrees: BTreeMap<u32, TargetActorQuadtree>,
     /// The target trees as `FightCoreSystem.PreCalculate` found them, as the
     /// tick's search order was taken: what a prepared search asks.
@@ -716,6 +721,9 @@ impl Simulation {
             },
             ending: Ending::default(),
             buildings,
+            opponent_actors: BTreeMap::new(),
+            opponent_ground_actors: BTreeMap::new(),
+            opponent_air_actors: BTreeMap::new(),
             prepared_target_quadtrees: target_quadtrees.clone(),
             target_quadtrees,
             mech_quadtrees,
@@ -757,6 +765,7 @@ impl Simulation {
         simulation.start_side_streams(layout.round);
         simulation.place_sub_effects()?;
         simulation.deploy_attack_intervals()?;
+        simulation.refresh_opponent_actor_lists();
         simulation.face_constructions_at_fight_start(&layout.legacy, &layout.delivered);
         simulation.snapshot_search_ranges();
         Ok(simulation)
@@ -1170,6 +1179,7 @@ impl Simulation {
         self.idle_after_trenches(step);
         self.revert_fly_units(step);
         self.finish_melee_transitions(step)?;
+        self.refresh_opponent_actor_lists();
         // Native search jobs retain the actor-quadtree candidate order
         // prepared at the start of this FightCore update.
         let target_search_order = self.target_search_order();
