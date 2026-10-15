@@ -152,7 +152,17 @@ impl Simulation {
         if self.skill(skill_ref).kind == SkillKind::Support {
             return Ok(lock.is_some_and(|lock| self.fight_actor_is_alive(lock)));
         }
-        let before = self.slot_attack_target(skill_ref, slot);
+        // The quick-switch comparison reads FightSkill.attackTarget itself,
+        // not the lock used for range and angle. SearchAttackTarget writes
+        // null there when a shield replaces the actor, so changing locks
+        // behind a shield need not change this field.
+        let actor_target = |simulation: &Self| {
+            let skill = simulation.skill(skill_ref).group_skill(slot.unwrap_or(0));
+            skill
+                .checked_attack_target()
+                .filter(|_| skill.target_shield.is_none())
+        };
+        let before = actor_target(self);
         // The native checker asks IsAirAttack/IsGroundAttack before keeping
         // a live lock; technology removal may have changed those flags.
         if lock.is_some_and(|lock| {
@@ -178,9 +188,7 @@ impl Simulation {
             if !self.search_lock_target(skill_ref, slot, target_search_order)? {
                 return Ok(false);
             }
-            if !self.quick_switch_target(skill_ref)
-                && self.slot_attack_target(skill_ref, slot) != before
-            {
+            if !self.quick_switch_target(skill_ref) && actor_target(self) != before {
                 return Ok(false);
             }
         }

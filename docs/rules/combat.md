@@ -110,6 +110,13 @@ tick after that, on whatever the selector answers then. A shot that kills later
 in its flight, or a replacement already in the attack area, is followed at
 once, and a unit whose cooling is nothing never holds.
 
+**A shield replacement can keep the attack through a changed lock.** When a
+dead lock is replaced, the quick-switch guard compares the skill's actor
+attack target before and after the search. Firing at a battlefield shield
+leaves that actor target null. A replacement that also fires at a shield
+therefore passes this comparison even without quick switching, provided it
+is in the attack area; the changed lock alone does not end the attack.
+
 **A cooling searches for nothing.** Its weapon names what the attack left it
 for the whole cooling, the lock the failed check's search took even when that
 search fell back on any live enemy and left the skill idle, and nothing when
@@ -1229,6 +1236,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- Steel Balls replace a dead lock while firing at a shield and keep their
+  attack and its next hit:
+  `tests/shield/lock-switch-keeps-shield-attack.yaml`.
+
 - An idle Spider Mine retains a shield target after changing locks, submits
   the shield branch's movement point and publishes the resulting velocity:
   `tests/mech_search/idle-skill-keeps-shield-distance.yaml`.
@@ -1539,6 +1550,10 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- The dead-lock quick-switch guard compares the actor attack target, which a
+  shield replacement leaves null: `SkillAttackableChecker.Check`,
+  `FightSkill.SearchAttackTarget`, `FightSkill.ChangeAttackTarget`.
 
 - Automatic pursuit's shield and owner-radius branches:
   `AutoMoveBehaviour.CalculateTargetDistance`, `MotionMoveState.MoveUpdate`,
