@@ -780,11 +780,16 @@ impl Simulation {
         // `SkillIdleState.PreCalculate` and `SkillAttackState.PreCalculate`
         // decide now whether a job is queued. A later team change can clear
         // the lock and search timer, but cannot retroactively queue that job.
-        let queued = self
-            .actors
-            .iter()
-            .map(|(&id, actor)| {
-                let skill = &actor.skills.main;
+        let mut queued = Vec::new();
+        for (&id, actor) in &self.actors {
+            let main = &actor.skills.main;
+            let slots = if main.standalone() {
+                main.group_size()
+            } else {
+                1
+            };
+            for slot in 0..slots {
+                let skill = main.group_skill(slot);
                 let lock_gone = skill
                     .lock_target
                     .and_then(|lock| self.fight_actor(lock))
@@ -794,15 +799,16 @@ impl Simulation {
                     FightSkillPhase::Attack => lock_gone,
                     FightSkillPhase::Prepare { .. } => false,
                 };
-                (id, skill.search_prepared && requested)
-            })
-            .collect::<Vec<_>>();
-        for (id, prepared) in queued {
+                queued.push((id, slot, main.search_prepared && requested));
+            }
+        }
+        for (id, slot, prepared) in queued {
             self.actors
                 .get_mut(&id)
                 .expect("the snapshotted unit exists")
                 .skills
                 .main
+                .group_skill_mut(slot)
                 .search_prepared = prepared;
         }
     }
@@ -1107,6 +1113,16 @@ impl Simulation {
             let prepared_source = match source.owner {
                 FightActorRef::Unit(id) => {
                     let (attack_range, min_range) = self.actors[&id].target_query_ranges;
+                    // A batch child reads its parent's snapshotted range
+                    // with its own row's range added, as GetAttackRange does.
+                    let child_range = if self.skill(source.skill).standalone() {
+                        source
+                            .attack_range
+                            .saturating_sub(self.main_attack_range(id))
+                    } else {
+                        0
+                    };
+                    let attack_range = attack_range.saturating_add(child_range);
                     super::attacker::Attacker {
                         min_range,
                         attack_range,
@@ -1583,9 +1599,9 @@ impl Simulation {
         let source = &self.actors[&actor_id];
         let skill = self.skill(skill_ref);
         let attack = self.skill_rules(skill_ref);
-        // `PerformNormalSkillSearch` for this slot, from its own weapon and
-        // range, when no prepared result can be used.
-        let search_current = || {
+        // Every independent weapon runs the ordinary main-skill search,
+        // consuming its own queued job or searching live without one.
+        let search_slot = |prepared| {
             let mut attacker = self
                 .skill_attacker(skill_ref)
                 .ok_or_else(|| Error::new("a grouped skill's owner is absent"))?;
@@ -1595,12 +1611,16 @@ impl Simulation {
             attacker.query_rotation_q32 = rotation;
             attacker.rotation_window_q32 = window;
             attacker.attack_range = self.slot_attack_range(skill_ref, Some(slot));
-            Ok(self.perform_normal_skill_search(&attacker, target_search_order, false))
+            Ok(self.perform_normal_skill_search(&attacker, target_search_order, prepared))
         };
         // A standalone weapon's skill searches as a skill of its own: no
         // group keeps it off what the others hold.
-        if skill.standalone() && slot == 0 {
-            return self.select_lock_replacement(skill_ref, target_search_order);
+        if skill.standalone() {
+            return if slot == 0 {
+                self.select_lock_replacement(skill_ref, target_search_order)
+            } else {
+                search_slot(skill.group_skill(slot).search_prepared)
+            };
         }
         let held = skill
             .slot_locks()
@@ -1609,9 +1629,8 @@ impl Simulation {
             .filter_map(|(index, target)| (index != slot).then_some(target).flatten())
             .collect::<Vec<_>>();
         // A grouped slot whose siblings hold nothing searches as the core
-        // does; a standalone weapon searches from its own weapon whatever
-        // the others hold.
-        if held.is_empty() && !skill.standalone() {
+        // does.
+        if held.is_empty() {
             if slot == 0 {
                 return self.select_lock_replacement(skill_ref, target_search_order);
             }
@@ -1620,7 +1639,7 @@ impl Simulation {
             // the attacker, scoring from its own weapon and reaching its own
             // range. A Raiden's second gun whose Crawler died with its core's
             // takes the Crawler in its own reach that the core's would not.
-            return search_current();
+            return search_slot(false);
         }
         // The group's skill searches with its own selector, which a
         // technology may have turned to `DistanceIntensify`.
@@ -1628,13 +1647,7 @@ impl Simulation {
             .skill_attacker(skill_ref)
             .map(|attacker| (attacker.score_offsets, attacker.targets))
             .ok_or_else(|| Error::new("a grouped skill's owner is absent"))?;
-        // Standalone main skills consume their prepared spatial job, not
-        // `PerformGroupedSkillSearch`'s live `GetActors` collection.
-        let candidates = if skill.standalone() {
-            target_search_order
-        } else {
-            self.opponent_actor_order(targets)
-        };
+        let candidates = self.opponent_actor_order(targets);
         let select = |shared: bool| {
             let mut scoring = Scoring::default();
             for (&team, candidates) in candidates {
@@ -1651,11 +1664,11 @@ impl Simulation {
                     // stands now: a unit a beam turned since the tick opened
                     // stands on its own side, though the prepared trees
                     // still hold it on the other.
-                    if (held.contains(&candidate) != shared && !skill.standalone())
-                        || (!skill.standalone() && target.team != team)
+                    if (held.contains(&candidate) != shared)
+                        || target.team != team
                         || !target.alive
                         || !target.targetable
-                        || !target.searchable(skill.standalone())
+                        || !target.searchable(false)
                         || matches!(candidate, FightActorRef::Building(id)
                             if self.unsearchable_buildings.contains(&id))
                         || !targets.accepts(target.domain)
@@ -1665,30 +1678,22 @@ impl Simulation {
                     let (rotation, window) = source
                         .default_search_frame(attack, slot)
                         .unwrap_or((source.slot_main_rotation_q32(attack, skill, slot), None));
-                    // A standalone weapon's skill is a main skill: its search
-                    // is the one `FightCoreSystem.PreCalculate` prepared, on
-                    // where everything stood as the tick opened.
-                    let (target_x_q32, target_z_q32, visible) = if skill.standalone() {
-                        (target.query_x_q32, target.query_z_q32, target.query_visible)
-                    } else {
-                        (target.x_q32, target.z_q32, target.visible)
-                    };
                     let Some(score) = full_rotation_target_score_q32(
                         source.target_query_x_q32,
                         source.target_query_z_q32,
                         source.rules.collision_radius(),
                         rotation,
-                        target_x_q32,
-                        target_z_q32,
+                        target.x_q32,
+                        target.z_q32,
                         target.radius,
-                        score_offsets.for_candidate(target.domain, visible),
+                        score_offsets.for_candidate(target.domain, target.visible),
                         attack.min_range(),
                         self.slot_attack_range(skill_ref, Some(slot)),
                         window,
                     ) else {
                         continue;
                     };
-                    scoring.consider(candidate, score, visible);
+                    scoring.consider(candidate, score, target.visible);
                 }
             }
             // `ITargetSelector.Select` receives this slot's attacker, so
@@ -1700,17 +1705,6 @@ impl Simulation {
         // (`take_from_siblings`).
         let fusillade_core = slot == 0 && skill.fusillade();
         let selected = select(false);
-        // Each standalone weapon is a main skill with a prepared search.
-        // As in `perform_normal_skill_search`, a winner now on its owner's
-        // side must be discarded and searched again against the live teams.
-        if skill.standalone()
-            && selected.is_some_and(|target| {
-                self.fight_actor(target)
-                    .is_some_and(|target| target.team == source.placement.team)
-            })
-        {
-            return search_current();
-        }
         if (attack.weapons.allow_same_target == Some(true) || fusillade_core)
             && selected.is_none_or(|target| {
                 !self.slot_actor_in_attack_range(skill_ref, Some(slot), target)

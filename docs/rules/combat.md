@@ -1411,6 +1411,9 @@ not the game's native attack-type enum.
 - An idle core in a batch of standalone weapons uses its prepared search
   even while its siblings hold locks; a new summon on that tick is not among
   those prepared inputs: `tests/search/standalone-core-prepared-idle.yaml`.
+- Each independent Mountain weapon consumes its own prepared search when
+  queued; summons joining on that tick are absent from all four jobs:
+  `tests/search/standalone-sibling-prepared-summon.yaml`.
 - Summons that join on one tick searching where everything stands then, and
   locking the enemy summons that joined with them:
   `tests/battle_skill/underground-threat-both-sides.yaml`, tick 48.
