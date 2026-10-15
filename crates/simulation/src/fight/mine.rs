@@ -98,7 +98,10 @@ impl Simulation {
             .filter(|(team, _)| **team != mine.team)
         {
             for &candidate in candidates {
-                if self.is_tower(candidate) || !self.fight_actor_is_alive(candidate) {
+                // TryActiveMine reads the queried tree without another life
+                // check. A summon that died landing is removed later by
+                // DeadEffectSystem, and can still trigger the missile here.
+                if self.is_tower(candidate) {
                     continue;
                 }
                 let Some(view) = self.fight_actor(candidate) else {
