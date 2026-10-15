@@ -134,7 +134,7 @@ impl Simulation {
                 EffectProvider::MechGroup => self.deactivate_group_unit(unit),
                 EffectProvider::SiegeMode => self.remove_siege_unit(unit)?,
                 EffectProvider::WreckageRecovery => self.remove_wreckage_unit(unit),
-                EffectProvider::Burrow => self.remove_burrow_unit(unit),
+                EffectProvider::Burrow => self.remove_burrow_unit(unit)?,
                 EffectProvider::Repair => self.remove_repair_unit(unit),
                 EffectProvider::FlyTech => self.remove_fly_unit(unit),
                 EffectProvider::IgnoreBuff => self.switch_ignore_buff(unit, false),
@@ -264,7 +264,7 @@ impl Simulation {
     ///   (`SupportUnitSystem.Disable`, `Enable`).
     /// - A surfacing line's action leaves its unit's move ability and is
     ///   put back (`MoveAbilitySummonSystem`).
-    /// - A burrowing technology's unit comes up, its buff removed, and its
+    /// - A burrowing technology's unit comes up, its rate withdrawn, and its
     ///   manager passes over it (`BurrowSystem.Deactive`) until it is
     ///   switched on (`Active`).
     pub(in crate::fight) fn switch_provider(
@@ -272,7 +272,6 @@ impl Simulation {
         actor_id: u64,
         provider: EffectProvider,
         on: bool,
-        events: &mut Vec<Event>,
     ) -> Result<()> {
         match provider {
             // `ExtraSkillProvider.DisableSkill` and `EnableSkill`: every
@@ -344,7 +343,7 @@ impl Simulation {
                     self.end_siege_mode(actor_id);
                 }
             }
-            EffectProvider::Burrow => return self.switch_burrow(actor_id, on, events),
+            EffectProvider::Burrow => return self.switch_burrow(actor_id, on),
             // The rest take away what the fight asks of the unit where it
             // acts, its technologies disabled: a lifesteal's and a second
             // damage's hit effect, a search's ranges, offsets and selector,

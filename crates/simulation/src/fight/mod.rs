@@ -337,8 +337,7 @@ struct Actor {
     /// fight that asks whether it flies reads this.
     pub(in crate::fight) domain: UnitDomain,
     /// The domain it last stood at the height of: `FightMech.SetPosition`
-    /// places it at its domain's height, so a unit whose domain turns
-    /// stands at the old height until its agent next places it.
+    /// applies it, including the call made by `SetTechFly` as its domain turns.
     pub(in crate::fight) placed_domain: UnitDomain,
     /// The step its technology's `GRTimerManager` timer gives it its type's
     /// domain back, after its technologies were switched off.
@@ -1588,6 +1587,7 @@ impl Simulation {
                 self.end_stealth_as_the_fight_ends();
                 self.end_siege_as_the_fight_ends()?;
                 self.end_wreckage_as_the_fight_ends();
+                self.end_burrows_as_the_fight_ends()?;
                 self.end_rebirths_as_the_fight_ends();
             }
         }
@@ -1609,7 +1609,6 @@ impl Simulation {
             events.push(fallen);
             events.extend(follows);
         }
-        events.extend(self.take_burrow_events());
         events.extend(self.take_repair_events());
         self.buffs.dropped.clear();
         // A fight a projectile's drain finished leaves on this tick, with no
@@ -1622,6 +1621,7 @@ impl Simulation {
             self.end_stealth_as_the_fight_ends();
             self.end_siege_as_the_fight_ends()?;
             self.end_wreckage_as_the_fight_ends();
+            self.end_burrows_as_the_fight_ends()?;
             self.end_rebirths_as_the_fight_ends();
         }
         if !self.buffs.tower_events.is_empty() {
@@ -1850,6 +1850,7 @@ impl Simulation {
         self.end_stealth_as_the_fight_ends();
         self.end_siege_as_the_fight_ends()?;
         self.end_wreckage_as_the_fight_ends();
+        self.end_burrows_as_the_fight_ends()?;
         self.end_rebirths_as_the_fight_ends();
         for actor in self.actors.values_mut() {
             actor.exit_melee_mode()?;

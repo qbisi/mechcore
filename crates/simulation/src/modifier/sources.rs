@@ -152,14 +152,10 @@ pub(crate) struct RebirthFollow {
     pub(crate) follow_rate_q32: i64,
 }
 
-/// What an `IBurrow` answers: the rate `BurrowTech`, as its own buff's data,
-/// puts on the damage its unit takes while no enemy is near
-/// (`IBuffDataFloatRate.GetData` of `AmplifyDamageRate`), and how near an
-/// enemy brings it up (`GetRelieveDistance`), each by the unit's level.
+/// What an `IBurrow` answers: the rate it writes directly on its unit's
+/// `AmplifyDamageRate`, and how near an enemy brings it up, each by unit level.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Burrow {
-    /// The technology's id, which its buff's data answers `GetID` with.
-    pub(crate) technology: u32,
     /// `BurrowData.amplifyDamageRate`, `FPoint` raw rates.
     pub(crate) amplify_damage_rate: Vec<i64>,
     /// `BurrowData.relieveDistance`, `FPoint` metres.

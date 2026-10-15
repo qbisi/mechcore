@@ -173,7 +173,6 @@ cards:
   - {id: 1021228, name: Hound, supply: 0, unit: 28, squads: 1, level: 2, from_round: 2}
   - {id: 1021315, name: Arclight, supply: 50, unit: 15, squads: 1, level: 3, from_round: 2}
   - {id: 1021330, name: Void Eye, supply: 50, unit: 30, squads: 1, level: 3, from_round: 2}
-  - {id: 1021331, name: Vortex, supply: 50, unit: 31, squads: 1, level: 3, from_round: 2}
   - {id: 1022110, name: Crawler, supply: 50, unit: 10, squads: 2, level: 1, from_round: 2}
   - {id: 1022115, name: Arclight, supply: 50, unit: 15, squads: 2, level: 1, from_round: 2}
   - {id: 1022128, name: Hound, supply: 50, unit: 28, squads: 2, level: 1, from_round: 2}
@@ -225,7 +224,6 @@ cards:
   - {id: 1042125, name: Phantom Ray, supply: 0, unit: 25, squads: 2, level: 1, from_round: 4}
   - {id: 1042315, name: Arclight, supply: 100, unit: 15, squads: 2, level: 3, from_round: 4}
   - {id: 1042330, name: Void Eye, supply: 100, unit: 30, squads: 2, level: 3, from_round: 4}
-  - {id: 1042331, name: Vortex, supply: 100, unit: 31, squads: 2, level: 3, from_round: 4}
   - {id: 1043210, name: Crawler, supply: 50, unit: 10, squads: 3, level: 2, from_round: 4}
   - {id: 1051111, name: Overlord, supply: 200, unit: 11, squads: 1, level: 1, from_round: 5}
   - {id: 1051123, name: Sandworm, supply: 100, unit: 23, squads: 1, level: 1, from_round: 5}

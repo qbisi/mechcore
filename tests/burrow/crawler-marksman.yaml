@@ -1,12 +1,6 @@
-# Subterranean Blitz on blue's Crawlers, which walk on a Marksman that
-# shoots them from beyond 50. Each shot kills a burrowed Crawler, its -0.4
-# on the shot: without the rate the simulator's states agree and its hash
-# parts from the game's on tick 30, the first. One that dies burrowed has
-# its buff cleared after its death and nothing removed. On tick 183 the
-# Marksman dies: the four Crawlers whose search then found a tower nearest
-# burrow after its death, and the four whose attack the death ended, with
-# neither attack target nor lock, stay up. The fight ends on tick 184 with
-# the buffs cleared, none removed.
+# Subterranean Blitz on blue's Crawlers approaching a Marksman. Its shots
+# take the burrowed damage reduction. The technology writes a numeric rate
+# directly: neither the snapshots nor the events carry a technology buff.
 
 kind: fight
 source: game
@@ -23,5 +17,13 @@ red:
   core_damage: 84
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -60}, exp: 0/24/650, source: joined}
+asserts:
+- sql: |
+    SELECT
+      (SELECT count(*) FROM events
+       WHERE type IN ('buff_applied', 'buff_removed') AND buff_id = 2610) AS buff_events,
+      (SELECT count(*) FROM units__buffs WHERE data__id = 2610) AS buff_rows;
+  rows:
+  - [0, 0]
 ticks: 184
-hash: 26:4c407fc442ccc47c64889ad32ca5d96daea0d0c2a8ee0885daafd716a93d30af
+hash: 26:b7eb7d89a44afce29e42b17907c30a21953b607aeaf7e6114a4d203689f4a98c

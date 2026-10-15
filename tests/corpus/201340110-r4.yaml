@@ -21,7 +21,7 @@ blue:
   - {name: hound, index: 2, position: {x: -90, y: -120}, exp: 360/642/750}
   - {name: sabertooth, index: 3, position: {x: -135, y: -95}, level: 2, exp: 0/543/2929}
   - {name: sabertooth, index: 4, position: {x: -225, y: -115}, exp: 947/1300/1300}
-  - {name: sabertooth, index: 5, position: {x: -45, y: -85}, level: 2, exp: 0/2882/2929}
+  - {name: sabertooth, index: 5, position: {x: -45, y: -85}, level: 2, exp: 0/2929/2929}
   - {name: crawler, index: 6, position: {x: -90, y: -155}, exp: 153/194/450, rotated: true}
   - {name: crawler, index: 7, position: {x: 140, y: -205}, exp: 50/151/450, rotated: true}
   - {name: crawler, index: 8, position: {x: -190, y: -285}, exp: 386/450/450, rotated: true}
@@ -59,5 +59,5 @@ red:
   - {name: wraith, index: 16, position: {x: -45, y: -95}, exp: 0/132/2250, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
-ticks: 1251
-hash: 26:aea244b77d77cc50b4d370583d2d171758f839f6dc1b0a979a13ffb41d459320
+ticks: 1033
+hash: 26:7c0548c05b3f4f6dac048a534f2cd9a8bb8122bf02c81b16ec2055abbabdc967

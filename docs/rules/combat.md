@@ -992,11 +992,13 @@ main target may be hit too. Shockwave's 75 reaches 30 metres: an Arclight's
 shell that fells six Crawlers deals the eighteen others around them 75 each,
 as `damage` events of the shell after its own.
 
-**The second damage is the row's, raised by tower buffs and damage taken.**
+**The second damage is the row's, scaled by tower buffs and target buffs.**
 Where the row says buffs reach it, the damage is the attacker's tower buffs'
-rate on it, and then each struck unit's rate on the damage it takes; the
-attacker's other damage rates never reach it, and the struck unit's rate
-does not apply a second time as the hit is taken. An Arclight whose skill
+rate on it, and then each struck unit's buff rates on damage taken; the
+unit's own numeric damage-taken modifiers do not apply. Subterranean Blitz
+therefore leaves Shockwave's second damage whole. The attacker's other damage
+rates never reach it, and the struck unit's buff rates do not apply a second
+time as the hit is taken. An Arclight whose skill
 deals 3.12 times its damage still deals 75, and a Sandworm under a 0.5 rate on
 its damage taken takes 112.
 
@@ -1491,6 +1493,9 @@ not the game's native attack-type enum.
 - A second damage strikes what lies around a hit and the hit did not strike:
   `tests/secondary_damage/shockwave-crawlers.yaml` and
   `tests/secondary_damage/shockwave-marksmen.yaml`.
+  Subterranean Blitz's numeric damage reduction leaves Shockwave's secondary
+  damage unchanged:
+  `tests/corpus/201475625-r9.yaml`.
 
 - A Stormcaller shell aimed at a ground Void Eye remains on the ground as
   the target enters Aerial Mode at tick 81. Its tick-82 impact creates fire

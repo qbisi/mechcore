@@ -208,7 +208,7 @@ impl Simulation {
             // unit-state effects after ExitTravel. An EMP acquired in transit
             // can now disable the non-permanent technology sources.
             if self.actors[&unit_id].technology_disabled() {
-                self.switch_technologies(unit_id, false, &mut Vec::new())?;
+                self.switch_technologies(unit_id, false)?;
             }
         }
         Ok(())

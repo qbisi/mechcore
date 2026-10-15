@@ -915,22 +915,16 @@ first candidate strictly nearer than any before it, edge to edge, under the
 skill's minimum range or not, and none when it had no candidate. It is kept
 until the next search, a dead enemy's place still measured.
 
-**Burrowing is the technology as its own buff.** `TryBurrowDown` marks the
-unit `Underground` and adds `BurrowTech`, which is its own `IBuffData`, with
-no source (`BuffSystem.DoAddBuff`): it never fails (`GetProbablity` is
-1000), lasts `FightUtility.MaxTime`, 2^30 ticks in `Buff.Init`, and writes
-its rate as `AmplifyDamageRate` (`IBuffDataFloatRate.GetData`), on every
-hit the unit takes. The rate joins its unit's other buffs' in
-`BuffManager.buffDatas`, which `GetAmplifyDamageAddRate` and
-`GetAmplifyDamageReduceRate` read composed, as any two buffs' are: a
-burrowed Crawler in an acid takes both. Read from the build; no recording
-holds the two together. Its data is the technology, whose id the buff
-and its events name. `TryBurrowUp` marks it `Normal` and removes the buff
-(`BuffSystem.RemoveBuff`), `removed`. What the manager writes follows the
-tick's deaths. A unit that dies burrowed has its buff cleared after its
-death, and `DoDeactive`'s `TryBurrowUp` finds nothing to remove; nor does
-`OnFightEnd`'s after the fight's clearing, which clears each side's units in
-the order they joined it (`FightTeam.activeActors`), not by id.
+**Burrowing writes a numeric modifier directly.** `TryBurrowDown` marks
+its entry `Underground` and calls `FightMech.AddData` with
+`MechDataChangeFloatRate.AmplifyDamageRate`, the `BurrowTech` source and its
+`GetAmplifyDamageRate` at the unit's level. `TryBurrowUp` marks it `Normal`
+and calls `FightMech.RemoveData` with that same source. This rate belongs to
+the unit's numeric data; the technology creates no buff or buff event.
+Disabling it, deactivating a dead unit and `TeamBurrowManager.OnFightEnd`
+bring it up and withdraw the rate. A source whose `IsEnterUnderGround` is
+true also holds fire, changes actor visibility and changes the movement
+controller; standard Subterranean Blitz leaves that branch unused.
 
 ## Acid technologies
 
@@ -1092,11 +1086,11 @@ sets the unit's `FightMech.isFly` to the opposite of its type's
 as the fight starts, or as it lands, joins or rises again; a unit still
 travelling keeps its type's domain until it lands. `SetTechFly` moves the
 unit's agent to the layer of its new domain at its height
-(`RVOControllerFixed.RefreshMainLayer`), and the unit stands at the height of
-its new domain from its next placing (`FightMech.SetPosition`): a
-Void Eye with Aerial Mode that arrives from a flank is recorded in the air but
-at the ground's height on the tick it arrives
-([`rises-at-its-next-placing.yaml`](../../tests/fly/rises-at-its-next-placing.yaml)). Everything
+(`RVOControllerFixed.RefreshMainLayer`), then calls `FightMech.SetPosition`
+with its current position to apply that height immediately: a Void Eye with
+Aerial Mode arriving from a flank is recorded at its flying height on the
+tick it arrives
+([`rises-as-it-arrives.yaml`](../../tests/fly/rises-as-it-arrives.yaml)). Everything
 that asks whether a unit flies asks `FightMech.IsFly`: its own search and
 the searches that find it, its attack range and damage against it, what a
 splash, a projectile or a terrain reaches of it, its agent, and the domain
@@ -1610,8 +1604,8 @@ whose own `DisableEffect` it does not mirror.
   the effect back. Typhoons under an Electromagnetic Impact kill Crawlers
   that leave the one beside them whole.
 - **A burrowing technology's unit comes up and stays up.**
-  `BurrowEffectProvider.DisableEffect` brings it up (`TryBurrowUp`, its buff
-  `removed` before the disabling buff is applied) and leaves it `Deactive`,
+  `BurrowEffectProvider.DisableEffect` brings it up (`TryBurrowUp`, its numeric
+  rate withdrawn before the disabling buff is applied) and leaves it `Deactive`,
   which the manager's update passes over (`BurrowSystem.Deactive`), until
   `EnableEffect` makes it `Normal` again (`BurrowSystem.Active`). Crawlers
   under an Electromagnetic Impact come up on tick 57 and none burrows again.
@@ -1923,15 +1917,14 @@ derive (a minimum range):
   `tests/extra_weapon/melee-mode-dual-wield.yaml`.
 - Subterranean Blitz burrows its Crawlers from the first tick and brings
   each up as its enemy comes within 50: `tests/burrow/crawler-rhino.yaml`.
-  Burrowed, they take a Marksman's shot less 0.4; one that dies burrowed,
-  and one burrowed as the fight ends, has its buff cleared and nothing
-  removed; after the Marksman's death, those whose search found a tower
-  burrow and those left with no target stay up:
+  Burrowed, they take a Marksman's shot less 0.4, with no technology buff
+  in the snapshots or events; after the Marksman's death, those whose search
+  found a tower burrow and those left with no target stay up:
   `tests/burrow/crawler-marksman.yaml`. Disabled, they come up and
   stay up: `tests/burrow/crawler-impact.yaml`. Landing from a flank,
   they burrow from the tick after: `tests/burrow/crawler-travelling.yaml`.
   Made by a production line or summoned as a Steel Ball dies, they are held
-  as they join, and the fight's end clears their buffs in that order:
+  as they join, and the fight's end withdraws each held source:
   `tests/burrow/melting_point-production.yaml`,
   `tests/burrow/steel_ball-death-summon.yaml`.
 - Acidic Explosion leaves an acid where each Crawler dies:
@@ -2395,7 +2388,7 @@ derive (a minimum range):
   `FightActor.IsAlive`.
 - A burrowing technology burrows its unit while the nearest enemy its main
   skill's search measured, and its attack target or lock, stand beyond its
-  distance, writing itself as the unit's buff, and brings it up otherwise:
+  distance, writing its rate into the unit's numeric data, and brings it up otherwise:
   `BurrowEffectProvider.DoActive`, `BurrowEffectProvider.DisableEffect`,
   `BurrowEffectProvider.DoDeactive`, `BurrowEffectProvider.AddEffect`,
   `BurrowEffectProvider.EnableEffect`, `BurrowSystem.AddMech`,
@@ -2405,12 +2398,17 @@ derive (a minimum range):
   `TeamBurrowManager.GetDistanceToAttackTarget`,
   `TeamBurrowManager.TryBurrowDown`, `TeamBurrowManager.TryBurrowUp`,
   `TeamBurrowManager.OnFightStart`, `TeamBurrowManager.ActiveEffect`,
-  `BurrowTech.GetProbablity`, `BurrowTech.GetBuffDivide`,
+  `BurrowTech.GetAmplifyDamageRate`, `TeamBurrowManager.OnFightEnd`,
+  `FightMech.AddData`, `FightMech.RemoveData`,
   `BurrowData.GetAmplifyDamageRate`, `FightMech.GetNearestActor`,
   `FightSkill.GetNearestActor`, `SkillSearchTargetController.PerformSearch`,
   `SkillSearchTargetController.PerformNormalSkillSearch`,
   `ScoreRatingTargetSelector.Selector.Select`,
   `ScoreRatingTargetSelector.Selector.Calculate`.
+- A flying technology changes its unit's domain and height together:
+  `FightMech.SetTechFly`, `FightMech.SetPosition`,
+  `RVOControllerFixed.RefreshMainLayer`,
+  `FlyTechEffectProvider.DoEnableOutOfFight`.
 - An acid technology leaves its acid where its unit dies, after the buff
   controller and before the explosive one, unless the unit's technologies
   are off: `DeadEffectSystem.Init`, `DeadEffectSystem.Update`,

@@ -217,7 +217,7 @@ units:
       - {id: 10221, supply: 300}
       - {id: 10321, supply: 200}
       - {id: 110211, supply: 300}
-      - {id: 110212, supply: 200}
+      - {id: 110212, supply: 100}
   - type: typhoon
     unit_id: 22
     technologies:
@@ -307,7 +307,7 @@ units:
       - {id: 4430, supply: 150}
       - {id: 10230, supply: 300}
       - {id: 10930, supply: 100}
-      - {id: 180430, supply: 100}
+      - {id: 180430, supply: 150}
       - {id: 180530, supply: 300}
   - type: vortex
     unit_id: 31
@@ -315,7 +315,7 @@ units:
       - {id: 631, supply: 300}
       - {id: 931, supply: 150}
       - {id: 4531, supply: 400}
-      - {id: 10131, supply: 200}
+      - {id: 10131, supply: 50}
       - {id: 10231, supply: 300}
       - {id: 123101, supply: 350}
       - {id: 180931, supply: 250}
