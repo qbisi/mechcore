@@ -352,6 +352,52 @@ fn mechcore(arguments: &[&std::ffi::OsStr]) -> (Option<i32>, serde_json::Value, 
     )
 }
 
+#[test]
+fn fight_to_layout_reads_the_starting_position_without_running_the_fight() {
+    let directory = tempfile::tempdir().unwrap();
+    let input = directory.path().join("fight.yaml");
+    let output = directory.path().join("layout.yaml");
+    let source = "kind: fight\nsource: game\nseed: 17\nround: 5\nblue:\n  core_damage: 123\n  units: [{name: marksman, index: 0, level: 2, position: {x: 0, y: -50}, exp: 700/800/1465}]\nred:\n  core_damage: 0\n  units: [{name: arclight, index: 0, position: {x: 0, y: -50}, exp: 300/350/750}]\nticks: 1\nhash: 23:0000000000000000000000000000000000000000000000000000000000000000\n";
+    fs::write(&input, source).unwrap();
+    let expected = mechcore_document::fight::project(
+        &mechcore_document::fight::parse_yaml(source.as_bytes()).unwrap(),
+    );
+    let (code, report, error) = mechcore(&[
+        "convert".as_ref(),
+        input.as_os_str(),
+        "--to".as_ref(),
+        "layout".as_ref(),
+        output.as_os_str(),
+    ]);
+    assert_eq!(code, Some(0), "{error}");
+    assert_eq!(report["round"], 5);
+    assert_eq!(
+        fs::read(&output).unwrap(),
+        mechcore_document::canonical_yaml(expected)
+            .unwrap()
+            .as_bytes()
+    );
+    let projected: serde_yaml::Value = serde_yaml::from_slice(&fs::read(&output).unwrap()).unwrap();
+    assert_eq!(
+        projected["blue"]["units"][0]["exp"].as_str(),
+        Some("700/1465")
+    );
+    assert!(projected.get("source").is_none());
+    assert!(projected.get("ticks").is_none());
+    let stdout = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args([
+            "convert".as_ref(),
+            input.as_os_str(),
+            "--to".as_ref(),
+            "layout".as_ref(),
+        ])
+        .output()
+        .unwrap();
+    assert!(stdout.status.success());
+    assert_eq!(stdout.stdout, fs::read(&output).unwrap());
+    assert_eq!(fs::read_to_string(&input).unwrap(), source);
+}
+
 /// A file's kind is what it holds, not what it is called: a replay written
 /// under a `.yaml` name is still a replay, and a verb or a conversion its kind
 /// does not take is refused by naming the kind.

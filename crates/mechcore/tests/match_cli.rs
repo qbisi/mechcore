@@ -114,6 +114,64 @@ fn verify(path: &str) -> Value {
 }
 
 #[test]
+fn converting_a_match_selects_a_round_then_fights_its_projected_layout() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    let layout = directory.path().join("round.yaml").display().to_string();
+    let empty = run(&["convert", &path, "--to", "layout", &layout]).refused();
+    assert!(empty.contains("no deployment round"), "{empty}");
+    open_the_match(&path);
+    for side in ["blue", "red"] {
+        run(&["match", "commit", &path, "--side", side]).ok();
+    }
+    let explicit = directory.path().join("explicit.yaml").display().to_string();
+    run(&["convert", &path, "--to", "layout", &layout]).ok();
+    run(&[
+        "convert", &path, "--to", "layout", &explicit, "--round", "2",
+    ])
+    .ok();
+    assert_eq!(fs::read(&layout).unwrap(), fs::read(&explicit).unwrap());
+    let missing = run(&["convert", &path, "--to", "layout", "--round", "99"]).refused();
+    assert!(missing.contains("no round 99"), "{missing}");
+
+    let direct = directory.path().join("direct.yaml").display().to_string();
+    let via_layout = directory
+        .path()
+        .join("via-layout.yaml")
+        .display()
+        .to_string();
+    for round in [None, Some("1")] {
+        let mut select = vec!["convert", &path, "--to", "layout", &layout, "--force"];
+        let mut fight = vec!["convert", &path, "--to", "fight", &direct, "--force"];
+        if let Some(round) = round {
+            select.extend(["--round", round]);
+            fight.extend(["--round", round]);
+        }
+        run(&select).ok();
+        let report = run(&fight).ok();
+        assert_eq!(report["round"], if round.is_some() { 1 } else { 2 });
+        run(&["convert", &layout, "--to", "fight", &via_layout, "--force"]).ok();
+        assert_eq!(fs::read(&direct).unwrap(), fs::read(&via_layout).unwrap());
+    }
+    let game = mechcore_document::r#match::read(&fs::read(&path).unwrap())
+        .unwrap()
+        .unwrap();
+    let mut suffix = game;
+    suffix.has_opening = false;
+    suffix.blue.opening.choose = None;
+    suffix.red.opening.choose = None;
+    suffix.turns.retain(|turn| turn.round == 2);
+    fs::write(
+        &path,
+        mechcore_document::r#match::canonical_yaml(&suffix).unwrap(),
+    )
+    .unwrap();
+    run(&["convert", &path, "--to", "fight", &direct, "--force"]).ok();
+    let report = run(&["convert", &direct, "--to", "layout", &layout, "--force"]).ok();
+    assert_eq!(report["round"], 2);
+}
+
+#[test]
 fn a_partial_match_verifies_and_continues_from_its_first_checkpoint() {
     let directory = tempfile::tempdir().unwrap();
     let path = dealt(directory.path());
