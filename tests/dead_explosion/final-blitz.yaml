@@ -24,4 +24,4 @@ red:
   - {name: fang, index: 1, position: {x: 45, y: -60}, exp: 0/73/600, source: joined}
   - {name: sledgehammer, index: 2, position: {x: -45, y: -60}, exp: 0/121/1300, source: joined}
 ticks: 228
-hash: 25:5ec2a11c652d367d18e3459f18ed94df3b01b7f8a55d330f9f0f284aa391aa5d
+hash: 26:5e3428c07b26bb5081cc1fb45658899ea96d739998bb964eb616b032d3ba8ce5

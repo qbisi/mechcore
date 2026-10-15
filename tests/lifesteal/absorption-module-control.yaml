@@ -39,12 +39,17 @@ red:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   battle_skills:
   - {name: missile_strike, positions: [{x: 100, y: -295}]}
-ticks: 1305
-hash: 25:c4b0effb70a054b544512b5e0725c5cc9844583a6d7082b98b2422e4b7ab171e
 asserts:
-- sql: "SELECT tick, target__id, amount\nFROM events\nWHERE\n  tick BETWEEN 24 AND\
-    \ 28\n  AND type = 'healing'\nORDER BY\n  tick,\n  ordinal;\n"
+- sql: |
+    SELECT tick, target__id, amount
+    FROM events
+    WHERE
+      tick BETWEEN 24 AND 28
+      AND type = 'healing'
+    ORDER BY
+      tick,
+      ordinal;
   rows:
-  - - 24
-    - 12
-    - 5
+  - [24, 12, 5]
+ticks: 1305
+hash: 26:50bcf564523cd2014fd1e11cd040511a37238efeaabb9581ed011df6a0ea66cb

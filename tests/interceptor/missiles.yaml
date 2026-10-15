@@ -26,4 +26,4 @@ red:
   - {name: interceptor, index: 0, position: {x: 5, y: -85}}
   - {name: missile, index: 1, position: {x: 1, y: -11}, retained: false}
 ticks: 195
-hash: 25:39bf5ebbf328e819da08323d37e339245f1dcd826ebabaa157c66e73d21a3eba
+hash: 26:3d52fa679ed6fc73d13c03714899a62866bed9dac0219aeee69e5582eb4e6bfa

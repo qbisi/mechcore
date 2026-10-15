@@ -25,4 +25,4 @@ red:
   - {name: fortress, index: 0, position: {x: 0, y: -50}, exp: 0/200/1600, source: joined}
   - {name: fang, index: 1, position: {x: 45, y: -60}, exp: 0/600/600, source: joined}
 ticks: 728
-hash: 25:deaa91936634e13c67e661736de3e8be7744114c27a263cc752e65f2c44d2892
+hash: 26:ab794e1f5e00bb4e4b98af64262d74663faadfc0b16305d3cdaf2a1f699cd5a1

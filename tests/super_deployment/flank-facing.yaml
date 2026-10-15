@@ -23,4 +23,4 @@ red:
   - {name: hound, index: 1, position: {x: -330, y: 200}, exp: 0/200/750}
   - {name: arclight, index: 2, position: {x: 330, y: 250}, exp: 0/320/750}
 ticks: 1250
-hash: 25:3ea03d51b86162b968ce211123ce0edf7fba9dc61793732ae925822940f4700c
+hash: 26:9fefaff306002d30957a793533f5333eba48b80fb374bba614459350740be334

@@ -37,10 +37,16 @@ red:
   - {name: shield, index: 0, position: {x: -145, y: -205}}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -235, y: 300}, {x: 250, y: -240}]}
-ticks: 1266
-hash: 25:354a7db5b15685bd2a281fe4201ed641b2f544ec5660e7ffafe1996b6f36f151
 asserts:
-- sql: SELECT tick,object__kind,object__id FROM events WHERE type='unit_died' AND object__id=27
-  rows: [[157,unit,27]]
-- sql: SELECT tick,source__id,target__id,amount,skill_slot FROM events WHERE type='damage' AND source__id=33 AND target__id=26 AND tick IN (177,181,185) ORDER BY tick,ordinal
-  rows: [[177,33,26,1628,3],[181,33,26,1949,3],[185,33,26,2299,3]]
+- sql: |-
+    SELECT tick,object__kind,object__id FROM events WHERE type='unit_died' AND object__id=27
+  rows:
+  - [157, unit, 27]
+- sql: |-
+    SELECT tick,source__id,target__id,amount,skill_slot FROM events WHERE type='damage' AND source__id=33 AND target__id=26 AND tick IN (177,181,185) ORDER BY tick,ordinal
+  rows:
+  - [177, 33, 26, 1628, 3]
+  - [181, 33, 26, 1949, 3]
+  - [185, 33, 26, 2299, 3]
+ticks: 1266
+hash: 26:ac8ab991149f30fb4fe948c492d8e08545c05d959504bed9adcdc9a58c6ecca0

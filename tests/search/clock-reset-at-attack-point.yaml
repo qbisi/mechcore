@@ -38,40 +38,27 @@ red:
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
   battle_skills:
   - {name: photon_emission, positions: [{x: -210, y: -90}]}
-ticks: 729
-hash: 25:670f0d1fe1943d0921f16f007bf4f10fcbc9911ac016d17fd627308b22b1f35c
 asserts:
-- sql: "SELECT\n  tick,\n  unit_id,\n  enabled__attack_target__id AS target,\n  enabled__attack_phase\
-    \ AS phase,\n  enabled__attack_time AS attack_time,\n  enabled__current_attack_interval\
-    \ AS attack_interval,\n  enabled__attack_count AS attack_count\nFROM units__skills\n\
-    WHERE\n  unit_id = 2\n  AND skill_slot = 0\n  AND tick BETWEEN 179 AND 182\nORDER\
-    \ BY\n  tick;\n"
+- sql: |
+    SELECT
+      tick,
+      unit_id,
+      enabled__attack_target__id AS target,
+      enabled__attack_phase AS phase,
+      enabled__attack_time AS attack_time,
+      enabled__current_attack_interval AS attack_interval,
+      enabled__attack_count AS attack_count
+    FROM units__skills
+    WHERE
+      unit_id = 2
+      AND skill_slot = 0
+      AND tick BETWEEN 179 AND 182
+    ORDER BY
+      tick;
   rows:
-  - - 179
-    - 2
-    - 29
-    - before
-    - 16
-    - 132
-    - 0
-  - - 180
-    - 2
-    - 29
-    - attacking
-    - 17
-    - 132
-    - 0
-  - - 181
-    - 2
-    - 19
-    - attacking
-    - 132
-    - 132
-    - 0
-  - - 182
-    - 2
-    - 19
-    - attacking
-    - 133
-    - 132
-    - 0
+  - [179, 2, 29, before, 16, 132, 0]
+  - [180, 2, 29, attacking, 17, 132, 0]
+  - [181, 2, 19, attacking, 132, 132, 0]
+  - [182, 2, 19, attacking, 133, 132, 0]
+ticks: 729
+hash: 26:6b160d87dafe93a85b273ca9aa8775580d2dc888700d5358404073c7fb64f363

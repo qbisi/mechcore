@@ -17,4 +17,4 @@ red:
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/400/450, equipment: [anti_interference_module], source: joined}
 ticks: 270
-hash: 25:727fec1a92aa2c5fc2602c2aea7d08cdcda030f833c815e293d527f60e4324a5
+hash: 26:7391f3908b247f6ab01eabef9237c727b81ec77835acd15548dd40ea207eecb6

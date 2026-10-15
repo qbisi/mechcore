@@ -40,8 +40,16 @@ red:
   - {name: missile, index: 0, position: {x: 295, y: -205}}
   battle_skills:
   - {name: wasp_swarm, positions: [{x: 240, y: -175}]}
-ticks: 714
-hash: 25:71aed22fd3d4722e99dfcd34dc131e8a5095d1c059753652c79a4923a964f6a9
 asserts:
-- sql: SELECT tick,target__kind,target__id FROM events WHERE type='projectile_released' AND source__kind='unit' AND source__id=9 AND tick BETWEEN 79 AND 85 ORDER BY tick,ordinal
-  rows: [[79,unit,1],[80,building,2],[81,building,7],[82,building,4],[83,building,5],[84,building,6],[85,building,3]]
+- sql: |-
+    SELECT tick,target__kind,target__id FROM events WHERE type='projectile_released' AND source__kind='unit' AND source__id=9 AND tick BETWEEN 79 AND 85 ORDER BY tick,ordinal
+  rows:
+  - [79, unit, 1]
+  - [80, building, 2]
+  - [81, building, 7]
+  - [82, building, 4]
+  - [83, building, 5]
+  - [84, building, 6]
+  - [85, building, 3]
+ticks: 714
+hash: 26:b4226fbd80e2e908f7b5d1f97ef4435c0695cae6392580730b3439b1d3660168

@@ -43,4 +43,4 @@ red:
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 ticks: 1108
-hash: 25:562b73c948d05b9f76652dcb46d862128489c096d30da3e6268468fd834e2b6d
+hash: 26:ffc1cbfb976f00bdfe962e16725388fa91443f932cb4772276c08303a246a90f

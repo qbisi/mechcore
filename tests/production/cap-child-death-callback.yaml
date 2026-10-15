@@ -35,46 +35,25 @@ red:
   - {name: farseer, index: 1, position: {x: 95, y: -295}, level: 2, source: joined}
   battle_skills:
   - {name: vulcans_descent, positions: [{x: -135, y: -75}]}
-ticks: 1651
-hash: 25:6a5c017e53a3212c42f78664fe85ed92d7aff8089517601973c366a154be56af
 asserts:
-- sql: SELECT tick,unit_id,source_id,interval_time_counter FROM units__production_lines WHERE unit_id=6 AND tick IN (961,964,965,1183,1184) ORDER BY tick
+- sql: |-
+    SELECT tick,unit_id,source_id,interval_time_counter FROM units__production_lines WHERE unit_id=6 AND tick IN (961,964,965,1183,1184) ORDER BY tick
   rows:
-  - - 961
-    - 6
-    - 1306002
-    - 0
-  - - 964
-    - 6
-    - 1306002
-    - 0
-  - - 965
-    - 6
-    - 1306002
-    - 1
-  - - 1183
-    - 6
-    - 1306002
-    - 219
-  - - 1184
-    - 6
-    - 1306002
-    - 0
-- sql: SELECT tick,COUNT(*) FROM events WHERE type='unit_created' AND unit_type_id=7 GROUP BY tick ORDER BY tick
+  - [961, 6, 1306002, 0]
+  - [964, 6, 1306002, 0]
+  - [965, 6, 1306002, 1]
+  - [1183, 6, 1306002, 219]
+  - [1184, 6, 1306002, 0]
+- sql: |-
+    SELECT tick,COUNT(*) FROM events WHERE type='unit_created' AND unit_type_id=7 GROUP BY tick ORDER BY tick
   rows:
-  - - 81
-    - 4
-  - - 301
-    - 4
-  - - 521
-    - 4
-  - - 741
-    - 4
-  - - 961
-    - 4
-  - - 1184
-    - 4
-  - - 1404
-    - 4
-  - - 1624
-    - 4
+  - [81, 4]
+  - [301, 4]
+  - [521, 4]
+  - [741, 4]
+  - [961, 4]
+  - [1184, 4]
+  - [1404, 4]
+  - [1624, 4]
+ticks: 1651
+hash: 26:9667c541e9628cfbf28878f46eb37f9c7768a97cc5614e4e04569009e29d8857

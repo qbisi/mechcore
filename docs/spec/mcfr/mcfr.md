@@ -1,4 +1,4 @@
-# MCFR, format 0.25.0
+# MCFR, format 0.26.0
 
 ## Scope
 
@@ -7,7 +7,7 @@ schema of each, the identity and ordering rules that make two recordings of one
 fight the same recording, and what a reader must validate before trusting one.
 
 ```text
-format = "0.25.0"
+format = "0.26.0"
 ```
 
 The native field mapping is bound to the game version the repository pins in
@@ -122,7 +122,7 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.25.0` | the logical and physical contract version |
+| `format` | exactly `0.26.0` | the logical and physical contract version |
 | `producer` | `game` or `simulator` | what wrote the recording: the game, through the adapter, or the simulator |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
@@ -518,6 +518,7 @@ movement blocking, or layout deployment footprints.
 | `team_id` | `UINT32 required` | the owning team | `GetTeamController().GetTeamIndex()` |
 | `source_kind` | `UINT8 required` | what produced it | the runtime type of `get_EnergyShieldData()` |
 | `owner` | nullable `ObjectRef` | the bound FightActor; null for a fixed deployed shield | `GetOwner()` |
+| `controller` | nullable struct | present exactly for `owner_advanced`; its saved state while the battlefield shield is inactive | the `AdvancedEnergyShieldController` returned by `get_EnergyShieldData()` |
 | `position` | `QVec3 required` | the sphere's centre | FightTransform `GetPositionInt3D()` |
 | `radius` | `INT64 required` | the intersection sphere radius, Q32.32 raw | `GetRadius()` |
 | `energy` | `GaugeI32 required` | current energy and the effective maximum | `GetEnergy()` / `GetMaxEnergy()` |
@@ -535,6 +536,16 @@ data source makes the adapter fail closed.
 effective maximum the data source reports at the round's end, so a Shield
 Specialist refreshing an existing ordinary shield's maximum energy shows up
 directly as a change in the gauge.
+
+### Controller state
+
+`controller = { enabled: BOOLEAN required, energy_record: INT32 required }`
+records `EnergyShieldBehaviour.IsEnable()` and
+`AdvancedEnergyShieldController.energyRecord`. They are independent of the
+battlefield shield's `active` flag and current energy. Disabling a carried
+shield saves its energy and deactivates the battlefield object; enabling the
+controller later restores that saved energy. An inactive, empty battlefield
+shield therefore does not determine either controller value.
 
 ### Active order
 
@@ -987,7 +998,7 @@ Identity is what makes two recordings of one fight the same recording, so
 every namespace numbers its objects by a rule that depends on the scene rather
 than on the pointer that happened to be observed first.
 
-Format `0.25.0` uses `team_zx_sequential_v1`.
+Format `0.26.0` uses `team_zx_sequential_v1`.
 
 **Units.** Initial units sort strictly ascending by `(team_id, position.z,
 position.x)` and take `unit_id = 1..N` in that order. Initial units on one team
@@ -1079,8 +1090,8 @@ encodes as it would without it; every other field is written, null included. The
 It excludes the layout, DurableContext, provenance and digest metadata.
 
 ```text
-tick_hash(t) = H_content-tick-0.25.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
-result_hash  = H_content-result-0.25.0(
+tick_hash(t) = H_content-tick-0.26.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
+result_hash  = H_content-result-0.26.0(
     LE_u32(tick_count),
     tick_hash(1)..tick_hash(n),
     JSON(settlement)
@@ -1089,7 +1100,7 @@ result_hash  = H_content-result-0.25.0(
 
 The definition is numbered on its own, apart from the format: `hash_profile`
 is that number, and the domain strings spell profile `n` as `0.n.0`, the form
-they were written in while the profile was the format's, so profile 25's are
+they were written in while the profile was the format's, so profile 26's are
 the strings above. The profile moves when what the hash reads or how changes,
 and with it every hash and every pin, which is recorded again; a change to the
 format that leaves `S(t)`, `E(t)` and settlement encoding the same leaves it, and the pins.

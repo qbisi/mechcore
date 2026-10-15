@@ -38,19 +38,13 @@ red:
   - {name: missile, index: 0, position: {x: 200, y: -55}, retained: false}
   battle_skills:
   - {name: photon_emission, positions: [{x: 105, y: 185}]}
-ticks: 1871
-hash: 25:2ab31ebd7f0ad797a7dce7e593e46945dfb2666758a8f871bb21037eb5d17543
 asserts:
-- sql: 'SELECT tick, velocity__x, velocity__z FROM units
-
-    WHERE unit_id = 6 AND tick IN (200, 204, 208) ORDER BY tick;'
+- sql: |-
+    SELECT tick, velocity__x, velocity__z FROM units
+    WHERE unit_id = 6 AND tick IN (200, 204, 208) ORDER BY tick;
   rows:
-  - - 200
-    - -13539605949
-    - -36209798829
-  - - 204
-    - -14480137629
-    - -35844051888
-  - - 208
-    - -7591624687
-    - -36896917288
+  - [200, -13539605949, -36209798829]
+  - [204, -14480137629, -35844051888]
+  - [208, -7591624687, -36896917288]
+ticks: 1871
+hash: 26:1907d5d0ba4857452bee33284c134609607fecd63b83d4d381330bbdabb10689

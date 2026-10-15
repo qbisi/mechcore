@@ -22,13 +22,10 @@ red:
     stormcaller: [electromagnetic_explosion]
   units:
   - {name: stormcaller, index: 0, position: {x: 5, y: -100}, exp: 0/200/1100, source: joined}
-ticks: 374
-hash: 25:aac6f75475129318293a4a4d564653c06a9f2bb02738fa8fb9278a21ea7b5cf6
 asserts:
-- sql: 'SELECT tick, reason FROM events WHERE type = ''buff_removed'' AND buff_id
-    = 10001;
-
-    '
+- sql: |
+    SELECT tick, reason FROM events WHERE type = 'buff_removed' AND buff_id = 10001;
   rows:
-  - - 236
-    - 3
+  - [236, 3]
+ticks: 374
+hash: 26:6c698c5e0f5a2ee25d9f3110a8dfcccf1eb33a09630201abfa322bd9080d5889

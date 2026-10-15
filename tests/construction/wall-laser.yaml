@@ -26,36 +26,30 @@ red:
   core_damage: 0
   units:
   - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/248/1000, source: joined}
-ticks: 242
-hash: 25:a7144ad992530f84af0a740177b7e07022445a914550b456da40f1b6b6b65964
 asserts:
-- sql: "SELECT\n  u.tick,\n  u.unit_id,\n  u.motion_state,\n  u.mech_lock_target__kind,\n\
-    \  u.mech_lock_target__id,\n  k.enabled__state,\n  k.enabled__attack_target__kind,\n\
-    \  k.enabled__attack_target__id\nFROM units u\nJOIN units__skills k\n  ON k.tick\
-    \ = u.tick\n  AND k.unit_id = u.unit_id\n  AND k.skill_slot = 0\nWHERE\n  u.unit_id\
-    \ = 4\n  AND u.tick IN (145, 146, 147)\nORDER BY\n  u.tick;\n"
+- sql: |
+    SELECT
+      u.tick,
+      u.unit_id,
+      u.motion_state,
+      u.mech_lock_target__kind,
+      u.mech_lock_target__id,
+      k.enabled__state,
+      k.enabled__attack_target__kind,
+      k.enabled__attack_target__id
+    FROM units u
+    JOIN units__skills k
+      ON k.tick = u.tick
+      AND k.unit_id = u.unit_id
+      AND k.skill_slot = 0
+    WHERE
+      u.unit_id = 4
+      AND u.tick IN (145, 146, 147)
+    ORDER BY
+      u.tick;
   rows:
-  - - 145
-    - 4
-    - attacking
-    - unit
-    - 1
-    - prepare
-    - unit
-    - 1
-  - - 146
-    - 4
-    - idle
-    - null
-    - null
-    - idle
-    - null
-    - null
-  - - 147
-    - 4
-    - attacking
-    - unit
-    - 1
-    - idle
-    - building
-    - 3
+  - [145, 4, attacking, unit, 1, prepare, unit, 1]
+  - [146, 4, idle, null, null, idle, null, null]
+  - [147, 4, attacking, unit, 1, idle, building, 3]
+ticks: 242
+hash: 26:ca8a3c8541c16a13a8e56b7b89088f51e4fdd2270501cfe108f748726317be1a

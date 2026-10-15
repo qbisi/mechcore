@@ -17,34 +17,18 @@ red:
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -30}, equipment: [heavy_armor], source: joined}
   - {name: steel_ball, index: 1, position: {x: 105, y: -50}, exp: 0/100/1000, source: joined}
-ticks: 178
-hash: 25:7138fcd576bbb8f48e24e5cf70780754a049dc88ad7da6cc8e8d39a8dc52e91f
 asserts:
-- sql: SELECT tick,unit_id,team_id,life__current,life__maximum FROM units WHERE unit_id=2 AND tick BETWEEN 30 AND 32 ORDER BY tick
+- sql: |-
+    SELECT tick,unit_id,team_id,life__current,life__maximum FROM units WHERE unit_id=2 AND tick BETWEEN 30 AND 32 ORDER BY tick
   rows:
-  - - 30
-    - 2
-    - 1
-    - 2838
-    - 2838
-  - - 31
-    - 2
-    - 0
-    - 2838
-    - 2838
-  - - 32
-    - 2
-    - 0
-    - 2838
-    - 2838
-- sql: SELECT tick,unit_id,enabled__attack_damage FROM units__skills WHERE unit_id=2 AND tick BETWEEN 30 AND 32 ORDER BY tick,skill_slot
+  - [30, 2, 1, 2838, 2838]
+  - [31, 2, 0, 2838, 2838]
+  - [32, 2, 0, 2838, 2838]
+- sql: |-
+    SELECT tick,unit_id,enabled__attack_damage FROM units__skills WHERE unit_id=2 AND tick BETWEEN 30 AND 32 ORDER BY tick,skill_slot
   rows:
-  - - 30
-    - 2
-    - 2329
-  - - 31
-    - 2
-    - 2329
-  - - 32
-    - 2
-    - 2329
+  - [30, 2, 2329]
+  - [31, 2, 2329]
+  - [32, 2, 2329]
+ticks: 178
+hash: 26:67b83f2f370aa539853efe239bd49724d1c72a5a493006ff08c6b76bd7209abd

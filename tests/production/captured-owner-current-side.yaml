@@ -42,56 +42,25 @@ red:
   - {name: missile, index: 0, position: {x: -250, y: -200}, retained: false}
   battle_skills:
   - {name: smoke_bomb, positions: [{x: 85, y: 240}, {x: 275, y: 130}]}
-ticks: 2360
-hash: 25:e5e461bd3f7a1806f71563485e5c152f340c22a7543e6bd907c386042d745418
 asserts:
-- sql: 'SELECT tick,object__id,team_id,unit_type_id
-
+- sql: |
+    SELECT tick,object__id,team_id,unit_type_id
     FROM events
-
-    WHERE type=''unit_created'' AND unit_type_id=13 AND tick IN (1,521)
-
+    WHERE type='unit_created' AND unit_type_id=13 AND tick IN (1,521)
     ORDER BY tick,ordinal;
-
-    '
   rows:
-  - - 1
-    - 23
-    - 1
-    - 13
-  - - 1
-    - 24
-    - 1
-    - 13
-  - - 521
-    - 27
-    - 0
-    - 13
-  - - 521
-    - 28
-    - 0
-    - 13
-- sql: 'SELECT u.tick,u.unit_id,u.team_id,u.life__maximum,u.move_speed,s.enabled__attack_damage
-
+  - [1, 23, 1, 13]
+  - [1, 24, 1, 13]
+  - [521, 27, 0, 13]
+  - [521, 28, 0, 13]
+- sql: |
+    SELECT u.tick,u.unit_id,u.team_id,u.life__maximum,u.move_speed,s.enabled__attack_damage
     FROM units u
-
     JOIN units__skills s ON s.tick=u.tick AND s.unit_id=u.unit_id
-
     WHERE u.unit_id IN (27,28) AND u.tick=541 AND s.skill_slot=0
-
     ORDER BY u.unit_id;
-
-    '
   rows:
-  - - 541
-    - 27
-    - 0
-    - 3999
-    - 55834574848
-    - 790
-  - - 541
-    - 28
-    - 0
-    - 3999
-    - 55834574848
-    - 790
+  - [541, 27, 0, 3999, 55834574848, 790]
+  - [541, 28, 0, 3999, 55834574848, 790]
+ticks: 2360
+hash: 26:cb8307410def96f135cf5b7c6d57c298a62216d55349b24927b31cf479107eb3

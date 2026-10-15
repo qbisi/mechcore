@@ -42,19 +42,13 @@ red:
   - {name: interceptor, index: 0, position: {x: 285, y: -155}}
   battle_skills:
   - {name: mobilize_battleship, positions: [{x: -15, y: 5}]}
-ticks: 447
-hash: 25:a6fbecb2588c0a3e32851e1963d271c25780b04dc1205e74e406ef8d465270e2
 asserts:
-- sql: 'SELECT tick, energy__current, active FROM shields
-
-    WHERE shield_id = 1 AND tick IN (80, 81, 82) ORDER BY tick;'
+- sql: |-
+    SELECT tick, energy__current, active FROM shields
+    WHERE shield_id = 1 AND tick IN (80, 81, 82) ORDER BY tick;
   rows:
-  - - 80
-    - 0
-    - 0
-  - - 81
-    - 60000
-    - 1
-  - - 82
-    - 52413
-    - 1
+  - [80, 0, 0]
+  - [81, 60000, 1]
+  - [82, 52413, 1]
+ticks: 447
+hash: 26:bf16d243743b724da65ef0c28f0e03d0253c3654518a6ac5a79ec6cf6e8e7278

@@ -16,4 +16,4 @@ red:
   units:
   - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/400/1600, equipment: [barrier], source: joined}
 ticks: 245
-hash: 25:307c92ca2a42a64cf06ae3a6a83a4d7ae1e3420e1e435f1a3923a3671632d9e9
+hash: 26:b77cfd5c78dfa75ab6cfe0e19b146f6f1d4eae28b4b454c858f2662d68d56390

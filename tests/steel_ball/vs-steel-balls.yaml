@@ -14,21 +14,18 @@ red:
   core_damage: 0
   units:
   - {name: steel_ball, index: 0, position: {x: 5, y: -100}, exp: 0/400/1000, source: joined}
-ticks: 300
-hash: 25:a039e307c8aa2dfb47ec7428f808900429009b76ed606bbf6159ea21981b84cd
 asserts:
-- sql: "SELECT tick, unit_id, velocity__x, velocity__z\nFROM units\nWHERE\n  tick\
-    \ = 8\n  AND unit_id IN (1, 2, 3)\nORDER BY\n  unit_id;\n"
+- sql: |
+    SELECT tick, unit_id, velocity__x, velocity__z
+    FROM units
+    WHERE
+      tick = 8
+      AND unit_id IN (1, 2, 3)
+    ORDER BY
+      unit_id;
   rows:
-  - - 8
-    - 1
-    - -3142838517
-    - 68510718647
-  - - 8
-    - 2
-    - -1768777992
-    - 61456524119
-  - - 8
-    - 3
-    - 2054176502
-    - 68688002951
+  - [8, 1, -3142838517, 68510718647]
+  - [8, 2, -1768777992, 61456524119]
+  - [8, 3, 2054176502, 68688002951]
+ticks: 300
+hash: 26:742125f956ba76d349d8cabcea9f142493c8034be7327c528111f54338c36622

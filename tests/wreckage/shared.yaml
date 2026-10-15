@@ -23,4 +23,4 @@ red:
   - {name: mustang, index: 1, position: {x: 45, y: -20}, source: joined}
   - {name: arclight, index: 2, position: {x: 280, y: -300}, source: joined}
 ticks: 528
-hash: 25:56f3af926a7eea2d967801126c8791481b0eac707c918b756fe903682137d10a
+hash: 26:afb6e790e53e0285000900750bea67072b6af8d01e6a155ec207eab0bb0adcd1

@@ -38,12 +38,25 @@ red:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   battle_skills:
   - {name: mobile_beacon, positions: [{x: -45, y: -90}, {x: -180, y: 70}, {x: 125, y: 185}]}
-ticks: 940
-hash: 25:e482af27cdfb2c346077786736e0698cf989620635c7a2f046624326480353f9
 asserts:
-- sql: SELECT tick,unit_id,motion_state,turret_rotation,mech_lock_target__kind,mech_lock_target__id FROM units WHERE unit_id=3 AND tick IN (424,425,426) ORDER BY tick
-  rows: [[424, 3, stopped, 429825866749, unit, 10], [425, 3, stopped, 404056063069, null, null], [426, 3, stopped, 392181023104, unit, 6]]
-- sql: SELECT tick,skill_slot,enabled__lock_target__kind,enabled__lock_target__id,enabled__state FROM units__skills WHERE unit_id=3 AND tick IN (424,425,426) ORDER BY tick,skill_slot
-  rows: [[424, 0, unit, 10, attack], [424, 1, unit, 10, attack], [425, 0, null, null, idle], [425, 1, unit, 9, attack], [426, 0, unit, 6, attack], [426, 1, unit, 9, attack]]
-- sql: SELECT tick,source__kind,source__id,target__kind,target__id,skill_slot FROM events WHERE type='damage' AND target__kind='unit' AND target__id=10 AND tick=424 ORDER BY ordinal
-  rows: [[424, unit, 3, unit, 10, 0]]
+- sql: |-
+    SELECT tick,unit_id,motion_state,turret_rotation,mech_lock_target__kind,mech_lock_target__id FROM units WHERE unit_id=3 AND tick IN (424,425,426) ORDER BY tick
+  rows:
+  - [424, 3, stopped, 429825866749, unit, 10]
+  - [425, 3, stopped, 404056063069, null, null]
+  - [426, 3, stopped, 392181023104, unit, 6]
+- sql: |-
+    SELECT tick,skill_slot,enabled__lock_target__kind,enabled__lock_target__id,enabled__state FROM units__skills WHERE unit_id=3 AND tick IN (424,425,426) ORDER BY tick,skill_slot
+  rows:
+  - [424, 0, unit, 10, attack]
+  - [424, 1, unit, 10, attack]
+  - [425, 0, null, null, idle]
+  - [425, 1, unit, 9, attack]
+  - [426, 0, unit, 6, attack]
+  - [426, 1, unit, 9, attack]
+- sql: |-
+    SELECT tick,source__kind,source__id,target__kind,target__id,skill_slot FROM events WHERE type='damage' AND target__kind='unit' AND target__id=10 AND tick=424 ORDER BY ordinal
+  rows:
+  - [424, unit, 3, unit, 10, 0]
+ticks: 940
+hash: 26:0eb0f656274286728c1dc5038a84451fe7a81c592caa51cf66afb8f816a9da66

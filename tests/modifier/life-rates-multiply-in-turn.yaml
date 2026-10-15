@@ -22,12 +22,10 @@ red:
   blueprints: [defense_enhancement_ii]
   units:
   - {name: crawler, index: 0, position: {x: -135, y: -220}, level: 6, exp: 0/400/2609, equipment: [absorption_module], source: joined}
-ticks: 1834
-hash: 25:59c8458c0ce5b476640f4d7a6322ecc174921687edfbea9915e7c3cda28f420b
 asserts:
-- sql: 'SELECT DISTINCT life__maximum FROM units WHERE tick = 1 AND unit_type_id =
-    10;
-
-    '
+- sql: |
+    SELECT DISTINCT life__maximum FROM units WHERE tick = 1 AND unit_type_id = 10;
   rows:
-  - - 1575
+  - [1575]
+ticks: 1834
+hash: 26:99cf6a3932dc7a9ab8886ca7e1666454af5ac450e1c84d62663c4a20aea446e2

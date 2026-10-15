@@ -37,29 +37,25 @@ red:
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
   battle_skills:
   - {name: acid_blast, positions: [{x: -265, y: 65}, {x: -55, y: 60}]}
-ticks: 1443
-hash: 25:dbbbb6a8ae6843423662322257be759f113467178fc44ec26791d03bd24c5c6a
 asserts:
-- sql: "SELECT\n  tick,\n  unit_id,\n  enabled__lock_target__kind,\n  enabled__lock_target__id,\n\
-    \  enabled__attack_target__kind,\n  enabled__attack_target__id\nFROM units__skills\n\
-    WHERE\n  unit_id = 12\n  AND skill_slot = 0\n  AND tick BETWEEN 635 AND 637\n\
-    ORDER BY\n  tick;\n"
+- sql: |
+    SELECT
+      tick,
+      unit_id,
+      enabled__lock_target__kind,
+      enabled__lock_target__id,
+      enabled__attack_target__kind,
+      enabled__attack_target__id
+    FROM units__skills
+    WHERE
+      unit_id = 12
+      AND skill_slot = 0
+      AND tick BETWEEN 635 AND 637
+    ORDER BY
+      tick;
   rows:
-  - - 635
-    - 12
-    - null
-    - null
-    - null
-    - null
-  - - 636
-    - 12
-    - unit
-    - 8
-    - building
-    - 5
-  - - 637
-    - 12
-    - unit
-    - 8
-    - building
-    - 5
+  - [635, 12, null, null, null, null]
+  - [636, 12, unit, 8, building, 5]
+  - [637, 12, unit, 8, building, 5]
+ticks: 1443
+hash: 26:3052ffd3ed2bd477484beba36eb85a600d73b2eb680578b0cf6c83a2c232121b

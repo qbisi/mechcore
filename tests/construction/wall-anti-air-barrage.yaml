@@ -40,35 +40,27 @@ red:
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
   battle_skills:
   - {name: wasp_swarm, positions: [{x: 135, y: -120}]}
-ticks: 914
-hash: 25:83141f52c9683cbf8e7ded8cc849e08db079ecb0702592ffa5bce65a9600de13
 asserts:
-- sql: "SELECT\n  tick,\n  unit_id,\n  skill_slot,\n  enabled__lock_target__kind,\n\
-    \  enabled__lock_target__id,\n  enabled__attack_target__kind,\n  enabled__attack_target__id,\n\
-    \  enabled__state\nFROM units__skills\nWHERE\n  unit_id = 5\n  AND skill_slot\
-    \ = 1\n  AND tick BETWEEN 190 AND 192\nORDER BY\n  tick;\n"
+- sql: |
+    SELECT
+      tick,
+      unit_id,
+      skill_slot,
+      enabled__lock_target__kind,
+      enabled__lock_target__id,
+      enabled__attack_target__kind,
+      enabled__attack_target__id,
+      enabled__state
+    FROM units__skills
+    WHERE
+      unit_id = 5
+      AND skill_slot = 1
+      AND tick BETWEEN 190 AND 192
+    ORDER BY
+      tick;
   rows:
-  - - 190
-    - 5
-    - 1
-    - unit
-    - 30
-    - unit
-    - 30
-    - idle
-  - - 191
-    - 5
-    - 1
-    - unit
-    - 26
-    - unit
-    - 26
-    - idle
-  - - 192
-    - 5
-    - 1
-    - unit
-    - 26
-    - unit
-    - 26
-    - idle
+  - [190, 5, 1, unit, 30, unit, 30, idle]
+  - [191, 5, 1, unit, 26, unit, 26, idle]
+  - [192, 5, 1, unit, 26, unit, 26, idle]
+ticks: 914
+hash: 26:e6548680669f4800583781d3e861a4774f4d5dcc2e0c5c2bdcc2f85618b3d301

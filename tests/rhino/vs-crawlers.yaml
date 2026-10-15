@@ -14,13 +14,14 @@ red:
   core_damage: 200
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
-ticks: 377
-hash: 25:216c4fa416f4cb5ce65322eb1b2f1885b3f6ee339f43d7490325340c48246a7b
 asserts:
-- sql: "SELECT tick, unit_id, velocity__x, velocity__z\nFROM units\nWHERE\n  tick\
-    \ = 8\n  AND unit_id = 11;\n"
+- sql: |
+    SELECT tick, unit_id, velocity__x, velocity__z
+    FROM units
+    WHERE
+      tick = 8
+      AND unit_id = 11;
   rows:
-  - - 8
-    - 11
-    - 10146579184
-    - -67965446880
+  - [8, 11, 10146579184, -67965446880]
+ticks: 377
+hash: 26:bf050a6f6dc4cc1a4dd5f1309b8f490ae44fe874056f00a7ce98d1a47655e628

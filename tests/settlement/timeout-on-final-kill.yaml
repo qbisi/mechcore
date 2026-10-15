@@ -37,35 +37,42 @@ red:
   - {name: missile, index: 0, position: {x: 5, y: -115}, retained: false}
   battle_skills:
   - {name: sticky_oil_bomb, positions: [{x: -20, y: -115}, {x: 120, y: -130}]}
-ticks: 2360
-hash: 25:985177f95c4cbbb2779d9b91a519b3b5b8915331d8f587828cbf1a9da217e6ff
 asserts:
-- sql: 'SELECT team_id, score, core_damage FROM settlement_teams ORDER BY team_id;
-
-    '
+- sql: |
+    SELECT team_id, score, core_damage FROM settlement_teams ORDER BY team_id;
   rows:
-  - - 0
-    - 100
-    - 0
-  - - 1
-    - 0
-    - 100
-- sql: "SELECT\n  tick_count,\n  terminal_tick,\n  (SELECT count(*) FROM projectiles\
-    \ WHERE tick = fight.terminal_tick) AS in_flight\nFROM fight;\n"
+  - [0, 100, 0]
+  - [1, 0, 100]
+- sql: |
+    SELECT
+      tick_count,
+      terminal_tick,
+      (SELECT count(*) FROM projectiles WHERE tick = fight.terminal_tick) AS in_flight
+    FROM fight;
   rows:
-  - - 2360
-    - 2360
-    - 3
-- sql: "SELECT tick, object__id, source__id\nFROM events\nWHERE\n  type = 'unit_died'\n\
-    \  AND tick = (SELECT terminal_tick FROM fight)\nORDER BY\n  ordinal;\n"
+  - [2360, 2360, 3]
+- sql: |
+    SELECT tick, object__id, source__id
+    FROM events
+    WHERE
+      type = 'unit_died'
+      AND tick = (SELECT terminal_tick FROM fight)
+    ORDER BY
+      ordinal;
   rows:
-  - - 2360
-    - 3
-    - 2
-- sql: "SELECT team_id, unit_type_id, count(*) AS alive\nFROM units\nWHERE\n  tick\
-    \ = (SELECT terminal_tick FROM fight)\nGROUP BY\n  team_id,\n  unit_type_id\n\
-    ORDER BY\n  team_id,\n  unit_type_id;\n"
+  - [2360, 3, 2]
+- sql: |
+    SELECT team_id, unit_type_id, count(*) AS alive
+    FROM units
+    WHERE
+      tick = (SELECT terminal_tick FROM fight)
+    GROUP BY
+      team_id,
+      unit_type_id
+    ORDER BY
+      team_id,
+      unit_type_id;
   rows:
-  - - 0
-    - 2
-    - 1
+  - [0, 2, 1]
+ticks: 2360
+hash: 26:c239b863fad39042fcd41448a7f21d962eabfb700626c3f0537b890a13182555

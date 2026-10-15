@@ -24,11 +24,10 @@ red:
     fire_badger: [napalm, range_enhancement, scorching_charge]
   units:
   - {name: fire_badger, index: 0, position: {x: 205, y: -40}, level: 2, exp: 0/520/3154, equipment: [amplifying_core], source: joined}
-ticks: 342
-hash: 25:617d033574a6db256957fed69b1eaf15a6857527703f7748a5ff9cb023bc1b6d
 asserts:
-- sql: 'SELECT count(*) FROM events WHERE type = ''terrain_created'';
-
-    '
+- sql: |
+    SELECT count(*) FROM events WHERE type = 'terrain_created';
   rows:
-  - - 68
+  - [68]
+ticks: 342
+hash: 26:e22d2b7cff871df453c39d2329a4b509ede5b4b44fcdcaf3b655c1a16e20cc81

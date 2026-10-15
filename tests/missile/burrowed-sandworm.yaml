@@ -63,4 +63,4 @@ asserts:
   - [258, projectile_released, 123, null, 33]
   - [864, projectile_released, 285, null, 18]
 ticks: 2360
-hash: 25:39ebcc4a47e80fdd611b62eb01f52e7f212337e1f195a0d5086d4f93cff46d8d
+hash: 26:bd3f680ffa018d05108bd88196b8552640ef3ef7f8e2c97961e659a0fd4f09d8

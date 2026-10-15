@@ -41,60 +41,32 @@ red:
   - {name: interceptor, index: 0, position: {x: -85, y: -205}, retained: false}
   battle_skills:
   - {name: shield_airdrop, positions: [{x: -5, y: -195}], retained: false}
-ticks: 510
-hash: 25:442b9ae59a0221e89300ed5d6de6209d895bcb569dc2a6c22710b12470f8d643
 asserts:
-- sql: "SELECT\n  tick,\n  unit_id,\n  skill_slot,\n  enabled__lock_target__kind,\n\
-    \  enabled__lock_target__id\nFROM units__skills\nWHERE\n  tick IN (82, 260)\n\
-    \  AND unit_id BETWEEN 2 AND 6\n  AND skill_slot = 1\nORDER BY\n  tick,\n  unit_id;\n"
+- sql: |
+    SELECT
+      tick,
+      unit_id,
+      skill_slot,
+      enabled__lock_target__kind,
+      enabled__lock_target__id
+    FROM units__skills
+    WHERE
+      tick IN (82, 260)
+      AND unit_id BETWEEN 2 AND 6
+      AND skill_slot = 1
+    ORDER BY
+      tick,
+      unit_id;
   rows:
-  - - 82
-    - 2
-    - 1
-    - unit
-    - 35
-  - - 82
-    - 3
-    - 1
-    - unit
-    - 35
-  - - 82
-    - 4
-    - 1
-    - unit
-    - 35
-  - - 82
-    - 5
-    - 1
-    - unit
-    - 35
-  - - 82
-    - 6
-    - 1
-    - unit
-    - 35
-  - - 260
-    - 2
-    - 1
-    - building
-    - 5
-  - - 260
-    - 3
-    - 1
-    - building
-    - 5
-  - - 260
-    - 4
-    - 1
-    - building
-    - 5
-  - - 260
-    - 5
-    - 1
-    - building
-    - 5
-  - - 260
-    - 6
-    - 1
-    - building
-    - 5
+  - [82, 2, 1, unit, 35]
+  - [82, 3, 1, unit, 35]
+  - [82, 4, 1, unit, 35]
+  - [82, 5, 1, unit, 35]
+  - [82, 6, 1, unit, 35]
+  - [260, 2, 1, building, 5]
+  - [260, 3, 1, building, 5]
+  - [260, 4, 1, building, 5]
+  - [260, 5, 1, building, 5]
+  - [260, 6, 1, building, 5]
+ticks: 510
+hash: 26:3768ce0050364ce6af430f36f9bcd021a5cc2b3eba1d1e959b62a0dbc513ea6f

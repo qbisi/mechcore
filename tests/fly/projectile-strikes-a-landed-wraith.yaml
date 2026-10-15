@@ -19,11 +19,19 @@ red:
   core_damage: 250
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -100}, source: joined}
-ticks: 192
-hash: 25:3b074f05cb06432a793231f718f0c5100a6c303608795d41edcf8ceaa6a21a2a
 asserts:
-- sql: "SELECT tick, amount\nFROM events\nWHERE\n  type = 'damage'\n  AND target__kind\
-    \ = 'unit'\n  AND target__id = 1\nORDER BY\n  tick,\n  ordinal\nLIMIT 1;\n"
+- sql: |
+    SELECT tick, amount
+    FROM events
+    WHERE
+      type = 'damage'
+      AND target__kind = 'unit'
+      AND target__id = 1
+    ORDER BY
+      tick,
+      ordinal
+    LIMIT 1;
   rows:
-  - - 79
-    - 2329
+  - [79, 2329]
+ticks: 192
+hash: 26:8fea951ea1f14e8ac7998f6cd55daec857dc7a8f522d0bdbf581adf1dcbc40e3

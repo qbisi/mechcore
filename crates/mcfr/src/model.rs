@@ -7,7 +7,7 @@ use crate::{Error, Result, canonical};
 /// The format: how a recording is stored, which the hash does not read.
 macro_rules! format_version {
     () => {
-        "0.25.0"
+        "0.26.0"
     };
 }
 
@@ -17,7 +17,7 @@ macro_rules! format_version {
 /// `n` as `0.n.0`, the form it was written in while it was the format's.
 macro_rules! hash_profile {
     () => {
-        "25"
+        "26"
     };
 }
 pub(crate) use hash_profile;
@@ -401,6 +401,14 @@ impl WorldSnapshot {
         }
         let mut active_orders = BTreeSet::new();
         for shield in &self.shields {
+            if shield.controller.is_some()
+                != (shield.source_kind == ShieldSourceKind::OwnerAdvanced)
+            {
+                return Err(Error::invalid(format!(
+                    "shield {} controller must be present exactly for owner_advanced",
+                    shield.shield_id
+                )));
+            }
             if shield.active != shield.active_order.is_some() {
                 return Err(Error::invalid(format!(
                     "shield {} active and active_order disagree",
@@ -1219,6 +1227,16 @@ pub enum BuffRemovedReason {
     Unknown,
 }
 
+/// The carried shield controller's state while its battlefield shield is
+/// inactive. EMP restoration reads the energy saved by `Disable`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct ShieldControllerState {
+    pub enabled: bool,
+    pub energy_record: i32,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
@@ -1226,6 +1244,7 @@ pub struct ShieldState {
     pub active: bool,
     #[serde(default)]
     pub active_order: Option<u32>,
+    pub controller: Option<ShieldControllerState>,
     pub energy: GaugeI32,
     #[serde(default)]
     pub owner: Option<ObjectRef>,

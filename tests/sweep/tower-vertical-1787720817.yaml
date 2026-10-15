@@ -19,4 +19,4 @@ red:
   - {name: marksman, index: 0, position: {x: 140, y: -140}, source: joined}
   - {name: marksman, index: 1, position: {x: -140, y: -140}, source: joined}
 ticks: 443
-hash: 25:6592d2e4cf3d2b0898e8844956647c746299f5508a26f0203c75216137a05b38
+hash: 26:06ba4b08ef857714430c2968e148931f989e66cc4c322433308170e0e57bbb19

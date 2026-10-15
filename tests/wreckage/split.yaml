@@ -22,4 +22,4 @@ red:
   - {name: vulcan, index: 0, position: {x: 0, y: -30}, source: joined}
   - {name: arclight, index: 1, position: {x: 280, y: -300}, source: joined}
 ticks: 742
-hash: 25:c2bc73d8d8db99d26439e0ee84ed90aa1cb638a54266c5a1e82627bab2e59736
+hash: 26:5b69cabb710342da4e070c734bb5cb1e4c887e1b936f7241aca2a6e72f98eb60

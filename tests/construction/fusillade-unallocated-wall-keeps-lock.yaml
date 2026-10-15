@@ -37,24 +37,13 @@ red:
   - {name: interceptor, index: 0, position: {x: 265, y: -195}, retained: false}
   battle_skills:
   - {name: acid_blast, positions: [{x: -50, y: -280}, {x: 170, y: 190}]}
-ticks: 2360
-hash: 25:42a328cc0146c97b925995991b31bfebf4015141f946debffddb6b91ffd73271
 asserts:
-- sql: SELECT tick,skill_slot,enabled__lock_target__id,enabled__attack_target__id FROM units__skills WHERE unit_id=4 AND skill_slot=2 AND tick BETWEEN 1060 AND 1063 ORDER BY tick
+- sql: |-
+    SELECT tick,skill_slot,enabled__lock_target__id,enabled__attack_target__id FROM units__skills WHERE unit_id=4 AND skill_slot=2 AND tick BETWEEN 1060 AND 1063 ORDER BY tick
   rows:
-  - - 1060
-    - 2
-    - 62
-    - 13
-  - - 1061
-    - 2
-    - 62
-    - 13
-  - - 1062
-    - 2
-    - 62
-    - 13
-  - - 1063
-    - 2
-    - 62
-    - 13
+  - [1060, 2, 62, 13]
+  - [1061, 2, 62, 13]
+  - [1062, 2, 62, 13]
+  - [1063, 2, 62, 13]
+ticks: 2360
+hash: 26:64ac754f3b197afe5a8629ba1d784d4e4a01badfc2691af0b92cbfde7347793b

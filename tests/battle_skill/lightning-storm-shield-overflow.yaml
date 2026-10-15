@@ -40,24 +40,17 @@ red:
   - {name: missile, index: 0, position: {x: -240, y: -265}}
   battle_skills:
   - {name: lightning_storm, positions: [{x: -255, y: -110}]}
-ticks: 820
-hash: 25:227e11299a836b183a24b04136c39ba449f22f6c43327d9fd97e1f4f8cf5089e
 asserts:
-- sql: "SELECT tick, type, target__kind, target__id, amount\nFROM events\nWHERE\n\
-    \  tick = 132\nORDER BY\n  ordinal;\n"
+- sql: |
+    SELECT tick, type, target__kind, target__id, amount
+    FROM events
+    WHERE
+      tick = 132
+    ORDER BY
+      ordinal;
   rows:
-  - - 132
-    - damage
-    - shield
-    - 1
-    - 2000
-  - - 132
-    - damage
-    - unit
-    - 12
-    - 2000
-  - - 132
-    - buff_applied
-    - unit
-    - 12
-    - null
+  - [132, damage, shield, 1, 2000]
+  - [132, damage, unit, 12, 2000]
+  - [132, buff_applied, unit, 12, null]
+ticks: 820
+hash: 26:9acad7eaa3d1d909de965afc2ecc29342897bf4fad4c65db329e2b7f129554aa

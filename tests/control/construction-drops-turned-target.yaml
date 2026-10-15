@@ -34,31 +34,16 @@ red:
   - {name: fire_badger, index: 2, position: {x: 145, y: -60}, source: joined}
   battle_skills:
   - {name: sticky_oil_bomb, positions: [{x: -275, y: -120}, {x: 140, y: -275}]}
-ticks: 765
-hash: 25:53e4416f4b3551e5f9a94ee95cd90455bff35af2d1f7b564915513b67ac9ec0c
 asserts:
-- sql: "SELECT b.tick, b.building_id, b.skill__lock_target__kind,\n       b.skill__lock_target__id, u.unit_id,\
-    \ u.unit_type_id, u.team_id\nFROM buildings b JOIN units u ON u.tick = b.tick AND u.unit_id = 3\n\
-    WHERE b.building_id = 3 AND b.tick BETWEEN 364 AND 366\nORDER BY b.tick;"
+- sql: |-
+    SELECT b.tick, b.building_id, b.skill__lock_target__kind,
+           b.skill__lock_target__id, u.unit_id, u.unit_type_id, u.team_id
+    FROM buildings b JOIN units u ON u.tick = b.tick AND u.unit_id = 3
+    WHERE b.building_id = 3 AND b.tick BETWEEN 364 AND 366
+    ORDER BY b.tick;
   rows:
-  - - 364
-    - 3
-    - unit
-    - 3
-    - 3
-    - 20
-    - 1
-  - - 365
-    - 3
-    - null
-    - null
-    - 3
-    - 20
-    - 0
-  - - 366
-    - 3
-    - null
-    - null
-    - 3
-    - 20
-    - 0
+  - [364, 3, unit, 3, 3, 20, 1]
+  - [365, 3, null, null, 3, 20, 0]
+  - [366, 3, null, null, 3, 20, 0]
+ticks: 765
+hash: 26:97863b0a2bcc9fbf0ce59837cedb39ee67c9e691faeacc1399a357eafd815b86

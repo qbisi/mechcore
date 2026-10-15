@@ -39,108 +39,37 @@ red:
   core_damage: 0
   units:
   - {name: wraith, index: 0, position: {x: 195, y: -25}, exp: 0/236/2250, source: joined}
-ticks: 242
-hash: 25:b210e1fd60ab57a2b5c20fc5f27692c6af923f766a9e88c07a3782017757578a
 asserts:
-- sql: "SELECT\n  u.tick,\n  u.unit_id,\n  u.motion_state,\n  u.mech_lock_target__kind,\n\
-    \  u.mech_lock_target__id,\n  k.skill_slot,\n  k.enabled__attack_target__kind,\n\
-    \  k.enabled__attack_target__id\nFROM units u\nJOIN units__skills k ON k.tick\
-    \ = u.tick AND k.unit_id = u.unit_id\nWHERE\n  u.team_id = 1\n  AND u.tick IN\
-    \ (41, 60, 78)\nORDER BY\n  u.tick,\n  k.skill_slot;\n"
+- sql: |
+    SELECT
+      u.tick,
+      u.unit_id,
+      u.motion_state,
+      u.mech_lock_target__kind,
+      u.mech_lock_target__id,
+      k.skill_slot,
+      k.enabled__attack_target__kind,
+      k.enabled__attack_target__id
+    FROM units u
+    JOIN units__skills k ON k.tick = u.tick AND k.unit_id = u.unit_id
+    WHERE
+      u.team_id = 1
+      AND u.tick IN (41, 60, 78)
+    ORDER BY
+      u.tick,
+      k.skill_slot;
   rows:
-  - - 41
-    - 2
-    - attacking
-    - unit
-    - 1
-    - 0
-    - building
-    - 3
-  - - 41
-    - 2
-    - attacking
-    - unit
-    - 1
-    - 1
-    - building
-    - 3
-  - - 41
-    - 2
-    - attacking
-    - unit
-    - 1
-    - 2
-    - building
-    - 3
-  - - 41
-    - 2
-    - attacking
-    - unit
-    - 1
-    - 3
-    - building
-    - 3
-  - - 60
-    - 2
-    - idle
-    - null
-    - null
-    - 0
-    - null
-    - null
-  - - 60
-    - 2
-    - idle
-    - null
-    - null
-    - 1
-    - null
-    - null
-  - - 60
-    - 2
-    - idle
-    - null
-    - null
-    - 2
-    - null
-    - null
-  - - 60
-    - 2
-    - idle
-    - null
-    - null
-    - 3
-    - null
-    - null
-  - - 78
-    - 2
-    - attacking
-    - unit
-    - 1
-    - 0
-    - building
-    - 4
-  - - 78
-    - 2
-    - attacking
-    - unit
-    - 1
-    - 1
-    - null
-    - null
-  - - 78
-    - 2
-    - attacking
-    - unit
-    - 1
-    - 2
-    - null
-    - null
-  - - 78
-    - 2
-    - attacking
-    - unit
-    - 1
-    - 3
-    - null
-    - null
+  - [41, 2, attacking, unit, 1, 0, building, 3]
+  - [41, 2, attacking, unit, 1, 1, building, 3]
+  - [41, 2, attacking, unit, 1, 2, building, 3]
+  - [41, 2, attacking, unit, 1, 3, building, 3]
+  - [60, 2, idle, null, null, 0, null, null]
+  - [60, 2, idle, null, null, 1, null, null]
+  - [60, 2, idle, null, null, 2, null, null]
+  - [60, 2, idle, null, null, 3, null, null]
+  - [78, 2, attacking, unit, 1, 0, building, 4]
+  - [78, 2, attacking, unit, 1, 1, null, null]
+  - [78, 2, attacking, unit, 1, 2, null, null]
+  - [78, 2, attacking, unit, 1, 3, null, null]
+ticks: 242
+hash: 26:a3a5a50c5e5836b6d4e36407acfa78f310deb8c0af61e8731368a609794264c8

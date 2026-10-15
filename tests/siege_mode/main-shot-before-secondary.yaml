@@ -23,10 +23,16 @@ red:
     sabertooth: [doubleshot, field_entrenchment, field_maintenance, secondary_armament]
   units:
   - {name: sabertooth, index: 0, position: {x: -85, y: -55}, level: 2, equipment: [super_heavy_armor]}
-ticks: 272
-hash: 25:cbb189e1633d5a34b0ea7581bda556c82561c1aa664ed7d1beb2e7b936667367
 asserts:
-- sql: SELECT ordinal,source__kind,source__id,target__kind,target__id,skill_slot,weapon_index FROM events WHERE tick=189 AND type='projectile_released' AND source__id=2 ORDER BY ordinal
-  rows: [[0,unit,2,unit,1,0,0],[1,unit,2,unit,1,2,5]]
-- sql: SELECT tick,skill_slot,enabled__current_attack_interval FROM units__skills WHERE unit_id=2 AND tick=189 AND skill_slot IN (0,2) ORDER BY skill_slot
-  rows: [[189,0,37],[189,2,71]]
+- sql: |-
+    SELECT ordinal,source__kind,source__id,target__kind,target__id,skill_slot,weapon_index FROM events WHERE tick=189 AND type='projectile_released' AND source__id=2 ORDER BY ordinal
+  rows:
+  - [0, unit, 2, unit, 1, 0, 0]
+  - [1, unit, 2, unit, 1, 2, 5]
+- sql: |-
+    SELECT tick,skill_slot,enabled__current_attack_interval FROM units__skills WHERE unit_id=2 AND tick=189 AND skill_slot IN (0,2) ORDER BY skill_slot
+  rows:
+  - [189, 0, 37]
+  - [189, 2, 71]
+ticks: 272
+hash: 26:60dab4df86ab18f168247bf60b636f78c46d2ac2b567cd880e48f46d4fd757c5

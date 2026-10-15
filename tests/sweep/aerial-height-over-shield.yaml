@@ -19,19 +19,17 @@ red:
   - {name: overlord, index: 0, position: {x: 5, y: -75}, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 5, y: -85}}
-ticks: 39
-hash: 25:efa4bc7ddc76c81908947bfaa8b7368ddce499720531e35293fc176431a59c79
 asserts:
-- sql: 'SELECT count(*) FROM events
-
-    WHERE type = ''damage'' AND target__kind = ''shield'';
-
-    '
+- sql: |
+    SELECT count(*) FROM events
+    WHERE type = 'damage' AND target__kind = 'shield';
   rows:
-  - - 0
-- sql: "SELECT tick, amount FROM events\nWHERE type = 'damage' AND source__kind =\
-    \ 'unit' AND source__id = 1\n  AND target__kind = 'unit' AND target__id = 2 ORDER\
-    \ BY tick;\n"
+  - [0]
+- sql: |
+    SELECT tick, amount FROM events
+    WHERE type = 'damage' AND source__kind = 'unit' AND source__id = 1
+      AND target__kind = 'unit' AND target__id = 2 ORDER BY tick;
   rows:
-  - - 38
-    - 21339
+  - [38, 21339]
+ticks: 39
+hash: 26:ead3fc52afdd5f34e86e0a4afb91096aacaca753c09d2cfd9905ab0abbd53604

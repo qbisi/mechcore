@@ -34,57 +34,42 @@ red:
   - {name: wasp, index: 2, position: {x: -95, y: -180}, level: 8, source: joined}
   battle_skills:
   - {name: orbital_javelin, positions: [{x: 70, y: -5}]}
-ticks: 448
-hash: 25:dfd095e95a43c1187175ef2e828e369fe87a6e4118b06bb5d53639dd370c5792
 asserts:
-- sql: "SELECT\n  tick,\n  unit_id,\n  life__current,\n  personal_shield__active,\n\
-    \  personal_shield__enabled,\n  personal_shield__energy__current\nFROM units\n\
-    WHERE\n  tick = 61\n  AND unit_id IN (17, 20, 33)\nORDER BY\n  unit_id;\n"
+- sql: |
+    SELECT
+      tick,
+      unit_id,
+      life__current,
+      personal_shield__active,
+      personal_shield__enabled,
+      personal_shield__energy__current
+    FROM units
+    WHERE
+      tick = 61
+      AND unit_id IN (17, 20, 33)
+    ORDER BY
+      unit_id;
   rows:
-  - - 61
-    - 17
-    - 269
-    - 1
-    - 1
-    - 269
-  - - 61
-    - 20
-    - 269
-    - 1
-    - 1
-    - 269
-  - - 61
-    - 33
-    - 269
-    - 1
-    - 1
-    - 269
-- sql: "SELECT tick, type, coalesce(target__id, object__id) AS unit_id, amount\nFROM\
-    \ events\nWHERE\n  tick = 62\n  AND ((type = 'damage'\n  AND target__kind = 'unit'\n\
-    \  AND target__id IN (17, 20, 33))\n  OR (type = 'unit_died' AND object__id IN\
-    \ (17, 20, 33)))\nORDER BY\n  ordinal;\n"
+  - [61, 17, 269, 1, 1, 269]
+  - [61, 20, 269, 1, 1, 269]
+  - [61, 33, 269, 1, 1, 269]
+- sql: |
+    SELECT tick, type, coalesce(target__id, object__id) AS unit_id, amount
+    FROM events
+    WHERE
+      tick = 62
+      AND ((type = 'damage'
+      AND target__kind = 'unit'
+      AND target__id IN (17, 20, 33))
+      OR (type = 'unit_died' AND object__id IN (17, 20, 33)))
+    ORDER BY
+      ordinal;
   rows:
-  - - 62
-    - damage
-    - 33
-    - 269
-  - - 62
-    - damage
-    - 17
-    - 269
-  - - 62
-    - damage
-    - 20
-    - 269
-  - - 62
-    - unit_died
-    - 33
-    - null
-  - - 62
-    - unit_died
-    - 17
-    - null
-  - - 62
-    - unit_died
-    - 20
-    - null
+  - [62, damage, 33, 269]
+  - [62, damage, 17, 269]
+  - [62, damage, 20, 269]
+  - [62, unit_died, 33, null]
+  - [62, unit_died, 17, null]
+  - [62, unit_died, 20, null]
+ticks: 448
+hash: 26:6eb6cf2f7721c35eeedcf3cec4b106ea3ef6f1448a942d9cac8db7ecd339ac08

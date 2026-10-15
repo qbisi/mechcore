@@ -24,29 +24,21 @@ red:
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 0, y: -105}}
   - {name: anti_armor_turret, index: 1, position: {x: 50, y: -100}}
-ticks: 514
-hash: 25:afb189d58190c637ea31b7bfbd0c22b23b9e96d1fe226c33007df02292c274db
 asserts:
-- sql: "SELECT tick, target__kind, target__id, amount\nFROM events\nWHERE\n  type\
-    \ = 'damage'\n  AND source__kind IS NULL\n  AND tick = 63\nORDER BY\n  ordinal;\n"
+- sql: |
+    SELECT tick, target__kind, target__id, amount
+    FROM events
+    WHERE
+      type = 'damage'
+      AND source__kind IS NULL
+      AND tick = 63
+    ORDER BY
+      ordinal;
   rows:
-  - - 63
-    - building
-    - 5
-    - 3000
-  - - 63
-    - building
-    - 6
-    - 1112
-  - - 63
-    - building
-    - 7
-    - 1112
-  - - 63
-    - building
-    - 8
-    - 1112
-  - - 63
-    - building
-    - 9
-    - 1112
+  - [63, building, 5, 3000]
+  - [63, building, 6, 1112]
+  - [63, building, 7, 1112]
+  - [63, building, 8, 1112]
+  - [63, building, 9, 1112]
+ticks: 514
+hash: 26:b45606ca3f057fa80dc62ca1bc104e15ec0816c96969fab60a363532c796e746

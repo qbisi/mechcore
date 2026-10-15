@@ -46,123 +46,40 @@ red:
   - {name: interceptor, index: 0, position: {x: 115, y: -245}}
   battle_skills:
   - {name: underground_threat, positions: [{x: -10, y: -80}]}
-ticks: 2360
-hash: 25:639f62c131ca3b9371d3fc6dec3c335fcedcb3a6fc5bcb659155b6b978f5e146
 asserts:
-- sql: "SELECT\n  u.tick,\n  u.unit_id,\n  u.motion_state,\n  k.skill_slot,\n  k.enabled__state,\n\
-    \  k.enabled__attack_phase,\n  k.enabled__lock_target__kind,\n  k.enabled__lock_target__id,\n\
-    \  k.enabled__attack_target__kind,\n  k.enabled__attack_target__id,\n  k.enabled__attack_count,\n\
-    \  k.enabled__perform_count\nFROM units u\nJOIN units__skills k USING (tick, unit_id)\n\
-    WHERE\n  (u.tick = 1 AND u.unit_id = 3 AND k.skill_slot BETWEEN 0 AND 3)\n  OR\
-    \ (u.tick = 60 AND u.unit_id = 1 AND k.skill_slot = 1)\n  OR (u.tick = 136 AND\
-    \ u.unit_id = 3 AND k.skill_slot BETWEEN 0 AND 3)\nORDER BY\n  u.tick,\n  u.unit_id,\n\
-    \  k.skill_slot;\n"
+- sql: |
+    SELECT
+      u.tick,
+      u.unit_id,
+      u.motion_state,
+      k.skill_slot,
+      k.enabled__state,
+      k.enabled__attack_phase,
+      k.enabled__lock_target__kind,
+      k.enabled__lock_target__id,
+      k.enabled__attack_target__kind,
+      k.enabled__attack_target__id,
+      k.enabled__attack_count,
+      k.enabled__perform_count
+    FROM units u
+    JOIN units__skills k USING (tick, unit_id)
+    WHERE
+      (u.tick = 1 AND u.unit_id = 3 AND k.skill_slot BETWEEN 0 AND 3)
+      OR (u.tick = 60 AND u.unit_id = 1 AND k.skill_slot = 1)
+      OR (u.tick = 136 AND u.unit_id = 3 AND k.skill_slot BETWEEN 0 AND 3)
+    ORDER BY
+      u.tick,
+      u.unit_id,
+      k.skill_slot;
   rows:
-  - - 1
-    - 3
-    - attacking
-    - 0
-    - attack
-    - null
-    - building
-    - 1
-    - building
-    - 4
-    - -1
-    - 0
-  - - 1
-    - 3
-    - attacking
-    - 1
-    - attack
-    - null
-    - building
-    - 1
-    - building
-    - 4
-    - -1
-    - 0
-  - - 1
-    - 3
-    - attacking
-    - 2
-    - attack
-    - null
-    - building
-    - 1
-    - building
-    - 4
-    - -1
-    - 0
-  - - 1
-    - 3
-    - attacking
-    - 3
-    - attack
-    - null
-    - building
-    - 1
-    - building
-    - 4
-    - -1
-    - 0
-  - - 60
-    - 1
-    - attacking
-    - 1
-    - attack
-    - null
-    - building
-    - 11
-    - building
-    - 14
-    - 0
-    - 1
-  - - 136
-    - 3
-    - idle
-    - 0
-    - cooling
-    - null
-    - null
-    - null
-    - building
-    - 1
-    - -1
-    - 0
-  - - 136
-    - 3
-    - idle
-    - 1
-    - attack
-    - attacking
-    - unit
-    - 2
-    - unit
-    - 2
-    - 0
-    - 0
-  - - 136
-    - 3
-    - idle
-    - 2
-    - attack
-    - null
-    - unit
-    - 2
-    - unit
-    - 2
-    - 0
-    - 1
-  - - 136
-    - 3
-    - idle
-    - 3
-    - cooling
-    - null
-    - null
-    - null
-    - building
-    - 1
-    - -1
-    - 0
+  - [1, 3, attacking, 0, attack, null, building, 1, building, 4, -1, 0]
+  - [1, 3, attacking, 1, attack, null, building, 1, building, 4, -1, 0]
+  - [1, 3, attacking, 2, attack, null, building, 1, building, 4, -1, 0]
+  - [1, 3, attacking, 3, attack, null, building, 1, building, 4, -1, 0]
+  - [60, 1, attacking, 1, attack, null, building, 11, building, 14, 0, 1]
+  - [136, 3, idle, 0, cooling, null, null, null, building, 1, -1, 0]
+  - [136, 3, idle, 1, attack, attacking, unit, 2, unit, 2, 0, 0]
+  - [136, 3, idle, 2, attack, null, unit, 2, unit, 2, 0, 1]
+  - [136, 3, idle, 3, cooling, null, null, null, building, 1, -1, 0]
+ticks: 2360
+hash: 26:02790749f9398478ae8e02f9eb8e4ced58c75131b1f38b16d4b8382fcd146687

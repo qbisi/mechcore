@@ -13,27 +13,27 @@ blue:
   core_damage: 586
   officers: [sabertooth_specialist]
   units:
-  - {name: fang, index: 0, position: {x: 160, y: -175}, exp: 0/176/600, rotated: true}
-  - {name: fang, index: 1, position: {x: -140, y: -225}, rotated: true}
-  - {name: fang, index: 2, position: {x: -160, y: -35}, exp: 0/145/600, rotated: true}
-  - {name: sabertooth, index: 3, position: {x: -165, y: -75}, exp: 0/138/1300}
-  - {name: sabertooth, index: 4, position: {x: -75, y: -75}, exp: 0/82/1300}
-  - {name: hound, index: 5, position: {x: -120, y: -80}, exp: 0/60/750}
-  - {name: hound, index: 6, position: {x: -210, y: -80}, exp: 0/79/750}
+  - {name: fang, index: 0, position: {x: 160, y: -175}, exp: 0/176/600, rotated: true, source: joined}
+  - {name: fang, index: 1, position: {x: -140, y: -225}, rotated: true, source: joined}
+  - {name: fang, index: 2, position: {x: -160, y: -35}, exp: 0/145/600, rotated: true, source: joined}
+  - {name: sabertooth, index: 3, position: {x: -165, y: -75}, exp: 0/138/1300, source: joined}
+  - {name: sabertooth, index: 4, position: {x: -75, y: -75}, exp: 0/82/1300, source: joined}
+  - {name: hound, index: 5, position: {x: -120, y: -80}, exp: 0/60/750, source: joined}
+  - {name: hound, index: 6, position: {x: -210, y: -80}, exp: 0/79/750, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
   core_damage: 0
   officers: [training_specialist]
   units:
-  - {name: void_eye, index: 0, position: {x: 110, y: -170}, exp: 0/455/650}
-  - {name: void_eye, index: 1, position: {x: -110, y: -170}, exp: 0/207/650}
-  - {name: void_eye, index: 2, position: {x: 0, y: -170}, exp: 0/166/650}
-  - {name: mustang, index: 3, position: {x: 95, y: -280}, exp: 0/486/1200}
-  - {name: mustang, index: 4, position: {x: -65, y: -280}, exp: 1200/1200/1200}
-  - {name: crawler, index: 5, position: {x: 120, y: -225}, exp: 0/35/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: -120, y: -225}, exp: 0/157/450, rotated: true}
+  - {name: void_eye, index: 0, position: {x: 110, y: -170}, exp: 0/455/650, source: joined}
+  - {name: void_eye, index: 1, position: {x: -110, y: -170}, exp: 0/207/650, source: joined}
+  - {name: void_eye, index: 2, position: {x: 0, y: -170}, exp: 0/166/650, source: joined}
+  - {name: mustang, index: 3, position: {x: 95, y: -280}, exp: 0/486/1200, source: joined}
+  - {name: mustang, index: 4, position: {x: -65, y: -280}, exp: 1200/1200/1200, source: joined}
+  - {name: crawler, index: 5, position: {x: 120, y: -225}, exp: 0/35/450, rotated: true, source: joined}
+  - {name: crawler, index: 6, position: {x: -120, y: -225}, exp: 0/157/450, rotated: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 ticks: 842
-hash: 25:dfaaf62716c7a212d110ccfae14345bace25529efe699a7dc8c80867bf856fae
+hash: 26:9b6f656a12f1b76a678b0501ce5be4d0323826841be5bca32cf2559ef4751b35

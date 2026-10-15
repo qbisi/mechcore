@@ -41,12 +41,33 @@ red:
   - {name: missile, index: 0, position: {x: 125, y: -275}}
   battle_skills:
   - {name: vulcans_descent, positions: [{x: -85, y: -10}]}
-ticks: 444
-hash: 25:77bad7134a66273520dc5ba7cb763502a4d54e8e56d4b7ab389e1ca1810b487b
 asserts:
-- sql: SELECT tick,source__kind,source__id,target__kind,target__id,buff_id,duration FROM events WHERE type='buff_applied' AND target__id=3 AND buff_id=4000 ORDER BY tick,ordinal
-  rows: [[82, unit, 3, unit, 3, 4000, 600]]
-- sql: SELECT tick,data__id,source__kind,source__id,source_team,elapsed FROM units__buffs WHERE unit_id=3 AND tick IN (81,82,83) ORDER BY tick,ordinal
-  rows: [[81, 1015, unit, 4, 1, 0], [82, 1015, unit, 4, 1, 1], [82, 4000, unit, 3, 0, 1], [83, 1015, unit, 4, 1, 2], [83, 4000, unit, 3, 0, 2]]
-- sql: SELECT tick,skill_slot,has_enabled FROM units__skills WHERE unit_id=3 AND skill_slot>=4 AND tick IN (81,82,83) ORDER BY tick,skill_slot
-  rows: [[81, 4, 0], [81, 5, 0], [81, 6, 0], [81, 7, 0], [82, 4, 0], [82, 5, 0], [82, 6, 0], [82, 7, 0], [83, 4, 0], [83, 5, 0], [83, 6, 0], [83, 7, 0]]
+- sql: |-
+    SELECT tick,source__kind,source__id,target__kind,target__id,buff_id,duration FROM events WHERE type='buff_applied' AND target__id=3 AND buff_id=4000 ORDER BY tick,ordinal
+  rows:
+  - [82, unit, 3, unit, 3, 4000, 600]
+- sql: |-
+    SELECT tick,data__id,source__kind,source__id,source_team,elapsed FROM units__buffs WHERE unit_id=3 AND tick IN (81,82,83) ORDER BY tick,ordinal
+  rows:
+  - [81, 1015, unit, 4, 1, 0]
+  - [82, 1015, unit, 4, 1, 1]
+  - [82, 4000, unit, 3, 0, 1]
+  - [83, 1015, unit, 4, 1, 2]
+  - [83, 4000, unit, 3, 0, 2]
+- sql: |-
+    SELECT tick,skill_slot,has_enabled FROM units__skills WHERE unit_id=3 AND skill_slot>=4 AND tick IN (81,82,83) ORDER BY tick,skill_slot
+  rows:
+  - [81, 4, 0]
+  - [81, 5, 0]
+  - [81, 6, 0]
+  - [81, 7, 0]
+  - [82, 4, 0]
+  - [82, 5, 0]
+  - [82, 6, 0]
+  - [82, 7, 0]
+  - [83, 4, 0]
+  - [83, 5, 0]
+  - [83, 6, 0]
+  - [83, 7, 0]
+ticks: 444
+hash: 26:5ccf88001de8fe588399b8162ecb86768dd7dbebc3ba4161460937244868031a

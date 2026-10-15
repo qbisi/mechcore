@@ -34,74 +34,40 @@ red:
   - {name: interceptor, index: 0, position: {x: 175, y: -115}, retained: false}
   battle_skills:
   - {name: smoke_bomb, positions: [{x: -180, y: 50}, {x: -205, y: 60}]}
-ticks: 1299
-hash: 25:357550c0ce428df558811b95a67abf2868c4279bf4892ba83368093f0bdcc406
 asserts:
-- sql: "SELECT\n  u.tick,\n  u.unit_id,\n  u.visibility,\n  k.enabled__state,\n  k.enabled__attack_phase,\n\
-    \  k.enabled__lock_target__kind,\n  k.enabled__lock_target__id,\n  k.enabled__attack_target__kind,\n\
-    \  k.enabled__attack_target__id,\n  (\n    SELECT life__current\n    FROM buildings\
-    \ b\n    WHERE\n      b.tick = u.tick\n      AND b.building_id = 11\n  ) AS wall_life\n\
-    FROM units u\nJOIN units__skills k USING (tick, unit_id)\nWHERE\n  k.skill_slot\
-    \ = 0\n  AND u.tick IN (150, 151, 152)\n  AND u.unit_id IN (26, 29)\nORDER BY\n\
-    \  u.tick,\n  u.unit_id;\n"
+- sql: |
+    SELECT
+      u.tick,
+      u.unit_id,
+      u.visibility,
+      k.enabled__state,
+      k.enabled__attack_phase,
+      k.enabled__lock_target__kind,
+      k.enabled__lock_target__id,
+      k.enabled__attack_target__kind,
+      k.enabled__attack_target__id,
+      (
+        SELECT life__current
+        FROM buildings b
+        WHERE
+          b.tick = u.tick
+          AND b.building_id = 11
+      ) AS wall_life
+    FROM units u
+    JOIN units__skills k USING (tick, unit_id)
+    WHERE
+      k.skill_slot = 0
+      AND u.tick IN (150, 151, 152)
+      AND u.unit_id IN (26, 29)
+    ORDER BY
+      u.tick,
+      u.unit_id;
   rows:
-  - - 150
-    - 26
-    - normal
-    - attack
-    - attacking
-    - unit
-    - 29
-    - building
-    - 11
-    - 1112
-  - - 150
-    - 29
-    - hide
-    - idle
-    - null
-    - unit
-    - 26
-    - unit
-    - 26
-    - 1112
-  - - 151
-    - 26
-    - normal
-    - attack
-    - after
-    - unit
-    - 29
-    - building
-    - 11
-    - 1112
-  - - 151
-    - 29
-    - hide
-    - idle
-    - null
-    - unit
-    - 26
-    - unit
-    - 26
-    - 1112
-  - - 152
-    - 26
-    - normal
-    - attack
-    - after
-    - unit
-    - 29
-    - building
-    - 11
-    - 1112
-  - - 152
-    - 29
-    - hide
-    - idle
-    - null
-    - unit
-    - 26
-    - unit
-    - 26
-    - 1112
+  - [150, 26, normal, attack, attacking, unit, 29, building, 11, 1112]
+  - [150, 29, hide, idle, null, unit, 26, unit, 26, 1112]
+  - [151, 26, normal, attack, after, unit, 29, building, 11, 1112]
+  - [151, 29, hide, idle, null, unit, 26, unit, 26, 1112]
+  - [152, 26, normal, attack, after, unit, 29, building, 11, 1112]
+  - [152, 29, hide, idle, null, unit, 26, unit, 26, 1112]
+ticks: 1299
+hash: 26:3ff27d543a98d0bfea8ac70605dab31fa3054edf5b54708cb281becc1246a6d4

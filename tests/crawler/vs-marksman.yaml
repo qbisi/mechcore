@@ -22,60 +22,33 @@ red:
   core_damage: 0
   units:
   - {name: crawler, index: 0, position: {x: 145, y: -20}, exp: 0/200/450, source: joined}
-ticks: 161
-hash: 25:806d927fc92006472d32468ecee11daffe73a56c7421925a0384440221b39964
 asserts:
-- sql: "SELECT\n  u.tick,\n  u.unit_id,\n  u.motion_state,\n  u.mech_lock_target__kind,\n\
-    \  u.mech_lock_target__id,\n  k.skill_slot,\n  k.enabled__attack_target__kind,\n\
-    \  k.enabled__attack_target__id\nFROM units u\nJOIN units__skills k\n  ON k.tick\
-    \ = u.tick\n  AND k.unit_id = u.unit_id\n  AND k.skill_slot = 0\nWHERE\n  u.unit_id\
-    \ = 1\n  AND u.tick BETWEEN 137 AND 142\nORDER BY\n  u.tick;\n"
+- sql: |
+    SELECT
+      u.tick,
+      u.unit_id,
+      u.motion_state,
+      u.mech_lock_target__kind,
+      u.mech_lock_target__id,
+      k.skill_slot,
+      k.enabled__attack_target__kind,
+      k.enabled__attack_target__id
+    FROM units u
+    JOIN units__skills k
+      ON k.tick = u.tick
+      AND k.unit_id = u.unit_id
+      AND k.skill_slot = 0
+    WHERE
+      u.unit_id = 1
+      AND u.tick BETWEEN 137 AND 142
+    ORDER BY
+      u.tick;
   rows:
-  - - 137
-    - 1
-    - idle
-    - null
-    - null
-    - 0
-    - unit
-    - 4
-  - - 138
-    - 1
-    - idle
-    - null
-    - null
-    - 0
-    - unit
-    - 4
-  - - 139
-    - 1
-    - idle
-    - null
-    - null
-    - 0
-    - unit
-    - 4
-  - - 140
-    - 1
-    - idle
-    - null
-    - null
-    - 0
-    - unit
-    - 4
-  - - 141
-    - 1
-    - idle
-    - null
-    - null
-    - 0
-    - null
-    - null
-  - - 142
-    - 1
-    - attacking
-    - unit
-    - 7
-    - 0
-    - unit
-    - 7
+  - [137, 1, idle, null, null, 0, unit, 4]
+  - [138, 1, idle, null, null, 0, unit, 4]
+  - [139, 1, idle, null, null, 0, unit, 4]
+  - [140, 1, idle, null, null, 0, unit, 4]
+  - [141, 1, idle, null, null, 0, null, null]
+  - [142, 1, attacking, unit, 7, 0, unit, 7]
+ticks: 161
+hash: 26:0357b2a1263f298b9d02caa9822491678f52dc291cf825474c5207778ac83745

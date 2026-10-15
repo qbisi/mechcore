@@ -22,4 +22,4 @@ red:
   - {name: fortress, index: 0, position: {x: 0, y: -50}, exp: 0/300/1600, source: joined}
   - {name: marksman, index: 1, position: {x: 40, y: -60}, exp: 0/301/650, source: joined}
 ticks: 485
-hash: 25:aa24d2814da39916270f3d8f5eb909962c8724283eb5165db3dcf9760ab92eb7
+hash: 26:06971baa015b519fa62613c9175a61e3c1f18ac796f6cfea0738640161de6b99

@@ -14,4 +14,4 @@ red:
   units:
   - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/408/900, source: joined}
 ticks: 217
-hash: 25:7a824828e26bd99a5ecb9eed08a7664a40092caf730652bb2407ed90a6cbfbd5
+hash: 26:4d984687d5aa34a6890c8a2a7d15e31ea505ab9b253886f214fe1a71244231ed

@@ -38,10 +38,16 @@ red:
   - {name: tarantula, index: 2, position: {x: 25, y: -45}, level: 3, exp: 0/622/5343, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 275, y: -295}}
-ticks: 765
-hash: 25:48cefa164f13073fe2eddda7905704f9fbfd5bb19f42b09a8bac280b0af54739
 asserts:
-- sql: SELECT data__id FROM units__buffs WHERE tick=243 AND unit_id=24 ORDER BY ordinal
-  rows: [[40000]]
-- sql: SELECT tick,enabled__current_attack_interval FROM units__skills WHERE unit_id=33 AND skill_slot=0 AND tick IN (243,244,245) ORDER BY tick
-  rows: [[243,8],[244,6],[245,6]]
+- sql: |-
+    SELECT data__id FROM units__buffs WHERE tick=243 AND unit_id=24 ORDER BY ordinal
+  rows:
+  - [40000]
+- sql: |-
+    SELECT tick,enabled__current_attack_interval FROM units__skills WHERE unit_id=33 AND skill_slot=0 AND tick IN (243,244,245) ORDER BY tick
+  rows:
+  - [243, 8]
+  - [244, 6]
+  - [245, 6]
+ticks: 765
+hash: 26:f43ea66651fc9ce8cecf214b4027f77e5ecfe104ca269f9885ba6dc000352ea8

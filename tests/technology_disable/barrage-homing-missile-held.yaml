@@ -24,4 +24,4 @@ red:
   - {name: centurion, index: 0, position: {x: 5, y: -75}, level: 6, exp: 0/1100/13047, source: joined}
   - {name: centurion, index: 1, position: {x: -45, y: -75}, level: 6, exp: 0/3300/13047, source: joined}
 ticks: 328
-hash: 25:dd527cea5f0330b8f1052c07f6d15657f16f05b16bb8e4c73ef39d68ff0cec23
+hash: 26:da1b74fd4280a1fadeea56d5baa8359f42514fb50b06fa7199b5c71c82389546

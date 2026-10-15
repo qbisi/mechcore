@@ -27,16 +27,19 @@ red:
   core_damage: 108
   units:
   - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/1000/1000, source: joined}
-ticks: 583
-hash: 25:4d70e4b6c70c11331dcd38a443f809e9759dddbaaa37c87ca19232b213a9440f
 asserts:
-- sql: "SELECT target__kind, target__id\nFROM events\nWHERE\n  type = 'buff_applied'\n\
-    \  AND tick = 231\n  AND (target__kind = 'building' OR target__id IN (19, 24))\n\
-    ORDER BY\n  ordinal;\n"
+- sql: |
+    SELECT target__kind, target__id
+    FROM events
+    WHERE
+      type = 'buff_applied'
+      AND tick = 231
+      AND (target__kind = 'building' OR target__id IN (19, 24))
+    ORDER BY
+      ordinal;
   rows:
-  - - unit
-    - 19
-  - - building
-    - 3
-  - - unit
-    - 24
+  - [unit, 19]
+  - [building, 3]
+  - [unit, 24]
+ticks: 583
+hash: 26:0e2c39be5ac146e2307b04abba38ab83906b8dab5464241e29f329ed3a434e0c

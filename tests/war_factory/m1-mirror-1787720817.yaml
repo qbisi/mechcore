@@ -14,4 +14,4 @@ red:
   units:
   - {name: war_factory, index: 0, position: {x: 5, y: -105}, source: joined}
 ticks: 343
-hash: 25:962c92e0069bf7f3e27b9e92a597b2c5ecd3fe520454e5b4cba80ebb56441349
+hash: 26:268381a22c88275afee222188bd373a6a7d5d55c73c641d03404702315e25168

@@ -38,40 +38,17 @@ red:
   - {name: missile, index: 0, position: {x: -110, y: -45}, retained: false}
   battle_skills:
   - {name: mobilize_battleship, positions: [{x: 170, y: -20}]}
-ticks: 1459
-hash: 25:553025f35aec9d8c10cc3d100600001f6904e932de704a3b9c64c24ea23100e2
 asserts:
-- sql: SELECT tick,object__id,position__x,position__z FROM events WHERE type='unit_created' AND unit_type_id=9 AND team_id=1 ORDER BY tick,ordinal
+- sql: |-
+    SELECT tick,object__id,position__x,position__z FROM events WHERE type='unit_created' AND unit_type_id=9 AND team_id=1 ORDER BY tick,ordinal
   rows:
-  - - 1
-    - 7
-    - -353783917354
-    - 610148671469
-  - - 1
-    - 8
-    - -311037794394
-    - 606140344819
-  - - 1
-    - 9
-    - -268291671434
-    - 602132018169
-  - - 1
-    - 10
-    - -225545548474
-    - 598123691519
-  - - 81
-    - 20
-    - 1316901975197
-    - -583220923985
-  - - 81
-    - 21
-    - 1262756019837
-    - -420112803785
-  - - 81
-    - 22
-    - 1276292508677
-    - -460889833835
-  - - 81
-    - 23
-    - 1289828997517
-    - -501666863885
+  - [1, 7, -353783917354, 610148671469]
+  - [1, 8, -311037794394, 606140344819]
+  - [1, 9, -268291671434, 602132018169]
+  - [1, 10, -225545548474, 598123691519]
+  - [81, 20, 1316901975197, -583220923985]
+  - [81, 21, 1262756019837, -420112803785]
+  - [81, 22, 1276292508677, -460889833835]
+  - [81, 23, 1289828997517, -501666863885]
+ticks: 1459
+hash: 26:0be0f1c33b7f0bcc31f1c66587a014d9f7d605b28aff37664dc71a2b82b05878

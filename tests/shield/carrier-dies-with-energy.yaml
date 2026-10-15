@@ -38,10 +38,19 @@ red:
   - {name: missile, index: 0, position: {x: -235, y: -185}}
   battle_skills:
   - {name: orbital_javelin, positions: [{x: 280, y: -310}]}
-ticks: 519
-hash: 25:f0a26767f27f8c44e0ac32c89712543cff407640e97221e88bbf6540f24ea542
 asserts:
-- sql: SELECT tick,shield_id,active,energy__current,active_order FROM shields WHERE shield_id=2 AND tick IN (379,380,381) ORDER BY tick
-  rows: [[379, 2, 1, 24318, 1], [380, 2, 0, 0, null], [381, 2, 0, 0, null]]
-- sql: SELECT tick,ordinal,type,object__kind,object__id,source__kind,source__id,target__kind,target__id,absorbed_by__kind,absorbed_by__id,skill_slot,amount FROM events WHERE tick=380 AND (target__id=2 OR object__id=2 OR object__id=140) ORDER BY ordinal
-  rows: [[380, 1, damage, null, null, unit, 4, unit, 2, null, null, 0, 61064], [380, 2, damage, projectile, 140, unit, 11, shield, 2, null, null, 0, 36], [380, 3, projectile_removed, projectile, 140, unit, 11, unit, 2, shield, 2, null, null], [380, 4, unit_died, unit, 2, unit, 4, null, null, null, null, null, null]]
+- sql: |-
+    SELECT tick,shield_id,active,energy__current,active_order FROM shields WHERE shield_id=2 AND tick IN (379,380,381) ORDER BY tick
+  rows:
+  - [379, 2, 1, 24318, 1]
+  - [380, 2, 0, 0, null]
+  - [381, 2, 0, 0, null]
+- sql: |-
+    SELECT tick,ordinal,type,object__kind,object__id,source__kind,source__id,target__kind,target__id,absorbed_by__kind,absorbed_by__id,skill_slot,amount FROM events WHERE tick=380 AND (target__id=2 OR object__id=2 OR object__id=140) ORDER BY ordinal
+  rows:
+  - [380, 1, damage, null, null, unit, 4, unit, 2, null, null, 0, 61064]
+  - [380, 2, damage, projectile, 140, unit, 11, shield, 2, null, null, 0, 36]
+  - [380, 3, projectile_removed, projectile, 140, unit, 11, unit, 2, shield, 2, null, null]
+  - [380, 4, unit_died, unit, 2, unit, 4, null, null, null, null, null, null]
+ticks: 519
+hash: 26:90064296536db6fedf28f93a22214d895a0b221105e4e348f76f9e1862bd98b0
