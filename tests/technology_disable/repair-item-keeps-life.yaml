@@ -1,0 +1,61 @@
+# A level-9 Tarantula carries Field Maintenance and Nano Repair Kit.
+# EMP lands at tick 84, but the kit is its selected IAutoRecovery source,
+# so disabling technology does not remove Field Maintenance's common data.
+# Its life changes from 183143/183143 to 161363/183143 after the 21780 hit.
+# Controls: life-rates-refresh-in-order.yaml and
+# equipment-shield-overrides-phoenix.yaml. The complete generated layout
+# settles 0/450 in 1142 ticks; no part of the opposing formations is removed.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1403942965
+round: 4
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_offensive_tactics, rhino_specialist, smart_marksman]
+  techs:
+    marksman: [doubleshot, shooting_squad, electromagnetic_shot, aerial_specialization, assault_mode, range_enhancement, quick_reload, elite_marksman]
+  tower_strengthen_levels: [1, 1]
+  units:
+  - {name: rhino, index: 0, position: {x: -25, y: -295}, level: 2, source: delivered}
+  - {name: marksman, index: 1, position: {x: 260, y: -180}, level: 7, exp: 0/4093/4093, equipment: [secondary_fire_control_system], source: joined}
+  - {name: sandworm, index: 2, position: {x: -60, y: -290}, level: 3, exp: 0/1400/7124, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 300, y: -255}}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: 20, y: -210}]}
+red:
+  core_damage: 450
+  officers: [advanced_shield_device, advanced_power_system, rhino_specialist]
+  techs:
+    tarantula: [field_maintenance]
+  blueprints: [defense_enhancement]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: tarantula, index: 0, position: {x: -275, y: -45}, level: 9, exp: 5045/5669/10091, rotated: true, equipment: [nano_repair_kit]}
+  - {name: rhino, index: 1, position: {x: 255, y: -255}, level: 2, source: delivered}
+  - {name: hacker, index: 2, position: {x: -255, y: -195}, level: 8, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 80, y: -200}}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: 205, y: -220}]}
+asserts:
+- sql: |-
+    SELECT tick,unit_id,unit_type_id,life__current,life__maximum FROM units WHERE unit_id=4 AND tick BETWEEN 82 AND 86 ORDER BY tick
+  rows:
+  - [82, 4, 24, 183143, 183143]
+  - [83, 4, 24, 183143, 183143]
+  - [84, 4, 24, 161363, 183143]
+  - [85, 4, 24, 161363, 183143]
+  - [86, 4, 24, 161363, 183143]
+- sql: |-
+    SELECT tick,type,source__kind,source__id,target__kind,target__id,amount,buff_id FROM events WHERE tick=84 ORDER BY ordinal
+  rows:
+  - [84, "damage", "unit", 3, "unit", 4, 21780, null]
+  - [84, "buff_applied", "unit", 3, "unit", 4, null, 1002]
+  - [84, "projectile_removed", "unit", 3, "unit", 4, null, null]
+ticks: 1142
+hash: 26:72c0bf92925fbbe01664db2e4d8928d5b4e6f53114dd886202e6f9b0825040f9

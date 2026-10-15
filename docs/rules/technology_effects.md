@@ -1426,6 +1426,14 @@ of the source it is handed (`FightSkill.IsBelongExtraSkill`). A Centurion
 with Dual Wield and Homing Missile struck by Electromagnetic Barrage keeps
 its second gun firing and its range 25 metres short, and loses the missiles.
 
+A `SingleEffectProvider` also requires the source to be its `Current`
+(`EffectProvider.EnableCheck`, `SingleEffectProvider.IsAvaliableEffect`).
+An equipment source of higher priority supersedes the technology for that
+interface. EMP then removes neither that technology's common data nor the
+equipment's effect: a Tarantula carrying Nano Repair Kit keeps Field
+Maintenance's maximum-life increase. This selection precedes
+`EffectProvider.DisableEffect` calling the source's `RemoveData`.
+
 During super deployment, switching passes through `EffectProvider.EnableCheck`
 and `EffectProvider.ActiveCheck`: only a permanent source can act while
 `FightMech.IsSuperDeployment` is true. `Technology.IsPermanentEffect` returns
@@ -1698,6 +1706,10 @@ derive (a minimum range):
 ## Evidence
 
 ### Recorded
+
+- Nano Repair Kit remains the selected auto-recovery source under EMP,
+  and Field Maintenance's common maximum-life correction is retained:
+  `tests/technology_disable/repair-item-keeps-life.yaml`.
 
 - An enemy interceptor in range keeps Field Entrenchment's inactivity timer
   reset until it falls, with the range and life bonuses removed only after
