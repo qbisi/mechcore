@@ -25,8 +25,10 @@ pub(crate) enum Kind {
 /// How a conversion reaches the kind it writes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Conversion {
-    /// The same content in another form: lossless, or refused.
-    Rewrite,
+    /// A subset of the input, without running a fight.
+    Projection,
+    /// The input encoded in another format, or refused if it cannot fit.
+    Transcode,
     /// Facts the input does not hold, derived by running the fight.
     Computation,
 }
@@ -34,7 +36,8 @@ pub(crate) enum Conversion {
 impl Conversion {
     pub(crate) const fn name(self) -> &'static str {
         match self {
-            Self::Rewrite => "rewrite",
+            Self::Projection => "projection",
+            Self::Transcode => "transcode",
             Self::Computation => "computation",
         }
     }
@@ -156,28 +159,33 @@ impl Kind {
     pub(crate) const fn conversions(self) -> &'static [(Self, Conversion)] {
         match self {
             Self::Layout => &[
-                (Self::Grbr, Conversion::Rewrite),
+                (Self::Grbr, Conversion::Transcode),
                 (Self::Mcfr, Conversion::Computation),
                 (Self::Fight, Conversion::Computation),
             ],
             Self::Match => &[
-                (Self::Grbr, Conversion::Rewrite),
-                (Self::Layout, Conversion::Rewrite),
+                (Self::Grbr, Conversion::Transcode),
+                (Self::Layout, Conversion::Projection),
                 (Self::Fight, Conversion::Computation),
+                (Self::Mcfr, Conversion::Computation),
             ],
-            // A replay's round is fought by the game alone; the simulator does
-            // not open a replay.
             Self::Grbr => &[
-                (Self::Match, Conversion::Rewrite),
+                (Self::Match, Conversion::Transcode),
+                (Self::Layout, Conversion::Projection),
                 (Self::Mcfr, Conversion::Computation),
                 (Self::Fight, Conversion::Computation),
             ],
             // What a recording holds of its fight, written onto the layout it
             // embeds: read, not computed.
-            Self::Mcfr => &[(Self::Fight, Conversion::Rewrite)],
+            Self::Mcfr => &[
+                (Self::Fight, Conversion::Projection),
+                (Self::Layout, Conversion::Projection),
+                (Self::Grbr, Conversion::Transcode),
+            ],
             // A fight is fought again from its projection and its own seed.
             Self::Fight => &[
-                (Self::Layout, Conversion::Rewrite),
+                (Self::Layout, Conversion::Projection),
+                (Self::Grbr, Conversion::Transcode),
                 (Self::Mcfr, Conversion::Computation),
             ],
             Self::State | Self::Action => &[],
@@ -262,10 +270,13 @@ mod tests {
             Kind::Layout.conversion(Kind::Mcfr),
             Some(Conversion::Computation)
         );
-        assert_eq!(Kind::Mcfr.conversion(Kind::Layout), None);
+        assert_eq!(
+            Kind::Mcfr.conversion(Kind::Layout),
+            Some(Conversion::Projection)
+        );
         assert_eq!(
             Kind::Mcfr.conversion(Kind::Fight),
-            Some(Conversion::Rewrite)
+            Some(Conversion::Projection)
         );
         assert_eq!(
             Kind::Layout.conversion(Kind::Fight),

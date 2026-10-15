@@ -315,6 +315,11 @@ pub struct ActionRecord {
     pub positions: Option<MapVectors>,
     #[serde(default, rename = "moveUnitDatas")]
     pub moves: Option<MoveUnitDatas>,
+    /// A layout replay restores joining units and travelling through test commands.
+    #[serde(default, rename = "Command")]
+    pub command: Option<Box<ActionRecord>>,
+    #[serde(default, rename = "Level")]
+    pub level: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -336,6 +341,8 @@ pub struct MoveUnitData {
     pub position: PositionRecord,
     #[serde(rename = "isRotate")]
     pub rotated: bool,
+    #[serde(default, rename = "superDeployRecord")]
+    pub travelling: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -441,8 +448,112 @@ pub fn read(grbr: &[u8]) -> Result<BattleRecord, String> {
     quick_xml::de::from_str(xml).map_err(|error| format!("GRBR XML is not a BattleRecord: {error}"))
 }
 
+/// A round shared by the match snapshot and both players. Synthetic layout
+/// replays have only their final round; earlier entries are empty placeholders.
+pub struct ReplayRound {
+    pub round: i32,
+    pub synthetic: bool,
+}
+
+/// Selects an available round without interpreting units, decisions or RNG.
+/// The native game path uses this index even for content the match converter
+/// cannot represent.
+///
+/// # Errors
+///
+/// Refuses malformed indices, a missing selected round, or no positive round.
+pub fn select_round(grbr: &[u8], requested: Option<i32>) -> Result<ReplayRound, String> {
+    let index: RoundIndex = quick_xml::de::from_str(embedded_xml(grbr)?)
+        .map_err(|error| format!("cannot read the replay's round index: {error}"))?;
+    let [blue, red] = index.players.entries.as_slice() else {
+        return Err("a replay round requires exactly two players".into());
+    };
+    let rounds = |entries: &[RoundNumber]| -> Result<std::collections::BTreeSet<i32>, String> {
+        let set: std::collections::BTreeSet<i32> =
+            entries.iter().map(|entry| entry.round).collect();
+        if set.len() != entries.len() {
+            return Err("the replay repeats a round in its index".into());
+        }
+        Ok(set)
+    };
+    let mut available = rounds(&index.rounds.entries)?;
+    available.retain(|round| *round > 0);
+    for player in [blue, red] {
+        let held = rounds(&player.rounds.entries)?;
+        available.retain(|round| held.contains(round));
+    }
+    let synthetic = index.info.battle_id == "layout"
+        && [
+            index.info.advance,
+            index.info.reinforcement,
+            index.info.unit_reinforcement,
+        ]
+        .into_iter()
+        .all(|flag| flag == Some(false));
+    let last = available
+        .last()
+        .copied()
+        .ok_or("the replay holds no positive round shared by both players")?;
+    let round = requested.unwrap_or(last);
+    if !available.contains(&round) || (synthetic && round != last) {
+        return Err(format!("the replay holds no available round {round}"));
+    }
+    Ok(ReplayRound { round, synthetic })
+}
+
+#[derive(Deserialize)]
+struct RoundIndex {
+    #[serde(rename = "playerRecords")]
+    players: PlayerIndices,
+    #[serde(rename = "matchDatas")]
+    rounds: MatchIndex,
+    #[serde(rename = "BattleInfo")]
+    info: ReplayHeader,
+}
+
+#[derive(Deserialize)]
+struct ReplayHeader {
+    #[serde(rename = "BattleID")]
+    battle_id: String,
+    #[serde(default, rename = "EnableAdvanceTeam")]
+    advance: Option<bool>,
+    #[serde(default, rename = "EnableReinforcement")]
+    reinforcement: Option<bool>,
+    #[serde(default, rename = "EnableUnitReinforcement")]
+    unit_reinforcement: Option<bool>,
+}
+
+#[derive(Deserialize)]
+struct PlayerIndices {
+    #[serde(default, rename = "PlayerRecord")]
+    entries: Vec<PlayerIndex>,
+}
+
+#[derive(Deserialize)]
+struct PlayerIndex {
+    #[serde(rename = "playerRoundRecords")]
+    rounds: PlayerIndexRounds,
+}
+
+#[derive(Deserialize)]
+struct PlayerIndexRounds {
+    #[serde(default, rename = "PlayerRoundRecord")]
+    entries: Vec<RoundNumber>,
+}
+
+#[derive(Deserialize)]
+struct MatchIndex {
+    #[serde(default, rename = "MatchSnapshotData")]
+    entries: Vec<RoundNumber>,
+}
+
+#[derive(Deserialize)]
+struct RoundNumber {
+    round: i32,
+}
+
 /// Locates the single embedded XML document inside the `BinaryFormatter` graph.
-fn embedded_xml(grbr: &[u8]) -> Result<&str, String> {
+pub(crate) fn embedded_xml(grbr: &[u8]) -> Result<&str, String> {
     const START: &[u8] = b"<?xml version=\"1.0\" encoding=\"utf-8\"?>";
     const END: &[u8] = b"</BattleRecord>";
     let start = find(grbr, START).ok_or_else(|| "GRBR has no embedded XML payload".to_owned())?;
@@ -460,4 +571,52 @@ fn find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     haystack
         .windows(needle.len())
         .position(|window| window == needle)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::select_round;
+    use std::fmt::Write as _;
+
+    /// The index deliberately carries none of the fields the match reader
+    /// needs: selecting a native replay round must not require converting it.
+    fn index(blue: &[i32], red: &[i32], rounds: &[i32]) -> Vec<u8> {
+        let entries = |rounds: &[i32], tag: &str| {
+            rounds.iter().fold(String::new(), |mut xml, round| {
+                write!(xml, "<{tag}><round>{round}</round></{tag}>").unwrap();
+                xml
+            })
+        };
+        let players = [blue, red]
+            .into_iter()
+            .fold(String::new(), |mut xml, rounds| {
+                write!(
+                    xml,
+                    "<PlayerRecord><playerRoundRecords>{}</playerRoundRecords></PlayerRecord>",
+                    entries(rounds, "PlayerRoundRecord")
+                )
+                .unwrap();
+                xml
+            });
+        format!(
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?><BattleRecord>\
+            <playerRecords>{players}</playerRecords><matchDatas>{}</matchDatas>\
+            <BattleInfo><BattleID>native</BattleID></BattleInfo></BattleRecord>",
+            entries(rounds, "MatchSnapshotData")
+        )
+        .into_bytes()
+    }
+
+    #[test]
+    fn round_selection_uses_actual_numbers_shared_by_both_players() {
+        let grbr = index(&[0, 4, 7], &[4, 7, 9], &[0, 4, 7, 9]);
+        let selected = select_round(&grbr, None).unwrap();
+        assert_eq!(selected.round, 7);
+        assert!(!selected.synthetic);
+        assert_eq!(select_round(&grbr, Some(4)).unwrap().round, 4);
+        assert!(select_round(&grbr, Some(9)).is_err());
+        assert!(select_round(&grbr, Some(0)).is_err());
+        assert!(select_round(&index(&[0], &[0], &[0]), None).is_err());
+        assert!(select_round(&index(&[4, 4], &[4], &[4]), None).is_err());
+    }
 }

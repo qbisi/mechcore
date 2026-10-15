@@ -22,6 +22,11 @@ use crate::compile::{Placement, Plan, SidePlan};
 use crate::layout::{OilArea, Position, SHIELD_AIRDROP_SKILL, STICKY_OIL_BOMB_SKILL};
 use std::fmt::Write as _;
 
+#[cfg(feature = "convert")]
+mod read;
+#[cfg(feature = "convert")]
+pub use read::read;
+
 /// Field Recovery's commander skill, which recovers one of the side's own
 /// objects during the deployment.
 const FIELD_RECOVERY_SKILL: i32 = 900_001;
@@ -1131,7 +1136,45 @@ mod tests {
     use serde_json::json;
 
     fn plan(layout: &serde_json::Value) -> Plan {
-        compile(layout).unwrap()
+        let plan = compile(layout).unwrap();
+        #[cfg(feature = "convert")]
+        if let Ok(replay) = layout_replay(&plan, crate::game_build()) {
+            let restored = read(&replay, plan.round).unwrap();
+            let restored = crate::compile_layout(restored).unwrap();
+            assert_eq!(
+                layout_replay(&restored, crate::game_build()).unwrap(),
+                replay
+            );
+        }
+        plan
+    }
+
+    #[cfg(feature = "convert")]
+    #[test]
+    fn extraction_refuses_placeholder_rounds_and_noncanonical_native_fields() {
+        let mut layout = rhino_mirror();
+        layout["round"] = json!(3);
+        let replay = layout_replay(&plan(&layout), crate::game_build()).unwrap();
+        let selected = crate::record::select_round(&replay, None).unwrap();
+        assert_eq!(selected.round, 3);
+        assert!(selected.synthetic);
+        assert!(
+            read(&replay, 2)
+                .unwrap_err()
+                .contains("no available round 2")
+        );
+        let xml = embedded_xml(&replay).replace("<FightTime>120", "<FightTime>119");
+        let altered = binary_formatter(
+            BATTLE_ID,
+            build_number(crate::game_build()).unwrap(),
+            DEFAULT_MAP_ID,
+            xml.as_bytes(),
+        );
+        assert!(
+            read(&altered, 3)
+                .unwrap_err()
+                .contains("not a canonical layout replay")
+        );
     }
 
     fn rhino_mirror() -> serde_json::Value {

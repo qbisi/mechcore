@@ -22,6 +22,21 @@ This document defines what such a file states. It is not a definition of the
 reads, written with the members the game's own replays carry. Reading a
 replay the game saved is [match.md](match.md#converting-a-replay).
 
+## Reading a layout replay
+
+`convert <replay.grbr> --to layout` restores the synthetic replay's selected
+round from its legacy snapshot and native restoration commands, including
+newly joined and delivered units, recovery, training, travelling, equipment,
+Energy Tower activations and battle skills. The replay's final positive round
+is its only available one; earlier snapshots are empty placeholders, not
+captured battles.
+
+The reader admits the canonical XML this writer emits for the pinned game
+build. It re-encodes the restored layout and requires the embedded XML to
+match, refusing any native field or command it would otherwise drop. This is
+not a general interpreter for Training Ground test commands. The native game
+backend opens the original file directly and does not require this projection.
+
 ## The file
 
 A `.grbr` is a .NET `BinaryFormatter` stream whose root is one

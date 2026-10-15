@@ -54,14 +54,14 @@ kind. [Kinds and verbs](#kinds-and-verbs) says how each kind is recognised and
 which verbs take it.
 
 **`convert <in> --to <kind> [<out>]` derives a file of another kind.** `--to`
-is required. Each pair is either a **rewrite**, the same content in another
-form, lossless or refused, or a **computation**, which derives facts the input
-does not hold by running the fight. Without `<out>` a conversion to a
-document, a layout or a fight, answers the document on standard output, and a
-computation to a recording answers its result and writes nothing. Every other
-rewrite requires `<out>`, because what it answers is a report of the file it
-wrote. A computation into a recording is fought by the simulator this binary
-carries, or with `--backend game` by the game.
+is required. Each pair is a **projection**, which extracts a subset of its
+input; a **transcode**, which encodes input in another format or refuses what
+that format cannot hold; or a **computation**, which runs the fight to derive
+facts the input does not hold. Only a computation accepts `--backend`.
+Without `<out>`, conversion to a layout or fight answers the document on
+standard output, and a simulator computation to MCFR answers its result
+without keeping a recording. Conversion to GRBR or match, and every game
+computation, requires `<out>`.
 
 **`man <kind>` lists the verbs a kind takes**, from the same table the verbs
 are refused by, ahead of the document that describes the kind.
@@ -87,13 +87,13 @@ refused rather than guessed at.
 
 | Kind | `verify` | `convert --to` | `diff` | `show --view` | `query` | `play` | `format` |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `layout` | yes | `grbr` (rewrite), `mcfr` (computation), `fight` (computation) | yes | — | — | yes (computation) | yes |
-| `fight` | yes | `layout` (rewrite), `mcfr` (computation) | yes | — | — | yes (computation) | yes |
-| `match` | yes | `grbr` (rewrite), `layout` (rewrite), `fight` (computation) | — | — | — | — | — |
+| `layout` | yes | `grbr` (transcode), `mcfr` (computation), `fight` (computation) | yes | — | — | yes (computation) | yes |
+| `fight` | yes | `layout` (projection), `grbr` (transcode), `mcfr` (computation) | yes | — | — | yes (computation) | yes |
+| `match` | yes | `grbr` (transcode), `layout` (projection), `fight` and `mcfr` (computation) | — | — | — | — | — |
 | `state` | — | — | — | — | — | — | — |
 | `action` | — | — | — | — | — | — | — |
-| `mcfr` | yes | `fight` (rewrite) | yes | `outcome`, `stats`, `buildings` | yes | yes | — |
-| `grbr` | — | `match` (rewrite), `mcfr` and `fight` (computation, the game alone) | — | — | — | — | — |
+| `mcfr` | yes | `fight` and `layout` (projection), `grbr` (transcode) | yes | `outcome`, `stats`, `buildings` | yes | yes | — |
+| `grbr` | — | `match` (transcode), `layout` (projection), `mcfr` and `fight` (computation) | — | — | — | — | — |
 
 A state and an action are read inside a match, which is what verifies them.
 `schema` names a
@@ -253,28 +253,35 @@ would make a document's provenance unrecoverable; the input is read, never
 written. A pair [the table](#kinds-and-verbs) does not name is refused, naming
 both kinds.
 
-**`grbr` to `match`, a rewrite.** Reads a native replay and writes the match
+**`grbr` to `match`, a transcode.** Reads a native replay and writes the match
 document it records to `<out>`. It answers what it wrote and how much of each
 transition the rules predict. A replay this converter does not read is refused
 rather than partly converted, and the refusal names which of the replay's
 properties it stands on.
 
-**`match` to `grbr`, a rewrite.** Writes a match back to `<out>` as the replay
+**`match` to `grbr`, a transcode.** Writes a match back to `<out>` as the replay
 it converts from, which converts to the same match again byte for byte, and
 whose rounds the game fights ([match-replay.md](../document/match-replay.md)
 says where such a fight parts from the match's). A match it cannot write is
 refused, naming why. It answers the replay's path, map, seed and rounds.
+Both whole-match transcodes refuse `--round`. A partial match without the
+opening and complete prefix cannot be encoded as a match replay; projecting
+one available round to layout and encoding that layout produces a synthetic
+single-round replay instead.
 
-**`layout` to `grbr`, a rewrite.** Writes a layout to `<out>` as a replay the
+**`layout`, `fight` or `mcfr` to `grbr`, a transcode.** Writes a layout to `<out>` as a replay the
 game fights: one deployment round, the layout's, opened from a snapshot that
-holds the layout and carries no action. `--seed` overrides the layout's seed,
+holds legacy units and whose native restoration commands install the rest.
+A fight or MCFR first projects its embedded starting layout; the replay carries
+that position, not the original decisions, timeline or settlement. Only a
+layout accepts `--seed`, which overrides the layout's seed,
 and one of the two has to name it. The layout is compiled first, so a layout
 `game apply_layout` would refuse is refused here too, and so is one a replay
 cannot open or play: [layout-replay.md](../document/layout-replay.md) says what
 it states and what it refuses. It answers the replay's path, map, seed and
 round.
 
-**`match` to `layout`, a rewrite of one round.** `--round <n>` selects a recorded
+**`match` to `layout`, a projection of one round.** `--round <n>` selects a recorded
 round; omitted, it selects the last state in the stream, including a partial
 match's last captured state. A match with no deployment state is refused. The
 layout is the one that round's fight starts from: the round's
@@ -285,14 +292,14 @@ a fight is run again without a recording being kept of it. Without `<out>` it
 answers the layout on standard output; with one it writes the layout there and
 answers its path and round.
 
-**`match` to `fight`, a computation.** Selects the round exactly as `match` to
+**`match` to `fight` or `mcfr`, a computation.** Selects the round exactly as `match` to
 `layout` does, projects its recorded state and decisions through that same
 path, and fights the resulting layout. `--backend simulator` is the default;
 `--backend game` records the layout in the game. The fight is recomputed,
 rather than inferred from a later match state. The match supplies the seed,
 so `--seed` is refused. Partial matches use only the decisions they hold.
 
-**`fight` to `layout`, a rewrite.** Projects the fight's starting position,
+**`fight` to `layout`, a projection.** Projects the fight's starting position,
 including its seed, round and initial experience, through the same projection
 used when recording a fight again. Drops settlement results, asserts, source,
 ticks and hash. It runs neither backend. Without `<out>` it answers the layout
@@ -330,9 +337,28 @@ the binary to profile with.
 with the seed the document states, which is why it takes no `--seed`: the
 fight whose result the document is.
 
-**`grbr` to `mcfr` or `fight`, a computation the game alone makes.** Fights
-one round of a replay, `--round <n>`. The simulator does not open a replay, so
-without `--backend game` it is refused.
+**`grbr` to `layout`, a projection.** Selects a positive round shared by the
+match snapshot and both players. `--round <n>` selects it explicitly; omitted,
+the greatest available round number is selected, not a count of entries. A
+standard replay follows the GRBR-to-match and match-to-layout paths. A
+synthetic [layout replay](../document/layout-replay.md) restores its snapshot
+and commands directly; earlier empty placeholders are not available rounds.
+An unavailable or unrepresentable selected round is refused, without falling
+back to another round.
+
+**`grbr` to `mcfr` or `fight`, a computation.** Uses the same round selection.
+The simulator executes the layout that GRBR-to-layout projects. The game
+opens the original GRBR and plays its native snapshot and actions directly;
+it does not convert through match or layout, and does not inherit their
+admission limits. An unsupported simulator projection is refused without
+switching backends.
+
+**`mcfr` to `layout`, a projection.** Reads `layout.yaml` from a valid MCFR,
+without interpreting its timeline or settlement. A recording whose result
+cannot be mapped to a fight may still yield its starting layout. It preserves
+the stored seed and round. Layout, fight and MCFR inputs refuse `--round`;
+GRBR and match accept it only when selecting one layout, fight or MCFR.
+Inputs other than layout refuse `--seed`.
 
 **Who fights a computation into a recording.** `--backend simulator`, the
 default, fights with the simulator this binary carries. `--backend game`
@@ -358,7 +384,7 @@ to the layout the game read back as the fight began: when the two differ in
 any field, once both are in normal form, the recording is removed and the
 refusal names the fields.
 
-**`mcfr` to `fight`, a rewrite.** Reads a recording for what its fight decided
+**`mcfr` to `fight`, a projection.** Reads a recording for what its fight decided
 and writes it onto the layout the recording embeds, as the
 [fight](../document/fight.md) document it records: `source` is `game` for a
 recording the game made and `simulator` for one the simulator wrote, as the
