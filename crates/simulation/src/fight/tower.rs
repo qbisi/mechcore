@@ -861,8 +861,8 @@ impl Simulation {
 
     /// `IBEC_ChangeCurrentLife.Perform`: the unit's life now times the rate,
     /// its whole part. A loss is a hit of no object under the buff's side,
-    /// which the rate on damage taken raises (`PerformHitTargetEffect` with
-    /// `isAmplifyDamageAffected`): a Rhino of 19297 loses 3860 to
+    /// unaffected by damage amplification (`PerformHitTargetEffect` with
+    /// `isAmplifyDamageAffected` false): a Rhino of 19297 loses 3860 to
     /// Disintegration's −0.2.
     fn change_current_life(
         &mut self,
@@ -875,7 +875,7 @@ impl Simulation {
         match change.cmp(&0) {
             std::cmp::Ordering::Less => {
                 let target = super::FightActorRef::Unit(actor_id);
-                self.hit_with_no_object(target, team, (-change, true), false, events)
+                self.hit_with_no_object(target, team, (-change, false), true, events)
             }
             std::cmp::Ordering::Equal => Ok(()),
             std::cmp::Ordering::Greater => Err(Error::new(format!(

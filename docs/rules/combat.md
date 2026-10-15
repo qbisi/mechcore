@@ -655,9 +655,13 @@ it leaves takes the first unit of the list that lives, dropping the dead, and
 puts it last (`UpdateCurrentTarget`), leaves the next of the two weapons in
 turn (`GetWeaponIndex`), aims at where its unit stands then
 (`GetTargetPosition`), and takes that unit's next offset, none once they have
-run out (`GetAndDeletePositionOffsets`). With none of the list alive it leaves
-at no target for the point the burst last aimed at, `lastAttackPos`, an offset
-drawn afresh from the side's stream about it. An Abyss shelling a tower takes
+run out (`GetAndDeletePositionOffsets`). With none of the list alive the
+controller supplies no target and keeps the point the burst last aimed at,
+`lastAttackPos`, with an offset drawn afresh from the side's stream about it.
+`ProjectileSystem.Create` replaces a null target with the skill's attack
+target or, absent that, its lock, without checking whether it lives. A burst
+still naming a dead tower therefore keeps that tower's radius and projectile
+target even after its allocation is exhausted. An Abyss shelling a tower takes
 the tower into its list, and its shuffle draws once for it. Its climb is measured to where its
 unit stands. Swarm Missiles' 46 share two units 23 each.
 
@@ -1193,6 +1197,10 @@ not the game's native attack-type enum.
 ## Evidence
 
 ### Recorded
+
+- An exhausted evenly allocated burst still names the fallen tower its
+  skill retains, preserving the tower's radius and its projectile climb:
+  `tests/extra_weapon/exhausted-missiles-disintegration.yaml`.
 
 - A Fang's prepared search scores with the range Range Enhancement gave it
   as the search was prepared, on the tick an Electromagnetic Impact switches
