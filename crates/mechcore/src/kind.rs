@@ -163,6 +163,7 @@ impl Kind {
             Self::Match => &[
                 (Self::Grbr, Conversion::Rewrite),
                 (Self::Layout, Conversion::Rewrite),
+                (Self::Fight, Conversion::Computation),
             ],
             // A replay's round is fought by the game alone; the simulator does
             // not open a replay.
@@ -175,7 +176,10 @@ impl Kind {
             // embeds: read, not computed.
             Self::Mcfr => &[(Self::Fight, Conversion::Rewrite)],
             // A fight is fought again from its projection and its own seed.
-            Self::Fight => &[(Self::Mcfr, Conversion::Computation)],
+            Self::Fight => &[
+                (Self::Layout, Conversion::Rewrite),
+                (Self::Mcfr, Conversion::Computation),
+            ],
             Self::State | Self::Action => &[],
         }
     }

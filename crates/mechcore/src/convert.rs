@@ -192,7 +192,7 @@ pub(crate) fn convert(request: &Request) -> Result<Answer, Failure> {
     let takes_seed = from == Kind::Layout;
     let takes_round = matches!(
         (from, request.to),
-        (Kind::Match, Kind::Layout) | (Kind::Grbr, Kind::Mcfr | Kind::Fight)
+        (Kind::Match, Kind::Layout | Kind::Fight) | (Kind::Grbr, Kind::Mcfr | Kind::Fight)
     );
     if request.seed.is_some() && !takes_seed {
         return Err(Failure::usage(format!(
@@ -202,7 +202,7 @@ pub(crate) fn convert(request: &Request) -> Result<Answer, Failure> {
     }
     if request.round.is_some() && !takes_round {
         return Err(Failure::usage(
-            "--round names the round of a match to convert to a layout",
+            "--round selects a match round for layout/fight or a replay round to fight",
         ));
     }
     let output = request.output.as_deref();
@@ -237,7 +237,15 @@ pub(crate) fn convert(request: &Request) -> Result<Answer, Failure> {
         (Kind::Layout, Kind::Grbr) => {
             layout_to_replay(&bytes, request.seed, output.unwrap_or(Path::new("")))
         }
-        (Kind::Match, Kind::Layout) => project(&bytes, request.round, output),
+        (Kind::Match, Kind::Layout) => written_layout(match_layout(&bytes, request.round)?, output),
+        (Kind::Match, Kind::Fight) => {
+            let staged = stage_layout(match_layout(&bytes, request.round)?)?;
+            fight(staged.path(), None, output)
+        }
+        (Kind::Fight, Kind::Layout) => {
+            let fight = mechcore_document::fight::parse_yaml(&bytes).map_err(Failure::refused)?;
+            written_layout(mechcore_document::fight::project(&fight), output)
+        }
         (Kind::Layout, Kind::Mcfr) => simulate(&request.input, request.seed, output),
         (Kind::Mcfr, Kind::Fight) => written(crate::outcome::fight(&request.input)?, output),
         (Kind::Layout, Kind::Fight) => fight(&request.input, request.seed, output),
@@ -447,12 +455,13 @@ fn layout_to_replay(
 /// A round's decisions applied to the position it opened with, and that
 /// position projected: it is how a fight is run again without a recording
 /// being kept of one, which is why a match keeps none.
-fn project(bytes: &[u8], round: Option<i32>, output: Option<&Path>) -> Result<Answer, Failure> {
-    let round =
-        round.ok_or_else(|| Failure::usage("expected --round <n>: a match holds several"))?;
+fn match_layout(bytes: &[u8], round: Option<i32>) -> Result<mechcore_document::Layout, Failure> {
     let stated = mechcore_document::opening::stated(bytes)
         .map_err(Failure::refused)?
         .ok_or_else(|| Failure::refused("the document names itself a match and holds none"))?;
+    let round = round
+        .or_else(|| stated.turns.last().map(|turn| turn.round))
+        .ok_or_else(|| Failure::refused("this match holds no deployment round"))?;
     let turn = stated
         .turns
         .iter()
@@ -482,9 +491,16 @@ fn project(bytes: &[u8], round: Option<i32>, output: Option<&Path>) -> Result<An
         blue: deployed(&turn.state.blue, &turn.actions.blue, false)?,
         red: deployed(&turn.state.red, &turn.actions.red, true)?,
     };
-    let layout =
-        mechcore_document::project::project(&turn.state, &state, round, stated.map_id, stated.seed)
-            .map_err(Failure::refused)?;
+    mechcore_document::project::project(&turn.state, &state, round, stated.map_id, stated.seed)
+        .map_err(Failure::refused)
+}
+
+/// A projected layout on standard output or written to a destination.
+fn written_layout(
+    layout: mechcore_document::Layout,
+    output: Option<&Path>,
+) -> Result<Answer, Failure> {
+    let round = layout.round;
     let yaml = mechcore_document::canonical_yaml(layout).map_err(Failure::refused)?;
     match output {
         Some(output) => {
@@ -548,14 +564,19 @@ fn fight(layout: &Path, seed: Option<i32>, output: Option<&Path>) -> Result<Answ
 /// the seed it states.
 fn simulate_fight(bytes: &[u8], output: Option<&Path>) -> Result<Answer, Failure> {
     let fight = mechcore_document::fight::parse_yaml(bytes).map_err(Failure::refused)?;
-    let layout = mechcore_document::canonical_yaml(mechcore_document::fight::project(&fight))
-        .map_err(Failure::failed)?;
+    let staged = stage_layout(mechcore_document::fight::project(&fight))?;
+    simulate(staged.path(), None, output)
+}
+
+/// Stage a projection for the existing layout simulation and game recording paths.
+fn stage_layout(layout: mechcore_document::Layout) -> Result<tempfile::NamedTempFile, Failure> {
+    let layout = mechcore_document::canonical_yaml(layout).map_err(Failure::failed)?;
     let staged = tempfile::Builder::new()
         .suffix(".yaml")
         .tempfile()
         .map_err(|error| Failure::failed(format!("cannot stage the fight's layout: {error}")))?;
     write(staged.path(), layout)?;
-    simulate(staged.path(), None, output)
+    Ok(staged)
 }
 
 /// What the game records of a file `--backend game` names: the same pairs
@@ -641,12 +662,29 @@ pub(crate) async fn game_fight(
         .tempdir()
         .map_err(|error| Failure::failed(format!("cannot stage the recording: {error}")))?;
     let staged = beside.path().join("recording.mcfr");
+    let (from, bytes) = Kind::read(&request.input)?;
+    let projected = if from == Kind::Match {
+        if request.seed.is_some() {
+            return Err(Failure::usage(
+                "--seed belongs to a layout; a match states its own",
+            ));
+        }
+        Some(stage_layout(match_layout(&bytes, request.round)?)?)
+    } else {
+        None
+    };
     let record = recorded(&Request {
-        input: request.input.clone(),
+        input: projected
+            .as_ref()
+            .map_or_else(|| request.input.clone(), |file| file.path().to_owned()),
         to: Kind::Mcfr,
         output: Some(staged.clone()),
         seed: request.seed,
-        round: request.round,
+        round: if projected.is_some() {
+            None
+        } else {
+            request.round
+        },
         force: true,
         backend: request.backend,
         instrument: request.instrument.clone(),

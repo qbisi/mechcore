@@ -88,8 +88,8 @@ refused rather than guessed at.
 | Kind | `verify` | `convert --to` | `diff` | `show --view` | `query` | `play` | `format` |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `layout` | yes | `grbr` (rewrite), `mcfr` (computation), `fight` (computation) | yes | — | — | yes (computation) | yes |
-| `fight` | yes | `mcfr` (computation) | yes | — | — | yes (computation) | yes |
-| `match` | yes | `grbr` (rewrite), `layout` (rewrite) | — | — | — | — | — |
+| `fight` | yes | `layout` (rewrite), `mcfr` (computation) | yes | — | — | yes (computation) | yes |
+| `match` | yes | `grbr` (rewrite), `layout` (rewrite), `fight` (computation) | — | — | — | — | — |
 | `state` | — | — | — | — | — | — | — |
 | `action` | — | — | — | — | — | — | — |
 | `mcfr` | yes | `fight` (rewrite) | yes | `outcome`, `stats`, `buildings` | yes | yes | — |
@@ -274,14 +274,29 @@ cannot open or play: [layout-replay.md](../document/layout-replay.md) says what
 it states and what it refuses. It answers the replay's path, map, seed and
 round.
 
-**`match` to `layout`, a rewrite of one round.** `--round <n>` names the round,
-and the layout is the one that round's fight starts from: the round's
+**`match` to `layout`, a rewrite of one round.** `--round <n>` selects a recorded
+round; omitted, it selects the last state in the stream, including a partial
+match's last captured state. A match with no deployment state is refused. The
+layout is the one that round's fight starts from: the round's
 decisions applied to the position it opened with, and that position projected.
 It holds what the match states about that fight and nothing the match does
 not, and a round whose decisions the rules do not settle is refused. It is how
 a fight is run again without a recording being kept of it. Without `<out>` it
 answers the layout on standard output; with one it writes the layout there and
 answers its path and round.
+
+**`match` to `fight`, a computation.** Selects the round exactly as `match` to
+`layout` does, projects its recorded state and decisions through that same
+path, and fights the resulting layout. `--backend simulator` is the default;
+`--backend game` records the layout in the game. The fight is recomputed,
+rather than inferred from a later match state. The match supplies the seed,
+so `--seed` is refused. Partial matches use only the decisions they hold.
+
+**`fight` to `layout`, a rewrite.** Projects the fight's starting position,
+including its seed, round and initial experience, through the same projection
+used when recording a fight again. Drops settlement results, asserts, source,
+ticks and hash. It runs neither backend. Without `<out>` it answers the layout
+on standard output; with one it writes the file and reports its path and round.
 
 **`layout` to `mcfr`, a computation.** Simulates one fight from a layout, with
 `--seed <i32>` overriding the layout's own. It answers the simulation result:
@@ -375,7 +390,8 @@ that could be two, are refused rather than chosen between.
 
 **`layout` to `fight`, a computation.** Simulates one fight from a layout, as
 `convert --to mcfr` does and with the same `--seed`, and reads the recording it
-makes as `mcfr` to `fight` does. Its `source` is `simulator`.
+makes as `mcfr` to `fight` does. Its `source` names the backend that fought it:
+`simulator` by default or `game` with `--backend game`.
 
 ## `diff`
 
