@@ -1,0 +1,50 @@
+# A Raiden must measure its shielded Fortress lock to the actor, not the
+# shield surface, when deciding whether to take a target from its sibling.
+# At tick 867 the core takes tower 1; its sibling drops that lock while
+# retaining the attack target. The shield is in reach but the Fortress is not.
+# Generated-layout control, pinned from the game; both sides lose 350 core.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1020950127
+round: 3
+blue:
+  core_damage: 350
+  officers: [advanced_shield_device, advanced_power_system, fortified_specialist, extended_range_fortress]
+  techs:
+    fortress: [doubleshot, barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
+  tower_strengthen_levels: [3, 4]
+  units:
+  - {name: fortress, index: 0, position: {x: 340, y: 200}, level: 6, exp: 0/6220/9278, rotated: true, equipment: [portable_shield], travelling: true, source: joined}
+  - {name: phoenix, index: 1, position: {x: -100, y: -240}, level: 8, exp: 0/68/8746, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 175, y: -125}, retained: false}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: -10, y: 310}, {x: -215, y: -160}]}
+red:
+  core_damage: 350
+  officers: [advanced_defensive_tactics, advanced_targeting_system, assault_raiden]
+  techs:
+    raiden: [energy_shield, electromagnetic_shot, chain, ionization, range_enhancement, fork]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: raiden, index: 0, position: {x: -10, y: -60}, level: 4, exp: 5388/10352/10777, rotated: true, equipment: [mustang_production_line]}
+  - {name: mountain, index: 1, position: {x: -45, y: -195}, level: 2, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: -285, y: 260}, {x: -15, y: -65}, {x: -120, y: -40}]}
+asserts:
+- sql: |-
+    SELECT tick,skill_slot,enabled__lock_target__kind,enabled__lock_target__id,enabled__attack_target__kind,enabled__attack_target__id FROM units__skills WHERE unit_id=4 AND skill_slot IN (0,1) AND tick IN (866,867) ORDER BY tick,skill_slot
+  rows:
+  - [866, 0, "unit", 3, null, null]
+  - [866, 1, "building", 1, "building", 1]
+  - [867, 0, "building", 1, "building", 1]
+  - [867, 1, null, null, "building", 1]
+ticks: 2360
+hash: 26:d08fdf4477da594fce972ad4176f042ce06cab8ca46298260dbbc0f7258d6194

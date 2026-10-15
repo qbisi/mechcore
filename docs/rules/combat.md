@@ -412,6 +412,12 @@ seed 4242, the core, idle after its cooling, takes the Crawler its first
 sibling attacks at tick 177, and that sibling finds another one outside its
 angle and cools.
 
+This allocation tests the candidate actor's distance
+(`FightSkill.IsActorInAttackRange`), even when the core's current attack
+target is a shield. A shield surface in reach does not put the unit it
+covers in reach for this decision; a core whose unit is still outside its
+range can take its sibling's tower instead.
+
 **A sibling cools as the core does.** A sibling's check that fails in its attack
 ends in `SkillAttackState.Finish`: its lock dropped, reaching the owner, and
 its cooling time with its weapon on what the check turned it to; the last step
@@ -1351,6 +1357,9 @@ not the game's native attack-type enum.
   siblings cooling and searching on their timers, and its weapons' poses, in
   the Raiden's standard fights: `tests/raiden/`, and nine
   Raidens' blows landing on nine Fangs: `tests/raiden/`.
+- A Raiden core taking its sibling's tower when the Fortress itself is out
+  of reach although its shield is within reach:
+  `tests/raiden/shielded-lock-outside-actor-range.yaml`.
 - A presearched target a few raw units left of straight ahead faced at
   +0.245°, in the standard fights of the Steel Ball, Stormcaller, Hound, Fire
   Badger and Phantom Ray: `tests/steel_ball/`,
@@ -1649,6 +1658,10 @@ not the game's native attack-type enum.
   a unit from its siblings: `SkillSearchTargetController.SearchLockTarget`,
   `SkillSearchTargetController.PerformGroupedSkillSearch`,
   `FightSkill.ChangeLockTarget`.
+- Grouped allocation tests the candidate actor rather than its current
+  shield target: `SkillSearchTargetController.PerformGroupedSkillSearch`,
+  `FightSkill.IsActorInAttackRange`,
+  `SkillAttackRangeChecker.IsActorInAttackRange`.
 - Only a child skill asks whether to give its unit up, within the unit's
   own group, by blows struck and behind a search timer:
   `SkillAttackableChecker.TrySearchGroupSkillLockTarget`,
