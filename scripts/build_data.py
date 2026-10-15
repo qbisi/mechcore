@@ -4,7 +4,7 @@ Every `scripts/extract*.py` reads the game's tables through this module and
 nothing else: no path id, no hand-written field parser, no build number of
 its own. The build is the version `GAME_VERSION` names unless a script is
 given `--build`, and its export is `work/decomp/<build>/`, which
-`scripts/decomp/decomp.py sync` fetches and `scripts/decomp/decompile.py` makes.
+`scripts/decomp/decompile.py` generates locally from the installed game.
 
     container()            ConfigDataContainer.m_Structure
     level0("Class")        the m_Structure of a level0 data object, e.g. MechSkillGroupData
@@ -62,7 +62,7 @@ def select(build):
     if not (directory / "config-data-container.json").exists():
         sys.exit(
             f"no export of build {build} under {DECOMP}; run "
-            f"`scripts/decomp/decomp.py sync --build {build}`, or `scripts/decomp/decompile.py` on the machine with the game"
+            "`scripts/decomp/decompile.py` on a machine with that game version installed"
         )
     _build = build
     _load.cache_clear()

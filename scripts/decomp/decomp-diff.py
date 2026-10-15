@@ -3,8 +3,8 @@
 
     scripts/decomp/decomp-diff.py OLD NEW [--assembly NAME ...] [--config]
 
-OLD and NEW are builds under work/decomp (as `scripts/decomp/decompile.py` or
-`scripts/decomp/decomp.py sync` leave them). The C# stubs are compared with every
+OLD and NEW are builds generated locally under work/decomp by
+`scripts/decomp/decompile.py`. The C# stubs are compared with every
 attribute line dropped, so what remains is declarations: types, fields with
 their offsets, and method signatures. A type file present in one build only is
 reported whole; a type in both lists the declarations each side lacks.

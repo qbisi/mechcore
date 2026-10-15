@@ -1,17 +1,19 @@
 ---
 name: decompile
-description: Decompile the installed Mechabellum build into work/decomp/<build> and diff it against another build. Use when the game updates, when a build's dump or config is missing locally, or when asked what changed between two builds.
+description: Decompile the installed Mechabellum build locally under work/decomp and diff it against another build. Use when the game updates, when a build's dump or config is missing locally, or when asked what changed between two builds.
 ---
 
 # Decompile a build
 
 Only a session on the machine that has the game installed can make a new
-build. Every other session fetches one with `scripts/decomp/decomp.py sync`.
+build. Keep the decompilation and its index local under `work/decomp/<build>/`;
+do not upload them to a Git repository. A session without the installed game
+can read only the local builds already available to it.
 
 ## Make
 
 ```bash
-python3 scripts/decomp/decompile.py
+uv run --with pyyaml python3 scripts/decomp/decompile.py
 ```
 
 - `decompile.py` reads the build number and Unity version from the game's
@@ -35,8 +37,8 @@ whole `.app`). They keep two builds' dumps comparable line by line.
 ## See what changed
 
 ```bash
-python3 scripts/decomp/decomp-diff.py <old-build> <new-build>            # declarations, GRFight GRCore GRUtility
-python3 scripts/decomp/decomp-diff.py <old-build> <new-build> --config   # config tables, row by row
+uv run --with pyyaml python3 scripts/decomp/decomp-diff.py <old-build> <new-build>            # declarations, GRFight GRCore GRUtility
+uv run --with pyyaml python3 scripts/decomp/decomp-diff.py <old-build> <new-build> --config   # config tables, row by row
 ```
 
 Rows whose `limitedScene` is only 8 and 9 belong to Interstellar Expedition

@@ -6,7 +6,7 @@ that looks wrong is a claim about the script that wrote it or about the build:
 change the script and run it again, and the file follows. The scripts read the
 build's typed export through [`scripts/build_data.py`](../scripts/build_data.py),
 so they need the decompilation under `work/decomp/<build>/`
-([`scripts/README.md`](../scripts/README.md) says how to fetch it).
+([`scripts/README.md`](../scripts/README.md) lists the local decompilation tools).
 
 | File | Written by |
 | --- | --- |

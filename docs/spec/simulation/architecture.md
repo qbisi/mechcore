@@ -15,7 +15,7 @@ at a time. Where the build's structure and a convenient structure disagree, the
 build wins and the reason is written down.
 
 **What the evidence covers.** The structure here is read from the local
-decompilation index, the `index.sqlite` that `scripts/decomp/decomp.py sync` puts
+decompilation index, the `index.sqlite` that `scripts/decomp/decompile.py` builds
 under `work/decomp/<version>/`: the types, methods and call edges Cpp2IL
 produces.
 [`scripts/decomp/fight-structure.py`](../../../scripts/decomp/fight-structure.py) regenerates
