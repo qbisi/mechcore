@@ -2054,32 +2054,6 @@ impl Simulation {
                 // after it has observed and corrected the facing.
                 actor.motion.attack_hold_fire = !actor.has_body() && !in_attack_angle;
             }
-            let invalid_attack_angle_barrier = !actor.has_body()
-                && !stopped
-                && !entered_attack
-                && !actor.motion.attack_hold_fire
-                && !in_attack_angle
-                && actor.skills.main.pending().is_none()
-                && actor.skills.main.backswing_finish_step().is_none()
-                && actor.skills.main.phase() == FightSkillPhase::Attack;
-            if invalid_attack_angle_barrier {
-                // MotionAttackState returns to Idle when an active bodyless
-                // skill loses its root-transform attack angle. The new
-                // Idle state is entered synchronously but is not updated
-                // recursively, so target reacquisition waits one tick and
-                // this transition tick preserves the old body facing. An idle
-                // skill is not active, and `MotionAttackState.AttackRotate`
-                // turns the unit to its target: a Crawler whose target a beam
-                // turned takes the next and turns to it.
-                actor.motion.state = MotionState::Idle;
-                actor.skills.main.drop_lock();
-                actor.skills.main.set_phase(FightSkillPhase::Idle);
-                actor.motion.next_target_x_q32 = actor.x_q32;
-                actor.motion.next_target_z_q32 = actor.z_q32;
-                actor.motion.next_speed_q32 = 0;
-                actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
-                return Ok(());
-            }
             let clear_hold_after_motion = actor.motion.attack_hold_fire && in_attack_angle;
             if self.actors[&actor_id].skills.main.mech_searches() {
                 // Its first weapon's skill starts in its own update.

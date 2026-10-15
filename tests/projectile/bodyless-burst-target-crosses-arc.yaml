@@ -1,0 +1,54 @@
+# Phantom Ray's root turns after a nearby Steel Ball during its two-shot
+# burst. Motion must not add an angle rejection while the performer has
+# suspended skill target checks. The next skill check resumes after shot two.
+# The complete generated layout and pin come from the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1521481647
+round: 4
+blue:
+  core_damage: 551
+  officers: [advanced_offensive_tactics, advanced_targeting_system, extended_range_fortress]
+  techs:
+    fortress: [launcher_overload]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: fortress, index: 0, position: {x: -190, y: -50}, level: 2, exp: 1802/3122/3605, equipment: [steel_ball_production_line]}
+  - {name: fang, index: 1, position: {x: 145, y: -230}, level: 9, exp: 0/1024/4036, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 185, y: -80}, retained: false}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: -175, y: 125}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, rhino_specialist, extended_range_fortress]
+  techs:
+    fortress: [barrier]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: fortress, index: 0, position: {x: 270, y: -290}, level: 6, exp: 4639/6714/9278, equipment: [absorption_module]}
+  - {name: rhino, index: 1, position: {x: 155, y: -145}, level: 2, source: delivered}
+  - {name: phantom_ray, index: 2, position: {x: 25, y: -210}, level: 5, exp: 0/1881/5210, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 85, y: -160}, retained: false}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: -285, y: -285}]}
+ticks: 1642
+hash: 25:9064cdf54d0c9621ca92b3f6fea97ecb9c40a77318107f57c1436a964eee9796
+asserts:
+- sql: SELECT tick,enabled__state,enabled__lock_target__id,enabled__attack_target__id,enabled__perform_count FROM units__skills WHERE unit_id=21 AND skill_slot=0 AND tick IN (363,364,367,368) ORDER BY tick
+  rows: [[363,attack,28,28,0],[364,attack,28,28,0],[367,attack,28,28,1],[368,cooling,null,28,0]]
+- sql: SELECT tick,object__id,target__id,skill_slot,weapon_index FROM events WHERE type='projectile_released' AND source__id=21 AND tick BETWEEN 360 AND 368 ORDER BY tick,ordinal
+  rows: [[361,33,28,0,0],[367,34,28,0,0]]
