@@ -13,9 +13,11 @@
 
 use super::{
     FightActorRef, Q32_ONE, Simulation,
-    math::{direction_degrees_q32_raw, native_q32_magnitude, space_to_q32},
+    math::{
+        direction_degrees_q32_raw, line_overlaps_circle_q32, native_q32_magnitude, space_to_q32,
+    },
     motion::{MIN_MOVE_DISTANCE_Q32, clamp_magnitude_q32_raw, normalized_velocity_q32_raw},
-    rvo::{fpoint_less_or_equal, fpoint_less_than, q32_div},
+    rvo::{FixedVec2, fpoint_less_or_equal, fpoint_less_than, q32_div},
 };
 use crate::layout::{SkillEffect, SkillRelease};
 
@@ -179,9 +181,18 @@ impl Simulation {
                 // `LineRange.Overlaps` measures from the segment half its
                 // width out; the point past its end is the whole width out.
                 let near_line = (start != end
-                    && fpoint_less_or_equal(
-                        segment_distance(start, end, (view.x_q32, view.z_q32)),
-                        (command.width_q32 / 2).saturating_add(radius),
+                    && line_overlaps_circle_q32(
+                        FixedVec2 {
+                            x: start.0,
+                            y: start.1,
+                        },
+                        FixedVec2 { x: end.0, y: end.1 },
+                        command.width_q32,
+                        FixedVec2 {
+                            x: view.x_q32,
+                            y: view.z_q32,
+                        },
+                        radius,
                     ))
                     || fpoint_less_than(
                         native_q32_magnitude(
@@ -281,31 +292,4 @@ impl MoveCommand {
 
 fn q32(left: i64, right: i64) -> i64 {
     super::rvo::q32_mul(left, right)
-}
-
-/// The distance from a point to a segment.
-fn segment_distance(start: (i64, i64), end: (i64, i64), point: (i64, i64)) -> i64 {
-    let along = (end.0.saturating_sub(start.0), end.1.saturating_sub(start.1));
-    let from_start = (
-        point.0.saturating_sub(start.0),
-        point.1.saturating_sub(start.1),
-    );
-    let length_squared = q32(along.0, along.0).saturating_add(q32(along.1, along.1));
-    let share = if length_squared <= 0 {
-        0
-    } else {
-        q32_div(
-            q32(along.0, from_start.0).saturating_add(q32(along.1, from_start.1)),
-            length_squared,
-        )
-        .clamp(0, Q32_ONE)
-    };
-    let foot = (
-        start.0.saturating_add(q32(along.0, share)),
-        start.1.saturating_add(q32(along.1, share)),
-    );
-    native_q32_magnitude(
-        point.0.saturating_sub(foot.0),
-        point.1.saturating_sub(foot.1),
-    )
 }
