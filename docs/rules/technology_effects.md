@@ -215,10 +215,11 @@ buff that heals is refused.
 
 **A buff source that is not certain draws for each unit it reaches.** The
 source's chance is truncated to whole thousandths, so the 0.35 a table writes
-is 349. A buff that reaches a unit (not ignored, and no debuff on a unit made
-invincible) is added outright at a chance of 1000, never at 0, and otherwise
-when a draw below 1000 from the unit's own side's stream falls under the
-chance. Every other buff source is certain, and draws nothing. The Wasp's,
+is 349. An explicitly ignored buff is rejected first. Otherwise, a chance
+of 1000 passes outright, 0 never passes, and any other chance draws below
+1000 from the target's own side's stream. A debuff on a unit made invincible
+is rejected after that roll, so even the failed application consumes its
+draw. Every other buff source is certain, and draws nothing. The Wasp's,
 Fang's and Fire Badger's Ignites add the Vulcan's buff at 35%, 14% and 70%.
 
 **A buff source triggered by its unit's losing life adds its buff to the unit
@@ -1718,6 +1719,9 @@ derive (a minimum range):
   `tests/damage_share/vortexes.yaml`. Two of them an Electromagnetic
   Impact disables leave the group and link again as it runs out:
   `tests/damage_share/vortexes-disabled.yaml`.
+- A photon-protected Fire Badger rejects Ignite after the target side's
+  chance draw, advancing the stream used by a Mustang's next attack interval:
+  `tests/technology_buff/photon-rejected-ignite-draw.yaml`.
 - A Steel Ball dead under EMP does not regain its grouping distance when
   its buffs clear and cannot later dilute a living unit's incoming beam:
   `tests/damage_share/dead-disabled-member.yaml`.
@@ -2379,6 +2383,9 @@ derive (a minimum range):
   is not above 0, adds the buff when it is above 999, and otherwise returns
   when `GRRandom.IsProbabilityFail` on the target's `FightTeam.random` holds,
   which is `GRRandom.Next` of 1000 not below the chance.
+  `BuffManager.AddBuff` then rejects a debuff while its buff data set's
+  `BuffDataInt.Invincible` count is positive; that rejection does not undo
+  the draw in `BuffSystem.DoAddBuff`.
   `CommanderSkillBase.GetProbablity`, `LandMineContraption.GetProbablity`,
   `TowerStrengthenData.GetProbablity` and `FightTrapSkill.GetProbablity`
   answer 1000.

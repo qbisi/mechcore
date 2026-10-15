@@ -722,33 +722,30 @@ impl Simulation {
         Ok(())
     }
 
-    /// `BuffManager.AddBuff` on a unit: the row added, or merged into the one
-    /// of its divide already running, and what it writes on the unit's buff
-    /// channel. The `buff_applied` it answers names the running buff.
-    /// `BuffSystem.DoAddBuff` before it hands a buff to the unit's
-    /// `BuffManager.AddBuff`, and the head of that: whether the buff reaches
-    /// the unit at all. A buff the unit ignores (`FightMech.IsIgnoredBuff`)
-    /// does not, nor does a debuff a running buff makes it invincible to, and
-    /// nothing is recorded. Of one that does, a source's chance of none
-    /// adds nothing, a certain one adds it, and any other is drawn from the
-    /// unit's side's stream: `GRRandom.IsProbabilityFail` fails when
-    /// `Next(1000)` is not below the chance.
+    /// `BuffSystem.DoAddBuff` rejects an explicitly ignored buff or a
+    /// source with no chance, adds a certain one outright, and otherwise
+    /// draws from the target's side (`GRRandom.IsProbabilityFail`). Only
+    /// after that does `BuffManager.AddBuff` reject a debuff under
+    /// invincibility; the attempt still consumed its draw.
     pub(in crate::fight) fn buff_reaches(&mut self, actor_id: u64, row: &BuffRow) -> Result<bool> {
         let actor = &self.actors[&actor_id];
         if (!row.technology && actor.placement.effects.ignored_buffs.contains(&row.buff_id))
-            || (row.debuff && actor.invincible())
             || row.probability <= 0
         {
             return Ok(false);
         }
+        // DoAddBuff rolls before BuffManager.AddBuff rejects a debuff under
+        // invincibility. The failed application still advances this side's
+        // random stream, which the next skill's attack interval also reads.
+        let blocked = row.debuff && actor.invincible();
         if row.probability >= CERTAIN {
-            return Ok(true);
+            return Ok(!blocked);
         }
         let team = actor.placement.team;
         let draw = self
             .side_random(team)?
             .next_between_inclusive(0, CERTAIN - 1);
-        Ok(draw < row.probability)
+        Ok(draw < row.probability && !blocked)
     }
 
     /// `BuffManager.AddBuff` of a buff that reaches the unit, recorded with
