@@ -624,10 +624,13 @@ Wreckage Recycling, the Rhino's and the Abyss's: beside its numbers, 60% and
 with, the seconds a strike counts, 2, and the whole metres, by the dying
 unit's level, within which its unit takes life, 15 and 250.
 `WreckageRecoveryEffectProvider.DoActive` hands the unit to its side's
-`TeamWreckageRecoveryManager` (`Add`), which hands the skills a technology's
-numbers reach a hit effect (`SkillManager.AddHitEffect`), as a buff source's
-hit effect is handed; a unit travelling in is handed over as it arrives, and
-one that dies is let go (`DoDeactive`).
+`TeamWreckageRecoveryManager` (`Add`), which hands the skills admitted by
+its main- and extra-skill effect scope a hit effect (`SkillManager.AddHitEffect`).
+This includes an independent extra weapon that inherits no main-skill damage.
+The source's equipment-effect flag follows its extra-skill flag, so a skill
+that ignores equipment effects is excluded when that flag is set. A unit
+travelling in is handed over as it arrives, and one that dies is let go
+(`DoDeactive`).
 
 **A hit records what it struck.** Each unit a hit of one of those skills
 strikes is recorded against the holder, its count back at none if it
@@ -1831,6 +1834,9 @@ derive (a minimum range):
   A produced Sledgehammer loses its Defense Enhancement II life correction
   before its wreckage heals a Rhino:
   `tests/wreckage/produced-unit-death.yaml`.
+- An Abyss's independent missile skill registers Wreckage Recycling even
+  though it inherits no main-skill damage corrections:
+  `tests/wreckage/abyss-extra-weapon-rebirth.yaml`.
 - Field Reassembly brings each Typhoon back where it fell 100 updates after
   it dies, its whole life and its attack time at its interval, once: the
   second waits a tick longer as the first rises before it,
@@ -2318,6 +2324,8 @@ derive (a minimum range):
   `WreckageRecoveryEffectProvider.DisableEffect`,
   `WreckageRecoveryEffectProvider.EnableEffect`,
   `WreckageRecoveryTechnologyData.GetDistance`, `SkillManager.AddHitEffect`,
+  `WreckageRecoveryTech.IsMainSkillEffect`, `WreckageRecoveryTech.IsExtraSkillEffect`,
+  `WreckageRecoveryTech.IsEquipmentEffect`, `SkillDataModifier.AvaliableCheck`,
   `FightMech.OnDead`.
 - A rebirth technology starts a task as its unit dies, before its `OnDead`,
   while its count lasts, marks a unit that does not follow an ally rising,

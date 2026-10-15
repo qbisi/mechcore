@@ -116,6 +116,9 @@ pub(crate) struct WreckageRecovery {
     pub(crate) distance: Vec<i64>,
     /// `CanDisable`, as [`LifeSteal::can_disable`].
     pub(crate) can_disable: bool,
+    /// `ISkillDataChangeDataSource` scope used by `SkillManager.AddHitEffect`.
+    pub(crate) main_skill_effect: bool,
+    pub(crate) extra_skill_effect: bool,
 }
 
 /// What an `IRebirthData` answers: `DeadRebirthController` brings its unit

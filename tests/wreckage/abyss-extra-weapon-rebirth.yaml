@@ -1,0 +1,54 @@
+# Abyss Swarm Missiles registers Wreckage Recycling independently of
+# main-skill damage corrections. Its Fire Badger kill at 423 restores 5488.
+# A first-tick battleship summon changes initial numbering: the Phoenix
+# waiting to reassemble at 439 must retain its recorded unit identity 13.
+# Control: abyss.yaml. Full native trajectory and settlement are pinned.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 534258320
+round: 3
+blue:
+  core_damage: 125
+  officers: [fire_badger_specialist]
+  techs:
+    abyss: [wreckage_recycling, vertical_sweep, range_enhancement, disintegration, dark_companion, swarm_missiles, photon_coating]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: fire_badger, index: 0, position: {x: -135, y: -230}, source: delivered}
+  - {name: abyss, index: 1, position: {x: 25, y: -185}, level: 6, exp: 0/4980/27835, source: joined}
+  - {name: arclight, index: 2, position: {x: 250, y: -100}, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 145, y: -135}, retained: false}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: 30, y: -190}, {x: -60, y: -20}, {x: 110, y: 65}]}
+red:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, fire_badger_specialist, extended_range_phoenix]
+  techs:
+    phoenix: [energy_shield, jump_drive, electromagnetic_shot, quantum_reassembly, range_enhancement, launcher_overload, elite_marksman, charged_shot]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [3, 1]
+  units:
+  - {name: phoenix, index: 0, position: {x: -120, y: -140}, level: 4, exp: 0/5837/5837, rotated: true, equipment: [laser_sights]}
+  - {name: fire_badger, index: 1, position: {x: -235, y: -50}, exp: 0/50/1400, source: delivered}
+  - {name: void_eye, index: 2, position: {x: -130, y: -50}, level: 6, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 235, y: -155}, retained: false}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: 155, y: -195}]}
+asserts:
+- sql: |-
+    SELECT tick,unit_id,life__current FROM units WHERE unit_id=4 AND tick IN (422,423) ORDER BY tick
+  rows:
+  - [422, 4, 22383]
+  - [423, 4, 27871]
+- sql: |-
+    SELECT tick,unit_id FROM rebirths WHERE tick=439 ORDER BY unit_id
+  rows:
+  - [439, 13]
+ticks: 715
+hash: 26:27109d4eafb1c816f462e1ac6341fb74c12929125af0fb91ac4c496025680f8b

@@ -202,6 +202,9 @@ impl UnitNumbering {
                 control.sources.iter_mut().for_each(reference);
             }
         }
+        for rebirth in &mut snapshot.rebirths {
+            unit(&mut rebirth.unit_id);
+        }
         for building in &mut snapshot.buildings {
             if let Some(skill) = &mut building.skill {
                 optional(&mut skill.lock_target);

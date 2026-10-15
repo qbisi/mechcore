@@ -91,8 +91,8 @@ impl Simulation {
 
     /// `TeamWreckageRecoveryManager.PerformHitEffect`: each unit a hit of
     /// the holder's skill struck, recorded or its time set back to none. A
-    /// skill the source names is one a technology's numbers reach, as a buff
-    /// source's hit effect's is; the technologies disabled, nothing is
+    /// skill the source names is one its main/extra effect scope admits,
+    /// through `SkillDataModifier.AvaliableCheck`; disabled, nothing is
     /// recorded (`WreckageRecoveryEffectProvider.DisableEffect` takes the
     /// effect off its skills).
     pub(in crate::fight) fn record_wreckage_hit(
@@ -105,8 +105,19 @@ impl Simulation {
             return;
         };
         let actor = &self.actors[&owner];
+        let slot = usize::from(slot);
+        let (held_by, _) = actor.skills.at_slot(slot);
+        // WreckageRecoveryTech.IsEquipmentEffect reads extraSkillEffect too.
+        let ignored = holder.source.extra_skill_effect
+            && matches!(held_by, SkillSlot::Extra(index)
+                if actor.skills.extras[index].rules.ignore_equipment);
         if (holder.source.can_disable && actor.technology_disabled())
-            || !actor.corrected_skill_slots().contains(&usize::from(slot))
+            || ignored
+            || !actor.skill_modifier_scope_applies(
+                slot,
+                holder.source.main_skill_effect,
+                holder.source.extra_skill_effect,
+            )
         {
             return;
         }
