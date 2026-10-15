@@ -1,0 +1,97 @@
+# Melting Point's eight Crawlers are created and killed by Final Blitz
+# within tick 801, so no live snapshot holds them. Their unit IDs and
+# lethal Rhino source still identify their events, and native statistics
+# retain all eight individual recorders through the final tick.
+# Control: crawler-production.yaml. Two final native recordings agree
+# for every tick and settlement.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1124372407
+round: 3
+blue:
+  core_damage: 350
+  officers: [advanced_power_system, speed_specialist, mass_produced_rhino]
+  techs:
+    rhino: [field_maintenance, whirlwind, wreckage_recycling, power_armor, final_blitz, armor_enhancement, mechanical_rage, photon_coating, combat_evolvement]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: rhino, index: 0, position: {x: 245, y: -45}, level: 3, exp: 4096/4096/4096, equipment: [nano_repair_kit]}
+  - {name: hound, index: 1, position: {x: -70, y: -130}, level: 3, exp: 0/253/2671, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -155, y: -75}, retained: false}
+  battle_skills:
+  - {name: nuke, positions: [{x: 290, y: 150}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, quick_teleport, sabertooth_specialist, improved_melting_point]
+  techs:
+    melting_point: [crawler_production]
+  blueprints: [defense_enhancement]
+  tower_strengthen_levels: [1, 2]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 5, y: -215}, exp: 0/400/1300, source: delivered}
+  - {name: melting_point, index: 1, position: {x: 320, y: 230}, level: 8, exp: 0/2800/9418, rotated: true, equipment: [secondary_fire_control_system], travelling: true, source: joined}
+  - {name: centurion, index: 2, position: {x: -265, y: -95}, level: 6, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 65, y: -285}, retained: false}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -260, y: -85}]}
+asserts:
+- sql: |-
+    SELECT tick,type,object__id,source__kind,source__id FROM events WHERE tick=801 AND object__id BETWEEN 18 AND 25 AND type IN('unit_created','unit_died') ORDER BY ordinal
+  rows:
+  - [801, unit_created, 18, null, null]
+  - [801, unit_created, 19, null, null]
+  - [801, unit_created, 20, null, null]
+  - [801, unit_created, 21, null, null]
+  - [801, unit_created, 22, null, null]
+  - [801, unit_created, 23, null, null]
+  - [801, unit_created, 24, null, null]
+  - [801, unit_created, 25, null, null]
+  - [801, unit_died, 18, unit, 6]
+  - [801, unit_died, 19, unit, 6]
+  - [801, unit_died, 20, unit, 6]
+  - [801, unit_died, 21, unit, 6]
+  - [801, unit_died, 22, unit, 6]
+  - [801, unit_died, 23, unit, 6]
+  - [801, unit_died, 24, unit, 6]
+  - [801, unit_died, 25, unit, 6]
+- sql: |-
+    SELECT tick,recorder_id,damage_taken FROM statistics WHERE recorder='unit' AND recorder_id BETWEEN 18 AND 25 AND tick IN(801,802,896) ORDER BY tick,recorder_id
+  rows:
+  - [801, 18, 148200]
+  - [801, 19, 148200]
+  - [801, 20, 148200]
+  - [801, 21, 148200]
+  - [801, 22, 148200]
+  - [801, 23, 148200]
+  - [801, 24, 148200]
+  - [801, 25, 148200]
+  - [802, 18, 148200]
+  - [802, 19, 148200]
+  - [802, 20, 148200]
+  - [802, 21, 148200]
+  - [802, 22, 148200]
+  - [802, 23, 148200]
+  - [802, 24, 148200]
+  - [802, 25, 148200]
+  - [896, 18, 148200]
+  - [896, 19, 148200]
+  - [896, 20, 148200]
+  - [896, 21, 148200]
+  - [896, 22, 148200]
+  - [896, 23, 148200]
+  - [896, 24, 148200]
+  - [896, 25, 148200]
+- sql: |-
+    SELECT count(*) FROM units WHERE unit_id BETWEEN 18 AND 25
+  rows:
+  - [0]
+ticks: 896
+hash: 26:9202b9c44977443651b93d91116f7f3eec97ac07453d3400a45c38899aaa8a93

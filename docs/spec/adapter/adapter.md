@@ -517,6 +517,12 @@ is exported as a standing entry named by that provider's skill.
 Units are numbered afresh by every snapshot before S(1), because units can join as the fight
 starts and the initial numbering is S(1)'s scene; the numbering S(1) writes is final, references the
 first combat tick cached are carried over to it, and later units append IDs.
+An ID assigned to a unit seen only in within-tick events remains valid for
+the recording. The battle statistics dictionaries can retain that unit as
+a recorder after it dies, even though no snapshot ever held it alive.
+Before a unit has an ID, its death still carries the last hit's attribution
+from that tick's unresolved native traces. Numbering resolves the unit
+reference without dropping its source.
 
 Native hooks use temporary Shield IDs before S(1). At the first advancing combat
 snapshot, initial IDs are assigned once in `(team_id, active_order)` order, with

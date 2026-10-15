@@ -410,7 +410,8 @@ pub(crate) struct CaptureState {
     shield_ids_finalized: bool,
     /// Whether S(1) has been written, after which unit identities are final.
     unit_ids_finalized: bool,
-    /// Units numbered only for the tick's events, released after them.
+    /// Units numbered only for the tick's events: their temporary formation
+    /// aliases leave after those events; unit identities remain for statistics.
     fleeting_unit_pointers: Vec<usize>,
     terrain_ids: BTreeMap<usize, u64>,
     live_shield_pointers: BTreeSet<usize>,
@@ -1258,8 +1259,8 @@ enum NativeTrace {
     },
     /// A unit that joined the fight within the tick, numbered by the tick's
     /// snapshot, or with the fleeting units when the snapshot does not hold
-    /// it: released with them when it died again within the tick, and kept
-    /// for the snapshot that first holds it otherwise.
+    /// it. Its identity remains available to later statistics even if it
+    /// dies before any snapshot holds it.
     UnitCreated {
         unit: usize,
         team_id: u32,
@@ -2563,7 +2564,8 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
             let traces = std::mem::take(&mut state.traces);
             let events = transition_events(&traces, &state)?;
             for pointer in std::mem::take(&mut state.fleeting_unit_pointers) {
-                state.unit_ids.remove(&pointer);
+                // BattleStatisticManager retains the unit as a recorder
+                // after its death, including units no snapshot ever held.
                 state.formation_ids.remove(&pointer);
             }
             if let Some(visual) = state.visual.as_ref() {
@@ -4089,39 +4091,12 @@ fn record_actor_death(actor: *mut Object, kind: ObjectKind) {
             .map(|id| ObjectRef::new(ObjectKind::Building, id)),
         ObjectKind::Projectile | ObjectKind::Shield | ObjectKind::Terrain => None,
     };
-    let Some(reference) = reference else {
-        if kind == ObjectKind::Building {
-            return;
-        }
-        // A unit that joined the fight and dies within the same tick has no
-        // number yet; the tick's snapshot gives it one.
-        let attribution = active_damage_context
-            .map(|context| DamageAttribution {
-                source: context.source,
-                source_team_id: context.source_team_id,
-            })
-            .unwrap_or_default();
-        let result = (|| {
-            let transform = invoke_object(runtime.api, actor, "GetFightTransform")?;
-            let position = vec3(invoke_value::<FixedVec3>(
-                runtime.api,
-                transform,
-                "GetPositionInt3D",
-            )?);
-            state.traces.push(NativeTrace::UnitDiedUnresolved {
-                unit: pointer,
-                position,
-                source: attribution.source,
-                source_team_id: attribution.source_team_id,
-            });
-            Ok::<(), String>(())
-        })();
-        if let Err(error) = result {
-            state.fail(format!("{kind:?}.OnDead trace failed: {error}"));
-        }
+    if reference.is_none() && kind == ObjectKind::Building {
         return;
-    };
-    if !state.emitted_deaths.insert(reference) {
+    }
+    if let Some(reference) = reference
+        && !state.emitted_deaths.insert(reference)
+    {
         state.fail(format!(
             "{kind:?} {} emitted OnDead more than once, the second time as a {} at 0x{pointer:x}",
             reference.id,
@@ -4129,17 +4104,31 @@ fn record_actor_death(actor: *mut Object, kind: ObjectKind) {
         ));
         return;
     }
-    let attribution = match active_damage_context {
-        Some(context) => DamageAttribution {
+    let previous = reference.and_then(|reference| state.last_damage_sources.remove(&reference));
+    let attribution = active_damage_context
+        .map(|context| DamageAttribution {
             source: context.source,
             source_team_id: context.source_team_id,
-        },
-        None => state
-            .last_damage_sources
-            .remove(&reference)
-            .unwrap_or_default(),
-    };
-    state.last_damage_sources.remove(&reference);
+        })
+        .or(previous)
+        .or_else(|| {
+            // DeadEffectSystem calls OnDead after the hit's attribution scope
+            // ended. An unnumbered unit's last hit is still in this tick's
+            // unresolved traces, keyed by its native pointer.
+            state.traces.iter().rev().find_map(|trace| match trace {
+                NativeTrace::DamageUnresolved {
+                    target,
+                    source,
+                    source_team_id,
+                    ..
+                } if *target == pointer => Some(DamageAttribution {
+                    source: *source,
+                    source_team_id: *source_team_id,
+                }),
+                _ => None,
+            })
+        })
+        .unwrap_or_default();
     let result = (|| {
         let transform = invoke_object(runtime.api, actor, "GetFightTransform")?;
         let position = vec3(invoke_value::<FixedVec3>(
@@ -4147,18 +4136,24 @@ fn record_actor_death(actor: *mut Object, kind: ObjectKind) {
             transform,
             "GetPositionInt3D",
         )?);
-        state.traces.push(match kind {
-            ObjectKind::Unit => NativeTrace::UnitDied {
+        state.traces.push(match (kind, reference) {
+            (ObjectKind::Unit, Some(reference)) => NativeTrace::UnitDied {
                 unit_id: reference.id,
                 position,
                 source: attribution.source,
                 source_team_id: attribution.source_team_id,
             },
-            ObjectKind::Building => NativeTrace::BuildingDestroyed {
+            (ObjectKind::Unit, None) => NativeTrace::UnitDiedUnresolved {
+                unit: pointer,
+                position,
+                source: attribution.source,
+                source_team_id: attribution.source_team_id,
+            },
+            (ObjectKind::Building, Some(reference)) => NativeTrace::BuildingDestroyed {
                 building_id: reference.id,
                 position,
             },
-            ObjectKind::Projectile | ObjectKind::Shield | ObjectKind::Terrain => unreachable!(),
+            _ => unreachable!(),
         });
         Ok::<(), String>(())
     })();
@@ -7988,11 +7983,7 @@ fn transition_events(
     Ok(TransitionEvents { events })
 }
 
-/// Numbers the units the tick's events name but its snapshot does not hold,
-/// which joined the fight and left it within the tick, after every unit the
-/// snapshot holds and in the order the events name them. Their pointers are
-/// released once the tick's events are written, since the object behind them
-/// is gone.
+/// Resolves a buff target after snapshot and event-only units are numbered.
 fn buff_target(target: usize, capture: &CaptureState) -> Result<ObjectRef, String> {
     object_ref_from_pointer(target, capture).ok_or_else(|| {
         format!(
@@ -8002,6 +7993,9 @@ fn buff_target(target: usize, capture: &CaptureState) -> Result<ObjectRef, Strin
     })
 }
 
+/// Numbers event-only units after the snapshot's, in event order. Unit
+/// identities last through the recording because native statistics retain
+/// their recorders; only temporary formation aliases leave after the events.
 fn number_fleeting_units(capture: &mut CaptureState) -> Result<(), String> {
     let named = capture
         .traces
@@ -8028,7 +8022,7 @@ fn number_fleeting_units(capture: &mut CaptureState) -> Result<(), String> {
     // summon joins the fight's actors only once it has appeared, some ticks
     // after `CreateMech`, and the snapshot that first holds it has to find
     // the number its `unit_created` gave it. One that died within the tick
-    // too is released with the rest.
+    // keeps that identity too: statistics can still name it later.
     let died = capture
         .traces
         .iter()
@@ -9938,7 +9932,7 @@ mod tests {
 
     /// A summon is created ticks before it joins the fight's actors: its
     /// number and its formation's are kept for the snapshot that first holds
-    /// it, while a unit created and killed within one tick is released.
+    /// it; one created and killed within a tick keeps its unit identity too.
     #[test]
     fn a_unit_created_outside_the_snapshot_keeps_its_number_until_it_appears() {
         let created = |unit| NativeTrace::UnitCreated {
