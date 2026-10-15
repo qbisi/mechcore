@@ -1226,6 +1226,7 @@ impl Simulation {
             .collect::<std::collections::BTreeSet<_>>();
         let mut team_alive_counts = BTreeMap::new();
         let mut inactive_skill_managers = BTreeSet::new();
+        let mut completed_commands = BTreeSet::new();
         for team_id in team_ids {
             team_alive_counts.insert(
                 team_id,
@@ -1271,7 +1272,11 @@ impl Simulation {
                     self.step_actor_buffs(actor_id, &mut events)?;
                 }
                 self.follow_owner(actor_id);
+                let had_command = self.actors[&actor_id].command.is_some();
                 self.perform_command(actor_id);
+                if had_command && self.actors[&actor_id].command.is_none() {
+                    completed_commands.insert(actor_id);
+                }
             }
             // Every construction updates, a wall block as a turret: one that
             // fires runs its skill, and each runs its buffs last.
@@ -1486,10 +1491,15 @@ impl Simulation {
                     if let Some(group) = &mut actor.skills.main.group {
                         group.mech_lock = None;
                     }
-                } else if !holding_fire && entered_idle {
+                } else if !holding_fire
+                    && entered_idle
+                    && !completed_commands.contains(&actor.placement.unit_id)
+                {
                     // `MotionIdleState.Enter` publishes StopMove only on a
                     // transition. Already idle summons keep their untouched
                     // agent request while the core waits for pending units.
+                    // `SkillManager.Update` precedes `PilotAI.Update`: a
+                    // command completing afterwards cannot idle this update.
                     actor.lose_target_motion(entered_idle);
                 }
                 actor
