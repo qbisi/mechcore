@@ -285,10 +285,10 @@ impl Simulation {
                     .actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable");
-                let switched = &actor.placement.effects.technology_disable.technologies;
+                let switched = &actor.placement.effects.technology_disable.sources;
                 let mut support_skills = Vec::new();
                 for extra in &mut actor.skills.extras {
-                    if switched.contains(&extra.rules.technology) {
+                    if switched.iter().any(|source| source.technology == extra.rules.technology) {
                         if extra.skill.kind == SkillKind::Support {
                             support_skills.push(extra.rules.technology);
                         }
@@ -302,7 +302,7 @@ impl Simulation {
                 for slot in 1..main.group_size() {
                     if main
                         .joined(slot)
-                        .is_some_and(|joined| switched.contains(&joined.technology))
+                        .is_some_and(|joined| switched.iter().any(|source| source.technology == joined.technology))
                     {
                         main.sibling_mut(slot).disabled = !on;
                     }

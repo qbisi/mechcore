@@ -1250,8 +1250,9 @@ impl Simulation {
                     .placement
                     .effects
                     .technology_disable
-                    .technologies
-                    .contains(&extra.rules.technology)
+                    .sources
+                    .iter()
+                    .any(|source| source.technology == extra.rules.technology)
             });
         if !on && actor.skills.preemptive_active && preemptive_switches {
             return Err(Error::new(format!(
@@ -1264,79 +1265,70 @@ impl Simulation {
         for provider in actor.placement.effects.technology_disable.providers.clone() {
             self.switch_provider(actor_id, provider, on)?;
         }
-        let actor = self
-            .actors
-            .get_mut(&actor_id)
-            .expect("actor identity is stable");
-        let corrections = actor
+        let sources = self.actors[&actor_id]
             .placement
             .effects
             .technology_disable
-            .corrections
+            .sources
             .clone();
         // Only a source the provider actually switches emits its data change.
         // A superseded shield technology leaves no source to refresh; a
         // switching provider without numeric corrections still refreshes.
-        if corrections.is_empty()
-            && actor
-                .placement
-                .effects
-                .technology_disable
-                .providers
-                .is_empty()
-        {
+        if sources.is_empty() {
             return Ok(());
         }
-        for (channel, entry) in corrections {
-            let channel = actor.stats.overlays.channel(channel);
-            if on {
-                channel.write(entry);
-            } else {
-                channel.remove(entry);
-            }
-            // FightMech.AddData/RemoveData for a life-rate modifier refresh
-            // the gauge immediately, before the next source changes it.
-            if entry.index == Index::MaxLife {
-                actor.refresh_life_data()?;
-            }
-            if entry.index == Index::AttackValueFor(UnitDomain::Air)
-                && actor
-                    .placement
-                    .effects
-                    .technology_disable
-                    .inverse_air_extra_skills
-            {
-                for extra in actor
-                    .skills
-                    .extras
-                    .iter_mut()
-                    .filter(|extra| extra.rules.damage_rate <= 0.0)
+        for source in sources {
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            for (channel, entry) in source.corrections {
+                let channel = actor.stats.overlays.channel(channel);
+                if on {
+                    channel.write(entry);
+                } else {
+                    channel.remove(entry);
+                }
+                // FightMech.AddData/RemoveData for a life-rate modifier refresh
+                // the gauge immediately, before the next source changes it.
+                if entry.index == Index::MaxLife {
+                    actor.refresh_life_data()?;
+                }
+                if entry.index == Index::AttackValueFor(UnitDomain::Air)
+                    && source.inverse_air_extra_skills
                 {
-                    if on {
-                        extra.skill_corrections.push(entry);
-                    } else if let Some(index) = extra
-                        .skill_corrections
-                        .iter()
-                        .position(|candidate| *candidate == entry)
+                    for extra in actor
+                        .skills
+                        .extras
+                        .iter_mut()
+                        .filter(|extra| extra.rules.damage_rate <= 0.0)
                     {
-                        extra.skill_corrections.remove(index);
+                        if on {
+                            extra.skill_corrections.push(entry);
+                        } else if let Some(index) = extra
+                            .skill_corrections
+                            .iter()
+                            .position(|candidate| *candidate == entry)
+                        {
+                            extra.skill_corrections.remove(index);
+                        }
                     }
                 }
             }
+            actor.refresh_life_data()?;
+            let skill_ref = super::skill::SkillRef::main(super::FightActorRef::Unit(actor_id));
+            let interval_q32 = self
+                .skill_attacker(skill_ref)
+                .ok_or_else(|| Error::new("a unit whose technologies switch is absent"))?
+                .attack_interval_q32;
+            let interval = super::math::seconds_q32_to_steps(interval_q32).max(1);
+            let (step, skill) = (self.step_now, self.skill_mut(skill_ref));
+            skill.refresh_datas(interval, step);
+            for sibling in skill.siblings_mut() {
+                sibling.refresh_datas(interval, step);
+            }
         }
-        actor.refresh_life_data()?;
         self.refresh_projectile_performers(projectile_counts);
-        let skill_ref = super::skill::SkillRef::main(super::FightActorRef::Unit(actor_id));
-        let interval_q32 = self
-            .skill_attacker(skill_ref)
-            .ok_or_else(|| Error::new("a unit whose technologies switch is absent"))?
-            .attack_interval_q32;
-        let interval = super::math::seconds_q32_to_steps(interval_q32).max(1);
-        let (step, skill) = (self.step_now, self.skill_mut(skill_ref));
-        skill.refresh_datas(interval, step);
-        for sibling in skill.siblings_mut() {
-            sibling.refresh_datas(interval, step);
-        }
         Ok(())
     }
 }
