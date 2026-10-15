@@ -195,8 +195,8 @@ impl Simulation {
                 }
                 SkillState::Attack(_)
                     if self.group_slot_burst_lost_target(main, slot, step, events)? => {}
-                // `SkillAttackState.CheckAttackable` fails a skill that is
-                // not enabled before it asks anything else.
+                // Every slot uses the same state check, including the enable
+                // check only once the attack controller is idle.
                 SkillState::Attack(blow) => {
                     if self.between_blows(main, Some(slot), step)
                         && !self.attack_state_check_attackable(

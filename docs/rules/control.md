@@ -208,6 +208,9 @@ the shield does not count against the turn.
 
 ### Recorded
 
+- EMP disabling Multi Control leaves the winding beams' entries until their
+  pending hits finish, using each extra beam's retained reduction:
+  `tests/technology_disable/control-group-finishes-windup.yaml`.
 - A grouped Hacker beam whose attack target changes to a wall during its
   wind-up damages that wall without hitting or disabling its unit lock:
   `tests/control/windup-follows-current-wall.yaml`.

@@ -1758,15 +1758,16 @@ impl Simulation {
     /// skill's from its unit's numbers, and an extra skill's with a damage
     /// rate from the unit's base damage at that rate, corrected by what
     /// reaches the main skill, which its `DataSet` holds too.
-    fn laser_damage(&self, skill_ref: SkillRef, blow: usize) -> Result<i64> {
+    fn laser_damage(&self, skill_ref: SkillRef, member: usize, blow: usize) -> Result<i64> {
         let actor_id = skill_ref
             .owner
             .unit_id()
             .ok_or_else(|| Error::new("a construction's laser is not supported"))?;
         let actor = &self.actors[&actor_id];
-        let against = self.attack_domain(self.skill(skill_ref).attack_target());
+        let against = self.attack_domain(self.skill(skill_ref).group_skill(member).attack_target());
+        let stats = self.skill_damage_stats(skill_ref, member)?;
         let SkillSlot::Extra(index) = skill_ref.slot else {
-            return Ok(actor.stats.laser_damage(&actor.rules, blow, against));
+            return Ok(stats.laser_damage(&actor.rules, blow, against));
         };
         let rules = &actor.skills.extras[index].rules;
         let AttackPath::Laser { damage_multipliers } = &rules.attack.path else {
@@ -1777,7 +1778,7 @@ impl Simulation {
                 "an extra laser skill without a damage rate is not measured",
             ));
         }
-        Ok(actor.stats.ramped_laser_damage(
+        Ok(stats.ramped_laser_damage(
             actor.rules.attack.base_damage,
             damage_multipliers,
             (rules.damage_rate, blow),
@@ -1802,7 +1803,7 @@ impl Simulation {
             .owner
             .unit_id()
             .ok_or_else(|| Error::new("a construction's laser is not supported"))?;
-        let damage = self.laser_damage(skill_ref, blow)?;
+        let damage = self.laser_damage(skill_ref, member, blow)?;
         let skill_slot = u16::try_from(self.skill_slot(skill_ref) + member)
             .map_err(|_| Error::new("a skill slot is outside u16"))?;
         let (attacker_ref, attacker_team) = {

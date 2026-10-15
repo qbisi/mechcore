@@ -231,7 +231,8 @@ its first skill in the core's place:
 - **The technology lowers every skill's damage.** Its
   `allWeaponReduceDamageRate`, −0.83, is the rate `ExtraSkillProvider.EnableEffect`
   writes on the main skill (`IExtraSkill.GetReduceDamageRateBase`) as its
-  `DamageReduceRateBase`, which the beams hold too. `DamageProperty.CalculateDamage`
+  `DamageReduceRateBase`. `ExtraSkillSystem.AddMech` writes the same source
+  onto each extra beam separately. `DamageProperty.CalculateDamage`
   multiplies the factor the damage rates meet in by it last: every beam, the
   main one's among them, deals 0.17 of its ramp,
   trunc(trunc(168 × m) × 0.17). `DamageCalculator.GetNormalDamage`, what a
@@ -258,15 +259,20 @@ and share out targets as a group of beams does, and may share a target
   the before phase and then the attacking one, and `performCount` counts the
   blow as it lands.
 - **The technology lowers every beam.** Its `allWeaponReduceDamageRate`,
-  −0.83, is the main skill's `DamageReduceRateBase`, which the group holds
-  too: every beam, the main one's among them, turns by trunc(600 × 0.17) =
+  −0.83, is written onto the main skill and each extra beam separately:
+  every beam, the main one's among them, turns by trunc(600 × 0.17) =
   102 a hit, and a warm-up hit by 1, the multiplier's 0.001 of 102 raised to
   one. A recording reads each beam's damage as 1, its calculator's at count
   zero.
 
-A beam of the row that strikes what it may not turn, a unit wearing the
-Anti-Interference Module or a construction, is not recorded, and the
-simulator refuses the fight when one does.
+A beam of the row that may not turn its target uses its damage effect,
+including for a shield covering the lock. If a disabling buff arrives while
+a beam is winding up, the beam keeps its effect and finishes the blow:
+`SkillAttackState.CheckAttackable` tests whether the skill is enabled only
+while its attack controller is idle. The next idle check ends the attack.
+`ExtraSkillProvider.DisableEffect` removes the source's reduction from the
+main skill alone, so the disabled extra beam still uses its own reduction
+for that final blow.
 
 ## A group that joins the main skill's
 
@@ -736,6 +742,10 @@ that is not melee, so the simulator refuses it.
 
 ### Recorded
 
+- Disabled Multi Control beams retain their control entries through their
+  current wind-up and finish the pending blows with their own damage
+  reduction before ending the attack:
+  `tests/technology_disable/control-group-finishes-windup.yaml`.
 - A summoned Vulcan's first Incendiary Bomb fire is requested after its
   death and the clearing of its unit corrections. Its empty fire is
   recorded for one tick, while its Sticky Oil Bomb still leaves its
@@ -1046,6 +1056,13 @@ that is not melee, so the simulator refuses it.
 
 ### Read
 
+- Each created extra skill receives its source's own base damage reduction,
+  and disabling removes that reduction from the main skill alone:
+  `ExtraSkillSystem.AddMech`, `ExtraSkillProvider.DisableEffect`,
+  `ExtraWeaponTech.GetReduceDamageRateBase`.
+- A disabled skill finishes its current blow before the idle controller's
+  enable check ends its attack: `SkillAttackState.CheckAttackable`,
+  `SkillAttackController.IsIdle`, `ExtraSkillProvider.DisableSkill`.
 - A dead unit's line: `FightMech.OnDead`, `FightEffectSystem.DeactiveEffect`,
   `FightSupportSkill.Destroy`, `SupportUnitSystem.RemoveSkillOwner`,
   `TeamSupportUnitManager.RemoveCreator`.

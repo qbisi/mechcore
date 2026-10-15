@@ -1,0 +1,91 @@
+# EMP disables Multi Control while its extra beams are winding up.
+# At t334 Hacker 2 loses its technology. Its disabled beams retain their
+# control entries at t335 and finish their pending blows with their own
+# damage reduction: t336 adds 79 control power to Mustangs 12 and 14, while
+# slot 1 damages shield 4 for 23. Main-skill reduction is removed by EMP;
+# the extra skills' copies remain. The complete generated battle repeats
+# 619 ticks and settles blue core damage 537, rather than 554 when pending
+# beams were stopped early. Control: ../control/grouped-windup-count.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 336032711
+round: 4
+blue:
+  core_damage: 537
+  officers: [advanced_shield_device, advanced_offensive_tactics]
+  techs:
+    hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement, multi_control]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: hacker, index: 0, position: {x: 65, y: -195}, level: 5, exp: 0/28/2918, rotated: true, equipment: [secondary_heavy_armor], source: joined}
+  - {name: hacker, index: 1, position: {x: 215, y: -135}, level: 6, exp: 0/614/3247, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 20, y: -220}, retained: false}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: -175, y: -190}]}
+red:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_power_system, mass_produced_melting_point]
+  techs:
+    melting_point: [energy_absorption, electromagnetic_barrage, energy_diffraction, crawler_production, armor_enhancement, range_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: melting_point, index: 0, position: {x: -70, y: -30}, level: 8, exp: 4709/9418/9418, rotated: true, equipment: [barrier]}
+  - {name: mustang, index: 1, position: {x: -225, y: -190}, level: 9, exp: 0/2178/8073, source: joined}
+  constructions:
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: orbital_javelin, positions: [{x: 295, y: 250}]}
+asserts:
+- sql: |-
+    SELECT tick,unit_id,control__progress FROM units WHERE unit_id IN (12,14,17) AND tick BETWEEN 334 AND 338 ORDER BY tick,unit_id
+  rows:
+  - [334, 12, 1583]
+  - [334, 14, 3008]
+  - [334, 17, 1583]
+  - [335, 12, 1583]
+  - [335, 14, 3008]
+  - [335, 17, 1583]
+  - [336, 12, 1662]
+  - [336, 14, 3087]
+  - [336, 17, 1583]
+  - [337, 12, null]
+  - [337, 14, 3087]
+  - [337, 17, 1583]
+  - [338, 12, null]
+  - [338, 14, 3554]
+  - [338, 17, 1662]
+- sql: |-
+    SELECT tick,unit_id,ordinal,id FROM units__control__sources WHERE unit_id IN (12,14,17) AND id=2 AND tick BETWEEN 334 AND 338 ORDER BY tick,unit_id,ordinal
+  rows:
+  - [334, 12, 0, 2]
+  - [334, 14, 0, 2]
+  - [334, 14, 1, 2]
+  - [334, 17, 0, 2]
+  - [335, 12, 0, 2]
+  - [335, 14, 0, 2]
+  - [335, 14, 1, 2]
+  - [335, 17, 0, 2]
+  - [336, 12, 0, 2]
+  - [336, 14, 0, 2]
+  - [336, 14, 1, 2]
+  - [336, 17, 0, 2]
+  - [337, 14, 0, 2]
+  - [337, 17, 0, 2]
+  - [338, 14, 0, 2]
+  - [338, 17, 0, 2]
+- sql: |-
+    SELECT tick,unit_id,skill_slot,has_enabled FROM units__skills WHERE unit_id=2 AND skill_slot>0 AND tick=336 ORDER BY skill_slot
+  rows:
+  - [336, 2, 1, 0]
+  - [336, 2, 2, 0]
+  - [336, 2, 3, 0]
+  - [336, 2, 4, 0]
+- sql: |-
+    SELECT tick,source__id,target__kind,target__id,amount,skill_slot FROM events WHERE tick=336 AND type='damage' AND source__id=2 ORDER BY ordinal
+  rows:
+  - [336, 2, "shield", 4, 23, 1]
+ticks: 619
+hash: 26:8fdb5d87028bbf0a15fc67988cf1afd8a950b8e9955595888df4a120d6298342

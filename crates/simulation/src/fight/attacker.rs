@@ -508,6 +508,47 @@ impl Simulation {
         }
     }
 
+    /// `ExtraSkillSystem.AddMech` writes the source's base damage reduction
+    /// onto each extra skill. `ExtraSkillProvider.DisableEffect` removes it
+    /// from the main skill alone; a disabled extra finishing its pending blow
+    /// still reads its own entry.
+    pub(in crate::fight) fn skill_damage_stats(
+        &self,
+        skill_ref: SkillRef,
+        slot: usize,
+    ) -> Result<std::borrow::Cow<'_, crate::data::Stats>> {
+        let id = skill_ref
+            .owner
+            .unit_id()
+            .ok_or_else(|| Error::new("a construction has no unit damage data"))?;
+        let actor = &self.actors[&id];
+        let skill = self.skill(skill_ref).group_skill(slot);
+        let technology = match skill_ref.slot {
+            SkillSlot::Main => self.skill(skill_ref).joined(slot).map(|row| row.technology),
+            SkillSlot::Extra(index) => Some(actor.skills.extras[index].rules.technology),
+        };
+        let mut stats = std::borrow::Cow::Borrowed(&actor.stats);
+        if skill.disabled
+            && let Some(source) = actor
+                .placement
+                .effects
+                .technology_disable
+                .sources
+                .iter()
+                .find(|source| Some(source.technology) == technology)
+        {
+            for &(channel, entry) in &source.corrections {
+                if entry.index == Index::DamageReduceRateBase {
+                    stats.to_mut().overlays.channel(channel).write(entry);
+                }
+            }
+            if let std::borrow::Cow::Owned(stats) = &mut stats {
+                stats.refresh(&actor.rules)?;
+            }
+        }
+        Ok(stats)
+    }
+
     /// One skill's owner as that skill sees it. An owner's main skill is what
     /// [`Self::attacker`] answers. An extra skill answers from its own row:
     /// its reach (`FightSkill.GetAttackRange`, the main skill's where its row
@@ -611,8 +652,8 @@ impl Simulation {
             // `DamageProperty.CalculateDamage` then corrects it by the
             // skill's `DataSet`, which holds what reaches the main skill, and
             // the buffs', its damage property the one for what it attacks.
-            actor
-                .stats
+            self.skill_damage_stats(skill_ref, 0)
+                .ok()?
                 .damage_from(
                     q32_mul(base << 32, crate::rules::metres_q32(rules.damage_rate)) >> 32,
                     against,

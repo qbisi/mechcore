@@ -551,11 +551,11 @@ impl Simulation {
         slot: Option<usize>,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
-        // A skill that is not enabled fails between its blows: the blow under
-        // way runs out, and its attack ends (`SkillAttackState.CheckAttackable`
-        // asks `FightSkill.isEnable` while its controller is idle).
+        // `between_blows` also includes the wind-up. The native enable check
+        // only runs with the attack controller idle, so a pending blow keeps
+        // its effect and finishes before a disabled skill ends its attack.
         let skill = self.skill(skill_ref).group_skill(slot.unwrap_or(0));
-        if skill.disabled {
+        if skill.disabled && skill.pending().is_none() {
             return Ok(false);
         }
         // A preemptive skill attacks once: its check fails once it has
