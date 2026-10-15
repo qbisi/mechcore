@@ -1,0 +1,62 @@
+# A Steel Ball's laser triggers Emergency Armor on its Vortex target.
+# At t194 the Vortex becomes stealth after taking the laser's hit. The Steel
+# Ball retains its attack and lock for that tick while its motion changes
+# to moving; its skill ends the attack at t195. This full generated layout
+# settles blue 287 / red 0, rather than blue 0 / red 100 when motion resets
+# the skill prematurely. The native recording repeats identically.
+# Control: emergency-armor.yaml shows projectile shooters losing their
+# locks on the update after the target enters stealth.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1294468039
+round: 3
+blue:
+  core_damage: 287
+  officers: [advanced_missile_device, advanced_targeting_system, cost_control_specialist]
+  techs:
+    vortex: [grid_integration, field_maintenance, electromagnetic_cloud, machine_learning, range_enhancement, electromagnetic_twin, mobile_power_station, accumulator_shield, emergency_armor]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: vortex, index: 0, position: {x: 200, y: -20}, level: 9, exp: 5046/5046/5046, rotated: true, equipment: [anti_interference_module]}
+  - {name: mustang, index: 1, position: {x: 195, y: -120}, level: 6, exp: 0/1908/6959, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -100, y: -240}}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: 205, y: 155}, {x: -30, y: -220}]}
+red:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_offensive_tactics, fire_badger_specialist]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [2, 4]
+  units:
+  - {name: fire_badger, index: 0, position: {x: -265, y: -200}, exp: 0/566/1400, source: delivered}
+  - {name: crawler, index: 1, position: {x: -95, y: -100}, level: 7, exp: 0/2833/2833, equipment: [absorption_module], source: joined}
+  - {name: steel_ball, index: 2, position: {x: -205, y: -90}, level: 4, exp: 0/3575/4490, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 25, y: -140}}
+  battle_skills:
+  - {name: nuke, positions: [{x: -280, y: -150}]}
+asserts:
+- sql: |-
+    SELECT tick,unit_id,targetable,visibility FROM units WHERE unit_id=13 AND tick BETWEEN 193 AND 195 ORDER BY tick
+  rows:
+  - [193, 13, 1, "normal"]
+  - [194, 13, 0, "stealth"]
+  - [195, 13, 0, "stealth"]
+- sql: |-
+    SELECT tick,unit_id,motion_state,has_mech_lock_target,mech_lock_target__id FROM units WHERE unit_id=16 AND tick BETWEEN 193 AND 195 ORDER BY tick
+  rows:
+  - [193, 16, "attacking", 1, 13]
+  - [194, 16, "moving", 1, 13]
+  - [195, 16, "idle", 0, null]
+- sql: |-
+    SELECT tick,unit_id,skill_slot,enabled__state,enabled__attack_count,enabled__perform_count FROM units__skills WHERE unit_id=16 AND tick BETWEEN 193 AND 195 ORDER BY tick
+  rows:
+  - [193, 16, 0, "attack", 20, 21]
+  - [194, 16, 0, "attack", 21, 22]
+  - [195, 16, 0, "idle", -1, 0]
+ticks: 390
+hash: 26:53c09e06360c89756a347fede0b83fd8678f53409bf25e46086cf2aa03f659da

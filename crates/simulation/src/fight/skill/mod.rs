@@ -1320,10 +1320,6 @@ pub(in crate::fight) struct SkillUpdate {
     pub(in crate::fight) prepare_finished: bool,
     /// The blow due on this update was rejected at its attack point.
     pub(in crate::fight) attack_point_rejected: bool,
-    /// A burst still had projectiles to release when this update began, so
-    /// its skill was not checked on it, the update the last one leaves
-    /// included.
-    pub(in crate::fight) burst_releasing: bool,
     /// The main skill released its blow in its own update
     /// ([`Simulation::perform_main_blow`]).
     pub(in crate::fight) blow_released: bool,
@@ -1854,10 +1850,7 @@ impl Simulation {
                 .skill(skill_ref)
                 .lock_target
                 .is_some_and(|lock| self.fight_actor_is_alive(lock));
-            return Ok(lock_lives.then(|| SkillUpdate {
-                burst_releasing,
-                ..SkillUpdate::default()
-            }));
+            return Ok(lock_lives.then(SkillUpdate::default));
         }
         // `SkillIdleState.TryPerform` reaches `SearchAttackTarget` on every
         // update the skill is idle with a lock.
@@ -1879,7 +1872,6 @@ impl Simulation {
             backswing_just_finished,
             prepare_finished,
             attack_point_rejected,
-            burst_releasing,
             blow_released: false,
         }))
     }

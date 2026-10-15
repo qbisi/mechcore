@@ -2405,7 +2405,6 @@ impl Simulation {
         let SkillUpdate {
             backswing_just_finished,
             attack_point_rejected,
-            burst_releasing,
             ..
         } = update;
         let actor = self
@@ -2427,39 +2426,6 @@ impl Simulation {
             // the deployment facing while child weapons keep their locks.
             actor.rotate_body_towards(mdeg_to_degrees_q32(actor.placement.rotation));
             actor.aim_rotation = actor.body_rotation;
-            return Flow::Done;
-        }
-        if actor.motion.state == MotionState::Attacking
-            && !actor.has_body()
-            && !actor.motion.attack_hold_fire
-            && actor.skills.main.pending().is_none()
-            && !burst_releasing
-            && actor.skills.main.performer.pending().is_empty()
-            && !actor.skills.main.performer.sweeping()
-            && actor.skills.main.backswing_finish_step().is_none()
-            && actor.skills.main.phase() == FightSkillPhase::Attack
-        {
-            // FightSkill updates before MotionController. An active bodyless
-            // attack rejects an out-of-range retained target and enters
-            // SkillIdleState before MotionAttackState can fall through to
-            // movement. Both state machines expose one targetless Idle tick.
-            // A burst still releasing is not checked between its shots, so
-            // the unit moves after its target and fires the rest: an
-            // Overlord whose Crawler walks out of reach after its third shot
-            // follows it and fires the fourth. Nor on the update its last
-            // shot leaves: a Phantom Ray whose Rhino walks out of reach
-            // moves after it that update and goes idle on the next. An idle
-            // skill rejects nothing, and `MotionAttackState` changes to
-            // `MotionMoveState`: a Crawler whose target a beam turned walks
-            // on the next one it finds.
-            actor.motion.state = MotionState::Idle;
-            actor.skills.main.drop_lock();
-            actor.skills.main.set_phase(FightSkillPhase::Idle);
-            actor.motion.attack_hold_fire = false;
-            actor.motion.next_target_x_q32 = actor.x_q32;
-            actor.motion.next_target_z_q32 = actor.z_q32;
-            actor.motion.next_speed_q32 = 0;
-            actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
             return Flow::Done;
         }
         if attack_point_rejected
