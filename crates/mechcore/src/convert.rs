@@ -1,9 +1,8 @@
 //! `convert`: derives a file of another kind from one of these.
 //!
-//! A conversion is a rewrite, the same content in another form and refused
-//! when the other form cannot hold it, or a computation, which derives facts
-//! the input does not hold by running the fight. [`crate::kind`] says which
-//! pairs exist and which of the two each is.
+//! A conversion projects recorded content, transcodes it into another format,
+//! or computes facts by running the fight. [`crate::kind`] names the pairs
+//! and their categories; only computations take a backend.
 //!
 //! The input is read, never written, and an existing destination is refused
 //! unless the caller says to replace it: a conversion that silently replaced a
@@ -21,7 +20,7 @@ use mechcore_simulation::Record;
 /// How many unequal leaves to name before counting the rest.
 const FAILURES_SHOWN: usize = 5;
 
-/// One conversion, as its four callers name it.
+/// One conversion and the options explicitly supplied by its caller.
 pub(crate) struct Request {
     pub(crate) input: PathBuf,
     pub(crate) to: Kind,
@@ -31,7 +30,7 @@ pub(crate) struct Request {
     /// Whether an existing output is replaced rather than refused.
     pub(crate) force: bool,
     /// Who fights a computation into a recording.
-    pub(crate) backend: Backend,
+    pub(crate) backend: Option<Backend>,
     /// The instrument channels the game records into it.
     pub(crate) instrument: Vec<mechcore_protocol::InstrumentChannel>,
 }
@@ -67,7 +66,7 @@ pub(crate) enum Answer {
     /// A report of what was written or computed, with its text rendering when
     /// it has one.
     Report { value: Value, text: Option<String> },
-    /// The document itself, for a rewrite asked for without a destination.
+    /// The document itself, for a projection asked for without a destination.
     Document(String),
 }
 
@@ -84,7 +83,8 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
     let round = arguments.parsed::<i32>("--round", "a round number")?;
     let backend = arguments
         .value("--backend")?
-        .map_or(Ok(Backend::Simulator), |name| Backend::parse(&name))?;
+        .map(|name| Backend::parse(&name))
+        .transpose()?;
     let instrument = crate::game::instrument(&mut arguments)?;
     let level = crate::acquire::level(&mut arguments)?;
     let profile = arguments.value("--profile")?.map(PathBuf::from);
@@ -109,18 +109,19 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
         backend,
         instrument,
     };
-    if backend == Backend::Game {
+    let (from, bytes) = Kind::read(&request.input)?;
+    validate(&request, from)?;
+    if backend == Some(Backend::Game) {
         if profile.is_some() {
             return Err(Failure::usage(
                 "--profile samples this binary's own conversion; the game's is not sampled",
             ));
         }
-        if request.to == Kind::Fight {
-            return fought_in_game(&request, level, format);
-        }
-        return crate::game::record_attached(recorded(&request)?, force, level);
+        return in_game(&request, from, &bytes, level, format);
     }
-    let mut answer = crate::profile::sampled(profile.as_deref(), force, || convert(&request))?;
+    let mut answer = crate::profile::sampled(profile.as_deref(), force, || {
+        convert(&request, from, &bytes)
+    })?;
     if let (Some(profile), Answer::Report { value, .. }) = (&profile, &mut answer)
         && let Some(fields) = value.as_object_mut()
     {
@@ -153,25 +154,8 @@ pub(crate) fn parse_kind(name: &str) -> Result<Kind, Failure> {
     })
 }
 
-/// Converts one file.
-///
-/// # Errors
-///
-/// Returns a refusal for a pair of kinds with no conversion, an option the
-/// pair does not take, an existing destination without `force`, and whatever
-/// the conversion itself refuses.
-pub(crate) fn convert(request: &Request) -> Result<Answer, Failure> {
-    if request.backend == Backend::Game {
-        return Err(Failure::usage(
-            "the game fights a file into a recording in a session; see recorded()",
-        ));
-    }
-    if !request.instrument.is_empty() {
-        return Err(Failure::usage(
-            "--instrument records what the game did; it takes --backend game",
-        ));
-    }
-    let (from, bytes) = Kind::read(&request.input)?;
+/// Validate the category and options before preparing input or acquiring a game.
+fn validate(request: &Request, from: Kind) -> Result<(), Failure> {
     let how = from.conversion(request.to).ok_or_else(|| {
         let reaches = from
             .conversions()
@@ -189,35 +173,49 @@ pub(crate) fn convert(request: &Request) -> Result<Answer, Failure> {
             )
         })
     })?;
-    let takes_seed = from == Kind::Layout;
-    let takes_round = matches!(
-        (from, request.to),
-        (Kind::Match, Kind::Layout | Kind::Fight) | (Kind::Grbr, Kind::Mcfr | Kind::Fight)
-    );
-    if request.seed.is_some() && !takes_seed {
+    if request.backend.is_some() && how != Conversion::Computation {
+        return Err(Failure::usage(
+            "--backend belongs to a computation; this conversion runs no fight",
+        ));
+    }
+    if !request.instrument.is_empty() && request.backend != Some(Backend::Game) {
+        return Err(Failure::usage(
+            "--instrument records what the game did; it takes --backend game",
+        ));
+    }
+    if request.seed.is_some() && from != Kind::Layout {
         return Err(Failure::usage(format!(
             "--seed belongs to a layout; a {} states its own",
             from.name()
         )));
     }
+    let takes_round = matches!(
+        (from, request.to),
+        (
+            Kind::Match | Kind::Grbr,
+            Kind::Layout | Kind::Fight | Kind::Mcfr
+        )
+    );
     if request.round.is_some() && !takes_round {
         return Err(Failure::usage(
-            "--round selects a match round for layout/fight or a replay round to fight",
+            "--round selects one GRBR or match round for layout, fight or mcfr",
         ));
     }
-    let output = request.output.as_deref();
-    // A rewrite that has no document form to answer with writes a file, and
-    // answering with a binary file on standard output is not answering.
-    let document = matches!(request.to, Kind::Layout | Kind::Fight);
-    if output.is_none() && how == Conversion::Rewrite && !document {
+    if request.output.is_none()
+        && (matches!(request.to, Kind::Grbr | Kind::Match)
+            || request.backend == Some(Backend::Game))
+    {
         return Err(Failure::usage(format!(
-            "converting to {} writes a file; name it after the input",
-            request.to.name()
+            "converting to {}{} writes a file; name it after the input",
+            request.to.name(),
+            if request.backend == Some(Backend::Game) {
+                " with the game"
+            } else {
+                ""
+            }
         )));
     }
-    if let Some(output) = output
-        && output.exists()
-    {
+    if let Some(output) = request.output.as_deref().filter(|output| output.exists()) {
         if !request.force {
             return Err(Failure::refused(format!(
                 "{} already exists; pass --force to replace it",
@@ -231,30 +229,71 @@ pub(crate) fn convert(request: &Request) -> Result<Answer, Failure> {
             )));
         }
     }
+    Ok(())
+}
+
+/// Each execution consumes the same layout projection. The native game replay
+/// path is prepared separately, without translating its actions into a match.
+fn convert(request: &Request, from: Kind, bytes: &[u8]) -> Result<Answer, Failure> {
+    let output = request.output.as_deref();
     match (from, request.to) {
-        (Kind::Grbr, Kind::Match) => replay_to_match(&bytes, output.unwrap_or(Path::new(""))),
-        (Kind::Match, Kind::Grbr) => match_to_replay(&bytes, output.unwrap_or(Path::new(""))),
-        (Kind::Layout, Kind::Grbr) => {
-            layout_to_replay(&bytes, request.seed, output.unwrap_or(Path::new("")))
+        (Kind::Grbr, Kind::Match) => replay_to_match(bytes, output.unwrap_or(Path::new(""))),
+        (Kind::Match, Kind::Grbr) => match_to_replay(bytes, output.unwrap_or(Path::new(""))),
+        (_, Kind::Grbr) => {
+            let layout = projected(request, from, bytes)?;
+            layout_to_replay(layout, request.seed, output.unwrap_or(Path::new("")))
         }
-        (Kind::Match, Kind::Layout) => written_layout(match_layout(&bytes, request.round)?, output),
-        (Kind::Match, Kind::Fight) => {
-            let staged = stage_layout(match_layout(&bytes, request.round)?)?;
-            fight(staged.path(), None, output)
-        }
-        (Kind::Fight, Kind::Layout) => {
-            let fight = mechcore_document::fight::parse_yaml(&bytes).map_err(Failure::refused)?;
-            written_layout(mechcore_document::fight::project(&fight), output)
-        }
-        (Kind::Layout, Kind::Mcfr) => simulate(&request.input, request.seed, output),
+        (_, Kind::Layout) => written_layout(projected(request, from, bytes)?, output),
         (Kind::Mcfr, Kind::Fight) => written(crate::outcome::fight(&request.input)?, output),
-        (Kind::Layout, Kind::Fight) => fight(&request.input, request.seed, output),
-        (Kind::Fight, Kind::Mcfr) => simulate_fight(&bytes, output),
-        (Kind::Grbr, Kind::Mcfr | Kind::Fight) => Err(Failure::refused(
-            "the simulator does not open a replay; the game fights its round with \
-             --backend game --round <n>",
-        )),
+        (_, Kind::Mcfr | Kind::Fight) => {
+            // Keep a layout's original bytes for the existing recording path.
+            let staged = if from == Kind::Layout {
+                None
+            } else {
+                Some(stage_layout(projected(request, from, bytes)?)?)
+            };
+            let input = staged
+                .as_ref()
+                .map_or(request.input.as_path(), |file| file.path());
+            if request.to == Kind::Mcfr {
+                simulate(input, request.seed, output)
+            } else {
+                fight(input, request.seed, output)
+            }
+        }
         _ => unreachable!("every pair the kind table names is converted here"),
+    }
+}
+
+/// The common boundary between multi-round documents, completed fights and
+/// the input to one execution. MCFR layout extraction never reads settlement.
+fn projected(
+    request: &Request,
+    from: Kind,
+    bytes: &[u8],
+) -> Result<mechcore_document::Layout, Failure> {
+    match from {
+        Kind::Layout => mechcore_document::parse_yaml(bytes).map_err(Failure::refused),
+        Kind::Fight => mechcore_document::fight::parse_yaml(bytes)
+            .map(|fight| mechcore_document::fight::project(&fight))
+            .map_err(Failure::refused),
+        Kind::Mcfr => crate::scene::layout(&crate::outcome::open(&request.input)?),
+        Kind::Match => match_layout(bytes, request.round),
+        Kind::Grbr => {
+            let selected = mechcore_document::record::select_round(bytes, request.round)
+                .map_err(Failure::refused)?;
+            if selected.synthetic {
+                mechcore_document::layout_replay::read(bytes, selected.round)
+                    .map_err(Failure::refused)
+            } else {
+                let economy =
+                    mechcore_document::economy::Economy::embedded().map_err(Failure::failed)?;
+                let converted = mechcore_document::convert::document(economy, bytes)
+                    .map_err(Failure::refused)?;
+                match_layout(converted.yaml.as_bytes(), Some(selected.round))
+            }
+        }
+        _ => unreachable!("only battle inputs have a layout projection"),
     }
 }
 
@@ -422,13 +461,11 @@ struct LayoutReplayReport {
 /// layout is compiled first, so a layout the Training Ground would refuse is
 /// refused here too.
 fn layout_to_replay(
-    bytes: &[u8],
+    layout: mechcore_document::Layout,
     seed: Option<i32>,
     destination: &Path,
 ) -> Result<Answer, Failure> {
-    let layout: Value = serde_yaml::from_slice(bytes)
-        .map_err(|error| Failure::refused(format!("cannot parse the layout: {error}")))?;
-    let mut plan = mechcore_document::compile(&layout).map_err(Failure::refused)?;
+    let mut plan = mechcore_document::compile_layout(layout).map_err(Failure::refused)?;
     plan.seed = seed.or(plan.seed);
     let replay =
         mechcore_document::layout_replay::layout_replay(&plan, mechcore_document::game_build())
@@ -460,7 +497,14 @@ fn match_layout(bytes: &[u8], round: Option<i32>) -> Result<mechcore_document::L
         .map_err(Failure::refused)?
         .ok_or_else(|| Failure::refused("the document names itself a match and holds none"))?;
     let round = round
-        .or_else(|| stated.turns.last().map(|turn| turn.round))
+        .or_else(|| {
+            stated
+                .turns
+                .iter()
+                .map(|turn| turn.round)
+                .filter(|round| *round > 0)
+                .max()
+        })
         .ok_or_else(|| Failure::refused("this match holds no deployment round"))?;
     let turn = stated
         .turns
@@ -560,14 +604,6 @@ fn fight(layout: &Path, seed: Option<i32>, output: Option<&Path>) -> Result<Answ
     )
 }
 
-/// A fight document fought again by the simulator, from its projection and
-/// the seed it states.
-fn simulate_fight(bytes: &[u8], output: Option<&Path>) -> Result<Answer, Failure> {
-    let fight = mechcore_document::fight::parse_yaml(bytes).map_err(Failure::refused)?;
-    let staged = stage_layout(mechcore_document::fight::project(&fight))?;
-    simulate(staged.path(), None, output)
-}
-
 /// Stage a projection for the existing layout simulation and game recording paths.
 fn stage_layout(layout: mechcore_document::Layout) -> Result<tempfile::NamedTempFile, Failure> {
     let layout = mechcore_document::canonical_yaml(layout).map_err(Failure::failed)?;
@@ -579,123 +615,65 @@ fn stage_layout(layout: mechcore_document::Layout) -> Result<tempfile::NamedTemp
     Ok(staged)
 }
 
-/// What the game records of a file `--backend game` names: the same pairs
-/// the simulator converts into a recording, and a replay's round, which only
-/// the game opens.
-///
-/// # Errors
-///
-/// Returns a usage failure for anything but a recording to write, and
-/// whatever the recording request refuses.
-pub(crate) fn recorded(request: &Request) -> Result<crate::game::Record, Failure> {
-    if request.to != Kind::Mcfr {
-        return Err(Failure::usage(format!(
-            "the game fights a file into a recording: --to mcfr, not --to {}",
-            request.to.name()
-        )));
-    }
-    let output = request
-        .output
-        .clone()
-        .ok_or_else(|| Failure::usage("the game writes its recording to a file; name it"))?;
-    let (from, _) = Kind::read(&request.input)?;
-    if from.conversion(Kind::Mcfr).is_none() {
-        return Err(Failure::refused(format!(
-            "a {} file is not fought into a recording",
-            from.name()
-        )));
-    }
-    // The Adapter opens a replay by the path it is given, from the game's
-    // own working directory.
-    let input = std::fs::canonicalize(&request.input).map_err(|error| {
-        Failure::refused(format!("cannot read {}: {error}", request.input.display()))
-    })?;
-    crate::game::RecordRequest {
-        input: Some(input),
-        output: Some(output),
-        seed: request.seed,
-        round: request.round,
-        instrument: request.instrument.clone(),
-        ..crate::game::RecordRequest::default()
-    }
-    .decide()
-}
-
-/// A file fought in the game into the fight document its recording states,
-/// on a game this command attaches to.
-///
-/// # Errors
-///
-/// Returns `unavailable` when no game answers, and what [`game_fight`]
-/// refuses.
-fn fought_in_game(request: &Request, level: u8, format: Format) -> Outcome {
-    let value = crate::game::with_game(level, async |session| game_fight(request, session).await)??;
-    crate::cli::emit(&value, format)?;
-    Ok(Verdict::Yes)
-}
-
-/// A file fought in the game into the fight document its recording states:
-/// `convert --to mcfr --backend game` into a recording kept aside, then read
-/// as `mcfr` to `fight` reads one. A replay's round is the case only the game
-/// fights; a layout or a fight document is fought from its projection.
-///
-/// # Errors
-///
-/// Returns a usage failure without a destination, a refusal for one that
-/// exists without `force`, what the recording request refuses, and what the
-/// recording does not answer.
-pub(crate) async fn game_fight(
+/// Prepare the native recording before acquiring a game. GRBR stays a native
+/// replay; every other input is installed from the shared layout projection.
+fn recorded(
     request: &Request,
-    session: &crate::session::Session,
-) -> Result<Value, Failure> {
+    from: Kind,
+    bytes: &[u8],
+    output: PathBuf,
+) -> Result<crate::game::Record, Failure> {
+    if from == Kind::Grbr {
+        let selected = mechcore_document::record::select_round(bytes, request.round)
+            .map_err(Failure::refused)?;
+        let grbr = std::fs::canonicalize(&request.input).map_err(|error| {
+            Failure::refused(format!("cannot read {}: {error}", request.input.display()))
+        })?;
+        return Ok(crate::game::Record::Replay {
+            grbr,
+            round: selected.round,
+            output,
+            instrument: request.instrument.clone(),
+        });
+    }
+    let layout = serde_json::to_value(projected(request, from, bytes)?)
+        .map_err(|error| Failure::failed(format!("cannot write the projected layout: {error}")))?;
+    Ok(crate::game::Record::Layout {
+        layout,
+        seed: request.seed,
+        output,
+        instrument: request.instrument.clone(),
+    })
+}
+
+/// Record once, keeping its MCFR or extracting the fight it decided.
+fn in_game(request: &Request, from: Kind, bytes: &[u8], level: u8, format: Format) -> Outcome {
     let output = request
         .output
-        .clone()
-        .ok_or_else(|| Failure::usage("the game's fight document goes to a file; name it"))?;
-    if output.exists() && !request.force {
-        return Err(Failure::refused(format!(
-            "{} exists; --force replaces it",
-            output.display()
-        )));
+        .as_ref()
+        .ok_or_else(|| Failure::usage("the game needs an output file"))?;
+    if request.to == Kind::Mcfr {
+        return crate::game::record_attached(
+            recorded(request, from, bytes, output.clone())?,
+            request.force,
+            level,
+        );
     }
-    let beside = tempfile::Builder::new()
-        .tempdir()
+    let directory = tempfile::tempdir()
         .map_err(|error| Failure::failed(format!("cannot stage the recording: {error}")))?;
-    let staged = beside.path().join("recording.mcfr");
-    let (from, bytes) = Kind::read(&request.input)?;
-    let projected = if from == Kind::Match {
-        if request.seed.is_some() {
-            return Err(Failure::usage(
-                "--seed belongs to a layout; a match states its own",
-            ));
+    let staged = directory.path().join("recording.mcfr");
+    let record = recorded(request, from, bytes, staged.clone())?;
+    crate::game::with_game(level, async |session| record.run(session, true).await)??;
+    match written(crate::outcome::fight(&staged)?, Some(output))? {
+        Answer::Report {
+            text: Some(text), ..
+        } if format == Format::Text => {
+            println!("{text}");
         }
-        Some(stage_layout(match_layout(&bytes, request.round)?)?)
-    } else {
-        None
-    };
-    let record = recorded(&Request {
-        input: projected
-            .as_ref()
-            .map_or_else(|| request.input.clone(), |file| file.path().to_owned()),
-        to: Kind::Mcfr,
-        output: Some(staged.clone()),
-        seed: request.seed,
-        round: if projected.is_some() {
-            None
-        } else {
-            request.round
-        },
-        force: true,
-        backend: request.backend,
-        instrument: request.instrument.clone(),
-    })?;
-    record.run(session, true).await?;
-    match written(crate::outcome::fight(&staged)?, Some(&output))? {
-        Answer::Report { value, .. } => Ok(value),
-        Answer::Document(_) => Err(Failure::failed(
-            "a fight written to a file answers a report",
-        )),
+        Answer::Report { value, .. } => crate::cli::emit(&value, format)?,
+        Answer::Document(_) => unreachable!("writing a fight to a file answers a report"),
     }
+    Ok(Verdict::Yes)
 }
 
 /// The fight document the simulator fights a layout into: `simulate` keeps
@@ -743,4 +721,56 @@ fn written(fight: mechcore_document::Fight, output: Option<&Path>) -> Result<Ans
             output.display()
         )),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_game_keeps_native_replays_even_when_projection_refuses_their_commands() {
+        let plan = mechcore_document::compile(&serde_json::json!({
+            "kind": "layout", "round": 2, "seed": 7,
+            "blue": {"units": [{"name": "marksman", "index": 0,
+                "position": {"x": 0, "y": -50}, "source": "joined"}]},
+            "red": {"units": [{"name": "arclight", "index": 0,
+                "position": {"x": 0, "y": -50}}]}
+        }))
+        .unwrap();
+        let mut bytes =
+            mechcore_document::layout_replay::layout_replay(&plan, mechcore_document::game_build())
+                .unwrap();
+        let at = bytes
+            .windows(11)
+            .position(|entry| entry == b"MAD_AddUnit")
+            .unwrap();
+        bytes[at] = b'B';
+        let file = tempfile::NamedTempFile::new().unwrap();
+        std::fs::write(file.path(), &bytes).unwrap();
+        let request = Request {
+            input: file.path().to_owned(),
+            to: Kind::Mcfr,
+            output: None,
+            seed: None,
+            round: None,
+            force: false,
+            backend: Some(Backend::Game),
+            instrument: Vec::new(),
+        };
+        assert!(projected(&request, Kind::Grbr, &bytes).is_err());
+        let output = PathBuf::from("native.mcfr");
+        match recorded(&request, Kind::Grbr, &bytes, output.clone()).unwrap() {
+            crate::game::Record::Replay {
+                grbr,
+                round,
+                output: actual,
+                ..
+            } => {
+                assert_eq!(grbr, std::fs::canonicalize(file.path()).unwrap());
+                assert_eq!(round, 2);
+                assert_eq!(actual, output);
+            }
+            _ => panic!("a native replay must not be staged as a projected layout"),
+        }
+    }
 }

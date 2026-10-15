@@ -134,25 +134,14 @@ fn converting_a_match_selects_a_round_then_fights_its_projected_layout() {
     let missing = run(&["convert", &path, "--to", "layout", "--round", "99"]).refused();
     assert!(missing.contains("no round 99"), "{missing}");
 
-    let direct = directory.path().join("direct.yaml").display().to_string();
-    let via_layout = directory
-        .path()
-        .join("via-layout.yaml")
-        .display()
-        .to_string();
-    for round in [None, Some("1")] {
-        let mut select = vec!["convert", &path, "--to", "layout", &layout, "--force"];
-        let mut fight = vec!["convert", &path, "--to", "fight", &direct, "--force"];
-        if let Some(round) = round {
-            select.extend(["--round", round]);
-            fight.extend(["--round", round]);
+    let replay = directory.path().join("match.grbr").display().to_string();
+    run(&["convert", &path, "--to", "grbr", &replay]).ok();
+    for source in [&path, &replay] {
+        for round in [None, Some("1")] {
+            assert_round_conversion(source, round, directory.path());
         }
-        run(&select).ok();
-        let report = run(&fight).ok();
-        assert_eq!(report["round"], if round.is_some() { 1 } else { 2 });
-        run(&["convert", &layout, "--to", "fight", &via_layout, "--force"]).ok();
-        assert_eq!(fs::read(&direct).unwrap(), fs::read(&via_layout).unwrap());
     }
+    let direct = directory.path().join("direct.yaml").display().to_string();
     let game = mechcore_document::r#match::read(&fs::read(&path).unwrap())
         .unwrap()
         .unwrap();
@@ -169,6 +158,32 @@ fn converting_a_match_selects_a_round_then_fights_its_projected_layout() {
     run(&["convert", &path, "--to", "fight", &direct, "--force"]).ok();
     let report = run(&["convert", &direct, "--to", "layout", &layout, "--force"]).ok();
     assert_eq!(report["round"], 2);
+}
+
+/// The direct routes execute exactly the layout the projection route writes.
+fn assert_round_conversion(path: &str, round: Option<&str>, directory: &Path) {
+    let layout = directory.join("round.yaml").display().to_string();
+    let direct = directory.join("direct.yaml").display().to_string();
+    let via_layout = directory.join("via-layout.yaml").display().to_string();
+    let mut select = vec!["convert", path, "--to", "layout", &layout, "--force"];
+    let mut fight = vec!["convert", path, "--to", "fight", &direct, "--force"];
+    let mut recording = vec!["convert", path, "--to", "mcfr"];
+    if let Some(round) = round {
+        select.extend(["--round", round]);
+        fight.extend(["--round", round]);
+        recording.extend(["--round", round]);
+    }
+    run(&select).ok();
+    let report = run(&fight).ok();
+    assert_eq!(report["round"], if round.is_some() { 1 } else { 2 });
+    run(&["convert", &layout, "--to", "fight", &via_layout, "--force"]).ok();
+    assert_eq!(fs::read(&direct).unwrap(), fs::read(&via_layout).unwrap());
+    let direct = run(&recording).ok();
+    let projected = run(&["convert", &layout, "--to", "mcfr"]).ok();
+    assert_eq!(
+        direct["hashes"]["result_hash"],
+        projected["hashes"]["result_hash"]
+    );
 }
 
 #[test]

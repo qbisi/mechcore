@@ -409,7 +409,7 @@ fn the_kind_is_read_from_the_content_and_an_unsupported_pair_names_it() {
     let replay = directory.path().join("replay.yaml");
     let os = |text: &'static str| std::ffi::OsStr::new(text);
 
-    // A rewrite to a binary kind writes a file, so it needs one.
+    // A transcode to a binary kind writes a file, so it needs one.
     let (code, _, error) = mechcore(&[os("convert"), layout.as_os_str(), os("--to"), os("grbr")]);
     assert_eq!(code, Some(2), "{error}");
 
@@ -445,11 +445,11 @@ fn the_kind_is_read_from_the_content_and_an_unsupported_pair_names_it() {
     let (code, _, error) = mechcore(&[&again[..], &[os("--force")]].concat());
     assert_eq!(code, Some(0), "{error}");
 
-    let (code, _, error) = mechcore(&[os("convert"), replay.as_os_str(), os("--to"), os("layout")]);
+    let (code, _, error) = mechcore(&[os("convert"), replay.as_os_str(), os("--to"), os("state")]);
     assert_eq!(code, Some(3), "{error}");
     let reason = error["reason"].as_str().unwrap();
     assert!(
-        reason.contains("a grbr file does not convert to layout; it converts to match"),
+        reason.contains("a grbr file does not convert to state; it converts to match"),
         "{error}"
     );
 

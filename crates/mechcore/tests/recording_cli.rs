@@ -758,8 +758,8 @@ fn a_fight_converts_to_the_recording_it_pins() {
     assert!(!seeded.status.success(), "a fight states its own seed");
 }
 
-/// What the game fights is a recording to write, and what the simulator does
-/// not open is refused rather than attempted; none of these reaches a game.
+/// Backend and instrument options describe a computation; they cannot turn
+/// an encoding into a fight. These refusals happen before acquiring a game.
 #[test]
 fn the_game_backend_fights_into_a_recording_only() {
     let layout =
@@ -787,7 +787,7 @@ fn the_game_backend_fights_into_a_recording_only() {
             "game",
             "/tmp/x.grbr"
         ])
-        .contains("--to mcfr")
+        .contains("--backend belongs to a computation")
     );
     assert!(refused(&["convert", layout, "--to", "mcfr", "--backend", "game"]).contains("name it"));
     assert!(

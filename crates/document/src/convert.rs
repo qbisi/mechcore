@@ -867,6 +867,38 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
     Ok(formations)
 }
 
+/// The snapshot portion of a synthetic layout replay. Its restoration commands
+/// are read separately; this shares the native-to-document mapping with matches.
+pub(crate) fn layout_snapshot(data: &PlayerData, red: bool) -> Result<crate::Side, String> {
+    let seat = if red { Seat::Red } else { Seat::Blue };
+    Ok(crate::Side {
+        officers: data
+            .officers
+            .values
+            .iter()
+            .copied()
+            .filter(|id| !CHAIN_OFFICERS.contains(id))
+            .collect(),
+        techs: data
+            .active_technologies
+            .entries
+            .iter()
+            .flat_map(|row| row.techs.entries.iter().map(|tech| tech.data))
+            .collect(),
+        blueprints: data.blueprints.values.clone(),
+        energy_tower_skills: Vec::new(),
+        tower_strengthen_levels: data.tower_strengthen_levels.values.clone(),
+        units: formations(data, seat)?
+            .into_iter()
+            .map(|entry| entry.unit)
+            .collect(),
+        recovered: Vec::new(),
+        constructions: constructions(data, seat)?,
+        contraptions: contraptions(data, seat)?,
+        battle_skills: Vec::new(),
+    })
+}
+
 fn constructions(data: &PlayerData, seat: Seat) -> Result<Vec<StaticPlacement>, String> {
     let mut constructions = Vec::with_capacity(data.constructions.entries.len());
     for construction in &data.constructions.entries {
