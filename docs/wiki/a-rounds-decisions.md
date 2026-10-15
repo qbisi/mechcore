@@ -3,9 +3,10 @@
 > **Scope:** This guide covers **standard 1v1 matches** (with no extra game
 > rules enabled) on the repository's pinned game version. For board regions,
 > unit landing, collision rules, movement locks, and flank travel, see
-> **[Deployment, Flanks, and Mobility](deployment-and-mobility.md)**. For the
-> overall match loop and combat settlement, see
-> **[How a Match Works](how-a-match-works.md)**.
+> **[Deployment, Flanks, and Mobility](deployment-and-mobility.md)**. For how
+> combat experience fills a formation's bar and what levels scale, see
+> **[Experience & Unit Levels](experience-and-levels.md)**. For the `33` unit
+> types and their costs, see **[Units & Battlefield Objects](units.md)**.
 
 Every player decision in Mechabellum happens before combat begins—either in
 Round `0` (the opening) or during each round's deployment phase. Both sides make

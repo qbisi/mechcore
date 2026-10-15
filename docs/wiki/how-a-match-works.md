@@ -116,61 +116,30 @@ positive total subtracts that score from the **other side's** reactor core:
      +-------------------------+           +-------------------------+
 ```
 
-### Unit Type vs. Unit Level in Settlement
+### How Surviving Mechs Are Scored
 
-A formation on the board is made up of one or more individual **mechs** (for
-instance, a **Crawler** formation has `24` mechs, a **Fang** formation has `18`,
-a **Sledgehammer** formation has `5`, and a **Marksman**, **Rhino**, or
-**Fortress** formation has `1`), and settlement counts each surviving mech.
+A formation on the board consists of `1` to `24` individual **mechs** (for
+instance, `24` in a **Crawler** squad, `5` in a **Sledgehammer** squad, or `1`
+in a **Marksman** or **Fortress**), and settlement scores each standing mech
+individually:
 
-| Unit | Mechs per Formation | Score per Standard Surviving Mech (Lv 1–9) |
-| --- | ---: | ---: |
-| **Crawler** | 24 | 4 |
-| **Fang** | 18 | 6 |
-| **Wasp** / **Mustang** | 12 | 17 |
-| **Sledgehammer** | 5 | 40 |
-| **Steel Ball** / **Stormcaller** | 4 | 50 |
-| **Marksman** / **Arclight** / **Vortex** | 1 | 100 |
-| **Rhino** / **Hacker** / **Sabertooth** / **Tarantula** | 1 | 200 |
-| **Fortress** / **Vulcan** / **Melting Point** / **Sandworm** / **Raiden** | 1 | 350 |
-| **Overlord** | 1 | 400 |
-| **War Factory** / **Abyss** / **Mountain** | 1 | 500 |
+- **Per-mech score depends on unit type, not level:** Each unit type has a fixed
+  per-mech score (from `4` for a **Crawler** up to `500` for a **War Factory**,
+  **Abyss**, or **Mountain**). In the pinned game configuration, a unit's score
+  is identical from Level `1` through Level `9`—upgrading a formation scales its
+  life and attack damage by `× n` (see
+  **[Experience & Unit Levels](experience-and-levels.md)**), which increases
+  reactor core damage indirectly by keeping more of your army alive.
+- **Summoned, reborn, and turned mechs take a `× 0.25` penalty:** Any surviving
+  mech that was spawned mid-fight (`is_support`), revived by a rebirth
+  technology, or captured to the opposing team by a **Hacker** has its score
+  multiplied by `0.25` per applicable condition and rounded down per mech, while
+  towers, constructions, contraptions, and unfinished rebirth wreckages score
+  `0`.
 
-Two rules govern how unit stats relate to reactor core damage:
-
-- **Different unit types have different per-mech scores.** A single surviving
-  **Fortress** (`350`) deals much more reactor core damage than a single
-  surviving **Marksman** (`100`) or a single surviving **Crawler** (`4`).
-- **For the currently pinned game configuration, leveling up a unit does not
-  directly change its per-surviving-mech reactor score.** Across all `101` unit
-  entries in the game's table, a unit's score is identical from level `1`
-  through level `9`: a surviving standard **Marksman** deals `100` reactor core
-  damage at level `1` and `100` at level `3`.
-- **Why leveling still matters:** A unit at level `n` (from `1` to `9`) has `n`
-  times its base life and `n` times its base attack damage. Leveling helps your
-  mechs win engagements and keep more allies alive at the end of the fight,
-  which increases reactor core damage indirectly through survivor count.
-
-### Exceptions That Modify a Mech's Score
-
-Not every surviving mech scores its full table value:
-
-- **Summoned mechs:** Any mech that did not deploy from one of its side's own
-  formations—such as units spawned or produced during combat, dropped by a
-  commander skill, or added solely for that fight—has its score reduced.
-- **Reborn mechs:** A mech that died during the fight and was brought back by a
-  rebirth technology has its score reduced if it is standing when the fight
-  ends (and scores `0` if it is still waiting to finish reassembling when the
-  fight ends).
-- **Turned mechs:** A mech fighting for the opposing side at the end of the
-  fight (such as one captured by a **Hacker** control beam) has its score
-  reduced and scores **for the side it serves when the fight ends**, not the
-  side that originally deployed it.
-
-If more than one of those conditions applies to the same mech, the reduction
-rates multiply and the mech's score is rounded down individually before adding
-to its side's total. Destroyed towers and any supply crates collected during a
-fight never count toward reactor core damage.
+For the complete `33`-unit settlement table and compounding penalty examples,
+see **[Reactor Core Settlement](reactor-damage.md)**. For unit sizes, domains,
+and base stats, see **[Units & Battlefield Objects](units.md)**.
 
 ## How a Fight Unfolds
 

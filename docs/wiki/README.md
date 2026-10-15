@@ -6,10 +6,14 @@ human-readable conceptual model of Mechabellum from the native game build that
 
 | File | Role |
 | --- | --- |
-| [`index.md`](index.md) | the site landing page and navigation entrypoint |
+| [`index.md`](index.md) | the site landing page, 6-Domain Master Concept Portal, and reading path |
+| [`glossary.md`](glossary.md) | Master Concept Glossary defining canonical terms and linking to their governing guides |
 | [`how-a-match-works.md`](how-a-match-works.md) | Getting Started: reverse-causal introduction to a standard 1v1 match and its round timeline |
 | [`a-rounds-decisions.md`](a-rounds-decisions.md) | Getting Started: the 14 deployment actions, phase ordering, per-round allowances, upgrade/tech/equipment/tower/blueprint/skill rules |
 | [`deployment-and-mobility.md`](deployment-and-mobility.md) | Game Mechanics: deployment regions, automatic 10m-grid landing, collisions, `legacy` movement locks and unlocks, and flank `travelling` |
+| [`units.md`](units.md) | Game Encyclopedia & Mechanics: formation vs. individual mech, unit taxonomy, complete 33-unit Level 1 roster, summons, contraptions, towers, and constructions |
+| [`experience-and-levels.md`](experience-and-levels.md) | Game Mechanics: Level 1–9 stat scaling, experience bar thresholds, killer + 65m assist experience distribution, and complete unit experience table |
+| [`reactor-damage.md`](reactor-damage.md) | Game Mechanics: post-fight survivor filtering, level-invariant per-mech scores, summoned/reborn/turned `× 0.25` penalties, and complete score table |
 | `.vitepress/config.mjs` | VitePress site configuration, building `docs/wiki/` into `work/pages/` with `README.md` excluded |
 
 ## What a Wiki page may claim
