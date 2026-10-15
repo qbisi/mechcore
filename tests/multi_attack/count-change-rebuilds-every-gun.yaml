@@ -1,0 +1,34 @@
+# Electromagnetic Impact changes Mountain's projectile count at tick 57,
+# during all four guns' bursts. Every gun replaces its performer and fires
+# one new projectile without counting another blow. The shield has already
+# taken the old shots, separating this from in-flight tracking changes.
+# Off (main gun only) and Nudge (two new side-gun shots instead of one) first
+# differ at tick 57. The layout and pin come from the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 4
+blue:
+  core_damage: 200
+  techs:
+    mountain: [saturation_bombardment]
+  units:
+  - {name: mountain, index: 0, position: {x: 5, y: -45}}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -165}, level: 9, exp: 0/1600/7736}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 35, y: -85}, retained: false}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -5, y: 45}]}
+ticks: 277
+hash: 25:734aab675294a2f1aba620892b88b7c62170ac6f302c112b1afa42a40e1776c0
+asserts:
+- sql: SELECT tick,source__kind,source__id,target__kind,target__id,skill_slot,weapon_index FROM events WHERE type='projectile_released' AND source__id=1 AND tick BETWEEN 56 AND 59 ORDER BY tick,ordinal
+  rows: [[57,unit,1,unit,2,0,3],[57,unit,1,unit,2,1,4],[57,unit,1,unit,2,2,5],[57,unit,1,unit,2,3,6]]
+- sql: SELECT tick,skill_slot,enabled__perform_count,enabled__attack_count FROM units__skills WHERE unit_id=1 AND tick IN (56,57) ORDER BY tick,skill_slot
+  rows: [[56,0,0,0],[56,1,0,0],[56,2,0,0],[56,3,0,0],[57,0,1,0],[57,1,1,0],[57,2,1,0],[57,3,1,0]]

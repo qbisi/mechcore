@@ -2288,7 +2288,7 @@ impl Simulation {
                 self.skill_mut(skill_ref).performer.stop();
                 return Ok(Flow::Done);
             }
-            self.perform_projectile_burst(skill_ref, step, events)?;
+            self.perform_projectile_burst(skill_ref, 0, step, events)?;
             self.finish_attacking(skill_ref);
             return Ok(Flow::Done);
         }
@@ -2386,7 +2386,7 @@ impl Simulation {
         if released_this_step && self.motion_state(skill_ref.owner) != MotionState::Attacking {
             return Ok((Flow::Done, attack_point_rejected));
         }
-        self.perform_projectile_burst(skill_ref, step, events)?;
+        self.perform_projectile_burst(skill_ref, 0, step, events)?;
         if self.skill(skill_ref).performer.sweeping()
             && let Some(actor_id) = skill_ref.owner.unit_id()
         {

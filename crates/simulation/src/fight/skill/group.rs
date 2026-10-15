@@ -221,14 +221,7 @@ impl Simulation {
                     // rest of a burst leaves at its interval while the slot
                     // attacks.
                     if let SkillState::Attack(_) = self.skill(main).sibling(slot).state {
-                        let due = self
-                            .skill_mut(main)
-                            .sibling_mut(slot)
-                            .performer
-                            .take_due(step);
-                        for pending in due {
-                            self.release_pending_projectile(main, pending, events)?;
-                        }
+                        self.perform_projectile_burst(main, slot, step, events)?;
                         self.finish_group_slot_attacking(main, slot);
                     }
                     // `SkillAttackState.Update` counts the search timer down
@@ -286,14 +279,7 @@ impl Simulation {
             self.skill_mut(main).sibling_mut(slot).performer.stop();
             return Ok(true);
         }
-        let due = self
-            .skill_mut(main)
-            .sibling_mut(slot)
-            .performer
-            .take_due(step);
-        for pending in due {
-            self.release_pending_projectile(main, pending, events)?;
-        }
+        self.perform_projectile_burst(main, slot, step, events)?;
         self.finish_group_slot_attacking(main, slot);
         Ok(true)
     }

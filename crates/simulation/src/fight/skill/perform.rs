@@ -65,13 +65,20 @@ impl Simulation {
     /// count property. `PrepareAttackPerformer` replaces the performer in
     /// both the controller and its current `AttackingController`.
     pub(in crate::fight) fn prepare_projectile_performer(&mut self, skill_ref: SkillRef) {
-        let skill = self.skill_mut(skill_ref);
-        let attacking = !skill.performer.done();
-        skill.performer = Performer::Projectile {
-            pending: Vec::new(),
-            restart: attacking,
-            evenly: None,
-        };
+        // Every skill made from this row listens to the same count property.
+        // A skill joined from another row has its own property and listener.
+        for slot in 0..self.skill(skill_ref).group_size().max(1) {
+            if self.skill(skill_ref).joined(slot).is_some() {
+                continue;
+            }
+            let skill = self.skill_mut(skill_ref).group_skill_mut(slot);
+            let attacking = !skill.performer.done();
+            skill.performer = Performer::Projectile {
+                pending: Vec::new(),
+                restart: attacking,
+                evenly: None,
+            };
+        }
     }
 
     /// `AttackingController.Update`: a freshly replaced performer begins
@@ -79,20 +86,36 @@ impl Simulation {
     pub(in crate::fight) fn perform_projectile_burst(
         &mut self,
         skill_ref: SkillRef,
+        slot: usize,
         step: u64,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        if let Performer::Projectile { restart, .. } = &mut self.skill_mut(skill_ref).performer
+        if let Performer::Projectile { restart, .. } =
+            &mut self.skill_mut(skill_ref).group_skill_mut(slot).performer
             && std::mem::take(restart)
         {
-            let target = self
-                .skill(skill_ref)
+            let skill = self.skill(skill_ref).group_skill(slot);
+            let target = skill
                 .attack_target()
-                .or(self.skill(skill_ref).lock_target)
+                .or(skill.lock_target)
                 .ok_or_else(|| Error::new("a replacement projectile performer has no target"))?;
-            self.start_projectile_burst(skill_ref, target, step, events)?;
+            if slot == 0 {
+                self.start_projectile_burst(skill_ref, target, step, events)?;
+            } else {
+                self.release_standalone_projectile(
+                    skill_ref.owner.id(),
+                    slot,
+                    target,
+                    step,
+                    events,
+                )?;
+            }
         }
-        let due = self.skill_mut(skill_ref).performer.take_due(step);
+        let due = self
+            .skill_mut(skill_ref)
+            .group_skill_mut(slot)
+            .performer
+            .take_due(step);
         for pending in due {
             self.release_pending_projectile(skill_ref, pending, events)?;
         }

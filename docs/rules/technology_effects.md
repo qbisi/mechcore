@@ -335,6 +335,10 @@ The next attacking update starts a fresh burst with the current count,
 spacing and random range, without counting another blow. Projectiles
 already in flight remain; unreleased shots and offsets of the old burst
 are discarded.
+Each skill made from the row listens to that count property, including
+every gun of a standalone batch. All four Mountain guns replace their
+performers when Saturation Bombardment is disabled; none continues its
+old burst merely because it is not the first gun.
 
 Saturation Bombardment also [turns its unit's lock over](#turning-the-lock-over),
 and its four projectiles leave from each of a Mountain's standalone weapons,
@@ -1900,6 +1904,10 @@ derive (a minimum range):
 - Disabling a Farseer's Burst Mode during its burst starts a fresh burst
   with its ordinary count and offsets:
   `tests/multi_attack/count-change-replaces-active-burst.yaml`.
+- All four Mountain guns rebuild during their bursts at an electromagnetic
+  hit, each releasing one new shot without counting another blow:
+  `tests/multi_attack/count-change-rebuilds-every-gun.yaml`. A shield takes
+  the old shots before the hit, separating count changes from their tracking.
 - A projectile life rate multiplies the life a skill's projectiles leave with:
   Heavy Missile's rockets leave with 126000, and fought without the rate the
   simulator parts from the game at t20:
