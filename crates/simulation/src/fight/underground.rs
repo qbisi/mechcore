@@ -17,7 +17,7 @@
 //! updated by the motion while it lasts. `docs/rules/mobility.md` says what
 //! the recordings showed.
 
-use super::skill::Flow;
+use super::skill::{Flow, SkillState};
 use super::*;
 use crate::modifier::RecoveryState;
 
@@ -195,14 +195,20 @@ impl Actor {
 
     /// `SkillManager.Deactive`: every skill stops its attack and is left idle
     /// with no lock, and none updates until the manager is active again.
-    /// `FightSkill.StopAttack` clears the lock and not the attack target, so
-    /// the weapon still names what it fired at.
+    /// `StopAttack` leaves the actor attack target. A skill already idle
+    /// keeps it; every other state enters Idle with `needClearTarget` true.
     fn deactivate_skills(&mut self) {
         self.skills_active = false;
-        self.skills.main.attack_target_left = self.skills.main.attack_target();
+        let was_idle = matches!(self.skills.main.state, SkillState::Idle { .. });
+        self.skills.main.attack_target_left =
+            was_idle.then(|| self.skills.main.attack_target()).flatten();
         self.skills.main.set_pending(None);
         self.skills.main.drop_lock();
-        self.skills.main.set_phase(FightSkillPhase::Idle);
+        if !was_idle {
+            self.skills
+                .main
+                .enter(SkillState::Idle { ready_step: None });
+        }
         self.skills.main.clear_slots();
         self.skills.main.performer.stop();
     }

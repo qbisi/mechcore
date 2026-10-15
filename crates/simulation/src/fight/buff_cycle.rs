@@ -369,6 +369,7 @@ impl Simulation {
         slot: u16,
         (targets, center): (&[FightActorRef], (i64, i64, i64)),
         secondary: bool,
+        secondary_sources_only: bool,
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let Some(owner) = self.actors.get(&owner_id) else {
@@ -381,6 +382,7 @@ impl Simulation {
             .iter()
             .filter(|source| source.trigger == BuffTrigger::Hit)
             .filter(|source| !secondary || source.on_second_damage)
+            .filter(|source| !secondary_sources_only || source.on_second_damage)
             .filter(|source| !(source.can_disable && owner.technology_disabled()))
             .copied()
             .collect::<Vec<_>>();
