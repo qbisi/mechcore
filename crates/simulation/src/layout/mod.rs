@@ -1264,6 +1264,9 @@ pub(crate) struct TechnologyDisable {
 pub(crate) struct TechnologySwitch {
     pub(crate) technology: i32,
     pub(crate) corrections: Vec<(Channel, Entry)>,
+    /// Its unit-state data refreshes domain-dependent sources immediately,
+    /// independently of the `FlyTech` provider's physical transition timer.
+    pub(crate) changes_domain: bool,
     /// Whether this source writes separate extra-skill inverse-air data.
     pub(crate) inverse_air_extra_skills: bool,
 }
@@ -1326,8 +1329,9 @@ pub(crate) struct UnitEffects {
     pub(crate) corrections: Vec<(Channel, Entry)>,
     /// For a unit a technology turns, what the side's officers that name
     /// their units by whether they fly write onto it, each with the domain
-    /// it holds in: the fight writes and takes them away as the unit's domain
-    /// turns (`FightEffectMananger.RefreshOtherEffect`).
+    /// it holds in: the fight writes and takes them away as the technology's
+    /// unit-state data changes (`FightEffectMananger.RefreshOtherEffect`),
+    /// independently of the physical domain transition timer.
     pub(crate) domain_corrections: Vec<(UnitDomain, Channel, Entry)>,
     /// The `ILifeSteal` its `LifeStealEffectProvider` enables, if its
     /// technologies or equipment hand it one.
@@ -1572,6 +1576,7 @@ fn technology_disable(
             });
             Some(TechnologySwitch {
                 technology,
+                changes_domain: fly.is_some(),
                 corrections: refused.hold(
                     technologies
                         .corrections(held, type_name, level)

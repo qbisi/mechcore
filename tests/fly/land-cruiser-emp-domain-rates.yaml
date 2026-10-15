@@ -1,0 +1,82 @@
+# EMP removes Land Cruiser's unit-state data before its physical flight timer.
+# At t553 Farseer 6 hits Wraith 2 for 6815 and applies buff 1026. Its domain
+# remains ground, but RefreshOtherEffect immediately restores Aerial
+# Specialist: maximum life 74244 and each main slot's damage 1089, rather
+# than 70574 and 990. Delaying the rates changed blue core damage 283 to 250.
+# Full generated layout; native repeats all 1049 ticks, core damage 283/0.
+# Control: aerial-specialist-leaves-a-landed-wraith.yaml for initial landing,
+# and emp-removes-air-attack-before-landing.yaml for delayed physical landing.
+# Assert rows are queries of the native recording.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 464345894
+round: 3
+blue:
+  core_damage: 283
+  officers: [advanced_shield_device, advanced_defensive_tactics, aerial_specialist, improved_wraith]
+  techs:
+    wraith: [high_explosive_ammo, field_maintenance, armor_enhancement, land_cruiser, range_enhancement, floating_artillery_array, degeneration_beam]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: wraith, index: 0, position: {x: -75, y: -105}, level: 2, exp: 5070/5070/5070, rotated: true, equipment: [heavy_armor]}
+  - {name: centurion, index: 1, position: {x: -65, y: -135}, level: 6, exp: 0/500/13047, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -55, y: -190}}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: -280, y: -115}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, sabertooth_specialist, fortified_farseer]
+  techs:
+    farseer: [burst_mode, electromagnetic_explosion, aerial_specialization, missile_interceptor, range_enhancement, photon_emission, scanning_radar]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 275, y: -95}, source: delivered}
+  - {name: farseer, index: 1, position: {x: -205, y: -65}, level: 5, exp: 0/7718/9379, equipment: [haste_module], source: joined}
+  - {name: void_eye, index: 2, position: {x: -190, y: -40}, level: 2, exp: 0/1465/1465, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 145, y: -310}}
+  battle_skills:
+  - {name: orbital_javelin, positions: [{x: -300, y: -285}]}
+asserts:
+- sql: |-
+    SELECT u.tick,u.unit_id,u.domain,u.life__current,u.life__maximum,s.skill_slot,s.enabled__attack_damage FROM units u JOIN units__skills s ON s.tick=u.tick AND s.unit_id=u.unit_id WHERE u.unit_id=2 AND u.tick IN (552,553,554) ORDER BY u.tick,s.skill_slot
+  rows:
+  - [552, 2, "ground", 88924, 88924, 0, 693]
+  - [552, 2, "ground", 88924, 88924, 1, 693]
+  - [552, 2, "ground", 88924, 88924, 2, 693]
+  - [552, 2, "ground", 88924, 88924, 3, 693]
+  - [552, 2, "ground", 88924, 88924, 4, 693]
+  - [552, 2, "ground", 88924, 88924, 5, 693]
+  - [552, 2, "ground", 88924, 88924, 6, 693]
+  - [552, 2, "ground", 88924, 88924, 7, 693]
+  - [553, 2, "ground", 68553, 74244, 0, 1089]
+  - [553, 2, "ground", 68553, 74244, 1, 1089]
+  - [553, 2, "ground", 68553, 74244, 2, 1089]
+  - [553, 2, "ground", 68553, 74244, 3, 1089]
+  - [553, 2, "ground", 68553, 74244, 4, null]
+  - [553, 2, "ground", 68553, 74244, 5, null]
+  - [553, 2, "ground", 68553, 74244, 6, null]
+  - [553, 2, "ground", 68553, 74244, 7, null]
+  - [554, 2, "ground", 68553, 74244, 0, 1089]
+  - [554, 2, "ground", 68553, 74244, 1, 1089]
+  - [554, 2, "ground", 68553, 74244, 2, 1089]
+  - [554, 2, "ground", 68553, 74244, 3, 1089]
+  - [554, 2, "ground", 68553, 74244, 4, null]
+  - [554, 2, "ground", 68553, 74244, 5, null]
+  - [554, 2, "ground", 68553, 74244, 6, null]
+  - [554, 2, "ground", 68553, 74244, 7, null]
+- sql: |-
+    SELECT tick,type,source__id,target__id,amount,buff_id,duration FROM events WHERE tick=553 AND source__id=6 AND target__id=2 AND type IN ('damage','buff_applied') ORDER BY ordinal
+  rows:
+  - [553, "damage", 6, 2, 6815, null, null]
+  - [553, "buff_applied", 6, 2, null, 1026, 60]
+ticks: 1049
+hash: 26:7516220eae9a66164cc2655f2c83995f1aeab9973ba38252fb48c0536b72adde
