@@ -157,14 +157,20 @@ The Mountain's motion follows one of its weapons, the one whose skill is
 - **The turret turns to that weapon's lock**
   (`MotionController.CalculateTargetDirection`), even while the weapon is
   idle on a lock its fallback search took and names no target.
-- **The first weapon starts from the motion.** As the motion attacks, the
-  first weapon's skill starts its attack on its own target once that target
-  is in its range and its weapon's angle; the others start in their own
-  updates.
+- **Every weapon starts in its own skill update.** The first weapon starts
+  on its own target once that target is in its range and weapon angle,
+  including while the motion still walks towards another weapon's lock.
+- **Selecting the same lock does not announce a lock change.** A search
+  that retains its target leaves the unit's lock alone unless that weapon
+  also takes or retains the motion; taking the motion publishes its lock.
 
 ## Evidence
 
 ### Recorded
+
+- A side gun holds Mountain's motion towards a tower while the first gun
+  takes a unit and starts attacking independently, without pulling the body
+  towards its own target: `tests/mountain/independent-gun-motion.yaml`.
 
 - A War Factory keeps moving towards a shield-covered tower while all skills
   locking that tower are idle, then enters attack as one leaves idle:
@@ -230,6 +236,9 @@ The Mountain's motion follows one of its weapons, the one whose skill is
 
 ### Read
 
+- Each independent skill starts from its own idle update:
+  `SkillIdleState.TryPerform`, `SkillIdleState.TryStartAttack`,
+  `FightSkill.CanStartAttack`.
 - A burst checks nothing after its first projectile:
   `ProjectileMultiAttackPerformer.IsEnableCheckTarget`, `SkillAttackState.Update`.
 - The batch: `FightSkillFactory.Create`, `FightSkillBatch.Init`,
@@ -247,7 +256,10 @@ The Mountain's motion follows one of its weapons, the one whose skill is
   `MotionController.CalculateTargetDirection`.
 - The weapon that holds the motion: `FightMech.SetMotionAttackerAfterSkill`,
   `FightSkillBatch.GetSkills`, `FightSkill.SearchLockTarget`,
-  `FightMech.SetAttacker`, `MotionController.SetAttacker`.
+  `FightMech.SetAttacker`, `MotionController.SetAttacker`,
+  `AutoMoveBehaviour.GetTargetPosition`. `FightSkill.ChangeLockTarget`
+  returns immediately for an unchanged target; `FightSkill.SearchLockTarget`
+  also publishes the lock when it hands the motion to that skill.
 - The unit's own search: `MechSearchTargetController.Update`,
   `MechSearchTargetController.SearchLockTarget`,
   `SearchTargetController.CanStartSearch`, `MechData.isEnableMechSearchTarget`,
