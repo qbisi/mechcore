@@ -344,12 +344,16 @@ async fn launch(
     };
     // The game quits itself once nobody has claimed it for the linger, so the
     // process is not kept: nothing here waits for it or ends it.
+    if how.headless {
+        // Unity otherwise reports an empty consoleLogPath in batch mode.
+        // BugReportProxy.OnRegister passes it to Directory.GetParent, aborting
+        // proxy registration before the lobby can finish logging in.
+        command
+            .args(HEADLESS_ARGUMENTS)
+            .arg("-logFile")
+            .arg(log.with_extension("unity.log"));
+    }
     command
-        .args(if how.headless {
-            &HEADLESS_ARGUMENTS[..]
-        } else {
-            &[]
-        })
         .env(LINGER_ENV, LINGER.as_secs().to_string())
         .env("MECHCORE_ADAPTER_SOCKET", endpoint)
         .stdin(Stdio::null())
