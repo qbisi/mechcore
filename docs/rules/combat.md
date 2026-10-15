@@ -1060,6 +1060,13 @@ wait controller increments first each tick and completes on
 `counter >= duration`, so the tick carrying the last wait update still cannot
 re-initiate. `TryPerformAttack` is re-entered on the tick after.
 
+**Quick target switching still waits for the after-wait.** The after-wait
+controller disables target checks, even when the attack interval has already
+elapsed. A Mustang keeps a wall its projectile destroyed until that wait
+finishes. Only the following update checks the dead target and finishes an
+attack whose replacement cannot be attacked; the idle skill searches on its
+next update. A new blow also requires the current attack controller to be idle.
+
 ## Dead-target retention after a synchronous direct kill
 
 A Rhino that kills its current target with its own synchronous direct attack
@@ -1451,7 +1458,16 @@ not the game's native attack-type enum.
   without damaging the aerial units or their personal shields:
   `tests/projectile/keeps-domain-when-target-takes-off.yaml`.
 
+- A Mustang retaining its destroyed wall through an after-wait that outlasts
+  its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
+
 ### Read
+
+- An after-wait disables target checks, and the next blow requires an idle
+  attack controller: `SkillAttackController..ctor`,
+  `SkillAttackController.IsEnableCheckTarget`,
+  `SkillAttackController.AttackWaitController.IsEnableCheckTarget`,
+  `SkillAttackState.Update`, `SkillAttackState.TryPerformAttack`.
 
 - A burst suspends skill target checks, while motion only tests range and
   turns: `ProjectileMultiAttackPerformer.IsEnableCheckTarget`,

@@ -1406,11 +1406,9 @@ impl Simulation {
                 .backswing_finish_step()
                 .is_some_and(|finish_step| finish_step >= step)
         {
-            let quick_switch_interval_due = quick_switch_target && step > skill.next_attack_step;
-            if !quick_switch_interval_due {
-                return Ok(());
-            }
-            self.skill_mut(skill_ref).set_backswing_finish_step(None);
+            // The after-wait disables target checks until its own controller
+            // finishes, even when the attack interval has already elapsed.
+            return Ok(());
         }
         // A skill that splashes about itself checks nothing as it winds up
         // ([`Self::self_splash_winding_up`]): Disintegration goes on naming
@@ -1841,24 +1839,6 @@ impl Simulation {
             self.try_side_arm_reset_fire_mark(skill_ref);
             return Ok(None);
         }
-        let quick_switch_target = self
-            .skill_attacker(skill_ref)
-            .expect("skill owner identity is stable")
-            .attack
-            .quick_switch_target;
-        let quick_switch_backswing_due = {
-            let skill = self.skill(skill_ref);
-            quick_switch_target
-                && skill
-                    .backswing_finish_step()
-                    .is_some_and(|finish_step| finish_step >= step)
-                && step > skill.next_attack_step
-        };
-        let quick_switch_dead_backswing_due = quick_switch_backswing_due
-            && self
-                .skill(skill_ref)
-                .attack_target()
-                .is_some_and(|target| !self.fight_actor_is_alive(target));
         if let Flow::Done = self.projectile_burst_lost_target(skill_ref, step, events)? {
             // A burst at a block that fell in the way of a live lock leaves
             // the motion's update to it, which holds the block and turns past
@@ -1879,13 +1859,7 @@ impl Simulation {
         }
         self.update_fight_skill_target_search(skill_ref, step, target_search_order)?;
         self.try_perform_main(skill_ref, step);
-        let prepare_finished = self.advance_skill_state(
-            skill_ref,
-            step,
-            backswing_just_finished,
-            quick_switch_backswing_due,
-            quick_switch_dead_backswing_due,
-        );
+        let prepare_finished = self.advance_skill_state(skill_ref, step, backswing_just_finished);
         if let Flow::Done = self.retarget_pending_blow(skill_ref) {
             return Ok(None);
         }
@@ -2328,13 +2302,8 @@ impl Simulation {
         skill_ref: SkillRef,
         step: u64,
         backswing_just_finished: bool,
-        quick_switch_backswing_due: bool,
-        quick_switch_dead_backswing_due: bool,
     ) -> bool {
         let skill = self.skill_mut(skill_ref);
-        if quick_switch_backswing_due && !quick_switch_dead_backswing_due {
-            skill.set_backswing_finish_step(None);
-        }
         if backswing_just_finished {
             skill.set_backswing_finish_step(None);
             // The attack state outlives the backswing: `SkillAttackController`

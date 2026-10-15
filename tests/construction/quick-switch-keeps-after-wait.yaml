@@ -1,0 +1,50 @@
+# A Mustang retains the wall its own projectile destroyed through the
+# complete after-wait, even after its attack interval is due. The next
+# update finishes its failed attack before the idle skill searches again.
+# This generated layout settles 0/580 core damage.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1878506588
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, advanced_power_system, fire_badger_specialist, improved_wasp]
+  techs:
+    wasp: [energy_shield, high_explosive_ammo, ground_specialization, jump_drive, electromagnetic_shot, aerial_specialization, range_enhancement, armor_piercing_bullets, elite_marksman, ignite]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: wasp, index: 0, position: {x: 65, y: -90}, level: 2, exp: 1014/2028/2028, equipment: [laser_sights]}
+  - {name: fire_badger, index: 1, position: {x: -255, y: -160}, exp: 0/524/1400, source: delivered}
+  - {name: mustang, index: 2, position: {x: -5, y: -260}, level: 4, exp: 0/586/5388, source: joined}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 70, y: -105}}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: 60, y: -140}]}
+red:
+  core_damage: 580
+  officers: [quick_teleport, advanced_offensive_tactics, fire_badger_specialist]
+  techs:
+    centurion: [range_enhancement]
+  blueprints: [attack_enhancement]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 35, y: -260}, exp: 0/40/1400, source: delivered}
+  - {name: centurion, index: 1, position: {x: -335, y: 75}, exp: 0/522/2250, equipment: [secondary_laser_sight], travelling: true, source: joined}
+  - {name: rhino, index: 2, position: {x: 125, y: -205}, level: 3, exp: 0/56/4096, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 45, y: -125}, retained: false}
+  battle_skills:
+  - {name: electromagnetic_blast, positions: [{x: -205, y: 60}]}
+ticks: 885
+hash: 25:6d228b249e03233e8a4b535e4cf5c1c687cc0fc5705d6fb84a01228277daf9e5
+asserts:
+- sql: SELECT tick,unit_id,skill_slot,enabled__state,enabled__attack_phase,enabled__attack_time,enabled__current_attack_interval,enabled__perform_count,enabled__lock_target__id FROM units__skills WHERE unit_id=25 AND tick BETWEEN 71 AND 75 ORDER BY tick,skill_slot
+  rows: [[71, 25, 0, "attack", "after", 28, 28, 0, 12], [72, 25, 0, "attack", "after", 29, 28, 0, 12], [73, 25, 0, "attack", null, 30, 28, 1, 12], [74, 25, 0, "idle", null, 31, 28, 0, null], [75, 25, 0, "idle", null, 32, 28, 0, 4]]
+- sql: SELECT tick,type,source__kind,source__id,target__kind,target__id,skill_slot FROM events WHERE tick=56 AND target__kind='building' AND target__id=12 ORDER BY ordinal
+  rows: [[56, "damage", "unit", 25, "building", 12, 0], [56, "projectile_removed", "unit", 25, "building", 12, null]]
