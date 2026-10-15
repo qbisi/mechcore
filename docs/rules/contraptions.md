@@ -177,8 +177,12 @@ is one as a unit is:
   that holds it and did not hold it as it was made takes it, and it is removed
   where its way crosses the shield's surface, half a metre beyond it. One that
   lands on a covered unit without having entered a shield, and has no splash,
-  is taken by the shield covering the unit; neither happens when the one who
-  fired it stands inside that shield.
+  is taken by the shield covering the unit. If the one who fired it stands
+  inside that shield, `DamagePerformer.Perform` takes its single-actor
+  branch instead of charging the shield. That branch checks life without
+  repeating the projectile's ordinary arrival visibility check. A muzzle
+  outside the shield can therefore produce a shield-intersection hit on its
+  hidden owner while the shooter itself stands inside.
 - **A blow or a beam** at a covered unit lands on the shield, unless the
   attacker stands inside it. Each skill asks with its own attack
   (`FightSkill.IsActorProtectedByEnergyShield`): an extra skill's beam, a
@@ -366,6 +370,9 @@ kind ends its own way:
 - A Sandworm approaches a covered Vulcan underground and surfaces inside
   its active Barrier without draining shield energy on the approach:
   `tests/shield/underground-sandworm-crosses.yaml`.
+- A projectile intersecting a hidden Sandworm's Barrier while its shooter
+  stands inside damages the owner without draining the shield:
+  `tests/shield/inside-shooter-hidden-owner.yaml`.
 - A unit locking a covered tower fires at the shield, its weapon naming no
   target, and the shield takes every shot:
   `tests/shield/tower-covered.yaml`.
@@ -470,6 +477,10 @@ kind ends its own way:
   `FightCalculator.IsInEnergyShield`,
   `FightUtility.GetAttackPositionOnEnergyShieldOuter`,
   `FightUtility.CalculatePointOnCricle`.
+- A shield hit whose owner stands inside takes the actor's single-target
+  path, checking life without repeating arrival visibility:
+  `DamagePerformer.Perform`, `DamagePerformer.PerformSingleEffect`,
+  `FightCalculator.IsInEnergyShield`.
 - A blow at a covered unit lands on its shield, which the skill's search
   hands it in place of an attack target: `DamageEffect.Perform`,
   `FightSkill.GetTargetEnergyShield`, `FightSkill.IsActorProtectedByEnergyShield`,
@@ -588,9 +599,10 @@ kind ends its own way:
   cover are kept out, and what stands outside within the splash is struck. A
   Melting Point's beam and an Abyss's self-splashing extra blow fire so. It
   is read from the build, and no fight pins it.
-- **A projectile fired from inside an enemy shield,** or across two shields.
-  The exemption for the shields that held it as it was made is read, and no
-  fight pins it.
+- **A unit's projectile created inside an enemy shield,** or crossing two
+  shields. The creation-point exemption for shields that held the projectile
+  when it was made is read, and no fight pins it; a shooter inside with its
+  muzzle outside is a separate path.
 - **An officer's rate on a shield's energy** (`ChangEnergyShieldValue`). The
   simulator refuses the officer.
 

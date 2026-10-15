@@ -449,9 +449,10 @@ impl Simulation {
                 FightActorRef::Unit(candidate_id) => {
                     let candidate = &self.actors[&candidate_id];
                     candidate.alive()
-                        // `FightProjectile.Update` strikes what it aimed at
-                        // only while `IsValidTarget(Stealth)`: a Wasp's shot
-                        // that reaches a Sandworm as it burrows is spent.
+                        // PerformSingleEffect checks life, not visibility.
+                        // A projectile's ordinary arrival checks visibility
+                        // before reaching it; shield interception is a
+                        // separate path into this same single-target hit.
                         // A hit with a splash strikes only what the splash
                         // reaches (`DamagePerformer.Perform` takes
                         // `PerformRangeEffect` over `PerformSingleEffect`): a
@@ -459,8 +460,7 @@ impl Simulation {
                         // target strikes nothing.
                         && ((hit.hits_aimed
                             && hit.splash_radius == 0
-                            && Some(*candidate_ref) == hit.aimed
-                            && candidate.visibility != Visibility::Hide)
+                            && Some(*candidate_ref) == hit.aimed)
                             || (hit.splash_radius > 0
                                 && hit.reach.touches(candidate.domain)
                                 && hit.splashes(candidate, splash_q32)))
