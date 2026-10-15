@@ -3,11 +3,10 @@
 //! A replay's `PlayerRoundRecord` holds the position each side opens a round
 //! with, and the game's replay starts a round from that snapshot rather than
 //! from the rounds before it, then plays the round's recorded decisions on
-//! it. So a layout is a replay whose layout round opens from a snapshot of
-//! the layout's sides, and whose decisions are what a layout states as made
-//! that round: releases, Energy Tower activations, the units that join a side
-//! during the round, and the moves that put them in place. The fight the game
-//! plays from it is the layout's fight.
+//! it. A layout replay uses that snapshot and native commands to restore the
+//! projected fight state: sources, experience, travelling membership, releases
+//! and Energy Tower activations. It does not reconstruct the deployment
+//! history that produced that state.
 //!
 //! The fight draws only from streams the game derives from `SystemSeed` and
 //! the round, so the record carries no random state. The rest of the record
@@ -21,7 +20,6 @@
 use crate::catalog::NativeFormation;
 use crate::compile::{Placement, Plan, SidePlan};
 use crate::layout::{OilArea, Position, SHIELD_AIRDROP_SKILL, STICKY_OIL_BOMB_SKILL};
-use crate::mobility::{DEPLOYMENT_MODULE, JUMP_DRIVES};
 use std::fmt::Write as _;
 
 /// Field Recovery's commander skill, which recovers one of the side's own
@@ -442,14 +440,21 @@ fn write_battle_skill_panel(
     sign: i32,
     round: i32,
 ) {
-    let mut slots: Vec<(i32, String)> = side
+    let mut slots: Vec<(i32, bool, String)> = side
         .battle_skills
         .iter()
-        .map(|skill| (skill.commander_skill_id, String::from("<rangeItems />")))
+        .map(|skill| {
+            (
+                skill.commander_skill_id,
+                true,
+                String::from("<rangeItems />"),
+            )
+        })
         .collect();
     for center in &side.standing_shields {
         slots.push((
             SHIELD_AIRDROP_SKILL,
+            true,
             format!(
                 "<rangeItems>{}</rangeItems>",
                 shield_range_data(*center, sign)
@@ -457,22 +462,30 @@ fn write_battle_skill_panel(
         ));
     }
     for area in &side.standing_oil {
-        slots.push((STICKY_OIL_BOMB_SKILL, oil_range_item(area, sign)));
+        slots.push((STICKY_OIL_BOMB_SKILL, true, oil_range_item(area, sign)));
     }
-    // A Field Recovery for the squads the round recovers, last, so that no
-    // other slot moves.
+    // A Field Recovery follows the fight's slots, so none of them moves.
     if !deployment.recovered.is_empty() {
-        slots.push((FIELD_RECOVERY_SKILL, String::from("<rangeItems />")));
+        slots.push((FIELD_RECOVERY_SKILL, true, String::from("<rangeItems />")));
+    }
+    // Auxiliary deployment slots follow the fight's slots and recovery, so
+    // none of their indices changes. Each training target gets its own slot.
+    for _ in &deployment.trained {
+        slots.push((
+            crate::transition::TRAINING_SKILLS[0],
+            false,
+            String::from("<rangeItems />"),
+        ));
     }
     if slots.is_empty() {
         xml.push_str("<commanderSkills />");
         return;
     }
     xml.push_str("<commanderSkills>");
-    for (slot, (skill, range_items)) in slots.iter().enumerate() {
+    for (slot, (skill, active, range_items)) in slots.iter().enumerate() {
         let _ = write!(
             xml,
-            "<CommanderSkillData><index>{slot}</index><id>{skill}</id><isActive>true</isActive>\
+            "<CommanderSkillData><index>{slot}</index><id>{skill}</id><isActive>{active}</isActive>\
              <coolingRound>0</coolingRound><getRound>{round}</getRound>{range_items}\
              </CommanderSkillData>"
         );
@@ -580,8 +593,12 @@ struct Deployment {
     /// the officers deliver.
     delivered: Vec<(usize, i32)>,
     /// The legacy units the round sends travelling, as positions in the
-    /// side's `units`: each opens it on the other flank and moves back.
+    /// side's `units`: each opens it on the other flank and restores its
+    /// position and travelling membership through a native test command.
     redeployed: Vec<usize>,
+    /// Joining or delivered units whose full experience bar is restored by
+    /// Intensive Training after their creation and upgrades.
+    trained: Vec<usize>,
     /// The units that join during the round, in index order.
     joined: Vec<usize>,
     /// The unit allocator the round opens with, which names what the
@@ -661,14 +678,11 @@ fn delivered_squads(
     for ((officer, squad), (index, at)) in squads.into_iter().zip(stated) {
         if let Some(at) = at {
             let unit = &side.units[at];
-            if unit_type(unit) != squad.unit
-                || unit.level.unwrap_or(1) < squad.level
-                || unit.exp.is_some_and(|exp| exp != 0)
-            {
+            if unit_type(unit) != squad.unit || unit.level.unwrap_or(1) < squad.level {
                 reasons.push(format!(
                     "delivered unit {} at index {index}, which officer {officer}'s level {} {} \
                      squad becomes as round {round} opens: the squad's unit is of that type, at \
-                     that level or above and without experience",
+                     that level or above",
                     unit.type_name,
                     squad.level,
                     crate::catalog::unit_type_from_id(squad.unit)
@@ -711,28 +725,14 @@ fn deployment(
     let settled: Vec<usize> = (0..side.units.len())
         .filter(|at| side.units[*at].source == crate::layout::UnitSource::Legacy)
         .collect();
-    // A legacy unit travels only when its round moves it onto a flank from
-    // another region, which only something that frees it to move allows.
-    let mut redeployed = Vec::new();
-    for at in &settled {
-        let unit = &side.units[*at];
-        if !unit.travelling {
-            continue;
-        }
-        let freed = unit.equipment.contains(&DEPLOYMENT_MODULE)
-            || JUMP_DRIVES
-                .iter()
-                .any(|(tech, name)| *name == unit.type_name && side.techs.units.contains(tech));
-        if freed {
-            redeployed.push(*at);
-        } else {
-            reasons.push(format!(
-                "unit {} at ({}, {}) travelling: it is legacy, and nothing frees it to move \
-                 onto a flank, neither a Deployment Module nor its Jump Drive",
-                unit.type_name, unit.position.x, unit.position.y
-            ));
-        }
-    }
+    // A layout states the fight's position, not the deployment's history.
+    // MAP_MoveUnit's forced undo path restores the travelling membership
+    // without requiring the mobility that a player's move would require.
+    let redeployed = settled
+        .iter()
+        .copied()
+        .filter(|at| side.units[*at].travelling)
+        .collect();
     let mut joined: Vec<usize> = (0..side.units.len())
         .filter(|at| side.units[*at].source == crate::layout::UnitSource::Joined)
         .collect();
@@ -756,16 +756,29 @@ fn deployment(
         |squad| squad.index,
     );
     let legacy = opened + squad_count;
-    for at in &joined {
-        let unit = &side.units[*at];
+    let mut trained = Vec::new();
+    for at in joined
+        .iter()
+        .copied()
+        .chain(delivered.iter().map(|(at, _)| *at))
+    {
+        let unit = &side.units[at];
         if unit.exp.is_some_and(|exp| exp != 0) {
-            reasons.push(format!(
-                "unit {} at ({}, {}) exp: it joins during the round, and a round's decisions \
-                 cannot hand out experience",
-                unit.type_name, unit.position.x, unit.position.y
-            ));
+            let level = unit.level.unwrap_or(1);
+            if level < crate::experience::MAX_LEVEL
+                && unit.exp == crate::experience::full(&unit.type_name, level)
+            {
+                trained.push(at);
+            } else {
+                reasons.push(format!(
+                    "unit {} at ({}, {}) exp: a unit created this round can restore only a \
+                     full bar below the last level, through Intensive Training",
+                    unit.type_name, unit.position.x, unit.position.y
+                ));
+            }
         }
     }
+    trained.sort_by_key(|at| index(&side.units[*at]));
     // A unit added at the index its action states leaves the allocator where
     // it was, and as the round ends the game enters the next round's
     // deployment, where an officer due then delivers its squad at the
@@ -794,6 +807,7 @@ fn deployment(
         settled,
         delivered,
         redeployed,
+        trained,
         joined,
         next_unit: opened,
         allocated,
@@ -816,10 +830,10 @@ fn delivering(economy: &crate::economy::Economy, side: &SidePlan, round: i32) ->
 }
 
 /// The round's decisions: each delivered squad fitted and moved into place,
-/// each unit that joins added, fitted and moved into place, each Energy
-/// Tower activation, then each battle skill's release in the layout's order,
-/// which is the order its side's skills draw their scatter in, and the end of
-/// the side's deployment.
+/// each unit that joins added and fitted, full bars trained, legacy travelling
+/// membership restored, each Energy Tower activation, then each battle skill's
+/// release in the layout's order, which is the order its side's skills draw
+/// their scatter in, and the end of the side's deployment.
 fn write_actions(xml: &mut String, side: &SidePlan, deployment: &Deployment, sign: i32) {
     let mut actions: Vec<(&str, String)> = Vec::new();
     // The recovery slot is the panel's last.
@@ -837,13 +851,14 @@ fn write_actions(xml: &mut String, side: &SidePlan, deployment: &Deployment, sig
     for (at, level) in &deployment.delivered {
         let unit = &side.units[*at];
         prepare(&mut actions, unit, *level);
+        train(&mut actions, side, deployment, *at);
         // Where the board landed the squad is the game's; the move only
         // needs where it goes.
         move_unit(&mut actions, unit, Position { x: 0, y: 0 }, sign);
     }
     for at in &deployment.redeployed {
         let unit = &side.units[*at];
-        move_unit(&mut actions, unit, redeployed_from(unit.position), sign);
+        restore_travelling(&mut actions, unit, sign);
     }
     // The replay seats blue first, and each side's main deployment area is
     // its territory's region 1 for blue and 4 for red.
@@ -870,6 +885,7 @@ fn write_actions(xml: &mut String, side: &SidePlan, deployment: &Deployment, sig
             ),
         ));
         prepare(&mut actions, unit, level);
+        train(&mut actions, side, deployment, *at);
         move_unit(&mut actions, unit, Position { x: 0, y: 0 }, sign);
     }
     for skill in &side.energy_tower_skills {
@@ -912,6 +928,46 @@ fn write_actions(xml: &mut String, side: &SidePlan, deployment: &Deployment, sig
     xml.push_str("</actionRecords>");
 }
 
+/// Restores a newly created unit's full experience bar. Snapshot loading
+/// ages its formations on later round entry, so it cannot hold a joining
+/// unit without changing the unit's source. Training restores the bar after
+/// creation, without changing that source or touching the fight's skills.
+fn train(actions: &mut Vec<(&str, String)>, side: &SidePlan, deployment: &Deployment, at: usize) {
+    let Some(offset) = deployment.trained.iter().position(|trained| *trained == at) else {
+        return;
+    };
+    let slot = side.battle_skills.len()
+        + side.standing_shields.len()
+        + side.standing_oil.len()
+        + usize::from(!deployment.recovered.is_empty())
+        + offset;
+    actions.push((
+        "PAD_ReleaseCommanderSkill",
+        format!(
+            "<ID>0</ID><SkillIndex>{slot}</SkillIndex><Positions />\
+             <UnitIndex>{}</UnitIndex><ConstructionIndex>-1</ConstructionIndex>",
+            index(&side.units[at]),
+        ),
+    ));
+}
+
+/// `MAP_MoveUnit.Perform` with `IsUndo`: restore the travelling membership
+/// from `superDeployRecord`, instead of inferring it from a player's move.
+/// Its `IsForce` skips mobility checks. The snapshot opens the unit on the
+/// other flank because the native refresh runs only when regions differ.
+fn restore_travelling(actions: &mut Vec<(&str, String)>, unit: &Placement, sign: i32) {
+    let fields = move_fields(unit, redeployed_from(unit.position), sign, true);
+    let room = i32::from(sign < 0);
+    actions.push((
+        "PAD_TestCommand",
+        format!(
+            "<Command xsi:type=\"MAD_MoveUnit\"><Time>0</Time><LocalTime>0</LocalTime>\
+             <PIDX>{room}</PIDX><IsForce>true</IsForce><IsUndo>true</IsUndo>\
+             {fields}</Command>"
+        ),
+    ));
+}
+
 /// Upgrades a unit that arrived at `from_level` to its layout level and fits
 /// its equipment.
 fn prepare(actions: &mut Vec<(&str, String)>, unit: &Placement, from_level: i32) {
@@ -944,22 +1000,23 @@ fn redeployed_from(position: Position) -> Position {
 
 /// Moves a unit from `from` to its layout position and facing.
 fn move_unit(actions: &mut Vec<(&str, String)>, unit: &Placement, from: Position, sign: i32) {
-    actions.push((
-        "PAD_MoveUnit",
-        format!(
-            "<moveUnitDatas><MoveUnitData><unitID>{}</unitID><unitIndex>{}</unitIndex>\
+    actions.push(("PAD_MoveUnit", move_fields(unit, from, sign, false)));
+}
+
+fn move_fields(unit: &Placement, from: Position, sign: i32, travelling: bool) -> String {
+    format!(
+        "<moveUnitDatas><MoveUnitData><unitID>{}</unitID><unitIndex>{}</unitIndex>\
              <position><x>{}</x><y>{}</y></position><isRotate>{}</isRotate>\
              <positionRecord><x>{}</x><y>{}</y></positionRecord><rotateRecord>false</rotateRecord>\
-             <superDeployRecord>false</superDeployRecord></MoveUnitData></moveUnitDatas>",
-            unit_type(unit),
-            index(unit),
-            sign * unit.position.x,
-            sign * unit.position.y,
-            unit.rotated,
-            sign * from.x,
-            sign * from.y,
-        ),
-    ));
+             <superDeployRecord>{travelling}</superDeployRecord></MoveUnitData></moveUnitDatas>",
+        unit_type(unit),
+        index(unit),
+        sign * unit.position.x,
+        sign * unit.position.y,
+        unit.rotated,
+        sign * from.x,
+        sign * from.y,
+    )
 }
 
 const LIBRARY: &str = "GRCore, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null";
@@ -1312,8 +1369,8 @@ mod tests {
         );
     }
 
-    /// A legacy unit that travels opens the round on the other flank and
-    /// moves back, which only a Deployment Module or its Jump Drive allows.
+    /// A legacy unit's travelling membership is restored by a native forced
+    /// undo, independent of how a match made the formation movable.
     #[test]
     fn a_legacy_unit_that_travels_opens_on_the_other_flank() {
         let layout = |equipment: serde_json::Value| {
@@ -1336,8 +1393,80 @@ mod tests {
             "<position><x>330</x><y>285</y></position><isRotate>false</isRotate>\
              <positionRecord><x>-330</x><y>285</y></positionRecord>"
         ));
-        let error = layout_replay(&plan(&layout(json!([]))), crate::game_build()).unwrap_err();
-        assert!(error.contains("nothing frees it to move"), "{error}");
+        let replay = layout_replay(&plan(&layout(json!([]))), crate::game_build()).unwrap();
+        let xml = embedded_xml(&replay);
+        assert!(xml.contains("xsi:type=\"MAD_MoveUnit\""));
+        assert!(xml.contains("<IsForce>true</IsForce><IsUndo>true</IsUndo>"));
+        assert!(xml.contains("<superDeployRecord>true</superDeployRecord>"));
+        assert!(!xml.contains("<id>1000001</id>"));
+    }
+
+    #[test]
+    fn delivered_and_joined_full_bars_are_restored_after_creation_and_upgrades() {
+        let layout = json!({
+            "kind": "layout", "seed": 4242, "round": 2,
+            "blue": {"officers": ["marksman_specialist"], "units": [
+                {"name": "marksman", "index": 0, "level": 4, "exp": "2919/2919",
+                 "position": {"x": -100, "y": -100}, "source": "delivered"},
+                {"name": "marksman", "index": 1, "exp": "650/650",
+                 "position": {"x": 100, "y": -100}, "source": "joined"}
+            ]},
+            "red": {"units": [{"name": "arclight", "index": 0,
+                     "position": {"x": 0, "y": -50}}]}
+        });
+        let replay = layout_replay(&plan(&layout), crate::game_build()).unwrap();
+        let xml = embedded_xml(&replay);
+        assert_eq!(xml.matches("<id>1100001</id>").count(), 2);
+        assert_eq!(
+            xml.matches("<id>1100001</id><isActive>false</isActive>")
+                .count(),
+            2
+        );
+        let upgrade = xml.find("xsi:type=\"PAD_UpgradeUnit\"").unwrap();
+        let delivered = xml
+            .find("<SkillIndex>0</SkillIndex><Positions /><UnitIndex>0</UnitIndex>")
+            .unwrap();
+        let add = xml.find("xsi:type=\"MAD_AddUnit\"").unwrap();
+        let joined = xml
+            .find("<SkillIndex>1</SkillIndex><Positions /><UnitIndex>1</UnitIndex>")
+            .unwrap();
+        let moved = xml
+            .find("<position><x>100</x><y>-100</y></position>")
+            .unwrap();
+        assert!(upgrade < delivered && delivered < add && add < joined && joined < moved);
+    }
+
+    #[test]
+    fn training_slots_follow_fight_and_recovery_slots() {
+        let layout = json!({
+            "kind": "layout", "seed": 4242, "round": 2,
+            "blue": {
+                "officers": ["marksman_specialist"], "recovered": [0],
+                "units": [{"name": "marksman", "index": 1, "exp": "650/650",
+                           "position": {"x": 0, "y": -100}, "source": "joined"}],
+                "battle_skills": [{"name": "shield_airdrop", "positions": [{"x": 0, "y": -100}]}]
+            },
+            "red": {"units": [{"name": "arclight", "index": 0,
+                     "position": {"x": 0, "y": -50}}]}
+        });
+        let replay = layout_replay(&plan(&layout), crate::game_build()).unwrap();
+        let xml = embedded_xml(&replay);
+        assert!(xml.contains("<index>1</index><id>900001</id>"));
+        assert!(xml.contains("<index>2</index><id>1100001</id>"));
+        assert!(xml.contains("<SkillIndex>1</SkillIndex><Positions /><UnitIndex>0</UnitIndex>"));
+        assert!(xml.contains("<SkillIndex>2</SkillIndex><Positions /><UnitIndex>1</UnitIndex>"));
+        assert!(xml.contains("<SkillIndex>0</SkillIndex><Positions><MapVector>"));
+    }
+
+    #[test]
+    fn new_last_level_experience_cannot_be_restored_by_training() {
+        let mut layout = rhino_mirror();
+        layout["round"] = json!(3);
+        layout["blue"]["units"][0]["level"] = json!(9);
+        let full = crate::experience::full("rhino", 9).unwrap();
+        layout["blue"]["units"][0]["exp"] = json!(format!("{full}/{full}"));
+        let error = layout_replay(&plan(&layout), crate::game_build()).unwrap_err();
+        assert!(error.contains("full bar below the last level"), "{error}");
     }
 
     #[test]
