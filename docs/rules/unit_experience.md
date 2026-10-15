@@ -181,6 +181,9 @@ what the formation carries into the next round.
 
 ### Recorded
 
+- Forced timeout keeps fractional experience in the last combat snapshot
+  and cuts it from the separate settlement, preserving whole experience
+  and the no-gain sentinel: `tests/production/captured-owner-current-side.yaml`.
 - What a kill hands out and to whom, as the section above states it: every
   formation's experience is in each recording's hash, and the
   simulator reproduces it tick by tick in every fight the topics pin, which

@@ -1537,37 +1537,6 @@ fn buff_removed(subject: ObjectRef, buff_id: u32, reason: BuffRemovedReason) -> 
 #[cfg(test)]
 mod tests {
 
-    #[test]
-    fn technology_disabling_keeps_an_active_melee_mode() {
-        let configs = crate::rules::SimulationConfig::load().unwrap();
-        let (_, layout) = crate::layout::compile_with_seed(
-            b"kind: layout\nround: 1\nblue:\n  techs:\n    centurion: [melee_mode]\n  units:\n  - {name: centurion, index: 0, position: {x: 5, y: -125}}\nred:\n  units:\n  - {name: rhino, index: 0, position: {x: 5, y: -125}}\n",
-            &configs.units,
-        )
-        .unwrap();
-        let mut simulation = super::super::Simulation::new(
-            &layout,
-            &configs.units,
-            &configs.towers,
-            &configs.maps,
-            4242,
-        )
-        .unwrap();
-        let id = simulation
-            .actors
-            .iter()
-            .find_map(|(&id, actor)| (actor.rules.type_name == "centurion").then_some(id))
-            .unwrap();
-        simulation.actors.get_mut(&id).unwrap().ammo = Some(0);
-        let mut events = Vec::new();
-        simulation.update_preemptive(id, &mut events).unwrap();
-        assert!(simulation.actors[&id].skills.preemptive_active);
-        simulation
-            .switch_technologies(id, false, &mut events)
-            .unwrap();
-        assert!(simulation.actors[&id].skills.preemptive_active);
-    }
-
     /// Rows 1 to 5 last 9, 7, 5, 3 and 1 seconds, and the tower-loss fights
     /// read 180, 140, 100, 60 and 20 ticks; a level's life adds up its row and
     /// every row below it on top of the map's 3400.

@@ -3,6 +3,9 @@
 # blue side and carries blue's loadout, including its life and speed.
 # tank-line.yaml and tank-dies.yaml control an owner that stays on its
 # original side.
+# Forced timeout also leaves the final combat frame's fractional experience
+# intact: formations 1 and 3 each lose 1431655767 Q32.32 raw on settlement.
+# ../settlement/forced-time-limit.yaml controls a timeout with whole experience.
 
 kind: fight
 source: game
@@ -62,5 +65,20 @@ asserts:
   rows:
   - [541, 27, 0, 3999, 55834574848, 790]
   - [541, 28, 0, 3999, 55834574848, 790]
+- sql: |
+    SELECT f.tick, f.formation_id, f.experience AS last_experience,
+           s.experience AS settled_experience,
+           f.experience - s.experience AS discarded_fraction
+    FROM formations f
+    JOIN settlement_formations s USING (formation_id)
+    WHERE f.tick = (SELECT terminal_tick FROM fight)
+    ORDER BY f.formation_id;
+  rows:
+  - [2360, 1, 22206412576087, 22204980920320, 1431655767]
+  - [2360, 2, 2405181685760, 2405181685760, 0]
+  - [2360, 3, 4287809017175, 4286377361408, 1431655767]
+  - [2360, 4, -4294967296, -4294967296, 0]
+  - [2360, 5, -4294967296, -4294967296, 0]
+  - [2360, 6, 37022618091520, 37022618091520, 0]
 ticks: 2360
 hash: 26:cb8307410def96f135cf5b7c6d57c298a62216d55349b24927b31cf479107eb3

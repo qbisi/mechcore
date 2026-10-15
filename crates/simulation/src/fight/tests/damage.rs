@@ -502,7 +502,7 @@ fn projectile_raw_target_cache_preserves_rounding_sequence() {
 }
 
 #[test]
-fn forced_exit_discards_projectiles_and_prunes_experience_without_damage_or_movement() {
+fn forced_exit_clears_the_projectile_container() {
     let config = SimulationConfig::load().unwrap();
     let layout = CompiledLayout::of_units(
         1,
@@ -546,13 +546,8 @@ fn forced_exit_discards_projectiles_and_prunes_experience_without_damage_or_move
         move_direction: (0, 0, 0),
         move_range_q32: 0,
     });
-    let before = simulation.snapshot();
+    // Observable timeout behavior is pinned by
+    // tests/settlement/timeout-on-final-kill.yaml.
     simulation.stop_fight().unwrap();
-    let after = simulation.snapshot();
-    assert!(after.projectiles.is_empty());
-    for (before, after) in before.live_units.iter().zip(&after.live_units) {
-        assert_eq!(before.life, after.life);
-        assert_eq!(before.position, after.position);
-    }
-    assert_eq!(simulation.settlement().unwrap().teams.len(), 2);
+    assert!(simulation.projectiles.is_empty());
 }
