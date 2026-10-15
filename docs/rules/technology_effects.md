@@ -1980,6 +1980,10 @@ derive (a minimum range):
   it does not go into stealth:
   `tests/stealth/disabled-before.yaml`; disabled in stealth, it is
   shown at once: `tests/stealth/disabled-during.yaml`.
+- A Steel Ball whose laser triggers Emergency Armor keeps its skill's lock
+  and attack state for that tick while its motion leaves attack for movement;
+  the next skill update ends the attack:
+  `tests/stealth/laser-triggers-emergency-armor.yaml`.
 - A Wraith's grouped slot firing at a Vortex that goes into stealth ends its
   attack the tick after: `tests/corpus/67257112-r11.yaml`, tick 433.
 - A multi-attack technology adds to its unit's bursts: Doubleshot fires two
@@ -2468,6 +2472,11 @@ derive (a minimum range):
   `IsValidTarget(Stealth)` strikes it: `FightCalculator.PerformHitTargetEffect`,
   `FightActor.ReduceLife`, `AttackTargetFilter.Check`,
   `SkillAttackRangeChecker.IsActorInAttackRange`.
+- Motion leaving attack range changes its own state without resetting the
+  attacker's skill; the skill's update checks attackability before its blow,
+  while the motion updates after the hit may have hidden its target:
+  `MotionAttackState.Update`, `SkillAttackState.Update`,
+  `SkillAttackableChecker.Check`, `SkillAttackRangeChecker.IsActorInAttackRange`.
 - A skill's projectiles leave with the row's life at the unit's level, times
   one plus the skill's `SkillDataChangeFloatRate.ProjectileLifeRate`
   enhancements and then their remainder, cut to a whole number and at least 1:
