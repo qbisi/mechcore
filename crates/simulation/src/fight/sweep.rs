@@ -216,6 +216,18 @@ impl Simulation {
         // `CreateAttackArea` keeps the direction from the original target;
         // a nearer shield shifts the centre without turning that direction.
         let mut direction = owner.sub(center);
+        // `CreateAttackArea` substitutes the negative of the owner's look
+        // direction when target and owner positions coincide, before the
+        // perpendicular, reverse and even-attack transformations.
+        if center == owner {
+            let (x, z) = super::support_unit::turn_about_vertical(
+                actor.body_rotation_q32,
+                1_i64 << 32,
+                0,
+                1_i64 << 32,
+            );
+            direction = FixedVec2 { x: -x, y: -z };
+        }
         // `FightSweepSkill.CheckIsLockTargetInEnergyShield`: a lock inside a
         // shield of its side, for a sweep that does not cross shields, has
         // the strip centred on the shield where that is nearer the unit.

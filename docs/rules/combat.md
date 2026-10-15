@@ -1360,6 +1360,9 @@ not the game's native attack-type enum.
 - A Raiden core taking its sibling's tower when the Fortress itself is out
   of reach although its shield is within reach:
   `tests/raiden/shielded-lock-outside-actor-range.yaml`.
+- A child whose siblings hold no lock using its own longer range to replace
+  a hidden best candidate with a visible one in its normal fallback search:
+  `tests/sweep/coincident-target-direction.yaml`.
 - A presearched target a few raw units left of straight ahead faced at
   +0.245°, in the standard fights of the Steel Ball, Stormcaller, Hound, Fire
   Badger and Phantom Ray: `tests/steel_ball/`,
