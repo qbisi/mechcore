@@ -648,6 +648,12 @@ reloads and nothing else reads.
   gives the turn back (`ForceSideArmEndFireTurn`), and so does its attack
   ending, or its blow coming due out of its angle, in its turn with no blow
   under way.
+- **Its fire mark uses the previous attack target.** In its idle state,
+  `SkillIdleState.TryPerform` searches for a lock first,
+  asks `TrySideArmResetFireMark` using the previous attack target, and only
+  then refreshes its attack target. A wall that fell between updates can
+  therefore make the side arm give its turn back before it names the live
+  lock behind that wall; refreshing first would let it keep that turn.
 - **The lock is tested as an actor, even when a shield is reached first.**
   `TrySideArmResetFireMark` asks `FightSkill.IsActorInAttackArea` of its lock
   before `IsAttackTargetInAttackArea`. `NeedRefreshSideArmTarget` and its
@@ -742,6 +748,9 @@ that is not melee, so the simulator refuses it.
 
 ### Recorded
 
+- A side arm returns its fire turn against a fallen wall before refreshing
+  its attack target, remaining idle after it names the live lock:
+  `tests/extra_weapon/dual-wield-fallen-wall-reset.yaml`.
 - Disabled Multi Control beams retain their control entries through their
   current wind-up and finish the pending blows with their own damage
   reduction before ending the attack:
@@ -1055,6 +1064,10 @@ that is not melee, so the simulator refuses it.
   `scripts/corpus/match-replays.py`.
 
 ### Read
+
+- An idle side arm checks its fire mark before refreshing its attack target:
+  `SkillIdleState.TryPerform`, `FightSkill.TrySideArmResetFireMark`,
+  `FightSkill.SearchAttackTarget`.
 
 - Each created extra skill receives its source's own base damage reduction,
   and disabling removes that reduction from the main skill alone:

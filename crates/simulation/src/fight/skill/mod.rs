@@ -1853,8 +1853,10 @@ impl Simulation {
             return Ok(lock_lives.then(SkillUpdate::default));
         }
         // `SkillIdleState.TryPerform` reaches `SearchAttackTarget` on every
-        // update the skill is idle with a lock.
-        if self.skill(skill_ref).phase() == FightSkillPhase::Idle {
+        // update the skill is idle with a lock. A side arm first resets its
+        // fire mark against the previous attack target; its idle search path
+        // refreshes the attack target only after that reset.
+        if self.skill(skill_ref).phase() == FightSkillPhase::Idle && !self.is_side_arm(skill_ref) {
             self.search_attack_target(skill_ref);
         }
         self.update_fight_skill_target_search(skill_ref, step, target_search_order)?;
