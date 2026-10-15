@@ -578,7 +578,7 @@ bomb `acid`.
 | `team_id` | nullable `UINT32` | the team that created or holds it; null when it has no owner | `RangeItem.GetTeamController()` |
 | `terrain_type` | `UINT8 required` | one of the six native `RangeItemType` | its controller cross-checked against `RangeItem.GetRangeItemType()` |
 | `position` | `QVec3 required` | the centre, or a segment node | `RangeItem.GetPosition()` |
-| `radius` | `INT64 required` | effect radius, Q32.32 raw | `RangeItem.GetRange()` |
+| `radius` | `INT64 required` | nonnegative effect radius, Q32.32 raw; zero remains a controller member | `RangeItem.GetRange()` |
 | `grid` | nullable struct | a grid terrain's origin, size and per-row bit mask | `IsGridMode()` / `GetGridBlock()` |
 | `remaining_rounds` | nullable `UINT32` | cross-round uses left at this boundary | `GetDuration() - get_Round()`, written only for cross-round terrain |
 | `logic_lifetime` | nullable struct | lifetime in logic frames, `{elapsed, limit}` | `RangeItem.time/lifeTime`; `FightGroundFire` uses its own same-named fields |
