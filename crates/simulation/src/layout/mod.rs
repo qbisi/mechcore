@@ -1259,8 +1259,8 @@ pub(crate) struct TechnologyDisable {
     /// which `FightEffectMananger.DisableEffect` switches.
     pub(crate) providers: Vec<EffectProvider>,
     /// The technologies it holds that switch, in the side's order: those
-    /// whose `Technology.CanDisable` answers true, its row's
-    /// `ignoreElectricEffect` unset; the rest it keeps whole. Each one's
+    /// whose `Technology.CanDisable` answers true and whose provider admits
+    /// the source; the rest it keeps whole. Each one's
     /// provider removes its data from the main skill and writes it again
     /// (`SkillDataModifier.RemoveData`, `AddData`), which ends by refreshing
     /// the skill's data (`FightSkill.RefreshDatas`) whether the technology
@@ -1528,25 +1528,40 @@ fn technology_disable(
     let technologies = &loadouts.technologies;
     // Only a technology that `CanDisable` switches: a Centurion's Dual
     // Wield keeps its gun and its range.
-    let held = &technologies.switched(&side.techs.units, type_name);
-    let mut providers = technologies.providers(held, type_name);
-    // SingleEffectProvider.IsAvaliableEffect admits only the selected source:
-    // an equipment shield supersedes the technology and cannot be disabled.
-    if !effects
-        .energy_shield
-        .is_some_and(|source| source.can_disable)
-    {
-        providers.remove(&crate::modifier::EffectProvider::EnergyShield);
+    let mut switched = technologies.switched(&side.techs.units, type_name);
+    let mut providers = technologies.providers(&switched, type_name);
+    // EffectProvider.EnableCheck calls SingleEffectProvider.IsAvaliableEffect:
+    // only Current passes. A superseded technology is not disabled,
+    // including its common data.
+    for (provider, selected_can_disable) in [
+        (
+            EffectProvider::LifeSteal,
+            effects.lifesteal.is_some_and(|source| source.can_disable),
+        ),
+        (
+            EffectProvider::AutoRecovery,
+            effects
+                .auto_recovery
+                .is_some_and(|source| source.priority == 0),
+        ),
+        (
+            EffectProvider::EnergyShield,
+            effects
+                .energy_shield
+                .is_some_and(|source| source.can_disable),
+        ),
+        (
+            EffectProvider::AdvancedEnergyShield,
+            effects
+                .carried_shield
+                .is_some_and(|source| source.priority == 0),
+        ),
+    ] {
+        if !selected_can_disable && let Some(sources) = providers.remove(&provider) {
+            switched.retain(|id| !sources.contains(id));
+        }
     }
-    // The same SingleEffectProvider admission applies to a battlefield
-    // barrier: the selected equipment source has priority 1 and cannot be
-    // disabled; a technology source has priority 0.
-    if effects
-        .carried_shield
-        .is_none_or(|source| source.priority != 0)
-    {
-        providers.remove(&crate::modifier::EffectProvider::AdvancedEnergyShield);
-    }
+    let held = &switched;
     let air_attack = refused
         .hold(technologies.main_skill(held, type_name).map_err(on_side))?
         .air_attack;
