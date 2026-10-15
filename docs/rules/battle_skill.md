@@ -411,6 +411,11 @@ which scores from that facing. It then takes the place of the unit's
   does not turn its body, which `MotionAttackState.AttackRotate` turns to its
   target. A unit that fires all round and has no body, an Overlord or a Wraith,
   turns its root to where it moves rather than to its target.
+- The line/circle overlap keeps the native fixed-point arithmetic order:
+  `FightUtility.CalculateIsDistanceFromPointToLineBiggerThanValue2D` squares
+  the raw cross product and divides by the segment's squared length, then
+  compares with the squared sum of half-width and radius. Projecting to a
+  closest point and measuring its distance is not the same fixed-point test.
 - Under a command `MotionAttackState.Update` does not ask whether the lock
   lives: the command's `IsIdle` and `IsActive` are constants, and the attack
   ends only once its target is out of range. A lock that dies within range
@@ -590,6 +595,9 @@ drawn from any stream, and no event is written.
   range, and does not turn its body as it walks on; what it walks towards
   reaches its agent only on the update before each RVO solve:
   `tests/battle_skill/beacon-wasps.yaml`.
+- A Sabertooth on a beacon stops under the native line/circle test while a
+  projected-distance approximation would keep it moving:
+  `tests/battle_skill/beacon-native-line-overlap.yaml`.
 - Wasps still on a beacon when the fight is won go on moving until it ends:
   `tests/battle_skill/beacon-wasps-won.yaml`,
   `tests/corpus/134270595-r4.yaml`.
@@ -784,6 +792,10 @@ drawn from any stream, and no event is written.
   `MotionAttackState.AttackMove`, `MoveAttackCommand.IsIdle`,
   `MoveAttackCommand.IsActive`, `LineRange.Overlaps`, `FightActor.Distance2D`,
   `FightTransform.Distance2D`.
+- The line/circle test's fixed-point arithmetic:
+  `LineRange.Overlaps`,
+  `FightUtility.CalculateIsDistanceFromPointToLineBiggerThanValue2D`,
+  `FVector2.RawSqrMagnitude`, `FVector2.RawDot`, `FVector2.RawCross`.
 - Without a lock a unit under a command turns to its velocity, attacking or
   moving, and its weapons with it; a cooling's attack target keeps its attack
   in range: `MotionController.CalculateTargetDirection`,

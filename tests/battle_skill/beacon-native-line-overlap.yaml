@@ -1,0 +1,49 @@
+# Mobile Beacon asks LineRange.Overlaps before allowing attack movement.
+# Sabertooth is attacking and walking through 139; its velocity reads zero
+# at 140 and its position stays fixed at 141. A projected-distance
+# approximation misses this stop. Control: beacon-marksman.yaml.
+# Two native recordings agree for every tick and settlement.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1996372872
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_offensive_tactics, fire_badger_specialist]
+  techs:
+    crawler: [subterranean_blitz, acidic_explosion, loose_formation, mechanical_rage, impact_drill, replicate]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [2, 1]
+  units:
+  - {name: crawler, index: 0, position: {x: 340, y: 195}, exp: 450/450/450, equipment: [explosive_ammo]}
+  - {name: fire_badger, index: 1, position: {x: 145, y: -230}, exp: 0/1400/1400, source: delivered}
+  - {name: hacker, index: 2, position: {x: 275, y: -35}, level: 3, exp: 0/1995/1995, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 115, y: -230}}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -250, y: 100}]}
+red:
+  core_damage: 505
+  officers: [advanced_defensive_tactics, advanced_defensive_tactics, extended_range_sabertooth]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -95, y: -295}, level: 3, exp: 2315/2363/4630, rotated: true, equipment: [heavy_armor]}
+  - {name: centurion, index: 1, position: {x: 285, y: -205}, level: 8, exp: 0/120/15137, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 135, y: -265}, retained: false}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: -70, y: -290}, {x: 195, y: 160}, {x: 295, y: 85}]}
+asserts:
+- sql: |-
+    SELECT tick,unit_id,motion_state,position__x,position__z,velocity__x,velocity__z FROM units WHERE unit_id=30 AND tick BETWEEN 139 AND 141 ORDER BY tick
+  rows:
+  - [139, 30, attacking, 291235855911, 1075652424930, -17435799416, -29607961256]
+  - [140, 30, attacking, 290364071113, 1074172035651, 0, 0]
+  - [141, 30, attacking, 290364071113, 1074172035651, 0, 0]
+ticks: 829
+hash: 26:60b57edafde0f575c07555c1c65415fa6d9dba1e6fdee9aad5e074003608b10f
