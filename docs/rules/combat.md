@@ -592,6 +592,10 @@ setting copied into the projectile when it was made. A technology disabled
 while a shell flies can therefore change whether it follows the target.
 Disabling Scorpion Siege Mode turns its already flying shells from fixed
 points to tracking their targets: `tests/technology_disable/in-flight-siege-tracking.yaml`.
+`FightProjectile.Init` stores the launch offset even when tracking is off.
+If a disabling buff later turns tracking on, the projectile adds that original
+offset to its live target's position; it does not converge on the target's
+centre by discarding the offset.
 
 **A projectile keeps the target domain it was created with.**
 `FightProjectile.Init` stores `targetType`, and `GetTargetType` returns that
@@ -1217,6 +1221,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- Scattered projectiles retain their launch offsets when a disabling buff
+  enables tracking in flight:
+  `tests/technology_disable/in-flight-scatter-offset.yaml`.
+
 - A crystal interceptor precedes defensive wall constructions in the initial
   spatial tree, preserving which block a Raiden's chain randomly selects:
   `tests/chain/interceptor-before-wall.yaml`.
@@ -1519,6 +1527,10 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- A projectile stores its launch offset independently of tracking and uses it
+  when current tracking becomes enabled: `FightProjectile.Init`,
+  `FightProjectile.Update`.
 
 - Turning keeps equal-within-tolerance angles and selects the full step on
   a remaining-angle tie: `FightTransform.RotateTo`,
