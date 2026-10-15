@@ -1,0 +1,47 @@
+# A carrier dies with shield energy remaining. Its Barrier still absorbs
+# a projectile during that tick's projectile update, then its death effects
+# deactivate the shield and clear its energy before the snapshot. The shield
+# remains recorded under its old identity and owner. The pin is native.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 145163072
+round: 2
+blue:
+  core_damage: 510
+  officers: [advanced_shield_device, advanced_power_system, marksman_specialist, improved_sandworm]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [3, 1]
+  units:
+  - {name: sandworm, index: 0, position: {x: -50, y: -270}, level: 3, exp: 7124/7124/7124, rotated: true, equipment: [barrier]}
+  - {name: marksman, index: 1, position: {x: 170, y: -270}, level: 3, exp: 0/34/2315, source: delivered}
+  - {name: scorpion, index: 2, position: {x: -45, y: -165}, level: 6, exp: 0/3170/8698, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -70, y: -140}}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: 115, y: -5}, {x: 180, y: 160}, {x: 110, y: -95}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_targeting_system, marksman_specialist, improved_sandworm]
+  techs:
+    sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 1]
+  units:
+  - {name: sandworm, index: 0, position: {x: -260, y: -40}, level: 7, exp: 12593/12593/12593, rotated: true, equipment: [mustang_production_line]}
+  - {name: marksman, index: 1, position: {x: -130, y: -70}, level: 3, exp: 0/1700/2315, source: delivered}
+  - {name: hound, index: 2, position: {x: 10, y: -200}, level: 8, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -235, y: -185}}
+  battle_skills:
+  - {name: orbital_javelin, positions: [{x: 280, y: -310}]}
+ticks: 519
+hash: 25:f0a26767f27f8c44e0ac32c89712543cff407640e97221e88bbf6540f24ea542
+asserts:
+- sql: SELECT tick,shield_id,active,energy__current,active_order FROM shields WHERE shield_id=2 AND tick IN (379,380,381) ORDER BY tick
+  rows: [[379, 2, 1, 24318, 1], [380, 2, 0, 0, null], [381, 2, 0, 0, null]]
+- sql: SELECT tick,ordinal,type,object__kind,object__id,source__kind,source__id,target__kind,target__id,absorbed_by__kind,absorbed_by__id,skill_slot,amount FROM events WHERE tick=380 AND (target__id=2 OR object__id=2 OR object__id=140) ORDER BY ordinal
+  rows: [[380, 1, damage, null, null, unit, 4, unit, 2, null, null, 0, 61064], [380, 2, damage, projectile, 140, unit, 11, shield, 2, null, null, 0, 36], [380, 3, projectile_removed, projectile, 140, unit, 11, unit, 2, shield, 2, null, null], [380, 4, unit_died, unit, 2, unit, 4, null, null, null, null, null, null]]

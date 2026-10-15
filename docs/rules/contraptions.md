@@ -226,7 +226,10 @@ the radius and energy its lists give its unit's level
 Fortress, 50 and 16000 for the Hacker. Either is among its side's shields at
 the fight's start, where the unit stands.
 It stands where its owner stands, moved as the owner moves, and once the owner
-dies it stays where it last stood, still naming it. A hit that empties a shield
+dies it stays where it last stood, still naming it, but its death effects
+deactivate the shield and clear its energy. The projectile update precedes
+those death effects, so a projectile on the carrier's death tick can still
+hit its shield. A hit that empties a shield
 with an owner deactivates it rather than destroying it: it stays on the board,
 recorded inactive with no energy, shields nothing, and no `shield_destroyed`
 is written. The Barrier's shield neither recovers nor refills. A buff that
@@ -281,6 +284,10 @@ kind ends its own way:
 ## Evidence
 
 ### Recorded
+
+- A carried Barrier with energy left absorbs a projectile on its owner's
+  death tick, then deactivates and clears its energy while retaining its
+  identity and owner: `tests/shield/carrier-dies-with-energy.yaml`.
 
 - A Lightning Storm sub-effect whose outer point has a negative wrapped
   squared distance strikes the shield and leaves its covered Steel Ball
@@ -522,6 +529,10 @@ kind ends its own way:
   `DamagePerformer.PerformHitAdvancedEndergyShieldEffect` calls
   `AdvancedEnergyShieldSystem.DeactiveEnergyShield` for an emptied shield
   with an owner and `AdvancedEnergyShieldSystem.Destroy` for one without.
+  Owner death reaches `AdvancedEnergyShieldProvider.DoDeactive` through
+  `FightEffectSystem.DeactiveEffect`; `FightEnergyShield.Deactive` clears
+  energy and activity. `FightController.AddModules` puts `ProjectileSystem`
+  before `DeadEffectSystem`.
 - Barrier the technology: `AdvancedEnergyShieldTech.GetRadius` and
   `GetShieldValue` read `AdvancedEnergyShieldTechData.radius` and
   `shieldValues` by `TechnologyData.GetLevelValue`. Switched off and on:
