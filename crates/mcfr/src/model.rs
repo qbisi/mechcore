@@ -449,9 +449,9 @@ impl WorldSnapshot {
             .map(|unit| unit.unit_id)
             .collect::<BTreeSet<_>>();
         for terrain in &self.terrains {
-            if terrain.radius <= 0 {
+            if terrain.radius < 0 {
                 return Err(Error::invalid(format!(
-                    "terrain {} radius must be positive",
+                    "terrain {} radius must be nonnegative",
                     terrain.terrain_id
                 )));
             }

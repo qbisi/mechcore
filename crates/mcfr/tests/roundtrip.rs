@@ -531,6 +531,33 @@ fn writer_rejects_terrain_created_source() {
 }
 
 #[test]
+fn zero_radius_terrain_round_trips_and_negative_radius_is_rejected() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("zero-radius.mcfr");
+    let mut snapshot = state(100);
+    snapshot.terrains[0].radius = 0;
+    snapshot.terrains[0].terrain_type = TerrainType::Fire;
+    snapshot.terrains[0].grid = None;
+    snapshot.terrains[0].logic_lifetime = None;
+    snapshot.terrains[0].remaining_rounds = None;
+    snapshot.terrains[0].applications.clear();
+    let events = TransitionEvents { events: Vec::new() };
+    let hashes = write_fight(
+        &path,
+        "build-a",
+        &context(),
+        snapshot.clone(),
+        snapshot.clone(),
+        &events,
+    );
+    let reader = McfrReader::open(&path).unwrap();
+    assert_eq!(reader.state(1).unwrap(), snapshot);
+    assert_eq!(reader.hashes(), &hashes);
+    snapshot.terrains[0].radius = -1;
+    assert!(snapshot.object_keys().is_err());
+}
+
+#[test]
 fn terrain_events_round_trip() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("terrain-events.mcfr");
