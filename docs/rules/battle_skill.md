@@ -452,6 +452,10 @@ less its radius, is within 20 m of the point. After the last segment the command
 ends and the unit returns to `AutoMoveBehaviour` where it stands. Nothing is
 drawn from any stream, and no event is written.
 
+Exiting the fight cancels a unit's command. A unit that dies on a beacon and
+returns through Field Reassembly resumes `AutoMoveBehaviour` rather than
+continuing its old path.
+
 ## Names
 
 <!-- names: commander_skills -->
@@ -598,6 +602,9 @@ drawn from any stream, and no event is written.
 - A Sabertooth on a beacon stops under the native line/circle test while a
   projected-distance approximation would keep it moving:
   `tests/battle_skill/beacon-native-line-overlap.yaml`.
+- A Typhoon that dies on a beacon returns through Field Reassembly without
+  its old movement command:
+  `tests/battle_skill/beacon-reassembled-typhoon.yaml`.
 - Wasps still on a beacon when the fight is won go on moving until it ends:
   `tests/battle_skill/beacon-wasps-won.yaml`,
   `tests/corpus/134270595-r4.yaml`.
@@ -786,6 +793,9 @@ drawn from any stream, and no event is written.
   `MoveAttackCommand.RefreshCurrentTargetInfo`, `MoveAttackCommand.Perform`,
   `MoveAttackCommand.IsEnableAttackMove`,
   `MoveAttackCommand.CalculateMoveLineRange`, `MotionController.Move`.
+- A unit exiting the fight cancels its beacon command and restores auto
+  movement: `FightMech.ExitFight`, `PilotAI.ExitFight`, `MechCommand.Cancel`,
+  `MotionController.ChangeToAutoMove`.
 - A unit attacking under a command walks on or stops, turns to its target and
   leaves the attack only once its target is out of range; how near and how far
   an enemy stops it: `MotionAttackState.Update`, `MotionAttackState.AttackRotate`,

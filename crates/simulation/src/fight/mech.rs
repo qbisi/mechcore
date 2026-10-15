@@ -376,6 +376,7 @@ impl Actor {
         self.motion.published_target_x_q32 = self.x_q32;
         self.motion.published_target_z_q32 = self.z_q32;
         self.motion.published_speed_q32 = 0;
+        self.exit_pilot();
     }
 
     /// The motion and visibility of `FightMech.ExitFight`, after the tick's
@@ -399,7 +400,14 @@ impl Actor {
         }
         // `FightMech.ExitFight` resets `ActorVisibility` after the motion
         // exits, including an idle unit whose move ability was not cleared.
+        self.exit_pilot();
         self.visibility = Visibility::Normal;
+    }
+
+    /// `PilotAI.ExitFight` cancels its command and restores auto movement.
+    /// Rebirth therefore enters without the path held before death.
+    fn exit_pilot(&mut self) {
+        self.command = None;
     }
 
     /// The motion when the skill lets its target go. `AutoMoveBehaviour` is
