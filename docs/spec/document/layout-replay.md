@@ -11,10 +11,11 @@ writes it, `convert <layout.yaml> --to mcfr --backend game <out.mcfr>` writes on
 It rests on one property of the game's replay: a round opens from the
 `PlayerRoundRecord` snapshot that record keeps for it, not from the rounds
 before it, and the round's recorded decisions are then played on it. So a
-layout is a replay whose layout round opens from a snapshot of the layout's
-side and whose decisions are the ones a layout states as made this round: the
-battle skills it releases, the Energy Tower skills it activates, the units
-that join the side during the round, and the moves that put units in place.
+layout is a replay whose layout round opens from a snapshot and applies the
+commands needed to restore the layout's projected fight state. It preserves
+the units' sources, experience and travelling membership, the battle skills
+released this round, and the Energy Tower skills activated. It reconstructs
+the stated position, not the deployment history that produced it.
 
 This document defines what such a file states. It is not a definition of the
 `.grbr` format, which is the game's: a layout replay is one file the game
@@ -82,8 +83,10 @@ equipment it wears, `Level` counted from 0 where a layout counts from 1, and
 `Exp`, the experience within its level. A synthetic first-round legacy unit
 stores native `RoundCount=1`: `MechTeam.IsOldUnit` requires a positive count,
 and first-round loading does not age the snapshot. Later rounds store zero
-and their entry ages it before combat. Joined units are added by the round's
-actions and retain their native new-unit state.
+and their entry ages it before combat. A non-positive snapshot count does not
+prevent that ageing. Joined units are therefore added by the round's actions
+and retain their native new-unit state; their experience restoration is
+described below.
 
 The panel holds one slot per battle skill the layout releases, in release
 order, each ready this round. After them it holds one slot per standing
@@ -93,9 +96,12 @@ restore: a
 Shield Airdrop as one centre with no lifetime, and an oil area as the release's
 two control points, the points still standing as a `ByteMask`, each standing
 point's `12 x 12` grid or nothing for a whole one, and one round left. Red's
-grids are turned half a turn, as its coordinates are. Last, when the round
+grids are turned half a turn, as its coordinates are. Next, when the round
 recovers a delivered squad, it holds a Field Recovery slot, ready, which moves
-no other slot.
+no other slot. Finally it holds one ready Intensive Training slot per
+joining or delivered unit whose full experience bar must be restored, in unit
+index order, with `isActive=false` and `coolingRound=0`. These auxiliary slots
+do not change the fight's skill indices.
 
 ## The round's decisions
 
@@ -103,14 +109,17 @@ The layout round's `actionRecords` hold, in this order:
 
 1. each squad the layout lists in `recovered` recovered from the Field
    Recovery slot, by its index;
-2. each delivered squad upgraded to its layout level, fitted, and moved to its
-   layout position and facing;
-3. each unit that joins during the round, in index order, added, fitted, and
+2. each delivered squad upgraded to its layout level, fitted, trained when
+   needed, and moved to its layout position and facing;
+3. each travelling legacy unit's position and travelling membership restored
+   by the native forced undo command described below;
+4. each unit that joins during the round, in index order, added, fitted,
+   trained when needed, and
    moved to its layout position and facing;
-4. each Energy Tower skill activated;
-5. each battle skill released from its slot, at its positions, in the layout's
+5. each Energy Tower skill activated;
+6. each battle skill released from its slot, at its positions, in the layout's
    order, which is the order its side's skills draw their scatter in;
-6. `PAD_FinishDeploy`, when any decision precedes it.
+7. `PAD_FinishDeploy`, when any decision precedes it.
 
 A unit's `source` says where the round takes it from. A `legacy` unit the
 snapshot holds; a `delivered` squad an officer delivers; a `joined` unit is
@@ -121,11 +130,20 @@ side's seat, 0 for blue and 1 for red, the unit's type, its layout level and
 its index, and asks for no fixed position in the side's main deployment area:
 region 1 of blue's territory and 4 of red's. The game places it there, and the
 move takes it to its layout position. A move onto a flank from another region
-is what makes a unit travel. A legacy unit does not move, since it came from
-an earlier round, and a settled flank unit is one, but for a travelling one,
-which something frees to move: a Deployment Module it wears or its type's Jump Drive. The snapshot holds it at the same place on
-the other flank, and the round's move onto its own flank makes it travel, as
-the match's move across did; the fight does not read where it came from.
+is what makes a joining unit travel. A settled legacy unit stays where the
+snapshot put it. For a travelling legacy unit the snapshot holds it at the
+same place on the other flank, and a `PAD_TestCommand` carries `MAD_MoveUnit`
+to its stated position with `IsForce=true`, `IsUndo=true`, and
+`MoveUnitData.superDeployRecord=true`. The native undo path restores that
+travelling membership when regions differ; the forced check permits the
+restoration regardless of deployment mobility. A layout need not state which
+skill or modifier made its position reachable in a match.
+
+A newly created unit starts with zero experience. When its layout states a
+full bar below level 9, a ready Intensive Training slot restores that bar
+after any upgrades and before the move. A partial bar or nonzero experience
+at level 9 cannot be restored this way and is refused. Legacy units read
+their experience directly from the snapshot, with no training restriction.
 
 The snapshot's allocator is where the round opened it: the first delivered or
 recovered squad's index when an officer delivers one, since the delivery takes
@@ -141,8 +159,8 @@ joining unit already holds.
 A squad an officer's schedule hands out as the round opens arrives on top of
 the snapshot, so the snapshot does not hold it again. The allocator opens at
 its index, which the delivery takes. The layout's `delivered` unit is the
-squad, of its type, at its level or above and without experience, and its
-decisions upgrade, fit and move it. A squad the layout lists in `recovered`
+squad, of its type, at its level or above, and its
+decisions upgrade, fit, restore experience when needed, and move it. A squad the layout lists in `recovered`
 was recovered before the fight, and a decision recovers it by that index,
 which the game's own replay of the round agrees with tick for tick. Each
 officer whose `opening_unit` the round activates delivers one squad, which
@@ -157,16 +175,16 @@ and the refusal names each part:
 
 - no seed;
 - two officers that each deliver a squad as the round opens;
-- a delivered unit that is not of the delivering officer's squad's type, below
-  its level, or with experience;
+- a delivered unit that is not of the delivering officer's squad's type or below
+  its level;
 - an officer that delivers a squad as the round opens and no delivered unit
   or recovered index for it, or a delivered unit or recovered index with no
   officer delivering one;
 - an officer that delivers a squad as the next round opens, beside joining
   units that skip an index, since they leave the allocator behind them;
-- a unit that joins during the round with experience, since a round's
-  decisions hand out none;
-- a travelling legacy unit that nothing frees to move;
+- a joining or delivered unit with nonzero experience that is not a full bar
+  below level 9, since its source prevents snapshot restoration and Intensive
+  Training cannot restore that bar;
 - a technology no unit owns.
 
 ## Normal form
