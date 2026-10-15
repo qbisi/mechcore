@@ -243,7 +243,7 @@ impl Simulation {
                 self.start_projectile_burst(skill_ref, pending.target, pending.step, events)?;
             }
             SkillKind::ControlBeam => {
-                self.control_effect(skill_ref, 0, pending.target, events)?;
+                self.control_effect(skill_ref, 0, events)?;
             }
         }
         self.finish_attacking(skill_ref);

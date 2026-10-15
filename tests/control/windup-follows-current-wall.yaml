@@ -1,0 +1,65 @@
+# Multi Control's fourth beam acquires a wall while its blow winds up.
+# At t124 its lock remains Crawler 32 but its current attack target is wall
+# 4. DamageEffect strikes the wall for 39; the Crawler keeps 2002 maximum
+# life and receives no Electromagnetic Interference from this hit. Reusing
+# the earlier release target damaged the Crawler and disabled its technology.
+# The full generated battle repeats all 1006 ticks and settles blue 0 / red
+# 102. Control: grouped-windup-count.yaml pins grouped beam wind-up counts.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 2096329209
+round: 2
+blue:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, fortified_specialist]
+  techs:
+    crawler: [subterranean_blitz, acidic_explosion, loose_formation, mechanical_rage, impact_drill, replicate]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [1, 3]
+  units:
+  - {name: crawler, index: 0, position: {x: -75, y: -200}, level: 5, exp: 0/2345/2345, equipment: [super_heavy_armor], source: joined}
+  - {name: mustang, index: 1, position: {x: 165, y: -250}, level: 9, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -185, y: -125}}
+  battle_skills:
+  - {name: nuke, positions: [{x: 5, y: 50}]}
+red:
+  core_damage: 102
+  officers: [advanced_shield_device, advanced_offensive_tactics, fortified_specialist]
+  techs:
+    hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement, multi_control]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [1, 3]
+  units:
+  - {name: hacker, index: 0, position: {x: 185, y: -25}, exp: 280/280/560, rotated: true, equipment: [portable_shield]}
+  - {name: sandworm, index: 1, position: {x: -40, y: -100}, level: 4, exp: 0/7632/8981, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -110, y: -100}, retained: false}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: -25, y: -260}]}
+asserts:
+- sql: |-
+    SELECT tick,source__id,target__kind,target__id,amount,skill_slot FROM events WHERE tick=124 AND type='damage' AND source__id=37 ORDER BY ordinal
+  rows:
+  - [124, 37, "building", 4, 39, 3]
+  - [124, 37, "shield", 1, 39, 4]
+- sql: |-
+    SELECT tick,unit_id,skill_slot,enabled__lock_target__id,enabled__attack_target__kind,enabled__attack_target__id FROM units__skills WHERE unit_id=37 AND skill_slot=3 AND tick BETWEEN 122 AND 124 ORDER BY tick
+  rows:
+  - [122, 37, 3, 32, "building", 4]
+  - [123, 37, 3, 32, "building", 4]
+  - [124, 37, 3, 32, "building", 4]
+- sql: |-
+    SELECT tick,unit_id,life__current,life__maximum FROM units WHERE unit_id=32 AND tick BETWEEN 123 AND 124 ORDER BY tick
+  rows:
+  - [123, 32, 2002, 2002]
+  - [124, 32, 2002, 2002]
+ticks: 1006
+hash: 26:2ee39dd2fe03b8a6e0065e0c62fcf5cf535516a123e30027b09d05c0e26f4125

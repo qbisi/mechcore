@@ -35,9 +35,10 @@ damage times `DAMAGE_MODIFIER`, three tenths in `FPoint`, rounded down. A full
 hit deals 179, and a warmup hit nothing: a hit that deals nothing strikes
 nothing and writes no damage. The effect is its own skill's damage effect: a
 beam of Multi Control strikes a building with its row's damage and records
-it under its own slot. Read from
-the build (`FightControllBeamSkill.GetAttackEffect` is the class's, the extra
-row's beams among it); no recording holds it. The main skill's splashes as
+it under its own slot. `DamageEffect.Perform` reads the skill's current
+attack target, falling back to its lock when that target is absent: a wall
+acquired during a beam's wind-up takes its hit in place of the unit first
+locked, including for a grouped beam. The main skill's splashes as
 the skill does: Explosive Ammo gives it 5 metres, and one hit
 strikes every unit around the one it is on. A hit that turns strikes nothing,
 and its splash nothing either; but after it adds its power, the unit it is on
@@ -207,6 +208,9 @@ the shield does not count against the turn.
 
 ### Recorded
 
+- A grouped Hacker beam whose attack target changes to a wall during its
+  wind-up damages that wall without hitting or disabling its unit lock:
+  `tests/control/windup-follows-current-wall.yaml`.
 - Absorption Module heals a Hacker from its control beam's power even though
   control took no life: `tests/lifesteal/absorption-module-control.yaml`.
 
@@ -322,6 +326,9 @@ the shield does not count against the turn.
 
 ### Read
 
+- A normal performer's effect receives the skill rather than a cached target;
+  the damage effect reads its current attack target, or its lock when absent:
+  `NormalAttackPerformer.TryPerformEffect`, `DamageEffect.Perform`.
 - A control hit dispatches its power through the shared skill hit effects:
   `ControllEffect.Perform`, `FightSkill.DispatchHitDamageEvent`,
   `LifeStealEffectProvider.GameRiver.Fight.IHitEffectPerformer.PerformHitEffect`.

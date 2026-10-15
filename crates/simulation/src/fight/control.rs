@@ -246,7 +246,6 @@ impl Simulation {
         &mut self,
         skill_ref: SkillRef,
         offset: usize,
-        target: FightActorRef,
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let actor_id = skill_ref
@@ -258,6 +257,11 @@ impl Simulation {
         let (attack_count, lock, beam) = (skill.attack_count, skill.lock_target, skill.beam);
         let damage = self.beam_damage(skill_ref, attack_count);
         if !beam.is_some_and(|beam| beam.control) {
+            // `DamageEffect.Perform` reads the skill's current attack target,
+            // falling back to its lock, after the wind-up's target checks.
+            let Some(target) = skill.attack_target().or(lock) else {
+                return Ok(());
+            };
             // A hit that deals nothing strikes nothing: the warmup hits on a
             // unit wearing the Anti-Interference Module write no damage.
             let amount = damage_effect(damage);
