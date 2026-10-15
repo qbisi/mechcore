@@ -92,6 +92,12 @@ Marksman's radius: of Crawlers charging one Marksman, the ones in front are
 sent to its centre and the ones behind to a point just off it, the side each
 falls on decided by that comparison.
 
+Avoidance's sampled trace sets its iteration step from the unit's outer
+radius and one fifth of its desired speed, using the build's tolerant
+maximum. When the two differ by at most 43 raw Q32 units, the speed term
+wins even when slightly smaller. Its solved movement is published at the
+next four-tick avoidance boundary.
+
 ## A kill the quick switch cannot follow
 
 A unit that switches targets quickly, as the Marksman does, takes a new target
@@ -1227,6 +1233,9 @@ not the game's native attack-type enum.
   `tests/corpus/268487043-r4.yaml`; in replay 134270595 round 4 the
   back row of a Fang formation faced 270 degrees and its other rows 0, read
   from `PresearchTargetController.SearchTarget` with a temporary hook.
+- A Steel Ball's avoidance trace selects the slightly smaller speed term
+  within tolerance and publishes the resulting velocity four ticks later:
+  `tests/avoidance/trace-step-tolerance.yaml`.
 - An idle Marksman an RVO solve nudges while it cools goes back to the point
   it stopped at: `tests/corpus/201373545-r2.yaml`, ticks 1112 to 1121.
 - A tick that leaves neither side a unit, with no shot in the air, fells all
@@ -1415,6 +1424,10 @@ not the game's native attack-type enum.
   `tests/projectile/keeps-domain-when-target-takes-off.yaml`.
 
 ### Read
+
+- Avoidance trace step-size ties use the speed term, and the next boundary
+  publishes the solve: `GRPF.RVO.Sampled.Agent.Trace`, `FPoint.Max`,
+  `FPoint.op_GreaterThan`, `GRPF.RVO.Sampled.Agent.BufferSwitch`.
 
 - A target on the unit's own position is at angle 0 and is not turned to:
   `SkillAttackAngleChecker.IsAttackTargetInAttackAngle`,

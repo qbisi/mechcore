@@ -303,6 +303,12 @@ step      = remaining^2 * step_size
 point    += normalize(gradient) * step
 ```
 
+The step-size maximum is native `FPoint.Max`, including its tolerance and
+second-operand tie rule. A radius of six metres and one fifth of a thirty
+metres-per-second desired speed differ by six raw units, so the speed term
+wins even though it is slightly smaller (`tests/avoidance/trace-step-tolerance.yaml`).
+An integer maximum changes the trace and the velocity published four ticks later.
+
 The first evaluation becomes the incumbent unconditionally. After that, only a
 score lower by at least 44 raw replaces it. The gradient score is the sum of:
 

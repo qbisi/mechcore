@@ -875,9 +875,12 @@ fn trace(
     mut point: FixedVec2,
     desired_velocity: FixedVec2,
 ) -> (FixedVec2, i64) {
-    let step_size = agent
-        .radius_outer
-        .max(q32_mul(TRACE_SPEED_WEIGHT, agent.desired_speed));
+    // Native Max returns the speed term within tolerance, even when it is
+    // six raw smaller than a Steel Ball's radius (trace-step-tolerance.yaml).
+    let step_size = fpoint_max(
+        agent.radius_outer,
+        q32_mul(TRACE_SPEED_WEIGHT, agent.desired_speed),
+    );
     // Native Trace establishes its incumbent from the first evaluated point.
     // Starting from the raw integer maximum and routing that sentinel through
     // FPoint.op_LessThan is not equivalent: a negative first score wraps the
