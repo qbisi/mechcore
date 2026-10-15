@@ -1,0 +1,83 @@
+# A crystal interceptor registers before wall constructions in the target tree.
+# The complete generated fight's blue activeActors list holds its fixed towers,
+# deployed units, interceptor and then wall blocks. MCFR numbers the interceptor
+# after the walls. Sorting these Special buildings by recording ID changes the
+# split tree's candidate order: Raiden 14 chains from destroyed wall 4 to wall 6
+# at t6 instead of wall 5, despite identical side RNG state. Native repeats 820
+# ticks and blue/red core damage 358/0; the old simulator answered 544/0 in 873.
+# Control: chain-through-defensive-wall.yaml (construction jumps without this
+# crystal interceptor in the same target tree).
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1894145455
+round: 1
+blue:
+  core_damage: 358
+  officers: [advanced_offensive_tactics]
+  techs:
+    abyss: [photon_coating]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: abyss, index: 0, position: {x: 75, y: -85}, level: 7, exp: 0/21312/30223, rotated: true, source: joined}
+  - {name: wasp, index: 1, position: {x: 35, y: -210}, level: 3, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 155, y: -65}}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: 225, y: 15}, {x: -80, y: 30}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_offensive_tactics, aerial_specialist]
+  techs:
+    raiden: [energy_shield, electromagnetic_shot, chain, ionization, range_enhancement, fork]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: raiden, index: 0, position: {x: 160, y: -30}, level: 7, exp: 0/12345/15111, equipment: [mustang_production_line], source: joined}
+  - {name: mountain, index: 1, position: {x: 115, y: -115}, level: 7, exp: 0/9/20148, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -75, y: -155}}
+  battle_skills:
+  - {name: missile_strike, positions: [{x: -35, y: -170}]}
+asserts:
+- sql: |-
+    SELECT tick,source__id,skill_slot,target__id,amount FROM events WHERE type='damage' AND source__id=14 AND target__kind='building' AND tick<=6 ORDER BY tick,ordinal
+  rows:
+  - [2, 14, 0, 4, 1112]
+  - [6, 14, 0, 5, 1112]
+- sql: |-
+    SELECT tick,building_id FROM buildings WHERE building_id BETWEEN 3 AND 7 AND tick BETWEEN 1 AND 6 ORDER BY tick,building_id
+  rows:
+  - [1, 3]
+  - [1, 4]
+  - [1, 5]
+  - [1, 6]
+  - [1, 7]
+  - [2, 3]
+  - [2, 5]
+  - [2, 6]
+  - [2, 7]
+  - [3, 3]
+  - [3, 5]
+  - [3, 6]
+  - [3, 7]
+  - [4, 3]
+  - [4, 5]
+  - [4, 6]
+  - [4, 7]
+  - [5, 3]
+  - [5, 5]
+  - [5, 6]
+  - [5, 7]
+  - [6, 3]
+  - [6, 6]
+  - [6, 7]
+ticks: 820
+hash: 26:2bccfc80dead75d0857d92e5a91eca038dee457fc8705ca15635690ced9b7b8d

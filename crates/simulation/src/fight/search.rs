@@ -458,7 +458,7 @@ pub(in crate::fight) fn initialize_mech_quadtrees(
 pub(in crate::fight) fn initialize_target_quadtrees(
     actors: &BTreeMap<u64, Actor>,
     buildings: &[BuildingState],
-    constructions: &BTreeMap<u64, i32>,
+    crystals: &BTreeSet<u64>,
 ) -> BTreeMap<u32, TargetActorQuadtree> {
     let teams = actors
         .values()
@@ -477,8 +477,15 @@ pub(in crate::fight) fn initialize_target_quadtrees(
             .collect::<Vec<_>>();
         let (mut team_constructions, towers): (Vec<_>, Vec<_>) = team_buildings
             .into_iter()
-            .partition(|building| constructions.contains_key(&building.building_id));
-        team_constructions.sort_by_key(|building| building.building_id);
+            .partition(|building| building.building_type_id == CONSTRUCTION_BUILDING_TYPE);
+        // Crystal contraptions register before constructions, even though
+        // MCFR assigns their building identities after the construction IDs.
+        team_constructions.sort_by_key(|building| {
+            (
+                !crystals.contains(&building.building_id),
+                building.building_id,
+            )
+        });
         let insert_building = |tree: &mut TargetActorQuadtree, building: &BuildingState| {
             tree.insert(
                 FightActorRef::Building(building.building_id),
@@ -488,9 +495,13 @@ pub(in crate::fight) fn initialize_target_quadtrees(
             );
         };
         // `FightTeam.CreateQuadtree` takes `activeActors` in their order: the
-        // towers, then the units, then the constructions. A construction no
-        // unit searches for is still in the tree: the selector passes it
-        // over, and a splash takes it where it stands in the tree's order —
+        // fixed towers, then units, contraptions and constructions. An
+        // interceptor is a Special building registered before the walls;
+        // sorting all Special buildings by recording ID instead changes a
+        // split's element order and a chain's random candidate selection.
+        // A construction no unit searches for is still in the tree: the
+        // selector passes it over, and a splash takes it where it stands in
+        // the tree's order —
         // an Arclight's shot at a block of a wall reads its damage on the
         // block between the Crawlers around it.
         for building in towers {
