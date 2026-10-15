@@ -511,18 +511,19 @@ impl Simulation {
                 .is_some_and(|pending| step <= pending.step)
     }
 
-    /// `AttackPerformer.Update` interrupts a normal performer when its lock
-    /// is hidden, even while its attack target is a live wall. Self-splash
-    /// ignores invalid locks (`NormalAttackPerformer.IsInterruptedByInvalidTarget`),
-    /// and a battlefield shield remains a valid target for the performer.
-    pub(in crate::fight) fn normal_attack_interrupted(
+    /// `AttackingController.Update` interrupts the first perform when its
+    /// lock is hidden, even while its attack target is a live wall. The base
+    /// performer interrupts, as does a multi-projectile performer before
+    /// its first release. A normal self-splash and a sweep override that
+    /// policy, and a target shield permits the perform to continue.
+    pub(in crate::fight) fn attack_start_interrupted(
         &self,
         skill_ref: SkillRef,
         slot: Option<usize>,
     ) -> bool {
         let skill = self.skill(skill_ref).group_skill(slot.unwrap_or(0));
-        !matches!(skill.kind, SkillKind::Projectile | SkillKind::Sweep)
-            && !self.skill_rules(skill_ref).self_splash
+        skill.kind != SkillKind::Sweep
+            && (skill.kind == SkillKind::Projectile || !self.skill_rules(skill_ref).self_splash)
             && skill.shield_target().is_none()
             && skill.lock_target.is_some_and(|lock| {
                 self.fight_actor(lock)

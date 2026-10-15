@@ -95,13 +95,18 @@ A burst still releasing at the block goes on at it, and the unit with it, still
 attacking and turning to its lock: only a dead lock stops the motion of a
 unit whose burst lost its target.
 
-A normal attack also asks the validity of its lock before its effect runs,
+A perform also asks the validity of its lock before its effect runs,
 not only the block it is firing at. A hidden lock interrupts the effect even
-while the block lives; a self-splash or a battlefield shield does not take
-this interruption (`AttackPerformer.Update`,
+while the block lives. This includes a projectile performer's first release;
+a multi-projectile burst already releasing continues. A normal self-splash,
+a sweep or a battlefield shield does not take this interruption
+(`AttackPerformer.Update`, `AttackPerformer.IsInterruptedByInvalidTarget`,
+`ProjectileMultiAttackPerformer.IsInterruptedByInvalidTarget`,
 `NormalAttackPerformer.IsInterruptedByInvalidTarget`). A Crawler locked on
 an underground Sandworm enters its backswing without damaging the wall:
 `tests/construction/hidden-lock-interrupts-wall-hit.yaml`.
+A Mustang similarly counts its blow without releasing a projectile:
+`tests/construction/hidden-lock-interrupts-projectile-wall-hit.yaml`.
 
 Only a unit whose skill is attacking has an attack to finish. A unit closing on
 a block by its motion, its skill still idle, goes straight on to what is
@@ -297,6 +302,10 @@ The map's own buildings are the exception and are named: each side gets one
 
 ### Recorded
 
+- A projectile blow counts without emitting a projectile at a live wall
+  when its unit lock is hidden:
+  `tests/construction/hidden-lock-interrupts-projectile-wall-hit.yaml`.
+
 - A fusillade sibling keeps its unit lock when the core's wall allocation
   returns no block, then continues checking the blocker in its own line:
   `tests/construction/fusillade-unallocated-wall-keeps-lock.yaml`.
@@ -361,6 +370,12 @@ The map's own buildings are the exception and are named: each side gets one
   `tests/construction/standalone-shield-wall-burst.yaml`.
 
 ### Read
+
+- A performer checks its lock before performing and permits a target shield;
+  ordinary projectiles interrupt while a burst already releasing and a sweep
+  do not: `AttackPerformer.Update`, `AttackPerformer.IsInterruptedByInvalidTarget`,
+  `ProjectileMultiAttackPerformer.IsInterruptedByInvalidTarget`,
+  `SweepAttackPerformer.IsInterruptedByInvalidTarget`.
 
 - A placement creates one object per count, each a building of its own:
   `FightConstructionSystem.Create`,

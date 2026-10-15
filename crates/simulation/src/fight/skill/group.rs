@@ -562,7 +562,7 @@ impl Simulation {
         if self.skill_rules(skill_ref).attack_point_time_units() > 0 {
             return self.wind_up_group_slot(skill_ref, skill_index, target, step);
         }
-        if self.normal_attack_interrupted(skill_ref, Some(skill_index)) {
+        if self.attack_start_interrupted(skill_ref, Some(skill_index)) {
             self.refresh_group_skill_attack_interval(skill_ref, skill_index, step)?;
             let sibling = self.skill_mut(skill_ref).sibling_mut(skill_index);
             sibling.attack_count += 1;
@@ -729,7 +729,7 @@ impl Simulation {
         let sibling = self.skill_mut(skill_ref).sibling_mut(skill_index);
         sibling.set_pending(None);
         sibling.attack_count += 1;
-        if !self.normal_attack_interrupted(skill_ref, Some(skill_index)) {
+        if !self.attack_start_interrupted(skill_ref, Some(skill_index)) {
             self.control_effect(skill_ref, skill_index, target, events)?;
         }
         self.skill_mut(skill_ref)
