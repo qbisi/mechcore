@@ -682,6 +682,10 @@ fell, or where its pilot flies, facing as the Phoenix it rises behind
 side, its technologies' effects active again
 (`FightEffectSystem.ActiveEffect`), and every skill's interval drawn again
 and its attack time at it, so its first blow is due (`FightMech.EnterFight`).
+Every skill left its old attack state as the owner died, including extra
+weapons (`SkillManager.ExitFight`, `FightSkill.ExitFight`), so an extra
+weapon returns idle with no old lock or attack counts, and its next blow
+is ready with the newly drawn interval rather than its old deadline.
 Its avoidance agent is made again (`MotionController.EnterFight`,
 `RVOControllerFixed.Active`), as a landing unit's is: the first tree built
 after reads it at zero, and its first solve takes no speed unless entering a
@@ -1687,6 +1691,10 @@ derive (a minimum range):
 
 ### Recorded
 
+- Air Defense Mark exits with its Typhoon and returns idle and ready after
+  Field Reassembly, firing again before its old deadline:
+  `tests/rebirth/secondary-skill-reenters-ready.yaml`.
+
 - Photon Coating starts on arrival despite an EMP disabling the same unit's
   technology buff controllers:
   `tests/equipment_buff/photon-coating-arrives-with-disabled-tech.yaml`.
@@ -2087,6 +2095,11 @@ derive (a minimum range):
   `tests/fire_intensify/fire_badger-marksman.yaml`.
 
 ### Read
+
+- Death exits every skill before rebirth enters them again:
+  `FightMech.OnDead`, `FightMech.ExitFight`, `SkillManager.ExitFight`,
+  `FightSkill.ExitFight`, `SkillManager.EnterFight`, `FightSkill.EnterFight`,
+  `FightSkill.RefreshAttackInterval`.
 
 - Melee-mode technologies: `MeleeModeEffectSystem.AddOwner`, `AddMeleeSkill`,
   `UpdateMainSkillAmmoCapacity`, `HasIncompatibleSkill`, `OnMeleeSkillActive`,
