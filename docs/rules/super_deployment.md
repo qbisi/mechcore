@@ -127,6 +127,10 @@ from the arrival.
 
 ### Recorded
 
+- A travelling unit wearing Photon Coating activates its buff controller
+  on arrival, and an existing EMP does not disable that equipment source:
+  `tests/equipment_buff/photon-coating-arrives-with-disabled-tech.yaml`.
+
 - A travelling unit stands where its layout put it and starts on 0.4 of its
   life. It heals on ticks 20, 40, 61 and every twenty ticks after, arrives on
   161, and names no attack target until it has updated:
@@ -200,8 +204,7 @@ from the arrival.
 
 - **The order of two sides' travelling units in the list**, beyond the
   identity order the recordings agree with.
-- **A travelling unit whose buffs or generic effect providers activate on
-  arrival**, which travel's `ActiveCheck` does gate. Each is read from the
-  build, a buff's from `BuffCycleController.Active`
-  ([equipment_effects.md](equipment_effects.md#buff-items)); no recording
-  holds one. A production line's is recorded above.
+- **A travelling unit's generic effect providers beyond those recorded
+  above.** Travel's `ActiveCheck` gates their activation on arrival; the
+  buff-controller and production-line cases have recordings, but those
+  do not establish every other provider.

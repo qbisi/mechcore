@@ -1,0 +1,52 @@
+# A travelling Wraith with a disableable technology buff controller and
+# Photon Coating arrives while EMP is still present. Its equipment controller
+# stays available and applies buff 4000 on the next tick; its technology
+# controllers remain disabled. Land Cruiser is omitted to isolate this from
+# projectile height during a domain change. The full pin comes from the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 825431923
+round: 2
+blue:
+  core_damage: 0
+  officers: [quick_teleport, advanced_offensive_tactics, marksman_specialist]
+  techs:
+    wraith: [high_explosive_ammo, field_maintenance, armor_enhancement, range_enhancement, floating_artillery_array, degeneration_beam]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: marksman, index: 0, position: {x: -100, y: -270}, level: 3, exp: 0/700/2315, source: delivered}
+  - {name: wraith, index: 1, position: {x: -345, y: 25}, level: 2, exp: 0/600/5070, equipment: [photon_coating], travelling: true, source: joined}
+  - {name: marksman, index: 2, position: {x: -80, y: -300}, level: 3, exp: 0/2100/2315, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -15, y: -180}}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: 255, y: -50}]}
+red:
+  core_damage: 550
+  officers: [advanced_missile_device, advanced_targeting_system, marksman_specialist, fortified_arclight]
+  techs:
+    arclight: [electromagnetic_shot, armor_enhancement, anti_aircraft_ammunition, shockwave, range_enhancement, elite_marksman, charged_shot]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [3, 3]
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -200}, level: 3, source: delivered}
+  - {name: arclight, index: 1, position: {x: 270, y: -70}, level: 2, equipment: [amplifying_core], source: joined}
+  - {name: hacker, index: 2, position: {x: 125, y: -255}, level: 4, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 125, y: -275}}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: -85, y: -10}]}
+ticks: 444
+hash: 25:77bad7134a66273520dc5ba7cb763502a4d54e8e56d4b7ab389e1ca1810b487b
+asserts:
+- sql: SELECT tick,source__kind,source__id,target__kind,target__id,buff_id,duration FROM events WHERE type='buff_applied' AND target__id=3 AND buff_id=4000 ORDER BY tick,ordinal
+  rows: [[82, unit, 3, unit, 3, 4000, 600]]
+- sql: SELECT tick,data__id,source__kind,source__id,source_team,elapsed FROM units__buffs WHERE unit_id=3 AND tick IN (81,82,83) ORDER BY tick,ordinal
+  rows: [[81, 1015, unit, 4, 1, 0], [82, 1015, unit, 4, 1, 1], [82, 4000, unit, 3, 0, 1], [83, 1015, unit, 4, 1, 2], [83, 4000, unit, 3, 0, 2]]
+- sql: SELECT tick,skill_slot,has_enabled FROM units__skills WHERE unit_id=3 AND skill_slot>=4 AND tick IN (81,82,83) ORDER BY tick,skill_slot
+  rows: [[81, 4, 0], [81, 5, 0], [81, 6, 0], [81, 7, 0], [82, 4, 0], [82, 5, 0], [82, 6, 0], [82, 7, 0], [83, 4, 0], [83, 5, 0], [83, 6, 0], [83, 7, 0]]

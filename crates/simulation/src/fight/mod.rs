@@ -320,9 +320,9 @@ struct Actor {
     shield: Option<PersonalShield>,
     /// Its `BuffCycleController`s, one for each of its buff sources.
     buff_cycles: Vec<buff_cycle::BuffCycle>,
-    /// Their `isAvailable`, which `BuffEffectProvider.DoDisableCycle` and
-    /// `DoEnableCycle` switch for all of them at once.
-    buff_cycles_available: bool,
+    /// Each controller's `isAvailable`: technology switching reaches only
+    /// that source, while activation and deactivation reach every source.
+    buff_cycles_available: Vec<bool>,
     /// Whether its sweep skill holds what its technology changes: cleared
     /// while that technology is switched off.
     sweep_intensified: bool,

@@ -88,7 +88,7 @@ impl BuffCycle {
 impl Simulation {
     /// `BuffEffectProvider.DoDisableCycle` and `DoEnableCycle`, which its
     /// `DisableEffect` and `EnableEffect` run for every source it holds:
-    /// each controller of the unit stops, its listener taken off
+    /// each controller of a source that can be disabled stops, its listener taken off
     /// (`RemoveListener`), and starts again with its listener and its
     /// `timeSum` at zero; a `RangeUnitCycle` keeps where it stood.
     pub(in crate::fight) fn switch_buff_cycles(&mut self, unit: u64, on: bool) {
@@ -96,15 +96,13 @@ impl Simulation {
             .actors
             .get_mut(&unit)
             .expect("actor identity is stable");
-        if actor.buff_cycles_available == on {
-            return;
-        }
-        actor.buff_cycles_available = on;
-        if on {
-            for cycle in &mut actor.buff_cycles {
-                if let BuffCycle::Counting { time_sum, .. } = cycle {
-                    *time_sum = 0;
-                }
+        for (index, source) in actor.placement.effects.buff_sources.iter().enumerate() {
+            if !source.can_disable || actor.buff_cycles_available[index] == on {
+                continue;
+            }
+            actor.buff_cycles_available[index] = on;
+            if on && let BuffCycle::Counting { time_sum, .. } = &mut actor.buff_cycles[index] {
+                *time_sum = 0;
             }
         }
     }
@@ -120,10 +118,11 @@ impl Simulation {
             .actors
             .get_mut(&unit)
             .expect("actor identity is stable");
-        let reset = !actor.buff_cycles_available;
-        actor.buff_cycles_available = true;
         let sources = &actor.placement.effects.buff_sources;
-        for (source, cycle) in sources.iter().zip(actor.buff_cycles.iter_mut()) {
+        for (index, (source, cycle)) in sources.iter().zip(actor.buff_cycles.iter_mut()).enumerate()
+        {
+            let reset = !actor.buff_cycles_available[index];
+            actor.buff_cycles_available[index] = true;
             let restarted = match (source.trigger, std::mem::replace(cycle, BuffCycle::Done)) {
                 (BuffTrigger::All(_), BuffCycle::Waiting | BuffCycle::Done) => {
                     BuffCycle::Counting {
@@ -157,7 +156,8 @@ impl Simulation {
         self.actors
             .get_mut(&unit)
             .expect("actor identity is stable")
-            .buff_cycles_available = false;
+            .buff_cycles_available
+            .fill(false);
     }
 
     /// `TeamBuffCycleManager.Update`: every available controller of a live
@@ -172,13 +172,20 @@ impl Simulation {
             .actors
             .iter()
             .filter(|(_, actor)| {
-                !actor.buff_cycles.is_empty() && actor.alive() && actor.buff_cycles_available
+                actor.alive()
+                    && actor
+                        .buff_cycles_available
+                        .iter()
+                        .any(|available| *available)
             })
             .map(|(&id, actor)| (actor.placement.team, id))
             .collect::<Vec<_>>();
         owners.sort_unstable();
         for (team, id) in owners {
             for index in 0..self.actors[&id].buff_cycles.len() {
+                if !self.actors[&id].buff_cycles_available[index] {
+                    continue;
+                }
                 self.update_buff_cycle(id, team, index, target_search_order, events)?;
             }
         }
@@ -460,11 +467,11 @@ impl Simulation {
             .effects
             .buff_sources
             .iter()
-            .filter(|source| source.trigger == BuffTrigger::BeHit)
-            // `RemoveListener` took it off while its controllers are not
-            // available.
-            .filter(|_| owner.buff_cycles_available)
-            .copied()
+            .enumerate()
+            .filter(|(index, source)| {
+                source.trigger == BuffTrigger::BeHit && owner.buff_cycles_available[*index]
+            })
+            .map(|(_, source)| *source)
             .collect::<Vec<_>>();
         if sources.is_empty()
             || attacker.kind != ObjectKind::Unit
@@ -546,11 +553,11 @@ impl Simulation {
             .effects
             .buff_sources
             .iter()
-            .filter(|source| source.trigger == BuffTrigger::Damaged)
-            // `RemoveListener` took it off while its controllers are not
-            // available.
-            .filter(|_| owner.buff_cycles_available)
-            .copied()
+            .enumerate()
+            .filter(|(index, source)| {
+                source.trigger == BuffTrigger::Damaged && owner.buff_cycles_available[*index]
+            })
+            .map(|(_, source)| *source)
             .collect::<Vec<_>>();
         let (source, team) = (owner.object_ref(), owner.placement.team);
         for buff in sources {

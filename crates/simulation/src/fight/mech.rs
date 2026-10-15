@@ -99,7 +99,7 @@ impl Actor {
                 &placement.effects.buff_sources,
                 placement.travelling,
             ),
-            buff_cycles_available: true,
+            buff_cycles_available: vec![true; placement.effects.buff_sources.len()],
             sweep_intensified: true,
             sand_fog_held: true,
             surfacing_line_held: true,

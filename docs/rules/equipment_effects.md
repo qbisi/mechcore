@@ -281,6 +281,9 @@ rather than applying only its plain corrections.
   debuff off it: `tests/equipment_buff/photon-coating.yaml`,
   `tests/equipment_buff/photon-coating-crawlers.yaml` and
   `tests/equipment_buff/photon-coating-emp.yaml`.
+- Photon Coating's controller activates on arrival and keeps its availability
+  when an existing EMP disables a technology buff controller on the same
+  unit: `tests/equipment_buff/photon-coating-arrives-with-disabled-tech.yaml`.
 - Anti-Interference Module keeps an Electromagnetic Impact's buff and a
   tower's loss off its unit: `tests/equipment_buff/anti-interference-emp.yaml`
   and `tests/equipment_buff/anti-interference-tower.yaml`.
