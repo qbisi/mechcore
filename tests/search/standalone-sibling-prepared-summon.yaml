@@ -1,0 +1,47 @@
+# Every independent Mountain weapon consumes its own prepared search.
+# A Steel Ball joins at 341, but all four weapons retain building 3 from
+# their prepared jobs. Native target_search records three prior candidates
+# for each slot, excluding the new summon. All 1630 ticks are pinned.
+# Control: standalone-core-prepared-idle.yaml, where an unqueued sibling
+# searches live while its core consumes its prepared job.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 830957518
+round: 3
+blue:
+  core_damage: 600
+  officers: [advanced_missile_device, quick_teleport, assault_raiden]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: raiden, index: 0, position: {x: -330, y: 170}, level: 4, exp: 0/468/10777, equipment: [laser_sights], travelling: true, source: joined}
+  - {name: mountain, index: 1, position: {x: 155, y: -105}, level: 4, exp: 0/800/14369, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -75, y: -260}}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_defensive_tactics, fortified_specialist, mass_produced_overlord]
+  techs:
+    overlord: [high_explosive_ammo, field_maintenance, overlord_artillery, mothership, jump_drive, armor_enhancement, range_enhancement, launcher_overload, photon_emission]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: overlord, index: 0, position: {x: -165, y: -215}, level: 3, exp: 6233/6233/6233, equipment: [steel_ball_production_line]}
+  - {name: vortex, index: 1, position: {x: 50, y: -30}, level: 6, exp: 0/3000/4349, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -15, y: -190}}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: 5, y: -300}]}
+asserts:
+- sql: |-
+    SELECT tick,skill_slot,enabled__state,enabled__lock_target__kind,enabled__lock_target__id FROM units__skills WHERE unit_id=1 AND tick=341 ORDER BY skill_slot
+  rows:
+  - [341, 0, "idle", "building", 3]
+  - [341, 1, "idle", "building", 3]
+  - [341, 2, "idle", "building", 3]
+  - [341, 3, "idle", "building", 3]
+ticks: 1630
+hash: 26:fa6ad4aa590a664f8caf73c6ba9463a92ed76a3d1f8e536594da1af31c9bf95f
