@@ -403,6 +403,9 @@ pub(crate) struct CaptureState {
     pub(crate) unit_ids: BTreeMap<usize, u64>,
     pub(crate) building_ids: BTreeMap<usize, u64>,
     pub(crate) projectile_ids: BTreeMap<usize, u64>,
+    /// The dealing slot captured at release, retained while the projectile
+    /// flies even if its owner's extra skill is removed after death.
+    projectile_skill_slots: BTreeMap<u64, Option<u16>>,
     shield_ids: BTreeMap<usize, u64>,
     shield_ids_finalized: bool,
     /// Whether S(1) has been written, after which unit identities are final.
@@ -485,6 +488,7 @@ impl CaptureState {
         self.unit_ids.clear();
         self.building_ids.clear();
         self.projectile_ids.clear();
+        self.projectile_skill_slots.clear();
         self.shield_ids.clear();
         self.shield_ids_finalized = false;
         self.unit_ids_finalized = false;
@@ -2981,14 +2985,18 @@ fn resolve_damage_context(provider: *mut Object) -> DamageContext {
     }
     // SAFETY: runtime is boxed for the adapter process lifetime.
     let runtime = unsafe { &*runtime };
-    let provider_reference = {
+    let (provider_reference, projectile_skill_slot) = {
         let state = capture_state()
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         if !state.armed || !state.in_update {
             return DamageContext::default();
         }
-        object_ref_from_pointer(provider as usize, &state)
+        let reference = object_ref_from_pointer(provider as usize, &state);
+        let slot = reference
+            .filter(|reference| reference.kind == ObjectKind::Projectile)
+            .and_then(|reference| state.projectile_skill_slots.get(&reference.id).copied());
+        (reference, slot)
     };
     let owner = runtime
         .api
@@ -3032,18 +3040,19 @@ fn resolve_damage_context(provider: *mut Object) -> DamageContext {
     let source_team_id =
         native_team_id.or_else(|| source.and_then(|value| state.object_teams.get(&value).copied()));
     drop(state);
-    let skill_slot = match damage_skill_slot(runtime.api, provider) {
-        Ok(slot) => slot,
-        Err(error) => {
-            let mut state = capture_state()
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
-            if state.armed {
-                state.fail(format!("damage skill: {error}"));
+    let skill_slot =
+        match projectile_skill_slot.map_or_else(|| damage_skill_slot(runtime.api, provider), Ok) {
+            Ok(slot) => slot,
+            Err(error) => {
+                let mut state = capture_state()
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner);
+                if state.armed {
+                    state.fail(format!("damage skill: {error}"));
+                }
+                None
             }
-            None
-        }
-    };
+        };
     DamageContext {
         source,
         source_team_id,
@@ -4257,6 +4266,9 @@ fn record_projectile_release(controller: *mut Object) {
                 )
             })
             .transpose()?;
+        state
+            .projectile_skill_slots
+            .insert(id, channel.map(|value| value.0));
         state.traces.push(NativeTrace::ProjectileReleased {
             projectile_id: id,
             owner,
@@ -4321,6 +4333,7 @@ fn record_projectile_removal(controller: *mut Object, intercepted: bool) {
             absorbed_by_pointer,
         });
         state.projectile_ids.remove(&pointer);
+        state.projectile_skill_slots.remove(&id);
         Ok::<(), String>(())
     })();
     if let Err(error) = result {
