@@ -307,7 +307,6 @@ units:
   1021228: {"unit": 28, "round": 2}
   1021315: {"unit": 15, "round": 2}
   1021330: {"unit": 30, "round": 2}
-  1021331: {"unit": 31, "round": 2}
   1022110: {"unit": 10, "round": 2}
   1022115: {"unit": 15, "round": 2}
   1022128: {"unit": 28, "round": 2}
@@ -359,7 +358,6 @@ units:
   1042125: {"unit": 25, "round": 4}
   1042315: {"unit": 15, "round": 4}
   1042330: {"unit": 30, "round": 4}
-  1042331: {"unit": 31, "round": 4}
   1043210: {"unit": 10, "round": 4}
   1051111: {"unit": 11, "round": 5}
   1051123: {"unit": 23, "round": 5}

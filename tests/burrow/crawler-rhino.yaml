@@ -1,8 +1,6 @@
-# Subterranean Blitz on blue's Crawlers, which walk on a Rhino. From tick 1
-# each Crawler holds the technology as its own buff, its -0.4 on the damage
-# it takes, its search having measured the Rhino more than 50 off; from tick
-# 63 to tick 73 each comes up as the Rhino comes within 50, its buff
-# removed, and none burrows again.
+# Subterranean Blitz on blue's Crawlers approaching a Rhino. The technology
+# writes its damage-taken rate directly while the Rhino is far away and
+# withdraws it as each Crawler closes within the surfacing distance.
 
 kind: fight
 source: game
@@ -20,4 +18,4 @@ red:
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -65}, exp: 0/192/1150, source: joined}
 ticks: 270
-hash: 26:08efbf20785c51a881b88cde88b773999bb7d45b2f3045982d886a0c557c5c14
+hash: 26:20b2d654396656ee6c1374e13da158d34e1a1cf644fdce5ba5c2aa54b9f9ce1a

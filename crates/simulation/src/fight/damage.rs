@@ -1084,7 +1084,7 @@ impl Simulation {
     /// damage's range of where the hit landed, of the domain the hit was
     /// aimed at, less what the hit itself struck, takes the second damage.
     /// The damage is raised by the owner's tower buffs and then by each
-    /// struck unit's damage taken where the row says the buffs reach it
+    /// struck unit's buff rates where the row says the buffs reach it
     /// (`CalculateSecondaryDamageByAttackerBuff`,
     /// `CalculateSecondaryDamageByTargetBuff`), and `PerformHitTargetEffect`
     /// takes it with `isAmplifyDamageAffected` false, scaling it no further.
@@ -1130,8 +1130,15 @@ impl Simulation {
         for &target in &targets {
             let amount = match target {
                 _ if !secondary.buffed => amount,
-                FightActorRef::Unit(id) => self.actors[&id].stats.damage_taken(amount)?,
-                FightActorRef::Building(id) => self.construction_damage_taken(id, amount)?.0,
+                FightActorRef::Unit(id) => self.actors[&id]
+                    .stats
+                    .overlays
+                    .secondary_damage_by_target_buffs(amount),
+                FightActorRef::Building(id) => {
+                    self.buffs.building_buffs.get(&id).map_or(amount, |buffed| {
+                        buffed.overlays.secondary_damage_by_target_buffs(amount)
+                    })
+                }
             };
             if amount < 1 {
                 continue;

@@ -631,6 +631,17 @@ impl Overlays {
         i64::try_from((raised * aggregate.remaining / ONE) >> 32).unwrap_or(i64::MAX)
     }
 
+    /// `DamagePerformer.CalculateSecondaryDamageByTargetBuff` reads only the
+    /// target's `BuffManager` rates, leaving its own numeric modifiers out.
+    pub(crate) fn secondary_damage_by_target_buffs(&self, amount: i64) -> i64 {
+        let aggregate = self
+            .buff
+            .aggregate(Index::AmplifyDamage)
+            .unwrap_or_default();
+        let raised = (i128::from(amount) << 32) * (ONE + aggregate.enhance) / ONE;
+        i64::try_from((raised * aggregate.remaining / ONE) >> 32).unwrap_or(i64::MAX)
+    }
+
     #[allow(dead_code, reason = "a mechanism reaches for a channel to write it")]
     pub(crate) const fn channel(&mut self, channel: Channel) -> &mut Overlay {
         match channel {

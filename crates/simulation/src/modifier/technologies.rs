@@ -483,7 +483,7 @@ pub(crate) struct SecondaryDamage {
     /// hit itself struck.
     pub(crate) hits_main_target: bool,
     /// `SecondaryDamageInfo.CanBeAffectedByBuff`: whether the attacker's
-    /// tower buffs and the struck unit's damage taken scale it.
+    /// tower buffs and the struck unit's buff rates scale it.
     pub(crate) buffed: bool,
 }
 
@@ -1736,7 +1736,6 @@ impl TechnologyEffects {
                     )
                 }),
                 burrow: (row.kind == BURROW).then(|| Burrow {
-                    technology: u32::try_from(row.id).unwrap_or(u32::MAX),
                     amplify_damage_rate: row.burrow_amplify_damage_rate.clone(),
                     relieve_distance: row.burrow_relieve_distance.clone(),
                 }),
@@ -3088,7 +3087,6 @@ mod tests {
         assert_eq!(
             table.sources(&[9], "crawler").unwrap().single.burrow,
             Some(super::Burrow {
-                technology: 9,
                 amplify_damage_rate: vec![-1_717_986_918],
                 relieve_distance: vec![50 << 32],
             })

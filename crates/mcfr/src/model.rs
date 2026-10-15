@@ -1053,7 +1053,7 @@ pub struct PersonalShieldState {
 pub enum BuffDataKind {
     /// A `BuffData` row, by its `id`.
     Buff,
-    /// A technology that serves as its own buff data, `BurrowTech`, by its id.
+    /// A technology instance used as buff data, by its id.
     Technology,
 }
 

@@ -53,8 +53,8 @@ pub(in crate::fight) struct RunningBuff {
     /// The `buffDatas` row it was added with, which a later one it merges
     /// into does not change, or the technology that is its own data.
     buff_id: u32,
-    /// Whether `buff_id` names a technology that serves as its own buff data
-    /// (`BurrowTech`) rather than a `buffDatas` row.
+    /// Whether `buff_id` names a technology used as buff data rather than a
+    /// `buffDatas` row.
     technology: bool,
     divide: i32,
     additive: bool,
@@ -842,7 +842,7 @@ impl Simulation {
         // The first buff that disables technology switches the unit's
         // technologies off as it enters (`CBEC_DisableTechnology.Enter`).
         if !was_disabled && self.actors[&actor_id].technology_disabled() {
-            self.switch_technologies(actor_id, false, events)?;
+            self.switch_technologies(actor_id, false)?;
             self.actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
@@ -1002,38 +1002,9 @@ impl Simulation {
         }
         actor.refresh_life_data()?;
         if was_disabled && !actor.technology_disabled() {
-            self.switch_technologies(actor_id, true, events)?;
+            self.switch_technologies(actor_id, true)?;
         }
         Ok(())
-    }
-
-    /// `BuffSystem.RemoveBuff` of the buff a technology is its own data of
-    /// (`BurrowTech`): taken off the unit with what it wrote, `removed`.
-    pub(in crate::fight) fn remove_technology_buff(
-        &mut self,
-        actor_id: u64,
-        technology: u32,
-        events: &mut Vec<Event>,
-    ) -> Result<()> {
-        let actor = self
-            .actors
-            .get_mut(&actor_id)
-            .expect("actor identity is stable");
-        let Some(index) = actor
-            .buffs
-            .iter()
-            .position(|running| running.technology && running.buff_id == technology)
-        else {
-            return Ok(());
-        };
-        let buff = actor.buffs.remove(index);
-        events.push(buff_removed(
-            ObjectRef::new(ObjectKind::Unit, actor_id),
-            buff.buff_id,
-            BuffRemovedReason::Removed,
-        ));
-        actor.withdraw_buff(&buff);
-        actor.refresh_life_data()
     }
 
     /// The buffs a unit that died this tick had, `cleared`, to follow its
@@ -1108,7 +1079,7 @@ impl Simulation {
         // again: a Rhino's Mechanical Rage reads in its corrections on the
         // fight's last tick.
         for actor_id in disabled {
-            self.switch_technologies(actor_id, true, events)?;
+            self.switch_technologies(actor_id, true)?;
         }
         for (building_id, buffed) in std::mem::take(&mut self.buffs.building_buffs) {
             let subject = ObjectRef::new(ObjectKind::Building, building_id);
@@ -1154,7 +1125,7 @@ impl Simulation {
         }
         actor.refresh_life_data()?;
         if was_disabled {
-            self.switch_technologies(actor_id, true, &mut Vec::new())?;
+            self.switch_technologies(actor_id, true)?;
         }
         Ok(())
     }
@@ -1236,7 +1207,7 @@ impl Simulation {
             // The last buff that disables technology switches them on again
             // as it leaves (`CBEC_DisableTechnology.Exit`).
             if was_disabled && !actor.technology_disabled() {
-                self.switch_technologies(actor_id, true, events)?;
+                self.switch_technologies(actor_id, true)?;
             }
         }
         Ok(())
@@ -1250,12 +1221,7 @@ impl Simulation {
     /// (`FightSkill.RefreshAttackInterval`): a Rhino with Mechanical Rage
     /// waits 18 ticks between blows where it waited 12, and a Marksman with
     /// Assault Mode's drawn 69 becomes its plain 62.
-    pub(in crate::fight) fn switch_technologies(
-        &mut self,
-        actor_id: u64,
-        on: bool,
-        events: &mut Vec<Event>,
-    ) -> Result<()> {
+    pub(in crate::fight) fn switch_technologies(&mut self, actor_id: u64, on: bool) -> Result<()> {
         // EffectProvider.EnableCheck calls ActiveCheck first. During super
         // deployment only permanent sources pass; Technology's
         // IsPermanentEffect is false, so neither switching direction acts.
@@ -1296,7 +1262,7 @@ impl Simulation {
         // `FightEffectMananger.DisableEffect` and `EnableEffect`: every
         // provider beside the numbers' its technologies reach.
         for provider in actor.placement.effects.technology_disable.providers.clone() {
-            self.switch_provider(actor_id, provider, on, events)?;
+            self.switch_provider(actor_id, provider, on)?;
         }
         let actor = self
             .actors
@@ -1396,7 +1362,7 @@ pub(in crate::fight) const fn rate(raw: i64) -> Correction {
 #[derive(Debug, Clone, Default)]
 pub(in crate::fight) struct BuildingBuffs {
     buffs: Vec<RunningBuff>,
-    overlays: Overlays,
+    pub(in crate::fight) overlays: Overlays,
 }
 
 /// `BuffManager.AddBuff`: a buff already running that `IsSameBuff` matches,

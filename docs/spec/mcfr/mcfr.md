@@ -227,7 +227,7 @@ nothing the build works out from it:
 
 | Field | Native source | Why it is stored |
 | --- | --- | --- |
-| `data` | `Buff.data`: a `BuffData` row by its `id`, or the `BurrowTech` technology that serves as its own buff data | which numbers the buff writes: `BuffData.GetData` answers the row's `floatDatas` whatever unit it is asked about |
+| `data` | `Buff.data`, its kind and `id`; the build's buffs use `BuffData` rows | which numbers the buff writes: `BuffData.GetData` answers the row's `floatDatas` whatever unit it is asked about |
 | `source` | `Buff.source` | who the buff counts as from; null for a buff no unit wrote, an oil's or an acid's |
 | `source_team` | `Buff.sourceTeamController` | the side it is from, which a sourceless buff still has |
 | `elapsed` | `Buff.durationTime` | counts up each update, and back to 0 on a `Reset` of a row not in additive mode |
@@ -857,8 +857,8 @@ to its pool. Its reason is the method it runs under: `RemoveBuff(IBuffData)`,
 with, put on before its first tick, have no event.
 
 What a buff does is on the unit state track, in the unit's `buffs`. The
-pinned fights exercise the buffs a tower's loss, Electromagnetic Impact and
-burrowing write, and buff removal by expiry and by clearing; which other buffs
+pinned fights exercise the buffs a tower's loss and Electromagnetic Impact
+write, and buff removal by expiry and by clearing; which other buffs
 reach these methods, and whether each other removal reason is the one the
 build means, is checked as each mechanism is researched.
 

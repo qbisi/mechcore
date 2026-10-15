@@ -1,7 +1,6 @@
-# Subterranean Blitz on blue's Crawlers, which walk on a Rhino under red's
-# Electromagnetic Impact. On tick 57 the impact switches the technologies of
-# all 24 Crawlers off: each comes up, its buff removed before the impact's
-# buff is applied, and none burrows again for the rest of the fight.
+# Subterranean Blitz on blue's Crawlers approaching a Rhino under red's
+# Electromagnetic Impact. Disabling technology withdraws the burrow rate
+# before applying the impact buff, and the disabled Crawlers stay surfaced.
 
 kind: fight
 source: game
@@ -21,4 +20,4 @@ red:
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 95}]}
 ticks: 331
-hash: 26:b79413d281236af7e78f1e01ff2a363ac4b38d1dc3396b097a6288598cf7c802
+hash: 26:8f75e66dfb04a301f2b8890aa79eee705a69cc862afb2e4daa1ad752b64fbd0a

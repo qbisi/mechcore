@@ -7,10 +7,9 @@
 //! `WreckageRecoverySystem`, the manager brings up a unit whose main skill's
 //! search measured no enemy nearest, or whose nearest enemy or attack target
 //! stands within the source's distance, and burrows any other
-//! (`TeamBurrowManager.Update`). Burrowing writes `BurrowTech` on the unit as
-//! its own buff, its rate on the damage the unit takes, from no source
-//! (`TryBurrowDown`, `BuffSystem.DoAddBuff`); coming up removes it
-//! (`TryBurrowUp`, `BuffSystem.RemoveBuff`). A unit is held from its
+//! (`TeamBurrowManager.Update`). Burrowing writes the source's rate directly
+//! through `FightMech.AddData(AmplifyDamageRate)`; coming up withdraws that
+//! source with `FightMech.RemoveData`. A unit is held from its
 //! deployment (`AddEffect`, `AddMech`), `Deactive`, and is `Normal` once
 //! `FightEffectSystem.ActiveEffect` activates its effects (`DoActive`,
 //! `BurrowSystem.Active`): as the fight starts, or as it lands, joins or
@@ -20,10 +19,12 @@
 //! underground (`IsEnterUnderGround`) is refused by the technology table.
 //! `docs/rules/technology_effects.md` states the rule.
 
-use super::tower::{BuffRow, CERTAIN, SOURCE, rate};
+use super::tower::rate;
 use super::*;
-use crate::data::{Entry, Index};
+use crate::data::{Channel, Entry, Index};
 use crate::modifier::Burrow;
+
+const SOURCE: &str = "BurrowTech";
 
 /// The sides' `TeamBurrowManager`s.
 #[derive(Debug, Clone, Default)]
@@ -36,8 +37,6 @@ pub(in crate::fight) struct BurrowSystem {
     burrowed: BTreeSet<u64>,
     /// The units whose status is `Deactive`: their technologies are off.
     deactive: BTreeSet<u64>,
-    /// The buffs it wrote and removed this tick.
-    events: Vec<Event>,
 }
 
 impl Simulation {
@@ -76,16 +75,11 @@ impl Simulation {
     }
 
     /// `BurrowEffectProvider.DisableEffect` and `EnableEffect`: off, the unit
-    /// comes up (`TryBurrowUp`, its buff removed) and its status is
+    /// comes up (`TryBurrowUp`, its rate withdrawn) and its status is
     /// `Deactive`, which the manager's update passes over
     /// (`BurrowSystem.Deactive`); on, it is `Normal` again
     /// (`BurrowSystem.Active`).
-    pub(in crate::fight) fn switch_burrow(
-        &mut self,
-        unit: u64,
-        on: bool,
-        events: &mut Vec<Event>,
-    ) -> Result<()> {
+    pub(in crate::fight) fn switch_burrow(&mut self, unit: u64, on: bool) -> Result<()> {
         if !self.burrow.order.contains(&unit) {
             return Ok(());
         }
@@ -93,7 +87,7 @@ impl Simulation {
             self.burrow.deactive.remove(&unit);
             return Ok(());
         }
-        self.burrow_up(unit, events)?;
+        self.burrow_up(unit)?;
         self.burrow.deactive.insert(unit);
         Ok(())
     }
@@ -121,7 +115,6 @@ impl Simulation {
     /// (`GetDistanceToTarget`, `GetDistanceToAttackTarget`,
     /// `FPoint.op_LessThan`), and burrows otherwise.
     pub(in crate::fight) fn step_burrows(&mut self) -> Result<()> {
-        let mut events = std::mem::take(&mut self.burrow.events);
         for unit in self.burrow.order.clone() {
             if self.burrow.deactive.contains(&unit) {
                 continue;
@@ -161,30 +154,29 @@ impl Simulation {
                 near(nearest) || near(Some(target))
             };
             if up {
-                self.burrow_up(unit, &mut events)?;
+                self.burrow_up(unit)?;
             } else {
-                self.burrow_down(unit, &source, &mut events)?;
+                self.burrow_down(unit, &source)?;
             }
         }
-        self.burrow.events = events;
         Ok(())
     }
 
-    /// `BurrowEffectProvider.DoDeactive`, as a unit dies
-    /// (`BurrowSystem.Deactive`): it comes up (`TryBurrowUp`), its buff,
-    /// which `BuffManager.Clear` cleared as it died, not there to remove, and
-    /// is `Deactive` in its place until it rises again.
-    pub(in crate::fight) fn remove_burrow_unit(&mut self, unit: u64) {
+    /// `BurrowEffectProvider.DoDeactive`: withdraw its rate and leave it deactive.
+    pub(in crate::fight) fn remove_burrow_unit(&mut self, unit: u64) -> Result<()> {
         if self.burrow.order.contains(&unit) {
-            self.burrow.burrowed.remove(&unit);
+            self.burrow_up(unit)?;
             self.burrow.deactive.insert(unit);
         }
+        Ok(())
     }
 
-    /// What the manager wrote this tick, which follows the tick's deaths:
-    /// `BurrowSystem` updates after `DeadEffectSystem`.
-    pub(in crate::fight) fn take_burrow_events(&mut self) -> Vec<Event> {
-        std::mem::take(&mut self.burrow.events)
+    /// `TeamBurrowManager.OnFightEnd` brings every held unit up.
+    pub(in crate::fight) fn end_burrows_as_the_fight_ends(&mut self) -> Result<()> {
+        for unit in self.burrow.order.clone() {
+            self.burrow_up(unit)?;
+        }
+        Ok(())
     }
 
     /// The distance the manager measures from a unit to an enemy:
@@ -204,76 +196,29 @@ impl Simulation {
         .saturating_sub(space_to_q32(view.radius))
     }
 
-    /// `TeamBurrowManager.TryBurrowDown`: a unit not yet burrowed burrows,
-    /// and writes its technology on itself as its own buff.
-    fn burrow_down(&mut self, unit: u64, source: &Burrow, events: &mut Vec<Event>) -> Result<()> {
-        if self.burrow.burrowed.contains(&unit) {
+    /// `TeamBurrowManager.TryBurrowDown` writes the source's rate directly.
+    fn burrow_down(&mut self, unit: u64, source: &Burrow) -> Result<()> {
+        if !self.burrow.burrowed.insert(unit) {
             return Ok(());
         }
-        self.burrow.burrowed.insert(unit);
-        let actor = &self.actors[&unit];
+        let actor = self.actors.get_mut(&unit).expect("a held unit exists");
         let rate_q32 = level_value(&source.amplify_damage_rate, actor.placement.level);
-        let row = BuffRow {
-            buff_id: source.technology,
-            technology: true,
-            // `BurrowTech` answers `IsClearSelfBuffWhenDisableTech` with
-            // true, `GetBuffDivide` with none, `IsAdditiveTime` and
-            // `IsAdditiveEffect` with false.
-            clears_when_technologies_disabled: true,
-            divide: 0,
-            additive: false,
-            // `GetDuration`: `FightUtility.MaxTime`, which `Buff.Init` holds
-            // at 2^30 ticks.
-            ticks: 1 << 30,
-            step_ticks: 0,
+        actor.stats.overlays.channel(Channel::Unit).write(Entry {
+            index: Index::AmplifyDamage,
             source: SOURCE,
-            // `IBuffDataFloatRate.GetData` answers its rate for
-            // `AmplifyDamageRate` alone.
-            entries: (rate_q32 != 0)
-                .then_some(Entry {
-                    index: Index::AmplifyDamage,
-                    source: SOURCE,
-                    correction: rate(rate_q32),
-                })
-                .into_iter()
-                .collect(),
-            disables_technology: false,
-            debuff: false,
-            probability: CERTAIN,
-            invincible: false,
-            disables_recover: false,
-            life_change_rate: 0,
-            current_life_rate: 0,
-            max_life_rate: 0,
-            stacking: None,
-            summons: None,
-        };
-        // Its rate joins the unit's buffs' (`BuffManager.buffDatas`), which
-        // `GetAmplifyDamageAddRate` and `GetAmplifyDamageReduceRate` read
-        // composed, as any other buff's does.
-        let team = actor.placement.team;
-        if !self.buff_reaches(unit, &row)? {
-            return Ok(());
-        }
-        // `TryBurrowDown` hands `DoAddBuff` no source.
-        self.write_buff(unit, None, team, &row, events)
+            correction: rate(rate_q32),
+        });
+        actor.stats.refresh(&actor.rules)
     }
 
-    /// `TeamBurrowManager.TryBurrowUp`: a burrowed unit comes up, and its
-    /// buff is removed.
-    fn burrow_up(&mut self, unit: u64, events: &mut Vec<Event>) -> Result<()> {
+    /// `TeamBurrowManager.TryBurrowUp` withdraws the same source's rate.
+    fn burrow_up(&mut self, unit: u64) -> Result<()> {
         if !self.burrow.burrowed.remove(&unit) {
             return Ok(());
         }
-        let technology = self.actors[&unit]
-            .placement
-            .effects
-            .single
-            .burrow
-            .as_ref()
-            .expect("a held unit has a source")
-            .technology;
-        self.remove_technology_buff(unit, technology, events)
+        let actor = self.actors.get_mut(&unit).expect("a held unit exists");
+        actor.stats.overlays.channel(Channel::Unit).withdraw(SOURCE);
+        actor.stats.refresh(&actor.rules)
     }
 }
 

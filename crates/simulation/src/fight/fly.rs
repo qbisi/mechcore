@@ -42,7 +42,13 @@ impl Actor {
         } else {
             UnitDomain::Ground
         };
-        if before == self.domain || self.placement.effects.domain_corrections.is_empty() {
+        if before == self.domain {
+            return;
+        }
+        // `SetTechFly` refreshes the agent's layer and then calls
+        // `SetPosition` with the current position, applying the new height now.
+        self.placed_domain = self.domain;
+        if self.placement.effects.domain_corrections.is_empty() {
             return;
         }
         for &(held_in, channel, entry) in &self.placement.effects.domain_corrections {
@@ -71,12 +77,6 @@ impl Simulation {
             .collect::<Vec<_>>();
         for unit in held {
             self.add_fly_unit(unit);
-            // Its agent places it before the first tick is recorded.
-            let actor = self
-                .actors
-                .get_mut(&unit)
-                .expect("actor identity is stable");
-            actor.placed_domain = actor.domain;
         }
     }
 

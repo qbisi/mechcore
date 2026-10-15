@@ -102,9 +102,9 @@ extra_weapons:
   - technology: 110212
     skill: 21002
     use_main_skill_range: true
-    damage_by_level: [2000]
+    damage_by_level: [2500]
     attack:
-      base_damage: 2000
+      base_damage: 2500
       min_range: 0
       range: 0
       attack_half_angle: 360
