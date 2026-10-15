@@ -1160,6 +1160,10 @@ impl Simulation {
     /// every enemy for none. With `passed_over`, that actor is not among the
     /// candidates, nor a building no shield of its side holds
     /// ([`Simulation::search_extra_skill`]).
+    #[allow(
+        clippy::too_many_lines,
+        reason = "keep the native candidate filtering, scoring and attacker fallback together"
+    )]
     fn select_in_square(
         &self,
         source: &super::attacker::Attacker<'_>,
@@ -1281,7 +1285,17 @@ impl Simulation {
         self.skill(source.skill)
             .nearest_actor
             .set(nearest.map(|(candidate, _)| candidate));
-        scoring.chosen(|next| self.target_in_attack_range(source.skill, next))
+        // `ITargetSelector.Select` asks the attacker it was handed. A
+        // grouped child's live search carries its own range here, beyond
+        // the core's; going back through `source.skill` loses that identity.
+        scoring.chosen(|next| {
+            self.fight_actor(next).is_some_and(|target| {
+                target.alive
+                    && target.targetable
+                    && self.reaches_hidden(source.owner, target.visibility)
+                    && source.reaches(target.x_q32, target.z_q32, target.radius)
+            })
+        })
     }
 
     /// `LifePriorityTargetSelector.Select` of `CurrentLifeHighestFirst`
