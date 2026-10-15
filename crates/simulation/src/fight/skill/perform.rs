@@ -1168,10 +1168,10 @@ impl Simulation {
                     .projectiles
                     .last_mut()
                     .expect("a projectile was just released");
-                if projectile.lock_target {
-                    projectile.offset_x_q32 = pending.offset_x_q32;
-                    projectile.offset_z_q32 = pending.offset_z_q32;
-                }
+                // `FightProjectile.Init` stores its target-position offset
+                // even while nontracking; EMP can change IsLockTarget later.
+                projectile.offset_x_q32 = pending.offset_x_q32;
+                projectile.offset_z_q32 = pending.offset_z_q32;
                 projectile.climb_to_q32 =
                     climb_q32.map(|climb_q32| projectile.y_q32.saturating_add(climb_q32));
                 Ok(())
@@ -1205,10 +1205,10 @@ impl Simulation {
                     .projectiles
                     .last_mut()
                     .expect("a projectile was just released");
-                if projectile.lock_target {
-                    projectile.offset_x_q32 = pending.offset_x_q32;
-                    projectile.offset_z_q32 = pending.offset_z_q32;
-                }
+                // `FightProjectile.Init` stores its target-position offset
+                // even while nontracking; EMP can change IsLockTarget later.
+                projectile.offset_x_q32 = pending.offset_x_q32;
+                projectile.offset_z_q32 = pending.offset_z_q32;
                 projectile.climb_to_q32 =
                     climb_q32.map(|climb_q32| projectile.y_q32.saturating_add(climb_q32));
                 Ok(())

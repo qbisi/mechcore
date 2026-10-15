@@ -1,0 +1,63 @@
+# Nontracking projectiles keep their launch offsets when EMP enables tracking.
+# Marksman 1 disables Mountain 5 at t516 while its scattered shots still fly.
+# Native FightProjectile.Init stores targetPositionOffset unconditionally;
+# Update reads current IsLockTarget and adds the retained offset. Shots 121-124
+# keep distinct cached target positions when tracking starts. Dropping offsets
+# from nontracking shots instead collapsed all of them onto Phantom Ray 3's
+# centre and changed red core damage from native 100 to simulator 104.
+# The complete native fight repeats 638 ticks. Control:
+# in-flight-siege-tracking.yaml (tracking enabled in flight without this scatter).
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1400778049
+round: 1
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_targeting_system, aerial_specialist]
+  techs:
+    marksman: [doubleshot, shooting_squad, electromagnetic_shot, aerial_specialization, assault_mode, range_enhancement, quick_reload, elite_marksman]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [1, 2]
+  units:
+  - {name: marksman, index: 0, position: {x: 190, y: -290}, level: 8, exp: 0/4373/4373, rotated: true, equipment: [amplifying_core], source: joined}
+  - {name: phantom_ray, index: 1, position: {x: -255, y: -90}, level: 6, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 45, y: -250}}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: 220, y: 295}]}
+red:
+  core_damage: 100
+  officers: [advanced_shield_device, advanced_targeting_system, cost_control_specialist]
+  techs:
+    mountain: [saturation_bombardment, mountain_plating, anti_aircraft_ammunition, range_enhancement, extended_range_ammo, gun_launched_missile, smoke_bomb, photon_loop]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 1]
+  units:
+  - {name: mountain, index: 0, position: {x: -75, y: -155}, level: 2, exp: 0/5142/7210, rotated: true, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -160, y: -160}}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: -145, y: -135}]}
+asserts:
+- sql: |-
+    SELECT tick,projectile_id,cached_target_position__x,cached_target_position__z FROM projectiles WHERE projectile_id BETWEEN 121 AND 124 AND tick BETWEEN 515 AND 517 ORDER BY tick,projectile_id
+  rows:
+  - [515, 121, -820496721554, 337055693034]
+  - [515, 122, -741496053879, 423649976888]
+  - [515, 123, -790281731905, 402390659304]
+  - [515, 124, -766871922512, 358842619395]
+  - [516, 121, -820496721554, 337055693034]
+  - [516, 122, -741496053879, 423649976888]
+  - [516, 123, -790281731905, 402390659304]
+  - [516, 124, -766871922512, 358842619395]
+  - [517, 121, -820496721554, 337055693034]
+  - [517, 122, -741496053879, 423649976888]
+  - [517, 123, -790281731905, 402390659304]
+  - [517, 124, -766871922512, 358842619395]
+ticks: 638
+hash: 26:321617854483d3027883a50a9da6d1afd765b3b9c0772e3e92dc862ab5a685fe
