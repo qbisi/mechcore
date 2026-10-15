@@ -1,0 +1,62 @@
+# A side arm gives its turn back before refreshing a fallen wall target.
+# Summoned Hound 14 destroys wall 6 at t28. Centurion 11's Dual Wield slot 2 is idle,
+# holding that wall as its attack target and a live lock behind it. On t29
+# SkillIdleState.TryPerform asks TrySideArmResetFireMark before SearchAttackTarget:
+# it gives its turn back, then names the live unit but stays idle. Refreshing
+# first instead enters prepare at t29 and changes blue core damage from the
+# native 505 to 500. The complete native fight repeats all 348 ticks.
+# Control: dual-wield-near.yaml, the ordinary alternating side-arm cycle.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1494831084
+round: 4
+blue:
+  core_damage: 505
+  officers: [advanced_missile_device, advanced_offensive_tactics, typhoon_specialist]
+  techs:
+    void_eye: [energy_shield, energy_absorption, aerial_mode, range_enhancement, charged_shot, suppression_shots, electromagnetic_armor]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [2, 3]
+  units:
+  - {name: typhoon, index: 0, position: {x: -100, y: -110}, source: delivered}
+  - {name: void_eye, index: 1, position: {x: -210, y: -220}, exp: 0/520/650, rotated: true, equipment: [amplifying_core], source: joined}
+  - {name: sledgehammer, index: 2, position: {x: 185, y: -60}, exp: 0/36/1300, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 75, y: -135}}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: -195, y: -270}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, aerial_specialist]
+  techs:
+    centurion: [summon_hounds, reactive_armor, melee_mode, range_enhancement, dual_wield, homing_missile]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: centurion, index: 0, position: {x: 205, y: -25}, level: 7, exp: 0/1062/14167, equipment: [laser_sights], source: joined}
+  - {name: wraith, index: 1, position: {x: -25, y: -175}, level: 7, exp: 0/360/14167, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 90, y: -95}}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: -195, y: -10}]}
+asserts:
+- sql: |-
+    SELECT tick,skill_slot,enabled__state,enabled__attack_target__kind,enabled__attack_target__id FROM units__skills WHERE unit_id=11 AND skill_slot=2 AND tick BETWEEN 27 AND 32 ORDER BY tick
+  rows:
+  - [27, 2, "idle", "building", 6]
+  - [28, 2, "idle", "building", 6]
+  - [29, 2, "idle", "unit", 5]
+  - [30, 2, "idle", "unit", 5]
+  - [31, 2, "idle", "unit", 5]
+  - [32, 2, "idle", "unit", 5]
+ticks: 348
+hash: 26:07b2dc2cfd4a71c91bfb1a6a3773dc2e43091c77d149ffa95682e8887b76e3b3

@@ -152,8 +152,9 @@ impl Simulation {
     /// `SkillIdleState.TrySearchLockTarget` of a side arm, and what its idle
     /// state asks after it: it searches when its lock no longer suits, and
     /// then waits ten updates as any skill does, or counts down; asks whether
-    /// it keeps its turn; and, not left idle, what it fires at about its lock
-    /// (`SearchAttackTarget`).
+    /// it keeps its turn using the previous attack target; and, not left idle,
+    /// refreshes what it fires at about its lock on every update
+    /// (`SearchAttackTarget`), whether it searched for a new lock or not.
     pub(in crate::fight) fn update_side_arm_idle_search(
         &mut self,
         skill_ref: SkillRef,
@@ -172,7 +173,7 @@ impl Simulation {
         }
         self.try_side_arm_reset_fire_mark(skill_ref);
         let skill = self.skill(skill_ref);
-        if searched && !skill.idle && skill.lock_target.is_some() {
+        if !skill.idle && skill.lock_target.is_some() {
             self.search_attack_target(skill_ref);
         }
         Ok(())
