@@ -648,6 +648,11 @@ impl Simulation {
             )?;
         }
         if let Some(terrain) = terrain {
+            let terrain = if terrain.kind == crate::layout::TerrainKind::Fire {
+                self.unit_fire(id, terrain)?
+            } else {
+                terrain
+            };
             self.add_terrain(team, &name, terrain, center)?;
         }
         Ok(())

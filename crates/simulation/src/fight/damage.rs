@@ -1294,6 +1294,7 @@ impl Simulation {
         }
         let team = actor.placement.team;
         let point = self.hit_point(skill, targets, center);
+        let fire = self.unit_fire(owner, fire)?;
         self.add_terrain(team, &format!("unit {owner}"), fire, point)
     }
 

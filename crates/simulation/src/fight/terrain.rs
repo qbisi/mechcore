@@ -49,6 +49,9 @@ pub(in crate::fight) struct TerrainSystem {
     /// In the order `RangeItemSystem.Init` makes them.
     controllers: Vec<TerrainController>,
     next_key: u64,
+    /// `GroundFireController.fireMeches`: each unit's provider is made once,
+    /// from the numbers its `DataSet` holds when a hit first asks for fire.
+    unit_fires: BTreeMap<u64, TerrainSpec>,
     /// The identity a recording gave each terrain it saw, by key.
     ids: BTreeMap<u64, u64>,
     next_id: u64,
@@ -159,6 +162,28 @@ const fn terrain_type(kind: TerrainKind) -> TerrainType {
 }
 
 impl Simulation {
+    /// `GroundFireController.GetFireMech` and `FireMech`'s constructor: cache
+    /// the unit's current fire range and life on the first request. A summon
+    /// whose effects were cleared before its first shot lands supplies zero.
+    pub(in crate::fight) fn unit_fire(
+        &mut self,
+        owner: u64,
+        mut fire: TerrainSpec,
+    ) -> Result<TerrainSpec> {
+        if let Some(&provider) = self.terrain.unit_fires.get(&owner) {
+            return Ok(provider);
+        }
+        let data = &self.actors[&owner].stats.overlays;
+        fire.radius_q32 = data.resolve(Index::GroundFireRange, 0)?;
+        let life = data.resolve(Index::GroundFireLifeTime, 0)?;
+        fire.life_ticks = Some(
+            i32::try_from(crate::layout::terrain_ticks(life)?)
+                .map_err(|_| Error::new("a unit's fire outlasts a fight"))?,
+        );
+        self.terrain.unit_fires.insert(owner, fire);
+        Ok(fire)
+    }
+
     /// `RangeItemSystem.AddItem` from a landing sub-effect: the terrain
     /// joins its kind's controller. `interactiveInfos` holds one interaction,
     /// a fire with oil: an oil a fire reaches as it lands turns at once to a
@@ -970,10 +995,12 @@ impl Simulation {
                     // stands more than one round.
                     remaining_rounds: (terrain.spec.rounds > 1)
                         .then(|| u32::try_from(terrain.spec.rounds - terrain.round).unwrap_or(0)),
-                    logic_lifetime: terrain.spec.life_ticks.map(|limit| TerrainLogicLifetime {
-                        elapsed: terrain.elapsed,
-                        limit,
-                    }),
+                    logic_lifetime: terrain.spec.life_ticks.filter(|&limit| limit > 0).map(
+                        |limit| TerrainLogicLifetime {
+                            elapsed: terrain.elapsed,
+                            limit,
+                        },
+                    ),
                     applications,
                 });
             }
