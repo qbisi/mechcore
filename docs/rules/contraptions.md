@@ -110,6 +110,10 @@ taken. Hidden actors cannot trigger it; stealth actors can
 (`TeamMineManager.TryActiveMine` requires visibility below `Hide`). A missile
 fires once, and is spent.
 
+The query's actors are not checked for life again. An air drop killed by
+its own landing damage remains in the tree until `DeadEffectSystem` removes
+it, and can trigger a missile before that removal.
+
 **What it fires.** A projectile of its own, which no unit owns: it leaves from
 `mineFlyHeight`, 60 metres, above where the missile stands, at the row's
 `moveSpeed`, locked on what set it off, with the row's `maxLife`, and an
@@ -304,6 +308,8 @@ kind ends its own way:
   projectile's life, its attack falling with hits and rising while idle, and
   its standing as an obstacle to both sides:
   `tests/interceptor/stormcallers.yaml`.
+- An air drop that died landing still triggers a missile before it leaves
+  the queried tree: `tests/missile/dead-airdrop-trigger.yaml`.
 - A missile fires once, at tick one when an enemy is in range, at the enemy
   whose edge is nearest, air or ground, or a building that is not a tower; its
   projectile leaves from 60 metres above it, lands for its damage and splash,

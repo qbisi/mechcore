@@ -127,6 +127,9 @@ starts from zero. A kill hands out its amount twice over:
   drop's hit has no owner, and the side it counts for is the one the dead unit
   fought, whichever side dropped it: a Vulcan landing among its own side's
   Crawlers hands their experience to the other side.
+  Its own life loss also goes through `FightCalculator.CalculateHitActorDamage`
+  and `ExpSystem.OnActorHitted`; a landing that kills the summon shares its
+  experience with its enemies as well.
 - **A kill by the dead one's own side shares with its enemies.** Where the hit
   is of the target's own side, the pool's nearby formations are the side's
   opponents standing within 65 metres of the target, beside every formation
@@ -195,6 +198,8 @@ what the formation carries into the next round.
   included, and a summon's own kills leave its side's formations their whole
   share: `tests/battle_skill/rhino-drop.yaml`,
   `tests/battle_skill/vulcans-descent.yaml`.
+- A summon killed by its own landing damage hands its experience to the
+  opposing formations: `tests/missile/dead-airdrop-trigger.yaml`.
 - A Fire Badger an ally's explosion fells hands its pool to every formation
   that hit it and to the enemies within 65 metres of it, and one that took its
   own life hands out nothing: `tests/extra_weapon/scorching-charge.yaml`,
@@ -241,6 +246,9 @@ what the formation carries into the next round.
 - A full unit takes no share of a fight's experience: `ExpSystem.IsValidOwner`.
 - A kill's experience, the killer's whole and the shared pool:
   `ExpSystem.OnActorHitted`, `ExpSystem.DoCalculateExp`, `Config.assistKillExpRate`.
+- The air drop's self-hit reaches the experience system too:
+  `SupportUnitCreator.PerformAirDropDamage`,
+  `FightCalculator.CalculateHitActorDamage`, `ExpSystem.OnActorHitted`.
 - A hit under 1 stops before the calculator and is never heard of:
   `DamagePerformer.PerformHitTargetEffect`,
   `FightCalculator.PerformHitTargetEffect`, `ExpSystem.OnActorHitted`.

@@ -1,0 +1,69 @@
+# A Vulcan dies from its own air-drop damage before MineSystem updates.
+# It remains in the queried tree until DeadEffectSystem removes it, so it
+# still triggers the missile. Its lethal self-hit also shares experience
+# with its enemies. Control: crawlers.yaml and
+# tests/battle_skill/vulcans-descent.yaml. Two native recordings agree
+# for all 1338 ticks and settlement.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 442164376
+round: 3
+blue:
+  core_damage: 500
+  officers: [quick_teleport, advanced_power_system, fire_badger_specialist]
+  techs:
+    sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: fire_badger, index: 0, position: {x: -75, y: -100}, exp: 0/266/1400, source: delivered}
+  - {name: sandworm, index: 1, position: {x: -340, y: 40}, level: 2, exp: 0/4506/4506, equipment: [steel_ball_production_line], travelling: true, source: joined}
+  - {name: abyss, index: 2, position: {x: -95, y: -275}, level: 9, exp: 0/266/32291, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -35, y: -45}, retained: false}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: 50, y: -45}, {x: -105, y: 265}]}
+red:
+  core_damage: 0
+  officers: [advanced_power_system, fortified_specialist]
+  techs:
+    abyss: [wreckage_recycling]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: abyss, index: 0, position: {x: -45, y: -185}, level: 9, exp: 0/32000/32291, source: joined}
+  - {name: centurion, index: 1, position: {x: 15, y: -105}, level: 8, exp: 0/902/15137, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: 20, y: -75}]}
+asserts:
+- sql: |-
+    SELECT type,object__id,target__id,amount FROM events WHERE tick=48 ORDER BY ordinal
+  rows:
+  - [damage, null, 6, 49051]
+  - [damage, null, 8, 49051]
+  - [projectile_released, 1, 8, null]
+  - [unit_died, 8, null, null]
+- sql: |-
+    SELECT tick,formation_id,experience FROM formations WHERE formation_id IN(1,2,3) AND tick IN(47,48,1338) ORDER BY tick,formation_id
+  rows:
+  - [47, 1, -4294967296]
+  - [47, 2, -4294967296]
+  - [47, 3, -4294967296]
+  - [48, 1, 1145324612267]
+  - [48, 2, 1145324612267]
+  - [48, 3, 1145324612267]
+  - [1338, 1, 1142461300736]
+  - [1338, 2, 1142461300736]
+  - [1338, 3, 19353122635776]
+- sql: |-
+    SELECT tick,projectile_id,target__kind,target__id,cached_target_radius FROM projectiles WHERE tick=48 AND projectile_id=1
+  rows:
+  - [48, 1, unit, 8, 55834574848]
+ticks: 1338
+hash: 26:c205adacb599f7d9370e3ec7c89af96e142bf98d4a4c2194856c75b0cfa099e3

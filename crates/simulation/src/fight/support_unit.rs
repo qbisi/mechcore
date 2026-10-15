@@ -1339,6 +1339,9 @@ impl Simulation {
         if death.is_some() {
             self.on_actor_dead(unit_id);
         }
+        // CalculateHitActorDamage reports the owner's self-hit to ExpSystem
+        // as well: a lethal landing shares its experience with the enemy.
+        self.count_experience(None, team, unit, death.is_some())?;
         self.count_kill(None, unit, death.is_some())?;
         self.count_self_hit(unit_id, total)?;
         events.push(event(
