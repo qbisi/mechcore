@@ -1,0 +1,58 @@
+# A generated battle with an Abyss and a surfaced Sandworm at exactly the
+# same planar position. The sweep uses negative owner facing rather than
+# point stretches: no hit at tick 1196, first sweep hit at 1210. The native
+# fight also witnesses a Raiden child selecting a visible Fire Badger at
+# tick 894 and a Mustang not firing at a wall behind its hidden lock at 1138.
+# All 1296 ticks and settlement are pinned from the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 971063319
+round: 4
+blue:
+  core_damage: 0
+  officers: [advanced_power_system, cost_control_specialist, assault_raiden]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [2, 3]
+  units:
+  - {name: raiden, index: 0, position: {x: 200, y: -60}, level: 5, exp: 6252/12505/12505, equipment: [mustang_production_line]}
+  - {name: abyss, index: 1, position: {x: -245, y: -245}, level: 7, exp: 0/8153/30223, source: joined}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -220, y: 60}]}
+red:
+  core_damage: 854
+  officers: [advanced_targeting_system, advanced_targeting_system, typhoon_specialist]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: fire_badger, index: 0, position: {x: -350, y: 105}, level: 8, exp: 4709/5172/9418, equipment: [anti_interference_module]}
+  - {name: typhoon, index: 1, position: {x: -170, y: -160}, source: delivered}
+  - {name: sandworm, index: 2, position: {x: -240, y: -210}, level: 7, exp: 0/518/12593, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 5, y: -175}, retained: false}
+  battle_skills:
+  - {name: nuke, positions: [{x: 205, y: 145}]}
+asserts:
+- sql: |-
+    SELECT tick,skill_slot,enabled__lock_target__id,enabled__attack_target__id,enabled__state FROM units__skills WHERE unit_id=2 AND skill_slot=2 AND tick IN (893,894) ORDER BY tick
+  rows:
+  - [893, 2, 4, 4, "attack"]
+  - [894, 2, 4, 4, "attack"]
+- sql: |-
+    SELECT s.tick,s.enabled__attack_count,s.enabled__perform_count,s.enabled__lock_target__id,s.enabled__attack_target__id,(SELECT COUNT(*) FROM ev_projectile_released e WHERE e.tick=s.tick AND e.source__id=29) AS released FROM units__skills s WHERE s.unit_id=29 AND s.skill_slot=0 AND s.tick=1138
+  rows:
+  - [1138, 0, 1, 8, 10, 0]
+- sql: |-
+    SELECT a.tick,a.position__x=b.position__x AND a.position__z=b.position__z AS coincident,(SELECT COALESCE(SUM(e.amount),0) FROM ev_damage e WHERE e.tick=a.tick AND e.source__kind="unit" AND e.source__id=1 AND e.target__id=8) AS sweep_damage FROM units a JOIN units b ON b.tick=a.tick AND b.unit_id=8 WHERE a.unit_id=1 AND a.tick IN (1195,1196,1208,1210) ORDER BY a.tick
+  rows:
+  - [1195, 1, 0]
+  - [1196, 1, 0]
+  - [1208, 1, 0]
+  - [1210, 1, 32696]
+ticks: 1296
+hash: 26:3deb4cff4407c324d52855af8b85cc46c61a94769159b61d79d1e78fffd6d720

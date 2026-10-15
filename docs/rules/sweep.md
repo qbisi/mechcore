@@ -21,6 +21,11 @@ Its first update lays out the strip (`SweepAttackPerformer.FirstPrepare`,
   the centre; moving the centre does not turn this line. It is turned a
   quarter turn where the skill's
   `isPerpendicular` is set, as the Abyss's is.
+- **Coincident positions use the unit's facing.** When the original target
+  and the unit have exactly the same planar position, `CreateAttackArea`
+  substitutes the negative of `FightTransform.GetLookDirection` for their
+  difference. The perpendicular, reverse and even-attack transformations
+  then apply normally; the strip does not collapse to a point.
 - **It runs one way, then the other.** An attack whose
   `SkillAttackController.totalAttackCount` is even runs the opposite way to
   one whose count is odd. The count is every blow the skill has started in
@@ -125,6 +130,9 @@ unit does. Its configuration writes no arc for it.
 
 ### Recorded
 
+- An Abyss sweeping a Sandworm at the same planar position uses its facing
+  for a full strip, delaying the target's hit until the sweep reaches it:
+  `tests/sweep/coincident-target-direction.yaml`.
 - The first sweep of a fight lays its strip out on the update its blow starts
   and strikes on every second update after: the Rhino is struck on ticks 77,
   79 and 81 by a sweep that began on tick 62,
@@ -183,6 +191,9 @@ unit does. Its configuration writes no arc for it.
 
 - The strip: `FightSweepSkill.CreateAttackArea`, `LineRange.Overlaps`,
   `FightUtility.CalculateIsDistanceFromPointToLineBiggerThanValue2D`.
+- The facing fallback at coincident positions:
+  `FightSweepSkill.CreateAttackArea`, `FightTransform.GetLookDirection`,
+  `FQuaternion.AngleAxis`, `FQuaternion.op_Multiply`.
 - The strikes: `SweepAttackPerformer.Start`,
   `SweepAttackPerformer.TryPerformEffect`, `SweepAttackPerformer.FirstPrepare`,
   `SweepAttackPerformer.Perform`, `SweepSkillData.GetMaxDamageTimesByRadius`,
