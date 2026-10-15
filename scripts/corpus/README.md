@@ -25,6 +25,9 @@ converts this version's replays, runs `verify-matches.py` and keeps its
 reports; `divergence-issue.py` compares them with the parent commit's, and the
 workflow opens one issue for the rounds the commit newly fights wrong or
 refuses and comments on the pull request it merged with the issue's link.
+When this version has no replay, the workflow records a skip in its summary
+before building, and skips conversion, verification and reporting. With
+replays present, conversion and measurement errors still fail the run.
 
 **A replay is evidence.** It is copied from the Steam installation byte for
 byte and never rewritten. Only a locally recorded replay is admitted: the

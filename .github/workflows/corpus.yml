@@ -10,8 +10,8 @@ name: corpus
 # each master commit it keeps verify-matches.py's reports, compares them with
 # its parent's, and opens one issue for the rounds the commit newly fights
 # wrong or refuses, with a comment on the pull request the commit merged that links it. A
-# run that cannot measure still fails, and the failure is for whoever reads the
-# run.
+# version without replays skips verification. With replays present, a run that
+# cannot measure still fails, and the failure is for whoever reads the run.
 on:
   push:
     branches: [master]
@@ -37,9 +37,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The corpus commit is kept with the reports, so a round new to a run
+      # can be told apart from a replay added since the run before.
+      - name: Fetch the corpus at its master
+        run: |
+          python3 scripts/corpus/replay.py sync
+          mkdir -p reports
+          git -C work/replay rev-parse --short HEAD > reports/corpus-commit
+
+      # A new GAME_VERSION may precede its first replay. Skip before building
+      # and publish no empty measurement for a later run to compare against.
+      - name: Check for replays of this version
+        id: corpus
+        run: |
+          version=$(cat GAME_VERSION)
+          if compgen -G "work/replay/replays/$version/*.grbr" > /dev/null; then
+            echo 'available=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'available=false' >> "$GITHUB_OUTPUT"
+            printf 'Corpus verification skipped: no replays for `%s`.\n' "$version" \
+              | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
       # The scripts job builds the same binary and saves its cache on master;
       # this job only reads it.
       - uses: actions/cache/restore@v4
+        if: steps.corpus.outputs.available == 'true'
         with:
           path: |
             ~/.cargo/registry/index
@@ -50,19 +73,13 @@ jobs:
           restore-keys: cargo-scripts-fast-${{ runner.os }}-
 
       - name: Release build, without the Adapter
+        if: steps.corpus.outputs.available == 'true'
         run: cargo build --release -p mechcore --no-default-features
-
-      # The corpus commit is kept with the reports, so a round new to a run
-      # can be told apart from a replay added since the run before.
-      - name: Fetch the corpus at its master
-        run: |
-          python3 scripts/corpus/replay.py sync
-          mkdir -p reports
-          git -C work/replay rev-parse --short HEAD > reports/corpus-commit
 
       # A replay of this version the converter refuses, or one that does not
       # come back the same, fails the run here.
       - name: Convert this version's replays into match documents
+        if: steps.corpus.outputs.available == 'true'
         run: python3 scripts/corpus/export-replay-corpus.py
 
       # Whether each round the simulator fights comes out as the match says,
@@ -72,6 +89,7 @@ jobs:
       # the issue below reports and not a failure of the run; 2 is finding
       # nothing to read.
       - name: Rounds fought as the match says
+        if: steps.corpus.outputs.available == 'true'
         run: |
           status=0
           python3 scripts/corpus/verify-matches.py --json-out reports/verify-matches.json \
@@ -80,6 +98,7 @@ jobs:
           [ "$status" -le 1 ]
 
       - uses: actions/upload-artifact@v4
+        if: steps.corpus.outputs.available == 'true'
         with:
           name: corpus-verify
           path: reports/
@@ -87,6 +106,7 @@ jobs:
       # The reports to compare with: the parent commit's run, or the newest
       # master run that measured when the parent has none.
       - name: Fetch the parent's reports
+        if: steps.corpus.outputs.available == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           BASE: ${{ github.event.before }}
@@ -110,6 +130,7 @@ jobs:
       # have. Resolve the PR only after a new divergence is found, retrying
       # transient API failures before publishing the report with its attribution.
       - name: Open an issue for the rounds newly fought wrong or refused
+        if: steps.corpus.outputs.available == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
