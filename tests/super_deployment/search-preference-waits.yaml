@@ -1,0 +1,63 @@
+# Travel deactivates Aerial Specialization's distance-preference selector.
+# These Wasps therefore presearch the tower rather than Raiden; the
+# preference returns on arrival. Controls: technologies.yaml and
+# tests/technology_disable/impact-ground-targeting.yaml. Two native
+# recordings agree for every tick and settlement.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 726820472
+round: 3
+blue:
+  core_damage: 153
+  officers: [advanced_missile_device, aerial_specialist]
+  techs:
+    fang: [armor_piercing_bullets]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: fang, index: 0, position: {x: -335, y: 160}, level: 9, exp: 2018/2242/4036, rotated: true, equipment: [dominion_core]}
+  - {name: raiden, index: 1, position: {x: 100, y: -30}, level: 6, exp: 0/2032/13917, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -295, y: -250}}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: -10, y: -60}]}
+red:
+  core_damage: 0
+  officers: [advanced_targeting_system, fire_badger_specialist, improved_wasp]
+  techs:
+    wasp: [energy_shield, high_explosive_ammo, ground_specialization, jump_drive, electromagnetic_shot, aerial_specialization, range_enhancement, armor_piercing_bullets, elite_marksman, ignite]
+  blueprints: [attack_enhancement_ii]
+  units:
+  - {name: fire_badger, index: 0, position: {x: -255, y: -20}, source: delivered}
+  - {name: wasp, index: 1, position: {x: -350, y: 85}, level: 3, exp: 0/3206/3206, equipment: [deployment_module], travelling: true, source: joined}
+  - {name: vortex, index: 2, position: {x: 70, y: -80}, level: 9, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: -165, y: -230}]}
+asserts:
+- sql: |-
+    SELECT tick,unit_id,body_rotation,mech_lock_target__kind,mech_lock_target__id FROM units WHERE unit_id IN(23,24) AND tick IN(1,160,161,162,167) ORDER BY tick,unit_id
+  rows:
+  - [1, 23, 1075821871122, building, 2]
+  - [1, 24, 1071326340899, building, 2]
+  - [160, 23, 1075821871122, building, 2]
+  - [160, 24, 1071326340899, building, 2]
+  - [161, 23, 1075821871122, building, 2]
+  - [161, 24, 1071326340899, building, 2]
+  - [162, 23, 1075821871122, building, 2]
+  - [162, 24, 1071326340899, building, 2]
+  - [167, 23, 1075821871122, building, 2]
+  - [167, 24, 1071326340899, building, 2]
+- sql: |-
+    SELECT tick,unit_id,has_enabled,enabled__attack_range,enabled__lock_target__kind,enabled__lock_target__id FROM units__skills WHERE unit_id=23 AND skill_slot=0 AND tick IN(160,161,162,167) ORDER BY tick
+  rows:
+  - [160, 23, 0, null, null, null]
+  - [161, 23, 1, 536870912000, building, 2]
+  - [162, 23, 1, 536870912000, building, 2]
+  - [167, 23, 1, 536870912000, building, 2]
+ticks: 1109
+hash: 26:35295fb68a94e4b64a20ec4249e2fbd3d2cbda3634ddaede7977ff394f1d7869

@@ -438,10 +438,13 @@ impl Simulation {
                         .and_then(|(_, window)| window),
                     searches: true,
                     life_priority: actor.life_priority,
-                    // `SearchTargetSpecificProvider.DoEnable` turns the main
+                    // SearchTargetSpecificProvider activation turns the main
                     // skill's selector to `DistanceIntensify` after it has
-                    // written the values the selector reads.
-                    score_offsets: if actor.placement.effects.distance_intensify {
+                    // written the values the selector reads. Travel's
+                    // DoDeactive returns it to Normal until arrival.
+                    score_offsets: if actor.placement.effects.distance_intensify
+                        && !actor.travelling
+                    {
                         ScoreOffsets {
                             air: actor.stats.score_offset_for(UnitDomain::Air),
                             ground: actor.stats.score_offset_for(UnitDomain::Ground),
