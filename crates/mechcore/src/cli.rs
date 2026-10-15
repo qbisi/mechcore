@@ -49,6 +49,8 @@ pub(crate) struct Failure {
     operation: Option<String>,
     /// Where in the simulator each reason of a refused fight was raised.
     sites: Vec<String>,
+    /// Structured context supplied by the operation that failed.
+    details: Option<Box<serde_json::Value>>,
 }
 
 impl Failure {
@@ -83,6 +85,7 @@ impl Failure {
             reason: reason.into(),
             operation: None,
             sites: Vec::new(),
+            details: None,
         }
     }
 
@@ -93,6 +96,12 @@ impl Failure {
     /// not rename what a verb already named.
     pub(crate) fn at(mut self, operation: impl Into<String>) -> Self {
         self.operation.get_or_insert_with(|| operation.into());
+        self
+    }
+
+    /// Adds operation-specific context without changing the failure's kind.
+    pub(crate) fn with_details(mut self, details: serde_json::Value) -> Self {
+        self.details = Some(Box::new(details));
         self
     }
 
@@ -121,6 +130,9 @@ impl Failure {
         });
         if !self.sites.is_empty() {
             error["sites"] = serde_json::json!(self.sites);
+        }
+        if let Some(details) = &self.details {
+            error["details"] = (**details).clone();
         }
         error
     }

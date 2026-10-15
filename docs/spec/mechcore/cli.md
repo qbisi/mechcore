@@ -848,15 +848,22 @@ it is still in, which is an answer rather than an error.
 
 ### `match act`
 
-Takes one decision for one side.
+Takes one decision or an ordered sequence of decisions for one side.
 
-Operands: the match document, and the decision as the [action](../document/action.md)
-spec writes it. Options: `--side blue|red`, and `--dry-run` to answer without
-keeping the decision.
+Operands: the match document, and either one [action](../document/action.md)
+mapping or a nonempty array of action mappings, written as YAML or JSON.
+Options: `--side blue|red`, and `--dry-run` to answer without keeping the
+requested decisions. Nested arrays are not actions.
 
-The decision joins that side's uncommitted decisions in the turn file, and the
-answer contains the same visible `document` as `show`, plus top-level
-`position` for that side after the decision and `events` for what it produced.
+Each decision runs against the position left by its predecessors, including
+that side's existing uncommitted decisions. The whole request holds the turn
+file's lock. All requested decisions must succeed before any of them join the
+turn file; a failure keeps none of them and leaves earlier pending decisions
+intact. `act` does not commit the round.
+
+The answer contains the same visible `document` as `show`, plus top-level
+`position` for that side after the last decision and a flat `events` array in
+execution order.
 The document's state remains the opening state; `position` is a calculated
 result, not another state segment.
 An event is a one-key mapping naming what happened, such as `{created: {index:
@@ -864,10 +871,32 @@ An event is a one-key mapping naming what happened, such as `{created: {index:
 index a purchase created and where the board put it without diffing two
 positions.
 
-`--dry-run` is how a player asks whether a decision is one it may take: the
-answer is the same answer, and the refusal is the same refusal, but nothing is
-kept. A decision is legal exactly when the rules settle it from the position it
-is taken in, so asking is running it.
+`--dry-run` uses the same sequential execution and returns the same resulting
+position, document, events or first failure, but keeps none of the requested
+decisions. A decision is legal exactly when the rules settle it from the
+position it is taken in, so asking is running it.
+
+A failed step stops the sequence; later steps do not run. Its error object
+adds `details.decision_index`, the zero-based index within this request, and
+`details.decision`, the input action that failed. A single action has index
+zero too. A malformed action is a `usage` failure; an action refused by the
+rules is a `refused` failure. Invalid YAML and an empty array fail before any
+step and have no decision index. For example:
+
+```json
+{"op": "match.act", "decision": [
+  {"type": "unlock_unit", "name": "rhino"},
+  {"type": "buy_unit", "name": "rhino", "position": {"x": 40, "y": -280}}
+], "dry_run": true}
+```
+
+A refusal of the purchase has this shape:
+
+```json
+{"schema": "mechcore.error", "kind": "refused", "operation": "match.act",
+ "reason": "...", "details": {"decision_index": 1,
+ "decision": {"type": "buy_unit", "name": "rhino", "position": {"x": 40, "y": -280}}}}
+```
 
 Nothing enumerates the decisions a side may take. A decision that names a
 position has as many spellings as the board has places, so a list of them would
@@ -1103,9 +1132,10 @@ options as its fields:
 ```
 
 `wait` is `--wait`: `true` waits as long as it takes and a number of seconds
-bounds it. `decision` is the decision as the [action](../document/action.md)
-spec writes it, and `dry_run` is `--dry-run`, false when left out. A field the
-operation does not take is refused rather than ignored. The result is what the
+bounds it. `decision` is one [action](../document/action.md) mapping or a
+nonempty ordered array of those mappings, and `dry_run` is `--dry-run`, false
+when left out. A field the operation does not take is refused rather than
+ignored. The result is what the
 operation answers as a command, on one line; a failure is the error object a
 command writes to standard error, written on that same line instead, since a
 stream has one place to answer in, and the next request is read as if nothing
@@ -1114,7 +1144,8 @@ had failed.
 In the prompt a decision is one word however many spaces it holds:
 `act {type: move_unit, index: 7, position: {x: 40, y: -150}}` splits at no
 space inside its braces, and a quoted word, such as a path with a space in it,
-keeps its spaces and drops its quotes.
+keeps its spaces and drops its quotes. Brackets group an action array in the
+same way: `act [{type: unlock_unit, name: rhino}, {type: concede}] --dry-run`.
 
 ## `man`
 

@@ -270,32 +270,57 @@ fn show(mut arguments: Args) -> Result<View, Failure> {
     }
 }
 
-/// Takes one decision for one side.
+/// Takes a single decision or an ordered sequence for one side.
 fn act(mut arguments: Args) -> Result<View, Failure> {
     let dry_run = arguments.flag("--dry-run")?;
     let side = side_option(&mut arguments, true)?.unwrap_or(Side::Blue);
     let path = arguments.path("a match document")?;
-    let written = arguments.operand("a decision")?;
-    arguments.finish()?;
-    let decision: Action = serde_yaml::from_str(&written).map_err(|error| {
+    // A block-style YAML sequence starts with '-', so it is not read as a
+    // command-line option. All of this operation's options were taken above.
+    let operands = arguments.rest();
+    let [written] = operands.as_slice() else {
+        return Err(Failure::usage(
+            "expected one decision or a nonempty sequence of decisions as one argument",
+        ));
+    };
+    let decisions: Value = serde_yaml::from_str(written).map_err(|error| {
         Failure::usage(format!(
-            "{written:?} is not a decision this build reads: {error}"
+            "{written:?} is not a decision or sequence this build reads: {error}"
         ))
     })?;
+    let decisions = match decisions {
+        Value::Array(decisions) if decisions.is_empty() => {
+            return Err(Failure::usage("a decision sequence must not be empty"));
+        }
+        Value::Array(decisions) => decisions,
+        decision => vec![decision],
+    };
 
     let mut held = Held::take(&turn_path(&path))?;
     let game = Game::read(&path, &mut held, None, side)?;
     let mut game = game.settle(&mut held)?;
-    let events = game.take(side, &decision)?;
-    // A dry run answers the same answer, so the decision is taken here and
-    // only the writing is left out.
-    game.turn.side_mut(side).decisions.push(decision);
-    if !dry_run {
-        game.write_turn(&mut held)?;
+    let mut events = Vec::new();
+    for (index, written) in decisions.into_iter().enumerate() {
+        let context = |failure: Failure| {
+            failure.with_details(serde_json::json!({
+                "decision_index": index,
+                "decision": written,
+            }))
+        };
+        let decision: Action = serde_json::from_value(written.clone())
+            .map_err(|error| Failure::usage(format!("not a decision this build reads: {error}")))
+            .map_err(context)?;
+        events.extend(game.take(side, &decision).map_err(context)?);
+        // Each step sees its predecessors, but none reaches disk until all
+        // steps and the resulting view succeed. A dry run skips that write.
+        game.turn.side_mut(side).decisions.push(decision);
     }
     let mut view = game.view(Some(side), false)?;
     view.events = Some(events);
     view.position = Some(game.position(side)?);
+    if !dry_run {
+        game.write_turn(&mut held)?;
+    }
     Ok(view)
 }
 
@@ -1160,7 +1185,7 @@ struct View {
     /// What stopped a fight this match is due, when one is.
     #[serde(skip_serializing_if = "Option::is_none")]
     unresolved: Option<String>,
-    /// What the decision just taken did, which only `act` answers.
+    /// What the decisions just taken did, in order, which only `act` answers.
     #[serde(skip_serializing_if = "Option::is_none")]
     events: Option<Vec<Value>>,
     /// Only act answers the resulting position; document states stay at the opening.

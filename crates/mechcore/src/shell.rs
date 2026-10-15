@@ -61,7 +61,7 @@ a match, once a line has opened one or the shell was opened on it
   match show <match.yaml> --side blue|red
                                   play that side of a match already dealt
   show [--wait [<seconds>]]       the side's view of the match
-  act <decision> [--dry-run]      take one decision, such as {type: buy_unit, name: marksman}
+  act <decision> [--dry-run]      take one decision or an ordered array of decisions
   commit                          write this round's decisions
 shell
   help                            this list
