@@ -960,7 +960,45 @@ impl Simulation {
         // state: it turns to a target in range (`AttackUpdate`), whose
         // skill starts and fires in its own update all the same.
         let stopped = self.actors[&actor_id].motion.state == MotionState::Stopped;
+        let actor = &self.actors[&actor_id];
         if !stopped
+            && actor.command.is_none()
+            && actor.skills.main.standalone()
+            && !actor.skills.main.mech_searches()
+        {
+            // AutoMoveBehaviour.IsActive asks the current attacker's lock,
+            // not the core gun's attack target. A standalone gun can retain
+            // a dead lock through its burst while the core cools on a fresh
+            // target; that does not keep the body's move behaviour active.
+            let holder = actor
+                .skills
+                .main
+                .group
+                .as_ref()
+                .map_or(0, |group| group.motion_slot);
+            if !actor
+                .skills
+                .main
+                .slot_lock(holder)
+                .is_some_and(|lock| self.fight_actor_is_alive(lock))
+            {
+                self.enter_motion_idle(actor_id);
+                return Ok(());
+            }
+        }
+        // A standalone side gun can own the motion independently. Keep the
+        // core gun's fallen-block handling when that gun still controls it:
+        // a dead block before a live lock remains in range through a burst.
+        let core_holds_motion = !actor.skills.main.standalone()
+            || actor.skills.main.mech_searches()
+            || actor
+                .skills
+                .main
+                .group
+                .as_ref()
+                .is_none_or(|group| group.motion_slot == 0);
+        if !stopped
+            && core_holds_motion
             && let Flow::Done = self.hold_dead_target_moving(actor_id, backswing_just_finished)
         {
             return Ok(());

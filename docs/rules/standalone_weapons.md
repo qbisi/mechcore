@@ -152,8 +152,10 @@ The Mountain's motion follows one of its weapons, the one whose skill is
   another that holds a lock. A weapon taking a fresh lock does not draw the
   motion off one that keeps its own.
 - **The motion goes after that weapon's lock**, and is idle while it holds
-  none, whatever the others hold. An attacking motion stays in its attack
-  while that weapon's target is in its range.
+  none or its lock is dead, whatever the others hold. A gun still releasing
+  a burst at a dead target does not stop motion held by another gun with a
+  live lock. An attacking motion stays in its attack while the controlling
+  weapon's target is in its range.
 - **The turret turns to that weapon's lock**
   (`MotionController.CalculateTargetDirection`), even while the weapon is
   idle on a lock its fallback search took and names no target.
@@ -171,6 +173,10 @@ The Mountain's motion follows one of its weapons, the one whose skill is
 - A side gun holds Mountain's motion towards a tower while the first gun
   takes a unit and starts attacking independently, without pulling the body
   towards its own target: `tests/mountain/independent-gun-motion.yaml`.
+- A side gun retaining its dead lock leaves the motion idle while the core
+  cools on a fresh target; a live side-gun lock keeps it attacking and turning
+  while the core releases a burst at a dead target:
+  `tests/multi_attack/mountain-dead-motion-lock.yaml`.
 
 - A War Factory keeps moving towards a shield-covered tower while all skills
   locking that tower are idle, then enters attack as one leaves idle:

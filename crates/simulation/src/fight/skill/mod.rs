@@ -2280,6 +2280,7 @@ impl Simulation {
             if let Some(actor) = self.moving_mut(skill_ref)
                 && actor.command.is_none()
                 && !lock_lives
+                && !actor.skills.main.standalone()
             {
                 let entered_idle = actor.motion.state != MotionState::Idle;
                 actor.lose_target_motion(entered_idle);

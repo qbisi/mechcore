@@ -1,0 +1,65 @@
+# A standalone gun retains its dead lock while its burst releases. The
+# motion asks the gun holding it, not the core gun: idle on a dead side-gun
+# lock while the core cools, attacking and turning on a live side-gun lock
+# while the core fires at its dead target. Control: mountain/independent-gun-motion.yaml.
+# Two native recordings agree for all 740 ticks and settlement.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 225428280
+round: 4
+blue:
+  core_damage: 605
+  officers: [advanced_power_system, typhoon_specialist]
+  techs:
+    mountain: [saturation_bombardment, mountain_plating, anti_aircraft_ammunition, range_enhancement, extended_range_ammo, gun_launched_missile, smoke_bomb, photon_loop]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: typhoon, index: 0, position: {x: -180, y: -260}, exp: 0/1950/1950, source: delivered}
+  - {name: mountain, index: 1, position: {x: -155, y: -55}, level: 7, exp: 0/16215/20148, source: joined}
+  - {name: marksman, index: 2, position: {x: -230, y: -100}, level: 8, exp: 0/4373/4373, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: -95, y: 35}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_targeting_system, rhino_specialist, improved_war_factory]
+  techs:
+    war_factory: [high_explosive_ammo, armor_enhancement, missile_interceptor, range_enhancement, launcher_overload, phoenix_production, steel_ball_production, sledgehammer_production, photon_coating]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: rhino, index: 0, position: {x: -45, y: -295}, level: 2, source: delivered}
+  - {name: war_factory, index: 1, position: {x: -185, y: -115}, level: 4, exp: 0/14369/14369, source: joined}
+  - {name: mountain, index: 2, position: {x: 5, y: -55}, level: 6, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 55, y: -105}, retained: false}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: 105, y: -175}]}
+asserts:
+- sql: |-
+    SELECT tick,motion_state,turret_rotation FROM units WHERE unit_id=4 AND tick IN (539,540,541,586,587,588) ORDER BY tick
+  rows:
+  - [539, attacking, 127403587229]
+  - [540, idle, 127403587229]
+  - [541, idle, 127403587229]
+  - [586, attacking, 148878423629]
+  - [587, attacking, 159615841829]
+  - [588, attacking, 170353260029]
+- sql: |-
+    SELECT tick,skill_slot,enabled__state,enabled__lock_target__id,enabled__attack_target__id FROM units__skills WHERE unit_id=4 AND skill_slot IN (0,1,3) AND tick IN (540,587) ORDER BY tick,skill_slot
+  rows:
+  - [540, 0, cooling, null, 13]
+  - [540, 1, attack, 7, 7]
+  - [540, 3, attack, 7, 7]
+  - [587, 0, attack, 13, 13]
+  - [587, 1, idle, 16, 16]
+  - [587, 3, attack, 9, 12]
+ticks: 740
+hash: 26:69a22a4d9a9166dc255f91d2f671d17036e72988d98b469c06765cf4e865cc0c
