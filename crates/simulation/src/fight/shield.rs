@@ -372,6 +372,11 @@ impl Simulation {
                 let active_order = order.entry(shield.team).or_insert(0);
                 let state = ShieldState {
                     shield_id: shield.id,
+                    controller: shield.owner.map(|_| mechcore_mcfr::ShieldControllerState {
+                        enabled: shield.enabled,
+                        energy_record: i32::try_from(shield.energy_record)
+                            .expect("shield energy fits i32"),
+                    }),
                     team_id: shield.team,
                     source_kind: shield.source_kind,
                     owner: shield

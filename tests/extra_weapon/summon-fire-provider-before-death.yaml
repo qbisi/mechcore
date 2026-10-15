@@ -35,26 +35,21 @@ red:
   - {name: missile, index: 0, position: {x: 255, y: -50}}
   battle_skills:
   - {name: vulcans_descent, positions: [{x: 120, y: -20}]}
-ticks: 674
-hash: 25:60e23c7363337f02b30f074686f4589fef6694103d5b8b7dd5e893da4b837e64
 asserts:
-- sql: SELECT tick, type, object__id, source__id FROM events WHERE type='unit_died'
-    AND object__kind='unit' AND object__id=22 ORDER BY tick,ordinal;
+- sql: |-
+    SELECT tick, type, object__id, source__id FROM events WHERE type='unit_died' AND object__kind='unit' AND object__id=22 ORDER BY tick,ordinal;
   rows:
-  - - 140
-    - unit_died
-    - 22
-    - 5
-- sql: "SELECT t.tick, t.terrain_id, q32(t.radius) AS radius,\n       t.logic_lifetime__limit\n\
-    FROM terrains t\nWHERE t.terrain_type = 'fire' AND q32(t.radius) = 36\n  AND t.tick\
-    \ = (SELECT min(b.tick) FROM terrains b WHERE b.terrain_id = t.terrain_id)\n \
-    \ AND t.tick IN (134, 142)\nORDER BY t.tick, t.terrain_id;"
+  - [140, unit_died, 22, 5]
+- sql: |-
+    SELECT t.tick, t.terrain_id, q32(t.radius) AS radius,
+           t.logic_lifetime__limit
+    FROM terrains t
+    WHERE t.terrain_type = 'fire' AND q32(t.radius) = 36
+      AND t.tick = (SELECT min(b.tick) FROM terrains b WHERE b.terrain_id = t.terrain_id)
+      AND t.tick IN (134, 142)
+    ORDER BY t.tick, t.terrain_id;
   rows:
-  - - 134
-    - 2
-    - 36.0
-    - 480
-  - - 142
-    - 11
-    - 36.0
-    - 480
+  - [134, 2, 36.0, 480]
+  - [142, 11, 36.0, 480]
+ticks: 674
+hash: 26:61ea3c6623cf3319438cbbc1f6969d11236f0b4a78e036fafa632b5e41fde078

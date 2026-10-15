@@ -36,19 +36,19 @@ red:
   - {name: interceptor, index: 0, position: {x: 185, y: -115}}
   battle_skills:
   - {name: smoke_bomb, positions: [{x: -75, y: -50}, {x: -55, y: 290}]}
-ticks: 2156
-hash: 25:f664c9d616ac1d460d1c3f4dd6cbf2b560fd53a4475f0ed1d2f351d89a656bde
 asserts:
 - sql: |
     SELECT tick,skill_slot,enabled__attack_range FROM units__skills
     WHERE unit_id=31 AND tick IN(504,505,720,721) AND skill_slot IN(1,2)
     ORDER BY tick,skill_slot
   rows:
-  - [504,1,730144440320]
-  - [504,2,773094113280]
-  - [505,1,474593886310]
-  - [505,2,502511173740]
-  - [720,1,474593886310]
-  - [720,2,502511173740]
-  - [721,1,730144440320]
-  - [721,2,773094113280]
+  - [504, 1, 730144440320]
+  - [504, 2, 773094113280]
+  - [505, 1, 474593886310]
+  - [505, 2, 502511173740]
+  - [720, 1, 474593886310]
+  - [720, 2, 502511173740]
+  - [721, 1, 730144440320]
+  - [721, 2, 773094113280]
+ticks: 2156
+hash: 26:d7e8cb8b1e757375ca2c1f9efdc657e7b022333bc1c4aeb686d52f4ad4267cd6

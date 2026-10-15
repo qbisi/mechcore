@@ -26,30 +26,24 @@ red:
   units:
   - {name: marksman, index: 0, position: {x: -20, y: -30}, source: joined}
   - {name: marksman, index: 1, position: {x: 20, y: -30}, source: joined}
-ticks: 96
-hash: 25:0ef35de91b605f0b561340ff3c5f89bb61959cac08b00c3975a161b49ca41b78
 asserts:
-- sql: "SELECT\n  tick,\n  unit_id,\n  skill_slot,\n  enabled__lock_target__kind,\n\
-    \  enabled__lock_target__id\nFROM units__skills\nWHERE\n  unit_id = 1\n  AND tick\
-    \ = 10\nORDER BY\n  skill_slot;\n"
+- sql: |
+    SELECT
+      tick,
+      unit_id,
+      skill_slot,
+      enabled__lock_target__kind,
+      enabled__lock_target__id
+    FROM units__skills
+    WHERE
+      unit_id = 1
+      AND tick = 10
+    ORDER BY
+      skill_slot;
   rows:
-  - - 10
-    - 1
-    - 0
-    - unit
-    - 3
-  - - 10
-    - 1
-    - 1
-    - unit
-    - 2
-  - - 10
-    - 1
-    - 2
-    - unit
-    - 3
-  - - 10
-    - 1
-    - 3
-    - unit
-    - 3
+  - [10, 1, 0, unit, 3]
+  - [10, 1, 1, unit, 2]
+  - [10, 1, 2, unit, 3]
+  - [10, 1, 3, unit, 3]
+ticks: 96
+hash: 26:3e66e20a06b4004f2cb8b4f82770562b052104d3cd468de86a1ae9e9024ca1a1

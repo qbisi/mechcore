@@ -31,4 +31,4 @@ red:
   - {name: fortress, index: 1, position: {x: 60, y: -40}, exp: 0/950/1600, source: joined}
   - {name: fortress, index: 2, position: {x: 0, y: -80}, exp: 0/550/1600, source: joined}
 ticks: 383
-hash: 25:ac02f6b02427d9058af6ccf0eb2631e89660a33cd4732bd3e20f776a0c3d3ca7
+hash: 26:d78cdde5db5e7a57e7670c4280a872373aa3aa77861b502a23052edc151b3bd0

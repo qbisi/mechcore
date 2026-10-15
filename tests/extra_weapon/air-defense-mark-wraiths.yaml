@@ -26,4 +26,4 @@ red:
   - {name: wraith, index: 0, position: {x: 5, y: -175}, source: joined}
   - {name: wraith, index: 1, position: {x: -55, y: -175}, exp: 0/600/2250, source: joined}
 ticks: 606
-hash: 25:939c0046cbe64403fa8e5dc5e9eb73007863e2ca55a986437509634991f2ca51
+hash: 26:e3d476aaebca7b664ed788a47a05a2cb3a1dc05d6470b19a5414f7a3e3bdd0b6

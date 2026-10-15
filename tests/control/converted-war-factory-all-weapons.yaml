@@ -40,58 +40,20 @@ red:
   - {name: shield, index: 0, position: {x: 10, y: -125}, retained: false}
   battle_skills:
   - {name: ion_blast, positions: [{x: 30, y: -240}, {x: -10, y: 30}]}
-ticks: 696
-hash: 25:31ff9a1507c27d8ce8781dce44edc80cf3ea9d598d4b1cf0b5a630ee98b321dd
 asserts:
-- sql: "SELECT tick, skill_slot, enabled__state, enabled__lock_target__id,\n     \
-    \  enabled__attack_target__id, enabled__attack_count\nFROM units__skills WHERE\
-    \ unit_id = 21 AND tick IN (393, 394)\nORDER BY tick, skill_slot;"
+- sql: |-
+    SELECT tick, skill_slot, enabled__state, enabled__lock_target__id,
+           enabled__attack_target__id, enabled__attack_count
+    FROM units__skills WHERE unit_id = 21 AND tick IN (393, 394)
+    ORDER BY tick, skill_slot;
   rows:
-  - - 393
-    - 0
-    - attack
-    - 50
-    - 50
-    - 0
-  - - 393
-    - 1
-    - attack
-    - 36
-    - 36
-    - 2
-  - - 393
-    - 2
-    - attack
-    - 31
-    - 31
-    - 0
-  - - 393
-    - 3
-    - idle
-    - 36
-    - 36
-    - -1
-  - - 394
-    - 0
-    - cooling
-    - null
-    - 50
-    - -1
-  - - 394
-    - 1
-    - cooling
-    - null
-    - 36
-    - -1
-  - - 394
-    - 2
-    - cooling
-    - null
-    - 31
-    - -1
-  - - 394
-    - 3
-    - idle
-    - 23
-    - null
-    - -1
+  - [393, 0, attack, 50, 50, 0]
+  - [393, 1, attack, 36, 36, 2]
+  - [393, 2, attack, 31, 31, 0]
+  - [393, 3, idle, 36, 36, -1]
+  - [394, 0, cooling, null, 50, -1]
+  - [394, 1, cooling, null, 36, -1]
+  - [394, 2, cooling, null, 31, -1]
+  - [394, 3, idle, 23, null, -1]
+ticks: 696
+hash: 26:52d95f701e045a9fc0210aabc99a64538375207c80f2306bfb63bf482296d628

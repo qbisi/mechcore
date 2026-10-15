@@ -39,43 +39,35 @@ red:
   - {name: missile, index: 0, position: {x: 25, y: -35}, retained: false}
   battle_skills:
   - {name: ion_blast, positions: [{x: 15, y: -225}, {x: 30, y: 140}]}
-ticks: 865
-hash: 25:447b05bb5a34c29ca79b2ee39062f43a1fcbfea0e0722fa88af859754cb3e41f
 asserts:
-- sql: "SELECT\n  tick,\n  skill_slot,\n  enabled__lock_target__kind,\n  enabled__lock_target__id,\n\
-    \  enabled__attack_target__kind,\n  enabled__attack_target__id\nFROM units__skills\n\
-    WHERE\n  unit_id = 4\n  AND ((tick = 92 AND skill_slot IN (1, 3))\n  OR (tick\
-    \ = 111 AND skill_slot IN (2, 3)))\nORDER BY\n  tick,\n  ordinal;\n"
+- sql: |
+    SELECT
+      tick,
+      skill_slot,
+      enabled__lock_target__kind,
+      enabled__lock_target__id,
+      enabled__attack_target__kind,
+      enabled__attack_target__id
+    FROM units__skills
+    WHERE
+      unit_id = 4
+      AND ((tick = 92 AND skill_slot IN (1, 3))
+      OR (tick = 111 AND skill_slot IN (2, 3)))
+    ORDER BY
+      tick,
+      ordinal;
   rows:
-  - - 92
-    - 1
-    - building
-    - 3
-    - building
-    - 3
-  - - 92
-    - 3
-    - building
-    - 3
-    - building
-    - 3
-  - - 111
-    - 2
-    - building
-    - 5
-    - building
-    - 5
-  - - 111
-    - 3
-    - building
-    - 5
-    - building
-    - 5
-- sql: "SELECT tick, unit_id, mech_lock_target__kind, mech_lock_target__id, motion_state\n\
-    FROM units\nWHERE\n  unit_id = 4\n  AND tick = 326;\n"
+  - [92, 1, building, 3, building, 3]
+  - [92, 3, building, 3, building, 3]
+  - [111, 2, building, 5, building, 5]
+  - [111, 3, building, 5, building, 5]
+- sql: |
+    SELECT tick, unit_id, mech_lock_target__kind, mech_lock_target__id, motion_state
+    FROM units
+    WHERE
+      unit_id = 4
+      AND tick = 326;
   rows:
-  - - 326
-    - 4
-    - building
-    - 5
-    - attacking
+  - [326, 4, building, 5, attacking]
+ticks: 865
+hash: 26:11095575d08085c41e201df7ec91e821203ca894644b63450cec97b421c5a7ef

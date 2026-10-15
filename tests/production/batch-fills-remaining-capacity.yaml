@@ -39,22 +39,16 @@ red:
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
   contraptions:
   - {name: shield, index: 0, position: {x: 50, y: -80}}
-ticks: 1749
-hash: 25:6ab4a33ad129ba852e0e8da47b73b8fa3553f38e96b7ed80349dd10dcc3416c4
 asserts:
-- sql: SELECT tick,COUNT(*) FROM events WHERE type='unit_created' AND unit_type_id=7 GROUP BY tick ORDER BY tick
+- sql: |-
+    SELECT tick,COUNT(*) FROM events WHERE type='unit_created' AND unit_type_id=7 GROUP BY tick ORDER BY tick
   rows:
-  - - 1
-    - 4
-  - - 221
-    - 4
-  - - 441
-    - 4
-  - - 661
-    - 4
-  - - 881
-    - 4
-  - - 1101
-    - 1
-  - - 1624
-    - 4
+  - [1, 4]
+  - [221, 4]
+  - [441, 4]
+  - [661, 4]
+  - [881, 4]
+  - [1101, 1]
+  - [1624, 4]
+ticks: 1749
+hash: 26:ede0ce232d8ddac609878470c25387b3700918bb76929e401c0f5a6b5742af91

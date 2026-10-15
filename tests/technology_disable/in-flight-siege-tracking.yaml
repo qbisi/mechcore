@@ -39,8 +39,6 @@ red:
   - {name: shield, index: 0, position: {x: 170, y: -80}, retained: false}
   battle_skills:
   - {name: heavy_missile_strike, positions: [{x: 120, y: -205}]}
-ticks: 184
-hash: 25:6382ca0f15e5ba83b3b448a36da09c6806609b8894e3366ebfbe896842787a4c
 asserts:
 - sql: |
     SELECT p.tick,p.projectile_id,
@@ -49,4 +47,10 @@ asserts:
     FROM projectiles p JOIN units u ON u.tick=p.tick AND u.unit_id=p.target__id
     WHERE p.tick IN(133,134) AND p.projectile_id IN(9,11)
     ORDER BY p.tick,p.projectile_id
-  rows: [[133,9,0],[133,11,0],[134,9,1],[134,11,1]]
+  rows:
+  - [133, 9, 0]
+  - [133, 11, 0]
+  - [134, 9, 1]
+  - [134, 11, 1]
+ticks: 184
+hash: 26:c6e1b90e25b4a2272a4fe386eef8a9275372c5c4c13c67f165fca9facd8124d1

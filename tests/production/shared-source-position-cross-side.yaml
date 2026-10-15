@@ -21,48 +21,17 @@ red:
     marksman: [shooting_squad]
   units:
   - {name: marksman, index: 1, position: {x: -320, y: 110}, level: 7, exp: 0/1320/4093, rotated: true, travelling: true, source: joined}
-ticks: 1104
-hash: 25:7f7112452a4db22c0feb3fc7649fb94f8f7fbe235682e701ab30b52abbe9f8eb
 asserts:
-- sql: SELECT tick,object__id,team_id,position__x,position__z FROM events WHERE type='unit_created' AND unit_type_id=9 ORDER BY tick,ordinal
+- sql: |-
+    SELECT tick,object__id,team_id,position__x,position__z FROM events WHERE type='unit_created' AND unit_type_id=9 ORDER BY tick,ordinal
   rows:
-  - - 1
-    - 3
-    - 0
-    - -282301723846
-    - -65883763069
-  - - 1
-    - 4
-    - 0
-    - -323567500086
-    - -77790199579
-  - - 1
-    - 5
-    - 0
-    - -364833276326
-    - -89696636089
-  - - 1
-    - 6
-    - 0
-    - -406099052566
-    - -101603072599
-  - - 161
-    - 7
-    - 1
-    - 1316901975197
-    - -583220923985
-  - - 161
-    - 8
-    - 1
-    - 1262756019837
-    - -420112803785
-  - - 161
-    - 9
-    - 1
-    - 1276292508677
-    - -460889833835
-  - - 161
-    - 10
-    - 1
-    - 1289828997517
-    - -501666863885
+  - [1, 3, 0, -282301723846, -65883763069]
+  - [1, 4, 0, -323567500086, -77790199579]
+  - [1, 5, 0, -364833276326, -89696636089]
+  - [1, 6, 0, -406099052566, -101603072599]
+  - [161, 7, 1, 1316901975197, -583220923985]
+  - [161, 8, 1, 1262756019837, -420112803785]
+  - [161, 9, 1, 1276292508677, -460889833835]
+  - [161, 10, 1, 1289828997517, -501666863885]
+ticks: 1104
+hash: 26:2949d209cabb05a9fd28ccdbb1aecb23d21a0c9515b164712d319291852ef9f0

@@ -41,8 +41,21 @@ red:
   - {name: missile, index: 0, position: {x: 125, y: -275}}
   battle_skills:
   - {name: vulcans_descent, positions: [{x: -85, y: -10}]}
-ticks: 1883
-hash: 25:fbf9bda9e232ba70a64670fab58fade0420015fc003e1f48d7a8e645a7a91fc1
 asserts:
-- sql: SELECT tick,skill_slot,enabled__attack_time,enabled__current_attack_interval,enabled__state FROM units__skills WHERE unit_id=3 AND skill_slot<4 AND tick IN (81,82,83) ORDER BY tick,skill_slot
-  rows: [[81, 0, 32, 32, idle], [81, 1, 32, 32, idle], [81, 2, 32, 32, idle], [81, 3, 32, 32, idle], [82, 0, 33, 32, prepare], [82, 1, 33, 32, idle], [82, 2, 33, 32, idle], [82, 3, 33, 32, idle], [83, 0, 34, 32, prepare], [83, 1, 34, 32, idle], [83, 2, 34, 32, idle], [83, 3, 34, 32, idle]]
+- sql: |-
+    SELECT tick,skill_slot,enabled__attack_time,enabled__current_attack_interval,enabled__state FROM units__skills WHERE unit_id=3 AND skill_slot<4 AND tick IN (81,82,83) ORDER BY tick,skill_slot
+  rows:
+  - [81, 0, 32, 32, idle]
+  - [81, 1, 32, 32, idle]
+  - [81, 2, 32, 32, idle]
+  - [81, 3, 32, 32, idle]
+  - [82, 0, 33, 32, prepare]
+  - [82, 1, 33, 32, idle]
+  - [82, 2, 33, 32, idle]
+  - [82, 3, 33, 32, idle]
+  - [83, 0, 34, 32, prepare]
+  - [83, 1, 34, 32, idle]
+  - [83, 2, 34, 32, idle]
+  - [83, 3, 34, 32, idle]
+ticks: 1883
+hash: 26:7337855ad67e8bc28a0be93c6b08713f321c286d055b59231260573a5ca2b590

@@ -43,12 +43,13 @@ red:
   - {name: shield, index: 0, position: {x: -55, y: -95}}
   battle_skills:
   - {name: acid_blast, positions: [{x: -175, y: -85}, {x: -115, y: 20}]}
-ticks: 847
-hash: 25:de51a4b95f67ab49b98b062ba6e65e54c2c73aaa0a67d77b79e5fcd803b7f35a
 asserts:
 - sql: |
     SELECT u.tick,u.unit_id,u.mech_lock_target__kind,u.mech_lock_target__id,
            b.building_type_id,q32(b.position__x)
     FROM units u JOIN buildings b ON b.tick=u.tick AND b.building_id=u.mech_lock_target__id
     WHERE u.tick=48 AND u.unit_type_id=3 AND u.mech_lock_target__kind='building'
-  rows: [[48,13,building,9,2,-140.0]]
+  rows:
+  - [48, 13, building, 9, 2, -140.0]
+ticks: 847
+hash: 26:433caa0dadd6b633117544dd7b2e5e0c34a38c887cee2b6084254c733fd3a5e3

@@ -32,8 +32,12 @@ red:
   - {name: marksman, index: 1, position: {x: -50, y: -70}, level: 9, source: joined}
   battle_skills:
   - {name: underground_threat, positions: [{x: 275, y: -70}]}
-ticks: 1233
-hash: 25:017aaccf99c8bca8e23e4dcde9ff0370c031c8da4d3ac6c0668ba16c1375b2cf
 asserts:
-- sql: SELECT tick,velocity__x,velocity__z FROM units WHERE unit_id=4 AND tick IN (11,12,13) ORDER BY tick
-  rows: [[11,-53951942220,117015449100],[12,-49828964311,118808617084],[13,-49828964311,118808617084]]
+- sql: |-
+    SELECT tick,velocity__x,velocity__z FROM units WHERE unit_id=4 AND tick IN (11,12,13) ORDER BY tick
+  rows:
+  - [11, -53951942220, 117015449100]
+  - [12, -49828964311, 118808617084]
+  - [13, -49828964311, 118808617084]
+ticks: 1233
+hash: 26:ff8a433c3d8e82296ea497414fe50d5486aaa9c5320a172073440047450f06cc

@@ -44,25 +44,16 @@ red:
   - {name: shield, index: 0, position: {x: -25, y: -145}}
   battle_skills:
   - {name: underground_threat, positions: [{x: -250, y: -255}]}
-ticks: 1311
-hash: 25:76932a4d628cdc0833e2e290b14d4f5fec092065874e26c7e5c232a06d0b811f
 asserts:
-- sql: "SELECT w.tick, s.visibility, w.motion_state,\n       w.mech_lock_target__kind,\
-    \ w.mech_lock_target__id\nFROM units w JOIN units s ON s.tick = w.tick\nWHERE\
-    \ w.unit_id = 5 AND s.unit_id = 4 AND w.tick BETWEEN 20 AND 22\nORDER BY w.tick;\n"
+- sql: |
+    SELECT w.tick, s.visibility, w.motion_state,
+           w.mech_lock_target__kind, w.mech_lock_target__id
+    FROM units w JOIN units s ON s.tick = w.tick
+    WHERE w.unit_id = 5 AND s.unit_id = 4 AND w.tick BETWEEN 20 AND 22
+    ORDER BY w.tick;
   rows:
-  - - 20
-    - normal
-    - attacking
-    - unit
-    - 4
-  - - 21
-    - hide
-    - attacking
-    - unit
-    - 4
-  - - 22
-    - hide
-    - attacking
-    - unit
-    - 4
+  - [20, normal, attacking, unit, 4]
+  - [21, hide, attacking, unit, 4]
+  - [22, hide, attacking, unit, 4]
+ticks: 1311
+hash: 26:7e44b14c289eb350a510851a0e222350b6afbf40df680f2d4f4db249102dddbb

@@ -41,12 +41,38 @@ red:
   - {name: missile, index: 0, position: {x: 35, y: -255}}
   battle_skills:
   - {name: electromagnetic_blast, positions: [{x: 170, y: 255}]}
-ticks: 1731
-hash: 25:695f2e0f3dfcbcca62fd3be12e64d380eef35ff2bb4cc5cf74718c029d4935fd
 asserts:
-- sql: SELECT tick,velocity__x,velocity__z,mech_lock_target__kind,mech_lock_target__id,motion_state FROM units WHERE unit_id=5 AND tick IN (519,520,525,526,616,617,618) ORDER BY tick
-  rows: [[519, 32869201077, 20336859513, unit, 6, moving], [520, 32869399356, 20336982201, unit, 6, moving], [525, 32869613538, 20337114717, building, 3, moving], [526, 32869613538, 20337114717, building, 3, moving], [616, 32874621660, 20340213345, building, 3, moving], [617, 32874621660, 20340213345, building, 3, moving], [618, 32874621660, 20340213345, building, 3, moving]]
-- sql: SELECT tick,skill_slot,enabled__lock_target__kind,enabled__lock_target__id,enabled__state FROM units__skills WHERE unit_id=5 AND skill_slot IN (0,1) AND tick IN (519,520,525,526,616,617,618) ORDER BY tick,skill_slot
-  rows: [[519, 0, unit, 6, idle], [519, 1, building, 3, idle], [520, 0, unit, 6, idle], [520, 1, building, 3, idle], [525, 0, unit, 6, idle], [525, 1, building, 3, idle], [526, 0, unit, 6, idle], [526, 1, building, 3, idle], [616, 0, unit, 9, idle], [616, 1, unit, 9, idle], [617, 0, unit, 9, attack], [617, 1, unit, 9, attack], [618, 0, unit, 9, attack], [618, 1, unit, 9, attack]]
-- sql: SELECT tick,source__kind,source__id,target__kind,target__id,skill_slot,weapon_index FROM events WHERE type='projectile_released' AND source__id=5 AND tick BETWEEN 616 AND 620 ORDER BY tick,ordinal
-  rows: [[618, unit, 5, unit, 9, 0, 3], [618, unit, 5, unit, 9, 1, 4]]
+- sql: |-
+    SELECT tick,velocity__x,velocity__z,mech_lock_target__kind,mech_lock_target__id,motion_state FROM units WHERE unit_id=5 AND tick IN (519,520,525,526,616,617,618) ORDER BY tick
+  rows:
+  - [519, 32869201077, 20336859513, unit, 6, moving]
+  - [520, 32869399356, 20336982201, unit, 6, moving]
+  - [525, 32869613538, 20337114717, building, 3, moving]
+  - [526, 32869613538, 20337114717, building, 3, moving]
+  - [616, 32874621660, 20340213345, building, 3, moving]
+  - [617, 32874621660, 20340213345, building, 3, moving]
+  - [618, 32874621660, 20340213345, building, 3, moving]
+- sql: |-
+    SELECT tick,skill_slot,enabled__lock_target__kind,enabled__lock_target__id,enabled__state FROM units__skills WHERE unit_id=5 AND skill_slot IN (0,1) AND tick IN (519,520,525,526,616,617,618) ORDER BY tick,skill_slot
+  rows:
+  - [519, 0, unit, 6, idle]
+  - [519, 1, building, 3, idle]
+  - [520, 0, unit, 6, idle]
+  - [520, 1, building, 3, idle]
+  - [525, 0, unit, 6, idle]
+  - [525, 1, building, 3, idle]
+  - [526, 0, unit, 6, idle]
+  - [526, 1, building, 3, idle]
+  - [616, 0, unit, 9, idle]
+  - [616, 1, unit, 9, idle]
+  - [617, 0, unit, 9, attack]
+  - [617, 1, unit, 9, attack]
+  - [618, 0, unit, 9, attack]
+  - [618, 1, unit, 9, attack]
+- sql: |-
+    SELECT tick,source__kind,source__id,target__kind,target__id,skill_slot,weapon_index FROM events WHERE type='projectile_released' AND source__id=5 AND tick BETWEEN 616 AND 620 ORDER BY tick,ordinal
+  rows:
+  - [618, unit, 5, unit, 9, 0, 3]
+  - [618, unit, 5, unit, 9, 1, 4]
+ticks: 1731
+hash: 26:fd409de88d44bfbeeced8b079246b68d163f238124065854600f3168b47910a8

@@ -44,10 +44,15 @@ red:
   - {name: shield, index: 0, position: {x: -85, y: -90}, retained: false}
   battle_skills:
   - {name: heavy_missile_strike, positions: [{x: -170, y: -150}]}
-ticks: 496
-hash: 25:64eedb83e3c199aab060d5a93667b83a9dfde5b11ba985b347c6f91efc827eef
 asserts:
-- sql: "SELECT count(*)\nFROM events\nWHERE\n  type = 'buff_applied'\n  AND buff_id\
-    \ = 10302\n  AND tick BETWEEN 13 AND 14;\n"
+- sql: |
+    SELECT count(*)
+    FROM events
+    WHERE
+      type = 'buff_applied'
+      AND buff_id = 10302
+      AND tick BETWEEN 13 AND 14;
   rows:
-  - - 0
+  - [0]
+ticks: 496
+hash: 26:64c0ba49e572cca7d7cbfe807c99c8f7669ebd60d7d835481d06a29f860bffb7

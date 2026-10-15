@@ -38,10 +38,18 @@ red:
   - {name: missile, index: 0, position: {x: 285, y: -265}, retained: false}
   battle_skills:
   - {name: sticky_oil_bomb, positions: [{x: 70, y: -310}, {x: -120, y: 40}]}
-ticks: 1331
-hash: 25:9d7b988a09eaaf9cdf90e5aeb9ba332eb983c77d254c56d7a54597a0d82b6f38
 asserts:
-- sql: SELECT tick,unit_id,data__id FROM units__buffs WHERE tick=20 AND unit_id IN (15,16,17) ORDER BY unit_id,ordinal
-  rows: [[20,15,20001],[20,16,20001],[20,17,20001]]
-- sql: SELECT tick,target__id,buff_id FROM events WHERE type='buff_applied' AND buff_id=7020 ORDER BY tick,ordinal
-  rows: [[1072,15,7020],[1092,17,7020],[1092,16,7020]]
+- sql: |-
+    SELECT tick,unit_id,data__id FROM units__buffs WHERE tick=20 AND unit_id IN (15,16,17) ORDER BY unit_id,ordinal
+  rows:
+  - [20, 15, 20001]
+  - [20, 16, 20001]
+  - [20, 17, 20001]
+- sql: |-
+    SELECT tick,target__id,buff_id FROM events WHERE type='buff_applied' AND buff_id=7020 ORDER BY tick,ordinal
+  rows:
+  - [1072, 15, 7020]
+  - [1092, 17, 7020]
+  - [1092, 16, 7020]
+ticks: 1331
+hash: 26:417901807cf9a1da2c476902337b37c7316ab7008d9940a652294f3fb3b88c01

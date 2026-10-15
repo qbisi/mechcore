@@ -45,10 +45,18 @@ red:
   - {name: shield, index: 0, position: {x: 85, y: -160}, retained: false}
   battle_skills:
   - {name: mobilize_battleship, positions: [{x: -285, y: -285}]}
-ticks: 1642
-hash: 25:9064cdf54d0c9621ca92b3f6fea97ecb9c40a77318107f57c1436a964eee9796
 asserts:
-- sql: SELECT tick,enabled__state,enabled__lock_target__id,enabled__attack_target__id,enabled__perform_count FROM units__skills WHERE unit_id=21 AND skill_slot=0 AND tick IN (363,364,367,368) ORDER BY tick
-  rows: [[363,attack,28,28,0],[364,attack,28,28,0],[367,attack,28,28,1],[368,cooling,null,28,0]]
-- sql: SELECT tick,object__id,target__id,skill_slot,weapon_index FROM events WHERE type='projectile_released' AND source__id=21 AND tick BETWEEN 360 AND 368 ORDER BY tick,ordinal
-  rows: [[361,33,28,0,0],[367,34,28,0,0]]
+- sql: |-
+    SELECT tick,enabled__state,enabled__lock_target__id,enabled__attack_target__id,enabled__perform_count FROM units__skills WHERE unit_id=21 AND skill_slot=0 AND tick IN (363,364,367,368) ORDER BY tick
+  rows:
+  - [363, attack, 28, 28, 0]
+  - [364, attack, 28, 28, 0]
+  - [367, attack, 28, 28, 1]
+  - [368, cooling, null, 28, 0]
+- sql: |-
+    SELECT tick,object__id,target__id,skill_slot,weapon_index FROM events WHERE type='projectile_released' AND source__id=21 AND tick BETWEEN 360 AND 368 ORDER BY tick,ordinal
+  rows:
+  - [361, 33, 28, 0, 0]
+  - [367, 34, 28, 0, 0]
+ticks: 1642
+hash: 26:05a69193f6c30b7332087af16ba6dc7332d68e00edea7526bc4aac1a7f31611d

@@ -26,12 +26,18 @@ red:
   core_damage: 557
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/100/650, source: joined}
-ticks: 257
-hash: 25:7eef9fc1d8e07ef0d40bea322faffef1ebe1be1f238833695479ac48597c98dc
 asserts:
-- sql: "SELECT unit_type_id\nFROM events\nWHERE\n  type = 'unit_created'\n  AND tick\
-    \ = 1\nORDER BY\n  ordinal;\n"
+- sql: |
+    SELECT unit_type_id
+    FROM events
+    WHERE
+      type = 'unit_created'
+      AND tick = 1
+    ORDER BY
+      ordinal;
   rows:
-  - - 16
-  - - 13
-  - - 8
+  - [16]
+  - [13]
+  - [8]
+ticks: 257
+hash: 26:25c7feea4f6e2d54d26374ed0136145f8fd34db384b9c154bc9f1f72b8d8c081

@@ -40,39 +40,27 @@ red:
   - {name: missile, index: 0, position: {x: -280, y: -85}}
   battle_skills:
   - {name: ion_blast, positions: [{x: -170, y: -285}, {x: -40, y: -230}]}
-ticks: 478
-hash: 25:1e1373039c43861c5f8cd3bef94523bf147954c9de7b7975073b06ced3ccc1ff
 asserts:
-- sql: 'SELECT count(*) FROM shields;
-
-    '
+- sql: |
+    SELECT count(*) FROM shields;
   rows:
-  - - 0
-- sql: 'SELECT type, object__id FROM events
-
-    WHERE tick = 390 AND type IN (''shield_created'', ''shield_destroyed'')
-
+  - [0]
+- sql: |
+    SELECT type, object__id FROM events
+    WHERE tick = 390 AND type IN ('shield_created', 'shield_destroyed')
     ORDER BY ordinal;
-
-    '
   rows:
-  - - shield_created
-    - 1
-  - - shield_destroyed
-    - 1
-- sql: 'SELECT target__id, amount FROM events
-
-    WHERE tick = 390 AND type = ''damage'' AND target__kind = ''shield'';
-
-    '
+  - [shield_created, 1]
+  - [shield_destroyed, 1]
+- sql: |
+    SELECT target__id, amount FROM events
+    WHERE tick = 390 AND type = 'damage' AND target__kind = 'shield';
   rows:
-  - - 1
-    - 2000
-- sql: 'SELECT absorbed_by__kind, absorbed_by__id FROM events
-
-    WHERE tick = 390 AND type = ''projectile_removed'' AND object__id = 46;
-
-    '
+  - [1, 2000]
+- sql: |
+    SELECT absorbed_by__kind, absorbed_by__id FROM events
+    WHERE tick = 390 AND type = 'projectile_removed' AND object__id = 46;
   rows:
-  - - shield
-    - 1
+  - [shield, 1]
+ticks: 478
+hash: 26:9652717eb204f20d21a3560c2fa3c03f2b5647a176ec0d50761760b23c6a5131

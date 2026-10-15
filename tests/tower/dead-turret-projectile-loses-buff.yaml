@@ -42,8 +42,14 @@ red:
   - {name: interceptor, index: 0, position: {x: 75, y: -215}}
   battle_skills:
   - {name: missile_strike, positions: [{x: -120, y: 225}]}
-ticks: 444
-hash: 25:9ab5a6e83b5cd2567356b0e17909e255892041c17facd47b3e864e391f856c21
 asserts:
-- sql: SELECT tick,type,object__kind,object__id,source__kind,source__id,target__kind,target__id,amount,skill_slot FROM events WHERE (object__kind='projectile' AND object__id=61) OR (object__kind='building' AND object__id=11 AND type='building_destroyed') ORDER BY tick,ordinal
-  rows: [[287, "projectile_released", "projectile", 61, "building", 11, "unit", 14, null, 0], [289, "building_destroyed", "building", 11, null, null, null, null, null, null], [293, "damage", "projectile", 61, "building", 11, "unit", 14, 82, 0], [293, "damage", "projectile", 61, "building", 11, "unit", 16, 82, 0], [293, "projectile_removed", "projectile", 61, "building", 11, "unit", 14, null, null]]
+- sql: |-
+    SELECT tick,type,object__kind,object__id,source__kind,source__id,target__kind,target__id,amount,skill_slot FROM events WHERE (object__kind='projectile' AND object__id=61) OR (object__kind='building' AND object__id=11 AND type='building_destroyed') ORDER BY tick,ordinal
+  rows:
+  - [287, projectile_released, projectile, 61, building, 11, unit, 14, null, 0]
+  - [289, building_destroyed, building, 11, null, null, null, null, null, null]
+  - [293, damage, projectile, 61, building, 11, unit, 14, 82, 0]
+  - [293, damage, projectile, 61, building, 11, unit, 16, 82, 0]
+  - [293, projectile_removed, projectile, 61, building, 11, unit, 14, null, null]
+ticks: 444
+hash: 26:86aa73e982e86c4592280e0c55687c85798c6de322d99b540263f8dbd44f89c3

@@ -24,13 +24,15 @@ red:
   core_damage: 0
   units:
   - {name: mountain, index: 0, position: {x: -155, y: -45}, exp: 0/636/3200, source: joined}
-ticks: 1236
-hash: 25:c169c36f8e00df8aa674e4343a6bccac50fd0da85970bae5310c33adc1c376f1
 asserts:
-- sql: "SELECT tick, round(q32(turret_rotation), 2)\nFROM units\nWHERE\n  unit_type_id\
-    \ = 2002\n  AND tick IN (1, 2);\n"
+- sql: |
+    SELECT tick, round(q32(turret_rotation), 2)
+    FROM units
+    WHERE
+      unit_type_id = 2002
+      AND tick IN (1, 2);
   rows:
-  - - 1
-    - 184.21
-  - - 2
-    - 182.03
+  - [1, 184.21]
+  - [2, 182.03]
+ticks: 1236
+hash: 26:68ec970bfd4cfaba832ab2324961dcc25da8a187d01c3669cf530ea8aa86eee2

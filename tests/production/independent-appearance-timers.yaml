@@ -35,8 +35,12 @@ red:
   - {name: missile, index: 0, position: {x: 270, y: -255}, retained: false}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: 55, y: -305}, {x: 20, y: 90}]}
-ticks: 1259
-hash: 25:096ad3171fd93e66740c84e5f42b5790cddd0c5130c598c21c2fab55df878ff8
 asserts:
-- sql: SELECT tick,COUNT(*) FROM units WHERE tick IN (20,21,40,41) AND unit_type_id=7 GROUP BY tick ORDER BY tick
-  rows: [[21,4],[40,4],[41,4]]
+- sql: |-
+    SELECT tick,COUNT(*) FROM units WHERE tick IN (20,21,40,41) AND unit_type_id=7 GROUP BY tick ORDER BY tick
+  rows:
+  - [21, 4]
+  - [40, 4]
+  - [41, 4]
+ticks: 1259
+hash: 26:9150cbad82983232c37632d2c57670ef6fb10b282532b3744767a3ccf03b876a

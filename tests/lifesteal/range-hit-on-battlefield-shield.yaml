@@ -19,33 +19,22 @@ red:
   - {name: fang, index: 0, position: {x: -5, y: -20}, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 0, y: -80}, retained: false}
-ticks: 552
-hash: 25:479ba4118c2f61a7203d2a2e2ce9a53d71a2b6e167203c2d520e944b5ff42e43
 asserts:
-- sql: "SELECT tick, type, amount\nFROM events\nWHERE\n  tick IN (12,16,20,24) AND\
-    \ type IN ('damage','healing')\nORDER BY\n  tick,ordinal;\n"
+- sql: |
+    SELECT tick, type, amount
+    FROM events
+    WHERE
+      tick IN (12,16,20,24) AND type IN ('damage','healing')
+    ORDER BY
+      tick,ordinal;
   rows:
-  - - 12
-    - damage
-    - 5
-  - - 12
-    - healing
-    - 3
-  - - 16
-    - damage
-    - 20
-  - - 16
-    - healing
-    - 15
-  - - 20
-    - damage
-    - 48
-  - - 20
-    - healing
-    - 38
-  - - 24
-    - damage
-    - 92
-  - - 24
-    - healing
-    - 73
+  - [12, damage, 5]
+  - [12, healing, 3]
+  - [16, damage, 20]
+  - [16, healing, 15]
+  - [20, damage, 48]
+  - [20, healing, 38]
+  - [24, damage, 92]
+  - [24, healing, 73]
+ticks: 552
+hash: 26:0296dfad33dec8ed2de55a3675c1908715d624ed648ed59e54821c7831eac1b5

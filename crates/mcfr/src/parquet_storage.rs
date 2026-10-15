@@ -35,10 +35,11 @@ use crate::{
     BuildingWeapon, ControlState, DamageStatistics, Domain, DurableContext, EnabledSkill, Error,
     Event, EventPayload, FormationState, GaugeI32, HASH_PROFILE, Hashes, LiveUnitState,
     MCFR_FORMAT, MotionState, ObjectKind, ObjectRef, PersonalShieldState, Producer,
-    ProjectileState, QPlanar, QPose, QVec3, RebirthState, RecorderKind, Result, ShieldRoundPolicy,
-    ShieldSourceKind, ShieldState, SkillMachineState, SkillState, TerrainApplicationState,
-    TerrainEffectClock, TerrainGridState, TerrainLogicLifetime, TerrainState, TerrainType,
-    TransitionEvents, Visibility, WeaponState, WorldSnapshot, canonical,
+    ProjectileState, QPlanar, QPose, QVec3, RebirthState, RecorderKind, Result,
+    ShieldControllerState, ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillMachineState,
+    SkillState, TerrainApplicationState, TerrainEffectClock, TerrainGridState,
+    TerrainLogicLifetime, TerrainState, TerrainType, TransitionEvents, Visibility, WeaponState,
+    WorldSnapshot, canonical,
     event_table::{batch_events, event_batch, event_schema},
     instrument::{self, ChannelSchema, InstrumentRow},
 };
@@ -746,6 +747,7 @@ fn shield_batch(rows: &[(u32, ShieldState)]) -> Result<Option<RecordBatch>> {
             ),
             bool_values(values.iter().map(|row| row.active)),
             optional_u32_values(values.iter().map(|row| row.active_order)),
+            shield_controller_values(values.iter().map(|row| row.controller)),
         ],
     )?))
 }
@@ -971,6 +973,36 @@ fn shield_values(values: impl IntoIterator<Item = PersonalShieldState>) -> Array
         ],
         None,
     ))
+}
+
+fn shield_controller_values(
+    values: impl IntoIterator<Item = Option<ShieldControllerState>>,
+) -> ArrayRef {
+    let values = values.into_iter().collect::<Vec<_>>();
+    Arc::new(StructArray::new(
+        shield_controller_fields(),
+        vec![
+            bool_values(
+                values
+                    .iter()
+                    .map(|value| value.is_some_and(|value| value.enabled)),
+            ),
+            i32_values(
+                values
+                    .iter()
+                    .map(|value| value.map_or(0, |value| value.energy_record)),
+            ),
+        ],
+        Some(values.iter().map(Option::is_some).collect::<NullBuffer>()),
+    ))
+}
+
+fn shield_controller_fields() -> Fields {
+    vec![
+        Field::new("enabled", DataType::Boolean, false),
+        Field::new("energy_record", DataType::Int32, false),
+    ]
+    .into()
 }
 
 fn gauge_values(values: impl IntoIterator<Item = GaugeI32>) -> ArrayRef {
@@ -1511,6 +1543,7 @@ fn shield_schema() -> SchemaRef {
         Field::new("round_policy", DataType::UInt8, false),
         Field::new("active", DataType::Boolean, false),
         Field::new("active_order", DataType::UInt32, true),
+        struct_field("controller", shield_controller_fields(), true),
     ]))
 }
 
@@ -2558,6 +2591,9 @@ fn read_shields(member: MemberSlice) -> Result<Vec<(u32, ShieldState)>> {
         let round_policy = column::<UInt8Array>(&batch, "round_policy")?;
         let active = column::<BooleanArray>(&batch, "active")?;
         let active_order = column::<UInt32Array>(&batch, "active_order")?;
+        let controller = struct_column(&batch, "controller")?;
+        let controller_enabled = struct_child::<BooleanArray>(controller, "enabled")?;
+        let controller_energy = struct_child::<Int32Array>(controller, "energy_record")?;
         for index in 0..batch.num_rows() {
             rows.push((
                 tick.value(index),
@@ -2572,6 +2608,10 @@ fn read_shields(member: MemberSlice) -> Result<Vec<(u32, ShieldState)>> {
                     round_policy: decode_shield_round_policy(round_policy.value(index))?,
                     active: active.value(index),
                     active_order: (!active_order.is_null(index)).then(|| active_order.value(index)),
+                    controller: (!controller.is_null(index)).then(|| ShieldControllerState {
+                        enabled: controller_enabled.value(index),
+                        energy_record: controller_energy.value(index),
+                    }),
                 },
             ));
         }

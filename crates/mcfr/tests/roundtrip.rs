@@ -7,11 +7,12 @@ use mechcore_mcfr::{
     EventPayload, ExpRange, GaugeI32, HASH_PROFILE, Hashes, LiveUnitState, MCFR_FORMAT, McfrReader,
     McfrWriter, MotionState, ObjectKind, ObjectRef, PersonalShieldState, PoseClip, Producer,
     ProjectileReach, QPlanar, QPose, QVec3, Rational, RebirthState, RvoExit, RvoNeighbour,
-    RvoNeighbourKind, RvoSolve, RvoVec, RvoVo, ShieldDestroyedReason, ShieldRoundPolicy,
-    ShieldSourceKind, ShieldState, SkillAttackableCheck, SkillMachineState, SkillState,
-    TargetCandidate, TargetRefs, TargetSearch, TargetSearchPath, TerrainApplicationState,
-    TerrainEffectClock, TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState,
-    TerrainType, TransitionEvents, UnitPose, Visibility, WeaponState, WorldSnapshot,
+    RvoNeighbourKind, RvoSolve, RvoVec, RvoVo, ShieldControllerState, ShieldDestroyedReason,
+    ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillAttackableCheck, SkillMachineState,
+    SkillState, TargetCandidate, TargetRefs, TargetSearch, TargetSearchPath,
+    TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
+    TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents, UnitPose, Visibility,
+    WeaponState, WorldSnapshot,
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use serde_json::json;
@@ -36,7 +37,7 @@ fn writes_and_reads_every_table() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.25.0");
+    assert_eq!(MCFR_FORMAT, "0.26.0");
     assert_eq!(reader.producer(), Producer::Game);
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
@@ -251,6 +252,44 @@ fn game_build_metadata_does_not_change_result_hashes() {
     assert_eq!(left, right);
 }
 
+#[test]
+fn inactive_carried_shield_controller_roundtrips_and_changes_the_hash() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("controller.mcfr");
+    let mut snapshot = state(75);
+    let shield = &mut snapshot.shields[0];
+    shield.source_kind = ShieldSourceKind::OwnerAdvanced;
+    shield.owner = Some(ObjectRef::new(ObjectKind::Unit, 1));
+    shield.active = false;
+    shield.active_order = None;
+    shield.energy.current = 0;
+    shield.controller = Some(ShieldControllerState {
+        enabled: false,
+        energy_record: 1234,
+    });
+    let events = damage_events();
+    let baseline = write_fight(
+        &path,
+        "build-a",
+        &context(),
+        snapshot.clone(),
+        snapshot.clone(),
+        &events,
+    );
+    assert_eq!(McfrReader::open(path).unwrap().state(1).unwrap(), snapshot);
+    for mutate in [
+        |controller: &mut ShieldControllerState| controller.enabled = true,
+        |controller: &mut ShieldControllerState| controller.energy_record -= 1,
+    ] {
+        let mut changed = snapshot.clone();
+        mutate(changed.shields[0].controller.as_mut().unwrap());
+        assert_ne!(
+            hash_tick(&context(), changed, &events).result_hash,
+            baseline.result_hash
+        );
+    }
+}
+
 /// The hash of this fixture moves only with the definition, which is the
 /// profile: a change here changes every pinned hash in the repository.
 #[test]
@@ -258,7 +297,7 @@ fn the_result_hash_is_golden() {
     let hashes = hash_tick(&context(), state(75), &damage_events());
     assert_eq!(
         hashes.result_hash,
-        "f03bcbc31deb44b36541017c88abfca0a062b2ce085650c94df9fa174c22c677"
+        "26b5037e8cbabeaab64a14e715fc81fbe52d87cffcb7fa9a155ad349d7c63444"
     );
 }
 
@@ -1103,6 +1142,7 @@ fn state(enemy_life: i32) -> WorldSnapshot {
             skill: None,
         }],
         shields: vec![ShieldState {
+            controller: None,
             shield_id: 1,
             team_id: 1,
             source_kind: ShieldSourceKind::Contraption,

@@ -83,8 +83,12 @@ red:
   battle_skills:
   - {name: heavy_missile_strike, positions: [{x: -210, y: 134}]}
   - {name: electromagnetic_impact, positions: [{x: 179, y: 240}]}
-ticks: 1129
-hash: 25:42fc488617f8010482ce236ce8c133ebecb3bf9bbbe46312e1290a7d147ea7ae
 asserts:
-- sql: SELECT tick,unit_id,enabled__attack_time,enabled__current_attack_interval,enabled__state FROM units__skills WHERE unit_id=14 AND tick IN (56,57,58) AND skill_slot=0 ORDER BY tick
-  rows: [[56, 14, 14, 15, attack], [57, 14, 15, 30, idle], [58, 14, 16, 30, idle]]
+- sql: |-
+    SELECT tick,unit_id,enabled__attack_time,enabled__current_attack_interval,enabled__state FROM units__skills WHERE unit_id=14 AND tick IN (56,57,58) AND skill_slot=0 ORDER BY tick
+  rows:
+  - [56, 14, 14, 15, attack]
+  - [57, 14, 15, 30, idle]
+  - [58, 14, 16, 30, idle]
+ticks: 1129
+hash: 26:a8a38f640611b97dd5bf708e1fabcfd9b1568d8ae28cc676b82bc185005e00d8

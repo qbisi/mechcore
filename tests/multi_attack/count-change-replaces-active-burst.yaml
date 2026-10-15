@@ -34,46 +34,19 @@ red:
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: 295, y: -75}, {x: -160, y: 90}]}
-ticks: 28
-hash: 25:fb8a3ecece1a7227c49824a0a3170dd9014cf813457b9b1b69fff528d88fca05
 asserts:
-- sql: 'SELECT tick, projectile_id, cached_target_position__x, cached_target_position__z
-
-    FROM projectiles WHERE owner__id = 1 AND tick IN (9, 10) ORDER BY tick, projectile_id;'
+- sql: |-
+    SELECT tick, projectile_id, cached_target_position__x, cached_target_position__z
+    FROM projectiles WHERE owner__id = 1 AND tick IN (9, 10) ORDER BY tick, projectile_id;
   rows:
-  - - 9
-    - 1
-    - 1047652966836
-    - 60033108926
-  - - 9
-    - 14
-    - 1125597389951
-    - 92891673958
-  - - 9
-    - 15
-    - 1129533448354
-    - 79199196458
-  - - 9
-    - 16
-    - 1124766067035
-    - 35061535107
-  - - 10
-    - 1
-    - 1047652966836
-    - 60033108926
-  - - 10
-    - 14
-    - 1125597389951
-    - 92891673958
-  - - 10
-    - 15
-    - 1129533448354
-    - 79199196458
-  - - 10
-    - 16
-    - 1124766067035
-    - 35061535107
-  - - 10
-    - 17
-    - 1093584572890
-    - 59700045370
+  - [9, 1, 1047652966836, 60033108926]
+  - [9, 14, 1125597389951, 92891673958]
+  - [9, 15, 1129533448354, 79199196458]
+  - [9, 16, 1124766067035, 35061535107]
+  - [10, 1, 1047652966836, 60033108926]
+  - [10, 14, 1125597389951, 92891673958]
+  - [10, 15, 1129533448354, 79199196458]
+  - [10, 16, 1124766067035, 35061535107]
+  - [10, 17, 1093584572890, 59700045370]
+ticks: 28
+hash: 26:00060498ba17ccdbb1f5aef1e444b70b3e3ce7f8d60d1ad8e275746ad20af48c

@@ -37,8 +37,13 @@ red:
   - {name: shield, index: 0, position: {x: 125, y: -95}, retained: false}
   battle_skills:
   - {name: sticky_oil_bomb, positions: [{x: -125, y: 160}, {x: 275, y: -160}]}
-ticks: 504
-hash: 25:d4378127e87a0958543f05b98e465e0b84d25a295a517529529b5db4a873460b
 asserts:
-- sql: SELECT tick,enabled__state,enabled__lock_target__id,enabled__attack_target__id FROM units__skills WHERE unit_id=13 AND skill_slot=1 AND tick IN (33,34,35,45) ORDER BY tick
-  rows: [[33,idle,21,null],[34,idle,16,16],[35,idle,16,16],[45,idle,16,16]]
+- sql: |-
+    SELECT tick,enabled__state,enabled__lock_target__id,enabled__attack_target__id FROM units__skills WHERE unit_id=13 AND skill_slot=1 AND tick IN (33,34,35,45) ORDER BY tick
+  rows:
+  - [33, idle, 21, null]
+  - [34, idle, 16, 16]
+  - [35, idle, 16, 16]
+  - [45, idle, 16, 16]
+ticks: 504
+hash: 26:3204438d2e3ee5099e42404fb3ddf0a3bd7d4c00042bb6dcd6d7f1ac82f02341

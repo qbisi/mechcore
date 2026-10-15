@@ -19,17 +19,21 @@ red:
     hacker: [electromagnetic_interference]
   units:
   - {name: hacker, index: 0, position: {x: 75, y: -55}, rotated: true, source: joined}
-ticks: 41
-hash: 25:19c22f443adbbdd87cf83fce06597501bc7790c7d9a348e3fe54c09d443c176a
 asserts:
-- sql: "SELECT tick, target__id\nFROM events\nWHERE\n  type = 'buff_applied'\n  AND\
-    \ buff_id = 1014\nORDER BY\n  tick,\n  ordinal\nLIMIT 4;\n"
+- sql: |
+    SELECT tick, target__id
+    FROM events
+    WHERE
+      type = 'buff_applied'
+      AND buff_id = 1014
+    ORDER BY
+      tick,
+      ordinal
+    LIMIT 4;
   rows:
-  - - 12
-    - 1
-  - - 18
-    - 1
-  - - 24
-    - 1
-  - - 30
-    - 1
+  - [12, 1]
+  - [18, 1]
+  - [24, 1]
+  - [30, 1]
+ticks: 41
+hash: 26:42dc46cc385c7fe1ab309b32c95195518bebae7f032cb676e7c3dcdf1eec20c3

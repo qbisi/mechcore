@@ -21,11 +21,11 @@ use mechcore_mcfr::{
     AttackPhase, BuffDataKind, BuffDataRef, BuffRemovedReason, BuffState, BuildingSkill,
     BuildingState, BuildingWeapon, ControlState, Domain, DurableContext, EnabledSkill, Event,
     EventPayload, GaugeI32, LiveUnitState, MotionState, ObjectKind, ObjectRef, PersonalShieldState,
-    ProjectileState, QPlanar, QPose, QVec3, Rational, RebirthState, ShieldDestroyedReason,
-    ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillMachineState, SkillState,
-    TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
-    TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents, Visibility, WeaponState,
-    WorldSnapshot,
+    ProjectileState, QPlanar, QPose, QVec3, Rational, RebirthState, ShieldControllerState,
+    ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillMachineState,
+    SkillState, TerrainApplicationState, TerrainEffectClock, TerrainGridState,
+    TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents,
+    Visibility, WeaponState, WorldSnapshot,
 };
 use mechcore_mcfr::{
     CheckedSkill, ExpRange, PoseClip, ProjectileReach, RvoNeighbour, RvoSolve, RvoVo,
@@ -7450,6 +7450,23 @@ fn read_team_shields(
             owner,
             state: ShieldState {
                 shield_id: 0,
+                controller: if source_kind == ShieldSourceKind::OwnerAdvanced {
+                    let class = api
+                        .object_class(data)
+                        .ok_or("shield controller has no class")?;
+                    let field = api
+                        .field(class, "energyRecord")
+                        .map_err(|error| error.to_string())?;
+                    Some(ShieldControllerState {
+                        enabled: invoke_value::<bool>(api, data, "IsEnable")
+                            .map_err(|error| format!("EnergyShieldBehaviour.IsEnable: {error}"))?,
+                        energy_record: api.field_value::<i32>(data, field).map_err(|error| {
+                            format!("AdvancedEnergyShieldController.energyRecord: {error}")
+                        })?,
+                    })
+                } else {
+                    None
+                },
                 team_id,
                 source_kind,
                 owner: None,
@@ -9792,6 +9809,7 @@ mod tests {
             owner: 0,
             state: ShieldState {
                 shield_id: 0,
+                controller: None,
                 team_id: 1,
                 source_kind: ShieldSourceKind::Contraption,
                 owner: None,

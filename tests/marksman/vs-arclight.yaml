@@ -15,10 +15,14 @@ red:
   core_damage: 0
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/200/750, source: joined}
-ticks: 91
-hash: 25:2c43dfe381ee0df5d3c34c4a83149ea4ef15326340114b229e18b345add8c38c
 asserts:
-- sql: "SELECT count(*)\nFROM units\nWHERE\n  tick = (SELECT max(tick) FROM units)\n\
-    \  AND has_mech_lock_target;\n"
+- sql: |
+    SELECT count(*)
+    FROM units
+    WHERE
+      tick = (SELECT max(tick) FROM units)
+      AND has_mech_lock_target;
   rows:
-  - - 0
+  - [0]
+ticks: 91
+hash: 26:0ee3a617f9a589cc8dfd2423126a47ffe3888a8b12323b3ede2215973bcc9c66

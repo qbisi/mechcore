@@ -15,17 +15,19 @@ red:
   units:
   - {name: arclight, index: 0, position: {x: 290, y: -100}, source: joined}
   - {name: arclight, index: 1, position: {x: 190, y: -100}, source: joined}
-ticks: 336
-hash: 25:b4143d9c29254c5008011c7e0caff3e3269abcebce45477f78e35f4e2f6d888c
 asserts:
-- sql: "SELECT tick, motion_state\nFROM units\nWHERE\n  unit_id = 1\n  AND tick IN\
-    \ (222, 232, 233, 308)\nORDER BY\n  tick;\n"
+- sql: |
+    SELECT tick, motion_state
+    FROM units
+    WHERE
+      unit_id = 1
+      AND tick IN (222, 232, 233, 308)
+    ORDER BY
+      tick;
   rows:
-  - - 222
-    - idle
-  - - 232
-    - idle
-  - - 233
-    - moving
-  - - 308
-    - attacking
+  - [222, idle]
+  - [232, idle]
+  - [233, moving]
+  - [308, attacking]
+ticks: 336
+hash: 26:caadfd6cfe4f9cda362a1fcf401ad814900942cd9c489aaeb42161b913ac9a78

@@ -19,18 +19,30 @@ red:
   core_damage: 250
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}, source: joined}
-ticks: 172
-hash: 25:d18299a434080313642d8ac9d05ab25edd6ac15c838f160150680e332a350ffb
 asserts:
-- sql: "SELECT enabled__attack_damage\nFROM units__skills\nWHERE\n  unit_id = 1\n\
-    \  AND skill_slot = 0\n  AND tick = 1;\n"
+- sql: |
+    SELECT enabled__attack_damage
+    FROM units__skills
+    WHERE
+      unit_id = 1
+      AND skill_slot = 0
+      AND tick = 1;
   rows:
-  - - 2
-- sql: "SELECT DISTINCT control__progress\nFROM units\nWHERE\n  unit_id = 2\n  AND\
-    \ has_control\n  AND control__progress < 4000\nORDER BY\n  1;\n"
+  - [2]
+- sql: |
+    SELECT DISTINCT control__progress
+    FROM units
+    WHERE
+      unit_id = 2
+      AND has_control
+      AND control__progress < 4000
+    ORDER BY
+      1;
   rows:
-  - - 0
-  - - 2
-  - - 4
-  - - 6
-  - - 3006
+  - [0]
+  - [2]
+  - [4]
+  - [6]
+  - [3006]
+ticks: 172
+hash: 26:9cdfff6947be1ade375f21a0a183325088c2dea4778c96a4f57b99b393609188

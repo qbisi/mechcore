@@ -179,6 +179,8 @@ RecorderKind::formation
 RecorderKind::unit
 Settlement.formations: [FormationState]
 Settlement.teams: [TeamSettlement]
+ShieldControllerState.enabled: boolean
+ShieldControllerState.energy_record: integer(int32)
 ShieldDestroyedReason::energy_depleted
 ShieldDestroyedReason::owner_destroyed
 ShieldDestroyedReason::round_end
@@ -193,6 +195,7 @@ ShieldSourceKind::owner_advanced
 ShieldSourceKind::spawned_temporary
 ShieldState.active: boolean
 ShieldState.active_order: integer(uint32) | null
+ShieldState.controller: ShieldControllerState | null
 ShieldState.energy: GaugeI32
 ShieldState.owner: ObjectRef | null
 ShieldState.position: QVec3

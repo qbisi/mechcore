@@ -23,16 +23,23 @@ red:
   - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 0/200/650}
   constructions:
   - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}
-ticks: 423
-hash: 25:37569a24f51a5c6260d8e60550d2ee923edf34b6ec0d289087d6c1f861303201
 asserts:
-- sql: "SELECT\n  b.tick,\n  b.building_id,\n  b.skill__lock_target__kind,\n  b.skill__lock_target__id,\n\
-    \  w.rotation\nFROM buildings b\nJOIN buildings__skill__weapons w\n  ON w.tick\
-    \ = b.tick\n  AND w.building_id = b.building_id\nWHERE\n  b.team_id = 1\n  AND\
-    \ b.has_skill\n  AND b.tick = 1;\n"
+- sql: |
+    SELECT
+      b.tick,
+      b.building_id,
+      b.skill__lock_target__kind,
+      b.skill__lock_target__id,
+      w.rotation
+    FROM buildings b
+    JOIN buildings__skill__weapons w
+      ON w.tick = b.tick
+      AND w.building_id = b.building_id
+    WHERE
+      b.team_id = 1
+      AND b.has_skill
+      AND b.tick = 1;
   rows:
-  - - 1
-    - 5
-    - unit
-    - 1
-    - 876368176351
+  - [1, 5, unit, 1, 876368176351]
+ticks: 423
+hash: 26:f11eb5d0450a74a201611218ea24f1beedce484e4d937fac208e4d5253303fe0

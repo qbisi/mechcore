@@ -26,21 +26,13 @@ red:
   tower_strengthen_levels: [2, 3]
   units:
   - {name: sandworm, index: 0, position: {x: 10, y: -60}, level: 9, source: joined}
-ticks: 336
-hash: 25:81b80ab1cb8b5f1bc048db63e77a9c34f1636eea7a68fe264b82ec06fb8c5b0e
 asserts:
-- sql: 'SELECT tick, velocity__x, velocity__z FROM units
-
+- sql: |
+    SELECT tick, velocity__x, velocity__z FROM units
     WHERE unit_id = 1 AND tick IN (12, 16, 17) ORDER BY tick;
-
-    '
   rows:
-  - - 12
-    - 12568718511
-    - 46466282164
-  - - 16
-    - 7379531916
-    - 51012689532
-  - - 17
-    - 7379531916
-    - 51012689532
+  - [12, 12568718511, 46466282164]
+  - [16, 7379531916, 51012689532]
+  - [17, 7379531916, 51012689532]
+ticks: 336
+hash: 26:0cc0d92e34f3a6d977b88915f99a349c355824c3c4aeca99f2d40158eb684490

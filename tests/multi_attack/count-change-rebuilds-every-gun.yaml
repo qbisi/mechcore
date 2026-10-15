@@ -25,10 +25,24 @@ red:
   - {name: shield, index: 0, position: {x: 35, y: -85}, retained: false}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -5, y: 45}]}
-ticks: 277
-hash: 25:734aab675294a2f1aba620892b88b7c62170ac6f302c112b1afa42a40e1776c0
 asserts:
-- sql: SELECT tick,source__kind,source__id,target__kind,target__id,skill_slot,weapon_index FROM events WHERE type='projectile_released' AND source__id=1 AND tick BETWEEN 56 AND 59 ORDER BY tick,ordinal
-  rows: [[57,unit,1,unit,2,0,3],[57,unit,1,unit,2,1,4],[57,unit,1,unit,2,2,5],[57,unit,1,unit,2,3,6]]
-- sql: SELECT tick,skill_slot,enabled__perform_count,enabled__attack_count FROM units__skills WHERE unit_id=1 AND tick IN (56,57) ORDER BY tick,skill_slot
-  rows: [[56,0,0,0],[56,1,0,0],[56,2,0,0],[56,3,0,0],[57,0,1,0],[57,1,1,0],[57,2,1,0],[57,3,1,0]]
+- sql: |-
+    SELECT tick,source__kind,source__id,target__kind,target__id,skill_slot,weapon_index FROM events WHERE type='projectile_released' AND source__id=1 AND tick BETWEEN 56 AND 59 ORDER BY tick,ordinal
+  rows:
+  - [57, unit, 1, unit, 2, 0, 3]
+  - [57, unit, 1, unit, 2, 1, 4]
+  - [57, unit, 1, unit, 2, 2, 5]
+  - [57, unit, 1, unit, 2, 3, 6]
+- sql: |-
+    SELECT tick,skill_slot,enabled__perform_count,enabled__attack_count FROM units__skills WHERE unit_id=1 AND tick IN (56,57) ORDER BY tick,skill_slot
+  rows:
+  - [56, 0, 0, 0]
+  - [56, 1, 0, 0]
+  - [56, 2, 0, 0]
+  - [56, 3, 0, 0]
+  - [57, 0, 1, 0]
+  - [57, 1, 1, 0]
+  - [57, 2, 1, 0]
+  - [57, 3, 1, 0]
+ticks: 277
+hash: 26:64d2750c8b0cb15306cdccaf3e5b3ac30b559da1bffa1583bad6efb170d7dde8

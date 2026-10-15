@@ -37,82 +37,30 @@ red:
   - {name: missile, index: 0, position: {x: 255, y: -50}}
   battle_skills:
   - {name: vulcans_descent, positions: [{x: 120, y: -20}]}
-ticks: 674
-hash: 25:892fb065ae503e6dc6cac28f7d864ee336b51a1072b03e2573fc315f1c280d36
 asserts:
-- sql: "SELECT tick, type, object__kind, object__id, source__kind, source__id,\n \
-    \      target__kind, target__id, skill_slot, weapon_index\nFROM events\nWHERE\
-    \ (type = 'unit_died' AND object__kind = 'unit' AND object__id = 22)\n   OR (type\
-    \ = 'projectile_released' AND source__id = 22 AND object__id IN (1, 2))\nORDER\
-    \ BY tick, ordinal;"
+- sql: |-
+    SELECT tick, type, object__kind, object__id, source__kind, source__id,
+           target__kind, target__id, skill_slot, weapon_index
+    FROM events
+    WHERE (type = 'unit_died' AND object__kind = 'unit' AND object__id = 22)
+       OR (type = 'projectile_released' AND source__id = 22 AND object__id IN (1, 2))
+    ORDER BY tick, ordinal;
   rows:
-  - - 49
-    - projectile_released
-    - projectile
-    - 1
-    - unit
-    - 22
-    - unit
-    - 7
-    - 1
-    - 2
-  - - 49
-    - projectile_released
-    - projectile
-    - 2
-    - unit
-    - 22
-    - unit
-    - 7
-    - 2
-    - 2
-  - - 105
-    - unit_died
-    - unit
-    - 22
-    - unit
-    - 5
-    - null
-    - null
-    - null
-    - null
-- sql: "SELECT tick, terrain_id, terrain_type, q32(radius) AS radius,\n       has_grid,\
-    \ has_logic_lifetime\nFROM terrains\nWHERE terrain_id IN (1, 2, 3) AND tick BETWEEN\
-    \ 133 AND 135\nORDER BY tick, terrain_id;"
+  - [49, projectile_released, projectile, 1, unit, 22, unit, 7, 1, 2]
+  - [49, projectile_released, projectile, 2, unit, 22, unit, 7, 2, 2]
+  - [105, unit_died, unit, 22, unit, 5, null, null, null, null]
+- sql: |-
+    SELECT tick, terrain_id, terrain_type, q32(radius) AS radius,
+           has_grid, has_logic_lifetime
+    FROM terrains
+    WHERE terrain_id IN (1, 2, 3) AND tick BETWEEN 133 AND 135
+    ORDER BY tick, terrain_id;
   rows:
-  - - 133
-    - 1
-    - oil
-    - 18.0
-    - 0
-    - 0
-  - - 134
-    - 1
-    - oil
-    - 18.0
-    - 0
-    - 0
-  - - 134
-    - 2
-    - fire
-    - 0.0
-    - 0
-    - 0
-  - - 134
-    - 3
-    - oil
-    - 18.0
-    - 1
-    - 0
-  - - 135
-    - 1
-    - oil
-    - 18.0
-    - 0
-    - 0
-  - - 135
-    - 3
-    - oil
-    - 18.0
-    - 1
-    - 0
+  - [133, 1, oil, 18.0, 0, 0]
+  - [134, 1, oil, 18.0, 0, 0]
+  - [134, 2, fire, 0.0, 0, 0]
+  - [134, 3, oil, 18.0, 1, 0]
+  - [135, 1, oil, 18.0, 0, 0]
+  - [135, 3, oil, 18.0, 1, 0]
+ticks: 674
+hash: 26:c4ca74e4e6bd8869b566bc66138df68f1766ac5f2c00a6c2fdf79efcd3ba4e54

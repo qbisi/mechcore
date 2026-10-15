@@ -17,44 +17,25 @@ red:
   units:
   - {name: hacker, index: 0, position: {x: 5, y: -25}, equipment: [dominion_core], source: joined}
   - {name: steel_ball, index: 1, position: {x: 105, y: -50}, source: joined}
-ticks: 38
-hash: 25:6a74b97cdb6240601173752d44da07c5196c3e21f1d49121d06dddd3a4beec14
 asserts:
-- sql: SELECT tick,unit_id,team_id,life__current,life__maximum FROM units WHERE unit_id=2 AND tick BETWEEN 36 AND 38 ORDER BY tick
+- sql: |-
+    SELECT tick,unit_id,team_id,life__current,life__maximum FROM units WHERE unit_id=2 AND tick BETWEEN 36 AND 38 ORDER BY tick
   rows:
-  - - 36
-    - 2
-    - 1
-    - 6498
-    - 6498
-  - - 37
-    - 2
-    - 0
-    - 3249
-    - 3249
-  - - 38
-    - 2
-    - 0
-    - 3249
-    - 3249
-- sql: SELECT tick,unit_id,enabled__attack_damage FROM units__skills WHERE unit_id=2 AND tick BETWEEN 36 AND 38 ORDER BY tick,skill_slot
+  - [36, 2, 1, 6498, 6498]
+  - [37, 2, 0, 3249, 3249]
+  - [38, 2, 0, 3249, 3249]
+- sql: |-
+    SELECT tick,unit_id,enabled__attack_damage FROM units__skills WHERE unit_id=2 AND tick BETWEEN 36 AND 38 ORDER BY tick,skill_slot
   rows:
-  - - 36
-    - 2
-    - 1
-  - - 37
-    - 2
-    - 1
-  - - 38
-    - 2
-    - 1
-- sql: SELECT tick,object__id FROM events WHERE type='unit_died' ORDER BY tick,ordinal
+  - [36, 2, 1]
+  - [37, 2, 1]
+  - [38, 2, 1]
+- sql: |-
+    SELECT tick,object__id FROM events WHERE type='unit_died' ORDER BY tick,ordinal
   rows:
-  - - 37
-    - 3
-  - - 37
-    - 4
-  - - 37
-    - 5
-  - - 37
-    - 6
+  - [37, 3]
+  - [37, 4]
+  - [37, 5]
+  - [37, 6]
+ticks: 38
+hash: 26:da275fda140ae914ba7934966fc82467cc085e084e3643707d3f60106f3ded27

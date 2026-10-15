@@ -21,12 +21,10 @@ red:
   core_damage: 250
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -100}, source: joined}
-ticks: 192
-hash: 25:3b074f05cb06432a793231f718f0c5100a6c303608795d41edcf8ceaa6a21a2a
 asserts:
-- sql: 'SELECT life__maximum, domain FROM units WHERE tick = 1 AND unit_id = 1;
-
-    '
+- sql: |
+    SELECT life__maximum, domain FROM units WHERE tick = 1 AND unit_id = 1;
   rows:
-  - - 14115
-    - ground
+  - [14115, ground]
+ticks: 192
+hash: 26:8fea951ea1f14e8ac7998f6cd55daec857dc7a8f522d0bdbf581adf1dcbc40e3

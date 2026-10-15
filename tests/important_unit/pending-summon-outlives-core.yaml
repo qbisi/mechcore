@@ -20,58 +20,36 @@ red:
   core_damage: 100
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -80}, level: 3, exp: 0/200/2315, source: joined}
-ticks: 135
-hash: 25:ee89c9956158c11ff270ed12de3e9d3f075ce22d51e17854c72e31aa08b5dbe7
 asserts:
-- sql: "SELECT tick, type, object__id, source__id, amount, team_id\nFROM events\n\
-    WHERE\n  type IN ('unit_created', 'unit_died')\nORDER BY\n  tick,\n  ordinal;\n"
+- sql: |
+    SELECT tick, type, object__id, source__id, amount, team_id
+    FROM events
+    WHERE
+      type IN ('unit_created', 'unit_died')
+    ORDER BY
+      tick,
+      ordinal;
   rows:
-  - - 28
-    - unit_created
-    - 4
-    - null
-    - null
-    - 0
-  - - 35
-    - unit_died
-    - 2
-    - 3
-    - null
-    - null
-  - - 35
-    - unit_died
-    - 1
-    - null
-    - null
-    - null
-  - - 121
-    - unit_died
-    - 3
-    - 4
-    - null
-    - null
-- sql: "SELECT unit_id, min(tick) AS first_tick, max(tick) AS last_tick\nFROM units\n\
-    GROUP BY\n  unit_id\nORDER BY\n  unit_id;\n"
+  - [28, unit_created, 4, null, null, 0]
+  - [35, unit_died, 2, 3, null, null]
+  - [35, unit_died, 1, null, null, null]
+  - [121, unit_died, 3, 4, null, null]
+- sql: |
+    SELECT unit_id, min(tick) AS first_tick, max(tick) AS last_tick
+    FROM units
+    GROUP BY
+      unit_id
+    ORDER BY
+      unit_id;
   rows:
-  - - 1
-    - 1
-    - 34
-  - - 2
-    - 1
-    - 34
-  - - 3
-    - 1
-    - 120
-  - - 4
-    - 48
-    - 135
-- sql: 'SELECT team_id, score, core_damage FROM settlement_teams ORDER BY team_id;
-
-    '
+  - [1, 1, 34]
+  - [2, 1, 34]
+  - [3, 1, 120]
+  - [4, 48, 135]
+- sql: |
+    SELECT team_id, score, core_damage FROM settlement_teams ORDER BY team_id;
   rows:
-  - - 0
-    - 100
-    - 0
-  - - 1
-    - 0
-    - 100
+  - [0, 100, 0]
+  - [1, 0, 100]
+ticks: 135
+hash: 26:c5c0b9e9dfc92f2650b0431c3cc9dffb5d370e1aebba2185c8d391f82ad68cb6
