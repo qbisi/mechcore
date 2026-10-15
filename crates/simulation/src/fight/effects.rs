@@ -76,7 +76,7 @@ impl Simulation {
             match provider {
                 EffectProvider::InterceptMissile => self.activate_interception(unit),
                 EffectProvider::StealthTech => self.add_stealth_unit(unit),
-                EffectProvider::MechGroup => self.add_group_unit(unit),
+                EffectProvider::MechGroup => self.activate_group_unit(unit),
                 EffectProvider::SiegeMode => self.add_siege_unit(unit)?,
                 EffectProvider::ReactiveArmor => self.activate_reactive_armor(unit),
                 EffectProvider::WreckageRecovery => self.add_wreckage_unit(unit),
@@ -131,7 +131,7 @@ impl Simulation {
     pub(in crate::fight) fn deactive_effect(&mut self, unit: u64) -> Result<()> {
         for provider in EffectProvider::ALL {
             match provider {
-                EffectProvider::MechGroup => self.remove_group_unit(unit),
+                EffectProvider::MechGroup => self.deactivate_group_unit(unit),
                 EffectProvider::SiegeMode => self.remove_siege_unit(unit)?,
                 EffectProvider::WreckageRecovery => self.remove_wreckage_unit(unit),
                 EffectProvider::Burrow => self.remove_burrow_unit(unit),

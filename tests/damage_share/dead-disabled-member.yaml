@@ -1,0 +1,46 @@
+# A Steel Ball that dies under EMP loses its stored grouping distance.
+# Clearing its buffs may register it again, but cannot restore that distance.
+# It must not join a living Steel Ball later and consume half its beam damage.
+# The complete generated layout and pin come from the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 623132064
+round: 3
+blue:
+  core_damage: 603
+  officers: [advanced_defensive_tactics]
+  techs:
+    steel_ball: [energy_absorption, damage_sharing, mechanical_division, fortified_target_lock, armor_enhancement, range_enhancement, kinetic_charge]
+  blueprints: [attack_enhancement]
+  units:
+  - {name: steel_ball, index: 0, position: {x: -335, y: 40}, level: 4, exp: 4490/4490/4490, rotated: true, equipment: [nano_repair_kit]}
+  - {name: crawler, index: 1, position: {x: 265, y: -180}, level: 5, exp: 0/288/2345, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: smoke_bomb, positions: [{x: -50, y: -90}, {x: 285, y: -155}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_targeting_system, speed_specialist]
+  techs:
+    melting_point: [energy_absorption, electromagnetic_barrage, energy_diffraction, crawler_production, armor_enhancement, range_enhancement]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [3, 4]
+  units:
+  - {name: melting_point, index: 0, position: {x: 150, y: -250}, level: 5, exp: 3647/7295/7295, equipment: [super_heavy_armor]}
+  - {name: wraith, index: 1, position: {x: 85, y: -225}, level: 6, exp: 0/1352/13047, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -145, y: -205}}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: -235, y: 300}, {x: 250, y: -240}]}
+ticks: 1266
+hash: 25:354a7db5b15685bd2a281fe4201ed641b2f544ec5660e7ffafe1996b6f36f151
+asserts:
+- sql: SELECT tick,object__kind,object__id FROM events WHERE type='unit_died' AND object__id=27
+  rows: [[157,unit,27]]
+- sql: SELECT tick,source__id,target__id,amount,skill_slot FROM events WHERE type='damage' AND source__id=33 AND target__id=26 AND tick IN (177,181,185) ORDER BY tick,ordinal
+  rows: [[177,33,26,1628,3],[181,33,26,1949,3],[185,33,26,2299,3]]

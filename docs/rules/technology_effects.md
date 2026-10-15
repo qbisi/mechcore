@@ -1524,7 +1524,10 @@ whose own `DisableEffect` it does not mirror.
   away the rate a group that changes damage wrote, is no longer a candidate,
   and no longer hears its side change; its `MechGroupDistance` stays.
   Switched on, `EnableEffect` hands it back (`AddMech`), and it links with
-  what it reaches. Two of five Vortexes with Grid Integration under an
+  what it reaches. This registration does not write the distance again:
+  `DoDeactive` removes the distance on death even when the unit was already
+  disabled. Clearing the dead unit's disabling buff can register it again,
+  but its zero distance keeps it out of grouping. Two of five Vortexes with Grid Integration under an
   Electromagnetic Impact deal 1570 while the three left keep 2668, 70% more;
   the Impact's 25 seconds over, the two link again as a pair at 2119.
 - **A siege-mode technology's unit leaves its trench.**
@@ -1715,6 +1718,9 @@ derive (a minimum range):
   `tests/damage_share/vortexes.yaml`. Two of them an Electromagnetic
   Impact disables leave the group and link again as it runs out:
   `tests/damage_share/vortexes-disabled.yaml`.
+- A Steel Ball dead under EMP does not regain its grouping distance when
+  its buffs clear and cannot later dilute a living unit's incoming beam:
+  `tests/damage_share/dead-disabled-member.yaml`.
 - Field Entrenchment digs its unit in from the first tick, a Sabertooth at
   21213 life and 115 metres, two Typhoons at 16199 and 120, and takes the
   trench away 141 updates after the last enemy left its range, the motion
@@ -2170,6 +2176,7 @@ derive (a minimum range):
 - A grouping technology switched off takes its unit out of its side's
   manager, and switched on hands it back:
   `MechGrounpEffectProvider.DisableEffect`,
+  `MechGrounpEffectProvider.DoActive`, `MechGrounpEffectProvider.DoDeactive`,
   `MechGrounpEffectProvider.EnableEffect`, `TeamMechGroupManager.RemoveMech`,
   `TeamMechGroupManager.AddMech`.
 - A siege-mode technology digs its unit in as the fight starts and as it

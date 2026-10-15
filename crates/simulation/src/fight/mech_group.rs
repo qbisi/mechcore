@@ -43,8 +43,11 @@ pub(in crate::fight) struct MechGroupSystem {
     share_distance_q32: i64,
     /// Each side's manager, by its team.
     teams: BTreeMap<u32, TeamGroups>,
-    /// Each held unit's source, whose distance is its `MechGroupDistance`.
+    /// Each registered unit's source (`MechGrounpSystem`).
     sources: BTreeMap<u64, MechGroup>,
+    /// `MechDataChangeFloat.MechGroupDistance`, independent of registration:
+    /// disabling leaves it held; deactivation removes it even while disabled.
+    distances: BTreeMap<u64, i64>,
     /// Each group's members, in its order, by an identity of the
     /// simulator's own.
     groups: BTreeMap<u64, Vec<u64>>,
@@ -149,9 +152,26 @@ impl Simulation {
         }
     }
 
+    /// `MechGrounpEffectProvider.DoActive`: write the unit's distance before
+    /// registering it. Re-enabling a disabled effect does not write it.
+    pub(in crate::fight) fn activate_group_unit(&mut self, unit: u64) {
+        if let Some(source) = self.actors[&unit].placement.effects.mech_group {
+            self.mech_groups.distances.insert(unit, source.distance_q32);
+            self.add_group_unit(unit);
+        }
+    }
+
+    /// `MechGrounpEffectProvider.DoDeactive`: withdraw the distance even if
+    /// `DisableEffect` already unregistered the unit. A dead unit whose EMP
+    /// is cleared may be registered again, but cannot group with no distance.
+    pub(in crate::fight) fn deactivate_group_unit(&mut self, unit: u64) {
+        self.mech_groups.distances.remove(&unit);
+        self.remove_group_unit(unit);
+    }
+
     /// `MechGrounpSystem.AddMech` and `TeamMechGroupManager.AddMech`: a
-    /// unit's technology activates (`MechGrounpEffectProvider.DoActive`),
-    /// writing its `MechGroupDistance`, and the side's manager refreshes.
+    /// unit is registered with its source and the side's manager refreshes.
+    /// Its stored distance was written by `DoActive`, not by this registration.
     pub(in crate::fight) fn add_group_unit(&mut self, unit: u64) {
         let actor = &self.actors[&unit];
         let Some(source) = actor.placement.effects.mech_group else {
@@ -170,10 +190,8 @@ impl Simulation {
         self.refresh_groups(team);
     }
 
-    /// `MechGrounpEffectProvider.DoDeactive` of a unit that died: its
-    /// `MechGroupDistance` goes, and it leaves its group and its type's list
-    /// (`TeamMechGroupManager.RemoveMech`), the side's manager refreshing.
-    /// It no longer hears its side change (`MechGrounpSystem.RemoveMech`).
+    /// `MechGrounpSystem.RemoveMech`: unregister the unit from its side's
+    /// manager and side-change listener without changing its stored distance.
     pub(in crate::fight) fn remove_group_unit(&mut self, unit: u64) {
         if self.mech_groups.sources.remove(&unit).is_none() {
             return;
@@ -251,7 +269,7 @@ impl Simulation {
             .map(|(&id, _)| id)
             .collect::<Vec<_>>();
         for unit in held {
-            self.add_group_unit(unit);
+            self.activate_group_unit(unit);
         }
         for team in self.mech_groups.teams.keys().copied().collect::<Vec<_>>() {
             for group in self.mech_groups.teams[&team]
@@ -352,13 +370,9 @@ impl Simulation {
         }
     }
 
-    /// The unit's `MechGroupDistance`: its source's, while held, and zero
-    /// otherwise.
+    /// The unit's stored `MechGroupDistance`, including while disabled.
     fn held_distance(&self, unit: u64) -> i64 {
-        self.mech_groups
-            .sources
-            .get(&unit)
-            .map_or(0, |source| source.distance_q32)
+        self.mech_groups.distances.get(&unit).copied().unwrap_or(0)
     }
 
     /// `TeamMechGroupManager.PrepareAvaliableMechs`: the units of a type with
