@@ -1,0 +1,69 @@
+# Generated complete layout: one splash kills multiple Steel Balls. Mechanical
+# Division finishes its controller phase before any unit death is published.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 516022943
+round: 3
+blue:
+  core_damage: 134
+  officers: [quick_teleport, advanced_defensive_tactics, cost_control_specialist, improved_steel_ball]
+  techs:
+    steel_ball: [energy_absorption, damage_sharing, mechanical_division, fortified_target_lock, armor_enhancement, range_enhancement, kinetic_charge]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: steel_ball, index: 0, position: {x: 335, y: 160}, level: 6, exp: 0/2800/5799, rotated: true, equipment: [secondary_fire_control_system], travelling: true, source: joined}
+  - {name: melting_point, index: 1, position: {x: 270, y: -170}, level: 2, exp: 0/1742/3154, source: joined}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: 285, y: -25}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_power_system, fortified_specialist]
+  techs:
+    phantom_ray: [stealth_cloak]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [3, 3]
+  units:
+  - {name: phantom_ray, index: 0, position: {x: 210, y: -45}, level: 7, exp: 6296/6296/6296, rotated: true, equipment: [haste_module]}
+  - {name: war_factory, index: 1, position: {x: -215, y: -135}, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -275, y: -245}, retained: false}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: -230, y: -235}]}
+asserts:
+- sql: |
+    SELECT type, object__id
+    FROM events
+    WHERE tick = 1401
+      AND type IN ('unit_created', 'unit_died')
+    ORDER BY ordinal;
+  rows:
+  - ["unit_created", 21]
+  - ["unit_created", 22]
+  - ["unit_created", 26]
+  - ["unit_created", 25]
+  - ["unit_created", 23]
+  - ["unit_created", 20]
+  - ["unit_created", 14]
+  - ["unit_created", 19]
+  - ["unit_created", 15]
+  - ["unit_created", 18]
+  - ["unit_created", 27]
+  - ["unit_created", 30]
+  - ["unit_created", 24]
+  - ["unit_created", 29]
+  - ["unit_created", 28]
+  - ["unit_created", 11]
+  - ["unit_created", 13]
+  - ["unit_created", 12]
+  - ["unit_created", 17]
+  - ["unit_created", 16]
+  - ["unit_died", 5]
+  - ["unit_died", 2]
+  - ["unit_died", 3]
+  - ["unit_died", 4]
+ticks: 1708
+hash: 26:d88443ff7488883cd766bfd22aad53855e1b4d65a14c346fbb71174589fc9e5d

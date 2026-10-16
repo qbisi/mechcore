@@ -843,6 +843,13 @@ direct blow, a beam with or without a splash and a projectile all hand their
 hit on, including a hit absorbed wholly by a battlefield shield.
 A turret's, a mine's and a battle skill's hits reach no unit's skill.
 
+Hit effects run in registration order. Before registering its providers,
+`FightEffectMananger.Sort` orders them by the `GetID()` of each provider's
+first data source. With no lifesteal technology on the owner, Absorption
+Module therefore heals after a lower-ID buff technology applies its buff.
+The highest-priority source still supplies the healing; choosing it does
+not replace the provider's full source list or its registration key.
+
 The active source registers its hit effect on the skills its main and extra
 skill flags admit. A main source also reaches its grouped extra weapons;
 an independent extra weapon admits a main source only when it has a positive
@@ -1256,6 +1263,14 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- An equipment's lifesteal callback follows the hit's buff application:
+  `tests/lifesteal/generated-arclight-buff-order.yaml`,
+  `tests/lifesteal/generated-marksman-buff-order.yaml` and
+  `tests/lifesteal/generated-crawler-buff-order.yaml`.
+- Splash and Photon Coating target enumeration retain the prepared actor
+  order when near-equal z coordinates give a different identity order:
+  `tests/corpus/134520979-r2.yaml` and `tests/corpus/67409908-r6.yaml`.
+
 - A Fortress follows Anti-Air Barrage's target while Rocket Punch's in-range
   target keeps the motion attacking through its recovery:
   `tests/extra_weapon/rocket-punch-motion-range-proxy.yaml`.
@@ -1587,6 +1602,11 @@ not the game's native attack-type enum.
 
 ### Read
 
+- Hit callback order: `EffectProvider.Sort` orders data sources by `GetID`;
+  `FightEffectMananger.Sort` compares the first source of each provider.
+  `FightEffectMananger.RegisterMechEvent` registers those providers, and
+  `SkillHitEffectController.PerformHitEffect` walks its registered list.
+
 - A skill's motion range check delegates to the running preemptive skill:
   `FightSkillBase.GameRiver.Fight.IAttacker.IsAttackTargetInAttackRange`,
   `SkillManager.HasPreemptiveSkill`, `SkillManager.GetRunningPreemptiveSkill`.
@@ -1866,10 +1886,12 @@ not the game's native attack-type enum.
 - A query: `RangeItemController.UpdateAffectedActorChange` asks
   ``FightQuadtree`1.Query``, and ``FightQuadtreeNode`1.Query`` takes the
   node's elements and then queries each node of its list.
-- A side's tree: `FightTeam.CreateQuadtree` inserts `activeActors` in
-  order, which `FightTeam.AddTower`, `FightTeam.AddMech`,
-  `FightTeam.AddBuilding` and `FightTeam.AddConstruction` fill through
-  `FightTeam.AddActor`;
+- A side's tree: `FightPrepareState.Enter` calls `GroupManager.OnFightStart`
+  before `FightTeam.CreateQuadtree`. `FightTeam.OnFightStart` calls
+  `PrepareActors`, sorting units, crystals and constructions by
+  `FightUtility.ActorComparer`, with towers first in their loader order.
+  `CreateQuadtree` inserts that prepared `activeActors` order, independently
+  of the recording's identities;
   ``FightQuadtreeNode`1.Split`` and ``FightQuadtreeNode`1.RemoveElement``.
 - Repair: `AutoRecoveryEffectProvider.DoActive` adds a unit to its side's
   `TeamAutoRecoveryManager`, whose `AutoRecoveryController` constructor

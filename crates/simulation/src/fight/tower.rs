@@ -1453,10 +1453,12 @@ fn tick_buffs(
     for running in &mut buffs[from..] {
         running.elapsed = running.elapsed.saturating_add(1);
     }
-    let (ended, kept) = std::mem::take(buffs)
+    let (mut ended, kept) = std::mem::take(buffs)
         .into_iter()
         .partition::<Vec<_>, _>(|running| running.elapsed >= running.duration);
     *buffs = kept;
+    // BuffManager.Update removes expired buffs in its backwards traversal.
+    ended.reverse();
     for running in &ended {
         events.push(buff_removed(
             subject,

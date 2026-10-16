@@ -14,6 +14,11 @@ the game fights the replay's round, and the recording read back as a fight
 states its ticks and hash as well as the outcome, so a pin holds the whole
 trajectory.
 
+A collected match sample may also supply a round: project that round to
+layout and record the layout with the game (`convert <match> --round <n>
+--to mcfr --backend game`). Such a fixture's comment identifies the match
+sample and states that it pins the game's fight of the projection.
+
 ```sh
 mechcore convert <replay.grbr> --to mcfr --backend game --round <n> /tmp/mechcore/corpus/<id>-r<n>.mcfr
 mechcore convert /tmp/mechcore/corpus/<id>-r<n>.mcfr --to fight tests/corpus/<id>-r<n>.yaml

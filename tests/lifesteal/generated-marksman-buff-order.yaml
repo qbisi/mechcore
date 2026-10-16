@@ -1,0 +1,52 @@
+# Generated complete layout: a Marksman with Electromagnetic Shot and
+# Absorption Module. Buff application precedes the equipment lifesteal
+# callback.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 756960949
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_targeting_system, sabertooth_specialist, extended_range_marksman]
+  techs:
+    marksman: [doubleshot, shooting_squad, electromagnetic_shot, aerial_specialization, assault_mode, range_enhancement, quick_reload, elite_marksman]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: marksman, index: 0, position: {x: -240, y: -60}, level: 2, exp: 1465/1465/1465, rotated: true, equipment: [absorption_module]}
+  - {name: sabertooth, index: 1, position: {x: 35, y: -125}, source: delivered}
+  - {name: hound, index: 2, position: {x: 210, y: -230}, level: 8, exp: 0/1772/5046, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 215, y: -75}, retained: false}
+  battle_skills:
+  - {name: nuke, positions: [{x: 80, y: 65}]}
+red:
+  core_damage: 100
+  officers: [advanced_shield_device, quick_teleport, speed_specialist, assault_raiden]
+  techs:
+    raiden: [energy_shield, electromagnetic_shot, chain, ionization, range_enhancement, fork]
+  blueprints: [defense_enhancement_ii]
+  units:
+  - {name: raiden, index: 0, position: {x: -330, y: 110}, level: 2, exp: 0/3342/5408, rotated: true, equipment: [mustang_production_line], travelling: true, source: joined}
+  - {name: typhoon, index: 1, position: {x: -160, y: -300}, level: 3, exp: 0/212/6946, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 85, y: -120}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 180, y: -200}]}
+asserts:
+- sql: |
+    SELECT type, buff_id, amount
+    FROM events
+    WHERE tick = 1222
+      AND type IN ('buff_applied', 'healing')
+    ORDER BY ordinal;
+  rows:
+  - ["buff_applied", 1002, null]
+  - ["healing", null, 612]
+ticks: 1635
+hash: 26:2e83de185b61ec360b4fec653d564ca49845ec973dd988a197202c1baf8f11df

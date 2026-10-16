@@ -1,0 +1,50 @@
+# Projected round 2 of corpus match sample 20261016--134520979-r2. The native
+# game fights the projected layout; splash targets retain prepared
+# actor/quadtree order.
+
+kind: fight
+source: game
+map_id: 1011
+seed: 743403817
+round: 2
+blue:
+  core_damage: 0
+  officers: [aerial_specialist]
+  units:
+  - {name: marksman, index: 0, position: {x: 120, y: -190}, exp: 650/650/650}
+  - {name: marksman, index: 1, position: {x: -160, y: -190}, exp: 400/650/650}
+  - {name: marksman, index: 2, position: {x: 170, y: -170}, exp: 425/650/650}
+  - {name: sledgehammer, index: 3, position: {x: -170, y: -135}, rotated: true}
+  - {name: sledgehammer, index: 4, position: {x: 120, y: -135}, exp: 292/418/1300, rotated: true}
+  - {name: arclight, index: 5, position: {x: 100, y: -170}, exp: 124/388/750}
+  - {name: arclight, index: 6, position: {x: 150, y: -150}, exp: 107/323/750}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+red:
+  core_damage: 400
+  officers: [fortified_specialist]
+  units:
+  - {name: marksman, index: 0, position: {x: -120, y: -190}, exp: 106/279/650}
+  - {name: marksman, index: 1, position: {x: 0, y: -190}, exp: 253/306/650}
+  - {name: marksman, index: 2, position: {x: 120, y: -190}, exp: 145/550/650}
+  - {name: tarantula, index: 3, position: {x: 115, y: -145}, exp: 145/333/1500}
+  - {name: tarantula, index: 4, position: {x: -115, y: -145}, exp: 86/159/1500}
+  - {name: void_eye, index: 5, position: {x: -110, y: -170}, exp: 73/173/650}
+  - {name: void_eye, index: 6, position: {x: 110, y: -170}, exp: 569/650/650}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+asserts:
+- sql: |
+    SELECT target__id
+    FROM events
+    WHERE tick = 323
+      AND type = 'damage'
+      AND object__id = 42
+    ORDER BY ordinal;
+  rows:
+  - [11]
+  - [4]
+ticks: 1207
+hash: 26:864c1d9f0a3fc1626f26fe4f4b6d0d9a9b330922243e6cc0b94c52c3673961cc
