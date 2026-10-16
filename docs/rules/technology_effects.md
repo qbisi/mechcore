@@ -1222,7 +1222,14 @@ explodes on the same update.
 
 **Switched off, its unit's death strikes nothing**, as a technology's dead
 effect does not go off while its unit's technologies are disabled
-(`IDeadEffect.IsTechnologyEffect`); an invincible unit's goes off.
+(`IDeadEffect.IsTechnologyEffect`). Admission to the death queue is not
+execution: the generic controller checks each technology effect again
+against the unit's current disabled state. A lethal EMP hit can therefore
+queue the death before applying EMP and still suppress the explosion and
+its fire when the controller runs. Invincibility can admit a death to the
+queue but does not bypass this execution-time technology check. A main
+explosion skill is not a technology effect; an extra explosion skill is
+(`ExplosionSkillData.IsTechnologyEffect`).
 
 ## Additional-damage technologies
 
@@ -1559,8 +1566,9 @@ whose own `DisableEffect` it does not mirror.
   condition holds nothing while the unit's technologies are disabled, its
   skill being a technology's
   (`PermanentPreemptiveActiveConditionLifeController.CheckCanActive`), and a
-  unit that dies so, not invincible, sets off no dead effect that is a
-  technology's (`DeadEffectController.IsAvaliable`), as its explosion is.
+  unit that dies so executes no technology dead effect. The admission check
+  (`DeadEffectController.IsAvaliable`) and the later per-effect execution
+  check are separate, as above.
   Fire Badgers with Scorching Charge lose their 80% more life with the
   plain numbers, fall to 14% of what is left without charging, and die
   neither exploding nor burning; switched on again, they charge below half
@@ -1729,6 +1737,9 @@ derive (a minimum range):
 ## Evidence
 
 ### Recorded
+
+- A lethal EMP hit suppresses already-queued Scorching Charge explosions and
+  their fires: `tests/technology_disable/lethal-emp-skips-queued-explosion.yaml`.
 
 - Replicated Crawlers retain creation order for avoidance after the recording
   assigns their identities by position:
@@ -2184,6 +2195,13 @@ derive (a minimum range):
   `tests/fire_intensify/fire_badger-marksman.yaml`.
 
 ### Read
+
+- The generic `DeadEffectController<T>.PerformDeadEffect` filters each effect
+  through `IDeadEffect.IsTechnologyEffect` and the current
+  `FightMech.IsTechnologyDisabled`, independently of the earlier admission
+  in `DeadEffectController.IsAvaliable`. Main explosion skills are not
+  technology effects and extra explosion skills are:
+  `ExplosionSkillData.IsTechnologyEffect`.
 
 - RVO agents are appended to the simulator's list as they are created:
   `GameRiver.Fight.GRPF.RVO.Simulator.AddAgent`.

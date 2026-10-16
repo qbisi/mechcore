@@ -55,13 +55,13 @@ impl Simulation {
 
     /// Whether the unit's death queues its explosion:
     /// `DeadEffectController.IsAvaliable` as the unit dies. An invincible
-    /// unit's dead effect and that of a unit whose technologies are on go
-    /// off, and a unit whose technologies are disabled has none that is a
+    /// unit's death and that of a unit whose technologies are on can enter
+    /// the queue; a disabled unit has no eligible effect that is a
     /// technology's (`IDeadEffect.IsTechnologyEffect`), as an extra skill's
     /// explosion is: a Fire Badger with Scorching Charge that dies switched
     /// off neither explodes nor burns, nor does a Rhino with Final Blitz.
-    /// Whether a main skill's explosion is a technology's is not read; it is
-    /// taken to go off.
+    /// An explosion skill's technology flag is the inverse of isMainSkill
+    /// (`ExplosionSkillData.IsTechnologyEffect`).
     pub(in crate::fight) fn explodes_on_death(&self, actor_id: u64) -> bool {
         let actor = &self.actors[&actor_id];
         self.explosion_of(actor_id).is_some_and(|blast| {
@@ -157,6 +157,12 @@ impl Simulation {
             return Ok(());
         };
         let actor = &self.actors[&actor_id];
+        // `DeadEffectController<T>.PerformDeadEffect` rechecks each effect
+        // at execution, after the lethal hit's post-hit effects. Admission
+        // through IsAvaliable, even its invincibility branch, is not enough.
+        if blast != DeadBlast::Skill(SkillSlot::Main) && actor.technology_disabled() {
+            return Ok(());
+        }
         let Blast {
             damage,
             multiplier_q32,
