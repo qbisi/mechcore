@@ -129,6 +129,13 @@ first updates on the next tick. Later skills in the same manager update
 already see idle: a Fortress's Rocket Punch can take the main skill's place
 on the tick its main skill finishes cooling.
 
+While a preemptive skill is running, a skill's motion-facing
+`IAttacker.IsAttackTargetInAttackRange` asks that preemptive skill's attack
+target and range. Another skill may own the motion after searching, and
+continues to supply its direction and lock; its own range does not replace
+the running preemptive skill's check. Ordinary skill attack checks still
+use the skill's own target and range.
+
 ## A unit with nothing it can fire at walks on any enemy
 
 A skill whose search finds nothing it can attack falls back on any live enemy,
@@ -1249,6 +1256,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A Fortress follows Anti-Air Barrage's target while Rocket Punch's in-range
+  target keeps the motion attacking through its recovery:
+  `tests/extra_weapon/rocket-punch-motion-range-proxy.yaml`.
+
 - A Fortress's main skill finishes cooling and Rocket Punch starts in the
   same tick, 112, locking the main skill:
   `tests/extra_weapon/rocket-punch-at-cooling-end.yaml`.
@@ -1575,6 +1586,10 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- A skill's motion range check delegates to the running preemptive skill:
+  `FightSkillBase.GameRiver.Fight.IAttacker.IsAttackTargetInAttackRange`,
+  `SkillManager.HasPreemptiveSkill`, `SkillManager.GetRunningPreemptiveSkill`.
 
 - Cooling enters idle on its last update, and a preemptive checker sees the
   main skill's current state: `SkillCoolingState.Update`,

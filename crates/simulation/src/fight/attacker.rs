@@ -893,6 +893,30 @@ impl Simulation {
             && attacker.reaches(view.x_q32, view.z_q32, view.radius)
     }
 
+    /// `FightSkillBase.IAttacker.IsAttackTargetInAttackRange`: the motion
+    /// asks the running preemptive skill while one is set, even when a
+    /// different skill owns the motion. Ordinary skill checks keep asking
+    /// their own target through `attack_target_in_range`.
+    pub(in crate::fight) fn skill_attacker_target_in_range(&self, skill_ref: SkillRef) -> bool {
+        let skills = self.skills(skill_ref.owner);
+        let running = skills.running_preemptive.or_else(|| {
+            skills.preemptive_active.then(|| {
+                skills
+                    .extras
+                    .iter()
+                    .position(|extra| extra.rules.preemptive.is_some())
+                    .expect("an active permanent preemptive skill exists")
+            })
+        });
+        let checked = running.map_or(skill_ref, |index| SkillRef {
+            owner: skill_ref.owner,
+            slot: SkillSlot::Extra(index),
+        });
+        self.skill(checked)
+            .attack_target()
+            .is_some_and(|target| self.attack_target_in_range(checked, target))
+    }
+
     /// The visibility half of `SkillAttackRangeChecker.IsActorInAttackRange`:
     /// a target that is not visible is out of range, except to a unit whose
     /// own `MechData` moves underground, which reaches one hidden the way it
