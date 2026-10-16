@@ -596,9 +596,15 @@ impl Simulation {
             Some(slot) => self.slot_attack_target(skill_ref, Some(slot)),
             None => self.skill(skill_ref).attack_target(),
         };
-        target.is_some_and(|target| {
-            self.is_construction(target) && !self.fight_actor_is_alive(target)
-        })
+        // `SkillAttackState.CheckAttackable` reads the raw actor field.
+        // A shield occupies the weapon target but leaves attackTarget null;
+        // its dead lock must reach the ordinary replacement checker.
+        let skill = self.skill(skill_ref).group_skill(slot.unwrap_or(0));
+        target
+            .filter(|_| skill.shield_target().is_none())
+            .is_some_and(|target| {
+                self.is_construction(target) && !self.fight_actor_is_alive(target)
+            })
     }
 
     /// Whether an extra skill's weapon stands at an edge of its arc

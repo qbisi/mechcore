@@ -234,6 +234,11 @@ core leaves a sibling's last block alone even while the core takes a wall
 itself. The sibling therefore sees its fallen block on its own check and
 ends its attack.
 
+This outright rejection reads the raw actor `attackTarget`, which is null
+while the skill fires at a shield. A dead construction held only as its lock
+therefore reaches the ordinary target-replacement checker and can keep its
+attack when that checker accepts the replacement.
+
 **A fusillade's core allocates blocks only when one is available.** When the core of a
 fusillade group finds a block, `SearchAttackTarget` hands each other skill
 `CheckWallConstructionForGroupedSkill` of one list, holding the core's block
@@ -301,6 +306,10 @@ The map's own buildings are the exception and are named: each side gets one
 ## Evidence
 
 ### Recorded
+
+- Mountain cannon skills replace a dead construction lock behind a shield
+  without ending their attacks:
+  `tests/shield/dead-construction-keeps-shield-attack.yaml`.
 
 - A projectile blow counts without emitting a projectile at a live wall
   when its unit lock is hidden:
@@ -381,8 +390,9 @@ The map's own buildings are the exception and are named: each side gets one
   `FightConstructionSystem.Create`,
   `GroupConstructionManager.CreateConstruction`,
   `FightController.CreateFightConstruction`.
-- A dead construction fails the attack check outright, and a failed check
-  clears the lock: `SkillAttackState.CheckAttackable`,
+- A dead construction in the raw actor attack target fails the attack check
+  outright; a shield leaves that field null. A failed check clears the lock:
+  `SkillAttackState.CheckAttackable`,
   `SkillAttackableChecker.Check`, `FightSkill.StopAttack`.
 - A unit turns to its lock unless its attack target is alive, and a blow that
   fells its target releases it before turning:
