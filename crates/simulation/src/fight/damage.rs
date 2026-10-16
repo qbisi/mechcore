@@ -41,10 +41,6 @@ pub(in crate::fight) struct DamageHit {
     /// What the attack was aimed at, `IDamageProvider.GetMainTarget`: none
     /// for a hit that only splashes.
     pub(in crate::fight) aimed: Option<FightActorRef>,
-    /// Whether the aimed-at object is struck wherever it stands, rather than
-    /// only if the splash reaches it. A direct strike always is; a projectile
-    /// is when it locks its target.
-    pub(in crate::fight) hits_aimed: bool,
     /// Where the splash is measured from, `FPoint` raw metres.
     pub(in crate::fight) center_q32: (i64, i64),
     /// How high that point is, `FPoint` raw metres: a shield holds the point
@@ -108,7 +104,6 @@ impl DamageHit {
             projectile: None,
             skill_slot: Some(skill_slot),
             aimed: Some(aimed),
-            hits_aimed: true,
             center_q32: (attacker.x_q32, attacker.z_q32),
             center_y_q32: 0,
             shield: None,
@@ -124,9 +119,10 @@ impl DamageHit {
     }
 
     /// A projectile's hit where it stands, `FightProjectile`'s: the
-    /// projectile owns it under the team it flies for, it strikes the other
-    /// side, and what it was aimed at is struck wherever that stands only if
-    /// the projectile locks it. It neither splashes nor crosses shields.
+    /// projectile owns it under the team it flies for and strikes the other
+    /// side. A single hit takes its living main target independently of
+    /// tracking; a splash uses its impact position. It initially neither
+    /// splashes nor crosses shields.
     pub(in crate::fight) fn of_projectile(
         projectile: &Projectile,
         aimed: FightActorRef,
@@ -144,7 +140,6 @@ impl DamageHit {
             projectile: Some(projectile.object_ref()),
             skill_slot: None,
             aimed: Some(aimed),
-            hits_aimed: projectile.lock_target,
             center_q32: (projectile.x_q32, projectile.z_q32),
             center_y_q32: projectile.y_q32,
             shield: None,
@@ -206,7 +201,6 @@ impl DamageHit {
             projectile: None,
             skill_slot: None,
             aimed: None,
-            hits_aimed: false,
             center_q32,
             center_y_q32,
             shield: None,
@@ -363,18 +357,23 @@ impl Simulation {
 
     /// Every object one hit strikes, in the order it strikes them.
     ///
-    /// The build's `DamagePerformer.PrepareRangeTargets`: what the hit was
-    /// aimed at, if it strikes that wherever it stands, and every enemy its
+    /// `DamagePerformer.PerformSingleEffect` takes its living main target
+    /// without a spatial check. `PrepareRangeTargets` takes every enemy a
     /// splash reaches. It is the one place this simulator decides who a hit
     /// lands on, which is why what it does not yet decide is refused here and
     /// nowhere else.
     ///
     /// # Errors
     ///
-    /// Refuses a splash that has not been measured: one reaching a building
-    /// from a hit aimed at a unit, and one reaching a unit from a hit aimed at
-    /// a building.
+    /// Refuses an aimed building absent from the fight.
     pub(in crate::fight) fn damage_targets(&self, hit: &DamageHit) -> Result<Vec<FightActorRef>> {
+        if hit.splash_radius == 0 {
+            return Ok(hit
+                .aimed
+                .filter(|&target| self.fight_actor_is_alive(target))
+                .into_iter()
+                .collect());
+        }
         let splash_q32 = space_to_q32(hit.splash_radius);
         if let Some(FightActorRef::Building(building_id)) = hit.aimed {
             let building = self
@@ -388,7 +387,7 @@ impl Simulation {
                 building.bounds_width / 2,
                 splash_q32,
             );
-            if hit.splash_radius == 0 || !hit.reach.touches(UnitDomain::Ground) {
+            if !hit.reach.touches(UnitDomain::Ground) {
                 return Ok(if reached {
                     vec![FightActorRef::Building(building_id)]
                 } else {
@@ -449,21 +448,13 @@ impl Simulation {
                 FightActorRef::Unit(candidate_id) => {
                     let candidate = &self.actors[&candidate_id];
                     candidate.alive()
-                        // PerformSingleEffect checks life, not visibility.
-                        // A projectile's ordinary arrival checks visibility
-                        // before reaching it; shield interception is a
-                        // separate path into this same single-target hit.
                         // A hit with a splash strikes only what the splash
                         // reaches (`DamagePerformer.Perform` takes
                         // `PerformRangeEffect` over `PerformSingleEffect`): a
                         // Homing Missile landing its offset 20 metres from its
                         // target strikes nothing.
-                        && ((hit.hits_aimed
-                            && hit.splash_radius == 0
-                            && Some(*candidate_ref) == hit.aimed)
-                            || (hit.splash_radius > 0
-                                && hit.reach.touches(candidate.domain)
-                                && hit.splashes(candidate, splash_q32)))
+                        && hit.reach.touches(candidate.domain)
+                        && hit.splashes(candidate, splash_q32)
                 }
                 FightActorRef::Building(building_id) => {
                     splash_reaches_buildings
@@ -1111,7 +1102,6 @@ impl Simulation {
         let around = DamageHit {
             amount,
             splash_radius: secondary.splash_radius,
-            hits_aimed: false,
             ..*hit
         };
         // `PerformSecondaryRangeEffect`: `PrepareRangeTargets` takes what
