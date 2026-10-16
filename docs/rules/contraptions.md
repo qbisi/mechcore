@@ -233,6 +233,11 @@ the radius and energy its lists give its unit's level
 `TechnologyData.GetLevelValue`): 60 metres and 40000 a level for the
 Fortress, 50 and 16000 for the Hacker. Either is among its side's shields at
 the fight's start, where the unit stands.
+The full collection and the shield's readonly team controller keep that
+original side. Its active collection instead follows its owner's current
+side: an active carried shield is removed from the old group and appended
+to the new group's active list when the owner changes sides. A disabled
+shield joins its owner's current group when activated later.
 It stands where its owner stands, moved as the owner moves, and once the owner
 dies it stays where it last stood, still naming it, but its death effects
 deactivate the shield and clear its energy. The projectile update precedes
@@ -292,6 +297,14 @@ kind ends its own way:
 ## Evidence
 
 ### Recorded
+
+- A travelling Hacker turns while its Barrier is inactive. At fight exit
+  the Barrier activates in red's active list with order zero, while its
+  registered team remains blue and blue's fixed shield also has order zero:
+  `tests/shield/captured-traveller-at-fight-end.yaml`.
+- A Hacker's Barrier resumes as control clears EMP, then moves to the end
+  of red's active list at tick 205 with its remaining 13800 energy:
+  `tests/shield/captured-active-carrier.yaml`.
 
 - A carried Barrier with energy left absorbs a projectile on its owner's
   death tick, then deactivates and clears its energy while retaining its
@@ -419,6 +432,12 @@ kind ends its own way:
   document. The corpus holds each kind both kept and gone.
 
 ### Read
+
+- A carried shield transfers only its active-list membership on a team
+  change: `AdvancedEnergyShieldSystem.OnActorChangeTeam`,
+  `GroupAdvancedEnergyShieldManager.AddTemporary`,
+  `GroupAdvancedEnergyShieldManager.RemoveTemporary`. Its readonly original
+  controller is returned by `FightEnergyShield.GetTeamController`.
 
 - Shield containment uses native three-dimensional distance and a NaN-aware
   comparison: `FightCalculator.IsInEnergyShield`, `FVector3.SqrMagnitude`,

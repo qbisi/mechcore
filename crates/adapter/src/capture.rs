@@ -7341,22 +7341,12 @@ fn read_building(
     })
 }
 
-#[allow(clippy::too_many_lines)]
-fn read_team_shields(
+/// `AdvancedEnergyShieldSystem.GetActiveEnergyShields`, in list order.
+fn read_active_shield_orders(
     api: Api,
     shield_system: *mut Object,
     fight_group: *mut Object,
-    team_controller: *mut Object,
-    team_id: u32,
-    metadata: &Metadata,
-) -> Result<Vec<RawShield>, String> {
-    let all = api
-        .invoke(
-            shield_system,
-            "GetEnergyShields",
-            &mut [object_argument(fight_group)],
-        )
-        .map_err(|error| format!("AdvancedEnergyShieldSystem.GetEnergyShields: {error}"))?;
+) -> Result<BTreeMap<usize, u32>, String> {
     let active = api
         .invoke(
             shield_system,
@@ -7364,7 +7354,7 @@ fn read_team_shields(
             &mut [object_argument(fight_group)],
         )
         .map_err(|error| format!("AdvancedEnergyShieldSystem.GetActiveEnergyShields: {error}"))?;
-    if all.is_null() || active.is_null() {
+    if active.is_null() {
         return Err("AdvancedEnergyShieldSystem returned a null shield list".into());
     }
     let mut active_orders = BTreeMap::new();
@@ -7383,6 +7373,33 @@ fn read_team_shields(
             return Err("active shield list contains a duplicate object".into());
         }
     }
+    Ok(active_orders)
+}
+
+#[allow(clippy::too_many_lines)]
+fn read_team_shields(
+    api: Api,
+    shield_system: *mut Object,
+    fight_group: *mut Object,
+    team_controller: *mut Object,
+    team_id: u32,
+    metadata: &Metadata,
+) -> Result<Vec<RawShield>, String> {
+    let all = api
+        .invoke(
+            shield_system,
+            "GetEnergyShields",
+            &mut [object_argument(fight_group)],
+        )
+        .map_err(|error| format!("AdvancedEnergyShieldSystem.GetEnergyShields: {error}"))?;
+    if all.is_null() {
+        return Err("AdvancedEnergyShieldSystem returned a null full shield list".into());
+    }
+    let mut active_groups = BTreeMap::new();
+    active_groups.insert(
+        fight_group as usize,
+        read_active_shield_orders(api, shield_system, fight_group)?,
+    );
     let mut result = Vec::new();
     let mut all_pointers = BTreeSet::new();
     for index in 0..list_count(api, all, 100_000)? {
@@ -7396,7 +7413,33 @@ fn read_team_shields(
         }
         let active = invoke_value::<bool>(api, shield, "get_IsActive")
             .map_err(|error| format!("FightEnergyShield.get_IsActive: {error}"))?;
-        let active_order = active_orders.get(&pointer).copied();
+        let data = invoke_object(api, shield, "get_EnergyShieldData")
+            .map_err(|error| format!("FightEnergyShield.get_EnergyShieldData: {error}"))?;
+        let source_kind = shield_source_kind(api, data, metadata)?;
+        let owner = api
+            .invoke(shield, "GetOwner", &mut [])
+            .map_err(|error| format!("FightEnergyShield.GetOwner: {error}"))?
+            as usize;
+        // `OnActorChangeTeam` moves a carried shield only between the active
+        // lists. Its readonly team controller and full-list registration stay.
+        let active_group = if active && source_kind == ShieldSourceKind::OwnerAdvanced {
+            if owner == 0 {
+                return Err("active carried shield has no owner".into());
+            }
+            let owner_team = invoke_object(api, owner as *mut Object, "GetCurrentTeamController")?;
+            let team = invoke_object(api, owner_team, "GetTeam")?;
+            invoke_object(api, team, "GetFightGroup")?
+        } else {
+            fight_group
+        };
+        if let std::collections::btree_map::Entry::Vacant(entry) =
+            active_groups.entry(active_group as usize)
+        {
+            entry.insert(read_active_shield_orders(api, shield_system, active_group)?);
+        }
+        let active_order = active_groups[&(active_group as usize)]
+            .get(&pointer)
+            .copied();
         if active != active_order.is_some() {
             return Err(format!(
                 "FightEnergyShield at 0x{pointer:x} active flag disagrees with active list membership"
@@ -7416,9 +7459,6 @@ fn read_team_shields(
                 "FightEnergyShield at 0x{pointer:x} belongs to team {native_team_index}, enumerated under {team_id}"
             ));
         }
-        let data = invoke_object(api, shield, "get_EnergyShieldData")
-            .map_err(|error| format!("FightEnergyShield.get_EnergyShieldData: {error}"))?;
-        let source_kind = shield_source_kind(api, data, metadata)?;
         let short_lived = invoke_value::<bool>(api, shield, "IsShortLifeTime")
             .map_err(|error| format!("FightEnergyShield.IsShortLifeTime: {error}"))?;
         let reset_next_round = invoke_value::<bool>(api, shield, "IsResetNextRound")
@@ -7430,10 +7470,6 @@ fn read_team_shields(
         } else {
             ShieldRoundPolicy::RetainState
         };
-        let owner = api
-            .invoke(shield, "GetOwner", &mut [])
-            .map_err(|error| format!("FightEnergyShield.GetOwner: {error}"))?
-            as usize;
         let transform = invoke_object(api, shield, "GetFightTransform")
             .map_err(|error| format!("FightEnergyShield.GetFightTransform: {error}"))?;
         let position = vec3(
@@ -7481,10 +7517,30 @@ fn read_team_shields(
             },
         });
     }
-    for pointer in active_orders.keys() {
-        if !all_pointers.contains(pointer) {
+    for pointer in active_groups[&(fight_group as usize)].keys() {
+        if all_pointers.contains(pointer) {
+            continue;
+        }
+        // A foreign carried shield is registered in its original full list.
+        // Check that registration rather than silently dropping the old guard.
+        let shield = *pointer as *mut Object;
+        let original_team = invoke_object(api, shield, "GetTeamController")?;
+        let original = invoke_object(api, original_team, "GetTeam")?;
+        let original_group = invoke_object(api, original, "GetFightGroup")?;
+        let original_all = api
+            .invoke(
+                shield_system,
+                "GetEnergyShields",
+                &mut [object_argument(original_group)],
+            )
+            .map_err(|error| error.to_string())?;
+        let mut found = false;
+        for index in 0..list_count(api, original_all, 100_000)? {
+            found |= list_item(api, original_all, index)? == shield;
+        }
+        if !found {
             return Err(format!(
-                "active shield 0x{pointer:x} is absent from the full shield list"
+                "active shield 0x{pointer:x} is absent from its original full shield list"
             ));
         }
     }

@@ -28,7 +28,11 @@ use mechcore_mcfr::{ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, 
 #[derive(Debug, Clone)]
 pub(in crate::fight) struct EnergyShield {
     pub(in crate::fight) id: u64,
+    /// `FightEnergyShield.GetTeamController`, fixed at creation.
     pub(in crate::fight) team: u32,
+    /// Membership in `GroupAdvancedEnergyShieldManager.activeEnergyShields`.
+    /// A controlled owner's active shield moves without changing its team.
+    pub(in crate::fight) group: u32,
     pub(in crate::fight) x_q32: i64,
     pub(in crate::fight) z_q32: i64,
     pub(in crate::fight) radius_q32: i64,
@@ -114,6 +118,7 @@ fn initialize_shields(
         .map(|shield| EnergyShield {
             id: 0,
             team: shield.team,
+            group: shield.team,
             x_q32: space_to_q32(shield.x),
             z_q32: space_to_q32(shield.z),
             radius_q32: shield.radius_q32,
@@ -131,6 +136,7 @@ fn initialize_shields(
         .chain(carried.iter().map(|shield| EnergyShield {
             id: 0,
             team: shield.team,
+            group: shield.team,
             x_q32: shield.x_q32,
             z_q32: shield.z_q32,
             radius_q32: shield.radius_q32,
@@ -209,6 +215,28 @@ impl EnergyShield {
 }
 
 impl Simulation {
+    /// `AdvancedEnergyShieldSystem.OnActorChangeTeam`: only the active list
+    /// moves. Full-list registration and `FightEnergyShield.teamController`
+    /// stay with the side that created it.
+    pub(in crate::fight) fn shields_change_side(&mut self, actor_id: u64) {
+        let Some(index) = self.shield.standing.iter().position(|shield| {
+            shield.owner == Some(actor_id)
+                && shield.active
+                && shield.source_kind == ShieldSourceKind::OwnerAdvanced
+        }) else {
+            return;
+        };
+        let mut shield = self.shield.standing.remove(index);
+        shield.group = self.actors[&actor_id].placement.team;
+        let after = self
+            .shield
+            .standing
+            .iter()
+            .rposition(|standing| standing.group <= shield.group)
+            .map_or(0, |index| index + 1);
+        self.shield.standing.insert(after, shield);
+    }
+
     /// The shields a unit carries stand where it stands: each is moved with
     /// it, as its owner's position is set.
     pub(in crate::fight) fn follow_owner(&mut self, actor_id: u64) {
@@ -297,12 +325,13 @@ impl Simulation {
             return;
         }
         shield.active = true;
+        shield.group = self.actors[&actor_id].placement.team;
         let shield = self.shield.standing.remove(index);
         let after = self
             .shield
             .standing
             .iter()
-            .rposition(|standing| standing.team <= shield.team)
+            .rposition(|standing| standing.group <= shield.group)
             .map_or(0, |index| index + 1);
         self.shield.standing.insert(after, shield);
     }
@@ -341,12 +370,13 @@ impl Simulation {
         };
         let mut shield = self.shield.standing.remove(index);
         shield.active = true;
+        shield.group = self.actors[&actor_id].placement.team;
         shield.energy = shield.max_energy;
         let after = self
             .shield
             .standing
             .iter()
-            .rposition(|standing| standing.team <= shield.team)
+            .rposition(|standing| standing.group <= shield.group)
             .map_or(0, |index| index + 1);
         self.shield.standing.insert(after, shield);
     }
@@ -358,7 +388,7 @@ impl Simulation {
             .standing
             .iter()
             .map(|shield| {
-                let active_order = order.entry(shield.team).or_insert(0);
+                let active_order = order.entry(shield.group).or_insert(0);
                 let state = ShieldState {
                     shield_id: shield.id,
                     controller: shield.owner.map(|_| mechcore_mcfr::ShieldControllerState {
@@ -434,6 +464,7 @@ impl Simulation {
         let shield = EnergyShield {
             id,
             team,
+            group: team,
             x_q32,
             z_q32,
             radius_q32,
@@ -464,7 +495,7 @@ impl Simulation {
             .shield
             .standing
             .iter()
-            .rposition(|standing| standing.team <= team)
+            .rposition(|standing| standing.group <= team)
             .map_or(0, |index| index + 1);
         self.shield.standing.insert(after, shield);
     }
@@ -481,7 +512,7 @@ impl Simulation {
         self.shield
             .standing
             .iter()
-            .filter(|shield| shield.team != team && shield.contains(x_q32, y_q32, z_q32))
+            .filter(|shield| shield.group != team && shield.contains(x_q32, y_q32, z_q32))
             .map(|shield| shield.id)
             .collect()
     }
@@ -495,7 +526,7 @@ impl Simulation {
         self.shield
             .standing
             .iter()
-            .find(|shield| shield.team == team && shield.contains(x_q32, y_q32, z_q32))
+            .find(|shield| shield.group == team && shield.contains(x_q32, y_q32, z_q32))
             .map(|shield| shield.id)
     }
 
@@ -606,7 +637,7 @@ impl Simulation {
             .standing
             .iter()
             .find(|shield| {
-                shield.team != projectile.team
+                shield.group != projectile.team
                     && !projectile.spawn_shields.contains(&shield.id)
                     && shield.contains(projectile.x_q32, projectile.y_q32, projectile.z_q32)
             })
@@ -644,7 +675,7 @@ impl Simulation {
             .shield
             .standing
             .iter()
-            .filter(|shield| shield.team == target_actor.team)
+            .filter(|shield| shield.group == target_actor.team)
         {
             if !shield.contains(target_x, target_y, target_z) {
                 continue;

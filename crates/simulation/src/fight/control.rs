@@ -501,6 +501,7 @@ impl Simulation {
             .placement
             .team = team;
         self.unit_recorder_changes_side(unit_id, old_team, team);
+        self.shields_change_side(unit_id);
         self.add_opponent_actor(unit, team);
         self.joins_side_last(unit_id);
         let step = self.step_now;
@@ -724,6 +725,7 @@ impl Simulation {
         self.change_group_side(unit_id, old_team);
         self.unit_recorder_changes_side(unit_id, old_team, team);
         self.interceptors_change_side(unit_id);
+        self.shields_change_side(unit_id);
         self.add_opponent_actor(unit, team);
         self.joins_side_last(unit_id);
         // `FightSkill.EnterFight` subscribes each skill to its owner's

@@ -1,0 +1,44 @@
+# Control clears the Hacker's EMP and restores its Barrier at 13800 energy.
+# OnChangeTeam then appends that active shield to red's list after its fixed
+# shield. Its readonly registered team stays blue. First visible at t205;
+# the complete native recording ends at t206.
+# Anti-Interference Module prevents the Void Eyes being controlled in return.
+# Control: ../control/electromagnetic-armor.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  core_damage: 283
+  techs:
+    hacker: [barrier]
+  units:
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, level: 2, exp: 0/132/1262, source: joined}
+red:
+  core_damage: 0
+  techs:
+    void_eye: [electromagnetic_armor]
+  units:
+  - {name: void_eye, index: 0, position: {x: -10, y: -60}, exp: 0/600/650, equipment: [anti_interference_module], source: joined}
+  - {name: hacker, index: 1, position: {x: 35, y: -95}, level: 9, exp: 0/600/3767, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 200, y: -200}}
+asserts:
+- sql: |
+    SELECT s.tick, s.shield_id, s.team_id, u.team_id AS owner_team,
+           s.active, s.active_order, s.energy__current
+    FROM shields s LEFT JOIN units u
+      ON s.tick = u.tick AND s.owner__id = u.unit_id
+    WHERE s.tick BETWEEN 204 AND 206
+    ORDER BY s.tick, s.shield_id;
+  rows:
+  - [204, 1, 0, 0, 0, null, 0]
+  - [204, 2, 1, null, 1, 0, 40000]
+  - [205, 1, 0, 1, 1, 1, 13800]
+  - [205, 2, 1, null, 1, 0, 40000]
+  - [206, 1, 0, 1, 1, 1, 13800]
+  - [206, 2, 1, null, 1, 0, 40000]
+ticks: 206
+hash: 26:69024faa42c601f2d27f22c45c4ce47129742ed83a2c9b8e96ec5665397b2b74
