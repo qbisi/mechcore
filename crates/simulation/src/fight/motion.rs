@@ -886,6 +886,12 @@ impl Simulation {
         edge_distance_q32: i64,
     ) -> bool {
         let actor = &self.actors[&actor_id];
+        if !actor.skills.main.mech_searches()
+            && (actor.skills.running_preemptive.is_some() || actor.skills.preemptive_active)
+        {
+            return self
+                .skill_attacker_target_in_range(SkillRef::main(FightActorRef::Unit(actor_id)));
+        }
         if let Some(batch_in_reach) = self.batch_in_reach(actor_id) {
             batch_in_reach
         } else if actor.skills.main.mech_searches() {
@@ -1361,9 +1367,7 @@ impl Simulation {
             .lock_target
             .filter(|&lock| self.fight_actor_is_alive(lock))
             .and_then(|lock| self.fight_actor(lock));
-        let in_range = skill
-            .attack_target()
-            .is_some_and(|target| self.target_in_attack_range(skill_ref, target));
+        let in_range = self.skill_attacker_target_in_range(skill_ref);
         // `CalculateTargetDirection` turns to what the skill fires at: a block
         // in the way before the lock behind it.
         let aimed = skill
@@ -1395,9 +1399,6 @@ impl Simulation {
             return;
         }
         if self.actors[&actor_id].command.is_some() {
-            let target = skill.attack_target();
-            let in_range =
-                target.is_some_and(|target| self.attack_target_in_range(skill_ref, target));
             let aimed = aimed.map(|aimed| (aimed.x_q32, aimed.z_q32));
             self.follow_extra_attacker_under_command(actor_id, in_range, aimed);
             return;

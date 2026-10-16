@@ -1,0 +1,58 @@
+# The motion can follow Anti-Air Barrage while Rocket Punch is running.
+# Its IAttacker range check delegates to Rocket Punch, whose target is in
+# range, while the turret still turns towards the Barrage target.
+# The complete generated native fight matches through settlement.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 605458117
+round: 2
+blue:
+  core_damage: 621
+  officers: [advanced_defensive_tactics, advanced_targeting_system, cost_control_specialist, mass_produced_sandworm]
+  techs:
+    sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: sandworm, index: 0, position: {x: 210, y: -40}, level: 6, exp: 5799/5963/11598, rotated: true, equipment: [mustang_production_line]}
+  - {name: wraith, index: 1, position: {x: -165, y: -235}, exp: 0/34/2250, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -230, y: -215}}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, quick_teleport, extended_range_fortress]
+  techs:
+    fortress: [doubleshot, barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: fortress, index: 0, position: {x: -330, y: 130}, level: 7, exp: 0/10074/10074, rotated: true, equipment: [mustang_production_line], travelling: true, source: joined}
+  - {name: vortex, index: 1, position: {x: 180, y: -70}, level: 9, exp: 0/524/5046, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -145, y: -90}}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: 280, y: 30}]}
+asserts:
+- sql: |
+    SELECT tick,motion_state,turret_rotation FROM units
+    WHERE unit_id=3 AND tick IN (136,137) ORDER BY tick
+  rows:
+  - [136, "attacking", 1312494636692]
+  - [137, "attacking", 1301757218492]
+- sql: |
+    SELECT skill_slot,enabled__state,enabled__attack_phase,enabled__attack_target__id
+    FROM units__skills WHERE tick=137 AND unit_id=3 AND skill_slot IN (1,2)
+    ORDER BY skill_slot
+  rows:
+  - [1, "idle", null, 1]
+  - [2, "attack", "after", 22]
+ticks: 1231
+hash: 26:27931df792f3571e4007a65c6078c42f29a2f8e166f2edeecfc97b3133ca72f7
