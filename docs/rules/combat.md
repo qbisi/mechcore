@@ -124,6 +124,11 @@ the attack left it firing at a battlefield shield: a Phantom Ray whose lock dies
 inside the enemy's shield, names no unit while it cools, however long, and
 locks again only once the cooling is over.
 
+Its last cooling update enters idle immediately, though that idle state
+first updates on the next tick. Later skills in the same manager update
+already see idle: a Fortress's Rocket Punch can take the main skill's place
+on the tick its main skill finishes cooling.
+
 ## A unit with nothing it can fire at walks on any enemy
 
 A skill whose search finds nothing it can attack falls back on any live enemy,
@@ -1244,6 +1249,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A Fortress's main skill finishes cooling and Rocket Punch starts in the
+  same tick, 112, locking the main skill:
+  `tests/extra_weapon/rocket-punch-at-cooling-end.yaml`.
+
 - An idle skill whose controlled target dies retains its actor target after
   losing its lock while projectiles drain, and clears it on final exit:
   `tests/control/idle-target-at-fight-end.yaml`.
@@ -1566,6 +1575,10 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- Cooling enters idle on its last update, and a preemptive checker sees the
+  main skill's current state: `SkillCoolingState.Update`,
+  `PreemptiveSkillStartAttackChecker.IsMainSkillIdleState`.
 
 - The dead-lock quick-switch guard compares the actor attack target, which a
   shield replacement leaves null: `SkillAttackableChecker.Check`,
