@@ -733,6 +733,7 @@ impl Actor {
             },
             active: true,
             rebirth_count: self.rebirth_count,
+            siege_elapsed: None,
             targetable: self.visibility == Visibility::Normal,
             visibility: self.visibility,
             buffs: self.buffs.iter().map(RunningBuff::state).collect(),

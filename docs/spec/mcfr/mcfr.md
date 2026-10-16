@@ -1,4 +1,4 @@
-# MCFR, format 0.26.0
+# MCFR, format 0.27.0
 
 ## Scope
 
@@ -7,7 +7,7 @@ schema of each, the identity and ordering rules that make two recordings of one
 fight the same recording, and what a reader must validate before trusting one.
 
 ```text
-format = "0.26.0"
+format = "0.27.0"
 ```
 
 The native field mapping is bound to the game version the repository pins in
@@ -122,12 +122,12 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.26.0` | the logical and physical contract version |
+| `format` | exactly `0.27.0` | the logical and physical contract version |
 | `producer` | `game` or `simulator` | what wrote the recording: the game, through the adapter, or the simulator |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
 | `settlement` | canonical JSON | complete native results after exiting the fight, independent of combat ticks |
-| `hash_profile` | exactly `25` | the hash definition's number, [below](#the-hash) |
+| `hash_profile` | exactly `26` | the hash definition's number, [below](#the-hash) |
 | `result_hash` | 64 lowercase hex digits | ordered digest of every `tick_hash` and settlement; what regression compares |
 | `tick_count` | canonical decimal `u32` | logical ticks recorded, counting from `S(1)` |
 | `terminal_tick` | canonical decimal `u32` | the confirmed final logical boundary, equal to `tick_count` on a continuous timeline |
@@ -184,10 +184,21 @@ death survives as a `unit_died` event.
 | `move_speed` | `INT64 required` | the speed the fight moves the unit at, after every correction, Q32.32 raw | `FightMech.GetMoveSpeed()` |
 | `skills` | required list | every skill the unit holds, its state and its weapons | below |
 | `rebirth_count` | `UINT32 nullable` | the times the unit has been reborn in this fight; null for none, which is how a unit never reborn is written, and never 0 | `FightMech.rebirthCount`, which `RebirthTask.RebirthMech` raises through `AddRebirthCount` |
+| `siege_elapsed` | `INT64 nullable` | nonnegative Q32.32 seconds since the active trench last found an enemy or received a successful main-skill attack notification; null outside the active list | `SiegeModeEffectSystem.siegeModeOwnerDurations[owner]` while the owner is in `activeMeches` |
 | `production_lines` | list of structs, required | unit-owned production clocks, [below](#unit-owned-production-clocks) | `TeamSupportUnitManager.creators` |
 | `control` | nullable struct | while a control beam is turning the unit: `progress`, `INT32`, the power its beams' hits have added, and `sources`, `list<ObjectRef>`, the owners of the skills whose beams hold it, in the order the build keeps them; null while none is | the unit's entry in `TeamTranslationSystem.translatingDatas`: `TranslationData.progress` and `sources` |
 
-#### Unit-owned production clocks
+#### Active entrenchment clock
+
+`siege_elapsed` reads the native duration map only for owners in the active
+trench list. The field is omitted from canonical JSON while absent, so fights
+without an active trench keep their hashes under profile 26. An active clock
+of zero is present, not null. Removing a trench removes its clock from the
+snapshot; the retained dictionary entry no longer governs a trench transition.
+The timer controls the later removal of life, range and interval modifiers,
+so a missed burst notification must diverge when the clock first differs.
+
+### Unit-owned production clocks
 
 `production_lines` is a required Parquet list of structs on each live unit,
 empty when no permanent creator is owned by it. Empty lists are omitted from
@@ -1009,7 +1020,7 @@ Identity is what makes two recordings of one fight the same recording, so
 every namespace numbers its objects by a rule that depends on the scene rather
 than on the pointer that happened to be observed first.
 
-Format `0.26.0` uses `team_zx_sequential_v1`.
+Format `0.27.0` uses `team_zx_sequential_v1`.
 
 **Units.** Initial units sort strictly ascending by `(team_id, position.z,
 position.x)` and take `unit_id = 1..N` in that order. Initial units on one team
@@ -1097,7 +1108,8 @@ the crate's tests hold every declaration to byte order. A unit's
 `rebirth_count` is left out of the JSON while it is 0, its null in
 `units.parquet`, so a unit never reborn encodes as it would without the field,
 and a building's `skill` while it is null, so a building that does not search
-encodes as it would without it; every other field is written, null included. The hash covers every `S(t)` and `E(t)` field and every settlement field.
+encodes as it would without it. A unit's absent `siege_elapsed` and empty
+`production_lines` are omitted too. Every other field is written, null included. The hash covers every `S(t)` and `E(t)` field and every settlement field.
 It excludes the layout, DurableContext, provenance and digest metadata.
 
 ```text

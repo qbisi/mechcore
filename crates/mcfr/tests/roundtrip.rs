@@ -25,7 +25,8 @@ fn writes_and_reads_every_table() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("fight.mcfr");
     let initial = state(100);
-    let final_state = state(75);
+    let mut final_state = state(75);
+    final_state.live_units[0].siege_elapsed = Some(0);
     let events = damage_events();
     let hashes = write_fight(
         &path,
@@ -37,7 +38,7 @@ fn writes_and_reads_every_table() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.26.0");
+    assert_eq!(MCFR_FORMAT, "0.27.0");
     assert_eq!(reader.producer(), Producer::Game);
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
@@ -311,6 +312,7 @@ fn hash_reads_every_field_of_the_state_and_events() {
         |state: &mut WorldSnapshot| state.live_units[0].position.x += 1,
         |state: &mut WorldSnapshot| state.live_units[0].body_rotation += 1,
         |state: &mut WorldSnapshot| state.live_units[1].rebirth_count += 1,
+        |state: &mut WorldSnapshot| state.live_units[1].siege_elapsed = Some(0),
         |state: &mut WorldSnapshot| state.rebirths[0].position.y -= 1,
         |state: &mut WorldSnapshot| state.live_units[0].turret_rotation = Some(8 << 32),
         |state: &mut WorldSnapshot| state.live_units[0].velocity.z += 1,
@@ -1224,6 +1226,7 @@ fn unit(id: u64, team: u32, x: i64, life: i32, with_secondary: bool) -> LiveUnit
         move_speed: 8 << 32,
         // The first unit has been reborn once; the second never was.
         rebirth_count: u32::from(id == 1),
+        siege_elapsed: None,
         // The main skill attacks; a secondary one is switched off, which
         // keeps its slot and nothing else.
         skills: (0..skill_count)

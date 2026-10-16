@@ -38,9 +38,9 @@ const SOURCE: &str = "SiegeModeEffectSystem";
 pub(in crate::fight) struct SiegeModeSystem {
     /// `siegeModeOwnerDatas` and `siegeModeOwnerDurations`: each unit's source
     /// and the time no enemy has stood in its range, Q32.32 seconds.
-    owners: BTreeMap<u64, (SiegeMode, i64)>,
+    pub(in crate::fight) owners: BTreeMap<u64, (SiegeMode, i64)>,
     /// `activeMeches`: the units dug in, in the order they were.
-    active: Vec<u64>,
+    pub(in crate::fight) active: Vec<u64>,
     /// The `GRTimerManager` timers of the units that left their trench: each
     /// one's motion idles on the step it names.
     idling: Vec<(u64, u64)>,

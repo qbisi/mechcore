@@ -130,6 +130,7 @@ LiveUnitState.personal_shield: PersonalShieldState
 LiveUnitState.position: QVec3
 LiveUnitState.production_lines: [ProductionLineState]
 LiveUnitState.rebirth_count: integer(uint32)
+LiveUnitState.siege_elapsed: integer(int64) | null
 LiveUnitState.skills: [SkillState]
 LiveUnitState.targetable: boolean
 LiveUnitState.team_id: integer(uint32)
