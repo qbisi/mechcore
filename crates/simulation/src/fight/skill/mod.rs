@@ -904,6 +904,9 @@ impl Skill {
             self.attack_count = ATTACK_COUNT_RESET;
             self.perform_count = 0;
             self.attacking_unfinished = false;
+            // `SkillAttackController.Exit` stops the current controller too:
+            // a replaced projectile performer must not restart after cooling.
+            self.performer.stop();
         }
         if matches!(self.state, SkillState::Attack(Blow::After { .. }))
             && state == SkillState::Attack(Blow::Waiting)

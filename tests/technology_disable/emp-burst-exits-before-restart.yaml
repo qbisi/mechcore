@@ -1,0 +1,56 @@
+# EMP replaces the Phantom Ray projectile performer while it is firing.
+# Leaving its attack stops that performer: it must not restart after cooling
+# at tick 204. The complete game recording ends at 765 ticks, blue/red core
+# damage 66/0. Control: ../phantom_ray/m2-rhino-4242.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 77061680
+round: 3
+blue:
+  core_damage: 66
+  officers: [advanced_shield_device, advanced_offensive_tactics, aerial_specialist, extended_range_phantom_ray]
+  techs:
+    phantom_ray: [burst_mode]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [2, 1]
+  units:
+  - {name: phantom_ray, index: 0, position: {x: -50, y: -175}, level: 7, exp: 3148/4270/6296, rotated: true, equipment: [deployment_module]}
+  - {name: fang, index: 1, position: {x: 65, y: -280}, level: 6, exp: 0/900/3479, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -105, y: -185}, retained: false}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: 50, y: -210}]}
+red:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, advanced_power_system, cost_control_specialist, improved_void_eye]
+  techs:
+    void_eye: [energy_shield, energy_absorption, aerial_mode, range_enhancement, charged_shot, suppression_shots, electromagnetic_armor]
+  blueprints: [defense_enhancement_ii]
+  tower_strengthen_levels: [4, 3]
+  units:
+  - {name: void_eye, index: 0, position: {x: 200, y: -100}, level: 9, exp: 0/4373/4373, rotated: true, equipment: [secondary_fire_control_system], source: joined}
+  - {name: hound, index: 1, position: {x: -210, y: -200}, level: 3, exp: 0/1848/2671, source: joined}
+  battle_skills:
+  - {name: electromagnetic_blast, positions: [{x: -155, y: -235}]}
+asserts:
+- sql: |
+    SELECT tick, enabled__state, enabled__attack_count, enabled__perform_count
+    FROM units__skills
+    WHERE unit_id = 19 AND tick IN (186, 187, 203, 204)
+    ORDER BY tick;
+  rows:
+  - [186, "attack", 0, 0]
+  - [187, "cooling", -1, 0]
+  - [203, "idle", -1, 0]
+  - [204, "idle", -1, 0]
+- sql: |
+    SELECT count(*) FROM events
+    WHERE type = 'projectile_released' AND source__kind = 'unit'
+      AND source__id = 19 AND tick BETWEEN 187 AND 204;
+  rows:
+  - [0]
+ticks: 765
+hash: 26:308cec2a501b2e51c0946be6aa90bf1628bbd53d09c2af3d40e2ba86f985bd36

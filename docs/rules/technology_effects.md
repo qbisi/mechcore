@@ -346,6 +346,9 @@ The next attacking update starts a fresh burst with the current count,
 spacing and random range, without counting another blow. Projectiles
 already in flight remain; unreleased shots and offsets of the old burst
 are discarded.
+If the skill leaves its attack before that restart, exiting the attack
+controller stops the performer. Cooling and idle updates do not release
+the abandoned burst.
 Each skill made from the row listens to that count property, including
 every gun of a standalone batch. All four Mountain guns replace their
 performers when Saturation Bombardment is disabled; none continues its
@@ -2032,6 +2035,9 @@ derive (a minimum range):
 - Disabling a Farseer's Burst Mode during its burst starts a fresh burst
   with its ordinary count and offsets:
   `tests/multi_attack/count-change-replaces-active-burst.yaml`.
+- A Phantom Ray leaves its attack after EMP replaces its burst performer;
+  it cools at tick 187 and releases no stale projectile when idle at tick 204:
+  `tests/technology_disable/emp-burst-exits-before-restart.yaml`.
 - All four Mountain guns rebuild during their bursts at an electromagnetic
   hit, each releasing one new shot without counting another blow:
   `tests/multi_attack/count-change-rebuilds-every-gun.yaml`. A shield takes
@@ -2329,6 +2335,9 @@ derive (a minimum range):
   `SkillAttackController.PrepareAttackPerformer`,
   `ProjectileMultiAttackPerformer.TryPerformEffect`,
   `ProjectileMultiAttackPerformer.OnStartFirstPerform`.
+- Leaving an attack stops its current performer:
+  `SkillAttackState.Exit`, `SkillAttackController.Exit`,
+  `SkillAttackController.AttackingController.Stop`.
 - A burst's projectiles are `PROJECTILE_INTERVAL` apart when its duration is
   zero or less, and the performer makes a position controller only for a
   random range above zero, which takes turns between the weapons only for a
