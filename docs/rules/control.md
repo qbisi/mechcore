@@ -131,6 +131,12 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
   idle on the tick it turns, the spin handing the main skill its place back
   (`PreemptiveSkillEnterIdleBehaviour`), and both search again.
 
+A non-permanent preemptive skill also hands the main skill back immediately
+when its lock's team change sends it into idle. Its owner need not change
+sides: a translated target returning to its original side on death can end
+the spin. This is the idle state's enter behaviour and runs even after the
+owner's skill update has already finished for the tick.
+
 A side whose every unit a beam has turned has none left, and loses as a
 wiped-out side does: its towers are torn down.
 
@@ -207,6 +213,10 @@ the shield does not count against the turn.
 ## Evidence
 
 ### Recorded
+
+- A translated Crawler returning sides on death idles the Rhino's Whirlwind
+  and unlocks its main skill on the same tick:
+  `tests/control/preemptive-target-returns-on-death.yaml`.
 
 - Unit statistics follow the native unit's current side even when a deployed
   unit returns on death or a summon turns and dies between snapshots:
@@ -332,6 +342,11 @@ the shield does not count against the turn.
   game with `scripts/corpus/match-replays.py`.
 
 ### Read
+
+- A target's team change enters idle through the same state behaviour as an
+  owner's: `FightSkill.OnChangeTeam`, `SkillIdleState.Enter`,
+  `PreemptiveSkillEnterIdleBehaviour.Execute`,
+  `PreemptiveSkillController.RemovePreemptiveSkill`, `FightSkill.ChangeToIdleState`.
 
 - A normal performer's effect receives the skill rather than a cached target;
   the damage effect reads its current attack target, or its lock when absent:
