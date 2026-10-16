@@ -219,6 +219,10 @@ Ignite, a Vulcan's hits, takes 3% of the struck unit's maximum life every half
 second for two seconds and disables its recovery; every hit starts it over. A
 buff that heals is refused.
 
+`BuffManager.Update` visits running buffs from last to first and removes an
+expired buff during that traversal. Buffs expiring together therefore leave
+in reverse list order.
+
 **A buff source that is not certain draws for each unit it reaches.** The
 source's chance is truncated to whole thousandths, so the 0.35 a table writes
 is 349. An explicitly ignored buff is rejected first. Otherwise, a chance
@@ -1080,6 +1084,11 @@ where a Steel Ball dies:
 four Larvas at its own level:
 `tests/dead_summon/sandworm-mechanical-division.yaml`.
 
+`DeadEffectSystem.Update` finishes every death controller before calling any
+actor's `OnDead`. If several units die together, their technology summons
+are all created before the first individual death callback; a buff's summons
+remain part of that unit's `OnDead`.
+
 ## Flying and landing technologies
 
 A row of `flyTechDatas` is a `FlyTech`, an `IFlyTechDataSource`: Aerial
@@ -1741,6 +1750,12 @@ derive (a minimum range):
 ## Evidence
 
 ### Recorded
+
+- Simultaneous Mechanical Division deaths finish their summons before the
+  first death callback: `tests/dead_summon/generated-simultaneous-division.yaml`
+  and `tests/dead_summon/generated-splash-division.yaml`.
+- Simultaneously expired buffs leave in reverse running-list order:
+  `tests/technology_buff/generated-simultaneous-expiration.yaml`.
 
 - A lethal EMP hit suppresses already-queued Scorching Charge explosions and
   their fires: `tests/technology_disable/lethal-emp-skips-queued-explosion.yaml`.

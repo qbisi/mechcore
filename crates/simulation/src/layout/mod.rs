@@ -1322,6 +1322,9 @@ fn one_interception(
     reason = "each flag is an independent fact the unit's loadout gives it"
 )]
 pub(crate) struct UnitEffects {
+    /// Registration order of hit providers: `FightEffectMananger.Sort` compares
+    /// the `GetID` of each provider's first source before `RegisterMechEvent`.
+    pub(crate) hit_provider_order: Vec<EffectProvider>,
     /// What the side's loadout wrote onto this formation, in the channel each
     /// correction belongs to. The entries are verified to resolve while the
     /// layout is compiled, which is the only place that can name the side and
@@ -1674,6 +1677,12 @@ fn worn(
             .sources(&side.techs.units, type_name)
             .map_err(on_side),
     )?;
+    let mut hit_provider_ids = loadouts
+        .technologies
+        .providers(&side.techs.units, type_name)
+        .into_iter()
+        .filter_map(|(provider, ids)| ids.into_iter().min().map(|id| (provider, id)))
+        .collect::<BTreeMap<_, _>>();
     let mut lifesteal = sources.lifesteal;
     let mut auto_recovery = sources.auto_recovery;
     let mut energy_shield = sources.energy_shield;
@@ -1698,6 +1707,16 @@ fn worn(
     let mut important = false;
     let mut ignores_control_beam = false;
     for &id in equipment {
+        if let Some(provider) =
+            refused.hold(loadouts.equipment.hit_provider(id, rules).map_err(on_side))?
+        {
+            // EffectProvider.Sort orders the full source list by GetID, even
+            // when SingleEffectProvider.Current selects a higher-priority item.
+            hit_provider_ids
+                .entry(provider)
+                .and_modify(|first| *first = (*first).min(id))
+                .or_insert(id);
+        }
         important |= refused.hold(loadouts.equipment.important(id, rules).map_err(on_side))?;
         ignores_control_beam |= refused.hold(
             loadouts
@@ -1759,7 +1778,11 @@ fn worn(
         invert_air_attack(fly, rules, &mut corrections, &mut extra_weapons);
     }
     let in_force = |error: String| refusal(Error::new(error));
+    let mut hit_provider_order = EffectProvider::ALL.to_vec();
+    hit_provider_order
+        .sort_by_key(|provider| hit_provider_ids.get(provider).copied().unwrap_or(i32::MAX));
     Some(UnitEffects {
+        hit_provider_order,
         corrections,
         domain_corrections,
         lifesteal: refused.hold(current_source(&lifesteal).map_err(in_force))?,

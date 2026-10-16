@@ -33,7 +33,7 @@ use crate::{
 };
 
 use super::{
-    buffs,
+    EffectProvider, buffs,
     effects::{self, Fields, PROJECTILE, VALUE_ELSEWHERE},
     sources::{
         AutoRecovery, BuffSource, CarriedShield, EnergyShield, LifeSteal, ProductionLine,
@@ -362,6 +362,24 @@ impl EquipmentEffects {
         Ok(self
             .worn(id, unit)?
             .and_then(|equipment| equipment.lifesteal))
+    }
+
+    /// The provider an equipment hands a hit performer to. Its data-source
+    /// identity participates in `FightEffectMananger.Sort` just as a technology's.
+    pub(crate) fn hit_provider(
+        &self,
+        id: i32,
+        unit: &UnitConfig,
+    ) -> Result<Option<EffectProvider>> {
+        Ok(self.worn(id, unit)?.and_then(|equipment| {
+            if equipment.lifesteal.is_some() {
+                Some(EffectProvider::LifeSteal)
+            } else if equipment.buff_source.is_some() {
+                Some(EffectProvider::Buff)
+            } else {
+                None
+            }
+        }))
     }
 
     /// What one equipment answers `IAutoRecovery` with on the unit wearing

@@ -1,0 +1,47 @@
+# Generated complete layout: Crawlers with Replicate and Absorption Module.
+# The hit registers Replicate before healing the attacker.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 274363576
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_power_system, fire_badger_specialist]
+  techs:
+    crawler: [subterranean_blitz, acidic_explosion, loose_formation, mechanical_rage, impact_drill, replicate]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: fire_badger, index: 0, position: {x: -105, y: -240}, source: delivered}
+  - {name: crawler, index: 1, position: {x: -280, y: -185}, level: 6, exp: 0/1025/2609, rotated: true, equipment: [absorption_module], source: joined}
+  - {name: wasp, index: 2, position: {x: -25, y: -300}, level: 8, exp: 0/714/6055, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -290, y: -295}}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: 150, y: -135}]}
+red:
+  core_damage: 510
+  officers: [advanced_missile_device, advanced_offensive_tactics, cost_control_specialist]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [2, 3]
+  units:
+  - {name: void_eye, index: 0, position: {x: 210, y: -280}, level: 3, exp: 2315/2315/2315, rotated: true, equipment: [anti_interference_module]}
+  - {name: mustang, index: 1, position: {x: -45, y: -30}, level: 4, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -5, y: -90}, retained: false}
+asserts:
+- sql: |
+    SELECT type, buff_id, amount
+    FROM events
+    WHERE tick = 392
+      AND type IN ('buff_applied', 'healing')
+    ORDER BY ordinal;
+  rows:
+  - ["buff_applied", 500001, null]
+  - ["buff_applied", 2010, null]
+  - ["healing", null, 108]
+ticks: 458
+hash: 26:fe9daec12d24d2900e2742333e855cfd893f4fc905a929f7f0ce6b453380650b

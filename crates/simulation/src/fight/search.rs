@@ -439,14 +439,19 @@ impl<E: Copy + Ord> FightQuadtree<E> {
 /// target trees take them.
 pub(in crate::fight) fn initialize_mech_quadtrees(
     actors: &BTreeMap<u64, Actor>,
+    prepared: &[FightActorRef],
 ) -> BTreeMap<u32, TargetActorQuadtree> {
     let mut trees = BTreeMap::<u32, TargetActorQuadtree>::new();
-    for (&actor_id, actor) in actors {
+    for &candidate in prepared {
+        let FightActorRef::Unit(actor_id) = candidate else {
+            continue;
+        };
+        let actor = &actors[&actor_id];
         trees
             .entry(actor.placement.team)
             .or_insert_with(TargetActorQuadtree::new)
             .insert(
-                FightActorRef::Unit(actor_id),
+                candidate,
                 actor.x_q32,
                 actor.z_q32,
                 actor.rules.collision_radius(),
@@ -458,70 +463,55 @@ pub(in crate::fight) fn initialize_mech_quadtrees(
 pub(in crate::fight) fn initialize_target_quadtrees(
     actors: &BTreeMap<u64, Actor>,
     buildings: &[BuildingState],
-    crystals: &BTreeSet<u64>,
+    prepared: &[FightActorRef],
 ) -> BTreeMap<u32, TargetActorQuadtree> {
-    let teams = actors
-        .values()
-        .map(|actor| actor.placement.team)
-        .chain(buildings.iter().map(|building| building.team_id))
-        .collect::<std::collections::BTreeSet<_>>();
-    let mut trees = BTreeMap::new();
-    for team in teams {
-        let mut tree = TargetActorQuadtree::new();
-        // `FightBuildingLoader.Load` registers buildings in their map order;
-        // `FightTeam.CreateQuadtree` retains that order. Recording IDs sort
-        // by type instead and reverse the red side's two fixed towers.
-        let team_buildings = buildings
-            .iter()
-            .filter(|building| building.team_id == team)
-            .collect::<Vec<_>>();
-        let (mut team_constructions, towers): (Vec<_>, Vec<_>) = team_buildings
-            .into_iter()
-            .partition(|building| building.building_type_id == CONSTRUCTION_BUILDING_TYPE);
-        // Crystal contraptions register before constructions, even though
-        // MCFR assigns their building identities after the construction IDs.
-        team_constructions.sort_by_key(|building| {
-            (
-                !crystals.contains(&building.building_id),
-                building.building_id,
-            )
-        });
-        let insert_building = |tree: &mut TargetActorQuadtree, building: &BuildingState| {
-            tree.insert(
+    let mut trees = BTreeMap::<u32, TargetActorQuadtree>::new();
+    // FightPrepareState.Enter calls GroupManager.OnFightStart, including
+    // FightTeam.PrepareActors, before CreateQuadtree. Fixed towers retain
+    // their loader order; the other actors have the prepared comparer order,
+    // which differs from recording identities when z is nearly equal.
+    for building in buildings
+        .iter()
+        .filter(|building| building.building_type_id != CONSTRUCTION_BUILDING_TYPE)
+    {
+        trees
+            .entry(building.team_id)
+            .or_insert_with(TargetActorQuadtree::new)
+            .insert(
                 FightActorRef::Building(building.building_id),
                 building.position.x,
                 building.position.z,
                 building_radius(building),
             );
+    }
+    for &candidate in prepared {
+        let (team, x, z, radius) = match candidate {
+            FightActorRef::Unit(id) => {
+                let actor = &actors[&id];
+                (
+                    actor.placement.team,
+                    actor.x_q32,
+                    actor.z_q32,
+                    actor.rules.collision_radius(),
+                )
+            }
+            FightActorRef::Building(id) => {
+                let building = buildings
+                    .iter()
+                    .find(|building| building.building_id == id)
+                    .expect("prepared building exists");
+                (
+                    building.team_id,
+                    building.position.x,
+                    building.position.z,
+                    building_radius(building),
+                )
+            }
         };
-        // `FightTeam.CreateQuadtree` takes `activeActors` in their order: the
-        // fixed towers, then units, contraptions and constructions. An
-        // interceptor is a Special building registered before the walls;
-        // sorting all Special buildings by recording ID instead changes a
-        // split's element order and a chain's random candidate selection.
-        // A construction no unit searches for is still in the tree: the
-        // selector passes it over, and a splash takes it where it stands in
-        // the tree's order —
-        // an Arclight's shot at a block of a wall reads its damage on the
-        // block between the Crawlers around it.
-        for building in towers {
-            insert_building(&mut tree, building);
-        }
-        for (&actor_id, actor) in actors
-            .iter()
-            .filter(|(_, actor)| actor.placement.team == team)
-        {
-            tree.insert(
-                FightActorRef::Unit(actor_id),
-                actor.x_q32,
-                actor.z_q32,
-                actor.rules.collision_radius(),
-            );
-        }
-        for building in team_constructions {
-            insert_building(&mut tree, building);
-        }
-        trees.insert(team, tree);
+        trees
+            .entry(team)
+            .or_insert_with(TargetActorQuadtree::new)
+            .insert(candidate, x, z, radius);
     }
     trees
 }

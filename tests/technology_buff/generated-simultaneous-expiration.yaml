@@ -1,0 +1,48 @@
+# Generated complete layout: two buffs expire on the same unit in one update.
+# Expiration follows the backwards BuffManager traversal.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1775171836
+round: 2
+blue:
+  core_damage: 311
+  officers: [quick_teleport, advanced_power_system, marksman_specialist]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: marksman, index: 0, position: {x: 100, y: -270}, level: 3, exp: 0/93/2315, source: delivered}
+  - {name: vulcan, index: 1, position: {x: 340, y: 110}, level: 6, rotated: true, equipment: [tank_production_line], travelling: true, source: joined}
+  - {name: wasp, index: 2, position: {x: -5, y: -250}, level: 4, exp: 0/212/4041, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 45, y: -215}}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -260, y: 300}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_power_system, marksman_specialist, mass_produced_wasp]
+  techs:
+    wasp: [energy_shield, high_explosive_ammo, ground_specialization, jump_drive, electromagnetic_shot, aerial_specialization, range_enhancement, armor_piercing_bullets, elite_marksman, ignite]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: wasp, index: 0, position: {x: -200, y: -55}, level: 2, exp: 1014/2028/2028, rotated: true, equipment: [secondary_laser_sight]}
+  - {name: marksman, index: 1, position: {x: -50, y: -210}, level: 3, exp: 0/366/2315, source: delivered}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 60, y: -70}}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: -200, y: -40}]}
+asserts:
+- sql: |
+    SELECT type, buff_id
+    FROM events
+    WHERE tick = 240
+      AND type = 'buff_removed'
+    ORDER BY ordinal;
+  rows:
+  - ["buff_removed", 3000]
+  - ["buff_removed", 1006]
+ticks: 478
+hash: 26:8c670827c345ac1f975b0af82d9d330d5b25c503f80f80392e3ad15d427b4b1c

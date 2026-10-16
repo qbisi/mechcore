@@ -1,5 +1,8 @@
 use super::*;
-use crate::{data::Index, modifier::SecondaryDamage};
+use crate::{
+    data::Index,
+    modifier::{EffectProvider, SecondaryDamage},
+};
 
 /// One hit, as the fight's damage pipeline reads it.
 ///
@@ -1181,11 +1184,10 @@ impl Simulation {
     /// all to the skill's hit effects, `FightSkill.DispatchHitDamageEvent`, in
     /// the order `SkillHitEffectController` holds them: the order its unit's
     /// providers registered them (`FightEffectMananger.RegisterMechEvent`
-    /// walks its providers, [`crate::modifier::EffectProvider::ALL`]), so
-    /// `TeamWreckageRecoveryManager`'s, `LifeStealEffectProvider`'s, a buff
-    /// source's `BuffCycleController`, `FireIntensifyEffectProvider`'s and
-    /// `KillExplosionEffectProvider`'s. A Void Eye with Suppression Shots and
-    /// Energy Absorption takes its life back before its buff is written. A
+    /// walks its providers after `FightEffectMananger.Sort` compares each
+    /// provider's first data source's `GetID`). An absorption equipment's
+    /// provider therefore registers after a technology's buff controller,
+    /// while an earlier lifesteal technology registers before it. A
     /// projectile's dispatch alone then raises
     /// `ISkillOwner.PerformMainSkillHitted` on its owner when its skill is the
     /// main one (`IProjectileDataSource.IsMainSkill`); `SkillDamageProvider`'s,
@@ -1211,29 +1213,52 @@ impl Simulation {
     ) -> Result<Struck> {
         match (hit.source, hit.skill_slot) {
             (Some(owner), Some(slot)) if owner.kind == ObjectKind::Unit => {
-                self.record_wreckage_hit(owner.id, slot, targets);
-                self.steal_life(owner.id, slot, damage, events)?;
                 let center = (hit.center_q32.0, hit.center_y_q32, hit.center_q32.1);
                 let skill = self.skill_at_slot(FightActorRef::Unit(owner.id), usize::from(slot));
                 let main = skill.slot == SkillSlot::Main;
                 let mut ends = Struck::default();
-                // A second damage's own buff source writes on its hit too
-                // (`BuffCycleController.PerformHitEffect`).
-                if secondary {
-                    self.add_hit_buffs(owner.id, slot, (targets, center), true, false, events)?;
-                }
-                if !secondary {
-                    self.add_hit_buffs(owner.id, slot, (targets, center), false, false, events)?;
-                    let point = self.hit_point(skill, targets, center);
-                    self.start_chain(owner.id, slot, targets, (point.0, point.2));
-                    ends.absorb_ends(self.take_life_share(owner.id, slot, targets, events)?);
-                    if main {
-                        self.leave_main_fire(skill, targets, center)?;
+                let registered = &self.actors[&owner.id].placement.effects.hit_provider_order;
+                let providers = if registered.is_empty() {
+                    EffectProvider::ALL.to_vec()
+                } else {
+                    registered.clone()
+                };
+                for provider in providers {
+                    match provider {
+                        EffectProvider::WreckageRecovery => {
+                            self.record_wreckage_hit(owner.id, slot, targets);
+                        }
+                        EffectProvider::LifeSteal => {
+                            self.steal_life(owner.id, slot, damage, events)?;
+                        }
+                        EffectProvider::Buff => self.add_hit_buffs(
+                            owner.id,
+                            slot,
+                            (targets, center),
+                            secondary,
+                            false,
+                            events,
+                        )?,
+                        EffectProvider::IterationHit if !secondary => {
+                            let point = self.hit_point(skill, targets, center);
+                            self.start_chain(owner.id, slot, targets, (point.0, point.2));
+                        }
+                        EffectProvider::AdditionalDamage if !secondary => {
+                            ends.absorb_ends(
+                                self.take_life_share(owner.id, slot, targets, events)?,
+                            );
+                        }
+                        EffectProvider::FireIntensify if main && !secondary => {
+                            self.leave_main_fire(skill, targets, center)?;
+                        }
+                        EffectProvider::KillExplosion => {
+                            ends.absorb_ends(self.explode_kills(owner.id, slot, targets, events)?);
+                        }
+                        EffectProvider::SpawnAdvancedShield if !secondary => {
+                            self.count_shield_hit(owner.id, slot);
+                        }
+                        _ => {}
                     }
-                }
-                ends.absorb_ends(self.explode_kills(owner.id, slot, targets, events)?);
-                if !secondary {
-                    self.count_shield_hit(owner.id, slot);
                 }
                 // A unit placed in travel retains its preparation-time
                 // secondary buff controller. ExitTravel's ActiveEffect

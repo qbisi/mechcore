@@ -682,8 +682,8 @@ impl Simulation {
         let constructions = initialize_constructions(&buildings, &layout.constructions)?;
         let grounds = formation_grounds(layout, configs)?;
         let map_crystals = map_crystals(maps.buildings(layout.map_id)?, &grounds);
-        let target_quadtrees = initialize_target_quadtrees(&actors, &buildings, &crystals);
-        let mech_quadtrees = initialize_mech_quadtrees(&actors);
+        let target_quadtrees = initialize_target_quadtrees(&actors, &buildings, &active_actors);
+        let mech_quadtrees = initialize_mech_quadtrees(&actors, &active_actors);
         let buildings_query_alive = standing_buildings(&buildings);
         let carried = carried_shields(&actors);
         let productions = production_creators(&actors);
@@ -1385,6 +1385,14 @@ impl Simulation {
             }
         }
         self.number_as_recorded(&made);
+        // Every death controller runs before any actor's OnDead. Publish
+        // their summons together, once the frame assigned recording IDs;
+        // a buff's summons still belong to its individual OnDead call.
+        for unit_id in &dead {
+            if let Some((before, _)) = self.support.summoned_events.get_mut(unit_id) {
+                events.append(before);
+            }
+        }
         for unit_id in std::mem::take(&mut self.turned_fallen) {
             self.turned_unit_died(unit_id, &mut events)?;
         }
