@@ -87,6 +87,13 @@ shorter range without that domain preference while the unit travels.
 Arrival's `DoActive` writes those entries back and changes the selector to
 `DistanceIntensify`.
 
+**Fight exit ends travel.**
+If the fight exits before arrival, `SuperDeploymentController.OnExitFight`
+calls `ExitTravel` for every remaining unit and clears the travel list. This
+activates its effects and takes it out of travel without the movement
+activation that normal `FinishTranvel` performs. Providers read the owner's
+current side, including a unit turned while travelling.
+
 **Whether a travelling unit's extra weapons are on does not change the fight.**
 A unit placed on a flank has its effects switched off
 (`BattleSystem.OnEnterSuperDeployment`, `FightEffectSystem.DeactiveEffect`),
@@ -135,6 +142,10 @@ from the arrival.
 ## Evidence
 
 ### Recorded
+
+- A Hacker turned while travelling exits travel on the fight's last tick,
+  activating its extra skills and Barrier on its current side:
+  `tests/shield/captured-traveller-at-fight-end.yaml`.
 
 - A travelling unit wearing Photon Coating activates its buff controller
   on arrival, and an existing EMP does not disable that equipment source:
@@ -187,6 +198,12 @@ from the arrival.
   other would stand blocked: `tests/corpus/134270595-r2.yaml`.
 
 ### Read
+
+- Fight exit takes every remaining unit out of travel without activating
+  movement: `SuperDeploymentSystem.OnExitFight`,
+  `SuperDeploymentController.OnExitFight`,
+  `SuperDeploymentController.ExitTravel`. Normal arrival activates movement
+  first: `SuperDeploymentController.FinishTranvel`.
 
 - A travelling unit is counted alive and not updated:
   `FightCoreSystem.TeamUpdate`, `FightMech.IsSuperDeployment`.

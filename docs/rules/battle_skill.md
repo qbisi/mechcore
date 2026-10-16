@@ -232,6 +232,11 @@ creates `createCountPerTime` summons on its first update and again every
 `createInterval`, until it has made `maxCount`; one that dies is never
 replaced. It lives until its updates reach `startTime` plus its creations
 times their interval, and while it lives the fight cannot end.
+The comparison is between native `FPoint`s: `lifeTime` updates times
+`FightUtility.DeltaTime`, against `GetStartTime()` plus `GetLifeTime()`,
+using its 43-raw tolerance. Thus 26 deltas, 20 raw short of the extracted
+1.3 seconds, finish that creator; rounding the duration up to whole ticks
+would hold the fight one tick longer.
 
 **Where a summon stands.** A skill that summons one puts it exactly on the
 release point. One that summons two or more moves each from the release point
@@ -491,6 +496,10 @@ continuing its old path.
 ## Evidence
 
 ### Recorded
+
+- A Vulcan's Descent creator holds a fight open until its 26th update and
+  the fight exits at tick 53, activating a still-travelling unit's effects:
+  `tests/shield/captured-traveller-at-fight-end.yaml`.
 
 - An Electromagnetic Impact lands on tick `s + 3`, writes its buff for its
   whole duration, and holds the unit's technologies off while it runs, on a

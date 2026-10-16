@@ -191,38 +191,75 @@ impl Simulation {
         Ok(())
     }
 
-    /// `FinishTranvel`: each unit's movement activated where it stands, and
-    /// the unit taken out of travel (`ExitTravel`), its effects enabled
-    /// (`FightEffectSystem.ActiveEffect`), in the list's order.
+    /// `FinishTranvel`: activates movement, exits travel, and notifies the
+    /// travel-finished listener. Fight exit instead uses `ExitTravel` alone.
     fn finish_travel(&mut self, team: u32) -> Result<()> {
-        let travel = self
-            .travels
-            .get_mut(&team)
-            .expect("a side's travel is kept");
-        let units = std::mem::take(&mut travel.units);
-        let mut withheld = std::mem::take(&mut travel.withheld);
+        let units = std::mem::take(
+            &mut self
+                .travels
+                .get_mut(&team)
+                .expect("a side's travel is kept")
+                .units,
+        );
         for unit_id in units {
             let actor = self
                 .actors
                 .get_mut(&unit_id)
                 .expect("a travelling unit is an actor");
-            for (channel, entry) in withheld.remove(&unit_id).unwrap_or_default() {
-                actor.stats.overlays.channel(channel).write(entry);
-            }
-            actor.travelling = false;
             actor.motion.rvo_new_agent = true;
             actor.rvo_max_speed_q32 = actor.stats.move_speed_q32();
             actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
             actor.motion.rvo_tree_x_q32 = actor.x_q32;
             actor.motion.rvo_tree_z_q32 = actor.z_q32;
             self.rvo.added_units.push(unit_id);
-            self.active_effect(unit_id)?;
-            // ActiveEffect refreshes each source against the owner's current
-            // unit-state effects after ExitTravel. An EMP acquired in transit
-            // can now disable the non-permanent technology sources.
-            if self.actors[&unit_id].technology_disabled() {
-                self.switch_technologies(unit_id, false)?;
+            self.exit_travel(team, unit_id)?;
+        }
+        Ok(())
+    }
+
+    /// `SuperDeploymentController.OnExitFight`: exits every remaining unit's
+    /// travel and clears the list, without activating its movement.
+    pub(in crate::fight) fn end_super_deployment(&mut self) -> Result<()> {
+        let teams = self.travels.keys().copied().collect::<Vec<_>>();
+        for team in teams {
+            let units = std::mem::take(
+                &mut self
+                    .travels
+                    .get_mut(&team)
+                    .expect("a side's travel is kept")
+                    .units,
+            );
+            for unit_id in units {
+                self.exit_travel(team, unit_id)?;
             }
+        }
+        Ok(())
+    }
+
+    /// `SuperDeploymentController.ExitTravel`: enables the unit's effects
+    /// and takes it out of travel. Providers read its current side, which may
+    /// differ from the side whose travel list holds it.
+    fn exit_travel(&mut self, team: u32, unit_id: u64) -> Result<()> {
+        let withheld = self
+            .travels
+            .get_mut(&team)
+            .expect("a side's travel is kept")
+            .withheld
+            .remove(&unit_id)
+            .unwrap_or_default();
+        let actor = self
+            .actors
+            .get_mut(&unit_id)
+            .expect("a travelling unit is an actor");
+        for (channel, entry) in withheld {
+            actor.stats.overlays.channel(channel).write(entry);
+        }
+        actor.travelling = false;
+        self.active_effect(unit_id)?;
+        // Provider activation refreshes the owner's current state; an EMP
+        // acquired in transit can still disable non-permanent technologies.
+        if self.actors[&unit_id].technology_disabled() {
+            self.switch_technologies(unit_id, false)?;
         }
         Ok(())
     }

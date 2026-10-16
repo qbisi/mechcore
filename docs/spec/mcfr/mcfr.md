@@ -555,11 +555,20 @@ active collection, including one reactivated across a round. The two orders can
 therefore differ, and `active_order` cannot in general be derived from
 `shield_id` and `active`.
 
+For `owner_advanced`, changing the owner's team transfers the active shield
+to the new FightGroup's active list, appended after its other shields. The
+full collection and the readonly `GetTeamController()` remain on the original
+side, so `team_id` does not change. The active list's group is the live owner's
+current team; for other sources it is `team_id`. These existing fields identify
+the group without storing it again. An inactive carried shield has no active
+order, and may retain an owner that has left the state set.
+
 A legal state satisfies all of:
 
 - `active_order` is null exactly when `active` is false, and present otherwise;
 - the non-null `active_order` values inside one FightGroup cover `0..k-1`
   contiguously;
+- an active `owner_advanced` shield has a live actor as its `owner`;
 - `radius` is positive;
 - the snapshot is strictly ascending by `shield_id`;
 - `owner` may reference an object that has left the state set but still holds a

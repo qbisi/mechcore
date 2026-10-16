@@ -1406,14 +1406,14 @@ impl Simulation {
         let mut listed = Vec::new();
         for shield in &self.shield.standing {
             if !shield.active
-                || !hit.effect.strikes(hit.team, shield.team)
+                || !hit.effect.strikes(hit.team, shield.group)
                 || shield.contains(x_q32, hit.center_y_q32, z_q32)
             {
                 continue;
             }
             let covered = |target: &FightActorRef| {
                 self.fight_actor(*target)
-                    .is_some_and(|actor| actor.team == shield.team)
+                    .is_some_and(|actor| actor.team == shield.group)
                     && self.shield_holds(shield.id, *target)
             };
             // A hit that crosses shields (`CanCrossAdvancedEnergyShield`)

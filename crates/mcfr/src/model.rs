@@ -1,4 +1,7 @@
-use std::{cmp::Ordering, collections::BTreeSet};
+use std::{
+    cmp::Ordering,
+    collections::{BTreeMap, BTreeSet},
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -399,7 +402,7 @@ impl WorldSnapshot {
                 previous = Some(*shield);
             }
         }
-        let mut active_orders = BTreeSet::new();
+        let mut active_orders = BTreeMap::<u32, BTreeSet<u32>>::new();
         for shield in &self.shields {
             if shield.controller.is_some()
                 != (shield.source_kind == ShieldSourceKind::OwnerAdvanced)
@@ -415,13 +418,37 @@ impl WorldSnapshot {
                     shield.shield_id
                 )));
             }
-            if let Some(order) = shield.active_order
-                && !active_orders.insert((shield.team_id, order))
-            {
-                return Err(Error::invalid(format!(
-                    "team {} has duplicate shield active_order {}",
-                    shield.team_id, order
-                )));
+            if let Some(order) = shield.active_order {
+                // A carried shield remains registered with its original team,
+                // but its active list follows its owner's current group.
+                let active_team = if shield.source_kind == ShieldSourceKind::OwnerAdvanced {
+                    let team = shield.owner.and_then(|owner| match owner.kind {
+                        ObjectKind::Unit => self
+                            .live_units
+                            .iter()
+                            .find(|unit| unit.unit_id == owner.id)
+                            .map(|unit| unit.team_id),
+                        ObjectKind::Building => self
+                            .buildings
+                            .iter()
+                            .find(|building| building.building_id == owner.id)
+                            .map(|building| building.team_id),
+                        _ => None,
+                    });
+                    team.ok_or_else(|| {
+                        Error::invalid(format!(
+                            "active carried shield {} has no live owner",
+                            shield.shield_id
+                        ))
+                    })?
+                } else {
+                    shield.team_id
+                };
+                if !active_orders.entry(active_team).or_default().insert(order) {
+                    return Err(Error::invalid(format!(
+                        "group {active_team} has duplicate shield active_order {order}"
+                    )));
+                }
             }
             if shield.radius <= 0 {
                 return Err(Error::invalid(format!(
@@ -430,23 +457,11 @@ impl WorldSnapshot {
                 )));
             }
         }
-        for team_id in self
-            .shields
-            .iter()
-            .map(|shield| shield.team_id)
-            .collect::<BTreeSet<_>>()
-        {
-            let mut orders = self
-                .shields
-                .iter()
-                .filter(|shield| shield.team_id == team_id)
-                .filter_map(|shield| shield.active_order)
-                .collect::<Vec<_>>();
-            orders.sort_unstable();
-            for (expected, actual) in (0_u32..).zip(orders.iter().copied()) {
+        for (team_id, orders) in active_orders {
+            for (expected, actual) in (0_u32..).zip(orders) {
                 if expected != actual {
                     return Err(Error::invalid(format!(
-                        "team {team_id} shield active_order must be contiguous from zero"
+                        "group {team_id} shield active_order must be contiguous from zero"
                     )));
                 }
             }

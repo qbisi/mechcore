@@ -451,8 +451,9 @@ pub(crate) struct Summon {
     /// Whether a summon deals its life around it as it lands:
     /// `appearType` 2, an air drop.
     pub(crate) drop_damage: bool,
-    /// How many updates the creator lives, the last of them included.
-    pub(crate) updates: u64,
+    /// `SupportUnitData.GetStartTime` + `GetLifeTime`, Q32.32; none for a
+    /// continuous `SpecialSupportUnitData` creator.
+    pub(crate) finish_time_q32: Option<i64>,
     /// What its side's loadout hands it: `FightEffectSystem.AddEffect`
     /// looks up what the side registered for its mech, as for a unit of its
     /// type deployed without equipment. The layout fills it in, where the
@@ -1293,12 +1294,7 @@ fn summon(named: &str, row: &SupportSkillRow, units: &UnitConfigs) -> Result<Sum
             0
         },
         drop_damage: row.appear_type == 2,
-        // `SupportUnitCreator.IsFinished`: its updates times a tick have
-        // reached that life.
-        updates: u64::try_from(
-            (i128::from(life) + i128::from(LOGIC_DELTA_RAW) - 1) / i128::from(LOGIC_DELTA_RAW),
-        )
-        .map_err(|_| Error::new(format!("{named} creates for no time")))?,
+        finish_time_q32: Some(life),
         effects: crate::layout::UnitEffects::default(),
         productions: Vec::new(),
     })

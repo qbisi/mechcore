@@ -184,7 +184,7 @@ impl Simulation {
         self.shield
             .standing
             .iter()
-            .filter(|shield| shield.team == team)
+            .filter(|shield| shield.group == team)
             .find(|shield| self.shield_holds(shield.id, lock))
             .map(|shield| (shield.x_q32, shield.z_q32))
     }
@@ -405,7 +405,9 @@ impl Simulation {
                 self.shield
                     .standing
                     .iter()
-                    .find(|shield| shield.team != team && shield.contains(point.x, height, point.y))
+                    .find(|shield| {
+                        shield.group != team && shield.contains(point.x, height, point.y)
+                    })
                     .map(|shield| shield.id)
             })
         }

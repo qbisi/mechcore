@@ -239,7 +239,7 @@ impl Creator {
         production: &crate::layout::Production,
     ) -> Self {
         let mut creator = Self::production(owner, production);
-        creator.summon.updates = 1;
+        creator.summon.finish_time_q32 = Some(-Q32_ONE);
         creator
     }
 
@@ -293,7 +293,7 @@ impl Creator {
                 0
             },
             drop_damage: false,
-            updates: u64::MAX,
+            finish_time_q32: None,
             effects: production.effects.clone(),
             productions: production.productions.clone(),
         };
@@ -422,7 +422,17 @@ impl Simulation {
                 let unit_id = self.create_summon(&creator, tick, events)?;
                 self.support.list_mut(list)[index].made.push(unit_id);
             }
-            if creator.updates >= creator.summon.updates {
+            // IsFinished compares native FPoints, including their tolerance.
+            // Rounding the lifetime up to whole ticks leaves e.g. 1.3 seconds
+            // one update too long (26 deltas are only 20 raw short).
+            if creator.summon.finish_time_q32.is_some_and(|finish| {
+                rvo::fpoint_greater_or_equal(
+                    i64::try_from(creator.updates)
+                        .unwrap_or(i64::MAX)
+                        .saturating_mul(NATIVE_LOGIC_DELTA_Q32),
+                    finish,
+                )
+            }) {
                 self.support.list_mut(list).remove(index);
             }
         }

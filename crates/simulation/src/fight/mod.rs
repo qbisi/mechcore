@@ -1847,6 +1847,9 @@ impl Simulation {
     /// Forced timeout settles after its last recorded tick; that snapshot
     /// retains unpruned experience, and settlement records the final value.
     fn close_tick(&mut self) -> Result<()> {
+        if self.ready_to_finish() {
+            self.end_super_deployment()?;
+        }
         self.name_turned_formations();
         self.settle_intervals_if_finishing();
         if self.ready_to_finish() {
