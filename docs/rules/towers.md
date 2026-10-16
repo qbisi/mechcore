@@ -47,6 +47,12 @@ turned onto it. A tower is a
 `buffDatas` rows carry `canAffectTower`, so the standing tower may take the
 loss as well.
 
+`DeadEffectSystem` calls unit and building death callbacks in their shared
+death order. A buff that summons from a dying unit joins its summons during
+that unit's callback. A tower that precedes it therefore writes its loss
+before those summons join, and they do not inherit that loss. Technology
+death summons run in the earlier controller phase, before these callbacks.
+
 The buff a loss writes is one buff that differs by level only in duration.
 Its rows correct three rates: `speedChangeRate` on move speed,
 `damageChangeRate` on damage dealt, and `amplifyDamageRate` on damage taken.
@@ -171,6 +177,10 @@ no lock goes straight to its point.
 
 ### Recorded
 
+- A tower falling before a unit killed under Replicate on the same tick
+  leaves the new Crawlers without its debuff:
+  `tests/tower/tower-before-replicate.yaml`.
+
 - An air-dropped Vulcan equidistant from both red towers takes Research Center
   first: `tests/search/map-building-order.yaml`.
 
@@ -234,6 +244,11 @@ no lock goes straight to its point.
   fought by the game with `scripts/corpus/match-replays.py`.
 
 ### Read
+
+- Shared death order, controller phase and buff summons during the unit's
+  callback: `DeadEffectSystem.Update`, `FightTower.OnDead`,
+  `FightCrystal.OnDead`, `FightMech.OnDead`, `BuffManager.OnMechDead`,
+  `DeadSummonController.PerformDeadEffect`.
 
 - Construction death exits the fight and clears its buffs before publishing
   its destruction: `FightConstruction.OnDead`, `FightConstruction.ExitFight`,

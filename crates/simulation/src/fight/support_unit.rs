@@ -54,10 +54,6 @@ pub(in crate::fight) struct SupportUnitSystem {
     production_profiles: crate::layout::ProductionProfiles,
     /// Config-owned UnitPositionDatas.index, shared by owners of that source.
     position_indices: BTreeMap<i32, usize>,
-    /// The units that died this tick, in the order they died:
-    /// `DeadEffectSystem.deadActors`, whose `OnDead` waits for that module's
-    /// update.
-    pub(in crate::fight) dying: Vec<u64>,
     /// The `unit_created` of what each unit that died this tick summoned: a
     /// technology's, to precede its `unit_died`, and its buffs', to follow
     /// it.
@@ -100,7 +96,6 @@ impl SupportUnitSystem {
             taken_summon_refusals: layout.taken_summon_refusals.clone(),
             production_profiles: layout.production_profiles.clone(),
             position_indices: BTreeMap::new(),
-            dying: Vec::new(),
             summoned_events: BTreeMap::new(),
         }
     }
@@ -988,7 +983,7 @@ impl Simulation {
     /// a snapshot finds new: by side, then where they stand, `z` and then
     /// `x`, each taking the next unit and formation in turn. They were made,
     /// and are recorded as made, in their own order.
-    fn number_as_recorded(&mut self, made: &[u64]) -> BTreeMap<u64, (u64, u64)> {
+    pub(in crate::fight) fn number_as_recorded(&mut self, made: &[u64]) {
         let mut sorted = made.to_vec();
         sorted.sort_by_key(|id| {
             let actor = &self.actors[id];
@@ -1018,8 +1013,26 @@ impl Simulation {
                 *id = unit_id;
             }
         }
+        // Recording identities change, but RVO's agent list must retain
+        // native creation order, just as activeActors retains join order.
+        for id in &mut self.rvo.added_units {
+            if let Some(&(unit_id, _)) = renamed.get(id) {
+                *id = unit_id;
+            }
+        }
         self.renumber_burrow_units(&renamed);
-        renamed
+        for (before, after) in self.support.summoned_events.values_mut() {
+            rename_created(&renamed, before);
+            rename_created(&renamed, after);
+        }
+        // A later tower callback may have written to a summon before the
+        // frame assigned its recording identity.
+        for events in self.buffs.tower_events.values_mut() {
+            rename_created(&renamed, events);
+        }
+        for unit_id in made {
+            self.plant(renamed.get(unit_id).map_or(*unit_id, |&(id, _)| id));
+        }
     }
 }
 
@@ -1038,8 +1051,8 @@ fn rename_created(renamed: &BTreeMap<u64, (u64, u64)>, events: &mut [Event]) {
             let Some(&(unit_id, formation)) = renamed.get(&subject.id) else {
                 continue;
             };
+            event.subject = Some(ObjectRef::new(ObjectKind::Unit, unit_id));
             if let EventPayload::UnitCreated { formation_id, .. } = &mut event.payload {
-                event.subject = Some(ObjectRef::new(ObjectKind::Unit, unit_id));
                 *formation_id = formation;
             }
         }
@@ -1047,7 +1060,7 @@ fn rename_created(renamed: &BTreeMap<u64, (u64, u64)>, events: &mut [Event]) {
 }
 
 impl Simulation {
-    /// `BuffManager.OnMechDead` of every unit that died this tick running a
+    /// `BuffManager.OnMechDead` of one unit that died running a
     /// buff that summons, as `DeadEffectSystem` calls its `OnDead`, and each
     /// such buff's `IBEC_DeadSummon.OnMechDead`: a unit a buff itself summoned
     /// (`MechCreateType.ParasiticalSummon`) summons nothing, nor one of
@@ -1057,55 +1070,28 @@ impl Simulation {
     /// within its radius, each joining its side at once. A Marksman killed
     /// under Replicate leaves 7 Crawlers, four to the 1.5 being 7.99999998.
     ///
-    /// A unit whose technology summons where it dies (`DeadSummonTech`)
-    /// summons too, parasitic or not, as `DeadSummonController.
-    /// PerformDeadEffect` does: Mechanical Division leaves five Crawlers
-    /// where its Steel Ball died.
-    pub(in crate::fight) fn summon_from_the_dead(&mut self) -> Result<()> {
+    pub(in crate::fight) fn summon_from_the_dead(&mut self, dead_id: u64) -> Result<Vec<u64>> {
+        let dead = &self.actors[&dead_id];
+        let summons = if dead.parasitic {
+            Vec::new()
+        } else {
+            dead.buffs
+                .iter()
+                .filter_map(super::tower::RunningBuff::dead_summon)
+                .collect::<Vec<_>>()
+        };
         let mut made = Vec::new();
-        let mut created = Vec::new();
-        for dead_id in std::mem::take(&mut self.support.dying) {
-            let dead = &self.actors[&dead_id];
-            let technology = dead
-                .placement
-                .effects
-                .dead_summon
-                .filter(|_| self.technology_dead_effect_held(dead_id));
-            let summons = if dead.parasitic {
-                Vec::new()
-            } else {
-                dead.buffs
-                    .iter()
-                    .filter_map(super::tower::RunningBuff::dead_summon)
-                    .collect::<Vec<_>>()
-            };
-            if technology.is_none() && summons.is_empty() {
-                continue;
-            }
-            let (mut before, mut after) = (Vec::new(), Vec::new());
-            if let Some(summon) = technology {
-                made.extend(self.summon_by_technology(dead_id, summon, &mut before)?);
-            }
-            for (summon, source) in summons {
-                made.extend(self.summon_where_dead(dead_id, summon, source, &mut after)?);
-            }
-            created.push((dead_id, (before, after)));
+        let mut after = Vec::new();
+        for (summon, source) in summons {
+            made.extend(self.summon_where_dead(dead_id, summon, source, &mut after)?);
         }
-        let renamed = self.number_as_recorded(&made);
-        for (_, (before, after)) in &mut created {
-            rename_created(&renamed, before);
-            rename_created(&renamed, after);
-        }
-        // `FightTeam.ActiveMech` put each in its side's trees as it was made.
-        for unit_id in &made {
-            self.plant(
-                renamed
-                    .get(unit_id)
-                    .map_or(*unit_id, |&(renamed, _)| renamed),
-            );
-        }
-        self.support.summoned_events.extend(created);
-        Ok(())
+        self.support
+            .summoned_events
+            .entry(dead_id)
+            .or_default()
+            .1
+            .extend(after);
+        Ok(made)
     }
 
     /// A summon the layout holds no description of: one of the other side's,
@@ -1166,7 +1152,7 @@ impl Simulation {
     /// of the dead unit's side, as many of the technology's unit type as it
     /// says, at the first level or the dead unit's, facing as the dead unit
     /// faced, scattered within its radius.
-    fn summon_by_technology(
+    pub(in crate::fight) fn summon_by_technology(
         &mut self,
         dead_id: u64,
         summon: crate::layout::DeadSummonOnDeath,

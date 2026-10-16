@@ -540,11 +540,11 @@ struct Simulation {
     /// units with an explosion that died this tick, in the order they died,
     /// and whether each took its own life.
     dead_explosions: Vec<(u64, bool)>,
-    /// `DeadEffectSystem.deadActors` of the units a hit killed this tick, in
-    /// the order they died: each one's `FightMech.OnDead` leaves the fight
-    /// (`ExitFight`) when that module updates, and until then its skill
-    /// keeps what it fired at.
+    /// `DeadEffectSystem.deadEffectMeches`: units whose death controllers
+    /// run before the shared actor callbacks, in death order.
     dead_exits: Vec<u64>,
+    /// `DeadEffectSystem.deadActors`: units and buildings in death order.
+    dead_actors: Vec<FightActorRef>,
     /// The step being simulated, which what happens inside a hit reads.
     step_now: u64,
     /// Every side's `FightTeam.activeActors`, the order it updates its units
@@ -555,9 +555,6 @@ struct Simulation {
     projectiles: Vec<Projectile>,
     /// Each side's interceptors, `InterceptSystem`'s sources.
     interceptors: Vec<Interceptor>,
-    /// The buildings that fell this tick, whose interceptors leave their
-    /// side's as `DeadEffectSystem` calls each one's `OnDead`.
-    fallen_interceptors: Vec<u64>,
     /// Each side's missiles still standing, `MineSystem`'s, in side order.
     mines: Vec<Mine>,
     /// Each side's `SuperDeploymentController` that opened with a unit
@@ -700,12 +697,12 @@ impl Simulation {
             chains: Vec::new(),
             dead_explosions: Vec::new(),
             dead_exits: Vec::new(),
+            dead_actors: Vec::new(),
             step_now: 0,
             active_actors,
             team_random: BTreeMap::new(),
             projectiles: Vec::new(),
             interceptors,
-            fallen_interceptors: Vec::new(),
             mines: {
                 let mut mines = layout.missiles.iter().map(Mine::new).collect::<Vec<_>>();
                 mines.sort_by_key(Mine::team);
@@ -738,7 +735,6 @@ impl Simulation {
                 config: towers.clone(),
                 losses: tower_losses,
                 buffed_constructions: tower_buffed_constructions,
-                fallen: Vec::new(),
             },
             buffs: tower::BuffState::default(),
             statistics: statistics::StatisticsSystem::default(),
@@ -1329,36 +1325,61 @@ impl Simulation {
         self.step_dead_explosions(&mut events)?;
         // The rebirth controller after it, and every controller's
         // `PerformDeadEffect` and `Update` before any `OnDead`.
-        let dead = self.dead_exits.clone();
+        let dead = std::mem::take(&mut self.dead_exits);
+        let mut made = Vec::new();
+        for &unit_id in &dead {
+            let technology = self.actors[&unit_id]
+                .placement
+                .effects
+                .dead_summon
+                .filter(|_| self.technology_dead_effect_held(unit_id));
+            if let Some(summon) = technology {
+                let mut before = Vec::new();
+                made.extend(self.summon_by_technology(unit_id, summon, &mut before)?);
+                self.support
+                    .summoned_events
+                    .entry(unit_id)
+                    .or_default()
+                    .0
+                    .extend(before);
+            }
+        }
         self.step_rebirths(&dead)?;
-        for unit_id in std::mem::take(&mut self.dead_exits) {
-            self.actors
-                .get_mut(&unit_id)
-                .expect("actor identity is stable")
-                .exit_fight_on_death();
-            // `FightMech.OnDead` raises `OnMechDead`, which a side's
-            // `TeamWreckageRecoveryManager` registered with for each unit
-            // its holders struck.
-            // `FightEffectSystem.DeactiveEffect` of the dead unit.
-            self.deactive_effect(unit_id)?;
-            self.remove_produced_mech(unit_id);
-            // `SummonSystem.RemoveMech` was registered when the unit joined,
-            // before a later strike registered wreckage recovery. Destroying
-            // the summon removes its data before recovery reads its life.
-            self.clear_dead_summon(unit_id)?;
-            self.wreckage_on_dead(unit_id)?;
-            // `SkillManager.OnOwnerDead` stops its skills, a control beam's
-            // `ControllEffect` among them: the Rhino a Hacker was turning
-            // holds no entry from the tick the Hacker dies.
-            self.sync_beam(unit_id);
+        // After its controllers, `DeadEffectSystem.Update` calls virtual
+        // OnDead in the shared deadActors order, including fallen towers.
+        for dead_actor in std::mem::take(&mut self.dead_actors) {
+            match dead_actor {
+                FightActorRef::Building(building_id) => {
+                    self.lose_tower(building_id)?;
+                    self.lose_interceptor(building_id);
+                }
+                FightActorRef::Unit(unit_id) => {
+                    // `BuffManager.OnMechDead` runs before ExitFight and
+                    // OnMechDead listeners, and joins its summons immediately.
+                    made.extend(self.summon_from_the_dead(unit_id)?);
+                    self.actors
+                        .get_mut(&unit_id)
+                        .expect("actor identity is stable")
+                        .exit_fight_on_death();
+                    // `FightMech.OnDead` raises `OnMechDead`, which a side's
+                    // `TeamWreckageRecoveryManager` registered with for each unit
+                    // its holders struck.
+                    // `FightEffectSystem.DeactiveEffect` of the dead unit.
+                    self.deactive_effect(unit_id)?;
+                    self.remove_produced_mech(unit_id);
+                    // `SummonSystem.RemoveMech` was registered when the unit joined,
+                    // before a later strike registered wreckage recovery. Destroying
+                    // the summon removes its data before recovery reads its life.
+                    self.clear_dead_summon(unit_id)?;
+                    self.wreckage_on_dead(unit_id)?;
+                    // `SkillManager.OnOwnerDead` stops its skills, a control beam's
+                    // `ControllEffect` among them: the Rhino a Hacker was turning
+                    // holds no entry from the tick the Hacker dies.
+                    self.sync_beam(unit_id);
+                }
+            }
         }
-        self.summon_from_the_dead()?;
-        for building_id in std::mem::take(&mut self.towers.fallen) {
-            self.lose_tower(building_id)?;
-        }
-        for building_id in std::mem::take(&mut self.fallen_interceptors) {
-            self.lose_interceptor(building_id);
-        }
+        self.number_as_recorded(&made);
         for unit_id in std::mem::take(&mut self.turned_fallen) {
             self.turned_unit_died(unit_id, &mut events)?;
         }
