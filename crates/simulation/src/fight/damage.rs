@@ -770,15 +770,8 @@ impl Simulation {
                 // `DeadEffectSystem.OnActorDead`, which only queues it: its
                 // `OnDead`, and a tower's loss with it, comes when that
                 // module updates.
-                if destroyed && self.is_tower(target) {
-                    self.towers.fallen.push(building_id);
-                }
-                // An interceptor's building falling is `FightInterceptor.
-                // OnDestroy`, which `FightCrystal.OnDead` raises
-                // (`OnBuildingDestroyed`) as `DeadEffectSystem` updates, after
-                // `InterceptSystem`: it intercepts on to the end of the tick.
                 if destroyed {
-                    self.fallen_interceptors.push(building_id);
+                    self.dead_actors.push(target);
                 }
                 Ok(stroke)
             }
@@ -1722,10 +1715,10 @@ impl Simulation {
     /// `OnDead`, whose `BuffManager.OnMechDead` lets a buff it runs summon.
     pub(in crate::fight) fn on_actor_dead(&mut self, unit_id: u64) {
         self.dead_exits.push(unit_id);
+        self.dead_actors.push(FightActorRef::Unit(unit_id));
         if !self.actors[&unit_id].travelling && self.explodes_on_death(unit_id) {
             self.dead_explosions.push((unit_id, false));
         }
-        self.support.dying.push(unit_id);
     }
 
     /// A hit's deaths and falls, in the order it struck them, among the

@@ -262,6 +262,10 @@ summons. When a summoning buff is added again, the unit adding it becomes its
 source if its level is the higher. Replicate is one: a Marksman killed by
 Crawlers leaves 7, and a Rhino 12.
 
+Their RVO agents are appended in creation order, independently of the spatial
+identities a recording assigns the new units. That agent order is retained
+when their crowd is solved.
+
 **A buff takes back only what it wrote.** When a buff ends, its entries go and
 every other buff's stay, whichever source wrote them: a Rhino with Combat
 Evolvement, Mobile Power Station and Degeneration Beam keeps two when the
@@ -1726,6 +1730,10 @@ derive (a minimum range):
 
 ### Recorded
 
+- Replicated Crawlers retain creation order for avoidance after the recording
+  assigns their identities by position:
+  `tests/tower/tower-before-replicate.yaml`.
+
 - EMP removing Land Cruiser restores Aerial Specialist's life and damage
   rates before the physical flight timer:
   `tests/fly/land-cruiser-emp-domain-rates.yaml`.
@@ -2176,6 +2184,9 @@ derive (a minimum range):
   `tests/fire_intensify/fire_badger-marksman.yaml`.
 
 ### Read
+
+- RVO agents are appended to the simulator's list as they are created:
+  `GameRiver.Fight.GRPF.RVO.Simulator.AddAgent`.
 
 - Domain-dependent effects refresh when the unit-state source is added or
   removed, separately from the physical timer:

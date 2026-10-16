@@ -1,0 +1,98 @@
+# A fallen tower's callback precedes a later Replicate death on the same tick.
+# At t958, tower 9 falls before Fire Badger 4 dies; new Crawlers 65-69 join
+# afterwards, without tower buff 5. Native core damage is 306/0; batching all
+# buff death summons before towers gave the new Crawlers the debuff and 301/0.
+# Full generated layout, repeated natively for all 1077 ticks.
+# Later crowd avoidance also observes native RVO creation order: the recording
+# renumbers new units spatially, while their agents retain creation order.
+# Control: ../technology_buff/replicate.yaml summons without a same-tick tower.
+# Control: ../dead_summon/mechanical-division.yaml summons in the dead controller.
+# Assert rows come from native queries, including post-renumbering velocities.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 328592855
+round: 3
+blue:
+  core_damage: 306
+  officers: [advanced_shield_device, advanced_power_system, fire_badger_specialist]
+  techs:
+    sandworm: [mechanical_rage]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sandworm, index: 0, position: {x: 160, y: -130}, exp: 1000/1192/2000, equipment: [tank_production_line]}
+  - {name: fire_badger, index: 1, position: {x: 215, y: -150}, exp: 0/68/1400, source: delivered}
+  - {name: void_eye, index: 2, position: {x: -160, y: -190}, level: 4, exp: 0/120/2919, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 145, y: -120}, retained: false}
+  battle_skills:
+  - {name: missile_strike, positions: [{x: -175, y: -200}]}
+red:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, advanced_power_system, aerial_specialist]
+  techs:
+    crawler: [subterranean_blitz, acidic_explosion, loose_formation, mechanical_rage, impact_drill, replicate]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: crawler, index: 0, position: {x: 120, y: -135}, level: 3, exp: 1603/1603/1603, rotated: true, equipment: [small_amplifying_core]}
+  - {name: wasp, index: 1, position: {x: 205, y: -100}, level: 5, exp: 0/1701/4689, source: joined}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 165, y: -155}}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: 290, y: -195}]}
+asserts:
+- sql: |-
+    SELECT tick,type,object__id,target__id,buff_id FROM events WHERE tick=958 AND ((type='building_destroyed' AND object__id=9) OR (type='unit_died' AND object__id=4) OR (type='unit_created' AND object__id BETWEEN 65 AND 69) OR (type='buff_applied' AND target__id BETWEEN 65 AND 69)) ORDER BY ordinal
+  rows:
+  - [958, "building_destroyed", 9, null, null]
+  - [958, "unit_died", 4, null, null]
+  - [958, "unit_created", 65, null, null]
+  - [958, "unit_created", 66, null, null]
+  - [958, "unit_created", 67, null, null]
+  - [958, "unit_created", 69, null, null]
+  - [958, "unit_created", 68, null, null]
+- sql: |-
+    SELECT u.tick,u.unit_id,u.move_speed,s.enabled__attack_damage FROM units u JOIN units__skills s ON s.tick=u.tick AND s.unit_id=u.unit_id WHERE u.tick=958 AND u.unit_id BETWEEN 65 AND 69 AND s.skill_slot=0 ORDER BY u.unit_id
+  rows:
+  - [958, 65, 128849018880, 201]
+  - [958, 66, 128849018880, 201]
+  - [958, 67, 128849018880, 201]
+  - [958, 68, 128849018880, 201]
+  - [958, 69, 128849018880, 201]
+- sql: |-
+    SELECT tick,object__id FROM events WHERE type='unit_created' AND tick=1006 ORDER BY ordinal
+  rows:
+  - [1006, 88]
+  - [1006, 89]
+  - [1006, 86]
+  - [1006, 87]
+  - [1006, 79]
+  - [1006, 80]
+  - [1006, 90]
+  - [1006, 76]
+  - [1006, 75]
+  - [1006, 77]
+  - [1006, 83]
+  - [1006, 81]
+  - [1006, 85]
+  - [1006, 82]
+  - [1006, 84]
+  - [1006, 78]
+- sql: |-
+    SELECT tick,unit_id,velocity__x,velocity__z FROM units WHERE tick=1012 AND unit_id IN(38,46,59) ORDER BY unit_id
+  rows:
+  - [1012, 38, -1160032910, 18289227652]
+  - [1012, 46, -57117023388, 101025992373]
+  - [1012, 59, -5251144260, -10030831787]
+ticks: 1077
+hash: 26:2c34ddfb543d047e4ae6bc434497aa892f5081d3d0b52f61875ce4d5af0cbd4d

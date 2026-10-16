@@ -258,8 +258,8 @@ pub(in crate::fight) struct BuffRow {
     pub(in crate::fight) summons: Option<DeadSummon>,
 }
 
-/// The towers of both sides: what their table says, what each one's loss
-/// writes, and the towers a hit emptied this tick.
+/// The towers of both sides: what their table says and what each loss
+/// writes.
 pub(in crate::fight) struct TowerSystem {
     /// The tower table: what a strengthen level adds, what a loss writes.
     pub(in crate::fight) config: TowersConfig,
@@ -267,10 +267,6 @@ pub(in crate::fight) struct TowerSystem {
     pub(in crate::fight) losses: BTreeMap<u64, TowerLoss>,
     /// The constructions a tower's loss would reach, by building.
     pub(in crate::fight) buffed_constructions: BTreeSet<u64>,
-    /// The towers a hit emptied this tick, in the order they fell: the towers
-    /// among `DeadEffectSystem.deadActors`, whose `OnDead` waits for that
-    /// module's update.
-    pub(in crate::fight) fallen: Vec<u64>,
 }
 
 /// `BuffManager`'s state the fight keeps outside the units: the buffs on
