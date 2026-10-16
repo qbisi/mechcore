@@ -1,0 +1,54 @@
+# A non-splash projectile strikes its living main building without a range check.
+# Mustang 10 releases projectile 273 at t428; it is removed on that tick,
+# at the recorded point outside tower 1's bounds, and deals 282 to the tower.
+# Both native and simulator already removed it there; an extra impact-range
+# check alone lost its damage and changed blue core damage from 201 to 218.
+# Native repeats all 1246 ticks. This full generated layout pins both the
+# projectile/owner/target cause and the tower's resulting life.
+# Control: wall-splash.yaml keeps the spatial check for a splash.
+# Assert rows come from native queries.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 287133666
+round: 2
+blue:
+  core_damage: 201
+  officers: [advanced_shield_device, advanced_targeting_system, speed_specialist, smart_marksman]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: marksman, index: 0, position: {x: 10, y: -110}, level: 6, exp: 1884/3769/3769, equipment: [improved_firepower_control_system]}
+  - {name: fortress, index: 1, position: {x: -230, y: -160}, level: 8, exp: 0/4242/10764, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -80, y: -135}}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: 20, y: -215}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_power_system, aerial_specialist]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: phantom_ray, index: 0, position: {x: 220, y: -55}, exp: 1000/1000/1000, rotated: true, equipment: [haste_module]}
+  - {name: mustang, index: 1, position: {x: -175, y: -70}, level: 7, exp: 0/3600/7556, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -210, y: -190}}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: -280, y: 25}]}
+asserts:
+- sql: |-
+    SELECT tick,type,object__id,source__id,target__kind,target__id,amount FROM events WHERE tick=428 AND object__id=273 ORDER BY ordinal
+  rows:
+  - [428, "projectile_released", 273, 10, "building", 1, null]
+  - [428, "damage", 273, 10, "building", 1, 282]
+  - [428, "projectile_removed", 273, 10, "building", 1, null]
+- sql: |-
+    SELECT tick,building_id,life__current,life__maximum FROM buildings WHERE building_id=1 AND tick BETWEEN 427 AND 429 ORDER BY tick
+  rows:
+  - [427, 1, 3400, 3400]
+  - [428, 1, 3118, 3400]
+  - [429, 1, 3118, 3400]
+ticks: 1246
+hash: 26:b9065e5fe10fb40c7bf7608525394425f0ee9195da89a2f4929fb71536db1129

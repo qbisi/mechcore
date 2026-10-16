@@ -111,7 +111,6 @@ impl Simulation {
             projectile: None,
             skill_slot: None,
             aimed: Some(FightActorRef::Unit(unit)),
-            hits_aimed: false,
             center_q32: (dead.x_q32, dead.z_q32),
             center_y_q32: space_to_q32(unit_height(dead.domain)),
             shield: None,

@@ -206,7 +206,6 @@ impl Simulation {
                 projectile: None,
                 skill_slot: None,
                 aimed: None,
-                hits_aimed: false,
                 center_q32: (x_q32, z_q32),
                 center_y_q32,
                 shield: None,

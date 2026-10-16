@@ -197,7 +197,6 @@ impl Simulation {
             projectile: None,
             skill_slot: Some(jump.slot),
             aimed: Some(aimed),
-            hits_aimed: true,
             center_q32: (x_q32, z_q32),
             center_y_q32: self.position_3d(aimed).map_or(0, |(_, y, _)| y),
             shield,

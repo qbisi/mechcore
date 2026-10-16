@@ -626,7 +626,12 @@ remove that hit.
 `DamagePerformer.Perform` performs a hit with a splash as `PerformRangeEffect`,
 over everything within the splash of where it lands, and only a hit without
 one as `PerformSingleEffect` on what it was aimed at, wherever that stands. A
-projectile that follows its target lands its offset from it, so one whose
+single hit checks the main actor's life, whether a unit or a building; it
+does not recheck its distance from the impact point or depend on tracking.
+Before that shared damage path, a projectile arriving without a splash
+skips its main actor if it has joined the projectile controller's team.
+Shield interception bypasses this actor-team check.
+A projectile that follows its target lands its offset from it, so one whose
 offset passes its splash misses.
 
 **A projectile leaves for where its burst aimed it.** Every projectile of a
@@ -1236,6 +1241,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A Mustang projectile released and removed on the same tick strikes its
+  living main tower outside the impact point's reach:
+  `tests/construction/projectile-main-target-tower.yaml`.
+
 - Steel Balls replace a dead lock while firing at a shield and keep their
   attack and its next hit:
   `tests/shield/lock-switch-keeps-shield-attack.yaml`.
@@ -1607,7 +1616,9 @@ not the game's native attack-type enum.
 - A projectile preserves its creation-time target domain for range damage;
   a single hit names the target directly: `FightProjectile.Init`,
   `FightProjectile.GetTargetType`, `FightSkillBase.GetAttackTargetType`,
-  `DamagePerformer.Perform`, `DamagePerformer.PerformSingleEffect`.
+  `FightProjectile.GameRiver.Fight.IDamageProvider.GetMainTarget`,
+  `DamagePerformer.Perform`, `DamagePerformer.PerformSingleEffect`,
+  `FightProjectile.PerformDamage`.
 - A projectile that locks its target is released with no damage out of its
   owner's reach: `FightProjectile.Update`, `FightProjectile.Init`,
   `FightProjectile.CalculateMaxMoveDistance`, `FightCalculator.IsInRange3D`,

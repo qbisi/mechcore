@@ -67,7 +67,6 @@ impl Simulation {
             // (`SkillDamageProvider.GetTargetType` of a skill that diffuses).
             hit: DamageHit {
                 aimed: None,
-                hits_aimed: false,
                 reach: Reach::Targets(targets),
                 ..hit
             },

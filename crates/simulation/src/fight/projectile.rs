@@ -600,7 +600,15 @@ impl Simulation {
                 .fight_actor(target)
                 .is_some_and(|view| view.alive && view.visibility != Visibility::Hide);
         let center = (hit.center_q32.0, hit.center_y_q32, hit.center_q32.1);
-        let struck = if lands_on_nothing {
+        // `FightProjectile.PerformDamage(checkTeam: true)` rejects a
+        // non-splash arrival whose target now belongs to the projectile's
+        // controller. Shield interception bypasses that actor-team check.
+        let lands_on_friendly = splash_radius == 0
+            && hit.shield.is_none()
+            && self
+                .fight_actor(target)
+                .is_some_and(|view| view.team == projectile.team);
+        let struck = if lands_on_nothing || lands_on_friendly {
             super::damage::Struck::default()
         } else {
             let struck = self.perform_damage(hit, events)?;
