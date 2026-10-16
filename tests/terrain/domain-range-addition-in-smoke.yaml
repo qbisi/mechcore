@@ -1,0 +1,50 @@
+# Smoke rates the domain-specific range after Aerial Specialization adds
+# its 30 metres. The main skill changes its lock from ground to air in fog:
+# 81.25 metres becomes 100.75, rather than adding an unscaled 30 metres.
+# The complete generated layout, settlement and trajectory come from the game.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1179620003
+round: 2
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_defensive_tactics, improved_sandworm]
+  techs:
+    sandworm: [sandstorm]
+  blueprints: [defense_enhancement_ii]
+  tower_strengthen_levels: [3, 4]
+  units:
+  - {name: sandworm, index: 0, position: {x: 20, y: -270}, level: 2, exp: 2253/4506/4506, equipment: [barrier]}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -175, y: -115}, retained: false}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: -150, y: -270}]}
+red:
+  core_damage: 350
+  officers: [advanced_offensive_tactics, advanced_targeting_system, marksman_specialist, fortified_mustang]
+  techs:
+    mustang: [high_explosive_ammo, aerial_specialization, missile_interceptor, culling_rounds, range_enhancement, armor_piercing_bullets]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: mustang, index: 0, position: {x: 110, y: -35}, level: 3, exp: 2137/2595/4274, rotated: true, equipment: [haste_module]}
+  - {name: marksman, index: 1, position: {x: -200, y: -140}, level: 3, exp: 0/200/2315, source: delivered}
+  - {name: marksman, index: 2, position: {x: 280, y: -50}, level: 8, exp: 0/150/4373, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 290, y: -185}}
+  battle_skills:
+  - {name: smoke_bomb, positions: [{x: 235, y: -100}, {x: -215, y: 305}]}
+asserts:
+- sql: |
+    SELECT tick,unit_id,skill_slot,enabled__attack_range FROM units__skills
+    WHERE unit_id=13 AND tick IN (128,129) AND skill_slot=0 ORDER BY tick
+  rows:
+  - [128, 13, 0, 348966092875]
+  - [129, 13, 0, 432717955165]
+ticks: 2327
+hash: 26:f0aca645046a47fc683e10a19c550af53de686c606d9d07b185b5e92a47a0b0f

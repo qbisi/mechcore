@@ -881,10 +881,10 @@ pub(crate) struct Stats {
     /// Q32.32 seconds: `AttackIntervalProperty` keeps the interval as an
     /// `FPoint`, and a rate on it lands between two time units.
     attack_interval_q32: i64,
-    attack_range: i64,
+    attack_range: [i64; 2],
     /// Q32.32 metres: `AttackRangeProperty` keeps the range as an `FPoint`,
     /// and a rate on it lands between two millimetres.
-    attack_range_q32: i64,
+    attack_range_q32: [i64; 2],
     splash_radius: i64,
 }
 
@@ -915,8 +915,8 @@ impl Stats {
             attack_damage: 0,
             attack_damage_air: 0,
             attack_interval_q32: 0,
-            attack_range: 0,
-            attack_range_q32: 0,
+            attack_range: [0; 2],
+            attack_range_q32: [0; 2],
             splash_radius: 0,
         };
         stats.refresh(rules)?;
@@ -977,21 +977,27 @@ impl Stats {
             self.overlays
                 .resolve_damage(base_damage, self.kills, false, UnitDomain::Air)?;
         self.attack_interval_q32 = self.interval_of(rules.attack.interval_time_units(), None)?;
-        // `AttackRangeProperty` reads no correction of a melee skill's range,
-        // neither its `DataSet`'s values and rates nor a buff's: a Sandworm
-        // with Anti-Aerial records the technology's 20 metres and reaches 60.
-        if rules.attack.melee {
-            self.attack_range = rules.attack.range();
-            self.attack_range_q32 = space_to_q32(rules.attack.range());
-        } else {
-            self.attack_range = resolve(Index::AttackRange, rules.attack.range())?;
-            self.attack_range_q32 = self.overlays.resolve_scaled(
-                Index::AttackRange,
-                space_to_q32(rules.attack.range()),
-                |value| value * ONE / metres,
-                0,
-                ONE,
-            )?;
+        // Air/Ground.GetAttackRange adds its domain value before
+        // AttackRangeProperty.Refresh applies the skill and buff rates.
+        // Melee properties bypass those corrections, but retain the domain add.
+        for (index, domain) in [UnitDomain::Ground, UnitDomain::Air]
+            .into_iter()
+            .enumerate()
+        {
+            let base = rules.attack.range().saturating_add(self.range_add(domain));
+            if rules.attack.melee {
+                self.attack_range[index] = base;
+                self.attack_range_q32[index] = space_to_q32(base);
+            } else {
+                self.attack_range[index] = resolve(Index::AttackRange, base)?;
+                self.attack_range_q32[index] = self.overlays.resolve_scaled(
+                    Index::AttackRange,
+                    space_to_q32(base),
+                    |value| value * ONE / metres,
+                    0,
+                    ONE,
+                )?;
+            }
         }
         self.splash_radius = self.splash_of(rules.attack.splash_radius(), None)?;
         Ok(())
@@ -1344,15 +1350,14 @@ impl Stats {
     /// `FightSkill.GetAttackRange` of the main skill while it locks a unit
     /// of `against`'s domain, or nothing for a ground one: its
     /// `AttackRangeAirProperty` or `AttackRangeGroundProperty`, each
-    /// `AttackRangeProperty`'s range with the skill's add for that domain.
+    /// `AttackRangeProperty`'s base plus the skill's domain add, then its rates.
     pub(crate) fn attack_range_against(&self, against: UnitDomain) -> i64 {
-        self.attack_range.saturating_add(self.range_add(against))
+        self.attack_range[usize::from(against == UnitDomain::Air)]
     }
 
     /// [`Self::attack_range_against`] in Q32.32 metres.
     pub(crate) fn attack_range_q32_against(&self, against: UnitDomain) -> i64 {
-        self.attack_range_q32
-            .saturating_add(space_to_q32(self.range_add(against)))
+        self.attack_range_q32[usize::from(against == UnitDomain::Air)]
     }
 
     /// The skill's `AttackAirRangeAddValue` or `AttackGroundRangeAddValue`,

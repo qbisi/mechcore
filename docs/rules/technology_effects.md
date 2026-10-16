@@ -2673,7 +2673,10 @@ derive (a minimum range):
   `AttackRangeProperty.Refresh` adds `BuffManager.GetAttackRangeAddRate` to
   `FightSkill.GetDataFloatAddRate`, multiplies `FightSkill.GetDataFloatReduceRate`
   by `BuffManager.GetAttackRangeReduceRate`, and multiplies the range by one
-  plus the first and then by the second.
+  plus the first and then by the second. Its virtual `GetAttackRange` calls
+  `AttackRangeAirProperty.GetAttackRange` or
+  `AttackRangeGroundProperty.GetAttackRange`, which adds the skill's
+  `AttackAirRangeAddValue` or `AttackGroundRangeAddValue` before those rates.
 - A stack on distance: `IBEC_AdditiveEffectBuff.Update` returns at
   `IBEC_AdditiveEffectBuff.maxAdditiveStack`, and otherwise asks
   `BuffAdditiveStackConditionDistanceController.TryAddStack`, which sets the
