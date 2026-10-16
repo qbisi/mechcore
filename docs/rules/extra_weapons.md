@@ -667,10 +667,19 @@ reloads and nothing else reads.
   lock the main skill last changed from while it holds none
   (`prevLockTargetForSideArm`). It keeps a live lock of its own within its
   `sideArmSearchRange`, 40 metres, of that anchor and in its attack area;
-  otherwise it takes, of the other sides' units of the anchor's domain within
+  otherwise it takes, of the other sides' actors of the anchor's domain within
   that range of it less their radius (`RangeTargetCalculator.CalculateRangeTargets`,
-  buildings left out), the anchor aside, those in its attack area as its
-  selector scores them; with none, the anchor while it lives.
+  the separate construction collection left out), the anchor aside, those
+  in its attack area as its selector scores them; with none, the anchor while
+  it lives. Towers belong to the target quadtree and remain candidates when
+  `includeBuilding` is false: `CalculateRangeActorsInternal` queries that
+  tree before the flag controls its separate `BuildingSystem.GetBuildings`
+  call. `tests/extra_weapon/dual-wield-near-tower.yaml` sees the side arm
+  select a tower near the main skill's previous lock after that lock dies.
+  The selector still applies `AttackTargetFilter.Check`: its construction
+  visitor rejects a blocking wall, so adding tower candidates does not make
+  an unsearchable wall a lock target. The wall may still replace an actor
+  as the attack target through the line-of-fire check.
 - **It searches only when its lock no longer suits**
   (`NeedRefreshSideArmTarget`), in its idle state in place of the search
   timer and in its attack state on every update before its check: when the
@@ -1020,6 +1029,9 @@ that is not melee, so the simulator refuses it.
   Red's shield takes its shells for 6000 each, the seventh for the 4000 it has
   left, which breaks it: `tests/extra_weapon/electromagnetic-barrage-shield.yaml`.
 
+- Dual Wield's side arm can select a tower near the main skill's previous
+  lock after that lock dies, while the main skill cools with no lock:
+  `tests/extra_weapon/dual-wield-near-tower.yaml`.
 - Dual Wield's side arm begins its blow four ticks after the main gun
   begins one, and takes the main gun's lock where nothing else is in its
   reach within 40 metres of it: `tests/extra_weapon/dual-wield-close.yaml`.
@@ -1064,6 +1076,12 @@ that is not melee, so the simulator refuses it.
   `scripts/corpus/match-replays.py`.
 
 ### Read
+
+- Side-arm candidates include target-tree towers even when the separate
+  construction collection is excluded:
+  `SideArmSearchTargetController.PerformNormalSkillSearch`,
+  `RangeTargetCalculator.CalculateRangeActorsInternal`,
+  `AttackTargetFilter.Check`, `AttackTargetFilter.IFightActorVisitor.Visit`.
 
 - An idle side arm checks its fire mark before refreshing its attack target:
   `SkillIdleState.TryPerform`, `FightSkill.TrySideArmResetFireMark`,

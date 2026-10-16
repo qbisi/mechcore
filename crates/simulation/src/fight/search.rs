@@ -943,22 +943,40 @@ impl Simulation {
         (domains, target_radius): (crate::rules::AttackTargets, bool),
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Vec<u64> {
+        self.actors_in_range(
+            (x_q32, z_q32),
+            range_q32,
+            (domains, target_radius),
+            target_search_order,
+        )
+        .into_iter()
+        .filter_map(FightActorRef::unit_id)
+        .collect()
+    }
+
+    /// The target-quadtree part of `CalculateRangeActorsInternal`. Towers
+    /// are actors in that tree even with `includeBuilding` false; that flag
+    /// only adds the separate `BuildingSystem` collection of constructions.
+    pub(in crate::fight) fn actors_in_range(
+        &self,
+        (x_q32, z_q32): (i64, i64),
+        range_q32: i64,
+        (domains, target_radius): (crate::rules::AttackTargets, bool),
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Vec<FightActorRef> {
         target_search_order
             .values()
             .flatten()
             .filter_map(|&candidate| {
-                let FightActorRef::Unit(id) = candidate else {
-                    return None;
-                };
-                let actor = &self.actors[&id];
-                if !actor.alive()
+                let actor = self.fight_actor(candidate)?;
+                if !actor.alive
                     || actor.visibility == Visibility::Hide
                     || !domains.accepts(actor.domain)
                 {
                     return None;
                 }
                 let radius = if target_radius {
-                    space_to_q32(actor.rules.collision_radius())
+                    space_to_q32(actor.radius)
                 } else {
                     0
                 };
@@ -967,7 +985,7 @@ impl Simulation {
                     actor.z_q32.saturating_sub(z_q32),
                 )
                 .saturating_sub(radius);
-                fpoint_less_or_equal(distance, range_q32).then_some(id)
+                fpoint_less_or_equal(distance, range_q32).then_some(candidate)
             })
             .collect()
     }
