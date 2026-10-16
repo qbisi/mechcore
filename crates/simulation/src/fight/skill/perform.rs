@@ -159,11 +159,6 @@ impl Simulation {
         skill.attack_count += 1;
         skill.total_attack_count += 1;
         self.count_punch(skill_ref);
-        // `FightMech.PerformMainSkillAttack`: a blow of a unit's main skill
-        // sets its trench's time back (`SiegeModeEffectSystem.ResetTimer`).
-        if let (SkillSlot::Main, FightActorRef::Unit(unit)) = (skill_ref.slot, skill_ref.owner) {
-            self.reset_siege_time(unit);
-        }
         // `FightMech.OnMechSkillPerformAttack`, on a blow of any skill.
         if let FightActorRef::Unit(unit) = skill_ref.owner {
             self.cloak_on_blow(unit);
@@ -246,8 +241,22 @@ impl Simulation {
                 self.control_effect(skill_ref, 0, events)?;
             }
         }
+        if !matches!(kind, SkillKind::Projectile | SkillKind::Sweep) {
+            self.perform_main_skill_attack(skill_ref, 0);
+        }
         self.finish_attacking(skill_ref);
         Ok(false)
+    }
+
+    /// `AttackPerformer.Update` calls `ISkillOwner.PerformMainSkillAttack`
+    /// after a successful effect of a main skill. Projectile bursts notify
+    /// on their release ticks; a sweep reports success when it completes.
+    pub(in crate::fight) fn perform_main_skill_attack(&mut self, skill_ref: SkillRef, slot: usize) {
+        if let (SkillSlot::Main, FightActorRef::Unit(unit)) = (skill_ref.slot, skill_ref.owner)
+            && self.skill(skill_ref).joined(slot).is_none()
+        {
+            self.reset_siege_time(unit);
+        }
     }
 
     /// `FightRocketPunchSkill.OnAttack`: a rocket punch counts its punch as
@@ -1127,10 +1136,12 @@ impl Simulation {
                 pending.target = target.id();
                 pending.targetless = false;
             } else {
-                return self.release_targetless(skill_ref, pending, events);
+                self.release_targetless(skill_ref, pending, events)?;
+                self.perform_main_skill_attack(skill_ref, pending.skill_slot);
+                return Ok(());
             }
         }
-        match pending.target_kind {
+        let result = match pending.target_kind {
             ObjectKind::Unit => {
                 // A projectile leaves for where its burst aimed it, the
                 // target's position when the burst began plus its offset,
@@ -1216,7 +1227,10 @@ impl Simulation {
             ObjectKind::Projectile | ObjectKind::Shield | ObjectKind::Terrain => {
                 Err(Error::new("projectile target kind is unsupported"))
             }
-        }
+        };
+        result?;
+        self.perform_main_skill_attack(skill_ref, pending.skill_slot);
+        Ok(())
     }
 
     #[allow(

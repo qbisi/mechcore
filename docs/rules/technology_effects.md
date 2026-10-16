@@ -574,10 +574,11 @@ time is set back to none when the enemies in its main skill's range of it
 search: the unit's own radius, only the fully visible, the main skill's
 targets, and then no `FightConstruction`) are any, and counts the tick
 otherwise. Towers and interceptors already in the team tree remain:
-an interceptor is a `FightCrystal`, not a `FightConstruction`. Each blow of
-its main skill sets the time back too (`AttackingController.Update`,
-`FightMech.PerformMainSkillAttack`, `ResetTimer`), so a unit firing at a
-wall or a tower stays dug in. A tick's 0.05 seconds fall a few raw short, so
+an interceptor is a `FightCrystal`, not a `FightConstruction`. Each successful effect
+of its main skill sets the time back too (`AttackPerformer.Update`,
+`FightMech.PerformMainSkillAttack`, `ResetTimer`): every release of a projectile
+burst, and a sweep only once it completes. A normal performer reports its
+one effect immediately. Thus a unit firing at a wall or a tower stays dug in. A tick's 0.05 seconds fall a few raw short, so
 a unit leaves 141 updates after the last that found an enemy. Leaving
 (`RemoveEffect`) takes the rates and values away, the life refreshed to its
 share of the old maximum, and, the unit alive and the fight going on, idles
@@ -1852,7 +1853,9 @@ derive (a minimum range):
   21213 life and 115 metres, two Typhoons at 16199 and 120, and takes the
   trench away 141 updates after the last enemy left its range, the motion
   stopped 0.3 seconds more: `tests/siege_mode/sabertooth.yaml`,
-  `tests/siege_mode/typhoon.yaml`. The Sabertooth's blows at a wall
+  `tests/siege_mode/typhoon.yaml`. Each later release of a projectile burst
+  refreshes the trench's native clock:
+  `tests/siege_mode/doubleshot-keeps-trench.yaml`. The Sabertooth's blows at a wall
   keep it dug in: `tests/siege_mode/wall.yaml`. An Electromagnetic
   Impact takes the trench away as it lands:
   `tests/siege_mode/disabled.yaml`. The fight's end takes it away on
@@ -2371,6 +2374,8 @@ derive (a minimum range):
   `SiegeModeEffectSystem.AddSiegeModeOwner`,
   `SiegeModeEffectSystem.OnEnterFight`, `SiegeModeEffectSystem.AddEffect`,
   `SiegeModeEffectSystem.Update`, `SiegeModeEffectSystem.ResetTimer`,
+  `AttackPerformer.Update`, `ProjectileMultiAttackPerformer.TryPerformEffect`,
+  `NormalAttackPerformer.TryPerformEffect`, `SweepAttackPerformer.TryPerformEffect`,
   `SiegeModeEffectSystem.RemoveEffect`, `SiegeModeEffectSystem.EndSiegeMode`,
   `SiegeModeEffectSystem.RemoveSiegeModeOwner`,
   `SiegeModeEffectSystem.OnExitFight`, `SiegeModeEffectProvider.DoActive`,

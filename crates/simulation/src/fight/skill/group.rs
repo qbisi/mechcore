@@ -579,7 +579,9 @@ impl Simulation {
             sibling.attack_count += 1;
             sibling.perform_count += 1;
             let blow = usize::try_from(sibling.attack_count).unwrap_or(0);
-            return self.laser_effect(skill_ref, skill_index, blow, target, events);
+            self.laser_effect(skill_ref, skill_index, blow, target, events)?;
+            self.perform_main_skill_attack(skill_ref, skill_index);
+            return Ok(());
         }
         match target {
             FightActorRef::Unit(target_id)
@@ -674,6 +676,11 @@ impl Simulation {
         sibling.attack_count += 1;
         sibling.attacking_unfinished = true;
         self.finish_group_slot_attacking(skill_ref, skill_index);
+        if self.skill(skill_ref).kind != SkillKind::Projectile
+            || !self.skill(skill_ref).standalone()
+        {
+            self.perform_main_skill_attack(skill_ref, skill_index);
+        }
         Ok(())
     }
 

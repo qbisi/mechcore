@@ -339,6 +339,9 @@ impl Simulation {
             .skills
             .main
             .performer = Performer::Sweep(Box::new(sweep));
+        if over {
+            self.perform_main_skill_attack(SkillRef::main(FightActorRef::Unit(actor_id)), 0);
+        }
         Ok(over)
     }
 
