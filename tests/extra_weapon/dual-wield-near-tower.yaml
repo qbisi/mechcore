@@ -1,0 +1,63 @@
+# Dual Wield searches target-tree actors near the main skill's previous lock.
+# After the Fang dies, its nearby tower remains a candidate even though
+# the separate construction collection is excluded. The side arm shoots
+# the tower while the main gun cools with no lock.
+kind: fight
+source: game
+map_id: 1021
+seed: 1926576976
+round: 4
+blue:
+  core_damage: 460
+  officers: [advanced_defensive_tactics, cost_control_specialist, mass_produced_fortress]
+  techs:
+    fortress: [fang_production]
+  blueprints: [attack_enhancement_ii]
+  tower_strengthen_levels: [3, 2]
+  units:
+  - {name: fortress, index: 0, position: {x: -20, y: -60}, level: 2, exp: 3605/3605/3605, rotated: true, equipment: [deployment_module]}
+  - {name: rhino, index: 1, position: {x: 65, y: -265}, level: 7, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 5, y: -205}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -215, y: 70}, {x: -215, y: -175}, {x: 5, y: -180}]}
+red:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, advanced_targeting_system, speed_specialist]
+  techs:
+    centurion: [summon_hounds, reactive_armor, melee_mode, range_enhancement, dual_wield, homing_missile]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [2, 4]
+  units:
+  - {name: centurion, index: 0, position: {x: -165, y: -35}, level: 7, exp: 7083/14167/14167, equipment: [nano_repair_kit]}
+  - {name: steel_ball, index: 1, position: {x: 225, y: -20}, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 55, y: -100}}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: 170, y: -145}]}
+asserts:
+- sql: SELECT tick,skill_slot,enabled__lock_target__kind,enabled__lock_target__id,enabled__attack_target__kind,enabled__attack_target__id
+    FROM units__skills WHERE unit_id=15 AND skill_slot=2 AND tick BETWEEN 162 AND
+    164 ORDER BY tick
+  rows:
+  - - 162
+    - 2
+    - unit
+    - 7
+    - unit
+    - 7
+  - - 163
+    - 2
+    - building
+    - 2
+    - building
+    - 2
+  - - 164
+    - 2
+    - building
+    - 2
+    - building
+    - 2
+ticks: 266
+hash: 26:dfe926af7763bea20a3db1ab392e7220b6a3b524384796ac13c292271b887e27

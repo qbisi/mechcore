@@ -226,11 +226,12 @@ impl Simulation {
     /// `SideArmSearchTargetController.PerformNormalSkillSearch`: about the
     /// main skill's lock, or the one it held last when it holds none, the
     /// side arm keeps a live lock of its own within its search range of it
-    /// and in its attack area; otherwise it takes, of the other sides' units
+    /// and in its attack area; otherwise it takes, of the other sides' actors
     /// of the anchor's domain within that range of it
     /// (`RangeTargetCalculator.CalculateRangeTargets`), the anchor aside, those
     /// in its attack area, as its selector scores them; and with none, the
-    /// anchor while it lives.
+    /// anchor while it lives. Towers in the target tree are candidates too;
+    /// `includeBuilding` false excludes the separate construction collection.
     pub(in crate::fight) fn select_side_arm_target(
         &self,
         skill_ref: SkillRef,
@@ -261,16 +262,17 @@ impl Simulation {
             air: fly,
         };
         let candidates = self
-            .units_in_range(
+            .actors_in_range(
                 (anchor_view.x_q32, anchor_view.z_q32),
                 space_to_q32(range),
                 (domains, true),
                 target_search_order,
             )
             .into_iter()
-            .map(FightActorRef::Unit)
             .filter(|&candidate| {
                 candidate != anchor
+                    && !matches!(candidate, FightActorRef::Building(id)
+                        if self.unsearchable_buildings.contains(&id))
                     && self
                         .fight_actor(candidate)
                         .is_some_and(|view| view.team != source.team && view.searchable(false))
