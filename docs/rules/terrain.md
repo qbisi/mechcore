@@ -124,6 +124,8 @@ skill carries one fog's rate however many fogs its unit stands in. Melee
 skills receive no range correction. The range retains `FPoint` precision:
 a Sledgehammer's 95 metres become 61.75, and independent extra weapons
 receive and lose the correction through their own range properties.
+The rate also scales a domain-specific range addition: Aerial Specialization's
+30 metres is added before the fog multiplies the range by 0.65.
 
 **A sand fog** writes its row's `FogAttackRangeChangeRate` on the non-melee
 skills of a unit that enters it, as a fog
@@ -382,6 +384,8 @@ already exists.
   `tests/terrain/smoke-both-sides.yaml`.
 - A fog reduces both independent Fortress weapons and restores them on exit,
   with their complete Q32 ranges: `tests/terrain/fog-extra-skill-range.yaml`.
+- Fog scales the domain-specific range addition before a lock on an aircraft
+  reads it: `tests/terrain/domain-range-addition-in-smoke.yaml`.
 - An oil writes its slow as a unit enters and every 19 ticks it stays, and
   stands into the next round: `tests/terrain/oil.yaml`.
 - An acid's buff takes 1.5% of a unit's maximum life every ten ticks from its
@@ -444,7 +448,9 @@ already exists.
   `RangeItemController.GetEffectTargetType`.
 - A fog rates every ranged skill's range, the controller its modifier:
   `FogController.PerformItemEffect`, `FogController.OnActorExit`,
-  `SkillDataChangeFloatRate.AttackRangeRate`, `FightSkill.IsMeleeAttack`.
+  `SkillDataChangeFloatRate.AttackRangeRate`, `FightSkill.IsMeleeAttack`,
+  `AttackRangeProperty.Refresh`, `AttackRangeAirProperty.GetAttackRange`,
+  `AttackRangeGroundProperty.GetAttackRange`.
 - A fire's lifetime is its own count, and its controller hits with the
   setting's damage every interval: `FightGroundFire.Update`,
   `FightGroundFire.IsTimeOver`, `GroundFireController.PerformItemEffect`,

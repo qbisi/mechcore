@@ -113,6 +113,7 @@ pub(in crate::fight) fn enter_travel(
                 .into_iter()
                 .map(|entry| (Channel::Skill, entry)),
         );
+        actor.stats.refresh(&actor.rules)?;
         let max_life_q32 = actor.stats.max_life() << 32;
         actor.life = q32_mul(max_life_q32, config.life_rate) >> 32;
         travels
@@ -254,6 +255,7 @@ impl Simulation {
         for (channel, entry) in withheld {
             actor.stats.overlays.channel(channel).write(entry);
         }
+        actor.stats.refresh(&actor.rules)?;
         actor.travelling = false;
         self.active_effect(unit_id)?;
         // Provider activation refreshes the owner's current state; an EMP
