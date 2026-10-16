@@ -208,8 +208,8 @@ impl Simulation {
         Ok(())
     }
 
-    /// `SiegeModeEffectSystem.ResetTimer`, which a blow of the unit's main
-    /// skill raises (`FightMech.PerformMainSkillAttack`).
+    /// `SiegeModeEffectSystem.ResetTimer`, which each successful effect of
+    /// the main skill raises (`FightMech.PerformMainSkillAttack`).
     pub(in crate::fight) fn reset_siege_time(&mut self, unit: u64) {
         if let Some((_, time)) = self.siege.owners.get_mut(&unit) {
             *time = 0;
