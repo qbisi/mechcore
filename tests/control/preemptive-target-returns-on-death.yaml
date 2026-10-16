@@ -1,0 +1,68 @@
+# A running preemptive skill hands the main skill back when its target returns sides.
+# At t328 Rhino 1's Whirlwind kills Crawler 14, which had been turned red.
+# Crawler 14 returns to blue on death. OnChangeTeam idles the spin and its
+# enter-idle behaviour immediately unlocks the main skill. Rhino 1 stays blue.
+# At t329 both skills acquire Hacker 31. Without the state-entry callback,
+# the main skill stayed locked and the spin idle through a different fight.
+# Full generated layout, repeated natively for 366 ticks, core damage 0/351;
+# the missed callback instead settled 605/0 after 1440 ticks.
+# Control: ../extra_weapon/whirlwind.yaml enters idle through an ordinary update.
+# Assert rows come from native queries, including the dead target's recorder team.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 339680190
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_defensive_tactics, fire_badger_specialist, berserk_rhino]
+  techs:
+    rhino: [field_maintenance, whirlwind, wreckage_recycling, power_armor, final_blitz, armor_enhancement, mechanical_rage, photon_coating, combat_evolvement]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [1, 1]
+  units:
+  - {name: rhino, index: 0, position: {x: -265, y: -205}, level: 7, exp: 3620/6810/7241, equipment: [absorption_module]}
+  - {name: fire_badger, index: 1, position: {x: 215, y: -50}, source: delivered}
+  - {name: crawler, index: 2, position: {x: -225, y: -150}, level: 3, exp: 0/1090/1603, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 280, y: -50}}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: -45, y: -10}]}
+red:
+  core_damage: 351
+  officers: [advanced_power_system, sabertooth_specialist]
+  techs:
+    hacker: [multi_control]
+  units:
+  - {name: hacker, index: 0, position: {x: 255, y: -215}, level: 5, exp: 2918/2918/2918, rotated: true, equipment: [dominion_core]}
+  - {name: sabertooth, index: 1, position: {x: 65, y: -45}, exp: 0/20/1300, source: delivered}
+  - {name: raiden, index: 2, position: {x: -60, y: -180}, level: 6, exp: 0/462/13917, source: joined}
+  battle_skills:
+  - {name: missile_strike, positions: [{x: 235, y: 75}]}
+asserts:
+- sql: |-
+    SELECT tick,type,object__id,source__id FROM events WHERE type='unit_died' AND object__id=14 ORDER BY tick,ordinal
+  rows:
+  - [328, "unit_died", 14, 1]
+- sql: |-
+    SELECT tick,team_id,recorder,recorder_id FROM statistics WHERE recorder='unit' AND recorder_id=14 AND tick BETWEEN 327 AND 329 ORDER BY tick
+  rows:
+  - [327, 1, "unit", 14]
+  - [328, 0, "unit", 14]
+  - [329, 0, "unit", 14]
+- sql: |-
+    SELECT u.tick,u.team_id,s.skill_slot,s.enabled__state,s.enabled__lock_target__id,s.enabled__attack_target__id FROM units u JOIN units__skills s ON s.tick=u.tick AND s.unit_id=u.unit_id WHERE u.unit_id=1 AND u.tick BETWEEN 327 AND 329 ORDER BY u.tick,s.skill_slot
+  rows:
+  - [327, 0, 0, "lock", null, null]
+  - [327, 0, 1, "attack", 14, 14]
+  - [328, 0, 0, "idle", null, null]
+  - [328, 0, 1, "idle", null, null]
+  - [329, 0, 0, "idle", 31, 31]
+  - [329, 0, 1, "idle", 31, 31]
+ticks: 366
+hash: 26:286140d1adaed0b53317179606e0286e81f2f17be124e01033dc993dda1b9dd0

@@ -537,6 +537,9 @@ impl Simulation {
                 !manager.preemptive_active && manager.extras[index].rules.preemptive.is_some()
             }
         };
+        let notifies_preemptive_idle = offset == 0
+            && matches!(skill_ref.slot, SkillSlot::Extra(_))
+            && self.takes_main_place(skill_ref);
         let core = self.skill_mut(skill_ref);
         if offset > 0 && skill_ref.slot == SkillSlot::Main && core.joined(offset).is_none() {
             core.set_mech_lock(None);
@@ -555,6 +558,7 @@ impl Simulation {
             }
             return;
         }
+        let was_idle = matches!(skill.state, SkillState::Idle { .. });
         match skill.state {
             SkillState::Idle { .. } => skill.attack_target_left = fired_at,
             SkillState::Cooling { .. } if cooling_steps > 0 => {}
@@ -572,7 +576,13 @@ impl Simulation {
                 skill.search_target_time = 0;
             }
         }
+        let entered_idle = !was_idle && matches!(skill.state, SkillState::Idle { .. });
         if let FightActorRef::Unit(actor_id) = skill_ref.owner {
+            // SkillIdleState.Enter executes its behaviour even when an
+            // external OnChangeTeam callback, rather than Update, enters it.
+            if notifies_preemptive_idle && entered_idle {
+                self.preemptive_enters_idle(actor_id);
+            }
             self.sync_beam(actor_id);
         }
     }
@@ -733,22 +743,11 @@ impl Simulation {
             })
             .collect();
         locked.extend(self.skills_locked_on(unit, None));
-        let running_preemptive = self.actors[&unit_id].skills.running_preemptive;
         // The change runs before any unit updates, so a skill it sends into
         // its cooling is updated in it on this tick, as if it had entered it
         // on the last.
         for (skill_ref, offset) in locked {
             self.lock_changed_team(skill_ref, offset, step.saturating_sub(1));
-        }
-        // A running preemptive skill sent to its idle state hands the main
-        // skill its place back (`PreemptiveSkillEnterIdleBehaviour`).
-        if let Some(index) = running_preemptive
-            && matches!(
-                self.actors[&unit_id].skills.extras[index].skill.state,
-                SkillState::Idle { .. }
-            )
-        {
-            self.preemptive_enters_idle(unit_id);
         }
         self.important_unit_change_team(unit_id, old_team, events)?;
         Ok(true)
