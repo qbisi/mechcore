@@ -1367,6 +1367,11 @@ impl Simulation {
             skill.write_lock(None);
         }
         skill.set_cooling(Some((started, candidate)));
+        // `SkillCoolingState.Update` enters idle on its last update. Later
+        // skills in this tick must see that state, though it updates next tick.
+        if step == started.saturating_add(cooling_steps) {
+            skill.set_cooling(None);
+        }
         skill.search_target_time = 0;
         // A standalone weapon's skill leaves the motion to the batch, which
         // may hold a lock through another weapon.
