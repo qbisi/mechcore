@@ -10,14 +10,15 @@ use crate::{Error, Result, canonical};
 /// The format: how a recording is stored, which the hash does not read.
 macro_rules! format_version {
     () => {
-        "0.26.0"
+        "0.27.0"
     };
 }
 
-/// The hash definition, numbered on its own: it moves when what the hash
-/// reads, or how, changes, and with it every pin; a change to the format that
-/// leaves the hashed content alone leaves it. Its domain strings spell profile
-/// `n` as `0.n.0`, the form it was written in while it was the format's.
+/// The hash domain, numbered independently of the physical format. A global
+/// encoding or domain change moves every pin. An optional field omitted while
+/// absent can be admitted under the same domain, moving only fights where it
+/// is present, as the admission rules specify. Domain strings spell profile
+/// `n` as `0.n.0`, the form used while this was the format's number.
 macro_rules! hash_profile {
     () => {
         "26"
@@ -346,6 +347,12 @@ impl WorldSnapshot {
             }
         }
         for unit in &self.live_units {
+            if unit.siege_elapsed.is_some_and(|elapsed| elapsed < 0) {
+                return Err(Error::invalid(format!(
+                    "unit {} has a negative siege clock",
+                    unit.unit_id
+                )));
+            }
             if unit
                 .production_lines
                 .windows(2)
@@ -848,6 +855,10 @@ pub struct LiveUnitState {
     /// this fight. Left out while it is 0, as it is for nearly every unit.
     #[serde(default, skip_serializing_if = "is_zero")]
     pub rebirth_count: u32,
+    /// `SiegeModeEffectSystem.siegeModeOwnerDurations` while this unit is
+    /// in `activeMeches`, Q32.32 seconds; absent outside its trench.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub siege_elapsed: Option<i64>,
     /// Every skill `FightMech.GetSkills()` holds, strictly ascending by slot.
     #[serde(default)]
     pub skills: Vec<SkillState>,

@@ -619,6 +619,7 @@ fn unit_batch(rows: &[(u32, LiveUnitState)]) -> Result<Option<RecordBatch>> {
                     .iter()
                     .map(|row| (row.rebirth_count != 0).then_some(row.rebirth_count)),
             ),
+            optional_i64_values(units.iter().map(|row| row.siege_elapsed)),
             production_line_values(units.iter().map(|row| &row.production_lines))?,
         ],
     )?))
@@ -1495,6 +1496,7 @@ fn unit_schema() -> SchemaRef {
         list_field("skills", skill_fields()),
         struct_field("control", control_fields(), true),
         Field::new("rebirth_count", DataType::UInt32, true),
+        Field::new("siege_elapsed", DataType::Int64, true),
         list_field("production_lines", production_line_fields()),
     ]))
 }
@@ -2448,6 +2450,7 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
         let skills = column::<ListArray>(&batch, "skills")?;
         let control = struct_column(&batch, "control")?;
         let rebirth_count = column::<UInt32Array>(&batch, "rebirth_count")?;
+        let siege_elapsed = column::<Int64Array>(&batch, "siege_elapsed")?;
         let production_lines = column::<ListArray>(&batch, "production_lines")?;
         for index in 0..batch.num_rows() {
             rows.push((
@@ -2478,6 +2481,9 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
                     skills: read_skill_list(skills, index)?,
                     control: read_control(control, index)?,
                     rebirth_count: read_rebirth_count(rebirth_count, index)?,
+                    siege_elapsed: siege_elapsed
+                        .is_valid(index)
+                        .then(|| siege_elapsed.value(index)),
                     production_lines: read_production_lines(production_lines, index)?,
                 },
             ));

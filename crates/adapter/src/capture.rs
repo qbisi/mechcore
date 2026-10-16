@@ -5,6 +5,7 @@ use crate::reach::{self, ReachMetadata};
 use crate::rebirth::{self, RebirthMetadata};
 use crate::rvo::{self, RawSolve, RvoChannels, RvoMetadata, RvoRows};
 use crate::selector::{self, RawSearch, SelectorMetadata, TargetChannels};
+use crate::siege::{self, SiegeMetadata};
 use crate::statistics::{self, StatisticsMetadata};
 use crate::{
     il2cpp::{Api, Class, FieldInfo, MethodInfo, Object, StringObject, argument, object_argument},
@@ -333,6 +334,7 @@ pub(crate) struct Metadata {
     pub(crate) selector: Option<SelectorMetadata>,
     statistics: Option<StatisticsMetadata>,
     production: ProductionMetadata,
+    siege: SiegeMetadata,
     selector_error: Option<String>,
     pub(crate) rvo: Option<RvoMetadata>,
     rvo_error: Option<String>,
@@ -1744,6 +1746,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             selector_error,
             statistics: Some(statistics::initialize(api)?),
             production: production::initialize(api)?,
+            siege: siege::initialize(api)?,
             checker,
             checker_error,
             rvo,
@@ -5951,6 +5954,7 @@ fn snapshot(
         capture.metadata.range_item_system_class,
         "RangeItemSystem",
     )?;
+    let mut siege_elapsed = siege::read(runtime.api, modules, &capture.metadata.siege)?;
     let mut raw_units = Vec::new();
     let mut raw_buildings = Vec::new();
     let mut raw_shields = Vec::new();
@@ -6120,6 +6124,7 @@ fn snapshot(
             .formation_teams
             .entry(formation_id)
             .or_insert(original_team_id);
+        unit.state.siege_elapsed = siege_elapsed.remove(&unit.pointer);
         unit.state.unit_id = unit_id;
         unit.state.original_team_id = original_team_id;
         capture.object_teams.insert(
@@ -6144,6 +6149,9 @@ fn snapshot(
             }));
         }
         units.push(unit.state);
+    }
+    if !siege_elapsed.is_empty() {
+        return Err("an active Field Entrenchment owner has no unit snapshot".into());
     }
     if let Some(previous) = renumbered {
         renumber_unit_references(capture, &previous)?;
@@ -6981,6 +6989,7 @@ fn read_unit(
             skills,
             control: None,
             production_lines: Vec::new(),
+            siege_elapsed: None,
             rebirth_count: u32::try_from(
                 api.field_value::<i32>(unit, metadata.rebirth.unit_count as *mut FieldInfo)
                     .map_err(|error| format!("FightMech.rebirthCount: {error}"))?,
@@ -9344,6 +9353,7 @@ mod tests {
     fn unit(id: u64, team: u32, formation: u64) -> LiveUnitState {
         LiveUnitState {
             production_lines: Vec::new(),
+            siege_elapsed: None,
             unit_id: id,
             team_id: team,
             original_team_id: team,

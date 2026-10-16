@@ -801,6 +801,11 @@ impl Simulation {
     pub(in crate::fight) fn unit_snapshot(&self, id: u64) -> LiveUnitState {
         let mut state = self.actors[&id].snapshot(self.skill_states(id));
         state.production_lines = self.production_line_states(id);
+        state.siege_elapsed = self
+            .siege
+            .active
+            .contains(&id)
+            .then(|| self.siege.owners[&id].1);
         state.control = self
             .translations
             .iter()
