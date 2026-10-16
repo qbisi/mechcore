@@ -1520,7 +1520,11 @@ impl Simulation {
                 if !holding_fire {
                     let skill = &mut actor.skills.main;
                     skill.drop_lock();
-                    skill.attack_target_left = None;
+                    // A stopped manager skips an idle skill with no lock.
+                    // Keep what `OnChangeTeam` left until final exit.
+                    if ready_to_finish || !matches!(skill.state, skill::SkillState::Idle { .. }) {
+                        skill.attack_target_left = None;
+                    }
                     let cooling_before = skill.cooling().is_some_and(|(started, _)| started < step);
                     if ready_to_finish || !cooling_before {
                         skill.set_cooling(None);

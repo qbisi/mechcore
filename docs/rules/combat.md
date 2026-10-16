@@ -1218,6 +1218,9 @@ decision is still cooling when the fight ends. A slot of a grouped skill is a
 skill of its own: a Raiden's second gun cooling as the fight is decided goes
 on naming the Vortex it fired at, as its core lets its lock go. A skill that was attacking
 still holds its lock, leaves the fight, and names nothing.
+An already-idle skill with no lock also stops updating. If a controlled
+unit's return to its side stopped the idle skill, it keeps the actor target
+that `StopAttack` left while the won fight runs on. The final exit clears it.
 When the fight ends, every skill leaves it, an extra skill's slots with it:
 a Hacker whose Multi Control beams were cooling on the Rhino it had just
 turned reads all five idle on the last tick,
@@ -1240,6 +1243,10 @@ not the game's native attack-type enum.
 ## Evidence
 
 ### Recorded
+
+- An idle skill whose controlled target dies retains its actor target after
+  losing its lock while projectiles drain, and clears it on final exit:
+  `tests/control/idle-target-at-fight-end.yaml`.
 
 - A Mustang projectile released and removed on the same tick strikes its
   living main tower outside the impact point's reach:
