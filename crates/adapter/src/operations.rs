@@ -134,6 +134,7 @@ pub(crate) enum InternalOperation {
     RefreshWatchScenes,
     StartEligibleWatch(crate::watch::Visits),
     SaveCurrentReplay(PathBuf),
+    Tournament(crate::tournament::Step),
     StartCapture {
         mode: crate::capture::CaptureStartMode,
         visual: bool,
@@ -160,6 +161,9 @@ pub(crate) fn execute_internal(
         InternalOperation::RefreshWatchScenes => refresh_watch_scenes(runtime),
         InternalOperation::StartEligibleWatch(visits) => start_eligible_watch(runtime, &visits),
         InternalOperation::SaveCurrentReplay(directory) => save_current_replay(runtime, &directory),
+        InternalOperation::Tournament(step) => {
+            return crate::tournament::on_main(runtime, request_id, step);
+        }
         InternalOperation::StartCapture {
             mode,
             visual,
@@ -209,7 +213,7 @@ fn operation_response(id: u64, result: Result<Value, OperationError>) -> Respons
 }
 
 #[derive(Debug)]
-enum OperationError {
+pub(crate) enum OperationError {
     InvalidArguments(String),
     InvalidState(String),
     Rejected(String),
@@ -261,6 +265,9 @@ fn execute_inner(runtime: &mut Runtime, request: &Request) -> Result<Value, Oper
         )),
         Operation::RecordWatchReplay => Err(OperationError::InvalidState(
             "record_watch_replay requires the runtime watch coordinator".into(),
+        )),
+        Operation::Tournament => Err(OperationError::InvalidState(
+            "tournament requires the runtime network coordinator".into(),
         )),
         Operation::ToggleFight => invoke_match_void(runtime, "ChangeProcessState"),
         Operation::SpeedUp => speed_up(runtime),
@@ -708,7 +715,7 @@ fn save_current_replay(runtime: &Runtime, directory: &Path) -> Result<Value, Ope
 /// Retrieve an application-owned `PureMVC` proxy without relying on a generic
 /// method instantiation being present in the IL2CPP method table. `ProxyGroup`
 /// controls registration; constructing one here can race login initialization.
-fn find_proxy(
+pub(crate) fn find_proxy(
     runtime: &Runtime,
     short_name: &str,
     full_name: &str,
@@ -4118,7 +4125,7 @@ fn release_battle_skill(
     perform_sync(runtime.api, controller, action)
 }
 
-fn list_count(api: Api, list: *mut Object) -> Result<i32, OperationError> {
+pub(crate) fn list_count(api: Api, list: *mut Object) -> Result<i32, OperationError> {
     if list.is_null() {
         return Err(OperationError::InvalidState("managed list is null".into()));
     }
@@ -4132,7 +4139,11 @@ fn list_count(api: Api, list: *mut Object) -> Result<i32, OperationError> {
     }
 }
 
-fn list_item(api: Api, list: *mut Object, index: i32) -> Result<*mut Object, OperationError> {
+pub(crate) fn list_item(
+    api: Api,
+    list: *mut Object,
+    index: i32,
+) -> Result<*mut Object, OperationError> {
     let mut index = index;
     Ok(api.invoke(list, "get_Item", &mut [argument(&mut index)])?)
 }

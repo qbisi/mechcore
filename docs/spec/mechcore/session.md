@@ -57,8 +57,8 @@ The game is shared ([adapter.md](../adapter/adapter.md#turns)), so every claim
 is greeted, however many clients are connected and whatever they are doing:
 
 ```json
-{"kind":"hello","protocol":"mechcore.adapter.v13","capabilities":["status", "..."],"game":{"adapter":"…","headless":true,"offline":true,"linger_seconds":30}}
-{"kind":"leaving","protocol":"mechcore.adapter.v13"}
+{"kind":"hello","protocol":"mechcore.adapter.v14","capabilities":["status", "..."],"game":{"adapter":"…","headless":true,"offline":true,"linger_seconds":30}}
+{"kind":"leaving","protocol":"mechcore.adapter.v14"}
 ```
 
 The one other answer is `leaving`, from a game that has started to quit. A

@@ -8,7 +8,7 @@ use std::path::PathBuf;
 /// A running game keeps the Adapter it was started with, so a rebuilt Adapter
 /// and a running game can differ. Naming the contract is what turns that into
 /// one clear refusal at connect time instead of a desynchronised stream.
-pub const PROTOCOL: &str = "mechcore.adapter.v13";
+pub const PROTOCOL: &str = "mechcore.adapter.v14";
 /// Highest round `apply_layout` will stage.
 ///
 /// This is the executor's timeout budget for advancing through every earlier
@@ -42,6 +42,7 @@ pub enum Operation {
     RecordFight,
     RecordReplayRound,
     RecordWatchReplay,
+    Tournament,
     ToggleFight,
     SpeedUp,
     QuitMatch,
@@ -51,13 +52,14 @@ pub enum Operation {
 }
 
 impl Operation {
-    pub const ALL: [Self; 12] = [
+    pub const ALL: [Self; 13] = [
         Self::Status,
         Self::StartTest,
         Self::ApplyLayout,
         Self::RecordFight,
         Self::RecordReplayRound,
         Self::RecordWatchReplay,
+        Self::Tournament,
         Self::ToggleFight,
         Self::SpeedUp,
         Self::QuitMatch,
@@ -75,6 +77,7 @@ impl Operation {
             Self::RecordFight => "record_fight",
             Self::RecordReplayRound => "record_replay_round",
             Self::RecordWatchReplay => "record_watch_replay",
+            Self::Tournament => "tournament",
             Self::ToggleFight => "toggle_fight",
             Self::SpeedUp => "speed_up",
             Self::QuitMatch => "quit_match",
@@ -89,7 +92,9 @@ impl Operation {
     pub const fn admission(self) -> Admission {
         match self {
             Self::Status | Self::Queue | Self::QuitGame => Admission::Immediate,
-            Self::RecordReplayRound | Self::RecordWatchReplay | Self::Lease => Admission::Turn,
+            Self::RecordReplayRound | Self::RecordWatchReplay | Self::Tournament | Self::Lease => {
+                Admission::Turn
+            }
             Self::StartTest
             | Self::ApplyLayout
             | Self::RecordFight
@@ -109,8 +114,8 @@ pub enum Admission {
     /// Answered at once, whoever holds the game: `status`, `queue`, and
     /// `quit_game`, which ends every client's work.
     Immediate,
-    /// Waits for its turn and starts and ends at the main menu: a sceneless
-    /// recording, a watched match, or the lease itself.
+    /// Waits for its turn: a sceneless recording, a watched match, an online
+    /// tournament request, or the lease itself.
     Turn,
     /// Acts on a scene, so only the client holding the lease may ask for it.
     Leased,
@@ -553,6 +558,7 @@ mod tests {
                 "record_fight",
                 "record_replay_round",
                 "record_watch_replay",
+                "tournament",
                 "toggle_fight",
                 "speed_up",
                 "quit_match",
@@ -601,7 +607,7 @@ mod tests {
             .unwrap(),
             serde_json::json!({
                 "kind": "hello",
-                "protocol": "mechcore.adapter.v13",
+                "protocol": "mechcore.adapter.v14",
                 "capabilities": [
                     "status",
                     "start_test",
@@ -609,6 +615,7 @@ mod tests {
                     "record_fight",
                     "record_replay_round",
                     "record_watch_replay",
+                    "tournament",
                     "toggle_fight",
                     "speed_up",
                     "quit_match",
@@ -627,20 +634,20 @@ mod tests {
             serde_json::to_value(Claim::current(DEFAULT_LEVEL, "corpus")).unwrap(),
             serde_json::json!({
                 "kind": "claim",
-                "protocol": "mechcore.adapter.v13",
+                "protocol": "mechcore.adapter.v14",
                 "level": 1,
                 "client": "corpus",
             })
         );
         assert_eq!(
             serde_json::to_value(Leaving::current()).unwrap(),
-            serde_json::json!({"kind": "leaving", "protocol": "mechcore.adapter.v13"})
+            serde_json::json!({"kind": "leaving", "protocol": "mechcore.adapter.v14"})
         );
         assert_eq!(
             serde_json::to_value(Evicted::current(4)).unwrap(),
             serde_json::json!({
                 "kind": "evicted",
-                "protocol": "mechcore.adapter.v13",
+                "protocol": "mechcore.adapter.v14",
                 "by_level": 4,
             })
         );
@@ -685,6 +692,7 @@ mod tests {
         );
         assert_eq!(Operation::Lease.admission(), Admission::Turn);
         assert_eq!(Operation::RecordReplayRound.admission(), Admission::Turn);
+        assert_eq!(Operation::Tournament.admission(), Admission::Turn);
         assert_eq!(Operation::QuitGame.admission(), Admission::Immediate);
     }
 
