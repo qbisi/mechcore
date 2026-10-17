@@ -461,6 +461,7 @@ energy_tower_skills:
 maps:
   1001: {en: "Railway Town", zh: "铁道小镇"}
   1011: {en: "Forest Eye", zh: "森林巨眼"}
+  1012: {en: "Forest Eye", zh: "森林巨眼"}
   1021: {en: "Training Base", zh: "训练基地"}
   1031: {en: "Railway Town - Dusk", zh: "铁道小镇-黄昏"}
   1032: {en: "Railway Town - Night", zh: "铁道小镇-深夜"}

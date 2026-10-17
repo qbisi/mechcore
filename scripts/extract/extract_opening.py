@@ -16,7 +16,8 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import build_data  # noqa: E402
 
-MAPS = (1001, 1011, 1021, 1031, 1032)
+# 1012 is the tournament's grass map, with the same deployment rules as 1011.
+MAPS = (1001, 1011, 1012, 1021, 1031, 1032)
 
 
 def seat_centres(layout):

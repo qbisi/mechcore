@@ -24,6 +24,15 @@ collected match directory without fetching or converting native replays.
 The scripts that export, compare or record GRBRs need a local native archive;
 partial matches do not reconstruct missing native history.
 
+Server downloads are also local inputs: the game keeps the original protobuf
+as `.rep.bak` and writes its reconstructed GRBR as `.rep.grbr`. Convert the
+latter with `mechcore convert <download.rep.grbr> --to match <match.yaml>`.
+The converter restores the server snapshot conventions described in
+[`match.md`](../../docs/spec/document/match.md#server-snapshot-reconstruction),
+including paid income and omitted action operands; it checks the random
+streams and offers rather than treating `Seat = -1` as grounds for refusal.
+Only the resulting match YAML is eligible for corpus publication.
+
 `collect-replays.py --duration-seconds 120` collects for two minutes and finishes
 the last room's cleanup. It does not wait for the round or match to finish, or
 write to the game's Replay directory. `game record --watch` itself saves only
