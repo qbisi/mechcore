@@ -14,7 +14,7 @@ restating them. Cross-scene readiness is not here either. A lifecycle operation
 returns when its own native work completes, and waiting for the game to settle
 afterwards belongs to [session.md](../mechcore/session.md).
 
-Every operation mutates a live game and reads the result back. All of them are
+Operations read a live game or submit native actions and read the result back. All are
 fail-closed: an accepted native action is never sufficient on its own, and
 nothing partial is ever published.
 
@@ -136,7 +136,7 @@ Messages are UTF-8 JSON, one object per line, with a maximum encoded size of
 1 MiB. A new connection speaks first, and says who it is and what it is worth:
 
 ```json
-{"kind":"claim","protocol":"mechcore.adapter.v13","level":1,"client":"mechcore-divergence"}
+{"kind":"claim","protocol":"mechcore.adapter.v14","level":1,"client":"mechcore-divergence"}
 ```
 
 `client` names whose requests these are, and is what turns are shared out by:
@@ -154,7 +154,7 @@ Every claim receives:
 ```json
 {
   "kind": "hello",
-  "protocol": "mechcore.adapter.v13",
+  "protocol": "mechcore.adapter.v14",
   "capabilities": [
     "status",
     "start_test",
@@ -162,6 +162,7 @@ Every claim receives:
     "record_fight",
     "record_replay_round",
     "record_watch_replay",
+    "tournament",
     "toggle_fight",
     "speed_up",
     "quit_match",
@@ -236,9 +237,9 @@ the operation:
   game. `status` asked by anyone but the lease holder is what the game last
   answered, read at least once a second while it is free and after every turn:
   asking the game itself would wait for somebody else's turn to end.
-- **In its turn.** `record_replay_round`, `record_watch_replay` and `lease`
-  wait in line. The first two start and end at the main menu, so a turn needs
-  nothing from the one before it.
+- **In its turn.** `record_replay_round`, `record_watch_replay`, `tournament`
+  and `lease` wait in line. Recordings start and end at the main menu;
+  tournament requests use the online proxies without entering a match.
 - **Under the lease.** `start_test`, `apply_layout`, `record_fight`,
   `toggle_fight`, `speed_up` and `quit_match` act on a scene, which outlives
   the request that made it, so only the client holding the lease may ask for
@@ -260,7 +261,7 @@ as does any request at all once the lease has gone 60 s without a scene request:
 the holder is told
 
 ```json
-{"kind":"evicted","protocol":"mechcore.adapter.v13","by_level":3}
+{"kind":"evicted","protocol":"mechcore.adapter.v14","by_level":3}
 ```
 
 and its connection closes. That notice is the difference between a taken game
@@ -863,6 +864,57 @@ must return to `main_menu` and publish a nonempty native replay under the
 requested work directory. Check that the default Replay directory has no new
 files and repeat entry after the cooldown to compare the same room's BattleID.
 Converting these partial replays to match documents is a separate task.
+
+### tournament
+
+An online-only API for tournament history and the game's server replay downloader.
+It has no CLI verb. Each action owns one scheduler turn, yields to higher levels,
+and waits at most 65 seconds, including online login and the native response.
+Download preparation also waits for the native `TryLoadReplay(false)` cache load.
+Python callers normally claim level 0. Sandboxed games refuse it with
+`invalid_game_state`; malformed arguments with `invalid_arguments`; native
+failures with `tournament_failed`; an unfinished response with `operation_timeout`.
+
+List the recent tournaments retained by the server:
+
+```json
+{"action":"list"}
+```
+
+The result contains `ready: true` and `tournaments`, each with `match_id`,
+`sub_ids`, Unix-second `start_time`, localized `title`, three untranslated
+configuration `params`, and `division_type`. The game's history request
+throttle may reuse its cached list. Dates, regions and tournament selection
+belong to the caller; download selection uses `match_id`.
+
+Load a subdivision's ranking page, starting with page 1:
+
+```json
+{"action":"page","match_id":12345,"sub_id":0,"page":1}
+```
+
+The result contains `ready`, `match_id`, `sub_id`, `page`, `pages`,
+`rank_count` and deduplicated `replays` (native server paths). The native
+rank cache accumulates pages; callers deduplicate paths across all pages and
+subdivisions. The current cached page is reused; the accumulated rows can
+also include other pages. A tournament must first be
+loaded by `list`.
+
+Download and export one replay through `ReplayProxy`:
+
+```json
+{"action":"download","replay_path":"1.2.3/123456789.rep","output":"/absolute/work/tournaments/replay.grbr"}
+```
+
+The path must have the game's `<numeric-version>/<numeric-id>.rep` form;
+`output` must be a new absolute `.grbr` path. The game downloads and decodes
+the protobuf through its normal replay cache. The Adapter serializes the
+resulting native replay, checks that the document reader accepts it, then
+publishes atomically without overwriting. The result contains `ready`,
+`battle_id`, `replay_path` and `output`. The native `BattleID` is the match's
+identity, independent of the numeric server filename. Native cache files
+remain in the game's Replay directory. Match conversion and batch publication
+belong to `scripts/corpus/tournament-replays.py`, outside this API.
 
 ### lease
 

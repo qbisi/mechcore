@@ -10,6 +10,7 @@ recording studies; the earlier native archive remains in Git history.
 | Script | What it does |
 | --- | --- |
 | `collect-replays.py` | enters live standard 1v1 rooms at round 2 or later, saves the native cache, leaves, then converts it to `BattleID-rN.yaml` in `work/watch/` (or `--output-dir`); it needs the game |
+| `tournament-replays.py` | lists recent tournaments with dates and regions, then downloads every subdivision and ranking page of one tournament ID through the Adapter and converts unique replays to `{BattleID}.yaml`; it needs an online game |
 | `replay.py` | `sync` fetches the corpus into the untracked `work/replay/`; `path` prints its versioned match directory; `publish --source <dir>` validates and uploads collected match YAML, and `--dry-run` checks without publishing |
 | `export-replay-corpus.py` | converts this checkout's version's replays into `work/match/<version>/`, writes each match back as a replay and converts it again, and fails on one that does not come back the same |
 | `verify-matches.py` | runs `mechcore verify` over those matches, adds up the transition coverage, and lists every round the simulator fights whose result differs from the match, with whether `tests/corpus/` pins it, and every round it refuses, each match's last round fought on its own |
@@ -32,6 +33,29 @@ The converter restores the server snapshot conventions described in
 including paid income and omitted action operands; it checks the random
 streams and offers rather than treating `Seat = -1` as grounds for refusal.
 Only the resulting match YAML is eligible for corpus publication.
+
+Tournament collection uses the Adapter directly, with no new CLI operation:
+
+```sh
+target/release/mechcore game launch --online --level 0
+uv run --with pyyaml python scripts/corpus/tournament-replays.py list
+uv run --with pyyaml python scripts/corpus/tournament-replays.py download --id 12345 --output-dir work/tournaments
+```
+
+`list` prints JSON lines containing the tournament ID, localized title, region,
+date and start time, plus native subdivision IDs. Dates use local time;
+`--timezone Asia/Shanghai` before the subcommand selects an explicit timezone.
+`download --id` selects exactly that tournament and deduplicates server replay
+paths across both players, all subdivisions and all ranking pages. It names
+matches from their embedded `BattleID`, independently of the server filename.
+Existing equal matches are skipped; different contents at the same name fail.
+Native GRBRs and a resumable manifest remain under `.downloads/`; conversion
+failures preserve their inputs and make the batch exit nonzero. Restart the
+same command to resume. Both actions default to scheduler level 0.
+Conversion keeps the converter's current-build and standard 1v1 checks;
+older-version and 2v2 inputs remain native files with explicit errors.
+These local `{BattleID}.yaml` files are not directly named for `replay.py publish`,
+which requires the captured-round suffix described below.
 
 `collect-replays.py --duration-seconds 120` collects for two minutes and finishes
 the last room's cleanup. It does not wait for the round or match to finish, or

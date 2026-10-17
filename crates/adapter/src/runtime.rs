@@ -233,7 +233,7 @@ fn execute_on_main(runtime: &mut Runtime, request: &Request) -> Response<Value> 
     execute_action_on_main(runtime, Some(request), request.id, None, MainAction::Public)
 }
 
-fn execute_internal_on_main(
+pub(crate) fn execute_internal_on_main(
     runtime: &mut Runtime,
     request_id: u64,
     operation: operations::InternalOperation,
@@ -614,6 +614,7 @@ fn serve(runtime: &mut Runtime, shared: &Shared, waiting: &Waiting, writer: Opti
         ),
         Operation::RecordReplayRound => execute_replay_recording_series(runtime, request),
         Operation::RecordWatchReplay => execute_watch_replay_series(runtime, request),
+        Operation::Tournament => crate::tournament::execute(runtime, request),
         _ => execute_on_main(runtime, request),
     };
     answer(writer, &response);
@@ -2124,12 +2125,12 @@ const STOPPED_MESSAGE: &str = "the game was stopped with quit_game";
 const CANCELLED_CODE: &str = "cancelled";
 
 /// Whether the running request is to stop where it is.
-fn abandoning() -> bool {
+pub(crate) fn abandoning() -> bool {
     ABANDON.load(Ordering::SeqCst) != KEEP
 }
 
 /// The error code and message an abandoned request answers with.
-fn abandonment() -> (&'static str, String) {
+pub(crate) fn abandonment() -> (&'static str, String) {
     match ABANDON.load(Ordering::SeqCst) {
         OUTRANKED => (
             EVICTED_CODE,

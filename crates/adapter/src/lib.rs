@@ -19,6 +19,7 @@ mod scheduler;
 mod selector;
 mod siege;
 mod statistics;
+mod tournament;
 mod video;
 mod watch;
 
