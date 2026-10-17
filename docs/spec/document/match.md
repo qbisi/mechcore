@@ -531,8 +531,13 @@ no fight. For a complete prefix it is also idempotent across this format: a matc
 replay ([match-replay.md](match-replay.md)) converts to the same match, byte
 for byte.
 
+The converter reads client recordings and the GRBR files the game creates
+from downloaded server replays. The server's original protobuf backup (`.rep.bak`)
+is not a GRBR input; open the downloaded replay in the game to obtain its
+converted `.rep.grbr`.
+
 The converter refuses rather than guesses. A replay from another build, a
-downloaded one, a match mode other than `VS_1_1`, a `Test` match, a match
+match mode other than `VS_1_1`, a `Test` match, a match
 carrying game rules, rounds that are not the contiguous sequence both sides
 share, an object this build's catalogues cannot name, and an action this format
 has no representation for are each an error naming what was found.
@@ -596,7 +601,7 @@ define:
 | --- | --- |
 | `random_state` | The replay snapshot precedes the current deal or deliveries; the state carries each stream after them |
 | `reinforce_pool` | The seed-derived pool plus the replayed deal gives effective membership changes, replacing the historical operation log |
-| `supply` | The snapshot precedes the round's income, which is added back from the map settings the record itself carries, plus what the equipment on the board the round opens with pays, less the energy tower debt |
+| `supply` | A client snapshot precedes the round's income, which is added back from the map settings the record itself carries, plus what the equipment on the board the round opens with pays, less the energy tower debt. A server snapshot with `IsSpecialSupply` already includes this payment |
 | `reinforce_offers`' `decline_offer` | The record lists the cards alone. The decline is offered after them in every round that deals any, and its `refund` is the map's figure, or in a unit round the schedule's for that round, from the pool the seed selects; a match whose opening this build cannot deal is refused |
 | `battle_skills[].cooldown` | The recorded cooldowns are the previous round's. A slot the previous round spent restarts at its skill's cooldown, and every other drops by one to zero |
 | `energy_tower_skills` | The recorded list is a debt rather than an activation, so a round's start carries none |
@@ -616,7 +621,7 @@ follow two sets of rules. The snapshot marks those same slots active, and one
 that marks another is refused. The opening pays the income schedule every versus map
 shares, so a record whose map pays a different one is refused.
 
-The energy tower debt is the one quantity two readings produce, and the two have
+In a client recording, energy tower debt is the one quantity two readings produce, and the two have
 to agree. A round's decisions say what it owes, and the recorded list says the
 same thing a round later, because the activation flag survives into the round
 after the one that set it. Only the skill with a deferred half can be
@@ -631,8 +636,9 @@ object lists. A skill that leaves an object standing keeps it in that skill's
 that outlived the round which made it, and it goes on the slot it is recorded
 under. The two kinds differ in what they do with the entry's `round`: an oil
 area counts its remaining lifetime down and is dropped at zero, while a Shield
-Airdrop is not time-limited, always records zero, and simply loses its entry
-once the shield is gone. A live `rangeItems` entry belonging to any other skill
+Airdrop is not time-limited and simply loses its entry once the shield is
+gone. Its generic `round` field is ignored: client snapshots write zero, while
+server reconstructions may write one. A live `rangeItems` entry belonging to any other skill
 is an error, since this format has not been measured against it.
 
 A shield the requested round releases is a decision in that round's action
@@ -643,6 +649,32 @@ state segment is taken before the round's own decisions.
 travelling set before the round it opens, so no state segment carries a
 travelling unit. The field is absent because that is its value here, not
 because the conversion could not find it.
+
+### Server snapshot reconstruction
+
+Server reconstructions carry `IsSpecialSupply=true`. Their supply already
+includes the coming income: the game's snapshot restoration locks the next
+income payment. Conversion keeps that supply while applying the ordinary
+cooldown resets, allowances and officer deliveries. The server omits the
+energy tower debt list; preceding actions identify the debt, whose payment is
+already included in the recorded supply.
+
+Their round-zero shared random state precedes pool initialization, while a
+client recording's follows it. Conversion checks the appropriate seeded
+boundary, deals the server opening after initialization, and retains the
+checks against subsequent recorded streams, offers and pool logs. A server
+opening omits the team ID; its offer index and the first round's specialist
+identify the seed-derived choice. Server reinforcement picks omit their
+index; a nonzero card ID must occur in the recorded offers, while zero means
+decline.
+
+An opening formation without coordinates uses the game's automatic landing
+rule, in recorded creation order and on its side's board. A position of
+`(0, 0)` or `(int.MinValue, int.MinValue)` has this meaning in native snapshot
+restoration. Completed research chains may contain both stages in a server
+snapshot; only the successor remains active in the match. Tournament map
+1012 uses the same board and deployment settings as map 1011 and is included
+in the extracted map and opening catalogues.
 
 ## Normal form
 

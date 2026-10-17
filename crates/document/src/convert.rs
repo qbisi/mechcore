@@ -1,7 +1,8 @@
 //! Fills a match document from one recorded match.
 //!
 //! Most fields are copied. Four are rebuilt, because the snapshot the game
-//! writes precedes the round's own reset: `supply` gains the round's income,
+//! writes precedes the round's own reset: client `supply` gains the round's income
+//! (server snapshots already include it),
 //! the two shop counters are restored to the round's allowance, the energy
 //! tower list is the set activated during the round and so empty at its
 //! start, and the equipment list drops what the formations carry.
@@ -64,12 +65,12 @@ impl Seat {
     }
 }
 
-/// Converts one locally recorded GRBR replay into a match document.
+/// Converts a client-recorded or server-downloaded GRBR into a match document.
 ///
 /// # Errors
 ///
-/// Returns an error when the replay is not a standard 1v1 of this version recorded
-/// by this machine, when its rounds are not the contiguous sequence both sides
+/// Returns an error when the replay is not a standard 1v1 of this version,
+/// when its rounds are not the contiguous sequence both sides
 /// and the match share, or when it contains an object this build's catalogues
 /// or this format cannot name.
 pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
@@ -149,9 +150,9 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
     }
 
     // The four combinations each side was dealt are recorded nowhere, and are
-    // not lost: they are drawn from the match's reinforcement stream, which the
-    // opening round's snapshot carries. `crate::opening` rebuilds them.
-    let dealt = if has_opening {
+    // not lost: the seed determines them. A client opening snapshot is already
+    // initialized; a server opening snapshot is still the raw seeded stream.
+    let dealt = if has_opening && !blue.rounds.entries[0].data.special_supply {
         opening_offers(economy, &record.match_rounds.entries[0])?
     } else {
         predicted.deal.clone()
@@ -195,13 +196,6 @@ fn readable(record: &record::BattleRecord) -> Result<(), String> {
             record.version,
             replay_version()
         ));
-    }
-    if record.seat < 0 {
-        return Err(
-            "replay was downloaded from the server, whose snapshots are reconstructions; \
-             see scripts/corpus/README.md"
-                .into(),
-        );
     }
     if record.info.match_mode != "VS_1_1" {
         return Err(format!(
@@ -331,7 +325,19 @@ fn deal_lands_on_the_record(
             .and_then(|at| native.match_rounds.entries.get(at))
             .map(|entry| entry.random_state.states.values.as_slice())
     };
-    let seeded = opening::initialize(native.info.system_seed)?.stream.state();
+    // A server's round-zero scene snapshot precedes pool initialization;
+    // the client recorder takes its snapshot after that initialization.
+    let seeded = if native.players.entries.iter().all(|player| {
+        player
+            .rounds
+            .entries
+            .first()
+            .is_some_and(|round| round.data.special_supply)
+    }) {
+        Stream::seeded(native.info.system_seed).state()
+    } else {
+        opening::initialize(native.info.system_seed)?.stream.state()
+    };
     if recorded(0) != Some(seeded.as_slice()) {
         return Err(format!(
             "seed {} does not reach the random state the opening round recorded",
@@ -562,6 +568,12 @@ fn opening_taken(
                 dealt.len()
             )
         })?;
+    // Server operations retain the selected offer index but omit its team ID.
+    let team = if team == -1 && round.data.special_supply {
+        taken.team
+    } else {
+        team
+    };
     if taken.team != team || taken.specialist != specialist {
         return Err(format!(
             "{} took team {team} with specialist {specialist:?} at offer {offer}, \
@@ -639,9 +651,6 @@ fn side_state(
 
     stand_on_panel(grbr, round, seat, &mut battle_skills)?;
 
-    let mut blueprints = data.blueprints.values.clone();
-    blueprints.sort_unstable();
-
     let mut officers: Vec<i32> = data
         .officers
         .values
@@ -670,7 +679,7 @@ fn side_state(
         unlocked_units,
         // The allowances are the opening's to set.
         shop: crate::r#match::Allowances::default(),
-        blueprints,
+        blueprints: active_blueprints(economy, data),
         // What the previous round activated and still owes for, which the
         // opening charges against the income and then lapses.
         energy_tower_skills: if energy_tower_debt(player, position, seat)? {
@@ -698,8 +707,28 @@ fn side_state(
     // opening is made here, and each delivery lands where the board puts it.
     let mut placement = crate::landing::placement(seat == Seat::Red);
     let stream = player_stream(economy, player, position, seat)?;
-    crate::transition::open_round(economy, &snapshot, round, &mut placement, Some(stream))
-        .map_err(|reason| format!("round {round} {} delivery: {reason:?}", seat.name()))
+    let mut opened =
+        crate::transition::open_round(economy, &snapshot, round, &mut placement, Some(stream))
+            .map_err(|reason| format!("round {round} {} delivery: {reason:?}", seat.name()))?;
+    if data.special_supply {
+        // PlayerSnapshotController.ApplySnapshot locks Player.AddRoundSupply:
+        // NetworkMessageData.Convert already added roundSupply to supply.
+        opened.supply = data.supply;
+    }
+    Ok(opened)
+}
+
+/// The server retains every completed research, while the native manager
+/// replaces a chain's first stage with its successor.
+fn active_blueprints(economy: &Economy, data: &PlayerData) -> Vec<i32> {
+    let mut blueprints = data.blueprints.values.clone();
+    blueprints.retain(|id| {
+        !economy
+            .blueprint_successor(*id)
+            .is_some_and(|next| data.blueprints.values.contains(&next))
+    });
+    blueprints.sort_unstable();
+    blueprints
 }
 
 /// Puts what earlier releases left standing, as the round's snapshot lists
@@ -835,7 +864,11 @@ fn shared_income(
 
 /// The unit roster, as the layout formations a projection would keep.
 fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
-    let mut formations = Vec::with_capacity(data.units.entries.len());
+    let mut board = SideState {
+        constructions: constructions(data, seat)?,
+        contraptions: contraptions(data, seat)?,
+        ..SideState::default()
+    };
     for unit in &data.units.entries {
         let (type_name, _) = unit_type_from_id(unit.id).ok_or_else(|| {
             format!(
@@ -844,13 +877,30 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
                 replay_version()
             )
         })?;
-        formations.push(StateUnit {
+        // NetworkMessageData.Convert(CardInfo) writes this sentinel when the
+        // server leaves a new unit unplaced. ApplyUnitSnapshot restores it
+        // through MAD_AddUnit, whose normal landing rule chooses its position.
+        let position = if (unit.position.x == i32::MIN && unit.position.y == i32::MIN)
+            || (unit.position.x == 0 && unit.position.y == 0)
+        {
+            crate::landing::landing(&board, type_name, seat == Seat::Red)
+                .ok_or_else(|| format!("no landing position for recorded unit {}", unit.index))?
+        } else {
+            if unit.position.x == i32::MIN || unit.position.y == i32::MIN {
+                return Err(format!(
+                    "recorded unit {} has an incomplete position",
+                    unit.index
+                ));
+            }
+            seat.position(&unit.position)
+        };
+        board.units.push(StateUnit {
             value: Some(unit.sell_supply),
             redeployed: false,
             unit: UnitPlacement {
                 type_name: type_name.to_owned(),
                 index: unit.index,
-                position: seat.position(&unit.position),
+                position,
                 // The record counts paid upgrades from zero; a layout displays the
                 // level from one.
                 level: Some(unit.level + 1).filter(|level| *level != 1),
@@ -863,8 +913,8 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
             },
         });
     }
-    formations.sort_by_key(|entry| entry.unit.index);
-    Ok(formations)
+    board.units.sort_by_key(|entry| entry.unit.index);
+    Ok(board.units)
 }
 
 /// The snapshot portion of a synthetic layout replay. Its restoration commands
@@ -1002,6 +1052,12 @@ fn energy_tower_debt(
                 && action.skill_id == Some(RAPID_SUPPLY_SKILL)
         })
     });
+    // NetworkMessageData.Convert does not populate energyTowerSkills. The
+    // recorded actions still identify the debt, and special_supply already
+    // includes its effect on the coming income.
+    if entry.data.special_supply && recorded.is_empty() {
+        return Ok(owed);
+    }
     let expected: &[i32] = if owed { &[RAPID_SUPPLY_SKILL] } else { &[] };
     if recorded == expected {
         return Ok(owed);
@@ -1499,6 +1555,37 @@ fn step_aside(
 /// round's offers.
 const RECORDED_DECLINE: i32 = -1;
 
+/// Server picks name a card but omit its offer index; zero alone is decline.
+fn reinforcement_choice(
+    action: &ActionRecord,
+    offers: Option<&Offers>,
+    special_supply: bool,
+) -> Result<Action, String> {
+    let mut index = action.index.ok_or("PAD_ChooseReinforceItem has no Index")?;
+    if index == RECORDED_DECLINE && special_supply {
+        let id = action.id.ok_or("PAD_ChooseReinforceItem has no ID")?;
+        if id != 0 {
+            index = offers
+                .and_then(|offers| offers.dealt.iter().position(|item| *item == id))
+                .and_then(|at| i32::try_from(at).ok())
+                .ok_or_else(|| format!("server choice {id} is not among the round's offers"))?;
+        }
+    }
+    if index == RECORDED_DECLINE {
+        Ok(Action::ChooseReinforceItem {
+            index: offers
+                .map(Offers::decline_index)
+                .ok_or("a decline in a round that deals no offers")?,
+            id: None,
+        })
+    } else {
+        Ok(Action::ChooseReinforceItem {
+            index,
+            id: Some(action.id.ok_or("PAD_ChooseReinforceItem has no ID")?),
+        })
+    }
+}
+
 fn recorded_actions(
     round: &PlayerRoundRecord,
     seat: Seat,
@@ -1517,23 +1604,7 @@ fn recorded_actions(
         };
         converted.push(Recorded::Taken(match action.kind.as_str() {
             "PAD_ChooseReinforceItem" => {
-                // The game records declining as the same decision at an index
-                // of -1, with an `ID` of zero; a document writes it at the
-                // decline's own position, after the cards dealt.
-                let index = field("Index", action.index)?;
-                if index == RECORDED_DECLINE {
-                    Action::ChooseReinforceItem {
-                        index: offers
-                            .map(Offers::decline_index)
-                            .ok_or("a decline in a round that deals no offers")?,
-                        id: None,
-                    }
-                } else {
-                    Action::ChooseReinforceItem {
-                        index,
-                        id: Some(field("ID", action.id)?),
-                    }
-                }
+                reinforcement_choice(action, offers, round.data.special_supply)?
             }
             "PAD_BuyUnit" => Action::BuyUnit {
                 unit: field("UID", action.unit_id)?,
@@ -1636,6 +1707,237 @@ fn skill_target(action: &ActionRecord, seat: Seat) -> Result<SkillTarget, String
 mod tests {
     use crate::Position;
     use crate::r#match::Action;
+
+    fn opening_side(
+        economy: &crate::economy::Economy,
+        name: &str,
+        offers: Vec<crate::r#match::OpeningOffer>,
+        constructions: Vec<crate::StaticPlacement>,
+        seed: i32,
+    ) -> (crate::r#match::MatchSide, crate::r#match::SideState) {
+        use crate::r#match::{MatchSide, Opening};
+        let taken = &offers[0];
+        let state = crate::transition::predict(
+            economy,
+            0,
+            &crate::transition::before_opening(4500, constructions.clone()),
+            &[Action::ChooseAdvanceTeam {
+                index: 0,
+                id: taken.team,
+                specialist: taken.specialist,
+            }],
+            name == "red",
+            None,
+            Some(crate::opening::Stream::seeded(seed)),
+        )
+        .unwrap();
+        (
+            MatchSide {
+                name: name.into(),
+                opening: Opening {
+                    choose: Some(0),
+                    offers,
+                },
+                constructions,
+                seed: Some(seed),
+                tech_loadout: std::collections::BTreeMap::default(),
+            },
+            state,
+        )
+    }
+
+    #[test]
+    fn a_server_opening_starts_before_pool_setup_and_keeps_its_chosen_offer() {
+        use crate::r#match::{Match, State, Turn, TurnActions};
+        let economy = crate::economy::Economy::embedded().unwrap();
+        let predicted = crate::opening::predict(economy, 12345, 1012).unwrap();
+        let (blue, blue_state) = opening_side(
+            economy,
+            "blue",
+            predicted.deal.blue,
+            predicted.constructions.blue,
+            7,
+        );
+        let (red, red_state) = opening_side(
+            economy,
+            "red",
+            predicted.deal.red,
+            predicted.constructions.red,
+            9,
+        );
+        let mut game = Match {
+            has_opening: true,
+            game_build: crate::game_build().into(),
+            map_id: 1012,
+            seed: 12345,
+            deploy_time: Some(100),
+            blue,
+            red,
+            turns: vec![Turn {
+                round: 1,
+                state: State {
+                    blue: blue_state,
+                    red: red_state,
+                    ..Default::default()
+                },
+                actions: TurnActions::default(),
+            }],
+        };
+        crate::reinforcement::fill_checkpoints(economy, &mut game).unwrap();
+        let yaml = crate::r#match::canonical_yaml(&game).unwrap();
+        let stated = crate::opening::stated(yaml.as_bytes()).unwrap().unwrap();
+        let native =
+            crate::match_replay::match_replay(economy, &stated, crate::game_build()).unwrap();
+        let expected = super::document(economy, &native).unwrap().yaml;
+        let words = |state: [u64; 4]| {
+            state
+                .map(|word| format!("<unsignedLong>{word}</unsignedLong>"))
+                .concat()
+        };
+        let xml = crate::record::embedded_xml(&native).unwrap();
+        let mut server = xml
+            .replace(
+                &words(predicted.initialization.stream.state()),
+                &words(crate::opening::Stream::seeded(12345).state()),
+            )
+            .replace("<Seat>0</Seat>", "<Seat>-1</Seat>");
+        // Only the opening snapshots select the RNG phase and absent team ID.
+        server = server
+            .split_inclusive("</PlayerRoundRecord>")
+            .map(|part| {
+                if part.contains("<round>0</round><playerData>") {
+                    part.replace(
+                        "<IsSpecialSupply>false</IsSpecialSupply>",
+                        "<IsSpecialSupply>true</IsSpecialSupply>",
+                    )
+                } else {
+                    part.to_owned()
+                }
+            })
+            .collect();
+        for side in [&game.blue, &game.red] {
+            server = server.replace(
+                &format!("<ID>{}</ID>", side.opening.offers[0].team),
+                "<ID>-1</ID>",
+            );
+        }
+        assert_eq!(
+            super::document(economy, server.as_bytes()).unwrap().yaml,
+            expected
+        );
+        let invalid = server.replace(
+            &words(crate::opening::Stream::seeded(12345).state()),
+            &words([1, 2, 3, 4]),
+        );
+        assert!(
+            super::document(economy, invalid.as_bytes())
+                .err()
+                .unwrap()
+                .contains("opening round recorded")
+        );
+    }
+
+    fn snapshot_round(special: bool, actions: &str) -> String {
+        let states = crate::opening::Stream::seeded(7)
+            .state()
+            .map(|value| format!("<unsignedLong>{value}</unsignedLong>"))
+            .concat();
+        format!(
+            "<PlayerRoundRecord><round>5</round><playerData>\
+             <IsSpecialSupply>{special}</IsSpecialSupply>\
+             <reactorCore>4500</reactorCore><supply>1250</supply>\
+             <unitIndex>0</unitIndex><contraptionIndex>0</contraptionIndex>\
+             <bluepints><int>4</int><int>401</int></bluepints>\
+             <randomStateData><randomStates>{states}</randomStates></randomStateData>\
+             <shop><BuyCount>0</BuyCount><UnlockCount>0</UnlockCount></shop>\
+             </playerData><actionRecords>{actions}</actionRecords></PlayerRoundRecord>"
+        )
+    }
+
+    #[test]
+    fn server_supply_is_already_paid_and_completed_research_has_one_active_stage() {
+        let economy = crate::economy::Economy::embedded().unwrap();
+        for (special, supply) in [(true, 1250), (false, 2250)] {
+            let round = snapshot_round(special, "");
+            let player = format!(
+                "<PlayerRecord><seed>7</seed><data>\
+                 <maxRoundSupply>4000</maxRoundSupply><firstRoundSupply>200</firstRoundSupply>\
+                 <roundSupplyIncreaseValue>200</roundSupplyIncreaseValue></data>\
+                 <playerRoundRecords>{round}</playerRoundRecords></PlayerRecord>"
+            );
+            let parsed = quick_xml::de::from_str(&player).unwrap();
+            let grbr = format!(
+                "<?xml version=\"1.0\" encoding=\"utf-8\"?><BattleRecord>\
+                 <playerRecords>{player}{player}</playerRecords></BattleRecord>"
+            );
+            let state =
+                super::side_state(grbr.as_bytes(), economy, &parsed, 0, super::Seat::Blue).unwrap();
+            assert_eq!(state.supply, supply);
+            assert_eq!(state.blueprints, [401]);
+        }
+    }
+
+    #[test]
+    fn unplaced_server_units_land_in_each_sides_frame() {
+        for coordinate in [i32::MIN, 0] {
+            let unit = format!(
+                "<units><NewUnitData><id>2</id><Index>0</Index><Exp>0</Exp><Level>0</Level>\
+                 <Position><x>{coordinate}</x><y>{coordinate}</y></Position>\
+                 <IsRotate>false</IsRotate><SellSupply>100</SellSupply></NewUnitData></units>"
+            );
+            let xml = snapshot_round(true, "").replace("<unitIndex>0</unitIndex>", &unit);
+            // The snapshot still needs the allocator, independently of its units.
+            let xml = xml.replace("</units>", "</units><unitIndex>1</unitIndex>");
+            let round: crate::record::PlayerRoundRecord = quick_xml::de::from_str(&xml).unwrap();
+            for seat in [super::Seat::Blue, super::Seat::Red] {
+                let units = super::formations(&round.data, seat).unwrap();
+                assert_eq!(units[0].unit.position, Position { x: 0, y: -160 });
+            }
+        }
+    }
+
+    #[test]
+    fn server_card_ids_resolve_missing_indices_without_turning_picks_into_declines() {
+        let offers = crate::r#match::Offers {
+            dealt: vec![31802, 1_200_001],
+            refund: 50,
+        };
+        for (id, index, expected) in [
+            (31802, -1, 0),
+            (1_200_001, -1, 1),
+            (0, -1, 2),
+            (31802, 0, 0),
+        ] {
+            let xml = snapshot_round(
+                true,
+                &format!(
+                    "<MatchActionData type=\"PAD_ChooseReinforceItem\"><ID>{id}</ID>\
+                 <Index>{index}</Index></MatchActionData>"
+                ),
+            );
+            let round = quick_xml::de::from_str(&xml).unwrap();
+            let actions =
+                super::recorded_actions(&round, super::Seat::Blue, Some(&offers)).unwrap();
+            let [super::Recorded::Taken(Action::ChooseReinforceItem { index, id: chosen })] =
+                actions.as_slice()
+            else {
+                panic!("not a card choice")
+            };
+            assert_eq!(*index, expected);
+            assert_eq!(*chosen, (id != 0).then_some(id));
+        }
+        let xml = snapshot_round(
+            true,
+            "<MatchActionData type=\"PAD_ChooseReinforceItem\"><ID>999</ID><Index>-1</Index></MatchActionData>",
+        );
+        let round = quick_xml::de::from_str(&xml).unwrap();
+        assert!(
+            super::recorded_actions(&round, super::Seat::Blue, Some(&offers))
+                .err()
+                .unwrap()
+                .contains("not among")
+        );
+    }
 
     /// Undoing a cancel stands the release it cancelled again. A side
     /// released Orbital Javelin, cancelled it, released it again and then

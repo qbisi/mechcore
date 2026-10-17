@@ -155,17 +155,11 @@ fn range_item_oil(item: &str, team: usize) -> Result<Option<OilArea>, String> {
 
 /// The centre of one retained Shield Airdrop.
 ///
-/// A shield carries no lifetime and no grid, so the three fields an oil area
-/// uses to say how much of itself is left are checked to be their empty forms
-/// rather than read. Presence in the snapshot is the whole statement: the object
+/// A shield carries no lifetime and no grid. The generic `round` field is
+/// ignored: client snapshots write zero, while server reconstructions can
+/// write one. Presence in the snapshot is the whole statement: the object
 /// stands, at full energy, since a retained airdrop resets between rounds.
 fn airdrop_shield_center(item: &str, team: usize) -> Result<Position, String> {
-    let round = xml_i32(item, "round")?;
-    if round != 0 {
-        return Err(format!(
-            "shield-airdrop GRBR snapshot carries lifetime {round}, and the object has none"
-        ));
-    }
     let positions = item_positions(item)?;
     let [center] = <[Position; 1]>::try_from(positions).map_err(|positions| {
         format!(
@@ -390,16 +384,14 @@ mod tests {
         );
     }
 
-    /// The three fields that say how much of an oil area is left are the
-    /// three a shield has no use for, so each is required to be its empty form
-    /// rather than read past.
+    /// A server's generic round counter does not give a shield a lifetime;
+    /// malformed positions, masks and grids still cannot describe a shield.
     #[test]
     fn a_shield_carrying_an_oil_areas_fields_is_refused() {
         let lifetime = shield_item(1, 2).replace("<round>0</round>", "<round>1</round>");
-        assert!(
-            airdrop_shield_center(&lifetime, 0)
-                .unwrap_err()
-                .contains("carries lifetime 1")
+        assert_eq!(
+            airdrop_shield_center(&lifetime, 0).unwrap(),
+            Position { x: 1, y: 2 }
         );
         let pair = shield_item(1, 2).replace(
             "</positions>",

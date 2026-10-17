@@ -8,6 +8,7 @@ schema: mechcore.maps
 maps:
   1001: map_1V1Desert_default
   1011: map_1V1Grass
+  1012: map_1V1Grass
   1021: map_1V1MilitaryBase
   1031: map_1V1Desert_default
   1032: map_1V1Desert_default

@@ -15,8 +15,6 @@ use serde::Deserialize;
 pub struct BattleRecord {
     #[serde(rename = "Version")]
     pub version: String,
-    #[serde(rename = "Seat")]
-    pub seat: i32,
     #[serde(rename = "BattleInfo")]
     pub info: BattleInfo,
     #[serde(rename = "playerRecords")]
@@ -117,6 +115,9 @@ pub struct PlayerRoundRecord {
 /// One side's snapshot, taken at the start of the round and before its reset.
 #[derive(Debug, Deserialize)]
 pub struct PlayerData {
+    /// Server snapshots include the coming income and lock the next payment.
+    #[serde(default, rename = "IsSpecialSupply")]
+    pub special_supply: bool,
     #[serde(rename = "reactorCore")]
     pub reactor_core: i32,
     pub supply: i32,
