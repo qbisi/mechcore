@@ -1,0 +1,60 @@
+# A Melee Mode main gun stays locked while its active skill exits combat.
+#
+# The complete generated layout: Centurion's melee skill holds a lock at
+# 825 and leaves combat at 826. Its main gun holds none and stays locked
+# through 828; final SkillManager.ExitFight makes every skill idle at 829.
+# Control: melee-mode-dual-wield.yaml, normal takeover by the melee skill.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1017103322
+round: 1
+blue:
+  core_damage: 500
+  officers: [advanced_missile_device, advanced_targeting_system, cost_control_specialist, improved_tarantula]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: tarantula, index: 0, position: {x: 135, y: -215}, level: 9, exp: 0/370/10091, equipment: [laser_sights], source: joined}
+  - {name: steel_ball, index: 1, position: {x: 205, y: -250}, level: 2, exp: 0/350/2253, source: joined}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -95, y: -190}, retained: false}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: -265, y: -210}, {x: -295, y: -250}]}
+red:
+  core_damage: 0
+  officers: [advanced_targeting_system]
+  techs:
+    centurion: [summon_hounds, reactive_armor, melee_mode, range_enhancement, dual_wield, homing_missile]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: centurion, index: 0, position: {x: 265, y: -45}, level: 3, exp: 0/3050/8014, equipment: [super_heavy_armor], source: joined}
+  - {name: farseer, index: 1, position: {x: 175, y: -225}, level: 8, exp: 0/5270/12109, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: nuke, positions: [{x: 280, y: 270}]}
+asserts:
+- sql: |
+    SELECT tick, skill_slot, enabled__state
+    FROM units__skills
+    WHERE unit_id = 6 AND skill_slot IN (0, 3)
+      AND tick IN (825, 826, 828, 829)
+    ORDER BY tick, skill_slot;
+  rows:
+  - [825, 0, lock]
+  - [825, 3, attack]
+  - [826, 0, lock]
+  - [826, 3, idle]
+  - [828, 0, lock]
+  - [828, 3, idle]
+  - [829, 0, idle]
+  - [829, 3, idle]
+ticks: 829
+hash: 26:db799bc72c828f0ede32f0118331e341745d59548ae0826b668ffb0a423b7803
