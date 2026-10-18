@@ -818,6 +818,11 @@ field its type does not carry or lacks one it requires.
 | `buff_applied` | `target`; `source` is the actor that put it on, if one did, and `source_team_id` its side's | `buff_id: u32`, `duration: i32` | a buff put on the target, or put on again; `buff_id` is its data's `GetID()`, `duration` the ticks left on it once applied |
 | `buff_removed` | `target` | `buff_id: u32`, `reason: BuffRemovedReason` | a buff taken off the target |
 
+For `buff_applied`, `source_team_id` reads the running buff's
+`sourceTeamController`, including after `Buff.Reset`. Reapplying a buff
+from a different side does not substitute that caller's team for the
+source team retained by the buff.
+
 For `unit_died`, `source` and `source_team_id` come from the active damage
 context at the death boundary when one exists, otherwise from the unit's
 most recent positive damage result. This fallback includes damage absorbed
