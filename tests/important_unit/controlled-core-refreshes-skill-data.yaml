@@ -1,0 +1,54 @@
+# Complete generated layout: a Hacker turns a Dominion Core Sledgehammer.
+# Removing the important modifier refreshes its skill data and discards the
+# sampled interval while preserving elapsed attack time.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1743405736
+round: 2
+blue:
+  core_damage: 451
+  officers: [quick_teleport, speed_specialist, improved_sledgehammer]
+  blueprints: [defense_enhancement]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sledgehammer, index: 0, position: {x: -310, y: 235}, level: 4, equipment: [dominion_core], travelling: true, source: joined}
+  - {name: mountain, index: 1, position: {x: 245, y: -115}, level: 6, exp: 0/200/18556, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -50, y: -175}}
+  battle_skills:
+  - {name: smoke_bomb, positions: [{x: -120, y: 105}, {x: 255, y: 55}]}
+red:
+  core_damage: 0
+  officers: [advanced_targeting_system, aerial_specialist]
+  techs:
+    hacker: [range_enhancement]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: hacker, index: 0, position: {x: 85, y: -255}, level: 2, exp: 631/1262/1262, equipment: [anti_interference_module]}
+  - {name: phantom_ray, index: 1, position: {x: -195, y: -170}, level: 5, exp: 0/1680/5210, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -185, y: -125}, retained: false}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: 165, y: -55}, {x: -175, y: 195}]}
+asserts:
+- sql: |
+    SELECT u.tick, u.team_id, s.enabled__current_attack_interval,
+           s.enabled__attack_time, s.enabled__attack_count, s.enabled__perform_count
+    FROM units u JOIN units__skills s ON s.tick = u.tick AND s.unit_id = u.unit_id
+      AND s.skill_slot = 0
+    WHERE u.unit_id = 4 AND u.tick IN (248, 249, 250, 251, 484, 485, 486)
+    ORDER BY u.tick;
+  rows:
+  - [248, 0, 99, 39, 0, 1]
+  - [249, 0, 99, 40, 0, 1]
+  - [250, 1, 90, 41, -1, 0]
+  - [251, 1, 90, 42, -1, 0]
+  - [484, 1, 94, 67, 1, 2]
+  - [485, 1, 94, 68, 1, 2]
+  - [486, 1, 94, 69, 1, 2]
+ticks: 722
+hash: 26:b732598dd6c5159baee58e7c9af96f9e0a9fd21177cf8e15d9729620745030b6

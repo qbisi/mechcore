@@ -412,6 +412,34 @@ impl Actor {
         self.skills.main.unit_lock()
     }
 
+    /// The `GetSkills` pass in `MechDataModifer.AddCommonData`/`RemoveCommonData`:
+    /// `SkillDataModifier` refreshes every modified skill, even when only life
+    /// or damage changed. Each skill discards its sampled interval.
+    pub(in crate::fight) fn refresh_common_skill_data(&mut self, step: u64) -> Result<()> {
+        let refresh = |skill: &mut super::skill::Skill, interval| {
+            skill.refresh_datas(interval, step);
+            for sibling in skill.siblings_mut() {
+                sibling.refresh_datas(interval, step);
+            }
+        };
+        refresh(
+            &mut self.skills.main,
+            math::seconds_q32_to_steps(self.stats.attack_interval_q32()).max(1),
+        );
+        for extra in &mut self.skills.extras {
+            let own =
+                (extra.rules.damage_rate <= 0.0).then_some(extra.skill_corrections.as_slice());
+            let interval = self
+                .stats
+                .interval_of(extra.rules.attack.interval_time_units(), own)?;
+            refresh(
+                &mut extra.skill,
+                math::seconds_q32_to_steps(interval).max(1),
+            );
+        }
+        Ok(())
+    }
+
     /// `FightMech.IsHaveBody`: a unit of a type with a body whose body no
     /// skill has disabled. A Centurion's melee skill disables it, and the
     /// Centurion turns, aims and measures its attack angle from its root.

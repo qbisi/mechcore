@@ -244,6 +244,11 @@ side. Removing the last registered important unit destroys its original
 side's remaining active units, just as losing the last one does. Ordinary
 equipment corrections remain. When a translated unit dies and returns, its
 important data is restored without registering the dead unit again.
+Adding or removing that common modifier refreshes every skill's data
+(`MechDataModifer.AddCommonData`, `RemoveCommonData`, `FightSkill.RefreshDatas`):
+the sampled attack interval is replaced by the composed interval, even when
+the modifier changed only life or damage, while an elapsed attack clock is
+preserved and a ready clock stays ready at the new interval.
 
 A summon still appearing is outside the side's active units: it survives
 and joins later. While only one side has active living or rebirthing units,
@@ -321,6 +326,9 @@ rather than applying only its plain corrections.
   remaining units when that was its last registered important unit:
   `tests/important_unit/controlled-core.yaml`. Ordinary equipment data stays
   on a controlled unit: `tests/important_unit/controlled-ordinary-equipment.yaml`.
+- Control removes a Dominion Core Sledgehammer's modifier and replaces its
+  sampled skill interval while preserving elapsed time:
+  `tests/important_unit/controlled-core-refreshes-skill-data.yaml`.
 
 ### Replayed
 
