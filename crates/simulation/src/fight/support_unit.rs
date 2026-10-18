@@ -705,6 +705,16 @@ impl Simulation {
                 .skills
                 .hold_attack_clocks();
         } else {
+            // FightController.CreateMech adds the active unit to both trees
+            // before CreateMechDelay calls FightTeam.DeactiveMech. Removing
+            // it preserves any split and the old elements' redistributed
+            // order, even though the summon is absent until it joins.
+            for trees in [&mut self.target_quadtrees, &mut self.mech_quadtrees] {
+                let tree = trees.entry(team).or_insert_with(TargetActorQuadtree::new);
+                let candidate = FightActorRef::Unit(unit_id);
+                tree.insert(candidate, x_q32, z_q32, actor.rules.collision_radius());
+                tree.remove(candidate);
+            }
             self.support.appearing.push(Appearing {
                 actor,
                 joins_on: tick + creator.appear_ticks,

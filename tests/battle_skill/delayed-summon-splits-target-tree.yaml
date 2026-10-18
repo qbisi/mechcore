@@ -1,0 +1,65 @@
+# Complete generated layout: the Rhino made on tick 28 briefly enters
+# and leaves the target trees before its delayed appearance. The blue tree
+# splits and retains its redistributed order: Mustang Explosive Ammo hits
+# Fire Badger 5 before 3 from tick 29, while the Rhino joins on tick 48.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1052062219
+round: 4
+blue:
+  core_damage: 398
+  officers: [quick_teleport, advanced_defensive_tactics, typhoon_specialist, strike_hound]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [2, 3]
+  units:
+  - {name: typhoon, index: 0, position: {x: -30, y: -230}, exp: 0/255/1950, source: delivered}
+  - {name: hound, index: 1, position: {x: 340, y: 150}, level: 6, exp: 0/251/4349, rotated: true, equipment: [amplifying_core], travelling: true, source: joined}
+  - {name: fire_badger, index: 2, position: {x: -95, y: -20}, level: 5, exp: 0/634/7295, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 35, y: -235}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: -245, y: -245}]}
+red:
+  core_damage: 0
+  officers: [advanced_power_system, typhoon_specialist, fortified_mustang]
+  techs:
+    mustang: [armor_piercing_bullets]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: mustang, index: 0, position: {x: -10, y: -185}, exp: 600/1121/1200, rotated: true, equipment: [explosive_ammo]}
+  - {name: typhoon, index: 1, position: {x: 150, y: -60}, source: delivered}
+  - {name: vulcan, index: 2, position: {x: 0, y: -50}, level: 9, exp: 0/4856/16280, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -155, y: -90}, retained: false}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: -265, y: -75}]}
+asserts:
+- sql: |
+    SELECT tick, ordinal, object__id, target__id, amount
+    FROM ev_damage
+    WHERE tick IN (27, 29) AND source__id = 11
+    ORDER BY tick, ordinal;
+  rows:
+  - [27, 2, 55, 3, 755]
+  - [27, 3, 55, 5, 755]
+  - [29, 0, 61, 5, 755]
+  - [29, 1, 61, 3, 755]
+- sql: |
+    SELECT e.tick, e.object__id, e.unit_type_id, MIN(u.tick)
+    FROM ev_unit_created e JOIN units u ON u.unit_id = e.object__id
+    WHERE e.tick = 28 AND e.object__id = 26
+    GROUP BY e.tick, e.object__id, e.unit_type_id;
+  rows:
+  - [28, 26, 5, 48]
+ticks: 969
+hash: 26:906cb60d9f30cbd1be3ad14216cccc49ea8bd2c23672ba2e9e69a49b3445dcab
