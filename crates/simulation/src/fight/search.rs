@@ -1694,8 +1694,21 @@ impl Simulation {
             .skill_attacker(skill_ref)
             .map(|attacker| (attacker.score_offsets, attacker.targets))
             .ok_or_else(|| Error::new("a grouped skill's owner is absent"))?;
-        let candidates = self.opponent_actor_order(targets);
+        // PerformGroupedSkillSearch falls back to the other skills' locks
+        // in skill order, including duplicates, rather than filtering the
+        // opponent list. Equal scores therefore keep the first held lock.
+        let mut shared_candidates = BTreeMap::<u32, Vec<FightActorRef>>::new();
+        for &target in &held {
+            if let Some(view) = self.fight_actor(target) {
+                shared_candidates.entry(view.team).or_default().push(target);
+            }
+        }
         let select = |shared: bool| {
+            let candidates = if shared {
+                &shared_candidates
+            } else {
+                self.opponent_actor_order(targets)
+            };
             let mut scoring = Scoring::default();
             for (&team, candidates) in candidates {
                 if team == source.placement.team {

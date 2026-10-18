@@ -386,8 +386,13 @@ The tree retains the resulting node and element order when a range query
 collects candidates; a chain's random selection uses that order.
 
 When `CanAttackSameTarget` is true, a missing selection or one outside the
-slot's range makes the selector consider the held targets as well. A
-successful held-target selection replaces the first answer; without one, the
+slot's range makes the selector consider the held targets as well. That list
+keeps the other skills' order, including repeated locks; it is not a filter
+of the opponent list (`SkillSearchTargetController.PerformGroupedSkillSearch`).
+Equal scores keep the first of those held locks, so the main row's lock can
+precede an equally scored lock of a row that joined its group
+([`search/group-shared-lock-order.yaml`](../../tests/search/group-shared-lock-order.yaml)).
+A successful held-target selection replaces the first answer; without one, the
 first answer is retained. Sharing therefore does not promise equal numbers of
 slots per target. A wall redirecting a slot's attack target does not change the
 lock excluded by the other slots.
