@@ -376,6 +376,7 @@ impl Actor {
     }
 
     pub(in crate::fight) fn exit_fight_on_death(&mut self) {
+        self.reset_attack_count();
         self.motion.state = MotionState::Idle;
         // `SkillManager.ExitFight` visits every skill, including extras.
         for skill in std::iter::once(&mut self.skills.main)
@@ -409,6 +410,7 @@ impl Actor {
     /// publishes no stop. Leave its buffered movement alone, exit the old
     /// state, and clear a move ability only when the motion changes to idle.
     pub(in crate::fight) fn exit_fight(&mut self) {
+        self.reset_attack_count();
         // `RVOControllerFixed.GetVelocity` reads zero after `Deactive`
         // removes the agent; its final movement has already been applied.
         self.motion.current_velocity_x_q32 = 0;

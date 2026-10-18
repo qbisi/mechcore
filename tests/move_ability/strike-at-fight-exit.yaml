@@ -1,0 +1,47 @@
+# A complete generated layout ends while Sandworm still has Strike active.
+# The native final tick removes its temporary damage and splash correction,
+# through FightSkill.ExitFight resetting AttackCountEffectLinker.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 868899536
+round: 3
+blue:
+  core_damage: 744
+  officers: [advanced_defensive_tactics, advanced_defensive_tactics, fire_badger_specialist, fortified_farseer]
+  techs:
+    farseer: [burst_mode, electromagnetic_explosion, aerial_specialization, missile_interceptor, range_enhancement, photon_emission, scanning_radar]
+  blueprints: [defense_enhancement_ii]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 155, y: -230}, exp: 0/22/1400, source: delivered}
+  - {name: farseer, index: 1, position: {x: 325, y: 265}, exp: 0/273/1800, equipment: [secondary_laser_sight], travelling: true, source: joined}
+  - {name: crawler, index: 2, position: {x: -55, y: -200}, exp: 0/73/450, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 255, y: -135}, retained: false}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: -295, y: 5}]}
+red:
+  core_damage: 0
+  officers: [quick_teleport, advanced_offensive_tactics, improved_sandworm]
+  techs:
+    sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
+  tower_strengthen_levels: [1, 2]
+  units:
+  - {name: sandworm, index: 0, position: {x: 320, y: 80}, level: 5, exp: 0/1258/10421, rotated: true, equipment: [mustang_production_line], travelling: true, source: joined}
+  - {name: centurion, index: 1, position: {x: -285, y: -25}, exp: 0/752/2250, source: joined}
+  battle_skills:
+  - {name: ion_blast, positions: [{x: -25, y: 240}, {x: -100, y: 205}]}
+asserts:
+- sql: |
+    SELECT tick, enabled__attack_damage, q32(enabled__splash_range)
+    FROM units__skills
+    WHERE unit_id = 29 AND skill_slot = 0 AND tick >= 1356 ORDER BY tick;
+  rows:
+  - [1356, 111848, 27.0]
+  - [1357, 97259, 17.0]
+ticks: 1357
+hash: 26:f4760fcfd786455e5ed34f0dacfc09027d8172004f622486a5f7266fbd465919
