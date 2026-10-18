@@ -630,7 +630,6 @@ impl Simulation {
         let Some(current) = current else {
             return self.allocate_to_nothing(skill_ref, pending);
         };
-        let (x_q32, z_q32, height) = self.climb_target(current)?;
         // `GetTargetPosition`: where the skill aims at the unit
         // (`CalculateAttackPosition`, reaching its extra search range too, on
         // the ground), its offset added.
@@ -682,7 +681,7 @@ impl Simulation {
             target_z_q32: aimed_z_q32.saturating_add(offset_z_q32),
             offset_x_q32,
             offset_z_q32,
-            climb_target: (x_q32, z_q32, height),
+            climb_target: (aimed_x_q32, aimed_z_q32, aimed_y_q32),
             weapon_index: pending.weapon_index + weapon,
             ..pending
         })
@@ -739,6 +738,10 @@ impl Simulation {
             offset_z_q32,
             aims_at_release: false,
             targetless: true,
+            // The controller returns lastAttackPos even with no live target.
+            // ProjectileSystem.Create measures the climb to this point too,
+            // before adding the independently drawn projectile offset.
+            climb_target: (x_q32, z_q32, y_q32),
             weapon_index: pending.weapon_index + weapon,
             ..pending
         })
@@ -757,7 +760,7 @@ impl Simulation {
             FightActorRef::Unit(id) => unit_height(self.actors[&id].domain),
             FightActorRef::Building(_) => 0,
         };
-        Ok((view.x_q32, view.z_q32, height))
+        Ok((view.x_q32, view.z_q32, space_to_q32(height)))
     }
 
     /// How high a projectile climbs before it flies, above where it leaves:
@@ -799,7 +802,7 @@ impl Simulation {
         &self,
         skill_ref: SkillRef,
         slot: usize,
-        (target_x_q32, target_z_q32, target_y): (i64, i64, i64),
+        (target_x_q32, target_z_q32, target_y_q32): (i64, i64, i64),
     ) -> Result<Option<i64>> {
         let source = self
             .skill_attacker(skill_ref)
@@ -815,7 +818,7 @@ impl Simulation {
         }
         let distance_q32 = native_q32_magnitude_3d(
             target_x_q32.saturating_sub(source.x_q32),
-            space_to_q32(target_y).saturating_sub(space_to_q32(source.y)),
+            target_y_q32.saturating_sub(space_to_q32(source.y)),
             target_z_q32.saturating_sub(source.z_q32),
         );
         let climb_q32 = space_to_q32(source.climb);

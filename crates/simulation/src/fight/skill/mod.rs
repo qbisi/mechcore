@@ -41,8 +41,8 @@ pub(in crate::fight) struct PendingProjectileRelease {
     /// 0.3 seconds on.
     pub(in crate::fight) offset_x_q32: i64,
     pub(in crate::fight) offset_z_q32: i64,
-    /// Where the burst's target stood when it began, which each
-    /// projectile's climb is measured to.
+    /// The climb reference in Q32 (x, z, y). An evenly allocated burst
+    /// replaces it with the controller's current or last aiming point.
     pub(in crate::fight) climb_target: (i64, i64, i64),
     /// Whether it leaves for where its target stands as it is released, not
     /// where the burst aimed it: a burst with no target offset draws no
