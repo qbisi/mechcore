@@ -652,7 +652,9 @@ use null.
 ### Terrain identity and lifecycle
 
 Initial terrains take IDs by `(terrain_type, controller item index)`, and
-objects appearing during combat are appended in first-observed order. A native
+objects appearing during combat are appended in first-observed order. At each
+snapshot, controllers are read by increasing terrain-type tag and their items
+by controller item index; this is not the controllers' combat update order. A native
 pointer that leaves the collection is tombstoned, and no later terrain in the
 same recording may inherit its ID.
 

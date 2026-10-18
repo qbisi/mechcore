@@ -590,14 +590,17 @@ impl Simulation {
     }
 
     /// The tick's terrain events, as a recording finds them at its end: the
-    /// terrains its snapshot holds are named, the new ones in the system's
+    /// terrains its snapshot holds are named, the new ones in terrain-tag
     /// order, and set against the last snapshot's, the made and then the
     /// gone.
     pub(in crate::fight) fn take_terrain_events(&mut self) -> Vec<Event> {
-        let holding = self
-            .terrain
-            .controllers
-            .iter()
+        // The recorder asks GetRangeItemController for each enum tag, not
+        // the system's update order: acid precedes sand fog when both appear
+        // in one snapshot, although sand fog updates first.
+        let mut controllers = self.terrain.controllers.iter().collect::<Vec<_>>();
+        controllers.sort_by_key(|controller| terrain_type(controller.kind) as u8);
+        let holding = controllers
+            .into_iter()
             .flat_map(|controller| controller.items.iter().copied())
             .collect::<Vec<_>>();
         let mut created = Vec::new();

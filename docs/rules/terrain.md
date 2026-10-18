@@ -237,7 +237,9 @@ A recording finds a terrain made or gone by comparing one snapshot's terrains
 with the last, so `terrain_created` and `terrain_removed` are the last events
 of their tick, after every other: the made, then the gone, each in identity
 order. It names a terrain the first time a snapshot holds it, controller by
-controller in the system's order and item by item. A terrain made and gone
+controller in terrain-type enum order and item by item. This is the recording's
+order, distinct from the system's update order: acid is numbered before sand
+fog when both first appear in one snapshot. A terrain made and gone
 in one tick, an oil that lands in a fire, is never named. A terrain it only
 finds gone, an oil that burns, goes `unknown`.
 
@@ -361,6 +363,10 @@ already exists.
 ## Evidence
 
 ### Recorded
+
+- Acid and sand fog first appearing together on tick 266 take identities 6
+  and 7 respectively, in terrain-type tag order:
+  `tests/terrain/acid-and-sand-numbering.yaml`.
 
 - A fire landing a few raw from its unit's standing fire restarts that fire
   rather than making another: `tests/terrain/fire-at-one-building-kept.yaml`.
