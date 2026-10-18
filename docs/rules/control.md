@@ -114,7 +114,10 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
 - **stops every skill locked on it**, whether a unit or a construction owns
   it (`FightSkill.OnChangeTeam`): `ChangeLockTarget` subscribes the skill to
   its lock's team change, and `StopAttack` drops the lock and keeps the attack target. A skill idle already stays idle,
-  its weapons naming what they named until it takes another; a cooling one
+  its weapons naming what they named until it takes another or searches
+  again and finds no attackable target. `FightSkill.SearchLockTarget` clears
+  the attack target when `IsIdle` is true, even when its lock was already
+  null ([`last-translation-idle-search.yaml`](../../tests/control/last-translation-idle-search.yaml)). A cooling one
   goes on cooling. Any other enters its cooling, naming what it fired at
   (nothing, when it fired at a battlefield shield), or
   without one enters `SkillIdleState` with its targets cleared, unless it is

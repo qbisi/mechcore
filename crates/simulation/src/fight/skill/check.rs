@@ -467,6 +467,12 @@ impl Simulation {
             let skill = self.skill_mut(skill_ref);
             skill.idle = idle;
             skill.write_lock(selected);
+            // SearchLockTarget calls ChangeAttackTarget(null) when IsIdle
+            // is true, even when ChangeLockTarget(null) changed nothing.
+            // This replaces what StopAttack retained after a team change.
+            if idle {
+                skill.attack_target_left = None;
+            }
             self.search_attack_target(skill_ref);
             self.hand_motion_after_lock_search(skill_ref);
         } else {
