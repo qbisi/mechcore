@@ -2133,7 +2133,13 @@ impl Simulation {
                 || self.actors[&actor_id].skills.main.mech_searches()
             {
                 // These skills start in their own skill update.
-            } else {
+            } else if entered_attack
+                || self.actors[&actor_id].skills.main.is_grouped()
+                || self.actors[&actor_id].skills.main.phase() != FightSkillPhase::Idle
+            {
+                // A plain skill's idle update already asked TryStartAttack
+                // before later skills could return the side arm's turn.
+                // A group's separate path still starts its core here.
                 self.try_start_attack(
                     SkillRef::main(FightActorRef::Unit(actor_id)),
                     step,

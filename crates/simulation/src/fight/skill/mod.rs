@@ -2259,7 +2259,10 @@ impl Simulation {
         let Some(target) = skill.attack_target() else {
             return;
         };
-        if !self.target_in_attack_area(skill_ref, target) || !self.may_start_attack(skill_ref) {
+        if !self.can_fire_by_take_turns(skill_ref)
+            || !self.target_in_attack_area(skill_ref, target)
+            || !self.may_start_attack(skill_ref)
+        {
             return;
         }
         let prepare_steps = native_time_units_to_steps(
