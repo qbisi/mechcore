@@ -747,7 +747,12 @@ interval reaches Whirlwind, and Explosive Ammo's splash Energy Diffraction's
 beams. A skill with a damage rate counts its unit's kills too:
 `FightMech.AddKillCount` adds one to every skill of
 `SkillManager.mainSkillDataAffectedSkills`, so Berserk Rhino's damage per
-kill raises Whirlwind's blows as it does the main skill's. A grouped row's
+kill raises Whirlwind's blows as it does the main skill's. Each skill owns
+that count. After the last enemy dies, `SkillManager.Update(false)` calls
+`FightSkill.ExitFight` only on skills still holding a lock, clearing their
+`DamageCalculator`. An idle Whirlwind without a lock retains its count
+until final fight exit, even if the main skill has already cleared its own.
+A grouped row's
 skills that join the main skill's group attack on its numbers, which hold
 these already. Any other number a source corrects on an extra skill is not
 read, nor a range on a skill with a damage rate whose range is its own and
@@ -757,6 +762,9 @@ that is not melee, so the simulator refuses it.
 
 ### Recorded
 
+- An idle Whirlwind retains its kill bonus after the main skill exits on
+  the tick following the last kill; both clear it at final exit:
+  `tests/extra_weapon/whirlwind-idle-kills-after-last-enemy.yaml`.
 - A side arm returns its fire turn against a fallen wall before refreshing
   its attack target, remaining idle after it names the live lock:
   `tests/extra_weapon/dual-wield-fallen-wall-reset.yaml`.
@@ -1114,6 +1122,8 @@ that is not melee, so the simulator refuses it.
   `ExtraSkillSystem.AddMech`, `SkillManager.AddSkill`, `FightSkill.EnableUseMainSkillRange`.
 - The manager's skills update in ascending skill ID: `SkillManager.Update`,
   `SkillManager.SortSkills`.
+- Kill bonuses are per skill, cleared on its own exit:
+  `FightMech.AddKillCount`, `FightSkill.ExitFight`, `DamageCalculator.Clear`.
 - A buff's range: `AttackRangeProperty.GetAttackRange`,
   `BuffManager.GetAttackRangeAddValue`, `BuffManager.GetAttackRangeReduceValue`,
   `BuffManager.GetExtraAttackRangeAddValue`; an extra skill's fallback search,

@@ -43,6 +43,14 @@ impl Simulation {
                 && actor.alive()
             {
                 actor.stats.add_kill(&actor.rules)?;
+                for extra in &mut actor.skills.extras {
+                    if extra.rules.damage_rate > 0.0 {
+                        extra.skill.kill_count = extra.skill.kill_count.saturating_add(1);
+                        for sibling in extra.skill.siblings_mut() {
+                            sibling.kill_count = sibling.kill_count.saturating_add(1);
+                        }
+                    }
+                }
             }
         }
         Ok(())
@@ -53,6 +61,12 @@ impl Simulation {
     pub(in crate::fight) fn clear_kills(&mut self) -> Result<()> {
         for actor in self.actors.values_mut() {
             actor.stats.clear_kills(&actor.rules)?;
+            for extra in &mut actor.skills.extras {
+                extra.skill.kill_count = 0;
+                for sibling in extra.skill.siblings_mut() {
+                    sibling.kill_count = 0;
+                }
+            }
         }
         Ok(())
     }

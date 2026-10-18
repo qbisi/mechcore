@@ -1,0 +1,53 @@
+# A complete generated layout recorded with the game. Rhino 3's main skill
+# exits after the last enemy dies at 1368. Its idle Whirlwind has no lock,
+# so its own kill count survives until the final exit at 1376.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1883443897
+round: 2
+blue:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_targeting_system, marksman_specialist, berserk_rhino]
+  techs:
+    rhino: [field_maintenance, whirlwind, wreckage_recycling, power_armor, final_blitz, armor_enhancement, mechanical_rage, photon_coating, combat_evolvement]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: rhino, index: 0, position: {x: -265, y: -45}, level: 2, exp: 2591/2591/2591, equipment: [anti_interference_module]}
+  - {name: marksman, index: 1, position: {x: -290, y: -60}, level: 3, exp: 0/1904/2315, source: delivered}
+  - {name: centurion, index: 2, position: {x: 225, y: -285}, level: 3, exp: 0/6865/8014, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  battle_skills:
+  - {name: ion_blast, positions: [{x: 150, y: 30}, {x: -155, y: -255}]}
+red:
+  core_damage: 450
+  officers: [quick_teleport, marksman_specialist, improved_wasp]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [2, 3]
+  units:
+  - {name: marksman, index: 0, position: {x: -140, y: -190}, level: 3, source: delivered}
+  - {name: wasp, index: 1, position: {x: 335, y: 150}, level: 2, exp: 0/1000/2028, rotated: true, equipment: [improved_firepower_control_system], travelling: true, source: joined}
+  - {name: stormcaller, index: 2, position: {x: -125, y: -30}, level: 9, source: joined}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: -195, y: 75}]}
+asserts:
+- sql: |
+    SELECT tick, skill_slot, enabled__attack_damage FROM units__skills
+    WHERE unit_id = 3 AND tick IN (1368, 1369, 1375, 1376)
+    ORDER BY tick, skill_slot;
+  rows:
+  - [1368, 0, 37166]
+  - [1368, 1, 52027]
+  - [1369, 0, 35742]
+  - [1369, 1, 52027]
+  - [1375, 0, 35742]
+  - [1375, 1, 52027]
+  - [1376, 0, 13955]
+  - [1376, 1, 19535]
+ticks: 1376
+hash: 26:499f466b948f6e5908d2a280719e931b41ea76fc715336a6db82cac8ea36a6e7

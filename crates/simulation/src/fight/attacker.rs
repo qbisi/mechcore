@@ -528,6 +528,9 @@ impl Simulation {
             SkillSlot::Extra(index) => Some(actor.skills.extras[index].rules.technology),
         };
         let mut stats = std::borrow::Cow::Borrowed(&actor.stats);
+        if matches!(skill_ref.slot, SkillSlot::Extra(_)) && stats.kills != skill.kill_count {
+            stats.to_mut().kills = skill.kill_count;
+        }
         if skill.disabled
             && let Some(source) = actor
                 .placement
