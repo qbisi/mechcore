@@ -648,7 +648,12 @@ impl Simulation {
     /// `SkillAttackState.Finish`: `StopAttack` drops the lock, the weapons
     /// keeping what they fired at; the skill then cools for its cooling time
     /// and enters `SkillIdleState` with its targets cleared.
-    pub(in crate::fight) fn finish_attack(&mut self, skill_ref: SkillRef, step: u64) {
+    pub(in crate::fight) fn finish_attack(
+        &mut self,
+        skill_ref: SkillRef,
+        step: u64,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Result<()> {
         // A side arm whose turn it is, with no blow under way, gives the turn
         // back.
         let skill = self.skill(skill_ref);
@@ -666,6 +671,9 @@ impl Simulation {
                 .attack
                 .cooling_time_units(),
         );
+        if cooling_steps == 0 {
+            return self.enter_idle_clearing_targets(skill_ref, target_search_order);
+        }
         let skill = self.skill_mut(skill_ref);
         // A skill firing at a shield has no attack target to go on naming.
         let fired_at = skill
@@ -680,9 +688,10 @@ impl Simulation {
         }
         // A standalone weapon's skill leaves the motion to the batch.
         if skill.standalone() {
-            return;
+            return Ok(());
         }
         self.cool_motion(skill_ref);
+        Ok(())
     }
 
     /// The motion as the skill cools without a lock. `AutoMoveBehaviour`
@@ -694,20 +703,16 @@ impl Simulation {
     /// ([`Self::attack_under_command`]), and otherwise changes to
     /// `MotionMoveState`.
     pub(in crate::fight) fn cool_motion(&mut self, skill_ref: SkillRef) {
-        let names_target = self
-            .skill(skill_ref)
-            .cooling()
-            .is_some_and(|(_, named)| named.is_some());
         if let Some(actor) = self.moving_mut(skill_ref) {
             // TransitionState updates its ability and enters the queued state;
             // it does not ask whether the motion's skill became idle meanwhile.
             if actor.motion.state == MotionState::Transitioning {
                 return;
             }
-            if names_target
-                && actor.command.is_some()
-                && actor.motion.state == MotionState::Attacking
-            {
+            // The command keeps the move behaviour active. Its motion
+            // update changes state through MotionController, including a
+            // move ability's transition; the skill does not change it here.
+            if actor.command.is_some() {
                 return;
             }
             let entered_idle = actor.motion.state != MotionState::Idle;
@@ -790,21 +795,37 @@ impl Simulation {
     }
 
     /// Enters `SkillIdleState` with `needClearTarget`, as a failed check does:
-    /// the lock and the attack target are cleared, and the next update
-    /// searches.
-    pub(in crate::fight) fn enter_idle_clearing_targets(&mut self, skill_ref: SkillRef) {
+    /// the targets clear, then an owner with a move ability and an active
+    /// move behaviour without a live lock searches (`SkillIdleState.Enter`).
+    /// A command stays active without a lock; the automatic behaviour does not.
+    pub(in crate::fight) fn enter_idle_clearing_targets(
+        &mut self,
+        skill_ref: SkillRef,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Result<()> {
         let skill = self.skill_mut(skill_ref);
         skill.drop_lock();
         skill.set_phase(FightSkillPhase::Idle);
         skill.search_target_time = 0;
         skill.set_backswing_finish_step(None);
         skill.set_pending(None);
+        let command_active = skill_ref.owner.unit_id().is_some_and(|actor_id| {
+            let actor = &self.actors[&actor_id];
+            actor.underground.is_some() && actor.command.is_some()
+        });
+        if command_active {
+            self.search_skill_lock_target(skill_ref, target_search_order)?;
+            self.skill_mut(skill_ref).search_target_time = 0;
+            if self.skill(skill_ref).lock_target.is_some() {
+                self.search_attack_target(skill_ref);
+            }
+        }
+        let skill = self.skill(skill_ref);
         if skill.standalone() {
-            return;
+            return Ok(());
         }
-        if let Some(actor) = self.moving_mut(skill_ref) {
-            actor.lose_target_motion(true);
-        }
+        self.cool_motion(skill_ref);
+        Ok(())
     }
 
     /// Which enemy construction stands between this actor and its target.

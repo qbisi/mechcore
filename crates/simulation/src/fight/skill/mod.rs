@@ -1808,16 +1808,11 @@ impl Simulation {
             self.update_motion(actor_id, step, events, SkillUpdate::default())?;
         } else if self.actors[&actor_id].command.is_some()
             && self.actors[&actor_id].motion.state == MotionState::Attacking
-            && (self.actors[&actor_id].skills.main.cooling().is_some()
-                || self.actors[&actor_id]
-                    .skills
-                    .main
-                    .attack_target()
-                    .is_some_and(|target| !self.fight_actor_is_alive(target)))
         {
-            // `MotionAttackState.Update` under a command asks what the
-            // cooling still names, or the dead target a burst still fires
-            // at.
+            // A command keeps the motion active even when the skill's
+            // update ended by entering idle. That entry may already have
+            // searched again; the motion still checks the new target and
+            // leaves through the move ability's transition when necessary.
             self.update_motion(actor_id, step, events, SkillUpdate::default())?;
         } else if was_moving
             && self.actors[&actor_id].command.is_some()
@@ -1876,7 +1871,9 @@ impl Simulation {
         if let Flow::Done = self.update_skill_checks(skill_ref, step, target_search_order)? {
             return Ok(None);
         }
-        if let Flow::Done = self.finish_attack_at_dead_target(skill_ref, step) {
+        if let Flow::Done =
+            self.finish_attack_at_dead_target(skill_ref, step, target_search_order)?
+        {
             return Ok(None);
         }
         // `SkillIdleState.Update` performs nothing for a skill that is not
@@ -2100,7 +2097,7 @@ impl Simulation {
         ) && !self.check_attackable(skill_ref, target_search_order)?
         {
             self.force_side_arm_end_fire_turn(skill_ref);
-            self.enter_idle_clearing_targets(skill_ref);
+            self.enter_idle_clearing_targets(skill_ref, target_search_order)?;
             return Ok(Flow::Done);
         }
         // `SkillAttackState.Update` has a side arm search again, where its
@@ -2115,7 +2112,7 @@ impl Simulation {
         // and a failed check finishes the attack.
         if self.between_blows(skill_ref, None, step) {
             if !self.attack_state_check_attackable(skill_ref, None, target_search_order)? {
-                self.finish_attack(skill_ref, step);
+                self.finish_attack(skill_ref, step, target_search_order)?;
                 return Ok(Flow::Done);
             }
             // The blow being wound up is performed on the skill's attack
@@ -2197,7 +2194,12 @@ impl Simulation {
     /// Nothing clears a lock when its target dies, and the skill updates
     /// before the motion, so a skill's own kill is seen here the update
     /// after it, while the motion has already gone idle on it.
-    fn finish_attack_at_dead_target(&mut self, skill_ref: SkillRef, step: u64) -> Flow {
+    fn finish_attack_at_dead_target(
+        &mut self,
+        skill_ref: SkillRef,
+        step: u64,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Result<Flow> {
         let quick_switch_target = self
             .skill_attacker(skill_ref)
             .expect("skill owner identity is stable")
@@ -2218,10 +2220,10 @@ impl Simulation {
                 .attack_target()
                 .is_some_and(|target| !self.fight_actor_is_alive(target));
         if dead_target {
-            self.finish_attack(skill_ref, step);
-            return Flow::Done;
+            self.finish_attack(skill_ref, step, target_search_order)?;
+            return Ok(Flow::Done);
         }
-        Flow::Next
+        Ok(Flow::Next)
     }
 
     /// `SkillIdleState.TryPerform` of a unit's main skill, after its search:
