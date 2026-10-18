@@ -1653,7 +1653,6 @@ impl Simulation {
                 self.score_the_fight()?;
                 self.clear_terrains_as_the_fight_ends()?;
                 self.end_stealth_as_the_fight_ends();
-                self.end_siege_as_the_fight_ends()?;
                 self.end_wreckage_as_the_fight_ends();
                 self.end_burrows_as_the_fight_ends()?;
                 self.end_rebirths_as_the_fight_ends();
@@ -1687,7 +1686,6 @@ impl Simulation {
             self.score_the_fight()?;
             self.clear_terrains_as_the_fight_ends()?;
             self.end_stealth_as_the_fight_ends();
-            self.end_siege_as_the_fight_ends()?;
             self.end_wreckage_as_the_fight_ends();
             self.end_burrows_as_the_fight_ends()?;
             self.end_rebirths_as_the_fight_ends();
@@ -1884,6 +1882,10 @@ impl Simulation {
         self.name_turned_formations();
         self.settle_intervals_if_finishing();
         if self.ready_to_finish() {
+            // Skills exit and refresh their clocks before the siege module
+            // removes its corrections. Removing the trench does not refresh
+            // the skill's current cycle again.
+            self.end_siege_as_the_fight_ends()?;
             // `SkillManager.ExitFight` deactivates a permanent preemptive
             // skill, and a melee mode takes its numbers away
             // (`RemoveMeleeModeDataModifier`).
