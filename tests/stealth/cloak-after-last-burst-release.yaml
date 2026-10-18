@@ -1,0 +1,62 @@
+# A complete generated layout, recorded with the game. Phantom Ray 6
+# releases ten projectiles from tick 221 through 239. Every successful
+# performer effect notifies CloakController.OnISkillOwnerAttack, resetting
+# its enter timer. It cloaks on tick 289, fifty ticks after the last release,
+# rather than tick 271, fifty ticks after the burst began.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1560639789
+round: 2
+blue:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_power_system, aerial_specialist]
+  techs:
+    phantom_ray: [energy_shield, high_explosive_ammo, burst_mode, armor_enhancement, ground_targeting, stealth_cloak, range_enhancement, sticky_oil_bomb]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [1, 2]
+  units:
+  - {name: phantom_ray, index: 0, position: {x: -325, y: 170}, level: 5, exp: 0/5210/5210, rotated: true, equipment: [improved_firepower_control_system], travelling: true, source: joined}
+  - {name: stormcaller, index: 1, position: {x: -215, y: -200}, level: 2, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 220, y: -125}}
+  battle_skills:
+  - {name: electromagnetic_blast, positions: [{x: 60, y: -35}]}
+red:
+  core_damage: 201
+  officers: [quick_teleport, advanced_power_system, assault_fortress]
+  techs:
+    fortress: [doubleshot, barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: fortress, index: 0, position: {x: 320, y: 90}, exp: 0/1200/1600, rotated: true, equipment: [secondary_fire_control_system], travelling: true, source: joined}
+  - {name: mustang, index: 1, position: {x: -155, y: -150}, level: 9, exp: 0/260/8073, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -200, y: -115}}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: 15, y: -290}, {x: 145, y: 240}]}
+asserts:
+- sql: |
+    SELECT min(tick), max(tick), count(*) FROM ev_projectile_released
+    WHERE source__kind = 'unit' AND source__id = 6 AND skill_slot = 0
+      AND tick BETWEEN 221 AND 239;
+  rows:
+  - [221, 239, 10]
+- sql: |
+    SELECT tick, targetable, visibility FROM units
+    WHERE unit_id = 6 AND tick IN (239, 270, 271, 288, 289, 290)
+    ORDER BY tick;
+  rows:
+  - [239, 1, "normal"]
+  - [270, 1, "normal"]
+  - [271, 1, "normal"]
+  - [288, 1, "normal"]
+  - [289, 0, "disappear"]
+  - [290, 0, "disappear"]
+ticks: 772
+hash: 26:7c94b6b4ee081a51ccbc25f0b6f9917f56dea1070c5df2430464fda09895b8e4

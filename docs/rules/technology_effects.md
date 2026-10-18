@@ -1367,8 +1367,12 @@ which nothing sets). Counting, a ready unit counts an update and, once the
 count reaches 50, cloaks (`ActorVisibility.Disappear`); one not ready counts
 from none. Cloaked, a unit not ready starts to show; showing, it counts 20
 updates whatever happens and is then seen again, and starts counting anew
-once ready. Each blow of any of its skills starts a cloaked unit showing and
-sends a counting one back to none (`FightMech.OnMechSkillPerformAttack`).
+once ready. Each successful effect of any of its skills starts a cloaked unit
+showing and resets a counting one's enter timer. `AttackPerformer.Update`
+calls `ISkillOwner.PerformSkillAttack` after `TryPerformEffect` succeeds,
+raising `FightMech.OnMechSkillPerformAttack`: each release of a projectile
+burst notifies it, so the last release resets the cloak delay
+([`cloak-after-last-burst-release.yaml`](../../tests/stealth/cloak-after-last-burst-release.yaml)).
 A cloaked unit is searched and locked still, and no skill reaches it but one
 moving underground.
 

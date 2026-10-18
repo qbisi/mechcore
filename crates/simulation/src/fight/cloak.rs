@@ -16,7 +16,7 @@
 //! (`Cloak`, `ActorVisibility.Disappear`), and a unit not ready counts from
 //! none again; cloaked, a unit not ready starts to show (`IsTransitionNone`);
 //! showing, it counts a step whatever happens, which once it reaches the
-//! exit delay makes it seen again (`None`, `Normal`). Each blow of any of its
+//! exit delay makes it seen again (`None`, `Normal`). Each successful effect of any of its
 //! skills (`FightMech.OnMechSkillPerformAttack`) starts a cloaked unit
 //! showing and sends a counting one back to none. Its technologies switched
 //! off start it showing, or a counting one from none, and it holds still
@@ -154,9 +154,9 @@ impl Simulation {
         }
     }
 
-    /// `CloakController.OnISkillOwnerAttack`, on each blow of any of the
-    /// unit's skills.
-    pub(in crate::fight) fn cloak_on_blow(&mut self, unit: u64) {
+    /// `CloakController.OnISkillOwnerAttack`, after each successful effect
+    /// of any of the unit's skills, including every projectile of a burst.
+    pub(in crate::fight) fn cloak_on_attack(&mut self, unit: u64) {
         if let Some(cloak) = self
             .actors
             .get_mut(&unit)
