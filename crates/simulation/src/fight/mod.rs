@@ -410,6 +410,9 @@ struct Actor {
     /// The side it was deployed on, which a control beam may have turned it
     /// from.
     original_team: u32,
+    /// The last live snapshot's side, retained after death as the Adapter's
+    /// `capture.object_teams` does when resolving projectile event sources.
+    last_snapshot_team: u32,
     /// The formation it was deployed in, which it leaves when it is turned
     /// and is counted in again when it dies.
     original_formation: u64,
@@ -1751,6 +1754,24 @@ impl Simulation {
         events.append(&mut self.shield.created);
         events.append(&mut self.shield.destroyed);
         events.extend(self.take_terrain_events());
+        // The Adapter resolves projectile trace owners after reading this
+        // boundary's live units. Dead owners keep their last observed side,
+        // even when death returned the native actor to its original side.
+        for actor in self.actors.values_mut().filter(|actor| actor.alive()) {
+            actor.last_snapshot_team = actor.placement.team;
+        }
+        for event in &mut events {
+            if matches!(
+                event.payload,
+                EventPayload::ProjectileReleased { .. } | EventPayload::ProjectileRemoved { .. }
+            ) && let Some(source) = event
+                .source
+                .filter(|source| source.kind == ObjectKind::Unit)
+                && let Some(actor) = self.actors.get(&source.id)
+            {
+                event.source_team_id = Some(actor.last_snapshot_team);
+            }
+        }
         Ok(TransitionEvents { events })
     }
 
