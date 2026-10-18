@@ -24,9 +24,9 @@ use crate::modifier::{AutoRecovery, RecoveryState};
 /// seconds.
 #[derive(Debug, Clone, Copy)]
 pub(in crate::fight) struct RecoveryClock {
-    /// Position in its team's `SyncDictionary` registration order. Kept on
-    /// the controller so recording-identity changes cannot reorder it.
-    order: Option<u64>,
+    /// The manager's team and its `SyncDictionary` registration order.
+    /// Changing the unit's team does not move its registered controller.
+    order: Option<(u32, u64)>,
     start_q32: i64,
     recovery_q32: i64,
     /// `isCondition`: whether the unit is in the source's state.
@@ -68,7 +68,7 @@ impl Simulation {
         if let Some(clock) = actor.recovery.as_mut()
             && clock.order.is_none()
         {
-            clock.order = Some(self.next_recovery_order);
+            clock.order = Some((actor.placement.team, self.next_recovery_order));
             self.next_recovery_order += 1;
         }
     }
@@ -89,12 +89,7 @@ impl Simulation {
         let mut repaired = self
             .actors
             .iter()
-            .filter_map(|(&id, actor)| {
-                actor
-                    .recovery?
-                    .order
-                    .map(|order| (actor.placement.team, order, id))
-            })
+            .filter_map(|(&id, actor)| actor.recovery?.order.map(|(team, order)| (team, order, id)))
             .collect::<Vec<_>>();
         repaired.sort_unstable();
         for (_, _, id) in repaired {

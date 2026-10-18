@@ -937,6 +937,11 @@ Each side updates its repair controllers in registration order. Initially
 active units register in their prepared update order; later summons and
 arriving travellers append their controllers. Deactivating the effect removes
 the controller, and activating it again registers a fresh one with reset clocks.
+The manager is selected when `AutoRecoverySystem.AddMech` registers the unit;
+control does not move that controller to the unit's new side. A controlled
+unit therefore still repairs among its former side's controllers in its
+registration position, even though it fights for the other side
+([`control/recovery-keeps-registration-team.yaml`](../../tests/control/recovery-keeps-registration-team.yaml)).
 
 A fixed-point comparison counts 43 raw units as equal, and the tick is a few
 raw units short of 0.05 second: twenty hurt ticks reach the second and two
