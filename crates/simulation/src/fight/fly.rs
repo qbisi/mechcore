@@ -80,32 +80,8 @@ impl Actor {
         }
         self.refresh_life_data()
             .expect("the layout verified the officers' corrections");
-        // Officer.AddData/RemoveData visits GetSkills: even a modifier of
-        // life or damage calls SkillDataModifier's RefreshDatas on every
-        // skill. This discards its sampled interval, preserving a clock
-        // already at the old interval as ready at the new one.
-        let refresh = |skill: &mut super::skill::Skill, interval| {
-            skill.refresh_datas(interval, step);
-            for sibling in skill.siblings_mut() {
-                sibling.refresh_datas(interval, step);
-            }
-        };
-        refresh(
-            &mut self.skills.main,
-            math::seconds_q32_to_steps(self.stats.attack_interval_q32()).max(1),
-        );
-        for extra in &mut self.skills.extras {
-            let own =
-                (extra.rules.damage_rate <= 0.0).then_some(extra.skill_corrections.as_slice());
-            let interval = self
-                .stats
-                .interval_of(extra.rules.attack.interval_time_units(), own)
-                .expect("the layout verified the skills' corrections");
-            refresh(
-                &mut extra.skill,
-                math::seconds_q32_to_steps(interval).max(1),
-            );
-        }
+        self.refresh_common_skill_data(step)
+            .expect("the layout verified the skills' corrections");
     }
 }
 

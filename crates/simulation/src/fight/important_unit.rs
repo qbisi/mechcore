@@ -15,7 +15,7 @@ use crate::modifier::IMPORTANT_SOURCE;
 
 impl Actor {
     /// `FightMech.RemoveImportantUnitEffect`, retaining the modifier identity.
-    fn remove_important_unit_effect(&mut self) -> Result<()> {
+    fn remove_important_unit_effect(&mut self, step: u64) -> Result<()> {
         self.important_effect_enabled = false;
         for &(channel, entry) in &self.placement.effects.corrections {
             if entry.source == IMPORTANT_SOURCE {
@@ -27,11 +27,12 @@ impl Actor {
                 .skill_corrections
                 .retain(|entry| entry.source != IMPORTANT_SOURCE);
         }
-        self.refresh_life_data()
+        self.refresh_life_data()?;
+        self.refresh_common_skill_data(step)
     }
 
     /// `FightMech.AddImportantUnitEffect`, called on a dead translated unit.
-    fn add_important_unit_effect(&mut self) -> Result<()> {
+    fn add_important_unit_effect(&mut self, step: u64) -> Result<()> {
         self.important_effect_enabled = true;
         for &(channel, entry) in &self.placement.effects.corrections {
             if entry.source == IMPORTANT_SOURCE {
@@ -55,7 +56,8 @@ impl Actor {
                 );
             }
         }
-        self.refresh_life_data()
+        self.refresh_life_data()?;
+        self.refresh_common_skill_data(step)
     }
 }
 
@@ -80,7 +82,7 @@ impl Simulation {
                     .expect("actor identity is stable");
                 if actor.important_registered {
                     actor.important_registered = false;
-                    actor.remove_important_unit_effect()?;
+                    actor.remove_important_unit_effect(self.step_now)?;
                 }
                 self.check_team_important_unit(old_team, unit_id, events)?;
             }
@@ -88,7 +90,7 @@ impl Simulation {
             self.actors
                 .get_mut(&unit_id)
                 .expect("actor identity is stable")
-                .add_important_unit_effect()?;
+                .add_important_unit_effect(self.step_now)?;
         }
         Ok(())
     }
