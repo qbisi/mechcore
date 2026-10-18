@@ -83,7 +83,9 @@ attack target only while `FightSkill.TryGetValidAttackTarget` finds it alive.
 So a unit still swinging at a block that has fallen turns through that swing
 towards the unit behind it, not towards the block. The same holds for a blow
 that fells the block: `MotionAttackState` releases it and then turns
-(`AttackRotate`). A unit with a body turns its weapons, not its root.
+(`AttackRotate`). A unit with a body turns its weapons towards that target
+and its body towards its current movement velocity; a retained fallen block
+does not suppress the body's velocity turn.
 
 **A felled block holds its attacker only while it is in reach.** While the
 lock behind the block lives, `MotionAttackState.Update` goes on asking whether
@@ -344,6 +346,9 @@ The map's own buildings are the exception and are named: each side gets one
 - Two Stormcallers whose burst goes on at a block that fell at tick 695 read
   attacking through it, their turrets turning to their lock:
   `tests/corpus/134369439-r8.yaml`.
+- A Stormcaller retaining a fallen wall keeps turning its body to velocity
+  while its weapons turn to the living lock, including across an RVO publish:
+  `tests/construction/fallen-wall-body-follows-velocity.yaml`.
 - Stormcallers walking up to a wall take the next block along it once the one
   ahead comes inside their 70 metre minimum range centre to centre, and fire
   at their lock once no block on the line is far enough:

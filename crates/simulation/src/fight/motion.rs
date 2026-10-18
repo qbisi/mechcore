@@ -1955,15 +1955,6 @@ impl Simulation {
         Flow::Next
     }
 
-    /// Where a unit turns once the wall block in its way has fallen.
-    ///
-    /// `MotionController.CalculateTargetDirection` faces the attack target
-    /// only while `FightSkill.TryGetValidAttackTarget` finds it alive, and the
-    /// lock otherwise, so a felled block leaves the unit turning to the unit
-    /// behind it. `wall-block.yaml` and
-    /// `wall-rhino.yaml` measure it for a bodyless root; a unit with a body
-    /// turns its weapons, and whether they follow the lock is not measured,
-    /// so they stay on the block.
     /// Whether a unit's attack reaches a target where it stands, dead or
     /// alive: the range half of `IsAttackTargetInAttackRange`.
     fn reaches_where_it_stood(&self, actor_id: u64, target: FightActorRef) -> bool {
@@ -1976,6 +1967,9 @@ impl Simulation {
         attacker.reaches(view.x_q32, view.z_q32, view.radius)
     }
 
+    /// `CalculateTargetDirection` falls back from a fallen blocker to the live
+    /// lock. `AttackRotate` still turns weapons to that direction and a body
+    /// to its current velocity, as it does with a living attack target.
     fn turn_past_fallen_wall(&mut self, actor_id: u64, target: FightActorRef) {
         let skill = &self.actors[&actor_id].skills.main;
         let FightActorRef::Building(building) = target else {
@@ -1984,7 +1978,6 @@ impl Simulation {
         if skill.in_the_way.is_none_or(|(wall, _)| wall != building) {
             return;
         }
-        let has_body = self.actors[&actor_id].has_body();
         let facing = skill
             .lock_target
             .filter(|lock| self.fight_actor_is_alive(*lock));
@@ -2000,26 +1993,7 @@ impl Simulation {
         else {
             return;
         };
-        let actor = self
-            .actors
-            .get_mut(&actor_id)
-            .expect("actor identity is stable");
-        actor.rotate_weapons_towards(rotation);
-        if has_body {
-            actor.aim_rotation = degrees_q32_to_mdeg(
-                actor
-                    .skills
-                    .main
-                    .weapon_rotations_q32
-                    .first()
-                    .copied()
-                    .unwrap_or(actor.body_rotation_q32),
-            );
-        } else {
-            actor.rotate_body_towards(rotation);
-            actor.aim_rotation = actor.body_rotation;
-            actor.rotate_weapons_towards(rotation);
-        }
+        self.track_target_in_range(actor_id, Some(rotation), false);
     }
 
     /// Where a bodyless unit's lock stands from it, if the lock is alive: what

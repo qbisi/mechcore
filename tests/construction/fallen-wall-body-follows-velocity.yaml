@@ -1,0 +1,62 @@
+# Complete generated layout: a Stormcaller retains a fallen wall through
+# its burst. AttackRotate turns its weapons to the live tower lock and
+# continues turning its body to velocity, including across an RVO publish.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 551120418
+round: 4
+blue:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_offensive_tactics, rhino_specialist]
+  techs:
+    abyss: [wreckage_recycling, vertical_sweep, range_enhancement, disintegration, dark_companion, swarm_missiles, photon_coating]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [2, 4]
+  units:
+  - {name: abyss, index: 0, position: {x: 65, y: -45}, level: 4, exp: 21553/21553/21553, rotated: true}
+  - {name: rhino, index: 1, position: {x: 265, y: -95}, level: 2, exp: 0/620/2591, source: delivered}
+  - {name: stormcaller, index: 2, position: {x: -95, y: -170}, exp: 0/80/1100, source: joined}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: 255, y: -155}]}
+red:
+  core_damage: 1062
+  officers: [advanced_defensive_tactics, advanced_targeting_system, typhoon_specialist]
+  techs:
+    phoenix: [elite_marksman]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: typhoon, index: 0, position: {x: 20, y: -170}, source: delivered}
+  - {name: phoenix, index: 1, position: {x: -320, y: 290}, level: 4, equipment: [laser_sights], travelling: true, source: joined}
+  - {name: hound, index: 2, position: {x: -10, y: -280}, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: 90, y: -285}]}
+asserts:
+- sql: |
+    SELECT u.tick, u.body_rotation, u.turret_rotation, u.velocity__x, u.velocity__z,
+           s.enabled__lock_target__id, s.enabled__attack_target__id,
+           EXISTS(SELECT 1 FROM buildings b WHERE b.tick = u.tick AND b.building_id = 9)
+    FROM units u JOIN units__skills s ON s.tick = u.tick AND s.unit_id = u.unit_id
+      AND s.skill_slot = 0
+    WHERE u.unit_id = 4 AND u.tick IN (78, 79, 80, 81, 82, 83, 84, 85, 108, 109)
+    ORDER BY u.tick;
+  rows:
+  - [78, 1351349274676, 1531937506147, -293698423, -732674333, 4, 9, 1]
+  - [79, 1340611856476, 1531941881711, -293698423, -732674333, 4, 9, 0]
+  - [80, 1329874438276, 1521204463511, -14264099, 84460073, 4, 9, 0]
+  - [81, 1340611856476, 1518448255352, -14264099, 84460073, 4, 9, 0]
+  - [82, 1351349274676, 1518448286979, -14264099, 84460073, 4, 9, 0]
+  - [83, 1362086692876, 1518448319981, -14264099, 84460073, 4, 9, 0]
+  - [84, 1362086692876, 1518448319981, 0, 0, null, null, 0]
+  - [85, 1362086692876, 1518448319981, 0, 0, 4, 8, 0]
+  - [108, 1516079521776, 1518449894699, -4358075044, 35221389172, 4, 4, 0]
+  - [109, 1516079168146, 1518451742602, -4358075044, 35221389172, 4, 4, 0]
+ticks: 562
+hash: 26:d47c82287ff572c29cfa59032b9d6276e7c2847563163f0b979f5f54f54403d3
