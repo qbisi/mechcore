@@ -115,6 +115,8 @@ the whole of the difference:
   Secondary Armament shot stands where it left on the tick it is released, and
   takes up its target from the next. A projectile it fires at a building climbs
   as one at a unit does, and is recorded under its own skill.
+  The height's distance-to-range ratio reads the full `FPoint` attack range,
+  including fractional millimetres.
 - **The fight's end lets its target go**, as it does the main skill's.
 
 ## Its weapon
@@ -765,6 +767,9 @@ that is not melee, so the simulator refuses it.
 - An idle Whirlwind retains its kill bonus after the main skill exits on
   the tick following the last kill; both clear it at final exit:
   `tests/extra_weapon/whirlwind-idle-kills-after-last-enemy.yaml`.
+- Electromagnetic Barrage's climb uses the complete `FPoint` attack range
+  when scaling its pre-flight height:
+  `tests/extra_weapon/barrage-climb-keeps-range-precision.yaml`.
 - A side arm returns its fire turn against a fallen wall before refreshing
   its attack target, remaining idle after it names the live lock:
   `tests/extra_weapon/dual-wield-fallen-wall-reset.yaml`.

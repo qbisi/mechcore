@@ -828,7 +828,9 @@ impl Simulation {
             target_z_q32.saturating_sub(source.z_q32),
         );
         let climb_q32 = space_to_q32(source.climb);
-        let ratio_q32 = q32_div(distance_q32, space_to_q32(source.range));
+        // ProjectileSystem.Create divides by FightSkill.GetAttackRange's
+        // complete FPoint, before any conversion to whole millimetres.
+        let ratio_q32 = q32_div(distance_q32, self.slot_attack_range_q32(skill_ref, slot));
         Ok(Some(q32_mul(ratio_q32, climb_q32).min(climb_q32)))
     }
 
