@@ -1,0 +1,75 @@
+# A generated layout, recorded with the game. Wraith 10 arrives on tick 81
+# and Land Cruiser withdraws Aerial Specialist. Officer.RemoveData visits
+# every skill: RefreshDatas discards the sampled intervals and keeps their
+# ready clocks ready. All eight slots read 44; later attacks draw anew.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 305715427
+round: 3
+blue:
+  core_damage: 250
+  officers: [advanced_offensive_tactics, advanced_power_system, fire_badger_specialist, improved_sabertooth]
+  blueprints: [defense_enhancement_ii]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -95, y: -85}, level: 3, exp: 2315/4630/4630, rotated: true, equipment: [dominion_core]}
+  - {name: fire_badger, index: 1, position: {x: 95, y: -240}, exp: 0/50/1400, source: delivered}
+  - {name: sledgehammer, index: 2, position: {x: 275, y: -160}, level: 9, exp: 0/150/8746, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 285, y: -265}}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: 195, y: -85}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, quick_teleport, aerial_specialist, improved_wraith]
+  techs:
+    wraith: [high_explosive_ammo, field_maintenance, armor_enhancement, land_cruiser, range_enhancement, floating_artillery_array, degeneration_beam]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: wraith, index: 0, position: {x: 325, y: 175}, level: 5, exp: 0/2468/11724, equipment: [explosive_ammo], travelling: true, source: joined}
+  - {name: sledgehammer, index: 1, position: {x: -45, y: -80}, level: 9, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -120, y: -65}, retained: false}
+  battle_skills:
+  - {name: orbital_javelin, positions: [{x: -215, y: 175}]}
+asserts:
+- sql: |
+    SELECT u.tick, u.domain, k.skill_slot,
+      k.enabled__attack_time, k.enabled__current_attack_interval
+    FROM units u
+    JOIN units__skills k ON k.tick = u.tick AND k.unit_id = u.unit_id
+    WHERE u.unit_id = 10 AND u.tick IN (81, 120, 121)
+    ORDER BY u.tick, k.skill_slot;
+  rows:
+  - [81, "ground", 0, 44, 44]
+  - [81, "ground", 1, 44, 44]
+  - [81, "ground", 2, 44, 44]
+  - [81, "ground", 3, 44, 44]
+  - [81, "ground", 4, 44, 44]
+  - [81, "ground", 5, 44, 44]
+  - [81, "ground", 6, 44, 44]
+  - [81, "ground", 7, 44, 44]
+  - [120, "ground", 0, 7, 42]
+  - [120, "ground", 1, 83, 44]
+  - [120, "ground", 2, 83, 44]
+  - [120, "ground", 3, 83, 44]
+  - [120, "ground", 4, 83, 44]
+  - [120, "ground", 5, 83, 44]
+  - [120, "ground", 6, 83, 44]
+  - [120, "ground", 7, 83, 44]
+  - [121, "ground", 0, 8, 42]
+  - [121, "ground", 1, 0, 41]
+  - [121, "ground", 2, 0, 43]
+  - [121, "ground", 3, 0, 42]
+  - [121, "ground", 4, 0, 45]
+  - [121, "ground", 5, 0, 46]
+  - [121, "ground", 6, 0, 45]
+  - [121, "ground", 7, 0, 42]
+ticks: 1304
+hash: 26:643feca74270943e0d6656033426120959ff1f093676bc1b605260a65d141c98

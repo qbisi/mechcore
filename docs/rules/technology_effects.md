@@ -1158,6 +1158,13 @@ ground. Aerial Specialist rates units
 that fly, and the units its row lists are not read: a Wraith with Land
 Cruiser lands as the fight starts and loses its rates
 ([`aerial-specialist-leaves-a-landed-wraith.yaml`](../../tests/fly/aerial-specialist-leaves-a-landed-wraith.yaml)).
+Adding or removing the officer also visits every skill (`Officer.AddData`,
+`RemoveData`, `FightMech.GetSkills`, `SkillDataModifier.AddData`, `RemoveData`).
+Each calls `FightSkill.RefreshDatas`, even when the officer changes only life
+or damage: the skill reads its composed attack interval without its sampled
+stagger, and a clock exactly at its old interval follows the new interval.
+Other clocks keep their elapsed time. This includes every slot of an extra
+weapon group ([`conditional-officer-arrival-interval.yaml`](../../tests/fly/conditional-officer-arrival-interval.yaml)).
 What a formation gains is still rated on the card by the type's domain alone.
 
 ## Ignoring a buff effect
