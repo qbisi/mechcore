@@ -1643,6 +1643,7 @@ impl Simulation {
         // then the motion updates.
         let (extras_before, extras_after) = self.extra_skills_around_main(actor_id);
         self.step_extra_skills(actor_id, &extras_before, step, target_search_order, events)?;
+        let performed_before = self.actors[&actor_id].skills.main.perform_count;
         let core_lock = self.actors[&actor_id].skills.main.lock_target;
         let motion_before = self.actors[&actor_id].motion.state;
         let core_was_attacking =
@@ -1683,6 +1684,13 @@ impl Simulation {
                     self.release(SkillRef::main(FightActorRef::Unit(actor_id)), events)?;
             }
         }
+        // ChangeToIdle checks pooled ammunition before the next skill's
+        // Update, including when the main weapon spends the last round.
+        self.check_ammo_on_idle(
+            SkillRef::main(FightActorRef::Unit(actor_id)),
+            performed_before,
+            events,
+        )?;
         let fusillade = self.actors[&actor_id].skills.main.fusillade();
         // A running fusillade's siblings update in SkillManager before
         // MotionController, so their kills affect the same motion update.

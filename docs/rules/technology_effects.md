@@ -1433,10 +1433,14 @@ ready at its attack interval and updates after the arrival tick
 
 **The last round brings the melee skill.** Each projectile of a pooled skill
 takes a round (`ReduceLoadingRemainCount`). Once none is left, the melee
-skill's condition holds (`AmmoEmptyController`), checked as a pooled skill's
+skill's condition holds (`AmmoEmptyController`), checked both as a pooled skill's
 blow ends (`SkillAttackController.ChangeToIdle`,
 `SkillManager.TryTriggerAmmoEmptyPreemptiveCheck`), before its weapon turns,
-and after the unit's skills have updated: the main skill locks for good, the
+and after the unit's skills have updated. The immediate check applies to the
+main weapon too: if it spends the last round, incompatible extra skills lock
+before their updates, keeping the weapon poses they held on the previous tick
+([`main-last-round-locks-missile-pose.yaml`](../../tests/extra_weapon/main-last-round-locks-missile-pose.yaml)).
+The main skill locks for good, the
 body turns to where the unit points (`IFightMechBody.UpdateRotation`) and the
 melee skill disables it (`MeleeModeTech.DisableBody`,
 `MechDataChangeInt.DisableBody`), so that `FightMech.IsHaveBody` answers false
