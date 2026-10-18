@@ -1246,7 +1246,9 @@ decision is still cooling when the fight ends. A slot of a grouped skill is a
 skill of its own: a Raiden's second gun cooling as the fight is decided goes
 on naming the Vortex it fired at, as its core lets its lock go. A skill that was attacking
 still holds its lock, leaves the fight, and names nothing.
-An already-idle skill with no lock also stops updating. If a controlled
+An already-idle skill with no lock also stops updating. This includes a
+grouped slot: its core leaving does not clear the idle slot's retained
+attack target ([`idle-grouped-target-after-last-kill.yaml`](../../tests/endgame/idle-grouped-target-after-last-kill.yaml)). If a controlled
 unit's return to its side stopped the idle skill, it keeps the actor target
 that `StopAttack` left while the won fight runs on. The final exit clears it.
 When the fight ends, every skill leaves it, an extra skill's slots with it:
