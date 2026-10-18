@@ -1503,7 +1503,13 @@ impl Simulation {
                 .select_alive_target(skill_ref, grouped_core.then_some(0))
                 .map_err(located)?;
         }
-        self.skill_mut(skill_ref).idle = idle;
+        let skill = self.skill_mut(skill_ref);
+        skill.idle = idle;
+        // SearchLockTarget clears the attack target on its IsIdle branch,
+        // independently of whether ChangeLockTarget changes the lock.
+        if idle {
+            skill.attack_target_left = None;
+        }
         if let Some(FightActorRef::Building(building_id)) = selected_candidate {
             let skill = self.skill_mut(skill_ref);
             // A building lock is written as any lock is, and the construction
