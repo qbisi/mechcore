@@ -531,6 +531,11 @@ has none, whether or not the weapons turn at a speed of their own: a
 Wraith, whose four weapons turn at 90° a second but carry no transform,
 scores from its root's facing, not from where its first weapon points.
 
+**The first tick has no prepared search job.** Preparation runs after a
+tick's modules for the next tick. A search on the first tick therefore reads
+the live state when it runs: a Phantom Ray that cloaks on that tick already
+takes the invisible-target distance penalty.
+
 **A search reads the tick's start only when its skill asked for that.** At a
 tick's start `FightCoreSystem.PreCalculate` lets each skill state prepare a
 search, scored on where everything stands at that moment and with the skill's
@@ -1534,6 +1539,9 @@ not the game's native attack-type enum.
 - An idle core in a batch of standalone weapons uses its prepared search
   even while its siblings hold locks; a new summon on that tick is not among
   those prepared inputs: `tests/search/standalone-core-prepared-idle.yaml`.
+- The first tick's live searches see Phantom Rays that have just cloaked:
+  Typhoons 1 and 2 choose tower 4 instead, and the complete fight lasts 575
+  ticks: `tests/search/first-tick-sees-cloak.yaml`.
 - Each independent Mountain weapon consumes its own prepared search when
   queued; summons joining on that tick are absent from all four jobs:
   `tests/search/standalone-sibling-prepared-summon.yaml`.
@@ -1782,6 +1790,9 @@ not the game's native attack-type enum.
 - A search is prepared for the mechs alive and not travelling as the modules
   finish, and answered only for them: `FightingState.Update`,
   `FightCoreSystem.PreCalculate`, `SuperDeploymentSystem.IsTravelling`,
+  `ScoreRatingTargetSelector.TrySelect`.
+- The first preparation follows the first tick's modules, so its searches
+  have no queued job: `FightingState.Update`, `FightCoreSystem.PreCalculate`,
   `ScoreRatingTargetSelector.TrySelect`.
 - A projectile arriving at a target no longer valid is released with nothing
   done when it has no splash or is in simulated motion:
