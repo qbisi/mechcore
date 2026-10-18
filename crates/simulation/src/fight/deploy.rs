@@ -680,6 +680,11 @@ pub(in crate::fight) const fn rvo_collides(building: &BuildingState) -> bool {
 
 impl Simulation {
     pub(in crate::fight) fn initialize_presearch_targets(&mut self) -> Result<()> {
+        // Deployment effects may already have changed flight from the unit
+        // row, as Land Cruiser does, before presearch gathers its targets.
+        for actor in self.actors.values_mut() {
+            actor.target_query_domain = actor.domain;
+        }
         // `PresearchTargetController.CreateMechDatas` takes each side's
         // mechs in their team's order, the order they update in
         // ([`prepare_actors`]), not their identities': a Mustang a few raw

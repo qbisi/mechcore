@@ -578,7 +578,13 @@ searches past it and takes the next target that very tick. The ranges are
 the ones it was prepared with: a Fang whose Range Enhancement an
 Electromagnetic Impact switches off scores the search prepared before the
 skill landed with its 130 metres, not the 90 it is left with, and takes the
-Crawler within the 130 over one beyond it. `PreCalculate`
+Crawler within the 130 over one beyond it. The target's flight state is
+prepared too (`TeamScoreRatingTargetSelectJob.TargetData.isFly`): a timer
+restoring a Wraith to the air does not change the domain used by an already
+queued ground-target search. Its domain-dependent score offsets use that
+same prepared state; a later live fallback reads its current flight.
+Presearch gathers flight after deployment effects, including Land Cruiser,
+rather than from the unit row's default domain. `PreCalculate`
 prepares only the mechs of the fight as it runs, alive and not travelling, and
 `FightingState.Update` runs it after the modules, before the next update's
 timers join the summons that are due: a summon that joins is no attacker

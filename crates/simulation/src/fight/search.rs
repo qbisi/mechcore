@@ -783,6 +783,7 @@ impl Simulation {
                 };
             actor.target_query_alive = actor.alive();
             actor.target_query_visibility = actor.visibility;
+            actor.target_query_domain = actor.domain;
             actor.skills.main.searched_this_tick = false;
             // `MainSkillSearchTargetController.PrepareSearch` prepares no
             // skill a `SkillGroup` holds: a Wraith's or a Raiden's search is
@@ -1252,9 +1253,14 @@ impl Simulation {
                 continue;
             }
             for &candidate in candidates {
-                let Some(target) = self.fight_actor(candidate) else {
+                let Some(mut target) = self.fight_actor(candidate) else {
                     continue;
                 };
+                if !use_live_candidate_positions {
+                    // The queued job owns TargetData.isFly, not the actor's
+                    // flight after this tick's timers and modules ran.
+                    target.domain = target.query_domain;
+                }
                 // A unit turned since the tick opened has left the tree the
                 // job's candidates came from; the job still holds it.
                 let turned_since = !use_live_candidate_positions && target.team != team;

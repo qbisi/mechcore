@@ -239,6 +239,7 @@ struct FightActorView {
     /// `FightActor.visibility`, which a shot that lands asks no more of than
     /// that it is not hidden (`IsValidTarget(Stealth)`).
     visibility: Visibility,
+    query_domain: UnitDomain,
     domain: UnitDomain,
 }
 
@@ -281,6 +282,8 @@ struct Actor {
     target_query_source_rotation_q32: i64,
     target_query_alive: bool,
     target_query_visibility: Visibility,
+    /// `TeamScoreRatingTargetSelectJob.TargetData.isFly` at preparation.
+    target_query_domain: UnitDomain,
     /// The main skill's range and minimum range as the tick's searches were
     /// prepared, millimetres.
     target_query_ranges: (i64, i64),
@@ -1829,6 +1832,7 @@ impl Simulation {
                     query_targetable: actor.target_query_alive,
                     visible: actor.visibility == Visibility::Normal,
                     visibility: actor.visibility,
+                    query_domain: actor.target_query_domain,
                     domain: actor.domain,
                 })
             }
@@ -1856,6 +1860,7 @@ impl Simulation {
                     query_targetable: self.buildings_query_alive.contains(&id)
                         && building.available,
                     domain: UnitDomain::Ground,
+                    query_domain: UnitDomain::Ground,
                 })
             }
         }
