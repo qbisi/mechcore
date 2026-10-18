@@ -790,7 +790,11 @@ impl Simulation {
             // the Vortex, and a batch of standalone weapons have none.
             let skill = &actor.skills.main;
             // Nor one whose selector is no `ScoreRatingTargetSelector`.
-            actor.skills.main.search_prepared = actor.alive()
+            // FightingState.Update first calls PreCalculate after its modules
+            // have run. Tick one has no queued job and searches live, after
+            // CloakSystem can change an opponent's visibility.
+            actor.skills.main.search_prepared = self.step_now > 0
+                && actor.alive()
                 && !actor.travelling
                 && !actor.life_priority
                 && (skill.group_size() <= 1 || skill.standalone());
