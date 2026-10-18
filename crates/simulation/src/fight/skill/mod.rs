@@ -2129,7 +2129,7 @@ impl Simulation {
                 self.actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable")
-                    .attack_count_condition(false);
+                    .reset_attack_count();
             }
             if let Some(actor) = self.moving_mut(skill_ref) {
                 if clear_velocity {

@@ -249,6 +249,9 @@ including a unit already idle whose ability was not cleared.
 
 ### Recorded
 
+- Final skill exit removes Strike's temporary damage and splash correction:
+  `tests/move_ability/strike-at-fight-exit.yaml`.
+
 - Sandworms entering a burrow from an attack clear their targets and old
   wait; already idle Sandworms keep their actor attack targets:
   `tests/secondary_damage/travelling-cloud-and-burrow-idle.yaml`.

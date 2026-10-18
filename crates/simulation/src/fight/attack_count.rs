@@ -64,6 +64,14 @@ impl AttackCountLinker {
 }
 
 impl Actor {
+    /// `AttackCountEffectLinker.ResetData`, called by `FightSkill.ExitFight`.
+    pub(in crate::fight) fn reset_attack_count(&mut self) {
+        if let Some(linker) = self.skills.main.attack_count_linker.as_mut() {
+            linker.enabled = true;
+        }
+        self.attack_count_condition(false);
+    }
+
     /// `AttackCountEffectLinker.ConditionChange`, which
     /// `MoveAbilityAttackIntensifyProvider.EnterCondition` and
     /// `ExitCondition` reach through the main skill's
