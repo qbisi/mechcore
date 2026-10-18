@@ -1255,7 +1255,8 @@ impl Simulation {
 
     /// The end of `FightSkill.SearchLockTarget`, which hands the motion its
     /// attacker (`ISkillOwner.SetAttacker`). A unit that searches for itself
-    /// is its own. The main skill, the unit's main searcher, takes the motion
+    /// is its own. The main searcher (the main skill, or active permanent
+    /// preemptive skill) takes the motion
     /// back on each search, since an extra skill is no main target provider
     /// (`IsMainTargetProvider` answers `isMainSkill`). An extra skill takes it
     /// only while the main searcher holds no lock
@@ -1273,11 +1274,20 @@ impl Simulation {
         if actor.skills.main.mech_searches() {
             return;
         }
-        // An active permanent preemptive skill is the main searcher, and
-        // the motion's whoever else searches.
+        // FightMech.GetMainSearcherSkill selects the active permanent
+        // preemptive skill instead of the main weapon. Other independent
+        // skills can still take the motion while that searcher has no lock.
         if actor.skills.preemptive_active {
-            if let SkillSlot::Extra(index) = skill_ref.slot
-                && actor.skills.extras[index].rules.preemptive.is_some()
+            let searcher = actor
+                .skills
+                .extras
+                .iter()
+                .position(|extra| extra.rules.preemptive.is_some())
+                .expect("active permanent preemptive skill");
+            if skill_ref.slot == SkillSlot::Extra(searcher)
+                || (actor.skills.extras[searcher].skill.lock_target.is_none()
+                    && matches!(skill_ref.slot, SkillSlot::Extra(index)
+                        if !actor.skills.extras[index].skill.is_grouped()))
             {
                 actor.motion.attacker = skill_ref.slot;
             }
