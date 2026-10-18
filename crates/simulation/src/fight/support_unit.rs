@@ -989,15 +989,18 @@ impl Simulation {
         }
     }
 
-    /// The units made this tick numbered as a recording numbers the units
-    /// a snapshot finds new: by side, then where they stand, `z` and then
-    /// `x`, each taking the next unit and formation in turn. They were made,
-    /// and are recorded as made, in their own order.
+    /// New snapshot-visible units take spatially ordered identities; those
+    /// already dead take the following identities in creation-event order
+    /// (`number_fleeting_units` in the Adapter). Events retain creation order.
     pub(in crate::fight) fn number_as_recorded(&mut self, made: &[u64]) {
         let mut sorted = made.to_vec();
         sorted.sort_by_key(|id| {
             let actor = &self.actors[id];
-            (actor.placement.team, actor.z_q32, actor.x_q32)
+            if actor.alive() {
+                (false, actor.placement.team, actor.z_q32, actor.x_q32)
+            } else {
+                (true, 0, 0, 0)
+            }
         });
         let renamed = sorted
             .iter()
