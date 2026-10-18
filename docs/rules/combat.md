@@ -286,6 +286,11 @@ drops its lock. A construction in a slot's way replaces what that slot fires
 at, not what it was allocated, so every slot can be firing at a block while
 the lock reads the unit behind it.
 
+`ChangeLockTarget` does nothing when the old and new locks are identical.
+A sibling whose lock the core already took therefore does not clear the
+owner's new lock again when it stops its attack. Its retained attack target
+is still what its cooling names, even if that construction has fallen.
+
 **Each slot of a group runs its own skill states.** A Wraith's four slots are
 four `FightSkill`s, and each prepares, attacks and goes idle by itself:
 
@@ -1266,6 +1271,10 @@ not the game's native attack-type enum.
 ## Evidence
 
 ### Recorded
+
+- A fusillade sibling whose lock the core took retains its fallen wall
+  while cooling; its already empty lock does not overwrite the new mech
+  lock: `tests/raiden/core-takes-fallen-wall-lock.yaml`.
 
 - A skill that exits during the drain clears its kill damage while grouped
   slots already cooling keep their targets:
