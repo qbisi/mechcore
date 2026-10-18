@@ -19,6 +19,8 @@ pub(in crate::fight) const ATTACK_COUNT_RESET: i32 = -1;
 pub(in crate::fight) struct PendingRelease {
     pub(in crate::fight) step: u64,
     pub(in crate::fight) target: FightActorRef,
+    /// `AttackWaitAfterController.duration`, fitted when this blow began.
+    pub(in crate::fight) backswing_steps: u64,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -821,7 +823,7 @@ impl Skill {
         &mut self,
         step: u64,
         interval: u64,
-        attack_point_steps: u64,
+        (attack_point_steps, backswing_steps): (u64, u64),
         target: FightActorRef,
     ) {
         self.next_attack_step = step.saturating_add(interval);
@@ -833,6 +835,7 @@ impl Skill {
         self.set_pending(Some(PendingRelease {
             step: step.saturating_add(attack_point_steps),
             target,
+            backswing_steps,
         }));
     }
 
@@ -1612,6 +1615,10 @@ impl Simulation {
         self.invoke_delayed_buffs(actor_id, events)
     }
 
+    #[allow(
+        clippy::too_many_lines,
+        reason = "SkillManager's ordered skills followed by MotionController form one unit update"
+    )]
     fn step_actor_skill_and_motion(
         &mut self,
         actor_id: u64,
@@ -1677,7 +1684,13 @@ impl Simulation {
             }
         }
         let fusillade = self.actors[&actor_id].skills.main.fusillade();
-        if self.actors[&actor_id].skills.main.is_grouped() && !fusillade {
+        // A running fusillade's siblings update in SkillManager before
+        // MotionController, so their kills affect the same motion update.
+        // A core first entered by the motion below still hands its entry
+        // to the siblings on that path.
+        let group_updated_before_motion =
+            self.actors[&actor_id].skills.main.is_grouped() && (!fusillade || core_was_attacking);
+        if group_updated_before_motion {
             // The core's `ChangeLockTarget` reaches the owner first; its
             // siblings update after it and may overwrite it.
             let skill = &mut self
@@ -1713,7 +1726,10 @@ impl Simulation {
         self.aim_standalone_turret(actor_id);
         self.step_motion(actor_id, step, events, update, motion_before)?;
         self.turn_arc_weapons(actor_id, arc_parent_before);
-        if self.actors[&actor_id].skills.main.is_grouped() && fusillade {
+        if self.actors[&actor_id].skills.main.is_grouped()
+            && fusillade
+            && !group_updated_before_motion
+        {
             let skill = &mut self
                 .actors
                 .get_mut(&actor_id)
@@ -2042,8 +2058,7 @@ impl Simulation {
             let interval = self
                 .draw_attack_interval(skill_ref)
                 .expect("every skill owner's team owns one attack random stream");
-            let attack_point_steps =
-                fitted_attack_point(attack_point_steps, backswing_steps, interval);
+            let timing = fitted_attack_timing(attack_point_steps, backswing_steps, interval);
             // `SkillAttackController.PerformAttack` begins with the linker's
             // `TryEffect`, so the blow it winds up deals what that wrote.
             if let (SkillSlot::Main, Some(actor_id)) = (skill_ref.slot, skill_ref.owner.unit_id()) {
@@ -2053,7 +2068,7 @@ impl Simulation {
                     .try_attack_count_effect();
             }
             self.skill_mut(skill_ref)
-                .schedule_blow(step, interval, attack_point_steps, target);
+                .schedule_blow(step, interval, timing, target);
             self.set_fire_turns_mark(skill_ref);
         }
     }

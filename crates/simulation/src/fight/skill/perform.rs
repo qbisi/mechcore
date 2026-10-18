@@ -146,11 +146,7 @@ impl Simulation {
             skill.set_phase(FightSkillPhase::Idle);
             return Ok(true);
         }
-        let attack = self
-            .skill_attacker(skill_ref)
-            .expect("skill owner identity is stable")
-            .attack;
-        let backswing_steps = native_time_units_to_steps(attack.backswing_time_units());
+        let backswing_steps = pending.backswing_steps;
         let skill = self.skill_mut(skill_ref);
         let kind = skill.kind;
         skill.set_pending(None);
@@ -160,22 +156,17 @@ impl Simulation {
         skill.total_attack_count += 1;
         self.count_punch(skill_ref);
         let skill = self.skill_mut(skill_ref);
-        // The backswing is cut short by the next blow: a blow fitted into its
-        // interval by `SkillAttackController.PerformAttack` gives its
-        // backswing what is left of the interval, and a Wasp's 1.5-second
-        // backswing reads 27 ticks, its interval, in the game's own states.
-        let next_attack_step = skill.next_attack_step;
+        // PerformAttack caches both wait-controller durations as the blow
+        // begins. A later RefreshDatas changes the interval clock, not the
+        // already fitted backswing, even before the attack point lands.
         // A blow with no backswing runs its cycle out as its attacking phase
         // ends (`SkillAttackController.ChangeToIdle`), where `performCount`
         // counts it: a Farseer's two-projectile burst released on tick 2
         // reads 0 until its last projectile goes out, and 1 from tick 6.
         skill.attacking_unfinished = backswing_steps == 0;
-        skill.set_backswing_finish_step((backswing_steps > 0).then(|| {
-            pending
-                .step
-                .saturating_add(backswing_steps)
-                .min(next_attack_step)
-        }));
+        skill.set_backswing_finish_step(
+            (backswing_steps > 0).then(|| pending.step.saturating_add(backswing_steps)),
+        );
         // The skill stays in `SkillAttackState` after the blow, until a check
         // fails or the attack finishes.
         skill.set_phase(FightSkillPhase::Attack);

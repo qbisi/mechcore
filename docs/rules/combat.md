@@ -191,6 +191,9 @@ truncated to whole ticks, and the backswing is what is left of the interval.
 A unit whose attack point and backswing fit its interval keeps both. The
 Rhino's fit its own interval and no longer fit the one Mechanical Rage leaves
 it, so the technology brings its blow forward as well as its next one.
+Both fitted wait-controller durations are stored when the blow begins
+(`SkillAttackController.PerformAttack`). Refreshing the skill's current
+interval during windup does not refit that blow's remaining phases.
 
 ## Base facing
 
@@ -434,10 +437,10 @@ the one recorded. It holds every sibling to the core:
   `RefreshAttackData(core)` without `isSync`: the core's interval, the count
   started over.
 
-Where the simulator ends the core's update matters: a core with no prepare
-enters its attack in `SkillIdleState.TryStartAttack`, which the simulator
-runs with the unit's motion, so a fusillade's siblings update after the
-motion, with the facing the body had before it turned.
+A running fusillade's skills update before its owner's motion
+(`FightMech.Update`, `SkillManager.Update`). If a sibling kills the lock of
+an auto-moving unit, the motion enters idle on that update while the skill
+retains its dead target until its next search.
 
 **A fusillade's siblings never share, and are allocated towers.** A grouped
 search leaves out what the other skills hold, and a fusillade does not fall
@@ -1542,6 +1545,11 @@ not the game's native attack-type enum.
   `tests/corpus/201372157-r2.yaml`.
 - A blow whose attack point and backswing outlast its interval is fitted into
   it: `tests/modifier/technology-interval-value.yaml`.
+- EMP changing a Sandworm's interval during windup leaves the already fitted
+  backswing duration intact: `tests/technology_disable/emp-retains-fitted-backswing.yaml`.
+- A Raiden's sibling killing its auto-movement lock idles the motion on that
+  update, then the next search turns it to a living lock:
+  `tests/technology_disable/emp-retains-fitted-backswing.yaml`.
 
 - A hit hands back the whole part of its life times the multiplier, as far
   as the owner's maximum, through a blow, a projectile and a beam with no
