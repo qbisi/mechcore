@@ -1,0 +1,50 @@
+# Complete generated layout: acid and sand fog first appear together on
+# tick 266. The recorder numbers acid 6 before sand fog 7 by terrain tag,
+# while the combat system keeps updating sand fog before acid.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1650724649
+round: 2
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_defensive_tactics, speed_specialist, mass_produced_sandworm]
+  techs:
+    sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [3, 1]
+  units:
+  - {name: sandworm, index: 0, position: {x: 250, y: -130}, level: 6, exp: 5799/6705/11598, equipment: [steel_ball_production_line]}
+  - {name: sandworm, index: 1, position: {x: 150, y: -110}, level: 4, exp: 0/7500/8981, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -280, y: -150}}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: 5, y: 60}]}
+red:
+  core_damage: 784
+  officers: [advanced_power_system, aerial_specialist, mass_produced_scorpion]
+  techs:
+    scorpion: [doubleshot, field_maintenance, armor_enhancement, siege_mode, range_enhancement, convergent_fire, acid_attack]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: scorpion, index: 0, position: {x: -35, y: -95}, level: 5, exp: 3908/4170/7816, rotated: true, equipment: [absorption_module]}
+  - {name: phoenix, index: 1, position: {x: -20, y: -220}, level: 4, exp: 0/750/5837, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  battle_skills:
+  - {name: electromagnetic_blast, positions: [{x: -35, y: 85}]}
+asserts:
+- sql: |
+    SELECT tick, terrain_id, terrain_type, team_id, position__x, position__z, radius
+    FROM terrains
+    WHERE tick = 266 AND terrain_id >= 6
+    ORDER BY terrain_id;
+  rows:
+  - [266, 6, acid, 1, 771922174901, 330205099707, 64424509440]
+  - [266, 7, fog_sand, 0, 679505256197, 516793134653, 515396075520]
+ticks: 397
+hash: 26:5f09c5577268f01b8b2b4c76a5cc54086ab655df5c0a90da4ac6bd0020ceb977
