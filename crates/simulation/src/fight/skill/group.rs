@@ -146,6 +146,19 @@ impl Simulation {
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
         events: &mut Vec<Event>,
     ) -> Result<()> {
+        // `SkillManager.Update(false)` visits each flattened FightSkill:
+        // only a skill retaining a lock exits; no state machine updates.
+        if self.ending.stop_step.is_some() {
+            for sibling in self.skill_mut(skill_ref).siblings_mut() {
+                if sibling.lock_target.is_some() {
+                    sibling.drop_lock();
+                    sibling.attack_target_left = None;
+                    sibling.enter(SkillState::Idle { ready_step: None });
+                    sibling.performer.stop();
+                }
+            }
+            return Ok(());
+        }
         #[cfg(test)]
         if let Some(actor_id) = skill_ref.owner.unit_id() {
             self.replay_group_checker_calls(actor_id);

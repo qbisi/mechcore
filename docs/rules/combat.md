@@ -1267,6 +1267,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A skill that exits during the drain clears its kill damage while grouped
+  slots already cooling keep their targets:
+  `tests/endgame/last-kill-damage-and-cooling.yaml`.
+
 - Overlapping fires publish a unit's death once:
   `tests/terrain/fire-death-once.yaml`.
 
