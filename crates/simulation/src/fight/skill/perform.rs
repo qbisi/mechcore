@@ -1112,30 +1112,27 @@ impl Simulation {
                 return Ok(());
             }
         }
+        // Without an offset controller, PerformEffect calculates the aim
+        // anew for every release, for a building just as for a unit. A burst
+        // with offsets instead keeps the point its controller prepared.
+        let target = match pending.target_kind {
+            ObjectKind::Unit => Some(FightActorRef::Unit(pending.target)),
+            ObjectKind::Building => Some(FightActorRef::Building(pending.target)),
+            _ => None,
+        };
+        let aimed = if let Some(target) =
+            target.filter(|&target| pending.aims_at_release && self.fight_actor(target).is_some())
+        {
+            self.attack_position(skill_ref.owner, pending.skill_slot, target, 0, true)?
+        } else {
+            (
+                pending.target_x_q32,
+                pending.target_y_q32,
+                pending.target_z_q32,
+            )
+        };
         let result = match pending.target_kind {
             ObjectKind::Unit => {
-                // A projectile leaves for where its burst aimed it, the
-                // target's position when the burst began plus its offset,
-                // and one that follows its target takes the target's position
-                // up again from its first update: a Farseer's second shot,
-                // which climbs first, still names the point the burst aimed
-                // at when it levels off.
-                let aimed = if pending.aims_at_release && self.actors.contains_key(&pending.target)
-                {
-                    self.attack_position(
-                        skill_ref.owner,
-                        pending.skill_slot,
-                        FightActorRef::Unit(pending.target),
-                        0,
-                        true,
-                    )?
-                } else {
-                    (
-                        pending.target_x_q32,
-                        pending.target_y_q32,
-                        pending.target_z_q32,
-                    )
-                };
                 let climb_q32 =
                     self.projectile_climb_q32(skill_ref, pending.skill_slot, pending.climb_target)?;
                 self.release_projectile_at(
@@ -1171,11 +1168,7 @@ impl Simulation {
                     skill_ref,
                     ObjectKind::Building,
                     pending.target,
-                    (
-                        pending.target_x_q32,
-                        pending.target_y_q32,
-                        pending.target_z_q32,
-                    ),
+                    aimed,
                     radius,
                     pending.skill_slot,
                     pending.weapon_index,
