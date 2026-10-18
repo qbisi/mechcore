@@ -1,0 +1,62 @@
+# Complete generated layout: Mechanical Division creates ten Crawlers,
+# then loss of the last Dominion Core destroys them before any snapshot.
+# These event-only units retain creation-order unit and formation identities.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1074540998
+round: 4
+blue:
+  core_damage: 961
+  officers: [quick_teleport, advanced_targeting_system, rhino_specialist, improved_steel_ball]
+  techs:
+    steel_ball: [energy_absorption, damage_sharing, mechanical_division, fortified_target_lock, armor_enhancement, range_enhancement, kinetic_charge]
+  blueprints: [attack_enhancement_ii]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: rhino, index: 0, position: {x: -5, y: -55}, level: 2, source: delivered}
+  - {name: steel_ball, index: 1, position: {x: -335, y: 260}, level: 2, rotated: true, equipment: [dominion_core], travelling: true, source: joined}
+  - {name: wraith, index: 2, position: {x: -5, y: -25}, level: 4, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: -270, y: -190}, {x: 250, y: -100}, {x: 225, y: -285}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, rhino_specialist, extended_range_war_factory]
+  techs:
+    war_factory: [high_explosive_ammo, armor_enhancement, missile_interceptor, range_enhancement, launcher_overload, phoenix_production, steel_ball_production, sledgehammer_production, photon_coating]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 2]
+  units:
+  - {name: rhino, index: 0, position: {x: -175, y: -125}, level: 2, source: delivered}
+  - {name: war_factory, index: 1, position: {x: 105, y: -225}, level: 6, exp: 0/1905/18556, rotated: true, source: joined}
+  - {name: wasp, index: 2, position: {x: 245, y: -290}, level: 7, exp: 0/535/5667, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -85, y: -235}}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: -150, y: 35}]}
+asserts:
+- sql: |
+    SELECT c.object__id AS unit_id, c.formation_id,
+           c.position__x AS x, c.position__z AS z, d.tick AS death_tick,
+           (SELECT COUNT(*) FROM units u WHERE u.unit_id = c.object__id) AS snapshot_rows
+    FROM events c JOIN events d ON d.type = 'unit_died' AND d.object__id = c.object__id
+    WHERE c.tick = 182 AND c.type = 'unit_created' ORDER BY c.ordinal;
+  rows:
+  - [30, 16, -1112245485616, 960356431412, 182, 0]
+  - [31, 17, -1140463420750, 979039539149, 182, 0]
+  - [32, 18, -1103140154948, 948330522983, 182, 0]
+  - [33, 19, -1106404330093, 971136799324, 182, 0]
+  - [34, 20, -1103311953640, 971738094746, 182, 0]
+  - [35, 21, -1191375007453, 947409109974, 182, 0]
+  - [36, 22, -1205891996914, 980179710442, 182, 0]
+  - [37, 23, -1186092197679, 961926099434, 182, 0]
+  - [38, 24, -1212033800147, 964846677195, 182, 0]
+  - [39, 25, -1188454429692, 981425250958, 182, 0]
+ticks: 189
+hash: 26:6c7ef92f84f6e0483174fab0e475cc9a71fe4e320fc8b0d10461b7a77128df82

@@ -1042,8 +1042,11 @@ number in the namespace, which increases monotonically from 1, and a historical
 reference keeps whatever number the object first received. The units one
 snapshot finds new are numbered together: those it holds by `(team_id,
 position.z, position.x)`, then those the tick made that have not joined yet,
-in the order they were made, so a production line's batch that joins at once
-takes its numbers by where its makes stand.
+in the order they were made. A unit created and destroyed before any snapshot
+holds it takes its identity after the snapshot's units, in event order too.
+Thus a production line's batch that joins at once takes its numbers by where
+its makes stand, while summons destroyed on their creation tick keep event
+order (`tests/dead_summon/division-destroyed-before-snapshot.yaml`).
 
 **Formations.** `formation_id` is assigned to formations in the order the unit
 ordering above first meets them, so initial formation IDs are exactly `1..F` by
