@@ -818,6 +818,13 @@ field its type does not carry or lacks one it requires.
 | `buff_applied` | `target`; `source` is the actor that put it on, if one did, and `source_team_id` its side's | `buff_id: u32`, `duration: i32` | a buff put on the target, or put on again; `buff_id` is its data's `GetID()`, `duration` the ticks left on it once applied |
 | `buff_removed` | `target` | `buff_id: u32`, `reason: BuffRemovedReason` | a buff taken off the target |
 
+For `unit_died`, `source` and `source_team_id` come from the active damage
+context at the death boundary when one exists, otherwise from the unit's
+most recent positive damage result. This fallback includes damage absorbed
+by its personal shield, even when it lost no life. The source team is the
+team at that damage boundary; a later team change does not rewrite it.
+These fields record damage provenance, independently of experience credit.
+
 `projectile_removed` admits exactly three combinations. Native interception is
 `intercepted=true, absorbed_by=null`. Absorption by a battlefield shield is
 `intercepted=false, absorbed_by=ShieldRef`. Any other removal has neither.

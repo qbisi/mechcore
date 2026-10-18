@@ -1,0 +1,86 @@
+# A complete generated layout, recorded with the game. Fang 5 loses only
+# personal-shield energy to Rapid-Fire Turret 3, keeping life 818. Hacker
+# converts it; Dominion Core then destroys it with its new side. The death
+# trace retains building 3 as the source of its last positive damage result,
+# even though none of those hits took life. The death notification also
+# returns all three converted Fangs' unit recorders to their original side.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1814282236
+round: 2
+blue:
+  core_damage: 566
+  officers: [advanced_missile_device, advanced_targeting_system, speed_specialist, fortified_hacker]
+  techs:
+    hacker: [multi_control]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [1, 4]
+  units:
+  - {name: hacker, index: 0, position: {x: -165, y: -135}, level: 7, exp: 0/588/3526, rotated: true, equipment: [dominion_core], source: joined}
+  - {name: phantom_ray, index: 1, position: {x: 225, y: -240}, level: 6, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 50, y: -110}}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: 0, y: 235}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device]
+  techs:
+    fang: [portable_shield]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [3, 2]
+  units:
+  - {name: fang, index: 0, position: {x: 80, y: -45}, level: 4, exp: 1347/2647/2694, rotated: true, equipment: [absorption_module]}
+  - {name: mountain, index: 1, position: {x: 155, y: -85}, level: 2, exp: 0/3900/7210, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 175, y: -170}}
+  battle_skills:
+  - {name: nuke, positions: [{x: -240, y: 10}]}
+asserts:
+- sql: |
+    SELECT tick, life__current FROM units
+    WHERE unit_id = 5 AND tick IN (38, 39, 92, 93)
+    ORDER BY tick;
+  rows:
+  - [38, 818]
+  - [39, 818]
+  - [92, 818]
+  - [93, 818]
+- sql: |
+    SELECT tick, source__kind, source__id, amount FROM ev_damage
+    WHERE target__kind = 'unit' AND target__id = 5 AND tick IN (39, 92)
+    ORDER BY tick, ordinal;
+  rows:
+  - [39, "building", 3, 82]
+  - [92, "building", 3, 80]
+- sql: |
+    SELECT tick, object__id, source__kind, source__id FROM ev_unit_died
+    WHERE tick = 186 AND object__id IN (5, 7, 8)
+    ORDER BY tick, ordinal;
+  rows:
+  - [186, 5, "building", 3]
+  - [186, 8, "building", 3]
+  - [186, 7, "building", 3]
+- sql: |
+    SELECT tick, team_id, recorder_id FROM statistics
+    WHERE recorder = 'unit' AND recorder_id IN (5, 7, 8)
+      AND tick IN (185, 186, 192)
+    ORDER BY tick, recorder_id;
+  rows:
+  - [185, 0, 5]
+  - [185, 0, 7]
+  - [185, 0, 8]
+  - [186, 1, 5]
+  - [186, 1, 7]
+  - [186, 1, 8]
+  - [192, 1, 5]
+  - [192, 1, 7]
+  - [192, 1, 8]
+ticks: 192
+hash: 26:30677bf0179d4207b67fdfcf3df2e7bc95a3f0abff4864d6d3b0c87641766827
