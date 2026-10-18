@@ -1177,6 +1177,9 @@ towers down the same way: gone on the kill's tick, their `building_destroyed`
 on the next, which is the fight's last. `DeadEffectSystem` writes them there,
 after the projectiles that tick resolved and before what those killed: a
 Wasp's shot at a tower torn down is removed before the tower falls.
+Torn-down constructions follow their usual death cleanup: their buffs are
+cleared immediately before `building_destroyed`, even while the fight waits
+for other projectiles to drain.
 
 **A tower torn down still stands in the RVO solve of the tick that tore it
 down.** `FightingState.Update` runs the RVO after `TryDstroyTower`, and the
@@ -1379,6 +1382,9 @@ not the game's native attack-type enum.
   nothing, splash included, and on the fight's last tick a Wasp's shot at a
   tower torn down is removed before the towers fall:
   `tests/corpus/67158166-r2.yaml`, ticks 290 and 765.
+- A torn-down construction clears its buffs immediately before its death
+  event, while projectiles remain in flight:
+  `tests/endgame/torn-down-construction-clears-buff.yaml`.
 - The fallen side's towers stand in the solve of the tick they are torn down:
   red's Fortress dies to a Rhino on a solve tick with Wasp shots still in the
   air, and the two Typhoons walking on are published, four ticks later, the
