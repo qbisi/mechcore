@@ -172,13 +172,61 @@ impl Actor {
             },
             skills: SkillManager::new(main_skill),
         };
-        actor.skills.extras = extra_skills(&actor.placement);
+        let melee = actor
+            .placement
+            .travelling
+            .then(|| {
+                actor
+                    .placement
+                    .effects
+                    .single
+                    .melee
+                    .as_ref()
+                    .map(|row| row.skill)
+            })
+            .flatten();
+        actor.skills.extras = extra_skills(
+            &actor.placement,
+            actor
+                .placement
+                .effects
+                .extra_weapons
+                .iter()
+                .filter(|weapon| Some(weapon.rules.skill) != melee),
+        );
         if actor.rules.mech_search
             && let Some(group) = &mut actor.skills.main.group
         {
             group.mech_search_time = Some(0);
         }
         actor
+    }
+
+    /// `MeleeModeEffectSystem.AddMeleeSkill`: the provider creates this
+    /// skill as its owner activates, after travel when it travelled in.
+    pub(in crate::fight) fn add_melee_skill(&mut self) -> Option<usize> {
+        let melee = self.placement.effects.single.melee.as_ref()?.skill;
+        if self
+            .skills
+            .extras
+            .iter()
+            .any(|extra| extra.rules.skill == melee)
+        {
+            return None;
+        }
+        self.skills.extras.extend(extra_skills(
+            &self.placement,
+            self.placement
+                .effects
+                .extra_weapons
+                .iter()
+                .filter(|weapon| weapon.rules.skill == melee),
+        ));
+        self.skills.extras.sort_by_key(|extra| extra.rules.skill);
+        self.skills
+            .extras
+            .iter()
+            .position(|extra| extra.rules.skill == melee)
     }
 
     /// `MotionMoveState.NormalRotate`'s `IAttacker.RotateWeaponTo` under an
@@ -844,13 +892,12 @@ impl Actor {
 /// one skill holding the group of its weapons' skills
 /// (`FightSkillFactory.PrepareGroupedSkill`), as a grouped main skill does;
 /// each starts pointing as the unit faces, as the main skill's weapons do.
-fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
-    let mut weapons: Vec<&crate::layout::ExtraWeapon> = placement
-        .effects
-        .extra_weapons
-        .iter()
-        .filter(|weapon| !weapon.joins_main_group)
-        .collect();
+fn extra_skills<'a>(
+    placement: &Placement,
+    weapons: impl Iterator<Item = &'a crate::layout::ExtraWeapon>,
+) -> Vec<ExtraSkill> {
+    let mut weapons: Vec<&crate::layout::ExtraWeapon> =
+        weapons.filter(|weapon| !weapon.joins_main_group).collect();
     weapons.sort_by_key(|weapon| weapon.rules.skill);
     weapons
         .into_iter()

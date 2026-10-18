@@ -1413,6 +1413,14 @@ skill of a loading type (`isLoadingType`), the side arm's, whose magazine is
 never reloaded. Its source answers
 `CanDisable` false (`ignoreElectricEffect`): nothing switches it off.
 
+**A travelling owner has no melee skill until arrival.** The provider's
+`DoActive` calls `AddOwner`, which calls `AddMeleeSkill` and
+`SkillManager.AddSkill`. A unit travelling in is activated as it arrives:
+before then this skill is absent, rather than a disabled skill. In a running
+fight `AddMeleeSkill` calls the new skill's `EnterFight`, so its clock starts
+ready at its attack interval and updates after the arrival tick
+([`melee-skill-on-arrival.yaml`](../../tests/super_deployment/melee-skill-on-arrival.yaml)).
+
 **The last round brings the melee skill.** Each projectile of a pooled skill
 takes a round (`ReduceLoadingRemainCount`). Once none is left, the melee
 skill's condition holds (`AmmoEmptyController`), checked as a pooled skill's
