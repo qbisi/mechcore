@@ -1,0 +1,48 @@
+# A complete generated layout recorded with the game. A controlled
+# Sledgehammer's repair controller stays in its registration team's manager.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 957085356
+round: 2
+blue:
+  core_damage: 276
+  officers: [advanced_defensive_tactics, advanced_targeting_system]
+  blueprints: [defense_enhancement_ii]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 155, y: -60}, level: 9, exp: 0/2300/8746, equipment: [nano_repair_kit], source: joined}
+  - {name: steel_ball, index: 1, position: {x: -205, y: -120}, exp: 0/200/1000, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -135, y: -35}, retained: false}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: 160, y: -285}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_offensive_tactics, marksman_specialist]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: hacker, index: 0, position: {x: 195, y: -175}, level: 8, exp: 1883/3767/3767, rotated: true, equipment: [dominion_core]}
+  - {name: marksman, index: 1, position: {x: -160, y: -220}, level: 3, source: delivered}
+  - {name: rhino, index: 2, position: {x: -55, y: -185}, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -210, y: -90}, retained: false}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: -160, y: -180}]}
+asserts:
+- sql: |
+    SELECT target__id, amount FROM events
+    WHERE tick = 1540 AND type = 'healing' ORDER BY ordinal;
+  rows:
+  - [5, 246]
+  - [6, 246]
+  - [8, 75]
+- sql: |
+    SELECT team_id FROM units WHERE tick = 1540 AND unit_id = 6;
+  rows:
+  - [1]
+ticks: 1689
+hash: 26:c22b2d871e6126a0c65eb957baf931d4f5a23ceb96a61f81bb252f48ec241853
