@@ -2406,23 +2406,6 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        if actor.rules.attack.weapons.mode == WeaponMode::Group
-            && actor.motion.state == MotionState::Attacking
-            && actor
-                .skills
-                .main
-                .siblings()
-                .iter()
-                .any(|slot| slot.lock_target.is_some())
-        {
-            // GroupedSkillAttackBehaviour keeps the group attacking while any
-            // child FightSkill remains in SkillAttackState. When the core
-            // target is outside its own range, the bodyless root returns to
-            // the deployment facing while child weapons keep their locks.
-            actor.rotate_body_towards(mdeg_to_degrees_q32(actor.placement.rotation));
-            actor.aim_rotation = actor.body_rotation;
-            return Flow::Done;
-        }
         if attack_point_rejected
             && actor.rules.attack.melee
             && !actor.has_body()

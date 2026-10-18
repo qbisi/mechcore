@@ -317,6 +317,10 @@ four `FightSkill`s, and each prepares, attacks and goes idle by itself:
   blow is due is the skill's own and outlives the attack: a slot that leaves
   its attack and comes back to it fires when its interval is up, not on the
   update after its return.
+
+The batch asks its core skill whether the attack target is in range.
+A sibling retaining a lock does not keep the unit in attack motion when
+that answer is false, even if every slot is idle with a target retained.
 - The core's own searches, in its check and in its idle search alike, are
   the group's: around what its siblings hold, and among it when nothing
   else answers.
@@ -902,8 +906,13 @@ advances two clocks by the tick: a start clock, which begins at −1 second,
 and once that reaches the source's start time, a repair clock. When the
 repair clock reaches the source's interval it is set back to zero and the
 unit gains the whole part of its maximum life times the source's rate, as
-far as its maximum. Nothing sets the start clock back during a fight: a unit
+far as its maximum. Nothing sets a registered controller's start clock back: a unit
 that is healed whole and hurt again repairs at once.
+
+Each side updates its repair controllers in registration order. Initially
+active units register in their prepared update order; later summons and
+arriving travellers append their controllers. Deactivating the effect removes
+the controller, and activating it again registers a fresh one with reset clocks.
 
 A fixed-point comparison counts 43 raw units as equal, and the tick is a few
 raw units short of 0.05 second: twenty hurt ticks reach the second and two
@@ -1546,6 +1555,12 @@ not the game's native attack-type enum.
 - An idle core in a batch of standalone weapons uses its prepared search
   even while its siblings hold locks; a new summon on that tick is not among
   those prepared inputs: `tests/search/standalone-core-prepared-idle.yaml`.
+- A Raiden with all slots idle changes to movement at tick 481 when its
+  core's target leaves range, despite a sibling retaining another lock;
+  its root does not rotate on the entry tick. The same fight's repairs on
+  tick 614 follow registration order, Rhino 7, summoned Rhino 8, then the
+  later arriving Rhino 5:
+  `tests/raiden/idle-sibling-lock-does-not-hold-motion.yaml`.
 - The first tick's live searches see Phantom Rays that have just cloaked:
   Typhoons 1 and 2 choose tower 4 instead, and the complete fight lasts 575
   ticks: `tests/search/first-tick-sees-cloak.yaml`.
@@ -1798,6 +1813,10 @@ not the game's native attack-type enum.
   `ScoreRatingTargetSelector.Prepare`.
 - A skill a `SkillGroup` holds is never prepared:
   `MainSkillSearchTargetController.PrepareSearch`.
+- A grouped batch answers motion range through its core skill; a child's
+  retained lock adds no exception: `FightSkillBatch.IsAttackTargetInAttackRange`,
+  `FightSkill.IsAttackTargetInAttackRange`,
+  `SkillAttackRangeChecker.IsAttackTargetInAttackRange`, `MotionAttackState.Update`.
 - A search is prepared for the mechs alive and not travelling as the modules
   finish, and answered only for them: `FightingState.Update`,
   `FightCoreSystem.PreCalculate`, `SuperDeploymentSystem.IsTravelling`,
@@ -1962,6 +1981,11 @@ not the game's native attack-type enum.
   `IAutoRecovery.GetRecoveryLIfeRate` and calls `FightMech.RecoveryLife`.
   `FightController.AddModules` adds `AutoRecoverySystem` after
   `SuperDeploymentSystem`.
+- Repair controllers enumerate their SyncDictionary in registration order;
+  deactivation removes a controller and reactivation appends a new one:
+  `FightEffectSystem.OnEnterFight`, `AutoRecoveryEffectProvider.DoActive`,
+  `AutoRecoveryEffectProvider.DoDeactive`, `TeamAutoRecoveryManager.AddMech`,
+  `TeamAutoRecoveryManager.RemoveMech`, `TeamAutoRecoveryManager.Update`.
 - A repair's state: `TeamAutoRecoveryManager+AutoRecoveryController.Reset`
   sets `isCondition` for `AutoRecoveryStateType.Normal` alone; `TeamAutoRecoveryManager.AddMech`
   registers `MechEnterMoveEnd` and `MechExitMoveBegin` on the

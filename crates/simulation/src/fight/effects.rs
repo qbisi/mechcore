@@ -32,6 +32,14 @@ impl Simulation {
                 EffectProvider::WreckageRecovery => self.enter_wreckage_fight(),
                 EffectProvider::Burrow => self.enter_burrow_fight(),
                 EffectProvider::Repair => self.enter_repair_fight(),
+                EffectProvider::AutoRecovery => {
+                    // OnEnterFight activates effects in activeMeches order.
+                    for unit in self.units_in_update_order() {
+                        if !self.actors[&unit].travelling {
+                            self.add_auto_recovery(unit);
+                        }
+                    }
+                }
                 EffectProvider::FlyTech => self.enter_fly_fight(),
                 EffectProvider::IgnoreBuff => self.enter_ignore_buff_fight(),
                 EffectProvider::SkillSearchTarget => self.enter_life_priority_fight(),
@@ -41,7 +49,6 @@ impl Simulation {
                 // (`Simulation::enter_siege_fight`).
                 EffectProvider::SiegeMode
                 | EffectProvider::LifeSteal
-                | EffectProvider::AutoRecovery
                 | EffectProvider::EnergyShield
                 | EffectProvider::SweepSkillIntensify
                 | EffectProvider::ArmorStrengthen
@@ -136,6 +143,7 @@ impl Simulation {
                 EffectProvider::WreckageRecovery => self.remove_wreckage_unit(unit),
                 EffectProvider::Burrow => self.remove_burrow_unit(unit)?,
                 EffectProvider::Repair => self.remove_repair_unit(unit),
+                EffectProvider::AutoRecovery => self.remove_auto_recovery(unit),
                 EffectProvider::FlyTech => self.remove_fly_unit(unit),
                 EffectProvider::IgnoreBuff => self.switch_ignore_buff(unit, false),
                 EffectProvider::SkillSearchTarget => self.switch_life_priority(unit, false),
@@ -150,7 +158,6 @@ impl Simulation {
                 // A dead unit's stealth ends with it.
                 | EffectProvider::StealthTech
                 | EffectProvider::LifeSteal
-                | EffectProvider::AutoRecovery
                 | EffectProvider::EnergyShield
                 | EffectProvider::SweepSkillIntensify
                 | EffectProvider::ArmorStrengthen
