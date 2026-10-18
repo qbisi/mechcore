@@ -768,9 +768,12 @@ reach.** Each update, before it lands, a projectile of a skill with
 `isLockTarget=true` asks whether it stands within its reach of its owner,
 edge to edge in three dimensions from where the owner stands, dead or
 alive. Its reach is the owner's radius, the skill's attack range and the
-target's radius, all as the projectile was made; against a target flying at
-another height than the owner, the hypotenuse of that and the 70 metres
-between them. One out of reach is removed with no damage. A Mustang's shot,
+target's radius, all as the projectile was made; when exactly one of owner
+and target currently flies, the hypotenuse of that and the 70 metres between
+them. The flight flags are read even after the target dies, while its cached
+arrival point stops following it. Removing Land Cruiser on a Wraith's death
+can therefore shorten a Wasp shot's reach without moving its destination.
+One out of reach is removed with no damage. A Mustang's shot,
 135 metres of range, at a Crawler running away is spent 143.06 metres from
 the Mustang, against the 3 + 135 + 2 + 3 it may stand at. A Stormcaller's
 shells lock nothing and are never asked.
@@ -1383,6 +1386,10 @@ not the game's native attack-type enum.
 - A Mustang's shot at a Crawler running away is spent on nothing out of its
   owner's reach: `tests/corpus/67156074-r5.yaml`, tick 539; and
   `tests/corpus/268477093-r3.yaml`.
+- A Wraith dying with Land Cruiser loses its grounded domain. Wasp shots
+  420 and 421 then lose the cross-domain reach allowance and are removed at
+  tick 1073; the complete fight ends at tick 1088:
+  `tests/projectile/dead-target-restores-flight-reach.yaml`.
 
 - A Crawler on the very edge of a Tarantula's splash is spared:
   `tests/corpus/67159970-r2.yaml`, tick 188.
@@ -1723,6 +1730,10 @@ not the game's native attack-type enum.
   `FightProjectile.CalculateMaxMoveDistance`, `FightCalculator.IsInRange3D`,
   `FPoint.Sqrt`. The radius, the range and the reach were recorded by the
   `projectile_reach` channel.
+- Reach uses the owner's and target's current flight flags even after the
+  target dies; its cached arrival point follows only a living target:
+  `FightProjectile.CalculateMaxMoveDistance`, `FightProjectile.Update`,
+  `FightMech.IsFly`, `FlyTechEffectProvider.DoDeactive`.
 
 - A splash is measured with the fast square root, edge to edge:
   `RangeTargetCalculator.CalculateRangeActorsInternal`,
