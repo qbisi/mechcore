@@ -20,6 +20,31 @@ const PREEMPTIVE_SOURCE: &str = "preemptive";
 const FPOINT_EPSILON: i64 = 43;
 
 impl Simulation {
+    /// `MeleeModeEffectSystem.AddOwner`: its new melee skill enters the
+    /// running fight ready at its interval. Activation follows this tick's
+    /// unit updates, so its first update is on the next tick.
+    pub(in crate::fight) fn add_melee_owner(&mut self, actor_id: u64) -> Result<()> {
+        let Some(index) = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable")
+            .add_melee_skill()
+        else {
+            return Ok(());
+        };
+        let skill_ref = SkillRef {
+            owner: FightActorRef::Unit(actor_id),
+            slot: SkillSlot::Extra(index),
+        };
+        let interval = self.draw_attack_interval(skill_ref)?;
+        let step = i64::try_from(self.step_now).unwrap_or(i64::MAX);
+        let skill = self.skill_mut(skill_ref);
+        skill.current_attack_interval = interval;
+        skill.attack_time_step = step;
+        skill.attack_time_anchor = step - i64::try_from(interval).unwrap_or(i64::MAX);
+        Ok(())
+    }
+
     /// The unit's permanent preemptive skill, its index among its extra
     /// skills.
     pub(in crate::fight) fn permanent_preemptive(&self, actor_id: u64) -> Option<usize> {
