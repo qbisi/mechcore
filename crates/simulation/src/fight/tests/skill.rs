@@ -672,6 +672,7 @@ fn rejected_bodyless_melee_active_attack_reopens_idle_search_before_release() {
     source.skills.main.set_pending(Some(PendingRelease {
         step: 12,
         target: unit_target(2),
+        backswing_steps: 0,
     }));
 
     simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
@@ -707,6 +708,7 @@ fn bodyless_attack_cancels_a_pending_attack_when_an_ally_kills_its_target() {
         source.skills.main.set_pending(Some(PendingRelease {
             step: 12,
             target: unit_target(2),
+            backswing_steps: 0,
         }));
         simulation.actors.get_mut(&2).unwrap().life = 0;
 
@@ -750,6 +752,7 @@ fn laser_own_kill_retains_then_clears_the_dead_target() {
     source.skills.main.set_pending(Some(PendingRelease {
         step: 10,
         target: unit_target(2),
+        backswing_steps: 0,
     }));
     simulation.actors.get_mut(&2).unwrap().life = 1;
     let mut events = Vec::new();
@@ -793,6 +796,7 @@ fn laser_own_kill_skips_the_same_tick_bodyless_rotation() {
     source.skills.main.set_pending(Some(PendingRelease {
         step: 10,
         target: unit_target(2),
+        backswing_steps: 0,
     }));
     source.set_body_rotation(0);
     set_actor_position(simulation.actors.get_mut(&2).unwrap(), 3_000, 20_000);
@@ -826,6 +830,7 @@ fn a_quick_switch_before_a_blow_takes_the_next_unit_in_its_attack_area() {
     source.skills.main.set_pending(Some(PendingRelease {
         step: 12,
         target: unit_target(2),
+        backswing_steps: 0,
     }));
     simulation.actors.get_mut(&2).unwrap().life = 0;
 

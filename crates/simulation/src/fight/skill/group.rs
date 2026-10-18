@@ -549,6 +549,10 @@ impl Simulation {
             actor.skills.main.set_pending(Some(PendingRelease {
                 step,
                 target: target_id,
+                backswing_steps: native_time_units_to_steps(
+                    actor.rules.attack.backswing_time_units(),
+                )
+                .min(actor.skills.main.current_attack_interval),
             }));
             let _attack_point_rejected =
                 self.release(SkillRef::main(FightActorRef::Unit(actor_id)), events)?;
@@ -724,6 +728,8 @@ impl Simulation {
             .set_pending(Some(PendingRelease {
                 step: step.saturating_add(attack_point_steps),
                 target,
+                // land_group_slot refuses grouped backswings.
+                backswing_steps: 0,
             }));
         Ok(())
     }

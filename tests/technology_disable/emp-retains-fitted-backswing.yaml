@@ -1,0 +1,82 @@
+# Complete generated layout: EMP removes Mechanical Rage during a Sandworm
+# windup. Its current interval changes, while the already fitted backswing
+# retains its duration. A Raiden sibling also kills its movement lock,
+# idling its motion before its next search and rotation.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1113447300
+round: 3
+blue:
+  core_damage: 724
+  officers: [advanced_defensive_tactics, advanced_power_system, fire_badger_specialist, improved_sledgehammer]
+  techs:
+    sledgehammer: [damage_sharing, field_maintenance, electromagnetic_shot, armor_enhancement, range_enhancement, mechanical_rage, armor_piercing_bullets]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: fire_badger, index: 0, position: {x: -5, y: -160}, source: delivered}
+  - {name: sledgehammer, index: 1, position: {x: -220, y: -55}, level: 5, rotated: true, source: joined}
+  - {name: phoenix, index: 2, position: {x: 10, y: -120}, level: 3, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: 170, y: 160}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_targeting_system, cost_control_specialist, mass_produced_sandworm]
+  techs:
+    sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sandworm, index: 0, position: {x: 70, y: -280}, level: 4, exp: 8981/8981/8981, rotated: true, equipment: [deployment_module]}
+  - {name: raiden, index: 1, position: {x: 110, y: -240}, level: 9, exp: 0/4834/16146, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 215, y: -170}}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: -40, y: -75}, {x: -175, y: 155}, {x: -195, y: 10}]}
+asserts:
+- sql: |
+    SELECT u.tick, u.motion_state, u.body_rotation, s.enabled__attack_phase,
+           s.enabled__perform_count, s.enabled__attack_time, s.enabled__current_attack_interval
+    FROM units u JOIN units__skills s ON s.tick = u.tick AND s.unit_id = u.unit_id
+      AND s.skill_slot = 0
+    WHERE u.unit_id = 12 AND u.tick IN (230, 231, 243, 244, 264, 265, 274, 280, 281,
+                                      300, 305, 314, 315, 316, 324, 325, 326)
+    ORDER BY u.tick;
+  rows:
+  - [230, "attacking", 891678364942, null, 0, 229, 34]
+  - [231, "attacking", 891678364942, "before", 0, 0, 34]
+  - [243, "attacking", 891678364942, "attacking", 0, 12, 50]
+  - [244, "attacking", 891678364942, "after", 0, 13, 50]
+  - [264, "attacking", 891678364942, "after", 0, 33, 50]
+  - [265, "attacking", 891678364942, null, 1, 34, 50]
+  - [274, "attacking", 891678364942, null, 1, 43, 50]
+  - [280, "attacking", 891678364942, null, 1, 49, 50]
+  - [281, "attacking", 891678364942, "before", 1, 0, 50]
+  - [300, "attacking", 891678364942, "attacking", 1, 19, 50]
+  - [305, "attacking", 891678364942, "after", 1, 24, 50]
+  - [314, "attacking", 891678364942, "after", 1, 33, 50]
+  - [315, "idle", 891678364942, "after", 1, 34, 50]
+  - [316, "idle", 891678364942, "after", 1, 35, 50]
+  - [324, "idle", 891678364942, "after", 1, 43, 50]
+  - [325, "idle", 891678364942, "after", 1, 44, 50]
+  - [326, "idle", 891678364942, "after", 1, 45, 50]
+- sql: |
+    SELECT u.tick, u.motion_state, u.body_rotation, u.mech_lock_target__id,
+           EXISTS(SELECT 1 FROM units t WHERE t.tick = u.tick AND t.unit_id = u.mech_lock_target__id)
+    FROM units u WHERE u.unit_id = 11 AND u.tick IN (314, 315, 316, 324, 325, 326)
+    ORDER BY u.tick;
+  rows:
+  - [314, "attacking", 860211453161, 10, 1]
+  - [315, "idle", 860211453161, 10, 0]
+  - [316, "attacking", 860211453161, 4, 1]
+  - [324, "attacking", 757132238441, 4, 1]
+  - [325, "attacking", 750387293002, 4, 1]
+  - [326, "attacking", 750750282621, 4, 1]
+ticks: 618
+hash: 26:932147885885e139e71069ba24517072edf97001961dd10d2d7a26ddcb9c1a30
