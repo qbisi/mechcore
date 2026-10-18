@@ -824,26 +824,22 @@ impl Simulation {
         skill.batch_attack_target()
     }
 
-    /// A batch of standalone weapons already attacking stays in its attack
-    /// while any weapon's target is in range
-    /// (`FightSkillBatch.IsAttackTargetInAttackRange`); `None` for any other
-    /// unit.
-    fn batch_in_reach(&self, actor_id: u64) -> Option<bool> {
+    /// The standalone weapon holding the motion answers its own range,
+    /// including its shield surface, in both move and attack states
+    /// (`IAttacker.IsAttackTargetInAttackRange`).
+    fn standalone_in_reach(&self, actor_id: u64) -> Option<bool> {
         let actor = &self.actors[&actor_id];
         let skill = &actor.skills.main;
-        (skill.standalone()
-            && !skill.mech_searches()
-            && actor.motion.state == MotionState::Attacking)
-            .then(|| {
-                let holder = skill.group.as_ref().map_or(0, |group| group.motion_slot);
-                skill.group_attack_target(holder).is_some_and(|aimed| {
-                    self.slot_target_in_attack_range(
-                        SkillRef::main(FightActorRef::Unit(actor_id)),
-                        Some(holder),
-                        aimed,
-                    )
-                })
+        (skill.standalone() && !skill.mech_searches()).then(|| {
+            let holder = skill.group.as_ref().map_or(0, |group| group.motion_slot);
+            skill.group_attack_target(holder).is_some_and(|aimed| {
+                self.slot_target_in_attack_range(
+                    SkillRef::main(FightActorRef::Unit(actor_id)),
+                    Some(holder),
+                    aimed,
+                )
             })
+        })
     }
 
     /// What the body walks on: the skill's lock, or the unit's own for a
@@ -892,8 +888,8 @@ impl Simulation {
             return self
                 .skill_attacker_target_in_range(SkillRef::main(FightActorRef::Unit(actor_id)));
         }
-        if let Some(batch_in_reach) = self.batch_in_reach(actor_id) {
-            batch_in_reach
+        if let Some(standalone_in_reach) = self.standalone_in_reach(actor_id) {
+            standalone_in_reach
         } else if actor.skills.main.mech_searches() {
             // `FightMech.IsActorInAttackRange`: the unit's own lock is in
             // reach nearer than its main skill's range less a metre. This
