@@ -702,7 +702,6 @@ impl Simulation {
                         add_buff(&mut buffed.buffs, &row, (None, false), loss.team, false);
                     applied.push(buff_applied(
                         ObjectRef::new(ObjectKind::Building, construction_id),
-                        loss.team,
                         &running,
                     ));
                     if added {
@@ -849,7 +848,6 @@ impl Simulation {
         }
         events.push(buff_applied(
             ObjectRef::new(ObjectKind::Unit, actor_id),
-            team,
             &running,
         ));
         Ok(())
@@ -1455,11 +1453,11 @@ fn take_expired_buff(
     Some(running)
 }
 
-fn buff_applied(subject: ObjectRef, team: u32, running: &RunningBuff) -> Event {
+fn buff_applied(subject: ObjectRef, running: &RunningBuff) -> Event {
     event(
         None,
         running.source_actor,
-        Some(team),
+        Some(running.team),
         Some(subject),
         EventPayload::BuffApplied {
             buff_id: running.buff_id,

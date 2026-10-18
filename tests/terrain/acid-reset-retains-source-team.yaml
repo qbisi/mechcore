@@ -1,0 +1,63 @@
+# A complete generated layout, recorded with the game. Steel Ball 3 takes
+# the blue acid buff at tick 75. Red acid reapplies it at 83, 101 and 120,
+# resetting the existing buff. Its source team remains blue in both the
+# running buff and each buff_applied event.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 597054689
+round: 2
+blue:
+  core_damage: 0
+  officers: [aerial_specialist, improved_steel_ball]
+  techs:
+    steel_ball: [energy_absorption, damage_sharing, mechanical_division, fortified_target_lock, armor_enhancement, range_enhancement, kinetic_charge]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [2, 4]
+  units:
+  - {name: steel_ball, index: 0, position: {x: 190, y: -205}, exp: 1000/1000/1000, rotated: true, equipment: [haste_module]}
+  - {name: wraith, index: 1, position: {x: -285, y: -185}, level: 6, exp: 0/2404/13047, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -145, y: -75}, retained: false}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: 45, y: -200}, {x: 260, y: -130}]}
+red:
+  core_damage: 265
+  officers: [advanced_missile_device, assault_vulcan]
+  techs:
+    vulcan: [incendiary_bomb]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: vulcan, index: 0, position: {x: -10, y: -60}, level: 2, exp: 2726/2726/5453, rotated: true, equipment: [mustang_production_line]}
+  - {name: steel_ball, index: 1, position: {x: -35, y: -290}, level: 6, exp: 0/440/5799, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -245, y: -220}}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: 230, y: 75}, {x: -195, y: 105}]}
+asserts:
+- sql: |
+    SELECT tick, source_team_id, buff_id FROM ev_buff_applied
+    WHERE target__kind = 'unit' AND target__id = 3 AND buff_id = 500001
+    ORDER BY tick, ordinal;
+  rows:
+  - [75, 0, 500001]
+  - [83, 0, 500001]
+  - [101, 0, 500001]
+  - [120, 0, 500001]
+- sql: |
+    SELECT tick, source_team FROM units__buffs
+    WHERE unit_id = 3 AND data__id = 500001 AND tick IN (75, 83, 101, 120)
+    ORDER BY tick;
+  rows:
+  - [75, 0]
+  - [83, 0]
+  - [101, 0]
+  - [120, 0]
+ticks: 607
+hash: 26:2e693a690342f3211077689d45d4e33ab2518a2a804723671192ddd440c4f217
