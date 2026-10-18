@@ -1589,9 +1589,6 @@ impl Simulation {
                 actor.exit_fight_on_death();
             }
             self.sync_beam(actor_id);
-            if !died_this_tick {
-                self.drop_buffs_of_the_dead(actor_id)?;
-            }
             return Ok(false);
         }
         // `FightMech.Update` runs the unit's own search before its skills.

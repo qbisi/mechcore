@@ -101,6 +101,10 @@ impl Simulation {
             z: unit.z_q32,
         };
         self.dead_explosions.push((actor_id, true));
+        // ReduceLife queues every death in DeadEffectSystem.deadActors,
+        // including a suicide. Its OnDead runs after the explosion and
+        // clears buffs before deactivating its effects.
+        self.dead_actors.push(FightActorRef::Unit(actor_id));
         // `DeadEffectSystem` calls a turned unit's `OnDead` however it died:
         // `TeamTranslationSystem.OnMechDead` takes it back to its side.
         if turned {

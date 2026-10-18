@@ -1123,7 +1123,11 @@ splash, a projectile or a terrain reaches of it, its agent, and the domain
 the recording holds of it each tick. A Marksman strikes a Wraith with Land
 Cruiser
 ([`projectile-strikes-a-landed-wraith.yaml`](../../tests/fly/projectile-strikes-a-landed-wraith.yaml)). As it dies, `DoDeactive` gives it its
-type's domain back.
+type's domain back. `FightMech.OnDead` calls `ExitFight`, which clears buffs,
+before `FightEffectSystem.DeactiveEffect`. Clearing an EMP can therefore
+enable the flight provider briefly, but the subsequent deactivation still
+leaves the dead unit in its type's domain. A skill retaining that dead lock
+continues to read its `IsFly` for the air or ground range property.
 
 **Its skills turn onto or off aircraft.** `SkillDataModifier.AddData` asks
 `FlyTechData.GetIsInverseAirAttack`, whether `canAttackAir` differs from
@@ -1469,7 +1473,7 @@ runs: an Electromagnetic Impact's, Electromagnetic Barrage's, Electromagnetic
 Shot's. It is a common buff effect over a count of such buffs
 (`CBEC_DisableTechnology`), so the first to reach a unit switches them off as
 it is written and the last to leave switches them on again, as its time runs
-out, as its unit's buffs go at its first update after it died, or as the fight
+out, as its unit's `OnDead` calls `ExitFight` and clears its buffs, or as the fight
 is left and its buffs are cleared. A shot the unit left in the air as it died
 lands with the technologies on again. A summon's technologies are those its
 side's give a unit of its type, as a deployed one's; a dead summon's go with
@@ -2186,6 +2190,10 @@ derive (a minimum range):
   dies disabled has its technologies back as its buffs go, and its shots
   still in the air land with them:
   `tests/technology_disable/shot-dies-with-shots-in-flight.yaml`.
+- A dead Aerial Mode target retains its ground domain after its EMP is
+  cleared: the Wasps keeping that lock read their ground range after death,
+  rather than regaining their air range:
+  `tests/fly/dead-aerial-mode-after-emp.yaml`.
 - A disabled extra skill lets the burst under way run out, starts no attack
   while disabled, and fires again as it is enabled:
   `tests/technology_disable/barrage-homing-missile.yaml`,
@@ -2273,6 +2281,10 @@ derive (a minimum range):
   `FightMech.OnDead`, `FightMech.ExitFight`, `SkillManager.ExitFight`,
   `FightSkill.ExitFight`, `SkillManager.EnterFight`, `FightSkill.EnterFight`,
   `FightSkill.RefreshAttackInterval`.
+- Death clears buffs before deactivating effects, including the flight
+  provider: `FightMech.OnDead`, `FightMech.ExitFight`, `BuffManager.Clear`,
+  `CBEC_DisableTechnology.Exit`, `FightEffectSystem.DeactiveEffect`,
+  `FlyTechEffectProvider.DoDeactive`, `FightSkill.GetAttackRange`.
 
 - Melee-mode technologies: `MeleeModeEffectSystem.AddOwner`, `AddMeleeSkill`,
   `UpdateMainSkillAmmoCapacity`, `HasIncompatibleSkill`, `OnMeleeSkillActive`,

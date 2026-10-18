@@ -1372,6 +1372,10 @@ impl Simulation {
                     // `BuffManager.OnMechDead` runs before ExitFight and
                     // OnMechDead listeners, and joins its summons immediately.
                     made.extend(self.summon_from_the_dead(unit_id)?);
+                    // FightMech.OnDead calls ExitFight before DeactiveEffect.
+                    // BuffManager.Clear can re-enable an EMP-disabled provider;
+                    // the following deactivation must be its final state.
+                    self.drop_buffs_of_the_dead(unit_id)?;
                     self.actors
                         .get_mut(&unit_id)
                         .expect("actor identity is stable")
