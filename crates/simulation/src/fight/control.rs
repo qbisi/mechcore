@@ -495,11 +495,14 @@ impl Simulation {
                 tree.insert(unit, x_q32, z_q32, radius);
             }
         }
-        self.actors
+        let actor = self
+            .actors
             .get_mut(&unit_id)
-            .expect("actor identity is stable")
-            .placement
-            .team = team;
+            .expect("actor identity is stable");
+        actor.placement.team = team;
+        // CSRC_WayPoint.OnMechChangeTeam cancels the path and immediately
+        // calls ChangeToAutoMove, including when a dead unit returns.
+        actor.command = None;
         self.unit_recorder_changes_side(unit_id, old_team, team);
         self.shields_change_side(unit_id);
         self.add_opponent_actor(unit, team);
@@ -721,6 +724,9 @@ impl Simulation {
             .expect("actor identity is stable");
         actor.placement.team = team;
         actor.placement.formation_id = formation_id;
+        // CSRC_WayPoint.OnMechChangeTeam cancels the old side's command
+        // and restores automatic movement before MotionController updates.
+        actor.command = None;
         // `OnChangeTeam` reaches `MechGrounpSystem.ChangeMechGroup`.
         self.change_group_side(unit_id, old_team);
         self.unit_recorder_changes_side(unit_id, old_team, team);

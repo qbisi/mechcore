@@ -460,6 +460,9 @@ drawn from any stream, and no event is written.
 Exiting the fight cancels a unit's command. A unit that dies on a beacon and
 returns through Field Reassembly resumes `AutoMoveBehaviour` rather than
 continuing its old path.
+Changing side also cancels the path immediately: `CSRC_WayPoint.OnMechChangeTeam`
+removes the unit from the beacon, cancels and clears its pilot command, and
+calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
 
 ## Names
 
@@ -599,6 +602,9 @@ continuing its old path.
   `tests/battle_skill/beacon-marksman.yaml`,
   `tests/battle_skill/beacon-hounds.yaml`,
   `tests/battle_skill/beacon-red-rhino.yaml`.
+- A Stormcaller captured while following a beacon stops following its former
+  side's path on the control tick:
+  `tests/control/beacon-command-cancelled-on-turn.yaml`.
 - A ranged unit on a beacon fires as it walks, walks on when its target dies
   and while its skill cools, and a free-firing unit faces where it moves:
   `tests/battle_skill/beacon-fires-walking.yaml`,
@@ -805,6 +811,9 @@ continuing its old path.
 - A unit exiting the fight cancels its beacon command and restores auto
   movement: `FightMech.ExitFight`, `PilotAI.ExitFight`, `MechCommand.Cancel`,
   `MotionController.ChangeToAutoMove`.
+- A selected unit changing side cancels its command synchronously:
+  `CSRC_WayPoint.OnMechChangeTeam`, `CSRC_WayPoint.RemoveMech`,
+  `MechCommand.Cancel`, `MotionController.ChangeToAutoMove`.
 - A unit attacking under a command walks on or stops, turns to its target and
   leaves the attack only once its target is out of range; how near and how far
   an enemy stops it: `MotionAttackState.Update`, `MotionAttackState.AttackRotate`,
