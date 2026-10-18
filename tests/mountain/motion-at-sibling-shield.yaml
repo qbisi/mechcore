@@ -1,0 +1,56 @@
+# A complete generated layout: a Mountain side gun controls the motion
+# while firing at the shield covering its tower lock. On tick 235 the
+# body stops at that gun shield range even though the core stays idle.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1225453449
+round: 1
+blue:
+  core_damage: 0
+  officers: [advanced_targeting_system, speed_specialist]
+  techs:
+    mountain: [saturation_bombardment, mountain_plating, anti_aircraft_ammunition, range_enhancement, extended_range_ammo, gun_launched_missile, smoke_bomb, photon_loop]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: mountain, index: 0, position: {x: 255, y: -205}, level: 7, exp: 0/20148/20148, rotated: true, source: joined}
+  - {name: sandworm, index: 1, position: {x: 230, y: -50}, level: 4, exp: 0/2500/8981, source: joined}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 185, y: -125}, retained: false}
+  battle_skills:
+  - {name: orbital_javelin, positions: [{x: 80, y: -95}]}
+red:
+  core_damage: 500
+  officers: [advanced_shield_device, advanced_targeting_system, mass_produced_farseer]
+  techs:
+    farseer: [aerial_specialization]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: farseer, index: 0, position: {x: -125, y: -135}, level: 8, rotated: true, equipment: [photon_coating], source: joined}
+  - {name: mountain, index: 1, position: {x: 35, y: -55}, level: 9, exp: 0/6120/21528, source: joined}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -205, y: -185}, retained: false}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: -85, y: -250}]}
+asserts:
+- sql: |
+    SELECT u.tick, u.motion_state, s.skill_slot, s.enabled__state,
+           s.enabled__lock_target__kind, s.enabled__lock_target__id
+    FROM units u JOIN units__skills s USING (tick, unit_id)
+    WHERE unit_id = 1 AND u.tick IN (234, 235, 236)
+        AND s.skill_slot IN (0, 2) ORDER BY u.tick, s.skill_slot;
+  rows:
+  - [234, "moving", 0, "idle", null, null]
+  - [234, "moving", 2, "idle", "building", 5]
+  - [235, "attacking", 0, "idle", "unit", 3]
+  - [235, "attacking", 2, "attack", "building", 5]
+  - [236, "attacking", 0, "idle", "unit", 3]
+  - [236, "attacking", 2, "attack", "building", 5]
+ticks: 1181
+hash: 26:2f3446867bf290562217b325b3642ceca1f4e240d82dc9ed68a9ac7c91230cff

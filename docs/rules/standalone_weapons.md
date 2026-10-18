@@ -155,7 +155,9 @@ The Mountain's motion follows one of its weapons, the one whose skill is
   none or its lock is dead, whatever the others hold. A gun still releasing
   a burst at a dead target does not stop motion held by another gun with a
   live lock. An attacking motion stays in its attack while the controlling
-  weapon's target is in its range.
+  weapon's target is in its range. A moving motion enters attack by the same
+  weapon's range check, including its shield attack point when a shield
+  replaces the actor target; the core's target and range do not decide it.
 - **The turret turns to that weapon's lock**
   (`MotionController.CalculateTargetDirection`), even while the weapon is
   idle on a lock its fallback search took and names no target.
@@ -169,6 +171,9 @@ The Mountain's motion follows one of its weapons, the one whose skill is
 ## Evidence
 
 ### Recorded
+
+- Mountain enters attack at its controlling side gun's shield range while
+  the core stays idle: `tests/mountain/motion-at-sibling-shield.yaml`.
 
 - A side gun holds Mountain's motion towards a tower while the first gun
   takes a unit and starts attacking independently, without pulling the body
