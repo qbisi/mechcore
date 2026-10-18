@@ -390,7 +390,9 @@ impl Simulation {
                 if recovery_q32 > 0 {
                     self.recover_turned(target, recovery_q32, events)?;
                 }
-                if !self.actors[&target].summoned {
+                if !self.actors[&target].summoned
+                    && self.actors[&target].placement.team != self.actors[&target].original_team
+                {
                     turned.push(target);
                 }
             }
@@ -400,7 +402,8 @@ impl Simulation {
     }
 
     /// The formation a turned unit is recorded under: `FightMech.GetMechTeam`
-    /// answers none for it, so the recorder numbers one for the unit itself
+    /// answers none away from its original side, so the recorder numbers
+    /// one for the unit itself
     /// as it first records it, walking the units by side, then by where they
     /// stand, `z` before `x`. The units turned on one tick take their
     /// formations in that order as the tick ends, wherever they stood as they
@@ -713,6 +716,8 @@ impl Simulation {
         // under.
         let formation_id = if self.actors[&unit_id].summoned {
             self.actors[&unit_id].placement.formation_id
+        } else if team == self.actors[&unit_id].original_team {
+            self.actors[&unit_id].original_formation
         } else {
             let formation_id = self.ids.next_formation;
             self.ids.next_formation += 1;

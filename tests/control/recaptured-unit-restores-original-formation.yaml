@@ -1,0 +1,51 @@
+# A complete generated layout recorded with the game. A Hacker controlled
+# back to its original side reuses its original formation and experience.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 163797489
+round: 3
+blue:
+  core_damage: 808
+  officers: [advanced_missile_device, speed_specialist]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 70, y: -95}, exp: 1400/1400/1400, rotated: true, equipment: [heavy_armor]}
+  - {name: hacker, index: 1, position: {x: 285, y: -135}, level: 8, exp: 0/424/3767, source: joined}
+  constructions:
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 265, y: -260}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 195, y: -105}]}
+red:
+  core_damage: 0
+  officers: [quick_teleport, advanced_defensive_tactics, sabertooth_specialist, mass_produced_melting_point]
+  techs:
+    melting_point: [energy_absorption, electromagnetic_barrage, energy_diffraction, crawler_production, armor_enhancement, range_enhancement]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [3, 3]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 5, y: -55}, exp: 0/1300/1300, source: delivered}
+  - {name: melting_point, index: 1, position: {x: 330, y: 240}, exp: 0/200/1400, rotated: true, equipment: [barrier], travelling: true, source: joined}
+  - {name: hacker, index: 2, position: {x: 75, y: -145}, level: 5, exp: 0/2918/2918, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 270, y: -215}}
+  battle_skills:
+  - {name: smoke_bomb, positions: [{x: -5, y: 40}, {x: -155, y: -250}]}
+asserts:
+- sql: |
+    SELECT tick, team_id, formation_id FROM units
+    WHERE unit_id = 6 AND tick BETWEEN 617 AND 619 ORDER BY tick;
+  rows:
+  - [617, 0, 15]
+  - [618, 1, 4]
+  - [619, 1, 4]
+ticks: 785
+hash: 26:89e92ffb14599e8b9e21e364dbdd3f384ce6b21d5bae14b19802c7da3a22ef89

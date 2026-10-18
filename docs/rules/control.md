@@ -105,6 +105,12 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
   to leave: it is recorded under the formation it was made with, before the
   turn and after, and it counts under the recorder of its own it had, which
   moves to the new side with what it has counted.
+  If control takes a unit back to its original side while it is alive,
+  `TeamTranslationSystem.ChangeTeam` removes it from `translatedMeches`.
+  `FightMech.GetMechTeam` then answers its original formation again: no new
+  recorder formation is allocated, and its later experience belongs to that
+  original formation
+  ([`recaptured-unit-restores-original-formation.yaml`](../../tests/control/recaptured-unit-restores-original-formation.yaml)).
 - **leaves its shots in the air on the side they were fired from.** A
   projectile strikes for the side its controller was handed as it was
   released (`ProjectileSystem.Create`, `ProjectileController.Init`), so one
