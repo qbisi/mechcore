@@ -450,6 +450,11 @@ which scores from that facing. It then takes the place of the unit's
   A laser killing its building lock follows the same distinction: automatic
   movement idles because `AutoMoveBehaviour.IsActive` sees a dead lock,
   while a command's attacking motion keeps turning to the building in range.
+  If the dead building was a blocker before a living lock, a bodyless unit
+  turns to that lock on the killing tick too
+  (`MotionController.CalculateTargetDirection`), rather than continuing to
+  face the fallen wall
+  ([`beacon-turns-past-fallen-wall.yaml`](../../tests/battle_skill/beacon-turns-past-fallen-wall.yaml)).
 - An extra skill that holds the motion (`MotionController.attacker`) is what
   the command's motion asks for range, as the main skill is otherwise. A
   Rhino on a beacon whose spin starts, its main skill locked, changes to
