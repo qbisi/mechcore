@@ -684,6 +684,10 @@ impl Simulation {
         {
             let absorbed = shield.energy.min(amount);
             shield.energy -= absorbed;
+            // A positive OnHitted result records its source even when the
+            // personal shield takes it all. A later suicide's death trace
+            // uses that last damage attribution, without requiring life loss.
+            unit.last_damage_source = Some((source, source_team));
             return Ok(Stroke {
                 actual: absorbed,
                 dealt: amount,

@@ -167,7 +167,13 @@ impl Simulation {
                 y: space_to_q32(unit_height(unit.domain)),
                 z: unit.z_q32,
             };
-            self.dead_actors.push(FightActorRef::Unit(unit_id));
+            // DestroySelf reaches the same OnActorDead registration as a
+            // hit, including deferred dead effects. A translated unit's
+            // OnMechDead listener also returns it to its original side.
+            if unit.placement.team != unit.original_team {
+                self.turned_fallen.push(unit_id);
+            }
+            self.on_actor_dead(unit_id);
             deaths.push((unit_id, position));
         }
         self.record_deaths(deaths, events);
