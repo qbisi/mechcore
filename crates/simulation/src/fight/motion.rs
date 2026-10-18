@@ -1703,6 +1703,11 @@ impl Simulation {
             actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
         }
         if cooling.is_none() {
+            // CalculateTargetDirection falls back to the live lock after
+            // the attack target dies, including a wall the command fells.
+            let target_rotation_q32 = self
+                .lock_rotation_for_bodyless(actor_id)
+                .unwrap_or(target_rotation_q32);
             self.track_target_in_range(actor_id, Some(target_rotation_q32), false);
         } else {
             self.attack_rotate_to_velocity(actor_id);

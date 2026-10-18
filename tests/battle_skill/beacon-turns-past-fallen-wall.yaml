@@ -1,0 +1,46 @@
+# A complete generated layout recorded with the game. A Rhino on a beacon
+# turns toward its live lock as its strike destroys the intervening wall.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1126431403
+round: 4
+blue:
+  core_damage: 0
+  officers: [advanced_shield_device, rhino_specialist]
+  techs:
+    fire_badger: [field_maintenance]
+  blueprints: [defense_enhancement]
+  tower_strengthen_levels: [4, 2]
+  units:
+  - {name: fire_badger, index: 0, position: {x: -250, y: -165}, level: 9, exp: 9418/9418/9418, rotated: true, equipment: [haste_module]}
+  - {name: rhino, index: 1, position: {x: -275, y: -95}, level: 2, exp: 0/33/2591, source: delivered}
+  - {name: phoenix, index: 2, position: {x: -220, y: -180}, level: 5, exp: 0/5321/6774, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 110, y: -115}, retained: false}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: -290, y: -130}, {x: 95, y: 240}, {x: 130, y: 70}]}
+red:
+  core_damage: 200
+  officers: [advanced_power_system, advanced_targeting_system, fortified_specialist, improved_steel_ball]
+  techs:
+    steel_ball: [fortified_target_lock]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 3]
+  units:
+  - {name: steel_ball, index: 0, position: {x: -205, y: -180}, level: 7, exp: 3148/6296/6296, equipment: [super_heavy_armor]}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+asserts:
+- sql: |
+    SELECT tick, body_rotation FROM units
+    WHERE unit_id = 6 AND tick BETWEEN 253 AND 255 ORDER BY tick;
+  rows:
+  - [253, 1508190326747]
+  - [254, 1529665163147]
+  - [255, 1541463905582]
+ticks: 1735
+hash: 26:425ba6339dbe3fdc8a038abbddb477892d488987c5a818b5d0a781c036013e41
