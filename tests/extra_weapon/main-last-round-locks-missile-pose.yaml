@@ -1,0 +1,48 @@
+# A complete generated layout recorded with the game. The main weapon's
+# final round activates Melee Mode before Homing Missile can turn again.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 833987840
+round: 1
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_targeting_system, speed_specialist]
+  techs:
+    phantom_ray: [energy_shield, high_explosive_ammo, burst_mode, armor_enhancement, ground_targeting, stealth_cloak, range_enhancement, sticky_oil_bomb]
+  tower_strengthen_levels: [1, 4]
+  units:
+  - {name: phantom_ray, index: 0, position: {x: 235, y: -110}, level: 9, exp: 0/1840/6727, equipment: [laser_sights], source: joined}
+  - {name: abyss, index: 1, position: {x: -115, y: -275}, level: 5, exp: 0/10400/25010, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -175, y: -105}, retained: false}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: 270, y: 225}]}
+red:
+  core_damage: 500
+  officers: [advanced_shield_device, fortified_specialist]
+  techs:
+    centurion: [summon_hounds, reactive_armor, melee_mode, range_enhancement, dual_wield, homing_missile]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 3]
+  units:
+  - {name: centurion, index: 0, position: {x: -135, y: -215}, level: 7, exp: 0/7234/14167, rotated: true, equipment: [dominion_core], source: joined}
+  - {name: melting_point, index: 1, position: {x: 60, y: -240}, level: 2, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 220, y: -165}, retained: false}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: -260, y: -5}]}
+asserts:
+- sql: |
+    SELECT tick, rotation FROM units__skills__enabled__weapons
+    WHERE unit_id = 5 AND skills_ordinal = 2 AND tick BETWEEN 959 AND 961
+    ORDER BY tick;
+  rows:
+  - [959, 1193706316515]
+  - [960, 1193706316515]
+  - [961, 1193706316515]
+ticks: 1921
+hash: 26:dd04a7d45b7026a82f342a86f8becd52a122fcdefbdb25b28115bd176d1437c3
