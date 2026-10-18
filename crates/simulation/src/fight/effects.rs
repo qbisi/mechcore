@@ -90,6 +90,7 @@ impl Simulation {
                 EffectProvider::SupportUnit => self.activate_production(unit),
                 EffectProvider::AdvancedEnergyShield => self.activate_carried_shield(unit),
                 EffectProvider::AutoRecovery => self.add_auto_recovery(unit),
+                EffectProvider::MeleeMode => self.add_melee_owner(unit)?,
                 EffectProvider::EnergyShield => {
                     if let Some(shield) = self
                         .actors
@@ -119,8 +120,7 @@ impl Simulation {
                 | EffectProvider::KillExplosion
                 | EffectProvider::AdditionalDamage
                 | EffectProvider::IterationHit
-                | EffectProvider::SpawnAdvancedShield
-                | EffectProvider::MeleeMode => {}
+                | EffectProvider::SpawnAdvancedShield => {}
             }
         }
         Ok(())
