@@ -441,6 +441,15 @@ which scores from that facing. It then takes the place of the unit's
   answers the velocity, so the unit turns only to where it walks, and a unit
   standing still turns nothing; it changes to moving as the cooling ends and
   names nothing.
+- `MotionMoveState.Update` likewise keeps a command active when its target
+  dies. It asks the attacker's range or its move ability before moving on:
+  a target still in range can make the unit enter attacking on the very tick
+  another skill kills that target. The new attack state is not updated until
+  the next tick; the automatic movement behavior's dead-lock idle path does
+  not apply to a command.
+  A laser killing its building lock follows the same distinction: automatic
+  movement idles because `AutoMoveBehaviour.IsActive` sees a dead lock,
+  while a command's attacking motion keeps turning to the building in range.
 - An extra skill that holds the motion (`MotionController.attacker`) is what
   the command's motion asks for range, as the main skill is otherwise. A
   Rhino on a beacon whose spin starts, its main skill locked, changes to
@@ -628,6 +637,9 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
 - A Typhoon that dies on a beacon returns through Field Reassembly without
   its old movement command:
   `tests/battle_skill/beacon-reassembled-typhoon.yaml`.
+- A Melting Point on a beacon enters attacking when Energy Diffraction
+  kills the target its main skill just prepared against:
+  `tests/battle_skill/beacon-enters-attack-on-dead-target.yaml`.
 - Wasps still on a beacon when the fight is won go on moving until it ends:
   `tests/battle_skill/beacon-wasps-won.yaml`,
   `tests/corpus/134270595-r4.yaml`.

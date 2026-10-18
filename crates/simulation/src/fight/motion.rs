@@ -1807,6 +1807,12 @@ impl Simulation {
             return Flow::Done;
         }
         let was_moving = self.actors[&actor_id].motion.state == MotionState::Moving;
+        // MoveAttackCommand stays active after its target dies. The moving
+        // state asks the attacker's range (or its move ability) below; it
+        // does not take AutoMoveBehaviour's dead-lock idle path first.
+        if was_moving && self.actors[&actor_id].command.is_some() {
+            return Flow::Next;
+        }
         let Flow::Done = self.hold_dead_target(actor_id, backswing_just_finished) else {
             return Flow::Next;
         };

@@ -1,0 +1,57 @@
+# A complete generated layout recorded with the game. Energy Diffraction
+# kills the newly acquired target before the beacon's motion checks range.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 799337051
+round: 3
+blue:
+  core_damage: 100
+  officers: [advanced_offensive_tactics, fire_badger_specialist, mass_produced_melting_point]
+  techs:
+    melting_point: [energy_absorption, electromagnetic_barrage, energy_diffraction, crawler_production, armor_enhancement, range_enhancement]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: melting_point, index: 0, position: {x: -20, y: -60}, level: 3, exp: 4987/4987/4987, rotated: true, equipment: [steel_ball_production_line]}
+  - {name: fire_badger, index: 1, position: {x: 105, y: -300}, source: delivered}
+  - {name: raiden, index: 2, position: {x: -180, y: -220}, level: 3, exp: 0/468/8548, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -55, y: -70}, {x: 155, y: -105}, {x: -15, y: 265}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_targeting_system, fire_badger_specialist, extended_range_arclight]
+  techs:
+    arclight: [electromagnetic_shot, armor_enhancement, anti_aircraft_ammunition, shockwave, range_enhancement, elite_marksman, charged_shot]
+  blueprints: [defense_enhancement_ii]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 15, y: -210}, exp: 0/74/1400, source: delivered}
+  - {name: arclight, index: 1, position: {x: -60, y: -300}, level: 7, exp: 0/4722/4722, equipment: [absorption_module], source: joined}
+  - {name: hound, index: 2, position: {x: -30, y: -90}, level: 6, exp: 0/148/4349, source: joined}
+  constructions:
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 90, y: -170}}
+  battle_skills:
+  - {name: missile_strike, positions: [{x: 150, y: 175}]}
+asserts:
+- sql: |
+    SELECT tick, motion_state FROM units
+    WHERE unit_id = 7 AND tick BETWEEN 99 AND 101 ORDER BY tick;
+  rows:
+  - [99, moving]
+  - [100, attacking]
+  - [101, moving]
+- sql: |
+    SELECT tick, motion_state, turret_rotation FROM units
+    WHERE unit_id = 7 AND tick = 722;
+  rows:
+  - [722, attacking, 1513315805076]
+ticks: 1845
+hash: 26:651aea6716f88bae1c7b4cd345bbee962156d01e080dab912c946dab4eeebbe2
