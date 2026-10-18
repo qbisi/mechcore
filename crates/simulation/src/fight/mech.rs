@@ -83,6 +83,7 @@ impl Actor {
             target_query_source_rotation_q32: mdeg_to_degrees_q32(placement.rotation),
             target_query_alive: true,
             target_query_visibility: Visibility::Normal,
+            target_query_domain: rules.domain,
             target_query_ranges: (0, 0),
             body_rotation: placement.rotation,
             body_rotation_q32: mdeg_to_degrees_q32(placement.rotation),
