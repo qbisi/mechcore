@@ -1,0 +1,56 @@
+# A complete generated layout recorded with the game. Electromagnetic
+# Barrage's pre-flight height divides by the complete FPoint attack range;
+# rounding it to millimetres changes projectile 309 from its first update.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 914742314
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, fire_badger_specialist, mass_produced_melting_point]
+  techs:
+    melting_point: [energy_absorption, electromagnetic_barrage, energy_diffraction, crawler_production, armor_enhancement, range_enhancement]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [1, 1]
+  units:
+  - {name: melting_point, index: 0, position: {x: 330, y: 280}, level: 4, exp: 6286/6286/6286, rotated: true, equipment: [heavy_armor]}
+  - {name: fire_badger, index: 1, position: {x: 255, y: -30}, source: delivered}
+  - {name: stormcaller, index: 2, position: {x: 215, y: -210}, level: 9, exp: 0/1160/7400, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -260, y: -295}}
+  battle_skills:
+  - {name: smoke_bomb, positions: [{x: 250, y: 20}, {x: -10, y: 135}]}
+red:
+  core_damage: 350
+  officers: [advanced_shield_device, advanced_offensive_tactics, sabertooth_specialist]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: crawler, index: 0, position: {x: 25, y: -270}, level: 7, exp: 1416/2833/2833, equipment: [dominion_core]}
+  - {name: sabertooth, index: 1, position: {x: 155, y: -105}, exp: 0/1300/1300, source: delivered}
+  - {name: scorpion, index: 2, position: {x: -185, y: -185}, level: 8, exp: 0/108/10091, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 30, y: -240}}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: 275, y: -25}]}
+asserts:
+- sql: |
+    SELECT tick, position__y FROM projectiles
+    WHERE projectile_id = 309 AND tick BETWEEN 1032 AND 1034 ORDER BY tick;
+  rows:
+  - [1032, 32214053932]
+  - [1033, 64424288954]
+  - [1034, 96638095618]
+- sql: |
+    SELECT enabled__attack_range FROM units__skills
+    WHERE unit_id = 14 AND skill_slot = 1 AND tick = 1032;
+  rows:
+  - [544387104885]
+ticks: 1280
+hash: 26:79ce5e2cc6bddcc2ebcff9d4cbd439c739613e59cdf066792a7d94bd5943fa5d
