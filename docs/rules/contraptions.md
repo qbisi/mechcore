@@ -259,7 +259,7 @@ recording names the shield as the target of that `damage`, and records none
 for a hit that takes nothing (a Disintegration wave's), and removes a
 projectile whose hit took energy from a shield `absorbed_by` the last shield it
 took energy from, whether the projectile crossed that shield's surface or its
-splash reached it from outside.
+primary or secondary splash reached it from outside.
 `shield_destroyed` comes after everything else the tick did. A skill that broke
 it still aims at it for the rest of that tick and loses its lock at its next
 check. A shield never regains energy within a fight.
@@ -297,6 +297,9 @@ kind ends its own way:
 ## Evidence
 
 ### Recorded
+
+- A projectile whose Shockwave takes shield energy records that shield as
+  its absorption reference: `tests/secondary_damage/shockwave-shield-absorption.yaml`.
 
 - A travelling Hacker turns while its Barrier is inactive. At fight exit
   the Barrier activates in red's active list with order zero, while its
