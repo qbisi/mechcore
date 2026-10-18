@@ -1,0 +1,62 @@
+# A complete generated layout, recorded with the game. Scorpion kills
+# the last opposing Hounds on tick 1045. Raiden 12's idle siblings already
+# have no locks, so SkillManager.Update(false) leaves their attack targets
+# unchanged while its core exits. Final ExitFight clears all slots at 1051.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1594978561
+round: 3
+blue:
+  core_damage: 600
+  officers: [advanced_missile_device, advanced_targeting_system, sabertooth_specialist, extended_range_sledgehammer]
+  techs:
+    sledgehammer: [field_maintenance]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 275, y: -25}, source: delivered}
+  - {name: sledgehammer, index: 1, position: {x: -310, y: 205}, exp: 0/100/1300, equipment: [haste_module], travelling: true, source: joined}
+  - {name: hound, index: 2, position: {x: 60, y: -70}, level: 8, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 245, y: -200}, retained: false}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: -10, y: 10}]}
+red:
+  core_damage: 0
+  officers: [quick_teleport, advanced_targeting_system, assault_raiden]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: raiden, index: 0, position: {x: -320, y: 180}, level: 8, exp: 0/62/16146, equipment: [laser_sights], travelling: true, source: joined}
+  - {name: scorpion, index: 1, position: {x: -215, y: -135}, level: 6, exp: 0/4362/8698, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -155, y: -90}}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: -240, y: -15}]}
+asserts:
+- sql: |
+    SELECT tick, skill_slot, enabled__state,
+      enabled__lock_target__id, enabled__attack_target__id, enabled__attack_time
+    FROM units__skills
+    WHERE unit_id = 12 AND tick IN (1045, 1046, 1050, 1051)
+    ORDER BY tick, skill_slot;
+  rows:
+  - [1045, 0, "idle", 7, 7, 141]
+  - [1045, 1, "idle", null, 8, 141]
+  - [1045, 2, "idle", null, 7, 141]
+  - [1046, 0, "idle", null, null, 92]
+  - [1046, 1, "idle", null, 8, 141]
+  - [1046, 2, "idle", null, 7, 141]
+  - [1050, 0, "idle", null, null, 92]
+  - [1050, 1, "idle", null, 8, 141]
+  - [1050, 2, "idle", null, 7, 141]
+  - [1051, 0, "idle", null, null, 92]
+  - [1051, 1, "idle", null, null, 92]
+  - [1051, 2, "idle", null, null, 92]
+ticks: 1051
+hash: 26:b87720ad70bd703f8daccf2dace9bde4e3dbf4b25ba9eceeffe45b053095f238

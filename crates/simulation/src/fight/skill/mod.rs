@@ -1090,6 +1090,12 @@ impl Skill {
     ) {
         let kind = self.kind;
         for sibling in self.siblings_mut() {
+            // SkillManager.Update(false) skips every flattened skill with
+            // no lock, including an idle sibling retaining an old target.
+            // Only final ExitFight clears that state.
+            if step.is_some() && core_stopped_before_update && sibling.lock_target.is_none() {
+                continue;
+            }
             if step.is_some_and(|step| {
                 sibling
                     .cooling()
