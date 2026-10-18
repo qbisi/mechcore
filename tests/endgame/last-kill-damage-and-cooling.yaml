@@ -1,0 +1,70 @@
+# A complete generated layout leaves three drain ticks after the last kill.
+# The game clears Rhino kill-count damage as its skill exits at tick 770,
+# while War Factory slots 0 and 2 retain their existing cooling target
+# through tick 772. Final exit at tick 773 clears the remaining skill state.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 393868813
+round: 3
+blue:
+  core_damage: 700
+  officers: [quick_teleport, advanced_targeting_system, fortified_specialist, fortified_arclight]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 2]
+  units:
+  - {name: arclight, index: 0, position: {x: -310, y: 300}, level: 9, exp: 0/200/5046, equipment: [super_heavy_armor], travelling: true, source: joined}
+  - {name: rhino, index: 1, position: {x: 85, y: -55}, level: 5, exp: 0/722/5992, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 245, y: -295}}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: -195, y: -30}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_power_system, fire_badger_specialist, berserk_rhino]
+  techs:
+    rhino: [field_maintenance, whirlwind, wreckage_recycling, power_armor, final_blitz, armor_enhancement, mechanical_rage, photon_coating, combat_evolvement]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: rhino, index: 0, position: {x: 335, y: 145}, level: 6, exp: 3334/6669/6669, equipment: [heavy_armor]}
+  - {name: fire_badger, index: 1, position: {x: -215, y: -60}, source: delivered}
+  - {name: war_factory, index: 2, position: {x: 215, y: -105}, level: 5, exp: 0/2038/16673, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -205, y: -145}}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: -240, y: -190}, {x: -235, y: 90}]}
+asserts:
+- sql: |
+    SELECT tick, unit_id, skill_slot, enabled__attack_damage, enabled__state,
+           enabled__attack_target__kind, enabled__attack_target__id
+    FROM units__skills
+    WHERE ((unit_id = 3 AND skill_slot = 0)
+           OR (unit_id = 7 AND skill_slot IN (0, 2))) AND tick >= 769
+    ORDER BY tick, unit_id, skill_slot;
+  rows:
+  - [769, 3, 0, 86935, "attack", "unit", 1]
+  - [769, 7, 0, 51135, "cooling", "building", 2]
+  - [769, 7, 2, 51135, "cooling", "building", 2]
+  - [770, 3, 0, 78391, "idle", null, null]
+  - [770, 7, 0, 51135, "cooling", "building", 2]
+  - [770, 7, 2, 51135, "cooling", "building", 2]
+  - [771, 3, 0, 78391, "idle", null, null]
+  - [771, 7, 0, 51135, "cooling", "building", 2]
+  - [771, 7, 2, 51135, "cooling", "building", 2]
+  - [772, 3, 0, 78391, "idle", null, null]
+  - [772, 7, 0, 51135, "cooling", "building", 2]
+  - [772, 7, 2, 51135, "cooling", "building", 2]
+  - [773, 3, 0, 41865, "idle", null, null]
+  - [773, 7, 0, 51135, "idle", null, null]
+  - [773, 7, 2, 51135, "idle", null, null]
+ticks: 773
+hash: 26:2a7a5ae66d318c62274f728e8929acd8153437915a64558b027c1832574d79b9

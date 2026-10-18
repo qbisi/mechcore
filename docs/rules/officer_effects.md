@@ -133,6 +133,10 @@ clears it, so the last state of a fight reads each unit's damage without its
 kills. The rate's `+0.1` is stored as `429496729`, a hair under a tenth, so
 four kills on a Rhino's 3560 make 4983 rather than 4984.
 
+A skill still holding a lock exits on the first non-fighting manager update
+and clears its kill count then, while other modules can keep the round
+running. A skill already cooling holds no lock and waits for final exit.
+
 ## Which units a correction reaches
 
 Each row carries the `mech_type` the build stores and, where the build resolves
@@ -204,6 +208,8 @@ to a gain.
   `tests/modifier/officer-kills-others.yaml`.
 - An experience rate is on no unit's modifier set:
   `tests/modifier/officer-exp-rate-marksman.yaml`.
+- Skill exit clears kill-count damage before a decided fight has drained:
+  `tests/endgame/last-kill-damage-and-cooling.yaml`.
 
 ### Read
 
@@ -226,6 +232,8 @@ to a gain.
   `FightController.OnActorHitted`, `FightMech.AddKillCount`,
   `FightSkill.AddKillCount`, `DamageCalculator.AddKillCount`.
 - The count is set back to zero: `DamageCalculator.Clear`.
+  `FightSkill.ExitFight` clears its calculator; while a decided fight drains,
+  `SkillManager.Update(false)` exits only skills that still hold a lock.
 - A target type is answered from the unit's main skill:
   `UnitUtility.IsEffectTarget`, `UnitEffectTargetType.Ranged`,
   `SkillData.isMeleeAttack`.
@@ -236,10 +244,6 @@ to a gain.
 
 ### Not established
 
-- **What clears the count at the fight's end.** `DamageCalculator.Clear` sets
-  it to zero, and every recording reads the damage without kills on its last
-  tick; which call of the fight's end reaches it is not read, and a fight that
-  runs out of time is assumed to clear it the same way.
 - **That a value joins before a rate.** It was measured on a Sledgehammer's
   attack interval in another version, with a script that needs the game, and
   no gameless test pins it.

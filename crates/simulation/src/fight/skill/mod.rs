@@ -1074,18 +1074,27 @@ impl Skill {
     /// scheduled, as leaving the fight leaves them; each keeps its interval
     /// and its clock.
     pub(in crate::fight) fn clear_slots(&mut self) {
-        self.clear_slots_cooling_before(None);
+        self.clear_slots_cooling_before(None, false);
     }
 
     /// [`Self::clear_slots`] as a won fight runs on: a slot already cooling
     /// before `step` goes on cooling at what it named, its lock let go, as
     /// any skill does then: a Raiden's second gun cooling as the fight is
     /// decided still names the Fang it fired at.
-    pub(in crate::fight) fn clear_slots_cooling_before(&mut self, step: Option<u64>) {
+    /// If the core was already stopped, every cooling predates this update:
+    /// holding its clock may have moved its stored start onto this tick.
+    pub(in crate::fight) fn clear_slots_cooling_before(
+        &mut self,
+        step: Option<u64>,
+        core_stopped_before_update: bool,
+    ) {
         let kind = self.kind;
         for sibling in self.siblings_mut() {
-            if step.is_some_and(|step| sibling.cooling().is_some_and(|(started, _)| started < step))
-            {
+            if step.is_some_and(|step| {
+                sibling
+                    .cooling()
+                    .is_some_and(|(started, _)| core_stopped_before_update || started < step)
+            }) {
                 sibling.drop_lock();
                 sibling.attack_target_left = None;
                 continue;
@@ -1829,7 +1838,7 @@ impl Simulation {
         {
             self.skill_mut(skill_ref).performer = Performer::Normal;
         }
-        if let Flow::Done = self.exit_fight_when_over(skill_ref) {
+        if let Flow::Done = self.exit_fight_when_over(skill_ref)? {
             return Ok(None);
         }
         if let Flow::Done = self.update_reload(skill_ref, step) {
@@ -2101,9 +2110,9 @@ impl Simulation {
     /// (`FightSkill.ExitFight`): `StopAttack`, which also ends a burst still
     /// firing, its idle state and its lock cleared. The rest are left as they
     /// are, a cooling one still cooling.
-    fn exit_fight_when_over(&mut self, skill_ref: SkillRef) -> Flow {
+    fn exit_fight_when_over(&mut self, skill_ref: SkillRef) -> Result<Flow> {
         if self.ending.stop_step.is_none() {
-            return Flow::Next;
+            return Ok(Flow::Next);
         }
         // A manager holding fire (`isHoldFire`) updates its main skill
         // whatever the fight does: a Sandworm below goes on searching once
@@ -2114,7 +2123,7 @@ impl Simulation {
                 .as_ref()
                 .is_some_and(|underground| underground.below)
         {
-            return Flow::Next;
+            return Ok(Flow::Next);
         }
         if self.skill(skill_ref).lock_target.is_some() {
             let clear_velocity = self.ending.terminal_drain_pending;
@@ -2126,10 +2135,14 @@ impl Simulation {
             if let (FightActorRef::Unit(actor_id), SkillSlot::Main) =
                 (skill_ref.owner, skill_ref.slot)
             {
-                self.actors
+                let actor = self
+                    .actors
                     .get_mut(&actor_id)
-                    .expect("actor identity is stable")
-                    .reset_attack_count();
+                    .expect("actor identity is stable");
+                actor.reset_attack_count();
+                // `FightSkill.ExitFight` clears its DamageCalculator too.
+                // Rate-based extra skills read this main skill's damage.
+                actor.stats.clear_kills(&actor.rules)?;
             }
             if let Some(actor) = self.moving_mut(skill_ref) {
                 if clear_velocity {
@@ -2140,7 +2153,7 @@ impl Simulation {
                 actor.lose_target_motion(true);
             }
         }
-        Flow::Done
+        Ok(Flow::Done)
     }
 
     /// A skill in its attack state whose target is dead ends its attack.

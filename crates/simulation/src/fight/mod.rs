@@ -1538,10 +1538,10 @@ impl Simulation {
                     // command completing afterwards cannot idle this update.
                     actor.lose_target_motion(entered_idle);
                 }
-                actor
-                    .skills
-                    .main
-                    .clear_slots_cooling_before((!ready_to_finish).then_some(step));
+                actor.skills.main.clear_slots_cooling_before(
+                    (!ready_to_finish).then_some(step),
+                    core_step_was_finished,
+                );
                 // `FightMech.OnFightEnd` hands the motion back to the main
                 // skill (`SetMotionAttackerAfterSkill`).
                 actor.motion.attacker = SkillSlot::Main;
@@ -1559,7 +1559,9 @@ impl Simulation {
                     if ready_to_finish || !matches!(skill.state, skill::SkillState::Idle { .. }) {
                         skill.attack_target_left = None;
                     }
-                    let cooling_before = skill.cooling().is_some_and(|(started, _)| started < step);
+                    let cooling_before = skill
+                        .cooling()
+                        .is_some_and(|(started, _)| core_step_was_finished || started < step);
                     if ready_to_finish || !cooling_before {
                         skill.set_cooling(None);
                         skill.set_phase(FightSkillPhase::Idle);
@@ -1582,7 +1584,10 @@ impl Simulation {
                         // Multi Control's four beams cooling on the Rhino
                         // the Hacker has just turned read idle as the fight
                         // ends.
-                        skill.clear_slots_cooling_before((!ready_to_finish).then_some(step));
+                        skill.clear_slots_cooling_before(
+                            (!ready_to_finish).then_some(step),
+                            core_step_was_finished,
+                        );
                     }
                 }
             }
