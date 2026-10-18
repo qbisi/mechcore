@@ -768,6 +768,10 @@ Hound's one weapon is index 2, a Sabertooth's two are 0 and 2.
 
 ## Damage and death
 
+`FightCalculator.PerformHitTargetEffect` returns immediately when its target
+is not alive. Overlapping ground fires therefore cannot kill a unit again
+while it waits for `DeadEffectSystem` to process its death.
+
 `ReduceLife` clamps the life actually lost to `min(currentLife, incomingDamage)`.
 
 With no technology, equipment, dynamic buff or shield involved, a level-1
@@ -1262,6 +1266,9 @@ not the game's native attack-type enum.
 ## Evidence
 
 ### Recorded
+
+- Overlapping fires publish a unit's death once:
+  `tests/terrain/fire-death-once.yaml`.
 
 - An equipment's lifesteal callback follows the hit's buff application:
   `tests/lifesteal/generated-arclight-buff-order.yaml`,
