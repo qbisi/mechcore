@@ -1145,7 +1145,12 @@ is disabled therefore loses the ability to target aircraft before it lands.
 `DisableEffect`, on a unit in the technology's domain, starts a
 `GRTimerManager` timer of the row's `landingDuration`, its last one stopped
 (`DoDisableInFight`, `TryStopByObject`), whose callback lands or flies the
-unit to its type's domain (`LandingCallBack`, `FlyUpCallBack`). `EnableEffect`,
+unit to its type's domain (`LandingCallBack`, `FlyUpCallBack`). A timer created
+inside another timer's callback is appended to the live list and receives
+its first update that same tick (`GRTimerManager.Update`); a chain's EMP can
+therefore start counting the landing delay on its own hit tick
+([`chain-emp-starts-flight-timer-in-callback.yaml`](../../tests/fly/chain-emp-starts-flight-timer-in-callback.yaml)).
+`EnableEffect`,
 on a unit in its type's domain, gives it the technology's at once and stops
 the timer (`DoEnableInFight`); switched on before the second is out, the unit
 never left the technology's domain.

@@ -1,0 +1,52 @@
+# A complete generated layout recorded with the game. A timer's chain EMP
+# starts the new landing timer's first update on the same tick.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 815289783
+round: 1
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_targeting_system, fortified_specialist, assault_raiden]
+  techs:
+    raiden: [energy_shield, electromagnetic_shot, chain, ionization, range_enhancement, fork]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: raiden, index: 0, position: {x: 210, y: -40}, level: 3, exp: 0/4598/8548, equipment: [mustang_production_line], source: joined}
+  - {name: hacker, index: 1, position: {x: 15, y: -195}, level: 2, exp: 0/400/1262, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -10, y: -245}, retained: false}
+red:
+  core_damage: 374
+  officers: [advanced_missile_device, advanced_offensive_tactics, aerial_specialist]
+  techs:
+    void_eye: [energy_shield, energy_absorption, aerial_mode, range_enhancement, charged_shot, suppression_shots, electromagnetic_armor]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: void_eye, index: 0, position: {x: 230, y: -220}, level: 6, exp: 0/2140/3769, equipment: [portable_shield], source: joined}
+  - {name: wraith, index: 1, position: {x: -255, y: -165}, level: 4, exp: 0/136/10103, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -25, y: -75}, retained: false}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 5, y: 20}]}
+asserts:
+- sql: |
+    SELECT tick, domain, position__y FROM units
+    WHERE unit_id = 6 AND tick BETWEEN 751 AND 753 ORDER BY tick;
+  rows:
+  - [751, air, 300647710720]
+  - [752, ground, 0]
+  - [753, ground, 0]
+- sql: |
+    SELECT tick, buff_id FROM events
+    WHERE type = 'buff_applied' AND tick = 733 AND target__id = 6;
+  rows:
+  - [733, 1027]
+ticks: 1010
+hash: 26:0df7222dd2eee83fd58828b97d73131a667ecbd19be54cc00a1d34fdd185c45a
