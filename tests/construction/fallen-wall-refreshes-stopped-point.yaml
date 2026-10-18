@@ -1,0 +1,61 @@
+# Complete generated layout: a Wasp retains a fallen Defensive Wall block
+# before its living tower lock. Attack motion keeps refreshing StopMove
+# through zero-speed RVO nudges during the retained backswing.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 560647315
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_defensive_tactics, sabertooth_specialist, mass_produced_phoenix]
+  techs:
+    phoenix: [energy_shield, jump_drive, electromagnetic_shot, quantum_reassembly, range_enhancement, launcher_overload, elite_marksman, charged_shot]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: phoenix, index: 0, position: {x: 320, y: 220}, level: 6, exp: 3769/7539/7539, rotated: true, equipment: [dominion_core]}
+  - {name: sabertooth, index: 1, position: {x: 75, y: -275}, source: delivered}
+  - {name: farseer, index: 2, position: {x: -45, y: -225}, level: 2, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -25, y: -175}, retained: false}
+  battle_skills:
+  - {name: nuke, positions: [{x: -85, y: -205}]}
+red:
+  core_damage: 200
+  officers: [advanced_offensive_tactics, advanced_power_system, cost_control_specialist]
+  blueprints: [defense_enhancement]
+  tower_strengthen_levels: [1, 4]
+  units:
+  - {name: wasp, index: 0, position: {x: 335, y: 90}, level: 6, exp: 5219/5219/5219, rotated: true, equipment: [dominion_core]}
+  - {name: mountain, index: 1, position: {x: 85, y: -75}, level: 3, exp: 0/2400/11398, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: -135, y: -75}]}
+asserts:
+- sql: |
+    SELECT u.tick, u.position__x, u.position__z, u.velocity__x, u.velocity__z,
+           u.motion_state, s.enabled__lock_target__id, s.enabled__attack_target__id,
+           EXISTS(SELECT 1 FROM buildings b WHERE b.tick = u.tick AND b.building_id = 7)
+    FROM units u JOIN units__skills s ON s.tick = u.tick AND s.unit_id = u.unit_id
+      AND s.skill_slot = 0
+    WHERE u.unit_id = 25 AND u.tick IN (232, 233, 235, 236, 237, 240, 241, 244, 245)
+    ORDER BY u.tick;
+  rows:
+  - [232, 693860085972, -40761122861, 0, 0, "attacking", 2, 7, 0]
+  - [233, 693860384469, -40761256233, 0, 0, "attacking", 2, 7, 0]
+  - [235, 693860384469, -40761256233, 0, 0, "attacking", 2, 7, 0]
+  - [236, 693860384469, -40761256233, 0, 0, "attacking", 2, 7, 0]
+  - [237, 693860085972, -40761122861, 0, 0, "attacking", 2, 7, 0]
+  - [240, 693860085972, -40761122861, 0, 0, "attacking", 2, 7, 0]
+  - [241, 693860384469, -40761256233, 0, 0, "attacking", 2, 7, 0]
+  - [244, 693860384469, -40761256233, 0, 0, "attacking", 2, 7, 0]
+  - [245, 693860085972, -40761122861, 0, 0, "attacking", 2, 7, 0]
+ticks: 971
+hash: 26:d82db3ccebc6a094d24935061fe9d2ed70b06bfad283f72c99bde96dbc275a1e

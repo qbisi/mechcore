@@ -1881,7 +1881,10 @@ impl Simulation {
                 if !holds_a_block {
                     actor.motion.state = MotionState::Idle;
                 }
-                if entered_idle {
+                // A fallen blocker before a live lock keeps the attack
+                // state updating AttackMove/StopMove, unlike idle's single
+                // Enter call. Refresh the stopped point after RVO nudges.
+                if entered_idle || holds_a_block {
                     actor.motion.next_target_x_q32 = actor.x_q32;
                     actor.motion.next_target_z_q32 = actor.z_q32;
                 }

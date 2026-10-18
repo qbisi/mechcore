@@ -91,6 +91,9 @@ its attack target is in reach, measured where the fallen block stood, as for a
 standing one. A unit still in reach goes on attacking through its swing; one
 its neighbours have pushed out of reach enters `MotionMoveState` on the next
 update and walks on towards its lock, its weapons still naming the block.
+While still attacking, it refreshes its stopped target point every update
+(`MotionAttackState.AttackMove`, `RVOControllerFixed.StopMove`), including
+after an RVO nudge; idle motion refreshes that point only on entry.
 A burst still releasing at the block goes on at it, and the unit with it, still
 attacking and turning to its lock: only a dead lock stops the motion of a
 unit whose burst lost its target.
@@ -335,6 +338,9 @@ The map's own buildings are the exception and are named: each side gets one
 - A unit pushed out of reach of a block an ally fells during its swing walks
   on towards its lock the next update, and those still in reach go on
   attacking: `tests/corpus/134259672-r1.yaml`, ticks 344 and 345.
+- A Wasp retaining a felled block before its living lock refreshes its stopped
+  point through successive zero-speed RVO nudges:
+  `tests/construction/fallen-wall-refreshes-stopped-point.yaml`.
 - Two Stormcallers whose burst goes on at a block that fell at tick 695 read
   attacking through it, their turrets turning to their lock:
   `tests/corpus/134369439-r8.yaml`.
