@@ -1,0 +1,51 @@
+# A complete generated layout recorded with the game. A Crawler whose
+# backswing elapsed while idle still enters attack before winding up a blow.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 2025585308
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_offensive_tactics, sabertooth_specialist, mass_produced_wraith]
+  techs:
+    wraith: [degeneration_beam]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: wraith, index: 0, position: {x: -185, y: -275}, level: 3, exp: 4007/8014/8014, rotated: true, equipment: [enhancement_module]}
+  - {name: sabertooth, index: 1, position: {x: -185, y: -185}, exp: 0/45/1300, source: delivered}
+  - {name: crawler, index: 2, position: {x: 5, y: -40}, level: 9, exp: 0/1205/3027, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -205, y: -90}, retained: false}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: -300, y: 95}]}
+red:
+  core_damage: 442
+  officers: [advanced_power_system, extended_range_fortress]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [3, 1]
+  units:
+  - {name: fortress, index: 0, position: {x: 330, y: 40}, level: 6, exp: 4639/5375/9278, rotated: true, equipment: [mustang_production_line]}
+  - {name: crawler, index: 1, position: {x: 55, y: -160}, level: 3, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -185, y: -105}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: 185, y: -140}, {x: 230, y: 105}, {x: 115, y: -10}]}
+asserts:
+- sql: |
+    SELECT tick, enabled__state, enabled__attack_count, enabled__attack_phase,
+           enabled__attack_time FROM units__skills
+    WHERE unit_id = 10 AND skill_slot = 0 AND tick BETWEEN 682 AND 683
+    ORDER BY tick;
+  rows:
+  - [682, attack, -1, null, 13]
+  - [683, attack, 0, before, 0]
+ticks: 713
+hash: 26:122914c0119e60614152c4369ba50a02d68ff8bbbdfd7131ec4b161691c078fd
