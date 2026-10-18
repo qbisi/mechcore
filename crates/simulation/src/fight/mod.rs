@@ -1587,7 +1587,12 @@ impl Simulation {
                     let cooling_before = skill
                         .cooling()
                         .is_some_and(|(started, _)| core_step_was_finished || started < step);
-                    if ready_to_finish || !cooling_before {
+                    // SkillLockState.Enter cleared the lock, so the
+                    // non-fighting manager does not call ExitFight for it.
+                    // A permanent preemptive skill's main stays locked
+                    // until final SkillManager.ExitFight visits every skill.
+                    let locked = skill.state == skill::SkillState::Locked;
+                    if ready_to_finish || (!cooling_before && !locked) {
                         skill.set_cooling(None);
                         skill.set_phase(FightSkillPhase::Idle);
                     }

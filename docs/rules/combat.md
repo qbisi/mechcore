@@ -1246,6 +1246,11 @@ updates its main skill as in a fight, so a Sandworm below whose lock died
 with the fight searches, takes the defeated side's tower and walks on to it
 until the fight ends.
 
+A main skill locked by a permanent preemptive skill holds no lock target
+(`SkillLockState.Enter`), so this path leaves it locked. Final
+`SkillManager.ExitFight` visits every skill and returns it to idle, including
+the locked main gun and incompatible side arm of Centurion's Melee Mode.
+
 A transition that reactivates its manager does so after that tick's skill
 update was skipped. Its queued motion state enters intact and updates on
 the following tick, even when the last enemy has already died.
