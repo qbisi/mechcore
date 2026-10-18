@@ -1642,7 +1642,12 @@ impl Simulation {
         // projectile lands, the buffs standing still until then.
         let leaves_now = self.ready_to_finish();
         if publish_late_building_events {
-            events.extend(torn_down);
+            for end in torn_down {
+                let (precedes, follows) = self.around_an_end(&end);
+                events.extend(precedes);
+                events.push(end);
+                events.extend(follows);
+            }
             if leaves_now {
                 self.clear_buffs_as_the_fight_ends(&mut events)?;
                 self.score_the_fight()?;

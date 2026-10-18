@@ -1,0 +1,52 @@
+# A complete generated layout recorded with the game. Building 11 is torn
+# down after its side loses its last unit. Its buff clears immediately
+# before destruction at 1041, while projectiles drain until final exit 1046.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1168208166
+round: 4
+blue:
+  core_damage: 0
+  officers: [advanced_power_system, cost_control_specialist]
+  techs:
+    melting_point: [energy_diffraction]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: melting_point, index: 0, position: {x: -340, y: 90}, level: 6, exp: 8118/8118/8118, equipment: [mustang_production_line]}
+  - {name: sandworm, index: 1, position: {x: -240, y: -250}, level: 5, exp: 0/10000/10421, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -45, y: -95}, retained: false}
+  battle_skills:
+  - {name: electromagnetic_blast, positions: [{x: 220, y: -160}]}
+red:
+  core_damage: 736
+  officers: [advanced_missile_device, advanced_targeting_system, aerial_specialist, assault_vulcan]
+  techs:
+    vulcan: [incendiary_bomb, best_partner, armor_enhancement, range_enhancement, scorching_fire, sticky_oil_bomb, ignite]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: vulcan, index: 0, position: {x: -80, y: -30}, level: 5, exp: 12609/12609/12609, rotated: true, equipment: [secondary_fire_control_system]}
+  - {name: wasp, index: 1, position: {x: 195, y: -100}, level: 5, exp: 0/136/4689, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 300, y: -175}, retained: false}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: 0, y: 45}]}
+asserts:
+- sql: |
+    SELECT tick, ordinal, type, buff_id FROM events
+    WHERE tick BETWEEN 1041 AND 1046 AND
+      ((type = 'buff_removed' AND target__kind = 'building' AND target__id = 11)
+        OR (type = 'building_destroyed' AND object__id = 11))
+    ORDER BY tick, ordinal;
+  rows:
+  - [1041, 12, buff_removed, 1]
+  - [1041, 13, building_destroyed, null]
+ticks: 1046
+hash: 26:e8dcec37bfb20e21449a11114d4a91edd80caea1113b7d079b9ea61a2ace1d1a
