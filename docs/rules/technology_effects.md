@@ -220,7 +220,10 @@ second for two seconds and disables its recovery; every hit starts it over. A
 buff that heals is refused.
 
 `BuffManager.Update` visits running buffs from last to first and removes an
-expired buff during that traversal. Buffs expiring together therefore leave
+expired buff immediately after its own update, before updating the preceding
+buff. Duration advances before that buff's periodic controllers run. An
+expiry can therefore precede a different buff's periodic damage on the same
+tick. Buffs expiring together therefore leave
 in reverse list order.
 
 **A buff source that is not certain draws for each unit it reaches.** The
@@ -1756,6 +1759,8 @@ derive (a minimum range):
   and `tests/dead_summon/generated-splash-division.yaml`.
 - Simultaneously expired buffs leave in reverse running-list order:
   `tests/technology_buff/generated-simultaneous-expiration.yaml`.
+- One buff's expiry precedes the next buff's periodic acid damage:
+  `tests/terrain/acid-step-and-buff-expiry.yaml`.
 
 - A lethal EMP hit suppresses already-queued Scorching Charge explosions and
   their fires: `tests/technology_disable/lethal-emp-skips-queued-explosion.yaml`.

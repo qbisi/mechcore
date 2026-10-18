@@ -1,0 +1,47 @@
+# A complete generated layout: the missile slow on unit 6 expires before
+# the preceding acid buff deals its periodic damage on the same tick.
+# BuffManager updates and expires each buff before moving to the next.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 2075269556
+round: 3
+blue:
+  core_damage: 350
+  officers: [advanced_missile_device, advanced_defensive_tactics, fire_badger_specialist, assault_raiden]
+  techs:
+    raiden: [energy_shield, electromagnetic_shot, chain, ionization, range_enhancement, fork]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [3, 3]
+  units:
+  - {name: raiden, index: 0, position: {x: 50, y: -40}, level: 3, exp: 4274/8548/8548, equipment: [tank_production_line]}
+  - {name: fire_badger, index: 1, position: {x: -145, y: -190}, source: delivered}
+  - {name: vortex, index: 2, position: {x: 210, y: -100}, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 135, y: -125}, retained: false}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: -180, y: 270}, {x: 65, y: -145}]}
+red:
+  core_damage: 350
+  officers: [advanced_defensive_tactics, advanced_targeting_system, fire_badger_specialist, extended_range_fortress]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: fortress, index: 0, position: {x: -140, y: -270}, level: 3, exp: 2849/4169/5699, equipment: [nano_repair_kit]}
+  - {name: fire_badger, index: 1, position: {x: -25, y: -210}, source: delivered}
+  - {name: sabertooth, index: 2, position: {x: 205, y: -155}, level: 7, exp: 0/862/8185, source: joined}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: 195, y: 230}]}
+asserts:
+- sql: |
+    SELECT ordinal, type, target__id, buff_id, amount
+    FROM events WHERE tick = 1965 ORDER BY ordinal;
+  rows:
+  - [0, "buff_removed", 6, 20001, null]
+  - [1, "damage", 6, null, 1931]
+ticks: 2360
+hash: 26:5f7b1d5cca4016ac75ad1ac7041663bcb4f2e948952fc6e85ee1e0d630362538
