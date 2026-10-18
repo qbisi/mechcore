@@ -271,6 +271,9 @@ next RVO publish.
 target; `MotionIdleState.Update` does not, and a skill cooling after its attack
 does not enter the motion's idle again. So a unit an RVO solve nudges while idle
 keeps the point it stopped at, and the next solve steers it back there.
+The non-fighting skill cleanup after a side is decided does not re-enter an
+already idle motion either: letting its skill's lock go preserves that first
+stop target while the fight drains.
 
 **A body faces the lock; a unit without one faces its attack target.**
 `MotionAttackState.AttackRotate` asks `FightMech.IsHaveBody` before
