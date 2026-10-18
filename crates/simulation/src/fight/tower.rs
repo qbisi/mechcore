@@ -924,11 +924,15 @@ impl Simulation {
             return Ok(());
         };
         let subject = ObjectRef::new(ObjectKind::Building, building_id);
-        let ended = tick_buffs(&mut buffed.buffs, 0, subject, events);
-        if !ended.is_empty() {
-            for buff in &ended {
+        let mut changed = false;
+        for index in (0..buffed.buffs.len()).rev() {
+            buffed.buffs[index].elapsed = buffed.buffs[index].elapsed.saturating_add(1);
+            if let Some(buff) = take_expired_buff(&mut buffed.buffs, index, subject, events) {
                 buff.withdraw_from(&mut buffed.overlays);
+                changed = true;
             }
+        }
+        if changed {
             if buffed.buffs.is_empty() {
                 self.buffs.building_buffs.remove(&building_id);
             }
@@ -1126,56 +1130,48 @@ impl Simulation {
         Ok(())
     }
 
-    /// `Buff.Update`'s step of every buff on a unit, last first as
-    /// `BuffManager.Update` runs them: `stepTime` a tick on, and at
+    /// `Buff.Update` of one buff: its duration and `stepTime` a tick on, and at
     /// `stepTimeConfig` back to zero and each of the buff's controllers
     /// updated, of which only `IBEC_ChangeLIfe` acts here. `Buff.Reset` leaves
-    /// the step where it was. A step that kills the unit ends the update, and
-    /// the buffs before it in the list do not run; the answer is the first
-    /// that did.
-    fn step_buffs(&mut self, actor_id: u64, events: &mut Vec<Event>) -> Result<usize> {
-        let count = self.actors[&actor_id].buffs.len();
-        for index in (0..count).rev() {
-            let actor = self
-                .actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable");
-            // `Buff.Update`: its step one tick on, and its controllers'
-            // update as the step comes round.
-            let running = &mut actor.buffs[index];
-            running.step += 1;
-            if running.step < running.step_ticks {
-                continue;
+    /// the step where it was.
+    fn update_buff(&mut self, actor_id: u64, index: usize, events: &mut Vec<Event>) -> Result<()> {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        // `Buff.Update`: its step one tick on, and its controllers'
+        // update as the step comes round.
+        let running = &mut actor.buffs[index];
+        running.elapsed = running.elapsed.saturating_add(1);
+        running.step += 1;
+        if running.step < running.step_ticks {
+            return Ok(());
+        }
+        running.step = 0;
+        actor.step_stack(index)?;
+        let running = &actor.buffs[index];
+        let (rate, team) = (running.life_change_rate, running.team);
+        if rate == 0 {
+            return Ok(());
+        }
+        // `IBEC_ChangeLIfe.Update`: the unit's maximum life times the
+        // rate, its whole part. A loss is a hit of no object under the
+        // buff's side that the rate on damage taken does not affect,
+        // marked `isDirectHit` to bypass the unit's personal shield.
+        let change = actor.stats.max_life().saturating_mul(rate) >> 32;
+        match change.cmp(&0) {
+            std::cmp::Ordering::Less => {
+                let target = super::FightActorRef::Unit(actor_id);
+                self.hit_with_no_object(target, team, (-change, false), true, events)?;
             }
-            running.step = 0;
-            actor.step_stack(index)?;
-            let running = &actor.buffs[index];
-            let (rate, team) = (running.life_change_rate, running.team);
-            if rate == 0 {
-                continue;
-            }
-            // `IBEC_ChangeLIfe.Update`: the unit's maximum life times the
-            // rate, its whole part. A loss is a hit of no object under the
-            // buff's side that the rate on damage taken does not affect,
-            // marked `isDirectHit` to bypass the unit's personal shield.
-            let change = actor.stats.max_life().saturating_mul(rate) >> 32;
-            match change.cmp(&0) {
-                std::cmp::Ordering::Less => {
-                    let target = super::FightActorRef::Unit(actor_id);
-                    self.hit_with_no_object(target, team, (-change, false), true, events)?;
-                }
-                std::cmp::Ordering::Equal => {}
-                std::cmp::Ordering::Greater => {
-                    return Err(Error::new(format!(
-                        "a buff heals unit {actor_id}, and a buff's healing is not measured"
-                    )));
-                }
-            }
-            if !self.actors[&actor_id].alive() {
-                return Ok(index);
+            std::cmp::Ordering::Equal => {}
+            std::cmp::Ordering::Greater => {
+                return Err(Error::new(format!(
+                    "a buff heals unit {actor_id}, and a buff's healing is not measured"
+                )));
             }
         }
-        Ok(0)
+        Ok(())
     }
 
     /// `BuffManager.Update`: every running buff one tick older, and those
@@ -1185,25 +1181,29 @@ impl Simulation {
         actor_id: u64,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let from = self.step_buffs(actor_id, events)?;
-        let actor = self
-            .actors
-            .get_mut(&actor_id)
-            .expect("actor identity is stable");
         let subject = ObjectRef::new(ObjectKind::Unit, actor_id);
-        let was_disabled = actor.technology_disabled();
-        let ended = tick_buffs(&mut actor.buffs, from, subject, events);
-        if !ended.is_empty() {
-            // A buff's end takes what it wrote, among the buffs' and in the
-            // unit's own life rate, and every other buff's entries stay.
-            for buff in &ended {
-                actor.withdraw_buff(buff);
+        for index in (0..self.actors[&actor_id].buffs.len()).rev() {
+            self.update_buff(actor_id, index, events)?;
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            let was_disabled = actor.technology_disabled();
+            if let Some(buff) = take_expired_buff(&mut actor.buffs, index, subject, events) {
+                // A buff's end takes what it wrote, among the buffs' and in the
+                // unit's own life rate, and every other buff's entries stay.
+                actor.withdraw_buff(&buff);
+                actor.refresh_life_data()?;
+                // The last buff that disables technology switches them on again
+                // as it leaves (`CBEC_DisableTechnology.Exit`).
+                if was_disabled && !actor.technology_disabled() {
+                    self.switch_technologies(actor_id, true)?;
+                }
             }
-            actor.refresh_life_data()?;
-            // The last buff that disables technology switches them on again
-            // as it leaves (`CBEC_DisableTechnology.Exit`).
-            if was_disabled && !actor.technology_disabled() {
-                self.switch_technologies(actor_id, true)?;
+            // The manager checks its owner's life after each buff's update
+            // and removal, before visiting the preceding buff.
+            if !self.actors[&actor_id].alive() {
+                break;
             }
         }
         Ok(())
@@ -1436,37 +1436,23 @@ fn same_buff(running: &RunningBuff, row: &BuffRow) -> bool {
         || (row.divide != 0 && running.divide == row.divide)
 }
 
-/// Every running buff one tick older, and those whose time is up removed
-/// with an `expired` event and handed back.
-///
-/// Only the buffs from `from` on run: `BuffManager.Update` runs them last
-/// first and stops at one whose step killed the unit.
-fn tick_buffs(
+/// `BuffManager.Update` removes the buff immediately after its own update.
+fn take_expired_buff(
     buffs: &mut Vec<RunningBuff>,
-    from: usize,
+    index: usize,
     subject: ObjectRef,
     events: &mut Vec<Event>,
-) -> Vec<RunningBuff> {
-    if buffs.is_empty() {
-        return Vec::new();
+) -> Option<RunningBuff> {
+    if buffs[index].elapsed < buffs[index].duration {
+        return None;
     }
-    for running in &mut buffs[from..] {
-        running.elapsed = running.elapsed.saturating_add(1);
-    }
-    let (mut ended, kept) = std::mem::take(buffs)
-        .into_iter()
-        .partition::<Vec<_>, _>(|running| running.elapsed >= running.duration);
-    *buffs = kept;
-    // BuffManager.Update removes expired buffs in its backwards traversal.
-    ended.reverse();
-    for running in &ended {
-        events.push(buff_removed(
-            subject,
-            running.buff_id,
-            BuffRemovedReason::Expired,
-        ));
-    }
-    ended
+    let running = buffs.remove(index);
+    events.push(buff_removed(
+        subject,
+        running.buff_id,
+        BuffRemovedReason::Expired,
+    ));
+    Some(running)
 }
 
 fn buff_applied(subject: ObjectRef, team: u32, running: &RunningBuff) -> Event {
