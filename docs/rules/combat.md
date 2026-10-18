@@ -694,6 +694,10 @@ leaves for where its target stands as it is released, a dead target where it
 died: a Centurion's second Homing Missile, a quarter second after the first,
 leaves for where its target stood the tick before
 (`tests/extra_weapon/enhanced-range-homing-missile.yaml`).
+This recalculation applies to buildings too: even a stationary tower's
+clamped aiming point changes as its attacker moves between releases
+(`ProjectileMultiAttackPerformer.PerformEffect`,
+[`projectile/building-aim-refreshes-on-release.yaml`](../../tests/projectile/building-aim-refreshes-on-release.yaml)).
 
 **Where a burst aims is held within the skill's reach.** Every projectile
 performer asks `ProjectileAttackPerformer.CalculateAttackPosition` where to

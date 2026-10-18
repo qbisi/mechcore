@@ -1,0 +1,49 @@
+# A complete generated layout recorded with the game. A delayed missile
+# recalculates the tower's clamped aiming point as its owner moves.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1931065646
+round: 4
+blue:
+  core_damage: 250
+  officers: [advanced_shield_device, quick_teleport, fortified_specialist]
+  techs:
+    sandworm: [anti_aerial]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sandworm, index: 0, position: {x: -320, y: 230}, level: 3, exp: 0/825/7124, equipment: [barrier], travelling: true, source: joined}
+  - {name: mustang, index: 1, position: {x: -125, y: -20}, level: 9, exp: 0/3775/8073, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -45, y: -165}}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: 180, y: -225}], retained: false}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_offensive_tactics, typhoon_specialist]
+  techs:
+    centurion: [summon_hounds, reactive_armor, melee_mode, range_enhancement, dual_wield, homing_missile]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [4, 3]
+  units:
+  - {name: centurion, index: 0, position: {x: -335, y: 225}, level: 8, exp: 7568/15137/15137, equipment: [nano_repair_kit]}
+  - {name: typhoon, index: 1, position: {x: 110, y: -250}, exp: 0/1156/1950, source: delivered}
+  - {name: phoenix, index: 2, position: {x: 180, y: -60}, level: 3, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -225, y: -225}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 290, y: -45}]}
+asserts:
+- sql: |
+    SELECT tick, cached_target_position__x, cached_target_position__z
+    FROM projectiles WHERE projectile_id = 45 AND tick = 29;
+  rows:
+  - [29, 647212722624, -743128767188]
+ticks: 1190
+hash: 26:a632928c078382cff46c574a9be4279d7807c0a20d5610a902d6776d3ca093d2
