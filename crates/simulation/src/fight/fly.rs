@@ -49,7 +49,7 @@ impl Actor {
     /// `FightEffectMananger.RefreshOtherEffect`: adding or removing a
     /// `FlyTech` unit-state source changes conditional data immediately,
     /// even while the body's landing or flight timer is still pending.
-    pub(in crate::fight) fn refresh_domain_effects(&mut self, on: bool) {
+    pub(in crate::fight) fn refresh_domain_effects(&mut self, on: bool, step: u64) {
         let domain = if on {
             match self.rules.domain {
                 UnitDomain::Air => UnitDomain::Ground,
@@ -80,6 +80,32 @@ impl Actor {
         }
         self.refresh_life_data()
             .expect("the layout verified the officers' corrections");
+        // Officer.AddData/RemoveData visits GetSkills: even a modifier of
+        // life or damage calls SkillDataModifier's RefreshDatas on every
+        // skill. This discards its sampled interval, preserving a clock
+        // already at the old interval as ready at the new one.
+        let refresh = |skill: &mut super::skill::Skill, interval| {
+            skill.refresh_datas(interval, step);
+            for sibling in skill.siblings_mut() {
+                sibling.refresh_datas(interval, step);
+            }
+        };
+        refresh(
+            &mut self.skills.main,
+            math::seconds_q32_to_steps(self.stats.attack_interval_q32()).max(1),
+        );
+        for extra in &mut self.skills.extras {
+            let own =
+                (extra.rules.damage_rate <= 0.0).then_some(extra.skill_corrections.as_slice());
+            let interval = self
+                .stats
+                .interval_of(extra.rules.attack.interval_time_units(), own)
+                .expect("the layout verified the skills' corrections");
+            refresh(
+                &mut extra.skill,
+                math::seconds_q32_to_steps(interval).max(1),
+            );
+        }
     }
 }
 
@@ -108,7 +134,7 @@ impl Simulation {
             .expect("actor identity is stable");
         if actor.placement.effects.single.fly.is_some() {
             let fly = !actor.type_flies();
-            actor.refresh_domain_effects(true);
+            actor.refresh_domain_effects(true, self.step_now);
             actor.set_tech_fly(fly);
         }
     }
@@ -123,7 +149,7 @@ impl Simulation {
             .expect("actor identity is stable");
         if actor.placement.effects.single.fly.is_some() {
             let fly = actor.type_flies();
-            actor.refresh_domain_effects(false);
+            actor.refresh_domain_effects(false, self.step_now);
             actor.set_tech_fly(fly);
             actor.fly_reverts_at = None;
         }

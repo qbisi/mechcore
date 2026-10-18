@@ -1312,7 +1312,7 @@ impl Simulation {
                 }
             }
             if source.changes_domain {
-                actor.refresh_domain_effects(on);
+                actor.refresh_domain_effects(on, self.step_now);
             }
             actor.refresh_life_data()?;
             let skill_ref = super::skill::SkillRef::main(super::FightActorRef::Unit(actor_id));
