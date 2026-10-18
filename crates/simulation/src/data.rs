@@ -1090,6 +1090,11 @@ impl Stats {
         self.move_speed_q32
     }
 
+    /// `FightMech.GetDataInt`: the additive values in its own `DataSet`.
+    pub(crate) fn unit_data_value(&self, index: Index) -> i64 {
+        self.overlays.unit.value(index)
+    }
+
     pub(crate) const fn max_life(&self) -> i64 {
         self.max_life
     }

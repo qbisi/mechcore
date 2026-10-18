@@ -34,9 +34,8 @@ pub(in crate::fight) struct RvoState {
     /// The constructions their own side passes through
     /// (`FightConstruction.IsEnableBlock`); a turret is not one.
     pub(in crate::fight) passable_constructions: BTreeSet<u64>,
-    /// The map's neutral crystals that take part in movement, in the order
-    /// the map lists them, which is the order they enter the RVO tree after
-    /// the towers.
+    /// Neutral map crystals in creation order. Priority-one crystals stay
+    /// outside RVO but still receive the building collision checks.
     pub(in crate::fight) map_crystals: Vec<MapCrystal>,
     /// The units whose agents joined after the fight started, in the order
     /// `Simulator.DoAddAgents` appended them: a summon as it is made, a
@@ -629,6 +628,11 @@ impl Simulation {
             agents.extend(constructions.into_iter().filter_map(building_agent));
         }
         for (index, crystal) in self.rvo.map_crystals.iter().enumerate() {
+            if crystal.collider_priority < deploy::CRYSTAL_MIN_COLLIDER_PRIORITY
+                || crystal.destroyed
+            {
+                continue;
+            }
             let (layer, collides_with) = immovable_rvo_collision_masks(crystal.collider_priority);
             agents.push(immovable(
                 RvoAgentKey::MapBuilding(index),

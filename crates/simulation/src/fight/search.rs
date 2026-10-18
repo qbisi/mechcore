@@ -428,6 +428,24 @@ impl<E: Copy + Ord> FightQuadtree<E> {
         self.root.append_query_order(&mut output);
         output
     }
+
+    /// `FightQuadtree.GetInteractableNodes()` without a target tree.
+    pub(in crate::fight) fn all_interactable_nodes(&self) -> Vec<&FightQuadtreeNode<E>> {
+        fn append<'a, E>(
+            node: &'a FightQuadtreeNode<E>,
+            found: &mut Vec<&'a FightQuadtreeNode<E>>,
+        ) {
+            if !node.elements.is_empty() {
+                found.push(node);
+            }
+            for child in node.children.iter().flat_map(|children| children.iter()) {
+                append(child, found);
+            }
+        }
+        let mut found = Vec::new();
+        append(&self.root, &mut found);
+        found
+    }
 }
 
 /// The trees a unit looks for a target in.

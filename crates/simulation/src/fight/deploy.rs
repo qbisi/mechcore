@@ -377,15 +377,16 @@ fn map_buildings(
         .collect()
 }
 
-/// A neutral crystal of the map in the RVO tree: an immovable agent on its
-/// own collider priority's layer with its radius for both of its radii. None
-/// is ever destroyed here, so it is in the tree for the whole fight.
+/// A neutral map crystal. Priority-one crystals stay out of RVO, but still
+/// participate in `BuildingCollideController` and its deferred death queue.
 #[derive(Debug, Clone, Copy)]
 pub(in crate::fight) struct MapCrystal {
     pub(in crate::fight) x_q32: i64,
     pub(in crate::fight) z_q32: i64,
     pub(in crate::fight) radius_q32: i64,
     pub(in crate::fight) collider_priority: i32,
+    pub(in crate::fight) alive: bool,
+    pub(in crate::fight) destroyed: bool,
 }
 
 /// The lowest collider priority a neutral crystal takes part in movement
@@ -395,7 +396,7 @@ pub(in crate::fight) struct MapCrystal {
 /// On every standard 1v1 map a crystal's priority is above 1 exactly when its
 /// life and its strength are, so which of the three the build asks is not
 /// separated; `docs/rules/map.md` says so.
-const CRYSTAL_MIN_COLLIDER_PRIORITY: i32 = 2;
+pub(in crate::fight) const CRYSTAL_MIN_COLLIDER_PRIORITY: i32 = 2;
 
 /// A crystal stands where `CrystalElement.GetPosition` puts it: its map
 /// position as a `MapVector`, whose `FVector2` constructor keeps each
@@ -453,8 +454,8 @@ pub(in crate::fight) fn formation_grounds(
         .collect()
 }
 
-/// The map's crystals that take part in movement, in the order the map lists
-/// them. A crystal a formation stands on is not among them: its circle
+/// The map's crystals, in the order the map lists them. A crystal a
+/// formation stands on is not among them: its circle
 /// reaching into the formation's footprint, strictly, leaves it out of the
 /// fight, and one whose circle only touches the footprint's edge stays.
 pub(in crate::fight) fn map_crystals(
@@ -477,13 +478,13 @@ pub(in crate::fight) fn map_crystals(
                 z,
                 radius,
                 collider_priority,
-            } => (collider_priority >= CRYSTAL_MIN_COLLIDER_PRIORITY
-                && !stood_on(whole_metres(x), whole_metres(z), radius))
-            .then_some(MapCrystal {
+            } => (!stood_on(whole_metres(x), whole_metres(z), radius)).then_some(MapCrystal {
                 x_q32: whole_metres(x),
                 z_q32: whole_metres(z),
                 radius_q32: radius,
                 collider_priority,
+                alive: true,
+                destroyed: false,
             }),
         })
         .collect()
