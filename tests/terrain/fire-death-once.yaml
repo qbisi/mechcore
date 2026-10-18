@@ -1,0 +1,47 @@
+# A generated complete layout: overlapping fires kill unit 31 at tick 785.
+# The game publishes one death, while a second fire hit used to publish it
+# again in the simulator. Both recordings otherwise agreed through 953 ticks.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1682070975
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_shield_device, fortified_specialist]
+  techs:
+    fire_badger: [napalm, field_maintenance, range_enhancement, scorching_fire, scorching_charge, ignite, counter_fire]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [1, 1]
+  units:
+  - {name: fire_badger, index: 0, position: {x: -65, y: -100}, level: 9, exp: 4709/9418/9418, equipment: [improved_firepower_control_system]}
+  - {name: vulcan, index: 1, position: {x: -150, y: -100}, level: 3, exp: 0/2570/8620, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 220, y: -235}}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: 265, y: -245}]}
+red:
+  core_damage: 551
+  officers: [quick_teleport, extended_range_sledgehammer]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 310, y: 255}, level: 9, exp: 0/200/8746, equipment: [explosive_ammo], travelling: true, source: joined}
+  - {name: crawler, index: 1, position: {x: -265, y: -260}, level: 4, exp: 0/236/2021, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -185, y: -295}}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: 270, y: -250}, {x: -270, y: -40}]}
+asserts:
+- sql: |
+    SELECT count(*) FROM ev_unit_died
+    WHERE tick = 785 AND object__kind = 'unit' AND object__id = 31;
+  rows:
+  - [1]
+ticks: 953
+hash: 26:0587051f2ddf6c00b8f4c7d89b09d1efb0635c91ef5817cdd8e86631599bcce4

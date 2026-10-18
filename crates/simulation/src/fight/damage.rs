@@ -541,6 +541,11 @@ impl Simulation {
         (provider, can_disable_tech, direct_hit): (Provider, bool, bool),
         events: &mut Vec<Event>,
     ) -> Result<Vec<(FightActorRef, Stroke)>> {
+        // `PerformHitTargetEffect` returns before processing a dead target.
+        // Overlapping fires can retain it until DeadEffectSystem runs.
+        if self.fight_actor(target).is_some_and(|actor| !actor.alive) {
+            return Ok(Vec::new());
+        }
         // `FightCalculator.PerformHitTargetEffect`'s first hit on a unit a
         // group shares damage with hands its damage, after the unit's rates,
         // reduction and stealth, to `CalculateGroupDamage`: the whole part of
