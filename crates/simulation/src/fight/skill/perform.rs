@@ -159,10 +159,6 @@ impl Simulation {
         skill.attack_count += 1;
         skill.total_attack_count += 1;
         self.count_punch(skill_ref);
-        // `FightMech.OnMechSkillPerformAttack`, on a blow of any skill.
-        if let FightActorRef::Unit(unit) = skill_ref.owner {
-            self.cloak_on_blow(unit);
-        }
         let skill = self.skill_mut(skill_ref);
         // The backswing is cut short by the next blow: a blow fitted into its
         // interval by `SkillAttackController.PerformAttack` gives its
@@ -242,16 +238,19 @@ impl Simulation {
             }
         }
         if !matches!(kind, SkillKind::Projectile | SkillKind::Sweep) {
-            self.perform_main_skill_attack(skill_ref, 0);
+            self.perform_skill_attack(skill_ref, 0);
         }
         self.finish_attacking(skill_ref);
         Ok(false)
     }
 
-    /// `AttackPerformer.Update` calls `ISkillOwner.PerformMainSkillAttack`
-    /// after a successful effect of a main skill. Projectile bursts notify
-    /// on their release ticks; a sweep reports success when it completes.
-    pub(in crate::fight) fn perform_main_skill_attack(&mut self, skill_ref: SkillRef, slot: usize) {
+    /// `AttackPerformer.Update` calls `ISkillOwner.PerformSkillAttack`
+    /// after each successful effect, then `PerformMainSkillAttack` for a
+    /// main skill. Bursts notify on each release; a sweep when it completes.
+    pub(in crate::fight) fn perform_skill_attack(&mut self, skill_ref: SkillRef, slot: usize) {
+        if let FightActorRef::Unit(unit) = skill_ref.owner {
+            self.cloak_on_attack(unit);
+        }
         if let (SkillSlot::Main, FightActorRef::Unit(unit)) = (skill_ref.slot, skill_ref.owner)
             && self.skill(skill_ref).joined(slot).is_none()
         {
@@ -1137,7 +1136,7 @@ impl Simulation {
                 pending.targetless = false;
             } else {
                 self.release_targetless(skill_ref, pending, events)?;
-                self.perform_main_skill_attack(skill_ref, pending.skill_slot);
+                self.perform_skill_attack(skill_ref, pending.skill_slot);
                 return Ok(());
             }
         }
@@ -1229,7 +1228,7 @@ impl Simulation {
             }
         };
         result?;
-        self.perform_main_skill_attack(skill_ref, pending.skill_slot);
+        self.perform_skill_attack(skill_ref, pending.skill_slot);
         Ok(())
     }
 

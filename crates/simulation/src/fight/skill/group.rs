@@ -598,7 +598,7 @@ impl Simulation {
             sibling.perform_count += 1;
             let blow = usize::try_from(sibling.attack_count).unwrap_or(0);
             self.laser_effect(skill_ref, skill_index, blow, target, events)?;
-            self.perform_main_skill_attack(skill_ref, skill_index);
+            self.perform_skill_attack(skill_ref, skill_index);
             return Ok(());
         }
         match target {
@@ -697,7 +697,7 @@ impl Simulation {
         if self.skill(skill_ref).kind != SkillKind::Projectile
             || !self.skill(skill_ref).standalone()
         {
-            self.perform_main_skill_attack(skill_ref, skill_index);
+            self.perform_skill_attack(skill_ref, skill_index);
         }
         Ok(())
     }
