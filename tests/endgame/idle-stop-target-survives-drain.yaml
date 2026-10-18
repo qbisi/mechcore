@@ -1,0 +1,57 @@
+# An idle unit's stop target survives non-fighting skill cleanup.
+#
+# The complete generated layout: Wasp 18 enters idle at 202 and releases
+# its lock at 216, after the fight is decided. Its last small avoidance
+# movement settles at 216. It keeps that position through 225 rather than
+# snapping back to its position from 215 on the later RVO publication.
+# Control: exit-fight-transition-and-move.yaml, final motion cleanup.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 2053192937
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_power_system, sabertooth_specialist, improved_wasp]
+  techs:
+    wasp: [energy_shield, high_explosive_ammo, ground_specialization, jump_drive, electromagnetic_shot, aerial_specialization, range_enhancement, armor_piercing_bullets, elite_marksman, ignite]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: wasp, index: 0, position: {x: 275, y: -200}, level: 5, exp: 2344/3650/4689, equipment: [secondary_laser_sight]}
+  - {name: sabertooth, index: 1, position: {x: 165, y: -65}, exp: 0/555/1300, source: delivered}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}, level: 8, exp: 0/5684/6055, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 5, y: -235}}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: 25, y: -305}]}
+red:
+  core_damage: 591
+  officers: [advanced_offensive_tactics, cost_control_specialist]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [1, 3]
+  units:
+  - {name: vortex, index: 0, position: {x: -30, y: -20}, level: 6, exp: 2174/2174/4349, equipment: [absorption_module]}
+  - {name: fire_badger, index: 1, position: {x: -85, y: -180}, level: 7, exp: 0/306/8815, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: -215, y: 0}]}
+asserts:
+- sql: |
+    SELECT tick, position__x, position__z, motion_state, has_mech_lock_target
+    FROM units
+    WHERE unit_id = 18 AND tick IN (215, 216, 220, 221, 225)
+    ORDER BY tick;
+  rows:
+  - [215, 225992799649, -180455445657, idle, 1]
+  - [216, 225993097308, -180455552024, idle, 0]
+  - [220, 225993097308, -180455552024, idle, 0]
+  - [221, 225993097308, -180455552024, idle, 0]
+  - [225, 225993097308, -180455552024, idle, 0]
+ticks: 225
+hash: 26:41346e8017005c54ee18e68e75cfea6d24a4d41fe4ec7c434cd54c52841c5be8

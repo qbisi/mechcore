@@ -2176,7 +2176,8 @@ impl Simulation {
                     actor.motion.current_velocity_z_q32 = 0;
                 }
                 // The skill letting its target go leaves a command active.
-                actor.lose_target_motion(true);
+                let entered_idle = actor.motion.state != MotionState::Idle;
+                actor.lose_target_motion(entered_idle);
             }
         }
         Ok(Flow::Done)
