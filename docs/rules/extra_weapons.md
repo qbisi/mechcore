@@ -377,6 +377,13 @@ diffusing splash to `PerformDiffusionRangeEffect`, which measures it from
 where the Abyss stands as the blow lands and starts a `GRTimer` of the
 performer's own.
 
+A self-splash's range check accepts a retained target that is not visible,
+including one underground or in stealth (`SkillAttackRangeChecker`'s
+`IsActorInAttackRange`). Distance and attack angle still apply. This is a
+range-check exception, not an exception to the selector's target filter.
+Disintegration can therefore enter its attack while the Sandworm it retained
+is underground; its wave is still centred on the Abyss.
+
 - **The wave grows a step every half second.** The timer fires every
   `diffusionInteval`, 10 ticks, from the update after the blow, ahead of the
   tick's modules. Its `n`th firing reaches `n` times `diffusionSpeed`, 30
@@ -1022,6 +1029,11 @@ that is not melee, so the simulator refuses it.
   Abyss's sweep breaks it, and a shield struck for nothing records nothing:
   `tests/extra_weapon/disintegration-shield.yaml`.
 
+- A self-splash's retained underground target passes its range check:
+  Disintegration enters attack while its Sandworm lock remains hidden and
+  strikes without letting it go:
+  `tests/extra_weapon/disintegration-retained-underground-target.yaml`.
+
 - Naval Gun's two guns are one skill, slot 1 after the Overlord's main
   skill, that fires one shell a blow from its first gun, every three seconds
   give or take 0.3, for 7000:
@@ -1089,6 +1101,10 @@ that is not melee, so the simulator refuses it.
   `scripts/corpus/match-replays.py`.
 
 ### Read
+
+- Self-splash bypasses visibility in both current-target and actor range
+  checks: `SkillAttackRangeChecker.IsActorInAttackRange`,
+  `SkillAttackRangeChecker.IsAttackTargetInAttackRange`.
 
 - Side-arm candidates include target-tree towers even when the separate
   construction collection is excluded:
@@ -1268,9 +1284,7 @@ that is not melee, so the simulator refuses it.
   whether a shot or a blow does is not recorded, and the simulator lets every
   hit through.
 - **An around skill's `preemptiveInterval`**, which no fought member sets
-  and the extraction refuses, and its self splash at a target that is not
-  visible (`SkillAttackRangeChecker.IsAttackTargetInAttackRange`), which no
-  recording reaches.
+  and the extraction refuses.
 - **A range on a skill with a damage rate that reads its own range.**
   Refused.
 - **The other preemptive skills and conditions.** A transition to wait out

@@ -1,0 +1,56 @@
+# A complete generated layout recorded with the game. Disintegration keeps
+# Sandworm 4 as it burrows, enters attack at 782, and strikes at 843 while
+# that target is still hidden. Self-splash range checks admit retained hidden
+# targets; their selector still applies its ordinary target filter.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 332841237
+round: 2
+blue:
+  core_damage: 0
+  officers: [fortified_specialist]
+  techs:
+    abyss: [wreckage_recycling, vertical_sweep, range_enhancement, disintegration, dark_companion, swarm_missiles, photon_coating]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: abyss, index: 0, position: {x: 205, y: -255}, level: 4, exp: 21553/21553/21553}
+  - {name: raiden, index: 1, position: {x: 70, y: -120}, level: 2, exp: 0/3600/5408, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: nuke, positions: [{x: 165, y: 60}]}
+red:
+  core_damage: 562
+  officers: [advanced_shield_device, fortified_specialist, extended_range_stormcaller]
+  techs:
+    stormcaller: [incendiary_bomb]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [2, 3]
+  units:
+  - {name: stormcaller, index: 0, position: {x: -195, y: -70}, level: 5, exp: 0/36/5732, equipment: [secondary_fire_control_system], source: joined}
+  - {name: sandworm, index: 1, position: {x: 270, y: -40}, level: 6, exp: 0/2744/11598, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -80, y: -140}, retained: false}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: -55, y: -30}]}
+asserts:
+- sql: |
+    SELECT s.tick, u.visibility, s.enabled__state, s.enabled__attack_phase,
+           s.enabled__attack_time, s.enabled__perform_count,
+           s.enabled__lock_target__id
+    FROM units__skills s JOIN units u ON u.tick = s.tick AND u.unit_id = 4
+    WHERE s.unit_id = 1 AND s.skill_slot = 1
+      AND s.tick IN (781, 782, 783, 843) ORDER BY s.tick;
+  rows:
+  - [781, "hide", "idle", null, 654, 0, 4]
+  - [782, "hide", "attack", null, 655, 0, 4]
+  - [783, "hide", "attack", "before", 0, 0, 4]
+  - [843, "hide", "attack", null, 60, 1, 4]
+ticks: 1231
+hash: 26:fbba5c1941d7fae7bf4f2c3b6116ecbb74586559b842dee6b211b10027940c00

@@ -361,7 +361,7 @@ impl Simulation {
         // whether it sees the target.
         target.alive
             && target.targetable
-            && self.reaches_hidden(skill_ref.owner, target.visibility)
+            && self.skill_reaches_hidden(skill_ref, target.visibility)
             && distance >= space_to_q32(source.min_range)
             && distance <= space_to_q32(self.slot_attack_range(skill_ref, slot))
     }

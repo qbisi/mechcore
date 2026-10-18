@@ -892,7 +892,7 @@ impl Simulation {
                 .shield_attack_point(shield, skill_ref, target)
                 .is_some_and(|(x_q32, z_q32)| attacker.reaches_shield(x_q32, z_q32));
         }
-        self.reaches_hidden(skill_ref.owner, view.visibility)
+        self.skill_reaches_hidden(skill_ref, view.visibility)
             && attacker.reaches(view.x_q32, view.z_q32, view.radius)
     }
 
@@ -935,6 +935,17 @@ impl Simulation {
                     if self.actors[&id].rules.underground.is_some()))
     }
 
+    /// `SkillAttackRangeChecker.IsActorInAttackRange`'s visibility branch:
+    /// a self-splash checks distance to its retained target even while that
+    /// target is hidden or in stealth. Target selection keeps its own filter.
+    pub(in crate::fight) fn skill_reaches_hidden(
+        &self,
+        skill_ref: SkillRef,
+        visibility: Visibility,
+    ) -> bool {
+        self.skill_rules(skill_ref).self_splash || self.reaches_hidden(skill_ref.owner, visibility)
+    }
+
     /// Whether a target is within the owner's attack angle:
     /// `SkillAttackAngleChecker`.
     pub(in crate::fight) fn target_in_attack_angle(
@@ -973,7 +984,7 @@ impl Simulation {
             return false;
         };
         view.alive
-            && self.reaches_hidden(skill_ref.owner, view.visibility)
+            && self.skill_reaches_hidden(skill_ref, view.visibility)
             && attacker.reaches(view.x_q32, view.z_q32, view.radius)
             && attacker.faces_point(view.x_q32, view.z_q32)
     }
