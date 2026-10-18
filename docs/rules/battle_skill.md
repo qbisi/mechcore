@@ -256,7 +256,11 @@ as the tick's deaths are taken, after every shot of the tick has landed: a
 shell it fired that lands later strikes for its unit's damage without its
 side's corrections. A deployed unit is no summon, and keeps them.
 
-**Appearing.** For a second after it is made, a summon is out of the fight: in
+**Appearing.** Creating a summon first adds it to its side's target and unit
+trees, then a delayed summon is removed. A tree that split on that insertion
+keeps its split and the redistributed order of its existing units; later
+splash hits can therefore strike them in a different order before the summon
+appears. For a second after it is made, a summon is out of the fight: in
 no tree, never updated, and not counted for its side, though a side with a
 summon still appearing has not lost and the fight cannot end. Its movement
 agent is there from the start, locked where it stands, and the units moving
@@ -534,6 +538,10 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
   point, joins a second later, is found from the tick after, and moves from
   the next solve: `tests/battle_skill/rhino-assault.yaml`,
   `tests/battle_skill/mobilize-battleship.yaml`.
+- A delayed Rhino's creation on tick 28 splits its side's target tree:
+  Explosive Ammo hits Fire Badger 3 then 5 on tick 27, but 5 then 3 on tick
+  29, before the Rhino appears on tick 48:
+  `tests/battle_skill/delayed-summon-splits-target-tree.yaml`.
 - An air drop deals the summon's life around it, and the summon loses what it
   took; an appearing summon turns units aside:
   `tests/battle_skill/rhino-drop.yaml`.
@@ -710,6 +718,11 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
   `SummonSystem.CreateMech`, `SummonSystem.DoCreateMech`,
   `SummonSystem.CreateMechDelay`, `FightTeam.DeactiveMech`,
   `SupportUnitCreator.APPEAR_DURATION`.
+- Creation adds the summon to both trees before delaying deactivates it;
+  removal keeps existing splits and redistributed element order:
+  `FightController.CreateMech`, `FightTeam.AddMech`, `FightTeam.AddActor`,
+  `SummonSystem.CreateMechDelay`, `FightTeam.DeactiveMech`,
+  `FightQuadtreeNode.Split`, `FightQuadtreeNode.RemoveElement`.
 - A summon that dies is destroyed and its side's effects cleared from it,
   where a deployed unit's are not: `DeadEffectSystem.Update`,
   `FightMech.IsSummonMech`, `SummonSystem.RemoveMech`,
