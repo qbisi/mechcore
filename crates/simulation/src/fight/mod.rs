@@ -604,6 +604,8 @@ struct Simulation {
     terrain: terrain::TerrainSystem,
     /// `RecoveryEffectSystem`'s repairing units.
     repair: repair::RepairSystem,
+    /// Registration order of `AutoRecoveryController` instances.
+    next_recovery_order: u64,
     /// `TeamClearRangeItemManager.m_deltaTime`: its updates since it last
     /// cleared.
     clear_range_item_time: i32,
@@ -746,6 +748,7 @@ impl Simulation {
             kills: kills::KillCounts::default(),
             terrain: terrain::TerrainSystem::default(),
             repair: repair::RepairSystem::default(),
+            next_recovery_order: 0,
             clear_range_item_time: 0,
             stealth: stealth::StealthSystem::default(),
             siege: siege::SiegeModeSystem::default(),

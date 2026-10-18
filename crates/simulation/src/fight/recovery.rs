@@ -9,7 +9,7 @@
 //! clock; when the repair clock reaches the source's interval it is set back
 //! to zero and `RecoveryMech` repairs the unit by the whole part of its
 //! maximum life times the source's rate. The start clock begins at −1 second
-//! (`AutoRecoveryController.Reset`) and is never set back during a fight.
+//! (`AutoRecoveryController.Reset`) and is never set back while registered.
 //! A source of `AutoRecoveryStateType.Underground` runs only while its unit
 //! is below: its controller's condition is set as the burrow ends and
 //! cleared as the surfacing begins, and its clocks stand still without it.
@@ -24,6 +24,9 @@ use crate::modifier::{AutoRecovery, RecoveryState};
 /// seconds.
 #[derive(Debug, Clone, Copy)]
 pub(in crate::fight) struct RecoveryClock {
+    /// Position in its team's `SyncDictionary` registration order. Kept on
+    /// the controller so recording-identity changes cannot reorder it.
+    order: Option<u64>,
     start_q32: i64,
     recovery_q32: i64,
     /// `isCondition`: whether the unit is in the source's state.
@@ -39,6 +42,7 @@ impl RecoveryClock {
     /// `AutoRecoveryStateType.Normal`.
     pub(in crate::fight) fn reset(source: &AutoRecovery) -> Self {
         Self {
+            order: None,
             start_q32: -Q32_ONE,
             recovery_q32: 0,
             condition: source.state == RecoveryState::Normal,
@@ -61,6 +65,20 @@ impl Simulation {
         {
             actor.recovery = Some(RecoveryClock::reset(source));
         }
+        if let Some(clock) = actor.recovery.as_mut()
+            && clock.order.is_none()
+        {
+            clock.order = Some(self.next_recovery_order);
+            self.next_recovery_order += 1;
+        }
+    }
+
+    /// `AutoRecoveryEffectProvider.DoDeactive` calls `RemoveMech`. A later
+    /// activation appends a new controller, as `SyncDictionary.Add` does.
+    pub(in crate::fight) fn remove_auto_recovery(&mut self, unit: u64) {
+        if let Some(actor) = self.actors.get_mut(&unit) {
+            actor.recovery = None;
+        }
     }
 
     /// `AutoRecoverySystem.Update`: each side's `TeamAutoRecoveryManager.
@@ -71,11 +89,15 @@ impl Simulation {
         let mut repaired = self
             .actors
             .iter()
-            .filter(|(_, actor)| actor.recovery.is_some())
-            .map(|(&id, actor)| (actor.placement.team, id))
+            .filter_map(|(&id, actor)| {
+                actor
+                    .recovery?
+                    .order
+                    .map(|order| (actor.placement.team, order, id))
+            })
             .collect::<Vec<_>>();
         repaired.sort_unstable();
-        for (_, id) in repaired {
+        for (_, _, id) in repaired {
             let actor = self.actors.get_mut(&id).expect("actor identity is stable");
             let Some(source) = actor.placement.effects.auto_recovery else {
                 continue;
