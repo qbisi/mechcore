@@ -1,0 +1,64 @@
+# A complete generated layout: Raiden core takes its sibling lock after
+# both guns fell different wall blocks. The sibling keeps its last wall
+# target while cooling, and clearing its already empty lock does not
+# overwrite the new mech lock the core just handed to the owner.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1070260256
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_defensive_tactics, speed_specialist, improved_overlord]
+  techs:
+    overlord: [range_enhancement]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [2, 1]
+  units:
+  - {name: overlord, index: 0, position: {x: 335, y: 165}, level: 7, exp: 11019/11019/11019, equipment: [tank_production_line]}
+  - {name: sledgehammer, index: 1, position: {x: -95, y: -300}, level: 3, exp: 0/36/4630, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -235, y: -95}, retained: false}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: -240, y: -220}]}
+red:
+  core_damage: 430
+  officers: [advanced_missile_device, aerial_specialist, assault_raiden]
+  techs:
+    raiden: [energy_shield]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: raiden, index: 0, position: {x: 150, y: -30}, level: 3, exp: 4274/7494/8548, equipment: [enhancement_module]}
+  - {name: tarantula, index: 1, position: {x: -185, y: -55}, level: 9, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 80, y: -225}, retained: false}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: 240, y: 65}, {x: 135, y: -155}]}
+asserts:
+- sql: |
+    SELECT tick, mech_lock_target__kind, mech_lock_target__id FROM units
+    WHERE unit_id = 7 AND tick IN (57, 58, 68, 69) ORDER BY tick;
+  rows:
+  - [57, "unit", 11]
+  - [58, "building", 1]
+  - [68, "building", 1]
+  - [69, "unit", 4]
+- sql: |
+    SELECT tick, enabled__state, enabled__attack_target__kind,
+           enabled__attack_target__id FROM units__skills
+    WHERE unit_id = 7 AND skill_slot = 1 AND tick IN (57, 58, 67, 68)
+    ORDER BY tick;
+  rows:
+  - [57, "attack", "building", 4]
+  - [58, "cooling", "building", 4]
+  - [67, "cooling", "building", 4]
+  - [68, "idle", null, null]
+ticks: 1160
+hash: 26:ccb701309761cac3c8169efdc958b72a4d6fbb5e162d1ad8cfc85e50de069236

@@ -356,14 +356,19 @@ impl Simulation {
         // A slot firing at a shield has no attack target to go on naming:
         // `ChangeAttackTarget(null, shield)` cleared it.
         let skill = self.skill(skill_ref);
-        let candidate = skill
-            .group_skill(slot)
+        let sibling = skill.group_skill(slot);
+        let held_lock = sibling.lock_target.is_some();
+        let candidate = sibling
             .checked_attack_target()
-            .filter(|_| skill.group_skill(slot).shield_target().is_none());
+            .or(sibling.attack_target_left)
+            .filter(|_| sibling.shield_target().is_none());
         self.idle_group_slot(skill_ref, slot);
         // `StopAttack` hands a main searcher's owner the dropped lock, which
         // a joined row's slot is not.
-        if skill_ref.slot == SkillSlot::Main && self.skill(skill_ref).joined(slot).is_none() {
+        if held_lock
+            && skill_ref.slot == SkillSlot::Main
+            && self.skill(skill_ref).joined(slot).is_none()
+        {
             self.skill_mut(skill_ref).set_mech_lock(None);
         }
         if cooling_steps > 0 {
