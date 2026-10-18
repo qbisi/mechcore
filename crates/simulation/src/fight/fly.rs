@@ -156,7 +156,9 @@ impl Simulation {
             }
             actor.fly_reverts_at = None;
         } else if turned {
-            actor.fly_reverts_at = Some(step_now + math::seconds_q32_to_steps(source.landing_q32));
+            let delay = math::seconds_q32_to_steps(source.landing_q32)
+                .saturating_sub(u64::from(self.updating_timers));
+            actor.fly_reverts_at = Some(step_now + delay);
         }
     }
 

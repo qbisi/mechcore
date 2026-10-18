@@ -554,6 +554,9 @@ struct Simulation {
     dead_actors: Vec<FightActorRef>,
     /// The step being simulated, which what happens inside a hit reads.
     step_now: u64,
+    /// `GRTimerManager.processIndex` is nonnegative while callbacks run;
+    /// a timer appended by a callback receives its first update this tick.
+    updating_timers: bool,
     /// Every side's `FightTeam.activeActors`, the order it updates its units
     /// in and hands a buff for all of it out: see [`deploy::prepare_actors`].
     /// The sides share the list, and each reads its own in it.
@@ -710,6 +713,7 @@ impl Simulation {
             dead_exits: Vec::new(),
             dead_actors: Vec::new(),
             step_now: 0,
+            updating_timers: false,
             active_actors,
             team_random: BTreeMap::new(),
             projectiles: Vec::new(),
@@ -1173,6 +1177,7 @@ impl Simulation {
         // from the next: the Crawlers around a Rhino that has just dropped go
         // on searching for what they were after. Their own searches were not
         // prepared, and find the summons that joined with them.
+        self.updating_timers = true;
         let mut joined = Vec::new();
         self.join_summons(step, &mut joined)?;
         let mut events = Vec::new();
@@ -1210,6 +1215,7 @@ impl Simulation {
         self.idle_after_trenches(step);
         self.revert_fly_units(step);
         self.finish_melee_transitions(step)?;
+        self.updating_timers = false;
         self.refresh_opponent_actor_lists();
         // Native search jobs retain the actor-quadtree candidate order
         // prepared at the start of this FightCore update.
