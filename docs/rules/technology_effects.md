@@ -599,6 +599,8 @@ leaves as `DeadEffectSystem` deactivates its effects (`DoDeactive`,
 `RemoveSiegeModeOwner`). Leaving the fight takes every trench away
 (`OnExitFight`), its life refreshed and its motion idle on the last tick. A
 unit a Hacker turns stays dug in, counting the enemies of its new side.
+The skill's exit refreshes its current interval before `OnExitFight` removes
+the trench corrections, so that final clock retains the entrenched interval.
 
 ## Fire technologies
 
@@ -1898,7 +1900,9 @@ derive (a minimum range):
   keep it dug in: `tests/siege_mode/wall.yaml`. An Electromagnetic
   Impact takes the trench away as it lands:
   `tests/siege_mode/disabled.yaml`. The fight's end takes it away on
-  its last tick: `tests/siege_mode/ends.yaml`. A unit turned by a
+  its last tick: `tests/siege_mode/ends.yaml`. The final skill clock is refreshed
+  before the trench goes:
+  `tests/siege_mode/final-interval-before-trench-removal.yaml`. A unit turned by a
   Hacker stays dug in on its new side, one travelling in digs in as it
   arrives, and one dies in its trench:
   `tests/siege_mode/turned.yaml`,
@@ -2418,6 +2422,7 @@ derive (a minimum range):
   `SiegeModeEffectSystem.RemoveEffect`, `SiegeModeEffectSystem.EndSiegeMode`,
   `SiegeModeEffectSystem.RemoveSiegeModeOwner`,
   `SiegeModeEffectSystem.OnExitFight`, `SiegeModeEffectProvider.DoActive`,
+  `FightingState.Exit`, `FightSkill.ExitFight`,
   `SiegeModeEffectProvider.DisableEffect`,
   `SkillAttackController.AttackingController.Update`,
   `MotionStopState.Enter`, `MotionStopState.Update`,
