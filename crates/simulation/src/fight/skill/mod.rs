@@ -2374,8 +2374,8 @@ impl Simulation {
             skill.set_backswing_finish_step(None);
             // The attack state outlives the backswing: `SkillAttackController`
             // has no phase running until the next blow's wait begins, and the
-            // checker is asked in that gap.
-            skill.set_phase(FightSkillPhase::Attack);
+            // checker is asked in that gap. An idle skill stays idle instead;
+            // ending its controller's backswing does not enter an attack state.
         }
         let prepare_finished = matches!(
             skill.phase(),

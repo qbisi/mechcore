@@ -621,6 +621,14 @@ released on tick 2 reads 0 until its last projectile goes out on tick 6, and
 the Rhino it fires at, whose backswing ends on tick 107, reads 1 on that tick:
 `tests/projectile/farseer-rhino-closing.yaml`.
 
+Ending the attack controller's backswing does not change the skill state
+(`SkillAttackController.ChangeToIdle`). A skill waiting in `SkillIdleState`
+stays idle; acquiring an attackable target still enters `SkillAttackState`
+before that state starts a new blow on its following update
+(`SkillIdleState.Update`). An elapsed backswing retained while no target was
+available does not let the next acquisition skip that entry
+([`attack_timing/idle-backswing-keeps-attack-entry.yaml`](../../tests/attack_timing/idle-backswing-keeps-attack-entry.yaml)).
+
 `FightPrepareState` completes the first acquisition and syncs initial facing
 before the first persisted state S(1).
 

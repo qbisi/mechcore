@@ -12,6 +12,7 @@ directory alone keeps a readme, for the rules of pinning a round:
 | [`additional_damage/`](additional_damage/) | what a technology's hit takes from its target's life besides the hit | [`technology_effects.md`](../docs/rules/technology_effects.md#additional-damage-technologies) |
 | [`anti_air/`](anti_air/) | what a technology changes about its unit's skill against aircraft: whether it attacks them, reach, damage and search | [`combat.md`](../docs/rules/combat.md#aerial-and-ground-targets) |
 | [`armor/`](armor/) | what an armour technology takes off each hit on its unit | [`combat.md`](../docs/rules/combat.md#armour) |
+| [`attack_timing/`](attack_timing/) | when a skill enters its attack state and starts or completes a blow | [`combat.md`](../docs/rules/combat.md) |
 | [`avoidance/`](avoidance/) | how a unit's sampled avoidance chooses its movement | [`combat.md`](../docs/rules/combat.md#where-a-moving-unit-is-sent) |
 | [`battle_skill/`](battle_skill/) | when a released battle skill lands, what it reaches, and what it writes or summons | [`battle_skill.md`](../docs/rules/battle_skill.md) |
 | [`burrow/`](burrow/) | when a burrowing technology burrows its unit and brings it up, and what its burrow takes off the hits on it | [`technology_effects.md`](../docs/rules/technology_effects.md#burrowing-technologies) |
