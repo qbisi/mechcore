@@ -561,6 +561,9 @@ impl SkillRef {
 )]
 #[derive(Debug, Clone)]
 pub(in crate::fight) struct Skill {
+    /// An extra skill's `DamageCalculator.killCount`; the main calculator
+    /// lives in `Actor.stats`. Each clears independently on `ExitFight`.
+    pub(in crate::fight) kill_count: i64,
     pub(in crate::fight) weapon_rotations_q32: Vec<i64>,
     pub(in crate::fight) next_attack_step: u64,
     /// The interval this cycle was scheduled with, in logic ticks: the
@@ -718,6 +721,7 @@ impl Skill {
             weapon_rotations_q32,
             next_attack_step: 0,
             current_attack_interval: 0,
+            kill_count: 0,
             attack_time_anchor: 0,
             attack_time_step: -1,
             lock_target: None,
@@ -2143,6 +2147,7 @@ impl Simulation {
             skill.drop_lock();
             skill.set_phase(FightSkillPhase::Idle);
             skill.performer.stop();
+            skill.kill_count = 0;
             // `ExitFight` resets its `AttackCountEffectLinker` too.
             if let (FightActorRef::Unit(actor_id), SkillSlot::Main) =
                 (skill_ref.owner, skill_ref.slot)
@@ -2153,7 +2158,7 @@ impl Simulation {
                     .expect("actor identity is stable");
                 actor.reset_attack_count();
                 // `FightSkill.ExitFight` clears its DamageCalculator too.
-                // Rate-based extra skills read this main skill's damage.
+                // Each extra skill clears its own calculator on its exit.
                 actor.stats.clear_kills(&actor.rules)?;
             }
             if let Some(actor) = self.moving_mut(skill_ref) {

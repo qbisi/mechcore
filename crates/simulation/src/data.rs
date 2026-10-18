@@ -867,9 +867,9 @@ pub(crate) struct Stats {
     /// The unit's level, which is its `IMechLevelData` rating: base life and
     /// base damage are the description's times it, before any overlay.
     level: i64,
-    /// Its skills' `DamageCalculator.killCount`: every target it hit that
-    /// died while it lived.
-    kills: i64,
+    /// The main skill's `DamageCalculator.killCount`. Extra skills keep
+    /// their own count, since `ExitFight` clears each calculator separately.
+    pub(crate) kills: i64,
     /// Q32.32 metres a second: `MoveSpeedProperty` keeps the speed as an
     /// `FPoint`, and a rate on it lands between two millimetres.
     move_speed_q32: i64,
