@@ -1,0 +1,52 @@
+# A complete generated layout recorded with the game. The EMP-disabled Void
+# Eye dies at 237. Its ExitFight clears buffs before effect deactivation, so
+# Aerial Mode stays off after death. Wasps retaining that lock read ground
+# range at 237 and 238, rather than returning to their longer air range.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 256213536
+round: 3
+blue:
+  core_damage: 405
+  officers: [advanced_shield_device, advanced_offensive_tactics, improved_void_eye]
+  techs:
+    void_eye: [energy_shield, energy_absorption, aerial_mode, range_enhancement, charged_shot, suppression_shots, electromagnetic_armor]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: void_eye, index: 0, position: {x: -10, y: -60}, level: 3, exp: 2315/2315/2315, rotated: true, equipment: [secondary_heavy_armor]}
+  - {name: war_factory, index: 1, position: {x: 25, y: -215}, level: 7, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 155, y: -160}, retained: false}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: 240, y: 145}]}
+red:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, advanced_power_system, sabertooth_specialist, improved_wasp]
+  techs:
+    wasp: [energy_shield, high_explosive_ammo, ground_specialization, jump_drive, electromagnetic_shot, aerial_specialization, range_enhancement, armor_piercing_bullets, elite_marksman, ignite]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [1, 1]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 65, y: -195}, source: delivered}
+  - {name: wasp, index: 1, position: {x: 290, y: -45}, level: 2, exp: 0/2028/2028, rotated: true, equipment: [small_amplifying_core], source: joined}
+  - {name: phantom_ray, index: 2, position: {x: -275, y: -130}, level: 4, exp: 0/4490/4490, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 140, y: -220}}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: -275, y: 285}, {x: -170, y: 285}, {x: 145, y: 25}]}
+asserts:
+- sql: |
+    SELECT s.tick, s.enabled__lock_target__id, s.enabled__attack_range,
+           EXISTS(SELECT 1 FROM units u WHERE u.tick = s.tick AND u.unit_id = 2)
+    FROM units__skills s WHERE s.unit_id = 7 AND s.skill_slot = 0
+      AND s.tick IN (236, 237, 238) ORDER BY s.tick;
+  rows:
+  - [236, 2, 665719930880, 1]
+  - [237, 2, 536870912000, 0]
+  - [238, 2, 536870912000, 0]
+ticks: 489
+hash: 26:d94855dc4ef2d890a218f53037fe38ebacec44d1cbd0c9a09999010c811e4513

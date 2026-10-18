@@ -1093,10 +1093,9 @@ impl Simulation {
         Ok(())
     }
 
-    /// `BuffManager.Update` on a unit that is no longer alive: its buffs go.
-    ///
-    /// Not on the tick it dies but on its first update of a later tick, even
-    /// one it reaches dead on the tick it died. A Fang of the two-tower fight
+    /// `BuffManager.Clear` in the dead unit's `FightMech.ExitFight`, after
+    /// the tick's projectiles and death explosions but before deactivation.
+    /// A Fang of the two-tower fight
     /// killed by a Steel Ball's beam lands its projectile the same tick for
     /// the debuffed 6; one that died two ticks before its projectile landed
     /// lands it for the full 63; and a Vulcan of 67158166 r4 killed before its
