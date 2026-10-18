@@ -649,6 +649,10 @@ reloads and nothing else reads.
   an attack and `SkillAttackState.TryPerformAttack` before each blow): the
   main skill waits for the side arm, and the side arm for its turn and its
   wait.
+  An idle main gun checks its turn in its own skill update, before the
+  higher-ID side arm updates. If the side arm then begins a blow and returns
+  the turn, the main gun waits until its next update to enter prepare;
+  continuing attack motion does not retry that idle-state check.
 - **A side arm that cannot take its turn gives it back.** Its idle and its
   cooling states ask as they update (`TrySideArmResetFireMark`): it keeps the
   turn while it is enabled, not cooling, reloading or locked, its lock lives,

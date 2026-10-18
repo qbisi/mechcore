@@ -1,0 +1,57 @@
+# A main gun waits until its update after the side arm returns the turn.
+#
+# The complete generated layout: the Centurion's main skill is idle when
+# Dual Wield begins its next blow at ticks 247 and 263. Its main gun waits
+# until 248 and 264 to enter prepare, then enters attack at 250 and 266.
+# Control: dual-wield-close.yaml, the ordinary alternating firing cycle.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1976646663
+round: 1
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_power_system]
+  blueprints: [defense_enhancement_ii]
+  units:
+  - {name: abyss, index: 0, position: {x: 115, y: -45}, level: 8, exp: 0/5150/32291, source: joined}
+  - {name: phoenix, index: 1, position: {x: 280, y: -40}, level: 3, exp: 0/1170/4630, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 295, y: -75}}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: -145, y: -5}]}
+red:
+  core_damage: 700
+  officers: [advanced_targeting_system, speed_specialist]
+  techs:
+    centurion: [summon_hounds, reactive_armor, melee_mode, range_enhancement, dual_wield, homing_missile]
+  tower_strengthen_levels: [1, 2]
+  units:
+  - {name: centurion, index: 0, position: {x: 195, y: -35}, level: 2, exp: 0/476/5070, equipment: [secondary_laser_sight], source: joined}
+  - {name: vulcan, index: 1, position: {x: -260, y: -220}, level: 3, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -140, y: -110}, retained: false}
+  battle_skills:
+  - {name: smoke_bomb, positions: [{x: 20, y: 250}, {x: 150, y: 260}]}
+asserts:
+- sql: |
+    SELECT tick, enabled__state
+    FROM units__skills
+    WHERE unit_id = 4 AND skill_slot = 0
+      AND tick IN (247, 248, 249, 250, 263, 264, 265, 266)
+    ORDER BY tick;
+  rows:
+  - [247, idle]
+  - [248, prepare]
+  - [249, prepare]
+  - [250, attack]
+  - [263, idle]
+  - [264, prepare]
+  - [265, prepare]
+  - [266, attack]
+ticks: 897
+hash: 26:b99e71bbc9c2d74e7502ae690e2052bdc7a0732300860134a9ede2bad3d7387c
