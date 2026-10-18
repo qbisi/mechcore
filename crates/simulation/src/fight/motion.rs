@@ -1017,6 +1017,33 @@ impl Simulation {
         // A batch of standalone weapons answers its first weapon that holds
         // a lock (`FightSkillBatch.GetLockTarget`).
         let target = self.motion_target(actor_id);
+        // MotionMoveState asks a move ability about GetLockTarget even when
+        // the idle skill has no attack target. A command's IsIdle is false;
+        // automatic movement takes its idle/touch-range path first instead.
+        // The lock may be an aircraft selected only as an alive fallback.
+        if target.is_none()
+            && self.actors[&actor_id].motion.state == MotionState::Moving
+            && self.actors[&actor_id].underground.is_some()
+            && self.actors[&actor_id].command.is_some()
+            && let Some(lock) = self.actors[&actor_id].skills.main.lock_target
+            && let Some(view) = self.fight_actor(lock)
+        {
+            let actor = &self.actors[&actor_id];
+            let distance = native_q32_magnitude(
+                view.x_q32.saturating_sub(actor.x_q32),
+                view.z_q32.saturating_sub(actor.z_q32),
+            )
+            .saturating_sub(space_to_q32(actor.rules.collision_radius()))
+            .saturating_sub(space_to_q32(view.radius))
+            .max(0);
+            let sees = self.reaches_hidden(FightActorRef::Unit(actor_id), view.visibility);
+            if self
+                .reach_or_surface(actor_id, (lock, distance), (lock, distance), sees)?
+                .is_none()
+            {
+                return Ok(());
+            }
+        }
         if stopped && target.is_none() {
             return Ok(());
         }

@@ -50,6 +50,14 @@ A unit that burrows on its first tick
 has searched and locked on that tick, and reads no lock until the tick after
 it is below.
 
+When a skill enters idle with target clearing enabled, `SkillIdleState.Enter`
+checks whether its owner has a move ability and an active move behaviour.
+With a Mobile Beacon command, which stays active without a lock, it searches
+again immediately. The following motion update still passes through the
+ability when it changes from attacking to moving; the skill becoming idle
+does not bypass the burrowing transition. A skill already idle at that
+transition keeps the attack target the new search found when its lock clears.
+
 An inactive manager also skips the non-fighting skill path after the last
 enemy dies. Its motion continues the transition and enters the queued state;
 reactivation during that motion update first permits a skill update on the
@@ -91,6 +99,12 @@ The lock is the skill's (`IAttacker.GetLockTarget`), not what it fires at. A
 Sandworm whose skill fires at a block standing in the way of its lock stays
 below as it passes the block, and surfaces once the lock is within the exit
 range.
+
+Under a Mobile Beacon command, the distance check also runs when the skill
+is idle because its lock is only an alive-target fallback, such as an aircraft
+the Sandworm cannot attack. The command's `IsIdle` is false, so coming within
+the exit range still starts surfacing. Automatic movement instead takes its
+idle/touch-range path before the ability check when the skill is idle.
 
 **A skill starts whatever the motion does.** `SkillIdleState.TryStartAttack`
 starts the attack of a skill whose target is in range from the skill's own
