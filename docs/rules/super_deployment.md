@@ -23,6 +23,12 @@ stands. The presearch that gives every unit its first lock gives it one too.
 The skill's attack target is searched only by the unit's own update, so the
 recording names none until the first update after it arrives.
 
+The same skip applies while a decided fight drains its remaining work:
+`TeamUpdate` does not run the travelling unit's non-fighting skill update
+either. Its presearch lock remains until final fight exit, even if the
+target has died. Final `ExitFight` clears that lock and takes the unit out
+of travel.
+
 Its formation stands where a settled one does, turned to face the middle
 ([`unit-rules.md`](../spec/simulation/unit-rules.md)).
 

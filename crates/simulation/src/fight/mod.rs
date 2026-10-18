@@ -1519,10 +1519,14 @@ impl Simulation {
         let stop_fight = ready_to_finish || core_step_was_finished;
         if stop_fight {
             for actor in self.actors.values_mut() {
-                // SkillManager.Update returns before its non-fighting path
-                // while inactive. A transition may reactivate it later in
-                // this same motion update, but that path was still skipped.
-                if !ready_to_finish && inactive_skill_managers.contains(&actor.placement.unit_id) {
+                // TeamUpdate skips a travelling unit. An inactive skill
+                // manager also skips its non-fighting path, even if this
+                // tick's later motion update reactivates it. Final ExitFight
+                // still cleans up both kinds of unit.
+                if !ready_to_finish
+                    && (actor.travelling
+                        || inactive_skill_managers.contains(&actor.placement.unit_id))
+                {
                     continue;
                 }
                 // Every motion loses its target: one without a command enters
