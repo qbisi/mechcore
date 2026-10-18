@@ -1424,6 +1424,10 @@ impl Simulation {
             .any(|event| matches!(&event.payload, EventPayload::UnitDied { .. }));
         let projectile_finished_fight = !naturally_finished_before_projectiles
             && self.naturally_finished()
+            // Draining alone means the core had already finished before
+            // this update. A last enemy translated this tick still loses
+            // its side's buildings, even if the final shots also land now.
+            && core_step_was_finished
             && !unit_died_this_tick;
         // `FightingState.Update` runs `FightCoreSystem.TryDstroyTower` after
         // every module has updated: a side that has lost its last unit loses

@@ -138,7 +138,10 @@ the spin. This is the idle state's enter behaviour and runs even after the
 owner's skill update has already finished for the tick.
 
 A side whose every unit a beam has turned has none left, and loses as a
-wiped-out side does: its towers are torn down.
+wiped-out side does: its towers are torn down. This also holds when the
+last translation and the final projectiles resolve on the same tick:
+building teardown follows the modules, and its death events follow on the
+next tick before final exit.
 
 **Enhanced Control brings a unit it turns up to its whole life.** The
 Hacker's technology writes `SkillDataChangeFloat.CBLifeRecoveryRate` on its
@@ -213,6 +216,10 @@ the shield does not count against the turn.
 ## Evidence
 
 ### Recorded
+
+- The last translation coinciding with the final projectiles tears down the
+  defeated side's constructions before final exit:
+  `tests/control/last-translation-with-final-projectiles.yaml`.
 
 - A translated Crawler returning sides on death idles the Rhino's Whirlwind
   and unlocks its main skill on the same tick:
