@@ -145,6 +145,7 @@ impl Actor {
             skills_active: true,
             underground,
             original_team,
+            last_snapshot_team: original_team,
             original_formation,
             motion: Motion {
                 rvo_tree_x_q32: x_q32,

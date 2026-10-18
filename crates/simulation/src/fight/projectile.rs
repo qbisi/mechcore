@@ -466,9 +466,8 @@ impl Simulation {
                     reach,
                     events,
                 )?,
-                // Its removal names the side the owner stands on as it lands,
-                // as the recording last saw it: an owner already dead is
-                // named on the side it fired from.
+                // The recording boundary resolves this provisional source
+                // side from the owner's most recent live snapshot.
                 Some((
                     owner.object_ref(),
                     self.fight_actor(*owner)

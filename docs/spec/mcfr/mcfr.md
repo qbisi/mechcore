@@ -832,6 +832,14 @@ by its personal shield, even when it lost no life. The source team is the
 team at that damage boundary; a later team change does not rewrite it.
 These fields record damage provenance, independently of experience credit.
 
+For `projectile_released` and `projectile_removed`, `source_team_id` resolves
+the owner against the most recent live-unit snapshot at the capture boundary.
+An absent or dead owner keeps its last observed side. This attribution is
+independent of the projectile's stored team and its damage payload: a projectile
+fired before its owner was controlled can deal damage for its launch side,
+then be removed with the owner's last observed controlled side after that
+owner dies.
+
 `projectile_removed` admits exactly three combinations. Native interception is
 `intercepted=true, absorbed_by=null`. Absorption by a battlefield shield is
 `intercepted=false, absorbed_by=ShieldRef`. Any other removal has neither.

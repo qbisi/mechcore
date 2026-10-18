@@ -1,0 +1,55 @@
+# Projectile trace attribution keeps a dead controlled owner's observed side.
+#
+# The complete generated layout: Mustang 24 fires projectile 56 for blue at
+# 62, is controlled onto red before 67, and dies at 68. The projectile deals
+# damage for blue at 69, but its removal names the owner's last observed red
+# side. Damage provenance remains the projectile's cached launch side.
+# Control: last-translation-with-final-projectiles.yaml, a turn with shots in flight.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1874470144
+round: 4
+blue:
+  core_damage: 0
+  officers: [advanced_targeting_system, advanced_targeting_system, typhoon_specialist, assault_fang]
+  techs:
+    fang: [ignite]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: fang, index: 0, position: {x: -215, y: -30}, level: 6, exp: 1739/3479/3479, equipment: [dominion_core]}
+  - {name: typhoon, index: 1, position: {x: 60, y: -170}, exp: 0/400/1950, source: delivered}
+  - {name: mustang, index: 2, position: {x: -25, y: -70}, level: 7, exp: 0/7556/7556, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 115, y: -300}}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: 90, y: 295}]}
+red:
+  core_damage: 496
+  officers: [advanced_power_system, advanced_targeting_system, rhino_specialist, mass_produced_sabertooth]
+  techs:
+    sabertooth: [missile_interceptor]
+  blueprints: [defense_enhancement]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 125, y: -275}, level: 9, exp: 8746/8746/8746, rotated: true, equipment: [deployment_module]}
+  - {name: rhino, index: 1, position: {x: 285, y: -145}, level: 2, exp: 0/528/2591, source: delivered}
+  - {name: hacker, index: 2, position: {x: 105, y: -75}, level: 9, exp: 0/396/3767, source: joined}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: -200, y: -95}]}
+asserts:
+- sql: |
+    SELECT tick, type, source_team_id
+    FROM events
+    WHERE object__kind = 'projectile' AND object__id = 56
+      AND type IN ('projectile_released', 'damage', 'projectile_removed')
+    ORDER BY tick, ordinal;
+  rows:
+  - [62, projectile_released, 0]
+  - [69, damage, 0]
+  - [69, projectile_removed, 1]
+ticks: 629
+hash: 26:069198673badbc5872a9ec90949d25e7c881f51b5b4850ae2e9ee2f61e92f7eb
