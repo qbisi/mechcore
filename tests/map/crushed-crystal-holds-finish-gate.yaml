@@ -1,0 +1,55 @@
+# A complete generated layout recorded with the game. Vulcan 14 crushes
+# Training Base's priority-one crystal at (-276, 16) at 114. The building
+# collision module runs after the death module, whose queue holds the fight
+# until 115 even though its final projectile was already removed at 114.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 255969897
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_power_system, advanced_targeting_system, fire_badger_specialist, extended_range_fortress]
+  techs:
+    fortress: [range_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: fortress, index: 0, position: {x: -220, y: -50}, level: 6, exp: 9278/9278/9278, equipment: [secondary_fire_control_system]}
+  - {name: fire_badger, index: 1, position: {x: -265, y: -230}, exp: 0/850/1400, source: delivered}
+  - {name: abyss, index: 2, position: {x: -215, y: -155}, level: 7, exp: 0/2550/30223, source: joined}
+  constructions:
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 65, y: -85}}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: -295, y: 15}]}
+red:
+  core_damage: 1071
+  officers: [quick_teleport, advanced_offensive_tactics, sabertooth_specialist]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 195, y: -105}, source: delivered}
+  - {name: hound, index: 1, position: {x: 310, y: 200}, level: 9, exp: 0/134/5046, equipment: [haste_module], travelling: true, source: joined}
+  - {name: typhoon, index: 2, position: {x: 270, y: -150}, level: 5, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 45, y: -275}}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: 270, y: -245}, {x: 100, y: -120}]}
+asserts:
+- sql: |
+    SELECT tick, remaining_rounds FROM terrains
+    WHERE terrain_id = 1 AND tick IN (114, 115) ORDER BY tick;
+  rows:
+  - [114, 2]
+  - [115, 1]
+- sql: |
+    SELECT tick, velocity__x, velocity__z FROM units
+    WHERE unit_id = 14 AND tick IN (114, 115) ORDER BY tick;
+  rows:
+  - [114, 36441638844, 36441638844]
+  - [115, 0, 0]
+ticks: 115
+hash: 26:7fac5e9616016da02324f5ffb19401b45efe7ed06d9b49197e1a6346925775f7

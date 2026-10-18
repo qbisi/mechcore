@@ -40,6 +40,7 @@ mod additional_damage;
 mod attack_count;
 mod attacker;
 mod buff_cycle;
+mod building_collide;
 mod burrow;
 mod chain;
 mod clear_range_item;
@@ -619,6 +620,7 @@ struct Simulation {
     mech_groups: mech_group::MechGroupSystem,
     /// The RVO simulator's state and the obstacles besides the units.
     rvo: RvoState,
+    building_collisions: building_collide::BuildingCollisions,
     /// The buffs on constructions and the buff events a tick holds back.
     buffs: tower::BuffState,
     /// The towers of both sides and what losing one writes.
@@ -682,6 +684,7 @@ impl Simulation {
         let constructions = initialize_constructions(&buildings, &layout.constructions)?;
         let grounds = formation_grounds(layout, configs)?;
         let map_crystals = map_crystals(maps.buildings(layout.map_id)?, &grounds);
+        let building_collisions = building_collide::BuildingCollisions::new(&map_crystals);
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings, &active_actors);
         let mech_quadtrees = initialize_mech_quadtrees(&actors, &active_actors);
         let buildings_query_alive = standing_buildings(&buildings);
@@ -726,6 +729,7 @@ impl Simulation {
             target_quadtrees,
             mech_quadtrees,
             rvo: RvoState::new(construction_colliders, passable_constructions, map_crystals),
+            building_collisions,
             fallen_buildings: Vec::new(),
             buildings_query_alive,
             unsearchable_buildings: unsearchable.clone(),
@@ -1354,6 +1358,7 @@ impl Simulation {
         // OnDead in the shared deadActors order, including fallen towers.
         // OnDead callbacks can append more actors: Dominion Core's
         // DestroySelf deaths enter the same list and are handled this update.
+        self.finish_crystal_deaths();
         let mut dead_index = 0;
         while dead_index < self.dead_actors.len() {
             let dead_actor = self.dead_actors[dead_index];
@@ -1410,6 +1415,7 @@ impl Simulation {
         self.step_wreckage();
         // `BurrowSystem` updates after it.
         self.step_burrows()?;
+        self.step_building_collisions();
         // `ClearRangeItemSystem` updates after `BurrowSystem`.
         self.step_clear_range_items()?;
         // `SiegeModeEffectSystem` updates after `FightConstructionSystem`,
@@ -1976,7 +1982,10 @@ impl Simulation {
     }
 
     fn ready_to_finish(&self) -> bool {
-        self.naturally_finished() && !self.ending.terminal_drain_pending
+        self.naturally_finished()
+            && !self.ending.terminal_drain_pending
+            && self.dead_actors.is_empty()
+            && self.building_collisions.pending.is_empty()
     }
 }
 

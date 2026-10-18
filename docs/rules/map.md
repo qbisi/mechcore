@@ -101,15 +101,16 @@ Desert's at (95.48, -360.93), stands at (95, -361).
 ## A crystal of priority 2 or more is an obstacle
 
 A crystal whose collider priority is 2 or more is an immovable agent in the
-RVO tree for the whole fight, on its own priority's layer as a construction is
+RVO tree while it stands, on its own priority's layer as a construction is
 on its row's, and a unit avoids it when its layer is one the unit's query
 accepts: a unit accepts its own layer and every higher bit, so a priority-3
 crystal holds off a unit of priority 3 or less, which in the standard units is
 the Fang, the Crawler and the Mustang.
 
-A crystal of priority 1 takes no part in movement. It is in no neighbour set,
+A crystal of priority 1 takes no part in avoidance. It is in no neighbour set,
 which the layers alone would already give, and it is not in the tree either,
 where it would move the root's bounds and the leaves' order.
+It still takes part in the building collision checks below.
 
 The buildings enter the tree side by side, each side's towers and then its
 constructions, blue's before red's; then the crystals in the order the map
@@ -130,12 +131,46 @@ a unit can stand, all of them on blue's half.
 Only `map_1V1Desert_default` has crystals of priority 2 or more: 73 of priority
 3, all on blue's half of the board. `map_1V1Grass` and `map_1V1MilitaryBase`
 place crystals of priority 1 only, so a fight on 1011 is the same fight as on
-1021.
+1021 for avoidance.
+
+## A ground unit can crush a lower-priority crystal
+
+`BuildingCollideController` checks buildings with pathfinding enabled,
+including priority-one crystals. A ground mech valid through visibility
+`Disappear`, with a strictly higher collider priority than the building,
+destroys it when their edges touch (`Distance2D <= 0`). This is a direct
+`ReduceLife` for the building's remaining life. A flying mech does not crush
+one.
+
+The collision tree is populated by `BuildingSystem.Preprocess` during
+`BattleSystem.Init`, before the teams create their towers and constructions.
+`OnFightStart` synchronizes that tree. Later `BuildingSystem.AddBuilding`
+appends to the system's building list without adding to the collision tree,
+so a placed wall is not a crushing candidate merely because pathfinding is
+enabled on it.
+
+The controller keeps a next-check countdown per building. Its candidates
+come from the teams' mech quadtrees in a rectangle centred on the building,
+with the containing building node's size. A positive edge distance bounds
+the next check by the distance divided by the greater of nominal speed and
+current speed, in logic updates. The building tree has maximum depth seven;
+an empty candidate list waits maximum depth minus node depth plus one.
+
+`BuildingSystem` updates after `DeadEffectSystem`. A crystal crushed there
+therefore stays in the death queue until the next update, and that queue
+holds the fight open even when its last projectile has landed. The next
+death update deactivates its RVO controller. Decorative crystals have no
+MCFR building identity, but this finish gate can change the recording's
+length and final state.
 
 ## Evidence
 
 ### Recorded
 
+- A summoned Vulcan crushes Training Base's priority-one crystal at
+  (-276, 16) while the last projectile drains. The death queue holds the
+  fight for one more update:
+  `tests/map/crushed-crystal-holds-finish-gate.yaml`.
 - A Desert crystal of priority 3 changes a fight the Training Ground fights
   otherwise, and the simulator reproduces it with every crystal of priority 2
   or more in the tree, the towers before them: `tests/map/`.
@@ -170,6 +205,16 @@ place crystals of priority 1 only, so a fight on 1011 is the same fight as on
 
 ### Read
 
+- A higher-priority valid ground mech crushes a pathfinding-enabled building,
+  with a per-building next-check countdown; the death queue holds the end:
+  `BuildingCollideController.IsAvailableBuilding`,
+  `BuildingCollideController.Update`, `BuildingCollideController.Check`,
+  `BuildingCollideController.IsMechMoveIntoBuilding`,
+  `BuildingFunctionController.Init`, `BuildingSystem.Preprocess`,
+  `BuildingSystem.OnFightStart`, `BuildingSystem.AddBuilding`,
+  `BattleSystem.Init`, `BuildingSystem.Update`,
+  `FightController.AddModules`, `FightActor.ReduceLife`,
+  `DeadEffectSystem.IsStepFinish`, `FightCrystal.OnDead`.
 - A map data names its layout, whose territories are a seat's regions:
   `MapData.layoutName`, `MapLayout.playerTerritories`,
   `PlayerTerritory.mainRegionID`, `MapRegion.activeRound`.
@@ -216,5 +261,6 @@ place crystals of priority 1 only, so a fight on 1011 is the same fight as on
   stand among the crystals; with them first, every fight pinned on 1021
   recorded again on 1001 plays back, and with them after the crystals, five do
   not.
-- **Whether a crystal can be damaged.** Desert's priority-3 crystals have 600
-  life. No recording here has a unit attack one or splash reach one.
+- **Whether an attack can damage a crystal.** Desert's priority-3 crystals
+  have 600 life. No recording here has a unit attack one or splash reach one;
+  crushing uses direct life reduction instead.
