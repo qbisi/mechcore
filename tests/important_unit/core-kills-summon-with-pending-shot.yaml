@@ -1,0 +1,58 @@
+# A complete generated layout, recorded with the game. Fortress 8's death
+# triggers Dominion Core's collateral deaths on tick 1651. Summoned Fang 27
+# runs OnDead in the same queue, removing Attack Enhancement II's correction.
+# Its in-flight projectile lands for base damage 63, rather than the 85 it
+# dealt while alive. Ordinary Fortress projectiles keep their corrections.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1350946656
+round: 3
+blue:
+  core_damage: 350
+  officers: [advanced_missile_device, advanced_targeting_system, sabertooth_specialist, extended_range_fortress]
+  techs:
+    fortress: [doubleshot, barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: fortress, index: 0, position: {x: -340, y: 290}, exp: 1600/1600/1600, rotated: true, equipment: [dominion_core]}
+  - {name: sabertooth, index: 1, position: {x: 255, y: -285}, source: delivered}
+  - {name: arclight, index: 2, position: {x: 0, y: -70}, level: 8, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -10, y: -110}, retained: false}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: -40, y: -170}, {x: -45, y: 195}]}
+red:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, speed_specialist]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: arclight, index: 0, position: {x: -290, y: -260}, level: 4, exp: 1684/1684/3368, rotated: true, equipment: [secondary_heavy_armor]}
+  - {name: raiden, index: 1, position: {x: -180, y: -100}, level: 9, exp: 0/4828/16146, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: orbital_javelin, positions: [{x: -170, y: -55}]}
+asserts:
+- sql: |
+    SELECT tick, object__id FROM ev_unit_died
+    WHERE tick = 1651 ORDER BY tick, ordinal;
+  rows:
+  - [1651, 23]
+  - [1651, 26]
+  - [1651, 8]
+  - [1651, 25]
+  - [1651, 24]
+  - [1651, 29]
+  - [1651, 28]
+  - [1651, 27]
+- sql: |
+    SELECT tick, source__id, target__id, amount FROM ev_damage
+    WHERE source__id = 27 AND tick >= 1651 ORDER BY tick, ordinal;
+  rows:
+  - [1658, 27, 12, 63]
+ticks: 1671
+hash: 26:94719df21ebaf615fdef8b499b0998b5d66e7b78acdf4f1149231fe07f9738e6

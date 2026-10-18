@@ -230,6 +230,13 @@ credited to the last unit that struck it, as any death is, and to no one if
 nothing ever did. An important unit that dies while another of its side
 stands destroys nothing.
 
+Those deaths join the same `DeadEffectSystem.Update` list, which is read by
+index as it grows. Each receives `OnDead` in that update. In particular a
+summon's `OnMechDead` listener removes it through `SummonSystem.RemoveMech`
+and `FightController.DestroyMech`, withdrawing its effect data: a projectile
+it left in flight lands without those corrections
+([`core-kills-summon-with-pending-shot.yaml`](../../tests/important_unit/core-kills-summon-with-pending-shot.yaml)).
+
 Control removes a living important unit from its original side's important
 list and disables the important modifier's data, including Dominion Core's
 life and damage rates. It does not become an important unit of the capturing

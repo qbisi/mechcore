@@ -1352,7 +1352,12 @@ impl Simulation {
         self.step_rebirths(&dead)?;
         // After its controllers, `DeadEffectSystem.Update` calls virtual
         // OnDead in the shared deadActors order, including fallen towers.
-        for dead_actor in std::mem::take(&mut self.dead_actors) {
+        // OnDead callbacks can append more actors: Dominion Core's
+        // DestroySelf deaths enter the same list and are handled this update.
+        let mut dead_index = 0;
+        while dead_index < self.dead_actors.len() {
+            let dead_actor = self.dead_actors[dead_index];
+            dead_index += 1;
             match dead_actor {
                 FightActorRef::Building(building_id) => {
                     self.lose_tower(building_id)?;
@@ -1381,9 +1386,11 @@ impl Simulation {
                     // `ControllEffect` among them: the Rhino a Hacker was turning
                     // holds no entry from the tick the Hacker dies.
                     self.sync_beam(unit_id);
+                    self.try_process_dead_important_unit(unit_id)?;
                 }
             }
         }
+        self.dead_actors.clear();
         self.number_as_recorded(&made);
         // Every death controller runs before any actor's OnDead. Publish
         // their summons together, once the frame assigned recording IDs;
@@ -1398,9 +1405,6 @@ impl Simulation {
         }
         self.drop_dead_owners_lines();
         self.deactivate_dead_interceptions();
-        // Its `TryProcessDeadImportantUnit` too: a side whose last important
-        // unit died this tick loses every unit it has left.
-        self.lose_important_units(&events)?;
         // `WreckageRecoverySystem` updates after `DeadEffectSystem` and
         // `FightEffectSystem`.
         self.step_wreckage();

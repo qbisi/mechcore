@@ -93,33 +93,22 @@ impl Simulation {
         Ok(())
     }
 
-    /// `DeadEffectSystem.TryProcessDeadImportantUnit` for each important
-    /// unit that died this tick, in the order they died. What it destroys
-    /// dies after every other death of the tick, as `OnActorDead` adds it to
-    /// the end of `deadActors`.
-    pub(in crate::fight) fn lose_important_units(&mut self, events: &[Event]) -> Result<()> {
-        // The tick's deaths: those its shots caused wait, after the rest, in
-        // the order they struck.
-        let fallen = events
-            .iter()
-            .chain(&self.fallen_buildings)
-            .filter(|event| matches!(event.payload, EventPayload::UnitDied { .. }))
-            .filter_map(|event| event.subject)
-            .filter(|subject| subject.kind == ObjectKind::Unit)
-            .map(|subject| subject.id)
-            .filter(|id| self.actors[id].important_registered && !self.actors[id].rebirthing)
-            .collect::<Vec<_>>();
-        for dead_id in fallen {
-            let actor = self
-                .actors
-                .get_mut(&dead_id)
-                .expect("actor identity is stable");
-            actor.important_registered = false;
-            let team = actor.placement.team;
-            let mut recorded = Vec::new();
-            self.check_team_important_unit(team, dead_id, &mut recorded)?;
-            self.fallen_buildings.extend(recorded);
+    /// `DeadEffectSystem.TryProcessDeadImportantUnit` after a unit's `OnDead`.
+    /// What it destroys dies after every other death of the tick, as
+    /// `OnActorDead` adds it to the end of `deadActors`.
+    pub(in crate::fight) fn try_process_dead_important_unit(&mut self, dead_id: u64) -> Result<()> {
+        let actor = self
+            .actors
+            .get_mut(&dead_id)
+            .expect("actor identity is stable");
+        if actor.summoned || !actor.important_registered || actor.rebirthing {
+            return Ok(());
         }
+        actor.important_registered = false;
+        let team = actor.placement.team;
+        let mut recorded = Vec::new();
+        self.check_team_important_unit(team, dead_id, &mut recorded)?;
+        self.fallen_buildings.extend(recorded);
         Ok(())
     }
 
@@ -178,7 +167,7 @@ impl Simulation {
                 y: space_to_q32(unit_height(unit.domain)),
                 z: unit.z_q32,
             };
-            unit.exit_fight_on_death();
+            self.dead_actors.push(FightActorRef::Unit(unit_id));
             deaths.push((unit_id, position));
         }
         self.record_deaths(deaths, events);
