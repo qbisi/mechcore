@@ -738,6 +738,16 @@ target even after its allocation is exhausted. An Abyss shelling a tower takes
 the tower into its list, and its shuffle draws once for it. Its climb is measured to where its
 unit stands. Swarm Missiles' 46 share two units 23 each.
 
+An evenly allocated burst measures its climb to the controller's current
+aiming point, before the projectile's offset is added
+(`ProjectileMultiAttackPerformer.PerformEffect`, `ProjectileSystem.Create`).
+When every allocated target has died, the controller keeps `lastAttackPos`
+(`EvenlyAllocatedAttackTargetPositionController.GetTargetPosition`); the
+remaining missiles measure their climb to that last point too, even when
+`Create` falls back to the skill's dead attack target for their target reference.
+[`extra_weapon/swarm-missiles-exhausted-climb.yaml`](../../tests/extra_weapon/swarm-missiles-exhausted-climb.yaml)
+holds a burst whose allocated targets die after its first release.
+
 **A projectile may climb before it flies.** A skill with a pre-flight height
 sends its projectiles straight up at their speed, neither following the target
 nor landing, until they stand at or above the height, the last step taken whole:
