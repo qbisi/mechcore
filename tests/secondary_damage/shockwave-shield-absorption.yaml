@@ -1,0 +1,48 @@
+# A complete generated layout: Arclight Shockwave takes shield energy
+# outside the primary splash. Its projectile removal names that shield,
+# even though the primary damage struck a building.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1944955828
+round: 3
+blue:
+  core_damage: 449
+  officers: [quick_teleport, advanced_power_system, sabertooth_specialist, extended_range_arclight]
+  techs:
+    arclight: [electromagnetic_shot, armor_enhancement, anti_aircraft_ammunition, shockwave, range_enhancement, elite_marksman, charged_shot]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -75, y: -215}, source: delivered}
+  - {name: arclight, index: 1, position: {x: -340, y: 260}, level: 3, exp: 0/320/2671, equipment: [dominion_core], travelling: true, source: joined}
+  - {name: vortex, index: 2, position: {x: -180, y: -110}, level: 4, exp: 0/402/3368, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 115, y: -295}, retained: false}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: -180, y: -175}]}
+red:
+  core_damage: 0
+  officers: [quick_teleport, fire_badger_specialist, extended_range_fortress]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [3, 4]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 55, y: -70}, source: delivered}
+  - {name: fortress, index: 1, position: {x: 320, y: 180}, exp: 0/950/1600, equipment: [anti_interference_module], travelling: true, source: joined}
+  - {name: void_eye, index: 2, position: {x: 90, y: -120}, level: 7, exp: 0/2250/4093, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 80, y: -125}, retained: false}
+  battle_skills:
+  - {name: ion_blast, positions: [{x: -240, y: 195}, {x: 115, y: -235}]}
+asserts:
+- sql: |
+    SELECT tick, object__id, absorbed_by__kind, absorbed_by__id
+    FROM ev_projectile_removed WHERE tick = 173 AND object__id = 37;
+  rows:
+  - [173, 37, "shield", 1]
+ticks: 1803
+hash: 26:6d7f1b06906a7d4ce69ab4e8458c631d228a6b331b8c166cc807fd314b7e4509

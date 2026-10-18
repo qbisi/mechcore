@@ -1115,7 +1115,11 @@ impl Simulation {
         let shields = self.shields_in_the_way(&around, &mut targets);
         targets.retain(|target| secondary.hits_main_target || !struck.targets.contains(target));
         for shield in shields {
-            self.hit_shield(shield, &around, events)?;
+            if self.hit_shield(shield, &around, events)? > 0 {
+                // A projectile removal names the last shield its damage
+                // chain took energy from, including secondary damage.
+                struck.shield = Some(shield);
+            }
         }
         let mut lost = 0;
         for &target in &targets {
