@@ -183,6 +183,13 @@ A staggered interval is floored at one tick again after its draw; one with no
 stagger is the property's.
 After a unit first enters Attack, the next update is the earliest release.
 
+`FightSkill.RefreshDatas` preserves elapsed attack time unless it exactly
+equals the old interval, in which case it becomes the new interval. A clock
+already past its old interval can therefore have to wait again when a buff
+lengthens that interval: a Stormcaller whose interval grows from 82 to 132
+ticks on tick 27 still waits with attack time 113 on tick 31
+([`longer-interval-postpones-ready-clock.yaml`](../../tests/attack_timing/longer-interval-postpones-ready-clock.yaml)).
+
 **A blow is fitted into its interval.** A blow starts by drawing its interval
 and then converts its attack point and its backswing to whole ticks, each
 truncated on its own. When the two together are longer than the interval, the
@@ -1403,6 +1410,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A Stormcaller's interval grows to 132 on tick 27 while its clock retains
+  its elapsed time; it has not started a blow at attack time 113 on tick 31:
+  `tests/attack_timing/longer-interval-postpones-ready-clock.yaml`.
+
 - A replicated group made when unit 27 dies preserves the native range-hit
   order, including units 31, 32, 33 and 39 at tick 352:
   `tests/dead_summon/buff-summons-enter-after-parent-leaves.yaml`.
@@ -1807,6 +1818,9 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- Data refresh preserves elapsed time except for a clock exactly equal to
+  its old interval: `FightSkill.RefreshDatas`.
 
 - Spatial destruction precedes buff death summons, which join immediately:
   `FightActor.OnDead`, `FightMech.OnDead`, `BuffManager.OnMechDead`,

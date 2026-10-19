@@ -794,7 +794,6 @@ impl Skill {
     /// exactly at its previous interval follows the new interval; any other
     /// clock keeps its elapsed time.
     pub(in crate::fight) fn refresh_datas(&mut self, interval: u64, step: u64) {
-        let previous_interval = self.current_attack_interval;
         let now = self.attack_time_step;
         let ready = now - self.attack_time_anchor
             == i64::try_from(self.current_attack_interval).unwrap_or(i64::MAX);
@@ -802,17 +801,16 @@ impl Skill {
         if ready {
             self.attack_time_anchor = now - i64::try_from(interval).unwrap_or(i64::MAX);
             self.next_attack_step = step;
-        } else if self.next_attack_step > 0 {
-            // Preserve elapsed time even when the initial attack clock began
-            // before tick zero. Clamping that start before adding the new
-            // interval would postpone an already due sibling's first shot.
-            self.next_attack_step = if interval >= previous_interval {
-                self.next_attack_step
-                    .saturating_add(interval - previous_interval)
-            } else {
-                self.next_attack_step
-                    .saturating_sub(previous_interval - interval)
-            };
+        } else {
+            // RefreshDatas preserves elapsed attackTime. Recompute its due
+            // step even when the old deadline was clamped to zero: a longer
+            // interval can put an initially ready clock back into its wait.
+            self.next_attack_step = u64::try_from(
+                self.attack_time_anchor
+                    .saturating_add(i64::try_from(interval).unwrap_or(i64::MAX))
+                    .max(0),
+            )
+            .unwrap_or_default();
         }
     }
 
