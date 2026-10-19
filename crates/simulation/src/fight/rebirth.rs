@@ -507,19 +507,24 @@ impl Simulation {
     fn rebirth_mech(&mut self, task: &Task, follow: Option<u64>) -> Result<()> {
         // `FightActor.ChangeTeam` to the side that had turned it, and
         // `TeamTranslationSystem.AddTranslatedMech`: it rises turned again,
-        // under a formation its recorder numbers as the tick ends, and its
-        // next death hands it back.
+        // under the same unit-keyed recorder formation as its first turn,
+        // and its next death hands it back.
         if let Some(team) = task.rebirth_to {
             self.actor_change_team(task.unit, team);
             self.returned_dead.remove(&task.unit);
-            let formation_id = self.ids.next_formation;
-            self.ids.next_formation += 1;
+            let formation_id = if let Some(&id) = self.ids.turned_formations.get(&task.unit) {
+                id
+            } else {
+                let id = self.ids.next_formation;
+                self.ids.next_formation += 1;
+                self.turned_unnamed.push(task.unit);
+                id
+            };
             self.actors
                 .get_mut(&task.unit)
                 .expect("actor identity is stable")
                 .placement
                 .formation_id = formation_id;
-            self.turned_unnamed.push(task.unit);
         }
         let facing = follow.map(|ally| self.actors[&ally].body_rotation_q32);
         let actor = self

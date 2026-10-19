@@ -1,0 +1,52 @@
+# A Typhoon controlled at tick 1009 is recorded under formation 5. Its
+# Field Reassembly brings the same unit back on the controlling side at
+# tick 1176, retaining that unit-keyed formation rather than allocating one.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 846379723
+round: 1
+blue:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_power_system, speed_specialist, fortified_hacker]
+  techs:
+    hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement, multi_control]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: hacker, index: 0, position: {x: -275, y: -55}, level: 5, exp: 0/2918/2918, rotated: true, equipment: [laser_sights], source: joined}
+  - {name: vortex, index: 1, position: {x: 20, y: -270}, level: 4, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -175, y: -160}}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: -200, y: -265}]}
+red:
+  core_damage: 38
+  officers: [advanced_shield_device, advanced_offensive_tactics, aerial_specialist]
+  techs:
+    typhoon: [field_reassembly, field_entrenchment, reactive_armor, maintenance_array, wreckage_detonation, range_enhancement, air_defense_mark]
+  blueprints: [defense_enhancement_ii]
+  units:
+  - {name: typhoon, index: 0, position: {x: -190, y: -30}, level: 3, exp: 0/1775/6946, equipment: [improved_firepower_control_system], source: joined}
+  - {name: raiden, index: 1, position: {x: -210, y: -280}, level: 9, exp: 0/4725/16146, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 85, y: -180}, retained: false}
+  battle_skills:
+  - {name: electromagnetic_blast, positions: [{x: 60, y: 245}]}
+asserts:
+- sql: |
+    SELECT tick, team_id, formation_id, rebirth_count FROM units
+    WHERE unit_id = 4 AND tick IN (1008, 1009, 1076, 1176, 1177)
+    ORDER BY tick;
+  rows:
+  - [1008, 1, 3, null]
+  - [1009, 0, 5, null]
+  - [1076, 0, 5, null]
+  - [1176, 0, 5, 1]
+  - [1177, 0, 5, 1]
+ticks: 1815
+hash: 26:4c64e9608782da9a7c224e5132b0fcc4e68e0f252d153bb6c77e0a904e4d326b
