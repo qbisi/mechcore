@@ -43,7 +43,7 @@ pub(in crate::fight) struct SiegeModeSystem {
     pub(in crate::fight) active: Vec<u64>,
     /// The `GRTimerManager` timers of the units that left their trench: each
     /// one's motion idles on the step it names.
-    idling: Vec<(u64, u64)>,
+    idling: Vec<(u64, u64, u64)>,
 }
 
 impl Simulation {
@@ -138,8 +138,11 @@ impl Simulation {
             return Ok(());
         }
         if fighting && delay_q32 > 0 {
-            let due = self.step_now + math::seconds_q32_to_steps(delay_q32);
-            self.siege.idling.push((unit, due));
+            let due = self.step_now
+                + math::seconds_q32_to_steps(delay_q32)
+                    .saturating_sub(u64::from(self.updating_timers));
+            let timer = self.timers.start(timers::Callback::Trench);
+            self.siege.idling.push((unit, due, timer));
         } else {
             self.enter_motion_idle(unit);
         }
@@ -149,16 +152,19 @@ impl Simulation {
     /// The `GRTimerManager` timers due on this step: each unit that left its
     /// trench idles (`MotionController.ChangeToIdleState`), if it still
     /// lives.
-    pub(in crate::fight) fn idle_after_trenches(&mut self, step: u64) {
-        let (due, waiting): (Vec<_>, Vec<_>) = std::mem::take(&mut self.siege.idling)
-            .into_iter()
-            .partition(|&(_, at)| at <= step);
-        self.siege.idling = waiting;
-        for (unit, _) in due {
-            if self.actors.get(&unit).is_some_and(Actor::alive) {
-                self.enter_motion_idle(unit);
-            }
+    pub(in crate::fight) fn idle_after_trench(&mut self, timer: u64, step: u64) -> bool {
+        let Some(index) = self.siege.idling.iter().position(|&(_, _, id)| id == timer) else {
+            return false;
+        };
+        let (unit, due, _) = self.siege.idling[index];
+        if due > step {
+            return true;
         }
+        self.siege.idling.remove(index);
+        if self.actors.get(&unit).is_some_and(Actor::alive) {
+            self.enter_motion_idle(unit);
+        }
+        false
     }
 
     /// `SiegeModeEffectSystem.Update`, last unit first: a unit whose time

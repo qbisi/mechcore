@@ -196,6 +196,7 @@ impl SupportUnitSystem {
 /// A summon created and not yet let into the fight.
 #[derive(Debug, Clone)]
 pub(in crate::fight) struct Appearing {
+    timer: u64,
     pub(in crate::fight) actor: Actor,
     /// The tick at whose start it joins the fight.
     joins_on: u64,
@@ -715,7 +716,9 @@ impl Simulation {
                 tree.insert(candidate, x_q32, z_q32, actor.rules.collision_radius());
                 tree.remove(candidate);
             }
+            let timer = self.timers.start(timers::Callback::Summon);
             self.support.appearing.push(Appearing {
+                timer,
                 actor,
                 joins_on: tick + creator.appear_ticks,
                 drop_damage: creator.summon.drop_damage,
@@ -897,41 +900,43 @@ impl Simulation {
     /// `SummonSystem.AddMechDelay` for every summon whose timer is up, in
     /// creation order among the due timers: an air drop's damage, then
     /// `FightTeam.ActiveMech`, which puts it in its side's trees.
-    pub(in crate::fight) fn join_summons(
+    pub(in crate::fight) fn join_summon(
         &mut self,
+        timer: u64,
         step: u64,
         events: &mut Vec<Event>,
-    ) -> Result<()> {
-        let tick = step + 1;
-        while let Some(index) = self
+    ) -> Result<bool> {
+        let Some(index) = self
             .support
             .appearing
             .iter()
-            .position(|appearing| appearing.joins_on <= tick)
-        {
-            let Appearing {
-                mut actor,
-                drop_damage,
-                coming_out,
-                ..
-            } = self.support.appearing.remove(index);
-            if let Some(coming_out) = coming_out {
-                self.take_place(&mut actor, coming_out)?;
-            }
-            let unit_id = actor.placement.unit_id;
-            self.let_in(actor, drop_damage, events)?;
-            // `FightCoreSystem` still holds its previous step's isFightOver
-            // through TeamUpdate. A summon entering now waits with the active
-            // mechs until IsStepFinish observes both sides at the step's end.
-            if self.ending.stop_step.is_some() {
-                self.actors
-                    .get_mut(&unit_id)
-                    .expect("the summon has just joined")
-                    .skills
-                    .hold_attack_clocks();
-            }
+            .position(|value| value.timer == timer)
+        else {
+            return Ok(false);
+        };
+        if self.support.appearing[index].joins_on > step + 1 {
+            return Ok(true);
         }
-        Ok(())
+        let Appearing {
+            mut actor,
+            drop_damage,
+            coming_out,
+            ..
+        } = self.support.appearing.remove(index);
+        if let Some(coming_out) = coming_out {
+            self.take_place(&mut actor, coming_out)?;
+        }
+        let unit_id = actor.placement.unit_id;
+        self.let_in(actor, drop_damage, events)?;
+        // FightCoreSystem retains its previous isFightOver through TeamUpdate.
+        if self.ending.stop_step.is_some() {
+            self.actors
+                .get_mut(&unit_id)
+                .expect("the summon has just joined")
+                .skills
+                .hold_attack_clocks();
+        }
+        Ok(false)
     }
 
     /// `SummonSystem.AddMechDelay` with `isPositionAdjust`: a make that comes

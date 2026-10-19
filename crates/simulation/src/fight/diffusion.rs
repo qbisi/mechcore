@@ -18,6 +18,7 @@ use super::*;
 /// `diffusionDamagedTargets`.
 #[derive(Debug, Clone)]
 pub(in crate::fight) struct Diffusion {
+    timer: u64,
     /// The skill whose blow it is.
     skill_ref: SkillRef,
     /// The blow, as it landed: where, for how much, of which side.
@@ -60,7 +61,9 @@ impl Simulation {
         }
         let steps =
             hit.splash_radius / step_radius + i64::from(hit.splash_radius % step_radius != 0);
+        let timer = self.timers.start(timers::Callback::Diffusion);
         self.diffusions.push(Diffusion {
+            timer,
             skill_ref,
             // `PrepareRangeTargetsInDiffusion` takes what the splash reaches
             // alone, of the domains the skill attacks
@@ -84,25 +87,31 @@ impl Simulation {
 
     /// `GRTimerManager.Update` of every splash under way, in the order they
     /// started: each timer a tick on, and its callback where it is due.
-    pub(in crate::fight) fn update_diffusions(&mut self, events: &mut Vec<Event>) -> Result<()> {
-        let mut index = 0;
-        while index < self.diffusions.len() {
-            let diffusion = &mut self.diffusions[index];
-            diffusion.time += 1;
-            if diffusion.time < diffusion.interval {
-                index += 1;
-                continue;
-            }
-            diffusion.count += 1;
-            if diffusion.count >= diffusion.repeat {
-                self.diffusions.remove(index);
-                continue;
-            }
-            diffusion.time -= diffusion.interval;
-            self.diffuse(index, events)?;
-            index += 1;
+    pub(in crate::fight) fn update_diffusion(
+        &mut self,
+        timer: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<bool> {
+        let Some(index) = self
+            .diffusions
+            .iter()
+            .position(|value| value.timer == timer)
+        else {
+            return Ok(false);
+        };
+        let diffusion = &mut self.diffusions[index];
+        diffusion.time += 1;
+        if diffusion.time < diffusion.interval {
+            return Ok(true);
         }
-        Ok(())
+        diffusion.count += 1;
+        if diffusion.count >= diffusion.repeat {
+            self.diffusions.remove(index);
+            return Ok(false);
+        }
+        diffusion.time -= diffusion.interval;
+        self.diffuse(index, events)?;
+        Ok(true)
     }
 
     /// `DiffusionIntevalCallBack`: nothing while the skill's unit is dead;

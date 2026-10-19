@@ -268,8 +268,10 @@ around it turn aside, from the second solve on: the first after it is made
 finds it at zero, as any new agent ([rvo.md](../spec/simulation/rvo.md)). It draws its skills' first intervals from its side's
 stream when it joins, not when it is made.
 
-**Joining.** At the start of the tick a second on, before anything updates,
-the summon joins. The searches of that tick were prepared without it, so it is
+**Joining.** At the start of the tick a second on, before the modules update,
+the summon's timer joins it. Timer callbacks run in registration order: an
+older diffusion timer can fire before that arrival
+([extra_weapons.md](extra_weapons.md)). The searches of that tick were prepared without it, so it is
 found from the next, and its own was not prepared: it searches where
 everything stands as it updates, and finds the summons of either side that
 joined with it. Its agent, locked while it appeared, was handed no speed,
