@@ -1,0 +1,61 @@
+# Complete generated layout: Overlord 5 and its artillery lock 26
+# occupy the same horizontal point on tick 451. Both artillery weapons
+# retain their tick-450 rotation until a nonzero direction exists, then
+# turn from that facing. Control: ../search/coincident-target-has-zero-angle.yaml
+# checks the attack angle at a shared point; this recording pins the
+# freely rotating extra weapon and its later target/state transitions.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1389744615
+round: 2
+blue:
+  core_damage: 672
+  officers: [advanced_shield_device, quick_teleport, aerial_specialist, mass_produced_sandworm]
+  techs:
+    sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 1]
+  units:
+  - {name: sandworm, index: 0, position: {x: -320, y: 180}, level: 9, exp: 0/306/13455, rotated: true, equipment: [barrier], travelling: true, source: joined}
+  - {name: raiden, index: 1, position: {x: 270, y: -130}, level: 6, exp: 0/282/13917, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -175, y: -150}, retained: false}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: -290, y: 240}, {x: 10, y: 255}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, fortified_specialist, improved_overlord]
+  techs:
+    overlord: [high_explosive_ammo, field_maintenance, overlord_artillery, mothership, jump_drive, armor_enhancement, range_enhancement, launcher_overload, photon_emission]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [1, 3]
+  units:
+  - {name: overlord, index: 0, position: {x: 95, y: -155}, level: 7, exp: 11019/11019/11019, rotated: true, equipment: [mustang_production_line]}
+  - {name: sledgehammer, index: 1, position: {x: 45, y: -240}, level: 6, exp: 0/2164/7539, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -230, y: -80}}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: 5, y: -210}, {x: 155, y: 40}, {x: -80, y: -170}]}
+asserts:
+- sql: |
+    SELECT tick, rotation FROM units__skills__enabled__weapons
+    WHERE unit_id = 5 AND skills_ordinal = 1 AND ordinal = 0
+      AND tick IN (450, 451, 452, 503, 516, 530, 531) ORDER BY tick;
+  rows:
+  - [450, 1260150936700]
+  - [451, 1260150936700]
+  - [452, 1260150936700]
+  - [503, 884341299700]
+  - [516, 862866463300]
+  - [530, 712542608500]
+  - [531, 711822008702]
+ticks: 1034
+hash: 26:f61d1603b71f9c0d34580a74bbaa4c17e8509b0df68a020159290dfc46b91c8b
