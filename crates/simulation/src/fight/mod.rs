@@ -1964,11 +1964,11 @@ impl Simulation {
     /// A fight that finishes was scored as it left ([`Self::score_the_fight`]).
     /// Forced timeout settles after its last recorded tick; that snapshot
     /// retains unpruned experience, and settlement records the final value.
-    fn close_tick(&mut self) -> Result<()> {
+    fn close_tick(&mut self, first_formation: u64, events: &mut [Event]) -> Result<()> {
         if self.ready_to_finish() {
             self.end_super_deployment()?;
         }
-        self.name_turned_formations();
+        self.name_new_formations(first_formation, events);
         self.settle_intervals_if_finishing();
         if self.ready_to_finish() {
             // Skills exit and refresh their clocks before the siege module

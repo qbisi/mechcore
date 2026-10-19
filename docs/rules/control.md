@@ -102,7 +102,9 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
   answers none for a turned unit, so the recorder numbers a formation for
   the unit itself as it first records it, walking each side's units by where
   they stand, `z` before `x`: the units turned on one tick take theirs in that
-  order as the tick ends. Its damage and its kills from then are recorded under a
+  order as the tick ends, together with summons first seen in that snapshot.
+  Creations absent from the snapshot take the following numbers in creation
+  event order. Its damage and its kills from then are recorded under a
   recorder of its own. A summon, a Spider Mine among them, has no `MechTeam`
   to leave: it is recorded under the formation it was made with, before the
   turn and after, and it counts under the recorder of its own it had, which
@@ -310,6 +312,9 @@ the shield does not count against the turn.
   turned on one tick take theirs by where they stand, units 5, 4, 9, 10, 7
   and 14, not by identity: `tests/extra_weapon/multi-control-crawlers.yaml`,
   tick 216.
+- A captured Crawler and a newly replicated Crawler take new formations in
+  snapshot order together, although control runs before replication:
+  `tests/control/capture-and-replication-share-formation-order.yaml`.
 - A skill that searches while the unit it would take was turned on that tick
   passes over it, a grouped skill as a skill of its own does:
   `tests/extra_weapon/multi-control-crawlers.yaml`, tick 320.

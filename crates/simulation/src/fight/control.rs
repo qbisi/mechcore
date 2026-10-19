@@ -411,27 +411,56 @@ impl Simulation {
     /// turned: six Crawlers Multi Control turned at once number by how far
     /// up the field each stands. Only a unit's first turn needs numbering;
     /// `capture.formation_ids` keeps its unit-pointer key across later turns.
-    pub(in crate::fight) fn name_turned_formations(&mut self) {
-        let mut turned = std::mem::take(&mut self.turned_unnamed);
-        if turned.is_empty() {
+    /// Newly created units share this snapshot pass; creations not yet in
+    /// the snapshot take the following numbers in creation-event order.
+    pub(in crate::fight) fn name_new_formations(&mut self, first: u64, events: &mut [Event]) {
+        if first == self.ids.next_formation {
             return;
         }
-        let mut formations = turned
-            .iter()
-            .map(|id| self.actors[id].placement.formation_id)
-            .collect::<Vec<_>>();
-        formations.sort_unstable();
-        turned.sort_by_key(|id| {
-            let actor = &self.actors[id];
-            (actor.placement.team, actor.z_q32, actor.x_q32, *id)
-        });
-        for (id, formation_id) in turned.into_iter().zip(formations) {
-            self.ids.turned_formations.insert(id, formation_id);
+        // capture_frame numbers newly captured and newly created units in
+        // one live-unit pass. Unobserved creations follow in trace order.
+        let mut formations = (first..self.ids.next_formation).collect::<Vec<_>>();
+        formations.sort_by_key(|formation| {
             self.actors
-                .get_mut(&id)
-                .expect("actor identity is stable")
-                .placement
-                .formation_id = formation_id;
+                .values()
+                .find(|actor| actor.alive() && actor.placement.formation_id == *formation)
+                .map_or((true, 0, 0, 0, *formation), |actor| {
+                    (
+                        false,
+                        actor.placement.team,
+                        actor.z_q32,
+                        actor.x_q32,
+                        *formation,
+                    )
+                })
+        });
+        let renamed = formations
+            .into_iter()
+            .zip(first..self.ids.next_formation)
+            .collect::<BTreeMap<_, _>>();
+        let rename = |formation: &mut u64| {
+            if let Some(&recorded) = renamed.get(formation) {
+                *formation = recorded;
+            }
+        };
+        for actor in self.actors.values_mut() {
+            rename(&mut actor.placement.formation_id);
+        }
+        for appearing in &mut self.support.appearing {
+            rename(&mut appearing.actor.placement.formation_id);
+        }
+        for formation in self.ids.turned_formations.values_mut() {
+            rename(formation);
+        }
+        for event in events {
+            if let EventPayload::UnitCreated { formation_id, .. } = &mut event.payload {
+                rename(formation_id);
+            }
+        }
+        for id in std::mem::take(&mut self.turned_unnamed) {
+            self.ids
+                .turned_formations
+                .insert(id, self.actors[&id].placement.formation_id);
         }
     }
 

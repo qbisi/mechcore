@@ -196,7 +196,7 @@ impl SupportUnitSystem {
 /// A summon created and not yet let into the fight.
 #[derive(Debug, Clone)]
 pub(in crate::fight) struct Appearing {
-    actor: Actor,
+    pub(in crate::fight) actor: Actor,
     /// The tick at whose start it joins the fight.
     joins_on: u64,
     drop_damage: bool,

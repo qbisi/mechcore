@@ -370,10 +370,11 @@ pub(in crate::fight) fn execute(
             break "forced_time_limit";
         }
         let step_started = Instant::now();
+        let first_formation = simulation.ids.next_formation;
         let mut events = simulation.step(steps)?;
         steps += 1;
         let tick = u32::try_from(steps).map_err(|_| Error::new("tick index exceeds u32"))?;
-        simulation.close_tick()?;
+        simulation.close_tick(first_formation, &mut events.events)?;
         let stepped = step_started.elapsed();
         let snapshot_started = Instant::now();
         let state = simulation.recorded(tick, &mut numbering, &mut events.events);
