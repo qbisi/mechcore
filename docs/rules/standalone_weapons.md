@@ -131,6 +131,9 @@ makes the unit itself its motion's attacker:
   the shield's spherical coverage radius. An attacking motion whose lock is
   out of range changes
   to its move state, and neither turns nor walks until the update after.
+  A Move Attack command does not change who supplies that target: a gun
+  entering cooling and dropping its lock does not interrupt the turret's
+  turn towards the mech's own lock on that update.
 - **Each gun starts and fires in its own update**, the first among them: none
   waits for the motion to attack.
 - **A won fight goes on after it.** When the other side has no unit left, the
@@ -219,6 +222,9 @@ The Mountain's motion follows one of its weapons, the one whose skill is
 - A War Factory's motion remains attacking on its own retained lock when
   that Sandworm burrows; its guns cool and drop their locks:
   `tests/mech_search/hidden-lock-keeps-motion-in-range.yaml`, ticks 20 to 22.
+- A War Factory under a Mobile Beacon keeps turning to its mech lock when
+  its core gun enters cooling and drops its own lock:
+  `tests/mech_search/command-core-cooling-keeps-turret-turn.yaml`.
 - The War Factory's own lock stays on its first search's while its guns lock
   others, and changes on its next search, eleven updates on:
   `tests/war_factory/m6-formations-4242.yaml`, ticks 1 and 12.

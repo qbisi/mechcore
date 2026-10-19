@@ -1,0 +1,54 @@
+# Complete generated layout: a War Factory under a Mobile Beacon keeps
+# turning its turret to its own lock while the core gun enters cooling.
+# The core gun lock does not drive this mech-searching motion.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1196561715
+round: 2
+blue:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_power_system, cost_control_specialist, mass_produced_rhino]
+  techs:
+    rhino: [field_maintenance, whirlwind, wreckage_recycling, power_armor, final_blitz, armor_enhancement, mechanical_rage, photon_coating, combat_evolvement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [3, 3]
+  units:
+  - {name: rhino, index: 0, position: {x: 45, y: -45}, level: 7, exp: 7241/7241/7241, rotated: true, equipment: [heavy_armor]}
+  - {name: war_factory, index: 1, position: {x: 205, y: -75}, level: 2, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -275, y: -105}}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: 75, y: -165}]}
+red:
+  core_damage: 248
+  officers: [advanced_power_system, advanced_targeting_system, fortified_specialist, extended_range_marksman]
+  techs:
+    marksman: [doubleshot, shooting_squad, electromagnetic_shot, aerial_specialization, assault_mode, range_enhancement, quick_reload, elite_marksman]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: marksman, index: 0, position: {x: -80, y: -90}, level: 3, exp: 2315/2315/2315, equipment: [haste_module]}
+  - {name: war_factory, index: 1, position: {x: -215, y: -105}, level: 4, exp: 0/4800/14369, source: joined}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -200, y: -135}, {x: 220, y: -155}, {x: -280, y: 5}]}
+asserts:
+- sql: |
+    SELECT u.tick, u.turret_rotation, u.mech_lock_target__id,
+           s.enabled__state, s.enabled__lock_target__id
+    FROM units u JOIN units__skills s ON s.tick = u.tick AND s.unit_id = u.unit_id
+    WHERE u.unit_id = 4 AND s.skill_slot = 0 AND u.tick BETWEEN 170 AND 174
+    ORDER BY u.tick;
+  rows:
+  - [170, 1198821997003, 2, "attack", 1]
+  - [171, 1201774216588, 2, "attack", 1]
+  - [172, 1204754017216, 2, "cooling", null]
+  - [173, 1207761052360, 2, "cooling", null]
+  - [174, 1210794945704, 2, "cooling", null]
+ticks: 354
+hash: 26:6af5cbeaa2c2ac89f93f45d584281c4a05750ef85c69f644085b5ac0092419ab

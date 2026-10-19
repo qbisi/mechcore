@@ -1681,7 +1681,13 @@ impl Simulation {
     /// `MotionMoveState` as the cooling ends and names nothing.
     fn attack_under_command(&mut self, actor_id: u64) -> Flow {
         let actor = &self.actors[&actor_id];
-        if actor.command.is_none() || actor.motion.state != MotionState::Attacking {
+        // SetMotionAttackerAfterSkill gives a self-searching mech's motion
+        // to the mech, so one weapon's cooling does not replace its own lock
+        // with the command's targetless velocity fallback.
+        if actor.skills.main.mech_searches()
+            || actor.command.is_none()
+            || actor.motion.state != MotionState::Attacking
+        {
             return Flow::Next;
         }
         let skill = &actor.skills.main;
