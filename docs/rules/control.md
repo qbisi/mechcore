@@ -68,7 +68,9 @@ hit that turns adds its
 damage to the entry's progress (`TeamTranslationSystem.Translate`) and lists
 the beam's owner among the unit's attackers, as a hit does.
 
-`TeamTranslationSystem.Update` runs before `FightCoreSystem`. It takes the
+`TeamTranslationSystem.Update` runs after commander skills and mines, before
+`FightCoreSystem`. Damage from either earlier module can lower a unit's life
+below its accumulated progress and turn it on that same tick. It takes the
 entries' keys and asks each again as it comes: a unit still alive, still in
 the dictionary, and whose life is no more than its progress, changes to the
 side of its first beam's owner. Life alone is compared: a shield the unit
@@ -230,6 +232,10 @@ the shield does not count against the turn.
 
 ### Recorded
 
+- Ion Blast lowers a Steel Ball's life below its accumulated control progress;
+  the Steel Ball changes side before its own update on that tick:
+  `tests/control/ion-blast-before-control-update.yaml`.
+
 - A Stormcaller repeatedly controlled away from its original side reuses
   formation 47 at ticks 270, 352 and 440, with its original formation 4
   between those turns:
@@ -367,6 +373,9 @@ the shield does not count against the turn.
   game with `scripts/corpus/match-replays.py`.
 
 ### Read
+
+- Module order: `FightController.AddModules` adds `CommanderSkillSystem`,
+  `MineSystem`, `TeamTranslationSystem` and `FightCoreSystem` in that order.
 
 - A target's team change enters idle through the same state behaviour as an
   owner's: `FightSkill.OnChangeTeam`, `SkillIdleState.Enter`,
