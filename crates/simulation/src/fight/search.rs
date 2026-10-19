@@ -105,6 +105,19 @@ impl TargetActorRect {
 }
 
 impl<E: Copy + Ord> FightQuadtreeNode<E> {
+    /// Project recording identities without changing native tree structure.
+    fn rename_elements(&mut self, rename: impl Fn(E) -> E + Copy) {
+        for element in &mut self.elements {
+            *element = rename(*element);
+        }
+        for child in self
+            .children
+            .iter_mut()
+            .flat_map(|children| children.iter_mut())
+        {
+            child.rename_elements(rename);
+        }
+    }
     pub(in crate::fight) fn new(rect: TargetActorRect, depth: u8) -> Self {
         Self {
             rect,
@@ -246,6 +259,15 @@ impl<E: Copy + Ord> FightQuadtree<E> {
         } else {
             self.root.elements.push(candidate);
         }
+    }
+
+    /// Project recording identities without changing native tree structure.
+    pub(in crate::fight) fn rename_elements(&mut self, rename: impl Fn(E) -> E + Copy) {
+        self.root.rename_elements(rename);
+        self.ranges = std::mem::take(&mut self.ranges)
+            .into_iter()
+            .map(|(element, range)| (rename(element), range))
+            .collect();
     }
 
     /// Takes an element out, keeping the order of the rest.

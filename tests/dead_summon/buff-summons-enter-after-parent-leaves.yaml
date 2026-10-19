@@ -1,0 +1,49 @@
+# Complete generated layout: a buff's death summons enter the spatial tree
+# after their parent leaves, preserving later range-hit enumeration.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 251571835
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_power_system, cost_control_specialist]
+  techs:
+    crawler: [subterranean_blitz, acidic_explosion, loose_formation, mechanical_rage, impact_drill, replicate]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [1, 4]
+  units:
+  - {name: crawler, index: 0, position: {x: 110, y: -235}, level: 3, exp: 801/1603/1603, rotated: true, equipment: [small_amplifying_core]}
+  - {name: vulcan, index: 1, position: {x: -230, y: -290}, level: 5, exp: 0/5390/12609, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 160, y: -50}, retained: false}
+red:
+  core_damage: 350
+  officers: [advanced_shield_device, advanced_offensive_tactics, sabertooth_specialist]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: hacker, index: 0, position: {x: -15, y: -105}, level: 6, exp: 1623/1979/3247, rotated: true, equipment: [heavy_armor]}
+  - {name: sabertooth, index: 1, position: {x: 265, y: -55}, source: delivered}
+  - {name: farseer, index: 2, position: {x: 85, y: -185}, level: 6, exp: 0/860/10438, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 80, y: -125}}
+  battle_skills:
+  - {name: missile_strike, positions: [{x: 80, y: 140}]}
+asserts:
+- sql: |
+    SELECT ordinal, target__id FROM events
+    WHERE tick = 352 AND type = 'damage' ORDER BY ordinal;
+  rows:
+  - [0, 31]
+  - [1, 32]
+  - [2, 33]
+  - [3, 39]
+ticks: 1142
+hash: 26:20ee345bcb6a2dd3e39b7096e1f544d42f747c24e2c8d3768fa8ed6f1c53a56d
