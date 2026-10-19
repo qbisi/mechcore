@@ -1589,6 +1589,15 @@ whose own `DisableEffect` it does not mirror.
   its corrections from the tick the buff is written: its range is 140 metres
   again, and its maximum life 1622 for 9732. Switched on, the corrections are
   back in their first order.
+- **Unit-state sources restore first and leave last.**
+  `FightEffectMananger.EnableEffect` visits `IUnitStateModifiler` sources
+  before other sources; `DisableEffect` visits them after the others.
+  Land Cruiser's conditional officer corrections therefore leave before
+  ordinary technology life rates return, and return after those rates leave.
+  `DisableIncompatibleEffect` removes incompatible conditional data before
+  the unit-state source writes its own data; `EnableIncompatibleEffect`
+  restores it after that source removes its data. Skill intervals refresh
+  at those intermediate states as well as life.
 - **Its life follows its maximum** as any change of the maximum moves it
   (`FightMech.RefreshLifeData`): a unit at its whole life keeps its whole life,
   any other its share.
@@ -2097,6 +2106,9 @@ derive (a minimum range):
   seconds later, killing it: `tests/chain/raiden-mustangs.yaml`.
 - Chain jumps from a destroyed defensive wall block to another block:
   `tests/chain/chain-through-defensive-wall.yaml`.
+- EMP expiry restores Land Cruiser's unit state before Field Maintenance
+  and Armor Enhancement, so partial life passes through the maxima in that
+  order: `tests/technology_disable/emp-restores-state-before-life-rates.yaml`.
 - Electromagnetic Cloud writes buff 1031 on the Rhino a Vortex strikes and
   the two Crawlers within 10 metres of it, switching Power Armor off:
   `tests/secondary_damage/electromagnetic-cloud.yaml`.
@@ -2940,6 +2952,9 @@ derive (a minimum range):
 
 - Switching off: `CBEC_DisableTechnology.Enter`, `CBEC_DisableTechnology.Exit`,
   `FightEffectSystem.DisableEffect`, `FightEffectMananger.DisableEffect`,
+  `FightEffectMananger.EnableEffect`,
+  `FightEffectMananger.DisableIncompatibleEffect`,
+  `FightEffectMananger.EnableIncompatibleEffect`, `FlyTech`'s `IUnitStateModifiler`,
   `EffectProvider.EnableCheck`, `EffectProvider.DisableEffect`,
   `EffectProvider.EnableEffect`, `Technology.CanDisable`,
   `ArmorStrengthenEffectProvider.DisableEffect`,
