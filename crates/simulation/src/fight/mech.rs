@@ -106,6 +106,18 @@ impl Actor {
             } else {
                 placement.effects.hit_provider_order.clone()
             },
+            secondary_buff_controller: (!placement.travelling
+                && placement
+                    .effects
+                    .buff_sources
+                    .iter()
+                    .any(|source| source.on_second_damage))
+            .then_some(true),
+            secondary_buff_origin_registered: placement
+                .effects
+                .buff_sources
+                .iter()
+                .any(|source| source.on_second_damage),
             sweep_intensified: true,
             sand_fog_held: true,
             surfacing_line_held: true,

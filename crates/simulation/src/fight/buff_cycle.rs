@@ -86,6 +86,53 @@ impl BuffCycle {
 }
 
 impl Simulation {
+    /// `SecondaryDamageIntensifyEffectProvider.DoActive`: create and append
+    /// a controller if its dictionary no longer holds one. The buff manager
+    /// still holds the origin controller from preparation, a different
+    /// object after this restoration.
+    pub(in crate::fight) fn activate_secondary_buff(&mut self, unit: u64) {
+        let actor = self
+            .actors
+            .get_mut(&unit)
+            .expect("actor identity is stable");
+        if actor.secondary_buff_controller.is_some()
+            || !actor
+                .placement
+                .effects
+                .buff_sources
+                .iter()
+                .any(|source| source.on_second_damage)
+        {
+            return;
+        }
+        actor.secondary_buff_controller = Some(false);
+        actor.hit_provider_order.retain(|provider| {
+            *provider != crate::modifier::EffectProvider::SecondaryDamageIntensify
+        });
+        actor
+            .hit_provider_order
+            .push(crate::modifier::EffectProvider::SecondaryDamageIntensify);
+    }
+
+    /// `SecondaryDamageIntensifyEffectProvider.DoDeactive`: remove exactly
+    /// the controller the dictionary names, then forget its entry. An origin
+    /// controller restored separately by `BuffEffectProvider` is not that one.
+    pub(in crate::fight) fn deactivate_secondary_buff(&mut self, unit: u64) {
+        let actor = self
+            .actors
+            .get_mut(&unit)
+            .expect("actor identity is stable");
+        if let Some(origin) = actor.secondary_buff_controller.take() {
+            if origin {
+                actor.secondary_buff_origin_registered = false;
+            } else {
+                actor.hit_provider_order.retain(|provider| {
+                    *provider != crate::modifier::EffectProvider::SecondaryDamageIntensify
+                });
+            }
+        }
+    }
+
     /// `BuffEffectProvider.DoDisableCycle` and `DoEnableCycle`, which its
     /// `DisableEffect` and `EnableEffect` run for every source it holds:
     /// each controller of a source that can be disabled stops, its listener taken off
@@ -383,6 +430,11 @@ impl Simulation {
             .filter(|source| source.trigger == BuffTrigger::Hit)
             .filter(|source| !secondary || source.on_second_damage)
             .filter(|source| !secondary_sources_only || source.on_second_damage)
+            .filter(|source| {
+                secondary_sources_only
+                    || !source.on_second_damage
+                    || owner.secondary_buff_origin_registered
+            })
             .filter(|source| !(source.can_disable && owner.technology_disabled()))
             .copied()
             .collect::<Vec<_>>();

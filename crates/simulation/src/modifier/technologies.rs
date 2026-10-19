@@ -2292,6 +2292,12 @@ impl TechnologyEffects {
                 .and_then(|technology| technology.provider)
             {
                 providers.entry(provider).or_default().push(id);
+                // SecondaryDamageIntensifyTech also implements
+                // IEffectBuffDataSource, so the factory gives the same
+                // source to BuffEffectProvider as well.
+                if provider == EffectProvider::SecondaryDamageIntensify {
+                    providers.entry(EffectProvider::Buff).or_default().push(id);
+                }
             }
         }
         providers
