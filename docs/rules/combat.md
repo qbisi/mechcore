@@ -1264,6 +1264,12 @@ towers down the same way: gone on the kill's tick, their `building_destroyed`
 on the next, which is the fight's last. `DeadEffectSystem` writes them there,
 after the projectiles that tick resolved and before what those killed: a
 Wasp's shot at a tower torn down is removed before the tower falls.
+At final exit, each team clears its live units' buffs and then its standing
+constructions' buffs before the next team exits. Thus a defeated blue team's
+surviving construction loses its tower debuff before red's surviving units
+lose Photon Emission
+([`final-buffs-clear-by-team.yaml`](../../tests/endgame/final-buffs-clear-by-team.yaml)).
+
 Torn-down constructions follow their usual death cleanup: their buffs are
 cleared immediately before `building_destroyed`, even while the fight waits
 for other projectiles to drain.
@@ -1368,6 +1374,10 @@ not the game's native attack-type enum.
 ## Evidence
 
 ### Recorded
+
+- Final tick 271 clears blue construction 3's tower debuff before the red
+  survivors' Photon Emission buffs:
+  `tests/endgame/final-buffs-clear-by-team.yaml`.
 
 - Mountain's second main gun refreshes its target from interceptor 6 to
   unit 14 on tick 403 before entering cooling, which retains unit 14:
@@ -1753,6 +1763,9 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- Final exit walks groups and teams, each team's live mechs before its
+  constructions: `GroupManager.OnExitFight`, `FightTeam.ExitFight`.
 
 - A failed angle check reports a missing target at a limited rotation
   endpoint, using fixed-point equality; the checker may then search again:
