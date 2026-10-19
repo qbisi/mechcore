@@ -1,0 +1,57 @@
+# Ion Blast deals 2400 damage at tick 301, lowering a Steel Ball below
+# its accumulated 2406 control progress. TeamTranslationSystem runs after
+# commander skills and turns it on that tick, before its own update.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1256126151
+round: 3
+blue:
+  core_damage: 450
+  officers: [advanced_shield_device, advanced_targeting_system, fire_badger_specialist, extended_range_sledgehammer]
+  techs:
+    sledgehammer: [damage_sharing, field_maintenance, electromagnetic_shot, armor_enhancement, range_enhancement, mechanical_rage, armor_piercing_bullets]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sledgehammer, index: 0, position: {x: -160, y: -35}, level: 2, exp: 1464/1984/2929, rotated: true, equipment: [nano_repair_kit]}
+  - {name: fire_badger, index: 1, position: {x: 55, y: -210}, source: delivered}
+  - {name: hacker, index: 2, position: {x: -75, y: -285}, level: 4, exp: 0/400/2515, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -120, y: -85}, retained: false}
+  battle_skills:
+  - {name: ion_blast, positions: [{x: -185, y: -175}, {x: 235, y: -110}]}
+red:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_defensive_tactics, aerial_specialist, assault_raiden]
+  techs:
+    raiden: [fork]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [3, 1]
+  units:
+  - {name: raiden, index: 0, position: {x: -70, y: -30}, level: 8, exp: 8073/13213/16146, rotated: true, equipment: [steel_ball_production_line]}
+  - {name: vortex, index: 1, position: {x: -240, y: -180}, level: 6, exp: 0/36/4349, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 195, y: -250}}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: 225, y: 25}]}
+asserts:
+- sql: |
+    SELECT tick, team_id, life__current, control__progress FROM units
+    WHERE unit_id = 12 AND tick BETWEEN 299 AND 302 ORDER BY tick;
+  rows:
+  - [299, 1, 4076, 6]
+  - [300, 1, 4076, 2406]
+  - [301, 0, 1676, null]
+  - [302, 0, 1676, null]
+ticks: 940
+hash: 26:c57d510c970bc2a1a18589f8d1482b4af7b8602f49c9eb18410cab48c98a7935
