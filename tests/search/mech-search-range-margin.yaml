@@ -1,0 +1,51 @@
+# A complete generated layout. War Factory's unit-level selector keeps the
+# hidden winner when the visible replacement is outside range minus 1m.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 680540902
+round: 4
+blue:
+  core_damage: 500
+  officers: [advanced_missile_device, advanced_offensive_tactics, fortified_specialist]
+  techs:
+    mustang: [missile_interceptor]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [2, 2]
+  units:
+  - {name: mustang, index: 0, position: {x: 225, y: -180}, level: 5, exp: 3126/4743/6253, equipment: [explosive_ammo]}
+  - {name: sandworm, index: 1, position: {x: 250, y: -260}, level: 2, exp: 0/759/4506, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -220, y: -125}}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: -110, y: -125}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, quick_teleport, fortified_specialist, assault_fang]
+  techs:
+    fang: [portable_shield, grenade_launcher, range_enhancement, mechanical_rage, armor_piercing_bullets, ignite]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: fang, index: 0, position: {x: -320, y: 225}, level: 6, equipment: [secondary_laser_sight], travelling: true, source: joined}
+  - {name: war_factory, index: 1, position: {x: 35, y: -215}, level: 9, exp: 0/7192/21528, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 175, y: -200}}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: -240, y: -145}]}
+asserts:
+- sql: |
+    SELECT tick, mech_lock_target__id, motion_state FROM units
+    WHERE unit_id = 32 AND tick BETWEEN 464 AND 466 ORDER BY tick;
+  rows:
+  - [464, 7, attacking]
+  - [465, 1, attacking]
+  - [466, 1, attacking]
+ticks: 1176
+hash: 26:2aa1062dcdc5f5d09131422f56106d7ef8fe88fcfd1a1f68248914a499f3319e

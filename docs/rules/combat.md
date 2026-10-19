@@ -532,6 +532,13 @@ resume after the last projectile.
 
 ## Normal target scoring and pre-fight acquisition
 
+The unit-level selector asks the unit as `IAttacker`, while a weapon's
+selector asks its skill. `FightMech` accepts a visible replacement only
+strictly inside its main range minus one metre; `FightSkill` checks its
+minimum and maximum range. Thus a War Factory of range 100 metres keeps
+its hidden Sandworm over a visible Mustang 99.087 metres away
+([`mech-search-range-margin.yaml`](../../tests/search/mech-search-range-margin.yaml)).
+
 Among currently visible, fully rotated, unsplit-quadtree ordinary ground targets
 with a unique optimum, the build picks by Q32 edge distance, strict
 minimum-range exclusion, an angle factor, an out-of-range penalty and a strict
@@ -1355,6 +1362,11 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A War Factory's unit-level search keeps its hidden Sandworm on tick 465
+  while the best visible replacement is within 100 metres but beyond
+  99 metres:
+  `tests/search/mech-search-range-margin.yaml`.
+
 - A prepared Sledgehammer search scores with 95 metres of range, but after
   Sandstorm halves it to 47.5 metres on tick 321 it keeps the hidden tower
   rather than replacing it with a visible Sandworm outside the new range:
@@ -1730,6 +1742,9 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- The unit-level replacement range test is strictly less than main range
+  minus one metre: `FightMech.GameRiver.Fight.IAttacker.IsActorInAttackRange`.
 
 - Hit callback order: `EffectProvider.Sort` orders data sources by `GetID`;
   `FightEffectMananger.Sort` compares the first source of each provider.

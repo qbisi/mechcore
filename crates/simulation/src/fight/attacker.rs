@@ -54,6 +54,15 @@ impl Facing<'_> {
     }
 }
 
+/// The range test supplied by the native `IAttacker` implementation.
+#[derive(Debug, Clone, Copy)]
+pub(in crate::fight) enum RangeCheck {
+    /// `FightSkill.IsActorInAttackRange`: between minimum and maximum.
+    Skill,
+    /// `FightMech.IAttacker.IsActorInAttackRange`: strictly inside range - 1m.
+    Mech,
+}
+
 /// A skill's owner as the skill sees it.
 #[derive(Debug, Clone, Copy)]
 #[allow(
@@ -100,6 +109,7 @@ pub(in crate::fight) struct Attacker<'a> {
     pub(in crate::fight) min_range: i64,
     /// `IAttacker.GetAttackRange`, with whatever corrects it.
     pub(in crate::fight) attack_range: i64,
+    range_check: RangeCheck,
     /// What one blow deals, with whatever corrects it.
     pub(in crate::fight) attack_damage: i64,
     /// `FightSkill.GetSplashRange`: the description's splash with the
@@ -196,8 +206,16 @@ impl Attacker<'_> {
         .saturating_sub(space_to_q32(self.radius))
         .saturating_sub(space_to_q32(radius))
         .max(0);
-        edge_distance_q32 >= space_to_q32(self.min_range)
-            && edge_distance_q32 <= space_to_q32(range)
+        match self.range_check {
+            RangeCheck::Skill => {
+                edge_distance_q32 >= space_to_q32(self.min_range)
+                    && edge_distance_q32 <= space_to_q32(range)
+            }
+            RangeCheck::Mech => rvo::fpoint_less_than(
+                edge_distance_q32,
+                space_to_q32(range).saturating_sub(1_i64 << 32),
+            ),
+        }
     }
 
     /// Whether a point is within the attack angle: `FightUtility.CalculateAngle`
@@ -327,6 +345,7 @@ impl Simulation {
         source.query_z_q32 = actor.z_q32;
         source.query_rotation_q32 = actor.body_rotation_q32;
         source.rotation_window_q32 = None;
+        source.range_check = RangeCheck::Mech;
         // `MechSearchTargetController` keeps the selector it was made with.
         source.score_offsets = ScoreOffsets::default();
         source.life_priority = false;
@@ -419,6 +438,7 @@ impl Simulation {
                     ),
                     min_range: self.main_min_range(id),
                     attack_range: self.main_attack_range(id),
+                    range_check: RangeCheck::Skill,
                     attack_damage: self.main_attack_damage(id),
                     splash_radius: actor.stats.splash_radius(),
                     attack_interval_q32: actor.stats.attack_interval_q32(),
@@ -487,6 +507,7 @@ impl Simulation {
                     lock_target: construction.attack.lock_target,
                     min_range: construction.attack.min_range(),
                     attack_range: construction.attack.range(),
+                    range_check: RangeCheck::Skill,
                     attack_damage: construction.attack_damage,
                     splash_radius: construction.attack.splash_radius(),
                     attack_interval_q32: crate::data::attack_interval_property(
