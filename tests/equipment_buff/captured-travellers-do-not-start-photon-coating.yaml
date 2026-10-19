@@ -1,0 +1,54 @@
+# Stormcallers 4 and 6 are captured during travel. At tick 81 all four
+# arrive, but only uncaptured 5 and 7 activate their Photon Coating
+# controllers and add buff 4000 on tick 82. The captured units use the
+# type effect manager, without the formation equipment source.
+# Control: photon-coating-arrives-with-disabled-tech.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1413068083
+round: 2
+blue:
+  core_damage: 660
+  officers: [quick_teleport, advanced_defensive_tactics, marksman_specialist, extended_range_stormcaller]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: marksman, index: 0, position: {x: -240, y: -70}, level: 3, source: delivered}
+  - {name: stormcaller, index: 1, position: {x: 325, y: 90}, rotated: true, equipment: [photon_coating], travelling: true, source: joined}
+  - {name: typhoon, index: 2, position: {x: -200, y: -160}, level: 9, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: 180, y: -170}, {x: 265, y: 65}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, marksman_specialist]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: hacker, index: 0, position: {x: -255, y: -55}, level: 8, exp: 3767/3767/3767, equipment: [laser_sights]}
+  - {name: marksman, index: 1, position: {x: 170, y: -140}, level: 3, exp: 0/1000/2315, source: delivered}
+  - {name: raiden, index: 2, position: {x: -170, y: -240}, level: 6, exp: 0/10800/13917, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 105, y: -80}, retained: false}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -185, y: -30}]}
+asserts:
+- sql: |-
+    SELECT unit_id,team_id FROM units WHERE tick=81 AND unit_id BETWEEN 4 AND 7 ORDER BY unit_id
+  rows:
+  - [4, 1]
+  - [5, 0]
+  - [6, 1]
+  - [7, 0]
+- sql: |-
+    SELECT source__id,target__id,buff_id FROM events WHERE tick=82 AND type='buff_applied' ORDER BY ordinal
+  rows:
+  - [5, 5, 4000]
+  - [7, 7, 4000]
+ticks: 1156
+hash: 26:26bb615a0427a6a18a3236120e1bb0bfe7a9dd5dd9e27a3d2aad9d8d6cc59590

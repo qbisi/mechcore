@@ -241,6 +241,7 @@ pub(crate) fn buff_source(
     }
     let stacking = stacking(who, buff)?;
     Ok(BuffSource {
+        mech_unit_owned: false,
         buff_id: buff.id,
         divide: buff.divide,
         additive: buff.additive,

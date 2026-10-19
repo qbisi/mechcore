@@ -94,6 +94,13 @@ by itself, for the row's duration, before any battle skill lands that tick.
 The buff writes its `amplifyDamageRate` on the damage the unit takes, as a
 tower's loss writes its own, and makes the unit invincible while it runs.
 
+**Capture during travel leaves the item's controller unstarted.** On
+arrival, `TeamFightEffectManager.TryGetFightEffectMananger` cannot select
+the translated unit's formation manager and falls back to its type manager.
+That manager has no formation equipment source for
+`BuffEffectProvider.ActiveCycle` to activate. Uncaptured formation members
+still start their item normally on arrival.
+
 **An invincible unit takes no debuff.** A buff the build marks `debuff`, an
 Electromagnetic Impact's among them, does not reach a unit a running buff
 makes invincible: nothing is written and nothing is recorded, so neither its
@@ -296,6 +303,9 @@ rather than applying only its plain corrections.
 - Photon Coating's controller activates on arrival and keeps its availability
   when an existing EMP disables a technology buff controller on the same
   unit: `tests/equipment_buff/photon-coating-arrives-with-disabled-tech.yaml`.
+- Stormcallers captured while travelling gain no Photon Coating on arrival,
+  while their uncaptured formation members do:
+  `tests/equipment_buff/captured-travellers-do-not-start-photon-coating.yaml`.
 - Anti-Interference Module keeps an Electromagnetic Impact's buff and a
   tower's loss off its unit: `tests/equipment_buff/anti-interference-emp.yaml`
   and `tests/equipment_buff/anti-interference-tower.yaml`.
@@ -362,6 +372,12 @@ rather than applying only its plain corrections.
   delay and no interval, and `BuffSystem.AddBuffByCheck`;
   `FightController.AddModules` adds `BuffSystem` before
   `CommanderSkillSystem`.
+- Arrival activates only the selected manager's available sources, looking
+  up each source's origin controller:
+  `SuperDeploymentController.ExitTravel`, `FightEffectSystem.ActiveEffect`,
+  `TeamFightEffectManager.TryGetFightEffectMananger`,
+  `TeamTranslationSystem.IsTranslatedMech`,
+  `BuffEffectProvider.ActiveCycle`, `BuffEffectProvider.GetOriginBuffCycleCtr`.
 - An invincible unit takes no debuff: `BuffManager.AddBuff` returns at once
   for an `IBuffData.IsDebuff` buff while `BuffManager.IsInvincible`.
 - An anti-interference item's group is ignored from the fight's start:

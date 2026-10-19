@@ -593,7 +593,10 @@ fn buff_source_of(row: &Row, who: &str) -> std::result::Result<Option<BuffSource
         &row.buff_special,
         (row.buff.as_ref(), row.buff_range_item.as_ref()),
     )
-    .map(Some)
+    .map(|mut source| {
+        source.mech_unit_owned = true;
+        Some(source)
+    })
 }
 
 /// The production line a production row runs, or why this build will not
