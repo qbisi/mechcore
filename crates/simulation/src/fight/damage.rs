@@ -1077,8 +1077,9 @@ impl Simulation {
 
     /// `DamagePerformer.PerformSecondaryRangeEffect`, after a hit has struck
     /// what it strikes: every object of the other side within the second
-    /// damage's range of where the hit landed, of the domain the hit was
-    /// aimed at, less what the hit itself struck, takes the second damage.
+    /// damage's range of where the hit landed, of its main target's current
+    /// domain (or the provider's target type without one), less what the hit
+    /// itself struck, takes the second damage.
     /// The damage is raised by the owner's tower buffs and then by each
     /// struck unit's buff rates where the row says the buffs reach it
     /// (`CalculateSecondaryDamageByAttackerBuff`,
@@ -1107,6 +1108,9 @@ impl Simulation {
         let around = DamageHit {
             amount,
             splash_radius: secondary.splash_radius,
+            reach: hit
+                .aimed
+                .map_or(hit.reach, |target| Reach::Domain(self.domain_of(target))),
             ..*hit
         };
         // `PerformSecondaryRangeEffect`: `PrepareRangeTargets` takes what

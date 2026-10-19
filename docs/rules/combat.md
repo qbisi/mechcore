@@ -1166,11 +1166,16 @@ Launcher's -140 sends a Fang's shell 140 metres a second of its row's 280.
 **A unit's second damage strikes around each of its main skill's hits, after
 the hit.** Once a hit has struck what it strikes and handed its damage to the
 skill's hit effects, every object of the other side within the second
-damage's range of where it landed, of the domain the hit was aimed at, takes
+damage's range of where it landed, of its main target's current domain, takes
 the second damage, except what the hit itself struck unless the row says the
 main target may be hit too. Shockwave's 75 reaches 30 metres: an Arclight's
 shell that fells six Crawlers deals the eighteen others around them 75 each,
 as `damage` events of the shell after its own.
+A projectile's primary splash keeps the domain selected at creation, but
+the secondary splash reads the main target's `IsFly` when it lands. If that
+target has taken off in flight, Shockwave can strike it even when the
+primary ground splash strikes nothing. Without a main target the secondary
+splash uses its damage provider's target type.
 
 **The second damage is the row's, scaled by tower buffs and target buffs.**
 Where the row says buffs reach it, the damage is the attacker's tower buffs'
@@ -1409,6 +1414,11 @@ not the game's native attack-type enum.
 ## Evidence
 
 ### Recorded
+
+- An Arclight shell fired at a grounded Wraith lands after it takes off:
+  its primary splash misses, but Shockwave deals its secondary damage using
+  the Wraith's current domain:
+  `tests/secondary_damage/target-takes-off-before-shockwave.yaml`.
 
 - An Overlord whose interval grows from 46 to 92 ticks still waits at
   attack time 89 on tick 43:

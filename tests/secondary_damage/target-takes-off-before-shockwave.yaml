@@ -1,0 +1,56 @@
+# Complete generated layout: Arclight 13 launches projectile 120 at the
+# grounded Wraith 26 on tick 415. The Wraith takes off on tick 423; the
+# shell lands on tick 429. Its primary ground splash misses, but Shockwave
+# uses the target's current aerial domain and deals 75. Control:
+# ../projectile/keeps-domain-when-target-takes-off.yaml pins the primary
+# splash's retained domain without secondary damage.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 609509734
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_shield_device, quick_teleport, aerial_specialist, fortified_arclight]
+  techs:
+    arclight: [electromagnetic_shot, armor_enhancement, anti_aircraft_ammunition, shockwave, range_enhancement, elite_marksman, charged_shot]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: arclight, index: 0, position: {x: 330, y: 150}, level: 9, exp: 0/5046/5046, equipment: [super_heavy_armor], travelling: true, source: joined}
+  - {name: wasp, index: 1, position: {x: 145, y: -250}, level: 8, exp: 0/50/6055, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -80, y: -125}, retained: false}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: 35, y: 225}]}
+red:
+  core_damage: 270
+  officers: [advanced_targeting_system, aerial_specialist, mass_produced_wraith]
+  techs:
+    wraith: [high_explosive_ammo, field_maintenance, armor_enhancement, land_cruiser, range_enhancement, floating_artillery_array, degeneration_beam]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: wraith, index: 0, position: {x: -105, y: -255}, level: 2, exp: 2535/2535/5070}
+  - {name: wasp, index: 1, position: {x: 75, y: -240}, level: 6, exp: 0/1564/5219, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 145, y: -235}}
+asserts:
+- sql: |
+    SELECT tick, domain FROM units
+    WHERE unit_id = 26 AND tick IN (415, 423, 429) ORDER BY tick;
+  rows:
+  - [415, ground]
+  - [423, air]
+  - [429, air]
+- sql: |
+    SELECT tick, amount FROM ev_damage
+    WHERE object__kind = 'projectile' AND object__id = 120
+      AND target__kind = 'unit' AND target__id = 26 ORDER BY tick;
+  rows:
+  - [429, 75]
+ticks: 1218
+hash: 26:6396ffece011a2787cd6ab38c4e5ebfe816f34793385d352292f5d3880d64fd0
