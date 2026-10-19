@@ -1090,6 +1090,7 @@ impl Simulation {
                 actor.alive()
                     && (every_unit
                         || (actor.skills_active
+                            && !actor.travelling
                             && !actor
                                 .underground
                                 .as_ref()
@@ -1165,8 +1166,10 @@ impl Simulation {
             // SkillManager.Update(false) exits its skills only when active
             // and not holding fire. Inactive managers pause their own clocks;
             // holding fire updates the main skill even after the last kill.
+            // Travel's TeamUpdate skip below already holds its clocks.
             for actor in self.actors.values_mut() {
                 if actor.skills_active
+                    && !actor.travelling
                     && !actor
                         .underground
                         .as_ref()

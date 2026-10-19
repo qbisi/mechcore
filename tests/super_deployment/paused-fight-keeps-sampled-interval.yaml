@@ -1,0 +1,52 @@
+# The enemy side is empty on ticks 75-77 before Underground Threat
+# resumes it. The travelling Fortress keeps its initially sampled
+# interval of 35 instead of resetting to the composed 36. It arrives
+# on tick 161 and the complete battle ends on tick 322.
+# Controls: arrives.yaml and ../endgame/pending-summon-preserves-attack-wait.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 885302884
+round: 2
+blue:
+  core_damage: 0
+  officers: [advanced_targeting_system, marksman_specialist, extended_range_fortress]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: marksman, index: 0, position: {x: 60, y: -30}, level: 3, exp: 0/320/2315, source: delivered}
+  - {name: fortress, index: 1, position: {x: -330, y: 280}, level: 9, exp: 0/200/10764, equipment: [amplifying_core], travelling: true, source: joined}
+  - {name: wasp, index: 2, position: {x: 105, y: -130}, level: 9, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: 300, y: -110}]}
+red:
+  core_damage: 688
+  officers: [advanced_shield_device, advanced_targeting_system, marksman_specialist, extended_range_arclight]
+  tower_strengthen_levels: [2, 4]
+  units:
+  - {name: marksman, index: 0, position: {x: 240, y: -100}, level: 3, source: delivered}
+  - {name: arclight, index: 1, position: {x: 30, y: -70}, equipment: [dominion_core], source: joined}
+  - {name: scorpion, index: 2, position: {x: 75, y: -255}, level: 9, source: joined}
+  constructions:
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -90, y: -240}}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: -300, y: -200}]}
+asserts:
+- sql: |-
+    SELECT tick,enabled__current_attack_interval,enabled__attack_time FROM units__skills WHERE unit_id=14 AND tick IN (161,162,283) ORDER BY tick
+  rows:
+  - [161, 35, 35]
+  - [162, 35, 36]
+  - [283, 35, 157]
+- sql: |-
+    SELECT COUNT(*) FROM units WHERE team_id=1 AND tick BETWEEN 75 AND 77
+  rows:
+  - [0]
+ticks: 322
+hash: 26:c374f5903a9ee9ed392346a6c1d25a454e7aaee48e5dfc32cccf29587b2bf865
