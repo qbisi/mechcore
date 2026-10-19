@@ -359,9 +359,8 @@ impl Simulation {
         let sibling = skill.group_skill(slot);
         let held_lock = sibling.lock_target.is_some();
         let candidate = sibling
-            .checked_attack_target()
-            .or(sibling.attack_target_left)
-            .filter(|_| sibling.shield_target().is_none());
+            .checked_actor_target()
+            .or(sibling.attack_target_left);
         self.idle_group_slot(skill_ref, slot);
         // `StopAttack` hands a main searcher's owner the dropped lock, which
         // a joined row's slot is not.
