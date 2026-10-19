@@ -1,0 +1,51 @@
+# Crawler 16 is captured on the same tick that Replicate creates Crawler
+# 41. The snapshot numbers the new summon before the captured unit by
+# their positions, although control ran before replication.
+# Control: ../extra_weapon/multi-control-crawlers.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 994415664
+round: 2
+blue:
+  core_damage: 200
+  officers: [advanced_defensive_tactics, advanced_targeting_system, marksman_specialist]
+  techs:
+    crawler: [subterranean_blitz, acidic_explosion, loose_formation, mechanical_rage, impact_drill, replicate]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: marksman, index: 0, position: {x: 280, y: -130}, level: 3, exp: 0/1000/2315, source: delivered}
+  - {name: crawler, index: 1, position: {x: -335, y: 160}, level: 3, exp: 0/1603/1603, rotated: true, equipment: [photon_coating], travelling: true, source: joined}
+  - {name: arclight, index: 2, position: {x: -140, y: -110}, level: 5, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 245, y: -75}, retained: false}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: 110, y: 190}]}
+red:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, advanced_power_system, marksman_specialist]
+  techs:
+    rhino: [field_maintenance, whirlwind, wreckage_recycling, power_armor, final_blitz, armor_enhancement, mechanical_rage, photon_coating, combat_evolvement]
+  blueprints: [attack_enhancement_ii]
+  tower_strengthen_levels: [3, 1]
+  units:
+  - {name: rhino, index: 0, position: {x: 25, y: -35}, level: 9, exp: 3868/7548/7736, equipment: [absorption_module]}
+  - {name: marksman, index: 1, position: {x: -260, y: -30}, level: 3, source: delivered}
+  - {name: hacker, index: 2, position: {x: 255, y: -255}, level: 2, exp: 0/612/1262, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 145, y: -205}}
+asserts:
+- sql: |-
+    SELECT tick,unit_id,formation_id FROM units WHERE unit_id IN (16,41) AND tick BETWEEN 528 AND 530 ORDER BY tick,unit_id
+  rows:
+  - [528, 16, 3]
+  - [529, 16, 30]
+  - [529, 41, 29]
+  - [530, 16, 30]
+  - [530, 41, 29]
+ticks: 967
+hash: 26:b9f2d53fa6633c6cb9cf1dd117ac9f69a82f24e7a79a50c19c0600611f12b127
