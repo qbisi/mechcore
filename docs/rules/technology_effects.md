@@ -1097,6 +1097,13 @@ actor's `OnDead`. If several units die together, their technology summons
 are all created before the first individual death callback; a buff's summons
 remain part of that unit's `OnDead`.
 
+A death caused during those individual callbacks can only reach a death
+controller on the next update. By then the unit's death has deactivated its
+technology effects and removed it from the controllers. Such a late death
+does not start a new technology rebirth task merely because its technology
+was enabled when it died. This includes units destroyed when their side's
+last Dominion Core holder dies.
+
 ## Flying and landing technologies
 
 A row of `flyTechDatas` is a `FlyTech`, an `IFlyTechDataSource`: Aerial
@@ -1829,6 +1836,9 @@ derive (a minimum range):
 - A Vortex whose Cloud is restored after EMP applies its hit buff through
   both the origin and replacement controller:
   `tests/secondary_damage/restored-cloud-keeps-origin-controller.yaml`.
+- Typhoons destroyed during Dominion Core's death callbacks create no
+  delayed rebirth tasks after their dead effects have been deactivated:
+  `tests/rebirth/late-dominion-deaths-do-not-rebirth.yaml`.
 
 - EMP refreshes each of a Fang's technology sources separately, leaving its
   main skill ready when an intermediate refresh reaches its clock:
@@ -2492,6 +2502,12 @@ derive (a minimum range):
   `WreckageRecoveryTech.IsMainSkillEffect`, `WreckageRecoveryTech.IsExtraSkillEffect`,
   `WreckageRecoveryTech.IsEquipmentEffect`, `SkillDataModifier.AvaliableCheck`,
   `FightMech.OnDead`.
+- Late deaths are queued after the controllers' update but deactivated
+  during the same individual death loop, so they no longer have a registered
+  technology dead effect on the following update:
+  `DeadEffectSystem.Update`, `OnActorDead`,
+  `FightEffectSystem.DeactiveEffect`, `DeadEffectProvider.Deactive`,
+  `DeadEffectController.OnMechDead`.
 - A rebirth technology starts a task as its unit dies, before its `OnDead`,
   while its count lasts, marks a unit that does not follow an ally rising,
   counts the task each update and brings the unit back where it fell after

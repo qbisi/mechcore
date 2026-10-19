@@ -1,0 +1,47 @@
+# Complete generated layout: Dominion Core teardown destroys converted
+# Typhoons during individual death callbacks, after death controllers ran.
+# Their effects are deactivated before another tick can start rebirth.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 266057352
+round: 4
+blue:
+  core_damage: 156
+  officers: [advanced_shield_device, quick_teleport, typhoon_specialist, fortified_hacker]
+  techs:
+    hacker: [enhanced_control]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: typhoon, index: 0, position: {x: -260, y: -180}, source: delivered}
+  - {name: hacker, index: 1, position: {x: -335, y: 225}, level: 6, exp: 0/3247/3247, rotated: true, equipment: [dominion_core], travelling: true, source: joined}
+  - {name: tarantula, index: 2, position: {x: -245, y: -135}, level: 9, exp: 0/5100/10091, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 65, y: -205}}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: 255, y: -285}]}
+red:
+  core_damage: 0
+  officers: [quick_teleport, typhoon_specialist]
+  techs:
+    typhoon: [field_reassembly, field_entrenchment, reactive_armor, maintenance_array, wreckage_detonation, range_enhancement, air_defense_mark]
+  blueprints: [attack_enhancement_ii]
+  units:
+  - {name: typhoon, index: 0, position: {x: -10, y: -40}, source: delivered}
+  - {name: typhoon, index: 1, position: {x: 350, y: 140}, level: 9, exp: 0/12000/13118, equipment: [haste_module], travelling: true, source: joined}
+  - {name: sabertooth, index: 2, position: {x: -285, y: -85}, level: 7, exp: 0/200/8185, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -155, y: -80}}
+  battle_skills:
+  - {name: nuke, positions: [{x: 155, y: 220}]}
+asserts:
+- sql: |
+    SELECT COUNT(*) FROM rebirths
+    WHERE unit_id IN (7, 8) AND tick BETWEEN 1397 AND 1402;
+  rows:
+  - [0]
+ticks: 1403
+hash: 26:865540a35114d5f1eece8978fb20d1214dce4c0b3dc58e69e31a27c943c4de83

@@ -118,6 +118,7 @@ impl Actor {
                 .buff_sources
                 .iter()
                 .any(|source| source.on_second_damage),
+            dead_effects_active: !placement.travelling,
             sweep_intensified: true,
             sand_fog_held: true,
             surfacing_line_held: true,

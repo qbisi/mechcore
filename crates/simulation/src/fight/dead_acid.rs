@@ -21,7 +21,7 @@ impl Simulation {
     /// `EnableEffect` hands it back).
     pub(in crate::fight) fn technology_dead_effect_held(&self, unit: u64) -> bool {
         let actor = &self.actors[&unit];
-        !actor.travelling && !actor.technology_disabled()
+        actor.dead_effects_active && !actor.travelling && !actor.technology_disabled()
     }
 
     /// `DeadAcidRangeItemController.PerformDeadEffect` of every unit that
