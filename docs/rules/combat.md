@@ -537,6 +537,13 @@ with a unique optimum, the build picks by Q32 edge distance, strict
 minimum-range exclusion, an angle factor, an out-of-range penalty and a strict
 minimum score.
 
+**Coincident positions have zero search angle.** `AngleCalculator.Calculate`
+uses `FightUtility.CalculateAngle`, which first compares the two horizontal
+positions with `FVector2` equality and returns angle zero when they match.
+Each coordinate uses `FPoint`'s 43-raw-unit equality tolerance. Such a target
+has no world bearing to compare with the searcher's facing
+([`search/coincident-target-has-zero-angle.yaml`](../../tests/search/coincident-target-has-zero-angle.yaml)).
+
 **The angle is measured from the searcher's main transform.** That is its
 first weapon's when the weapon has a transform, and the mech's root when it
 has none, whether or not the weapons turn at a speed of their own: a
