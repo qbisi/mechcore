@@ -1410,6 +1410,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- An Overlord whose interval grows from 46 to 92 ticks still waits at
+  attack time 89 on tick 43:
+  `tests/attack_timing/overlord-waits-after-interval-growth.yaml`.
+
 - A Stormcaller's interval grows to 132 on tick 27 while its clock retains
   its elapsed time; it has not started a blow at attack time 113 on tick 31:
   `tests/attack_timing/longer-interval-postpones-ready-clock.yaml`.

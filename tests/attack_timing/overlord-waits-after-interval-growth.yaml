@@ -1,0 +1,55 @@
+# Complete generated layout: a ready Overlord clock must wait again when
+# its interval grows, preserving elapsed time rather than a due sentinel.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 461665347
+round: 2
+blue:
+  core_damage: 454
+  officers: [advanced_missile_device, advanced_offensive_tactics, marksman_specialist, improved_overlord]
+  techs:
+    overlord: [launcher_overload]
+  tower_strengthen_levels: [2, 4]
+  units:
+  - {name: overlord, index: 0, position: {x: -225, y: -65}, level: 8, exp: 11773/11773/11773, equipment: [small_amplifying_core]}
+  - {name: marksman, index: 1, position: {x: 90, y: -200}, level: 3, exp: 0/120/2315, source: delivered}
+  - {name: scorpion, index: 2, position: {x: 55, y: -215}, level: 9, exp: 0/60/10091, source: joined}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 170, y: -175}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: -50, y: -165}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_power_system, marksman_specialist, extended_range_marksman]
+  techs:
+    marksman: [doubleshot, shooting_squad, electromagnetic_shot, aerial_specialization, assault_mode, range_enhancement, quick_reload, elite_marksman]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 3]
+  units:
+  - {name: marksman, index: 0, position: {x: 90, y: -230}, level: 9, exp: 4373/4373/4373, equipment: [portable_shield]}
+  - {name: marksman, index: 1, position: {x: 70, y: -20}, level: 3, exp: 0/2315/2315, source: delivered}
+  - {name: farseer, index: 2, position: {x: 265, y: -235}, level: 9, exp: 0/3950/12109, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 45, y: -80}, retained: false}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: -155, y: -65}]}
+asserts:
+- sql: |
+    SELECT tick, enabled__attack_time, enabled__current_attack_interval,
+      enabled__attack_count FROM units__skills
+    WHERE unit_id = 3 AND skill_slot = 0 AND tick IN (1, 41, 42, 43)
+    ORDER BY tick;
+  rows:
+  - [1, 47, 46, -1]
+  - [41, 87, 92, -1]
+  - [42, 88, 92, -1]
+  - [43, 89, 92, -1]
+ticks: 533
+hash: 26:acab96783f4a2b72b54d8b2d58ce9fc0cd62c6d39286e71fae4d312126974bca
