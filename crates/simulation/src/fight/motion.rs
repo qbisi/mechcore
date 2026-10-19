@@ -1050,7 +1050,7 @@ impl Simulation {
         if target.is_none() && self.actors[&actor_id].command.is_some() {
             // A command is active without a target: every motion state
             // goes to or stays in `MotionMoveState`, which walks the path.
-            self.follow_command(actor_id);
+            self.follow_command(actor_id, None);
             return Ok(());
         }
         let Some(target) = target else {
@@ -1541,7 +1541,7 @@ impl Simulation {
     ) {
         let state = self.actors[&actor_id].motion.state;
         let (true, Some((aimed_x_q32, aimed_z_q32))) = (in_range, aimed) else {
-            self.follow_command(actor_id);
+            self.follow_command(actor_id, aimed);
             return;
         };
         match state {
@@ -2342,7 +2342,7 @@ impl Simulation {
     /// `MotionIdleState` and `MotionAttackState` change to
     /// `MotionMoveState`, which is not updated the tick it is entered, and
     /// `MotionMoveState` walks towards the command's point.
-    pub(in crate::fight) fn follow_command(&mut self, actor_id: u64) {
+    pub(in crate::fight) fn follow_command(&mut self, actor_id: u64, aimed: Option<(i64, i64)>) {
         let state = self.actors[&actor_id].motion.state;
         if state != MotionState::Moving && self.transits(actor_id, state, MotionState::Moving) {
             self.begin_transition(actor_id, state, MotionState::Moving);
@@ -2358,20 +2358,22 @@ impl Simulation {
             return;
         }
         self.move_to_command_point(actor_id);
-        // `NormalRotate` with no lock turns the weapons to the velocity
-        // (`CalculateTargetDirection`), and a unit standing still turns
-        // them nothing: a Centurion cooling under a Mobile Beacon keeps its
-        // turret where its last shot left it.
+        // `NormalRotate` keeps the current attacker's target direction even
+        // when the command moves away from its range. With no lock it uses
+        // velocity instead; zero direction preserves the weapon's facing.
         let actor = self
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        let (vx, vz) = (
-            actor.motion.current_velocity_x_q32,
-            actor.motion.current_velocity_z_q32,
+        let (dx, dz) = aimed.map_or(
+            (
+                actor.motion.current_velocity_x_q32,
+                actor.motion.current_velocity_z_q32,
+            ),
+            |(x, z)| (x.saturating_sub(actor.x_q32), z.saturating_sub(actor.z_q32)),
         );
-        if vx != 0 || vz != 0 {
-            actor.rotate_weapons_towards(direction_degrees_q32_raw(vx, vz));
+        if dx != 0 || dz != 0 {
+            actor.rotate_weapons_towards(direction_degrees_q32_raw(dx, dz));
         }
         if actor.has_body() {
             actor.aim_rotation = degrees_q32_to_mdeg(

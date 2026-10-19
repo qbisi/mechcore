@@ -473,6 +473,9 @@ which scores from that facing. It then takes the place of the unit's
   idles it ([combat.md](combat.md)).
 - With no lock, `MotionMoveState.NormalRotate` turns its weapons to its
   velocity, and a unit standing still turns them nothing.
+  An extra attacker that retains a target outside its range still supplies
+  the direction to `NormalRotate` while the unit follows the command.
+  The body turns towards that target, independently of the path's direction.
 
 `PilotAI.Update`, after the unit's motion, moves the command on once the unit,
 less its radius, is within 20 m of the point. After the last segment the command
@@ -652,6 +655,10 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
 - A Marksman on a beacon leaves attacking when the target retained through
   its cooling hides, without turning on the moving state's entry tick:
   `tests/battle_skill/beacon-leaves-hidden-cooling-target.yaml`.
+- A Fortress on a beacon turns towards its Rocket Punch target while that
+  extra attacker holds the motion outside its range, reversing the turn
+  from its velocity direction:
+  `tests/battle_skill/beacon-keeps-extra-attacker-direction.yaml`.
 - Wasps still on a beacon when the fight is won go on moving until it ends:
   `tests/battle_skill/beacon-wasps-won.yaml`,
   `tests/corpus/134270595-r4.yaml`.
@@ -867,6 +874,10 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
   `MotionMoveState.NormalRotate`, `FightSkill.IsAttackTargetInAttackRange`,
   `SkillAttackRangeChecker.IsAttackTargetInAttackRange`,
   `SkillAttackRangeChecker.IsActorInAttackRange`.
+- Outside attack range, a command's moving state still uses the current
+  attacker's target direction:
+  `MotionMoveState.NormalRotate`, `MotionController.CalculateTargetDirection`,
+  `FightMech.RotateBodyTo`, `IAttacker.RotateWeaponTo`.
 - `MotionController.Move` hands the agent nothing but on the update the RVO
   counter reads 3: `MotionController.Move`, `RVOSimulatorFixed.IsUpdateFrame`,
   `RVOSimulatorFixed.DoFixedUpdate`, `RVOControllerFixed.Move`.
