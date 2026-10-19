@@ -1276,7 +1276,7 @@ impl Simulation {
         for provider in actor.placement.effects.technology_disable.providers.clone() {
             self.switch_provider(actor_id, provider, on)?;
         }
-        let sources = self.actors[&actor_id]
+        let mut sources = self.actors[&actor_id]
             .placement
             .effects
             .technology_disable
@@ -1288,11 +1288,20 @@ impl Simulation {
         if sources.is_empty() {
             return Ok(());
         }
+        // FightEffectMananger.EnableEffect first visits IUnitStateModifiler
+        // sources, then the rest; DisableEffect visits them last. FlyTech
+        // changes conditional officer data before ordinary life rates return.
+        sources.sort_by_key(|source| source.changes_domain != on);
         for source in sources {
             let actor = self
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
+            // EnableEffect removes incompatible effects before the state
+            // source writes its own data; disabling restores them afterwards.
+            if on && source.changes_domain {
+                actor.refresh_domain_effects(on, self.step_now);
+            }
             for (channel, entry) in source.corrections {
                 let channel = actor.stats.overlays.channel(channel);
                 if on {
@@ -1326,7 +1335,7 @@ impl Simulation {
                     }
                 }
             }
-            if source.changes_domain {
+            if !on && source.changes_domain {
                 actor.refresh_domain_effects(on, self.step_now);
             }
             actor.refresh_life_data()?;

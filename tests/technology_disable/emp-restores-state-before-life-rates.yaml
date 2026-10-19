@@ -1,0 +1,56 @@
+# Wraith 3 regains Land Cruiser before its other technologies when
+# Electromagnetic Cloud expires. Aerial Specialist leaves before Field
+# Maintenance and Armor Enhancement return, so life follows those intermediate
+# maxima in native order, including fixed-point truncation at each change.
+# Control: life-rates-refresh-in-order.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 494279532
+round: 3
+blue:
+  core_damage: 250
+  officers: [advanced_shield_device, quick_teleport, fortified_specialist]
+  techs:
+    vortex: [grid_integration, field_maintenance, electromagnetic_cloud, machine_learning, range_enhancement, electromagnetic_twin, mobile_power_station, accumulator_shield, emergency_armor]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: vortex, index: 0, position: {x: -340, y: 240}, level: 2, exp: 0/880/1690, equipment: [secondary_heavy_armor], travelling: true, source: joined}
+  - {name: vortex, index: 1, position: {x: -160, y: -230}, level: 2, exp: 0/1120/1690, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 15, y: -235}, retained: false}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: -290, y: 35}]}
+red:
+  core_damage: 200
+  officers: [quick_teleport, advanced_defensive_tactics, aerial_specialist, mass_produced_wraith]
+  techs:
+    wraith: [high_explosive_ammo, field_maintenance, armor_enhancement, land_cruiser, range_enhancement, floating_artillery_array, degeneration_beam]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: wraith, index: 0, position: {x: 335, y: 185}, level: 8, exp: 0/1200/15137, equipment: [heavy_armor], travelling: true, source: joined}
+  - {name: hound, index: 1, position: {x: 260, y: -80}, level: 4, exp: 0/120/3368, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -55, y: -65}, retained: false}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -145, y: 180}, {x: 300, y: -170}, {x: -280, y: -195}]}
+asserts:
+- sql: |-
+    SELECT tick,life__current,life__maximum FROM units WHERE unit_id=3 AND tick BETWEEN 256 AND 258 ORDER BY tick
+  rows:
+  - [256, 234448, 237583]
+  - [257, 280801, 284558]
+  - [258, 282081, 284558]
+ticks: 2360
+hash: 26:e413db602621625a0432138482f6e424d666825e317ee1fa7dc903559f7831e4
