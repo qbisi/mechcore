@@ -28,6 +28,11 @@ The same skip applies while a decided fight drains its remaining work:
 either. Its presearch lock remains until final fight exit, even if the
 target has died. Final `ExitFight` clears that lock and takes the unit out
 of travel.
+The skip also preserves its sampled attack interval during a temporary
+absence of enemies: waiting for summons does not reset a travelling unit's
+interval to the unstaggered value.
+The travelling unit's clock is held once per tick, so that pause does not
+subtract extra elapsed time before arrival.
 
 Its formation stands where a settled one does, turned to face the middle
 ([`unit-rules.md`](../spec/simulation/unit-rules.md)).
@@ -148,6 +153,11 @@ from the arrival.
 ## Evidence
 
 ### Recorded
+
+- A travelling Fortress retains its sampled interval of 35 while the enemy
+  side is empty on ticks 75–77 before more summons arrive. It still reads
+  35 when travel ends on tick 161:
+  `tests/super_deployment/paused-fight-keeps-sampled-interval.yaml`.
 
 - A Hacker turned while travelling exits travel on the fight's last tick,
   activating its extra skills and Barrier on its current side:
