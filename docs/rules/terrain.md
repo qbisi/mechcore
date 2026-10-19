@@ -124,6 +124,11 @@ skill carries one fog's rate however many fogs its unit stands in. Melee
 skills receive no range correction. The range retains `FPoint` precision:
 a Sledgehammer's 95 metres become 61.75, and independent extra weapons
 receive and lose the correction through their own range properties.
+A unit's death invokes the controller's virtual `OnActorExit`, registered
+with `FightMech.OnMechDead`, and removes the fog's range modifier as well as
+its affected-list entry. If the unit rises again inside the fog after the
+terrain update, its rebirth frame has no fog correction; the next terrain
+update enters it again and reapplies the correction.
 The rate also scales a domain-specific range addition: Aerial Specialization's
 30 metres is added before the fog multiplies the range by 0.65.
 
@@ -364,6 +369,10 @@ already exists.
 
 ### Recorded
 
+- A Typhoon reborn inside Smoke Bomb has its unreduced weapon ranges on
+  its rebirth frame and receives the fog correction on the following frame:
+  `tests/terrain/rebirth-reenters-fog.yaml`.
+
 - Acid and sand fog first appearing together on tick 266 take identities 6
   and 7 respectively, in terrain-type tag order:
   `tests/terrain/acid-and-sand-numbering.yaml`.
@@ -433,6 +442,11 @@ already exists.
   Shield: `tests/terrain/acid-bypasses-personal-shield.yaml`, tick 80.
 
 ### Read
+
+- A controller registers its virtual exit callback with a unit's death
+  event, so death also withdraws fog modifiers:
+  `RangeItemController.OnActorEnter`, `RangeItemController.OnActorExit`,
+  `FogController.OnActorExit`, `FightMech.OnDead`.
 
 - A hit that deals fire burns the oil its splash reaches:
   `ProjectileSkillData.damageType`, `EDamageType`,

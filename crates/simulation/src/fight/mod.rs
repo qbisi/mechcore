@@ -1412,6 +1412,7 @@ impl Simulation {
                     // its holders struck.
                     // `FightEffectSystem.DeactiveEffect` of the dead unit.
                     self.deactive_effect(unit_id)?;
+                    self.exit_terrains_on_dead(unit_id)?;
                     self.remove_produced_mech(unit_id);
                     // `SummonSystem.RemoveMech` was registered when the unit joined,
                     // before a later strike registered wreckage recovery. Destroying
