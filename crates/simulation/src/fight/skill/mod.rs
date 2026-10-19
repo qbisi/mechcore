@@ -361,16 +361,19 @@ pub(in crate::fight) struct SkillManager {
 }
 
 impl SkillManager {
-    /// A tick on which no skill updates and nothing else moves its schedule:
-    /// only the clock a recording reads stands still.
+    /// A tick on which no skill updates: both its elapsed clock and the
+    /// deadline derived from that clock stand still. Pending summons can
+    /// resume a fight after `FightCoreSystem` temporarily has no enemy.
     pub(in crate::fight) fn hold_attack_clocks(&mut self) {
         let skills = std::iter::once(&mut self.main)
             .chain(self.extras.iter_mut().map(|extra| &mut extra.skill));
         for skill in skills {
+            skill.next_attack_step = skill.next_attack_step.saturating_add(1);
             skill.attack_time_anchor += 1;
             skill.attack_time_step += 1;
             skill.hold_cooling();
             for sibling in skill.siblings_mut() {
+                sibling.next_attack_step = sibling.next_attack_step.saturating_add(1);
                 sibling.attack_time_anchor += 1;
                 sibling.attack_time_step += 1;
                 sibling.hold_cooling();
