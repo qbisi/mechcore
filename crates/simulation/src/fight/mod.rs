@@ -335,6 +335,9 @@ struct Actor {
     secondary_buff_controller: Option<bool>,
     /// Whether the origin controller remains on the skill's hit list.
     secondary_buff_origin_registered: bool,
+    /// Whether `DeadEffectSystem` still registers this unit's technology
+    /// effects; death deactivation removes them before the next update.
+    dead_effects_active: bool,
     /// Whether its sweep skill holds what its technology changes: cleared
     /// while that technology is switched off.
     sweep_intensified: bool,
