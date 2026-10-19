@@ -162,7 +162,10 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
         attack_state.actors[&1].skills.main.lock_target,
         Some(unit_target(3))
     );
-    assert_eq!(attack_state.actors[&1].skills.main.search_target_time, 0);
+    assert_eq!(
+        attack_state.actors[&1].skills.main.search_target_time,
+        SEARCH_TARGET_RESET_TICKS
+    );
 
     let mut prepare_state = make_simulation();
     prepare_state.initialize_presearch_targets().unwrap();
@@ -190,7 +193,10 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
         prepare_state.actors[&1].skills.main.lock_target,
         Some(unit_target(3))
     );
-    assert_eq!(prepare_state.actors[&1].skills.main.search_target_time, 0);
+    assert_eq!(
+        prepare_state.actors[&1].skills.main.search_target_time,
+        SEARCH_TARGET_RESET_TICKS
+    );
 
     let mut dead_target = make_simulation();
     dead_target.initialize_presearch_targets().unwrap();
