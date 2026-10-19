@@ -584,6 +584,10 @@ place for the rest of the fight. The row also raises the unit's life by 80%.
   ([control.md](control.md)), the death of a side's last unit too. A fight decided on the tick
   the fire is left ends on that tick, and the fire goes with it before any
   snapshot holds it.
+  A death appended during the later `OnDead` callbacks, such as Dominion
+  Core's destruction of its remaining allies, is cleaned up on that update.
+  `FightExplosionSkill.OnOwnerDead` unregisters its effect before the next
+  controller pass, so it leaves no deferred explosion or fire.
 - **Switched off, it waits.** While a disabling buff holds the unit's
   technologies off, the condition holds nothing and a death sets off neither
   explosion nor fire: [technology_effects.md](technology_effects.md#switched-off).
@@ -875,6 +879,10 @@ that is not melee, so the simulator refuses it.
   felled as well as the one that exploded, and the fire burns an invincible
   Badger; a Badger charges a tower when no unit is left to it, and its
   explosion strikes the tower: `tests/extra_weapon/scorching-charge-survivor.yaml`.
+- Dominion Core destroys its remaining Fire Badgers after the death-effect
+  controller pass; their same-update death callbacks unregister the queued
+  explosions, leaving no fires on the next tick:
+  `tests/extra_weapon/dominion-cascade-cancels-deferred-explosions.yaml`.
 - A side's last Fire Badger, killed by a blow, leaves its fire, and the fight
   ends on the next tick with it standing (t1678):
   `tests/corpus/67160729-r4.yaml`.
@@ -1256,6 +1264,8 @@ that is not melee, so the simulator refuses it.
   `FightExplosionSkill.OnPermanentPreemptiveSkillActive`,
   `FightSkillBase.IsMainSearcher`, `FightMech.GetMainSearcherSkill`.
 - An explosion: `FightExplosionSkill.EnterFight`, `FightExplosionSkill.OnTravelFinished`,
+  `FightExplosionSkill.OnOwnerDead`, `FightExplosionSkill.ExitFight`,
+  `DeadEffectSystem.RemoveMech`, `DeadEffectController.RemoveMech`,
   `FightExplosionSkill.GetAttackEffect`, `SuicideEffect.Perform`,
   `DeadEffectSystem.Update`, `DeadExplosiveController.PerformDeadEffect`,
   `DeadExplosiveDamageProvider.GetDamage`,
