@@ -233,6 +233,10 @@ every attack angle, a grouped slot's as well as the core's. `MotionAttackState.A
 `CalculateTargetDirection`, and `FightTransform.RotateTo` returns on a zero
 direction, so the unit keeps its facing and its lock and fires on. It happens
 when a charging unit passes through the one aiming at it.
+The same zero-direction return holds during movement: `MotionMoveState.NormalRotate`
+passes the target direction to the mech body, so a unit moving onto its
+burrowed lock keeps its turret's facing while its root can still turn to its
+movement direction.
 
 ## A unit beside a flanked tower faces the flank
 
@@ -1548,6 +1552,9 @@ not the game's native attack-type enum.
   `tests/corpus/201477923-r6.yaml`, tick 57.
 - A Hound that a charging Fire Badger stands on keeps its lock and its facing
   and fires on: `tests/corpus/134367609-r4.yaml`, tick 300.
+- A produced Sledgehammer moving onto its burrowed Sandworm lock keeps its
+  turret facing once their horizontal positions coincide:
+  `tests/turret/moving-tank-overlaps-burrowed-target.yaml`.
 - A Sledgehammer whose lock walks out of its reach sets off with its turret
   still, and a Sandworm below when the fight is decided takes the defeated
   side's tower and walks on to it until the fight ends:
@@ -1937,6 +1944,7 @@ not the game's native attack-type enum.
   `SkillAttackAngleChecker.IsAttackTargetInAttackAngle`,
   `SkillAttackAngleChecker.IsWeaponInAttackAngle`,
   `FightUtility.CalculateAngle`, `MotionAttackState.AttackRotate`,
+  `MotionMoveState.NormalRotate`, `FightMechBody.RotateTo`,
   `FightTransform.RotateTo`.
 - The presearch takes each side's mechs in their team's order, which
   `PrepareActors` sorts by `FightUtility.ActorComparer`, and staggers their

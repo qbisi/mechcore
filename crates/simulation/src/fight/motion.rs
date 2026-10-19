@@ -763,7 +763,7 @@ impl Simulation {
 /// its body goes if it moves.
 #[derive(Debug, Clone, Copy)]
 struct Approach {
-    target_rotation_q32: i64,
+    target_rotation_q32: Option<i64>,
     body_x_q32: i64,
     body_z_q32: i64,
     body_radius: i64,
@@ -1078,10 +1078,6 @@ impl Simulation {
                 (view.x_q32, view.z_q32, view.radius)
             });
         let actor = &self.actors[&actor_id];
-        let target_rotation_q32 = direction_degrees_q32_raw(
-            target_x_q32.saturating_sub(actor.x_q32),
-            target_z_q32.saturating_sub(actor.z_q32),
-        );
         let target_turn_q32 = turn_direction_q32(
             target_x_q32.saturating_sub(actor.x_q32),
             target_z_q32.saturating_sub(actor.z_q32),
@@ -1152,7 +1148,7 @@ impl Simulation {
         self.leave_or_approach(
             actor_id,
             Approach {
-                target_rotation_q32,
+                target_rotation_q32: target_turn_q32,
                 body_x_q32,
                 body_z_q32,
                 body_radius,
@@ -1266,7 +1262,7 @@ impl Simulation {
             self.enter_motion_idle(actor_id);
             return Flow::Done;
         }
-        let target_rotation_q32 = direction_degrees_q32_raw(
+        let target_rotation_q32 = turn_direction_q32(
             view.x_q32.saturating_sub(actor.x_q32),
             view.z_q32.saturating_sub(actor.z_q32),
         );
@@ -2538,7 +2534,11 @@ impl Simulation {
         // weapon with a transform of its own (`FightWeapon.CanRotate`): a
         // unit setting off turns nothing, whichever state it leaves.
         if !entered_move {
-            actor.rotate_weapons_towards(target_rotation_q32);
+            // RotateTo preserves its rotation for a zero direction, rather
+            // than treating a target at the same position as bearing zero.
+            if let Some(rotation) = target_rotation_q32 {
+                actor.rotate_weapons_towards(rotation);
+            }
             if actor.has_body() {
                 actor.aim_rotation = degrees_q32_to_mdeg(
                     actor

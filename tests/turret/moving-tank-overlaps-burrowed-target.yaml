@@ -1,0 +1,56 @@
+# A Tank Production Line Sledgehammer moves onto its burrowed Sandworm
+# lock. Their horizontal positions coincide from tick 821: the zero target
+# direction keeps the turret facing, while the root continues its turn.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 2109840512
+round: 4
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, speed_specialist, assault_raiden]
+  techs:
+    raiden: [range_enhancement]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: raiden, index: 0, position: {x: 190, y: -270}, level: 8, exp: 16146/16146/16146, rotated: true, equipment: [tank_production_line]}
+  - {name: vulcan, index: 1, position: {x: -30, y: -210}, level: 6, exp: 0/200/14033, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -50, y: -105}}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: 80, y: -200}, {x: 225, y: -50}]}
+red:
+  core_damage: 710
+  officers: [advanced_missile_device, advanced_power_system, aerial_specialist]
+  techs:
+    raiden: [energy_shield, electromagnetic_shot, chain, ionization, range_enhancement, fork]
+  tower_strengthen_levels: [2, 4]
+  units:
+  - {name: raiden, index: 0, position: {x: -200, y: -90}, level: 2, exp: 2704/2740/5408, rotated: true, equipment: [laser_sights]}
+  - {name: sandworm, index: 1, position: {x: -230, y: -150}, level: 5, exp: 0/560/10421, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 240, y: -290}}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: 95, y: -200}]}
+asserts:
+- sql: |
+    SELECT tick, turret_rotation, motion_state FROM units
+    WHERE unit_id = 11 AND tick BETWEEN 820 AND 824 ORDER BY tick;
+  rows:
+  - [820, 456723292364, moving]
+  - [821, 467460710564, moving]
+  - [822, 467460710564, moving]
+  - [823, 467460710564, moving]
+  - [824, 467460710564, moving]
+- sql: |
+    SELECT COUNT(*) FROM units a JOIN units b USING (tick)
+    WHERE a.tick = 822 AND a.unit_id = 11 AND b.unit_id = 4
+      AND a.position__x = b.position__x AND a.position__z = b.position__z;
+  rows: [[1]]
+ticks: 923
+hash: 26:2fef117c8e49552610d5589602003ec37939ccdb8d73e9b32e77ee2474da199e
