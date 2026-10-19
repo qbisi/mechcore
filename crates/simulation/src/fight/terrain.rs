@@ -669,7 +669,6 @@ impl Simulation {
             if self.terrain.controllers[index].items.is_empty() {
                 continue;
             }
-            self.forget_the_dead(index);
             self.update_item_status(index);
             self.update_affected(index, events)?;
             self.update_periodic(index, events)?;
@@ -700,18 +699,24 @@ impl Simulation {
             affected.time -= period;
             let (unit, item) = (affected.unit, affected.terrain);
             self.perform_terrain_effect(item, unit, events)?;
-            self.forget_the_dead(index);
         }
         Ok(())
     }
 
-    /// `OnMechDead`: a unit that died leaves the controller, keeping the
-    /// order of the rest.
-    fn forget_the_dead(&mut self, index: usize) {
-        let actors = &self.actors;
-        self.terrain.controllers[index]
-            .affected
-            .retain(|affected| actors[&affected.unit].alive());
+    /// `RangeItemController` registers its virtual `OnActorExit` with
+    /// `FightMech.OnMechDead`. A fog takes its range modifier back as well
+    /// as removing the unit from its affected list, before any rebirth.
+    pub(in crate::fight) fn exit_terrains_on_dead(&mut self, unit: u64) -> Result<()> {
+        for index in 0..self.terrain.controllers.len() {
+            if self.terrain.controllers[index]
+                .affected
+                .iter()
+                .any(|affected| affected.unit == unit)
+            {
+                self.exit_terrain(index, unit)?;
+            }
+        }
+        Ok(())
     }
 
     /// `UpdateItemStatus`: each item, last first, ages, and goes once its
@@ -795,7 +800,6 @@ impl Simulation {
                 time: 0,
             });
             self.perform_terrain_effect(item, unit, events)?;
-            self.forget_the_dead(index);
         }
         Ok(())
     }
@@ -935,7 +939,6 @@ impl Simulation {
     /// whose controller ignores them (`IsIgnoreRoundDuration`).
     pub(in crate::fight) fn clear_terrains_as_the_fight_ends(&mut self) -> Result<()> {
         for index in 0..self.terrain.controllers.len() {
-            self.forget_the_dead(index);
             let affected = self.terrain.controllers[index]
                 .affected
                 .iter()
