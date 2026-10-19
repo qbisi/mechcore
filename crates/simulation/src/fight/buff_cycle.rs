@@ -168,6 +168,11 @@ impl Simulation {
         let sources = &actor.placement.effects.buff_sources;
         for (index, (source, cycle)) in sources.iter().zip(actor.buff_cycles.iter_mut()).enumerate()
         {
+            // TryGetFightEffectMananger cannot use a translated unit's
+            // MechTeam, so ActiveCycle sees only its type manager's sources.
+            if source.mech_unit_owned && actor.placement.team != actor.original_team {
+                continue;
+            }
             let reset = !actor.buff_cycles_available[index];
             actor.buff_cycles_available[index] = true;
             let restarted = match (source.trigger, std::mem::replace(cycle, BuffCycle::Done)) {

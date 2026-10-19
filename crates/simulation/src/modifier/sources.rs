@@ -393,6 +393,10 @@ pub(crate) struct SiegeMode {
     reason = "the buff row's and its source's flags are independent fields"
 )]
 pub(crate) struct BuffSource {
+    /// Registered on the formation's effect manager rather than its type's
+    /// (`TeamFightEffectManager.mechUnitEffectManagers`). A translated unit
+    /// falls back to the type manager when effects are activated again.
+    pub(crate) mech_unit_owned: bool,
     pub(crate) buff_id: u32,
     pub(crate) divide: i32,
     pub(crate) additive: bool,
