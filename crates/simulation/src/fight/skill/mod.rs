@@ -2185,7 +2185,9 @@ impl Simulation {
             let clear_velocity = self.ending.terminal_drain_pending;
             let skill = self.skill_mut(skill_ref);
             skill.drop_lock();
-            skill.set_phase(FightSkillPhase::Idle);
+            // ExitFight forces idle after stopping the attack controller;
+            // a pending backswing cannot hold a later resumed fight.
+            skill.enter(SkillState::Idle { ready_step: None });
             skill.performer.stop();
             skill.kill_count = 0;
             // `ExitFight` resets its `AttackCountEffectLinker` too.

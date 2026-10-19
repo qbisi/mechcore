@@ -1,0 +1,53 @@
+# Combat pauses while blue has no active units. The Sandworm attack
+# controller is stopped, including its old backswing. Wasp Swarm joins
+# at tick 48; the Sandworm searches and begins burrowing on tick 49.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1725134578
+round: 2
+blue:
+  core_damage: 600
+  officers: [quick_teleport, advanced_offensive_tactics, fortified_specialist, extended_range_arclight]
+  techs:
+    arclight: [electromagnetic_shot, armor_enhancement, anti_aircraft_ammunition, shockwave, range_enhancement, elite_marksman, charged_shot]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 2]
+  units:
+  - {name: arclight, index: 0, position: {x: -310, y: 120}, level: 4, rotated: true, equipment: [explosive_ammo], travelling: true, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: 270, y: -230}]}
+red:
+  core_damage: 48
+  officers: [advanced_missile_device, advanced_power_system, speed_specialist, assault_scorpion]
+  techs:
+    scorpion: [doubleshot, field_maintenance, armor_enhancement, siege_mode, range_enhancement, convergent_fire, acid_attack]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: scorpion, index: 0, position: {x: -65, y: -35}, level: 6, exp: 4349/4743/8698, equipment: [photon_coating]}
+  - {name: sandworm, index: 1, position: {x: 250, y: -70}, level: 7, exp: 0/1574/12593, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 170, y: -125}}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: -130, y: -60}]}
+asserts:
+- sql: |
+    SELECT u.tick, u.motion_state, s.enabled__attack_target__id
+    FROM units u JOIN units__skills s USING (tick, unit_id)
+    WHERE u.unit_id = 3 AND s.skill_slot = 0 AND u.tick IN (48, 49, 50, 51)
+    ORDER BY u.tick;
+  rows:
+  - [48, idle, null]
+  - [49, transitioning, 3]
+  - [50, transitioning, 3]
+  - [51, transitioning, 3]
+ticks: 2360
+hash: 26:9e23e6634275cc64170fb6a8af7a257b0b1925549e262be31686cbfc568b1a22
