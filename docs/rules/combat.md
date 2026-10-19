@@ -532,6 +532,13 @@ resume after the last projectile.
 
 ## Normal target scoring and pre-fight acquisition
 
+An attack-angle check that finds a weapon held at an endpoint of its
+limited rotation range can search again once that skill's search timer
+allows it. This applies to standalone main guns as well as extra weapons.
+If the replacement still cannot be attacked, cooling retains that newly
+checked target rather than the old one
+([`main-gun-arc-edge-refresh.yaml`](../../tests/search/main-gun-arc-edge-refresh.yaml)).
+
 The unit-level selector asks the unit as `IAttacker`, while a weapon's
 selector asks its skill. `FightMech` accepts a visible replacement only
 strictly inside its main range minus one metre; `FightSkill` checks its
@@ -1362,6 +1369,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- Mountain's second main gun refreshes its target from interceptor 6 to
+  unit 14 on tick 403 before entering cooling, which retains unit 14:
+  `tests/search/main-gun-arc-edge-refresh.yaml`.
+
 - A War Factory's unit-level search keeps its hidden Sandworm on tick 465
   while the best visible replacement is within 100 metres but beyond
   99 metres:
@@ -1742,6 +1753,11 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- A failed angle check reports a missing target at a limited rotation
+  endpoint, using fixed-point equality; the checker may then search again:
+  `SkillAttackAngleChecker.IsWeaponInAttackAngle`,
+  `SkillAttackableChecker.CheckWhenLoseTarget`.
 
 - The unit-level replacement range test is strictly less than main range
   minus one metre: `FightMech.GameRiver.Fight.IAttacker.IsActorInAttackRange`.

@@ -633,7 +633,7 @@ fn rotation_window(rotation_q32: i64, left_q32: i64, right_q32: i64) -> Option<(
 
 /// `FightUtility.ClampRotation`: one turn added below `Angle0`, one taken off
 /// from `Angle360`, with `FPoint`'s tolerant comparisons.
-fn clamp_rotation(rotation_q32: i64) -> i64 {
+pub(in crate::fight) fn clamp_rotation(rotation_q32: i64) -> i64 {
     let full_rotation = 360_i64 << 32;
     if rvo::fpoint_less_than(rotation_q32, 0) {
         rotation_q32.saturating_add(full_rotation)

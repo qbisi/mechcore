@@ -1,0 +1,49 @@
+# A complete generated layout. A main gun at its rotation limit searches
+# again before finishing, retaining the newly checked target in cooling.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1658395493
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_targeting_system, aerial_specialist]
+  techs:
+    mountain: [saturation_bombardment, mountain_plating, anti_aircraft_ammunition, range_enhancement, extended_range_ammo, gun_launched_missile, smoke_bomb, photon_loop]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: mountain, index: 0, position: {x: 55, y: -115}, level: 6, exp: 0/4360/18556, rotated: true, source: joined}
+  - {name: phoenix, index: 1, position: {x: -130, y: -60}, level: 5, exp: 0/1080/6774, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 55, y: -225}}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: 190, y: 40}]}
+red:
+  core_damage: 500
+  officers: [quick_teleport, improved_tarantula]
+  techs:
+    tarantula: [anti_aircraft_ammunition]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [2, 4]
+  units:
+  - {name: tarantula, index: 0, position: {x: 325, y: 255}, level: 3, rotated: true, equipment: [super_heavy_armor], travelling: true, source: joined}
+  - {name: fang, index: 1, position: {x: 135, y: -90}, level: 8, exp: 0/3600/4036, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 85, y: -125}, retained: false}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: 230, y: 290}, {x: 180, y: 170}, {x: -190, y: -30}]}
+asserts:
+- sql: |
+    SELECT tick, enabled__state, enabled__attack_target__id,
+      enabled__lock_target__id FROM units__skills
+    WHERE unit_id = 1 AND skill_slot = 1
+    AND tick IN (402, 403, 412, 413) ORDER BY tick;
+  rows:
+  - [402, attack, 6, 6]
+  - [403, cooling, 14, null]
+  - [412, cooling, 14, null]
+  - [413, idle, null, null]
+ticks: 687
+hash: 26:9d40bed37ec21d5aaaff973430f6738195b7670c38dadf4f12f58fa949f5eaeb

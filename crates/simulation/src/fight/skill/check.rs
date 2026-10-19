@@ -205,7 +205,12 @@ impl Simulation {
             // (`SearchTargetController.CanStartSearch`). A Sabertooth's
             // Secondary Armament gun whose Crawler walks out of its arc takes
             // the next one in it.
-            if !(self.weapon_at_arc_edge(skill_ref) && self.skill(skill_ref).search_target_time < 1)
+            if !(self.weapon_at_arc_edge(skill_ref, slot)
+                && self
+                    .skill(skill_ref)
+                    .group_skill(slot.unwrap_or(0))
+                    .search_target_time
+                    < 1)
             {
                 return Ok(false);
             }
@@ -613,36 +618,54 @@ impl Simulation {
             })
     }
 
-    /// Whether an extra skill's weapon stands at an edge of its arc
+    /// Whether a skill's weapon stands at an edge of its arc
     /// (`SkillAttackAngleChecker.IsWeaponInAttackAngle` with
     /// `isCheckMissing`): `CalculateRotationRange` gives a range narrower than
     /// the full turn and the weapon's rotation about what it is mounted on is
     /// one of its ends.
-    fn weapon_at_arc_edge(&self, skill_ref: SkillRef) -> bool {
-        let (FightActorRef::Unit(actor_id), SkillSlot::Extra(index)) =
-            (skill_ref.owner, skill_ref.slot)
-        else {
+    fn weapon_at_arc_edge(&self, skill_ref: SkillRef, slot: Option<usize>) -> bool {
+        let FightActorRef::Unit(actor_id) = skill_ref.owner else {
             return false;
         };
         let actor = &self.actors[&actor_id];
-        let extra = &actor.skills.extras[index];
-        let Some(arc) = extra.arc(0) else {
+        let slot = slot.unwrap_or(0);
+        let (arc, rotation, mount) = match skill_ref.slot {
+            SkillSlot::Main => (
+                actor
+                    .rules
+                    .attack
+                    .weapons
+                    .arcs
+                    .as_ref()
+                    .and_then(|arcs| arcs.get(slot)),
+                actor.skills.main.weapon_rotations_q32.get(slot),
+                actor.rules.attack.weapons.mount,
+            ),
+            SkillSlot::Extra(index) => {
+                let extra = &actor.skills.extras[index];
+                (
+                    extra.arc(slot),
+                    extra.skill.weapon_rotations_q32.get(slot),
+                    extra.rules.attack.weapons.mount,
+                )
+            }
+        };
+        let (Some(arc), Some(&rotation)) = (arc, rotation) else {
             return false;
         };
         let (Some(left), Some(right)) = (arc.left, arc.right) else {
             return false;
         };
-        let Some(&rotation) = extra.skill.weapon_rotations_q32.first() else {
-            return false;
-        };
-        let parent = match (extra.rules.attack.weapons.mount, actor.turret_rotation()) {
+        let parent = match (mount, actor.turret_rotation()) {
             (crate::rules::WeaponMount::MechBody, Some(turret)) => turret,
             _ => actor.body_rotation_q32,
         };
         let rest = parent.saturating_add(i64::from(arc.default) << 32);
-        let (full, half) = (360_i64 << 32, 180_i64 << 32);
-        let delta = (rotation - rest + half).rem_euclid(full) - half;
-        delta == -(i64::from(left) << 32) || delta == i64::from(right) << 32
+        let min = clamp_rotation(rest.saturating_sub(i64::from(left) << 32));
+        let max = clamp_rotation(rest.saturating_add(i64::from(right) << 32));
+        !rvo::fpoint_equal(min, 0)
+            && !rvo::fpoint_equal(max, 360_i64 << 32)
+            && (rvo::fpoint_equal(rotation, min) || rvo::fpoint_equal(rotation, max))
     }
 
     /// `SkillAttackState.Finish`: `StopAttack` drops the lock, the weapons
