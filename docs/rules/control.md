@@ -117,6 +117,9 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
   back on its original side. Controlling it away again reuses that identity
   rather than allocating another
   ([`repeated-control-reuses-formation.yaml`](../../tests/control/repeated-control-reuses-formation.yaml)).
+  A controlled unit rising again after Field Reassembly retains that same
+  unit-keyed recorder formation
+  ([`controlled-unit-reuses-formation.yaml`](../../tests/rebirth/controlled-unit-reuses-formation.yaml)).
 - **leaves its shots in the air on the side they were fired from.** A
   projectile strikes for the side its controller was handed as it was
   released (`ProjectileSystem.Create`, `ProjectileController.Init`), so one
@@ -231,6 +234,9 @@ the shield does not count against the turn.
 ## Evidence
 
 ### Recorded
+
+- A controlled Typhoon retains its first controlled formation after Field
+  Reassembly: `tests/rebirth/controlled-unit-reuses-formation.yaml`.
 
 - Ion Blast lowers a Steel Ball's life below its accumulated control progress;
   the Steel Ball changes side before its own update on that tick:

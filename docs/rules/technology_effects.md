@@ -735,6 +735,12 @@ reborn (`FightMech.AddRebirthCount`), which cuts its score
 rebirth left is gone. A fight that ends while a unit rises drops its task
 (`DeadRebirthController.OnFightExit`), and the unit scores nothing.
 
+A controlled Typhoon keeps the controlling side for its Field Reassembly
+task, before its death returns it to its original side. It rises on the
+controlling side again. The same unit
+object returns, so its recorder formation reuses the identity allocated for
+its first control rather than a new identity.
+
 **A pilot follows the nearest of its kind.** Quantum Reassembly's unit is not
 marked rising: its pilot (`RebirthSurvival`, starting where it fell) follows
 the Phoenix of its side nearest the one it followed, or where it fell
@@ -1824,6 +1830,10 @@ derive (a minimum range):
 
 ### Recorded
 
+- A controlled Typhoon rises through Field Reassembly on the controlling
+  side under its first controlled recorder formation:
+  `tests/rebirth/controlled-unit-reuses-formation.yaml`.
+
 - An Overlord continues its four-projectile burst after its Typhoon target
   dies while the opposing side's last units wait to rise:
   `tests/rebirth/enemy-burst-keeps-firing-during-rebirth.yaml`.
@@ -2324,6 +2334,10 @@ derive (a minimum range):
   `tests/fire_intensify/fire_badger-marksman.yaml`.
 
 ### Read
+
+- A controlled rebirth remembers its side before death and restores that
+  side to the same unit: `RebirthTask.StartTask`, `RebirthTask.RebirthMech`,
+  `TeamTranslationSystem.OnMechDead`, `TeamTranslationSystem.AddTranslatedMech`.
 
 - The generic `DeadEffectController<T>.PerformDeadEffect` filters each effect
   through `IDeadEffect.IsTechnologyEffect` and the current
@@ -2975,17 +2989,9 @@ derive (a minimum range):
   takes another course before then.
 - **A tie between points.** The sort that orders points at one distance
   follows `List.Sort` as read; no recording tells it from a stable one.
-- **A rebirth beside another dead effect, switched off, or of a turned or
-  summoned unit.** No recording holds one. A unit another side turned keeps
-  that side as it dies (`RebirthTask.StartTask` sets `rebirthToTeam` when
-  `currentTeamController` is not `originTeamController`, before
-  `TeamTranslationSystem.OnMechDead` hands it back), follows that side's units
-  of its type (`GetTeamAliveMechs`) while keeping an ally only on the side it
-  stands on (`UpdateReadyRebirth`), and rises on it, turned again
-  (`RebirthMech`: `FightActor.ChangeTeam`,
-  `TeamTranslationSystem.AddTranslatedMech`) under a formation of its own:
-  Typhoons with Field Reassembly a Hacker turned rise as the Hacker's. A
-  turned summon's rebirth (`SummonSystem.RebirthMech`) is refused by name.
+- **A rebirth beside another dead effect, switched off, of a summoned unit,
+  or a controlled Quantum Reassembly pilot.** No recording holds one. A turned summon's rebirth
+  (`SummonSystem.RebirthMech`) is refused by name.
   A dead summon or a
   rebirth switched off is read from the build, the acid's alone recorded.
   A unit an explosion kills dies after the acid controller has run and
