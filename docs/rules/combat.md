@@ -182,6 +182,10 @@ whose explosion's row has an interval of 0, reads 1 to the fight's last tick.
 A staggered interval is floored at one tick again after its draw; one with no
 stagger is the property's.
 After a unit first enters Attack, the next update is the earliest release.
+On entry without an initial cooldown, `FightSkill.EnterFight` refreshes the
+attack clock to its newly sampled interval. It is ready immediately,
+regardless of property changes before entry; a waiting clock from before
+entry does not survive that refresh.
 
 `FightSkill.RefreshDatas` preserves elapsed attack time unless it exactly
 equals the old interval, in which case it becomes the new interval. A clock
@@ -1415,6 +1419,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- Three Void Eyes enter attack with ready clocks, then begin their first
+  wind-ups on the following update:
+  `tests/attack_timing/entry-clears-modifier-deadline.yaml`.
+
 - An Arclight shell fired at a grounded Wraith lands after it takes off:
   its primary splash misses, but Shockwave deals its secondary damage using
   the Wraith's current domain:
@@ -1832,6 +1840,10 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- Entry with no initial cooldown refreshes the sampled attack interval and
+  sets attack time to it: `FightSkill.EnterFight`,
+  `FightSkill.RefreshAttackInterval`.
 
 - Data refresh preserves elapsed time except for a clock exactly equal to
   its old interval: `FightSkill.RefreshDatas`.

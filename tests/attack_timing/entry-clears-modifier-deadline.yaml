@@ -1,0 +1,53 @@
+# Complete generated layout: three Void Eyes enter attack on tick 1
+# and begin their first wind-ups on tick 2 with ready sampled clocks.
+# A pre-entry modifier deadline must not postpone those blows. Control:
+# longer-interval-postpones-ready-clock.yaml checks RefreshDatas after
+# entry, which preserves elapsed time instead of refreshing it to ready.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1737117226
+round: 1
+blue:
+  core_damage: 0
+  officers: [advanced_shield_device, aerial_specialist, improved_void_eye]
+  techs:
+    void_eye: [energy_shield, energy_absorption, aerial_mode, range_enhancement, charged_shot, suppression_shots, electromagnetic_armor]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: void_eye, index: 0, position: {x: -30, y: -80}, level: 7, exp: 0/4093/4093, rotated: true, equipment: [laser_sights], source: joined}
+  - {name: wraith, index: 1, position: {x: 235, y: -255}, level: 6, exp: 0/6970/13047, source: joined}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 30, y: -90}, retained: false}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: -180, y: -140}, {x: 45, y: -305}]}
+red:
+  core_damage: 250
+  officers: [advanced_missile_device, advanced_targeting_system, fortified_mustang]
+  techs:
+    mustang: [culling_rounds]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: mustang, index: 0, position: {x: 140, y: -55}, level: 8, exp: 0/2574/8073, rotated: true, equipment: [explosive_ammo], source: joined}
+  - {name: stormcaller, index: 1, position: {x: -75, y: -30}, level: 8, exp: 0/120/7400, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -90, y: -305}}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: 135, y: -275}]}
+asserts:
+- sql: |
+    SELECT tick, unit_id, enabled__attack_phase, enabled__attack_count,
+           enabled__attack_time FROM units__skills
+    WHERE unit_id BETWEEN 2 AND 4 AND tick = 2 ORDER BY unit_id;
+  rows:
+  - [2, 2, before, 0, 0]
+  - [2, 3, before, 0, 0]
+  - [2, 4, before, 0, 0]
+ticks: 1368
+hash: 26:9c350f5bf84b55bee3d540e3fb52ec273910771f5ca35162d192e369e9cd5bcc
