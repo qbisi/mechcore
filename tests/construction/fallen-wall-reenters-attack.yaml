@@ -1,0 +1,56 @@
+# Complete generated layout: a moving Wasp returns within range of its
+# retained fallen wall block, enters attack without turning on entry,
+# then idles when the skill finishes its construction-target check.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1689582117
+round: 3
+blue:
+  core_damage: 750
+  officers: [advanced_offensive_tactics, advanced_power_system, aerial_specialist]
+  techs:
+    wasp: [electromagnetic_shot]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 2]
+  units:
+  - {name: wasp, index: 0, position: {x: 255, y: -150}, level: 2, exp: 0/236/2028, equipment: [nano_repair_kit], source: joined}
+  - {name: hound, index: 1, position: {x: -50, y: -100}, level: 8, exp: 0/414/5046, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -5, y: -85}, retained: false}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: 225, y: 310}]}
+red:
+  core_damage: 0
+  officers: [advanced_targeting_system, fire_badger_specialist]
+  techs:
+    typhoon: [field_reassembly, field_entrenchment, reactive_armor, maintenance_array, wreckage_detonation, range_enhancement, air_defense_mark]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: typhoon, index: 0, position: {x: 160, y: -190}, level: 9, exp: 6559/8883/13118, equipment: [laser_sights]}
+  - {name: fire_badger, index: 1, position: {x: 75, y: -140}, source: delivered}
+  - {name: war_factory, index: 2, position: {x: 255, y: -115}, exp: 0/2420/3200, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: missile_strike, positions: [{x: -185, y: -50}]}
+asserts:
+- sql: |
+    SELECT tick, motion_state, body_rotation FROM units
+    WHERE unit_id = 1 AND tick BETWEEN 1416 AND 1420 ORDER BY tick;
+  rows:
+  - [1416, "moving", 978588158338]
+  - [1417, "attacking", 978588158338]
+  - [1418, "idle", 978588158338]
+  - [1419, "moving", 978588158338]
+  - [1420, "moving", 978588166131]
+ticks: 1460
+hash: 26:f1ae8fffa4c6f38c4f5f5a08ef10ebc4bd53fffd66019dde3d5d46cc4727b0da
