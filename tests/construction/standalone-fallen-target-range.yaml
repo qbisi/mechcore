@@ -1,0 +1,51 @@
+# Complete generated layout: a standalone gun's retained fallen target is
+# still measured by the shared range check while its attack runs on.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1093854313
+round: 4
+blue:
+  core_damage: 798
+  officers: [advanced_shield_device, advanced_power_system]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 255, y: -285}, level: 4, exp: 5837/5837/5837, rotated: true, equipment: [secondary_heavy_armor]}
+  - {name: hacker, index: 1, position: {x: 95, y: -175}, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 110, y: -180}, retained: false}
+  battle_skills:
+  - {name: electromagnetic_blast, positions: [{x: 255, y: -50}]}
+red:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, rhino_specialist]
+  techs:
+    mountain: [saturation_bombardment, mountain_plating, anti_aircraft_ammunition, range_enhancement, extended_range_ammo, gun_launched_missile, smoke_bomb, photon_loop]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [2, 2]
+  units:
+  - {name: mountain, index: 0, position: {x: -155, y: -45}, level: 2, exp: 3605/4173/7210, rotated: true}
+  - {name: rhino, index: 1, position: {x: -255, y: -45}, level: 2, source: delivered}
+  - {name: typhoon, index: 2, position: {x: 40, y: -140}, level: 8, exp: 0/2800/13118, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: 250, y: -85}]}
+asserts:
+- sql: |
+    SELECT tick, motion_state FROM units
+    WHERE unit_id = 4 AND tick BETWEEN 204 AND 206 ORDER BY tick;
+  rows:
+  - [204, attacking]
+  - [205, attacking]
+  - [206, attacking]
+ticks: 711
+hash: 26:e094584bb36cebdec1119904629c958eeccae044bcb3aa60dfaf302002d56b45

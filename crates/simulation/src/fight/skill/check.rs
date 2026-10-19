@@ -323,22 +323,20 @@ impl Simulation {
         if let Some(shield) = sibling.shield_target()
             && Some(target) == sibling.lock_target
         {
-            return self.fight_actor(target).is_some_and(|view| view.alive)
-                && self
-                    .shield_attack_point(shield, skill_ref, target)
-                    .is_some_and(|(x_q32, z_q32)| {
-                        let distance =
-                            native_q32_magnitude(x_q32 - source.x_q32, z_q32 - source.z_q32)
-                                .saturating_sub(space_to_q32(source.rules.collision_radius()))
-                                .max(0);
-                        distance >= space_to_q32(min_range)
-                            && distance
-                                <= space_to_q32(
-                                    self.slot_attack_range(skill_ref, slot).saturating_add(
-                                        self.skill_rules(skill_ref).extra_shield_range(),
-                                    ),
-                                )
-                    });
+            return self
+                .shield_attack_point(shield, skill_ref, target)
+                .is_some_and(|(x_q32, z_q32)| {
+                    let distance = native_q32_magnitude(x_q32 - source.x_q32, z_q32 - source.z_q32)
+                        .saturating_sub(space_to_q32(source.rules.collision_radius()))
+                        .max(0);
+                    distance >= space_to_q32(min_range)
+                        && distance
+                            <= space_to_q32(
+                                self.slot_attack_range(skill_ref, slot).saturating_add(
+                                    self.skill_rules(skill_ref).extra_shield_range(),
+                                ),
+                            )
+                });
         }
         self.slot_actor_in_attack_range(skill_ref, slot, target)
     }
@@ -364,9 +362,9 @@ impl Simulation {
                 .max(0);
         // `IsActorInAttackRange` asks every skill of the group, as the core,
         // whether it sees the target.
-        target.alive
-            && target.targetable
-            && self.skill_reaches_hidden(skill_ref, target.visibility)
+        // SkillAttackRangeChecker measures a retained dead target too.
+        // Selection and attackability, rather than the range test, ask life.
+        self.skill_reaches_hidden(skill_ref, target.visibility)
             && distance >= space_to_q32(source.min_range)
             && distance <= space_to_q32(self.slot_attack_range(skill_ref, slot))
     }
