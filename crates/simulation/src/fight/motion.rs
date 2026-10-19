@@ -1410,7 +1410,9 @@ impl Simulation {
         // in the way before the lock behind it.
         let aimed = skill
             .attack_target()
-            .and_then(|target| self.fight_actor(target));
+            .and_then(|target| self.fight_actor(target))
+            .filter(|view| view.alive)
+            .or(lock);
         if self.actors[&actor_id].motion.state == MotionState::Stopped {
             // `MotionStopState.Update` still runs AttackRotate for its
             // current attacker while the move behaviour is active and
