@@ -1,0 +1,52 @@
+# Stormcaller 10 starts a blow on tick 1263. Its Steel Ball target
+# enters the minimum range. On tick 1266 only the alive-target fallback
+# finds building 4 and marks the skill idle. Its raw target still passes
+# geometry, preserving attack_time 3 before idle rejects the attack.
+# Control: ../corpus/201372157-r2.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1580825055
+round: 4
+blue:
+  core_damage: 351
+  officers: [quick_teleport, advanced_power_system, typhoon_specialist]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: typhoon, index: 0, position: {x: -270, y: -40}, source: delivered}
+  - {name: sabertooth, index: 1, position: {x: 315, y: 65}, level: 9, exp: 0/465/8746, equipment: [secondary_laser_sight], travelling: true, source: joined}
+  - {name: steel_ball, index: 2, position: {x: 275, y: -20}, level: 3, exp: 0/1355/3562, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 155, y: -195}, retained: false}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: 195, y: -290}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_offensive_tactics, typhoon_specialist, extended_range_stormcaller]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [2, 1]
+  units:
+  - {name: typhoon, index: 0, position: {x: -280, y: -130}, source: delivered}
+  - {name: stormcaller, index: 1, position: {x: -335, y: 240}, level: 4, exp: 0/748/4939, rotated: true, equipment: [photon_coating], travelling: true, source: joined}
+  - {name: phantom_ray, index: 2, position: {x: 205, y: -60}, level: 8, exp: 0/6727/6727, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 145, y: -115}, retained: false}
+asserts:
+- sql: |-
+    SELECT tick,enabled__state,enabled__attack_time,enabled__current_attack_interval FROM units__skills WHERE unit_id=10 AND tick BETWEEN 1265 AND 1268 ORDER BY tick
+  rows:
+  - [1265, "attack", 2, 132]
+  - [1266, "idle", 3, 132]
+  - [1267, "idle", 4, 132]
+  - [1268, "idle", 5, 132]
+ticks: 1356
+hash: 26:d2eb95453467bd9f062d35ba304a93da1d2a5f11a8dfe3036b987803ec9d9658
