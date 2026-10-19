@@ -398,7 +398,11 @@ is underground; its wave is still centred on the Abyss.
 
 - **The wave grows a step every half second.** The timer fires every
   `diffusionInteval`, 10 ticks, from the update after the blow, ahead of the
-  tick's modules. Its `n`th firing reaches `n` times `diffusionSpeed`, 30
+  tick's modules. `GRTimerManager.Update` walks timers in registration
+  order across callback types. When an older wave and a later summon arrival
+  are due together, that firing runs before the summon joins; the next firing
+  can reach it. A timer started inside a callback is updated on that tick too.
+  Its `n`th firing reaches `n` times `diffusionSpeed`, 30
   metres, and never past the skill's 280 metres of splash. A Rhino whose edge
   stands 85 metres off is reached at the third firing, a second and a half
   after the blow.
@@ -1060,6 +1064,9 @@ that is not melee, so the simulator refuses it.
   reaches 100 metres and every other slot 110, and no two bolts share a
   target: `tests/extra_weapon/fork-mixed.yaml`.
 
+- An older Disintegration wave fires before later summon-appearance timers
+  due on the same tick, first reaching the new Mustangs on its next firing:
+  `tests/extra_weapon/diffusion-before-later-summon-arrival.yaml`.
 - Disintegration's wave strikes the ground about the Abyss 30 metres further
   every half second after its blow, each unit once, the Rhinos and Crawlers
   each losing 0.2 of their life as the slow is written:
@@ -1291,6 +1298,7 @@ that is not melee, so the simulator refuses it.
   `DamagePerformer.PrepareRangeTargetsInDiffusion`,
   `DamagePerformer.ProcessAdvancedEnergyShieldEffect`,
   `DamagePerformer.PerformHitAdvancedEndergyShieldEffect`, `GRTimerManager.Update`,
+  `GRTimerManager.AddTimer`, `SummonSystem.CreateMechDelay`,
   `GRTimer.Init`, `GRTimer.Update`, `SkillDamageProvider.GetTargetType`; its
   buff's share of life, `BuffManager.AddBuff`, `Buff.ReEnableDisposableEffect`,
   `Buff.Reset`, `IBEC_ChangeCurrentLife.Enter`,
@@ -1331,9 +1339,7 @@ that is not melee, so the simulator refuses it.
   technology gives it.
 - **A wave that deals damage.** Disintegration's deals none, and the
   simulator strikes with a wave's damage as a splash does, the shields too.
-  Nor is a shield covering what the blow was aimed at recorded, nor a wave's
-  timer ordered against a summon's that is due on the same tick: the
-  simulator runs the summons first.
+  Nor is a shield covering what the blow was aimed at recorded.
 - **A correction other than damage, range, interval and splash composing on
   an extra skill.** Refused.
 - **What invincibility keeps off.** A fire burns an invincible Fire Badger;

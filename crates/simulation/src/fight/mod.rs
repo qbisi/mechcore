@@ -91,6 +91,7 @@ mod sweep;
 mod terrain;
 #[cfg(test)]
 mod tests;
+mod timers;
 mod tower;
 mod underground;
 mod wreckage;
@@ -572,6 +573,7 @@ struct Simulation {
     /// `GRTimerManager.processIndex` is nonnegative while callbacks run;
     /// a timer appended by a callback receives its first update this tick.
     updating_timers: bool,
+    timers: timers::Timers,
     /// Every side's `FightTeam.activeActors`, the order it updates its units
     /// in and hands a buff for all of it out: see [`deploy::prepare_actors`].
     /// The sides share the list, and each reads its own in it.
@@ -729,6 +731,7 @@ impl Simulation {
             dead_actors: Vec::new(),
             step_now: 0,
             updating_timers: false,
+            timers: timers::Timers::default(),
             active_actors,
             team_random: BTreeMap::new(),
             projectiles: Vec::new(),
@@ -1191,15 +1194,13 @@ impl Simulation {
         let core_step_was_finished = self.core_step_finished();
         self.ending.stop_step = core_step_was_finished.then_some(step);
         self.refresh_target_query_snapshot();
-        // `GRTimerManager.Update` runs before any module: the summons whose
-        // second is up join the fight first. The tick's searches were
+        // `GRTimerManager.Update` runs before any module, in timer registration
+        // order. A summon whose second is up joins on its callback. Searches were
         // prepared without them, after the last tick's modules, and find them
         // from the next: the Crawlers around a Rhino that has just dropped go
         // on searching for what they were after. Their own searches were not
         // prepared, and find the summons that joined with them.
         self.updating_timers = true;
-        let mut joined = Vec::new();
-        self.join_summons(step, &mut joined)?;
         let mut events = Vec::new();
         let mut torn_down = Vec::new();
         if publish_late_building_events {
@@ -1224,17 +1225,7 @@ impl Simulation {
                 ));
             }
         }
-        events.extend(joined);
-        // Then the timers of the splashes that diffuse, which started after
-        // any summon now joining was due: a splash strikes where its
-        // enemies stood as the tick opened.
-        self.update_diffusions(&mut events)?;
-        self.update_chains(&mut events)?;
-        // And those of the units that left their trench, and of those whose
-        // technology that turned their domain was switched off.
-        self.idle_after_trenches(step);
-        self.revert_fly_units(step);
-        self.finish_melee_transitions(step)?;
+        self.update_timers(step, &mut events)?;
         self.updating_timers = false;
         self.refresh_opponent_actor_lists();
         // Native search jobs retain the actor-quadtree candidate order

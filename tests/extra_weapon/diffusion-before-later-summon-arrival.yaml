@@ -1,0 +1,53 @@
+# Disintegration's diffusion timer was registered before the appearance
+# timers of Mustangs 22-25. On tick 901 its firing precedes their arrival;
+# its next firing at 911 first reaches them and takes 120 life from each.
+# Control: disintegration-rhinos.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 329612047
+round: 1
+blue:
+  core_damage: 456
+  officers: [advanced_offensive_tactics, advanced_targeting_system, speed_specialist]
+  techs:
+    abyss: [disintegration]
+  blueprints: [attack_enhancement_ii]
+  tower_strengthen_levels: [3, 3]
+  units:
+  - {name: abyss, index: 0, position: {x: -245, y: -165}, level: 2, exp: 0/4536/10815, rotated: true, source: joined}
+  - {name: scorpion, index: 1, position: {x: 145, y: -65}, level: 8, exp: 0/68/10091, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -65, y: -235}, retained: false}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: 180, y: -25}]}
+red:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_power_system, improved_overlord]
+  techs:
+    overlord: [range_enhancement]
+  blueprints: [defense_enhancement_ii]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: overlord, index: 0, position: {x: -235, y: -35}, level: 6, exp: 0/10148/10148, rotated: true, equipment: [mustang_production_line], source: joined}
+  - {name: centurion, index: 1, position: {x: 205, y: -205}, level: 4, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: 290, y: 65}, {x: 235, y: 285}, {x: 100, y: 145}]}
+asserts:
+- sql: |-
+    SELECT tick,unit_id,life__current FROM units WHERE unit_id BETWEEN 22 AND 25 AND tick IN (901,911) ORDER BY tick,unit_id
+  rows:
+  - [901, 22, 600]
+  - [901, 23, 600]
+  - [901, 24, 600]
+  - [901, 25, 600]
+  - [911, 22, 480]
+  - [911, 23, 480]
+  - [911, 24, 480]
+  - [911, 25, 480]
+ticks: 1003
+hash: 26:22e8cb36a92d4f8f719434cc672b3de67a1c54b1a7671b4b57476b84e5dd7a01

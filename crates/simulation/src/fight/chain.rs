@@ -30,6 +30,7 @@ use super::*;
 /// One `HitEffectControl` under way: the timer of its next jump.
 #[derive(Debug, Clone)]
 pub(in crate::fight) struct ChainJump {
+    timer: u64,
     owner: u64,
     /// The skill's index among its owner's skills.
     slot: u16,
@@ -122,7 +123,9 @@ impl Simulation {
         {
             return;
         }
+        let timer = self.timers.start(timers::Callback::Chain);
         self.chains.push(ChainJump {
+            timer,
             owner,
             slot,
             team,
@@ -136,30 +139,29 @@ impl Simulation {
 
     /// The `GRTimerManager` update of every chain's timer, in the order the
     /// chains started: each one due jumps (`OnTimerOver`).
-    pub(in crate::fight) fn update_chains(&mut self, events: &mut Vec<Event>) -> Result<()> {
-        let mut index = 0;
-        while index < self.chains.len() {
-            let jump = &mut self.chains[index];
-            jump.time += 1;
-            if jump.time < jump.interval {
-                index += 1;
-                continue;
-            }
-            // The control stays in `IterationEffectSystem` while it strikes:
-            // its own hit, which the skill's hit effects take, finds a chain
-            // of the skill under way and starts none.
-            let jump = jump.clone();
-            match self.jump(&jump, events)? {
-                Some(next) => {
-                    self.chains[index] = next;
-                    index += 1;
-                }
-                None => {
-                    self.chains.remove(index);
-                }
-            }
+    pub(in crate::fight) fn update_chain(
+        &mut self,
+        timer: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<bool> {
+        let Some(index) = self.chains.iter().position(|value| value.timer == timer) else {
+            return Ok(false);
+        };
+        let jump = &mut self.chains[index];
+        jump.time += 1;
+        if jump.time < jump.interval {
+            return Ok(true);
         }
-        Ok(())
+        // Keep this control registered while it strikes, so its own hit
+        // cannot start another chain of the same skill.
+        let jump = jump.clone();
+        let next = self.jump(&jump, events)?;
+        self.chains.remove(index);
+        if let Some(mut next) = next {
+            next.timer = self.timers.start(timers::Callback::Chain);
+            self.chains.push(next);
+        }
+        Ok(false)
     }
 
     /// `HitEffectControl.OnTimerOver`: the jump drawn and struck, and the

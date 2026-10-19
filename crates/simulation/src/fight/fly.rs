@@ -155,10 +155,13 @@ impl Simulation {
                 actor.set_tech_fly(fly);
             }
             actor.fly_reverts_at = None;
+            self.timers.stop(timers::Callback::Fly(unit));
         } else if turned {
             let delay = math::seconds_q32_to_steps(source.landing_q32)
                 .saturating_sub(u64::from(self.updating_timers));
             actor.fly_reverts_at = Some(step_now + delay);
+            self.timers.stop(timers::Callback::Fly(unit));
+            self.timers.start(timers::Callback::Fly(unit));
         }
     }
 
@@ -166,13 +169,20 @@ impl Simulation {
     /// technology was switched off lands or flies up
     /// (`LandingCallBack`, `FlyUpCallBack`), taking its type's domain back if
     /// it still holds the other.
-    pub(in crate::fight) fn revert_fly_units(&mut self, step: u64) {
-        for actor in self.actors.values_mut() {
-            if actor.fly_reverts_at.is_some_and(|at| at <= step) {
-                actor.fly_reverts_at = None;
-                let fly = actor.type_flies();
-                actor.set_tech_fly(fly);
-            }
+    pub(in crate::fight) fn revert_fly_unit(&mut self, unit: u64, step: u64) -> bool {
+        let actor = self
+            .actors
+            .get_mut(&unit)
+            .expect("a timer's owner remains present");
+        let Some(at) = actor.fly_reverts_at else {
+            return false;
+        };
+        if at > step {
+            return true;
         }
+        actor.fly_reverts_at = None;
+        let fly = actor.type_flies();
+        actor.set_tech_fly(fly);
+        false
     }
 }

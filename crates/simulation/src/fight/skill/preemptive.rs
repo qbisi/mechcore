@@ -232,8 +232,13 @@ impl Simulation {
                 lock(&mut extra.skill);
             }
         }
-        actor.melee_transition_at =
-            Some(step_now + seconds_q32_to_steps(crate::rules::metres_q32(ammo_empty.transition)));
+        actor.melee_transition_at = Some(
+            step_now
+                + seconds_q32_to_steps(crate::rules::metres_q32(ammo_empty.transition))
+                    .saturating_sub(u64::from(self.updating_timers)),
+        );
+        self.timers.stop(timers::Callback::Melee(actor_id));
+        self.timers.start(timers::Callback::Melee(actor_id));
         // A melee mode's skill disables its unit's body
         // (`MeleeModeTech.DisableBody` answers true): the body turns to where
         // the unit points (`IFightMechBody.UpdateRotation`) and stays there,
@@ -270,41 +275,43 @@ impl Simulation {
     /// (`OnMeleeModeTransitionComplete`): its rate on life, which keeps the
     /// unit's share of it, its speed, and its rate on damage, which reaches
     /// the main skill and every extra skill dealing a share of it.
-    pub(in crate::fight) fn finish_melee_transitions(&mut self, step: u64) -> Result<()> {
-        let due = self
+    pub(in crate::fight) fn finish_melee_transition(
+        &mut self,
+        actor_id: u64,
+        step: u64,
+    ) -> Result<bool> {
+        let actor = self
             .actors
-            .iter()
-            .filter(|(_, actor)| actor.melee_transition_at.is_some_and(|at| at <= step))
-            .map(|(&id, _)| id)
-            .collect::<Vec<_>>();
-        for actor_id in due {
-            let actor = self
-                .actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable");
-            actor.melee_transition_at = None;
-            if !actor.alive() || !actor.skills.preemptive_active {
-                continue;
-            }
-            let Some(index) = actor
-                .skills
-                .extras
-                .iter()
-                .position(|extra| extra.rules.preemptive.is_some())
-            else {
-                continue;
-            };
-            unlock(&mut actor.skills.extras[index].skill);
-            if let Some(melee) = actor.placement.effects.single.melee {
-                for (channel, entry) in melee_entries(melee) {
-                    actor.stats.overlays.channel(channel).write(entry);
-                }
-                actor.melee_written = true;
-                actor.refresh_life_data()?;
-            }
-            self.enter_motion_idle(actor_id);
+            .get_mut(&actor_id)
+            .expect("a timer's owner remains present");
+        let Some(at) = actor.melee_transition_at else {
+            return Ok(false);
+        };
+        if at > step {
+            return Ok(true);
         }
-        Ok(())
+        actor.melee_transition_at = None;
+        if !actor.alive() || !actor.skills.preemptive_active {
+            return Ok(false);
+        }
+        let Some(index) = actor
+            .skills
+            .extras
+            .iter()
+            .position(|extra| extra.rules.preemptive.is_some())
+        else {
+            return Ok(false);
+        };
+        unlock(&mut actor.skills.extras[index].skill);
+        if let Some(melee) = actor.placement.effects.single.melee {
+            for (channel, entry) in melee_entries(melee) {
+                actor.stats.overlays.channel(channel).write(entry);
+            }
+            actor.melee_written = true;
+            actor.refresh_life_data()?;
+        }
+        self.enter_motion_idle(actor_id);
+        Ok(false)
     }
 }
 
