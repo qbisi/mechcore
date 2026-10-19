@@ -744,12 +744,9 @@ impl Simulation {
                 actor.aim_rotation = actor.body_rotation;
                 actor.set_weapon_rotation(target_rotation_q32);
             }
-            // A travelling unit keeps the lock its presearch found, and its
-            // attack target is searched by the first update of its own.
-            if actor.travelling {
-                continue;
-            }
-            self.search_attack_target(SkillRef::main(FightActorRef::Unit(actor_id)));
+            // Presearch sets the lock and facing, not the attack target.
+            // The skill's first update runs SearchAttackTarget; doing it
+            // here too can replace a batch gun's wall lock twice.
         }
         // A weapon fixed to the body enters the fight with the body's
         // rotation, and an extra skill's weapon at its rest: what it is
