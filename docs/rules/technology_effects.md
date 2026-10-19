@@ -477,6 +477,10 @@ the whole part of the damage over the group's count, dead members counted,
 is dealt to each member alive in the group's order as a hit of its own,
 which no rate, reduction or further share touches, and which each member's
 own shield takes first. The remainder, and a dead member's part, are lost.
+The member's hit is a fresh `HitDamageInfo`, with `isDirectHit` false even
+when the original hit was direct. A direct life-changing buff tick shared
+by the group therefore reaches each member's personal shield rather than
+bypassing it.
 Fifteen Sledgehammers share a Marksman's 2329 as 155 each; each member takes
 its part as taken damage, and the target nothing more.
 
@@ -1917,6 +1921,9 @@ derive (a minimum range):
   `tests/damage_share/apart.yaml`. A tank a Hacker turns leaves its
   group and links with the next one turned on its new side:
   `tests/damage_share/hackers.yaml`.
+- Shared direct buff damage creates ordinary hits on the group members,
+  whose Portable Shields take those shares before their life:
+  `tests/damage_share/direct-buff-tick-reaches-personal-shields.yaml`.
 - Grid Integration's group of five Vortexes raises each one's damage by
   105%, the count held to four; as they fall and part, two pairs take 35%
   and a Vortex alone nothing:
