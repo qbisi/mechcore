@@ -111,6 +111,10 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
   recorder formation is allocated, and its later experience belongs to that
   original formation
   ([`recaptured-unit-restores-original-formation.yaml`](../../tests/control/recaptured-unit-restores-original-formation.yaml)).
+  The recorder retains the unit-keyed formation identity while the unit is
+  back on its original side. Controlling it away again reuses that identity
+  rather than allocating another
+  ([`repeated-control-reuses-formation.yaml`](../../tests/control/repeated-control-reuses-formation.yaml)).
 - **leaves its shots in the air on the side they were fired from.** A
   projectile strikes for the side its controller was handed as it was
   released (`ProjectileSystem.Create`, `ProjectileController.Init`), so one
@@ -225,6 +229,11 @@ the shield does not count against the turn.
 ## Evidence
 
 ### Recorded
+
+- A Stormcaller repeatedly controlled away from its original side reuses
+  formation 47 at ticks 270, 352 and 440, with its original formation 4
+  between those turns:
+  `tests/control/repeated-control-reuses-formation.yaml`.
 
 - The last translation coinciding with the final projectiles tears down the
   defeated side's constructions before final exit:

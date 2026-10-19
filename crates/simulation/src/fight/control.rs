@@ -392,6 +392,7 @@ impl Simulation {
                 }
                 if !self.actors[&target].summoned
                     && self.actors[&target].placement.team != self.actors[&target].original_team
+                    && !self.ids.turned_formations.contains_key(&target)
                 {
                     turned.push(target);
                 }
@@ -408,7 +409,8 @@ impl Simulation {
     /// stand, `z` before `x`. The units turned on one tick take their
     /// formations in that order as the tick ends, wherever they stood as they
     /// turned: six Crawlers Multi Control turned at once number by how far
-    /// up the field each stands.
+    /// up the field each stands. Only a unit's first turn needs numbering;
+    /// `capture.formation_ids` keeps its unit-pointer key across later turns.
     pub(in crate::fight) fn name_turned_formations(&mut self) {
         let mut turned = std::mem::take(&mut self.turned_unnamed);
         if turned.is_empty() {
@@ -424,6 +426,7 @@ impl Simulation {
             (actor.placement.team, actor.z_q32, actor.x_q32, *id)
         });
         for (id, formation_id) in turned.into_iter().zip(formations) {
+            self.ids.turned_formations.insert(id, formation_id);
             self.actors
                 .get_mut(&id)
                 .expect("actor identity is stable")
@@ -718,6 +721,10 @@ impl Simulation {
             self.actors[&unit_id].placement.formation_id
         } else if team == self.actors[&unit_id].original_team {
             self.actors[&unit_id].original_formation
+        } else if let Some(&formation_id) = self.ids.turned_formations.get(&unit_id) {
+            // capture.formation_ids retains the unit-pointer key even while
+            // GetMechTeam temporarily answers its original formation again.
+            formation_id
         } else {
             let formation_id = self.ids.next_formation;
             self.ids.next_formation += 1;

@@ -502,6 +502,8 @@ struct Identities {
     /// The identity the next unit to join takes, and its formation's.
     next_unit: u64,
     next_formation: u64,
+    /// The recorder's unit-keyed formation survives a return to its team.
+    turned_formations: BTreeMap<u64, u64>,
 }
 
 /// `FightingState` as the fight ends: the step it stops on, and what its end
@@ -731,6 +733,7 @@ impl Simulation {
                 objects: IdentityAllocator::new(),
                 next_unit: 0,
                 next_formation: 0,
+                turned_formations: BTreeMap::new(),
             },
             ending: Ending::default(),
             buildings,
