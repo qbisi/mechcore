@@ -215,14 +215,20 @@ impl Simulation {
         } else if !self.target_inside_min_range(skill_ref, target) {
             return Ok(false);
         }
-        let attackable = self.search_lock_target(skill_ref, slot, target_search_order)?
-            && self
-                .slot_attack_target(skill_ref, slot)
-                .is_some_and(|target| self.slot_target_in_attack_area(skill_ref, slot, target));
+        // CheckWhenLoseTarget returns before ResetAttackData when its
+        // search finds no lock; the interrupted wind-up keeps elapsed time.
+        if !self.search_lock_target(skill_ref, slot, target_search_order)? {
+            return Ok(false);
+        }
+        let attackable = self
+            .skill(skill_ref)
+            .group_skill(slot.unwrap_or(0))
+            .checked_attack_target()
+            .is_some_and(|target| self.slot_target_in_attack_area(skill_ref, slot, target));
         if attacking_check && slot.is_none_or(|slot| slot == 0) {
             self.reset_attack_data_on_losing_target(skill_ref, attackable)?;
         }
-        Ok(attackable)
+        Ok(attackable && !self.skill(skill_ref).group_skill(slot.unwrap_or(0)).idle)
     }
 
     /// The `ResetAttackData` of `CheckWhenLoseTarget`, which an attacking

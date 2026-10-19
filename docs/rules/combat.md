@@ -670,9 +670,11 @@ Nor does it prepare a skill a `SkillGroup` holds, a Wraith's or a Raiden's:
 their every search scores candidates where they stand as it runs, after the
 units of the sides that update first have moved.
 
-**A blow that loses its target inside the minimum range gives its interval
-back.** That search is `SkillAttackableChecker.CheckWhenLoseTarget`, and on an
-attacking check of the main searcher, while a blow is under way, it calls
+**A replacement found after losing a target inside the minimum range can
+give the interval back.** That search is
+`SkillAttackableChecker.CheckWhenLoseTarget`. If it finds no lock, it clears
+the attack target and returns without resetting the clock. After finding a
+lock, on an attacking check of the main searcher while a blow is under way, it calls
 `FightSkill.ResetAttackData`: the interval is drawn again, and when no blow of
 the attack state has run its cycle out (`performCount` 0) and the blow is not
 still winding up on a target it can attack, `attackTime` is set to the
@@ -683,6 +685,10 @@ walked inside its 70 m minimum range two ticks into the wind-up read
 `attackTime` 3 before the check and 132, its interval, after it, and wound up
 again at tick 558, 49 ticks later rather than the interval's 132; twelve ticks into an earlier wind-up
 whose target died, the same check left `attackTime` at 12.
+The geometry for deciding whether to reset the clock reads the raw attack
+target, including a lock found only by the alive-target fallback. That
+fallback marks the skill idle, which makes the final check fail without
+turning its successful geometry check into a clock reset.
 
 **A blow is counted as it hands back its last phase.**
 `SkillAttackController.ChangeToIdle` adds it to `performCount`: a blow with no
@@ -1788,6 +1794,9 @@ not the game's native attack-type enum.
 - A Stormcaller's blow that lost its target inside the minimum range giving
   its interval back, and one whose target died keeping it:
   `tests/corpus/201372157-r2.yaml`.
+- A Stormcaller whose minimum-range search falls back to a geometrically
+  attackable building while idle keeps the three ticks spent in its wind-up:
+  `tests/attack_timing/idle-fallback-keeps-windup-clock.yaml`.
 - A blow whose attack point and backswing outlast its interval is fitted into
   it: `tests/modifier/technology-interval-value.yaml`.
 - EMP changing a Sandworm's interval during windup leaves the already fitted
