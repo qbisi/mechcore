@@ -68,7 +68,11 @@ the whole of the difference:
   own weapon's rotation, and a weapon held to an arc passes over what lies
   outside the arc widened by the skill's attack angle either side, the arc
   about the weapon's rest as the unit stands then, whichever way the weapon
-  points.
+  points. `ScoreRatingTargetSelector.Selector.CalculateRotationData` only
+  widens an arc when its original minimum differs from zero and its maximum
+  differs from a full turn, using `FPoint` equality. Otherwise the scorer
+  ignores the window. Widening such an endpoint first could turn an ignored
+  half-circle into a wrapping window and wrongly penalize a candidate.
 - **Its attack angle is its row's.** `Init` takes a skill's attack angle from
   its own row where the row sets one, and otherwise gives an extra skill the
   whole circle and a main skill its owner's.
@@ -775,6 +779,11 @@ that is not melee, so the simulator refuses it.
 
 ### Recorded
 
+- A Sabertooth's Secondary Armament selects a Scorpion while its original
+  rotation window begins at zero; that endpoint skips angle widening and
+  the scorer's arc penalty:
+  `tests/search/arc-endpoint-skips-search-widening.yaml`.
+
 - An idle Whirlwind retains its kill bonus after the main skill exits on
   the tick following the last kill; both clear it at final exit:
   `tests/extra_weapon/whirlwind-idle-kills-after-last-enemy.yaml`.
@@ -1105,6 +1114,11 @@ that is not melee, so the simulator refuses it.
   `scripts/corpus/match-replays.py`.
 
 ### Read
+
+- Search rotation data widens an arc by the attack angle only when its
+  original endpoints differ from zero and a full turn:
+  `ScoreRatingTargetSelector.Selector.CalculateRotationData`,
+  `ScoreRatingTargetSelector.CalculateScore`.
 
 - Self-splash bypasses visibility in both current-target and actor range
   checks: `SkillAttackRangeChecker.IsActorInAttackRange`,
