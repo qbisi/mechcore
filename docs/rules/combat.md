@@ -532,6 +532,13 @@ resume after the last projectile.
 
 ## Normal target scoring and pre-fight acquisition
 
+The shared skill range check measures a retained dead target too: it tests
+visibility and distance, while selection and attackability ask whether the
+target lives. A standalone gun still releasing at a fallen construction
+therefore keeps its unit's attack motion while that construction is in
+range
+([`standalone-fallen-target-range.yaml`](../../tests/construction/standalone-fallen-target-range.yaml)).
+
 `SkillIdleState.TryPerform` returns after the lock search when `IsIdle` is
 set: an alive-only fallback supplies a movement lock, and the skill does
 not run the wall or shield attack-target search. A War Factory gun with no
@@ -1382,6 +1389,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- Mountain's second main gun keeps its attack motion on tick 205 after its
+  retained construction target fell on tick 204:
+  `tests/construction/standalone-fallen-target-range.yaml`.
+
 - War Factory's idle guns retain Raiden 1 as their alive-only fallback
   during ticks 686 through 722 rather than replacing it with wall 5:
   `tests/search/idle-gun-keeps-alive-fallback-lock.yaml`.
@@ -1774,6 +1785,9 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- A skill's range check tests visibility and distance without an alive or
+  targetable predicate: `SkillAttackRangeChecker.IsActorInAttackRange`.
 
 - An idle skill skips attack-target search when its lock search sets
   `IsIdle`: `SkillIdleState.TryPerform`.
