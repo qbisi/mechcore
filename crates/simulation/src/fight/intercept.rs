@@ -152,10 +152,21 @@ impl Interceptor {
 impl Simulation {
     /// `InterceptSystem`'s update: every side's groups in the order its
     /// `interceptControllerRecords` keeps them, each group's interceptors in
-    /// turn. Each side draws from its own stream and locks only the other
-    /// side's projectiles, so the sides' order changes nothing.
+    /// turn. A turned group's origin manager still updates it in its old
+    /// slot, while its draws and targets use its current side.
     pub(in crate::fight) fn step_interceptors(&mut self, events: &mut Vec<Event>) -> Result<()> {
-        for index in 0..self.interceptors.len() {
+        // ChangeTeam alters discovery order, but Update still visits the
+        // origin manager's interceptControllerRecords in registration order.
+        let mut updating = (0..self.interceptors.len()).collect::<Vec<_>>();
+        updating.sort_by_key(|&index| {
+            let interceptor = &self.interceptors[index];
+            let origin_team = match interceptor.owner {
+                InterceptorOwner::Building { team, .. } => team,
+                InterceptorOwner::Unit { actor_id, .. } => self.actors[&actor_id].original_team,
+            };
+            (origin_team, interceptor.key)
+        });
+        for index in updating {
             if !self.interceptors[index].removed {
                 self.update_interceptor(index, events)?;
             }
@@ -249,8 +260,9 @@ impl Simulation {
         }
     }
 
-    /// `InterceptSystem.OnChangeTeam`: a turned unit's group leaves its old
-    /// side's records for the end of its new side's.
+    /// `InterceptSystem.OnChangeTeam`: discovery drops a turned unit from
+    /// its old side and appends it to its new side's changeTeamsController.
+    /// Its origin manager still updates it in the original record's slot.
     pub(in crate::fight) fn interceptors_change_side(&mut self, actor_id: u64) {
         let (turned, kept): (Vec<_>, Vec<_>) = std::mem::take(&mut self.interceptors)
             .into_iter()
