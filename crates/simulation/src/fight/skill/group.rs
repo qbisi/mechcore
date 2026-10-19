@@ -796,17 +796,18 @@ impl Simulation {
             let Some(view) = self.fight_actor(target) else {
                 continue;
             };
-            let bearing = direction_degrees_q32_raw(
-                view.x_q32.saturating_sub(x),
-                view.z_q32.saturating_sub(z),
-            );
+            let bearing =
+                turn_direction_q32(view.x_q32.saturating_sub(x), view.z_q32.saturating_sub(z));
             let skill = &mut self
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
                 .skills
                 .main;
-            let turned = rotate_towards_q32(skill.weapon_rotations_q32[slot], bearing, turn);
+            let current = skill.weapon_rotations_q32[slot];
+            let turned = bearing.map_or(current, |bearing| {
+                rotate_towards_q32(current, bearing, turn)
+            });
             skill.weapon_rotations_q32[slot] = held_within_arc(turned, turret, arc);
         }
     }

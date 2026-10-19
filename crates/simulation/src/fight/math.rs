@@ -544,9 +544,11 @@ pub(in crate::fight) fn calculate_angle_q32(rotation: i64, dx: i64, dz: i64) -> 
 
 /// The rotation `FightTransform.RotateTo` turns towards along a direction:
 /// none along a zero one, which it returns on without turning. A unit whose
-/// target stands on its own position keeps its facing.
+/// target stands on its own position keeps its facing. The vector's
+/// components use `FPoint` equality, as `FVector3.op_Equality` does.
 pub(in crate::fight) fn turn_direction_q32(dx: i64, dz: i64) -> Option<i64> {
-    (dx != 0 || dz != 0).then(|| direction_degrees_q32_raw(dx, dz))
+    (!rvo::fpoint_equal(dx, 0) || !rvo::fpoint_equal(dz, 0))
+        .then(|| direction_degrees_q32_raw(dx, dz))
 }
 
 /// `FightUtility.ConvertToAngle`: the angle from forward, mirrored to the left

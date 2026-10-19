@@ -132,6 +132,9 @@ its mount's rotation plus its default angle, as a child that turned with the
 chassis before the fight, and turns towards its skill's lock at the row's
 `extraWeaponRotateSpeed` after the skill's state has updated, held within its
 arc about its rest as the chassis pointed before the motion turned it.
+When the lock and owner share a horizontal position, the zero direction
+leaves the weapon's facing unchanged. A limited transform still clamps that
+facing to its arc after the ordinary turn returns without rotating.
 
 **A weapon held at the edge of its arc searches again.** A target in range
 but out of the attack angle fails an attack's check, unless the weapon stands
@@ -779,6 +782,11 @@ that is not melee, so the simulator refuses it.
 
 ### Recorded
 
+- An Overlord Artillery weapon keeps its facing when its lock shares its
+  owner's horizontal position, then turns from that facing when the target
+  moves away:
+  `tests/extra_weapon/overlapping-target-keeps-weapon-facing.yaml`.
+
 - A Sabertooth's Secondary Armament selects a Scorpion while its original
   rotation window begins at zero; that endpoint skips angle widening and
   the scorer's arc penalty:
@@ -1114,6 +1122,12 @@ that is not melee, so the simulator refuses it.
   `scripts/corpus/match-replays.py`.
 
 ### Read
+
+- A weapon's transform does not turn along a zero direction, using vector
+  component equality; a limited transform still holds its resulting
+  rotation within its arc:
+  `FightWeapon.RotateTo`, `FightTransform.RotateTo`,
+  `RotationLimitFightTransform.RotateTo`.
 
 - Search rotation data widens an arc by the attack angle only when its
   original endpoints differ from zero and a full turn:
