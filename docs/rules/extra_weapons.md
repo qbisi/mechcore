@@ -145,6 +145,9 @@ out (`SearchTargetController.CanStartSearch`): then the check searches again
 timer counts down in the attack state as in the idle one
 (`SkillAttackState.Update`), so a Secondary Armament gun pinned at its arc's
 edge by a Crawler walking past it takes the next Crawler within the arc.
+Leaving idle resets that clock to ten. A newly attacking gun whose next
+angle check fails therefore cannot immediately search for another target
+through an expired clock from its previous idle state.
 
 A standalone row's weapon has a transform of its own whatever its arc, and
 one with no arc turns freely: Air Defense Mark's marker turns onto its lock
@@ -833,6 +836,10 @@ that is not melee, so the simulator refuses it.
 - A Secondary Armament gun at the edge of its arc whose Crawler walks out of
   it takes the next Crawler within the arc on its check:
   `tests/corpus/201340110-r5.yaml`, blue's Sabertooth 179, tick 143.
+- A Secondary Armament gun resets its search clock on leaving idle, so a
+  failed angle check immediately after entry ends its attack before the
+  following tick searches again:
+  `tests/extra_weapon/side-gun-idle-exit-resets-search.yaml`.
 - Secondary Armament's two guns are skills 1 and 2 beside the main gun, start
   at their rest, turn at their own speed, fire on their own once they face
   their target, deal their row's damage for the unit's level, and stand where
@@ -1166,7 +1173,8 @@ that is not melee, so the simulator refuses it.
   `SkillAttackableChecker.Check`, `SkillAttackableChecker.CheckWhenLoseTarget`,
   `SkillAttackAngleChecker.IsActorInAttackAngle`,
   `SkillAttackAngleChecker.IsWeaponInAttackAngle`,
-  `SearchTargetController.CanStartSearch`, `SkillAttackState.Update`.
+  `SearchTargetController.CanStartSearch`, `SkillAttackState.Update`,
+  `SkillIdleState.Exit`, `SearchTargetController.ResetSearchTargetTime`.
 - A self splash's blow checks no target: `SkillAttackController..ctor`,
   `NormalAttackPerformer.IsEnableCheckTarget`,
   `NormalAttackPerformer.IsInterruptedByInvalidTarget`.

@@ -905,6 +905,13 @@ impl Skill {
     /// attack count goes back to [`ATTACK_COUNT_RESET`], whatever took the
     /// skill out of its attack.
     pub(in crate::fight) fn enter(&mut self, state: SkillState) {
+        // SkillIdleState.Exit resets the search clock before the newly
+        // entered state can check whether a limited weapon may search again.
+        if matches!(self.state, SkillState::Idle { .. })
+            && !matches!(state, SkillState::Idle { .. })
+        {
+            self.search_target_time = SEARCH_TARGET_RESET_TICKS;
+        }
         if matches!(self.state, SkillState::Attack(_)) && !matches!(state, SkillState::Attack(_)) {
             self.attack_count = ATTACK_COUNT_RESET;
             self.perform_count = 0;

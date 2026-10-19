@@ -1,0 +1,55 @@
+# Secondary Armament enters attack on a Fang at tick 275. Leaving idle
+# resets its search clock: the next failed arc check ends the attack, and
+# only the next tick searches for another Fang before firing at tick 278.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 2147286526
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_targeting_system, sabertooth_specialist, improved_sabertooth]
+  techs:
+    sabertooth: [doubleshot, missile_interceptor, field_entrenchment, range_enhancement, field_maintenance, secondary_armament, anti_air_missile]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -85, y: -205}, level: 7, exp: 8185/8185/8185, equipment: [portable_shield]}
+  - {name: sabertooth, index: 1, position: {x: 75, y: -285}, exp: 0/1080/1300, source: delivered}
+  - {name: typhoon, index: 2, position: {x: -80, y: -70}, level: 8, exp: 0/100/13118, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 225, y: -105}, retained: false}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: -45, y: -65}]}
+red:
+  core_damage: 450
+  officers: [quick_teleport, advanced_targeting_system]
+  techs:
+    fang: [mechanical_rage]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [3, 1]
+  units:
+  - {name: fang, index: 0, position: {x: -325, y: 50}, level: 3, exp: 0/260/2137, rotated: true, equipment: [improved_firepower_control_system], travelling: true, source: joined}
+  - {name: stormcaller, index: 1, position: {x: -275, y: -100}, level: 5, exp: 0/460/5732, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: -255, y: -115}]}
+asserts:
+- sql: |
+    SELECT tick, enabled__state, enabled__lock_target__id,
+           enabled__attack_count, enabled__attack_time FROM units__skills
+    WHERE unit_id = 1 AND skill_slot = 3 AND tick BETWEEN 275 AND 278
+    ORDER BY tick;
+  rows:
+  - [275, attack, 7, -1, 344]
+  - [276, idle, null, -1, 345]
+  - [277, attack, 8, -1, 346]
+  - [278, attack, 8, 0, 0]
+ticks: 1103
+hash: 26:5be543e2340a8273f9552b395d70445b457a4b2e46d16d3387bb239ed748ba48
