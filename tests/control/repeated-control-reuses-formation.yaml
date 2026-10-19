@@ -1,0 +1,48 @@
+# A complete generated layout recorded with the game. Repeated control of
+# one Stormcaller reuses its first unit-keyed recorder formation.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 527001964
+round: 2
+blue:
+  core_damage: 0
+  officers: [quick_teleport, advanced_power_system, cost_control_specialist, smart_marksman]
+  techs:
+    marksman: [doubleshot, shooting_squad, electromagnetic_shot, aerial_specialization, assault_mode, range_enhancement, quick_reload, elite_marksman]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: marksman, index: 0, position: {x: 320, y: 200}, level: 6, exp: 0/3769/3769, equipment: [explosive_ammo], travelling: true, source: joined}
+  - {name: hacker, index: 1, position: {x: 135, y: -25}, level: 3, exp: 0/1995/1995, source: joined}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: 225, y: -260}]}
+red:
+  core_damage: 424
+  officers: [advanced_shield_device, marksman_specialist, fortified_hacker]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: hacker, index: 0, position: {x: -55, y: -295}, level: 9, exp: 1883/2633/3767, equipment: [improved_firepower_control_system]}
+  - {name: marksman, index: 1, position: {x: 290, y: -120}, level: 3, exp: 0/224/2315, source: delivered}
+  - {name: stormcaller, index: 2, position: {x: -85, y: -170}, level: 2, exp: 0/150/2479, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 220, y: -135}}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -90, y: -195}]}
+asserts:
+- sql: |
+    SELECT tick, team_id, formation_id FROM units
+    WHERE unit_id = 7 AND tick IN (269, 270, 351, 352, 439, 440)
+    ORDER BY tick;
+  rows:
+  - [269, 1, 4]
+  - [270, 0, 47]
+  - [351, 1, 4]
+  - [352, 0, 47]
+  - [439, 1, 4]
+  - [440, 0, 47]
+ticks: 865
+hash: 26:9887fb0e8b49db89ca168633c063c79ab64d826735646f6804f704259f487450
