@@ -1381,6 +1381,15 @@ impl Simulation {
         while dead_index < self.dead_actors.len() {
             let dead_actor = self.dead_actors[dead_index];
             dead_index += 1;
+            // FightActor.OnDead raises QueryElementDestroyed before derived
+            // death callbacks, including buffs that immediately summon units.
+            if let Some(team) = self.fight_actor(dead_actor).map(|actor| actor.team) {
+                for trees in [&mut self.target_quadtrees, &mut self.mech_quadtrees] {
+                    if let Some(tree) = trees.get_mut(&team) {
+                        tree.remove(dead_actor);
+                    }
+                }
+            }
             match dead_actor {
                 FightActorRef::Building(building_id) => {
                     self.lose_tower(building_id)?;

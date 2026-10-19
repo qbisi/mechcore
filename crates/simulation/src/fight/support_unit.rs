@@ -1053,8 +1053,29 @@ impl Simulation {
         for events in self.buffs.tower_events.values_mut() {
             rename_created(&renamed, events);
         }
-        for unit_id in made {
-            self.plant(renamed.get(unit_id).map_or(*unit_id, |&(id, _)| id));
+        // Recording identity assignment must not remove or reinsert an
+        // actor: the native trees retain the nodes and creation order.
+        let rename = |actor| match actor {
+            FightActorRef::Unit(id) => {
+                FightActorRef::Unit(renamed.get(&id).map_or(id, |&(id, _)| id))
+            }
+            actor @ FightActorRef::Building(_) => actor,
+        };
+        for lists in [
+            &mut self.opponent_actors,
+            &mut self.opponent_ground_actors,
+            &mut self.opponent_air_actors,
+        ] {
+            for actors in lists.values_mut() {
+                for actor in actors {
+                    *actor = rename(*actor);
+                }
+            }
+        }
+        for trees in [&mut self.target_quadtrees, &mut self.mech_quadtrees] {
+            for tree in trees.values_mut() {
+                tree.rename_elements(rename);
+            }
         }
     }
 }
@@ -1233,6 +1254,7 @@ impl Simulation {
             let unit_id = actor.placement.unit_id;
             joined.push(unit_id);
             self.join(actor)?;
+            self.plant(unit_id);
             // It joins after this tick's updates: its clock reads its
             // interval until its first.
             self.actors

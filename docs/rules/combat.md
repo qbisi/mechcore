@@ -532,6 +532,13 @@ resume after the last projectile.
 
 ## Normal target scoring and pre-fight acquisition
 
+An actor's death removes it from the spatial trees before its buff death
+callbacks create summons. Those summons enter the trees when created;
+assigning their recording IDs preserves their nodes and enumeration order.
+Keeping the dead parent until after its summons can split a node at a
+different time and reorder later splash hits
+([`buff-summons-enter-after-parent-leaves.yaml`](../../tests/dead_summon/buff-summons-enter-after-parent-leaves.yaml)).
+
 A standalone main gun that takes motion back from an extra skill replaces
 the motion's attacker with itself. An extra skill is no main target
 provider, so it cannot retain motion by pointing to another main gun's
@@ -1396,6 +1403,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A replicated group made when unit 27 dies preserves the native range-hit
+  order, including units 31, 32, 33 and 39 at tick 352:
+  `tests/dead_summon/buff-summons-enter-after-parent-leaves.yaml`.
+
 - Mountain's main gun retakes motion from an extra skill and turns its
   turret towards tower 3 on tick 136:
   `tests/extra_weapon/main-gun-retakes-motion.yaml`.
@@ -1796,6 +1807,10 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- Spatial destruction precedes buff death summons, which join immediately:
+  `FightActor.OnDead`, `FightMech.OnDead`, `BuffManager.OnMechDead`,
+  `SummonSystem.DoCreateMech`.
 
 - A main searcher replaces an attacker that is no main target provider:
   `FightSkill.SearchLockTarget`, `FightSkillBase.IsMainTargetProvider`,
