@@ -726,12 +726,9 @@ impl Actor {
             .arc_parent_q32()?
             .saturating_add(i64::from(arc.default) << 32)
             .rem_euclid(360_i64 << 32);
-        let window = arc.left.zip(arc.right).map(|(left, right)| {
+        let window = arc.left.zip(arc.right).and_then(|(left, right)| {
             let angle = mdeg_to_degrees_q32(attack.attack_half_angle_mdeg());
-            (
-                (i64::from(left) << 32).saturating_add(angle),
-                (i64::from(right) << 32).saturating_add(angle),
-            )
+            search_rotation_window(rest, rest, left, right, angle)
         });
         Some((rest, window))
     }

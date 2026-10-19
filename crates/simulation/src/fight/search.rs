@@ -653,6 +653,27 @@ fn rotation_window(rotation_q32: i64, left_q32: i64, right_q32: i64) -> Option<(
     (less(0, min_q32) && less(max_q32, full_rotation)).then_some((min_q32, max_q32))
 }
 
+/// `ScoreRatingTargetSelector.Selector.CalculateRotationData` only widens
+/// an arc by the attack angle when its original endpoints differ from
+/// `Angle0` and `Angle360`. Otherwise the scorer ignores the window.
+pub(in crate::fight) fn search_rotation_window(
+    rotation: i64,
+    rest: i64,
+    left: i32,
+    right: i32,
+    angle: i64,
+) -> Option<(i64, i64)> {
+    let left = i64::from(left) << 32;
+    let right = i64::from(right) << 32;
+    let min = clamp_rotation(rest.saturating_sub(left));
+    let max = clamp_rotation(rest.saturating_add(right));
+    if rvo::fpoint_equal(min, 0) || rvo::fpoint_equal(max, 360_i64 << 32) {
+        return None;
+    }
+    let off_rest = (rotation - rest + (180_i64 << 32)).rem_euclid(360_i64 << 32) - (180_i64 << 32);
+    Some((off_rest + left + angle, right + angle - off_rest))
+}
+
 /// `FightUtility.ClampRotation`: one turn added below `Angle0`, one taken off
 /// from `Angle360`, with `FPoint`'s tolerant comparisons.
 pub(in crate::fight) fn clamp_rotation(rotation_q32: i64) -> i64 {

@@ -742,13 +742,8 @@ impl Simulation {
                 _ => actor.body_rotation_q32,
             };
             let rest = parent.saturating_add(i64::from(arc.default) << 32);
-            let off_rest =
-                (rotation - rest + (180_i64 << 32)).rem_euclid(360_i64 << 32) - (180_i64 << 32);
             let angle = mdeg_to_degrees_q32(rules.attack.attack_half_angle_mdeg());
-            Some((
-                off_rest + (i64::from(left) << 32) + angle,
-                (i64::from(right) << 32) + angle - off_rest,
-            ))
+            search_rotation_window(rotation, rest, left, right, angle)
         });
         Some(attacker)
     }

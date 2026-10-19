@@ -1,0 +1,53 @@
+# Complete generated layout: Sabertooth 6 searches with its first
+# Secondary Armament gun on tick 89. The native rotation window is
+# [29, 773094113309] in Q32 degrees. Its near-zero minimum skips attack-angle
+# widening and the arc penalty; Scorpion 5 wins instead of Stormcaller 2.
+# Control: main-gun-arc-edge-refresh.yaml checks a main gun's attack checker.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1475888641
+round: 3
+blue:
+  core_damage: 550
+  officers: [advanced_shield_device, cost_control_specialist, assault_stormcaller]
+  techs:
+    stormcaller: [range_enhancement]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: stormcaller, index: 0, position: {x: 45, y: -180}, level: 8, source: joined}
+  - {name: scorpion, index: 1, position: {x: -35, y: -145}, level: 5, exp: 0/400/7816, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -135, y: -135}}
+  battle_skills:
+  - {name: smoke_bomb, positions: [{x: -300, y: -10}, {x: 40, y: 190}]}
+red:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_offensive_tactics, sabertooth_specialist]
+  techs:
+    sabertooth: [doubleshot, missile_interceptor, field_entrenchment, range_enhancement, field_maintenance, secondary_armament, anti_air_missile]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -65, y: -65}, source: delivered}
+  - {name: sabertooth, index: 1, position: {x: 55, y: -135}, level: 8, exp: 0/8175/8746, rotated: true, equipment: [laser_sights], source: joined}
+  - {name: melting_point, index: 2, position: {x: -60, y: -210}, level: 7, exp: 0/3225/8815, source: joined}
+  constructions:
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: -80, y: 305}]}
+asserts:
+- sql: |
+    SELECT tick, enabled__lock_target__id FROM units__skills
+    WHERE unit_id = 6 AND skill_slot = 2 AND tick IN (88, 89, 121, 122)
+    ORDER BY tick;
+  rows:
+  - [88, 2]
+  - [89, 5]
+  - [121, 5]
+  - [122, 5]
+ticks: 489
+hash: 26:05432a3314d5a5ac0f1dd76d6026fd033a94a102256c385010f49e671e71fc42
