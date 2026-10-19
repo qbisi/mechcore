@@ -218,6 +218,9 @@ a new fire burns them. The oils it reaches are taken together before any
 burns, so the first one's fire takes the rest of its line first: a Fire
 Badger's shot that lands among the first three oils of a line burns the
 first, then the line beyond the third, then the second and the third.
+This interaction finishes before the damage provider dispatches its skill's
+hit effects. Oil-converted fires therefore enter the controller before a
+Napalm fire created by that same hit's `FireIntensifyEffectProvider` callback.
 
 **A battlefield shield keeps the oil within it from a fire hit.** Of the oils
 the circle reaches, `TriggerInteractableItem` passes over each that lies
@@ -410,6 +413,9 @@ already exists.
   in a fire burns for the oil's side; a burning oil is a fire of 30 metres,
   two rounds and 700 ticks: `tests/terrain/oil-ignited.yaml`,
   `tests/terrain/oil-ignited-by-the-enemy.yaml`.
+- A Fire Badger's hit ignites airborne oil before its Napalm callback adds
+  the smaller fire, retaining that order in the terrain identities:
+  `tests/terrain/oil-ignites-before-napalm-callback.yaml`.
 - A unit held to a fire that burns out while it stands in the next one takes
   the gone fire's hits on, every four ticks: an Arclight held to the fifth of
   an Incendiary Bomb's fires, gone after tick 777, takes 54 on ticks 778 and
@@ -485,6 +491,11 @@ already exists.
   `FightCalculator.PerformHitTargetEffect`.
 - A unit's buffs update after its motion moves its body: `FightMech.Update`,
   `MotionController.Update`, `BuffManager.Update`.
+- Fire damage triggers oil interaction before skill hit callbacks:
+  `DamagePerformer.PerformHitTargetsEffect`,
+  `RangeItemSystem.TriggerInteractableItem`, `DamagePerformer.PerformRangeEffect`,
+  `SkillDamageProvider.DispatchHitDamageEvent`,
+  `FireIntensifyEffectProvider.PerformHitEffect`.
 - A new fire takes the oils it reaches, and a new oil a fire reaches burns:
   `RangeItemSystem.Init` (the controllers and `interactiveInfos`),
   `RangeItemSystem.AddItem`, `RangeItemSystem.DoAddItem`,
