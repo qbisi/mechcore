@@ -1124,7 +1124,8 @@ impl Simulation {
         };
         // Each skill's clock stands at its interval, ready to attack, before
         // the first update it joins in adds one to it.
-        let now = i64::try_from(self.step_now).unwrap_or(i64::MAX);
+        let step = self.step_now;
+        let now = i64::try_from(step).unwrap_or(i64::MAX);
         for index in 0..skills {
             let interval = self.draw_attack_interval(skill_ref)?;
             let index = usize::try_from(index).expect("u32 skill count fits the supported host");
@@ -1139,6 +1140,10 @@ impl Simulation {
             skill.current_attack_interval = interval;
             skill.attack_time_anchor = now - 1 - i64::try_from(interval).unwrap_or(i64::MAX);
             skill.attack_time_step = now - 1;
+            // EnterFight refreshes attackTime to the sampled interval. Data
+            // changes before entry may have scheduled a future deadline;
+            // that wait is replaced by the ready clock as well.
+            skill.next_attack_step = step;
         }
         Ok(())
     }
