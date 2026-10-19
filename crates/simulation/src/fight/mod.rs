@@ -1414,6 +1414,10 @@ impl Simulation {
                     self.lose_interceptor(building_id);
                 }
                 FightActorRef::Unit(unit_id) => {
+                    // FightExplosionSkill.OnOwnerDead unregisters its dead
+                    // effect. A death added after the controllers ran must
+                    // not leave an explosion queued for the next update.
+                    self.dead_explosions.retain(|&(id, _)| id != unit_id);
                     // `BuffManager.OnMechDead` runs before ExitFight and
                     // OnMechDead listeners, and joins its summons immediately.
                     made.extend(self.summon_from_the_dead(unit_id)?);
