@@ -419,6 +419,11 @@ impl Simulation {
             sibling.search_target_time = SEARCH_TARGET_RESET_TICKS;
             self.hand_standalone_motion(skill_ref, slot);
         }
+        // SkillIdleState.TryPerform returns on IsIdle after its lock search.
+        // An alive-only fallback is for movement, not a wall attack search.
+        if self.skill(skill_ref).sibling(slot).idle {
+            return Ok(());
+        }
         // TrySearchAttackTarget runs on every idle update, even when
         // TrySearchLockTarget keeps the lock between its scheduled searches.
         self.refresh_group_walls(skill_ref, slot);
