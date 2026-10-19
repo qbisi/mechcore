@@ -218,6 +218,26 @@ impl Simulation {
         }
     }
 
+    /// `TeamInterceptSourceManager.OnFightStart` sorts its records by
+    /// `FightUtility.ActorComparer` before any group updates. Later groups
+    /// append to those records; a captured group retains its origin slot.
+    pub(in crate::fight) fn start_interceptions_fight(&mut self) {
+        let order = deploy::sort_by_actor_comparer(0..self.interceptors.len(), |index| {
+            let (x, _, z) = self.interceptor_position(index);
+            (self.interceptor_team(index), z, x)
+        });
+        let registered = std::mem::take(&mut self.interceptors);
+        self.interceptors = order
+            .into_iter()
+            .zip(1..)
+            .map(|(index, key)| {
+                let mut interceptor = registered[index].clone();
+                interceptor.key = key;
+                interceptor
+            })
+            .collect();
+    }
+
     /// `InterceptMissileEffectProvider.DisableEffect` and `EnableEffect`:
     /// each interceptor of the unit's group (`TeamInterceptSourceManager.
     /// GetInterceptSource`) disabled or enabled (`InterceptEffectBase.

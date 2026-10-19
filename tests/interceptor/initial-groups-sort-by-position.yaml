@@ -1,0 +1,52 @@
+# Initial interception groups are sorted by owner position, mixing units
+# and buildings. Mustang 14 joins the Battleship missile interception at
+# tick 51 and locks its main gun before the building reserves its damage.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 142949774
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_shield_device, quick_teleport, fortified_specialist, mass_produced_melting_point]
+  techs:
+    melting_point: [energy_diffraction]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: melting_point, index: 0, position: {x: -330, y: 250}, level: 7, exp: 0/8815/8815, rotated: true, equipment: [mustang_production_line], travelling: true, source: joined}
+  - {name: arclight, index: 1, position: {x: 110, y: -200}, level: 9, exp: 0/402/5046, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 135, y: -125}, retained: false}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: -55, y: 25}]}
+red:
+  core_damage: 362
+  officers: [advanced_power_system, fire_badger_specialist]
+  techs:
+    mustang: [high_explosive_ammo, aerial_specialization, missile_interceptor, culling_rounds, range_enhancement, armor_piercing_bullets]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: fire_badger, index: 0, position: {x: -155, y: -90}, source: delivered}
+  - {name: mustang, index: 1, position: {x: -75, y: -30}, level: 6, exp: 0/2828/6959, equipment: [explosive_ammo], source: joined}
+  - {name: fortress, index: 2, position: {x: -90, y: -80}, level: 4, exp: 0/2550/7184, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 35, y: -45}}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: 5, y: -150}, {x: -150, y: 110}, {x: 40, y: 255}]}
+asserts:
+- sql: |
+    SELECT tick, enabled__state, enabled__lock_target__id,
+           enabled__attack_count, enabled__perform_count FROM units__skills
+    WHERE unit_id = 14 AND skill_slot = 0 AND tick IN (50, 51, 52)
+    ORDER BY tick;
+  rows:
+  - [50, attack, 2, 5, 6]
+  - [51, lock, null, -1, 0]
+  - [52, lock, null, -1, 0]
+ticks: 1160
+hash: 26:152bc4c9027ae397e31e930e6a3a8af2661c312ff9a91690658e792d5349be01

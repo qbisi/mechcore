@@ -814,6 +814,7 @@ impl Simulation {
     pub(in crate::fight) fn prepare_and_enter_fight(&mut self) -> Result<()> {
         self.initialize_presearch_targets()?;
         self.enter_siege_fight()?;
+        self.start_interceptions_fight();
         self.snapshot_search_ranges();
         Ok(())
     }

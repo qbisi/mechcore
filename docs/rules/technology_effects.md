@@ -1003,7 +1003,11 @@ projectiles out of the air as a building's do
   leave the main skill be.
 
 The unit's interceptors are added to its side's as its effects activate when
-the fight starts. A unit that travels in has them added as it arrives.
+the fight starts. Before the first update, the side sorts all its groups,
+units and buildings together, by `FightUtility.ActorComparer`: world depth
+first, then horizontal position when depths compare equal. A unit that
+travels in has its group appended as it arrives; the initial sort does not
+run again during the fight.
 A turned unit's group stays in its origin manager's update records, in its
 original slot. Only discovery changes: its new side appends it to
 `changeTeamsController`, and its former side no longer discovers it. The
@@ -2294,6 +2298,10 @@ derive (a minimum range):
 - Captured Mustangs keep their origin manager's interception update order,
   independently of discovery order on their new side:
   `tests/interceptor/captured-mustangs-keep-update-order.yaml`.
+- Initial Mustang and building groups compete for a Battleship missile in
+  position order, allowing the last Mustang to lock its gun before the
+  building's pending damage covers the missile:
+  `tests/interceptor/initial-groups-sort-by-position.yaml`.
 - A permanent preemptive explosion does not activate, and its unit's death
   neither explodes nor burns, while the technologies are off; switched on,
   both come back:
@@ -2947,6 +2955,8 @@ derive (a minimum range):
   it through a separate discovery list:
   `InterceptSystem.OnChangeTeam`, `TeamInterceptSourceManager.Update`,
   `TeamInterceptSourceManager.GetCurrentTeamInterceptSources`.
+- Initial records are sorted by owner position before group startup:
+  `TeamInterceptSourceManager.OnFightStart`, `FightUtility.ActorComparer`.
 
 ### Not established
 
@@ -3049,9 +3059,6 @@ derive (a minimum range):
   Balls with Mechanical Division leave their Crawlers. Read from the build;
   no recording holds it. One whose technologies give it a line as it
   surfaces is refused.
-- **A unit's interceptors beside a building's.** Here a side's buildings
-  initially update before its units, which is not read; the order among
-  initial building and unit groups is not established by a recording.
 - **How the life share rounds.** The quotient rounded and the product
   truncated is what the recordings fit; the arithmetic of `FPoint` division
   and multiplication was not read.
