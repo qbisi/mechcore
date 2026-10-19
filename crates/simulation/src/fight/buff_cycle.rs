@@ -208,8 +208,9 @@ impl Simulation {
     }
 
     /// `TeamBuffCycleManager.Update`: every available controller of a live
-    /// unit, blue's units first, each unit's in the order its sources came,
-    /// every buff recorded as written by that unit.
+    /// unit, blue's origin manager first, each unit's in the order its sources
+    /// came. Control does not move its registered controllers; the buffs it
+    /// writes still use the unit's current side.
     pub(in crate::fight) fn step_buff_cycles(
         &mut self,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
@@ -225,10 +226,11 @@ impl Simulation {
                         .iter()
                         .any(|available| *available)
             })
-            .map(|(&id, actor)| (actor.placement.team, id))
+            .map(|(&id, actor)| (actor.original_team, id))
             .collect::<Vec<_>>();
         owners.sort_unstable();
-        for (team, id) in owners {
+        for (_, id) in owners {
+            let team = self.actors[&id].placement.team;
             for index in 0..self.actors[&id].buff_cycles.len() {
                 if !self.actors[&id].buff_cycles_available[index] {
                     continue;
