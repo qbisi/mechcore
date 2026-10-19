@@ -1,0 +1,51 @@
+# A complete generated layout. Final exit clears each team's units and
+# constructions before advancing to the other team.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 797279619
+round: 4
+blue:
+  core_damage: 644
+  officers: [fortified_specialist]
+  techs:
+    typhoon: [field_entrenchment]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: typhoon, index: 0, position: {x: 330, y: 240}, level: 5, exp: 10160/10160/10160, equipment: [photon_coating]}
+  - {name: vortex, index: 1, position: {x: -10, y: -130}, level: 4, exp: 0/68/3368, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 5, y: -220}}
+  battle_skills:
+  - {name: nuke, positions: [{x: 225, y: -115}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_targeting_system]
+  techs:
+    overlord: [high_explosive_ammo, field_maintenance, overlord_artillery, mothership, jump_drive, armor_enhancement, range_enhancement, launcher_overload, photon_emission]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: overlord, index: 0, position: {x: -125, y: -45}, exp: 875/1750/1750, rotated: true, equipment: [mustang_production_line]}
+  - {name: rhino, index: 1, position: {x: -265, y: -165}, level: 4, exp: 0/5164/5164, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -220, y: -155}}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: -125, y: -280}]}
+asserts:
+- sql: |
+    SELECT ordinal, target__kind, target__id, buff_id FROM events
+    WHERE tick = 271 AND type = 'buff_removed' ORDER BY ordinal;
+  rows:
+  - [2, building, 3, 1]
+  - [3, unit, 7, 40000]
+  - [4, unit, 5, 40000]
+  - [5, unit, 9, 40000]
+  - [6, unit, 4, 40000]
+  - [7, unit, 8, 40000]
+ticks: 271
+hash: 26:c9c8fc1c8ed00d1f84bb223520982c1c2ad3f61629d25d2e13843c709a699212

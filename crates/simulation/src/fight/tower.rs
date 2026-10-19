@@ -1035,60 +1035,78 @@ impl Simulation {
     }
 
     /// Every buff a live unit still runs, taken off and written as cleared
-    /// in unit order, as the fight is left, and then every buff a standing
-    /// construction runs, in building order: each actor's `BuffManager.Clear`
+    /// in each team's unit order and then its construction order, before
+    /// the next team exits (`FightTeam.ExitFight`): each actor's `BuffManager.Clear`
     /// as the fight's objects are let go, which removes an actor's buffs last
     /// first.
     pub(in crate::fight) fn clear_buffs_as_the_fight_ends(
         &mut self,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let mut disabled = Vec::new();
-        // Each side's units in the order they joined it (`activeActors`): the
-        // Crawlers a Steel Ball's death summoned, in the order they joined,
-        // whatever their identities.
-        for actor_id in self.units_in_update_order() {
-            let actor = self
-                .actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable");
-            if !actor.alive() || actor.buffs.is_empty() {
-                continue;
+        let unit_order = self.units_in_update_order();
+        let teams = self.team_random.keys().copied().collect::<Vec<_>>();
+        for team in teams {
+            let mut disabled = Vec::new();
+            // Each side's units in the order they joined it (`activeActors`): the
+            // Crawlers a Steel Ball's death summoned, in the order they joined,
+            // whatever their identities.
+            for actor_id in unit_order.iter().copied() {
+                let actor = self
+                    .actors
+                    .get_mut(&actor_id)
+                    .expect("actor identity is stable");
+                if actor.placement.team != team || !actor.alive() || actor.buffs.is_empty() {
+                    continue;
+                }
+                if actor.technology_disabled() {
+                    disabled.push(actor_id);
+                }
+                events.extend(actor.buffs.iter().rev().map(|buff| {
+                    buff_removed(
+                        ObjectRef::new(ObjectKind::Unit, actor_id),
+                        buff.buff_id,
+                        BuffRemovedReason::Cleared,
+                    )
+                }));
+                for buff in std::mem::take(&mut actor.buffs) {
+                    actor.withdraw_buff(&buff);
+                }
+                // `IBEC_ChangeMaxLife.Exit` takes its rate out, and the life is
+                // refreshed: a Rhino with Combat Evolvement ends the fight at its
+                // share of its bare maximum.
+                actor.refresh_life_data()?;
             }
-            if actor.technology_disabled() {
-                disabled.push(actor_id);
+            // And a unit whose technologies a buff had switched off has them
+            // again: a Rhino's Mechanical Rage reads in its corrections on the
+            // fight's last tick.
+            for actor_id in disabled {
+                self.switch_technologies(actor_id, true)?;
             }
-            events.extend(actor.buffs.iter().rev().map(|buff| {
-                buff_removed(
-                    ObjectRef::new(ObjectKind::Unit, actor_id),
-                    buff.buff_id,
-                    BuffRemovedReason::Cleared,
-                )
-            }));
-            for buff in std::mem::take(&mut actor.buffs) {
-                actor.withdraw_buff(&buff);
-            }
-            // `IBEC_ChangeMaxLife.Exit` takes its rate out, and the life is
-            // refreshed: a Rhino with Combat Evolvement ends the fight at its
-            // share of its bare maximum.
-            actor.refresh_life_data()?;
-        }
-        // And a unit whose technologies a buff had switched off has them
-        // again: a Rhino's Mechanical Rage reads in its corrections on the
-        // fight's last tick.
-        for actor_id in disabled {
-            self.switch_technologies(actor_id, true)?;
-        }
-        for (building_id, buffed) in std::mem::take(&mut self.buffs.building_buffs) {
-            let subject = ObjectRef::new(ObjectKind::Building, building_id);
-            events.extend(
-                buffed
+            let buildings = self
+                .buffs
+                .building_buffs
+                .keys()
+                .copied()
+                .filter(|id| {
+                    self.buildings
+                        .iter()
+                        .any(|building| building.building_id == *id && building.team_id == team)
+                })
+                .collect::<Vec<_>>();
+            for building_id in buildings {
+                let buffed = self
                     .buffs
-                    .iter()
-                    .rev()
-                    .map(|buff| buff_removed(subject, buff.buff_id, BuffRemovedReason::Cleared)),
-            );
-            self.refresh_construction(building_id)?;
+                    .building_buffs
+                    .remove(&building_id)
+                    .expect("selected buffed building exists");
+                let subject = ObjectRef::new(ObjectKind::Building, building_id);
+                events.extend(
+                    buffed.buffs.iter().rev().map(|buff| {
+                        buff_removed(subject, buff.buff_id, BuffRemovedReason::Cleared)
+                    }),
+                );
+                self.refresh_construction(building_id)?;
+            }
         }
         Ok(())
     }
