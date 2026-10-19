@@ -529,10 +529,11 @@ impl Simulation {
     }
 
     /// `AttackingController.Update` interrupts the first perform when its
-    /// lock is hidden, even while its attack target is a live wall. The base
-    /// performer interrupts, as does a multi-projectile performer before
-    /// its first release. A normal self-splash and a sweep override that
-    /// policy, and a target shield permits the perform to continue.
+    /// lock fails `IsValidTarget(Normal)`, even while its attack target is a
+    /// live wall. The projectile performer interrupts, as does a burst before
+    /// its first release. A normal performer only interrupts for `Hide` and
+    /// never for self-splash; a sweep never interrupts. A target shield permits
+    /// the perform to continue.
     pub(in crate::fight) fn attack_start_interrupted(
         &self,
         skill_ref: SkillRef,
@@ -542,10 +543,18 @@ impl Simulation {
         skill.kind != SkillKind::Sweep
             && (skill.kind == SkillKind::Projectile || !self.skill_rules(skill_ref).self_splash)
             && skill.shield_target().is_none()
-            && skill.lock_target.is_some_and(|lock| {
-                self.fight_actor(lock)
-                    .is_some_and(|target| target.visibility == Visibility::Hide)
-            })
+            && if skill.kind == SkillKind::Projectile {
+                skill.lock_target.is_none_or(|lock| {
+                    self.fight_actor(lock).is_none_or(|target| {
+                        !target.alive || target.visibility != Visibility::Normal
+                    })
+                })
+            } else {
+                skill.lock_target.is_some_and(|lock| {
+                    self.fight_actor(lock)
+                        .is_some_and(|target| target.visibility == Visibility::Hide)
+                })
+            }
     }
 
     /// `SkillAttackState.CheckAttackable`: an attack on a construction that

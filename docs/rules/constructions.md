@@ -112,6 +112,13 @@ an underground Sandworm enters its backswing without damaging the wall:
 `tests/construction/hidden-lock-interrupts-wall-hit.yaml`.
 A Mustang similarly counts its blow without releasing a projectile:
 `tests/construction/hidden-lock-interrupts-projectile-wall-hit.yaml`.
+A projectile's first release also stops when the lock disappears, enters
+stealth or dies: `SkillAttackController.AttackingController.Update` asks
+`FightActor.IsValidTarget` with normal visibility. The normal performer
+instead only interrupts for hidden visibility, unless it splashes itself.
+An Overlord aimed through a wall at a cloaked Phantom Ray counts the blow
+without releasing its missile:
+`tests/construction/disappeared-lock-interrupts-wall-projectile.yaml`.
 
 Only a unit whose skill is attacking has an attack to finish. A unit closing on
 a block by its motion, its skill still idle, goes straight on to what is
@@ -320,6 +327,10 @@ The map's own buildings are the exception and are named: each side gets one
   when its unit lock is hidden:
   `tests/construction/hidden-lock-interrupts-projectile-wall-hit.yaml`.
 
+- An Overlord's projectile blow stops before release when its Phantom Ray
+  lock has disappeared behind a live wall:
+  `tests/construction/disappeared-lock-interrupts-wall-projectile.yaml`.
+
 - A fusillade sibling keeps its unit lock when the core's wall allocation
   returns no block, then continues checking the blocker in its own line:
   `tests/construction/fusillade-unallocated-wall-keeps-lock.yaml`.
@@ -396,6 +407,11 @@ The map's own buildings are the exception and are named: each side gets one
   do not: `AttackPerformer.Update`, `AttackPerformer.IsInterruptedByInvalidTarget`,
   `ProjectileMultiAttackPerformer.IsInterruptedByInvalidTarget`,
   `SweepAttackPerformer.IsInterruptedByInvalidTarget`.
+
+- A projectile's first perform requires a living, normally visible lock;
+  a normal perform only interrupts for hidden visibility:
+  `SkillAttackController.AttackingController.Update`,
+  `FightActor.IsValidTarget`, `NormalAttackPerformer.IsInterruptedByInvalidTarget`.
 
 - A placement creates one object per count, each a building of its own:
   `FightConstructionSystem.Create`,
