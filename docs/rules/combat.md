@@ -532,6 +532,13 @@ resume after the last projectile.
 
 ## Normal target scoring and pre-fight acquisition
 
+`SkillIdleState.TryPerform` returns after the lock search when `IsIdle` is
+set: an alive-only fallback supplies a movement lock, and the skill does
+not run the wall or shield attack-target search. A War Factory gun with no
+normal candidate therefore retains its Raiden lock rather than replacing
+it with a wall
+([`idle-gun-keeps-alive-fallback-lock.yaml`](../../tests/search/idle-gun-keeps-alive-fallback-lock.yaml)).
+
 An attack-angle check that finds a weapon held at an endpoint of its
 limited rotation range can search again once that skill's search timer
 allows it. This applies to standalone main guns as well as extra weapons.
@@ -1375,6 +1382,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- War Factory's idle guns retain Raiden 1 as their alive-only fallback
+  during ticks 686 through 722 rather than replacing it with wall 5:
+  `tests/search/idle-gun-keeps-alive-fallback-lock.yaml`.
+
 - Final tick 271 clears blue construction 3's tower debuff before the red
   survivors' Photon Emission buffs:
   `tests/endgame/final-buffs-clear-by-team.yaml`.
@@ -1763,6 +1774,9 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- An idle skill skips attack-target search when its lock search sets
+  `IsIdle`: `SkillIdleState.TryPerform`.
 
 - Final exit walks groups and teams, each team's live mechs before its
   constructions: `GroupManager.OnExitFight`, `FightTeam.ExitFight`.

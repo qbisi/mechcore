@@ -1531,7 +1531,9 @@ impl Simulation {
             skill.write_lock(Some(FightActorRef::Building(building_id)));
             skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
             skill.set_phase(FightSkillPhase::Idle);
-            self.search_attack_target(skill_ref);
+            if !idle {
+                self.search_attack_target(skill_ref);
+            }
             self.hand_motion_after_lock_search(skill_ref);
             return Ok(());
         }
@@ -1539,7 +1541,9 @@ impl Simulation {
         let skill = self.skill_mut(skill_ref);
         skill.write_lock(selected);
         skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
-        self.search_attack_target(skill_ref);
+        if !idle {
+            self.search_attack_target(skill_ref);
+        }
         self.hand_motion_after_lock_search(skill_ref);
         Ok(())
     }
@@ -1907,7 +1911,10 @@ impl Simulation {
         // update the skill is idle with a lock. A side arm first resets its
         // fire mark against the previous attack target; its idle search path
         // refreshes the attack target only after that reset.
-        if self.skill(skill_ref).phase() == FightSkillPhase::Idle && !self.is_side_arm(skill_ref) {
+        if self.skill(skill_ref).phase() == FightSkillPhase::Idle
+            && !self.skill(skill_ref).idle
+            && !self.is_side_arm(skill_ref)
+        {
             self.search_attack_target(skill_ref);
         }
         self.update_fight_skill_target_search(skill_ref, step, target_search_order)?;
