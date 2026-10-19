@@ -567,14 +567,16 @@ impl Simulation {
                 let stroke = self.land(
                     member,
                     (source, source_team),
-                    (share, share, direct_hit),
+                    // CalculateGroupDamage creates a fresh HitDamageInfo;
+                    // isDirectHit stays false, even for a direct buff tick.
+                    (share, share, false),
                     events,
                 )?;
                 self.after_hit(
                     FightActorRef::Unit(member),
                     source,
                     can_disable_tech,
-                    direct_hit,
+                    false,
                     &stroke,
                     events,
                 )?;

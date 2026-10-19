@@ -1,0 +1,50 @@
+# Complete generated layout: direct acid buff damage is shared as
+# ordinary hits, so each Steel Ball loses Portable Shield energy.
+# The original direct-hit flag does not reach the shared member hits.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 944758251
+round: 2
+blue:
+  core_damage: 350
+  officers: [advanced_offensive_tactics, advanced_power_system, speed_specialist]
+  techs:
+    steel_ball: [damage_sharing]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [3, 2]
+  units:
+  - {name: steel_ball, index: 0, position: {x: -220, y: -35}, exp: 0/1000/1000, rotated: true, equipment: [portable_shield], source: joined}
+  - {name: hacker, index: 1, position: {x: -45, y: -85}, exp: 0/560/560, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: 175, y: -175}, {x: -20, y: 95}]}
+red:
+  core_damage: 0
+  officers: [quick_teleport, marksman_specialist]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: marksman, index: 0, position: {x: -250, y: -70}, level: 3, exp: 0/1020/2315, source: delivered}
+  - {name: centurion, index: 1, position: {x: -345, y: 225}, level: 2, exp: 0/1500/5070, rotated: true, equipment: [secondary_heavy_armor], travelling: true, source: joined}
+  - {name: arclight, index: 2, position: {x: 80, y: -190}, level: 4, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: smoke_bomb, positions: [{x: 65, y: -100}, {x: 95, y: -120}]}
+asserts:
+- sql: |
+    SELECT unit_id, life__current, personal_shield__energy__current FROM units
+    WHERE tick = 434 AND unit_id BETWEEN 2 AND 5 ORDER BY unit_id;
+  rows:
+  - [2, 10056, 4508]
+  - [3, 10056, 4508]
+  - [4, 10056, 4508]
+  - [5, 10056, 4508]
+ticks: 1137
+hash: 26:ec86791f64fc8c7eb4e60b6c028f9f767be7312a47c2bdcbb656b85a5dab5fb4
