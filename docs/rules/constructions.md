@@ -93,6 +93,10 @@ its attack target is in reach, measured where the fallen block stood, as for a
 standing one. A unit still in reach goes on attacking through its swing; one
 its neighbours have pushed out of reach enters `MotionMoveState` on the next
 update and walks on towards its lock, its weapons still naming the block.
+While the skill still retains that block, a moving unit that comes back into
+its reach enters attack again. This entry does not update the new motion
+state in the same tick, so turning towards the living lock resumes only on
+a later attack-state update.
 While still attacking, it refreshes its stopped target point every update
 (`MotionAttackState.AttackMove`, `RVOControllerFixed.StopMove`), including
 after an RVO nudge; idle motion refreshes that point only on entry.
@@ -354,6 +358,9 @@ The map's own buildings are the exception and are named: each side gets one
 - A Wasp retaining a felled block before its living lock refreshes its stopped
   point through successive zero-speed RVO nudges:
   `tests/construction/fallen-wall-refreshes-stopped-point.yaml`.
+- A moving Wasp returning within reach of its retained fallen block enters
+  attack without turning on that entry tick:
+  `tests/construction/fallen-wall-reenters-attack.yaml`.
 - Two Stormcallers whose burst goes on at a block that fell at tick 695 read
   attacking through it, their turrets turning to their lock:
   `tests/corpus/134369439-r8.yaml`.
@@ -425,6 +432,9 @@ The map's own buildings are the exception and are named: each side gets one
   fells its target releases it before turning:
   `MotionController.CalculateTargetDirection`,
   `FightSkill.TryGetValidAttackTarget`, `MotionAttackState.AttackRotate`.
+- A moving unit enters attack when its retained attack target is in range;
+  changing state enters it without updating it again in that tick:
+  `MotionMoveState.Update`, `SimpleFSM.ChangeState`, `SimpleFSM.Update`.
 - The weapons are handed the wall in the way, else the lock's shield, else
   the lock; the wall is looked for toward the shield's centre when a shield
   covers the lock, and one inside that shield is passed over:

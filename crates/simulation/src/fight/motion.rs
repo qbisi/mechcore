@@ -1881,6 +1881,13 @@ impl Simulation {
                 && matches!(target, FightActorRef::Building(_))
                 && lock != Some(target)
                 && lock.is_some_and(|lock| self.fight_actor_is_alive(lock));
+            // MotionMoveState asks the retained attack target's range even
+            // after the block falls. Let the normal range path enter attack;
+            // that entry does not run MotionAttackState.AttackRotate yet.
+            if block_before_live_lock && self.actors[&actor_id].motion.state == MotionState::Moving
+            {
+                return Flow::Next;
+            }
             // With its lock alive, `MotionAttackState.Update` still asks
             // whether the fallen block is in reach, where it stood: a
             // Crawler pushed out of reach of the block an ally felled
