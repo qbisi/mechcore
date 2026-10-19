@@ -1,0 +1,49 @@
+# Complete generated layout: growing the interval preserves elapsed time,
+# even when the old attack deadline was already before the first tick.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 2016156535
+round: 1
+blue:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_power_system, aerial_specialist]
+  techs:
+    phoenix: [energy_shield, jump_drive, electromagnetic_shot, quantum_reassembly, range_enhancement, launcher_overload, elite_marksman, charged_shot]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: phoenix, index: 0, position: {x: 160, y: -60}, level: 3, exp: 0/4630/4630, rotated: true, equipment: [deployment_module], source: joined}
+  - {name: centurion, index: 1, position: {x: -55, y: -255}, level: 8, exp: 0/4400/15137, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 125, y: -235}}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: -130, y: 190}, {x: 10, y: 120}, {x: -185, y: 205}]}
+red:
+  core_damage: 450
+  officers: [advanced_power_system, advanced_targeting_system, aerial_specialist, assault_stormcaller]
+  techs:
+    stormcaller: [high_explosive_ammo, incendiary_bomb, electromagnetic_explosion, range_enhancement, launcher_overload, heavy_missile]
+  blueprints: [defense_enhancement_ii]
+  units:
+  - {name: stormcaller, index: 0, position: {x: -200, y: -35}, level: 8, rotated: true, equipment: [portable_shield], source: joined}
+  - {name: phoenix, index: 1, position: {x: 200, y: -300}, level: 6, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -285, y: -55}, retained: false}
+  battle_skills:
+  - {name: electromagnetic_blast, positions: [{x: -175, y: -280}]}
+asserts:
+- sql: |
+    SELECT tick, enabled__attack_time, enabled__current_attack_interval,
+      enabled__attack_count, enabled__attack_phase FROM units__skills
+    WHERE unit_id = 4 AND skill_slot = 0 AND tick IN (1, 27, 30, 31)
+    ORDER BY tick;
+  rows:
+  - [1, 83, 82, -1, null]
+  - [27, 109, 132, -1, null]
+  - [30, 112, 132, -1, null]
+  - [31, 113, 132, -1, null]
+ticks: 337
+hash: 26:9c1159d7aefe694fac36e8e2401a89e79ee0f23676db057f09f19ee600ddd96e
