@@ -1,0 +1,50 @@
+# Fortress 9 follows Mobile Beacon while its main skill cools. Its
+# Rocket Punch temporarily holds the motion with a target out of range.
+# NormalRotate still turns the body towards that attacker's target,
+# reversing its turn on tick 177 rather than following velocity alone.
+# Control: beacon-turns-past-fallen-wall.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 998461863
+round: 4
+blue:
+  core_damage: 707
+  officers: [advanced_offensive_tactics, advanced_power_system, typhoon_specialist, extended_range_marksman]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: marksman, index: 0, position: {x: -180, y: -260}, level: 4, exp: 1459/1471/2919, rotated: true, equipment: [secondary_heavy_armor]}
+  - {name: typhoon, index: 1, position: {x: -30, y: -250}, source: delivered}
+  - {name: war_factory, index: 2, position: {x: -25, y: -155}, level: 6, exp: 0/96/18556, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: 275, y: -310}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_power_system, fortified_specialist, extended_range_fortress]
+  techs:
+    fortress: [doubleshot, barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: fortress, index: 0, position: {x: -280, y: -150}, level: 6, exp: 4639/9278/9278, rotated: true, equipment: [explosive_ammo]}
+  - {name: fortress, index: 1, position: {x: -70, y: -40}, level: 2, exp: 0/3605/3605, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -205, y: -195}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -60, y: -40}, {x: -285, y: -140}, {x: -260, y: -125}]}
+asserts:
+- sql: |-
+    SELECT tick,turret_rotation FROM units WHERE unit_id=9 AND tick BETWEEN 175 AND 179 ORDER BY tick
+  rows:
+  - [175, 941828835920]
+  - [176, 931091417720]
+  - [177, 941828835920]
+  - [178, 931091417720]
+  - [179, 920353999520]
+ticks: 522
+hash: 26:bcbefdaeebb16dd64e681a0f5234267284af67c9850851319c820bdcb81701e4
