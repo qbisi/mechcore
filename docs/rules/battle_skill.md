@@ -473,6 +473,8 @@ which scores from that facing. It then takes the place of the unit's
   idles it ([combat.md](combat.md)).
 - With no lock, `MotionMoveState.NormalRotate` turns its weapons to its
   velocity, and a unit standing still turns them nothing.
+  This includes the body of a standalone weapon batch whose guns all cool
+  without locks; their own arcs follow that body's changing rotation.
   An extra attacker that retains a target outside its range still supplies
   the direction to `NormalRotate` while the unit follows the command.
   The body turns towards that target, independently of the path's direction.
@@ -659,6 +661,9 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
   extra attacker holds the motion outside its range, reversing the turn
   from its velocity direction:
   `tests/battle_skill/beacon-keeps-extra-attacker-direction.yaml`.
+- A Mountain with every gun cooling and no lock turns its body towards
+  velocity while following a beacon; its weapon arcs follow the body:
+  `tests/battle_skill/beacon-cooling-batch-turns-to-velocity.yaml`.
 - Wasps still on a beacon when the fight is won go on moving until it ends:
   `tests/battle_skill/beacon-wasps-won.yaml`,
   `tests/corpus/134270595-r4.yaml`.
