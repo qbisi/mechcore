@@ -1,0 +1,43 @@
+# Complete generated layout: Overlord 5 begins a blow at tick 102 with
+# Phantom Ray 4 cloaked and a live wall as its attack target. At tick 103
+# the projectile performer cancels its first release and counts the perform.
+# Control: hidden-lock-interrupts-projectile-wall-hit.yaml tests Hide rather
+# than Disappear. The game records all 600 ticks and the pinned hash below.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 147492351
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, aerial_specialist, extended_range_phantom_ray]
+  techs:
+    phantom_ray: [energy_shield, high_explosive_ammo, burst_mode, armor_enhancement, ground_targeting, stealth_cloak, range_enhancement, sticky_oil_bomb]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [1, 3]
+  units:
+  - {name: phantom_ray, index: 0, position: {x: 40, y: -195}, level: 5, exp: 5210/5210/5210, rotated: true, equipment: [laser_sights]}
+  - {name: raiden, index: 1, position: {x: 270, y: -290}, level: 2, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 130, y: -140}, retained: false}
+  battle_skills:
+  - {name: missile_strike, positions: [{x: 75, y: 245}]}
+red:
+  core_damage: 201
+  officers: [advanced_shield_device, advanced_targeting_system, fortified_specialist, improved_overlord]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: overlord, index: 0, position: {x: -185, y: -55}, level: 5, exp: 9118/9118/9118, equipment: [secondary_fire_control_system]}
+  - {name: wraith, index: 1, position: {x: -255, y: -95}, level: 4, exp: 0/2403/10103, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 25, y: -135}}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: 15, y: -225}]}
+ticks: 600
+hash: 26:a39bf12b4121a1ddd48792bc5ee252862ad2b952e997613c836cc52752a93330
