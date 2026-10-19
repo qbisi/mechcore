@@ -1921,6 +1921,10 @@ derive (a minimum range):
 
 - Electromagnetic Armor does not react to incoming Electromagnetic Shot hits:
   `tests/technology_buff/electromagnetic-armor-emp-hit.yaml`.
+  Once the Arclight's technology is disabled, its later hits no longer mark
+  technology disable, and the armor can retaliate and refresh the Arclight's
+  disabling buff:
+  `tests/technology_buff/disabled-shot-allows-electromagnetic-armor.yaml`.
 
 - A technology's range and an officer's range land in one `attack_range_value`,
   and the fight uses their sum: `tests/modifier/`.
@@ -2782,7 +2786,9 @@ derive (a minimum range):
   with `FightMech.DisableTechnologyBegin`; `OnBeHit` returns during that mark
   (`IsTechnologyEnterDisabled`), before the damaging hit's effects run, and
   `DisableTechnologyEnd` clears the mark after dispatch. Thus Electromagnetic
-  Shot prevents Electromagnetic Armor's reaction to that hit. For
+  Shot prevents Electromagnetic Armor's reaction to that hit. Disabling its
+  buff source removes its unit's disable-technology ability, so that source
+  no longer makes the skill mark a target as entering technology disable. For
   `OpponentUnits` it takes the hit's owner when it is a live `FightMech`. A buff
   whose `IBuffData.IsDisableTechnology` holds goes to the attacker's
   `BuffManager.AddBeHitDelayBuffInfo`, and any other to
@@ -2790,6 +2796,10 @@ derive (a minimum range):
   `BuffManager.InvokeDelayAddBuff`, which adds each queued buff through
   `BuffSystem.DoAddBuff` while its unit lives or
   `BuffSystem.IsAvaliableWhenActorDead` holds, and clears the queue.
+  The hit's disable flag follows active source ownership:
+  `BuffEffectProvider.Deactive`, `BuffEffectProvider.DoDisableEffect`,
+  `BuffEffectProvider.TryRemoveDisableTechnologyAbility`,
+  `FightSkill.CanDisableTargetTech`, `FightMech.CanDiableTargetTechnology`.
 - A stack that resets on a hit: `IBEC_AdditiveEffectBuff.Enter` hands
   `IBEC_AdditiveEffectBuff.ResetAdditiveStackNormal` to the reset controller
   `BuffAdditiveStackResetControllerFactory.Create` made, whose

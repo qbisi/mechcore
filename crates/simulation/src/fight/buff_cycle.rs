@@ -491,11 +491,18 @@ impl Simulation {
         owner
             .corrected_skill_slots()
             .contains(&self.skill_slot(skill))
-            && owner.placement.effects.buff_sources.iter().any(|source| {
-                source.trigger == BuffTrigger::Hit
-                    && source.disables_technology
-                    && (!secondary || source.on_second_damage)
-            })
+            && owner
+                .placement
+                .effects
+                .buff_sources
+                .iter()
+                .enumerate()
+                .any(|(index, source)| {
+                    owner.buff_cycles_available[index]
+                        && source.trigger == BuffTrigger::Hit
+                        && source.disables_technology
+                        && (!secondary || source.on_second_damage)
+                })
     }
 
     /// `BuffCycleController.OnBeHit` of each source of unit `id` whose
