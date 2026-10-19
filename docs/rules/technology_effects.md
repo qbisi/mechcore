@@ -853,7 +853,11 @@ unit added during the fight, arriving from its travel, rising again or made,
 starts at zero, enabled. `DoDeactive`, as the unit dies, takes it out. Each
 update while fighting (`RecoveryEffectSystem.Update`, one module after
 `StealthTechSystem`), each clock, in its dictionary's order, adds
-`FightUtility.DeltaTime`; on reaching the interval
+`FightUtility.DeltaTime`. Owners registered during deployment keep their
+insertion order when `FightTeam.PrepareActors` later sorts the units for fight
+identities: `FightEffectSystem.Refresh` adds their effects before that sort,
+and adding an owner already present leaves its dictionary entry in place.
+On reaching the interval
 (`FPoint.op_GreaterThanOrEqual`), which 60 updates fall short of, it goes
 back to zero and repairs (`RecoveryEffectSystem.RecoveryDataInfo.Update`).
 `DoRecover` takes every
@@ -2027,6 +2031,10 @@ derive (a minimum range):
   travelling in from its arrival:
   `tests/maintenance_array/travelling.yaml`. Disabled, they repair
   nothing: `tests/maintenance_array/impact.yaml`.
+- A legacy Typhoon's Maintenance Array runs before a delivered Typhoon's
+  despite its later spatial fight identity, filling a damaged unit in one
+  recovery rather than two capped calls:
+  `tests/maintenance_array/deployment-order-before-fight-ids.yaml`.
 - Wreckage Detonation explodes each unit a Typhoon's rocket kills, up to
   the first it struck that lives, striking both sides about it:
   `tests/wreckage_detonation/crawlers.yaml`. A Wasp's explosion
@@ -2585,6 +2593,8 @@ derive (a minimum range):
   `RecoveryEffectProvider.DisableEffect`,
   `RecoveryEffectProvider.EnableEffect`,
   `RecoveryEffectSystem.AddRecoveryOwner`,
+  `FightEffectSystem.Refresh`, `FightEffectMananger.AddEffect`,
+  `FightTeam.PrepareActors`,
   `RecoveryEffectSystem.RemoveRecoveryOwner`,
   `RecoveryEffectSystem.EnableRecovery`,
   `RecoveryEffectSystem.DisableRecovery`,

@@ -74,7 +74,7 @@ impl Simulation {
     /// then `RecoveryEffectSystem.OnEnterFight`: each clock at zero and
     /// enabled.
     pub(in crate::fight) fn enter_repair_fight(&mut self) {
-        let owners = self
+        let mut owners = self
             .actors
             .iter()
             .filter(|(_, actor)| {
@@ -82,6 +82,9 @@ impl Simulation {
             })
             .map(|(&id, _)| id)
             .collect::<Vec<_>>();
+        // Refresh registers recovery owners during deployment. PrepareActors
+        // later sorts the fight ids without reordering that dictionary.
+        owners.sort_by_key(|id| self.actors[id].preparation_order);
         for owner in owners {
             self.repair.add(owner, true);
         }

@@ -264,6 +264,8 @@ impl FightActorView {
 )]
 struct Actor {
     placement: Placement,
+    /// Creation order before `FightTeam.PrepareActors` sorts the fight ids.
+    preparation_order: usize,
     /// `FightMech.isImportantUnitEffectEnabled`, independent of its side.
     important_effect_enabled: bool,
     /// Membership in the original side's `TeamImportantUnitInfo.mechs`.
