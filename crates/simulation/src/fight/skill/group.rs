@@ -823,6 +823,12 @@ impl Simulation {
             return;
         }
         let skill = &actor.skills.main;
+        // CalculateTargetDirection falls back to RVO velocity when its
+        // current attacker holds no lock, including a cooling weapon batch.
+        let velocity_aim = turn_direction_q32(
+            actor.motion.current_velocity_x_q32,
+            actor.motion.current_velocity_z_q32,
+        );
         if skill.mech_searches() {
             // `CalculateTargetDirection` with the unit as the motion's
             // attacker: towards its own lock.
@@ -834,7 +840,8 @@ impl Simulation {
                         view.x_q32.saturating_sub(actor.x_q32),
                         view.z_q32.saturating_sub(actor.z_q32),
                     )
-                });
+                })
+                .or(velocity_aim);
             self.actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
@@ -861,7 +868,8 @@ impl Simulation {
                     view.x_q32.saturating_sub(actor.x_q32),
                     view.z_q32.saturating_sub(actor.z_q32),
                 )
-            });
+            })
+            .or(velocity_aim);
         self.actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
