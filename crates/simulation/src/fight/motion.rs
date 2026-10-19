@@ -1139,7 +1139,6 @@ impl Simulation {
                 target_turn_q32,
                 backswing_just_finished,
                 prepare_finished,
-                update.blow_released,
             )?;
             self.attack_move(actor_id, was_attacking);
             return Ok(());
@@ -1717,9 +1716,7 @@ impl Simulation {
         if cooling.is_none() {
             // CalculateTargetDirection falls back to the live lock after
             // the attack target dies, including a wall the command fells.
-            let target_rotation_q32 = self
-                .lock_rotation_for_bodyless(actor_id)
-                .unwrap_or(target_rotation_q32);
+            let target_rotation_q32 = self.lock_rotation(actor_id).unwrap_or(target_rotation_q32);
             self.track_target_in_range(actor_id, Some(target_rotation_q32), false);
         } else {
             self.attack_rotate_to_velocity(actor_id);
@@ -2053,15 +2050,10 @@ impl Simulation {
         self.track_target_in_range(actor_id, Some(rotation), false);
     }
 
-    /// Where a bodyless unit's lock stands from it, if the lock is alive: what
+    /// Where a unit's lock stands from it, if the lock is alive: what
     /// `CalculateTargetDirection` faces once the attack target is not valid.
-    /// A unit with a body turns its weapons, and whether they follow the lock
-    /// is not recorded, so it answers `None`.
-    fn lock_rotation_for_bodyless(&self, actor_id: u64) -> Option<i64> {
+    fn lock_rotation(&self, actor_id: u64) -> Option<i64> {
         let actor = &self.actors[&actor_id];
-        if actor.has_body() {
-            return None;
-        }
         let lock = actor
             .skills
             .main
@@ -2127,7 +2119,6 @@ impl Simulation {
         target_rotation_q32: Option<i64>,
         backswing_just_finished: bool,
         prepare_finished: bool,
-        blow_released: bool,
     ) -> Result<()> {
         // `SkillAttackAngleChecker`, against the weapons or, for a unit
         // without a body, its root: the motion does not turn anything before
@@ -2217,7 +2208,6 @@ impl Simulation {
                 clear_hold_after_motion,
             )
         };
-        let released = release_now || blow_released;
         if release_now {
             let _attack_point_rejected =
                 self.release(SkillRef::main(FightActorRef::Unit(actor_id)), events)?;
@@ -2238,15 +2228,14 @@ impl Simulation {
             // therefore starts tracking the target on the next tick.
             return Ok(());
         }
-        // `MotionAttackState.AttackRotate` turns after the release, towards
-        // `CalculateTargetDirection`: the lock, once the blow just released
-        // has felled what it fired at. The Steel Ball of `wall-laser.yaml`
-        // turns onto the Marksman on the tick its beam fells block 4.
-        let target_rotation_q32 = if released && !self.fight_actor_is_alive(target) {
-            self.lock_rotation_for_bodyless(actor_id)
-                .or(target_rotation_q32)
-        } else {
+        // `MotionAttackState.AttackRotate` turns after the release.
+        // `CalculateTargetDirection` falls back to the lock whenever the
+        // retained attack target is no longer valid, including a blocker an
+        // ally felled while this unit remains in MotionStopState.
+        let target_rotation_q32 = if self.fight_actor_is_alive(target) {
             target_rotation_q32
+        } else {
+            self.lock_rotation(actor_id).or(target_rotation_q32)
         };
         self.track_target_in_range(actor_id, target_rotation_q32, clear_hold_after_motion);
         Ok(())
