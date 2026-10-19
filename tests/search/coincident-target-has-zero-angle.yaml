@@ -1,0 +1,54 @@
+# A complete generated layout recorded with the game. A Wasp directly
+# above a Sandworm has zero horizontal search angle, regardless of facing.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1978371349
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_defensive_tactics, sabertooth_specialist, improved_wasp]
+  techs:
+    wasp: [energy_shield, high_explosive_ammo, ground_specialization, jump_drive, electromagnetic_shot, aerial_specialization, range_enhancement, armor_piercing_bullets, elite_marksman, ignite]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [2, 4]
+  units:
+  - {name: wasp, index: 0, position: {x: -205, y: -40}, level: 5, exp: 2344/4689/4689, equipment: [small_amplifying_core]}
+  - {name: sabertooth, index: 1, position: {x: 285, y: -95}, source: delivered}
+  - {name: overlord, index: 2, position: {x: -55, y: -135}, level: 7, exp: 0/10800/11019, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 230, y: -135}, retained: false}
+  battle_skills:
+  - {name: nuke, positions: [{x: 275, y: -160}]}
+red:
+  core_damage: 604
+  officers: [advanced_missile_device, advanced_power_system, cost_control_specialist, improved_sandworm]
+  techs:
+    sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
+  blueprints: [defense_enhancement]
+  tower_strengthen_levels: [2, 3]
+  units:
+  - {name: sandworm, index: 0, position: {x: 280, y: -170}, level: 7, exp: 12593/12593/12593, rotated: true, equipment: [mustang_production_line]}
+  - {name: centurion, index: 1, position: {x: -275, y: -245}, level: 3, exp: 0/568/8014, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 100, y: -60}, retained: false}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: -65, y: 265}, {x: -180, y: 115}]}
+asserts:
+- sql: |
+    SELECT a.position__x = b.position__x, a.position__z = b.position__z
+    FROM units a JOIN units b ON a.tick = b.tick
+    WHERE a.tick = 180 AND a.unit_id = 14 AND b.unit_id = 15;
+  rows:
+  - [1, 1]
+- sql: |
+    SELECT enabled__lock_target__id FROM units__skills
+    WHERE tick = 181 AND unit_id = 15 AND skill_slot = 0;
+  rows:
+  - [14]
+ticks: 1004
+hash: 26:dde2babf59db7e2818bd036e35644cbbdeaab581cce7b7b0b62518c5a6dd3906
