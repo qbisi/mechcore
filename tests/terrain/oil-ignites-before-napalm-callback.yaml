@@ -1,0 +1,46 @@
+# Complete generated layout: fire damage ignites three airborne oils
+# before the same hit dispatches the Napalm fire callback.
+# The converted fires receive identities before the smaller Napalm fire.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1204950270
+round: 4
+blue:
+  core_damage: 201
+  officers: [advanced_missile_device, speed_specialist]
+  techs:
+    fire_badger: [napalm, field_maintenance, range_enhancement, scorching_fire, scorching_charge, ignite, counter_fire]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: fire_badger, index: 0, position: {x: -335, y: 260}, level: 7, exp: 8815/8815/8815, rotated: true, equipment: [secondary_heavy_armor]}
+  - {name: sandworm, index: 1, position: {x: -60, y: -170}, level: 8, exp: 0/3966/13455, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -190, y: -225}}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: 280, y: 225}, {x: -70, y: -245}, {x: 5, y: -50}]}
+red:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_targeting_system, typhoon_specialist]
+  techs:
+    phantom_ray: [energy_shield, high_explosive_ammo, burst_mode, armor_enhancement, ground_targeting, stealth_cloak, range_enhancement, sticky_oil_bomb]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: phantom_ray, index: 0, position: {x: 110, y: -65}, level: 5, exp: 2605/5210/5210, rotated: true, equipment: [secondary_heavy_armor]}
+  - {name: typhoon, index: 1, position: {x: -120, y: -80}, exp: 0/50/1950, source: delivered}
+  - {name: void_eye, index: 2, position: {x: -110, y: -140}, level: 9, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 245, y: -95}, retained: false}
+asserts:
+- sql: |
+    SELECT terrain_id, position__x, position__y, position__z, radius FROM terrains
+    WHERE tick = 1134 AND terrain_id BETWEEN 91 AND 94 ORDER BY terrain_id;
+  rows:
+  - [91, 530458448491, 39513271583, 548529488543, 171798691840]
+  - [92, 511451502905, 49960518898, 494637302819, 171798691840]
+  - [93, 438229918504, 40085712219, 435740905761, 171798691840]
+  - [94, 601295421492, 0, 730144440300, 51539607552]
+ticks: 1291
+hash: 26:09241b415700b5698abece2e9ce7581067fa6c5615a2e73c4297a6fced4189bc

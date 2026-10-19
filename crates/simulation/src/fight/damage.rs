@@ -983,14 +983,15 @@ impl Simulation {
                 }
             }
         }
-        let effects =
-            self.dispatch_hit_damage(hit, (&struck.targets, struck.lost, false), events)?;
-        struck.absorb_ends(effects);
-        // A hit that deals fire sets alight the oil its splash reaches.
+        // PerformHitTargetsEffect ignites oil before PerformRangeEffect
+        // dispatches hit callbacks, including FireIntensify's own new fire.
         if hit.fire {
             let (x_q32, z_q32) = hit.center_q32;
             self.ignite_oils_hit((x_q32, z_q32, space_to_q32(hit.splash_radius)), hit.team)?;
         }
+        let effects =
+            self.dispatch_hit_damage(hit, (&struck.targets, struck.lost, false), events)?;
+        struck.absorb_ends(effects);
         Ok(struck)
     }
 
