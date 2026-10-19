@@ -1366,6 +1366,12 @@ skill of the unit is, every record goes (`ClearTargetRecord`). A jump at a
 unit a battlefield shield covers that does not cover the Raiden is refused,
 which is not measured.
 
+**The owner leaving clears the records, not the pending jumps.**
+`SkillManager.ExitFight` calls `FightMechIgnoreTargetManager.OnExitFight`,
+which clears both target records and attacking skills. A jump already
+scheduled still runs its timer after the owner dies, and may strike a
+previous target again after those records have gone.
+
 ## A second damage that writes a buff
 
 Electromagnetic Cloud, the Vortex's, is a `SecondaryDamageIntensifyTech`
@@ -2104,6 +2110,9 @@ derive (a minimum range):
   `tests/additional_damage/ionization.yaml`.
 - Chain jumps each of a Raiden's weapons' hits on to another Mustang 0.2
   seconds later, killing it: `tests/chain/raiden-mustangs.yaml`.
+- A Raiden dies with Chain timers pending; its cleared ignore records let
+  those jumps strike its earlier target again:
+  `tests/chain/dead-owner-clears-ignore-records.yaml`.
 - Chain jumps from a destroyed defensive wall block to another block:
   `tests/chain/chain-through-defensive-wall.yaml`.
 - EMP expiry restores Land Cruiser's unit state before Field Maintenance
@@ -2434,7 +2443,8 @@ derive (a minimum range):
   `HitEffectControl.Init`, `Perform`, `OnTimerOver`, `GetTarget`,
   `OnIterationSuccessOnce`, `OnIterationEnd`, `GetDamage`,
   `IterationEffectSystem.IsIteration`, `Add`, `Remove`,
-  `FightMechIgnoreTargetManager.AddIgnoreBySkillHit`, `IsContains`,
+  `FightMechIgnoreTargetManager.AddIgnoreBySkillHit`,
+  `SkillManager.ExitFight`, `FightMechIgnoreTargetManager.OnExitFight`, `IsContains`,
   `ClearIgnoreByHitEffectEnd`, `ClearTargetRecord`,
   `SkillDamageProvider.CalculateDamagePosition`.
 - Additional-damage technologies: `AdditionalDamageTech.GetReduceLifeRate`,
