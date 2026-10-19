@@ -1370,6 +1370,11 @@ updates its main skill as in a fight, so a Sandworm below whose lock died
 with the fight searches, takes the defeated side's tower and walks on to it
 until the fight ends.
 
+An appearing summon can keep the fight open while its side has no active
+unit. Skills whose updates stop keep their elapsed attack time; when the
+summon joins and fighting resumes, they wait out the remaining interval.
+Time spent waiting for that summon does not bring their next blow closer.
+
 A main skill locked by a permanent preemptive skill holds no lock target
 (`SkillLockState.Enter`), so this path leaves it locked. Final
 `SkillManager.ExitFight` visits every skill and returns it to idle, including
@@ -1428,6 +1433,11 @@ not the game's native attack-type enum.
 ## Evidence
 
 ### Recorded
+
+- An Abyss waiting for the opposing production-line Sledgehammers to join
+  preserves its Dark Companion and Swarm Missiles clocks through the pause,
+  then waits for their full remaining intervals:
+  `tests/endgame/pending-summon-preserves-attack-wait.yaml`.
 
 - Three Void Eyes enter attack with ready clocks, then begin their first
   wind-ups on the following update:
@@ -1856,6 +1866,10 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- A skill's clock advances only when it updates, and a blow waits for that
+  clock to reach its interval: `SkillManager.Update`, `FightSkill.Update`,
+  `SkillAttackState.TryPerformAttack`, `FightSkill.CanPerformAttack`.
 
 - Entry with no initial cooldown refreshes the sampled attack interval and
   sets attack time to it: `FightSkill.EnterFight`,
