@@ -74,6 +74,9 @@ which the War Factory's are.
   which its first gun does, and turns the unit to that gun's lock
   (`FightMech.UpdateRotation`); every gun takes that rotation and is held
   within its arc on its first update.
+  This presearch sets no attack target. The first gun checks for a wall in
+  its first idle update; a War Factory can replace that lock with a wall
+  then, and another wall can replace it only on a later check.
 
 ## Searching from the rest
 
@@ -177,6 +180,10 @@ The Mountain's motion follows one of its weapons, the one whose skill is
 
 ### Recorded
 
+- A War Factory's first gun replaces its presearch unit lock with one wall
+  block on its first update, then the nearer block on its next check:
+  `tests/search/presearch-defers-wall-replacement.yaml`.
+
 - A War Factory's own search keeps the first of equally scored nearby
   Crawlers while an idle gun searches for another:
   `tests/mech_search/tied-crawlers-use-actor-list.yaml`.
@@ -258,6 +265,11 @@ The Mountain's motion follows one of its weapons, the one whose skill is
   `tests/multi_attack/mountain-saturation_bombardment.yaml`.
 
 ### Read
+
+- Presearch asks for the lock and updates facing without searching the
+  attack target: `PresearchTargetController.SearchTarget`,
+  `FightSkillBatch.SearchLockTarget`, `FightSkill.SearchLockTarget`,
+  `SkillIdleState.TryPerform`.
 
 - Each independent skill starts from its own idle update:
   `SkillIdleState.TryPerform`, `SkillIdleState.TryStartAttack`,

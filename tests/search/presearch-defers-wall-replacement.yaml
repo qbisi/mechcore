@@ -1,0 +1,49 @@
+# Presearch locks a unit and sets facing without checking the wall. On
+# tick 1 the War Factory first gun takes wall block 7, and only its next
+# check replaces that with block 6. Its independent mech lock stays on 4.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1082104923
+round: 4
+blue:
+  core_damage: 861
+  officers: [advanced_power_system, typhoon_specialist, extended_range_fortress]
+  techs:
+    fortress: [doubleshot, barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [1, 1]
+  units:
+  - {name: fortress, index: 0, position: {x: -70, y: -150}, level: 3, exp: 5699/5699/5699, rotated: true, equipment: [mustang_production_line]}
+  - {name: typhoon, index: 1, position: {x: 200, y: -140}, source: delivered}
+  - {name: phantom_ray, index: 2, position: {x: 75, y: -50}, level: 5, exp: 0/5210/5210, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -55, y: -145}]}
+red:
+  core_damage: 0
+  officers: [advanced_power_system, rhino_specialist, improved_war_factory]
+  techs:
+    war_factory: [high_explosive_ammo, armor_enhancement, missile_interceptor, range_enhancement, launcher_overload, phoenix_production, steel_ball_production, sledgehammer_production, photon_coating]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: war_factory, index: 0, position: {x: 165, y: -95}, level: 8, exp: 10764/15358/21528}
+  - {name: rhino, index: 1, position: {x: 265, y: -265}, level: 2, exp: 0/603/2591, source: delivered}
+  - {name: scorpion, index: 2, position: {x: -145, y: -65}, level: 5, exp: 0/600/7816, source: joined}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: 0, y: 125}, {x: -255, y: -80}]}
+asserts:
+- sql: |
+    SELECT u.tick, u.mech_lock_target__id, s.enabled__lock_target__id,
+           s.enabled__attack_target__id
+    FROM units u JOIN units__skills s USING (tick, unit_id)
+    WHERE u.unit_id = 16 AND s.skill_slot = 0 AND u.tick IN (1, 2)
+    ORDER BY u.tick;
+  rows:
+  - [1, 4, 7, 7]
+  - [2, 4, 6, 6]
+ticks: 813
+hash: 26:069162211e5d2cd48478a0a28a97778b163cbab7eb8cdc6fb7a4c7c328b091f6
