@@ -196,6 +196,7 @@ pub(in crate::fight) fn initialize_actors(
             if facing != placement.rotation {
                 actor.face(mdeg_to_degrees_q32(facing));
             }
+            actor.preparation_order = initial.len();
             initial.push(actor);
         }
     }

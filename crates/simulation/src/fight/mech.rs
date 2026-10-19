@@ -74,6 +74,7 @@ impl Actor {
             .as_ref()
             .map(|melee| crate::layout::melee_rounds(melee, &placement.effects.extra_weapons));
         let mut actor = Self {
+            preparation_order: 0,
             x,
             z,
             x_q32,
