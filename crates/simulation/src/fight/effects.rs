@@ -94,6 +94,7 @@ impl Simulation {
                 EffectProvider::SkillSearchTarget => self.switch_life_priority(unit, true),
                 EffectProvider::MoveAbilityDynamic => self.activate_cloak(unit),
                 EffectProvider::Buff => self.activate_buff_cycles(unit),
+                EffectProvider::SecondaryDamageIntensify => self.activate_secondary_buff(unit),
                 EffectProvider::SupportUnit => self.activate_production(unit),
                 EffectProvider::AdvancedEnergyShield => self.activate_carried_shield(unit),
                 EffectProvider::AutoRecovery => self.add_auto_recovery(unit),
@@ -114,7 +115,6 @@ impl Simulation {
                 | EffectProvider::ArmorStrengthen
                 | EffectProvider::SearchTargetSpecific
                 | EffectProvider::AirAttack
-                | EffectProvider::SecondaryDamageIntensify
                 | EffectProvider::DeadEffect
                 | EffectProvider::MoveAbilitySummon
                 | EffectProvider::ExtraSkill
@@ -149,6 +149,7 @@ impl Simulation {
                 EffectProvider::SkillSearchTarget => self.switch_life_priority(unit, false),
                 EffectProvider::MoveAbilityDynamic => self.deactivate_cloak(unit),
                 EffectProvider::Buff => self.deactivate_buff_cycles(unit),
+                EffectProvider::SecondaryDamageIntensify => self.deactivate_secondary_buff(unit),
                 EffectProvider::ReactiveArmor => self.remove_reactive_armor(unit),
                 EffectProvider::AdvancedEnergyShield => self.deactivate_carried_shield(unit),
                 // Every dead unit's interceptors are deactivated together,
@@ -163,7 +164,6 @@ impl Simulation {
                 | EffectProvider::ArmorStrengthen
                 | EffectProvider::SearchTargetSpecific
                 | EffectProvider::AirAttack
-                | EffectProvider::SecondaryDamageIntensify
                 | EffectProvider::SupportUnit
                 | EffectProvider::DeadEffect
                 | EffectProvider::MoveAbilitySummon
@@ -367,7 +367,18 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
                 .switch_attack_count(on),
-            EffectProvider::Buff => self.switch_buff_cycles(actor_id, on),
+            EffectProvider::Buff => {
+                self.switch_buff_cycles(actor_id, on);
+                self.actors.get_mut(&actor_id).expect("actor identity is stable")
+                    .secondary_buff_origin_registered = on;
+            }
+            EffectProvider::SecondaryDamageIntensify => {
+                if on {
+                    self.activate_secondary_buff(actor_id);
+                } else {
+                    self.deactivate_secondary_buff(actor_id);
+                }
+            }
             EffectProvider::ReactiveArmor => self
                 .actors
                 .get_mut(&actor_id)
@@ -393,7 +404,6 @@ impl Simulation {
             | EffectProvider::LifeSteal
             | EffectProvider::ArmorStrengthen
             | EffectProvider::SearchTargetSpecific
-            | EffectProvider::SecondaryDamageIntensify
             | EffectProvider::DeadEffect
             | EffectProvider::DeadLine
             | EffectProvider::FireIntensify

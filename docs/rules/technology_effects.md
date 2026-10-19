@@ -1357,6 +1357,15 @@ hit providers. Both controllers receive the main skill's hits, each applying
 the buff independently; a summoned Electromagnetic Twin has only its
 summon-time registration.
 
+**Restoring the technology can register two Cloud hit controllers too.**
+`SecondaryDamageIntensifyTech` also implements `IEffectBuffDataSource`.
+Its secondary-damage provider removes the controller its dictionary holds
+when disabled, and creates a new one on restoration. The buff provider
+restores the origin controller retained by the buff manager. They are now
+different objects, so the skill's duplicate check admits both; each applies
+the buff to the hit's targets. Further disable/restore cycles remove and
+replace the current controller and restore the same origin again.
+
 ## Cloak technologies
 
 A row of `moveAbilityDynamicTechDatas` is a `MoveAbilityDynamicTech`, an
@@ -1817,6 +1826,9 @@ derive (a minimum range):
 - A travelling Vortex's Cloud applies twice on its main hit, its summoned
   Twin once, beside the Sandworms' burrow transitions:
   `tests/secondary_damage/travelling-cloud-and-burrow-idle.yaml`.
+- A Vortex whose Cloud is restored after EMP applies its hit buff through
+  both the origin and replacement controller:
+  `tests/secondary_damage/restored-cloud-keeps-origin-controller.yaml`.
 
 - EMP refreshes each of a Fang's technology sources separately, leaving its
   main skill ready when an intermediate refresh reaches its clock:
@@ -2292,6 +2304,11 @@ derive (a minimum range):
   travel arrival: `SecondaryDamageIntensifyEffectProvider.DoActive`,
   `Clear`, `FightEffectSystem.Refresh`, `SuperDeploymentController.ExitTravel`,
   `SkillHitEffectController.PerformHitEffect`.
+- Cloud's current controller is removed on disable and recreated on restore,
+  while the buff provider can register the retained origin controller:
+  `SecondaryDamageIntensifyEffectProvider.DoDeactive`, `DoActive`,
+  `BuffEffectProvider.RegisterEffectEvent`, `GetOriginBuffCycleCtr`,
+  `TeamBuffCycleManager.CreateBuffController`, `GetBuffController`.
 
 - Death exits every skill before rebirth enters them again:
   `FightMech.OnDead`, `FightMech.ExitFight`, `SkillManager.ExitFight`,

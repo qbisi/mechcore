@@ -1251,6 +1251,20 @@ impl Simulation {
                             false,
                             events,
                         )?,
+                        EffectProvider::SecondaryDamageIntensify
+                            if main
+                                && self.actors[&owner.id].secondary_buff_controller
+                                    == Some(false) =>
+                        {
+                            self.add_hit_buffs(
+                                owner.id,
+                                slot,
+                                (targets, center),
+                                secondary,
+                                true,
+                                events,
+                            )?;
+                        }
                         EffectProvider::IterationHit if !secondary => {
                             let point = self.hit_point(skill, targets, center);
                             self.start_chain(owner.id, slot, targets, (point.0, point.2));
@@ -1271,14 +1285,6 @@ impl Simulation {
                         }
                         _ => {}
                     }
-                }
-                // A unit placed in travel retains its preparation-time
-                // secondary buff controller. ExitTravel's ActiveEffect
-                // registers another after the other hit providers; both
-                // remain in SkillHitEffectController's list. Summons have
-                // no preparation-time registration.
-                if self.actors[&owner.id].placement.travelling {
-                    self.add_hit_buffs(owner.id, slot, (targets, center), secondary, true, events)?;
                 }
                 // `PerformMainSkillHitted`, which only a projectile raises.
                 if main

@@ -330,6 +330,11 @@ struct Actor {
     /// `SkillHitEffectController`'s live registration order, which changes
     /// when a technology unregisters and restores its hit effects.
     hit_provider_order: Vec<crate::modifier::EffectProvider>,
+    /// The secondary-damage provider's dictionary entry: true when it is
+    /// the origin controller that `BuffEffectProvider` also registers.
+    secondary_buff_controller: Option<bool>,
+    /// Whether the origin controller remains on the skill's hit list.
+    secondary_buff_origin_registered: bool,
     /// Whether its sweep skill holds what its technology changes: cleared
     /// while that technology is switched off.
     sweep_intensified: bool,
