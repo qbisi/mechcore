@@ -1221,8 +1221,9 @@ impl Simulation {
             .or_else(|| self.select_in_square(source, target_search_order, true, None, None))
     }
 
-    /// [`Simulation::select_normal_target_with_order`] for a given source.
-    pub(in crate::fight) fn select_normal_target_from(
+    /// `MechSearchTargetController.SearchLockTarget` supplies the opponent's
+    /// actor list to its selector, preserving that list's order on ties.
+    fn select_mech_target(
         &self,
         source: &super::attacker::Attacker<'_>,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
@@ -1235,7 +1236,7 @@ impl Simulation {
             source,
             target_search_order,
             use_live_candidate_positions,
-            Some(0),
+            None,
             None,
         )
     }
@@ -1495,7 +1496,7 @@ impl Simulation {
                 .mech_attacker(actor_id)
                 .ok_or_else(|| Error::new("mech search source is absent"))?;
             Some(
-                match self.select_normal_target_from(&source, target_search_order, true) {
+                match self.select_mech_target(&source, target_search_order, true) {
                     Some(found) => Some(found),
                     None => self.select_alive_target_from(
                         &source,

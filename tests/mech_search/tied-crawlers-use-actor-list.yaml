@@ -1,0 +1,56 @@
+# At tick 378 the War Factory mech selector scores Crawlers 7, 20 and 23
+# equally, taking the first in the opponent actor list, 7. Its idle gun in
+# slot 2 independently changes to 23, without changing the mech lock.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 377603525
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_targeting_system, sabertooth_specialist]
+  techs:
+    crawler: [subterranean_blitz, acidic_explosion, loose_formation, mechanical_rage, impact_drill, replicate]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [2, 2]
+  units:
+  - {name: crawler, index: 0, position: {x: 325, y: 300}, level: 8, exp: 3027/3027/3027, rotated: true, equipment: [improved_firepower_control_system]}
+  - {name: sabertooth, index: 1, position: {x: 65, y: -165}, source: delivered}
+  - {name: centurion, index: 2, position: {x: 255, y: -45}, level: 5, exp: 0/1720/11724, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -275, y: -275}}
+  battle_skills:
+  - {name: smoke_bomb, positions: [{x: -245, y: 5}, {x: 275, y: 205}]}
+red:
+  core_damage: 404
+  officers: [advanced_shield_device, quick_teleport, sabertooth_specialist]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [3, 2]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 255, y: -25}, exp: 0/120/1300, source: delivered}
+  - {name: steel_ball, index: 1, position: {x: -320, y: 165}, equipment: [super_heavy_armor], travelling: true, source: joined}
+  - {name: war_factory, index: 2, position: {x: -5, y: -65}, level: 2, exp: 0/1120/7210, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -130, y: -240}}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: -50, y: 175}, {x: 210, y: 90}]}
+asserts:
+- sql: |
+    SELECT u.tick, u.mech_lock_target__id, s.enabled__lock_target__id
+    FROM units u JOIN units__skills s USING (tick, unit_id)
+    WHERE u.unit_id = 32 AND s.skill_slot = 2 AND u.tick BETWEEN 377 AND 379
+    ORDER BY u.tick;
+  rows:
+  - [377, 7, 7]
+  - [378, 7, 23]
+  - [379, 7, 23]
+ticks: 600
+hash: 26:81139f86f079e4b629123c141276ad859db14fef22e4cf7316a69a3f1dd17de8
