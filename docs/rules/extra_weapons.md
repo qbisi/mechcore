@@ -100,7 +100,9 @@ the whole of the difference:
   turret to what the extra skill fires at: the Mountain's turret onto
   Gun-launched Missile's lock while its guns cool without one. Moving, it turns the skill's weapons to what the skill fires
   at, or to where the unit moves when it fires at nothing
-  (`MotionMoveState.NormalRotate`, `CalculateTargetDirection`); with a body
+  (`MotionMoveState.NormalRotate`, `CalculateTargetDirection`). If the
+  attack target has died, the lock supplies the direction instead, including
+  after a melee skill destroys a wall during its own update; with a body
   they are the turret every weapon shares, so a Centurion whose main skill
   has just lost its lock turns its turret to its missile skill's lock a tick
   before the main skill locks it. A Sabertooth whose main
@@ -788,6 +790,10 @@ that is not melee, so the simulator refuses it.
 ## Evidence
 
 ### Recorded
+
+- A Centurion in Melee Mode destroys its blocking wall and turns towards
+  its living lock through the backswing:
+  `tests/extra_weapon/melee-turns-to-lock-after-wall-kill.yaml`.
 
 - An Overlord Artillery weapon keeps its facing when its lock shares its
   owner's horizontal position, then turns from that facing when the target

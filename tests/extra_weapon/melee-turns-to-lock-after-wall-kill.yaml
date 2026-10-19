@@ -1,0 +1,56 @@
+# Centurion 2 in Melee Mode destroys the wall block it attacks while its
+# lock remains on building 9. Its root immediately turns towards that lock,
+# rather than retaining the destroyed block's direction through its backswing.
+# Control: melee-mode.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1539576797
+round: 2
+blue:
+  core_damage: 102
+  officers: [advanced_shield_device, quick_teleport, speed_specialist]
+  techs:
+    centurion: [melee_mode]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: centurion, index: 0, position: {x: 345, y: 255}, level: 5, exp: 0/4742/11724, rotated: true, equipment: [heavy_armor], travelling: true, source: joined}
+  - {name: arclight, index: 1, position: {x: 200, y: -60}, level: 5, exp: 0/426/3908, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 100, y: -175}, retained: false}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 150, y: -130}]}
+red:
+  core_damage: 250
+  officers: [advanced_missile_device, advanced_offensive_tactics, marksman_specialist]
+  techs:
+    wraith: [high_explosive_ammo, field_maintenance, armor_enhancement, land_cruiser, range_enhancement, floating_artillery_array, degeneration_beam]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: marksman, index: 0, position: {x: 160, y: -160}, level: 3, exp: 0/16/2315, source: delivered}
+  - {name: wraith, index: 1, position: {x: -15, y: -45}, level: 3, exp: 0/1466/8014, rotated: true, equipment: [portable_shield], source: joined}
+  - {name: wasp, index: 2, position: {x: -45, y: -110}, level: 2, exp: 0/966/2028, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -45, y: -20}, retained: false}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: -90, y: -145}]}
+asserts:
+- sql: |-
+    SELECT tick,body_rotation FROM units WHERE unit_id=2 AND tick IN (1258,1259,1272,1273) ORDER BY tick
+  rows:
+  - [1258, 7832252616]
+  - [1259, 1526721950635]
+  - [1272, 1526721950635]
+  - [1273, 1526915636955]
+ticks: 2360
+hash: 26:14fd1a69a73796a0f14f2e66b30fc27a94328fef379d14951b4bea6927dd0714
