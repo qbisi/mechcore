@@ -1723,26 +1723,18 @@ impl Simulation {
 
     /// `IsAttackTargetInAttackRange` as a command's motion asks it of the
     /// skill's attack target, edge to edge against the main skill's range,
-    /// whether the target lives or not: the bearing to it when it is in
-    /// range.
+    /// including visibility and shield reach but not whether it lives:
+    /// the bearing to it when it is in range.
     fn command_target_in_reach(&self, actor_id: u64, target: FightActorRef) -> Option<i64> {
+        if !self.attack_target_in_range(SkillRef::main(FightActorRef::Unit(actor_id)), target) {
+            return None;
+        }
         let actor = &self.actors[&actor_id];
         let view = self.fight_actor(target)?;
-        let edge_distance_q32 = native_q32_magnitude(
+        Some(direction_degrees_q32_raw(
             view.x_q32.saturating_sub(actor.x_q32),
             view.z_q32.saturating_sub(actor.z_q32),
-        )
-        .saturating_sub(space_to_q32(actor.rules.collision_radius()))
-        .saturating_sub(space_to_q32(view.radius))
-        .max(0);
-        let in_reach = edge_distance_q32 >= space_to_q32(self.main_min_range(actor_id))
-            && edge_distance_q32 <= space_to_q32(self.main_attack_range(actor_id));
-        in_reach.then(|| {
-            direction_degrees_q32_raw(
-                view.x_q32.saturating_sub(actor.x_q32),
-                view.z_q32.saturating_sub(actor.z_q32),
-            )
-        })
+        ))
     }
 
     /// `MotionMoveState.Update` under a command while the skill cools without
