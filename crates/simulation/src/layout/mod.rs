@@ -1639,7 +1639,12 @@ fn technology_disable(
             })
             .map(|weapon| format!("technology {}", weapon.rules.technology))
             .collect(),
-        providers: providers.into_keys().collect(),
+        providers: effects
+            .hit_provider_order
+            .iter()
+            .copied()
+            .filter(|provider| providers.contains_key(provider))
+            .collect(),
     })
 }
 

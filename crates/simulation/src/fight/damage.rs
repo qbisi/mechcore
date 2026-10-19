@@ -1204,7 +1204,8 @@ impl Simulation {
     /// walks its providers after `FightEffectMananger.Sort` compares each
     /// provider's first data source's `GetID`). An absorption equipment's
     /// provider therefore registers after a technology's buff controller,
-    /// while an earlier lifesteal technology registers before it. A
+    /// while an earlier lifesteal technology registers before it. Technology
+    /// switching can remove and append callbacks after that initial order. A
     /// projectile's dispatch alone then raises
     /// `ISkillOwner.PerformMainSkillHitted` on its owner when its skill is the
     /// main one (`IProjectileDataSource.IsMainSkill`); `SkillDamageProvider`'s,
@@ -1234,13 +1235,7 @@ impl Simulation {
                 let skill = self.skill_at_slot(FightActorRef::Unit(owner.id), usize::from(slot));
                 let main = skill.slot == SkillSlot::Main;
                 let mut ends = Struck::default();
-                let registered = &self.actors[&owner.id].placement.effects.hit_provider_order;
-                let providers = if registered.is_empty() {
-                    EffectProvider::ALL.to_vec()
-                } else {
-                    registered.clone()
-                };
-                for provider in providers {
+                for provider in self.actors[&owner.id].hit_provider_order.clone() {
                     match provider {
                         EffectProvider::WreckageRecovery => {
                             self.record_wreckage_hit(owner.id, slot, targets);

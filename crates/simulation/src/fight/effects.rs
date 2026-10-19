@@ -274,12 +274,40 @@ impl Simulation {
     /// - A burrowing technology's unit comes up, its rate withdrawn, and its
     ///   manager passes over it (`BurrowSystem.Deactive`) until it is
     ///   switched on (`Active`).
+    #[allow(
+        clippy::too_many_lines,
+        reason = "one dispatch mirrors each provider's typed DisableEffect/EnableEffect"
+    )]
     pub(in crate::fight) fn switch_provider(
         &mut self,
         actor_id: u64,
         provider: EffectProvider,
         on: bool,
     ) -> Result<()> {
+        // These typed DisableEffect/EnableEffect methods remove and append
+        // their hit effects. FireIntensify only guards its callback instead.
+        // BuffEffectProvider unregisters/registers all of its controllers,
+        // in source order, so they remain one contiguous block in this list.
+        if matches!(
+            provider,
+            EffectProvider::Buff
+                | EffectProvider::LifeSteal
+                | EffectProvider::AdditionalDamage
+                | EffectProvider::IterationHit
+                | EffectProvider::KillExplosion
+                | EffectProvider::SpawnAdvancedShield
+        ) {
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            actor
+                .hit_provider_order
+                .retain(|registered| *registered != provider);
+            if on {
+                actor.hit_provider_order.push(provider);
+            }
+        }
         match provider {
             // `ExtraSkillProvider.DisableSkill` and `EnableSkill`: every
             // extra skill of a technology that switches is disabled and

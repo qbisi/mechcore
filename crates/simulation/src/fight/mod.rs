@@ -327,6 +327,9 @@ struct Actor {
     /// Each controller's `isAvailable`: technology switching reaches only
     /// that source, while activation and deactivation reach every source.
     buff_cycles_available: Vec<bool>,
+    /// `SkillHitEffectController`'s live registration order, which changes
+    /// when a technology unregisters and restores its hit effects.
+    hit_provider_order: Vec<crate::modifier::EffectProvider>,
     /// Whether its sweep skill holds what its technology changes: cleared
     /// while that technology is switched off.
     sweep_intensified: bool,
