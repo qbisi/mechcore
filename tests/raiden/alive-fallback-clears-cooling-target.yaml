@@ -1,0 +1,53 @@
+# Raiden slot 2 has no lock before its tick-1009 check. The failed normal
+# search falls back on shield-covered Melting Point 4, clearing the actor
+# attack target. The
+# slot cools through tick 1018 naming nothing, despite that live fallback.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1190446032
+round: 4
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_targeting_system, fortified_specialist, mass_produced_melting_point]
+  techs:
+    melting_point: [energy_absorption, electromagnetic_barrage, energy_diffraction, crawler_production, armor_enhancement, range_enhancement]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [1, 3]
+  units:
+  - {name: melting_point, index: 0, position: {x: 320, y: 100}, level: 6, exp: 4059/8118/8118, equipment: [barrier]}
+  - {name: vortex, index: 1, position: {x: -130, y: -90}, level: 8, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 290, y: -175}}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -240, y: -240}]}
+red:
+  core_damage: 351
+  officers: [advanced_defensive_tactics, advanced_offensive_tactics, typhoon_specialist, improved_sledgehammer]
+  techs:
+    sledgehammer: [range_enhancement]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 175, y: -20}, level: 7, exp: 4092/7466/8185, equipment: [portable_shield]}
+  - {name: typhoon, index: 1, position: {x: -80, y: -290}, exp: 0/56/1950, source: delivered}
+  - {name: raiden, index: 2, position: {x: 140, y: -220}, level: 7, exp: 0/82/15111, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -245, y: -35}, retained: false}
+  battle_skills:
+  - {name: missile_strike, positions: [{x: 275, y: 105}]}
+asserts:
+- sql: |
+    SELECT tick, enabled__state, enabled__lock_target__id,
+           enabled__attack_target__id FROM units__skills
+    WHERE unit_id = 16 AND skill_slot = 2 AND tick IN (1008, 1009, 1018, 1019)
+    ORDER BY tick;
+  rows:
+  - [1008, attack, 4, null]
+  - [1009, cooling, null, null]
+  - [1018, cooling, null, null]
+  - [1019, idle, null, null]
+ticks: 1337
+hash: 26:cc38e5535623ee75175bfe88c5cb7426df7863d0538812332fa6a28b9972f73f

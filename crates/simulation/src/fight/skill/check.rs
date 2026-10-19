@@ -158,9 +158,7 @@ impl Simulation {
         // behind a shield need not change this field.
         let actor_target = |simulation: &Self| {
             let skill = simulation.skill(skill_ref).group_skill(slot.unwrap_or(0));
-            skill
-                .checked_attack_target()
-                .filter(|_| skill.target_shield.is_none())
+            skill.checked_actor_target()
         };
         let before = actor_target(self);
         // The native checker asks IsAirAttack/IsGroundAttack before keeping
@@ -706,9 +704,7 @@ impl Simulation {
         }
         let skill = self.skill_mut(skill_ref);
         // A skill firing at a shield has no attack target to go on naming.
-        let fired_at = skill
-            .checked_attack_target()
-            .filter(|_| skill.shield_target().is_none());
+        let fired_at = skill.checked_actor_target();
         skill.drop_lock();
         skill.set_phase(FightSkillPhase::Idle);
         skill.set_backswing_finish_step(None);

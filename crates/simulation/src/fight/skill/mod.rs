@@ -1053,11 +1053,9 @@ impl Skill {
         self.checked_attack_target()
     }
 
-    /// What `FightSkill.SearchAttackTarget` leaves the skill firing at, idle
-    /// or not: the construction in the way of the lock, or the lock. A
-    /// failed check ends its search with it (`CheckWhenLoseTarget`), so an
-    /// attack a check ends hands it to the cooling even when the lock came
-    /// from `TrySearchAliveTarget`, which leaves the skill idle.
+    /// What `FightSkill.SearchAttackTarget` leaves behind the shield target:
+    /// the construction in the way of the lock, or the lock itself, even
+    /// when the search fell back on an alive actor and left the skill idle.
     pub(in crate::fight) fn checked_attack_target(&self) -> Option<FightActorRef> {
         if let Some((kept, under)) = self.kept_attack_target
             && self.lock_target == Some(under)
@@ -1070,6 +1068,16 @@ impl Skill {
             }
             _ => self.lock_target,
         }
+    }
+
+    /// `FightSkill.GetAttackTarget` after `SearchAttackTarget`: a shield
+    /// replacement clears it even when an alive-only fallback set `IsIdle`.
+    /// The shield field survives until the next attack-target search.
+    pub(in crate::fight) fn checked_actor_target(&self) -> Option<FightActorRef> {
+        self.checked_attack_target().filter(|_| {
+            self.target_shield
+                .is_none_or(|(_, found_for)| self.lock_target != Some(found_for))
+        })
     }
 
     /// Drops the mech's target, and every grouped slot with it.

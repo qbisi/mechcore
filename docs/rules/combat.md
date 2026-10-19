@@ -123,6 +123,9 @@ search fell back on any live enemy and left the skill idle, and nothing when
 the attack left it firing at a battlefield shield: a Phantom Ray whose lock dies, and whose next lock stands
 inside the enemy's shield, names no unit while it cools, however long, and
 locks again only once the cooling is over.
+The same holds for an alive-only fallback inside a shield: the check's
+`SearchAttackTarget` replaces the actor target with the shield even though
+the fallback left the skill idle. Its cooling retains that empty actor target.
 
 Its last cooling update enters idle immediately, though that idle state
 first updates on the next tick. Later skills in the same manager update
@@ -1434,6 +1437,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A Raiden's grouped gun enters cooling with no actor attack target after
+  its failed check finds an alive fallback covered by a shield:
+  `tests/raiden/alive-fallback-clears-cooling-target.yaml`.
+
 - An Abyss waiting for the opposing production-line Sledgehammers to join
   preserves its Dark Companion and Swarm Missiles clocks through the pause,
   then waits for their full remaining intervals:
@@ -1866,6 +1873,10 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- A failed check searches its fallback's attack target before returning;
+  a shield replaces the actor target: `SkillAttackableChecker.Check`,
+  `FightSkill.SearchAttackTarget`, `FightSkill.ChangeAttackTarget`.
 
 - A skill's clock advances only when it updates, and a blow waits for that
   clock to reach its interval: `SkillManager.Update`, `FightSkill.Update`,
