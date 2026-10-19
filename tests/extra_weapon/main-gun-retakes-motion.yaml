@@ -1,0 +1,46 @@
+# Complete generated layout: a standalone main gun taking motion back
+# from an extra skill replaces the attacker, not only the weapon slot.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1752227215
+round: 4
+blue:
+  core_damage: 0
+  officers: [advanced_power_system, advanced_targeting_system, typhoon_specialist]
+  techs:
+    mountain: [saturation_bombardment, mountain_plating, anti_aircraft_ammunition, range_enhancement, extended_range_ammo, gun_launched_missile, smoke_bomb, photon_loop]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [3, 3]
+  units:
+  - {name: mountain, index: 0, position: {x: -55, y: -205}, level: 9, exp: 10764/17936/21528, rotated: true}
+  - {name: typhoon, index: 1, position: {x: -40, y: -100}, exp: 0/331/1950, source: delivered}
+  - {name: sabertooth, index: 2, position: {x: 55, y: -55}, source: joined}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -140, y: 255}]}
+red:
+  core_damage: 500
+  officers: [advanced_power_system, improved_wasp]
+  techs:
+    wasp: [jump_drive]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: wasp, index: 0, position: {x: -115, y: -30}, level: 7, exp: 2833/3383/5667, equipment: [secondary_laser_sight]}
+  - {name: marksman, index: 1, position: {x: -190, y: -260}, level: 6, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  battle_skills:
+  - {name: smoke_bomb, positions: [{x: -145, y: 80}, {x: 230, y: -125}]}
+asserts:
+- sql: |
+    SELECT tick, turret_rotation FROM units
+    WHERE unit_id = 1 AND tick BETWEEN 135 AND 137 ORDER BY tick;
+  rows:
+  - [135, 123575112720]
+  - [136, 118282146113]
+  - [137, 118282146113]
+ticks: 307
+hash: 26:62c15496a0eac6218c0fd59675bd8a81037d1a03817333e994660c0cd56f564e

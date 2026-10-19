@@ -532,6 +532,13 @@ resume after the last projectile.
 
 ## Normal target scoring and pre-fight acquisition
 
+A standalone main gun that takes motion back from an extra skill replaces
+the motion's attacker with itself. An extra skill is no main target
+provider, so it cannot retain motion by pointing to another main gun's
+lock. The unit then turns its turret towards the accepted main gun's
+target
+([`main-gun-retakes-motion.yaml`](../../tests/extra_weapon/main-gun-retakes-motion.yaml)).
+
 The shared skill range check measures a retained dead target too: it tests
 visibility and distance, while selection and attackability ask whether the
 target lives. A standalone gun still releasing at a fallen construction
@@ -1389,6 +1396,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- Mountain's main gun retakes motion from an extra skill and turns its
+  turret towards tower 3 on tick 136:
+  `tests/extra_weapon/main-gun-retakes-motion.yaml`.
+
 - Mountain's second main gun keeps its attack motion on tick 205 after its
   retained construction target fell on tick 204:
   `tests/construction/standalone-fallen-target-range.yaml`.
@@ -1785,6 +1796,10 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- A main searcher replaces an attacker that is no main target provider:
+  `FightSkill.SearchLockTarget`, `FightSkillBase.IsMainTargetProvider`,
+  `FightMech.SetAttacker`.
 
 - A skill's range check tests visibility and distance without an alive or
   targetable predicate: `SkillAttackRangeChecker.IsActorInAttackRange`.
