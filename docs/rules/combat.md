@@ -561,7 +561,12 @@ search, scored on where everything stands at that moment and with the skill's
 range and minimum range as they stand then (`PrepareSearch` reads
 `GetAttackRange`), and
 `ScoreRatingTargetSelector.TrySelect` answers a prepared skill from those
-scores. A prepared answer that has died since, a tower that fell that tick
+scores. Replacing a hidden winner with a visible alternative still asks the
+live attacker's range. A Sandstorm that halves a Sledgehammer's range after
+preparation can leave its hidden tower selected even though the visible
+Sandworm was in its prepared range
+([`prepared-search-live-replacement-range.yaml`](../../tests/search/prepared-search-live-replacement-range.yaml)).
+A prepared answer that has died since, a tower that fell that tick
 among them, or no prepared answer at all, sends the search to `Select` over
 every enemy the skill attacks, with no square: a Crawler walking on a tower
 that falls takes the best-scored Fang anywhere. A skill that was not prepared,
@@ -1349,6 +1354,11 @@ not the game's native attack-type enum.
 ## Evidence
 
 ### Recorded
+
+- A prepared Sledgehammer search scores with 95 metres of range, but after
+  Sandstorm halves it to 47.5 metres on tick 321 it keeps the hidden tower
+  rather than replacing it with a visible Sandworm outside the new range:
+  `tests/search/prepared-search-live-replacement-range.yaml`.
 
 - A fusillade sibling whose lock the core took retains its fallen wall
   while cooling; its already empty lock does not overwrite the new mech
