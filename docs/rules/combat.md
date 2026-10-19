@@ -974,6 +974,12 @@ first data source. With no lifesteal technology on the owner, Absorption
 Module therefore heals after a lower-ID buff technology applies its buff.
 The highest-priority source still supplies the healing; choosing it does
 not replace the provider's full source list or its registration key.
+This is the initial registration order. Disabling a technology unregisters
+the hit effects its provider removes; restoring it appends them after those
+that remained. `BuffEffectProvider.DisableEffect` and `EnableEffect` unregister
+and register its buff controllers together, in source order. An equipment's
+lifesteal can therefore precede a restored buff technology after the unit's
+technologies were disabled, even though the buff registered first at entry.
 
 The active source registers its hit effect on the skills its main and extra
 skill flags admit. A main source also reaches its grouped extra weapons;
@@ -1485,6 +1491,9 @@ not the game's native attack-type enum.
   `tests/lifesteal/generated-arclight-buff-order.yaml`,
   `tests/lifesteal/generated-marksman-buff-order.yaml` and
   `tests/lifesteal/generated-crawler-buff-order.yaml`.
+- A Crawler's Absorption Module heals before its restored Replicate hit buff
+  after Electromagnetic Interference and a change of side:
+  `tests/lifesteal/restored-buff-follows-absorption.yaml`.
 - Splash and Photon Coating target enumeration retain the prepared actor
   order when near-equal z coordinates give a different identity order:
   `tests/corpus/134520979-r2.yaml` and `tests/corpus/67409908-r6.yaml`.
@@ -1877,6 +1886,10 @@ not the game's native attack-type enum.
   `FightEffectMananger.Sort` compares the first source of each provider.
   `FightEffectMananger.RegisterMechEvent` registers those providers, and
   `SkillHitEffectController.PerformHitEffect` walks its registered list.
+  `BuffEffectProvider.DisableEffect` calls `UnregisterEffectEvent` and
+  `EnableEffect` calls `RegisterEffectEvent`, each visiting its controllers;
+  `BuffCycleController.UnregisterMechEvent` and `RegisterMechEvent` remove
+  and add their hit effects through the skill manager.
 
 - A skill's motion range check delegates to the running preemptive skill:
   `FightSkillBase.GameRiver.Fight.IAttacker.IsAttackTargetInAttackRange`,

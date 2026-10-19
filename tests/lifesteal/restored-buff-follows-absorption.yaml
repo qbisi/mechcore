@@ -1,0 +1,51 @@
+# Complete generated layout: a Crawler with Absorption Module loses
+# and regains its Replicate hit callback under Electromagnetic Interference.
+# After conversion the equipment callback precedes the restored buff.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 11513766
+round: 3
+blue:
+  core_damage: 563
+  officers: [advanced_missile_device, advanced_defensive_tactics, fire_badger_specialist, fortified_hacker]
+  techs:
+    hacker: [electromagnetic_interference]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: hacker, index: 0, position: {x: -115, y: -265}, level: 5, exp: 1459/2241/2918, equipment: [enhancement_module]}
+  - {name: fire_badger, index: 1, position: {x: 5, y: -160}, source: delivered}
+  - {name: tarantula, index: 2, position: {x: -235, y: -205}, level: 5, exp: 0/538/7816, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -195, y: -135}, retained: false}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: -125, y: -160}]}
+red:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, advanced_targeting_system, fire_badger_specialist]
+  techs:
+    crawler: [subterranean_blitz, acidic_explosion, loose_formation, mechanical_rage, impact_drill, replicate]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [2, 2]
+  units:
+  - {name: crawler, index: 0, position: {x: -335, y: 80}, level: 6, exp: 2609/2609/2609, rotated: true, equipment: [absorption_module]}
+  - {name: fire_badger, index: 1, position: {x: 65, y: -280}, exp: 0/906/1400, source: delivered}
+  - {name: sledgehammer, index: 2, position: {x: -95, y: -260}, level: 9, source: joined}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: -205, y: -280}]}
+asserts:
+- sql: |
+    SELECT type, source__id, target__id, buff_id, amount FROM events
+    WHERE tick = 371 AND type IN ('damage', 'healing', 'buff_applied')
+    ORDER BY ordinal;
+  rows:
+  - ["damage", 16, 54, null, 213]
+  - ["healing", null, 16, null, 152]
+  - ["buff_applied", 16, 54, 2010, null]
+  - ["damage", null, 22, null, 24]
+ticks: 640
+hash: 26:f29c7ed511a0569602cbaefcc5519c8a6dbe977b7170fd31e84776994addcdf1

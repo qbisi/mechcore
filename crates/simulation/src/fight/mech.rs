@@ -101,6 +101,11 @@ impl Actor {
                 placement.travelling,
             ),
             buff_cycles_available: vec![true; placement.effects.buff_sources.len()],
+            hit_provider_order: if placement.effects.hit_provider_order.is_empty() {
+                crate::modifier::EffectProvider::ALL.to_vec()
+            } else {
+                placement.effects.hit_provider_order.clone()
+            },
             sweep_intensified: true,
             sand_fog_held: true,
             surfacing_line_held: true,
