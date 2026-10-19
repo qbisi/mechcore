@@ -1,0 +1,48 @@
+# Complete generated layout: prepared scoring keeps the old range, while
+# the visible replacement check reads the range after Sandstorm applies.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 867297200
+round: 4
+blue:
+  core_damage: 676
+  officers: [advanced_missile_device, advanced_power_system, rhino_specialist]
+  techs:
+    wasp: [range_enhancement]
+  blueprints: [defense_enhancement]
+  units:
+  - {name: wasp, index: 0, position: {x: 35, y: -20}, level: 8, exp: 3027/3171/6055, equipment: [portable_shield]}
+  - {name: rhino, index: 1, position: {x: 125, y: -125}, level: 2, source: delivered}
+  - {name: sledgehammer, index: 2, position: {x: 65, y: -160}, level: 9, exp: 0/25/8746, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -105, y: -150}}
+  battle_skills:
+  - {name: nuke, positions: [{x: -50, y: 95}]}
+red:
+  core_damage: 0
+  officers: [advanced_targeting_system, cost_control_specialist]
+  techs:
+    sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sandworm, index: 0, position: {x: -220, y: -190}, level: 4, exp: 8981/8981/8981, equipment: [mustang_production_line]}
+  - {name: centurion, index: 1, position: {x: -15, y: -215}, level: 7, exp: 0/5440/14167, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 60, y: -10}, retained: false}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -45, y: 225}, {x: 30, y: -80}, {x: -215, y: -235}]}
+asserts:
+- sql: |
+    SELECT tick, enabled__attack_range, enabled__lock_target__id
+    FROM units__skills WHERE unit_id = 4 AND skill_slot = 0
+    AND tick BETWEEN 320 AND 322 ORDER BY tick;
+  rows:
+  - [320, 408021893120, 26]
+  - [321, 204010946560, 26]
+  - [322, 204010946560, 26]
+ticks: 495
+hash: 26:bb44dd2a6b797311b738c1dcb5718c5a7642bf1ad429e5b142cee6b1a9191b12

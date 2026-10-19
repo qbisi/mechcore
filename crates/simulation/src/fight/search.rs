@@ -1159,30 +1159,7 @@ impl Simulation {
             return None;
         }
         if prepared {
-            // The prepared job scores with the ranges it was prepared with.
-            let prepared_source = match source.owner {
-                FightActorRef::Unit(id) => {
-                    let (attack_range, min_range) = self.actors[&id].target_query_ranges;
-                    // A batch child reads its parent's snapshotted range
-                    // with its own row's range added, as GetAttackRange does.
-                    let child_range = if self.skill(source.skill).standalone() {
-                        source
-                            .attack_range
-                            .saturating_sub(self.main_attack_range(id))
-                    } else {
-                        0
-                    };
-                    let attack_range = attack_range.saturating_add(child_range);
-                    super::attacker::Attacker {
-                        min_range,
-                        attack_range,
-                        ..*source
-                    }
-                }
-                FightActorRef::Building(_) => *source,
-            };
-            match self.select_in_square(&prepared_source, target_search_order, false, Some(0), None)
-            {
+            match self.select_in_square(source, target_search_order, false, Some(0), None) {
                 Some(chosen)
                     if self
                         .fight_actor(chosen)
@@ -1248,6 +1225,23 @@ impl Simulation {
             self.search_candidates(source.owner, !use_live_candidate_positions, widening * 1000)
         });
         let mut scoring = Scoring::default();
+        // The job scores with its prepared ranges, but TrySelect asks the
+        // live IAttacker whether a visible replacement is still in range.
+        let (attack_range, min_range) = match source.owner {
+            FightActorRef::Unit(id) if !use_live_candidate_positions => {
+                let (attack_range, min_range) = self.actors[&id].target_query_ranges;
+                // A batch child adds its own row to the parent's range.
+                let child_range = if self.skill(source.skill).standalone() {
+                    source
+                        .attack_range
+                        .saturating_sub(self.main_attack_range(id))
+                } else {
+                    0
+                };
+                (attack_range.saturating_add(child_range), min_range)
+            }
+            _ => (source.attack_range, source.min_range),
+        };
         // `Selector.Calculate`: the first candidate strictly nearer than any
         // before it, under the skill's minimum range or not.
         let mut nearest: Option<(FightActorRef, i64)> = None;
@@ -1345,8 +1339,8 @@ impl Simulation {
                 candidate_z_q32,
                 target.radius,
                 source.score_offsets.for_candidate(target.domain, visible),
-                source.min_range,
-                source.attack_range,
+                min_range,
+                attack_range,
                 source.rotation_window_q32,
             ) {
                 scoring.consider(candidate, score, visible);
