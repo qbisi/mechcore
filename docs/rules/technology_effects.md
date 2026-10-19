@@ -702,6 +702,9 @@ lost: `FightCoreSystem.TryDstroyTower` and `IsStepFinish` count a unit alive
 or rising, so the towers stand, the fight goes on, and an enemy that has
 killed the last unit standing reads on at its cycle, as against an enemy
 still in the fight.
+An enemy's projectile burst already releasing therefore continues onto its
+fallen target while the last opposing units wait to rise; their absence
+from the living-unit list does not cancel the remaining releases.
 
 **It stands again after its seconds.** Each update the task counts one, the
 update it started on first (`RebirthTask.Update`); the tasks are taken by
@@ -1787,6 +1790,10 @@ derive (a minimum range):
 ## Evidence
 
 ### Recorded
+
+- An Overlord continues its four-projectile burst after its Typhoon target
+  dies while the opposing side's last units wait to rise:
+  `tests/rebirth/enemy-burst-keeps-firing-during-rebirth.yaml`.
 
 - Simultaneous Mechanical Division deaths finish their summons before the
   first death callback: `tests/dead_summon/generated-simultaneous-division.yaml`

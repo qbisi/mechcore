@@ -2299,13 +2299,14 @@ impl Simulation {
     }
 
     /// Whether a side has an enemy left as this tick's updates see it: one
-    /// alive, or one killed on this tick, which its side keeps until
+    /// alive or rebirthing, or one killed on this tick, which its side keeps until
     /// `DeadEffectSystem` takes it as the tick ends. The Melting Point's beam
     /// kills the last enemy, and its barrage still releases its shell at it
     /// on the same tick.
     pub(in crate::fight) fn enemy_left(&self, team: u32) -> bool {
         self.actors.values().any(|actor| {
-            actor.placement.team != team && (actor.alive() || actor.target_query_alive)
+            actor.placement.team != team
+                && (actor.alive() || actor.rebirthing || actor.target_query_alive)
         })
     }
 
