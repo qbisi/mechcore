@@ -1,0 +1,48 @@
+# Electromagnetic Armor on Void Eye 7 has disabled Arclight 8. The
+# Arclight's later hit at tick 1877 cannot mark technology disable while
+# its Electromagnetic Shot controller is unavailable. The armor retaliates
+# and refreshes buff 10302 on tick 1878, keeping the full fight at 1930 ticks.
+# Control: electromagnetic-armor-emp-hit.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1356031635
+round: 3
+blue:
+  core_damage: 0
+  officers: [quick_teleport, fire_badger_specialist, improved_void_eye]
+  techs:
+    void_eye: [electromagnetic_armor]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 25, y: -130}, exp: 0/33/1400, source: delivered}
+  - {name: void_eye, index: 1, position: {x: 320, y: 210}, level: 8, exp: 0/3120/4373, rotated: true, equipment: [dominion_core], travelling: true, source: joined}
+  - {name: sabertooth, index: 2, position: {x: -115, y: -115}, level: 3, exp: 0/3446/4630, source: joined}
+  battle_skills:
+  - {name: ion_blast, positions: [{x: 45, y: -15}, {x: -175, y: -25}]}
+red:
+  core_damage: 99
+  officers: [advanced_shield_device, quick_teleport, speed_specialist, extended_range_arclight]
+  techs:
+    arclight: [electromagnetic_shot, armor_enhancement, anti_aircraft_ammunition, shockwave, range_enhancement, elite_marksman, charged_shot]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: arclight, index: 0, position: {x: 350, y: 190}, level: 7, exp: 0/2400/4722, equipment: [deployment_module], travelling: true, source: joined}
+  - {name: hacker, index: 1, position: {x: 15, y: -175}, level: 4, exp: 0/268/2515, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -75, y: -100}, retained: false}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: -255, y: -15}]}
+asserts:
+- sql: |-
+    SELECT tick,source__id,target__id,buff_id FROM events WHERE tick BETWEEN 1877 AND 1878 AND type='buff_applied' ORDER BY tick,ordinal
+  rows:
+  - [1878, 7, 8, 10302]
+ticks: 1930
+hash: 26:0aaa5bba2a2e26e669b91fb49cb8f08af58c0c7a925ad7165762535157746b19
