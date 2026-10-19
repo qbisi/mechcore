@@ -1,0 +1,58 @@
+# A commanded Marksman cools while retaining a Void Eye that has hidden.
+# The skill range checker still rejects that hidden target, so the motion
+# enters moving immediately and only turns on the following update.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1996051093
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, sabertooth_specialist]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [3, 3]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 255, y: -265}, exp: 0/1049/1300, source: delivered}
+  - {name: void_eye, index: 1, position: {x: -50, y: -250}, exp: 0/249/650, rotated: true, equipment: [photon_coating], source: joined}
+  - {name: sandworm, index: 2, position: {x: 150, y: -130}, level: 4, exp: 0/2149/8981, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -170, y: -50}, retained: false}
+  battle_skills:
+  - {name: ion_blast, positions: [{x: 30, y: 275}, {x: -260, y: 235}]}
+red:
+  core_damage: 550
+  officers: [advanced_defensive_tactics, sabertooth_specialist, improved_sledgehammer]
+  techs:
+    sledgehammer: [armor_piercing_bullets]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: sledgehammer, index: 0, position: {x: -220, y: -105}, level: 2, exp: 1464/1464/2929, rotated: true, equipment: [absorption_module]}
+  - {name: sabertooth, index: 1, position: {x: 245, y: -285}, exp: 0/132/1300, source: delivered}
+  - {name: marksman, index: 2, position: {x: 60, y: -160}, level: 4, exp: 0/66/2919, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -135, y: -230}}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: 65, y: -140}, {x: -95, y: 130}, {x: -290, y: -205}]}
+asserts:
+- sql: |
+    SELECT tick, motion_state, turret_rotation FROM units
+    WHERE unit_id = 11 AND tick BETWEEN 401 AND 406 ORDER BY tick;
+  rows:
+  - [401, attacking, 415606518754]
+  - [402, moving, 415606518754]
+  - [403, moving, 430638904234]
+  - [404, moving, 445671289714]
+  - [405, moving, 460703675194]
+  - [406, moving, 475736060674]
+- sql: |
+    SELECT tick, visibility FROM units
+    WHERE unit_id = 5 AND tick BETWEEN 401 AND 402 ORDER BY tick;
+  rows: [[401, normal], [402, hide]]
+ticks: 1466
+hash: 26:7b9d6af9c2176c144d3adebf776af2279b1d227105420a774fcb6d951273477d

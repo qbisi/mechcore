@@ -441,6 +441,10 @@ which scores from that facing. It then takes the place of the unit's
   answers the velocity, so the unit turns only to where it walks, and a unit
   standing still turns nothing; it changes to moving as the cooling ends and
   names nothing.
+  The range check still tests visibility during cooling: if the retained
+  target hides and the skill cannot reach hidden targets, the motion changes
+  to moving immediately. Being within geometric range alone does not keep
+  it attacking.
 - `MotionMoveState.Update` likewise keeps a command active when its target
   dies. It asks the attacker's range or its move ability before moving on:
   a target still in range can make the unit enter attacking on the very tick
@@ -645,6 +649,9 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
 - A Melting Point on a beacon enters attacking when Energy Diffraction
   kills the target its main skill just prepared against:
   `tests/battle_skill/beacon-enters-attack-on-dead-target.yaml`.
+- A Marksman on a beacon leaves attacking when the target retained through
+  its cooling hides, without turning on the moving state's entry tick:
+  `tests/battle_skill/beacon-leaves-hidden-cooling-target.yaml`.
 - Wasps still on a beacon when the fight is won go on moving until it ends:
   `tests/battle_skill/beacon-wasps-won.yaml`,
   `tests/corpus/134270595-r4.yaml`.
@@ -858,7 +865,8 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
   moving, and its weapons with it; a cooling's attack target keeps its attack
   in range: `MotionController.CalculateTargetDirection`,
   `MotionMoveState.NormalRotate`, `FightSkill.IsAttackTargetInAttackRange`,
-  `SkillAttackRangeChecker.IsAttackTargetInAttackRange`.
+  `SkillAttackRangeChecker.IsAttackTargetInAttackRange`,
+  `SkillAttackRangeChecker.IsActorInAttackRange`.
 - `MotionController.Move` hands the agent nothing but on the update the RVO
   counter reads 3: `MotionController.Move`, `RVOSimulatorFixed.IsUpdateFrame`,
   `RVOSimulatorFixed.DoFixedUpdate`, `RVOControllerFixed.Move`.
