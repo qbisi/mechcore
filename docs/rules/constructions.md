@@ -86,6 +86,9 @@ that fells the block: `MotionAttackState` releases it and then turns
 (`AttackRotate`). A unit with a body turns its weapons towards that target
 and its body towards its current movement velocity; a retained fallen block
 does not suppress the body's velocity turn.
+`MotionStopState.AttackRotate` uses the same target direction: a dug-in unit
+turns its turret past a block an ally felled, even while its skill retains
+that block through its current blow.
 
 **A felled block holds its attacker only while it is in reach.** While the
 lock behind the block lives, `MotionAttackState.Update` goes on asking whether
@@ -361,6 +364,9 @@ The map's own buildings are the exception and are named: each side gets one
 - A moving Wasp returning within reach of its retained fallen block enters
   attack without turning on that entry tick:
   `tests/construction/fallen-wall-reenters-attack.yaml`.
+- A dug-in Sabertooth turns its turret to the living lock as soon as a
+  Raiden fells its retained blocking target:
+  `tests/construction/stopped-turret-past-fallen-wall.yaml`.
 - Two Stormcallers whose burst goes on at a block that fell at tick 695 read
   attacking through it, their turrets turning to their lock:
   `tests/corpus/134369439-r8.yaml`.
@@ -431,7 +437,8 @@ The map's own buildings are the exception and are named: each side gets one
 - A unit turns to its lock unless its attack target is alive, and a blow that
   fells its target releases it before turning:
   `MotionController.CalculateTargetDirection`,
-  `FightSkill.TryGetValidAttackTarget`, `MotionAttackState.AttackRotate`.
+  `FightSkill.TryGetValidAttackTarget`, `MotionAttackState.AttackRotate`,
+  `MotionStopState.AttackRotate`.
 - A moving unit enters attack when its retained attack target is in range;
   changing state enters it without updating it again in that tick:
   `MotionMoveState.Update`, `SimpleFSM.ChangeState`, `SimpleFSM.Update`.
