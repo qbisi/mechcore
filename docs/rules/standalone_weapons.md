@@ -109,7 +109,9 @@ makes the unit itself its motion's attacker:
   down, and searches once the lock is gone or the timer has run out
   (`SearchTargetController.CanStartSearch`), then waits ten updates: a search
   every eleventh update. It scores from where the unit stands and its root
-  points as it updates, over the whole turn (the unit's `GetMainTransform`
+  points as it updates, over the whole turn. Its normal selector receives
+  the opponent's actor list, preserving that list's order when scores tie,
+  rather than a spatial-tree query (the unit's `GetMainTransform`
   and `IsUseDefaultRotationSearchTarget`), and falls back on any live enemy,
   a tower among them (`MechSearchTargetController.SearchLockTarget`).
 - **No skill hands it a lock.** `FightSkill.ChangeLockTarget` hands the owner
@@ -174,6 +176,10 @@ The Mountain's motion follows one of its weapons, the one whose skill is
 ## Evidence
 
 ### Recorded
+
+- A War Factory's own search keeps the first of equally scored nearby
+  Crawlers while an idle gun searches for another:
+  `tests/mech_search/tied-crawlers-use-actor-list.yaml`.
 
 - Mountain enters attack at its controlling side gun's shield range while
   the core stays idle: `tests/mountain/motion-at-sibling-shield.yaml`.
@@ -279,6 +285,7 @@ The Mountain's motion follows one of its weapons, the one whose skill is
   also publishes the lock when it hands the motion to that skill.
 - The unit's own search: `MechSearchTargetController.Update`,
   `MechSearchTargetController.SearchLockTarget`,
+  `OpponentController.actors`,
   `SearchTargetController.CanStartSearch`, `MechData.isEnableMechSearchTarget`,
   `PresearchTargetController.SearchTarget`, `FightMech.UpdateRotation`,
   `FightMech.ChangeLockTarget`.
