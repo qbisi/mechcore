@@ -877,6 +877,13 @@ impl Simulation {
             .expect("actor identity is stable");
         if actor.summoned && !actor.alive() {
             for (channel, entry) in std::mem::take(&mut actor.placement.effects.corrections) {
+                // SupportUnitCreator.CreateMech adds its own modifyData;
+                // FightEffectSystem.ClearEffect removes only the side's
+                // effect manager's sources, not this creator's modifier.
+                if entry.source == crate::modifier::MAKE_SOURCE {
+                    actor.placement.effects.corrections.push((channel, entry));
+                    continue;
+                }
                 actor.stats.overlays.channel(channel).withdraw(entry.source);
             }
             // Its technologies' providers are gone with the rest: a disable

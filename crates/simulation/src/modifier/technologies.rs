@@ -288,7 +288,7 @@ pub(crate) const SOURCE: &str = "Modifier";
 
 /// What a production line writes onto its makes is its
 /// `SupportUnitData.modifyData`'s, which no technology switch takes away.
-const MAKE_SOURCE: &str = "SupportUnitData";
+pub(crate) const MAKE_SOURCE: &str = "SupportUnitData";
 
 /// What an armour technology writes is its effect provider's,
 /// `ArmorStrengthenEffectProvider`, which `FightEffectSystem.ActiveEffect`

@@ -681,6 +681,10 @@ A summoned unit's maximum is read after its summon listener destroys it
 before a holder's hit registered recovery. The effects removed there no
 longer increase the life recovered; the life the unit had before death does
 not decide the share.
+The production line's own `SupportUnitData.modifyData` remains: it was
+added by `SupportUnitCreator.CreateMech`, outside that side's effect manager.
+An Electromagnetic Twin therefore keeps its -100% life correction and gives
+only 1 life to a holder that recycles it.
 
 ## Rebirth technologies
 
@@ -1992,6 +1996,9 @@ derive (a minimum range):
   A produced Sledgehammer loses its Defense Enhancement II life correction
   before its wreckage heals a Rhino:
   `tests/wreckage/produced-unit-death.yaml`.
+  An Electromagnetic Twin keeps its production line's -100% life correction
+  when destroyed and heals the Rhino for 1:
+  `tests/wreckage/twin-keeps-production-life.yaml`.
 - An Abyss's independent missile skill registers Wreckage Recycling even
   though it inherits no main-skill damage corrections:
   `tests/wreckage/abyss-extra-weapon-rebirth.yaml`.
@@ -2546,7 +2553,9 @@ derive (a minimum range):
   `WreckageRecoveryTechnologyData.GetDistance`, `SkillManager.AddHitEffect`,
   `WreckageRecoveryTech.IsMainSkillEffect`, `WreckageRecoveryTech.IsExtraSkillEffect`,
   `WreckageRecoveryTech.IsEquipmentEffect`, `SkillDataModifier.AvaliableCheck`,
-  `FightMech.OnDead`.
+  `FightMech.OnDead`, `SupportUnitCreator.CreateMech`,
+  `SummonSystem.RemoveMech`, `FightEffectSystem.ClearEffect`,
+  `FightEffectMananger.RemoveEffect`.
 - Late deaths are queued after the controllers' update but deactivated
   during the same individual death loop, so they no longer have a registered
   technology dead effect on the following update:
