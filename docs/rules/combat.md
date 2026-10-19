@@ -1365,6 +1365,10 @@ last death has already searched this tick and holds what it held.
 unit, every unit updates with the fight off, and no skill runs its state
 machine. A skill that holds a lock leaves the fight: its attack stops, a
 burst still firing included, it goes idle, and its lock is cleared. A skill
+leaving its attack stops the current attack controller, including a
+backswing still waiting. If reinforcements resume the fight, that old wait
+does not prevent the idle skill from searching.
+A skill
 that holds none is not updated at all. An inactive manager returns before
 this path: its clocks and targets stay as they were, and its motion's
 transition continues. A manager holding fire, a Sandworm's below, is another
@@ -1436,6 +1440,11 @@ not the game's native attack-type enum.
 ## Evidence
 
 ### Recorded
+
+- A Sandworm whose attack ended while the fight waited for reinforcements
+  searches immediately when a Wasp Swarm joins, without waiting for the
+  old backswing, and enters its movement transition:
+  `tests/endgame/resumed-fight-discards-backswing.yaml`.
 
 - A Raiden's grouped gun enters cooling with no actor attack target after
   its failed check finds an alive fallback covered by a shield:
@@ -1873,6 +1882,10 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- Leaving a stopped fight forces the skill idle and stops its active attack
+  controller: `FightSkill.ExitFight`, `SkillAttackState.Exit`,
+  `SkillAttackController.Exit`.
 
 - A failed check searches its fallback's attack target before returning;
   a shield replaces the actor target: `SkillAttackableChecker.Check`,
