@@ -144,6 +144,11 @@ such as Photon Coating stays available even when the same unit also holds a
 technology buff source. Activation and deactivation visit every controller;
 reenabling resets the time only of a controller that was unavailable.
 
+**Control preserves the controller's manager and update order.** The
+controller stays registered with its unit's origin `TeamBuffCycleManager`;
+blue's manager updates before red's, in registration order within each.
+Its buffs still select targets and write under the unit's current side.
+
 **A buff technology whose trigger is the fight's start adds its buff to its
 unit on the fight's first tick, once,** as a buff item does
 ([equipment_effects.md](equipment_effects.md#buff-items)): both are the same
@@ -2187,6 +2192,10 @@ derive (a minimum range):
   domain, and stops with its unit's death:
   `tests/technology_buff/mobile-power-station.yaml` and
   `tests/technology_buff/degeneration-beam.yaml`.
+- A controlled Electromagnetic Twin writes Mobile Power Station buffs after
+  its original Vortex, retaining its origin manager's update order while
+  targeting its new allies:
+  `tests/technology_buff/captured-twin-keeps-cycle-order.yaml`.
 - A hit adds its buff to the unit struck, ranged or melee, and a Fortress's
   range reads 70 of 100 under it: `tests/technology_buff/suppression-shots.yaml`,
   `tests/technology_buff/suppression-shots-melee.yaml`.
@@ -2855,6 +2864,11 @@ derive (a minimum range):
   `ISkillOwner.IsTechnologyDisabled` is false, to
   `MotionController.totalMoveDistanceWithoutDisableTech`, and sets
   `MotionController.prevPosition` to `FightTransform._position2D`.
+- Buff controllers are registered in their origin manager and updated in
+  that manager's registration order even after control:
+  `BuffEffectProvider.GetOriginBuffCycleCtr`,
+  `TeamBuffCycleManager.CreateBuffController`, `TeamBuffCycleManager.Update`,
+  `FightActor.GetOriginTeamController`.
 - A source's controller under the update model `All`:
   `BuffCycleController.Update` hands it to `BuffCycleController.UpdateModel1`,
   which counts `BuffCycleController.timeSum` up a tick. In
