@@ -56,6 +56,13 @@ pub(in crate::fight) struct ChainRecords {
 }
 
 impl ChainRecords {
+    /// `FightMechIgnoreTargetManager.OnExitFight`: the owner's skill manager
+    /// clears its records, without cancelling jumps already under way.
+    pub(in crate::fight) fn exit_fight(&mut self) {
+        self.struck.clear();
+        self.attacking.clear();
+    }
+
     /// `AddIgnoreBySkillHit`: a skill's first record makes it one that
     /// attacks.
     fn add(&mut self, slot: u16, target: FightActorRef) {

@@ -486,6 +486,7 @@ impl Actor {
             skill.clear_slots();
             skill.performer.stop();
         }
+        self.chain_records.exit_fight();
         self.motion.attack_hold_fire = false;
         self.motion.current_velocity_x_q32 = 0;
         self.motion.current_velocity_z_q32 = 0;
@@ -508,6 +509,7 @@ impl Actor {
     /// state, and clear a move ability only when the motion changes to idle.
     pub(in crate::fight) fn exit_fight(&mut self) {
         self.reset_attack_count();
+        self.chain_records.exit_fight();
         // `RVOControllerFixed.GetVelocity` reads zero after `Deactive`
         // removes the agent; its final movement has already been applied.
         self.motion.current_velocity_x_q32 = 0;

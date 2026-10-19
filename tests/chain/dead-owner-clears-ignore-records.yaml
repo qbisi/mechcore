@@ -1,0 +1,57 @@
+# Raiden 4 dies at tick 836 while Chain jumps from its last hits remain
+# scheduled. ExitFight clears its target-ignore records, allowing those
+# timers to hit Melting Point 3 again at tick 839 and kill it.
+# Control: raiden-mustangs.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 2032764500
+round: 4
+blue:
+  core_damage: 274
+  officers: [advanced_shield_device, quick_teleport, rhino_specialist, assault_melting_point]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: rhino, index: 0, position: {x: -255, y: -165}, level: 2, exp: 0/2591/2591, source: delivered}
+  - {name: melting_point, index: 1, position: {x: -330, y: 40}, level: 7, exp: 0/8815/8815, equipment: [mustang_production_line], travelling: true, source: joined}
+  - {name: hacker, index: 2, position: {x: -45, y: -35}, level: 2, exp: 0/153/1262, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -155, y: -210}, retained: false}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: 55, y: -135}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, quick_teleport, typhoon_specialist]
+  techs:
+    raiden: [energy_shield, electromagnetic_shot, chain, ionization, range_enhancement, fork]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: typhoon, index: 0, position: {x: -260, y: -20}, source: delivered}
+  - {name: raiden, index: 1, position: {x: 320, y: 230}, level: 8, exp: 0/644/16146, rotated: true, equipment: [steel_ball_production_line], travelling: true, source: joined}
+  - {name: sledgehammer, index: 2, position: {x: -75, y: -270}, level: 4, exp: 0/1200/5837, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -20, y: -165}}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: -210, y: -195}]}
+asserts:
+- sql: |-
+    SELECT tick,object__id FROM events WHERE type='unit_died' AND object__kind='unit' AND object__id=4 ORDER BY tick
+  rows:
+  - [836, 4]
+- sql: |-
+    SELECT tick,source__id,target__id,amount,skill_slot FROM events WHERE type='damage' AND source__kind='unit' AND source__id=4 AND tick=839 ORDER BY ordinal
+  rows:
+  - [839, 4, 3, 3378, 0]
+  - [839, 4, 3, 3378, 1]
+  - [839, 4, 3, 3378, 2]
+  - [839, 4, 3, 1412, 3]
+ticks: 1326
+hash: 26:4c2b8bf824879f9318283662b80b11d530f68ea48f924f41cd622e4e79e01503
