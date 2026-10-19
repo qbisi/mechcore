@@ -1,0 +1,56 @@
+# Captured Mustangs retain their origin interception manager update slots.
+# Their current side discovers them in capture order, but that discovery
+# order does not reorder interceptor updates or main-skill unlocks.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 396146908
+round: 3
+blue:
+  core_damage: 278
+  officers: [quick_teleport, sabertooth_specialist]
+  techs:
+    mustang: [high_explosive_ammo, aerial_specialization, missile_interceptor, culling_rounds, range_enhancement, armor_piercing_bullets]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 175, y: -145}, exp: 0/570/1300, source: delivered}
+  - {name: mustang, index: 1, position: {x: 330, y: 125}, level: 5, exp: 0/2667/6253, equipment: [improved_firepower_control_system], travelling: true, source: joined}
+  - {name: phantom_ray, index: 2, position: {x: -55, y: -220}, level: 2, exp: 0/1267/2253, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: 50, y: -50}]}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_power_system, sabertooth_specialist, fortified_hacker]
+  techs:
+    hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement, multi_control]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: hacker, index: 0, position: {x: 175, y: -285}, level: 5, exp: 2918/2918/2918, rotated: true, equipment: [enhancement_module]}
+  - {name: sabertooth, index: 1, position: {x: -125, y: -95}, exp: 0/24/1300, source: delivered}
+  - {name: arclight, index: 2, position: {x: 170, y: -250}, level: 8, exp: 0/1118/5046, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 165, y: -100}, retained: false}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 140, y: -90}]}
+asserts:
+- sql: |
+    SELECT tick, unit_id, enabled__state FROM units__skills
+    WHERE unit_id IN (5, 6) AND tick BETWEEN 1960 AND 1963
+    ORDER BY tick, unit_id;
+  rows:
+  - [1960, 5, lock]
+  - [1960, 6, lock]
+  - [1961, 5, lock]
+  - [1961, 6, idle]
+  - [1962, 5, idle]
+  - [1962, 6, lock]
+  - [1963, 5, lock]
+  - [1963, 6, lock]
+ticks: 2151
+hash: 26:d05cd036abb0f3476ba61eb37ecb65beff2e4800d3a9861f5c310a5473a7e72f

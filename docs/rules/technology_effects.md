@@ -1003,8 +1003,13 @@ projectiles out of the air as a building's do
   leave the main skill be.
 
 The unit's interceptors are added to its side's as its effects activate when
-the fight starts. A unit that travels in has them added as it arrives, and one turned to the other side has them moved to the end of that
-side's. A dead unit's interceptors are taken from its side's: they update no
+the fight starts. A unit that travels in has them added as it arrives.
+A turned unit's group stays in its origin manager's update records, in its
+original slot. Only discovery changes: its new side appends it to
+`changeTeamsController`, and its former side no longer discovers it. The
+group's updates still follow the origin records while its target selection
+and random draws use its current side. A dead unit's interceptors are taken
+from its side's: they update no
 more and no projectile joins them, while a lock one held still counts against
 what the others lock.
 
@@ -2286,6 +2291,9 @@ derive (a minimum range):
   `tests/interceptor/sabertooth-interception.yaml`,
   `tests/interceptor/farseer-interception.yaml`,
   `tests/interceptor/war_factory-interception.yaml`.
+- Captured Mustangs keep their origin manager's interception update order,
+  independently of discovery order on their new side:
+  `tests/interceptor/captured-mustangs-keep-update-order.yaml`.
 - A permanent preemptive explosion does not activate, and its unit's death
   neither explodes nor burns, while the technologies are off; switched on,
   both come back:
@@ -2934,8 +2942,11 @@ derive (a minimum range):
 - A dead unit's group leaves its side's, and nothing else is done to its
   interceptors: `InterceptMissileEffectProvider.DoDeactive`,
   `TeamInterceptSourceManager.DoRemove`, `InterceptCtr_Group.DoRemove`,
-  `InterceptEffectBase.DoRemove`. A turned unit's moves to the other side's:
-  `InterceptSystem.OnChangeTeam`.
+  `InterceptEffectBase.DoRemove`.
+- A turned group remains in its origin update records; its new side finds
+  it through a separate discovery list:
+  `InterceptSystem.OnChangeTeam`, `TeamInterceptSourceManager.Update`,
+  `TeamInterceptSourceManager.GetCurrentTeamInterceptSources`.
 
 ### Not established
 
@@ -3038,10 +3049,9 @@ derive (a minimum range):
   Balls with Mechanical Division leave their Crawlers. Read from the build;
   no recording holds it. One whose technologies give it a line as it
   surfaces is refused.
-- **A unit's interceptors beside a building's, and on a turned or travelling
-  unit.** Here a side's buildings update before its units, which is not read;
-  the order the side's records keep units in is read from the build and
-  recorded only with one unit's group, or one squad's.
+- **A unit's interceptors beside a building's.** Here a side's buildings
+  initially update before its units, which is not read; the order among
+  initial building and unit groups is not established by a recording.
 - **How the life share rounds.** The quotient rounded and the product
   truncated is what the recordings fit; the arithmetic of `FPoint` division
   and multiplication was not read.
