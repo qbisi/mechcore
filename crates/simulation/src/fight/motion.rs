@@ -1326,8 +1326,8 @@ impl Simulation {
         }
         match skill_ref.slot {
             SkillSlot::Main => {
-                actor.motion.attacker = SkillSlot::Main;
                 if !actor.skills.main.standalone() {
+                    actor.motion.attacker = SkillSlot::Main;
                     let lock = actor.skills.main.lock_target;
                     actor.skills.main.set_mech_lock(lock);
                 }
@@ -1356,6 +1356,8 @@ impl Simulation {
     /// (`ISkillOwner.SetAttacker`) unless another weapon holds it and holds a
     /// lock (`IAttacker.IsMainTargetProvider`, `GetLockTarget`). A weapon
     /// taking a fresh lock does not draw the turret off the one that has it.
+    /// An extra skill is no main target provider, so an accepted main gun
+    /// replaces that attacker as well as selecting its weapon slot.
     pub(in crate::fight) fn hand_standalone_motion(&mut self, skill_ref: SkillRef, slot: usize) {
         let (FightActorRef::Unit(actor_id), SkillSlot::Main) = (skill_ref.owner, skill_ref.slot)
         else {
@@ -1369,12 +1371,16 @@ impl Simulation {
             return;
         }
         let holder = skill.group.as_ref().map_or(0, |group| group.motion_slot);
-        if holder != slot && skill.slot_lock(holder).is_some() {
+        if actor.motion.attacker == SkillSlot::Main
+            && holder != slot
+            && skill.slot_lock(holder).is_some()
+        {
             return;
         }
         // `SearchLockTarget` publishes the accepted attacker's lock even
         // when `ChangeLockTarget` returned early for an unchanged target.
         let lock = skill.slot_lock(slot);
+        actor.motion.attacker = SkillSlot::Main;
         actor.skills.main.set_mech_lock(lock);
         if let Some(group) = actor.skills.main.group.as_mut() {
             group.motion_slot = slot;
