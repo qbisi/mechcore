@@ -1,0 +1,61 @@
+# The last active blue unit dies at 966; pending Steel Balls arrive at 981.
+# During the pause, locked Spider Mines exit their skills and unregister
+# their death explosions. Mine 82 suicides at 1018 without harming Mine 81
+# or Steel Ball 83; the Tarantula kills that Steel Ball at 1019.
+# Control: spider-mine-rhino.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1923574036
+round: 3
+blue:
+  core_damage: 701
+  officers: [advanced_missile_device, advanced_defensive_tactics, aerial_specialist, mass_produced_overlord]
+  techs:
+    overlord: [high_explosive_ammo, field_maintenance, overlord_artillery, mothership, jump_drive, armor_enhancement, range_enhancement, launcher_overload, photon_emission]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [3, 4]
+  units:
+  - {name: overlord, index: 0, position: {x: 225, y: -135}, exp: 1750/1750/1750, equipment: [steel_ball_production_line]}
+  - {name: fang, index: 1, position: {x: 65, y: -230}, level: 3, exp: 0/168/2137, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -175, y: -115}, retained: false}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: 135, y: 195}]}
+red:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, advanced_power_system, sabertooth_specialist, improved_tarantula]
+  techs:
+    tarantula: [high_explosive_ammo, field_maintenance, armor_enhancement, anti_aircraft_ammunition, range_enhancement, mechanical_rage, armor_piercing_bullets, spider_mine]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [2, 1]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -145, y: -65}, exp: 0/124/1300, source: delivered}
+  - {name: tarantula, index: 1, position: {x: 105, y: -35}, level: 4, exp: 0/3077/6735, equipment: [improved_firepower_control_system], source: joined}
+  - {name: mountain, index: 2, position: {x: 205, y: -145}, level: 9, exp: 0/437/21528, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -120, y: -20}, retained: false}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: -115, y: -220}]}
+asserts:
+- sql: |-
+    SELECT tick,unit_id,life__current FROM units WHERE unit_id IN (81,83) AND tick IN (1017,1018,1019) ORDER BY tick,unit_id
+  rows:
+  - [1017, 81, 4349]
+  - [1017, 83, 596]
+  - [1018, 81, 4349]
+  - [1018, 83, 596]
+  - [1019, 81, 4349]
+- sql: |-
+    SELECT tick,type,source__id,object__id FROM events WHERE tick BETWEEN 1018 AND 1019 AND (source__id=82 OR object__id IN (82,83)) ORDER BY tick,ordinal
+  rows:
+  - [1018, unit_died, 83, 82]
+  - [1019, unit_died, 25, 83]
+ticks: 1026
+hash: 26:b4d269d6cd1db71d82f21e5fb77ec40d440bf1312ef3a163ded3f7d0632c6176

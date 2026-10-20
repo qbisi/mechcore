@@ -645,6 +645,10 @@ pub(in crate::fight) struct Skill {
     /// Not `FightSkill.isEnable`: an extra skill whose technology a buff
     /// switched off (`ExtraSkillProvider.DisableSkill`, `FightSkill.Disable`).
     pub(in crate::fight) disabled: bool,
+    /// `FightExplosionSkill.isDeadExplosionEnabled`: `EnterFight` registers
+    /// its death effect; the virtual `ExitFight` removes it even when the
+    /// core is only waiting for pending summons and later resumes.
+    pub(in crate::fight) dead_explosion_enabled: bool,
     pub(in crate::fight) kind: SkillKind,
     pub(in crate::fight) performer: Performer,
     /// `SkillAttackController.attackCount`: the blows started since the
@@ -744,6 +748,7 @@ impl Skill {
             group,
             lock_written: false,
             disabled: false,
+            dead_explosion_enabled: true,
             kind,
             performer,
             attack_count: ATTACK_COUNT_RESET,
@@ -1130,6 +1135,7 @@ impl Skill {
             }
             *sibling = Self {
                 disabled: sibling.disabled,
+                dead_explosion_enabled: sibling.dead_explosion_enabled,
                 current_attack_interval: sibling.current_attack_interval,
                 attack_time_anchor: sibling.attack_time_anchor,
                 attack_time_step: sibling.attack_time_step,
@@ -2184,6 +2190,7 @@ impl Simulation {
         if self.skill(skill_ref).lock_target.is_some() {
             let clear_velocity = self.ending.terminal_drain_pending;
             let skill = self.skill_mut(skill_ref);
+            skill.dead_explosion_enabled = false;
             skill.drop_lock();
             // ExitFight forces idle after stopping the attack controller;
             // a pending backswing cannot hold a later resumed fight.

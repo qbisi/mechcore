@@ -33,24 +33,29 @@ impl Simulation {
     /// explosion or a technology makes its death one.
     pub(in crate::fight) fn explosion_of(&self, actor_id: u64) -> Option<DeadBlast> {
         let actor = &self.actors[&actor_id];
-        if actor.rules.explosion.is_some() {
-            return Some(DeadBlast::Skill(SkillSlot::Main));
-        }
-        actor
-            .skills
-            .extras
-            .iter()
-            .position(|extra| extra.rules.explosion.is_some())
-            .map(|index| DeadBlast::Skill(SkillSlot::Extra(index)))
-            .or_else(|| {
-                actor
-                    .placement
-                    .effects
-                    .single
-                    .dead_explosion
-                    .is_some()
-                    .then_some(DeadBlast::Technology)
-            })
+        let blast = if actor.rules.explosion.is_some() {
+            Some(DeadBlast::Skill(SkillSlot::Main))
+        } else {
+            actor
+                .skills
+                .extras
+                .iter()
+                .position(|extra| extra.rules.explosion.is_some())
+                .map(|index| DeadBlast::Skill(SkillSlot::Extra(index)))
+                .or_else(|| {
+                    actor
+                        .placement
+                        .effects
+                        .single
+                        .dead_explosion
+                        .is_some()
+                        .then_some(DeadBlast::Technology)
+                })
+        };
+        blast.filter(|blast| match *blast {
+            DeadBlast::Skill(slot) => actor.skills.get(slot).dead_explosion_enabled,
+            DeadBlast::Technology => true,
+        })
     }
 
     /// Whether the unit's death queues its explosion:
@@ -136,6 +141,9 @@ impl Simulation {
 
     /// `DeadExplosiveController.PerformDeadEffect` for one unit.
     fn explode(&mut self, actor_id: u64, suicide: bool, events: &mut Vec<Event>) -> Result<()> {
+        // Keep admission before the suicide's death cleanup; an unregistered
+        // suicide still takes its final movement and publishes its death.
+        let blast = self.explosion_of(actor_id);
         if suicide {
             // It died where its last move left it.
             let unit = self
@@ -157,7 +165,7 @@ impl Simulation {
                 position.z = z_q32;
             }
         }
-        let Some(blast) = self.explosion_of(actor_id) else {
+        let Some(blast) = blast else {
             return Ok(());
         };
         let actor = &self.actors[&actor_id];
