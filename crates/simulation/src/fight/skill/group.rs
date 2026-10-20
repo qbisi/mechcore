@@ -785,6 +785,7 @@ impl Simulation {
             return;
         }
         let turn = actor.arc_weapon_turn_q32();
+        let mode = actor.rules.attack.weapons.mode;
         let (x, z) = (actor.x_q32, actor.z_q32);
         for (slot, arc) in arcs.iter().enumerate() {
             // `FightSkill.Update` turns the weapon to the skill's lock, and a
@@ -807,7 +808,7 @@ impl Simulation {
             let turned = bearing.map_or(current, |bearing| {
                 rotate_towards_q32(current, bearing, turn)
             });
-            skill.weapon_rotations_q32[slot] = held_within_arc(turned, turret, arc);
+            skill.weapon_rotations_q32[slot] = held_within_arc(turned, turret, arc, mode);
         }
     }
 
@@ -881,15 +882,39 @@ impl Simulation {
 /// keeps it within its left and right limits of its rest, its parent's
 /// rotation plus its default angle (`CalculateDefaultRotation`); a weapon
 /// without limits turns freely.
-pub(in crate::fight) fn held_within_arc(turned: i64, parent: i64, arc: &WeaponArc) -> i64 {
+pub(in crate::fight) fn held_within_arc(
+    turned: i64,
+    parent: i64,
+    arc: &WeaponArc,
+    mode: WeaponMode,
+) -> i64 {
     match (arc.left, arc.right) {
         (Some(left), Some(right)) => {
-            let rest = parent.saturating_add(i64::from(arc.default) << 32);
             let full = 360_i64 << 32;
-            let half = 180_i64 << 32;
-            let delta = (turned - rest + half).rem_euclid(full) - half;
-            let delta = delta.clamp(-(i64::from(left) << 32), i64::from(right) << 32);
-            (rest + delta).rem_euclid(full)
+            let rest = clamp_rotation(parent.saturating_add(i64::from(arc.default) << 32));
+            // `FightWeapon.ctor` chooses Free at a full circle, and Fixed at
+            // zero width except for a SideArm. Fixed calls `RefreshRotation`,
+            // not the limited transform's RotateTo and circular clamp.
+            if left + right == 0 && mode != WeaponMode::SideArm {
+                return rest;
+            }
+            if left + right == 0 || left + right >= 360 {
+                return turned;
+            }
+            let min = clamp_rotation(rest.saturating_sub(i64::from(left) << 32));
+            let max = clamp_rotation(rest.saturating_add(i64::from(right) << 32));
+            if is_in_range_rotation(turned, min, max) {
+                return turned;
+            }
+            // `ClmapRotation` compares distances across the excluded gap, not
+            // a signed offset about the rest of an asymmetric arc. Ties take min.
+            let to_min = (min - turned).rem_euclid(full);
+            let from_max = (turned - max).rem_euclid(full);
+            if rvo::fpoint_less_than(from_max, to_min) {
+                max
+            } else {
+                min
+            }
         }
         _ => turned,
     }

@@ -144,6 +144,7 @@ impl Simulation {
         let arcs = (0..extra.skill.weapon_rotations_q32.len())
             .map(|offset| extra.arc(offset).copied())
             .collect::<Vec<_>>();
+        let mode = weapons.mode;
         let bearing = turn_direction_q32(
             view.x_q32.saturating_sub(actor.x_q32),
             view.z_q32.saturating_sub(actor.z_q32),
@@ -160,7 +161,7 @@ impl Simulation {
             let turned = bearing.map_or(*rotation, |bearing| {
                 rotate_towards_q32(*rotation, bearing, turn)
             });
-            *rotation = arc.map_or(turned, |arc| held_within_arc(turned, parent, &arc));
+            *rotation = arc.map_or(turned, |arc| held_within_arc(turned, parent, &arc, mode));
         }
     }
 }
