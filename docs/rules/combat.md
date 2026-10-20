@@ -1214,8 +1214,10 @@ time as the hit is taken. An Arclight whose skill
 deals 3.12 times its damage still deals 75, and a Sandworm under a 0.5 rate on
 its damage taken takes 112.
 
-**A second damage needs its unit alive.** A shell an Arclight fired before it
-fell lands and deals its own damage, and no second damage.
+**A second damage needs its provider enabled.** A lethal hit alone does not
+disable it: a shell landing later on that tick still deals Shockwave before
+the death module runs the owner's `OnDead`. That callback deactivates the
+provider, so a shell landing afterward deals its primary damage alone.
 
 **Battlefield shields stand in a second damage's way as in a splash's.**
 Even a single-target hit absorbed by a shield performs its secondary effect
@@ -1453,6 +1455,10 @@ not the game's native attack-type enum.
 ## Evidence
 
 ### Recorded
+
+- An Arclight killed before its shell lands on the same tick still deals
+  Shockwave before its death callback:
+  `tests/secondary_damage/shockwave-before-death-callback.yaml`.
 
 - A Stormcaller waits until the update after its final burst shot before
   starting its next windup, with an already elapsed attack interval:
@@ -1910,6 +1916,12 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- Secondary damage reads the skill's provider flag rather than its owner's
+  current life, and death deactivates that provider:
+  `DamagePerformer.CheckSecondaryDamageApplied`,
+  `SecondaryDamageIntensifyEffectProvider.DoActive`,
+  `SecondaryDamageIntensifyEffectProvider.DoDeactive`, `FightMech.OnDead`.
 
 - A new blow requires the controller idle before its update:
   `SkillAttackState.Update`, `SkillAttackState.TryPerformAttack`,

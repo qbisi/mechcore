@@ -649,6 +649,8 @@ pub(in crate::fight) struct Skill {
     /// its death effect; the virtual `ExitFight` removes it even when the
     /// core is only waiting for pending summons and later resumes.
     pub(in crate::fight) dead_explosion_enabled: bool,
+    /// `FightSkill.enableSecondaryDamage`, held until the provider deactivates.
+    pub(in crate::fight) secondary_damage_enabled: bool,
     pub(in crate::fight) kind: SkillKind,
     pub(in crate::fight) performer: Performer,
     /// `SkillAttackController.attackCount`: the blows started since the
@@ -754,6 +756,7 @@ impl Skill {
             lock_written: false,
             disabled: false,
             dead_explosion_enabled: true,
+            secondary_damage_enabled: false,
             kind,
             performer,
             attack_count: ATTACK_COUNT_RESET,

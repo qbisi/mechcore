@@ -86,15 +86,17 @@ impl BuffCycle {
 }
 
 impl Simulation {
-    /// `SecondaryDamageIntensifyEffectProvider.DoActive`: create and append
-    /// a controller if its dictionary no longer holds one. The buff manager
-    /// still holds the origin controller from preparation, a different
+    /// `SecondaryDamageIntensifyEffectProvider.DoActive`: enable secondary
+    /// damage, then append a buff controller if its dictionary holds none.
+    /// The buff manager still holds the origin controller from preparation, a different
     /// object after this restoration.
-    pub(in crate::fight) fn activate_secondary_buff(&mut self, unit: u64) {
+    pub(in crate::fight) fn activate_secondary_damage(&mut self, unit: u64) {
         let actor = self
             .actors
             .get_mut(&unit)
             .expect("actor identity is stable");
+        actor.skills.main.secondary_damage_enabled =
+            actor.placement.effects.secondary_damage.is_some();
         if actor.secondary_buff_controller.is_some()
             || !actor
                 .placement
@@ -114,14 +116,16 @@ impl Simulation {
             .push(crate::modifier::EffectProvider::SecondaryDamageIntensify);
     }
 
-    /// `SecondaryDamageIntensifyEffectProvider.DoDeactive`: remove exactly
-    /// the controller the dictionary names, then forget its entry. An origin
+    /// `SecondaryDamageIntensifyEffectProvider.DoDeactive`: disable secondary
+    /// damage and remove exactly the controller the dictionary names, then
+    /// forget its entry. An origin
     /// controller restored separately by `BuffEffectProvider` is not that one.
-    pub(in crate::fight) fn deactivate_secondary_buff(&mut self, unit: u64) {
+    pub(in crate::fight) fn deactivate_secondary_damage(&mut self, unit: u64) {
         let actor = self
             .actors
             .get_mut(&unit)
             .expect("actor identity is stable");
+        actor.skills.main.secondary_damage_enabled = false;
         if let Some(origin) = actor.secondary_buff_controller.take() {
             if origin {
                 actor.secondary_buff_origin_registered = false;
