@@ -638,8 +638,10 @@ provider takes another point: on the shield the skill fires at
 (`GetTargetEnergyShield`, `FightUtility.GetAttackPositionOnEnergyShield`
 toward the lock, or toward the hit's point with no lock), and with no shield
 the lock's own position (`FightTransform.position3D`) for a skill that locks
-its target (`IsLockTarget`) and the hit's point for any other. Read from the
-build; no recording holds it. The fire burns as any fire does
+its target (`IsLockTarget`) and the hit's point for any other.
+`FightSkill.ExitFight` clears its attack target and shield target. After its
+owner dies, a later projectile's fire no longer projects onto that shield's
+surface; with no lock it uses the projectile's hit point. The fire burns as any fire does
 ([terrain.md](terrain.md)).
 
 ## Wreckage-recovery technologies
@@ -2373,6 +2375,9 @@ derive (a minimum range):
   lands, a Stormcaller's every shell, those that strike nothing too:
   `tests/fire_intensify/stormcaller-rhino.yaml`,
   `tests/fire_intensify/fire_badger-marksman.yaml`.
+- A Stormcaller's death clears its shield target before its remaining shells
+  land; their fires stand at the actual impacts after the barrier breaks:
+  `tests/shield/dead-owner-projectile-fire-loses-shield-target.yaml`.
 
 ### Read
 
@@ -2475,7 +2480,7 @@ derive (a minimum range):
   `FireIntensifyEffectProvider.AddEffect`, `RemoveEffect`,
   `RegisterMechEventInternal`, its `IHitEffectPerformer.PerformHitEffect`,
   `GroundFireController.GetFireMech`, `RangeItemSystem.AddItem`,
-  `MechDataModifer.AddData`.
+  `MechDataModifer.AddData`, `FightSkill.ExitFight`.
 - Reactive armor: `ReactiveArmorTech.GetDamageReduceRate`,
   `GetDamageReduceCount`, `GetDamageReduceValue`,
   `ReactiveArmorTechEffectProvider.DoActive`, `DisableEffect`, `EnableEffect`,
