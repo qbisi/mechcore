@@ -1,0 +1,57 @@
+# A Mountain on a beacon enters attacking at tick 308 during gun cooling.
+# The gun retains Fang 29 without a lock, and clears it at tick 310.
+# Control: beacon-cooling-batch-turns-to-velocity.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 539378309
+round: 3
+blue:
+  core_damage: 440
+  officers: [advanced_shield_device, advanced_targeting_system, sabertooth_specialist]
+  techs:
+    rhino: [field_maintenance, whirlwind, wreckage_recycling, power_armor, final_blitz, armor_enhancement, mechanical_rage, photon_coating, combat_evolvement]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [1, 4]
+  units:
+  - {name: rhino, index: 0, position: {x: 65, y: -165}, level: 9, exp: 7736/7736/7736, rotated: true, equipment: [portable_shield]}
+  - {name: sabertooth, index: 1, position: {x: -75, y: -235}, source: delivered}
+  - {name: mountain, index: 2, position: {x: 15, y: -135}, level: 6, exp: 0/402/18556, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 10, y: -80}, retained: false}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: -45, y: -105}, {x: -125, y: -110}, {x: -290, y: -20}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_targeting_system, fire_badger_specialist, improved_overlord]
+  techs:
+    overlord: [high_explosive_ammo, field_maintenance, overlord_artillery, mothership, jump_drive, armor_enhancement, range_enhancement, launcher_overload, photon_emission]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 2]
+  units:
+  - {name: overlord, index: 0, position: {x: 335, y: 35}, level: 9, exp: 0/11773/11773, rotated: true, equipment: [deployment_module]}
+  - {name: fire_badger, index: 1, position: {x: 75, y: -150}, source: delivered}
+  - {name: fang, index: 2, position: {x: -175, y: -110}, level: 7, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -200, y: -285}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -205, y: -15}, {x: 10, y: 70}, {x: -135, y: 110}]}
+asserts:
+- sql: |
+    SELECT u.tick, u.motion_state, s.enabled__state,
+           s.enabled__lock_target__id, s.enabled__attack_target__id
+    FROM units u
+    JOIN units__skills s ON s.tick = u.tick AND s.unit_id = u.unit_id
+    WHERE u.unit_id = 3 AND s.skill_slot = 0 AND u.tick BETWEEN 307 AND 310
+    ORDER BY u.tick
+  rows:
+  - [307, "moving", "cooling", null, 29]
+  - [308, "attacking", "cooling", null, 29]
+  - [309, "attacking", "cooling", null, 29]
+  - [310, "moving", "idle", null, null]
+ticks: 947
+hash: 26:bdc53c8ace7e332875688f231940b2b30f4a4302e96e674d832ed00c583d8926

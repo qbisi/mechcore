@@ -447,6 +447,9 @@ which scores from that facing. It then takes the place of the unit's
   target hides and the skill cannot reach hidden targets, the motion changes
   to moving immediately. Being within geometric range alone does not keep
   it attacking.
+  For standalone weapons, the weapon currently holding the motion supplies
+  that retained target and range. Its cleared lock does not prevent a moving
+  unit from entering attack as the cooling target comes within range.
 - `MotionMoveState.Update` likewise keeps a command active when its target
   dies. It asks the attacker's range or its move ability before moving on:
   a target still in range can make the unit enter attacking on the very tick
@@ -528,6 +531,10 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
 ## Evidence
 
 ### Recorded
+
+- A Mountain following a beacon enters attacking while its current standalone
+  gun cools without a lock, then moves again when the retained target clears:
+  `tests/battle_skill/beacon-enters-cooled-standalone-target.yaml`.
 
 - A Vulcan's Descent creator holds a fight open until its 26th update and
   the fight exits at tick 53, activating a still-travelling unit's effects:
