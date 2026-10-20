@@ -569,7 +569,7 @@ place for the rest of the fight. The row also raises the unit's life by 80%.
   (`SuicideEffect`) takes the whole of its life from itself. Who last hurt the
   unit keeps the credit for its death. Its agent still moves on that update,
   as it was moving, and the unit dies where that leaves it.
-- **Its death explodes, however it dies.** `FightExplosionSkill.EnterFight`
+- **Its registered death effect explodes, however it dies.** `FightExplosionSkill.EnterFight`
   hands the unit to `DeadEffectSystem` with the skill as its dead effect, or,
   for a unit still travelling in from a rear deployment, once it arrives
   (`OnTravelFinished`): one killed on its way neither explodes nor burns.
@@ -584,6 +584,12 @@ place for the rest of the fight. The row also raises the unit's life by 80%.
   multiplier. A unit some other hit killed had no such life and deals
   nothing. A unit the explosion kills explodes in turn on the same update, and
   what it kills reads after what the tick's shots killed.
+- **Leaving the skill unregisters its death effect.** When the core pauses
+  for pending summons, `SkillManager.Update(false)` calls virtual `ExitFight`
+  on each skill still holding a lock. `FightExplosionSkill.ExitFight` removes
+  its unit from `DeadEffectSystem`; resuming the core does not enter the skill
+  again. Its later suicide still kills it, but causes no explosion or fire.
+  Travelling units and inactive or hold-fire managers skip this exit path.
 - **Every such death leaves a fire.** The explosion leaves a fire of the
   skill's own, reaching 40 metres for 7 seconds, where the unit fell, under
   the side it stands on as it dies, a beam's if one turned it
@@ -893,6 +899,10 @@ that is not melee, so the simulator refuses it.
   controller pass; their same-update death callbacks unregister the queued
   explosions, leaving no fires on the next tick:
   `tests/extra_weapon/dominion-cascade-cancels-deferred-explosions.yaml`.
+- A core pause while Steel Balls await arrival unregisters locked Spider
+  Mines' death effects. A later mine suicide leaves the nearby mine and
+  Steel Ball unharmed:
+  `tests/extra_weapon/pause-unregisters-mine-death-explosion.yaml`.
 - A side's last Fire Badger, killed by a blow, leaves its fire, and the fight
   ends on the next tick with it standing (t1678):
   `tests/corpus/67160729-r4.yaml`.
