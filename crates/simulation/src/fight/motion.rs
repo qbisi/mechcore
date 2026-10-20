@@ -1231,12 +1231,18 @@ impl Simulation {
     /// once it is not.
     fn walk_on_idle_lock(&mut self, actor_id: u64, update: SkillUpdate) -> Flow {
         let actor = &self.actors[&actor_id];
-        if !actor.skills.main.idle {
+        let main = &actor.skills.main;
+        let skill = if main.standalone() && !main.mech_searches() {
+            // AutoMoveBehaviour reads its current IAttacker, including the
+            // independent gun that most recently took the motion.
+            main.group_skill(main.group.as_ref().map_or(0, |group| group.motion_slot))
+        } else {
+            main
+        };
+        if !skill.idle {
             return Flow::Next;
         }
-        let Some(view) = actor
-            .skills
-            .main
+        let Some(view) = skill
             .lock_target
             .filter(|&lock| self.fight_actor_is_alive(lock))
             .and_then(|lock| self.fight_actor(lock))

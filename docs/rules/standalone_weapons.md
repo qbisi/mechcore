@@ -166,6 +166,11 @@ The Mountain's motion follows one of its weapons, the one whose skill is
   weapon's target is in its range. A moving motion enters attack by the same
   weapon's range check, including its shield attack point when a shield
   replaces the actor target; the core's target and range do not decide it.
+- **An idle fallback also follows that weapon.** With no attack target,
+  `AutoMoveBehaviour` reads its current attacker's idle flag and lock for
+  `IsLockTargetInTouchRange`. A side gun switching to a farther alive-only
+  fallback makes the body walk towards that lock even while the core's
+  fallback stays close enough to stand still.
 - **The turret turns to that weapon's lock**
   (`MotionController.CalculateTargetDirection`), even while the weapon is
   idle on a lock its fallback search took and names no target.
@@ -190,6 +195,9 @@ The Mountain's motion follows one of its weapons, the one whose skill is
 
 - Mountain enters attack at its controlling side gun's shield range while
   the core stays idle: `tests/mountain/motion-at-sibling-shield.yaml`.
+- Mountain leaves idle towards its controlling side gun's new fallback
+  while its first guns retain their nearer fallback:
+  `tests/mountain/idle-side-gun-movement-lock.yaml`.
 
 - A side gun holds Mountain's motion towards a tower while the first gun
   takes a unit and starts attacking independently, without pulling the body
@@ -304,7 +312,8 @@ The Mountain's motion follows one of its weapons, the one whose skill is
 - The motion's attacker: `FightMech.SetMotionAttackerAfterSkill`,
   `MotionMoveState.Update`, `MotionAttackState.Update`,
   `MotionController.ChangeToAutoMove`, `AutoMoveBehaviour.IsActive`,
-  `AutoMoveBehaviour.IsIdle`, `FightSkill.ChangeLockTarget`,
+  `AutoMoveBehaviour.IsIdle`, `AutoMoveBehaviour.IsLockTargetInTouchRange`,
+  `FightSkill.ChangeLockTarget`,
   `FightSkill.ExitFight`.
 - The unit's range checks: `IAttacker.IsActorInAttackRange`,
   `IAttacker.IsAttackTargetInAttackRange`, `FightSkill.GetLockTarget`,

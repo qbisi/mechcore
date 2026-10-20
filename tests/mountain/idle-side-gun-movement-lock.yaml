@@ -1,0 +1,52 @@
+# Mountain 22's last two guns replace fallen Wasp 11 with Raiden 15 at
+# 2090 while its first two guns retain Wasp 10. The idle movement path
+# follows the side gun holding the motion, starts moving at 2090 and
+# takes its first displaced snapshot at 2097.
+# Control: independent-gun-motion.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 448107360
+round: 4
+blue:
+  core_damage: 625
+  officers: [advanced_shield_device, advanced_offensive_tactics, typhoon_specialist, assault_raiden]
+  techs:
+    raiden: [fork]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: raiden, index: 0, position: {x: 240, y: -40}, level: 4, exp: 10777/10777/10777, rotated: true, equipment: [tank_production_line]}
+  - {name: typhoon, index: 1, position: {x: -40, y: -80}, exp: 0/300/1950, source: delivered}
+  - {name: wasp, index: 2, position: {x: 225, y: -220}, level: 3, exp: 0/600/3206, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -20, y: -135}}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: -40, y: -215}, {x: 80, y: -310}]}
+red:
+  core_damage: 384
+  officers: [advanced_shield_device, typhoon_specialist]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [2, 2]
+  units:
+  - {name: mountain, index: 0, position: {x: -75, y: -265}, level: 7, exp: 20148/20148/20148}
+  - {name: typhoon, index: 1, position: {x: 180, y: -100}, exp: 0/1825/1950, source: delivered}
+  - {name: steel_ball, index: 2, position: {x: -175, y: -180}, level: 8, exp: 0/160/6727, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 215, y: -85}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: -295, y: 290}]}
+asserts:
+- sql: |-
+    SELECT tick,motion_state,position__x,position__z FROM units WHERE unit_id=22 AND tick IN (2089,2090,2096,2097) ORDER BY tick
+  rows:
+  - [2089, idle, -62393068793, -418638793490]
+  - [2090, moving, -62393068793, -418638793490]
+  - [2096, moving, -62393068793, -418638793490]
+  - [2097, moving, -61424345248, -416966147212]
+ticks: 2360
+hash: 26:66cc0e53e5bacb70be3b8554788ed1df6a85ffc384936826d73a2ddada80776b
