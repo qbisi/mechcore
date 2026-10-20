@@ -1048,6 +1048,12 @@ impl Simulation {
             return Ok(());
         }
         if target.is_none() && self.actors[&actor_id].command.is_some() {
+            if let Flow::Done = self.attack_under_command(actor_id) {
+                return Ok(());
+            }
+            if let Flow::Done = self.move_into_cooled_target(actor_id) {
+                return Ok(());
+            }
             // A command is active without a target: every motion state
             // goes to or stays in `MotionMoveState`, which walks the path.
             self.follow_command(actor_id, None);
@@ -1693,7 +1699,9 @@ impl Simulation {
         {
             return Flow::Next;
         }
-        let skill = &actor.skills.main;
+        let main = &actor.skills.main;
+        let slot = main.group.as_ref().map_or(0, |group| group.motion_slot);
+        let skill = main.group_skill(slot);
         let cooling = skill.cooling();
         let target = match cooling {
             Some((_, named)) => named,
@@ -1734,10 +1742,22 @@ impl Simulation {
     /// including visibility and shield reach but not whether it lives:
     /// the bearing to it when it is in range.
     fn command_target_in_reach(&self, actor_id: u64, target: FightActorRef) -> Option<i64> {
-        if !self.attack_target_in_range(SkillRef::main(FightActorRef::Unit(actor_id)), target) {
+        let actor = &self.actors[&actor_id];
+        let slot = actor
+            .skills
+            .main
+            .group
+            .as_ref()
+            .map_or(0, |group| group.motion_slot);
+        let skill = SkillRef::main(FightActorRef::Unit(actor_id));
+        let in_range = if slot == 0 {
+            self.attack_target_in_range(skill, target)
+        } else {
+            self.slot_actor_in_attack_range(skill, Some(slot), target)
+        };
+        if !in_range {
             return None;
         }
-        let actor = &self.actors[&actor_id];
         let view = self.fight_actor(target)?;
         Some(direction_degrees_q32_raw(
             view.x_q32.saturating_sub(actor.x_q32),
@@ -1758,7 +1778,12 @@ impl Simulation {
     /// the next boundary, an enemy by its path holding it there.
     pub(in crate::fight) fn move_into_cooled_target(&mut self, actor_id: u64) -> Flow {
         let actor = &self.actors[&actor_id];
-        let Some((_, Some(target))) = actor.skills.main.cooling() else {
+        if actor.skills.main.mech_searches() {
+            return Flow::Next;
+        }
+        let main = &actor.skills.main;
+        let slot = main.group.as_ref().map_or(0, |group| group.motion_slot);
+        let Some((_, Some(target))) = main.group_skill(slot).cooling() else {
             return Flow::Next;
         };
         if actor.motion.state != MotionState::Moving
