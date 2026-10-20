@@ -384,12 +384,13 @@ impl Simulation {
 
     /// `DamageCalculator.GetAttackDamage` of a unit's main skill: its
     /// `AirDamageProperty` while it attacks a unit that flies, and its
-    /// `GroundDamageProperty` otherwise.
+    /// `GroundDamageProperty` otherwise. The native attack target can remain
+    /// through cooling after the lock has gone.
     pub(in crate::fight) fn main_attack_damage(&self, actor_id: u64) -> i64 {
         let actor = &self.actors[&actor_id];
         actor
             .stats
-            .attack_damage_against(self.attack_domain(actor.skills.main.attack_target()))
+            .attack_damage_against(self.attack_domain(actor.skills.main.named_attack_target()))
     }
 
     /// Whether what a unit's main skill locks flies (`lockTarget.IsFly`).
@@ -663,7 +664,7 @@ impl Simulation {
         // a level beyond the list, and none for a row that lists none: an
         // Incendiary Bomb's hit leaves its fire and nothing else, and a
         // Homing Missile deals its one entry at every level.
-        let against = self.attack_domain(extra.skill.attack_target());
+        let against = self.attack_domain(extra.skill.named_attack_target());
         attacker.attack_damage = if rules.damage_rate > 0.0 {
             // `DamageProperty.RefreshBaseDamage`: the unit's base damage at
             // its level (`FightMech.GetBaseDamage`) times the skill's rate,
