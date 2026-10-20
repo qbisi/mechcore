@@ -1194,10 +1194,18 @@ inside another timer's callback is appended to the live list and receives
 its first update that same tick (`GRTimerManager.Update`); a chain's EMP can
 therefore start counting the landing delay on its own hit tick
 ([`chain-emp-starts-flight-timer-in-callback.yaml`](../../tests/fly/chain-emp-starts-flight-timer-in-callback.yaml)).
-`EnableEffect`,
-on a unit in its type's domain, gives it the technology's at once and stops
-the timer (`DoEnableInFight`); switched on before the second is out, the unit
-never left the technology's domain.
+`EnableEffect`, on a unit in its type's domain, gives it the technology's at
+once and replaces the timer with another callback of the same duration to
+that domain (`DoEnableInFight`). If it is already in the technology's domain,
+the method does nothing, including to a pending timer.
+
+**Deactivation leaves a pending flight callback alive.** `DoDeactive` restores
+the unit's type domain through `DoDisableOutOfFight`, without stopping its
+timer. `LandingCallBack` and `FlyUpCallBack` test `IsFly`, not `IsAlive`.
+Clearing EMP as a unit dies can enable its flight, schedule its callback and
+then ground it as its effects deactivate. The later callback flies the dead
+unit again; a skill still holding that dead lock reads its changed domain
+for domain-specific range.
 
 **An officer named by domain follows the unit.** An officer whose row names
 units by whether they fly (`UnitEffectTargetType.Air` or `Ground`) reaches
@@ -1935,6 +1943,9 @@ derive (a minimum range):
 
 - Disabling Aerial Mode removes its air attack modifier before the unit
   lands: `tests/fly/emp-removes-air-attack-before-landing.yaml`.
+- A flight-restoration callback survives a Void Eye's death and changes the
+  range of a Wasp still holding its dead lock:
+  `tests/fly/restored-flight-callback-survives-death.yaml`.
 
 - Electromagnetic Armor does not react to incoming Electromagnetic Shot hits:
   `tests/technology_buff/electromagnetic-armor-emp-hit.yaml`.
@@ -2380,6 +2391,11 @@ derive (a minimum range):
   `tests/shield/dead-owner-projectile-fire-loses-shield-target.yaml`.
 
 ### Read
+
+- Flight callbacks outlive provider deactivation:
+  `FlyTechEffectProvider.EnableEffect`, `DoEnableInFight`, `DoDeactive`,
+  `DoDisableOutOfFight`, `FlyUpCallBack`, `LandingCallBack`,
+  `FightMech.IsFly`.
 
 - A controlled rebirth remembers its side before death and restores that
   side to the same unit: `RebirthTask.StartTask`, `RebirthTask.RebirthMech`,

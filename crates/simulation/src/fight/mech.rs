@@ -126,7 +126,7 @@ impl Actor {
             domain: rules.domain,
             modifier_domain: rules.domain,
             placed_domain: rules.domain,
-            fly_reverts_at: None,
+            fly_transition: None,
             ignores_speed_rate: false,
             life_priority: false,
             chain_records: super::chain::ChainRecords::default(),

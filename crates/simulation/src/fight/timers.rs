@@ -51,7 +51,7 @@ impl Simulation {
                 Callback::Diffusion => self.update_diffusion(timer, events)?,
                 Callback::Chain => self.update_chain(timer, events)?,
                 Callback::Trench => self.idle_after_trench(timer, step),
-                Callback::Fly(unit) => self.revert_fly_unit(unit, step),
+                Callback::Fly(unit) => self.finish_fly_transition(unit, step),
                 Callback::Melee(unit) => self.finish_melee_transition(unit, step)?,
             };
             if running {
