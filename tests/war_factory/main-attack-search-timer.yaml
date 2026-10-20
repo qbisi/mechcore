@@ -1,0 +1,52 @@
+# War Factory main slot 0 counts its search clock down while attacking,
+# just as its siblings do. At its arc edge it searches again at tick 281
+# instead of entering cooling; both the old and new locks die later that tick.
+# Control: m1-mirror-4242.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1699041341
+round: 4
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_offensive_tactics, rhino_specialist, extended_range_fortress]
+  techs:
+    fortress: [fang_production]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [3, 1]
+  units:
+  - {name: fortress, index: 0, position: {x: -220, y: -50}, level: 4, exp: 3592/3592/7184, equipment: [secondary_laser_sight]}
+  - {name: rhino, index: 1, position: {x: 145, y: -265}, level: 2, exp: 0/614/2591, source: delivered}
+  - {name: war_factory, index: 2, position: {x: 35, y: -205}, level: 6, exp: 0/17794/18556, source: joined}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -5, y: -125}, retained: false}
+  battle_skills:
+  - {name: orbital_javelin, positions: [{x: -60, y: -45}]}
+red:
+  core_damage: 700
+  officers: [advanced_shield_device, advanced_defensive_tactics, rhino_specialist, extended_range_fortress]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: rhino, index: 0, position: {x: -135, y: -125}, level: 2, source: delivered}
+  - {name: fortress, index: 1, position: {x: 230, y: -130}, level: 9, exp: 0/5746/10764, equipment: [dominion_core], source: joined}
+  - {name: farseer, index: 2, position: {x: 85, y: -265}, level: 3, exp: 0/150/6411, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -105, y: -205}, retained: false}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: -75, y: -100}]}
+asserts:
+- sql: "SELECT tick,enabled__state,enabled__lock_target__id FROM units__skills WHERE unit_id=2 AND skill_slot=0 AND tick IN (280,281,282) ORDER BY tick"
+  rows:
+  - [280, "attack", 39]
+  - [281, "attack", 30]
+  - [282, "attack", 42]
+ticks: 1139
+hash: 26:132af369f7fac22890e0640224b8bd3494e24a24ce9811b07a61e6c9101ddeb6

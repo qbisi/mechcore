@@ -127,10 +127,18 @@ impl Simulation {
             skill.set_phase(FightSkillPhase::Idle);
             return Ok(());
         }
+        let attack_state_before = matches!(
+            self.skill(SkillRef::main(owner)).state,
+            super::skill::SkillState::Attack(_)
+        );
         if let Some(update) =
             self.update_skill(SkillRef::main(owner), step, target_search_order, events)?
         {
             self.attack_in_reach(SkillRef::main(owner), step, update, events)?;
+        }
+        let skill = self.skill_mut(SkillRef::main(owner));
+        if attack_state_before && matches!(skill.state, super::skill::SkillState::Attack(_)) {
+            skill.refresh_search_target_time();
         }
         self.turn_construction_weapon(building_id);
         Ok(())

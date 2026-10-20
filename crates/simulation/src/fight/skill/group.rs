@@ -139,7 +139,7 @@ impl Simulation {
     /// due again when the core is (`FusilladeEnd`).
     pub(in crate::fight) fn update_group_slots(
         &mut self,
-        skill_ref: SkillRef,
+        main: SkillRef,
         step: u64,
         core_entered_attack: bool,
         body_rotation_q32: i64,
@@ -149,7 +149,7 @@ impl Simulation {
         // `SkillManager.Update(false)` visits each flattened FightSkill:
         // only a skill retaining a lock exits; no state machine updates.
         if self.ending.stop_step.is_some() {
-            for sibling in self.skill_mut(skill_ref).siblings_mut() {
+            for sibling in self.skill_mut(main).siblings_mut() {
                 if sibling.lock_target.is_some() {
                     sibling.drop_lock();
                     sibling.attack_target_left = None;
@@ -160,10 +160,9 @@ impl Simulation {
             return Ok(());
         }
         #[cfg(test)]
-        if let Some(actor_id) = skill_ref.owner.unit_id() {
+        if let Some(actor_id) = main.owner.unit_id() {
             self.replay_group_checker_calls(actor_id);
         }
-        let main = skill_ref;
         let prepare_steps = native_time_units_to_steps(self.skill_rules(main).prepare_time_units());
         let fusillade = self.skill(main).fusillade();
         let cooling_steps = native_time_units_to_steps(self.skill_rules(main).cooling_time_units());
@@ -236,10 +235,10 @@ impl Simulation {
                         self.perform_projectile_burst(main, slot, step, events)?;
                         self.finish_group_slot_attacking(main, slot);
                     }
-                    // `SkillAttackState.Update` counts the search timer down
-                    // after the check and the blow.
+                    // `SkillAttackState.Update` counts the clock after the blow.
                     if let SkillState::Attack(_) = self.skill(main).sibling(slot).state {
-                        self.skill_mut(main).sibling_mut(slot).search_target_time -= 1;
+                        let sibling = self.skill_mut(main).sibling_mut(slot);
+                        sibling.refresh_search_target_time();
                     }
                 }
                 // `SkillCoolingState`: the weapon names what it last turned
@@ -401,7 +400,7 @@ impl Simulation {
             .is_some_and(|lock| self.fight_actor_is_alive(lock));
         let sibling = self.skill_mut(skill_ref).sibling_mut(slot);
         if held_alive && sibling.search_target_time > 0 {
-            sibling.search_target_time -= 1;
+            sibling.refresh_search_target_time();
         } else {
             let selected =
                 self.select_group_lock_replacement(skill_ref, slot, target_search_order)?;

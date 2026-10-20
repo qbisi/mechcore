@@ -169,7 +169,7 @@ impl Simulation {
             self.search_skill_lock_target(skill_ref, target_search_order)?;
             self.skill_mut(skill_ref).search_target_time = SEARCH_TARGET_RESET_TICKS;
         } else {
-            self.skill_mut(skill_ref).search_target_time -= 1;
+            self.skill_mut(skill_ref).refresh_search_target_time();
         }
         self.try_side_arm_reset_fire_mark(skill_ref);
         let skill = self.skill(skill_ref);
