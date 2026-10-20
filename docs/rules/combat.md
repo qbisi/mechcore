@@ -1214,6 +1214,9 @@ its damage taken takes 112.
 fell lands and deals its own damage, and no second damage.
 
 **Battlefield shields stand in a second damage's way as in a splash's.**
+Even a single-target hit absorbed by a shield performs its secondary effect
+after the primary hit and its hit callbacks. A shield the primary hit empties
+no longer excludes the units it covered from the secondary range effect.
 `PerformSecondaryRangeEffect` prepares its targets as a splash does
 (`PrepareRangeTargets`): what an enemy shield covers that does not hold the
 point the hit landed at is taken out, unless the hit crosses shields, and
@@ -1446,6 +1449,10 @@ not the game's native attack-type enum.
 ## Evidence
 
 ### Recorded
+
+- A Vortex's shield-breaking hit still applies Electromagnetic Cloud to the
+  unit behind the depleted shield:
+  `tests/secondary_damage/shield-break-keeps-cloud.yaml`.
 
 - A War Factory's main gun counts its attacking search clock down and
   replaces a lock outside its arc without entering cooling:
@@ -1895,6 +1902,11 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- A shield's single-target hit dispatches its hit callback before performing
+  its secondary effect: `DamagePerformer.PerformSingleEffect`,
+  `DamagePerformer.PerformSecondaryEffect`,
+  `DamagePerformer.PerformSecondaryRangeEffect`.
 
 - Every attacking skill counts its search clock down after the target check
   and attack attempt, including main skills and constructions:

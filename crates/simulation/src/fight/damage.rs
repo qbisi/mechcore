@@ -817,8 +817,8 @@ impl Simulation {
         hit: DamageHit,
         events: &mut Vec<Event>,
     ) -> Result<Struck> {
-        // `PerformSingleEffect` on a shield: it takes the hit, and no unit
-        // does.
+        // `PerformSingleEffect` on a shield: it takes the primary hit, then
+        // `PerformSecondaryEffect` still runs around where it landed.
         if let Some(shield) = hit.shield
             && hit.splash_radius == 0
         {
@@ -832,6 +832,9 @@ impl Simulation {
             // empty actor list: skill hit effects still hear a shield hit.
             let effects = self.dispatch_hit_damage(&hit, (&[], damage, false), events)?;
             struck.absorb_ends(effects);
+            if let Some(secondary) = self.secondary_damage_of(&hit) {
+                self.perform_secondary(&hit, secondary, &mut struck, events)?;
+            }
             return Ok(struck);
         }
         let mut targets = self.damage_targets(&hit)?;
