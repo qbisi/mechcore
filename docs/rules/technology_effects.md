@@ -1022,8 +1022,8 @@ projectiles out of the air as a building's do
   reset, and the skill searches anew. The other three units' interceptors
   leave the main skill be.
 
-The unit's interceptors are added to its side's as its effects activate when
-the fight starts. Before the first update, the side sorts all its groups,
+The unit's interceptors are added to its origin side's records as its effects
+activate when the fight starts. Before the first update, the side sorts all its groups,
 units and buildings together, by `FightUtility.ActorComparer`: world depth
 first, then horizontal position when depths compare equal. A unit that
 travels in has its group appended as it arrives; the initial sort does not
@@ -1032,7 +1032,10 @@ A turned unit's group stays in its origin manager's update records, in its
 original slot. Only discovery changes: its new side appends it to
 `changeTeamsController`, and its former side no longer discovers it. The
 group's updates still follow the origin records while its target selection
-and random draws use its current side. A dead unit's interceptors are taken
+and random draws use its current side. A travelling unit controlled before its
+interception effect activates still registers in its origin manager. Activation
+subscribes to future side changes without replaying the earlier change, so
+its new side cannot discover that group until a later side-change callback. A dead unit's interceptors are taken
 from its side's: they update no
 more and no projectile joins them, while a lock one held still counts against
 what the others lock.
@@ -1867,6 +1870,10 @@ derive (a minimum range):
 
 ### Recorded
 
+- A Mustang controlled before its interceptor activates is absent from new
+  projectile discovery on its new side:
+  `tests/interceptor/captured-before-interceptor-activation.yaml`.
+
 - Combat Evolvement cleared while its life rate is already disabled still
   refreshes the Rhino's share at the same maximum on the final tick:
   `tests/technology_buff/combat-evolvement-held-exit.yaml`.
@@ -2398,6 +2405,12 @@ derive (a minimum range):
   `tests/shield/dead-owner-projectile-fire-loses-shield-target.yaml`.
 
 ### Read
+
+- Interception activation registers with the origin manager before subscribing
+  to side changes; discovery filters original records by current side and
+  appends only notified changes: `InterceptSystem.DoActive`,
+  `InterceptMissileEffectProvider.DoActive`, `InterceptSystem.OnChangeTeam`,
+  `TeamInterceptSourceManager.GetCurrentTeamInterceptSources`.
 
 - Maximum-life buff exit refreshes even after its rate was removed:
   `IBEC_ChangeMaxLife.Exit`, `MechDataModifer.RemoveData`, `BuffManager.Clear`.
