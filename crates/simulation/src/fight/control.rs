@@ -413,13 +413,24 @@ impl Simulation {
     /// `capture.formation_ids` keeps its unit-pointer key across later turns.
     /// Newly created units share this snapshot pass; creations not yet in
     /// the snapshot take the following numbers in creation-event order.
+    /// A capture that dies before the snapshot consumes no formation number.
     pub(in crate::fight) fn name_new_formations(&mut self, first: u64, events: &mut [Event]) {
         if first == self.ids.next_formation {
             return;
         }
         // capture_frame numbers newly captured and newly created units in
         // one live-unit pass. Unobserved creations follow in trace order.
-        let mut formations = (first..self.ids.next_formation).collect::<Vec<_>>();
+        let mut formations = (first..self.ids.next_formation)
+            .filter(|formation| {
+                self.actors
+                    .values()
+                    .any(|actor| actor.alive() && actor.placement.formation_id == *formation)
+                    || events.iter().any(|event| {
+                        matches!(event.payload, EventPayload::UnitCreated { formation_id, .. }
+                        if formation_id == *formation)
+                    })
+            })
+            .collect::<Vec<_>>();
         formations.sort_by_key(|formation| {
             self.actors
                 .values()
@@ -434,6 +445,7 @@ impl Simulation {
                     )
                 })
         });
+        self.ids.next_formation = first + u64::try_from(formations.len()).unwrap_or(u64::MAX);
         let renamed = formations
             .into_iter()
             .zip(first..self.ids.next_formation)
@@ -458,9 +470,12 @@ impl Simulation {
             }
         }
         for id in std::mem::take(&mut self.turned_unnamed) {
-            self.ids
-                .turned_formations
-                .insert(id, self.actors[&id].placement.formation_id);
+            let actor = &self.actors[&id];
+            if actor.alive() && actor.placement.team != actor.original_team {
+                self.ids
+                    .turned_formations
+                    .insert(id, actor.placement.formation_id);
+            }
         }
     }
 
