@@ -1,0 +1,59 @@
+# A Crawler first captured at tick 195 dies before its new side is recorded.
+# It consumes no recorder formation; subsequent captures take IDs 20 and 21.
+# Control: capture-and-replication-share-formation-order.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 929858648
+round: 2
+blue:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_power_system, improved_overlord]
+  techs:
+    overlord: [field_maintenance]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: overlord, index: 0, position: {x: -75, y: -205}, level: 6, exp: 10148/10148/10148, rotated: true, equipment: [secondary_fire_control_system]}
+  - {name: crawler, index: 1, position: {x: -125, y: -110}, level: 5, exp: 0/2345/2345, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -160, y: -105}, retained: false}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: -280, y: 220}]}
+red:
+  core_damage: 400
+  officers: [advanced_missile_device, advanced_offensive_tactics, cost_control_specialist, fortified_hacker]
+  techs:
+    hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement, multi_control]
+  blueprints: [attack_enhancement_ii]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: hacker, index: 0, position: {x: 115, y: -35}, level: 8, exp: 1883/3575/3767, rotated: true}
+  - {name: phoenix, index: 1, position: {x: -150, y: -20}, level: 7, exp: 0/200/8185, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -185, y: -80}}
+  battle_skills:
+  - {name: ion_blast, positions: [{x: -60, y: 60}, {x: -295, y: -205}]}
+asserts:
+- sql: |
+    WITH samples(tick) AS (VALUES (194), (195), (203), (217))
+    SELECT s.tick,
+           (SELECT COUNT(*) FROM units u
+            WHERE u.tick = s.tick AND u.unit_id = 7) AS crawler7_present,
+           (SELECT formation_id FROM units u
+            WHERE u.tick = s.tick AND u.unit_id = 5) AS crawler5_formation,
+           (SELECT formation_id FROM units u
+            WHERE u.tick = s.tick AND u.unit_id = 9) AS crawler9_formation
+    FROM samples s
+    ORDER BY s.tick
+  rows:
+  - [194, 1, 2, 2]
+  - [195, 0, 2, 2]
+  - [203, 0, 20, 2]
+  - [217, 0, 20, 21]
+ticks: 557
+hash: 26:61cd5a7bb5c09d51295f2ef3936ecda7c01c77027f61c042fdd7425fb1531103

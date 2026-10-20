@@ -104,8 +104,10 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
   they stand, `z` before `x`: the units turned on one tick take theirs in that
   order as the tick ends, together with summons first seen in that snapshot.
   Creations absent from the snapshot take the following numbers in creation
-  event order. Its damage and its kills from then are recorded under a
-  recorder of its own. A summon, a Spider Mine among them, has no `MechTeam`
+  event order. A unit first captured and killed before that snapshot takes
+  no new recorder formation: neither the live-unit pass nor a creation event
+  observes a new identity for it. A turned unit's damage and kills are recorded
+  under a recorder of its own. A summon, a Spider Mine among them, has no `MechTeam`
   to leave: it is recorded under the formation it was made with, before the
   turn and after, and it counts under the recorder of its own it had, which
   moves to the new side with what it has counted.
@@ -236,6 +238,10 @@ the shield does not count against the turn.
 ## Evidence
 
 ### Recorded
+
+- A Crawler first captured and killed between snapshots consumes no recorder
+  formation ID, leaving later captures contiguous:
+  `tests/control/captured-unit-dies-before-snapshot.yaml`.
 
 - A controlled Typhoon retains its first controlled formation after Field
   Reassembly: `tests/rebirth/controlled-unit-reuses-formation.yaml`.
