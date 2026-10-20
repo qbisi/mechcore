@@ -313,6 +313,9 @@ and its product with the new maximum truncated, at least 1 while it lives. A
 Rhino with Combat Evolvement has 2.5% more life a stack, and a hit Rhino's
 life passes through its maximum without the buff on each step. When the buff
 ends, the fight's end among, the rate goes and the life is refreshed again.
+That exit calls `MechDataModifer.RemoveData` for maximum life even if a
+disable already removed the rate. The refresh still takes the fixed-point
+life share at an unchanged maximum, which can lose one life point.
 
 Any other trigger or update model, a source that steals life beside a hit
 buff, one that reaches crystals, measures
@@ -1864,6 +1867,10 @@ derive (a minimum range):
 
 ### Recorded
 
+- Combat Evolvement cleared while its life rate is already disabled still
+  refreshes the Rhino's share at the same maximum on the final tick:
+  `tests/technology_buff/combat-evolvement-held-exit.yaml`.
+
 - A controlled Typhoon rises through Field Reassembly on the controlling
   side under its first controlled recorder formation:
   `tests/rebirth/controlled-unit-reuses-formation.yaml`.
@@ -2391,6 +2398,9 @@ derive (a minimum range):
   `tests/shield/dead-owner-projectile-fire-loses-shield-target.yaml`.
 
 ### Read
+
+- Maximum-life buff exit refreshes even after its rate was removed:
+  `IBEC_ChangeMaxLife.Exit`, `MechDataModifer.RemoveData`, `BuffManager.Clear`.
 
 - Flight callbacks outlive provider deactivation:
   `FlyTechEffectProvider.EnableEffect`, `DoEnableInFight`, `DoDeactive`,
