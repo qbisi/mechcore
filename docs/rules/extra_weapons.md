@@ -136,7 +136,11 @@ chassis before the fight, and turns towards its skill's lock at the row's
 arc about its rest as the chassis pointed before the motion turned it.
 When the lock and owner share a horizontal position, the zero direction
 leaves the weapon's facing unchanged. A limited transform still clamps that
-facing to its arc after the ordinary turn returns without rotating.
+facing to its arc after the ordinary turn returns without rotating. The
+circular clamp keeps a facing within the normalized limits; outside them it
+takes the nearer endpoint across the excluded gap, choosing the lower limit
+when the distances tie. The default angle need not bisect an asymmetric arc,
+so a signed offset about that default does not decide which endpoint wins.
 
 **A weapon held at the edge of its arc searches again.** A target in range
 but out of the attack angle fails an attack's check, unless the weapon stands
@@ -154,9 +158,11 @@ through an expired clock from its previous idle state.
 A standalone row's weapon has a transform of its own whatever its arc, and
 one with no arc turns freely: Air Defense Mark's marker turns onto its lock
 at the unit's rotate speed, and stays where it points while it holds none.
-One whose arc is no wider than its rest is held there: Disintegration's
-emitter points as the Abyss pointed before the motion turned it, on every
-update its skill holds a lock. A skill of two such weapons turns both towards
+A zero-width arc selects the fixed rotation type except for a side arm,
+which turns freely; a full-circle arc also turns freely. A fixed weapon's
+`RotateTo` calls `RefreshRotation` rather than the limited turn:
+Disintegration's emitter points as the Abyss pointed before the motion
+turned it, on every update its skill holds a lock. A skill of two such weapons turns both towards
 its lock (`FightSkill.RotateWeaponTo`), scores its searches and asks its
 attack angle from the first (`FightSkill.GetMainTransform`), and fires a burst
 from its own weapons in turn: Naval Gun's one shell a blow leaves its first
@@ -801,6 +807,10 @@ that is not melee, so the simulator refuses it.
 
 ### Recorded
 
+- A Sabertooth Anti-Air Missile weapon outside its asymmetric arc takes the
+  nearest endpoint as the chassis turns:
+  `tests/extra_weapon/asymmetric-arc-nearest-limit.yaml`.
+
 - Dual Wield refreshes its retained lock when it moves beyond the main
   target's 40-metre edge-distance range, then fires on the main target:
   `tests/extra_weapon/dual-wield-lock-leaves-main-target-range.yaml`.
@@ -1164,6 +1174,14 @@ that is not melee, so the simulator refuses it.
   `scripts/corpus/match-replays.py`.
 
 ### Read
+
+- A limited weapon normalizes its arc endpoints, retains a facing inside
+  the circular interval, and clamps outside it by endpoint distance with
+  ties at the lower limit: `RotationLimitFightTransform.CalculateRotationRange`,
+  `RotationLimitFightTransform.RotateTo`, `FightUtility.ClmapRotation`.
+  Zero-width weapons are fixed except for side arms, and a full circle is
+  free; fixed weapons refresh to their default rotation:
+  `FightWeapon.RotateTo`, `RotationLimitFightTransform.RefreshRotation`.
 
 - Side-arm lock retention and refresh use the targets' edge distance:
   `FightSkill.NeedRefreshSideArmTarget`, `ISkillData.GetSideArmSearchRange`,
