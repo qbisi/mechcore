@@ -302,6 +302,8 @@ struct Actor {
     /// need not be the unit's own lock the motion walks on.
     turret_aim_q32: Option<i64>,
     life: i64,
+    /// The last traced hit for MCFR death provenance; untraced life loss
+    /// leaves it alone, independently of experience attribution.
     last_damage_source: Option<(Option<ObjectRef>, u32)>,
     /// Whether a support skill summoned it: a unit with no `MechTeam`, which
     /// counts alone and never gains experience.

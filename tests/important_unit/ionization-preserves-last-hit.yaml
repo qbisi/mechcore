@@ -1,0 +1,52 @@
+# Raiden 1 kills the last Dominion Core Mustangs and hits Scorpion 7 at
+# 231. Ionization silently halves the Scorpion's remaining life, then loss
+# of the last important unit destroys it. Its death retains the Raiden's
+# preceding traced hit, since Ionization raises no new hit event.
+# Control: destroyed-unit-credits-its-last-striker.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1263596988
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_targeting_system, cost_control_specialist, assault_raiden]
+  techs:
+    raiden: [energy_shield, electromagnetic_shot, chain, ionization, range_enhancement, fork]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: raiden, index: 0, position: {x: -190, y: -170}, level: 8, exp: 8073/11769/16146, equipment: [mustang_production_line]}
+  - {name: hacker, index: 1, position: {x: 25, y: -75}, level: 3, exp: 0/24/1995, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 190, y: -60}, retained: false}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: 290, y: 240}]}
+red:
+  core_damage: 566
+  officers: [advanced_targeting_system, advanced_targeting_system, speed_specialist, fortified_mustang]
+  techs:
+    mustang: [culling_rounds]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: mustang, index: 0, position: {x: 200, y: -55}, level: 5, exp: 3126/3194/6253, rotated: true, equipment: [dominion_core]}
+  - {name: scorpion, index: 1, position: {x: 245, y: -45}, level: 6, exp: 0/68/8698, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  battle_skills:
+  - {name: nuke, positions: [{x: 185, y: -190}]}
+asserts:
+- sql: |-
+    SELECT tick,object__id,source__kind,source__id,source_team_id FROM events WHERE tick=231 AND type='unit_died' ORDER BY ordinal
+  rows:
+  - [231, 13, unit, 1, 0]
+  - [231, 14, unit, 1, 0]
+  - [231, 15, unit, 1, 0]
+  - [231, 7, unit, 1, 0]
+ticks: 241
+hash: 26:82c8cb42f87126b4e96fc28df945f6f2cbc073af1cabab080146054fc45255bd

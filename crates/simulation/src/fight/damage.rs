@@ -566,7 +566,7 @@ impl Simulation {
                 }
                 let stroke = self.land(
                     member,
-                    (source, source_team),
+                    Some((source, source_team)),
                     // CalculateGroupDamage creates a fresh HitDamageInfo;
                     // isDirectHit stays false, even for a direct buff tick.
                     (share, share, false),
@@ -667,10 +667,12 @@ impl Simulation {
     /// on a unit, once its damage is known. A shield with energy left takes
     /// the hit, as much of it as it holds, and the unit loses no life; what
     /// it took is what the hit dealt. A unit in stealth loses none of it.
+    /// `recorded_source` updates the last traced hit only when the caller
+    /// raises a hit event; an untraced life share preserves that attribution.
     pub(in crate::fight) fn land(
         &mut self,
         unit_id: u64,
-        (source, source_team): (Option<ObjectRef>, u32),
+        recorded_source: Option<(Option<ObjectRef>, u32)>,
         (amount, taken, direct_hit): (i64, i64, bool),
         events: &mut Vec<Event>,
     ) -> Result<Stroke> {
@@ -689,7 +691,7 @@ impl Simulation {
             // A positive OnHitted result records its source even when the
             // personal shield takes it all. A later suicide's death trace
             // uses that last damage attribution, without requiring life loss.
-            unit.last_damage_source = Some((source, source_team));
+            unit.last_damage_source = recorded_source.or(unit.last_damage_source);
             return Ok(Stroke {
                 actual: absorbed,
                 dealt: amount,
@@ -705,7 +707,7 @@ impl Simulation {
         }
         let actual = previous_life - unit.life;
         if actual > 0 {
-            unit.last_damage_source = Some((source, source_team));
+            unit.last_damage_source = recorded_source.or(unit.last_damage_source);
         }
         let killed = unit.life == 0 && previous_life > 0;
         // `ReduceLife` invokes `OnLifeChange` as soon as it took life,
@@ -747,7 +749,7 @@ impl Simulation {
                 let (taken, amount) = self.first_hit(unit_id, (amount, amplified), provider)?;
                 self.land(
                     unit_id,
-                    (source, source_team),
+                    Some((source, source_team)),
                     (amount, taken, direct_hit),
                     events,
                 )

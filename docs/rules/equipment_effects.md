@@ -329,6 +329,10 @@ rather than applying only its plain corrections.
   `tests/important_unit/`. A destroyed unit nothing struck is credited to no
   one, and one a Phoenix struck six ticks before to the Phoenix:
   `tests/important_unit/destroyed-unit-credits-its-last-striker.yaml`.
+- A Scorpion destroyed after the last Dominion Core Mustangs die retains
+  its Raiden hit as the recorded death source, across Ionization's untraced
+  life loss on that same tick:
+  `tests/important_unit/ionization-preserves-last-hit.yaml`.
 - A pending summon survives the last important unit's death and enters
   later, with attacks paused until the step after it enters:
   `tests/important_unit/pending-summon-outlives-core.yaml`.

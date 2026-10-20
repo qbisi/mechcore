@@ -61,7 +61,9 @@ impl Simulation {
             let amount = q32_mul(life << 32, source.rate_q32) >> 32;
             let stroke = match target {
                 FightActorRef::Unit(id) => {
-                    self.land(id, (None, team), (amount, amount, false), events)?
+                    // This OnHitted raises no hit event, so the Adapter's
+                    // last-damage attribution still names the preceding hit.
+                    self.land(id, None, (amount, amount, false), events)?
                 }
                 FightActorRef::Building(_) => self.strike_target(
                     target,
