@@ -705,7 +705,8 @@ reloads and nothing else reads.
   (`SideArmSearchTargetController.PerformNormalSkillSearch`), or about the
   lock the main skill last changed from while it holds none
   (`prevLockTargetForSideArm`). It keeps a live lock of its own within its
-  `sideArmSearchRange`, 40 metres, of that anchor and in its attack area;
+  `sideArmSearchRange`, 40 metres edge to edge, of that anchor and in its
+  attack area;
   otherwise it takes, of the other sides' actors of the anchor's domain within
   that range of it less their radius (`RangeTargetCalculator.CalculateRangeTargets`,
   the separate construction collection left out), the anchor aside, those
@@ -723,13 +724,12 @@ reloads and nothing else reads.
   (`NeedRefreshSideArmTarget`), in its idle state in place of the search
   timer and in its attack state on every update before its check: when the
   main skill holds no live lock and it holds one, and when its lock is dead
-  or out of its attack area. A lock of its own standing further from the
-  main skill's than its search range is kept while it is in its area: a
-  Centurion's side arm goes on firing at a Fang 45 metres from the main gun's
-  Rhino, and another's keeps its lock 49 metres from the main gun's, the game
-  asking its selector nothing meanwhile. The build compares that distance
-  with a range it reads through a helper (`0x264EE0`, called nowhere else in
-  the fight assembly) whose answer the decompilation does not resolve.
+  or out of its attack area. A different lock also refreshes when its
+  distance from the main lock exceeds `ISkillData.GetSideArmSearchRange`.
+  That is `FightTransform.Distance2D`, centre distance less both radii,
+  clamped at zero, compared with `FPoint.op_GreaterThan`. A centre distance
+  beyond 40 metres can therefore retain the lock while its edges remain
+  within range. A nonpositive search range refreshes a different lock.
 - **The main skill takes the side arm's lock.** A main skill with a side arm
   whose own lock is gone takes the side arm's live lock in place of a search
   (`FightSkill.SearchLockTarget`, `TrySetSideArmTargetAsMainTarget` inlined
@@ -800,6 +800,10 @@ that is not melee, so the simulator refuses it.
 ## Evidence
 
 ### Recorded
+
+- Dual Wield refreshes its retained lock when it moves beyond the main
+  target's 40-metre edge-distance range, then fires on the main target:
+  `tests/extra_weapon/dual-wield-lock-leaves-main-target-range.yaml`.
 
 - A Centurion in Melee Mode destroys its blocking wall and turns towards
   its living lock through the backswing:
@@ -1160,6 +1164,11 @@ that is not melee, so the simulator refuses it.
   `scripts/corpus/match-replays.py`.
 
 ### Read
+
+- Side-arm lock retention and refresh use the targets' edge distance:
+  `FightSkill.NeedRefreshSideArmTarget`, `ISkillData.GetSideArmSearchRange`,
+  `SideArmSearchTargetController.PerformNormalSkillSearch`,
+  `FightTransform.Distance2D`.
 
 - A weapon's transform does not turn along a zero direction, using vector
   component equality; a limited transform still holds its resulting
