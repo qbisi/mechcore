@@ -61,6 +61,9 @@ pub(in crate::fight) struct Interceptor {
     key: u64,
     pub(in crate::fight) owner: InterceptorOwner,
     interception: Interception,
+    /// The manager that discovers this group: its origin on activation,
+    /// changed only by an `OnChangeTeam` callback subscribed after activation.
+    discovery_team: u32,
     /// `isEnable`.
     enabled: bool,
     /// Whether its group has left its side's `interceptControllerRecords`
@@ -81,11 +84,17 @@ pub(in crate::fight) struct Interceptor {
 impl Interceptor {
     /// `InterceptCtr_Group.Init` and `DoAdd`: enabled and idle, its attack
     /// whole.
-    fn new(key: u64, owner: InterceptorOwner, interception: Interception) -> Self {
+    fn new(
+        key: u64,
+        owner: InterceptorOwner,
+        interception: Interception,
+        discovery_team: u32,
+    ) -> Self {
         Self {
             key,
             owner,
             interception,
+            discovery_team,
             enabled: true,
             removed: false,
             in_reach: Vec::new(),
@@ -114,6 +123,7 @@ impl Interceptor {
                 z_q32: space_to_q32(placed.z),
             },
             placed.interception,
+            placed.team,
         )
     }
 
@@ -178,7 +188,9 @@ impl Simulation {
     /// make it an interceptor adds its group to its side's
     /// (`TeamInterceptSourceManager.GetInterceptSource`), one interceptor
     /// for each of its weapons, each enabled and idle with its attack whole
-    /// (`InterceptCtr_Group.Init`, `DoAdd`).
+    /// (`InterceptCtr_Group.Init`, `DoAdd`). Registration uses the origin
+    /// manager even when a travelling unit was already controlled; the
+    /// change-team subscription begins here and does not replay that change.
     pub(in crate::fight) fn activate_interception(&mut self, actor_id: u64) {
         let Some(UnitInterception {
             interception,
@@ -197,6 +209,7 @@ impl Simulation {
                     preemptive,
                 },
                 interception,
+                self.actors[&actor_id].original_team,
             ));
         }
     }
@@ -291,7 +304,12 @@ impl Simulation {
                     && matches!(interceptor.owner, InterceptorOwner::Unit { actor_id: id, .. } if id == actor_id)
             });
         self.interceptors = kept;
-        self.interceptors.extend(turned);
+        let team = self.actors[&actor_id].placement.team;
+        self.interceptors
+            .extend(turned.into_iter().map(|mut interceptor| {
+                interceptor.discovery_team = team;
+                interceptor
+            }));
     }
 
     /// `TeamInterceptSourceManager.DoRemove`: the owner's group leaves its
@@ -558,6 +576,7 @@ impl Simulation {
         }
         for index in 0..self.interceptors.len() {
             if self.interceptors[index].removed
+                || self.interceptors[index].discovery_team != self.interceptor_team(index)
                 || self.interceptor_team(index) == projectile.team
                 || !self.interceptor_reaches(index, x, y, z)
             {

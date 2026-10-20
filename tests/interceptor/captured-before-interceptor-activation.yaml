@@ -1,0 +1,55 @@
+# Mustangs controlled before their interception effects activate register
+# in their origin manager without a retroactive change-team notification.
+# Their new side cannot discover them for newly approaching projectiles.
+# Control: captured-mustangs-keep-update-order.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 638478574
+round: 3
+blue:
+  core_damage: 201
+  officers: [advanced_shield_device, fire_badger_specialist, fortified_hacker]
+  techs:
+    hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement, multi_control]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [1, 2]
+  units:
+  - {name: hacker, index: 0, position: {x: -315, y: 75}, level: 7, exp: 1763/3208/3526, rotated: true, equipment: [super_heavy_armor]}
+  - {name: fire_badger, index: 1, position: {x: -245, y: -110}, exp: 0/340/1400, source: delivered}
+  - {name: steel_ball, index: 2, position: {x: 45, y: -250}, level: 4, exp: 0/424/4490, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -25, y: -120}}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: 135, y: -105}, {x: -250, y: 230}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, quick_teleport, cost_control_specialist]
+  techs:
+    mustang: [high_explosive_ammo, aerial_specialization, missile_interceptor, culling_rounds, range_enhancement, armor_piercing_bullets]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: mustang, index: 0, position: {x: 340, y: 35}, level: 3, exp: 0/297/4274, equipment: [improved_firepower_control_system], travelling: true, source: joined}
+  - {name: phantom_ray, index: 1, position: {x: 275, y: -210}, level: 8, exp: 0/6727/6727, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -65, y: -160}, retained: false}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: -150, y: -35}, {x: 280, y: 5}, {x: -145, y: -90}]}
+asserts:
+- sql: "SELECT tick,unit_id,enabled__state,enabled__lock_target__id FROM units__skills WHERE unit_id IN (19,20) AND tick IN (104,105,106) AND skill_slot=0 ORDER BY tick,unit_id"
+  rows:
+  - [104, 19, "idle", 11]
+  - [104, 20, "idle", 11]
+  - [105, 19, "idle", 11]
+  - [105, 20, "idle", 11]
+  - [106, 19, "idle", 11]
+  - [106, 20, "idle", 11]
+ticks: 1772
+hash: 26:08f51ba9b42938e0a7df6fae541d7bae27fc2eb6d0a053f53c220b7c93c0bf50
