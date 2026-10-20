@@ -79,7 +79,7 @@ impl Simulation {
         // arc to search again; a state is not updated on the update it is
         // entered.
         if attack_state_before && matches!(self.skill(skill_ref).state, SkillState::Attack(_)) {
-            self.skill_mut(skill_ref).search_target_time -= 1;
+            self.skill_mut(skill_ref).refresh_search_target_time();
         }
         // The skills of its group update after it, each its own
         // `FightSkill`, in the order of their IDs.

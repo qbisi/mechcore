@@ -1447,6 +1447,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A War Factory's main gun counts its attacking search clock down and
+  replaces a lock outside its arc without entering cooling:
+  `tests/war_factory/main-attack-search-timer.yaml`.
+
 - A Sandworm whose attack ended while the fight waited for reinforcements
   searches immediately when a Wasp Swarm joins, without waiting for the
   old backswing, and enters its movement transition:
@@ -1891,6 +1895,12 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- Every attacking skill counts its search clock down after the target check
+  and attack attempt, including main skills and constructions:
+  `SkillAttackState.Update`, `FightSkill.RefreshSearchTargetTime`,
+  `SearchTargetController.RefreshSearchTargetTime`,
+  `SearchTargetController.CanStartSearch`.
 
 - Leaving a stopped fight forces the skill idle and stops its active attack
   controller: `FightSkill.ExitFight`, `SkillAttackState.Exit`,

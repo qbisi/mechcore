@@ -708,6 +708,11 @@ pub(in crate::fight) struct Skill {
 }
 
 impl Skill {
+    /// `FightSkill.RefreshSearchTargetTime`: the controller counts one update.
+    pub(in crate::fight) fn refresh_search_target_time(&mut self) {
+        self.search_target_time -= 1;
+    }
+
     /// A skill entering the fight: idle, no lock, nothing scheduled.
     pub(in crate::fight) fn new(
         weapon_rotations_q32: Vec<i64>,
@@ -1492,7 +1497,7 @@ impl Simulation {
         // A skill left idle by its last search fires at nothing by design,
         // so only its lock and the timer are asked.
         if (target_alive || skill.idle) && lock_alive && skill.search_target_time > 0 {
-            self.skill_mut(skill_ref).search_target_time -= 1;
+            self.skill_mut(skill_ref).refresh_search_target_time();
             return Ok(());
         }
 
@@ -1672,6 +1677,10 @@ impl Simulation {
         let performed_before = self.actors[&actor_id].skills.main.perform_count;
         let core_lock = self.actors[&actor_id].skills.main.lock_target;
         let motion_before = self.actors[&actor_id].motion.state;
+        let core_attack_state_before = matches!(
+            self.actors[&actor_id].skills.main.state,
+            SkillState::Attack(_)
+        );
         let core_was_attacking =
             self.actors[&actor_id].skills.main.phase() == FightSkillPhase::Attack;
         let body_rotation_q32 = self.actors[&actor_id].body_rotation_q32;
@@ -1717,6 +1726,17 @@ impl Simulation {
             performed_before,
             events,
         )?;
+        // SkillAttackState.Update counts the search clock after the check
+        // and blow, before the next skill or the motion updates.
+        let core = &mut self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable")
+            .skills
+            .main;
+        if core_attack_state_before && matches!(core.state, SkillState::Attack(_)) {
+            core.refresh_search_target_time();
+        }
         let fusillade = self.actors[&actor_id].skills.main.fusillade();
         // A running fusillade's siblings update in SkillManager before
         // MotionController, so their kills affect the same motion update.
