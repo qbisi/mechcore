@@ -360,9 +360,9 @@ struct Actor {
     /// The domain it last stood at the height of: `FightMech.SetPosition`
     /// applies it, including the call made by `SetTechFly` as its domain turns.
     pub(in crate::fight) placed_domain: UnitDomain,
-    /// The step its technology's `GRTimerManager` timer gives it its type's
-    /// domain back, after its technologies were switched off.
-    fly_reverts_at: Option<u64>,
+    /// Its flight provider's pending callback: due step and whether it
+    /// flies afterwards. Deactivating the provider does not stop the timer.
+    fly_transition: Option<(u64, bool)>,
     /// `BuffManager.stateDatas` of `BuffEffectType.SpeedChangeRate` above
     /// zero: no buff writes a speed rate on it now.
     ignores_speed_rate: bool,

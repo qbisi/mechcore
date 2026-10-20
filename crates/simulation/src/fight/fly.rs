@@ -15,9 +15,10 @@
 //! type's domain back once its row's `landingDuration` has passed
 //! (`DisableEffect`, `DoDisableInFight`, a `GRTimerManager` timer whose
 //! callback lands or flies it, `LandingCallBack`, `FlyUpCallBack`);
-//! switched on again before then, it keeps the domain the technology gave it
-//! and the timer is stopped (`EnableEffect`, `DoEnableInFight`,
-//! `TryStopByObject`), and switched on after, it takes that domain at once.
+//! switched on after the body has reverted, it takes the technology's domain
+//! at once and replaces its timer with a callback to that same domain
+//! (`EnableEffect`, `DoEnableInFight`, `TryStopByObject`). Deactivation does
+//! not stop either callback, which can change even a dead unit's domain.
 //! `docs/rules/technology_effects.md` states the rule.
 
 use super::*;
@@ -116,8 +117,8 @@ impl Simulation {
     }
 
     /// `FlyTechEffectProvider.DoDeactive` (`DoDisableOutOfFight`), as the
-    /// unit dies: it takes its type's domain back at once, and a timer of
-    /// its switching is let go.
+    /// unit dies: it takes its type's domain back at once. A callback already
+    /// registered by enabling or disabling the technology remains scheduled.
     pub(in crate::fight) fn remove_fly_unit(&mut self, unit: u64) {
         let actor = self
             .actors
@@ -127,7 +128,6 @@ impl Simulation {
             let fly = actor.type_flies();
             actor.refresh_domain_effects(false, self.step_now);
             actor.set_tech_fly(fly);
-            actor.fly_reverts_at = None;
         }
     }
 
@@ -137,8 +137,9 @@ impl Simulation {
     /// Off, a timer of the row's landing duration is started, its last one
     /// stopped, whose callback gives it its type's domain back
     /// (`DoDisableInFight`); on, it takes the technology's domain at once
-    /// and the timer is stopped (`DoEnableInFight`, whose own timer's
-    /// callback then finds nothing to do).
+    /// and replaces the timer with a callback to that same domain
+    /// (`DoEnableInFight`). Usually that callback finds nothing to do, but
+    /// deactivation can change the domain before it runs, even after death.
     pub(in crate::fight) fn switch_fly(&mut self, unit: u64, on: bool) {
         let step_now = self.step_now;
         let actor = self
@@ -149,39 +150,39 @@ impl Simulation {
             return;
         };
         let turned = actor.domain != actor.rules.domain;
-        if on {
-            if !turned {
-                let fly = !actor.type_flies();
+        if on != turned {
+            let fly = if on {
+                !actor.type_flies()
+            } else {
+                actor.type_flies()
+            };
+            if on {
                 actor.set_tech_fly(fly);
             }
-            actor.fly_reverts_at = None;
-            self.timers.stop(timers::Callback::Fly(unit));
-        } else if turned {
             let delay = math::seconds_q32_to_steps(source.landing_q32)
                 .saturating_sub(u64::from(self.updating_timers));
-            actor.fly_reverts_at = Some(step_now + delay);
+            actor.fly_transition = Some((step_now + delay, fly));
             self.timers.stop(timers::Callback::Fly(unit));
             self.timers.start(timers::Callback::Fly(unit));
         }
     }
 
     /// The `GRTimerManager` timers due on this step: each unit whose
-    /// technology was switched off lands or flies up
-    /// (`LandingCallBack`, `FlyUpCallBack`), taking its type's domain back if
-    /// it still holds the other.
-    pub(in crate::fight) fn revert_fly_unit(&mut self, unit: u64, step: u64) -> bool {
+    /// technology was switched lands or flies up (`LandingCallBack`,
+    /// `FlyUpCallBack`) if its current domain differs from the callback's.
+    /// Neither callback checks whether the unit is alive.
+    pub(in crate::fight) fn finish_fly_transition(&mut self, unit: u64, step: u64) -> bool {
         let actor = self
             .actors
             .get_mut(&unit)
             .expect("a timer's owner remains present");
-        let Some(at) = actor.fly_reverts_at else {
+        let Some((at, fly)) = actor.fly_transition else {
             return false;
         };
         if at > step {
             return true;
         }
-        actor.fly_reverts_at = None;
-        let fly = actor.type_flies();
+        actor.fly_transition = None;
         actor.set_tech_fly(fly);
         false
     }

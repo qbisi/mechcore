@@ -1,0 +1,52 @@
+# Void Eye 16 dies while EMP-disabled at 91. Clearing its buff restores
+# flight and queues a callback, then deactivation grounds the corpse.
+# The callback flies it again at 111; Wasp 13 still locks that dead unit
+# and gains its air-specialization range before replacing the lock at 115.
+# Control: emp-removes-air-attack-before-landing.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 2109535557
+round: 2
+blue:
+  core_damage: 0
+  officers: [marksman_specialist, improved_wasp]
+  techs:
+    wasp: [energy_shield, high_explosive_ammo, ground_specialization, jump_drive, electromagnetic_shot, aerial_specialization, range_enhancement, armor_piercing_bullets, elite_marksman, ignite]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [2, 4]
+  units:
+  - {name: wasp, index: 0, position: {x: -275, y: -60}, level: 2, exp: 2028/2028/2028, equipment: [absorption_module]}
+  - {name: marksman, index: 1, position: {x: -80, y: -140}, level: 3, source: delivered}
+  - {name: fortress, index: 2, position: {x: 270, y: -140}, level: 4, exp: 0/7184/7184, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -75, y: -100}, retained: false}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: -30, y: 310}]}
+red:
+  core_damage: 435
+  officers: [advanced_targeting_system, speed_specialist, improved_void_eye]
+  techs:
+    void_eye: [energy_shield, energy_absorption, aerial_mode, range_enhancement, charged_shot, suppression_shots, electromagnetic_armor]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 2]
+  units:
+  - {name: void_eye, index: 0, position: {x: 130, y: -20}, level: 4, exp: 0/1000/2919, source: joined}
+  - {name: abyss, index: 1, position: {x: 65, y: -65}, level: 8, exp: 0/714/32291, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 285, y: -250}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: 225, y: -5}, {x: 130, y: -80}, {x: -95, y: 45}]}
+asserts:
+- sql: |-
+    SELECT tick,enabled__lock_target__id,enabled__attack_range FROM units__skills WHERE unit_id=13 AND tick IN (110,111,114,115) ORDER BY tick
+  rows:
+  - [110, 16, 536870912000]
+  - [111, 16, 665719930880]
+  - [114, 16, 665719930880]
+  - [115, 18, 665719930880]
+ticks: 427
+hash: 26:877109eb8d1e181ec2b2a8fa17c4e5c2857a332176c37e655cc527c07c43da9a
