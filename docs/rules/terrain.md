@@ -201,7 +201,10 @@ the fire that lit it, and it lands as any fire does, so it takes the oils it
 reaches in turn: a fire that reaches one oil of a line burns the line. An oil
 that lands where a fire already burns (`AddItem`, through the fire
 controller's `IsInteractable`) turns at once to such a fire, of its own
-side. A fire of a provider that already has one standing at the same place,
+side. `IsInteractable` first queries the fire controller's quadtree with
+the new oil's circle, then tests each candidate's circle or grid cells.
+Overlapping circles alone do not ignite it when the fire's stored tree node
+lies outside that query. A fire of a provider that already has one standing at the same place,
 each axis within `FPoint`'s 43 raw (`FVector3.op_Equality`), is not made
 again; the standing one burns from the start (`GetRepeatItem`,
 `FightGroundFire.Reset`): a Fire Badger's shots at one turret land a few raw
@@ -393,6 +396,8 @@ already exists.
   the tree answers its circle, root first and quadrant by quadrant; in the
   order they were added, the simulator parts from the game at t67:
   `tests/terrain/standing-oils-quadtree.yaml`.
+- A new oil remains unlit when an overlapping fire's node is outside its
+  quadtree query: `tests/terrain/new-oil-queries-fire-quadtree.yaml`.
 - A Fire Badger's shot burns the oil its splash reaches, and the first fire
   the line beyond it: `tests/corpus/201340110-r5.yaml`, tick 140.
 - A Smoke Bomb's fogs land along its line every four ticks, take ground units

@@ -426,7 +426,13 @@ impl Simulation {
         let Some(index) = self.controller_of(TerrainKind::Fire) else {
             return Ok(false);
         };
-        for &key in &self.terrain.controllers[index].items {
+        // IsInteractable first queries the controller's quadtree. Its
+        // stored bounds can exclude a circle that the final overlap test
+        // alone would accept.
+        for key in self.terrain.controllers[index]
+            .tree
+            .query_circle(circle.0, circle.1, circle.2)
+        {
             if self.terrain_reaches(key, circle)? {
                 return Ok(true);
             }
