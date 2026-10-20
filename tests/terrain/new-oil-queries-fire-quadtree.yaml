@@ -1,0 +1,48 @@
+# Vulcan 4's oil projectile 211 lands at 365. A fire's circle overlaps it,
+# but the fire's quadtree node is outside the oil's candidate query.
+# The oil stays unlit through 369 rather than becoming a 240-tick fire.
+# Control: standing-oils-quadtree.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 323710940
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_targeting_system, speed_specialist, assault_vulcan]
+  techs:
+    vulcan: [incendiary_bomb, best_partner, armor_enhancement, range_enhancement, scorching_fire, sticky_oil_bomb, ignite]
+  blueprints: [attack_enhancement_ii]
+  units:
+  - {name: vulcan, index: 0, position: {x: -320, y: 130}, level: 5, exp: 0/304/12609, equipment: [secondary_fire_control_system]}
+  - {name: phantom_ray, index: 1, position: {x: -5, y: -240}, level: 7, exp: 0/2750/6296, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -200, y: -110}}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: 95, y: -25}]}
+red:
+  core_damage: 375
+  officers: [advanced_offensive_tactics, advanced_targeting_system, fire_badger_specialist, extended_range_phoenix]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: phoenix, index: 0, position: {x: -330, y: 90}, level: 9, exp: 4373/8746/8746, equipment: [secondary_fire_control_system]}
+  - {name: fire_badger, index: 1, position: {x: 25, y: -300}, source: delivered}
+  - {name: arclight, index: 2, position: {x: -120, y: -290}, level: 7, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: 40, y: -230}, {x: -65, y: 135}]}
+asserts:
+- sql: |-
+    SELECT tick,terrain_id,terrain_type,position__x,position__y,position__z,logic_lifetime__limit FROM terrains WHERE terrain_id=30 AND tick IN (365,369,370) ORDER BY tick
+  rows:
+  - [365, 30, oil, -983409914698, 11565284912, 679119584915, null]
+  - [369, 30, oil, -983409914698, 11565284912, 679119584915, null]
+ticks: 1120
+hash: 26:949ed8727b6120f94af7ee8bc3d99610ce92842fcfa95ee55054ccb36b351238
