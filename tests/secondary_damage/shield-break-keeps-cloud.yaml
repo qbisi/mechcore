@@ -1,0 +1,63 @@
+# A shield-absorbed main hit still runs its secondary range effect.
+# At tick 713 the Vortex depletes shield 1, then applies Cloud to unit 31.
+# Control: electromagnetic-cloud.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1027005302
+round: 4
+blue:
+  core_damage: 0
+  officers: [advanced_offensive_tactics, advanced_targeting_system, typhoon_specialist]
+  techs:
+    vortex: [grid_integration, field_maintenance, electromagnetic_cloud, machine_learning, range_enhancement, electromagnetic_twin, mobile_power_station, accumulator_shield, emergency_armor]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [1, 2]
+  units:
+  - {name: typhoon, index: 0, position: {x: -90, y: -100}, exp: 0/600/1950, source: delivered}
+  - {name: vortex, index: 1, position: {x: 110, y: -210}, level: 4, exp: 0/2960/3368, equipment: [secondary_heavy_armor], source: joined}
+  - {name: war_factory, index: 2, position: {x: 175, y: -255}, level: 2, exp: 0/1360/7210, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: -125, y: -205}]}
+red:
+  core_damage: 923
+  officers: [advanced_shield_device, advanced_defensive_tactics, speed_specialist]
+  techs:
+    mustang: [armor_piercing_bullets]
+  blueprints: [defense_enhancement]
+  units:
+  - {name: mustang, index: 0, position: {x: -270, y: -95}, level: 3, exp: 0/12/4274, rotated: true, equipment: [heavy_armor]}
+  - {name: vortex, index: 1, position: {x: -90, y: -240}, level: 2, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 100, y: -110}, retained: false}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: -35, y: -270}]}
+asserts:
+- sql: |
+    SELECT u.tick, u.move_speed,
+           (SELECT COUNT(*) FROM units__buffs b
+            WHERE b.tick = u.tick AND b.unit_id = u.unit_id
+              AND b.data__id = 1031) AS cloud_count
+    FROM units u
+    WHERE u.unit_id = 31 AND u.tick IN (712, 713, 743, 744)
+    ORDER BY u.tick
+  rows:
+  - [712, 7730941140, 0]
+  - [713, 4638564684, 1]
+  - [743, 4638564684, 1]
+- sql: |
+    SELECT tick, ordinal, type, source__id, target__kind, target__id, amount, buff_id
+    FROM events
+    WHERE tick = 713 AND source__id = 2
+      AND (target__id = 31 OR target__kind = 'shield')
+    ORDER BY ordinal
+  rows:
+  - [713, 6, "damage", 2, "shield", 1, 3477, null]
+  - [713, 7, "buff_applied", 2, "unit", 31, null, 1031]
+ticks: 750
+hash: 26:af9352ef69a7e16b6cfaa0147609c9e9c226ea88a6cd941627d9523e75becfad
