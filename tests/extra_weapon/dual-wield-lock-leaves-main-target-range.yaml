@@ -1,0 +1,53 @@
+# Dual Wield's lock 9 moves beyond 40 metres edge-to-edge from the main
+# lock 8 as the targets separate. At 346 the side arm refreshes before its
+# attack check and falls back to the main target, retaining it for its blow.
+# Control: dual-wield-spread.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1603372927
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_targeting_system, fire_badger_specialist]
+  techs:
+    centurion: [summon_hounds, reactive_armor, melee_mode, range_enhancement, dual_wield, homing_missile]
+  blueprints: [attack_enhancement_ii]
+  tower_strengthen_levels: [1, 1]
+  units:
+  - {name: centurion, index: 0, position: {x: 205, y: -135}, level: 2, exp: 2535/3485/5070, rotated: true, equipment: [explosive_ammo]}
+  - {name: fire_badger, index: 1, position: {x: 105, y: -180}, exp: 0/700/1400, source: delivered}
+  - {name: mountain, index: 2, position: {x: -25, y: -275}, level: 3, exp: 0/2100/11398, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -255, y: -305}}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: -220, y: -85}]}
+red:
+  core_damage: 567
+  officers: [advanced_missile_device, advanced_targeting_system, cost_control_specialist]
+  techs:
+    fire_badger: [napalm, field_maintenance, range_enhancement, scorching_fire, scorching_charge, ignite, counter_fire]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: fire_badger, index: 0, position: {x: -210, y: -225}, level: 4, exp: 6286/6286/6286, rotated: true, equipment: [small_amplifying_core]}
+  - {name: hacker, index: 1, position: {x: 115, y: -35}, level: 4, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -85, y: -120}}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: -155, y: 220}, {x: 255, y: -80}]}
+asserts:
+- sql: |-
+    SELECT tick,skill_slot,enabled__lock_target__id,enabled__attack_target__id FROM units__skills WHERE unit_id=5 AND skill_slot=2 AND tick IN (345,346,355,356) ORDER BY tick
+  rows:
+  - [345, 2, 9, 9]
+  - [346, 2, 8, 8]
+  - [355, 2, 8, 8]
+  - [356, 2, 8, 8]
+ticks: 397
+hash: 26:72b773cc0dae0a4f9fdadb3958ac73bfbd039d6513bb1d17c5d1c328114799af
