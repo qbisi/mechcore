@@ -827,10 +827,12 @@ source team retained by the buff.
 
 For `unit_died`, `source` and `source_team_id` come from the active damage
 context at the death boundary when one exists, otherwise from the unit's
-most recent positive damage result. This fallback includes damage absorbed
-by its personal shield, even when it lost no life. The source team is the
+most recent positive traced damage result. This fallback includes damage
+absorbed by its personal shield, even when it lost no life. The source team is the
 team at that damage boundary; a later team change does not rewrite it.
 These fields record damage provenance, independently of experience credit.
+Life loss that raises no hit event, such as Ionization's additional life
+share, does not replace that traced source.
 
 For `projectile_released` and `projectile_removed`, `source_team_id` resolves
 the owner against the most recent live-unit snapshot at the capture boundary.
