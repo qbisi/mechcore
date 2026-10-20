@@ -1134,6 +1134,11 @@ corrections, as any technology does.
 
 ## Aerial and ground targets
 
+Damage selects its aerial or ground property from the skill's attack target,
+which can remain through cooling after its lock clears. An airborne target
+retained then still selects aerial damage for a projectile landing during
+cooling. The recording's normal damage remains the ground property.
+
 **A skill reaches and hurts a unit that flies by numbers of its own.** A
 skill keeps two ranges, each its range with a value of its own added: the
 ground one with its `AttackGroundRangeAddValue`, the air one with its
@@ -1455,6 +1460,10 @@ not the game's native attack-type enum.
 ## Evidence
 
 ### Recorded
+
+- A Marksman retains its Wraith attack target through cooling and deals its
+  aerial damage when a previously released projectile lands then:
+  `tests/anti_air/cooling-keeps-damage-target.yaml`.
 
 - An Arclight killed before its shell lands on the same tick still deals
   Shockwave before its death callback:
