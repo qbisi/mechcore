@@ -1070,17 +1070,19 @@ impl Simulation {
 
     /// `DamagePerformer.CheckSecondaryDamageApplied`: the second damage of the
     /// skill that dealt a hit, itself or through its projectile, unless its
-    /// owner has died or its technologies are disabled: an Arclight's shell
-    /// that lands after the Arclight fell deals no Shockwave. Only a unit's
+    /// provider has deactivated or its technologies are disabled. A lethal
+    /// hit alone does not deactivate it before `FightMech.OnDead`. Only a unit's
     /// main skill is handed one (`SecondaryDamageIntensifyEffectProvider`).
     fn secondary_damage_of(&self, hit: &DamageHit) -> Option<SecondaryDamage> {
         let source = hit
             .source
             .filter(|source| source.kind == ObjectKind::Unit)?;
         let owner = self.actors.get(&source.id)?;
-        (hit.skill_slot == Some(0) && owner.alive() && !owner.technology_disabled())
-            .then_some(owner.placement.effects.secondary_damage)
-            .flatten()
+        (hit.skill_slot == Some(0)
+            && owner.skills.main.secondary_damage_enabled
+            && !owner.technology_disabled())
+        .then_some(owner.placement.effects.secondary_damage)
+        .flatten()
     }
 
     /// `DamagePerformer.PerformSecondaryRangeEffect`, after a hit has struck

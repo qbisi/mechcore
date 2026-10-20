@@ -94,7 +94,7 @@ impl Simulation {
                 EffectProvider::SkillSearchTarget => self.switch_life_priority(unit, true),
                 EffectProvider::MoveAbilityDynamic => self.activate_cloak(unit),
                 EffectProvider::Buff => self.activate_buff_cycles(unit),
-                EffectProvider::SecondaryDamageIntensify => self.activate_secondary_buff(unit),
+                EffectProvider::SecondaryDamageIntensify => self.activate_secondary_damage(unit),
                 EffectProvider::DeadEffect => {
                     self.actors
                         .get_mut(&unit)
@@ -154,7 +154,7 @@ impl Simulation {
                 EffectProvider::SkillSearchTarget => self.switch_life_priority(unit, false),
                 EffectProvider::MoveAbilityDynamic => self.deactivate_cloak(unit),
                 EffectProvider::Buff => self.deactivate_buff_cycles(unit),
-                EffectProvider::SecondaryDamageIntensify => self.deactivate_secondary_buff(unit),
+                EffectProvider::SecondaryDamageIntensify => self.deactivate_secondary_damage(unit),
                 EffectProvider::DeadEffect => self.actors.get_mut(&unit).expect("actor identity is stable").dead_effects_active = false,
                 EffectProvider::ReactiveArmor => self.remove_reactive_armor(unit),
                 EffectProvider::AdvancedEnergyShield => self.deactivate_carried_shield(unit),
@@ -379,9 +379,9 @@ impl Simulation {
             }
             EffectProvider::SecondaryDamageIntensify => {
                 if on {
-                    self.activate_secondary_buff(actor_id);
+                    self.activate_secondary_damage(actor_id);
                 } else {
-                    self.deactivate_secondary_buff(actor_id);
+                    self.deactivate_secondary_damage(actor_id);
                 }
             }
             EffectProvider::DeadEffect => self.actors.get_mut(&actor_id).expect("actor identity is stable").dead_effects_active = on,

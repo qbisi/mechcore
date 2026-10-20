@@ -1075,6 +1075,8 @@ fn main_skill(rules: &UnitConfig, placement: &Placement) -> Skill {
             .collect();
     }
     skill.attack_count_linker = super::attack_count::AttackCountLinker::of(rules, placement);
+    skill.secondary_damage_enabled =
+        !placement.travelling && placement.effects.secondary_damage.is_some();
     skill
 }
 

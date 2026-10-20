@@ -1,0 +1,55 @@
+# Arclight 38 takes lethal damage before projectile 49 lands at tick 271.
+# Shockwave still deals 75 before OnDead deactivates its secondary provider.
+# Control: shockwave-marksmen.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1226744094
+round: 2
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_power_system, marksman_specialist]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: marksman, index: 0, position: {x: 150, y: -260}, level: 3, exp: 0/1150/2315, source: delivered}
+  - {name: crawler, index: 1, position: {x: 140, y: -205}, level: 9, exp: 0/800/3027, rotated: true, equipment: [explosive_ammo], source: joined}
+  - {name: wasp, index: 2, position: {x: -95, y: -120}, level: 6, exp: 0/1450/5219, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -165, y: -85}}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: -60, y: -135}, {x: 115, y: 5}]}
+red:
+  core_damage: 236
+  officers: [advanced_shield_device, advanced_power_system, marksman_specialist, extended_range_arclight]
+  techs:
+    arclight: [electromagnetic_shot, armor_enhancement, anti_aircraft_ammunition, shockwave, range_enhancement, elite_marksman, charged_shot]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: arclight, index: 0, position: {x: -90, y: -30}, level: 2, exp: 845/947/1690, rotated: true, equipment: [secondary_heavy_armor]}
+  - {name: marksman, index: 1, position: {x: -280, y: -140}, level: 3, exp: 0/578/2315, source: delivered}
+  - {name: marksman, index: 2, position: {x: 160, y: -220}, level: 2, exp: 0/646/1465, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -120, y: -155}}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: -20, y: 25}]}
+asserts:
+- sql: |
+    SELECT tick, ordinal, type, object__id, source__id,
+           target__kind, target__id, amount
+    FROM events
+    WHERE tick = 271 AND (object__id IN (38, 49) OR target__id = 38)
+    ORDER BY ordinal
+  rows:
+  - [271, 1, "damage", null, 13, "unit", 38, 16]
+  - [271, 2, "damage", 49, 38, "building", 2, 2534]
+  - [271, 3, "damage", 49, 38, "unit", 1, 75]
+  - [271, 4, "projectile_removed", 49, 38, "building", 2, null]
+  - [271, 5, "unit_died", 38, 13, null, null, null]
+  - [271, 6, "buff_removed", null, null, "unit", 38, null]
+ticks: 624
+hash: 26:37e8724f33687e3b0858d787da6b71307b48fec801d227a2c084740bdfc062c7
