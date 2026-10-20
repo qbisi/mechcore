@@ -1,0 +1,56 @@
+# The final shot of the Stormcaller burst leaves at tick 110.
+# Its next windup starts on tick 111, although the interval has elapsed.
+# Control: tests/stormcaller/m1-mirror-4242.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 490073984
+round: 3
+blue:
+  core_damage: 0
+  officers: [quick_teleport, advanced_targeting_system, sabertooth_specialist]
+  techs:
+    stormcaller: [high_explosive_ammo, incendiary_bomb, electromagnetic_explosion, range_enhancement, launcher_overload, heavy_missile]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [3, 4]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 15, y: -45}, exp: 0/570/1300, source: delivered}
+  - {name: stormcaller, index: 1, position: {x: 350, y: 205}, level: 2, exp: 0/2150/2479, equipment: [secondary_fire_control_system], travelling: true, source: joined}
+  - {name: typhoon, index: 2, position: {x: 40, y: -290}, level: 2, source: joined}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -155, y: -65}, retained: false}
+  battle_skills:
+  - {name: electromagnetic_blast, positions: [{x: -150, y: 180}]}
+red:
+  core_damage: 350
+  officers: [advanced_offensive_tactics, advanced_targeting_system, fortified_specialist]
+  techs:
+    typhoon: [field_reassembly, field_entrenchment, reactive_armor, maintenance_array, wreckage_detonation, range_enhancement, air_defense_mark]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: typhoon, index: 0, position: {x: 140, y: -30}, level: 2, exp: 2197/4394/4394, equipment: [super_heavy_armor]}
+  - {name: steel_ball, index: 1, position: {x: -205, y: -120}, source: joined}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -45, y: -135}, retained: false}
+  battle_skills:
+  - {name: nuke, positions: [{x: 30, y: 175}]}
+asserts:
+- sql: |
+    SELECT tick, enabled__attack_phase, enabled__attack_count,
+           enabled__attack_time, enabled__perform_count
+    FROM units__skills
+    WHERE unit_id = 4 AND skill_slot = 0 AND tick BETWEEN 109 AND 112
+    ORDER BY tick
+  rows:
+  - [109, "attacking", 0, 90, 0]
+  - [110, null, 0, 91, 1]
+  - [111, "before", 1, 0, 1]
+  - [112, "before", 1, 1, 1]
+ticks: 1145
+hash: 26:ec29b731c03566a86b5f9cd4c46244242f42760ac541176efa4c9aba2bb12d1b

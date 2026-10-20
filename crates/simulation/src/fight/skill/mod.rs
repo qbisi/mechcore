@@ -2094,6 +2094,9 @@ impl Simulation {
             // `TryPerformAttack` requires the attack controller to be idle,
             // including while a burst or sweep still has work to perform.
             && skill.performer.done()
+            // It runs before the controller update: a burst ending this
+            // tick cannot start the next blow until the next skill update.
+            && !skill.burst_releasing
             && skill.phase() == FightSkillPhase::Attack
             && !entered_skill_phase
             && skill.started_from_idle != Some(step)

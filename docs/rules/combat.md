@@ -185,6 +185,10 @@ whose explosion's row has an interval of 0, reads 1 to the fight's last tick.
 A staggered interval is floored at one tick again after its draw; one with no
 stagger is the property's.
 After a unit first enters Attack, the next update is the earliest release.
+Starting a blow requires an idle attack controller before that controller's
+update. A projectile burst whose final shot leaves this update therefore
+starts its next blow no earlier than the next update, even when its attack
+interval has already elapsed.
 On entry without an initial cooldown, `FightSkill.EnterFight` refreshes the
 attack clock to its newly sampled interval. It is ready immediately,
 regardless of property changes before entry; a waiting clock from before
@@ -1450,6 +1454,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A Stormcaller waits until the update after its final burst shot before
+  starting its next windup, with an already elapsed attack interval:
+  `tests/attack_timing/burst-end-waits-next-update.yaml`.
+
 - A Vortex's shield-breaking hit still applies Electromagnetic Cloud to the
   unit behind the depleted shield:
   `tests/secondary_damage/shield-break-keeps-cloud.yaml`.
@@ -1902,6 +1910,10 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- A new blow requires the controller idle before its update:
+  `SkillAttackState.Update`, `SkillAttackState.TryPerformAttack`,
+  `SkillAttackController.IsIdle`, `SkillAttackController.Update`.
 
 - A shield's single-target hit dispatches its hit callback before performing
   its secondary effect: `DamagePerformer.PerformSingleEffect`,
