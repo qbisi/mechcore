@@ -527,15 +527,25 @@ impl super::Actor {
                 buff.buff_id,
                 BuffRemovedReason::TechnologyDisabled,
             ));
-            self.withdraw_buff(&buff);
+            self.withdraw_buff(&buff)?;
             self.refresh_life_data()?;
         }
         self.stats.refresh(&self.rules)
     }
     /// What a running buff wrote taken away: its entries among the buffs',
     /// and its rate in the unit's own life rate.
-    fn withdraw_buff(&mut self, buff: &RunningBuff) {
+    fn withdraw_buff(&mut self, buff: &RunningBuff) -> Result<()> {
+        let before = self.stats.max_life();
         buff.withdraw_from(&mut self.stats.overlays);
+        if buff.max_life_rate != 0 {
+            // IBEC_ChangeMaxLife.Exit calls RemoveData even if a disable
+            // already withdrew its rate. That call refreshes the life share
+            // and personal shield even when the maximum stays unchanged.
+            self.stats.refresh(&self.rules)?;
+            self.share_life(before, self.stats.max_life())?;
+            self.refresh_shield();
+        }
+        Ok(())
     }
 
     /// The numbers again, and `FightMech.RefreshLifeData` when the maximum
@@ -992,7 +1002,7 @@ impl Simulation {
                 buff.buff_id,
                 BuffRemovedReason::TeamChanged,
             ));
-            actor.withdraw_buff(&buff);
+            actor.withdraw_buff(&buff)?;
             removed = true;
         }
         if !removed {
@@ -1068,8 +1078,8 @@ impl Simulation {
                         BuffRemovedReason::Cleared,
                     )
                 }));
-                for buff in std::mem::take(&mut actor.buffs) {
-                    actor.withdraw_buff(&buff);
+                for buff in std::mem::take(&mut actor.buffs).into_iter().rev() {
+                    actor.withdraw_buff(&buff)?;
                 }
                 // `IBEC_ChangeMaxLife.Exit` takes its rate out, and the life is
                 // refreshed: a Rhino with Combat Evolvement ends the fight at its
@@ -1135,8 +1145,8 @@ impl Simulation {
             actor.buffs.iter().rev().map(|buff| buff.buff_id).collect(),
         );
         let was_disabled = actor.technology_disabled();
-        for buff in std::mem::take(&mut actor.buffs) {
-            actor.withdraw_buff(&buff);
+        for buff in std::mem::take(&mut actor.buffs).into_iter().rev() {
+            actor.withdraw_buff(&buff)?;
         }
         actor.refresh_life_data()?;
         if was_disabled {
@@ -1207,7 +1217,7 @@ impl Simulation {
             if let Some(buff) = take_expired_buff(&mut actor.buffs, index, subject, events) {
                 // A buff's end takes what it wrote, among the buffs' and in the
                 // unit's own life rate, and every other buff's entries stay.
-                actor.withdraw_buff(&buff);
+                actor.withdraw_buff(&buff)?;
                 actor.refresh_life_data()?;
                 // The last buff that disables technology switches them on again
                 // as it leaves (`CBEC_DisableTechnology.Exit`).
