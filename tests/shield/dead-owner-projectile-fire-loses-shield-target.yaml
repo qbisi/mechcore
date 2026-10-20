@@ -1,0 +1,48 @@
+# Stormcaller 3 dies at 948 while still targeting the Fortress's barrier.
+# Its ExitFight clears the shield target. Shells 140 and 139 hit at 985
+# after the barrier breaks; their fires stand at their actual impacts.
+# Control: ../fire_intensify/stormcaller-rhino.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 796966120
+round: 2
+blue:
+  core_damage: 0
+  officers: [quick_teleport, advanced_offensive_tactics, marksman_specialist]
+  techs:
+    stormcaller: [high_explosive_ammo, incendiary_bomb, electromagnetic_explosion, range_enhancement, launcher_overload, heavy_missile]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: marksman, index: 0, position: {x: -190, y: -160}, level: 3, exp: 0/203/2315, source: delivered}
+  - {name: stormcaller, index: 1, position: {x: 335, y: 60}, exp: 0/421/1100, rotated: true, equipment: [absorption_module], travelling: true, source: joined}
+  - {name: melting_point, index: 2, position: {x: -240, y: -140}, level: 7, exp: 0/8815/8815, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 140, y: -125}, retained: false}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: 175, y: 280}, {x: 265, y: -255}]}
+red:
+  core_damage: 350
+  officers: [quick_teleport, advanced_targeting_system, aerial_specialist, extended_range_fortress]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: fortress, index: 0, position: {x: -320, y: 230}, level: 6, exp: 0/1600/9278, equipment: [barrier], travelling: true, source: joined}
+  - {name: raiden, index: 1, position: {x: 40, y: -260}, level: 9, source: joined}
+  constructions:
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -265, y: -265}, retained: false}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: -25, y: 25}]}
+asserts:
+- sql: |-
+    SELECT tick,object__id,position__x,position__y,position__z FROM events WHERE tick=985 AND type='terrain_created' ORDER BY ordinal
+  rows:
+  - [985, 108, 1226525770479, 0, -622913358982]
+  - [985, 109, 1328250604726, 0, -658977450076]
+ticks: 1406
+hash: 26:c2bb1aeae0b9aafae46a394acc45e8e4937c7420d38e0c017a4b850d373e896e

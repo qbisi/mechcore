@@ -2191,6 +2191,7 @@ impl Simulation {
             let clear_velocity = self.ending.terminal_drain_pending;
             let skill = self.skill_mut(skill_ref);
             skill.dead_explosion_enabled = false;
+            skill.target_shield = None;
             skill.drop_lock();
             // ExitFight forces idle after stopping the attack controller;
             // a pending backswing cannot hold a later resumed fight.

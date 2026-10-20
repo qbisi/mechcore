@@ -481,6 +481,9 @@ impl Actor {
         {
             skill.set_pending(None);
             skill.lock_target = None;
+            // FightSkill.ExitFight clears targetEnergyShield as well as
+            // attackTarget; later projectiles must not reuse its surface.
+            skill.target_shield = None;
             skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
             skill.set_phase(FightSkillPhase::Idle);
             skill.clear_slots();
@@ -509,6 +512,11 @@ impl Actor {
     /// state, and clear a move ability only when the motion changes to idle.
     pub(in crate::fight) fn exit_fight(&mut self) {
         self.reset_attack_count();
+        for skill in std::iter::once(&mut self.skills.main)
+            .chain(self.skills.extras.iter_mut().map(|extra| &mut extra.skill))
+        {
+            skill.target_shield = None;
+        }
         self.chain_records.exit_fight();
         // `RVOControllerFixed.GetVelocity` reads zero after `Deactive`
         // removes the agent; its final movement has already been applied.
