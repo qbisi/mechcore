@@ -906,7 +906,7 @@ impl Simulation {
             && Some(target) == self.skill(skill_ref).lock_target
         {
             return self
-                .shield_attack_point(shield, skill_ref, target)
+                .shield_attack_point(shield, skill_ref, Some(target))
                 .is_some_and(|(x_q32, z_q32)| attacker.reaches_shield(x_q32, z_q32));
         }
         self.skill_reaches_hidden(skill_ref, view.visibility)

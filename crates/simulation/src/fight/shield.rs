@@ -732,28 +732,35 @@ impl Simulation {
     }
 
     /// `GetAttackPositionOnEnergyShield`: the point of a shield's surface on
-    /// the way from what it covers towards the owner, half a metre out.
+    /// the way from the lock, or its centre without a lock, towards the owner,
+    /// half a metre out.
     pub(in crate::fight) fn shield_attack_point(
         &self,
         shield_id: u64,
         skill_ref: SkillRef,
-        target: FightActorRef,
+        target: Option<FightActorRef>,
     ) -> Option<(i64, i64)> {
+        let center = self
+            .shield
+            .standing
+            .iter()
+            .chain(&self.shield.broken)
+            .find(|shield| shield.id == shield_id)
+            .map(|shield| (shield.x_q32, 0, shield.z_q32));
+        // A cooling skill retains its shield after StopAttack drops its
+        // lock. The range checker then intersects from the shield's centre
+        // towards the owner, rather than treating it as no attack target.
+        let inside = match target {
+            Some(target) => self.position_3d(target)?,
+            None => center?,
+        };
         // A sweep is measured to the shield's centre or to its lock,
         // whichever is nearer in space
         // (`SkillAttackRangeChecker.IsAttackTargetInAttackRange`); to the
         // lock once the shield is gone, which a sweep under way, its checks
         // held, still names.
         if self.skill(skill_ref).kind == SkillKind::Sweep {
-            let inside = self.position_3d(target)?;
             let outside = self.position_3d(skill_ref.owner)?;
-            let center = self
-                .shield
-                .standing
-                .iter()
-                .chain(&self.shield.broken)
-                .find(|shield| shield.id == shield_id)
-                .map(|shield| (shield.x_q32, 0, shield.z_q32));
             let (x, _, z) = match center {
                 Some(center)
                     if magnitude(sub(center, outside)) <= magnitude(sub(inside, outside)) =>
@@ -769,16 +776,7 @@ impl Simulation {
         // reads attacking on its lock that tick, and loses it the next, and
         // a Wasp, which checks once a blow, goes on attacking it, its lock
         // out of reach, until its next blow's check.
-        if !self
-            .shield
-            .standing
-            .iter()
-            .chain(&self.shield.broken)
-            .any(|shield| shield.id == shield_id)
-        {
-            return None;
-        }
-        let inside = self.position_3d(target)?;
+        center?;
         let outside = self.position_3d(skill_ref.owner)?;
         let (x, _, z) = self.shield_entry_point(shield_id, inside, outside);
         Some((x, z))
