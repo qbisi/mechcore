@@ -28,7 +28,7 @@ impl Actor {
                 .retain(|entry| entry.source != IMPORTANT_SOURCE);
         }
         self.refresh_life_data()?;
-        self.refresh_common_skill_data(step)
+        self.refresh_common_skill_data(step, true)
     }
 
     /// `FightMech.AddImportantUnitEffect`, called on a dead translated unit.
@@ -57,7 +57,7 @@ impl Actor {
             }
         }
         self.refresh_life_data()?;
-        self.refresh_common_skill_data(step)
+        self.refresh_common_skill_data(step, true)
     }
 }
 

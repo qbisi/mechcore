@@ -81,7 +81,7 @@ impl Actor {
         }
         self.refresh_life_data()
             .expect("the layout verified the officers' corrections");
-        self.refresh_common_skill_data(step)
+        self.refresh_common_skill_data(step, true)
             .expect("the layout verified the skills' corrections");
     }
 }

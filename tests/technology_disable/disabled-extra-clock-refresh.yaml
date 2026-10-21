@@ -1,0 +1,49 @@
+# Complete generated layout: tower-loss disabling expires on Rhino 3 at
+# tick 581. Whirlwind retains the clock refreshed while disabled, including
+# intermediate technology data changes as the travelling unit arrived.
+# Control: technology_disable/life-rates-refresh-in-order.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 577286730
+round: 2
+blue:
+  core_damage: 200
+  officers: [advanced_targeting_system, advanced_targeting_system, cost_control_specialist, assault_raiden]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 1]
+  units:
+  - {name: raiden, index: 0, position: {x: 120, y: -50}, exp: 1200/1700/2400, rotated: true, equipment: [enhancement_module]}
+  - {name: scorpion, index: 1, position: {x: 25, y: -55}, level: 8, exp: 0/300/10091, source: joined}
+  constructions:
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -165, y: -225}, retained: false}
+  battle_skills:
+  - {name: electromagnetic_blast, positions: [{x: -220, y: -225}]}
+red:
+  core_damage: 350
+  officers: [quick_teleport, advanced_defensive_tactics, cost_control_specialist, mass_produced_rhino]
+  techs:
+    rhino: [field_maintenance, whirlwind, wreckage_recycling, power_armor, final_blitz, armor_enhancement, mechanical_rage, photon_coating, combat_evolvement]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: rhino, index: 0, position: {x: 325, y: 275}, level: 5, exp: 0/5992/5992, rotated: true, equipment: [secondary_fire_control_system], travelling: true, source: joined}
+  - {name: tarantula, index: 1, position: {x: 65, y: -205}, source: joined}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: 215, y: 225}, {x: 30, y: -190}]}
+asserts:
+- sql: |
+    SELECT tick, enabled__attack_time, enabled__current_attack_interval
+    FROM units__skills
+    WHERE unit_id = 3 AND skill_slot = 1 AND tick BETWEEN 581 AND 583
+    ORDER BY tick;
+  rows:
+  - [581, 530, 24]
+  - [582, 531, 24]
+  - [583, 532, 24]
+ticks: 2360
+hash: 26:f0935dfcc91af44de46b2333ae65ca906e1d3675eb27cf0a0dbbff776131be24

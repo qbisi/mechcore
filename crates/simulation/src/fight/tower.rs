@@ -1349,17 +1349,11 @@ impl Simulation {
                 actor.refresh_domain_effects(on, self.step_now);
             }
             actor.refresh_life_data()?;
-            let skill_ref = super::skill::SkillRef::main(super::FightActorRef::Unit(actor_id));
-            let interval_q32 = self
-                .skill_attacker(skill_ref)
-                .ok_or_else(|| Error::new("a unit whose technologies switch is absent"))?
-                .attack_interval_q32;
-            let interval = super::math::seconds_q32_to_steps(interval_q32).max(1);
-            let (step, skill) = (self.step_now, self.skill_mut(skill_ref));
-            skill.refresh_datas(interval, step);
-            for sibling in skill.siblings_mut() {
-                sibling.refresh_datas(interval, step);
-            }
+            // Technology.AddData/RemoveData visits GetSkills through
+            // SkillDataModifier.AvaliableCheck: inherited-data extras refresh
+            // even while disabled; independent extras require the source's
+            // IsExtraSkillEffect.
+            actor.refresh_common_skill_data(self.step_now, source.inverse_air_extra_skills)?;
         }
         self.refresh_projectile_performers(projectile_counts);
         Ok(())

@@ -441,10 +441,15 @@ impl Actor {
         self.skills.main.unit_lock()
     }
 
-    /// The `GetSkills` pass in `MechDataModifer.AddCommonData`/`RemoveCommonData`:
-    /// `SkillDataModifier` refreshes every modified skill, even when only life
-    /// or damage changed. Each skill discards its sampled interval.
-    pub(in crate::fight) fn refresh_common_skill_data(&mut self, step: u64) -> Result<()> {
+    /// The `GetSkills` pass in `MechDataModifer.AddCommonData`/`RemoveCommonData`
+    /// and `Technology.AddData`/`RemoveData`: `SkillDataModifier.AvaliableCheck`
+    /// admits the main skill and extras inheriting its data; independent
+    /// extras require `IsExtraSkillEffect`. A disabled skill still refreshes.
+    pub(in crate::fight) fn refresh_common_skill_data(
+        &mut self,
+        step: u64,
+        extra_effect: bool,
+    ) -> Result<()> {
         let refresh = |skill: &mut super::skill::Skill, interval| {
             skill.refresh_datas(interval, step);
             for sibling in skill.siblings_mut() {
@@ -456,6 +461,9 @@ impl Actor {
             math::seconds_q32_to_steps(self.stats.attack_interval_q32()).max(1),
         );
         for extra in &mut self.skills.extras {
+            if !extra_effect && extra.rules.damage_rate <= 0.0 {
+                continue;
+            }
             let own =
                 (extra.rules.damage_rate <= 0.0).then_some(extra.skill_corrections.as_slice());
             let interval = self
