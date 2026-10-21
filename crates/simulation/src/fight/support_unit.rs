@@ -1057,13 +1057,13 @@ impl Simulation {
         }
         self.renumber_burrow_units(&renamed);
         for (before, after) in self.support.summoned_events.values_mut() {
-            rename_created(&renamed, before);
-            rename_created(&renamed, after);
+            rename_summon_events(&renamed, before);
+            rename_summon_events(&renamed, after);
         }
         // A later tower callback may have written to a summon before the
         // frame assigned its recording identity.
         for events in self.buffs.tower_events.values_mut() {
-            rename_created(&renamed, events);
+            rename_summon_events(&renamed, events);
         }
         // Recording identity assignment must not remove or reinsert an
         // actor: the native trees retain the nodes and creation order.
@@ -1092,24 +1092,27 @@ impl Simulation {
     }
 }
 
-/// What a recording names in events made before their units were numbered
-/// as it numbers them: each unit made and its formation, by the name it was
-/// made under.
-fn rename_created(renamed: &BTreeMap<u64, (u64, u64)>, events: &mut [Event]) {
-    {
-        for event in events.iter_mut() {
-            let Some(subject) = event
+/// Resolve every unit reference in events written before the snapshot
+/// assigned recording identities. A buff names its recipient as target,
+/// whereas a creation names its new unit as subject and carries a formation.
+fn rename_summon_events(renamed: &BTreeMap<u64, (u64, u64)>, events: &mut [Event]) {
+    for event in events {
+        if let EventPayload::UnitCreated { formation_id, .. } = &mut event.payload
+            && let Some(subject) = event
                 .subject
                 .filter(|subject| subject.kind == ObjectKind::Unit)
-            else {
-                continue;
-            };
-            let Some(&(unit_id, formation)) = renamed.get(&subject.id) else {
-                continue;
-            };
-            event.subject = Some(ObjectRef::new(ObjectKind::Unit, unit_id));
-            if let EventPayload::UnitCreated { formation_id, .. } = &mut event.payload {
-                *formation_id = formation;
+            && let Some(&(_, formation)) = renamed.get(&subject.id)
+        {
+            *formation_id = formation;
+        }
+        for reference in [&mut event.subject, &mut event.source, &mut event.target]
+            .into_iter()
+            .flatten()
+        {
+            if reference.kind == ObjectKind::Unit
+                && let Some(&(unit, _)) = renamed.get(&reference.id)
+            {
+                reference.id = unit;
             }
         }
     }

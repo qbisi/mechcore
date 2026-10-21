@@ -177,6 +177,9 @@ no lock goes straight to its point.
 
 ### Recorded
 
+- Units Mechanical Division creates on a tower's falling tick receive its
+  buff in creation order, even when snapshot identities are spatially
+  numbered in a different order: `tests/tower/summon-recording-identities.yaml`.
 - A tower falling before a unit killed under Replicate on the same tick
   leaves the new Crawlers without its debuff:
   `tests/tower/tower-before-replicate.yaml`.
