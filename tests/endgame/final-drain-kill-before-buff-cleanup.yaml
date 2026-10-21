@@ -1,0 +1,52 @@
+# Complete generated layout: on final tick 337, a draining hit kills
+# unit 23 while earlier torn-down buildings finish their death callbacks.
+# The victim and its buff clear before survivors lose their buffs.
+# Control: endgame/final-buffs-clear-by-team.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1336046681
+round: 3
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, quick_teleport, sabertooth_specialist]
+  techs:
+    crawler: [subterranean_blitz, acidic_explosion, loose_formation, mechanical_rage, impact_drill, replicate]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -235, y: -265}, exp: 0/134/1300, source: delivered}
+  - {name: crawler, index: 1, position: {x: -325, y: 180}, level: 2, exp: 0/334/1014, rotated: true, equipment: [secondary_fire_control_system], travelling: true, source: joined}
+  - {name: raiden, index: 2, position: {x: 60, y: -220}, level: 4, exp: 0/1134/10777, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 235, y: -40}, retained: false}
+  battle_skills:
+  - {name: ion_blast, positions: [{x: 235, y: -70}, {x: -70, y: 275}]}
+red:
+  core_damage: 626
+  officers: [advanced_defensive_tactics, advanced_defensive_tactics, fire_badger_specialist]
+  techs:
+    tarantula: [armor_piercing_bullets]
+  blueprints: [attack_enhancement_ii]
+  units:
+  - {name: tarantula, index: 0, position: {x: -95, y: -25}, exp: 750/750/1500, rotated: true, equipment: [enhancement_module]}
+  - {name: fire_badger, index: 1, position: {x: -155, y: -140}, source: delivered}
+  - {name: wraith, index: 2, position: {x: -95, y: -245}, exp: 0/96/2250, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 80, y: -185}}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: 130, y: 70}]}
+asserts:
+- sql: |
+    SELECT type, COALESCE(object__id, target__id) FROM events
+    WHERE tick = 337 AND type IN ('unit_died', 'buff_removed')
+    ORDER BY ordinal LIMIT 3;
+  rows:
+  - [unit_died, 23]
+  - [buff_removed, 23]
+  - [buff_removed, 3]
+ticks: 337
+hash: 26:4c5f68215b2840bfd45000fd43425f4e3255c97bf5e39d58dbe35a0c0728ee21

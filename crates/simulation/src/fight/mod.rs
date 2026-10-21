@@ -1699,25 +1699,12 @@ impl Simulation {
                 )
             });
         events.extend(rest);
-        // The fight is left once nothing is in flight: on the towers' tick
-        // when it drained already, and otherwise on the tick the last
-        // projectile lands, the buffs standing still until then.
-        let leaves_now = self.ready_to_finish();
         if publish_late_building_events {
             for end in torn_down {
                 let (precedes, follows) = self.around_an_end(&end);
                 events.extend(precedes);
                 events.push(end);
                 events.extend(follows);
-            }
-            if leaves_now {
-                self.clear_buffs_as_the_fight_ends(&mut events)?;
-                self.score_the_fight()?;
-                self.clear_terrains_as_the_fight_ends()?;
-                self.end_stealth_as_the_fight_ends();
-                self.end_wreckage_as_the_fight_ends();
-                self.end_burrows_as_the_fight_ends()?;
-                self.end_rebirths_as_the_fight_ends();
             }
         }
         // `BuffManager.Clear` takes a dying unit's buffs as it dies, whatever
@@ -1740,10 +1727,11 @@ impl Simulation {
         }
         events.extend(self.take_repair_events());
         self.buffs.dropped.clear();
-        // A fight a projectile's drain finished leaves on this tick, with no
-        // tower torn down to publish first: its buffs are cleared after
-        // everything else the tick did.
-        if !(publish_late_building_events && leaves_now) && self.ready_to_finish() {
+        // FightingState leaves only after every module, including this
+        // tick's DeadEffectSystem callbacks. Publish the final projectile's
+        // victims before clearing survivors, even when older torn-down
+        // buildings also finished their death callbacks on this tick.
+        if self.ready_to_finish() {
             self.clear_buffs_as_the_fight_ends(&mut events)?;
             self.score_the_fight()?;
             self.clear_terrains_as_the_fight_ends()?;
