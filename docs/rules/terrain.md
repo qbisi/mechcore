@@ -204,7 +204,14 @@ controller's `IsInteractable`) turns at once to such a fire, of its own
 side. `IsInteractable` first queries the fire controller's quadtree with
 the new oil's circle, then tests each candidate's circle or grid cells.
 Overlapping circles alone do not ignite it when the fire's stored tree node
-lies outside that query. A fire of a provider that already has one standing at the same place,
+lies outside that query.
+
+A provider is an object identity: `GroundFireController.GetFireMech`
+returns a unit's ordinary fire provider, while
+`DeadExplosiveController.PerformDeadEffect` passes the explosion skill's
+`ExplosionSkillData`. Even at the same position,
+those providers leave separate fires, each with its own range and lifetime.
+A fire of a provider that already has one standing at the same place,
 each axis within `FPoint`'s 43 raw (`FVector3.op_Equality`), is not made
 again; the standing one burns from the start (`GetRepeatItem`,
 `FightGroundFire.Reset`): a Fire Badger's shots at one turret land a few raw
@@ -375,6 +382,9 @@ already exists.
 
 ### Recorded
 
+- Ordinary Fire Badger fire and its Scorching Charge death fire at the
+  same position remain separate, preserving both lifetimes and radii:
+  `tests/extra_weapon/scorching-charge-distinct-fire-provider.yaml`.
 - A Typhoon reborn inside Smoke Bomb has its unreduced weapon ranges on
   its rebirth frame and receives the fog correction on the following frame:
   `tests/terrain/rebirth-reenters-fog.yaml`.

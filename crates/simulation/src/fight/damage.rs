@@ -1346,7 +1346,7 @@ impl Simulation {
         let team = actor.placement.team;
         let point = self.hit_point(skill, targets, center);
         let fire = self.unit_fire(owner, fire)?;
-        self.add_terrain(team, &format!("unit {owner}"), fire, point)
+        self.add_terrain((team, &format!("unit {owner}")), team, fire, point)
     }
 
     /// Where a skill's hit landed, as `SkillDamageProvider.
