@@ -234,8 +234,8 @@ impl Simulation {
     ///   `isTechnologyDisabled` for a source that `CanDisable`).
     /// - A wreckage-recovery technology's hit effect is taken off its unit's
     ///   skills (`WreckageRecoveryEffectProvider.DisableEffect`,
-    ///   `SkillManager.RemoveHitEffect`) and handed back (`EnableEffect`);
-    ///   what its unit struck before still heals it as it dies.
+    ///   `SkillManager.RemoveHitEffect`), and its holder and recorded hits
+    ///   leave `WreckageRecoverySystem`. `EnableEffect` registers it afresh.
     /// - A loose-formation technology's agent keeps its own inner radius
     ///   from the others of its team and stops switching
     ///   (`MotionController.DisableRVOChangeRadius`), and switches again from
@@ -356,6 +356,13 @@ impl Simulation {
             EffectProvider::AdvancedEnergyShield => self.switch_carried_shield(actor_id, on),
             EffectProvider::RvoRadiusChange => self.switch_rvo_radius_change(actor_id, on),
             EffectProvider::Repair => self.switch_repair(actor_id, on),
+            EffectProvider::WreckageRecovery => {
+                if on {
+                    self.add_wreckage_unit(actor_id);
+                } else {
+                    self.remove_wreckage_unit(actor_id);
+                }
+            }
             EffectProvider::FlyTech => self.switch_fly(actor_id, on),
             EffectProvider::IgnoreBuff => self.switch_ignore_buff(actor_id, on),
             EffectProvider::SkillSearchTarget => self.switch_life_priority(actor_id, on),
@@ -406,7 +413,6 @@ impl Simulation {
             // removes/adds the source's common data, including the inverse-
             // air flag, which switch_technologies handles as a correction.
             EffectProvider::AirAttack
-            | EffectProvider::WreckageRecovery
             | EffectProvider::LifeSteal
             | EffectProvider::ArmorStrengthen
             | EffectProvider::SearchTargetSpecific

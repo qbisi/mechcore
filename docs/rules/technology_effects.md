@@ -666,7 +666,11 @@ travelling in is handed over as it arrives, and one that dies is let go
 **A hit records what it struck.** Each unit a hit of one of those skills
 strikes is recorded against the holder, its count back at none if it
 already is (`PerformHitEffect`); a building is not, and nothing is while the
-holder's technologies are disabled. `WreckageRecoverySystem` updates after
+holder's technologies are disabled. `DisableEffect` removes its registration
+and remembered hits (`WreckageRecoverySystem.Remove`); `EnableEffect` adds it
+back with a fresh record set (`Add`). Disabling it between a hit and its
+victim's death therefore prevents that earlier hit from healing it.
+`WreckageRecoverySystem` updates after
 `DeadEffectSystem` and counts every record's updates, last first, dropping
 it once they reach the time over a tick, by `FPoint` quotient's whole part:
 40.
@@ -682,8 +686,8 @@ within the distance of it (`FightActor.Distance2D`, edge to edge,
 maximum life over their count, at least 1 (`PerformRecoveryEffect`,
 `FightMech.RecoveryLife`), held to what it lacks, recorded after the death.
 A Rhino that fells a Marksman takes its 1622; two Rhinos that fell a Vulcan
-take half its 30279 each, held to what each lacks. A holder disabled still
-heals for what it struck before.
+take half its 30279 each, held to what each lacks. A disabled holder has
+left the manager and cannot heal from its earlier hits.
 
 A summoned unit's maximum is read after its summon listener destroys it
 (`SummonSystem.RemoveMech`, `FightController.DestroyMech`,
@@ -1738,13 +1742,14 @@ whose own `DisableEffect` it does not mirror.
   (`EnableEffect` is `SingleEffectProvider`'s alone). A Sabertooth under an
   Electromagnetic Impact goes from 21213 to 14142 at whole life on t57, and
   idles 0.3 seconds later.
-- **A wreckage-recovery technology records no one.**
+- **A wreckage-recovery technology loses its remembered hits.**
   `WreckageRecoveryEffectProvider.DisableEffect` takes its hit effect off its
-  unit's skills (`SkillManager.RemoveHitEffect`), and `PerformHitEffect`
-  records nothing while the technologies are off; what it struck before
-  still heals it as it dies, and switched on, `EnableEffect` hands the effect
-  back. A Rhino that fells Marksmen under an Electromagnetic Impact heals
-  nothing for them.
+  unit's skills (`SkillManager.RemoveHitEffect`) and removes its manager
+  registration (`WreckageRecoverySystem.Remove`). Earlier hits no longer
+  heal it, and `PerformHitEffect` records nothing while disabled. Switched
+  on, `EnableEffect` registers it afresh (`Add`). An Abyss whose lethal hit
+  triggers Electromagnetic Armor loses its records before the death callback
+  and receives no wreckage healing.
 - **A loose-formation technology's agents close up.**
   `RVORadiusChangeProvider.DisableEffect`
   (`MotionController.DisableRVOChangeRadius`) hands the agent its own inner
@@ -2044,6 +2049,9 @@ derive (a minimum range):
   Two Rhinos that fell a Vulcan both heal:
   `tests/wreckage/split.yaml`. Disabled, it heals for no one it
   strikes: `tests/wreckage/disabled.yaml`.
+  Electromagnetic Armor triggered by a lethal hit clears earlier records
+  before the victim's death callback, so an Abyss receives no healing:
+  `tests/wreckage/disable-before-death-callback.yaml`.
   A produced Sledgehammer loses its Defense Enhancement II life correction
   before its wreckage heals a Rhino:
   `tests/wreckage/produced-unit-death.yaml`.

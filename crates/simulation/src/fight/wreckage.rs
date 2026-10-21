@@ -6,7 +6,8 @@
 //! (`Add`), which hands the skills the source names a hit effect
 //! (`SkillManager.AddHitEffect`). Each unit a hit of one of them strikes is
 //! recorded against the unit, its time at none again when it is already
-//! (`PerformHitEffect`), unless the unit's technologies are disabled. The
+//! (`PerformHitEffect`). Disabling its technology removes the holder and
+//! its remembered hits; enabling it registers a fresh holder. The
 //! manager's `Update`, after `DeadEffectSystem`, counts every record's
 //! updates and drops it once they reach the source's time over a tick. As a
 //! recorded unit dies (`FightMech.OnDead`, `OnMechDead`), each holder alive
@@ -66,7 +67,8 @@ impl Simulation {
         }
     }
 
-    /// `TeamWreckageRecoveryManager.Add` during the fight.
+    /// `TeamWreckageRecoveryManager.Add` during the fight, including
+    /// `WreckageRecoveryEffectProvider.EnableEffect`: a fresh record set.
     pub(in crate::fight) fn add_wreckage_unit(&mut self, unit: u64) {
         if let Some(source) = self.actors[&unit].placement.effects.single.wreckage.clone() {
             self.hold_wreckage(unit, source);
@@ -208,8 +210,9 @@ impl Simulation {
         self.wreckage.healing.remove(&dead).unwrap_or_default()
     }
 
-    /// `TeamWreckageRecoveryManager.Remove`, as a holder dies
-    /// (`WreckageRecoveryEffectProvider.DoDeactive`).
+    /// `TeamWreckageRecoveryManager.Remove`, as a holder dies or its
+    /// technology is disabled (`WreckageRecoveryEffectProvider.DoDeactive`,
+    /// `DisableEffect`): its recorded hits go with its registration.
     pub(in crate::fight) fn remove_wreckage_unit(&mut self, unit: u64) {
         if self.wreckage.holders.remove(&unit).is_some() {
             self.wreckage.order.retain(|&held| held != unit);
