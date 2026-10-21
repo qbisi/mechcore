@@ -423,10 +423,13 @@ impl Simulation {
             let Some(projectile) = self.projectile(projectile_id) else {
                 continue;
             };
-            let locked = projectile
-                .locked_by
+            // Read GetBeLock from the interceptors' current SetTarget
+            // relations. An EMP hit can clear one while ProjectileSystem
+            // temporarily holds the projectiles outside self.projectiles.
+            let locked = self
+                .interceptors
                 .iter()
-                .filter_map(|&source| self.interceptor(source))
+                .filter(|source| source.target == Some(projectile_id))
                 .map(|source| source.attack)
                 .sum::<i64>();
             if projectile.life < locked {
@@ -448,17 +451,6 @@ impl Simulation {
 
     /// `SetTarget`: the lock moves from the old projectile to the new.
     fn set_intercept_target(&mut self, index: usize, target: Option<u64>) {
-        let interceptor = &self.interceptors[index];
-        let (key, previous) = (interceptor.key, interceptor.target);
-        if previous == target {
-            return;
-        }
-        if let Some(projectile) = previous.and_then(|id| self.projectile_mut(id)) {
-            projectile.locked_by.retain(|&source| source != key);
-        }
-        if let Some(projectile) = target.and_then(|id| self.projectile_mut(id)) {
-            projectile.locked_by.push(key);
-        }
         self.interceptors[index].target = target;
     }
 
@@ -592,15 +584,14 @@ impl Simulation {
 
     /// `ClearInterceptSources`, as a projectile is released for any reason.
     pub(in crate::fight) fn leave_interceptors(&mut self, projectile: &Projectile) {
-        let mut released = projectile.clone();
-        for source in std::mem::take(&mut released.sources) {
-            self.leave_interceptor(source, &mut released);
+        for &source in &projectile.sources {
+            self.leave_interceptor(source, projectile);
         }
     }
 
     /// `RemoveProjectileController`: an interceptor whose lock leaves it
     /// drops the lock and resets.
-    fn leave_interceptor(&mut self, source: u64, projectile: &mut Projectile) {
+    fn leave_interceptor(&mut self, source: u64, projectile: &Projectile) {
         let Some(index) = self.interceptor_index(source) else {
             return;
         };
@@ -608,7 +599,6 @@ impl Simulation {
         if interceptor.target == Some(projectile.id) {
             interceptor.sum_time = 0;
             interceptor.target = None;
-            projectile.locked_by.retain(|&locker| locker != source);
             interceptor.state = InterceptState::Resetting;
         }
         interceptor.in_reach.retain(|&id| id != projectile.id);
@@ -629,20 +619,9 @@ impl Simulation {
             .position(|interceptor| interceptor.key == key)
     }
 
-    fn interceptor(&self, key: u64) -> Option<&Interceptor> {
-        self.interceptor_index(key)
-            .map(|index| &self.interceptors[index])
-    }
-
     fn projectile(&self, id: u64) -> Option<&Projectile> {
         self.projectiles
             .iter()
-            .find(|projectile| projectile.id == id)
-    }
-
-    fn projectile_mut(&mut self, id: u64) -> Option<&mut Projectile> {
-        self.projectiles
-            .iter_mut()
             .find(|projectile| projectile.id == id)
     }
 }
