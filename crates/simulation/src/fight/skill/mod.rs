@@ -2382,11 +2382,6 @@ impl Simulation {
                 .attack_target()
                 .is_some_and(|target| !self.fight_actor_is_alive(target));
         if active_projectile_burst_lost_target {
-            let owner_team = self
-                .skill_attacker(skill_ref)
-                .expect("skill owner identity is stable")
-                .team;
-            let has_alive_enemy = self.enemy_left(owner_team);
             // The skill still names its dead target. With no command the
             // motion's lock is dead and it stops idle; a command keeps the
             // motion active on it (`attack_under_command`), so a unit under
@@ -2413,10 +2408,9 @@ impl Simulation {
                 let entered_idle = actor.motion.state != MotionState::Idle;
                 actor.lose_target_motion(entered_idle);
             }
-            if !has_alive_enemy {
-                self.skill_mut(skill_ref).performer.stop();
-                return Ok(Flow::Done);
-            }
+            // The multi performer ignores its invalid target after the
+            // first release. The core's next non-fighting update stops it,
+            // rather than the current enemy count ending its phase early.
             self.perform_projectile_burst(skill_ref, 0, step, events)?;
             self.finish_attacking(skill_ref);
             return Ok(Flow::Done);
