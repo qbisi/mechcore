@@ -1454,10 +1454,14 @@ deployed on the field exists as the fight starts, and
 arrival activates the controller (`Active`), resetting its state to `None`
 but retaining that full enter timer: when ready it starts counting on its
 first update and cloaks on the next. `CloakSystem` is the first module to update, each side's units
-in the order `OnFightStart` sorts them. A unit is ready while the nearest
-unit its main skill's search measured stands beyond its range, edge to edge
-(`IsNothingAround`; `IsMainSearcherSkillIdle` reads `FightSkillBase.IsIdle`,
-which nothing sets). Counting, a ready unit counts an update and, once the
+in the order `OnFightStart` sorts them. A unit is ready only while its main
+searcher's `FightSkillBase.IsIdle` flag is false and the nearest actor its
+search measured stands beyond its range, edge to edge
+(`IsMainSearcherSkillIdle`, `IsNothingAround`). The initial flag is false,
+but an alive-only fallback, including an empty search, makes it true. A
+Phantom Ray therefore does not start counting into cloak while the other
+side has no searchable unit during Field Reassembly
+([`stealth/reassembly-wait-blocks-cloak.yaml`](../../tests/stealth/reassembly-wait-blocks-cloak.yaml)). Counting, a ready unit counts an update and, once the
 count reaches 50, cloaks (`ActorVisibility.Disappear`); one not ready counts
 from none. Cloaked, a unit not ready starts to show; showing, it counts 20
 updates whatever happens and is then seen again, and starts counting anew

@@ -8,9 +8,9 @@
 //! module `FightController.AddModules` adds, so it updates before every
 //! other, each side's units in the order `OnFightStart` sorts them
 //! (`FightUtility.SkillOwnerComparer`). A unit is ready to cloak while the
-//! nearest unit its main skill's search measured stands beyond its range,
-//! edge to edge (`IsNothingAround`; `IsMainSearcherSkillIdle` reads a flag
-//! nothing sets). `CloakController.Update` moves it on: from `None`, a
+//! main searcher is not idle and the nearest actor its search measured
+//! stands beyond its range, edge to edge (`IsMainSearcherSkillIdle` and
+//! `IsNothingAround`). `CloakController.Update` moves it on: from `None`, a
 //! ready unit starts counting (`IsTransitionCloak`); counting, a ready
 //! unit counts a step, which once it reaches the source's delay cloaks it
 //! (`Cloak`, `ActorVisibility.Disappear`), and a unit not ready counts from
@@ -220,15 +220,19 @@ impl Simulation {
         }
     }
 
-    /// `!IsMainSearcherSkillIdle() && IsNothingAround()`: the nearest unit the
-    /// main skill's search measured, if any, stands beyond its range, edge to
-    /// edge (`FightActor.Distance2D`). `IsMainSearcherSkillIdle` reads
-    /// `FightSkillBase.IsIdle`, which nothing in a fight sets: a unit whose
-    /// skill stands idle at the fight's start cloaks on its first update.
+    /// `!IsMainSearcherSkillIdle() && IsNothingAround()`: the main searcher's
+    /// `FightSkillBase.IsIdle` must be false, and its nearest actor, if any,
+    /// beyond range, edge to edge (`FightActor.Distance2D`). The initial flag
+    /// is false; a search falling back on alive-only targets makes it true,
+    /// including an empty search while the enemy waits for reassembly.
     fn cloak_ready(&self, unit: u64) -> bool {
         let actor = &self.actors[&unit];
         let main = SkillRef::main(FightActorRef::Unit(unit));
-        let Some(nearest) = self.skill(main).nearest_actor.get() else {
+        let skill = self.skill(main);
+        if skill.idle {
+            return false;
+        }
+        let Some(nearest) = skill.nearest_actor.get() else {
             return true;
         };
         let Some(view) = self.fight_actor(nearest) else {

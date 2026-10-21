@@ -1,0 +1,54 @@
+# Complete generated layout: Phantom Rays remain visible while their
+# main searcher is idle during the enemy Typhoon's Field Reassembly wait.
+# No nearest actor does not bypass CloakController.IsMainSearcherSkillIdle.
+# Control: stealth/stealth-cloak.yaml keeps the initial non-idle cloak.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 2133118812
+round: 2
+blue:
+  core_damage: 401
+  officers: [advanced_shield_device, advanced_power_system, speed_specialist]
+  techs:
+    typhoon: [field_reassembly, field_entrenchment, reactive_armor, maintenance_array, wreckage_detonation, range_enhancement, air_defense_mark]
+  blueprints: [attack_enhancement_ii]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: typhoon, index: 0, position: {x: -350, y: 50}, level: 2, equipment: [small_amplifying_core], travelling: true, source: joined}
+  - {name: melting_point, index: 1, position: {x: -190, y: -230}, level: 6, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -80, y: -225}, retained: false}
+  battle_skills:
+  - {name: electromagnetic_blast, positions: [{x: 240, y: 50}]}
+red:
+  core_damage: 0
+  officers: [advanced_power_system, marksman_specialist, extended_range_phantom_ray]
+  techs:
+    phantom_ray: [energy_shield, high_explosive_ammo, burst_mode, armor_enhancement, ground_targeting, stealth_cloak, range_enhancement, sticky_oil_bomb]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: marksman, index: 0, position: {x: -160, y: -160}, level: 3, exp: 0/170/2315, source: delivered}
+  - {name: phantom_ray, index: 1, position: {x: 30, y: -155}, level: 3, exp: 0/3562/3562, rotated: true, equipment: [amplifying_core], source: joined}
+  - {name: vortex, index: 2, position: {x: -90, y: -190}, level: 6, exp: 0/150/4349, source: joined}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -65, y: 270}, {x: -5, y: -215}, {x: -225, y: 210}]}
+asserts:
+- sql: |
+    SELECT unit_id, COUNT(*),
+           SUM(CASE WHEN visibility = 'normal' AND targetable THEN 1 ELSE 0 END)
+    FROM units
+    WHERE unit_id IN (4, 5, 7) AND tick BETWEEN 1048 AND 1079
+    GROUP BY unit_id ORDER BY unit_id;
+  rows:
+  - [4, 32, 32]
+  - [5, 32, 32]
+  - [7, 32, 32]
+ticks: 1138
+hash: 26:295ad55743a9387f3d1bee8ac6f758a8d683007bc2bc23c1a95621fa541523ed
