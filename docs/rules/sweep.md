@@ -29,9 +29,12 @@ Its first update lays out the strip (`SweepAttackPerformer.FirstPrepare`,
 - **It runs one way, then the other.** An attack whose
   `SkillAttackController.totalAttackCount` is even runs the opposite way to
   one whose count is odd. The count is every blow the skill has started in
-  the fight (`SkillAttackController.PerformAttack` counts it,
-  `SkillAttackController.ResetTotalAttackCount` clears it as the fight
-  starts); leaving the attack state does not reset it.
+  the fight (`SkillAttackController.PerformAttack` counts it).
+  `FightSkill.EnterFight` and `FightSkill.ExitFight` call
+  `SkillAttackController.ResetInFightAttackData`, which clears the total;
+  leaving the attack state alone does not reset it. If the core fight
+  temporarily stops while summons are pending, a skill that exits it starts
+  its sweep count afresh when combat resumes.
 - **It is cut into stretches.** The strip is `length` long and `width` wide,
   centred on the target, and is cut into `damage_times` stretches of equal
   length (`LineRange`), the last one ending where the strip does.
@@ -130,6 +133,10 @@ unit does. Its configuration writes no arc for it.
 
 ### Recorded
 
+- A temporary exit while Shooting Squad's Fangs are pending resets the
+  Abyss's sweep count. Its resumed sweep takes the same direction as its
+  first, rather than retaining the parity of the interrupted fight:
+  `tests/sweep/resumed-fight-resets-direction.yaml`.
 - An Abyss sweeping a Sandworm at the same planar position uses its facing
   for a full strip, delaying the target's hit until the sweep reaches it:
   `tests/sweep/coincident-target-direction.yaml`.
