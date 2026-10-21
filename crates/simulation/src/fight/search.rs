@@ -1202,15 +1202,29 @@ impl Simulation {
             return None;
         }
         if prepared {
-            match self.select_in_square(source, target_search_order, false, Some(0), None) {
-                Some(chosen)
-                    if self
-                        .fight_actor(chosen)
-                        .is_some_and(|target| target.team == source.team) => {}
-                Some(chosen) if self.fight_actor(chosen).is_some_and(|target| target.alive) => {
-                    return Some(chosen);
+            let chosen = self.select_in_square(source, target_search_order, false, Some(0), None);
+            // Prepare registers a job only with admitted candidates. With
+            // none, TrySelect has no result and PerformSearch queries live
+            // squares, rather than using the prepared job's fallback list.
+            if self.skill(source.skill).nearest_actor.get().is_some() {
+                match chosen {
+                    Some(chosen)
+                        if self
+                            .fight_actor(chosen)
+                            .is_some_and(|target| target.team == source.team) => {}
+                    Some(chosen) if self.fight_actor(chosen).is_some_and(|target| target.alive) => {
+                        return Some(chosen);
+                    }
+                    _ => {
+                        return self.select_in_square(
+                            source,
+                            target_search_order,
+                            true,
+                            None,
+                            None,
+                        );
+                    }
                 }
-                _ => return self.select_in_square(source, target_search_order, true, None, None),
             }
         }
         [0, 200, 500]

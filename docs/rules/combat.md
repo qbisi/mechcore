@@ -630,8 +630,8 @@ live attacker's range. A Sandstorm that halves a Sledgehammer's range after
 preparation can leave its hidden tower selected even though the visible
 Sandworm was in its prepared range
 ([`prepared-search-live-replacement-range.yaml`](../../tests/search/prepared-search-live-replacement-range.yaml)).
-A prepared answer that has died since, a tower that fell that tick
-among them, or no prepared answer at all, sends the search to `Select` over
+A registered job whose answer has died since, a tower that fell that tick
+among them, or whose result selects nothing, sends the search to `Select` over
 every enemy the skill attacks, with no square: a Crawler walking on a tower
 that falls takes the best-scored Fang anywhere. A skill that was not prepared,
 or whose prepared answer a beam has turned to its side, falls through to
@@ -642,7 +642,12 @@ candidate is scored only if the target tree
 holds it in a node that a square around the searcher overlaps, a square twice
 `max(range, 400)` wide: at the fight's first tick, a Crawler of replay 134266831
 round 3 scores 13 candidates, and not the enemy 538 m straight ahead of it,
-which a square 800 m wide leaves out. A prepared search gathers its
+which a square 800 m wide leaves out. If preparation admits no candidates,
+`ScoreRatingTargetSelector.Prepare` registers no job. The later search uses
+those live squares: a Wraith that has landed since preparation can be found
+immediately even while the cached ground-opponent list still omits it.
+
+A prepared search gathers its
 candidates as it is prepared, from the tree and about where the searcher stood
 then; units that update before the searcher may have moved to other nodes by
 its turn, and the candidates stay the ones prepared. An attacking skill is
@@ -1796,6 +1801,9 @@ not the game's native attack-type enum.
   Badger and Phantom Ray: `tests/steel_ball/`,
   `tests/stormcaller/`, `tests/hound/`,
   `tests/fire_badger/`, `tests/phantom_ray/`.
+- A Tarantula whose prepared search has no eligible opponent finding a
+  Wraith immediately when it lands, through live squares rather than the
+  cached opponent list: `tests/search/landing-without-prepared-candidates.yaml`.
 - A Stormcaller whose live lock walks inside its minimum range taking blue's
   interceptor on that tick, and a second doing the same three ticks later:
   `tests/search/lock-inside-min-range.yaml`.
