@@ -1393,9 +1393,15 @@ burst still firing included, it goes idle, and its lock is cleared. A skill
 leaving its attack stops the current attack controller, including a
 backswing still waiting. If reinforcements resume the fight, that old wait
 does not prevent the idle skill from searching.
-A skill
-that holds none is not updated at all. An inactive manager returns before
-this path: its clocks and targets stay as they were, and its motion's
+
+A burst already releasing does not stop merely because the last opponent
+has died or changed sides during the current tick. Its performer ignores an
+invalid target after its first release
+(`ProjectileMultiAttackPerformer.IsInterruptedByInvalidTarget`); the core's
+non-fighting update stops it on the next tick.
+
+A skill that holds none is not updated at all. An inactive manager returns
+before this path: its clocks and targets stay as they were, and its motion's
 transition continues. A manager holding fire, a Sandworm's below, is another
 exception (`SkillManager.Update` asks `isActive` before `isHoldFire`): it
 updates its main skill as in a fight, so a Sandworm below whose lock died
@@ -1751,6 +1757,9 @@ not the game's native attack-type enum.
   Sledgehammer, Typhoon and Melting Point: `tests/fortress/`,
   `tests/sledgehammer/`, `tests/typhoon/`,
   `tests/melting_point/`.
+- An Overlord retaining its burst's attacking phase on the tick the last
+  enemy is controlled, then leaving it on the next non-fighting update:
+  `tests/projectile/burst-waits-for-core-stop.yaml`.
 - A projectile's climb measured as it is created, and a moving unit stopped
   when the fight stops, in the Overlord's standard fights:
   `tests/overlord/`.

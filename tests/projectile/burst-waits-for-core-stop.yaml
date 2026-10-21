@@ -1,0 +1,52 @@
+# A generated layout whose last enemy is turned before the core updates on
+# tick 929. Overlord 1 is still releasing a burst at a dead Crawler. Native
+# keeps its attacking controller on the deciding tick and stops it on 930;
+# counting live enemies inside the performer stops the phase one tick early.
+# Control: tests/overlord/ holds its standard burst and fight-stop behavior.
+kind: fight
+source: game
+map_id: 1021
+seed: 598315467
+round: 3
+blue:
+  core_damage: 0
+  officers: [quick_teleport, advanced_defensive_tactics, fortified_specialist, fortified_hacker]
+  techs:
+    hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement, multi_control]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: hacker, index: 0, position: {x: 325, y: 105}, level: 7, exp: 0/1720/3526, rotated: true, equipment: [deployment_module], travelling: true, source: joined}
+  - {name: overlord, index: 1, position: {x: -105, y: -165}, level: 4, exp: 0/1638/7858, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -85, y: -65}, retained: false}
+  battle_skills:
+  - {name: electromagnetic_blast, positions: [{x: 0, y: 175}]}
+red:
+  core_damage: 624
+  officers: [quick_teleport, advanced_power_system, fire_badger_specialist]
+  techs:
+    crawler: [subterranean_blitz, acidic_explosion, loose_formation, mechanical_rage, impact_drill, replicate]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 235, y: -290}, exp: 0/24/1400, source: delivered}
+  - {name: crawler, index: 1, position: {x: -310, y: 255}, level: 5, exp: 0/544/2345, equipment: [portable_shield], travelling: true, source: joined}
+  - {name: crawler, index: 2, position: {x: 145, y: -150}, exp: 0/12/450, source: joined}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: 275, y: -50}]}
+asserts:
+- sql: |
+    SELECT tick, enabled__state, enabled__attack_phase FROM units__skills
+    WHERE unit_id = 1 AND skill_slot = 0 AND tick BETWEEN 928 AND 930
+    ORDER BY tick
+  rows:
+  - [928, attack, attacking]
+  - [929, attack, attacking]
+  - [930, idle, null]
+ticks: 945
+hash: 26:bc13895d9298828dfb35bc50c2d72c80b2daffd1f66bd97baeec329dcd69c666
