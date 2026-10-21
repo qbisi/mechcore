@@ -94,13 +94,15 @@ The support fight controller receives the effective `subEffectRange` as a spawn
 single-unit support skills pass zero instead. Placement checks occur before
 that fight-time branch and always read the effective, preprocessed value.
 
-The native point-release check rejects a support skill when the Euclidean
-distance from its requested release center to either enemy tower's map-bound
-center is at most the tower's protection range
+The native point-release check computes the distance from its requested release
+center to either enemy tower's map-bound center with `FVector3.Distance`,
+including `FPoint.RawSqrt`'s fixed-point polynomial approximation. It rejects a
+support skill when that distance is at most the tower's protection range
 (`towerDefaultDatas.protectionRange`) plus the skill's effective
 `subEffectRange`. Shield Airdrop uses the native `AreaExtendExcludeCrystal`
-target type and the same threshold. These thresholds are derived from the
-check, not measured against coordinate boundaries in the Training Ground.
+target type and the same threshold. The approximation's rounding error is part
+of this boundary. These thresholds are derived from the check, not measured
+against coordinate boundaries in the Training Ground.
 
 ## Position contract
 
@@ -531,6 +533,9 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
 ## Evidence
 
 ### Recorded
+
+- Shield Airdrop is admitted at the enemy tower clearance boundary under the
+  native approximate distance: `tests/corpus/2398-r6.yaml`.
 
 - A Mountain following a beacon enters attacking while its current standalone
   gun cools without a lock, then moves again when the retained target clears:
