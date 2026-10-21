@@ -298,12 +298,20 @@ impl Actor {
     /// moves as the main skill's attack turns it (a Centurion walking on as
     /// its missile skill holds the motion), one without its root
     /// (`ISkillOwner.RotateTo`).
-    pub(in crate::fight) fn extra_attack_rotate(&mut self, bearing_q32: i64) {
+    pub(in crate::fight) fn extra_attack_rotate(&mut self, direction: (i64, i64)) {
+        // FightTransform.RotateTo rejects FVector3.zero before converting
+        // it to an angle. Keep that direction through the motion interface.
+        let bearing = (!rvo::fpoint_equal(direction.0, 0) || !rvo::fpoint_equal(direction.1, 0))
+            .then(|| direction_degrees_q32_raw(direction.0, direction.1));
         if self.has_body() {
-            self.rotate_weapons_towards(bearing_q32);
+            if let Some(bearing) = bearing {
+                self.rotate_weapons_towards(bearing);
+            }
             self.turn_to_move_direction();
         } else {
-            self.rotate_body_towards(bearing_q32);
+            if let Some(bearing) = bearing {
+                self.rotate_body_towards(bearing);
+            }
             self.aim_rotation = self.body_rotation;
         }
     }

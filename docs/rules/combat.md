@@ -244,6 +244,10 @@ The same zero-direction return holds during movement: `MotionMoveState.NormalRot
 passes the target direction to the mech body, so a unit moving onto its
 burrowed lock keeps its turret's facing while its root can still turn to its
 movement direction.
+An extra skill passes this direction through the same motion interface: a
+Centurion in Melee Mode whose Hound target occupies its own position also
+keeps its root facing, rather than converting the zero vector into angle 0
+([`extra_weapon/coincident-target-keeps-facing.yaml`](../../tests/extra_weapon/coincident-target-keeps-facing.yaml)).
 
 ## A unit beside a flanked tower faces the flank
 
