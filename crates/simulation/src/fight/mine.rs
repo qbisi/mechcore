@@ -169,7 +169,6 @@ impl Simulation {
             max_life: mine.shot.life,
             interceptible: mine.shot.interceptible,
             sources: Vec::new(),
-            locked_by: Vec::new(),
             lock_target: true,
             offset_x_q32: 0,
             offset_z_q32: 0,

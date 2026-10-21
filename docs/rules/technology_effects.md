@@ -1049,7 +1049,13 @@ interceptors (`InterceptMissileEffectProvider.DisableEffect`,
 `InterceptEffectBase.DoDisable`): it lets its target go and returns to idle,
 a preemptive one handing its unit's main skill back, and does not update
 until the technologies come back, when each is enabled and returns to idle
-again (`DoEnable`). Read from the build; no recording holds it.
+again (`DoEnable`). The lock is released immediately, including when the
+buff is applied inside a projectile hit before the target dies. Its reserved
+attack no longer counts against that projectile's life as another
+interceptor chooses its target. The complete generated fight
+[`interceptor/emp-hit-releases-reserved-damage.yaml`](../../tests/interceptor/emp-hit-releases-reserved-damage.yaml)
+holds this: EMP disables Mustang 13 on tick 1769; subsequent interceptors can
+lock rocket 1558 without counting the disabled interceptor's 8426 attack.
 
 ## Production lines
 

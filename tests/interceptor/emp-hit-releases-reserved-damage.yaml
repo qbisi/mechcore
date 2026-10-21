@@ -1,0 +1,50 @@
+# Complete generated layout: EMP clears Mustang 13's interception lock
+# during a projectile hit at tick 1769, before it dies in that same hit.
+# Its reserved damage must no longer exclude rocket 1558 from later locks.
+# Control: interceptor/mustang-interception.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 659326105
+round: 3
+blue:
+  core_damage: 150
+  officers: [advanced_offensive_tactics, advanced_power_system, sabertooth_specialist]
+  techs:
+    mustang: [missile_interceptor]
+  blueprints: [defense_enhancement_ii]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: mustang, index: 0, position: {x: 265, y: -270}, level: 7, exp: 7556/7556/7556, equipment: [absorption_module]}
+  - {name: sabertooth, index: 1, position: {x: 105, y: -275}, exp: 0/1300/1300, source: delivered}
+  - {name: steel_ball, index: 2, position: {x: -255, y: -110}, level: 4, exp: 0/112/4490, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -215, y: -295}, retained: false}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: 170, y: -150}, {x: -150, y: -15}, {x: -125, y: 235}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, speed_specialist, extended_range_stormcaller]
+  techs:
+    stormcaller: [high_explosive_ammo, incendiary_bomb, electromagnetic_explosion, range_enhancement, launcher_overload, heavy_missile]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: stormcaller, index: 0, position: {x: 280, y: -155}, level: 8, exp: 0/7400/7400, rotated: true, equipment: [enhancement_module]}
+  - {name: crawler, index: 1, position: {x: 235, y: -200}, exp: 0/450/450, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -50, y: -270}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -285, y: -105}, {x: -165, y: -180}, {x: -145, y: 105}]}
+asserts:
+- sql: |
+    SELECT tick, projectile_id, life__current FROM projectiles
+    WHERE tick = 1783 AND projectile_id IN (1558, 1559)
+    ORDER BY projectile_id;
+  rows:
+  - [1783, 1558, 41740]
+  - [1783, 1559, 109148]
+ticks: 2028
+hash: 26:7350ba127046fc6ff1f1f6f506546018a3740559b3bcc5595314c83e471abc0b

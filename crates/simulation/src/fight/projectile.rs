@@ -37,8 +37,6 @@ pub(in crate::fight) struct Projectile {
     pub(in crate::fight) interceptible: bool,
     /// The interceptors whose reach it is in, as it last moved.
     pub(in crate::fight) sources: Vec<u64>,
-    /// The interceptors locked on it.
-    pub(in crate::fight) locked_by: Vec<u64>,
     /// The data source's tracking setting, refreshed before each flying
     /// update, shared by its target refresh, reach check and impact.
     pub(in crate::fight) lock_target: bool,

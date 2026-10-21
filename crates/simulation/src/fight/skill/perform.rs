@@ -1331,7 +1331,6 @@ impl Simulation {
             max_life: source.life,
             interceptible: source.interceptible,
             sources: Vec::new(),
-            locked_by: Vec::new(),
             lock_target: source.lock_target,
             offset_x_q32: 0,
             offset_z_q32: 0,
