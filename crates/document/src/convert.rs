@@ -1400,8 +1400,10 @@ fn collapse_moves(taken: Vec<(Action, Placed)>) -> Vec<Action> {
 /// one a later release takes off the board. So each decision in turn is taken
 /// at the first point [`crate::transition::check_place`] and the step allow
 /// it, the ones that hand out an index keeping their order, as a unit's moves
-/// and the contraptions do. When nothing left can go, the moves wait on one
-/// another, as two units trading places do, and one of them first steps aside
+/// and the contraptions do. Purchases also stay on their recorded side of
+/// Elite Recruitment, which raises the shop's level and purchase prices.
+/// When nothing left can go, the moves wait on one another, as two units
+/// trading places do, and one of them first steps aside
 /// within its own region to a place nothing left goes: that move is part of
 /// the match, as legal as the rest.
 fn settle(
@@ -1485,7 +1487,18 @@ fn settle_segment(
             continue;
         }
         let aside = step_aside(&position, &pending, &stepped_aside, red).ok_or_else(|| {
-            format!("decisions {pending:?} cannot be ordered so the board allows each one")
+            let refusals: Vec<_> = pending
+                .iter()
+                .filter_map(|action| {
+                    step(&position, action)
+                        .err()
+                        .map(|reason| format!("{action:?}: {reason:?}"))
+                })
+                .collect();
+            format!(
+                "decisions {pending:?} cannot be ordered so the board allows each one; refused steps: {}",
+                refusals.join("; ")
+            )
         })?;
         if let Action::MoveUnit { index, .. } = aside {
             stepped_aside.insert(index);
@@ -1507,7 +1520,9 @@ const fn moved_unit(action: &Action) -> Option<i32> {
 
 /// Whether `action` has to wait for `earlier`: the decisions that hand out a
 /// unit's index keep their order, as the contraptions, which the game numbers
-/// as they are placed, and a unit's own moves do.
+/// as they are placed, and a unit's own moves do. A purchase and Elite
+/// Recruitment keep their relative order so the purchase's level and cost
+/// do not change while it waits for a free place.
 fn waits_behind(action: &Action, earlier: &Action) -> bool {
     let hands_out = |action: &Action| {
         matches!(
@@ -1516,7 +1531,9 @@ fn waits_behind(action: &Action, earlier: &Action) -> bool {
         )
     };
     match (action, earlier) {
-        (Action::ReleaseContraption { .. }, Action::ReleaseContraption { .. }) => true,
+        (Action::BuyUnit { .. }, Action::ActiveEnergyTowerSkill { skill: 4 })
+        | (Action::ActiveEnergyTowerSkill { skill: 4 }, Action::BuyUnit { .. })
+        | (Action::ReleaseContraption { .. }, Action::ReleaseContraption { .. }) => true,
         (Action::MoveUnit { index, .. }, Action::MoveUnit { index: other, .. }) => index == other,
         _ => hands_out(action) && hands_out(earlier),
     }
