@@ -1781,13 +1781,13 @@ red:
 
         let rhino_error = compile(&layout_with_blue_battle_skill(
             "rhino_assault",
-            json!([{"x": -300, "y": 170}]),
+            json!([{"x": -299, "y": 170}]),
         ))
         .unwrap_err();
         assert!(rhino_error.contains("must be more than 160 m"));
         compile(&layout_with_blue_battle_skill(
             "rhino_assault",
-            json!([{"x": -301, "y": 170}]),
+            json!([{"x": -300, "y": 170}]),
         ))
         .unwrap();
 
@@ -1805,13 +1805,13 @@ red:
 
         let wasp_error = compile(&layout_with_blue_battle_skill(
             "wasp_swarm",
-            json!([{"x": -305, "y": 170}]),
+            json!([{"x": -304, "y": 170}]),
         ))
         .unwrap_err();
         assert!(wasp_error.contains("must be more than 165 m"));
         compile(&layout_with_blue_battle_skill(
             "wasp_swarm",
-            json!([{"x": -306, "y": 170}]),
+            json!([{"x": -305, "y": 170}]),
         ))
         .unwrap();
 
@@ -1825,7 +1825,7 @@ red:
                 "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
                 "battle_skills": [{
                     "name": "rhino_assault",
-                    "positions": [{"x": -300, "y": 170}]
+                    "positions": [{"x": -299, "y": 170}]
                 }]
             }
         }))
@@ -1838,13 +1838,13 @@ red:
     fn shield_airdrop_uses_its_effect_range_for_tower_clearance() {
         let error = compile(&layout_with_blue_battle_skill(
             "shield_airdrop",
-            json!([{"x": -350, "y": 170}]),
+            json!([{"x": -349, "y": 170}]),
         ))
         .unwrap_err();
         assert!(error.contains("must be more than 210 m"));
         compile(&layout_with_blue_battle_skill(
             "shield_airdrop",
-            json!([{"x": -351, "y": 170}]),
+            json!([{"x": -350, "y": 170}]),
         ))
         .unwrap();
     }

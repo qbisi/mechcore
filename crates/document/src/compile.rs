@@ -769,14 +769,18 @@ fn validate_battle_skill_positions(
 
     if let Some(radius) = spec.tower_exclusion_radius {
         let minimum_distance = ENEMY_TOWER_PROTECTION_RANGE + radius;
-        let minimum_distance_squared = i128::from(minimum_distance).pow(2);
+        let minimum_distance_q32 = minimum_distance << 32;
         for &position in positions {
             let x = i64::from(position.x);
             let y = i64::from(position.y);
             for &tower_x in &ENEMY_TOWER_X {
-                let dx = i128::from(x - tower_x);
-                let dy = i128::from(y - ENEMY_TOWER_Y);
-                if dx * dx + dy * dy <= minimum_distance_squared {
+                let dx = x - tower_x;
+                let dy = y - ENEMY_TOWER_Y;
+                // `CommanderSkillManager.CanReleaseCommanderSkill` compares
+                // `FVector3.Distance`, whose `FPoint.RawSqrt` approximation
+                // also decides which side of the protection boundary wins.
+                let distance_q32 = crate::fixed::fpcs_sqrt_fastest((dx * dx + dy * dy) << 32);
+                if distance_q32 <= minimum_distance_q32 {
                     return Err(format!(
                         "side {side_name} battle skill type {type_name:?} at ({}, {}) must be more than {minimum_distance} m from enemy tower center ({tower_x}, {ENEMY_TOWER_Y})",
                         position.x, position.y

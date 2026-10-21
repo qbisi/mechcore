@@ -1,0 +1,78 @@
+# Replay 20261017--2398, round 6. Blue's Shield Airdrop at (340, 234)
+# is admitted by the native approximate distance to the enemy tower.
+# Exact squared-distance admission refused this recorded release.
+
+kind: fight
+source: game
+map_id: 1012
+seed: 1873402640
+round: 6
+blue:
+  core_damage: 799
+  officers: [additional_deployment_slot, fortified_specialist]
+  techs:
+    wasp: [aerial_specialization, range_enhancement]
+    fire_badger: [scorching_charge]
+    phantom_ray: [armor_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: fang, index: 0, position: {x: -160, y: -135}, exp: 569/600/600, rotated: true}
+  - {name: fang, index: 1, position: {x: 160, y: -135}, exp: 600/600/600, rotated: true}
+  - {name: fang, index: 2, position: {x: 180, y: -35}, exp: 600/600/600, rotated: true}
+  - {name: fire_badger, index: 5, position: {x: -145, y: -70}, exp: 790/1020/1400}
+  - {name: crawler, index: 6, position: {x: 310, y: 265}, exp: 450/450/450}
+  - {name: fire_badger, index: 7, position: {x: 325, y: 190}, exp: 447/968/1400, rotated: true}
+  - {name: fire_badger, index: 8, position: {x: -95, y: -70}, exp: 880/972/1400}
+  - {name: phantom_ray, index: 10, position: {x: 330, y: 235}, level: 2, exp: 1247/1826/2253}
+  - {name: phantom_ray, index: 11, position: {x: 330, y: 285}, level: 3, exp: 0/911/3562}
+  - {name: wasp, index: 12, position: {x: 350, y: 235}, level: 2, exp: 0/2028/2028}
+  - {name: wasp, index: 13, position: {x: 350, y: 285}, level: 2, exp: 0/2028/2028}
+  - {name: crawler, index: 14, position: {x: 310, y: 155}, exp: 141/141/450}
+  - {name: rhino, index: 15, position: {x: -345, y: 295}, exp: 0/16/1150}
+  - {name: wasp, index: 17, position: {x: 140, y: -205}, exp: 240/505/900, rotated: true}
+  - {name: wasp, index: 18, position: {x: -140, y: -205}, level: 2, exp: 0/183/2028, rotated: true}
+  - {name: wasp, index: 19, position: {x: -95, y: -110}, level: 2, exp: 0/20/2028}
+  - {name: wasp, index: 20, position: {x: -195, y: -110}, exp: 582/741/900}
+  - {name: wasp, index: 21, position: {x: -195, y: -70}, exp: 0/53/900, source: joined}
+  - {name: wasp, index: 22, position: {x: -195, y: -90}, exp: 0/266/900, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: 340, y: 234}]}
+red:
+  core_damage: 0
+  officers: [training_specialist]
+  techs:
+    rhino: [whirlwind]
+    mustang: [aerial_specialization]
+    void_eye: [aerial_mode, range_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: void_eye, index: 0, position: {x: 130, y: -150}, level: 3, exp: 583/2174/2315}
+  - {name: void_eye, index: 1, position: {x: 50, y: -150}, level: 3, exp: 0/1893/2315}
+  - {name: void_eye, index: 2, position: {x: 210, y: -150}, level: 2, exp: 0/476/1465}
+  - {name: sledgehammer, index: 4, position: {x: 175, y: -110}, exp: 754/845/1300}
+  - {name: crawler, index: 5, position: {x: 120, y: -225}, exp: 175/186/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 50, y: -265}, exp: 450/450/450, rotated: true}
+  - {name: fang, index: 7, position: {x: -140, y: -95}, exp: 600/600/600, rotated: true}
+  - {name: fang, index: 8, position: {x: 130, y: -95}, exp: 239/452/600, rotated: true}
+  - {name: crawler, index: 9, position: {x: -50, y: -265}, exp: 450/450/450, rotated: true}
+  - {name: mustang, index: 10, position: {x: -170, y: -255}, level: 2, exp: 2642/2704/2704, rotated: true}
+  - {name: scorpion, index: 12, position: {x: 95, y: -155}, exp: 973/1309/1500}
+  - {name: void_eye, index: 13, position: {x: -140, y: -290}, level: 2, exp: 1450/1465/1465, rotated: true}
+  - {name: void_eye, index: 14, position: {x: -140, y: -210}, level: 2, exp: 1106/1197/1465, rotated: true}
+  - {name: void_eye, index: 15, position: {x: 170, y: -190}, level: 2, exp: 985/1298/1465}
+  - {name: rhino, index: 16, position: {x: -285, y: -185}, level: 2, exp: 517/1007/2591}
+  - {name: rhino, index: 17, position: {x: 285, y: -295}, exp: 588/934/1150}
+  - {name: mustang, index: 18, position: {x: -120, y: -185}, exp: 719/1200/1200, rotated: true}
+  - {name: mustang, index: 19, position: {x: -120, y: -285}, exp: 855/960/1200, rotated: true}
+  - {name: crawler, index: 20, position: {x: -190, y: -255}, exp: 106/189/450, rotated: true}
+  - {name: crawler, index: 21, position: {x: 290, y: -255}, exp: 0/375/450, rotated: true, source: joined}
+  - {name: mustang, index: 22, position: {x: -120, y: -235}, level: 2, exp: 0/971/2704, rotated: true, source: joined}
+  - {name: mustang, index: 23, position: {x: 85, y: -210}, level: 2, exp: 0/2704/2704, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: 130, y: -96}], retained: false}
+ticks: 1327
+hash: 26:358898e1ac49831ec441986a5d6b63b86cc2f6306661af8863e87d57044a2a0b
