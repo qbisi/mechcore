@@ -371,8 +371,9 @@ fn deal_lands_on_the_record(
 
 /// Refuses a replay whose rounds open on another pool than the match's deal
 /// leaves: each round's log, and the rounds it excludes the level-4 commander
-/// skills from, must be the deal's. The one freedom is the order of a round's
-/// choices, which the log keeps as the players chose and a match does not.
+/// skills from, must be the deal's. A round's choices may follow the players'
+/// selection order, which a match does not state. Exclusion dictionary entries
+/// may be enumerated in any order; their keys and card sets must still agree.
 fn pool_lands_on_the_recorded_log(
     recorded_rounds: &[record::MatchRound],
     pools: &[crate::reinforcement::Pool],
@@ -414,12 +415,13 @@ fn pool_lands_on_the_recorded_log(
                 entry.round
             ));
         }
-        let recorded: Vec<i32> = entry
+        let mut recorded: Vec<i32> = entry
             .excluded_rounds
             .entries
             .iter()
             .map(|excluded| excluded.round)
             .collect();
+        recorded.sort_unstable();
         if recorded != excluded
             || entry.excluded_rounds.entries.iter().any(|excluded| {
                 !crate::reinforcement::same_excluded_cards(&excluded.ids.values, &level_four_skills)
