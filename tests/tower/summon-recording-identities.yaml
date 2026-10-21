@@ -1,0 +1,64 @@
+# Mechanical Division creates Crawlers in the same tick a tower falls.
+# Snapshot numbering assigns them IDs 15, 14, 13, 12, 16 in creation order.
+# Tower-loss buffs retain that join order and must resolve their target
+# references through the same numbering, rather than keeping temporary IDs.
+# Control: tests/tower/ holds ordinary tower-loss recipient ordering.
+kind: fight
+source: game
+map_id: 1021
+seed: 582459656
+round: 4
+blue:
+  core_damage: 751
+  officers: [advanced_shield_device, cost_control_specialist]
+  techs:
+    sabertooth: [range_enhancement]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 265, y: -115}, level: 3, exp: 4630/4630/4630, equipment: [secondary_heavy_armor]}
+  - {name: fire_badger, index: 1, position: {x: -15, y: -210}, level: 8, exp: 0/1532/9418, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -220, y: -160}}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: 290, y: 105}, {x: -55, y: 95}], grid_rows: {0: [], 1: [], 2: [], 3: []}}
+red:
+  core_damage: 0
+  officers: [advanced_shield_device, advanced_offensive_tactics, typhoon_specialist, improved_steel_ball]
+  techs:
+    steel_ball: [mechanical_division]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: steel_ball, index: 0, position: {x: 105, y: -50}, level: 8, exp: 0/6230/6727, equipment: [small_amplifying_core]}
+  - {name: typhoon, index: 1, position: {x: 260, y: -290}, source: delivered}
+  - {name: fortress, index: 2, position: {x: -20, y: -280}, level: 9, exp: 0/2000/10764, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 0, y: -80}}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: 0, y: -125}]}
+asserts:
+- sql: |
+    SELECT target__id FROM events
+    WHERE tick = 388 AND type = 'buff_applied' AND buff_id = 1
+      AND target__kind = 'unit' AND target__id >= 12
+    ORDER BY ordinal
+  rows:
+  - [15]
+  - [14]
+  - [13]
+  - [12]
+  - [16]
+- sql: |
+    SELECT object__id FROM events
+    WHERE tick = 388 AND type = 'unit_created' AND object__id >= 12
+    ORDER BY ordinal
+  rows:
+  - [15]
+  - [14]
+  - [13]
+  - [12]
+  - [16]
+ticks: 738
+hash: 26:3e27202c91f316b4648e0762536295ae23e1ea8887f72d47e90b1d94a3ec1e15
