@@ -661,8 +661,8 @@ pub(in crate::fight) struct Skill {
     /// that index.
     pub(in crate::fight) attack_count: i32,
     /// `SkillAttackController.totalAttackCount`: every blow started this
-    /// fight (`ResetInFightAttackData` sets it to nothing as the fight
-    /// starts), which leaving the attack state does not reset.
+    /// fight (`ResetInFightAttackData` clears it on entering and leaving the
+    /// fight), which leaving the attack state alone does not reset.
     pub(in crate::fight) total_attack_count: i32,
     /// `SkillAttackController.performCount`: the blows whose cycle ran out,
     /// backswing and all (`ChangeToIdle`), since the skill entered its
@@ -2224,6 +2224,9 @@ impl Simulation {
             skill.enter(SkillState::Idle { ready_step: None });
             skill.performer.stop();
             skill.kill_count = 0;
+            // `ExitFight` calls `ResetInFightAttackData`, including the
+            // total count that chooses a resumed sweep's direction.
+            skill.total_attack_count = 0;
             // `ExitFight` resets its `AttackCountEffectLinker` too.
             if let (FightActorRef::Unit(actor_id), SkillSlot::Main) =
                 (skill_ref.owner, skill_ref.slot)
