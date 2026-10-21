@@ -379,7 +379,7 @@ impl Simulation {
         if let (true, Some(spec)) = (surfaced, fog) {
             let position = (actor.x_q32, 0, actor.z_q32);
             let team = actor.placement.team;
-            self.add_terrain(team, &format!("unit {actor_id}"), spec, position)?;
+            self.add_terrain((team, &format!("unit {actor_id}")), team, spec, position)?;
         }
         Ok(())
     }

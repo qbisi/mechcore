@@ -246,9 +246,17 @@ impl Simulation {
         // `currentTeamController`: a turned unit's fire is its new side's.
         if let Some(fire) = dead_fire {
             let side = self.actors[&actor_id].placement.team;
+            // The IRangeItemProvider is the shared ExplosionSkillData,
+            // not this unit's GroundFireController.FireMech. Its identity
+            // has no owning side; the fire still belongs to the dying side.
+            let actor = &self.actors[&actor_id];
+            let skill = match skill_ref.slot {
+                SkillSlot::Main => actor.rules.main_skill,
+                SkillSlot::Extra(index) => actor.skills.extras[index].rules.skill,
+            };
             self.add_terrain(
+                (0, &format!("explosion skill {skill}")),
                 side,
-                &format!("unit {actor_id}"),
                 fire,
                 (x_q32, center_y_q32, z_q32),
             )?;

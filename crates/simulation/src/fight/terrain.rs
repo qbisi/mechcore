@@ -185,14 +185,16 @@ impl Simulation {
     }
 
     /// `RangeItemSystem.AddItem` from a landing sub-effect: the terrain
-    /// joins its kind's controller. `interactiveInfos` holds one interaction,
+    /// joins its kind's controller. The provider's identity is independent
+    /// of the side it lands under: an explosion uses shared skill data.
+    /// `interactiveInfos` holds one interaction,
     /// a fire with oil: an oil a fire reaches as it lands turns at once to a
     /// fire of the oil's, under the oil's side, which takes every oil it
     /// reaches in turn.
     pub(in crate::fight) fn add_terrain(
         &mut self,
+        provider: (u32, &str),
         team: u32,
-        name: &str,
         spec: TerrainSpec,
         position: (i64, i64, i64),
     ) -> Result<()> {
@@ -203,14 +205,14 @@ impl Simulation {
             TerrainKind::FogSand => Layout::Circle,
             _ => Layout::Cut { converted: false },
         };
-        let key = self.add_item((team, name, None), team, spec, position, layout)?;
+        let key = self.add_item((provider.0, provider.1, None), team, spec, position, layout)?;
         if let Some(fire) = spec.burning()
             && self.fire_reaches((position.0, position.2, spec.radius_q32))?
         {
             let layout = self.terrain.terrains[&key]
                 .grid
                 .map_or(Layout::Cut { converted: true }, Layout::Held);
-            self.add_item((team, name, None), team, fire, position, layout)?;
+            self.add_item((provider.0, provider.1, None), team, fire, position, layout)?;
         }
         Ok(())
     }

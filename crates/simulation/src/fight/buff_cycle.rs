@@ -474,7 +474,7 @@ impl Simulation {
                     .skill(self.skill_at_slot(FightActorRef::Unit(owner_id), usize::from(slot)));
                 let aimed = skill.attack_target().or(skill.lock_target);
                 if aimed.is_some_and(|aimed| self.domain_of(aimed) == UnitDomain::Ground) {
-                    self.add_terrain(team, &format!("unit {owner_id}"), terrain, center)?;
+                    self.add_terrain((team, &format!("unit {owner_id}")), team, terrain, center)?;
                 }
             }
         }

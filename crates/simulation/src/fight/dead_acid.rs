@@ -41,7 +41,7 @@ impl Simulation {
                 actor.z_q32,
             );
             let team = actor.placement.team;
-            self.add_terrain(team, &format!("unit {unit}"), spec, position)?;
+            self.add_terrain((team, &format!("unit {unit}")), team, spec, position)?;
         }
         Ok(())
     }

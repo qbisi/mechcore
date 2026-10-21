@@ -1,0 +1,53 @@
+# A generated Scorching Charge fight. Fire Badger 10 leaves ordinary Napalm
+# fire 46 at its eventual death position on tick 116. Its explosion on tick
+# 188 uses the ExplosionSkillData provider and creates separate fire 61;
+# it must not reset the existing FireMech fire's lifetime or keep its radius.
+# Control: tests/extra_weapon/scorching-charge.yaml covers the explosion;
+# tests/extra_weapon/scorching-charge-survivor.yaml covers its death fire.
+kind: fight
+source: game
+map_id: 1021
+seed: 671430853
+round: 3
+blue:
+  core_damage: 454
+  officers: [advanced_targeting_system, fire_badger_specialist]
+  techs:
+    fire_badger: [napalm, field_maintenance, range_enhancement, scorching_fire, scorching_charge, ignite, counter_fire]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 105, y: -120}, level: 7, exp: 8815/8815/8815, equipment: [secondary_fire_control_system]}
+  - {name: fire_badger, index: 1, position: {x: -5, y: -40}, exp: 0/300/1400, source: delivered}
+  - {name: steel_ball, index: 2, position: {x: -105, y: -140}, level: 5, exp: 0/1100/5210, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: -165, y: 100}]}
+red:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_power_system, sabertooth_specialist]
+  techs:
+    centurion: [summon_hounds, reactive_armor, melee_mode, range_enhancement, dual_wield, homing_missile]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: centurion, index: 0, position: {x: -275, y: -55}, level: 8, exp: 15137/15137/15137, equipment: [portable_shield]}
+  - {name: sabertooth, index: 1, position: {x: 235, y: -45}, source: delivered}
+  - {name: wasp, index: 2, position: {x: -45, y: -110}, level: 5, exp: 0/3868/4689, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 115, y: -175}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 215, y: -220}]}
+asserts:
+- sql: |
+    SELECT tick, terrain_id, logic_lifetime__elapsed, radius FROM terrains
+    WHERE tick IN (187, 188, 189) AND terrain_id IN (46, 61)
+    ORDER BY tick, terrain_id
+  rows:
+  - [187, 46, 71, 51539607552]
+  - [188, 46, 72, 51539607552]
+  - [188, 61, 0, 171798691840]
+  - [189, 46, 73, 51539607552]
+  - [189, 61, 1, 171798691840]
+ticks: 406
+hash: 26:07868d9a924a7f8e6f8dfef50c6bf75d5205c3363cd70d506e6a773fd3630790

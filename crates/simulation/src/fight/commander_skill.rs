@@ -294,7 +294,7 @@ impl Simulation {
                 let point = (x_q32, 0, z_q32);
                 if let Some(spec) = terrain {
                     // RangeItemEffectController overrides PerformEffect only.
-                    self.add_terrain(release.team, &release.name, spec, point)?;
+                    self.add_terrain((release.team, &release.name), release.team, spec, point)?;
                 } else {
                     self.perform_hit_effect(release, circle, point, target_search_order, events)?;
                 }

@@ -667,7 +667,7 @@ impl Simulation {
             } else {
                 terrain
             };
-            self.add_terrain(team, &name, terrain, center)?;
+            self.add_terrain((team, &name), team, terrain, center)?;
         }
         Ok(())
     }
