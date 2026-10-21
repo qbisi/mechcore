@@ -1645,7 +1645,16 @@ whose own `DisableEffect` it does not mirror.
   drawn 35 made its plain 36. A unit with no technology keeps the interval it
   drew. A grouped main skill's siblings each refresh their own data too
   (`FightSkillBatch.RefreshDatas`); refreshing the core alone does not refresh
-  the group's other clocks. A clock exactly equal to the old interval
+  the group's other clocks. The `Technology.AddData`/`RemoveData` pass
+  checks every `GetSkills()` entry with `SkillDataModifier.AvaliableCheck`:
+  an extra inheriting the main skill's data (`GetDamageRate > 0`) refreshes
+  even while disabled; an independent extra requires `IsExtraSkillEffect`.
+  Each admitted skill refreshes after its source's data changes.
+  A Rhino's disabled Whirlwind
+  therefore keeps the intermediate clock produced as Mechanical Rage is
+  removed, visible when the tower-loss buff expires
+  ([`technology_disable/disabled-extra-clock-refresh.yaml`](../../tests/technology_disable/disabled-extra-clock-refresh.yaml)).
+  A clock exactly equal to the old interval
   follows the new interval; any other elapsed clock keeps its time. A
   refresh before the skill updates reads the counter before that update's
   increment. An already due first attack remains due when its interval is
