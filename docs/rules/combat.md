@@ -1355,6 +1355,11 @@ constructions' buffs before the next team exits. Thus a defeated blue team's
 surviving construction loses its tower debuff before red's surviving units
 lose Photon Emission
 ([`final-buffs-clear-by-team.yaml`](../../tests/endgame/final-buffs-clear-by-team.yaml)).
+The final tick's projectile victims still receive their `DeadEffectSystem`
+callbacks before `FightingState.Update` changes to the over state. Even when
+that tick publishes older torn-down buildings, the final victim's death and
+buff clearing precede the survivors' whole-fight buff cleanup
+([`final-drain-kill-before-buff-cleanup.yaml`](../../tests/endgame/final-drain-kill-before-buff-cleanup.yaml)).
 
 Torn-down constructions follow their usual death cleanup: their buffs are
 cleared immediately before `building_destroyed`, even while the fight waits
