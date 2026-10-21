@@ -1704,9 +1704,9 @@ impl Simulation {
                 .attack_target()
                 .filter(|&target| !self.fight_actor_is_alive(target)),
         };
-        let Some(target) = target else {
+        if target.is_none() && cooling.is_none() {
             return Flow::Next;
-        };
+        }
         let Some(target_rotation_q32) = self.command_target_in_reach(actor_id, target) else {
             return Flow::Next;
         };
@@ -1734,9 +1734,10 @@ impl Simulation {
 
     /// `IsAttackTargetInAttackRange` as a command's motion asks it of the
     /// skill's attack target, edge to edge against the main skill's range,
-    /// including visibility and shield reach but not whether it lives:
-    /// the bearing to it when it is in range.
-    fn command_target_in_reach(&self, actor_id: u64, target: FightActorRef) -> Option<i64> {
+    /// including visibility and cached shield reach but not whether it lives.
+    /// A cached shield remains measurable after cooling clears the lock:
+    /// the bearing to the reached actor or shield surface.
+    fn command_target_in_reach(&self, actor_id: u64, target: Option<FightActorRef>) -> Option<i64> {
         let actor = &self.actors[&actor_id];
         let slot = actor
             .skills
@@ -1745,6 +1746,19 @@ impl Simulation {
             .as_ref()
             .map_or(0, |group| group.motion_slot);
         let skill = SkillRef::main(FightActorRef::Unit(actor_id));
+        let current = actor.skills.main.group_skill(slot);
+        if let Some((shield, _)) = current.target_shield {
+            let (x, z) = self.shield_attack_point(shield, skill, current.lock_target)?;
+            let mut attacker = self.skill_attacker(skill)?;
+            attacker.attack_range = self.slot_attack_range(skill, Some(slot));
+            return attacker.reaches_shield(x, z).then(|| {
+                direction_degrees_q32_raw(
+                    x.saturating_sub(actor.x_q32),
+                    z.saturating_sub(actor.z_q32),
+                )
+            });
+        }
+        let target = target?;
         let in_range = if slot == 0 {
             self.attack_target_in_range(skill, target)
         } else {
@@ -1778,7 +1792,7 @@ impl Simulation {
         }
         let main = &actor.skills.main;
         let slot = main.group.as_ref().map_or(0, |group| group.motion_slot);
-        let Some((_, Some(target))) = main.group_skill(slot).cooling() else {
+        let Some((_, target)) = main.group_skill(slot).cooling() else {
             return Flow::Next;
         };
         if actor.motion.state != MotionState::Moving

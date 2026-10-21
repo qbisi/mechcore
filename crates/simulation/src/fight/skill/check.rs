@@ -328,7 +328,7 @@ impl Simulation {
             && Some(target) == sibling.lock_target
         {
             return self
-                .shield_attack_point(shield, skill_ref, target)
+                .shield_attack_point(shield, skill_ref, Some(target))
                 .is_some_and(|(x_q32, z_q32)| {
                     let distance = native_q32_magnitude(x_q32 - source.x_q32, z_q32 - source.z_q32)
                         .saturating_sub(space_to_q32(source.rules.collision_radius()))

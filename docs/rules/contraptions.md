@@ -221,6 +221,12 @@ is one as a unit is:
   measures only the lock it was found for: any other target a weapon's search
   offers is measured to itself, so a Wraith's gun whose lock stood inside a
   Shield Airdrop takes the Tarantula outside it that its search offers.
+  Cooling can drop the lock while retaining the shield. With no lock,
+  `SkillAttackRangeChecker.IsAttackTargetInAttackRange` intersects the surface
+  along the line from the shield's centre to its owner. A Mobile Beacon's
+  active movement behaviour therefore keeps attack motion through the
+  cooling while that surface remains in range
+  ([`shield/cooling-without-lock-keeps-attack-motion.yaml`](../../tests/shield/cooling-without-lock-keeps-attack-motion.yaml)).
 
 A Shield Airdrop's shield is the same object, made where the skill lands;
 [`battle_skill.md`](battle_skill.md) states when.

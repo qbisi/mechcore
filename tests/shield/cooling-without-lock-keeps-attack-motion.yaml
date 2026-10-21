@@ -1,0 +1,53 @@
+# Complete generated layout: Phantom Ray 4 loses its lock and cools on
+# ticks 421-436 while its motion is under Mobile Beacon. Its cached shield
+# remains in range after the actor target clears, so motion stays attacking.
+# Control: shield/lock-switch-keeps-shield-attack.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 1718872391
+round: 2
+blue:
+  core_damage: 0
+  officers: [advanced_targeting_system, speed_specialist]
+  techs:
+    phantom_ray: [range_enhancement]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: phantom_ray, index: 0, position: {x: 255, y: -30}, level: 5, exp: 2605/5210/5210, equipment: [dominion_core]}
+  - {name: vortex, index: 1, position: {x: -190, y: -260}, level: 2, exp: 0/938/1690, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: 265, y: -5}, {x: 35, y: 270}, {x: 30, y: -200}]}
+red:
+  core_damage: 201
+  officers: [advanced_shield_device, advanced_defensive_tactics, speed_specialist, improved_scorpion]
+  techs:
+    scorpion: [acid_attack]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [3, 3]
+  units:
+  - {name: scorpion, index: 0, position: {x: -65, y: -25}, level: 8, exp: 5045/5395/10091, equipment: [secondary_heavy_armor]}
+  - {name: fire_badger, index: 1, position: {x: 5, y: -280}, level: 4, exp: 0/650/6286, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -55, y: -105}, retained: false}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: -225, y: 290}]}
+asserts:
+- sql: |
+    SELECT tick, motion_state FROM units
+    WHERE unit_id = 4 AND tick IN (420, 421, 436, 437)
+    ORDER BY tick;
+  rows:
+  - [420, attacking]
+  - [421, attacking]
+  - [436, attacking]
+  - [437, moving]
+ticks: 1187
+hash: 26:5f6c5e213ea621a2026d777b130074d6fe06ee6646d949dc0b5cc120275d4d8f
