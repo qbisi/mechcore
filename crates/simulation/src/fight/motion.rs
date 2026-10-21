@@ -1441,11 +1441,10 @@ impl Simulation {
                         .actors
                         .get_mut(&actor_id)
                         .expect("actor identity is stable");
-                    let bearing = direction_degrees_q32_raw(
+                    actor.extra_attack_rotate((
                         x.saturating_sub(actor.x_q32),
                         z.saturating_sub(actor.z_q32),
-                    );
-                    actor.extra_attack_rotate(bearing);
+                    ));
                 }
             }
             return;
@@ -1495,16 +1494,13 @@ impl Simulation {
                 actor.motion.next_target_z_q32 = actor.z_q32;
                 actor.motion.next_speed_q32 = 0;
                 actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
-                let bearing_q32 = aimed.map_or_else(
-                    || direction_degrees_q32_raw(dx, dz),
-                    |aimed| {
-                        direction_degrees_q32_raw(
-                            aimed.x_q32.saturating_sub(actor.x_q32),
-                            aimed.z_q32.saturating_sub(actor.z_q32),
-                        )
-                    },
-                );
-                actor.extra_attack_rotate(bearing_q32);
+                let direction = aimed.map_or((dx, dz), |aimed| {
+                    (
+                        aimed.x_q32.saturating_sub(actor.x_q32),
+                        aimed.z_q32.saturating_sub(actor.z_q32),
+                    )
+                });
+                actor.extra_attack_rotate(direction);
             }
             MotionState::Idle if idle && in_touch => {}
             // `MotionAttackState.Enter` calls `RVOControllerFixed.StopMove`:
@@ -1571,11 +1567,10 @@ impl Simulation {
                     actor.motion.next_speed_q32 = 0;
                     actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
                 }
-                let bearing_q32 = direction_degrees_q32_raw(
+                actor.extra_attack_rotate((
                     aimed_x_q32.saturating_sub(actor.x_q32),
                     aimed_z_q32.saturating_sub(actor.z_q32),
-                );
-                actor.extra_attack_rotate(bearing_q32);
+                ));
                 self.attack_move(actor_id, true);
             }
             MotionState::Idle | MotionState::Moving => {
