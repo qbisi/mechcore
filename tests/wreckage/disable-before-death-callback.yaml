@@ -1,0 +1,50 @@
+# Abyss 1 has recently struck Void Eye 6. Its lethal sweep on tick 897
+# triggers Electromagnetic Armor before OnMechDead runs. Disabling Wreckage
+# Recycling removes the holder and all remembered hits, so the death gives
+# no 25002-point heal. The old record-only guard retained an earlier hit.
+# Control: tests/wreckage/disabled.yaml covers hits made while disabled.
+kind: fight
+source: game
+map_id: 1021
+seed: 68062158
+round: 2
+blue:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_offensive_tactics, cost_control_specialist]
+  techs:
+    abyss: [wreckage_recycling, vertical_sweep, range_enhancement, disintegration, dark_companion, swarm_missiles, photon_coating]
+  blueprints: [attack_enhancement]
+  units:
+  - {name: abyss, index: 0, position: {x: -195, y: -175}, level: 5, exp: 25010/25010/25010}
+  - {name: arclight, index: 1, position: {x: -270, y: -120}, level: 9, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 285, y: -45}, retained: false}
+  battle_skills:
+  - {name: smoke_bomb, positions: [{x: 10, y: 285}, {x: -165, y: -180}]}
+red:
+  core_damage: 662
+  officers: [advanced_shield_device, quick_teleport, improved_void_eye]
+  techs:
+    void_eye: [energy_shield, energy_absorption, aerial_mode, range_enhancement, charged_shot, suppression_shots, electromagnetic_armor]
+  blueprints: [defense_enhancement]
+  units:
+  - {name: void_eye, index: 0, position: {x: -320, y: 40}, level: 5, exp: 0/200/3387, equipment: [super_heavy_armor], travelling: true, source: joined}
+  - {name: arclight, index: 1, position: {x: -10, y: -210}, level: 7, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -145, y: -200}, retained: false}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: -40, y: 235}]}
+asserts:
+- sql: |
+    SELECT tick, life__current FROM units
+    WHERE unit_id = 1 AND tick BETWEEN 896 AND 898 ORDER BY tick
+  rows:
+  - [896, 354618]
+  - [897, 354618]
+  - [898, 354618]
+- sql: |
+    SELECT COUNT(*) FROM events WHERE tick = 897 AND type = 'healing'
+  rows:
+  - [0]
+ticks: 1151
+hash: 26:5288337d1f0a64465c032210acc88debe98d714734abcbd6fbf57ba185a0487e
