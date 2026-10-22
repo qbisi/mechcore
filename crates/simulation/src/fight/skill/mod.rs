@@ -2281,7 +2281,10 @@ impl Simulation {
         // does a burst still releasing, which goes on naming it
         // ([`Self::projectile_burst_lost_target`]): Electromagnetic Barrage
         // names the Crawler the beam killed until its last shell is out.
-        let dead_target = !quick_switch_target
+        // `SkillAttackableChecker.Check` gives `FightSupportSkill` its own
+        // check: only its lock must live, not the cached attack target.
+        let dead_target = skill.kind != SkillKind::Support
+            && !quick_switch_target
             && skill.phase() == FightSkillPhase::Attack
             && skill.backswing_finish_step().is_none()
             && !skill.performer.sweeping()

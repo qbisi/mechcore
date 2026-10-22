@@ -636,7 +636,11 @@ The skill is the line's gate.
   attack check is only that its lock lives
   (`SkillAttackableChecker.Check` tests for a `FightSupportSkill`). It
   performs once, does nothing, and returns to idle, handing the main skill
-  back: 32 ticks of the Tarantula's main skill locked for each batch.
+  back: 32 ticks of the Tarantula's main skill locked for an ordinary batch.
+  If its cached attack target dies during prepare while its lock lives, it
+  stays attacking and keeps the main skill locked: the attackable check
+  still passes, while the attack-angle check rejects the dead target and
+  no blow is performed.
 - **The line makes its batch on the update it is due.** `SupportUnitSystem`
   updates after every unit. Spider Mine's line makes two mines every 15
   seconds, the first on the first tick, with no bound on batches and 99 alive
@@ -1024,6 +1028,9 @@ that is not melee, so the simulator refuses it.
   2500 each, one blast reaching the other mine for its 750:
   `tests/extra_weapon/spider-mine-rhino.yaml`. Against Crawlers:
   `tests/extra_weapon/spider-mine-crawlers.yaml`.
+- A Spider Mine skill whose cached attack target died during prepare keeps
+  attacking with a living lock, retaining the main skill's lock state:
+  `tests/corpus/2296-r5.yaml`.
 - The line makes a batch every 15 seconds (t1, t301, t601), the skill
   starting each time. At t601 it starts while the main skill is attacking
   between blows: `tests/extra_weapon/spider-mine-sledgehammers.yaml`.
@@ -1327,6 +1334,8 @@ that is not melee, so the simulator refuses it.
   `SupportSkillStartAttackChecker.Check`, `SkillStartAttackChecker.Check`,
   `FightSkill.CanStartAttack`, `SkillIdleState.TryStartAttack`,
   `FightSkill.CheckAttackable`, `SkillPrepareState.Update`,
+  `SkillAttackableChecker.Check`, `SkillAttackState.CheckAttackable`,
+  `SkillAttackState.TryPerformAttack`, `SkillAttackAngleChecker.IsAttackTargetInAttackAngle`,
   `SupportUnitCreator.PreCalculate`, `SupportUnitCreator.Update`,
   `SupportUnitCreator.CreateMech`, `FightSupportSkill.Init`,
   `FightSupportSkill.Enable`, `SupportSkillData.PreProcess`.
