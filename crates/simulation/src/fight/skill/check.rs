@@ -427,7 +427,8 @@ impl Simulation {
                         rotation,
                         view.x_q32.saturating_sub(actor.x_q32),
                         view.z_q32.saturating_sub(actor.z_q32),
-                    ) <= mdeg_to_degrees_q32(half_angle)
+                    )
+                    .0 <= mdeg_to_degrees_q32(half_angle)
             })
     }
 

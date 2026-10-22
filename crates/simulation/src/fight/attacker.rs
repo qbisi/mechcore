@@ -43,12 +43,12 @@ impl Facing<'_> {
     pub(in crate::fight) fn faces_offset(self, dx: i64, dz: i64, half_angle_mdeg: i64) -> bool {
         let half_angle_q32 = mdeg_to_degrees_q32(half_angle_mdeg);
         match self {
-            Self::Root(rotation) => calculate_angle_q32(rotation, dx, dz) <= half_angle_q32,
+            Self::Root(rotation) => calculate_angle_q32(rotation, dx, dz).0 <= half_angle_q32,
             Self::Weapons(rotations) => {
                 !rotations.is_empty()
                     && rotations
                         .iter()
-                        .all(|&rotation| calculate_angle_q32(rotation, dx, dz) <= half_angle_q32)
+                        .all(|&rotation| calculate_angle_q32(rotation, dx, dz).0 <= half_angle_q32)
             }
         }
     }

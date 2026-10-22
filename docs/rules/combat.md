@@ -612,6 +612,14 @@ Each coordinate uses `FPoint`'s 43-raw-unit equality tolerance. Such a target
 has no world bearing to compare with the searcher's facing
 ([`search/coincident-target-has-zero-angle.yaml`](../../tests/search/coincident-target-has-zero-angle.yaml)).
 
+**Relative angles keep the native comparison tolerance.**
+`FightUtility.CalculateAngle` passes bearing minus facing through
+`FightUtility.ClampRotation`, then folds it only when `FPoint.op_GreaterThan`
+puts it above a half-turn. A negative difference within 43 raw Q32.32 units
+of zero remains negative, and a difference within 43 raw units above a
+half-turn is not folded. The angle factor uses that signed value; taking an
+absolute circular distance can turn two distinct candidate scores into a tie.
+
 **The angle is measured from the searcher's main transform.** That is its
 first weapon's when the weapon has a transform, and the mech's root when it
 has none, whether or not the weapons turn at a speed of their own: a
@@ -1481,6 +1489,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- Nearly symmetric Crawler targets retain their distinct signed search angles
+  when a Mustang presearches, preserving its initial lock and final settlement:
+  `tests/corpus/2259-r3.yaml`.
+
 - A Marksman retains its Wraith attack target through cooling and deals its
   aerial damage when a previously released projectile lands then:
   `tests/anti_air/cooling-keeps-damage-target.yaml`.
@@ -1951,6 +1963,11 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- Relative target angles preserve `FPoint` tolerance when wrapping and folding:
+  `FightUtility.CalculateAngle`, `FightUtility.ClampRotation`,
+  `FPoint.op_GreaterThan`, `AngleCalculator.Calculate`,
+  `ScoreRatingTargetSelector.CalculateScore`.
 
 - Secondary damage reads the skill's provider flag rather than its owner's
   current life, and death deactivates that provider:

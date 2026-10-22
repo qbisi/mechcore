@@ -494,14 +494,24 @@ pub(in crate::fight) fn direction_mdeg_q32_raw(dx: i64, dz: i64) -> i64 {
     degrees_q32_to_mdeg(direction_degrees_q32_raw(dx, dz))
 }
 
-/// `FightUtility.CalculateAngle` of two transforms: how far the direction
-/// from one to the other is off `rotation`, and 0 when the two stand on the
-/// same point, before any direction is converted.
-pub(in crate::fight) fn calculate_angle_q32(rotation: i64, dx: i64, dz: i64) -> i64 {
-    if dx == 0 && dz == 0 {
-        return 0;
+/// `FightUtility.CalculateAngle`: the relative angle and whether the target
+/// lies on the left. `ClampRotation` and the half-turn test use `FPoint`
+/// comparisons, so an angle down to -43 raw remains negative rather than
+/// becoming a positive distance around the circle.
+pub(in crate::fight) fn calculate_angle_q32(rotation: i64, dx: i64, dz: i64) -> (i64, bool) {
+    if rvo::fpoint_equal(dx, 0) && rvo::fpoint_equal(dz, 0) {
+        return (0, false);
     }
-    rotation_distance_q32(rotation, direction_degrees_q32_raw(dx, dz))
+    let delta = clamp_rotation(direction_degrees_q32_raw(dx, dz).saturating_sub(rotation));
+    let left = rvo::fpoint_greater_than(delta, 180_i64 << 32);
+    (
+        if left {
+            (360_i64 << 32).saturating_sub(delta)
+        } else {
+            delta
+        },
+        left,
+    )
 }
 
 /// The rotation `FightTransform.RotateTo` turns towards along a direction:

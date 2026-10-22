@@ -604,27 +604,16 @@ pub(in crate::fight) fn full_rotation_target_score_q32(
         target_z_q32,
         target_radius,
     );
-    // FightUtility.CalculateAngle returns zero angle when FVector2 equality
-    // considers the positions equal. The zero vector has no world bearing.
-    let bearing_q32 = if rvo::fpoint_equal(source_x_q32, target_x_q32)
-        && rvo::fpoint_equal(source_z_q32, target_z_q32)
-    {
-        source_rotation_q32
+    let (angle_q32, is_left_side) = calculate_angle_q32(
+        source_rotation_q32,
+        target_x_q32.saturating_sub(source_x_q32),
+        target_z_q32.saturating_sub(source_z_q32),
+    );
+    let bearing_q32 = clamp_rotation(if is_left_side {
+        source_rotation_q32.saturating_sub(angle_q32)
     } else {
-        direction_degrees_q32_raw(
-            target_x_q32.saturating_sub(source_x_q32),
-            target_z_q32.saturating_sub(source_z_q32),
-        )
-    };
-    let full_rotation = 360_i64 << 32;
-    let delta_q32 = bearing_q32
-        .saturating_sub(source_rotation_q32)
-        .rem_euclid(full_rotation);
-    let angle_q32 = if delta_q32 > 180_i64 << 32 {
-        full_rotation.saturating_sub(delta_q32)
-    } else {
-        delta_q32
-    };
+        source_rotation_q32.saturating_add(angle_q32)
+    });
     // `CalculateScore` checks the side of the source the candidate is on,
     // `sourceRotation` less the angle on the left and plus it on the right,
     // which is the bearing itself.
