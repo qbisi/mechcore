@@ -86,6 +86,14 @@ of them. One RVO boundary runs in this order:
 7. store the new target point and velocity in the solver buffer, to be published
    at the next four-tick boundary.
 
+Initial unit agents enter the input list in the order
+`FightTeam.OnFightStart` activates its sorted mechs: the same
+`FightUtility.ActorComparer` order used for their updates, including its
+43-raw-unit z comparison tolerance. This order is captured at fight start
+and survives later side changes. Later agents append in creation order;
+recording IDs never replace either order. `tests/corpus/2477-r4.yaml` pins
+an expansion-sensitive tree that distinguishes them.
+
 So a full RVO period separates solving from taking effect. Within a combat logic
 tick, a unit's movement consumes the currently published target and velocity
 first, and only afterwards may that tick reach an RVO boundary.

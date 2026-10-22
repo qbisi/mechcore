@@ -37,6 +37,9 @@ pub(in crate::fight) struct RvoState {
     /// Neutral map crystals in creation order. Priority-one crystals stay
     /// outside RVO but still receive the building collision checks.
     pub(in crate::fight) map_crystals: Vec<MapCrystal>,
+    /// Initial `Simulator` agents in `FightTeam.OnFightStart` activation
+    /// order, frozen before side changes can reorder `activeActors`.
+    pub(in crate::fight) initial_units: Vec<u64>,
     /// The units whose agents joined after the fight started, in the order
     /// `Simulator.DoAddAgents` appended them: a summon as it is made, a
     /// travelling unit as it lands. `List.Remove` keeps the rest in order,
@@ -47,6 +50,7 @@ pub(in crate::fight) struct RvoState {
 
 impl RvoState {
     pub(in crate::fight) fn new(
+        initial_units: Vec<u64>,
         construction_colliders: BTreeMap<u64, i32>,
         passable_constructions: BTreeSet<u64>,
         map_crystals: Vec<MapCrystal>,
@@ -58,6 +62,7 @@ impl RvoState {
             construction_colliders,
             passable_constructions,
             map_crystals,
+            initial_units,
             added_units: Vec::new(),
         }
     }
@@ -648,14 +653,20 @@ impl Simulation {
         // A summon still appearing has its agent already, where it was made,
         // locked: `CreateMechDelay` locks its movement. Crawlers still
         // surfacing turn the Crawlers already up aside.
-        // The units the fight started with by ID, then those added since in
-        // the order they were added.
+        // Initial agents activate in ActorComparer order, not recording ID
+        // order: z values within FPoint's tolerance are ordered by x. Retain
+        // that order even after a unit changes side, then append later agents.
         let added = &self.rvo.added_units;
         let units = self
-            .actors
+            .rvo
+            .initial_units
             .iter()
-            .filter(|(actor_id, _)| !added.contains(actor_id))
-            .map(|(&actor_id, actor)| (actor_id, actor, false))
+            .filter(|actor_id| !added.contains(actor_id))
+            .filter_map(|actor_id| {
+                self.actors
+                    .get(actor_id)
+                    .map(|actor| (*actor_id, actor, false))
+            })
             .chain(added.iter().filter_map(|actor_id| {
                 self.actors
                     .get(actor_id)

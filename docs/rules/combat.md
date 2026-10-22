@@ -92,6 +92,12 @@ Marksman's radius: of Crawlers charging one Marksman, the ones in front are
 sent to its centre and the ones behind to a point just off it, the side each
 falls on decided by that comparison.
 
+Initial unit avoidance agents activate in the sorted team order used for
+updates: when two z coordinates are within `FPoint`'s 43-raw-unit tolerance,
+x orders them. Recording identities use strict coordinate order and can
+therefore differ. This activation order also decides the neighbour tree's
+insertion order, including which agents a split that grows its array loses.
+
 Avoidance's sampled trace sets its iteration step from the unit's outer
 radius and one fifth of its desired speed, using the build's tolerant
 maximum. When the two differ by at most 43 raw Q32 units, the speed term
@@ -1492,6 +1498,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- Near-equal z coordinates put initial RVO agents in the team's x order
+  rather than recording-ID order; a node-array expansion distinguishes the
+  neighbour sets and movement: `tests/corpus/2477-r4.yaml`.
+
 - A Sledgehammer substitutes its prepared visible backup for a hidden
   Sandworm; the backup's same-tick death makes it search again and lock a
   living Crawler: `tests/corpus/2344-r5.yaml`.
@@ -1970,6 +1980,13 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- Initial avoidance agents follow sorted team activation, and tree insertion
+  preserves that list: `FightTeam.PrepareActors`, `FightTeam.OnFightStart`,
+  `FightMech.OnFightStart`, `MotionController.Active`,
+  `RVOControllerFixed.Active`, `Simulator.DoAddAgents`,
+  `RVOQuadtree.Insert`, `RVOQuadtree.GetNodeIndex`,
+  `RVOQuadtree.Node.Distribute`.
 
 - Relative target angles preserve `FPoint` tolerance when wrapping and folding:
   `FightUtility.CalculateAngle`, `FightUtility.ClampRotation`,

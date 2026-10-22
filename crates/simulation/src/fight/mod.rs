@@ -711,6 +711,13 @@ impl Simulation {
             &layout.tower_levels,
         )?;
         let active_actors = deploy::prepare_actors(&actors, &buildings, &crystals);
+        let initial_rvo_units = active_actors
+            .iter()
+            .filter_map(|actor| match *actor {
+                FightActorRef::Unit(id) => Some(id),
+                FightActorRef::Building(_) => None,
+            })
+            .collect();
         let constructions = initialize_constructions(&buildings, &layout.constructions)?;
         let grounds = formation_grounds(layout, configs)?;
         let map_crystals = map_crystals(maps.buildings(layout.map_id)?, &grounds);
@@ -761,7 +768,12 @@ impl Simulation {
             prepared_target_quadtrees: target_quadtrees.clone(),
             target_quadtrees,
             mech_quadtrees,
-            rvo: RvoState::new(construction_colliders, passable_constructions, map_crystals),
+            rvo: RvoState::new(
+                initial_rvo_units,
+                construction_colliders,
+                passable_constructions,
+                map_crystals,
+            ),
             building_collisions,
             fallen_buildings: Vec::new(),
             buildings_query_alive,
