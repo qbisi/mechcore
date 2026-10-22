@@ -20,9 +20,13 @@ recording studies; the earlier native archive remains in Git history.
 | `corpus-fights.py` | fights every corpus round in the game into the fight document it records, under `work/fight/<version>/`, each a fixture candidate for `tests/corpus/`; it needs the game |
 | `divergence-issue.py` | the rounds a master commit fights wrong or refuses that its parent did not, as one issue naming the pull request it merged, from the two runs' `verify-matches.py` reports |
 
-Corpus checks are manual research tools; there is no automatic corpus CI job
-or automatic divergence issue publication. The gate continues to verify the
-tracked fight fixtures. `verify-matches.py --match-dir <dir>` can measure a
+These scripts are manual research tools. Automatic tournament verification
+lives in [mechcore-replay](https://github.com/qbisi/mechcore-replay): newly
+added tournament match YAML is verified with a release build of mechcore
+master, and each failing match creates or updates one `match` issue here.
+The issue stays open until that entire match verifies; the corpus workflow's
+manual `match` input rechecks a repaired match against current master.
+The gate continues to verify the tracked fight fixtures. `verify-matches.py --match-dir <dir>` can measure a
 collected match directory without fetching or converting native replays.
 The scripts that export, compare or record GRBRs need a local native archive;
 partial matches do not reconstruct missing native history.
