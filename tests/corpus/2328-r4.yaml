@@ -1,0 +1,61 @@
+# Native tournament replay 20261017--2328, round 4.
+# A Hound under Mobile Beacon keeps attacking a living wall after its lock dies.
+kind: fight
+source: game
+map_id: 1012
+seed: 1141400227
+round: 4
+blue:
+  core_damage: 770
+  officers: [typhoon_specialist]
+  blueprints: [defense_enhancement]
+  tower_strengthen_levels: [1, 0]
+  units:
+  - {name: vortex, index: 0, position: {x: 230, y: -80}, level: 2, exp: 0/58/1690}
+  - {name: vortex, index: 1, position: {x: 140, y: -80}, level: 2, exp: 0/251/1690}
+  - {name: fire_badger, index: 3, position: {x: 95, y: -90}, exp: 734/894/1400}
+  - {name: fire_badger, index: 4, position: {x: 185, y: -90}, exp: 1001/1024/1400}
+  - {name: crawler, index: 5, position: {x: 190, y: -125}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 90, y: -125}, exp: 450/450/450, rotated: true}
+  - {name: phoenix, index: 7, position: {x: 210, y: -190}, exp: 724/1077/1300}
+  - {name: crawler, index: 8, position: {x: -260, y: -285}, exp: 24/274/450, rotated: true}
+  - {name: fire_badger, index: 9, position: {x: -65, y: -150}, level: 2, exp: 580/918/3154}
+  - {name: crawler, index: 10, position: {x: -135, y: -190}, exp: 51/172/450}
+  - {name: typhoon, index: 11, position: {x: -350, y: 290}, exp: 0/16/1950, travelling: true, source: delivered}
+  - {name: scorpion, index: 12, position: {x: 35, y: -85}, level: 2, exp: 0/2252/3380, source: joined}
+  - {name: mustang, index: 13, position: {x: 205, y: -210}, exp: 0/338/1200, source: joined}
+  - {name: scorpion, index: 14, position: {x: 235, y: -55}, exp: 0/185/1500, source: joined}
+  - {name: crawler, index: 15, position: {x: 0, y: -285}, exp: 0/53/450, rotated: true, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: 199, y: -88}, {x: 155, y: 107}, {x: 75, y: 160}]}
+red:
+  core_damage: 0
+  officers: [speed_specialist]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [0, 1]
+  units:
+  - {name: hound, index: 0, position: {x: 30, y: -100}, exp: 493/578/750}
+  - {name: hound, index: 1, position: {x: 140, y: -100}, exp: 634/750/750}
+  - {name: hound, index: 2, position: {x: 250, y: -90}, exp: 750/750/750}
+  - {name: sabertooth, index: 3, position: {x: 195, y: -95}, level: 2, exp: 0/1472/2929}
+  - {name: sabertooth, index: 4, position: {x: 85, y: -95}, level: 2, exp: 0/243/2929, equipment: [nano_repair_kit]}
+  - {name: crawler, index: 5, position: {x: 140, y: -135}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 30, y: -135}, exp: 167/200/450, rotated: true}
+  - {name: crawler, index: 7, position: {x: -5, y: -40}, exp: 2/2/450}
+  - {name: phoenix, index: 8, position: {x: 160, y: -130}, level: 2, exp: 0/2845/2929, rotated: true}
+  - {name: hound, index: 9, position: {x: -240, y: -250}, exp: 117/121/750}
+  - {name: mustang, index: 10, position: {x: 225, y: -190}, level: 2, exp: 0/534/2704}
+  - {name: crawler, index: 11, position: {x: 290, y: -185}, exp: 293/450/450, rotated: true}
+  - {name: raiden, index: 12, position: {x: 190, y: -130}, exp: 0/1867/2400, source: joined}
+  - {name: crawler, index: 13, position: {x: 325, y: 260}, exp: 0/24/450, rotated: true, travelling: true, source: joined}
+  - {name: hound, index: 14, position: {x: 350, y: 290}, exp: 0/296/750, travelling: true, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: 177, y: -91}, {x: 140, y: 105}, {x: -27, y: 214}]}
+ticks: 1439
+hash: 27:5d720dbd6c2a08d384e5f8bbd2753cf9be352832d67ea2835d5620186a477fac

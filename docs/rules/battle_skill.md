@@ -679,6 +679,9 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
 - A Hound on a beacon keeps turning towards its retained dead lock through
   main-skill cooling after an ally kills it:
   `tests/corpus/2328-r3.yaml`.
+- A Hound on a beacon stays attacking a living wall after its lock behind
+  the wall dies; the command remains active on that wall in range:
+  `tests/corpus/2328-r4.yaml`.
 - A Fortress on a beacon turns towards its Rocket Punch target while that
   extra attacker holds the motion outside its range, reversing the turn
   from its velocity direction:
