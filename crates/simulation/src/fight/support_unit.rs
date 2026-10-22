@@ -879,6 +879,9 @@ impl Simulation {
             .get_mut(&unit_id)
             .expect("actor identity is stable");
         if actor.summoned && !actor.alive() {
+            // RemoveEffect withdraws the unit's data, not the team's source
+            // loadout: SummonSystem.RebirthMech calls AddEffect again.
+            actor.cleared_summon_effects = Some(Box::new(actor.placement.effects.clone()));
             for (channel, entry) in std::mem::take(&mut actor.placement.effects.corrections) {
                 // SupportUnitCreator.CreateMech adds its own modifyData;
                 // FightEffectSystem.ClearEffect removes only the side's

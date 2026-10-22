@@ -535,6 +535,18 @@ impl Simulation {
             actor.set_position(task.position[0], task.position[2]);
             actor.face(facing);
         }
+        // RebirthTask routes a summoned unit through SummonSystem.RebirthMech,
+        // whose AddEffect restores its team's sources before ForceRecoveryLife.
+        // The creator's MAKE_SOURCE data survived RemoveMech and stays in place.
+        if let Some(effects) = actor.cleared_summon_effects.take() {
+            for &(channel, entry) in &effects.corrections {
+                if entry.source != crate::modifier::MAKE_SOURCE {
+                    actor.stats.overlays.channel(channel).write(entry);
+                }
+            }
+            actor.placement.effects = *effects;
+            actor.stats.refresh(&actor.rules)?;
+        }
         actor.life = actor.stats.max_life();
         actor.rebirthing = false;
         actor.rebirth_count += 1;

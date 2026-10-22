@@ -753,6 +753,11 @@ reborn (`FightMech.AddRebirthCount`), which cuts its score
 rebirth left is gone. A fight that ends while a unit rises drops its task
 (`DeadRebirthController.OnFightExit`), and the unit scores nothing.
 
+A summoned unit is added through `SummonSystem.RebirthMech` instead. Its
+death removed its team effect data; rebirth adds those sources again before
+recovering its full life, then activates its effects and enters the fight.
+Its officer and technology corrections therefore apply again when it rises.
+
 A controlled Typhoon keeps the controlling side for its Field Reassembly
 task, before its death returns it to its original side. It rises on the
 controlling side again. The same unit
@@ -2093,6 +2098,9 @@ derive (a minimum range):
   rises reads it at zero in the tree, so Stormcallers across the field lose
   their neighbours for that solve, and it takes no speed on its first:
   `tests/corpus/201475625-r9.yaml`, ticks 848, 852 and 928.
+- A produced Phoenix regains its officer and technology corrections when
+  Quantum Reassembly brings it back, including maximum life, attack damage
+  and range: `tests/corpus/2607-r7.yaml`.
 - Quantum Reassembly's pilot flies at speed to the nearest point behind its
   partner, turns to the far pair as the partner falls, waits 15 ticks and
   lands on a point drawn from blue's stream, follows by its lerp and its
@@ -2684,6 +2692,11 @@ derive (a minimum range):
   `FightEffectSystem.ActiveEffect`, `FightCoreSystem.TryDstroyTower`,
   `FightCoreSystem.IsStepFinish`, `MotionController.EnterFight`,
   `RVOControllerFixed.Active`.
+- A summoned rebirth adds its team effect data before recovering life and
+  re-registers its death callback before entering the fight:
+  `RebirthTask.RebirthMech`, `SummonSystem.RebirthMech`,
+  `SummonSystem.AddMech`, `SummonSystem.RemoveMech`,
+  `FightEffectSystem.AddEffect`, `FightEffectSystem.ClearEffect`.
 - A rebirth that follows an ally sends a pilot after the nearest unit of its
   type, to points behind it in rows, flying at speed or after a transfer and
   then by a lerp with a swinging offset drawn from its side's stream:
@@ -3118,7 +3131,7 @@ derive (a minimum range):
   takes another course before then.
 - **A tie between points.** The sort that orders points at one distance
   follows `List.Sort` as read; no recording tells it from a stable one.
-- **A rebirth beside another dead effect, switched off, of a summoned unit,
+- **A rebirth beside another dead effect, switched off,
   or a controlled Quantum Reassembly pilot.** No recording holds one. A turned summon's rebirth
   (`SummonSystem.RebirthMech`) is refused by name.
   A dead summon or a

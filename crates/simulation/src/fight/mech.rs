@@ -146,6 +146,7 @@ impl Actor {
             life: max_life,
             last_damage_source: None,
             summoned: false,
+            cleared_summon_effects: None,
             travelling: false,
             searched_attack: true,
             last_life_before_suicide: 0,
