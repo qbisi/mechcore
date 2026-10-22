@@ -1,0 +1,53 @@
+# Native tournament replay 20261017--2328, round 3.
+# A Hound under Mobile Beacon keeps turning towards its retained dead lock.
+kind: fight
+source: game
+map_id: 1012
+seed: 1141400227
+round: 3
+blue:
+  core_damage: 400
+  officers: [typhoon_specialist]
+  blueprints: [defense_enhancement]
+  tower_strengthen_levels: [1, 0]
+  units:
+  - {name: vortex, index: 0, position: {x: 230, y: -80}, exp: 598/750/750}
+  - {name: vortex, index: 1, position: {x: 140, y: -80}, exp: 656/750/750}
+  - {name: vortex, index: 2, position: {x: 50, y: -80}, exp: 246/728/750}
+  - {name: fire_badger, index: 3, position: {x: 95, y: -90}, exp: 420/734/1400}
+  - {name: fire_badger, index: 4, position: {x: 185, y: -90}, exp: 731/1001/1400}
+  - {name: crawler, index: 5, position: {x: 190, y: -125}, exp: 258/450/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 90, y: -125}, exp: 397/450/450, rotated: true}
+  - {name: phoenix, index: 7, position: {x: 210, y: -190}, exp: 474/724/1300}
+  - {name: crawler, index: 8, position: {x: -260, y: -285}, exp: 16/24/450, rotated: true}
+  - {name: fire_badger, index: 9, position: {x: -65, y: -150}, level: 2, exp: 0/580/3154, source: joined}
+  - {name: crawler, index: 10, position: {x: -135, y: -190}, exp: 0/51/450, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: 197, y: -103}, {x: 190, y: 91}, {x: 144, y: 145}]}
+red:
+  core_damage: 0
+  officers: [speed_specialist]
+  blueprints: [attack_enhancement]
+  units:
+  - {name: hound, index: 0, position: {x: 30, y: -100}, exp: 324/493/750}
+  - {name: hound, index: 1, position: {x: 140, y: -100}, exp: 508/634/750}
+  - {name: hound, index: 2, position: {x: 250, y: -90}, exp: 454/750/750}
+  - {name: sabertooth, index: 3, position: {x: 195, y: -95}, exp: 1052/1300/1300}
+  - {name: sabertooth, index: 4, position: {x: 85, y: -95}, exp: 1295/1300/1300, equipment: [nano_repair_kit]}
+  - {name: crawler, index: 5, position: {x: 140, y: -135}, exp: 381/450/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 30, y: -135}, exp: 116/167/450, rotated: true}
+  - {name: crawler, index: 7, position: {x: -5, y: -40}, exp: 0/2/450}
+  - {name: phoenix, index: 8, position: {x: 160, y: -130}, exp: 871/1300/1300, rotated: true}
+  - {name: hound, index: 9, position: {x: -240, y: -250}, exp: 0/117/750, source: joined}
+  - {name: mustang, index: 10, position: {x: 225, y: -190}, exp: 0/1200/1200, source: joined}
+  - {name: crawler, index: 11, position: {x: 290, y: -185}, exp: 0/293/450, rotated: true, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: 185, y: -96}, {x: 162, y: 102}, {x: 4, y: 225}]}
+ticks: 1560
+hash: 27:381b12bae13c51afced9c6de25f6904eb57a929c391940ed8e6c9afc3ea16ada
