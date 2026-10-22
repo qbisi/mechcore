@@ -308,6 +308,10 @@ struct Actor {
     /// Whether a support skill summoned it: a unit with no `MechTeam`, which
     /// counts alone and never gains experience.
     summoned: bool,
+    /// Side-effect sources retained by the team's effect manager after
+    /// `SummonSystem.RemoveMech` clears them from a dead unit. A summoned
+    /// rebirth adds those sources again before activating the unit.
+    cleared_summon_effects: Option<Box<crate::layout::UnitEffects>>,
     /// `FightMech.IsSuperDeployment`: still travelling to the field, which
     /// `FightCoreSystem.TeamUpdate` counts alive and does not update.
     travelling: bool,
