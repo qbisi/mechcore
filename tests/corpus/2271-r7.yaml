@@ -1,0 +1,81 @@
+# Replay 20261017--2271, round 7. A Rhino following Mobile Beacon keeps
+# Whirlwind as its motion attacker through the backswing after it kills
+# its retained target, staying stopped and turning towards that lock.
+
+kind: fight
+source: game
+map_id: 1012
+seed: 1703129254
+round: 7
+blue:
+  core_damage: 0
+  officers: [additional_deployment_slot, mass_production_fire_control_system, cost_control_specialist]
+  techs:
+    rhino: [whirlwind, armor_enhancement]
+    wasp: [ground_specialization, range_enhancement]
+    wraith: [degeneration_beam]
+  blueprints: [defense_enhancement, attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [2, 0]
+  units:
+  - {name: vortex, index: 0, position: {x: 110, y: -30}, exp: 750/750/750}
+  - {name: crawler, index: 5, position: {x: 290, y: -65}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 145, y: -190}, exp: 450/450/450}
+  - {name: wraith, index: 8, position: {x: 285, y: -25}, exp: 1374/1787/2250}
+  - {name: crawler, index: 9, position: {x: 245, y: -20}, exp: 432/449/450}
+  - {name: wraith, index: 10, position: {x: 345, y: 235}, exp: 1003/1228/2250, equipment: [nano_repair_kit]}
+  - {name: crawler, index: 11, position: {x: 310, y: 235}, exp: 265/450/450}
+  - {name: wasp, index: 12, position: {x: 350, y: 275}, level: 3, exp: 0/127/3206, equipment: [secondary_fire_control_system]}
+  - {name: wasp, index: 13, position: {x: 350, y: 195}, level: 2, exp: 0/2028/2028, equipment: [secondary_fire_control_system]}
+  - {name: wasp, index: 14, position: {x: 245, y: -40}, level: 2, exp: 1049/2028/2028, equipment: [secondary_fire_control_system]}
+  - {name: rhino, index: 15, position: {x: 315, y: 275}, level: 2, exp: 528/602/2591}
+  - {name: rhino, index: 16, position: {x: 315, y: 195}, level: 2, exp: 186/376/2591}
+  - {name: sandworm, index: 17, position: {x: 320, y: 130}, exp: 920/1140/2000}
+  - {name: wasp, index: 18, position: {x: 350, y: 45}, level: 2, exp: 0/2028/2028}
+  - {name: wasp, index: 19, position: {x: 350, y: 125}, level: 2, exp: 0/2028/2028}
+  - {name: crawler, index: 20, position: {x: -95, y: -20}, exp: 0/191/450, source: joined}
+  - {name: wasp, index: 21, position: {x: -95, y: -40}, exp: 0/900/900, source: joined}
+  - {name: rhino, index: 22, position: {x: -55, y: -35}, level: 2, exp: 0/517/2591, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: missile, index: 2, position: {x: -203, y: -13}, retained: false}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -77, y: -33}, {x: -137, y: 157}, {x: -153, y: 205}]}
+red:
+  core_damage: 493
+  officers: [mass_production_fire_control_system, speed_specialist]
+  techs:
+    melting_point: [energy_absorption, electromagnetic_barrage]
+    centurion: [range_enhancement]
+  blueprints: [attack_enhancement]
+  tower_strengthen_levels: [1, 1]
+  units:
+  - {name: crawler, index: 0, position: {x: 140, y: -225}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: -140, y: -225}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: 0, y: -225}, exp: 294/350/450, rotated: true}
+  - {name: sledgehammer, index: 4, position: {x: -140, y: -135}, exp: 1300/1300/1300, rotated: true}
+  - {name: hound, index: 5, position: {x: 140, y: -190}, level: 2, exp: 47/235/1690}
+  - {name: hound, index: 6, position: {x: -140, y: -190}, level: 2, exp: 804/1005/1690}
+  - {name: centurion, index: 8, position: {x: -175, y: -185}, level: 2, exp: 3299/5070/5070, equipment: [nano_repair_kit]}
+  - {name: crawler, index: 9, position: {x: -290, y: -225}, exp: 360/379/450, rotated: true}
+  - {name: hound, index: 10, position: {x: -280, y: -190}, exp: 568/583/750}
+  - {name: centurion, index: 11, position: {x: -245, y: -185}, exp: 2050/2108/2250, equipment: [secondary_fire_control_system]}
+  - {name: crawler, index: 12, position: {x: -325, y: 130}, exp: 16/66/450, rotated: true}
+  - {name: centurion, index: 13, position: {x: -45, y: -185}, level: 2, exp: 1269/3125/5070, equipment: [secondary_fire_control_system]}
+  - {name: centurion, index: 14, position: {x: -165, y: -275}, exp: 1525/2250/2250}
+  - {name: centurion, index: 15, position: {x: -165, y: -245}, exp: 895/2250/2250, equipment: [secondary_fire_control_system]}
+  - {name: melting_point, index: 16, position: {x: -200, y: -220}, level: 2, exp: 0/1169/3154}
+  - {name: steel_ball, index: 17, position: {x: 205, y: -20}, exp: 291/302/1000}
+  - {name: crawler, index: 18, position: {x: -205, y: -300}, exp: 9/271/450}
+  - {name: melting_point, index: 19, position: {x: -200, y: -270}, level: 2, exp: 0/1915/3154, source: joined}
+  - {name: melting_point, index: 20, position: {x: -190, y: -150}, level: 2, exp: 0/1337/3154, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: missile, index: 1, position: {x: -247, y: -15}, retained: false}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -313, y: 134}, {x: -312, y: 264}, {x: -112, y: 261}]}
+  - {name: rhino_assault, positions: [{x: -333, y: -280}]}
+ticks: 982
+hash: 27:7913c7a668075d16898ed92c783e7d0d9df821b41f5a27b406ff4c4500b172b0

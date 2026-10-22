@@ -1413,18 +1413,17 @@ impl Simulation {
         };
         let skill = self.skill(skill_ref);
         let idle = skill.idle;
-        let lock = skill
-            .lock_target
-            .filter(|&lock| self.fight_actor_is_alive(lock))
-            .and_then(|lock| self.fight_actor(lock));
+        let retained_lock = skill.lock_target.and_then(|lock| self.fight_actor(lock));
+        let lock = retained_lock.filter(|view| view.alive);
         let in_range = self.skill_attacker_target_in_range(skill_ref);
         // `CalculateTargetDirection` turns to what the skill fires at: a block
-        // in the way before the lock behind it.
+        // in the way before the lock behind it. If that target has died,
+        // `GetLockTarget` still returns the retained lock through backswing.
         let aimed = skill
             .attack_target()
             .and_then(|target| self.fight_actor(target))
             .filter(|view| view.alive)
-            .or(lock);
+            .or(retained_lock);
         if self.actors[&actor_id].motion.state == MotionState::Stopped {
             // `MotionStopState.Update` still runs AttackRotate for its
             // current attacker while the move behaviour is active and
@@ -1550,10 +1549,10 @@ impl Simulation {
         aimed: Option<(i64, i64)>,
     ) {
         let state = self.actors[&actor_id].motion.state;
-        let (true, Some((aimed_x_q32, aimed_z_q32))) = (in_range, aimed) else {
+        if !in_range {
             self.follow_command(actor_id, aimed);
             return;
-        };
+        }
         match state {
             MotionState::Attacking => {
                 let walks_on = self.command_attack_moves(actor_id);
@@ -1567,10 +1566,14 @@ impl Simulation {
                     actor.motion.next_speed_q32 = 0;
                     actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
                 }
-                actor.extra_attack_rotate((
-                    aimed_x_q32.saturating_sub(actor.x_q32),
-                    aimed_z_q32.saturating_sub(actor.z_q32),
-                ));
+                let direction = aimed.map_or(
+                    (
+                        actor.motion.current_velocity_x_q32,
+                        actor.motion.current_velocity_z_q32,
+                    ),
+                    |(x, z)| (x.saturating_sub(actor.x_q32), z.saturating_sub(actor.z_q32)),
+                );
+                actor.extra_attack_rotate(direction);
                 self.attack_move(actor_id, true);
             }
             MotionState::Idle | MotionState::Moving => {
