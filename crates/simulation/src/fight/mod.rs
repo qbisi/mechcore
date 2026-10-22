@@ -267,6 +267,8 @@ struct Actor {
     placement: Placement,
     /// Creation order before `FightTeam.PrepareActors` sorts the fight ids.
     preparation_order: usize,
+    /// Round-opening native member position, used by preparation selectors.
+    record_position: (i64, i64),
     /// `FightMech.isImportantUnitEffectEnabled`, independent of its side.
     important_effect_enabled: bool,
     /// Membership in the original side's `TeamImportantUnitInfo.mechs`.

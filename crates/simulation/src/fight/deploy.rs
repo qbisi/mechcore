@@ -189,13 +189,24 @@ pub(in crate::fight) fn initialize_actors(
                 placement.type_name
             ))
         })?;
-        for (x_q32, z_q32) in generate_formation_positions(placement, rules, seed)? {
+        let positions = generate_formation_positions(placement, rules, seed)?;
+        let record_positions = if let Some((x, z, rotation)) = placement.record_origin {
+            let mut recorded = placement.clone();
+            recorded.world_x = x;
+            recorded.world_z = z;
+            recorded.rotation = rotation;
+            generate_formation_positions(&recorded, rules, seed)?
+        } else {
+            positions.clone()
+        };
+        for ((x_q32, z_q32), record_position) in positions.into_iter().zip(record_positions) {
             let mut actor =
                 Actor::at_generated_position(placement.clone(), rules.clone(), x_q32, z_q32);
             let facing = attack_facing(placement, x_q32, z_q32, &flanked);
             if facing != placement.rotation {
                 actor.face(mdeg_to_degrees_q32(facing));
             }
+            actor.record_position = record_position;
             actor.preparation_order = initial.len();
             initial.push(actor);
         }
@@ -860,7 +871,7 @@ impl Simulation {
                     let (x_q32, z_q32) = if delivered_squad {
                         (0, 0)
                     } else {
-                        (actor.x_q32, actor.z_q32)
+                        actor.record_position
                     };
                     consider(x_q32, z_q32, actor.rules.collision_radius());
                 }

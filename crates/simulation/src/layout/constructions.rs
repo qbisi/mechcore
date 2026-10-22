@@ -382,6 +382,7 @@ mod tests {
             native: NativeFormation::Construction(id),
             footprint: None,
             position: Position { x, y },
+            record_position: None,
             index: Some(0),
             level: None,
             exp: None,

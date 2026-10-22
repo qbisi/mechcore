@@ -1,0 +1,86 @@
+# Replay 20261018--2763, round 7: a redeployed legacy Sabertooth retains its
+# round-opening position for the opposing anti-armor turret's initial facing.
+kind: fight
+source: game
+map_id: 1012
+seed: 866101022
+round: 7
+blue:
+  core_damage: 275
+  officers: [advanced_missile_device, supply_enhancement, speed_specialist]
+  techs:
+    vulcan: [range_enhancement]
+    fang: [range_enhancement]
+    hacker: [enhanced_control, range_enhancement]
+    sabertooth: [missile_interceptor]
+  units:
+  - {name: crawler, index: 0, position: {x: 105, y: -240}, exp: 450/450/450}
+  - {name: crawler, index: 1, position: {x: -5, y: -220}, exp: 450/450/450}
+  - {name: crawler, index: 2, position: {x: -115, y: -240}, exp: 450/450/450}
+  - {name: sabertooth, index: 3, position: {x: -45, y: -95}, exp: 968/992/1300}
+  - {name: sabertooth, index: 4, position: {x: 45, y: -95}, exp: 678/678/1300}
+  - {name: marksman, index: 5, position: {x: 120, y: -160}, level: 2, exp: 1465/1465/1465}
+  - {name: marksman, index: 6, position: {x: -120, y: -160}, level: 2, exp: 288/1465/1465}
+  - {name: sabertooth, index: 7, position: {x: -145, y: -95}, exp: 730/823/1300}
+  - {name: marksman, index: 8, position: {x: -30, y: -160}, level: 2, exp: 124/1465/1465}
+  - {name: marksman, index: 9, position: {x: -180, y: -160}, level: 2, exp: 160/1465/1465}
+  - {name: fang, index: 10, position: {x: -85, y: -150}, exp: 600/600/600}
+  - {name: fang, index: 11, position: {x: 35, y: -150}, exp: 600/600/600}
+  - {name: fang, index: 12, position: {x: -225, y: -150}, exp: 600/600/600}
+  - {name: sabertooth, index: 13, position: {x: -235, y: -95}, exp: 664/664/1300}
+  - {name: vulcan, index: 14, position: {x: -100, y: -120}, level: 2, exp: 0/1295/5453}
+  - {name: marksman, index: 15, position: {x: 190, y: -170}, level: 2, exp: 544/1465/1465}
+  - {name: vulcan, index: 16, position: {x: 10, y: -120}, exp: 2057/2200/2200}
+  - {name: vulcan, index: 17, position: {x: -200, y: -120}, exp: 2144/2200/2200}
+  - {name: phoenix, index: 18, position: {x: -140, y: -120}, level: 4, exp: 268/505/5837}
+  - {name: hacker, index: 19, position: {x: -155, y: -145}, level: 2, exp: 200/362/1262}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 2, position: {x: -7, y: -104}, retained: false}
+  - {name: shield, index: 3, position: {x: -117, y: -108}, retained: false}
+  - {name: shield, index: 4, position: {x: -222, y: -102}, retained: false}
+  - {name: missile, index: 5, position: {x: -123, y: -92}, retained: false}
+red:
+  core_damage: 0
+  officers: [supply_enhancement, sabertooth_specialist]
+  techs:
+    phoenix: [quantum_reassembly, range_enhancement]
+    void_eye: [aerial_mode, range_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: void_eye, index: 0, position: {x: 210, y: -100}, level: 3, exp: 1417/2315/2315}
+  - {name: void_eye, index: 1, position: {x: 140, y: -90}, level: 3, exp: 1629/1733/2315}
+  - {name: void_eye, index: 2, position: {x: 70, y: -130}, level: 3, exp: 0/332/2315}
+  - {name: fire_badger, index: 3, position: {x: 75, y: -60}, exp: 919/969/1400}
+  - {name: fire_badger, index: 4, position: {x: 205, y: -60}, exp: 402/468/1400}
+  - {name: crawler, index: 5, position: {x: 140, y: -135}, level: 2, exp: 148/148/1014, rotated: true}
+  - {name: crawler, index: 6, position: {x: 70, y: -175}, level: 2, exp: 243/249/1014, rotated: true}
+  - {name: void_eye, index: 7, position: {x: -90, y: -100}, level: 3, exp: 203/386/2315}
+  - {name: crawler, index: 8, position: {x: -90, y: -155}, exp: 306/324/450, rotated: true}
+  - {name: crawler, index: 9, position: {x: 30, y: -115}, exp: 168/168/450, rotated: true}
+  - {name: sabertooth, index: 10, position: {x: -195, y: -55}, exp: 537/683/1300}
+  - {name: fang, index: 11, position: {x: 155, y: -190}, exp: 127/154/600}
+  - {name: fang, index: 12, position: {x: 0, y: -55}, exp: 351/351/600, rotated: true}
+  - {name: fang, index: 13, position: {x: -155, y: -190}, exp: 600/600/600}
+  - {name: void_eye, index: 14, position: {x: 0, y: -100}, level: 2, exp: 577/784/1465}
+  - {name: void_eye, index: 15, position: {x: -40, y: -100}, level: 3, exp: 0/550/2315}
+  - {name: crawler, index: 16, position: {x: 30, y: -235}, exp: 229/239/450, rotated: true}
+  - {name: void_eye, index: 17, position: {x: 90, y: -100}, level: 3, exp: 0/2315/2315}
+  - {name: crawler, index: 18, position: {x: 140, y: -225}, exp: 86/89/450, rotated: true}
+  - {name: stormcaller, index: 19, position: {x: -5, y: -160}, exp: 246/594/1100}
+  - {name: stormcaller, index: 20, position: {x: 95, y: -80}, exp: 1100/1100/1100}
+  - {name: sabertooth, index: 21, position: {x: -115, y: -55}, recordPosition: {x: 105, y: -35}, exp: 94/217/1300}
+  - {name: phoenix, index: 22, position: {x: 180, y: -120}, level: 4, exp: 3212/5837/5837}
+  - {name: phoenix, index: 23, position: {x: 110, y: -130}, exp: 862/1300/1300}
+  - {name: phoenix, index: 24, position: {x: 0, y: -130}, exp: 684/1300/1300}
+  - {name: phoenix, index: 25, position: {x: -50, y: -130}, exp: 0/1121/1300, source: joined}
+  - {name: phoenix, index: 26, position: {x: 240, y: -120}, exp: 0/1300/1300, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: missile, index: 4, position: {x: 137, y: -53}, retained: false}
+ticks: 1197
+hash: 27:72193be3b6f2b55a00d1946fe930220094caf04c1033fb11a3ee4bb93dbb1e28

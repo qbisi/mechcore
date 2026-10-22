@@ -28,6 +28,7 @@ pub(super) fn placement(
         formation_id: 0,
         formation_index,
         type_name: type_name.to_owned(),
+        record_origin: None,
         world_x,
         world_z,
         rotation: if team == 0 { 0 } else { 180_000 },

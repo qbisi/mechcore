@@ -23,12 +23,13 @@ pub struct BattleSkill {
     pub positions: Vec<Position>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Placement {
     pub type_name: String,
     pub native: NativeFormation,
     pub footprint: Option<(i64, i64)>,
     pub position: Position,
+    pub record_position: Option<Position>,
     pub index: Option<i32>,
     pub level: Option<i32>,
     pub exp: Option<i32>,
@@ -155,6 +156,8 @@ pub fn compile_layout(layout: Layout) -> Result<Plan, String> {
     }
     let blue = compile_side("blue", layout.blue, layout.round)?;
     let red = compile_side("red", layout.red, layout.round)?;
+    validate_record_positions("blue", &blue.units)?;
+    validate_record_positions("red", &red.units)?;
     validate_placement_footprints("blue", &blue.units)?;
     validate_placement_footprints("red", &red.units)?;
     validate_placement_footprints("blue", &blue.constructions)?;
@@ -381,6 +384,7 @@ fn compile_units(
                 type_name,
                 index,
                 position,
+                record_position,
                 level,
                 exp,
                 rotated,
@@ -471,12 +475,16 @@ fn compile_units(
                     )
                 })?;
             }
+            if record_position.is_some() && source != UnitSource::Legacy {
+                return Err(format!("side {side_name} unit {index}: recordPosition is only valid for legacy units"));
+            }
             validate_unit_placement(side_name, &type_name, position, travelling, round)?;
             Ok(Placement {
                 type_name,
                 native: NativeFormation::Unit(unit_id),
                 footprint: spec.footprint,
                 position,
+                record_position,
                 index: Some(index),
                 level: Some(level),
                 exp: Some(exp),
@@ -554,6 +562,7 @@ fn compile_constructions(
                 rotated: false,
                 equipment: Vec::new(),
                 travelling: false,
+                record_position: None,
                 source: UnitSource::Joined,
             })
         })
@@ -593,6 +602,7 @@ fn compile_contraptions(
                 rotated: false,
                 equipment: Vec::new(),
                 travelling: false,
+                record_position: None,
                 source: UnitSource::Joined,
             })
         })
@@ -930,6 +940,19 @@ fn cross(origin: (i64, i64), left: (i64, i64), right: (i64, i64)) -> i128 {
 fn point_on_segment(point: (i64, i64), start: (i64, i64), end: (i64, i64)) -> bool {
     (start.0.min(end.0)..=start.0.max(end.0)).contains(&point.0)
         && (start.1.min(end.1)..=start.1.max(end.1)).contains(&point.1)
+}
+
+fn validate_record_positions(side_name: &str, placements: &[Placement]) -> Result<(), String> {
+    for placement in placements {
+        if let Some(record) = placement.record_position {
+            let mut recorded = placement.clone();
+            recorded.position = record;
+            recorded.record_position = None;
+            validate_placement_footprints(side_name, &[recorded])
+                .map_err(|error| format!("recordPosition: {error}"))?;
+        }
+    }
+    Ok(())
 }
 
 fn validate_placement_footprints(side_name: &str, placements: &[Placement]) -> Result<(), String> {

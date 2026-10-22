@@ -135,7 +135,8 @@ The layout round's `actionRecords` hold, in this order:
 2. each delivered squad upgraded to its layout level, fitted, trained when
    needed, and moved to its layout position and facing;
 3. each travelling legacy unit's position and travelling membership restored
-   by the native forced undo command described below;
+   by native forced undo commands, followed by the current position of each
+   other legacy unit whose `recordPosition` differs;
 4. each unit that joins during the round, in index order, added, fitted,
    trained when needed, and
    moved to its layout position and facing;
@@ -154,13 +155,15 @@ its index, and asks for no fixed position in the side's main deployment area:
 region 1 of blue's territory and 4 of red's. The game places it there, and the
 move takes it to its layout position. A move onto a flank from another region
 is what makes a joining unit travel. A settled legacy unit stays where the
-snapshot put it. For a travelling legacy unit the snapshot holds it at the
-same place on the other flank, and a `PAD_TestCommand` carries `MAD_MoveUnit`
-to its stated position with `IsForce=true`, `IsUndo=true`, and
-`MoveUnitData.superDeployRecord=true`. The native undo path restores that
-travelling membership when regions differ; the forced check permits the
-restoration regardless of deployment mobility. A layout need not state which
-skill or modifier made its position reachable in a match.
+snapshot put it. Every legacy snapshot uses `recordPosition` when stated,
+otherwise `position`. A `PAD_TestCommand` carries `MAD_MoveUnit` to the current
+position with `IsForce=true`, `IsUndo=true`, and the desired
+`MoveUnitData.superDeployRecord` membership. The native undo path restores
+travelling membership when regions differ. A travelling legacy unit whose
+old and current positions share a region first visits the opposite flank,
+then returns; its snapshot and preparation position remain unchanged. The
+forced check permits restoration regardless of deployment mobility. A layout
+need not state which skill or modifier made its position reachable in a match.
 
 A newly created unit starts with zero experience. When its layout states a
 full bar below level 9, a ready Intensive Training slot restores that bar

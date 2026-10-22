@@ -4720,6 +4720,11 @@ fn read_native_layout_inner(
         {
             mechcore_document::project::assign_sources(&mut side, next_units[team], round)
                 .map_err(|error| format!("team {team}: {error}"))?;
+            for unit in &mut side.units {
+                if unit.source != mechcore_document::UnitSource::Legacy {
+                    unit.record_position = None;
+                }
+            }
         }
         sides[team] = Some(side);
     }
@@ -4785,12 +4790,31 @@ fn read_native_side(
             )
             .map_err(|error| error.to_string())?;
         let (x, y) = side_local_position(position, team)?;
+        let old = invoke_value::<bool>(api, mech_team, "IsOldUnit")?;
+        let record_map = if old {
+            api.call0::<*mut Object>(unit, "GetRecordMapElement")
+                .map_err(|error| error.to_string())?
+        } else {
+            ptr::null_mut()
+        };
+        let record_position = if record_map.is_null() {
+            None
+        } else {
+            let recorded = invoke_value::<MapVector>(api, record_map, "GetPosition")?;
+            let (record_x, record_y) = side_local_position(recorded, team)?;
+            Some(Position {
+                x: record_x,
+                y: record_y,
+            })
+            .filter(|recorded| *recorded != Position { x, y })
+        };
         let native_index = api
             .invoke_value::<i32>(unit_manager, "GetUnitIndex", &mut [object_argument(unit)])
             .map_err(|error| error.to_string())?;
         indexed_units.push((
             native_index,
             UnitPlacement {
+                record_position,
                 type_name: type_name.to_owned(),
                 index: native_index,
                 position: Position { x, y },
@@ -4799,7 +4823,7 @@ fn read_native_side(
                 rotated: Some(rotated),
                 equipment,
                 travelling: Some(travelling),
-                source: if invoke_value::<bool>(api, mech_team, "IsOldUnit")? {
+                source: if old {
                     mechcore_document::UnitSource::Legacy
                 } else {
                     mechcore_document::UnitSource::Joined

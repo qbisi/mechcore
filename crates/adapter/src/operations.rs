@@ -4297,6 +4297,7 @@ mod tests {
             type_name: "marksman".into(),
             native: NativeFormation::Unit(2),
             footprint: Some((20, 20)),
+            record_position: None,
             position: layout::Position {
                 x: i32::MIN,
                 y: -50,
