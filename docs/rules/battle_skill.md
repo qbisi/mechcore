@@ -676,6 +676,9 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
 - A Rhino on a beacon stays attacking through Whirlwind's backswing after
   killing its retained target, continuing to face that lock:
   `tests/corpus/2271-r7.yaml`.
+- A Hound on a beacon keeps turning towards its retained dead lock through
+  main-skill cooling after an ally kills it:
+  `tests/corpus/2328-r3.yaml`.
 - A Fortress on a beacon turns towards its Rocket Punch target while that
   extra attacker holds the motion outside its range, reversing the turn
   from its velocity direction:

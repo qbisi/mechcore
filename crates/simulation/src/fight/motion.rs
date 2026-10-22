@@ -1723,11 +1723,15 @@ impl Simulation {
             actor.motion.next_speed_q32 = 0;
             actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
         }
-        if cooling.is_none() {
-            // CalculateTargetDirection falls back to the live lock after
-            // the attack target dies, including a wall the command fells.
-            let target_rotation_q32 = self.lock_rotation(actor_id).unwrap_or(target_rotation_q32);
-            self.track_target_in_range(actor_id, Some(target_rotation_q32), false);
+        if let Some(lock_rotation) = self.lock_rotation(actor_id) {
+            // CalculateTargetDirection uses a valid attack target ahead of
+            // GetLockTarget, and retains that lock's bearing even after death.
+            let rotation = if target.is_some_and(|target| self.fight_actor_is_alive(target)) {
+                target_rotation_q32
+            } else {
+                lock_rotation
+            };
+            self.track_target_in_range(actor_id, Some(rotation), false);
         } else {
             self.attack_rotate_to_velocity(actor_id);
         }
@@ -2083,15 +2087,11 @@ impl Simulation {
         self.track_target_in_range(actor_id, Some(rotation), false);
     }
 
-    /// Where a unit's lock stands from it, if the lock is alive: what
+    /// Where a unit's retained lock stands, alive or dead: what
     /// `CalculateTargetDirection` faces once the attack target is not valid.
     fn lock_rotation(&self, actor_id: u64) -> Option<i64> {
         let actor = &self.actors[&actor_id];
-        let lock = actor
-            .skills
-            .main
-            .lock_target
-            .filter(|lock| self.fight_actor_is_alive(*lock))?;
+        let lock = actor.skills.main.lock_target?;
         let view = self.fight_actor(lock)?;
         Some(direction_degrees_q32_raw(
             view.x_q32.saturating_sub(actor.x_q32),
