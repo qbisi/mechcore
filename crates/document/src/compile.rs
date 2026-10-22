@@ -948,8 +948,16 @@ fn validate_record_positions(side_name: &str, placements: &[Placement]) -> Resul
             let mut recorded = placement.clone();
             recorded.position = record;
             recorded.record_position = None;
-            validate_placement_footprints(side_name, &[recorded])
-                .map_err(|error| format!("recordPosition: {error}"))?;
+            // The opening position predates this round's move/rotation. The
+            // layout retains the final rotation, so either historical rotation
+            // can witness a legal opening footprint.
+            if let Err(error) =
+                validate_placement_footprints(side_name, std::slice::from_ref(&recorded))
+            {
+                recorded.rotated = !recorded.rotated;
+                validate_placement_footprints(side_name, &[recorded])
+                    .map_err(|_| format!("recordPosition: {error}"))?;
+            }
         }
     }
     Ok(())

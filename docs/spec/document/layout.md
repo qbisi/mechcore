@@ -605,8 +605,9 @@ semantic `name` instead of exposing its native numeric ID:
   opened, in the same side-local `{x, y}` coordinates as `position`. It defaults
   to `position`, and normal form omits an equal value. Only `source: legacy`
   admits it; `delivered` and `joined` units refuse it. It must fit a native
-  placement grid and deployment region, but is not a current occupied footprint
-  and does not take part in collision checks. Preparation target scoring and
+  placement grid and deployment region under either rotation: the current
+  `rotated` value need not describe its opening orientation. It is not a current
+  occupied footprint and does not take part in collision checks. Preparation target scoring and
   defensive turret initial facing use the member positions generated there;
   combat uses `position`. A match projection takes it from that unit's opening
   position, before the round's actions, and omits it if the unit did not move.
