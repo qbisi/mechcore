@@ -67,6 +67,54 @@ def path(version):
     print(directory)
 
 
+def read_match(match):
+    """Read a generated match and its declared build for either corpus collection."""
+    version = build_data.configured_build()
+    try:
+        segments = list(yaml.load_all(match.read_text(), Loader=getattr(yaml, "CSafeLoader", yaml.SafeLoader)))
+    except (OSError, UnicodeError, yaml.YAMLError) as error:
+        fail(f"cannot read {match.name}: {error}")
+    if not segments or not isinstance(segments[0], dict) or segments[0].get("kind") != "match":
+        fail(f"{match.name} is not a match document")
+    build = segments[0].get("build", version)
+    if not isinstance(build, str) or not re.fullmatch(r"[A-Za-z0-9_.-]+", build) or build in {".", ".."}:
+        fail(f"{match.name} has an invalid build directory name")
+    if build != version:
+        print(f"warning: {match.name} names game build {build}, not this checkout's {version}", file=sys.stderr)
+    return segments, build
+
+
+def publish_files(matches, description):
+    """Append validated (source, corpus-relative destination) pairs in one commit."""
+    if not matches:
+        print("nothing new to publish")
+        return
+    if not (DESTINATION / ".git").exists():
+        sync()
+    if git("status", "--porcelain"):
+        fail("corpus checkout has local changes; preserve them before publishing")
+    git("fetch", "-q", "--depth", "1", "origin", "master")
+    git("checkout", "-q", "-B", "master", "FETCH_HEAD")
+    added = []
+    for match, relative in matches:
+        kept = DESTINATION / relative
+        if kept.exists():
+            if not filecmp.cmp(match, kept, shallow=False):
+                fail(f"{relative} is already in the corpus with other bytes")
+            continue
+        added.append((match, kept))
+    if not added:
+        print("nothing new to publish")
+        return
+    for source_match, kept in added:
+        kept.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_match, kept)
+    git("add", "--", *(str(kept.relative_to(DESTINATION)) for _, kept in added))
+    git("commit", "-q", "-m", f"data: add {len(added)} {description}\n\nCo-Authored-By: GPT-6 <noreply@openai.com>")
+    git("push", "-q", PUSH_URL, "HEAD:master")
+    print(f"{len(added)} {description} published at {git('rev-parse', '--short', 'HEAD')}")
+
+
 def publish(source, dry_run):
     version = build_data.configured_build()
     if not source.is_dir():
@@ -78,19 +126,8 @@ def publish(source, dry_run):
         identity = names.fullmatch(match.name)
         if identity is None:
             fail(f"match name is not BattleID-rN.yaml: {match.name}")
-        try:
-            segments = list(yaml.safe_load_all(match.read_text()))
-        except (OSError, UnicodeError, yaml.YAMLError) as error:
-            fail(f"cannot read {match.name}: {error}")
-        if not segments or not isinstance(segments[0], dict) or segments[0].get("kind") != "match":
-            fail(f"{match.name} is not a match document")
-        build = segments[0].get("build", version)
-        if not isinstance(build, str) or not re.fullmatch(r"[A-Za-z0-9_.-]+", build) or build in {".", ".."}:
-            fail(f"{match.name} has an invalid build directory name")
+        segments, build = read_match(match)
         versions[match] = build
-        if build != version:
-            print(f"warning: {match.name} names game build {build}, not this checkout's {version}; "
-                  f"publishing under matches/{build}/", file=sys.stderr)
         states = [segment for segment in segments[1:]
                   if isinstance(segment, dict) and segment.get("kind") == "state"]
         if not states or states[-1].get("round") != int(identity[1]):
@@ -100,35 +137,9 @@ def publish(source, dry_run):
             count = sum(value == build for value in versions.values())
             print(f"{count} matches of {build} ready for matches/{build}/")
         return
-    if not matches:
-        print("nothing new to publish")
-        return
-    if not (DESTINATION / ".git").exists():
-        sync()
-    if git("status", "--porcelain"):
-        fail("corpus checkout has local changes; preserve them before publishing")
-    git("fetch", "-q", "--depth", "1", "origin", "master")
-    git("checkout", "-q", "-B", "master", "FETCH_HEAD")
-    added = []
-    for match in matches:
-        target = DESTINATION / "matches" / versions[match]
-        kept = target / match.name
-        if kept.exists():
-            if not filecmp.cmp(match, kept, shallow=False):
-                fail(f"{kept.name} is already in the corpus with other bytes")
-            continue
-        added.append((match, kept))
-    if not added:
-        print("nothing new to publish")
-        return
-    for source_match, kept in added:
-        kept.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source_match, kept)
-    git("add", "--", *(str(kept.relative_to(DESTINATION)) for _, kept in added))
-    builds = ", ".join(sorted({versions[match] for match, _ in added}))
-    git("commit", "-q", "-m", f"data: add {len(added)} matches of {builds}\n\nCo-Authored-By: GPT-6 <noreply@openai.com>")
-    git("push", "-q", PUSH_URL, "HEAD:master")
-    print(f"{len(added)} matches of {builds} published at {git('rev-parse', '--short', 'HEAD')}")
+    builds = ", ".join(sorted(set(versions.values())))
+    publish_files([(match, Path("matches") / versions[match] / match.name) for match in matches],
+                  f"matches of {builds}")
 
 
 def main(argv):
