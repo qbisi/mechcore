@@ -638,8 +638,11 @@ range and minimum range as they stand then (`PrepareSearch` reads
 `GetAttackRange`), and
 `ScoreRatingTargetSelector.TrySelect` answers a prepared skill from those
 scores. Replacing a hidden winner with a visible alternative still asks the
-live attacker's range. A Sandstorm that halves a Sledgehammer's range after
-preparation can leave its hidden tower selected even though the visible
+live attacker's range. The range check does not test whether that alternative
+has died since preparation: it is selected first, and the following life
+check sends the search over all live enemies rather than retaining the hidden
+winner ([`2344-r5.yaml`](../../tests/corpus/2344-r5.yaml)). A Sandstorm that
+halves a Sledgehammer's range after preparation can leave its hidden tower selected even though the visible
 Sandworm was in its prepared range
 ([`prepared-search-live-replacement-range.yaml`](../../tests/search/prepared-search-live-replacement-range.yaml)).
 A registered job whose answer has died since, a tower that fell that tick
@@ -1488,6 +1491,10 @@ not the game's native attack-type enum.
 ## Evidence
 
 ### Recorded
+
+- A Sledgehammer substitutes its prepared visible backup for a hidden
+  Sandworm; the backup's same-tick death makes it search again and lock a
+  living Crawler: `tests/corpus/2344-r5.yaml`.
 
 - Nearly symmetric Crawler targets retain their distinct signed search angles
   when a Mustang presearches, preserving its initial lock and final settlement:

@@ -1400,11 +1400,13 @@ impl Simulation {
         // `ITargetSelector.Select` asks the attacker it was handed. A
         // grouped child's live search carries its own range here, beyond
         // the core's; going back through `source.skill` loses that identity.
+        // `TrySelect` tests the visible backup's range before its life.
+        // A backup killed since preparation is still chosen; the subsequent
+        // alive check then sends the search over all live enemies. Rejecting
+        // it here instead keeps the hidden winner (corpus 2344, round 5).
         scoring.chosen(|next| {
             self.fight_actor(next).is_some_and(|target| {
-                target.alive
-                    && target.targetable
-                    && self.reaches_hidden(source.owner, target.visibility)
+                self.reaches_hidden(source.owner, target.visibility)
                     && source.reaches(target.x_q32, target.z_q32, target.radius)
             })
         })
