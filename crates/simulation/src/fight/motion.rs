@@ -1703,9 +1703,14 @@ impl Simulation {
         let cooling = skill.cooling();
         let target = match cooling {
             Some((_, named)) => named,
-            None => skill
-                .attack_target()
-                .filter(|&target| !self.fight_actor_is_alive(target)),
+            // A living blocker can remain the attack target after the lock
+            // behind it dies. The command stays active on that blocker too.
+            None => skill.attack_target().filter(|&target| {
+                !self.fight_actor_is_alive(target)
+                    || skill
+                        .lock_target
+                        .is_some_and(|lock| !self.fight_actor_is_alive(lock))
+            }),
         };
         if target.is_none() && cooling.is_none() {
             return Flow::Next;
