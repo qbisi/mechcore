@@ -9,6 +9,7 @@ side takes from it.
 
 ```yaml
 kind: match
+build: <GAME_VERSION>
 map_id: 1001
 seed: 2038621361
 blue: {offers: [...], constructions: [...], tech_loadout: {...}}
@@ -113,15 +114,23 @@ The header holds what every round of the match shares.
 
 | Field | Source |
 | --- | --- |
-| `game_build` | the build whose tables the match is written against |
+| `build` | the game's `Application.version`, pinned by `GAME_VERSION` |
 | `seed` | `BattleInfo.SystemSeed` |
 | `map_id` | `BattleInfo.MapID` |
 | `deploy_time` | `BattleInfo.DeployTime` |
 
 `seed` and `map_id` keep the meaning and the optionality a layout gives them.
-`game_build` is the one a [layout](layout.md#document-shape) states: a
-writer leaves out the build it carries, a reader refuses another build, and a
-match that states none is the reader's own.
+`build` records the same game version a [layout](layout.md#document-shape)
+calls `game_build`. A match writer always includes it, including when it is
+the writer's current version. An input that states none is the reader's own.
+Reading and rewriting a match preserves its stated version. A different version,
+including an older one, is accepted with a warning by CLI operations rather than
+refused merely for its version. Operations use the current binary's catalogues
+and rules; projection and simulated results can differ from the historical game,
+and unsupported data still produces its ordinary diagnostic. Match-to-GRBR
+transcoding retains the stated version in the native replay header. New matches
+and native conversions take their version from `GAME_VERSION`, rather than a
+second version pin in the match code.
 
 `deploy_time` is how many seconds a side has to deploy a round, which every
 tracked replay records as 100. A match this platform plays runs out by it, as

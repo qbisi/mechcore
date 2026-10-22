@@ -424,13 +424,10 @@ fn match_to_replay(bytes: &[u8], destination: &Path) -> Result<Answer, Failure> 
     let stated = mechcore_document::opening::stated(bytes)
         .map_err(Failure::refused)?
         .ok_or_else(|| Failure::refused("the document names itself a match and holds none"))?;
+    crate::r#match::warn_build(&stated.build);
     let economy = mechcore_document::economy::Economy::embedded().map_err(Failure::failed)?;
-    let replay = mechcore_document::match_replay::match_replay(
-        economy,
-        &stated,
-        mechcore_document::game_build(),
-    )
-    .map_err(Failure::refused)?;
+    let replay = mechcore_document::match_replay::match_replay(economy, &stated, &stated.build)
+        .map_err(Failure::refused)?;
     write(destination, replay)?;
     let written = MatchReplayReport {
         schema: "mechcore.replay-convert-match-result",
@@ -496,6 +493,7 @@ fn match_layout(bytes: &[u8], round: Option<i32>) -> Result<mechcore_document::L
     let stated = mechcore_document::opening::stated(bytes)
         .map_err(Failure::refused)?
         .ok_or_else(|| Failure::refused("the document names itself a match and holds none"))?;
+    crate::r#match::warn_build(&stated.build);
     let round = round
         .or_else(|| {
             stated

@@ -426,6 +426,7 @@ impl Played {
         let played = mechcore_document::r#match::read(&bytes)
             .map_err(Failure::failed)?
             .ok_or_else(|| Failure::failed(format!("{} is not a match", path.display())))?;
+        crate::r#match::warn_build(&played.game_build);
         let last = played.turns.last();
         let core = |side: Side| {
             last.map_or_else(

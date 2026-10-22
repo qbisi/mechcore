@@ -30,7 +30,7 @@ pub(crate) fn this_build() -> String {
     game_build().to_owned()
 }
 
-/// Whether a writer leaves the build out: it does when the build is this
+/// Whether a layout or fight writer leaves the build out: when it is this
 /// binary's, which a reader takes for one stating nothing, so a version is
 /// written only where it differs from `GAME_VERSION`.
 pub(crate) fn is_this_build(stated: &str) -> bool {

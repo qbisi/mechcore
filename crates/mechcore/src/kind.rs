@@ -239,7 +239,7 @@ mod tests {
         assert_eq!(Kind::of(b"kind: layout\nround: 1\n").unwrap(), Kind::Layout);
         assert_eq!(Kind::of(b"kind: fight\nround: 1\n").unwrap(), Kind::Fight);
         assert_eq!(
-            Kind::of(b"kind: match\ngame_build: x\n---\nkind: action\n").unwrap(),
+            Kind::of(b"kind: match\nbuild: x\n---\nkind: action\n").unwrap(),
             Kind::Match
         );
         assert_eq!(Kind::of(b"PK\x03\x04rest").unwrap(), Kind::Mcfr);

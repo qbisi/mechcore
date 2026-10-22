@@ -515,6 +515,7 @@ pub fn predict(economy: &Economy, seed: i32, map_id: i32) -> Result<Prediction, 
 #[derive(Debug)]
 pub struct Stated {
     pub has_opening: bool,
+    pub build: String,
     pub map_id: i32,
     pub seed: i32,
     /// The header's deployment clock, which only a match states.
@@ -567,7 +568,7 @@ impl StatedSide {
 struct StatedHeader {
     /// A match that states no build is this binary's, as a layout is.
     #[serde(default = "crate::economy::this_build")]
-    game_build: String,
+    build: String,
     map_id: i32,
     seed: i32,
     #[serde(default)]
@@ -620,7 +621,6 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
     };
     let header: StatedHeader = serde_yaml::from_value(stream.header)
         .map_err(|error| format!("match header is not readable: {error}"))?;
-    crate::economy::require_this_build(&header.game_build)?;
     let has_opening = stream.opening.is_some();
     if !has_opening && stream.rounds.is_empty() {
         return Err("match states no round 0 opening decisions or captured state".into());
@@ -664,6 +664,7 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         .collect::<Result<_, String>>()?;
     Ok(Some(Stated {
         has_opening,
+        build: header.build,
         map_id: header.map_id,
         seed: header.seed,
         deploy_time: header.deploy_time,

@@ -139,6 +139,7 @@ fn one(path: &Path) -> Result<Report, String> {
         Kind::Match => {
             let stated = mechcore_document::opening::stated(&bytes)?
                 .ok_or("the document names itself a match and holds no match stream")?;
+            crate::r#match::warn_build(&stated.build);
             verify_match(path, &stated)
         }
         Kind::Mcfr => verify_recording(path),
