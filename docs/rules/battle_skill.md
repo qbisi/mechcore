@@ -476,6 +476,10 @@ which scores from that facing. It then takes the place of the unit's
   longer supplies the turn direction, but the retained lock still does:
   `CalculateTargetDirection` falls back to `GetLockTarget`, which does not
   reject a dead lock. Out of range it walks towards the point.
+- Leaving attack for a retained dead target outside range changes directly
+  to moving. Entering that state neither updates movement nor submits a
+  stop, so the previous movement request survives until the moving state
+  next updates its agent ([`2487-r4.yaml`](../../tests/corpus/2487-r4.yaml)).
 - A command outlives a won fight. When the skill lets its target go as the
   fight stops, an attacking unit changes to moving, and a unit on the beacon
   goes on moving and turning to where it moves until the fight ends, which
@@ -682,6 +686,9 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
 - A Hound on a beacon stays attacking a living wall after its lock behind
   the wall dies; the command remains active on that wall in range:
   `tests/corpus/2328-r4.yaml`.
+- A Wasp on a beacon leaves attack when its retained dead target goes out
+  of range, keeping the previous RVO movement request instead of stopping
+  before entering move: `tests/corpus/2487-r4.yaml`.
 - A Fortress on a beacon turns towards its Rocket Punch target while that
   extra attacker holds the motion outside its range, reversing the turn
   from its velocity direction:
@@ -891,7 +898,8 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
 - A unit attacking under a command walks on or stops, turns to its target and
   leaves the attack only once its target is out of range; how near and how far
   an enemy stops it: `MotionAttackState.Update`, `MotionAttackState.AttackRotate`,
-  `MotionAttackState.AttackMove`, `MoveAttackCommand.IsIdle`,
+  `MotionAttackState.AttackMove`, `MotionMoveState.Enter`,
+  `MoveAttackCommand.IsIdle`,
   `MoveAttackCommand.IsActive`, `LineRange.Overlaps`, `FightActor.Distance2D`,
   `FightTransform.Distance2D`.
 - The line/circle test's fixed-point arithmetic:

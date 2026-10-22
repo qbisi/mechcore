@@ -1873,29 +1873,15 @@ impl Simulation {
         if let Flow::Done = self.attack_under_command(actor_id) {
             return Flow::Done;
         }
-        let was_moving = self.actors[&actor_id].motion.state == MotionState::Moving;
-        // MoveAttackCommand stays active after its target dies. The moving
-        // state asks the attacker's range (or its move ability) below; it
-        // does not take AutoMoveBehaviour's dead-lock idle path first.
-        if was_moving && self.actors[&actor_id].command.is_some() {
+        // MoveAttackCommand stays active after its target dies. Both the
+        // attack and move states ask the attacker's range below; neither
+        // takes AutoMoveBehaviour's dead-lock idle/StopMove path first.
+        // Leaving attack enters move without updating it, so the last RVO
+        // request survives until the next movement update (corpus 2487/r4).
+        if self.actors[&actor_id].command.is_some() {
             return Flow::Next;
         }
-        let Flow::Done = self.hold_dead_target(actor_id, backswing_just_finished) else {
-            return Flow::Next;
-        };
-        if self.actors[&actor_id].command.is_some()
-            && self.actors[&actor_id].motion.state == MotionState::Idle
-        {
-            if was_moving {
-                self.move_to_command_point(actor_id);
-            }
-            self.actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable")
-                .motion
-                .state = MotionState::Moving;
-        }
-        Flow::Done
+        self.hold_dead_target(actor_id, backswing_just_finished)
     }
 
     /// A target that died while the unit still swings at it: a unit is left
