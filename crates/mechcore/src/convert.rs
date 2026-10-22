@@ -523,20 +523,36 @@ fn match_layout(bytes: &[u8], round: Option<i32>) -> Result<mechcore_document::L
         .and_then(|opening| mechcore_document::reinforcement::verify(economy, &stated, &opening))
         .map_err(Failure::refused)?
         .declined(turn);
-    let deployed = |state, actions, red| {
-        mechcore_document::transition::deployed(economy, state, actions, red, declined).map_err(
-            |unsettled| Failure::refused(format!("round {round} is not settled: {unsettled}")),
-        )
-    };
-    let state = mechcore_document::r#match::State {
-        random_state: [0; 4],
-        reinforce_pool: mechcore_document::r#match::PoolDelta::default(),
-        reinforce_offers: None,
-        blue: deployed(&turn.state.blue, &turn.actions.blue, false)?,
-        red: deployed(&turn.state.red, &turn.actions.red, true)?,
-    };
-    mechcore_document::project::project(&turn.state, &state, round, stated.map_id, stated.seed)
-        .map_err(Failure::refused)
+    project_match(
+        economy,
+        &turn.state,
+        &turn.actions,
+        round,
+        stated.map_id,
+        stated.seed,
+        declined,
+    )
+    .map(|deployment| deployment.layout)
+    .map_err(Failure::refused)
+}
+
+/// The shared match-to-layout path used by conversion and live settlement.
+pub(crate) fn project_match(
+    economy: &mechcore_document::economy::Economy,
+    opening: &mechcore_document::r#match::State,
+    actions: &mechcore_document::r#match::TurnActions,
+    round: i32,
+    map_id: i32,
+    seed: i32,
+    declined: Option<i32>,
+) -> Result<mechcore_document::project::Deployment, String> {
+    let deployment = mechcore_document::project::deployment(
+        economy, opening, actions, round, map_id, seed, declined,
+    )?;
+    for warning in &deployment.warnings {
+        eprintln!("warning: {warning}");
+    }
+    Ok(deployment)
 }
 
 /// A projected layout on standard output or written to a destination.

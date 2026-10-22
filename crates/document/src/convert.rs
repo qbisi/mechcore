@@ -1333,6 +1333,9 @@ fn collapse_moves(taken: Vec<(Action, Placed)>) -> Vec<Action> {
     let mut kept: Vec<Option<Action>> = Vec::with_capacity(taken.len());
     let mut runs: BTreeMap<i32, Run> = BTreeMap::new();
     for (action, placed) in taken {
+        if crate::project::activates_cloak(&action) {
+            runs.clear();
+        }
         match (&action, placed) {
             (Action::BuyUnit { .. }, Placed::Created(index)) => {
                 runs.insert(index, Run::Bought(kept.len()));
@@ -1387,8 +1390,8 @@ fn collapse_moves(taken: Vec<(Action, Placed)>) -> Vec<Action> {
 /// Orders a side's decisions so that the board allows each one where it
 /// stands, the same way whatever route the recording took.
 ///
-/// A move states where a unit ends up, and when it was made changes nothing
-/// else the side decides: a move needs its unit free to move, which the
+/// Within a segment bounded by Stealth Cloak acquisition, a move states
+/// where a unit ends up: a move needs its unit free to move, which the
 /// decision that freed it has done by then, and a unit gone by the round's
 /// end ends up nowhere, so its moves are dropped. The moves therefore follow
 /// the side's other decisions, ascending by unit, a unit's own in the order
@@ -1402,6 +1405,39 @@ fn collapse_moves(taken: Vec<(Action, Placed)>) -> Vec<Action> {
 /// within its own region to a place nothing left goes: that move is part of
 /// the match, as legal as the rest.
 fn settle(
+    economy: &Economy,
+    opened: &SideState,
+    collapsed: Vec<Action>,
+    ended: &SideState,
+    red: bool,
+    declined: Option<i32>,
+) -> Result<Vec<Action>, String> {
+    // Movement across Cloak acquisition changes native controller initialization.
+    // Normalize board placement only within each side of that boundary.
+    let mut position = opened.clone();
+    let mut settled = Vec::new();
+    let mut segment = Vec::new();
+    for action in collapsed {
+        if crate::project::activates_cloak(&action) {
+            let ordered = settle_segment(economy, &position, segment, ended, red, declined)?;
+            position = crate::transition::deployed(economy, &position, &ordered, red, declined)
+                .map_err(|error| error.to_string())?;
+            settled.extend(ordered);
+            position = crate::transition::step(economy, &position, &action, declined)
+                .map_err(|error| error.to_string())?;
+            settled.push(action);
+            segment = Vec::new();
+        } else {
+            segment.push(action);
+        }
+    }
+    settled.extend(settle_segment(
+        economy, &position, segment, ended, red, declined,
+    )?);
+    Ok(settled)
+}
+
+fn settle_segment(
     economy: &Economy,
     opened: &SideState,
     collapsed: Vec<Action>,
@@ -2073,6 +2109,39 @@ mod tests {
         let settled = super::settle(economy, opened, taken, opened, false, None).unwrap();
         crate::transition::deployed(economy, opened, &settled, false, None).unwrap();
         settled
+    }
+
+    #[test]
+    fn cloak_acquisition_keeps_movement_on_its_recorded_side() {
+        let moved = Action::MoveUnit {
+            index: 0,
+            position: Position { x: -100, y: -160 },
+            rotated: false,
+        };
+        let cloak = Action::UpgradeTechnology {
+            unit: 25,
+            tech: 3925,
+        };
+        assert_eq!(
+            settled(&two_marksmen(), vec![moved.clone(), cloak.clone()]),
+            [moved.clone(), cloak.clone()]
+        );
+        let bought = Action::BuyUnit {
+            unit: 25,
+            position: Position { x: 0, y: -160 },
+            rotated: false,
+        };
+        assert_eq!(
+            super::collapse_moves(vec![
+                (bought.clone(), super::Placed::Created(0)),
+                (cloak.clone(), super::Placed::Elsewhere),
+                (
+                    moved.clone(),
+                    super::Placed::Moved(crate::layout::Region::Main)
+                ),
+            ]),
+            [bought, cloak, moved]
+        );
     }
 
     /// Two units trading places wait on each other, so one steps aside first,

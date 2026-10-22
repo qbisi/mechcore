@@ -574,6 +574,24 @@ fn render(value: &Value) -> String {
 mod tests {
     use super::*;
 
+    #[test]
+    fn a_warning_passes_but_does_not_hide_a_later_failure() {
+        let mut fights = Fights {
+            rounds: vec![Fought::Warning {
+                round: 5,
+                warnings: vec!["comparison skipped".into()],
+            }],
+        };
+        assert!(fights.complete());
+        assert!(fights.first_stop().is_none());
+        fights.rounds.push(Fought::Unsupported {
+            round: 6,
+            reason: "unimplemented".into(),
+        });
+        assert!(!fights.complete());
+        assert_eq!(fights.first_stop().unwrap().round(), 6);
+    }
+
     /// Every field a side's position can hold, as the dotted path a leaf is
     /// grouped under, read off the schema rather than off any match.
     fn side_fields() -> Vec<String> {
@@ -644,6 +662,8 @@ pub struct Fights {
 pub enum Fought {
     /// The fight decided what the match says.
     Equal { round: i32 },
+    /// History cannot be represented by a layout; only fight comparison is skipped.
+    Warning { round: i32, warnings: Vec<String> },
     /// The round's deployment does not project onto a layout.
     NotProjected { round: i32, reason: String },
     /// The simulator refuses the round's layout.
@@ -662,6 +682,7 @@ impl Fought {
     pub const fn round(&self) -> i32 {
         match self {
             Self::Equal { round }
+            | Self::Warning { round, .. }
             | Self::NotProjected { round, .. }
             | Self::Unsupported { round, .. }
             | Self::Differs { round, .. } => *round,
@@ -669,22 +690,22 @@ impl Fought {
     }
 
     #[must_use]
-    pub const fn agrees(&self) -> bool {
-        matches!(self, Self::Equal { .. })
+    pub const fn passes(&self) -> bool {
+        matches!(self, Self::Equal { .. } | Self::Warning { .. })
     }
 }
 
 impl Fights {
-    /// Whether every round with a next position was fought and agrees.
+    /// Whether every round agrees or explicitly warns that comparison was skipped.
     #[must_use]
     pub fn complete(&self) -> bool {
-        self.rounds.iter().all(Fought::agrees)
+        self.rounds.iter().all(Fought::passes)
     }
 
-    /// The first round that was not fought or does not agree.
+    /// The first failed round, ignoring explicit comparison warnings.
     #[must_use]
     pub fn first_stop(&self) -> Option<&Fought> {
-        self.rounds.iter().find(|round| !round.agrees())
+        self.rounds.iter().find(|round| !round.passes())
     }
 }
 
@@ -708,31 +729,17 @@ pub fn fights(
     for pair in stated.turns.windows(2) {
         let [turn, next] = pair else { continue };
         let declined = deal.declined(turn);
-        let deployed = |state, actions, red| {
-            crate::transition::deployed(economy, state, actions, red, declined)
-                .map_err(|unsettled| format!("round {} does not deploy: {unsettled}", turn.round))
-        };
-        let position = deployed(&turn.state.blue, &turn.actions.blue, false).and_then(|blue| {
-            deployed(&turn.state.red, &turn.actions.red, true).map(|red| crate::r#match::State {
-                random_state: turn.state.random_state,
-                reinforce_pool: turn.state.reinforce_pool.clone(),
-                reinforce_offers: turn.state.reinforce_offers.clone(),
-                blue,
-                red,
-            })
-        });
-        let layout = position.and_then(|position| {
-            crate::project::project(
-                &turn.state,
-                &position,
-                turn.round,
-                stated.map_id,
-                stated.seed,
-            )
-            .map(|layout| (position, layout))
-        });
-        let (position, layout) = match layout {
-            Ok(projected) => projected,
+        let projected = crate::project::deployment(
+            economy,
+            &turn.state,
+            &turn.actions,
+            turn.round,
+            stated.map_id,
+            stated.seed,
+            declined,
+        );
+        let deployment = match projected {
+            Ok(deployment) => deployment,
             Err(reason) => {
                 found.rounds.push(Fought::NotProjected {
                     round: turn.round,
@@ -741,6 +748,17 @@ pub fn fights(
                 continue;
             }
         };
+        if !deployment.warnings.is_empty() {
+            found.rounds.push(Fought::Warning {
+                round: turn.round,
+                warnings: deployment.warnings.into_iter()
+                    .map(|warning| format!("{warning} Fight outcome comparison skipped for this round; other verification checks continue."))
+                    .collect(),
+            });
+            continue;
+        }
+        let position = deployment.state;
+        let layout = deployment.layout;
         let fought = match fight(&layout) {
             Ok(fought) => fought,
             Err(reason) => {

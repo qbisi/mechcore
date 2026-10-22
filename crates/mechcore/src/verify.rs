@@ -581,6 +581,15 @@ fn verify_match(
             .map_err(|failure| failure.reason().to_owned())
         })
     });
+    if let Some(fights) = &fights {
+        for round in &fights.rounds {
+            if let mechcore_document::coverage::Fought::Warning { warnings, .. } = round {
+                for warning in warnings {
+                    eprintln!("warning: {warning}");
+                }
+            }
+        }
+    }
     let error = match &checked {
         Err(error) => Some(error.clone()),
         Ok(_) if matches!(projected, Some(Err(_))) => projected.clone().and_then(Result::err),
@@ -591,7 +600,9 @@ fn verify_match(
         Ok(_) => fights.as_ref().and_then(|fights| {
             use mechcore_document::coverage::Fought;
             fights.first_stop().map(|stopped| match stopped {
-                Fought::Equal { .. } => unreachable!("a round that agrees does not stop a match"),
+                Fought::Equal { .. } | Fought::Warning { .. } => {
+                    unreachable!("a passing round does not stop a match")
+                }
                 Fought::NotProjected { round, reason } => {
                     format!("round {round} is not fought: {reason}")
                 }

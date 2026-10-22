@@ -468,6 +468,15 @@ and put through the layout compiler. The report's `projected_layouts` counts
 the layouts that compiled, two per round, and a round that does not project,
 deploy or compile fails the match with its round and which position it was.
 
+A deployment that acquires Stealth Cloak after Phantom Ray flank deployment
+projects with a warning: a layout activates technology before deployment and
+cannot preserve that native controller initialization order. `verify` records
+`result: warning` for that round and skips only its fight outcome comparison.
+This warning does not fail the match; deployment legality, projection,
+non-combat transitions and the other rounds' fights are still checked.
+Replay conversion preserves the movement order across Cloak acquisition so
+this warning remains detectable after conversion.
+
 ### Cross-round invariants
 
 A segment checks itself. A match checks the seams between states, and these

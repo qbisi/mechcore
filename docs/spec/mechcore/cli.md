@@ -207,8 +207,12 @@ batch still runs.
   with the simulator's reason; or `not_projected`, with why its deployment is
   no layout. A match verifies only when every leaf outside the fight is
   predicted and agrees, every round projects onto a layout the compiler takes,
-  and every fight is fought and agrees; its `error` names the first round that
-  is not.
+  and every fight is fought and agrees, except a round explicitly reported as
+  `warning`. For Stealth Cloak acquired after Phantom Ray flank deployment,
+  the warning explains that layout projection cannot preserve this order;
+  that round's fight comparison is skipped. All other checks continue, and
+  this warning alone does not fail the match. Its `error` names the first
+  check that fails.
 - A **recording** is checked by simulating the layout it embeds again and
   comparing the result with what it holds. The report's `comparison` carries
   both timelines, the first tick they part at, and that tick explained.
@@ -291,6 +295,13 @@ not, and a round whose decisions the rules do not settle is refused. It is how
 a fight is run again without a recording being kept of it. Without `<out>` it
 answers the layout on standard output; with one it writes the layout there and
 answers its path and round.
+
+When Stealth Cloak was acquired after Phantom Ray flank deployment, this shared
+projection emits a warning on standard error and continues. The simulator
+always settles with technologies activated before deployment, so it may differ
+from the native game; actual settlement follows the selected backend. Activate
+technologies before flank deployment to benefit from them earlier. Live match
+settlement, including shell and arena, uses this same projection path.
 
 **`match` to `fight` or `mcfr`, a computation.** Selects the round exactly as `match` to
 `layout` does, projects its recorded state and decisions through that same
