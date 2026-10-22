@@ -965,7 +965,10 @@ impl Simulation {
             ) {
                 continue;
             }
-            if nearest.is_none_or(|(best, _)| distance < best) {
+            // GetNearestWall skips only a strictly farther block. Equal
+            // distances (under FPoint's comparison) replace the previous wall.
+            if nearest.is_none_or(|(best, _)| !super::super::rvo::fpoint_less_than(best, distance))
+            {
                 nearest = Some((distance, building.building_id));
             }
         }
