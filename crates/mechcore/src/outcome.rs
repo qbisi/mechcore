@@ -287,6 +287,7 @@ fn fight_side(side: mechcore_document::Side, read: SideReading) -> Result<FightS
             .zip(read.exp)
             .map(|(unit, exp)| {
                 Ok(FightUnit {
+                    record_position: unit.record_position,
                     type_name: unit.type_name,
                     index: unit.index,
                     position: unit.position,

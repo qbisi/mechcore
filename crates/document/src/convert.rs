@@ -900,6 +900,7 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
             value: Some(unit.sell_supply),
             redeployed: false,
             unit: UnitPlacement {
+                record_position: None,
                 type_name: type_name.to_owned(),
                 index: unit.index,
                 position,
@@ -2089,6 +2090,7 @@ mod tests {
     fn two_marksmen() -> crate::r#match::SideState {
         let marksman = |index, x| crate::r#match::StateUnit {
             unit: crate::layout::UnitPlacement {
+                record_position: None,
                 type_name: "marksman".into(),
                 index,
                 position: Position { x, y: -160 },

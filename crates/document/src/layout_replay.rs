@@ -204,17 +204,13 @@ fn write_player(
 /// One side's `PlayerSnapshotData` after its random state, reactor, supply
 /// and last result, in the order `XmlSerializer` writes its members.
 fn write_side(xml: &mut String, side: &SidePlan, deployment: &Deployment, sign: i32, round: i32) {
-    // A legacy unit the round sends travelling opens it on the other flank.
+    // Every legacy unit opens at its actual preparation position.
     let settled: Vec<(&Placement, Position)> = deployment
         .settled
         .iter()
         .map(|at| {
             let unit = &side.units[*at];
-            let position = if deployment.redeployed.contains(at) {
-                redeployed_from(unit.position)
-            } else {
-                unit.position
-            };
+            let position = unit.record_position.unwrap_or(unit.position);
             (unit, position)
         })
         .collect();
@@ -865,6 +861,22 @@ fn write_actions(xml: &mut String, side: &SidePlan, deployment: &Deployment, sig
         let unit = &side.units[*at];
         restore_travelling(&mut actions, unit, sign);
     }
+    for at in &deployment.settled {
+        let unit = &side.units[*at];
+        if unit
+            .record_position
+            .is_some_and(|record| record != unit.position)
+            && !deployment.redeployed.contains(at)
+        {
+            restore_position(
+                &mut actions,
+                unit,
+                unit.record_position.unwrap(),
+                sign,
+                unit.travelling,
+            );
+        }
+    }
     // The replay seats blue first, and each side's main deployment area is
     // its territory's region 1 for blue and 4 for red.
     let (room, main_region) = if sign == 1 { (0, 1) } else { (1, 4) };
@@ -956,12 +968,29 @@ fn train(actions: &mut Vec<(&str, String)>, side: &SidePlan, deployment: &Deploy
     ));
 }
 
-/// `MAP_MoveUnit.Perform` with `IsUndo`: restore the travelling membership
-/// from `superDeployRecord`, instead of inferring it from a player's move.
-/// Its `IsForce` skips mobility checks. The snapshot opens the unit on the
-/// other flank because the native refresh runs only when regions differ.
+/// `MAP_MoveUnit.Perform` with `IsUndo` restores travelling membership from
+/// `superDeployRecord`. The refresh requires crossing a region boundary, so
+/// a same-region restoration first visits the opposite flank. Both moves
+/// retain the snapshot's actual preparation position.
 fn restore_travelling(actions: &mut Vec<(&str, String)>, unit: &Placement, sign: i32) {
-    let fields = move_fields(unit, redeployed_from(unit.position), sign, true);
+    let mut from = unit.record_position.unwrap_or(unit.position);
+    if crate::Region::of(from) == crate::Region::of(unit.position) {
+        let mut intermediate = unit.clone();
+        intermediate.position = redeployed_from(unit.position);
+        restore_position(actions, &intermediate, from, sign, false);
+        from = intermediate.position;
+    }
+    restore_position(actions, unit, from, sign, true);
+}
+
+fn restore_position(
+    actions: &mut Vec<(&str, String)>,
+    unit: &Placement,
+    from: Position,
+    sign: i32,
+    travelling: bool,
+) {
+    let fields = move_fields(unit, from, sign, travelling);
     let room = i32::from(sign < 0);
     actions.push((
         "PAD_TestCommand",
@@ -1147,6 +1176,44 @@ mod tests {
             );
         }
         plan
+    }
+
+    #[test]
+    fn legacy_record_position_survives_projection_and_replay() {
+        let value = json!({
+            "kind": "layout", "seed": 4242, "round": 7,
+            "blue": {"units": [{"name": "marksman", "index": 0,
+                "position": {"x": 100, "y": -100},
+                "recordPosition": {"x": -100, "y": -100}}]},
+            "red": {"units": [{"name": "arclight", "index": 0,
+                "position": {"x": 0, "y": -100}}]}
+        });
+        let compiled = plan(&value);
+        assert_eq!(
+            compiled.blue.units[0].record_position,
+            Some(Position { x: -100, y: -100 })
+        );
+        let replay = layout_replay(&compiled, crate::game_build()).unwrap();
+        let xml = embedded_xml(&replay);
+        assert!(xml.contains("<Position><x>-100</x><y>-100</y></Position>"));
+        assert!(xml.contains("<position><x>100</x><y>-100</y></position>"));
+        #[cfg(feature = "convert")]
+        assert_eq!(
+            read(&replay, 7).unwrap().blue.units[0].record_position,
+            Some(Position { x: -100, y: -100 })
+        );
+        for source in ["joined", "delivered"] {
+            let mut invalid = value.clone();
+            invalid["blue"]["units"][0]["source"] = source.into();
+            assert!(
+                compile(&invalid)
+                    .unwrap_err()
+                    .contains("only valid for legacy")
+            );
+        }
+        let mut equal: crate::Layout = serde_json::from_value(value).unwrap();
+        equal.blue.units[0].record_position = Some(equal.blue.units[0].position);
+        assert!(equal.normalized().blue.units[0].record_position.is_none());
     }
 
     #[cfg(feature = "convert")]
@@ -1415,7 +1482,7 @@ mod tests {
     /// A legacy unit's travelling membership is restored by a native forced
     /// undo, independent of how a match made the formation movable.
     #[test]
-    fn a_legacy_unit_that_travels_opens_on_the_other_flank() {
+    fn a_legacy_traveller_preserves_its_preparation_position() {
         let layout = |equipment: serde_json::Value| {
             json!({
                 "kind": "layout", "seed": 4242, "round": 3,
@@ -1431,7 +1498,8 @@ mod tests {
         )
         .unwrap();
         let xml = embedded_xml(&replay);
-        assert!(xml.contains("<Position><x>-330</x><y>285</y></Position>"));
+        assert!(xml.contains("<Position><x>330</x><y>285</y></Position>"));
+        assert_eq!(xml.matches("xsi:type=\"MAD_MoveUnit\"").count(), 2);
         assert!(xml.contains(
             "<position><x>330</x><y>285</y></position><isRotate>false</isRotate>\
              <positionRecord><x>-330</x><y>285</y></positionRecord>"
@@ -1442,6 +1510,16 @@ mod tests {
         assert!(xml.contains("<IsForce>true</IsForce><IsUndo>true</IsUndo>"));
         assert!(xml.contains("<superDeployRecord>true</superDeployRecord>"));
         assert!(!xml.contains("<id>1000001</id>"));
+        for record in [Position { x: -330, y: 285 }, Position { x: 330, y: 255 }] {
+            let mut explicit = layout(json!([]));
+            explicit["blue"]["units"][0]["recordPosition"] = serde_json::to_value(record).unwrap();
+            let replay = layout_replay(&plan(&explicit), crate::game_build()).unwrap();
+            #[cfg(feature = "convert")]
+            assert_eq!(
+                read(&replay, 3).unwrap().blue.units[0].record_position,
+                Some(record)
+            );
+        }
     }
 
     #[test]

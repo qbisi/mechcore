@@ -301,6 +301,13 @@ pub struct FightUnit {
     pub type_name: String,
     pub index: i32,
     pub position: Position,
+    /// The legacy formation's round-opening position, defaulting to `position`.
+    #[serde(
+        default,
+        rename = "recordPosition",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub record_position: Option<Position>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub level: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -610,6 +617,7 @@ fn project_side(side: &FightSide) -> Side {
             .units
             .iter()
             .map(|unit| UnitPlacement {
+                record_position: unit.record_position,
                 type_name: unit.type_name.clone(),
                 index: unit.index,
                 position: unit.position,
@@ -679,6 +687,9 @@ impl Fight {
             });
             side.battle_skills = standing.into_iter().chain(releases).collect();
             for formation in &mut side.units {
+                if formation.record_position == Some(formation.position) {
+                    formation.record_position = None;
+                }
                 if formation.level == Some(1) {
                     formation.level = None;
                 }

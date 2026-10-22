@@ -133,8 +133,8 @@ to its side's attack facing, `PlayerTerritory.GetAttackFacing`, and then to
 the direction `UnitDirectionCalculator.Calculate` finds. That gathers the
 other side's targets, has the construction's skill choose one of them with a
 `ScoreRatingTargetSelector`, the selector a search scores with
-([combat.md](combat.md)), and faces where the chosen target stands; with none
-chosen it keeps the attack facing. The score is taken from where the
+([combat.md](combat.md)), and faces the chosen target's preparation position;
+with none chosen it keeps the attack facing. The score is taken from where the
 construction stands and points, which is the attack facing, so the target is
 the best scored, not the nearest: a turret faces a tower straight ahead rather
 than a unit whose centre is nearer but whose edge is not, or which stands off
@@ -164,8 +164,12 @@ it there, at its distance from the map's centre and its angle off the attack
 facing, and `CalculateMechDirection` turns towards the chosen target's
 `FightTransform.recordPosition`, which the delivery leaves at the origin. A
 turret that chooses it starts the fight facing the map's centre, whatever
-stands on that line. A unit a snapshot restores, or one bought and moved, is
-scored and faced where it stands.
+stands on that line. A legacy unit is scored and faced at its round-opening
+member positions, even after it moves during deployment. Both preparation
+calculators read its `FightTransform.recordPosition`; movement changes the
+combat position without replacing that preparation position. A layout keeps
+the formation's old centre in `recordPosition`, defaulting to its current
+`position`. Target eligibility still uses the current unit state.
 
 ## Each shot draws its interval from the side's stream
 
@@ -278,6 +282,8 @@ content, as `tests/turret/` replays them.
   blue unit, and `tests/corpus/67158946-r3.yaml`, where blue's faces a
   red tower although an old red unit's centre is nearer, and red's faces
   blue's turret. With no old unit it faces a tower: `tests/turret/`.
+- A redeployed legacy unit keeps its round-opening position for the initial
+  turret score and facing: `tests/corpus/2763-r7.yaml`.
 - A turret does not turn to the advance team as round 1 starts, and turns to
   the same unit as an old unit in round 3: red's Anti-Armor Turret at world
   (140, 100) faces 180° and locks the Marksman straight ahead in round 1, and
@@ -359,6 +365,11 @@ content, as `tests/turret/` replays them.
   `FightTransform.recordPosition`: `UnitDirectionCalculator.CalculateMechDirection`.
   An officer's squad is added through a callback,
   `OfficerSystem.ActiveOfficerEffect` to `UnitOfficerController.AddExtraUnit`.
+- Preparation distance and angle use an old unit's recorded member positions:
+  `DistanceInPrepareCalculator.Calculate`, `AngleInPrepareCalculator.Calculate`,
+  `FightTransform.GetRecordPosition2D`. `CardElement.RecordDataWhenEnterDeployment`
+  copies its `MapElement`, which `CardElement.GetRecordMapElement` exposes for
+  the formation's opening centre.
 - The attack angle is checked for a construction as for a unit:
   `SkillAttackAngleChecker.IsActorInAttackAngle`.
 - A dead lock is searched again inside the attack: `SkillAttackableChecker.Check`,
@@ -380,8 +391,9 @@ content, as `tests/turret/` replays them.
   either.
 - **What leaves a delivered squad at the origin.** Recorded, not read: which
   call sets `FightTransform.recordPosition` for a restored or bought unit and
-  not for a delivered one, and whether the selector reads the same field.
-  A unit's own fight-start facing towards a delivered squad is not recorded.
+  not for a delivered one. The preparation distance and angle calculators
+  do read that recorded field. A unit's own fight-start facing towards a
+  delivered squad is not recorded.
 - **A construction whose attack facing is a quarter turn off its main
   facing.** `UnitDirectionCalculator.GetTargets` then looks first in a defense
   region, `GetTargetsInRegion`, which finds no tower. Every turret recorded

@@ -1299,6 +1299,7 @@ impl Simulation {
         let placement = Placement {
             unit_id,
             formation_id,
+            record_origin: None,
             world_x: q32_to_space_rounded(x_q32),
             world_z: q32_to_space_rounded(z_q32),
             ..made.placement.clone()
@@ -1458,6 +1459,7 @@ fn summon_placement(
         formation_id,
         formation_index: -1,
         type_name: creator.summon.rules.type_name.clone(),
+        record_origin: None,
         world_x: q32_to_space_rounded(x_q32),
         world_z: q32_to_space_rounded(z_q32),
         rotation: if team == 0 { 0 } else { 180_000 },

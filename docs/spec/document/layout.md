@@ -601,6 +601,15 @@ semantic `name` instead of exposing its native numeric ID:
   be strictly increasing in unit declaration order and may contain gaps.
 - `source` is how the unit came to the side, [above](#source-and-recovered):
   `legacy`, `delivered` or `joined`.
+- `recordPosition` optionally states a legacy unit's position as the round
+  opened, in the same side-local `{x, y}` coordinates as `position`. It defaults
+  to `position`, and normal form omits an equal value. Only `source: legacy`
+  admits it; `delivered` and `joined` units refuse it. It must fit a native
+  placement grid and deployment region, but is not a current occupied footprint
+  and does not take part in collision checks. Preparation target scoring and
+  defensive turret initial facing use the member positions generated there;
+  combat uses `position`. A match projection takes it from that unit's opening
+  position, before the round's actions, and omits it if the unit did not move.
 - `exp` is the unit's experience within its current level, written
   `current/maximum` as in `124/450`. `current` is a non-negative integer and
   `maximum` is the level's full bar, which the

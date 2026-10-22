@@ -89,6 +89,11 @@ fn restored_side(
     for action in &turn.actions.entries {
         restore_action(&mut side, turn, action, red, &mut next)?;
     }
+    for unit in &mut side.units {
+        if unit.record_position == Some(unit.position) {
+            unit.record_position = None;
+        }
+    }
     Ok(side)
 }
 
@@ -96,6 +101,7 @@ fn added(id: i32, index: i32, level: i32, source: UnitSource) -> Result<UnitPlac
     let (name, _) = crate::unit_type_from_id(id)
         .ok_or_else(|| format!("layout replay unit {id} has no layout type"))?;
     Ok(UnitPlacement {
+        record_position: None,
         type_name: name.to_owned(),
         index,
         position: Position { x: 0, y: 0 },
@@ -215,6 +221,9 @@ fn restore_moves(
         .ok_or("layout restoration move has no moveUnitDatas")?;
     for movement in &moves.entries {
         let unit = unit(side, Some(movement.unit_index))?;
+        if unit.source == UnitSource::Legacy && unit.record_position.is_none() {
+            unit.record_position = Some(unit.position);
+        }
         unit.position = position(&movement.position, red);
         unit.rotated = Some(movement.rotated).filter(|rotated| *rotated);
         let travelling = if forced {

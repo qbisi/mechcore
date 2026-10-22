@@ -45,6 +45,7 @@ pub(crate) struct Placement {
     pub(crate) formation_index: i32,
     pub(crate) type_name: String,
     pub(crate) world_x: i64,
+    pub(crate) record_origin: Option<(i64, i64, i64)>,
     pub(crate) world_z: i64,
     pub(crate) rotation: i64,
     pub(crate) rotated: bool,
@@ -572,6 +573,7 @@ fn death_summon_template(team: u32, rules: &UnitConfig, level: i64, worn: Worn) 
         formation_index: -1,
         type_name: rules.type_name.clone(),
         world_x: 0,
+        record_origin: None,
         world_z: 0,
         rotation: 0,
         rotated: false,
@@ -977,6 +979,9 @@ fn compile_formation(
         formation_index,
         type_name: formation.type_name.clone(),
         world_x,
+        record_origin: formation
+            .record_position
+            .map(|record| world_placement(record, team)),
         world_z,
         rotation,
         rotated: formation.rotated,

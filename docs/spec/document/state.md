@@ -613,7 +613,10 @@ unlocks each officer's schedule names for the round. A delivered squad has no
 recorded landing, and lands where [the board puts it](../../rules/landing.md).
 Unit sources are classified at the round opening as
 [`match.md`](match.md#what-conversion-rebuilds) states; movement permission is
-an internal derivation, not a written field.
+an internal derivation, not a written field. Projecting a completed deployment
+also preserves each legacy unit's opening position as layout `recordPosition`
+when it differs from the final `position`. This position is derived from the
+opening state by unit index, before applying this round's actions.
 
 A slot's `standing` is copied from somewhere other than an object list. A
 skill that leaves an object standing keeps it in that skill's `rangeItems`, so

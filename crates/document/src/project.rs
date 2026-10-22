@@ -172,6 +172,18 @@ pub fn assign_sources(side: &mut Side, allocator: i32, round: i32) -> Result<(),
 
 fn with_sources(mut side: Side, opening: &SideState, round: i32) -> Result<Side, String> {
     assign_sources(&mut side, opening.next_index.unit, round)?;
+    for unit in &mut side.units {
+        unit.record_position = if unit.source == UnitSource::Legacy {
+            opening
+                .units
+                .iter()
+                .find(|entry| entry.unit.index == unit.index)
+                .map(|entry| entry.unit.position)
+                .filter(|position| *position != unit.position)
+        } else {
+            None
+        };
+    }
     Ok(side)
 }
 
@@ -370,6 +382,34 @@ mod tests {
             {"name": "marksman", "index": 6, "position": {"x": 120, "y": -100}}
         ]}))
         .unwrap()
+    }
+
+    #[test]
+    fn legacy_record_position_comes_from_the_round_opening_by_index() {
+        let units = side().units;
+        let opening = SideState {
+            units: units
+                .iter()
+                .map(|unit| crate::r#match::StateUnit {
+                    unit: unit.clone(),
+                    value: Some(100),
+                    redeployed: false,
+                })
+                .collect(),
+            next_index: crate::r#match::NextIndex {
+                unit: 6,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let mut moved = side();
+        moved.units[1].position.x = 200;
+        moved.units[3].position.x = 240;
+        let projected = with_sources(moved, &opening, 3).unwrap();
+        assert_eq!(projected.units[1].record_position, Some(units[1].position));
+        assert!(projected.units[0].record_position.is_none());
+        assert_eq!(projected.units[3].source, UnitSource::Joined);
+        assert!(projected.units[3].record_position.is_none());
     }
 
     #[test]
