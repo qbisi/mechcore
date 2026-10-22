@@ -52,11 +52,11 @@ asserts:
     WHERE unit_id = 6 AND tick IN (239, 270, 271, 288, 289, 290)
     ORDER BY tick;
   rows:
-  - [239, 1, "normal"]
-  - [270, 1, "normal"]
-  - [271, 1, "normal"]
-  - [288, 1, "normal"]
-  - [289, 0, "disappear"]
-  - [290, 0, "disappear"]
+  - [239, 1, normal]
+  - [270, 1, normal]
+  - [271, 1, normal]
+  - [288, 1, normal]
+  - [289, 0, disappear]
+  - [290, 0, disappear]
 ticks: 772
-hash: 26:7c94b6b4ee081a51ccbc25f0b6f9917f56dea1070c5df2430464fda09895b8e4
+hash: 27:e80cbe6ed1f071b1bb28ddcc6e6f4e858e49b47fa8ca7849c4cc83fb27df6765

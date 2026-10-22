@@ -41,10 +41,11 @@ red:
   battle_skills:
   - {name: wasp_swarm, positions: [{x: 135, y: -90}]}
 asserts:
-- sql: "SELECT tick,rotation FROM units__skills__enabled__weapons WHERE unit_id=2 AND skills_ordinal=3 AND tick IN (702,703,704) ORDER BY tick"
+- sql: |-
+    SELECT tick,rotation FROM units__skills__enabled__weapons WHERE unit_id=2 AND skills_ordinal=3 AND tick IN (702,703,704) ORDER BY tick
   rows:
   - [702, 641680232152]
   - [703, 306641724369]
   - [704, 319526626209]
 ticks: 1610
-hash: 26:0a764da0274bec92f3fbb3f9f64eaac392f8605c7bc27b04cd03a2a1422e67b5
+hash: 27:40c7d15e75ded3b5d0fc817dfaf7fa155c3f7bd2996cea214f77699bdbd6682c

@@ -1,4 +1,4 @@
-# MCFR, format 0.27.0
+# MCFR, format 0.28.0
 
 ## Scope
 
@@ -7,7 +7,7 @@ schema of each, the identity and ordering rules that make two recordings of one
 fight the same recording, and what a reader must validate before trusting one.
 
 ```text
-format = "0.27.0"
+format = "0.28.0"
 ```
 
 The native field mapping is bound to the game version the repository pins in
@@ -122,12 +122,12 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.27.0` | the logical and physical contract version |
+| `format` | exactly `0.28.0` | the logical and physical contract version |
 | `producer` | `game` or `simulator` | what wrote the recording: the game, through the adapter, or the simulator |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
 | `settlement` | canonical JSON | complete native results after exiting the fight, independent of combat ticks |
-| `hash_profile` | exactly `26` | the hash definition's number, [below](#the-hash) |
+| `hash_profile` | exactly `27` | the hash definition's number, [below](#the-hash) |
 | `result_hash` | 64 lowercase hex digits | ordered digest of every `tick_hash` and settlement; what regression compares |
 | `tick_count` | canonical decimal `u32` | logical ticks recorded, counting from `S(1)` |
 | `terminal_tick` | canonical decimal `u32` | the confirmed final logical boundary, equal to `tick_count` on a continuous timeline |
@@ -192,7 +192,7 @@ death survives as a `unit_died` event.
 
 `siege_elapsed` reads the native duration map only for owners in the active
 trench list. The field is omitted from canonical JSON while absent, so fights
-without an active trench keep their hashes under profile 26. An active clock
+without an active trench omit this field. An active clock
 of zero is present, not null. Removing a trench removes its clock from the
 snapshot; the retained dictionary entry no longer governs a trench transition.
 The timer controls the later removal of life, range and interval modifiers,
@@ -669,7 +669,7 @@ one logic advance, which a diff cannot see.
 
 `ticks.parquet` metadata holds one required `settlement`, canonical compact
 JSON after `BattleSystem.OnFightOver` has pruned experience and
-`FightResultController.CalculateResult` has scored both sides. Publication
+`FightResultController.CalculateResult` has returned with both complete reports. Publication
 waits for this result, whether the fight ends naturally or by forced timeout.
 Missing results are refused, never supplied as zero. Settlement belongs to no
 combat tick and does not overwrite the last snapshot or add a tick.
@@ -678,6 +678,7 @@ combat tick and does not overwrite the last snapshot or add a tick.
 | --- | --- | --- |
 | `formations` | array of `FormationState` | every formation's experience and full bar after `MechTeam.PruneExp`, including dead formations |
 | `teams` | array of `TeamSettlement` | exactly teams 0 and 1, in that order |
+| `TeamSettlement.retained_contraptions` | array of `i32` | deployment indices in native `FightReport.Contraptions`, strictly ascending, nonnegative, without duplicates |
 | `TeamSettlement.score` | nonnegative `i32` | native `FightResultController.CalculateScore(team, true)` after fight exit |
 | `TeamSettlement.team_id` | `u32` | 0 for blue, 1 for red |
 
@@ -687,8 +688,13 @@ until any gain, and their maximum is positive and whole. The settlement holds
 the same formations as the timeline. Core damage is derived from the opposing
 side's score, as [reactor_damage.md](../../rules/reactor_damage.md) defines;
 experience gains are derived from the starting layout and the final value.
-Neither is stored a second time. Retained contraptions and skills are read
-from the recorded object states and lifecycles.
+Neither is stored a second time. A contraption is retained exactly when its
+deployment index occurs in its side's required `retained_contraptions` list; an
+empty list means none remain. The game reads the completed report, whose
+`CalculateResult` selects available historical contraption records and preserves
+their original indices. The simulator carries those indices on its shield,
+missile and interceptor objects and collects the ones still available after
+exit. Skills are read from the recorded object states and lifecycles.
 
 Natural endings wait for the projectile system to drain. Forced timeout exits
 immediately, discards projectiles without resolving pending hits and settles
@@ -1044,7 +1050,7 @@ Identity is what makes two recordings of one fight the same recording, so
 every namespace numbers its objects by a rule that depends on the scene rather
 than on the pointer that happened to be observed first.
 
-Format `0.27.0` uses `team_zx_sequential_v1`.
+Format `0.28.0` uses `team_zx_sequential_v1`.
 
 **Units.** Initial units sort strictly ascending by `(team_id, position.z,
 position.x)` and take `unit_id = 1..N` in that order. Initial units on one team
@@ -1140,8 +1146,8 @@ encodes as it would without it. A unit's absent `siege_elapsed` and empty
 It excludes the layout, DurableContext, provenance and digest metadata.
 
 ```text
-tick_hash(t) = H_content-tick-0.26.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
-result_hash  = H_content-result-0.26.0(
+tick_hash(t) = H_content-tick-0.27.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
+result_hash  = H_content-result-0.27.0(
     LE_u32(tick_count),
     tick_hash(1)..tick_hash(n),
     JSON(settlement)
@@ -1150,7 +1156,7 @@ result_hash  = H_content-result-0.26.0(
 
 The definition is numbered on its own, apart from the format: `hash_profile`
 is that number, and the domain strings spell profile `n` as `0.n.0`, the form
-they were written in while the profile was the format's, so profile 26's are
+they were written in while the profile was the format's, so profile 27's are
 the strings above. The profile moves when what the hash reads or how changes,
 and with it every hash and every pin, which is recorded again; a change to the
 format that leaves `S(t)`, `E(t)` and settlement encoding the same leaves it, and the pins.

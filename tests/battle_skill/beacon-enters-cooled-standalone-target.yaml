@@ -49,9 +49,9 @@ asserts:
     WHERE u.unit_id = 3 AND s.skill_slot = 0 AND u.tick BETWEEN 307 AND 310
     ORDER BY u.tick
   rows:
-  - [307, "moving", "cooling", null, 29]
-  - [308, "attacking", "cooling", null, 29]
-  - [309, "attacking", "cooling", null, 29]
-  - [310, "moving", "idle", null, null]
+  - [307, moving, cooling, null, 29]
+  - [308, attacking, cooling, null, 29]
+  - [309, attacking, cooling, null, 29]
+  - [310, moving, idle, null, null]
 ticks: 947
-hash: 26:bdc53c8ace7e332875688f231940b2b30f4a4302e96e674d832ed00c583d8926
+hash: 27:c21f4ee375a9ddbb62f38fb3afb41f0184d2202b0ed96f2fb0ce58f4a106699e

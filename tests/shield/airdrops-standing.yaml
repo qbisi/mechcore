@@ -22,4 +22,4 @@ red:
   battle_skills:
   - {name: shield_airdrop, standing: {position: {x: 60, y: 20}}}
 ticks: 132
-hash: 26:106a4ad037ac0533084919814775dce141096b8e99207c489dbc4a6e1f6094a6
+hash: 27:35205c42a67f070fecc9abe91b25a420bab363384e9298291e4eacb648d74407

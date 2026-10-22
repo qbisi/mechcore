@@ -46,11 +46,11 @@ asserts:
     WHERE unit_id = 1 AND u.tick IN (234, 235, 236)
         AND s.skill_slot IN (0, 2) ORDER BY u.tick, s.skill_slot;
   rows:
-  - [234, "moving", 0, "idle", null, null]
-  - [234, "moving", 2, "idle", "building", 5]
-  - [235, "attacking", 0, "idle", "unit", 3]
-  - [235, "attacking", 2, "attack", "building", 5]
-  - [236, "attacking", 0, "idle", "unit", 3]
-  - [236, "attacking", 2, "attack", "building", 5]
+  - [234, moving, 0, idle, null, null]
+  - [234, moving, 2, idle, building, 5]
+  - [235, attacking, 0, idle, unit, 3]
+  - [235, attacking, 2, attack, building, 5]
+  - [236, attacking, 0, idle, unit, 3]
+  - [236, attacking, 2, attack, building, 5]
 ticks: 1181
-hash: 26:2f3446867bf290562217b325b3642ceca1f4e240d82dc9ed68a9ac7c91230cff
+hash: 27:0a5f6314d24d16d651eb1c48498225f12a10c1d2d3a0268d223e60a6e0aa650a

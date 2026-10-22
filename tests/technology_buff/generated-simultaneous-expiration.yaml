@@ -42,7 +42,7 @@ asserts:
       AND type = 'buff_removed'
     ORDER BY ordinal;
   rows:
-  - ["buff_removed", 3000]
-  - ["buff_removed", 1006]
+  - [buff_removed, 3000]
+  - [buff_removed, 1006]
 ticks: 478
-hash: 26:8c670827c345ac1f975b0af82d9d330d5b25c503f80f80392e3ad15d427b4b1c
+hash: 27:ae875683817e94c379a0fd4bf31c962ef4e8f68b5e0c3bbf7f8e57ef1bf9f985

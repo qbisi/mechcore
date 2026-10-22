@@ -48,9 +48,9 @@ asserts:
     WHERE s.unit_id = 1 AND s.skill_slot = 1
       AND s.tick IN (781, 782, 783, 843) ORDER BY s.tick;
   rows:
-  - [781, "hide", "idle", null, 654, 0, 4]
-  - [782, "hide", "attack", null, 655, 0, 4]
-  - [783, "hide", "attack", "before", 0, 0, 4]
-  - [843, "hide", "attack", null, 60, 1, 4]
+  - [781, hide, idle, null, 654, 0, 4]
+  - [782, hide, attack, null, 655, 0, 4]
+  - [783, hide, attack, before, 0, 0, 4]
+  - [843, hide, attack, null, 60, 1, 4]
 ticks: 1231
-hash: 26:fbba5c1941d7fae7bf4f2c3b6116ecbb74586559b842dee6b211b10027940c00
+hash: 27:8932fd38d04a2c09fbf49913906040e626c5a6d1d35d6e7d419597373c92952c

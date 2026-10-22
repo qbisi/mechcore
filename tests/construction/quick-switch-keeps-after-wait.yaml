@@ -56,4 +56,4 @@ asserts:
   - [56, damage, unit, 25, building, 12, 0]
   - [56, projectile_removed, unit, 25, building, 12, null]
 ticks: 885
-hash: 26:02e92d800d36b71b9f925c6413a083c3eb206ede9ae8a7360cbd6990434c7c1f
+hash: 27:da9e4b27985f41ca6ba79b87f170f9d3d0c31a1d987e7958265f7a2ca3c5a688

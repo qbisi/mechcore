@@ -53,6 +53,8 @@ asserts:
 - sql: |
     SELECT tick, visibility FROM units
     WHERE unit_id = 5 AND tick BETWEEN 401 AND 402 ORDER BY tick;
-  rows: [[401, normal], [402, hide]]
+  rows:
+  - [401, normal]
+  - [402, hide]
 ticks: 1466
-hash: 26:7b9d6af9c2176c144d3adebf776af2279b1d227105420a774fcb6d951273477d
+hash: 27:f408ca5d53259d821e5590fe7fd5393c3954060c625f419b596e43fc25cd6453

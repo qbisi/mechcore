@@ -50,12 +50,12 @@ asserts:
 - sql: |-
     SELECT tick,type,object__id,source__id,target__id,buff_id,amount FROM events WHERE tick=169 AND ((target__id IN(14,15) AND type IN('damage','buff_applied')) OR (type='unit_died' AND object__id IN(14,15)) OR type='terrain_created') ORDER BY ordinal
   rows:
-  - [169, "damage", null, 13, 14, null, 7684]
-  - [169, "buff_applied", null, 13, 14, 1027, null]
-  - [169, "damage", null, 13, 15, null, 7684]
-  - [169, "buff_applied", null, 13, 15, 1027, null]
-  - [169, "unit_died", 14, 13, null, null, null]
-  - [169, "unit_died", 15, 13, null, null, null]
-  - [169, "terrain_created", 17, null, null, null, null]
+  - [169, damage, null, 13, 14, null, 7684]
+  - [169, buff_applied, null, 13, 14, 1027, null]
+  - [169, damage, null, 13, 15, null, 7684]
+  - [169, buff_applied, null, 13, 15, 1027, null]
+  - [169, unit_died, 14, 13, null, null, null]
+  - [169, unit_died, 15, 13, null, null, null]
+  - [169, terrain_created, 17, null, null, null, null]
 ticks: 1061
-hash: 26:751739a1b8ebe1bc7cc91ce4d0909d3db1175dca5c9f4e8428b355f8a859eac1
+hash: 27:8162c945f8978f7e1a06f2eaa3bed77735f3421539241360428315fe9dbc7473

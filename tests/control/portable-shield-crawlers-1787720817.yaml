@@ -22,4 +22,4 @@ red:
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/450/450, equipment: [portable_shield], source: joined}
 ticks: 381
-hash: 26:8b7096a4da87a8cba1a0fa91304b4982b09bcee9f488a85dcc44fda57b7b73aa
+hash: 27:d48cccf107cc1ac5d60e5332a4d9a7fd289d5cacf35ca2bf7d1b21ecd5f6fcfd

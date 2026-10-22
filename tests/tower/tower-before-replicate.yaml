@@ -54,13 +54,13 @@ asserts:
 - sql: |-
     SELECT tick,type,object__id,target__id,buff_id FROM events WHERE tick=958 AND ((type='building_destroyed' AND object__id=9) OR (type='unit_died' AND object__id=4) OR (type='unit_created' AND object__id BETWEEN 65 AND 69) OR (type='buff_applied' AND target__id BETWEEN 65 AND 69)) ORDER BY ordinal
   rows:
-  - [958, "building_destroyed", 9, null, null]
-  - [958, "unit_died", 4, null, null]
-  - [958, "unit_created", 65, null, null]
-  - [958, "unit_created", 66, null, null]
-  - [958, "unit_created", 67, null, null]
-  - [958, "unit_created", 69, null, null]
-  - [958, "unit_created", 68, null, null]
+  - [958, building_destroyed, 9, null, null]
+  - [958, unit_died, 4, null, null]
+  - [958, unit_created, 65, null, null]
+  - [958, unit_created, 66, null, null]
+  - [958, unit_created, 67, null, null]
+  - [958, unit_created, 69, null, null]
+  - [958, unit_created, 68, null, null]
 - sql: |-
     SELECT u.tick,u.unit_id,u.move_speed,s.enabled__attack_damage FROM units u JOIN units__skills s ON s.tick=u.tick AND s.unit_id=u.unit_id WHERE u.tick=958 AND u.unit_id BETWEEN 65 AND 69 AND s.skill_slot=0 ORDER BY u.unit_id
   rows:
@@ -95,4 +95,4 @@ asserts:
   - [1012, 46, -57117023388, 101025992373]
   - [1012, 59, -5251144260, -10030831787]
 ticks: 1077
-hash: 26:2c34ddfb543d047e4ae6bc434497aa892f5081d3d0b52f61875ce4d5af0cbd4d
+hash: 27:3ec29484a7e09b67b77d97e569bd028df787616f35d0e718c683721cb5fd8640

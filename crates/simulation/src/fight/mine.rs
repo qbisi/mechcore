@@ -26,6 +26,7 @@ const MISSILE_SOURCE: &str = "BuffSystem.LandMine";
 /// One missile standing, `FightLandMine`.
 #[derive(Debug, Clone)]
 pub(in crate::fight) struct Mine {
+    pub(in crate::fight) deployment_index: i32,
     team: u32,
     x: i64,
     z: i64,
@@ -43,6 +44,7 @@ impl Mine {
     pub(in crate::fight) fn new(placed: &MissileMine) -> Self {
         Self {
             team: placed.team,
+            deployment_index: placed.deployment_index,
             x: placed.x,
             z: placed.z,
             x_q32: space_to_q32(placed.x),

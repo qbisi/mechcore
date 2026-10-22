@@ -41,4 +41,4 @@ asserts:
   - [62, damage, unit, 1, 30279]
   - [62, damage, unit, 5, 5]
 ticks: 300
-hash: 26:536e283e1bf3f7fa7b785ec7dd14cae9696c8c326ebd9726b84b5dff1c20f703
+hash: 27:ea46a4fb1be6422da31027c08987d96dd9d5cf206682c1d2b49a31e97de7aeeb

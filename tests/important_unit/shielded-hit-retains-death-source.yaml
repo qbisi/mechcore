@@ -57,16 +57,16 @@ asserts:
     WHERE target__kind = 'unit' AND target__id = 5 AND tick IN (39, 92)
     ORDER BY tick, ordinal;
   rows:
-  - [39, "building", 3, 82]
-  - [92, "building", 3, 80]
+  - [39, building, 3, 82]
+  - [92, building, 3, 80]
 - sql: |
     SELECT tick, object__id, source__kind, source__id FROM ev_unit_died
     WHERE tick = 186 AND object__id IN (5, 7, 8)
     ORDER BY tick, ordinal;
   rows:
-  - [186, 5, "building", 3]
-  - [186, 8, "building", 3]
-  - [186, 7, "building", 3]
+  - [186, 5, building, 3]
+  - [186, 8, building, 3]
+  - [186, 7, building, 3]
 - sql: |
     SELECT tick, team_id, recorder_id FROM statistics
     WHERE recorder = 'unit' AND recorder_id IN (5, 7, 8)
@@ -83,4 +83,4 @@ asserts:
   - [192, 1, 7]
   - [192, 1, 8]
 ticks: 192
-hash: 26:30677bf0179d4207b67fdfcf3df2e7bc95a3f0abff4864d6d3b0c87641766827
+hash: 27:b74a921be765664c654969c3bfd2c6cd0acbe6918f7a73818a5906252072c701

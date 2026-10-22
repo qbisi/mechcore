@@ -35,4 +35,4 @@ red:
   - {name: marksman, index: 6, position: {x: 0, y: -40}, level: 3, exp: 0/2000/2315, source: joined}
   - {name: marksman, index: 7, position: {x: 60, y: -40}, level: 3, exp: 0/500/2315, source: joined}
 ticks: 678
-hash: 26:cb0f5655d7f2b97d1aaa5832faeb8feec1e090448bd1c635aa8e76a94ff29466
+hash: 27:b6ee201d80d21e054d761e4538a40117c02f01b7e0a128f47284d9d4eb8aa7bd

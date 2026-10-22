@@ -52,4 +52,4 @@ red:
   battle_skills:
   - {name: heavy_missile_strike, positions: [{x: -185, y: 79}]}
 ticks: 1267
-hash: 26:4b8f429956dc66dccb22cefbf04e24b41c5f353c0cd5316524c450e24f70cc2e
+hash: 27:77e66ff22fd72cba201d9532850f0bd90a2a8bfda15dfa4e97fa8ee489eb57ba

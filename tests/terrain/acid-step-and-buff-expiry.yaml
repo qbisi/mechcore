@@ -41,7 +41,7 @@ asserts:
     SELECT ordinal, type, target__id, buff_id, amount
     FROM events WHERE tick = 1965 ORDER BY ordinal;
   rows:
-  - [0, "buff_removed", 6, 20001, null]
-  - [1, "damage", 6, null, 1931]
+  - [0, buff_removed, 6, 20001, null]
+  - [1, damage, 6, null, 1931]
 ticks: 2360
-hash: 26:5f7b1d5cca4016ac75ad1ac7041663bcb4f2e948952fc6e85ee1e0d630362538
+hash: 27:d1f283f0a3fd894970480214d57d0b7fe000cb04a574063f55b8f94199bb4807

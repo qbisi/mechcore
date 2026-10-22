@@ -47,7 +47,7 @@ asserts:
       AND type IN ('buff_applied', 'healing')
     ORDER BY ordinal;
   rows:
-  - ["buff_applied", 1015, null]
-  - ["healing", null, 4130]
+  - [buff_applied, 1015, null]
+  - [healing, null, 4130]
 ticks: 1050
-hash: 26:aa754d2ea158c22f10aad6a28465607643f798d4dad05916da7affe1a3c51cc2
+hash: 27:798154b6402ebf6b1e08f38ac4e2154d64b0542473819f6b1d4c677d6239c0a8

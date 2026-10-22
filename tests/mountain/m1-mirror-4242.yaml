@@ -14,4 +14,4 @@ red:
   units:
   - {name: mountain, index: 0, position: {x: 5, y: -105}, exp: 0/1600/3200, source: joined}
 ticks: 308
-hash: 26:9964c1db107e0fb2234fe887fc95510fcc58a6e24b736f1f65cdc9a1de6ed9c4
+hash: 27:afe7dccacba8aef7b333871a70459473c84f3d3bdd3647c42a8b5aca74539fdc

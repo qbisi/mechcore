@@ -45,11 +45,11 @@ asserts:
     WHERE tick = 271 AND (object__id IN (38, 49) OR target__id = 38)
     ORDER BY ordinal
   rows:
-  - [271, 1, "damage", null, 13, "unit", 38, 16]
-  - [271, 2, "damage", 49, 38, "building", 2, 2534]
-  - [271, 3, "damage", 49, 38, "unit", 1, 75]
-  - [271, 4, "projectile_removed", 49, 38, "building", 2, null]
-  - [271, 5, "unit_died", 38, 13, null, null, null]
-  - [271, 6, "buff_removed", null, null, "unit", 38, null]
+  - [271, 1, damage, null, 13, unit, 38, 16]
+  - [271, 2, damage, 49, 38, building, 2, 2534]
+  - [271, 3, damage, 49, 38, unit, 1, 75]
+  - [271, 4, projectile_removed, 49, 38, building, 2, null]
+  - [271, 5, unit_died, 38, 13, null, null, null]
+  - [271, 6, buff_removed, null, null, unit, 38, null]
 ticks: 624
-hash: 26:37e8724f33687e3b0858d787da6b71307b48fec801d227a2c084740bdfc062c7
+hash: 27:4051f4b226b1e6e9e0ec095f8dbb7f082e297afa885ec3e5c8cb098007183390

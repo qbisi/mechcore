@@ -48,9 +48,9 @@ asserts:
     WHERE unit_id = 4 AND skill_slot = 0 AND tick BETWEEN 109 AND 112
     ORDER BY tick
   rows:
-  - [109, "attacking", 0, 90, 0]
+  - [109, attacking, 0, 90, 0]
   - [110, null, 0, 91, 1]
-  - [111, "before", 1, 0, 1]
-  - [112, "before", 1, 1, 1]
+  - [111, before, 1, 0, 1]
+  - [112, before, 1, 1, 1]
 ticks: 1145
-hash: 26:ec29b731c03566a86b5f9cd4c46244242f42760ac541176efa4c9aba2bb12d1b
+hash: 27:a97e8e19276cad99d1f639c10a7212c8363f71867938b2b7e07f5a007f065b4b

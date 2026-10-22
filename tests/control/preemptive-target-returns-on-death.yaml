@@ -48,21 +48,21 @@ asserts:
 - sql: |-
     SELECT tick,type,object__id,source__id FROM events WHERE type='unit_died' AND object__id=14 ORDER BY tick,ordinal
   rows:
-  - [328, "unit_died", 14, 1]
+  - [328, unit_died, 14, 1]
 - sql: |-
     SELECT tick,team_id,recorder,recorder_id FROM statistics WHERE recorder='unit' AND recorder_id=14 AND tick BETWEEN 327 AND 329 ORDER BY tick
   rows:
-  - [327, 1, "unit", 14]
-  - [328, 0, "unit", 14]
-  - [329, 0, "unit", 14]
+  - [327, 1, unit, 14]
+  - [328, 0, unit, 14]
+  - [329, 0, unit, 14]
 - sql: |-
     SELECT u.tick,u.team_id,s.skill_slot,s.enabled__state,s.enabled__lock_target__id,s.enabled__attack_target__id FROM units u JOIN units__skills s ON s.tick=u.tick AND s.unit_id=u.unit_id WHERE u.unit_id=1 AND u.tick BETWEEN 327 AND 329 ORDER BY u.tick,s.skill_slot
   rows:
-  - [327, 0, 0, "lock", null, null]
-  - [327, 0, 1, "attack", 14, 14]
-  - [328, 0, 0, "idle", null, null]
-  - [328, 0, 1, "idle", null, null]
-  - [329, 0, 0, "idle", 31, 31]
-  - [329, 0, 1, "idle", 31, 31]
+  - [327, 0, 0, lock, null, null]
+  - [327, 0, 1, attack, 14, 14]
+  - [328, 0, 0, idle, null, null]
+  - [328, 0, 1, idle, null, null]
+  - [329, 0, 0, idle, 31, 31]
+  - [329, 0, 1, idle, 31, 31]
 ticks: 366
-hash: 26:286140d1adaed0b53317179606e0286e81f2f17be124e01033dc993dda1b9dd0
+hash: 27:22c0bbb10efc68d8b9c21baf9ad0e6ebc61f67442d174181121e763c21fb887c

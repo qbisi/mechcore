@@ -24,4 +24,4 @@ red:
   - {name: hacker, index: 0, position: {x: -45, y: -105}, exp: 0/160/560, source: joined}
   - {name: hacker, index: 1, position: {x: 35, y: -105}, source: joined}
 ticks: 530
-hash: 26:3ae63475c14a9984b417c254003a934eada01704541b65b28721cf2c71584efa
+hash: 27:21b67053ff90b14006071dad2d67a5a78c63ab7839a74a44c4513237efbb7bee

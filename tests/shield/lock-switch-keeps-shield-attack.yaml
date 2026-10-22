@@ -41,15 +41,15 @@ asserts:
 - sql: |-
     SELECT tick,unit_id,enabled__lock_target__id,enabled__attack_target__id,enabled__state,enabled__attack_count,enabled__perform_count FROM units__skills WHERE tick BETWEEN 491 AND 493 AND unit_id IN (11,14) ORDER BY tick,unit_id
   rows:
-  - [491, 11, 3, null, "attack", 18, 19]
-  - [491, 14, 3, null, "attack", 17, 18]
-  - [492, 11, 6, null, "attack", 18, 19]
-  - [492, 14, 6, null, "attack", 18, 19]
-  - [493, 11, 6, null, "attack", 19, 20]
-  - [493, 14, 6, null, "attack", 18, 19]
+  - [491, 11, 3, null, attack, 18, 19]
+  - [491, 14, 3, null, attack, 17, 18]
+  - [492, 11, 6, null, attack, 18, 19]
+  - [492, 14, 6, null, attack, 18, 19]
+  - [493, 11, 6, null, attack, 19, 20]
+  - [493, 14, 6, null, attack, 18, 19]
 - sql: |-
     SELECT tick,source__id,target__kind,target__id,amount,skill_slot FROM events WHERE tick=492 AND type='damage' AND source__id=14 ORDER BY ordinal
   rows:
-  - [492, 14, "shield", 1, 5136, 0]
+  - [492, 14, shield, 1, 5136, 0]
 ticks: 1437
-hash: 26:b20acfeed3837c9f488af1db1e098d3a8a8ad6abf0c247ee929bfe7a778d9223
+hash: 27:1475e9f4a6e7c89c14940fde3a7c20aec19067301cc1381ff25c0dd9e290387f

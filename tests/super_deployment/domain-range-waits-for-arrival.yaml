@@ -45,9 +45,9 @@ asserts:
 - sql: |-
     SELECT tick,unit_id,body_rotation,mech_lock_target__kind,mech_lock_target__id FROM units WHERE unit_id=6 AND tick IN (1,80,81) ORDER BY tick
   rows:
-  - [1, 6, 169496868320, "unit", 3]
-  - [80, 6, 169496868320, "unit", 3]
-  - [81, 6, 169496868320, "unit", 3]
+  - [1, 6, 169496868320, unit, 3]
+  - [80, 6, 169496868320, unit, 3]
+  - [81, 6, 169496868320, unit, 3]
 - sql: |-
     SELECT tick,unit_id,skill_slot,enabled__lock_target__id,enabled__attack_range FROM units__skills WHERE unit_id=6 AND skill_slot=0 AND tick IN (80,81,82) ORDER BY tick
   rows:
@@ -55,4 +55,4 @@ asserts:
   - [81, 6, 0, 3, 901943132160]
   - [82, 6, 0, 3, 901943132160]
 ticks: 980
-hash: 26:9da7628386f1f850b9a545a85f753ea7ac439df61fd2814bf05799c5f99e8b2f
+hash: 27:668bbf8bef8a12936e5c1b8655505f3cc1e9d52fdd97a402ef15730ea3f9a902

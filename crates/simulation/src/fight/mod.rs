@@ -2003,6 +2003,41 @@ impl Simulation {
         self.score_the_fight()
     }
 
+    /// `FightResultController.CalculateResult`: available contraption records.
+    fn retained_contraptions(&self, team: u32) -> Vec<i32> {
+        let mut indices = self
+            .mines
+            .iter()
+            .filter(|mine| mine.team() == team)
+            .map(|mine| mine.deployment_index)
+            .collect::<Vec<_>>();
+        indices.extend(
+            self.shield
+                .standing
+                .iter()
+                .filter(|shield| shield.team == team)
+                .filter_map(|shield| shield.deployment_index),
+        );
+        indices.extend(self.interceptors.iter().filter_map(|interceptor| {
+            let InterceptorOwner::Building {
+                building_id,
+                team: owner_team,
+                ..
+            } = interceptor.owner
+            else {
+                return None;
+            };
+            (owner_team == team
+                && self.buildings.iter().any(|building| {
+                    building.building_id == building_id && building.life.current > 0
+                }))
+            .then_some(interceptor.deployment_index)
+            .flatten()
+        }));
+        indices.sort_unstable();
+        indices
+    }
+
     fn settlement(&self) -> Result<mechcore_mcfr::Settlement> {
         if !self.ending.scored {
             return Err(Error::new("fight has not settled"));
@@ -2015,6 +2050,8 @@ impl Simulation {
                 .iter()
                 .enumerate()
                 .map(|(team, score)| mechcore_mcfr::TeamSettlement {
+                    retained_contraptions: self
+                        .retained_contraptions(u32::try_from(team).expect("a fight has two teams")),
                     score: *score,
                     team_id: u32::try_from(team).expect("a fight has two teams"),
                 })

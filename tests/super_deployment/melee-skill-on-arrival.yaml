@@ -51,9 +51,9 @@ asserts:
   rows:
   - [1, 0, null, null, null]
   - [80, 0, null, null, null]
-  - [81, 0, "idle", 16, 16]
-  - [81, 1, "lock", 32, 32]
-  - [82, 0, "idle", 17, 16]
-  - [82, 1, "lock", 33, 32]
+  - [81, 0, idle, 16, 16]
+  - [81, 1, lock, 32, 32]
+  - [82, 0, idle, 17, 16]
+  - [82, 1, lock, 33, 32]
 ticks: 485
-hash: 26:2d0c77782d06e1d402f67ba36d66a5cf3123d32ef794db7a840cf559b87f3e4c
+hash: 27:76c7f7beae9d2fa6deba80103db25a7abfa6fb0202f1b7611e951934873a9344

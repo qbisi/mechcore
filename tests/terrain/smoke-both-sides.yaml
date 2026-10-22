@@ -26,4 +26,4 @@ red:
   battle_skills:
   - {name: smoke_bomb, positions: [{x: 60, y: -40}, {x: -60, y: -40}]}
 ticks: 521
-hash: 26:f1fe59d491d08b353d9f49bdbf73b23a8e57e0eaf2ce2f680bcb4e6511306ea2
+hash: 27:66ac890a668b715ccf9d2c90a1fb7733bb97464cf8d4f16502993dd9f65f979f

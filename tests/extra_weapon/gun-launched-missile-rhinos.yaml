@@ -26,4 +26,4 @@ red:
   - {name: rhino, index: 1, position: {x: 65, y: -95}, source: joined}
   - {name: crawler, index: 2, position: {x: -55, y: -130}, source: joined}
 ticks: 225
-hash: 26:4a71b5410eef5facf45e4ce1a8795db257cde0026419fdf19d75442b68699087
+hash: 27:1d3bb068269715fe2939e6fb84aa4e6b3b3ac7d258e370437da881733c9ef353

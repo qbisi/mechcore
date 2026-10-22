@@ -47,17 +47,17 @@ asserts:
 - sql: |-
     SELECT tick,unit_id,enabled__state,enabled__lock_target__id,enabled__attack_target__id FROM units__skills WHERE unit_id IN (4,6,7) AND tick BETWEEN 1781 AND 1784 ORDER BY tick,unit_id
   rows:
-  - [1781, 4, "idle", 5, 5]
-  - [1781, 6, "idle", 5, 5]
-  - [1781, 7, "idle", 5, 5]
-  - [1782, 4, "idle", null, 5]
-  - [1782, 6, "idle", null, 5]
-  - [1782, 7, "idle", null, 5]
-  - [1783, 4, "idle", null, 5]
-  - [1783, 6, "idle", null, 5]
-  - [1783, 7, "idle", null, 5]
-  - [1784, 4, "idle", null, null]
-  - [1784, 6, "idle", null, null]
-  - [1784, 7, "idle", null, null]
+  - [1781, 4, idle, 5, 5]
+  - [1781, 6, idle, 5, 5]
+  - [1781, 7, idle, 5, 5]
+  - [1782, 4, idle, null, 5]
+  - [1782, 6, idle, null, 5]
+  - [1782, 7, idle, null, 5]
+  - [1783, 4, idle, null, 5]
+  - [1783, 6, idle, null, 5]
+  - [1783, 7, idle, null, 5]
+  - [1784, 4, idle, null, null]
+  - [1784, 6, idle, null, null]
+  - [1784, 7, idle, null, null]
 ticks: 1784
-hash: 26:e6b5a576936b0da5fde5b2417d8b8bdabf65b0c191a8b4dbba9bbb2c0514b235
+hash: 27:133167fa67fa095036c46c92b3ddde12294da24d213a50e19da24e5746beb80b

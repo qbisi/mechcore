@@ -42,4 +42,4 @@ red:
   battle_skills:
   - {name: nuke, positions: [{x: -235, y: -245}]}
 ticks: 1621
-hash: 26:6170318156e16a8e9f6776304f140fcac7e219deac3e8e5a1ae71b2ff1d33341
+hash: 27:5b4efccd83ffdf43c44d09d008e94056b3767a30c3264285038257d16b1307dd

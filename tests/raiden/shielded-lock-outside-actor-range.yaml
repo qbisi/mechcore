@@ -42,9 +42,9 @@ asserts:
 - sql: |-
     SELECT tick,skill_slot,enabled__lock_target__kind,enabled__lock_target__id,enabled__attack_target__kind,enabled__attack_target__id FROM units__skills WHERE unit_id=4 AND skill_slot IN (0,1) AND tick IN (866,867) ORDER BY tick,skill_slot
   rows:
-  - [866, 0, "unit", 3, null, null]
-  - [866, 1, "building", 1, "building", 1]
-  - [867, 0, "building", 1, "building", 1]
-  - [867, 1, null, null, "building", 1]
+  - [866, 0, unit, 3, null, null]
+  - [866, 1, building, 1, building, 1]
+  - [867, 0, building, 1, building, 1]
+  - [867, 1, null, null, building, 1]
 ticks: 2360
-hash: 26:d08fdf4477da594fce972ad4176f042ce06cab8ca46298260dbbc0f7258d6194
+hash: 27:14e9784a9af626e01caffb5086a77c54295157f510d35c8fa629322eb77a2782

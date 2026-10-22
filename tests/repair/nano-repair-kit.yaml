@@ -18,4 +18,4 @@ red:
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/200/750, source: joined}
 ticks: 112
-hash: 26:1365b4e49c99c6047ef851bed7317962dac2441ebfd41a9a9c69808e6f63516b
+hash: 27:dc25a44010b6b3e10bb34246cce7208ca54aeadc4417fc0f3ab627342c86b2a4

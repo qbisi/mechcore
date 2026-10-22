@@ -26,4 +26,4 @@ asserts:
   - [1, 0, prepare, unit, 2]
   - [1, 1, attack, unit, 8]
 ticks: 171
-hash: 26:8a437d33600d350103cc57a657e1408dd17389b4133b296b827c334a978d706f
+hash: 27:8f0c8f35ba00f2c8b162359fcff09efe7723f865233a27f3c6f1aec552004b33

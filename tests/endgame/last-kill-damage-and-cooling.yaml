@@ -51,20 +51,20 @@ asserts:
            OR (unit_id = 7 AND skill_slot IN (0, 2))) AND tick >= 769
     ORDER BY tick, unit_id, skill_slot;
   rows:
-  - [769, 3, 0, 86935, "attack", "unit", 1]
-  - [769, 7, 0, 51135, "cooling", "building", 2]
-  - [769, 7, 2, 51135, "cooling", "building", 2]
-  - [770, 3, 0, 78391, "idle", null, null]
-  - [770, 7, 0, 51135, "cooling", "building", 2]
-  - [770, 7, 2, 51135, "cooling", "building", 2]
-  - [771, 3, 0, 78391, "idle", null, null]
-  - [771, 7, 0, 51135, "cooling", "building", 2]
-  - [771, 7, 2, 51135, "cooling", "building", 2]
-  - [772, 3, 0, 78391, "idle", null, null]
-  - [772, 7, 0, 51135, "cooling", "building", 2]
-  - [772, 7, 2, 51135, "cooling", "building", 2]
-  - [773, 3, 0, 41865, "idle", null, null]
-  - [773, 7, 0, 51135, "idle", null, null]
-  - [773, 7, 2, 51135, "idle", null, null]
+  - [769, 3, 0, 86935, attack, unit, 1]
+  - [769, 7, 0, 51135, cooling, building, 2]
+  - [769, 7, 2, 51135, cooling, building, 2]
+  - [770, 3, 0, 78391, idle, null, null]
+  - [770, 7, 0, 51135, cooling, building, 2]
+  - [770, 7, 2, 51135, cooling, building, 2]
+  - [771, 3, 0, 78391, idle, null, null]
+  - [771, 7, 0, 51135, cooling, building, 2]
+  - [771, 7, 2, 51135, cooling, building, 2]
+  - [772, 3, 0, 78391, idle, null, null]
+  - [772, 7, 0, 51135, cooling, building, 2]
+  - [772, 7, 2, 51135, cooling, building, 2]
+  - [773, 3, 0, 41865, idle, null, null]
+  - [773, 7, 0, 51135, idle, null, null]
+  - [773, 7, 2, 51135, idle, null, null]
 ticks: 773
-hash: 26:2a7a5ae66d318c62274f728e8929acd8153437915a64558b027c1832574d79b9
+hash: 27:99eda109983da52b25f0d25db697eee1adbfc18f852d4027cded00aee152889d

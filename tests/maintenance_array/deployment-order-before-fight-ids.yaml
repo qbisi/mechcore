@@ -41,7 +41,8 @@ asserts:
 - sql: |
     SELECT amount FROM events
     WHERE tick = 183 AND type = 'healing' AND target__id = 4 ORDER BY ordinal;
-  rows: [[948]]
+  rows:
+  - [948]
 - sql: |
     SELECT tick, life__current, life__maximum FROM units
     WHERE unit_id = 4 AND tick BETWEEN 182 AND 183 ORDER BY tick;
@@ -49,4 +50,4 @@ asserts:
   - [182, 42885, 43833]
   - [183, 43833, 43833]
 ticks: 396
-hash: 26:46507d2fdabdcf1f2bf575714f933cd008daaef55c45da74f93e04559c1d2d68
+hash: 27:edb2758623bf909d6dcc2951aacd21dd955a6cc37e71621af51918062250f3cc

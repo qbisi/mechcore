@@ -30,4 +30,4 @@ red:
   - {name: vulcan, index: 0, position: {x: 0, y: -80}, source: joined}
   - {name: vulcan, index: 1, position: {x: 100, y: -80}, source: joined}
 ticks: 348
-hash: 26:0832ee24bb85b9a1fe8b2ae4623f5592f39afa6256fe1ce117f3c5453201cba7
+hash: 27:d54339a82a479fdbdc12d004a012d188135a98b4597c298cedee3f1e71755cc1

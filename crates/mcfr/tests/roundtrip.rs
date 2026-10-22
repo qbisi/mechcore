@@ -38,7 +38,7 @@ fn writes_and_reads_every_table() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.27.0");
+    assert_eq!(MCFR_FORMAT, "0.28.0");
     assert_eq!(reader.producer(), Producer::Game);
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
@@ -298,7 +298,7 @@ fn the_result_hash_is_golden() {
     let hashes = hash_tick(&context(), state(75), &damage_events());
     assert_eq!(
         hashes.result_hash,
-        "26b5037e8cbabeaab64a14e715fc81fbe52d87cffcb7fa9a155ad349d7c63444"
+        "cb164dc5e228df3ccd5e2341c3d755ce9dcc798148255220b26bef4c373d9145"
     );
 }
 
@@ -1286,10 +1286,12 @@ fn test_settlement() -> mechcore_mcfr::Settlement {
         formations: Vec::new(),
         teams: vec![
             mechcore_mcfr::TeamSettlement {
+                retained_contraptions: Vec::new(),
                 score: 0,
                 team_id: 0,
             },
             mechcore_mcfr::TeamSettlement {
+                retained_contraptions: Vec::new(),
                 score: 0,
                 team_id: 1,
             },
@@ -1301,13 +1303,14 @@ fn test_settlement() -> mechcore_mcfr::Settlement {
 fn settlement_is_hashed_without_changing_or_appending_a_tick() {
     let directory = tempfile::tempdir().unwrap();
     let mut readers = Vec::new();
-    for (name, score) in [("a", 0), ("b", 200)] {
+    for (name, score, retained) in [("a", 0, vec![]), ("b", 200, vec![]), ("c", 200, vec![2, 7])] {
         let path = directory.path().join(format!("{name}.mcfr"));
         let mut writer =
             McfrWriter::create(&path, Producer::Game, "build-a", &context(), LAYOUT_YAML).unwrap();
         writer.append_tick(state(75), &damage_events()).unwrap();
         let mut settlement = test_settlement();
         settlement.teams[0].score = score;
+        settlement.teams[0].retained_contraptions = retained;
         writer.finish(&settlement).unwrap();
         readers.push(McfrReader::open(path).unwrap());
     }
@@ -1315,6 +1318,12 @@ fn settlement_is_hashed_without_changing_or_appending_a_tick() {
     assert_eq!(readers[0].first_divergence(&readers[1]).unwrap(), None);
     assert_ne!(readers[0].hashes(), readers[1].hashes());
     assert_eq!(readers[1].settlement().teams[0].score, 200);
+    assert_eq!(readers[1].first_divergence(&readers[2]).unwrap(), None);
+    assert_ne!(readers[1].hashes(), readers[2].hashes());
+    assert_eq!(
+        readers[2].settlement().teams[0].retained_contraptions,
+        vec![2, 7]
+    );
 }
 
 #[test]
@@ -1403,4 +1412,19 @@ fn production_clock_roundtrip_and_hash_witness() {
     let duplicate = snapshot.live_units[0].production_lines[0].clone();
     snapshot.live_units[0].production_lines.push(duplicate);
     assert!(snapshot.object_keys().is_err());
+}
+
+#[test]
+fn settlement_requires_unambiguous_deployment_indices() {
+    let mut settlement = test_settlement();
+    for indices in [vec![-1], vec![2, 2], vec![7, 2]] {
+        settlement.teams[0].retained_contraptions = indices;
+        assert!(settlement.validate().is_err());
+    }
+    let mut encoded = serde_json::to_value(test_settlement()).unwrap();
+    encoded["teams"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("retained_contraptions");
+    assert!(serde_json::from_value::<mechcore_mcfr::Settlement>(encoded).is_err());
 }

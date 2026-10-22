@@ -60,7 +60,7 @@ asserts:
     ORDER BY tick
     LIMIT 1;
   rows:
-  - [41, "buff_applied", "unit", 3, "unit", 27, 1026]
+  - [41, buff_applied, unit, 3, unit, 27, 1026]
 - sql: |
     SELECT tick, type, target__kind, target__id, buff_id
     FROM events
@@ -68,6 +68,6 @@ asserts:
       AND target__id = 27 AND buff_id = 1026
     ORDER BY tick;
   rows:
-  - [141, "buff_removed", "unit", 27, 1026]
+  - [141, buff_removed, unit, 27, 1026]
 ticks: 718
-hash: 26:d2540e8b89ff19b975316981017713cf9bae92411b87b4f377a6d88aa304af3e
+hash: 27:4a27b416c267f61a2834983a2746b09f30137b733ad190d770aeb2eca894ab9d

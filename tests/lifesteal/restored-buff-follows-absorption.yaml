@@ -43,9 +43,9 @@ asserts:
     WHERE tick = 371 AND type IN ('damage', 'healing', 'buff_applied')
     ORDER BY ordinal;
   rows:
-  - ["damage", 16, 54, null, 213]
-  - ["healing", null, 16, null, 152]
-  - ["buff_applied", 16, 54, 2010, null]
-  - ["damage", null, 22, null, 24]
+  - [damage, 16, 54, null, 213]
+  - [healing, null, 16, null, 152]
+  - [buff_applied, 16, 54, 2010, null]
+  - [damage, null, 22, null, 24]
 ticks: 640
-hash: 26:f29c7ed511a0569602cbaefcc5519c8a6dbe977b7170fd31e84776994addcdf1
+hash: 27:7f9585b7cba8600bef3def92e67334cc67a9c534f2c012d4e47dea1de9a3234b

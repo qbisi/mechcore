@@ -79,4 +79,4 @@ red:
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -238, y: -51}, {x: -98, y: -51}]}
 ticks: 1136
-hash: 26:9980720376069a154e4730fe8ba30e108c7c75d377e0e2b986c906576761641f
+hash: 27:73edbc2bc691ec574a8ba166245a1aa278fa3342fc7119abe5da27ec6b864049

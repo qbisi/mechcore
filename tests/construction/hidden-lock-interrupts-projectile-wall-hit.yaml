@@ -40,8 +40,8 @@ asserts:
 - sql: |-
     SELECT s.tick,s.enabled__state,s.enabled__attack_count,s.enabled__perform_count,s.enabled__lock_target__id,u.visibility,s.enabled__attack_target__id,b.life__current,(SELECT COUNT(*) FROM ev_projectile_released e WHERE e.tick=s.tick AND e.source__id=8) AS released FROM units__skills s JOIN units u ON u.tick=s.tick AND u.unit_id=s.enabled__lock_target__id JOIN buildings b ON b.tick=s.tick AND b.building_id=s.enabled__attack_target__id WHERE s.unit_id=8 AND s.skill_slot=0 AND s.tick BETWEEN 128 AND 130 ORDER BY s.tick
   rows:
-  - [128, "attack", -1, 0, 17, "hide", 11, 1112, 0]
-  - [129, "attack", 0, 1, 17, "hide", 11, 1112, 0]
-  - [130, "attack", 0, 1, 17, "hide", 11, 1112, 0]
+  - [128, attack, -1, 0, 17, hide, 11, 1112, 0]
+  - [129, attack, 0, 1, 17, hide, 11, 1112, 0]
+  - [130, attack, 0, 1, 17, hide, 11, 1112, 0]
 ticks: 1320
-hash: 26:29ebdd31a66d0fb7cf3ac3d4110dbc7d0b5488f11289b70502a9f7a056eb53bf
+hash: 27:76cf2ed14cc4d2ff101c4a2701eb8ac807dfb6130c141aea2276187567bc1893

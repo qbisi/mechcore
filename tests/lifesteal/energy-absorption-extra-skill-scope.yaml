@@ -35,4 +35,4 @@ asserts:
   - [16, damage, 0, 20]
   - [16, healing, null, 15]
 ticks: 476
-hash: 26:7e21e4dfd530b4f75003d8ba81a1cb8d9f00fdcb2eb434b6fcd17e2e8a9d30bf
+hash: 27:59c13e7a6c30680f6f72e784ce6a698414b41d4dda4efbd6dc91cd3e400b116e

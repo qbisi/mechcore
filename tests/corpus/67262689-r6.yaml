@@ -67,4 +67,4 @@ red:
   battle_skills:
   - {name: wasp_swarm, positions: [{x: 14, y: 280}]}
 ticks: 1087
-hash: 26:73ffd9de7cb6ab37b346c7eec79889aa633118a408196f0b0f9d2884258bd850
+hash: 27:87ddf05ca84a3b81ed5d568a39168f4b81ce7cc87bcb864e4fb7fb3a96c61562

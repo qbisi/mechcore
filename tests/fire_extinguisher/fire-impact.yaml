@@ -22,4 +22,4 @@ red:
   - {name: incendiary_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
   - {name: electromagnetic_impact, positions: [{x: 0, y: 45}]}
 ticks: 254
-hash: 26:f05d311b1ad2efe9859fc699cfeddda8f6ad1dd6fe0cda2cb96de8cf85d7f9d1
+hash: 27:37e6ff3ec5c47a180ac97ad39f72455393791a23a4b4840b193e28aeb57a18cf

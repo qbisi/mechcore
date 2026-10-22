@@ -27,6 +27,7 @@ use mechcore_mcfr::{ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, 
 /// One `FightEnergyShield` still standing.
 #[derive(Debug, Clone)]
 pub(in crate::fight) struct EnergyShield {
+    pub(in crate::fight) deployment_index: Option<i32>,
     pub(in crate::fight) id: u64,
     /// `FightEnergyShield.GetTeamController`, fixed at creation.
     pub(in crate::fight) team: u32,
@@ -117,6 +118,7 @@ fn initialize_shields(
         .iter()
         .map(|shield| EnergyShield {
             id: 0,
+            deployment_index: shield.deployment_index,
             team: shield.team,
             group: shield.team,
             x_q32: space_to_q32(shield.x),
@@ -134,6 +136,7 @@ fn initialize_shields(
             energy_record: 0,
         })
         .chain(carried.iter().map(|shield| EnergyShield {
+            deployment_index: None,
             id: 0,
             team: shield.team,
             group: shield.team,
@@ -462,6 +465,7 @@ impl Simulation {
         let id = self.shield.next_id;
         self.shield.next_id += 1;
         let shield = EnergyShield {
+            deployment_index: None,
             id,
             team,
             group: team,

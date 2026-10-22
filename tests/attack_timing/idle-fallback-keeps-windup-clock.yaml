@@ -44,9 +44,9 @@ asserts:
 - sql: |-
     SELECT tick,enabled__state,enabled__attack_time,enabled__current_attack_interval FROM units__skills WHERE unit_id=10 AND tick BETWEEN 1265 AND 1268 ORDER BY tick
   rows:
-  - [1265, "attack", 2, 132]
-  - [1266, "idle", 3, 132]
-  - [1267, "idle", 4, 132]
-  - [1268, "idle", 5, 132]
+  - [1265, attack, 2, 132]
+  - [1266, idle, 3, 132]
+  - [1267, idle, 4, 132]
+  - [1268, idle, 5, 132]
 ticks: 1356
-hash: 26:d2eb95453467bd9f062d35ba304a93da1d2a5f11a8dfe3036b987803ec9d9658
+hash: 27:c5ed25cd1dafb224278df5f0eca99a833144d06f773a26d61fbf87027872cd2a

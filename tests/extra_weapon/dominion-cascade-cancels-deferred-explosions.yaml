@@ -48,11 +48,11 @@ asserts:
 - sql: |-
     SELECT tick,type,object__id FROM events WHERE tick BETWEEN 259 AND 260 AND type IN ('unit_died','terrain_created') ORDER BY tick,ordinal
   rows:
-  - [259, "unit_died", 5]
-  - [259, "unit_died", 1]
-  - [259, "unit_died", 2]
-  - [259, "unit_died", 3]
-  - [259, "unit_died", 4]
-  - [259, "terrain_created", 33]
+  - [259, unit_died, 5]
+  - [259, unit_died, 1]
+  - [259, unit_died, 2]
+  - [259, unit_died, 3]
+  - [259, unit_died, 4]
+  - [259, terrain_created, 33]
 ticks: 263
-hash: 26:af07591f8e668fcbc740f199689ee4ffbde6c8e3325db8aea19824727ae4b778
+hash: 27:4ca1945156aebe8730aae67df69d1be945b491d46ed01a0d7774d6465da9bcf3

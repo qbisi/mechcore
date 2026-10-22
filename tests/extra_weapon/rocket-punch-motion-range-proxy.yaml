@@ -45,14 +45,14 @@ asserts:
     SELECT tick,motion_state,turret_rotation FROM units
     WHERE unit_id=3 AND tick IN (136,137) ORDER BY tick
   rows:
-  - [136, "attacking", 1312494636692]
-  - [137, "attacking", 1301757218492]
+  - [136, attacking, 1312494636692]
+  - [137, attacking, 1301757218492]
 - sql: |
     SELECT skill_slot,enabled__state,enabled__attack_phase,enabled__attack_target__id
     FROM units__skills WHERE tick=137 AND unit_id=3 AND skill_slot IN (1,2)
     ORDER BY skill_slot
   rows:
-  - [1, "idle", null, 1]
-  - [2, "attack", "after", 22]
+  - [1, idle, null, 1]
+  - [2, attack, after, 22]
 ticks: 1231
-hash: 26:27931df792f3571e4007a65c6078c42f29a2f8e166f2edeecfc97b3133ca72f7
+hash: 27:dc795a42eef4e842eb85341d957eea9e828a9c08c1c5946f7fd8d0fb917661f2

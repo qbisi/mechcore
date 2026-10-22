@@ -48,14 +48,14 @@ asserts:
 - sql: |-
     SELECT tick,unit_id,skill_slot,enabled__state,enabled__attack_phase,enabled__attack_time,enabled__current_attack_interval,enabled__attack_count,enabled__perform_count FROM units__skills WHERE unit_id=14 AND tick BETWEEN 120 AND 123 ORDER BY tick,skill_slot
   rows:
-  - [120, 14, 0, "attack", null, 18, 23, 5, 6]
-  - [121, 14, 0, "attack", null, 19, 23, 5, 6]
-  - [122, 14, 0, "attack", null, 30, 30, 5, 6]
-  - [123, 14, 0, "attack", null, 0, 26, 6, 7]
+  - [120, 14, 0, attack, null, 18, 23, 5, 6]
+  - [121, 14, 0, attack, null, 19, 23, 5, 6]
+  - [122, 14, 0, attack, null, 30, 30, 5, 6]
+  - [123, 14, 0, attack, null, 0, 26, 6, 7]
 - sql: |-
     SELECT tick,type,source__kind,source__id,target__kind,target__id,amount,buff_id FROM events WHERE tick=122 AND target__kind='unit' AND target__id=14 ORDER BY ordinal
   rows:
-  - [122, "damage", "unit", 23, "unit", 14, 585, null]
-  - [122, "buff_applied", "unit", 23, "unit", 14, null, 1004]
+  - [122, damage, unit, 23, unit, 14, 585, null]
+  - [122, buff_applied, unit, 23, unit, 14, null, 1004]
 ticks: 1279
-hash: 26:f6e24ee81b223f6906a9cf40e011d6421d34f4be74903316f26fa183224b74da
+hash: 27:7500f3616f5de6a0a3ca1f5eed180a326e83b3fb2d04b358ed24f9e9138ab77f

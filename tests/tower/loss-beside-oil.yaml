@@ -26,4 +26,4 @@ red:
   - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/606/1000, source: joined}
   - {name: phantom_ray, index: 1, position: {x: -145, y: -20}, exp: 0/410/1000, source: joined}
 ticks: 605
-hash: 26:2c729b70462c3438f4bbe42889903b71f70dfed44f02f931f5c4ca19dbfe9829
+hash: 27:e471b3928cf6a1588f44e71a5126d2bbf8e394151db9cfe4cfa2ae28db4115a3

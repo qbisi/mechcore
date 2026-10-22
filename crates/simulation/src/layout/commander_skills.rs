@@ -641,6 +641,7 @@ impl CommanderSkillEffects {
             (-local_x, -local_z)
         };
         Ok(ShieldPlacement {
+            deployment_index: None,
             team,
             x: x * SPACE,
             z: z * SPACE,

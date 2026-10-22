@@ -27,12 +27,12 @@ asserts:
     WHERE u.unit_id = 1 AND u.tick IN (21, 190, 191, 192, 212, 222)
     ORDER BY u.tick;
   rows:
-  - [21, "moving", "hide", 1, 60000, 0]
-  - [190, "moving", "hide", 1, 60000, 1]
-  - [191, "moving", "hide", 1, 60000, 1]
-  - [192, "transitioning", "hide", 1, 60000, 1]
-  - [212, "transitioning", "normal", 1, 60000, 1]
-  - [222, "attacking", "normal", 1, 60000, 1]
+  - [21, moving, hide, 1, 60000, 0]
+  - [190, moving, hide, 1, 60000, 1]
+  - [191, moving, hide, 1, 60000, 1]
+  - [192, transitioning, hide, 1, 60000, 1]
+  - [212, transitioning, normal, 1, 60000, 1]
+  - [222, attacking, normal, 1, 60000, 1]
 - sql: |
     SELECT tick, source__id, target__id, skill_slot
     FROM events
@@ -43,4 +43,4 @@ asserts:
   rows:
   - [244, 1, 2, 0]
 ticks: 398
-hash: 26:ac6ee186dcb3da7a65353dd9687f9d0bf8db2ca69027eb9d1b95f244c4db5b6d
+hash: 27:47be94059be88a3cf6021519299a448271772af0ff7498a43d0a5504c5fc6da0

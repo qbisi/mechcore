@@ -45,10 +45,10 @@ asserts:
     WHERE u.unit_id = 4 AND s.skill_slot = 0 AND u.tick BETWEEN 170 AND 174
     ORDER BY u.tick;
   rows:
-  - [170, 1198821997003, 2, "attack", 1]
-  - [171, 1201774216588, 2, "attack", 1]
-  - [172, 1204754017216, 2, "cooling", null]
-  - [173, 1207761052360, 2, "cooling", null]
-  - [174, 1210794945704, 2, "cooling", null]
+  - [170, 1198821997003, 2, attack, 1]
+  - [171, 1201774216588, 2, attack, 1]
+  - [172, 1204754017216, 2, cooling, null]
+  - [173, 1207761052360, 2, cooling, null]
+  - [174, 1210794945704, 2, cooling, null]
 ticks: 354
-hash: 26:6af5cbeaa2c2ac89f93f45d584281c4a05750ef85c69f644085b5ac0092419ab
+hash: 27:79dbd49f5a7cb914f6c13259e8baf3fa23960fb991585294140a145b856862f3

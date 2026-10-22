@@ -41,8 +41,8 @@ asserts:
 - sql: |-
     SELECT tick,skill_slot,enabled__lock_target__id,enabled__attack_target__id,enabled__state FROM units__skills WHERE unit_id=2 AND skill_slot=2 AND tick IN (893,894) ORDER BY tick
   rows:
-  - [893, 2, 4, 4, "attack"]
-  - [894, 2, 4, 4, "attack"]
+  - [893, 2, 4, 4, attack]
+  - [894, 2, 4, 4, attack]
 - sql: |-
     SELECT s.tick,s.enabled__attack_count,s.enabled__perform_count,s.enabled__lock_target__id,s.enabled__attack_target__id,(SELECT COUNT(*) FROM ev_projectile_released e WHERE e.tick=s.tick AND e.source__id=29) AS released FROM units__skills s WHERE s.unit_id=29 AND s.skill_slot=0 AND s.tick=1138
   rows:
@@ -55,4 +55,4 @@ asserts:
   - [1208, 1, 0]
   - [1210, 1, 32696]
 ticks: 1296
-hash: 26:3deb4cff4407c324d52855af8b85cc46c61a94769159b61d79d1e78fffd6d720
+hash: 27:e0eb669f45eac81a118c9de52a33266e5ee21bbd285923749314883d9e0c6757

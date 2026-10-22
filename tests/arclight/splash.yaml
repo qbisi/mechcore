@@ -17,4 +17,4 @@ red:
   - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/356/750, source: joined}
   - {name: crawler, index: 1, position: {x: 0, y: -135}, exp: 0/36/450, rotated: true, source: joined}
 ticks: 497
-hash: 26:f981002a72fa76902d3f2d6cc6a8ff43c162885221e199e1321617a3eeb94e5e
+hash: 27:c2741a4fa70828b0dfe73b73c547e6837de67a100780cfe4d6e6391a3d230112

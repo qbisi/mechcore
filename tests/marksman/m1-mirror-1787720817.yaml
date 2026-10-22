@@ -14,4 +14,4 @@ red:
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/200/650, source: joined}
 ticks: 83
-hash: 26:a49cafd200b01f8cd1f19dc6a32145b310cd22223d3f3609241eadd23fd180ee
+hash: 27:5d3c0a1d8d3b9ff6a31568e7cb36c458ddac1f84fa6e5361db13ca49cfa888c3

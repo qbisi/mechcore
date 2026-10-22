@@ -24,4 +24,4 @@ red:
   - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/170/1100, source: joined}
   - {name: stormcaller, index: 1, position: {x: -55, y: -40}, exp: 0/238/1100, source: joined}
 ticks: 341
-hash: 26:0df6784c4189f7196060b58e7769922eeb17e4d822558a0844924133fb90dfb2
+hash: 27:9da64e094aeb974dccacbde0f9090c4601e4bb337f975027ed5da117e6eab68d

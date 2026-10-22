@@ -46,19 +46,19 @@ asserts:
     SELECT tick, mech_lock_target__kind, mech_lock_target__id FROM units
     WHERE unit_id = 7 AND tick IN (57, 58, 68, 69) ORDER BY tick;
   rows:
-  - [57, "unit", 11]
-  - [58, "building", 1]
-  - [68, "building", 1]
-  - [69, "unit", 4]
+  - [57, unit, 11]
+  - [58, building, 1]
+  - [68, building, 1]
+  - [69, unit, 4]
 - sql: |
     SELECT tick, enabled__state, enabled__attack_target__kind,
            enabled__attack_target__id FROM units__skills
     WHERE unit_id = 7 AND skill_slot = 1 AND tick IN (57, 58, 67, 68)
     ORDER BY tick;
   rows:
-  - [57, "attack", "building", 4]
-  - [58, "cooling", "building", 4]
-  - [67, "cooling", "building", 4]
-  - [68, "idle", null, null]
+  - [57, attack, building, 4]
+  - [58, cooling, building, 4]
+  - [67, cooling, building, 4]
+  - [68, idle, null, null]
 ticks: 1160
-hash: 26:ccb701309761cac3c8169efdc958b72a4d6fbb5e162d1ad8cfc85e50de069236
+hash: 27:af798de7c486e204a0be7251c74b0e38b5a0132b933f133923e0e835f3eb71a9

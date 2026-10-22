@@ -26,4 +26,4 @@ red:
   contraptions:
   - {name: shield, index: 3, position: {x: 1, y: -81}, retained: false}
 ticks: 758
-hash: 26:712c46944233270c1e359f96d66d3765f7e5247291a689924a26936e8860d895
+hash: 27:cd7d23e08a314d2d49052285fd07738c2cb0b2a12c1df6f937afb78b8ebefce1

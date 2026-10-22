@@ -57,7 +57,7 @@ asserts:
       AND (target__id = 31 OR target__kind = 'shield')
     ORDER BY ordinal
   rows:
-  - [713, 6, "damage", 2, "shield", 1, 3477, null]
-  - [713, 7, "buff_applied", 2, "unit", 31, null, 1031]
+  - [713, 6, damage, 2, shield, 1, 3477, null]
+  - [713, 7, buff_applied, 2, unit, 31, null, 1031]
 ticks: 750
-hash: 26:af9352ef69a7e16b6cfaa0147609c9e9c226ea88a6cd941627d9523e75becfad
+hash: 27:5ae21453702511926871cd845ace9c6cdf513585fd1110ee807e354a5085cf77

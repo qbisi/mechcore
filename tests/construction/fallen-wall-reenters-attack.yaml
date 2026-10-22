@@ -47,10 +47,10 @@ asserts:
     SELECT tick, motion_state, body_rotation FROM units
     WHERE unit_id = 1 AND tick BETWEEN 1416 AND 1420 ORDER BY tick;
   rows:
-  - [1416, "moving", 978588158338]
-  - [1417, "attacking", 978588158338]
-  - [1418, "idle", 978588158338]
-  - [1419, "moving", 978588158338]
-  - [1420, "moving", 978588166131]
+  - [1416, moving, 978588158338]
+  - [1417, attacking, 978588158338]
+  - [1418, idle, 978588158338]
+  - [1419, moving, 978588158338]
+  - [1420, moving, 978588166131]
 ticks: 1460
-hash: 26:f1ae8fffa4c6f38c4f5f5a08ef10ebc4bd53fffd66019dde3d5d46cc4727b0da
+hash: 27:53f4d0520083d8568d40284e9a8ddee4d2e2fe17315d58e8eba67e9ed595923a
