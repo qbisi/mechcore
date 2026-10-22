@@ -1,0 +1,64 @@
+# Native tournament replay 20261018--2477, round 4.
+# RVO agents join in the initial ActorComparer activation order, not recording
+# ID order; near-equal z coordinates change the split tree and its neighbours.
+kind: fight
+source: game
+map_id: 1012
+seed: 1502151658
+round: 4
+blue:
+  core_damage: 0
+  officers: [advanced_power_system, aerial_specialist]
+  techs:
+    steel_ball: [kinetic_charge]
+    arclight: [range_enhancement]
+  units:
+  - {name: crawler, index: 0, position: {x: 275, y: -280}, exp: 171/238/450}
+  - {name: crawler, index: 1, position: {x: -5, y: -280}, exp: 435/450/450}
+  - {name: crawler, index: 2, position: {x: -275, y: -280}, exp: 297/333/450}
+  - {name: steel_ball, index: 3, position: {x: -5, y: -300}, level: 2, exp: 0/992/2253}
+  - {name: steel_ball, index: 4, position: {x: 275, y: -300}, exp: 867/1000/1000}
+  - {name: arclight, index: 5, position: {x: 120, y: -190}, level: 2, exp: 0/572/1690}
+  - {name: arclight, index: 6, position: {x: -10, y: -190}, level: 2, exp: 570/1044/1690}
+  - {name: arclight, index: 7, position: {x: -200, y: -190}, level: 2, exp: 0/618/1690}
+  - {name: arclight, index: 8, position: {x: 220, y: -160}, level: 2, exp: 0/641/1690}
+  - {name: sledgehammer, index: 9, position: {x: -105, y: -180}, exp: 363/565/1300}
+  - {name: arclight, index: 10, position: {x: -110, y: -210}, exp: 553/750/750}
+  - {name: phantom_ray, index: 11, position: {x: 275, y: -260}, level: 3, exp: 0/522/3562, source: joined}
+  - {name: steel_ball, index: 12, position: {x: -275, y: -300}, exp: 0/257/1000, source: joined}
+  - {name: crawler, index: 13, position: {x: 135, y: -300}, exp: 0/93/450, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+red:
+  core_damage: 751
+  officers: [quick_teleport, sabertooth_specialist]
+  techs:
+    steel_ball: [kinetic_charge]
+    sabertooth: [range_enhancement]
+  units:
+  - {name: crawler, index: 0, position: {x: -290, y: -285}, exp: 222/271/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: -140, y: -275}, exp: 149/221/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: -5, y: -150}, exp: 36/77/450}
+  - {name: mustang, index: 3, position: {x: 65, y: -280}, exp: 864/950/1200}
+  - {name: mustang, index: 4, position: {x: 235, y: -280}, exp: 601/831/1200}
+  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 72/79/450}
+  - {name: crawler, index: 6, position: {x: 140, y: -285}, exp: 188/224/450, rotated: true}
+  - {name: mustang, index: 7, position: {x: -65, y: -280}, exp: 179/293/1200}
+  - {name: mustang, index: 8, position: {x: -225, y: -280}, exp: 685/854/1200}
+  - {name: sabertooth, index: 9, position: {x: 65, y: -215}, exp: 54/1131/1300}
+  - {name: steel_ball, index: 10, position: {x: 185, y: -300}, exp: 209/413/1000}
+  - {name: steel_ball, index: 11, position: {x: -175, y: -300}, exp: 598/1000/1000}
+  - {name: melting_point, index: 12, position: {x: 0, y: -280}, exp: 0/1057/1400, source: joined}
+  - {name: crawler, index: 13, position: {x: -110, y: -225}, exp: 0/60/450, rotated: true, source: joined}
+  - {name: crawler, index: 14, position: {x: -210, y: -205}, exp: 0/28/450, rotated: true, source: joined}
+  - {name: crawler, index: 15, position: {x: -260, y: -225}, exp: 0/48/450, rotated: true, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 135, y: -13}, retained: false}
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: -7, y: -151}, {x: -199, y: -95}, {x: -168, y: 102}]}
+ticks: 1076
+hash: 27:f1a80938d10fbaaa1b32b131450371089d36cadc715538d831e0c32ac9dc1bd0
