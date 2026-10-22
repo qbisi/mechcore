@@ -883,9 +883,13 @@ List the recent tournaments retained by the server:
 
 The result contains `ready: true` and `tournaments`, each with `match_id`,
 `sub_ids`, Unix-second `start_time`, localized `title`, three untranslated
-configuration `params`, and `division_type`. The game's history request
-throttle may reuse its cached list. Dates, regions and tournament selection
-belong to the caller; download selection uses `match_id`.
+configuration `params`, `division_type`, `subtype`, and `source` (`history` or
+`recent`). The list combines the native historical archive with ended entries
+from the regular competition list, including midweek mini tournaments that
+are absent from the archive, deduplicated by `match_id`. The regular list is
+requested through the game's own request path; its throttle may reuse the
+cached list. Dates, regions and tournament selection belong to the caller;
+download selection uses `match_id`.
 
 Load a subdivision's ranking page, starting with page 1:
 
@@ -894,11 +898,12 @@ Load a subdivision's ranking page, starting with page 1:
 ```
 
 The result contains `ready`, `match_id`, `sub_id`, `page`, `pages`,
-`rank_count` and deduplicated `replays` (native server paths). The native
-rank cache accumulates pages; callers deduplicate paths across all pages and
-subdivisions. The current cached page is reused; the accumulated rows can
-also include other pages. A tournament must first be
-loaded by `list`.
+`rank_count` and deduplicated `replays` (native server paths). Each response
+contains that server page only; callers deduplicate paths across all pages
+and subdivisions. The Adapter reads the native ranking reply before the game
+dispatches it to its history cache or results window. This also admits ended
+mini tournaments without a historical-cache entry or an open results window.
+Only the requested `match_id`, `sub_id` and `page` can complete the request.
 
 Download and export one replay through `ReplayProxy`:
 

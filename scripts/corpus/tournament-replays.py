@@ -9,7 +9,9 @@ Run against an online game with the current Adapter:
     uv run --with pyyaml python scripts/corpus/tournament-replays.py publish \
         --source work/tournaments [--dry-run]
 
-The script speaks directly to the Adapter's tournament API. It walks every
+The script speaks directly to the Adapter's tournament API. List includes
+archived tournaments and ended regular-list events such as midweek minis.
+Both use the same public tournaments/ archive. The downloader walks every
 subdivision and ranking page, deduplicates the two players' replay references,
 then uses the existing `mechcore convert --to match` command. Final names are
 {BattleID}.yaml, read from the downloaded replay, not its server file ID.
@@ -303,7 +305,7 @@ def main() -> int:
             return 0
         chosen = [entry for entry in entries if entry["match_id"] == args.id]
         if not chosen:
-            raise RuntimeError("tournament ID is not in the retained history; run list to inspect available IDs")
+            raise RuntimeError("tournament ID is not in the retained tournament list; run list to inspect available IDs")
         paths = replay_paths(adapter, chosen)
         output = args.output_dir.resolve() / tournament_directory(chosen[0])
         (output / ".downloads").mkdir(parents=True, exist_ok=True)

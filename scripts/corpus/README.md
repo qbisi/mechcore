@@ -51,7 +51,10 @@ uv run --with pyyaml python scripts/corpus/tournament-replays.py publish --sourc
 ```
 
 `list` prints JSON lines containing the tournament ID, localized title, region,
-date and start time, plus native subdivision IDs. Dates use local time;
+date and start time, plus native subdivision IDs, `subtype` and `source`.
+It includes both historical tournaments and ended events from the regular
+competition list, where midweek mini tournaments are found. Mini tournaments
+use the same download command and public `tournaments/` archive. Dates use local time;
 `--timezone Asia/Shanghai` before the subcommand selects an explicit timezone.
 `download --id` selects exactly that tournament and deduplicates server replay
 paths across both players, all subdivisions and all ranking pages. It names
