@@ -49,34 +49,34 @@ asserts:
                                       300, 305, 314, 315, 316, 324, 325, 326)
     ORDER BY u.tick;
   rows:
-  - [230, "attacking", 891678364942, null, 0, 229, 34]
-  - [231, "attacking", 891678364942, "before", 0, 0, 34]
-  - [243, "attacking", 891678364942, "attacking", 0, 12, 50]
-  - [244, "attacking", 891678364942, "after", 0, 13, 50]
-  - [264, "attacking", 891678364942, "after", 0, 33, 50]
-  - [265, "attacking", 891678364942, null, 1, 34, 50]
-  - [274, "attacking", 891678364942, null, 1, 43, 50]
-  - [280, "attacking", 891678364942, null, 1, 49, 50]
-  - [281, "attacking", 891678364942, "before", 1, 0, 50]
-  - [300, "attacking", 891678364942, "attacking", 1, 19, 50]
-  - [305, "attacking", 891678364942, "after", 1, 24, 50]
-  - [314, "attacking", 891678364942, "after", 1, 33, 50]
-  - [315, "idle", 891678364942, "after", 1, 34, 50]
-  - [316, "idle", 891678364942, "after", 1, 35, 50]
-  - [324, "idle", 891678364942, "after", 1, 43, 50]
-  - [325, "idle", 891678364942, "after", 1, 44, 50]
-  - [326, "idle", 891678364942, "after", 1, 45, 50]
+  - [230, attacking, 891678364942, null, 0, 229, 34]
+  - [231, attacking, 891678364942, before, 0, 0, 34]
+  - [243, attacking, 891678364942, attacking, 0, 12, 50]
+  - [244, attacking, 891678364942, after, 0, 13, 50]
+  - [264, attacking, 891678364942, after, 0, 33, 50]
+  - [265, attacking, 891678364942, null, 1, 34, 50]
+  - [274, attacking, 891678364942, null, 1, 43, 50]
+  - [280, attacking, 891678364942, null, 1, 49, 50]
+  - [281, attacking, 891678364942, before, 1, 0, 50]
+  - [300, attacking, 891678364942, attacking, 1, 19, 50]
+  - [305, attacking, 891678364942, after, 1, 24, 50]
+  - [314, attacking, 891678364942, after, 1, 33, 50]
+  - [315, idle, 891678364942, after, 1, 34, 50]
+  - [316, idle, 891678364942, after, 1, 35, 50]
+  - [324, idle, 891678364942, after, 1, 43, 50]
+  - [325, idle, 891678364942, after, 1, 44, 50]
+  - [326, idle, 891678364942, after, 1, 45, 50]
 - sql: |
     SELECT u.tick, u.motion_state, u.body_rotation, u.mech_lock_target__id,
            EXISTS(SELECT 1 FROM units t WHERE t.tick = u.tick AND t.unit_id = u.mech_lock_target__id)
     FROM units u WHERE u.unit_id = 11 AND u.tick IN (314, 315, 316, 324, 325, 326)
     ORDER BY u.tick;
   rows:
-  - [314, "attacking", 860211453161, 10, 1]
-  - [315, "idle", 860211453161, 10, 0]
-  - [316, "attacking", 860211453161, 4, 1]
-  - [324, "attacking", 757132238441, 4, 1]
-  - [325, "attacking", 750387293002, 4, 1]
-  - [326, "attacking", 750750282621, 4, 1]
+  - [314, attacking, 860211453161, 10, 1]
+  - [315, idle, 860211453161, 10, 0]
+  - [316, attacking, 860211453161, 4, 1]
+  - [324, attacking, 757132238441, 4, 1]
+  - [325, attacking, 750387293002, 4, 1]
+  - [326, attacking, 750750282621, 4, 1]
 ticks: 618
-hash: 26:932147885885e139e71069ba24517072edf97001961dd10d2d7a26ddcb9c1a30
+hash: 27:6e88fbe28502dbc548c494330279486bde75b54f85a49407f0366cdb433ce15d

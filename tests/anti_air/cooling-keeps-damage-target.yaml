@@ -44,16 +44,16 @@ asserts:
     WHERE unit_id = 7 AND skill_slot = 0 AND tick IN (359, 360, 362, 364)
     ORDER BY tick
   rows:
-  - [359, "attack", 1, 1]
-  - [360, "cooling", null, 1]
-  - [362, "cooling", null, 1]
-  - [364, "idle", null, null]
+  - [359, attack, 1, 1]
+  - [360, cooling, null, 1]
+  - [362, cooling, null, 1]
+  - [364, idle, null, null]
 - sql: |
     SELECT tick, ordinal, type, source__id, target__id, amount
     FROM events
     WHERE tick = 362 AND type = 'damage'
     ORDER BY ordinal
   rows:
-  - [362, 0, "damage", 7, 1, 2876]
+  - [362, 0, damage, 7, 1, 2876]
 ticks: 657
-hash: 26:573e62aa5ff82fdb512cc701cfe98b2fe2f46a90fa6252744cfbd9a2a532e051
+hash: 27:24cc3efc3a57fa47d3d3acbd68263b3f4d6e9ae9ab49b66dd3ac40d58a325e5c

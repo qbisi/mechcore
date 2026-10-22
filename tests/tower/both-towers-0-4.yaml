@@ -18,4 +18,4 @@ red:
   - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/314/1000, source: joined}
   - {name: steel_ball, index: 1, position: {x: -145, y: -20}, exp: 0/302/1000, source: joined}
 ticks: 641
-hash: 26:8251a0f63b658d1157117f0ea3053da7745343b2a05068758b88d6b002739ed1
+hash: 27:8e3fbc68677a1b8f111abcaac46653c9fb7fbda1accff8e89de4aa7a4f840ad6

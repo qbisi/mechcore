@@ -22,4 +22,4 @@ red:
   - {name: acid_blast, positions: [{x: -60, y: 0}, {x: 60, y: 0}]}
   - {name: smoke_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
 ticks: 284
-hash: 26:b512fd04a981488fc765cd8d128a4b4241e403845d64823201c3a3cd1a370ec9
+hash: 27:a73857d63cb24170081b97d7353ceec71b3804de1778a882e2b533c945a3f5bd

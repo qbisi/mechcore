@@ -25,4 +25,4 @@ red:
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
 ticks: 258
-hash: 26:ff9e8ffe6fa67a20db9d26127c159a3b3757aae94e95801fcf0a2e4444253802
+hash: 27:ec3a00fe1ecd8af1b3f39fff001cfd60fe7af1fd8520a4ea69d5fb84f4dcf926

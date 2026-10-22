@@ -57,6 +57,7 @@ pub(in crate::fight) enum InterceptorOwner {
     reason = "each is a field of `InterceptEffectBase`"
 )]
 pub(in crate::fight) struct Interceptor {
+    pub(in crate::fight) deployment_index: Option<i32>,
     /// What names it in a projectile's lists.
     key: u64,
     pub(in crate::fight) owner: InterceptorOwner,
@@ -91,6 +92,7 @@ impl Interceptor {
         discovery_team: u32,
     ) -> Self {
         Self {
+            deployment_index: None,
             key,
             owner,
             interception,
@@ -114,7 +116,7 @@ impl Interceptor {
         building_id: u64,
         placed: &InterceptorBuilding,
     ) -> Self {
-        Self::new(
+        let mut interceptor = Self::new(
             key,
             InterceptorOwner::Building {
                 building_id,
@@ -124,7 +126,9 @@ impl Interceptor {
             },
             placed.interception,
             placed.team,
-        )
+        );
+        interceptor.deployment_index = Some(placed.deployment_index);
+        interceptor
     }
 
     /// `DropAtk`: a hit costs the attack its decline, down to its floor.

@@ -54,8 +54,8 @@ asserts:
 - sql: |-
     SELECT tick,type,source__kind,source__id,target__kind,target__id,amount,buff_id FROM events WHERE tick=84 ORDER BY ordinal
   rows:
-  - [84, "damage", "unit", 3, "unit", 4, 21780, null]
-  - [84, "buff_applied", "unit", 3, "unit", 4, null, 1002]
-  - [84, "projectile_removed", "unit", 3, "unit", 4, null, null]
+  - [84, damage, unit, 3, unit, 4, 21780, null]
+  - [84, buff_applied, unit, 3, unit, 4, null, 1002]
+  - [84, projectile_removed, unit, 3, unit, 4, null, null]
 ticks: 1142
-hash: 26:72c0bf92925fbbe01664db2e4d8928d5b4e6f53114dd886202e6f9b0825040f9
+hash: 27:fcbe3320b5fe4d7007f4a4bbf8422453d8e5e612ab432aefbb721c4814bcbacf

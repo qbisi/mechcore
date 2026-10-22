@@ -127,6 +127,7 @@ pub(crate) struct Interception {
 /// One interceptor a layout places: a building of its side.
 #[derive(Debug, Clone)]
 pub(crate) struct InterceptorBuilding {
+    pub(crate) deployment_index: i32,
     pub(crate) team: u32,
     /// Its centre in space units, a thousand to the metre.
     pub(crate) x: i64,
@@ -143,6 +144,7 @@ pub(crate) struct InterceptorBuilding {
 /// puts it until it fires.
 #[derive(Debug, Clone)]
 pub(crate) struct MissileMine {
+    pub(crate) deployment_index: i32,
     pub(crate) team: u32,
     /// Where it stands, in space units, a thousand to the metre.
     pub(crate) x: i64,
@@ -184,6 +186,7 @@ pub(crate) struct MissileBuff {
 /// standing on the ground where the layout puts it.
 #[derive(Debug, Clone)]
 pub(crate) struct ShieldPlacement {
+    pub(crate) deployment_index: Option<i32>,
     pub(crate) team: u32,
     /// Its centre, in space units, a thousand to the metre.
     pub(crate) x: i64,
@@ -284,6 +287,11 @@ impl Contraptions {
             (-local_x, -local_z)
         };
         Ok(ShieldPlacement {
+            deployment_index: Some(
+                placement
+                    .index
+                    .ok_or_else(|| Error::new("contraption has no deployment index"))?,
+            ),
             team,
             x: x * SPACE,
             z: z * SPACE,
@@ -351,6 +359,9 @@ impl Contraptions {
             (-local_x, -local_z)
         };
         Ok(MissileMine {
+            deployment_index: placement
+                .index
+                .ok_or_else(|| Error::new("contraption has no deployment index"))?,
             team,
             x: x * SPACE,
             z: z * SPACE,
@@ -439,6 +450,9 @@ impl Contraptions {
         }
         .interception(&named)?;
         Ok(InterceptorBuilding {
+            deployment_index: placement
+                .index
+                .ok_or_else(|| Error::new("contraption has no deployment index"))?,
             team,
             x: x * SPACE,
             z: z * SPACE,

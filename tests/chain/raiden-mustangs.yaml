@@ -24,4 +24,4 @@ red:
   - {name: fang, index: 1, position: {x: 45, y: -60}, source: joined}
   - {name: mustang, index: 2, position: {x: -45, y: -40}, source: joined}
 ticks: 1470
-hash: 26:7f949c2bcafb5a1ffe2f6b76d34b79aa24f7c67610e84be39d1312eef14bf7ab
+hash: 27:62a0be4747aa20d5ec9c2294841f84d46d7758071a3a52b3c9685c7dec386835

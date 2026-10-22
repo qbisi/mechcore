@@ -40,8 +40,8 @@ asserts:
     WHERE tick = 707 AND (buff_id = 1031 OR type = 'healing')
     ORDER BY ordinal;
   rows:
-  - ["buff_applied", 1031, null]
-  - ["buff_applied", 1031, null]
-  - ["healing", null, 682]
+  - [buff_applied, 1031, null]
+  - [buff_applied, 1031, null]
+  - [healing, null, 682]
 ticks: 1220
-hash: 26:fcc5922498af54979c8eeca127f5588ea727e8a3525427ef2780bfcdd7f3d1c1
+hash: 27:08733826c94871045b83de60d00ef762d713d607020e661fe01fc13371063dff

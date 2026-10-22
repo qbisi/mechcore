@@ -49,4 +49,4 @@ asserts:
   - [1041, 12, buff_removed, 1]
   - [1041, 13, building_destroyed, null]
 ticks: 1046
-hash: 26:e8dcec37bfb20e21449a11114d4a91edd80caea1113b7d079b9ea61a2ace1d1a
+hash: 27:23b9bda1fb8cad2eb7f83b4ca5217daf6061b9e23a5953544a52f90a31441fa7

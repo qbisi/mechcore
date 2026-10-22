@@ -46,17 +46,17 @@ asserts:
     WHERE unit_id = 12 AND tick IN (1045, 1046, 1050, 1051)
     ORDER BY tick, skill_slot;
   rows:
-  - [1045, 0, "idle", 7, 7, 141]
-  - [1045, 1, "idle", null, 8, 141]
-  - [1045, 2, "idle", null, 7, 141]
-  - [1046, 0, "idle", null, null, 92]
-  - [1046, 1, "idle", null, 8, 141]
-  - [1046, 2, "idle", null, 7, 141]
-  - [1050, 0, "idle", null, null, 92]
-  - [1050, 1, "idle", null, 8, 141]
-  - [1050, 2, "idle", null, 7, 141]
-  - [1051, 0, "idle", null, null, 92]
-  - [1051, 1, "idle", null, null, 92]
-  - [1051, 2, "idle", null, null, 92]
+  - [1045, 0, idle, 7, 7, 141]
+  - [1045, 1, idle, null, 8, 141]
+  - [1045, 2, idle, null, 7, 141]
+  - [1046, 0, idle, null, null, 92]
+  - [1046, 1, idle, null, 8, 141]
+  - [1046, 2, idle, null, 7, 141]
+  - [1050, 0, idle, null, null, 92]
+  - [1050, 1, idle, null, 8, 141]
+  - [1050, 2, idle, null, 7, 141]
+  - [1051, 0, idle, null, null, 92]
+  - [1051, 1, idle, null, null, 92]
+  - [1051, 2, idle, null, null, 92]
 ticks: 1051
-hash: 26:b87720ad70bd703f8daccf2dace9bde4e3dbf4b25ba9eceeffe45b053095f238
+hash: 27:3001f21ac0beac2199390079567314448a7c077b7c0f0deb427ef090a2de7d6d

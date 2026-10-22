@@ -53,4 +53,4 @@ asserts:
   - [380, 3, projectile_removed, projectile, 140, unit, 11, unit, 2, shield, 2, null, null]
   - [380, 4, unit_died, unit, 2, unit, 4, null, null, null, null, null, null]
 ticks: 519
-hash: 26:90064296536db6fedf28f93a22214d895a0b221105e4e348f76f9e1862bd98b0
+hash: 27:49d93a41524a8ce5084027a032fb88c85786a1d2864aaeac2ceb3dc2e6846400

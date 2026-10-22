@@ -213,6 +213,7 @@ SkillMachineState::prepare
 SkillMachineState::reloading
 SkillState.enabled: EnabledSkill | null
 SkillState.skill_slot: integer(uint16)
+TeamSettlement.retained_contraptions: [integer(int32)]
 TeamSettlement.score: integer(int32)
 TeamSettlement.team_id: integer(uint32)
 TerrainApplicationState.periodic_clock: TerrainEffectClock | null

@@ -14,4 +14,4 @@ red:
   units:
   - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/400/1500, source: joined}
 ticks: 486
-hash: 26:1fad1f56cb8f657478108ef9805f8ba0bc4e9b95ccca05849c50ef1599ba98dc
+hash: 27:fd0249c2e16a33e95fbb22131b12e8cd8afd596b08655ff230ca454b7f77ce8d

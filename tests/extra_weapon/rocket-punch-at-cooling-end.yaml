@@ -49,11 +49,11 @@ asserts:
       AND tick BETWEEN 111 AND 113
     ORDER BY tick, skill_slot;
   rows:
-  - [111, 0, "cooling", -1, 0]
-  - [111, 2, "idle", -1, 0]
-  - [112, 0, "lock", -1, 0]
-  - [112, 2, "attack", -1, 0]
-  - [113, 0, "lock", -1, 0]
-  - [113, 2, "attack", 0, 0]
+  - [111, 0, cooling, -1, 0]
+  - [111, 2, idle, -1, 0]
+  - [112, 0, lock, -1, 0]
+  - [112, 2, attack, -1, 0]
+  - [113, 0, lock, -1, 0]
+  - [113, 2, attack, 0, 0]
 ticks: 1154
-hash: 26:58366d6e16331a8eb635a45a39073612c2a72ccf13790072ee397d367147d290
+hash: 27:16ed4b07372ab7063b3840980d8b170c682c330e03d246c12bfaeb8c1679714f

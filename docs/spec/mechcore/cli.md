@@ -401,12 +401,9 @@ the formation's experience at the last tick, cut to a whole number as the
 fight's end cuts it; the formation has to open the fight holding the layout's
 experience, and its bar has to be the table's. `core_damage` is what
 [reactor_damage.md](../../rules/reactor_damage.md) states, from the units
-standing at the last tick. A shield contraption, a standing Shield Airdrop and
-an interceptor are the shield, or the building, of the side standing exactly
-at the entry's position when the fight opens, and each is retained when the
-recording still holds it at the last tick. A missile is retained unless a
-projectile nobody owns, of its side, is first recorded beside it, which is how
-a missile fires ([contraptions.md](../../rules/contraptions.md)). A Shield
+standing at the last tick. A contraption is retained exactly when its deployment index is in its side's
+settlement `retained_contraptions`. A standing Shield Airdrop is the commander-skill
+shield at its position and is retained when it still stands at the end. A Shield
 Airdrop released this round is retained when a commander-skill shield of the
 side stands at its position at the last tick. A Sticky Oil Bomb released this
 round leaves each of its seven points where an oil area of the side the fight
@@ -633,11 +630,12 @@ Queries of one recording at once share its file, each table filled once.
 `--no-cache` keeps the tables in memory for the one query, and a cache that
 cannot be written is read in memory, which standard error says.
 
-`query` also exposes `settlement_teams(team_id, score, core_damage)` and
+`query` also exposes `settlement_teams(team_id, score, core_damage)`,
+`settlement_contraptions(team_id, deployment_index)` and
 `settlement_formations(formation_id, team_id, experience, max_experience)`
 from `ticks.parquet`'s settlement metadata. They have no tick column. Formation
 experience and maximum retain Q32.32 encoding and can be read with `q32()`;
-core damage is the opposing team's score. `--schema` lists both views.
+core damage is the opposing team's score. `--schema` lists these views.
 
 ## `play`
 

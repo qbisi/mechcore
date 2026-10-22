@@ -15,4 +15,4 @@ red:
   - {name: phantom_ray, index: 0, position: {x: -45, y: -100}, exp: 0/100/1000, source: joined}
   - {name: wasp, index: 1, position: {x: 45, y: -100}, exp: 0/300/900, source: joined}
 ticks: 156
-hash: 26:1ad8d8e22431c73302c057f6511cbe862e4938ea3e90101af865279312510d33
+hash: 27:0cf7c6db8ebe704c9d94ed97a445926a2b5071e5c673d9b298758c678c7b005b

@@ -56,4 +56,4 @@ red:
   battle_skills:
   - {name: orbital_bombardment, positions: [{x: -125, y: 52}]}
 ticks: 752
-hash: 26:0c5f70bfd1e181167c525075249a3d4114159d5456e3a39709095657780d5b46
+hash: 27:a036812a4e62785d6e14b62548fc88b5ebb7e96905b2386d86d35563a43d5462

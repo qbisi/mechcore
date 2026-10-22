@@ -575,6 +575,10 @@ fn make(
                 json_extract((SELECT value FROM meta WHERE key = 'settlement'),
                     '$.teams[' || (1 - json_extract(value, '$.team_id')) || '].score') AS core_damage
          FROM json_each((SELECT value FROM meta WHERE key = 'settlement'), '$.teams');
+         CREATE VIEW settlement_contraptions AS
+         SELECT json_extract(t.value, '$.team_id') AS team_id, c.value AS deployment_index
+         FROM json_each((SELECT value FROM meta WHERE key = 'settlement'), '$.teams') t,
+              json_each(t.value, '$.retained_contraptions') c;
          CREATE VIEW settlement_formations AS
          SELECT json_extract(value, '$.formation_id') AS formation_id,
                 json_extract(value, '$.team_id') AS team_id,
@@ -608,13 +612,18 @@ fn settlement_schema(database: Option<&str>) -> Vec<SchemaTable> {
     for (name, key, columns) in [
         (
             "settlement_teams",
-            "team_id",
+            &["team_id"][..],
             &["team_id", "score", "core_damage"][..],
         ),
         (
             "settlement_formations",
-            "formation_id",
+            &["formation_id"][..],
             &["formation_id", "team_id", "experience", "max_experience"][..],
+        ),
+        (
+            "settlement_contraptions",
+            &["team_id", "deployment_index"][..],
+            &["team_id", "deployment_index"][..],
         ),
     ] {
         tables.push(SchemaTable {
@@ -622,7 +631,7 @@ fn settlement_schema(database: Option<&str>) -> Vec<SchemaTable> {
             name: name.to_owned(),
             member: "ticks.parquet metadata settlement".to_owned(),
             origin: "settlement",
-            key: vec![key.to_owned()],
+            key: key.iter().map(|key| (*key).to_owned()).collect(),
             columns: columns
                 .iter()
                 .map(|name| SchemaColumn {

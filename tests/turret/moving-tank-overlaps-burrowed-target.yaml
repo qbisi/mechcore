@@ -51,6 +51,7 @@ asserts:
     SELECT COUNT(*) FROM units a JOIN units b USING (tick)
     WHERE a.tick = 822 AND a.unit_id = 11 AND b.unit_id = 4
       AND a.position__x = b.position__x AND a.position__z = b.position__z;
-  rows: [[1]]
+  rows:
+  - [1]
 ticks: 923
-hash: 26:2fef117c8e49552610d5589602003ec37939ccdb8d73e9b32e77ee2474da199e
+hash: 27:eee7cba240af6cc3aebc53ec2974de85ff83992b1dd5dea7a185576b24a646ee

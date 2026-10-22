@@ -43,20 +43,20 @@ asserts:
 - sql: |-
     SELECT tick,unit_id,targetable,visibility FROM units WHERE unit_id=13 AND tick BETWEEN 193 AND 195 ORDER BY tick
   rows:
-  - [193, 13, 1, "normal"]
-  - [194, 13, 0, "stealth"]
-  - [195, 13, 0, "stealth"]
+  - [193, 13, 1, normal]
+  - [194, 13, 0, stealth]
+  - [195, 13, 0, stealth]
 - sql: |-
     SELECT tick,unit_id,motion_state,has_mech_lock_target,mech_lock_target__id FROM units WHERE unit_id=16 AND tick BETWEEN 193 AND 195 ORDER BY tick
   rows:
-  - [193, 16, "attacking", 1, 13]
-  - [194, 16, "moving", 1, 13]
-  - [195, 16, "idle", 0, null]
+  - [193, 16, attacking, 1, 13]
+  - [194, 16, moving, 1, 13]
+  - [195, 16, idle, 0, null]
 - sql: |-
     SELECT tick,unit_id,skill_slot,enabled__state,enabled__attack_count,enabled__perform_count FROM units__skills WHERE unit_id=16 AND tick BETWEEN 193 AND 195 ORDER BY tick
   rows:
-  - [193, 16, 0, "attack", 20, 21]
-  - [194, 16, 0, "attack", 21, 22]
-  - [195, 16, 0, "idle", -1, 0]
+  - [193, 16, 0, attack, 20, 21]
+  - [194, 16, 0, attack, 21, 22]
+  - [195, 16, 0, idle, -1, 0]
 ticks: 390
-hash: 26:53c09e06360c89756a347fede0b83fd8678f53409bf25e46086cf2aa03f659da
+hash: 27:800946e003d8065d7876a38fc46e0746e9ea43037fd5a09c36433cbc38997b5f

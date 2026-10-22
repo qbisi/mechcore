@@ -21,4 +21,4 @@ red:
   battle_skills:
   - {name: mobile_beacon, positions: [{x: 105, y: -145}, {x: 250, y: -100}, {x: 250, y: 50}]}
 ticks: 686
-hash: 26:604e692676873bc8634f609707d79e83447da2baf60c1b53ccfd6f901fd9cf06
+hash: 27:63696e07b63c3a7ff5dbe3237cc1717ceaeabed251b16b8c8b007a6f450bd800

@@ -82,4 +82,4 @@ asserts:
   - [136, 3, idle, 2, attack, null, unit, 2, unit, 2, 0, 1]
   - [136, 3, idle, 3, cooling, null, null, null, building, 1, -1, 0]
 ticks: 2360
-hash: 26:02790749f9398478ae8e02f9eb8e4ced58c75131b1f38b16d4b8382fcd146687
+hash: 27:86d7ced36f31f6447b28ca1ce887eff17ac14ce009ab9350d6fddd66d0d210cc

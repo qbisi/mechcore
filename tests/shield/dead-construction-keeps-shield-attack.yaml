@@ -50,22 +50,22 @@ asserts:
 - sql: |-
     SELECT tick,type,object__id FROM events WHERE type='building_destroyed' AND object__id=3 ORDER BY tick,ordinal
   rows:
-  - [28, "building_destroyed", 3]
+  - [28, building_destroyed, 3]
 - sql: |-
     SELECT tick,skill_slot,enabled__state,enabled__lock_target__id,enabled__attack_target__id,enabled__attack_count,enabled__perform_count FROM units__skills WHERE unit_id=4 AND skill_slot BETWEEN 0 AND 3 AND tick BETWEEN 41 AND 43 ORDER BY tick,skill_slot
   rows:
-  - [41, 0, "attack", 3, null, 0, 1]
-  - [41, 1, "attack", 3, null, 0, 1]
-  - [41, 2, "attack", 3, null, 0, 1]
-  - [41, 3, "attack", 3, null, 0, 1]
-  - [42, 0, "attack", 2, 2, 0, 1]
-  - [42, 1, "attack", 2, 2, 0, 1]
-  - [42, 2, "attack", 2, 2, 0, 1]
-  - [42, 3, "attack", 2, 2, 0, 1]
-  - [43, 0, "attack", 2, 2, 0, 1]
-  - [43, 1, "attack", 2, 2, 0, 1]
-  - [43, 2, "attack", 2, 2, 0, 1]
-  - [43, 3, "attack", 2, 2, 0, 1]
+  - [41, 0, attack, 3, null, 0, 1]
+  - [41, 1, attack, 3, null, 0, 1]
+  - [41, 2, attack, 3, null, 0, 1]
+  - [41, 3, attack, 3, null, 0, 1]
+  - [42, 0, attack, 2, 2, 0, 1]
+  - [42, 1, attack, 2, 2, 0, 1]
+  - [42, 2, attack, 2, 2, 0, 1]
+  - [42, 3, attack, 2, 2, 0, 1]
+  - [43, 0, attack, 2, 2, 0, 1]
+  - [43, 1, attack, 2, 2, 0, 1]
+  - [43, 2, attack, 2, 2, 0, 1]
+  - [43, 3, attack, 2, 2, 0, 1]
 - sql: |-
     SELECT tick,source__id,skill_slot,target__id FROM events WHERE type='projectile_released' AND source__id=4 AND target__kind='building' AND target__id=2 ORDER BY tick,ordinal LIMIT 4
   rows:
@@ -74,4 +74,4 @@ asserts:
   - [92, 4, 0, 2]
   - [96, 4, 3, 2]
 ticks: 2345
-hash: 26:45a34a40f31d2a322149c992d4fd3649cf121dde0e7d7d2716c1575ad3a6b567
+hash: 27:150df0dd8d2b7231a6acf89976be13e8b0ff176a39a9e4c3988263f48917d6cd

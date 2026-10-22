@@ -60,4 +60,4 @@ red:
   battle_skills:
   - {name: underground_threat, positions: [{x: -2, y: 273}]}
 ticks: 1250
-hash: 26:82770f3452781d2831c5aeb21e538df855e5a3300ac120e00243dca62dfe1e54
+hash: 27:227d11416c42df9aa5ebf21537795c895e8d0beb514fe41fbd9895f12ce253db

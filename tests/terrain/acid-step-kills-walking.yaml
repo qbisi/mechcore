@@ -25,4 +25,4 @@ red:
   battle_skills:
   - {name: acid_blast, positions: [{x: -135, y: 245}, {x: 40, y: 160}]}
 ticks: 696
-hash: 26:a4f99d335134e3f5d601161fcef61082fa067dce439df29676fd6d4b75ec7838
+hash: 27:5526244481f0b20aa0bc17c0d23078fc9f1e143a449bdab4583b6f8e496e5efa

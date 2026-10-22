@@ -21,4 +21,4 @@ red:
   - {name: arclight, index: 0, position: {x: -40, y: -60}, source: joined}
   - {name: arclight, index: 1, position: {x: 40, y: -60}, source: joined}
 ticks: 50
-hash: 26:eb4a78568da3fb51d16a8fbf530e36fbd855089bdf4f1304b40007b2b9a4aee5
+hash: 27:405ac37a5992f725a4f3178aca1b04fa60e4bc5625fe526a19a46d73fdbad6ad

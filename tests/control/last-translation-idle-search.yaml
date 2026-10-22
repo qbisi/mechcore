@@ -51,17 +51,17 @@ asserts:
       AND tick IN (807, 808, 811)
     ORDER BY tick, unit_id;
   rows:
-  - [807, 19, "idle", 21, 21]
-  - [807, 23, "idle", 21, 21]
-  - [807, 24, "idle", 21, 21]
-  - [807, 25, "idle", 21, 21]
-  - [808, 19, "idle", null, null]
-  - [808, 23, "idle", null, null]
-  - [808, 24, "idle", null, null]
-  - [808, 25, "idle", null, null]
-  - [811, 19, "idle", null, null]
-  - [811, 23, "idle", null, null]
-  - [811, 24, "idle", null, null]
-  - [811, 25, "idle", null, null]
+  - [807, 19, idle, 21, 21]
+  - [807, 23, idle, 21, 21]
+  - [807, 24, idle, 21, 21]
+  - [807, 25, idle, 21, 21]
+  - [808, 19, idle, null, null]
+  - [808, 23, idle, null, null]
+  - [808, 24, idle, null, null]
+  - [808, 25, idle, null, null]
+  - [811, 19, idle, null, null]
+  - [811, 23, idle, null, null]
+  - [811, 24, idle, null, null]
+  - [811, 25, idle, null, null]
 ticks: 812
-hash: 26:ebd6834e52dc8389af7f4158cccd4132352e4a82c32f4c8e85232bac32fd9d08
+hash: 27:6bc2a1133486000007f8918362016f6ac04384484e8790561fcf8c2caa5e408b

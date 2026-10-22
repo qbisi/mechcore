@@ -23,4 +23,4 @@ red:
   - {name: crawler, index: 0, position: {x: 5, y: -70}, source: joined}
   - {name: marksman, index: 1, position: {x: 0, y: -110}, source: joined}
 ticks: 426
-hash: 26:61a35dc668c4a48af60ac94ef8bcada31acde656fed611e5e04193174d88b0b9
+hash: 27:fe0845b61aaed046a73fd0c40891d07225fa376e47c03e12e7fd7b78ae017503

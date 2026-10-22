@@ -23,4 +23,4 @@ red:
   - {name: missile, index: 1, position: {x: -100, y: -40}, retained: false}
   - {name: missile, index: 2, position: {x: 100, y: -40}, retained: false}
 ticks: 24
-hash: 26:32312893d471fa73b3e40a795f8cc37f32d67b61399a43f80bbd64ebb3d22dbe
+hash: 27:e7dc8a2f758ba6dd390c92208d9349fd3a8956758e9f4cde6c304a5aecdc3fe3

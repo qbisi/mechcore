@@ -1133,6 +1133,7 @@ static ORIGINAL_ADVANCED_SHIELD_DAMAGE: AtomicPtr<c_void> = AtomicPtr::new(ptr::
 static ORIGINAL_FIGHT_MECH_ON_DEAD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_FIGHT_CRYSTAL_ON_DEAD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_FIGHT_CONTROLLER_CREATE_MECH: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_CALCULATE_RESULT: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_CALCULATE_SCORE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_FIGHT_ACTOR_ADD_LIFE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_FIGHT_CONSTRUCTION_ADD_LIFE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
@@ -1578,6 +1579,17 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             .class("GRClient.dll", "GameRiver.Client", "FightResultController")
             .and_then(|class| api.method(class, "CalculateScore", 2))
             .map_err(|error| error.to_string())?;
+        let calculate_result = api
+            .class("GRClient.dll", "GameRiver.Client", "FightResultController")
+            .and_then(|class| api.method(class, "CalculateResult", 1))
+            .map_err(|error| error.to_string())?;
+        install_inline_hook(
+            api,
+            calculate_result,
+            calculate_result_hook as *const c_void,
+            &ORIGINAL_CALCULATE_RESULT,
+            "FightResultController.CalculateResult",
+        )?;
         install_inline_hook(
             api,
             calculate_score,
@@ -3396,7 +3408,48 @@ fn record_team_score(team: *mut Object, score: i32) {
         if entry.replace(score).is_some() {
             return Err("settlement scores a team twice".into());
         }
-        if let [Some(blue), Some(red)] = state.settlement_scores {
+        Ok::<(), String>(())
+    })();
+    if let Err(error) = result {
+        state.fail(format!("fight settlement: {error}"));
+    }
+}
+
+type CalculateResultFn = unsafe extern "C" fn(*mut Object, *mut Object, *const MethodInfo);
+
+unsafe extern "C" fn calculate_result_hook(
+    controller: *mut Object,
+    snapshots: *mut Object,
+    method: *const MethodInfo,
+) {
+    let original = ORIGINAL_CALCULATE_RESULT.load(Ordering::Acquire);
+    // SAFETY: installer saved the trampoline for this exact native ABI.
+    let original: CalculateResultFn = unsafe { std::mem::transmute(original) };
+    // SAFETY: forward all native arguments unchanged, then read the completed reports.
+    unsafe { original(controller, snapshots, method) };
+    let _ = catch_unwind(AssertUnwindSafe(|| record_settlement(controller)));
+}
+
+/// Reads the native result, after both scores and contraption reports are complete.
+fn record_settlement(controller: *mut Object) {
+    let runtime = RUNTIME.load(Ordering::Acquire);
+    if runtime.is_null() {
+        return;
+    }
+    // SAFETY: runtime is boxed for the adapter process lifetime.
+    let runtime = unsafe { &*runtime };
+    let mut state = capture_state()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if !state.armed || !state.initialized {
+        return;
+    }
+    let result = (|| {
+        let [Some(blue), Some(red)] = state.settlement_scores else {
+            return Err("fight result has not scored both teams".into());
+        };
+        let result = invoke_object(runtime.api, controller, "GetFightResult")?;
+        {
             let formations = statistics::read_formations(
                 runtime.api,
                 state
@@ -3410,10 +3463,12 @@ fn record_team_score(team: *mut Object, score: i32) {
                 formations,
                 teams: vec![
                     mechcore_mcfr::TeamSettlement {
+                        retained_contraptions: read_retained_contraptions(runtime.api, result, 0)?,
                         score: blue,
                         team_id: 0,
                     },
                     mechcore_mcfr::TeamSettlement {
+                        retained_contraptions: read_retained_contraptions(runtime.api, result, 1)?,
                         score: red,
                         team_id: 1,
                     },
@@ -3427,6 +3482,41 @@ fn record_team_score(team: *mut Object, score: i32) {
     if let Err(error) = result {
         state.fail(format!("fight settlement: {error}"));
     }
+}
+
+fn read_retained_contraptions(
+    api: Api,
+    result: *mut Object,
+    mut team: i32,
+) -> Result<Vec<i32>, String> {
+    let report = api
+        .invoke(result, "GetFightReport", &mut [argument(&mut team)])
+        .map_err(|error| error.to_string())?;
+    let class = api
+        .object_class(report)
+        .ok_or("fight report has no runtime class")?;
+    let field = api
+        .field(class, "Contraptions")
+        .map_err(|error| error.to_string())?;
+    let records: *mut Object = api
+        .field_value(report, field)
+        .map_err(|error| error.to_string())?;
+    let mut indices = Vec::new();
+    for position in 0..list_count(api, records, 10_000)? {
+        let record = list_item(api, records, position)?;
+        let class = api
+            .object_class(record)
+            .ok_or("contraption result has no runtime class")?;
+        let field = api
+            .field(class, "index")
+            .map_err(|error| error.to_string())?;
+        indices.push(
+            api.field_value::<i32>(record, field)
+                .map_err(|error| error.to_string())?,
+        );
+    }
+    indices.sort_unstable();
+    Ok(indices)
 }
 
 fn record_unit_created(team_controller: *mut Object, mech: *mut Object, mech_team: *mut Object) {
@@ -10100,10 +10190,12 @@ mod tests {
                 formations: Vec::new(),
                 teams: vec![
                     mechcore_mcfr::TeamSettlement {
+                        retained_contraptions: Vec::new(),
                         score: 0,
                         team_id: 0,
                     },
                     mechcore_mcfr::TeamSettlement {
+                        retained_contraptions: Vec::new(),
                         score: 0,
                         team_id: 1,
                     },

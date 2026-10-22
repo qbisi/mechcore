@@ -43,10 +43,11 @@ red:
   battle_skills:
   - {name: underground_threat, positions: [{x: -75, y: -100}]}
 asserts:
-- sql: "SELECT tick,enabled__state,enabled__lock_target__id FROM units__skills WHERE unit_id=2 AND skill_slot=0 AND tick IN (280,281,282) ORDER BY tick"
+- sql: |-
+    SELECT tick,enabled__state,enabled__lock_target__id FROM units__skills WHERE unit_id=2 AND skill_slot=0 AND tick IN (280,281,282) ORDER BY tick
   rows:
-  - [280, "attack", 39]
-  - [281, "attack", 30]
-  - [282, "attack", 42]
+  - [280, attack, 39]
+  - [281, attack, 30]
+  - [282, attack, 42]
 ticks: 1139
-hash: 26:132af369f7fac22890e0640224b8bd3494e24a24ce9811b07a61e6c9101ddeb6
+hash: 27:c34b705cd60590725e421b1bcba1d1765a2f7ede7ee080baea40c4dab5e10690

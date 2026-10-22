@@ -43,6 +43,6 @@ asserts:
     SELECT tick, object__id, absorbed_by__kind, absorbed_by__id
     FROM ev_projectile_removed WHERE tick = 173 AND object__id = 37;
   rows:
-  - [173, 37, "shield", 1]
+  - [173, 37, shield, 1]
 ticks: 1803
-hash: 26:6d7f1b06906a7d4ce69ab4e8458c631d228a6b331b8c166cc807fd314b7e4509
+hash: 27:a0471069c460526c4d29fce5763229c98c639da2d8f365d7924402c8df8b95db

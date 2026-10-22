@@ -40,15 +40,15 @@ asserts:
 - sql: |-
     SELECT tick,type,object__kind,object__id,target__kind,target__id,amount FROM events WHERE tick=874 ORDER BY ordinal
   rows:
-  - [874, "damage", null, null, "unit", 26, 5043]
-  - [874, "projectile_released", "projectile", 136, "unit", 6, null]
-  - [874, "healing", null, null, "unit", 6, 651]
-  - [874, "unit_died", "unit", 26, null, null, null]
-  - [874, "healing", null, null, "unit", 6, 3478]
+  - [874, damage, null, null, unit, 26, 5043]
+  - [874, projectile_released, projectile, 136, unit, 6, null]
+  - [874, healing, null, null, unit, 6, 651]
+  - [874, unit_died, unit, 26, null, null, null]
+  - [874, healing, null, null, unit, 6, 3478]
 - sql: |-
     SELECT tick,unit_id,life__current,life__maximum FROM units WHERE tick=873 AND unit_id=26 OR tick=874 AND unit_id=6 ORDER BY tick,unit_id
   rows:
   - [873, 26, 5043, 5043]
   - [874, 6, 45578, 144727]
 ticks: 973
-hash: 26:92f3464a6e063cbb2ab0746de3003ca747c6d81e9c81800630b3f64c831da471
+hash: 27:e43ce25449add19c60bfa24eb4d2dba9012f057f09d8394e5ec4c152021fae01

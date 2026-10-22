@@ -43,13 +43,14 @@ red:
   battle_skills:
   - {name: mobile_beacon_card, positions: [{x: -150, y: -35}, {x: 280, y: 5}, {x: -145, y: -90}]}
 asserts:
-- sql: "SELECT tick,unit_id,enabled__state,enabled__lock_target__id FROM units__skills WHERE unit_id IN (19,20) AND tick IN (104,105,106) AND skill_slot=0 ORDER BY tick,unit_id"
+- sql: |-
+    SELECT tick,unit_id,enabled__state,enabled__lock_target__id FROM units__skills WHERE unit_id IN (19,20) AND tick IN (104,105,106) AND skill_slot=0 ORDER BY tick,unit_id
   rows:
-  - [104, 19, "idle", 11]
-  - [104, 20, "idle", 11]
-  - [105, 19, "idle", 11]
-  - [105, 20, "idle", 11]
-  - [106, 19, "idle", 11]
-  - [106, 20, "idle", 11]
+  - [104, 19, idle, 11]
+  - [104, 20, idle, 11]
+  - [105, 19, idle, 11]
+  - [105, 20, idle, 11]
+  - [106, 19, idle, 11]
+  - [106, 20, idle, 11]
 ticks: 1772
-hash: 26:08f51ba9b42938e0a7df6fae541d7bae27fc2eb6d0a053f53c220b7c93c0bf50
+hash: 27:60fdbdc175c7a3f50e96f615ac76feac248d20e55e991d25824469dbd934768e

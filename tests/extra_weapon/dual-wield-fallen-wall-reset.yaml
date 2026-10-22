@@ -52,11 +52,11 @@ asserts:
 - sql: |-
     SELECT tick,skill_slot,enabled__state,enabled__attack_target__kind,enabled__attack_target__id FROM units__skills WHERE unit_id=11 AND skill_slot=2 AND tick BETWEEN 27 AND 32 ORDER BY tick
   rows:
-  - [27, 2, "idle", "building", 6]
-  - [28, 2, "idle", "building", 6]
-  - [29, 2, "idle", "unit", 5]
-  - [30, 2, "idle", "unit", 5]
-  - [31, 2, "idle", "unit", 5]
-  - [32, 2, "idle", "unit", 5]
+  - [27, 2, idle, building, 6]
+  - [28, 2, idle, building, 6]
+  - [29, 2, idle, unit, 5]
+  - [30, 2, idle, unit, 5]
+  - [31, 2, idle, unit, 5]
+  - [32, 2, idle, unit, 5]
 ticks: 348
-hash: 26:07b2dc2cfd4a71c91bfb1a6a3773dc2e43091c77d149ffa95682e8887b76e3b3
+hash: 27:03bbdd6e9cedf65d6007669558aa753f603d920ebf1e76b4b21b7076ffa3edf1

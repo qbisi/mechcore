@@ -48,18 +48,18 @@ asserts:
 - sql: |-
     SELECT tick,source__id,target__kind,target__id,amount,skill_slot FROM events WHERE tick=124 AND type='damage' AND source__id=37 ORDER BY ordinal
   rows:
-  - [124, 37, "building", 4, 39, 3]
-  - [124, 37, "shield", 1, 39, 4]
+  - [124, 37, building, 4, 39, 3]
+  - [124, 37, shield, 1, 39, 4]
 - sql: |-
     SELECT tick,unit_id,skill_slot,enabled__lock_target__id,enabled__attack_target__kind,enabled__attack_target__id FROM units__skills WHERE unit_id=37 AND skill_slot=3 AND tick BETWEEN 122 AND 124 ORDER BY tick
   rows:
-  - [122, 37, 3, 32, "building", 4]
-  - [123, 37, 3, 32, "building", 4]
-  - [124, 37, 3, 32, "building", 4]
+  - [122, 37, 3, 32, building, 4]
+  - [123, 37, 3, 32, building, 4]
+  - [124, 37, 3, 32, building, 4]
 - sql: |-
     SELECT tick,unit_id,life__current,life__maximum FROM units WHERE unit_id=32 AND tick BETWEEN 123 AND 124 ORDER BY tick
   rows:
   - [123, 32, 2002, 2002]
   - [124, 32, 2002, 2002]
 ticks: 1006
-hash: 26:2ee39dd2fe03b8a6e0065e0c62fcf5cf535516a123e30027b09d05c0e26f4125
+hash: 27:1bea5dd87676874b12efe74520a25c981ea2bb16be0bfd2d2fb54335439d0023

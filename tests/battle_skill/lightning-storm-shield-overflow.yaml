@@ -53,4 +53,4 @@ asserts:
   - [132, damage, unit, 12, 2000]
   - [132, buff_applied, unit, 12, null]
 ticks: 820
-hash: 26:9acad7eaa3d1d909de965afc2ecc29342897bf4fad4c65db329e2b7f129554aa
+hash: 27:4056ee95b48fed7cef82aa6d209db6c505bea72410812fa0b7dac82ab6f9947a

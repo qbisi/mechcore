@@ -54,4 +54,4 @@ asserts:
   - [272, 0, lock, null, 0]
   - [272, 2, attack, before, 0]
 ticks: 900
-hash: 26:e13d4c28a6495f6f8bab4cce958d9126552f770ddc53816c41cda489f603014d
+hash: 27:6518824eaab3365641837d32583e759387f345082c06eb182d99d8915d40e1be

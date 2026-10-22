@@ -70,4 +70,4 @@ asserts:
   - [152, 26, normal, attack, after, unit, 29, building, 11, 1112]
   - [152, 29, hide, idle, null, unit, 26, unit, 26, 1112]
 ticks: 1299
-hash: 26:3ff27d543a98d0bfea8ac70605dab31fa3054edf5b54708cb281becc1246a6d4
+hash: 27:1fcc6cec9931014b8bb426b6fd4389cff5267b65f95bb79529f70bbc0623ee7a

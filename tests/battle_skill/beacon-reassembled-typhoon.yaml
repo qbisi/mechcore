@@ -40,9 +40,9 @@ asserts:
 - sql: |-
     SELECT tick,unit_id,motion_state,velocity__x,velocity__z FROM units WHERE (unit_id=3 AND tick IN (257,264)) OR (unit_id=2 AND tick IN (818,819)) ORDER BY tick,unit_id
   rows:
-  - [257, 3, "idle", 0, 0]
-  - [264, 3, "attacking", 0, 0]
-  - [818, 2, "moving", 51278939172, -5154720588]
-  - [819, 2, "idle", 51278939172, -5154720588]
+  - [257, 3, idle, 0, 0]
+  - [264, 3, attacking, 0, 0]
+  - [818, 2, moving, 51278939172, -5154720588]
+  - [819, 2, idle, 51278939172, -5154720588]
 ticks: 825
-hash: 26:69eacf2e3a1c02ff664147725be549f2500219119eb4fce9b0fd9cb62098e964
+hash: 27:542637033e1f919bf84da36dc74ceb11f6b3facd65444bccb184420549b6596b

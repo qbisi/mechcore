@@ -42,10 +42,10 @@ asserts:
     WHERE unit_id = 19 AND tick IN (186, 187, 203, 204)
     ORDER BY tick;
   rows:
-  - [186, "attack", 0, 0]
-  - [187, "cooling", -1, 0]
-  - [203, "idle", -1, 0]
-  - [204, "idle", -1, 0]
+  - [186, attack, 0, 0]
+  - [187, cooling, -1, 0]
+  - [203, idle, -1, 0]
+  - [204, idle, -1, 0]
 - sql: |
     SELECT count(*) FROM events
     WHERE type = 'projectile_released' AND source__kind = 'unit'
@@ -53,4 +53,4 @@ asserts:
   rows:
   - [0]
 ticks: 765
-hash: 26:308cec2a501b2e51c0946be6aa90bf1628bbd53d09c2af3d40e2ba86f985bd36
+hash: 27:ff0502383a19daa20d89ea5f9ff141f3774c02003fa0456e8deebb4ff3b591c2

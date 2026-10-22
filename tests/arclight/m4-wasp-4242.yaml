@@ -17,4 +17,4 @@ red:
   - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/150/900, source: joined}
   - {name: wasp, index: 2, position: {x: 5, y: -180}, source: joined}
 ticks: 187
-hash: 26:cd6eb29ab8ba0f7c378798ea3571166998df30d487303204d45852296270bd14
+hash: 27:a2a9ad2ecb55d253b136365847209e9d86d6ba4d231696dcb501d306d28ece75

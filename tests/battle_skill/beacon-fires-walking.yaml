@@ -21,4 +21,4 @@ red:
   - {name: marksman, index: 0, position: {x: 100, y: -50}}
   - {name: arclight, index: 1, position: {x: -100, y: -250}, exp: 0/400/750}
 ticks: 2115
-hash: 26:13eb8d17669061a6b6cf2b97c4a2b81aadc026c6f7396e18df8b973702f4a54a
+hash: 27:267d91600526b8766e55b4dc87012bb85e45cf7b4a4f4211aaa1e1c152be5c70

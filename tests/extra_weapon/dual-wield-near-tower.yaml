@@ -37,27 +37,11 @@ red:
   battle_skills:
   - {name: orbital_bombardment, positions: [{x: 170, y: -145}]}
 asserts:
-- sql: SELECT tick,skill_slot,enabled__lock_target__kind,enabled__lock_target__id,enabled__attack_target__kind,enabled__attack_target__id
-    FROM units__skills WHERE unit_id=15 AND skill_slot=2 AND tick BETWEEN 162 AND
-    164 ORDER BY tick
+- sql: |-
+    SELECT tick,skill_slot,enabled__lock_target__kind,enabled__lock_target__id,enabled__attack_target__kind,enabled__attack_target__id FROM units__skills WHERE unit_id=15 AND skill_slot=2 AND tick BETWEEN 162 AND 164 ORDER BY tick
   rows:
-  - - 162
-    - 2
-    - unit
-    - 7
-    - unit
-    - 7
-  - - 163
-    - 2
-    - building
-    - 2
-    - building
-    - 2
-  - - 164
-    - 2
-    - building
-    - 2
-    - building
-    - 2
+  - [162, 2, unit, 7, unit, 7]
+  - [163, 2, building, 2, building, 2]
+  - [164, 2, building, 2, building, 2]
 ticks: 266
-hash: 26:dfe926af7763bea20a3db1ab392e7220b6a3b524384796ac13c292271b887e27
+hash: 27:e714730468ec5bb8c2abcb757aad996efff178e1f9d960fe46690be4b6b7c3a2

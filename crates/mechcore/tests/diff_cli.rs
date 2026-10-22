@@ -269,10 +269,12 @@ fn test_settlement() -> mechcore_mcfr::Settlement {
         formations: Vec::new(),
         teams: vec![
             mechcore_mcfr::TeamSettlement {
+                retained_contraptions: Vec::new(),
                 score: 0,
                 team_id: 0,
             },
             mechcore_mcfr::TeamSettlement {
+                retained_contraptions: Vec::new(),
                 score: 0,
                 team_id: 1,
             },

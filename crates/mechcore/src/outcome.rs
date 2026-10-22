@@ -40,12 +40,6 @@ pub(crate) const SCHEMA: &str = "mechcore.fight-outcome";
 /// `FPoint`'s one, the recording's fixed point.
 const ONE: i64 = 1 << 32;
 
-/// How far from a missile a projectile it launched is first recorded, in
-/// world units. A launched missile has moved one tick when the recording first
-/// holds it, which is a few units; two missiles of one side stand further
-/// apart than this, since a contraption's footprint keeps them apart.
-const LAUNCH_REACH: i64 = 10;
-
 /// How far a Sticky Oil Bomb's point may stand from the line its control
 /// points span, raw. The build steps along the line with a fixed-point square
 /// root and clamp, so its five inner points differ slightly from linear
@@ -181,7 +175,7 @@ pub(crate) fn read(reader: &dyn Recording) -> Result<Reading, Failure> {
             core_damage: damage[side.seat()],
             survivors: survivors(side, &started, &survived, scene::units_of(&layout, side)),
             exp: experience(&layout, side, &scene, &mut unresolved_here),
-            contraptions: contraptions(&layout, side, &scene, &mut unresolved_here),
+            contraptions: contraptions(&layout, side, reader.settlement()),
             battle_skills: battle_skills(&layout, side, &scene, &mut unresolved_here),
         };
         (reading, unresolved_here)
@@ -329,9 +323,6 @@ fn fight_side(side: mechcore_document::Side, read: SideReading) -> Result<FightS
 
 /// What the whole fight shows, beside its first and last snapshots.
 struct Timeline {
-    /// Each projectile released with no owner: its team and where it is
-    /// first recorded, in world units.
-    launches: Vec<(u32, (i64, i64))>,
     /// Every shield the fight held at any tick, as it was when first seen.
     shields: BTreeMap<u64, ShieldState>,
 }
@@ -339,7 +330,6 @@ struct Timeline {
 impl Timeline {
     fn read(reader: &dyn Recording) -> Result<Self, Failure> {
         let mut timeline = Self {
-            launches: Vec::new(),
             shields: BTreeMap::new(),
         };
         for shield in scene::snapshot(reader, FIRST_TICK)?.shields {
@@ -349,37 +339,21 @@ impl Timeline {
             let events = reader.events(tick).map_err(|error| {
                 Failure::refused(format!("recording has no events at tick {tick}: {error}"))
             })?;
-            let mut ownerless = BTreeSet::new();
             let mut shielded = false;
             for event in events.events {
                 let Some(subject) = event.subject else {
                     continue;
                 };
-                match (subject.kind, &event.payload) {
-                    (ObjectKind::Projectile, EventPayload::ProjectileReleased { .. })
-                        if event.source.is_none() =>
-                    {
-                        ownerless.insert(subject.id);
-                    }
-                    (ObjectKind::Shield, EventPayload::ShieldCreated { .. }) => shielded = true,
-                    _ => {}
+                if subject.kind == ObjectKind::Shield
+                    && matches!(event.payload, EventPayload::ShieldCreated { .. })
+                {
+                    shielded = true;
                 }
             }
-            if ownerless.is_empty() && !shielded {
+            if !shielded {
                 continue;
             }
             let state = scene::snapshot(reader, tick)?;
-            for projectile in state
-                .projectiles
-                .iter()
-                .filter(|projectile| ownerless.contains(&projectile.projectile_id))
-                .filter(|projectile| projectile.owner.is_none())
-            {
-                timeline.launches.push((
-                    projectile.team_id,
-                    (projectile.position.x >> 32, projectile.position.z >> 32),
-                ));
-            }
             for shield in state.shields {
                 timeline.shields.entry(shield.shield_id).or_insert(shield);
             }
@@ -533,95 +507,18 @@ fn unit_experience(
     })
 }
 
-/// Whether each of the side's contraptions stands when the fight ends.
-///
-/// Each kind is found where the build keeps it. A shield contraption is a
-/// shield of the contraption source and an interceptor a building, each
-/// standing exactly where the layout put it when the fight opens, and it
-/// stands at the end when the recording still holds it. A missile is no
-/// object a recording holds: it fires once, `MineSystem.ActiveMine`, as a
-/// projectile nobody owns, from where it stands, and is spent. So a missile
-/// is gone when such a projectile of its side is first recorded beside it.
+/// Each deployment's retention, from the native final contraption records.
 fn contraptions(
     layout: &Layout,
     side: Side,
-    scene: &Scene,
-    unresolved: &mut Vec<String>,
+    settlement: &mechcore_mcfr::Settlement,
 ) -> Vec<Option<bool>> {
-    let placed = &scene::side_of(layout, side).contraptions;
-    let missiles: Vec<(i32, (i64, i64))> = placed
+    let retained = &settlement.teams[side.seat()].retained_contraptions;
+    scene::side_of(layout, side)
+        .contraptions
         .iter()
-        .filter(|contraption| contraption.type_name == "missile")
-        .map(|contraption| (contraption.index, scene::world(contraption.position, side)))
-        .collect();
-    let fired = fired(side, &missiles, scene.timeline);
-    placed
-        .iter()
-        .map(|contraption| {
-            let at = format!(
-                "{} contraptions index {} ({}) retained",
-                side.name(),
-                contraption.index,
-                contraption.type_name
-            );
-            let position = raw(contraption.position, side);
-            let answer = match contraption.type_name.as_str() {
-                "shield" => {
-                    standing_shield(scene, side, ShieldSourceKind::Contraption, position, &[])
-                }
-                "interceptor" => interceptor(scene, side, position),
-                "missile" => fired
-                    .as_ref()
-                    .map(|fired| !fired.contains(&contraption.index))
-                    .map_err(Clone::clone),
-                other => Err(format!(
-                    "a {other} contraption is not one this reader finds"
-                )),
-            };
-            answer
-                .map_err(|reason| unresolved.push(format!("{at}: {reason}")))
-                .ok()
-        })
+        .map(|placed| Some(retained.binary_search(&placed.index).is_ok()))
         .collect()
-}
-
-/// Which of a side's missiles fired: each launch of the side's is paired
-/// with the missile it is first recorded beside, and a launch beside none
-/// is some other ownerless projectile. A missile fires once, so two launches
-/// beside one, or one launch beside two, is refused rather than guessed.
-fn fired(
-    side: Side,
-    missiles: &[(i32, (i64, i64))],
-    timeline: &Timeline,
-) -> Result<BTreeSet<i32>, String> {
-    let mut fired = BTreeSet::new();
-    for (_, launched) in timeline
-        .launches
-        .iter()
-        .filter(|(launcher, _)| *launcher == team(side))
-    {
-        let beside: Vec<i32> = missiles
-            .iter()
-            .filter(|(_, at)| scene::distance(*at, *launched) <= LAUNCH_REACH * LAUNCH_REACH)
-            .map(|(index, _)| *index)
-            .collect();
-        match beside[..] {
-            [] => {}
-            [index] => {
-                if !fired.insert(index) {
-                    return Err(format!(
-                        "missile {index} is beside two launches, and a missile fires once"
-                    ));
-                }
-            }
-            _ => {
-                return Err(format!(
-                    "a launch at {launched:?} stands beside missiles {beside:?}"
-                ));
-            }
-        }
-    }
-    Ok(fired)
 }
 
 /// Whether the shield standing at `position` when the fight opens still
@@ -664,32 +561,6 @@ fn stands(ended: &WorldSnapshot, shield: u64) -> bool {
         standing.shield_id == shield
             && standing.round_policy != ShieldRoundPolicy::DestroyAtRoundEnd
     })
-}
-
-/// Whether the interceptor at `position` stands when the fight ends: the one
-/// building of the side standing there when it opens, `FightInterceptor`'s
-/// `FightCrystal`.
-fn interceptor(scene: &Scene, side: Side, position: (i64, i64)) -> Result<bool, String> {
-    let found: Vec<u64> = scene
-        .opened
-        .buildings
-        .iter()
-        .filter(|building| {
-            building.team_id == team(side) && (building.position.x, building.position.z) == position
-        })
-        .map(|building| building.building_id)
-        .collect();
-    let [building] = found[..] else {
-        return Err(format!(
-            "the fight opens with {} buildings of the side where it stands",
-            found.len()
-        ));
-    };
-    Ok(scene
-        .ended
-        .buildings
-        .iter()
-        .any(|standing| standing.building_id == building && standing.life.current > 0))
 }
 
 /// Each `battle_skills` entry with what the fight left of it.

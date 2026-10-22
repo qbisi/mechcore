@@ -26,4 +26,4 @@ red:
   - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/50/1150, source: joined}
   - {name: wasp, index: 1, position: {x: 65, y: -100}, exp: 0/150/900, source: joined}
 ticks: 262
-hash: 26:6b95367a6e5389c61232262c56a1ba4df0a871c879f6cf01e0557e0f86b9774b
+hash: 27:ea19069097f875d381e5e036b87d6fbeb7024349aea6e4d04c9a6d6819d5824f

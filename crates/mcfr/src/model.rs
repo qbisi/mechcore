@@ -10,7 +10,7 @@ use crate::{Error, Result, canonical};
 /// The format: how a recording is stored, which the hash does not read.
 macro_rules! format_version {
     () => {
-        "0.27.0"
+        "0.28.0"
     };
 }
 
@@ -21,7 +21,7 @@ macro_rules! format_version {
 /// `n` as `0.n.0`, the form used while this was the format's number.
 macro_rules! hash_profile {
     () => {
-        "26"
+        "27"
     };
 }
 pub(crate) use hash_profile;
@@ -95,10 +95,12 @@ pub struct Settlement {
 }
 
 /// `FightResultController.CalculateScore(team, true)`, after exit cleanup.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct TeamSettlement {
+    /// Native `FightReport.Contraptions` deployment indices, strictly ascending.
+    pub retained_contraptions: Vec<i32>,
     pub score: i32,
     pub team_id: u32,
 }
@@ -117,6 +119,18 @@ impl Settlement {
             return Err(Error::invalid(
                 "settlement must score teams 0 and 1 in order",
             ));
+        }
+        for team in &self.teams {
+            if team.retained_contraptions.iter().any(|index| *index < 0)
+                || team
+                    .retained_contraptions
+                    .windows(2)
+                    .any(|pair| pair[0] >= pair[1])
+            {
+                return Err(Error::invalid(
+                    "settlement contraption indices must be nonnegative and strictly ascending",
+                ));
+            }
         }
         let one = 1_i64 << 32;
         let mut previous = 0;

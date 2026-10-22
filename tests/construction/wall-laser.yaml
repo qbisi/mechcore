@@ -52,4 +52,4 @@ asserts:
   - [146, 4, idle, null, null, idle, null, null]
   - [147, 4, attacking, unit, 1, idle, building, 3]
 ticks: 242
-hash: 26:ca8a3c8541c16a13a8e56b7b89088f51e4fdd2270501cfe108f748726317be1a
+hash: 27:0a107fcd9a271c7481583aa39b86832440994b827d1cb7ca9b46ce59a0a68466

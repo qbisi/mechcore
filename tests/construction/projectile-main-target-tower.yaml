@@ -41,9 +41,9 @@ asserts:
 - sql: |-
     SELECT tick,type,object__id,source__id,target__kind,target__id,amount FROM events WHERE tick=428 AND object__id=273 ORDER BY ordinal
   rows:
-  - [428, "projectile_released", 273, 10, "building", 1, null]
-  - [428, "damage", 273, 10, "building", 1, 282]
-  - [428, "projectile_removed", 273, 10, "building", 1, null]
+  - [428, projectile_released, 273, 10, building, 1, null]
+  - [428, damage, 273, 10, building, 1, 282]
+  - [428, projectile_removed, 273, 10, building, 1, null]
 - sql: |-
     SELECT tick,building_id,life__current,life__maximum FROM buildings WHERE building_id=1 AND tick BETWEEN 427 AND 429 ORDER BY tick
   rows:
@@ -51,4 +51,4 @@ asserts:
   - [428, 1, 3118, 3400]
   - [429, 1, 3118, 3400]
 ticks: 1246
-hash: 26:b9065e5fe10fb40c7bf7608525394425f0ee9195da89a2f4929fb71536db1129
+hash: 27:3af98428038d68a78fbf5b4d53f91ccfd2f7348d75a265903151859b808fa1b9

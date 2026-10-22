@@ -70,4 +70,4 @@ asserts:
   - [18, 2, attacking, unit, 1, attack, building, 6]
   - [19, 2, idle, null, null, cooling, building, 6]
 ticks: 20
-hash: 26:f8accfb15b2bfc46f77d097e9998cec308e654166f390f9365a283eaabd845c0
+hash: 27:5afd8e4d77580961debcab8d055f32cbad13cab5fe1b658da649bb37925e6ad5

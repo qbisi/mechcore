@@ -48,25 +48,25 @@ asserts:
 - sql: |-
     SELECT tick,ordinal,type,source__id,target__kind,target__id,amount,buff_id,duration,skill_slot FROM events WHERE tick=907 AND (source__id IN (2,5)) AND (type='damage' OR buff_id=1031) ORDER BY ordinal
   rows:
-  - [907, 4, "damage", 2, "unit", 3, 27921, null, null, 0]
-  - [907, 5, "buff_applied", 2, "unit", 3, null, 1031, 40, null]
-  - [907, 6, "buff_applied", 2, "unit", 3, null, 1031, 40, null]
-  - [907, 7, "damage", 5, "unit", 3, 946, null, null, 0]
-  - [907, 8, "buff_applied", 2, "unit", 3, null, 1031, 40, null]
+  - [907, 4, damage, 2, unit, 3, 27921, null, null, 0]
+  - [907, 5, buff_applied, 2, unit, 3, null, 1031, 40, null]
+  - [907, 6, buff_applied, 2, unit, 3, null, 1031, 40, null]
+  - [907, 7, damage, 5, unit, 3, 946, null, null, 0]
+  - [907, 8, buff_applied, 2, unit, 3, null, 1031, 40, null]
 - sql: |-
     SELECT tick,unit_id,enabled__lock_target__id,enabled__attack_target__id,enabled__state,enabled__attack_time FROM units__skills WHERE tick IN (982,983,1004) AND unit_id IN (3,7,8,9) ORDER BY tick,unit_id
   rows:
-  - [982, 3, 2, 2, "attack", 19]
-  - [982, 7, null, 2, "idle", 654]
-  - [982, 8, null, 2, "idle", 398]
-  - [982, 9, 2, 2, "attack", 25]
-  - [983, 3, null, null, "idle", 20]
-  - [983, 7, null, 2, "idle", 654]
-  - [983, 8, null, 2, "idle", 398]
-  - [983, 9, null, null, "idle", 26]
-  - [1004, 3, 5, 5, "idle", 21]
-  - [1004, 7, 5, 5, "attack", 3]
-  - [1004, 8, null, 5, "idle", 399]
-  - [1004, 9, 5, 5, "idle", 27]
+  - [982, 3, 2, 2, attack, 19]
+  - [982, 7, null, 2, idle, 654]
+  - [982, 8, null, 2, idle, 398]
+  - [982, 9, 2, 2, attack, 25]
+  - [983, 3, null, null, idle, 20]
+  - [983, 7, null, 2, idle, 654]
+  - [983, 8, null, 2, idle, 398]
+  - [983, 9, null, null, idle, 26]
+  - [1004, 3, 5, 5, idle, 21]
+  - [1004, 7, 5, 5, attack, 3]
+  - [1004, 8, null, 5, idle, 399]
+  - [1004, 9, 5, 5, idle, 27]
 ticks: 1095
-hash: 26:39e70fbf72992d154f95074995c08ff847cd852f4fa9a9984c297d069d19dd39
+hash: 27:0bf8711be0d106125fa0fb97ec507d1c433f78d13bedf39e58467f4a211e3712
