@@ -1,0 +1,71 @@
+# Replay 20261017--2296, round 5. Spider Mine keeps its main skill locked
+# after prepare when its cached attack target died but its current lock
+# still lives. The support checker tests the lock alone.
+
+kind: fight
+source: game
+map_id: 1012
+seed: 542120553
+round: 5
+blue:
+  core_damage: 1068
+  officers: [advanced_offensive_tactics, aerial_specialist, extended_range_phantom_ray]
+  techs:
+    crawler: [mechanical_rage]
+    phantom_ray: [high_explosive_ammo]
+  blueprints: [attack_enhancement, defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: crawler, index: 0, position: {x: -55, y: -20}, exp: 39/60/450}
+  - {name: crawler, index: 1, position: {x: 235, y: -260}, exp: 235/240/450}
+  - {name: crawler, index: 2, position: {x: -225, y: -20}, level: 2, exp: 71/71/1014}
+  - {name: sabertooth, index: 3, position: {x: -165, y: -25}, level: 2, exp: 0/114/2929}
+  - {name: sabertooth, index: 4, position: {x: -115, y: -25}, exp: 1004/1119/1300}
+  - {name: crawler, index: 5, position: {x: -235, y: -250}, level: 2, exp: 1014/1014/1014}
+  - {name: crawler, index: 6, position: {x: 275, y: -20}, level: 2, exp: 863/883/1014}
+  - {name: phantom_ray, index: 7, position: {x: -225, y: -40}, level: 2, exp: 1350/1470/2253}
+  - {name: phantom_ray, index: 8, position: {x: 275, y: -40}, level: 2, exp: 0/1070/2253}
+  - {name: phantom_ray, index: 9, position: {x: -55, y: -40}, level: 2, exp: 0/841/2253}
+  - {name: phantom_ray, index: 10, position: {x: -275, y: -40}, level: 2, exp: 0/7/2253}
+  - {name: rhino, index: 11, position: {x: 215, y: -25}, exp: 481/543/1150}
+  - {name: wasp, index: 13, position: {x: 225, y: -50}, exp: 214/720/900}
+  - {name: wasp, index: 14, position: {x: -90, y: -35}, exp: 375/375/900, rotated: true}
+  - {name: crawler, index: 15, position: {x: 15, y: -260}, exp: 0/19/450, source: joined}
+  - {name: wasp, index: 16, position: {x: 15, y: -40}, exp: 0/87/900, source: joined}
+red:
+  core_damage: 0
+  officers: [fire_badger_specialist]
+  techs:
+    marksman: [aerial_specialization]
+    tarantula: [high_explosive_ammo, spider_mine]
+  blueprints: [attack_enhancement, defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: crawler, index: 0, position: {x: 30, y: -205}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: -125, y: -190}, exp: 450/450/450}
+  - {name: crawler, index: 2, position: {x: -50, y: -285}, exp: 308/450/450, rotated: true}
+  - {name: tarantula, index: 3, position: {x: 35, y: -135}, exp: 1048/1283/1500}
+  - {name: tarantula, index: 4, position: {x: -65, y: -135}, exp: 1225/1500/1500}
+  - {name: marksman, index: 5, position: {x: -120, y: -170}, exp: 615/650/650}
+  - {name: marksman, index: 6, position: {x: -60, y: -170}, exp: 584/650/650}
+  - {name: tarantula, index: 7, position: {x: 165, y: -165}, exp: 616/1071/1500}
+  - {name: crawler, index: 8, position: {x: 155, y: -190}, exp: 199/313/450}
+  - {name: marksman, index: 10, position: {x: -160, y: -150}, exp: 487/650/650}
+  - {name: marksman, index: 11, position: {x: 120, y: -170}, level: 2, exp: 0/1465/1465}
+  - {name: wraith, index: 12, position: {x: 255, y: -215}, level: 2, exp: 390/1064/5070}
+  - {name: crawler, index: 13, position: {x: 210, y: -285}, exp: 129/450/450, rotated: true}
+  - {name: marksman, index: 14, position: {x: 210, y: -170}, level: 2, exp: 0/1465/1465}
+  - {name: crawler, index: 15, position: {x: 95, y: -110}, exp: 46/153/450}
+  - {name: tarantula, index: 16, position: {x: -205, y: -145}, exp: 0/546/1500, source: joined}
+  - {name: tarantula, index: 17, position: {x: -125, y: -105}, exp: 0/239/1500, source: joined}
+  - {name: crawler, index: 18, position: {x: -200, y: -185}, exp: 0/293/450, rotated: true, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 94, y: -12}, retained: false}
+  - {name: missile, index: 1, position: {x: 228, y: -12}, retained: false}
+  - {name: missile, index: 2, position: {x: -295, y: -179}, retained: false}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: -263, y: -43}, {x: -162, y: -13}]}
+ticks: 941
+hash: 27:7953d741f8b4919b8b797c3fb42d3f592b2c2b986e7b685618718d542ebee469
