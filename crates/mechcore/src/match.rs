@@ -35,6 +35,12 @@ const SCHEMA: &str = "mechcore.match";
 /// promptly and long enough not to hold the lock against the side playing it.
 const POLL: std::time::Duration = std::time::Duration::from_millis(200);
 
+pub(crate) fn warn_build(build: &str) {
+    if let Some(warning) = mechcore_document::r#match::build_warning(build) {
+        eprintln!("warning: {warning}");
+    }
+}
+
 /// Dispatches one of the namespace's verbs and writes what it answers.
 ///
 /// # Errors
@@ -205,6 +211,7 @@ fn join(
     name: Option<String>,
 ) -> Result<Game, Failure> {
     let mut game = Game::read(path, held, existing, Side::Blue)?;
+    warn_build(&game.r#match.game_build);
     let stated = |name: &str, asked: Option<i32>, held: i32| match asked {
         Some(asked) if asked != held => Err(Failure::refused(format!(
             "this match states {name} {held}, and the caller names {asked}"
@@ -250,10 +257,15 @@ fn show(mut arguments: Args) -> Result<View, Failure> {
             seconds.map(std::time::Duration::from_secs_f64),
         )
     });
+    let mut warned = false;
     loop {
         let view = {
             let mut held = Held::take(&turn_path(&path))?;
             let game = Game::read(&path, &mut held, None, side.unwrap_or(Side::Blue))?;
+            if !warned {
+                warn_build(&game.r#match.game_build);
+                warned = true;
+            }
             let game = game.settle(&mut held)?;
             game.view(side, omniscient)?
         };
@@ -299,6 +311,7 @@ fn act(mut arguments: Args) -> Result<View, Failure> {
 
     let mut held = Held::take(&turn_path(&path))?;
     let game = Game::read(&path, &mut held, None, side)?;
+    warn_build(&game.r#match.game_build);
     let mut game = game.settle(&mut held)?;
     let mut events = Vec::new();
     for (index, written) in decisions.into_iter().enumerate() {
@@ -334,6 +347,7 @@ fn commit(mut arguments: Args) -> Result<View, Failure> {
 
     let mut held = Held::take(&turn_path(&path))?;
     let game = Game::read(&path, &mut held, None, side)?;
+    warn_build(&game.r#match.game_build);
     let mut game = game.settle(&mut held)?;
     game.commit(side, &mut held)?;
     let game = game.settle(&mut held)?;

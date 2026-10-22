@@ -69,13 +69,13 @@ an existing `BattleID-rN.yaml` is a duplicate and is never overwritten. These
 partial match captures stay in the work directory until an explicit
 `replay.py publish --source <dir>` uploads them.
 
-**A match's version is its directory.** Publication files new matches under
-`matches/<GAME_VERSION>/`. `publish --source <dir>` reads that checkout's
-version, so the source must contain only captures made under it; an explicit
-`game_build` naming another build is refused. Names must be `BattleID-rN.yaml`,
-and the last captured state must be round N. An existing name must have the
-same bytes, and publication never replaces one with other bytes. Native files
-are not uploaded by this command.
+**A match names its version in `build` and is filed by version.** Publication
+uses each match header's `build` for `matches/<build>/`; a header that omits it
+uses this checkout's `GAME_VERSION`. A different version warns and remains
+eligible, and one source directory may contain several versions. Names must
+be `BattleID-rN.yaml`, and the last captured state must be round N. An existing
+name under the same version must have the same bytes, and publication never
+replaces one with other bytes. Native files are not uploaded by this command.
 
 **A match document is generated and never hand-corrected.** A value that looks
 wrong is a claim about the converter and belongs in

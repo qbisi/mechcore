@@ -43,6 +43,16 @@ pub struct Match {
     pub turns: Vec<Turn>,
 }
 
+/// A match from another game version is readable under the current catalogues,
+/// but operations do not recover that version's historical rules.
+#[must_use]
+pub fn build_warning(build: &str) -> Option<String> {
+    (build != crate::game_build()).then(|| format!(
+        "match build {build} differs from this binary's game build {}. Operations use the current catalogues and rules; projected layouts and battle results may differ from the original game.",
+        crate::game_build()
+    ))
+}
+
 /// What a side holds for the whole match rather than for one round.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MatchSide {
@@ -800,14 +810,9 @@ enum Segment<'a> {
     Action(ActionSegment<'a>),
 }
 
-fn is_this_build_ref(stated: &&str) -> bool {
-    crate::economy::is_this_build(stated)
-}
-
 #[derive(Serialize)]
 struct Header<'a> {
-    #[serde(skip_serializing_if = "is_this_build_ref")]
-    game_build: &'a str,
+    build: &'a str,
     map_id: i32,
     seed: i32,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -910,8 +915,9 @@ pub mod schema {
     #[serde(deny_unknown_fields)]
     pub struct Match {
         pub kind: MatchKind,
-        /// The build whose tables this match is written against.
-        pub game_build: String,
+        /// The game's Application.version, always written by a match writer.
+        #[serde(default = "crate::economy::this_build")]
+        pub build: String,
         pub map_id: i32,
         pub seed: i32,
         /// How long a side has to commit a round, which only a match states.
@@ -1030,7 +1036,7 @@ pub fn read(bytes: &[u8]) -> Result<Option<Match>, String> {
     };
     Ok(Some(Match {
         has_opening: stated.has_opening,
-        game_build: crate::economy::this_build(),
+        game_build: stated.build,
         map_id: stated.map_id,
         seed: stated.seed,
         deploy_time: stated.deploy_time,
@@ -1043,7 +1049,7 @@ pub fn read(bytes: &[u8]) -> Result<Option<Match>, String> {
 /// A match's segments, in stream order.
 fn segments_of(r#match: &Match) -> Vec<Segment<'_>> {
     let mut segments = vec![Segment::Match(Header {
-        game_build: &r#match.game_build,
+        build: &r#match.game_build,
         map_id: r#match.map_id,
         seed: r#match.seed,
         deploy_time: r#match.deploy_time,
@@ -1501,6 +1507,38 @@ mod tests {
     }
 
     use super::segments;
+
+    #[test]
+    fn the_header_always_preserves_its_game_build() {
+        let input = b"kind: match\nmap_id: 1021\nseed: 1\nblue: {offers: [], constructions: [], tech_loadout: {}}\nred: {offers: [], constructions: [], tech_loadout: {}}\n---\nkind: action\nround: 0\nblue: []\nred: []\n";
+        let game = super::read(input).unwrap().unwrap();
+        let written = super::canonical_yaml(&game).unwrap();
+        let header = super::segment_values(&game).unwrap().remove(0);
+        assert_eq!(header["build"].as_str(), Some(crate::game_build()));
+        assert!(header.get("game_build").is_none());
+        let read = super::read(written.as_bytes()).unwrap().unwrap();
+        assert_eq!(super::canonical_yaml(&read).unwrap(), written);
+        let foreign = written.replace(
+            &format!("build: {}", crate::game_build()),
+            "build: another-version",
+        );
+        let foreign = super::read(foreign.as_bytes()).unwrap().unwrap();
+        assert_eq!(foreign.game_build, "another-version");
+        assert!(
+            super::canonical_yaml(&foreign)
+                .unwrap()
+                .contains("build: another-version")
+        );
+        assert!(
+            super::build_warning(&foreign.game_build)
+                .unwrap()
+                .contains("another-version")
+        );
+        assert!(super::build_warning(crate::game_build()).is_none());
+        let schema = serde_json::to_value(schemars::schema_for!(super::schema::Match)).unwrap();
+        assert!(schema["properties"].get("build").is_some());
+        assert!(schema["properties"].get("game_build").is_none());
+    }
 
     const HEADER: &str = "kind: match\nmap_id: 1021\nseed: 1\n";
     const OPENING: &str = "---\nkind: action\nround: 0\nblue: []\nred: []\n";

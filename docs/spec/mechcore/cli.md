@@ -25,6 +25,13 @@ The game is driven, never asked to decide: if a running game ever gains the
 operations to take a player's decisions, that is another contract and not a
 second engine behind this one.
 
+A match header always writes its game version as `build`. Operations accept
+older match versions and preserve the declared version when rewriting the
+match, with a warning on standard error when it differs from this binary.
+Validation, projection and simulation still use the current catalogues and
+rules, so their answers may differ from the historical game. A version warning
+does not change the exit code; malformed or unsupported data still can fail.
+
 The binary carries no matchmaking, no accounts and no network transport: two
 players reach one match by opening the same match document, and a match is a
 file rather than a service.

@@ -6,14 +6,14 @@
     uv run --with pyyaml python scripts/corpus/replay.py publish [--source work/watch] [--dry-run]
 
 Requires PyYAML. The public qbisi/mechcore-replay repository is read at master
-under work/replay. New data is match YAML under matches/<GAME_VERSION>/,
+under work/replay. New data is match YAML under matches/<build>/,
 including partial matches collected by collect-replays.py. Native GRBR files
 are not uploaded; the earlier native archive remains in Git history.
 
 Publish reads only BattleID-rN.yaml files in the source directory. Their match
-header must name this checkout's build or omit it, and the final captured state
-must be round N. An existing name must hold identical bytes; it is never
-replaced. --dry-run validates and reports without fetching, committing or
+header's build selects matches/<build>/, defaulting to this checkout's version
+when absent; a different version warns. The final captured state must be round N.
+An existing name must hold identical bytes; it is never replaced. --dry-run validates and reports without fetching, committing or
 pushing. Publication fetches over HTTPS and pushes over SSH port 443.
 """
 
@@ -73,6 +73,7 @@ def publish(source, dry_run):
         fail(f"match source is not a directory: {source}")
     names = re.compile(r"^[A-Za-z0-9_.-]+-r([1-9][0-9]*)\.yaml$")
     matches = sorted(source.glob("*.yaml"))
+    versions = {}
     for match in matches:
         identity = names.fullmatch(match.name)
         if identity is None:
@@ -83,17 +84,24 @@ def publish(source, dry_run):
             fail(f"cannot read {match.name}: {error}")
         if not segments or not isinstance(segments[0], dict) or segments[0].get("kind") != "match":
             fail(f"{match.name} is not a match document")
-        if segments[0].get("game_build", version) != version:
-            fail(f"{match.name} names another game build")
+        build = segments[0].get("build", version)
+        if not isinstance(build, str) or not re.fullmatch(r"[A-Za-z0-9_.-]+", build) or build in {".", ".."}:
+            fail(f"{match.name} has an invalid build directory name")
+        versions[match] = build
+        if build != version:
+            print(f"warning: {match.name} names game build {build}, not this checkout's {version}; "
+                  f"publishing under matches/{build}/", file=sys.stderr)
         states = [segment for segment in segments[1:]
                   if isinstance(segment, dict) and segment.get("kind") == "state"]
         if not states or states[-1].get("round") != int(identity[1]):
             fail(f"{match.name} does not end on its named captured round")
     if dry_run:
-        print(f"{len(matches)} matches of {version} ready for matches/{version}/")
+        for build in sorted(set(versions.values()) or {version}):
+            count = sum(value == build for value in versions.values())
+            print(f"{count} matches of {build} ready for matches/{build}/")
         return
     if not matches:
-        print(f"nothing new of {version} to publish")
+        print("nothing new to publish")
         return
     if not (DESTINATION / ".git").exists():
         sync()
@@ -101,10 +109,9 @@ def publish(source, dry_run):
         fail("corpus checkout has local changes; preserve them before publishing")
     git("fetch", "-q", "--depth", "1", "origin", "master")
     git("checkout", "-q", "-B", "master", "FETCH_HEAD")
-    target = DESTINATION / "matches" / version
-    target.mkdir(parents=True, exist_ok=True)
     added = []
     for match in matches:
+        target = DESTINATION / "matches" / versions[match]
         kept = target / match.name
         if kept.exists():
             if not filecmp.cmp(match, kept, shallow=False):
@@ -112,14 +119,16 @@ def publish(source, dry_run):
             continue
         added.append((match, kept))
     if not added:
-        print(f"nothing new of {version} to publish")
+        print("nothing new to publish")
         return
     for source_match, kept in added:
+        kept.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source_match, kept)
     git("add", "--", *(str(kept.relative_to(DESTINATION)) for _, kept in added))
-    git("commit", "-q", "-m", f"data: add {len(added)} matches of {version}\n\nCo-Authored-By: GPT-6 <noreply@openai.com>")
+    builds = ", ".join(sorted({versions[match] for match, _ in added}))
+    git("commit", "-q", "-m", f"data: add {len(added)} matches of {builds}\n\nCo-Authored-By: GPT-6 <noreply@openai.com>")
     git("push", "-q", PUSH_URL, "HEAD:master")
-    print(f"{len(added)} matches of {version} published at {git('rev-parse', '--short', 'HEAD')}")
+    print(f"{len(added)} matches of {builds} published at {git('rev-parse', '--short', 'HEAD')}")
 
 
 def main(argv):
