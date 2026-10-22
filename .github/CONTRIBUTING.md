@@ -9,11 +9,34 @@ reproducible input. It has no owner, priority or status beyond open.
 | Plan | `plan` | Deferred work with a scope and a completion criterion |
 | Unimplemented | `unimplemented` | An actual layout reaches a simulator branch that refuses an unimplemented mechanism or unsupported shape |
 | Divergence | `divergence` | The simulator fights differently from the game, or newly refuses a corpus round |
+| Match | `match` | A complete recorded match fails simulator verification; all its failures belong to one issue |
 
 A corpus measurement can establish a `divergence` when a commit fights a
 round wrong or newly refuses it. Findings of the same kind carry it too. A
 refusal discovered by running a layout through an unimplemented branch carries
 `unimplemented`.
+
+## Match reports
+
+Tournament CI lives in qbisi/mechcore-replay and checks newly added tournament
+matches with a release build of this repository's master. It reports failures
+here with the `match` label. One BattleID has one issue: later failing rounds
+update that issue rather than producing new round issues. Reports pin both
+repository commits and the source match, retain the full verification output
+as workflow artifacts, and state the first failure as a starting point.
+
+Resolution requires the entire `mechcore verify --backend simulator match.yaml`
+command to exit 0 with a `kind: match`, `valid: true` report. A repaired first
+round is not a resolution if a later round still fails. Re-run Tournament
+matches in mechcore-replay with the issue's complete source path as the
+`match` input; it checks current master and closes the issue only after the
+whole match passes. A later failing recheck reopens the same issue. Explicit
+warnings keep the CLI's documented verification semantics. A simulator crash,
+timeout, or incomplete report cannot resolve an issue.
+
+These measured match failures do not need the Finding template's admission
+tests. A match issue is the unit of work; separate mechanism research can
+still produce a pinned fight fixture.
 
 ## Plans and unimplemented branches
 
