@@ -5,22 +5,30 @@ Run against an online game with the current Adapter:
     mechcore game launch --online --level 0
     uv run --with pyyaml python scripts/corpus/tournament-replays.py list
     uv run --with pyyaml python scripts/corpus/tournament-replays.py download \
-        --id 12345 --output-dir work/tournaments
+        --id 12345 --output-dir work/tournaments --publish
+    uv run --with pyyaml python scripts/corpus/tournament-replays.py publish \
+        --source work/tournaments [--dry-run]
 
 The script speaks directly to the Adapter's tournament API. It walks every
 subdivision and ranking page, deduplicates the two players' replay references,
 then uses the existing `mechcore convert --to match` command. Final names are
 {BattleID}.yaml, read from the downloaded replay, not its server file ID.
-The output directory retains native GRBRs and a resumable manifest under
-.downloads/. An existing match is never overwritten. Failed downloads or
+Matches are collected under <output-dir>/<date>-<region>/. The date is the
+one shown by list; regions are asia, europe and americas. Native GRBRs,
+tournament metadata and a resumable manifest stay under each .downloads/.
+An existing match is never overwritten. Failed downloads or
 conversions are reported and other matches continue; any failure exits 1.
 The converter still requires its own build and standard 1v1 match mode.
-Dates use local time unless --timezone names an IANA timezone.
+Dates use local time unless --timezone names an IANA timezone. Requires PyYAML.
+Download --publish uploads only after all conversions succeed. Offline publish
+also accepts a single date-region directory. Both publish only match YAML to
+mechcore-replay tournaments/<date>-<region>/, skip identical files and refuse
+changed contents at existing names. --dry-run validates without Git or a game.
 """
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
+from datetime import date, datetime
 import hashlib
 import json
 import os
@@ -32,6 +40,9 @@ import sys
 import tempfile
 import xml.etree.ElementTree as ET
 from zoneinfo import ZoneInfo
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import replay  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 PROTOCOL = "mechcore.adapter.v14"
@@ -139,7 +150,7 @@ def replay_paths(adapter: Adapter, entries: list[dict]) -> list[str]:
     return sorted(paths)
 
 
-def publish(source: Path, destination: Path) -> bool:
+def keep_match(source: Path, destination: Path) -> bool:
     """Never replace a match; equal bytes are duplicates, other bytes a collision."""
     try:
         os.link(source, destination)
@@ -205,10 +216,56 @@ def download_one(adapter: Adapter, replay_path: str, output: Path, mechcore: Pat
                                    capture_output=True, text=True, cwd=ROOT)
         if converted.returncode:
             raise RuntimeError(f"conversion failed; retained {native}: {converted.stderr.strip()}")
-        created = publish(temporary, destination)
+        created = keep_match(temporary, destination)
     manifest[replay_path].update(match=destination.name, sha256=hashlib.sha256(destination.read_bytes()).hexdigest())
     save_manifest(output / ".downloads/manifest.json", manifest)
     return {"replay_path": replay_path, "battle_id": battle_id, "output": str(destination), "duplicate": not created}
+
+
+def tournament_directory(tournament: dict) -> str:
+    day = tournament["date"]
+    region = tournament["region"]
+    if date.fromisoformat(day).isoformat() != day or region not in REGIONS.values():
+        raise RuntimeError(f"cannot archive tournament with date {day!r} and region {region!r}")
+    return f"{day}-{region}"
+
+
+def is_tournament_directory(name: str) -> bool:
+    parts = name.rsplit("-", 1)
+    if len(parts) != 2:
+        return False
+    try:
+        return tournament_directory({"date": parts[0], "region": parts[1]}) == name
+    except (ValueError, RuntimeError):
+        return False
+
+
+def publish_tournaments(source: Path, dry_run: bool) -> None:
+    if not source.is_dir():
+        raise RuntimeError(f"tournament source is not a directory: {source}")
+    if is_tournament_directory(source.name):
+        directories = [source]
+    else:
+        if any(source.glob("*.yaml")):
+            raise RuntimeError(f"matches must be collected under <date>-<region>/ directories: {source}")
+        directories = sorted(path for path in source.iterdir() if path.is_dir() and not path.name.startswith("."))
+    matches = []
+    for directory in directories:
+        files = sorted(directory.glob("*.yaml"))
+        if not files:
+            continue
+        if not is_tournament_directory(directory.name):
+            raise RuntimeError(f"not a YYYY-MM-DD-region directory: {directory}")
+        for match in files:
+            if not re.fullmatch(r"[A-Za-z0-9_.-]+\.yaml", match.name):
+                raise RuntimeError(f"match name is not BattleID.yaml: {match.name}")
+            segments, _ = replay.read_match(match)
+            if not any(isinstance(segment, dict) and segment.get("kind") == "state" for segment in segments[1:]):
+                raise RuntimeError(f"{match.name} contains no captured state")
+            matches.append((match, Path("tournaments") / directory.name / match.name))
+        print(f"{len(files)} matches ready for tournaments/{directory.name}/", flush=True)
+    if not dry_run:
+        replay.publish_files(matches, "tournament matches")
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -223,6 +280,11 @@ def parse_arguments() -> argparse.Namespace:
     downloading.add_argument("--id", type=int, required=True, help="match_id from list")
     downloading.add_argument("--output-dir", type=Path, default=ROOT / "work/tournaments")
     downloading.add_argument("--mechcore", type=Path, default=ROOT / "target/release/mechcore")
+    downloading.add_argument("--publish", action="store_true", help="publish the tournament after every replay converts successfully")
+    publication = sub.add_parser("publish", help="publish collected tournaments without a running game")
+    publication.add_argument("--source", type=Path, default=ROOT / "work/tournaments",
+                             help="collection root or one YYYY-MM-DD-region directory")
+    publication.add_argument("--dry-run", action="store_true", help="validate without fetching, committing or pushing")
     return parser.parse_args()
 
 
@@ -230,6 +292,9 @@ def main() -> int:
     args = parse_arguments()
     adapter = None
     try:
+        if args.command == "publish":
+            publish_tournaments(args.source.resolve(), args.dry_run)
+            return 0
         adapter = Adapter(args.socket, args.level)
         entries = tournaments(adapter, args.timezone)
         if args.command == "list":
@@ -240,8 +305,9 @@ def main() -> int:
         if not chosen:
             raise RuntimeError("tournament ID is not in the retained history; run list to inspect available IDs")
         paths = replay_paths(adapter, chosen)
-        output = args.output_dir.resolve()
+        output = args.output_dir.resolve() / tournament_directory(chosen[0])
         (output / ".downloads").mkdir(parents=True, exist_ok=True)
+        save_manifest(output / ".downloads" / f"tournament-{args.id}.json", chosen[0])
         manifest_path = output / ".downloads/manifest.json"
         manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
         failed, downloaded, duplicates = 0, 0, 0
@@ -261,6 +327,10 @@ def main() -> int:
                 failed += 1
                 print(json.dumps({"replay_path": path, "error": str(error)}, ensure_ascii=False), flush=True)
         print(json.dumps({"downloaded": downloaded, "duplicates": duplicates, "failed": failed}), flush=True)
+        adapter.close()
+        adapter = None
+        if args.publish and not failed:
+            publish_tournaments(output, False)
         return int(failed > 0)
     except (OSError, ValueError, RuntimeError) as error:
         print(str(error), file=sys.stderr)
