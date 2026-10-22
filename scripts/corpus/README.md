@@ -65,12 +65,17 @@ Use an explicit timezone for repeatable dates across machines; one tournament
 can be on Sunday in Asia/Shanghai even when the league is called Saturday.
 Existing equal matches are skipped; different contents at the same name fail.
 Native GRBRs, tournament metadata and a resumable manifest remain under each
-directory's `.downloads/`; conversion failures preserve their inputs and make the batch exit nonzero. Restart the
-same command to resume. Both actions default to scheduler level 0.
+directory's `.downloads/`. A replay containing only the opening has no
+deployment round to represent as a match: the converter's explicit
+opening-only refusal is recorded as `skipped: opening_only` in the manifest
+and output, with a separate `skipped` summary count. Its native input is
+retained. Every other conversion failure makes the batch exit nonzero.
+Restart the same command to resume. Both actions default to scheduler level 0.
 Conversion keeps the converter's current-build and standard 1v1 checks;
 older-version and 2v2 inputs remain native files with explicit errors.
 `download --publish` releases its Adapter connection and uploads only when
-all replay conversions succeed. Without that flag, collection remains local.
+all representable replay conversions succeed; opening-only skips do not block
+publication. Without that flag, collection remains local.
 Offline `publish --source` accepts the collection root or one date-region
 directory and uploads only its match YAML to the same path under `tournaments/`
 in mechcore-replay. `--dry-run` validates without a game or any Git operation.

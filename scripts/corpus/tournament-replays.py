@@ -217,6 +217,17 @@ def download_one(adapter: Adapter, replay_path: str, output: Path, mechcore: Pat
         converted = subprocess.run([str(mechcore), "convert", str(native), "--to", "match", str(temporary)],
                                    capture_output=True, text=True, cwd=ROOT)
         if converted.returncode:
+            try:
+                diagnostic = json.loads(converted.stderr)
+            except ValueError:
+                diagnostic = None
+            if diagnostic == {
+                "schema": "mechcore.error", "kind": "refused", "operation": "convert",
+                "reason": "replay holds 1 round, which is the opening alone, and a match is deployment rounds",
+            }:
+                manifest[replay_path]["skipped"] = "opening_only"
+                save_manifest(output / ".downloads/manifest.json", manifest)
+                return {"replay_path": replay_path, "battle_id": battle_id, "skipped": "opening_only"}
             raise RuntimeError(f"conversion failed; retained {native}: {converted.stderr.strip()}")
         created = keep_match(temporary, destination)
     manifest[replay_path].update(match=destination.name, sha256=hashlib.sha256(destination.read_bytes()).hexdigest())
@@ -312,13 +323,16 @@ def main() -> int:
         save_manifest(output / ".downloads" / f"tournament-{args.id}.json", chosen[0])
         manifest_path = output / ".downloads/manifest.json"
         manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
-        failed, downloaded, duplicates = 0, 0, 0
+        failed, downloaded, duplicates, skipped = 0, 0, 0, 0
         print(json.dumps({"tournaments": chosen, "unique_replays": len(paths)}, ensure_ascii=False), flush=True)
         for path in paths:
             try:
                 result = download_one(adapter, path, output, args.mechcore.resolve(), manifest)
-                duplicates += result["duplicate"]
-                downloaded += not result["duplicate"]
+                if result.get("skipped"):
+                    skipped += 1
+                else:
+                    duplicates += result["duplicate"]
+                    downloaded += not result["duplicate"]
                 print(json.dumps(result, ensure_ascii=False), flush=True)
             except AdapterError as error:
                 if error.code in ("evicted", "cancelled", "game_stopped", "disconnected"):
@@ -328,7 +342,7 @@ def main() -> int:
             except (OSError, ValueError, RuntimeError) as error:
                 failed += 1
                 print(json.dumps({"replay_path": path, "error": str(error)}, ensure_ascii=False), flush=True)
-        print(json.dumps({"downloaded": downloaded, "duplicates": duplicates, "failed": failed}), flush=True)
+        print(json.dumps({"downloaded": downloaded, "duplicates": duplicates, "skipped": skipped, "failed": failed}), flush=True)
         adapter.close()
         adapter = None
         if args.publish and not failed:
