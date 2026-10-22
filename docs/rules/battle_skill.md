@@ -472,8 +472,10 @@ which scores from that facing. It then takes the place of the unit's
   attacking that update when what the spin fires at is in the spin's range,
   stops (a melee unit does not walk on) and turns its root to it, and keeps
   attacking while it is in range, alive or not: `IsAttackTargetInAttackRange`
-  asks the target's visibility and distance only. Out of range it walks
-  towards the point.
+  asks the target's visibility and distance only. A dead attack target no
+  longer supplies the turn direction, but the retained lock still does:
+  `CalculateTargetDirection` falls back to `GetLockTarget`, which does not
+  reject a dead lock. Out of range it walks towards the point.
 - A command outlives a won fight. When the skill lets its target go as the
   fight stops, an attacking unit changes to moving, and a unit on the beacon
   goes on moving and turning to where it moves until the fight ends, which
@@ -671,6 +673,9 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
 - A Marksman on a beacon leaves attacking when the target retained through
   its cooling hides, without turning on the moving state's entry tick:
   `tests/battle_skill/beacon-leaves-hidden-cooling-target.yaml`.
+- A Rhino on a beacon stays attacking through Whirlwind's backswing after
+  killing its retained target, continuing to face that lock:
+  `tests/corpus/2271-r7.yaml`.
 - A Fortress on a beacon turns towards its Rocket Punch target while that
   extra attacker holds the motion outside its range, reversing the turn
   from its velocity direction:
@@ -893,6 +898,9 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
   `MotionMoveState.NormalRotate`, `FightSkill.IsAttackTargetInAttackRange`,
   `SkillAttackRangeChecker.IsAttackTargetInAttackRange`,
   `SkillAttackRangeChecker.IsActorInAttackRange`.
+- A retained dead lock still supplies the turn direction after the skill's
+  attack target dies: `MotionController.CalculateTargetDirection`,
+  `FightSkill.TryGetValidAttackTarget`, `FightSkill.GetLockTarget`.
 - Outside attack range, a command's moving state still uses the current
   attacker's target direction:
   `MotionMoveState.NormalRotate`, `MotionController.CalculateTargetDirection`,
