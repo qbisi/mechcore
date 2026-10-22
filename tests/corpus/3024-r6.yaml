@@ -1,0 +1,80 @@
+# Native replay 20261021--3024, round 6: two Fangs stand equidistant from
+# adjacent Defensive Wall blocks. GetNearestWall keeps the later block on
+# equal distances. Recorded directly from the original server GRBR.
+kind: fight
+source: game
+map_id: 1012
+seed: 1338355484
+round: 6
+blue:
+  core_damage: 0
+  officers: [giant_specialist, advanced_targeting_system]
+  techs:
+    tarantula: [range_enhancement]
+    void_eye: [charged_shot]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: void_eye, index: 0, position: {x: -210, y: -70}, level: 3, exp: 568/590/2315}
+  - {name: void_eye, index: 1, position: {x: -70, y: -70}, level: 2, exp: 16/630/1465}
+  - {name: void_eye, index: 2, position: {x: -140, y: -70}, level: 3, exp: 93/191/2315}
+  - {name: tarantula, index: 3, position: {x: -175, y: -65}, level: 2, exp: 2975/3380/3380, equipment: [haste_module]}
+  - {name: tarantula, index: 4, position: {x: -105, y: -65}, level: 2, exp: 797/3000/3380, equipment: [laser_sights]}
+  - {name: crawler, index: 5, position: {x: -180, y: -105}, exp: 250/278/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -100, y: -105}, exp: 103/137/450, rotated: true}
+  - {name: tarantula, index: 7, position: {x: 145, y: -145}, level: 2, exp: 0/809/3380}
+  - {name: crawler, index: 8, position: {x: 135, y: -190}, exp: 98/102/450}
+  - {name: fang, index: 9, position: {x: 170, y: -185}, exp: 38/122/600, rotated: true}
+  - {name: fang, index: 10, position: {x: -170, y: -185}, exp: 40/40/600, rotated: true}
+  - {name: fang, index: 11, position: {x: -140, y: -35}, exp: 160/384/600, rotated: true}
+  - {name: crawler, index: 12, position: {x: -135, y: -190}, exp: 110/130/450}
+  - {name: tarantula, index: 13, position: {x: -35, y: -65}, exp: 926/1345/1500}
+  - {name: crawler, index: 14, position: {x: -135, y: -300}, exp: 44/44/450}
+  - {name: fang, index: 15, position: {x: 0, y: -35}, exp: 16/86/600, rotated: true}
+  - {name: tarantula, index: 16, position: {x: -245, y: -65}, level: 2, exp: 0/316/3380}
+  - {name: tarantula, index: 17, position: {x: 35, y: -65}, exp: 272/601/1500}
+  - {name: crawler, index: 18, position: {x: 40, y: -105}, exp: 18/33/450, rotated: true}
+  - {name: raiden, index: 19, position: {x: 180, y: -140}, exp: 0/1874/2400, source: joined}
+  - {name: tarantula, index: 20, position: {x: 285, y: -145}, exp: 0/719/1500, source: joined}
+  - {name: crawler, index: 21, position: {x: 290, y: -285}, exp: 0/120/450, rotated: true, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: -141, y: -42}], retained: false}
+red:
+  core_damage: 1022
+  officers: [mass_production_fire_control_system, advanced_targeting_system, cost_control_specialist]
+  techs:
+    hound: [range_enhancement]
+  blueprints: [defense_enhancement, attack_enhancement_ii]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -180}, level: 2, exp: 371/1465/1465}
+  - {name: marksman, index: 1, position: {x: 100, y: -190}, level: 2, exp: 1078/1365/1465}
+  - {name: marksman, index: 2, position: {x: -100, y: -190}, level: 2, exp: 1311/1465/1465}
+  - {name: sledgehammer, index: 3, position: {x: 80, y: -175}, exp: 1041/1085/1300, rotated: true}
+  - {name: sledgehammer, index: 4, position: {x: -80, y: -175}, level: 2, exp: 606/1313/2929, rotated: true}
+  - {name: crawler, index: 5, position: {x: -135, y: -190}, exp: 450/450/450}
+  - {name: crawler, index: 6, position: {x: 135, y: -190}, exp: 127/127/450}
+  - {name: hound, index: 7, position: {x: -110, y: -170}, level: 2, exp: 781/1448/1690, equipment: [secondary_fire_control_system]}
+  - {name: hound, index: 8, position: {x: 110, y: -170}, level: 2, exp: 0/404/1690}
+  - {name: hound, index: 9, position: {x: 0, y: -250}, level: 3, exp: 0/877/2671, equipment: [haste_module]}
+  - {name: fang, index: 10, position: {x: -140, y: -225}, exp: 42/42/600, rotated: true}
+  - {name: fang, index: 11, position: {x: 0, y: -145}, exp: 119/121/600, rotated: true}
+  - {name: fang, index: 12, position: {x: 140, y: -225}, exp: 75/137/600, rotated: true}
+  - {name: crawler, index: 13, position: {x: 260, y: -285}, exp: 69/74/450, rotated: true}
+  - {name: hound, index: 14, position: {x: 220, y: -210}, level: 2, exp: 214/752/1690}
+  - {name: crawler, index: 15, position: {x: 0, y: -285}, exp: 112/141/450, rotated: true}
+  - {name: hound, index: 16, position: {x: -220, y: -210}, level: 2, exp: 0/238/1690}
+  - {name: crawler, index: 17, position: {x: -260, y: -285}, exp: 7/51/450, rotated: true}
+  - {name: fang, index: 18, position: {x: 240, y: -285}, rotated: true}
+  - {name: crawler, index: 19, position: {x: 130, y: -285}, exp: 25/79/450, rotated: true}
+  - {name: fang, index: 20, position: {x: -140, y: -115}, exp: 50/131/600, rotated: true}
+  - {name: fortress, index: 21, position: {x: 260, y: -200}, exp: 0/1600/1600, equipment: [secondary_fire_control_system], source: joined}
+  - {name: fortress, index: 22, position: {x: -280, y: -50}, exp: 0/138/1600, equipment: [secondary_fire_control_system], source: joined}
+  - {name: crawler, index: 23, position: {x: -275, y: -20}, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: sticky_oil_bomb, standing: {control_points: [{x: 196, y: 12}, {x: 91, y: 11}]}}
+ticks: 980
+hash: 27:45561e5fa0a5f965b009952e7c668e5184d597c36ad62125d865c4bbc354ec95
