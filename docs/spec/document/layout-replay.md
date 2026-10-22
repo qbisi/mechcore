@@ -17,6 +17,14 @@ the units' sources, experience and travelling membership, the battle skills
 released this round, and the Energy Tower skills activated. It reconstructs
 the stated position, not the deployment history that produced it.
 
+The shared match-to-layout projection used by `convert` and live match
+settlement warns when Stealth Cloak was acquired after Phantom Ray formations
+entered flank deployment. The simulator always settles with technologies
+activated before deployment, which can differ from that native history.
+Projection and execution continue, and actual settlement follows the selected
+backend's rules. Players and bots should activate technologies before flank
+deployment to benefit from them earlier. No layout field records this order.
+
 This document defines what such a file states. It is not a definition of the
 `.grbr` format, which is the game's: a layout replay is one file the game
 reads, written with the members the game's own replays carry. Reading a

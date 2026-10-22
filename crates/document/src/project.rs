@@ -18,7 +18,94 @@ use crate::layout::{
     BattleSkillEntry, BattleSkillRelease, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, Side,
     UnitSource,
 };
-use crate::r#match::{Release, SideState, SkillTarget, State};
+use crate::r#match::{Action, Release, SideState, SkillTarget, State, TurnActions};
+
+/// A deployment and its layout, including history that the layout cannot keep.
+pub struct Deployment {
+    pub state: State,
+    pub layout: Layout,
+    pub warnings: Vec<String>,
+}
+
+/// Whether this decision activates Phantom Ray's Stealth Cloak.
+pub(crate) const fn activates_cloak(action: &Action) -> bool {
+    matches!(action, Action::UpgradeTechnology { tech: 3925, .. })
+}
+
+/// Projects an ordered deployment, reporting histories a layout cannot preserve.
+///
+/// A layout activates technologies before deploying formations. Native Cloak
+/// controllers initialized after travelling begins do not receive the same
+/// timer reset, so that opposite order cannot be reproduced from a layout.
+///
+/// # Errors
+///
+/// Returns a deployment or projection error; warnings do not refuse a layout.
+pub fn deployment(
+    economy: &crate::economy::Economy,
+    opening: &State,
+    actions: &TurnActions,
+    round: i32,
+    map_id: i32,
+    seed: i32,
+    declined: Option<i32>,
+) -> Result<Deployment, String> {
+    let mut warnings = Vec::new();
+    let mut deploy = |state: &SideState, actions: &[Action], red| {
+        let mut position = state.clone();
+        let mut affected = std::collections::BTreeSet::new();
+        let mut placement = crate::landing::placement(red);
+        for action in actions {
+            crate::transition::check_place(&position, action).map_err(|error| error.to_string())?;
+            let next = crate::transition::step_placing(
+                economy,
+                &position,
+                action,
+                declined,
+                &mut placement,
+            )
+            .map_err(|error| error.to_string())?;
+            if activates_cloak(action) {
+                affected.extend(
+                    position
+                        .units
+                        .iter()
+                        .filter(|entry| {
+                            entry.unit.type_name == "phantom_ray"
+                                && entry.unit.travelling == Some(true)
+                        })
+                        .map(|entry| entry.unit.index),
+                );
+            }
+            affected.retain(|index| {
+                next.units
+                    .iter()
+                    .any(|entry| entry.unit.index == *index && entry.unit.travelling == Some(true))
+            });
+            position = next;
+        }
+        if !affected.is_empty() {
+            let side = if red { "red" } else { "blue" };
+            warnings.push(format!(
+                "round {round} {side}: Stealth Cloak activated after flank deployment of Phantom Ray formations {affected:?}. The simulator always settles with technologies activated before flank deployment and may differ from the native game. Actual settlement follows the selected backend's rules. Activate technologies before flank deployment to benefit from them earlier."
+            ));
+        }
+        Ok::<_, String>(position)
+    };
+    let state = State {
+        random_state: opening.random_state,
+        reinforce_pool: opening.reinforce_pool.clone(),
+        reinforce_offers: opening.reinforce_offers.clone(),
+        blue: deploy(&opening.blue, &actions.blue, false)?,
+        red: deploy(&opening.red, &actions.red, true)?,
+    };
+    let layout = project(opening, &state, round, map_id, seed)?;
+    Ok(Deployment {
+        state,
+        layout,
+        warnings,
+    })
+}
 
 /// Projects one round's position onto a layout: `state`, which the round
 /// opened with as `opening` or reached from it.
@@ -283,6 +370,69 @@ mod tests {
             {"name": "marksman", "index": 6, "position": {"x": 120, "y": -100}}
         ]}))
         .unwrap()
+    }
+
+    #[test]
+    fn deployment_warns_only_when_cloak_follows_travelling() {
+        let economy = crate::economy::Economy::embedded().unwrap();
+        let opening = State {
+            blue: SideState {
+                supply: 100_000,
+                unlocked_units: vec![25],
+                shop: crate::r#match::Allowances {
+                    buys_remaining: 9,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            red: SideState::default(),
+            random_state: [0; 4],
+            reinforce_pool: crate::r#match::PoolDelta::default(),
+            reinforce_offers: None,
+        };
+        let bought = Action::BuyUnit {
+            unit: 25,
+            position: crate::layout::Position { x: -100, y: -160 },
+            rotated: false,
+        };
+        let moved = Action::MoveUnit {
+            index: 0,
+            position: crate::layout::Position { x: 310, y: 50 },
+            rotated: false,
+        };
+        let cloak = Action::UpgradeTechnology {
+            unit: 25,
+            tech: 3925,
+        };
+        let check = |blue| {
+            deployment(
+                economy,
+                &opening,
+                &TurnActions { blue, red: vec![] },
+                5,
+                1012,
+                1,
+                None,
+            )
+            .unwrap()
+        };
+        let warned = check(vec![bought.clone(), moved.clone(), cloak.clone()]);
+        assert_eq!(warned.warnings.len(), 1);
+        assert!(warned.warnings[0].contains("round 5 blue"));
+        let canonical = check(vec![bought.clone(), cloak.clone(), moved.clone()]);
+        assert!(canonical.warnings.is_empty());
+        // Both histories still produce a layout and the same projected state.
+        assert_eq!(warned.layout, canonical.layout);
+        let returned = Action::MoveUnit {
+            index: 0,
+            position: crate::layout::Position { x: -100, y: -160 },
+            rotated: false,
+        };
+        assert!(
+            check(vec![bought, moved, cloak, returned])
+                .warnings
+                .is_empty()
+        );
     }
 
     #[test]

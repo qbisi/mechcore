@@ -21,8 +21,9 @@ The documents are the ones `scripts/corpus/export-replay-corpus.py` converts fro
 corpus's replays of this checkout's version.
 
 The exit status is 0 only when every match verifies, which needs no unequal
-and no unimplemented leaf anywhere, and every round fought as the match says,
-and no last round is refused.
+and no unimplemented leaf anywhere, and every compared round fought as the match says,
+and no last round is refused. Explicit projection warnings skip fight comparison
+without failing the match and are counted separately from equal fights.
 
 Run from anywhere inside the checkout, after a release build and a corpus
 fetch:
@@ -190,6 +191,7 @@ def summarize(
     equal = 0
     differing = []
     refused = []
+    warnings = []
     for path, report, last_fought in zip(matches, reports, last):
         coverage = report.get("coverage") or {}
         counts = coverage.get("total") or {}
@@ -199,13 +201,19 @@ def summarize(
         for difference in coverage.get("unequal") or []:
             unequal.append({"match": path.name, **difference})
         rounds = (report.get("fights") or {}).get("rounds") or []
-        stopped = next((fought for fought in rounds if fought["result"] != "equal"), None)
-        leading = next(
-            (at for at, fought in enumerate(rounds) if fought["result"] != "equal"), len(rounds)
+        stopped = next(
+            (fought for fought in rounds if fought["result"] not in ("equal", "warning")), None
         )
+        leading = next(
+            (at for at, fought in enumerate(rounds)
+             if fought["result"] not in ("equal", "warning")), len(rounds)
+        )
+        leading = sum(fought["result"] == "equal" for fought in rounds[:leading])
         for fought in rounds:
             if fought["result"] == "equal":
                 equal += 1
+            elif fought["result"] == "warning":
+                warnings.append({"match": path.name, **fought})
             elif fought["result"] == "differs":
                 differing.append(
                     {
@@ -250,6 +258,7 @@ def summarize(
         "equal": equal,
         "differing": differing,
         "refused": refused,
+        "warnings": warnings,
     }
 
 
@@ -339,6 +348,10 @@ def print_summary(summary: dict[str, Any], limit: int) -> None:
         print(table(rows, {1}))
     print()
 
+    for warning in summary["warnings"]:
+        for reason in warning["warnings"]:
+            print(f"warning: {warning['match']}: {reason}")
+    print(f"{len(summary['warnings'])} round comparisons skipped with warnings")
     stops = ", ".join(f"{count} {result}" for result, count in summary["stops"].items())
     print(f"{summary['fought']} rounds fought as the match says before the first that is not"
           + (f"; stopped: {stops}" if stops else ""))

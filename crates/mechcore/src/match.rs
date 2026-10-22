@@ -702,23 +702,6 @@ impl Game {
     /// Answers why the round is not settled: the fight could not run, or the
     /// recording does not answer everything it decided.
     fn fought(&self, round: i32) -> Result<mechcore_document::Fight, String> {
-        // Both sides have committed, so each one's position is the one its
-        // decisions reached: the same position `show` answers with.
-        let mut positions = Vec::new();
-        for side in Side::BOTH {
-            positions.push(
-                self.position(side)
-                    .map_err(|failure| failure.reason().to_owned())?,
-            );
-        }
-        let [blue, red] = [positions.remove(0), positions.remove(0)];
-        let state = State {
-            random_state: [0; 4],
-            reinforce_pool: mechcore_document::r#match::PoolDelta::default(),
-            reinforce_offers: None,
-            blue,
-            red,
-        };
         let opening = State {
             random_state: [0; 4],
             reinforce_pool: mechcore_document::r#match::PoolDelta::default(),
@@ -730,13 +713,20 @@ impl Game {
                 .opened(Side::Red)
                 .map_err(|failure| failure.reason().to_owned())?,
         };
-        let layout = mechcore_document::project::project(
+        let actions = TurnActions {
+            blue: self.decisions(Side::Blue),
+            red: self.decisions(Side::Red),
+        };
+        let layout = crate::convert::project_match(
+            self.economy,
             &opening,
-            &state,
+            &actions,
             round,
             self.r#match.map_id,
             self.r#match.seed,
-        )?;
+            self.declined(),
+        )?
+        .layout;
         let yaml = mechcore_document::canonical_yaml(layout)?;
         let recording = mechcore_simulation::simulate_document(
             yaml.as_bytes(),
