@@ -111,7 +111,7 @@ impl DamageHit {
             center_y_q32: 0,
             shield: None,
             intercept_shields: true,
-            crosses_shields: attacker.rules.attack.crosses_shields,
+            crosses_shields: attacker.skill_attack(skill_slot).crosses_shields,
             strikes_buildings: true,
             splash_radius: attacker.stats.splash_radius(),
             fire: usize::from(skill_slot) < attacker.skills.main_slots()

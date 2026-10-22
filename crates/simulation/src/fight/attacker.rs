@@ -1175,9 +1175,14 @@ impl Actor {
     /// owner's row for the main skill's slots, its technology's for an extra
     /// skill's.
     pub(in crate::fight) fn skill_melee(&self, slot: u16) -> bool {
+        self.skill_attack(slot).melee
+    }
+
+    /// `FightSkill.GetSkillData` of the skill at a slot of `GetSkills()`.
+    pub(in crate::fight) fn skill_attack(&self, slot: u16) -> &AttackConfig {
         match self.skills.at_slot(usize::from(slot)).0 {
-            SkillSlot::Main => self.rules.attack.melee,
-            SkillSlot::Extra(index) => self.skills.extras[index].rules.attack.melee,
+            SkillSlot::Main => &self.rules.attack,
+            SkillSlot::Extra(index) => &self.skills.extras[index].rules.attack,
         }
     }
 }
