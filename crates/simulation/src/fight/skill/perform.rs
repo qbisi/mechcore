@@ -1305,6 +1305,7 @@ impl Simulation {
             self.actors[&target_id].domain
         };
         let mut projectile = Projectile {
+            hit_buildings: Vec::new(),
             id: projectile_id,
             team: source.team,
             shooter: Shooter::Actor(source.owner),
@@ -1347,6 +1348,7 @@ impl Simulation {
             projectile.y_q32,
             projectile.z_q32,
         );
+        self.generate_projectile_buildings(&mut projectile);
         let projectile_ref = projectile.object_ref();
         events.push(event(
             Some(projectile_ref),

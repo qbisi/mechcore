@@ -1,0 +1,43 @@
+kind: fight
+source: game
+map_id: 1021
+seed: 744154240
+round: 4
+blue:
+  core_damage: 486
+  officers: [quick_teleport, advanced_offensive_tactics, rhino_specialist, improved_void_eye]
+  techs:
+    void_eye: [charged_shot]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [3, 4]
+  units:
+  - {name: rhino, index: 0, position: {x: 125, y: -25}, level: 2, exp: 0/24/2591, source: delivered}
+  - {name: void_eye, index: 1, position: {x: 310, y: 50}, level: 3, exp: 0/634/2315, equipment: [amplifying_core], travelling: true, source: joined}
+  - {name: vortex, index: 2, position: {x: 60, y: -230}, level: 5, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 175, y: -220}, retained: false}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: 140, y: -70}, {x: 80, y: -165}]}
+red:
+  core_damage: 0
+  officers: [advanced_power_system, typhoon_specialist, extended_range_fortress]
+  techs:
+    fortress: [doubleshot, barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: fortress, index: 0, position: {x: -330, y: 170}, level: 6, exp: 9278/9278/9278, rotated: true, equipment: [mustang_production_line]}
+  - {name: typhoon, index: 1, position: {x: -240, y: -230}, source: delivered}
+  - {name: hound, index: 2, position: {x: 50, y: -270}, level: 8, exp: 0/1200/5046, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 215, y: -285}}
+  battle_skills:
+  - {name: missile_strike, positions: [{x: -295, y: 70}]}
+ticks: 378
+hash: 27:ab7f4694ca0c395917ed36fc773459f043fffeb5353ebe8616fb7b8e6049a2bb

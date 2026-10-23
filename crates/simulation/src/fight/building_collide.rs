@@ -8,6 +8,7 @@ const MAX_DEPTH: u8 = 7;
 /// `BuildingFunctionController`'s tree and `BuildingCollideController`'s delays.
 pub(in crate::fight) struct BuildingCollisions {
     tree: FightQuadtree<usize>,
+    pub(super) damage_tree: FightQuadtree<usize>,
     delays: BTreeMap<usize, i32>,
     /// Neutral crystals have no recorded identity, but their `OnDead` still
     /// runs in the next `DeadEffectSystem` update and holds its finish gate.
@@ -20,6 +21,7 @@ impl BuildingCollisions {
         // before the teams create towers and constructions. OnFightStart syncs
         // that map tree; later BuildingSystem.AddBuilding only appends its list.
         let mut tree = FightQuadtree::with_max_depth(MAX_DEPTH);
+        let mut damage_tree = FightQuadtree::with_max_depth(MAX_DEPTH);
         for (index, crystal) in crystals.iter().enumerate() {
             let range = TargetActorRect {
                 min_x: crystal.x_q32 - crystal.radius_q32,
@@ -31,10 +33,14 @@ impl BuildingCollisions {
             // out-of-bound map decorations before the tree is populated.
             if tree.root.rect.contains(range) {
                 tree.insert_range(index, range);
+                if crystal.strength > 0 {
+                    damage_tree.insert_range(index, range);
+                }
             }
         }
         Self {
             tree,
+            damage_tree,
             delays: BTreeMap::new(),
             pending: Vec::new(),
         }
@@ -175,6 +181,7 @@ impl Simulation {
         for index in std::mem::take(&mut self.building_collisions.pending) {
             self.rvo.map_crystals[index].destroyed = true;
             self.building_collisions.tree.remove(index);
+            self.building_collisions.damage_tree.remove(index);
             self.building_collisions.delays.remove(&index);
         }
     }

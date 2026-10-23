@@ -390,9 +390,11 @@ fn map_buildings(
 }
 
 /// A neutral map crystal. Priority-one crystals stay out of RVO, but still
-/// participate in `BuildingCollideController` and its deferred death queue.
+/// participate in ground crushing, projectile hits and the death queue.
 #[derive(Debug, Clone, Copy)]
 pub(in crate::fight) struct MapCrystal {
+    pub(in crate::fight) life: i64,
+    pub(in crate::fight) strength: i32,
     pub(in crate::fight) x_q32: i64,
     pub(in crate::fight) z_q32: i64,
     pub(in crate::fight) radius_q32: i64,
@@ -490,7 +492,11 @@ pub(in crate::fight) fn map_crystals(
                 z,
                 radius,
                 collider_priority,
+                life,
+                strength,
             } => (!stood_on(whole_metres(x), whole_metres(z), radius)).then_some(MapCrystal {
+                life,
+                strength,
                 x_q32: whole_metres(x),
                 z_q32: whole_metres(z),
                 radius_q32: radius,

@@ -163,9 +163,37 @@ death update deactivates its RVO controller. Decorative crystals have no
 MCFR building identity, but this finish gate can change the recording's
 length and final state.
 
+## A projectile can destroy a crystal on its way
+
+`BuildingDamageController` admits living map crystals with positive strength.
+When a projectile is created, `ProjectileController.GenerateTargetBuildings`
+keeps the controller's candidates along the line to its target. Each candidate
+has a first-check delay from its distance when first checked, projectile speed
+and logic step. Once that delay passes, `IsHitBuilding` checks the projectile's current
+three-dimensional distance and the segment from its previous position. It
+returns at most one hit per update, in the cached candidate order.
+
+If the projectile's attack strength exceeds the crystal's strength,
+`OnHitBuilding` removes that candidate and the projectile directly reduces the
+crystal's life by its data source's damage, without stopping its flight. A
+positive skill strength overrides the owner's; otherwise a mech uses its
+`MechData.attackStrength` and a construction its `GetAttackStrenth`. A missile
+uses the maximum signed 32-bit integer.
+
+This direct reduction happens before `DeadEffectSystem`, so a crystal killed
+by the projectile can leave the death queue in the same update. The ground
+crushing path runs after that system and waits for the next update instead.
+This passage rule does not establish the damage effects when the crystal's
+strength is at least the projectile's.
+
 ## Evidence
 
 ### Recorded
+
+- Projectiles clear the Training Base crystals at (289, 16) and
+  (289, 22) before a surviving unit reaches them; their later ground contact
+  does not extend the final projectile drain:
+  `tests/map/projectile-clears-crystal-before-finish.yaml`.
 
 - A summoned Vulcan crushes Training Base's priority-one crystal at
   (-276, 16) while the last projectile drains. The death queue holds the
@@ -204,6 +232,17 @@ length and final state.
   ([`landing.md`](landing.md)).
 
 ### Read
+
+- A projectile caches its candidate crystals, delays the first check, and
+  passes through a weaker crystal while directly reducing its life:
+  `BuildingDamageController.IsAvailableBuilding`,
+  `ProjectileController.GenerateTargetBuildings`,
+  `ProjectileController.IsHitBuilding`, `ProjectileController.OnHitBuilding`,
+  `FightProjectile.Update`, `FightProjectile.GetAttackStrength`,
+  `FightProjectileSkill.GameRiver.Fight.IProjectileDataSource.GetAttackStrength`,
+  `FightLandMine.GameRiver.Fight.IProjectileDataSource.GetAttackStrength`,
+  `ConstructionData..ctor`, `ConstructionData.GetAttackStrenth`,
+  `LineRange.Contains`, `FightUtility.IsLineCrossSphere`.
 
 - A higher-priority valid ground mech crushes a pathfinding-enabled building,
   with a per-building next-check countdown; the death queue holds the end:
@@ -261,6 +300,6 @@ length and final state.
   stand among the crystals; with them first, every fight pinned on 1021
   recorded again on 1001 plays back, and with them after the crystals, five do
   not.
-- **Whether an attack can damage a crystal.** Desert's priority-3 crystals
-  have 600 life. No recording here has a unit attack one or splash reach one;
-  crushing uses direct life reduction instead.
+- **A projectile blocked by a crystal, or splash reaching a crystal.** Desert's
+  priority-3 crystals have 600 life. The direct passage hit above does not
+  establish the blocked-hit or splash damage paths.

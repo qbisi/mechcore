@@ -903,6 +903,11 @@ pub(in crate::fight) fn normalized(vector: Vector) -> Vector {
 
 /// `FVector3.Angle`, in degrees: `AngleRad` through `FPCSMath.AcosFastest`.
 fn angle(from: Vector, to: Vector) -> i64 {
+    rvo::q32_mul(angle_rad(from, to), RAD_TO_DEG)
+}
+
+/// `FVector3.AngleRad`, shared by shield and building intersections.
+pub(in crate::fight) fn angle_rad(from: Vector, to: Vector) -> i64 {
     let (first, second) = (square_magnitude(from), square_magnitude(to));
     let denominator = if first.wrapping_add(second) < 0x1_6A09_0000_0001 {
         fpcs_sqrt_fastest(rvo::q32_mul(first, second))
@@ -916,7 +921,7 @@ fn angle(from: Vector, to: Vector) -> i64 {
         .wrapping_add(rvo::q32_mul(from.0, to.0))
         .wrapping_add(rvo::q32_mul(from.2, to.2));
     let cosine = rvo::q32_div(dot, denominator).clamp(-Q32_ONE, Q32_ONE);
-    rvo::q32_mul(fpcs_acos_fastest(cosine), RAD_TO_DEG)
+    fpcs_acos_fastest(cosine)
 }
 
 /// `FVector3.ClampMagnitude`; a `NaN` length leaves the vector as it is.

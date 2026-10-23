@@ -3,6 +3,7 @@ use super::*;
 #[derive(Debug, Clone)]
 pub(in crate::fight) struct Projectile {
     pub(in crate::fight) id: u64,
+    pub(in crate::fight) hit_buildings: Vec<building_damage::HitBuilding>,
     pub(in crate::fight) team: u32,
     /// Who released it.
     pub(in crate::fight) shooter: Shooter,
@@ -245,8 +246,10 @@ impl Simulation {
                 // way meets the shield's surface. A Shield Airdrop landing
                 // over a missile's landing point on that tick takes the
                 // missile.
+                let last_position = (projectile.x_q32, projectile.y_q32, projectile.z_q32);
                 self.absorb_on_arrival(&mut projectile, distance_q32);
                 self.impact(&projectile, events)?;
+                self.projectile_hit_building(&mut projectile, last_position)?;
             } else {
                 let (last_x_q32, last_y_q32, last_z_q32) =
                     (projectile.x_q32, projectile.y_q32, projectile.z_q32);
@@ -295,11 +298,19 @@ impl Simulation {
                     projectile.absorbed_by = Some(shield);
                     self.leave_interceptors(&projectile);
                     self.impact(&projectile, events)?;
+                    self.projectile_hit_building(
+                        &mut projectile,
+                        (last_x_q32, last_y_q32, last_z_q32),
+                    )?;
                     continue;
                 }
                 // `Move` has put it where it is now, and
                 // `UpdateIsInInterceptSources` reads it there.
                 self.track_interceptors(&mut projectile);
+                self.projectile_hit_building(
+                    &mut projectile,
+                    (last_x_q32, last_y_q32, last_z_q32),
+                )?;
                 retained.push(projectile);
             }
         }

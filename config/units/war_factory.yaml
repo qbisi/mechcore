@@ -36,6 +36,7 @@ attack:
     backswing: 0
     cooling: 0.5
   splash_radius: 4.5
+  projectile_strength: 3
   weapons:
     mode: standalone
     indices: [0, 1, 2, 3]
