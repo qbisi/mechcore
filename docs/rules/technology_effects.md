@@ -1581,6 +1581,12 @@ side's give a unit of its type, as a deployed one's; a dead summon's go with
 it, and nothing comes back. `FightMech.IsTechnologyDisabled` answers true the
 while, whether the unit carries a technology or not.
 
+Clearing buffs removes them one at a time, last first
+(`BuffManager.Clear`, `BuffManager.RemoveBuff`). The last disabling buff's
+`CBEC_DisableTechnology.Exit` restores effects before the next buff is
+removed. A Combat Evolvement life modifier still present participates in
+that restoration before its own `IBEC_ChangeMaxLife.Exit` withdraws it.
+
 Switching off is each of the unit's effect providers' `DisableEffect` on each
 of its sources that `CanDisable` (`FightEffectMananger.DisableEffect`), and
 only a technology does: `Technology.CanDisable` answers `ignoreElectricEffect`
@@ -1898,6 +1904,10 @@ derive (a minimum range):
 ## Evidence
 
 ### Recorded
+
+- A Rhino's final buff cleanup restores technologies before removing its
+  Combat Evolvement modifier; its remaining life agrees at the last boundary:
+  `tests/endgame/enable-technology-before-next-buff-clear.yaml`.
 
 - A Mustang controlled before its interceptor activates is absent from new
   projectile discovery on its new side:
