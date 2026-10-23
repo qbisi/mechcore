@@ -795,7 +795,9 @@ single hit checks the main actor's life, whether a unit or a building; it
 does not recheck its distance from the impact point or depend on tracking.
 Before that shared damage path, a projectile arriving without a splash
 skips its main actor if it has joined the projectile controller's team.
-Shield interception bypasses this actor-team check.
+`FightProjectile.CheckIsHitEnergyShield` also requests that actor-team check.
+A shield covering the now-friendly main actor does not bypass it: the check
+precedes the shield resolution in the shared path.
 A projectile that follows its target lands its offset from it, so one whose
 offset passes its splash misses.
 
@@ -1531,6 +1533,10 @@ not the game's native attack-type enum.
 - A Vortex's shield-breaking hit still applies Electromagnetic Cloud to the
   unit behind the depleted shield:
   `tests/secondary_damage/shield-break-keeps-cloud.yaml`.
+
+- Wasp shots arriving after their Rhino target joins their side leave its
+  Hacker barrier untouched:
+  `tests/control/friendly-shot-inside-barrier.yaml`.
 
 - A War Factory's main gun counts its attacking search clock down and
   replaces a lock outside its arc without entering cooling:
