@@ -606,9 +606,9 @@ impl Simulation {
         let center = (hit.center_q32.0, hit.center_y_q32, hit.center_q32.1);
         // `FightProjectile.PerformDamage(checkTeam: true)` rejects a
         // non-splash arrival whose target now belongs to the projectile's
-        // controller. Shield interception bypasses that actor-team check.
+        // controller, before resolving any shield. CheckIsHitEnergyShield
+        // also calls PerformDamage with checkTeam true.
         let lands_on_friendly = splash_radius == 0
-            && hit.shield.is_none()
             && self
                 .fight_actor(target)
                 .is_some_and(|view| view.team == projectile.team);

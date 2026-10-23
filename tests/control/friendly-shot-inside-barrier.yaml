@@ -1,0 +1,39 @@
+kind: fight
+source: game
+map_id: 1021
+seed: 682672410
+round: 4
+blue:
+  core_damage: 644
+  officers: [quick_teleport, advanced_defensive_tactics, fortified_specialist]
+  techs:
+    rhino: [armor_enhancement]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: rhino, index: 0, position: {x: -335, y: 35}, level: 8, exp: 0/1537/7736, equipment: [heavy_armor], travelling: true, source: joined}
+  - {name: void_eye, index: 1, position: {x: -120, y: -270}, level: 3, exp: 0/17/2315, source: joined}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -105, y: -165}, retained: false}
+  battle_skills:
+  - {name: ion_blast, positions: [{x: -240, y: -195}, {x: 205, y: -50}]}
+red:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_targeting_system, rhino_specialist, fortified_hacker]
+  techs:
+    hacker: [barrier]
+  blueprints: [attack_enhancement_ii]
+  tower_strengthen_levels: [3, 4]
+  units:
+  - {name: hacker, index: 0, position: {x: -325, y: 215}, level: 8, exp: 1883/3767/3767, rotated: true, equipment: [secondary_heavy_armor]}
+  - {name: rhino, index: 1, position: {x: 45, y: -55}, level: 2, exp: 0/925/2591, source: delivered}
+  - {name: fortress, index: 2, position: {x: -70, y: -220}, level: 6, exp: 0/3000/9278, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -235, y: -55}}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: 15, y: -15}]}
+ticks: 968
+hash: 27:1c1011d60c05117f481032fc076b96ce345c3c985c7bf9e189b5ac1357017b81
