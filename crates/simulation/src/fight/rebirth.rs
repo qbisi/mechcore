@@ -554,6 +554,9 @@ impl Simulation {
         // (`RVOControllerFixed.Active`): the first tree built after reads it
         // at zero, and it reaches its first solve with no speed to take, as a
         // summon's does, unless entering a state hands it one.
+        // Active also refreshes the controller's cached maximum from the
+        // current move speed; StopMove uses this activation's cached value.
+        actor.rvo_max_speed_q32 = actor.stats.move_speed_q32();
         actor.motion.rvo_new_agent = true;
         actor.motion.next_max_speed_q32 = 0;
         // `FightMech.EnterFight`: each skill draws its interval again, and

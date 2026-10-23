@@ -745,7 +745,10 @@ weapons (`SkillManager.ExitFight`, `FightSkill.ExitFight`), so an extra
 weapon returns idle with no old lock or attack counts, and its next blow
 is ready with the newly drawn interval rather than its old deadline.
 Its avoidance agent is made again (`MotionController.EnterFight`,
-`RVOControllerFixed.Active`), as a landing unit's is: the first tree built
+`RVOControllerFixed.Active`), as a landing unit's is. Activation also refreshes
+the controller's cached maximum from the owner's current move speed, which
+`RVOControllerFixed.StopMove` uses later: it does not retain the value cached
+before death. The first tree built
 after reads it at zero, and its first solve takes no speed unless entering a
 state hands it one ([rvo.md](../spec/simulation/rvo.md#the-first-tree)). It is counted
 reborn (`FightMech.AddRebirthCount`), which cuts its score
@@ -2108,6 +2111,9 @@ derive (a minimum range):
   rises reads it at zero in the tree, so Stormcallers across the field lose
   their neighbours for that solve, and it takes no speed on its first:
   `tests/corpus/201475625-r9.yaml`, ticks 848, 852 and 928.
+- A Typhoon whose first activation was slowed by tower loss refreshes its
+  cached avoidance maximum when it rises after death cleared that debuff:
+  `tests/rebirth/reactivation-refreshes-rvo-max-speed.yaml`.
 - A produced Phoenix regains its officer and technology corrections when
   Quantum Reassembly brings it back, including maximum life, attack damage
   and range: `tests/corpus/2607-r7.yaml`.
