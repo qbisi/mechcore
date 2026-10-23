@@ -1,0 +1,42 @@
+kind: fight
+source: game
+map_id: 1021
+seed: 505318910
+round: 4
+blue:
+  core_damage: 500
+  officers: [advanced_missile_device, typhoon_specialist, smart_marksman]
+  techs:
+    marksman: [doubleshot, shooting_squad, electromagnetic_shot, aerial_specialization, assault_mode, range_enhancement, quick_reload, elite_marksman]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: marksman, index: 0, position: {x: 270, y: -40}, level: 7, exp: 4093/4093/4093, rotated: true, equipment: [haste_module]}
+  - {name: typhoon, index: 1, position: {x: 110, y: -90}, exp: 0/569/1950, source: delivered}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -120, y: -210}}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: 15, y: 35}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, quick_teleport, typhoon_specialist]
+  techs:
+    void_eye: [energy_shield, energy_absorption, aerial_mode, range_enhancement, charged_shot, suppression_shots, electromagnetic_armor]
+  blueprints: [attack_enhancement]
+  units:
+  - {name: typhoon, index: 0, position: {x: -80, y: -90}, exp: 0/424/1950, source: delivered}
+  - {name: void_eye, index: 1, position: {x: -340, y: 110}, level: 4, exp: 0/16/2919, rotated: true, equipment: [explosive_ammo], travelling: true, source: joined}
+  - {name: mountain, index: 2, position: {x: 245, y: -85}, level: 7, exp: 0/4040/20148, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 175, y: -50}, retained: false}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: 185, y: -270}]}
+ticks: 1301
+hash: 27:7f367d48d9588ef3c80845d2c9d93afdf54c05352a1fd285d550bbb643ed5920
