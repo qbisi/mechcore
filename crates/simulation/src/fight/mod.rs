@@ -1795,6 +1795,10 @@ impl Simulation {
             }
         }
         events.append(&mut self.shield.created);
+        // Shield membership is sampled at the boundary. As in the Adapter's
+        // `trace_shield_membership`, departures use identity order, even when
+        // this tick's hits emptied the shields in the opposite order.
+        self.shield.destroyed.sort_by_key(|event| event.subject);
         events.append(&mut self.shield.destroyed);
         events.extend(self.take_terrain_events());
         // The Adapter resolves projectile trace owners after reading this
