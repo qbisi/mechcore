@@ -1,0 +1,37 @@
+kind: fight
+source: game
+map_id: 1021
+seed: 1180212747
+round: 3
+blue:
+  core_damage: 262
+  officers: [advanced_missile_device, quick_teleport]
+  techs:
+    void_eye: [energy_shield, energy_absorption, aerial_mode, range_enhancement, charged_shot, suppression_shots, electromagnetic_armor]
+  blueprints: [defense_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: void_eye, index: 0, position: {x: -320, y: 220}, rotated: true, equipment: [laser_sights], travelling: true, source: joined}
+  - {name: melting_point, index: 1, position: {x: -180, y: -30}, level: 3, exp: 0/4987/4987, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -215, y: -60}, retained: false}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: 115, y: 240}]}
+red:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, advanced_power_system, sabertooth_specialist]
+  techs:
+    typhoon: [field_reassembly, field_entrenchment, reactive_armor, maintenance_array, wreckage_detonation, range_enhancement, air_defense_mark]
+  blueprints: [attack_enhancement]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 175, y: -275}, exp: 0/216/1300, source: delivered}
+  - {name: typhoon, index: 1, position: {x: 320, y: 20}, level: 9, exp: 0/4182/13118, rotated: true, equipment: [deployment_module], travelling: true, source: joined}
+  - {name: wraith, index: 2, position: {x: 165, y: -35}, level: 9, source: joined}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 150, y: -170}}
+  battle_skills:
+  - {name: orbital_javelin, positions: [{x: 130, y: 60}]}
+ticks: 971
+hash: 27:48dcd314ea1eecfabd716c68522455f88cbae08e63ddbf545bcbefd351461e47
