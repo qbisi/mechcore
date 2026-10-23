@@ -1,0 +1,43 @@
+kind: fight
+source: game
+map_id: 1021
+seed: 58975487
+round: 2
+blue:
+  core_damage: 686
+  officers: [advanced_power_system, advanced_targeting_system, cost_control_specialist, assault_stormcaller]
+  techs:
+    stormcaller: [heavy_missile]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: stormcaller, index: 0, position: {x: 350, y: 85}, level: 7, equipment: [small_amplifying_core], travelling: true, source: joined}
+  - {name: melting_point, index: 1, position: {x: 150, y: -30}, level: 2, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -195, y: -185}}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: -225, y: -90}]}
+red:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_power_system, fortified_overlord]
+  techs:
+    overlord: [mothership]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [2, 3]
+  units:
+  - {name: overlord, index: 0, position: {x: 75, y: -45}, level: 9, exp: 0/2862/11773, equipment: [mustang_production_line]}
+  - {name: scorpion, index: 1, position: {x: -195, y: -25}, level: 7, exp: 0/5120/9445, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -295, y: -115}, retained: false}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: -50, y: -155}]}
+ticks: 241
+hash: 27:40d61485b2de4398aa63cbfb84ab88e3f2c8878c934faf265ac78a04271f2d9d
