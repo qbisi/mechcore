@@ -339,9 +339,6 @@ struct Actor {
     /// Each controller's `isAvailable`: technology switching reaches only
     /// that source, while activation and deactivation reach every source.
     buff_cycles_available: Vec<bool>,
-    /// `SkillHitEffectController`'s live registration order, which changes
-    /// when a technology unregisters and restores its hit effects.
-    hit_provider_order: Vec<crate::modifier::EffectProvider>,
     /// The secondary-damage provider's dictionary entry: true when it is
     /// the origin controller that `BuffEffectProvider` also registers.
     secondary_buff_controller: Option<bool>,

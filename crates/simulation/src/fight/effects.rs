@@ -306,11 +306,11 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            actor
-                .hit_provider_order
-                .retain(|registered| *registered != provider);
-            if on {
-                actor.hit_provider_order.push(provider);
+            for order in actor.skills.hit_provider_orders_mut() {
+                order.retain(|registered| *registered != provider);
+                if on {
+                    order.push(provider);
+                }
             }
         }
         match provider {

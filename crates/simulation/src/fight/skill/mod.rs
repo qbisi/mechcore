@@ -361,6 +361,18 @@ pub(in crate::fight) struct SkillManager {
 }
 
 impl SkillManager {
+    /// The live `SkillHitEffectController` lists. A grouped skill shares its
+    /// registration order across the slots represented by its core.
+    pub(in crate::fight) fn hit_provider_orders_mut(
+        &mut self,
+    ) -> impl Iterator<Item = &mut Vec<crate::modifier::EffectProvider>> {
+        std::iter::once(&mut self.main.hit_provider_order).chain(
+            self.extras
+                .iter_mut()
+                .map(|extra| &mut extra.skill.hit_provider_order),
+        )
+    }
+
     /// A tick on which no skill updates: both its elapsed clock and the
     /// deadline derived from that clock stand still. Pending summons can
     /// resume a fight after `FightCoreSystem` temporarily has no enemy.
@@ -566,6 +578,9 @@ impl SkillRef {
 )]
 #[derive(Debug, Clone)]
 pub(in crate::fight) struct Skill {
+    /// `SkillHitEffectController`'s live registration list.
+    /// A newly created skill has no previously registered hit effects.
+    pub(in crate::fight) hit_provider_order: Vec<crate::modifier::EffectProvider>,
     /// An extra skill's `DamageCalculator.killCount`; the main calculator
     /// lives in `Actor.stats`. Each clears independently on `ExitFight`.
     pub(in crate::fight) kill_count: i64,
@@ -738,6 +753,7 @@ impl Skill {
             next_attack_step: 0,
             current_attack_interval: 0,
             kill_count: 0,
+            hit_provider_order: Vec::new(),
             attack_time_anchor: 0,
             attack_time_step: -1,
             lock_target: None,

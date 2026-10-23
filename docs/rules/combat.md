@@ -1032,6 +1032,14 @@ and register its buff controllers together, in source order. An equipment's
 lifesteal can therefore precede a restored buff technology after the unit's
 technologies were disabled, even though the buff registered first at entry.
 
+Each skill owns its hit-effect registrations. `SkillManager.AddHitEffect`
+visits the main and extra skills present at that call; `AddSkill` does not
+copy earlier registrations onto a new skill. A travelling unit's Melee Mode
+skill, created by `MeleeModeEffectSystem.AddMeleeSkill` on activation, therefore
+starts without the Absorption Module callback registered before its arrival.
+Later hits from its existing skills can still heal. Registering a provider
+again visits the skills that exist then, in their current order.
+
 The active source registers its hit effect on the skills its main and extra
 skill flags admit. A main source also reaches its grouped extra weapons;
 an independent extra weapon admits a main source only when it has a positive
@@ -1622,6 +1630,11 @@ not the game's native attack-type enum.
 - Overlapping fires publish a unit's death once:
   `tests/terrain/fire-death-once.yaml`.
 
+- A travelling Centurion's newly created melee skill has an empty native
+  `SkillHitEffectController`, while its main, Dual Wield and Homing Missile
+  skills retain their `LifeStealEffectProvider`. The complete round keeps
+  that distinction after it lands:
+  `tests/lifesteal/late-melee-does-not-inherit-absorption.yaml`.
 - An equipment's lifesteal callback follows the hit's buff application:
   `tests/lifesteal/generated-arclight-buff-order.yaml`,
   `tests/lifesteal/generated-marksman-buff-order.yaml` and
@@ -2365,7 +2378,10 @@ not the game's native attack-type enum.
   `Technology.CanDisable` reads `ignoreElectricEffect`. Its admitted skills
   follow `SkillManager.AddHitEffect` and `SkillDataModifier.AvaliableCheck`
   through the source's `mainSkillEffect`, `extraSkillEffect` and the extra
-  weapon's `GetDamageRate`.
+  weapon's `GetDamageRate`. `SkillManager.AddSkill` inserts a new skill
+  without replaying hit-effect registrations; `MeleeModeEffectSystem.AddOwner`
+  and `AddMeleeSkill` create the arriving owner's melee skill through that
+  method.
 
 - A splash value: `SplashEquipment.AddData` writes its row through
   `MechDataModifer.TryAddCommonData` and then ``Equipment`1.AddSkillData`` of

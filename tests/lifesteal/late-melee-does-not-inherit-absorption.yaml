@@ -1,0 +1,38 @@
+kind: fight
+source: game
+map_id: 1021
+seed: 2141242996
+round: 4
+blue:
+  core_damage: 0
+  officers: [advanced_missile_device, advanced_offensive_tactics, rhino_specialist, improved_steel_ball]
+  techs:
+    steel_ball: [energy_absorption, damage_sharing, mechanical_division, fortified_target_lock, armor_enhancement, range_enhancement, kinetic_charge]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [high_mobility]
+  tower_strengthen_levels: [4, 4]
+  units:
+  - {name: rhino, index: 0, position: {x: -235, y: -295}, level: 2, exp: 0/16/2591, source: delivered}
+  - {name: steel_ball, index: 1, position: {x: 320, y: 155}, level: 5, exp: 0/5210/5210, equipment: [heavy_armor], travelling: true, source: joined}
+  - {name: scorpion, index: 2, position: {x: -285, y: -45}, level: 6, exp: 0/3866/8698, source: joined}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 195, y: -65}, retained: false}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: 35, y: 210}]}
+red:
+  core_damage: 450
+  officers: [quick_teleport, advanced_offensive_tactics, rhino_specialist]
+  techs:
+    centurion: [summon_hounds, reactive_armor, melee_mode, range_enhancement, dual_wield, homing_missile]
+  blueprints: [defense_enhancement]
+  tower_strengthen_levels: [2, 2]
+  units:
+  - {name: rhino, index: 0, position: {x: 75, y: -165}, level: 2, source: delivered}
+  - {name: centurion, index: 1, position: {x: 335, y: 265}, level: 8, exp: 0/1400/15137, equipment: [absorption_module], travelling: true, source: joined}
+  - {name: sledgehammer, index: 2, position: {x: -65, y: -20}, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: 15, y: -280}, {x: -140, y: 215}]}
+ticks: 836
+hash: 27:faa02c854cfa802b2579269912bd7f5a7d67f7291c34f76ba58ad23beec34375

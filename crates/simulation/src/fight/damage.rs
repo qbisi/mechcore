@@ -1245,7 +1245,7 @@ impl Simulation {
                 let skill = self.skill_at_slot(FightActorRef::Unit(owner.id), usize::from(slot));
                 let main = skill.slot == SkillSlot::Main;
                 let mut ends = Struck::default();
-                for provider in self.actors[&owner.id].hit_provider_order.clone() {
+                for provider in self.skill(skill).hit_provider_order.clone() {
                     match provider {
                         EffectProvider::WreckageRecovery => {
                             self.record_wreckage_hit(owner.id, slot, targets);
@@ -1411,6 +1411,15 @@ impl Simulation {
         let Some(owner) = self.actors.get_mut(&owner_id) else {
             return Ok(());
         };
+        let (held_by, _) = owner.skills.at_slot(usize::from(slot));
+        if !owner
+            .skills
+            .get(held_by)
+            .hit_provider_order
+            .contains(&EffectProvider::LifeSteal)
+        {
+            return Ok(());
+        }
         let Some(lifesteal) = owner.placement.effects.lifesteal else {
             return Ok(());
         };

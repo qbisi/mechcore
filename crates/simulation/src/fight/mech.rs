@@ -103,11 +103,6 @@ impl Actor {
                 placement.travelling,
             ),
             buff_cycles_available: vec![true; placement.effects.buff_sources.len()],
-            hit_provider_order: if placement.effects.hit_provider_order.is_empty() {
-                crate::modifier::EffectProvider::ALL.to_vec()
-            } else {
-                placement.effects.hit_provider_order.clone()
-            },
             secondary_buff_controller: (!placement.travelling
                 && placement
                     .effects
@@ -217,6 +212,17 @@ impl Actor {
                 .iter()
                 .filter(|weapon| Some(weapon.rules.skill) != melee),
         );
+        // SkillManager.AddHitEffect registers only on the skills that exist
+        // at registration. A melee skill created on a later activation starts
+        // with its own empty SkillHitEffectController instead of inheriting it.
+        let order = if actor.placement.effects.hit_provider_order.is_empty() {
+            crate::modifier::EffectProvider::ALL.to_vec()
+        } else {
+            actor.placement.effects.hit_provider_order.clone()
+        };
+        for providers in actor.skills.hit_provider_orders_mut() {
+            providers.clone_from(&order);
+        }
         if actor.rules.mech_search
             && let Some(group) = &mut actor.skills.main.group
         {
