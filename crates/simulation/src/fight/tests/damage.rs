@@ -182,6 +182,7 @@ fn projectile_splash_emits_one_damage_event_per_actual_target() {
     set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 20_000);
     set_actor_position(simulation.actors.get_mut(&3).unwrap(), 1_000, 20_000);
     let projectile = Projectile {
+        hit_buildings: Vec::new(),
         id: 1,
         team: 0,
         shooter: Shooter::Actor(FightActorRef::Unit(1)),
@@ -273,6 +274,7 @@ fn dual_domain_projectile_splash_uses_the_main_targets_domain() {
     set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 20_000);
     set_actor_position(simulation.actors.get_mut(&3).unwrap(), 0, 20_000);
     let projectile = Projectile {
+        hit_buildings: Vec::new(),
         id: 1,
         team: 0,
         shooter: Shooter::Actor(FightActorRef::Unit(1)),
@@ -327,6 +329,7 @@ fn projectile_drain_does_not_late_teardown_the_defeated_teams_buildings() {
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     simulation.actors.get_mut(&1).unwrap().life = 0;
     simulation.projectiles.push(Projectile {
+        hit_buildings: Vec::new(),
         id: 1,
         team: 0,
         shooter: Shooter::Actor(FightActorRef::Unit(1)),
@@ -392,6 +395,7 @@ fn projectile_splash_takes_a_building_beside_its_target() {
     let building_id = building.building_id;
     let building_life = building.life.current;
     let projectile = Projectile {
+        hit_buildings: Vec::new(),
         id: 1,
         team: 0,
         shooter: Shooter::Actor(FightActorRef::Unit(1)),
@@ -506,6 +510,7 @@ fn forced_exit_clears_the_projectile_container() {
     );
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     simulation.projectiles.push(Projectile {
+        hit_buildings: Vec::new(),
         id: 1,
         team: 0,
         shooter: Shooter::Actor(FightActorRef::Unit(1)),

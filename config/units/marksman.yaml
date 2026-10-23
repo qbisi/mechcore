@@ -35,6 +35,7 @@ attack:
     backswing: 0
     cooling: 0.2
   splash_radius: 0
+  projectile_strength: 3
   weapons:
     mode: normal
     indices: [0]

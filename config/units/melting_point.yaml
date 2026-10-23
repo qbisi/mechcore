@@ -83,6 +83,7 @@ extra_weapons:
         backswing: 0
         cooling: 0
       splash_radius: 7.5
+      projectile_strength: 3
       weapons:
         mode: normal
         indices: [5, 6]

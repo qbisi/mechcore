@@ -274,7 +274,12 @@ pub(in crate::fight) fn distance_2d(from: (i64, i64), radius: i64, to: &FightAct
 /// across the segment than its width and neither end's angle obtuse. Keep
 /// the build's approximate angles and sine: exact cross products disagree
 /// at the edge of the strip.
-fn line_range_contains(start: (i64, i64), end: (i64, i64), width: i64, point: (i64, i64)) -> bool {
+pub(in crate::fight) fn line_range_contains(
+    start: (i64, i64),
+    end: (i64, i64),
+    width: i64,
+    point: (i64, i64),
+) -> bool {
     // `FightUtility.Radian90`: `FPoint.Deg2Rad * 90`.
     const RIGHT_ANGLE: i64 = 0x0477_D1A9 * 90;
     if point == start || point == end {

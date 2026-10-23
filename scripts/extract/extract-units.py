@@ -563,6 +563,11 @@ def attack_lines(unit, kind, skill, damage_line, attack_angle, indent, angle_abs
         f"    cooling: {grid(skill['coolingTime'], 2000)}",
         f"  splash_radius: {grid(skill['splashRange'], 1000)}",
     ]
+    if kind == "projectileSkillDatas":
+        strength = skill["attackStrength"]
+        if strength <= 0:
+            strength = next(row["attackStrength"] for row in build_data.container()["mechDatas"] if row["id"] == unit)
+        lines.append(f"  projectile_strength: {strength}")
     # `ProjectileSkillData.damageType`: a Vulcan's and a Fire Badger's hits
     # are `EDamageType.Fire`, which sets alight the oil their splash reaches.
     if skill.get("damageType", 0) == DAMAGE_FIRE:

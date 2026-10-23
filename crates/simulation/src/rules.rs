@@ -431,6 +431,10 @@ pub(crate) use mechcore_document::targets::UnitSize;
     reason = "the skill row's flags are independent fields"
 )]
 pub(crate) struct AttackConfig {
+    /// `IProjectileDataSource.GetAttackStrength`, resolved from a positive
+    /// skill override or its owner's data. Non-projectile skills leave zero.
+    #[serde(default)]
+    pub(crate) projectile_strength: i32,
     pub(crate) base_damage: i64,
     pub(crate) min_range: f64,
     pub(crate) range: f64,
@@ -709,7 +713,7 @@ pub(crate) struct MapsConfig {
     map_data: BTreeMap<String, Vec<MapBuilding>>,
 }
 
-/// One building a map places, as the fight's movement sees it.
+/// One building a map places, as movement and projectile hits see it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub(crate) enum MapBuilding {
@@ -728,6 +732,8 @@ pub(crate) enum MapBuilding {
         z: i64,
         radius: i64,
         collider_priority: i32,
+        life: i64,
+        strength: i32,
     },
 }
 

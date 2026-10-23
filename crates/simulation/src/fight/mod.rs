@@ -41,6 +41,7 @@ mod attack_count;
 mod attacker;
 mod buff_cycle;
 mod building_collide;
+mod building_damage;
 mod burrow;
 mod chain;
 mod clear_range_item;

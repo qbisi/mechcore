@@ -35,6 +35,7 @@ attack:
     backswing: 0
     cooling: 0.5
   splash_radius: 5
+  projectile_strength: 3
   weapons:
     mode: standalone
     indices: [3, 4, 5, 6]
@@ -83,6 +84,7 @@ extra_weapons:
         backswing: 0.2
         cooling: 0
       splash_radius: 15
+      projectile_strength: 3
       weapons:
         mode: group
         indices: [0, 1]
@@ -126,6 +128,7 @@ extra_weapons:
         backswing: 0
         cooling: 0
       splash_radius: 18
+      projectile_strength: 3
       weapons:
         mode: group
         indices: [2]

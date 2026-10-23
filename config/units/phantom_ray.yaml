@@ -34,6 +34,7 @@ attack:
     backswing: 0
     cooling: 0.8
   splash_radius: 3
+  projectile_strength: 3
   weapons:
     mode: normal
     indices: [0]
@@ -90,6 +91,7 @@ extra_weapons:
         backswing: 0
         cooling: 0.8
       splash_radius: 40
+      projectile_strength: 3
       weapons:
         mode: normal
         indices: [1]

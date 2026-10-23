@@ -140,11 +140,14 @@ def number(value):
 
 
 def attack(row, body):
+    # ConstructionData..ctor initializes its nonserialized attackStrenth to 3;
+    # PreProcess leaves it unchanged. A positive skill override takes priority.
     return {
         "id": row["id"],
         "name": row.get("name"),
         "attack": {
             "base_damage": body["damage"],
+            "projectile_strength": row["attackStrength"] if row["attackStrength"] > 0 else 3,
             "min_range": number(row["minAttackRange"]),
             "range": number(row["attackRange"]),
             "attack_half_angle": number(body["attack_angle"] / ONE),

@@ -144,7 +144,8 @@ impl Simulation {
             FightActorRef::Building(id) => (ObjectKind::Building, id, 0),
         };
         let projectile_id = self.ids.objects.allocate_object(ObjectKind::Projectile)?.id;
-        let projectile = Projectile {
+        let mut projectile = Projectile {
+            hit_buildings: Vec::new(),
             id: projectile_id,
             team: mine.team,
             shooter: Shooter::Missile(mine.shot.clone()),
@@ -188,6 +189,7 @@ impl Simulation {
                 .trigger_range_q32
                 .saturating_add(space_to_q32(view.radius)),
         };
+        self.generate_projectile_buildings(&mut projectile);
         events.push(event(
             Some(projectile.object_ref()),
             None,

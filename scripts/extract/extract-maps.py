@@ -110,7 +110,8 @@ def render(structure):
         "# Each map data's buildings in the order the game creates them: a",
         "# tower, config/towers.yaml's, by team and type and where it stands in",
         "# metres; a neutral crystal that runs an RVO controller by its centre,",
-        "# its radius and its collider priority, the first two FPoint raw.",
+        "# its radius and collider priority, life and strength; centre and radius",
+        "# are FPoint raw.",
         "map_data:",
     ]
     for name in names:
@@ -130,7 +131,7 @@ def render(structure):
             elif row["enablePathfinding"]:
                 lines.append(
                     f"    - {{kind: crystal, x: {x}, z: {z}, radius: {raw(row['radius'])}, "
-                    f"collider_priority: {row['pathfindingColliderPriority']}}}"
+                    f"collider_priority: {row['pathfindingColliderPriority']}, life: {row['life']}, strength: {row['strength']}}}"
                 )
     return "\n".join(lines) + "\n"
 
