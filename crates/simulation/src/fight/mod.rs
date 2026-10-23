@@ -1425,6 +1425,16 @@ impl Simulation {
                     self.lose_interceptor(building_id);
                 }
                 FightActorRef::Unit(unit_id) => {
+                    // The Adapter samples GetPositionInt3D as OnDead begins,
+                    // after travel updated, before death deactivates effects.
+                    let actor = &self.actors[&unit_id];
+                    for event in events.iter_mut().chain(self.fallen_buildings.iter_mut()) {
+                        if event.subject == Some(actor.object_ref())
+                            && let EventPayload::UnitDied { position } = &mut event.payload
+                        {
+                            *position = actor.recorded_position();
+                        }
+                    }
                     // FightExplosionSkill.OnOwnerDead unregisters its dead
                     // effect. A death added after the controllers ran must
                     // not leave an explosion queued for the next update.
@@ -1432,9 +1442,9 @@ impl Simulation {
                     // `BuffManager.OnMechDead` runs before ExitFight and
                     // OnMechDead listeners, and joins its summons immediately.
                     made.extend(self.summon_from_the_dead(unit_id)?);
-                    // FightMech.OnDead calls ExitFight before DeactiveEffect.
-                    // BuffManager.Clear can re-enable an EMP-disabled provider;
-                    // the following deactivation must be its final state.
+                    // FightMech.OnDead deactivates summons itself; ordinary
+                    // units are deactivated by DeadEffectSystem after OnDead,
+                    // including its travel-finished death listener.
                     self.drop_buffs_of_the_dead(unit_id)?;
                     self.actors
                         .get_mut(&unit_id)
@@ -1444,7 +1454,10 @@ impl Simulation {
                     // `TeamWreckageRecoveryManager` registered with for each unit
                     // its holders struck.
                     // `FightEffectSystem.DeactiveEffect` of the dead unit.
-                    self.deactive_effect(unit_id)?;
+                    if self.actors[&unit_id].summoned {
+                        self.deactive_effect(unit_id)?;
+                    }
+                    self.super_deployment_on_dead(unit_id)?;
                     self.exit_terrains_on_dead(unit_id)?;
                     self.remove_produced_mech(unit_id);
                     // `SummonSystem.RemoveMech` was registered when the unit joined,
@@ -1456,6 +1469,9 @@ impl Simulation {
                     // `ControllEffect` among them: the Rhino a Hacker was turning
                     // holds no entry from the tick the Hacker dies.
                     self.sync_beam(unit_id);
+                    if !self.actors[&unit_id].summoned {
+                        self.deactive_effect(unit_id)?;
+                    }
                     self.try_process_dead_important_unit(unit_id)?;
                 }
             }

@@ -77,9 +77,18 @@ layout cannot hold Quick Teleport twice
 ([layout.md](../spec/document/layout.md#officers)).
 
 A unit that dies while travelling leaves the list through
-`SuperDeploymentController.OnMechDead`. A side whose travelling units all
+`SuperDeploymentController.OnMechDead`, after the travel update of that tick.
+Recovery checks `FightActor.IsAlive`, but arrival processes the whole retained
+list: a unit struck to zero life on its arrival tick still exits travel before
+its `FightMech.OnDead` callback. A side whose travelling units all
 died stops counting. Nothing waits for travel to finish: a fight can end with
 units still travelling.
+
+For an ordinary unit, `DeadEffectSystem.Update` deactivates its effects after
+`FightMech.OnDead` and its listeners return. The travel death listener can
+therefore exit travel and restore effects before that final deactivation.
+Summons instead deactivate their effects within `FightMech.OnDead`, before
+its listeners.
 
 ## Corrections
 
@@ -153,6 +162,10 @@ from the arrival.
 ## Evidence
 
 ### Recorded
+
+- A travelling Void Eye struck to zero life on its arrival tick enables its
+  aerial mode before its death callback samples the death position:
+  `tests/super_deployment/lethal-hit-on-flight-arrival.yaml`.
 
 - A travelling Fortress retains its sampled interval of 35 while the enemy
   side is empty on ticks 75–77 before more summons arrive. It still reads
@@ -229,6 +242,9 @@ from the arrival.
   `SuperDeploymentController.Update`, `SuperDeploymentController.TravelTime`,
   `SuperDeploymentController.FinishTranvel`.
 - A unit that dies leaves the travel: `SuperDeploymentController.OnMechDead`.
+- Ordinary units deactivate effects after their death listeners; summons
+  deactivate within their own callback: `DeadEffectSystem.Update`,
+  `FightMech.OnDead`, `FightMech.IsSummonMech`.
 - The order of the systems: `FightController.AddModules`.
 - Corrections are written without regard to travel: `EffectProvider.AddEffect`,
   `EffectProvider.ActiveCheck`.

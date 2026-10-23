@@ -154,13 +154,10 @@ impl Simulation {
     pub(in crate::fight) fn step_super_deployment(&mut self) -> Result<()> {
         let teams = self.travels.keys().copied().collect::<Vec<_>>();
         for team in teams {
-            // `OnMechDead` takes a unit that died out of the list.
-            let actors = &self.actors;
             let travel = self
                 .travels
                 .get_mut(&team)
                 .expect("a side's travel is kept");
-            travel.units.retain(|unit_id| actors[unit_id].alive());
             if travel.units.is_empty() {
                 continue;
             }
@@ -178,6 +175,11 @@ impl Simulation {
                         .actors
                         .get_mut(&unit_id)
                         .expect("a travelling unit is an actor");
+                    // The controller keeps zero-life units until OnMechDead,
+                    // but its recovery loop checks IsAlive before AddLife.
+                    if !actor.alive() {
+                        continue;
+                    }
                     let max_life = actor.stats.max_life();
                     let healed =
                         q32_div(q32_mul(max_life << 32, Q32_ONE - life_rate), travel_time) >> 32;
@@ -188,6 +190,24 @@ impl Simulation {
             if fpoint_greater_or_equal(travel.travelled_q32, travel.duration_q32) {
                 self.finish_travel(team)?;
             }
+        }
+        Ok(())
+    }
+
+    /// `SuperDeploymentController.OnMechDead`: exit travel and remove the
+    /// unit only when its death callback runs, after this tick's travel update.
+    pub(in crate::fight) fn super_deployment_on_dead(&mut self, unit: u64) -> Result<()> {
+        let team = self
+            .travels
+            .iter()
+            .find_map(|(&team, travel)| travel.units.contains(&unit).then_some(team));
+        if let Some(team) = team {
+            self.exit_travel(team, unit)?;
+            self.travels
+                .get_mut(&team)
+                .unwrap()
+                .units
+                .retain(|&id| id != unit);
         }
         Ok(())
     }
