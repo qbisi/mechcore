@@ -631,7 +631,7 @@ impl Simulation {
                         skill_index,
                         events,
                     )?;
-                    self.climb_joined_slot_projectile(skill_ref, skill_index, target)?;
+                    self.climb_joined_slot_projectile(skill_ref, skill_index)?;
                 }
             }
             // A slot whose line of fire a construction stands in fires at
@@ -683,11 +683,7 @@ impl Simulation {
                         skill_index,
                         events,
                     )?;
-                    self.climb_joined_slot_projectile(
-                        skill_ref,
-                        skill_index,
-                        FightActorRef::Building(building_id),
-                    )?;
+                    self.climb_joined_slot_projectile(skill_ref, skill_index)?;
                 }
             }
             FightActorRef::Unit(_) => return Ok(()),
