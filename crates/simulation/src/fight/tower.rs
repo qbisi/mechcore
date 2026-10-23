@@ -1056,7 +1056,6 @@ impl Simulation {
         let unit_order = self.units_in_update_order();
         let teams = self.team_random.keys().copied().collect::<Vec<_>>();
         for team in teams {
-            let mut disabled = Vec::new();
             // Each side's units in the order they joined it (`activeActors`): the
             // Crawlers a Steel Ball's death summoned, in the order they joined,
             // whatever their identities.
@@ -1068,29 +1067,29 @@ impl Simulation {
                 if actor.placement.team != team || !actor.alive() || actor.buffs.is_empty() {
                     continue;
                 }
-                if actor.technology_disabled() {
-                    disabled.push(actor_id);
-                }
-                events.extend(actor.buffs.iter().rev().map(|buff| {
-                    buff_removed(
+                while let Some(buff) = self.actors.get_mut(&actor_id).unwrap().buffs.pop() {
+                    let actor = self.actors.get_mut(&actor_id).unwrap();
+                    let was_disabled = buff.disables_technology;
+                    events.push(buff_removed(
                         ObjectRef::new(ObjectKind::Unit, actor_id),
                         buff.buff_id,
                         BuffRemovedReason::Cleared,
-                    )
-                }));
-                for buff in std::mem::take(&mut actor.buffs).into_iter().rev() {
+                    ));
                     actor.withdraw_buff(&buff)?;
+                    if was_disabled && !actor.technology_disabled() {
+                        // `BuffManager.RemoveBuff` exits its common disable
+                        // controller before removing the next buff. Restored
+                        // effects still see that buff and its life modifier.
+                        self.switch_technologies(actor_id, true)?;
+                    }
                 }
                 // `IBEC_ChangeMaxLife.Exit` takes its rate out, and the life is
                 // refreshed: a Rhino with Combat Evolvement ends the fight at its
                 // share of its bare maximum.
-                actor.refresh_life_data()?;
-            }
-            // And a unit whose technologies a buff had switched off has them
-            // again: a Rhino's Mechanical Rage reads in its corrections on the
-            // fight's last tick.
-            for actor_id in disabled {
-                self.switch_technologies(actor_id, true)?;
+                self.actors
+                    .get_mut(&actor_id)
+                    .unwrap()
+                    .refresh_life_data()?;
             }
             let buildings = self
                 .buffs

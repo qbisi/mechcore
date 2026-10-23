@@ -1,0 +1,34 @@
+kind: fight
+source: game
+map_id: 1021
+seed: 209333750
+round: 2
+blue:
+  core_damage: 0
+  officers: [quick_teleport, fortified_specialist, berserk_rhino]
+  techs:
+    rhino: [field_maintenance, whirlwind, wreckage_recycling, power_armor, final_blitz, armor_enhancement, mechanical_rage, photon_coating, combat_evolvement]
+  blueprints: [attack_enhancement_ii]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: rhino, index: 0, position: {x: -335, y: 135}, level: 2, exp: 0/2591/2591, equipment: [enhancement_module], travelling: true, source: joined}
+  - {name: mustang, index: 1, position: {x: -165, y: -300}, level: 2, exp: 0/1725/2704, source: joined}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: 260, y: 265}]}
+red:
+  core_damage: 302
+  officers: [advanced_power_system, advanced_targeting_system, fortified_specialist, fortified_farseer]
+  techs:
+    farseer: [burst_mode, electromagnetic_explosion, aerial_specialization, missile_interceptor, range_enhancement, photon_emission, scanning_radar]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: farseer, index: 0, position: {x: -115, y: -275}, level: 5, exp: 0/200/9379, rotated: true, equipment: [laser_sights], source: joined}
+  - {name: steel_ball, index: 1, position: {x: 55, y: -190}, level: 2, exp: 0/612/2253, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -155, y: -35}, {x: 65, y: 280}, {x: 220, y: 30}]}
+ticks: 787
+hash: 27:133f33ca10b35815e204ccd46ccda90c23a7ef02e581e5e2e6125f3c1faf3526
