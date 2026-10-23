@@ -108,12 +108,12 @@ impl Simulation {
             return;
         }
         actor.secondary_buff_controller = Some(false);
-        actor.hit_provider_order.retain(|provider| {
-            *provider != crate::modifier::EffectProvider::SecondaryDamageIntensify
-        });
-        actor
-            .hit_provider_order
-            .push(crate::modifier::EffectProvider::SecondaryDamageIntensify);
+        for order in actor.skills.hit_provider_orders_mut() {
+            order.retain(|provider| {
+                *provider != crate::modifier::EffectProvider::SecondaryDamageIntensify
+            });
+            order.push(crate::modifier::EffectProvider::SecondaryDamageIntensify);
+        }
     }
 
     /// `SecondaryDamageIntensifyEffectProvider.DoDeactive`: disable secondary
@@ -130,9 +130,11 @@ impl Simulation {
             if origin {
                 actor.secondary_buff_origin_registered = false;
             } else {
-                actor.hit_provider_order.retain(|provider| {
-                    *provider != crate::modifier::EffectProvider::SecondaryDamageIntensify
-                });
+                for order in actor.skills.hit_provider_orders_mut() {
+                    order.retain(|provider| {
+                        *provider != crate::modifier::EffectProvider::SecondaryDamageIntensify
+                    });
+                }
             }
         }
     }
