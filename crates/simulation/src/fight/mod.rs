@@ -1106,7 +1106,7 @@ impl Simulation {
             .filter(|actor| actor.alive() || actor.rebirthing)
             .map(|actor| actor.placement.team)
             .collect::<BTreeSet<_>>();
-        let settled = self
+        let mut settled = self
             .actors
             .values()
             .filter(|actor| {
@@ -1136,12 +1136,24 @@ impl Simulation {
                     })
                     .collect::<Vec<_>>();
                 (
-                    id,
+                    FightActorRef::Unit(id),
                     seconds_q32_to_steps(actor.stats.attack_interval_q32()),
                     extras,
                 )
             })
             .collect::<Vec<_>>();
+        // Constructions run the same SkillManager non-fighting path. A
+        // pending summon can resume fighting after ExitFight has refreshed
+        // their clocks, even on the side that temporarily has no units.
+        if alive_teams.len() < 2 {
+            settled.extend(self.constructions.keys().filter_map(|&id| {
+                let owner = FightActorRef::Building(id);
+                self.fight_actor_is_alive(owner).then(|| {
+                    let interval = self.attacker(owner).unwrap().attack_interval_q32;
+                    (owner, seconds_q32_to_steps(interval), Vec::new())
+                })
+            }));
+        }
         // `RefreshAttackInterval` with the clock refreshed: each skill, and
         // each slot of its group, that holds a lock, and on the fight's last
         // tick every one, reads its own composed interval.
@@ -1166,11 +1178,16 @@ impl Simulation {
                 }
             }
         };
-        for (id, main, extras) in settled {
-            let actor = self.actors.get_mut(&id).expect("actor identity is stable");
-            refresh(&mut actor.skills.main, main);
-            for (extra, interval) in actor.skills.extras.iter_mut().zip(extras) {
-                refresh(&mut extra.skill, interval);
+        for (owner, main, extras) in settled {
+            refresh(self.skill_mut(SkillRef::main(owner)), main);
+            for (index, interval) in extras.into_iter().enumerate() {
+                refresh(
+                    self.skill_mut(SkillRef {
+                        owner,
+                        slot: SkillSlot::Extra(index),
+                    }),
+                    interval,
+                );
             }
         }
     }

@@ -77,6 +77,12 @@ each cycle was scheduled with. Three readings complete it:
   drawn interval;
 - every unit reads the composed interval on the fight's last tick.
 
+The same non-fighting path runs for a construction's `SkillManager.Update`:
+a skill still holding a lock calls `FightSkill.ExitFight`, whose
+`RefreshAttackInterval` removes the stagger and readies its clock. This can
+happen while a battle skill still has summons pending. If those summons
+bring both sides back, the construction resumes from that ready clock.
+
 ## Where a moving unit is sent
 
 A unit moving on its target is sent to the point along the line to it where
@@ -1543,6 +1549,10 @@ not the game's native attack-type enum.
   preserves its Dark Companion and Swarm Missiles clocks through the pause,
   then waits for their full remaining intervals:
   `tests/endgame/pending-summon-preserves-attack-wait.yaml`.
+
+- An Anti-Armor Turret resumes with a ready clock after an empty side waits
+  for Wasp Swarm, and releases its next shot on tick 50:
+  `tests/turret/resumes-ready-after-core-pause.yaml`.
 
 - Three Void Eyes enter attack with ready clocks, then begin their first
   wind-ups on the following update:
