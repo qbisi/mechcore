@@ -348,7 +348,6 @@ impl Simulation {
         } else {
             1
         };
-        let climb_target = self.climb_target(target)?;
         // An extra skill fires from the first of its row's weapons it was
         // made for.
         let (first_weapon, skill_slot) = (
@@ -366,6 +365,7 @@ impl Simulation {
         // skill aims at its target (`CalculateAttackPosition`).
         let (aimed_x_q32, aimed_y_q32, aimed_z_q32) =
             self.attack_position(skill_ref.owner, skill_slot, target, 0, true)?;
+        let climb_target = (aimed_x_q32, aimed_z_q32, aimed_y_q32);
         let offsets = self.projectile_target_offsets(
             skill_ref,
             aimed_x_q32,
@@ -723,25 +723,9 @@ impl Simulation {
         })
     }
 
-    /// Where a burst's target stands as the burst begins, and its height:
-    /// what every projectile of the burst measures its climb to. A unit of
-    /// the side that updates first has already moved this tick: a Farseer's
-    /// burst at a Rhino closing on it climbs to the height the Rhino's new
-    /// position gives, both its projectiles alike.
-    fn climb_target(&self, target: FightActorRef) -> Result<(i64, i64, i64)> {
-        let view = self
-            .fight_actor(target)
-            .ok_or_else(|| Error::new("projectile target is absent"))?;
-        let height = match target {
-            FightActorRef::Unit(id) => unit_height(self.actors[&id].domain),
-            FightActorRef::Building(_) => 0,
-        };
-        Ok((view.x_q32, view.z_q32, space_to_q32(height)))
-    }
-
     /// How high a projectile climbs before it flies, above where it leaves:
     /// `ProjectileSystem.Create` scales the pre-flight height by the distance
-    /// from where the projectile leaves to the burst's target over the attack
+    /// from where the projectile leaves to the unscattered aim over the attack
     /// range, to the whole height at the range and beyond. It is measured
     /// for each projectile as it is created, from where its owner stands
     /// then: an Overlord pushed aside between two releases of one burst
@@ -758,12 +742,19 @@ impl Simulation {
         &mut self,
         skill_ref: SkillRef,
         slot: usize,
-        target: FightActorRef,
     ) -> Result<()> {
         if self.skill(skill_ref).joined(slot).is_none() {
             return Ok(());
         }
-        let climb_target = self.climb_target(target)?;
+        let projectile = self
+            .projectiles
+            .last()
+            .expect("a projectile was just released");
+        let climb_target = (
+            projectile.cached_target_x_q32,
+            projectile.cached_target_z_q32,
+            projectile.cached_target_y_q32,
+        );
         let climb_q32 = self.projectile_climb_q32(skill_ref, slot, climb_target)?;
         let projectile = self
             .projectiles
@@ -878,7 +869,7 @@ impl Simulation {
         let source_y = attacker.y;
         let (target_x_q32, target_y_q32, target_z_q32) =
             self.attack_position(owner, slot, target, 0, true)?;
-        let climb_target = self.climb_target(target)?;
+        let climb_target = (target_x_q32, target_z_q32, target_y_q32);
         let offsets = self.projectile_target_offsets(
             SkillRef::main(owner),
             target_x_q32,
@@ -1131,10 +1122,18 @@ impl Simulation {
                 pending.target_z_q32,
             )
         };
+        // ProjectileSystem.Create measures to the unscattered aim it is
+        // handed, not to the target actor's centre. A no-offset performer
+        // recalculates that aim for each release.
+        let climb_target = if pending.aims_at_release {
+            (aimed.0, aimed.2, aimed.1)
+        } else {
+            pending.climb_target
+        };
         let result = match pending.target_kind {
             ObjectKind::Unit => {
                 let climb_q32 =
-                    self.projectile_climb_q32(skill_ref, pending.skill_slot, pending.climb_target)?;
+                    self.projectile_climb_q32(skill_ref, pending.skill_slot, climb_target)?;
                 self.release_projectile_at(
                     skill_ref,
                     pending.target,
@@ -1163,7 +1162,7 @@ impl Simulation {
                     .ok_or_else(|| Error::new("projectile building target is absent"))?;
                 let radius = building_radius(building);
                 let climb_q32 =
-                    self.projectile_climb_q32(skill_ref, pending.skill_slot, pending.climb_target)?;
+                    self.projectile_climb_q32(skill_ref, pending.skill_slot, climb_target)?;
                 self.release_projectile_to(
                     skill_ref,
                     ObjectKind::Building,

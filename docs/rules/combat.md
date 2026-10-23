@@ -885,13 +885,18 @@ holds a burst whose allocated targets die after its first release.
 sends its projectiles straight up at their speed, neither following the target
 nor landing, until they stand at or above the height, the last step taken whole:
 a Farseer's shot climbs 7 metres a tick to 63 for its 60. The height is the
-pre-flight height times the distance to the target over the attack range, at
-the range and beyond the whole of it (`ProjectileSystem.Create`). The distance
-is measured for each projectile as it is created, from where its owner stands
-then, to where the burst's target stood as the burst began: an Overlord pushed
-aside between two releases of one burst climbs its later projectiles to
-another height, and the first step of a climb, rounded through the reciprocal
-of what is left to climb, lands a few raw units apart. A target of the side
+pre-flight height times the distance to the unscattered aiming point over the
+attack range, capped at the full height (`ProjectileSystem.Create`). This is
+the point `CalculateAttackPosition` limits to reach, before a projectile's
+random offset, rather than the target actor's centre. A burst with offsets
+keeps its prepared point; a performer without offsets recalculates it for each
+release. The distance is measured as each projectile is created, from where
+its owner stands then. Moving during the burst can bring that prepared point
+inside the attack range even while the target's centre remains beyond it,
+reducing later projectiles' climb. An Overlord pushed aside between releases
+can likewise give later projectiles another height. The first climb step,
+rounded through the reciprocal of what is left to climb, can land a few raw
+units apart. A target of the side
 that updates first has already moved that tick: a Farseer's burst at a Rhino
 walking at it climbs both its shots to the height the Rhino's new position
 gives, 30.92 m where the tick's start would give 31.31.
@@ -1513,6 +1518,11 @@ not the game's native attack-type enum.
 ## Evidence
 
 ### Recorded
+
+- A Melting Point's Electromagnetic Barrage keeps its range-limited aim while
+  its owner moves. Its final projectile climbs to 59.793 metres rather than
+  the full 60 that measuring to the target's centre would give:
+  `tests/projectile/range-limited-aim-scales-climb.yaml`.
 
 - Near-equal z coordinates put initial RVO agents in the team's x order
   rather than recording-ID order; a node-array expansion distinguishes the
