@@ -131,7 +131,7 @@ class Dump:
                     continue
                 body = []
                 for line in section.splitlines():
-                    matched = re.match(r"\s*\d{3} (.*)", line)
+                    matched = re.match(r"\s*\d+ (.*)", line)
                     if matched and "initialize_runtime_metadata" not in line \
                             and matched.group(1).strip() != "Nop":
                         text = matched.group(1)
