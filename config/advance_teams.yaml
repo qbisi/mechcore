@@ -24,18 +24,18 @@ teams:
   - {id: 9894, kind: units, units: [15, 15, 15, 21, 21], reactor_core: -300}
   - {id: 9895, kind: units, units: [28, 28, 28, 13, 13], reactor_core: 100}
   - {id: 9896, kind: units, units: [28, 28, 28, 7, 7], reactor_core: 400}
-  - {id: 9897, kind: units, units: [28, 28, 28, 8, 8], reactor_core: 200}
+  - {id: 9897, kind: units, units: [28, 28, 28, 8, 8], reactor_core: 100}
   - {id: 9899, kind: units, units: [30, 30, 30, 13, 13], reactor_core: 300}
   - {id: 9900, kind: units, units: [30, 30, 30, 7, 7], reactor_core: 500}
   - {id: 9901, kind: units, units: [30, 30, 30, 24, 24], reactor_core: -100}
   - {id: 9902, kind: units, units: [28, 28, 28, 21, 21], reactor_core: -300}
   - {id: 9903, kind: units, units: [9, 9, 9, 20, 20], reactor_core: 100}
-  - {id: 9904, kind: units, units: [10, 10, 10, 20, 20]}
+  - {id: 9904, kind: units, units: [10, 10, 10, 20, 20], reactor_core: -100}
   - {id: 9905, kind: units, units: [2, 2, 2, 20, 20], reactor_core: 100}
-  - {id: 9906, kind: units, units: [30, 30, 30, 20, 20]}
+  - {id: 9906, kind: units, units: [30, 30, 30, 20, 20], reactor_core: -100}
   - {id: 9907, kind: units, units: [31, 31, 31, 13, 13], reactor_core: 500}
   - {id: 9908, kind: units, units: [31, 31, 31, 7, 7], reactor_core: 400}
-  - {id: 9909, kind: units, units: [31, 31, 31, 24, 24], reactor_core: 600}
+  - {id: 9909, kind: units, units: [31, 31, 31, 24, 24], reactor_core: 500}
   - {id: 9910, kind: units, units: [31, 31, 31, 20, 20], reactor_core: 100}
   - {id: 10002, name: Supply Specialist, kind: officer, reactor_core: -600}
   - {id: 10010, name: Quick Supply Specialist, kind: officer, reactor_core: -500}

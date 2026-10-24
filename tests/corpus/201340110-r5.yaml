@@ -34,8 +34,8 @@ blue:
   - {name: crawler, index: 13, position: {x: -140, y: -205}, exp: 44/44/450, rotated: true}
   - {name: crawler, index: 14, position: {x: 0, y: -155}, exp: 111/179/450, rotated: true}
   - {name: sabertooth, index: 15, position: {x: 215, y: -125}, exp: 0/228/1300, source: joined}
-  - {name: hound, index: 16, position: {x: 110, y: -120}, exp: 0/750/750, source: joined}
-  - {name: crawler, index: 17, position: {x: 290, y: -285}, exp: 0/68/450, rotated: true, source: joined}
+  - {name: hound, index: 16, position: {x: 110, y: -120}, exp: 0/694/750, source: joined}
+  - {name: crawler, index: 17, position: {x: 290, y: -285}, exp: 0/144/450, rotated: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
@@ -54,7 +54,7 @@ red:
   - {name: crawler, index: 6, position: {x: 210, y: -105}, exp: 168/432/450, rotated: true}
   - {name: wraith, index: 7, position: {x: 125, y: -95}, level: 2, exp: 1225/1486/5070, equipment: [nano_repair_kit]}
   - {name: crawler, index: 8, position: {x: 80, y: -105}, exp: 113/168/450, rotated: true}
-  - {name: mustang, index: 10, position: {x: -245, y: -130}, level: 2, exp: 1339/2027/2704}
+  - {name: mustang, index: 10, position: {x: -245, y: -130}, level: 2, exp: 1339/1823/2704}
   - {name: vortex, index: 11, position: {x: 40, y: -70}, exp: 377/525/750}
   - {name: vortex, index: 12, position: {x: 0, y: -70}, exp: 326/486/750}
   - {name: crawler, index: 13, position: {x: 40, y: -35}, exp: 73/115/450, rotated: true}
@@ -68,5 +68,5 @@ red:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   battle_skills:
   - {name: sticky_oil_bomb, positions: [{x: 128, y: 57}, {x: 165, y: 155}], retained: false}
-ticks: 1351
-hash: 27:f08d876836470622d2eb747b57c5bae229be7145712145252b2808d5a6cc6c4f
+ticks: 1320
+hash: 27:dd3678bea61a7d787e440b51d21acc59381671e642446caf579f9c456182012e

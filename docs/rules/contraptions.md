@@ -107,7 +107,7 @@ edge is nearest, a unit of either domain or a building that is not a tower,
 its distance measured in two dimensions from the missile to its centre less
 its radius and required to be under the row's `range`. The first of equals is
 taken. Hidden actors cannot trigger it; stealth actors can
-(`TeamMineManager.TryActiveMine` requires visibility below `Hide`). A missile
+(`TeamMineManager.GetNearestTarget` requires visibility below `Hide`). A missile
 fires once, and is spent.
 
 The query's actors are not checked for life again. An air drop killed by
@@ -483,7 +483,8 @@ kind ends its own way:
   `MineSystem.ActiveMine`, `ProjectileSystem.Create`.
 - A missile is created where it is released, and fires when it finds a
   target: `CRC_Mine.Perform`, `MineSystem.Create`, `TeamMineManager.Update`,
-  `TeamMineManager.TryActiveMine`, `FightUtility.CalculateDistance2D`,
+  `TeamMineManager.TryActiveMine`, `TeamMineManager.GetNearestTarget`,
+  `FightUtility.CalculateDistance2D`,
   `FightCrystal.IsTower`, `MineSystem.ActiveMine`.
 - Its projectile is its own: `FightLandMine.IsLockTarget`,
   `FightLandMine.GetEffectTargetType`, `FightLandMine.CanAttackConstruction`,

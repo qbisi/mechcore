@@ -10,19 +10,19 @@ map_id: 1032
 seed: 886311192
 round: 2
 blue:
-  core_damage: 300
+  core_damage: 550
   officers: [giant_specialist]
   units:
-  - {name: void_eye, index: 1, position: {x: 150, y: -120}, exp: 70/135/650}
-  - {name: void_eye, index: 2, position: {x: -140, y: -110}, exp: 55/405/650, rotated: true}
-  - {name: tarantula, index: 3, position: {x: -135, y: -145}, exp: 131/339/1500}
-  - {name: tarantula, index: 4, position: {x: 135, y: -145}, exp: 280/439/1500}
-  - {name: fang, index: 5, position: {x: -120, y: -185}, exp: 21/185/600, rotated: true}
-  - {name: fang, index: 6, position: {x: 120, y: -185}, exp: 411/465/600, rotated: true}
-  - {name: sabertooth, index: 7, position: {x: -85, y: -145}, exp: 0/1106/1300, source: joined}
-  - {name: crawler, index: 8, position: {x: 140, y: -205}, exp: 0/30/450, rotated: true, source: joined}
-  - {name: crawler, index: 9, position: {x: -140, y: -205}, exp: 0/38/450, rotated: true, source: joined}
-  - {name: fang, index: 10, position: {x: -180, y: -115}, exp: 0/257/600, rotated: true, source: joined}
+  - {name: void_eye, index: 1, position: {x: 150, y: -120}, exp: 70/144/650}
+  - {name: void_eye, index: 2, position: {x: -140, y: -110}, exp: 55/226/650, rotated: true}
+  - {name: tarantula, index: 3, position: {x: -135, y: -145}, exp: 131/334/1500}
+  - {name: tarantula, index: 4, position: {x: 135, y: -145}, exp: 280/444/1500}
+  - {name: fang, index: 5, position: {x: -120, y: -185}, exp: 21/188/600, rotated: true}
+  - {name: fang, index: 6, position: {x: 120, y: -185}, exp: 411/445/600, rotated: true}
+  - {name: sabertooth, index: 7, position: {x: -85, y: -145}, exp: 0/685/1300, source: joined}
+  - {name: crawler, index: 8, position: {x: 140, y: -205}, exp: 0/36/450, rotated: true, source: joined}
+  - {name: crawler, index: 9, position: {x: -140, y: -205}, exp: 0/35/450, rotated: true, source: joined}
+  - {name: fang, index: 10, position: {x: -180, y: -115}, exp: 0/260/600, rotated: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
@@ -30,16 +30,16 @@ red:
   core_damage: 0
   officers: [speed_specialist]
   units:
-  - {name: vortex, index: 1, position: {x: 140, y: -150}, exp: 536/691/750}
+  - {name: vortex, index: 1, position: {x: 140, y: -150}, exp: 536/690/750}
   - {name: vortex, index: 2, position: {x: -140, y: -150}, exp: 687/750/750}
-  - {name: tarantula, index: 3, position: {x: -95, y: -135}, exp: 93/1330/1500}
-  - {name: tarantula, index: 4, position: {x: 95, y: -135}, exp: 711/873/1500}
+  - {name: tarantula, index: 3, position: {x: -95, y: -135}, exp: 93/984/1500}
+  - {name: tarantula, index: 4, position: {x: 95, y: -135}, exp: 711/884/1500}
   - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 19/46/450}
-  - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 27/77/450}
-  - {name: phoenix, index: 7, position: {x: 180, y: -210}, exp: 0/566/1300, source: joined}
-  - {name: centurion, index: 8, position: {x: -115, y: -165}, exp: 0/458/2250, source: joined}
-  - {name: crawler, index: 9, position: {x: 0, y: -205}, exp: 0/73/450, rotated: true, source: joined}
+  - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 27/100/450}
+  - {name: phoenix, index: 7, position: {x: 180, y: -210}, exp: 0/632/1300, source: joined}
+  - {name: centurion, index: 8, position: {x: -115, y: -165}, exp: 0/832/2250, source: joined}
+  - {name: crawler, index: 9, position: {x: 0, y: -205}, exp: 0/61/450, rotated: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
-ticks: 1493
-hash: 27:6d87a396ddb13bfe0954919f92a8f5cb0dedcdf654a9ffc760229ddcd3f5c27b
+ticks: 1438
+hash: 27:512f23b415a2106b7884de9203a419bbf59e5053f249a6bca509207a0ccf2bb5

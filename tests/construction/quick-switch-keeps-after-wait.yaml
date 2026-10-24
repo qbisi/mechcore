@@ -32,7 +32,7 @@ red:
   blueprints: [attack_enhancement]
   units:
   - {name: fire_badger, index: 0, position: {x: 35, y: -260}, exp: 0/40/1400, source: delivered}
-  - {name: centurion, index: 1, position: {x: -335, y: 75}, exp: 0/522/2250, equipment: [secondary_laser_sight], travelling: true, source: joined}
+  - {name: centurion, index: 1, position: {x: -335, y: 75}, exp: 0/420/2250, equipment: [secondary_laser_sight], travelling: true, source: joined}
   - {name: rhino, index: 2, position: {x: 125, y: -205}, level: 3, exp: 0/56/4096, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -55,5 +55,5 @@ asserts:
   rows:
   - [56, damage, unit, 25, building, 12, 0]
   - [56, projectile_removed, unit, 25, building, 12, null]
-ticks: 885
-hash: 27:da9e4b27985f41ca6ba79b87f170f9d3d0c31a1d987e7958265f7a2ca3c5a688
+ticks: 893
+hash: 27:51eb3a437f1c65cb0cb8db6dd7221117358348677a15ad1c0afcbd24b54a3341

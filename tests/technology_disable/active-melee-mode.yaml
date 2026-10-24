@@ -1,6 +1,6 @@
 # The Centurion naturally fires all twenty rounds, enters Melee Mode at tick
-# 340, then receives the Marksman's EMP at tick 390. Its melee skill stays
-# enabled and deals damage at ticks 416 and 539 while EMP is active. The
+# 378, then receives the Marksman's EMP at tick 418. Its melee skill stays
+# enabled and deals damage at ticks 457 and 568 while EMP is active. The
 # battlefield shield keeps the Arclight alive for the magazine to run out; the
 # distant Marksman arrives after the switch. ../extra_weapon/melee-mode.yaml
 # controls the natural switch without EMP.
@@ -32,29 +32,29 @@ asserts:
     WHERE type = 'projectile_released' AND source__kind = 'unit'
       AND source__id = 1 AND skill_slot = 0;
   rows:
-  - [20, 310]
+  - [20, 348]
 - sql: |
     SELECT u.tick, u.life__maximum, s.has_enabled,
            s.enabled__state, s.enabled__attack_damage
     FROM units u
     JOIN units__skills s USING (tick, unit_id)
     WHERE u.unit_id = 1 AND s.skill_slot = 1
-      AND u.tick IN (339, 340, 389, 390, 416, 539)
+      AND u.tick IN (377, 378, 417, 418, 457, 568)
     ORDER BY u.tick;
   rows:
-  - [339, 16500, 1, lock, 1395]
-  - [340, 66000, 1, idle, 5580]
-  - [389, 66000, 1, idle, 5580]
-  - [390, 66000, 1, idle, 5580]
-  - [416, 66000, 1, attack, 5580]
-  - [539, 66000, 1, attack, 5580]
+  - [377, 16500, 1, lock, 1569]
+  - [378, 66000, 1, idle, 6276]
+  - [417, 66000, 1, idle, 6276]
+  - [418, 66000, 1, idle, 6276]
+  - [457, 66000, 1, attack, 6276]
+  - [568, 66000, 1, attack, 6276]
 - sql: |
     SELECT min(tick) AS first_emp, source__id, target__id, buff_id
     FROM events
     WHERE type = 'buff_applied' AND buff_id = 1002
     GROUP BY source__id, target__id, buff_id;
   rows:
-  - [390, 3, 1, 1002]
+  - [418, 3, 1, 1002]
 - sql: |
     SELECT e.tick, e.source__id, e.target__id, e.skill_slot, e.amount,
            EXISTS (SELECT 1 FROM units__buffs b
@@ -65,7 +65,7 @@ asserts:
       AND e.source__id = 1 AND e.skill_slot = 1
     ORDER BY e.tick, e.ordinal;
   rows:
-  - [416, 1, 2, 1, 4813, 1]
-  - [539, 1, 3, 1, 1622, 1]
-ticks: 540
-hash: 27:1272671dc00e5a3d90cb004ef677c125f1f10a314de5be6b7383c6935762dbbe
+  - [457, 1, 2, 1, 4813, 1]
+  - [568, 1, 3, 1, 1622, 1]
+ticks: 569
+hash: 27:832c1bec641cc3a5d33ab34f277d35988e6c2a687ebe6e2e92783764bd1c8bbf

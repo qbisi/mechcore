@@ -49,8 +49,8 @@ asserts:
 - sql: |-
     SELECT tick,life__current,life__maximum FROM units WHERE unit_id=3 AND tick BETWEEN 256 AND 258 ORDER BY tick
   rows:
-  - [256, 234448, 237583]
-  - [257, 280801, 284558]
-  - [258, 282081, 284558]
+  - [256, 233887, 237583]
+  - [257, 280129, 284558]
+  - [258, 281409, 284558]
 ticks: 2360
-hash: 27:5fb22eb5b367723f90d35c5d965ccb56944cd803be186646072e77ef65c2f167
+hash: 27:09e0f5c85c6baa70d5679e6a4193da4556d742b7ba4b506bd826f7cc8f60393a

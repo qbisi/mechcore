@@ -9,16 +9,16 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
-  core_damage: 408
+  core_damage: 425
   techs:
     centurion: [reactive_armor]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -95}, exp: 0/408/2250, source: joined}
+  - {name: centurion, index: 0, position: {x: 5, y: -95}, exp: 0/374/2250, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/100/900, source: joined}
-  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/400/900, source: joined}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/400/900, source: joined}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/100/900, source: joined}
   - {name: wasp, index: 2, position: {x: -55, y: -100}, exp: 0/100/900, source: joined}
-ticks: 262
-hash: 27:cfd490c9a1e712e140e1d2dc0618bab43eea5e413006f246e8fa4d347cd1bad3
+ticks: 256
+hash: 27:4607bcd5267c9cbc30d6c0d9a2e8cf9ac323f51b2195e746692919663edc0b2d

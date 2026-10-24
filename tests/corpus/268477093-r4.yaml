@@ -8,26 +8,26 @@ map_id: 1021
 seed: 2020722719
 round: 4
 blue:
-  core_damage: 901
+  core_damage: 843
   officers: [fortified_specialist]
   techs:
     centurion: [range_enhancement]
   units:
-  - {name: hound, index: 0, position: {x: 160, y: -110}, exp: 317/390/750, rotated: true}
-  - {name: hound, index: 1, position: {x: 250, y: -100}, exp: 273/304/750, rotated: true}
+  - {name: hound, index: 0, position: {x: 160, y: -110}, exp: 317/382/750, rotated: true}
+  - {name: hound, index: 1, position: {x: 250, y: -100}, exp: 273/293/750, rotated: true}
   - {name: hound, index: 2, position: {x: 60, y: -120}, exp: 234/234/750, rotated: true}
-  - {name: crawler, index: 5, position: {x: 60, y: -165}, exp: 53/58/450, rotated: true}
-  - {name: crawler, index: 6, position: {x: 160, y: -155}, exp: 95/137/450, rotated: true}
+  - {name: crawler, index: 5, position: {x: 60, y: -165}, exp: 53/70/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 160, y: -155}, exp: 95/131/450, rotated: true}
   - {name: fang, index: 7, position: {x: -140, y: -205}, exp: 127/127/600, rotated: true}
   - {name: fang, index: 8, position: {x: 140, y: -205}, exp: 331/331/600, rotated: true}
-  - {name: crawler, index: 9, position: {x: 270, y: -285}, exp: 21/61/450, rotated: true}
+  - {name: crawler, index: 9, position: {x: 270, y: -285}, exp: 21/68/450, rotated: true}
   - {name: arclight, index: 10, position: {x: -100, y: -160}, level: 2, exp: 400/490/1690}
   - {name: arclight, index: 11, position: {x: -200, y: -160}, level: 2, exp: 516/582/1690}
-  - {name: centurion, index: 12, position: {x: 105, y: -165}, exp: 209/1363/2250, equipment: [haste_module]}
-  - {name: centurion, index: 13, position: {x: 215, y: -165}, exp: 330/1310/2250, equipment: [explosive_ammo]}
+  - {name: centurion, index: 12, position: {x: 105, y: -165}, exp: 209/1326/2250, equipment: [haste_module]}
+  - {name: centurion, index: 13, position: {x: 215, y: -165}, exp: 330/1289/2250, equipment: [explosive_ammo]}
   - {name: stormcaller, index: 14, position: {x: 80, y: -105}, exp: 0/1032/1100, rotated: true, source: joined}
-  - {name: stormcaller, index: 15, position: {x: 190, y: -105}, exp: 0/981/1100, rotated: true, source: joined}
-  - {name: crawler, index: 16, position: {x: 135, y: -300}, exp: 0/37/450, source: joined}
+  - {name: stormcaller, index: 15, position: {x: 190, y: -105}, exp: 0/1042/1100, rotated: true, source: joined}
+  - {name: crawler, index: 16, position: {x: 135, y: -300}, exp: 0/59/450, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
@@ -38,23 +38,23 @@ red:
     fire_badger: [range_enhancement]
   units:
   - {name: void_eye, index: 0, position: {x: 170, y: -170}, exp: 536/650/650}
-  - {name: void_eye, index: 1, position: {x: -170, y: -170}, level: 2, exp: 0/176/1465}
-  - {name: void_eye, index: 2, position: {x: 0, y: -180}, level: 2, exp: 425/506/1465}
-  - {name: fire_badger, index: 3, position: {x: -75, y: -180}, level: 2, exp: 0/503/3154}
-  - {name: fire_badger, index: 4, position: {x: 75, y: -180}, level: 2, exp: 0/1112/3154}
-  - {name: fang, index: 5, position: {x: -140, y: -205}, exp: 399/440/600, rotated: true}
-  - {name: fang, index: 6, position: {x: 140, y: -205}, exp: 159/172/600, rotated: true}
+  - {name: void_eye, index: 1, position: {x: -170, y: -170}, level: 2, exp: 0/46/1465}
+  - {name: void_eye, index: 2, position: {x: 0, y: -180}, level: 2, exp: 425/464/1465}
+  - {name: fire_badger, index: 3, position: {x: -75, y: -180}, level: 2, exp: 0/608/3154}
+  - {name: fire_badger, index: 4, position: {x: 75, y: -180}, level: 2, exp: 0/848/3154}
+  - {name: fang, index: 5, position: {x: -140, y: -205}, exp: 399/430/600, rotated: true}
+  - {name: fang, index: 6, position: {x: 140, y: -205}, exp: 159/173/600, rotated: true}
   - {name: fire_badger, index: 7, position: {x: -225, y: -170}, exp: 1276/1400/1400}
-  - {name: fang, index: 8, position: {x: -140, y: -135}, exp: 397/400/600, rotated: true}
-  - {name: typhoon, index: 9, position: {x: -170, y: -190}, exp: 351/1232/1950}
-  - {name: crawler, index: 10, position: {x: -290, y: -285}, exp: 111/204/450, rotated: true}
+  - {name: fang, index: 8, position: {x: -140, y: -135}, exp: 397/401/600, rotated: true}
+  - {name: typhoon, index: 9, position: {x: -170, y: -190}, exp: 351/1305/1950}
+  - {name: crawler, index: 10, position: {x: -290, y: -285}, exp: 111/176/450, rotated: true}
   - {name: marksman, index: 11, position: {x: -80, y: -200}, exp: 572/650/650}
-  - {name: steel_ball, index: 12, position: {x: -195, y: -300}, exp: 0/121/1000, source: joined}
+  - {name: steel_ball, index: 12, position: {x: -195, y: -300}, exp: 0/131/1000, source: joined}
   - {name: steel_ball, index: 13, position: {x: 145, y: -300}, exp: 0/1000/1000, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
   battle_skills:
   - {name: wasp_swarm, positions: [{x: -94, y: -280}]}
-ticks: 977
-hash: 27:26ed8f118f24ddd88da95a670e7f65b086b78ddda06f71cf494448eb01282351
+ticks: 980
+hash: 27:8ec09f3234d83bcaedf04d050856dd490363789ad22eac23626419158c1d1448

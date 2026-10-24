@@ -76,7 +76,9 @@ impl Simulation {
                 if self.mines[index].team != team {
                     continue;
                 }
-                if let Some(target) = self.mine_trigger(&self.mines[index], target_search_order) {
+                if let Some(target) =
+                    self.nearest_mine_target(&self.mines[index], target_search_order)
+                {
                     let mine = self.mines.remove(index);
                     self.fire_mine(&mine, target, events)?;
                 }
@@ -85,10 +87,11 @@ impl Simulation {
         Ok(())
     }
 
-    /// `TeamMineManager.TryActiveMine`: the nearest object of the other side
-    /// whose edge is under the trigger range, the first of equals; a tower
-    /// never sets a missile off.
-    fn mine_trigger(
+    /// `TeamMineManager.GetNearestTarget`: the nearest object of the other
+    /// side whose edge is under the trigger range, the first of equals. The
+    /// admitted missile's `CanAttackConstruction` is true; a tower never
+    /// sets a missile off.
+    fn nearest_mine_target(
         &self,
         mine: &Mine,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
@@ -100,7 +103,7 @@ impl Simulation {
             .filter(|(team, _)| **team != mine.team)
         {
             for &candidate in candidates {
-                // TryActiveMine reads the queried tree without another life
+                // GetNearestTarget reads the queried tree without another life
                 // check. A summon that died landing is removed later by
                 // DeadEffectSystem, and can still trigger the missile here.
                 if self.is_tower(candidate) {
@@ -109,7 +112,7 @@ impl Simulation {
                 let Some(view) = self.fight_actor(candidate) else {
                     continue;
                 };
-                // `TryActiveMine` admits visibility below Hide, including
+                // `GetNearestTarget` admits visibility below Hide, including
                 // Stealth, but a burrowed unit cannot trigger a missile.
                 if view.visibility == Visibility::Hide {
                     continue;

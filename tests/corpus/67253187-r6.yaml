@@ -64,7 +64,7 @@ red:
   - {name: crawler, index: 2, position: {x: 0, y: -225}, exp: 0/141/450, rotated: true}
   - {name: mustang, index: 3, position: {x: 245, y: -80}, level: 2, exp: 0/2452/2704}
   - {name: mustang, index: 4, position: {x: 210, y: -165}, level: 2, exp: 0/1661/2704, rotated: true}
-  - {name: mustang, index: 6, position: {x: 205, y: -250}, level: 2, exp: 0/1142/2704}
+  - {name: mustang, index: 6, position: {x: 205, y: -250}, level: 2, exp: 0/1122/2704}
   - {name: phantom_ray, index: 7, position: {x: 240, y: -235}, level: 2, exp: 1289/1734/2253, rotated: true}
   - {name: phantom_ray, index: 8, position: {x: -65, y: -230}, exp: 400/466/1000}
   - {name: phantom_ray, index: 9, position: {x: 260, y: -235}, level: 2, exp: 2060/2253/2253, rotated: true}
@@ -75,12 +75,12 @@ red:
   - {name: crawler, index: 14, position: {x: 290, y: -145}, exp: 138/232/450, rotated: true}
   - {name: crawler, index: 15, position: {x: 275, y: -300}, exp: 135/288/450}
   - {name: rhino, index: 16, position: {x: 255, y: -45}, level: 2, exp: 0/1517/2591, source: joined}
-  - {name: rhino, index: 17, position: {x: 275, y: -105}, level: 2, exp: 0/1189/2591, source: joined}
+  - {name: rhino, index: 17, position: {x: 275, y: -105}, level: 2, exp: 0/1187/2591, source: joined}
   - {name: crawler, index: 18, position: {x: 290, y: -35}, exp: 0/21/450, rotated: true, source: joined}
   - {name: wasp, index: 19, position: {x: 255, y: -150}, exp: 0/900/900, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   battle_skills:
   - {name: shield_airdrop, positions: [{x: 236, y: -223}]}
-ticks: 1002
-hash: 27:545832c20ae60dee966218a6a0f0cb015266b773ae38bbb1750791ed293bd70a
+ticks: 1008
+hash: 27:d45934a5657a0bdeebb127d052a049d54791fe4335539368b66b6135f542d1d6

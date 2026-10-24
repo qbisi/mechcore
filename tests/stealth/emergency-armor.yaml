@@ -13,16 +13,16 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
-  core_damage: 200
+  core_damage: 0
   techs:
     vortex: [emergency_armor]
   units:
-  - {name: vortex, index: 0, position: {x: 0, y: -100}, exp: 0/200/750, source: joined}
+  - {name: vortex, index: 0, position: {x: 0, y: -100}, exp: 0/600/750, source: joined}
 red:
-  core_damage: 0
+  core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -100}, exp: 0/50/650, source: joined}
+  - {name: marksman, index: 0, position: {x: -20, y: -100}, source: joined}
   - {name: marksman, index: 1, position: {x: 0, y: -100}, source: joined}
-  - {name: marksman, index: 2, position: {x: 20, y: -100}, exp: 0/150/650, source: joined}
-ticks: 193
-hash: 27:f6fb9554b9081f57edfe26c6ddf7f80c7a2b16b6e2dd9188acd1e64799001917
+  - {name: marksman, index: 2, position: {x: 20, y: -100}, source: joined}
+ticks: 224
+hash: 27:3e21782ec49fc24200f2c31dd3006bf50194beecb555ef871d3851a42a5fae1e

@@ -31,17 +31,17 @@ red:
     rhino: [combat_evolvement]
   blueprints: [attack_enhancement]
   units:
-  - {name: marksman, index: 0, position: {x: 160, y: -170}, exp: 287/398/650}
+  - {name: marksman, index: 0, position: {x: 160, y: -170}, exp: 287/419/650}
   - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 482/650/650}
   - {name: marksman, index: 2, position: {x: -140, y: -150}, exp: 412/650/650}
   - {name: tarantula, index: 3, position: {x: 115, y: -165}, exp: 314/528/1500}
   - {name: tarantula, index: 4, position: {x: -115, y: -165}, exp: 965/1218/1500}
   - {name: tarantula, index: 5, position: {x: 5, y: -155}, exp: 471/471/1500}
   - {name: marksman, index: 6, position: {x: 30, y: -160}, exp: 246/650/650}
-  - {name: rhino, index: 7, position: {x: 265, y: -295}, exp: 256/851/1150, equipment: [amplifying_core]}
+  - {name: rhino, index: 7, position: {x: 265, y: -295}, exp: 256/842/1150, equipment: [amplifying_core]}
   - {name: rhino, index: 8, position: {x: -265, y: -295}, exp: 517/536/1150}
   - {name: marksman, index: 9, position: {x: -20, y: -160}, exp: 33/100/650}
-  - {name: marksman, index: 10, position: {x: 90, y: -170}, exp: 0/650/650, source: joined}
-  - {name: marksman, index: 11, position: {x: 60, y: -170}, exp: 0/451/650, source: joined}
-ticks: 1180
-hash: 27:09f8e88e16b987a5ae196653ad9648cf0f917decaa715ebe1381d82c1ee591f6
+  - {name: marksman, index: 10, position: {x: 90, y: -170}, exp: 0/564/650, source: joined}
+  - {name: marksman, index: 11, position: {x: 60, y: -170}, exp: 0/377/650, source: joined}
+ticks: 1178
+hash: 27:8ff6681b5e70afe69f8b9180f60fc146cd36d88fa516c7c579ba57ae0324939a

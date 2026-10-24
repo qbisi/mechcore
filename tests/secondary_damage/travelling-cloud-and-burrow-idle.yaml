@@ -1,11 +1,11 @@
 # A travelling Vortex retains its preparation-time Cloud hit controller;
-# arrival registers another after its other hit providers. Its first hit at
-# t907 applies buff 1031 twice, followed by its Twin's application once.
-# Sandworms 3 and 9 begin burrowing at t983 while attacking: Deactive enters
+# arrival registers another after its other hit providers. Its first hit
+# applies buff 1031 twice, followed by its Twin's application once.
+# Sandworms 3 and 9 begin burrowing at t971 while attacking: Deactive enters
 # Idle, clearing their attack targets and the old state's wait. Sandworms 7
 # and 8 were already idle and retain their actor attack targets instead.
 # Keeping the old wait changed the later search and blue core damage.
-# Full generated layout, repeated natively for 1095 ticks, core damage 498/0.
+# Full generated layout; core damage is 498/0.
 # Controls: electromagnetic-cloud.yaml for ordinary Cloud, and
 # ../move_ability/sandstorm-steel_ball.yaml for burrow transitions. Rows are native.
 
@@ -46,27 +46,27 @@ red:
   - {name: incendiary_bomb, positions: [{x: 250, y: 230}, {x: -35, y: 260}]}
 asserts:
 - sql: |-
-    SELECT tick,ordinal,type,source__id,target__kind,target__id,amount,buff_id,duration,skill_slot FROM events WHERE tick=907 AND (source__id IN (2,5)) AND (type='damage' OR buff_id=1031) ORDER BY ordinal
+    SELECT tick,ordinal,type,source__id,target__kind,target__id,amount,buff_id,duration,skill_slot FROM events WHERE tick=(SELECT MIN(tick) FROM events WHERE type='buff_applied' AND buff_id=1031 AND source__id=2) AND (source__id IN (2,5)) AND (type='damage' OR buff_id=1031) ORDER BY ordinal
   rows:
-  - [907, 4, damage, 2, unit, 3, 27921, null, null, 0]
-  - [907, 5, buff_applied, 2, unit, 3, null, 1031, 40, null]
-  - [907, 6, buff_applied, 2, unit, 3, null, 1031, 40, null]
-  - [907, 7, damage, 5, unit, 3, 946, null, null, 0]
-  - [907, 8, buff_applied, 2, unit, 3, null, 1031, 40, null]
+  - [895, 4, damage, 2, unit, 3, 29060, null, null, 0]
+  - [895, 5, buff_applied, 2, unit, 3, null, 1031, 40, null]
+  - [895, 6, buff_applied, 2, unit, 3, null, 1031, 40, null]
+  - [895, 7, damage, 5, unit, 3, 984, null, null, 0]
+  - [895, 8, buff_applied, 2, unit, 3, null, 1031, 40, null]
 - sql: |-
-    SELECT tick,unit_id,enabled__lock_target__id,enabled__attack_target__id,enabled__state,enabled__attack_time FROM units__skills WHERE tick IN (982,983,1004) AND unit_id IN (3,7,8,9) ORDER BY tick,unit_id
+    SELECT tick,unit_id,enabled__lock_target__id,enabled__attack_target__id,enabled__state,enabled__attack_time FROM units__skills WHERE tick IN (970,971,992) AND unit_id IN (3,7,8,9) ORDER BY tick,unit_id
   rows:
-  - [982, 3, 2, 2, attack, 19]
-  - [982, 7, null, 2, idle, 654]
-  - [982, 8, null, 2, idle, 398]
-  - [982, 9, 2, 2, attack, 25]
-  - [983, 3, null, null, idle, 20]
-  - [983, 7, null, 2, idle, 654]
-  - [983, 8, null, 2, idle, 398]
-  - [983, 9, null, null, idle, 26]
-  - [1004, 3, 5, 5, idle, 21]
-  - [1004, 7, 5, 5, attack, 3]
-  - [1004, 8, null, 5, idle, 399]
-  - [1004, 9, 5, 5, idle, 27]
-ticks: 1095
-hash: 27:0bf8711be0d106125fa0fb97ec507d1c433f78d13bedf39e58467f4a211e3712
+  - [970, 3, 2, 2, attack, 19]
+  - [970, 7, null, 2, idle, 639]
+  - [970, 8, null, 2, idle, 382]
+  - [970, 9, 2, 2, attack, 25]
+  - [971, 3, null, null, idle, 20]
+  - [971, 7, null, 2, idle, 639]
+  - [971, 8, null, 2, idle, 382]
+  - [971, 9, null, null, idle, 26]
+  - [992, 3, 5, 5, idle, 21]
+  - [992, 7, 5, 5, attack, 6]
+  - [992, 8, null, 5, idle, 383]
+  - [992, 9, null, 5, idle, 27]
+ticks: 1077
+hash: 27:24b269afc4fca20ace42e8efc2fb6dd885302cffc1781864609ea57fff9063fe

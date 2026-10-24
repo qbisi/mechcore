@@ -53,4 +53,4 @@ red:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
 ticks: 937
-hash: 27:bb48643cce53818084a114c18888079bab4be6ed52445b97ea75082c291bc5f3
+hash: 27:a4aaff3ca477fef50c147b5f418d9f8e64fe0a21392d4eef98b783172a4def9d

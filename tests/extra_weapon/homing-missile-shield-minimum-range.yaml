@@ -25,5 +25,5 @@ asserts:
   rows:
   - [1, 0, prepare, unit, 2]
   - [1, 1, attack, unit, 8]
-ticks: 171
-hash: 27:8f0c8f35ba00f2c8b162359fcff09efe7723f865233a27f3c6f1aec552004b33
+ticks: 169
+hash: 27:411be83e9ebe7fab8ab5c41a980356d05870a01c9ece6078b815b16750896ddf

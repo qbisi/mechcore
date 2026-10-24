@@ -1,6 +1,6 @@
-# A complete generated layout recorded with the game. At tick 1276,
+# A complete generated layout recorded with the game. At tick 1248,
 # Centurion 5's active melee skill drops its lock. Homing Missile takes
-# motion while the main searcher has no target; melee takes it back on 1277.
+# motion while the main searcher has no target; melee takes it back on 1249.
 
 kind: fight
 source: game
@@ -43,11 +43,11 @@ red:
 asserts:
 - sql: |
     SELECT tick, motion_state FROM units
-    WHERE unit_id = 5 AND tick BETWEEN 1275 AND 1277
+    WHERE unit_id = 5 AND tick BETWEEN 1247 AND 1249
     ORDER BY tick;
   rows:
-  - [1275, attacking]
-  - [1276, moving]
-  - [1277, attacking]
-ticks: 1617
-hash: 27:1e19d56bf2dc2f7f2201258d1c8018031d21878a98f808b19b9a97b8cbd323d5
+  - [1247, attacking]
+  - [1248, moving]
+  - [1249, attacking]
+ticks: 1577
+hash: 27:c2e5075a6b781d73c55709a9fe321ae8c20107cbcf11c39837be3f6bcc691407

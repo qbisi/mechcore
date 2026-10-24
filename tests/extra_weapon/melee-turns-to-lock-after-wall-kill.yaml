@@ -46,11 +46,11 @@ red:
   - {name: orbital_bombardment, positions: [{x: -90, y: -145}]}
 asserts:
 - sql: |-
-    SELECT tick,body_rotation FROM units WHERE unit_id=2 AND tick IN (1258,1259,1272,1273) ORDER BY tick
+    SELECT tick,body_rotation FROM units WHERE unit_id=2 AND tick IN (1234,1235,1248,1249) ORDER BY tick
   rows:
-  - [1258, 7832252616]
-  - [1259, 1526721950635]
-  - [1272, 1526721950635]
-  - [1273, 1526915636955]
+  - [1234, 7832252616]
+  - [1235, 1526721950635]
+  - [1248, 1526721950635]
+  - [1249, 1526915636955]
 ticks: 2360
-hash: 27:3d6920238adcb2b41d7d3d0246f243f2bfd74a79d45715a099556e0b87b2b744
+hash: 27:441c7779784a11a1fd9a902830d4c4de5f617ff8949267650ce8511b97b878ca

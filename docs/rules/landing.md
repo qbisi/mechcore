@@ -51,9 +51,12 @@ One move may carry several units, and each ignores the others it carries, so
 a batch can trade two units' places where two single moves cannot.
 
 
-`TerritoryManager.GetAvailiblePositionForNewActor` takes the region's centre,
-builds the element's rectangle around it, aligns the rectangle's minimum corner
-with `MapUtility.WorldToGrid` and multiplies the grid coordinates by ten.
+`TerritoryManager.GetAvailiblePositionForNewActor` takes the main region's
+`PlayerTerritory.GetStartPosition`, or another region's centre. Every standard
+1v1 territory uses its main region's centre rather than a custom start position,
+which the opening extraction checks. It builds the element's rectangle around
+that point and passes it to `MapUtility.AlignToGrid`, which aligns the minimum
+corner with `MapUtility.WorldToGrid` and multiplies the grid coordinates by ten.
 `WorldToGrid` is `FPoint.RoundToInt(value / 10)`, and `FPoint.Round` keeps the
 integer part below a half, rounds up above it, and at exactly a half rounds to
 the even integer. It then asks `MapRegion.GetAvailiblePositionForElement` for a
@@ -78,6 +81,7 @@ touching rectangles do not overlap.
 
 - A new unit's preferred position is the region's centre with its corner
   aligned to the grid: `TerritoryManager.GetAvailiblePositionForNewActor`,
+  `PlayerTerritory.GetStartPosition`, `MapUtility.AlignToGrid`,
   `MapUtility.WorldToGrid`.
 - Alignment rounds half to even: `FPoint.RoundToInt`, `FPoint.Round`.
 - The free position is the nearest one, walking `x` outer and `y` inner, the
@@ -87,7 +91,8 @@ touching rectangles do not overlap.
 - A move is refused unless each unit's footprint lies inside the region its
   target lies in and overlaps nothing of that region the move does not carry:
   `PAP_MoveUnit.Check`, `TerritoryManager.CanMoveUnits`,
-  `TerritoryManager.CanMoveUnitToPosition`, `MapRegion.IsAvailible`.
+  `TerritoryManager.CanMoveUnitToPosition`, `MapUtility.IsAlignToGrid`,
+  `MapRegion.IsAvailible`.
 - A contraption is placed under the same test:
   `ContraptionManager.CanRelease`.
 

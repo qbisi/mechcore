@@ -33,7 +33,7 @@ red:
   blueprints: [attack_enhancement]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: centurion, index: 0, position: {x: 55, y: -65}, level: 3, exp: 0/496/8014, rotated: true, equipment: [improved_firepower_control_system], source: joined}
+  - {name: centurion, index: 0, position: {x: 55, y: -65}, level: 3, exp: 0/396/8014, rotated: true, equipment: [improved_firepower_control_system], source: joined}
   - {name: typhoon, index: 1, position: {x: -130, y: -200}, level: 3, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -62,5 +62,5 @@ asserts:
   - [190, 5, 1, unit, 30, unit, 30, idle]
   - [191, 5, 1, unit, 26, unit, 26, idle]
   - [192, 5, 1, unit, 26, unit, 26, idle]
-ticks: 914
-hash: 27:2625af48fecaee6909ebb12329ee22dc712e491309a0ab727a084d975c6b226a
+ticks: 906
+hash: 27:ff02022ee10a2f1ec66251d4126921d2f1ee69f548e9689478a83e13a4eae111

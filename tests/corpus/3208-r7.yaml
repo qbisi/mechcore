@@ -19,30 +19,30 @@ blue:
   tower_strengthen_levels: [1, 0]
   units:
   - {name: hound, index: 0, position: {x: 230, y: -80}, level: 2, exp: 1683/1690/1690}
-  - {name: hound, index: 1, position: {x: -170, y: -170}, level: 2, exp: 508/931/1690}
-  - {name: hound, index: 2, position: {x: 140, y: -80}, level: 3, exp: 0/616/2671}
-  - {name: sabertooth, index: 3, position: {x: 95, y: -75}, level: 3, exp: 0/794/4630, equipment: [amplifying_core]}
-  - {name: sabertooth, index: 4, position: {x: 185, y: -75}, level: 2, exp: 1386/2929/2929}
+  - {name: hound, index: 1, position: {x: -170, y: -170}, level: 2, exp: 508/964/1690}
+  - {name: hound, index: 2, position: {x: 140, y: -80}, level: 3, exp: 0/703/2671}
+  - {name: sabertooth, index: 3, position: {x: 95, y: -75}, level: 3, exp: 0/1501/4630, equipment: [amplifying_core]}
+  - {name: sabertooth, index: 4, position: {x: 185, y: -75}, level: 2, exp: 1386/1695/2929}
   - {name: crawler, index: 5, position: {x: 140, y: -35}, exp: 416/416/450, rotated: true}
   - {name: crawler, index: 6, position: {x: 140, y: -115}, exp: 450/450/450, rotated: true}
-  - {name: phantom_ray, index: 7, position: {x: 175, y: -140}, level: 3, exp: 0/1023/3562, equipment: [secondary_laser_sight]}
+  - {name: phantom_ray, index: 7, position: {x: 175, y: -140}, level: 3, exp: 0/1018/3562, equipment: [secondary_laser_sight]}
   - {name: crawler, index: 8, position: {x: 260, y: -285}, exp: 437/450/450, rotated: true}
   - {name: mustang, index: 9, position: {x: 225, y: -250}, level: 2, exp: 1724/1831/2704, equipment: [secondary_laser_sight]}
   - {name: mustang, index: 10, position: {x: -65, y: -240}, level: 2, exp: 1958/2704/2704, equipment: [secondary_laser_sight]}
   - {name: crawler, index: 11, position: {x: -100, y: -205}, exp: 442/450/450, rotated: true}
-  - {name: hound, index: 12, position: {x: -100, y: -170}, level: 2, exp: 0/1046/1690}
-  - {name: hound, index: 13, position: {x: 50, y: -80}, level: 3, exp: 0/1115/2671}
+  - {name: hound, index: 12, position: {x: -100, y: -170}, level: 2, exp: 0/279/1690}
+  - {name: hound, index: 13, position: {x: 50, y: -80}, level: 3, exp: 0/1403/2671}
   - {name: crawler, index: 14, position: {x: 260, y: -35}, exp: 277/450/450, rotated: true}
-  - {name: hound, index: 15, position: {x: -10, y: -130}, level: 2, exp: 0/706/1690}
-  - {name: crawler, index: 16, position: {x: -260, y: -285}, exp: 58/58/450, rotated: true}
+  - {name: hound, index: 15, position: {x: -10, y: -130}, level: 2, exp: 0/698/1690}
+  - {name: crawler, index: 16, position: {x: -260, y: -285}, exp: 58/60/450, rotated: true}
   - {name: crawler, index: 17, position: {x: -170, y: -205}, exp: 150/162/450, rotated: true}
-  - {name: sabertooth, index: 18, position: {x: 15, y: -105}, exp: 351/1209/1300}
+  - {name: sabertooth, index: 18, position: {x: 15, y: -105}, exp: 351/630/1300}
   - {name: crawler, index: 19, position: {x: 20, y: -45}, exp: 7/7/450, rotated: true}
-  - {name: fang, index: 20, position: {x: -140, y: -135}, exp: 34/69/600, rotated: true}
-  - {name: centurion, index: 21, position: {x: -215, y: -185}, level: 3, exp: 0/3062/8014, source: joined}
-  - {name: hound, index: 22, position: {x: 50, y: -130}, level: 2, exp: 0/453/1690, source: joined}
-  - {name: crawler, index: 23, position: {x: -10, y: -165}, level: 2, exp: 0/18/1014, rotated: true, source: joined}
-  - {name: hound, index: 24, position: {x: -250, y: -200}, level: 2, exp: 0/188/1690, source: joined}
+  - {name: fang, index: 20, position: {x: -140, y: -135}, exp: 34/65/600, rotated: true}
+  - {name: centurion, index: 21, position: {x: -215, y: -185}, level: 3, exp: 0/4226/8014, source: joined}
+  - {name: hound, index: 22, position: {x: 50, y: -130}, level: 2, exp: 0/1690/1690, source: joined}
+  - {name: crawler, index: 23, position: {x: -10, y: -165}, level: 2, exp: 0/25/1014, rotated: true, source: joined}
+  - {name: hound, index: 24, position: {x: -250, y: -200}, level: 2, exp: 0/342/1690, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   battle_skills:
@@ -51,7 +51,7 @@ blue:
   - {name: mobile_beacon, positions: [{x: 198, y: -135}, {x: 169, y: 62}, {x: 52, y: 224}]}
   - {name: sticky_oil_bomb, positions: [{x: -233, y: -25}, {x: -128, y: -17}]}
 red:
-  core_damage: 1273
+  core_damage: 1295
   officers: [mass_produced_laser_sight, aerial_specialist, efficient_light_manufacturing]
   techs:
     tarantula: [high_explosive_ammo, range_enhancement]
@@ -59,35 +59,35 @@ red:
   blueprints: [attack_enhancement, defense_enhancement_ii]
   tower_strengthen_levels: [0, 1]
   units:
-  - {name: crawler, index: 0, position: {x: 180, y: -115}, level: 2, exp: 429/500/1014, rotated: true}
+  - {name: crawler, index: 0, position: {x: 180, y: -115}, level: 2, exp: 429/497/1014, rotated: true}
   - {name: crawler, index: 1, position: {x: 90, y: -115}, level: 2, exp: 193/199/1014, rotated: true}
-  - {name: crawler, index: 2, position: {x: 135, y: -190}, level: 2, exp: 87/93/1014}
-  - {name: tarantula, index: 3, position: {x: 185, y: -75}, level: 2, exp: 0/1101/3380, equipment: [secondary_laser_sight]}
-  - {name: tarantula, index: 4, position: {x: 95, y: -75}, level: 2, exp: 1028/2031/3380, equipment: [photon_coating]}
-  - {name: void_eye, index: 5, position: {x: 220, y: -70}, level: 3, exp: 631/2315/2315}
+  - {name: crawler, index: 2, position: {x: 135, y: -190}, level: 2, exp: 87/126/1014}
+  - {name: tarantula, index: 3, position: {x: 185, y: -75}, level: 2, exp: 0/1032/3380, equipment: [secondary_laser_sight]}
+  - {name: tarantula, index: 4, position: {x: 95, y: -75}, level: 2, exp: 1028/1987/3380, equipment: [photon_coating]}
+  - {name: void_eye, index: 5, position: {x: 220, y: -70}, level: 3, exp: 631/1118/2315}
   - {name: void_eye, index: 6, position: {x: 140, y: -70}, level: 2, exp: 1143/1465/1465}
   - {name: crawler, index: 7, position: {x: -325, y: 260}, recordPosition: {x: -325, y: 160}, exp: 53/77/450, rotated: true}
   - {name: crawler, index: 8, position: {x: 290, y: -285}, level: 2, exp: 3/3/1014, rotated: true}
-  - {name: fang, index: 9, position: {x: 140, y: -225}, exp: 290/600/600, rotated: true}
+  - {name: fang, index: 9, position: {x: 140, y: -225}, exp: 290/322/600, rotated: true}
   - {name: fang, index: 10, position: {x: -140, y: -205}, exp: 388/407/600, rotated: true}
-  - {name: fang, index: 11, position: {x: 140, y: -35}, exp: 344/353/600, rotated: true}
+  - {name: fang, index: 11, position: {x: 140, y: -35}, exp: 344/356/600, rotated: true}
   - {name: tarantula, index: 12, position: {x: -95, y: -195}, level: 2, exp: 0/564/3380, equipment: [secondary_laser_sight]}
-  - {name: phoenix, index: 13, position: {x: 270, y: -120}, level: 2, exp: 2358/2654/2929, rotated: true}
+  - {name: phoenix, index: 13, position: {x: 270, y: -120}, level: 2, exp: 2358/2366/2929, rotated: true}
   - {name: crawler, index: 14, position: {x: 0, y: -285}, exp: 100/100/450, rotated: true}
-  - {name: tarantula, index: 15, position: {x: 255, y: -65}, level: 2, exp: 0/586/3380, equipment: [secondary_laser_sight]}
+  - {name: tarantula, index: 15, position: {x: 255, y: -65}, level: 2, exp: 0/606/3380, equipment: [secondary_laser_sight]}
   - {name: crawler, index: 16, position: {x: 230, y: -35}, exp: 36/38/450, rotated: true}
   - {name: void_eye, index: 17, position: {x: 260, y: -90}, exp: 580/650/650}
-  - {name: void_eye, index: 18, position: {x: 60, y: -100}, exp: 471/650/650}
+  - {name: void_eye, index: 18, position: {x: 60, y: -100}, exp: 471/638/650}
   - {name: crawler, index: 19, position: {x: 130, y: -285}, exp: 7/7/450, rotated: true}
   - {name: tarantula, index: 20, position: {x: 345, y: 25}, exp: 419/499/1500}
   - {name: crawler, index: 21, position: {x: -190, y: -285}, exp: 29/34/450, rotated: true}
-  - {name: typhoon, index: 22, position: {x: -350, y: 290}, level: 3, exp: 0/2018/6946, travelling: true, source: joined}
+  - {name: typhoon, index: 22, position: {x: -350, y: 290}, level: 3, exp: 0/2120/6946, travelling: true, source: joined}
   - {name: void_eye, index: 23, position: {x: -110, y: -240}, exp: 0/57/650, source: joined}
-  - {name: crawler, index: 24, position: {x: 290, y: -185}, rotated: true, source: joined}
+  - {name: crawler, index: 24, position: {x: 290, y: -185}, exp: 0/2/450, rotated: true, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 195, y: -85}, retained: false}
   - {name: missile, index: 1, position: {x: 298, y: -201}}
   battle_skills:
   - {name: sticky_oil_bomb, positions: [{x: -224, y: -54}, {x: -119, y: -42}], grid_rows: {0: [], 1: [], 2: [], 3: [240, 1020, 2046, 2046, 4095, 2047, 2047, 1023, 1022, 1022, 1020, 240], 4: [240, 1020, 1022, 1022, 511, 511, 511, 511, 510, 510, 508, 240], 5: [240, 508, 510, 510, 511, 511, 511, 511, 1022, 1022, 1020, 240], 6: [240, 252, 254, 254, 255, 511, 511, 1023, 1022, 2046, 1020, 240]}}
-ticks: 1372
-hash: 27:33a329cceb3a7edd0d8fc9098e628a4ee61b67700cd34f888de306bb724f1177
+ticks: 1292
+hash: 27:51b56a844ac54762f1dc788d49c9cbf774b37038e90c6e5e1f04986aaf23d276

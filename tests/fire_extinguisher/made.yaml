@@ -20,5 +20,5 @@ red:
   - {name: fortress, index: 0, position: {x: 0, y: -150}, exp: 0/680/1600, source: joined}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
-ticks: 271
-hash: 27:48eafcb70414b4423bca4ddb273bf2237a5019b56684d1987a08b6fbf862c33a
+ticks: 272
+hash: 27:ea1b5f951597c3f85037f431e3d7dfed1fd2605f5f736abf447d418803b6c29f

@@ -14,8 +14,8 @@ blue:
   blueprints: [attack_enhancement_ii]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: centurion, index: 0, position: {x: -185, y: -215}, exp: 1125/1275/2250, rotated: true, equipment: [amplifying_core]}
-  - {name: typhoon, index: 1, position: {x: -230, y: -250}, exp: 0/50/1950, source: delivered}
+  - {name: centurion, index: 0, position: {x: -185, y: -215}, exp: 1125/1175/2250, rotated: true, equipment: [amplifying_core]}
+  - {name: typhoon, index: 1, position: {x: -230, y: -250}, exp: 0/150/1950, source: delivered}
   - {name: abyss, index: 2, position: {x: 255, y: -265}, level: 3, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -130, y: -135}, retained: false}
@@ -42,5 +42,5 @@ asserts:
   rows:
   - [638, shield, 1, 30872]
   - [640, shield, 1, 25127]
-ticks: 960
-hash: 27:2799a3ffac81ff16d3cf0c44b011a9d566289cd04905f21c5a621828491e0e8b
+ticks: 961
+hash: 27:a97f0af59e10717fb5e18bf8ac103af697b4aa411d8fd453815d73ed895f5886

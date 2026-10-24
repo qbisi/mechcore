@@ -1,8 +1,8 @@
 # A main gun waits until its update after the side arm returns the turn.
 #
 # The complete generated layout: the Centurion's main skill is idle when
-# Dual Wield begins its next blow at ticks 247 and 263. Its main gun waits
-# until 248 and 264 to enter prepare, then enters attack at 250 and 266.
+# Dual Wield releases at ticks 185 and 275. Its main gun waits until 186
+# and 276 to enter prepare, then enters attack at 188 and 278.
 # Control: dual-wield-close.yaml, the ordinary alternating firing cycle.
 
 kind: fight
@@ -31,7 +31,7 @@ red:
     centurion: [summon_hounds, reactive_armor, melee_mode, range_enhancement, dual_wield, homing_missile]
   tower_strengthen_levels: [1, 2]
   units:
-  - {name: centurion, index: 0, position: {x: 195, y: -35}, level: 2, exp: 0/476/5070, equipment: [secondary_laser_sight], source: joined}
+  - {name: centurion, index: 0, position: {x: 195, y: -35}, level: 2, exp: 0/474/5070, equipment: [secondary_laser_sight], source: joined}
   - {name: vulcan, index: 1, position: {x: -260, y: -220}, level: 3, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -140, y: -110}, retained: false}
@@ -42,16 +42,16 @@ asserts:
     SELECT tick, enabled__state
     FROM units__skills
     WHERE unit_id = 4 AND skill_slot = 0
-      AND tick IN (247, 248, 249, 250, 263, 264, 265, 266)
+      AND tick IN (185, 186, 187, 188, 275, 276, 277, 278)
     ORDER BY tick;
   rows:
-  - [247, idle]
-  - [248, prepare]
-  - [249, prepare]
-  - [250, attack]
-  - [263, idle]
-  - [264, prepare]
-  - [265, prepare]
-  - [266, attack]
-ticks: 897
-hash: 27:1e19977167ed59f9df8865338fc02d0011c53fff1b4afa7b53de65a77c3ef07b
+  - [185, idle]
+  - [186, prepare]
+  - [187, prepare]
+  - [188, attack]
+  - [275, idle]
+  - [276, prepare]
+  - [277, prepare]
+  - [278, attack]
+ticks: 910
+hash: 27:2537df7637551acbe696845e2c0040f186a204c11eaacbf0fc6e4ed6fee9c75f

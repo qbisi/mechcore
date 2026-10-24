@@ -13,7 +13,7 @@ map_id: 1021
 seed: 1494831084
 round: 4
 blue:
-  core_damage: 505
+  core_damage: 500
   officers: [advanced_missile_device, advanced_offensive_tactics, typhoon_specialist]
   techs:
     void_eye: [energy_shield, energy_absorption, aerial_mode, range_enhancement, charged_shot, suppression_shots, electromagnetic_armor]
@@ -59,4 +59,4 @@ asserts:
   - [31, 2, idle, unit, 5]
   - [32, 2, idle, unit, 5]
 ticks: 348
-hash: 27:03bbdd6e9cedf65d6007669558aa753f603d920ebf1e76b4b21b7076ffa3edf1
+hash: 27:0b6d64682d6079418aa142f080141fd64c9905bc76e0d587bebb05252dc31a4a

@@ -18,7 +18,7 @@ has_body: false
 rvo: {outer_radius: 10, inner_radius: 6, size: l, collider_priority: 7, priority: 0.5}
 
 attack:
-  base_damage: 1570
+  base_damage: 1633
   min_range: 0
   range: 85
   attack_half_angle: 60

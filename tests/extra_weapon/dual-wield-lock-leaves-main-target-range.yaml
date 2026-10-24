@@ -1,5 +1,5 @@
 # Dual Wield's lock 9 moves beyond 40 metres edge-to-edge from the main
-# lock 8 as the targets separate. At 346 the side arm refreshes before its
+# lock 8 as the targets separate. At 342 the side arm refreshes before its
 # attack check and falls back to the main target, retaining it for its blow.
 # Control: dual-wield-spread.yaml.
 
@@ -43,11 +43,11 @@ red:
   - {name: acid_blast, positions: [{x: -155, y: 220}, {x: 255, y: -80}]}
 asserts:
 - sql: |-
-    SELECT tick,skill_slot,enabled__lock_target__id,enabled__attack_target__id FROM units__skills WHERE unit_id=5 AND skill_slot=2 AND tick IN (345,346,355,356) ORDER BY tick
+    SELECT tick,skill_slot,enabled__lock_target__id,enabled__attack_target__id FROM units__skills WHERE unit_id=5 AND skill_slot=2 AND tick IN (341,342,351,352) ORDER BY tick
   rows:
-  - [345, 2, 9, 9]
-  - [346, 2, 8, 8]
-  - [355, 2, 8, 8]
-  - [356, 2, 8, 8]
-ticks: 397
-hash: 27:add42531f725e8f4a5cf6ee8bb7731f7a1c301d27a0bc1d8fa7f90e7a9e942af
+  - [341, 2, 9, 9]
+  - [342, 2, 8, 8]
+  - [351, 2, 8, 8]
+  - [352, 2, 8, 8]
+ticks: 429
+hash: 27:99d9af55322d0bace8c09db91cb3849f233ed2a0bda65ee467300fbfd72eb897

@@ -44,4 +44,4 @@ asserts:
   - [341, 2, idle, building, 3]
   - [341, 3, idle, building, 3]
 ticks: 1630
-hash: 27:528a04e459a05a1c05b254420dd6d1c6f343b691e54ea407f4452e0d5575480b
+hash: 27:c47dbd10895348922091b386a5c4ff9f6f1889387c196a03e74da413e7c7c55a

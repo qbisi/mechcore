@@ -13,5 +13,5 @@ red:
   core_damage: 250
   units:
   - {name: wasp, index: 0, position: {x: 5, y: -100}, source: joined}
-ticks: 253
-hash: 27:dfaa73baffeb0c2a50ef66813f1b17e9f8881f8f1e6d352e01175e450c76cc5e
+ticks: 277
+hash: 27:a5ba418e9139c7bd443492b58979e2dd76aab4952b86482d0a669c502fb816df

@@ -16,7 +16,7 @@ blue:
   units:
   - {name: wasp, index: 0, position: {x: -205, y: -40}, level: 5, exp: 2344/4689/4689, equipment: [small_amplifying_core]}
   - {name: sabertooth, index: 1, position: {x: 285, y: -95}, source: delivered}
-  - {name: overlord, index: 2, position: {x: -55, y: -135}, level: 7, exp: 0/10800/11019, source: joined}
+  - {name: overlord, index: 2, position: {x: -55, y: -135}, level: 7, exp: 0/10150/11019, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
@@ -50,5 +50,5 @@ asserts:
     WHERE tick = 181 AND unit_id = 15 AND skill_slot = 0;
   rows:
   - [14]
-ticks: 1004
-hash: 27:ce9c9d016e84502152334d6f6d5cc5c1f85bb0effe0cc545b60545bb08126b10
+ticks: 1002
+hash: 27:6873f5b7cc270a9a51a366eea41887230db00dc6accefe080b42eaac1b243290

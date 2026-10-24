@@ -14,13 +14,13 @@ blue:
   units:
   - {name: rhino, index: 0, position: {x: -235, y: -295}, level: 2, exp: 0/16/2591, source: delivered}
   - {name: steel_ball, index: 1, position: {x: 320, y: 155}, level: 5, exp: 0/5210/5210, equipment: [heavy_armor], travelling: true, source: joined}
-  - {name: scorpion, index: 2, position: {x: -285, y: -45}, level: 6, exp: 0/3866/8698, source: joined}
+  - {name: scorpion, index: 2, position: {x: -285, y: -45}, level: 6, exp: 0/2816/8698, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: 195, y: -65}, retained: false}
   battle_skills:
   - {name: lightning_storm, positions: [{x: 35, y: 210}]}
 red:
-  core_damage: 450
+  core_damage: 200
   officers: [quick_teleport, advanced_offensive_tactics, rhino_specialist]
   techs:
     centurion: [summon_hounds, reactive_armor, melee_mode, range_enhancement, dual_wield, homing_missile]
@@ -28,11 +28,11 @@ red:
   tower_strengthen_levels: [2, 2]
   units:
   - {name: rhino, index: 0, position: {x: 75, y: -165}, level: 2, source: delivered}
-  - {name: centurion, index: 1, position: {x: 335, y: 265}, level: 8, exp: 0/1400/15137, equipment: [absorption_module], travelling: true, source: joined}
+  - {name: centurion, index: 1, position: {x: 335, y: 265}, level: 8, exp: 0/8000/15137, equipment: [absorption_module], travelling: true, source: joined}
   - {name: sledgehammer, index: 2, position: {x: -65, y: -20}, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   battle_skills:
   - {name: incendiary_bomb, positions: [{x: 15, y: -280}, {x: -140, y: 215}]}
-ticks: 836
-hash: 27:faa02c854cfa802b2579269912bd7f5a7d67f7291c34f76ba58ad23beec34375
+ticks: 821
+hash: 27:1c9e1865019069876f8c56012611eb64fe0f72d6462f25cd045bc0e407f3e952

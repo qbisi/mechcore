@@ -17,12 +17,12 @@ blue:
   officers: [supply_specialist]
   units:
   - {name: vortex, index: 0, position: {x: -140, y: -70}, exp: 0/138/750, source: joined}
-  - {name: vortex, index: 1, position: {x: -90, y: -70}, exp: 0/346/750, source: joined}
+  - {name: vortex, index: 1, position: {x: -90, y: -70}, exp: 0/347/750, source: joined}
   - {name: vortex, index: 2, position: {x: -20, y: -70}, exp: 0/413/750, source: joined}
-  - {name: fire_badger, index: 3, position: {x: -175, y: -70}, exp: 0/185/1400, source: joined}
-  - {name: fire_badger, index: 4, position: {x: -55, y: -70}, exp: 0/350/1400, source: joined}
-  - {name: crawler, index: 5, position: {x: -140, y: -105}, exp: 0/436/450, rotated: true, source: joined}
-  - {name: crawler, index: 6, position: {x: -20, y: -105}, exp: 0/365/450, rotated: true, source: joined}
+  - {name: fire_badger, index: 3, position: {x: -175, y: -70}, exp: 0/189/1400, source: joined}
+  - {name: fire_badger, index: 4, position: {x: -55, y: -70}, exp: 0/346/1400, source: joined}
+  - {name: crawler, index: 5, position: {x: -140, y: -105}, exp: 0/336/450, rotated: true, source: joined}
+  - {name: crawler, index: 6, position: {x: -20, y: -105}, exp: 0/450/450, rotated: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
@@ -39,4 +39,4 @@ red:
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 ticks: 1475
-hash: 27:e37f0df57cef7356bd98caea7b064743eefe66001c522c21727969ec999beec4
+hash: 27:9525476772c0f06d7e5b0848a2bbaa0c4c0e7d8815affa0382abf2d01c25efdc

@@ -7,7 +7,7 @@ map_id: 1012
 seed: 1420184511
 round: 4
 blue:
-  core_damage: 927
+  core_damage: 1028
   officers: [training_specialist]
   techs:
     sledgehammer: [armor_piercing_bullets]
@@ -24,14 +24,14 @@ blue:
   - {name: crawler, index: 7, position: {x: 290, y: -285}, exp: 269/324/450, rotated: true}
   - {name: crawler, index: 8, position: {x: -290, y: -275}, level: 2, exp: 0/88/1014, rotated: true}
   - {name: crawler, index: 9, position: {x: 0, y: -285}, exp: 144/209/450, rotated: true}
-  - {name: sledgehammer, index: 10, position: {x: 205, y: -130}, level: 2, exp: 309/1163/2929}
+  - {name: sledgehammer, index: 10, position: {x: 205, y: -130}, level: 2, exp: 309/1138/2929}
   - {name: arclight, index: 11, position: {x: 30, y: -180}, exp: 151/376/750}
   - {name: fang, index: 12, position: {x: 120, y: -155}, exp: 14/119/600, rotated: true}
-  - {name: stormcaller, index: 13, position: {x: -215, y: -170}, exp: 0/386/1100, source: joined}
-  - {name: stormcaller, index: 14, position: {x: 205, y: -170}, exp: 0/644/1100, source: joined}
-  - {name: crawler, index: 15, position: {x: 140, y: -235}, exp: 0/205/450, rotated: true, source: joined}
+  - {name: stormcaller, index: 13, position: {x: -215, y: -170}, exp: 0/286/1100, source: joined}
+  - {name: stormcaller, index: 14, position: {x: 205, y: -170}, exp: 0/735/1100, source: joined}
+  - {name: crawler, index: 15, position: {x: 140, y: -235}, exp: 0/55/450, rotated: true, source: joined}
   - {name: crawler, index: 16, position: {x: -150, y: -245}, exp: 0/77/450, rotated: true, source: joined}
-  - {name: fang, index: 17, position: {x: 250, y: -105}, exp: 0/499/600, rotated: true, source: joined}
+  - {name: fang, index: 17, position: {x: 250, y: -105}, exp: 0/549/600, rotated: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
@@ -49,14 +49,14 @@ red:
   - {name: mustang, index: 3, position: {x: -105, y: -210}, exp: 1022/1200/1200, equipment: [secondary_fire_control_system]}
   - {name: mustang, index: 4, position: {x: 105, y: -210}, exp: 984/1200/1200, equipment: [secondary_fire_control_system]}
   - {name: crawler, index: 5, position: {x: 225, y: -190}, exp: 133/172/450}
-  - {name: steel_ball, index: 6, position: {x: 105, y: -170}, level: 2, exp: 0/835/2253}
-  - {name: steel_ball, index: 7, position: {x: -105, y: -170}, level: 2, exp: 0/1708/2253}
-  - {name: steel_ball, index: 8, position: {x: -235, y: -170}, level: 2, exp: 0/385/2253}
+  - {name: steel_ball, index: 6, position: {x: 105, y: -170}, level: 2, exp: 0/1157/2253}
+  - {name: steel_ball, index: 7, position: {x: -105, y: -170}, level: 2, exp: 0/1378/2253}
+  - {name: steel_ball, index: 8, position: {x: -235, y: -170}, level: 2, exp: 0/381/2253}
   - {name: steel_ball, index: 9, position: {x: 225, y: -170}, exp: 340/1000/1000}
-  - {name: mustang, index: 10, position: {x: -235, y: -210}, exp: 455/1058/1200, equipment: [secondary_fire_control_system]}
+  - {name: mustang, index: 10, position: {x: -235, y: -210}, exp: 455/1006/1200, equipment: [secondary_fire_control_system]}
   - {name: wasp, index: 11, position: {x: -320, y: 275}, level: 3, exp: 0/833/3206, travelling: true, source: joined}
-  - {name: mustang, index: 12, position: {x: 225, y: -210}, exp: 0/522/1200, source: joined}
+  - {name: mustang, index: 12, position: {x: 225, y: -210}, exp: 0/539/1200, source: joined}
   battle_skills:
   - {name: mobile_beacon, positions: [{x: -307, y: 269}, {x: -131, y: 172}, {x: 68, y: 170}]}
-ticks: 1058
-hash: 27:9d01a6a4bdf86875c6d31dcf4fa050c9b9838ba417b42602487754afa9705e63
+ticks: 1050
+hash: 27:ec99ebf86f5e762cdf848015326e44ee2c62324e3f3438d10d8477371bc4ae00

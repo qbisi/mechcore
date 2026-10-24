@@ -58,4 +58,4 @@ red:
   - {name: shield, index: 0, position: {x: 159, y: -230}}
   - {name: shield, index: 1, position: {x: -161, y: -229}, retained: false}
 ticks: 1561
-hash: 27:7db4312c9f0e42e3e4b980db82b8eeb702de5da8d106afed905a364afdd4e83b
+hash: 27:3028215bd5c07543abdf024d01527264aee6ac33fa9cfae10b289e260e0b52d5

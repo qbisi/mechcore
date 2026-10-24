@@ -32,11 +32,11 @@ red:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: typhoon, index: 0, position: {x: 90, y: -150}, source: delivered}
-  - {name: raiden, index: 1, position: {x: -320, y: 100}, level: 2, exp: 0/2998/5408, rotated: true, equipment: [tank_production_line], travelling: true, source: joined}
+  - {name: raiden, index: 1, position: {x: -320, y: 100}, level: 2, exp: 0/2992/5408, rotated: true, equipment: [tank_production_line], travelling: true, source: joined}
   - {name: sabertooth, index: 2, position: {x: 235, y: -145}, level: 9, exp: 0/2570/8746, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: -45, y: -115}, retained: false}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: 25, y: 300}]}
-ticks: 776
-hash: 27:676e2100a05a09c48b998981616ca421156814614bc3627333b6446c5aa24d61
+ticks: 793
+hash: 27:6594eed8ff68216e9857dff48c2e25390adb136877359fa752a2fc4855ba5eff
