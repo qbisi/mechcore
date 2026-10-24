@@ -1214,7 +1214,8 @@ that is not melee, so the simulator refuses it.
   construction collection is excluded:
   `SideArmSearchTargetController.PerformNormalSkillSearch`,
   `RangeTargetCalculator.CalculateRangeActorsInternal`,
-  `AttackTargetFilter.Check`, `AttackTargetFilter.IFightActorVisitor.Visit`.
+  `AttackTargetFilter.Check`,
+  `AttackTargetFilter.GameRiver.Fight.IFightActorVisitor.Visit`.
 
 - An idle side arm checks its fire mark before refreshing its attack target:
   `SkillIdleState.TryPerform`, `FightSkill.TrySideArmResetFireMark`,

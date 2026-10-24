@@ -150,7 +150,10 @@ nothing for:
   this version's corpus shows it too.
 - `### Read`: each claim read from the build, naming in backticks the members
   it rests on, `Class.member`, as the class declares them, a nested class as
-  `Outer.Inner.member`. They are the document's anchors.
+  `Outer.Inner.member`. Namespace prefixes may disambiguate a class; an
+  explicit interface member may use its full declared name, such as
+  `FightMech.GameRiver.Fight.IAttacker.IsAttackingEnergyShield`. Generic arity
+  in a dump's filename is omitted. They are the document's anchors.
 - `### Not established`: what the document does not claim, and why.
 
 `scripts/decomp/rules-anchors.py` resolves every anchor in the pinned version's dump.

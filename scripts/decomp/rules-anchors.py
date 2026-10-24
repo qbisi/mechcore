@@ -10,6 +10,8 @@ backticks, `Outer.Inner.member` for a nested class: a method, a field or a
 property the class itself declares, not a class nested in it. Those are the
 document's anchors. They are what a claim read from the build rests on, and
 what can move under it when the game does.
+Namespace prefixes and explicit interface member names keep their dots;
+generic arity in the dump's filename is not part of the anchor.
 
 Without arguments every anchor has to resolve in `work/decomp/<version>/`, the
 version `GAME_VERSION` names. With `--since OLD` each anchor is compared with
@@ -24,6 +26,7 @@ claim whose anchors all stand still is left alone: the build does what it did.
 
 import argparse
 import collections
+import functools
 import pathlib
 import re
 import sys
@@ -76,20 +79,32 @@ class Dump:
             sys.exit(f"rules-anchors: no dump of {version}; run scripts/decomp/decompile.py "
                      "on a machine with that game version installed")
         self.stubs = collections.defaultdict(list)
-        for stub in (base / "DiffableCs").rglob("*.cs"):
-            self.stubs[stub.stem.split("_NestedType_")[0]].append(stub)
+        for stub in sorted((base / "DiffableCs").rglob("*.cs")):
+            # Generic arity is in the filename, but not the C# type declaration.
+            outer = re.sub(r"`\d+", "", stub.stem.split("_NestedType_")[0])
+            namespace = re.search(r"^namespace ([\w.]+);", stub.read_text(errors="replace"), re.MULTILINE)
+            parts = namespace.group(1).split(".") if namespace else []
+            # Accept a short type name or a namespace-qualified one. Keep the
+            # actual stub path for locating its generic instruction dump.
+            for start in range(len(parts) + 1):
+                self.stubs[".".join([*parts[start:], outer])].append(stub)
         self.isil = base / "IsilDump"
         self.base = base
 
+    @functools.cache
     def members(self, cls):
-        """(stub, declaration line, member lines) of each type `cls` names, `Outer.Inner` for a nested one.
+        """(instruction path, declaration line, member lines) of each type `cls` names.
 
         A type's own members are indented one tab deeper than its declaration,
         so a nested type's members are neither its outer type's nor the
         reverse."""
-        outer, *nested = cls.split(".")
+        parts = cls.split(".")
+        split = next((i for i in range(len(parts), 0, -1) if ".".join(parts[:i]) in self.stubs), None)
+        if split is None:
+            return []
+        outer, nested = parts[split - 1], parts[split:]
         found = []
-        for stub in self.stubs.get(outer, []):
+        for stub in self.stubs[".".join(parts[:split])]:
             lines, head = stub.read_text(errors="replace").splitlines(), None
             for depth, name in enumerate([outer, *nested]):
                 indent = "\t" * depth
@@ -102,32 +117,53 @@ class Dump:
                 head, lines = lines[start], lines[start + 1:end]
             if lines is not None:
                 own = [line for line in lines if re.match(rf"\t{{{len(nested) + 1}}}(?!\t)", line)]
-                found.append((stub, head, own))
+                dump = (self.isil / stub.relative_to(self.base / "DiffableCs")).with_name(
+                    "_NestedType_".join([stub.stem, *nested]) + ".txt")
+                found.append((dump, head, own))
         return found
 
+    @functools.cache
+    def resolve(self, cls, member):
+        """Separate the declaring type from an explicit interface member.
+
+        Dots can belong to a namespace, a nested type, or an explicitly
+        implemented interface. Only the dump can decide where the type ends.
+        """
+        parts = cls.split(".")
+        for split in range(len(parts), 0, -1):
+            owners = self.members(".".join(parts[:split]))
+            if owners:
+                return owners, ".".join([*parts[split:], member])
+        return [], member
+
+    @functools.cache
     def declarations(self, cls, member):
         found = []
-        for _, head, lines in self.members(cls):
+        owners, member = self.resolve(cls, member)
+        # Short member anchors also name explicit implementations. When an
+        # interface is given, match its complete name rather than a suffix.
+        boundary = r"(?<![\w.])" if "." in member else r"\b"
+        for _, head, lines in owners:
             # An enum's values are declared bare, as `Name = 0,`.
             enum = re.search(r"\benum\b", head)
             for line in lines:
                 code = line.split("//")[0]
-                if DECLARATION.match(line) and re.search(rf"\b(get_|set_)?{re.escape(member)}\b\s*[(;{{=]", code) \
+                if DECLARATION.match(line) and re.search(rf"{boundary}(get_|set_)?{re.escape(member)}\b\s*[(;{{=]", code) \
                         or enum and re.match(rf"\s*{re.escape(member)}\s*=", code):
                     found.append(" ".join(code.split()))
         return found
 
+    @functools.cache
     def bodies(self, cls, member):
         found = []
-        for stub, _, _ in self.members(cls):
-            # A nested type's instructions are dumped beside its outer type's, as `Outer_NestedType_Inner`.
-            dump = (self.isil / stub.relative_to(self.base / "DiffableCs")).with_name(
-                "_NestedType_".join(cls.split(".")) + ".txt")
+        owners, member = self.resolve(cls, member)
+        boundary = r"(?<![\w.])" if "." in member else r"\b"
+        for dump, _, _ in owners:
             if not dump.exists():
                 continue
             for section in dump.read_text(errors="replace").split("\nMethod: ")[1:]:
                 head = section.splitlines()[0]
-                if not re.search(rf"\b(get_|set_)?{re.escape(member)}\(", head):
+                if not re.search(rf"{boundary}(get_|set_)?{re.escape(member)}\(", head):
                     continue
                 body = []
                 for line in section.splitlines():

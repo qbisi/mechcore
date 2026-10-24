@@ -1533,7 +1533,8 @@ ready at its attack interval and updates after the arrival tick
 
 **The last round brings the melee skill.** Each projectile of a pooled skill
 takes a round (`ReduceLoadingRemainCount`). Once none is left, the melee
-skill's condition holds (`AmmoEmptyController`), checked both as a pooled skill's
+skill's condition holds (`PermanentPreemptiveActiveConditionAmmoEmptyController`),
+checked both as a pooled skill's
 blow ends (`SkillAttackController.ChangeToIdle`,
 `SkillManager.TryTriggerAmmoEmptyPreemptiveCheck`), before its weapon turns,
 and after the unit's skills have updated. The immediate check applies to the
@@ -2514,7 +2515,8 @@ derive (a minimum range):
   `UpdateMainSkillAmmoCapacity`, `HasIncompatibleSkill`, `OnMeleeSkillActive`,
   `OnMeleeModeTransitionComplete`, `RemoveMeleeModeDataModifier`,
   `AmmoSkillPool`, `FightSkill.IsAmmoConsumer`, `ReduceLoadingRemainCount`,
-  `AmmoEmptyController.CheckCanActive`, `SkillManager.ActivePermanentPreemptiveSkill`,
+  `PermanentPreemptiveActiveConditionAmmoEmptyController.CheckCanActive`,
+  `SkillManager.ActivePermanentPreemptiveSkill`,
   `PreemptiveSkillController.StartActiveTransition`, `FinishActiveTransition`.
 - Shield-spawning technologies: `SpawnAdvancedShieldController.PerformHitEffect`,
   `Enable`, `Disable`, `GetAdvancedEnergyShieldValue`,
@@ -2953,7 +2955,7 @@ derive (a minimum range):
   below 1. `CreateSummonMechInfo`'s constructor sets its rotation to
   `FightUtility.Angle0`, so the summon faces the world's 0 on either side.
   `SummonSystem.CreateMech` makes it for the parent's
-  `FightMech.currentTeamController`, so a parent a control has taken summons
+  `FightActor.currentTeamController`, so a parent a control has taken summons
   for the side that holds it, and `SummonSystem.DoCreateMech` calls
   `FightController.CreateMech` with that side and
   the parent's `MechData.IsChildInheritTechnologyEffect` and, with no

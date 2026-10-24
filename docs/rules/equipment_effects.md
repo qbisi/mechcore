@@ -411,8 +411,9 @@ rather than applying only its plain corrections.
   a make by its owner's rotation.
   `SupportUnitCreator.AddMech` registers each child and subscribes
   `SupportUnitCreator.RemoveMech` to `FightMech.OnMechDead`;
-  `SupportUnitSystem.Update` runs before `DeadEffectSystem.Update` raises
-  that callback through `FightMech.OnDead`.
+  `FightController.AddModules` orders the support system before the dead-effect
+  system; its inherited `FightTeamSystem.Update` runs the team module before
+  `DeadEffectSystem.Update` raises that callback through `FightMech.OnDead`.
   `SupportUnitCreator.GetCreateCount` limits the batch to both the remaining
   maximum alive count and the remaining maximum creation count.
 - An important unit: `MechDataModifer.TryAddCommonData` marks it by
