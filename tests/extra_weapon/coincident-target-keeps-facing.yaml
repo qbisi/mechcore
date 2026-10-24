@@ -1,4 +1,6 @@
-# Complete generated layout: Centurion 3 and Hound 8 coincide at tick 1041.
+# Complete generated layout: Centurion 3 and its target 8 coincide at
+# tick 1049. Moving the Centurion ten metres left preserves this boundary
+# after its balance adjustment.
 # The extra melee skill keeps its facing instead of turning towards angle zero.
 # Control: extra_weapon/melee-idle-homing-missile-motion.yaml.
 
@@ -15,9 +17,9 @@ blue:
   blueprints: [defense_enhancement_ii]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: centurion, index: 0, position: {x: 275, y: -85}, level: 4, exp: 5051/10103/10103, rotated: true, equipment: [heavy_armor]}
+  - {name: centurion, index: 0, position: {x: 265, y: -85}, level: 4, exp: 5051/10103/10103, rotated: true, equipment: [heavy_armor]}
   - {name: sabertooth, index: 1, position: {x: 95, y: -85}, source: delivered}
-  - {name: wraith, index: 2, position: {x: -45, y: -245}, level: 4, exp: 0/3000/10103, source: joined}
+  - {name: wraith, index: 2, position: {x: -45, y: -245}, level: 4, exp: 0/1500/10103, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -205, y: -85}}
   battle_skills:
@@ -38,11 +40,11 @@ red:
 asserts:
 - sql: |
     SELECT tick, body_rotation FROM units
-    WHERE unit_id = 3 AND tick IN (1041, 1042, 1043)
+    WHERE unit_id = 3 AND tick IN (1049, 1050, 1051)
     ORDER BY tick;
   rows:
-  - [1041, 1079347494034]
-  - [1042, 1079347494034]
-  - [1043, 1079347494034]
+  - [1049, 1094870465398]
+  - [1050, 1094870465398]
+  - [1051, 1094870465398]
 ticks: 2360
-hash: 27:4982344e34f6ece0a83a1b5a0380a4a38944cb0b6441030ecdb6e02e7d2a6a75
+hash: 27:8caa1ead5971f81f3ef6d2c1f14c358f3796bae0ba16cce732d84e5f31109b15

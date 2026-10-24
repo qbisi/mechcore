@@ -16,5 +16,5 @@ red:
   - {name: marksman, index: 0, position: {x: -40, y: -100}, source: joined}
   - {name: marksman, index: 1, position: {x: 0, y: -110}, source: joined}
   - {name: marksman, index: 2, position: {x: 40, y: -100}, source: joined}
-ticks: 160
-hash: 27:4931beaabc3b91f45a6233f9e92779f835b080287a19833459e02f3a0693d59a
+ticks: 166
+hash: 27:bdfc8d9ef5197235dc99b79fdae60ec4b8c0c0dac8d958b8ddc122de220f5904

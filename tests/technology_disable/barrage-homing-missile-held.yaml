@@ -21,7 +21,7 @@ red:
   techs:
     centurion: [homing_missile]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -75}, level: 6, exp: 0/1100/13047, source: joined}
-  - {name: centurion, index: 1, position: {x: -45, y: -75}, level: 6, exp: 0/3300/13047, source: joined}
+  - {name: centurion, index: 0, position: {x: 5, y: -75}, level: 6, exp: 0/3300/13047, source: joined}
+  - {name: centurion, index: 1, position: {x: -45, y: -75}, level: 6, exp: 0/1100/13047, source: joined}
 ticks: 328
-hash: 27:c44e1da01ed5b3017f307f5982eb267ea1574f203e40a2c45baa50b360016c07
+hash: 27:8e025588196c499cef8a37cc2b71df8615b6f1b5705ddd13e98cdf2e278583a1

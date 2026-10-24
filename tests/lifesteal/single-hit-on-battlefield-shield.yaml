@@ -16,8 +16,8 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: void_eye, index: 0, position: {x: 340, y: 110}, exp: 0/59/650, equipment: [small_amplifying_core], travelling: true, source: joined}
-  - {name: centurion, index: 1, position: {x: 205, y: -65}, level: 9, exp: 0/165/15137, source: joined}
+  - {name: void_eye, index: 0, position: {x: 340, y: 110}, exp: 0/50/650, equipment: [small_amplifying_core], travelling: true, source: joined}
+  - {name: centurion, index: 1, position: {x: 205, y: -65}, level: 9, exp: 0/198/15137, source: joined}
   battle_skills:
   - {name: ion_blast, positions: [{x: 80, y: -90}, {x: -220, y: -270}]}
 red:
@@ -52,5 +52,5 @@ asserts:
   - [96, healing, null, 3, 3]
   - [96, damage, 4, 1, 2825]
   - [96, healing, null, 2, 3]
-ticks: 948
-hash: 27:6c590261b82054bcabefe2619f68e9a336af43106a903650347623bbdf2bcbba
+ticks: 929
+hash: 27:f304e83b9aeea824039d36730ba8aa2d93449ff697db4f63d2c23d742c916cd7

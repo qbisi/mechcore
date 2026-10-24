@@ -1,9 +1,8 @@
 # Mustang Production Line reaches its 20-child cap at tick 961.
-# Child 13 dies at 964, after the support update still reads the full cap.
-# The clock stays zero on 964, resumes at 965 and makes its next batch at
-# 1184. The life-derived control resumes at 964 and makes at 1183.
-# A generated layout, recorded twice with the game: 1651 ticks
-# and core damage 374/0. Assertions below are read from that native recording.
+# Child 15 dies at 1080, after the support update still reads the full cap.
+# The clock stays zero on 1080, resumes at 1081 and makes its next batch at
+# 1300. Moving the Vortex ten metres left preserves this ordering after its
+# damage adjustment. Assertions below are read from the native recording.
 
 kind: fight
 source: game
@@ -11,7 +10,7 @@ map_id: 1021
 seed: 1020628181
 round: 3
 blue:
-  core_damage: 374
+  core_damage: 370
   officers: [advanced_defensive_tactics, advanced_power_system, fire_badger_specialist, fortified_hacker]
   techs:
     hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement, multi_control]
@@ -19,8 +18,8 @@ blue:
   energy_tower_skills: [high_mobility]
   units:
   - {name: hacker, index: 0, position: {x: -135, y: -25}, level: 9, exp: 3767/3767/3767, equipment: [enhancement_module]}
-  - {name: fire_badger, index: 1, position: {x: -5, y: -70}, exp: 0/1120/1400, source: delivered}
-  - {name: vortex, index: 2, position: {x: -20, y: -240}, level: 5, exp: 0/2090/3908, source: joined}
+  - {name: fire_badger, index: 1, position: {x: -5, y: -70}, exp: 0/967/1400, source: delivered}
+  - {name: vortex, index: 2, position: {x: -30, y: -240}, level: 5, exp: 0/2039/3908, source: joined}
   battle_skills:
   - {name: electromagnetic_blast, positions: [{x: 15, y: -75}]}
 red:
@@ -37,13 +36,13 @@ red:
   - {name: vulcans_descent, positions: [{x: -135, y: -75}]}
 asserts:
 - sql: |-
-    SELECT tick,unit_id,source_id,interval_time_counter FROM units__production_lines WHERE unit_id=6 AND tick IN (961,964,965,1183,1184) ORDER BY tick
+    SELECT tick,unit_id,source_id,interval_time_counter FROM units__production_lines WHERE unit_id=6 AND tick IN (961,1080,1081,1299,1300) ORDER BY tick
   rows:
   - [961, 6, 1306002, 0]
-  - [964, 6, 1306002, 0]
-  - [965, 6, 1306002, 1]
-  - [1183, 6, 1306002, 219]
-  - [1184, 6, 1306002, 0]
+  - [1080, 6, 1306002, 0]
+  - [1081, 6, 1306002, 1]
+  - [1299, 6, 1306002, 219]
+  - [1300, 6, 1306002, 0]
 - sql: |-
     SELECT tick,COUNT(*) FROM events WHERE type='unit_created' AND unit_type_id=7 GROUP BY tick ORDER BY tick
   rows:
@@ -52,8 +51,8 @@ asserts:
   - [521, 4]
   - [741, 4]
   - [961, 4]
-  - [1184, 4]
-  - [1404, 4]
-  - [1624, 4]
-ticks: 1651
-hash: 27:b88c2c9671f69e57275985ae3a324e410d59c993bdc2e5a1aef0f20a50da8c44
+  - [1300, 4]
+  - [1520, 4]
+  - [1740, 4]
+ticks: 1761
+hash: 27:3f8fb2b34df232309a07c6b5e1228f3bc88f14b5023a427128783c76443be644

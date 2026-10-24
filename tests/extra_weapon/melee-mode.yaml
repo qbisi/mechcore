@@ -16,13 +16,13 @@ blue:
   techs:
     centurion: [melee_mode]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -165}, exp: 0/212/2250, source: joined}
-  - {name: fortress, index: 1, position: {x: 0, y: -120}, exp: 0/372/1600, source: joined}
+  - {name: centurion, index: 0, position: {x: 5, y: -165}, exp: 0/144/2250, source: joined}
+  - {name: fortress, index: 1, position: {x: 0, y: -120}, exp: 0/440/1600, source: joined}
 red:
   core_damage: 600
   units:
   - {name: crawler, index: 0, position: {x: -45, y: -60}, source: joined}
   - {name: crawler, index: 1, position: {x: 45, y: -60}, source: joined}
   - {name: marksman, index: 2, position: {x: 0, y: -40}, source: joined}
-ticks: 534
-hash: 27:7c7dc9df01f7e781b619d419c2a74e585cd1a3e6236e47a8738754c43af66b90
+ticks: 494
+hash: 27:2bfd26d1958ea894b80ce4fccbbb783ea87659c9e146e79ce903cd354ff29ae9

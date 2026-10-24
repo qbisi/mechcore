@@ -19,22 +19,22 @@ blue:
   units:
   - {name: vortex, index: 0, position: {x: -140, y: -70}, level: 2, exp: 0/585/1690}
   - {name: vortex, index: 1, position: {x: -90, y: -70}, level: 2, exp: 1025/1690/1690}
-  - {name: vortex, index: 2, position: {x: -20, y: -70}, level: 2, exp: 0/1413/1690}
+  - {name: vortex, index: 2, position: {x: -20, y: -70}, level: 2, exp: 0/820/1690}
   - {name: fire_badger, index: 3, position: {x: -175, y: -70}, exp: 835/1101/1400}
   - {name: fire_badger, index: 4, position: {x: -55, y: -70}, exp: 829/1166/1400}
   - {name: crawler, index: 5, position: {x: -140, y: -105}, exp: 450/450/450, rotated: true}
   - {name: crawler, index: 6, position: {x: -20, y: -105}, exp: 450/450/450, rotated: true}
   - {name: fang, index: 7, position: {x: 160, y: -175}, exp: 352/352/600, rotated: true}
-  - {name: fang, index: 8, position: {x: -160, y: -175}, exp: 0/7/600, rotated: true}
+  - {name: fang, index: 8, position: {x: -160, y: -175}, exp: 0/227/600, rotated: true}
   - {name: fang, index: 9, position: {x: -140, y: -35}, exp: 326/371/600, rotated: true}
   - {name: rhino, index: 10, position: {x: -165, y: -95}, exp: 1068/1150/1150, equipment: [haste_module]}
   - {name: rhino, index: 11, position: {x: -45, y: -95}, exp: 58/187/1150}
-  - {name: fire_badger, index: 12, position: {x: 5, y: -160}, exp: 113/410/1400}
+  - {name: fire_badger, index: 12, position: {x: 5, y: -160}, exp: 113/276/1400}
   - {name: fang, index: 13, position: {x: -20, y: -35}, exp: 193/441/600, rotated: true}
-  - {name: rhino, index: 14, position: {x: 205, y: -95}, exp: 0/1045/1150, source: joined}
+  - {name: rhino, index: 14, position: {x: 205, y: -95}, exp: 0/1112/1150, source: joined}
   - {name: rhino, index: 15, position: {x: -115, y: -95}, exp: 0/197/1150, source: joined}
 red:
-  core_damage: 554
+  core_damage: 690
   officers: [cost_control_specialist]
   blueprints: [attack_enhancement]
   units:
@@ -45,15 +45,15 @@ red:
   - {name: marksman, index: 6, position: {x: 120, y: -170}, exp: 504/650/650}
   - {name: vulcan, index: 7, position: {x: 80, y: -140}, exp: 1286/1549/2200}
   - {name: crawler, index: 8, position: {x: 110, y: -135}, exp: 94/143/450, rotated: true}
-  - {name: sledgehammer, index: 9, position: {x: 210, y: -115}, exp: 57/513/1300, rotated: true}
+  - {name: sledgehammer, index: 9, position: {x: 210, y: -115}, exp: 57/399/1300, rotated: true}
   - {name: sledgehammer, index: 10, position: {x: 10, y: -115}, exp: 238/494/1300, rotated: true}
   - {name: melting_point, index: 11, position: {x: 40, y: -130}, exp: 696/1400/1400}
   - {name: crawler, index: 12, position: {x: 120, y: -285}, exp: 0/74/450, rotated: true}
   - {name: crawler, index: 13, position: {x: 40, y: -205}, exp: 55/61/450, rotated: true}
   - {name: melting_point, index: 14, position: {x: 140, y: -130}, exp: 0/1036/1400, source: joined}
-  - {name: vulcan, index: 15, position: {x: 180, y: -140}, exp: 0/884/2200, source: joined}
+  - {name: vulcan, index: 15, position: {x: 180, y: -140}, exp: 0/326/2200, source: joined}
   - {name: crawler, index: 16, position: {x: -40, y: -285}, exp: 0/89/450, rotated: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
-ticks: 978
-hash: 27:c217f2241b90e0cbada26f525cacc1cd851f0677eec8f8176553dcc76f7199c0
+ticks: 925
+hash: 27:4918991039c703d7fad67f4b9041f8e43042925928cb262eba0b61c8d538960e

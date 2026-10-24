@@ -46,13 +46,13 @@ asserts:
     WHERE
       unit_id = 5
       AND skill_slot = 0
-      AND tick IN (966, 987, 988, 989)
+      AND tick IN (957, 978, 979, 980)
     ORDER BY
       tick;
   rows:
-  - [966, 5, attack, 2, 2]
-  - [987, 5, attack, 2, 2]
-  - [988, 5, idle, null, null]
-  - [989, 5, idle, null, 1]
-ticks: 1071
-hash: 27:84e31d7749d281edf1d73d54dd1a7409d98fcfcd4bf578d766fe35f1033644d7
+  - [957, 5, attack, 2, 2]
+  - [978, 5, attack, 2, 2]
+  - [979, 5, idle, null, null]
+  - [980, 5, idle, null, 1]
+ticks: 1061
+hash: 27:fd3e6e35bdc796e0bace45cff113a98f4df70f5ad4c393bba9bb5d71742a3d1f

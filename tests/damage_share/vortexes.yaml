@@ -2,9 +2,9 @@
 #
 # The Vortexes stand within 35 metres of one another and form one group,
 # whose count the technology takes no further than four: each main skill
-# deals 3218, 1570 with 105% more. As they fall and move apart the four left
-# form two pairs, each 2119 with 35% more (t235), and the last two stand
-# apart, ungrouped, at 1570 (t240).
+# deals 3347, 1633 with 105% more. As they fall and move apart the four left
+# form two pairs, each 2204 with 35% more (t233), and the last two stand
+# apart, ungrouped, at 1633 (t237).
 
 kind: fight
 source: game
@@ -12,22 +12,22 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
-  core_damage: 600
+  core_damage: 400
   techs:
     vortex: [grid_integration]
   units:
   - {name: vortex, index: 0, position: {x: -60, y: -100}, exp: 0/266/750, source: joined}
-  - {name: vortex, index: 1, position: {x: -30, y: -100}, exp: 0/66/750, source: joined}
+  - {name: vortex, index: 1, position: {x: -30, y: -100}, exp: 0/366/750, source: joined}
   - {name: vortex, index: 2, position: {x: 0, y: -100}, exp: 0/133/750, source: joined}
-  - {name: vortex, index: 3, position: {x: 30, y: -100}, exp: 0/66/750, source: joined}
+  - {name: vortex, index: 3, position: {x: 30, y: -100}, exp: 0/166/750, source: joined}
   - {name: vortex, index: 4, position: {x: 60, y: -100}, exp: 0/266/750, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: -85, y: -105}, exp: 0/333/1150, source: joined}
+  - {name: rhino, index: 0, position: {x: -85, y: -105}, exp: 0/383/1150, source: joined}
   - {name: rhino, index: 1, position: {x: -45, y: -105}, source: joined}
-  - {name: rhino, index: 2, position: {x: 5, y: -105}, exp: 0/433/1150, source: joined}
+  - {name: rhino, index: 2, position: {x: 5, y: -105}, exp: 0/233/1150, source: joined}
   - {name: rhino, index: 3, position: {x: 45, y: -105}, source: joined}
-  - {name: rhino, index: 4, position: {x: 85, y: -105}, exp: 0/233/1150, source: joined}
-ticks: 314
-hash: 27:06b0bf3b1854c759c7f6eed197d41b5bfb90809ce78c601ad20bd479831a78f9
+  - {name: rhino, index: 4, position: {x: 85, y: -105}, exp: 0/383/1150, source: joined}
+ticks: 315
+hash: 27:a770ba53cde5375efa9a6be7c64f17538a7abc721de5467f78f5846f25dfef18

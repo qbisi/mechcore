@@ -1,6 +1,7 @@
 # Rhino 4's Combat Evolvement life rate is already held by EMP at the
 # final tick. Clearing the buff still calls RemoveData(MaxLife), refreshing
-# its life ratio at the unchanged maximum: 75900 becomes 75899 at 799.
+# its life ratio at the unchanged maximum. Attack Enhancement lets the fight
+# end while the Rhino still stands under EMP, before control turns it.
 # Control: ../technology_disable/impact-combat-evolvement.yaml.
 
 kind: fight
@@ -13,6 +14,7 @@ blue:
   officers: [advanced_defensive_tactics, fortified_specialist, berserk_rhino]
   techs:
     rhino: [combat_evolvement]
+  blueprints: [attack_enhancement]
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [3, 2]
   units:
@@ -40,9 +42,9 @@ red:
   - {name: orbital_bombardment, positions: [{x: -225, y: 210}]}
 asserts:
 - sql: |-
-    SELECT tick,life__current,life__maximum FROM units WHERE unit_id=4 AND tick IN (798,799) ORDER BY tick
+    SELECT tick,life__current,life__maximum FROM units WHERE unit_id=4 AND tick>=(SELECT MAX(tick)-1 FROM ticks) ORDER BY tick
   rows:
-  - [798, 75900, 286560]
-  - [799, 75899, 286560]
-ticks: 799
-hash: 27:565c7cbd76925373318221a56f5886922da43ccb6908ace230aeda49f33511a4
+  - [729, 80888, 286560]
+  - [730, 80887, 286560]
+ticks: 730
+hash: 27:9b937cb446ad8f5ba7dd1a66d9425f0812f314ded8196137df760f8099206929

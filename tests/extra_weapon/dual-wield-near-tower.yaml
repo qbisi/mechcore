@@ -31,17 +31,17 @@ red:
   tower_strengthen_levels: [2, 4]
   units:
   - {name: centurion, index: 0, position: {x: -165, y: -35}, level: 7, exp: 7083/14167/14167, equipment: [nano_repair_kit]}
-  - {name: steel_ball, index: 1, position: {x: 225, y: -20}, source: joined}
+  - {name: steel_ball, index: 1, position: {x: 225, y: -20}, exp: 0/200/1000, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 55, y: -100}}
   battle_skills:
   - {name: orbital_bombardment, positions: [{x: 170, y: -145}]}
 asserts:
 - sql: |-
-    SELECT tick,skill_slot,enabled__lock_target__kind,enabled__lock_target__id,enabled__attack_target__kind,enabled__attack_target__id FROM units__skills WHERE unit_id=15 AND skill_slot=2 AND tick BETWEEN 162 AND 164 ORDER BY tick
+    SELECT tick,skill_slot,enabled__lock_target__kind,enabled__lock_target__id,enabled__attack_target__kind,enabled__attack_target__id FROM units__skills WHERE unit_id=15 AND skill_slot=2 AND tick BETWEEN 172 AND 174 ORDER BY tick
   rows:
-  - [162, 2, unit, 7, unit, 7]
-  - [163, 2, building, 2, building, 2]
-  - [164, 2, building, 2, building, 2]
-ticks: 266
-hash: 27:e714730468ec5bb8c2abcb757aad996efff178e1f9d960fe46690be4b6b7c3a2
+  - [172, 2, unit, 7, unit, 7]
+  - [173, 2, building, 2, building, 2]
+  - [174, 2, building, 2, building, 2]
+ticks: 280
+hash: 27:99ea5417dc19612843f122be2abd10c593e533845e54356101a15e4ad8cf8794

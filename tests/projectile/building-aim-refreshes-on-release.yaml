@@ -15,8 +15,8 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sandworm, index: 0, position: {x: -320, y: 230}, level: 3, exp: 0/825/7124, equipment: [barrier], travelling: true, source: joined}
-  - {name: mustang, index: 1, position: {x: -125, y: -20}, level: 9, exp: 0/3775/8073, source: joined}
+  - {name: sandworm, index: 0, position: {x: -320, y: 230}, level: 3, exp: 0/1100/7124, equipment: [barrier], travelling: true, source: joined}
+  - {name: mustang, index: 1, position: {x: -125, y: -20}, level: 9, exp: 0/3500/8073, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
@@ -45,5 +45,5 @@ asserts:
     FROM projectiles WHERE projectile_id = 45 AND tick = 29;
   rows:
   - [29, 647212722624, -743128767188]
-ticks: 1190
-hash: 27:565368c81292b3802c9389dc3177efab4f08ea922da54ed024742ddc45ae6f21
+ticks: 1147
+hash: 27:3c945d26f0640f98c2cea7b9c32fd99ba1b3863ff77f40050d0f5aa6fbd35011

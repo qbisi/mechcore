@@ -17,22 +17,22 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
-  core_damage: 252
+  core_damage: 200
   techs:
     centurion: [melee_mode, dual_wield]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -165}, level: 3, exp: 0/744/8014, source: joined}
-  - {name: fortress, index: 1, position: {x: 0, y: -120}, level: 3, exp: 0/304/5699, source: joined}
+  - {name: centurion, index: 0, position: {x: 5, y: -165}, level: 3, exp: 0/868/8014, source: joined}
+  - {name: fortress, index: 1, position: {x: 0, y: -120}, level: 3, exp: 0/272/5699, source: joined}
 red:
   core_damage: 0
   units:
   - {name: crawler, index: 0, position: {x: -45, y: -60}, exp: 0/250/450, source: joined}
-  - {name: crawler, index: 1, position: {x: 45, y: -60}, exp: 0/450/450, source: joined}
+  - {name: crawler, index: 1, position: {x: 45, y: -60}, exp: 0/250/450, source: joined}
   - {name: crawler, index: 2, position: {x: -95, y: -60}, exp: 0/450/450, source: joined}
   - {name: crawler, index: 3, position: {x: 95, y: -60}, exp: 0/450/450, source: joined}
   - {name: crawler, index: 4, position: {x: -45, y: -100}, exp: 0/450/450, source: joined}
-  - {name: crawler, index: 5, position: {x: 45, y: -100}, exp: 0/450/450, source: joined}
-  - {name: marksman, index: 6, position: {x: 0, y: -40}, level: 3, exp: 0/2000/2315, source: joined}
-  - {name: marksman, index: 7, position: {x: 60, y: -40}, level: 3, exp: 0/500/2315, source: joined}
-ticks: 678
-hash: 27:b6ee201d80d21e054d761e4538a40117c02f01b7e0a128f47284d9d4eb8aa7bd
+  - {name: crawler, index: 5, position: {x: 45, y: -100}, exp: 0/250/450, source: joined}
+  - {name: marksman, index: 6, position: {x: 0, y: -40}, level: 3, exp: 0/2315/2315, source: joined}
+  - {name: marksman, index: 7, position: {x: 60, y: -40}, level: 3, exp: 0/1000/2315, source: joined}
+ticks: 862
+hash: 27:ec825e7b5b08c75f1287bcadc2e8962b2ac1156816ac8ee3e17cf0285f6ae5e7

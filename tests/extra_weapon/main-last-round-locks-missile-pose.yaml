@@ -13,8 +13,8 @@ blue:
     phantom_ray: [energy_shield, high_explosive_ammo, burst_mode, armor_enhancement, ground_targeting, stealth_cloak, range_enhancement, sticky_oil_bomb]
   tower_strengthen_levels: [1, 4]
   units:
-  - {name: phantom_ray, index: 0, position: {x: 235, y: -110}, level: 9, exp: 0/1840/6727, equipment: [laser_sights], source: joined}
-  - {name: abyss, index: 1, position: {x: -115, y: -275}, level: 5, exp: 0/10400/25010, source: joined}
+  - {name: phantom_ray, index: 0, position: {x: 235, y: -110}, level: 9, exp: 0/1320/6727, equipment: [laser_sights], source: joined}
+  - {name: abyss, index: 1, position: {x: -115, y: -275}, level: 5, exp: 0/10920/25010, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   contraptions:
@@ -38,11 +38,11 @@ red:
 asserts:
 - sql: |
     SELECT tick, rotation FROM units__skills__enabled__weapons
-    WHERE unit_id = 5 AND skills_ordinal = 2 AND tick BETWEEN 959 AND 961
+    WHERE unit_id = 5 AND skills_ordinal = 2 AND tick BETWEEN 1008 AND 1010
     ORDER BY tick;
   rows:
-  - [959, 1193706316515]
-  - [960, 1193706316515]
-  - [961, 1193706316515]
-ticks: 1921
-hash: 27:6f454558e36853cb506498161e3e8ccef69cfef40af9748e574d9b029521865d
+  - [1008, 1229980920363]
+  - [1009, 1229980920363]
+  - [1010, 1229980920363]
+ticks: 1869
+hash: 27:7eb8f513a402629791782cbafba5476da07a45aeb952649f2496f793c4640111

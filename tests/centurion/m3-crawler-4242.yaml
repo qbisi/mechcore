@@ -13,5 +13,5 @@ red:
   core_damage: 250
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}, source: joined}
-ticks: 449
-hash: 27:60b8c040d472b43059d4b675f899e2e39810dad599a19fafde0601acb48325ce
+ticks: 493
+hash: 27:d5bbaa3c4d5c91aa1bc4a1079651389268f15ff752df1ffd6fe7cf380b6e43c2

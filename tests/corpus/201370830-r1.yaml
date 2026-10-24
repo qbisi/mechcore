@@ -12,12 +12,12 @@ blue:
   officers: [elite_specialist]
   units:
   - {name: arclight, index: 0, position: {x: -90, y: -60}, exp: 0/104/750, source: joined}
-  - {name: arclight, index: 1, position: {x: -190, y: -60}, exp: 0/145/750, source: joined}
+  - {name: arclight, index: 1, position: {x: -190, y: -60}, exp: 0/128/750, source: joined}
   - {name: arclight, index: 2, position: {x: 180, y: -210}, exp: 0/400/750, source: joined}
-  - {name: steel_ball, index: 3, position: {x: -225, y: -50}, exp: 0/331/1000, source: joined}
+  - {name: steel_ball, index: 3, position: {x: -225, y: -50}, exp: 0/315/1000, source: joined}
   - {name: steel_ball, index: 4, position: {x: -125, y: -70}, exp: 0/357/1000, source: joined}
   - {name: crawler, index: 5, position: {x: -125, y: -50}, level: 2, exp: 0/79/1014, source: joined}
-  - {name: crawler, index: 6, position: {x: -225, y: -70}, level: 2, exp: 0/222/1014, source: joined}
+  - {name: crawler, index: 6, position: {x: -225, y: -70}, level: 2, exp: 0/256/1014, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
@@ -27,11 +27,11 @@ red:
   - {name: void_eye, index: 0, position: {x: 80, y: -70}, exp: 0/157/650, source: joined}
   - {name: void_eye, index: 1, position: {x: 180, y: -70}, exp: 0/148/650, source: joined}
   - {name: void_eye, index: 2, position: {x: 280, y: -70}, exp: 0/100/650, source: joined}
-  - {name: tarantula, index: 3, position: {x: 85, y: -115}, exp: 0/1003/1500, source: joined}
+  - {name: tarantula, index: 3, position: {x: 85, y: -115}, exp: 0/1135/1500, source: joined}
   - {name: tarantula, index: 4, position: {x: 185, y: -115}, exp: 0/407/1500, source: joined}
-  - {name: vortex, index: 5, position: {x: 110, y: -130}, exp: 0/750/750, source: joined}
-  - {name: vortex, index: 6, position: {x: 150, y: -130}, exp: 0/364/750, source: joined}
+  - {name: vortex, index: 5, position: {x: 110, y: -130}, exp: 0/728/750, source: joined}
+  - {name: vortex, index: 6, position: {x: 150, y: -130}, exp: 0/276/750, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 ticks: 2267
-hash: 27:129b28e284b2c5a15bb6768215578eb85a4a4f9fa84cf7387e145aa0ff572e93
+hash: 27:feb73083dcc5d1471d1d308cbf14bb816684654f8ff81f80f7a578987941c8eb

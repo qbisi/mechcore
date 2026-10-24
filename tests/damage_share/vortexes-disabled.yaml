@@ -2,10 +2,10 @@
 # Electromagnetic Impact (t57) while two Rhinos charge and a Melting Point
 # comes up behind.
 #
-# Disabled, the two leave the group and deal 1570, and the three left keep
-# 2668, 1570 with 70% more. As the three fall a pair deals 2119 (t366). The
+# Disabled, the two leave the group and deal 1633, and the three left keep
+# 2776, 1633 with 70% more. As the three fall a pair deals 2204 (t366). The
 # Impact's 25 seconds over, the two disabled Vortexes have their
-# technologies back and link again as a pair at 2119 (t556), until one
+# technologies back and link again as a pair at 2204 (t556), until one
 # falls (t570).
 
 kind: fight
@@ -21,8 +21,8 @@ blue:
   - {name: vortex, index: 0, position: {x: -60, y: -100}, exp: 0/40/750, source: joined}
   - {name: vortex, index: 1, position: {x: -30, y: -100}, exp: 0/90/750, source: joined}
   - {name: vortex, index: 2, position: {x: 0, y: -100}, exp: 0/290/750, source: joined}
-  - {name: vortex, index: 3, position: {x: 30, y: -100}, exp: 0/90/750, source: joined}
-  - {name: vortex, index: 4, position: {x: 60, y: -100}, exp: 0/290/750, source: joined}
+  - {name: vortex, index: 3, position: {x: 30, y: -100}, exp: 0/290/750, source: joined}
+  - {name: vortex, index: 4, position: {x: 60, y: -100}, exp: 0/90/750, source: joined}
 red:
   core_damage: 0
   units:
@@ -32,4 +32,4 @@ red:
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: 75, y: 62}]}
 ticks: 639
-hash: 27:84f58e255f1a1b48da3b391f8cffd98d32e9fb80abcb016a6e90be8dab44c914
+hash: 27:67f9e917b6a9cd5631da5da8751290e1226aec52a4b61a47b46c1ab267ae2bea

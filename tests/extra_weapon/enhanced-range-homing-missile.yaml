@@ -23,5 +23,5 @@ red:
   core_damage: 250
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -295}, source: joined}
-ticks: 539
-hash: 27:d25efc3f2b0adfa3b1867d1825d5ebfd7770867d93c54907fd9b48b245c2385f
+ticks: 537
+hash: 27:2a55673adcf21df69f416fd5dc58522096cd2b3ccc5896b24ffea09983621529

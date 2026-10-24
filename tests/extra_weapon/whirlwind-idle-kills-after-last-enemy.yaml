@@ -1,6 +1,6 @@
 # A complete generated layout recorded with the game. Rhino 3's main skill
-# exits after the last enemy dies at 1368. Its idle Whirlwind has no lock,
-# so its own kill count survives until the final exit at 1376.
+# and Whirlwind are idle before the fight ends. Their accumulated damage
+# survives while idle and resets only at the final SkillManager.ExitFight.
 
 kind: fight
 source: game
@@ -37,17 +37,20 @@ red:
   - {name: photon_emission, positions: [{x: -195, y: 75}]}
 asserts:
 - sql: |
-    SELECT tick, skill_slot, enabled__attack_damage FROM units__skills
-    WHERE unit_id = 3 AND tick IN (1368, 1369, 1375, 1376)
+    SELECT tick, skill_slot, enabled__state, enabled__attack_damage FROM units__skills
+    WHERE unit_id = 3 AND tick IN (
+        (SELECT MAX(tick)-6 FROM ticks), (SELECT MAX(tick)-5 FROM ticks),
+        (SELECT MAX(tick)-1 FROM ticks), (SELECT MAX(tick) FROM ticks)
+    )
     ORDER BY tick, skill_slot;
   rows:
-  - [1368, 0, 37166]
-  - [1368, 1, 52027]
-  - [1369, 0, 35742]
-  - [1369, 1, 52027]
-  - [1375, 0, 35742]
-  - [1375, 1, 52027]
-  - [1376, 0, 13955]
-  - [1376, 1, 19535]
-ticks: 1376
-hash: 27:9019a2e345febf0c306f03db8ff5767c8f316a2b6847cfad771778297929e0e4
+  - [1379, 0, idle, 37166]
+  - [1379, 1, idle, 52027]
+  - [1380, 0, idle, 37486]
+  - [1380, 1, idle, 52476]
+  - [1384, 0, idle, 37486]
+  - [1384, 1, idle, 52476]
+  - [1385, 0, idle, 13955]
+  - [1385, 1, idle, 19535]
+ticks: 1385
+hash: 27:debb3070d5cf21b0ffd06abfa6e395dcaf169a225d58a4eb97a7eda1b768b09c

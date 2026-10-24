@@ -131,7 +131,7 @@ survives untouched.
 | **Void Eye** | `100` | `0` | `50` | `3` | `40m × 20m` | Ground | Small | `1370` | `8` | `1144` / `3.3s` | `100m` | Ground | `33` (`99`) |
 | **Arclight** | `100` | `0` | `50` | `1` | `20m × 20m` | Ground | Medium | `4813` | `7` | `365` / `0.9s` | `95m` | Ground, `7m` splash | `100` (`100`) |
 | **Marksman** | `100` | `0` | `50` | `1` | `20m × 20m` | Ground | Medium | `1622` | `8` | `2329` / `3.1s` | `140m` | Ground & Air | `100` (`100`) |
-| **Vortex** | `100` | `0` | `50` | `1` | `20m × 20m` | Ground | Medium | `8538` | `8` | `1570` / `1.8s` | `85m` | Ground | `100` (`100`) |
+| **Vortex** | `100` | `0` | `50` | `1` | `20m × 20m` | Ground | Medium | `8538` | `8` | `1633` / `1.8s` | `85m` | Ground | `100` (`100`) |
 | **Mustang** | `200` | `0` | `100` | `12` | `50m × 20m` | Ground | Small | `343` | `16` | `36` / `0.4s` | `95m` | Ground & Air | `17` (`204`) |
 | **Sledgehammer** | `200` | `0` | `100` | `5` | `50m × 20m` | Ground | Medium | `3478` | `7` | `608` / `4.5s` | `95m` | Ground, `5m` splash | `40` (`200`) |
 | **Steel Ball** | `200` | `0` | `100` | `4` | `50m × 20m` | Ground | Medium | `4571` | `16` | `55` / `0.2s` | `45m` | Ground | `50` (`200`) |
@@ -145,7 +145,7 @@ survives untouched.
 | **Rhino** | `200` | `50` | `100` | `1` | `30m × 30m` | Ground | Medium | `19297` | `16` | `3560` / `0.9s` | `6m` | Ground (Melee), `6m` splash | `200` (`200`) |
 | **Hacker** | `200` | `100` | `100` | `1` | `30m × 30m` | Ground | Medium | `3249` | `8` | `600` / `0.3s` | `110m` | Ground | `200` (`200`) |
 | **Typhoon** | `300` | `50` | `150` | `2` | `40m × 20m` | Ground | Medium | `9529` | `9` | `88` / `0.2s` | `100m` | Ground & Air, `5m` splash | `125` (`250`) |
-| **Centurion** | `300` | `50` | `150` | `1` | `30m × 30m` | Ground | Medium | `16500` | `10` | `1395` / `0.8s` | `110m` | Ground & Air | `250` (`250`) |
+| **Centurion** | `300` | `50` | `150` | `1` | `30m × 30m` | Ground | Medium | `16500` | `10` | `1569` / `0.9s` | `110m` | Ground & Air | `250` (`250`) |
 | **Farseer** | `300` | `50` | `150` | `1` | `30m × 30m` | Ground | Medium | `11991` | `16` | `1348` / `2s` | `125m` | Ground & Air, `8m` splash | `250` (`250`) |
 | **Scorpion** | `300` | `50` | `150` | `1` | `30m × 30m` | Ground | Medium | `18632` | `7` | `10650` / `4.5s` | `100m` | Ground, `15m` splash | `250` (`250`) |
 | **Wraith** | `300` | `50` | `150` | `1` | `30m × 30m` | Aerial | Medium | `14115` | `10` | `381` / `1.6s` | `60m` | Ground & Air, `8m` splash | `250` (`250`) |

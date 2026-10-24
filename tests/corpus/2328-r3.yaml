@@ -50,4 +50,4 @@ red:
   battle_skills:
   - {name: mobile_beacon_card, positions: [{x: 185, y: -96}, {x: 162, y: 102}, {x: 4, y: 225}]}
 ticks: 1560
-hash: 27:381b12bae13c51afced9c6de25f6904eb57a929c391940ed8e6c9afc3ea16ada
+hash: 27:77a32c3da074d4bb9edf2c94466126570c2cf1406b3b7fda952d983c61d5a4a3

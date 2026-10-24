@@ -13,5 +13,5 @@ red:
   core_damage: 0
   units:
   - {name: centurion, index: 0, position: {x: -5, y: -105}, exp: 0/600/2250, source: joined}
-ticks: 273
-hash: 27:df1ff0c3190fb8d2964f416d35a19175d527ac2c814dd1e7c20e450402c7610f
+ticks: 277
+hash: 27:b864ed6381fa0a1d3397d16223c86f78b1530ac9c1566f59550d730dfb1ccd69

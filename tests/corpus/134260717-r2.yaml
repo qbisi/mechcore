@@ -15,11 +15,11 @@ blue:
   - {name: fang, index: 0, position: {x: 200, y: -235}, rotated: true}
   - {name: fang, index: 1, position: {x: 0, y: -205}, exp: 0/100/600, rotated: true}
   - {name: fang, index: 2, position: {x: -190, y: -225}, rotated: true}
-  - {name: fire_badger, index: 3, position: {x: -30, y: -205}, exp: 0/116/1400, rotated: true}
+  - {name: fire_badger, index: 3, position: {x: -30, y: -205}, exp: 0/66/1400, rotated: true}
   - {name: hound, index: 5, position: {x: -190, y: -190}}
   - {name: hound, index: 6, position: {x: 200, y: -200}}
-  - {name: centurion, index: 8, position: {x: -65, y: -215}, exp: 0/866/2250, source: joined}
-  - {name: centurion, index: 9, position: {x: 35, y: -215}, exp: 0/2116/2250, source: joined}
+  - {name: centurion, index: 8, position: {x: -65, y: -215}, exp: 0/1066/2250, source: joined}
+  - {name: centurion, index: 9, position: {x: 35, y: -215}, exp: 0/1966/2250, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -29,15 +29,15 @@ red:
   techs:
     rhino: [combat_evolvement]
   units:
-  - {name: marksman, index: 0, position: {x: 160, y: -170}, exp: 80/299/650}
-  - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 212/494/650}
-  - {name: marksman, index: 2, position: {x: -140, y: -150}, exp: 146/650/650}
+  - {name: marksman, index: 0, position: {x: 160, y: -170}, exp: 80/287/650}
+  - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 212/482/650}
+  - {name: marksman, index: 2, position: {x: -140, y: -150}, exp: 146/403/650}
   - {name: tarantula, index: 3, position: {x: 115, y: -165}, exp: 244/314/1500}
-  - {name: tarantula, index: 4, position: {x: -115, y: -165}, exp: 294/614/1500}
+  - {name: tarantula, index: 4, position: {x: -115, y: -165}, exp: 294/686/1500}
   - {name: tarantula, index: 5, position: {x: 5, y: -155}, exp: 371/471/1500}
   - {name: marksman, index: 6, position: {x: 30, y: -160}, exp: 246/246/650}
   - {name: rhino, index: 7, position: {x: 265, y: -295}, exp: 0/256/1150, source: joined}
-  - {name: rhino, index: 8, position: {x: -265, y: -295}, exp: 0/541/1150, source: joined}
+  - {name: rhino, index: 8, position: {x: -265, y: -295}, exp: 0/805/1150, source: joined}
   - {name: marksman, index: 9, position: {x: -20, y: -160}, exp: 0/33/650, source: joined}
-ticks: 1473
-hash: 27:9a53c2949383060ea0d7156c797a02655e89fa3212fb8389ea20c59778814c12
+ticks: 1483
+hash: 27:b0bcbe1c652f7f4988b469472528b2d53242fc0c1cfc9d8359ff8746106f36af

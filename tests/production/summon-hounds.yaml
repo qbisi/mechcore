@@ -8,15 +8,15 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
-  core_damage: 100
+  core_damage: 0
   techs:
     centurion: [summon_hounds]
   units:
-  - {name: centurion, index: 0, position: {x: 5, y: -145}, exp: 0/400/2250, source: joined}
+  - {name: centurion, index: 0, position: {x: 5, y: -145}, exp: 0/600/2250, source: joined}
 red:
   core_damage: 0
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/50/1150, source: joined}
-  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/630/650, source: joined}
+  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/30/650, source: joined}
 ticks: 362
-hash: 27:4158d98fa3fa21deb1bb2109a85a6061e12f90b0d2241761261907246156bdb6
+hash: 27:2a3c3bef8ab0e9b665a0cfd29af3a86b7c183dab2ce02d98dfc1f2823a04101a

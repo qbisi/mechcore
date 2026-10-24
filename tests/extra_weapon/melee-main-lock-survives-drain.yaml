@@ -1,8 +1,9 @@
-# A Melee Mode main gun stays locked while its active skill exits combat.
+# A Melee Mode main gun stays locked while its active extra weapon exits combat.
 #
-# The complete generated layout: Centurion's melee skill holds a lock at
-# 825 and leaves combat at 826. Its main gun holds none and stays locked
-# through 828; final SkillManager.ExitFight makes every skill idle at 829.
+# Centurion's main gun stays locked after the last enemy falls, while its
+# extra weapon leaves combat during the final projectile drain. Only the
+# final SkillManager.ExitFight makes every skill idle. The Tarantula stands
+# twenty metres farther back so this ordering survives the balance change.
 # Control: melee-mode-dual-wield.yaml, normal takeover by the melee skill.
 
 kind: fight
@@ -16,8 +17,8 @@ blue:
   blueprints: [attack_enhancement]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: tarantula, index: 0, position: {x: 135, y: -215}, level: 9, exp: 0/370/10091, equipment: [laser_sights], source: joined}
-  - {name: steel_ball, index: 1, position: {x: 205, y: -250}, level: 2, exp: 0/350/2253, source: joined}
+  - {name: tarantula, index: 0, position: {x: 135, y: -235}, level: 9, exp: 0/340/10091, equipment: [laser_sights], source: joined}
+  - {name: steel_ball, index: 1, position: {x: 205, y: -250}, level: 2, exp: 0/380/2253, source: joined}
   constructions:
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
   contraptions:
@@ -33,8 +34,8 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: centurion, index: 0, position: {x: 265, y: -45}, level: 3, exp: 0/3050/8014, equipment: [super_heavy_armor], source: joined}
-  - {name: farseer, index: 1, position: {x: 175, y: -225}, level: 8, exp: 0/5270/12109, source: joined}
+  - {name: centurion, index: 0, position: {x: 265, y: -45}, level: 3, exp: 0/2750/8014, equipment: [super_heavy_armor], source: joined}
+  - {name: farseer, index: 1, position: {x: 175, y: -225}, level: 8, exp: 0/5570/12109, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
@@ -45,16 +46,19 @@ asserts:
     SELECT tick, skill_slot, enabled__state
     FROM units__skills
     WHERE unit_id = 6 AND skill_slot IN (0, 3)
-      AND tick IN (825, 826, 828, 829)
+      AND tick IN (
+        (SELECT MAX(tick)-6 FROM ticks), (SELECT MAX(tick)-5 FROM ticks),
+        (SELECT MAX(tick)-1 FROM ticks), (SELECT MAX(tick) FROM ticks)
+      )
     ORDER BY tick, skill_slot;
   rows:
-  - [825, 0, lock]
-  - [825, 3, attack]
-  - [826, 0, lock]
-  - [826, 3, idle]
-  - [828, 0, lock]
-  - [828, 3, idle]
-  - [829, 0, idle]
-  - [829, 3, idle]
-ticks: 829
-hash: 27:2cbd6efd1226f71bcb6f10a789b51bbc62ad21ed6bc6c83cfca8b78655c08828
+  - [853, 0, lock]
+  - [853, 3, attack]
+  - [854, 0, lock]
+  - [854, 3, idle]
+  - [858, 0, lock]
+  - [858, 3, idle]
+  - [859, 0, idle]
+  - [859, 3, idle]
+ticks: 859
+hash: 27:8914f6c1b9faa57c09cf2f99f8a863341f3701f4939f65cb23be210a4d1f39bd

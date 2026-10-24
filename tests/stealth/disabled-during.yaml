@@ -11,20 +11,20 @@ map_id: 1021
 seed: 4242
 round: 1
 blue:
-  core_damage: 400
+  core_damage: 200
   techs:
     vortex: [emergency_armor]
   units:
-  - {name: vortex, index: 0, position: {x: 0, y: -30}, exp: 0/200/750, source: joined}
+  - {name: vortex, index: 0, position: {x: 0, y: -30}, exp: 0/600/750, source: joined}
 red:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: -20, y: -60}, exp: 0/125/650, source: joined}
+  - {name: marksman, index: 0, position: {x: -20, y: -60}, source: joined}
   - {name: marksman, index: 1, position: {x: 0, y: -60}, source: joined}
-  - {name: marksman, index: 2, position: {x: 20, y: -60}, exp: 0/25/650, source: joined}
-  - {name: marksman, index: 3, position: {x: -20, y: -80}, exp: 0/25/650, source: joined}
-  - {name: marksman, index: 4, position: {x: 20, y: -80}, exp: 0/25/650, source: joined}
+  - {name: marksman, index: 2, position: {x: 20, y: -60}, source: joined}
+  - {name: marksman, index: 3, position: {x: -20, y: -80}, exp: 0/150/650, source: joined}
+  - {name: marksman, index: 4, position: {x: 20, y: -80}, exp: 0/50/650, source: joined}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: 0, y: 10}]}
-ticks: 92
-hash: 27:849604b4828a465dd23580547ddae65119fb3501edbb73ce7dafe1f475056739
+ticks: 93
+hash: 27:a4abd0051e5dff0e9924616d0128de212673c9e6d7606ad3fb231a6c102261bf

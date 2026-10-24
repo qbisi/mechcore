@@ -42,27 +42,31 @@ red:
 asserts:
 - sql: |
     SELECT tick, team_id FROM units
-    WHERE unit_id = 4 AND tick >= 1357 ORDER BY tick;
+    WHERE unit_id = 4 AND tick >= (SELECT MAX(tick)-2 FROM ticks) ORDER BY tick;
   rows:
-  - [1357, 1]
-  - [1358, 0]
-  - [1359, 0]
+  - [1352, 0]
+  - [1353, 0]
+  - [1354, 0]
 - sql: |
-    WITH sample(tick) AS (VALUES (1357), (1358), (1359))
+    WITH sample(tick) AS (
+        SELECT MAX(tick)-2 FROM ticks UNION ALL
+        SELECT MAX(tick)-1 FROM ticks UNION ALL
+        SELECT MAX(tick) FROM ticks
+    )
     SELECT sample.tick, count(building_id) FROM sample
     LEFT JOIN buildings ON buildings.tick = sample.tick
         AND building_id IN (6, 7, 10)
     GROUP BY sample.tick ORDER BY sample.tick;
   rows:
-  - [1357, 3]
-  - [1358, 0]
-  - [1359, 0]
+  - [1352, 0]
+  - [1353, 0]
+  - [1354, 0]
 - sql: |
     SELECT tick, object__id FROM ev_building_destroyed
-    WHERE tick >= 1357 ORDER BY tick, ordinal;
+    WHERE tick >= (SELECT MAX(tick)-2 FROM ticks) ORDER BY tick, ordinal;
   rows:
-  - [1359, 6]
-  - [1359, 7]
-  - [1359, 10]
-ticks: 1359
-hash: 27:13be4511b447df479a3a5358e35c649aec87ee0574aa943f1105c47734f5c623
+  - [1353, 6]
+  - [1353, 7]
+  - [1353, 10]
+ticks: 1354
+hash: 27:ad066ee75122b0187c61c2b9ed88eff264a6fc56b295604305f5a9926de2d3f3

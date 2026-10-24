@@ -21,5 +21,5 @@ red:
   - {name: marksman, index: 0, position: {x: 0, y: -80}, exp: 0/650/650, source: joined}
   contraptions:
   - {name: shield, index: 1, position: {x: 1, y: -81}, retained: false}
-ticks: 626
-hash: 27:6926b533e2827b0763f8ce85bc3bc67edcdb637b28c4b0190d2b6f3e617be050
+ticks: 590
+hash: 27:e67585f45f834b82119041e62987d8a0058c5ccbb9b5c83132c033f3d7159491

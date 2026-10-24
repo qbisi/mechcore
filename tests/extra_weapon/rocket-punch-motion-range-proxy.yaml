@@ -55,4 +55,4 @@ asserts:
   - [1, idle, null, 1]
   - [2, attack, after, 22]
 ticks: 1231
-hash: 27:dc795a42eef4e842eb85341d957eea9e828a9c08c1c5946f7fd8d0fb917661f2
+hash: 27:b95fccf6e26ec1e099fe42f9aa310fe0fc5a05b8e6e7dd5fab11480bea9c3983

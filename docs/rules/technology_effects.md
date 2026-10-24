@@ -503,8 +503,8 @@ source's most (`group_max_count`, `GetMaxCount`, four) when that is above
 zero, by `FPoint` product. A unit that leaves its group, or joins another,
 takes its group's rate away first (`FightMech.SetGroup`,
 `RemoveMechData`); a group left with fewer than two members takes it from
-every one. Five Vortexes in one group each deal 3218, 1570 with 105% more;
-two pairs each deal 2119, and a Vortex alone 1570. A row that names its
+every one. Five Vortexes in one group each deal 3347, 1633 with 105% more;
+two pairs each deal 2204, and a Vortex alone 1633. A row that names its
 extra skills (`extra_skill_effect`) is refused.
 
 ## Reactive armor technologies
@@ -1766,8 +1766,8 @@ whose own `DisableEffect` it does not mirror.
   `DoDeactive` removes the distance on death even when the unit was already
   disabled. Clearing the dead unit's disabling buff can register it again,
   but its zero distance keeps it out of grouping. Two of five Vortexes with Grid Integration under an
-  Electromagnetic Impact deal 1570 while the three left keep 2668, 70% more;
-  the Impact's 25 seconds over, the two link again as a pair at 2119.
+  Electromagnetic Impact deal 1633 while the three left keep 2776, 70% more;
+  the Impact's 25 seconds over, the two link again as a pair at 2204.
 - **A siege-mode technology's unit leaves its trench.**
   `SiegeModeEffectProvider.DisableEffect` sets its time to its duration
   (`SiegeModeEffectSystem.EndSiegeMode`), so the system's next update, on

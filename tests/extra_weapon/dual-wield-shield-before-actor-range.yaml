@@ -7,7 +7,7 @@ map_id: 1021
 seed: 1723274389
 round: 3
 blue:
-  core_damage: 664
+  core_damage: 597
   officers: [advanced_defensive_tactics, advanced_power_system, fire_badger_specialist]
   techs:
     centurion: [summon_hounds, reactive_armor, melee_mode, range_enhancement, dual_wield, homing_missile]
@@ -15,8 +15,8 @@ blue:
   tower_strengthen_levels: [3, 1]
   units:
   - {name: fire_badger, index: 0, position: {x: 215, y: -100}, source: delivered}
-  - {name: centurion, index: 1, position: {x: -195, y: -75}, level: 5, exp: 0/186/11724, rotated: true, equipment: [absorption_module], source: joined}
-  - {name: sandworm, index: 2, position: {x: -280, y: -170}, level: 9, exp: 0/246/13455, source: joined}
+  - {name: centurion, index: 1, position: {x: -195, y: -75}, level: 5, exp: 0/223/11724, rotated: true, equipment: [absorption_module], source: joined}
+  - {name: sandworm, index: 2, position: {x: -280, y: -170}, level: 9, exp: 0/343/13455, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 255, y: -175}}
   battle_skills:
@@ -60,6 +60,6 @@ asserts:
       AND skill_slot = 2
       AND enabled__state = 'prepare';
   rows:
-  - [205]
-ticks: 509
-hash: 27:3b240ed9b67916e32ff7781653c5b82403c8dd323feba13d2f18604009a5714c
+  - [196]
+ticks: 500
+hash: 27:25595860289ca86d51c5c0ea221bcdcb64daf83f25da455b1f1d303bb1e55f59

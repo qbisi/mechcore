@@ -8,15 +8,15 @@ map_id: 1021
 seed: 868899536
 round: 3
 blue:
-  core_damage: 744
+  core_damage: 748
   officers: [advanced_defensive_tactics, advanced_defensive_tactics, fire_badger_specialist, fortified_farseer]
   techs:
     farseer: [burst_mode, electromagnetic_explosion, aerial_specialization, missile_interceptor, range_enhancement, photon_emission, scanning_radar]
   blueprints: [defense_enhancement_ii]
   units:
-  - {name: fire_badger, index: 0, position: {x: 155, y: -230}, exp: 0/22/1400, source: delivered}
-  - {name: farseer, index: 1, position: {x: 325, y: 265}, exp: 0/273/1800, equipment: [secondary_laser_sight], travelling: true, source: joined}
-  - {name: crawler, index: 2, position: {x: -55, y: -200}, exp: 0/73/450, source: joined}
+  - {name: fire_badger, index: 0, position: {x: 155, y: -230}, exp: 0/33/1400, source: delivered}
+  - {name: farseer, index: 1, position: {x: 325, y: 265}, exp: 0/233/1800, equipment: [secondary_laser_sight], travelling: true, source: joined}
+  - {name: crawler, index: 2, position: {x: -55, y: -200}, exp: 0/67/450, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -31,7 +31,7 @@ red:
     sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
   tower_strengthen_levels: [1, 2]
   units:
-  - {name: sandworm, index: 0, position: {x: 320, y: 80}, level: 5, exp: 0/1258/10421, rotated: true, equipment: [mustang_production_line], travelling: true, source: joined}
+  - {name: sandworm, index: 0, position: {x: 320, y: 80}, level: 5, exp: 0/1262/10421, rotated: true, equipment: [mustang_production_line], travelling: true, source: joined}
   - {name: centurion, index: 1, position: {x: -285, y: -25}, exp: 0/752/2250, source: joined}
   battle_skills:
   - {name: ion_blast, positions: [{x: -25, y: 240}, {x: -100, y: 205}]}
@@ -44,4 +44,4 @@ asserts:
   - [1356, 111848, 27.0]
   - [1357, 97259, 17.0]
 ticks: 1357
-hash: 27:73c522bda1adeb6354cc0c0e94fc6226d9c9a9e5cfb9bcc3ffa6532d012cdf22
+hash: 27:9503c1876b71dcf7cfe061424377e5ac57d33fc6a3996454a95dda673eb08f34

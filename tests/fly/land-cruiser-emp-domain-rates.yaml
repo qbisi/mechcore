@@ -14,7 +14,7 @@ map_id: 1021
 seed: 464345894
 round: 3
 blue:
-  core_damage: 283
+  core_damage: 250
   officers: [advanced_shield_device, advanced_defensive_tactics, aerial_specialist, improved_wraith]
   techs:
     wraith: [high_explosive_ammo, field_maintenance, armor_enhancement, land_cruiser, range_enhancement, floating_artillery_array, degeneration_beam]
@@ -23,7 +23,7 @@ blue:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: wraith, index: 0, position: {x: -75, y: -105}, level: 2, exp: 5070/5070/5070, rotated: true, equipment: [heavy_armor]}
-  - {name: centurion, index: 1, position: {x: -65, y: -135}, level: 6, exp: 0/500/13047, source: joined}
+  - {name: centurion, index: 1, position: {x: -65, y: -135}, level: 6, exp: 0/600/13047, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   contraptions:
@@ -78,5 +78,5 @@ asserts:
   rows:
   - [553, damage, 6, 2, 6815, null, null]
   - [553, buff_applied, 6, 2, null, 1026, 60]
-ticks: 1049
-hash: 27:656245262e95d272bbe34d0aef9893c064d84dd696d12653f2d49e062431fd09
+ticks: 1047
+hash: 27:87ea133250e5c94e48f09bfbaa70fbb05190a0bd6072fb4b5fc7e6df80181869

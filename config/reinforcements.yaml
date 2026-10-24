@@ -109,7 +109,7 @@ cards:
   500002: {"level": 3, "group": 0, "earliest": 0, "latest": 0, "repeated": false, "absent_units": []}
   600002: {"level": 3, "group": 0, "earliest": 0, "latest": 0, "repeated": true, "absent_units": []}
   800001: {"level": 2, "group": 0, "earliest": 0, "latest": 0, "repeated": true, "absent_units": []}
-  1000001: {"level": 2, "group": 0, "earliest": 0, "latest": 0, "repeated": true, "absent_units": []}
+  1000001: {"level": 2, "group": 0, "earliest": 0, "latest": 0, "repeated": false, "absent_units": []}
   1100001: {"level": 2, "group": 0, "earliest": 0, "latest": 0, "repeated": true, "absent_units": []}
   1200001: {"level": 2, "group": 0, "earliest": 3, "latest": 0, "repeated": true, "absent_units": []}
   1200002: {"level": 2, "group": 0, "earliest": 0, "latest": 0, "repeated": true, "absent_units": []}

@@ -15,19 +15,19 @@ blue:
   blueprints: [attack_enhancement, defense_enhancement]
   tower_strengthen_levels: [1, 0]
   units:
-  - {name: void_eye, index: 0, position: {x: 50, y: -90}, level: 2, exp: 395/483/1465}
-  - {name: void_eye, index: 1, position: {x: 150, y: -70}, level: 2, exp: 0/761/1465, equipment: [secondary_laser_sight]}
-  - {name: void_eye, index: 2, position: {x: 240, y: -80}, level: 2, exp: 251/370/1465}
+  - {name: void_eye, index: 0, position: {x: 50, y: -90}, level: 2, exp: 395/471/1465}
+  - {name: void_eye, index: 1, position: {x: 150, y: -70}, level: 2, exp: 0/276/1465, equipment: [secondary_laser_sight]}
+  - {name: void_eye, index: 2, position: {x: 240, y: -80}, level: 2, exp: 251/444/1465}
   - {name: fire_badger, index: 3, position: {x: 105, y: -70}, exp: 875/1007/1400}
-  - {name: fire_badger, index: 4, position: {x: 195, y: -70}, exp: 895/1105/1400}
+  - {name: fire_badger, index: 4, position: {x: 195, y: -70}, exp: 895/1137/1400}
   - {name: crawler, index: 5, position: {x: 50, y: -125}, exp: 450/450/450, rotated: true}
   - {name: crawler, index: 6, position: {x: 240, y: -115}, exp: 450/450/450, rotated: true}
   - {name: phoenix, index: 7, position: {x: 110, y: -150}, level: 2, equipment: [secondary_laser_sight]}
-  - {name: crawler, index: 8, position: {x: -275, y: -20}, exp: 166/182/450}
-  - {name: wasp, index: 9, position: {x: -275, y: -40}, level: 2, exp: 0/165/2028, equipment: [secondary_laser_sight]}
-  - {name: crawler, index: 10, position: {x: 335, y: 210}, exp: 49/49/450, rotated: true}
-  - {name: crawler, index: 11, position: {x: 250, y: -285}, exp: 183/211/450, rotated: true}
-  - {name: fire_badger, index: 12, position: {x: 5, y: -70}, exp: 0/79/1400, source: joined}
+  - {name: crawler, index: 8, position: {x: -275, y: -20}, exp: 166/178/450}
+  - {name: wasp, index: 9, position: {x: -275, y: -40}, level: 2, exp: 0/207/2028, equipment: [secondary_laser_sight]}
+  - {name: crawler, index: 10, position: {x: 335, y: 210}, exp: 49/89/450, rotated: true}
+  - {name: crawler, index: 11, position: {x: 250, y: -285}, exp: 183/218/450, rotated: true}
+  - {name: fire_badger, index: 12, position: {x: 5, y: -70}, exp: 0/39/1400, source: joined}
   - {name: crawler, index: 13, position: {x: 310, y: 35}, travelling: true, source: joined}
   battle_skills:
   - {name: mobile_beacon, positions: [{x: -269, y: -35}, {x: -74, y: -81}, {x: 122, y: -42}]}
@@ -37,23 +37,23 @@ red:
   techs:
     hound: [range_enhancement]
   units:
-  - {name: crawler, index: 0, position: {x: -90, y: -225}, exp: 98/240/450, rotated: true}
-  - {name: crawler, index: 1, position: {x: -5, y: -300}, exp: 149/341/450}
-  - {name: crawler, index: 2, position: {x: 80, y: -225}, exp: 118/288/450, rotated: true}
+  - {name: crawler, index: 0, position: {x: -90, y: -225}, exp: 98/244/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: -5, y: -300}, exp: 149/315/450}
+  - {name: crawler, index: 2, position: {x: 80, y: -225}, exp: 118/266/450, rotated: true}
   - {name: hound, index: 5, position: {x: -120, y: -190}, exp: 515/750/750}
-  - {name: hound, index: 6, position: {x: 120, y: -190}, exp: 216/573/750}
-  - {name: centurion, index: 8, position: {x: -115, y: -165}, exp: 873/1277/2250}
+  - {name: hound, index: 6, position: {x: 120, y: -190}, exp: 216/682/750}
+  - {name: centurion, index: 8, position: {x: -115, y: -165}, exp: 873/1179/2250}
   - {name: hound, index: 9, position: {x: -210, y: -190}, exp: 79/750/750}
-  - {name: centurion, index: 10, position: {x: -205, y: -165}, exp: 238/1792/2250}
-  - {name: centurion, index: 11, position: {x: 115, y: -165}, exp: 377/528/2250}
-  - {name: hound, index: 12, position: {x: 210, y: -190}, exp: 163/284/750}
+  - {name: centurion, index: 10, position: {x: -205, y: -165}, exp: 238/1577/2250}
+  - {name: centurion, index: 11, position: {x: 115, y: -165}, exp: 377/684/2250}
+  - {name: hound, index: 12, position: {x: 210, y: -190}, exp: 163/310/750}
   - {name: hound, index: 13, position: {x: -280, y: -190}, exp: 0/750/750, source: joined}
-  - {name: hound, index: 14, position: {x: 0, y: -190}, exp: 0/661/750, source: joined}
-  - {name: centurion, index: 15, position: {x: 5, y: -165}, exp: 0/964/2250, source: joined}
+  - {name: hound, index: 14, position: {x: 0, y: -190}, exp: 0/694/750, source: joined}
+  - {name: centurion, index: 15, position: {x: 5, y: -165}, exp: 0/635/2250, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
   battle_skills:
   - {name: orbital_bombardment, positions: [{x: -125, y: 52}]}
-ticks: 752
-hash: 27:a036812a4e62785d6e14b62548fc88b5ebb7e96905b2386d86d35563a43d5462
+ticks: 775
+hash: 27:ad75272b829347d99da48e3b53593fed44bca527ccf6133992b8eadac4983256

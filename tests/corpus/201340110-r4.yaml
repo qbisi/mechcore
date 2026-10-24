@@ -10,7 +10,7 @@ map_id: 1032
 seed: 1833688968
 round: 4
 blue:
-  core_damage: 0
+  core_damage: 351
   officers: [quick_supply_specialist]
   techs:
     sabertooth: [secondary_armament, anti_air_missile]
@@ -18,10 +18,10 @@ blue:
   units:
   - {name: hound, index: 0, position: {x: 10, y: -120}, exp: 386/586/750}
   - {name: hound, index: 1, position: {x: -180, y: -140}, exp: 564/645/750}
-  - {name: hound, index: 2, position: {x: -90, y: -120}, exp: 360/642/750}
-  - {name: sabertooth, index: 3, position: {x: -135, y: -95}, level: 2, exp: 0/543/2929}
+  - {name: hound, index: 2, position: {x: -90, y: -120}, exp: 360/592/750}
+  - {name: sabertooth, index: 3, position: {x: -135, y: -95}, level: 2, exp: 0/393/2929}
   - {name: sabertooth, index: 4, position: {x: -225, y: -115}, exp: 947/1300/1300}
-  - {name: sabertooth, index: 5, position: {x: -45, y: -85}, level: 2, exp: 0/2929/2929}
+  - {name: sabertooth, index: 5, position: {x: -45, y: -85}, level: 2, exp: 0/1676/2929}
   - {name: crawler, index: 6, position: {x: -90, y: -155}, exp: 153/194/450, rotated: true}
   - {name: crawler, index: 7, position: {x: 140, y: -205}, exp: 50/151/450, rotated: true}
   - {name: crawler, index: 8, position: {x: -190, y: -285}, exp: 386/450/450, rotated: true}
@@ -34,30 +34,30 @@ blue:
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
-  core_damage: 450
+  core_damage: 0
   officers: [sabertooth_specialist, mass_produced_wraith]
   techs:
     vortex: [range_enhancement]
   blueprints: [attack_enhancement]
   units:
-  - {name: vortex, index: 0, position: {x: 150, y: -70}, exp: 392/411/750}
+  - {name: vortex, index: 0, position: {x: 150, y: -70}, exp: 392/750/750}
   - {name: vortex, index: 1, position: {x: 170, y: -70}, exp: 315/750/750}
   - {name: vortex, index: 2, position: {x: 80, y: -70}, exp: 90/168/750}
-  - {name: fire_badger, index: 3, position: {x: 205, y: -70}, exp: 732/1080/1400}
+  - {name: fire_badger, index: 3, position: {x: 205, y: -70}, exp: 732/1084/1400}
   - {name: fire_badger, index: 4, position: {x: 115, y: -70}, exp: 217/318/1400}
   - {name: crawler, index: 5, position: {x: 160, y: -35}, exp: 14/14/450, rotated: true}
   - {name: crawler, index: 6, position: {x: 210, y: -105}, exp: 112/168/450, rotated: true}
-  - {name: wraith, index: 7, position: {x: 125, y: -95}, level: 2, exp: 246/1225/5070}
+  - {name: wraith, index: 7, position: {x: 125, y: -95}, level: 2, exp: 246/604/5070}
   - {name: crawler, index: 8, position: {x: 80, y: -105}, exp: 62/113/450, rotated: true}
-  - {name: sabertooth, index: 9, position: {x: -195, y: -75}, exp: 548/1300/1300}
+  - {name: sabertooth, index: 9, position: {x: -195, y: -75}, exp: 548/837/1300}
   - {name: mustang, index: 10, position: {x: -245, y: -130}, level: 2, exp: 812/1339/2704}
   - {name: vortex, index: 11, position: {x: 40, y: -70}, exp: 204/377/750}
-  - {name: vortex, index: 12, position: {x: 0, y: -70}, exp: 119/326/750}
+  - {name: vortex, index: 12, position: {x: 0, y: -70}, exp: 119/286/750}
   - {name: crawler, index: 13, position: {x: 40, y: -35}, exp: 25/73/450, rotated: true}
-  - {name: vortex, index: 14, position: {x: -40, y: -70}, level: 2, exp: 0/209/1690, source: joined}
+  - {name: vortex, index: 14, position: {x: -40, y: -70}, level: 2, exp: 0/1690/1690, source: joined}
   - {name: crawler, index: 15, position: {x: -145, y: -20}, exp: 0/11/450, source: joined}
   - {name: wraith, index: 16, position: {x: -45, y: -95}, exp: 0/132/2250, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
-ticks: 1033
-hash: 27:b307b157ead1ea5b67a6c0b2ae3a53948ccaf397996c37743a76c3bf3818eee1
+ticks: 1008
+hash: 27:63851c761f36f59bef1dd9c6c100276217e2c72c72b395e0e019b7bdcd78a567

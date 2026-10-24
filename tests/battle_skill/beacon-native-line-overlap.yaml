@@ -29,11 +29,11 @@ blue:
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -250, y: 100}]}
 red:
-  core_damage: 505
+  core_damage: 507
   officers: [advanced_defensive_tactics, advanced_defensive_tactics, extended_range_sabertooth]
   units:
   - {name: sabertooth, index: 0, position: {x: -95, y: -295}, level: 3, exp: 2315/2363/4630, rotated: true, equipment: [heavy_armor]}
-  - {name: centurion, index: 1, position: {x: 285, y: -205}, level: 8, exp: 0/120/15137, source: joined}
+  - {name: centurion, index: 1, position: {x: 285, y: -205}, level: 8, exp: 0/104/15137, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 135, y: -265}, retained: false}
   battle_skills:
@@ -45,5 +45,5 @@ asserts:
   - [139, 30, attacking, 291235855911, 1075652424930, -17435799416, -29607961256]
   - [140, 30, attacking, 290364071113, 1074172035651, 0, 0]
   - [141, 30, attacking, 290364071113, 1074172035651, 0, 0]
-ticks: 829
-hash: 27:f7d9fa3fce86647b4cbf7c7a439e964fcb2af0b1a6e9620c2bfb4f924412812d
+ticks: 826
+hash: 27:6b62d6cb52d7fb385d6e14bdf9dca2b02c6059517946a85bc4f7ed9f255b1a0c
