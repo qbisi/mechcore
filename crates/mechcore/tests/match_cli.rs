@@ -1014,3 +1014,76 @@ fn names_are_set_when_each_side_joins_and_survive_later_commands() {
     assert_eq!(game.blue.name, "Blue Bot");
     assert_eq!(game.red.name, "Red Bot");
 }
+
+/// A whole match plays completed deployments, including its final decisions,
+/// but never invents a fight for a pending deployment or a concession.
+#[test]
+fn playing_a_match_keeps_each_completed_round() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    let page = directory.path().join("match.html").display().to_string();
+    let pending_yaml = fs::read_to_string(&path).unwrap();
+    let last_actions = pending_yaml.rfind("---\nkind: action").unwrap();
+    fs::write(&path, &pending_yaml[..last_actions]).unwrap();
+    let pending = run(&["play", &path, &page, "--no-open"]).refused();
+    assert!(pending.contains("no completed deployment"), "{pending}");
+    fs::write(&path, pending_yaml).unwrap();
+    for _ in 0..2 {
+        for side in ["blue", "red"] {
+            let view = run(&["match", "show", &path, "--side", side]).ok();
+            if state(&view)["reinforce_offers"].is_array() {
+                decline(&path, side);
+            }
+            run(&["match", "commit", &path, "--side", side]).ok();
+        }
+    }
+    let deployed = fs::read_to_string(&path).unwrap();
+    let last_actions = deployed.rfind("---\nkind: action").unwrap();
+    fs::write(&path, &deployed[..last_actions]).unwrap();
+    let report = run(&["play", &path, &page, "--no-open"]).ok();
+    assert_eq!(report["kind"], "match");
+    assert_eq!(report["rounds"], 2);
+    assert_eq!(report["seed_source"], "match");
+    let read = || {
+        let html = fs::read_to_string(&page).unwrap();
+        let start = html
+            .find(r#"<script id="timeline" type="application/json">"#)
+            .unwrap()
+            + r#"<script id="timeline" type="application/json">"#.len();
+        let end = start + html[start..].find("</script>").unwrap();
+        serde_json::from_str::<Vec<Value>>(&html[start..end]).unwrap()
+    };
+    let rounds = read();
+    assert_eq!(
+        rounds
+            .iter()
+            .map(|r| r["round"].as_i64().unwrap())
+            .collect::<Vec<_>>(),
+        [1, 2]
+    );
+    assert_eq!(
+        report["ticks"].as_u64().unwrap(),
+        rounds
+            .iter()
+            .map(|r| r["ticks"].as_u64().unwrap())
+            .sum::<u64>()
+    );
+    // Ending on round 2's actions keeps that fight as well.
+    let yaml = fs::read_to_string(&path).unwrap();
+    let tail = yaml.rfind("---\nkind: state").unwrap();
+    fs::write(&path, &yaml[..tail]).unwrap();
+    run(&["play", &path, &page, "--no-open"]).ok();
+    assert_eq!(read(), rounds);
+    fs::write(&path, deployed).unwrap();
+    run(&["match", "act", &path, "--side", "blue", "{type: concede}"]).ok();
+    run(&["match", "commit", &path, "--side", "blue"]).ok();
+    let report = run(&["play", &path, &page, "--no-open"]).ok();
+    assert_eq!(report["rounds"], 2);
+    assert_eq!(read(), rounds);
+    let seed = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args(["play", &path, "--seed", "1", "--no-open"])
+        .output()
+        .unwrap();
+    assert_eq!(seed.status.code(), Some(2));
+}

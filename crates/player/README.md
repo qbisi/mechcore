@@ -17,6 +17,12 @@ the library it plays with: [`timeline`](src/timeline.rs) lays any
 Shift), the wheel zooms, a drag pans, and the bar at the bottom seeks, with
 each side's losses marked along it.
 
+A match file plays every completed deployment in one page. The round dropdown
+immediately left of the speed selector chooses a round and starts its timeline
+at tick 1, retaining speed and playback state. A trailing state without decisions
+and a concession have no fight to play. Each round is simulated from its own
+recorded deployment; the page does not advance automatically between rounds.
+
 The download button pauses at the current integer tick and downloads a vector
 image of the battlefield in the current pan and zoom, with the enabled life
 bars, aim lines and damage numbers. It carries the ground, grid, buildings,

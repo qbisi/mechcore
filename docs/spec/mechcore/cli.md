@@ -96,7 +96,7 @@ refused rather than guessed at.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `layout` | yes | `grbr` (transcode), `mcfr` (computation), `fight` (computation) | yes | — | — | yes (computation) | yes |
 | `fight` | yes | `layout` (projection), `grbr` (transcode), `mcfr` (computation) | yes | — | — | yes (computation) | yes |
-| `match` | yes | `grbr` (transcode), `layout` (projection), `fight` and `mcfr` (computation) | — | — | — | — | — |
+| `match` | yes | `grbr` (transcode), `layout` (projection), `fight` and `mcfr` (computation) | — | — | — | yes (computation) | — |
 | `state` | — | — | — | — | — | — | — |
 | `action` | — | — | — | — | — | — | — |
 | `mcfr` | yes | `fight` and `layout` (projection), `grbr` (transcode) | yes | `outcome`, `stats`, `buildings` | yes | yes | — |
@@ -671,10 +671,19 @@ and answers `opened` for whether the system took the request. A page the
 system cannot open is still written: the command does not fail for it, and
 says so on standard error. `--no-open` only writes the page.
 
+A match file simulates each round whose deployment decisions are present,
+excluding concessions and a trailing state with no decisions. It uses the same
+projection as `convert --to layout --round`, and refuses a match with no such
+round or one containing a fight the simulator refuses. It takes its own seed;
+`--seed` is a usage error. The result adds `rounds`, counts `ticks` across all
+played rounds, and reports `seed_source: match`. The page's round dropdown,
+immediately left of speed, selects a round at tick 1 while retaining speed and
+playback state. It does not advance automatically to the next round.
+
 The page's download button pauses at the current tick, rounded down, and downloads
 the battlefield as a standalone vector image at the current pan and zoom.
 It includes the enabled life bars, aim lines and damage numbers, but not the
-HTML controls or roster panels. The image's title names the fight and tick;
+HTML controls or roster panels. The image's title and filename name the fight, round and tick;
 its shapes, ground and effects remain vector elements rather than an embedded
 bitmap. `window.player.snapshot(tick)` returns that image for an integer tick
 from 1 through the recording's last tick.

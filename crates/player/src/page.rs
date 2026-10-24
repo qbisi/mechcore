@@ -15,9 +15,25 @@ const PLAYER: &str = include_str!("../web/player.js");
 ///
 /// Returns an error when the timeline cannot be serialised.
 pub fn page(timeline: &Timeline, title: &str) -> Result<String, serde_json::Error> {
+    render(timeline, title)
+}
+
+/// Writes one offline page containing every round's timeline.
+///
+/// # Errors
+///
+/// Returns an error when the timelines cannot be serialised.
+pub fn match_page(rounds: &[Timeline], title: &str) -> Result<String, serde_json::Error> {
+    render(rounds, title)
+}
+
+fn render(
+    data: &(impl serde::Serialize + ?Sized),
+    title: &str,
+) -> Result<String, serde_json::Error> {
     // Inside a script element only `</` can end the element early, and JSON
     // may write it as `<\/` instead.
-    let data = serde_json::to_string(timeline)?.replace("</", "<\\/");
+    let data = serde_json::to_string(data)?.replace("</", "<\\/");
     Ok(SHELL
         .replace("{{title}}", &escape(title))
         .replace("/*{{style}}*/", STYLE)
