@@ -10,9 +10,12 @@
 'use strict';
 
 (() => {
-  const data = JSON.parse(document.getElementById('timeline').textContent);
-  const TPS = data.ticks_per_second;
-  const LAST = data.ticks;
+  const embedded = JSON.parse(document.getElementById('timeline').textContent);
+  const rounds = Array.isArray(embedded) ? embedded : [embedded];
+  let roundIndex = 0;
+  let data = rounds[0];
+  let TPS = data.ticks_per_second;
+  let LAST = data.ticks;
   const TEAMS = Sprites.TEAMS;
   // The game's English names, as docs/terminology/ lists them.
   const NAMES = {
@@ -66,7 +69,7 @@
   // clip a shot or blow plays in, its length in seconds as played, and for a
   // melee unit the side each clip strikes with. A recording that holds poses
   // drives these from the clip itself; one that does not, from its events.
-  const CLIPS = data.clips || [];
+  let CLIPS = data.clips || [];
   const ACTIONS = {
     marksman: { fire: 'Longbow_FiringA', fireLength: 1.067, charge: 'Longbow_PreAttack', chargeLength: 0.5 },
     arclight: { charge: 'attack2', chargeLength: 0.7 },
@@ -76,7 +79,7 @@
   // chainsaws ahead of it to walk, or lowering them to its sides to fight.
   const STANCE_TICKS = 5;
   const DEFAULT_SWING = [0.25, 0.6];
-  const LONGEST_EFFECT = 3 * TPS;
+  let LONGEST_EFFECT = 3 * TPS;
 
   // ------------------------------------------------------------ the tracks
   function decode(steps, n, scale = 1) {
@@ -114,135 +117,141 @@
     }
     return eased;
   }
-  const byRef = new Map();
-  const ref = (name) => (name ? byRef.get(name) : undefined);
+  function tracks() {
+    const byRef = new Map();
+    const ref = (name) => (name ? byRef.get(name) : undefined);
 
-  const units = data.units.map((u) => {
-    const n = u.to - u.from + 1;
-    const o = {
-      what: 'unit', id: u.id, team: u.team, kind: u.kind, air: u.air, formation: u.formation,
-      radius: u.radius / 100, maxLife: u.max_life, from: u.from, to: u.to, n,
-      X: decode(u.x, n, 0.01), Y: decode(u.y, n, 0.01), Z: decode(u.z, n, 0.01),
-      B: decode(u.body, n), R: u.turret ? decode(u.turret, n) : null,
-      L: decode(u.life, n), S: u.shield ? decode(u.shield, n) : null,
-      Mo: decode(u.motion, n), A: decode(u.aim, n),
-      PC: u.pose ? decode(u.pose.clip, n) : null, PT: u.pose ? decode(u.pose.time, n, 0.001) : null,
-      fires: [], strikes: [], spins: [], hits: [], death: null,
-    };
-    o.D = new Float64Array(n);
-    for (let i = 1; i < n; i++) o.D[i] = o.D[i - 1] + Math.hypot(o.X[i] - o.X[i - 1], o.Z[i] - o.Z[i - 1]);
-    o.stance = stances(o);
-    byRef.set(`u${u.id}`, o);
-    return o;
-  });
-  const buildings = data.buildings.map((b) => {
-    const n = b.to - b.from + 1;
-    const o = {
-      what: 'building', id: b.id, team: b.team, kind: b.kind, group: b.group,
-      x: b.x / 100, z: b.z / 100, width: b.width / 100, depth: b.depth / 100,
-      maxLife: b.max_life, from: b.from, to: b.to, n, L: decode(b.life, n),
-      fires: [], aims: [], hits: [], fall: null,
-      rest: b.team === 0 ? 0 : 1800,
-    };
-    byRef.set(`b${b.id}`, o);
-    return o;
-  });
-  const projectiles = new Map();
-  for (const p of data.projectiles) {
-    const n = p.to - p.from + 1;
-    const o = {
-      what: 'projectile', id: p.id, team: p.team, owner: p.owner, target: p.target, kind: p.kind,
-      from: p.from, to: p.to, n,
-      X: decode(p.x, n, 0.01), Y: decode(p.y, n, 0.01), Z: decode(p.z, n, 0.01), gone: null, by: null,
-    };
-    projectiles.set(p.id, o);
-    byRef.set(`p${p.id}`, o);
-  }
-  const shields = data.shields.map((s) => {
-    const n = s.to - s.from + 1;
-    const o = {
-      what: 'shield', id: s.id, team: s.team, source: s.source, owner: s.owner, from: s.from, to: s.to, n,
-      X: decode(s.x, n, 0.01), Z: decode(s.z, n, 0.01), Rad: decode(s.radius, n, 0.01),
-      E: decode(s.energy, n), Emax: decode(s.max_energy, n), Act: decode(s.active, n),
-      down: null,
-    };
-    byRef.set(`s${s.id}`, o);
-    return o;
-  });
-
-  // ------------------------------------------------------------- the cues
-  const cues = data.cues;
-  const decals = [];
-  const rings = new Set();
-  const fallen = new Map();
-  for (let i = 0; i < cues.length; i++) {
-    const c = cues[i];
-    c.seed = i;
-    switch (c.k) {
-      case 'fire': {
-        const owner = ref(c.by);
-        const projectile = projectiles.get(c.p);
-        if (owner) owner.fires.push(c.t);
-        if (projectile) {
-          projectile.by = owner || null;
-          projectile.splash = (c.splash || 0) / 100;
-          projectile.slot = c.slot;
-          projectile.fired = c.t;
-        }
-        if (owner && owner.what === 'building' && projectile) {
-          const dx = projectile.X[0] - owner.x;
-          const dz = projectile.Z[0] - owner.z;
-          if (dx * dx + dz * dz > 0.01) owner.aims.push([c.t, (Math.atan2(dx, dz) * 1800) / Math.PI]);
-        }
-        break;
-      }
-      case 'hit': {
-        const target = ref(c.at);
-        if (target && target.hits) target.hits.push(c.t);
-        const by = ref(c.by);
-        const spin = by && by.what === 'unit' && c.p === undefined && SPINS[by.kind];
-        if (spin && spin.slot === c.slot) {
-          // a spin's blows land on one tick, and it whirls once about its unit
-          c.spin = true;
-          if (by.spins[by.spins.length - 1] !== c.t) {
-            by.spins.push(c.t);
-            c.whirl = true;
-          }
-        } else if (by && by.what === 'unit' && c.p === undefined && by.strikes[by.strikes.length - 1] !== c.t) {
-          by.strikes.push(c.t);
-        }
-        // a blow that splashes rings its splash once, however many it hits
-        if (c.splash && !rings.has(`${c.by}@${c.t}`)) {
-          rings.add(`${c.by}@${c.t}`);
-          c.ring = c.splash / 100;
-        }
-        break;
-      }
-      case 'gone': {
-        const projectile = projectiles.get(c.p);
-        if (projectile) { projectile.gone = c; c.by = projectile.by; c.splash = projectile.splash; }
-        break;
-      }
-      case 'die': {
-        const unit = ref(`u${c.u}`);
-        if (unit) { unit.death = c; c.unit = unit; }
-        decals.push(c);
-        break;
-      }
-      case 'fall': {
-        const building = ref(`b${c.b}`);
-        if (building) { building.fall = c; c.building = building; fallen.set(c.b, c); }
-        decals.push(c);
-        break;
-      }
-      case 'shield_down': {
-        const shield = ref(`s${c.s}`);
-        if (shield) shield.down = c;
-        break;
-      }
-      default:
+    const units = data.units.map((u) => {
+      const n = u.to - u.from + 1;
+      const o = {
+        what: 'unit', id: u.id, team: u.team, kind: u.kind, air: u.air, formation: u.formation,
+        radius: u.radius / 100, maxLife: u.max_life, from: u.from, to: u.to, n,
+        X: decode(u.x, n, 0.01), Y: decode(u.y, n, 0.01), Z: decode(u.z, n, 0.01),
+        B: decode(u.body, n), R: u.turret ? decode(u.turret, n) : null,
+        L: decode(u.life, n), S: u.shield ? decode(u.shield, n) : null,
+        Mo: decode(u.motion, n), A: decode(u.aim, n),
+        PC: u.pose ? decode(u.pose.clip, n) : null, PT: u.pose ? decode(u.pose.time, n, 0.001) : null,
+        fires: [], strikes: [], spins: [], hits: [], death: null,
+      };
+      o.D = new Float64Array(n);
+      for (let i = 1; i < n; i++) o.D[i] = o.D[i - 1] + Math.hypot(o.X[i] - o.X[i - 1], o.Z[i] - o.Z[i - 1]);
+      o.stance = stances(o);
+      byRef.set(`u${u.id}`, o);
+      return o;
+    });
+    const buildings = data.buildings.map((b) => {
+      const n = b.to - b.from + 1;
+      const o = {
+        what: 'building', id: b.id, team: b.team, kind: b.kind, group: b.group,
+        x: b.x / 100, z: b.z / 100, width: b.width / 100, depth: b.depth / 100,
+        maxLife: b.max_life, from: b.from, to: b.to, n, L: decode(b.life, n),
+        fires: [], aims: [], hits: [], fall: null,
+        rest: b.team === 0 ? 0 : 1800,
+      };
+      byRef.set(`b${b.id}`, o);
+      return o;
+    });
+    const projectiles = new Map();
+    for (const p of data.projectiles) {
+      const n = p.to - p.from + 1;
+      const o = {
+        what: 'projectile', id: p.id, team: p.team, owner: p.owner, target: p.target, kind: p.kind,
+        from: p.from, to: p.to, n,
+        X: decode(p.x, n, 0.01), Y: decode(p.y, n, 0.01), Z: decode(p.z, n, 0.01), gone: null, by: null,
+      };
+      projectiles.set(p.id, o);
+      byRef.set(`p${p.id}`, o);
     }
+    const shields = data.shields.map((s) => {
+      const n = s.to - s.from + 1;
+      const o = {
+        what: 'shield', id: s.id, team: s.team, source: s.source, owner: s.owner, from: s.from, to: s.to, n,
+        X: decode(s.x, n, 0.01), Z: decode(s.z, n, 0.01), Rad: decode(s.radius, n, 0.01),
+        E: decode(s.energy, n), Emax: decode(s.max_energy, n), Act: decode(s.active, n),
+        down: null,
+      };
+      byRef.set(`s${s.id}`, o);
+      return o;
+    });
+
+    // ------------------------------------------------------------- the cues
+    const cues = structuredClone(data.cues);
+    const decals = [];
+    const rings = new Set();
+    const fallen = new Map();
+    for (let i = 0; i < cues.length; i++) {
+      const c = cues[i];
+      c.seed = i;
+      switch (c.k) {
+        case 'fire': {
+          const owner = ref(c.by);
+          const projectile = projectiles.get(c.p);
+          if (owner) owner.fires.push(c.t);
+          if (projectile) {
+            projectile.by = owner || null;
+            projectile.splash = (c.splash || 0) / 100;
+            projectile.slot = c.slot;
+            projectile.fired = c.t;
+          }
+          if (owner && owner.what === 'building' && projectile) {
+            const dx = projectile.X[0] - owner.x;
+            const dz = projectile.Z[0] - owner.z;
+            if (dx * dx + dz * dz > 0.01) owner.aims.push([c.t, (Math.atan2(dx, dz) * 1800) / Math.PI]);
+          }
+          break;
+        }
+        case 'hit': {
+          const target = ref(c.at);
+          if (target && target.hits) target.hits.push(c.t);
+          const by = ref(c.by);
+          const spin = by && by.what === 'unit' && c.p === undefined && SPINS[by.kind];
+          if (spin && spin.slot === c.slot) {
+            // a spin's blows land on one tick, and it whirls once about its unit
+            c.spin = true;
+            if (by.spins[by.spins.length - 1] !== c.t) {
+              by.spins.push(c.t);
+              c.whirl = true;
+            }
+          } else if (by && by.what === 'unit' && c.p === undefined && by.strikes[by.strikes.length - 1] !== c.t) {
+            by.strikes.push(c.t);
+          }
+          // a blow that splashes rings its splash once, however many it hits
+          if (c.splash && !rings.has(`${c.by}@${c.t}`)) {
+            rings.add(`${c.by}@${c.t}`);
+            c.ring = c.splash / 100;
+          }
+          break;
+        }
+        case 'gone': {
+          const projectile = projectiles.get(c.p);
+          if (projectile) { projectile.gone = c; c.by = projectile.by; c.splash = projectile.splash; }
+          break;
+        }
+        case 'die': {
+          const unit = ref(`u${c.u}`);
+          if (unit) { unit.death = c; c.unit = unit; }
+          decals.push(c);
+          break;
+        }
+        case 'fall': {
+          const building = ref(`b${c.b}`);
+          if (building) { building.fall = c; c.building = building; fallen.set(c.b, c); }
+          decals.push(c);
+          break;
+        }
+        case 'shield_down': {
+          const shield = ref(`s${c.s}`);
+          if (shield) shield.down = c;
+          break;
+        }
+        default:
+      }
+    }
+
+    return { byRef, units, buildings, projectiles, shields, cues, decals, fallen };
   }
+  let { byRef, units, buildings, projectiles, shields, cues, decals, fallen } = tracks();
+  const ref = (name) => (name ? byRef.get(name) : undefined);
 
   // ------------------------------------------------------------- sampling
   // The slot of tick `tau` in an object's tracks and how far past it.
@@ -1646,40 +1655,44 @@
   const clock = document.getElementById('clock');
   const seek = document.getElementById('seek');
   const playButton = document.getElementById('play');
-  seek.max = String(LAST);
-  document.getElementById('meta').textContent =
-    `${data.producer} · round ${data.round} · ${LAST} ticks · ${(LAST / TPS).toFixed(1)} s`;
+  function makeRoster() {
+    seek.max = String(LAST);
+    document.getElementById('meta').textContent =
+      `${data.producer} · round ${data.round} · ${LAST} ticks · ${(LAST / TPS).toFixed(1)} s`;
 
-  const roster = [0, 1].map((team) => {
-    const panel = document.getElementById(`side-${team}`);
-    const head = document.createElement('h2');
-    const name = document.createElement('b');
-    name.textContent = TEAMS[team].name;
-    const count = document.createElement('span');
-    head.append(name, count);
-    const list = document.createElement('div');
-    list.className = 'roster';
-    const kinds = new Map();
-    for (const u of units) {
-      if (u.team !== team) continue;
-      if (!kinds.has(u.kind)) kinds.set(u.kind, []);
-      kinds.get(u.kind).push(u);
-    }
-    const rows = [];
-    for (const [kind, members] of kinds) {
-      const row = document.createElement('div');
-      row.className = 'kind';
-      const label = NAMES[kind] || kind;
-      row.title = label;
-      row.append(Sprites.icon(kind, team, 22, false));
-      const n = document.createElement('span');
-      row.append(n);
-      list.append(row);
-      rows.push({ row, n, members, last: '' });
-    }
-    panel.append(head, list);
-    return { count, rows };
-  });
+    return [0, 1].map((team) => {
+      const panel = document.getElementById(`side-${team}`);
+      panel.replaceChildren();
+      const head = document.createElement('h2');
+      const name = document.createElement('b');
+      name.textContent = TEAMS[team].name;
+      const count = document.createElement('span');
+      head.append(name, count);
+      const list = document.createElement('div');
+      list.className = 'roster';
+      const kinds = new Map();
+      for (const u of units) {
+        if (u.team !== team) continue;
+        if (!kinds.has(u.kind)) kinds.set(u.kind, []);
+        kinds.get(u.kind).push(u);
+      }
+      const rows = [];
+      for (const [kind, members] of kinds) {
+        const row = document.createElement('div');
+        row.className = 'kind';
+        const label = NAMES[kind] || kind;
+        row.title = label;
+        row.append(Sprites.icon(kind, team, 22, false));
+        const n = document.createElement('span');
+        row.append(n);
+        list.append(row);
+        rows.push({ row, n, members, last: '' });
+      }
+      panel.append(head, list);
+      return { count, rows };
+    });
+  }
+  let roster = makeRoster();
 
   function updateHud() {
     for (const side of roster) {
@@ -1808,7 +1821,7 @@
       view.dpr = 1;
       hover = null;
       frame();
-      const title = `${document.title} · tick ${value}`;
+      const title = `${document.title} · round ${data.round} · tick ${value}`;
       return svg.snapshot(title, view.w, view.h);
     } finally {
       [ctx, ground, view.dpr, hover] = previous;
@@ -1820,7 +1833,7 @@
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${document.querySelector('#title b').textContent.replace(/[^a-zA-Z0-9_.-]/g, '_')}-tick-${tau}.svg`;
+    link.download = `${document.querySelector('#title b').textContent.replace(/[^a-zA-Z0-9_.-]/g, '_')}-round-${data.round}-tick-${tau}.svg`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
@@ -1829,6 +1842,33 @@
     document.getElementById('speed').value = String(value);
   }
   const SPEEDS = [0.25, 0.5, 1, 2, 4, 8];
+  const roundSelect = document.getElementById('round');
+  roundSelect.hidden = !Array.isArray(embedded);
+  rounds.forEach((round, i) => {
+    const option = document.createElement('option');
+    option.value = String(i);
+    option.textContent = `Round ${round.round}`;
+    roundSelect.append(option);
+  });
+  function selectRound(index) {
+    if (!Number.isInteger(index) || index < 0 || index >= rounds.length) throw new RangeError('unknown round');
+    roundIndex = index;
+    roundSelect.value = String(index);
+    data = rounds[index];
+    TPS = data.ticks_per_second;
+    LAST = data.ticks;
+    CLIPS = data.clips || [];
+    LONGEST_EFFECT = 3 * TPS;
+    ({ byRef, units, buildings, projectiles, shields, cues, decals, fallen } = tracks());
+    tau = 1;
+    hover = null;
+    pointer = null;
+    ground = makeGround();
+    vectorGround = undefined;
+    roster = makeRoster();
+    fit(); drawMarks(); frame(); updateHud();
+  }
+  roundSelect.addEventListener('change', () => selectRound(Number(roundSelect.value)));
 
   playButton.addEventListener('click', () => {
     if (!playing && tau >= LAST) setTau(1);
@@ -1844,6 +1884,7 @@
   }
   window.addEventListener('keydown', (e) => {
     if (e.target instanceof HTMLInputElement && e.target.type !== 'checkbox' && e.target.type !== 'range') return;
+    if (e.target instanceof HTMLSelectElement) return;
     const step = e.shiftKey ? TPS : 1;
     switch (e.key) {
       case ' ': playButton.click(); break;
@@ -1935,7 +1976,10 @@
 
   // For a reader of the page who wants the state, and for checking it.
   window.player = {
-    data, units, buildings, projectiles, shields,
+    get data() { return data; }, get units() { return units; },
+    get buildings() { return buildings; }, get projectiles() { return projectiles; },
+    get shields() { return shields; },
+    rounds, selectRound, get roundIndex() { return roundIndex; },
     seek: (t) => setTau(t), play: () => { playing = true; }, pause: () => { playing = false; },
     get tau() { return tau; }, view, fit, snapshot,
   };

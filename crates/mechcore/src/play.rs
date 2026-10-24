@@ -35,6 +35,8 @@ pub(crate) struct Played {
     /// Who fought it: `game` or `simulator`.
     producer: &'static str,
     ticks: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    rounds: Option<usize>,
     /// The seed the simulator fought with, for a fight it fought here.
     #[serde(skip_serializing_if = "Option::is_none")]
     seed: Option<i32>,
@@ -136,6 +138,7 @@ pub(crate) fn play(
             Record::Memory,
             seed,
         )),
+        Kind::Match => play_match(&bytes, input, &page, seed),
         Kind::Fight => {
             if seed.is_some() {
                 return Err(Failure::usage(
@@ -158,6 +161,87 @@ pub(crate) fn play(
             other.takes()
         ))),
     }
+}
+
+/// Projects each completed deployment, keeping each fight's timeline in memory.
+fn play_match(
+    bytes: &[u8],
+    input: &Path,
+    page: &Path,
+    seed: Option<i32>,
+) -> Result<Played, Failure> {
+    if seed.is_some() {
+        return Err(Failure::usage(
+            "a match states its own seed; --seed belongs to a layout",
+        ));
+    }
+    let stated = mechcore_document::opening::stated(bytes)
+        .map_err(Failure::refused)?
+        .ok_or_else(|| Failure::refused("the document holds no match"))?;
+    crate::r#match::warn_build(&stated.build);
+    let economy = mechcore_document::economy::Economy::embedded().map_err(Failure::failed)?;
+    let reinforcement = mechcore_document::opening::verify(economy, &stated)
+        .and_then(|opening| mechcore_document::reinforcement::verify(economy, &stated, &opening))
+        .map_err(Failure::refused)?;
+    let mut timelines = Vec::new();
+    for (index, turn) in stated.turns.iter().enumerate() {
+        // A trailing state opens deployment; a concession ends it without a fight.
+        if (index + 1 == stated.turns.len() && !stated.ends_on_actions)
+            || turn
+                .actions
+                .blue
+                .iter()
+                .chain(&turn.actions.red)
+                .any(|action| matches!(action, mechcore_document::r#match::Action::Concede))
+        {
+            continue;
+        }
+        let layout = crate::convert::project_match(
+            economy,
+            &turn.state,
+            &turn.actions,
+            turn.round,
+            stated.map_id,
+            stated.seed,
+            reinforcement.declined(turn),
+        )
+        .map_err(Failure::refused)?
+        .layout;
+        let yaml = mechcore_document::canonical_yaml(layout).map_err(Failure::failed)?;
+        let result = mechcore_simulation::simulate_document(yaml.as_bytes(), Record::Memory, None)
+            .map_err(|error| Failure::unsimulated(&error))?;
+        let recording = result
+            .recording
+            .ok_or_else(|| Failure::failed("the simulator kept no recording of the fight"))?;
+        timelines.push(
+            mechcore_player::timeline(&recording, None).map_err(|error| {
+                Failure::failed(format!("cannot read round {}: {error}", turn.round))
+            })?,
+        );
+    }
+    if timelines.is_empty() {
+        return Err(Failure::refused(
+            "this match holds no completed deployment to play",
+        ));
+    }
+    let title = input
+        .file_stem()
+        .map_or_else(|| "match".into(), |stem| stem.to_string_lossy());
+    let html = mechcore_player::match_page(&timelines, &title)
+        .map_err(|error| Failure::failed(format!("cannot write the page: {error}")))?;
+    std::fs::write(page, html)
+        .map_err(|error| Failure::failed(format!("cannot write {}: {error}", page.display())))?;
+    Ok(Played {
+        schema: SCHEMA,
+        page: page.display().to_string(),
+        kind: Kind::Match.name(),
+        producer: "simulator",
+        ticks: timelines.iter().map(|timeline| timeline.ticks).sum(),
+        rounds: Some(timelines.len()),
+        seed: Some(stated.seed),
+        seed_source: Some("match"),
+        opened: false,
+    })
 }
 
 /// Lays a fight out for the page and writes the page.
@@ -184,6 +268,7 @@ fn written(
         kind: kind.name(),
         producer: recording.producer().as_str(),
         ticks: recording.terminal_tick(),
+        rounds: None,
         seed: fought.map(|(seed, _)| seed),
         seed_source: fought.map(|(_, source)| source),
         opened: false,

@@ -148,7 +148,7 @@ impl Kind {
     pub(crate) const fn verbs(self) -> &'static [&'static str] {
         match self {
             Self::Layout | Self::Fight => &["verify", "convert", "diff", "play", "format"],
-            Self::Match => &["verify", "convert"],
+            Self::Match => &["verify", "convert", "play"],
             Self::State | Self::Action => &[],
             Self::Mcfr => &["verify", "convert", "diff", "show", "query", "play"],
             Self::Grbr => &["convert"],
