@@ -1898,7 +1898,7 @@ impl Simulation {
             // has come into range. A move state entered on this update is not
             // updated on it.
             if let Flow::Next = self.move_into_cooled_target(actor_id) {
-                self.follow_command(actor_id, None);
+                self.follow_command(actor_id);
             }
         }
         Ok(())

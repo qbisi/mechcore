@@ -1067,7 +1067,7 @@ impl Simulation {
             }
             // A command is active without a target: every motion state
             // goes to or stays in `MotionMoveState`, which walks the path.
-            self.follow_command(actor_id, None);
+            self.follow_command(actor_id);
             return Ok(());
         }
         let Some(target) = target else {
@@ -1561,7 +1561,7 @@ impl Simulation {
     ) {
         let state = self.actors[&actor_id].motion.state;
         if !in_range {
-            self.follow_command(actor_id, aimed);
+            self.follow_command(actor_id);
             return;
         }
         match state {
@@ -1739,13 +1739,14 @@ impl Simulation {
             actor.motion.next_speed_q32 = 0;
             actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
         }
-        if let Some(lock_rotation) = self.lock_rotation(actor_id) {
+        if self.actors[&actor_id].skills.main.lock_target.is_some() {
             // CalculateTargetDirection uses a valid attack target ahead of
             // GetLockTarget, and retains that lock's bearing even after death.
             let rotation = if target.is_some_and(|target| self.fight_actor_is_alive(target)) {
                 target_rotation_q32
             } else {
-                lock_rotation
+                let (dx, dz) = self.calculate_target_direction(actor_id);
+                direction_degrees_q32_raw(dx, dz)
             };
             self.track_target_in_range(actor_id, Some(rotation), false);
         } else {
@@ -2089,16 +2090,55 @@ impl Simulation {
         self.track_target_in_range(actor_id, Some(rotation), false);
     }
 
-    /// Where a unit's retained lock stands, alive or dead: what
-    /// `CalculateTargetDirection` faces once the attack target is not valid.
-    fn lock_rotation(&self, actor_id: u64) -> Option<i64> {
+    /// `MotionController.CalculateTargetDirection`: a null attacker lock
+    /// selects velocity; otherwise a skill's valid attack target overrides
+    /// its retained lock. A mech that searches for itself is the attacker,
+    /// so its own lock supplies the direction without a skill override.
+    pub(in crate::fight) fn calculate_target_direction(&self, actor_id: u64) -> (i64, i64) {
         let actor = &self.actors[&actor_id];
-        let lock = actor.skills.main.lock_target?;
-        let view = self.fight_actor(lock)?;
-        Some(direction_degrees_q32_raw(
-            view.x_q32.saturating_sub(actor.x_q32),
-            view.z_q32.saturating_sub(actor.z_q32),
-        ))
+        let main = &actor.skills.main;
+        let (lock, attack_target) = match actor.motion.attacker {
+            SkillSlot::Main if main.mech_searches() => (main.unit_lock(), None),
+            SkillSlot::Main => {
+                let slot = if main.standalone() {
+                    main.group.as_ref().map_or(0, |group| group.motion_slot)
+                } else {
+                    0
+                };
+                (main.slot_lock(slot), main.group_attack_target(slot))
+            }
+            SkillSlot::Extra(index) => {
+                let skill = &actor.skills.extras[index].skill;
+                (skill.lock_target, skill.attack_target())
+            }
+        };
+        let target = lock.map(|lock| {
+            attack_target
+                .filter(|target| {
+                    self.fight_actor(*target).is_some_and(|target| {
+                        target.alive
+                            && self
+                                .skill_attacker(SkillRef {
+                                    owner: FightActorRef::Unit(actor_id),
+                                    slot: actor.motion.attacker,
+                                })
+                                .is_some_and(|source| source.targets.accepts(target.domain))
+                    })
+                })
+                .unwrap_or(lock)
+        });
+        target.and_then(|target| self.fight_actor(target)).map_or(
+            (
+                actor.motion.current_velocity_x_q32,
+                actor.motion.current_velocity_z_q32,
+            ),
+            |view| {
+                (
+                    view.x_q32.saturating_sub(actor.x_q32),
+                    view.z_q32.saturating_sub(actor.z_q32),
+                )
+            },
+        )
     }
 
     /// `MotionAttackState` with a target in range, and the skill it starts:
@@ -2270,7 +2310,8 @@ impl Simulation {
         let target_rotation_q32 = if self.fight_actor_is_alive(target) {
             target_rotation_q32
         } else {
-            self.lock_rotation(actor_id).or(target_rotation_q32)
+            let (dx, dz) = self.calculate_target_direction(actor_id);
+            turn_direction_q32(dx, dz)
         };
         self.track_target_in_range(actor_id, target_rotation_q32, clear_hold_after_motion);
         Ok(())
@@ -2389,7 +2430,7 @@ impl Simulation {
     /// `MotionIdleState` and `MotionAttackState` change to
     /// `MotionMoveState`, which is not updated the tick it is entered, and
     /// `MotionMoveState` walks towards the command's point.
-    pub(in crate::fight) fn follow_command(&mut self, actor_id: u64, aimed: Option<(i64, i64)>) {
+    pub(in crate::fight) fn follow_command(&mut self, actor_id: u64) {
         let state = self.actors[&actor_id].motion.state;
         if state != MotionState::Moving && self.transits(actor_id, state, MotionState::Moving) {
             self.begin_transition(actor_id, state, MotionState::Moving);
@@ -2408,17 +2449,11 @@ impl Simulation {
         // `NormalRotate` keeps the current attacker's target direction even
         // when the command moves away from its range. With no lock it uses
         // velocity instead; zero direction preserves the weapon's facing.
+        let (dx, dz) = self.calculate_target_direction(actor_id);
         let actor = self
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        let (dx, dz) = aimed.map_or(
-            (
-                actor.motion.current_velocity_x_q32,
-                actor.motion.current_velocity_z_q32,
-            ),
-            |(x, z)| (x.saturating_sub(actor.x_q32), z.saturating_sub(actor.z_q32)),
-        );
         if dx != 0 || dz != 0 {
             actor.rotate_weapons_towards(direction_degrees_q32_raw(dx, dz));
         }

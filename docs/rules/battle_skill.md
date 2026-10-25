@@ -484,6 +484,10 @@ which scores from that facing. It then takes the place of the unit's
   fight stops, an attacking unit changes to moving, and a unit on the beacon
   goes on moving and turning to where it moves until the fight ends, which
   idles it ([combat.md](combat.md)).
+- A retained lock still supplies the direction when the skill has no valid
+  attack target, including an aircraft locked by a ground-only unit. With a
+  lock, a valid attack target takes precedence; without one the weapons
+  continue to face the lock independently of the path's direction.
 - With no lock, `MotionMoveState.NormalRotate` turns its weapons to its
   velocity, and a unit standing still turns them nothing.
   This includes the body of a standalone weapon batch whose guns all cool
@@ -693,6 +697,9 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
   extra attacker holds the motion outside its range, reversing the turn
   from its velocity direction:
   `tests/battle_skill/beacon-keeps-extra-attacker-direction.yaml`.
+- An Arclight on a beacon retains an aircraft lock after its tower target
+  falls and turns its turret towards that lock while its skill has no attack
+  target: `tests/corpus/436-r9.yaml`.
 - A Mountain with every gun cooling and no lock turns its body towards
   velocity while following a beacon; its weapon arcs follow the body:
   `tests/battle_skill/beacon-cooling-batch-turns-to-velocity.yaml`.
@@ -914,6 +921,10 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
   `SkillAttackRangeChecker.IsActorInAttackRange`.
 - A retained dead lock still supplies the turn direction after the skill's
   attack target dies: `MotionController.CalculateTargetDirection`,
+  `FightSkill.TryGetValidAttackTarget`, `FightSkill.GetLockTarget`.
+- A retained lock supplies the turn direction when no valid attack target
+  exists, including a ground-only skill locking an aircraft:
+  `MotionController.CalculateTargetDirection`,
   `FightSkill.TryGetValidAttackTarget`, `FightSkill.GetLockTarget`.
 - Outside attack range, a command's moving state still uses the current
   attacker's target direction:
