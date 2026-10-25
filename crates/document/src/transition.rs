@@ -220,6 +220,7 @@ pub fn step_placing(
         }
         Action::BuyUnit {
             unit,
+            level,
             position,
             rotated,
         } => {
@@ -231,19 +232,31 @@ pub fn step_placing(
                 ));
             }
             let price = purse.buy(*unit).ok_or(Unsettled::Unpriced("unit"))?;
-            let level = purse.shop_level(*unit);
+            let available = purse.shop_level(*unit);
+            let level = level.unwrap_or(available);
+            let base = available - purse.raised;
+            if !(base..=available).contains(&level) {
+                return Err(Unsettled::Refused("buying a level the shop cannot provide"));
+            }
             let upgrade = purse.upgrade(*unit).ok_or(Unsettled::Unpriced("upgrade"))?;
             // A unit that arrives above level 1 is paid for as a purchase plus
             // one upgrade per level above the first.
             next.supply -= price + (level - 1) * upgrade;
             next.shop.buys_remaining -= 1;
-            place(&mut next, *unit, level, price, &mut |_, _| Some(*position))?;
+            if let Some(position) = position {
+                place(&mut next, *unit, level, price, &mut |_, _| Some(*position))?;
+            } else {
+                if *rotated {
+                    return Err(Unsettled::Refused("a default purchase cannot be rotated"));
+                }
+                place(&mut next, *unit, level, price, placement)?;
+            }
             // The position is where the formation's moves this round end, and
             // one that ends on a flank arrived there from the main half.
             let created = next.next_index.unit - 1;
             let formation = &mut formation_mut(&mut next, created)?.unit;
             formation.rotated = Some(*rotated).filter(|rotated| *rotated);
-            formation.travelling = Region::of(*position).is_flank().then_some(true);
+            formation.travelling = Region::of(formation.position).is_flank().then_some(true);
         }
         Action::UpgradeUnit { index } => {
             let formation = formation_mut(&mut next, *index)?;
@@ -753,6 +766,54 @@ pub fn deployed(
     Ok(position)
 }
 
+/// Checks native prerequisites when accepting a new operation. Historical
+/// actions can still be evaluated by `step_placing` before normalization.
+///
+/// # Errors
+/// Refuses research without its formation type, repeated research, and a
+/// purchase level other than the current shop level.
+pub fn check_operation(
+    economy: &Economy,
+    state: &SideState,
+    action: &Action,
+) -> Result<(), Unsettled> {
+    match action {
+        Action::UpgradeTechnology { unit, tech } => {
+            let (name, _) = unit_type_from_id(*unit).ok_or(Unsettled::Unpriced("unit"))?;
+            if !state.units.iter().any(|entry| entry.unit.type_name == name) {
+                return Err(Unsettled::Refused(
+                    "researching without a formation of this type",
+                ));
+            }
+            if state.techs.contains(tech) {
+                return Err(Unsettled::Refused(
+                    "researching a technology already active",
+                ));
+            }
+        }
+        Action::BuyUnit {
+            unit,
+            level: Some(level),
+            ..
+        } => {
+            let mut purse = Purse::new(economy, &state.officers);
+            purse.raised = state
+                .energy_tower_skills
+                .iter()
+                .filter_map(|id| economy.energy_tower_skill(*id))
+                .map(|row| row.shop_unit_level)
+                .sum();
+            if *level != purse.shop_level(*unit) {
+                return Err(Unsettled::Refused(
+                    "buying a level the native shop cannot provide",
+                ));
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
 /// Refuses a decision that puts something where the board already has
 /// something, as the game does.
 ///
@@ -771,8 +832,9 @@ pub fn check_place(state: &SideState, action: &Action) -> Result<(), Unsettled> 
     let free = match action {
         Action::BuyUnit {
             unit,
-            position,
+            position: Some(position),
             rotated,
+            ..
         } => {
             let (type_name, _) = unit_type_from_id(*unit).ok_or(Unsettled::Unpriced("unit"))?;
             crate::landing::unit_fits(state, state.next_index.unit, type_name, *position, *rotated)
@@ -1509,6 +1571,35 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         ));
     }
 
+    /// A canonical purchase can name the level bought before Elite Recruitment
+    /// even when the activation is written first. Historical purchases still
+    /// use the shop level at their position in the sequence.
+    #[test]
+    fn a_purchase_level_distinguishes_the_two_elite_recruitment_prices() {
+        let economy = Economy::embedded().unwrap();
+        let state = SideState {
+            energy_tower_skills: vec![4],
+            ..solvent()
+        };
+        let buy = |level| Action::BuyUnit {
+            unit: 1,
+            level,
+            position: Some(Position { x: 0, y: -160 }),
+            rotated: false,
+        };
+        let low = step(economy, &state, &buy(Some(1))).unwrap();
+        let high = step(economy, &state, &buy(Some(2))).unwrap();
+        let old = step(economy, &state, &buy(None)).unwrap();
+        assert_eq!(low.units[0].unit.level, None);
+        assert_eq!(high.units[0].unit.level, Some(2));
+        assert_eq!(old, high);
+        assert_eq!(
+            low.supply - high.supply,
+            economy.unit(1).unwrap().upgrade_supply
+        );
+        assert!(step(economy, &state, &buy(Some(3))).is_err());
+    }
+
     /// Two Enhancement Modules on one formation both take their 100 off its
     /// level price, and the price stops at zero rather than paying back.
     #[test]
@@ -2243,7 +2334,8 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         };
         let bought = Action::BuyUnit {
             unit: 9,
-            position: Position { x: 0, y: -160 },
+            level: None,
+            position: Some(Position { x: 0, y: -160 }),
             rotated: false,
         };
         let next = step(economy, &state, &bought).unwrap();
@@ -2766,7 +2858,8 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let bought = [
             Action::BuyUnit {
                 unit: 1,
-                position: Position { x: 0, y: -160 },
+                level: None,
+                position: Some(Position { x: 0, y: -160 }),
                 rotated: false,
             },
             Action::MoveUnit {

@@ -20,23 +20,15 @@ use crate::layout::{
 };
 use crate::r#match::{Action, Release, SideState, SkillTarget, State, TurnActions};
 
-/// A deployment and its layout, including history that the layout cannot keep.
+/// A deployment state, its projected layout, and any projection warnings.
 pub struct Deployment {
     pub state: State,
     pub layout: Layout,
     pub warnings: Vec<String>,
 }
 
-/// Whether this decision activates Phantom Ray's Stealth Cloak.
-pub(crate) const fn activates_cloak(action: &Action) -> bool {
-    matches!(action, Action::UpgradeTechnology { tech: 3925, .. })
-}
-
-/// Projects an ordered deployment, reporting histories a layout cannot preserve.
-///
-/// A layout activates technologies before deploying formations. Native Cloak
-/// controllers initialized after travelling begins do not receive the same
-/// timer reset, so that opposite order cannot be reproduced from a layout.
+/// Projects an ordered deployment, warning when historical Cloak acquisition
+/// follows flank movement and cannot be represented by the resulting layout.
 ///
 /// # Errors
 ///
@@ -51,21 +43,19 @@ pub fn deployment(
     declined: Option<i32>,
 ) -> Result<Deployment, String> {
     let mut warnings = Vec::new();
-    let mut deploy = |state: &SideState, actions: &[Action], red| {
-        let mut position = state.clone();
+    let mut deploy = |opened: &SideState, actions: &[Action], red| {
+        let mut position = opened.clone();
         let mut affected = std::collections::BTreeSet::new();
-        let mut placement = crate::landing::placement(red);
         for action in actions {
-            crate::transition::check_place(&position, action).map_err(|error| error.to_string())?;
-            let next = crate::transition::step_placing(
+            let next = crate::transition::deployed(
                 economy,
                 &position,
-                action,
+                std::slice::from_ref(action),
+                red,
                 declined,
-                &mut placement,
             )
             .map_err(|error| error.to_string())?;
-            if activates_cloak(action) {
+            if matches!(action, Action::UpgradeTechnology { tech: 3925, .. }) {
                 affected.extend(
                     position
                         .units
@@ -87,7 +77,7 @@ pub fn deployment(
         if !affected.is_empty() {
             let side = if red { "red" } else { "blue" };
             warnings.push(format!(
-                "round {round} {side}: Stealth Cloak activated after flank deployment of Phantom Ray formations {affected:?}. The simulator always settles with technologies activated before flank deployment and may differ from the native game. Actual settlement follows the selected backend's rules. Activate technologies before flank deployment to benefit from them earlier."
+                "round {round} {side}: Stealth Cloak activated after flank deployment of Phantom Ray formations {affected:?}. The layout activates technologies before flank deployment and cannot preserve that native initialization order. Format the match to place research before movement."
             ));
         }
         Ok::<_, String>(position)
@@ -413,7 +403,7 @@ mod tests {
     }
 
     #[test]
-    fn deployment_warns_only_when_cloak_follows_travelling() {
+    fn deployment_warns_for_historical_cloak_after_flank_movement() {
         let economy = crate::economy::Economy::embedded().unwrap();
         let opening = State {
             blue: SideState {
@@ -432,7 +422,8 @@ mod tests {
         };
         let bought = Action::BuyUnit {
             unit: 25,
-            position: crate::layout::Position { x: -100, y: -160 },
+            level: None,
+            position: Some(crate::layout::Position { x: -100, y: -160 }),
             rotated: false,
         };
         let moved = Action::MoveUnit {

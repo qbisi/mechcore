@@ -33,7 +33,7 @@ const PREPARE_TIME: i32 = 30;
 /// The game's ticks per second, the resolution of a decision's `LocalTime`.
 const TICKS_PER_SECOND: i64 = 20;
 
-/// Writes `stated` as a replay `convert --to match` reads back as the same match.
+/// Writes `stated` as a replay `convert --to match` reads back in standard form.
 ///
 /// # Errors
 ///
@@ -692,6 +692,13 @@ fn write_actions(
     sign: i32,
     deploy_time: i32,
 ) -> Result<(), String> {
+    let actions = native_actions(
+        economy,
+        opened,
+        actions,
+        turn.state.reinforce_offers.as_ref(),
+        sign < 0,
+    )?;
     let mut records: Vec<(&str, String)> = Vec::new();
     let offers = turn.state.reinforce_offers.as_ref();
     let declined = offers.map(|offers| offers.refund);
@@ -700,7 +707,7 @@ fn write_actions(
     // holds only decisions the board allows in its order, so each is recorded
     // where it stands.
     let mut position = opened.clone();
-    for action in actions {
+    for action in &actions {
         let moved = match action {
             Action::MoveUnit { index, .. } => position
                 .units
@@ -711,7 +718,6 @@ fn write_actions(
             _ => 0,
         };
         let context = Context {
-            created: position.next_index.unit,
             moved,
             offers,
             sign,
@@ -745,6 +751,86 @@ fn write_actions(
     }
     write_records(xml, &records, deploy_time);
     Ok(())
+}
+
+/// Expand historical purchase placement into native purchase and movement.
+/// Every other operation retains its match position; this encoder schedules
+/// neither research nor Energy Tower activations.
+fn native_actions(
+    economy: &Economy,
+    opened: &SideState,
+    actions: &[Action],
+    offers: Option<&crate::r#match::Offers>,
+    red: bool,
+) -> Result<Vec<Action>, String> {
+    let mut native = NativeDeployment {
+        economy,
+        position: opened.clone(),
+        actions: Vec::new(),
+        declined: offers.map(|offers| offers.refund),
+        red,
+    };
+    for action in actions {
+        match action {
+            Action::BuyUnit {
+                unit,
+                level,
+                position,
+                rotated,
+            } => {
+                let type_name = crate::catalog::unit_type_from_id(*unit)
+                    .ok_or("unknown purchase unit")?
+                    .0;
+                let landing = crate::landing::landing(&native.position, type_name, red)
+                    .ok_or("native purchase has no default landing")?;
+                let index = native.position.next_index.unit;
+                native.push(Action::BuyUnit {
+                    unit: *unit,
+                    level: *level,
+                    position: Some(landing),
+                    rotated: false,
+                })?;
+                if let Some(position) = position {
+                    if *position != landing || *rotated {
+                        native.push(Action::MoveUnit {
+                            index,
+                            position: *position,
+                            rotated: *rotated,
+                        })?;
+                    }
+                } else if *rotated {
+                    return Err("a default purchase cannot be rotated".into());
+                }
+            }
+            _ => native.push(action.clone())?,
+        }
+    }
+    Ok(native.actions)
+}
+
+struct NativeDeployment<'a> {
+    economy: &'a Economy,
+    position: SideState,
+    actions: Vec<Action>,
+    declined: Option<i32>,
+    red: bool,
+}
+
+impl NativeDeployment<'_> {
+    fn push(&mut self, action: Action) -> Result<(), String> {
+        crate::transition::check_operation(self.economy, &self.position, &action)
+            .map_err(|error| format!("native {action:?}: {error}"))?;
+        self.position = crate::transition::deployed(
+            self.economy,
+            &self.position,
+            std::slice::from_ref(&action),
+            self.red,
+            self.declined,
+        )
+        .map_err(|error| format!("native {action:?}: {error}"))?;
+        self.actions.push(action);
+        Ok(())
+    }
 }
 
 /// Writes a round's records on the clock a player would have taken them on.
@@ -785,8 +871,6 @@ fn deploy_time(stated: &Stated) -> i32 {
 
 /// What recording one decision needs from the position it is taken from.
 struct Context<'a> {
-    /// The index a purchase creates.
-    created: i32,
     /// The unit type a move carries.
     moved: i32,
     offers: Option<&'a crate::r#match::Offers>,
@@ -817,26 +901,15 @@ fn action_records(
         Action::ChooseAdvanceTeam { .. } => {
             return Err("a deployment round takes an opening, and only round 0 does".into());
         }
-        // The game places a purchase itself, where the deployment area is
-        // free, so a move puts it where the match does; conversion folds the
-        // move back into the purchase.
-        Action::BuyUnit {
-            unit,
-            position,
-            rotated,
-        } => vec![
-            (
-                "PAD_BuyUnit",
-                format!(
-                    "<UID>{unit}</UID><position>{}</position><UIDX>-1</UIDX>",
-                    board(*position, sign)
-                ),
+        // `native_actions` has separated the native landing and the move, with
+        // unit technology acquisition between them.
+        Action::BuyUnit { unit, position, .. } => vec![(
+            "PAD_BuyUnit",
+            format!(
+                "<UID>{unit}</UID><position>{}</position><UIDX>-1</UIDX>",
+                board(position.unwrap_or(Position { x: 0, y: 0 }), sign)
             ),
-            (
-                "PAD_MoveUnit",
-                move_record(*unit, context.created, *position, *rotated, sign),
-            ),
-        ],
+        )],
         Action::UpgradeUnit { index } => vec![(
             "PAD_UpgradeUnit",
             format!("<UIDX>{index}</UIDX><UID>0</UID>"),
@@ -918,4 +991,138 @@ fn move_record(unit: i32, index: i32, position: Position, rotated: bool, sign: i
          <superDeployRecord>false</superDeployRecord></MoveUnitData></moveUnitDatas>",
         board(position, sign)
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::r#match::Allowances;
+
+    fn opened() -> SideState {
+        SideState {
+            supply: 10_000,
+            unlocked_units: (1..=32).collect(),
+            shop: Allowances {
+                buys_remaining: 2,
+                unlocks_remaining: 1,
+                contraptions_remaining: 8,
+            },
+            ..SideState::default()
+        }
+    }
+
+    fn buy(unit: i32, level: Option<i32>, x: i32, y: i32) -> Action {
+        Action::BuyUnit {
+            unit,
+            level,
+            position: Some(Position { x, y }),
+            rotated: false,
+        }
+    }
+
+    fn native(actions: &[Action]) -> Vec<Action> {
+        let economy = Economy::embedded().unwrap();
+        let opened = opened();
+        let lowered = native_actions(economy, &opened, actions, None, false).unwrap();
+        assert_eq!(
+            crate::transition::deployed(economy, &opened, &lowered, false, None).unwrap(),
+            crate::transition::deployed(economy, &opened, actions, false, None).unwrap()
+        );
+        lowered
+    }
+
+    #[test]
+    fn native_encoding_retains_research_position_after_historical_movement() {
+        let lowered = native(&[
+            buy(25, Some(1), 310, 50),
+            Action::UpgradeTechnology {
+                unit: 25,
+                tech: 3925,
+            },
+        ]);
+        assert!(matches!(
+            lowered.as_slice(),
+            [
+                Action::BuyUnit {
+                    position: Some(_),
+                    ..
+                },
+                Action::MoveUnit { index: 0, .. },
+                Action::UpgradeTechnology { tech: 3925, .. },
+            ]
+        ));
+    }
+
+    #[test]
+    fn default_purchase_research_and_movement_are_encoded_in_match_order() {
+        let actions = [
+            Action::BuyUnit {
+                unit: 6,
+                level: Some(1),
+                position: None,
+                rotated: false,
+            },
+            Action::UpgradeTechnology { unit: 6, tech: 206 },
+            Action::MoveUnit {
+                index: 0,
+                position: Position { x: 310, y: 50 },
+                rotated: false,
+            },
+        ];
+        let encoded = native(&actions);
+        assert!(matches!(
+            encoded[0],
+            Action::BuyUnit {
+                position: Some(_),
+                ..
+            }
+        ));
+        assert_eq!(&encoded[1..], &actions[1..]);
+    }
+
+    #[test]
+    fn historical_omitted_levels_keep_their_elite_recruitment_position() {
+        let lowered = native(&[
+            buy(10, None, -100, -160),
+            Action::ActiveEnergyTowerSkill { skill: 4 },
+            buy(15, Some(2), 100, -160),
+        ]);
+        assert!(matches!(lowered[0], Action::BuyUnit { level: None, .. }));
+        assert!(matches!(
+            lowered[2],
+            Action::ActiveEnergyTowerSkill { skill: 4 }
+        ));
+    }
+
+    #[test]
+    fn native_encoding_refuses_a_purchase_level_the_current_shop_cannot_sell() {
+        let error = native_actions(
+            Economy::embedded().unwrap(),
+            &opened(),
+            &[
+                Action::ActiveEnergyTowerSkill { skill: 4 },
+                buy(10, Some(1), -100, -160),
+            ],
+            None,
+            false,
+        )
+        .unwrap_err();
+        assert!(error.contains("native shop cannot provide"));
+    }
+
+    #[test]
+    fn native_encoding_refuses_research_before_its_formation_exists() {
+        let error = native_actions(
+            Economy::embedded().unwrap(),
+            &opened(),
+            &[
+                Action::UpgradeTechnology { unit: 6, tech: 206 },
+                buy(6, Some(1), -100, -160),
+            ],
+            None,
+            false,
+        )
+        .unwrap_err();
+        assert!(error.contains("without a formation"));
+    }
 }

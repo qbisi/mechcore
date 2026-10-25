@@ -10,11 +10,11 @@ mechcore convert <match.yaml> --to grbr <replay.grbr> [--force]
 
 Conversion requires a complete prefix including round-zero decisions; a partial
 match is refused rather than supplied with invented history. Conversion is
-idempotent across complete match prefixes. A match written as a replay
-converts back ([match.md](match.md#converting-a-replay)) to the same match,
-byte for byte, so the two directions are one mapping and not two
-approximations of it. `record_replay_round` fights any of a match replay's
-rounds.
+idempotent across complete match prefixes in standard action normal form.
+Such a match written as a replay converts back
+([match.md](match.md#converting-a-replay)) to the same match, byte for byte.
+A historical action sequence converts back in the normal form `format`
+produces. `record_replay_round` fights any of a match replay's rounds.
 
 The game deals a replayed round's offers again, from the pool a round's
 snapshot restores and the match stream, and the round's recorded choice takes
@@ -136,16 +136,19 @@ with `PAD_FinishDeploy` unless it concedes:
 | `release_commander_skill` | `PAD_ReleaseCommanderSkill` from its slot, at its positions or naming its unit or construction |
 | `concede` | `PAD_GiveUp` |
 
-The game places a purchase itself, where the deployment area is free, and a
-match states where the formation ends up, so a purchase is followed by the
-move that puts it there; conversion folds the move back into the purchase. The
-formation a purchase creates is the one the round's position, stepped decision
-by decision, allocates next.
+The game places a purchase where the deployment area is free. A standard
+match omits the purchase position and states any subsequent movement as a
+separate action. Historical combined purchase placement is expanded into
+those two native operations. The formation created is the one the position
+allocates next.
 
-A match holds its decisions in an order the board allows each one in
-([action.md](action.md#settling-a-round)), so each is recorded where it stands
-and none is held back or reordered. A move that clears another's way is one the
-match states.
+Match decisions use the standard phases in
+[action.md](action.md#settling-a-round). Their dependencies already place unit
+research, purchases, recovery and Energy Tower activations in native legal
+order. Encoding preserves that order, including Stealth Cloak and Elite
+Recruitment; it does not schedule them specially. An explicit purchase level
+must equal the current native shop level. Omitting it retains the historical
+sequential meaning. Research requires a formation of its type.
 
 A decision's `Time` is zero and its `LocalTime` the seconds since its round
 opened, in the game's 0.05-second ticks, as every tracked replay records them.
@@ -171,7 +174,8 @@ A match is refused when a replay cannot hold it, and the refusal names why:
 
 A match replay is a function of its match and the build: the same two always
 write the same bytes. Players come blue then red, rounds ascend, and each
-round's decisions come in the match's order.
+round's decisions follow the match's phases, with the native insertion points
+stated above.
 
 ## Excluded fields
 

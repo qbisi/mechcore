@@ -705,7 +705,7 @@ as `convert` refuses it.
 ## `format` and `schema`
 
 `format <document>` writes the document in its normal form, in place with
-`--write`. A layout and a fight are the kinds it takes. The leading comment
+`--write`. Layouts, fights and matches are the kinds it takes. The leading comment
 block and its blank lines are preserved verbatim; comments within the document
 are not retained. Leading blank lines without a comment are removed.
 
@@ -715,6 +715,12 @@ and statement-ending semicolons. SQL strings and comments are handled by the
 SQL formatter. An assertion whose SQL cannot be parsed is refused before the
 file is written. Reading a document and ordinary canonical serialization
 preserve its SQL string; this rewrite belongs to `format` alone.
+
+Match formatting reconstructs each deployment's standard actions from its
+opening and closing states, as [action.md](../document/action.md#settling-a-round)
+defines. Historical action sequences remain readable; formatting rewrites them
+only after the new sequence reproduces the deployment endpoint. It does not
+rewrite the recorded states or run a fight.
 
 `schema <kind>...` takes the kinds a document declares in its own `kind` field:
 `layout`, `fight`, `state`, `match` and `action`. It answers the shape of the document,

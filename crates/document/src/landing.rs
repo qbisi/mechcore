@@ -225,21 +225,8 @@ pub(crate) fn contraption_fits(state: &SideState, type_name: &str, position: Pos
             .any(|other| other.region == region && other.rect.overlaps(rect))
 }
 
-/// Where a contraption of `type_name` at `position` stands, in the side's own
-/// frame, when it takes part in deployment collisions.
-#[cfg(feature = "convert")]
-#[must_use]
-pub(crate) fn contraption_rect(type_name: &str, position: Position) -> Option<Rect> {
-    if matches!(type_name, "shield" | "missile") {
-        return None;
-    }
-    let size = resolve_contraption_type(type_name)?.footprint?;
-    Some(Rect::around(local(position), size))
-}
-
 /// Where a unit of `type_name` at `position` and `rotated` stands, in the
 /// side's own frame, for a caller to keep clear.
-#[cfg(feature = "convert")]
 #[must_use]
 pub(crate) fn unit_rect(type_name: &str, position: Position, rotated: bool) -> Option<Rect> {
     let size = unit_size(type_name, rotated, Region::of(position))?;
