@@ -1,0 +1,78 @@
+# Native round 4 of 20261025--531: a Wraith killed by Rhino Assault
+# still refreshes Degeneration Beam before its controller deactivates.
+kind: fight
+source: game
+map_id: 1012
+seed: 1005784832
+round: 4
+blue:
+  core_damage: 0
+  officers: [aerial_specialist]
+  techs:
+    hound: [range_enhancement]
+  units:
+  - {name: hound, index: 0, position: {x: 260, y: -90}, exp: 424/570/750}
+  - {name: hound, index: 1, position: {x: 20, y: -90}, level: 2, exp: 0/1022/1690}
+  - {name: hound, index: 2, position: {x: 130, y: -90}, exp: 672/750/750}
+  - {name: sledgehammer, index: 4, position: {x: 195, y: -60}, exp: 1290/1300/1300}
+  - {name: crawler, index: 5, position: {x: 260, y: -125}, exp: 196/250/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 20, y: -125}, exp: 128/160/450, rotated: true}
+  - {name: fang, index: 7, position: {x: 140, y: -205}, exp: 24/557/600, rotated: true}
+  - {name: fang, index: 8, position: {x: -140, y: -205}, exp: 204/214/600, rotated: true}
+  - {name: crawler, index: 9, position: {x: 20, y: -285}, exp: 75/90/450, rotated: true}
+  - {name: crawler, index: 10, position: {x: 250, y: -285}, exp: 117/450/450, rotated: true}
+  - {name: hound, index: 11, position: {x: -230, y: -240}, exp: 260/442/750}
+  - {name: raiden, index: 12, position: {x: 230, y: -120}, level: 2, exp: 0/1625/5408, equipment: [improved_firepower_control_system]}
+  - {name: hound, index: 13, position: {x: 190, y: -170}, exp: 133/183/750}
+  - {name: hound, index: 14, position: {x: 190, y: -230}, exp: 0/62/750, rotated: true, source: joined}
+  - {name: fang, index: 15, position: {x: -140, y: -135}, exp: 0/98/600, rotated: true, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 215, y: -122}, retained: false}
+  - {name: missile, index: 1, position: {x: 241, y: -16}, retained: false}
+  - {name: missile, index: 2, position: {x: 297, y: -238}, retained: false}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 339, y: -232}]}
+red:
+  core_damage: 414
+  officers: [sabertooth_specialist]
+  techs:
+    wraith: [degeneration_beam]
+  blueprints: [attack_enhancement, defense_enhancement]
+  units:
+  - {name: arclight, index: 0, position: {x: -230, y: -190}, exp: 750/750/750}
+  - {name: arclight, index: 1, position: {x: 160, y: -170}, exp: 750/750/750}
+  - {name: arclight, index: 2, position: {x: -160, y: -170}, exp: 750/750/750}
+  - {name: sledgehammer, index: 3, position: {x: 140, y: -135}, exp: 1300/1300/1300, rotated: true}
+  - {name: sledgehammer, index: 4, position: {x: -140, y: -135}, exp: 730/926/1300, rotated: true}
+  - {name: crawler, index: 5, position: {x: -290, y: -65}, exp: 87/105/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 290, y: -65}, rotated: true}
+  - {name: wraith, index: 8, position: {x: -285, y: -25}, exp: 1931/2250/2250}
+  - {name: crawler, index: 9, position: {x: -245, y: -20}, exp: 29/29/450}
+  - {name: wraith, index: 11, position: {x: -345, y: 235}, exp: 448/448/2250}
+  - {name: crawler, index: 12, position: {x: -310, y: 235}}
+  - {name: wasp, index: 13, position: {x: -350, y: 275}, exp: 0/144/900, equipment: [laser_sights], travelling: true, source: joined}
+  - {name: wasp, index: 14, position: {x: -245, y: -40}, exp: 0/900/900, equipment: [improved_firepower_control_system], source: joined}
+  - {name: wasp, index: 15, position: {x: -350, y: 195}, exp: 0/400/900, travelling: true, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -260, y: -42}, {x: -157, y: 129}, {x: 41, y: 153}]}
+asserts:
+- sql: |-
+    SELECT tick,source__id,target__id FROM events
+    WHERE type='buff_applied' AND buff_id=20003 AND source__id=211
+      AND tick BETWEEN 47 AND 49 AND target__id IN (43,334)
+    ORDER BY tick,target__id
+  rows:
+  - [47, 211, 43]
+  - [48, 211, 43]
+  - [48, 211, 334]
+- sql: |-
+    SELECT tick,type,object__id FROM events
+    WHERE tick=48 AND type='unit_died' AND object__id=211
+  rows:
+  - [48, unit_died, 211]
+ticks: 1393
+hash: 27:733a26ed06c3d722490c9e2923c7f35f383f67db11b0471bbbba8f3a2a9ac0f5
