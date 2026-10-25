@@ -215,9 +215,12 @@ batch still runs.
   no layout. A match verifies only when every leaf outside the fight is
   predicted and agrees, every round projects onto a layout the compiler takes,
   and every fight is fought and agrees, except a round explicitly reported as
-  `warning`. For Stealth Cloak acquired after Phantom Ray flank deployment,
-  the warning explains that layout projection cannot preserve this order;
-  that round's fight comparison is skipped. All other checks continue, and
+  `warning`. Stealth Cloak acquired after Phantom Ray flank deployment warns
+  that layout projection cannot preserve that order. Acquiring Aerial Mode
+  with Aerial Specialist and travelling Void Eyes also warns: research/flank
+  order affects native life corrections which the state does not preserve,
+  including after normalization. That round's fight comparison is skipped.
+  All other checks continue, and
   this warning alone does not fail the match. Its `error` names the first
   check that fails.
 - A **recording** is checked by simulating the layout it embeds again and
@@ -309,6 +312,13 @@ always settles with technologies activated before deployment, so it may differ
 from the native game; actual settlement follows the selected backend. Activate
 technologies before flank deployment to benefit from them earlier. Live match
 settlement, including shell and arena, uses this same projection path.
+
+Acquiring Aerial Mode in a round with Aerial Specialist and travelling Void
+Eyes also emits a projection warning. The native life corrections depend
+on research/flank order that the state does not preserve even after
+formatting. Conversion still executes the projected layout; match verification
+reports that round as `warning` and skips its fight comparison. Rounds that
+open with Aerial Mode already researched are outside this warning.
 
 **`match` to `fight` or `mcfr`, a computation.** Selects the round exactly as `match` to
 `layout` does, projects its recorded state and decisions through that same

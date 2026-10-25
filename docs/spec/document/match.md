@@ -490,6 +490,15 @@ that initialization order. Verification checks its non-combat transitions
 but skips that round's fight comparison. Formatting puts research before
 movement and removes this ordering cause of the warning.
 
+Acquiring Aerial Mode while Aerial Specialist is present and a Void Eye
+ends deployment travelling also warns and skips that round's fight
+comparison. Research before or after flank deployment can leave different
+native life corrections on the travelling formation. The written state
+does not distinguish those histories, and normalization may already have
+reordered them, so this warning applies in canonical order too. A round
+that opens with Aerial Mode already researched does not carry this warning.
+All non-combat transition checks and other rounds' fight checks continue.
+
 ### Cross-round invariants
 
 A segment checks itself. A match checks the seams between states, and these
