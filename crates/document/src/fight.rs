@@ -308,6 +308,13 @@ pub struct FightUnit {
         skip_serializing_if = "Option::is_none"
     )]
     pub record_position: Option<Position>,
+    /// The legacy formation's round-opening rotation, defaulting to `rotated`.
+    #[serde(
+        default,
+        rename = "recordRotated",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub record_rotated: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub level: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -618,6 +625,7 @@ fn project_side(side: &FightSide) -> Side {
             .iter()
             .map(|unit| UnitPlacement {
                 record_position: unit.record_position,
+                record_rotated: unit.record_rotated,
                 type_name: unit.type_name.clone(),
                 index: unit.index,
                 position: unit.position,
@@ -689,6 +697,9 @@ impl Fight {
             for formation in &mut side.units {
                 if formation.record_position == Some(formation.position) {
                     formation.record_position = None;
+                }
+                if formation.record_rotated == Some(formation.rotated.unwrap_or(false)) {
+                    formation.record_rotated = None;
                 }
                 if formation.level == Some(1) {
                     formation.level = None;
@@ -947,6 +958,20 @@ hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
         assert!(!text.contains("retained"));
         assert!(!text.contains("170/650"));
         assert!(crate::layout::parse_yaml(text.as_bytes()).is_ok());
+    }
+
+    #[test]
+    fn historical_rotation_survives_fight_normalization_and_projection() {
+        let mut fight = example();
+        fight.blue.units[0].rotated = Some(true);
+        fight.blue.units[0].record_rotated = Some(false);
+        let text = canonical_yaml(fight).unwrap();
+        assert!(text.contains("recordRotated: false"));
+        let fight = parse_yaml(text.as_bytes()).unwrap();
+        assert_eq!(project(&fight).blue.units[0].record_rotated, Some(false));
+        let mut redundant = fight;
+        redundant.blue.units[0].record_rotated = Some(true);
+        assert!(!canonical_yaml(redundant).unwrap().contains("recordRotated"));
     }
 
     #[test]

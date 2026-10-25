@@ -383,6 +383,7 @@ mod tests {
             footprint: None,
             position: Position { x, y },
             record_position: None,
+            record_rotated: None,
             index: Some(0),
             level: None,
             exp: None,

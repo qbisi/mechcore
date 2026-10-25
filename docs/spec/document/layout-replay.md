@@ -136,7 +136,7 @@ The layout round's `actionRecords` hold, in this order:
    needed, and moved to its layout position and facing;
 3. each travelling legacy unit's position and travelling membership restored
    by native forced undo commands, followed by the current position of each
-   other legacy unit whose `recordPosition` differs;
+   other legacy unit whose `recordPosition` or `recordRotated` differs;
 4. each unit that joins during the round, in index order, added, fitted,
    trained when needed, and
    moved to its layout position and facing;
@@ -154,10 +154,11 @@ side's seat, 0 for blue and 1 for red, the unit's type, its layout level and
 its index, and asks for no fixed position in the side's main deployment area:
 region 1 of blue's territory and 4 of red's. The game places it there, and the
 move takes it to its layout position. A move onto a flank from another region
-is what makes a joining unit travel. A settled legacy unit stays where the
-snapshot put it. Every legacy snapshot uses `recordPosition` when stated,
-otherwise `position`. A `PAD_TestCommand` carries `MAD_MoveUnit` to the current
-position with `IsForce=true`, `IsUndo=true`, and the desired
+is what makes a joining unit travel. Every legacy snapshot uses
+`recordPosition` and `recordRotated` when stated, otherwise `position` and
+`rotated`. A settled legacy unit stays in that pose unless its current
+position or rotation differs. A `PAD_TestCommand` carries `MAD_MoveUnit` to
+the current position and rotation with `IsForce=true`, `IsUndo=true`, and the desired
 `MoveUnitData.superDeployRecord` membership. The native undo path restores
 travelling membership when regions differ. A travelling legacy unit whose
 old and current positions share a region first visits the opposite flank,

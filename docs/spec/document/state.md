@@ -614,9 +614,10 @@ recorded landing, and lands where [the board puts it](../../rules/landing.md).
 Unit sources are classified at the round opening as
 [`match.md`](match.md#what-conversion-rebuilds) states; movement permission is
 an internal derivation, not a written field. Projecting a completed deployment
-also preserves each legacy unit's opening position as layout `recordPosition`
-when it differs from the final `position`. This position is derived from the
-opening state by unit index, before applying this round's actions.
+also preserves each legacy unit's opening position and rotation as layout
+`recordPosition` and `recordRotated` when they differ from the final
+`position` and `rotated`. Both are derived from the opening state by unit
+index, before applying this round's actions, and omitted independently.
 
 A slot's `standing` is copied from somewhere other than an object list. A
 skill that leaves an object standing keeps it in that skill's `rangeItems`, so

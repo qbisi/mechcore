@@ -163,16 +163,20 @@ pub fn assign_sources(side: &mut Side, allocator: i32, round: i32) -> Result<(),
 fn with_sources(mut side: Side, opening: &SideState, round: i32) -> Result<Side, String> {
     assign_sources(&mut side, opening.next_index.unit, round)?;
     for unit in &mut side.units {
-        unit.record_position = if unit.source == UnitSource::Legacy {
+        let recorded = if unit.source == UnitSource::Legacy {
             opening
                 .units
                 .iter()
                 .find(|entry| entry.unit.index == unit.index)
-                .map(|entry| entry.unit.position)
-                .filter(|position| *position != unit.position)
         } else {
             None
         };
+        unit.record_position = recorded
+            .map(|entry| entry.unit.position)
+            .filter(|position| *position != unit.position);
+        unit.record_rotated = recorded
+            .map(|entry| entry.unit.rotated.unwrap_or(false))
+            .filter(|rotated| *rotated != unit.rotated.unwrap_or(false));
     }
     Ok(side)
 }
@@ -375,7 +379,7 @@ mod tests {
     }
 
     #[test]
-    fn legacy_record_position_comes_from_the_round_opening_by_index() {
+    fn legacy_record_pose_comes_from_the_round_opening_by_index() {
         let units = side().units;
         let opening = SideState {
             units: units
@@ -393,13 +397,20 @@ mod tests {
             ..Default::default()
         };
         let mut moved = side();
+        moved.units[0].rotated = Some(true);
         moved.units[1].position.x = 200;
+        moved.units[1].rotated = Some(true);
         moved.units[3].position.x = 240;
+        moved.units[3].rotated = Some(true);
         let projected = with_sources(moved, &opening, 3).unwrap();
         assert_eq!(projected.units[1].record_position, Some(units[1].position));
         assert!(projected.units[0].record_position.is_none());
+        assert_eq!(projected.units[0].record_rotated, Some(false));
+        assert_eq!(projected.units[1].record_rotated, Some(false));
+        assert!(projected.units[2].record_rotated.is_none());
         assert_eq!(projected.units[3].source, UnitSource::Joined);
         assert!(projected.units[3].record_position.is_none());
+        assert!(projected.units[3].record_rotated.is_none());
     }
 
     #[test]

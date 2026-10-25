@@ -190,11 +190,12 @@ pub(in crate::fight) fn initialize_actors(
             ))
         })?;
         let positions = generate_formation_positions(placement, rules, seed)?;
-        let record_positions = if let Some((x, z, rotation)) = placement.record_origin {
+        let record_positions = if let Some((x, z, rotation, rotated)) = placement.record_origin {
             let mut recorded = placement.clone();
             recorded.world_x = x;
             recorded.world_z = z;
             recorded.rotation = rotation;
+            recorded.rotated = rotated;
             generate_formation_positions(&recorded, rules, seed)?
         } else {
             positions.clone()

@@ -4298,6 +4298,7 @@ mod tests {
             native: NativeFormation::Unit(2),
             footprint: Some((20, 20)),
             record_position: None,
+            record_rotated: None,
             position: layout::Position {
                 x: i32::MIN,
                 y: -50,

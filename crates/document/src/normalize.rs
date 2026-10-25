@@ -1047,6 +1047,7 @@ mod tests {
                 .map(|index| StateUnit {
                     unit: UnitPlacement {
                         record_position: None,
+                        record_rotated: None,
                         type_name: "marksman".into(),
                         index,
                         position: Position {

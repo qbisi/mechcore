@@ -605,12 +605,20 @@ semantic `name` instead of exposing its native numeric ID:
   opened, in the same side-local `{x, y}` coordinates as `position`. It defaults
   to `position`, and normal form omits an equal value. Only `source: legacy`
   admits it; `delivered` and `joined` units refuse it. It must fit a native
-  placement grid and deployment region under either rotation: the current
-  `rotated` value need not describe its opening orientation. It is not a current
-  occupied footprint and does not take part in collision checks. Preparation target scoring and
-  defensive turret initial facing use the member positions generated there;
-  combat uses `position`. A match projection takes it from that unit's opening
-  position, before the round's actions, and omits it if the unit did not move.
+  placement grid and deployment region with `recordRotated`. It is not a
+  current occupied footprint and does not take part in collision checks.
+  Preparation target scoring and defensive turret initial facing use the
+  member positions generated there; combat uses `position`. A match projection
+  takes it from that unit's opening position, before the round's actions, and
+  omits it if the unit did not move.
+- `recordRotated` optionally states a legacy unit's opening rotation. It
+  defaults to `rotated`, and normal form omits an equal value. Only
+  `source: legacy` admits it. It is independent of `recordPosition`: a unit
+  rotated at the same center still states its different opening rotation.
+  The opening position and rotation together define the formation's
+  preparation member positions; its current `position` and `rotated` define
+  its combat member positions. A match projection takes the opening rotation
+  from the same unit index in the opening state.
 - `exp` is the unit's experience within its current level, written
   `current/maximum` as in `124/450`. `current` is a non-negative integer and
   `maximum` is the level's full bar, which the

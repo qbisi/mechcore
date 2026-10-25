@@ -1,6 +1,52 @@
 use super::*;
 
 #[test]
+fn historical_rotation_changes_preparation_members_without_moving_combat_members() {
+    let config = SimulationConfig::load().unwrap();
+    for team in [0, 1] {
+        let mut current = placement(team, "typhoon", 0, 0, -100);
+        current.rotated = true;
+        let baseline = initialize_actors(
+            &CompiledLayout::of_units(7, vec![current.clone()]),
+            &config.units,
+            4242,
+        )
+        .unwrap();
+        let mut opening = current.clone();
+        opening.rotated = false;
+        let historical = initialize_actors(
+            &CompiledLayout::of_units(7, vec![opening]),
+            &config.units,
+            4242,
+        )
+        .unwrap();
+        current.record_origin = Some((current.world_x, current.world_z, current.rotation, false));
+        let restored = initialize_actors(
+            &CompiledLayout::of_units(7, vec![current]),
+            &config.units,
+            4242,
+        )
+        .unwrap();
+        let members = |actors: &BTreeMap<u64, Actor>| {
+            let mut positions = actors
+                .values()
+                .map(|actor| (actor.x_q32, actor.z_q32))
+                .collect::<Vec<_>>();
+            positions.sort_unstable();
+            positions
+        };
+        let mut recorded = restored
+            .values()
+            .map(|actor| actor.record_position)
+            .collect::<Vec<_>>();
+        recorded.sort_unstable();
+        assert_eq!(members(&restored), members(&baseline));
+        assert_eq!(recorded, members(&historical));
+        assert_ne!(recorded, members(&baseline));
+    }
+}
+
+#[test]
 fn initial_identity_uses_seeded_snapshot_coordinates_not_layout_centers() {
     let layout = CompiledLayout::of_units(
         1,

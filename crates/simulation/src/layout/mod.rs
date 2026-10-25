@@ -45,7 +45,7 @@ pub(crate) struct Placement {
     pub(crate) formation_index: i32,
     pub(crate) type_name: String,
     pub(crate) world_x: i64,
-    pub(crate) record_origin: Option<(i64, i64, i64)>,
+    pub(crate) record_origin: Option<(i64, i64, i64, bool)>,
     pub(crate) world_z: i64,
     pub(crate) rotation: i64,
     pub(crate) rotated: bool,
@@ -979,9 +979,19 @@ fn compile_formation(
         formation_index,
         type_name: formation.type_name.clone(),
         world_x,
-        record_origin: formation
-            .record_position
-            .map(|record| world_placement(record, team)),
+        record_origin: (formation.record_position.is_some() || formation.record_rotated.is_some())
+            .then(|| {
+                let (x, z, facing) = world_placement(
+                    formation.record_position.unwrap_or(formation.position),
+                    team,
+                );
+                (
+                    x,
+                    z,
+                    facing,
+                    formation.record_rotated.unwrap_or(formation.rotated),
+                )
+            }),
         world_z,
         rotation,
         rotated: formation.rotated,
@@ -2531,5 +2541,24 @@ red:
         assert!(red.rotated);
         assert_eq!((red.world_x, red.world_z), (0, 105));
         assert_eq!(red.rotation, 180_000);
+    }
+
+    #[test]
+    fn historical_pose_defaults_each_component_independently() {
+        let value = LAYOUT.replace(
+            "{name: arclight, index: 0, position: {x: 0, y: -50}}",
+            "{name: typhoon, index: 0, position: {x: 0, y: -100}, rotated: true, recordRotated: false}",
+        );
+        let layout = compile_default(&value).unwrap();
+        assert_eq!(
+            layout.placements[1].record_origin,
+            Some((0, 100, 180_000, false))
+        );
+        let value = value.replace("recordRotated: false", "recordPosition: {x: 40, y: -100}");
+        let layout = compile_default(&value).unwrap();
+        assert_eq!(
+            layout.placements[1].record_origin,
+            Some((-40, 100, 180_000, true))
+        );
     }
 }

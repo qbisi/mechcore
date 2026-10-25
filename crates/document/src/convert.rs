@@ -899,6 +899,7 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
             redeployed: false,
             unit: UnitPlacement {
                 record_position: None,
+                record_rotated: None,
                 type_name: type_name.to_owned(),
                 index: unit.index,
                 position,
