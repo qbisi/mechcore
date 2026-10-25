@@ -10,9 +10,7 @@
 
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
 use crate::economy::{Economy, OpeningKind, RoundSupply};
-use crate::layout::{
-    ContraptionPlacement, Experience, Position, Region, StaticPlacement, UnitPlacement,
-};
+use crate::layout::{ContraptionPlacement, Experience, Position, StaticPlacement, UnitPlacement};
 use crate::r#match::{
     Action, EquipmentItem, Match, MatchSide, NextIndex, Offers, Opening, OpeningOffer, PanelSkill,
     SideState, SkillTarget, State, StateUnit, Turn, TurnActions,
@@ -20,7 +18,7 @@ use crate::r#match::{
 use crate::opening::{self, Stream};
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
 use crate::{GrbrStanding, retained_from_grbr_round};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 /// The version a replay's header names: the last component of the game
 /// version `GAME_VERSION` pins, which is how a GRBR carries it (`2324`).
@@ -1211,9 +1209,9 @@ enum Recorded {
 /// A side's decisions in one round, from the position the round opened with.
 ///
 /// Each decision is stepped as it is read, which names the skill a release's
-/// slot holds and the index a purchase creates. The moves are then collapsed
-/// by [`collapse_moves`], and the collapsed round is stepped again: it has to
-/// reach exactly the position the recorded one does, or the replay is refused.
+/// slot holds and the index a purchase creates. Only the resulting position
+/// reaches the normalizer, which reconstructs the standard sequence from the
+/// two endpoint positions and checks its result.
 fn actions(
     economy: &Economy,
     round: &PlayerRoundRecord,
@@ -1239,7 +1237,8 @@ fn actions(
         })
     };
     let mut position = opened.clone();
-    let mut taken = Vec::new();
+    let mut conceded = false;
+    let mut decided = false;
     for (at, recorded) in recorded_actions(round, seat, offers)?
         .into_iter()
         .enumerate()
@@ -1261,350 +1260,23 @@ fn actions(
                 Action::ReleaseCommanderSkill { index, id, target }
             }
         };
-        let placed = match &action {
-            Action::BuyUnit { .. } => Placed::Created(position.next_index.unit),
-            Action::MoveUnit { index, .. } => position
-                .units
-                .iter()
-                .find(|entry| entry.unit.index == *index)
-                .map_or(Placed::Elsewhere, |entry| {
-                    Placed::Moved(Region::of(entry.unit.position))
-                }),
-            _ => Placed::Elsewhere,
-        };
+        conceded |= matches!(action, Action::Concede);
+        decided |= !matches!(action, Action::Concede);
         position = step(&position, &action, at)?;
-        taken.push((action, placed));
     }
-    let collapsed = settle(
-        economy,
-        opened,
-        collapse_moves(taken),
-        &position,
-        red,
-        declined,
-    )
-    .map_err(|error| format!("{} {error}", seat.name()))?;
-    let mut replayed = opened.clone();
-    for (at, action) in collapsed.iter().enumerate() {
-        replayed = step(&replayed, action, at)?;
-    }
-    if replayed != position {
-        return Err(format!(
-            "{}'s collapsed moves end the round somewhere its recorded ones do not",
-            seat.name()
-        ));
-    }
-    Ok(collapsed)
-}
-
-/// What a stepped decision did to a formation's place on the board.
-enum Placed {
-    /// A purchase, and the index it handed out.
-    Created(i32),
-    /// A move, and the region the formation was in before it.
-    Moved(Region),
-    Elsewhere,
-}
-
-/// How a formation's moves so far collapse, and where the kept one is written.
-#[derive(Clone, Copy)]
-enum Run {
-    /// A purchase this round: every later move is folded into it.
-    Bought(usize),
-    /// A formation that began the round's moves in the main half: only the
-    /// last move is kept.
-    FromMain(usize),
-    /// A formation that began them on a flank: the last move within each
-    /// stretch of moves ending in one region is kept.
-    FromFlank(usize, Region),
-}
-
-/// Keeps what a formation's moves amount to, and nothing of how they got there.
-///
-/// A move settles `travelling` by the region it arrives in, and a round's
-/// opening holds no travelling formation. So a formation that begins its moves
-/// in the main half, including one bought or handed out this round, travels
-/// exactly when its last move ends on a flank, whatever route it took: its
-/// last move is all it needs. A purchase is what creates its formation, so the
-/// purchase itself carries where the moves end, and step marks it travelling
-/// when that is a flank. A formation that begins on a flank is different: going
-/// to the main half and back travels, staying does not. For it, only a run of
-/// moves ending in the same region collapses to its last.
-fn collapse_moves(taken: Vec<(Action, Placed)>) -> Vec<Action> {
-    let mut kept: Vec<Option<Action>> = Vec::with_capacity(taken.len());
-    let mut runs: BTreeMap<i32, Run> = BTreeMap::new();
-    for (action, placed) in taken {
-        if crate::project::activates_cloak(&action) {
-            runs.clear();
-        }
-        match (&action, placed) {
-            (Action::BuyUnit { .. }, Placed::Created(index)) => {
-                runs.insert(index, Run::Bought(kept.len()));
-            }
-            (
-                Action::MoveUnit {
-                    index,
-                    position,
-                    rotated,
-                },
-                Placed::Moved(from),
-            ) => {
-                let arrives = Region::of(*position);
-                match runs.get(index).copied() {
-                    Some(Run::Bought(at)) => {
-                        if let Some(Action::BuyUnit {
-                            position: bought,
-                            rotated: turned,
-                            ..
-                        }) = &mut kept[at]
-                        {
-                            *bought = *position;
-                            *turned = *rotated;
-                        }
-                        continue;
-                    }
-                    Some(Run::FromMain(at)) => {
-                        kept[at] = None;
-                        runs.insert(*index, Run::FromMain(kept.len()));
-                    }
-                    Some(Run::FromFlank(at, region)) if region == arrives => {
-                        kept[at] = None;
-                        runs.insert(*index, Run::FromFlank(kept.len(), arrives));
-                    }
-                    None if from == Region::Main => {
-                        runs.insert(*index, Run::FromMain(kept.len()));
-                    }
-                    // A flank run that changes region, or a first move from a
-                    // flank, starts a run of its own.
-                    Some(Run::FromFlank(..)) | None => {
-                        runs.insert(*index, Run::FromFlank(kept.len(), arrives));
-                    }
-                }
-            }
-            _ => {}
-        }
-        kept.push(Some(action));
-    }
-    kept.into_iter().flatten().collect()
-}
-
-/// Orders a side's decisions so that the board allows each one where it
-/// stands, the same way whatever route the recording took.
-///
-/// Within a segment bounded by Stealth Cloak acquisition, a move states
-/// where a unit ends up: a move needs its unit free to move, which the
-/// decision that freed it has done by then, and a unit gone by the round's
-/// end ends up nowhere, so its moves are dropped. The moves therefore follow
-/// the side's other decisions, ascending by unit, a unit's own in the order
-/// it made them. But a place a move, a purchase or a contraption goes to can
-/// still be taken where it stands: by a unit whose own move comes later, or
-/// one a later release takes off the board. So each decision in turn is taken
-/// at the first point [`crate::transition::check_place`] and the step allow
-/// it, the ones that hand out an index keeping their order, as a unit's moves
-/// and the contraptions do. Purchases also stay on their recorded side of
-/// Elite Recruitment, which raises the shop's level and purchase prices.
-/// When nothing left can go, the moves wait on one another, as two units
-/// trading places do, and one of them first steps aside
-/// within its own region to a place nothing left goes: that move is part of
-/// the match, as legal as the rest.
-fn settle(
-    economy: &Economy,
-    opened: &SideState,
-    collapsed: Vec<Action>,
-    ended: &SideState,
-    red: bool,
-    declined: Option<i32>,
-) -> Result<Vec<Action>, String> {
-    // Movement across Cloak acquisition changes native controller initialization.
-    // Normalize board placement only within each side of that boundary.
-    let mut position = opened.clone();
-    let mut settled = Vec::new();
-    let mut segment = Vec::new();
-    for action in collapsed {
-        if crate::project::activates_cloak(&action) {
-            let ordered = settle_segment(economy, &position, segment, ended, red, declined)?;
-            position = crate::transition::deployed(economy, &position, &ordered, red, declined)
-                .map_err(|error| error.to_string())?;
-            settled.extend(ordered);
-            position = crate::transition::step(economy, &position, &action, declined)
-                .map_err(|error| error.to_string())?;
-            settled.push(action);
-            segment = Vec::new();
+    if !decided {
+        return Ok(if conceded {
+            vec![Action::Concede]
         } else {
-            segment.push(action);
-        }
-    }
-    settled.extend(settle_segment(
-        economy, &position, segment, ended, red, declined,
-    )?);
-    Ok(settled)
-}
-
-fn settle_segment(
-    economy: &Economy,
-    opened: &SideState,
-    collapsed: Vec<Action>,
-    ended: &SideState,
-    red: bool,
-    declined: Option<i32>,
-) -> Result<Vec<Action>, String> {
-    let step = |position: &SideState, action: &Action| {
-        crate::transition::check_place(position, action)?;
-        crate::transition::step_placing(
-            economy,
-            position,
-            action,
-            declined,
-            &mut crate::landing::placement(red),
-        )
-    };
-    let (mut moves, mut pending): (Vec<Action>, Vec<Action>) = collapsed
-        .into_iter()
-        .partition(|action| matches!(action, Action::MoveUnit { .. }));
-    moves.retain(|action| {
-        moved_unit(action)
-            .is_some_and(|index| ended.units.iter().any(|entry| entry.unit.index == index))
-    });
-    moves.sort_by_key(|action| moved_unit(action).unwrap_or(i32::MIN));
-    pending.extend(moves);
-
-    let mut settled = Vec::with_capacity(pending.len());
-    let mut position = opened.clone();
-    let mut stepped_aside = BTreeSet::new();
-    while !pending.is_empty() {
-        let ready = (0..pending.len()).find_map(|at| {
-            let action = &pending[at];
-            if pending[..at]
-                .iter()
-                .any(|earlier| waits_behind(action, earlier))
-            {
-                return None;
-            }
-            step(&position, action).ok().map(|next| (at, next))
+            Vec::new()
         });
-        if let Some((at, next)) = ready {
-            settled.push(pending.remove(at));
-            position = next;
-            continue;
-        }
-        let aside = step_aside(&position, &pending, &stepped_aside, red).ok_or_else(|| {
-            let refusals: Vec<_> = pending
-                .iter()
-                .filter_map(|action| {
-                    step(&position, action)
-                        .err()
-                        .map(|reason| format!("{action:?}: {reason:?}"))
-                })
-                .collect();
-            format!(
-                "decisions {pending:?} cannot be ordered so the board allows each one; refused steps: {}",
-                refusals.join("; ")
-            )
-        })?;
-        if let Action::MoveUnit { index, .. } = aside {
-            stepped_aside.insert(index);
-        }
-        position = step(&position, &aside)
-            .map_err(|reason| format!("steps a unit aside where it cannot: {reason:?}"))?;
-        settled.push(aside);
     }
-    Ok(settled)
-}
-
-/// The unit a move moves.
-const fn moved_unit(action: &Action) -> Option<i32> {
-    match action {
-        Action::MoveUnit { index, .. } => Some(*index),
-        _ => None,
+    let mut normalized = crate::normalize::deployment(economy, opened, &position, offers, red)
+        .map_err(|error| format!("{} {error}", seat.name()))?;
+    if conceded {
+        normalized.push(Action::Concede);
     }
-}
-
-/// Whether `action` has to wait for `earlier`: the decisions that hand out a
-/// unit's index keep their order, as the contraptions, which the game numbers
-/// as they are placed, and a unit's own moves do. A purchase and Elite
-/// Recruitment keep their relative order so the purchase's level and cost
-/// do not change while it waits for a free place.
-fn waits_behind(action: &Action, earlier: &Action) -> bool {
-    let hands_out = |action: &Action| {
-        matches!(
-            action,
-            Action::BuyUnit { .. } | Action::ChooseReinforceItem { .. }
-        )
-    };
-    match (action, earlier) {
-        (Action::BuyUnit { .. }, Action::ActiveEnergyTowerSkill { skill: 4 })
-        | (Action::ActiveEnergyTowerSkill { skill: 4 }, Action::BuyUnit { .. })
-        | (Action::ReleaseContraption { .. }, Action::ReleaseContraption { .. }) => true,
-        (Action::MoveUnit { index, .. }, Action::MoveUnit { index: other, .. }) => index == other,
-        _ => hands_out(action) && hands_out(earlier),
-    }
-}
-
-/// A move that takes a unit whose move waits to a free place of the region it
-/// stands in, clear of every place a waiting decision goes, for the first such
-/// unit that has one and has not stepped aside already.
-fn step_aside(
-    position: &SideState,
-    pending: &[Action],
-    stepped_aside: &BTreeSet<i32>,
-    red: bool,
-) -> Option<Action> {
-    let needed: Vec<_> = pending
-        .iter()
-        .filter_map(|action| match action {
-            Action::MoveUnit {
-                index,
-                position: to,
-                rotated,
-            } => position
-                .units
-                .iter()
-                .find(|entry| entry.unit.index == *index)
-                .and_then(|entry| crate::landing::unit_rect(&entry.unit.type_name, *to, *rotated)),
-            Action::BuyUnit {
-                unit,
-                position: to,
-                rotated,
-            } => unit_type_from_id(*unit)
-                .and_then(|(type_name, _)| crate::landing::unit_rect(type_name, *to, *rotated)),
-            Action::ReleaseContraption {
-                contraption,
-                position: to,
-                ..
-            } => contraption_type_from_id(*contraption)
-                .and_then(|type_name| crate::landing::contraption_rect(type_name, *to)),
-            _ => None,
-        })
-        .collect();
-    pending.iter().enumerate().find_map(|(at, action)| {
-        let index = moved_unit(action)?;
-        if stepped_aside.contains(&index)
-            || pending[..at]
-                .iter()
-                .any(|earlier| waits_behind(action, earlier))
-        {
-            return None;
-        }
-        let standing = position
-            .units
-            .iter()
-            .find(|entry| entry.unit.index == index)?;
-        let rotated = standing.unit.rotated == Some(true);
-        crate::landing::free_spot(
-            position,
-            &standing.unit.type_name,
-            rotated,
-            Region::of(standing.unit.position),
-            red,
-            Some(index),
-            &needed,
-        )
-        .map(|spot| Action::MoveUnit {
-            index,
-            position: spot,
-            rotated,
-        })
-    })
+    Ok(normalized)
 }
 
 /// The `Index` the game records a decline at, which is no position in the
@@ -1664,7 +1336,8 @@ fn recorded_actions(
             }
             "PAD_BuyUnit" => Action::BuyUnit {
                 unit: field("UID", action.unit_id)?,
-                position: position(&action.buy_position)?,
+                level: None,
+                position: Some(position(&action.buy_position)?),
                 rotated: false,
             },
             "PAD_UpgradeUnit" => Action::UpgradeUnit {
@@ -1911,6 +1584,31 @@ mod tests {
     }
 
     #[test]
+    fn an_unanswered_round_does_not_invent_a_reinforcement_choice() {
+        for (recorded, expected) in [
+            ("", Vec::new()),
+            (
+                "<MatchActionData xsi:type=\"PAD_GiveUp\"><Time>0</Time><LocalTime>2</LocalTime></MatchActionData>",
+                vec![Action::Concede],
+            ),
+        ] {
+            let round = quick_xml::de::from_str(&snapshot_round(false, recorded)).unwrap();
+            let found = super::actions(
+                crate::economy::Economy::embedded().unwrap(),
+                &round,
+                super::Seat::Blue,
+                &crate::r#match::SideState::default(),
+                Some(&crate::r#match::Offers {
+                    dealt: vec![20_003],
+                    refund: 50,
+                }),
+            )
+            .unwrap();
+            assert_eq!(found, expected);
+        }
+    }
+
+    #[test]
     fn server_supply_is_already_paid_and_completed_research_has_one_active_stage() {
         let economy = crate::economy::Economy::embedded().unwrap();
         for (special, supply) in [(true, 1250), (false, 2250)] {
@@ -2084,164 +1782,5 @@ mod tests {
         assert!(check(&[(1, 30701), (0, 30703), (0, 31801), (0, 32103)], &[6]).is_err());
         assert!(check(&[(0, 30703), (0, 31801), (0, 32103)], &[6]).is_err());
         assert!(check(&pools[0].log, &[]).is_err());
-    }
-
-    /// Two marksmen standing side by side, each free to move.
-    fn two_marksmen() -> crate::r#match::SideState {
-        let marksman = |index, x| crate::r#match::StateUnit {
-            unit: crate::layout::UnitPlacement {
-                record_position: None,
-                type_name: "marksman".into(),
-                index,
-                position: Position { x, y: -160 },
-                level: None,
-                exp: None,
-                rotated: None,
-                equipment: Vec::new(),
-                travelling: None,
-                source: crate::layout::UnitSource::Joined,
-            },
-            value: None,
-            redeployed: false,
-        };
-        crate::r#match::SideState {
-            supply: 100_000,
-            unlocked_units: (1..=31).collect(),
-            shop: crate::r#match::Allowances {
-                buys_remaining: 9,
-                unlocks_remaining: 9,
-                contraptions_remaining: 9,
-            },
-            units: vec![marksman(0, 0), marksman(1, 20)],
-            next_index: crate::r#match::NextIndex {
-                unit: 2,
-                contraption: 0,
-            },
-            ..crate::r#match::SideState::default()
-        }
-    }
-
-    /// Settles a side's decisions and steps them, refusing any the board
-    /// would not allow where it stands.
-    fn settled(opened: &crate::r#match::SideState, taken: Vec<Action>) -> Vec<Action> {
-        let economy = crate::economy::Economy::embedded().unwrap();
-        let settled = super::settle(economy, opened, taken, opened, false, None).unwrap();
-        crate::transition::deployed(economy, opened, &settled, false, None).unwrap();
-        settled
-    }
-
-    #[test]
-    fn cloak_acquisition_keeps_movement_on_its_recorded_side() {
-        let moved = Action::MoveUnit {
-            index: 0,
-            position: Position { x: -100, y: -160 },
-            rotated: false,
-        };
-        let cloak = Action::UpgradeTechnology {
-            unit: 25,
-            tech: 3925,
-        };
-        assert_eq!(
-            settled(&two_marksmen(), vec![moved.clone(), cloak.clone()]),
-            [moved.clone(), cloak.clone()]
-        );
-        let bought = Action::BuyUnit {
-            unit: 25,
-            position: Position { x: 0, y: -160 },
-            rotated: false,
-        };
-        assert_eq!(
-            super::collapse_moves(vec![
-                (bought.clone(), super::Placed::Created(0)),
-                (cloak.clone(), super::Placed::Elsewhere),
-                (
-                    moved.clone(),
-                    super::Placed::Moved(crate::layout::Region::Main)
-                ),
-            ]),
-            [bought, cloak, moved]
-        );
-    }
-
-    /// Two units trading places wait on each other, so one steps aside first,
-    /// within its region, and that step is a decision of the match.
-    #[test]
-    fn units_trading_places_step_aside() {
-        let moved = |index, x| Action::MoveUnit {
-            index,
-            position: Position { x, y: -160 },
-            rotated: false,
-        };
-        let settled = settled(&two_marksmen(), vec![moved(1, 0), moved(0, 20)]);
-        assert_eq!(settled.len(), 3);
-        assert!(matches!(settled[0], Action::MoveUnit { index: 0, .. }));
-        assert_eq!(settled[1..], [moved(1, 0), moved(0, 20)]);
-    }
-
-    /// A purchase whose place a unit still holds waits for that unit's move,
-    /// and a later purchase keeps its turn behind it, so both get the indices
-    /// they were bought with.
-    #[test]
-    fn a_purchase_waits_for_its_place() {
-        let bought = |x| Action::BuyUnit {
-            unit: 2,
-            position: Position { x, y: -160 },
-            rotated: false,
-        };
-        let moved = Action::MoveUnit {
-            index: 0,
-            position: Position { x: -100, y: -160 },
-            rotated: false,
-        };
-        let settled = settled(&two_marksmen(), vec![bought(0), bought(100), moved.clone()]);
-        assert_eq!(settled, [moved, bought(0), bought(100)]);
-    }
-
-    /// A formation that begins its moves in the main half keeps only its
-    /// last, a purchase takes every move of its own formation, and one that
-    /// begins on a flank keeps the last move of each region it passes through.
-    #[test]
-    fn a_formation_keeps_what_its_moves_amount_to() {
-        use super::{Placed, collapse_moves};
-        use crate::layout::Region;
-        let moved = |index, x, y| Action::MoveUnit {
-            index,
-            position: Position { x, y },
-            rotated: false,
-        };
-        let bought = |x, y| Action::BuyUnit {
-            unit: 10,
-            position: Position { x, y },
-            rotated: false,
-        };
-        // From the main half: out to a flank and back, and only the last stays.
-        assert_eq!(
-            collapse_moves(vec![
-                (moved(0, 0, -160), Placed::Moved(Region::Main)),
-                (moved(1, 50, -160), Placed::Moved(Region::Main)),
-                (moved(0, 330, 100), Placed::Moved(Region::Main)),
-                (moved(0, 100, -100), Placed::Moved(Region::RightFlank)),
-            ]),
-            [moved(1, 50, -160), moved(0, 100, -100)]
-        );
-        // A purchase takes its formation's moves, a flank included.
-        assert_eq!(
-            collapse_moves(vec![
-                (bought(0, -160), Placed::Created(5)),
-                (moved(5, 100, -100), Placed::Moved(Region::Main)),
-                (moved(5, -330, 100), Placed::Moved(Region::Main)),
-            ]),
-            [bought(-330, 100)]
-        );
-        // From a flank: the main half twice, then the flank again. Going out
-        // and back travels where staying would not, so both regions keep one.
-        assert_eq!(
-            collapse_moves(vec![
-                (moved(7, 0, -160), Placed::Moved(Region::LeftFlank)),
-                (moved(7, 100, -100), Placed::Moved(Region::Main)),
-                (moved(7, -330, 200), Placed::Moved(Region::Main)),
-            ]),
-            [moved(7, 100, -100), moved(7, -330, 200)]
-        );
     }
 }

@@ -473,17 +473,18 @@ pub enum Action {
         #[schemars(with = "String")]
         specialist: i32,
     },
-    /// A purchase and where the new formation is deployed.
-    ///
-    /// The game lands a purchase where [`crate::landing`] says the board has
-    /// room, and the player moves it from there. A match writes the position
-    /// the formation reaches within the main half, which is where the
-    /// purchase's own moves end, so those moves are not written again.
+    /// A purchase at the board's default landing. Historical actions can also
+    /// name the position and rotation reached by its subsequent movement.
     BuyUnit {
         #[serde(rename = "name", with = "unit_names::unit")]
         #[schemars(with = "String")]
         unit: i32,
-        position: Position,
+        /// The purchased level. Omitted in historical actions, which use the
+        /// shop level at that point in their sequence.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        level: Option<i32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        position: Option<Position>,
         #[serde(skip_serializing_if = "is_false")]
         rotated: bool,
     },
@@ -603,7 +604,10 @@ enum ActionReader {
     BuyUnit {
         #[serde(rename = "name", with = "unit_names::unit")]
         unit: i32,
-        position: Position,
+        #[serde(default)]
+        level: Option<i32>,
+        #[serde(default)]
+        position: Option<Position>,
         #[serde(default)]
         rotated: bool,
     },
@@ -1282,7 +1286,7 @@ mod tests {
             );
         }
         for yaml in [
-            "{type: buy_unit, name: marksman}",
+            "{type: buy_unit}",
             "{type: choose_advance_team, index: 1, name: vortex-fire_badger}",
             "{type: release_commander_skill, index: 0, target: {unit: 4}}",
             "{type: release_commander_skill, index: 0, name: missile_strike, target: !unit 4}",
@@ -1350,8 +1354,21 @@ mod tests {
             },
             Action::BuyUnit {
                 unit: 2,
-                position: at,
+                level: None,
+                position: Some(at),
                 rotated: true,
+            },
+            Action::BuyUnit {
+                unit: 2,
+                level: Some(1),
+                position: Some(at),
+                rotated: false,
+            },
+            Action::BuyUnit {
+                unit: 2,
+                level: None,
+                position: None,
+                rotated: false,
             },
             Action::UpgradeUnit { index: 0 },
             Action::UnlockUnit { unit: 9 },

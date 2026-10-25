@@ -838,6 +838,8 @@ impl Game {
         }
         self.allowed(side, decision)?;
         let before = self.position(side)?;
+        transition::check_operation(self.economy, &before, decision)
+            .map_err(|unsettled| Failure::refused(unsettled.to_string()))?;
         let mut placement = mechcore_document::landing::placement(side.red());
         let after = transition::step_placing(
             self.economy,

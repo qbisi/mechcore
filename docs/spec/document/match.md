@@ -477,14 +477,18 @@ and put through the layout compiler. The report's `projected_layouts` counts
 the layouts that compiled, two per round, and a round that does not project,
 deploy or compile fails the match with its round and which position it was.
 
-A deployment that acquires Stealth Cloak after Phantom Ray flank deployment
-projects with a warning: a layout activates technology before deployment and
-cannot preserve that native controller initialization order. `verify` records
-`result: warning` for that round and skips only its fight outcome comparison.
-This warning does not fail the match; deployment legality, projection,
-non-combat transitions and the other rounds' fights are still checked.
-Replay conversion preserves the movement order across Cloak acquisition so
-this warning remains detectable after conversion.
+The standard match sequence activates unit technologies before movement.
+Research whose formation type is absent depends on a purchase at its default
+landing, and recovery of a type's last formation depends on its research.
+These dependencies are explicit match actions; native encoding preserves
+their order. Normalization preserves the deployment endpoint, not the
+original player's controller-initialization timing.
+
+A historical sequence that acquires Stealth Cloak after Phantom Ray flank
+deployment still projects with a warning because the layout cannot preserve
+that initialization order. Verification checks its non-combat transitions
+but skips that round's fight comparison. Formatting puts research before
+movement and removes this ordering cause of the warning.
 
 ### Cross-round invariants
 
@@ -545,9 +549,10 @@ mechcore convert <replay.grbr> --to match <match.yaml> [--force]
 ```
 
 Conversion needs no game. It reads the replay and nothing else, and it simulates
-no fight. For a complete prefix it is also idempotent across this format: a match written back as a
+no fight. A complete prefix in standard action normal form written back as a
 replay ([match-replay.md](match-replay.md)) converts to the same match, byte
-for byte.
+for byte. Historical action sequences convert back in the normal form
+`format` produces.
 
 The converter reads client recordings and the GRBR files the game creates
 from downloaded server replays. The server's original protobuf backup (`.rep.bak`)

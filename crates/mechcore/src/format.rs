@@ -19,6 +19,7 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
     let (kind, bytes) = Kind::read(&path)?;
     kind.require("format")?;
     let mut canonical = match kind {
+        Kind::Match => mechcore_document::normalize::match_yaml(&bytes),
         Kind::Fight => mechcore_document::fight::parse_yaml(&bytes).and_then(|mut fight| {
             let mut formatter = syntaqlite::Formatter::new();
             for (index, assertion) in fight.asserts.iter_mut().enumerate() {

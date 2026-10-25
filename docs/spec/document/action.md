@@ -5,8 +5,8 @@
 An action is one decision a side takes in a round. This document defines the
 fourteen of them, what each carries and what each does to the position it was
 taken from, and the action segment that carries one round's decisions for both
-sides: that order is all a sequence carries, which recorded entries are
-collapsed away before one is written, and which native fields are excluded.
+sides: their standard deployment order, the endpoint state they reproduce,
+and which native fields are excluded.
 
 A [match](match.md) is the stream the segments are written in, and places an
 action segment after the state it was decided from. A [state](state.md) defines
@@ -171,25 +171,27 @@ here.
 ### `buy_unit`
 
 ```yaml
-- {type: buy_unit, name: void_eye, position: {x: 0, y: -160}, rotated: true}
+- {type: buy_unit, name: void_eye, level: 1}
 ```
 
-Buys one unit of the unit type `name`. Advances `next_index.unit` by one and puts a
-unit on the board under that index, at `position` and facing the way
-`rotated` says, which defaults to false.
+Buys one formation of unit type `name`, advances `next_index.unit` by one,
+and places it under that index. Omitting `position` uses the default landing
+selected by [the board](../../rules/landing.md), with `rotated: false`.
+Standard actions write that purchase separately from any subsequent move.
 
-The game lands a purchase where [the board puts it](../../rules/landing.md) and
-the player moves it from there, and a purchase states where those moves end
-rather than where it landed: the round's moves of the unit it creates are
-written into it, and not again as moves. A position on a flank therefore means
-the unit was moved there, so the purchase sets its `travelling`, which a
-move from the main half would have set. The purchase is refused where its
-position is taken, as the move it stands for would be; the landing itself
-always finds room or the round holds no purchase at all.
+Historical actions can state `position` and `rotated`, combining the purchase
+with its move there. Such a position must be free; a flank position sets
+`travelling` as that move would. Formatting expands the combined action into
+a default purchase and a separate move. A default purchase refuses rotation.
 
-The unit arrives at the shop's level for its type, which an officer or an
-Energy Tower skill can raise. Costs the unit's price plus one upgrade for each
-level above the first.
+The optional `level` states the level purchased. Omitting it uses the shop's
+level at this point in the sequence, which an officer or an Energy Tower
+skill can raise. New operations and native encoding require an explicit level
+to equal the current shop level. Normalization therefore inserts Elite
+Recruitment before the first purchase requiring it. Historical endpoint
+evaluation also reads levels from before that activation, so earlier match
+files can be formatted into the legal sequence. A purchase costs the unit's
+price plus one upgrade for each level above the first.
 
 ### `upgrade_unit`
 
@@ -511,57 +513,78 @@ allocator is in a state for.
 skill that slot holds from the position the round has reached by then, which
 is what `id` states.
 
-`MoveUnit` is recorded as a batch carrying one or more units. A sequence holds
-one move per unit: the collapse has already run by then, so the batch no longer has
-to stay whole for an undo to pop it. It keeps only the resulting position and
-rotation, since the recorded before-state restates what the state segment
-already holds. Not even the moves' order survives: a sequence holds them in
-the order [settling](#settling-a-round) gives them.
-
-A unit's moves keep what they amount to, not the route. A move settles
-`travelling` by the region it arrives in, and a round's opening holds no
-travelling unit, so a unit that begins its moves in the main half
-travels exactly when its last move ends on a flank, whichever way it went:
-
-- A unit this round bought keeps none of its moves. The purchase carries
-  where they end.
-- Any other unit that begins its moves in the main half, one a card handed
-  out included, keeps its last move alone.
-- A unit that begins them on a flank keeps the last move of each stretch
-  that ends in one region, the main half or one flank. Going to the main half
-  and back travels where staying would not, so the route between regions
-  matters for it.
-
-The conversion steps the collapsed round from the position the round opened
-with and refuses a replay where it does not end exactly where the recorded
-round does.
+`MoveUnit` is recorded as a batch carrying one or more units. Each match move
+addresses one unit: the collapse has already run by then, so the batch no
+longer has to stay whole for an undo to pop it. Reconstruction uses the
+deployment's resulting position and rotation rather than its intermediate
+route. The sequence orders the necessary moves and swap-space waypoints as
+[settling](#settling-a-round) defines.
 
 ### Settling a round
 
-A sequence holds its decisions in an order the board allows each one in where
-it stands, and the same order however the round was recorded, so conversion
-settles the collapsed round before writing it:
+Replay conversion evaluates the effective native decisions to obtain the
+position deployment reached. From then on, only the opening and closing
+states are used: their difference reconstructs the action sequence. `format`
+does the same for a historical match. Reading one does not rewrite its actions.
+The old movement route, purchase placement and click order are not inputs to
+the reconstruction.
 
-1. The moves follow the side's other decisions, ascending by unit, a unit's own
-   in the order it made them. A move of a unit that the round then takes off
-   the board is dropped, since it ends up nowhere.
-2. Each decision is then taken at the first point the position allows it and
-   it steps. A purchase whose place a unit still holds waits until that unit
-   has moved or left; a contraption waits the same way. Decisions that hand out
-   a unit's index, purchases and reinforcement choices, keep their order, as
-   the contraptions, which the game numbers as it places them, and a unit's own
-   moves do.
-3. When nothing left can be taken, the moves are waiting on one another, as two
-   units trading places do. The first waiting unit with room first steps
-   aside, within the region it stands in, to the free grid position nearest
-   the region's centre that no waiting decision needs, found as
-   [landing](../../rules/landing.md) finds one; that move is a decision of the
-   sequence like any other.
+The standard phases are:
 
-A sequence settled this way is its own settling, so a match written as a
-replay and converted back settles to itself. Applying a round refuses a
-decision whose place is taken, so every decision a match holds is one the
-game takes where it stands.
+1. Select reinforcement.
+2. Recover formations and constructions. Available Enhancement Modules may be
+   fitted and the formation upgraded first; the closing supply and consumed
+   training slots determine whether those operations occurred. A module comes
+   back with the recovered formation and can be reused.
+3. Activate unit technologies. Missing formation types depend on purchases
+   at default landing positions, in allocator order.
+4. Move all formations now present, including those purchased for research
+   in phase 3. Emit Redeployment and Deployment Module fitting where needed.
+   Jump Drive is already active from phase 3.
+5. Purchase and move the remaining formations, in allocator order. Purchases
+   use default landings and explicit levels. An allocator gap is represented
+   by buying a Crawler and recovering it with its Field Recovery slot.
+6. Fit equipment, preserving each formation's fitting order.
+7. Apply Intensive Training and upgrade formations.
+8. Place contraptions in allocator order.
+9. Apply remaining Energy Tower activations, tower strengthening and Research
+   Center blueprints, including range, mobility, attack, defense and Sticky Oil.
+10. Release combat commander skills, preserving their relative release order.
+11. Unlock the remaining unit types.
+
+Within a phase, formation indices, technology IDs and panel indices break
+remaining ties. Blueprint chains keep predecessor before successor. A skill
+spent on a subsequently recovered formation remains spent; the recovery may
+therefore contain its necessary deployment-skill operations. A recovery's
+release ordinal is written in its new position, while combat releases retain
+their relative order.
+
+Moves normally go directly to the closing position. A formation staying on the
+same flank but ending `travelling` first passes through the main region, so
+that its travelling state is reproduced. If moves exchange occupied space,
+the first waiting formation steps aside within its region, clear of the
+pending targets, using the existing deterministic landing search.
+
+Every emitted decision is checked and applied. The completed sequence must
+reproduce the closing position, including supply, allocators, equipment,
+experience and skill consumption. A state difference that cannot be
+reconstructed is refused explicitly; formatting never silently optimizes a
+player's economic result or writes a partial sequence. Reconstructing the
+result again produces the same sequence.
+
+Dependencies precede the operation requiring them. A recovery that removes
+the last formation of a type depends on that type's pending research; recovery
+also depends on unlocking its Research Center blueprint when needed. A
+purchase depends on its unit unlock, Elite Recruitment for its level and Mass
+Recruitment when no purchase allowance remains. A decision that lacks supply
+depends on the round's recorded Rapid Resupply activation. Dependencies use
+only operations required by the closing state. Skill-granting blueprints
+preserve panel allocation order, so an earlier slot's blueprint can itself
+be a dependency.
+
+The match sequence itself meets native operation prerequisites. GRBR encoding
+keeps its research and Energy Tower activation order; it only expands a
+historical purchase's combined placement into purchase and movement.
 
 `GiveUp` is kept, as `concede`, and nothing it recorded besides its type
 survives.
