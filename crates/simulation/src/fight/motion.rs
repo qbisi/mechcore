@@ -630,7 +630,16 @@ impl Simulation {
                         .contains_key(&building.building_id)
                 });
             agents.extend(towers.into_iter().filter_map(building_agent));
-            agents.extend(constructions.into_iter().filter_map(building_agent));
+            // FightTeam.PrepareActors sorts the non-tower crystals with
+            // ActorComparer before OnFightStart activates their controllers.
+            // This includes deployed interceptors, regardless of index order.
+            agents.extend(
+                deploy::sort_by_actor_comparer(constructions, |building| {
+                    ((), building.position.z, building.position.x)
+                })
+                .into_iter()
+                .filter_map(building_agent),
+            );
         }
         for (index, crystal) in self.rvo.map_crystals.iter().enumerate() {
             if crystal.collider_priority < deploy::CRYSTAL_MIN_COLLIDER_PRIORITY

@@ -103,6 +103,8 @@ updates: when two z coordinates are within `FPoint`'s 43-raw-unit tolerance,
 x orders them. Recording identities use strict coordinate order and can
 therefore differ. This activation order also decides the neighbour tree's
 insertion order, including which agents a split that grows its array loses.
+Non-tower building colliders also activate in position order, including
+deployed interceptors; their deployment indices do not set this order.
 
 Avoidance's sampled trace sets its iteration step from the unit's outer
 radius and one fifth of its desired speed, using the build's tolerant
