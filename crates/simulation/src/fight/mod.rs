@@ -1276,7 +1276,7 @@ impl Simulation {
         // `FightCoreSystem`: a skill lands, and a missile fires, on where
         // their enemies stood as the tick opened.
         self.step_battle_skills(step, &target_search_order, &mut events)?;
-        self.step_mines(&target_search_order, &mut events)?;
+        self.step_mines(&mut events)?;
         // `TeamTranslationSystem` follows commander skills and mines: damage
         // they deal can bring a unit below its accumulated control progress
         // before that unit updates in `FightCoreSystem` on the same tick.

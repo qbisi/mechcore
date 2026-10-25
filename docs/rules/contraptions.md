@@ -102,12 +102,16 @@ and the buff its hit writes.
 **When it fires.** `MineSystem` updates before `FightCoreSystem`, so on every
 tick, before any unit has moved, each side's missiles ask whether an enemy is
 in range, the last released first (`TeamMineManager.Update` walks its list
-from the end): the object of the other side whose
+from the end). `TeamMineManager.GetNearestTarget` first queries each enemy
+actor quadtree with a square centred on the missile, twice the trigger range
+wide. It takes the elements of intersecting nodes in tree order, including
+the root's elements, without testing each element against the square.
+Among those candidates it chooses the object of the other side whose
 edge is nearest, a unit of either domain or a building that is not a tower,
 its distance measured in two dimensions from the missile to its centre less
 its radius and required to be under the row's `range`. The first of equals is
-taken. Hidden actors cannot trigger it; stealth actors can
-(`TeamMineManager.GetNearestTarget` requires visibility below `Hide`). A missile
+taken. Hidden and stealth actors cannot trigger it
+(`TeamMineManager.GetNearestTarget` requires visibility below `Stealth`). A missile
 fires once, and is spent.
 
 The query's actors are not checked for life again. An air drop killed by
@@ -304,6 +308,9 @@ kind ends its own way:
 
 ### Recorded
 
+- A missile ignores a Vortex in stealth even when its edge is in trigger
+  range, and waits for a visible target: `tests/corpus/205-r8.yaml`.
+
 - A projectile whose Shockwave takes shield energy records that shield as
   its absorption reference: `tests/secondary_damage/shockwave-shield-absorption.yaml`.
 
@@ -484,6 +491,7 @@ kind ends its own way:
 - A missile is created where it is released, and fires when it finds a
   target: `CRC_Mine.Perform`, `MineSystem.Create`, `TeamMineManager.Update`,
   `TeamMineManager.TryActiveMine`, `TeamMineManager.GetNearestTarget`,
+  `FightQuadtree.Query`, `RectRange.Overlaps`,
   `FightUtility.CalculateDistance2D`,
   `FightCrystal.IsTower`, `MineSystem.ActiveMine`.
 - Its projectile is its own: `FightLandMine.IsLockTarget`,

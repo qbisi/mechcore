@@ -59,11 +59,7 @@ impl Simulation {
     /// `MineSystem`'s update: each side's `TeamMineManager.Update`, which
     /// walks the side's missiles from the last released to the first, each
     /// fired at most once.
-    pub(in crate::fight) fn step_mines(
-        &mut self,
-        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
-        events: &mut Vec<Event>,
-    ) -> Result<()> {
+    pub(in crate::fight) fn step_mines(&mut self, events: &mut Vec<Event>) -> Result<()> {
         let teams = self
             .mines
             .iter()
@@ -76,9 +72,7 @@ impl Simulation {
                 if self.mines[index].team != team {
                     continue;
                 }
-                if let Some(target) =
-                    self.nearest_mine_target(&self.mines[index], target_search_order)
-                {
+                if let Some(target) = self.nearest_mine_target(&self.mines[index]) {
                     let mine = self.mines.remove(index);
                     self.fire_mine(&mine, target, events)?;
                 }
@@ -91,18 +85,22 @@ impl Simulation {
     /// side whose edge is under the trigger range, the first of equals. The
     /// admitted missile's `CanAttackConstruction` is true; a tower never
     /// sets a missile off.
-    fn nearest_mine_target(
-        &self,
-        mine: &Mine,
-        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
-    ) -> Option<FightActorRef> {
+    fn nearest_mine_target(&self, mine: &Mine) -> Option<FightActorRef> {
         let mut chosen = None;
         let mut nearest = i64::MAX;
-        for (_, candidates) in target_search_order
+        for (_, tree) in self
+            .target_quadtrees
             .iter()
             .filter(|(team, _)| **team != mine.team)
         {
-            for &candidate in candidates {
+            // GetNearestTarget first queries a square twice the trigger
+            // range wide. Whole intersecting nodes are returned, not every
+            // actor whose radius could reach the missile's trigger circle.
+            for candidate in tree.query_square(
+                mine.x_q32,
+                mine.z_q32,
+                mine.trigger_range_q32.saturating_mul(2),
+            ) {
                 // GetNearestTarget reads the queried tree without another life
                 // check. A summon that died landing is removed later by
                 // DeadEffectSystem, and can still trigger the missile here.
@@ -112,9 +110,9 @@ impl Simulation {
                 let Some(view) = self.fight_actor(candidate) else {
                     continue;
                 };
-                // `GetNearestTarget` admits visibility below Hide, including
-                // Stealth, but a burrowed unit cannot trigger a missile.
-                if view.visibility == Visibility::Hide {
+                // `GetNearestTarget` requires visibility below Stealth:
+                // neither a cloaked nor a burrowed unit can trigger it.
+                if matches!(view.visibility, Visibility::Stealth | Visibility::Hide) {
                     continue;
                 }
                 let distance = native_q32_magnitude(

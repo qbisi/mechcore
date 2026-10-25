@@ -1,0 +1,104 @@
+# Native replay 20261025--205, round 8: the missile at (-88,-13)
+# waits for a visible target. Vortex 300 is within edge distance at
+# tick 78 but remains in stealth and cannot trigger the missile.
+# Recorded directly from the original server GRBR.
+kind: fight
+source: game
+map_id: 1012
+seed: 1805501314
+round: 8
+blue:
+  core_damage: 0
+  officers: [missile_specialist, efficient_tech_research]
+  techs:
+    mustang: [range_enhancement]
+    fire_badger: [range_enhancement, counter_fire]
+    void_eye: [range_enhancement, charged_shot, suppression_shots]
+  blueprints: [attack_enhancement, defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: fang, index: 0, position: {x: 10, y: -45}, exp: 305/305/600, rotated: true}
+  - {name: fang, index: 1, position: {x: -170, y: -175}, exp: 600/600/600, rotated: true}
+  - {name: fang, index: 2, position: {x: 230, y: -35}, exp: 600/600/600, rotated: true}
+  - {name: fire_badger, index: 3, position: {x: 65, y: -70}, level: 3, exp: 3875/4920/4987}
+  - {name: fire_badger, index: 4, position: {x: 175, y: -70}, level: 3, exp: 1562/4987/4987}
+  - {name: void_eye, index: 5, position: {x: 120, y: -80}, level: 3, exp: 1691/2171/2315}
+  - {name: void_eye, index: 6, position: {x: 230, y: -80}, level: 6, exp: 1443/3282/3769}
+  - {name: sledgehammer, index: 7, position: {x: 350, y: 285}, exp: 232/232/1300}
+  - {name: crawler, index: 8, position: {x: 310, y: 245}, exp: 267/267/450}
+  - {name: crawler, index: 9, position: {x: 270, y: -175}, exp: 450/450/450, rotated: true}
+  - {name: void_eye, index: 10, position: {x: 10, y: -80}, level: 4, exp: 670/1610/2919}
+  - {name: crawler, index: 11, position: {x: 120, y: -115}, exp: 450/450/450, rotated: true}
+  - {name: void_eye, index: 12, position: {x: -100, y: -80}, level: 3, exp: 827/1334/2315}
+  - {name: crawler, index: 13, position: {x: -100, y: -115}, exp: 244/249/450, rotated: true}
+  - {name: void_eye, index: 14, position: {x: -210, y: -80}, level: 2, exp: 255/616/1465}
+  - {name: crawler, index: 15, position: {x: -210, y: -115}, exp: 306/334/450, rotated: true}
+  - {name: fang, index: 16, position: {x: 230, y: -175}, exp: 600/600/600, rotated: true}
+  - {name: fire_badger, index: 17, position: {x: -155, y: -70}, exp: 1394/1400/1400}
+  - {name: fang, index: 18, position: {x: -150, y: -35}, exp: 277/277/600, rotated: true}
+  - {name: fire_badger, index: 21, position: {x: -275, y: -20}, exp: 500/507/1400}
+  - {name: void_eye, index: 22, position: {x: -210, y: -160}, level: 2, exp: 187/525/1465, rotated: true}
+  - {name: fire_badger, index: 23, position: {x: 275, y: -20}, exp: 1382/1400/1400}
+  - {name: void_eye, index: 24, position: {x: -30, y: -80}, exp: 203/432/650}
+  - {name: void_eye, index: 25, position: {x: -250, y: -90}, exp: 70/650/650}
+  - {name: void_eye, index: 26, position: {x: 270, y: -90}, exp: 243/650/650}
+  - {name: phoenix, index: 28, position: {x: 210, y: -160}, level: 2, exp: 0/554/2929, rotated: true, source: joined}
+  - {name: mustang, index: 29, position: {x: 175, y: -90}, level: 2, exp: 0/2704/2704, source: joined}
+  - {name: mustang, index: 30, position: {x: -255, y: -160}, level: 2, exp: 0/1030/2704, source: joined}
+  - {name: mustang, index: 31, position: {x: 175, y: -160}, level: 2, exp: 0/2704/2704, source: joined}
+  contraptions:
+  - {name: missile, index: 1, position: {x: 295, y: -273}}
+  - {name: shield, index: 2, position: {x: 128, y: -82}}
+  - {name: missile, index: 3, position: {x: -88, y: -13}, retained: false}
+  - {name: missile, index: 4, position: {x: -297, y: -269}}
+  - {name: missile, index: 5, position: {x: -273, y: -11}, retained: false}
+red:
+  core_damage: 402
+  officers: [training_specialist, advanced_defensive_tactics, efficient_tech_research]
+  techs:
+    wasp: [electromagnetic_shot, range_enhancement]
+    fang: [grenade_launcher, range_enhancement, mechanical_rage]
+    vortex: [field_maintenance, emergency_armor]
+  blueprints: [attack_enhancement, defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [1, 2]
+  units:
+  - {name: vortex, index: 0, position: {x: 0, y: -150}, level: 2, exp: 1548/1552/1690}
+  - {name: vortex, index: 1, position: {x: 90, y: -150}, level: 2, exp: 222/272/1690}
+  - {name: vortex, index: 2, position: {x: -90, y: -150}, exp: 560/581/750}
+  - {name: crawler, index: 5, position: {x: -50, y: -285}, exp: 355/375/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 50, y: -285}, exp: 450/450/450, rotated: true}
+  - {name: vortex, index: 8, position: {x: 170, y: -150}, exp: 466/506/750}
+  - {name: vortex, index: 9, position: {x: -160, y: -150}, exp: 241/253/750}
+  - {name: fang, index: 10, position: {x: 35, y: -170}, level: 2, exp: 703/1352/1352}
+  - {name: fang, index: 11, position: {x: 245, y: -250}, level: 3, exp: 1826/2137/2137}
+  - {name: fang, index: 12, position: {x: -240, y: -215}, level: 4, exp: 128/860/2694, rotated: true}
+  - {name: vortex, index: 13, position: {x: -290, y: -240}, level: 3, exp: 0/665/2671}
+  - {name: fang, index: 14, position: {x: -65, y: -190}, level: 2, exp: 946/1115/1352}
+  - {name: fang, index: 15, position: {x: -175, y: -190}, level: 3, exp: 0/431/2137}
+  - {name: vortex, index: 16, position: {x: -230, y: -150}, level: 3, exp: 699/838/2671}
+  - {name: vortex, index: 17, position: {x: 250, y: -150}, level: 3, exp: 761/899/2671}
+  - {name: fang, index: 18, position: {x: 215, y: -180}, level: 5, exp: 0/3126/3126}
+  - {name: fang, index: 19, position: {x: 105, y: -180}, level: 3, exp: 1240/2137/2137}
+  - {name: crawler, index: 22, position: {x: -130, y: -205}, exp: 51/78/450, rotated: true}
+  - {name: crawler, index: 23, position: {x: 140, y: -215}, exp: 61/70/450, rotated: true}
+  - {name: wasp, index: 24, position: {x: -205, y: -290}, level: 3, exp: 0/461/3206}
+  - {name: wasp, index: 25, position: {x: 5, y: -300}, level: 2, exp: 0/1637/2028}
+  - {name: wasp, index: 26, position: {x: 185, y: -300}, level: 2, exp: 0/619/2028}
+  - {name: phoenix, index: 28, position: {x: 0, y: -280}, level: 2, exp: 0/1346/2929, source: joined}
+  - {name: wasp, index: 29, position: {x: -105, y: -300}, exp: 0/700/900, source: joined}
+  - {name: wasp, index: 30, position: {x: 95, y: -300}, exp: 0/900/900, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 207, y: -192}}
+asserts:
+- sql: |-
+    SELECT tick,object__id,target__id FROM events
+    WHERE type='projectile_released' AND source__id IS NULL
+    ORDER BY tick,ordinal
+  rows:
+  - [72, 353, 302]
+  - [113, 692, 388]
+ticks: 1201
+hash: 27:ee7e95620caf27e20f6fdb1207ea963727d274e22feb1956aeacd573ee7179f3
