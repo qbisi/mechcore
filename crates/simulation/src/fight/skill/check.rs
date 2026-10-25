@@ -809,7 +809,7 @@ impl Simulation {
         } else {
             selected
         };
-        let firing_at = self.skill(skill_ref).attack_target();
+        let firing_at = self.skill(skill_ref).checked_actor_target();
         let skill = self.skill_mut(skill_ref);
         skill.idle = idle;
         let Some(selected) = selected else {
@@ -818,11 +818,12 @@ impl Simulation {
             return Ok(false);
         };
         skill.write_lock(Some(selected));
-        // `ChangeLockTarget` alone: the attack target stays, and only a skill
-        // left idle has it cleared.
-        skill.kept_attack_target = firing_at
-            .filter(|&target| !idle && target != selected)
-            .map(|target| (target, selected));
+        // `ChangeLockTarget` alone: the cached actor target stays, including
+        // null when SearchAttackTarget replaced it with a shield. Retaining
+        // the unit behind that shield instead stops a preemptive skill's
+        // motion in range of the old unit (corpus 506/r6).
+        skill.kept_attack_target =
+            (!idle && firing_at != Some(selected)).then_some((firing_at, selected));
         self.hand_motion_after_lock_search(skill_ref);
         Ok(true)
     }

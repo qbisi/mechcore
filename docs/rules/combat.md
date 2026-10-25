@@ -153,6 +153,13 @@ continues to supply its direction and lock; its own range does not replace
 the running preemptive skill's check. Ordinary skill attack checks still
 use the skill's own target and range.
 
+The preemptive skill's search as it leaves idle changes its lock without
+refreshing its cached actor attack target. That cache can be empty because
+its previous attack target was a battlefield shield; the new lock does not
+fill it. A Spider Mine skill can therefore enter prepare with a new lock,
+no actor attack target and moving motion
+([`506-r6.yaml`](../../tests/corpus/506-r6.yaml)).
+
 ## A unit with nothing it can fire at walks on any enemy
 
 A skill whose search finds nothing it can attack falls back on any live enemy,
@@ -2118,6 +2125,11 @@ not the game's native attack-type enum.
 - A skill's motion range check delegates to the running preemptive skill:
   `FightSkillBase.GameRiver.Fight.IAttacker.IsAttackTargetInAttackRange`,
   `SkillManager.HasPreemptiveSkill`, `SkillManager.GetRunningPreemptiveSkill`.
+
+- Leaving idle for a preemptive skill searches the lock without refreshing
+  the actor attack target, which can remain null after shield replacement:
+  `PreemptiveSkillExitIdleBehaviour.Execute`, `FightSkill.SearchLockTarget`,
+  `FightSkill.ChangeLockTarget`, `FightSkill.ChangeAttackTarget`.
 
 - Cooling enters idle on its last update, and a preemptive checker sees the
   main skill's current state: `SkillCoolingState.Update`,

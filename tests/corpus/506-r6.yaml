@@ -1,0 +1,99 @@
+# Native round 6 of 20261025--506: Spider Mine preserves an empty actor
+# attack target from a shield while taking a new lock as it prepares.
+kind: fight
+source: game
+map_id: 1012
+seed: 1328977511
+round: 6
+blue:
+  core_damage: 300
+  officers: [supply_enhancement, marksman_specialist]
+  techs:
+    fang: [portable_shield]
+    stormcaller: [incendiary_bomb]
+  units:
+  - {name: arclight, index: 0, position: {x: 90, y: -190}, level: 2, exp: 0/907/1690}
+  - {name: arclight, index: 1, position: {x: -120, y: -190}, exp: 603/750/750}
+  - {name: arclight, index: 2, position: {x: -40, y: -190}, exp: 619/750/750}
+  - {name: sabertooth, index: 3, position: {x: 115, y: -155}, level: 2, exp: 0/289/2929}
+  - {name: sabertooth, index: 4, position: {x: -115, y: -155}, exp: 1134/1300/1300}
+  - {name: marksman, index: 5, position: {x: 80, y: -160}, level: 2, exp: 975/1465/1465}
+  - {name: marksman, index: 6, position: {x: -80, y: -160}, level: 2, exp: 1081/1465/1465}
+  - {name: marksman, index: 7, position: {x: -40, y: -160}, level: 4, exp: 1986/2782/2919}
+  - {name: fang, index: 8, position: {x: -140, y: -135}, exp: 326/583/600, rotated: true}
+  - {name: fang, index: 9, position: {x: 140, y: -135}, exp: 370/600/600, rotated: true}
+  - {name: sledgehammer, index: 10, position: {x: -5, y: -130}, level: 2, exp: 0/471/2929}
+  - {name: marksman, index: 11, position: {x: 40, y: -160}, level: 2, exp: 691/1042/1465}
+  - {name: stormcaller, index: 12, position: {x: -65, y: -140}, exp: 764/1100/1100}
+  - {name: stormcaller, index: 13, position: {x: 65, y: -140}, level: 2, exp: 2291/2479/2479}
+  - {name: fang, index: 14, position: {x: -5, y: -110}, exp: 187/266/600}
+  - {name: mustang, index: 15, position: {x: 75, y: -280}, exp: 660/1200/1200}
+  - {name: mustang, index: 16, position: {x: -105, y: -270}, exp: 1165/1200/1200}
+  - {name: crawler, index: 17, position: {x: 75, y: -300}, level: 4, exp: 343/507/2021}
+  - {name: crawler, index: 18, position: {x: -105, y: -290}, level: 4, exp: 150/314/2021}
+  - {name: fang, index: 19, position: {x: 140, y: -205}, exp: 46/163/600, rotated: true}
+  - {name: mustang, index: 20, position: {x: -15, y: -270}, level: 2, exp: 0/849/2704}
+  - {name: fang, index: 21, position: {x: -140, y: -205}, exp: 0/123/600, rotated: true, source: joined}
+  - {name: stormcaller, index: 22, position: {x: -5, y: -150}, exp: 0/304/1100, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: -80, y: -134}, retained: false}
+  - {name: shield, index: 1, position: {x: 62, y: -135}}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: -59, y: 66}, {x: 81, y: 66}]}
+red:
+  core_damage: 0
+  officers: [secondary_equipment_expert, supply_enhancement]
+  techs:
+    marksman: [range_enhancement, elite_marksman]
+    crawler: [mechanical_rage]
+    tarantula: [spider_mine]
+    hound: [fire_extinguisher]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: hound, index: 0, position: {x: -120, y: -190}, level: 2, exp: 0/374/1690}
+  - {name: hound, index: 1, position: {x: 0, y: -190}, exp: 258/325/750}
+  - {name: hound, index: 2, position: {x: 120, y: -190}, level: 2, exp: 0/706/1690}
+  - {name: sledgehammer, index: 3, position: {x: -65, y: -150}, level: 2, exp: 0/608/2929, equipment: [secondary_laser_sight]}
+  - {name: sledgehammer, index: 4, position: {x: 65, y: -150}, exp: 1139/1300/1300, equipment: [secondary_laser_sight]}
+  - {name: marksman, index: 5, position: {x: -150, y: -190}, level: 3, exp: 403/2315/2315}
+  - {name: marksman, index: 6, position: {x: 150, y: -190}, level: 3, exp: 360/1853/2315}
+  - {name: fang, index: 7, position: {x: -65, y: -100}, exp: 24/24/600}
+  - {name: fang, index: 8, position: {x: 65, y: -100}, exp: 60/60/600}
+  - {name: marksman, index: 9, position: {x: -90, y: -190}, level: 2, exp: 128/719/1465}
+  - {name: marksman, index: 10, position: {x: 90, y: -190}, level: 2, exp: 0/679/1465}
+  - {name: marksman, index: 11, position: {x: 0, y: -210}, level: 3, exp: 0/2315/2315, equipment: [secondary_laser_sight]}
+  - {name: tarantula, index: 12, position: {x: -145, y: -215}, exp: 510/1500/1500, equipment: [small_amplifying_core]}
+  - {name: tarantula, index: 13, position: {x: 145, y: -215}, exp: 598/883/1500}
+  - {name: marksman, index: 14, position: {x: 210, y: -190}, level: 2, exp: 789/1077/1465}
+  - {name: tarantula, index: 15, position: {x: -85, y: -215}, exp: 491/718/1500}
+  - {name: tarantula, index: 16, position: {x: 85, y: -215}, exp: 208/405/1500}
+  - {name: crawler, index: 17, position: {x: 145, y: -240}, level: 4, exp: 267/403/2021}
+  - {name: crawler, index: 18, position: {x: -145, y: -240}, level: 4, exp: 55/151/2021, equipment: [secondary_fire_control_system]}
+  - {name: tarantula, index: 19, position: {x: -205, y: -215}, exp: 468/828/1500}
+  - {name: tarantula, index: 20, position: {x: 205, y: -215}, exp: 224/589/1500}
+  - {name: hound, index: 21, position: {x: -60, y: -190}, exp: 0/130/750, source: joined}
+  - {name: hound, index: 22, position: {x: 60, y: -190}, exp: 0/224/750, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: 70, y: 124}, {x: -69, y: 122}]}
+asserts:
+- sql: |-
+    SELECT u.tick,u.motion_state,s.skill_slot,s.enabled__state,
+           s.enabled__lock_target__id,s.enabled__attack_target__id
+    FROM units u JOIN units__skills s USING(tick,unit_id)
+    WHERE u.unit_id=278 AND u.tick BETWEEN 600 AND 602 ORDER BY u.tick,s.skill_slot
+  rows:
+  - [600, attacking, 0, attack, 61, null]
+  - [600, attacking, 1, idle, 61, null]
+  - [601, moving, 0, lock, null, null]
+  - [601, moving, 1, prepare, 86, null]
+  - [602, moving, 0, lock, null, null]
+  - [602, moving, 1, prepare, 86, null]
+ticks: 1207
+hash: 27:a008dad70a338fdb7f315c4d99ba596d93627514dbb127453ec39bad07f21764
