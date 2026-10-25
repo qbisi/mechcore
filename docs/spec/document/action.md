@@ -191,7 +191,10 @@ to equal the current shop level. Normalization therefore inserts Elite
 Recruitment before the first purchase requiring it. Historical endpoint
 evaluation also reads levels from before that activation, so earlier match
 files can be formatted into the legal sequence. A purchase costs the unit's
-price plus one upgrade for each level above the first.
+price plus the base upgrade cost for each level above the first. Officer
+discounts on formation upgrades do not reduce this shop-level surcharge;
+they apply when `upgrade_unit` raises an existing formation. The purchase
+correction is added to the level price before flooring the total at zero.
 
 ### `upgrade_unit`
 

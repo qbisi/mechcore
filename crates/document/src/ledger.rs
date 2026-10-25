@@ -72,9 +72,23 @@ impl<'a> Purse<'a> {
             .sum()
     }
 
+    /// `CardElement.GetBaseSupply`, retained as a formation's recovery value.
     pub(crate) fn buy(&self, unit: i32) -> Option<i32> {
         let price = self.economy.unit(unit)?.supply;
         Some((price + self.modifier(|officer| officer.unit_supply, Some(unit))).max(0))
+    }
+
+    /// `CardElement.GetSupply`: `CardData.GetMoney` adds the unmodified
+    /// level costs before the purchase correction and the single floor.
+    /// Upgrade discounts belong to `GetUpgradeSupply`, not this shop price.
+    pub(crate) fn buy_at_level(&self, unit: i32, level: i32) -> Option<i32> {
+        let row = self.economy.unit(unit)?;
+        Some(
+            (row.supply
+                + (level - 1) * row.upgrade_supply
+                + self.modifier(|officer| officer.unit_supply, Some(unit)))
+            .max(0),
+        )
     }
 
     /// The level a bought unit arrives at, which an officer can raise.
