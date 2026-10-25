@@ -238,10 +238,9 @@ pub fn step_placing(
             if !(base..=available).contains(&level) {
                 return Err(Unsettled::Refused("buying a level the shop cannot provide"));
             }
-            let upgrade = purse.upgrade(*unit).ok_or(Unsettled::Unpriced("upgrade"))?;
-            // A unit that arrives above level 1 is paid for as a purchase plus
-            // one upgrade per level above the first.
-            next.supply -= price + (level - 1) * upgrade;
+            next.supply -= purse
+                .buy_at_level(*unit, level)
+                .ok_or(Unsettled::Unpriced("unit"))?;
             next.shop.buys_remaining -= 1;
             if let Some(position) = position {
                 place(&mut next, *unit, level, price, &mut |_, _| Some(*position))?;
@@ -1601,6 +1600,50 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             economy.unit(1).unwrap().upgrade_supply
         );
         assert!(step(economy, &state, &buy(Some(3))).is_err());
+    }
+
+    /// Native `GetSupply` uses `CardData`'s level price; Subsidized Crawler's
+    /// upgrade discount is used only by `GetUpgradeSupply`. Both shop-level
+    /// sources charge 150 for a level-2 Crawler, while a later upgrade is free.
+    #[test]
+    fn a_purchase_does_not_use_formation_upgrade_discounts() {
+        let economy = Economy::embedded().unwrap();
+        let buy = Action::BuyUnit {
+            unit: 10,
+            level: Some(2),
+            position: Some(Position { x: 0, y: -160 }),
+            rotated: false,
+        };
+        for (officers, energy_tower_skills) in
+            [(vec![31_001, 20_032], vec![]), (vec![31_001], vec![4])]
+        {
+            let state = SideState {
+                energy_tower_skills,
+                officers,
+                ..solvent()
+            };
+            let bought = step(economy, &state, &buy).unwrap();
+            assert_eq!(state.supply - bought.supply, 150);
+            assert_eq!(bought.units[0].value, Some(100));
+        }
+        let state = SideState {
+            officers: vec![31_001],
+            ..solvent()
+        };
+        let bought = step(
+            economy,
+            &state,
+            &Action::BuyUnit {
+                unit: 10,
+                level: Some(1),
+                position: Some(Position { x: 0, y: -160 }),
+                rotated: false,
+            },
+        )
+        .unwrap();
+        let upgraded = step(economy, &bought, &Action::UpgradeUnit { index: 0 }).unwrap();
+        assert_eq!(bought.supply, upgraded.supply);
+        assert_eq!(upgraded.units[0].unit.level, Some(2));
     }
 
     /// Two Enhancement Modules on one formation both take their 100 off its
