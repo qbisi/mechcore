@@ -932,8 +932,14 @@ impl Simulation {
             owner: skill_ref.owner,
             slot: SkillSlot::Extra(index),
         });
-        self.skill(checked)
-            .attack_target()
+        let skill = self.skill(checked);
+        // FightSkill's range checker keeps the target found by its last
+        // search through Cooling, even after GetLockTarget becomes null.
+        // The motion asks the same checker for main and extra skills.
+        skill
+            .cooling()
+            .and_then(|(_, target)| target)
+            .or_else(|| skill.attack_target())
             .is_some_and(|target| self.attack_target_in_range(checked, target))
     }
 
