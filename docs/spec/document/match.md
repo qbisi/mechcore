@@ -497,6 +497,14 @@ native life corrections on the travelling formation. The written state
 does not distinguish those histories, and normalization may already have
 reordered them, so this warning applies in canonical order too. A round
 that opens with Aerial Mode already researched does not carry this warning.
+
+A round that opens with Land Cruiser already researched also warns when
+Wraith formations have Floating Artillery Array and Aerial Specialist. Their
+extra weapons can retain officer corrections from earlier rounds which the
+state does not store. Starting a native replay directly at that round can
+agree with the projection while replaying from round one reproduces different
+damage and the recorded settlement. This warning skips the fight comparison;
+it does not apply to the round that first researches Land Cruiser.
 All non-combat transition checks and other rounds' fight checks continue.
 
 ### Cross-round invariants
