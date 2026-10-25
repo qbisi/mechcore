@@ -93,6 +93,9 @@ fn restored_side(
         if unit.record_position == Some(unit.position) {
             unit.record_position = None;
         }
+        if unit.record_rotated == Some(unit.rotated.unwrap_or(false)) {
+            unit.record_rotated = None;
+        }
     }
     Ok(side)
 }
@@ -102,6 +105,7 @@ fn added(id: i32, index: i32, level: i32, source: UnitSource) -> Result<UnitPlac
         .ok_or_else(|| format!("layout replay unit {id} has no layout type"))?;
     Ok(UnitPlacement {
         record_position: None,
+        record_rotated: None,
         type_name: name.to_owned(),
         index,
         position: Position { x: 0, y: 0 },
@@ -223,6 +227,9 @@ fn restore_moves(
         let unit = unit(side, Some(movement.unit_index))?;
         if unit.source == UnitSource::Legacy && unit.record_position.is_none() {
             unit.record_position = Some(unit.position);
+        }
+        if unit.source == UnitSource::Legacy && unit.record_rotated.is_none() {
+            unit.record_rotated = Some(unit.rotated.unwrap_or(false));
         }
         unit.position = position(&movement.position, red);
         unit.rotated = Some(movement.rotated).filter(|rotated| *rotated);

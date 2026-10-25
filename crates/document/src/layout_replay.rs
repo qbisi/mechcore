@@ -362,7 +362,7 @@ fn write_units(xml: &mut String, units: &[(&Placement, Position)], sign: i32, ro
             unit.level.unwrap_or(1) - 1,
             sign * position.x,
             sign * position.y,
-            unit.rotated,
+            unit.record_rotated.unwrap_or(unit.rotated),
         );
         if unit.equipment.is_empty() {
             xml.push_str("<equipments />");
@@ -863,15 +863,15 @@ fn write_actions(xml: &mut String, side: &SidePlan, deployment: &Deployment, sig
     }
     for at in &deployment.settled {
         let unit = &side.units[*at];
-        if unit
-            .record_position
-            .is_some_and(|record| record != unit.position)
+        if (unit.record_position.unwrap_or(unit.position) != unit.position
+            || unit.record_rotated.unwrap_or(unit.rotated) != unit.rotated)
             && !deployment.redeployed.contains(at)
         {
             restore_position(
                 &mut actions,
                 unit,
-                unit.record_position.unwrap(),
+                unit.record_position.unwrap_or(unit.position),
+                unit.record_rotated.unwrap_or(unit.rotated),
                 sign,
                 unit.travelling,
             );
@@ -974,23 +974,26 @@ fn train(actions: &mut Vec<(&str, String)>, side: &SidePlan, deployment: &Deploy
 /// retain the snapshot's actual preparation position.
 fn restore_travelling(actions: &mut Vec<(&str, String)>, unit: &Placement, sign: i32) {
     let mut from = unit.record_position.unwrap_or(unit.position);
+    let mut from_rotated = unit.record_rotated.unwrap_or(unit.rotated);
     if crate::Region::of(from) == crate::Region::of(unit.position) {
         let mut intermediate = unit.clone();
         intermediate.position = redeployed_from(unit.position);
-        restore_position(actions, &intermediate, from, sign, false);
+        restore_position(actions, &intermediate, from, from_rotated, sign, false);
         from = intermediate.position;
+        from_rotated = intermediate.rotated;
     }
-    restore_position(actions, unit, from, sign, true);
+    restore_position(actions, unit, from, from_rotated, sign, true);
 }
 
 fn restore_position(
     actions: &mut Vec<(&str, String)>,
     unit: &Placement,
     from: Position,
+    from_rotated: bool,
     sign: i32,
     travelling: bool,
 ) {
-    let fields = move_fields(unit, from, sign, travelling);
+    let fields = move_fields(unit, from, from_rotated, sign, travelling);
     let room = i32::from(sign < 0);
     actions.push((
         "PAD_TestCommand",
@@ -1034,14 +1037,20 @@ fn redeployed_from(position: Position) -> Position {
 
 /// Moves a unit from `from` to its layout position and facing.
 fn move_unit(actions: &mut Vec<(&str, String)>, unit: &Placement, from: Position, sign: i32) {
-    actions.push(("PAD_MoveUnit", move_fields(unit, from, sign, false)));
+    actions.push(("PAD_MoveUnit", move_fields(unit, from, false, sign, false)));
 }
 
-fn move_fields(unit: &Placement, from: Position, sign: i32, travelling: bool) -> String {
+fn move_fields(
+    unit: &Placement,
+    from: Position,
+    from_rotated: bool,
+    sign: i32,
+    travelling: bool,
+) -> String {
     format!(
         "<moveUnitDatas><MoveUnitData><unitID>{}</unitID><unitIndex>{}</unitIndex>\
              <position><x>{}</x><y>{}</y></position><isRotate>{}</isRotate>\
-             <positionRecord><x>{}</x><y>{}</y></positionRecord><rotateRecord>false</rotateRecord>\
+             <positionRecord><x>{}</x><y>{}</y></positionRecord><rotateRecord>{from_rotated}</rotateRecord>\
              <superDeployRecord>{travelling}</superDeployRecord></MoveUnitData></moveUnitDatas>",
         unit_type(unit),
         index(unit),
@@ -1214,6 +1223,86 @@ mod tests {
         let mut equal: crate::Layout = serde_json::from_value(value).unwrap();
         equal.blue.units[0].record_position = Some(equal.blue.units[0].position);
         assert!(equal.normalized().blue.units[0].record_position.is_none());
+    }
+
+    #[test]
+    fn historical_rotation_is_explicit_even_when_both_footprints_fit() {
+        for side in ["blue", "red"] {
+            for rotated in [false, true] {
+                for travelling in [false, true] {
+                    let mut value = json!({
+                        "kind": "layout", "map_id": 1012, "seed": 4242, "round": 7,
+                        "blue": {"units": [{"name": "typhoon", "index": 0,
+                            "position": {"x": 0, "y": -100}}]},
+                        "red": {"units": [{"name": "typhoon", "index": 0,
+                            "position": {"x": 0, "y": -100}}]}
+                    });
+                    let unit = &mut value[side]["units"][0];
+                    if travelling {
+                        unit["position"] = json!({"x": 340, "y": 280});
+                        unit["travelling"] = json!(true);
+                    }
+                    unit["rotated"] = json!(rotated);
+                    // The center fits both orientations; position alone cannot
+                    // recover which member grid the round opened with.
+                    unit["recordRotated"] = json!(!rotated);
+                    let compiled = plan(&value);
+                    let replay = layout_replay(&compiled, crate::game_build()).unwrap();
+                    let xml = embedded_xml(&replay);
+                    assert!(xml.contains(&format!("<rotateRecord>{}</rotateRecord>", !rotated)));
+                    #[cfg(feature = "convert")]
+                    {
+                        let restored = read(&replay, 7).unwrap().normalized();
+                        let expected: crate::Layout =
+                            serde_json::from_value(value.clone()).unwrap();
+                        assert_eq!(restored, expected.normalized());
+                    }
+                    for source in ["joined", "delivered"] {
+                        let mut invalid = value.clone();
+                        invalid[side]["units"][0]["source"] = json!(source);
+                        assert!(
+                            compile(&invalid)
+                                .unwrap_err()
+                                .contains("recordRotated is only valid for legacy")
+                        );
+                    }
+                    value[side]["units"][0]["recordRotated"] = json!(rotated);
+                    let redundant: crate::Layout = serde_json::from_value(value).unwrap();
+                    let normalized = serde_json::to_value(redundant.normalized()).unwrap();
+                    assert!(normalized[side]["units"][0].get("recordRotated").is_none());
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn record_rotation_defaults_to_current_rotation_without_guessing() {
+        let mut value = json!({
+            "kind": "layout", "map_id": 1012, "seed": 4242, "round": 9,
+            "blue": {"units": [{"name": "arclight", "index": 0,
+                "position": {"x": 0, "y": -50}}]},
+            "red": {"units": [{"name": "sledgehammer", "index": 22,
+                "position": {"x": 90, "y": -35}, "rotated": true,
+                "recordPosition": {"x": -350, "y": 285}}]}
+        });
+        assert!(
+            compile(&value)
+                .unwrap_err()
+                .contains("recordPosition/recordRotated")
+        );
+        value["red"]["units"][0]["recordRotated"] = json!(false);
+        let compiled = plan(&value);
+        let replay = layout_replay(&compiled, crate::game_build()).unwrap();
+        #[cfg(feature = "convert")]
+        {
+            let expected: crate::Layout = serde_json::from_value(value).unwrap();
+            assert_eq!(
+                read(&replay, 9).unwrap().normalized(),
+                expected.normalized()
+            );
+        }
+        #[cfg(not(feature = "convert"))]
+        assert!(embedded_xml(&replay).contains("<rotateRecord>false</rotateRecord>"));
     }
 
     #[cfg(feature = "convert")]

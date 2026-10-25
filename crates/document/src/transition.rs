@@ -655,6 +655,7 @@ fn place(
     next.units.push(StateUnit {
         unit: crate::layout::UnitPlacement {
             record_position: None,
+            record_rotated: None,
             type_name: type_name.to_owned(),
             index,
             position,
@@ -1357,6 +1358,7 @@ mod tests {
                 .map(|(index, position)| StateUnit {
                     unit: UnitPlacement {
                         record_position: None,
+                        record_rotated: None,
                         type_name: "marksman".into(),
                         index: *index,
                         position: *position,
@@ -1380,6 +1382,7 @@ mod tests {
         let unit = |type_name: &str, index, x, exp| StateUnit {
             unit: UnitPlacement {
                 record_position: None,
+                record_rotated: None,
                 type_name: type_name.into(),
                 index,
                 position: Position { x, y: -50 },
@@ -1808,6 +1811,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let formation = |index, equipment| StateUnit {
             unit: crate::layout::UnitPlacement {
                 record_position: None,
+                record_rotated: None,
                 type_name: "crawler".into(),
                 index,
                 position: Position { x: 0, y: -160 },
@@ -1919,6 +1923,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let worn = |index| StateUnit {
             unit: crate::layout::UnitPlacement {
                 record_position: None,
+                record_rotated: None,
                 type_name: "crawler".into(),
                 index,
                 position: Position { x: 0, y: -160 },
@@ -1997,6 +2002,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         state.units.push(StateUnit {
             unit: crate::layout::UnitPlacement {
                 record_position: None,
+                record_rotated: None,
                 type_name: "crawler".into(),
                 index: 0,
                 position: Position { x: 0, y: -160 },
@@ -2159,6 +2165,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             units: vec![crate::r#match::StateUnit {
                 unit: crate::layout::UnitPlacement {
                     record_position: None,
+                    record_rotated: None,
                     type_name: "marksman".into(),
                     index: 5,
                     position: crate::layout::Position { x: 0, y: 0 },

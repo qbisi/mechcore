@@ -4723,6 +4723,7 @@ fn read_native_layout_inner(
             for unit in &mut side.units {
                 if unit.source != mechcore_document::UnitSource::Legacy {
                     unit.record_position = None;
+                    unit.record_rotated = None;
                 }
             }
         }
@@ -4808,6 +4809,12 @@ fn read_native_side(
             })
             .filter(|recorded| *recorded != Position { x, y })
         };
+        let record_rotated = if record_map.is_null() {
+            None
+        } else {
+            Some(invoke_value::<bool>(api, record_map, "IsRotate")?)
+                .filter(|recorded| *recorded != rotated)
+        };
         let native_index = api
             .invoke_value::<i32>(unit_manager, "GetUnitIndex", &mut [object_argument(unit)])
             .map_err(|error| error.to_string())?;
@@ -4815,6 +4822,7 @@ fn read_native_side(
             native_index,
             UnitPlacement {
                 record_position,
+                record_rotated,
                 type_name: type_name.to_owned(),
                 index: native_index,
                 position: Position { x, y },

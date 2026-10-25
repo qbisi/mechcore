@@ -156,6 +156,13 @@ pub struct UnitPlacement {
         skip_serializing_if = "Option::is_none"
     )]
     pub record_position: Option<Position>,
+    /// The legacy formation's round-opening rotation, defaulting to `rotated`.
+    #[serde(
+        default,
+        rename = "recordRotated",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub record_rotated: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub level: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -660,6 +667,9 @@ impl Layout {
             for formation in &mut side.units {
                 if formation.record_position == Some(formation.position) {
                     formation.record_position = None;
+                }
+                if formation.record_rotated == Some(formation.rotated.unwrap_or(false)) {
+                    formation.record_rotated = None;
                 }
                 if formation.level == Some(1) {
                     formation.level = None;

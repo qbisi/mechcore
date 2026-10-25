@@ -1013,6 +1013,7 @@ fn side(
     };
     let lead = UnitPlacement {
         record_position: None,
+        record_rotated: None,
         type_name: lead_name.to_owned(),
         index: 0,
         position: lead_position,
@@ -1059,6 +1060,7 @@ fn side(
         {
             delivered = Some(UnitPlacement {
                 record_position: None,
+                record_rotated: None,
                 type_name: name.to_owned(),
                 index: 0,
                 position: place(stream, footprint, MAIN_X, MAIN_Y, MAIN_Y),
@@ -1078,6 +1080,7 @@ fn side(
             let (_, name, footprint) = space.types[value - 1];
             Some(UnitPlacement {
                 record_position: None,
+                record_rotated: None,
                 type_name: name.to_owned(),
                 index: 0,
                 position: place(stream, footprint, MAIN_X, MAIN_Y, MAIN_Y),

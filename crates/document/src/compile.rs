@@ -30,6 +30,7 @@ pub struct Placement {
     pub footprint: Option<(i64, i64)>,
     pub position: Position,
     pub record_position: Option<Position>,
+    pub record_rotated: Option<bool>,
     pub index: Option<i32>,
     pub level: Option<i32>,
     pub exp: Option<i32>,
@@ -385,6 +386,7 @@ fn compile_units(
                 index,
                 position,
                 record_position,
+                record_rotated,
                 level,
                 exp,
                 rotated,
@@ -478,6 +480,9 @@ fn compile_units(
             if record_position.is_some() && source != UnitSource::Legacy {
                 return Err(format!("side {side_name} unit {index}: recordPosition is only valid for legacy units"));
             }
+            if record_rotated.is_some() && source != UnitSource::Legacy {
+                return Err(format!("side {side_name} unit {index}: recordRotated is only valid for legacy units"));
+            }
             validate_unit_placement(side_name, &type_name, position, travelling, round)?;
             Ok(Placement {
                 type_name,
@@ -485,6 +490,7 @@ fn compile_units(
                 footprint: spec.footprint,
                 position,
                 record_position,
+                record_rotated,
                 index: Some(index),
                 level: Some(level),
                 exp: Some(exp),
@@ -563,6 +569,7 @@ fn compile_constructions(
                 equipment: Vec::new(),
                 travelling: false,
                 record_position: None,
+                record_rotated: None,
                 source: UnitSource::Joined,
             })
         })
@@ -603,6 +610,7 @@ fn compile_contraptions(
                 equipment: Vec::new(),
                 travelling: false,
                 record_position: None,
+                record_rotated: None,
                 source: UnitSource::Joined,
             })
         })
@@ -944,20 +952,14 @@ fn point_on_segment(point: (i64, i64), start: (i64, i64), end: (i64, i64)) -> bo
 
 fn validate_record_positions(side_name: &str, placements: &[Placement]) -> Result<(), String> {
     for placement in placements {
-        if let Some(record) = placement.record_position {
+        if placement.record_position.is_some() || placement.record_rotated.is_some() {
             let mut recorded = placement.clone();
-            recorded.position = record;
+            recorded.position = placement.record_position.unwrap_or(placement.position);
+            recorded.rotated = placement.record_rotated.unwrap_or(placement.rotated);
             recorded.record_position = None;
-            // The opening position predates this round's move/rotation. The
-            // layout retains the final rotation, so either historical rotation
-            // can witness a legal opening footprint.
-            if let Err(error) =
-                validate_placement_footprints(side_name, std::slice::from_ref(&recorded))
-            {
-                recorded.rotated = !recorded.rotated;
-                validate_placement_footprints(side_name, &[recorded])
-                    .map_err(|_| format!("recordPosition: {error}"))?;
-            }
+            recorded.record_rotated = None;
+            validate_placement_footprints(side_name, &[recorded])
+                .map_err(|error| format!("recordPosition/recordRotated: {error}"))?;
         }
     }
     Ok(())
