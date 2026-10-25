@@ -623,8 +623,9 @@ pub(in crate::fight) struct Skill {
     /// The attack target `FightSkill.SearchLockTarget` left in place as it
     /// changed the lock, and the lock it changed to: until the next
     /// `SearchAttackTarget`, the skill fires at what it fired at. Paired as
-    /// `in_the_way` is, it answers only while that lock holds.
-    pub(in crate::fight) kept_attack_target: Option<(FightActorRef, FightActorRef)>,
+    /// `in_the_way` is, it answers only while that lock holds. A shield
+    /// target leaves the cached actor target empty, which is retained too.
+    pub(in crate::fight) kept_attack_target: Option<(Option<FightActorRef>, FightActorRef)>,
     /// The battlefield shield covering the lock, and the lock it was found
     /// for: `FightSkill.targetEnergyShield`, which
     /// `SkillSearchTargetController.SearchTargetShield` hands the skill in
@@ -1090,7 +1091,7 @@ impl Skill {
         if let Some((kept, under)) = self.kept_attack_target
             && self.lock_target == Some(under)
         {
-            return Some(kept);
+            return kept;
         }
         match self.in_the_way {
             Some((building, found_for)) if self.lock_target == Some(found_for) => {
