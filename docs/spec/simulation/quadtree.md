@@ -104,7 +104,8 @@ A value equal to the centre, or differing by only 43 raw, falls to the low side.
 
 Agents insert strictly in input array order, which is `Simulator.agents`'
 order. The kernel adds each side's live towers and then its live
-constructions, then the map's crystals in the order `config/maps.yaml` lists
+non-tower colliders in `ActorComparer` position order, including interceptors,
+then the map's crystals in the order `config/maps.yaml` lists
 them, then the live units the fight started with by Unit ID, and last the units
 whose agents joined since, in the order they joined (`RvoState.added_units`):
 `DoAddAgents` appends a summon's agent as the summon is made and a travelling

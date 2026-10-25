@@ -313,6 +313,11 @@ kind ends its own way:
 
 ### Recorded
 
+- Two interceptors whose deployment indices run against position order
+  activate their movement colliders in position order; the neighbour tree's
+  growth makes that order observable in nearby Crawlers' avoidance:
+  `tests/corpus/347-r7.yaml`.
+
 - A Mustang controlled while its interceptor holds the main weapon searches
   on the control tick, then loses that target as the interceptor returns to
   idle; it locks again on the next tick: `tests/corpus/311-r7.yaml`.
