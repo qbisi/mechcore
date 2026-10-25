@@ -1,4 +1,5 @@
 use super::attacker::ScoreOffsets;
+use super::skill::SkillState;
 use super::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -858,10 +859,13 @@ impl Simulation {
                     .lock_target
                     .and_then(|lock| self.fight_actor(lock))
                     .is_none_or(|lock| !lock.query_alive);
-                let requested = match skill.phase() {
-                    FightSkillPhase::Idle => lock_gone || skill.search_target_time < 1,
-                    FightSkillPhase::Attack => lock_gone,
-                    FightSkillPhase::Prepare { .. } => false,
+                let requested = match skill.state {
+                    SkillState::Idle { .. } => lock_gone || skill.search_target_time < 1,
+                    SkillState::Attack(_) => lock_gone,
+                    SkillState::Prepare { .. }
+                    | SkillState::Cooling { .. }
+                    | SkillState::Reloading { .. }
+                    | SkillState::Locked => false,
                 };
                 queued.push((id, slot, main.search_prepared && requested));
             }
