@@ -566,6 +566,8 @@ place for the rest of the fight. The row also raises the unit's life by 80%.
   its search timer restarted while the motion stops idle. It searches and
   locks on the next update, and from then on it is the unit's main searcher
   (`FightSkillBase.IsMainSearcher`): its lock is the unit's.
+  This replaces a Mobile Beacon's move behaviour too: the charge leaves the
+  beacon's path and chases the explosion skill's lock.
 - **Its buff makes the unit fast and invincible.** Buff 6020 adds 60 metres a
   second to the unit's speed, which a recording keeps as the buff's
   `move_speed_value`, and makes it invincible for as long as the fight lasts.
@@ -810,6 +812,10 @@ that is not melee, so the simulator refuses it.
 ## Evidence
 
 ### Recorded
+
+- Scorching Charge replaces a Mobile Beacon path with automatic pursuit
+  when it activates, idling before its next lock search:
+  `tests/corpus/378-r6.yaml`.
 
 - A Sabertooth Anti-Air Missile weapon outside its asymmetric arc takes the
   nearest endpoint as the chassis turns:

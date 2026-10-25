@@ -1,0 +1,92 @@
+# Native replay 20261025--378, round 6: Scorching Charge activates
+# while Fire Badger 89 follows Mobile Beacon. It replaces the beacon's
+# move behaviour with automatic pursuit and idles before the next search.
+# Recorded directly from the original server GRBR.
+kind: fight
+source: game
+map_id: 1012
+seed: 157134732
+round: 6
+blue:
+  core_damage: 2579
+  officers: [cost_control_specialist]
+  techs:
+    wasp: [energy_shield]
+    crawler: [mechanical_rage]
+    fire_badger: [scorching_charge]
+  units:
+  - {name: hound, index: 0, position: {x: 0, y: -20}, exp: 108/108/750}
+  - {name: sledgehammer, index: 3, position: {x: 145, y: -20}, exp: 614/674/1300}
+  - {name: sledgehammer, index: 4, position: {x: 245, y: -20}, exp: 129/153/1300}
+  - {name: fang, index: 5, position: {x: 85, y: -60}, exp: 267/267/600}
+  - {name: fang, index: 6, position: {x: 195, y: -60}, exp: 334/334/600}
+  - {name: wraith, index: 7, position: {x: 285, y: -65}, level: 2, exp: 1982/2100/5070}
+  - {name: wraith, index: 8, position: {x: 45, y: -75}, level: 2, exp: 399/563/5070}
+  - {name: fire_badger, index: 9, position: {x: 95, y: -20}, exp: 488/518/1400}
+  - {name: fire_badger, index: 10, position: {x: 195, y: -20}, exp: 356/356/1400}
+  - {name: fire_badger, index: 11, position: {x: -165, y: -20}, exp: 991/991/1400}
+  - {name: crawler, index: 12, position: {x: 310, y: 285}, level: 2, exp: 362/362/1014}
+  - {name: wasp, index: 14, position: {x: 330, y: 35}, exp: 735/854/900}
+  - {name: wasp, index: 15, position: {x: 35, y: -50}, level: 2, exp: 1805/1977/2028}
+  - {name: wraith, index: 16, position: {x: -185, y: -45}, exp: 1709/1709/2250}
+  - {name: wasp, index: 18, position: {x: 245, y: -50}, exp: 900/900/900}
+  - {name: wasp, index: 19, position: {x: -215, y: -20}, exp: 900/900/900}
+  - {name: abyss, index: 20, position: {x: 235, y: -105}, exp: 0/1039/4800, source: joined}
+  - {name: wasp, index: 21, position: {x: 260, y: -285}, exp: 0/273/900, rotated: true, source: joined}
+  - {name: crawler, index: 22, position: {x: 310, y: 35}, exp: 0/16/450, travelling: true, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -200, y: -22}, {x: -9, y: -83}, {x: 136, y: 53}]}
+red:
+  core_damage: 0
+  officers: [supply_specialist]
+  techs:
+    marksman: [aerial_specialization]
+    mustang: [aerial_specialization]
+    fire_badger: [counter_fire]
+    void_eye: [charged_shot]
+  blueprints: [attack_enhancement, defense_enhancement]
+  units:
+  - {name: void_eye, index: 0, position: {x: -170, y: -80}, level: 2, exp: 1000/1416/1465}
+  - {name: void_eye, index: 1, position: {x: -240, y: -60}, level: 2, exp: 269/541/1465}
+  - {name: void_eye, index: 2, position: {x: -70, y: -100}, level: 2, exp: 349/1282/1465}
+  - {name: sledgehammer, index: 3, position: {x: -120, y: -65}, exp: 1021/1203/1300, rotated: true}
+  - {name: sledgehammer, index: 4, position: {x: -290, y: -35}, exp: 1183/1300/1300, rotated: true}
+  - {name: crawler, index: 5, position: {x: -70, y: -135}, exp: 343/438/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -240, y: -95}, exp: 343/450/450, rotated: true}
+  - {name: sledgehammer, index: 7, position: {x: 140, y: -135}, exp: 793/924/1300, rotated: true}
+  - {name: fang, index: 8, position: {x: -140, y: -225}, exp: 467/487/600, rotated: true}
+  - {name: fang, index: 9, position: {x: 140, y: -225}, exp: 358/378/600, rotated: true}
+  - {name: fire_badger, index: 10, position: {x: -15, y: -80}, exp: 883/1390/1400}
+  - {name: fire_badger, index: 11, position: {x: -270, y: -55}, exp: 905/1400/1400, rotated: true}
+  - {name: marksman, index: 12, position: {x: -270, y: -90}, level: 2, exp: 171/1465/1465}
+  - {name: marksman, index: 13, position: {x: -120, y: -100}, level: 2, exp: 0/1044/1465}
+  - {name: fortress, index: 14, position: {x: -210, y: -90}, exp: 560/924/1600, equipment: [barrier]}
+  - {name: crawler, index: 15, position: {x: 260, y: -265}, exp: 304/324/450, rotated: true}
+  - {name: crawler, index: 16, position: {x: -260, y: -265}, exp: 296/450/450, rotated: true}
+  - {name: marksman, index: 18, position: {x: 110, y: -170}, exp: 175/650/650}
+  - {name: mustang, index: 19, position: {x: -255, y: -130}, exp: 542/1200/1200}
+  - {name: fortress, index: 20, position: {x: 200, y: -110}, exp: 0/157/1600, equipment: [barrier], source: joined}
+  - {name: mustang, index: 21, position: {x: -55, y: -170}, exp: 0/1200/1200, source: joined}
+  - {name: mustang, index: 22, position: {x: 195, y: -150}, exp: 0/511/1200, source: joined}
+  contraptions:
+  - {name: missile, index: 3, position: {x: 297, y: -275}}
+  - {name: missile, index: 4, position: {x: -296, y: -282}, retained: false}
+  - {name: shield, index: 5, position: {x: -80, y: -121}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 21, y: 280}]}
+asserts:
+- sql: |-
+    SELECT u.tick,u.motion_state,s.skill_slot,s.enabled__state,
+           s.enabled__lock_target__id FROM units u JOIN units__skills s USING(tick,unit_id)
+    WHERE u.unit_id=89 AND u.tick BETWEEN 228 AND 230 ORDER BY u.tick,s.skill_slot
+  rows:
+  - [228, moving, 0, idle, 235]
+  - [228, moving, 1, lock, null]
+  - [229, idle, 0, lock, null]
+  - [229, idle, 1, idle, null]
+  - [230, moving, 0, lock, null]
+  - [230, moving, 1, idle, 235]
+ticks: 639
+hash: 27:c720ed8ae4c3fbe2e4de418dfea4ca8fda40c3f8ce220d9c8e56e2d8599d0374

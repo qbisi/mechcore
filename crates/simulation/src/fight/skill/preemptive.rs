@@ -146,7 +146,9 @@ impl Simulation {
         actor.skills.preemptive_active = true;
         lock(&mut actor.skills.main);
         // `FightExplosionSkill.OnPermanentPreemptiveSkillActive` gives the
-        // unit an `AutoMoveBehaviour` that asks this skill.
+        // unit an `AutoMoveBehaviour` that asks this skill, replacing a
+        // Mobile Beacon's active move behaviour too.
+        actor.command = None;
         actor.motion.attacker = SkillSlot::Extra(index);
         // `ChangeToLockState`, then, with no transition to wait out,
         // `ChangeToIdleState`: `SkillLockState.Exit` restarts its search
