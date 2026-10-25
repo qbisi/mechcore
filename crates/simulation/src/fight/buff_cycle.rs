@@ -218,7 +218,7 @@ impl Simulation {
             .fill(false);
     }
 
-    /// `TeamBuffCycleManager.Update`: every available controller of a live
+    /// `TeamBuffCycleManager.Update`: every available controller of a
     /// unit, blue's origin manager first, each unit's in the order its sources
     /// came. Control does not move its registered controllers; the buffs it
     /// writes still use the unit's current side.
@@ -230,12 +230,14 @@ impl Simulation {
         let mut owners = self
             .actors
             .iter()
+            // A timer can kill the source before this module runs. Its
+            // controller remains available until `DeadEffectSystem` calls
+            // `BuffEffectProvider.Deactive` at the end of the tick.
             .filter(|(_, actor)| {
-                actor.alive()
-                    && actor
-                        .buff_cycles_available
-                        .iter()
-                        .any(|available| *available)
+                actor
+                    .buff_cycles_available
+                    .iter()
+                    .any(|available| *available)
             })
             .map(|(&id, actor)| (actor.original_team, id))
             .collect::<Vec<_>>();

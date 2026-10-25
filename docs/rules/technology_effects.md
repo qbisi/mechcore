@@ -283,6 +283,14 @@ every other buff's stay, whichever source wrote them: a Rhino with Combat
 Evolvement, Mobile Power Station and Degeneration Beam keeps two when the
 third runs out.
 
+**A source killed before the buff module still updates its controller that
+tick.** `BuffCycleController.Update` tests whether the controller is available
+and running, not whether its owner lives. Death effects deactivate it later.
+A Wraith killed by a Rhino Assault landing still refreshes Degeneration Beam
+on nearby units, including the summoned Rhino, before its death is processed
+([`531-r4.yaml`](../../tests/corpus/531-r4.yaml)); it refreshes no buff on the
+following tick.
+
 **A buff that stacks counts its stack every step.** A buff marked additive in
 effect sets its stack each `stepTime`, below its bound if it has one, and
 each rate or value it writes is the buff's times the stack: none before the
@@ -3003,6 +3011,10 @@ derive (a minimum range):
   `BuffEffectProvider.GetOriginBuffCycleCtr`,
   `TeamBuffCycleManager.CreateBuffController`, `TeamBuffCycleManager.Update`,
   `FightActor.GetOriginTeamController`.
+- A controller updates until its provider deactivates it, even if a timer
+  killed the source before the buff module ran: `TeamBuffCycleManager.Update`,
+  `BuffCycleController.Update`, `BuffEffectProvider.Deactive`,
+  `BuffCycleController.Deactive`, `DeadEffectSystem.Update`.
 - A source's controller under the update model `All`:
   `BuffCycleController.Update` hands it to `BuffCycleController.UpdateModel1`,
   which counts `BuffCycleController.timeSum` up a tick. In
