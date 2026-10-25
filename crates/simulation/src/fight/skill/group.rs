@@ -818,54 +818,8 @@ impl Simulation {
         if !actor.skills.main.standalone() || actor.turret_q32.is_none() {
             return;
         }
-        let skill = &actor.skills.main;
-        // CalculateTargetDirection falls back to RVO velocity when its
-        // current attacker holds no lock, including a cooling weapon batch.
-        let velocity_aim = turn_direction_q32(
-            actor.motion.current_velocity_x_q32,
-            actor.motion.current_velocity_z_q32,
-        );
-        if skill.mech_searches() {
-            // `CalculateTargetDirection` with the unit as the motion's
-            // attacker: towards its own lock.
-            let aim = skill
-                .unit_lock()
-                .and_then(|lock| self.fight_actor(lock))
-                .map(|view| {
-                    direction_degrees_q32_raw(
-                        view.x_q32.saturating_sub(actor.x_q32),
-                        view.z_q32.saturating_sub(actor.z_q32),
-                    )
-                })
-                .or(velocity_aim);
-            self.actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable")
-                .turret_aim_q32 = aim;
-            return;
-        }
-        // `CalculateTargetDirection` asks the weapon holding the motion for
-        // its lock (`GetLockTarget`), idle or not, and turns to the skill's
-        // attack target where it holds a valid one
-        // (`FightSkill.TryGetValidAttackTarget`): a Mountain locked on a
-        // tower turns onto the block of wall its guns fire at.
-        let holder = skill.group.as_ref().map_or(0, |group| group.motion_slot);
-        let aim = skill
-            .slot_lock(holder)
-            .map(|lock| {
-                skill
-                    .group_attack_target(holder)
-                    .filter(|&target| self.fight_actor_is_alive(target))
-                    .unwrap_or(lock)
-            })
-            .and_then(|target| self.fight_actor(target))
-            .map(|view| {
-                direction_degrees_q32_raw(
-                    view.x_q32.saturating_sub(actor.x_q32),
-                    view.z_q32.saturating_sub(actor.z_q32),
-                )
-            })
-            .or(velocity_aim);
+        let (dx, dz) = self.calculate_target_direction(actor_id);
+        let aim = turn_direction_q32(dx, dz);
         self.actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
