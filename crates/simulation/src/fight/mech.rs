@@ -305,7 +305,7 @@ impl Actor {
     /// (`FightMech.RotateBodyTo`), the body still turning to where the unit
     /// moves as the main skill's attack turns it (a Centurion walking on as
     /// its missile skill holds the motion), one without its root
-    /// (`ISkillOwner.RotateTo`).
+    /// (`ISkillOwner.RotateTo`), along velocity for free-fire commands.
     pub(in crate::fight) fn extra_attack_rotate(&mut self, direction: (i64, i64)) {
         // FightTransform.RotateTo rejects FVector3.zero before converting
         // it to an angle. Keep that direction through the motion interface.
@@ -317,7 +317,11 @@ impl Actor {
             }
             self.turn_to_move_direction();
         } else {
-            if let Some(bearing) = bearing {
+            // MoveAttackCommand.IsFreeFireMove asks FightMech.IsFreeFire,
+            // independently of which skill currently holds the motion.
+            if self.command.is_some() && self.rules.attack.attack_half_angle_mdeg() >= 360_000 {
+                self.turn_to_move_direction();
+            } else if let Some(bearing) = bearing {
                 self.rotate_body_towards(bearing);
             }
             self.aim_rotation = self.body_rotation;

@@ -423,7 +423,10 @@ which scores from that facing. It then takes the place of the unit's
   at 140 m; otherwise it keeps walking. Walking on, `MotionController.Move`
   does not turn its body, which `MotionAttackState.AttackRotate` turns to its
   target. A unit that fires all round and has no body, an Overlord or a Wraith,
-  turns its root to where it moves rather than to its target.
+  turns its root to where it moves rather than to its target. This tests the
+  unit's main attack parameters (`FightMech.IsFreeFire`) even while an extra
+  weapon holds the motion, so Overlord Artillery does not draw its root away
+  from its velocity.
 - The line/circle overlap keeps the native fixed-point arithmetic order:
   `FightUtility.CalculateIsDistanceFromPointToLineBiggerThanValue2D` squares
   the raw cross product and divides by the segment's squared length, then
@@ -445,6 +448,9 @@ which scores from that facing. It then takes the place of the unit's
   answers the velocity, so the unit turns only to where it walks, and a unit
   standing still turns nothing; it changes to moving as the cooling ends and
   names nothing.
+  This range check also reads an extra weapon's retained target through
+  cooling when that weapon holds the motion; a cleared lock alone does not
+  end the attack state.
   The range check still tests visibility during cooling: if the retained
   target hides and the skill cannot reach hidden targets, the motion changes
   to moving immediately. Being within geometric range alone does not keep
@@ -664,6 +670,9 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
   and while its skill cools, and a free-firing unit faces where it moves:
   `tests/battle_skill/beacon-fires-walking.yaml`,
   `tests/battle_skill/beacon-free-fire.yaml`.
+- An Overlord on a beacon keeps facing its velocity while Overlord Artillery
+  holds the motion after its main weapon loses its lock:
+  `tests/corpus/213-r8.yaml`.
 - A Wasp on a beacon walks on unless an enemy within half the segment's width
   is within its range edge to edge, keeps attacking a lock that dies within
   range, and does not turn its body as it walks on; what it walks towards
