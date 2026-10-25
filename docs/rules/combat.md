@@ -680,8 +680,8 @@ then; units that update before the searcher may have moved to other nodes by
 its turn, and the candidates stay the ones prepared. An attacking skill is
 prepared only while its lock is absent or dead, an idle one when it can start a
 search as the tick opens, its search timer run out or its lock absent or dead,
-and a preparing or cooling one never: an idle Crawler whose lock dies during a
-tick its timer was not due searches with `PerformSearch`. Whether a search
+and a preparing, cooling, reloading or locked one never: an idle Crawler whose
+lock dies during a tick its timer was not due searches with `PerformSearch`. Whether a search
 was prepared is fixed as that tick begins: a later team change clearing a
 skill's lock and timer cannot enqueue a job retroactively, and its next search
 uses `Select` over live candidates. The prepared scores are cleared every

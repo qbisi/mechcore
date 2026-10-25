@@ -1,0 +1,103 @@
+# Native replay 20261025--311, round 7: Mustang 365 changes sides
+# while its missile interceptor locks its main gun. It searches on the
+# control tick, but the interceptor's later return to idle clears that lock.
+# Recorded directly from the original server GRBR.
+kind: fight
+source: game
+map_id: 1012
+seed: 1440320690
+round: 7
+blue:
+  core_damage: 0
+  officers: [super_supply_enhancement, additional_deployment_slot, efficient_light_manufacturing, cost_control_specialist]
+  techs:
+    fang: [portable_shield]
+    hacker: [range_enhancement, multi_control]
+    arclight: [armor_enhancement, range_enhancement]
+    farseer: [scanning_radar]
+  blueprints: [defense_enhancement, attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: void_eye, index: 0, position: {x: -70, y: -190}, level: 2, exp: 591/591/1465}
+  - {name: void_eye, index: 1, position: {x: 110, y: -190}, exp: 583/650/650}
+  - {name: void_eye, index: 2, position: {x: -110, y: -190}, level: 2, exp: 148/148/1465}
+  - {name: fang, index: 5, position: {x: -105, y: -110}, exp: 130/130/600}
+  - {name: fang, index: 6, position: {x: 105, y: -110}, exp: 279/311/600}
+  - {name: hound, index: 8, position: {x: 130, y: -240}, exp: 8/8/750}
+  - {name: arclight, index: 9, position: {x: 100, y: -170}, level: 2, exp: 738/1690/1690}
+  - {name: arclight, index: 10, position: {x: 60, y: -170}, level: 3, exp: 0/2671/2671}
+  - {name: arclight, index: 11, position: {x: 180, y: -170}, level: 2, exp: 1065/1690/1690}
+  - {name: arclight, index: 12, position: {x: -180, y: -170}, level: 2, exp: 1206/1690/1690}
+  - {name: fang, index: 13, position: {x: 140, y: -205}, exp: 105/600/600, rotated: true}
+  - {name: arclight, index: 14, position: {x: 220, y: -170}, level: 2, exp: 587/1690/1690}
+  - {name: void_eye, index: 15, position: {x: 70, y: -190}, level: 2, exp: 157/165/1465}
+  - {name: fang, index: 16, position: {x: 275, y: -170}, exp: 0/9/600}
+  - {name: phantom_ray, index: 17, position: {x: 175, y: -300}, exp: 727/727/1000}
+  - {name: phantom_ray, index: 18, position: {x: 105, y: -300}, exp: 357/357/1000}
+  - {name: fang, index: 19, position: {x: 180, y: -95}, exp: 44/44/600, rotated: true}
+  - {name: hacker, index: 20, position: {x: 195, y: -195}, level: 3, exp: 0/1995/1995, equipment: [laser_sights]}
+  - {name: fang, index: 21, position: {x: 140, y: -285}, exp: 63/373/600, rotated: true}
+  - {name: fang, index: 22, position: {x: -140, y: -205}, exp: 0/600/600, rotated: true}
+  - {name: hacker, index: 23, position: {x: 65, y: -215}, exp: 344/459/560}
+  - {name: arclight, index: 24, position: {x: -100, y: -170}, exp: 193/750/750}
+  - {name: hacker, index: 25, position: {x: -65, y: -215}, exp: 80/560/560}
+  - {name: fang, index: 26, position: {x: 0, y: -95}, exp: 42/62/600, rotated: true}
+  - {name: fang, index: 27, position: {x: 275, y: -230}, exp: 0/600/600}
+  - {name: farseer, index: 28, position: {x: 65, y: -245}, exp: 0/764/1800, source: joined}
+  - {name: farseer, index: 29, position: {x: -65, y: -245}, exp: 0/1486/1800, source: joined}
+  - {name: farseer, index: 30, position: {x: 195, y: -245}, exp: 0/310/1800, source: joined}
+  - {name: arclight, index: 31, position: {x: -60, y: -170}, exp: 0/365/750, source: joined}
+  - {name: fang, index: 32, position: {x: -275, y: -170}, exp: 0/520/600, source: joined}
+  - {name: fang, index: 33, position: {x: 0, y: -205}, exp: 0/431/600, rotated: true, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+red:
+  core_damage: 2094
+  officers: [efficient_tech_research, sabertooth_specialist]
+  techs:
+    mustang: [missile_interceptor, range_enhancement]
+    steel_ball: [range_enhancement, kinetic_charge]
+    stormcaller: [range_enhancement]
+    void_eye: [range_enhancement, suppression_shots]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: void_eye, index: 0, position: {x: -250, y: -100}, level: 3, exp: 1148/1631/2315}
+  - {name: void_eye, index: 1, position: {x: -140, y: -100}, level: 3, exp: 1138/1975/2315}
+  - {name: void_eye, index: 2, position: {x: -30, y: -100}, level: 3, exp: 0/1151/2315}
+  - {name: mustang, index: 3, position: {x: -215, y: -170}, level: 3, exp: 0/1399/4274, equipment: [improved_firepower_control_system]}
+  - {name: mustang, index: 4, position: {x: -85, y: -170}, level: 3, exp: 0/1269/4274}
+  - {name: crawler, index: 5, position: {x: -140, y: -135}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -30, y: -145}, exp: 266/266/450, rotated: true}
+  - {name: steel_ball, index: 7, position: {x: -275, y: -300}, exp: 774/1000/1000}
+  - {name: mustang, index: 8, position: {x: 155, y: -300}, level: 2, exp: 0/458/2704}
+  - {name: mustang, index: 9, position: {x: -225, y: -280}, level: 2, exp: 1995/2704/2704}
+  - {name: sabertooth, index: 10, position: {x: -185, y: -75}, level: 2, exp: 229/387/2929}
+  - {name: void_eye, index: 11, position: {x: -180, y: -100}, level: 3, exp: 632/1611/2315}
+  - {name: fang, index: 12, position: {x: -185, y: -120}, exp: 600/600/600}
+  - {name: fang, index: 13, position: {x: -80, y: -135}, exp: 232/387/600, rotated: true}
+  - {name: void_eye, index: 14, position: {x: -100, y: -100}, level: 2, exp: 1023/1347/1465}
+  - {name: void_eye, index: 15, position: {x: 150, y: -260}, level: 2, exp: 596/1010/1465}
+  - {name: fang, index: 16, position: {x: 140, y: -205}, exp: 12/12/600, rotated: true}
+  - {name: void_eye, index: 17, position: {x: 110, y: -260}, level: 2, exp: 0/1061/1465}
+  - {name: fang, index: 18, position: {x: -100, y: -205}, exp: 304/600/600, rotated: true}
+  - {name: void_eye, index: 19, position: {x: -230, y: -130}, level: 2, exp: 0/589/1465}
+  - {name: void_eye, index: 20, position: {x: 40, y: -220}, exp: 351/650/650}
+  - {name: stormcaller, index: 21, position: {x: -280, y: -105}, level: 2, exp: 0/339/2479, rotated: true, source: joined}
+  - {name: stormcaller, index: 22, position: {x: -145, y: -80}, level: 2, exp: 0/959/2479, source: joined}
+  - {name: fang, index: 23, position: {x: -280, y: -165}, exp: 0/451/600, rotated: true, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+asserts:
+- sql: |-
+    SELECT u.tick,u.team_id,u.mech_lock_target__id,u.motion_state,
+           s.enabled__state,s.enabled__lock_target__id
+    FROM units u JOIN units__skills s USING(tick,unit_id)
+    WHERE u.unit_id=365 AND s.skill_slot=0 AND u.tick BETWEEN 387 AND 389
+    ORDER BY u.tick
+  rows:
+  - [387, 1, null, idle, lock, null]
+  - [388, 0, null, attacking, idle, null]
+  - [389, 0, 451, attacking, idle, 451]
+ticks: 972
+hash: 27:4f3cfd0787d94983450d968b977c0ff5e05a7ed1498a8b520e88607c7a227a74

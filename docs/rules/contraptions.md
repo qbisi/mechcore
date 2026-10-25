@@ -69,6 +69,11 @@ resets for `interval` less `prepareTime`, which for the row is no time at all,
 and is idle again; one lock and one attack take three ticks. A projectile that
 leaves its reach or lands takes the lock with it.
 
+A preemptive unit interceptor locks its main weapon while preparing. Returning
+to idle calls the main weapon's `ChangeToIdleState`, which clears its targets
+even if a control-beam turn already made the weapon idle and it searched again
+earlier in the same tick. The weapon can search again on the next update.
+
 **Its attack falls and comes back.** The attack starts each fight at `attackNum`.
 Every hit takes `attackNum × decline` off it, down to `attackNum × lowerLimit`,
 each product truncated to whole points. An interceptor idle with nothing to lock
@@ -307,6 +312,10 @@ kind ends its own way:
 ## Evidence
 
 ### Recorded
+
+- A Mustang controlled while its interceptor holds the main weapon searches
+  on the control tick, then loses that target as the interceptor returns to
+  idle; it locks again on the next tick: `tests/corpus/311-r7.yaml`.
 
 - A missile ignores a Vortex in stealth even when its edge is in trigger
   range, and waits for a visible target: `tests/corpus/205-r8.yaml`.

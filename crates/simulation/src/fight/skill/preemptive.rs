@@ -385,5 +385,10 @@ pub(in crate::fight) fn lock(skill: &mut Skill) {
 /// `SkillLockState.Exit` restarts its search timer.
 pub(in crate::fight) fn unlock(skill: &mut Skill) {
     skill.enter(SkillState::Idle { ready_step: None });
+    // ChangeToIdleState uses needClearTarget even when an external callback
+    // already left the skill idle. An interceptor can finish after the
+    // owner's captured main gun searched during FightCoreSystem.Update.
+    skill.drop_lock();
+    skill.attack_target_left = None;
     skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
 }
