@@ -219,7 +219,10 @@ batch still runs.
   that layout projection cannot preserve that order. Acquiring Aerial Mode
   with Aerial Specialist and travelling Void Eyes also warns: research/flank
   order affects native life corrections which the state does not preserve,
-  including after normalization. That round's fight comparison is skipped.
+  including after normalization. Wraiths with Floating Artillery Array and
+  Aerial Specialist, with Land Cruiser researched before the round, warn about
+  extra-weapon officer corrections retained across rounds. Those corrections
+  are absent from state/layout. A warned round's fight comparison is skipped.
   All other checks continue, and
   this warning alone does not fail the match. Its `error` names the first
   check that fails.
@@ -319,6 +322,13 @@ on research/flank order that the state does not preserve even after
 formatting. Conversion still executes the projected layout; match verification
 reports that round as `warning` and skips its fight comparison. Rounds that
 open with Aerial Mode already researched are outside this warning.
+
+Wraiths with Floating Artillery Array and Aerial Specialist also warn when
+Land Cruiser was researched before the round. Their extra weapons can retain
+officer corrections across rounds which state/layout does not carry.
+Conversion still executes the projection, and match verification skips only
+the warned round's fight comparison. The round that first researches Land
+Cruiser is outside this warning.
 
 **`match` to `fight` or `mcfr`, a computation.** Selects the round exactly as `match` to
 `layout` does, projects its recorded state and decisions through that same

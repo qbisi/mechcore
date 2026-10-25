@@ -99,6 +99,23 @@ pub fn deployment(
                 ));
             }
         }
+        if opened.techs.contains(&4418)
+            && position.techs.contains(&110_181)
+            && position.officers.contains(&20021)
+        {
+            let affected = position
+                .units
+                .iter()
+                .filter(|entry| entry.unit.type_name == "wraith")
+                .map(|entry| entry.unit.index)
+                .collect::<Vec<_>>();
+            if !affected.is_empty() {
+                let side = if red { "red" } else { "blue" };
+                warnings.push(format!(
+                    "round {round} {side}: Wraith formations {affected:?} have Floating Artillery Array, Aerial Specialist and Land Cruiser researched before this round. Native extra-weapon officer corrections can retain cross-round initialization history. State/layout does not preserve those corrections; the projected fight may differ."
+                ));
+            }
+        }
         Ok::<_, String>(position)
     };
     let state = State {
@@ -582,6 +599,65 @@ mod tests {
         opening.blue.officers.push(20021);
         opening.blue.techs.push(4430);
         assert!(check(&opening, vec![bought, moved]).warnings.is_empty());
+    }
+
+    #[test]
+    fn landed_wraith_extra_weapon_history_warning_stays_scoped() {
+        let economy = crate::economy::Economy::embedded().unwrap();
+        let opening = State {
+            blue: SideState {
+                supply: 100_000,
+                unlocked_units: vec![18],
+                officers: vec![20021],
+                techs: vec![4418, 110_181],
+                units: vec![crate::r#match::StateUnit {
+                    unit: serde_json::from_value(json!({"name": "wraith", "index": 0,
+                        "position": {"x": -100, "y": -160}}))
+                    .unwrap(),
+                    value: None,
+                    redeployed: false,
+                }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let check = |opening: &State, blue| {
+            deployment(
+                economy,
+                opening,
+                &TurnActions { blue, red: vec![] },
+                9,
+                1012,
+                1,
+                None,
+            )
+            .unwrap()
+        };
+        let warned = check(&opening, vec![]);
+        assert_eq!(warned.warnings.len(), 1);
+        assert!(warned.warnings[0].contains("round 9 blue: Wraith formations [0]"));
+        for absent in [20021, 4418, 110_181] {
+            let mut other = opening.clone();
+            other.blue.officers.retain(|id| *id != absent);
+            other.blue.techs.retain(|id| *id != absent);
+            assert!(check(&other, vec![]).warnings.is_empty());
+        }
+        let mut just_researched = opening.clone();
+        just_researched.blue.techs.retain(|id| *id != 4418);
+        assert!(
+            check(
+                &just_researched,
+                vec![Action::UpgradeTechnology {
+                    unit: 18,
+                    tech: 4418
+                }],
+            )
+            .warnings
+            .is_empty()
+        );
+        let mut no_wraith = opening;
+        no_wraith.blue.units.clear();
+        assert!(check(&no_wraith, vec![]).warnings.is_empty());
     }
 
     #[test]
