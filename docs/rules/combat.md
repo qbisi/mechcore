@@ -1336,6 +1336,13 @@ updated, so nothing turns, whichever state the unit leaves: a Melting Point
 whose Crawler an ally kills sets off for the next one with its turret still,
 and so does a Sledgehammer whose lock walks out of its reach.
 
+A moving unit on a Mobile Beacon continues turning its turret while a burst
+finishes against a dead target. The burst ends the skill's update early but
+does not skip `MotionMoveState.Update` or its `NormalRotate`; the retained
+lock still supplies the direction. In
+[`450-r9.yaml`](../../tests/corpus/450-r9.yaml), Vulcan 440 keeps turning on
+ticks 195 and 196 after its target dies on tick 194.
+
 **A group of one weapon is fired as one weapon.** A Vortex's grouped skill has
 a single direct weapon, so its fusillade is one blow; its target scoring reads
 the root's rotation, because a grouped weapon turns on its own only at a speed

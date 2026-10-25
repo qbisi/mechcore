@@ -1888,15 +1888,14 @@ impl Simulation {
             // searched again; the motion still checks the new target and
             // leaves through the move ability's transition when necessary.
             self.update_motion(actor_id, step, events, SkillUpdate::default())?;
-        } else if was_moving
-            && self.actors[&actor_id].command.is_some()
-            && self.actors[&actor_id].skills.main.attack_target().is_none()
-        {
+        } else if was_moving && self.actors[&actor_id].command.is_some() {
             // `MotionController.Update` runs whatever the skill did: a
             // command walks its path while the skill cools or reloads, and
             // once a won fight has stopped it, unless what the cooling names
             // has come into range. A move state entered on this update is not
-            // updated on it.
+            // updated on it. A burst still naming a dead target also ends
+            // the skill's update here; `NormalRotate` keeps turning toward
+            // that retained lock while the command moves (corpus 450/r9).
             if let Flow::Next = self.move_into_cooled_target(actor_id) {
                 self.follow_command(actor_id);
             }

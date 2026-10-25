@@ -1,0 +1,110 @@
+# Native round 9 of 20261025--450: a beacon-moving Vulcan keeps turning
+# during its projectile burst after its retained target dies.
+kind: fight
+source: game
+map_id: 1012
+seed: 1046298488
+round: 9
+blue:
+  core_damage: 0
+  officers: [additional_deployment_slot, secondary_equipment_expert, mass_produced_rhino]
+  techs:
+    rhino: [final_blitz, armor_enhancement, photon_coating]
+    mustang: [range_enhancement]
+    void_eye: [energy_shield, suppression_shots, electromagnetic_armor]
+  blueprints: [attack_enhancement_ii, defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: fang, index: 0, position: {x: 20, y: -125}, exp: 600/600/600, rotated: true}
+  - {name: fang, index: 1, position: {x: 140, y: -135}, exp: 600/600/600, rotated: true}
+  - {name: fang, index: 2, position: {x: 260, y: -125}, exp: 600/600/600, rotated: true}
+  - {name: sledgehammer, index: 3, position: {x: 75, y: -150}, exp: 1300/1300/1300}
+  - {name: sledgehammer, index: 4, position: {x: 205, y: -150}, exp: 1300/1300/1300}
+  - {name: void_eye, index: 5, position: {x: 70, y: -170}, level: 3, exp: 1817/2315/2315, equipment: [secondary_laser_sight]}
+  - {name: void_eye, index: 6, position: {x: 210, y: -170}, level: 4, exp: 0/460/2919, equipment: [secondary_laser_sight]}
+  - {name: rhino, index: 7, position: {x: 335, y: 295}, level: 2, exp: 460/656/2591, equipment: [secondary_heavy_armor]}
+  - {name: rhino, index: 8, position: {x: -335, y: 295}, exp: 625/944/1150, equipment: [secondary_heavy_armor]}
+  - {name: rhino, index: 9, position: {x: 335, y: 195}, level: 2, exp: 316/714/2591, equipment: [secondary_heavy_armor]}
+  - {name: crawler, index: 10, position: {x: 310, y: 205}, exp: 93/99/450}
+  - {name: crawler, index: 11, position: {x: -325, y: 260}, exp: 26/26/450, rotated: true}
+  - {name: void_eye, index: 12, position: {x: 110, y: -170}, level: 3, exp: 1795/2315/2315, equipment: [secondary_fire_control_system]}
+  - {name: phantom_ray, index: 13, position: {x: -195, y: -20}, level: 4, exp: 1621/1707/4490, equipment: [secondary_fire_control_system]}
+  - {name: crawler, index: 14, position: {x: -290, y: -285}, exp: 450/450/450, rotated: true}
+  - {name: void_eye, index: 15, position: {x: 170, y: -170}, level: 3, exp: 587/903/2315, equipment: [secondary_fire_control_system]}
+  - {name: crawler, index: 16, position: {x: 140, y: -215}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 17, position: {x: -150, y: -35}, exp: 323/334/450, rotated: true}
+  - {name: crawler, index: 18, position: {x: -150, y: -205}, exp: 273/332/450, rotated: true}
+  - {name: void_eye, index: 19, position: {x: 20, y: -160}, level: 2, exp: 285/1465/1465}
+  - {name: void_eye, index: 20, position: {x: 260, y: -160}, level: 3, exp: 0/1330/2315}
+  - {name: void_eye, index: 21, position: {x: -180, y: -170}, exp: 489/650/650}
+  - {name: mustang, index: 24, position: {x: -195, y: -220}, level: 2, exp: 0/2704/2704}
+  - {name: mustang, index: 25, position: {x: 215, y: -220}, level: 3, exp: 0/1210/4274, equipment: [small_amplifying_core]}
+  - {name: mustang, index: 26, position: {x: 85, y: -220}, exp: 769/1200/1200}
+  - {name: mustang, index: 27, position: {x: -350, y: 215}, exp: 0/1200/1200}
+  - {name: mustang, index: 28, position: {x: 275, y: -220}, level: 2, exp: 0/1337/2704}
+  - {name: void_eye, index: 29, position: {x: -100, y: -160}, exp: 97/368/650}
+  - {name: crawler, index: 30, position: {x: 80, y: -105}, rotated: true, source: joined}
+  - {name: crawler, index: 31, position: {x: -250, y: -35}, exp: 0/450/450, rotated: true, source: joined}
+  - {name: crawler, index: 32, position: {x: 210, y: -95}, rotated: true, source: joined}
+  - {name: crawler, index: 33, position: {x: -15, y: -300}, exp: 0/44/450, source: joined}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -208, y: -33}, {x: -214, y: -57}, {x: -164, y: 119}]}
+  - {name: rhino_assault, positions: [{x: -229, y: 37}]}
+  - {name: photon_emission, positions: [{x: 152, y: -156}]}
+red:
+  core_damage: 1339
+  officers: [additional_deployment_slot, training_specialist, advanced_offensive_tactics]
+  techs:
+    marksman: [aerial_specialization]
+    vulcan: [range_enhancement]
+    wasp: [electromagnetic_shot]
+    steel_ball: [range_enhancement]
+    hound: [range_enhancement]
+    centurion: [range_enhancement]
+  blueprints: [attack_enhancement]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: crawler, index: 0, position: {x: 120, y: -225}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: 0, y: -225}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: -120, y: -225}, exp: 450/450/450, rotated: true}
+  - {name: hound, index: 5, position: {x: -120, y: -190}, level: 2, exp: 324/671/1690}
+  - {name: hound, index: 6, position: {x: 120, y: -190}, level: 3, exp: 746/1095/2671}
+  - {name: hound, index: 7, position: {x: -280, y: -200}, level: 2, exp: 551/792/1690}
+  - {name: crawler, index: 8, position: {x: -290, y: -235}, exp: 450/450/450, rotated: true}
+  - {name: hound, index: 9, position: {x: 0, y: -190}, level: 2, exp: 534/757/1690}
+  - {name: steel_ball, index: 10, position: {x: -260, y: -285}, exp: 1000/1000/1000, rotated: true}
+  - {name: centurion, index: 11, position: {x: -115, y: -165}, level: 2, exp: 2806/3268/5070}
+  - {name: wasp, index: 12, position: {x: 240, y: -265}, level: 4, exp: 4041/4041/4041, rotated: true}
+  - {name: wasp, index: 13, position: {x: -280, y: -285}, level: 2, exp: 2028/2028/2028, rotated: true}
+  - {name: centurion, index: 14, position: {x: -185, y: -165}, level: 2, exp: 638/1127/5070}
+  - {name: centurion, index: 15, position: {x: 185, y: -165}, level: 2, exp: 1923/2303/5070}
+  - {name: centurion, index: 16, position: {x: 115, y: -165}, level: 2, exp: 1893/2626/5070}
+  - {name: crawler, index: 17, position: {x: 110, y: -115}, exp: 450/450/450, rotated: true}
+  - {name: hound, index: 18, position: {x: -60, y: -190}, exp: 288/450/750}
+  - {name: hound, index: 19, position: {x: 60, y: -190}, exp: 596/707/750}
+  - {name: marksman, index: 20, position: {x: 90, y: -160}, level: 4, exp: 2919/2919/2919}
+  - {name: marksman, index: 21, position: {x: 160, y: -160}, level: 4, exp: 2919/2919/2919}
+  - {name: centurion, index: 22, position: {x: 5, y: -165}, exp: 2020/2250/2250}
+  - {name: crawler, index: 23, position: {x: 60, y: -225}, exp: 345/441/450, rotated: true}
+  - {name: stormcaller, index: 24, position: {x: -155, y: -140}, exp: 579/895/1100}
+  - {name: fang, index: 26, position: {x: -120, y: -105}, exp: 11/121/600, rotated: true}
+  - {name: vulcan, index: 27, position: {x: 220, y: -200}, exp: 0/205/2200, source: joined}
+  - {name: vulcan, index: 28, position: {x: -80, y: -160}, exp: 0/332/2200, source: joined}
+  - {name: crawler, index: 29, position: {x: -60, y: -225}, exp: 0/25/450, rotated: true, source: joined}
+  contraptions:
+  - {name: missile, index: 18, position: {x: -297, y: -205}, retained: false}
+  - {name: missile, index: 19, position: {x: -297, y: -286}, retained: false}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 279, y: 257}]}
+  - {name: mobile_beacon, positions: [{x: -145, y: -172}, {x: -143, y: -106}, {x: -143, y: -105}]}
+asserts:
+- sql: |-
+    SELECT u.tick,u.turret_rotation,s.enabled__state,s.enabled__lock_target__id
+    FROM units u JOIN units__skills s USING(tick,unit_id)
+    WHERE u.unit_id=440 AND s.skill_slot=0 AND u.tick BETWEEN 194 AND 196 ORDER BY u.tick
+  rows:
+  - [194, 876701071706, attack, 239]
+  - [195, 877063017625, attack, 239]
+  - [196, 877427292044, attack, 239]
+ticks: 935
+hash: 27:7f03c7ed8b2544a80903ebf6f6cf961df3c902c43dc76c9849f48799240586bc
