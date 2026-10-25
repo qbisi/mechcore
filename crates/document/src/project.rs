@@ -27,8 +27,8 @@ pub struct Deployment {
     pub warnings: Vec<String>,
 }
 
-/// Projects an ordered deployment, warning when historical Cloak acquisition
-/// follows flank movement and cannot be represented by the resulting layout.
+/// Projects an ordered deployment, warning when technology initialization
+/// history cannot be represented by the resulting layout.
 ///
 /// # Errors
 ///
@@ -79,6 +79,25 @@ pub fn deployment(
             warnings.push(format!(
                 "round {round} {side}: Stealth Cloak activated after flank deployment of Phantom Ray formations {affected:?}. The layout activates technologies before flank deployment and cannot preserve that native initialization order. Format the match to place research before movement."
             ));
+        }
+        if !opened.techs.contains(&4430)
+            && position.techs.contains(&4430)
+            && position.officers.contains(&20021)
+        {
+            let affected = position
+                .units
+                .iter()
+                .filter(|entry| {
+                    entry.unit.type_name == "void_eye" && entry.unit.travelling == Some(true)
+                })
+                .map(|entry| entry.unit.index)
+                .collect::<Vec<_>>();
+            if !affected.is_empty() {
+                let side = if red { "red" } else { "blue" };
+                warnings.push(format!(
+                    "round {round} {side}: Aerial Mode acquired with Aerial Specialist and travelling Void Eye formations {affected:?}. Native life corrections depend on whether research follows flank deployment. State/layout does not preserve this initialization history, including after match normalization; the projected fight may differ."
+                ));
+            }
         }
         Ok::<_, String>(position)
     };
@@ -475,6 +494,94 @@ mod tests {
                 .warnings
                 .is_empty()
         );
+    }
+
+    #[test]
+    fn aerial_mode_history_warning_survives_canonical_order_and_stays_scoped() {
+        let economy = crate::economy::Economy::embedded().unwrap();
+        let mut opening = State {
+            blue: SideState {
+                supply: 100_000,
+                unlocked_units: vec![30],
+                officers: vec![20021],
+                next_index: crate::r#match::NextIndex {
+                    unit: 1,
+                    ..Default::default()
+                },
+                shop: crate::r#match::Allowances {
+                    buys_remaining: 9,
+                    ..Default::default()
+                },
+                units: vec![crate::r#match::StateUnit {
+                    unit: serde_json::from_value(json!({"name": "void_eye", "index": 0,
+                        "position": {"x": -100, "y": -160}}))
+                    .unwrap(),
+                    value: None,
+                    redeployed: false,
+                }],
+                ..Default::default()
+            },
+            red: SideState::default(),
+            random_state: [0; 4],
+            reinforce_pool: crate::r#match::PoolDelta::default(),
+            reinforce_offers: None,
+        };
+        let bought = Action::BuyUnit {
+            unit: 30,
+            level: None,
+            position: None,
+            rotated: false,
+        };
+        let moved = Action::MoveUnit {
+            index: 1,
+            position: crate::layout::Position { x: 310, y: 50 },
+            rotated: false,
+        };
+        let research = Action::UpgradeTechnology {
+            unit: 30,
+            tech: 4430,
+        };
+        let check = |opening: &State, blue| {
+            deployment(
+                economy,
+                opening,
+                &TurnActions { blue, red: vec![] },
+                5,
+                1012,
+                1,
+                None,
+            )
+            .unwrap()
+        };
+        let historical = check(
+            &opening,
+            vec![bought.clone(), moved.clone(), research.clone()],
+        );
+        let canonical = check(
+            &opening,
+            vec![research.clone(), bought.clone(), moved.clone()],
+        );
+        assert_eq!(historical.layout, canonical.layout);
+        assert_eq!(canonical.warnings.len(), 1);
+        assert!(canonical.warnings[0].contains("round 5 blue: Aerial Mode"));
+        assert!(canonical.warnings[0].contains("[1]"));
+        assert!(
+            check(&opening, vec![research.clone(), bought.clone()])
+                .warnings
+                .is_empty()
+        );
+        opening.blue.officers.clear();
+        assert!(
+            check(
+                &opening,
+                vec![research.clone(), bought.clone(), moved.clone()]
+            )
+            .warnings
+            .is_empty()
+        );
+        opening.blue.officers.push(20021);
+        opening.blue.techs.push(4430);
+        assert!(check(&opening, vec![bought, moved]).warnings.is_empty());
     }
 
     #[test]

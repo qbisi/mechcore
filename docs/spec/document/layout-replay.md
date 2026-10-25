@@ -25,6 +25,14 @@ Projection and execution continue, and actual settlement follows the selected
 backend's rules. Players and bots should activate technologies before flank
 deployment to benefit from them earlier. No layout field records this order.
 
+The same projection warns when Aerial Mode is acquired during a round with
+Aerial Specialist and travelling Void Eyes. The native life corrections can
+depend on research/flank order, and the state does not preserve that history.
+This warning remains in canonical action order, since normalization may
+already have erased the distinction. Execution still uses the projected
+layout; match verification skips that round's fight comparison and checks
+the other transitions normally.
+
 This document defines what such a file states. It is not a definition of the
 `.grbr` format, which is the game's: a layout replay is one file the game
 reads, written with the members the game's own replays carry. Reading a
