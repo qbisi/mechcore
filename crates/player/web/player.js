@@ -1789,13 +1789,13 @@
     for (const [i,v] of coreViews.entries()) {
       const core=data.cores[i], known=core.begin!==null;
       const damage=ending.damage[i];
-      const value=known?Math.max(0,core.begin-damage):null;
+      const value=known?core.begin-damage:null;
       v.fill.style.filter=`brightness(${1+ending.flash[i]*1.5})`;
-      v.fill.style.width=known && core.maximum>0?`${Math.min(100,100*value/core.maximum)}%`:'0%';
+      v.fill.style.width=known && core.maximum>0?`${Math.max(0,Math.min(100,100*value/core.maximum))}%`:'0%';
       v.value.textContent=known?String(value):'—';
       v.damage.textContent=damage>0?`−${damage}`:'';
       if (known && core.maximum!==null) {
-        v.track.setAttribute('aria-valuemin','0');
+        v.track.setAttribute('aria-valuemin',String(Math.min(0,value)));
         v.track.setAttribute('aria-valuemax',String(core.maximum));
         v.track.setAttribute('aria-valuenow',String(value));
       } else {
