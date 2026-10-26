@@ -18,6 +18,7 @@ use mechcore_mcfr::{
 };
 use serde::{Serialize, Serializer};
 
+use crate::deployment::{Deployment, deployments};
 use crate::track::Track;
 
 pub const SCHEMA: &str = "mechcore.player";
@@ -47,6 +48,12 @@ impl From<mechcore_mcfr::Error> for Error {
     }
 }
 
+impl From<serde_yaml::Error> for Error {
+    fn from(error: serde_yaml::Error) -> Self {
+        Self(error.to_string())
+    }
+}
+
 /// A recording laid out for the page.
 #[derive(Debug, Serialize)]
 pub struct Timeline {
@@ -64,6 +71,7 @@ pub struct Timeline {
     pub projectiles: Vec<Projectile>,
     pub shields: Vec<Shield>,
     pub terrains: Vec<Terrain>,
+    pub deployments: Vec<Deployment>,
     pub cues: Vec<Cue>,
     /// The names of the clips the units' poses play, which a [`Pose`] track
     /// numbers; empty for a recording that holds no poses.
@@ -380,7 +388,8 @@ pub enum Cue {
 ///
 /// # Errors
 ///
-/// Returns an error when a tick of the recording cannot be read.
+/// Returns an error when a tick of the recording cannot be read or the
+/// embedded deployment-presentation table is invalid.
 pub fn timeline(
     recording: &dyn Recording,
     poses: Option<&[(u32, UnitPose)]>,
@@ -388,6 +397,17 @@ pub fn timeline(
     let layout = mechcore_document::parse_embedded_yaml(recording.layout_yaml().as_bytes()).ok();
     let ticks = recording.terminal_tick();
     let mut builder = Builder::new(layout.as_ref());
+    for deployment in deployments(layout.as_ref())? {
+        builder.reach(
+            deployment.x0.abs() + deployment.radius,
+            deployment.z0.abs() + deployment.radius,
+        );
+        builder.reach(
+            deployment.x1.abs() + deployment.radius,
+            deployment.z1.abs() + deployment.radius,
+        );
+        builder.deployments.push(deployment);
+    }
     if let Some(poses) = poses {
         builder.poses(poses);
     }
@@ -426,6 +446,7 @@ struct Builder<'a> {
     projectiles: BTreeMap<u64, Projectile>,
     shields: BTreeMap<u64, Shield>,
     terrains: BTreeMap<u64, Terrain>,
+    deployments: Vec<Deployment>,
     cues: Vec<Cue>,
     reach: (i64, i64),
     /// Each unit's base-layer pose by tick and unit, when the recording
@@ -446,6 +467,7 @@ impl<'a> Builder<'a> {
             projectiles: BTreeMap::new(),
             shields: BTreeMap::new(),
             terrains: BTreeMap::new(),
+            deployments: Vec::new(),
             cues: Vec::new(),
             reach: (0, 0),
             poses: None,
@@ -880,6 +902,7 @@ impl<'a> Builder<'a> {
             projectiles: self.projectiles.into_values().collect(),
             shields: self.shields.into_values().collect(),
             terrains: self.terrains.into_values().collect(),
+            deployments: self.deployments,
             cues: self.cues,
             clips: self.clips,
         }
@@ -935,7 +958,7 @@ fn repeat_unit(unit: &mut Unit) {
 }
 
 /// A Q32.32 length in whole centimetres, rounded to nearest.
-fn centimetres(raw: i64) -> i64 {
+pub(crate) fn centimetres(raw: i64) -> i64 {
     scaled(raw, 100)
 }
 
@@ -952,7 +975,7 @@ fn tenths_of_a_degree(raw: i64) -> i64 {
     scaled(raw, 10).rem_euclid(3600)
 }
 
-fn scaled(raw: i64, scale: i64) -> i64 {
+pub(crate) fn scaled(raw: i64, scale: i64) -> i64 {
     let value = (i128::from(raw) * i128::from(scale) + (1_i128 << 31)) >> 32;
     i64::try_from(value).unwrap_or(if value < 0 { i64::MIN } else { i64::MAX })
 }

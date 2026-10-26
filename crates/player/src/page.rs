@@ -8,6 +8,7 @@ const STYLE: &str = include_str!("../web/player.css");
 const SPRITES: &str = include_str!("../web/sprites.js");
 const SNAPSHOT: &str = include_str!("../web/snapshot.js");
 const TERRAIN: &str = include_str!("../web/terrain.js");
+const DEPLOYMENT: &str = include_str!("../web/deployment.js");
 const PLAYER: &str = include_str!("../web/player.js");
 
 /// Writes the page that plays `timeline`, titled `title`.
@@ -41,6 +42,7 @@ fn render(
         .replace("/*{{sprites}}*/", SPRITES)
         .replace("/*{{snapshot}}*/", SNAPSHOT)
         .replace("/*{{terrain}}*/", TERRAIN)
+        .replace("/*{{deployment}}*/", DEPLOYMENT)
         .replace("/*{{player}}*/", PLAYER)
         .replace("{{timeline}}", &data))
 }
