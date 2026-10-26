@@ -28,18 +28,20 @@ const SkillPreview = (() => {
   function state(d, tick, tps) {
     const elapsed = (tick - 1) / tps;
     const scattered = d.kind === 'orbital_bombardment' || d.kind === 'lightning_storm';
+    const summon = ['underground_threat','rhino_assault','wasp_swarm','mobilize_battleship','vulcans_descent'].includes(d.kind);
     // Random-damage views hide their main frame at the first sub-effect.
     // Use the reconstructed first arrival when available, with a short fade.
     // Preview-only pages retain the nominal start as their fallback.
     const first = scattered && d.forecast?.points[0];
     const start = first ? (first.tick-1)/tps : d.start;
     const fade = 0.25;
-    const end = start + (scattered ? fade : d.interval * d.count);
+    const fading = scattered || summon;
+    const end = start + (fading ? fade : d.interval * d.count);
     // Native DoUpdate includes an unrecorded randomRangeRecord allowance.
     // Use its zero-jitter presentation here, so seeking and SVG agree.
-    if (elapsed < 0 || (scattered ? elapsed >= end : elapsed > end)) return null;
+    if (elapsed < 0 || (fading ? elapsed >= end : elapsed > end)) return null;
     return { elapsed, countdown: elapsed < start,
-      opacity: scattered ? Math.min(1, (end - elapsed) / fade) : 1,
+      opacity: fading ? Math.min(1, (end - elapsed) / fade) : 1,
       progress: start > 0 ? Math.min(1, elapsed / start) : 1 };
   }
 

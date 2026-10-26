@@ -10,6 +10,7 @@ const SNAPSHOT: &str = include_str!("../web/snapshot.js");
 const TERRAIN: &str = include_str!("../web/terrain.js");
 const SKILL_ICONS: &str = include_str!("../web/skill-icons.js");
 const DEPLOYMENT: &str = include_str!("../web/deployment.js");
+const SPAWN: &str = include_str!("../web/spawn.js");
 const PLAYER: &str = include_str!("../web/player.js");
 
 /// Writes the page that plays `timeline`, titled `title`.
@@ -45,6 +46,7 @@ fn render(
         .replace("/*{{terrain}}*/", TERRAIN)
         .replace("/*{{skill-icons}}*/", SKILL_ICONS)
         .replace("/*{{deployment}}*/", DEPLOYMENT)
+        .replace("/*{{spawn}}*/", SPAWN)
         .replace("/*{{player}}*/", PLAYER)
         .replace("{{timeline}}", &data))
 }

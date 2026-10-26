@@ -196,6 +196,24 @@ test('Nuke retains its longer countdown while the three-second impact previews c
   assert.equal(c.body.length,0);
 });
 
+test('summon symbols preview the native appearance delay and fade as units arrive',()=>{
+  const icons=new Set();
+  for(const kind of ['underground_threat','rhino_assault','wasp_swarm','mobilize_battleship','vulcans_descent']){
+    const d=circle(kind,{radius:2500,start_ms:2300});
+    assert.equal(SkillPreview.state(d,21,20).countdown,true);
+    assert.equal(SkillPreview.state(d,48,20).countdown,false);
+    assert.ok(SkillPreview.state(d,48,20).opacity<1);
+    assert.equal(SkillPreview.state(d,52,20),null);
+    const c=new SnapshotContext();
+    SkillPreview.draw(c,d,21,20,team);
+    const svg=c.snapshot('summon',400,300);
+    assert.match(svg,/C/);
+    assert.doesNotMatch(svg,/NaN|Infinity|<image|data:image/);
+    icons.add(svg);
+  }
+  assert.equal(icons.size,5);
+});
+
 test('single-impact contour highlights stay aligned with their countdown arcs', () => {
   for (const kind of ['missile_strike','heavy_missile_strike','nuke','orbital_javelin']) {
     const d=circle(kind);

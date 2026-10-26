@@ -7,6 +7,55 @@ use mechcore_mcfr::{MemoryRecording, Recording};
 use mechcore_player::{Cue, Step, Timeline, Track};
 use mechcore_simulation::{Record, simulate_layout};
 
+#[test]
+fn created_units_keep_their_creation_cues_separate_from_first_visibility() {
+    let document = br"
+kind: layout
+seed: 4242
+round: 1
+blue:
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -160}}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: 0, y: 40}]}
+red:
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -160}}
+";
+    let recording = mechcore_simulation::simulate_document(document, Record::Memory, None)
+        .unwrap()
+        .recording
+        .unwrap();
+    let timeline = mechcore_player::timeline(&recording, None).unwrap();
+    let mut expected = Vec::new();
+    for tick in 1..=recording.terminal_tick() {
+        for event in recording.events(tick).unwrap().events {
+            if matches!(
+                event.payload,
+                mechcore_mcfr::EventPayload::UnitCreated { .. }
+            ) {
+                expected.push((tick, event.subject.unwrap().id));
+            }
+        }
+    }
+    let actual: Vec<_> = timeline
+        .cues
+        .iter()
+        .filter_map(|cue| match cue {
+            Cue::Spawn { t, u } => Some((*t, *u)),
+            _ => None,
+        })
+        .collect();
+    assert!(!expected.is_empty());
+    assert_eq!(actual, expected);
+    assert!(actual.iter().any(|(created, id)| {
+        timeline
+            .units
+            .iter()
+            .any(|unit| unit.id == *id && unit.from > *created)
+    }));
+}
+
 const SIX: [&str; 6] = [
     "marksman",
     "arclight",

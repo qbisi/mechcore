@@ -133,7 +133,7 @@
         L: decode(u.life, n), S: u.shield ? decode(u.shield, n) : null,
         Mo: decode(u.motion, n), A: decode(u.aim, n),
         PC: u.pose ? decode(u.pose.clip, n) : null, PT: u.pose ? decode(u.pose.time, n, 0.001) : null,
-        fires: [], strikes: [], spins: [], hits: [], death: null,
+        fires: [], strikes: [], spins: [], hits: [], death: null, spawn: null,
       };
       o.D = new Float64Array(n);
       for (let i = 1; i < n; i++) o.D[i] = o.D[i - 1] + Math.hypot(o.X[i] - o.X[i - 1], o.Z[i] - o.Z[i - 1]);
@@ -185,6 +185,11 @@
       const c = cues[i];
       c.seed = i;
       switch (c.k) {
+        case 'spawn': {
+          const unit=ref(`u${c.u}`);
+          if (unit && unit.spawn === null) unit.spawn=c.t;
+          break;
+        }
         case 'fire': {
           const owner = ref(c.by);
           const projectile = projectiles.get(c.p);
@@ -784,11 +789,17 @@
       if (s.clip) posed(u.kind, s.clip, s.clipTime, p);
       // a unit fades out over the tick it dies in
       const dying = u.death && tau > u.to ? 1 - (tau - u.to) : 1;
+      const birth=SpawnEffects.state(u.spawn,u.from,tau,TPS);
+      const opacity=dying*(birth?birth.opacity:1), bodySize=big*(birth?birth.scale:1);
+      if (birth) {
+        place(s.x,s.z); ctx.globalAlpha=1;
+        SpawnEffects.draw(ctx,birth,u.radius*big,air,TEAMS[u.team],view.s,u.id);
+      }
       const alt = air ? s.y : 0;
       if (air) {
         // its shadow on the ground, cast away from the sun by its height
-        place(s.x + alt * AIR_SHADOW[0], s.z + alt * AIR_SHADOW[1], s.body, big);
-        ctx.globalAlpha = 0.24 * dying;
+        place(s.x + alt * AIR_SHADOW[0], s.z + alt * AIR_SHADOW[1], s.body, bodySize);
+        ctx.globalAlpha = 0.24 * opacity;
         ctx.fillStyle = '#000';
         ctx.beginPath();
         // a flyer with a sprite casts the size its sprite is drawn; one
@@ -802,19 +813,19 @@
         }
         ctx.fill();
       } else {
-        place(s.x, s.z, s.body, big);
-        ctx.globalAlpha = 0.14 * dying;
+        place(s.x, s.z, s.body, bodySize);
+        ctx.globalAlpha = 0.14 * opacity;
         ctx.fillStyle = '#000';
         ctx.beginPath();
         ctx.ellipse(0.4, 0.6, u.radius * 0.75, u.radius * 0.85, 0, 0, Math.PI * 2);
         ctx.fill();
       }
-      ctx.globalAlpha = dying;
-      place(s.x, s.z, s.body, big);
+      ctx.globalAlpha = opacity;
+      place(s.x, s.z, s.body, bodySize);
       Sprites.drawUnit(ctx, u.kind, p, u.radius);
       if (p.hurt > 0) hurtFlash(u.radius * 0.9, p.hurt);
       if (s.shield > 0) {
-        ctx.globalAlpha = 0.5 * dying;
+        ctx.globalAlpha = 0.5 * opacity;
         ctx.strokeStyle = `rgba(${TEAMS[u.team].rgb},0.9)`;
         ctx.lineWidth = 0.35;
         ctx.beginPath();
