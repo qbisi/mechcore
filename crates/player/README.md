@@ -69,8 +69,28 @@ A unit type with no sprite is still drawn, as a disc of its collision size
 under its name. The ground is simplified, under each side's three deployment
 regions dashed in its colour: its main half and the two flanks beside the
 other side's, where a layout may place a formation, as `Region` in
-`mechcore-document` bounds them; the page frames all six. Terrain, buffs and
-the instrument channels are not drawn.
+`mechcore-document` bounds them; the page frames all six. Fire, oil, acid,
+smoke and sandstorm are drawn on a five-metre grid. Recorded cut masks retain
+their surviving cells, and whole circles use a radius template placed on the
+same world lattice.
+This is a display of the circle, not a change to its simulation shape.
+The surfaces are kept quieter than the units on them: oil is a still,
+near-black pool with a thin rim and faint sheens; fire is scorched ground with slow ember
+beds, a hot edge and small, sparse flames and sparks.
+Acid is a green pool with small bubbles; smoke has drifting grey-blue wisps;
+sandstorm has warm haze, wind trails and blowing grit. Smoke is recorded as
+`fog`, sandstorm as `fog_sand`. They remain separate materials when overlapping.
+Smoke and sandstorm draw above ground and airborne units, with cloud-layer
+opacity of 95% and 90% respectively, multiplied by their translucent textures.
+Life bars, aim lines and damage numbers remain above the clouds. The other
+terrain materials draw below units.
+At each tick, same-type terrain cells are united before drawing: overlapping
+circles have one surface and only the union's exposed edges get a rim.
+Texture samples are anchored to world cells, so adding another circle does
+not move the existing sheens or flames. Holes in cut masks stay empty.
+Their appearance, ignition and disappearance follow the recorded snapshots,
+and seeking or exporting SVG draws the same shapes. Recovery zones,
+buffs and the other instrument channels are not drawn.
 
 ## The sprites
 
@@ -102,4 +122,4 @@ it does not assemble a separate illustration from the recording.
 | `src/` | the timeline the page plays and the page that carries it |
 | `web/` | the page's shell, style, sprites and player, built into the binary |
 | `scenes/` | `six-units.yaml`, the demo the test fights: six of the units with sprites, each side's constructions and a shield |
-| `tests/` | the demo fought by the simulator and read back from the page; the SVG drawing context's Canvas semantics, checked with `node --test crates/player/tests/snapshot.test.mjs` |
+| `tests/` | the demo and terrain shapes fought by the simulator and read back from the page; Canvas/SVG semantics and terrain masks, checked with `node --test crates/player/tests/*.test.mjs` |
