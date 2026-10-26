@@ -14,6 +14,13 @@ test('rectangle drawing does not replace the current path', () => {
   assert.match(c.body.at(-1), /d="M0 0L10 0L10 10"/);
 });
 
+test('native icon cubic curves transform all control points and retain the current endpoint', () => {
+  const c = new SnapshotContext();
+  c.translate(10,20); c.scale(2,3);
+  c.moveTo(0,0); c.bezierCurveTo(1,2,3,4,5,6); c.lineTo(7,8); c.stroke();
+  assert.match(c.body.at(-1), /d="M10 20C12 26 16 32 20 38L24 44"/);
+});
+
 test('save and restore preserve paint, text, blend and dashed stroke state', () => {
   const c = new SnapshotContext();
   c.setLineDash([2, 3]); c.lineCap = 'round'; c.font = '12px sans-serif';

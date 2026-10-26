@@ -33,10 +33,10 @@ from 1 through the recording's last tick.
 
 ## What it shows and what it does not
 
-The page reads only what the recording holds. `src/timeline.rs` turns the
+The page reads combat state from the recording. `src/timeline.rs` turns the
 recording's snapshots into one track per field of each object, and the page
-draws between ticks, so it plays at any speed and seeks anywhere. A shot,
-a blow or a death is animated from the event that records it, never inferred:
+draws between ticks, so it plays at any speed and seeks anywhere. A unit's shot,
+blow or death is animated from the event that records it, never inferred:
 a weapon recoils when the recording releases its projectile, a melee unit
 swings so its blow lands on the tick its damage does, and a construction,
 whose facing the recording does not hold, turns its gun toward each shot it
@@ -92,20 +92,22 @@ Their appearance, ignition and disappearance follow the recorded snapshots,
 and seeking or exporting SVG draws the same shapes. Recovery zones,
 buffs and the other instrument channels are not drawn.
 
-Incendiary Bomb, Sticky Oil Bomb, Acid Blast and Smoke Bomb also show their
+Incendiary Bomb, Sticky Oil Bomb, Acid Blast, Smoke Bomb and Ion Blast show their
 committed release previews from the embedded layout. A rounded rectangle
 follows the two control points: its length is their distance plus two terrain
 radii, and its width is the terrain diameter. It frames the extent of the
-seven impact circles with a faint team-coloured fill and accented end caps,
+impact circles with a faint team-coloured fill and accented end caps,
 rather than following the terrain cells. A reflection sweeps along its
 contour from the first release point towards the last, including reversed
 and diagonal releases. The two control points are marked inside the end caps.
 The preview does not predict a shield's future interception or terrain
 clipping; the recorded terrain shows what actually landed.
 A screen-sized, upright vector symbol at the midpoint has one quiet ring
-and a countdown arc on that ring. The four glyphs share an optical size
-independent of effect radius. The symbols follow the native SBUI vocabulary;
-native bitmaps are not embedded in the page.
+and a countdown arc on that ring. The glyphs share an optical size
+independent of effect radius. The terrain symbols are authored vector drawings
+following the native SBUI vocabulary. Ion Blast uses the game's `SW_Ion_SBUI`
+silhouette, traced from its alpha channel into cubic vector paths and tinted
+in its team's colour. Native bitmaps are not embedded in the page or snapshots.
 
 Radius, delay, interval and effect count come from the build's existing
 `config/commander_skill_effects.yaml` table. Each preview stays separate from
@@ -115,13 +117,29 @@ the preview clears after its start delay plus interval times count, with the
 same deterministic result when seeking and exporting SVG. Playback starts
 with the committed deployment; it does not invent cursor or placement history.
 
+Ion Blast additionally displays a forecast of its moving strike area. This
+is presentation inferred from the committed layout and build configuration,
+separate from the event-driven weapon impacts above. Its 20-metre circle
+moves smoothly along the 60 configured impact points, starting after the
+three-second delay, with a short flash at each 0.3-second interval and a
+fading residual lasting at most 0.6 seconds. The placement band and central
+symbol dim while the forecast moves. All of these ground overlays draw below
+the units, and their radius remains in world metres when zooming.
+
+MCFR does not identify commander sub-effects or record empty impacts and
+their shield-interception positions. The forecast therefore does not claim
+observed damage timing or predict an interception. Shield state and damage
+feedback continue to come from the recording; a forecast flash creates no
+damage event or damage number. The forecast uses nominal configuration time,
+so it does not reproduce the simulation's fixed-point update offsets.
+
 ## The sprites
 
 `web/sprites.js` draws each unit and building after the game's own model,
 seen from straight above in its attack pose: the silhouette, the parts that
 move in a fight, the white armour, the team colour where the model's texture
-masks it, and each unit's emissive colour. The game's art never enters this
-directory. [`scripts/player/model-views.py`](../../scripts/player/model-views.py)
+masks it, and each unit's emissive colour. Original model meshes and textures
+are not embedded here. [`scripts/player/model-views.py`](../../scripts/player/model-views.py)
 renders the views the sprites follow from the installed game, into the
 untracked `work/player/models/`, so a sprite is checked against its model
 again whenever either changes.

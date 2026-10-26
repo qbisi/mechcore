@@ -1,5 +1,5 @@
-//! The map's committed terrain-skill deployments, read from the embedded
-//! layout. Their presentation is independent of the terrain they leave.
+//! The map's committed line-skill deployments, read from the embedded
+//! layout. Their presentation is independent of the damage or terrain.
 
 use mechcore_document::{BattleSkillEntry, Layout, battle_skill_type_from_id};
 use serde::{Deserialize, Serialize};
@@ -28,11 +28,12 @@ pub struct Deployment {
 
 #[derive(Deserialize)]
 struct Effects {
-    terrain_skills: Vec<TerrainSkill>,
+    terrain_skills: Vec<SkillPresentation>,
+    damage_skills: Vec<SkillPresentation>,
 }
 
 #[derive(Deserialize)]
-struct TerrainSkill {
+struct SkillPresentation {
     id: i32,
     start_time: i64,
     sub_effect_interval_time: i64,
@@ -54,7 +55,7 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
             };
             if !matches!(
                 release.type_name.as_str(),
-                "incendiary_bomb" | "sticky_oil_bomb" | "acid_blast" | "smoke_bomb"
+                "incendiary_bomb" | "sticky_oil_bomb" | "acid_blast" | "smoke_bomb" | "ion_blast"
             ) {
                 continue;
             }
@@ -64,6 +65,7 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
             let Some(row) = effects
                 .terrain_skills
                 .iter()
+                .chain(effects.damage_skills.iter())
                 .find(|row| battle_skill_type_from_id(row.id) == Some(release.type_name.as_str()))
             else {
                 continue;
@@ -89,6 +91,36 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
 #[cfg(test)]
 mod tests {
     use super::deployments;
+
+    #[test]
+    fn ion_preview_reads_the_damage_row_and_preserves_release_direction() {
+        let layout = mechcore_document::parse_embedded_yaml(
+            br"
+kind: layout
+round: 1
+blue:
+  units: []
+  battle_skills:
+  - {name: ion_blast, positions: [{x: -90, y: 40}, {x: 90, y: 40}]}
+red:
+  units: []
+  battle_skills:
+  - {name: ion_blast, positions: [{x: -90, y: 40}, {x: 90, y: 40}]}
+",
+        )
+        .unwrap();
+        let releases = deployments(Some(&layout)).unwrap();
+        assert_eq!(releases.len(), 2);
+        for d in &releases {
+            assert_eq!(
+                (d.radius, d.start_ms, d.interval_ms, d.count),
+                (2000, 3000, 300, 60)
+            );
+        }
+        assert_eq!((releases[0].x0, releases[0].x1), (-9000, 9000));
+        assert_eq!((releases[1].x0, releases[1].x1), (9000, -9000));
+        assert_eq!((releases[0].z0, releases[1].z0), (4000, -4000));
+    }
 
     #[test]
     fn releases_keep_order_and_world_coordinates_without_replaying_standing_oil() {

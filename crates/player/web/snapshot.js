@@ -137,6 +137,13 @@ class SnapshotContext {
     this.current = [x, y];
   }
 
+  bezierCurveTo(x1, y1, x2, y2, x3, y3) {
+    if (!this.current) this.moveTo(x1,y1);
+    const a = this.point(x1,y1), b = this.point(x2,y2), end = this.point(x3,y3);
+    this.path.push(`C${a.map(n).join(' ')} ${b.map(n).join(' ')} ${end.map(n).join(' ')}`);
+    this.current = [x3,y3];
+  }
+
   closePath() {
     this.path.push('Z');
     this.current = this.start;
