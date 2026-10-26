@@ -120,7 +120,10 @@ html, body {
   padding: 24px 20px 8px;
   background: linear-gradient(transparent, rgba(0,0,0,.48) 45%, rgba(0,0,0,.78));
   color: #eee;
+  transition: opacity .2s;
 }
+#controls.inactive { opacity: 0; pointer-events: none; }
+#controls:focus-within { opacity: 1; pointer-events: auto; }
 #control-row {
   display: flex;
   align-items: center;
