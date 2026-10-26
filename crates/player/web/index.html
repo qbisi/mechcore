@@ -4,14 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{title}} · mechcore player</title>
-<style>/*{{style}}*/</style>
+<style>/*{{style}}*/
+/*{{hud-font}}*/</style>
 </head>
 <body>
 <canvas id="field"></canvas>
 <header id="hud">
-  <div id="title"><b>{{title}}</b><span id="meta"></span></div>
-  <div class="side" id="side-0"></div>
-  <div class="side" id="side-1"></div>
+  <div id="scoreboard" aria-label="Reactor cores">
+    <section class="core blue" id="core-0">
+      <svg class="core-frame" id="core-frame-0" aria-hidden="true"></svg>
+      <div class="core-track" id="core-track-0" role="meter" aria-label="Blue reactor core"><div class="core-fill" id="core-fill-0"></div><span class="core-value" id="core-value-0"></span></div>
+      <div class="core-label"><b id="core-name-0">Blue</b><span class="core-damage" id="core-damage-0"></span></div>
+    </section>
+    <div id="battle-clock"><svg id="battle-frame" aria-hidden="true"></svg><b id="battle-round"></b><svg class="clock-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 5v5l-3 2"/></svg><span id="battle-time"></span></div>
+    <section class="core red" id="core-1">
+      <svg class="core-frame" id="core-frame-1" aria-hidden="true"></svg>
+      <div class="core-track" id="core-track-1" role="meter" aria-label="Red reactor core"><div class="core-fill" id="core-fill-1"></div><span class="core-value" id="core-value-1"></span></div>
+      <div class="core-label"><b id="core-name-1">Red</b><span class="core-damage" id="core-damage-1"></span></div>
+    </section>
+  </div>
 </header>
 <div id="tooltip" hidden></div>
 <footer id="controls">
@@ -43,6 +54,8 @@
 <script>/*{{skill-icons}}*/</script>
 <script>/*{{deployment}}*/</script>
 <script>/*{{spawn}}*/</script>
+<script>/*{{settlement}}*/</script>
+<script>/*{{hud}}*/</script>
 <script>/*{{player}}*/</script>
 </body>
 </html>

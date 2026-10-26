@@ -213,9 +213,27 @@ fn play_match(
         let recording = result
             .recording
             .ok_or_else(|| Failure::failed("the simulator kept no recording of the fight"))?;
-        timelines.push(player_timeline(&recording, None).map_err(|error| {
+        let mut timeline = player_timeline(&recording, None).map_err(|error| {
             Failure::failed(format!("cannot read round {}: {error}", turn.round))
-        })?);
+        })?;
+        for (seat, (header, state)) in [
+            (&stated.blue, &turn.state.blue),
+            (&stated.red, &turn.state.red),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let core = &mut timeline.cores[seat];
+            core.name = header.name.clone().unwrap_or_else(|| core.name.clone());
+            core.begin = Some(state.reactor_core);
+            core.maximum = header.opening.as_ref().and_then(|opening| {
+                let base = mechcore_document::opening::reactor_core(stated.map_id, seat).ok()?;
+                let team = economy.advance_team(opening.taken.team)?;
+                let specialist = economy.advance_team(opening.taken.specialist)?;
+                Some(base + team.reactor_core + specialist.reactor_core)
+            });
+        }
+        timelines.push(timeline);
     }
     if timelines.is_empty() {
         return Err(Failure::refused(
@@ -247,6 +265,13 @@ fn player_timeline(
     poses: Option<&[(u32, UnitPose)]>,
 ) -> Result<mechcore_player::Timeline, mechcore_player::Error> {
     let mut timeline = mechcore_player::timeline(recording, poses)?;
+    match score_sources(recording) {
+        Ok(sources) => timeline.score_sources = sources,
+        Err(error) => eprintln!(
+            "mechcore: cannot attribute settlement to survivors; showing team totals: {}",
+            error.reason()
+        ),
+    }
     if timeline
         .deployments
         .iter()
@@ -271,6 +296,71 @@ fn player_timeline(
     Ok(timeline)
 }
 
+/// Reuse the document's score rule and the CLI's formation matching, rather
+/// than distributing a team's damage arbitrarily among visible survivors.
+fn score_sources(recording: &dyn Recording) -> Result<Vec<mechcore_player::ScoreSource>, Failure> {
+    use mechcore_document::reactor_damage::{Survivor, score};
+    let layout = crate::scene::layout(recording)?;
+    let initial = crate::scene::snapshot(recording, 1)?;
+    let formations = crate::scene::formations(&layout, &initial)?;
+    let final_state = crate::scene::snapshot(recording, recording.terminal_tick())?;
+    let original_formations: std::collections::BTreeMap<_, _> = initial
+        .live_units
+        .iter()
+        .map(|u| (u.unit_id, u.formation_id))
+        .collect();
+    let mut sources = Vec::new();
+    for unit in final_state
+        .live_units
+        .iter()
+        .filter(|u| u.active && u.life.current > 0)
+    {
+        // Control and rebirth can change formation identity. Creation type
+        // belongs to the original unit, not its current formation.
+        let placement = original_formations
+            .get(&unit.unit_id)
+            .and_then(|formation| formations.get(formation))
+            .and_then(|(side, index)| {
+                crate::scene::units_of(&layout, *side)
+                    .iter()
+                    .find(|p| p.index == *index)
+            });
+        let value = score(Survivor {
+            unit_type: unit.unit_type_id,
+            level: placement.and_then(|p| p.level),
+            support: placement.is_none(),
+            reborn: unit.rebirth_count > 0,
+            team_changed: unit.team_id != unit.original_team_id,
+        })
+        .map_err(Failure::refused)?;
+        if value > 0 {
+            let cm = |v: i64| i64::try_from((i128::from(v) * 100 + (1 << 31)) >> 32).unwrap_or(0);
+            sources.push(mechcore_player::ScoreSource {
+                unit: unit.unit_id,
+                team: unit.team_id,
+                score: value,
+                x: cm(unit.position.x),
+                y: cm(unit.position.y),
+                z: cm(unit.position.z),
+            });
+        }
+    }
+    for team in [0, 1] {
+        let total: i64 = sources
+            .iter()
+            .filter(|s| s.team == team)
+            .map(|s| s.score)
+            .sum();
+        let recorded = i64::from(recording.settlement().teams[team as usize].score);
+        if total != recorded {
+            return Err(Failure::refused(format!(
+                "team {team} survivor scores total {total}, settlement records {recorded}"
+            )));
+        }
+    }
+    Ok(sources)
+}
+
 /// Lays a fight out for the page and writes the page.
 fn written(
     recording: &dyn Recording,
@@ -280,8 +370,14 @@ fn written(
     page: &Path,
     fought: Option<(i32, &'static str)>,
 ) -> Result<Played, Failure> {
-    let timeline = player_timeline(recording, poses)
+    let mut timeline = player_timeline(recording, poses)
         .map_err(|error| Failure::failed(format!("cannot read the fight: {error}")))?;
+    if kind == Kind::Layout {
+        for core in &mut timeline.cores {
+            core.begin = Some(1);
+            core.maximum = Some(1);
+        }
+    }
     let title = input
         .file_stem()
         .map_or_else(|| "fight".into(), |stem| stem.to_string_lossy());

@@ -1,6 +1,6 @@
 // Plays the timeline embedded in this page.
 //
-// Everything drawn is a function of one moment, `tau`, measured in ticks: an
+// Combat is drawn from one moment, `tau`, measured in recorded ticks: an
 // object's place is read off its tracks between the two ticks around it, and
 // every flash, recoil, swing and explosion is a function of how long ago the
 // recorded event that causes it happened. Committed commander-skill overlays
@@ -8,6 +8,8 @@
 // Nothing accumulates between frames,
 // so the page plays at any speed, backwards when scrubbed, and seeks anywhere
 // at once.
+// The presentation playhead, `cursor`, can continue past the last tick to
+// draw settlement flights while the recorded battle stays frozen.
 
 'use strict';
 
@@ -18,6 +20,8 @@
   let data = rounds[0];
   let TPS = data.ticks_per_second;
   let LAST = data.ticks;
+  let settlement = ScoreSettlement.prepare(data);
+  let END = LAST + Math.ceil(settlement.duration * TPS);
   const TEAMS = Sprites.TEAMS;
   // The game's English names, as docs/terminology/ lists them.
   const NAMES = {
@@ -477,19 +481,25 @@
   const view = { x: 0, z: 0, s: 1, w: 1, h: 1, dpr: 1 };
   const options = { life: true, damage: false, aim: false };
   let tau = 1;
+  let cursor = 1;
   let playing = true;
   let speed = 1;
   let hover = null;
   let pointer = null;
 
-  function fit() {
+  function naturalFitScale() {
     const hw = data.field.half_width / 100;
     const hd = data.field.half_depth / 100;
     const top = 12;
     const bottom = 60;
-    view.s = Math.max(0.3, Math.min(view.w / (2 * hw), (view.h - top - bottom) / (2 * hd)));
+    return Math.max(0.3, Math.min(view.w / (2 * hw), (view.h - top - bottom) / (2 * hd)));
+  }
+  function fit() {
+    const top=12, bottom=60;
+    view.s = naturalFitScale();
     view.x = 0;
     view.z = ((top - bottom) / 2) / view.s;
+    resizeHud();
   }
   function resize() {
     view.dpr = window.devicePixelRatio || 1;
@@ -1697,74 +1707,87 @@
     if (aims) drawAims(aims);
     if (numbers) drawNumbers(numbers);
     drawHover();
+    if(cursor>LAST) {
+      const targets=coreViews.map(v=>{
+        const r=v.track.getBoundingClientRect();
+        return {x:r.left+r.width/2,y:r.top+r.height/2};
+      });
+      ScoreSettlement.draw(ctx,settlement,(cursor-LAST)/TPS,
+        p=>({x:sx(p.x/100),y:sy(p.z/100)-p.y/100*view.s}),targets,TEAMS,view.w,view.h);
+    }
   }
 
   // --------------------------------------------------------------- the HUD
   const clock = document.getElementById('clock');
   const seek = document.getElementById('seek');
   const playButton = document.getElementById('play');
-  function makeRoster() {
-    seek.max = String(LAST);
-    document.getElementById('meta').textContent =
-      `${data.producer} · round ${data.round} · ${LAST} ticks · ${(LAST / TPS).toFixed(1)} s`;
-
-    return [0, 1].map((team) => {
-      const panel = document.getElementById(`side-${team}`);
-      panel.replaceChildren();
-      const head = document.createElement('h2');
-      const name = document.createElement('b');
-      name.textContent = TEAMS[team].name;
-      const count = document.createElement('span');
-      head.append(name, count);
-      const list = document.createElement('div');
-      list.className = 'roster';
-      const kinds = new Map();
-      for (const u of units) {
-        if (u.team !== team) continue;
-        if (!kinds.has(u.kind)) kinds.set(u.kind, []);
-        kinds.get(u.kind).push(u);
-      }
-      const rows = [];
-      for (const [kind, members] of kinds) {
-        const row = document.createElement('div');
-        row.className = 'kind';
-        const label = NAMES[kind] || kind;
-        row.title = label;
-        row.append(Sprites.icon(kind, team, 22, false));
-        const n = document.createElement('span');
-        row.append(n);
-        list.append(row);
-        rows.push({ row, n, members, last: '' });
-      }
-      panel.append(head, list);
-      return { count, rows };
-    });
+  const coreViews = [0,1].map(i=>({
+    panel:document.getElementById(`core-${i}`),
+    frame:document.getElementById(`core-frame-${i}`),
+    name:document.getElementById(`core-name-${i}`),
+    value:document.getElementById(`core-value-${i}`),
+    track:document.getElementById(`core-track-${i}`),
+    fill:document.getElementById(`core-fill-${i}`),
+    damage:document.getElementById(`core-damage-${i}`),
+  }));
+  function resizeHud() {
+    const scale=HudFrame.uiScale(naturalFitScale());
+    document.getElementById('scoreboard').style.setProperty('--hud-scale',String(scale));
+    for (const [i,v] of coreViews.entries()) {
+      const width=Math.max(80,v.panel.getBoundingClientRect().width/scale);
+      v.frame.setAttribute('viewBox',`0 0 ${width} 56`);
+      v.frame.innerHTML=HudFrame.border(width,`core-border-${i}`);
+    }
+    const middle=document.getElementById('battle-frame');
+    const width=Math.max(80,document.getElementById('battle-clock').getBoundingClientRect().width/scale);
+    middle.setAttribute('viewBox',`0 0 ${width} 30`);
+    middle.innerHTML=HudFrame.center(width);
   }
-  let roster = makeRoster();
+  if(typeof ResizeObserver!=='undefined') {
+    const observer=new ResizeObserver(resizeHud);
+    coreViews.forEach(v=>observer.observe(v.panel));
+    observer.observe(document.getElementById('battle-clock'));
+  }
+  function resetHud() {
+    seek.max = String(END);
+    document.getElementById('battle-round').textContent=`Round ${data.round}`;
+    for (const [i,v] of coreViews.entries()) {
+      const core=data.cores[i];
+      const characters=Array.from(new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(core.name),s=>s.segment);
+      v.name.textContent=characters.length>10?characters.slice(0,5).join('')+'*'+characters.slice(-4).join(''):core.name;
+      v.name.title=core.name;
+      v.name.setAttribute('aria-label',core.name);
+      v.panel.classList.toggle('unknown',core.begin===null || core.maximum===null);
+      v.track.setAttribute('aria-label',`${core.name} reactor core`);
+    }
+  }
+  resetHud();
 
   function updateHud() {
-    for (const side of roster) {
-      let alive = 0;
-      let total = 0;
-      for (const r of side.rows) {
-        let n = 0;
-        for (const u of r.members) if (tau >= u.from && tau < u.to + 1) n++;
-        alive += n;
-        total += r.members.length;
-        const text = `${n}/${r.members.length}`;
-        if (text !== r.last) {
-          r.n.textContent = text;
-          r.row.classList.toggle('out', n === 0);
-          r.last = text;
-        }
-      }
-      side.count.textContent = `${alive} / ${total} units`;
-    }
     const seconds = (tau - 1) / TPS;
     const m = Math.floor(seconds / 60);
     const sec = (seconds - m * 60).toFixed(1).padStart(4, '0');
-    clock.textContent = `${m}:${sec} · tick ${Math.floor(tau)}`;
-    seek.value = String(tau);
+    clock.textContent = cursor>LAST?`Settlement +${((cursor-LAST)/TPS).toFixed(1)} s`:`${m}:${sec} · tick ${Math.floor(tau)}`;
+    document.getElementById('battle-time').textContent=`${m}:${sec}`;
+    const ending=ScoreSettlement.sample(settlement,(cursor-LAST)/TPS);
+    for (const [i,v] of coreViews.entries()) {
+      const core=data.cores[i], known=core.begin!==null;
+      const damage=ending.damage[i];
+      const value=known?Math.max(0,core.begin-damage):null;
+      v.fill.style.filter=`brightness(${1+ending.flash[i]*1.5})`;
+      v.fill.style.width=known && core.maximum>0?`${Math.min(100,100*value/core.maximum)}%`:'0%';
+      v.value.textContent=known?String(value):'—';
+      v.damage.textContent=damage>0?`−${damage}`:'';
+      if (known && core.maximum!==null) {
+        v.track.setAttribute('aria-valuemin','0');
+        v.track.setAttribute('aria-valuemax',String(core.maximum));
+        v.track.setAttribute('aria-valuenow',String(value));
+      } else {
+        v.track.removeAttribute('aria-valuenow');
+        v.track.removeAttribute('aria-valuemax');
+      }
+    }
+    seek.value = String(cursor);
     playButton.textContent = playing ? '❚❚' : '▶';
   }
 
@@ -1780,9 +1803,14 @@
     const h = marks.clientHeight;
     c.fillStyle = 'rgba(255,255,255,0.06)';
     c.fillRect(0, h / 2 - 2, w, 4);
+    if(END>LAST){
+      const x=(LAST-1)/(END-1)*w;
+      c.fillStyle='rgba(255,211,129,.2)';c.fillRect(x,0,w-x,h);
+      c.fillStyle='rgba(255,211,129,.65)';c.fillRect(x,0,1,h);
+    }
     for (const d of decals) {
       const team = d.unit ? d.unit.team : d.building ? d.building.team : 0;
-      const x = ((d.t - 1) / Math.max(1, LAST - 1)) * w;
+      const x = ((d.t - 1) / Math.max(1, END - 1)) * w;
       c.fillStyle = `rgba(${TEAMS[team].rgb},${d.k === 'fall' ? 1 : 0.55})`;
       const tall = d.k === 'fall' ? 12 : 6;
       if (team === 0) c.fillRect(x, h / 2 + 2, d.k === 'fall' ? 2 : 1, tall);
@@ -1852,13 +1880,15 @@
 
   // -------------------------------------------------------------- control
   function setTau(value) {
-    tau = Math.max(1, Math.min(LAST, value));
+    cursor = Math.max(1, Math.min(END, value));
+    tau = Math.min(LAST,cursor);
+    updateHud();
   }
 
   // Render the same frame through the vector context, including the ground.
   // CSS pixels are the SVG viewBox; device pixel density does not affect it.
-  function snapshot(value = Math.floor(tau)) {
-    if (!Number.isInteger(value) || value < 1 || value > LAST) throw new RangeError(`tick must be an integer from 1 to ${LAST}`);
+  function snapshot(value = Math.floor(cursor)) {
+    if (!Number.isInteger(value) || value < 1 || value > END) throw new RangeError(`frame must be an integer from 1 to ${END}`);
     playing = false;
     setTau(value);
     const previous = [ctx, ground, view.dpr, hover];
@@ -1869,7 +1899,7 @@
       view.dpr = 1;
       hover = null;
       frame();
-      const title = `${document.title} · round ${data.round} · tick ${value}`;
+      const title = `${document.title} · round ${data.round} · ${value>LAST?'settlement frame '+(value-LAST):'tick '+value}`;
       return svg.snapshot(title, view.w, view.h);
     } finally {
       [ctx, ground, view.dpr, hover] = previous;
@@ -1881,7 +1911,7 @@
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${document.querySelector('#title b').textContent.replace(/[^a-zA-Z0-9_.-]/g, '_')}-round-${data.round}-tick-${tau}.svg`;
+    link.download = `${document.title.replace(/ · mechcore player$/, '').replace(/[^a-zA-Z0-9_.-]/g, '_')}-round-${data.round}-${cursor>LAST?'settlement-frame-'+Math.floor(cursor-LAST):'tick-'+tau}.svg`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
@@ -1905,21 +1935,24 @@
     data = rounds[index];
     TPS = data.ticks_per_second;
     LAST = data.ticks;
+    settlement=ScoreSettlement.prepare(data);
+    END=LAST+Math.ceil(settlement.duration*TPS);
     CLIPS = data.clips || [];
     LONGEST_EFFECT = 3 * TPS;
     ({ byRef, units, buildings, projectiles, shields, terrains, deployments, cues, decals, fallen } = tracks());
     tau = 1;
+    cursor = 1;
     hover = null;
     pointer = null;
     ground = makeGround();
     vectorGround = undefined;
-    roster = makeRoster();
+    resetHud();
     fit(); drawMarks(); frame(); updateHud();
   }
   roundSelect.addEventListener('change', () => selectRound(Number(roundSelect.value)));
 
   playButton.addEventListener('click', () => {
-    if (!playing && tau >= LAST) setTau(1);
+    if (!playing && cursor >= END) setTau(1);
     playing = !playing;
   });
   seek.addEventListener('input', () => setTau(Number(seek.value)));
@@ -1936,10 +1969,10 @@
     const step = e.shiftKey ? TPS : 1;
     switch (e.key) {
       case ' ': playButton.click(); break;
-      case 'ArrowRight': playing = false; setTau(Math.floor(tau) + step); break;
-      case 'ArrowLeft': playing = false; setTau(Math.ceil(tau) - step); break;
+      case 'ArrowRight': playing = false; setTau(Math.floor(cursor) + step); break;
+      case 'ArrowLeft': playing = false; setTau(Math.ceil(cursor) - step); break;
       case 'Home': setTau(1); break;
-      case 'End': setTau(LAST); break;
+      case 'End': setTau(END); break;
       case '+': case '=': setSpeed(SPEEDS[Math.min(SPEEDS.length - 1, SPEEDS.indexOf(speed) + 1)]); break;
       case '-': case '_': setSpeed(SPEEDS[Math.max(0, SPEEDS.indexOf(speed) - 1)]); break;
       case 'f': fit(); break;
@@ -2010,8 +2043,9 @@
     const dt = Math.min(0.1, (now - then) / 1000);
     then = now;
     if (playing) {
-      setTau(tau + dt * TPS * speed);
-      if (tau >= LAST) playing = false;
+      cursor=Math.max(1,Math.min(END,cursor+dt*TPS*speed));
+      tau=Math.min(LAST,cursor);
+      if (cursor >= END) playing = false;
     }
     try {
       frame();
@@ -2031,5 +2065,6 @@
     rounds, selectRound, get roundIndex() { return roundIndex; },
     seek: (t) => setTau(t), play: () => { playing = true; }, pause: () => { playing = false; },
     get tau() { return tau; }, view, fit, snapshot,
+    get playhead() { return cursor; }, get endTick() { return END; },
   };
 })();

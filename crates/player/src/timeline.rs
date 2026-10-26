@@ -64,6 +64,9 @@ pub struct Timeline {
     /// The last tick; the page plays ticks `1..=ticks`.
     pub ticks: u32,
     pub ticks_per_second: u32,
+    pub cores: [Core; 2],
+    /// Survivors' score contributions, checked against recorded settlement.
+    pub score_sources: Vec<ScoreSource>,
     pub field: Field,
     pub regions: Vec<DeploymentRegion>,
     pub units: Vec<Unit>,
@@ -77,6 +80,26 @@ pub struct Timeline {
     /// numbers; empty for a recording that holds no poses.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub clips: Vec<String>,
+}
+
+/// Player core health, separate from unit life. A standalone recording does
+/// not state the starting core; only its settled damage is known.
+#[derive(Debug, Serialize)]
+pub struct Core {
+    pub name: String,
+    pub begin: Option<i32>,
+    pub maximum: Option<i32>,
+    pub damage: i32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ScoreSource {
+    pub unit: u64,
+    pub team: u32,
+    pub score: i64,
+    pub x: i64,
+    pub y: i64,
+    pub z: i64,
 }
 
 /// One of a side's three deployment regions, in centimetres in the world's
@@ -437,11 +460,15 @@ pub fn timeline(
             builder.cue(tick, event);
         }
     }
-    Ok(builder.finish(
+    let mut timeline = builder.finish(
         recording.producer().as_str(),
         ticks,
         layout.as_ref().map_or(0, |layout| layout.round),
-    ))
+    );
+    for (team, core) in timeline.cores.iter_mut().enumerate() {
+        core.damage = recording.settlement().teams[1 - team].score;
+    }
+    Ok(timeline)
 }
 
 struct Builder<'a> {
@@ -903,6 +930,13 @@ impl<'a> Builder<'a> {
             round,
             ticks,
             ticks_per_second: TICKS_PER_SECOND,
+            cores: ["Blue", "Red"].map(|name| Core {
+                name: name.into(),
+                begin: None,
+                maximum: None,
+                damage: 0,
+            }),
+            score_sources: Vec::new(),
             field: Field {
                 half_width: self.reach.0 + MARGIN,
                 half_depth: self.reach.1 + MARGIN,
