@@ -37,7 +37,7 @@ red:
   contraptions:
   - {name: shield, index: 0, position: {x: 140, y: -220}}
   battle_skills:
-  - {name: mobile_beacon_card, positions: [{x: -275, y: 285}, {x: -170, y: 285}, {x: 145, y: 25}]}
+  - {name: mobile_beacon_card, positions: [{x: -275, y: 285}, {x: -170, y: 285}, {x: -15, y: 157}]}
 asserts:
 - sql: |
     SELECT s.tick, s.enabled__lock_target__id, s.enabled__attack_range,

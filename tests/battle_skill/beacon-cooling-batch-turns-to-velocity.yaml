@@ -1,7 +1,5 @@
-# Mountain 12 moves along Mobile Beacon with every standalone gun
-# cooling and no lock. Its body starts turning towards velocity at tick
-# 81 instead of keeping its old target bearing. A new lock on tick 85
-# turns it back, and weapon poses follow the changed arc parent.
+# Mountain 12 loses its weapon-batch lock at 74 and starts turning towards
+# velocity at 75. It acquires lock 9 at 85 and reverses its turn.
 # Control: beacon-keeps-extra-attacker-direction.yaml.
 
 kind: fight
@@ -40,16 +38,29 @@ red:
   contraptions:
   - {name: missile, index: 0, position: {x: 235, y: -290}}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: -50, y: -110}, {x: 230, y: 160}, {x: -45, y: -20}]}
+  - {name: mobile_beacon, positions: [{x: -50, y: -110}, {x: 93, y: 28}, {x: -45, y: -20}]}
 asserts:
-- sql: |-
-    SELECT tick,turret_rotation FROM units WHERE unit_id=12 AND tick BETWEEN 80 AND 85 ORDER BY tick
+- sql: |
+    SELECT tick, turret_rotation, mech_lock_target__id
+    FROM units
+    WHERE
+      unit_id = 12
+      AND tick BETWEEN 73 AND 85
+    ORDER BY
+      tick;
   rows:
-  - [80, 731587909612]
-  - [81, 742325327812]
-  - [82, 753062746012]
-  - [83, 763800164212]
-  - [84, 774537582412]
-  - [85, 763800164212]
+  - [73, 730484682815, 4]
+  - [74, 730484682815, null]
+  - [75, 741222101015, null]
+  - [76, 751959519215, null]
+  - [77, 762696937415, null]
+  - [78, 773434355615, null]
+  - [79, 784171773815, null]
+  - [80, 794909192015, null]
+  - [81, 805646610215, null]
+  - [82, 816384028415, null]
+  - [83, 827121446615, null]
+  - [84, 837858864815, null]
+  - [85, 827121446615, 9]
 ticks: 110
-hash: 27:630b75a4d2fbca03deb90c5730065baf579ac1b4f19c65dbc592cc48637a5b88
+hash: 27:3acc0750c08619a8c6578b1de5c8dcc09ec8c97011d21b353df7ffe5eeea9fbe

@@ -29,6 +29,6 @@ red:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: -155, y: -35}, {x: 65, y: 280}, {x: 220, y: 30}]}
+  - {name: mobile_beacon, positions: [{x: -155, y: -35}, {x: -40, y: 128}, {x: 147, y: 57}]}
 ticks: 787
 hash: 27:133f33ca10b35815e204ccd46ccda90c23a7ef02e581e5e2e6125f3c1faf3526

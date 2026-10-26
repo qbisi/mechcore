@@ -1,8 +1,9 @@
-# Mobile Beacon asks LineRange.Overlaps before allowing attack movement.
-# Sabertooth is attacking and walking through 139; its velocity reads zero
-# at 140 and its position stays fixed at 141. A projected-distance
-# approximation misses this stop. Control: beacon-marksman.yaml.
-# Two native recordings agree for every tick and settlement.
+# Sabertooth 30 follows a legal two-segment Mobile Beacon. It is attacking
+# and moving at 259, publishes zero velocity at 260 and stays fixed at 261
+# when the native line/circle attack-movement check stops it.
+# The cross-square overflow from the former 522 m segment is a numeric
+# software boundary, covered in fight/math.rs rather than an illegal layout.
+# Control: beacon-marksman.yaml.
 
 kind: fight
 source: game
@@ -29,21 +30,34 @@ blue:
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: -250, y: 100}]}
 red:
-  core_damage: 507
+  core_damage: 499
   officers: [advanced_defensive_tactics, advanced_defensive_tactics, extended_range_sabertooth]
   units:
-  - {name: sabertooth, index: 0, position: {x: -95, y: -295}, level: 3, exp: 2315/2363/4630, rotated: true, equipment: [heavy_armor]}
-  - {name: centurion, index: 1, position: {x: 285, y: -205}, level: 8, exp: 0/104/15137, source: joined}
+  - {name: sabertooth, index: 0, position: {x: -95, y: -295}, level: 3, exp: 2315/2371/4630, rotated: true, equipment: [heavy_armor]}
+  - {name: centurion, index: 1, position: {x: 285, y: -205}, level: 8, exp: 0/112/15137, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 135, y: -265}, retained: false}
   battle_skills:
-  - {name: mobile_beacon_card, positions: [{x: -70, y: -290}, {x: 195, y: 160}, {x: 295, y: 85}]}
+  - {name: mobile_beacon_card, positions: [{x: -70, y: -290}, {x: 31, y: -117}, {x: 189, y: 4}]}
 asserts:
-- sql: |-
-    SELECT tick,unit_id,motion_state,position__x,position__z,velocity__x,velocity__z FROM units WHERE unit_id=30 AND tick BETWEEN 139 AND 141 ORDER BY tick
+- sql: |
+    SELECT
+      tick,
+      unit_id,
+      motion_state,
+      position__x,
+      position__z,
+      velocity__x,
+      velocity__z
+    FROM units
+    WHERE
+      unit_id = 30
+      AND tick BETWEEN 259 AND 261
+    ORDER BY
+      tick;
   rows:
-  - [139, 30, attacking, 291235855911, 1075652424930, -17435799416, -29607961256]
-  - [140, 30, attacking, 290364071113, 1074172035651, 0, 0]
-  - [141, 30, attacking, 290364071113, 1074172035651, 0, 0]
-ticks: 826
-hash: 27:6b62d6cb52d7fb385d6e14bdf9dca2b02c6059517946a85bc4f7ed9f255b1a0c
+  - [259, 30, attacking, 251088250340, 1005199237775, -3464846241, -5934835640]
+  - [260, 30, attacking, 250915009156, 1004902497926, 0, 0]
+  - [261, 30, attacking, 250915009156, 1004902497926, 0, 0]
+ticks: 819
+hash: 27:0457cf4657b19486432ebbc3fe41084b1a9ace1bcc869cb9e7aa97321c353cf7

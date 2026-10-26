@@ -20,7 +20,7 @@ blue:
   contraptions:
   - {name: interceptor, index: 0, position: {x: 5, y: -205}}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: -215, y: 70}, {x: -215, y: -175}, {x: 5, y: -180}]}
+  - {name: mobile_beacon, positions: [{x: -215, y: 70}, {x: -215, y: -130}, {x: -19, y: -174}]}
 red:
   core_damage: 0
   officers: [advanced_offensive_tactics, advanced_targeting_system, speed_specialist]

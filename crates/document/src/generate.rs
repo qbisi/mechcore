@@ -10,7 +10,8 @@ use std::collections::BTreeMap;
 use serde::Deserialize;
 
 use crate::catalog::{
-    CHAIN_BLUEPRINTS, battle_skill_type_from_id, resolve_battle_skill_type, unit_type_from_id,
+    BattleSkillShape, CHAIN_BLUEPRINTS, battle_skill_type_from_id, resolve_battle_skill_type,
+    unit_type_from_id,
 };
 use crate::compile::{compile_layout, grid_center_remainder};
 use crate::economy::{Economy, OpeningKind};
@@ -959,6 +960,35 @@ fn anywhere(stream: &mut Stream, x: (i64, i64), y: (i64, i64)) -> Position {
     }
 }
 
+fn skill_positions(stream: &mut Stream, name: &str) -> Vec<Position> {
+    let spec = resolve_battle_skill_type(name).expect("generated skills have specifications");
+    let mut positions = Vec::<Position>::new();
+    for _ in 0..spec.positions {
+        let next = if let (BattleSkillShape::Path { max_segment, .. }, Some(&last)) =
+            (spec.shape, positions.last())
+        {
+            let x = (
+                MAIN_X.0.max(i64::from(last.x) - max_segment),
+                MAIN_X.1.min(i64::from(last.x) + max_segment),
+            );
+            let y = (
+                MAIN_Y.0.max(i64::from(last.y) - max_segment),
+                FLANK_Y.1.min(i64::from(last.y) + max_segment),
+            );
+            (0..32)
+                .map(|_| anywhere(stream, x, y))
+                .find(|&point| {
+                    crate::compile::validate_battle_skill_path(name, &[last, point]).is_ok()
+                })
+                .unwrap_or(last)
+        } else {
+            anywhere(stream, MAIN_X, (MAIN_Y.0, FLANK_Y.1))
+        };
+        positions.push(next);
+    }
+    positions
+}
+
 fn level(value: usize) -> i32 {
     i32::try_from(value + 1).unwrap_or(1)
 }
@@ -1140,10 +1170,7 @@ fn side(
         0 => Vec::new(),
         value => {
             let name = space.skills[value - 1];
-            let count = resolve_battle_skill_type(name).map_or(1, |spec| spec.positions);
-            let positions = (0..count)
-                .map(|_| anywhere(stream, MAIN_X, (MAIN_Y.0, FLANK_Y.1)))
-                .collect();
+            let positions = skill_positions(stream, name);
             vec![BattleSkillEntry::Release(BattleSkillRelease {
                 type_name: name.to_owned(),
                 positions,
@@ -1184,6 +1211,19 @@ fn side(
 mod tests {
     use super::{FLANK, LEGACY, Role, Space, factor, generate};
     use crate::{canonical_yaml, compile_layout};
+
+    #[test]
+    fn generated_beacons_use_reachable_ordered_segments() {
+        let mut stream = super::Stream(42);
+        for name in ["mobile_beacon", "mobile_beacon_card"] {
+            for _ in 0..100 {
+                let points = super::skill_positions(&mut stream, name);
+                assert_eq!(points.len(), 3);
+                crate::compile::validate_battle_skill_path(name, &points).unwrap();
+                assert!(points.iter().all(|p| p.x % 5 == 0 && p.y % 5 == 0));
+            }
+        }
+    }
 
     #[test]
     fn a_batch_is_its_seed_and_a_layout_its_place() {

@@ -1,7 +1,6 @@
-# Fortress 9 follows Mobile Beacon while its main skill cools. Its
-# Rocket Punch temporarily holds the motion with a target out of range.
-# NormalRotate still turns the body towards that attacker's target,
-# reversing its turn on tick 177 rather than following velocity alone.
+# Fortress 9 follows a placement-limited Mobile Beacon while its main skill
+# cools. Rocket Punch temporarily owns the motion; the turret reverses its
+# turn at 177 towards that extra attacker rather than following velocity.
 # Control: beacon-turns-past-fallen-wall.yaml.
 
 kind: fight
@@ -36,15 +35,21 @@ red:
   contraptions:
   - {name: missile, index: 0, position: {x: -205, y: -195}}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: -60, y: -40}, {x: -285, y: -140}, {x: -260, y: -125}]}
+  - {name: mobile_beacon, positions: [{x: -60, y: -40}, {x: -242, y: -121}, {x: -260, y: -125}]}
 asserts:
-- sql: |-
-    SELECT tick,turret_rotation FROM units WHERE unit_id=9 AND tick BETWEEN 175 AND 179 ORDER BY tick
+- sql: |
+    SELECT tick, turret_rotation
+    FROM units
+    WHERE
+      unit_id = 9
+      AND tick BETWEEN 175 AND 179
+    ORDER BY
+      tick;
   rows:
-  - [175, 941828835920]
-  - [176, 931091417720]
-  - [177, 941828835920]
-  - [178, 931091417720]
-  - [179, 920353999520]
+  - [175, 941789844996]
+  - [176, 931052426796]
+  - [177, 941789844996]
+  - [178, 931052426796]
+  - [179, 920315008596]
 ticks: 522
-hash: 27:986e5b7ff142db9de7c6affe05236cc6b6289c6cc49ebcf9d4d46e326d647800
+hash: 27:630f7dccc383d9310eeab9d0aa4140b15e6b1bd9f664bfddf8ae1badbad2043b

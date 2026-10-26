@@ -42,7 +42,7 @@ red:
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: 270, y: 220}, {x: -220, y: -235}, {x: -125, y: 190}]}
+  - {name: mobile_beacon, positions: [{x: 270, y: 220}, {x: 123, y: 83}, {x: -60, y: 162}]}
 asserts:
 - sql: |-
     SELECT unit_id,life__current,life__maximum FROM units WHERE tick=680 AND unit_id=30

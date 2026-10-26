@@ -941,6 +941,15 @@ second ends the intermediate segment, and the third is the final endpoint.
 Position order must be preserved through the side-local to world-coordinate
 transform and native release action.
 
+For both Mobile Beacon variants, each adjacent pair must be reachable under
+the native client's 200-metre placement clamp. The clamp precedes
+`MapVector(Vector3)`, which truncates coordinates towards zero: a recorded
+integer endpoint may therefore lie slightly beyond 200 metres. Validation
+tests whether its truncation cell intersects the placement disc, excluding
+the cell's open outer edges, rather than imposing an arbitrary tolerance.
+The generator draws successive beacon points within this constraint, and
+the Adapter's direct release operation checks it before mutation too.
+
 A skill type may appear more than once. A side holding two of one skill can
 release both in a round — the Missile Specialist hands out two Missile Strikes,
 and the tracked set records rounds that release both — so the list is the

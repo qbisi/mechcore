@@ -1,7 +1,7 @@
-# Complete generated layout: Phantom Ray 4 loses its lock and cools on
-# ticks 421-436 while its motion is under Mobile Beacon. Its cached shield
-# remains in range after the actor target clears, so motion stays attacking.
-# Control: shield/lock-switch-keeps-shield-attack.yaml.
+# Phantom Ray 4 cools without a lock from 424 through 439 under a legal
+# Mobile Beacon. Its cached shield remains in range, so motion stays
+# attacking despite the cleared lock. It enters moving when cooling ends
+# at 440. Control: lock-switch-keeps-shield-attack.yaml.
 
 kind: fight
 source: game
@@ -21,7 +21,7 @@ blue:
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: 265, y: -5}, {x: 35, y: 270}, {x: 30, y: -200}]}
+  - {name: mobile_beacon, positions: [{x: 265, y: -5}, {x: 136, y: 148}, {x: 77, y: -43}]}
 red:
   core_damage: 201
   officers: [advanced_shield_device, advanced_defensive_tactics, speed_specialist, improved_scorpion]
@@ -31,8 +31,8 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [3, 3]
   units:
-  - {name: scorpion, index: 0, position: {x: -65, y: -25}, level: 8, exp: 5045/5395/10091, equipment: [secondary_heavy_armor]}
-  - {name: fire_badger, index: 1, position: {x: 5, y: -280}, level: 4, exp: 0/650/6286, source: joined}
+  - {name: scorpion, index: 0, position: {x: -65, y: -25}, level: 8, exp: 5045/5245/10091, equipment: [secondary_heavy_armor]}
+  - {name: fire_badger, index: 1, position: {x: 5, y: -280}, level: 4, exp: 0/700/6286, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   contraptions:
@@ -41,13 +41,20 @@ red:
   - {name: photon_emission, positions: [{x: -225, y: 290}]}
 asserts:
 - sql: |
-    SELECT tick, motion_state FROM units
-    WHERE unit_id = 4 AND tick IN (420, 421, 436, 437)
-    ORDER BY tick;
+    SELECT u.tick, u.motion_state, s.enabled__state, s.enabled__lock_target__id
+    FROM units u
+    JOIN units__skills s ON u.tick = s.tick AND u.unit_id = s.unit_id
+    WHERE
+      u.unit_id = 4
+      AND s.skill_slot = 0
+      AND u.tick IN (423, 424, 439, 440, 441)
+    ORDER BY
+      u.tick;
   rows:
-  - [420, attacking]
-  - [421, attacking]
-  - [436, attacking]
-  - [437, moving]
-ticks: 1187
-hash: 27:e2ee2495f8783642e79c323f5f963545cf71507446d1189d223df1c6d04e9581
+  - [423, attacking, attack, 8]
+  - [424, attacking, cooling, null]
+  - [439, attacking, cooling, null]
+  - [440, moving, idle, null]
+  - [441, attacking, idle, 6]
+ticks: 1060
+hash: 27:7847b5b4259fc18099a81da7e4190efb5208f2f6b97ccbbc156b2378c2e3118b

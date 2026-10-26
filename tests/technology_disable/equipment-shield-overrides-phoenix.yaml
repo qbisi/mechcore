@@ -33,7 +33,7 @@ red:
   contraptions:
   - {name: missile, index: 0, position: {x: 235, y: -15}, retained: false}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: 240, y: 115}, {x: -300, y: -30}, {x: 155, y: -35}]}
+  - {name: mobile_beacon, positions: [{x: 240, y: 115}, {x: 46, y: 63}, {x: 155, y: -35}]}
 asserts:
 - sql: |
     SELECT

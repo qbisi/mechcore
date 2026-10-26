@@ -35,7 +35,7 @@ red:
   contraptions:
   - {name: missile, index: 0, position: {x: -90, y: -295}}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: -180, y: 200}, {x: -190, y: -10}, {x: -120, y: -25}]}
+  - {name: mobile_beacon, positions: [{x: -180, y: 200}, {x: -189, y: 0}, {x: -120, y: -25}]}
 asserts:
 - sql: |-
     SELECT tick,body_rotation,mech_lock_target__kind,mech_lock_target__id FROM units WHERE unit_id=31 AND tick IN (282,292,293,294,304) ORDER BY tick

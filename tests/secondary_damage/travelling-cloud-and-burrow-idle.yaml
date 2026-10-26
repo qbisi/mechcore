@@ -27,7 +27,7 @@ blue:
   contraptions:
   - {name: missile, index: 0, position: {x: -65, y: -290}}
   battle_skills:
-  - {name: mobile_beacon_card, positions: [{x: -75, y: -140}, {x: -190, y: 105}, {x: -120, y: 210}]}
+  - {name: mobile_beacon_card, positions: [{x: -75, y: -140}, {x: -159, y: 41}, {x: -120, y: 210}]}
 red:
   core_damage: 0
   officers: [advanced_defensive_tactics, advanced_targeting_system, marksman_specialist, mass_produced_sandworm]

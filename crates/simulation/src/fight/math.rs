@@ -550,6 +550,33 @@ pub(in crate::fight) fn direction_degrees_q32_raw(dx: i64, dz: i64) -> i64 {
 mod tests {
     use super::fpcs_pow_fastest;
 
+    #[test]
+    fn line_overlap_preserves_native_cross_square_overflow() {
+        use super::{line_overlaps_circle_q32, rvo::FixedVec2};
+        let point = |x: i64, y: i64| FixedVec2 {
+            x: x << 32,
+            y: y << 32,
+        };
+        // FightUtility squares the cross product before dividing. For this
+        // long segment, 50,000 squared wraps the finite FPoint product.
+        // This numeric boundary belongs here: a Mobile Beacon's mouse
+        // placement admits only 200 m per segment, not a 500 m path leg.
+        assert!(line_overlaps_circle_q32(
+            point(0, 0),
+            point(500, 0),
+            40 << 32,
+            point(100, 100),
+            10 << 32
+        ));
+        assert!(!line_overlaps_circle_q32(
+            point(0, 0),
+            point(200, 0),
+            40 << 32,
+            point(100, 100),
+            10 << 32
+        ));
+    }
+
     /// `FPoint.Pow` falls just short of a whole power: four to the 1.5 is
     /// 7.99999998, and five to it, of a 10-metre radius over a Crawler's 2,
     /// 11.18; a Marksman killed under Replicate leaves 7 Crawlers.

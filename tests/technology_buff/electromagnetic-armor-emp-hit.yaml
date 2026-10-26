@@ -27,7 +27,7 @@ blue:
   contraptions:
   - {name: shield, index: 0, position: {x: -95, y: -150}}
   battle_skills:
-  - {name: mobile_beacon_card, positions: [{x: 25, y: -150}, {x: -100, y: 55}, {x: -125, y: -85}]}
+  - {name: mobile_beacon_card, positions: [{x: 25, y: -150}, {x: -79, y: 20}, {x: -125, y: -85}]}
 red:
   core_damage: 404
   officers: [advanced_shield_device, advanced_targeting_system, typhoon_specialist, improved_void_eye]

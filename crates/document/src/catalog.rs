@@ -21,7 +21,7 @@ pub(crate) enum BattleSkillShape {
     Circle { radius: i64 },
     RandomCircle { outer_radius: i64, radius: i64 },
     Line { width: i64 },
-    Path { width: i64 },
+    Path { width: i64, max_segment: i64 },
 }
 
 #[derive(Clone, Copy)]
@@ -362,14 +362,20 @@ pub(crate) const fn resolve_battle_skill_type(type_name: &str) -> Option<BattleS
         b"mobile_beacon" => battle_skill_spec(
             1_500_001,
             3,
-            BattleSkillShape::Path { width: 40 },
+            BattleSkillShape::Path {
+                width: 40,
+                max_segment: 200,
+            },
             BattleSkillMapRule::Contained,
             None,
         ),
         b"mobile_beacon_card" => battle_skill_spec(
             1_500_002,
             3,
-            BattleSkillShape::Path { width: 40 },
+            BattleSkillShape::Path {
+                width: 40,
+                max_segment: 200,
+            },
             BattleSkillMapRule::Contained,
             None,
         ),

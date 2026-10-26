@@ -36,7 +36,7 @@ red:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
   battle_skills:
-  - {name: mobile_beacon_card, positions: [{x: 290, y: 65}, {x: 235, y: 285}, {x: 100, y: 145}]}
+  - {name: mobile_beacon_card, positions: [{x: 290, y: 65}, {x: 241, y: 259}, {x: 100, y: 145}]}
 asserts:
 - sql: |-
     SELECT tick,unit_id,life__current FROM units WHERE unit_id BETWEEN 22 AND 25 AND tick IN (901,911) ORDER BY tick,unit_id

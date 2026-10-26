@@ -1,6 +1,7 @@
-# Complete generated layout: a War Factory under a Mobile Beacon keeps
-# turning its turret to its own lock while the core gun enters cooling.
-# The core gun lock does not drive this mech-searching motion.
+# War Factory 4 under a placement-limited Mobile Beacon keeps turning its
+# turret towards its own lock 2 while the core gun cools from 176 with no
+# skill lock. Treating the mech as a targetless cooling skill stops that
+# turn on 180.
 
 kind: fight
 source: game
@@ -36,19 +37,31 @@ red:
   constructions:
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: -200, y: -135}, {x: 220, y: -155}, {x: -280, y: 5}]}
+  - {name: mobile_beacon, positions: [{x: -200, y: -135}, {x: 0, y: -144}, {x: -176, y: -50}]}
 asserts:
 - sql: |
-    SELECT u.tick, u.turret_rotation, u.mech_lock_target__id,
-           s.enabled__state, s.enabled__lock_target__id
-    FROM units u JOIN units__skills s ON s.tick = u.tick AND s.unit_id = u.unit_id
-    WHERE u.unit_id = 4 AND s.skill_slot = 0 AND u.tick BETWEEN 170 AND 174
-    ORDER BY u.tick;
+    SELECT
+      u.tick,
+      u.turret_rotation,
+      u.mech_lock_target__id,
+      s.enabled__state,
+      s.enabled__lock_target__id
+    FROM units u
+    JOIN units__skills s ON u.tick = s.tick AND u.unit_id = s.unit_id
+    WHERE
+      u.unit_id = 4
+      AND s.skill_slot = 0
+      AND u.tick BETWEEN 175 AND 182
+    ORDER BY
+      u.tick;
   rows:
-  - [170, 1198821997003, 2, attack, 1]
-  - [171, 1201774216588, 2, attack, 1]
-  - [172, 1204754017216, 2, cooling, null]
-  - [173, 1207761052360, 2, cooling, null]
-  - [174, 1210794945704, 2, cooling, null]
-ticks: 354
-hash: 27:79dbd49f5a7cb914f6c13259e8baf3fa23960fb991585294140a145b856862f3
+  - [175, 855946406671, 2, attack, 1]
+  - [176, 852146757068, 2, cooling, null]
+  - [177, 848239232575, 2, cooling, null]
+  - [178, 844349027909, 2, cooling, null]
+  - [179, 840481854542, 2, cooling, null]
+  - [180, 836649184235, 2, cooling, null]
+  - [181, 832722962984, 2, cooling, null]
+  - [182, 828829971680, 2, cooling, null]
+ticks: 325
+hash: 27:f001a3196747f3c2fd348b5758a866e3f01f509d958eba02e01c73d4113c2b32

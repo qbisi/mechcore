@@ -1,10 +1,10 @@
-# Mobile Beacon preserves underground transitions after a target is lost.
-#
-# The complete generated layout: a target lost at 539 makes the Sandworm
-# search immediately on idle entry, then burrow at 540 while retaining the
-# new attack target. Later, its fallback lock is an aircraft it cannot hit;
-# it still surfaces on that lock at 938 and burrows again at 969.
-# Control: ../battle_skill/beacon-red-rhino.yaml, a command without a move ability.
+# Mobile Beacon keeps underground transitions active after target loss.
+# Sandworm 11 loses target 8 and burrows at 471 while its idle-entry search
+# already retains target 4. It returns to moving at 491, later surfaces
+# on ground target 2 from 667 through 697, then goes idle at 719.
+# These assertions name the targets in the current native recording; they
+# do not claim an aircraft-only fallback.
+# Control: ../battle_skill/beacon-red-rhino.yaml.
 
 kind: fight
 source: game
@@ -12,15 +12,15 @@ map_id: 1021
 seed: 2108535727
 round: 3
 blue:
-  core_damage: 700
+  core_damage: 0
   officers: [advanced_defensive_tactics, advanced_power_system, fire_badger_specialist]
   techs:
     hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement, multi_control]
   blueprints: [defense_enhancement_ii]
   units:
   - {name: hacker, index: 0, position: {x: -65, y: -215}, level: 6, exp: 3247/3247/3247, equipment: [secondary_fire_control_system]}
-  - {name: fire_badger, index: 1, position: {x: 215, y: -260}, exp: 0/12/1400, source: delivered}
-  - {name: phantom_ray, index: 2, position: {x: 35, y: -20}, level: 5, exp: 0/402/5210, source: joined}
+  - {name: fire_badger, index: 1, position: {x: 215, y: -260}, source: delivered}
+  - {name: phantom_ray, index: 2, position: {x: 35, y: -20}, level: 5, exp: 0/5210/5210, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
@@ -34,34 +34,43 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sandworm, index: 0, position: {x: 170, y: -180}, level: 9, exp: 6727/10703/13455, rotated: true, equipment: [barrier]}
+  - {name: sandworm, index: 0, position: {x: 170, y: -180}, level: 9, exp: 6727/11339/13455, rotated: true, equipment: [barrier]}
   - {name: fire_badger, index: 1, position: {x: -165, y: -20}, source: delivered}
-  - {name: sandworm, index: 2, position: {x: -220, y: -30}, level: 3, exp: 0/1369/7124, source: joined}
+  - {name: sandworm, index: 2, position: {x: -220, y: -30}, level: 3, exp: 0/734/7124, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   contraptions:
   - {name: missile, index: 0, position: {x: -245, y: -250}}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: -190, y: 0}, {x: 185, y: 0}, {x: -230, y: 120}]}
+  - {name: mobile_beacon, positions: [{x: -190, y: 0}, {x: 10, y: 0}, {x: -168, y: 89}]}
 asserts:
 - sql: |
-    SELECT u.tick, u.motion_state, s.enabled__attack_target__id
-    FROM units AS u
-    JOIN units__skills AS s ON u.tick = s.tick AND u.unit_id = s.unit_id
-    WHERE u.unit_id = 11 AND s.skill_slot = 0
-      AND u.tick IN (539, 540, 559, 560, 561, 937, 938, 957, 958, 968, 969)
-    ORDER BY u.tick;
+    SELECT
+      u.tick,
+      u.motion_state,
+      u.mech_lock_target__id,
+      s.enabled__state,
+      s.enabled__attack_target__id,
+      s.enabled__lock_target__id
+    FROM units u
+    JOIN units__skills s ON u.tick = s.tick AND u.unit_id = s.unit_id
+    WHERE
+      u.unit_id = 11
+      AND s.skill_slot = 0
+      AND u.tick IN (469, 470, 471, 490, 491, 666, 667, 696, 697, 718, 719)
+    ORDER BY
+      u.tick;
   rows:
-  - [539, attacking, 4]
-  - [540, transitioning, 3]
-  - [559, transitioning, 3]
-  - [560, moving, 3]
-  - [561, moving, 3]
-  - [937, moving, 2]
-  - [938, transitioning, null]
-  - [957, transitioning, null]
-  - [958, transitioning, null]
-  - [968, attacking, null]
-  - [969, transitioning, null]
-ticks: 2360
-hash: 27:41ad36276f5549773986be08ef219f634da85683aa8a92484f7368dcf78d7a6a
+  - [469, attacking, 8, attack, 8, 8]
+  - [470, attacking, 8, attack, 8, 8]
+  - [471, transitioning, null, idle, 4, null]
+  - [490, transitioning, null, idle, 4, null]
+  - [491, moving, null, idle, 4, null]
+  - [666, moving, 2, idle, 2, 2]
+  - [667, transitioning, null, idle, 2, null]
+  - [696, transitioning, null, idle, 2, null]
+  - [697, attacking, null, idle, 2, null]
+  - [718, attacking, 2, attack, 2, 2]
+  - [719, idle, 2, attack, 2, 2]
+ticks: 2335
+hash: 27:dcaaa78628641f084dff61ce430eebfe58814431de7bb81b2ba9e9da94cdf82c

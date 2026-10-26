@@ -41,7 +41,7 @@ red:
   contraptions:
   - {name: missile, index: 0, position: {x: -65, y: -160}, retained: false}
   battle_skills:
-  - {name: mobile_beacon_card, positions: [{x: -150, y: -35}, {x: 280, y: 5}, {x: -145, y: -90}]}
+  - {name: mobile_beacon_card, positions: [{x: -150, y: -35}, {x: 49, y: -16}, {x: -137, y: -87}]}
 asserts:
 - sql: |-
     SELECT tick,unit_id,enabled__state,enabled__lock_target__id FROM units__skills WHERE unit_id IN (19,20) AND tick IN (104,105,106) AND skill_slot=0 ORDER BY tick,unit_id

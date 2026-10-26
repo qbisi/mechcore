@@ -22,7 +22,7 @@ blue:
   contraptions:
   - {name: shield, index: 0, position: {x: 55, y: -95}}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: 115, y: 240}, {x: -155, y: 95}, {x: -250, y: 130}]}
+  - {name: mobile_beacon, positions: [{x: 115, y: 240}, {x: -61, y: 145}, {x: -250, y: 130}]}
 red:
   core_damage: 0
   officers: [advanced_shield_device, advanced_power_system, assault_vulcan]

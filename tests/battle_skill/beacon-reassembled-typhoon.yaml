@@ -1,8 +1,7 @@
-# Field Reassembly returns a Typhoon without its cancelled Mobile Beacon command.
-# Unit 3 dies at 158, returns at 257 and stands while attacking at 264.
-# Unit 2 finishes its path at 818 while the ended fight drains projectiles;
-# its non-fighting skill update sees completion only on the next tick.
-# Control: beacon-marksman.yaml. Native recordings agree for all 825 ticks.
+# Field Reassembly returns a Typhoon without its cancelled Mobile Beacon
+# command. Unit 3 dies at 158, returns at 257 and stands while attacking at
+# 264. The legal route retains that witness.
+# The separate ending-order witness is ../endgame/beacon-completes-during-drain.yaml.
 
 kind: fight
 source: game
@@ -17,14 +16,14 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [2, 1]
   units:
-  - {name: typhoon, index: 0, position: {x: 130, y: -30}, level: 2, exp: 0/2200/4394, rotated: true, equipment: [portable_shield], source: joined}
-  - {name: overlord, index: 1, position: {x: 275, y: -275}, level: 5, exp: 0/7800/9118, source: joined}
+  - {name: typhoon, index: 0, position: {x: 130, y: -30}, level: 2, exp: 0/2575/4394, rotated: true, equipment: [portable_shield], source: joined}
+  - {name: overlord, index: 1, position: {x: 275, y: -275}, level: 5, exp: 0/7425/9118, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 205, y: -155}}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: 105, y: -35}, {x: -175, y: -210}, {x: -5, y: -225}]}
+  - {name: mobile_beacon, positions: [{x: 105, y: -35}, {x: -64, y: -140}, {x: -5, y: -225}]}
 red:
-  core_damage: 525
+  core_damage: 400
   officers: [advanced_power_system]
   techs:
     stormcaller: [high_explosive_ammo, incendiary_bomb, electromagnetic_explosion, range_enhancement, launcher_overload, heavy_missile]
@@ -37,12 +36,27 @@ red:
   battle_skills:
   - {name: photon_emission, positions: [{x: 0, y: -50}]}
 asserts:
-- sql: |-
-    SELECT tick,unit_id,motion_state,velocity__x,velocity__z FROM units WHERE (unit_id=3 AND tick IN (257,264)) OR (unit_id=2 AND tick IN (818,819)) ORDER BY tick,unit_id
+- sql: |
+    SELECT tick, unit_id, motion_state, velocity__x, velocity__z
+    FROM units
+    WHERE
+      unit_id = 3
+      AND tick IN (257, 264)
+    ORDER BY
+      tick;
   rows:
   - [257, 3, idle, 0, 0]
   - [264, 3, attacking, 0, 0]
-  - [818, 2, moving, 51278939172, -5154720588]
-  - [819, 2, idle, 51278939172, -5154720588]
-ticks: 825
-hash: 27:542637033e1f919bf84da36dc74ceb11f6b3facd65444bccb184420549b6596b
+- sql: |
+    SELECT tick, type, object__id
+    FROM events
+    WHERE
+      object__id = 3
+      AND type = 'unit_died'
+      AND tick < 200
+    ORDER BY
+      tick;
+  rows:
+  - [158, unit_died, 3]
+ticks: 683
+hash: 27:e1c0b95e28d3382ac155aa5bd4510b884b4e55b1b508e06f5c6e86335b176c3a

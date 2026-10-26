@@ -39,7 +39,7 @@ red:
   contraptions:
   - {name: missile, index: 0, position: {x: 285, y: -250}}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: 225, y: -5}, {x: 130, y: -80}, {x: -95, y: 45}]}
+  - {name: mobile_beacon, positions: [{x: 225, y: -5}, {x: 130, y: -80}, {x: -44, y: 17}]}
 asserts:
 - sql: |-
     SELECT tick,enabled__lock_target__id,enabled__attack_range FROM units__skills WHERE unit_id=13 AND tick IN (110,111,114,115) ORDER BY tick

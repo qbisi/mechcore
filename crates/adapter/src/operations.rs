@@ -4056,6 +4056,14 @@ fn release_battle_skill(
             "positions must contain 1..=64 entries".into(),
         ));
     }
+    if let Some(name) = mechcore_document::battle_skill_type_from_id(id) {
+        let points: Vec<_> = positions
+            .iter()
+            .map(|p| mechcore_document::layout::Position { x: p.x, y: p.y })
+            .collect();
+        mechcore_document::compile::validate_battle_skill_path(name, &points)
+            .map_err(OperationError::InvalidArguments)?;
+    }
     let current = require_training_deploying(runtime)?;
     let controller = player_controller(runtime, current)?;
     let manager = runtime

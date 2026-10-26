@@ -1,0 +1,48 @@
+# Orbital Javelin kills all four enemy Stormcallers at 62, with their
+# projectiles still in flight. Typhoon 2 completes its legal short beacon
+# after the skill manager has already updated at 78: motion stays moving
+# that tick and becomes idle at 79. Typhoon 1 follows at 84-85.
+# Control: ../battle_skill/beacon-reassembled-typhoon.yaml.
+
+kind: fight
+source: game
+map_id: 1021
+seed: 4242
+round: 2
+blue:
+  core_damage: 0
+  units:
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, level: 2, exp: 0/400/4394}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: 0, y: -100}, {x: 40, y: -100}, {x: 40, y: -100}]}
+  - {name: orbital_javelin, positions: [{x: -5, y: 80}]}
+red:
+  core_damage: 250
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -80}}
+asserts:
+- sql: |
+    SELECT tick, type, object__id FROM events WHERE type = 'unit_died' ORDER BY tick;
+  rows:
+  - [62, unit_died, 3]
+  - [62, unit_died, 4]
+  - [62, unit_died, 5]
+  - [62, unit_died, 6]
+- sql: |
+    SELECT tick, unit_id, motion_state, velocity__x, velocity__z
+    FROM units
+    WHERE
+      (unit_id = 2 AND tick BETWEEN 77 AND 79)
+      OR (unit_id = 1 AND tick BETWEEN 83 AND 85)
+    ORDER BY
+      tick,
+      unit_id;
+  rows:
+  - [77, 2, moving, 38651501034, 0]
+  - [78, 2, moving, 38651501034, 0]
+  - [79, 2, idle, 38651501034, 0]
+  - [83, 1, moving, 38647827153, 591810570]
+  - [84, 1, moving, 38653333695, 591894891]
+  - [85, 1, idle, 38653333695, 591894891]
+ticks: 91
+hash: 27:03f03e37e3cfcb5a0cbce86d5999b1b3028641072afeb4307614b0bac8a7ad7b
