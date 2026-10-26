@@ -251,9 +251,10 @@
     const terrains = data.terrains.map((t) => ({
       id: t.id, frames: t.frames.map(TerrainEffects.prepare),
     }));
-    return { byRef, units, buildings, projectiles, shields, terrains, cues, decals, fallen };
+    const deployments = data.deployments.map(SkillPreview.prepare);
+    return { byRef, units, buildings, projectiles, shields, terrains, deployments, cues, decals, fallen };
   }
-  let { byRef, units, buildings, projectiles, shields, terrains, cues, decals, fallen } = tracks();
+  let { byRef, units, buildings, projectiles, shields, terrains, deployments, cues, decals, fallen } = tracks();
   const ref = (name) => (name ? byRef.get(name) : undefined);
 
   // ------------------------------------------------------------- sampling
@@ -1664,6 +1665,8 @@
     drawGround();
     drawDecals();
     drawTerrains();
+    place(0, 0);
+    for (const d of deployments) SkillPreview.draw(ctx, d, tau, TPS, TEAMS[d.team], view.s);
     const bars = [];
     const aims = options.aim ? [] : null;
     const numbers = options.damage ? [] : null;
@@ -1889,7 +1892,7 @@
     LAST = data.ticks;
     CLIPS = data.clips || [];
     LONGEST_EFFECT = 3 * TPS;
-    ({ byRef, units, buildings, projectiles, shields, terrains, cues, decals, fallen } = tracks());
+    ({ byRef, units, buildings, projectiles, shields, terrains, deployments, cues, decals, fallen } = tracks());
     tau = 1;
     hover = null;
     pointer = null;
@@ -2009,6 +2012,7 @@
     get data() { return data; }, get units() { return units; },
     get buildings() { return buildings; }, get projectiles() { return projectiles; },
     get shields() { return shields; },
+    get deployments() { return deployments; },
     rounds, selectRound, get roundIndex() { return roundIndex; },
     seek: (t) => setTau(t), play: () => { playing = true; }, pause: () => { playing = false; },
     get tau() { return tau; }, view, fit, snapshot,

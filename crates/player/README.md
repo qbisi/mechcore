@@ -92,6 +92,29 @@ Their appearance, ignition and disappearance follow the recorded snapshots,
 and seeking or exporting SVG draws the same shapes. Recovery zones,
 buffs and the other instrument channels are not drawn.
 
+Incendiary Bomb, Sticky Oil Bomb, Acid Blast and Smoke Bomb also show their
+committed release previews from the embedded layout. A rounded rectangle
+follows the two control points: its length is their distance plus two terrain
+radii, and its width is the terrain diameter. It frames the extent of the
+seven impact circles with a faint team-coloured fill and accented end caps,
+rather than following the terrain cells. A reflection sweeps along its
+contour from the first release point towards the last, including reversed
+and diagonal releases. The two control points are marked inside the end caps.
+The preview does not predict a shield's future interception or terrain
+clipping; the recorded terrain shows what actually landed.
+A screen-sized, upright vector symbol at the midpoint has one quiet ring
+and a countdown arc on that ring. The four glyphs share an optical size
+independent of effect radius. The symbols follow the native SBUI vocabulary;
+native bitmaps are not embedded in the page.
+
+Radius, delay, interval and effect count come from the build's existing
+`config/commander_skill_effects.yaml` table. Each preview stays separate from
+other releases, even where their resulting terrain merges. Standing oil has
+no new release preview. Native unrecorded presentation jitter is set to zero:
+the preview clears after its start delay plus interval times count, with the
+same deterministic result when seeking and exporting SVG. Playback starts
+with the committed deployment; it does not invent cursor or placement history.
+
 ## The sprites
 
 `web/sprites.js` draws each unit and building after the game's own model,

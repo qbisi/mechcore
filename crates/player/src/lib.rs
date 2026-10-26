@@ -12,10 +12,12 @@
 //! recording holds, and a unit type the page has no sprite for is still drawn,
 //! as a marked disc under its name.
 
+mod deployment;
 mod page;
 mod timeline;
 mod track;
 
+pub use deployment::Deployment;
 pub use page::{match_page, page};
 pub use timeline::{
     Building, Cue, DeploymentRegion, Error, Field, Pose, Projectile, Ref, SCHEMA, Shield, Terrain,
