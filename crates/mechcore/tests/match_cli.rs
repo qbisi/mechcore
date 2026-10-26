@@ -1378,6 +1378,22 @@ fn playing_a_match_keeps_each_completed_round() {
         serde_json::from_str::<Vec<Value>>(&html[start..end]).unwrap()
     };
     let rounds = read();
+    let stated = mechcore_document::opening::stated(deployed.as_bytes())
+        .unwrap()
+        .unwrap();
+    for round in &rounds {
+        let number = round["round"].as_i64().unwrap();
+        let turn = stated
+            .turns
+            .iter()
+            .find(|turn| i64::from(turn.round) == number)
+            .unwrap();
+        assert_eq!(round["cores"][0]["begin"], turn.state.blue.reactor_core);
+        assert_eq!(round["cores"][1]["begin"], turn.state.red.reactor_core);
+        for core in round["cores"].as_array().unwrap() {
+            assert!(core["maximum"].as_i64().unwrap() > 1);
+        }
+    }
     assert_eq!(
         rounds
             .iter()

@@ -78,6 +78,18 @@ fn fought() -> &'static (MemoryRecording, Timeline) {
     })
 }
 
+#[test]
+fn core_damage_comes_from_the_opponents_settlement_without_inventing_health() {
+    let (recording, timeline) = fought();
+    let scores = &recording.settlement().teams;
+    assert_ne!(scores[0].score, scores[1].score);
+    for (team, core) in timeline.cores.iter().enumerate() {
+        assert_eq!(core.damage, scores[1 - team].score);
+        assert_eq!(core.begin, None);
+        assert_eq!(core.maximum, None);
+    }
+}
+
 /// A track as the page reads it: through its JSON.
 fn read_back(track: &Track) -> Vec<i64> {
     let written = serde_json::to_value(track).unwrap();

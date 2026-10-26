@@ -62,6 +62,26 @@ fn a_layout_is_fought_in_memory_and_played() {
     assert_eq!(report["seed_source"], "external");
     assert_eq!(report["page"], page.to_str().unwrap());
     assert_a_page(&page, report["ticks"].as_u64().unwrap());
+    for core in timeline(&page)["cores"].as_array().unwrap() {
+        assert_eq!(core["begin"], 1);
+        assert_eq!(core["maximum"], 1);
+    }
+    let scene = timeline(&page);
+    for team in 0..2 {
+        let sum: i64 = scene["score_sources"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|s| s["team"].as_u64() == Some(team))
+            .map(|s| s["score"].as_i64().unwrap())
+            .sum();
+        assert_eq!(
+            sum,
+            scene["cores"][usize::try_from(1 - team).unwrap()]["damage"]
+                .as_i64()
+                .unwrap()
+        );
+    }
     // Nothing but the page is written: the fight was kept in memory.
     assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 1);
 }
@@ -96,6 +116,10 @@ fn a_fight_and_its_recording_play_the_same_fight() {
     assert_eq!(report["seed_source"], "layout");
     let ticks = report["ticks"].as_u64().unwrap();
     assert_a_page(&from_fight, ticks);
+    for core in timeline(&from_fight)["cores"].as_array().unwrap() {
+        assert!(core["begin"].is_null());
+        assert!(core["maximum"].is_null());
+    }
 
     let recording = directory.path().join("fight.mcfr");
     let converted = mechcore(&[

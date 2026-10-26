@@ -5,12 +5,15 @@ use crate::Timeline;
 
 const SHELL: &str = include_str!("../web/index.html");
 const STYLE: &str = include_str!("../web/player.css");
+const HUD_FONT: &str = include_str!("../web/hud-font.css");
+const HUD: &str = include_str!("../web/hud.js");
 const SPRITES: &str = include_str!("../web/sprites.js");
 const SNAPSHOT: &str = include_str!("../web/snapshot.js");
 const TERRAIN: &str = include_str!("../web/terrain.js");
 const SKILL_ICONS: &str = include_str!("../web/skill-icons.js");
 const DEPLOYMENT: &str = include_str!("../web/deployment.js");
 const SPAWN: &str = include_str!("../web/spawn.js");
+const SETTLEMENT: &str = include_str!("../web/settlement.js");
 const PLAYER: &str = include_str!("../web/player.js");
 
 /// Writes the page that plays `timeline`, titled `title`.
@@ -41,12 +44,15 @@ fn render(
     Ok(SHELL
         .replace("{{title}}", &escape(title))
         .replace("/*{{style}}*/", STYLE)
+        .replace("/*{{hud-font}}*/", HUD_FONT)
+        .replace("/*{{hud}}*/", HUD)
         .replace("/*{{sprites}}*/", SPRITES)
         .replace("/*{{snapshot}}*/", SNAPSHOT)
         .replace("/*{{terrain}}*/", TERRAIN)
         .replace("/*{{skill-icons}}*/", SKILL_ICONS)
         .replace("/*{{deployment}}*/", DEPLOYMENT)
         .replace("/*{{spawn}}*/", SPAWN)
+        .replace("/*{{settlement}}*/", SETTLEMENT)
         .replace("/*{{player}}*/", PLAYER)
         .replace("{{timeline}}", &data))
 }

@@ -700,13 +700,19 @@ played rounds, and reports `seed_source: match`. The page's round dropdown,
 immediately left of speed, selects a round at tick 1 while retaining speed and
 playback state. It does not advance automatically to the next round.
 
-The page's download button pauses at the current tick, rounded down, and downloads
+The page's download button pauses at the current playback frame, rounded down, and downloads
 the battlefield as a standalone vector image at the current pan and zoom.
 It includes the enabled life bars, aim lines and damage numbers, but not the
-HTML controls or roster panels. The image's title and filename name the fight, round and tick;
+HTML controls or core HUD. The image's title and filename name the fight, round and tick
+(or settlement frame during the presentation tail);
 its shapes, ground and effects remain vector elements rather than an embedded
-bitmap. `window.player.snapshot(tick)` returns that image for an integer tick
-from 1 through the recording's last tick.
+bitmap. `window.player.snapshot(frame)` returns that image for an integer frame
+from 1 through `window.player.endTick`. Frames through the recording's last tick
+are combat ticks. A presentation-only tail freezes that last tick while
+survivors' score values fly to the opposing core and deduct the recorded
+settlement damage. It adds no recording ticks, changes no CLI `ticks` result,
+and remains seekable and deterministic. `player.tau` stays at the combat tick;
+`player.playhead` includes the tail. A zero-damage fight has no scoring tail.
 
 A recording is played as it holds the fight, and one made with the
 `unit_pose` instrument channel ([mcfr.md](../mcfr/mcfr.md#instrument-channels))
