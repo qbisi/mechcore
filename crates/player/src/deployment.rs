@@ -14,6 +14,34 @@ const EFFECTS: &str = include_str!("../../../config/commander_skill_effects.yaml
 pub enum DeploymentGeometry {
     Line,
     Circle,
+    Path,
+}
+
+impl DeploymentGeometry {
+    fn for_skill(kind: &str) -> Option<Self> {
+        Some(match kind {
+            "incendiary_bomb" | "sticky_oil_bomb" | "acid_blast" | "smoke_bomb" | "ion_blast" => {
+                Self::Line
+            }
+            "missile_strike"
+            | "heavy_missile_strike"
+            | "nuke"
+            | "orbital_javelin"
+            | "orbital_bombardment"
+            | "lightning_storm"
+            | "underground_threat"
+            | "rhino_assault"
+            | "wasp_swarm"
+            | "mobilize_battleship"
+            | "vulcans_descent"
+            | "electromagnetic_impact"
+            | "electromagnetic_blast"
+            | "photon_emission"
+            | "shield_airdrop" => Self::Circle,
+            "mobile_beacon" | "mobile_beacon_card" => Self::Path,
+            _ => return None,
+        })
+    }
 }
 
 /// One release, in world centimetres and milliseconds. Standing oil is not
@@ -33,6 +61,9 @@ pub struct Deployment {
     pub start_ms: i64,
     pub interval_ms: i64,
     pub count: u32,
+    /// Ordered control points for a persistent waypoint path.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub path: Vec<[i64; 2]>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub forecast: Option<StrikeForecast>,
 }
@@ -84,6 +115,13 @@ struct Effects {
     support_skills: Vec<PointSkillPresentation>,
     buff_skills: Vec<PointSkillPresentation>,
     shield_skills: Vec<PointSkillPresentation>,
+    waypoint_skills: Vec<WaypointPresentation>,
+}
+
+#[derive(Deserialize)]
+struct WaypointPresentation {
+    id: i32,
+    sub_effect_range: i64,
 }
 
 #[derive(Deserialize)]
@@ -130,6 +168,17 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
             sub_effect_range: row.effect_range,
         })
         .collect();
+    let waypoints: Vec<_> = effects
+        .waypoint_skills
+        .iter()
+        .map(|row| SkillPresentation {
+            id: row.id,
+            start_time: 0,
+            sub_effect_interval_time: 0,
+            sub_effect_count: 1,
+            sub_effect_range: row.sub_effect_range,
+        })
+        .collect();
     let mut result = Vec::new();
     for (team, side) in [(0, &layout.blue), (1, &layout.red)] {
         let turn = if team == 0 { 100 } else { -100 };
@@ -137,28 +186,12 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
             let BattleSkillEntry::Release(release) = entry else {
                 continue;
             };
-            let geometry = match release.type_name.as_str() {
-                "incendiary_bomb" | "sticky_oil_bomb" | "acid_blast" | "smoke_bomb"
-                | "ion_blast" => DeploymentGeometry::Line,
-                "missile_strike"
-                | "heavy_missile_strike"
-                | "nuke"
-                | "orbital_javelin"
-                | "orbital_bombardment"
-                | "lightning_storm"
-                | "underground_threat"
-                | "rhino_assault"
-                | "wasp_swarm"
-                | "mobilize_battleship"
-                | "vulcans_descent"
-                | "electromagnetic_impact"
-                | "electromagnetic_blast"
-                | "photon_emission"
-                | "shield_airdrop" => DeploymentGeometry::Circle,
-                _ => continue,
+            let Some(geometry) = DeploymentGeometry::for_skill(&release.type_name) else {
+                continue;
             };
             let (from, to) = match (geometry, release.positions.as_slice()) {
-                (DeploymentGeometry::Line, [from, to]) => (from, to),
+                (DeploymentGeometry::Line, [from, to])
+                | (DeploymentGeometry::Path, [from, _, to]) => (from, to),
                 (DeploymentGeometry::Circle, [point]) => (point, point),
                 _ => continue,
             };
@@ -168,12 +201,15 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
                 .map(|row| (row, row.sub_effect_range))
                 .chain(effects.damage_skills.iter().map(|row| {
                     let radius = match geometry {
-                        DeploymentGeometry::Line => row.skill.sub_effect_range,
+                        DeploymentGeometry::Line | DeploymentGeometry::Path => {
+                            row.skill.sub_effect_range
+                        }
                         DeploymentGeometry::Circle => row.effect_range,
                     };
                     (&row.skill, radius)
                 }))
                 .chain(points.iter().map(|row| (row, row.sub_effect_range)))
+                .chain(waypoints.iter().map(|row| (row, row.sub_effect_range)))
                 .find(|(row, _)| {
                     battle_skill_type_from_id(row.id) == Some(release.type_name.as_str())
                 })
@@ -193,6 +229,15 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
                 start_ms: scaled(row.start_time, 1000),
                 interval_ms: scaled(row.sub_effect_interval_time, 1000),
                 count: row.sub_effect_count,
+                path: if geometry == DeploymentGeometry::Path {
+                    release
+                        .positions
+                        .iter()
+                        .map(|p| [i64::from(p.x) * turn, i64::from(p.y) * turn])
+                        .collect()
+                } else {
+                    Vec::new()
+                },
                 forecast: None,
             });
         }
@@ -203,6 +248,42 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
 #[cfg(test)]
 mod tests {
     use super::{DeploymentGeometry, deployments};
+
+    #[test]
+    fn beacon_variants_preserve_three_ordered_points_in_world_coordinates() {
+        let layout = mechcore_document::parse_embedded_yaml(
+            br"
+kind: layout
+round: 2
+blue:
+  units: []
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -100, y: -200}, {x: 50, y: 0}, {x: 50, y: 100}]}
+red:
+  units: []
+  battle_skills:
+  - {name: mobile_beacon_card, positions: [{x: 60, y: -120}, {x: 60, y: -120}, {x: -20, y: 80}]}
+",
+        )
+        .unwrap();
+        let releases = deployments(Some(&layout)).unwrap();
+        assert_eq!(releases.len(), 2);
+        assert!(releases.iter().all(|d| {
+            d.geometry == DeploymentGeometry::Path
+                && d.radius == 4000
+                && d.start_ms == 0
+                && d.interval_ms == 0
+                && d.forecast.is_none()
+        }));
+        assert_eq!(
+            releases[0].path,
+            [[-10000, -20000], [5000, 0], [5000, 10000]]
+        );
+        assert_eq!(
+            releases[1].path,
+            [[-6000, 12000], [-6000, 12000], [2000, -8000]]
+        );
+    }
 
     #[test]
     fn buff_and_shield_previews_use_release_ranges_without_buff_lifetimes() {
