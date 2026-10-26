@@ -144,10 +144,21 @@ release previews at their recorded target positions. Their range radii are
 contour at the same progress as the central native symbol's countdown ring:
 3 seconds for the missiles and javelin, 15 seconds for Nuke. The preview clears at the
 configured release time under the same zero-jitter policy. This adds no new
-explosion or damage forecast. Other point-skill categories beyond the damage
-and summon previews described here are not drawn yet. Circles of at least 100 metres in radius add a
+explosion or damage forecast. Circles of at least 100 metres in radius add a
 broken outer rail, graduated ticks and longer cardinal marks; the continuous
 range contour stays at the configured effect radius.
+
+Electromagnetic Impact, Electromagnetic Blast, Photon Emission and Shield
+Airdrop use the same circular release previews and native front-facing icons.
+Their ranges are 60, 130, 110 and 70 metres, and their countdowns are 2.7, 2.7,
+0.6 and 1 seconds, read from the buff and shield configuration tables. The
+preview clears after that nominal release delay, under the same zero-jitter
+policy as single impacts. It shows the committed area, without predicting
+which units receive a buff or how shields intercept it. It does not persist
+for the buff's duration or draw a second shield: actual shields continue to
+follow the recording. These additions complete the combat single-point skill
+previews; the three-point Mobile Beacon and deployment-only unit operations
+are outside this category.
 
 Orbital Bombardment and Lightning Storm preview their full 130-metre circular
 footprint with `SW_Rockets_f` and `SW_Thunder_Storm_f`. The native range view
@@ -176,7 +187,7 @@ remain those of the recording. If the current simulator cannot initialize the
 embedded layout, `play` warns and retains the release preview alone, timed by
 its nominal configured delay. MCFR is unchanged.
 
-`web/skill-icons.js` contains all sixteen native deployment symbols, traced
+`web/skill-icons.js` contains all twenty native deployment symbols, traced
 from the front-facing high-resolution `iconName + "_f"` alpha silhouettes
 by `scripts/player/skill-icons.py`. The four single-impact skills use
 `SW_Rockets_Little_f`, `SW_Rockets_Heavy_f`, `SW_Nuclear_Bomb_f` and

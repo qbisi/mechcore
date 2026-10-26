@@ -44,6 +44,10 @@ SOURCES = {
     "wasp_swarm": 1200003,
     "mobilize_battleship": 1200004,
     "vulcans_descent": 1200005,
+    "electromagnetic_impact": 200001,
+    "electromagnetic_blast": 200002,
+    "photon_emission": 200003,
+    "shield_airdrop": 800001,
 }
 
 
