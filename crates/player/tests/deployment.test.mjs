@@ -22,6 +22,135 @@ const scattered = (kind, extra = {}) => circle(kind, {
   count:kind==='lightning_storm'?30:15, ...extra,
 });
 
+const beacon = (path, extra={}) => release('mobile_beacon', {
+  geometry:'path', path, radius:4000, start_ms:0, interval_ms:0, count:1, ...extra,
+});
+
+test('beacon flow follows both ordered segments and persists without an icon or countdown', () => {
+  const d=beacon([[0,0],[10000,0],[10000,-10000]]);
+  assert.equal(d.routeLength,200);
+  const marker = (frame,index) => frame[index].markers.find(p=>p.along>=0 && p.along<46);
+  const a=marker(SkillPreview.flow(d,21,20),0), b=marker(SkillPreview.flow(d,25,20),0);
+  assert.ok(b.x>a.x);
+  const c=marker(SkillPreview.flow(d,21,20),1), e=marker(SkillPreview.flow(d,25,20),1);
+  assert.ok(e.y>c.y);
+  assert.equal(SkillPreview.state(d,2000,20).countdown,false);
+  const draw=t=>{
+    const c=new SnapshotContext();
+    SkillPreview.draw(c,d,t,20,team);
+    assert.equal(c.stack.length,0);
+    return c.snapshot('beacon',400,300);
+  };
+  const initial=draw(21);
+  assert.notEqual(initial,draw(31));
+  assert.equal(initial,draw(21));
+  assert.match(draw(2000),/<path/);
+  assert.doesNotMatch(initial,/<image|NaN|Infinity|<ellipse|<circle/);
+  // The path has no glyph in NativeSkillIcons; successful rendering must
+  // take the path branch without relying on the icon-based release preview.
+});
+
+test('beacon legs have full endpoint circles and clip the paired chevron texture', () => {
+  const d=beacon([[0,0],[10000,0],[10000,-10000]]);
+  const c=new SnapshotContext(), arcs=[];
+  const arc=c.arc.bind(c);
+  c.arc=(x,y,r,a,b,...rest)=>{
+    arcs.push({centre:Array.from(c.point(x,y)),r,span:b-a});
+    arc(x,y,r,a,b,...rest);
+  };
+  SkillPreview.draw(c,d,21,20,team);
+  assert.equal(arcs.length,6);
+  assert.deepEqual(arcs.map(a=>a.centre),[[100,0],[0,0],[0,0],[100,100],[100,0],[100,100]]);
+  for (const a of arcs) {
+    assert.equal(a.r,40);
+    assert.ok(Math.abs(a.span-Math.PI)<1e-9);
+  }
+  for (const [x,y] of [[0,0],[100,100]]) {
+    const total=arcs.filter(a=>a.centre[0]===x && a.centre[1]===y).reduce((sum,a)=>sum+a.span,0);
+    assert.ok(Math.abs(total-Math.PI*2)<1e-9);
+  }
+  for (const leg of SkillPreview.flow(d,21,20)) {
+    for (let i=1;i<leg.markers.length;i++) {
+      assert.ok(Math.abs(leg.markers[i].along-leg.markers[i-1].along-46)<1e-9);
+    }
+  }
+  const svg=c.snapshot('beacon',400,300);
+  assert.equal((svg.match(/<clipPath /g)||[]).length,2);
+  assert.equal(c.stack.length,0);
+  assert.doesNotMatch(svg,/NaN|Infinity|<image/);
+});
+
+test('beacon paths handle reverse, folded and coincident control points', () => {
+  for (const path of [
+    [[10000,0],[0,0],[0,10000]],
+    [[0,0],[10000,0],[0,0]],
+    [[0,0],[0,0],[0,10000]],
+    [[0,0],[10000,0],[10000,0]],
+    [[0,0],[0,0],[0,0]],
+  ]) {
+    const d=beacon(path);
+    const c=new SnapshotContext();
+    SkillPreview.draw(c,d,101,20,{rgb:'255,79,60'});
+    const svg=c.snapshot('beacon',400,300);
+    assert.doesNotMatch(svg,/NaN|Infinity/);
+    if (d.routeLength) assert.match(svg,/rgb\(255,79,60\)/);
+    else assert.equal(c.body.length,0);
+    assert.equal(c.stack.length,0);
+  }
+  const backwards=beacon([[10000,0],[0,0],[0,10000]]);
+  const marker=(tick,index)=>SkillPreview.flow(backwards,tick,20)[index].markers.find(p=>p.along>=0 && p.along<46);
+  assert.ok(marker(25,0).x<marker(21,0).x);
+  assert.ok(marker(25,1).y<marker(21,1).y);
+});
+
+test('beacon hides after every initially selected unit finishes or dies, including seeking', () => {
+  const d=beacon([[0,0],[10000,0],[10000,-10000]]);
+  const unit=(id,X,Z,extra={})=>({id,team:0,from:1,to:X.length,n:X.length,
+    radius:2,X,Z,L:X.map(()=>100),...extra});
+  // Preserve a 10m lateral offset: the final destination is (110,100).
+  const finishes=unit(1,[10,110,110,110],[0,0,-60,-100]);
+  // This unit dies before reaching either waypoint.
+  const dies=unit(2,[0,0,0,0,0],[0,0,0,0,0],{death:{t:5}});
+  const later=unit(3,[0,0,0],[0,0,0],{from:2,to:4});
+  const enemy=unit(4,[0,0,0],[0,0,0],{team:1});
+  const outside=unit(5,[100,100,100],[0,0,0]);
+  SkillPreview.bindPaths([d],[finishes,dies,later,enemy,outside]);
+  assert.equal(d.endTick,5);
+  const draw=t=>{
+    const c=new SnapshotContext();
+    SkillPreview.draw(c,d,t,20,team);
+    return {body:c.body.length,svg:c.snapshot('beacon',400,300)};
+  };
+  assert.ok(draw(4).body>0);
+  assert.equal(draw(5).body,0);
+  assert.equal(draw(500).body,0);
+  assert.equal(SkillPreview.state(d,5,20),null);
+  assert.equal(draw(4).svg,draw(4).svg);
+  assert.doesNotMatch(draw(4).svg,/223,244,255/);
+
+  const completion=beacon([[0,0],[10000,0],[10000,-10000]]);
+  SkillPreview.bindPaths([completion],[finishes]);
+  assert.equal(completion.endTick,4);
+  const empty=beacon([[0,0],[10000,0],[10000,-10000]]);
+  SkillPreview.bindPaths([empty],[later,enemy,outside]);
+  assert.equal(SkillPreview.state(empty,1,20),null);
+});
+
+test('beacon keeps unfinished units and assigns overlapping releases only once', () => {
+  const path=[[0,0],[10000,0],[0,0]];
+  const a=beacon(path), b=beacon(path);
+  // Being at the final point initially does not mean the round trip is done.
+  const u={id:1,team:0,from:1,to:3,n:3,radius:2,
+    X:[0,0,0],Z:[0,0,0],L:[100,100,100]};
+  SkillPreview.bindPaths([a,b],[u]);
+  assert.equal(a.endTick,Infinity);
+  assert.equal(b.endTick,1);
+  assert.ok(SkillPreview.state(a,200,20));
+  const dead=beacon(path);
+  SkillPreview.bindPaths([dead],[{...u,L:[100,0,100]}]);
+  assert.equal(dead.endTick,2); // Rebirth does not restore an old instruction.
+});
+
 test('buffs and shield airdrop clear their release preview without predicting targets or shields', () => {
   const pictures = new Set();
   for (const [kind, radius, start_ms] of [

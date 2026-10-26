@@ -259,6 +259,7 @@
       id: t.id, frames: t.frames.map(TerrainEffects.prepare),
     }));
     const deployments = data.deployments.map(SkillPreview.prepare);
+    SkillPreview.bindPaths(deployments,units);
     return { byRef, units, buildings, projectiles, shields, terrains, deployments, cues, decals, fallen };
   }
   let { byRef, units, buildings, projectiles, shields, terrains, deployments, cues, decals, fallen } = tracks();

@@ -20,13 +20,24 @@ const SkillPreview = (() => {
       radius: d.forecast.radius / 100,
       points: d.forecast.points.map((p,index) => ({tick:p.tick,x:p.x/100,y:-p.z/100,index})),
     } : null;
-    return { ...d, x, y, r, points, forecast,
+    let length = 0;
+    const route = (d.path || []).map(([x,z]) => ({x:x/100,y:-z/100}));
+    const segments = route.slice(1).map((to,i) => {
+      const from=route[i], dx=to.x-from.x, dy=to.y-from.y;
+      const size=Math.hypot(dx,dy), start=length;
+      length+=size;
+      return {from,to,start,size,dx:size?dx/size:0,dy:size?dy/size:0};
+    }).filter(s=>s.size>0);
+    return { ...d, x, y, r, points, forecast, route, segments, routeLength:length,
       angle: Math.atan2(y1 - y0, x1 - x0), length: distance + r * 2,
       start: d.start_ms / 1000, interval: d.interval_ms / 1000 };
   }
 
   function state(d, tick, tps) {
     const elapsed = (tick - 1) / tps;
+    if (d.geometry === 'path') {
+      return elapsed < 0 || tick >= d.endTick ? null : {elapsed,countdown:false,opacity:1,progress:0};
+    }
     const scattered = d.kind === 'orbital_bombardment' || d.kind === 'lightning_storm';
     const summon = ['underground_threat','rhino_assault','wasp_swarm','mobilize_battleship','vulcans_descent'].includes(d.kind);
     // Random-damage views hide their main frame at the first sub-effect.
@@ -108,6 +119,10 @@ const SkillPreview = (() => {
   }
 
   function draw(c, d, tick, tps, team, pixelsPerMetre = 1) {
+    if (d.geometry === 'path') {
+      drawFlow(c,d,tick,tps,team,pixelsPerMetre);
+      return;
+    }
     const stage = state(d, tick, tps);
     const glyph = NativeSkillIcons[d.kind];
     if (!stage || !glyph || d.r <= 0) return;
@@ -295,5 +310,100 @@ const SkillPreview = (() => {
     c.restore();
   }
 
-  return { prepare, state, draw, strike, drawStrike, scatteredStrike };
+  // WayPointInFight scrolls a directional arrow texture over each leg.
+  // Its range view uses twice GetSubEffectRange for the band width.
+  function flow(d,tick,tps) {
+    if (!state(d,tick,tps) || !d.routeLength || d.r<=0) return [];
+    const distance=(tick-1)/tps*18, spacing=46;
+    return d.segments.map(s=>{
+      const phase=((distance-s.start)%spacing+spacing)%spacing;
+      const markers=[];
+      for (let along=-spacing-d.r+phase;along<s.size+d.r+spacing;along+=spacing) {
+        markers.push({along,x:s.from.x+s.dx*along,y:s.from.y+s.dy*along});
+      }
+      return {...s,markers};
+    });
+  }
+
+  function capsule(c,length,r) {
+    c.beginPath(); c.moveTo(0,-r); c.lineTo(length,-r);
+    c.arc(length,0,r,-Math.PI/2,Math.PI/2);
+    c.lineTo(0,r); c.arc(0,0,r,Math.PI/2,Math.PI*1.5); c.closePath();
+  }
+
+  // MCFR has no command track. Reconstruct only the view's lifetime from
+  // recorded positions, following PilotAI's ordered, offset target checks.
+  // This does not simulate movement or add units that appear during combat.
+  function bindPaths(deployments,units) {
+    const assigned=new Set();
+    for (const d of deployments) {
+      if (d.geometry!=='path') continue;
+      d.endTick=1;
+      const first=d.route[0];
+      if (!first || d.route.length<2) continue;
+      for (const u of units) {
+        if (u.from!==1 || u.team!==d.team || u.L[0]<=0 || assigned.has(u.id)) continue;
+        const ox=u.X[0]-first.x, oy=-u.Z[0]-first.y;
+        if (Math.hypot(ox,oy)>d.r+u.radius) continue;
+        assigned.add(u.id);
+        const targets=d.route.slice(1).map((to,i)=>{
+          const from=d.route[i], dx=to.x-from.x, dy=to.y-from.y;
+          const length=Math.hypot(dx,dy);
+          return {x:to.x+ox+(length?20*dx/length:0),
+            y:to.y+oy+(length?20*dy/length:0)};
+        });
+        let stage=0, end=Infinity;
+        for (let i=0;i<u.n;i++) {
+          const tick=u.from+i;
+          if (u.L[i]<=0 || (u.death && tick>=u.death.t)) { end=tick; break; }
+          const target=targets[stage];
+          if (Math.hypot(u.X[i]-target.x,-u.Z[i]-target.y)<=20+u.radius) {
+            if (++stage===targets.length) { end=tick; break; }
+          }
+        }
+        if (u.death) end=Math.min(end,u.death.t);
+        d.endTick=Math.max(d.endTick,end);
+      }
+    }
+  }
+
+  function drawFlow(c,d,tick,tps,team,pixelsPerMetre=1) {
+    const pixel=1/Math.max(0.3,pixelsPerMetre), rgb=team.rgb;
+    const legs=flow(d,tick,tps);
+    for (const [index,s] of legs.entries()) {
+      c.save(); c.translate(s.from.x,s.from.y); c.rotate(Math.atan2(s.dy,s.dx));
+      c.lineJoin='round'; c.lineCap='round';
+      capsule(c,s.size,d.r);
+      c.fillStyle=`rgba(${rgb},0.018)`; c.fill();
+      c.strokeStyle=`rgba(${rgb},0.23)`; c.lineWidth=1.05*pixel; c.stroke();
+      // Each leg keeps its semicircular ends. Clip double chevrons to that
+      // same capsule, keeping a shared distance phase.
+      c.save(); c.clip();
+      for (const marker of s.markers) {
+        const head=marker.along, depth=d.r*0.28, gap=d.r*0.2, half=d.r*0.62;
+        const glow=c.createLinearGradient(head-gap-depth,0,head,0);
+        glow.addColorStop(0,`rgba(${rgb},0.035)`);
+        glow.addColorStop(0.65,`rgba(${rgb},0.11)`);
+        glow.addColorStop(1,`rgba(${rgb},0.19)`);
+        c.beginPath();
+        for (const offset of [0,-gap]) {
+          const x=head+offset;
+          c.moveTo(x-depth,-half); c.lineTo(x,0); c.lineTo(x-depth,half);
+        }
+        c.strokeStyle=glow; c.lineWidth=1.4; c.stroke();
+      }
+      c.restore();
+      // Complete only the missing inward half at the route's first and last
+      // points; the outward half is already part of the capsule outline.
+      if (index===0) {
+        c.beginPath(); c.arc(0,0,d.r,-Math.PI/2,Math.PI/2); c.stroke();
+      }
+      if (index===legs.length-1) {
+        c.beginPath(); c.arc(s.size,0,d.r,Math.PI/2,Math.PI*1.5); c.stroke();
+      }
+      c.restore();
+    }
+  }
+
+  return { prepare, state, draw, strike, drawStrike, scatteredStrike, flow, bindPaths };
 })();

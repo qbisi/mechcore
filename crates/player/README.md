@@ -160,6 +160,36 @@ follow the recording. These additions complete the combat single-point skill
 previews; the three-point Mobile Beacon and deployment-only unit operations
 are outside this category.
 
+Mobile Beacon and its card variant carry their three committed control points
+as two ordered path segments. During combat, each leg has a faint capsule
+frame with true semicircular ends. Its 40-metre radius and 80-metre total
+width follow `CommanderSkillRangeView.ShowExtraView`, which doubles
+`GetSubEffectRange`. Pairs of chevrons at a 46-metre pitch scroll in control-point order inside
+each capsule, below units and shields, without an icon, countdown or
+endpoint icon. At the route's first and last points, the inward semicircle
+completes the capsule end into a full circle without drawing its outer half
+twice. The first circle marks the initial selection extent; the last is an
+arrival reference and does not select units again. They adapt the native
+`CommanderSkillRangeView_WayPointInFight` line, noise and scrolling-arrow
+layers (`P_line_01/02`, `P_noise_03`, `P_arrow_01`) as vector strokes.
+The chevrons are clipped to each capsule and share a continuous distance
+phase over both segments, including reversed releases. The frames stay
+separate at the bend. The outlines are static, without a travelling reflection. This is a
+stylized instruction path, not a prediction of each unit's offset trajectory.
+The 18-metre-per-second texture speed, 23% base outline opacity and at most
+19% texture opacity are presentation choices.
+The path disappears when all initially selected units have completed it or
+died. MCFR has no command track: this display reconstructs completion from
+recorded positions, retaining each unit's initial offset and checking the
+ordered targets 20 metres past each segment end, within 20 metres plus the
+unit's collision radius, as `MoveAttackCommand.Perform` does. Positions are
+rounded to centimetres for display, so this is a presentation estimate rather
+than a recorded command event. Later summons and rebirth do not join the path;
+overlapping releases give a unit to the first matching path. The end tick is
+computed once, so seeking backwards restores the same view and SVG export
+agrees. An empty selection draws nothing. Coincident points skip
+their zero-length segment, and an entirely coincident route draws nothing.
+
 Orbital Bombardment and Lightning Storm preview their full 130-metre circular
 footprint with `SW_Rockets_f` and `SW_Thunder_Storm_f`. The native range view
 uses `effectRange`, which already includes each 30-metre sub-effect: its
