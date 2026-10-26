@@ -93,7 +93,8 @@ or events are added, and the reported recording duration remains unchanged.
 The seek bar includes a tinted tail; the combat clock stops and the lower
 clock labels this interval as settlement. Flights, impacts and deductions are
 functions of the playhead, so speed changes, seeks and exports agree.
-Damage labels retain the full value even when health clamps to zero. A
+Health numbers retain negative results after overkill; the bar fill stops at
+zero. Damage labels retain the full damage value. A
 backwards seek and a round change restore that round's starting health.
 The former surviving-unit roster panels and battle-information box are not
 shown. The file's title stays in the browser tab and the SVG download name.
