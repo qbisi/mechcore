@@ -1,4 +1,4 @@
-//! The map's committed line-skill deployments, read from the embedded
+//! The map's committed skill deployments, read from the embedded
 //! layout. Their presentation is independent of the damage or terrain.
 
 use mechcore_document::{BattleSkillEntry, Layout, battle_skill_type_from_id};
@@ -8,6 +8,14 @@ use crate::timeline::{centimetres, scaled};
 
 const EFFECTS: &str = include_str!("../../../config/commander_skill_effects.yaml");
 
+/// The shape of a committed release preview.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DeploymentGeometry {
+    Line,
+    Circle,
+}
+
 /// One release, in world centimetres and milliseconds. Standing oil is not
 /// a new deployment. Multiple releases remain distinct even if their terrain
 /// later becomes one visible surface.
@@ -16,6 +24,7 @@ pub struct Deployment {
     pub team: u32,
     pub ordinal: usize,
     pub kind: String,
+    pub geometry: DeploymentGeometry,
     pub x0: i64,
     pub z0: i64,
     pub x1: i64,
@@ -53,14 +62,18 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
             let BattleSkillEntry::Release(release) = entry else {
                 continue;
             };
-            if !matches!(
-                release.type_name.as_str(),
-                "incendiary_bomb" | "sticky_oil_bomb" | "acid_blast" | "smoke_bomb" | "ion_blast"
-            ) {
-                continue;
-            }
-            let [from, to] = release.positions.as_slice() else {
-                continue;
+            let geometry = match release.type_name.as_str() {
+                "incendiary_bomb" | "sticky_oil_bomb" | "acid_blast" | "smoke_bomb"
+                | "ion_blast" => DeploymentGeometry::Line,
+                "missile_strike" | "heavy_missile_strike" | "nuke" | "orbital_javelin" => {
+                    DeploymentGeometry::Circle
+                }
+                _ => continue,
+            };
+            let (from, to) = match (geometry, release.positions.as_slice()) {
+                (DeploymentGeometry::Line, [from, to]) => (from, to),
+                (DeploymentGeometry::Circle, [point]) => (point, point),
+                _ => continue,
             };
             let Some(row) = effects
                 .terrain_skills
@@ -74,6 +87,7 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
                 team,
                 ordinal,
                 kind: release.type_name.clone(),
+                geometry,
                 x0: i64::from(from.x) * turn,
                 z0: i64::from(from.y) * turn,
                 x1: i64::from(to.x) * turn,
@@ -90,7 +104,54 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
 
 #[cfg(test)]
 mod tests {
-    use super::deployments;
+    use super::{DeploymentGeometry, deployments};
+
+    #[test]
+    fn single_impacts_have_circle_ranges_and_do_not_admit_other_point_categories() {
+        let layout = mechcore_document::parse_embedded_yaml(
+            br"
+kind: layout
+round: 1
+blue:
+  units: []
+  battle_skills:
+  - {name: missile_strike, positions: [{x: -35, y: 70}]}
+  - {name: heavy_missile_strike, positions: [{x: 60, y: 100}]}
+  - {name: nuke, positions: [{x: 0, y: 80}]}
+  - {name: orbital_javelin, positions: [{x: 30, y: 70}]}
+  - {name: orbital_bombardment, positions: [{x: 0, y: 0}]}
+  - {name: photon_emission, positions: [{x: 0, y: 0}]}
+red:
+  units: []
+  battle_skills:
+  - {name: nuke, positions: [{x: 90, y: 40}]}
+",
+        )
+        .unwrap();
+        let releases = deployments(Some(&layout)).unwrap();
+        assert_eq!(releases.len(), 5);
+        let sizes: Vec<_> = releases.iter().map(|d| (d.radius, d.start_ms)).collect();
+        assert_eq!(
+            sizes,
+            [
+                (4000, 3000),
+                (4000, 3000),
+                (10000, 15000),
+                (3000, 3000),
+                (10000, 15000)
+            ]
+        );
+        assert!(
+            releases
+                .iter()
+                .all(|d| d.geometry == DeploymentGeometry::Circle
+                    && d.x0 == d.x1
+                    && d.z0 == d.z1
+                    && d.count == 1
+                    && d.interval_ms == 0)
+        );
+        assert_eq!((releases[4].x0, releases[4].z0), (-9000, -4000));
+    }
 
     #[test]
     fn ion_preview_reads_the_damage_row_and_preserves_release_direction() {

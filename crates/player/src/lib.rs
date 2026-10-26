@@ -17,7 +17,7 @@ mod page;
 mod timeline;
 mod track;
 
-pub use deployment::Deployment;
+pub use deployment::{Deployment, DeploymentGeometry};
 pub use page::{match_page, page};
 pub use timeline::{
     Building, Cue, DeploymentRegion, Error, Field, Pose, Projectile, Ref, SCHEMA, Shield, Terrain,

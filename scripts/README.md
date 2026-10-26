@@ -27,6 +27,12 @@ is not a module name is loaded by path. Scripts that write `config/` stamp the
 path they were run from into the file's header, so moving one is regenerating
 what it writes.
 
+`player/skill-icons.py` extracts the nine native deployment symbols' front-facing
+high-resolution `*_f` variants from the installed game and traces their alpha contours with Potrace into
+`crates/player/web/skill-icons.js`. Original images and intermediate traces
+stay under `work/player/skill-icons/`. Its `--check` requires the game and is
+a local asset-generation check, not a Linux CI prerequisite.
+
 `check/check-scripts.sh` verifies every tracked fight fixture in parallel and
 keeps a report for every fixture under a fresh run directory in
 `work/check/fixtures/`, or `FIXTURE_REPORT_DIR` when set. It prints complete

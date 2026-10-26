@@ -5,12 +5,17 @@ import assert from 'node:assert/strict';
 
 const source = (name) => readFileSync(new URL(`../web/${name}.js`, import.meta.url), 'utf8');
 const { SkillPreview, SnapshotContext } = vm.runInNewContext(
-  `${source('snapshot')}\n${source('deployment')}\n({ SkillPreview, SnapshotContext });`, { Math });
+  `${source('snapshot')}\n${source('skill-icons')}\n${source('deployment')}\n({ SkillPreview, SnapshotContext });`, { Math });
 const team = { rgb: '61,141,255' };
 const release = (kind = 'sticky_oil_bomb', extra = {}) => SkillPreview.prepare({
-  kind, team: 0, ordinal: 0, x0: -6000, z0: -4000, x1: 6000, z1: -4000,
+  kind, geometry: 'line', team: 0, ordinal: 0, x0: -6000, z0: -4000, x1: 6000, z1: -4000,
   radius: 3000, start_ms: 3000, interval_ms: 200, count: 7, ...extra,
   ...(kind === 'ion_blast' ? { radius: 2000, interval_ms: 300, count: 60, ...extra } : {}),
+});
+const circle = (kind, extra = {}) => release(kind, {
+  geometry:'circle', x0:2000, z0:3000, x1:2000, z1:3000,
+  radius:kind==='nuke'?10000:kind==='orbital_javelin'?3000:4000,
+  start_ms:kind==='nuke'?15000:3000, interval_ms:0, count:1, ...extra,
 });
 
 test('the footprint follows world coordinates and its configured radius', () => {
@@ -152,4 +157,91 @@ test('coincident Ion endpoints retain a finite circular forecast', () => {
   const svg = c.snapshot('stationary Ion',300,300);
   assert.match(svg,/rgb\(255,79,60\)/);
   assert.doesNotMatch(svg,/NaN|Infinity/);
+});
+
+test('single impacts use native vector icons inside circles at their configured world radius', () => {
+  const icons = new Set();
+  for (const kind of ['missile_strike','heavy_missile_strike','nuke','orbital_javelin']) {
+    const d = circle(kind);
+    assert.equal(d.x,20); assert.equal(d.y,-30);
+    const draw = tick => {
+      const c = new SnapshotContext();
+      SkillPreview.draw(c,d,tick,20,team);
+      assert.equal(c.stack.length,0);
+      return c.snapshot('single-impact',400,300);
+    };
+    const initial = draw(1);
+    assert.match(initial,new RegExp(`A${d.r} ${d.r}`));
+    assert.match(initial,/C/);
+    assert.doesNotMatch(initial,/NaN|Infinity|<image|data:image/);
+    draw(21); assert.equal(draw(1),initial);
+    icons.add(initial);
+    assert.equal(SkillPreview.strike(d,100,20),null);
+  }
+  assert.equal(icons.size,4);
+});
+
+test('Nuke retains its longer countdown while the three-second impact previews clear', () => {
+  const missile=circle('missile_strike'), nuke=circle('nuke');
+  assert.equal(SkillPreview.state(missile,62,20),null);
+  assert.ok(SkillPreview.state(nuke,62,20).countdown);
+  assert.ok(Math.abs(SkillPreview.state(nuke,151,20).progress-0.5)<1e-9);
+  assert.equal(SkillPreview.state(nuke,302,20),null);
+  const c=new SnapshotContext();
+  SkillPreview.draw(c,nuke,302,20,team);
+  assert.equal(c.body.length,0);
+});
+
+test('single-impact contour highlights stay aligned with their countdown arcs', () => {
+  for (const kind of ['missile_strike','heavy_missile_strike','nuke','orbital_javelin']) {
+    const d=circle(kind);
+    for (const progress of [0,0.25,0.5,0.9]) {
+      const c=new SnapshotContext(), arcs=[], arc=c.arc.bind(c);
+      c.arc=(...args)=>{ arcs.push(args); return arc(...args); };
+      SkillPreview.draw(c,d,1+progress*d.start*20,20,team);
+      const reflection=arcs.find(a=>a[2]===d.r && Math.abs(a[4]-a[3]-0.3)<1e-9);
+      const countdown=arcs.find(a=>a[2]<d.r && a[4]===Math.PI*1.5);
+      assert.ok(reflection && countdown);
+      assert.ok(Math.abs(reflection[4]-countdown[3])<1e-9);
+    }
+  }
+});
+
+test('large circles add an outer rail without moving their actual range contour', () => {
+  for (const radius of [9900,10000,10100]) {
+    const d=circle('nuke',{radius}), c=new SnapshotContext(), arcs=[], arc=c.arc.bind(c);
+    c.arc=(...args)=>{ arcs.push(args); return arc(...args); };
+    SkillPreview.draw(c,d,21,20,team);
+    assert.ok(arcs.some(a=>a[2]===d.r && a[3]===0 && a[4]===Math.PI*2));
+    assert.equal(arcs.filter(a=>a[2]>d.r).length,radius>=10000?4:0);
+  }
+});
+
+test('all deployment glyphs and their rings scale in proportion to battlefield zoom', () => {
+  const previews=[
+    ...['sticky_oil_bomb','incendiary_bomb','acid_blast','smoke_bomb','ion_blast'].map(k=>release(k)),
+    ...['missile_strike','heavy_missile_strike','nuke','orbital_javelin'].map(k=>circle(k)),
+  ];
+  for (const d of previews) {
+    const measure=zoom=>{
+      const c=new SnapshotContext(), boxes=[];
+      let ringWeight;
+      const fill=c.fill.bind(c), stroke=c.stroke.bind(c);
+      c.fill=(...args)=>{
+        if (c.fillStyle===`rgba(${team.rgb},0.92)`) boxes.push(c.pathBox.slice());
+        return fill(...args);
+      };
+      c.stroke=(...args)=>{
+        if (c.strokeStyle===`rgba(${team.rgb},0.35)`) ringWeight=c.lineWidth*c.scaleOf();
+        return stroke(...args);
+      };
+      c.scale(zoom,zoom);
+      SkillPreview.draw(c,d,21,20,team,zoom);
+      assert.ok(boxes.length>0);
+      return [Math.max(...boxes.map(b=>b[2]))-Math.min(...boxes.map(b=>b[0])),
+        Math.max(...boxes.map(b=>b[3]))-Math.min(...boxes.map(b=>b[1])),ringWeight];
+    };
+    const a=measure(1), b=measure(2);
+    for (let i=0;i<a.length;i++) assert.ok(Math.abs(b[i]-2*a[i])<1e-9,d.kind);
+  }
 });

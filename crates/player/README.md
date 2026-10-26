@@ -102,12 +102,14 @@ contour from the first release point towards the last, including reversed
 and diagonal releases. The two control points are marked inside the end caps.
 The preview does not predict a shield's future interception or terrain
 clipping; the recorded terrain shows what actually landed.
-A screen-sized, upright vector symbol at the midpoint has one quiet ring
+A world-sized, upright vector symbol at the midpoint has one quiet ring
 and a countdown arc on that ring. The glyphs share an optical size
-independent of effect radius. The terrain symbols are authored vector drawings
-following the native SBUI vocabulary. Ion Blast uses the game's `SW_Ion_SBUI`
-silhouette, traced from its alpha channel into cubic vector paths and tinted
-in its team's colour. Native bitmaps are not embedded in the page or snapshots.
+independent of effect radius; the symbol and its ring scale together with
+the battlefield when zooming. All five use the game's front-facing card
+silhouettes: `SW_Fire_f`, `SW_Oil_f`, `SW_Acid_f`, `SW_Fog_f` and `SW_Ion_f`.
+They are traced from their alpha channels into cubic vector paths and tinted
+in their team's colour. The `*_SBUI` artwork is already skewed for the native
+ground view and is not used. Native bitmaps are not embedded in the page or snapshots.
 
 Radius, delay, interval and effect count come from the build's existing
 `config/commander_skill_effects.yaml` table. Each preview stays separate from
@@ -116,6 +118,26 @@ no new release preview. Native unrecorded presentation jitter is set to zero:
 the preview clears after its start delay plus interval times count, with the
 same deterministic result when seeking and exporting SVG. Playback starts
 with the committed deployment; it does not invent cursor or placement history.
+
+Missile Strike, Heavy missile strike, Nuke and Orbital Javelin show circular
+release previews at their recorded target positions. Their range radii are
+40, 40, 100 and 30 metres. A quiet clockwise reflection follows the range
+contour at the same progress as the central native symbol's countdown ring:
+3 seconds for the missiles and javelin, 15 seconds for Nuke. The preview clears at the
+configured release time under the same zero-jitter policy. This adds no new
+explosion or damage forecast. Random bombardments and the other point-skill
+categories are not drawn yet. Circles of at least 100 metres in radius add a
+broken outer rail, graduated ticks and longer cardinal marks; the continuous
+range contour stays at the configured effect radius.
+
+`web/skill-icons.js` contains all nine native deployment symbols, traced
+from the front-facing high-resolution `iconName + "_f"` alpha silhouettes
+by `scripts/player/skill-icons.py`. The four single-impact skills use
+`SW_Rockets_Little_f`, `SW_Rockets_Heavy_f`, `SW_Nuclear_Bomb_f` and
+`SW_Orbital_Javelin_f`.
+The script requires the installed game, its matching local data export and
+Potrace; its docstring gives the `uv run --with` invocation. Original bitmaps
+and intermediate traces stay local under `work/player/skill-icons/`.
 
 Ion Blast additionally displays a forecast of its moving strike area. This
 is presentation inferred from the committed layout and build configuration,
