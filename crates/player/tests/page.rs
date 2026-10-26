@@ -98,6 +98,46 @@ const SIX: [&str; 6] = [
     "wasp",
 ];
 
+#[test]
+fn deployment_roster_preserves_loadout_order_and_activation() {
+    let layout = mechcore_document::parse_embedded_yaml(
+        br"
+kind: layout
+round: 1
+blue:
+  techs: {rhino: [whirlwind, armor_enhancement], wasp: [range_enhancement]}
+  units:
+  - {name: crawler, index: 0, position: {x: -60, y: -80}}
+  - {name: crawler, index: 1, position: {x: 60, y: -80}}
+  - {name: rhino, index: 2, position: {x: 0, y: -40}}
+red:
+  units: []
+",
+    )
+    .unwrap();
+    let loadout = std::collections::BTreeMap::from([(5, vec![3005, 905, 1109, 2505])]);
+    let rows = mechcore_player::unit_roster(&layout.blue, &[2, 5], Some(&loadout));
+    assert_eq!(
+        rows.iter()
+            .map(|r| (r.kind.as_str(), r.count))
+            .collect::<Vec<_>>(),
+        [("crawler", 2), ("marksman", 0), ("rhino", 1), ("wasp", 0)]
+    );
+    let rhino = rows.iter().find(|r| r.kind == "rhino").unwrap();
+    assert_eq!(
+        rhino
+            .techs
+            .iter()
+            .map(|tech| (tech.id, tech.active))
+            .collect::<Vec<_>>(),
+        [(3005, true), (905, false), (1109, true), (2505, false)]
+    );
+    assert_eq!(
+        rows.iter().find(|r| r.kind == "wasp").unwrap().techs.len(),
+        1
+    );
+}
+
 fn fought() -> &'static (MemoryRecording, Timeline) {
     static FOUGHT: OnceLock<(MemoryRecording, Timeline)> = OnceLock::new();
     FOUGHT.get_or_init(|| {

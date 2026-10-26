@@ -7,6 +7,7 @@ const SHELL: &str = include_str!("../web/index.html");
 const STYLE: &str = include_str!("../web/player.css");
 const HUD_FONT: &str = include_str!("../web/hud-font.css");
 const HUD: &str = include_str!("../web/hud.js");
+const ROSTER: &str = include_str!("../web/roster.js");
 const SPRITES: &str = include_str!("../web/sprites.js");
 const SNAPSHOT: &str = include_str!("../web/snapshot.js");
 const TERRAIN: &str = include_str!("../web/terrain.js");
@@ -22,7 +23,8 @@ const PLAYER: &str = include_str!("../web/player.js");
 ///
 /// Returns an error when the timeline cannot be serialised.
 pub fn page(timeline: &Timeline, title: &str) -> Result<String, serde_json::Error> {
-    render(timeline, title)
+    let assets = crate::roster::assets(timeline.rosters.iter().flatten())?;
+    render(timeline, title, &assets)
 }
 
 /// Writes one offline page containing every round's timeline.
@@ -31,21 +33,25 @@ pub fn page(timeline: &Timeline, title: &str) -> Result<String, serde_json::Erro
 ///
 /// Returns an error when the timelines cannot be serialised.
 pub fn match_page(rounds: &[Timeline], title: &str) -> Result<String, serde_json::Error> {
-    render(rounds, title)
+    let assets = crate::roster::assets(rounds.iter().flat_map(|r| r.rosters.iter().flatten()))?;
+    render(rounds, title, &assets)
 }
 
 fn render(
     data: &(impl serde::Serialize + ?Sized),
     title: &str,
+    assets: &crate::roster::Catalog,
 ) -> Result<String, serde_json::Error> {
     // Inside a script element only `</` can end the element early, and JSON
     // may write it as `<\/` instead.
     let data = serde_json::to_string(data)?.replace("</", "<\\/");
+    let assets = serde_json::to_string(assets)?.replace("</", "<\\/");
     Ok(SHELL
         .replace("{{title}}", &escape(title))
         .replace("/*{{style}}*/", STYLE)
         .replace("/*{{hud-font}}*/", HUD_FONT)
         .replace("/*{{hud}}*/", HUD)
+        .replace("/*{{roster}}*/", ROSTER)
         .replace("/*{{sprites}}*/", SPRITES)
         .replace("/*{{snapshot}}*/", SNAPSHOT)
         .replace("/*{{terrain}}*/", TERRAIN)
@@ -54,7 +60,8 @@ fn render(
         .replace("/*{{spawn}}*/", SPAWN)
         .replace("/*{{settlement}}*/", SETTLEMENT)
         .replace("/*{{player}}*/", PLAYER)
-        .replace("{{timeline}}", &data))
+        .replace("{{timeline}}", &data)
+        .replace("{{roster-assets}}", &assets))
 }
 
 fn escape(text: &str) -> String {

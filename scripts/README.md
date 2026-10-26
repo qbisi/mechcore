@@ -16,7 +16,7 @@ Java, the language Ghidra runs a headless script in without a Python of its own.
 | [`decomp/`](decomp/) | `decompile.py`, `decomp-diff.py`, `rules-anchors.py`, `fight-structure.py`, `ghidra.py` and `ghidra/*.java` | the build's decompilation under `work/decomp/<build>/`: making it locally from the installed game, comparing two builds, holding `docs/rules/`'s anchors to it, reading the fight architecture out of its index, and decompiling a method to C with Ghidra |
 | [`extract/`](extract/) | `extract-*.py`, `extract_*.py`, `name-tables.py`, `buff_rows.py` | `config/`, read out of the build's typed export; `name-tables.py` writes the name tables of `docs/rules/` and `docs/terminology/` from `config/localization.yaml`, and `buff_rows.py` is the buff source the equipment and technology extractions both write |
 | [`corpus/`](corpus/README.md) | `replay.py`, `collect-replays.py`, `tournament-replays.py`, `export-replay-corpus.py`, `verify-matches.py`, `match-replays.py`, `divergence-issue.py` | the collected match corpus and local native replay studies |
-| [`player/`](player/) | `model-views.py`, `export-models.mjs`, `pose-timing.py`, `rhino-slash.py`, `shot-effects.py`, `skill-icons.py`, `hud-font.py`, `officers.py` | the player's sprites in `crates/player/web/`: the game's models seen from above, which they are drawn after, also in the poses a recording shows; the sprites exported as [`assets/models/`](../assets/models/README.md); the attack timings read off a recording's poses; the Rhino's strike and its Whirlwind spin, keyed off their clips; the effects the game flies for each weapon; native skill icons traced into vectors; the HUD's numeric font subset; and native officer names and descriptions |
+| [`player/`](player/) | `model-views.py`, `export-models.mjs`, `pose-timing.py`, `rhino-slash.py`, `shot-effects.py`, `skill-icons.py`, `hud-font.py`, `officers.py`, `unit-panels.py` | the player's sprites in `crates/player/web/`: the game's models seen from above, which they are drawn after, also in the poses a recording shows; the sprites exported as [`assets/models/`](../assets/models/README.md); the attack timings read off a recording's poses; the Rhino's strike and its Whirlwind spin, keyed off their clips; the effects the game flies for each weapon; native skill icons traced into vectors; the HUD's numeric font subset; native officer names and descriptions; and unit portraits and technology icons for the side drawers |
 | [`arena/`](arena/) | `random-player.py`, `game-ai-player.py` | players for `mechcore arena run`: one that takes legal decisions at random, the smallest worked example of the request stream, and the reference opponent, modelled on the game's own computer opponent |
 | [`check/`](check/) | `check-docs.py`, `check-fixture-readers.py`, `check-scripts.sh`, `check-adapter-packaging.py` | the repository itself: CI runs the first three, `check-fixture-readers.py` holding that no crate's code reads a fixture, and the fourth checks the Adapter's packaging on a nightly toolchain |
 | this directory | `build_data.py` | the build's typed export, which every script reading the build imports |
@@ -43,6 +43,12 @@ are designed in the player and are not extracted from game artwork.
 descriptions into `crates/player/web/officers.json`, limited to the officers
 named by `config/names.yaml`. Its `--check` requires the local build export.
 The player carries only each deployment's held officers into the offline page.
+
+`player/unit-panels.py` reads the native CardData portraits and
+TechnologyGroupData icons and descriptions for the player's closed side
+drawers. It writes deduplicated WebP thumbnails and text into
+`crates/player/web/unit-panels.json`; the page selects only assets its rounds
+use. Its `--check` needs the installed game and local build export.
 
 `check/check-scripts.sh` verifies every tracked fight fixture in parallel and
 keeps a report for every fixture under a fresh run directory in

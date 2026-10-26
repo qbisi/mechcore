@@ -15,6 +15,7 @@
 
 (() => {
   const embedded = JSON.parse(document.getElementById('timeline').textContent);
+  const rosterAssets=JSON.parse(document.getElementById('roster-assets').textContent);
   const rounds = Array.isArray(embedded) ? embedded : [embedded];
   let roundIndex = 0;
   let data = rounds[0];
@@ -1729,6 +1730,7 @@
   function resizeHud() {
     const scale=HudFrame.uiScale(naturalFitScale());
     document.getElementById('scoreboard').style.setProperty('--hud-scale',String(scale));
+    for(const side of [0,1])document.getElementById(`unit-roster-${side}`).style.setProperty('--hud-scale',String(scale));
     for (const [i,v] of coreViews.entries()) {
       const width=Math.max(80,v.panel.getBoundingClientRect().width/scale);
       v.frame.setAttribute('viewBox',`0 0 ${width} 56`);
@@ -1745,6 +1747,8 @@
     observer.observe(document.getElementById('battle-clock'));
   }
   function resetHud() {
+    const tip=document.getElementById('roster-tooltip');tip.hidden=true;
+    for(const side of [0,1])UnitRoster.render(document.getElementById(`roster-list-${side}`),data.rosters[side],rosterAssets,side,tip);
     seek.max = String(END);
     document.getElementById('previous-round').disabled = roundIndex === 0;
     document.getElementById('next-round').disabled = roundIndex === rounds.length-1;
