@@ -18,7 +18,7 @@ blue:
   contraptions:
   - {name: missile, index: 0, position: {x: 200, y: -170}}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: -260, y: -205}, {x: -165, y: 225}, {x: 150, y: -255}]}
+  - {name: mobile_beacon, positions: [{x: -260, y: -205}, {x: -216, y: -9}, {x: -50, y: -120}]}
 red:
   core_damage: 0
   officers: [advanced_missile_device, advanced_defensive_tactics, marksman_specialist, extended_range_fortress]

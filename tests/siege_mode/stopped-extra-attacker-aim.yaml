@@ -37,7 +37,7 @@ red:
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: -45, y: -90}, {x: -180, y: 70}, {x: 125, y: 185}]}
+  - {name: mobile_beacon, positions: [{x: -45, y: -90}, {x: -173, y: 62}, {x: 11, y: 138}]}
 asserts:
 - sql: |-
     SELECT tick,unit_id,motion_state,turret_rotation,mech_lock_target__kind,mech_lock_target__id FROM units WHERE unit_id=3 AND tick IN (424,425,426) ORDER BY tick

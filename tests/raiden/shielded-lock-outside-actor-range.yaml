@@ -37,7 +37,7 @@ red:
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   battle_skills:
-  - {name: mobile_beacon_card, positions: [{x: -285, y: 260}, {x: -15, y: -65}, {x: -120, y: -40}]}
+  - {name: mobile_beacon_card, positions: [{x: -285, y: 260}, {x: -157, y: 106}, {x: -120, y: -40}]}
 asserts:
 - sql: |-
     SELECT tick,skill_slot,enabled__lock_target__kind,enabled__lock_target__id,enabled__attack_target__kind,enabled__attack_target__id FROM units__skills WHERE unit_id=4 AND skill_slot IN (0,1) AND tick IN (866,867) ORDER BY tick,skill_slot

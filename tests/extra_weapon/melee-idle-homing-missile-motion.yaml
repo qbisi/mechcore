@@ -21,7 +21,7 @@ blue:
   contraptions:
   - {name: shield, index: 0, position: {x: 230, y: -160}, retained: false}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: -200, y: 90}, {x: 100, y: -20}, {x: -295, y: -240}]}
+  - {name: mobile_beacon, positions: [{x: -200, y: 90}, {x: -12, y: 21}, {x: -159, y: -114}]}
 red:
   core_damage: 600
   officers: [advanced_missile_device, quick_teleport, typhoon_specialist]

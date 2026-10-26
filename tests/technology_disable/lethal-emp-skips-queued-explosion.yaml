@@ -45,7 +45,7 @@ red:
   contraptions:
   - {name: interceptor, index: 0, position: {x: 165, y: -135}, retained: false}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: 205, y: -30}, {x: -30, y: 95}, {x: -290, y: -25}]}
+  - {name: mobile_beacon, positions: [{x: 205, y: -30}, {x: 28, y: 63}, {x: -164, y: 9}]}
 asserts:
 - sql: |-
     SELECT tick,type,object__id,source__id,target__id,buff_id,amount FROM events WHERE tick=169 AND ((target__id IN(14,15) AND type IN('damage','buff_applied')) OR (type='unit_died' AND object__id IN(14,15)) OR type='terrain_created') ORDER BY ordinal

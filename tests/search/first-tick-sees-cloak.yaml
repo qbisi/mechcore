@@ -19,7 +19,7 @@ blue:
   - {name: typhoon, index: 1, position: {x: -270, y: -120}, source: delivered}
   - {name: typhoon, index: 2, position: {x: 60, y: -100}, level: 6, exp: 0/11000/11308, source: joined}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: -290, y: -50}, {x: 295, y: -20}, {x: 295, y: -165}]}
+  - {name: mobile_beacon, positions: [{x: -290, y: -50}, {x: -90, y: -39}, {x: 100, y: -101}]}
 red:
   core_damage: 0
   officers: [advanced_power_system, typhoon_specialist, extended_range_phantom_ray]

@@ -745,12 +745,57 @@ fn compile_battle_skills(
     Ok(skills)
 }
 
+/// Checks a waypoint release against the native mouse-placement range.
+///
+/// `MapVector(Vector3)` truncates each world coordinate towards zero after
+/// the client clamps it. Test the endpoint's truncation cell, so real
+/// recordings just beyond the nominal radius remain representable.
+///
+/// # Errors
+/// Returns an error for an unknown skill or an unreachable waypoint segment.
+pub fn validate_battle_skill_path(type_name: &str, positions: &[Position]) -> Result<(), String> {
+    let spec = resolve_battle_skill_type(type_name)
+        .ok_or_else(|| format!("unknown battle skill {type_name:?}"))?;
+    let BattleSkillShape::Path { max_segment, .. } = spec.shape else {
+        return Ok(());
+    };
+    for (index, pair) in positions.windows(2).enumerate() {
+        let [from, to] = pair else { unreachable!() };
+        let nearest = |a: i32, b: i32| {
+            let delta = (i64::from(b) - i64::from(a)).abs();
+            let opens_towards_source = (b > 0 && a > b) || (b < 0 && a < b) || b == 0;
+            (delta - i64::from(opens_towards_source)).max(0)
+        };
+        let dx = i64::from(to.x) - i64::from(from.x);
+        let dy = i64::from(to.y) - i64::from(from.y);
+        let squared = i128::from(dx) * i128::from(dx) + i128::from(dy) * i128::from(dy);
+        let limit = i128::from(max_segment) * i128::from(max_segment);
+        let nx = i128::from(nearest(from.x, to.x));
+        let ny = i128::from(nearest(from.y, to.y));
+        // The edge towards the source is open when truncation expands the
+        // segment. Equality there cannot produce this integer endpoint.
+        if squared > limit && nx * nx + ny * ny >= limit {
+            return Err(format!(
+                "battle skill {type_name:?} segment {} from ({}, {}) to ({}, {}) exceeds its {max_segment} m placement range after coordinate truncation",
+                index + 1,
+                from.x,
+                from.y,
+                to.x,
+                to.y
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn validate_battle_skill_positions(
     side_name: &str,
     type_name: &str,
     positions: &[Position],
     spec: BattleSkillSpec,
 ) -> Result<(), String> {
+    validate_battle_skill_path(type_name, positions)
+        .map_err(|reason| format!("side {side_name} {reason}"))?;
     let valid_map_position = match spec.map_rule {
         BattleSkillMapRule::Overlap => battle_skill_overlaps_map(positions, spec.shape),
         BattleSkillMapRule::Center => positions.iter().all(|&position| {
@@ -817,7 +862,7 @@ const fn battle_skill_margin(shape: BattleSkillShape) -> i64 {
             outer_radius,
             radius,
         } => outer_radius + radius,
-        BattleSkillShape::Line { width } | BattleSkillShape::Path { width } => width / 2,
+        BattleSkillShape::Line { width } | BattleSkillShape::Path { width, .. } => width / 2,
     }
 }
 
@@ -832,7 +877,7 @@ fn battle_skill_overlaps_map(positions: &[Position], shape: BattleSkillShape) ->
         } => positions
             .iter()
             .any(|&position| circle_overlaps_map(position, outer_radius + radius)),
-        BattleSkillShape::Line { width } | BattleSkillShape::Path { width } => positions
+        BattleSkillShape::Line { width } | BattleSkillShape::Path { width, .. } => positions
             .windows(2)
             .any(|segment| thick_segment_overlaps_map(segment[0], segment[1], width / 2)),
     }

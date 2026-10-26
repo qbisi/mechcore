@@ -1767,6 +1767,45 @@ red:
     }
 
     #[test]
+    fn beacon_segments_admit_native_truncation_but_refuse_unreachable_points() {
+        use crate::compile::validate_battle_skill_path;
+        use crate::layout::Position;
+        for name in ["mobile_beacon", "mobile_beacon_card"] {
+            for (from, to, valid) in [
+                ((0, 0), (200, 0), true),
+                ((0, 0), (201, 0), false),
+                ((-300, 0), (-99, 0), false),
+                ((-307, 269), (-131, 172), true),
+                ((307, -269), (131, -172), true),
+                ((-307, 269), (-130, 172), false),
+                ((-290, -130), (95, 240), false),
+                ((i32::MIN, i32::MIN), (i32::MAX, i32::MAX), false),
+            ] {
+                let points = [
+                    Position {
+                        x: from.0,
+                        y: from.1,
+                    },
+                    Position { x: to.0, y: to.1 },
+                ];
+                assert_eq!(
+                    validate_battle_skill_path(name, &points).is_ok(),
+                    valid,
+                    "{name}: {points:?}"
+                );
+            }
+            let error = compile(&layout_with_blue_battle_skill(
+                name,
+                json!([
+                    {"x":0,"y":0},{"x":100,"y":0},{"x":-150,"y":0}
+                ]),
+            ))
+            .unwrap_err();
+            assert!(error.contains("segment 2"));
+        }
+    }
+
+    #[test]
     fn summon_skills_use_their_effect_range_for_map_and_tower_clearance() {
         compile(&layout_with_blue_battle_skill(
             "rhino_assault",

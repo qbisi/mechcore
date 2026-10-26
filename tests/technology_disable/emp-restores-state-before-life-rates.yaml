@@ -44,7 +44,7 @@ red:
   contraptions:
   - {name: interceptor, index: 0, position: {x: -55, y: -65}, retained: false}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: -145, y: 180}, {x: 300, y: -170}, {x: -280, y: -195}]}
+  - {name: mobile_beacon, positions: [{x: -145, y: 180}, {x: 12, y: 56}, {x: -139, y: -74}]}
 asserts:
 - sql: |-
     SELECT tick,life__current,life__maximum FROM units WHERE unit_id=3 AND tick BETWEEN 256 AND 258 ORDER BY tick

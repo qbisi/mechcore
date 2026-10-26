@@ -34,7 +34,7 @@ red:
   contraptions:
   - {name: missile, index: 0, position: {x: 60, y: -10}, retained: false}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: -45, y: 225}, {x: 30, y: -80}, {x: -215, y: -235}]}
+  - {name: mobile_beacon, positions: [{x: -45, y: 225}, {x: 2, y: 30}, {x: -124, y: -124}]}
 asserts:
 - sql: |
     SELECT tick, enabled__attack_range, enabled__lock_target__id

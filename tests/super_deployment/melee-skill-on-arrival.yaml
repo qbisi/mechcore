@@ -40,7 +40,7 @@ red:
   contraptions:
   - {name: interceptor, index: 0, position: {x: -275, y: -295}, retained: false}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: 250, y: 65}, {x: -90, y: -175}, {x: 15, y: 50}]}
+  - {name: mobile_beacon, positions: [{x: 250, y: 65}, {x: 86, y: -50}, {x: 15, y: 50}]}
 asserts:
 - sql: |
     SELECT tick, skill_slot, enabled__state,

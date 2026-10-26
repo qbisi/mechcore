@@ -38,7 +38,7 @@ red:
   - {name: phantom_ray, index: 1, position: {x: 30, y: -155}, level: 3, exp: 0/3562/3562, rotated: true, equipment: [amplifying_core], source: joined}
   - {name: vortex, index: 2, position: {x: -90, y: -190}, level: 6, exp: 0/150/4349, source: joined}
   battle_skills:
-  - {name: mobile_beacon, positions: [{x: -65, y: 270}, {x: -5, y: -215}, {x: -225, y: 210}]}
+  - {name: mobile_beacon, positions: [{x: -65, y: 270}, {x: -40, y: 71}, {x: -199, y: 191}]}
 asserts:
 - sql: |
     SELECT unit_id, COUNT(*),

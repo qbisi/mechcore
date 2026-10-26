@@ -1,5 +1,6 @@
-# A complete generated layout recorded with the game. A Rhino on a beacon
-# turns toward its live lock as its strike destroys the intervening wall.
+# A Rhino on a placement-limited Mobile Beacon destroys wall block 7 at
+# tick 256 and turns towards its live lock through the remaining swing.
+# The rotation assertion brackets the killing strike.
 
 kind: fight
 source: game
@@ -16,11 +17,11 @@ blue:
   units:
   - {name: fire_badger, index: 0, position: {x: -250, y: -165}, level: 9, exp: 9418/9418/9418, rotated: true, equipment: [haste_module]}
   - {name: rhino, index: 1, position: {x: -275, y: -95}, level: 2, exp: 0/33/2591, source: delivered}
-  - {name: phoenix, index: 2, position: {x: -220, y: -180}, level: 5, exp: 0/5321/6774, source: joined}
+  - {name: phoenix, index: 2, position: {x: -220, y: -180}, level: 5, exp: 0/5421/6774, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 110, y: -115}, retained: false}
   battle_skills:
-  - {name: mobile_beacon_card, positions: [{x: -290, y: -130}, {x: 95, y: 240}, {x: 130, y: 70}]}
+  - {name: mobile_beacon_card, positions: [{x: -290, y: -130}, {x: -145, y: 8}, {x: 50, y: 51}]}
 red:
   core_damage: 200
   officers: [advanced_power_system, advanced_targeting_system, fortified_specialist, improved_steel_ball]
@@ -36,11 +37,27 @@ red:
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
 asserts:
 - sql: |
-    SELECT tick, body_rotation FROM units
-    WHERE unit_id = 6 AND tick BETWEEN 253 AND 255 ORDER BY tick;
+    SELECT tick, body_rotation
+    FROM units
+    WHERE
+      unit_id = 6
+      AND tick BETWEEN 255 AND 257
+    ORDER BY
+      tick;
   rows:
-  - [253, 1508190326747]
-  - [254, 1529665163147]
-  - [255, 1541463905582]
-ticks: 1735
-hash: 27:a06176cc027917fc47f368ae3b48a6da37ed6343933e65394709824aba6c30fe
+  - [255, 1494447363857]
+  - [256, 1515922200257]
+  - [257, 1537397036657]
+- sql: |
+    SELECT tick, type, source__id, target__id, object__id
+    FROM events
+    WHERE
+      tick = 256
+      AND (type = 'building_destroyed' OR type = 'damage')
+    ORDER BY
+      ordinal;
+  rows:
+  - [256, damage, 6, 7, null]
+  - [256, building_destroyed, null, null, 7]
+ticks: 1679
+hash: 27:73a44f7e2e821d71a27e2ba440687b6506fe1c745e26f0131ed4a14c43b9162b

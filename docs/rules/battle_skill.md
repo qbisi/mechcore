@@ -388,6 +388,16 @@ the fight's first tick, full, sorted among the side's other shields by
 
 ## A Mobile Beacon
 
+Mouse placement limits each new Mobile Beacon control point to 200 metres
+from the preceding point. Both standard rows' `effectRange` is 200:
+`ReleaseCommanderSkillController.MultiReleaseAction.GetReleasePosition`
+passes the last committed point to `InteractiveController.CalculateEffectPosition`,
+and `CS_WayPoint.IsFlexibleEffectRange` permits shorter segments. The client
+then converts the clamped point with `MapVector(Vector3)`, truncating each
+coordinate towards zero, so stored integer points can be slightly more than
+200 metres apart. This is a deployment-input constraint; the fight controller
+does not clamp an injected path again.
+
 A Mobile Beacon lands nothing. It is `CSRC_WayPoint`, a row of
 `wayPointCommanderSkills` in
 [`config/commander_skill_effects.yaml`](../../config/commander_skill_effects.yaml),
@@ -678,12 +688,15 @@ calls `MotionController.ChangeToAutoMove` before the unit's motion updates.
   range, and does not turn its body as it walks on; what it walks towards
   reaches its agent only on the update before each RVO solve:
   `tests/battle_skill/beacon-wasps.yaml`.
-- A Sabertooth on a beacon stops under the native line/circle test while a
-  projected-distance approximation would keep it moving:
+- A Sabertooth on a placement-limited beacon stops under the native
+  line/circle attack-movement test:
   `tests/battle_skill/beacon-native-line-overlap.yaml`.
 - A Typhoon that dies on a beacon returns through Field Reassembly without
   its old movement command:
   `tests/battle_skill/beacon-reassembled-typhoon.yaml`.
+- A command completed during the final projectile drain changes its unit's
+  idle decision on the next update, after the skill manager already ran:
+  `tests/endgame/beacon-completes-during-drain.yaml`.
 - A Melting Point on a beacon enters attacking when Energy Diffraction
   kills the target its main skill just prepared against:
   `tests/battle_skill/beacon-enters-attack-on-dead-target.yaml`.
