@@ -114,6 +114,329 @@ fn verify(path: &str) -> Value {
 }
 
 #[test]
+fn fork_reopens_a_round_and_continues_from_its_original_state() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    for round in 1..=2 {
+        for side in ["blue", "red"] {
+            if round > 1 {
+                decline(&path, side);
+            }
+            run(&["match", "commit", &path, "--side", side]).ok();
+        }
+    }
+    decline(&path, "blue");
+    run(&["match", "commit", &path, "--side", "blue"]).ok();
+    decline(&path, "red");
+    let before = disk_document(&path);
+    let original = fs::read(&path).unwrap();
+    let source_turn = fs::read(Path::new(&path).with_extension("turn")).unwrap();
+    let target = directory.path().join("next.yaml").display().to_string();
+    let loaded = run(&[
+        "match", "fork", &path, &target, "--side", "red", "--round", "2",
+    ])
+    .ok();
+    assert_eq!(loaded["side"], "red");
+    assert_eq!(loaded["round"], 2);
+    assert_eq!(loaded["phase"], "deploy");
+    assert_eq!(loaded["rebuilt"], true);
+    assert!(loaded["remaining"].as_f64().unwrap() > 99.0);
+    let after = disk_document(&target);
+    assert_eq!(after.as_array().unwrap().len(), 6);
+    for index in 0..5 {
+        assert_eq!(after[index], before[index]);
+    }
+    let turn: Value =
+        serde_json::from_slice(&fs::read(Path::new(&target).with_extension("turn")).unwrap())
+            .unwrap();
+    for side in ["blue", "red"] {
+        assert_eq!(after[5][side], serde_json::json!([]));
+        assert_eq!(loaded["sides"][side]["committed"], false);
+        assert_eq!(loaded["sides"][side]["given"], true);
+        assert_eq!(turn["sides"][side]["decisions"], serde_json::json!([]));
+        decline(&target, side);
+        run(&["match", "commit", &target, "--side", side]).ok();
+    }
+    assert_eq!(disk_document(&target)[6], before[6]);
+    assert_eq!(fs::read(&path).unwrap(), original);
+    assert_eq!(
+        fs::read(Path::new(&path).with_extension("turn")).unwrap(),
+        source_turn
+    );
+}
+
+#[test]
+fn fork_without_a_round_preserves_pending_decisions_and_commitments() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    for side in ["blue", "red"] {
+        run(&["match", "commit", &path, "--side", side]).ok();
+    }
+    decline(&path, "blue");
+    run(&["match", "commit", &path, "--side", "blue"]).ok();
+    decline(&path, "red");
+    let before = fs::read(&path).unwrap();
+    let turn_path = Path::new(&path).with_extension("turn");
+    let turn = fs::read(&turn_path).unwrap();
+    let target = directory.path().join("fork.yaml").display().to_string();
+    let loaded = run(&[
+        "match",
+        "fork",
+        &path,
+        &target,
+        "--deploy-time",
+        "199",
+        "--side",
+        "red",
+    ])
+    .ok();
+    assert_eq!(loaded["document"][0]["deploy_time"], 199);
+    assert!(loaded["remaining"].as_f64().unwrap() > 198.0);
+    assert_eq!(loaded["sides"]["blue"]["committed"], true);
+    assert_eq!(decisions(&loaded, "red").as_array().unwrap().len(), 1);
+    assert_eq!(fs::read(&path).unwrap(), before);
+    assert_eq!(fs::read(&turn_path).unwrap(), turn);
+}
+
+#[test]
+fn fork_can_restart_the_opening_and_refuses_missing_rounds_without_writes() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    let before = fs::read(&path).unwrap();
+    let turn_path = Path::new(&path).with_extension("turn");
+    let turn = fs::read(&turn_path).unwrap();
+    for round in ["-1", "99"] {
+        let reason = run(&[
+            "match",
+            "fork",
+            &path,
+            &path,
+            "--override",
+            "--side",
+            "blue",
+            "--round",
+            round,
+        ])
+        .refused();
+        assert!(reason.contains("no round"), "{reason}");
+        assert_eq!(fs::read(&path).unwrap(), before);
+        assert_eq!(fs::read(&turn_path).unwrap(), turn);
+    }
+    let loaded = run(&[
+        "match",
+        "fork",
+        &path,
+        &path,
+        "--override",
+        "--side",
+        "blue",
+        "--round",
+        "0",
+    ])
+    .ok();
+    assert_eq!(loaded["round"], 0);
+    assert_eq!(loaded["phase"], "opening");
+    assert_eq!(disk_document(&path).as_array().unwrap().len(), 2);
+    assert_eq!(decisions(&loaded, "blue"), &serde_json::json!([]));
+    open_the_match(&path);
+    let original = mechcore_document::r#match::read(&before).unwrap().unwrap();
+    let restarted = mechcore_document::r#match::read(&fs::read(&path).unwrap())
+        .unwrap()
+        .unwrap();
+    assert_eq!(restarted, original);
+}
+
+#[test]
+fn fork_handles_captured_suffixes_and_finished_states() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    let mut document = mechcore_document::r#match::read(&fs::read(&path).unwrap())
+        .unwrap()
+        .unwrap();
+    document.has_opening = false;
+    document.blue.opening.choose = None;
+    document.red.opening.choose = None;
+    fs::write(
+        &path,
+        mechcore_document::r#match::canonical_yaml(&document).unwrap(),
+    )
+    .unwrap();
+    let reason = run(&[
+        "match",
+        "fork",
+        &path,
+        &path,
+        "--override",
+        "--side",
+        "red",
+        "--round",
+        "0",
+    ])
+    .refused();
+    assert!(reason.contains("no round 0"), "{reason}");
+    fs::remove_file(Path::new(&path).with_extension("turn")).unwrap();
+    let loaded = run(&[
+        "match",
+        "fork",
+        &path,
+        &path,
+        "--override",
+        "--side",
+        "red",
+        "--round",
+        "1",
+    ])
+    .ok();
+    assert_eq!(loaded["phase"], "deploy");
+    assert_eq!(disk_document(&path).as_array().unwrap().len(), 3);
+
+    document.turns[0].state.blue.reactor_core = 0;
+    fs::write(
+        &path,
+        mechcore_document::r#match::canonical_yaml(&document).unwrap(),
+    )
+    .unwrap();
+    let before = fs::read(&path).unwrap();
+    let turn_path = Path::new(&path).with_extension("turn");
+    let turn = fs::read(&turn_path).unwrap();
+    let reason = run(&[
+        "match",
+        "fork",
+        &path,
+        &path,
+        "--override",
+        "--side",
+        "red",
+        "--round",
+        "1",
+    ])
+    .refused();
+    assert!(reason.contains("finished match"), "{reason}");
+    assert_eq!(fs::read(&path).unwrap(), before);
+    assert_eq!(fs::read(&turn_path).unwrap(), turn);
+}
+
+#[test]
+fn fork_binds_the_side_in_a_shell() {
+    use std::io::Write;
+
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    let view = run(&["match", "show", &path, "--side", "red"]).ok();
+    let target = directory
+        .path()
+        .join("shell-fork.yaml")
+        .display()
+        .to_string();
+    let decision = opening(&view, "red");
+    let mut child = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .arg("shell")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut input = child.stdin.take().unwrap();
+    writeln!(input, "match fork {path} {target} --side red --round 0").unwrap();
+    writeln!(input, "act {decision}").unwrap();
+    writeln!(input, "quit").unwrap();
+    drop(input);
+    let output = child.wait_with_output().unwrap();
+    assert!(output.status.success());
+    assert!(
+        output.stderr.is_empty(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let turn: Value =
+        serde_json::from_slice(&fs::read(Path::new(&target).with_extension("turn")).unwrap())
+            .unwrap();
+    assert_eq!(
+        turn["sides"]["red"]["decisions"].as_array().unwrap().len(),
+        1
+    );
+    assert_eq!(turn["sides"]["blue"]["decisions"], serde_json::json!([]));
+}
+
+#[test]
+fn fork_protects_existing_files_and_validates_the_new_clock() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    let target = directory.path().join("next.yaml").display().to_string();
+    let target_turn = Path::new(&target).with_extension("turn");
+    fs::write(&target, "keep this document").unwrap();
+    fs::write(&target_turn, "keep this turn").unwrap();
+    let original = fs::read(&path).unwrap();
+    for output in [&path, &target] {
+        let reason = run(&["match", "fork", &path, output, "--round", "1"]).refused();
+        assert!(reason.contains("--override"), "{reason}");
+    }
+    for seconds in ["0", "-1"] {
+        let reason = run(&[
+            "match",
+            "fork",
+            &path,
+            &target,
+            "--override",
+            "--deploy-time",
+            seconds,
+        ])
+        .refused();
+        assert!(reason.contains("positive"), "{reason}");
+    }
+    assert_eq!(fs::read(&target).unwrap(), b"keep this document");
+    assert_eq!(fs::read(&target_turn).unwrap(), b"keep this turn");
+    let view = run(&[
+        "match",
+        "fork",
+        &path,
+        &target,
+        "--override",
+        "--round",
+        "1",
+        "--deploy-time",
+        "199",
+    ])
+    .ok();
+    assert!(view.get("side").is_none());
+    assert_eq!(
+        view["match"],
+        fs::canonicalize(&target).unwrap().display().to_string()
+    );
+    assert_eq!(view["document"][0]["deploy_time"], 199);
+    assert_eq!(fs::read(&path).unwrap(), original);
+    let turn: Value = serde_json::from_slice(&fs::read(&target_turn).unwrap()).unwrap();
+    assert_eq!(turn["round"], 1);
+    assert_eq!(turn["sides"]["blue"]["committed"], false);
+}
+
+#[test]
+fn fork_keeps_a_historical_source_without_a_turn_file_untouched() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    let source_turn = Path::new(&path).with_extension("turn");
+    fs::remove_file(&source_turn).unwrap();
+    let original = fs::read(&path).unwrap();
+    let target = directory.path().join("next.yaml").display().to_string();
+    run(&["match", "fork", &path, &target, "--round", "99"]).refused();
+    assert!(!Path::new(&target).exists());
+    assert!(!Path::new(&target).with_extension("turn").exists());
+    run(&["match", "fork", &path, &target, "--round", "1"]).ok();
+    assert_eq!(fs::read(&path).unwrap(), original);
+    assert!(!source_turn.exists());
+    let collision = Path::new(&path).with_extension("yml").display().to_string();
+    let reason = run(&["match", "fork", &path, &collision, "--override"]).refused();
+    assert!(reason.contains("overlap"), "{reason}");
+    assert!(!Path::new(&collision).exists());
+}
+
+#[test]
 fn converting_a_match_selects_a_round_then_fights_its_projected_layout() {
     let directory = tempfile::tempdir().unwrap();
     let path = dealt(directory.path());

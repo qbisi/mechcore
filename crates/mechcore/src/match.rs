@@ -62,14 +62,15 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
 /// Returns a usage failure for a verb this namespace does not hold, and
 /// whatever the verb returns otherwise.
 pub(crate) fn answer(mut arguments: Args) -> Result<Value, Failure> {
-    let verb = arguments.operand("a verb: new, show, act or commit")?;
+    let verb = arguments.operand("a verb: new, fork, show, act or commit")?;
     let outcome = match verb.as_str() {
         "new" => new(arguments),
+        "fork" => fork(arguments),
         "show" => show(arguments),
         "act" => act(arguments),
         "commit" => commit(arguments),
         other => Err(Failure::usage(format!(
-            "match has no verb {other:?}; it has new, show, act and commit"
+            "match has no verb {other:?}; it has new, fork, show, act and commit"
         ))),
     }
     .and_then(|view| {
@@ -241,6 +242,169 @@ fn join(
         game.write_turn(held)?;
     }
     Ok(game)
+}
+
+/// Copies a match into an independent continuation, optionally reopening a round.
+fn fork(mut arguments: Args) -> Result<View, Failure> {
+    let side = side_option(&mut arguments, false)?;
+    let round = arguments.parsed::<i32>("--round", "a round number")?;
+    let deploy_time = arguments.parsed::<i32>("--deploy-time", "a number of seconds")?;
+    let replace = arguments.flag("--override")?;
+    let source = arguments.path("a source match document")?;
+    let path = arguments.path("a destination match document")?;
+    arguments.finish()?;
+    if deploy_time.is_some_and(|seconds| seconds <= 0) {
+        return Err(Failure::refused("--deploy-time must be positive"));
+    }
+    let source = resolved_path(&source)?;
+    let destination = resolved_path(&path)?;
+    let source_turn = turn_path(&source);
+    let destination_turn = turn_path(&destination);
+    if source == source_turn
+        || destination == destination_turn
+        || source == destination_turn
+        || destination == source_turn
+        || source != destination && source_turn == destination_turn
+    {
+        return Err(Failure::refused(
+            "match and turn file paths must not overlap",
+        ));
+    }
+    let refuse_existing = || {
+        if !replace && (destination.exists() || destination_turn.exists()) {
+            Err(Failure::refused(format!(
+                "{} or its turn file already exists; pass --override to replace it",
+                path.display()
+            )))
+        } else {
+            Ok(())
+        }
+    };
+    refuse_existing()?;
+
+    let mut source_held = Held::existing(&source_turn)?;
+    let mut document = read_match(&source)?;
+    warn_build(&document.game_build);
+    let saved_turn = source_held.as_mut().map(Held::read).transpose()?.flatten();
+    if let Some(seconds) = deploy_time {
+        document.deploy_time = Some(seconds);
+    }
+    let game = fork_position(destination.clone(), document, saved_turn, side, round)?;
+    let view = game.view(side, side.is_none())?;
+    let yaml =
+        mechcore_document::r#match::canonical_yaml(&game.r#match).map_err(Failure::failed)?;
+    // A distinct destination uses the captured snapshot. Release the source
+    // before locking it so opposing forks cannot deadlock; an in-place fork
+    // keeps the source lock throughout.
+    if source != destination {
+        drop(source_held.take());
+    }
+    refuse_existing()?;
+    let mut held = match source_held {
+        Some(held) => held,
+        None => Held::take(&destination_turn)?,
+    };
+    let write_document = || -> Result<(), Failure> {
+        use std::io::Write;
+        let mut output = tempfile::NamedTempFile::new_in(destination.parent().unwrap())
+            .map_err(|error| Failure::failed(format!("cannot prepare match: {error}")))?;
+        output
+            .write_all(yaml.as_bytes())
+            .map_err(|error| Failure::failed(format!("cannot write match: {error}")))?;
+        let result = if replace {
+            output.persist(&destination)
+        } else {
+            output.persist_noclobber(&destination)
+        };
+        result.map_err(|error| {
+            Failure::failed(format!("cannot write {}: {error}", destination.display()))
+        })?;
+        Ok(())
+    };
+    write_document()?;
+    if game.over() {
+        held.remove()?;
+    } else {
+        game.write_turn(&mut held)?;
+    }
+    Ok(view)
+}
+
+/// Reopens a checkpoint, or carries the current round into a fresh turn file.
+fn fork_position(
+    path: PathBuf,
+    mut document: Match,
+    saved_turn: Option<Turn>,
+    side: Option<Side>,
+    round: Option<i32>,
+) -> Result<Game, Failure> {
+    if round == Some(0) && document.has_opening {
+        document.turns.clear();
+        document.blue.opening.choose = None;
+        document.red.opening.choose = None;
+    } else if let Some(round) = round {
+        let index = document
+            .turns
+            .iter()
+            .position(|turn| turn.round == round)
+            .ok_or_else(|| Failure::refused(format!("this match has no round {round}")))?;
+        document.turns.truncate(index + 1);
+        document.turns[index].actions = TurnActions::default();
+    }
+    let current_round = document.turns.last().map_or(0, |turn| turn.round);
+    let mut game = Game {
+        path,
+        economy: Economy::embedded().map_err(Failure::failed)?,
+        r#match: document,
+        turn: Turn::opening(current_round, [true, true], true),
+        side: side.unwrap_or(Side::Blue),
+        unresolved: None,
+    };
+    if round.is_some() && game.over() {
+        return Err(Failure::refused(format!(
+            "round {current_round} opens with a finished match"
+        )));
+    }
+    if round.is_none() {
+        if let Some(saved) = saved_turn.filter(|turn| turn.round == current_round) {
+            game.turn.sides = saved.sides;
+            for side in Side::BOTH {
+                game.turn.side_mut(side).given = true;
+            }
+        } else {
+            for side in Side::BOTH {
+                game.turn.side_mut(side).committed = game.written(side);
+            }
+        }
+    }
+    Ok(game)
+}
+
+/// Resolves aliases before comparing the match and turn file destinations.
+fn resolved_path(path: &std::path::Path) -> Result<PathBuf, Failure> {
+    if path.exists() {
+        return fs::canonicalize(path).map_err(|error| {
+            Failure::failed(format!("cannot resolve {}: {error}", path.display()))
+        });
+    }
+    let parent = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| std::path::Path::new("."));
+    let parent = fs::canonicalize(parent)
+        .map_err(|error| Failure::failed(format!("cannot resolve {}: {error}", path.display())))?;
+    let name = path
+        .file_name()
+        .ok_or_else(|| Failure::usage("expected a match filename"))?;
+    Ok(parent.join(name))
+}
+
+fn read_match(path: &std::path::Path) -> Result<Match, Failure> {
+    let bytes = fs::read(path)
+        .map_err(|error| Failure::failed(format!("cannot read {}: {error}", path.display())))?;
+    mechcore_document::r#match::read(&bytes)
+        .map_err(Failure::refused)?
+        .ok_or_else(|| Failure::refused(format!("{} is not a match document", path.display())))
 }
 
 /// Answers one side's view of the match.
@@ -442,13 +606,7 @@ impl Game {
         side: Side,
     ) -> Result<Self, Failure> {
         let economy = Economy::embedded().map_err(Failure::failed)?;
-        let bytes = fs::read(path)
-            .map_err(|error| Failure::failed(format!("cannot read {}: {error}", path.display())))?;
-        let r#match = mechcore_document::r#match::read(&bytes)
-            .map_err(Failure::refused)?
-            .ok_or_else(|| {
-                Failure::refused(format!("{} is not a match document", path.display()))
-            })?;
+        let r#match = read_match(path)?;
         let turn = match already {
             Some(turn) => Some(turn),
             None => held.read()?,

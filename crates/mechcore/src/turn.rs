@@ -166,6 +166,26 @@ pub(crate) struct Held {
 }
 
 impl Held {
+    /// Locks an existing turn file without creating one for a historical match.
+    pub(crate) fn existing(path: &Path) -> Result<Option<Self>, Failure> {
+        let file = match OpenOptions::new().read(true).write(true).open(path) {
+            Ok(file) => file,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(error) => {
+                return Err(Failure::failed(format!(
+                    "cannot open {}: {error}",
+                    path.display()
+                )));
+            }
+        };
+        lock(&file)
+            .map_err(|error| Failure::failed(format!("cannot lock {}: {error}", path.display())))?;
+        Ok(Some(Self {
+            file,
+            path: path.to_owned(),
+        }))
+    }
+
     /// Opens the turn file beside a match and takes its lock, waiting for
     /// whoever holds it.
     ///

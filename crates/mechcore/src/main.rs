@@ -50,6 +50,9 @@ fn usage(program: &str) {
         "       {program} match new <match.yaml> [--name <name>] [--seed <i32>] [--map <i32>]"
     );
     eprintln!("       {program} match show <match.yaml> --side blue|red [--wait [<seconds>]]");
+    eprintln!(
+        "       {program} match fork <old.yaml> <new.yaml> [--side blue|red] [--round <n>] [--deploy-time <seconds>] [--override]"
+    );
     eprintln!("       {program} match act <match.yaml> --side blue|red <decision> [--dry-run]");
     eprintln!("       {program} match commit <match.yaml> --side blue|red");
     eprintln!(
