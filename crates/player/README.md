@@ -113,6 +113,9 @@ at the edge nearest the unit roster even after scaling. Both empty hides the
 whole container. Standalone
 inputs show only their known current-round releases, with no invented unused
 skills or inventory. The strips follow natural map scale and mirror placement.
+Both strips hide once the playback position reaches three seconds, including
+their open tooltip. Seeking before three seconds or changing rounds restores
+nonempty panels; pauses and playback speed follow the same playhead timing.
 `scripts/player/arsenal.py` extracts native front-facing skill symbols and
 equipment thumbnails into `web/arsenal.json`; each page embeds used images once.
 The list resets when selecting a round. `scripts/player/unit-panels.py`
