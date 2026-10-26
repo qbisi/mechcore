@@ -16,7 +16,7 @@ use mechcore_mcfr::{
     ProjectileState, QVec3, Recording, ShieldSourceKind, ShieldState, TerrainGridState,
     TerrainState, TerrainType, UnitPose,
 };
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
 
 use crate::deployment::{Deployment, deployments};
 use crate::track::Track;
@@ -90,6 +90,15 @@ pub struct Core {
     pub begin: Option<i32>,
     pub maximum: Option<i32>,
     pub damage: i32,
+    pub officers: Vec<Officer>,
+}
+
+/// Native presentation text for an officer held in this deployment.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Officer {
+    pub id: i32,
+    pub name: String,
+    pub effect: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -465,8 +474,24 @@ pub fn timeline(
         ticks,
         layout.as_ref().map_or(0, |layout| layout.round),
     );
+    let officers: BTreeMap<i32, Officer> =
+        serde_json::from_str(include_str!("../web/officers.json"))
+            .map_err(|error| Error(format!("cannot read officer descriptions: {error}")))?;
     for (team, core) in timeline.cores.iter_mut().enumerate() {
         core.damage = recording.settlement().teams[1 - team].score;
+        if let Some(layout) = &layout {
+            core.officers = [&layout.blue, &layout.red][team]
+                .officers
+                .iter()
+                .map(|id| {
+                    officers.get(id).cloned().unwrap_or_else(|| Officer {
+                        id: *id,
+                        name: format!("Officer {id}"),
+                        effect: "Description unavailable".into(),
+                    })
+                })
+                .collect();
+        }
     }
     Ok(timeline)
 }
@@ -935,6 +960,7 @@ impl<'a> Builder<'a> {
                 begin: None,
                 maximum: None,
                 damage: 0,
+                officers: Vec::new(),
             }),
             score_sources: Vec::new(),
             field: Field {

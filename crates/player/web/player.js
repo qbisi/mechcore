@@ -1757,6 +1757,19 @@
       v.name.textContent=characters.length>10?characters.slice(0,5).join('')+'*'+characters.slice(-4).join(''):core.name;
       v.name.title=core.name;
       v.name.setAttribute('aria-label',core.name);
+      const officers=core.officers || [];
+      const list=document.getElementById(`officer-list-${i}`);
+      document.getElementById(`officer-count-${i}`).textContent=String(officers.length);
+      document.getElementById(`officer-button-${i}`).setAttribute('aria-label',`${core.name}: ${officers.length} officers`);
+      list.setAttribute('aria-label',`${core.name} officers`);
+      list.replaceChildren();
+      for(const officer of officers){
+        const card=document.createElement('article');
+        const name=document.createElement('h3');name.textContent=officer.name;
+        const effect=document.createElement('p');effect.textContent=officer.effect;
+        card.append(name,effect);list.append(card);
+      }
+      if(!officers.length){const empty=document.createElement('p');empty.textContent='No officers';list.append(empty);}
       v.panel.classList.toggle('unknown',core.begin===null || core.maximum===null);
       v.track.setAttribute('aria-label',`${core.name} reactor core`);
     }

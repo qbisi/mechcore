@@ -56,6 +56,39 @@ red:
     }));
 }
 
+#[test]
+fn officer_cards_keep_side_and_duplicates_with_native_effect_text() {
+    let document = br"
+kind: layout
+seed: 7
+round: 1
+blue:
+  officers: [supply_enhancement, supply_enhancement]
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -40}}
+red:
+  officers: [advanced_defensive_tactics]
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -40}}
+";
+    let recording = mechcore_simulation::simulate_document(document, Record::Memory, None)
+        .unwrap()
+        .recording
+        .unwrap();
+    let timeline = mechcore_player::timeline(&recording, None).unwrap();
+    let blue = &timeline.cores[0].officers;
+    let red = &timeline.cores[1].officers;
+    assert_eq!(
+        blue.iter().map(|o| o.id).collect::<Vec<_>>(),
+        [20007, 20007]
+    );
+    assert_eq!(blue[0].name, "Supply Enhancement");
+    assert!(blue[0].effect.contains("50"));
+    assert_eq!(red.len(), 1);
+    assert_eq!(red[0].name, "Advanced Defensive Tactics");
+    assert!(red[0].effect.contains("30%"));
+}
+
 const SIX: [&str; 6] = [
     "marksman",
     "arclight",

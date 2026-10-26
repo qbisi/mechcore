@@ -21,7 +21,7 @@ mod track;
 pub use deployment::{Deployment, DeploymentGeometry, StrikeForecast, StrikePoint};
 pub use page::{match_page, page};
 pub use timeline::{
-    Building, Core, Cue, DeploymentRegion, Error, Field, Pose, Projectile, Ref, SCHEMA,
+    Building, Core, Cue, DeploymentRegion, Error, Field, Officer, Pose, Projectile, Ref, SCHEMA,
     ScoreSource, Shield, Terrain, TerrainFrame, TerrainGrid, TerrainShape, Timeline, Unit,
     timeline,
 };
