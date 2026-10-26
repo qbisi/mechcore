@@ -30,6 +30,9 @@ tail. The row contains playback, round navigation, elapsed/total time, round
 selection, speed, display settings, fit and SVG export. Life bars, damage
 numbers and aim lines live in a settings popover, retaining their keyboard
 shortcuts. Clicking outside or pressing Escape closes the popover.
+The controls fade out after two seconds without activity and reappear on
+pointer movement, pointer press or keyboard input. Hovering or focusing the
+controls, or leaving settings open, keeps them visible.
 
 The top HUD shows blue and red reactor cores with the round and elapsed time
 between them. Match playback uses each state's core health and the map's
@@ -50,6 +53,11 @@ text, texture pitch and the timer scale together when the viewport or a
 round's field bounds change. Interactive camera zoom and pan do not change
 that natural scale. Available viewport width still bounds bar length, and
 the lower playback controls retain their own responsive layout.
+The rendered ground extends 30 metres beyond each map edge; deployment
+regions and simulation bounds stay unchanged. The default camera centres
+this ground and fits its height exactly to the browser, without reserving
+space for the overlaid HUD or playback controls. Narrow windows may crop
+the sides; manual camera movement remains unrestricted.
 Numeric text uses a subset of native Xolonium-Regular;
 names retain the page's system font. Names over ten grapheme clusters keep their first five and last
 four, separated by `*`, with the full name in the badge's title and accessible

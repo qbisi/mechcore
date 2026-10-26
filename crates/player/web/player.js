@@ -488,17 +488,13 @@
   let pointer = null;
 
   function naturalFitScale() {
-    const hw = data.field.half_width / 100;
-    const hd = data.field.half_depth / 100;
-    const top = 12;
-    const bottom = 60;
-    return Math.max(0.3, Math.min(view.w / (2 * hw), (view.h - top - bottom) / (2 * hd)));
+    const hd = data.field.half_depth / 100 + 30;
+    return view.h / (2 * hd);
   }
   function fit() {
-    const top=12, bottom=60;
     view.s = naturalFitScale();
     view.x = 0;
-    view.z = ((top - bottom) / 2) / view.s;
+    view.z = 0;
     resizeHud();
   }
   function resize() {
@@ -541,8 +537,8 @@
   // washed in its colour, and the centre line. `drawGround` lays the
   // deployment grid and each side's deployment regions over it.
   function makeGround(vector = false) {
-    const hw = data.field.half_width / 100;
-    const hd = data.field.half_depth / 100;
+    const hw = data.field.half_width / 100 + 30;
+    const hd = data.field.half_depth / 100 + 30;
     const res = 3;
     const g = document.createElement('canvas');
     g.width = Math.round(hw * 2 * res);
@@ -1964,6 +1960,16 @@
     if(roundIndex+1<rounds.length)selectRound(roundIndex+1);
   });
   const settings=document.getElementById('display-settings');
+  const controls=document.getElementById('controls');
+  let controlsActiveAt=performance.now();
+  function showControls(){
+    controlsActiveAt=performance.now();
+    controls.classList.remove('inactive');
+  }
+  window.addEventListener('pointermove',showControls);
+  window.addEventListener('pointerdown',showControls);
+  window.addEventListener('keydown',showControls);
+  controls.addEventListener('focusin',showControls);
   window.addEventListener('pointerdown',e=>{
     if(!settings.contains(e.target))settings.open=false;
   });
@@ -2060,6 +2066,7 @@
   function tick(now) {
     const dt = Math.min(0.1, (now - then) / 1000);
     then = now;
+    controls.classList.toggle('inactive',now-controlsActiveAt>2000 && !settings.open && !controls.matches(':hover, :focus-within'));
     if (playing) {
       cursor=Math.max(1,Math.min(END,cursor+dt*TPS*speed));
       tau=Math.min(LAST,cursor);
