@@ -8,6 +8,7 @@ const STYLE: &str = include_str!("../web/player.css");
 const SPRITES: &str = include_str!("../web/sprites.js");
 const SNAPSHOT: &str = include_str!("../web/snapshot.js");
 const TERRAIN: &str = include_str!("../web/terrain.js");
+const SKILL_ICONS: &str = include_str!("../web/skill-icons.js");
 const DEPLOYMENT: &str = include_str!("../web/deployment.js");
 const PLAYER: &str = include_str!("../web/player.js");
 
@@ -42,6 +43,7 @@ fn render(
         .replace("/*{{sprites}}*/", SPRITES)
         .replace("/*{{snapshot}}*/", SNAPSHOT)
         .replace("/*{{terrain}}*/", TERRAIN)
+        .replace("/*{{skill-icons}}*/", SKILL_ICONS)
         .replace("/*{{deployment}}*/", DEPLOYMENT)
         .replace("/*{{player}}*/", PLAYER)
         .replace("{{timeline}}", &data))
