@@ -138,6 +138,44 @@ red:
     );
 }
 
+#[test]
+fn arsenal_keeps_duplicate_skill_slots_and_individual_inventory_items() {
+    use mechcore_document::r#match::{EquipmentItem, PanelSkill, SideState};
+    let slot = |index, cooldown, used| PanelSkill {
+        index,
+        id: 900_001,
+        cooldown,
+        used,
+        standing: Vec::new(),
+        release: None,
+    };
+    let item = |durability| EquipmentItem {
+        id: 13_030_001,
+        durability,
+    };
+    let state = SideState {
+        battle_skills: vec![slot(3, 2, false), slot(1, 0, true)],
+        equipment: vec![item(None), item(Some(2)), item(None)],
+        ..SideState::default()
+    };
+    let panel = mechcore_player::arsenal(&state);
+    assert_eq!(panel.skills.len(), 2);
+    assert!(panel.skills[0].used);
+    assert_eq!(panel.skills[1].cooldown, 2);
+    assert_eq!(
+        panel
+            .equipment
+            .iter()
+            .map(|item| (item.id, item.durability))
+            .collect::<Vec<_>>(),
+        [
+            (13_030_001, None),
+            (13_030_001, Some(2)),
+            (13_030_001, None)
+        ]
+    );
+}
+
 fn fought() -> &'static (MemoryRecording, Timeline) {
     static FOUGHT: OnceLock<(MemoryRecording, Timeline)> = OnceLock::new();
     FOUGHT.get_or_init(|| {
