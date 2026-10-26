@@ -74,9 +74,21 @@ impl Deployment {
 }
 
 #[derive(Deserialize)]
+#[allow(
+    clippy::struct_field_names,
+    reason = "fields name the extracted configuration tables"
+)]
 struct Effects {
     terrain_skills: Vec<SkillPresentation>,
     damage_skills: Vec<DamageSkillPresentation>,
+    support_skills: Vec<SupportSkillPresentation>,
+}
+
+#[derive(Deserialize)]
+struct SupportSkillPresentation {
+    id: i32,
+    start_time: i64,
+    effect_range: i64,
 }
 
 #[derive(Deserialize)]
@@ -100,6 +112,19 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
         return Ok(Vec::new());
     };
     let effects: Effects = serde_yaml::from_str(EFFECTS)?;
+    // CS_SupportUnit.GetCountDownEffectLifeTime adds the native creator's
+    // one-second APPEAR_DURATION to its configured start time.
+    let supports: Vec<_> = effects
+        .support_skills
+        .iter()
+        .map(|row| SkillPresentation {
+            id: row.id,
+            start_time: row.start_time + (1_i64 << 32),
+            sub_effect_interval_time: 0,
+            sub_effect_count: 1,
+            sub_effect_range: row.effect_range,
+        })
+        .collect();
     let mut result = Vec::new();
     for (team, side) in [(0, &layout.blue), (1, &layout.red)] {
         let turn = if team == 0 { 100 } else { -100 };
@@ -115,7 +140,12 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
                 | "nuke"
                 | "orbital_javelin"
                 | "orbital_bombardment"
-                | "lightning_storm" => DeploymentGeometry::Circle,
+                | "lightning_storm"
+                | "underground_threat"
+                | "rhino_assault"
+                | "wasp_swarm"
+                | "mobilize_battleship"
+                | "vulcans_descent" => DeploymentGeometry::Circle,
                 _ => continue,
             };
             let (from, to) = match (geometry, release.positions.as_slice()) {
@@ -134,6 +164,7 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
                     };
                     (&row.skill, radius)
                 }))
+                .chain(supports.iter().map(|row| (row, row.sub_effect_range)))
                 .find(|(row, _)| {
                     battle_skill_type_from_id(row.id) == Some(release.type_name.as_str())
                 })
@@ -163,6 +194,39 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
 #[cfg(test)]
 mod tests {
     use super::{DeploymentGeometry, deployments};
+
+    #[test]
+    fn summons_use_their_deployment_ranges_and_creator_appearance_delay() {
+        let layout = mechcore_document::parse_embedded_yaml(
+            br"
+kind: layout
+round: 1
+blue:
+  units: []
+  battle_skills:
+  - {name: underground_threat, positions: [{x: 0, y: 70}]}
+  - {name: rhino_assault, positions: [{x: 0, y: 70}]}
+  - {name: wasp_swarm, positions: [{x: 0, y: 70}]}
+  - {name: mobilize_battleship, positions: [{x: 0, y: 70}]}
+  - {name: vulcans_descent, positions: [{x: 0, y: 70}]}
+red: {units: []}
+",
+        )
+        .unwrap();
+        let releases = deployments(Some(&layout)).unwrap();
+        assert_eq!(
+            releases.iter().map(|d| d.radius).collect::<Vec<_>>(),
+            [3200, 2000, 2500, 2500, 2500]
+        );
+        assert!(
+            releases
+                .iter()
+                .all(|d| d.geometry == DeploymentGeometry::Circle
+                    && d.start_ms == 2300
+                    && d.count == 1
+                    && d.interval_ms == 0)
+        );
+    }
 
     #[test]
     fn single_impacts_have_circle_ranges_and_do_not_admit_buff_categories() {

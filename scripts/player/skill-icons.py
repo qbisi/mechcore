@@ -39,6 +39,11 @@ SOURCES = {
     "ion_blast": 300006,
     "orbital_bombardment": 300003,
     "lightning_storm": 300005,
+    "underground_threat": 1200001,
+    "rhino_assault": 1200002,
+    "wasp_swarm": 1200003,
+    "mobilize_battleship": 1200004,
+    "vulcans_descent": 1200005,
 }
 
 

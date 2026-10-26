@@ -306,6 +306,11 @@ impl Serialize for Ref {
 #[derive(Debug, Serialize)]
 #[serde(tag = "k", rename_all = "snake_case")]
 pub enum Cue {
+    /// A new unit was created; its first snapshot may join the fight later.
+    Spawn {
+        t: u32,
+        u: u64,
+    },
     /// A weapon released projectile `p`.
     Fire {
         t: u32,
@@ -789,6 +794,12 @@ impl<'a> Builder<'a> {
 
     fn cue(&mut self, t: u32, event: &Event) {
         let cue = match &event.payload {
+            EventPayload::UnitCreated { .. } => {
+                let Some(unit) = event.subject else {
+                    return;
+                };
+                Cue::Spawn { t, u: unit.id }
+            }
             EventPayload::ProjectileReleased {
                 weapon_index,
                 skill_slot,

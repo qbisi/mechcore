@@ -119,14 +119,33 @@ line previews clear after their start delay plus interval times count, with the
 same deterministic result when seeking and exporting SVG. Playback starts
 with the committed deployment; it does not invent cursor or placement history.
 
+Underground Threat, Rhino Assault, Wasp Swarm, Mobilize Battleship and Vulcan's
+Descent show circular summon previews with their native front-facing symbols.
+Their deployment radii are 32, 20, 25, 25 and 25 metres; a single-unit summon
+uses that deployment range, not a scatter prediction. Their countdown adds
+the native creator's one-second `APPEAR_DURATION` to the configured 1.3-second
+delay and fades out as the first units arrive. Later summon batches are shown
+by their recorded units rather than extending the release preview.
+
+Every recorded `unit_created` becomes a creation cue. Once that unit reaches
+its first visible snapshot, its sprite and shadow fade in and grow to full
+size over 0.75 seconds, accompanied by a ground ring and dust for ground units
+or short light trails for aircraft. This applies equally to commander summons,
+production lines and units generated on death. A summon's creation may precede
+its first snapshot by a second: the effect waits for visibility and never
+draws a unit early. Deployed units have no creation cue, and a returning unit
+under its existing identity does not replay this first-appearance animation.
+The animation changes no recorded position, height, life or attack timing;
+seeking and SVG export use the same deterministic drawing.
+
 Missile Strike, Heavy missile strike, Nuke and Orbital Javelin show circular
 release previews at their recorded target positions. Their range radii are
 40, 40, 100 and 30 metres. A quiet clockwise reflection follows the range
 contour at the same progress as the central native symbol's countdown ring:
 3 seconds for the missiles and javelin, 15 seconds for Nuke. The preview clears at the
 configured release time under the same zero-jitter policy. This adds no new
-explosion or damage forecast. Other point-skill categories beyond these and
-the random strikes below are not drawn yet. Circles of at least 100 metres in radius add a
+explosion or damage forecast. Other point-skill categories beyond the damage
+and summon previews described here are not drawn yet. Circles of at least 100 metres in radius add a
 broken outer rail, graduated ticks and longer cardinal marks; the continuous
 range contour stays at the configured effect radius.
 
@@ -157,7 +176,7 @@ remain those of the recording. If the current simulator cannot initialize the
 embedded layout, `play` warns and retains the release preview alone, timed by
 its nominal configured delay. MCFR is unchanged.
 
-`web/skill-icons.js` contains all eleven native deployment symbols, traced
+`web/skill-icons.js` contains all sixteen native deployment symbols, traced
 from the front-facing high-resolution `iconName + "_f"` alpha silhouettes
 by `scripts/player/skill-icons.py`. The four single-impact skills use
 `SW_Rockets_Little_f`, `SW_Rockets_Heavy_f`, `SW_Nuclear_Bomb_f` and
