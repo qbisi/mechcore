@@ -81,11 +81,13 @@ impl Deployment {
 struct Effects {
     terrain_skills: Vec<SkillPresentation>,
     damage_skills: Vec<DamageSkillPresentation>,
-    support_skills: Vec<SupportSkillPresentation>,
+    support_skills: Vec<PointSkillPresentation>,
+    buff_skills: Vec<PointSkillPresentation>,
+    shield_skills: Vec<PointSkillPresentation>,
 }
 
 #[derive(Deserialize)]
-struct SupportSkillPresentation {
+struct PointSkillPresentation {
     id: i32,
     start_time: i64,
     effect_range: i64,
@@ -114,12 +116,15 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
     let effects: Effects = serde_yaml::from_str(EFFECTS)?;
     // CS_SupportUnit.GetCountDownEffectLifeTime adds the native creator's
     // one-second APPEAR_DURATION to its configured start time.
-    let supports: Vec<_> = effects
+    let points: Vec<_> = effects
         .support_skills
         .iter()
-        .map(|row| SkillPresentation {
+        .map(|row| (row, 1_i64 << 32))
+        .chain(effects.buff_skills.iter().map(|row| (row, 0)))
+        .chain(effects.shield_skills.iter().map(|row| (row, 0)))
+        .map(|(row, appearance_delay)| SkillPresentation {
             id: row.id,
-            start_time: row.start_time + (1_i64 << 32),
+            start_time: row.start_time + appearance_delay,
             sub_effect_interval_time: 0,
             sub_effect_count: 1,
             sub_effect_range: row.effect_range,
@@ -145,7 +150,11 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
                 | "rhino_assault"
                 | "wasp_swarm"
                 | "mobilize_battleship"
-                | "vulcans_descent" => DeploymentGeometry::Circle,
+                | "vulcans_descent"
+                | "electromagnetic_impact"
+                | "electromagnetic_blast"
+                | "photon_emission"
+                | "shield_airdrop" => DeploymentGeometry::Circle,
                 _ => continue,
             };
             let (from, to) = match (geometry, release.positions.as_slice()) {
@@ -164,7 +173,7 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
                     };
                     (&row.skill, radius)
                 }))
-                .chain(supports.iter().map(|row| (row, row.sub_effect_range)))
+                .chain(points.iter().map(|row| (row, row.sub_effect_range)))
                 .find(|(row, _)| {
                     battle_skill_type_from_id(row.id) == Some(release.type_name.as_str())
                 })
@@ -194,6 +203,48 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
 #[cfg(test)]
 mod tests {
     use super::{DeploymentGeometry, deployments};
+
+    #[test]
+    fn buff_and_shield_previews_use_release_ranges_without_buff_lifetimes() {
+        let layout = mechcore_document::parse_embedded_yaml(
+            br"
+kind: layout
+round: 2
+blue:
+  units: []
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -40, y: 60}]}
+  - {name: electromagnetic_blast, positions: [{x: 40, y: 60}]}
+  - {name: photon_emission, positions: [{x: 0, y: -110}]}
+red:
+  units: []
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: 30, y: -80}]}
+  - {name: shield_airdrop, standing: {position: {x: -80, y: -100}}}
+",
+        )
+        .unwrap();
+        let releases = deployments(Some(&layout)).unwrap();
+        assert_eq!(
+            releases
+                .iter()
+                .map(|d| (d.radius, d.start_ms))
+                .collect::<Vec<_>>(),
+            [(6000, 2700), (13000, 2700), (11000, 600), (7000, 1000)]
+        );
+        assert!(releases.iter().all(|d| {
+            d.geometry == DeploymentGeometry::Circle
+                && (d.x0, d.z0) == (d.x1, d.z1)
+                && d.count == 1
+                && d.interval_ms == 0
+                && d.forecast.is_none()
+        }));
+        assert_eq!((releases[0].x0, releases[0].z0), (-4000, 6000));
+        assert_eq!(
+            (releases[3].team, releases[3].x0, releases[3].z0),
+            (1, -3000, 8000)
+        );
+    }
 
     #[test]
     fn summons_use_their_deployment_ranges_and_creator_appearance_delay() {
@@ -229,7 +280,7 @@ red: {units: []}
     }
 
     #[test]
-    fn single_impacts_have_circle_ranges_and_do_not_admit_buff_categories() {
+    fn single_impacts_have_circle_ranges() {
         let layout = mechcore_document::parse_embedded_yaml(
             br"
 kind: layout
@@ -241,8 +292,6 @@ blue:
   - {name: heavy_missile_strike, positions: [{x: 60, y: 100}]}
   - {name: nuke, positions: [{x: 0, y: 80}]}
   - {name: orbital_javelin, positions: [{x: 30, y: 70}]}
-  - {name: electromagnetic_blast, positions: [{x: 0, y: 0}]}
-  - {name: photon_emission, positions: [{x: 0, y: 0}]}
 red:
   units: []
   battle_skills:

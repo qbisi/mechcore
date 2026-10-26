@@ -22,6 +22,36 @@ const scattered = (kind, extra = {}) => circle(kind, {
   count:kind==='lightning_storm'?30:15, ...extra,
 });
 
+test('buffs and shield airdrop clear their release preview without predicting targets or shields', () => {
+  const pictures = new Set();
+  for (const [kind, radius, start_ms] of [
+    ['electromagnetic_impact',6000,2700], ['electromagnetic_blast',13000,2700],
+    ['photon_emission',11000,600], ['shield_airdrop',7000,1000],
+  ]) {
+    const d = circle(kind, {radius,start_ms});
+    const initial = () => {
+      const c = new SnapshotContext();
+      SkillPreview.draw(c,d,1,20,team);
+      assert.equal(c.stack.length,0);
+      return c.snapshot(kind,400,300);
+    };
+    const svg = initial();
+    assert.match(svg, /<path/);
+    assert.doesNotMatch(svg, /NaN|Infinity|<image|data:image/);
+    assert.equal(SkillPreview.state(d,1+start_ms/100,20).progress,0.5);
+    const ended = new SnapshotContext();
+    SkillPreview.draw(ended,d,start_ms/50+2,20,team);
+    SkillPreview.drawStrike(ended,d,start_ms/50+2,20,team);
+    assert.equal(ended.body.length,0);
+    assert.equal(SkillPreview.strike(d,60,20),null);
+    assert.equal(SkillPreview.scatteredStrike(d,60,20),null);
+    assert.equal(initial(),svg);
+    // Compare only drawing, not the distinct document title.
+    pictures.add(svg.replaceAll(kind,'skill'));
+  }
+  assert.equal(pictures.size,4);
+});
+
 test('the footprint follows world coordinates and its configured radius', () => {
   const short = release();
   const long = release('sticky_oil_bomb', { x0: -12000, x1: 12000 });
