@@ -26,12 +26,17 @@
 </header>
 <div id="tooltip" hidden></div>
 <footer id="controls">
-  <button id="play" type="button" title="Play or pause (Space)" aria-label="Play or pause">▶</button>
-  <span id="clock">0:00.0</span>
   <div id="scrub">
+    <div id="seek-track"><div id="seek-progress"></div></div>
     <canvas id="marks"></canvas>
     <input id="seek" type="range" min="1" value="1" step="any" aria-label="Time">
   </div>
+  <div id="control-row">
+  <button id="previous-round" type="button" title="Previous round" aria-label="Previous round"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14M19 5 8 12l11 7Z"/></svg></button>
+  <button id="play" type="button" title="Play or pause (Space)" aria-label="Play"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 4 14 8-14 8Z"/></svg><svg class="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3v14H7ZM15 5h3v14h-3Z"/></svg></button>
+  <button id="next-round" type="button" title="Next round" aria-label="Next round"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14M5 5l11 7-11 7Z"/></svg></button>
+  <span id="clock">0:00.0</span>
+  <div class="control-spacer"></div>
   <select id="round" title="Round" aria-label="Round" hidden></select>
   <select id="speed" title="Speed (+ and −)" aria-label="Speed">
     <option value="0.25">0.25×</option>
@@ -41,11 +46,18 @@
     <option value="4">4×</option>
     <option value="8">8×</option>
   </select>
-  <label title="Life bars (L)"><input type="checkbox" id="opt-life" checked> Life</label>
-  <label title="Damage numbers (D)"><input type="checkbox" id="opt-damage"> Damage</label>
-  <label title="What each unit aims at (A)"><input type="checkbox" id="opt-aim"> Aim</label>
-  <button id="fit" type="button" title="Fit the field (F)" aria-label="Fit the field">⤢</button>
+  <details id="display-settings">
+    <summary title="Display settings" aria-label="Display settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 3-.6 2.2-2 .9L5.3 5.5 3 9.5l1.6 1.6v1.8L3 14.5l2.3 4 2.1-.6 2 .9L10 21h4l.6-2.2 2-.9 2.1.6 2.3-4-1.6-1.6v-1.8L21 9.5l-2.3-4-2.1.6-2-.9L14 3Z"/><circle cx="12" cy="12" r="3"/></svg></summary>
+    <div class="settings-panel">
+      <strong>Display</strong>
+      <label><input type="checkbox" id="opt-life" checked> Life bars <kbd>L</kbd></label>
+      <label><input type="checkbox" id="opt-damage"> Damage numbers <kbd>D</kbd></label>
+      <label><input type="checkbox" id="opt-aim"> Aim lines <kbd>A</kbd></label>
+    </div>
+  </details>
+  <button id="fit" type="button" title="Fit the field (F)" aria-label="Fit the field"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v5M15 4h5v5M4 15v5h5M20 15v5h-5"/></svg></button>
   <button id="export-svg" type="button" title="Pause and export this tick as SVG" aria-label="Export tick as SVG"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5.5 3.5 6.5 2h3l1 1.5H14v10H2v-10Z"/><circle cx="8" cy="8.5" r="2.5"/></svg></button>
+  </div>
 </footer>
 <script id="timeline" type="application/json">{{timeline}}</script>
 <script>/*{{sprites}}*/</script>

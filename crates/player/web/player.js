@@ -1750,6 +1750,10 @@
   }
   function resetHud() {
     seek.max = String(END);
+    document.getElementById('previous-round').disabled = roundIndex === 0;
+    document.getElementById('next-round').disabled = roundIndex === rounds.length-1;
+    document.getElementById('previous-round').hidden = rounds.length < 2;
+    document.getElementById('next-round').hidden = rounds.length < 2;
     document.getElementById('battle-round').textContent=`Round ${data.round}`;
     for (const [i,v] of coreViews.entries()) {
       const core=data.cores[i];
@@ -1767,7 +1771,10 @@
     const seconds = (tau - 1) / TPS;
     const m = Math.floor(seconds / 60);
     const sec = (seconds - m * 60).toFixed(1).padStart(4, '0');
-    clock.textContent = cursor>LAST?`Settlement +${((cursor-LAST)/TPS).toFixed(1)} s`:`${m}:${sec} · tick ${Math.floor(tau)}`;
+    const duration=(LAST-1)/TPS;
+    const total=`${Math.floor(duration/60)}:${(duration%60).toFixed(1).padStart(4,'0')}`;
+    clock.textContent = cursor>LAST?`Settlement +${((cursor-LAST)/TPS).toFixed(1)} s`:`${m}:${sec} / ${total}`;
+    clock.title=`Tick ${Math.floor(tau)} / ${LAST}`;
     document.getElementById('battle-time').textContent=`${m}:${sec}`;
     const ending=ScoreSettlement.sample(settlement,(cursor-LAST)/TPS);
     for (const [i,v] of coreViews.entries()) {
@@ -1788,7 +1795,9 @@
       }
     }
     seek.value = String(cursor);
-    playButton.textContent = playing ? '❚❚' : '▶';
+    document.getElementById('seek-progress').style.width=`${100*(cursor-1)/Math.max(1,END-1)}%`;
+    playButton.classList.toggle('playing',playing);
+    playButton.setAttribute('aria-label',playing?'Pause':'Play');
   }
 
   // the timeline's marks: who died when
@@ -1801,8 +1810,6 @@
     c.scale(dpr, dpr);
     const w = marks.clientWidth;
     const h = marks.clientHeight;
-    c.fillStyle = 'rgba(255,255,255,0.06)';
-    c.fillRect(0, h / 2 - 2, w, 4);
     if(END>LAST){
       const x=(LAST-1)/(END-1)*w;
       c.fillStyle='rgba(255,211,129,.2)';c.fillRect(x,0,w-x,h);
@@ -1812,7 +1819,7 @@
       const team = d.unit ? d.unit.team : d.building ? d.building.team : 0;
       const x = ((d.t - 1) / Math.max(1, END - 1)) * w;
       c.fillStyle = `rgba(${TEAMS[team].rgb},${d.k === 'fall' ? 1 : 0.55})`;
-      const tall = d.k === 'fall' ? 12 : 6;
+      const tall = Math.max(0, h / 2 - 2);
       if (team === 0) c.fillRect(x, h / 2 + 2, d.k === 'fall' ? 2 : 1, tall);
       else c.fillRect(x, h / 2 - 2 - tall, d.k === 'fall' ? 2 : 1, tall);
     }
@@ -1950,6 +1957,16 @@
     fit(); drawMarks(); frame(); updateHud();
   }
   roundSelect.addEventListener('change', () => selectRound(Number(roundSelect.value)));
+  document.getElementById('previous-round').addEventListener('click',()=>{
+    if(roundIndex>0)selectRound(roundIndex-1);
+  });
+  document.getElementById('next-round').addEventListener('click',()=>{
+    if(roundIndex+1<rounds.length)selectRound(roundIndex+1);
+  });
+  const settings=document.getElementById('display-settings');
+  window.addEventListener('pointerdown',e=>{
+    if(!settings.contains(e.target))settings.open=false;
+  });
 
   playButton.addEventListener('click', () => {
     if (!playing && cursor >= END) setTau(1);
@@ -1964,6 +1981,7 @@
     box.addEventListener('change', () => { options[key] = box.checked; });
   }
   window.addEventListener('keydown', (e) => {
+    if(e.key==='Escape' && settings.open){settings.open=false;settings.querySelector('summary').focus();return;}
     if (e.target instanceof HTMLInputElement && e.target.type !== 'checkbox' && e.target.type !== 'range') return;
     if (e.target instanceof HTMLSelectElement) return;
     const step = e.shiftKey ? TPS : 1;
