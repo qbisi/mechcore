@@ -10,23 +10,37 @@ const SkillPreview = (() => {
     const distance = Math.hypot(x1 - x0, y1 - y0);
     // CalculateAttackPositions places equally spaced circles, including both
     // control points. The band spans their extent, rather than tracing cells.
-    const points = Array.from({ length: d.count }, (_, i) => {
-      const t = d.count > 1 ? i / (d.count - 1) : 0;
+    const pointCount = d.geometry === 'circle' ? 1 : d.count;
+    const points = Array.from({ length: pointCount }, (_, i) => {
+      const t = pointCount > 1 ? i / (pointCount - 1) : 0;
       return { x: x0 + (x1 - x0) * t, y: y0 + (y1 - y0) * t };
     });
     const x = (x0 + x1) / 2, y = (y0 + y1) / 2;
-    return { ...d, x, y, r, points,
+    const forecast = d.forecast ? {
+      radius: d.forecast.radius / 100,
+      points: d.forecast.points.map((p,index) => ({tick:p.tick,x:p.x/100,y:-p.z/100,index})),
+    } : null;
+    return { ...d, x, y, r, points, forecast,
       angle: Math.atan2(y1 - y0, x1 - x0), length: distance + r * 2,
       start: d.start_ms / 1000, interval: d.interval_ms / 1000 };
   }
 
   function state(d, tick, tps) {
     const elapsed = (tick - 1) / tps;
+    const scattered = d.kind === 'orbital_bombardment' || d.kind === 'lightning_storm';
+    // Random-damage views hide their main frame at the first sub-effect.
+    // Use the reconstructed first arrival when available, with a short fade.
+    // Preview-only pages retain the nominal start as their fallback.
+    const first = scattered && d.forecast?.points[0];
+    const start = first ? (first.tick-1)/tps : d.start;
+    const fade = 0.25;
+    const end = start + (scattered ? fade : d.interval * d.count);
     // Native DoUpdate includes an unrecorded randomRangeRecord allowance.
     // Use its zero-jitter presentation here, so seeking and SVG agree.
-    if (elapsed < 0 || elapsed > d.start + d.interval * d.count) return null;
-    return { elapsed, countdown: elapsed < d.start,
-      progress: d.start > 0 ? Math.min(1, elapsed / d.start) : 1 };
+    if (elapsed < 0 || (scattered ? elapsed >= end : elapsed > end)) return null;
+    return { elapsed, countdown: elapsed < start,
+      opacity: scattered ? Math.min(1, (end - elapsed) / fade) : 1,
+      progress: start > 0 ? Math.min(1, elapsed / start) : 1 };
   }
 
   function disc(c, x, y, r) {
@@ -103,6 +117,7 @@ const SkillPreview = (() => {
     const rgb = team.rgb;
     const striking = d.kind === 'ion_blast' && !stage.countdown;
     c.save(); c.lineJoin = 'round'; c.lineCap = 'round';
+    c.globalAlpha *= stage.opacity;
     if (striking) c.globalAlpha *= 0.38;
     c.translate(d.x,d.y); c.rotate(d.angle);
     if (d.geometry === 'circle') {
@@ -138,6 +153,7 @@ const SkillPreview = (() => {
 
     // The two release controls remain visible inside their true end caps.
     c.save(); c.lineCap = 'round';
+    c.globalAlpha *= stage.opacity;
     if (striking) c.globalAlpha *= 0.38;
     for (const [i, p] of d.points.entries()) {
       const end = i === 0 || i === d.points.length-1;
@@ -188,6 +204,10 @@ const SkillPreview = (() => {
   }
 
   function drawStrike(c, d, tick, tps, team, pixelsPerMetre = 1) {
+    if (d.kind !== 'ion_blast') {
+      drawScatteredStrike(c,d,tick,tps,team,pixelsPerMetre);
+      return;
+    }
     const s = strike(d, tick, tps);
     if (!s || d.r <= 0) return;
     const pixel = 1 / Math.max(0.3,pixelsPerMetre), rgb = team.rgb;
@@ -215,5 +235,63 @@ const SkillPreview = (() => {
     c.restore();
   }
 
-  return { prepare, state, draw, strike, drawStrike };
+  // Seed-reconstructed planned ground arrivals. No interpolation between
+  // random points, and no forecast flash changes recorded damage or shields.
+  function scatteredStrike(d,tick,tps) {
+    if (!d.forecast || !['orbital_bombardment','lightning_storm'].includes(d.kind)) return null;
+    const lightning=d.kind==='lightning_storm', lifetime=lightning?0.6:0.85;
+    const flashes=d.forecast.points.map(p=>({...p,age:(tick-p.tick)/tps}))
+      .filter(p=>p.age>=0 && p.age<lifetime);
+    return flashes.length ? {radius:d.forecast.radius,flashes,lightning,lifetime} : null;
+  }
+
+  function drawScatteredStrike(c,d,tick,tps,team,pixelsPerMetre) {
+    const s=scatteredStrike(d,tick,tps);
+    if (!s) return;
+    const pixel=1/Math.max(0.3,pixelsPerMetre), r=s.radius, rgb=team.rgb;
+    c.save(); c.lineCap='round'; c.lineJoin='round';
+    for (const p of s.flashes) {
+      const fade=(1-p.age/s.lifetime)**2, pulse=Math.max(0,1-p.age/0.18);
+      c.save(); c.translate(p.x,p.y);
+      // The quiet circle marks each hit's radius; the expanding ring and
+      // central flash distinguish bombardment from the release footprint.
+      c.strokeStyle=`rgba(${rgb},${0.48*fade})`; c.lineWidth=1.2*pixel;
+      c.beginPath(); c.arc(0,0,r,0,Math.PI*2); c.stroke();
+      const glow=c.createRadialGradient(0,0,0,0,0,r*0.5);
+      glow.addColorStop(0,`rgba(${s.lightning?'225,248,255':'255,240,199'},${0.85*fade})`);
+      glow.addColorStop(0.25,`rgba(${s.lightning?'100,196,255':'255,168,62'},${0.52*fade})`);
+      glow.addColorStop(1,`rgba(${s.lightning?'61,141,255':'255,100,32'},0)`);
+      c.fillStyle=glow; disc(c,0,0,r*0.5);
+      if (s.lightning) {
+        if (pulse>0) {
+          const bolt=()=>{
+            c.beginPath(); c.moveTo(-r*0.12,-r*2.5);
+            for (let j=1;j<7;j++) {
+              const wobble=Math.sin(p.index*2.3+j*3.7)*r*0.16;
+              c.lineTo(wobble,-r*2.5*(1-j/7));
+            }
+            c.lineTo(0,0);
+          };
+          bolt(); c.strokeStyle=`rgba(83,162,255,${0.5*pulse})`; c.lineWidth=5*pixel; c.stroke();
+          bolt(); c.strokeStyle=`rgba(232,252,255,${pulse})`; c.lineWidth=1.4*pixel; c.stroke();
+        }
+        c.beginPath();
+        for (let i=0;i<5;i++) {
+          const a=p.index*0.73+i*Math.PI*0.4, x=Math.cos(a), y=Math.sin(a);
+          c.moveTo(0,0); c.lineTo(x*r*0.15-y*r*0.07,y*r*0.15+x*r*0.07);
+          c.lineTo(x*r*0.32,y*r*0.32);
+        }
+        c.strokeStyle=`rgba(156,218,255,${0.7*fade})`; c.lineWidth=pixel; c.stroke();
+      } else {
+        const wave=Math.min(1,p.age/0.4);
+        c.beginPath(); c.arc(0,0,r*(0.25+0.75*wave),0,Math.PI*2);
+        c.strokeStyle=`rgba(255,188,92,${0.9*fade})`; c.lineWidth=2*pixel; c.stroke();
+        c.fillStyle=`rgba(255,247,219,${pulse})`; disc(c,0,0,r*(0.05+0.11*pulse));
+      }
+      c.restore();
+    }
+    c.restore();
+  }
+
+  return { prepare, state, draw, strike, drawStrike, scatteredStrike };
 })();

@@ -33,12 +33,57 @@ pub struct Deployment {
     pub start_ms: i64,
     pub interval_ms: i64,
     pub count: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub forecast: Option<StrikeForecast>,
+}
+
+/// Planned ground arrivals reconstructed by the simulator, not MCFR events.
+#[derive(Debug, Serialize)]
+pub struct StrikeForecast {
+    pub radius: i64,
+    pub points: Vec<StrikePoint>,
+}
+
+/// One planned impact in world centimetres at its simulation tick.
+#[derive(Debug, Serialize)]
+pub struct StrikePoint {
+    pub tick: u64,
+    pub x: i64,
+    pub z: i64,
+}
+
+impl Deployment {
+    /// Attaches a simulator plan, converting Q32.32 metres to page centimetres.
+    pub fn set_strike_forecast(
+        &mut self,
+        radius: i64,
+        points: impl IntoIterator<Item = (u64, mechcore_mcfr::QVec3)>,
+    ) {
+        self.forecast = Some(StrikeForecast {
+            radius: centimetres(radius),
+            points: points
+                .into_iter()
+                .map(|(tick, point)| StrikePoint {
+                    tick,
+                    x: centimetres(point.x),
+                    z: centimetres(point.z),
+                })
+                .collect(),
+        });
+    }
 }
 
 #[derive(Deserialize)]
 struct Effects {
     terrain_skills: Vec<SkillPresentation>,
-    damage_skills: Vec<SkillPresentation>,
+    damage_skills: Vec<DamageSkillPresentation>,
+}
+
+#[derive(Deserialize)]
+struct DamageSkillPresentation {
+    effect_range: i64,
+    #[serde(flatten)]
+    skill: SkillPresentation,
 }
 
 #[derive(Deserialize)]
@@ -65,9 +110,12 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
             let geometry = match release.type_name.as_str() {
                 "incendiary_bomb" | "sticky_oil_bomb" | "acid_blast" | "smoke_bomb"
                 | "ion_blast" => DeploymentGeometry::Line,
-                "missile_strike" | "heavy_missile_strike" | "nuke" | "orbital_javelin" => {
-                    DeploymentGeometry::Circle
-                }
+                "missile_strike"
+                | "heavy_missile_strike"
+                | "nuke"
+                | "orbital_javelin"
+                | "orbital_bombardment"
+                | "lightning_storm" => DeploymentGeometry::Circle,
                 _ => continue,
             };
             let (from, to) = match (geometry, release.positions.as_slice()) {
@@ -75,11 +123,20 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
                 (DeploymentGeometry::Circle, [point]) => (point, point),
                 _ => continue,
             };
-            let Some(row) = effects
+            let Some((row, radius)) = effects
                 .terrain_skills
                 .iter()
-                .chain(effects.damage_skills.iter())
-                .find(|row| battle_skill_type_from_id(row.id) == Some(release.type_name.as_str()))
+                .map(|row| (row, row.sub_effect_range))
+                .chain(effects.damage_skills.iter().map(|row| {
+                    let radius = match geometry {
+                        DeploymentGeometry::Line => row.skill.sub_effect_range,
+                        DeploymentGeometry::Circle => row.effect_range,
+                    };
+                    (&row.skill, radius)
+                }))
+                .find(|(row, _)| {
+                    battle_skill_type_from_id(row.id) == Some(release.type_name.as_str())
+                })
             else {
                 continue;
             };
@@ -92,10 +149,11 @@ pub(crate) fn deployments(layout: Option<&Layout>) -> Result<Vec<Deployment>, se
                 z0: i64::from(from.y) * turn,
                 x1: i64::from(to.x) * turn,
                 z1: i64::from(to.y) * turn,
-                radius: centimetres(row.sub_effect_range),
+                radius: centimetres(radius),
                 start_ms: scaled(row.start_time, 1000),
                 interval_ms: scaled(row.sub_effect_interval_time, 1000),
                 count: row.sub_effect_count,
+                forecast: None,
             });
         }
     }
@@ -107,7 +165,7 @@ mod tests {
     use super::{DeploymentGeometry, deployments};
 
     #[test]
-    fn single_impacts_have_circle_ranges_and_do_not_admit_other_point_categories() {
+    fn single_impacts_have_circle_ranges_and_do_not_admit_buff_categories() {
         let layout = mechcore_document::parse_embedded_yaml(
             br"
 kind: layout
@@ -119,7 +177,7 @@ blue:
   - {name: heavy_missile_strike, positions: [{x: 60, y: 100}]}
   - {name: nuke, positions: [{x: 0, y: 80}]}
   - {name: orbital_javelin, positions: [{x: 30, y: 70}]}
-  - {name: orbital_bombardment, positions: [{x: 0, y: 0}]}
+  - {name: electromagnetic_blast, positions: [{x: 0, y: 0}]}
   - {name: photon_emission, positions: [{x: 0, y: 0}]}
 red:
   units: []
@@ -151,6 +209,44 @@ red:
                     && d.interval_ms == 0)
         );
         assert_eq!((releases[4].x0, releases[4].z0), (-9000, -4000));
+    }
+
+    #[test]
+    fn random_strikes_use_the_outer_footprint_and_preserve_their_release_side() {
+        let layout = mechcore_document::parse_embedded_yaml(
+            br"
+kind: layout
+round: 1
+blue:
+  units: []
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: -25, y: 40}]}
+red:
+  units: []
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: 90, y: 70}]}
+",
+        )
+        .unwrap();
+        let releases = deployments(Some(&layout)).unwrap();
+        assert_eq!(releases.len(), 2);
+        for release in &releases {
+            assert_eq!(release.geometry, DeploymentGeometry::Circle);
+            // The preview covers the entire random strike, not one 30 m hit.
+            assert_eq!(release.radius, 13000);
+            assert_eq!(release.start_ms, 3000);
+            assert_eq!((release.x0, release.z0), (release.x1, release.z1));
+        }
+        assert_eq!((releases[0].count, releases[0].interval_ms), (15, 1000));
+        assert_eq!((releases[1].count, releases[1].interval_ms), (30, 400));
+        assert_eq!(
+            (releases[0].team, releases[0].x0, releases[0].z0),
+            (0, -2500, 4000)
+        );
+        assert_eq!(
+            (releases[1].team, releases[1].x0, releases[1].z0),
+            (1, -9000, -7000)
+        );
     }
 
     #[test]

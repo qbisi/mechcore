@@ -37,6 +37,8 @@ SOURCES = {
     "acid_blast": 500002,
     "smoke_bomb": 600002,
     "ion_blast": 300006,
+    "orbital_bombardment": 300003,
+    "lightning_storm": 300005,
 }
 
 

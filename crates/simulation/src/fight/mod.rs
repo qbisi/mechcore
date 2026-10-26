@@ -99,6 +99,7 @@ mod wreckage;
 
 #[cfg(test)]
 use attacker::Facing;
+pub(crate) use commander_skill::forecasts as commander_forecasts;
 use construction::*;
 use damage::*;
 use deploy::*;

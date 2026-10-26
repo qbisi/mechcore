@@ -9,7 +9,8 @@
 //! any speed and seeks to any moment.
 //!
 //! Nothing here decides anything about the fight: the page shows what the
-//! recording holds, and a unit type the page has no sprite for is still drawn,
+//! recording holds, with optional simulator-reconstructed commander forecasts
+//! supplied by the caller. A unit type the page has no sprite for is still drawn,
 //! as a marked disc under its name.
 
 mod deployment;
@@ -17,7 +18,7 @@ mod page;
 mod timeline;
 mod track;
 
-pub use deployment::{Deployment, DeploymentGeometry};
+pub use deployment::{Deployment, DeploymentGeometry, StrikeForecast, StrikePoint};
 pub use page::{match_page, page};
 pub use timeline::{
     Building, Cue, DeploymentRegion, Error, Field, Pose, Projectile, Ref, SCHEMA, Shield, Terrain,
