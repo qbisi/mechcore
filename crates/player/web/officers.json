@@ -1,0 +1,522 @@
+{
+  "20005": {
+    "id": 20005,
+    "name": "Giant Specialist",
+    "effect": "Decreases unlock cost of Giant and Titan units by 200"
+  },
+  "20021": {
+    "id": 20021,
+    "name": "Aerial Specialist",
+    "effect": "Decreases unlock cost of Aerial units by 200, Increases their ATK by 13% and HP by 13%"
+  },
+  "20024": {
+    "id": 20024,
+    "name": "Speed Specialist",
+    "effect": "Increases the movement speed of all units by 3"
+  },
+  "20029": {
+    "id": 20029,
+    "name": "Marksman Specialist",
+    "effect": "Get 1 Rank 3 Marksman squad(s) for free on round 2"
+  },
+  "20032": {
+    "id": 20032,
+    "name": "Elite Specialist",
+    "effect": "Obtain extra 100 supplies in the first round, able to immediately recruit Rank 2 units"
+  },
+  "20033": {
+    "id": 20033,
+    "name": "Rhino Specialist",
+    "effect": "Get 1 Rank 2 Rhino for free on round 4"
+  },
+  "20034": {
+    "id": 20034,
+    "name": "Cost Control Specialist",
+    "effect": "Grants 100 additional supplies per round but decreases the ATK of all units by 11% and HP by 11%"
+  },
+  "20035": {
+    "id": 20035,
+    "name": "Fortified Specialist",
+    "effect": "Increases the HP of all units by 17%"
+  },
+  "20036": {
+    "id": 20036,
+    "name": "Sabertooth Specialist",
+    "effect": "Decreases Sabertooth’s Tech Upgrade cost by 50. Get 1 Rank 1 Sabertooth on Round 3."
+  },
+  "20038": {
+    "id": 20038,
+    "name": "Fire Badger Specialist",
+    "effect": "Decreases Fire Badger’s Tech Upgrade cost by 50. Get 1 squad of Rank 1 Fire Badger on Round 3."
+  },
+  "20039": {
+    "id": 20039,
+    "name": "Typhoon Specialist",
+    "effect": "Get 1 squad(s) of Rank 1 Typhoon for free on round 4"
+  },
+  "10002": {
+    "id": 10002,
+    "name": "Supply Specialist",
+    "effect": "Obtain 50 additional supplies per round"
+  },
+  "10010": {
+    "id": 10010,
+    "name": "Quick Supply Specialist",
+    "effect": "Obtain 200 supplies in the first round"
+  },
+  "10011": {
+    "id": 10011,
+    "name": "Missile Specialist",
+    "effect": "Gain 1 Heavy Missile Strike for free on turn 3"
+  },
+  "10014": {
+    "id": 10014,
+    "name": "Training Specialist",
+    "effect": "Obtain extra 50 supplies in the first round, and get 1 Intensive Training for free."
+  },
+  "10015": {
+    "id": 10015,
+    "name": "Secondary Equipment Expert",
+    "effect": "At the start of each turn, randomly gain a piece of lesser equipment."
+  },
+  "20001": {
+    "id": 20001,
+    "name": "Advanced Defensive Tactics",
+    "effect": "Increases the HP of all units by 30%"
+  },
+  "20002": {
+    "id": 20002,
+    "name": "Advanced Offensive Tactics",
+    "effect": "Increases the attack of all units by 30%"
+  },
+  "20003": {
+    "id": 20003,
+    "name": "Efficient Tech Research",
+    "effect": "Decreases the Tech upgrade cost of all units by 50"
+  },
+  "20006": {
+    "id": 20006,
+    "name": "Advanced Targeting System",
+    "effect": "Increases the range of all ranged units by 10"
+  },
+  "20022": {
+    "id": 20022,
+    "name": "Efficient Giant Manufacturing",
+    "effect": "Decreases the recruitment cost of giant units by 50"
+  },
+  "20023": {
+    "id": 20023,
+    "name": "Efficient Light Manufacturing",
+    "effect": "Decreases the recruitment cost of non-giant units by 50"
+  },
+  "20004": {
+    "id": 20004,
+    "name": "Advanced Power System",
+    "effect": "Increases the movement speed of all units by 3"
+  },
+  "20007": {
+    "id": 20007,
+    "name": "Supply Enhancement",
+    "effect": "Obtain 50 additional supplies per round"
+  },
+  "10003": {
+    "id": 10003,
+    "name": "Super Supply Enhancement",
+    "effect": "Starting from the next round, obtain 150 additional supplies per round"
+  },
+  "10004": {
+    "id": 10004,
+    "name": "Additional Deployment Slot",
+    "effect": "The number of units that can be deployed increases by 1 each round."
+  },
+  "10007": {
+    "id": 10007,
+    "name": "Advanced Shield Device",
+    "effect": "Increases the Shield of Energy Shield devices by 40%"
+  },
+  "10008": {
+    "id": 10008,
+    "name": "Advanced Missile Device",
+    "effect": "Increases the damage of Sentry Missile devices by 200%"
+  },
+  "10009": {
+    "id": 10009,
+    "name": "Quick Teleport",
+    "effect": "Decreases the teleportation time required for strike units deployed at the enemy's rear by 50%"
+  },
+  "10524": {
+    "id": 10524,
+    "name": "Mass-produced laser sight",
+    "effect": "Gain 3 Secondary Laser Sight(s) (Units equipped with this item gain 8 meters of range)"
+  },
+  "10525": {
+    "id": 10525,
+    "name": "Mass Production Fire Control System",
+    "effect": "Obtain 3 Secondary Fire Control Systems（Units equipped with this item gain 25% ATK）"
+  },
+  "10526": {
+    "id": 10526,
+    "name": "Mass Production Heavy Armor",
+    "effect": "Gain 3 Lesser Heavy Armor (Increases the HP of the unit equipped with this item by 30%)"
+  },
+  "10540": {
+    "id": 10540,
+    "name": "Equipment Expansion",
+    "effect": "The number of equipment a unit can wear is increased to 2"
+  },
+  "30101": {
+    "id": 30101,
+    "name": "Mass-Produced Fortress",
+    "effect": "Decreases the recruitment cost of Fortress by 100 but decreases Fortress' ATK by 35% and HP by 35%"
+  },
+  "30102": {
+    "id": 30102,
+    "name": "Assault Fortress",
+    "effect": "Increases Fortress' ATK by 20%, HP by 20%, and movement speed by 3, but decreases range by 10"
+  },
+  "30104": {
+    "id": 30104,
+    "name": "Improved Fortress",
+    "effect": "Increases Fortress' HP by 50%, movement speed by 3, ATK by 30% but increases recruitment cost by 100"
+  },
+  "30105": {
+    "id": 30105,
+    "name": "Extended Range Fortress",
+    "effect": "Increases Fortress' range by 20 but decreases HP by 30%"
+  },
+  "30201": {
+    "id": 30201,
+    "name": "Extended Range Marksman",
+    "effect": "Increases Marksman's range by 30 but decreases HP by 20% and ATK by 20%"
+  },
+  "30202": {
+    "id": 30202,
+    "name": "Smart Marksman",
+    "effect": "Increases Marksman's EXP Growth Rate by 75%"
+  },
+  "30203": {
+    "id": 30203,
+    "name": "Subsidized Marksman",
+    "effect": "Decreases the recruitment cost of Marksman by 50"
+  },
+  "30204": {
+    "id": 30204,
+    "name": "Elite Marksman",
+    "effect": "Able to immediately recruit Rank 2 Marksman"
+  },
+  "30301": {
+    "id": 30301,
+    "name": "Extended Range Vulcan",
+    "effect": "Increases Vulcan's range by 20 but decreases HP by 35%"
+  },
+  "30302": {
+    "id": 30302,
+    "name": "Assault Vulcan",
+    "effect": "Increases Vulcan's HP by 40% and movement speed by 3 but decreases range by 10"
+  },
+  "30401": {
+    "id": 30401,
+    "name": "Assault Melting Point",
+    "effect": "Increases Melting Point's HP by 70% and movement speed by 5 but decreases range by 15"
+  },
+  "30402": {
+    "id": 30402,
+    "name": "Improved Melting Point",
+    "effect": "Increases Melting Point's HP by 20%, and range by 10 but increases recruitment cost by 100"
+  },
+  "30403": {
+    "id": 30403,
+    "name": "Mass-Produced Melting Point",
+    "effect": "Decreases the recruitment cost of Melting Point by 100, but decreases Melting Point's range by 10, ATK by 20%, and HP by 20%."
+  },
+  "30501": {
+    "id": 30501,
+    "name": "Mass-Produced Rhino",
+    "effect": "Decreases the recruitment cost of Rhino by 100 but decreases Rhino's ATK by 20% and HP by 20%"
+  },
+  "30502": {
+    "id": 30502,
+    "name": "Berserk Rhino",
+    "effect": "Every unit Rhino kills increases its ATK by 10% for the current round"
+  },
+  "30503": {
+    "id": 30503,
+    "name": "Elite Rhino",
+    "effect": "Able to immediately recruit Rank 2 Rhino"
+  },
+  "30601": {
+    "id": 30601,
+    "name": "Mass-Produced Wasp",
+    "effect": "Decreases the recruitment cost of Wasp by 100 but decreases Wasp's ATK by 35% and HP by 35%"
+  },
+  "30602": {
+    "id": 30602,
+    "name": "Improved Wasp",
+    "effect": "Increases Wasp's ATK by 60%, HP by 60%, and range by 10 but increases recruitment cost by 100"
+  },
+  "30604": {
+    "id": 30604,
+    "name": "Elite Wasp",
+    "effect": "Able to immediately recruit Rank 2 Wasp"
+  },
+  "30701": {
+    "id": 30701,
+    "name": "Subsidized Mustang",
+    "effect": "Decreases the recruitment cost of Mustang by 50"
+  },
+  "30702": {
+    "id": 30702,
+    "name": "Fortified Mustang",
+    "effect": "Increases Mustang's HP by 200% but decreases range by 20"
+  },
+  "30703": {
+    "id": 30703,
+    "name": "Elite Mustang",
+    "effect": "Able to immediately recruit Rank 2 Mustang"
+  },
+  "30801": {
+    "id": 30801,
+    "name": "Subsidized Steel Ball",
+    "effect": "Decreases the recruitment cost of Steel Ball by 50"
+  },
+  "30803": {
+    "id": 30803,
+    "name": "Improved Steel Ball",
+    "effect": "Increases Steel Ball's ATK by 50%, HP by 30%, movement speed by 3, and the range by 10, but increases recruitment cost by 50"
+  },
+  "30804": {
+    "id": 30804,
+    "name": "Elite Steel Ball",
+    "effect": "Able to immediately recruit Rank 2 Steel Ball"
+  },
+  "30901": {
+    "id": 30901,
+    "name": "Elite Fang",
+    "effect": "Able to immediately recruit Rank 2 Fang"
+  },
+  "30902": {
+    "id": 30902,
+    "name": "Assault Fang",
+    "effect": "Increases Fang's ATK by 50% and movement speed by 3 but decreases range by 15"
+  },
+  "31001": {
+    "id": 31001,
+    "name": "Subsidized Crawler",
+    "effect": "Decreases the upgrade cost of Crawler by 50"
+  },
+  "31002": {
+    "id": 31002,
+    "name": "Elite Crawler",
+    "effect": "Able to immediately recruit Rank 5 Crawler"
+  },
+  "31101": {
+    "id": 31101,
+    "name": "Fortified Overlord",
+    "effect": "Increases Overlord's HP by 75% but decreases ATK by 25%"
+  },
+  "31102": {
+    "id": 31102,
+    "name": "Mass-Produced Overlord",
+    "effect": "Decreases the recruitment cost of Overlord by 100 but decreases Overlord's range by 10, ATK by 15%, and HP by 15%"
+  },
+  "31104": {
+    "id": 31104,
+    "name": "Improved Overlord",
+    "effect": "Increases Overlord's ATK by 20%, HP by 20%, and splash range by 5 but increases recruitment cost by 100"
+  },
+  "31201": {
+    "id": 31201,
+    "name": "Assault Stormcaller",
+    "effect": "Increases Stormcaller's HP by 300% and movement speed by 5 but decreases range by 30"
+  },
+  "31202": {
+    "id": 31202,
+    "name": "Extended Range Stormcaller",
+    "effect": "Increases Stormcaller's range by 35 but decreases ATK by 30%"
+  },
+  "31203": {
+    "id": 31203,
+    "name": "Subsidized Stormcaller",
+    "effect": "Decreases the recruitment cost of Stormcaller by 50"
+  },
+  "31205": {
+    "id": 31205,
+    "name": "Elite Stormcaller",
+    "effect": "Able to immediately recruit Rank 2 Stormcaller"
+  },
+  "31301": {
+    "id": 31301,
+    "name": "Mass-Produced Sledgehammer",
+    "effect": "Decreases the recruitment cost of Sledgehammer by 100 but decreases Sledgehammer's ATK by 30% and HP by 30%"
+  },
+  "31302": {
+    "id": 31302,
+    "name": "Extended Range Sledgehammer",
+    "effect": "Increases Sledgehammer's range by 30 but decreases HP by 20% and ATK by 20%"
+  },
+  "31304": {
+    "id": 31304,
+    "name": "Improved Sledgehammer",
+    "effect": "Increases Sledgehammer's ATK by 100% and movement speed by 3 but increases recruitment cost by 50"
+  },
+  "31305": {
+    "id": 31305,
+    "name": "Elite Sledgehammer",
+    "effect": "Able to immediately recruit Rank 2 Sledgehammer"
+  },
+  "31402": {
+    "id": 31402,
+    "name": "Fortified Hacker",
+    "effect": "Increases Hacker's HP by 500%, movement speed by 5, and ATK by 20%, but decreases range by 35"
+  },
+  "31403": {
+    "id": 31403,
+    "name": "Elite Hacker",
+    "effect": "Able to immediately recruit Rank 2 Hacker"
+  },
+  "31501": {
+    "id": 31501,
+    "name": "Subsidized Arclight",
+    "effect": "Decreases the recruitment cost of Arclight by 50"
+  },
+  "31502": {
+    "id": 31502,
+    "name": "Smart Arclight",
+    "effect": "Increases Arclight's EXP Rate by 75%"
+  },
+  "31503": {
+    "id": 31503,
+    "name": "Fortified Arclight",
+    "effect": "Increases Arclight's HP by 180% but decreases range by 15"
+  },
+  "31504": {
+    "id": 31504,
+    "name": "Extended Range Arclight",
+    "effect": "Increases Arclight's range by 20 but decreases ATK by 20%"
+  },
+  "31505": {
+    "id": 31505,
+    "name": "Elite Arclight",
+    "effect": "Able to immediately recruit Rank 2 Arclight"
+  },
+  "31601": {
+    "id": 31601,
+    "name": "Mass-Produced Phoenix",
+    "effect": "Decreases the recruitment cost of Phoenix by 100, but decreases Phoenix's ATK by 30% and HP by 30%"
+  },
+  "31602": {
+    "id": 31602,
+    "name": "Extended Range Phoenix",
+    "effect": "Increases Phoenix's range by 20 but decreases ATK by 20%"
+  },
+  "31603": {
+    "id": 31603,
+    "name": "Improved Phoenix",
+    "effect": "Increases Phoenix's ATK by 20% and HP by 250% but increases recruitment cost by 100"
+  },
+  "31604": {
+    "id": 31604,
+    "name": "Elite Phoenix",
+    "effect": "Able to immediately recruit Rank 2 Phoenix"
+  },
+  "31701": {
+    "id": 31701,
+    "name": "Extended Range War Factory",
+    "effect": "Increases War Factory's range by 20, but decreases HP by 40% and ATK by 20%."
+  },
+  "31702": {
+    "id": 31702,
+    "name": "Improved War Factory",
+    "effect": "Increases War Factory's HP by 40%, ATK by 15%, range by 10, and decreases attack interval by 0.2, but increases recruitment cost by 200."
+  },
+  "31801": {
+    "id": 31801,
+    "name": "Mass-Produced Wraith",
+    "effect": "Decreases the recruitment cost of Wraith by 100, but decreases Wraith's ATK by 20% and HP by 20%"
+  },
+  "31802": {
+    "id": 31802,
+    "name": "Improved Wraith",
+    "effect": "Increases Wraith's ATK by 30% and range by 5 but increases recruitment cost by 50."
+  },
+  "31901": {
+    "id": 31901,
+    "name": "Assault Scorpion",
+    "effect": "Increases Scorpion's HP by 20%, movement speed by 3, and decreases attack interval by 1.5s, but decreases range by 30."
+  },
+  "31902": {
+    "id": 31902,
+    "name": "Mass-Produced Scorpion",
+    "effect": "Decreases the recruitment cost of Scorpion by 100, but decreases Scorpion's ATK by 20%, HP by 20% and range by 10"
+  },
+  "31903": {
+    "id": 31903,
+    "name": "Improved Scorpion",
+    "effect": "Increases Scorpion's ATK by 15%, HP by 15%, and range by 10 but increases recruitment cost by 50."
+  },
+  "32301": {
+    "id": 32301,
+    "name": "Improved Sandworm",
+    "effect": "Increases Sandworm's movement speed by 3, ATK by 40% and splash range by 5, but increases recruitment cost by 100"
+  },
+  "32302": {
+    "id": 32302,
+    "name": "Mass-Produced Sandworm",
+    "effect": "Decreases the recruitment cost of Sandworm by 100, but decreases Sandworm's ATK by 30% and HP by 30%"
+  },
+  "32401": {
+    "id": 32401,
+    "name": "Improved Tarantula",
+    "effect": "Increases Tarantula's movement speed by 3 and splash range by 4, but increases recruitment cost by 50"
+  },
+  "32402": {
+    "id": 32402,
+    "name": "Elite Tarantula",
+    "effect": "Able to immediately recruit Rank 2 Tarantula"
+  },
+  "32501": {
+    "id": 32501,
+    "name": "Extended Range Phantom Ray",
+    "effect": "Increases Phantom Ray's range by 30 but decreases HP by 40%"
+  },
+  "32101": {
+    "id": 32101,
+    "name": "Extended Range Sabertooth",
+    "effect": "Increases Sabertooth's range by 30 but decreases HP by 40% and ATK by 20%"
+  },
+  "32102": {
+    "id": 32102,
+    "name": "Mass-Produced Sabertooth",
+    "effect": "Decreases the recruitment cost of Sabertooth by 100, but decreases Sabertooth's ATK by 40% and HP by 40%."
+  },
+  "32103": {
+    "id": 32103,
+    "name": "Improved Sabertooth",
+    "effect": "Increases Sabertooth's HP by 20%,  and decreases attack interval by 0.9s, but increases recruitment cost by 50."
+  },
+  "32701": {
+    "id": 32701,
+    "name": "Assault Raiden",
+    "effect": "Increases Raiden's HP by 80% and movement speed by 3 but decreases range by 20"
+  },
+  "32801": {
+    "id": 32801,
+    "name": "Strike Hound",
+    "effect": "Increases Hound's ATK 270%, but increases ATK interval by 2.6s"
+  },
+  "32601": {
+    "id": 32601,
+    "name": "Mass-Produced Farseer",
+    "effect": "Decreases the recruitment cost of Farseer by 100, but decreases Farseer's ATK by 40% and range by 20"
+  },
+  "32602": {
+    "id": 32602,
+    "name": "Fortified Farseer",
+    "effect": "Increases Farseer's HP by 80% but decreases ATK by 30%"
+  },
+  "33001": {
+    "id": 33001,
+    "name": "Improved Void Eye",
+    "effect": "Increases Void Eye's ATK by 40%, HP by 40%, and range by 5 but increases recruitment cost by 50."
+  }
+}
