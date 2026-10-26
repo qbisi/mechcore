@@ -34,6 +34,7 @@ html, body {
 #hud { pointer-events: none; }
 
 #scoreboard {
+  z-index: 4;
   --hud-scale: 1;
   position: fixed;
   top: 12px;
@@ -127,6 +128,7 @@ html, body {
 }
 
 #controls {
+  z-index: 5;
   position: fixed;
   inset: auto 0 0;
   padding: 24px 20px 8px;
@@ -208,6 +210,30 @@ html, body {
 }
 #tooltip b { font-size: 13px; }
 #tooltip .dim { color: var(--muted); }
+
+.unit-roster { --hud-scale:1; position:fixed; z-index:2; left:12px; top:calc(12px + 96px * var(--hud-scale)); bottom:84px; width:calc(var(--roster-width,132px) * var(--hud-scale)); pointer-events:none; }
+.unit-roster.red { left:auto; right:12px; }
+.roster-scroll { position:absolute; left:0; width:132px; height:calc(100% / var(--hud-scale)); padding:10px 8px 12px 0; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:#71829b66 transparent; transform:scale(var(--hud-scale)); transform-origin:top left; pointer-events:auto; mask-image:linear-gradient(transparent,#000 10px,#000 calc(100% - 12px),transparent); }
+.red .roster-scroll { left:auto; right:0; padding:10px 0 12px 8px; transform-origin:top right; direction:rtl; }
+.roster-scroll:focus-visible { outline:1px solid #73849b; outline-offset:-2px; }
+.unit-drawer { position:relative; width:122px; margin-bottom:6px; direction:ltr; }
+.red .unit-drawer { margin-left:auto; }
+.drawer-shape { position:absolute; inset:0; width:100%; height:100%; }
+.red .drawer-shape { transform:scaleX(-1); }
+.unit-portrait { position:absolute; left:6px; width:56px; height:56px; object-fit:cover; border:1px solid #94a8c64d; border-radius:3px; }
+.red .unit-portrait { left:auto; right:6px; }
+.formation-count { position:absolute; z-index:1; top:0; left:0; min-width:20px; height:20px; padding:0 3px; display:flex; align-items:center; justify-content:center; border:1px solid #94bce3; background:#1b3552; color:#edf6ff; font:400 11px "Mechcore HUD",system-ui,sans-serif; box-shadow:1px 1px 4px #0006; }
+.red .formation-count { left:auto; right:0; border-color:#dfa0ad; background:#542c39; }
+.drawer-badge { position:absolute; display:flex; align-items:center; justify-content:center; width:22px; height:22px; transform:translate(-50%,-50%); background:#152234; border:1px solid #7288a4; border-radius:4px; color:#e1eaf7; }
+.red .drawer-badge { transform:translate(50%,-50%); background:#2a1c29; border-color:#927785; }
+.unit-tech { width:22px; height:22px; padding:2px; background:#152234e8; }
+.unit-tech.inactive { opacity:.35; filter:grayscale(1); }
+.unit-tech.active { border-color:#9dcaf0; background:#284d6b; box-shadow:0 0 6px #72bfff50; }
+.red .unit-tech.active { border-color:#efacb4; background:#653a48; box-shadow:0 0 6px #ff809750; }
+.unit-tech img { width:100%; height:100%; object-fit:contain; }
+.unit-tech:hover,.unit-tech:focus-visible { border-color:#d1e5ff; outline:none; box-shadow:0 0 7px #83bbf955; }
+#roster-tooltip { position:fixed; z-index:6; width:260px; max-width:calc(100vw - 16px); padding:12px 14px; border:1px solid #687c98; border-radius:6px; background:rgba(13,21,32,.97); color:#e0e9f7; box-shadow:0 8px 24px #0006; pointer-events:none; font-size:13px; }
+#roster-tooltip p { margin:6px 0 0; color:#aebdd0; line-height:1.5; white-space:pre-line; }
 
 @media (max-width: 720px) {
   #controls { padding: 20px 10px 6px; }

@@ -1352,6 +1352,14 @@ fn playing_a_match_keeps_each_completed_round() {
     let pending = run(&["play", &path, &page, "--no-open"]).refused();
     assert!(pending.contains("no completed deployment"), "{pending}");
     fs::write(&path, pending_yaml).unwrap();
+    let view = run(&["match", "show", &path, "--side", "blue"]).ok();
+    let unlocked = state(&view)["blue"]["unlocked_units"].as_array().unwrap();
+    let zero_unit = ["crawler", "fang", "marksman"]
+        .into_iter()
+        .find(|name| !unlocked.iter().any(|u| u.as_str() == Some(name)))
+        .unwrap();
+    let unlock = format!("{{type: unlock_unit, name: {zero_unit}}}");
+    run(&["match", "act", &path, "--side", "blue", &unlock]).ok();
     for _ in 0..2 {
         for side in ["blue", "red"] {
             let view = run(&["match", "show", &path, "--side", side]).ok();
@@ -1378,6 +1386,12 @@ fn playing_a_match_keeps_each_completed_round() {
         serde_json::from_str::<Vec<Value>>(&html[start..end]).unwrap()
     };
     let rounds = read();
+    let roster = rounds[0]["rosters"][0].as_array().unwrap();
+    let unlocked = roster.iter().find(|row| row["kind"] == zero_unit).unwrap();
+    assert_eq!(unlocked["count"], 0);
+    let techs = unlocked["techs"].as_array().unwrap();
+    assert!(!techs.is_empty());
+    assert!(techs.iter().all(|tech| tech["active"] == false));
     let stated = mechcore_document::opening::stated(deployed.as_bytes())
         .unwrap()
         .unwrap();

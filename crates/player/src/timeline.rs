@@ -65,6 +65,7 @@ pub struct Timeline {
     pub ticks: u32,
     pub ticks_per_second: u32,
     pub cores: [Core; 2],
+    pub rosters: [Vec<crate::RosterEntry>; 2],
     /// Survivors' score contributions, checked against recorded settlement.
     pub score_sources: Vec<ScoreSource>,
     pub field: Field,
@@ -474,6 +475,10 @@ pub fn timeline(
         ticks,
         layout.as_ref().map_or(0, |layout| layout.round),
     );
+    if let Some(layout) = &layout {
+        timeline.rosters =
+            [&layout.blue, &layout.red].map(|side| crate::unit_roster(side, &[], None));
+    }
     let officers: BTreeMap<i32, Officer> =
         serde_json::from_str(include_str!("../web/officers.json"))
             .map_err(|error| Error(format!("cannot read officer descriptions: {error}")))?;
@@ -963,6 +968,7 @@ impl<'a> Builder<'a> {
                 officers: Vec::new(),
             }),
             score_sources: Vec::new(),
+            rosters: [Vec::new(), Vec::new()],
             field: Field {
                 half_width: self.reach.0 + MARGIN,
                 half_depth: self.reach.1 + MARGIN,

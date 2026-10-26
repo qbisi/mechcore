@@ -196,7 +196,7 @@ fn play_match(
         {
             continue;
         }
-        let layout = crate::convert::project_match(
+        let deployment = crate::convert::project_match(
             economy,
             &turn.state,
             &turn.actions,
@@ -205,9 +205,20 @@ fn play_match(
             stated.seed,
             reinforcement.declined(turn),
         )
-        .map_err(Failure::refused)?
-        .layout;
-        let yaml = mechcore_document::canonical_yaml(layout).map_err(Failure::failed)?;
+        .map_err(Failure::refused)?;
+        let rosters = [
+            mechcore_player::unit_roster(
+                &deployment.layout.blue,
+                &deployment.state.blue.unlocked_units,
+                Some(&stated.blue.tech_loadout),
+            ),
+            mechcore_player::unit_roster(
+                &deployment.layout.red,
+                &deployment.state.red.unlocked_units,
+                Some(&stated.red.tech_loadout),
+            ),
+        ];
+        let yaml = mechcore_document::canonical_yaml(deployment.layout).map_err(Failure::failed)?;
         let result = mechcore_simulation::simulate_document(yaml.as_bytes(), Record::Memory, None)
             .map_err(|error| Failure::unsimulated(&error))?;
         let recording = result
@@ -216,6 +227,7 @@ fn play_match(
         let mut timeline = player_timeline(&recording, None).map_err(|error| {
             Failure::failed(format!("cannot read round {}: {error}", turn.round))
         })?;
+        timeline.rosters = rosters;
         for (seat, (header, state)) in [
             (&stated.blue, &turn.state.blue),
             (&stated.red, &turn.state.red),
