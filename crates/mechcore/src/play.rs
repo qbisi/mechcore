@@ -238,6 +238,7 @@ fn play_match(
             let core = &mut timeline.cores[seat];
             core.name = header.name.clone().unwrap_or_else(|| core.name.clone());
             core.begin = Some(state.reactor_core);
+            core.supply = [&deployment.state.blue, &deployment.state.red][seat].supply;
             core.maximum = header.opening.as_ref().and_then(|opening| {
                 let base = mechcore_document::opening::reactor_core(stated.map_id, seat).ok()?;
                 let team = economy.advance_team(opening.taken.team)?;
