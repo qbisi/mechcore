@@ -115,7 +115,7 @@ Radius, delay, interval and effect count come from the build's existing
 `config/commander_skill_effects.yaml` table. Each preview stays separate from
 other releases, even where their resulting terrain merges. Standing oil has
 no new release preview. Native unrecorded presentation jitter is set to zero:
-the preview clears after its start delay plus interval times count, with the
+line previews clear after their start delay plus interval times count, with the
 same deterministic result when seeking and exporting SVG. Playback starts
 with the committed deployment; it does not invent cursor or placement history.
 
@@ -125,12 +125,39 @@ release previews at their recorded target positions. Their range radii are
 contour at the same progress as the central native symbol's countdown ring:
 3 seconds for the missiles and javelin, 15 seconds for Nuke. The preview clears at the
 configured release time under the same zero-jitter policy. This adds no new
-explosion or damage forecast. Random bombardments and the other point-skill
-categories are not drawn yet. Circles of at least 100 metres in radius add a
+explosion or damage forecast. Other point-skill categories beyond these and
+the random strikes below are not drawn yet. Circles of at least 100 metres in radius add a
 broken outer rail, graduated ticks and longer cardinal marks; the continuous
 range contour stays at the configured effect radius.
 
-`web/skill-icons.js` contains all nine native deployment symbols, traced
+Orbital Bombardment and Lightning Storm preview their full 130-metre circular
+footprint with `SW_Rockets_f` and `SW_Thunder_Storm_f`. The native range view
+uses `effectRange`, which already includes each 30-metre sub-effect: its
+random impact centres lie within 100 metres. Their configured delay is three seconds.
+The native random-damage view hides its main frame and symbol at its first
+sub-effect; the player fades them out over 0.25 seconds from the reconstructed
+first arrival, independently of the 15 or 30 repeated strikes.
+
+`mechcore play` reconstructs these skills' ground-arrival plans by initializing
+the simulator from the embedded layout and seed, without advancing the fight.
+It uses the existing placement code and side streams, seeded from
+`(round + team) * 4444` and consumed in release order before the units' first
+attack-interval draws. Repeated releases keep separate plans. The page carries
+the planned coordinates and arrival ticks; it does not draw another random
+sequence or interpolate between scattered points. A bombardment draws a warm
+flash and expanding blast ring, while a storm draws a brief lightning bolt
+and electrical traces. Each 30-metre circle appears only when its planned
+strike arrives, including strikes that hit nothing. Seeking and SVG export
+produce the same effects.
+
+These are simulator-reconstructed ground arrivals, not recorded commander
+events. A shield may intercept a falling effect before it reaches that point;
+the forecast does not reconstruct interception. Shield state, damage and buffs
+remain those of the recording. If the current simulator cannot initialize the
+embedded layout, `play` warns and retains the release preview alone, timed by
+its nominal configured delay. MCFR is unchanged.
+
+`web/skill-icons.js` contains all eleven native deployment symbols, traced
 from the front-facing high-resolution `iconName + "_f"` alpha silhouettes
 by `scripts/player/skill-icons.py`. The four single-impact skills use
 `SW_Rockets_Little_f`, `SW_Rockets_Heavy_f`, `SW_Nuclear_Bomb_f` and
@@ -152,7 +179,7 @@ MCFR does not identify commander sub-effects or record empty impacts and
 their shield-interception positions. The forecast therefore does not claim
 observed damage timing or predict an interception. Shield state and damage
 feedback continue to come from the recording; a forecast flash creates no
-damage event or damage number. The forecast uses nominal configuration time,
+damage event or damage number. The Ion forecast uses nominal configuration time,
 so it does not reproduce the simulation's fixed-point update offsets.
 
 ## The sprites

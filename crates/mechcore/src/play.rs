@@ -213,11 +213,9 @@ fn play_match(
         let recording = result
             .recording
             .ok_or_else(|| Failure::failed("the simulator kept no recording of the fight"))?;
-        timelines.push(
-            mechcore_player::timeline(&recording, None).map_err(|error| {
-                Failure::failed(format!("cannot read round {}: {error}", turn.round))
-            })?,
-        );
+        timelines.push(player_timeline(&recording, None).map_err(|error| {
+            Failure::failed(format!("cannot read round {}: {error}", turn.round))
+        })?);
     }
     if timelines.is_empty() {
         return Err(Failure::refused(
@@ -244,6 +242,35 @@ fn play_match(
     })
 }
 
+fn player_timeline(
+    recording: &dyn Recording,
+    poses: Option<&[(u32, UnitPose)]>,
+) -> Result<mechcore_player::Timeline, mechcore_player::Error> {
+    let mut timeline = mechcore_player::timeline(recording, poses)?;
+    if timeline
+        .deployments
+        .iter()
+        .any(|d| matches!(d.kind.as_str(), "orbital_bombardment" | "lightning_storm"))
+    {
+        match mechcore_simulation::battle_skill_forecasts(recording.layout_yaml().as_bytes()) {
+            Ok(plans) => {
+                for plan in plans {
+                    // Repeated releases of the same skill keep their panel order.
+                    if let Some(deployment) = timeline.deployments.iter_mut().find(|d| {
+                        d.team == plan.team && d.kind == plan.kind && d.forecast.is_none()
+                    }) {
+                        deployment.set_strike_forecast(plan.radius, plan.points);
+                    }
+                }
+            }
+            Err(error) => eprintln!(
+                "mechcore: cannot reconstruct random strike forecast; showing release preview only: {error}"
+            ),
+        }
+    }
+    Ok(timeline)
+}
+
 /// Lays a fight out for the page and writes the page.
 fn written(
     recording: &dyn Recording,
@@ -253,7 +280,7 @@ fn written(
     page: &Path,
     fought: Option<(i32, &'static str)>,
 ) -> Result<Played, Failure> {
-    let timeline = mechcore_player::timeline(recording, poses)
+    let timeline = player_timeline(recording, poses)
         .map_err(|error| Failure::failed(format!("cannot read the fight: {error}")))?;
     let title = input
         .file_stem()

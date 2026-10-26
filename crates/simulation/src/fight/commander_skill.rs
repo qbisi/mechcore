@@ -36,6 +36,46 @@ impl CommanderSkillSystem {
 /// What tags a battle skill's buff, so that its end takes it away.
 const SKILL_SOURCE: &str = "BuffSystem.CommanderSkill";
 
+pub(crate) fn forecasts(
+    layout: &CompiledLayout,
+    config: &SimulationConfig,
+    seed: i32,
+) -> Result<Vec<crate::BattleSkillForecast>> {
+    let simulation =
+        Simulation::new_unprepared(layout, &config.units, &config.towers, &config.maps, seed)?;
+    let mut result = Vec::new();
+    for release in simulation.commander.releases {
+        let SkillEffect::Strike {
+            range_q32,
+            scatter: Scatter::RandomCircle { .. },
+            sub_effects,
+            ..
+        } = release.effect
+        else {
+            continue;
+        };
+        result.push(crate::BattleSkillForecast {
+            team: release.team,
+            kind: release.name,
+            radius: range_q32,
+            points: sub_effects
+                .into_iter()
+                .map(|point| {
+                    (
+                        point.lands_on,
+                        QVec3 {
+                            x: point.x_q32,
+                            y: point.fall.floor_q32,
+                            z: point.z_q32,
+                        },
+                    )
+                })
+                .collect(),
+        });
+    }
+    Ok(result)
+}
+
 /// What a `CommanderSkillSubEffectController` does where one of its
 /// sub-effects lands, read off its release's `SkillEffect::Strike`.
 struct Circle<'a> {
@@ -67,7 +107,7 @@ pub(in crate::fight) fn line_point(
 impl Simulation {
     /// `CSRC_Common.OnFightStart`: each release's
     /// `CommanderSkillManager.CalculateAttackPositions`, side by side in
-    /// release order, after every unit has drawn its first intervals.
+    /// release order, before every unit draws its first intervals.
     ///
     /// A random circle draws each sub-effect's x and then its z from its
     /// side's stream in tenths: the x within the circle's radius `r`, the z

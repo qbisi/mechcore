@@ -17,6 +17,10 @@ const circle = (kind, extra = {}) => release(kind, {
   radius:kind==='nuke'?10000:kind==='orbital_javelin'?3000:4000,
   start_ms:kind==='nuke'?15000:3000, interval_ms:0, count:1, ...extra,
 });
+const scattered = (kind, extra = {}) => circle(kind, {
+  radius:13000, interval_ms:kind==='lightning_storm'?400:1000,
+  count:kind==='lightning_storm'?30:15, ...extra,
+});
 
 test('the footprint follows world coordinates and its configured radius', () => {
   const short = release();
@@ -221,6 +225,7 @@ test('all deployment glyphs and their rings scale in proportion to battlefield z
   const previews=[
     ...['sticky_oil_bomb','incendiary_bomb','acid_blast','smoke_bomb','ion_blast'].map(k=>release(k)),
     ...['missile_strike','heavy_missile_strike','nuke','orbital_javelin'].map(k=>circle(k)),
+    ...['orbital_bombardment','lightning_storm'].map(k=>scattered(k)),
   ];
   for (const d of previews) {
     const measure=zoom=>{
@@ -244,4 +249,77 @@ test('all deployment glyphs and their rings scale in proportion to battlefield z
     const a=measure(1), b=measure(2);
     for (let i=0;i<a.length;i++) assert.ok(Math.abs(b[i]-2*a[i])<1e-9,d.kind);
   }
+});
+
+test('random strike previews fade with their first effect and never expose fabricated impact points', () => {
+  const icons=new Set();
+  for (const kind of ['orbital_bombardment','lightning_storm']) {
+    const d=scattered(kind);
+    assert.equal(d.r,130);
+    assert.equal(d.points.length,1);
+    assert.equal(d.points[0].x,d.x);
+    assert.equal(d.points[0].y,d.y);
+    assert.equal(SkillPreview.state(d,31,20).progress,0.5);
+    assert.equal(SkillPreview.state(d,61,20).opacity,1);
+    assert.ok(Math.abs(SkillPreview.state(d,63,20).opacity-0.6)<1e-9);
+    assert.equal(SkillPreview.state(d,66,20),null);
+    assert.equal(SkillPreview.state(d,100,20),null);
+    const draw=tick=>{
+      const c=new SnapshotContext();
+      SkillPreview.draw(c,d,tick,20,team);
+      assert.equal(c.stack.length,0);
+      return c.snapshot('random-strike',500,400);
+    };
+    const before=draw(31);
+    assert.match(before,/A130 130/);
+    assert.doesNotMatch(before,/NaN|Infinity|<image|data:image/);
+    assert.notEqual(draw(63),before);
+    draw(100);
+    assert.equal(draw(31),before);
+    icons.add(before);
+    const ended=new SnapshotContext();
+    SkillPreview.draw(ended,d,66,20,team);
+    assert.equal(ended.body.length,0);
+    assert.equal(SkillPreview.strike(d,100,20),null);
+  }
+  assert.equal(icons.size,2);
+});
+
+test('seed-reconstructed impacts use their exact ticks and positions with deterministic effects', () => {
+  const images=new Set();
+  for (const kind of ['orbital_bombardment','lightning_storm']) {
+    const d=scattered(kind,{forecast:{radius:3000,points:[
+      {tick:63,x:0,z:5000},{tick:83,x:7000,z:-4000},
+    ]}});
+    assert.equal(SkillPreview.scatteredStrike(d,62,20),null);
+    assert.equal(SkillPreview.state(d,62,20).countdown,true);
+    assert.equal(SkillPreview.state(d,63,20).countdown,false);
+    const first=SkillPreview.scatteredStrike(d,63,20);
+    assert.equal(first.radius,30);
+    assert.equal(first.flashes.length,1);
+    assert.equal(first.flashes[0].x,0);
+    assert.equal(first.flashes[0].y,-50);
+    assert.equal(first.flashes[0].age,0);
+    assert.equal(SkillPreview.scatteredStrike(d,82,20),null);
+    const next=SkillPreview.scatteredStrike(d,83,20);
+    assert.equal(next.flashes[0].x,70);
+    assert.equal(next.flashes[0].y,40);
+    const draw=tick=>{
+      const c=new SnapshotContext();
+      SkillPreview.drawStrike(c,d,tick,20,team);
+      assert.equal(c.stack.length,0);
+      return c.snapshot('planned strike',500,400);
+    };
+    const initial=draw(63);
+    assert.match(initial,/A30 30/);
+    assert.doesNotMatch(initial,/NaN|Infinity|<image|data:image/);
+    assert.notEqual(draw(83),initial);
+    draw(100);
+    assert.equal(draw(63),initial);
+    images.add(initial);
+    const ended=new SnapshotContext();
+    SkillPreview.drawStrike(ended,d,100,20,team);
+    assert.equal(ended.body.length,0);
+  }
+  assert.equal(images.size,2);
 });

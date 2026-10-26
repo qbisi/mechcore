@@ -89,6 +89,31 @@ impl From<mechcore_mcfr::Error> for Error {
 
 type Result<T> = std::result::Result<T, Error>;
 
+/// One random commander skill's planned strikes after native fight initialization.
+/// Positions and radius are Q32.32 world metres; ticks are the planned ground
+/// arrivals, before any battlefield shield intercepts a falling sub-effect.
+#[derive(Debug, Clone)]
+pub struct BattleSkillForecast {
+    pub team: u32,
+    pub kind: String,
+    pub radius: i64,
+    pub points: Vec<(u64, mechcore_mcfr::QVec3)>,
+}
+
+/// Reconstructs random strike plans without advancing the fight. This uses
+/// the same initialization and side streams as simulation, including release
+/// order and the round-derived seeds, rather than a separate visual RNG.
+///
+/// # Errors
+/// Returns an error if the embedded layout has no seed or cannot be initialized
+/// by the current simulator. The plan does not predict shield interceptions.
+pub fn battle_skill_forecasts(document: &[u8]) -> Result<Vec<BattleSkillForecast>> {
+    let config = rules::SimulationConfig::load()?;
+    let (seed, layout) = layout::compile_with_seed(document, &config.units)?;
+    let seed = seed.ok_or_else(|| Error::new("a strike forecast needs an explicit layout seed"))?;
+    fight::commander_forecasts(&layout, &config, seed)
+}
+
 /// Simulates a supported layout, recording its timeline where `record` says.
 ///
 /// A supplied `seed` overrides `layout.seed`. An effective seed of zero asks
@@ -197,6 +222,56 @@ fn generate_seed(layout_path: &Path) -> Result<i32> {
 #[cfg(test)]
 mod tests {
     use super::Error;
+
+    #[test]
+    fn strike_forecasts_keep_side_streams_and_repeated_release_order() {
+        let document = br"
+kind: layout
+seed: 4242
+round: 1
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -180}}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: 0, y: 30}]}
+  - {name: orbital_bombardment, positions: [{x: 0, y: 30}]}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -180}}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: 20, y: 40}]}
+";
+        let plans = super::battle_skill_forecasts(document).unwrap();
+        assert_eq!(plans.len(), 3);
+        assert_eq!(plans[0].points.len(), 15);
+        assert_eq!(plans[1].points.len(), 15);
+        assert_eq!(plans[2].points.len(), 30);
+        assert_ne!(plans[0].points, plans[1].points);
+        assert_eq!(plans[0].points[0].0, 63);
+        assert_eq!(plans[2].points[0].0, 62);
+        for (plan, (x, z)) in plans.iter().zip([(0, 30), (0, 30), (-20, -40)]) {
+            assert_eq!(plan.radius, 30_i64 << 32);
+            for (_, point) in &plan.points {
+                let dx = i128::from(point.x) - (i128::from(x) << 32);
+                let dz = i128::from(point.z) - (i128::from(z) << 32);
+                assert!(dx * dx + dz * dz < (100_i128 << 32).pow(2));
+            }
+        }
+        let mut changed: serde_yaml::Value = serde_yaml::from_slice(document).unwrap();
+        changed["seed"] = 12345.into();
+        let other_seed =
+            super::battle_skill_forecasts(serde_yaml::to_string(&changed).unwrap().as_bytes())
+                .unwrap();
+        assert_eq!(
+            plans.iter().map(|p| &p.points).collect::<Vec<_>>(),
+            other_seed.iter().map(|p| &p.points).collect::<Vec<_>>()
+        );
+        changed["round"] = 2.into();
+        let other_round =
+            super::battle_skill_forecasts(serde_yaml::to_string(&changed).unwrap().as_bytes())
+                .unwrap();
+        assert_ne!(plans[0].points, other_round[0].points);
+    }
 
     #[test]
     fn a_reason_keeps_where_it_was_raised_under_a_prefix() {

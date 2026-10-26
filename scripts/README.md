@@ -27,7 +27,7 @@ is not a module name is loaded by path. Scripts that write `config/` stamp the
 path they were run from into the file's header, so moving one is regenerating
 what it writes.
 
-`player/skill-icons.py` extracts the nine native deployment symbols' front-facing
+`player/skill-icons.py` extracts the eleven native deployment symbols' front-facing
 high-resolution `*_f` variants from the installed game and traces their alpha contours with Potrace into
 `crates/player/web/skill-icons.js`. Original images and intermediate traces
 stay under `work/player/skill-icons/`. Its `--check` requires the game and is
