@@ -18,10 +18,18 @@ Shift), the wheel zooms, a drag pans, and the bar at the bottom seeks, with
 each side's losses marked along it.
 
 A match file plays every completed deployment in one page. The round dropdown
-immediately left of the speed selector chooses a round and starts its timeline
+and previous/next round buttons choose a round and start its timeline
 at tick 1, retaining speed and playback state. A trailing state without decisions
 and a concession have no fight to play. Each round is simulated from its own
 recorded deployment; the page does not advance automatically between rounds.
+Round navigation is disabled at the corresponding first/last boundary, and
+the previous/next buttons are hidden for a single round. The lower controls
+overlay the map on a transparent-to-dark gradient: a full-width seek bar
+above the button row shows elapsed progress, loss marks and the settlement
+tail. The row contains playback, round navigation, elapsed/total time, round
+selection, speed, display settings, fit and SVG export. Life bars, damage
+numbers and aim lines live in a settings popover, retaining their keyboard
+shortcuts. Clicking outside or pressing Escape closes the popover.
 
 The top HUD shows blue and red reactor cores with the round and elapsed time
 between them. Match playback uses each state's core health and the map's

@@ -107,7 +107,7 @@ html, body {
 .clock-icon { width: 15px; height: 15px; flex: none; fill: none; stroke: #c8cbd1; stroke-width: 1.6; stroke-linecap: round; opacity: .85; }
 #battle-time { font: 400 16px/1 "Mechcore HUD", system-ui, sans-serif; color: #c8cbd1; }
 
-#controls, #tooltip {
+#tooltip {
   background: var(--panel);
   border: 1px solid var(--edge);
   border-radius: 10px;
@@ -116,26 +116,41 @@ html, body {
 
 #controls {
   position: fixed;
-  inset: auto 12px 12px 12px;
+  inset: auto 0 0;
+  padding: 24px 20px 8px;
+  background: linear-gradient(transparent, rgba(0,0,0,.48) 45%, rgba(0,0,0,.78));
+  color: #eee;
+}
+#control-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 10px;
+  gap: 12px;
+  min-height: 40px;
 }
 #controls button, #controls select {
-  background: rgba(255, 255, 255, 0.07);
-  color: var(--text);
-  border: 1px solid var(--edge);
-  border-radius: 6px;
-  height: 30px;
+  background: transparent;
+  color: inherit;
+  border: 0;
+  border-radius: 4px;
+  height: 36px;
   font: inherit;
 }
-#controls button { min-width: 34px; cursor: pointer; }
-#controls button svg { vertical-align: middle; }
-#controls button:hover, #controls select:hover { background: rgba(255, 255, 255, 0.13); }
-#controls label { display: flex; align-items: center; gap: 4px; color: var(--muted); white-space: nowrap; cursor: pointer; }
-#clock { font-variant-numeric: tabular-nums; min-width: 112px; color: var(--muted); }
-#scrub { position: relative; flex: 1; min-width: 80px; height: 30px; }
+#controls button { width: 30px; padding: 3px; flex: none; cursor: pointer; }
+#controls button svg, #display-settings summary svg { width: 22px; height: 22px; vertical-align: middle; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+#play svg, #previous-round svg, #next-round svg { fill: currentColor; }
+#play .pause-icon, #play.playing .play-icon { display: none; }
+#play.playing .pause-icon { display: inline; }
+#controls button:hover, #controls select:hover, #display-settings summary:hover { color: #38bdf8; }
+#controls button:disabled { opacity: .25; cursor: default; }
+#controls button[hidden], #controls select[hidden] { display: none; }
+#controls :focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+#controls select { cursor: pointer; max-width: 110px; }
+#controls select option { background: #171b22; color: #eee; }
+.control-spacer { flex: 1; }
+#clock { font-variant-numeric: tabular-nums; white-space: nowrap; color: #ddd; font-size: 13px; }
+#scrub { position: relative; width: 100%; height: 20px; cursor: pointer; }
+#seek-track { position: absolute; top: 8px; height: 4px; width: 100%; background: rgba(255,255,255,.25); border-radius: 2px; overflow: hidden; }
+#seek-progress { width: 0; height: 100%; background: #20b5ed; }
 #marks { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 #seek {
   position: absolute;
@@ -148,17 +163,25 @@ html, body {
   appearance: none;
   cursor: pointer;
 }
-#seek::-webkit-slider-runnable-track { height: 30px; background: transparent; }
-#seek::-moz-range-track { height: 30px; background: transparent; }
+#seek::-webkit-slider-runnable-track { height: 4px; background: transparent; }
+#seek::-moz-range-track { height: 4px; background: transparent; }
 #seek::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 3px;
-  height: 30px;
-  background: #fff;
-  border-radius: 2px;
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+  width: 10px;
+  height: 10px;
+  margin-top: -3px;
+  background: #20b5ed;
+  border-radius: 50%;
 }
-#seek::-moz-range-thumb { width: 3px; height: 30px; background: #fff; border: 0; border-radius: 2px; }
+#seek::-moz-range-thumb { width: 10px; height: 10px; background: #20b5ed; border: 0; border-radius: 50%; }
+#display-settings { position: relative; }
+#display-settings summary { list-style: none; cursor: pointer; padding: 7px 3px; }
+#display-settings summary::-webkit-details-marker { display: none; }
+.settings-panel { position: absolute; bottom: 48px; right: -16px; width: 220px; padding: 16px; background: rgba(20,24,31,.96); border: 1px solid var(--edge); border-radius: 8px; box-shadow: 0 8px 30px #0005; }
+.settings-panel strong { display: block; margin-bottom: 10px; font-size: 12px; color: #9aa6b4; font-weight: 500; }
+.settings-panel label { display: flex; gap: 8px; align-items: center; padding: 8px 0; white-space: nowrap; cursor: pointer; }
+.settings-panel input { accent-color: #20b5ed; }
+.settings-panel kbd { margin-left: auto; font: 11px system-ui; color: #8b95a1; }
 
 #tooltip {
   position: fixed;
@@ -172,7 +195,9 @@ html, body {
 #tooltip .dim { color: var(--muted); }
 
 @media (max-width: 720px) {
-  #controls { flex-wrap: wrap; inset: auto 8px 8px 8px; }
-  #scrub { order: 10; flex-basis: 100%; }
-  #controls label { display: none; }
+  #controls { padding: 20px 10px 6px; }
+  #control-row { gap: 5px; flex-wrap: wrap; }
+  #clock { font-size: 11px; }
+  #controls select { max-width: 85px; }
+  #controls button { width: 26px; }
 }
