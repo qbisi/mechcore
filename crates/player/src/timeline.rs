@@ -91,6 +91,8 @@ pub struct Core {
     pub begin: Option<i32>,
     pub maximum: Option<i32>,
     pub damage: i32,
+    /// Remaining supply after deployment; zero when the input has no economy.
+    pub supply: i32,
     pub officers: Vec<Officer>,
 }
 
@@ -965,6 +967,7 @@ impl<'a> Builder<'a> {
                 begin: None,
                 maximum: None,
                 damage: 0,
+                supply: 0,
                 officers: Vec::new(),
             }),
             score_sources: Vec::new(),

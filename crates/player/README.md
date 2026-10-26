@@ -71,6 +71,12 @@ An empty list says `No officers`. The text is presentation only, extracted
 from the local build's OfficerData localization by `scripts/player/officers.py`
 into `web/officers.json`, with description parameters resolved and rich-text
 tags removed. The offline page embeds only the officers held by each side.
+A supply card sits outside the officer button (blue left, red right), using
+the same natural map scale. Its SVG symbol redraws the native `Icon_Supply`'s
+gold hexagon and angular cutout without embedding the source bitmap.
+Match playback displays supply remaining after
+the completed deployment, keeping it fixed during combat and updating it on
+round selection. Inputs without economy state display zero supply.
 
 Closed rectangular drawers run down the blue and red edges below the card
 buttons. Each shows the native portrait and technology icons without a unit-name

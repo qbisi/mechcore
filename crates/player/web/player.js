@@ -1761,6 +1761,10 @@
       v.name.textContent=characters.length>10?characters.slice(0,5).join('')+'*'+characters.slice(-4).join(''):core.name;
       v.name.title=core.name;
       v.name.setAttribute('aria-label',core.name);
+      const supply=document.getElementById(`supply-card-${i}`);
+      document.getElementById(`supply-value-${i}`).textContent=String(core.supply);
+      supply.setAttribute('aria-label',`${core.name}: ${core.supply} supply remaining`);
+      supply.title='Supply remaining after deployment';
       const officers=core.officers || [];
       const list=document.getElementById(`officer-list-${i}`);
       document.getElementById(`officer-count-${i}`).textContent=String(officers.length);
