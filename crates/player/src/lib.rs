@@ -13,12 +13,14 @@
 //! supplied by the caller. A unit type the page has no sprite for is still drawn,
 //! as a marked disc under its name.
 
+mod arsenal;
 mod deployment;
 mod page;
 mod roster;
 mod timeline;
 mod track;
 
+pub use arsenal::{Arsenal, HeldItem, SkillSlot, arsenal};
 pub use deployment::{Deployment, DeploymentGeometry, StrikeForecast, StrikePoint};
 pub use page::{match_page, page};
 pub use roster::{RosterEntry, RosterTechnology, unit_roster};

@@ -206,18 +206,16 @@ fn play_match(
             reinforcement.declined(turn),
         )
         .map_err(Failure::refused)?;
-        let rosters = [
+        let sides = [&deployment.state.blue, &deployment.state.red];
+        let layouts = [&deployment.layout.blue, &deployment.layout.red];
+        let loadouts = [&stated.blue.tech_loadout, &stated.red.tech_loadout];
+        let rosters = std::array::from_fn(|seat| {
             mechcore_player::unit_roster(
-                &deployment.layout.blue,
-                &deployment.state.blue.unlocked_units,
-                Some(&stated.blue.tech_loadout),
-            ),
-            mechcore_player::unit_roster(
-                &deployment.layout.red,
-                &deployment.state.red.unlocked_units,
-                Some(&stated.red.tech_loadout),
-            ),
-        ];
+                layouts[seat],
+                &sides[seat].unlocked_units,
+                Some(loadouts[seat]),
+            )
+        });
         let yaml = mechcore_document::canonical_yaml(deployment.layout).map_err(Failure::failed)?;
         let result = mechcore_simulation::simulate_document(yaml.as_bytes(), Record::Memory, None)
             .map_err(|error| Failure::unsimulated(&error))?;
@@ -228,6 +226,7 @@ fn play_match(
             Failure::failed(format!("cannot read round {}: {error}", turn.round))
         })?;
         timeline.rosters = rosters;
+        timeline.arsenals = sides.map(mechcore_player::arsenal);
         for (seat, (header, state)) in [
             (&stated.blue, &turn.state.blue),
             (&stated.red, &turn.state.red),
@@ -238,7 +237,7 @@ fn play_match(
             let core = &mut timeline.cores[seat];
             core.name = header.name.clone().unwrap_or_else(|| core.name.clone());
             core.begin = Some(state.reactor_core);
-            core.supply = [&deployment.state.blue, &deployment.state.red][seat].supply;
+            core.supply = sides[seat].supply;
             core.maximum = header.opening.as_ref().and_then(|opening| {
                 let base = mechcore_document::opening::reactor_core(stated.map_id, seat).ok()?;
                 let team = economy.advance_team(opening.taken.team)?;

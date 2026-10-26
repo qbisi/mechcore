@@ -99,6 +99,22 @@ playback includes completed deployment unlocks, placed formations and researched
 types. Layouts, fights and recordings have no account loadout or unlock list:
 they display only known formations and active technologies, without inventing
 unrecorded choices.
+Inside each unit column, two compact icon strips show battlefield skill slots
+and unequipped inventory. Match skills preserve slot order and duplicates.
+Available skills are bright, released skills gold, used deployment skills dim,
+and cooling skills dim with their remaining round count. These are deployment
+states, not timers inferred from combat. Inventory excludes fitted items and
+shows each unequipped item separately in a circular frame, preserving inventory
+order, duplicates and individual durability without quantity badges. Hover or focus
+shows native names, effects and status. Each strip scrolls independently and
+has no activation or equipment action. Empty strips disappear.
+Either strip can stand alone: its container shrinks to one column, anchored
+at the edge nearest the unit roster even after scaling. Both empty hides the
+whole container. Standalone
+inputs show only their known current-round releases, with no invented unused
+skills or inventory. The strips follow natural map scale and mirror placement.
+`scripts/player/arsenal.py` extracts native front-facing skill symbols and
+equipment thumbnails into `web/arsenal.json`; each page embeds used images once.
 The list resets when selecting a round. `scripts/player/unit-panels.py`
 extracts 2x WebP portraits and technology icons plus native descriptions
 into `web/unit-panels.json`. Each page embeds only needed images, once across

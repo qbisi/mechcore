@@ -66,6 +66,7 @@ pub struct Timeline {
     pub ticks_per_second: u32,
     pub cores: [Core; 2],
     pub rosters: [Vec<crate::RosterEntry>; 2],
+    pub arsenals: [crate::Arsenal; 2],
     /// Survivors' score contributions, checked against recorded settlement.
     pub score_sources: Vec<ScoreSource>,
     pub field: Field,
@@ -480,6 +481,10 @@ pub fn timeline(
     if let Some(layout) = &layout {
         timeline.rosters =
             [&layout.blue, &layout.red].map(|side| crate::unit_roster(side, &[], None));
+        for (team, side) in [&layout.blue, &layout.red].into_iter().enumerate() {
+            timeline.arsenals[team] = crate::arsenal::released(side)
+                .map_err(|error| Error(format!("cannot read skill artwork: {error}")))?;
+        }
     }
     let officers: BTreeMap<i32, Officer> =
         serde_json::from_str(include_str!("../web/officers.json"))
@@ -972,6 +977,7 @@ impl<'a> Builder<'a> {
             }),
             score_sources: Vec::new(),
             rosters: [Vec::new(), Vec::new()],
+            arsenals: [crate::Arsenal::default(), crate::Arsenal::default()],
             field: Field {
                 half_width: self.reach.0 + MARGIN,
                 half_depth: self.reach.1 + MARGIN,
