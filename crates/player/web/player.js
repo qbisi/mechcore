@@ -1802,6 +1802,10 @@
     document.getElementById('battle-time').textContent=`${m}:${sec}`;
     const ending=ScoreSettlement.sample(settlement,(cursor-LAST)/TPS);
     for (const [i,v] of coreViews.entries()) {
+      const panel=document.getElementById(`arsenal-${i}`),arsenal=data.arsenals[i];
+      const hidePanel=(cursor-1)/TPS>=3||(!arsenal.skills.length&&!arsenal.equipment.length);
+      if(hidePanel&&!panel.hidden)document.getElementById('roster-tooltip').hidden=true;
+      panel.hidden=hidePanel;
       const core=data.cores[i], known=core.begin!==null;
       const damage=ending.damage[i];
       const value=known?core.begin-damage:null;
