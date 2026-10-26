@@ -248,9 +248,12 @@
       }
     }
 
-    return { byRef, units, buildings, projectiles, shields, cues, decals, fallen };
+    const terrains = data.terrains.map((t) => ({
+      id: t.id, frames: t.frames.map(TerrainEffects.prepare),
+    }));
+    return { byRef, units, buildings, projectiles, shields, terrains, cues, decals, fallen };
   }
-  let { byRef, units, buildings, projectiles, shields, cues, decals, fallen } = tracks();
+  let { byRef, units, buildings, projectiles, shields, terrains, cues, decals, fallen } = tracks();
   const ref = (name) => (name ? byRef.get(name) : undefined);
 
   // ------------------------------------------------------------- sampling
@@ -629,6 +632,31 @@
       ctx.strokeRect(left, top, Math.round(sx(r.x1 / 100)) - 2.5 - left, Math.round(sy(r.z0 / 100)) - 2.5 - top);
     }
     ctx.setLineDash([]);
+  }
+
+  let terrainFrames = [];
+  let terrainRegions = [];
+  function drawTerrains(clouds = false) {
+    place(0, 0);
+    const active = [];
+    for (const terrain of terrains) {
+      const frames = terrain.frames;
+      let lo = 0;
+      let hi = frames.length;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (frames[mid].from <= tau) lo = mid + 1; else hi = mid;
+      }
+      const f = frames[lo - 1];
+      if (f && tau < f.to + 1) active.push(f);
+    }
+    if (active.length !== terrainFrames.length || active.some((f, i) => f !== terrainFrames[i])) {
+      terrainFrames = active;
+      terrainRegions = TerrainEffects.merge(active);
+    }
+    for (const region of terrainRegions) {
+      if (TerrainEffects.isCloud(region.kind) === clouds) TerrainEffects.draw(ctx, region, tau, TPS);
+    }
   }
 
   // What fights leave on the ground: a scorch where a unit died, rubble
@@ -1635,6 +1663,7 @@
     Sprites.setScale(1 / (view.s * view.dpr));
     drawGround();
     drawDecals();
+    drawTerrains();
     const bars = [];
     const aims = options.aim ? [] : null;
     const numbers = options.damage ? [] : null;
@@ -1644,6 +1673,7 @@
     drawProjectiles();
     drawEffects(numbers);
     drawUnits(true, bars, aims);
+    drawTerrains(true);
     screen();
     drawBars(bars);
     if (aims) drawAims(aims);
@@ -1859,7 +1889,7 @@
     LAST = data.ticks;
     CLIPS = data.clips || [];
     LONGEST_EFFECT = 3 * TPS;
-    ({ byRef, units, buildings, projectiles, shields, cues, decals, fallen } = tracks());
+    ({ byRef, units, buildings, projectiles, shields, terrains, cues, decals, fallen } = tracks());
     tau = 1;
     hover = null;
     pointer = null;

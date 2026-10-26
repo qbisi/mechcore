@@ -13,7 +13,8 @@ use std::collections::{BTreeMap, HashMap};
 use mechcore_document::{Layout, Position, Region};
 use mechcore_mcfr::{
     BuildingState, Domain, Event, EventPayload, LiveUnitState, MotionState, ObjectKind, ObjectRef,
-    ProjectileState, QVec3, Recording, ShieldSourceKind, ShieldState, UnitPose,
+    ProjectileState, QVec3, Recording, ShieldSourceKind, ShieldState, TerrainGridState,
+    TerrainState, TerrainType, UnitPose,
 };
 use serde::{Serialize, Serializer};
 
@@ -62,6 +63,7 @@ pub struct Timeline {
     pub buildings: Vec<Building>,
     pub projectiles: Vec<Projectile>,
     pub shields: Vec<Shield>,
+    pub terrains: Vec<Terrain>,
     pub cues: Vec<Cue>,
     /// The names of the clips the units' poses play, which a [`Pose`] track
     /// numbers; empty for a recording that holds no poses.
@@ -218,6 +220,43 @@ pub struct Shield {
     pub active: Track,
 }
 
+/// A terrain's recorded shapes. Unchanged consecutive ticks share a frame;
+/// cuts and conversions switch shapes at their recorded tick, without easing.
+#[derive(Debug, Serialize)]
+pub struct Terrain {
+    pub id: u64,
+    pub frames: Vec<TerrainFrame>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TerrainFrame {
+    pub from: u32,
+    pub to: u32,
+    #[serde(flatten)]
+    pub shape: TerrainShape,
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize)]
+pub struct TerrainShape {
+    pub kind: TerrainType,
+    pub x: i64,
+    pub z: i64,
+    pub radius: i64,
+    pub grid: Option<TerrainGrid>,
+}
+
+/// Five-metre cells: the origin is the first cell's centre, row z's bit x
+/// marks cell (x, z). MCFR's transposed storage is converted back to world
+/// axes before it reaches the page.
+#[derive(Debug, PartialEq, Eq, Serialize)]
+pub struct TerrainGrid {
+    pub x: i64,
+    pub z: i64,
+    pub width: u32,
+    pub height: u32,
+    pub rows: Vec<u32>,
+}
+
 /// An object named across tracks and cues: `u12` is unit 12, `b3` building 3,
 /// `p`, `s` and `t` a projectile, a shield and a terrain.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -366,6 +405,9 @@ pub fn timeline(
         for shield in &state.shields {
             builder.shield(tick, shield);
         }
+        for terrain in &state.terrains {
+            builder.terrain(tick, terrain);
+        }
         for event in &recording.events(tick)?.events {
             builder.cue(tick, event);
         }
@@ -383,6 +425,7 @@ struct Builder<'a> {
     buildings: BTreeMap<u64, Building>,
     projectiles: BTreeMap<u64, Projectile>,
     shields: BTreeMap<u64, Shield>,
+    terrains: BTreeMap<u64, Terrain>,
     cues: Vec<Cue>,
     reach: (i64, i64),
     /// Each unit's base-layer pose by tick and unit, when the recording
@@ -402,6 +445,7 @@ impl<'a> Builder<'a> {
             buildings: BTreeMap::new(),
             projectiles: BTreeMap::new(),
             shields: BTreeMap::new(),
+            terrains: BTreeMap::new(),
             cues: Vec::new(),
             reach: (0, 0),
             poses: None,
@@ -648,6 +692,38 @@ impl<'a> Builder<'a> {
         shield.active.push(i64::from(state.active));
     }
 
+    fn terrain(&mut self, tick: u32, state: &TerrainState) {
+        let (x, _, z) = centimetres3(state.position);
+        let radius = centimetres(state.radius);
+        self.reach(x.abs() + radius, z.abs() + radius);
+        let shape = TerrainShape {
+            kind: state.terrain_type,
+            x,
+            z,
+            radius,
+            grid: state.grid.as_ref().map(terrain_grid),
+        };
+        let terrain = self
+            .terrains
+            .entry(state.terrain_id)
+            .or_insert_with(|| Terrain {
+                id: state.terrain_id,
+                frames: Vec::new(),
+            });
+        if let Some(last) = terrain.frames.last_mut()
+            && last.to + 1 == tick
+            && last.shape == shape
+        {
+            last.to = tick;
+        } else {
+            terrain.frames.push(TerrainFrame {
+                from: tick,
+                to: tick,
+                shape,
+            });
+        }
+    }
+
     /// The splash radius of a unit's skill, in centimetres, as it stood on the
     /// last tick read; none when the source is no unit, the slot is unknown
     /// or the skill does not splash.
@@ -803,9 +879,32 @@ impl<'a> Builder<'a> {
             buildings: self.buildings.into_values().collect(),
             projectiles: self.projectiles.into_values().collect(),
             shields: self.shields.into_values().collect(),
+            terrains: self.terrains.into_values().collect(),
             cues: self.cues,
             clips: self.clips,
         }
+    }
+}
+
+/// Native `GridBlockInt.grids[z]` holds x at bit `31 - x`, as
+/// `RangeItemEffectLayerGrid.ShowTestGridBlock` places its cells. MCFR
+/// transposes those words into low-bit masks: stored row x holds bit z.
+/// Undo that transpose so the page can use ordinary spatial rows.
+fn terrain_grid(grid: &TerrainGridState) -> TerrainGrid {
+    let mut rows = vec![0_u32; usize::try_from(grid.size_x).unwrap_or_default()];
+    for (x, column) in grid.rows.iter().copied().enumerate().take(32) {
+        for (z, row) in rows.iter_mut().enumerate().take(32) {
+            if column & (1 << z) != 0 {
+                *row |= 1 << x;
+            }
+        }
+    }
+    TerrainGrid {
+        x: centimetres(grid.origin_x),
+        z: centimetres(grid.origin_y),
+        width: grid.size_y,
+        height: grid.size_x,
+        rows,
     }
 }
 
@@ -947,9 +1046,39 @@ fn launcher(layout: Option<&Layout>, team: u32, (x, _, z): (i64, i64, i64)) -> O
 
 #[cfg(test)]
 mod tests {
-    use super::{centimetres, tenths_of_a_degree};
+    use super::{centimetres, tenths_of_a_degree, terrain_grid};
+    use mechcore_mcfr::TerrainGridState;
 
     const METRE: i64 = 1 << 32;
+
+    #[test]
+    fn terrain_masks_return_to_world_axes() {
+        let grid = terrain_grid(&TerrainGridState {
+            origin_x: -10 * METRE,
+            origin_y: 20 * METRE,
+            size_x: 2,
+            size_y: 3,
+            rows: vec![1, 2, 1],
+        });
+        assert_eq!((grid.x, grid.z), (-1000, 2000));
+        assert_eq!((grid.width, grid.height), (3, 2));
+        assert_eq!(grid.rows, [0b101, 0b010]);
+    }
+
+    #[test]
+    fn right_hand_oil_is_cut_toward_the_shield() {
+        // A 30 m oil at (60, -40), beside a 70 m shield at (0, 0).
+        // The shield is above and left: those cells must be absent.
+        let grid = terrain_grid(&TerrainGridState {
+            origin_x: 65 * METRE / 2,
+            origin_y: -135 * METRE / 2,
+            size_x: 12,
+            size_y: 12,
+            rows: vec![0, 0, 6, 14, 31, 63, 255, 1023, 2046, 2046, 1020, 240],
+        });
+        assert_eq!(grid.rows[10] & (1 << 4), 0); // (52.5, -17.5), inside shield.
+        assert_ne!(grid.rows[4] & (1 << 10), 0); // (82.5, -47.5), outside shield.
+    }
 
     #[test]
     fn lengths_round_to_the_nearest_centimetre() {

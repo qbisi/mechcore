@@ -285,3 +285,77 @@ fn a_unit_carries_its_recorded_pose() {
             .all(|&clip| clip == -1)
     );
 }
+
+/// Oil ignites while another patch is cut by a standing shield. Shapes must
+/// survive timeline compression exactly, including their first/last tick.
+#[test]
+fn terrain_shapes_read_back_tick_for_tick() {
+    let layout = br"
+kind: layout
+seed: 4242
+round: 2
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -150}}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}}
+  battle_skills:
+  - {name: shield_airdrop, standing: {position: {x: -80, y: 0}}}
+  - {name: sticky_oil_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
+  - {name: incendiary_bomb, positions: [{x: 60, y: -160}, {x: 60, y: -40}]}
+red:
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}}
+";
+    let recording = mechcore_simulation::simulate_document(layout, Record::Memory, None)
+        .unwrap()
+        .recording
+        .unwrap();
+    let timeline = mechcore_player::timeline(&recording, None).unwrap();
+    let mut kinds = std::collections::BTreeSet::new();
+    let mut saw_grid = false;
+    for tick in 1..=recording.terminal_tick() {
+        let expected = recording.state(tick).unwrap().terrains;
+        let actual: BTreeMap<_, _> = timeline
+            .terrains
+            .iter()
+            .filter_map(|t| {
+                t.frames
+                    .iter()
+                    .find(|f| f.from <= tick && tick <= f.to)
+                    .map(|f| (t.id, &f.shape))
+            })
+            .collect();
+        assert_eq!(actual.len(), expected.len(), "terrain count at {tick}");
+        for state in expected {
+            let shape = actual[&state.terrain_id];
+            assert_eq!(shape.kind, state.terrain_type);
+            assert_eq!(shape.x, centimetres(state.position.x));
+            assert_eq!(shape.z, centimetres(state.position.z));
+            assert_eq!(shape.radius, centimetres(state.radius));
+            assert_eq!(shape.grid.is_some(), state.grid.is_some());
+            if let Some(grid) = state.grid {
+                let drawn = shape.grid.as_ref().unwrap();
+                assert_eq!(drawn.x, centimetres(grid.origin_x));
+                assert_eq!(drawn.z, centimetres(grid.origin_y));
+                assert_eq!((drawn.width, drawn.height), (grid.size_y, grid.size_x));
+                for (x, column) in grid.rows.iter().enumerate() {
+                    for (z, row) in drawn.rows.iter().enumerate() {
+                        assert_eq!((row >> x) & 1, (column >> z) & 1);
+                    }
+                }
+                saw_grid = true;
+            }
+            kinds.insert(serde_json::to_string(&shape.kind).unwrap());
+        }
+    }
+    assert!(kinds.contains("\"oil\""));
+    assert!(kinds.contains("\"fire\""));
+    assert!(saw_grid, "the scene must exercise a shield-cut mask");
+    assert!(
+        timeline
+            .terrains
+            .iter()
+            .any(|t| t.frames.iter().any(|f| f.to > f.from))
+    );
+}
