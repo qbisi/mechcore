@@ -779,7 +779,8 @@ coordination and not its record, it is gone when the match is over, and
 [turn.md](turn.md) defines it.
 
 **A commit is a write.** A side's decisions reach the document when that side
-commits and not before, and what is written is written: a match has no undo.
+commits and not before, and later decisions do not undo a commit. `match fork` can reopen a recorded
+round in a separate continuation.
 A side's own decisions are its own until then, which is what lets two sides
 deploy at once without seeing each other.
 
@@ -874,6 +875,43 @@ defines. What else that seed decides, the streams and pools a match is dealt
 from, is the checker's and not a player's, and no operation here answers with
 it.
 
+### `match fork`
+
+Creates an independent continuation from an existing match.
+
+Operands: the source match document and the destination match document.
+Options: `--side blue|red`, `--round <n>`, `--deploy-time <seconds>`, and
+`--override`.
+
+The source document and its turn file remain unchanged. An existing destination
+or destination turn file is refused unless `--override` is given. Naming the
+source as the destination also requires `--override`, which explicitly forks
+in place. Distinct matches must have distinct turn file paths.
+
+Without `--round`, copies the recorded progress and the current turn's pending
+decisions and commitments, when its turn file is available. Without a valid
+turn file, commitments are inferred as when a turn file is rebuilt. It does
+not settle a due round or run the source's deployment clock.
+
+With `--round`, reopens that round at its opening state in the destination.
+It clears both sides' actions for the selected round and omits every later
+state and action segment. Earlier rounds and the selected opening state remain
+unchanged. Round zero clears both opening choices and every deployment round;
+it requires a document that includes the opening. Both sides are uncommitted
+and pending decisions are discarded.
+
+Every fork gives both sides, restarts the deployment clock, and sets `rebuilt`.
+`--deploy-time` sets a positive deployment time in the destination header;
+omitted, the source's deployment time is retained. Subsequent `act` and
+`commit` operations continue the destination normally. The returned view names
+the destination and, with `--side`, the side selected; without a side it is an
+omniscient view. A shell binds the destination when a side is named.
+
+A selected round absent from the document, including a negative round or an
+uncaptured opening, is refused. A selected round whose opening state already
+ends the match is refused. These refusals change neither document nor any
+existing turn file.
+
 ### `match show`
 
 Answers one side's view of the match.
@@ -885,7 +923,7 @@ spectator and a test read.
 The answer's `document` is an ordered array of the same segments the match
 file writes: its header, round-zero actions, then each round's opening state
 and actions. Each array element has exactly the YAML document's field names
-and values. This is also the answer shape of `match new`, `act` and `commit`.
+and values. This is also the answer shape of `match new`, `fork`, `act` and `commit`.
 The header carries the map, match seed, both player seeds, both opening offer
 lists, constructions and full technology loadouts. State segments carry both
 sides in full, the reinforcement offers, pool differences and all three random
@@ -1197,7 +1235,8 @@ without a game and refuses the game's operations until it holds one.
 A shell that opens a match holds both the document and the side. `mechcore
 shell m.yaml --side blue` binds them, and so does the first line that opens a
 match: `match new m.yaml` binds the side it was handed, and `match show m.yaml
---side red` binds the side it names. That match's verbs are then written
+--side red` binds the side it names, as does `match fork old.yaml m.yaml --side red
+[--round <n>]`. That match's verbs are then written
 without their namespace, without the document and without the side:
 `act {type: buy_unit, name: marksman}`, `show`, `commit`. Every other line
 keeps its own spelling. A `show` that names no file is the bound match's, and

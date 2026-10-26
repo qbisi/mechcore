@@ -57,6 +57,12 @@ header's deployment time has passed since it has lost the match, which
 A round opens when the fight before it is resolved, and `opened` is written in
 the same locked write that opens it.
 
+`match fork` writes a destination turn file with a restarted clock and
+`rebuilt` set. Both sides are given. With `--round`, both sides are uncommitted
+and decisions are empty; without it, the source's current commitments and
+pending decisions are carried when its turn file is available. The source's
+turn file remains unchanged unless the fork explicitly replaces the source.
+
 ### `rebuilt`
 
 Whether this round's file was rebuilt rather than carried, which means its
@@ -71,7 +77,7 @@ One entry each for `blue` and `red`.
 
 | Field | Means |
 | --- | --- |
-| `given` | that side has been handed to a player by `match new`; a third caller is refused |
+| `given` | that side has been handed to a player by `match new`, or reopened by `match fork`; a third `new` caller is refused |
 | `committed` | that side has written this round's decisions to the document |
 | `decisions` | what that side has decided this round and not committed, in the order taken |
 

@@ -60,6 +60,8 @@ a match, once a line has opened one or the shell was opened on it
   match new <match.yaml>          deal a match, or join one, and play the side handed out
   match show <match.yaml> --side blue|red
                                   play that side of a match already dealt
+  match fork <old.yaml> <new.yaml> [--side blue|red] [--round <n>] [--deploy-time <seconds>] [--override]
+                                  fork a match, optionally reopening a round
   show [--wait [<seconds>]]       the side's view of the match
   act <decision> [--dry-run]      take one decision or an ordered array of decisions
   commit                          write this round's decisions
@@ -304,16 +306,16 @@ async fn game(
 }
 
 /// Runs a `match` line, and answers the match and side it opens: `new`
-/// opens the side it handed out, and `show` the side it names.
+/// opens the side it handed out, and `show` or `fork` the side it names.
 fn open(mut arguments: Args) -> Result<Option<Bound>, Failure> {
     let format = arguments.format()?;
-    let verb = arguments.operand("a verb: new, show, act or commit")?;
+    let verb = arguments.operand("a verb: new, fork, show, act or commit")?;
     let mut words = vec![verb.clone()];
     words.extend(arguments.rest());
     let names_side = words.iter().any(|word| word == "--side");
     let view = crate::r#match::answer(Args::new(words))?;
     emit(&view, format)?;
-    if verb != "new" && !(verb == "show" && names_side) {
+    if verb != "new" && !(matches!(verb.as_str(), "show" | "fork") && names_side) {
         return Ok(None);
     }
     let path = view.get("match").and_then(Value::as_str).map(PathBuf::from);
@@ -497,6 +499,7 @@ mod tests {
         }
         for command in SESSIONLESS.iter().copied().chain([
             "match new",
+            "match fork",
             "match show",
             "act",
             "commit",
