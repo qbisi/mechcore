@@ -3,7 +3,9 @@
 // Everything drawn is a function of one moment, `tau`, measured in ticks: an
 // object's place is read off its tracks between the two ticks around it, and
 // every flash, recoil, swing and explosion is a function of how long ago the
-// recorded event that causes it happened. Nothing accumulates between frames,
+// recorded event that causes it happened. Committed commander-skill overlays
+// also use the layout and configuration; their forecasts are presentation.
+// Nothing accumulates between frames,
 // so the page plays at any speed, backwards when scrubbed, and seeks anywhere
 // at once.
 
@@ -1667,6 +1669,7 @@
     drawTerrains();
     place(0, 0);
     for (const d of deployments) SkillPreview.draw(ctx, d, tau, TPS, TEAMS[d.team], view.s);
+    for (const d of deployments) SkillPreview.drawStrike(ctx, d, tau, TPS, TEAMS[d.team], view.s);
     const bars = [];
     const aims = options.aim ? [] : null;
     const numbers = options.damage ? [] : null;
