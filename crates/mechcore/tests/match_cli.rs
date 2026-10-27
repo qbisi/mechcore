@@ -1216,6 +1216,48 @@ fn a_round_takes_one_reinforcement_answer() {
 }
 
 #[test]
+fn the_default_loadout_is_complete_and_fits_each_units_slots() {
+    use mechcore_document::{catalog, economy::Economy};
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    let game = mechcore_document::r#match::read(&fs::read(&path).unwrap())
+        .unwrap()
+        .unwrap();
+    let available = Economy::embedded().unwrap().unit_technologies();
+    for side in [&game.blue, &game.red] {
+        assert_eq!(side.tech_loadout.len(), available.len());
+        for (unit, technologies) in &available {
+            let name = catalog::unit_type_from_id(*unit).unwrap().0;
+            let chosen = &side.tech_loadout[unit];
+            let slots = if matches!(name, "war_factory" | "abyss" | "mountain") {
+                6
+            } else {
+                4
+            };
+            assert_eq!(chosen.len(), slots, "{name}");
+            assert!(chosen.windows(2).all(|pair| pair[0] < pair[1]), "{name}");
+            assert!(
+                chosen.iter().all(|tech| technologies.contains(tech)),
+                "{name}"
+            );
+        }
+    }
+    assert_eq!(game.blue.tech_loadout, game.red.tech_loadout);
+    open_the_match(&path);
+    // Doubleshot belongs to Fortress, but is outside the default four choices.
+    let refused = run(&[
+        "match",
+        "act",
+        &path,
+        "--side",
+        "blue",
+        "{type: upgrade_technology, unit: fortress, tech: doubleshot}",
+    ])
+    .refused();
+    assert!(refused.contains("loadout"), "{refused}");
+}
+
+#[test]
 fn a_technology_outside_the_loadout_is_refused() {
     let directory = tempfile::tempdir().unwrap();
     let loadout = directory.path().join("loadout.yaml");
