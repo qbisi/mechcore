@@ -59,8 +59,9 @@ this ground and fits its height exactly to the browser, without reserving
 space for the overlaid HUD or playback controls. Narrow windows may crop
 the sides; manual camera movement remains unrestricted.
 Numeric text uses a subset of native Xolonium-Regular;
-names retain the page's system font. Names over ten grapheme clusters keep their first five and last
-four, separated by `*`, with the full name in the badge's title and accessible
+names retain the page's system font and shrink to fit their plate. Names up to
+30 grapheme clusters are shown in full. Longer names keep their first 15 and last
+14, separated by `*`, with the full name in the badge's title and accessible
 label. The maximum still determines the fill and remains in the meter's
 accessibility metadata.
 Below each name plate, a card button counts that side's held officers.

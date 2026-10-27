@@ -96,7 +96,7 @@ html, body {
 }
 .red .core-value { justify-content: flex-end; }
 .core-label { position: absolute; left: 12px; right: 12px; top: 33px; height: 19px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.core-label b { max-width: 73%; white-space: nowrap; font-size: clamp(9px, 4cqw, 13px); font-weight: 400; color: #d6d9df; line-height: 1.2; pointer-events: auto; }
+.core-label b { max-width: 73%; white-space: nowrap; font-size: min(clamp(9px, 4cqw, 13px), calc(65cqw / var(--name-length, 1))); font-weight: 400; color: #d6d9df; line-height: 1.2; pointer-events: auto; }
 .red .core-label { flex-direction: row-reverse; }
 .core-damage { color: #ffb1a3; white-space: nowrap; font: 400 12px "Mechcore HUD", system-ui, sans-serif; }
 .core.unknown .core-track { opacity: .4; }
