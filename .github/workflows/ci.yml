@@ -21,6 +21,58 @@ concurrency:
 # guess which checks were still to come; the caches below are what keep a run
 # that changed nothing a job reads cheap.
 jobs:
+  # Build the flake's package checks on every supported native platform.
+  # Darwin checks both the CLI and the package with the independently built
+  # Adapter. Only master publishes newly built store paths to Cachix.
+  nix:
+    name: nix (${{ matrix.system }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: x86_64-linux
+            runner: ubuntu-24.04
+          - system: aarch64-linux
+            runner: ubuntu-24.04-arm
+          - system: aarch64-darwin
+            runner: macos-15
+    runs-on: ${{ matrix.runner }}
+    environment: cachix
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
+        with:
+          github_access_token: ${{ github.token }}
+
+      - name: Check Cachix configuration
+        if: github.event_name == 'push'
+        env:
+          CACHIX_CACHE_NAME: ${{ vars.CACHIX_CACHE_NAME }}
+          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+        run: |
+          test -n "$CACHIX_CACHE_NAME" || {
+            echo "::error::Set the CACHIX_CACHE_NAME environment variable."
+            exit 1
+          }
+          test -n "$CACHIX_AUTH_TOKEN" || {
+            echo "::error::Set the CACHIX_AUTH_TOKEN environment secret."
+            exit 1
+          }
+
+      - name: Configure Cachix
+        if: github.event_name == 'push'
+        uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
+        with:
+          name: ${{ vars.CACHIX_CACHE_NAME }}
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build and test Nix packages
+        run: nix flake check --print-build-logs
+
   # Does the code say what it should: formatting, lints and the test suite.
   # Only the Adapter is macOS code, so everything else is checked on Linux,
   # excluding the independently built mechcore-adapter package.
