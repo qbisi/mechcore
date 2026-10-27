@@ -540,8 +540,8 @@ impl Economy {
     /// order.
     ///
     /// A match's `tech_loadout` is an account's own choice of these, which a
-    /// replay records. A match nobody handed one to carries all of them: it is
-    /// the build's answer rather than an invented account's.
+    /// replay records. This catalogue includes every choice, rather than a
+    /// player's limited loadout.
     #[must_use]
     pub fn unit_technologies(&self) -> BTreeMap<i32, Vec<i32>> {
         let mut rows: BTreeMap<i32, Vec<i32>> = BTreeMap::new();

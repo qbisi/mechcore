@@ -161,7 +161,10 @@ fn deal(
     let dealt = opening::predict(economy, seed, map_id).map_err(Failure::refused)?;
     let loadout = match loadout {
         Some(path) => read_loadout(path)?,
-        None => economy.unit_technologies(),
+        None => mechcore_document::names::loadout::deserialize(serde_yaml::Deserializer::from_str(
+            include_str!("../default-loadout.yaml"),
+        ))
+        .map_err(|error| Failure::failed(format!("cannot read the default loadout: {error}")))?,
     };
     // Each player brings a seed of its own, as the game's server hands one
     // out, which an officer that draws its hand-out draws from.

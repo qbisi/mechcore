@@ -863,9 +863,10 @@ Every option may be left out. A seed nobody chose is drawn, a map nobody chose
 is drawn from the maps this build has an opening initialization for, and a
 deployment time nobody chose is the 100 seconds a standard match deploys in.
 All three are written into the header, so a match nobody configured is as
-reproducible as one somebody did. A side that names no loadout carries every
-technology this build gives its units, which is the most a side could have
-chosen and makes a dealt match the build's rather than an absent account's.
+reproducible as one somebody did. A side that names no loadout carries the
+embedded [default loadout](../../../crates/mechcore/default-loadout.yaml): four
+technologies per unit, or six for War Factory, Abyss and Mountain. Both sides
+start with the same preset; `--loadout` on the deal replaces it.
 
 Whichever caller names the document first deals the match and writes that
 header; the second joins it. A join that names a seed, map or deployment time

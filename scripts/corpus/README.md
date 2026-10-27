@@ -11,6 +11,7 @@ recording studies; the earlier native archive remains in Git history.
 
 | Script | What it does |
 | --- | --- |
+| `default-loadout.py` | ranks current-version player loadout choices, counting each match's two sides once, and prints the CLI's default four or six technologies per unit |
 | `collect-replays.py` | enters live standard 1v1 rooms at round 2 or later, saves the native cache, leaves, then converts it to `BattleID-rN.yaml` in `work/watch/` (or `--output-dir`); it needs the game |
 | `tournament-replays.py` | lists recent tournaments with dates and regions, then downloads every subdivision and ranking page of one tournament ID through the Adapter and converts unique replays to `<date>-<region>/<BattleID>.yaml`; `download --publish` uploads after success, and offline `publish` uploads collected tournaments; listing and downloading need an online game |
 | `replay.py` | `sync` fetches the corpus into the untracked `work/replay/`; `path` prints its versioned match directory; `publish --source <dir>` validates and uploads collected match YAML, and `--dry-run` checks without publishing |
