@@ -24,40 +24,29 @@ nothing partial is ever published.
 artifact is `target/release/libmechcore_adapter.dylib`; the artifact name is
 not tied to a game version.
 
-The repository pins nightly Rust in `rust-toolchain.toml` and enables Cargo
-artifact dependencies in `.cargo/config.toml`. Use a rustup-provided Cargo
-(a standalone stable Cargo, including one installed by Nix, does not select
-the pinned toolchain). For a Nix environment without rustup, enter
-`nix-shell -p rustup` first; its `cargo` proxy selects the pinned nightly.
-
-Build the CLI and its Adapter together from the repository root:
+The repository selects stable Rust in `rust-toolchain.toml`. The CLI and
+Adapter are independent Cargo packages. Build both from the repository root
+when using the game:
 
 ```sh
 cargo build -p mechcore --release
+cargo build -p mechcore-adapter --release
 ```
 
-`cargo run --release -- game launch` also checks and builds the
-Adapter before running the CLI. Cargo tracks the Adapter's source and transitive
-dependencies; the CLI build script atomically copies the resulting dylib beside
-the executable. No runtime Cargo invocation or absolute build path is needed.
-The workspace defaults to the CLI; use `--workspace` for workspace-wide checks.
-
-Packaging the Adapter is the CLI's default `adapter` feature, and the only part
-of the workspace that needs macOS. Everything that needs no game — the
-simulator, the readers, every command but `game` — builds anywhere without it:
+Rebuild `mechcore-adapter` when its source or shared dependencies change.
+`cargo run --release -- game launch` builds the CLI alone and loads the
+existing Adapter. The workspace defaults to the CLI; use `--workspace` for
+workspace-wide checks on macOS. Everything that needs no game builds without
+the Adapter on other platforms:
 
 ```sh
-cargo build -p mechcore --release --no-default-features
-cargo test --workspace --exclude mechcore-adapter --no-default-features
+cargo build -p mechcore --release
+cargo test --workspace --exclude mechcore-adapter
 ```
 
-Such a binary refuses `game launch` with `launch_failed`, naming the missing
-feature.
-Release build dependencies explicitly use optimization level 3 and one codegen
-unit because Cargo otherwise builds build-time artifacts without optimization.
-Cargo keeps build dependencies on its unwind panic strategy; the CLI retains
-the workspace's abort strategy.
-The default release directory contains both files:
+Both packages use the workspace's release profile, which permits unwinding
+so the Adapter can catch panics at the game boundary. Building both puts their
+artifacts in the same release directory:
 
 ```text
 target/release/mechcore
@@ -65,11 +54,16 @@ target/release/libmechcore_adapter.dylib
 ```
 
 Debug builds, custom target directories and explicit target triples use their
-corresponding output directory. Distribute both files together. A running game
+corresponding output directory. The CLI searches its own executable directory
+first, then `../lib`, for `libmechcore_adapter.dylib`. An installation may
+therefore put `mechcore` in `bin/` and the Adapter in `lib/`. Resolution is
+relative to the running executable, independent of the working directory.
+When both candidates are missing, `game launch` refuses with `launch_failed`
+and lists the paths searched. A running game
 keeps the Adapter it loaded, including when using `attach`. A game `mechcore`
 launched lingers after its last client, and the next `game launch`, as a
 command or in a shell, retires it and starts a new one when the Adapter it
-loaded is not the one beside `mechcore` and no other client is connected, so a
+loaded is not the one found by `mechcore` and no other client is connected, so a
 rebuilt Adapter is loaded without quitting anything by hand. A game started any other way is joined with the
 Adapter it has; `quit_game` is a plain operation any client can call for that
 reason. When the wire contract itself changed, the running game answers with
@@ -77,19 +71,14 @@ the old `protocol` name and every new client is refused with
 `protocol_mismatch`; a lingering game quits itself within 30 s, and any other
 is quit from the game's own menu, before launching again.
 
-`python3 scripts/check/check-adapter-packaging.py` exercises the real packaging build
-script with a small test dylib: source changes, no-op builds, a removed copy,
-debug/release profiles, a custom output directory and an explicit target triple.
-Run it in the same nightly environment after fetching the workspace dependencies.
-
 The default Steam game executable is home-relative:
 
 ```text
 Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/Contents/MacOS/Mechabellum
 ```
 
-`mechcore` launches the game itself. It resolves the Adapter as a sibling of
-its own executable and injects it, so no caller assembles that command:
+`mechcore` launches the game itself. It resolves and injects the Adapter, so
+no caller assembles that command:
 
 ```sh
 mechcore shell

@@ -16,7 +16,6 @@ rustPlatform.buildRustPackage {
   src = lib.fileset.toSource {
     root = ./.;
     fileset = lib.fileset.unions [
-      ./.cargo
       ./Cargo.toml
       ./Cargo.lock
       ./GAME_VERSION
@@ -27,11 +26,13 @@ rustPlatform.buildRustPackage {
   };
 
   cargoLock.lockFile = ./Cargo.lock;
-  buildNoDefaultFeatures = true;
-  buildFeatures = lib.optional withAdapter "adapter";
   cargoBuildFlags = [
     "-p"
     "mechcore"
+  ]
+  ++ lib.optionals withAdapter [
+    "-p"
+    "mechcore-adapter"
   ];
   # Package-local unit tests need neither a running game nor recordings.
   # Repository CI owns the workspace integration and fixture regression suites.
@@ -41,12 +42,6 @@ rustPlatform.buildRustPackage {
     "--bin"
     "mechcore"
   ];
-
-  # The CLI resolves its adapter beside the executable, rather than in lib/.
-  postInstall = lib.optionalString withAdapter ''
-    mv "$out/lib/libmechcore_adapter.dylib" "$out/bin/"
-    rmdir "$out/lib"
-  '';
 
   meta = {
     description = "Deterministic Mechabellum simulator, recording toolkit, and battle player";

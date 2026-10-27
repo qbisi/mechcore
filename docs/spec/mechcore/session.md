@@ -143,8 +143,8 @@ and waits for ever. It belongs to whoever started it.
 `quit_game` is an operation any client may call to end the game now, for
 everyone: whatever runs or waits is answered `game_stopped`. A running
 game keeps the Adapter it started with, and a launch retires a lingering game
-whose Adapter is not the one beside it, so a rebuilt Adapter is loaded by the
-next launch without quitting anything by hand.
+whose Adapter is not the one found beside it or in `../lib`, so a rebuilt
+Adapter is loaded by the next launch without quitting anything by hand.
 
 The shell banner says whether a session launched the game or joined it, and
 where a launched game's output goes.

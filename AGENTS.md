@@ -18,11 +18,13 @@ says what qualifies as one; read it before opening one.
 
 # Building and CI
 
-The Adapter is `mechcore`'s default feature `adapter` and the only macOS code.
-Everything else builds and tests on any platform with `--no-default-features`,
-which is how CI's Linux jobs build; code that only holds on macOS goes behind
-`cfg(target_os = "macos")`. What each CI job checks is in the comments of
-`.github/workflows/ci.yml`.
+Use stable Rust. The CLI and Adapter are independent Cargo packages: build
+`mechcore` on every platform, and `mechcore-adapter` separately on macOS.
+Rebuild the Adapter when its source or shared dependencies change. Development
+builds put the dylib beside the CLI; installed packages may put it in `../lib`.
+The CLI searches those locations in that order. Code that only holds on macOS
+goes behind `cfg(target_os = "macos")`. What each CI job checks is in the
+comments of `.github/workflows/ci.yml`.
 
 Run `cargo fmt --all` before committing; CI checks it.
 

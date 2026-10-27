@@ -301,7 +301,7 @@ const SANDBOX: &str = "/usr/bin/sandbox-exec";
 const OFFLINE_RULES: &str = "(version 1)(allow default)\
     (deny network-outbound (remote ip))(deny network-inbound (local ip))";
 
-/// Start the game with the sibling Adapter and wait for its endpoint.
+/// Start the game with the resolved Adapter and wait for its endpoint.
 async fn launch(
     endpoint: &Path,
     level: u8,
@@ -401,7 +401,7 @@ fn unfit(game: Option<&GameIdentity>, how: Launch) -> Result<Option<String>, Box
     };
     if game.adapter != adapter_digest(&adapter_dylib()?)? {
         return Ok(Some(
-            "it runs an Adapter other than the one beside this executable".into(),
+            "it runs an Adapter other than the one installed with this executable".into(),
         ));
     }
     if game.headless && !how.headless {
@@ -524,9 +524,7 @@ async fn probe_endpoint(endpoint: &Path, level: u8, client: &str) -> Probe {
     }
 }
 
-/// The Adapter shipped beside the running executable.
-///
-/// Resolving it as a sibling keeps a built target directory relocatable.
+/// Prefer a development build's sibling, then a distribution's `../lib`.
 fn adapter_dylib() -> Result<PathBuf, Box<Failure>> {
     let executable = std::env::current_exe().map_err(|error| {
         Box::new(Failure::new(
@@ -534,28 +532,33 @@ fn adapter_dylib() -> Result<PathBuf, Box<Failure>> {
             format!("cannot resolve the running executable: {error}"),
         ))
     })?;
+    adapter_dylib_for(&executable)
+}
+
+fn adapter_dylib_for(executable: &Path) -> Result<PathBuf, Box<Failure>> {
     let directory = executable.parent().ok_or_else(|| {
         Box::new(Failure::new(
             "launch_failed",
             format!("{} has no parent directory", executable.display()),
         ))
     })?;
-    let dylib = directory.join(ADAPTER_DYLIB);
-    if !dylib.is_file() {
-        let built_without = if cfg!(feature = "adapter") {
-            ""
-        } else {
-            " (this mechcore was built without the `adapter` feature)"
-        };
-        return Err(Box::new(Failure::new(
-            "launch_failed",
-            format!(
-                "no Adapter beside the executable: {}{built_without}",
-                dylib.display()
-            ),
-        )));
+    let candidates = [
+        directory.join(ADAPTER_DYLIB),
+        directory.join("../lib").join(ADAPTER_DYLIB),
+    ];
+    for path in &candidates {
+        if path.is_file() {
+            return Ok(path.clone());
+        }
     }
-    Ok(dylib)
+    Err(Box::new(Failure::new(
+        "launch_failed",
+        format!(
+            "no Adapter found; searched {} and {}; build mechcore-adapter separately or install it with mechcore",
+            candidates[0].display(),
+            candidates[1].display()
+        ),
+    )))
 }
 
 /// Where a launched game's stdout and stderr are sent.
@@ -665,6 +668,37 @@ fn process_path(pid: u32) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn adapter_lookup_prefers_a_sibling_and_falls_back_to_lib() {
+        let root = tempfile::tempdir().unwrap();
+        let bin = root.path().join("bin");
+        let lib = root.path().join("lib");
+        std::fs::create_dir(&bin).unwrap();
+        std::fs::create_dir(&lib).unwrap();
+        let executable = bin.join("mechcore");
+        let sibling = bin.join(ADAPTER_DYLIB);
+        let installed = bin.join("../lib").join(ADAPTER_DYLIB);
+        let resolve =
+            || adapter_dylib_for(&executable).unwrap_or_else(|failure| panic!("{failure}"));
+
+        let failure = adapter_dylib_for(&executable).unwrap_err();
+        assert_eq!(failure.code, "launch_failed");
+        assert!(failure.to_string().contains(&sibling.display().to_string()));
+        assert!(
+            failure
+                .to_string()
+                .contains(&installed.display().to_string())
+        );
+
+        std::fs::write(&installed, b"installed").unwrap();
+        assert_eq!(resolve(), installed);
+        std::fs::write(&sibling, b"development").unwrap();
+        assert_eq!(resolve(), sibling);
+        std::fs::remove_file(&sibling).unwrap();
+        std::fs::create_dir(&sibling).unwrap();
+        assert_eq!(resolve(), installed);
+    }
 
     #[test]
     #[cfg(target_os = "macos")]

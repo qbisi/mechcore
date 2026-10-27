@@ -224,7 +224,7 @@ impl<E: Copy + Ord> FightQuadtreeNode<E> {
     pub(in crate::fight) fn append_query_order(&self, output: &mut Vec<E>) {
         output.extend(self.elements.iter().copied());
         if let Some(children) = &self.children {
-            for child in children {
+            for child in children.iter() {
                 child.append_query_order(output);
             }
         }
