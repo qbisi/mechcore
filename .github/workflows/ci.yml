@@ -23,7 +23,7 @@ concurrency:
 jobs:
   # Does the code say what it should: formatting, lints and the test suite.
   # Only the Adapter is macOS code, so everything else is checked on Linux,
-  # without the `adapter` feature that would build it.
+  # excluding the independently built mechcore-adapter package.
   test:
     runs-on: ubuntu-latest
     # The workspace's own crates are compiled afresh on every run, since a
@@ -37,9 +37,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # `rust-toolchain.toml` pins the nightly and its components, so the first
-      # cargo invocation installs exactly what the checkout asks for.
-      - name: Show the toolchain the checkout pins
+      # `rust-toolchain.toml` selects stable Rust and its components.
+      - name: Show the toolchain the checkout selects
         run: cargo --version && cargo clippy --version
 
       # A cache is written from master alone and read everywhere. A pull
@@ -63,10 +62,10 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Lints
-        run: cargo clippy --workspace --exclude mechcore-adapter --no-default-features --all-targets -- -D warnings
+        run: cargo clippy --workspace --exclude mechcore-adapter --all-targets -- -D warnings
 
       - name: Tests
-        run: cargo test --workspace --exclude mechcore-adapter --no-default-features
+        run: cargo test --workspace --exclude mechcore-adapter
 
       # What the next run builds again anyway is not worth storing: the cache
       # keeps the dependencies alone.
@@ -114,7 +113,7 @@ jobs:
           restore-keys: cargo-scripts-fast-${{ runner.os }}-
 
       - name: Release build, without the Adapter
-        run: cargo build --release -p mechcore --no-default-features
+        run: cargo build --release -p mechcore
 
       # Every fight document under `tests/*/` is fought again by the
       # simulator and compared with what the game recorded, while recording
@@ -145,7 +144,7 @@ jobs:
           key: ${{ steps.cache.outputs.cache-primary-key }}
 
   # The Adapter is a macOS `cdylib` that patches code through `vm_protect`, and
-  # `mechcore` packages it beside its executable by default. This is the one
+  # Cargo builds it independently of the CLI. This is the one
   # job that needs the platform, so it checks only what the others cannot: the
   # Adapter itself, the packaged build, and the process lookup `game: launch`
   # uses to find a running game.
@@ -166,16 +165,17 @@ jobs:
           restore-keys: cargo-adapter-${{ runner.os }}-
 
       - name: Lints, with the Adapter
-        run: cargo clippy -p mechcore-adapter -p mechcore --all-targets --all-features -- -D warnings
+        run: cargo clippy -p mechcore-adapter -p mechcore --all-targets -- -D warnings
 
       - name: The Adapter's tests, and the macOS process lookup
         run: |
           cargo test -p mechcore-adapter
           cargo test -p mechcore --bin mechcore acquire::
 
-      - name: mechcore packages the Adapter
+      - name: Build the CLI and Adapter independently
         run: |
           cargo build -p mechcore
+          cargo build -p mechcore-adapter
           test -f target/debug/libmechcore_adapter.dylib
 
       - uses: actions/cache/save@v4

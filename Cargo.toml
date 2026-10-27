@@ -20,7 +20,8 @@ rust-version = "1.89"
 [profile.release]
 codegen-units = 1
 lto = "thin"
-panic = "abort"
+# Keep unwinding enabled: the independently built Adapter catches panics at
+# the game boundary instead of aborting the host process.
 strip = "symbols"
 
 # The release build with its symbols kept, so `convert --profile` names the
@@ -30,19 +31,9 @@ inherits = "release"
 debug = "line-tables-only"
 strip = "none"
 
-# The Adapter is a build-time artifact but runs inside the game. Cargo's
-# default build-dependency opt-level=0 is inappropriate for native capture.
-[profile.release.build-override]
-opt-level = 3
-codegen-units = 1
-
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
-
-# `assert!(value.is_empty())` reads better than the `assert_eq!(value, [] as [T; 0])`
-# rewrite this lint proposes, and the tests assert emptiness throughout.
-assert_is_empty = "allow"

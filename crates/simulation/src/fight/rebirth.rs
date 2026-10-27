@@ -683,9 +683,9 @@ fn make_random_offset(pilot: &mut Pilot, random: &mut random::GrRandom) {
         .map(|axis| math::q32_mul(swing, axis));
     if rvo::fpoint_greater_or_equal(pilot.r_sum_q32, PI_TIMES_2_Q32) {
         pilot.r_sum_q32 = pilot.r_sum_q32.saturating_sub(PI_TIMES_2_Q32);
-        for axis in 0..3 {
+        for (axis, range) in range.into_iter().enumerate() {
             let draw = random.next_between_inclusive(-1, 0);
-            pilot.offset[axis] = math::q32_mul(range[axis], i64::from(draw) << 32);
+            pilot.offset[axis] = math::q32_mul(range, i64::from(draw) << 32);
         }
     }
 }

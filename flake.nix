@@ -3,17 +3,12 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    rust-overlay = {
-      url = "github:oxalica/rust-overlay";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
     {
       self,
       nixpkgs,
-      rust-overlay,
     }:
     let
       supportedSystems = [
@@ -24,21 +19,9 @@
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
     in
     {
-      overlays.default = nixpkgs.lib.composeManyExtensions [
-        rust-overlay.overlays.default
-        (final: _prev: {
-          mechcore =
-            let
-              rust = final.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
-            in
-            final.callPackage ./package.nix {
-              rustPlatform = final.makeRustPlatform {
-                cargo = rust;
-                rustc = rust;
-              };
-            };
-        })
-      ];
+      overlays.default = final: _prev: {
+        mechcore = final.callPackage ./package.nix { };
+      };
 
       packages = forAllSystems (
         system:

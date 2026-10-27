@@ -703,7 +703,6 @@ dependencies = [
  "arrow-schema",
  "blake3",
  "libc",
- "mechcore-adapter",
  "mechcore-document",
  "mechcore-mcfr",
  "mechcore-player",
