@@ -37,3 +37,7 @@ unsafe_op_in_unsafe_fn = "deny"
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
+
+# Keep empty-collection assertions readable instead of comparing with a
+# typed empty array. This lint is available in stable Clippy from Rust 1.99.
+assert_is_empty = "allow"
