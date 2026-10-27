@@ -1764,8 +1764,9 @@
     document.getElementById('battle-round').textContent=`Round ${data.round}`;
     for (const [i,v] of coreViews.entries()) {
       const core=data.cores[i];
-      const characters=Array.from(new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(core.name),s=>s.segment);
-      v.name.textContent=characters.length>10?characters.slice(0,5).join('')+'*'+characters.slice(-4).join(''):core.name;
+      v.name.textContent=HudFrame.displayName(core.name);
+      const length=Array.from(new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(v.name.textContent)).length;
+      v.name.style.setProperty('--name-length',String(Math.max(1,length)));
       v.name.title=core.name;
       v.name.setAttribute('aria-label',core.name);
       const supply=document.getElementById(`supply-card-${i}`);

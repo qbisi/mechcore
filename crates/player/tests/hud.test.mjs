@@ -6,6 +6,14 @@ import assert from 'node:assert/strict';
 const {HudFrame}=vm.runInNewContext(
   readFileSync(new URL('../web/hud.js',import.meta.url),'utf8')+'\n({HudFrame})',{Math});
 
+test('names show 30 graphemes without splitting combining marks or emoji',()=>{
+  for(const character of ['a','\u754c','e\u0301','👨‍👩‍👧‍👦']) {
+    const name=character.repeat(30);
+    assert.equal(HudFrame.displayName(name),name);
+    assert.equal(HudFrame.displayName(name+character),character.repeat(15)+'*'+character.repeat(14));
+  }
+});
+
 test('resizing the HUD extends its middle without scaling its end caps or strokes',()=>{
   for(const width of [80,120,240,462,800]){
     const shape=HudFrame.outline(width);

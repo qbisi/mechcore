@@ -5,6 +5,10 @@ const HudFrame = (() => {
   // The design's CSS dimensions at 1.25 pixels per world metre. Scale the
   // entire HUD with the natural map fit, independently of camera zoom.
   const uiScale=naturalFit=>naturalFit/1.25;
+  function displayName(name) {
+    const characters=Array.from(new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(name),s=>s.segment);
+    return characters.length>30?characters.slice(0,15).join('')+'*'+characters.slice(-14).join(''):name;
+  }
   function outline(width) {
     const w=Math.max(80,width), plate=Math.min(w-42,Math.max(110,w*.64));
     return {width:w,plate,
@@ -32,5 +36,5 @@ const HudFrame = (() => {
     return `<path d="M1 1H${w-1}L${w-12} 24H${w*.7}L${w*.7-5} 28H${w*.3+5}L${w*.3} 24H12Z" fill="#131c29" fill-opacity=".78" stroke="#64748b" stroke-opacity=".45"/>
       <path d="M7 3H${w-7}" stroke="#9aabc1" stroke-opacity=".18"/>`;
   }
-  return {outline,border,center,uiScale};
+  return {outline,border,center,uiScale,displayName};
 })();
