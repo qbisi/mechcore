@@ -579,6 +579,13 @@ resume after the last projectile.
 
 ## Normal target scoring and pre-fight acquisition
 
+When `SkillIdleState.Enter` searches immediately for an active movement
+command after clearing its targets, it resets the search timer. The new
+lock is retained while the body turns rather than searched again on the
+next update. The commanded Sandworm in
+[`1130-r9.yaml`](../../tests/corpus/1130-r9.yaml) acquires Crawler 198 at
+tick 187 and keeps it at tick 188.
+
 An actor's death removes it from the spatial trees before its buff death
 callbacks create summons. Those summons enter the trees when created;
 assigning their recording IDs preserves their nodes and enumeration order.
