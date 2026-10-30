@@ -1,8 +1,8 @@
 //! Reconstructs deployment decisions from their two endpoint positions.
 //!
-//! The sequence is a normal form of the deployment, not a compressed trace of
-//! the player's clicks. Every emitted decision is stepped and the resulting
-//! position is compared with the requested endpoint.
+//! The sequence is a normal form of the deployment. History supplies only
+//! upgrades preceding Enhancement Modules, whose fitting time changes prices.
+//! Every emitted decision is stepped and compared with the requested endpoint.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -14,9 +14,31 @@ use crate::r#match::{Action, Offers, SideState, SkillTarget, StateUnit};
 
 const ENHANCEMENT_MODULE: i32 = 13_030_004;
 
+/// The level reached before each newly fitted Enhancement Module. Fitting
+/// order distinguishes multiple modules on the same formation.
+#[derive(Clone, Default)]
+pub(crate) struct UpgradeDependencies(BTreeMap<(i32, usize), i32>);
+
+impl UpgradeDependencies {
+    /// Observe an action after it has been stepped in its historical order.
+    pub(crate) fn record(&mut self, position: &SideState, action: &Action) {
+        if let Action::UseEquipment {
+            equipment: ENHANCEMENT_MODULE,
+            index,
+        } = action
+            && let Some(unit) = position.units.iter().find(|unit| unit.unit.index == *index)
+        {
+            self.0.insert(
+                (*index, unit.unit.equipment.len() - 1),
+                unit.unit.level.unwrap_or(1),
+            );
+        }
+    }
+}
+
 /// Formats a match, rebuilding each complete action segment from its endpoints.
-/// Historical decisions are evaluated in their original order only to obtain
-/// the closing position. They do not supply the reconstructed sequence.
+/// Historical decisions supply the closing position and the upgrades that
+/// precede fitting each Enhancement Module, rather than a compressed trace.
 ///
 /// # Errors
 /// Returns a malformed match, a historical decision that cannot be evaluated,
@@ -43,6 +65,7 @@ pub fn match_yaml(bytes: &[u8]) -> Result<String, String> {
                 .map(|offers| offers.refund);
             let mut closed = opened.clone();
             let mut placement = crate::landing::placement(red);
+            let mut dependencies = UpgradeDependencies::default();
             for action in actions.iter() {
                 closed = crate::transition::step_placing(
                     crate::economy::Economy::embedded()?,
@@ -58,6 +81,7 @@ pub fn match_yaml(bytes: &[u8]) -> Result<String, String> {
                         if red { "red" } else { "blue" }
                     )
                 })?;
+                dependencies.record(&closed, action);
             }
             let conceded = actions.last() == Some(&Action::Concede);
             *actions = deployment(
@@ -66,6 +90,7 @@ pub fn match_yaml(bytes: &[u8]) -> Result<String, String> {
                 &closed,
                 turn.state.reinforce_offers.as_ref(),
                 red,
+                &dependencies,
             )
             .map_err(|error| {
                 format!(
@@ -96,7 +121,8 @@ pub fn match_yaml(bytes: &[u8]) -> Result<String, String> {
         .map(|segments| segments.join("---\n"))
 }
 
-/// Reconstructs the standard deployment sequence, without consulting its history.
+/// Reconstructs the standard deployment sequence from its endpoints and the
+/// historical upgrades that must precede fitting an Enhancement Module.
 ///
 /// Choices that leave the same position use offer order, formation indices,
 /// technology IDs and panel indices as tie breakers. A purchase names its
@@ -106,12 +132,13 @@ pub fn match_yaml(bytes: &[u8]) -> Result<String, String> {
 /// # Errors
 /// Returns the first unresolved endpoint difference or an unrepresentable
 /// decision dependency. No partially reconstructed sequence is returned.
-pub fn deployment(
+pub(crate) fn deployment(
     economy: &Economy,
     opened: &SideState,
     ended: &SideState,
     offers: Option<&Offers>,
     red: bool,
+    dependencies: &UpgradeDependencies,
 ) -> Result<Vec<Action>, String> {
     let choices: Vec<_> = offers.map_or_else(
         || vec![None],
@@ -142,6 +169,7 @@ pub fn deployment(
             position: opened.clone(),
             actions: Vec::new(),
             purchase_levels: BTreeMap::new(),
+            upgrade_dependencies: dependencies.clone(),
             research: ended
                 .techs
                 .iter()
@@ -192,6 +220,7 @@ struct Builder<'a> {
     actions: Vec<Action>,
     research: BTreeSet<i32>,
     purchase_levels: BTreeMap<i32, i32>,
+    upgrade_dependencies: UpgradeDependencies,
 }
 
 impl Builder<'_> {
@@ -250,6 +279,22 @@ impl Builder<'_> {
 
     fn dependencies(&mut self, action: &Action) -> Result<(), String> {
         match action {
+            Action::UseEquipment {
+                equipment: ENHANCEMENT_MODULE,
+                index,
+            } => {
+                let held = self.unit(*index)?;
+                if let Some(level) = self
+                    .upgrade_dependencies
+                    .0
+                    .get(&(*index, held.unit.equipment.len()))
+                    .copied()
+                {
+                    while self.unit(*index)?.unit.level.unwrap_or(1) < level {
+                        self.upgrade(*index)?;
+                    }
+                }
+            }
             Action::BuyUnit { unit, level, .. } => {
                 if !self.position.unlocked_units.contains(unit) {
                     self.push(Action::UnlockUnit { unit: *unit })?;
@@ -824,13 +869,7 @@ impl Builder<'_> {
         for wanted in &self.target.units {
             let index = wanted.unit.index;
             while self.unit(index)?.unit.level.unwrap_or(1) < wanted.unit.level.unwrap_or(1) {
-                let training_used = self.spare_training();
-                if self.unit(index)?.unit.exp.is_some_and(|exp| !exp.is_full())
-                    || training_used && !self.unit(index)?.unit.exp.is_some_and(Experience::is_full)
-                {
-                    self.train(index)?;
-                }
-                self.push(Action::UpgradeUnit { index })?;
+                self.upgrade(index)?;
             }
             if self.unit(index)?.unit.exp != wanted.unit.exp
                 && wanted.unit.exp.is_some_and(Experience::is_full)
@@ -897,6 +936,15 @@ impl Builder<'_> {
             return Err(different.join(", "));
         }
         Ok(self.actions)
+    }
+
+    fn upgrade(&mut self, index: i32) -> Result<(), String> {
+        if self.unit(index)?.unit.exp.is_some_and(|exp| !exp.is_full())
+            || self.spare_training() && !self.unit(index)?.unit.exp.is_some_and(Experience::is_full)
+        {
+            self.train(index)?;
+        }
+        self.push(Action::UpgradeUnit { index })
     }
 
     fn train(&mut self, index: i32) -> Result<(), String> {
@@ -1111,16 +1159,110 @@ mod tests {
     }
 
     fn normalized(opened: &SideState, closed: &SideState) -> Vec<Action> {
+        normalized_with_dependencies(opened, closed, &UpgradeDependencies::default())
+    }
+
+    fn recorded_dependencies(opened: &SideState, history: &[Action]) -> UpgradeDependencies {
+        let mut dependencies = UpgradeDependencies::default();
+        let mut position = opened.clone();
+        for action in history {
+            position = close(&position, std::slice::from_ref(action));
+            dependencies.record(&position, action);
+        }
+        dependencies
+    }
+
+    fn normalized_with_dependencies(
+        opened: &SideState,
+        closed: &SideState,
+        dependencies: &UpgradeDependencies,
+    ) -> Vec<Action> {
         let economy = Economy::embedded().unwrap();
-        let actions = deployment(economy, opened, closed, None, false).unwrap();
+        let actions = deployment(economy, opened, closed, None, false, dependencies).unwrap();
         let reproduced =
             crate::transition::deployed(economy, opened, &actions, false, None).unwrap();
         assert_eq!(comparable(&reproduced), comparable(closed));
         assert_eq!(
-            deployment(economy, opened, &reproduced, None, false).unwrap(),
+            deployment(
+                economy,
+                opened,
+                &reproduced,
+                None,
+                false,
+                &recorded_dependencies(opened, &actions)
+            )
+            .unwrap(),
             actions
         );
         actions
+    }
+
+    #[test]
+    fn enhancement_module_preserves_upgrades_before_and_after_fitting() {
+        let mut opened = side();
+        opened.units[0].unit.type_name = "melting_point".into();
+        opened.units[0].unit.level = Some(4);
+        opened.equipment.push(EquipmentItem {
+            id: ENHANCEMENT_MODULE,
+            durability: None,
+        });
+        let upgrade = Action::UpgradeUnit { index: 0 };
+        let module = Action::UseEquipment {
+            equipment: ENHANCEMENT_MODULE,
+            index: 0,
+        };
+        for (history, cost) in [
+            (vec![module.clone(), upgrade.clone(), upgrade.clone()], 200),
+            (vec![upgrade.clone(), module.clone(), upgrade.clone()], 300),
+            (vec![upgrade.clone(), upgrade.clone(), module.clone()], 400),
+        ] {
+            let closed = close(&opened, &history);
+            assert_eq!(opened.supply - closed.supply, cost);
+            assert_eq!(
+                normalized_with_dependencies(
+                    &opened,
+                    &closed,
+                    &recorded_dependencies(&opened, &history)
+                ),
+                history
+            );
+        }
+    }
+
+    #[test]
+    fn successive_modules_keep_distinct_upgrade_dependencies() {
+        let mut opened = side();
+        opened.units[0].unit.type_name = "melting_point".into();
+        opened.officers.push(10540);
+        opened.equipment = vec![
+            EquipmentItem {
+                id: ENHANCEMENT_MODULE,
+                durability: None
+            };
+            2
+        ];
+        let upgrade = Action::UpgradeUnit { index: 0 };
+        let module = Action::UseEquipment {
+            equipment: ENHANCEMENT_MODULE,
+            index: 0,
+        };
+        let history = [
+            upgrade.clone(),
+            module.clone(),
+            upgrade.clone(),
+            module,
+            upgrade,
+        ];
+        let closed = close(&opened, &history);
+        assert_eq!(opened.supply - closed.supply, 300);
+        assert_eq!(
+            normalized_with_dependencies(
+                &opened,
+                &closed,
+                &recorded_dependencies(&opened, &history)
+            ),
+            history
+        );
     }
 
     #[test]

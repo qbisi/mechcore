@@ -1238,6 +1238,7 @@ fn actions(
         })
     };
     let mut position = opened.clone();
+    let mut dependencies = crate::normalize::UpgradeDependencies::default();
     let mut conceded = false;
     let mut decided = false;
     for (at, recorded) in recorded_actions(round, seat, offers)?
@@ -1264,6 +1265,7 @@ fn actions(
         conceded |= matches!(action, Action::Concede);
         decided |= !matches!(action, Action::Concede);
         position = step(&position, &action, at)?;
+        dependencies.record(&position, &action);
     }
     if !decided {
         return Ok(if conceded {
@@ -1272,8 +1274,9 @@ fn actions(
             Vec::new()
         });
     }
-    let mut normalized = crate::normalize::deployment(economy, opened, &position, offers, red)
-        .map_err(|error| format!("{} {error}", seat.name()))?;
+    let mut normalized =
+        crate::normalize::deployment(economy, opened, &position, offers, red, &dependencies)
+            .map_err(|error| format!("{} {error}", seat.name()))?;
     if conceded {
         normalized.push(Action::Concede);
     }
