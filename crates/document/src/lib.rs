@@ -1778,6 +1778,10 @@ red:
                 ((-307, 269), (-131, 172), true),
                 ((307, -269), (131, -172), true),
                 ((-307, 269), (-130, 172), false),
+                ((-222, -83), (-101, 77), true),
+                ((222, 83), (101, -77), true),
+                ((-222, -83), (-100, 77), false),
+                ((-222, -83), (-101, 78), false),
                 ((-290, -130), (95, 240), false),
                 ((i32::MIN, i32::MIN), (i32::MAX, i32::MAX), false),
             ] {
@@ -1802,6 +1806,31 @@ red:
             ))
             .unwrap_err();
             assert!(error.contains("segment 2"));
+        }
+    }
+
+    #[test]
+    #[allow(clippy::cast_possible_truncation)] // Mirrors MapVector(Vector3).
+    fn native_float_beacon_clamp_can_cross_a_tangent_truncation_edge() {
+        use crate::layout::Position;
+
+        // CalculateEffectPosition normalizes the mouse direction in floats,
+        // scales it to 200, then MapVector(Vector3) truncates the endpoint.
+        let (dx, dy) = (300.0_f32, 400.0_f32);
+        let length = (dx * dx + dy * dy).sqrt();
+        let endpoint = Position {
+            x: (-222.0_f32 + dx / length * 200.0) as i32,
+            y: (-83.0_f32 + dy / length * 200.0) as i32,
+        };
+        assert_eq!(endpoint, Position { x: -101, y: 77 });
+        for name in ["mobile_beacon", "mobile_beacon_card"] {
+            compile(&layout_with_blue_battle_skill(
+                name,
+                json!([
+                    {"x": -222, "y": -83}, endpoint, {"x": 95, "y": 115}
+                ]),
+            ))
+            .unwrap();
         }
     }
 
