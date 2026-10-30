@@ -160,7 +160,14 @@ impl Simulation {
         update: SkillUpdate,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let Some(target) = self.skill(skill_ref).attack_target() else {
+        let skill = self.skill(skill_ref);
+        // `SkillAttackAngleChecker.IsAttackTargetInAttackAngle` falls back
+        // to GetLockTarget when the cached actor target is null. A retained
+        // shield can still let this skill perform its blow.
+        let Some(target) = skill
+            .attack_target()
+            .or_else(|| skill.shield_target().and(skill.lock_target))
+        else {
             return Ok(());
         };
         // `SkillStartAttackChecker.Check` asks for the target in range, and
