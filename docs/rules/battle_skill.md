@@ -393,9 +393,12 @@ from the preceding point. Both standard rows' `effectRange` is 200:
 `ReleaseCommanderSkillController.MultiReleaseAction.GetReleasePosition`
 passes the last committed point to `InteractiveController.CalculateEffectPosition`,
 and `CS_WayPoint.IsFlexibleEffectRange` permits shorter segments. The client
+normalizes and scales the direction in single-precision floating point,
 then converts the clamped point with `MapVector(Vector3)`, truncating each
-coordinate towards zero, so stored integer points can be slightly more than
-200 metres apart. This is a deployment-input constraint; the fight controller
+coordinate towards zero. Floating-point rounding can cross a truncation
+boundary even where the ideal clamped point lies exactly on it, so stored
+integer points can be slightly more than 200 metres apart. This is a
+deployment-input constraint; the fight controller
 does not clamp an injected path again.
 
 A Mobile Beacon lands nothing. It is `CSRC_WayPoint`, a row of

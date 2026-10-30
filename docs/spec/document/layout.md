@@ -945,8 +945,10 @@ For both Mobile Beacon variants, each adjacent pair must be reachable under
 the native client's 200-metre placement clamp. The clamp precedes
 `MapVector(Vector3)`, which truncates coordinates towards zero: a recorded
 integer endpoint may therefore lie slightly beyond 200 metres. Validation
-tests whether its truncation cell intersects the placement disc, excluding
-the cell's open outer edges, rather than imposing an arbitrary tolerance.
+tests whether its truncation cell intersects the placement disc. It also
+admits diagonal tangent cells: single-precision normalization can cross an
+open cell edge at tangency. Axis-aligned tangent cells remain excluded,
+because an exactly axial clamp cannot acquire a full extra metre.
 The generator draws successive beacon points within this constraint, and
 the Adapter's direct release operation checks it before mutation too.
 

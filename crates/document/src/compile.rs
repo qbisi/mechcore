@@ -772,9 +772,12 @@ pub fn validate_battle_skill_path(type_name: &str, positions: &[Position]) -> Re
         let limit = i128::from(max_segment) * i128::from(max_segment);
         let nx = i128::from(nearest(from.x, to.x));
         let ny = i128::from(nearest(from.y, to.y));
-        // The edge towards the source is open when truncation expands the
-        // segment. Equality there cannot produce this integer endpoint.
-        if squared > limit && nx * nx + ny * ny >= limit {
+        let nearest_squared = nx * nx + ny * ny;
+        // A diagonal float normalization can cross an open truncation edge
+        // even when its cell only touches the disc. Axis-aligned normalization
+        // is exact, so a full extra metre on that axis remains unreachable.
+        let float_tangent = nearest_squared == limit && nx != 0 && ny != 0;
+        if squared > limit && nearest_squared >= limit && !float_tangent {
             return Err(format!(
                 "battle skill {type_name:?} segment {} from ({}, {}) to ({}, {}) exceeds its {max_segment} m placement range after coordinate truncation",
                 index + 1,
