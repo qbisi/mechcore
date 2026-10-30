@@ -839,6 +839,10 @@ impl Simulation {
     ) -> Result<()> {
         let skill = self.skill_mut(skill_ref);
         skill.drop_lock();
+        // `SkillIdleState.Enter(needClearTarget)` calls ClearAttackTarget,
+        // which clears the shield as well as the actor target. Cooling
+        // retains its shield until this entry runs.
+        skill.target_shield = None;
         skill.set_phase(FightSkillPhase::Idle);
         skill.search_target_time = 0;
         skill.set_backswing_finish_step(None);

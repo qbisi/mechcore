@@ -933,6 +933,15 @@ impl Simulation {
             slot: SkillSlot::Extra(index),
         });
         let skill = self.skill(checked);
+        // `SkillAttackRangeChecker` asks the cached shield before the
+        // actor target. A preemptive skill can retain that shield while
+        // `GetAttackTarget` is null after it takes the main skill's place.
+        if let Some((shield, _)) = skill.target_shield {
+            return self
+                .shield_attack_point(shield, checked, skill.lock_target)
+                .zip(self.skill_attacker(checked))
+                .is_some_and(|((x, z), attacker)| attacker.reaches_shield(x, z));
+        }
         // FightSkill's range checker keeps the target found by its last
         // search through Cooling, even after GetLockTarget becomes null.
         // The motion asks the same checker for main and extra skills.

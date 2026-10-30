@@ -1,0 +1,61 @@
+# Native replay 20261029--1080, round 4: Spider Mine takes over while the
+# Tarantula retains a shield target and remains attacking at tick 301.
+# Recorded directly from the original server GRBR.
+kind: fight
+source: game
+map_id: 1012
+seed: 1073318879
+round: 4
+blue:
+  core_damage: 1006
+  officers: [missile_specialist]
+  techs:
+    fire_badger: [range_enhancement, counter_fire]
+  units:
+  - {name: marksman, index: 0, position: {x: 120, y: -170}, level: 2, exp: 201/729/1465}
+  - {name: marksman, index: 1, position: {x: -120, y: -170}, level: 2, exp: 0/47/1465}
+  - {name: marksman, index: 2, position: {x: 160, y: -170}, exp: 559/650/650}
+  - {name: fang, index: 5, position: {x: -140, y: -115}, exp: 321/394/600, rotated: true}
+  - {name: fang, index: 6, position: {x: 140, y: -115}, exp: 201/280/600, rotated: true}
+  - {name: marksman, index: 8, position: {x: -160, y: -170}, exp: 376/423/650}
+  - {name: marksman, index: 9, position: {x: -200, y: -170}, exp: 216/272/650}
+  - {name: fire_badger, index: 10, position: {x: -205, y: -200}, exp: 753/802/1400}
+  - {name: fire_badger, index: 11, position: {x: -75, y: -200}, exp: 424/1396/1400}
+  - {name: fang, index: 12, position: {x: -140, y: -205}, exp: 138/394/600, rotated: true}
+  - {name: marksman, index: 13, position: {x: -80, y: -170}, exp: 435/650/650}
+  - {name: fire_badger, index: 14, position: {x: 75, y: -200}, exp: 0/385/1400, source: joined}
+  - {name: fire_badger, index: 15, position: {x: 205, y: -200}, exp: 0/762/1400, source: joined}
+  - {name: marksman, index: 16, position: {x: 80, y: -170}, exp: 0/80/650, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: missile, index: 1, position: {x: -139, y: -14}, retained: false}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: -143, y: -143}], retained: false}
+red:
+  core_damage: 0
+  officers: [rhino_specialist]
+  techs:
+    tarantula: [spider_mine]
+  units:
+  - {name: marksman, index: 0, position: {x: 100, y: -100}, level: 2, exp: 91/894/1465}
+  - {name: marksman, index: 1, position: {x: 160, y: -100}, level: 2}
+  - {name: marksman, index: 2, position: {x: 220, y: -100}, exp: 650/650/650}
+  - {name: tarantula, index: 3, position: {x: 125, y: -75}, exp: 351/580/1500}
+  - {name: tarantula, index: 4, position: {x: 195, y: -75}, exp: 986/1109/1500}
+  - {name: fang, index: 5, position: {x: 80, y: -65}, exp: 214/326/600, rotated: true}
+  - {name: fang, index: 6, position: {x: 240, y: -65}, exp: 227/319/600, rotated: true}
+  - {name: vortex, index: 7, position: {x: 50, y: -100}, exp: 324/667/750}
+  - {name: vortex, index: 8, position: {x: 160, y: -70}, exp: 232/683/750}
+  - {name: tarantula, index: 9, position: {x: 5, y: -125}, exp: 210/644/1500}
+  - {name: fang, index: 10, position: {x: -170, y: -215}, exp: 69/141/600, rotated: true}
+  - {name: fang, index: 11, position: {x: -30, y: -95}, exp: 29/128/600, rotated: true}
+  - {name: rhino, index: 12, position: {x: 45, y: -75}, level: 2, exp: 0/249/2591, source: delivered}
+  - {name: fortress, index: 13, position: {x: 270, y: -30}, exp: 0/453/1600, source: joined}
+  - {name: tarantula, index: 14, position: {x: -75, y: -165}, exp: 0/249/1500, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: orbital_javelin, positions: [{x: 142, y: 166}]}
+ticks: 1336
+hash: 27:75f8f381e316df05b506d54486f5175542608a34386540111a4ed5cdd077b17d
