@@ -208,6 +208,10 @@ impl Simulation {
         }
         *left -= 1;
         let fell = actor.recorded_position();
+        // GetRebirthTask registers the dying unit's own manager before
+        // StartTask follows an ally. If this unit later rises and is followed,
+        // its original registration order decides the pilots' random draws.
+        self.manager(unit);
         let ticks = |seconds_q32: i64| math::q32_div(seconds_q32, NATIVE_LOGIC_DELTA_Q32) >> 32;
         let follows = source.follow.is_some();
         let mut task = Task {
@@ -347,11 +351,11 @@ impl Simulation {
         if pilot.target == Some(ally) {
             return;
         }
-        let (old, source) = (pilot.target, pilot.source);
+        let old = pilot.target;
         if let Some(old) = old {
             self.leave_follow(old, task.unit);
         }
-        let manager = self.manager(ally, &source);
+        let manager = self.manager(ally);
         if !manager.tasks.contains(&task.unit) {
             manager.tasks.push(task.unit);
         }
@@ -361,7 +365,7 @@ impl Simulation {
     /// `DeadRebirthController.GetFollowMgr`: the ally's manager, made with
     /// its first points (`CreateNearestPoints`) the first time it is asked
     /// for.
-    fn manager(&mut self, target: u64, source: &RebirthFollow) -> &mut Manager {
+    fn manager(&mut self, target: u64) -> &mut Manager {
         if let Some(index) = self
             .rebirth
             .managers
@@ -370,6 +374,13 @@ impl Simulation {
         {
             return &mut self.rebirth.managers[index];
         }
+        let source = self.actors[&target]
+            .placement
+            .effects
+            .single
+            .rebirth
+            .as_ref()
+            .and_then(|source| source.follow.as_ref());
         self.rebirth.managers.push(Manager {
             target,
             points: nearest_points(source),
@@ -645,17 +656,20 @@ fn update_move_state(task: &mut Task) {
 /// (`CreateFollowPoint`), rows of five behind the ally, a row's middle
 /// point the source's distance behind it, then sorted by their distance
 /// from it, the nearest first.
-fn nearest_points(source: &RebirthFollow) -> Vec<Point> {
-    let step_x = ROOM_X_Q32 + source.interval_x_q32;
-    let step_z = ROOM_Z_Q32 + source.interval_z_q32;
+fn nearest_points(source: Option<&RebirthFollow>) -> Vec<Point> {
+    let interval_x = source.map_or(0, |source| source.interval_x_q32);
+    let interval_z = source.map_or(0, |source| source.interval_z_q32);
+    let from_center = source.map_or(0, |source| source.interval_from_center_z_q32);
+    let step_x = ROOM_X_Q32 + interval_x;
+    let step_z = ROOM_Z_Q32 + interval_z;
     // `intervalFormMechCenterX`: the middle of a row of five.
-    let center_x = 2 * ROOM_X_Q32 + 2 * source.interval_x_q32;
+    let center_x = 2 * ROOM_X_Q32 + 2 * interval_x;
     let mut points = (0..POINTS)
         .map(|index| {
             let (row, column) = (index / COLUMNS, index % COLUMNS);
             Point {
                 offset_x_q32: column * step_x - center_x,
-                offset_z_q32: -row * step_z - source.interval_from_center_z_q32,
+                offset_z_q32: -row * step_z - from_center,
                 world: [0; 3],
             }
         })
