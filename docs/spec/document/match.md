@@ -484,6 +484,12 @@ These dependencies are explicit match actions; native encoding preserves
 their order. Normalization preserves the deployment endpoint, not the
 original player's controller-initialization timing.
 
+Enhancement Modules change upgrade prices, so normalization retains the level
+reached before each module was fitted in the recorded or input action sequence.
+Those upgrades, including any required Intensive Training, precede that module
+as explicit dependencies. Other decisions still follow the standard sequence;
+final supply is checked rather than used to infer the module's fitting time.
+
 A historical sequence that acquires Stealth Cloak after Phantom Ray flank
 deployment still projects with a warning because the layout cannot preserve
 that initialization order. Verification checks its non-combat transitions
