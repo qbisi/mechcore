@@ -1,0 +1,114 @@
+# Native replay 20261029--1035, round 9: Tarantulas 432 and 436 retain
+# shield targets as Spider Mine takes over, remaining attacking at tick 2.
+# Recorded directly from the original server GRBR.
+kind: fight
+source: game
+map_id: 1012
+seed: 1586336358
+round: 9
+blue:
+  core_damage: 0
+  officers: [quick_supply_specialist, subsidized_steel_ball, extended_range_sabertooth]
+  techs:
+    mustang: [range_enhancement]
+    overlord: [overlord_artillery, mothership]
+    fire_badger: [scorching_charge]
+  blueprints: [attack_enhancement, defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [2, 1]
+  units:
+  - {name: vortex, index: 0, position: {x: 70, y: -70}, exp: 750/750/750}
+  - {name: vortex, index: 1, position: {x: 110, y: -70}, exp: 697/750/750}
+  - {name: mustang, index: 3, position: {x: 75, y: -120}, level: 3, exp: 3489/4212/4274}
+  - {name: mustang, index: 4, position: {x: 195, y: -120}, level: 3, exp: 3941/4274/4274}
+  - {name: crawler, index: 5, position: {x: 100, y: -35}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 140, y: -135}, exp: 450/450/450, rotated: true}
+  - {name: vortex, index: 7, position: {x: 190, y: -70}, exp: 750/750/750}
+  - {name: sabertooth, index: 8, position: {x: -165, y: -165}, exp: 795/878/1300}
+  - {name: crawler, index: 9, position: {x: -145, y: -190}, exp: 211/277/450}
+  - {name: crawler, index: 10, position: {x: 250, y: -285}, exp: 450/450/450, rotated: true}
+  - {name: mustang, index: 11, position: {x: -175, y: -240}, level: 2, exp: 994/1258/2704}
+  - {name: vortex, index: 12, position: {x: 230, y: -70}, exp: 750/750/750}
+  - {name: fang, index: 13, position: {x: 140, y: -205}, exp: 600/600/600, rotated: true}
+  - {name: mustang, index: 15, position: {x: 195, y: -270}, level: 3, exp: 875/4222/4274}
+  - {name: vortex, index: 16, position: {x: 270, y: -70}, exp: 511/539/750}
+  - {name: crawler, index: 18, position: {x: -250, y: -285}, exp: 140/199/450, rotated: true}
+  - {name: vortex, index: 19, position: {x: -90, y: -170}, level: 2, exp: 225/370/1690}
+  - {name: marksman, index: 20, position: {x: -110, y: -190}, level: 4, exp: 1448/1491/2919}
+  - {name: overlord, index: 22, position: {x: -15, y: -85}, level: 3, exp: 0/942/6233, equipment: [absorption_module]}
+  - {name: overlord, index: 23, position: {x: 35, y: -85}, level: 3, exp: 2081/6233/6233, equipment: [super_heavy_armor]}
+  - {name: mustang, index: 24, position: {x: -95, y: -240}, exp: 359/562/1200}
+  - {name: mustang, index: 25, position: {x: -275, y: -230}, exp: 486/539/1200}
+  - {name: crawler, index: 26, position: {x: -290, y: -135}, exp: 107/114/450, rotated: true}
+  - {name: fire_badger, index: 27, position: {x: -125, y: -20}, exp: 118/222/1400}
+  - {name: fire_badger, index: 28, position: {x: -35, y: -20}, exp: 57/173/1400}
+  - {name: fire_badger, index: 29, position: {x: -225, y: -20}, exp: 0/357/1400}
+  - {name: crawler, index: 30, position: {x: 30, y: -35}, exp: 29/32/450, rotated: true}
+  - {name: crawler, index: 31, position: {x: 5, y: -130}, exp: 40/87/450}
+  - {name: wasp, index: 32, position: {x: -50, y: -85}, exp: 98/311/900, rotated: true}
+  - {name: overlord, index: 33, position: {x: 145, y: -85}, exp: 0/1750/1750, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: missile, index: 3, position: {x: 297, y: -242}, retained: false}
+  - {name: missile, index: 4, position: {x: -124, y: -194}, retained: false}
+  - {name: missile, index: 5, position: {x: 64, y: -219}}
+  - {name: shield, index: 6, position: {x: -219, y: -81}, retained: false}
+  - {name: shield, index: 7, position: {x: -85, y: -81}, retained: false}
+  - {name: missile, index: 8, position: {x: -297, y: -182}, retained: false}
+  - {name: missile, index: 9, position: {x: -294, y: -18}, retained: false}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: 15, y: -90}, {x: 99, y: 91}, {x: -59, y: 133}]}
+red:
+  core_damage: 1006
+  officers: [speed_specialist, elite_rhino]
+  techs:
+    phoenix: [range_enhancement]
+    fire_badger: [scorching_charge]
+    tarantula: [range_enhancement, spider_mine]
+    raiden: [electromagnetic_shot, range_enhancement]
+  blueprints: [attack_enhancement, defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [0, 2]
+  units:
+  - {name: tarantula, index: 3, position: {x: 95, y: -55}, level: 2, exp: 3380/3380/3380}
+  - {name: tarantula, index: 4, position: {x: 185, y: -55}, level: 2, exp: 3380/3380/3380}
+  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 450/450/450}
+  - {name: crawler, index: 6, position: {x: 140, y: -105}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 7, position: {x: -190, y: -125}, exp: 362/439/450, rotated: true}
+  - {name: crawler, index: 8, position: {x: 230, y: -35}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 9, position: {x: 260, y: -285}, exp: 450/450/450, rotated: true}
+  - {name: tarantula, index: 10, position: {x: 245, y: -105}, recordPosition: {x: 285, y: -25}, level: 2, exp: 1251/3380/3380}
+  - {name: crawler, index: 11, position: {x: 325, y: 20}, exp: 450/450/450, rotated: true}
+  - {name: raiden, index: 12, position: {x: 190, y: -110}, level: 2, exp: 5408/5408/5408}
+  - {name: crawler, index: 13, position: {x: 140, y: -35}, exp: 450/450/450, rotated: true}
+  - {name: tarantula, index: 14, position: {x: -175, y: -215}, level: 2, exp: 319/577/3380}
+  - {name: fang, index: 15, position: {x: -260, y: -285}, exp: 600/600/600, rotated: true}
+  - {name: crawler, index: 17, position: {x: 100, y: -285}, exp: 286/450/450, rotated: true}
+  - {name: phoenix, index: 18, position: {x: 30, y: -130}, level: 4, exp: 3427/5837/5837}
+  - {name: raiden, index: 19, position: {x: 280, y: -80}, exp: 2400/2400/2400}
+  - {name: phoenix, index: 20, position: {x: 140, y: -140}, exp: 1300/1300/1300}
+  - {name: crawler, index: 21, position: {x: 40, y: -75}, exp: 158/311/450, rotated: true}
+  - {name: crawler, index: 22, position: {x: 60, y: -195}, exp: 84/325/450, rotated: true}
+  - {name: raiden, index: 23, position: {x: 80, y: -140}, exp: 1904/2400/2400}
+  - {name: fire_badger, index: 24, position: {x: -155, y: -20}, exp: 37/169/1400}
+  - {name: fire_badger, index: 25, position: {x: -350, y: 285}, exp: 67/293/1400}
+  - {name: fire_badger, index: 26, position: {x: -275, y: -20}, exp: 15/153/1400}
+  - {name: crawler, index: 27, position: {x: -310, y: 245}, exp: 15/19/450}
+  - {name: tarantula, index: 28, position: {x: -265, y: -215}, level: 2, exp: 1163/2472/3380}
+  - {name: tarantula, index: 29, position: {x: -75, y: -205}, level: 2, exp: 279/1155/3380}
+  - {name: raiden, index: 30, position: {x: -10, y: -130}, exp: 0/1608/2400, source: joined}
+  - {name: raiden, index: 31, position: {x: -90, y: -130}, exp: 0/514/2400, source: joined}
+  contraptions:
+  - {name: shield, index: 2, position: {x: -227, y: -239}}
+  - {name: missile, index: 10, position: {x: -28, y: -11}, retained: false}
+  - {name: missile, index: 11, position: {x: -98, y: -17}, retained: false}
+  - {name: shield, index: 12, position: {x: 6, y: -83}, retained: false}
+  - {name: shield, index: 13, position: {x: 136, y: -81}, retained: false}
+  - {name: missile, index: 14, position: {x: -288, y: -11}, retained: false}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: 0, y: 26}]}
+  - {name: sticky_oil_bomb, positions: [{x: -144, y: 14}, {x: -40, y: 32}], retained: false}
+ticks: 1165
+hash: 27:cb2949db116ed7f8869ddc4f2bf0ebedc0d5a031f2c86de0606e430a92ae5d36

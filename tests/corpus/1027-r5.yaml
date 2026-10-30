@@ -1,0 +1,69 @@
+# Native replay 20261029--1027, round 5: Spider Mine retains a shield
+# target and performs at tick 332 by checking the lock's attack angle.
+# Recorded directly from the original server GRBR.
+kind: fight
+source: game
+map_id: 1012
+seed: 1319632606
+round: 5
+blue:
+  core_damage: 1690
+  officers: [secondary_equipment_expert]
+  techs:
+    tarantula: [spider_mine]
+    phantom_ray: [burst_mode, stealth_cloak]
+  blueprints: [attack_enhancement]
+  units:
+  - {name: void_eye, index: 0, position: {x: -180, y: -170}, exp: 502/502/650}
+  - {name: void_eye, index: 1, position: {x: -90, y: -170}, exp: 650/650/650}
+  - {name: void_eye, index: 2, position: {x: 30, y: -170}, level: 2, exp: 299/379/1465}
+  - {name: tarantula, index: 3, position: {x: -245, y: -145}, exp: 1064/1064/1500, equipment: [secondary_fire_control_system]}
+  - {name: tarantula, index: 4, position: {x: 135, y: -145}, exp: 596/604/1500, equipment: [secondary_heavy_armor]}
+  - {name: void_eye, index: 5, position: {x: 100, y: -170}, exp: 649/650/650}
+  - {name: void_eye, index: 6, position: {x: 200, y: -170}, exp: 426/514/650}
+  - {name: fang, index: 7, position: {x: -140, y: -135}, exp: 520/520/600, rotated: true}
+  - {name: scorpion, index: 8, position: {x: -45, y: -165}, exp: 1384/1500/1500, equipment: [small_amplifying_core]}
+  - {name: fire_badger, index: 9, position: {x: -75, y: -20}, exp: 306/306/1400, equipment: [secondary_heavy_armor]}
+  - {name: fire_badger, index: 10, position: {x: -215, y: -20}, exp: 330/330/1400}
+  - {name: scorpion, index: 11, position: {x: 165, y: -165}, exp: 1056/1120/1500, equipment: [secondary_fire_control_system]}
+  - {name: fang, index: 12, position: {x: 145, y: -110}, exp: 22/22/600}
+  - {name: tarantula, index: 13, position: {x: -5, y: -145}, exp: 288/441/1500}
+  - {name: phantom_ray, index: 14, position: {x: 350, y: 285}, exp: 0/335/1000, travelling: true, source: joined}
+  - {name: phantom_ray, index: 15, position: {x: 350, y: 165}, exp: 0/117/1000, travelling: true, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: -80, y: -122}], retained: false}
+red:
+  core_damage: 0
+  officers: [giant_specialist]
+  techs:
+    fang: [range_enhancement]
+    sabertooth: [missile_interceptor, field_maintenance]
+  units:
+  - {name: fang, index: 0, position: {x: 165, y: -70}, level: 2, exp: 0/732/1352}
+  - {name: fang, index: 1, position: {x: 115, y: -70}, level: 2, exp: 0/617/1352}
+  - {name: fang, index: 2, position: {x: 140, y: -135}, level: 2, exp: 0/226/1352, rotated: true}
+  - {name: sabertooth, index: 3, position: {x: 115, y: -95}, exp: 1295/1300/1300}
+  - {name: sabertooth, index: 4, position: {x: 165, y: -95}, level: 3, exp: 0/670/4630, equipment: [photon_coating]}
+  - {name: crawler, index: 5, position: {x: 120, y: -275}, exp: 180/194/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 160, y: -275}, exp: 405/450/450, rotated: true}
+  - {name: fang, index: 7, position: {x: 65, y: -70}, exp: 252/600/600}
+  - {name: fang, index: 8, position: {x: 215, y: -70}, level: 2, exp: 0/390/1352}
+  - {name: scorpion, index: 9, position: {x: -165, y: -165}, exp: 699/1440/1500}
+  - {name: fang, index: 10, position: {x: -175, y: -130}, exp: 485/600/600}
+  - {name: fang, index: 11, position: {x: -125, y: -130}, exp: 253/600/600}
+  - {name: crawler, index: 12, position: {x: -200, y: -285}, exp: 57/220/450, rotated: true}
+  - {name: crawler, index: 13, position: {x: -150, y: -285}, exp: 57/378/450, rotated: true}
+  - {name: scorpion, index: 14, position: {x: -115, y: -165}, exp: 0/346/1500, source: joined}
+  - {name: sabertooth, index: 15, position: {x: -205, y: -165}, exp: 0/226/1300, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 214, y: -81}}
+  - {name: shield, index: 2, position: {x: 86, y: -85}, retained: false}
+  - {name: missile, index: 3, position: {x: -206, y: -77}, retained: false}
+  - {name: missile, index: 4, position: {x: -38, y: -69}, retained: false}
+  - {name: missile, index: 5, position: {x: 105, y: -65}, retained: false}
+ticks: 1117
+hash: 27:abb5531e8cc84dbeaa9d37d5e13f134758a55bc3c4583fda8543040cf232aede

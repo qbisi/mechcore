@@ -655,6 +655,13 @@ The skill is the line's gate.
   retains the shield until that entry. The Sabertooth in
   [`436-r9.yaml`](../../tests/corpus/436-r9.yaml) leaves attack motion at
   tick 30 after its targets clear.
+  Its attack-angle checker falls back to the lock when the cached actor
+  target is null (`SkillAttackAngleChecker.IsAttackTargetInAttackAngle`).
+  A retained shield therefore does not prevent the prepared support blow
+  from performing and returning control to the main skill. The original
+  rounds [`1027-r4.yaml`](../../tests/corpus/1027-r4.yaml) and
+  [`1027-r5.yaml`](../../tests/corpus/1027-r5.yaml) perform at tick 332;
+  [`1035-r9.yaml`](../../tests/corpus/1035-r9.yaml) performs at tick 33.
 - **The line makes its batch on the update it is due.** `SupportUnitSystem`
   updates after every unit. Spider Mine's line makes two mines every 15
   seconds, the first on the first tick, with no bound on batches and 99 alive
