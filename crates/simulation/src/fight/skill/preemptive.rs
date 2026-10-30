@@ -377,6 +377,8 @@ impl Actor {
 /// and anything under way with them.
 pub(in crate::fight) fn lock(skill: &mut Skill) {
     skill.drop_lock();
+    // `SkillLockState.Enter` calls ClearAttackTarget too.
+    skill.target_shield = None;
     skill.attack_target_left = None;
     skill.performer.stop();
     skill.idle = false;
@@ -391,6 +393,7 @@ pub(in crate::fight) fn unlock(skill: &mut Skill) {
     // already left the skill idle. An interceptor can finish after the
     // owner's captured main gun searched during FightCoreSystem.Update.
     skill.drop_lock();
+    skill.target_shield = None;
     skill.attack_target_left = None;
     skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
 }

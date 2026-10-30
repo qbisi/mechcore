@@ -643,6 +643,18 @@ The skill is the line's gate.
   stays attacking and keeps the main skill locked: the attackable check
   still passes, while the attack-angle check rejects the dead target and
   no blow is performed.
+  The motion's range check asks the cached shield before the actor target
+  (`SkillAttackRangeChecker.IsAttackTargetInAttackRange`). Taking the main
+  skill's place can leave the actor target null while retaining the shield;
+  the unit still stands attacking when that shield is in reach. The original
+  replay round [`1080-r4.yaml`](../../tests/corpus/1080-r4.yaml) holds this
+  transition at tick 301, including the turret direction used to place the
+  new mines.
+  `ClearAttackTarget` clears both the actor and shield caches when a skill
+  enters idle with target clearing or enters its locked state. Cooling
+  retains the shield until that entry. The Sabertooth in
+  [`436-r9.yaml`](../../tests/corpus/436-r9.yaml) leaves attack motion at
+  tick 30 after its targets clear.
 - **The line makes its batch on the update it is due.** `SupportUnitSystem`
   updates after every unit. Spider Mine's line makes two mines every 15
   seconds, the first on the first tick, with no bound on batches and 99 alive
