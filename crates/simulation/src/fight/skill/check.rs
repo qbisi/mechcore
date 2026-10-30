@@ -849,7 +849,9 @@ impl Simulation {
         });
         if command_active {
             self.search_skill_lock_target(skill_ref, target_search_order)?;
-            self.skill_mut(skill_ref).search_target_time = 0;
+            // `SkillIdleState.Enter` resets the search timer after its
+            // immediate search, keeping the new lock while the body turns.
+            self.skill_mut(skill_ref).search_target_time = SEARCH_TARGET_RESET_TICKS;
             if self.skill(skill_ref).lock_target.is_some() {
                 self.search_attack_target(skill_ref);
             }
