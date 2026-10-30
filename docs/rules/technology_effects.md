@@ -784,8 +784,10 @@ died turns to the nearest other, and one with none left fails, its unit gone
 2.5 seconds it rises (`UpdateMoveState`) and no longer moves.
 
 **Points behind the Phoenix.** After the tasks, each Phoenix followed moves
-its pilots (`FollowPointManager.Update`), in the order each was first
-followed. It has fifty points, rows of five 17 metres apart, the first row 10
+its pilots (`FollowPointManager.Update`), in manager registration order.
+`DeadRebirthController.GetRebirthTask` registers the dying unit's own manager
+before its task starts following an ally; that order is retained if it rises
+and later becomes a follow target. It has fifty points, rows of five 17 metres apart, the first row 10
 metres behind it and each next 10 metres further, sorted by their distance
 from it, the nearest first (`CreateNearestPoints`, `List.Sort`, which is not
 stable); each stands behind the Phoenix as it faces (`FollowPoint.UpdatePoint`),
