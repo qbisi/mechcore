@@ -229,7 +229,14 @@ pub(crate) fn deployment(
         {
             continue;
         }
-        for levels in builder.purchase_plans()? {
+        let plans = match builder.purchase_plans() {
+            Ok(plans) => plans,
+            Err(error) => {
+                errors.push(error);
+                continue;
+            }
+        };
+        for levels in plans {
             let mut candidate = builder.clone();
             candidate.purchase_levels = levels;
             match candidate.finish() {
@@ -1614,6 +1621,42 @@ mod tests {
             normalized(&opened, &closed),
             [purchases[0].clone(), purchases[1].clone(), research]
         );
+    }
+
+    #[test]
+    fn a_rejected_purchase_plan_does_not_hide_a_later_reinforcement_choice() {
+        let economy = Economy::embedded().unwrap();
+        let mut opened = side();
+        opened.battle_skills = vec![slot(RECOVERY_SKILLS[0])];
+        let offers = Offers {
+            dealt: vec![102_115, 102_212],
+            refund: 300,
+        };
+        let choice = Action::ChooseReinforceItem {
+            index: 1,
+            id: crate::r#match::ReinforceChoice::Card(102_212),
+        };
+        let history = [
+            choice.clone(),
+            Action::ReleaseCommanderSkill {
+                index: 0,
+                id: RECOVERY_SKILLS[0],
+                target: SkillTarget::Unit(3),
+            },
+        ];
+        let closed = close(&opened, &history);
+        let dependencies = recorded_dependencies(&opened, &history);
+        let actions = deployment(
+            economy,
+            &opened,
+            &closed,
+            Some(&offers),
+            false,
+            &dependencies,
+        )
+        .unwrap();
+        assert_eq!(actions[0], choice);
+        assert_eq!(comparable(&close(&opened, &actions)), comparable(&closed));
     }
 
     #[test]
