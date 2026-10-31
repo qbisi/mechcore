@@ -825,7 +825,7 @@ round opened with and reach no other side, so the two sides may be played in
 any order, and a match is the same match whichever order they take.
 
 A round is fought when both sides have committed. A side that has not committed
-when the header's deployment time runs out has lost the match, which ends there
+when the turn file's deployment time runs out has lost the match, which ends there
 and is not fought; the document states that side's loss as its concession,
 which is the one way a match says that a side lost a round nobody fought. Any
 operation that finds a round due, either way, settles it before it answers, so
@@ -863,16 +863,17 @@ requires no later declaration and changes neither the seat nor any game rule.
 Every option may be left out. A seed nobody chose is drawn, a map nobody chose
 is drawn from the maps this build has an opening initialization for, and a
 deployment time nobody chose is the 100 seconds a standard match deploys in.
-All three are written into the header, so a match nobody configured is as
-reproducible as one somebody did. A side that names no loadout carries the
+The seed and map are written into the header. Deployment time is runtime
+configuration stored in the turn file, retained across rounds, and reset to
+100 seconds if that file must be rebuilt. A side that names no loadout carries the
 embedded [default loadout](../../../crates/mechcore/default-loadout.yaml): four
 technologies per unit, or six for War Factory, Abyss and Mountain. Both sides
 start with the same preset; `--loadout` on the deal replaces it.
 
 Whichever caller names the document first deals the match and writes that
-header; the second joins it. A join that names a seed, map or deployment time
-the document does not carry is refused rather than silently adopting the
-document's, and so is a document that is not a match.
+header; the second joins it. A join that names a different seed or map than
+the document, or a different deployment time than the turn file, is refused.
+A document that is not a match is also refused.
 
 Answers the side the caller was given, the header, and that side's opening
 offers and initial constructions. Each side is also given a seed of its own,
@@ -896,10 +897,10 @@ or destination turn file is refused unless `--override` is given. Naming the
 source as the destination also requires `--override`, which explicitly forks
 in place. Distinct matches must have distinct turn file paths.
 
-Without `--round`, copies the recorded progress and the current turn's pending
-decisions and commitments, when its turn file is available. Without a valid
-turn file, commitments are inferred as when a turn file is rebuilt. It does
-not settle a due round or run the source's deployment clock.
+Without `--round`, copies only the recorded match document. Commitments are
+inferred from its written actions, as when a turn file is rebuilt; pending
+uncommitted decisions are not copied. Fork never opens or reads the source
+turn file, settles a due round or runs the source's deployment clock.
 
 With `--round`, reopens that round at its opening state in the destination.
 It clears both sides' actions for the selected round and omits every later
@@ -909,9 +910,9 @@ it requires a document that includes the opening. Both sides are uncommitted
 and pending decisions are discarded.
 
 Every fork gives both sides, restarts the deployment clock, and sets `rebuilt`.
-`--deploy-time` sets a positive deployment time in the destination header;
-omitted, the source's deployment time is retained. Subsequent `act` and
-`commit` operations continue the destination normally. The returned view names
+`--deploy-time` sets a positive deployment time in the destination turn file;
+omitted, every fork uses 100 seconds independently of the source's setting.
+Subsequent `act` and `commit` operations continue the destination normally. The returned view names
 the destination and, with `--side`, the side selected; without a side it is an
 omniscient view. A shell binds the destination when a side is named.
 

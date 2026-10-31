@@ -76,6 +76,9 @@ impl Side {
 pub(crate) struct Turn {
     pub(crate) schema: String,
     pub(crate) round: i32,
+    /// Runtime configuration, not recorded match content.
+    #[serde(default = "default_deploy_time")]
+    pub(crate) deploy_time: i32,
     /// When the round opened, which the deployment clock is measured from.
     pub(crate) opened: String,
     /// Whether this round's file was rebuilt rather than carried, so a side
@@ -103,6 +106,10 @@ pub(crate) struct SideTurn {
     pub(crate) decisions: Vec<Action>,
 }
 
+const fn default_deploy_time() -> i32 {
+    mechcore_document::r#match::DEFAULT_DEPLOY_TIME
+}
+
 impl Turn {
     /// A round that has just opened, which is every side's clock restarted and
     /// nothing decided.
@@ -115,6 +122,7 @@ impl Turn {
         Self {
             schema: SCHEMA.to_owned(),
             round,
+            deploy_time: default_deploy_time(),
             opened: crate::instant::now(),
             rebuilt,
             sides: Sides {
@@ -166,26 +174,6 @@ pub(crate) struct Held {
 }
 
 impl Held {
-    /// Locks an existing turn file without creating one for a historical match.
-    pub(crate) fn existing(path: &Path) -> Result<Option<Self>, Failure> {
-        let file = match OpenOptions::new().read(true).write(true).open(path) {
-            Ok(file) => file,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-            Err(error) => {
-                return Err(Failure::failed(format!(
-                    "cannot open {}: {error}",
-                    path.display()
-                )));
-            }
-        };
-        lock(&file)
-            .map_err(|error| Failure::failed(format!("cannot lock {}: {error}", path.display())))?;
-        Ok(Some(Self {
-            file,
-            path: path.to_owned(),
-        }))
-    }
-
     /// Opens the turn file beside a match and takes its lock, waiting for
     /// whoever holds it.
     ///
@@ -236,7 +224,7 @@ impl Held {
             Ok(turn) => turn,
             Err(_) => return Ok(None),
         };
-        if turn.schema != SCHEMA {
+        if turn.schema != SCHEMA || turn.deploy_time <= 0 {
             return Ok(None);
         }
         Ok(Some(turn))
@@ -320,7 +308,17 @@ mod tests {
             .filter_map(|line| line.strip_prefix("  \""))
             .filter_map(|line| line.split('"').next())
             .collect();
-        assert_eq!(keys, ["schema", "round", "opened", "rebuilt", "sides"]);
+        assert_eq!(
+            keys,
+            [
+                "schema",
+                "round",
+                "deploy_time",
+                "opened",
+                "rebuilt",
+                "sides"
+            ]
+        );
 
         let read = held.read().unwrap().unwrap();
         assert_eq!(read.schema, SCHEMA);

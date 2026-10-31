@@ -42,8 +42,8 @@ match's map, and the two players `{id: 1, name: blue}` and `{id: 2, name: red}`.
 standard 1v1 constants, with advance teams, reinforcement, unit reinforcement
 and construction on, and no game rules and no match type. `Version` is the build
 number and `Seat` is 0, a locally recorded replay.
-`DeployTime` is the match's `deploy_time`, or the standard 100 seconds when it
-states none.
+`DeployTime` is the standard 100 seconds. Deployment time is runtime
+configuration and is not carried in the match header.
 
 Each `PlayerRecord`, blue first, holds the side's `name` (defaulting to `blue`
 or `red`) and `seed`, the map's reactor core, the round income every versus

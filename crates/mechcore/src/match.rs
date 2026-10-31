@@ -184,7 +184,6 @@ fn deal(
         game_build: mechcore_document::game_build().to_owned(),
         map_id,
         seed,
-        deploy_time: Some(deploy_time),
         blue: side(
             name.unwrap_or_else(|| "blue".to_owned()),
             &dealt.deal.blue,
@@ -193,7 +192,8 @@ fn deal(
         red: side("red".to_owned(), &dealt.deal.red, &dealt.constructions.red),
         turns: Vec::new(),
     };
-    let turn = Turn::opening(0, [true, false], false);
+    let mut turn = Turn::opening(0, [true, false], false);
+    turn.deploy_time = deploy_time;
     let mut game = Game {
         path: path.to_owned(),
         economy,
@@ -285,28 +285,17 @@ fn fork(mut arguments: Args) -> Result<View, Failure> {
     };
     refuse_existing()?;
 
-    let mut source_held = Held::existing(&source_turn)?;
-    let mut document = read_match(&source)?;
+    let document = read_match(&source)?;
     warn_build(&document.game_build);
-    let saved_turn = source_held.as_mut().map(Held::read).transpose()?.flatten();
+    let mut game = fork_position(destination.clone(), document, side, round)?;
     if let Some(seconds) = deploy_time {
-        document.deploy_time = Some(seconds);
+        game.turn.deploy_time = seconds;
     }
-    let game = fork_position(destination.clone(), document, saved_turn, side, round)?;
     let view = game.view(side, side.is_none())?;
     let yaml =
         mechcore_document::r#match::canonical_yaml(&game.r#match).map_err(Failure::failed)?;
-    // A distinct destination uses the captured snapshot. Release the source
-    // before locking it so opposing forks cannot deadlock; an in-place fork
-    // keeps the source lock throughout.
-    if source != destination {
-        drop(source_held.take());
-    }
     refuse_existing()?;
-    let mut held = match source_held {
-        Some(held) => held,
-        None => Held::take(&destination_turn)?,
-    };
+    let mut held = Held::take(&destination_turn)?;
     let write_document = || -> Result<(), Failure> {
         use std::io::Write;
         let mut output = tempfile::NamedTempFile::new_in(destination.parent().unwrap())
@@ -337,7 +326,6 @@ fn fork(mut arguments: Args) -> Result<View, Failure> {
 fn fork_position(
     path: PathBuf,
     mut document: Match,
-    saved_turn: Option<Turn>,
     side: Option<Side>,
     round: Option<i32>,
 ) -> Result<Game, Failure> {
@@ -369,15 +357,8 @@ fn fork_position(
         )));
     }
     if round.is_none() {
-        if let Some(saved) = saved_turn.filter(|turn| turn.round == current_round) {
-            game.turn.sides = saved.sides;
-            for side in Side::BOTH {
-                game.turn.side_mut(side).given = true;
-            }
-        } else {
-            for side in Side::BOTH {
-                game.turn.side_mut(side).committed = game.written(side);
-            }
+        for side in Side::BOTH {
+            game.turn.side_mut(side).committed = game.written(side);
         }
     }
     Ok(game)
@@ -646,7 +627,7 @@ impl Game {
     }
 
     fn deploy_time(&self) -> i32 {
-        self.r#match.deploy_time.unwrap_or(DEFAULT_DEPLOY_TIME)
+        self.turn.deploy_time
     }
 
     const fn side(&self) -> Side {
@@ -842,7 +823,9 @@ impl Game {
             opened.state.reinforce_offers = dealt.offers;
             dealt.checkpoint.write_to(&mut opened.state);
         }
+        let deploy_time = self.turn.deploy_time;
         self.turn = Turn::opening(round + 1, self.turn.given(), false);
+        self.turn.deploy_time = deploy_time;
         self.write(held)
             .map_err(|failure| failure.reason().to_owned())
     }
