@@ -518,8 +518,6 @@ pub struct Stated {
     pub build: String,
     pub map_id: i32,
     pub seed: i32,
-    /// The header's deployment clock, which only a match states.
-    pub deploy_time: Option<i32>,
     pub blue: StatedSide,
     pub red: StatedSide,
     pub turns: Vec<Turn>,
@@ -571,8 +569,6 @@ struct StatedHeader {
     build: String,
     map_id: i32,
     seed: i32,
-    #[serde(default)]
-    deploy_time: Option<i32>,
     blue: StatedSide,
     red: StatedSide,
 }
@@ -667,7 +663,6 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         build: header.build,
         map_id: header.map_id,
         seed: header.seed,
-        deploy_time: header.deploy_time,
         blue,
         red,
         turns,

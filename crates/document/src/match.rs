@@ -27,14 +27,6 @@ pub struct Match {
     pub game_build: String,
     pub map_id: i32,
     pub seed: i32,
-    /// How long a side has to commit a round, in seconds.
-    ///
-    /// A converted replay states the game's own `DeployTime`, which its
-    /// rounds were deployed under, and a match replay writes it back. What
-    /// running out of it does is this platform's own rule, which
-    /// `docs/spec/mechcore/cli.md` states. A document that states none deploys
-    /// under [`DEFAULT_DEPLOY_TIME`].
-    pub deploy_time: Option<i32>,
     pub blue: MatchSide,
     pub red: MatchSide,
     /// The contiguous deployment rounds, starting at the first captured one.
@@ -163,7 +155,7 @@ pub struct State {
         skip_serializing_if = "Option::is_none",
         with = "crate::names::card::offers"
     )]
-    #[schemars(with = "Option<Vec<OfferEntry>>")]
+    #[schemars(with = "Option<Vec<String>>")]
     pub reinforce_offers: Option<Offers>,
     pub blue: SideState,
     pub red: SideState,
@@ -220,21 +212,24 @@ impl Offers {
     }
 }
 
-/// The name the decline is written under, in `reinforce_offers` and in the
-/// `choose_reinforce_item` that takes it. No card is named this.
-pub const DECLINE_OFFER: &str = "decline_offer";
-
-/// One entry of a written `reinforce_offers`, for the schema: a card's name,
-/// or the decline and what it pays.
-#[derive(JsonSchema)]
-#[serde(untagged)]
-#[allow(dead_code)] // Describes the written shape; the list is read by hand.
-enum OfferEntry {
-    Card(String),
-    Decline { name: String, refund: i32 },
+/// A reinforcement answer names a catalogue card or the current refund amount.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ReinforceChoice {
+    Card(i32),
+    Refund(i32),
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+impl ReinforceChoice {
+    #[must_use]
+    pub const fn card(self) -> Option<i32> {
+        match self {
+            Self::Card(id) => Some(id),
+            Self::Refund(_) => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct SideState {
     /// The player stream after this round's officer deliveries.
@@ -283,11 +278,202 @@ pub struct SideState {
     )]
     #[schemars(with = "BTreeMap<String, Vec<String>>")]
     pub techs: Vec<i32>,
+    #[schemars(with = "Vec<StateUnitEntry>")]
     pub units: Vec<StateUnit>,
+    #[serde(skip)]
+    pub recovered_units: Vec<RecoveredUnit>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub constructions: Vec<StaticPlacement>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub contraptions: Vec<ContraptionPlacement>,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct SideStateWire {
+    /// The player stream after this round's officer deliveries.
+    pub random_state: [u64; 4],
+    pub reactor_core: i32,
+    pub supply: i32,
+    /// Unit IDs, written as their type names in ID order.
+    #[serde(with = "unit_names::units")]
+    pub unlocked_units: Vec<i32>,
+    /// What the round still allows, which a match does not write: each
+    /// opens at a value the round's opening fixes, and only the round's own
+    /// decisions spend it.
+    #[serde(skip)]
+    pub shop: Allowances,
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::blueprint::many"
+    )]
+    pub blueprints: Vec<i32>,
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::energy_tower_skill::many"
+    )]
+    pub energy_tower_skills: Vec<i32>,
+    pub tower_strengthen_levels: Vec<i32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub equipment: Vec<EquipmentItem>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub battle_skills: Vec<PanelSkill>,
+    pub next_index: NextIndex,
+    /// The officers the side holds, a multiset in ascending ID, by name.
+    #[serde(default, with = "crate::names::officer::many")]
+    pub officers: Vec<i32>,
+    /// The unit technologies the side has researched, in ascending ID,
+    /// written grouped by the unit they belong to.
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::technologies"
+    )]
+    pub techs: Vec<i32>,
+    pub units: Vec<StateUnitEntry>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub constructions: Vec<StaticPlacement>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub contraptions: Vec<ContraptionPlacement>,
+}
+
+/// A historical formation that no longer occupies the battlefield.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RecoveredUnit {
+    pub type_name: Option<String>,
+    pub index: i32,
+}
+
+#[derive(Deserialize, Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct RecoveredRecord {
+    #[serde(rename = "name", skip_serializing_if = "Option::is_none")]
+    type_name: Option<String>,
+    index: i32,
+    #[schemars(schema_with = "recovered_flag_schema")]
+    recovered: bool,
+}
+
+fn recovered_flag_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+    schemars::json_schema!({"type": "boolean", "const": true})
+}
+
+#[derive(Deserialize, Serialize, JsonSchema)]
+#[serde(untagged)]
+enum StateUnitEntry {
+    Recovered(RecoveredRecord),
+    Active(StateUnit),
+}
+
+impl SideState {
+    #[must_use]
+    pub fn next_unit_index(&self) -> i32 {
+        self.units
+            .iter()
+            .map(|unit| unit.unit.index)
+            .chain(self.recovered_units.iter().map(|unit| unit.index))
+            .max()
+            .map_or(0, |index| index + 1)
+    }
+}
+
+impl Serialize for SideState {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let state = self.clone();
+        let mut units: Vec<_> = state
+            .units
+            .into_iter()
+            .map(StateUnitEntry::Active)
+            .chain(state.recovered_units.into_iter().map(|unit| {
+                StateUnitEntry::Recovered(RecoveredRecord {
+                    type_name: unit.type_name,
+                    index: unit.index,
+                    recovered: true,
+                })
+            }))
+            .collect();
+        units.sort_by_key(|unit| match unit {
+            StateUnitEntry::Active(unit) => unit.unit.index,
+            StateUnitEntry::Recovered(unit) => unit.index,
+        });
+        SideStateWire {
+            random_state: state.random_state,
+            reactor_core: state.reactor_core,
+            supply: state.supply,
+            unlocked_units: state.unlocked_units,
+            shop: state.shop,
+            blueprints: state.blueprints,
+            energy_tower_skills: state.energy_tower_skills,
+            tower_strengthen_levels: state.tower_strengthen_levels,
+            equipment: state.equipment,
+            battle_skills: state.battle_skills,
+            next_index: state.next_index,
+            officers: state.officers,
+            techs: state.techs,
+            units,
+            constructions: state.constructions,
+            contraptions: state.contraptions,
+        }
+        .serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for SideState {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        use serde::de::Error;
+        let wire = SideStateWire::deserialize(deserializer)?;
+        let mut units = Vec::new();
+        let mut recovered_units = Vec::new();
+        let mut seen = std::collections::BTreeSet::new();
+        for entry in wire.units {
+            let index = match &entry {
+                StateUnitEntry::Active(unit) => unit.unit.index,
+                StateUnitEntry::Recovered(unit) => unit.index,
+            };
+            if index < 0 || index == i32::MAX || !seen.insert(index) {
+                return Err(D::Error::custom(
+                    "state unit indices are unique nonnegative allocatable integers",
+                ));
+            }
+            match entry {
+                StateUnitEntry::Active(unit) => units.push(unit),
+                StateUnitEntry::Recovered(unit) if unit.recovered => {
+                    recovered_units.push(RecoveredUnit {
+                        type_name: unit.type_name,
+                        index: unit.index,
+                    });
+                }
+                StateUnitEntry::Recovered(_) => {
+                    return Err(D::Error::custom(
+                        "a recovered record states recovered: true",
+                    ));
+                }
+            }
+        }
+        units.sort_by_key(|unit| unit.unit.index);
+        recovered_units.sort_by_key(|unit| unit.index);
+        Ok(Self {
+            random_state: wire.random_state,
+            reactor_core: wire.reactor_core,
+            supply: wire.supply,
+            unlocked_units: wire.unlocked_units,
+            shop: wire.shop,
+            blueprints: wire.blueprints,
+            energy_tower_skills: wire.energy_tower_skills,
+            tower_strengthen_levels: wire.tower_strengthen_levels,
+            equipment: wire.equipment,
+            battle_skills: wire.battle_skills,
+            next_index: wire.next_index,
+            officers: wire.officers,
+            techs: wire.techs,
+            units,
+            constructions: wire.constructions,
+            contraptions: wire.contraptions,
+            recovered_units,
+        })
+    }
 }
 
 /// A round's allowances, as [`crate::transition::open_round`] sets them and
@@ -423,7 +609,6 @@ pub struct Release {
 #[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct NextIndex {
-    pub unit: i32,
     pub contraption: i32,
 }
 
@@ -436,7 +621,7 @@ pub struct TurnActions {
     pub red: Vec<Action>,
 }
 
-/// How long a side has to commit a round when its document states nothing.
+/// The default runtime deployment limit and standard native replay clock.
 ///
 /// It is the game's own `DeployTime`, which every tracked replay records as
 /// 100 seconds. What the game does when it runs out is not established, and
@@ -451,14 +636,13 @@ pub enum Action {
     ///
     /// `index` is the position of what is taken in `reinforce_offers`: a
     /// card dealt, or the decline after them, which the round always offers.
-    /// `id` is the card taken, and absent for the decline, which is written
-    /// by the name [`DECLINE_OFFER`]: what a decline hands back is built from the
-    /// match's progress rather than drawn from a catalogue, so it has no ID.
+    /// `id` names the card or `refund_<amount>`. A refund must equal the
+    /// amount this round offers; it cannot choose how much supply to receive.
     ChooseReinforceItem {
         index: i32,
         #[serde(rename = "name", with = "crate::names::card::choice")]
         #[schemars(with = "String")]
-        id: Option<i32>,
+        id: ReinforceChoice,
     },
     /// The opening, which is one decision with two halves: the team of
     /// formations and the specialist officer bound to it.
@@ -473,16 +657,12 @@ pub enum Action {
         #[schemars(with = "String")]
         specialist: i32,
     },
-    /// A purchase at the board's default landing. Historical actions can also
-    /// name the position and rotation reached by its subsequent movement.
+    /// A purchase at the default landing or coupled with its immediate move.
+    /// Its level is determined by the current officers and tower skills.
     BuyUnit {
         #[serde(rename = "name", with = "unit_names::unit")]
         #[schemars(with = "String")]
         unit: i32,
-        /// The purchased level. Omitted in historical actions, which use the
-        /// shop level at that point in their sequence.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        level: Option<i32>,
         #[serde(skip_serializing_if = "Option::is_none")]
         position: Option<Position>,
         #[serde(skip_serializing_if = "is_false")]
@@ -592,7 +772,7 @@ enum ActionReader {
     ChooseReinforceItem {
         index: i32,
         #[serde(rename = "name", with = "crate::names::card::choice")]
-        id: Option<i32>,
+        id: ReinforceChoice,
     },
     ChooseAdvanceTeam {
         index: i32,
@@ -604,8 +784,6 @@ enum ActionReader {
     BuyUnit {
         #[serde(rename = "name", with = "unit_names::unit")]
         unit: i32,
-        #[serde(default)]
-        level: Option<i32>,
         #[serde(default)]
         position: Option<Position>,
         #[serde(default)]
@@ -819,8 +997,6 @@ struct Header<'a> {
     build: &'a str,
     map_id: i32,
     seed: i32,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    deploy_time: Option<i32>,
     blue: HeaderSide<'a>,
     red: HeaderSide<'a>,
 }
@@ -924,8 +1100,6 @@ pub mod schema {
         pub build: String,
         pub map_id: i32,
         pub seed: i32,
-        /// How long a side has to commit a round, which only a match states.
-        pub deploy_time: Option<i32>,
         pub blue: Side,
         pub red: Side,
     }
@@ -956,7 +1130,7 @@ pub mod schema {
         pub kind: StateKind,
         pub round: i32,
         /// Absent in rounds 0 and 1, which are dealt no reinforcement offer.
-        #[schemars(with = "Option<Vec<super::OfferEntry>>")]
+        #[schemars(with = "Option<Vec<String>>")]
         pub reinforce_offers: Option<super::Offers>,
         pub blue: SideState,
         pub red: SideState,
@@ -1043,7 +1217,6 @@ pub fn read(bytes: &[u8]) -> Result<Option<Match>, String> {
         game_build: stated.build,
         map_id: stated.map_id,
         seed: stated.seed,
-        deploy_time: stated.deploy_time,
         blue: side("blue", stated.blue)?,
         red: side("red", stated.red)?,
         turns: stated.turns,
@@ -1056,7 +1229,6 @@ fn segments_of(r#match: &Match) -> Vec<Segment<'_>> {
         build: &r#match.game_build,
         map_id: r#match.map_id,
         seed: r#match.seed,
-        deploy_time: r#match.deploy_time,
         blue: HeaderSide::of(&r#match.blue),
         red: HeaderSide::of(&r#match.red),
     })];
@@ -1287,6 +1459,7 @@ mod tests {
         }
         for yaml in [
             "{type: buy_unit}",
+            "{type: buy_unit, name: crawler, level: 1}",
             "{type: choose_advance_team, index: 1, name: vortex-fire_badger}",
             "{type: release_commander_skill, index: 0, target: {unit: 4}}",
             "{type: release_commander_skill, index: 0, name: missile_strike, target: !unit 4}",
@@ -1342,10 +1515,13 @@ mod tests {
         use crate::layout::Position;
         let at = Position { x: 10, y: -20 };
         let samples = [
-            Action::ChooseReinforceItem { index: 4, id: None },
+            Action::ChooseReinforceItem {
+                index: 4,
+                id: crate::r#match::ReinforceChoice::Refund(50),
+            },
             Action::ChooseReinforceItem {
                 index: 2,
-                id: Some(1_305_003),
+                id: crate::r#match::ReinforceChoice::Card(1_305_003),
             },
             Action::ChooseAdvanceTeam {
                 index: 1,
@@ -1354,19 +1530,16 @@ mod tests {
             },
             Action::BuyUnit {
                 unit: 2,
-                level: None,
                 position: Some(at),
                 rotated: true,
             },
             Action::BuyUnit {
                 unit: 2,
-                level: Some(1),
                 position: Some(at),
                 rotated: false,
             },
             Action::BuyUnit {
                 unit: 2,
-                level: None,
                 position: None,
                 rotated: false,
             },
@@ -1434,6 +1607,41 @@ mod tests {
         }
     }
 
+    #[test]
+    fn recovered_units_are_compact_state_entries_and_do_not_project() {
+        let state = super::SideState {
+            recovered_units: vec![
+                super::RecoveredUnit {
+                    index: 3,
+                    type_name: Some("marksman".into()),
+                },
+                super::RecoveredUnit {
+                    index: 1,
+                    type_name: None,
+                },
+            ],
+            ..Default::default()
+        };
+        let text = serde_yaml::to_string(&state).unwrap();
+        assert!(!text.contains("position:"));
+        assert!(!text.contains("unit: 4"));
+        let read: super::SideState = serde_yaml::from_str(&text).unwrap();
+        assert_eq!(read.next_unit_index(), 4);
+        assert_eq!(read.recovered_units[0].type_name, None);
+        assert_eq!(
+            read.recovered_units[1].type_name.as_deref(),
+            Some("marksman")
+        );
+        assert!(
+            crate::project::project_side(&read, "blue")
+                .unwrap()
+                .units
+                .is_empty()
+        );
+        let invalid = text.replace("recovered: true", "recovered: false");
+        assert!(serde_yaml::from_str::<super::SideState>(&invalid).is_err());
+    }
+
     /// A round's offers are its cards and then the decline with its refund,
     /// and a list that does not end in the decline is not a round's offers.
     #[test]
@@ -1442,15 +1650,13 @@ mod tests {
         let state = |offers: &str| {
             format!(
                 "random_state: [1, 2, 3, 4]\nreinforce_offers: {offers}\nblue: {{random_state: [1, 2, 3, 4], reactor_core: 0, supply: 0, unlocked_units: [], \
-                 tower_strengthen_levels: [], next_index: {{unit: 0, contraption: 0}}, units: []}}\n\
+                 tower_strengthen_levels: [], next_index: {{contraption: 0}}, units: []}}\n\
                  red: {{random_state: [1, 2, 3, 4], reactor_core: 0, supply: 0, unlocked_units: [], tower_strengthen_levels: [], \
-                 next_index: {{unit: 0, contraption: 0}}, units: []}}\n"
+                 next_index: {{contraption: 0}}, units: []}}\n"
             )
         };
-        let read: State = serde_yaml::from_str(&state(
-            "[photon_coating, missile_strike, {name: decline_offer, refund: 150}]",
-        ))
-        .unwrap();
+        let read: State =
+            serde_yaml::from_str(&state("[photon_coating, missile_strike, refund_150]")).unwrap();
         let offers = read.reinforce_offers.clone().unwrap();
         assert_eq!(
             offers,
@@ -1462,9 +1668,20 @@ mod tests {
         assert_eq!(offers.decline_index(), 2);
         let written = serde_yaml::to_string(&read).unwrap();
         assert_eq!(serde_yaml::from_str::<State>(&written).unwrap(), read);
+        assert!(written.contains("refund_150"));
+        for amount in [0, 50, 400, i32::MAX] {
+            let value: State = serde_yaml::from_str(&state(&format!("[refund_{amount}]"))).unwrap();
+            assert_eq!(value.reinforce_offers.unwrap().refund, amount);
+        }
         for refused in [
+            "[]",
+            "[refund_-1]",
+            "[refund_2147483648]",
+            "[refund_]",
+            "[refund_+50]",
+            "[refund_50, refund_100]",
             "[photon_coating, missile_strike]",
-            "[{name: decline_offer, refund: 50}, photon_coating]",
+            "[refund_50, photon_coating]",
             "[photon_coating, {name: decline, refund: 50}]",
         ] {
             assert!(
@@ -1713,7 +1930,6 @@ mod tests {
             game_build: crate::game_build().to_owned(),
             map_id: 1021,
             seed: 1,
-            deploy_time: None,
             blue: side(),
             red: side(),
             turns: vec![state(1, 4800), state(2, 0)],

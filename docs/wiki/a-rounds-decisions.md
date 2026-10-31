@@ -46,7 +46,7 @@ at the start of a match and at the start of each round:
 | Goal | Action Type | What It Does | Immediate Cost |
 | --- | --- | --- | --- |
 | **1. Opening** | `choose_advance_team` | Pick 1 of 4 private `(Advance Team + Specialist)` combinations in Round `0` | `0` supply (adjusts starting reactor core) |
-| **2. Reinforcement** | `choose_reinforce_item` | Pick 1 of 4 shared reinforcement cards in Round `2+`, or choose `decline_offer` | Card price (or **grants** `50`+ supply on decline) |
+| **2. Reinforcement** | `choose_reinforce_item` | Pick 1 of 4 shared reinforcement cards in Round `2+`, or choose `refund_<amount>` | Card price (or **grants** `50`+ supply on decline) |
 | **3. Army Expansion & Upgrades** | `unlock_unit` | Unlock a locked unit type in your shop so it can be bought | Unit unlock price + `1` unlock allowance |
 | | `buy_unit` | Buy one formation of an unlocked unit type and place it on the board | Unit price (+ level surcharges) + `1` buy allowance |
 | | `upgrade_unit` | Raise one of your formations by `1` level (up to level `9`) | Unit upgrade price (modified by officers/equipment) |

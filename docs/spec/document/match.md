@@ -117,7 +117,6 @@ The header holds what every round of the match shares.
 | `build` | the game's `Application.version`, pinned by `GAME_VERSION` |
 | `seed` | `BattleInfo.SystemSeed` |
 | `map_id` | `BattleInfo.MapID` |
-| `deploy_time` | `BattleInfo.DeployTime` |
 
 `seed` and `map_id` keep the meaning and the optionality a layout gives them.
 `build` records the same game version a [layout](layout.md#document-shape)
@@ -132,10 +131,10 @@ transcoding retains the stated version in the native replay header. New matches
 and native conversions take their version from `GAME_VERSION`, rather than a
 second version pin in the match code.
 
-`deploy_time` is how many seconds a side has to deploy a round, which every
-tracked replay records as 100. A match this platform plays runs out by it, as
-[cli.md](../mechcore/cli.md#match) says, and a match that states none deploys
-under 100.
+Deployment time is runtime configuration, not recorded match content.
+`match new` and `match fork` set it with `--deploy-time`, defaulting to 100
+seconds and keeping it in the [turn file](../mechcore/turn.md).
+Native replay encoding uses the standard 100-second deployment clock.
 
 The rest of the match header is a property of the standard 1v1 rule set rather
 than of a match: the other phase durations, the round cap, the advance team,
@@ -520,7 +519,7 @@ hold across every seam of a well-formed match.
 
 | Invariant |
 | --- |
-| `next_index.unit` rises or holds |
+| the maximum unit index, including recovered records, rises or holds |
 | `next_index.contraption` rises or holds |
 | researched technologies are kept |
 | researched technologies stay inside that side's `tech_loadout` |
@@ -648,7 +647,7 @@ define:
 | `random_state` | The replay snapshot precedes the current deal or deliveries; the state carries each stream after them |
 | `reinforce_pool` | The seed-derived pool plus the replayed deal gives effective membership changes, replacing the historical operation log |
 | `supply` | A client snapshot precedes the round's income, which is added back from the map settings the record itself carries, plus what the equipment on the board the round opens with pays, less the energy tower debt. A server snapshot with `IsSpecialSupply` already includes this payment |
-| `reinforce_offers`' `decline_offer` | The record lists the cards alone. The decline is offered after them in every round that deals any, and its `refund` is the map's figure, or in a unit round the schedule's for that round, from the pool the seed selects; a match whose opening this build cannot deal is refused |
+| `reinforce_offers`' `refund_<amount>` | The record lists the cards alone. The decline is offered after them in every round that deals any, and its amount is the map's figure, or in a unit round the schedule's for that round, from the pool the seed selects; a match whose opening this build cannot deal is refused |
 | `battle_skills[].cooldown` | The recorded cooldowns are the previous round's. A slot the previous round spent restarts at its skill's cooldown, and every other drops by one to zero |
 | `energy_tower_skills` | The recorded list is a debt rather than an activation, so a round's start carries none |
 | `equipment` | The recorded inventory includes fitted items, which the units already name |

@@ -107,7 +107,10 @@ def blueprints():
 
 
 def opening_state(view):
-    return next(segment for segment in reversed(view["document"]) if segment["kind"] == "state")
+    state = next(segment for segment in reversed(view["document"]) if segment["kind"] == "state")
+    return {**state, **{side: {**state[side], "units": [u for u in state[side].get("units", [])
+                                                    if not u.get("recovered")]}
+                       for side in ("blue", "red")}}
 
 
 class Player:
@@ -133,7 +136,8 @@ class Player:
             print(f"refused {decision}: {answer['reason']}", file=sys.stderr)
             return None
         self.seen = answer
-        self.position = answer["position"]
+        self.position = {**answer["position"], "units": [u for u in answer["position"].get("units", [])
+                                                       if not u.get("recovered")]}
         return answer
 
     def legal(self, decision):
@@ -176,15 +180,14 @@ class Player:
         if not offers:
             return
         cards = []
-        for index, card in enumerate(offers[:-1]):
-            name = card if isinstance(card, str) else card["name"]
+        for index, name in enumerate(offers[:-1]):
             if name in self.skills or name in SHUNNED_EQUIPMENT:
                 continue
             decision = {"type": "choose_reinforce_item", "index": index, "name": name}
             if self.legal(decision):
                 cards.append(decision)
         decline = {"type": "choose_reinforce_item", "index": len(offers) - 1,
-                   "name": "decline_offer"}
+                   "name": offers[-1]}
         answer = self.take(self.draw.choice(cards) if cards else decline)
         self.note(answer)
 

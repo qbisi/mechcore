@@ -515,55 +515,52 @@ pub(crate) mod card {
         }
     }
 
-    /// A reinforcement choice: the card taken, or the decline, written by
-    /// [`crate::r#match::DECLINE_OFFER`].
+    fn refund_amount(name: &str) -> Option<i32> {
+        let amount = name.strip_prefix("refund_")?;
+        if amount.is_empty() || !amount.bytes().all(|b| b.is_ascii_digit()) {
+            return None;
+        }
+        amount.parse().ok()
+    }
+
+    /// A reinforcement answer: a card name or the round's `refund_<amount>`.
     pub(crate) mod choice {
         use super::{Deserialize, Deserializer, Serializer};
-        use crate::r#match::DECLINE_OFFER;
+        use crate::r#match::ReinforceChoice;
 
-        // Required by serde's `with` shape.
-        #[allow(clippy::ref_option, clippy::trivially_copy_pass_by_ref)]
+        #[allow(clippy::trivially_copy_pass_by_ref)] // serde's `with` signature.
         pub(crate) fn serialize<S: Serializer>(
-            card: &Option<i32>,
+            choice: &ReinforceChoice,
             serializer: S,
         ) -> Result<S::Ok, S::Error> {
-            match card {
-                Some(card) => serializer.serialize_str(super::name::<S::Error>(*card)?),
-                None => serializer.serialize_str(DECLINE_OFFER),
+            match choice {
+                ReinforceChoice::Card(card) => {
+                    serializer.serialize_str(super::name::<S::Error>(*card)?)
+                }
+                ReinforceChoice::Refund(amount) if *amount >= 0 => {
+                    serializer.serialize_str(&format!("refund_{amount}"))
+                }
+                ReinforceChoice::Refund(_) => Err(serde::ser::Error::custom(
+                    "reinforcement refund is not negative",
+                )),
             }
         }
-
         pub(crate) fn deserialize<'de, D: Deserializer<'de>>(
             deserializer: D,
-        ) -> Result<Option<i32>, D::Error> {
+        ) -> Result<ReinforceChoice, D::Error> {
             let name = String::deserialize(deserializer)?;
-            if name == DECLINE_OFFER {
-                return Ok(None);
+            if let Some(amount) = super::refund_amount(&name) {
+                return Ok(ReinforceChoice::Refund(amount));
             }
-            super::id::<D::Error>(&name).map(Some)
+            super::id::<D::Error>(&name).map(ReinforceChoice::Card)
         }
     }
 
-    /// A round's reinforcement offers: each card by name, and then the
-    /// decline with what it pays, `{name: decline_offer, refund: 50}`.
+    /// A round's cards followed by its decline amount, such as `refund_50`.
     pub(crate) mod offers {
         use super::{Deserialize, Deserializer, Serializer};
-        use crate::r#match::{DECLINE_OFFER, Offers};
+        use crate::r#match::Offers;
         use serde::Serialize;
-
-        #[derive(Serialize, Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct Decline {
-            name: String,
-            refund: i32,
-        }
-
-        #[derive(Serialize, Deserialize)]
-        #[serde(untagged)]
-        enum Entry {
-            Card(String),
-            Decline(Decline),
-        }
 
         #[allow(clippy::ref_option)] // Required by serde's `with` shape.
         pub(crate) fn serialize<S: Serializer, O: std::borrow::Borrow<Offers>>(
@@ -576,20 +573,21 @@ pub(crate) mod card {
             }
         }
 
-        /// One round's offers, the entries in order.
         pub(crate) fn write<S: Serializer>(
             offers: &Offers,
             serializer: S,
         ) -> Result<S::Ok, S::Error> {
+            if offers.refund < 0 {
+                return Err(serde::ser::Error::custom(
+                    "reinforcement refund is not negative",
+                ));
+            }
             let mut entries = offers
                 .dealt
                 .iter()
-                .map(|card| super::name::<S::Error>(*card).map(|name| Entry::Card(name.into())))
+                .map(|card| super::name::<S::Error>(*card).map(str::to_owned))
                 .collect::<Result<Vec<_>, _>>()?;
-            entries.push(Entry::Decline(Decline {
-                name: DECLINE_OFFER.into(),
-                refund: offers.refund,
-            }));
+            entries.push(format!("refund_{}", offers.refund));
             entries.serialize(serializer)
         }
 
@@ -597,33 +595,20 @@ pub(crate) mod card {
             deserializer: D,
         ) -> Result<Option<Offers>, D::Error> {
             use serde::de::Error;
-            let Some(mut entries) = Option::<Vec<Entry>>::deserialize(deserializer)? else {
+            let Some(mut entries) = Option::<Vec<String>>::deserialize(deserializer)? else {
                 return Ok(None);
             };
-            let Some(Entry::Decline(decline_offer)) = entries.pop() else {
-                return Err(D::Error::custom(format!(
-                    "reinforce_offers ends in {{name: {DECLINE_OFFER}, refund: ...}}"
-                )));
-            };
-            if decline_offer.name != DECLINE_OFFER {
-                return Err(D::Error::custom(format!(
-                    "reinforce_offers ends in {DECLINE_OFFER}, not {}",
-                    decline_offer.name
-                )));
-            }
+            let refund = entries
+                .pop()
+                .and_then(|name| super::refund_amount(&name))
+                .ok_or_else(|| {
+                    D::Error::custom("reinforce_offers ends in refund_<nonnegative integer>")
+                })?;
             let dealt = entries
                 .iter()
-                .map(|entry| match entry {
-                    Entry::Card(name) => super::id::<D::Error>(name),
-                    Entry::Decline(_) => Err(D::Error::custom(format!(
-                        "reinforce_offers names {DECLINE_OFFER} once, last"
-                    ))),
-                })
+                .map(|name| super::id::<D::Error>(name))
                 .collect::<Result<_, _>>()?;
-            Ok(Some(Offers {
-                dealt,
-                refund: decline_offer.refund,
-            }))
+            Ok(Some(Offers { dealt, refund }))
         }
     }
 }

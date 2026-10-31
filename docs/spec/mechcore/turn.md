@@ -29,6 +29,7 @@ One JSON object, written whole:
 {
   "schema": "mechcore.match-turn",
   "round": 3,
+  "deploy_time": 100,
   "opened": "2026-09-20T01:02:03.123456Z",
   "rebuilt": false,
   "sides": {
@@ -47,11 +48,18 @@ The round being deployed, which is the round the document holds a state for and
 whose actions are not both written yet. Round zero is the opening, and its one
 decision per side is a `choose_advance_team`.
 
+### `deploy_time`
+
+The positive deployment limit in seconds, configured by `match new` or
+`match fork --deploy-time`, defaulting to 100. It survives round transitions.
+Every fork starts with 100 seconds unless explicitly overridden, independently
+of the source's setting. It is not part of the match header. Rebuilding a missing or unreadable turn file restores the default.
+
 ### `opened`
 
 When that round opened, as an RFC 3339 instant in UTC. It is the only clock a
 match reads, and it decides one thing: a side that has not committed once the
-header's deployment time has passed since it has lost the match, which
+turn file's deployment time has passed since it has lost the match, which
 [cli.md](cli.md) states as this platform's own rule rather than the game's.
 
 A round opens when the fight before it is resolved, and `opened` is written in
@@ -59,9 +67,10 @@ the same locked write that opens it.
 
 `match fork` writes a destination turn file with a restarted clock and
 `rebuilt` set. Both sides are given. With `--round`, both sides are uncommitted
-and decisions are empty; without it, the source's current commitments and
-pending decisions are carried when its turn file is available. The source's
-turn file remains unchanged unless the fork explicitly replaces the source.
+and decisions are empty; without it, commitments come only from the source
+match's recorded actions and pending decisions are empty. Fork does not read
+or open the source turn file. It writes a fresh destination turn file, replacing
+the old turn file only when explicitly forking in place.
 
 ### `rebuilt`
 

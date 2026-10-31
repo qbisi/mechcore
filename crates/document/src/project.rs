@@ -46,7 +46,11 @@ pub fn deployment(
     let mut deploy = |opened: &SideState, actions: &[Action], red| {
         let mut position = opened.clone();
         let mut affected = std::collections::BTreeSet::new();
+        let mut purchased = std::collections::BTreeSet::new();
         for action in actions {
+            if matches!(action, Action::BuyUnit { .. }) {
+                purchased.insert(position.next_unit_index());
+            }
             let next = crate::transition::deployed(
                 economy,
                 &position,
@@ -62,6 +66,7 @@ pub fn deployment(
                         .iter()
                         .filter(|entry| {
                             entry.unit.type_name == "phantom_ray"
+                                && !purchased.contains(&entry.unit.index)
                                 && entry.unit.travelling == Some(true)
                         })
                         .map(|entry| entry.unit.index),
@@ -77,7 +82,7 @@ pub fn deployment(
         if !affected.is_empty() {
             let side = if red { "red" } else { "blue" };
             warnings.push(format!(
-                "round {round} {side}: Stealth Cloak activated after flank deployment of Phantom Ray formations {affected:?}. The layout activates technologies before flank deployment and cannot preserve that native initialization order. Format the match to place research before movement."
+                "round {round} {side}: Stealth Cloak activated after flank deployment of Phantom Ray formations {affected:?}. The layout activates technologies before flank deployment and cannot preserve that native initialization order. New purchases encode research before movement; an existing formation still requires research before flank movement."
             ));
         }
         if !opened.techs.contains(&4430)
@@ -197,7 +202,7 @@ pub fn assign_sources(side: &mut Side, allocator: i32, round: i32) -> Result<(),
 }
 
 fn with_sources(mut side: Side, opening: &SideState, round: i32) -> Result<Side, String> {
-    assign_sources(&mut side, opening.next_index.unit, round)?;
+    assign_sources(&mut side, opening.next_unit_index(), round)?;
     for unit in &mut side.units {
         let recorded = if unit.source == UnitSource::Legacy {
             opening
@@ -420,6 +425,7 @@ mod tests {
         let opening = SideState {
             units: units
                 .iter()
+                .take(3)
                 .map(|unit| crate::r#match::StateUnit {
                     unit: unit.clone(),
                     value: Some(100),
@@ -427,7 +433,6 @@ mod tests {
                 })
                 .collect(),
             next_index: crate::r#match::NextIndex {
-                unit: 6,
                 ..Default::default()
             },
             ..Default::default()
@@ -452,7 +457,7 @@ mod tests {
     #[test]
     fn deployment_warns_for_historical_cloak_after_flank_movement() {
         let economy = crate::economy::Economy::embedded().unwrap();
-        let opening = State {
+        let mut opening = State {
             blue: SideState {
                 supply: 100_000,
                 unlocked_units: vec![25],
@@ -469,7 +474,6 @@ mod tests {
         };
         let bought = Action::BuyUnit {
             unit: 25,
-            level: None,
             position: Some(crate::layout::Position { x: -100, y: -160 }),
             rotated: false,
         };
@@ -482,6 +486,14 @@ mod tests {
             unit: 25,
             tech: 3925,
         };
+        opening.blue = crate::transition::deployed(
+            economy,
+            &opening.blue,
+            std::slice::from_ref(&bought),
+            false,
+            None,
+        )
+        .unwrap();
         let check = |blue| {
             deployment(
                 economy,
@@ -494,10 +506,10 @@ mod tests {
             )
             .unwrap()
         };
-        let warned = check(vec![bought.clone(), moved.clone(), cloak.clone()]);
+        let warned = check(vec![moved.clone(), cloak.clone()]);
         assert_eq!(warned.warnings.len(), 1);
         assert!(warned.warnings[0].contains("round 5 blue"));
-        let canonical = check(vec![bought.clone(), cloak.clone(), moved.clone()]);
+        let canonical = check(vec![cloak.clone(), moved.clone()]);
         assert!(canonical.warnings.is_empty());
         // Both histories still produce a layout and the same projected state.
         assert_eq!(warned.layout, canonical.layout);
@@ -506,11 +518,7 @@ mod tests {
             position: crate::layout::Position { x: -100, y: -160 },
             rotated: false,
         };
-        assert!(
-            check(vec![bought, moved, cloak, returned])
-                .warnings
-                .is_empty()
-        );
+        assert!(check(vec![moved, cloak, returned]).warnings.is_empty());
     }
 
     #[test]
@@ -522,7 +530,6 @@ mod tests {
                 unlocked_units: vec![30],
                 officers: vec![20021],
                 next_index: crate::r#match::NextIndex {
-                    unit: 1,
                     ..Default::default()
                 },
                 shop: crate::r#match::Allowances {
@@ -545,7 +552,6 @@ mod tests {
         };
         let bought = Action::BuyUnit {
             unit: 30,
-            level: None,
             position: None,
             rotated: false,
         };

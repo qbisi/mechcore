@@ -146,7 +146,7 @@ fn delivered_before(economy: &Economy, side: &SideState, round: i32) -> Result<i
             squads += 1;
         }
     }
-    Ok(side.next_index.unit - squads)
+    Ok(side.next_unit_index() - squads)
 }
 
 impl Config {
@@ -723,7 +723,18 @@ impl Dealer {
             }
             for (offer, id) in choices {
                 // The decline sits after the cards dealt.
-                if id.is_none() {
+                if let crate::r#match::ReinforceChoice::Refund(amount) = id {
+                    if turn
+                        .state
+                        .reinforce_offers
+                        .as_ref()
+                        .is_none_or(|offer| offer.refund != amount)
+                    {
+                        return Err(format!(
+                            "round {} {name} refund amount differs from its offer",
+                            turn.round
+                        ));
+                    }
                     if usize::try_from(offer).ok() != Some(offers.len()) {
                         return Err(format!(
                             "round {} {name} declines at {offer}, and the decline is offer {}",
@@ -737,7 +748,7 @@ impl Dealer {
                     .ok()
                     .and_then(|at| offers.get(at))
                     .copied();
-                if predicted.is_none() || predicted != id {
+                if predicted.is_none() || predicted != id.card() {
                     return Err(format!(
                         "round {} {name} reinforcement choice {offer} / {id:?} does not name a predicted offer",
                         turn.round
@@ -1154,7 +1165,6 @@ mod tests {
             game_build: crate::game_build().into(),
             map_id: 1011,
             seed: 12345,
-            deploy_time: None,
             blue: side(
                 opening.deal.blue.clone(),
                 opening.constructions.blue.clone(),

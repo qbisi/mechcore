@@ -105,7 +105,8 @@ fn open_the_match(path: &str) {
 fn decline(path: &str, side: &str) {
     let view = run(&["match", "show", path, "--side", side]).ok();
     let last = state(&view)["reinforce_offers"].as_array().unwrap().len() - 1;
-    let decision = format!("{{type: choose_reinforce_item, index: {last}, name: decline_offer}}");
+    let name = state(&view)["reinforce_offers"][last].as_str().unwrap();
+    let decision = format!("{{type: choose_reinforce_item, index: {last}, name: {name}}}");
     run(&["match", "act", path, "--side", side, &decision]).ok();
 }
 
@@ -167,7 +168,7 @@ fn fork_reopens_a_round_and_continues_from_its_original_state() {
 }
 
 #[test]
-fn fork_without_a_round_preserves_pending_decisions_and_commitments() {
+fn fork_without_a_round_uses_only_documented_decisions_and_commitments() {
     let directory = tempfile::tempdir().unwrap();
     let path = dealt(directory.path());
     open_the_match(&path);
@@ -192,12 +193,36 @@ fn fork_without_a_round_preserves_pending_decisions_and_commitments() {
         "red",
     ])
     .ok();
-    assert_eq!(loaded["document"][0]["deploy_time"], 199);
+    assert!(loaded["document"][0].get("deploy_time").is_none());
+    let runtime: Value =
+        serde_json::from_slice(&fs::read(Path::new(&target).with_extension("turn")).unwrap())
+            .unwrap();
+    assert_eq!(runtime["deploy_time"], 199);
     assert!(loaded["remaining"].as_f64().unwrap() > 198.0);
     assert_eq!(loaded["sides"]["blue"]["committed"], true);
-    assert_eq!(decisions(&loaded, "red").as_array().unwrap().len(), 1);
+    assert!(decisions(&loaded, "red").as_array().unwrap().is_empty());
     assert_eq!(fs::read(&path).unwrap(), before);
     assert_eq!(fs::read(&turn_path).unwrap(), turn);
+    // A corrupt source turn produces the same checkpoint as a valid or missing one.
+    fs::write(&turn_path, b"not valid JSON").unwrap();
+    for suffix in ["corrupt", "missing", "directory"] {
+        if suffix == "missing" {
+            fs::remove_file(&turn_path).unwrap();
+        }
+        if suffix == "directory" {
+            fs::create_dir(&turn_path).unwrap();
+        }
+        let target = directory
+            .path()
+            .join(format!("{suffix}.yaml"))
+            .display()
+            .to_string();
+        let forked = run(&["match", "fork", &path, &target, "--side", "red"]).ok();
+        assert_eq!(disk_document(&target), disk_document(&path));
+        assert_eq!(forked["sides"]["blue"]["committed"], true);
+        assert_eq!(forked["sides"]["red"]["committed"], false);
+        assert!(decisions(&forked, "red").as_array().unwrap().is_empty());
+    }
 }
 
 #[test]
@@ -408,10 +433,11 @@ fn fork_protects_existing_files_and_validates_the_new_clock() {
         view["match"],
         fs::canonicalize(&target).unwrap().display().to_string()
     );
-    assert_eq!(view["document"][0]["deploy_time"], 199);
+    assert!(view["document"][0].get("deploy_time").is_none());
     assert_eq!(fs::read(&path).unwrap(), original);
     let turn: Value = serde_json::from_slice(&fs::read(&target_turn).unwrap()).unwrap();
     assert_eq!(turn["round"], 1);
+    assert_eq!(turn["deploy_time"], 199);
     assert_eq!(turn["sides"]["blue"]["committed"], false);
 }
 
@@ -996,6 +1022,48 @@ fn a_committed_round_is_written_and_fought() {
 }
 
 #[test]
+fn deployment_time_is_runtime_only_and_survives_round_opening() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("m.yaml").display().to_string();
+    let view = run(&[
+        "match",
+        "new",
+        &path,
+        "--seed",
+        "12345",
+        "--map",
+        "1011",
+        "--deploy-time",
+        "199",
+    ])
+    .ok();
+    assert!(view["document"][0].get("deploy_time").is_none());
+    assert!(!fs::read_to_string(&path).unwrap().contains("deploy_time"));
+    run(&["match", "new", &path, "--deploy-time", "100"]).refused();
+    run(&["match", "new", &path, "--deploy-time", "199"]).ok();
+    open_the_match(&path);
+    let turn: Value =
+        serde_json::from_slice(&fs::read(Path::new(&path).with_extension("turn")).unwrap())
+            .unwrap();
+    assert_eq!(turn["round"], 1);
+    assert_eq!(turn["deploy_time"], 199);
+    let resumed = run(&["match", "show", &path, "--side", "blue"]).ok();
+    assert!(resumed["remaining"].as_f64().unwrap() > 190.0);
+    let forked = directory.path().join("fork.yaml").display().to_string();
+    run(&["match", "fork", &path, &forked]).ok();
+    let fork_runtime: Value =
+        serde_json::from_slice(&fs::read(Path::new(&forked).with_extension("turn")).unwrap())
+            .unwrap();
+    assert_eq!(fork_runtime["deploy_time"], 100);
+    fs::remove_file(Path::new(&path).with_extension("turn")).unwrap();
+    run(&["match", "show", &path, "--side", "blue"]).ok();
+    let rebuilt: Value =
+        serde_json::from_slice(&fs::read(Path::new(&path).with_extension("turn")).unwrap())
+            .unwrap();
+    assert_eq!(rebuilt["deploy_time"], 100);
+}
+
+#[test]
 fn a_side_that_does_not_commit_in_time_loses_the_match() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("m.yaml").display().to_string();
@@ -1207,10 +1275,16 @@ fn a_round_takes_one_reinforcement_answer() {
         run(&["match", "commit", &path, "--side", side]).ok();
     }
 
+    let view = run(&["match", "show", &path, "--side", "blue"]).ok();
+    let last = state(&view)["reinforce_offers"].as_array().unwrap().len() - 1;
+    let forged = format!("{{type: choose_reinforce_item, index: {last}, name: refund_999999}}");
+    let reason = run(&["match", "act", &path, "--side", "blue", &forged]).refused();
+    assert!(reason.contains("not what this round offers"), "{reason}");
     decline(&path, "blue");
     let view = run(&["match", "show", &path, "--side", "blue"]).ok();
     let last = state(&view)["reinforce_offers"].as_array().unwrap().len() - 1;
-    let again = format!("{{type: choose_reinforce_item, index: {last}, name: decline_offer}}");
+    let name = state(&view)["reinforce_offers"][last].as_str().unwrap();
+    let again = format!("{{type: choose_reinforce_item, index: {last}, name: {name}}}");
     let refused = run(&["match", "act", &path, "--side", "blue", &again]).refused();
     assert!(refused.contains("one answer"), "{refused}");
 }
@@ -1348,7 +1422,7 @@ fn a_match_whose_deal_does_not_verify_is_not_written_as_a_replay() {
     let round = "kind: action\nround: 2\nblue:\n";
     let at = document.find(round).unwrap() + round.len();
     let answer = &document[at..=at + document[at..].find('\n').unwrap()];
-    assert!(answer.contains("decline_offer"), "{answer}");
+    assert!(answer.contains("refund_"), "{answer}");
     fs::write(
         &path,
         format!("{}{answer}{}", &document[..at], &document[at..]),

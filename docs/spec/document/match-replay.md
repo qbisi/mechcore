@@ -42,8 +42,8 @@ match's map, and the two players `{id: 1, name: blue}` and `{id: 2, name: red}`.
 standard 1v1 constants, with advance teams, reinforcement, unit reinforcement
 and construction on, and no game rules and no match type. `Version` is the build
 number and `Seat` is 0, a locally recorded replay.
-`DeployTime` is the match's `deploy_time`, or the standard 100 seconds when it
-states none.
+`DeployTime` is the standard 100 seconds. Deployment time is runtime
+configuration and is not carried in the match header.
 
 Each `PlayerRecord`, blue first, holds the side's `name` (defaulting to `blue`
 or `red`) and `seed`, the map's reactor core, the round income every versus
@@ -137,18 +137,22 @@ with `PAD_FinishDeploy` unless it concedes:
 | `concede` | `PAD_GiveUp` |
 
 The game places a purchase where the deployment area is free. A standard
-match omits the purchase position and states any subsequent movement as a
-separate action. Historical combined purchase placement is expanded into
-those two native operations. The formation created is the one the position
+match couples a purchase and its immediately following movement through the
+purchase's position and rotation. Encoding expands that combined placement
+into those two native operations. The formation created is the one the position
 allocates next.
 
 Match decisions use the standard phases in
 [action.md](action.md#settling-a-round). Their dependencies already place unit
 research, purchases, recovery and Energy Tower activations in native legal
-order. Encoding preserves that order, including Stealth Cloak and Elite
-Recruitment; it does not schedule them specially. An explicit purchase level
-must equal the current native shop level. Omitting it retains the historical
-sequential meaning. Research requires a formation of its type.
+order. Encoding retains Elite Recruitment's activation order. After the first
+purchase of a type, it inserts that type's later technology activations before the purchase's movement, so flank initialization
+sees them. The activations are omitted from their later match positions;
+they are not repeated for later purchases. Rapid Resupply is already the
+match's second phase, after reinforcement selection; encoding does not
+activate it on demand. Purchase level is derived
+from the officers and active Energy Tower skills at that point; it is not
+an action parameter. Research requires a formation of its type.
 
 A decision's `Time` is zero and its `LocalTime` the seconds since its round
 opened, in the game's 0.05-second ticks, as every tracked replay records them.

@@ -102,9 +102,7 @@ pub fn match_replay(
          <MatchMode>VS_1_1</MatchMode><ScoreMode>ReduceScore</ScoreMode><HostID>0</HostID>\
          <SurviveModeDifficulty>VeryEasy</SurviveModeDifficulty></BattleInfo>\
          <CreateTime>0001-01-01T00:00:00</CreateTime></BattleRecord>",
-        stated.seed,
-        deploy_time(stated),
-        stated.map_id
+        stated.seed, DEFAULT_DEPLOY_TIME, stated.map_id
     );
     Ok(binary_formatter(
         BATTLE_ID,
@@ -295,7 +293,7 @@ fn write_player(
             turn,
             actions,
             sign,
-            deploy_time(stated),
+            DEFAULT_DEPLOY_TIME,
         )?;
         xml.push_str("</PlayerRoundRecord>");
         earlier_officers.clone_from(&snapshot.officers);
@@ -390,11 +388,14 @@ fn take_back_deliveries(
             squads += 1;
         }
     }
-    snapshot.next_index.unit -= squads;
-    let first_delivered = snapshot.next_index.unit;
+
+    let first_delivered = snapshot.next_unit_index() - squads;
     snapshot
         .units
         .retain(|entry| entry.unit.index < first_delivered);
+    snapshot
+        .recovered_units
+        .retain(|entry| entry.index < first_delivered);
     Ok(snapshot)
 }
 
@@ -475,7 +476,7 @@ fn write_snapshot(
         side.reactor_core, side.supply
     );
     write_units(xml, side, sign)?;
-    let _ = write!(xml, "<unitIndex>{}</unitIndex>", side.next_index.unit);
+    let _ = write!(xml, "<unitIndex>{}</unitIndex>", side.next_unit_index());
     let mut officers = side.officers.clone();
     officers.extend_from_slice(chain_officers);
     officers.sort_unstable();
@@ -753,9 +754,9 @@ fn write_actions(
     Ok(())
 }
 
-/// Expand historical purchase placement into native purchase and movement.
-/// Every other operation retains its match position; this encoder schedules
-/// neither research nor Energy Tower activations.
+/// Expand purchase placement into native purchase, research and movement.
+/// A type's pending research runs after its first purchase, before movement,
+/// so flank initialization sees the technology while match purchases stay whole.
 fn native_actions(
     economy: &Economy,
     opened: &SideState,
@@ -770,11 +771,14 @@ fn native_actions(
         declined: offers.map(|offers| offers.refund),
         red,
     };
-    for action in actions {
+    let mut scheduled = std::collections::BTreeSet::new();
+    for (at, action) in actions.iter().enumerate() {
+        if scheduled.contains(&at) {
+            continue;
+        }
         match action {
             Action::BuyUnit {
                 unit,
-                level,
                 position,
                 rotated,
             } => {
@@ -783,13 +787,21 @@ fn native_actions(
                     .0;
                 let landing = crate::landing::landing(&native.position, type_name, red)
                     .ok_or("native purchase has no default landing")?;
-                let index = native.position.next_index.unit;
+                let index = native.position.next_unit_index();
                 native.push(Action::BuyUnit {
                     unit: *unit,
-                    level: *level,
                     position: Some(landing),
                     rotated: false,
                 })?;
+                for (later, research) in actions.iter().enumerate().skip(at + 1) {
+                    if let Action::UpgradeTechnology { unit: owner, tech } = research
+                        && owner == unit
+                        && !native.position.techs.contains(tech)
+                    {
+                        native.push(research.clone())?;
+                        scheduled.insert(later);
+                    }
+                }
                 if let Some(position) = position {
                     if *position != landing || *rotated {
                         native.push(Action::MoveUnit {
@@ -818,7 +830,7 @@ struct NativeDeployment<'a> {
 
 impl NativeDeployment<'_> {
     fn push(&mut self, action: Action) -> Result<(), String> {
-        crate::transition::check_operation(self.economy, &self.position, &action)
+        crate::transition::check_operation(&self.position, &action)
             .map_err(|error| format!("native {action:?}: {error}"))?;
         self.position = crate::transition::deployed(
             self.economy,
@@ -865,10 +877,6 @@ fn write_records(xml: &mut String, records: &[(&str, String)], clock: i32) {
 }
 
 /// The round's deployment clock, which the match states or the standard one.
-fn deploy_time(stated: &Stated) -> i32 {
-    stated.deploy_time.unwrap_or(DEFAULT_DEPLOY_TIME)
-}
-
 /// What recording one decision needs from the position it is taken from.
 struct Context<'a> {
     /// The unit type a move carries.
@@ -885,13 +893,24 @@ fn action_records(
     let sign = context.sign;
     Ok(match action {
         Action::ChooseReinforceItem { index, id } => {
-            let declined = context
+            let offers = context
                 .offers
-                .is_some_and(|offers| *index == offers.decline_index());
-            let (index, id) = if declined {
-                (-1, 0)
-            } else {
-                (*index, id.unwrap_or(0))
+                .ok_or("reinforcement choice without offers")?;
+            let (index, id) = match id {
+                crate::r#match::ReinforceChoice::Refund(amount)
+                    if *index == offers.decline_index() && *amount == offers.refund =>
+                {
+                    (-1, 0)
+                }
+                crate::r#match::ReinforceChoice::Card(card)
+                    if usize::try_from(*index)
+                        .ok()
+                        .and_then(|at| offers.dealt.get(at))
+                        == Some(card) =>
+                {
+                    (*index, *card)
+                }
+                _ => return Err("reinforcement choice differs from its offer".into()),
             };
             vec![(
                 "PAD_ChooseReinforceItem",
@@ -1011,10 +1030,9 @@ mod tests {
         }
     }
 
-    fn buy(unit: i32, level: Option<i32>, x: i32, y: i32) -> Action {
+    fn buy(unit: i32, x: i32, y: i32) -> Action {
         Action::BuyUnit {
             unit,
-            level,
             position: Some(Position { x, y }),
             rotated: false,
         }
@@ -1032,9 +1050,9 @@ mod tests {
     }
 
     #[test]
-    fn native_encoding_retains_research_position_after_historical_movement() {
+    fn native_encoding_inserts_research_between_purchase_and_flank_movement() {
         let lowered = native(&[
-            buy(25, Some(1), 310, 50),
+            buy(25, 310, 50),
             Action::UpgradeTechnology {
                 unit: 25,
                 tech: 3925,
@@ -1047,10 +1065,67 @@ mod tests {
                     position: Some(_),
                     ..
                 },
-                Action::MoveUnit { index: 0, .. },
                 Action::UpgradeTechnology { tech: 3925, .. },
+                Action::MoveUnit { index: 0, .. },
             ]
         ));
+    }
+
+    #[test]
+    fn research_is_emitted_once_after_the_first_purchase_of_its_type() {
+        let lowered = native(&[
+            buy(6, -100, -160),
+            buy(6, 100, -160),
+            Action::UpgradeTechnology { unit: 6, tech: 206 },
+        ]);
+        assert!(matches!(
+            lowered.as_slice(),
+            [
+                Action::BuyUnit { .. },
+                Action::UpgradeTechnology { tech: 206, .. },
+                Action::MoveUnit { index: 0, .. },
+                Action::BuyUnit { .. },
+                Action::MoveUnit { index: 1, .. },
+            ]
+        ));
+    }
+
+    #[test]
+    fn early_native_research_uses_the_upfront_supply_stage() {
+        let economy = Economy::embedded().unwrap();
+        let mut opening = opened();
+        let cost = crate::ledger::Purse::new(economy, &opening.officers)
+            .buy(6)
+            .unwrap();
+        opening.supply = 2 * cost + economy.technology(206).unwrap()
+            - economy.energy_tower_skill(1).unwrap().granted;
+        let actions = [
+            Action::ActiveEnergyTowerSkill { skill: 1 },
+            buy(6, -100, -160),
+            buy(6, 100, -160),
+            Action::UpgradeTechnology { unit: 6, tech: 206 },
+        ];
+        let lowered = native_actions(economy, &opening, &actions, None, false).unwrap();
+        assert_eq!(
+            crate::transition::deployed(economy, &opening, &lowered, false, None).unwrap(),
+            crate::transition::deployed(economy, &opening, &actions, false, None).unwrap()
+        );
+        assert_eq!(
+            lowered
+                .iter()
+                .filter(|a| matches!(a, Action::ActiveEnergyTowerSkill { skill: 1 }))
+                .count(),
+            1
+        );
+        assert!(matches!(
+            lowered[0],
+            Action::ActiveEnergyTowerSkill { skill: 1 }
+        ));
+        assert!(matches!(
+            lowered[2],
+            Action::UpgradeTechnology { tech: 206, .. }
+        ));
+        assert!(native_actions(economy, &opening, &actions[1..], None, false).is_err());
     }
 
     #[test]
@@ -1058,7 +1133,6 @@ mod tests {
         let actions = [
             Action::BuyUnit {
                 unit: 6,
-                level: Some(1),
                 position: None,
                 rotated: false,
             },
@@ -1081,33 +1155,17 @@ mod tests {
     }
 
     #[test]
-    fn historical_omitted_levels_keep_their_elite_recruitment_position() {
+    fn purchases_keep_their_elite_recruitment_position() {
         let lowered = native(&[
-            buy(10, None, -100, -160),
+            buy(10, -100, -160),
             Action::ActiveEnergyTowerSkill { skill: 4 },
-            buy(15, Some(2), 100, -160),
+            buy(15, 100, -160),
         ]);
-        assert!(matches!(lowered[0], Action::BuyUnit { level: None, .. }));
+        assert!(matches!(lowered[0], Action::BuyUnit { .. }));
         assert!(matches!(
             lowered[2],
             Action::ActiveEnergyTowerSkill { skill: 4 }
         ));
-    }
-
-    #[test]
-    fn native_encoding_refuses_a_purchase_level_the_current_shop_cannot_sell() {
-        let error = native_actions(
-            Economy::embedded().unwrap(),
-            &opened(),
-            &[
-                Action::ActiveEnergyTowerSkill { skill: 4 },
-                buy(10, Some(1), -100, -160),
-            ],
-            None,
-            false,
-        )
-        .unwrap_err();
-        assert!(error.contains("native shop cannot provide"));
     }
 
     #[test]
@@ -1117,7 +1175,7 @@ mod tests {
             &opened(),
             &[
                 Action::UpgradeTechnology { unit: 6, tech: 206 },
-                buy(6, Some(1), -100, -160),
+                buy(6, -100, -160),
             ],
             None,
             false,

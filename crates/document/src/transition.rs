@@ -148,10 +148,22 @@ pub fn step_placing(
         // Declining is one of this decision's two answers, and the one that
         // pays: the item it takes is a supply grant of its own, whose size
         // the round decides.
-        Action::ChooseReinforceItem { id: None, .. } => {
-            next.supply += declined.ok_or(Unsettled::Unpriced("declined reinforcement"))?;
+        Action::ChooseReinforceItem {
+            id: crate::r#match::ReinforceChoice::Refund(amount),
+            ..
+        } => {
+            let offered = declined.ok_or(Unsettled::Unpriced("declined reinforcement"))?;
+            if *amount != offered {
+                return Err(Unsettled::Refused(
+                    "refund amount differs from this round's offer",
+                ));
+            }
+            next.supply += offered;
         }
-        Action::ChooseReinforceItem { id: Some(card), .. } => {
+        Action::ChooseReinforceItem {
+            id: crate::r#match::ReinforceChoice::Card(card),
+            ..
+        } => {
             let price = economy.card(*card).ok_or(Unsettled::Unpriced("card"))?;
             next.supply -= price;
             // An officer card joins the list whether or not this build gives
@@ -220,7 +232,6 @@ pub fn step_placing(
         }
         Action::BuyUnit {
             unit,
-            level,
             position,
             rotated,
         } => {
@@ -232,12 +243,7 @@ pub fn step_placing(
                 ));
             }
             let price = purse.buy(*unit).ok_or(Unsettled::Unpriced("unit"))?;
-            let available = purse.shop_level(*unit);
-            let level = level.unwrap_or(available);
-            let base = available - purse.raised;
-            if !(base..=available).contains(&level) {
-                return Err(Unsettled::Refused("buying a level the shop cannot provide"));
-            }
+            let level = purse.shop_level(*unit);
             next.supply -= purse
                 .buy_at_level(*unit, level)
                 .ok_or(Unsettled::Unpriced("unit"))?;
@@ -252,7 +258,7 @@ pub fn step_placing(
             }
             // The position is where the formation's moves this round end, and
             // one that ends on a flank arrived there from the main half.
-            let created = next.next_index.unit - 1;
+            let created = next.next_unit_index() - 1;
             let formation = &mut formation_mut(&mut next, created)?.unit;
             formation.rotated = Some(*rotated).filter(|rotated| *rotated);
             formation.travelling = Region::of(formation.position).is_flank().then_some(true);
@@ -598,6 +604,11 @@ fn recover_formation(economy: &Economy, next: &mut SideState, index: i32) -> Res
         .position(|entry| entry.unit.index == index)
         .ok_or(Unsettled::Missing("unit"))?;
     let entry = next.units.remove(position);
+    next.recovered_units.push(crate::r#match::RecoveredUnit {
+        type_name: Some(entry.unit.type_name.clone()),
+        index,
+    });
+    next.recovered_units.sort_by_key(|unit| unit.index);
     let unit = unit_id_from_type(&entry.unit.type_name).ok_or(Unsettled::Unpriced("unit"))?;
     let purse = Purse::new(economy, &next.officers);
     let upgrade = purse.upgrade(unit).ok_or(Unsettled::Unpriced("upgrade"))?;
@@ -649,8 +660,8 @@ fn place(
     let Some(position) = placement(next, type_name) else {
         return Err(Unsettled::GrantedPosition);
     };
-    let index = next.next_index.unit;
-    next.next_index.unit += 1;
+    let index = next.next_unit_index();
+
     next.units.push(StateUnit {
         unit: crate::layout::UnitPlacement {
             record_position: None,
@@ -770,46 +781,20 @@ pub fn deployed(
 /// actions can still be evaluated by `step_placing` before normalization.
 ///
 /// # Errors
-/// Refuses research without its formation type, repeated research, and a
-/// purchase level other than the current shop level.
-pub fn check_operation(
-    economy: &Economy,
-    state: &SideState,
-    action: &Action,
-) -> Result<(), Unsettled> {
-    match action {
-        Action::UpgradeTechnology { unit, tech } => {
-            let (name, _) = unit_type_from_id(*unit).ok_or(Unsettled::Unpriced("unit"))?;
-            if !state.units.iter().any(|entry| entry.unit.type_name == name) {
-                return Err(Unsettled::Refused(
-                    "researching without a formation of this type",
-                ));
-            }
-            if state.techs.contains(tech) {
-                return Err(Unsettled::Refused(
-                    "researching a technology already active",
-                ));
-            }
+/// Refuses research without its formation type and repeated research.
+pub fn check_operation(state: &SideState, action: &Action) -> Result<(), Unsettled> {
+    if let Action::UpgradeTechnology { unit, tech } = action {
+        let (name, _) = unit_type_from_id(*unit).ok_or(Unsettled::Unpriced("unit"))?;
+        if !state.units.iter().any(|entry| entry.unit.type_name == name) {
+            return Err(Unsettled::Refused(
+                "researching without a formation of this type",
+            ));
         }
-        Action::BuyUnit {
-            unit,
-            level: Some(level),
-            ..
-        } => {
-            let mut purse = Purse::new(economy, &state.officers);
-            purse.raised = state
-                .energy_tower_skills
-                .iter()
-                .filter_map(|id| economy.energy_tower_skill(*id))
-                .map(|row| row.shop_unit_level)
-                .sum();
-            if *level != purse.shop_level(*unit) {
-                return Err(Unsettled::Refused(
-                    "buying a level the native shop cannot provide",
-                ));
-            }
+        if state.techs.contains(tech) {
+            return Err(Unsettled::Refused(
+                "researching a technology already active",
+            ));
         }
-        _ => {}
     }
     Ok(())
 }
@@ -837,7 +822,13 @@ pub fn check_place(state: &SideState, action: &Action) -> Result<(), Unsettled> 
             ..
         } => {
             let (type_name, _) = unit_type_from_id(*unit).ok_or(Unsettled::Unpriced("unit"))?;
-            crate::landing::unit_fits(state, state.next_index.unit, type_name, *position, *rotated)
+            crate::landing::unit_fits(
+                state,
+                state.next_unit_index(),
+                type_name,
+                *position,
+                *rotated,
+            )
         }
         Action::MoveUnit {
             index,
@@ -918,7 +909,7 @@ pub fn open_round(
         }
         hand_out_round(&mut next, row, stream.as_mut())?;
         if let Some(opening) = row.opening_unit {
-            let index = next.next_index.unit;
+            let index = next.next_unit_index();
             hand_out(
                 economy,
                 &mut next,
@@ -1573,33 +1564,25 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         ));
     }
 
-    /// A canonical purchase can name the level bought before Elite Recruitment
-    /// even when the activation is written first. Historical purchases still
-    /// use the shop level at their position in the sequence.
     #[test]
-    fn a_purchase_level_distinguishes_the_two_elite_recruitment_prices() {
+    fn purchase_level_is_derived_from_the_current_shop() {
         let economy = Economy::embedded().unwrap();
-        let state = SideState {
-            energy_tower_skills: vec![4],
-            ..solvent()
-        };
-        let buy = |level| Action::BuyUnit {
+        let state = solvent();
+        let buy = Action::BuyUnit {
             unit: 1,
-            level,
             position: Some(Position { x: 0, y: -160 }),
             rotated: false,
         };
-        let low = step(economy, &state, &buy(Some(1))).unwrap();
-        let high = step(economy, &state, &buy(Some(2))).unwrap();
-        let old = step(economy, &state, &buy(None)).unwrap();
+        let low = step(economy, &state, &buy).unwrap();
+        let mut elite = state.clone();
+        elite.energy_tower_skills.push(4);
+        let high = step(economy, &elite, &buy).unwrap();
         assert_eq!(low.units[0].unit.level, None);
         assert_eq!(high.units[0].unit.level, Some(2));
-        assert_eq!(old, high);
         assert_eq!(
             low.supply - high.supply,
             economy.unit(1).unwrap().upgrade_supply
         );
-        assert!(step(economy, &state, &buy(Some(3))).is_err());
     }
 
     /// Native `GetSupply` uses `CardData`'s level price; Subsidized Crawler's
@@ -1610,7 +1593,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let economy = Economy::embedded().unwrap();
         let buy = Action::BuyUnit {
             unit: 10,
-            level: Some(2),
             position: Some(Position { x: 0, y: -160 }),
             rotated: false,
         };
@@ -1635,7 +1617,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             &state,
             &Action::BuyUnit {
                 unit: 10,
-                level: Some(1),
                 position: Some(Position { x: 0, y: -160 }),
                 rotated: false,
             },
@@ -1684,11 +1665,11 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let taken = [
             Action::ChooseReinforceItem {
                 index: 0,
-                id: Some(20022),
+                id: crate::r#match::ReinforceChoice::Card(20022),
             },
             Action::ChooseReinforceItem {
                 index: 1,
-                id: Some(20022),
+                id: crate::r#match::ReinforceChoice::Card(20022),
             },
         ];
         let next = fold(economy, &state, &taken).unwrap();
@@ -1701,14 +1682,25 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
     fn a_decline_pays_the_round_figure() {
         let economy = Economy::embedded().unwrap();
         let state = SideState::default();
-        let declined = Action::ChooseReinforceItem { index: 4, id: None };
+        let declined = Action::ChooseReinforceItem {
+            index: 4,
+            id: crate::r#match::ReinforceChoice::Refund(50),
+        };
         let ordinary = crate::reinforcement::decline_supply(economy, 1, 3).unwrap();
         let unit = crate::reinforcement::decline_supply(economy, 1, 8).unwrap();
         assert_eq!((ordinary, unit), (50, 400));
         for figure in [ordinary, unit] {
-            let next = super::step(economy, &state, &declined, Some(figure)).unwrap();
+            let choice = Action::ChooseReinforceItem {
+                index: 4,
+                id: crate::r#match::ReinforceChoice::Refund(figure),
+            };
+            let next = super::step(economy, &state, &choice, Some(figure)).unwrap();
             assert_eq!(next.supply, state.supply + figure);
         }
+        assert!(matches!(
+            super::step(economy, &state, &declined, Some(unit)),
+            Err(Unsettled::Refused(_))
+        ));
         assert_eq!(
             super::step(economy, &state, &declined, None),
             Err(Unsettled::Unpriced("declined reinforcement"))
@@ -1718,13 +1710,16 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
     /// Declining is the same decision, and it hands out nothing.
     ///
     /// The two answers share one action, so the only thing separating them is
-    /// the absent `id`. A decline that fell through to the taken branch would
+    /// the refund rather than a card ID. A decline falling through would
     /// look up a card that does not exist.
     #[test]
     fn a_declined_offer_hands_out_nothing() {
         let economy = Economy::embedded().unwrap();
         let state = SideState::default();
-        let declined = [Action::ChooseReinforceItem { index: 4, id: None }];
+        let declined = [Action::ChooseReinforceItem {
+            index: 4,
+            id: crate::r#match::ReinforceChoice::Refund(50),
+        }];
         let next = fold(economy, &state, &declined).unwrap();
         // A decline pays supply back, which is all it hands out.
         assert_eq!(
@@ -1742,7 +1737,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let economy = Economy::embedded().unwrap();
         let taken = [Action::ChooseReinforceItem {
             index: 0,
-            id: Some(13_030_001),
+            id: crate::r#match::ReinforceChoice::Card(13_030_001),
         }];
         let next = fold(economy, &solvent(), &taken).unwrap();
         assert_eq!(
@@ -1765,7 +1760,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let taken = [
             Action::ChooseReinforceItem {
                 index: 0,
-                id: Some(13_030_001),
+                id: crate::r#match::ReinforceChoice::Card(13_030_001),
             },
             Action::UseEquipment {
                 equipment: 13_030_001,
@@ -1906,7 +1901,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let state = SideState {
             officers: vec![20_029], // Marksman Specialist delivers in round 2.
             next_index: crate::r#match::NextIndex {
-                unit: 1,
                 ..Default::default()
             },
             ..side_holding(&[(0, Position { x: 0, y: -160 })])
@@ -2011,7 +2005,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let opened = super::predict(economy, 0, &before, &[choice], true, None, None).unwrap();
         assert_eq!(opened.reactor_core, 4500 - 300 - 600);
         assert_eq!(opened.unlocked_units, [10, 24]);
-        assert_eq!(opened.next_index.unit, 5);
+        assert_eq!(opened.next_unit_index(), 5);
         assert_eq!(opened.officers, [10002]);
         let team: Vec<_> = opened
             .units
@@ -2097,7 +2091,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let taken = [
             Action::ChooseReinforceItem {
                 index: 0,
-                id: Some(10_524),
+                id: crate::r#match::ReinforceChoice::Card(10_524),
             },
             Action::UseEquipment {
                 equipment: 13_030_521,
@@ -2336,10 +2330,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
     fn releasing_a_contraption_advances_its_allocator() {
         let economy = Economy::embedded().unwrap();
         let state = SideState {
-            next_index: crate::r#match::NextIndex {
-                unit: 7,
-                contraption: 3,
-            },
+            next_index: crate::r#match::NextIndex { contraption: 3 },
             ..solvent()
         };
         let released = [
@@ -2376,20 +2367,21 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 unlocks_remaining: 1,
                 contraptions_remaining: 8,
             },
-            next_index: crate::r#match::NextIndex {
-                unit: 7,
-                contraption: 0,
-            },
+            recovered_units: (0..7)
+                .map(|index| crate::r#match::RecoveredUnit {
+                    index,
+                    type_name: None,
+                })
+                .collect(),
             ..SideState::default()
         };
         let bought = Action::BuyUnit {
             unit: 9,
-            level: None,
             position: Some(Position { x: 0, y: -160 }),
             rotated: false,
         };
         let next = step(economy, &state, &bought).unwrap();
-        assert_eq!(next.next_index.unit, 8);
+        assert_eq!(next.next_unit_index(), 8);
         assert_eq!(next.shop.buys_remaining, 1);
         assert_eq!(next.units.len(), 1);
         let placed = &next.units[0];
@@ -2443,17 +2435,19 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let economy = Economy::embedded().unwrap();
         let state = SideState {
             supply: 1000,
-            next_index: crate::r#match::NextIndex {
-                unit: 4,
-                contraption: 0,
-            },
+            recovered_units: (0..4)
+                .map(|index| crate::r#match::RecoveredUnit {
+                    index,
+                    type_name: None,
+                })
+                .collect(),
             ..SideState::default()
         };
         let card = 102_212;
         let reinforcement = economy.unit_reinforcement(card).expect("a squad card");
         let taken = Action::ChooseReinforceItem {
             index: 0,
-            id: Some(card),
+            id: crate::r#match::ReinforceChoice::Card(card),
         };
         // Where a squad lands is the board's to decide, so the plain step
         // stops at the position and names why.
@@ -2467,7 +2461,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             placed.pop()
         })
         .unwrap();
-        assert_eq!(next.next_index.unit, 4 + reinforcement.squads);
+        assert_eq!(next.next_unit_index(), 4 + reinforcement.squads);
         assert_eq!(next.unlocked_units, vec![reinforcement.unit]);
         assert_eq!(next.units.len(), 2);
         assert_eq!(next.units[0].unit.index, 4);
@@ -2493,7 +2487,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let next = step(economy, &state, &chosen).unwrap();
         assert_eq!(next.reactor_core, 100);
         assert!(next.units.is_empty());
-        assert_eq!(next.next_index.unit, 0);
+        assert_eq!(next.next_unit_index(), 0);
         assert_eq!(next.officers, vec![20005]);
     }
 
@@ -2908,7 +2902,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let bought = [
             Action::BuyUnit {
                 unit: 1,
-                level: None,
                 position: Some(Position { x: 0, y: -160 }),
                 rotated: false,
             },
