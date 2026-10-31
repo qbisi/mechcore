@@ -148,9 +148,9 @@ research, purchases, recovery and Energy Tower activations in native legal
 order. Encoding retains Elite Recruitment's activation order. After the first
 purchase of a type, it inserts that type's later technology activations before the purchase's movement, so flank initialization
 sees them. The activations are omitted from their later match positions;
-they are not repeated for later purchases. If this reordering needs supply,
-the recorded Rapid Resupply activation moves ahead of the operation that
-requires it; no activation is added. Purchase level is derived
+they are not repeated for later purchases. Rapid Resupply is already the
+match's second phase, after reinforcement selection; encoding does not
+activate it on demand. Purchase level is derived
 from the officers and active Energy Tower skills at that point; it is not
 an action parameter. Research requires a formation of its type.
 

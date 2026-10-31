@@ -522,33 +522,39 @@ route. The sequence orders the necessary moves and swap-space waypoints as
 ### Settling a round
 
 Replay conversion evaluates the effective native decisions to obtain the
-position deployment reached. From then on, only the opening and closing
-states are used: their difference reconstructs the action sequence. `format`
-does the same for a historical match. Reading one does not rewrite its actions.
-The old movement route, purchase placement and click order are not inputs to
-the reconstruction.
+position deployment reached. The opening and closing states reconstruct the
+action sequence, supplemented by facts that those endpoints cannot preserve:
+actual purchases subsequently recovered, their state at recovery, and upgrades
+preceding Enhancement Module fitting. Replay conversion reads those facts from
+the native GRBR operations; `format` reads them from the match's existing
+actions. Reading a match does not rewrite its actions. Intermediate movement
+routes and purchase placements do not determine the normal form.
 
 The standard phases are:
 
 1. Select reinforcement.
-2. Recover formations and constructions. Available Enhancement Modules may be
+2. Activate Rapid Resupply once if this deployment chose it, even when no
+   operation needs extra supply. This fixes the budget before recovery.
+3. Recover formations and constructions. Available Enhancement Modules may be
    fitted and the formation upgraded first; the closing supply and consumed
    training slots determine whether those operations occurred. A module comes
    back with the recovered formation and can be reused.
-3. Move existing formations. A move that needs Jump Drive depends on its
+4. Move existing formations. A move that needs Jump Drive depends on its
    research; Redeployment, Deployment Module fitting and swap-space waypoints
    are also emitted where needed.
-4. Purchase and move formations, in allocator order. Couple each purchase with
-   its immediate move and derive its level from the shop. An allocator gap is
-   represented by buying a Crawler and recovering it with its Field Recovery slot.
-5. Activate the remaining unit technologies, after their formations exist.
-6. Fit equipment, preserving each formation's fitting order.
-7. Apply Intensive Training and upgrade formations.
-8. Place contraptions in allocator order.
-9. Apply remaining Energy Tower activations, tower strengthening and Research
+5. Purchase and move formations, in allocator order. Couple each purchase with
+   its immediate move and derive its level from the shop. A formation bought
+   and recovered in this round keeps its actual recorded type, purchase level,
+   equipment and recovery level. Missing purchase or recovery history is
+   refused; no substitute unit is invented to fill an allocator gap.
+6. Activate the remaining unit technologies, after their formations exist.
+7. Fit equipment, preserving each formation's fitting order.
+8. Apply Intensive Training and upgrade formations.
+9. Place contraptions in allocator order.
+10. Apply remaining Energy Tower activations, tower strengthening and Research
    Center blueprints, including range, mobility, attack, defense and Sticky Oil.
-10. Release combat commander skills, preserving their relative release order.
-11. Unlock the remaining unit types.
+11. Release combat commander skills, preserving their relative release order.
+12. Unlock the remaining unit types.
 
 Within a phase, formation indices, technology IDs and panel indices break
 remaining ties. Blueprint chains keep predecessor before successor. A skill
@@ -574,20 +580,18 @@ Dependencies precede the operation requiring them. A recovery that removes
 the last formation of a type depends on that type's pending research; recovery
 also depends on unlocking its Research Center blueprint when needed. A
 purchase depends on its unit unlock, Elite Recruitment for its level and Mass
-Recruitment when no purchase allowance remains. A decision that lacks supply
-depends on the round's recorded Rapid Resupply activation. Dependencies use
-only operations required by the closing state. Skill-granting blueprints
-preserve panel allocation order, so an earlier slot's blueprint can itself
+Recruitment when no purchase allowance remains. Insufficient supply refuses
+the operation; neither normalization nor encoding activates Rapid Resupply
+on demand. Dependencies use only operations required by the closing state and
+recorded recovery facts. Skill-granting blueprints preserve panel allocation order, so an earlier slot's blueprint can itself
 be a dependency.
 
 The match sequence itself meets native operation prerequisites. GRBR encoding
 expands a combined purchase into a default purchase and movement. Between
 those native operations it activates that type's pending technologies, once,
 after its first purchase. Flank initialization therefore sees those technologies
-without splitting the match's combined purchase. If advancing research makes
-an earlier operation short of supply, its recorded Rapid Resupply activation
-is advanced as a dependency too; the encoder never invents an activation.
-Other Energy Tower activations retain their match order.
+without splitting the match's combined purchase. Energy Tower activations,
+including the upfront Rapid Resupply stage, retain their match order.
 
 `GiveUp` is kept, as `concede`, and nothing it recorded besides its type
 survives.

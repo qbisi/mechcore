@@ -769,18 +769,10 @@ fn native_actions(
         actions: Vec::new(),
         declined: offers.map(|offers| offers.refund),
         red,
-        rapid_supply_pending: actions.contains(&Action::ActiveEnergyTowerSkill { skill: 1 }),
-        advanced_rapid_supply: false,
     };
     let mut scheduled = std::collections::BTreeSet::new();
     for (at, action) in actions.iter().enumerate() {
         if scheduled.contains(&at) {
-            continue;
-        }
-        if matches!(action, Action::ActiveEnergyTowerSkill { skill: 1 })
-            && native.advanced_rapid_supply
-        {
-            native.advanced_rapid_supply = false;
             continue;
         }
         match action {
@@ -833,44 +825,20 @@ struct NativeDeployment<'a> {
     actions: Vec<Action>,
     declined: Option<i32>,
     red: bool,
-    rapid_supply_pending: bool,
-    advanced_rapid_supply: bool,
 }
 
 impl NativeDeployment<'_> {
     fn push(&mut self, action: Action) -> Result<(), String> {
         crate::transition::check_operation(&self.position, &action)
             .map_err(|error| format!("native {action:?}: {error}"))?;
-        if matches!(action, Action::ActiveEnergyTowerSkill { skill: 1 }) {
-            self.rapid_supply_pending = false;
-        }
-        let step = |state: &SideState| {
-            crate::transition::deployed(
-                self.economy,
-                state,
-                std::slice::from_ref(&action),
-                self.red,
-                self.declined,
-            )
-        };
-        let mut next = step(&self.position);
-        if next
-            == Err(crate::transition::Unsettled::Refused(
-                "spending more supply than the side holds",
-            ))
-            && self.rapid_supply_pending
-        {
-            self.push(Action::ActiveEnergyTowerSkill { skill: 1 })?;
-            self.advanced_rapid_supply = true;
-            next = crate::transition::deployed(
-                self.economy,
-                &self.position,
-                std::slice::from_ref(&action),
-                self.red,
-                self.declined,
-            );
-        }
-        self.position = next.map_err(|error| format!("native {action:?}: {error}"))?;
+        self.position = crate::transition::deployed(
+            self.economy,
+            &self.position,
+            std::slice::from_ref(&action),
+            self.red,
+            self.declined,
+        )
+        .map_err(|error| format!("native {action:?}: {error}"))?;
         self.actions.push(action);
         Ok(())
     }
@@ -1115,7 +1083,7 @@ mod tests {
     }
 
     #[test]
-    fn early_native_research_can_advance_a_recorded_supply_dependency() {
+    fn early_native_research_uses_the_upfront_supply_stage() {
         let economy = Economy::embedded().unwrap();
         let mut opening = opened();
         let cost = crate::ledger::Purse::new(economy, &opening.officers)
@@ -1124,9 +1092,9 @@ mod tests {
         opening.supply = 2 * cost + economy.technology(206).unwrap()
             - economy.energy_tower_skill(1).unwrap().granted;
         let actions = [
+            Action::ActiveEnergyTowerSkill { skill: 1 },
             buy(6, -100, -160),
             buy(6, 100, -160),
-            Action::ActiveEnergyTowerSkill { skill: 1 },
             Action::UpgradeTechnology { unit: 6, tech: 206 },
         ];
         let lowered = native_actions(economy, &opening, &actions, None, false).unwrap();
@@ -1141,19 +1109,15 @@ mod tests {
                 .count(),
             1
         );
-        let loan = lowered
-            .iter()
-            .position(|a| matches!(a, Action::ActiveEnergyTowerSkill { skill: 1 }))
-            .unwrap();
-        let last_purchase = lowered
-            .iter()
-            .rposition(|a| matches!(a, Action::BuyUnit { .. }))
-            .unwrap();
-        assert!(loan < last_purchase);
         assert!(matches!(
-            lowered[1],
+            lowered[0],
+            Action::ActiveEnergyTowerSkill { skill: 1 }
+        ));
+        assert!(matches!(
+            lowered[2],
             Action::UpgradeTechnology { tech: 206, .. }
         ));
+        assert!(native_actions(economy, &opening, &actions[1..], None, false).is_err());
     }
 
     #[test]
