@@ -890,13 +890,24 @@ fn action_records(
     let sign = context.sign;
     Ok(match action {
         Action::ChooseReinforceItem { index, id } => {
-            let declined = context
+            let offers = context
                 .offers
-                .is_some_and(|offers| *index == offers.decline_index());
-            let (index, id) = if declined {
-                (-1, 0)
-            } else {
-                (*index, id.unwrap_or(0))
+                .ok_or("reinforcement choice without offers")?;
+            let (index, id) = match id {
+                crate::r#match::ReinforceChoice::Refund(amount)
+                    if *index == offers.decline_index() && *amount == offers.refund =>
+                {
+                    (-1, 0)
+                }
+                crate::r#match::ReinforceChoice::Card(card)
+                    if usize::try_from(*index)
+                        .ok()
+                        .and_then(|at| offers.dealt.get(at))
+                        == Some(card) =>
+                {
+                    (*index, *card)
+                }
+                _ => return Err("reinforcement choice differs from its offer".into()),
             };
             vec![(
                 "PAD_ChooseReinforceItem",

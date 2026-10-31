@@ -12,7 +12,7 @@ map_id: 1001
 seed: 2038621361
 round: 7
 
-reinforce_offers: [phoenix_2x_lv2, sabertooth_2x_lv2, steel_ball_2x_lv2, sledgehammer_2x_lv2, {name: decline_offer, refund: 400}]
+reinforce_offers: [phoenix_2x_lv2, sabertooth_2x_lv2, steel_ball_2x_lv2, sledgehammer_2x_lv2, refund_400]
 
 blue: { ... }
 red: { ... }
@@ -23,7 +23,7 @@ layout. They belong to the document rather than to a side because both sides
 share them.
 
 `reinforce_offers` lists the cards the round dealt, in the order it dealt them,
-and then the decline, `{name: decline_offer, refund: 400}`, whose `refund` is
+and then the decline as `refund_<amount>`, for example `refund_400`, naming
 what declining pays in this round. A round that deals offers always offers the
 decline after them. What the decline pays is the round's, not the position's,
 and it is not dealt: it is the map's figure, or in a unit round the schedule's.

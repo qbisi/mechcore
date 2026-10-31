@@ -155,7 +155,7 @@ pub struct State {
         skip_serializing_if = "Option::is_none",
         with = "crate::names::card::offers"
     )]
-    #[schemars(with = "Option<Vec<OfferEntry>>")]
+    #[schemars(with = "Option<Vec<String>>")]
     pub reinforce_offers: Option<Offers>,
     pub blue: SideState,
     pub red: SideState,
@@ -212,18 +212,21 @@ impl Offers {
     }
 }
 
-/// The name the decline is written under, in `reinforce_offers` and in the
-/// `choose_reinforce_item` that takes it. No card is named this.
-pub const DECLINE_OFFER: &str = "decline_offer";
+/// A reinforcement answer names a catalogue card or the current refund amount.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ReinforceChoice {
+    Card(i32),
+    Refund(i32),
+}
 
-/// One entry of a written `reinforce_offers`, for the schema: a card's name,
-/// or the decline and what it pays.
-#[derive(JsonSchema)]
-#[serde(untagged)]
-#[allow(dead_code)] // Describes the written shape; the list is read by hand.
-enum OfferEntry {
-    Card(String),
-    Decline { name: String, refund: i32 },
+impl ReinforceChoice {
+    #[must_use]
+    pub const fn card(self) -> Option<i32> {
+        match self {
+            Self::Card(id) => Some(id),
+            Self::Refund(_) => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -443,14 +446,13 @@ pub enum Action {
     ///
     /// `index` is the position of what is taken in `reinforce_offers`: a
     /// card dealt, or the decline after them, which the round always offers.
-    /// `id` is the card taken, and absent for the decline, which is written
-    /// by the name [`DECLINE_OFFER`]: what a decline hands back is built from the
-    /// match's progress rather than drawn from a catalogue, so it has no ID.
+    /// `id` names the card or `refund_<amount>`. A refund must equal the
+    /// amount this round offers; it cannot choose how much supply to receive.
     ChooseReinforceItem {
         index: i32,
         #[serde(rename = "name", with = "crate::names::card::choice")]
         #[schemars(with = "String")]
-        id: Option<i32>,
+        id: ReinforceChoice,
     },
     /// The opening, which is one decision with two halves: the team of
     /// formations and the specialist officer bound to it.
@@ -580,7 +582,7 @@ enum ActionReader {
     ChooseReinforceItem {
         index: i32,
         #[serde(rename = "name", with = "crate::names::card::choice")]
-        id: Option<i32>,
+        id: ReinforceChoice,
     },
     ChooseAdvanceTeam {
         index: i32,
@@ -938,7 +940,7 @@ pub mod schema {
         pub kind: StateKind,
         pub round: i32,
         /// Absent in rounds 0 and 1, which are dealt no reinforcement offer.
-        #[schemars(with = "Option<Vec<super::OfferEntry>>")]
+        #[schemars(with = "Option<Vec<String>>")]
         pub reinforce_offers: Option<super::Offers>,
         pub blue: SideState,
         pub red: SideState,
@@ -1323,10 +1325,13 @@ mod tests {
         use crate::layout::Position;
         let at = Position { x: 10, y: -20 };
         let samples = [
-            Action::ChooseReinforceItem { index: 4, id: None },
+            Action::ChooseReinforceItem {
+                index: 4,
+                id: crate::r#match::ReinforceChoice::Refund(50),
+            },
             Action::ChooseReinforceItem {
                 index: 2,
-                id: Some(1_305_003),
+                id: crate::r#match::ReinforceChoice::Card(1_305_003),
             },
             Action::ChooseAdvanceTeam {
                 index: 1,
@@ -1425,10 +1430,8 @@ mod tests {
                  next_index: {{unit: 0, contraption: 0}}, units: []}}\n"
             )
         };
-        let read: State = serde_yaml::from_str(&state(
-            "[photon_coating, missile_strike, {name: decline_offer, refund: 150}]",
-        ))
-        .unwrap();
+        let read: State =
+            serde_yaml::from_str(&state("[photon_coating, missile_strike, refund_150]")).unwrap();
         let offers = read.reinforce_offers.clone().unwrap();
         assert_eq!(
             offers,
@@ -1440,9 +1443,20 @@ mod tests {
         assert_eq!(offers.decline_index(), 2);
         let written = serde_yaml::to_string(&read).unwrap();
         assert_eq!(serde_yaml::from_str::<State>(&written).unwrap(), read);
+        assert!(written.contains("refund_150"));
+        for amount in [0, 50, 400, i32::MAX] {
+            let value: State = serde_yaml::from_str(&state(&format!("[refund_{amount}]"))).unwrap();
+            assert_eq!(value.reinforce_offers.unwrap().refund, amount);
+        }
         for refused in [
+            "[]",
+            "[refund_-1]",
+            "[refund_2147483648]",
+            "[refund_]",
+            "[refund_+50]",
+            "[refund_50, refund_100]",
             "[photon_coating, missile_strike]",
-            "[{name: decline_offer, refund: 50}, photon_coating]",
+            "[refund_50, photon_coating]",
             "[photon_coating, {name: decline, refund: 50}]",
         ] {
             assert!(

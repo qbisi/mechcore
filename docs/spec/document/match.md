@@ -647,7 +647,7 @@ define:
 | `random_state` | The replay snapshot precedes the current deal or deliveries; the state carries each stream after them |
 | `reinforce_pool` | The seed-derived pool plus the replayed deal gives effective membership changes, replacing the historical operation log |
 | `supply` | A client snapshot precedes the round's income, which is added back from the map settings the record itself carries, plus what the equipment on the board the round opens with pays, less the energy tower debt. A server snapshot with `IsSpecialSupply` already includes this payment |
-| `reinforce_offers`' `decline_offer` | The record lists the cards alone. The decline is offered after them in every round that deals any, and its `refund` is the map's figure, or in a unit round the schedule's for that round, from the pool the seed selects; a match whose opening this build cannot deal is refused |
+| `reinforce_offers`' `refund_<amount>` | The record lists the cards alone. The decline is offered after them in every round that deals any, and its amount is the map's figure, or in a unit round the schedule's for that round, from the pool the seed selects; a match whose opening this build cannot deal is refused |
 | `battle_skills[].cooldown` | The recorded cooldowns are the previous round's. A slot the previous round spent restarts at its skill's cooldown, and every other drops by one to zero |
 | `energy_tower_skills` | The recorded list is a debt rather than an activation, so a round's start carries none |
 | `equipment` | The recorded inventory includes fitted items, which the units already name |
