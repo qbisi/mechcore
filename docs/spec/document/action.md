@@ -171,26 +171,22 @@ here.
 ### `buy_unit`
 
 ```yaml
-- {type: buy_unit, name: void_eye, level: 1}
+- {type: buy_unit, name: void_eye, position: {x: 0, y: -160}}
 ```
 
 Buys one formation of unit type `name`, advances `next_index.unit` by one,
 and places it under that index. Omitting `position` uses the default landing
 selected by [the board](../../rules/landing.md), with `rotated: false`.
-Standard actions write that purchase separately from any subsequent move.
+Standard actions couple a purchase with its immediately following move into
+`position` and `rotated`. The destination must be free; a flank position sets
+`travelling` as that move would. A default purchase refuses rotation.
+If a prerequisite operation separates purchase and movement, such as research
+that needs the new formation, they remain separate actions.
 
-Historical actions can state `position` and `rotated`, combining the purchase
-with its move there. Such a position must be free; a flank position sets
-`travelling` as that move would. Formatting expands the combined action into
-a default purchase and a separate move. A default purchase refuses rotation.
-
-The optional `level` states the level purchased. Omitting it uses the shop's
-level at this point in the sequence, which an officer or an Energy Tower
-skill can raise. New operations and native encoding require an explicit level
-to equal the current shop level. Normalization therefore inserts Elite
-Recruitment before the first purchase requiring it. Historical endpoint
-evaluation also reads levels from before that activation, so earlier match
-files can be formatted into the legal sequence. A purchase costs the unit's
+A purchase has no `level` parameter. Its level is derived from the officers
+and active Energy Tower skills at this point in the sequence. Normalization
+inserts Elite Recruitment before the first purchase requiring it, keeping
+lower-level purchases before activation. A purchase costs the unit's
 price plus the base upgrade cost for each level above the first. Officer
 discounts on formation upgrades do not reduce this shop-level surcharge;
 they apply when `upgrade_unit` raises an existing formation. The purchase
@@ -539,14 +535,13 @@ The standard phases are:
    fitted and the formation upgraded first; the closing supply and consumed
    training slots determine whether those operations occurred. A module comes
    back with the recovered formation and can be reused.
-3. Activate unit technologies. Missing formation types depend on purchases
-   at default landing positions, in allocator order.
-4. Move all formations now present, including those purchased for research
-   in phase 3. Emit Redeployment and Deployment Module fitting where needed.
-   Jump Drive is already active from phase 3.
-5. Purchase and move the remaining formations, in allocator order. Purchases
-   use default landings and explicit levels. An allocator gap is represented
-   by buying a Crawler and recovering it with its Field Recovery slot.
+3. Move existing formations. A move that needs Jump Drive depends on its
+   research; Redeployment, Deployment Module fitting and swap-space waypoints
+   are also emitted where needed.
+4. Purchase and move formations, in allocator order. Couple each purchase with
+   its immediate move and derive its level from the shop. An allocator gap is
+   represented by buying a Crawler and recovering it with its Field Recovery slot.
+5. Activate the remaining unit technologies, after their formations exist.
 6. Fit equipment, preserving each formation's fitting order.
 7. Apply Intensive Training and upgrade formations.
 8. Place contraptions in allocator order.
@@ -586,8 +581,13 @@ preserve panel allocation order, so an earlier slot's blueprint can itself
 be a dependency.
 
 The match sequence itself meets native operation prerequisites. GRBR encoding
-keeps its research and Energy Tower activation order; it only expands a
-historical purchase's combined placement into purchase and movement.
+expands a combined purchase into a default purchase and movement. Between
+those native operations it activates that type's pending technologies, once,
+after its first purchase. Flank initialization therefore sees those technologies
+without splitting the match's combined purchase. If advancing research makes
+an earlier operation short of supply, its recorded Rapid Resupply activation
+is advanced as a dependency too; the encoder never invents an activation.
+Other Energy Tower activations retain their match order.
 
 `GiveUp` is kept, as `concede`, and nothing it recorded besides its type
 survives.

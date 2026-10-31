@@ -753,9 +753,9 @@ fn write_actions(
     Ok(())
 }
 
-/// Expand historical purchase placement into native purchase and movement.
-/// Every other operation retains its match position; this encoder schedules
-/// neither research nor Energy Tower activations.
+/// Expand purchase placement into native purchase, research and movement.
+/// A type's pending research runs after its first purchase, before movement,
+/// so flank initialization sees the technology while match purchases stay whole.
 fn native_actions(
     economy: &Economy,
     opened: &SideState,
@@ -769,12 +769,23 @@ fn native_actions(
         actions: Vec::new(),
         declined: offers.map(|offers| offers.refund),
         red,
+        rapid_supply_pending: actions.contains(&Action::ActiveEnergyTowerSkill { skill: 1 }),
+        advanced_rapid_supply: false,
     };
-    for action in actions {
+    let mut scheduled = std::collections::BTreeSet::new();
+    for (at, action) in actions.iter().enumerate() {
+        if scheduled.contains(&at) {
+            continue;
+        }
+        if matches!(action, Action::ActiveEnergyTowerSkill { skill: 1 })
+            && native.advanced_rapid_supply
+        {
+            native.advanced_rapid_supply = false;
+            continue;
+        }
         match action {
             Action::BuyUnit {
                 unit,
-                level,
                 position,
                 rotated,
             } => {
@@ -786,10 +797,18 @@ fn native_actions(
                 let index = native.position.next_index.unit;
                 native.push(Action::BuyUnit {
                     unit: *unit,
-                    level: *level,
                     position: Some(landing),
                     rotated: false,
                 })?;
+                for (later, research) in actions.iter().enumerate().skip(at + 1) {
+                    if let Action::UpgradeTechnology { unit: owner, tech } = research
+                        && owner == unit
+                        && !native.position.techs.contains(tech)
+                    {
+                        native.push(research.clone())?;
+                        scheduled.insert(later);
+                    }
+                }
                 if let Some(position) = position {
                     if *position != landing || *rotated {
                         native.push(Action::MoveUnit {
@@ -814,20 +833,44 @@ struct NativeDeployment<'a> {
     actions: Vec<Action>,
     declined: Option<i32>,
     red: bool,
+    rapid_supply_pending: bool,
+    advanced_rapid_supply: bool,
 }
 
 impl NativeDeployment<'_> {
     fn push(&mut self, action: Action) -> Result<(), String> {
-        crate::transition::check_operation(self.economy, &self.position, &action)
+        crate::transition::check_operation(&self.position, &action)
             .map_err(|error| format!("native {action:?}: {error}"))?;
-        self.position = crate::transition::deployed(
-            self.economy,
-            &self.position,
-            std::slice::from_ref(&action),
-            self.red,
-            self.declined,
-        )
-        .map_err(|error| format!("native {action:?}: {error}"))?;
+        if matches!(action, Action::ActiveEnergyTowerSkill { skill: 1 }) {
+            self.rapid_supply_pending = false;
+        }
+        let step = |state: &SideState| {
+            crate::transition::deployed(
+                self.economy,
+                state,
+                std::slice::from_ref(&action),
+                self.red,
+                self.declined,
+            )
+        };
+        let mut next = step(&self.position);
+        if next
+            == Err(crate::transition::Unsettled::Refused(
+                "spending more supply than the side holds",
+            ))
+            && self.rapid_supply_pending
+        {
+            self.push(Action::ActiveEnergyTowerSkill { skill: 1 })?;
+            self.advanced_rapid_supply = true;
+            next = crate::transition::deployed(
+                self.economy,
+                &self.position,
+                std::slice::from_ref(&action),
+                self.red,
+                self.declined,
+            );
+        }
+        self.position = next.map_err(|error| format!("native {action:?}: {error}"))?;
         self.actions.push(action);
         Ok(())
     }
@@ -1011,10 +1054,9 @@ mod tests {
         }
     }
 
-    fn buy(unit: i32, level: Option<i32>, x: i32, y: i32) -> Action {
+    fn buy(unit: i32, x: i32, y: i32) -> Action {
         Action::BuyUnit {
             unit,
-            level,
             position: Some(Position { x, y }),
             rotated: false,
         }
@@ -1032,9 +1074,9 @@ mod tests {
     }
 
     #[test]
-    fn native_encoding_retains_research_position_after_historical_movement() {
+    fn native_encoding_inserts_research_between_purchase_and_flank_movement() {
         let lowered = native(&[
-            buy(25, Some(1), 310, 50),
+            buy(25, 310, 50),
             Action::UpgradeTechnology {
                 unit: 25,
                 tech: 3925,
@@ -1047,9 +1089,70 @@ mod tests {
                     position: Some(_),
                     ..
                 },
-                Action::MoveUnit { index: 0, .. },
                 Action::UpgradeTechnology { tech: 3925, .. },
+                Action::MoveUnit { index: 0, .. },
             ]
+        ));
+    }
+
+    #[test]
+    fn research_is_emitted_once_after_the_first_purchase_of_its_type() {
+        let lowered = native(&[
+            buy(6, -100, -160),
+            buy(6, 100, -160),
+            Action::UpgradeTechnology { unit: 6, tech: 206 },
+        ]);
+        assert!(matches!(
+            lowered.as_slice(),
+            [
+                Action::BuyUnit { .. },
+                Action::UpgradeTechnology { tech: 206, .. },
+                Action::MoveUnit { index: 0, .. },
+                Action::BuyUnit { .. },
+                Action::MoveUnit { index: 1, .. },
+            ]
+        ));
+    }
+
+    #[test]
+    fn early_native_research_can_advance_a_recorded_supply_dependency() {
+        let economy = Economy::embedded().unwrap();
+        let mut opening = opened();
+        let cost = crate::ledger::Purse::new(economy, &opening.officers)
+            .buy(6)
+            .unwrap();
+        opening.supply = 2 * cost + economy.technology(206).unwrap()
+            - economy.energy_tower_skill(1).unwrap().granted;
+        let actions = [
+            buy(6, -100, -160),
+            buy(6, 100, -160),
+            Action::ActiveEnergyTowerSkill { skill: 1 },
+            Action::UpgradeTechnology { unit: 6, tech: 206 },
+        ];
+        let lowered = native_actions(economy, &opening, &actions, None, false).unwrap();
+        assert_eq!(
+            crate::transition::deployed(economy, &opening, &lowered, false, None).unwrap(),
+            crate::transition::deployed(economy, &opening, &actions, false, None).unwrap()
+        );
+        assert_eq!(
+            lowered
+                .iter()
+                .filter(|a| matches!(a, Action::ActiveEnergyTowerSkill { skill: 1 }))
+                .count(),
+            1
+        );
+        let loan = lowered
+            .iter()
+            .position(|a| matches!(a, Action::ActiveEnergyTowerSkill { skill: 1 }))
+            .unwrap();
+        let last_purchase = lowered
+            .iter()
+            .rposition(|a| matches!(a, Action::BuyUnit { .. }))
+            .unwrap();
+        assert!(loan < last_purchase);
+        assert!(matches!(
+            lowered[1],
+            Action::UpgradeTechnology { tech: 206, .. }
         ));
     }
 
@@ -1058,7 +1161,6 @@ mod tests {
         let actions = [
             Action::BuyUnit {
                 unit: 6,
-                level: Some(1),
                 position: None,
                 rotated: false,
             },
@@ -1081,33 +1183,17 @@ mod tests {
     }
 
     #[test]
-    fn historical_omitted_levels_keep_their_elite_recruitment_position() {
+    fn purchases_keep_their_elite_recruitment_position() {
         let lowered = native(&[
-            buy(10, None, -100, -160),
+            buy(10, -100, -160),
             Action::ActiveEnergyTowerSkill { skill: 4 },
-            buy(15, Some(2), 100, -160),
+            buy(15, 100, -160),
         ]);
-        assert!(matches!(lowered[0], Action::BuyUnit { level: None, .. }));
+        assert!(matches!(lowered[0], Action::BuyUnit { .. }));
         assert!(matches!(
             lowered[2],
             Action::ActiveEnergyTowerSkill { skill: 4 }
         ));
-    }
-
-    #[test]
-    fn native_encoding_refuses_a_purchase_level_the_current_shop_cannot_sell() {
-        let error = native_actions(
-            Economy::embedded().unwrap(),
-            &opened(),
-            &[
-                Action::ActiveEnergyTowerSkill { skill: 4 },
-                buy(10, Some(1), -100, -160),
-            ],
-            None,
-            false,
-        )
-        .unwrap_err();
-        assert!(error.contains("native shop cannot provide"));
     }
 
     #[test]
@@ -1117,7 +1203,7 @@ mod tests {
             &opened(),
             &[
                 Action::UpgradeTechnology { unit: 6, tech: 206 },
-                buy(6, Some(1), -100, -160),
+                buy(6, -100, -160),
             ],
             None,
             false,

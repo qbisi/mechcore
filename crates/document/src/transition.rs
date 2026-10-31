@@ -220,7 +220,6 @@ pub fn step_placing(
         }
         Action::BuyUnit {
             unit,
-            level,
             position,
             rotated,
         } => {
@@ -232,12 +231,7 @@ pub fn step_placing(
                 ));
             }
             let price = purse.buy(*unit).ok_or(Unsettled::Unpriced("unit"))?;
-            let available = purse.shop_level(*unit);
-            let level = level.unwrap_or(available);
-            let base = available - purse.raised;
-            if !(base..=available).contains(&level) {
-                return Err(Unsettled::Refused("buying a level the shop cannot provide"));
-            }
+            let level = purse.shop_level(*unit);
             next.supply -= purse
                 .buy_at_level(*unit, level)
                 .ok_or(Unsettled::Unpriced("unit"))?;
@@ -770,46 +764,20 @@ pub fn deployed(
 /// actions can still be evaluated by `step_placing` before normalization.
 ///
 /// # Errors
-/// Refuses research without its formation type, repeated research, and a
-/// purchase level other than the current shop level.
-pub fn check_operation(
-    economy: &Economy,
-    state: &SideState,
-    action: &Action,
-) -> Result<(), Unsettled> {
-    match action {
-        Action::UpgradeTechnology { unit, tech } => {
-            let (name, _) = unit_type_from_id(*unit).ok_or(Unsettled::Unpriced("unit"))?;
-            if !state.units.iter().any(|entry| entry.unit.type_name == name) {
-                return Err(Unsettled::Refused(
-                    "researching without a formation of this type",
-                ));
-            }
-            if state.techs.contains(tech) {
-                return Err(Unsettled::Refused(
-                    "researching a technology already active",
-                ));
-            }
+/// Refuses research without its formation type and repeated research.
+pub fn check_operation(state: &SideState, action: &Action) -> Result<(), Unsettled> {
+    if let Action::UpgradeTechnology { unit, tech } = action {
+        let (name, _) = unit_type_from_id(*unit).ok_or(Unsettled::Unpriced("unit"))?;
+        if !state.units.iter().any(|entry| entry.unit.type_name == name) {
+            return Err(Unsettled::Refused(
+                "researching without a formation of this type",
+            ));
         }
-        Action::BuyUnit {
-            unit,
-            level: Some(level),
-            ..
-        } => {
-            let mut purse = Purse::new(economy, &state.officers);
-            purse.raised = state
-                .energy_tower_skills
-                .iter()
-                .filter_map(|id| economy.energy_tower_skill(*id))
-                .map(|row| row.shop_unit_level)
-                .sum();
-            if *level != purse.shop_level(*unit) {
-                return Err(Unsettled::Refused(
-                    "buying a level the native shop cannot provide",
-                ));
-            }
+        if state.techs.contains(tech) {
+            return Err(Unsettled::Refused(
+                "researching a technology already active",
+            ));
         }
-        _ => {}
     }
     Ok(())
 }
@@ -1573,33 +1541,25 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         ));
     }
 
-    /// A canonical purchase can name the level bought before Elite Recruitment
-    /// even when the activation is written first. Historical purchases still
-    /// use the shop level at their position in the sequence.
     #[test]
-    fn a_purchase_level_distinguishes_the_two_elite_recruitment_prices() {
+    fn purchase_level_is_derived_from_the_current_shop() {
         let economy = Economy::embedded().unwrap();
-        let state = SideState {
-            energy_tower_skills: vec![4],
-            ..solvent()
-        };
-        let buy = |level| Action::BuyUnit {
+        let state = solvent();
+        let buy = Action::BuyUnit {
             unit: 1,
-            level,
             position: Some(Position { x: 0, y: -160 }),
             rotated: false,
         };
-        let low = step(economy, &state, &buy(Some(1))).unwrap();
-        let high = step(economy, &state, &buy(Some(2))).unwrap();
-        let old = step(economy, &state, &buy(None)).unwrap();
+        let low = step(economy, &state, &buy).unwrap();
+        let mut elite = state.clone();
+        elite.energy_tower_skills.push(4);
+        let high = step(economy, &elite, &buy).unwrap();
         assert_eq!(low.units[0].unit.level, None);
         assert_eq!(high.units[0].unit.level, Some(2));
-        assert_eq!(old, high);
         assert_eq!(
             low.supply - high.supply,
             economy.unit(1).unwrap().upgrade_supply
         );
-        assert!(step(economy, &state, &buy(Some(3))).is_err());
     }
 
     /// Native `GetSupply` uses `CardData`'s level price; Subsidized Crawler's
@@ -1610,7 +1570,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let economy = Economy::embedded().unwrap();
         let buy = Action::BuyUnit {
             unit: 10,
-            level: Some(2),
             position: Some(Position { x: 0, y: -160 }),
             rotated: false,
         };
@@ -1635,7 +1594,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             &state,
             &Action::BuyUnit {
                 unit: 10,
-                level: Some(1),
                 position: Some(Position { x: 0, y: -160 }),
                 rotated: false,
             },
@@ -2384,7 +2342,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         };
         let bought = Action::BuyUnit {
             unit: 9,
-            level: None,
             position: Some(Position { x: 0, y: -160 }),
             rotated: false,
         };
@@ -2908,7 +2865,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let bought = [
             Action::BuyUnit {
                 unit: 1,
-                level: None,
                 position: Some(Position { x: 0, y: -160 }),
                 rotated: false,
             },

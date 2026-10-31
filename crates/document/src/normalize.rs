@@ -125,8 +125,8 @@ pub fn match_yaml(bytes: &[u8]) -> Result<String, String> {
 /// historical upgrades that must precede fitting an Enhancement Module.
 ///
 /// Choices that leave the same position use offer order, formation indices,
-/// technology IDs and panel indices as tie breakers. A purchase names its
-/// purchased level explicitly. Recovery may use an available Enhancement
+/// technology IDs and panel indices as tie breakers. A purchase derives its
+/// level from the shop when it occurs. Recovery may use an available Enhancement
 /// Module; its economic result decides whether that optimization happened.
 ///
 /// # Errors
@@ -226,7 +226,7 @@ struct Builder<'a> {
 impl Builder<'_> {
     fn push(&mut self, action: Action) -> Result<(), String> {
         self.dependencies(&action)?;
-        crate::transition::check_operation(self.economy, &self.position, &action)
+        crate::transition::check_operation(&self.position, &action)
             .map_err(|error| format!("{action:?}: {error}"))?;
         crate::transition::check_place(&self.position, &action)
             .map_err(|error| format!("{action:?}: {error}"))?;
@@ -256,7 +256,23 @@ impl Builder<'_> {
             );
         }
         self.position = next.map_err(|error| format!("{action:?}: {error}"))?;
-        self.actions.push(action);
+        if let Action::MoveUnit {
+            index,
+            position,
+            rotated,
+        } = &action
+            && *index == self.position.next_index.unit - 1
+            && let Some(Action::BuyUnit {
+                position: landing,
+                rotated: rotation,
+                ..
+            }) = self.actions.last_mut()
+        {
+            *landing = Some(*position);
+            *rotation = *rotated;
+        } else {
+            self.actions.push(action);
+        }
         Ok(())
     }
 
@@ -295,14 +311,17 @@ impl Builder<'_> {
                     }
                 }
             }
-            Action::BuyUnit { unit, level, .. } => {
+            Action::BuyUnit { unit, .. } => {
                 if !self.position.unlocked_units.contains(unit) {
                     self.push(Action::UnlockUnit { unit: *unit })?;
                 }
                 if self.position.shop.buys_remaining == 0 && self.can_activate(3) {
                     self.push(Action::ActiveEnergyTowerSkill { skill: 3 })?;
                 }
-                if level.is_some_and(|level| level > self.purse().shop_level(*unit))
+                if self
+                    .purchase_levels
+                    .get(&self.position.next_index.unit)
+                    .is_some_and(|level| *level > self.purse().shop_level(*unit))
                     && self.can_activate(4)
                 {
                     self.push(Action::ActiveEnergyTowerSkill { skill: 4 })?;
@@ -471,12 +490,12 @@ impl Builder<'_> {
         let mut errors = Vec::new();
         for mut candidate in candidates {
             let completed = (|| {
-                for tech in candidate.research.clone() {
-                    candidate.research(tech)?;
-                }
                 candidate.moves()?;
                 while candidate.position.next_index.unit < candidate.target.next_index.unit {
-                    candidate.buy_next(true)?;
+                    candidate.buy_next()?;
+                }
+                for tech in candidate.research.clone() {
+                    candidate.research(tech)?;
                 }
                 candidate.remaining()
             })();
@@ -647,19 +666,13 @@ impl Builder<'_> {
         let name = crate::catalog::unit_type_from_id(unit)
             .ok_or("unknown research unit")?
             .0;
-        while self.research.contains(&tech)
-            && !self
-                .position
-                .units
-                .iter()
-                .any(|entry| entry.unit.type_name == name)
+        if !self
+            .position
+            .units
+            .iter()
+            .any(|entry| entry.unit.type_name == name)
         {
-            if self.position.next_index.unit >= self.target.next_index.unit {
-                return Err(format!(
-                    "technology {tech} has no formation or remaining purchase"
-                ));
-            }
-            self.buy_next(false)?;
+            return Err(format!("technology {tech} has no formation"));
         }
         if self.research.contains(&tech) {
             self.push(Action::UpgradeTechnology { unit, tech })?;
@@ -686,6 +699,15 @@ impl Builder<'_> {
 
     fn free_to_move(&mut self, index: i32) -> Result<(), String> {
         let wanted = self.wanted(index)?.clone();
+        let jump = crate::mobility::JUMP_DRIVES
+            .iter()
+            .find(|(tech, name)| *name == wanted.unit.type_name && self.research.contains(tech))
+            .map(|(tech, _)| *tech);
+        if !self.unit(index)?.movable(&self.position.techs)
+            && let Some(tech) = jump
+        {
+            self.research(tech)?;
+        }
         if wanted.redeployed && !self.unit(index)?.redeployed {
             let skill = self
                 .target
@@ -796,7 +818,7 @@ impl Builder<'_> {
         Ok(())
     }
 
-    fn buy_next(&mut self, move_now: bool) -> Result<(), String> {
+    fn buy_next(&mut self) -> Result<(), String> {
         let index = self.position.next_index.unit;
         let wanted = self
             .target
@@ -808,20 +830,14 @@ impl Builder<'_> {
             .as_ref()
             .map_or("crawler", |entry| entry.unit.type_name.as_str());
         let unit = unit_id_from_type(name).ok_or("unknown purchased unit")?;
-        let level = *self
-            .purchase_levels
-            .get(&index)
-            .ok_or("purchase allocator exceeds its plan")?;
         self.push(Action::BuyUnit {
             unit,
-            level: Some(level),
             position: None,
             rotated: false,
         })?;
         if let Some(wanted) = wanted {
-            if move_now
-                && (self.unit(index)?.unit.position != wanted.unit.position
-                    || wanted.unit.rotated.unwrap_or(false))
+            if self.unit(index)?.unit.position != wanted.unit.position
+                || wanted.unit.rotated.unwrap_or(false)
             {
                 self.push(Action::MoveUnit {
                     index,
@@ -1139,7 +1155,6 @@ mod tests {
     fn bought(unit: i32, x: i32, y: i32) -> Action {
         Action::BuyUnit {
             unit,
-            level: None,
             position: Some(Position { x, y }),
             rotated: false,
         }
@@ -1266,6 +1281,30 @@ mod tests {
     }
 
     #[test]
+    fn a_purchase_and_its_immediate_move_share_one_action() {
+        let opened = side();
+        let purchase = Action::BuyUnit {
+            unit: 1,
+            position: None,
+            rotated: false,
+        };
+        let movement = Action::MoveUnit {
+            index: 2,
+            position: Position { x: -100, y: -160 },
+            rotated: true,
+        };
+        let closed = close(&opened, &[purchase, movement]);
+        let expected = Action::BuyUnit {
+            unit: 1,
+            position: Some(Position { x: -100, y: -160 }),
+            rotated: true,
+        };
+        let actions = normalized(&opened, &closed);
+        assert_eq!(actions, [expected]);
+        assert!(!serde_yaml::to_string(&actions).unwrap().contains("level:"));
+    }
+
+    #[test]
     fn a_vacated_waypoint_does_not_block_a_later_purchase() {
         let mut opened = side();
         opened.units[0].unit.position = Position { x: -350, y: 285 };
@@ -1275,7 +1314,8 @@ mod tests {
         );
         let actions = normalized(&opened, &closed);
         assert_eq!(actions[0], moved(0, 90, -35));
-        assert_eq!(actions.len(), 3);
+        assert_eq!(actions.len(), 2);
+        assert_eq!(actions[1], bought(15, 350, 55));
         let other = close(&opened, &[moved(0, 90, -35), bought(15, 350, 55)]);
         assert_eq!(normalized(&opened, &other), actions);
     }
@@ -1359,14 +1399,12 @@ mod tests {
             .iter()
             .enumerate()
             .filter_map(|(at, action)| match action {
-                Action::BuyUnit { level, .. } => Some((at, *level)),
+                Action::BuyUnit { .. } => Some(at),
                 _ => None,
             })
             .collect();
         let activation = actions.iter().position(|action| action == &elite).unwrap();
-        assert_eq!(purchases[0].1, Some(1));
-        assert_eq!(purchases[1].1, Some(2));
-        assert!(purchases[0].0 < activation && activation < purchases[1].0);
+        assert!(purchases[0] < activation && activation < purchases[1]);
     }
 
     #[test]
@@ -1463,43 +1501,32 @@ mod tests {
             ],
         );
         let actions = normalized(&opened, &closed);
-        let levels: Vec<_> = actions
+        let activation = actions
             .iter()
-            .filter_map(|action| match action {
-                Action::BuyUnit { level, .. } => *level,
-                _ => None,
-            })
-            .collect();
-        assert_eq!(levels, [1, 1]);
+            .position(|a| matches!(a, Action::ActiveEnergyTowerSkill { skill: 4 }))
+            .unwrap();
+        assert_eq!(
+            actions[..activation]
+                .iter()
+                .filter(|a| matches!(a, Action::BuyUnit { .. }))
+                .count(),
+            2
+        );
     }
 
     #[test]
-    fn research_purchases_at_default_landing_and_moves_in_the_existing_unit_phase() {
+    fn research_follows_complete_purchases_without_splitting_their_moves() {
         let opened = side();
         let research = Action::UpgradeTechnology { unit: 6, tech: 206 };
+        let purchases = [bought(6, 310, 50), bought(1, -100, -160)];
         let closed = close(
             &opened,
-            &[bought(6, 310, 50), research.clone(), bought(1, -100, -160)],
+            &[purchases[0].clone(), research.clone(), purchases[1].clone()],
         );
-        let actions = normalized(&opened, &closed);
-        assert!(matches!(
-            actions[0],
-            Action::BuyUnit {
-                unit: 6,
-                position: None,
-                ..
-            }
-        ));
-        assert_eq!(actions[1], research);
-        assert_eq!(actions[2], moved(2, 310, 50));
-        assert!(matches!(
-            actions[3],
-            Action::BuyUnit {
-                unit: 1,
-                position: None,
-                ..
-            }
-        ));
+        assert_eq!(
+            normalized(&opened, &closed),
+            [purchases[0].clone(), purchases[1].clone(), research]
+        );
     }
 
     #[test]
@@ -1539,11 +1566,9 @@ mod tests {
                 Action::ActiveEnergyTowerSkill { skill: 4 },
                 Action::BuyUnit {
                     unit: 6,
-                    level: Some(2),
-                    position: None,
+                    position: Some(Position { x: 310, y: 50 }),
                     ..
                 },
-                Action::MoveUnit { index: 2, .. },
             ]
         ));
     }
