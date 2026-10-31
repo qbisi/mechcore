@@ -932,28 +932,52 @@ Operands: the match document. Options: `--side blue|red`, `--wait
 [<seconds>]`, and `--omniscient` for both sides in full, which is what a
 spectator and a test read.
 
-The answer's `document` is an ordered array of the same segments the match
-file writes: its header, round-zero actions, then each round's opening state
-and actions. Each array element has exactly the YAML document's field names
-and values. This is also the answer shape of `match new`, `fork`, `act` and `commit`.
-The header carries the map, match seed, both player seeds, both opening offer
-lists, constructions and full technology loadouts. State segments carry both
-sides in full, the reinforcement offers, pool differences and all three random
-states. Nothing is hidden except the current actions described below.
+The answer is a current decision view, shared by `match new`, `fork`, `act`
+and `commit`. It contains `header` and `state`, not a history array or a
+separate calculated position. The public match file supplies the history.
+
+`header` is exactly the match header's written shape: build, map, match seed,
+both player seeds, opening offer lists, initial constructions and full
+technology loadouts. `state` carries the current round's shared random state,
+reinforcement pool differences and offers, plus `blue` and `red`.
+
+For the calling side, `state` applies all current-round decisions in their
+execution order, including sealed decisions waiting for the opponent. For the
+opponent it keeps the round-opening state, applying none of that side's
+current decisions. Round zero starts with the map's cores and constructions;
+choosing an opening updates only the caller's core, supply and officers.
+The team's formations arrive when the first deployment round opens.
+
+The calling side's state also carries these runtime fields, which are never
+written into the match document:
+
+| Field | Meaning |
+| --- | --- |
+| `shop.buys_remaining` | remaining formation purchases this round |
+| `shop.unlocks_remaining` | remaining unit unlocks this round |
+| `shop.contraptions_remaining` | remaining deployments shared by contraptions and constructions |
+| `reinforce_chosen` | whether a reinforcement answer has been taken this round; false when no answer has been taken, including rounds without offers |
+| `units[].movable` | whether this formation currently has deployment movement permission |
+
+`movable` uses the executor's movement rule, including newly arrived units,
+movement technologies and equipment, and Redeploy already used this round.
+It does not guarantee that a particular target is in bounds, clear or within
+the permitted movement range; `act --dry-run` checks the requested action.
+The opponent has none of these runtime fields. All other side fields keep
+the match state's spelling and serialization rules.
 
 The surrounding object carries `schema: mechcore.match`, `match` (the file
 path), `side` (absent for an omniscient view without a side), `phase`, `round`,
 `opened`, `rebuilt`, and `sides.blue` and `sides.red`, each holding `given` and
 `committed`. `remaining` is present during deployment, and `unresolved` names
-what stopped a fight when one could not settle. A commit with no actions cannot
-be distinguished from an uncommitted round by reading the document alone, so
-commit status belongs to this surrounding object.
+what stopped a fight when one could not settle. Commit status remains visible
+without revealing the opponent's decisions. Phase and commit status decide
+whether the caller may take another action, even when a unit is movable.
 
-The caller's pending actions are overlaid on its current action segment without
-writing them to the match file. A state segment remains the round's opening
-position: the view does not apply those actions to the state or repeat a
-calculated position. To obtain the position reached, apply the visible actions
-to that opening state. `act` additionally answers the resulting position.
+A successful `act` and a subsequent `show` return the same `header` and `state`
+provided no round transition intervenes. A dry run returns the trial state
+without keeping its requested decisions. Reading a view does not write these
+runtime fields into the shared match document or the turn file.
 
 **A side knows which side it is, and the map.** Every answer to a side names
 it, blue or red, and the header names the map: a player is owed both, and no
@@ -969,16 +993,13 @@ an agent that is not told it would reason about a board it does not have.
 
 ### What a side sees of the other
 
-**The opponent's current-round actions remain hidden until the round ends.**
-The opponent's list in the current action segment is empty whether or not
-either side has committed. Sealed actions remain in the private turn file.
-The same rule applies to the round-zero opening choice and while a fight remains
-unresolved. A commit changes status, not visibility. Both round-opening states
-and every earlier round's complete actions, including unlocks, remain visible.
-Once the match is over, the committed document is visible in full.
+**The opponent remains at its round-opening state.** This holds before and
+after either side commits and while settlement remains unresolved. No current
+action lists are returned. Once a round settles, the next opening state exposes
+its result, and the public match file holds both sides' completed actions.
 
-`--omniscient` overlays both sides' pending actions and hides neither side's
-current action list. It is the spectator and test view, and players are not
+`--omniscient` applies both sides' current decisions and includes runtime
+fields for both sides. It is the spectator and test view, and players are not
 given it by the arena. Obtaining either view does not commit pending actions.
 
 [The visibility index](../../rules/visibility.md) distinguishes this platform
@@ -1004,11 +1025,9 @@ file's lock. All requested decisions must succeed before any of them join the
 turn file; a failure keeps none of them and leaves earlier pending decisions
 intact. `act` does not commit the round.
 
-The answer contains the same visible `document` as `show`, plus top-level
-`position` for that side after the last decision and a flat `events` array in
-execution order.
-The document's state remains the opening state; `position` is a calculated
-result, not another state segment.
+The answer contains the same `header` and live `state` as `show`, after the
+last decision, plus a flat `events` array in execution order. There is no
+separate `position` field.
 An event is a one-key mapping naming what happened, such as `{created: {index:
 7, name: marksman, position: {x: -40, y: -160}}}`, so that a caller learns the
 index a purchase created and where the board put it without diffing two

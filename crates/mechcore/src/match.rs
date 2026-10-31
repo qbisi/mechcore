@@ -478,7 +478,6 @@ fn act(mut arguments: Args) -> Result<View, Failure> {
     }
     let mut view = game.view(Some(side), false)?;
     view.events = Some(events);
-    view.position = Some(game.position(side)?);
     if !dry_run {
         game.write_turn(&mut held)?;
     }
@@ -1285,7 +1284,9 @@ impl Game {
         } else {
             None
         };
-        let document = self.visible_document(side, omniscient)?;
+        let header =
+            mechcore_document::r#match::header_value(&self.r#match).map_err(Failure::failed)?;
+        let state = self.visible_state(side, omniscient)?;
         let status = |side| SideView {
             given: self.turn.side(side).given,
             committed: self.turn.side(side).committed,
@@ -1296,13 +1297,13 @@ impl Game {
             side,
             phase,
             round: self.round(),
-            document,
+            header,
+            state,
             opened: self.turn.opened.clone(),
             rebuilt: self.turn.rebuilt,
             remaining,
             unresolved: self.unresolved.clone(),
             events: None,
-            position: None,
             sides: Views {
                 blue: status(Side::Blue),
                 red: status(Side::Red),
@@ -1310,36 +1311,46 @@ impl Game {
         })
     }
 
-    /// The same documents the writer emits, with pending visible decisions
-    /// overlaid and the opponent's current actions removed before serialization.
-    fn visible_document(
-        &self,
-        viewer: Option<Side>,
-        omniscient: bool,
-    ) -> Result<Vec<serde_yaml::Value>, Failure> {
-        let mut document = self.r#match.clone();
-        if self.phase() != Phase::Over {
-            for side in Side::BOTH {
-                let actions = if omniscient || viewer == Some(side) {
-                    self.decisions(side)
-                } else {
-                    Vec::new()
-                };
-                if self.round() == 0 {
-                    let choose = actions.iter().find_map(|action| match action {
-                        Action::ChooseAdvanceTeam { index, .. } => Some(*index),
-                        _ => None,
-                    });
-                    match side {
-                        Side::Blue => document.blue.opening.choose = choose,
-                        Side::Red => document.red.opening.choose = choose,
-                    }
-                } else if let Some(turn) = document.turns.last_mut() {
-                    *actions_of_mut(&mut turn.actions, side) = actions;
-                }
+    /// The current decision position, with only the viewer's actions applied.
+    fn visible_state(&self, viewer: Option<Side>, omniscient: bool) -> Result<Value, Failure> {
+        let mut state = self
+            .r#match
+            .turns
+            .last()
+            .map_or_else(State::default, |turn| turn.state.clone());
+        state.blue = self.opened(Side::Blue)?;
+        state.red = self.opened(Side::Red)?;
+        let mut value = serde_json::to_value(&state).map_err(|error| {
+            Failure::failed(format!("cannot serialize decision state: {error}"))
+        })?;
+        for side in Side::BOTH {
+            if !omniscient && viewer != Some(side) {
+                continue;
             }
+            let position = self.position(side)?;
+            let mut current = serde_json::to_value(&position).map_err(|error| {
+                Failure::failed(format!("cannot serialize decision position: {error}"))
+            })?;
+            current["shop"] = serde_json::json!({
+                "buys_remaining": position.shop.buys_remaining,
+                "unlocks_remaining": position.shop.unlocks_remaining,
+                "contraptions_remaining": position.shop.contraptions_remaining,
+            });
+            current["reinforce_chosen"] = Value::Bool(
+                self.decisions(side)
+                    .iter()
+                    .any(|action| matches!(action, Action::ChooseReinforceItem { .. })),
+            );
+            for (unit, written) in position.units.iter().zip(
+                current["units"]
+                    .as_array_mut()
+                    .expect("units serialize as an array"),
+            ) {
+                written["movable"] = Value::Bool(unit.movable(&position.techs));
+            }
+            value[side.name()] = current;
         }
-        mechcore_document::r#match::segment_values(&document).map_err(Failure::failed)
+        Ok(value)
     }
 }
 
@@ -1353,7 +1364,8 @@ struct View {
     side: Option<Side>,
     phase: Phase,
     round: i32,
-    document: Vec<serde_yaml::Value>,
+    header: serde_yaml::Value,
+    state: Value,
     opened: String,
     rebuilt: bool,
     /// Seconds left to commit, which only a round being deployed has.
@@ -1365,9 +1377,6 @@ struct View {
     /// What the decisions just taken did, in order, which only `act` answers.
     #[serde(skip_serializing_if = "Option::is_none")]
     events: Option<Vec<Value>>,
-    /// Only act answers the resulting position; document states stay at the opening.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    position: Option<SideState>,
     sides: Views,
 }
 
@@ -1528,9 +1537,10 @@ mod tests {
         for side in Side::BOTH {
             let view = serde_json::to_value(game.view(Some(side), false).unwrap()).unwrap();
             assert_eq!(view["phase"], "fight");
-            let action = view["document"].as_array().unwrap().last().unwrap();
-            assert_eq!(action[side.name()][0]["type"], "unlock_unit");
-            assert!(action[side.other().name()].as_array().unwrap().is_empty());
+            assert!(view.get("document").is_none());
+            assert!(view["state"][side.name()]["shop"].is_object());
+            let other = serde_json::to_value(game.opened(side.other()).unwrap()).unwrap();
+            assert_eq!(view["state"][side.other().name()], other);
         }
         assert_eq!(
             mechcore_document::r#match::canonical_yaml(&game.r#match).unwrap(),
@@ -1538,6 +1548,7 @@ mod tests {
         );
         // A failed settlement keeps both commitments private and retryable.
         let disk = fs::read(&path).unwrap();
+        let valid = game.r#match.clone();
         game.r#match.turns.last_mut().unwrap().state.blue.units[0]
             .unit
             .type_name = "missing_unit".into();
@@ -1551,6 +1562,7 @@ mod tests {
             assert!(stored.side(side).committed);
             assert!(!stored.side(side).decisions.is_empty());
         }
+        game.r#match = valid;
         game.publish_committed();
         game.r#match
             .turns
@@ -1561,9 +1573,7 @@ mod tests {
             .push(Action::Concede);
         let over = serde_json::to_value(game.view(Some(Side::Blue), false).unwrap()).unwrap();
         assert_eq!(over["phase"], "over");
-        assert_eq!(
-            over["document"].as_array().unwrap().last().unwrap()["red"][0]["type"],
-            "unlock_unit"
-        );
+        assert!(over["state"]["blue"]["shop"].is_object());
+        assert!(over["state"]["red"].get("shop").is_none());
     }
 }

@@ -54,19 +54,9 @@ fn dealt(directory: &Path) -> String {
     path
 }
 
-/// The file's state and action segments, with no projected view schema.
+/// The live decision state returned to the caller.
 fn state(view: &Value) -> &Value {
-    view["document"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .rev()
-        .find(|segment| segment["kind"] == "state")
-        .unwrap()
-}
-
-fn decisions<'a>(view: &'a Value, side: &str) -> &'a Value {
-    &view["document"].as_array().unwrap().last().unwrap()[side]
+    &view["state"]
 }
 
 fn disk_document(path: &str) -> Value {
@@ -83,7 +73,7 @@ fn disk_document(path: &str) -> Value {
 
 /// Takes the first opening a side was dealt, as the decision that takes it.
 fn opening(view: &Value, side: &str) -> String {
-    let offer = &view["document"][0][side]["offers"][0];
+    let offer = &view["header"][side]["offers"][0];
     format!(
         "{{type: choose_advance_team, index: 0, name: {}, specialist: {}}}",
         offer["team"].as_str().unwrap(),
@@ -107,7 +97,11 @@ fn decline(path: &str, side: &str) {
     let last = state(&view)["reinforce_offers"].as_array().unwrap().len() - 1;
     let name = state(&view)["reinforce_offers"][last].as_str().unwrap();
     let decision = format!("{{type: choose_reinforce_item, index: {last}, name: {name}}}");
-    run(&["match", "act", path, "--side", side, &decision]).ok();
+    assert_eq!(state(&view)[side]["reinforce_chosen"], false);
+    let chosen = run(&["match", "act", path, "--side", side, &decision]).ok();
+    assert_eq!(state(&chosen)[side]["reinforce_chosen"], true);
+    let shown = run(&["match", "show", path, "--side", side]).ok();
+    assert_eq!(state(&shown), state(&chosen));
 }
 
 fn verify(path: &str) -> Value {
@@ -193,14 +187,14 @@ fn fork_without_a_round_uses_only_documented_decisions_and_commitments() {
         "red",
     ])
     .ok();
-    assert!(loaded["document"][0].get("deploy_time").is_none());
+    assert!(loaded["header"].get("deploy_time").is_none());
     let runtime: Value =
         serde_json::from_slice(&fs::read(Path::new(&target).with_extension("turn")).unwrap())
             .unwrap();
     assert_eq!(runtime["deploy_time"], 199);
     assert!(loaded["remaining"].as_f64().unwrap() > 198.0);
     assert_eq!(loaded["sides"]["blue"]["committed"], false);
-    assert!(decisions(&loaded, "red").as_array().unwrap().is_empty());
+    assert_eq!(state(&loaded)["red"]["reinforce_chosen"], false);
     assert_eq!(fs::read(&path).unwrap(), before);
     assert_eq!(fs::read(&turn_path).unwrap(), turn);
     // A corrupt source turn produces the same checkpoint as a valid or missing one.
@@ -221,7 +215,7 @@ fn fork_without_a_round_uses_only_documented_decisions_and_commitments() {
         assert_eq!(disk_document(&target), disk_document(&path));
         assert_eq!(forked["sides"]["blue"]["committed"], false);
         assert_eq!(forked["sides"]["red"]["committed"], false);
-        assert!(decisions(&forked, "red").as_array().unwrap().is_empty());
+        assert_eq!(state(&forked)["red"]["reinforce_chosen"], false);
     }
 }
 
@@ -265,7 +259,12 @@ fn fork_can_restart_the_opening_and_refuses_missing_rounds_without_writes() {
     assert_eq!(loaded["round"], 0);
     assert_eq!(loaded["phase"], "opening");
     assert_eq!(disk_document(&path).as_array().unwrap().len(), 2);
-    assert_eq!(decisions(&loaded, "blue"), &serde_json::json!([]));
+    assert!(
+        state(&loaded)["blue"]["units"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
     open_the_match(&path);
     let original = mechcore_document::r#match::read(&before).unwrap().unwrap();
     let restarted = mechcore_document::r#match::read(&fs::read(&path).unwrap())
@@ -433,7 +432,7 @@ fn fork_protects_existing_files_and_validates_the_new_clock() {
         view["match"],
         fs::canonicalize(&target).unwrap().display().to_string()
     );
-    assert!(view["document"][0].get("deploy_time").is_none());
+    assert!(view["header"].get("deploy_time").is_none());
     assert_eq!(fs::read(&path).unwrap(), original);
     let turn: Value = serde_json::from_slice(&fs::read(&target_turn).unwrap()).unwrap();
     assert_eq!(turn["round"], 1);
@@ -564,7 +563,7 @@ fn a_partial_match_verifies_and_continues_from_its_first_checkpoint() {
     assert_eq!(report["valid"], true, "{report}");
     assert_eq!(report["reinforcement_rounds"], 1, "{report}");
     let view = run(&["match", "show", &suffix, "--side", "blue"]).ok();
-    assert_eq!(state(&view)["round"], 3);
+    assert_eq!(view["round"], 3);
     decline(&suffix, "blue");
     run(&["match", "commit", &suffix, "--side", "blue"]).ok();
 }
@@ -622,20 +621,10 @@ fn both_openings_open_the_first_round() {
     let again = run(&["match", "act", &path, "--side", "blue", &decision]).refused();
     assert!(again.contains("commits a round once"), "{again}");
 
-    // Blue has committed its opening and red has not, so red is not shown
-    // what blue took: an opening reaches the board as the first round opens,
-    // and until then it is a round in progress like any other.
+    // A sealed opening changes only its owner's decision position.
     let view = run(&["match", "show", &path, "--side", "red"]).ok();
-    assert_eq!(
-        decisions(&view, "blue").as_array().unwrap().len(),
-        0,
-        "{view}"
-    );
-    assert_eq!(
-        decisions(&view, "red").as_array().unwrap().len(),
-        0,
-        "{view}"
-    );
+    assert!(state(&view)["blue"]["units"].as_array().unwrap().is_empty());
+    assert!(state(&view)["red"]["units"].as_array().unwrap().is_empty());
 
     let decision = opening(&view, "red");
     run(&["match", "act", &path, "--side", "red", &decision]).ok();
@@ -647,7 +636,7 @@ fn both_openings_open_the_first_round() {
     assert_eq!(opened["round"], 1);
     // Once it has, both openings are what the board stands on.
     assert_eq!(
-        opened["document"][1]["blue"][0]["type"],
+        disk_document(&path)[1]["blue"][0]["type"],
         "choose_advance_team"
     );
     assert!(opened["remaining"].as_f64().unwrap() > 0.0);
@@ -658,88 +647,157 @@ fn both_openings_open_the_first_round() {
 }
 
 #[test]
-fn a_view_exposes_the_document_except_the_opponents_current_actions() {
+fn a_view_applies_only_the_callers_decisions_and_adds_runtime_legality() {
     let directory = tempfile::tempdir().unwrap();
     let path = dealt(directory.path());
     open_the_match(&path);
     let before = disk_document(&path);
-    run(&[
-        "match",
-        "act",
-        &path,
-        "--side",
-        "red",
-        "{type: unlock_unit, name: marksman}",
-    ])
-    .ok();
-    run(&[
-        "match",
-        "act",
-        &path,
-        "--side",
-        "blue",
-        "{type: unlock_unit, name: rhino}",
-    ])
-    .ok();
-
-    let blue = run(&["match", "show", &path, "--side", "blue"]).ok();
-    let red = run(&["match", "show", &path, "--side", "red"]).ok();
-    for view in [&blue, &red] {
-        assert_eq!(view["document"][0], before[0]);
-        assert_eq!(state(view), &before[2]);
-        assert!(view.get("position").is_none());
-        assert!(view["document"][0]["seed"].is_number());
-        for side in ["blue", "red"] {
-            assert!(view["document"][0][side]["seed"].is_number());
-            assert!(view["document"][0][side]["offers"].is_array());
-            assert!(
-                view["document"][0][side]["tech_loadout"]
-                    .as_object()
-                    .unwrap()
-                    .len()
-                    > 2
-            );
-            assert!(state(view)[side]["supply"].is_number());
-            assert!(state(view)[side]["unlocked_units"].is_array());
-            assert_eq!(
-                state(view)[side]["random_state"].as_array().unwrap().len(),
-                4
-            );
-        }
-        assert_eq!(state(view)["random_state"].as_array().unwrap().len(), 4);
+    let mut acted = Vec::new();
+    for (side, unit) in [("red", "marksman"), ("blue", "rhino")] {
+        acted.push(
+            run(&[
+                "match",
+                "act",
+                &path,
+                "--side",
+                side,
+                &format!("{{type: unlock_unit, name: {unit}}}"),
+            ])
+            .ok(),
+        );
     }
-    assert_eq!(decisions(&blue, "blue")[0]["name"], "rhino");
-    assert_eq!(decisions(&red, "red")[0]["name"], "marksman");
-    assert!(decisions(&blue, "red").as_array().unwrap().is_empty());
-    assert!(decisions(&red, "blue").as_array().unwrap().is_empty());
-    assert_eq!(
-        disk_document(&path),
-        before,
-        "show must not write pending decisions"
-    );
-
+    for (side, other, answer) in [("red", "blue", &acted[0]), ("blue", "red", &acted[1])] {
+        let view = run(&["match", "show", &path, "--side", side]).ok();
+        assert_eq!(view["header"], before[0]);
+        assert_eq!(state(&view), state(answer));
+        assert_eq!(state(&view)[other], before[2][other]);
+        assert_eq!(state(&view)[side]["shop"]["unlocks_remaining"], 0);
+        assert_eq!(state(&view)[side]["reinforce_chosen"], false);
+        assert!(
+            state(&view)[side]["units"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|unit| unit["movable"].is_boolean())
+        );
+        assert!(view.get("document").is_none());
+        assert!(view.get("position").is_none());
+        assert!(state(&view)[other].get("shop").is_none());
+        assert!(state(&view)[other].get("reinforce_chosen").is_none());
+        assert!(
+            state(&view)[other]["units"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|unit| unit.get("movable").is_none())
+        );
+    }
+    assert_eq!(disk_document(&path), before);
     run(&["match", "commit", &path, "--side", "red"]).ok();
-    let after = run(&["match", "show", &path, "--side", "blue"]).ok();
-    assert_eq!(after["sides"]["red"]["committed"], true);
-    assert_eq!(
-        after["document"], blue["document"],
-        "an opponent's commit reveals no actions"
-    );
+    let blue = run(&["match", "show", &path, "--side", "blue"]).ok();
+    assert_eq!(blue["sides"]["red"]["committed"], true);
+    assert_eq!(state(&blue), state(&acted[1]));
+    let red = run(&["match", "show", &path, "--side", "red"]).ok();
+    assert_eq!(state(&red), state(&acted[0]));
     assert_eq!(disk_document(&path), before);
     let all = run(&["match", "show", &path, "--omniscient"]).ok();
-    assert_eq!(decisions(&all, "red")[0]["name"], "marksman");
-    assert_eq!(decisions(&all, "blue")[0]["name"], "rhino");
-
+    assert!(all.get("side").is_none());
+    assert_eq!(state(&all)["red"], state(&red)["red"]);
+    assert_eq!(state(&all)["blue"], state(&blue)["blue"]);
     run(&["match", "commit", &path, "--side", "blue"]).ok();
     let next = run(&["match", "show", &path, "--side", "blue"]).ok();
     assert_eq!(next["round"], 2);
-    assert_eq!(next["document"], disk_document(&path));
-    assert_eq!(next["document"][3]["red"][0]["type"], "unlock_unit");
-    assert_eq!(next["document"][3]["red"][0]["name"], "marksman");
+    assert_eq!(state(&next)["red"], disk_document(&path)[4]["red"]);
     assert_eq!(
         state(&next)["reinforce_pool"],
         disk_document(&path)[4]["reinforce_pool"]
     );
+    assert_eq!(state(&next)["blue"]["reinforce_chosen"], false);
+}
+
+#[test]
+fn movement_permission_is_recomputed_from_equipment_and_redeploy_actions() {
+    use mechcore_document::{
+        layout::UnitSource,
+        r#match::{Action, EquipmentItem, PanelSkill},
+        mobility,
+    };
+
+    for redeploy in [false, true] {
+        let directory = tempfile::tempdir().unwrap();
+        let path = dealt(directory.path());
+        open_the_match(&path);
+        let mut game = mechcore_document::r#match::read(&fs::read(&path).unwrap())
+            .unwrap()
+            .unwrap();
+        let blue = &mut game.turns.last_mut().unwrap().state.blue;
+        blue.units[0].unit.source = UnitSource::Legacy;
+        let unit = blue.units[0].unit.index;
+        let action = if redeploy {
+            let index = blue
+                .battle_skills
+                .iter()
+                .map(|slot| slot.index)
+                .max()
+                .unwrap_or(-1)
+                + 1;
+            blue.battle_skills.push(PanelSkill {
+                index,
+                id: mobility::REDEPLOY_SKILLS[0],
+                cooldown: 0,
+                used: false,
+                standing: Vec::new(),
+                release: None,
+            });
+            Action::ReleaseCommanderSkill {
+                index,
+                id: mobility::REDEPLOY_SKILLS[0],
+                target: mechcore_document::r#match::SkillTarget::Unit(unit),
+            }
+        } else {
+            blue.equipment.push(EquipmentItem {
+                id: mobility::DEPLOYMENT_MODULE,
+                durability: None,
+            });
+            Action::UseEquipment {
+                equipment: mobility::DEPLOYMENT_MODULE,
+                index: unit,
+            }
+        };
+        fs::write(
+            &path,
+            mechcore_document::r#match::canonical_yaml(&game).unwrap(),
+        )
+        .unwrap();
+        let before = fs::read(&path).unwrap();
+        let view = run(&["match", "show", &path, "--side", "blue"]).ok();
+        assert_eq!(state(&view)["blue"]["units"][0]["movable"], false);
+        let written = serde_json::to_string(&action).unwrap();
+        let trial = run(&[
+            "match",
+            "act",
+            &path,
+            "--side",
+            "blue",
+            "--dry-run",
+            &written,
+        ])
+        .ok();
+        assert_eq!(state(&trial)["blue"]["units"][0]["movable"], true);
+        let unchanged = run(&["match", "show", &path, "--side", "blue"]).ok();
+        assert_eq!(state(&unchanged), state(&view));
+        let applied = run(&["match", "act", &path, "--side", "blue", &written]).ok();
+        assert_eq!(state(&applied), state(&trial));
+        let sealed = run(&["match", "commit", &path, "--side", "blue"]).ok();
+        assert_eq!(state(&sealed), state(&trial));
+        let opponent = run(&["match", "show", &path, "--side", "red"]).ok();
+        assert!(
+            state(&opponent)["blue"]["units"][0]
+                .get("movable")
+                .is_none()
+        );
+        assert_eq!(fs::read(&path).unwrap(), before);
+    }
 }
 
 #[test]
@@ -772,18 +830,14 @@ fn a_refused_decision_keeps_nothing_and_a_dry_run_keeps_nothing_either() {
 
     let legal = &format!("{{type: move_unit, index: 0, position: {{x: {column}, y: -280}}}}");
     let answered = run(&["match", "act", &path, "--side", "blue", "--dry-run", legal]).ok();
-    assert_eq!(answered["position"]["units"][0]["position"]["y"], -280);
+    assert_eq!(answered["state"]["blue"]["units"][0]["position"]["y"], -280);
     let view = run(&["match", "show", &path, "--side", "blue"]).ok();
-    assert_eq!(
-        decisions(&view, "blue").as_array().unwrap().len(),
-        0,
-        "a dry run keeps nothing: {view}"
-    );
+    assert_ne!(state(&view)["blue"]["units"][0]["position"]["y"], -280);
 
     let kept = run(&["match", "act", &path, "--side", "blue", legal]).ok();
     assert_eq!(kept["events"].as_array().unwrap().len(), 0);
     let view = run(&["match", "show", &path, "--side", "blue"]).ok();
-    assert_eq!(decisions(&view, "blue").as_array().unwrap().len(), 1);
+    assert_eq!(state(&view)["blue"]["units"][0]["position"]["y"], -280);
 }
 
 #[test]
@@ -819,8 +873,18 @@ fn a_decision_sequence_uses_preceding_results_and_dry_run_keeps_nothing() {
     // A YAML sequence on the CLI and a JSON array in the stream share a path.
     let yaml = serde_yaml::to_string(&sequence).unwrap();
     let trial = run(&["match", "act", &path, "--side", "blue", "--dry-run", &yaml]).ok();
-    assert_eq!(trial["position"]["units"][index]["position"]["y"], -260);
-    assert_eq!(decisions(&trial, "blue").as_array().unwrap().len(), 2);
+    assert_eq!(
+        trial["state"]["blue"]["units"][index]["position"]["y"],
+        -260
+    );
+    assert_eq!(
+        state(&trial)["blue"]["shop"]["buys_remaining"],
+        state(&view)["blue"]["shop"]["buys_remaining"]
+            .as_i64()
+            .unwrap()
+            - 1
+    );
+    assert_eq!(state(&trial)["blue"]["units"][index]["movable"], true);
     assert_eq!(trial["events"][0]["created"]["index"], index);
     assert_eq!(trial["events"][0]["created"]["position"]["y"], -280);
     assert_eq!(fs::read(&path).unwrap(), document);
@@ -837,10 +901,10 @@ fn a_decision_sequence_uses_preceding_results_and_dry_run_keeps_nothing() {
             r#"{"op": "match.show"}"#.to_owned(),
         ],
     );
-    assert_eq!(answers[0]["position"], trial["position"]);
-    assert_eq!(answers[0]["document"], trial["document"]);
+    assert_eq!(answers[0]["state"]["blue"], trial["state"]["blue"]);
+    assert_eq!(state(&answers[0]), state(&trial));
     assert_eq!(answers[0]["events"], trial["events"]);
-    assert_eq!(decisions(&answers[1], "blue"), decisions(&trial, "blue"));
+    assert_eq!(state(&answers[1]), state(&trial));
     assert_eq!(
         fs::read(&path).unwrap(),
         document,
@@ -893,7 +957,7 @@ fn a_failed_sequence_keeps_prior_decisions_and_reports_the_first_failed_step() {
     assert_eq!(answers[2]["kind"], "usage", "{}", answers[2]);
     assert_eq!(answers[2]["details"]["decision_index"], 1);
     assert_eq!(answers[2]["details"]["decision"], malformed);
-    assert_eq!(decisions(&answers[3], "blue").as_array().unwrap().len(), 1);
+    assert_eq!(state(&answers[3]), state(&view));
     assert_eq!(fs::read(&path).unwrap(), document);
     assert_eq!(
         fs::read(Path::new(&path).with_extension("turn")).unwrap(),
@@ -1040,7 +1104,7 @@ fn deployment_time_is_runtime_only_and_survives_round_opening() {
         "199",
     ])
     .ok();
-    assert!(view["document"][0].get("deploy_time").is_none());
+    assert!(view["header"].get("deploy_time").is_none());
     assert!(!fs::read_to_string(&path).unwrap().contains("deploy_time"));
     run(&["match", "new", &path, "--deploy-time", "100"]).refused();
     run(&["match", "new", &path, "--deploy-time", "199"]).ok();
@@ -1231,7 +1295,7 @@ fn a_request_stream_plays_the_side_its_shell_was_opened_on() {
     let directory = tempfile::tempdir().unwrap();
     let path = dealt(directory.path());
     let view = run(&["match", "show", &path, "--side", "red"]).ok();
-    let offer = &view["document"][0]["red"]["offers"][0];
+    let offer = &view["header"]["red"]["offers"][0];
     let decision = serde_json::json!({
         "type": "choose_advance_team",
         "index": 0,
@@ -1257,9 +1321,17 @@ fn a_request_stream_plays_the_side_its_shell_was_opened_on() {
     assert_eq!(answers[0]["phase"], "opening");
     // A dry run keeps nothing, so the commit after it has nothing to write
     // and is answered with the refusal, on the line its result would be.
-    assert_eq!(
-        decisions(&answers[1], "red")[0]["type"],
-        "choose_advance_team"
+    assert!(
+        !state(&answers[1])["red"]["officers"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    assert!(
+        state(&answers[0])["red"]["officers"]
+            .as_array()
+            .unwrap()
+            .is_empty()
     );
     assert_eq!(answers[2]["schema"], "mechcore.error");
     assert_eq!(answers[2]["operation"], "match.commit");
@@ -1449,13 +1521,13 @@ fn names_are_set_when_each_side_joins_and_survive_later_commands() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("named.yaml").display().to_string();
     let blue = run(&["match", "new", &path, "--name", "Blue Bot", "--seed", "7"]).ok();
-    assert_eq!(blue["document"][0]["blue"]["name"], "Blue Bot");
-    assert_eq!(blue["document"][0]["red"]["name"], "red");
+    assert_eq!(blue["header"]["blue"]["name"], "Blue Bot");
+    assert_eq!(blue["header"]["red"]["name"], "red");
     let red = run(&["match", "new", &path, "--name", "Red Bot"]).ok();
-    assert_eq!(red["document"][0]["blue"]["name"], "Blue Bot");
-    assert_eq!(red["document"][0]["red"]["name"], "Red Bot");
+    assert_eq!(red["header"]["blue"]["name"], "Blue Bot");
+    assert_eq!(red["header"]["red"]["name"], "Red Bot");
     let shown = run(&["match", "show", &path, "--side", "blue"]).ok();
-    assert_eq!(shown["document"][0]["red"]["name"], "Red Bot");
+    assert_eq!(shown["header"]["red"]["name"], "Red Bot");
     let game = mechcore_document::r#match::read(&fs::read(path).unwrap())
         .unwrap()
         .unwrap();

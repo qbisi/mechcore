@@ -106,8 +106,8 @@ def blueprints():
             for match in re.finditer(r"\{id: (\d+), name: [^,]+, supply: \d+, grants_officer", text)]
 
 
-def opening_state(view):
-    return next(segment for segment in reversed(view["document"]) if segment["kind"] == "state")
+def decision_state(view):
+    return view["state"]
 
 
 class Player:
@@ -133,7 +133,7 @@ class Player:
             print(f"refused {decision}: {answer['reason']}", file=sys.stderr)
             return None
         self.seen = answer
-        self.position = answer["position"]
+        self.position = answer["state"][self.side]
         return answer
 
     def legal(self, decision):
@@ -142,12 +142,13 @@ class Player:
 
     def view(self):
         self.seen = self.ask({"op": "match.show"})
+        self.position = self.seen["state"][self.side]
         return self.position
 
     # The opening.
 
     def opening(self, view):
-        offers = view["document"][0][self.side]["offers"]
+        offers = view["header"][self.side]["offers"]
         pick = self.draw.randrange(len(offers))
         self.take({
             "type": "choose_advance_team",
@@ -161,7 +162,7 @@ class Player:
     def deploy(self, view):
         self.round = view["round"]
         self.seen = view
-        position = self.position = opening_state(view)[self.side]
+        position = self.position = decision_state(view)[self.side]
         self.old = {unit["index"] for unit in position.get("units", [])}
         self.bought = set()
         self.arrived = set()
@@ -172,8 +173,8 @@ class Player:
             self.defend()
 
     def reinforce(self, view):
-        offers = opening_state(view).get("reinforce_offers") or []
-        if not offers:
+        offers = decision_state(view).get("reinforce_offers") or []
+        if not offers or decision_state(view)[self.side]["reinforce_chosen"]:
             return
         cards = []
         for index, name in enumerate(offers[:-1]):
@@ -223,7 +224,7 @@ class Player:
 
     def counts(self):
         position = self.view()
-        other = opening_state(self.seen)["red" if self.side == "blue" else "blue"]
+        other = decision_state(self.seen)["red" if self.side == "blue" else "blue"]
         flyers = sum(1 for unit in other.get("units", [])
                      if self.units.get(unit["name"], {}).get("air"))
         anti_air = sum(1 for unit in position.get("units", [])
@@ -280,7 +281,7 @@ class Player:
 
     def research(self):
         position = self.view()
-        loadout = self.seen["document"][0][self.side]["tech_loadout"]
+        loadout = self.seen["header"][self.side]["tech_loadout"]
         held = {unit: set(techs) for unit, techs in (position.get("techs") or {}).items()}
         types = {}
         for unit in position.get("units", []):
@@ -387,7 +388,7 @@ class Player:
 
     def defend(self):
         position = self.view()
-        other = opening_state(self.seen)["red" if self.side == "blue" else "blue"]
+        other = decision_state(self.seen)["red" if self.side == "blue" else "blue"]
         # The other side's left, its own negative x, faces this side's positive x.
         left = sum(1 for unit in other.get("units", []) if unit["position"]["x"] > 0)
         right = sum(1 for unit in other.get("units", []) if unit["position"]["x"] < 0)
