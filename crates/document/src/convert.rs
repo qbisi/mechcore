@@ -1238,7 +1238,7 @@ fn actions(
         })
     };
     let mut position = opened.clone();
-    let mut dependencies = crate::normalize::UpgradeDependencies::default();
+    let mut dependencies = crate::normalize::DeploymentHistory::default();
     let mut conceded = false;
     let mut decided = false;
     for (at, recorded) in recorded_actions(round, seat, offers)?
@@ -1264,8 +1264,9 @@ fn actions(
         };
         conceded |= matches!(action, Action::Concede);
         decided |= !matches!(action, Action::Concede);
-        position = step(&position, &action, at)?;
-        dependencies.record(&position, &action);
+        let next = step(&position, &action, at)?;
+        dependencies.record(&position, &next, &action);
+        position = next;
     }
     if !decided {
         return Ok(if conceded {

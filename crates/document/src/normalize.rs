@@ -1,7 +1,8 @@
 //! Reconstructs deployment decisions from their two endpoint positions.
 //!
-//! The sequence is a normal form of the deployment. History supplies only
-//! upgrades preceding Enhancement Modules, whose fitting time changes prices.
+//! The sequence is a normal form of the deployment. History preserves
+//! recovered purchases absent from both endpoints, and upgrades preceding
+//! Enhancement Modules, whose fitting time changes prices.
 //! Every emitted decision is stepped and compared with the requested endpoint.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -14,21 +15,46 @@ use crate::r#match::{Action, Offers, SideState, SkillTarget, StateUnit};
 
 const ENHANCEMENT_MODULE: i32 = 13_030_004;
 
-/// The level reached before each newly fitted Enhancement Module. Fitting
-/// order distinguishes multiple modules on the same formation.
+/// Facts endpoints cannot recover: purchased formations later recovered, their
+/// recovery state, and upgrade levels preceding Enhancement Module fitting.
 #[derive(Clone, Default)]
-pub(crate) struct UpgradeDependencies(BTreeMap<(i32, usize), i32>);
+pub(crate) struct DeploymentHistory {
+    upgrades: BTreeMap<(i32, usize), i32>,
+    purchases: BTreeMap<i32, (i32, i32)>,
+    recovered: BTreeMap<i32, StateUnit>,
+}
 
-impl UpgradeDependencies {
+impl DeploymentHistory {
     /// Observe an action after it has been stepped in its historical order.
-    pub(crate) fn record(&mut self, position: &SideState, action: &Action) {
+    pub(crate) fn record(&mut self, before: &SideState, position: &SideState, action: &Action) {
+        if let Action::BuyUnit { unit, .. } = action {
+            let index = before.next_index.unit;
+            if let Some(bought) = position
+                .units
+                .iter()
+                .find(|entry| entry.unit.index == index)
+            {
+                self.purchases
+                    .insert(index, (*unit, bought.unit.level.unwrap_or(1)));
+            }
+        }
+        if let Action::ReleaseCommanderSkill {
+            id,
+            target: SkillTarget::Unit(index),
+            ..
+        } = action
+            && RECOVERY_SKILLS.contains(id)
+            && let Some(recovered) = before.units.iter().find(|entry| entry.unit.index == *index)
+        {
+            self.recovered.insert(*index, recovered.clone());
+        }
         if let Action::UseEquipment {
             equipment: ENHANCEMENT_MODULE,
             index,
         } = action
             && let Some(unit) = position.units.iter().find(|unit| unit.unit.index == *index)
         {
-            self.0.insert(
+            self.upgrades.insert(
                 (*index, unit.unit.equipment.len() - 1),
                 unit.unit.level.unwrap_or(1),
             );
@@ -37,8 +63,8 @@ impl UpgradeDependencies {
 }
 
 /// Formats a match, rebuilding each complete action segment from its endpoints.
-/// Historical decisions supply the closing position and the upgrades that
-/// precede fitting each Enhancement Module, rather than a compressed trace.
+/// Historical decisions supply the closing position, actual recovered
+/// purchases and upgrades preceding Enhancement Modules.
 ///
 /// # Errors
 /// Returns a malformed match, a historical decision that cannot be evaluated,
@@ -65,9 +91,9 @@ pub fn match_yaml(bytes: &[u8]) -> Result<String, String> {
                 .map(|offers| offers.refund);
             let mut closed = opened.clone();
             let mut placement = crate::landing::placement(red);
-            let mut dependencies = UpgradeDependencies::default();
+            let mut dependencies = DeploymentHistory::default();
             for action in actions.iter() {
-                closed = crate::transition::step_placing(
+                let next = crate::transition::step_placing(
                     crate::economy::Economy::embedded()?,
                     &closed,
                     action,
@@ -81,7 +107,8 @@ pub fn match_yaml(bytes: &[u8]) -> Result<String, String> {
                         if red { "red" } else { "blue" }
                     )
                 })?;
-                dependencies.record(&closed, action);
+                dependencies.record(&closed, &next, action);
+                closed = next;
             }
             let conceded = actions.last() == Some(&Action::Concede);
             *actions = deployment(
@@ -122,7 +149,7 @@ pub fn match_yaml(bytes: &[u8]) -> Result<String, String> {
 }
 
 /// Reconstructs the standard deployment sequence from its endpoints and the
-/// historical upgrades that must precede fitting an Enhancement Module.
+/// recorded purchases later recovered and upgrades preceding Enhancement Modules.
 ///
 /// Choices that leave the same position use offer order, formation indices,
 /// technology IDs and panel indices as tie breakers. A purchase derives its
@@ -138,7 +165,7 @@ pub(crate) fn deployment(
     ended: &SideState,
     offers: Option<&Offers>,
     red: bool,
-    dependencies: &UpgradeDependencies,
+    dependencies: &DeploymentHistory,
 ) -> Result<Vec<Action>, String> {
     let choices: Vec<_> = offers.map_or_else(
         || vec![None],
@@ -169,7 +196,7 @@ pub(crate) fn deployment(
             position: opened.clone(),
             actions: Vec::new(),
             purchase_levels: BTreeMap::new(),
-            upgrade_dependencies: dependencies.clone(),
+            history: dependencies.clone(),
             research: ended
                 .techs
                 .iter()
@@ -179,6 +206,12 @@ pub(crate) fn deployment(
         };
         if let Some(choice) = choice
             && let Err(error) = builder.push(choice)
+        {
+            errors.push(error);
+            continue;
+        }
+        if builder.can_activate(1)
+            && let Err(error) = builder.push(Action::ActiveEnergyTowerSkill { skill: 1 })
         {
             errors.push(error);
             continue;
@@ -220,7 +253,7 @@ struct Builder<'a> {
     actions: Vec<Action>,
     research: BTreeSet<i32>,
     purchase_levels: BTreeMap<i32, i32>,
-    upgrade_dependencies: UpgradeDependencies,
+    history: DeploymentHistory,
 }
 
 impl Builder<'_> {
@@ -230,32 +263,14 @@ impl Builder<'_> {
             .map_err(|error| format!("{action:?}: {error}"))?;
         crate::transition::check_place(&self.position, &action)
             .map_err(|error| format!("{action:?}: {error}"))?;
-        let step = |position: &SideState| {
-            crate::transition::step_placing(
-                self.economy,
-                position,
-                &action,
-                self.declined,
-                &mut crate::landing::placement(self.red),
-            )
-        };
-        let mut next = step(&self.position);
-        if next
-            == Err(crate::transition::Unsettled::Refused(
-                "spending more supply than the side holds",
-            ))
-            && self.can_activate(1)
-        {
-            self.push(Action::ActiveEnergyTowerSkill { skill: 1 })?;
-            next = crate::transition::step_placing(
-                self.economy,
-                &self.position,
-                &action,
-                self.declined,
-                &mut crate::landing::placement(self.red),
-            );
-        }
-        self.position = next.map_err(|error| format!("{action:?}: {error}"))?;
+        self.position = crate::transition::step_placing(
+            self.economy,
+            &self.position,
+            &action,
+            self.declined,
+            &mut crate::landing::placement(self.red),
+        )
+        .map_err(|error| format!("{action:?}: {error}"))?;
         if let Action::MoveUnit {
             index,
             position,
@@ -301,8 +316,8 @@ impl Builder<'_> {
             } => {
                 let held = self.unit(*index)?;
                 if let Some(level) = self
-                    .upgrade_dependencies
-                    .0
+                    .history
+                    .upgrades
                     .get(&(*index, held.unit.equipment.len()))
                     .copied()
                 {
@@ -421,6 +436,33 @@ impl Builder<'_> {
         self.push(Action::ActiveBlueprint { id })
     }
 
+    fn purchase_type(&self, index: i32) -> Result<i32, String> {
+        if let Some(wanted) = self
+            .target
+            .units
+            .iter()
+            .find(|entry| entry.unit.index == index)
+        {
+            return unit_id_from_type(&wanted.unit.type_name)
+                .ok_or("unknown purchased unit".into());
+        }
+        let recovered =
+            self.history.recovered.get(&index).ok_or_else(|| {
+                format!("allocator gap {index} has no recorded recovered formation")
+            })?;
+        let (unit, _) = self
+            .history
+            .purchases
+            .get(&index)
+            .ok_or_else(|| format!("allocator gap {index} has no recorded purchase"))?;
+        if unit_id_from_type(&recovered.unit.type_name) != Some(*unit) {
+            return Err(format!(
+                "recovered formation {index} differs from its recorded purchase"
+            ));
+        }
+        Ok(*unit)
+    }
+
     fn purchase_plans(&self) -> Result<Vec<BTreeMap<i32, i32>>, String> {
         let raised: i32 = self
             .target
@@ -436,13 +478,21 @@ impl Builder<'_> {
                 .units
                 .iter()
                 .find(|entry| entry.unit.index == index);
-            let name = wanted.map_or("crawler", |entry| entry.unit.type_name.as_str());
-            let unit = unit_id_from_type(name).ok_or("unknown purchased unit")?;
+            let unit = self.purchase_type(index)?;
             let base = Purse::new(self.economy, &self.position.officers).shop_level(unit);
             let maximum = wanted.map_or(base + raised, |entry| entry.unit.level.unwrap_or(1));
             let mut next = Vec::new();
             for (plan, previous) in plans {
                 for level in (base + previous..=(base + raised).min(maximum)).rev() {
+                    if wanted.is_none()
+                        && self
+                            .history
+                            .purchases
+                            .get(&index)
+                            .is_some_and(|(_, recorded_level)| *recorded_level != level)
+                    {
+                        continue;
+                    }
                     let mut plan = plan.clone();
                     plan.insert(index, level);
                     next.push((plan, level - base));
@@ -826,10 +876,7 @@ impl Builder<'_> {
             .iter()
             .find(|entry| entry.unit.index == index)
             .cloned();
-        let name = wanted
-            .as_ref()
-            .map_or("crawler", |entry| entry.unit.type_name.as_str());
-        let unit = unit_id_from_type(name).ok_or("unknown purchased unit")?;
+        let unit = self.purchase_type(index)?;
         self.push(Action::BuyUnit {
             unit,
             position: None,
@@ -859,11 +906,34 @@ impl Builder<'_> {
                 })
                 .cloned()
                 .ok_or_else(|| format!("allocator gap {index} has no Field Recovery release"))?;
-            self.push(Action::ReleaseCommanderSkill {
-                index: recovery.index,
-                id: recovery.id,
-                target: SkillTarget::Unit(index),
-            })?;
+            let recorded = self
+                .history
+                .recovered
+                .get(&index)
+                .cloned()
+                .ok_or("missing recorded recovery")?;
+            for equipment in &recorded.unit.equipment {
+                self.push(Action::UseEquipment {
+                    equipment: *equipment,
+                    index,
+                })?;
+            }
+            let upgrades =
+                recorded.unit.level.unwrap_or(1) - self.unit(index)?.unit.level.unwrap_or(1);
+            if upgrades < 0 {
+                return Err(format!(
+                    "recovered formation {index} is below its purchase level"
+                ));
+            }
+            self.recover(
+                &Action::ReleaseCommanderSkill {
+                    index: recovery.index,
+                    id: recovery.id,
+                    target: SkillTarget::Unit(index),
+                },
+                false,
+                upgrades,
+            )?;
         }
         Ok(())
     }
@@ -1174,15 +1244,16 @@ mod tests {
     }
 
     fn normalized(opened: &SideState, closed: &SideState) -> Vec<Action> {
-        normalized_with_dependencies(opened, closed, &UpgradeDependencies::default())
+        normalized_with_dependencies(opened, closed, &DeploymentHistory::default())
     }
 
-    fn recorded_dependencies(opened: &SideState, history: &[Action]) -> UpgradeDependencies {
-        let mut dependencies = UpgradeDependencies::default();
+    fn recorded_dependencies(opened: &SideState, history: &[Action]) -> DeploymentHistory {
+        let mut dependencies = DeploymentHistory::default();
         let mut position = opened.clone();
         for action in history {
-            position = close(&position, std::slice::from_ref(action));
-            dependencies.record(&position, action);
+            let next = close(&position, std::slice::from_ref(action));
+            dependencies.record(&position, &next, action);
+            position = next;
         }
         dependencies
     }
@@ -1190,7 +1261,7 @@ mod tests {
     fn normalized_with_dependencies(
         opened: &SideState,
         closed: &SideState,
-        dependencies: &UpgradeDependencies,
+        dependencies: &DeploymentHistory,
     ) -> Vec<Action> {
         let economy = Economy::embedded().unwrap();
         let actions = deployment(economy, opened, closed, None, false, dependencies).unwrap();
@@ -1408,23 +1479,36 @@ mod tests {
     }
 
     #[test]
-    fn an_allocator_gap_is_filled_by_buying_and_recovering_a_crawler() {
+    fn a_recovered_purchase_keeps_its_recorded_type_and_upgrade() {
         let mut opened = side();
         opened.battle_skills.push(slot(900_001));
-        let closed = close(
+        let history = [
+            bought(15, -100, -160),
+            Action::UpgradeUnit { index: 2 },
+            Action::ReleaseCommanderSkill {
+                index: 0,
+                id: 900_001,
+                target: SkillTarget::Unit(2),
+            },
+        ];
+        let closed = close(&opened, &history);
+        let actions = normalized_with_dependencies(
             &opened,
-            &[
-                bought(15, -100, -160),
-                Action::ReleaseCommanderSkill {
-                    index: 0,
-                    id: 900_001,
-                    target: SkillTarget::Unit(2),
-                },
-            ],
+            &closed,
+            &recorded_dependencies(&opened, &history),
         );
-        let actions = normalized(&opened, &closed);
-        assert!(matches!(actions[0], Action::BuyUnit { unit: 10, .. }));
-        assert_eq!(actions.len(), 2);
+        assert!(matches!(actions[0], Action::BuyUnit { unit: 15, .. }));
+        assert!(actions.contains(&Action::UpgradeUnit { index: 2 }));
+        let error = deployment(
+            Economy::embedded().unwrap(),
+            &opened,
+            &closed,
+            None,
+            false,
+            &DeploymentHistory::default(),
+        )
+        .unwrap_err();
+        assert!(error.contains("no recorded recovered formation"));
     }
 
     #[test]
@@ -1530,7 +1614,7 @@ mod tests {
     }
 
     #[test]
-    fn rapid_resupply_is_a_dependency_of_the_first_unaffordable_operation() {
+    fn rapid_resupply_is_the_upfront_budget_stage() {
         let mut opened = side();
         opened.supply = 200;
         let actions = [
@@ -1541,6 +1625,51 @@ mod tests {
             },
         ];
         assert_eq!(normalized(&opened, &close(&opened, &actions)), actions);
+    }
+
+    #[test]
+    fn optional_rapid_resupply_precedes_spending_even_when_supply_is_sufficient() {
+        let opened = side();
+        let purchase = bought(1, -100, -160);
+        let loan = Action::ActiveEnergyTowerSkill { skill: 1 };
+        let closed = close(&opened, &[purchase.clone(), loan.clone()]);
+        assert_eq!(normalized(&opened, &closed), [loan, purchase]);
+    }
+
+    #[test]
+    fn rapid_resupply_follows_the_reinforcement_choice() {
+        let economy = Economy::embedded().unwrap();
+        let opened = side();
+        let offers = Offers {
+            dealt: vec![],
+            refund: 50,
+        };
+        let choice = Action::ChooseReinforceItem { index: 0, id: None };
+        let loan = Action::ActiveEnergyTowerSkill { skill: 1 };
+        let purchase = bought(1, -100, -160);
+        let closed = crate::transition::deployed(
+            economy,
+            &opened,
+            &[choice.clone(), purchase.clone(), loan.clone()],
+            false,
+            Some(offers.refund),
+        )
+        .unwrap();
+        let actions = deployment(
+            economy,
+            &opened,
+            &closed,
+            Some(&offers),
+            false,
+            &DeploymentHistory::default(),
+        )
+        .unwrap();
+        assert_eq!(actions, [choice, loan, purchase]);
+        assert_eq!(
+            crate::transition::deployed(economy, &opened, &actions, false, Some(offers.refund))
+                .unwrap(),
+            closed
+        );
     }
 
     #[test]
