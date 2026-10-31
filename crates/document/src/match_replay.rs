@@ -388,14 +388,11 @@ fn take_back_deliveries(
             squads += 1;
         }
     }
-
-    let first_delivered = snapshot.next_unit_index() - squads;
+    snapshot.next_index.unit -= squads;
+    let first_delivered = snapshot.next_index.unit;
     snapshot
         .units
         .retain(|entry| entry.unit.index < first_delivered);
-    snapshot
-        .recovered_units
-        .retain(|entry| entry.index < first_delivered);
     Ok(snapshot)
 }
 
@@ -476,7 +473,7 @@ fn write_snapshot(
         side.reactor_core, side.supply
     );
     write_units(xml, side, sign)?;
-    let _ = write!(xml, "<unitIndex>{}</unitIndex>", side.next_unit_index());
+    let _ = write!(xml, "<unitIndex>{}</unitIndex>", side.next_index.unit);
     let mut officers = side.officers.clone();
     officers.extend_from_slice(chain_officers);
     officers.sort_unstable();
@@ -787,7 +784,7 @@ fn native_actions(
                     .0;
                 let landing = crate::landing::landing(&native.position, type_name, red)
                     .ok_or("native purchase has no default landing")?;
-                let index = native.position.next_unit_index();
+                let index = native.position.next_index.unit;
                 native.push(Action::BuyUnit {
                     unit: *unit,
                     position: Some(landing),

@@ -229,7 +229,7 @@ impl ReinforceChoice {
     }
 }
 
-#[derive(Clone, Debug, Default, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct SideState {
     /// The player stream after this round's officer deliveries.
@@ -278,202 +278,11 @@ pub struct SideState {
     )]
     #[schemars(with = "BTreeMap<String, Vec<String>>")]
     pub techs: Vec<i32>,
-    #[schemars(with = "Vec<StateUnitEntry>")]
     pub units: Vec<StateUnit>,
-    #[serde(skip)]
-    pub recovered_units: Vec<RecoveredUnit>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub constructions: Vec<StaticPlacement>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub contraptions: Vec<ContraptionPlacement>,
-}
-
-#[derive(Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct SideStateWire {
-    /// The player stream after this round's officer deliveries.
-    pub random_state: [u64; 4],
-    pub reactor_core: i32,
-    pub supply: i32,
-    /// Unit IDs, written as their type names in ID order.
-    #[serde(with = "unit_names::units")]
-    pub unlocked_units: Vec<i32>,
-    /// What the round still allows, which a match does not write: each
-    /// opens at a value the round's opening fixes, and only the round's own
-    /// decisions spend it.
-    #[serde(skip)]
-    pub shop: Allowances,
-    #[serde(
-        default,
-        skip_serializing_if = "Vec::is_empty",
-        with = "crate::names::blueprint::many"
-    )]
-    pub blueprints: Vec<i32>,
-    #[serde(
-        default,
-        skip_serializing_if = "Vec::is_empty",
-        with = "crate::names::energy_tower_skill::many"
-    )]
-    pub energy_tower_skills: Vec<i32>,
-    pub tower_strengthen_levels: Vec<i32>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub equipment: Vec<EquipmentItem>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub battle_skills: Vec<PanelSkill>,
-    pub next_index: NextIndex,
-    /// The officers the side holds, a multiset in ascending ID, by name.
-    #[serde(default, with = "crate::names::officer::many")]
-    pub officers: Vec<i32>,
-    /// The unit technologies the side has researched, in ascending ID,
-    /// written grouped by the unit they belong to.
-    #[serde(
-        default,
-        skip_serializing_if = "Vec::is_empty",
-        with = "crate::names::technologies"
-    )]
-    pub techs: Vec<i32>,
-    pub units: Vec<StateUnitEntry>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub constructions: Vec<StaticPlacement>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub contraptions: Vec<ContraptionPlacement>,
-}
-
-/// A historical formation that no longer occupies the battlefield.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct RecoveredUnit {
-    pub type_name: Option<String>,
-    pub index: i32,
-}
-
-#[derive(Deserialize, Serialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
-struct RecoveredRecord {
-    #[serde(rename = "name", skip_serializing_if = "Option::is_none")]
-    type_name: Option<String>,
-    index: i32,
-    #[schemars(schema_with = "recovered_flag_schema")]
-    recovered: bool,
-}
-
-fn recovered_flag_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
-    schemars::json_schema!({"type": "boolean", "const": true})
-}
-
-#[derive(Deserialize, Serialize, JsonSchema)]
-#[serde(untagged)]
-enum StateUnitEntry {
-    Recovered(RecoveredRecord),
-    Active(StateUnit),
-}
-
-impl SideState {
-    #[must_use]
-    pub fn next_unit_index(&self) -> i32 {
-        self.units
-            .iter()
-            .map(|unit| unit.unit.index)
-            .chain(self.recovered_units.iter().map(|unit| unit.index))
-            .max()
-            .map_or(0, |index| index + 1)
-    }
-}
-
-impl Serialize for SideState {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let state = self.clone();
-        let mut units: Vec<_> = state
-            .units
-            .into_iter()
-            .map(StateUnitEntry::Active)
-            .chain(state.recovered_units.into_iter().map(|unit| {
-                StateUnitEntry::Recovered(RecoveredRecord {
-                    type_name: unit.type_name,
-                    index: unit.index,
-                    recovered: true,
-                })
-            }))
-            .collect();
-        units.sort_by_key(|unit| match unit {
-            StateUnitEntry::Active(unit) => unit.unit.index,
-            StateUnitEntry::Recovered(unit) => unit.index,
-        });
-        SideStateWire {
-            random_state: state.random_state,
-            reactor_core: state.reactor_core,
-            supply: state.supply,
-            unlocked_units: state.unlocked_units,
-            shop: state.shop,
-            blueprints: state.blueprints,
-            energy_tower_skills: state.energy_tower_skills,
-            tower_strengthen_levels: state.tower_strengthen_levels,
-            equipment: state.equipment,
-            battle_skills: state.battle_skills,
-            next_index: state.next_index,
-            officers: state.officers,
-            techs: state.techs,
-            units,
-            constructions: state.constructions,
-            contraptions: state.contraptions,
-        }
-        .serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for SideState {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        use serde::de::Error;
-        let wire = SideStateWire::deserialize(deserializer)?;
-        let mut units = Vec::new();
-        let mut recovered_units = Vec::new();
-        let mut seen = std::collections::BTreeSet::new();
-        for entry in wire.units {
-            let index = match &entry {
-                StateUnitEntry::Active(unit) => unit.unit.index,
-                StateUnitEntry::Recovered(unit) => unit.index,
-            };
-            if index < 0 || index == i32::MAX || !seen.insert(index) {
-                return Err(D::Error::custom(
-                    "state unit indices are unique nonnegative allocatable integers",
-                ));
-            }
-            match entry {
-                StateUnitEntry::Active(unit) => units.push(unit),
-                StateUnitEntry::Recovered(unit) if unit.recovered => {
-                    recovered_units.push(RecoveredUnit {
-                        type_name: unit.type_name,
-                        index: unit.index,
-                    });
-                }
-                StateUnitEntry::Recovered(_) => {
-                    return Err(D::Error::custom(
-                        "a recovered record states recovered: true",
-                    ));
-                }
-            }
-        }
-        units.sort_by_key(|unit| unit.unit.index);
-        recovered_units.sort_by_key(|unit| unit.index);
-        Ok(Self {
-            random_state: wire.random_state,
-            reactor_core: wire.reactor_core,
-            supply: wire.supply,
-            unlocked_units: wire.unlocked_units,
-            shop: wire.shop,
-            blueprints: wire.blueprints,
-            energy_tower_skills: wire.energy_tower_skills,
-            tower_strengthen_levels: wire.tower_strengthen_levels,
-            equipment: wire.equipment,
-            battle_skills: wire.battle_skills,
-            next_index: wire.next_index,
-            officers: wire.officers,
-            techs: wire.techs,
-            units,
-            constructions: wire.constructions,
-            contraptions: wire.contraptions,
-            recovered_units,
-        })
-    }
 }
 
 /// A round's allowances, as [`crate::transition::open_round`] sets them and
@@ -609,6 +418,7 @@ pub struct Release {
 #[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct NextIndex {
+    pub unit: i32,
     pub contraption: i32,
 }
 
@@ -1607,41 +1417,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn recovered_units_are_compact_state_entries_and_do_not_project() {
-        let state = super::SideState {
-            recovered_units: vec![
-                super::RecoveredUnit {
-                    index: 3,
-                    type_name: Some("marksman".into()),
-                },
-                super::RecoveredUnit {
-                    index: 1,
-                    type_name: None,
-                },
-            ],
-            ..Default::default()
-        };
-        let text = serde_yaml::to_string(&state).unwrap();
-        assert!(!text.contains("position:"));
-        assert!(!text.contains("unit: 4"));
-        let read: super::SideState = serde_yaml::from_str(&text).unwrap();
-        assert_eq!(read.next_unit_index(), 4);
-        assert_eq!(read.recovered_units[0].type_name, None);
-        assert_eq!(
-            read.recovered_units[1].type_name.as_deref(),
-            Some("marksman")
-        );
-        assert!(
-            crate::project::project_side(&read, "blue")
-                .unwrap()
-                .units
-                .is_empty()
-        );
-        let invalid = text.replace("recovered: true", "recovered: false");
-        assert!(serde_yaml::from_str::<super::SideState>(&invalid).is_err());
-    }
-
     /// A round's offers are its cards and then the decline with its refund,
     /// and a list that does not end in the decline is not a round's offers.
     #[test]
@@ -1650,9 +1425,9 @@ mod tests {
         let state = |offers: &str| {
             format!(
                 "random_state: [1, 2, 3, 4]\nreinforce_offers: {offers}\nblue: {{random_state: [1, 2, 3, 4], reactor_core: 0, supply: 0, unlocked_units: [], \
-                 tower_strengthen_levels: [], next_index: {{contraption: 0}}, units: []}}\n\
+                 tower_strengthen_levels: [], next_index: {{unit: 0, contraption: 0}}, units: []}}\n\
                  red: {{random_state: [1, 2, 3, 4], reactor_core: 0, supply: 0, unlocked_units: [], tower_strengthen_levels: [], \
-                 next_index: {{contraption: 0}}, units: []}}\n"
+                 next_index: {{unit: 0, contraption: 0}}, units: []}}\n"
             )
         };
         let read: State =

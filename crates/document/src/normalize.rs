@@ -1,9 +1,8 @@
 //! Reconstructs deployment decisions from their two endpoint positions.
 //!
 //! The sequence is a normal form of the deployment. History preserves
-//! tombstones for recovered formations preserve their identity in the state.
-//! History supplies only upgrades preceding Enhancement Module fitting on
-//! formations that remain, whose fitting time changes prices.
+//! recovered purchases absent from both endpoints, and upgrades preceding
+//! Enhancement Modules, whose fitting time changes prices.
 //! Every emitted decision is stepped and compared with the requested endpoint.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -16,15 +15,39 @@ use crate::r#match::{Action, Offers, SideState, SkillTarget, StateUnit};
 
 const ENHANCEMENT_MODULE: i32 = 13_030_004;
 
-/// Upgrade levels preceding Enhancement Module fitting on surviving formations.
+/// Facts endpoints cannot recover: purchased formations later recovered, their
+/// recovery state, and upgrade levels preceding Enhancement Module fitting.
 #[derive(Clone, Default)]
 pub(crate) struct DeploymentHistory {
     upgrades: BTreeMap<(i32, usize), i32>,
+    purchases: BTreeMap<i32, (i32, i32)>,
+    recovered: BTreeMap<i32, StateUnit>,
 }
 
 impl DeploymentHistory {
     /// Observe an action after it has been stepped in its historical order.
-    pub(crate) fn record(&mut self, position: &SideState, action: &Action) {
+    pub(crate) fn record(&mut self, before: &SideState, position: &SideState, action: &Action) {
+        if let Action::BuyUnit { unit, .. } = action {
+            let index = before.next_index.unit;
+            if let Some(bought) = position
+                .units
+                .iter()
+                .find(|entry| entry.unit.index == index)
+            {
+                self.purchases
+                    .insert(index, (*unit, bought.unit.level.unwrap_or(1)));
+            }
+        }
+        if let Action::ReleaseCommanderSkill {
+            id,
+            target: SkillTarget::Unit(index),
+            ..
+        } = action
+            && RECOVERY_SKILLS.contains(id)
+            && let Some(recovered) = before.units.iter().find(|entry| entry.unit.index == *index)
+        {
+            self.recovered.insert(*index, recovered.clone());
+        }
         if let Action::UseEquipment {
             equipment: ENHANCEMENT_MODULE,
             index,
@@ -40,8 +63,8 @@ impl DeploymentHistory {
 }
 
 /// Formats a match, rebuilding each complete action segment from its endpoints.
-/// Historical decisions supply the closing position and upgrades preceding
-/// Enhancement Modules. Recovery identity comes from the state tombstones.
+/// Historical decisions supply the closing position, actual recovered
+/// purchases and upgrades preceding Enhancement Modules.
 ///
 /// # Errors
 /// Returns a malformed match, a historical decision that cannot be evaluated,
@@ -84,7 +107,7 @@ pub fn match_yaml(bytes: &[u8]) -> Result<String, String> {
                         if red { "red" } else { "blue" }
                     )
                 })?;
-                dependencies.record(&next, action);
+                dependencies.record(&closed, &next, action);
                 closed = next;
             }
             let conceded = actions.last() == Some(&Action::Concede);
@@ -126,7 +149,7 @@ pub fn match_yaml(bytes: &[u8]) -> Result<String, String> {
 }
 
 /// Reconstructs the standard deployment sequence from its endpoints and the
-/// upgrades preceding Enhancement Module fitting on surviving formations.
+/// recorded purchases later recovered and upgrades preceding Enhancement Modules.
 ///
 /// Choices that leave the same position use offer order, formation indices,
 /// technology IDs and panel indices as tie breakers. A purchase derives its
@@ -206,10 +229,6 @@ pub(crate) fn deployment(
         {
             continue;
         }
-        builder
-            .history
-            .upgrades
-            .retain(|(index, _), _| ended.units.iter().any(|unit| unit.unit.index == *index));
         for levels in builder.purchase_plans()? {
             let mut candidate = builder.clone();
             candidate.purchase_levels = levels;
@@ -260,7 +279,7 @@ impl Builder<'_> {
             position,
             rotated,
         } = &action
-            && *index == self.position.next_unit_index() - 1
+            && *index == self.position.next_index.unit - 1
             && let Some(Action::BuyUnit {
                 position: landing,
                 rotated: rotation,
@@ -319,7 +338,7 @@ impl Builder<'_> {
                 }
                 if self
                     .purchase_levels
-                    .get(&self.position.next_unit_index())
+                    .get(&self.position.next_index.unit)
                     .is_some_and(|level| *level > self.purse().shop_level(*unit))
                     && self.can_activate(4)
                 {
@@ -430,17 +449,21 @@ impl Builder<'_> {
             return unit_id_from_type(&wanted.unit.type_name)
                 .ok_or("unknown purchased unit".into());
         }
-        let recovered = self
-            .target
-            .recovered_units
-            .iter()
-            .find(|unit| unit.index == index)
-            .ok_or_else(|| format!("unit {index} has no recovered state entry"))?;
-        recovered
-            .type_name
-            .as_deref()
-            .and_then(unit_id_from_type)
-            .ok_or_else(|| format!("new recovered unit {index} has no known type"))
+        let recovered =
+            self.history.recovered.get(&index).ok_or_else(|| {
+                format!("allocator gap {index} has no recorded recovered formation")
+            })?;
+        let (unit, _) = self
+            .history
+            .purchases
+            .get(&index)
+            .ok_or_else(|| format!("allocator gap {index} has no recorded purchase"))?;
+        if unit_id_from_type(&recovered.unit.type_name) != Some(*unit) {
+            return Err(format!(
+                "recovered formation {index} differs from its recorded purchase"
+            ));
+        }
+        Ok(*unit)
     }
 
     fn purchase_plans(&self) -> Result<Vec<BTreeMap<i32, i32>>, String> {
@@ -452,7 +475,7 @@ impl Builder<'_> {
             .map(|row| row.shop_unit_level)
             .sum();
         let mut plans = vec![(BTreeMap::new(), self.purse().raised)];
-        for index in self.position.next_unit_index()..self.target.next_unit_index() {
+        for index in self.position.next_index.unit..self.target.next_index.unit {
             let wanted = self
                 .target
                 .units
@@ -464,6 +487,15 @@ impl Builder<'_> {
             let mut next = Vec::new();
             for (plan, previous) in plans {
                 for level in (base + previous..=(base + raised).min(maximum)).rev() {
+                    if wanted.is_none()
+                        && self
+                            .history
+                            .purchases
+                            .get(&index)
+                            .is_some_and(|(_, recorded_level)| *recorded_level != level)
+                    {
+                        continue;
+                    }
                     let mut plan = plan.clone();
                     plan.insert(index, level);
                     next.push((plan, level - base));
@@ -476,7 +508,6 @@ impl Builder<'_> {
 
     fn finish(self) -> Result<Vec<Action>, String> {
         let recoveries = self.recoveries();
-        let last = self.target.next_unit_index();
         let mut candidates = vec![self];
         for recovery in recoveries {
             let mut next = Vec::new();
@@ -510,47 +541,12 @@ impl Builder<'_> {
             candidates = next;
         }
         let mut errors = Vec::new();
-        let mut moved = Vec::new();
         for mut candidate in candidates {
-            match candidate.moves() {
-                Ok(()) => moved.push(candidate),
-                Err(error) => errors.push(error),
-            }
-        }
-        let first = moved.first().map_or(last, |c| c.position.next_unit_index());
-        for _ in first..last {
-            let mut next = Vec::new();
-            for mut candidate in moved {
-                match candidate.buy_next() {
-                    Ok(None) => next.push(candidate),
-                    Ok(Some(recovery)) => {
-                        let SkillTarget::Unit(index) = (match &recovery {
-                            Action::ReleaseCommanderSkill { target, .. } => target,
-                            _ => unreachable!(),
-                        }) else {
-                            unreachable!()
-                        };
-                        let maximum = crate::experience::MAX_LEVEL
-                            - candidate.unit(*index)?.unit.level.unwrap_or(1);
-                        for upgrades in 0..=maximum {
-                            for module in [true, false] {
-                                if upgrades == 0 && module {
-                                    continue;
-                                }
-                                let mut recovered = candidate.clone();
-                                if recovered.recover(&recovery, module, upgrades).is_ok() {
-                                    next.push(recovered);
-                                }
-                            }
-                        }
-                    }
-                    Err(error) => errors.push(error),
-                }
-            }
-            moved = next;
-        }
-        for mut candidate in moved {
             let completed = (|| {
+                candidate.moves()?;
+                while candidate.position.next_index.unit < candidate.target.next_index.unit {
+                    candidate.buy_next()?;
+                }
                 for tech in candidate.research.clone() {
                     candidate.research(tech)?;
                 }
@@ -626,7 +622,7 @@ impl Builder<'_> {
             let target = slot.release.as_ref()?.target.clone();
             // A purchase recovered in the same round is filled at its allocator
             // position, after the earlier purchases have handed out their IDs.
-            if matches!(target, SkillTarget::Unit(index) if index >= self.position.next_unit_index()) {
+            if matches!(target, SkillTarget::Unit(index) if index >= self.position.next_index.unit) {
                 return None;
             }
             Some(Action::ReleaseCommanderSkill { index: slot.index, id: slot.id, target })
@@ -875,8 +871,8 @@ impl Builder<'_> {
         Ok(())
     }
 
-    fn buy_next(&mut self) -> Result<Option<Action>, String> {
-        let index = self.position.next_unit_index();
+    fn buy_next(&mut self) -> Result<(), String> {
+        let index = self.position.next_index.unit;
         let wanted = self
             .target
             .units
@@ -913,13 +909,36 @@ impl Builder<'_> {
                 })
                 .cloned()
                 .ok_or_else(|| format!("allocator gap {index} has no Field Recovery release"))?;
-            return Ok(Some(Action::ReleaseCommanderSkill {
-                index: recovery.index,
-                id: recovery.id,
-                target: SkillTarget::Unit(index),
-            }));
+            let recorded = self
+                .history
+                .recovered
+                .get(&index)
+                .cloned()
+                .ok_or("missing recorded recovery")?;
+            for equipment in &recorded.unit.equipment {
+                self.push(Action::UseEquipment {
+                    equipment: *equipment,
+                    index,
+                })?;
+            }
+            let upgrades =
+                recorded.unit.level.unwrap_or(1) - self.unit(index)?.unit.level.unwrap_or(1);
+            if upgrades < 0 {
+                return Err(format!(
+                    "recovered formation {index} is below its purchase level"
+                ));
+            }
+            self.recover(
+                &Action::ReleaseCommanderSkill {
+                    index: recovery.index,
+                    id: recovery.id,
+                    target: SkillTarget::Unit(index),
+                },
+                false,
+                upgrades,
+            )?;
         }
-        Ok(None)
+        Ok(())
     }
 
     fn remaining(mut self) -> Result<Vec<Action>, String> {
@@ -1156,7 +1175,10 @@ mod tests {
                 unlocks_remaining: 1,
                 contraptions_remaining: 8,
             },
-            next_index: NextIndex { contraption: 0 },
+            next_index: NextIndex {
+                unit: 2,
+                contraption: 0,
+            },
             units: [0, 1]
                 .into_iter()
                 .map(|index| StateUnit {
@@ -1233,7 +1255,7 @@ mod tests {
         let mut position = opened.clone();
         for action in history {
             let next = close(&position, std::slice::from_ref(action));
-            dependencies.record(&next, action);
+            dependencies.record(&position, &next, action);
             position = next;
         }
         dependencies
@@ -1460,7 +1482,7 @@ mod tests {
     }
 
     #[test]
-    fn a_recovered_purchase_uses_its_final_state_type_without_history() {
+    fn a_recovered_purchase_keeps_its_recorded_type_and_upgrade() {
         let mut opened = side();
         opened.battle_skills.push(slot(900_001));
         let history = [
@@ -1479,7 +1501,17 @@ mod tests {
             &recorded_dependencies(&opened, &history),
         );
         assert!(matches!(actions[0], Action::BuyUnit { unit: 15, .. }));
-        assert_eq!(normalized(&opened, &closed), actions);
+        assert!(actions.contains(&Action::UpgradeUnit { index: 2 }));
+        let error = deployment(
+            Economy::embedded().unwrap(),
+            &opened,
+            &closed,
+            None,
+            false,
+            &DeploymentHistory::default(),
+        )
+        .unwrap_err();
+        assert!(error.contains("no recorded recovered formation"));
     }
 
     #[test]
