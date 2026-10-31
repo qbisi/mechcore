@@ -49,7 +49,7 @@ pub fn deployment(
         let mut purchased = std::collections::BTreeSet::new();
         for action in actions {
             if matches!(action, Action::BuyUnit { .. }) {
-                purchased.insert(position.next_unit_index());
+                purchased.insert(position.next_index.unit);
             }
             let next = crate::transition::deployed(
                 economy,
@@ -202,7 +202,7 @@ pub fn assign_sources(side: &mut Side, allocator: i32, round: i32) -> Result<(),
 }
 
 fn with_sources(mut side: Side, opening: &SideState, round: i32) -> Result<Side, String> {
-    assign_sources(&mut side, opening.next_unit_index(), round)?;
+    assign_sources(&mut side, opening.next_index.unit, round)?;
     for unit in &mut side.units {
         let recorded = if unit.source == UnitSource::Legacy {
             opening
@@ -425,7 +425,6 @@ mod tests {
         let opening = SideState {
             units: units
                 .iter()
-                .take(3)
                 .map(|unit| crate::r#match::StateUnit {
                     unit: unit.clone(),
                     value: Some(100),
@@ -433,6 +432,7 @@ mod tests {
                 })
                 .collect(),
             next_index: crate::r#match::NextIndex {
+                unit: 6,
                 ..Default::default()
             },
             ..Default::default()
@@ -530,6 +530,7 @@ mod tests {
                 unlocked_units: vec![30],
                 officers: vec![20021],
                 next_index: crate::r#match::NextIndex {
+                    unit: 1,
                     ..Default::default()
                 },
                 shop: crate::r#match::Allowances {

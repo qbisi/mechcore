@@ -67,7 +67,7 @@ group each action touches.
 
 | Group | Fields |
 | --- | --- |
-| Settled | `next_index.contraption`, `unlocked_units`, `techs`, `officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills` less each slot's `standing`, `equipment` |
+| Settled | `next_index.unit`, `next_index.contraption`, `unlocked_units`, `techs`, `officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills` less each slot's `standing`, `equipment` |
 | Supply | `supply` |
 | Board | `units`, `constructions`, `contraptions`, `battle_skills.standing` |
 
@@ -137,7 +137,7 @@ the segment that holds it.
 A taken item grants the thing it names, and which thing that is decides
 the effect: an officer joins `officers`, a commander skill joins
 `battle_skills`, an equipment joins `equipment`, and a unit card hands out
-squads. Squads append indexed entries to `units` and their unit type joins
+squads. Squads advance `next_index.unit` and their unit type joins
 `unlocked_units`. The decline writes none of those.
 
 A taken item costs its price, less what an officer taken this way grants back at
@@ -163,7 +163,7 @@ position in the side's opening offers, which a match's header states.
 
 It is round zero's only decision, and no other round holds one.
 
-The team hands out its force as round 1 opens, allocating a unit index once
+The team hands out its force as round 1 opens, advancing `next_index.unit` once
 per squad and unlocking each unit type it is made of, and the specialist joins
 `officers`. The deal draws a team only from teams of units and a specialist only
 from specialist officers, so a decision pairing anything else is refused. An
@@ -176,7 +176,7 @@ here.
 - {type: buy_unit, name: void_eye, position: {x: 0, y: -160}}
 ```
 
-Buys one formation of unit type `name` at the next derived unit index,
+Buys one formation of unit type `name`, advances `next_index.unit` by one,
 and places it under that index. Omitting `position` uses the default landing
 selected by [the board](../../rules/landing.md), with `rotated: false`.
 Standard actions couple a purchase with its immediately following move into
@@ -507,7 +507,7 @@ convention.
 
 `BuyUnit` does not name the unit it creates. Its recorded index is always unset,
 so the index comes from the allocator, and applying a round has to hand out
-the derived unit allocation exactly as the game does. That is one of the two things the
+`next_index.unit` exactly as the game does. That is one of the two things the
 allocator is in a state for.
 
 `ReleaseCommanderSkill` records only the panel slot. The conversion reads the
@@ -525,11 +525,11 @@ route. The sequence orders the necessary moves and swap-space waypoints as
 
 Replay conversion evaluates the effective native decisions to obtain the
 position deployment reached. The opening and closing states reconstruct the
-action sequence, including recovered-unit tombstones. History supplements only
-upgrades preceding Enhancement Module fitting on formations that remain.
-Replay conversion creates recovery records from actual GRBR operations;
-`format` derives them by applying the match's existing actions. Reading a match
-does not rewrite its actions. Intermediate movement
+action sequence, supplemented by facts that those endpoints cannot preserve:
+actual purchases subsequently recovered, their state at recovery, and upgrades
+preceding Enhancement Module fitting. Replay conversion reads those facts from
+the native GRBR operations; `format` reads them from the match's existing
+actions. Reading a match does not rewrite its actions. Intermediate movement
 routes and purchase placements do not determine the normal form.
 
 The standard phases are:
@@ -546,9 +546,9 @@ The standard phases are:
    are also emitted where needed.
 5. Purchase and move formations, in allocator order. Couple each purchase with
    its immediate move and derive its level from the shop. A formation bought
-   and recovered in this round is reconstructed from its final-state recovery
-   record and the endpoint economy and skill consumption. Its type must be
-   known; no substitute unit is invented. No recovery action history is needed.
+   and recovered in this round keeps its actual recorded type, purchase level,
+   equipment and recovery level. Missing purchase or recovery history is
+   refused; no substitute unit is invented to fill an allocator gap.
 6. Activate the remaining unit technologies, after their formations exist.
 7. Fit equipment, preserving each formation's fitting order.
 8. Apply Intensive Training and upgrade formations.
@@ -585,7 +585,7 @@ purchase depends on its unit unlock, Elite Recruitment for its level and Mass
 Recruitment when no purchase allowance remains. Insufficient supply refuses
 the operation; neither normalization nor encoding activates Rapid Resupply
 on demand. Dependencies use only operations required by the closing state and
-state recovery records. Skill-granting blueprints preserve panel allocation order, so an earlier slot's blueprint can itself
+recorded recovery facts. Skill-granting blueprints preserve panel allocation order, so an earlier slot's blueprint can itself
 be a dependency.
 
 The match sequence itself meets native operation prerequisites. GRBR encoding

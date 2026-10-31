@@ -519,7 +519,7 @@ hold across every seam of a well-formed match.
 
 | Invariant |
 | --- |
-| the maximum unit index, including recovered records, rises or holds |
+| `next_index.unit` rises or holds |
 | `next_index.contraption` rises or holds |
 | researched technologies are kept |
 | researched technologies stay inside that side's `tech_loadout` |

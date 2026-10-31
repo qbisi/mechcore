@@ -146,7 +146,7 @@ fn delivered_before(economy: &Economy, side: &SideState, round: i32) -> Result<i
             squads += 1;
         }
     }
-    Ok(side.next_unit_index() - squads)
+    Ok(side.next_index.unit - squads)
 }
 
 impl Config {

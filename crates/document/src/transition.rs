@@ -258,7 +258,7 @@ pub fn step_placing(
             }
             // The position is where the formation's moves this round end, and
             // one that ends on a flank arrived there from the main half.
-            let created = next.next_unit_index() - 1;
+            let created = next.next_index.unit - 1;
             let formation = &mut formation_mut(&mut next, created)?.unit;
             formation.rotated = Some(*rotated).filter(|rotated| *rotated);
             formation.travelling = Region::of(formation.position).is_flank().then_some(true);
@@ -604,11 +604,6 @@ fn recover_formation(economy: &Economy, next: &mut SideState, index: i32) -> Res
         .position(|entry| entry.unit.index == index)
         .ok_or(Unsettled::Missing("unit"))?;
     let entry = next.units.remove(position);
-    next.recovered_units.push(crate::r#match::RecoveredUnit {
-        type_name: Some(entry.unit.type_name.clone()),
-        index,
-    });
-    next.recovered_units.sort_by_key(|unit| unit.index);
     let unit = unit_id_from_type(&entry.unit.type_name).ok_or(Unsettled::Unpriced("unit"))?;
     let purse = Purse::new(economy, &next.officers);
     let upgrade = purse.upgrade(unit).ok_or(Unsettled::Unpriced("upgrade"))?;
@@ -660,8 +655,8 @@ fn place(
     let Some(position) = placement(next, type_name) else {
         return Err(Unsettled::GrantedPosition);
     };
-    let index = next.next_unit_index();
-
+    let index = next.next_index.unit;
+    next.next_index.unit += 1;
     next.units.push(StateUnit {
         unit: crate::layout::UnitPlacement {
             record_position: None,
@@ -822,13 +817,7 @@ pub fn check_place(state: &SideState, action: &Action) -> Result<(), Unsettled> 
             ..
         } => {
             let (type_name, _) = unit_type_from_id(*unit).ok_or(Unsettled::Unpriced("unit"))?;
-            crate::landing::unit_fits(
-                state,
-                state.next_unit_index(),
-                type_name,
-                *position,
-                *rotated,
-            )
+            crate::landing::unit_fits(state, state.next_index.unit, type_name, *position, *rotated)
         }
         Action::MoveUnit {
             index,
@@ -909,7 +898,7 @@ pub fn open_round(
         }
         hand_out_round(&mut next, row, stream.as_mut())?;
         if let Some(opening) = row.opening_unit {
-            let index = next.next_unit_index();
+            let index = next.next_index.unit;
             hand_out(
                 economy,
                 &mut next,
@@ -1901,6 +1890,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let state = SideState {
             officers: vec![20_029], // Marksman Specialist delivers in round 2.
             next_index: crate::r#match::NextIndex {
+                unit: 1,
                 ..Default::default()
             },
             ..side_holding(&[(0, Position { x: 0, y: -160 })])
@@ -2005,7 +1995,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let opened = super::predict(economy, 0, &before, &[choice], true, None, None).unwrap();
         assert_eq!(opened.reactor_core, 4500 - 300 - 600);
         assert_eq!(opened.unlocked_units, [10, 24]);
-        assert_eq!(opened.next_unit_index(), 5);
+        assert_eq!(opened.next_index.unit, 5);
         assert_eq!(opened.officers, [10002]);
         let team: Vec<_> = opened
             .units
@@ -2330,7 +2320,10 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
     fn releasing_a_contraption_advances_its_allocator() {
         let economy = Economy::embedded().unwrap();
         let state = SideState {
-            next_index: crate::r#match::NextIndex { contraption: 3 },
+            next_index: crate::r#match::NextIndex {
+                unit: 7,
+                contraption: 3,
+            },
             ..solvent()
         };
         let released = [
@@ -2367,12 +2360,10 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 unlocks_remaining: 1,
                 contraptions_remaining: 8,
             },
-            recovered_units: (0..7)
-                .map(|index| crate::r#match::RecoveredUnit {
-                    index,
-                    type_name: None,
-                })
-                .collect(),
+            next_index: crate::r#match::NextIndex {
+                unit: 7,
+                contraption: 0,
+            },
             ..SideState::default()
         };
         let bought = Action::BuyUnit {
@@ -2381,7 +2372,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             rotated: false,
         };
         let next = step(economy, &state, &bought).unwrap();
-        assert_eq!(next.next_unit_index(), 8);
+        assert_eq!(next.next_index.unit, 8);
         assert_eq!(next.shop.buys_remaining, 1);
         assert_eq!(next.units.len(), 1);
         let placed = &next.units[0];
@@ -2435,12 +2426,10 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let economy = Economy::embedded().unwrap();
         let state = SideState {
             supply: 1000,
-            recovered_units: (0..4)
-                .map(|index| crate::r#match::RecoveredUnit {
-                    index,
-                    type_name: None,
-                })
-                .collect(),
+            next_index: crate::r#match::NextIndex {
+                unit: 4,
+                contraption: 0,
+            },
             ..SideState::default()
         };
         let card = 102_212;
@@ -2461,7 +2450,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             placed.pop()
         })
         .unwrap();
-        assert_eq!(next.next_unit_index(), 4 + reinforcement.squads);
+        assert_eq!(next.next_index.unit, 4 + reinforcement.squads);
         assert_eq!(next.unlocked_units, vec![reinforcement.unit]);
         assert_eq!(next.units.len(), 2);
         assert_eq!(next.units[0].unit.index, 4);
@@ -2487,7 +2476,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let next = step(economy, &state, &chosen).unwrap();
         assert_eq!(next.reactor_core, 100);
         assert!(next.units.is_empty());
-        assert_eq!(next.next_unit_index(), 0);
+        assert_eq!(next.next_index.unit, 0);
         assert_eq!(next.officers, vec![20005]);
     }
 
