@@ -148,10 +148,22 @@ pub fn step_placing(
         // Declining is one of this decision's two answers, and the one that
         // pays: the item it takes is a supply grant of its own, whose size
         // the round decides.
-        Action::ChooseReinforceItem { id: None, .. } => {
-            next.supply += declined.ok_or(Unsettled::Unpriced("declined reinforcement"))?;
+        Action::ChooseReinforceItem {
+            id: crate::r#match::ReinforceChoice::Refund(amount),
+            ..
+        } => {
+            let offered = declined.ok_or(Unsettled::Unpriced("declined reinforcement"))?;
+            if *amount != offered {
+                return Err(Unsettled::Refused(
+                    "refund amount differs from this round's offer",
+                ));
+            }
+            next.supply += offered;
         }
-        Action::ChooseReinforceItem { id: Some(card), .. } => {
+        Action::ChooseReinforceItem {
+            id: crate::r#match::ReinforceChoice::Card(card),
+            ..
+        } => {
             let price = economy.card(*card).ok_or(Unsettled::Unpriced("card"))?;
             next.supply -= price;
             // An officer card joins the list whether or not this build gives
@@ -1642,11 +1654,11 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let taken = [
             Action::ChooseReinforceItem {
                 index: 0,
-                id: Some(20022),
+                id: crate::r#match::ReinforceChoice::Card(20022),
             },
             Action::ChooseReinforceItem {
                 index: 1,
-                id: Some(20022),
+                id: crate::r#match::ReinforceChoice::Card(20022),
             },
         ];
         let next = fold(economy, &state, &taken).unwrap();
@@ -1659,14 +1671,25 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
     fn a_decline_pays_the_round_figure() {
         let economy = Economy::embedded().unwrap();
         let state = SideState::default();
-        let declined = Action::ChooseReinforceItem { index: 4, id: None };
+        let declined = Action::ChooseReinforceItem {
+            index: 4,
+            id: crate::r#match::ReinforceChoice::Refund(50),
+        };
         let ordinary = crate::reinforcement::decline_supply(economy, 1, 3).unwrap();
         let unit = crate::reinforcement::decline_supply(economy, 1, 8).unwrap();
         assert_eq!((ordinary, unit), (50, 400));
         for figure in [ordinary, unit] {
-            let next = super::step(economy, &state, &declined, Some(figure)).unwrap();
+            let choice = Action::ChooseReinforceItem {
+                index: 4,
+                id: crate::r#match::ReinforceChoice::Refund(figure),
+            };
+            let next = super::step(economy, &state, &choice, Some(figure)).unwrap();
             assert_eq!(next.supply, state.supply + figure);
         }
+        assert!(matches!(
+            super::step(economy, &state, &declined, Some(unit)),
+            Err(Unsettled::Refused(_))
+        ));
         assert_eq!(
             super::step(economy, &state, &declined, None),
             Err(Unsettled::Unpriced("declined reinforcement"))
@@ -1676,13 +1699,16 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
     /// Declining is the same decision, and it hands out nothing.
     ///
     /// The two answers share one action, so the only thing separating them is
-    /// the absent `id`. A decline that fell through to the taken branch would
+    /// the refund rather than a card ID. A decline falling through would
     /// look up a card that does not exist.
     #[test]
     fn a_declined_offer_hands_out_nothing() {
         let economy = Economy::embedded().unwrap();
         let state = SideState::default();
-        let declined = [Action::ChooseReinforceItem { index: 4, id: None }];
+        let declined = [Action::ChooseReinforceItem {
+            index: 4,
+            id: crate::r#match::ReinforceChoice::Refund(50),
+        }];
         let next = fold(economy, &state, &declined).unwrap();
         // A decline pays supply back, which is all it hands out.
         assert_eq!(
@@ -1700,7 +1726,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let economy = Economy::embedded().unwrap();
         let taken = [Action::ChooseReinforceItem {
             index: 0,
-            id: Some(13_030_001),
+            id: crate::r#match::ReinforceChoice::Card(13_030_001),
         }];
         let next = fold(economy, &solvent(), &taken).unwrap();
         assert_eq!(
@@ -1723,7 +1749,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let taken = [
             Action::ChooseReinforceItem {
                 index: 0,
-                id: Some(13_030_001),
+                id: crate::r#match::ReinforceChoice::Card(13_030_001),
             },
             Action::UseEquipment {
                 equipment: 13_030_001,
@@ -2055,7 +2081,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let taken = [
             Action::ChooseReinforceItem {
                 index: 0,
-                id: Some(10_524),
+                id: crate::r#match::ReinforceChoice::Card(10_524),
             },
             Action::UseEquipment {
                 equipment: 13_030_521,
@@ -2410,7 +2436,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let reinforcement = economy.unit_reinforcement(card).expect("a squad card");
         let taken = Action::ChooseReinforceItem {
             index: 0,
-            id: Some(card),
+            id: crate::r#match::ReinforceChoice::Card(card),
         };
         // Where a squad lands is the board's to decide, so the plain step
         // stops at the position and names why.

@@ -1308,12 +1308,18 @@ fn reinforcement_choice(
             index: offers
                 .map(Offers::decline_index)
                 .ok_or("a decline in a round that deals no offers")?,
-            id: None,
+            id: crate::r#match::ReinforceChoice::Refund(
+                offers
+                    .ok_or("a decline in a round that deals no offers")?
+                    .refund,
+            ),
         })
     } else {
         Ok(Action::ChooseReinforceItem {
             index,
-            id: Some(action.id.ok_or("PAD_ChooseReinforceItem has no ID")?),
+            id: crate::r#match::ReinforceChoice::Card(
+                action.id.ok_or("PAD_ChooseReinforceItem has no ID")?,
+            ),
         })
     }
 }
@@ -1680,7 +1686,7 @@ mod tests {
                 panic!("not a card choice")
             };
             assert_eq!(*index, expected);
-            assert_eq!(*chosen, (id != 0).then_some(id));
+            assert_eq!(chosen.card(), (id != 0).then_some(id));
         }
         let xml = snapshot_round(
             true,

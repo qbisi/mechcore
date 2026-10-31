@@ -105,7 +105,8 @@ fn open_the_match(path: &str) {
 fn decline(path: &str, side: &str) {
     let view = run(&["match", "show", path, "--side", side]).ok();
     let last = state(&view)["reinforce_offers"].as_array().unwrap().len() - 1;
-    let decision = format!("{{type: choose_reinforce_item, index: {last}, name: decline_offer}}");
+    let name = state(&view)["reinforce_offers"][last].as_str().unwrap();
+    let decision = format!("{{type: choose_reinforce_item, index: {last}, name: {name}}}");
     run(&["match", "act", path, "--side", side, &decision]).ok();
 }
 
@@ -1274,10 +1275,16 @@ fn a_round_takes_one_reinforcement_answer() {
         run(&["match", "commit", &path, "--side", side]).ok();
     }
 
+    let view = run(&["match", "show", &path, "--side", "blue"]).ok();
+    let last = state(&view)["reinforce_offers"].as_array().unwrap().len() - 1;
+    let forged = format!("{{type: choose_reinforce_item, index: {last}, name: refund_999999}}");
+    let reason = run(&["match", "act", &path, "--side", "blue", &forged]).refused();
+    assert!(reason.contains("not what this round offers"), "{reason}");
     decline(&path, "blue");
     let view = run(&["match", "show", &path, "--side", "blue"]).ok();
     let last = state(&view)["reinforce_offers"].as_array().unwrap().len() - 1;
-    let again = format!("{{type: choose_reinforce_item, index: {last}, name: decline_offer}}");
+    let name = state(&view)["reinforce_offers"][last].as_str().unwrap();
+    let again = format!("{{type: choose_reinforce_item, index: {last}, name: {name}}}");
     let refused = run(&["match", "act", &path, "--side", "blue", &again]).refused();
     assert!(refused.contains("one answer"), "{refused}");
 }
@@ -1415,7 +1422,7 @@ fn a_match_whose_deal_does_not_verify_is_not_written_as_a_replay() {
     let round = "kind: action\nround: 2\nblue:\n";
     let at = document.find(round).unwrap() + round.len();
     let answer = &document[at..=at + document[at..].find('\n').unwrap()];
-    assert!(answer.contains("decline_offer"), "{answer}");
+    assert!(answer.contains("refund_"), "{answer}");
     fs::write(
         &path,
         format!("{}{answer}{}", &document[..at], &document[at..]),

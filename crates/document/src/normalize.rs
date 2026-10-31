@@ -180,7 +180,10 @@ pub(crate) fn deployment(
                 .map(|(index, id)| {
                     Some(Action::ChooseReinforceItem {
                         index: i32::try_from(index).unwrap_or(i32::MAX),
-                        id,
+                        id: id.map_or(
+                            crate::r#match::ReinforceChoice::Refund(offers.refund),
+                            crate::r#match::ReinforceChoice::Card,
+                        ),
                     })
                 })
                 .collect()
@@ -1644,7 +1647,10 @@ mod tests {
             dealt: vec![],
             refund: 50,
         };
-        let choice = Action::ChooseReinforceItem { index: 0, id: None };
+        let choice = Action::ChooseReinforceItem {
+            index: 0,
+            id: crate::r#match::ReinforceChoice::Refund(50),
+        };
         let loan = Action::ActiveEnergyTowerSkill { skill: 1 };
         let purchase = bought(1, -100, -160);
         let closed = crate::transition::deployed(

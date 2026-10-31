@@ -79,8 +79,7 @@ def reinforce(view, draw):
     order = list(range(len(offers) - 1))
     draw.shuffle(order)
     for index in order + [len(offers) - 1]:
-        card = offers[index]
-        name = card if isinstance(card, str) else card["name"]
+        name = offers[index]
         answer = act({"type": "choose_reinforce_item", "index": index, "name": name})
         if not failed(answer):
             return answer

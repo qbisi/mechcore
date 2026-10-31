@@ -1126,8 +1126,12 @@ impl Game {
                 // at its own position.
                 let at = usize::try_from(*offer).ok();
                 let taken = match id {
-                    None => *offer == offers.decline_index(),
-                    Some(card) => at.and_then(|at| offers.dealt.get(at)) == Some(card),
+                    mechcore_document::r#match::ReinforceChoice::Refund(amount) => {
+                        *offer == offers.decline_index() && *amount == offers.refund
+                    }
+                    mechcore_document::r#match::ReinforceChoice::Card(card) => {
+                        at.and_then(|at| offers.dealt.get(at)) == Some(card)
+                    }
                 };
                 if taken {
                     return Ok(());

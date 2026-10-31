@@ -119,11 +119,11 @@ choices, so both are this one action.
 
 ```yaml
 - {type: choose_reinforce_item, index: 3, name: photon_coating}
-- {type: choose_reinforce_item, index: 4, name: decline_offer}
+- {type: choose_reinforce_item, index: 4, name: refund_50}
 ```
 
 `index` is the position of what is taken in the round's `reinforce_offers`, and
-`name` names it: a card dealt, or `decline_offer`, the decline the round always
+`name` names it: a card dealt, or `refund_<amount>`, the decline the round always
 offers after its cards. The two have to agree, so a decision that names a card
 at another card's position, or the decline anywhere but after the cards, is
 refused. A side answers once a round, as its first decision, so a second answer is
@@ -142,9 +142,11 @@ squads. Squads advance `next_index.unit` and their unit type joins
 
 A taken item costs its price, less what an officer taken this way grants back at
 once. The decline is the one reinforcement choice that pays the side instead:
-declining is an item of its own rather than the absence of one. It pays the
-`refund` the round's `decline_offer` states: 50 in an ordinary round, and in a
-unit round the figure the match's unit reinforcement schedule states for that
+declining is an item of its own rather than the absence of one. The action's
+refund amount must equal the offer at its index; it cannot request extra supply.
+It pays the
+amount named by the round's `refund_<amount>` offer: 50 in an ordinary round,
+and in a unit round the figure the match's unit reinforcement schedule states for that
 round, which grows through the match.
 [The reinforcement rules](../../rules/reinforcements.md#declining) give both.
 
