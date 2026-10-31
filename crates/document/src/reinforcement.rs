@@ -1154,7 +1154,6 @@ mod tests {
             game_build: crate::game_build().into(),
             map_id: 1011,
             seed: 12345,
-            deploy_time: None,
             blue: side(
                 opening.deal.blue.clone(),
                 opening.constructions.blue.clone(),

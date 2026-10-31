@@ -27,14 +27,6 @@ pub struct Match {
     pub game_build: String,
     pub map_id: i32,
     pub seed: i32,
-    /// How long a side has to commit a round, in seconds.
-    ///
-    /// A converted replay states the game's own `DeployTime`, which its
-    /// rounds were deployed under, and a match replay writes it back. What
-    /// running out of it does is this platform's own rule, which
-    /// `docs/spec/mechcore/cli.md` states. A document that states none deploys
-    /// under [`DEFAULT_DEPLOY_TIME`].
-    pub deploy_time: Option<i32>,
     pub blue: MatchSide,
     pub red: MatchSide,
     /// The contiguous deployment rounds, starting at the first captured one.
@@ -436,7 +428,7 @@ pub struct TurnActions {
     pub red: Vec<Action>,
 }
 
-/// How long a side has to commit a round when its document states nothing.
+/// The default runtime deployment limit and standard native replay clock.
 ///
 /// It is the game's own `DeployTime`, which every tracked replay records as
 /// 100 seconds. What the game does when it runs out is not established, and
@@ -813,8 +805,6 @@ struct Header<'a> {
     build: &'a str,
     map_id: i32,
     seed: i32,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    deploy_time: Option<i32>,
     blue: HeaderSide<'a>,
     red: HeaderSide<'a>,
 }
@@ -918,8 +908,6 @@ pub mod schema {
         pub build: String,
         pub map_id: i32,
         pub seed: i32,
-        /// How long a side has to commit a round, which only a match states.
-        pub deploy_time: Option<i32>,
         pub blue: Side,
         pub red: Side,
     }
@@ -1037,7 +1025,6 @@ pub fn read(bytes: &[u8]) -> Result<Option<Match>, String> {
         game_build: stated.build,
         map_id: stated.map_id,
         seed: stated.seed,
-        deploy_time: stated.deploy_time,
         blue: side("blue", stated.blue)?,
         red: side("red", stated.red)?,
         turns: stated.turns,
@@ -1050,7 +1037,6 @@ fn segments_of(r#match: &Match) -> Vec<Segment<'_>> {
         build: &r#match.game_build,
         map_id: r#match.map_id,
         seed: r#match.seed,
-        deploy_time: r#match.deploy_time,
         blue: HeaderSide::of(&r#match.blue),
         red: HeaderSide::of(&r#match.red),
     })];
@@ -1705,7 +1691,6 @@ mod tests {
             game_build: crate::game_build().to_owned(),
             map_id: 1021,
             seed: 1,
-            deploy_time: None,
             blue: side(),
             red: side(),
             turns: vec![state(1, 4800), state(2, 0)],

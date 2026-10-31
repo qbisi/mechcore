@@ -102,9 +102,7 @@ pub fn match_replay(
          <MatchMode>VS_1_1</MatchMode><ScoreMode>ReduceScore</ScoreMode><HostID>0</HostID>\
          <SurviveModeDifficulty>VeryEasy</SurviveModeDifficulty></BattleInfo>\
          <CreateTime>0001-01-01T00:00:00</CreateTime></BattleRecord>",
-        stated.seed,
-        deploy_time(stated),
-        stated.map_id
+        stated.seed, DEFAULT_DEPLOY_TIME, stated.map_id
     );
     Ok(binary_formatter(
         BATTLE_ID,
@@ -295,7 +293,7 @@ fn write_player(
             turn,
             actions,
             sign,
-            deploy_time(stated),
+            DEFAULT_DEPLOY_TIME,
         )?;
         xml.push_str("</PlayerRoundRecord>");
         earlier_officers.clone_from(&snapshot.officers);
@@ -876,10 +874,6 @@ fn write_records(xml: &mut String, records: &[(&str, String)], clock: i32) {
 }
 
 /// The round's deployment clock, which the match states or the standard one.
-fn deploy_time(stated: &Stated) -> i32 {
-    stated.deploy_time.unwrap_or(DEFAULT_DEPLOY_TIME)
-}
-
 /// What recording one decision needs from the position it is taken from.
 struct Context<'a> {
     /// The unit type a move carries.

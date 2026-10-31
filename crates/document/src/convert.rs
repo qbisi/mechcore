@@ -163,7 +163,6 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
         game_build: crate::economy::game_build().to_owned(),
         map_id: record.info.map_id,
         seed: record.info.system_seed,
-        deploy_time: Some(record.info.deploy_time),
         blue: match_side(economy, &blue, Seat::Blue, dealt.blue, has_opening)?,
         red: match_side(economy, &red, Seat::Red, dealt.red, has_opening)?,
         turns,
@@ -1503,7 +1502,6 @@ mod tests {
             game_build: crate::game_build().into(),
             map_id: 1012,
             seed: 12345,
-            deploy_time: Some(100),
             blue,
             red,
             turns: vec![Turn {

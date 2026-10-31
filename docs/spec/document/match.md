@@ -117,7 +117,6 @@ The header holds what every round of the match shares.
 | `build` | the game's `Application.version`, pinned by `GAME_VERSION` |
 | `seed` | `BattleInfo.SystemSeed` |
 | `map_id` | `BattleInfo.MapID` |
-| `deploy_time` | `BattleInfo.DeployTime` |
 
 `seed` and `map_id` keep the meaning and the optionality a layout gives them.
 `build` records the same game version a [layout](layout.md#document-shape)
@@ -132,10 +131,10 @@ transcoding retains the stated version in the native replay header. New matches
 and native conversions take their version from `GAME_VERSION`, rather than a
 second version pin in the match code.
 
-`deploy_time` is how many seconds a side has to deploy a round, which every
-tracked replay records as 100. A match this platform plays runs out by it, as
-[cli.md](../mechcore/cli.md#match) says, and a match that states none deploys
-under 100.
+Deployment time is runtime configuration, not recorded match content.
+`match new` and `match fork` set it with `--deploy-time`, defaulting to 100
+seconds and keeping it in the [turn file](../mechcore/turn.md).
+Native replay encoding uses the standard 100-second deployment clock.
 
 The rest of the match header is a property of the standard 1v1 rule set rather
 than of a match: the other phase durations, the round cap, the advance team,
