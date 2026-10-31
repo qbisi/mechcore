@@ -5,9 +5,8 @@
 //! played, `<match>.turn` holds the round in progress, and every operation
 //! here takes the turn file's lock for the read and the write it does.
 //!
-//! A commit is a write. A side's decisions reach the document when that side
-//! commits and not before. A view hides the opponent's current-round actions
-//! even after they are committed to that document.
+//! A commit seals decisions in the private turn file. Both sides reach the
+//! shared document together after settlement, never while either is deciding.
 
 use std::{fs, path::PathBuf};
 
@@ -486,8 +485,7 @@ fn act(mut arguments: Args) -> Result<View, Failure> {
     Ok(view)
 }
 
-/// Writes that side's decisions into the match, which is what playing them
-/// means.
+/// Seals that side's decisions, then settles when both sides have committed.
 fn commit(mut arguments: Args) -> Result<View, Failure> {
     let side = side_option(&mut arguments, true)?.unwrap_or(Side::Blue);
     let path = arguments.path("a match document")?;
@@ -581,8 +579,7 @@ impl Game {
     ///
     /// A turn file that is missing or unreadable is rebuilt from the document
     /// at the round the document is in. What that loses is the round's
-    /// uncommitted decisions and its clock, and nothing else: a commit is in
-    /// the document, so a rebuild takes each side's commit from there.
+    /// pending and sealed decisions and its clock. Recorded decisions survive.
     fn read(
         path: &std::path::Path,
         held: &mut Held,
@@ -634,8 +631,7 @@ impl Game {
         self.side
     }
 
-    /// Whether the document states this side's decisions for the round in
-    /// progress, which is what a commit writes.
+    /// Whether the document already records this side's decisions.
     ///
     /// Round zero says so exactly: an opening is one decision, and a side that
     /// committed it took one. A later round cannot tell a side that committed
@@ -716,7 +712,11 @@ impl Game {
                     self.run_out()?;
                 }
                 Phase::Fight => {
+                    let recorded = self.r#match.clone();
+                    let sealed = self.turn.clone();
                     if let Err(unresolved) = self.fight(held) {
+                        self.r#match = recorded;
+                        self.turn = sealed;
                         self.unresolved = Some(unresolved);
                         return Ok(self);
                     }
@@ -731,6 +731,7 @@ impl Game {
     /// fight, and this platform writes it rather than inventing an action the
     /// game has no evidence for: the side that ran out of time gives up.
     fn run_out(&mut self) -> Result<(), Failure> {
+        self.publish_committed();
         let out: Vec<Side> = Side::BOTH
             .into_iter()
             .filter(|side| !self.turn.side(*side).committed)
@@ -754,6 +755,12 @@ impl Game {
     /// fought, and what the fight decided is written onto the position each
     /// side deployed before the next round opens on it.
     fn fight(&mut self, held: &mut Held) -> Result<(), String> {
+        self.publish_committed();
+        if self.over() {
+            return self
+                .write(held)
+                .map_err(|failure| failure.reason().to_owned());
+        }
         let round = self.round();
         let fight = if round > 0 {
             Some(self.fought(round)?)
@@ -929,7 +936,7 @@ impl Game {
 
     /// This side's decisions in the round in progress, committed or not.
     fn decisions(&self, side: Side) -> Vec<Action> {
-        if self.turn.side(side).committed {
+        if self.turn.side(side).committed && self.turn.side(side).decisions.is_empty() {
             self.committed_actions(side)
         } else {
             self.turn.side(side).decisions.clone()
@@ -1177,11 +1184,11 @@ impl Game {
             .any(|taken| matches!(taken, Action::ChooseReinforceItem { .. }))
     }
 
-    /// Writes this side's decisions into the document.
+    /// Seals this side's decisions without changing the shared document.
     fn commit(&mut self, side: Side, held: &mut Held) -> Result<(), Failure> {
         if !self.phase().decides() {
             return Err(Failure::refused(
-                "this match is not waiting for decisions, and a commit writes them",
+                "this match is not waiting for decisions, and a commit seals them",
             ));
         }
         if self.turn.side(side).committed {
@@ -1204,34 +1211,36 @@ impl Game {
                 "this round deals a reinforcement offer, and a side answers it before it commits",
             ));
         }
-        // A commit that cannot be made leaves the draft where it was, so
-        // nothing is taken out of the round until it is going to be written.
         if self.round() == 0 {
             let [decision] = self.turn.side(side).decisions.as_slice() else {
                 return Err(Failure::refused(
                     "an opening is one decision, and this side has taken another number of them",
                 ));
             };
-            let Action::ChooseAdvanceTeam { index: offer, .. } = decision else {
+            let Action::ChooseAdvanceTeam { .. } = decision else {
                 return Err(Failure::refused("round zero's decision is the opening"));
             };
-            let offer = *offer;
-            self.turn.side_mut(side).decisions.clear();
-            match side {
-                Side::Blue => self.r#match.blue.opening.choose = Some(offer),
-                Side::Red => self.r#match.red.opening.choose = Some(offer),
-            }
-        } else {
-            let decisions = std::mem::take(&mut self.turn.side_mut(side).decisions);
-            let round = self
-                .r#match
-                .turns
-                .last_mut()
-                .expect("a round after the opening is one the document holds");
-            *actions_of_mut(&mut round.actions, side) = decisions;
         }
         self.turn.side_mut(side).committed = true;
-        self.write(held)
+        self.write_turn(held)
+    }
+
+    /// Copies sealed decisions into a candidate record for settlement.
+    fn publish_committed(&mut self) {
+        for side in Side::BOTH {
+            if !self.turn.side(side).committed {
+                continue;
+            }
+            let decisions = self.decisions(side);
+            if let Some(round) = self.r#match.turns.last_mut() {
+                *actions_of_mut(&mut round.actions, side) = decisions;
+            } else if let Some(Action::ChooseAdvanceTeam { index, .. }) = decisions.first() {
+                match side {
+                    Side::Blue => self.r#match.blue.opening.choose = Some(*index),
+                    Side::Red => self.r#match.red.opening.choose = Some(*index),
+                }
+            }
+        }
     }
 
     /// Writes the document and then the round in progress.
@@ -1244,11 +1253,24 @@ impl Game {
     }
 
     fn write_document(&self) -> Result<(), Failure> {
+        use std::io::Write;
+
         let yaml = mechcore_document::r#match::canonical_yaml(&self.r#match)
             .map_err(|error| Failure::failed(format!("cannot write the match: {error}")))?;
-        fs::write(&self.path, yaml).map_err(|error| {
+        let parent = self
+            .path
+            .parent()
+            .filter(|path| !path.as_os_str().is_empty())
+            .unwrap_or_else(|| std::path::Path::new("."));
+        let mut output = tempfile::NamedTempFile::new_in(parent)
+            .map_err(|error| Failure::failed(format!("cannot prepare match: {error}")))?;
+        output.write_all(yaml.as_bytes()).map_err(|error| {
             Failure::failed(format!("cannot write {}: {error}", self.path.display()))
-        })
+        })?;
+        output.persist(&self.path).map_err(|error| {
+            Failure::failed(format!("cannot publish {}: {error}", self.path.display()))
+        })?;
+        Ok(())
     }
 
     fn write_turn(&self, held: &mut Held) -> Result<(), Failure> {
@@ -1514,6 +1536,22 @@ mod tests {
             mechcore_document::r#match::canonical_yaml(&game.r#match).unwrap(),
             original
         );
+        // A failed settlement keeps both commitments private and retryable.
+        let disk = fs::read(&path).unwrap();
+        game.r#match.turns.last_mut().unwrap().state.blue.units[0]
+            .unit
+            .type_name = "missing_unit".into();
+        let recorded = game.r#match.clone();
+        game = game.settle(&mut held).unwrap();
+        assert!(game.unresolved.is_some());
+        assert_eq!(game.r#match, recorded);
+        assert_eq!(fs::read(&path).unwrap(), disk);
+        let stored = held.read().unwrap().unwrap();
+        for side in Side::BOTH {
+            assert!(stored.side(side).committed);
+            assert!(!stored.side(side).decisions.is_empty());
+        }
+        game.publish_committed();
         game.r#match
             .turns
             .last_mut()

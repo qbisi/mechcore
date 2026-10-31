@@ -2,7 +2,7 @@
 //!
 //! These drive the binary the way two players would: one process deals, the
 //! other joins, and each names the side it was given. What they check is the
-//! contract in `docs/spec/mechcore/cli.md` — a commit is a write, a refusal
+//! contract in `docs/spec/mechcore/cli.md` — a commit seals private decisions, a refusal
 //! keeps nothing, a side does not see the other's plans, and the clock ends a
 //! match against whoever did not commit.
 
@@ -199,7 +199,7 @@ fn fork_without_a_round_uses_only_documented_decisions_and_commitments() {
             .unwrap();
     assert_eq!(runtime["deploy_time"], 199);
     assert!(loaded["remaining"].as_f64().unwrap() > 198.0);
-    assert_eq!(loaded["sides"]["blue"]["committed"], true);
+    assert_eq!(loaded["sides"]["blue"]["committed"], false);
     assert!(decisions(&loaded, "red").as_array().unwrap().is_empty());
     assert_eq!(fs::read(&path).unwrap(), before);
     assert_eq!(fs::read(&turn_path).unwrap(), turn);
@@ -219,7 +219,7 @@ fn fork_without_a_round_uses_only_documented_decisions_and_commitments() {
             .to_string();
         let forked = run(&["match", "fork", &path, &target, "--side", "red"]).ok();
         assert_eq!(disk_document(&target), disk_document(&path));
-        assert_eq!(forked["sides"]["blue"]["committed"], true);
+        assert_eq!(forked["sides"]["blue"]["committed"], false);
         assert_eq!(forked["sides"]["red"]["committed"], false);
         assert!(decisions(&forked, "red").as_array().unwrap().is_empty());
     }
@@ -603,6 +603,7 @@ fn a_join_that_names_another_seed_is_refused() {
 fn both_openings_open_the_first_round() {
     let directory = tempfile::tempdir().unwrap();
     let path = dealt(directory.path());
+    let before = fs::read(&path).unwrap();
 
     let view = run(&["match", "show", &path, "--side", "blue"]).ok();
     assert_eq!(view["phase"], "opening");
@@ -616,6 +617,7 @@ fn both_openings_open_the_first_round() {
     let after = run(&["match", "commit", &path, "--side", "blue"]).ok();
     assert_eq!(after["phase"], "opening");
     assert_eq!(after["sides"]["blue"]["committed"], true);
+    assert_eq!(fs::read(&path).unwrap(), before);
 
     let again = run(&["match", "act", &path, "--side", "blue", &decision]).refused();
     assert!(again.contains("commits a round once"), "{again}");
@@ -723,7 +725,7 @@ fn a_view_exposes_the_document_except_the_opponents_current_actions() {
         after["document"], blue["document"],
         "an opponent's commit reveals no actions"
     );
-    assert_eq!(disk_document(&path)[3]["red"][0]["name"], "marksman");
+    assert_eq!(disk_document(&path), before);
     let all = run(&["match", "show", &path, "--omniscient"]).ok();
     assert_eq!(decisions(&all, "red")[0]["name"], "marksman");
     assert_eq!(decisions(&all, "blue")[0]["name"], "rhino");
@@ -945,6 +947,7 @@ fn a_committed_round_is_written_and_fought() {
     let path = dealt(directory.path());
     open_the_match(&path);
 
+    let before = fs::read(&path).unwrap();
     run(&[
         "match",
         "act",
@@ -957,13 +960,13 @@ fn a_committed_round_is_written_and_fought() {
     let after = run(&["match", "commit", &path, "--side", "blue"]).ok();
     assert_eq!(after["phase"], "deploy");
 
-    // A commit is a write: what blue decided is in the document before red
-    // has decided anything.
-    let written = fs::read_to_string(&path).unwrap();
-    assert!(
-        written.ends_with("blue:\n- {type: unlock_unit, name: rhino}\nred: []\n"),
-        "{written}"
-    );
+    // A single commitment changes only the private turn, not the shared record.
+    assert_eq!(fs::read(&path).unwrap(), before);
+    let runtime: Value =
+        serde_json::from_slice(&fs::read(Path::new(&path).with_extension("turn")).unwrap())
+            .unwrap();
+    assert_eq!(runtime["sides"]["blue"]["committed"], true);
+    assert_eq!(runtime["sides"]["blue"]["decisions"][0]["name"], "rhino");
 
     // Every opening hands its side an officer, a Defensive Wall and a turret,
     // and neither the officer nor a technology reaches a construction, so the
@@ -1081,6 +1084,15 @@ fn a_side_that_does_not_commit_in_time_loses_the_match() {
     .ok();
     run(&["match", "new", &path]).ok();
     open_the_match(&path);
+    run(&[
+        "match",
+        "act",
+        &path,
+        "--side",
+        "blue",
+        "{type: unlock_unit, name: rhino}",
+    ])
+    .ok();
     run(&["match", "commit", &path, "--side", "blue"]).ok();
 
     std::thread::sleep(std::time::Duration::from_millis(1500));
@@ -1092,7 +1104,7 @@ fn a_side_that_does_not_commit_in_time_loses_the_match() {
     // fight.
     let written = fs::read_to_string(&path).unwrap();
     assert!(
-        written.ends_with("blue: []\nred:\n- {type: concede}\n"),
+        written.ends_with("blue:\n- {type: unlock_unit, name: rhino}\nred:\n- {type: concede}\n"),
         "{written}"
     );
     assert!(
@@ -1131,13 +1143,10 @@ fn a_lost_turn_file_is_rebuilt_from_the_document() {
 
     let view = run(&["match", "show", &path, "--side", "blue"]).ok();
     assert_eq!(view["rebuilt"], true, "{view}");
-    // What the file held is lost. What the document holds is not: blue
-    // committed its opening, and a commit cannot be taken back by losing a
-    // file beside it.
-    assert_eq!(view["sides"]["blue"]["committed"], true);
+    // Sealed choices are private turn state until both sides settle.
+    assert_eq!(view["sides"]["blue"]["committed"], false);
     assert_eq!(view["sides"]["red"]["committed"], false);
-    let refused = run(&["match", "act", &path, "--side", "blue", &decision]).refused();
-    assert!(refused.contains("commits a round once"), "{refused}");
+    run(&["match", "act", &path, "--side", "blue", &decision]).ok();
 
     // A player that had not joined cannot join a rebuilt match.
     let refused = run(&["match", "new", &path]).refused();
@@ -1547,6 +1556,8 @@ fn playing_a_match_keeps_each_completed_round() {
     fs::write(&path, deployed).unwrap();
     run(&["match", "act", &path, "--side", "blue", "{type: concede}"]).ok();
     run(&["match", "commit", &path, "--side", "blue"]).ok();
+    decline(&path, "red");
+    run(&["match", "commit", &path, "--side", "red"]).ok();
     let report = run(&["play", &path, &page, "--no-open"]).ok();
     assert_eq!(report["rounds"], 2);
     assert_eq!(read(), rounds);
