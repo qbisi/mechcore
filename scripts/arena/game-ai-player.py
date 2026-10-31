@@ -107,7 +107,10 @@ def blueprints():
 
 
 def opening_state(view):
-    return next(segment for segment in reversed(view["document"]) if segment["kind"] == "state")
+    state = next(segment for segment in reversed(view["document"]) if segment["kind"] == "state")
+    return {**state, **{side: {**state[side], "units": [u for u in state[side].get("units", [])
+                                                    if not u.get("recovered")]}
+                       for side in ("blue", "red")}}
 
 
 class Player:
@@ -133,7 +136,8 @@ class Player:
             print(f"refused {decision}: {answer['reason']}", file=sys.stderr)
             return None
         self.seen = answer
-        self.position = answer["position"]
+        self.position = {**answer["position"], "units": [u for u in answer["position"].get("units", [])
+                                                       if not u.get("recovered")]}
         return answer
 
     def legal(self, decision):

@@ -68,6 +68,28 @@ The checkpoint, decisions and header suffice to continue the random streams
 and the pool without earlier decisions; the fight still determines its own
 part of the next opening position.
 
+## Recovered formations
+
+The `units` list also retains historical recovery records, sorted with live
+formations by `index`:
+
+```yaml
+units:
+- {name: marksman, index: 0, recovered: true}
+- {index: 1, recovered: true}
+- {name: fang, index: 2, position: {x: 0, y: -160}}
+```
+
+A recovered entry occupies no deployment space, carries no combat state and
+never projects to a layout. Its type is retained when known. An incomplete
+native recording can omit `name` for recoveries preceding its captured prefix.
+A purchase recovered within the captured round has a known type.
+
+There is no `next_index.unit`. The next formation index is one greater than
+the maximum index among live formations and recovery records, or zero for an
+empty list. Recovery records persist across rounds and prevent index reuse.
+The separate `next_index.contraption` remains unchanged.
+
 ## Relation to a layout
 
 A layout is not a different object from a state. It is the projection of a state
@@ -93,8 +115,9 @@ or granted by the round's decisions are `joined` while applying those decisions.
 The projection also uses the opening allocator and officer delivery schedule
 to list delivered squads recovered during the round.
 
-Six side fields project unchanged: `officers`, `techs`, `units`,
-`constructions`, `contraptions` and `tower_strengthen_levels`. Two more reach a
+Five side fields project unchanged: `officers`, `techs`, `constructions`,
+`contraptions` and `tower_strengthen_levels`. Live `units` entries project
+unchanged while recovered records are omitted. Two more reach a
 layout filtered rather than copied straight:
 
 | State source | Layout target | Projection |

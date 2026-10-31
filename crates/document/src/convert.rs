@@ -120,7 +120,6 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
             .iter()
             .any(|player| !net_actions(&player.rounds.entries[0].actions.entries).is_empty());
     let predicted = opening::predict(economy, record.info.system_seed, record.info.map_id)?;
-    let pool = predicted.initialization.unit_round_pool;
     // The opening is round 0, and it has no state: every side enters it holding
     // nothing. Read its decision only when the captured prefix is complete;
     // otherwise the turns start at the first available deployment.
@@ -133,18 +132,21 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
     {
         // A round that deals offers also offers the decline, and what the
         // decline pays depends on the pool the seed selects.
-        let offers = record.match_rounds.entries[position]
-            .reinforce_items
-            .arrays
-            .first()
-            .map(|array| {
-                Ok::<_, String>(Offers {
-                    dealt: array.values.clone(),
-                    refund: crate::reinforcement::decline_supply(economy, pool, round)?,
-                })
-            })
-            .transpose()?;
-        turns.push(turn(grbr, economy, [&blue, &red], position, round, offers)?);
+        let offers = round_offers(
+            economy,
+            predicted.initialization.unit_round_pool,
+            round,
+            &record.match_rounds.entries[position],
+        )?;
+        turns.push(turn(
+            grbr,
+            economy,
+            [&blue, &red],
+            position,
+            round,
+            offers,
+            turns.last(),
+        )?);
     }
 
     // The four combinations each side was dealt are recorded nowhere, and are
@@ -215,6 +217,25 @@ fn readable(record: &record::BattleRecord) -> Result<(), String> {
     Ok(())
 }
 
+fn round_offers(
+    economy: &Economy,
+    pool: i32,
+    round: i32,
+    record: &record::MatchRound,
+) -> Result<Option<Offers>, String> {
+    record
+        .reinforce_items
+        .arrays
+        .first()
+        .map(|array| {
+            Ok(Offers {
+                dealt: array.values.clone(),
+                refund: crate::reinforcement::decline_supply(economy, pool, round)?,
+            })
+        })
+        .transpose()
+}
+
 /// One deployment round: the position each side opens it with, and the
 /// decisions each takes from there.
 fn turn(
@@ -224,10 +245,47 @@ fn turn(
     position: usize,
     round: i32,
     offers: Option<Offers>,
+    previous: Option<&Turn>,
 ) -> Result<Turn, String> {
+    let history = |seat: Seat| -> Result<Vec<crate::r#match::RecoveredUnit>, String> {
+        let Some(previous) = previous else {
+            return Ok(Vec::new());
+        };
+        let (opened, actions) = match seat {
+            Seat::Blue => (&previous.state.blue, &previous.actions.blue),
+            Seat::Red => (&previous.state.red, &previous.actions.red),
+        };
+        crate::transition::deployed(
+            economy,
+            opened,
+            actions,
+            seat == Seat::Red,
+            previous
+                .state
+                .reinforce_offers
+                .as_ref()
+                .map(|offers| offers.refund),
+        )
+        .map(|closed| closed.recovered_units)
+        .map_err(|error| error.to_string())
+    };
     let opened = [
-        side_state(grbr, economy, blue, position, Seat::Blue)?,
-        side_state(grbr, economy, red, position, Seat::Red)?,
+        side_state(
+            grbr,
+            economy,
+            blue,
+            position,
+            Seat::Blue,
+            &history(Seat::Blue)?,
+        )?,
+        side_state(
+            grbr,
+            economy,
+            red,
+            position,
+            Seat::Red,
+            &history(Seat::Red)?,
+        )?,
     ];
     let [blue_state, red_state] = opened;
     let taken = |player: &record::PlayerRecord, seat, opened| {
@@ -592,6 +650,7 @@ fn side_state(
     player: &record::PlayerRecord,
     position: usize,
     seat: Seat,
+    history: &[crate::r#match::RecoveredUnit],
 ) -> Result<SideState, String> {
     let entry = &player.rounds.entries[position];
     let data = &entry.data;
@@ -690,9 +749,9 @@ fn side_state(
         equipment: unfitted_equipment(data),
         battle_skills,
         next_index: NextIndex {
-            unit: data.unit_index,
             contraption: data.contraption_index,
         },
+        recovered_units: recovered_formations(data.unit_index, &formations, history),
         officers,
         techs: units,
         units: formations,
@@ -862,6 +921,23 @@ fn shared_income(
 }
 
 /// The unit roster, as the layout formations a projection would keep.
+fn recovered_formations(
+    next: i32,
+    active: &[StateUnit],
+    history: &[crate::r#match::RecoveredUnit],
+) -> Vec<crate::r#match::RecoveredUnit> {
+    (0..next)
+        .filter(|index| active.iter().all(|unit| unit.unit.index != *index))
+        .map(|index| crate::r#match::RecoveredUnit {
+            index,
+            type_name: history
+                .iter()
+                .find(|unit| unit.index == index)
+                .and_then(|unit| unit.type_name.clone()),
+        })
+        .collect()
+}
+
 fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
     let mut board = SideState {
         constructions: constructions(data, seat)?,
@@ -1264,7 +1340,7 @@ fn actions(
         conceded |= matches!(action, Action::Concede);
         decided |= !matches!(action, Action::Concede);
         let next = step(&position, &action, at)?;
-        dependencies.record(&position, &next, &action);
+        dependencies.record(&next, &action);
         position = next;
     }
     if !decided {
@@ -1633,7 +1709,8 @@ mod tests {
                  <playerRecords>{player}{player}</playerRecords></BattleRecord>"
             );
             let state =
-                super::side_state(grbr.as_bytes(), economy, &parsed, 0, super::Seat::Blue).unwrap();
+                super::side_state(grbr.as_bytes(), economy, &parsed, 0, super::Seat::Blue, &[])
+                    .unwrap();
             assert_eq!(state.supply, supply);
             assert_eq!(state.blueprints, [401]);
         }

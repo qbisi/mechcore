@@ -45,7 +45,6 @@ pub const UNIMPLEMENTED: &[&str] = &[];
 const DEALT_FROM: &[&str] = &[
     "units.index",
     "units.name",
-    "next_index.unit",
     "unlocked_units",
     "techs",
     "officers",
