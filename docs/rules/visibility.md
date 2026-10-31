@@ -96,13 +96,15 @@ one board, so an ordered list says more than any interface could:
   the research in the position and nothing on the board;
 - a purchase moved three times and a purchase placed once stand in one place.
 
-The platform contract in [`cli.md`](../spec/mechcore/cli.md) makes the match
-document public except for the opponent's actions in the round currently in
-progress. Those actions remain hidden whether or not either player has
-committed, including actions already written to the match document. This also
-applies to the round-zero opening choice. Committing does not make a round
-historical: the opponent's actions become visible when that round has ended.
-Both sides' round-opening states remain public throughout the round.
+The platform contract in [`cli.md`](../spec/mechcore/cli.md) keeps the match
+document public and current decisions in the private turn file until the
+round settles. `match show` returns the header and current state: the caller's
+decisions are applied to its own side, while the opponent remains at its
+round-opening state. The caller also sees remaining shop allowances,
+reinforcement choice status and each formation's movement permission.
+Committing does not reveal the opponent's decisions. This also applies to
+round zero and to a fight whose settlement remains unresolved. Completed
+actions are available in the public match file after settlement.
 
 ## Evidence
 

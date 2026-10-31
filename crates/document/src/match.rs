@@ -317,7 +317,8 @@ pub struct StateUnit {
 impl StateUnit {
     /// Deployment movement follows the source, persistent mobility modifiers,
     /// and any Redeploy action already taken in this round.
-    pub(crate) fn movable(&self, techs: &[i32]) -> bool {
+    #[must_use]
+    pub fn movable(&self, techs: &[i32]) -> bool {
         self.unit.source != crate::layout::UnitSource::Legacy
             || crate::mobility::free(&self.unit, techs)
             || self.redeployed
@@ -887,6 +888,15 @@ pub fn segment_values(game: &Match) -> Result<Vec<Value>, String> {
         .collect()
 }
 
+/// The match header in its written shape, without serializing round history.
+///
+/// # Errors
+/// Returns an error when the header cannot be serialized.
+pub fn header_value(game: &Match) -> Result<Value, String> {
+    serde_yaml::to_value(Segment::Match(header_of(game)))
+        .map_err(|error| format!("cannot serialize match header: {error}"))
+}
+
 /// The shape of each segment a match stream is written as.
 ///
 /// A match is a stream of documents rather than one, and each names its own
@@ -1033,15 +1043,20 @@ pub fn read(bytes: &[u8]) -> Result<Option<Match>, String> {
     }))
 }
 
-/// A match's segments, in stream order.
-fn segments_of(r#match: &Match) -> Vec<Segment<'_>> {
-    let mut segments = vec![Segment::Match(Header {
+/// The header shared by the document and decision-view writers.
+fn header_of(r#match: &Match) -> Header<'_> {
+    Header {
         build: &r#match.game_build,
         map_id: r#match.map_id,
         seed: r#match.seed,
         blue: HeaderSide::of(&r#match.blue),
         red: HeaderSide::of(&r#match.red),
-    })];
+    }
+}
+
+/// A match's segments, in stream order.
+fn segments_of(r#match: &Match) -> Vec<Segment<'_>> {
+    let mut segments = vec![Segment::Match(header_of(r#match))];
     if r#match.has_opening {
         segments.push(Segment::Action(ActionSegment {
             round: 0,

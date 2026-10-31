@@ -55,12 +55,12 @@ def act(decision):
     return answer
 
 
-def opening_state(view):
-    return next(segment for segment in reversed(view["document"]) if segment["kind"] == "state")
+def decision_state(view):
+    return view["state"]
 
 
 def opening(view, side, draw):
-    offers = view["document"][0][side]["offers"]
+    offers = view["header"][side]["offers"]
     index = draw.randrange(len(offers))
     act({
         "type": "choose_advance_team",
@@ -71,8 +71,8 @@ def opening(view, side, draw):
 
 
 def reinforce(view, draw):
-    offers = opening_state(view).get("reinforce_offers") or []
-    if not offers:
+    offers = decision_state(view).get("reinforce_offers") or []
+    if not offers or decision_state(view)[view["side"]]["reinforce_chosen"]:
         return view
     # Each card is tried in a random order, and the decline, the last offer,
     # is what is left when none is affordable.
@@ -90,7 +90,7 @@ def deploy(view, side, draw):
     view = reinforce(view, draw)
     refused = 0
     while refused < PATIENCE:
-        position = view.get("position", opening_state(view)[side])
+        position = decision_state(view)[side]
         unlocked = position.get("unlocked_units") or []
         if not unlocked:
             return
