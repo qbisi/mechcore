@@ -100,9 +100,9 @@ pub(crate) struct SideTurn {
     /// Whether this side has been handed to a player; a third caller is
     /// refused.
     pub(crate) given: bool,
-    /// Whether this side has written this round's decisions to the document.
+    /// Whether this side has sealed this round's decisions.
     pub(crate) committed: bool,
-    /// What this side has decided this round and not committed, in order.
+    /// This side's pending or sealed decisions, in order.
     pub(crate) decisions: Vec<Action>,
 }
 

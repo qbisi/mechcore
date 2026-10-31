@@ -785,11 +785,14 @@ the round opened, and whether each side has committed. It is the match's
 coordination and not its record, it is gone when the match is over, and
 [turn.md](turn.md) defines it.
 
-**A commit is a write.** A side's decisions reach the document when that side
-commits and not before, and later decisions do not undo a commit. `match fork` can reopen a recorded
-round in a separate continuation.
-A side's own decisions are its own until then, which is what lets two sides
-deploy at once without seeing each other.
+**A commit seals decisions in the turn file.** It prevents further decisions
+by that side without exposing them in the shared match document. Once both
+sides commit, the caller settles the round and publishes both action lists
+and the next state together. Failed settlement leaves the document unchanged
+and both commitments in the turn file for a later retry. A timeout publishes
+the committed side's actions and the other side's concession. The opening
+choices follow the same rule. `match fork` can reopen a recorded round in a
+separate continuation.
 
 A match is played under one build, which its document states as `game_build`
 and a binary carrying another build refuses to read at all. A match therefore
@@ -968,7 +971,7 @@ an agent that is not told it would reason about a board it does not have.
 
 **The opponent's current-round actions remain hidden until the round ends.**
 The opponent's list in the current action segment is empty whether or not
-either side has committed, including actions already written to the match file.
+either side has committed. Sealed actions remain in the private turn file.
 The same rule applies to the round-zero opening choice and while a fight remains
 unresolved. A commit changes status, not visibility. Both round-opening states
 and every earlier round's complete actions, including unlocks, remain visible.
@@ -1057,13 +1060,16 @@ phase that does not hold one.
 
 ### `match commit`
 
-Writes that side's decisions into the match, which is what playing them means.
+Seals that side's decisions in the turn file without changing the shared match.
 
 Operands: the match document. Options: `--side blue|red`.
 
-The decisions are collapsed into the normal form a match is written in and
-written to the round's actions, the turn file records that this side has
-committed, and the round is fought when the other side has committed too.
+The turn file retains the decisions and marks the side committed. When both
+sides have committed, the caller settles the round and writes both action
+lists in normal form and the next state to the match in one atomic replacement.
+A failed settlement keeps the match unchanged and retains both sealed lists
+for retry. A reader of the match file sees only completed rounds and the
+current round's opening state.
 Answers the phase the match is now in; a side that wants the next round waits
 for it with `show --wait`.
 

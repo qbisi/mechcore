@@ -15,8 +15,8 @@ match document. Nothing about a fight, a position or a transition is here;
 they are decided by the rules and written to the document.
 
 A match is cooperative. The file says which side each player was given and
-keeps each side's pending decisions apart. Committing moves those decisions
-into the match document; `match show` continues to hide the opponent's actions
+keeps each side's pending decisions apart. Committing seals those decisions here until both sides commit and the round
+settles; `match show` continues to hide the opponent's actions
 until the round has ended, whether or not either side has committed. It is not a
 permission system: a process that reads the file reads both sides, and nothing
 here stops one from naming a side it was not given.
@@ -75,7 +75,7 @@ the old turn file only when explicitly forking in place.
 ### `rebuilt`
 
 Whether this round's file was rebuilt rather than carried, which means its
-clock restarted and any uncommitted decisions were lost. It is written when a
+clock restarted and any pending or sealed decisions were lost. It is written when a
 file is rebuilt and cleared when the next round opens, so it describes the
 round it stands in and not the match. A side waiting on a round learns from it
 why the wait grew, rather than waiting an unexplained second time.
@@ -87,17 +87,19 @@ One entry each for `blue` and `red`.
 | Field | Means |
 | --- | --- |
 | `given` | that side has been handed to a player by `match new`, or reopened by `match fork`; a third `new` caller is refused |
-| `committed` | that side has written this round's decisions to the document |
-| `decisions` | what that side has decided this round and not committed, in the order taken |
+| `committed` | that side has sealed this round's decisions and cannot change them |
+| `decisions` | pending or sealed decisions for this round, in the order taken |
 
-A side's `decisions` are the [action](../document/action.md) spec's actions,
-exactly as a document writes them, and they are the side's own until it
-commits. Committing collapses them into the normal form a match is written in,
-writes them to the document's round, empties `decisions` and sets `committed`.
+A side's `decisions` are the [action](../document/action.md) spec's actions.
+Committing retains the list and sets `committed`. Both lists remain here until
+settlement succeeds, when the match publishes both in normal form together
+with the next state and resets this file for the next round. Failed settlement
+retains both sealed lists so a later operation can retry it. The opening's
+choices follow the same rule.
 
-`committed` is not derivable from the document: a side that committed without
-deciding anything and a side that has not committed both leave an empty list
-there, and only this file tells them apart while the round is open.
+The shared match file does not reveal either side's current decisions or
+commit status. The turn file contains both sides' private decisions; it must
+not be shared with an opponent that should not see them.
 
 ## Normal form
 
@@ -134,17 +136,14 @@ a lock on a file nobody else can see.
 
 ## Losing it
 
-A turn file may be deleted or found unreadable. That loses what it holds and
-nothing else: the uncommitted decisions of both sides, and the round's clock.
+A turn file may be deleted or found unreadable. That loses both sides' pending
+and sealed decisions, commitments not yet published, and the round's clock.
 
 It is rebuilt from the document, at the round the document is in, with both
-sides given, no decisions, the clock restarted and `rebuilt` set. A commit is
-in the document rather than here, so a rebuild reads each side's `committed`
-back out of it: an opening the document states was committed, and so were a
-round's decisions when that round's segment holds any. The one commit a
-document cannot state is a side that committed nothing at all in a later
-round, and a rebuild has that side commit again rather than freeze the round
-against it.
+sides given, no pending decisions, the clock restarted and `rebuilt` set.
+Already recorded actions survive; a side whose current actions are recorded
+is treated as committed. An empty action list cannot establish a commitment.
+Normally the current round has no published actions, so both sides decide again.
 
 A match whose turn file was rebuilt therefore keeps every round it has played,
 and both players carry on by naming the side they already had; a player that
