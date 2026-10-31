@@ -473,16 +473,12 @@ pub enum Action {
         #[schemars(with = "String")]
         specialist: i32,
     },
-    /// A purchase at the board's default landing. Historical actions can also
-    /// name the position and rotation reached by its subsequent movement.
+    /// A purchase at the default landing or coupled with its immediate move.
+    /// Its level is determined by the current officers and tower skills.
     BuyUnit {
         #[serde(rename = "name", with = "unit_names::unit")]
         #[schemars(with = "String")]
         unit: i32,
-        /// The purchased level. Omitted in historical actions, which use the
-        /// shop level at that point in their sequence.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        level: Option<i32>,
         #[serde(skip_serializing_if = "Option::is_none")]
         position: Option<Position>,
         #[serde(skip_serializing_if = "is_false")]
@@ -604,8 +600,6 @@ enum ActionReader {
     BuyUnit {
         #[serde(rename = "name", with = "unit_names::unit")]
         unit: i32,
-        #[serde(default)]
-        level: Option<i32>,
         #[serde(default)]
         position: Option<Position>,
         #[serde(default)]
@@ -1287,6 +1281,7 @@ mod tests {
         }
         for yaml in [
             "{type: buy_unit}",
+            "{type: buy_unit, name: crawler, level: 1}",
             "{type: choose_advance_team, index: 1, name: vortex-fire_badger}",
             "{type: release_commander_skill, index: 0, target: {unit: 4}}",
             "{type: release_commander_skill, index: 0, name: missile_strike, target: !unit 4}",
@@ -1354,19 +1349,16 @@ mod tests {
             },
             Action::BuyUnit {
                 unit: 2,
-                level: None,
                 position: Some(at),
                 rotated: true,
             },
             Action::BuyUnit {
                 unit: 2,
-                level: Some(1),
                 position: Some(at),
                 rotated: false,
             },
             Action::BuyUnit {
                 unit: 2,
-                level: None,
                 position: None,
                 rotated: false,
             },

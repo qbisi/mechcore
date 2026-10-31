@@ -137,18 +137,22 @@ with `PAD_FinishDeploy` unless it concedes:
 | `concede` | `PAD_GiveUp` |
 
 The game places a purchase where the deployment area is free. A standard
-match omits the purchase position and states any subsequent movement as a
-separate action. Historical combined purchase placement is expanded into
-those two native operations. The formation created is the one the position
+match couples a purchase and its immediately following movement through the
+purchase's position and rotation. Encoding expands that combined placement
+into those two native operations. The formation created is the one the position
 allocates next.
 
 Match decisions use the standard phases in
 [action.md](action.md#settling-a-round). Their dependencies already place unit
 research, purchases, recovery and Energy Tower activations in native legal
-order. Encoding preserves that order, including Stealth Cloak and Elite
-Recruitment; it does not schedule them specially. An explicit purchase level
-must equal the current native shop level. Omitting it retains the historical
-sequential meaning. Research requires a formation of its type.
+order. Encoding retains Elite Recruitment's activation order. After the first
+purchase of a type, it inserts that type's later technology activations before the purchase's movement, so flank initialization
+sees them. The activations are omitted from their later match positions;
+they are not repeated for later purchases. If this reordering needs supply,
+the recorded Rapid Resupply activation moves ahead of the operation that
+requires it; no activation is added. Purchase level is derived
+from the officers and active Energy Tower skills at that point; it is not
+an action parameter. Research requires a formation of its type.
 
 A decision's `Time` is zero and its `LocalTime` the seconds since its round
 opened, in the game's 0.05-second ticks, as every tracked replay records them.

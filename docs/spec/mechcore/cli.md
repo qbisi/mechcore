@@ -215,8 +215,8 @@ batch still runs.
   no layout. A match verifies only when every leaf outside the fight is
   predicted and agrees, every round projects onto a layout the compiler takes,
   and every fight is fought and agrees, except a round explicitly reported as
-  `warning`. Stealth Cloak acquired after Phantom Ray flank deployment warns
-  that layout projection cannot preserve that order. Acquiring Aerial Mode
+  `warning`. Stealth Cloak acquired after an existing Phantom Ray's flank
+  deployment warns that layout projection cannot preserve that order. Acquiring Aerial Mode
   with Aerial Specialist and travelling Void Eyes also warns: research/flank
   order affects native life corrections which the state does not preserve,
   including after normalization. Wraiths with Floating Artillery Array and
@@ -309,12 +309,13 @@ a fight is run again without a recording being kept of it. Without `<out>` it
 answers the layout on standard output; with one it writes the layout there and
 answers its path and round.
 
-When Stealth Cloak was acquired after Phantom Ray flank deployment, this shared
-projection emits a warning on standard error and continues. The simulator
+When Stealth Cloak was acquired after an existing Phantom Ray's flank
+deployment, this shared projection emits a warning on standard error and
+continues. The simulator
 always settles with technologies activated before deployment, so it may differ
-from the native game; actual settlement follows the selected backend. Activate
-technologies before flank deployment to benefit from them earlier. Live match
-settlement, including shell and arena, uses this same projection path.
+from the native game; actual settlement follows the selected backend. New
+purchases encode pending technologies between native purchase and movement. Existing formations still require technology activation before flank
+movement to benefit from it earlier. Live match settlement, including shell and arena, uses this same projection path.
 
 Acquiring Aerial Mode in a round with Aerial Specialist and travelling Void
 Eyes also emits a projection warning. The native life corrections depend

@@ -1340,7 +1340,6 @@ fn recorded_actions(
             }
             "PAD_BuyUnit" => Action::BuyUnit {
                 unit: field("UID", action.unit_id)?,
-                level: None,
                 position: Some(position(&action.buy_position)?),
                 rotated: false,
             },
