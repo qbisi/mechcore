@@ -1,0 +1,95 @@
+# Match 20261101--1554, round 10, projected from the collected match sample.
+# The War Factory searches for a living lock before checking walls toward it.
+# A wall toward its destroyed tower must not suppress the replacement search.
+kind: fight
+source: game
+map_id: 1012
+seed: 1396346678
+round: 10
+blue:
+  core_damage: 0
+  officers: [advanced_defensive_tactics, fortified_specialist]
+  techs:
+    marksman: [electromagnetic_shot, range_enhancement, elite_marksman]
+    mustang: [missile_interceptor]
+    steel_ball: [energy_absorption, armor_enhancement]
+    arclight: [electromagnetic_shot]
+    scorpion: [range_enhancement]
+    phantom_ray: [stealth_cloak]
+  blueprints: [attack_enhancement_ii, defense_enhancement_ii]
+  units:
+  - {name: arclight, index: 0, position: {x: 200, y: -100}, level: 3, exp: 1285/1920/2671}
+  - {name: arclight, index: 1, position: {x: 120, y: -100}, level: 2, exp: 637/817/1690}
+  - {name: arclight, index: 2, position: {x: -120, y: -190}, level: 2, exp: 1263/1346/1690}
+  - {name: steel_ball, index: 3, position: {x: 250, y: -285}, level: 2, exp: 47/171/2253, rotated: true}
+  - {name: steel_ball, index: 4, position: {x: 290, y: -285}, level: 2, exp: 2138/2253/2253, rotated: true}
+  - {name: fang, index: 5, position: {x: 160, y: -245}, level: 2, exp: 538/538/1352, rotated: true}
+  - {name: fang, index: 6, position: {x: -160, y: -245}, exp: 113/113/600, rotated: true}
+  - {name: marksman, index: 7, position: {x: -160, y: -190}, level: 7, exp: 0/4093/4093}
+  - {name: marksman, index: 8, position: {x: 30, y: -150}, level: 6, exp: 0/3769/3769}
+  - {name: fang, index: 9, position: {x: 100, y: -95}, level: 2, exp: 0/217/1352, rotated: true}
+  - {name: arclight, index: 10, position: {x: 80, y: -100}, level: 2, exp: 533/972/1690}
+  - {name: fang, index: 11, position: {x: 180, y: -95}, level: 2, exp: 693/1079/1352, rotated: true}
+  - {name: crawler, index: 12, position: {x: 250, y: -215}, exp: 201/256/450, rotated: true}
+  - {name: scorpion, index: 13, position: {x: 55, y: -125}, level: 2, exp: 2497/3380/3380}
+  - {name: scorpion, index: 14, position: {x: 5, y: -125}, level: 2, exp: 0/822/3380}
+  - {name: phantom_ray, index: 15, position: {x: -195, y: -300}, level: 5, exp: 1007/5210/5210}
+  - {name: phantom_ray, index: 16, position: {x: -125, y: -300}, level: 3, exp: 0/3562/3562}
+  - {name: phantom_ray, index: 17, position: {x: -55, y: -300}, level: 4, exp: 0/2578/4490}
+  - {name: crawler, index: 18, position: {x: -290, y: -285}, level: 2, exp: 206/484/1014, rotated: true}
+  - {name: mustang, index: 19, position: {x: 230, y: -285}, level: 2, exp: 2635/2704/2704, rotated: true}
+  - {name: fang, index: 20, position: {x: 270, y: -285}, level: 2, exp: 510/1079/1352, rotated: true}
+  - {name: crawler, index: 21, position: {x: 30, y: -185}, exp: 311/450/450, rotated: true}
+  - {name: mustang, index: 22, position: {x: -120, y: -245}, exp: 348/609/1200, rotated: true}
+  - {name: mustang, index: 23, position: {x: -20, y: -185}, exp: 519/873/1200, rotated: true}
+  - {name: crawler, index: 24, position: {x: 30, y: -255}, exp: 332/450/450, rotated: true}
+  - {name: phoenix, index: 25, position: {x: 210, y: -290}, level: 2, exp: 284/1278/2929, rotated: true}
+  - {name: phoenix, index: 26, position: {x: -240, y: -300}, recordPosition: {x: -40, y: -150}, level: 3, exp: 0/4630/4630}
+  - {name: marksman, index: 27, position: {x: -80, y: -170}, level: 3, exp: 0/2315/2315}
+  - {name: marksman, index: 28, position: {x: 80, y: -150}, level: 2, exp: 0/1465/1465}
+  - {name: marksman, index: 29, position: {x: -200, y: -170}, level: 2, exp: 0/1465/1465}
+  - {name: mustang, index: 30, position: {x: 140, y: -135}, exp: 0/479/1200, rotated: true, source: joined}
+  - {name: steel_ball, index: 31, position: {x: 290, y: -95}, exp: 0/25/1000, rotated: true, source: joined}
+  - {name: steel_ball, index: 32, position: {x: 290, y: -165}, exp: 0/94/1000, rotated: true, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+red:
+  core_damage: 301
+  officers: [typhoon_specialist]
+  techs:
+    steel_ball: [energy_absorption]
+    phoenix: [quantum_reassembly]
+    war_factory: [range_enhancement, phoenix_production, steel_ball_production]
+  blueprints: [attack_enhancement, defense_enhancement_ii]
+  units:
+  - {name: void_eye, index: 0, position: {x: 20, y: -140}, exp: 650/650/650}
+  - {name: void_eye, index: 1, position: {x: -30, y: -140}, exp: 650/650/650}
+  - {name: void_eye, index: 2, position: {x: 0, y: -160}, exp: 650/650/650}
+  - {name: mustang, index: 3, position: {x: 65, y: -140}, exp: 36/36/1200}
+  - {name: mustang, index: 4, position: {x: -75, y: -140}, exp: 1200/1200/1200}
+  - {name: steel_ball, index: 5, position: {x: -85, y: -120}, exp: 774/778/1000}
+  - {name: steel_ball, index: 6, position: {x: -35, y: -120}, exp: 1000/1000/1000}
+  - {name: steel_ball, index: 7, position: {x: -135, y: -120}, exp: 331/356/1000}
+  - {name: void_eye, index: 8, position: {x: 70, y: -160}, exp: 215/254/650}
+  - {name: typhoon, index: 9, position: {x: -280, y: -220}, exp: 821/1692/1950}
+  - {name: stormcaller, index: 10, position: {x: 135, y: -120}, exp: 1100/1100/1100}
+  - {name: stormcaller, index: 11, position: {x: -135, y: -140}, exp: 1100/1100/1100}
+  - {name: war_factory, index: 12, position: {x: 5, y: -205}, level: 6, exp: 5722/9824/18556}
+  - {name: phantom_ray, index: 13, position: {x: -350, y: 285}, level: 2, exp: 1850/1850/2253}
+  - {name: phantom_ray, index: 14, position: {x: 265, y: -230}, level: 2, exp: 897/1027/2253}
+  - {name: stormcaller, index: 15, position: {x: 115, y: -140}, exp: 514/550/1100}
+  - {name: void_eye, index: 16, position: {x: 180, y: -120}, exp: 249/329/650}
+  - {name: war_factory, index: 17, position: {x: 75, y: -205}, exp: 2380/3123/3200}
+  - {name: war_factory, index: 18, position: {x: -65, y: -185}, level: 2, exp: 0/5450/7210}
+  - {name: phoenix, index: 19, position: {x: 90, y: -260}, level: 2, exp: 704/1475/2929}
+  - {name: phoenix, index: 20, position: {x: 50, y: -260}, level: 2, exp: 2242/2929/2929}
+  - {name: war_factory, index: 21, position: {x: 145, y: -215}, exp: 0/464/3200, source: joined}
+  - {name: war_factory, index: 22, position: {x: -185, y: -185}, exp: 0/3200/3200, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: missile, index: 4, position: {x: 10, y: -13}, retained: false}
+ticks: 1982
+hash: 27:d17587313804265311a8634a5927a15f51cd4499558ad4f2bba755f782a3843b
