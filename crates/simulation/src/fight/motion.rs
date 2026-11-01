@@ -335,10 +335,10 @@ pub(in crate::fight) fn turn_limited_move_speed_q32(
     }
     let velocity_rotation_q32 = direction_degrees_q32_raw(velocity_x_q32, velocity_z_q32);
     let angle_q32 = rotation_distance_q32(body_rotation_q32, velocity_rotation_q32);
-    if angle_q32 <= RIGHT_ANGLE_Q32 {
+    if !super::rvo::fpoint_greater_than(angle_q32, RIGHT_ANGLE_Q32) {
         return base_speed_q32;
     }
-    if angle_q32 == HALF_ROTATION_Q32 {
+    if super::rvo::fpoint_equal(angle_q32, HALF_ROTATION_Q32) {
         return q32_mul(base_speed_q32, MIN_SPEED_FACTOR_Q32);
     }
     let factor_q32 = q32_div(HALF_ROTATION_Q32.saturating_sub(angle_q32), RIGHT_ANGLE_Q32);
