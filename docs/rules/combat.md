@@ -197,6 +197,13 @@ Wraith (18) and the unit whose id is 54. `scripts/extract/extract-units.py` writ
 as `free_move`. A Wraith drifting 100° off its facing in its M3 with seed
 1787720817 publishes its full 10 m/s at tick 172.
 
+For a unit that slows while turning, `MotionController.CalculateMoveSpeed`
+uses `FPoint` comparisons at both angular boundaries. An angle equal to
+180° within the build's 43-raw-unit tolerance keeps 1% of the full speed;
+it does not enter the linear slowdown towards zero. The game's fight of
+the projection in `tests/corpus/281-r5.yaml` observes that boundary on a Fang
+following a Mobile Beacon.
+
 ## Attack scheduling
 
 `RefreshAttackInterval` converts by the logical step. The interval it
