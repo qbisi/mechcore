@@ -13,12 +13,16 @@ The script speaks directly to the Adapter's tournament API. List includes
 archived tournaments and ended regular-list events such as midweek minis.
 Both use the same public tournaments/ archive. The downloader walks every
 subdivision and ranking page, deduplicates the two players' replay references,
-then uses the existing `mechcore convert --to match` command. Final names are
+downloads original .rep bytes from the game's configured replay servers,
+then uses the existing `mechcore convert --to match` command on the game's GRBR.
+Opening eloScore labels are mapped by player ID into the optional header fields.
+Final names are
 {BattleID}.yaml, read from the downloaded replay, not its server file ID.
 Matches are collected under <output-dir>/<date>-<region>/. The date is the
 one shown by list; regions are asia, europe and americas. Native GRBRs,
 tournament metadata and a resumable manifest stay under each .downloads/.
-An existing match is never overwritten. Failed downloads or
+A manifest-owned unchanged local match can be refreshed to add raw-replay labels;
+other existing contents are never replaced. Failed downloads or
 conversions are reported and other matches continue; any failure exits 1.
 The converter still requires its own build and standard 1v1 match mode.
 Dates use local time unless --timezone names an IANA timezone. Requires PyYAML.
@@ -40,12 +44,16 @@ import socket
 import subprocess
 import sys
 import tempfile
+import urllib.error
+import urllib.parse
+import urllib.request
 import xml.etree.ElementTree as ET
 from zoneinfo import ZoneInfo
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import replay  # noqa: E402
+import server_replay  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 PROTOCOL = "mechcore.adapter.v14"
@@ -66,6 +74,7 @@ class Adapter:
         self.connection.settimeout(10)
         self.reader = None
         self.sequence = 0
+        self.replay_urls = []
         try:
             self.connection.connect(endpoint)
             self.reader = self.connection.makefile("rb")
@@ -129,7 +138,11 @@ def region_of(tournament: dict) -> str:
 
 
 def tournaments(adapter: Adapter, timezone: ZoneInfo | None) -> list[dict]:
-    entries = adapter.request(action="list")["tournaments"]
+    response = adapter.request(action="list")
+    adapter.replay_urls = response.get('replay_urls', [])
+    if not adapter.replay_urls:
+        raise RuntimeError('tournament list has no original replay URLs; rebuild and relaunch the Adapter')
+    entries = response["tournaments"]
     for entry in entries:
         started = datetime.fromtimestamp(entry["start_time"], timezone).astimezone(timezone)
         entry.update(date=started.date().isoformat(), starts_at=started.isoformat(), region=region_of(entry))
@@ -187,6 +200,58 @@ def final_result(native: Path, scores: list[dict], round_number: int) -> dict:
     if not candidates or any(candidate != candidates[0] for candidate in candidates):
         raise RuntimeError("tournament result records disagree")
     return candidates[0]
+
+
+def download_original(path: str, urls: list[str], destination: Path) -> dict:
+    if destination.exists():
+        return server_replay.read(destination.read_bytes())
+    failures = []
+    for base in urls:
+        url = base.rstrip('/') + '/' + urllib.parse.quote(path, safe='/')
+        for _ in range(3):
+            try:
+                with urllib.request.urlopen(url, timeout=30) as response:
+                    data = response.read(server_replay.MAX_BYTES + 1)
+                decoded = server_replay.read(data)
+                with tempfile.NamedTemporaryFile(dir=destination.parent, delete=False) as pending:
+                    temporary = Path(pending.name)
+                    pending.write(data)
+                try:
+                    os.replace(temporary, destination)
+                finally:
+                    temporary.unlink(missing_ok=True)
+                return decoded
+            except (OSError, RuntimeError) as error:
+                failures.append(f'{base}: {error}')
+                if isinstance(error, urllib.error.HTTPError):
+                    error.close()
+                    if error.code < 500:
+                        break
+    raise RuntimeError(f'original replay download failed for {path}: ' + '; '.join(failures))
+
+
+def label_header(match: Path, native: Path, original: dict) -> None:
+    data = native.read_bytes()
+    start = data.index(b'<?xml')
+    end = data.index(b'</BattleRecord>', start) + len(b'</BattleRecord>')
+    record = ET.fromstring(data[start:end])
+    if record.findtext('BattleInfo/BattleID') != original['battle_id']:
+        raise RuntimeError('original replay identity differs from the GRBR')
+    players = record.findall('playerRecords/PlayerRecord')
+    if len(players) != 2 or set(original['ratings']) != {p.findtext('id') for p in players}:
+        raise RuntimeError('original replay players differ from the GRBR')
+    text = match.read_text()
+    separator = re.search(r'^---\s*\n', text, flags=re.MULTILINE)
+    if separator is None:
+        raise RuntimeError('converted match has no deployment segments')
+    header = yaml.safe_load(text[:separator.start()])
+    if header.get('build') != original['build']:
+        raise RuntimeError('original replay build differs from the match')
+    for side, player in zip(('blue', 'red'), players):
+        score = original['ratings'][player.findtext('id')]
+        if score is not None:
+            header[side]['elo_score'] = score
+    match.write_text(yaml.safe_dump(header, allow_unicode=True, sort_keys=False) + text[separator.start():])
 
 
 def exclusion_reason(native: Path, result: dict) -> str | None:
@@ -256,7 +321,15 @@ def native_battle_id(path: Path) -> str:
 def download_one(adapter: Adapter, replay_path: str, output: Path, mechcore: Path, manifest: dict,
                  scores: list[dict]) -> dict:
     native = output / ".downloads" / (hashlib.sha256(replay_path.encode()).hexdigest() + ".grbr")
+    raw = native.with_suffix('.rep')
     cached = manifest.get(replay_path)
+    if cached and cached.get('raw_sha256') and raw.exists():
+        if hashlib.sha256(raw.read_bytes()).hexdigest() != cached['raw_sha256']:
+            raise RuntimeError(f'original replay changed: {raw}')
+    original = download_original(replay_path, getattr(adapter, 'replay_urls', []), raw)
+    raw_fields = {'original': raw.name, 'raw_sha256': hashlib.sha256(raw.read_bytes()).hexdigest(),
+                  'ratings': original['ratings']}
+    refresh = False
     def skip(reason: str, result: dict | None = None) -> dict:
         current = manifest[replay_path]
         if current.get('match'):
@@ -266,7 +339,7 @@ def download_one(adapter: Adapter, replay_path: str, output: Path, mechcore: Pat
                     raise RuntimeError(f'previously published match changed: {previous}')
                 previous.unlink()
         manifest[replay_path] = {'battle_id': current['battle_id'], 'native': native.name,
-                                 'skipped': reason, 'scores': scores}
+                                 'skipped': reason, 'scores': scores, **raw_fields}
         if result is not None:
             manifest[replay_path]['result'] = result
         save_manifest(output / '.downloads/manifest.json', manifest)
@@ -278,8 +351,10 @@ def download_one(adapter: Adapter, replay_path: str, output: Path, mechcore: Pat
                 raise RuntimeError(f"tournament result changed: {destination}")
             if reason := exclusion_reason(native, cached['result']):
                 return skip(reason, cached['result'])
-            return {"replay_path": replay_path, "output": str(destination), "duplicate": True}
-        if destination.exists():
+            if all(cached.get(key) == value for key, value in raw_fields.items()):
+                return {"replay_path": replay_path, "output": str(destination), "duplicate": True}
+            refresh = True
+        elif destination.exists():
             raise RuntimeError(f"previously published match changed: {destination}")
     battle_id = cached.get("battle_id") if cached else None
     if not native.exists():
@@ -289,8 +364,11 @@ def download_one(adapter: Adapter, replay_path: str, output: Path, mechcore: Pat
     if battle_id and battle_id != recorded_id:
         raise RuntimeError(f"download identity differs from the GRBR: {battle_id} != {recorded_id}")
     battle_id = recorded_id
-    manifest[replay_path] = {"battle_id": battle_id, "native": native.name}
-    save_manifest(output / ".downloads/manifest.json", manifest)
+    if original['battle_id'] != battle_id:
+        raise RuntimeError('original replay identity differs from the GRBR')
+    if not refresh:
+        manifest[replay_path] = {"battle_id": battle_id, "native": native.name, **raw_fields}
+        save_manifest(output / ".downloads/manifest.json", manifest)
     if not re.fullmatch(r"[A-Za-z0-9_.-]+", battle_id) or battle_id in (".", ".."):
         raise RuntimeError(f"unsafe native BattleID: {battle_id!r}")
     destination = output / f"{battle_id}.yaml"
@@ -309,15 +387,22 @@ def download_one(adapter: Adapter, replay_path: str, output: Path, mechcore: Pat
             }:
                 return skip('opening_only')
             raise RuntimeError(f"conversion failed; retained {native}: {converted.stderr.strip()}")
+        label_header(temporary, native, original)
         recorded_result, skipped = append_result(temporary, native, scores)
         if skipped:
             return skip(skipped, recorded_result)
         checked = subprocess.run([str(mechcore), "format", str(temporary), "--write"], capture_output=True, text=True, cwd=ROOT)
         if checked.returncode:
             raise RuntimeError(f"invalid tournament result: {checked.stderr.strip()}")
-        created = keep_match(temporary, destination)
+        if refresh:
+            if hashlib.sha256(destination.read_bytes()).hexdigest() != cached['sha256']:
+                raise RuntimeError(f'previously published match changed: {destination}')
+            os.replace(temporary, destination)
+            created = True
+        else:
+            created = keep_match(temporary, destination)
     manifest[replay_path].update(match=destination.name, result=recorded_result,
-                               sha256=hashlib.sha256(destination.read_bytes()).hexdigest())
+                               sha256=hashlib.sha256(destination.read_bytes()).hexdigest(), **raw_fields)
     save_manifest(output / ".downloads/manifest.json", manifest)
     return {"replay_path": replay_path, "battle_id": battle_id, "output": str(destination), "duplicate": not created}
 

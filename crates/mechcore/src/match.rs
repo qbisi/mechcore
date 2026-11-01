@@ -169,6 +169,7 @@ fn deal(
     // out, which an officer that draws its hand-out draws from.
     let mut side =
         |name: String, offers: &[OpeningOffer], constructions: &[StaticPlacement]| MatchSide {
+            elo_score: None,
             name,
             opening: Opening {
                 choose: None,

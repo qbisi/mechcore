@@ -503,6 +503,7 @@ fn match_side(
         loadout.insert(row.id, techs);
     }
     Ok(MatchSide {
+        elo_score: None,
         name: player.name.clone().unwrap_or_else(|| match seat {
             Seat::Blue => "blue".to_owned(),
             Seat::Red => "red".to_owned(),
@@ -1472,6 +1473,7 @@ mod tests {
         .unwrap();
         (
             MatchSide {
+                elo_score: None,
                 name: name.into(),
                 opening: Opening {
                     choose: Some(0),

@@ -4156,7 +4156,7 @@ pub(crate) fn list_item(
     Ok(api.invoke(list, "get_Item", &mut [argument(&mut index)])?)
 }
 
-fn config_instance(runtime: &Runtime) -> Result<*mut Object, OperationError> {
+pub(crate) fn config_instance(runtime: &Runtime) -> Result<*mut Object, OperationError> {
     let config_class = runtime.api.class("GRCore.dll", "GameRiver", "Config")?;
     let singleton = runtime
         .api

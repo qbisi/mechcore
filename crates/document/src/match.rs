@@ -88,6 +88,8 @@ pub fn build_warning(build: &str) -> Option<String> {
 pub struct MatchSide {
     /// The player or bot display name; the seat remains blue or red.
     pub name: String,
+    /// Historical 1v1 matchmaking rating captured in the source replay.
+    pub elo_score: Option<i32>,
     /// The opening this side was dealt and the one it took.
     pub opening: Opening,
     /// The construction layout the map dealt this side before the first round.
@@ -855,6 +857,8 @@ struct Header<'a> {
 struct HeaderSide<'a> {
     name: &'a str,
     #[serde(skip_serializing_if = "Option::is_none")]
+    elo_score: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     seed: Option<i32>,
     offers: &'a [OpeningOffer],
     constructions: &'a [StaticPlacement],
@@ -866,6 +870,7 @@ impl<'a> HeaderSide<'a> {
     fn of(side: &'a MatchSide) -> Self {
         Self {
             name: &side.name,
+            elo_score: side.elo_score,
             seed: side.seed,
             offers: &side.opening.offers,
             constructions: &side.constructions,
@@ -969,6 +974,8 @@ pub mod schema {
     pub struct Side {
         /// Player display name; omitted, the seat name (blue or red).
         pub name: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub elo_score: Option<i32>,
         /// The seed of the side's own stream.
         pub seed: Option<i32>,
         /// The four openings this side was dealt.
@@ -1070,6 +1077,7 @@ pub fn read(bytes: &[u8]) -> Result<Option<Match>, String> {
             }
         };
         Ok(MatchSide {
+            elo_score: side.elo_score,
             name: side.name.unwrap_or_else(|| name.to_owned()),
             opening: Opening {
                 choose,
@@ -1702,6 +1710,33 @@ mod tests {
         assert!(schema["properties"].get("game_build").is_none());
     }
 
+    #[test]
+    fn historical_ratings_are_optional_header_metadata() {
+        let input = b"kind: match\nmap_id: 1021\nseed: 1\nblue: {elo_score: 1448, offers: [], constructions: [], tech_loadout: {}}\nred: {offers: [], constructions: [], tech_loadout: {}}\n---\nkind: action\nround: 0\nblue: []\nred: []\n";
+        let game = super::read(input).unwrap().unwrap();
+        assert_eq!(game.blue.elo_score, Some(1448));
+        assert_eq!(game.red.elo_score, None);
+        let formatted = super::canonical_yaml(&game).unwrap();
+        let restored = super::read(formatted.as_bytes()).unwrap().unwrap();
+        assert_eq!(restored, game);
+        let header = super::header_value(&restored).unwrap();
+        assert_eq!(header["blue"]["elo_score"].as_i64(), Some(1448));
+        assert!(header["red"].get("elo_score").is_none());
+        let zero = String::from_utf8(input.to_vec())
+            .unwrap()
+            .replace("elo_score: 1448", "elo_score: 0");
+        assert_eq!(
+            super::read(zero.as_bytes())
+                .unwrap()
+                .unwrap()
+                .blue
+                .elo_score,
+            Some(0)
+        );
+        let invalid = zero.replace("elo_score: 0", "elo_score: unknown");
+        assert!(super::read(invalid.as_bytes()).is_err());
+    }
+
     const HEADER: &str = "kind: match\nmap_id: 1021\nseed: 1\n";
     const OPENING: &str = "---\nkind: action\nround: 0\nblue: []\nred: []\n";
 
@@ -1875,6 +1910,7 @@ mod tests {
     #[test]
     fn a_match_ended_by_a_fight_is_written_without_a_round_after_it() {
         let side = || super::MatchSide {
+            elo_score: None,
             name: "player".to_owned(),
             opening: super::Opening {
                 choose: None,
