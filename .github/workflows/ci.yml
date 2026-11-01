@@ -16,15 +16,16 @@ concurrency:
   group: ci-${{ github.ref }}-${{ github.ref == 'refs/heads/master' && github.sha || 'head' }}
   cancel-in-progress: true
 
-# Every job runs on every change. Choosing jobs by the paths a change touched
+# Every PR check runs on every change. Choosing jobs by the paths a change touched
 # made a check exist only once the choice was made, and the gate then had to
 # guess which checks were still to come; the caches below are what keep a run
 # that changed nothing a job reads cheap.
 jobs:
-  # Build the flake's package checks on every supported native platform.
+  # Build the flake's package checks on master on every supported native platform.
   # Darwin checks both the CLI and the package with the independently built
   # Adapter. Only master publishes newly built store paths to Cachix.
   nix:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     name: nix (${{ matrix.system }})
     strategy:
       fail-fast: false

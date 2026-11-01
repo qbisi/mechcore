@@ -24,9 +24,9 @@ Build the Nix package with `nix build .#mechcore`, or on ARM macOS build the
 CLI and Adapter together with `nix build .#mechcore-with-adapter`.
 
 CI builds and tests the flake's package checks on native `x86_64-linux`,
-`aarch64-linux` and `aarch64-darwin` runners for every pull request and push
-to `master`. Master builds upload newly built store paths to Cachix, using
-the same configuration as nixos-images and nur-qbisi. In the repository's
+`aarch64-linux` and `aarch64-darwin` runners only on pushes to `master`;
+these builds do not gate pull requests. Master builds upload newly built store
+paths to Cachix, using the same configuration as nixos-images and nur-qbisi. In the repository's
 **Settings → Environments**, create a `cachix` environment with:
 
 - variable `CACHIX_CACHE_NAME`: the cache name without `.cachix.org`;
