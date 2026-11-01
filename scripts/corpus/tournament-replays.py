@@ -189,16 +189,30 @@ def final_result(native: Path, scores: list[dict], round_number: int) -> dict:
     return candidates[0]
 
 
-def append_result(match: Path, native: Path, scores: list[dict]) -> dict:
+def exclusion_reason(native: Path, result: dict) -> str | None:
+    data = native.read_bytes()
+    start = data.index(b'<?xml')
+    end = data.index(b'</BattleRecord>', start) + len(b'</BattleRecord>')
+    max_round = int(ET.fromstring(data[start:end]).findtext('BattleInfo/MaxRound'))
+    if (0 < result['round'] < max_round
+            and all(result[side]['reactor_core'] > 0 for side in ('blue', 'red'))):
+        return 'early_termination'
+    return None
+
+
+def append_result(match: Path, native: Path, scores: list[dict]) -> tuple[dict, str | None]:
     last = list(yaml.safe_load_all(match.read_text()))[-1]
     if last['kind'] not in ('action', 'state'):
         raise RuntimeError("converted match does not end in decisions or a state")
     result = final_result(native, scores, last['round'] - (last['kind'] == 'state'))
+    skipped = exclusion_reason(native, result)
+    if skipped:
+        return result, skipped
     with match.open('a') as output:
         output.write('---\nkind: result\nround: ' + str(result['round']) + '\nwinner: ' + result['winner'] + '\n')
         for side in ('blue', 'red'):
             output.write(f"{side}: {{reactor_core: {result[side]['reactor_core']}}}\n")
-    return result
+    return result, None
 
 
 def keep_match(source: Path, destination: Path) -> bool:
@@ -243,11 +257,27 @@ def download_one(adapter: Adapter, replay_path: str, output: Path, mechcore: Pat
                  scores: list[dict]) -> dict:
     native = output / ".downloads" / (hashlib.sha256(replay_path.encode()).hexdigest() + ".grbr")
     cached = manifest.get(replay_path)
+    def skip(reason: str, result: dict | None = None) -> dict:
+        current = manifest[replay_path]
+        if current.get('match'):
+            previous = output / current['match']
+            if previous.exists():
+                if hashlib.sha256(previous.read_bytes()).hexdigest() != current['sha256']:
+                    raise RuntimeError(f'previously published match changed: {previous}')
+                previous.unlink()
+        manifest[replay_path] = {'battle_id': current['battle_id'], 'native': native.name,
+                                 'skipped': reason, 'scores': scores}
+        if result is not None:
+            manifest[replay_path]['result'] = result
+        save_manifest(output / '.downloads/manifest.json', manifest)
+        return {'replay_path': replay_path, 'battle_id': current['battle_id'], 'skipped': reason}
     if cached and cached.get("match") and cached.get("result"):
         destination = output / cached["match"]
         if destination.is_file() and hashlib.sha256(destination.read_bytes()).hexdigest() == cached["sha256"]:
             if final_result(native, scores, cached['result']['round']) != cached['result']:
                 raise RuntimeError(f"tournament result changed: {destination}")
+            if reason := exclusion_reason(native, cached['result']):
+                return skip(reason, cached['result'])
             return {"replay_path": replay_path, "output": str(destination), "duplicate": True}
         if destination.exists():
             raise RuntimeError(f"previously published match changed: {destination}")
@@ -277,11 +307,11 @@ def download_one(adapter: Adapter, replay_path: str, output: Path, mechcore: Pat
                 "schema": "mechcore.error", "kind": "refused", "operation": "convert",
                 "reason": "replay holds 1 round, which is the opening alone, and a match is deployment rounds",
             }:
-                manifest[replay_path]["skipped"] = "opening_only"
-                save_manifest(output / ".downloads/manifest.json", manifest)
-                return {"replay_path": replay_path, "battle_id": battle_id, "skipped": "opening_only"}
+                return skip('opening_only')
             raise RuntimeError(f"conversion failed; retained {native}: {converted.stderr.strip()}")
-        recorded_result = append_result(temporary, native, scores)
+        recorded_result, skipped = append_result(temporary, native, scores)
+        if skipped:
+            return skip(skipped, recorded_result)
         checked = subprocess.run([str(mechcore), "format", str(temporary), "--write"], capture_output=True, text=True, cwd=ROOT)
         if checked.returncode:
             raise RuntimeError(f"invalid tournament result: {checked.stderr.strip()}")

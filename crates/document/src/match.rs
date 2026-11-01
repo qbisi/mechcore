@@ -1206,7 +1206,7 @@ pub fn segments(bytes: &[u8]) -> Result<Option<Segments>, String> {
             return Err(format!("match segment {position} follows a result"));
         }
         if kind_of(&segment) == Some("result") {
-            stream.result = Some(read_result(segment, &stream.rounds)?);
+            stream.result = Some(read_result(segment, &stream.rounds, &stream.header)?);
             continue;
         }
         if let Some(end) = ended {
@@ -1264,7 +1264,11 @@ pub fn segments(bytes: &[u8]) -> Result<Option<Segments>, String> {
     Ok(Some(stream))
 }
 
-fn read_result(segment: Value, rounds: &[RoundSegments]) -> Result<MatchResult, String> {
+fn read_result(
+    segment: Value,
+    rounds: &[RoundSegments],
+    header: &Value,
+) -> Result<MatchResult, String> {
     let last = rounds
         .last()
         .ok_or("a result requires a deployment round")?;
@@ -1299,9 +1303,27 @@ fn read_result(segment: Value, rounds: &[RoundSegments]) -> Result<MatchResult, 
                 })
         })
     });
+    let map_id = header
+        .get("map_id")
+        .and_then(Value::as_i64)
+        .and_then(|id| i32::try_from(id).ok())
+        .ok_or("a result requires a map_id")?;
+    let at_limit = result.round == crate::opening::max_round(map_id)?;
     let winner = concession
-        .or_else(|| Winner::from_cores(result.blue.reactor_core, result.red.reactor_core));
-    if winner != Some(result.winner) {
+        .or_else(|| Winner::from_cores(result.blue.reactor_core, result.red.reactor_core))
+        .or_else(|| {
+            if !at_limit {
+                return None;
+            }
+            match result.blue.reactor_core.cmp(&result.red.reactor_core) {
+                std::cmp::Ordering::Greater => Some(Winner::Blue),
+                std::cmp::Ordering::Less => Some(Winner::Red),
+                // Native ranking breaks equal cores by team bonus, which
+                // this result does not carry. Retain the recorded winner.
+                std::cmp::Ordering::Equal => None,
+            }
+        });
+    if winner.is_some_and(|winner| winner != result.winner) || (winner.is_none() && !at_limit) {
         return Err("result winner disagrees with the final cores or concession".into());
     }
     if core_destroyed(&last.state)
@@ -1729,6 +1751,24 @@ mod tests {
         assert!(read_ok(&conceded));
         let terminal = format!("{prefix}{}{result}", state(7, 0));
         assert!(read(&terminal).is_err());
+    }
+
+    #[test]
+    fn positive_final_cores_require_the_maps_round_limit() {
+        let stream = format!(
+            "kind: match\nmap_id: 1012\nseed: 1\n{}{}---\nkind: result\nround: 13\nwinner: blue\nblue: {{reactor_core: 402}}\nred: {{reactor_core: 12}}\n",
+            state(13, 402),
+            actions(13, "[]"),
+        );
+        assert!(read_ok(&stream));
+        assert!(read(&stream.replace("map_id: 1012", "map_id: 1011")).is_err());
+        assert!(read(&stream.replace("round: 13", "round: 12")).is_err());
+        assert!(read(&stream.replace("winner: blue", "winner: red")).is_err());
+        // Equal cores leave the authoritative winner intact; team bonus is absent.
+        assert!(read_ok(
+            &stream.replace("reactor_core: 12", "reactor_core: 402")
+        ));
+        assert_eq!(crate::opening::max_round(1011).unwrap(), 40);
     }
 
     /// A stream may stop after any segment, which is what lets a later reader

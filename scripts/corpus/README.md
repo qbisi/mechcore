@@ -14,6 +14,7 @@ recording studies; the earlier native archive remains in Git history.
 | `default-loadout.py` | ranks current-version player loadout choices, counting each match's two sides once, and prints the CLI's default four or six technologies per unit |
 | `collect-replays.py` | enters live standard 1v1 rooms at round 2 or later, saves the native cache, leaves, then converts it to `BattleID-rN.yaml` in `work/watch/` (or `--output-dir`); it needs the game |
 | `tournament-replays.py` | lists recent tournaments with dates and regions, then downloads every subdivision and ranking page of one tournament ID through the Adapter and converts unique replays to `<date>-<region>/<BattleID>.yaml`; `download --publish` uploads after success, and offline `publish` uploads collected tournaments; listing and downloading need an online game |
+| `test_tournament_replays.py` | checks round-limit admission, early-ending and opening-only filtering, and safe resume without a game |
 | `replay.py` | `sync` fetches the corpus into the untracked `work/replay/`; `path` prints its versioned match directory; `publish --source <dir>` validates and uploads collected match YAML, and `--dry-run` checks without publishing |
 | `export-replay-corpus.py` | converts this checkout's version's replays into `work/match/<version>/`, writes each match back as a replay and converts it again, and fails on one that does not come back the same |
 | `verify-matches.py` | runs `mechcore verify` over those matches, adds up the transition coverage, and lists every round the simulator fights whose result differs from the match, with whether `tests/corpus/` pins it, every round it refuses and every comparison skipped with a warning, each match's last round fought on its own |
@@ -75,12 +76,18 @@ directory's `.downloads/`. A replay containing only the opening has no
 deployment round to represent as a match: the converter's explicit
 opening-only refusal is recorded as `skipped: opening_only` in the manifest
 and output, with a separate `skipped` summary count. Its native input is
-retained. Every other conversion failure makes the batch exit nonzero.
+retained. A result with both cores positive before the native round limit is
+filtered as `skipped: early_termination`, including recorded concessions.
+At the round limit, a result may legitimately retain two positive cores and
+is collected. Both skipped categories retain the native input and API scores
+in the local manifest and do not block publication. Every other conversion
+failure makes the batch exit nonzero. Resuming removes a newly filtered local
+match only if its bytes still match the manifest hash; an edited file is refused.
 Restart the same command to resume. Both actions default to scheduler level 0.
 Conversion keeps the converter's current-build and standard 1v1 checks;
 older-version and 2v2 inputs remain native files with explicit errors.
 `download --publish` releases its Adapter connection and uploads only when
-all representable replay conversions succeed; opening-only skips do not block
+all unfiltered replay conversions succeed; skips do not block
 publication. Without that flag, collection remains local.
 Offline `publish --source` accepts the collection root or one date-region
 directory and uploads only its match YAML to the same path under `tournaments/`

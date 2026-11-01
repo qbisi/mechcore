@@ -115,8 +115,13 @@ final score are independent.
 
 `winner` is `blue`, `red` or `draw`. Each side's required `reactor_core` is
 its signed final core value, including negative values. Without a concession,
-one core must be zero or below: the surviving side wins, or both destroyed
-cores mean a draw. With a concession, the other side wins and no fight occurs;
+one core must be zero or below unless `round` equals the map preset's
+`max_round` in [config/opening.yaml](../../../config/opening.yaml). A surviving
+side wins, or both destroyed cores mean a draw. At the round limit, both cores
+may remain positive and the side with more core wins. Equal positive cores do
+not imply a draw: native ranking also compares team bonus, which this segment
+does not carry, so its explicit winner is retained in that case.
+With a concession, the other side wins and no fight occurs;
 the cores stay at their round-opening values. If a terminal state is also
 present, its cores must equal the result's cores.
 
