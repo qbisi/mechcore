@@ -750,7 +750,7 @@ only after the new sequence reproduces the deployment endpoint. It does not
 rewrite the recorded states or run a fight.
 
 `schema <kind>...` takes the kinds a document declares in its own `kind` field:
-`layout`, `fight`, `state`, `match` and `action`. It answers the shape of the document,
+`layout`, `fight`, `state`, `match`, `action` and `result`. It answers the shape of the document,
 which is what a reader validates against and what a writer generates from; it
 says nothing about what the fields mean, which is the document's own spec. A
 kind this contract does not name is refused.

@@ -179,6 +179,7 @@ fn deal(
             seed: Some(draw.seed()),
         };
     let r#match = Match {
+        result: None,
         has_opening: true,
         game_build: mechcore_document::game_build().to_owned(),
         map_id,
@@ -328,6 +329,9 @@ fn fork_position(
     side: Option<Side>,
     round: Option<i32>,
 ) -> Result<Game, Failure> {
+    if round.is_some() {
+        document.result = None;
+    }
     if round == Some(0) && document.has_opening {
         document.turns.clear();
         document.blue.opening.choose = None;
@@ -675,6 +679,9 @@ impl Game {
     /// Whether the match has ended: a side gave up, or a reactor core reached
     /// zero.
     fn over(&self) -> bool {
+        if self.r#match.result.is_some() {
+            return true;
+        }
         let Some(turn) = self.r#match.turns.last() else {
             return false;
         };
@@ -735,15 +742,45 @@ impl Game {
             .into_iter()
             .filter(|side| !self.turn.side(*side).committed)
             .collect();
-        for side in out {
+        for side in &out {
             let round = self
                 .r#match
                 .turns
                 .last_mut()
                 .expect("a clock runs only on a round the document holds");
-            actions_of_mut(&mut round.actions, side).push(Action::Concede);
+            actions_of_mut(&mut round.actions, *side).push(Action::Concede);
         }
+        self.record_concession();
         self.write_document()
+    }
+
+    /// Records a concession without running a fight or dealing a next round.
+    fn record_concession(&mut self) {
+        use mechcore_document::r#match::{FinalCore, MatchResult, Winner};
+        if self.r#match.result.is_some() {
+            return;
+        }
+        let Some(turn) = self.r#match.turns.last() else {
+            return;
+        };
+        let winner = match (
+            turn.actions.blue.contains(&Action::Concede),
+            turn.actions.red.contains(&Action::Concede),
+        ) {
+            (true, false) => Winner::Red,
+            (false, true) => Winner::Blue,
+            _ => return,
+        };
+        self.r#match.result = Some(MatchResult {
+            round: turn.round,
+            winner,
+            blue: FinalCore {
+                reactor_core: turn.state.blue.reactor_core,
+            },
+            red: FinalCore {
+                reactor_core: turn.state.red.reactor_core,
+            },
+        });
     }
 
     /// Runs the round's fight, which opens the round after it.
@@ -756,6 +793,7 @@ impl Game {
     fn fight(&mut self, held: &mut Held) -> Result<(), String> {
         self.publish_committed();
         if self.over() {
+            self.record_concession();
             return self
                 .write(held)
                 .map_err(|failure| failure.reason().to_owned());
@@ -813,6 +851,20 @@ impl Game {
             states.push(next);
         }
         let [blue, red] = [states.remove(0), states.remove(0)];
+        if let Some(winner) =
+            mechcore_document::r#match::Winner::from_cores(blue.reactor_core, red.reactor_core)
+        {
+            self.r#match.result = Some(mechcore_document::r#match::MatchResult {
+                round,
+                winner,
+                blue: mechcore_document::r#match::FinalCore {
+                    reactor_core: blue.reactor_core,
+                },
+                red: mechcore_document::r#match::FinalCore {
+                    reactor_core: red.reactor_core,
+                },
+            });
+        }
         self.r#match.turns.push(MatchTurn {
             round: round + 1,
             state: State {

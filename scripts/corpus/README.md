@@ -40,6 +40,11 @@ The converter restores the server snapshot conventions described in
 including paid income and omitted action operands; it checks the random
 streams and offers rather than treating `Seat = -1` as grounds for refusal.
 Only the resulting match YAML is eligible for corpus publication.
+Tournament collection appends a final `result` segment after conversion, using
+the history response's final core values and winner. Player IDs map those
+scores to the replay's blue and red seats; repeated score records must agree.
+The result is retained in the local manifest. Missing or inconsistent results
+fail collection rather than publishing a match with an unstated final score.
 
 Tournament collection uses the Adapter directly, with no new CLI operation:
 

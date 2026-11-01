@@ -130,18 +130,31 @@ fn page_response(api: Api, message: *mut Object) -> Result<((i32, i32, i32), Val
     let pages = field::<i32>(api, message, "pageNum_")?;
     let ranks = objects(api, field(api, message, "rankList_")?)?;
     let mut replays = std::collections::BTreeSet::new();
+    let mut results = Vec::new();
     for rank in &ranks {
+        let team = field::<*mut Object>(api, *rank, "teamInfo_")?;
+        let members = objects(api, field(api, team, "members_")?)?;
         for record in objects(api, field(api, *rank, "roundRecord_")?)? {
             let path = text(api, field(api, record, "replayPath_")?)?;
             if !path.is_empty() {
-                replays.insert(path);
+                replays.insert(path.clone());
+                if members.len() == 1 {
+                    results.push(json!({
+                        "replay_path": path,
+                        "player_id": field::<u64>(api, members[0], "userid_")?.to_string(),
+                        "reactor_core": field::<i32>(api, record, "myHp_")?,
+                        "opponent_reactor_core": field::<i32>(api, record, "enemyHp_")?,
+                        "win": field::<bool>(api, record, "win_")?,
+                    }));
+                }
             }
         }
     }
     Ok((
         (id, sub_id, page),
         json!({"ready": true, "match_id": id, "sub_id": sub_id,
-        "page": page, "pages": pages, "rank_count": ranks.len(), "replays": replays}),
+        "page": page, "pages": pages, "rank_count": ranks.len(), "replays": replays,
+        "results": results}),
     ))
 }
 

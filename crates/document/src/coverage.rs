@@ -120,7 +120,7 @@ pub struct Coverage {
     pub fields: BTreeMap<String, Counts>,
     pub transitions: Vec<Transition>,
     pub unequal: Vec<Difference>,
-    /// The last round's decisions, when no position follows them. They have
+    /// The last round's decisions, when no position or result follows them. They have
     /// nothing to be compared against, and are not a transition.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub untargeted_round: Option<i32>,
@@ -171,7 +171,6 @@ pub fn measure(economy: &Economy, stated: &Stated, deal: Result<&Verified, &str>
     }
     for pair in stated.turns.windows(2) {
         let [turn, next] = pair else { continue };
-        // What a decline pays is the round's own offer to state.
         let declined = turn
             .state
             .reinforce_offers
@@ -191,7 +190,7 @@ pub fn measure(economy: &Economy, stated: &Stated, deal: Result<&Verified, &str>
         }
         coverage.deal(turn, next, deal.ok(), dealt_from);
     }
-    if stated.ends_on_actions {
+    if stated.ends_on_actions && stated.result.is_none() {
         coverage.untargeted_round = stated.turns.last().map(|turn| turn.round);
     }
     coverage
@@ -652,7 +651,7 @@ mod tests {
 /// round that does not agree leaves the rounds after it to be fought as well.
 #[derive(Debug, Default, Serialize)]
 pub struct Fights {
-    /// Each round the match states a position after, in order.
+    /// Each round with a next position or final score to compare, in order.
     pub rounds: Vec<Fought>,
 }
 
@@ -717,8 +716,8 @@ impl Fights {
 /// that layout, or why it cannot. Its result is written onto the deployment
 /// as [`crate::transition::settle`] writes it, and only the leaves the fight
 /// decides, [`FIGHT`], are compared: everything else about the next opening
-/// is [`measure`]'s. A round the match states no position after is not
-/// fought.
+/// is [`measure`]'s. A final result compares only the cores without opening
+/// another round. A round with neither a next position nor a result is not fought.
 pub fn fights(
     economy: &Economy,
     stated: &Stated,
@@ -726,8 +725,23 @@ pub fn fights(
     mut fight: impl FnMut(&crate::layout::Layout) -> Result<crate::fight::Fight, String>,
 ) -> Fights {
     let mut found = Fights::default();
-    for pair in stated.turns.windows(2) {
-        let [turn, next] = pair else { continue };
+    for (index, turn) in stated.turns.iter().enumerate() {
+        let next = stated.turns.get(index + 1);
+        let result = stated
+            .result
+            .as_ref()
+            .filter(|result| result.round == turn.round);
+        if next.is_none() && result.is_none() {
+            continue;
+        }
+        if turn.actions.blue.contains(&Action::Concede)
+            || turn.actions.red.contains(&Action::Concede)
+        {
+            if let Some(result) = result {
+                found.rounds.push(concession_comparison(turn, result));
+            }
+            continue;
+        }
         let declined = deal.declined(turn);
         let projected = crate::project::deployment(
             economy,
@@ -771,29 +785,83 @@ pub fn fights(
         };
         let mut differences = Vec::new();
         for (side, red) in [("blue", false), ("red", true)] {
-            let (deployed, fought_side, recorded) = if red {
-                (&position.red, &fought.red, &next.state.red)
+            let (deployed, fought_side) = if red {
+                (&position.red, &fought.red)
             } else {
-                (&position.blue, &fought.blue, &next.state.blue)
+                (&position.blue, &fought.blue)
             };
-            differences.extend(settled_differences(
-                economy,
-                turn.round,
-                (deployed, fought_side, recorded),
-                (side, red),
-                Stream::from_state(deployed.random_state).ok(),
-            ));
-        }
-        found.rounds.push(if differences.is_empty() {
-            Fought::Equal { round: turn.round }
-        } else {
-            Fought::Differs {
-                round: turn.round,
-                differences,
+            if let Some(next) = next {
+                let recorded = if red {
+                    &next.state.red
+                } else {
+                    &next.state.blue
+                };
+                differences.extend(settled_differences(
+                    economy,
+                    turn.round,
+                    (deployed, fought_side, recorded),
+                    (side, red),
+                    Stream::from_state(deployed.random_state).ok(),
+                ));
+            } else if let Some(result) = result {
+                let recorded = if red {
+                    result.red.reactor_core
+                } else {
+                    result.blue.reactor_core
+                };
+                core_difference(
+                    &mut differences,
+                    turn.round,
+                    side,
+                    deployed.reactor_core - fought_side.core_damage,
+                    recorded,
+                );
             }
-        });
+        }
+        found.rounds.push(fight_comparison(turn.round, differences));
     }
     found
+}
+
+fn concession_comparison(turn: &Turn, result: &crate::r#match::MatchResult) -> Fought {
+    let mut differences = Vec::new();
+    for (side, predicted, recorded) in [
+        (
+            "blue",
+            turn.state.blue.reactor_core,
+            result.blue.reactor_core,
+        ),
+        ("red", turn.state.red.reactor_core, result.red.reactor_core),
+    ] {
+        core_difference(&mut differences, turn.round, side, predicted, recorded);
+    }
+    fight_comparison(turn.round, differences)
+}
+
+fn core_difference(
+    differences: &mut Vec<Difference>,
+    round: i32,
+    side: &'static str,
+    predicted: i32,
+    recorded: i32,
+) {
+    if predicted != recorded {
+        differences.push(Difference {
+            round,
+            side,
+            path: "reactor_core".into(),
+            predicted: Some(predicted.to_string()),
+            recorded: Some(recorded.to_string()),
+        });
+    }
+}
+
+fn fight_comparison(round: i32, differences: Vec<Difference>) -> Fought {
+    if differences.is_empty() {
+        Fought::Equal { round }
+    } else {
+        Fought::Differs { round, differences }
+    }
 }
 
 /// The leaves the fight decides on which `recorded` differs from `deployed`

@@ -523,10 +523,10 @@ pub struct Stated {
     pub turns: Vec<Turn>,
     /// Round zero's decisions, each side's opening, as written.
     pub opening: TurnActions,
-    /// Whether the last round's decisions are written with no position after
-    /// them, which a converted match does because no replay records the last
-    /// fight's result.
+    /// Whether the last deployment has decisions and no following position.
+    /// An independent final result does not change this deployment boundary.
     pub ends_on_actions: bool,
+    pub result: Option<crate::r#match::MatchResult>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -668,6 +668,7 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         turns,
         opening,
         ends_on_actions,
+        result: stream.result,
     }))
 }
 

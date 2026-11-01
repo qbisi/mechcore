@@ -159,6 +159,7 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
     settle_concession(&mut turns)?;
 
     let mut converted = Match {
+        result: None,
         has_opening,
         game_build: crate::economy::game_build().to_owned(),
         map_id: record.info.map_id,
@@ -1504,6 +1505,7 @@ mod tests {
             9,
         );
         let mut game = Match {
+            result: None,
             has_opening: true,
             game_build: crate::game_build().into(),
             map_id: 1012,

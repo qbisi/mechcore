@@ -13,8 +13,8 @@ the first that is not and where that was, and lists every round the simulator
 fights whose result differs from the match, the divergences left to find, with
 whether `tests/corpus/` pins the round already. It lists every round the
 simulator refuses, or that does not project onto a layout, with the reason:
-`verify` fights only the rounds the match states a position after, so the
-script fights each match's last round on its own, `convert --to layout` then
+`verify` fights rounds with a next position or a final result, so the
+script fights an otherwise untargeted last round on its own, `convert --to layout` then
 `convert --to mcfr`, unless a side concedes it, as a concession ends the match
 unfought.
 The documents are the ones `scripts/corpus/export-replay-corpus.py` converts from the
@@ -106,6 +106,8 @@ def last_round(path: Path) -> int | None:
     """The match's last round, which no position follows, unless a side
     concedes it: a concession ends the match with no fight."""
     text = path.read_text()
+    if re.search(r"^kind: result$", text, flags=re.MULTILINE):
+        return None  # mechcore verify already compares the final core settlement.
     stated = sum(1 for line in text.splitlines() if line == "kind: state")
     for segment in re.split(r"^---$", text, flags=re.MULTILINE):
         found = re.match(r"\s*kind: action\nround: (\d+)$", segment, flags=re.MULTILINE)

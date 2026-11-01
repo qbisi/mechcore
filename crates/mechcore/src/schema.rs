@@ -15,7 +15,7 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
     let kinds = arguments.operands()?;
     if kinds.is_empty() {
         return Err(Failure::usage(
-            "expected <kind>...: layout, fight, match, state or action",
+            "expected <kind>...: layout, fight, match, state, action or result",
         ));
     }
     for kind in kinds {
@@ -25,10 +25,11 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
             "match" => schemars::schema_for!(mechcore_document::r#match::schema::Match),
             "state" => schemars::schema_for!(mechcore_document::r#match::schema::State),
             "action" => schemars::schema_for!(mechcore_document::r#match::schema::Actions),
+            "result" => schemars::schema_for!(mechcore_document::r#match::schema::Result),
             other => {
                 return Err(Failure::usage(format!(
                     "no document is of kind {other:?}; a document names itself \
-                     layout, fight, match, state or action"
+                     layout, fight, match, state, action or result"
                 )));
             }
         };
