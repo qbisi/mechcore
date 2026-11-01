@@ -72,6 +72,13 @@ entries gives every seat its first; the file states each map's
 rows list no default shop unit and no commander skill, so a
 side holds neither before its opening.
 
+The same map preset supplies `maxRound`, written as `max_round` in the file.
+`BattleSetting.Refresh` copies it from `MatchSetting`; the default gameplay
+controller reads it from the battle settings. `GSCI_Round.IsOver` reports
+`MaxRoundLimit` when the round count reaches that limit. The ordinary Forest
+Eye preset (1011) has a limit of 40 and its tournament preset (1012) a limit
+of 13; they share the same terrain layout.
+
 `scripts/extract/extract_opening.py` reads the build's typed export: each map's
 `matchSettings` row names its `MapData`, whose `layoutName` names the
 `MapLayout` whose territories give the seats' main regions. The extractor
@@ -133,6 +140,9 @@ the alternatives offered, not which alternative either player chooses.
   centre: `MapRegion.ConvertToWorldPoint`.
 - A seat's reactor core is its map's by seat index, or the first for every
   seat when the list is shorter than two: `MatchSetting.GetReactorCore`.
+- A map preset supplies the round limit: `BattleSetting.Refresh`,
+  `GameplayController.GetMaxRound`, `GSCI_Round.IsOver` and
+  `ConfigDataContainer.matchSettings.maxRound`.
 - The deal size is the setting's choose count, capped by each pool's share:
   `BattleOpeningController.CalculateChooseCount`.
 - The diversity limit is a lower bound on distinct types, counting the picks

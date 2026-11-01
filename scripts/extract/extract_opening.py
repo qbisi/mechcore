@@ -54,6 +54,7 @@ def extract(structure):
                 'centers': seat_centres(layouts[map_data[row['mapData']]['layoutName']]),
                 # One reactor core per seat, or one every seat shares.
                 'reactor_cores': row['reactorCores'],
+                'max_round': row['maxRound'],
             }
     wanted = {group for row in maps.values() for group in row['groups']}
     constructions = {}

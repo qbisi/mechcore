@@ -319,6 +319,7 @@ struct MapSetup {
     groups: Vec<i32>,
     centers: [Position; 2],
     reactor_cores: Vec<i32>,
+    max_round: i32,
 }
 
 #[derive(Deserialize)]
@@ -432,6 +433,18 @@ pub fn reactor_core(map_id: i32, seat: usize) -> Result<i32, String> {
         .get(at)
         .copied()
         .ok_or_else(|| format!("map {map_id} states no reactor core for seat {seat}"))
+}
+
+/// The round limit of the map's `MatchSetting` preset.
+///
+/// # Errors
+/// Refuses a map without a supported initialization preset.
+pub fn max_round(map_id: i32) -> Result<i32, String> {
+    Setup::embedded()?
+        .maps
+        .get(&map_id)
+        .map(|map| map.max_round)
+        .ok_or_else(|| format!("map {map_id} has no supported opening initialization"))
 }
 
 /// Predicts standard 1v1 offers and initial defensive constructions from a seed.
