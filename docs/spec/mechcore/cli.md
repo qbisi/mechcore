@@ -325,11 +325,12 @@ reports that round as `warning` and skips its fight comparison. Rounds that
 open with Aerial Mode already researched are outside this warning.
 
 Wraiths with Floating Artillery Array and Aerial Specialist also warn when
-Land Cruiser was researched before the round. Their extra weapons can retain
-officer corrections across rounds which state/layout does not carry.
+Land Cruiser was researched before the round, or when Floating Artillery Array
+is researched after Land Cruiser in this round. Their extra weapons can retain
+officer corrections from initialization history which state/layout does not carry.
 Conversion still executes the projection, and match verification skips only
-the warned round's fight comparison. The round that first researches Land
-Cruiser is outside this warning.
+the warned round's fight comparison. Researching the extra weapons before
+Land Cruiser does not add the same-round warning.
 
 **`match` to `fight` or `mcfr`, a computation.** Selects the round exactly as `match` to
 `layout` does, projects its recorded state and decisions through that same

@@ -47,6 +47,7 @@ pub fn deployment(
         let mut position = opened.clone();
         let mut affected = std::collections::BTreeSet::new();
         let mut purchased = std::collections::BTreeSet::new();
+        let mut landed_extra_weapons = false;
         for action in actions {
             if matches!(action, Action::BuyUnit { .. }) {
                 purchased.insert(position.next_index.unit);
@@ -71,6 +72,11 @@ pub fn deployment(
                         })
                         .map(|entry| entry.unit.index),
                 );
+            }
+            if matches!(action, Action::UpgradeTechnology { tech: 110_181, .. })
+                && position.techs.contains(&4418)
+            {
+                landed_extra_weapons = true;
             }
             affected.retain(|index| {
                 next.units
@@ -104,7 +110,7 @@ pub fn deployment(
                 ));
             }
         }
-        if opened.techs.contains(&4418)
+        if (opened.techs.contains(&4418) || landed_extra_weapons)
             && position.techs.contains(&110_181)
             && position.officers.contains(&20021)
         {
@@ -117,7 +123,7 @@ pub fn deployment(
             if !affected.is_empty() {
                 let side = if red { "red" } else { "blue" };
                 warnings.push(format!(
-                    "round {round} {side}: Wraith formations {affected:?} have Floating Artillery Array, Aerial Specialist and Land Cruiser researched before this round. Native extra-weapon officer corrections can retain cross-round initialization history. State/layout does not preserve those corrections; the projected fight may differ."
+                    "round {round} {side}: Wraith formations {affected:?} have Floating Artillery Array, Aerial Specialist and Land Cruiser. Native extra-weapon officer corrections can retain cross-round initialization history or differ when Floating Artillery Array is researched after Land Cruiser in this round. State/layout does not preserve those corrections; the projected fight may differ."
                 ));
             }
         }
@@ -661,6 +667,30 @@ mod tests {
             )
             .warnings
             .is_empty()
+        );
+        let mut both_researched = opening.clone();
+        both_researched.blue.techs.clear();
+        let land_cruiser = Action::UpgradeTechnology {
+            unit: 18,
+            tech: 4418,
+        };
+        let artillery = Action::UpgradeTechnology {
+            unit: 18,
+            tech: 110_181,
+        };
+        assert_eq!(
+            check(
+                &both_researched,
+                vec![land_cruiser.clone(), artillery.clone()]
+            )
+            .warnings
+            .len(),
+            1
+        );
+        assert!(
+            check(&both_researched, vec![artillery, land_cruiser])
+                .warnings
+                .is_empty()
         );
         let mut no_wraith = opening;
         no_wraith.blue.units.clear();
