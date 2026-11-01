@@ -103,8 +103,8 @@ A value equal to the centre, or differing by only 43 raw, falls to the low side.
 ## Insertion and splitting
 
 Agents insert strictly in input array order, which is `Simulator.agents`'
-order. The kernel adds each side's live towers and then its live
-non-tower colliders in `ActorComparer` position order, including interceptors,
+order. The kernel adds each side's live towers, its live construction
+colliders in position order, then its live interceptors in position order,
 then the map's crystals in the order `config/maps.yaml` lists
 them, then the live units the fight started with by Unit ID, and last the units
 whose agents joined since, in the order they joined (`RvoState.added_units`):
