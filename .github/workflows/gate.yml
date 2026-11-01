@@ -57,13 +57,14 @@ jobs:
             exit 0
           fi
 
-          # The checks a pull request must pass, by job name: ci's Cargo and
-          # Nix jobs and docs'. Every one runs on every change, so each is expected
+          # The checks a pull request must pass, by job name: ci's Cargo jobs
+          # and docs'. Nix packages build only on master and do not gate PRs.
+          # Every required job runs on every change, so each is expected
           # rather than discovered: a check that has not appeared yet is one
           # still to come, not one that was skipped. Adding a job means adding
           # it here. Only each name's latest run counts, so a re-run replaces
           # the attempt before it.
-          expected='["test", "scripts", "adapter", "nix (x86_64-linux)", "nix (aarch64-linux)", "nix (aarch64-darwin)", "docs"]'
+          expected='["test", "scripts", "adapter", "docs"]'
           total=$(jq 'length' <<<"$expected")
           checks=$(gh api "repos/$REPOSITORY/commits/$HEAD_SHA/check-runs?per_page=100" \
             --jq '[.check_runs[]] | group_by(.name) | map(max_by(.id))')
