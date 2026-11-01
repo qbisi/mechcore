@@ -429,11 +429,12 @@ impl Simulation {
             sweep.count_struck(&excluded);
             return Ok(());
         }
+        let range = line_range::LineRange::new(area.start, area.end, shape.width_q32);
         let hits = self
-            .target_search_order()
-            .into_iter()
-            .filter(|(candidate_team, _)| *candidate_team != team)
-            .flat_map(|(_, candidates)| candidates)
+            .target_quadtrees
+            .iter()
+            .filter(|(candidate_team, _)| **candidate_team != team)
+            .flat_map(|(_, tree)| tree.query(|rect| range.overlaps_rect(rect)))
             .filter(|candidate| {
                 !excluded.contains(candidate)
                     && self.fight_actor(*candidate).is_some_and(|view| {

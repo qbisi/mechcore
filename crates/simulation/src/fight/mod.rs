@@ -64,6 +64,7 @@ mod intercept;
 mod kill_explosion;
 mod kills;
 mod life_priority;
+mod line_range;
 mod math;
 mod mech;
 mod mech_group;
