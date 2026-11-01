@@ -215,7 +215,16 @@ fields.
 
 ### What a side brings to the match
 
-Alongside its display name, each side holds four facts for the whole match.
+Each side may also carry `elo_score`, an integer copied from
+`PlayerBaseInfo.eloScore` in the original server replay's opening snapshot.
+It labels historical 1v1 matchmaking strength. Absence means unknown; an
+explicit zero remains zero. It is independent of `rankPoint`, and neither
+current profile queries nor a subsequent match supply this match's label.
+Reading, formatting and decision-view header projection preserve it. It does
+not change action legality, combat, verification comparisons or the result.
+The original replay states no rating change, so none is inferred.
+
+Alongside its display name and optional rating, each side holds four facts for the whole match.
 Two are dealt before either player decides anything, the third bounds every
 round, and the fourth seeds what the side's own officers draw.
 

@@ -15,6 +15,7 @@ recording studies; the earlier native archive remains in Git history.
 | `collect-replays.py` | enters live standard 1v1 rooms at round 2 or later, saves the native cache, leaves, then converts it to `BattleID-rN.yaml` in `work/watch/` (or `--output-dir`); it needs the game |
 | `tournament-replays.py` | lists recent tournaments with dates and regions, then downloads every subdivision and ranking page of one tournament ID through the Adapter and converts unique replays to `<date>-<region>/<BattleID>.yaml`; `download --publish` uploads after success, and offline `publish` uploads collected tournaments; listing and downloading need an online game |
 | `test_tournament_replays.py` | checks round-limit admission, early-ending and opening-only filtering, and safe resume without a game |
+| `server_replay.py` | reads original server protobuf identity and optional opening Elo labels for tournament collection |
 | `replay.py` | `sync` fetches the corpus into the untracked `work/replay/`; `path` prints its versioned match directory; `publish --source <dir>` validates and uploads collected match YAML, and `--dry-run` checks without publishing |
 | `export-replay-corpus.py` | converts this checkout's version's replays into `work/match/<version>/`, writes each match back as a replay and converts it again, and fails on one that does not come back the same |
 | `verify-matches.py` | runs `mechcore verify` over those matches, adds up the transition coverage, and lists every round the simulator fights whose result differs from the match, with whether `tests/corpus/` pins it, every round it refuses and every comparison skipped with a warning, each match's last round fought on its own |
@@ -41,6 +42,16 @@ The converter restores the server snapshot conventions described in
 including paid income and omitted action operands; it checks the random
 streams and offers rather than treating `Seat = -1` as grounds for refusal.
 Only the resulting match YAML is eligible for corpus publication.
+The collector also downloads and retains the original `.rep`, using the
+game-configured replay servers returned by the Adapter. Its opening
+`PlayerBaseInfo.eloScore` becomes each side's optional header `elo_score`,
+mapped through native player IDs. Missing scores stay absent, never zero-filled.
+BattleID, build and both identities must agree with the converted GRBR.
+Original bytes and their SHA-256 stay in `.downloads/` and its manifest; rating
+changes are not recorded by the original format and are not inferred.
+Resume can rebuild an unchanged local match to add these labels. It refuses
+changed raw bytes or user-edited match output. Public append-only publication
+still refuses different bytes at an existing corpus path.
 Tournament collection appends a final `result` segment after conversion, using
 the history response's final core values and winner. Player IDs map those
 scores to the replay's blue and red seats; repeated score records must agree.

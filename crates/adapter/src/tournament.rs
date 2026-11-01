@@ -555,7 +555,25 @@ fn list_tournaments(runtime: &Runtime) -> Result<Value> {
             )?,
         );
     }
-    Ok(json!({"ready": true, "tournaments": entries.into_values().collect::<Vec<_>>()}))
+    let config = operations::config_instance(runtime).map_err(|error| error.to_string())?;
+    let extra = api
+        .invoke(config, "get_extraSettings", &mut [])
+        .map_err(|error| error.to_string())?;
+    let mut replay_urls = Vec::new();
+    for name in [
+        "dataServerPathCN",
+        "dataServerPathInternational",
+        "dataServerPathCNExtra",
+    ] {
+        let base = text(api, field(api, extra, name)?)?;
+        if !base.is_empty() {
+            replay_urls.push(format!("{}/replay/", base.trim_end_matches('/')));
+        }
+    }
+    Ok(
+        json!({"ready": true, "tournaments": entries.into_values().collect::<Vec<_>>(),
+        "replay_urls": replay_urls}),
+    )
 }
 
 fn download_result(

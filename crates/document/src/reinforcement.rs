@@ -1145,6 +1145,7 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let opening = crate::opening::predict(economy, 12345, 1011).unwrap();
         let side = |offers: Vec<_>, constructions| MatchSide {
+            elo_score: None,
             name: "player".into(),
             opening: Opening {
                 choose: None,

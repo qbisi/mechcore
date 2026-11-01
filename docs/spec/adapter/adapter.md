@@ -870,7 +870,10 @@ List the recent tournaments retained by the server:
 {"action":"list"}
 ```
 
-The result contains `ready: true` and `tournaments`, each with `match_id`,
+The result contains `ready: true`, `replay_urls` and `tournaments`.
+`replay_urls` lists the configured native resource servers' replay base URLs;
+a caller appends a native replay path to download the original protobuf `.rep`.
+Each tournament has `match_id`,
 `sub_ids`, Unix-second `start_time`, localized `title`, three untranslated
 configuration `params`, `division_type`, `subtype`, and `source` (`history` or
 `recent`). The list combines the native historical archive with ended entries

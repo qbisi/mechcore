@@ -547,6 +547,8 @@ pub struct StatedSide {
     /// Player display name, defaulting to the seat when absent.
     #[serde(default)]
     pub name: Option<String>,
+    #[serde(default)]
+    pub elo_score: Option<i32>,
     /// The opening this side took, absent while it has not taken one.
     #[serde(skip)]
     pub opening: Option<StatedOpening>,
