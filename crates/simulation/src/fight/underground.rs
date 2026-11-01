@@ -341,22 +341,13 @@ impl Simulation {
         Ok(Flow::Done)
     }
 
-    /// `TransitionState.Exit`, the ability's `OnTransitionEnd`, and the next
-    /// state entered.
-    ///
-    /// The end of a surfacing invokes `OnExitMoveEnd`, on which
-    /// `MoveAbilityRangeItemSystem` leaves the unit's sand fog where it
-    /// stands (`EnableEffect`, `RangeItemSystem.AddItem`), under its side.
+    /// Finish the queued change after exiting the transition.
     fn end_transition(&mut self, actor_id: u64) -> Result<()> {
+        self.exit_transition(actor_id)?;
         let actor = self
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        let surfaced = actor
-            .underground
-            .as_ref()
-            .is_some_and(|underground| underground.state == AbilityState::Exit);
-        actor.end_move_ability_transition();
         let next = actor
             .motion
             .transition_to
@@ -371,6 +362,22 @@ impl Simulation {
             actor.motion.next_speed_q32 = 0;
             actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
         }
+        Ok(())
+    }
+
+    /// `TransitionState.Exit` invokes the ability's `OnTransitionEnd`, even
+    /// when death interrupts the transition before its queued state enters.
+    /// `OnExitMoveEnd` leaves sand fog while its provider is still registered.
+    pub(in crate::fight) fn exit_transition(&mut self, actor_id: u64) -> Result<()> {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        let surfaced = actor
+            .underground
+            .as_ref()
+            .is_some_and(|underground| underground.state == AbilityState::Exit);
+        actor.end_move_ability_transition();
         let fog = actor
             .placement
             .effects
