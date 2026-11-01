@@ -269,7 +269,7 @@ including a unit already idle whose ability was not cleared.
 ### Recorded
 
 - A Sandworm killed during surfacing leaves Sandstorm's fog on its death
-  tick: `tests/corpus/1476-r10.yaml`.
+  tick: `tests/corpus/1476-r10.yaml` and `tests/corpus/1444-r7.yaml`.
 
 - Final skill exit removes Strike's temporary damage and splash correction:
   `tests/move_ability/strike-at-fight-exit.yaml`.
