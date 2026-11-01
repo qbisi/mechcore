@@ -267,7 +267,8 @@ weight_factor = max(1, 1 + 4 * exp(-((|center|^2 / radius^2)^2)))
 
 If the current centre distance is strictly below the radius, an
 already-colliding separation line is constructed, with a response coefficient of
-`0.3` and `inverse_delta_time = 1 / (4 * logic_delta)`. Exact contact does not
+`0.3` and `inverse_delta_time = 1 / (4 * logic_delta)`. This uses the tolerant
+comparison on the approximate magnitude; contact within 43 raw does not
 enter the collision branch.
 
 Without a collision, the relative position and radius project into velocity
@@ -281,6 +282,12 @@ line's distance `>= 0`, the cut-off distance `<= 0`, both tangent distances
 `>= 0`, the arc's two dot products `> 0` and `< 0`, the nearer tangent `<`, and
 the positive weight `> 0`. A candidate within 43 raw of a boundary falls on its
 forbidden side.
+
+The contact tolerance can send a radius just above the approximate distance
+down the tangent path. Its cosine then exceeds one: `Acos` and the tangent
+vectors become NaN. Preserve those invalid tangents. Their distance comparisons
+are false, so this VO contributes no gradient; do not clamp its cosine or
+replace it with a separation line.
 
 ## Solving for a velocity
 
