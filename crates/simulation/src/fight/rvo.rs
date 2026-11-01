@@ -80,6 +80,10 @@ pub(crate) struct FixedVec2 {
 
 impl FixedVec2 {
     pub(crate) const ZERO: Self = Self { x: 0, y: 0 };
+    const NAN: Self = Self {
+        x: i64::MIN + 1,
+        y: i64::MIN + 1,
+    };
 
     pub(crate) fn add(self, other: Self) -> Self {
         Self {
@@ -597,7 +601,7 @@ impl VelocityObstacle {
         // The build calls `FPoint.op_LessThan(centerMagnitude, radius)` and
         // enters the collision branch only when that strict comparison holds.
         // Exact contact therefore takes the non-colliding tangent path.
-        if center_magnitude < radius {
+        if fpoint_less_than(center_magnitude, radius) {
             let line1 = center
                 .normalized()
                 .mul(
@@ -637,7 +641,25 @@ impl VelocityObstacle {
         // `FPCSMath.*Fastest` entry points. The separately named
         // `Atan2Precise` wrapper is not used by this constructor.
         let center_angle = fpcs_atan2_fastest(center.y.saturating_neg(), center.x.saturating_neg());
-        let tangent_delta = fpcs_acos_fastest(q32_div(radius, center_magnitude)).abs();
+        let cosine = q32_div(radius, center_magnitude);
+        // The tolerant contact comparison can admit a radius just larger
+        // than the approximate magnitude. Acos then returns NaN, propagated
+        // by the build's angle and vector arithmetic into both tangents.
+        if !(-Q32_ONE..=Q32_ONE).contains(&cosine) {
+            return Self {
+                line1: FixedVec2::NAN,
+                line2: FixedVec2::NAN,
+                dir1: FixedVec2::NAN,
+                dir2: FixedVec2::NAN,
+                cutoff_line,
+                cutoff_dir,
+                circle_center,
+                colliding: false,
+                radius: scaled_radius,
+                weight_factor,
+            };
+        }
+        let tangent_delta = fpcs_acos_fastest(cosine).abs();
         let first_angle = center_angle.saturating_add(tangent_delta);
         let second_angle = center_angle.saturating_sub(tangent_delta);
         let circle_dir1 = FixedVec2 {
@@ -665,6 +687,10 @@ impl VelocityObstacle {
     }
 
     fn signed_distance(line: FixedVec2, direction: FixedVec2, point: FixedVec2) -> i64 {
+        // FPoint arithmetic propagates NaN; comparisons against it are false.
+        if [line.x, line.y, direction.x, direction.y, point.x, point.y].contains(&(i64::MIN + 1)) {
+            return i64::MIN + 1;
+        }
         let relative = point.sub(line);
         q32_mul(relative.x, direction.y).saturating_sub(q32_mul(direction.x, relative.y))
     }
