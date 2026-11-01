@@ -1463,6 +1463,11 @@ impl Simulation {
                     // units are deactivated by DeadEffectSystem after OnDead,
                     // including its travel-finished death listener.
                     self.drop_buffs_of_the_dead(unit_id)?;
+                    // MotionController.ExitFight changes to Idle through
+                    // TransitionState.Exit before death removes providers.
+                    if self.actors[&unit_id].motion.state == MotionState::Transitioning {
+                        self.exit_transition(unit_id)?;
+                    }
                     self.actors
                         .get_mut(&unit_id)
                         .expect("actor identity is stable")

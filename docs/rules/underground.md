@@ -215,6 +215,11 @@ puts the action back (`AddMech`) but not the listener, which only a unit that
 changes its move ability would notice. Read from the build; no recording
 holds it.
 
+Death during surfacing also ends the transition. `FightMech.OnDead` exits
+the motion before the dead unit's effects are deactivated; the change to
+idle invokes `OnExitMoveEnd` while Sandstorm is still registered. It leaves
+the fog at the dying unit's position without waiting for the surfacing time.
+
 ## A hidden unit as a target
 
 A unit that is not visible is no valid target (`FightActor.IsValidTarget`,
@@ -262,6 +267,9 @@ including a unit already idle whose ability was not cleared.
 ## Evidence
 
 ### Recorded
+
+- A Sandworm killed during surfacing leaves Sandstorm's fog on its death
+  tick: `tests/corpus/1476-r10.yaml`.
 
 - Final skill exit removes Strike's temporary damage and splash correction:
   `tests/move_ability/strike-at-fight-exit.yaml`.
@@ -355,6 +363,9 @@ including a unit already idle whose ability was not cleared.
   `MoveAbilityRangeItemTech.GetRoundDuration`, `RangeItemSystem.AddItem`,
   `MoveAbilityRangeItemProvider.DisableEffect`, `EnableEffect`,
   `MoveAbilityRangeItemSystem.RemoveMech`.
+- Death interrupts surfacing through the same exit callback:
+  `FightMech.OnDead`, `MotionController.ExitFight`, `TransitionState.Exit`,
+  `MoveAbility.GameRiver.Fight.IStateTransitionBehaviour.OnTransitionEnd`.
 - A stronger surfacing: `MoveAbilityAttackIntensifyProvider.DoActive`,
   `MoveAbilityAttackIntensifyProvider.IsAvailableMoveAbility`,
   `MoveAbilityAttackIntensifyProvider.EnterCondition`,
