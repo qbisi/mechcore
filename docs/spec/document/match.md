@@ -559,7 +559,9 @@ extra weapons can retain officer corrections from earlier rounds which the
 state does not store. Starting a native replay directly at that round can
 agree with the projection while replaying from round one reproduces different
 damage and the recorded settlement. This warning skips the fight comparison;
-it does not apply to the round that first researches Land Cruiser.
+it also applies when Floating Artillery Array is first researched after
+Land Cruiser in the same round. Researching the extra weapons before Land
+Cruiser does not add this same-round warning.
 All non-combat transition checks and other rounds' fight checks continue.
 
 ### Cross-round invariants
