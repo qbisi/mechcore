@@ -50,6 +50,15 @@ update for the Abyss, twenty stretches over forty updates. A strike
 
 - **covers the stretch and the one struck before it**, from the start of the
   one before to the end of this one.
+- **queries the opponent's target tree with that area first.**
+  `RangeTargetCalculator.CalculateRangeActorsInFightRangeInternal` passes the
+  `LineRange` to `FightQuadtree.Query`; only the root's objects and the
+  objects in nodes whose rectangles overlap the strip become candidates.
+  `LineRange.Overlaps(RectRange)` tests contained corners and strip vertices,
+  then its two long edges. `FightUtility.IsLinePassThroughRect` converts its
+  line slope and intercept to integers before classifying the rectangle's
+  corners. The unit-circle test alone does not admit a candidate whose node
+  the strip did not visit.
 - **strikes every enemy it reaches of the aimed target's domain**: air when
   what the skill aimed at as the sweep began flies, ground otherwise
   (`DamageEffect.PerformInRange`,
@@ -133,6 +142,10 @@ unit does. Its configuration writes no arc for it.
 
 ### Recorded
 
+- An Abyss's sweep passes over a Hound whose circle already overlaps the
+  strike but whose target-tree node has not been reached. The next strike
+  reaches its node and hits it: the game's complete fight of the collected
+  match projection, `tests/corpus/991-r8.yaml`.
 - A temporary exit while Shooting Squad's Fangs are pending resets the
   Abyss's sweep count. Its resumed sweep takes the same direction as its
   first, rather than retaining the parity of the interrupted fight:
@@ -206,6 +219,9 @@ unit does. Its configuration writes no arc for it.
   `SweepAttackPerformer.Perform`, `SweepSkillData.GetMaxDamageTimesByRadius`,
   `DamageEffect.PerformInRange`,
   `RangeTargetCalculator.CalculateRangeActorsInFightRangeInternal`.
+- Candidate nodes: `LineRange.Overlaps`, `LineRange.Contains`,
+  `FightUtility.IsLinePassThroughRect`, `FightUtility.CalculateIntersection`,
+  `RectRange.Contains`.
 - The count and the phases: `SkillAttackController.PerformAttack`,
   `SkillAttackController.ChangeToNextPhase`,
   `SkillAttackController.ResetTotalAttackCount`,

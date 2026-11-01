@@ -380,7 +380,12 @@ impl<E: Copy + Ord> FightQuadtree<E> {
     /// as [`TargetActorQuadtree::query_square`] walks them, every element of
     /// each node whose rect overlaps it strictly on both axes.
     pub(in crate::fight) fn query_rect(&self, range: TargetActorRect) -> Vec<E> {
-        let overlaps = |rect: TargetActorRect| overlaps(rect, range);
+        self.query(|rect| overlaps(rect, range))
+    }
+
+    /// `FightQuadtree.Query(IFightRange)`: the range supplies its node
+    /// overlap test, and the root's own elements are always included.
+    pub(in crate::fight) fn query(&self, overlaps: impl Fn(TargetActorRect) -> bool) -> Vec<E> {
         let mut found = Vec::new();
         if !self.root.query(&overlaps, &mut found) {
             found.extend(self.root.elements.iter().copied());
