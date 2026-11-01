@@ -1702,6 +1702,13 @@ impl Simulation {
         let performed_before = self.actors[&actor_id].skills.main.perform_count;
         let core_lock = self.actors[&actor_id].skills.main.lock_target;
         let motion_before = self.actors[&actor_id].motion.state;
+        let motion = &self.actors[&actor_id].motion;
+        let target_before = (
+            motion.next_target_x_q32,
+            motion.next_target_z_q32,
+            motion.next_speed_q32,
+            motion.next_max_speed_q32,
+        );
         let core_attack_state_before = matches!(
             self.actors[&actor_id].skills.main.state,
             SkillState::Attack(_)
@@ -1803,7 +1810,7 @@ impl Simulation {
         // parent made as it was.
         let arc_parent_before = self.actors[&actor_id].arc_parent_q32();
         self.aim_standalone_turret(actor_id);
-        self.step_motion(actor_id, step, events, update, motion_before)?;
+        self.step_motion(actor_id, step, events, update, motion_before, target_before)?;
         self.turn_arc_weapons(actor_id, arc_parent_before);
         if self.actors[&actor_id].skills.main.is_grouped()
             && fusillade
@@ -1842,6 +1849,7 @@ impl Simulation {
         events: &mut Vec<Event>,
         update: Option<SkillUpdate>,
         motion_before: MotionState,
+        target_before: (i64, i64, i64, i64),
     ) -> Result<()> {
         let was_moving = motion_before == MotionState::Moving;
         if let SkillSlot::Extra(_) = self.actors[&actor_id].motion.attacker
@@ -1854,11 +1862,21 @@ impl Simulation {
             // own update here, where the build's motion asks its attacker as
             // it updates: an extra skill that took the motion since finds it
             // in the state the skills found it.
-            self.actors
+            let motion = &mut self
+                .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
-                .motion
-                .state = motion_before;
+                .motion;
+            motion.state = motion_before;
+            // The eager main-skill idle also submitted StopMove. Native
+            // MotionController.Update has not run yet: the extra takes the
+            // original SetTarget request as well as the original FSM state.
+            (
+                motion.next_target_x_q32,
+                motion.next_target_z_q32,
+                motion.next_speed_q32,
+                motion.next_max_speed_q32,
+            ) = target_before;
         }
         // `SkillManager.Update` ends with `PreemptiveSkillController.Update`,
         // before the motion updates.

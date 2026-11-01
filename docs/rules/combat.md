@@ -610,6 +610,13 @@ lock. The unit then turns its turret towards the accepted main gun's
 target
 ([`main-gun-retakes-motion.yaml`](../../tests/extra_weapon/main-gun-retakes-motion.yaml)).
 
+Skills update before the motion reads its attacker. When the main skill
+finishes and an extra skill takes over on that update, the motion follows
+the extra from the state and RVO request it held before the skills ran.
+The main skill's finish does not submit an intervening stop. A zero-speed
+request still carries its target point; preserving that point matters when
+the fixed-point movement clamp admits a very small displacement.
+
 The shared skill range check measures a retained dead target too: it tests
 visibility and distance, while selection and attackability ask whether the
 target lives. A standalone gun still releasing at a fallen construction
@@ -1552,6 +1559,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- An extra skill taking motion as the main skill finishes keeps the previous
+  stopped target point, including through zero-speed RVO solves:
+  `tests/corpus/1572-r11.yaml`.
+
 - A Melting Point's Electromagnetic Barrage keeps its range-limited aim while
   its owner moves. Its final projectile climbs to 59.793 metres rather than
   the full 60 that measuring to the target's centre would give:
@@ -2052,6 +2063,13 @@ not the game's native attack-type enum.
   its interval: `tests/construction/quick-switch-keeps-after-wait.yaml`.
 
 ### Read
+
+- Skills update before motion takes its current attacker:
+  `FightMech.Update`, `FightMech.SetMotionAttackerAfterSkill`,
+  `MotionController.Update`, `MotionAttackState.Update`.
+  A stopped RVO request retains a point and zero speed:
+  `RVOControllerFixed.StopMove`, `GRPF.RVO.Sampled.Agent.SetTarget`,
+  `RVOControllerFixed.CalculateMovementDelta`, `FVector2.ClampMagnitude`.
 
 - Initial avoidance agents follow sorted team activation, and tree insertion
   preserves that list: `FightTeam.PrepareActors`, `FightTeam.OnFightStart`,
