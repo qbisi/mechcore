@@ -553,6 +553,13 @@ does not distinguish those histories, and normalization may already have
 reordered them, so this warning applies in canonical order too. A round
 that opens with Aerial Mode already researched does not carry this warning.
 
+Acquiring Fire Extinguisher with a travelling Hound also warns and skips that
+round's fight comparison. Research after flank deployment can activate terrain
+clearing before arrival; the layout activates the technology before travel.
+State does not retain that controller state, and normalization can reorder the
+research, so the warning applies in canonical order too. A round that opens
+with Fire Extinguisher already researched is outside this warning.
+
 A round that opens with Land Cruiser already researched also warns when
 Wraith formations have Floating Artillery Array and Aerial Specialist. Their
 extra weapons can retain officer corrections from earlier rounds which the

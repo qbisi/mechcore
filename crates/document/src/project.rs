@@ -91,24 +91,19 @@ pub fn deployment(
                 "round {round} {side}: Stealth Cloak activated after flank deployment of Phantom Ray formations {affected:?}. The layout activates technologies before flank deployment and cannot preserve that native initialization order. New purchases encode research before movement; an existing formation still requires research before flank movement."
             ));
         }
-        if !opened.techs.contains(&4430)
-            && position.techs.contains(&4430)
-            && position.officers.contains(&20021)
-        {
-            let affected = position
-                .units
-                .iter()
-                .filter(|entry| {
-                    entry.unit.type_name == "void_eye" && entry.unit.travelling == Some(true)
-                })
-                .map(|entry| entry.unit.index)
-                .collect::<Vec<_>>();
-            if !affected.is_empty() {
-                let side = if red { "red" } else { "blue" };
-                warnings.push(format!(
+        let affected = travelling_research_formations(opened, &position, 4430, "void_eye");
+        if position.officers.contains(&20021) && !affected.is_empty() {
+            let side = if red { "red" } else { "blue" };
+            warnings.push(format!(
                     "round {round} {side}: Aerial Mode acquired with Aerial Specialist and travelling Void Eye formations {affected:?}. Native life corrections depend on whether research follows flank deployment. State/layout does not preserve this initialization history, including after match normalization; the projected fight may differ."
                 ));
-            }
+        }
+        let affected = travelling_research_formations(opened, &position, 4228, "hound");
+        if !affected.is_empty() {
+            let side = if red { "red" } else { "blue" };
+            warnings.push(format!(
+                    "round {round} {side}: Fire Extinguisher acquired with travelling Hound formations {affected:?}. Native terrain-clearing activation depends on whether research follows flank deployment. State/layout does not preserve this initialization history, including after match normalization; the projected fight may differ."
+                ));
         }
         if (opened.techs.contains(&4418) || landed_extra_weapons)
             && position.techs.contains(&110_181)
@@ -142,6 +137,24 @@ pub fn deployment(
         layout,
         warnings,
     })
+}
+
+/// Travelling formations exposed to a technology's acquisition this deployment.
+fn travelling_research_formations(
+    opening: &SideState,
+    deployed: &SideState,
+    technology: i32,
+    unit_type: &str,
+) -> Vec<i32> {
+    if opening.techs.contains(&technology) || !deployed.techs.contains(&technology) {
+        return Vec::new();
+    }
+    deployed
+        .units
+        .iter()
+        .filter(|entry| entry.unit.type_name == unit_type && entry.unit.travelling == Some(true))
+        .map(|entry| entry.unit.index)
+        .collect()
 }
 
 /// Projects one round's position onto a layout: `state`, which the round
