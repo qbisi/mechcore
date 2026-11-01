@@ -887,7 +887,11 @@ Load a subdivision's ranking page, starting with page 1:
 ```
 
 The result contains `ready`, `match_id`, `sub_id`, `page`, `pages`,
-`rank_count` and deduplicated `replays` (native server paths). Each response
+`rank_count` and deduplicated `replays` (native server paths). `results` holds
+each 1v1 ranking row's `replay_path`, `player_id` (a decimal string), signed
+`reactor_core`, signed `opponent_reactor_core`, and boolean `win`. These are
+the history response's scores, independent of the downloaded replay. The caller
+maps player IDs to replay seats and checks repeated rows for agreement. Each response
 contains that server page only; callers deduplicate paths across all pages
 and subdivisions. The Adapter reads the native ranking reply before the game
 dispatches it to its history cache or results window. This also admits ended

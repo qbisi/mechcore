@@ -42,6 +42,7 @@ import sys
 import tempfile
 import xml.etree.ElementTree as ET
 from zoneinfo import ZoneInfo
+import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import replay  # noqa: E402
@@ -135,8 +136,9 @@ def tournaments(adapter: Adapter, timezone: ZoneInfo | None) -> list[dict]:
     return sorted(entries, key=lambda item: (item["start_time"], item["match_id"]), reverse=True)
 
 
-def replay_paths(adapter: Adapter, entries: list[dict]) -> list[str]:
+def replay_paths(adapter: Adapter, entries: list[dict]) -> dict[str, list[dict]]:
     paths = set()
+    scores = {}
     for entry in entries:
         for sub in entry["sub_ids"]:
             page, pages = 1, 1
@@ -148,8 +150,55 @@ def replay_paths(adapter: Adapter, entries: list[dict]) -> list[str]:
                 if pages < 0 or pages > 10000 or (pages and page > pages):
                     raise AdapterError("protocol_error", f"invalid page count: {pages}")
                 paths.update(result["replays"])
+                for score in result["results"]:
+                    records = scores.setdefault(score["replay_path"], [])
+                    if score not in records:
+                        records.append(score)
                 page += 1
-    return sorted(paths)
+    missing = paths - scores.keys()
+    if missing:
+        raise RuntimeError(f"tournament replays have no final result: {sorted(missing)}")
+    return {path: scores[path] for path in sorted(paths)}
+
+
+def final_result(native: Path, scores: list[dict], round_number: int) -> dict:
+    """Map authoritative tournament scores to replay seats, never list order."""
+    data = native.read_bytes()
+    start = data.index(b'<?xml')
+    end = data.index(b'</BattleRecord>', start) + len(b'</BattleRecord>')
+    root = ET.fromstring(data[start:end])
+    players = root.findall('playerRecords/PlayerRecord')
+    ids = [player.findtext('id') for player in players]
+    if len(ids) != 2 or None in ids or ids[0] == ids[1]:
+        raise RuntimeError("tournament result requires two distinct native player IDs")
+    candidates = []
+    for score in scores:
+        if str(score['player_id']) not in ids:
+            raise RuntimeError("tournament result player is absent from the replay")
+        seat = ids.index(str(score['player_id']))
+        cores = [score['reactor_core'], score['opponent_reactor_core']]
+        if seat:
+            cores.reverse()
+        winner = ('blue', 'red')[seat if score['win'] else 1 - seat]
+        if all(core <= 0 for core in cores) and not score['win']:
+            winner = 'draw'
+        candidates.append({'kind': 'result', 'round': round_number, 'winner': winner,
+                           'blue': {'reactor_core': cores[0]}, 'red': {'reactor_core': cores[1]}})
+    if not candidates or any(candidate != candidates[0] for candidate in candidates):
+        raise RuntimeError("tournament result records disagree")
+    return candidates[0]
+
+
+def append_result(match: Path, native: Path, scores: list[dict]) -> dict:
+    last = list(yaml.safe_load_all(match.read_text()))[-1]
+    if last['kind'] not in ('action', 'state'):
+        raise RuntimeError("converted match does not end in decisions or a state")
+    result = final_result(native, scores, last['round'] - (last['kind'] == 'state'))
+    with match.open('a') as output:
+        output.write('---\nkind: result\nround: ' + str(result['round']) + '\nwinner: ' + result['winner'] + '\n')
+        for side in ('blue', 'red'):
+            output.write(f"{side}: {{reactor_core: {result[side]['reactor_core']}}}\n")
+    return result
 
 
 def keep_match(source: Path, destination: Path) -> bool:
@@ -190,15 +239,18 @@ def native_battle_id(path: Path) -> str:
     return battle_id
 
 
-def download_one(adapter: Adapter, replay_path: str, output: Path, mechcore: Path, manifest: dict) -> dict:
+def download_one(adapter: Adapter, replay_path: str, output: Path, mechcore: Path, manifest: dict,
+                 scores: list[dict]) -> dict:
+    native = output / ".downloads" / (hashlib.sha256(replay_path.encode()).hexdigest() + ".grbr")
     cached = manifest.get(replay_path)
-    if cached and cached.get("match"):
+    if cached and cached.get("match") and cached.get("result"):
         destination = output / cached["match"]
         if destination.is_file() and hashlib.sha256(destination.read_bytes()).hexdigest() == cached["sha256"]:
+            if final_result(native, scores, cached['result']['round']) != cached['result']:
+                raise RuntimeError(f"tournament result changed: {destination}")
             return {"replay_path": replay_path, "output": str(destination), "duplicate": True}
         if destination.exists():
             raise RuntimeError(f"previously published match changed: {destination}")
-    native = output / ".downloads" / (hashlib.sha256(replay_path.encode()).hexdigest() + ".grbr")
     battle_id = cached.get("battle_id") if cached else None
     if not native.exists():
         result = adapter.request(action="download", replay_path=replay_path, output=str(native))
@@ -229,8 +281,13 @@ def download_one(adapter: Adapter, replay_path: str, output: Path, mechcore: Pat
                 save_manifest(output / ".downloads/manifest.json", manifest)
                 return {"replay_path": replay_path, "battle_id": battle_id, "skipped": "opening_only"}
             raise RuntimeError(f"conversion failed; retained {native}: {converted.stderr.strip()}")
+        recorded_result = append_result(temporary, native, scores)
+        checked = subprocess.run([str(mechcore), "format", str(temporary), "--write"], capture_output=True, text=True, cwd=ROOT)
+        if checked.returncode:
+            raise RuntimeError(f"invalid tournament result: {checked.stderr.strip()}")
         created = keep_match(temporary, destination)
-    manifest[replay_path].update(match=destination.name, sha256=hashlib.sha256(destination.read_bytes()).hexdigest())
+    manifest[replay_path].update(match=destination.name, result=recorded_result,
+                               sha256=hashlib.sha256(destination.read_bytes()).hexdigest())
     save_manifest(output / ".downloads/manifest.json", manifest)
     return {"replay_path": replay_path, "battle_id": battle_id, "output": str(destination), "duplicate": not created}
 
@@ -327,7 +384,7 @@ def main() -> int:
         print(json.dumps({"tournaments": chosen, "unique_replays": len(paths)}, ensure_ascii=False), flush=True)
         for path in paths:
             try:
-                result = download_one(adapter, path, output, args.mechcore.resolve(), manifest)
+                result = download_one(adapter, path, output, args.mechcore.resolve(), manifest, paths[path])
                 if result.get("skipped"):
                     skipped += 1
                 else:

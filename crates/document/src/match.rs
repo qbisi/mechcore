@@ -3,8 +3,9 @@
 //! `docs/spec/document/match.md` defines a match as a stream of YAML
 //! documents: a header, the opening's decisions, and then each round's opening
 //! state followed by the decisions taken from it. `docs/spec/document/state.md`
-//! and `docs/spec/document/action.md` define the two segment shapes. Filling
-//! one from a replay is [`crate::convert`].
+//! and `docs/spec/document/action.md` define the deployment segment shapes.
+//! An optional final result closes the score without another round's state.
+//! Filling one from a replay is [`crate::convert`].
 
 use crate::layout::{ContraptionPlacement, Position, Standing, StaticPlacement, UnitPlacement};
 use schemars::JsonSchema;
@@ -33,6 +34,43 @@ pub struct Match {
     /// The opening is round zero and has no state to open it, so each side's
     /// [`Opening`] holds it when known.
     pub turns: Vec<Turn>,
+    pub result: Option<MatchResult>,
+}
+
+/// The final score, independent of any next-round opening.
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct MatchResult {
+    pub round: i32,
+    pub winner: Winner,
+    pub blue: FinalCore,
+    pub red: FinalCore,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum Winner {
+    Blue,
+    Red,
+    Draw,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct FinalCore {
+    pub reactor_core: i32,
+}
+
+impl Winner {
+    #[must_use]
+    pub const fn from_cores(blue: i32, red: i32) -> Option<Self> {
+        match (blue <= 0, red <= 0) {
+            (false, true) => Some(Self::Blue),
+            (true, false) => Some(Self::Red),
+            (true, true) => Some(Self::Draw),
+            (false, false) => None,
+        }
+    }
 }
 
 /// A match from another game version is readable under the current catalogues,
@@ -801,6 +839,7 @@ enum Segment<'a> {
     Match(Header<'a>),
     State(StateSegment<'a>),
     Action(ActionSegment<'a>),
+    Result(&'a MatchResult),
 }
 
 #[derive(Serialize)]
@@ -966,6 +1005,14 @@ pub mod schema {
         pub red: Vec<Action>,
     }
 
+    #[derive(Serialize, JsonSchema)]
+    #[serde(deny_unknown_fields)]
+    pub struct Result {
+        pub kind: ResultKind,
+        #[serde(flatten)]
+        pub result: super::MatchResult,
+    }
+
     /// Each segment names its own kind, and names one.
     macro_rules! kind {
         ($name:ident, $variant:ident) => {
@@ -980,6 +1027,7 @@ pub mod schema {
     kind!(MatchKind, Match);
     kind!(StateKind, State);
     kind!(ActionKind, Action);
+    kind!(ResultKind, Result);
 }
 
 /// Reads a match document whole, or nothing when the file is not a match.
@@ -1040,6 +1088,7 @@ pub fn read(bytes: &[u8]) -> Result<Option<Match>, String> {
         blue: side("blue", stated.blue)?,
         red: side("red", stated.red)?,
         turns: stated.turns,
+        result: stated.result,
     }))
 }
 
@@ -1084,6 +1133,9 @@ fn segments_of(r#match: &Match) -> Vec<Segment<'_>> {
             red: Cow::Borrowed(&turn.actions.red),
         }));
     }
+    if let Some(result) = &r#match.result {
+        segments.push(Segment::Result(result));
+    }
     segments
 }
 
@@ -1100,6 +1152,7 @@ pub struct Segments {
     /// header, or from a partial match starting at a captured state.
     pub opening: Option<Value>,
     pub rounds: Vec<RoundSegments>,
+    pub result: Option<MatchResult>,
 }
 
 /// One deployment round: its state, and its decisions once they are known.
@@ -1119,8 +1172,8 @@ pub struct RoundSegments {
 /// a complete prefix starts with round zero's actions. A partial match starts
 /// with any positive round's state. Both then alternate consecutive states
 /// and same-round actions. It may end after any
-/// segment, except that nothing follows a concession or a state in which a
-/// reactor core has fallen to zero.
+/// segment. Only a final result may follow a concession or a state in which
+/// a reactor core has fallen to zero; nothing follows a result.
 ///
 /// # Errors
 ///
@@ -1142,12 +1195,20 @@ pub fn segments(bytes: &[u8]) -> Result<Option<Segments>, String> {
         header,
         opening: None,
         rounds: Vec::new(),
+        result: None,
     };
     let mut ended: Option<&str> = None;
     for (at, document) in documents.enumerate() {
         let position = at + 2;
         let segment = Value::deserialize(document)
             .map_err(|error| format!("match segment {position} is not YAML: {error}"))?;
+        if stream.result.is_some() {
+            return Err(format!("match segment {position} follows a result"));
+        }
+        if kind_of(&segment) == Some("result") {
+            stream.result = Some(read_result(segment, &stream.rounds)?);
+            continue;
+        }
         if let Some(end) = ended {
             return Err(format!("match segment {position} follows {end}"));
         }
@@ -1201,6 +1262,61 @@ pub fn segments(bytes: &[u8]) -> Result<Option<Segments>, String> {
         }
     }
     Ok(Some(stream))
+}
+
+fn read_result(segment: Value, rounds: &[RoundSegments]) -> Result<MatchResult, String> {
+    let last = rounds
+        .last()
+        .ok_or("a result requires a deployment round")?;
+    let mut value = segment;
+    if let Value::Mapping(fields) = &mut value {
+        fields.remove("kind");
+    }
+    let result: MatchResult = serde_yaml::from_value(value)
+        .map_err(|error| format!("match result is not readable: {error}"))?;
+    let expected_round = if core_destroyed(&last.state) {
+        last.round - 1
+    } else if last.actions.is_some() {
+        last.round
+    } else {
+        return Err("a result requires the last round's decisions or a terminal state".into());
+    };
+    if result.round != expected_round {
+        return Err(format!(
+            "result round {} must be {expected_round}",
+            result.round
+        ));
+    }
+    let concession = last.actions.as_ref().and_then(|actions| {
+        each_side(actions).find_map(|(side, list)| {
+            list.as_sequence()?
+                .iter()
+                .any(|action| action.get("type").and_then(Value::as_str) == Some("concede"))
+                .then_some(if side == "blue" {
+                    Winner::Red
+                } else {
+                    Winner::Blue
+                })
+        })
+    });
+    let winner = concession
+        .or_else(|| Winner::from_cores(result.blue.reactor_core, result.red.reactor_core));
+    if winner != Some(result.winner) {
+        return Err("result winner disagrees with the final cores or concession".into());
+    }
+    if core_destroyed(&last.state)
+        && each_side(&last.state).any(|(side, state)| {
+            let core = if side == "blue" {
+                result.blue.reactor_core
+            } else {
+                result.red.reactor_core
+            };
+            state.get("reactor_core").and_then(Value::as_i64) != Some(i64::from(core))
+        })
+    {
+        return Err("result cores disagree with the terminal state".into());
+    }
+    Ok(result)
 }
 
 fn kind_of(segment: &Value) -> Option<&str> {
@@ -1585,6 +1701,36 @@ mod tests {
         read(stream).is_ok()
     }
 
+    #[test]
+    fn final_results_are_terminal_and_require_consistent_scores() {
+        let prefix = format!("{HEADER}{}{}", state(6, 4800), actions(6, "[]"));
+        let result = "---\nkind: result\nround: 6\nwinner: blue\nblue: {reactor_core: 4700}\nred: {reactor_core: -240}\n";
+        let complete = format!("{prefix}{result}");
+        assert_eq!(
+            read(&complete).unwrap().result.unwrap().red.reactor_core,
+            -240
+        );
+        for invalid in [
+            format!("{complete}{}", state(7, 4700)),
+            format!("{complete}{result}"),
+            complete.replace("round: 6\nwinner", "round: 7\nwinner"),
+            complete.replace("winner: blue", "winner: red"),
+            complete.replace("red: {reactor_core: -240}", "red: {reactor_core: 240}"),
+            complete.replace("blue: {reactor_core: 4700}\n", ""),
+            format!("{HEADER}{}{result}", state(6, 4800)),
+        ] {
+            assert!(read(&invalid).is_err(), "{invalid}");
+        }
+        let conceded = format!(
+            "{HEADER}{}{}{result}",
+            state(6, 4800),
+            actions(6, "[{type: concede}]")
+        );
+        assert!(read_ok(&conceded));
+        let terminal = format!("{prefix}{}{result}", state(7, 0));
+        assert!(read(&terminal).is_err());
+    }
+
     /// A stream may stop after any segment, which is what lets a later reader
     /// append the next one.
     #[test]
@@ -1716,6 +1862,7 @@ mod tests {
             actions: super::TurnActions::default(),
         };
         let ended = super::Match {
+            result: None,
             has_opening: true,
             game_build: crate::game_build().to_owned(),
             map_id: 1021,

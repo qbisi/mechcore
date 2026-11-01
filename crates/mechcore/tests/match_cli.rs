@@ -109,6 +109,58 @@ fn verify(path: &str) -> Value {
 }
 
 #[test]
+fn final_result_verifies_the_last_fight_without_a_next_state() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    let mut game = mechcore_document::r#match::read(&fs::read(&path).unwrap())
+        .unwrap()
+        .unwrap();
+    // A captured checkpoint need not reconstruct its absent prefix.
+    game.has_opening = false;
+    game.turns[0].state.blue.reactor_core = 1;
+    game.turns[0].state.blue.units.truncate(1);
+    fs::write(
+        &path,
+        mechcore_document::r#match::canonical_yaml(&game).unwrap(),
+    )
+    .unwrap();
+    for side in ["blue", "red"] {
+        let view = run(&["match", "commit", &path, "--side", side]).ok();
+        assert!(view.get("unresolved").is_none_or(Value::is_null), "{view}");
+    }
+    let mut game = mechcore_document::r#match::read(&fs::read(&path).unwrap())
+        .unwrap()
+        .unwrap();
+    let result = game.result.as_ref().unwrap();
+    assert_eq!(result.round, 1);
+    assert!(result.blue.reactor_core <= 0);
+    assert_eq!(result.winner, mechcore_document::r#match::Winner::Red);
+    assert_eq!(verify(&path)["valid"], true);
+    // Tournament results have no terminal next-round state.
+    game.turns.pop();
+    let yaml = mechcore_document::r#match::canonical_yaml(&game).unwrap();
+    fs::write(&path, &yaml).unwrap();
+    let report = verify(&path);
+    assert_eq!(report["fights"]["rounds"][0]["result"], "equal", "{report}");
+    run(&["format", &path, "--write"]).ok();
+    assert_eq!(fs::read_to_string(&path).unwrap(), yaml);
+    game.result.as_mut().unwrap().blue.reactor_core -= 1;
+    fs::write(
+        &path,
+        mechcore_document::r#match::canonical_yaml(&game).unwrap(),
+    )
+    .unwrap();
+    let output = run(&["verify", &path]);
+    assert_ne!(output.code, 0);
+    assert_eq!(output.out["valid"], false);
+    assert_eq!(
+        output.out["fights"]["rounds"][0]["differences"][0]["path"],
+        "reactor_core"
+    );
+}
+
+#[test]
 fn fork_reopens_a_round_and_continues_from_its_original_state() {
     let directory = tempfile::tempdir().unwrap();
     let path = dealt(directory.path());
@@ -1168,7 +1220,7 @@ fn a_side_that_does_not_commit_in_time_loses_the_match() {
     // fight.
     let written = fs::read_to_string(&path).unwrap();
     assert!(
-        written.ends_with("blue:\n- {type: unlock_unit, name: rhino}\nred:\n- {type: concede}\n"),
+        written.contains("blue:\n- {type: unlock_unit, name: rhino}\nred:\n- {type: concede}\n---\nkind: result\n"),
         "{written}"
     );
     assert!(

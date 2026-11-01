@@ -49,9 +49,9 @@ state are the position a side decides that round from, so a reader that wants
 one round reads the header, that round's state and that round's actions, and
 nothing between them.
 
-A match states decisions and the positions they were taken from. It does not
-state a fight: what a fight did is visible only as the difference between one
-round's state and the next.
+A match states decisions and the positions they were taken from. Between
+rounds, what a fight did is visible as the difference between their states.
+An optional final `result` segment states the match's winner and final cores.
 
 ## The stream
 
@@ -82,19 +82,55 @@ segment rather than rewriting the file. A stream that ends on an action segment
 says that round's fight is not stated, and says nothing about whether it has
 been fought.
 
-Two segments end a match, and nothing may follow either of them:
+Two segments establish that a match has ended:
 
 - an action segment in which a side concedes, since the round is then not
   fought;
 - a state segment in which a side's `reactor_core` is zero or below, since the
   fight that produced it destroyed that side.
 
-Neither is an extra marker. A match's end is read from the last segment's own
-content, so a stream never has to be reopened to append past a marker that
-turned out to be premature.
+Only a final result may follow either of them. A result also ends a match
+whose last recorded decisions have no next state.
 
 A reader refuses a stream whose segments are out of order, whose rounds skip or
 repeat, or that continues past the end of a match.
+
+### The final result
+
+```yaml
+---
+kind: result
+round: 6
+winner: blue
+blue: {reactor_core: 1995}
+red: {reactor_core: -240}
+```
+
+`result` is optional, occurs at most once and is the last segment. `round`
+names the last round fought or the round in which a side conceded. A result
+follows that round's action segment, or a terminal state opening round
+`round + 1`. It cannot follow an ordinary state with no decisions.
+Partial matches may also carry a result; missing opening history and a known
+final score are independent.
+
+`winner` is `blue`, `red` or `draw`. Each side's required `reactor_core` is
+its signed final core value, including negative values. Without a concession,
+one core must be zero or below: the surviving side wins, or both destroyed
+cores mean a draw. With a concession, the other side wins and no fight occurs;
+the cores stay at their round-opening values. If a terminal state is also
+present, its cores must equal the result's cores.
+
+Absence of a result means the final score is unstated, not that the match is
+in progress. A winner alone does not suffice to write a result. The segment
+carries no post-fight roster, experience, income, shop or reinforcement deal.
+
+`verify` compares the last fought round's simulated core settlement to both
+final cores, subtracting each side's `core_damage` from its deployed core.
+This requires no invented next-round state. Existing projection warnings
+skip that fight comparison explicitly, as they do for intermediate rounds.
+A concession checks the unchanged cores without simulating that round.
+Results copied from tournament records and results produced by local play
+have the same shape; their provenance remains outside the match document.
 
 ### A state segment is the position a round opens with
 
@@ -466,7 +502,7 @@ The report's `coverage` holds the four counts in `total`, by field group in
 round and side in `transitions`, where `side: match` holds `reinforce_offers`.
 `unequal` lists each disagreeing leaf with its round, side, path, predicted and
 recorded values, and `untargeted_round` names a last round whose decisions have
-no state after them, which is not a transition. A match verifies only when no
+neither a next state nor a final result. It is not a transition. A match verifies only when no
 leaf is `unequal` or `unimplemented`.
 
 A match is what fights are run from, so it also verifies only when every
@@ -629,6 +665,11 @@ last round's decisions, and a converted match's last segment is that round's
 action segment. Its fight is not stated, because the source does not state it
 and conversion does not simulate one.
 
+Tournament collection may append a result from the separate tournament
+history response after conversion. It maps the response's player identity
+to the native replay's seats and checks repeated records for agreement. GRBR
+conversion alone does not infer this result or simulate the missing fight.
+
 A concession is the exception that needs no fight. The side's decision list ends
 with `concede`, and the match ends with that segment. At most one concession
 exists, because the first one ends the match. A replay may record decisions of
@@ -725,7 +766,7 @@ in the extracted map and opening catalogues.
 
 | Collection | Order |
 | --- | --- |
-| segments | header, round zero's actions, then each round's state before its actions, ascending `round` |
+| segments | header, round zero's actions, then each round's state before its actions, ascending `round`, then the optional final result |
 | `offers` | as dealt; an opening decision's `index` names a zero-based position in it |
 | `constructions` | ascending `index` |
 | `tech_loadout` | ascending unit ID, each row ascending technology ID |
@@ -768,7 +809,7 @@ sequence; a reader parses either style.
 | Field | Why it is not in the match |
 | --- | --- |
 | A round-zero state | Every side enters the opening holding nothing; the header is that position |
-| A fight's result | The next state shows it; the last fight has no next state, see above |
+| A fight's complete settlement | The next state shows it; the final result records only final cores and the winner |
 | `BattleInfo.BattleID` | Names a server record; no rule reads it |
 | `BattleRecord.Seat` | Which client recorded the file, not a property of the match |
 | `PlayerRecord.id`, `ad` | Account identity; nothing reads it |
@@ -787,14 +828,9 @@ reader cannot act on except by refusing the document.
 
 ## Unresolved
 
-**Whether a match states the fight that ends it.** A converted match ends on
-its last round's decisions, and the stream admits one more state segment after
-them. What that segment would hold is open. The fight writes the roster with
-its experience, the constructions, the contraptions and the reactor cores, and
-nothing else: no income arrives, no allowance resets, no offer is dealt. A state
-holding only those fields would close the last round, but it is not the shape
-[`state.md`](state.md) defines, and its source would be something other than the
-replay, which has to be shown to reproduce the fights the replay does record.
+**Whether the final result carries a complete settlement.** The result states
+final cores and a winner only. Final experience, constructions and contraptions
+have no final-result representation.
 
 **Whether an appended segment says where it came from.** A stream can be
 extended by something other than conversion, and a segment a simulator produced

@@ -1161,6 +1161,7 @@ mod tests {
         };
         crate::transition::open_allowances(&mut opened);
         let mut game = Match {
+            result: None,
             has_opening: false,
             game_build: crate::game_build().into(),
             map_id: 1011,
