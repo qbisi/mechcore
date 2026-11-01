@@ -856,7 +856,14 @@ whole metres (`GetRadius`) and the kinds fire, acid and fog, in that order
 unit in its side's `TeamClearRangeItemManager`, active; `DoDeactive`, as
 the unit dies, makes it inactive. A unit made or summoned with it, a Hound
 a Centurion makes with Summon Hounds among them, joins the manager as it
-joins the fight; a unit travelling in clears nothing until it arrives.
+joins the fight. A unit whose technology was activated before flank
+deployment clears nothing until it arrives. Researching Fire Extinguisher
+after the Hound has entered travel registers an active clearing source:
+`ClearRangeItemEffectProvider.AddEffect` and
+`TeamClearRangeItemManager.AddMech` activate it without testing travel, and
+the manager's update tests that activation flag. This ordering can clear
+terrain before arrival. A projected layout does not retain the source's
+activation history.
 
 **Every second update it clears about each active unit.** Each side's
 manager counts its updates (`m_deltaTime`) and, on reaching

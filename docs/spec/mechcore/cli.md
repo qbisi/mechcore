@@ -324,6 +324,13 @@ formatting. Conversion still executes the projected layout; match verification
 reports that round as `warning` and skips its fight comparison. Rounds that
 open with Aerial Mode already researched are outside this warning.
 
+Acquiring Fire Extinguisher with travelling Hounds also warns about research
+after flank deployment activating terrain clearing before arrival. This
+controller state is absent from layout, including after normalization.
+Conversion executes the projection; match verification skips only that
+warned round's fight comparison. Rounds that open with Fire Extinguisher
+already researched are outside this warning.
+
 Wraiths with Floating Artillery Array and Aerial Specialist also warn when
 Land Cruiser was researched before the round, or when Floating Artillery Array
 is researched after Land Cruiser in this round. Their extra weapons can retain
