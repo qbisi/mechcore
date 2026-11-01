@@ -1517,7 +1517,11 @@ impl Simulation {
             .is_some_and(|lock| lock.alive && lock.team != team);
         // A skill left idle by its last search fires at nothing by design,
         // so only its lock and the timer are asked.
-        if (target_alive || skill.idle) && lock_alive && skill.search_target_time > 0 {
+        // SkillIdleState.CanStartSearchTarget asks only the lock's life and
+        // the controller's timer, not the previous attack target's life.
+        let idle_state = matches!(skill.state, SkillState::Idle { .. });
+        if (idle_state || target_alive || skill.idle) && lock_alive && skill.search_target_time > 0
+        {
             self.skill_mut(skill_ref).refresh_search_target_time();
             return Ok(());
         }
@@ -1969,8 +1973,12 @@ impl Simulation {
                 .is_some_and(|lock| self.fight_actor_is_alive(lock));
             return Ok(lock_lives.then(SkillUpdate::default));
         }
-        // `SkillIdleState.TryPerform` reaches `SearchAttackTarget` on every
-        // update the skill is idle with a lock. A side arm first resets its
+        // `SkillIdleState.TryPerform` searches for a lock before checking
+        // walls. A wall on the line to a dead lock must not replace that lock
+        // and suppress the search for its living replacement.
+        self.update_fight_skill_target_search(skill_ref, step, target_search_order)?;
+        // It then reaches `SearchAttackTarget` on every idle update with a
+        // lock. A side arm first resets its
         // fire mark against the previous attack target; its idle search path
         // refreshes the attack target only after that reset.
         if self.skill(skill_ref).phase() == FightSkillPhase::Idle
@@ -1979,7 +1987,6 @@ impl Simulation {
         {
             self.search_attack_target(skill_ref);
         }
-        self.update_fight_skill_target_search(skill_ref, step, target_search_order)?;
         self.try_perform_main(skill_ref, step);
         let prepare_finished = self.advance_skill_state(skill_ref, step, backswing_just_finished);
         if let Flow::Done = self.retarget_pending_blow(skill_ref) {

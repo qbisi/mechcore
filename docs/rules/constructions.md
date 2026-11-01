@@ -234,6 +234,11 @@ true. This applies to the War Factory's independent main weapons; an owner
 without mech search keeps its original lock. Every idle update runs
 `SkillIdleState.TrySearchAttackTarget`, even between scheduled lock searches,
 so the weapon can take another block as its position changes.
+The idle state searches for a lock before that wall check. When its previous
+lock dies, a block on the line to that dead target cannot replace the lock
+and suppress the search for a living target.
+While its lock lives, the idle state waits for the search timer even if its
+previous attack target died. That attack target does not force a lock search.
 When its normal search has no candidate, `MechSearchTargetController.SearchLockTarget`
 scores its complete opponent list with the alive selector, including blocking
 walls alongside aircraft. The skill controller instead offers blocking walls
@@ -326,6 +331,10 @@ The map's own buildings are the exception and are named: each side gets one
 
 ### Recorded
 
+- A War Factory replaces a destroyed tower lock before checking the line
+  to its new unit target, rather than taking a wall toward the dead tower:
+  `tests/corpus/1554-r10.yaml`.
+
 - Mountain cannon skills replace a dead construction lock behind a shield
   without ending their attacks:
   `tests/shield/dead-construction-keeps-shield-attack.yaml`.
@@ -414,6 +423,12 @@ The map's own buildings are the exception and are named: each side gets one
   `tests/construction/standalone-shield-wall-burst.yaml`.
 
 ### Read
+
+- Idle lock search precedes the attack-target wall check:
+  `SkillIdleState.TryPerform`, `SkillIdleState.TrySearchLockTarget`,
+  `FightSkill.SearchAttackTarget`. Its search condition asks the lock and
+  the timer: `SkillIdleState.CanStartSearchTarget`,
+  `FightSkill.CanStartSearchTarget`, `SearchTargetController.CanStartSearch`.
 
 - A performer checks its lock before performing and permits a target shield;
   ordinary projectiles interrupt while a burst already releasing and a sweep
