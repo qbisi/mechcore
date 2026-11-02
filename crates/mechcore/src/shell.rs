@@ -66,7 +66,11 @@ a match, once a line has opened one or the shell was opened on it
   match fork <old.yaml> <new.yaml> [--side blue|red] [--round <n>] [--deploy-time <seconds>] [--override]
                                   fork a match, optionally reopening a round
   show [--wait [<seconds>]]       the side's view of the match
-  act <decision> [--dry-run]      take one decision or an ordered array of decisions
+  act <decision> [--dry-run] [--force-push]
+                                  append decisions or replace this round's sequence
+  undo [--count n]         edit the current uncommitted action sequence
+  candidates --stage buy_unit|upgrade_technology
+                                  current choices, dependencies and total costs
   commit                          write this round's decisions
 shell
   help                            this list
@@ -182,7 +186,9 @@ async fn dispatch(
     // `show <file> --view <view>` is the file verb, and a `show` without a
     // view is the match's.
     let file_show = namespace == "show" && rest.iter().any(|word| word == "--view");
-    if matches!(namespace.as_str(), "act" | "commit") || namespace == "show" && !file_show {
+    if matches!(namespace.as_str(), "act" | "commit" | "undo" | "candidates")
+        || namespace == "show" && !file_show
+    {
         match bound {
             Some((path, side)) => {
                 let mut arguments = vec![
