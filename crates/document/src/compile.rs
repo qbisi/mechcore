@@ -148,8 +148,12 @@ pub fn compile_layout(layout: Layout) -> Result<Plan, String> {
     compile_layout_inner(layout, false)
 }
 
-/// Placement queries also admit an empty side before its first purchase.
-pub(crate) fn compile_placement_layout(layout: Layout) -> Result<Plan, String> {
+/// Compiles a deployment observation, admitting an empty side before purchase.
+///
+/// # Errors
+/// Returns the same geometry and metadata errors as [`compile_layout`], except
+/// that an empty side is a valid observation rather than an executable fight.
+pub fn compile_placement_layout(layout: Layout) -> Result<Plan, String> {
     compile_layout_inner(layout, true)
 }
 

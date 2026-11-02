@@ -16,6 +16,7 @@ mod mask;
 mod r#match;
 mod outcome;
 mod play;
+mod preview;
 mod profile;
 mod query;
 mod requests;
@@ -44,6 +45,7 @@ fn usage(program: &str) {
     );
     eprintln!("       {program} format <document.yaml> [--write]");
     eprintln!("       {program} mask <layout|state|match> --side blue|red --unit <type>");
+    eprintln!("       {program} preview <layout|state> [--seed <i32>]");
     eprintln!(
         "       {program} generate --seed <u64> --count <n> <dir> | --seed <u64> --index <i>"
     );
@@ -103,6 +105,7 @@ pub(crate) fn dispatch(command: &str, arguments: Args) -> Option<Outcome> {
         "play" => play::run(arguments),
         "format" => format::run(arguments),
         "mask" => mask::run(arguments),
+        "preview" => preview::run(arguments),
         "generate" => generate::run(arguments),
         "schema" => schema::run(arguments),
         "match" => r#match::run(arguments),
