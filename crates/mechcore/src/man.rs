@@ -500,7 +500,8 @@ mod tests {
             "{layout}"
         );
         assert!(layout.contains("--to mcfr    computation"), "{layout}");
-        assert!(Verbs::of(Kind::State).text().contains("no verb"));
+        assert!(Verbs::of(Kind::State).text().contains("mask"));
+        assert!(Verbs::of(Kind::Action).text().contains("no verb"));
         for kind in ["layout", "match", "state", "action", "mcfr"] {
             assert!(find(kind).is_some(), "{kind}");
         }
