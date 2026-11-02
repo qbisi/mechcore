@@ -527,10 +527,12 @@ the layouts that compiled, two per round, and a round that does not project,
 deploy or compile fails the match with its round and which position it was.
 
 The standard match sequence activates unit technologies before movement.
-Research whose formation type is absent depends on a purchase at its default
-landing, and recovery of a type's last formation depends on its research.
-These dependencies are explicit match actions; native encoding preserves
-their order. Normalization preserves the deployment endpoint, not the
+Purchases use default landings before the research phase; recovery of a type's
+last formation depends on its research. Native encoding preserves these explicit
+match actions and their order. Equipment precedes unified placement; upgrades
+and contraptions use that final layout. Infrastructure and remaining unlocks
+follow, before combat skills.
+Normalization preserves the deployment endpoint, not the
 original player's controller-initialization timing.
 
 Enhancement Modules change upgrade prices, so normalization retains the level

@@ -179,11 +179,12 @@ here.
 Buys one formation of unit type `name`, advances `next_index.unit` by one,
 and places it under that index. Omitting `position` uses the default landing
 selected by [the board](../../rules/landing.md), with `rotated: false`.
-Standard actions couple a purchase with its immediately following move into
-`position` and `rotated`. The destination must be free; a flank position sets
-`travelling` as that move would. A default purchase refuses rotation.
-If a prerequisite operation separates purchase and movement, such as research
-that needs the new formation, they remain separate actions.
+An explicit destination must be free; a flank position sets `travelling` as a
+move would. A default purchase refuses rotation. Normalization writes every
+purchase without a position or rotation and writes final placement as separate
+`move_unit` actions in the movement phase, even when a purchase and move are
+adjacent. A default landing that has no space refuses the sequence; it does
+not move existing formations to make room for a purchase.
 
 A purchase has no `level` parameter. Its level is derived from the officers
 and active Energy Tower skills at this point in the sequence. Normalization
@@ -541,22 +542,22 @@ The standard phases are:
    fitted and the formation upgraded first; the closing supply and consumed
    training slots determine whether those operations occurred. A module comes
    back with the recovered formation and can be reused.
-4. Move existing formations. A move that needs Jump Drive depends on its
-   research; Redeployment, Deployment Module fitting and swap-space waypoints
-   are also emitted where needed.
-5. Purchase and move formations, in allocator order. Couple each purchase with
-   its immediate move and derive its level from the shop. A formation bought
-   and recovered in this round keeps its actual recorded type, purchase level,
+4. Purchase formations at their default landings, in allocator order, deriving
+   each level from the shop. A formation bought and recovered in this round
+   keeps its actual recorded type, purchase level,
    equipment and recovery level. Missing purchase or recovery history is
    refused; no substitute unit is invented to fill an allocator gap.
-6. Activate the remaining unit technologies, after their formations exist.
-7. Fit equipment, preserving each formation's fitting order.
+5. Activate the remaining unit technologies, after their formations exist.
+6. Fit equipment, preserving each formation's fitting order.
+7. Move and rotate existing and newly purchased formations together. Jump Drive
+   research and Deployment Module fitting have already occurred; Redeployment
+   and swap-space waypoints are emitted where needed.
 8. Apply Intensive Training and upgrade formations.
 9. Place contraptions in allocator order.
 10. Apply remaining Energy Tower activations, tower strengthening and Research
-   Center blueprints, including range, mobility, attack, defense and Sticky Oil.
-11. Release combat commander skills, preserving their relative release order.
-12. Unlock the remaining unit types.
+    Center blueprints, including range, mobility, attack, defense and Sticky Oil.
+11. Unlock the remaining unit types.
+12. Release combat commander skills, preserving their relative release order.
 
 Within a phase, formation indices, technology IDs and panel indices break
 remaining ties. Blueprint chains keep predecessor before successor. A skill
@@ -589,11 +590,11 @@ recorded recovery facts. Skill-granting blueprints preserve panel allocation ord
 be a dependency.
 
 The match sequence itself meets native operation prerequisites. GRBR encoding
-expands a combined purchase into a default purchase and movement. Between
-those native operations it activates that type's pending technologies, once,
-after its first purchase. Flank initialization therefore sees those technologies
-without splitting the match's combined purchase. Energy Tower activations,
-including the upfront Rapid Resupply stage, retain their match order.
+preserves action order, including unit research and Energy Tower activations.
+An input purchase with an explicit position expands into a default purchase
+and immediate movement without pulling later research forward. In the normal
+form, research precedes the unified movement phase, so flank initialization
+sees that research directly from match order.
 
 `GiveUp` is kept, as `concede`, and nothing it recorded besides its type
 survives.

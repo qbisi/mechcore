@@ -679,8 +679,8 @@ fn write_panel(xml: &mut String, side: &SideState, sign: i32, round: i32) {
 }
 
 /// A round's decisions as the replay records them, each side ending its
-/// deployment. A purchase is recorded as the purchase and a move that puts the
-/// formation it creates where the match does, which conversion folds back.
+/// deployment. An explicitly placed purchase expands into a default purchase
+/// and an immediate move; all match decisions retain their relative order.
 fn write_actions(
     xml: &mut String,
     economy: &Economy,
@@ -751,9 +751,7 @@ fn write_actions(
     Ok(())
 }
 
-/// Expand purchase placement into native purchase, research and movement.
-/// A type's pending research runs after its first purchase, before movement,
-/// so flank initialization sees the technology while match purchases stay whole.
+/// Expand explicit purchase placement without rescheduling match decisions.
 fn native_actions(
     economy: &Economy,
     opened: &SideState,
@@ -768,11 +766,7 @@ fn native_actions(
         declined: offers.map(|offers| offers.refund),
         red,
     };
-    let mut scheduled = std::collections::BTreeSet::new();
-    for (at, action) in actions.iter().enumerate() {
-        if scheduled.contains(&at) {
-            continue;
-        }
+    for action in actions {
         match action {
             Action::BuyUnit {
                 unit,
@@ -790,15 +784,6 @@ fn native_actions(
                     position: Some(landing),
                     rotated: false,
                 })?;
-                for (later, research) in actions.iter().enumerate().skip(at + 1) {
-                    if let Action::UpgradeTechnology { unit: owner, tech } = research
-                        && owner == unit
-                        && !native.position.techs.contains(tech)
-                    {
-                        native.push(research.clone())?;
-                        scheduled.insert(later);
-                    }
-                }
                 if let Some(position) = position {
                     if *position != landing || *rotated {
                         native.push(Action::MoveUnit {
@@ -917,8 +902,8 @@ fn action_records(
         Action::ChooseAdvanceTeam { .. } => {
             return Err("a deployment round takes an opening, and only round 0 does".into());
         }
-        // `native_actions` has separated the native landing and the move, with
-        // unit technology acquisition between them.
+        // `native_actions` resolves the default landing and expands any
+        // explicit placement into a separate native move.
         Action::BuyUnit { unit, position, .. } => vec![(
             "PAD_BuyUnit",
             format!(
@@ -1047,7 +1032,7 @@ mod tests {
     }
 
     #[test]
-    fn native_encoding_inserts_research_between_purchase_and_flank_movement() {
+    fn native_encoding_does_not_pull_research_before_explicit_flank_placement() {
         let lowered = native(&[
             buy(25, 310, 50),
             Action::UpgradeTechnology {
@@ -1062,14 +1047,14 @@ mod tests {
                     position: Some(_),
                     ..
                 },
-                Action::UpgradeTechnology { tech: 3925, .. },
                 Action::MoveUnit { index: 0, .. },
+                Action::UpgradeTechnology { tech: 3925, .. },
             ]
         ));
     }
 
     #[test]
-    fn research_is_emitted_once_after_the_first_purchase_of_its_type() {
+    fn research_stays_after_both_purchases_and_their_explicit_placements() {
         let lowered = native(&[
             buy(6, -100, -160),
             buy(6, 100, -160),
@@ -1079,16 +1064,16 @@ mod tests {
             lowered.as_slice(),
             [
                 Action::BuyUnit { .. },
-                Action::UpgradeTechnology { tech: 206, .. },
                 Action::MoveUnit { index: 0, .. },
                 Action::BuyUnit { .. },
                 Action::MoveUnit { index: 1, .. },
+                Action::UpgradeTechnology { tech: 206, .. },
             ]
         ));
     }
 
     #[test]
-    fn early_native_research_uses_the_upfront_supply_stage() {
+    fn native_encoding_keeps_research_and_the_upfront_supply_stage_in_order() {
         let economy = Economy::embedded().unwrap();
         let mut opening = opened();
         let cost = crate::ledger::Purse::new(economy, &opening.officers)
@@ -1119,8 +1104,8 @@ mod tests {
             Action::ActiveEnergyTowerSkill { skill: 1 }
         ));
         assert!(matches!(
-            lowered[2],
-            Action::UpgradeTechnology { tech: 206, .. }
+            lowered.last(),
+            Some(Action::UpgradeTechnology { tech: 206, .. })
         ));
         assert!(native_actions(economy, &opening, &actions[1..], None, false).is_err());
     }

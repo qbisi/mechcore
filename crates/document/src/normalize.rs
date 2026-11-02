@@ -281,23 +281,7 @@ impl Builder<'_> {
             &mut crate::landing::placement(self.red),
         )
         .map_err(|error| format!("{action:?}: {error}"))?;
-        if let Action::MoveUnit {
-            index,
-            position,
-            rotated,
-        } = &action
-            && *index == self.position.next_index.unit - 1
-            && let Some(Action::BuyUnit {
-                position: landing,
-                rotated: rotation,
-                ..
-            }) = self.actions.last_mut()
-        {
-            *landing = Some(*position);
-            *rotation = *rotated;
-        } else {
-            self.actions.push(action);
-        }
+        self.actions.push(action);
         Ok(())
     }
 
@@ -550,7 +534,6 @@ impl Builder<'_> {
         let mut errors = Vec::new();
         for mut candidate in candidates {
             let completed = (|| {
-                candidate.moves()?;
                 while candidate.position.next_index.unit < candidate.target.next_index.unit {
                     candidate.buy_next()?;
                 }
@@ -759,15 +742,6 @@ impl Builder<'_> {
 
     fn free_to_move(&mut self, index: i32) -> Result<(), String> {
         let wanted = self.wanted(index)?.clone();
-        let jump = crate::mobility::JUMP_DRIVES
-            .iter()
-            .find(|(tech, name)| *name == wanted.unit.type_name && self.research.contains(tech))
-            .map(|(tech, _)| *tech);
-        if !self.unit(index)?.movable(&self.position.techs)
-            && let Some(tech) = jump
-        {
-            self.research(tech)?;
-        }
         if wanted.redeployed && !self.unit(index)?.redeployed {
             let skill = self
                 .target
@@ -788,26 +762,6 @@ impl Builder<'_> {
                 id: skill.id,
                 target: SkillTarget::Unit(index),
             })?;
-        }
-        if self.unit(index)?.movable(&self.position.techs) {
-            return Ok(());
-        }
-        if !self.unit(index)?.movable(&self.position.techs)
-            && wanted
-                .unit
-                .equipment
-                .contains(&crate::mobility::DEPLOYMENT_MODULE)
-        {
-            // Preserve fitting order when the module follows another item.
-            for equipment in wanted.unit.equipment {
-                if self.unit(index)?.unit.equipment.contains(&equipment) {
-                    continue;
-                }
-                self.push(Action::UseEquipment { equipment, index })?;
-                if equipment == crate::mobility::DEPLOYMENT_MODULE {
-                    break;
-                }
-            }
         }
         if !self.unit(index)?.movable(&self.position.techs) {
             return Err(format!(
@@ -880,29 +834,24 @@ impl Builder<'_> {
 
     fn buy_next(&mut self) -> Result<(), String> {
         let index = self.position.next_index.unit;
-        let wanted = self
-            .target
-            .units
-            .iter()
-            .find(|entry| entry.unit.index == index)
-            .cloned();
         let unit = self.purchase_type(index)?;
+        let name = crate::catalog::unit_type_from_id(unit)
+            .ok_or("unknown purchased unit")?
+            .0;
+        if crate::landing::landing(&self.position, name, self.red).is_none() {
+            return Err(format!("default purchase of {name} has no landing space"));
+        }
         self.push(Action::BuyUnit {
             unit,
             position: None,
             rotated: false,
         })?;
-        if let Some(wanted) = wanted {
-            if self.unit(index)?.unit.position != wanted.unit.position
-                || wanted.unit.rotated.unwrap_or(false)
-            {
-                self.push(Action::MoveUnit {
-                    index,
-                    position: wanted.unit.position,
-                    rotated: wanted.unit.rotated.unwrap_or(false),
-                })?;
-            }
-        } else {
+        if !self
+            .target
+            .units
+            .iter()
+            .any(|entry| entry.unit.index == index)
+        {
             let recovery = self
                 .target
                 .battle_skills
@@ -962,6 +911,7 @@ impl Builder<'_> {
                 })?;
             }
         }
+        self.moves()?;
         for wanted in &self.target.units {
             let index = wanted.unit.index;
             while self.unit(index)?.unit.level.unwrap_or(1) < wanted.unit.level.unwrap_or(1) {
@@ -993,6 +943,11 @@ impl Builder<'_> {
             })?;
         }
         self.infrastructure()?;
+        for unit in self.target.unlocked_units.clone() {
+            if !self.position.unlocked_units.contains(&unit) {
+                self.push(Action::UnlockUnit { unit })?;
+            }
+        }
         let mut battle: Vec<_> = self
             .target
             .battle_skills
@@ -1011,11 +966,6 @@ impl Builder<'_> {
                 id: slot.id,
                 target: slot.release.as_ref().unwrap().target.clone(),
             })?;
-        }
-        for unit in self.target.unlocked_units.clone() {
-            if !self.position.unlocked_units.contains(&unit) {
-                self.push(Action::UnlockUnit { unit })?;
-            }
         }
         let actual = comparable(&self.position);
         let expected = comparable(self.target);
@@ -1240,6 +1190,14 @@ mod tests {
         }
     }
 
+    fn default_purchase(unit: i32) -> Action {
+        Action::BuyUnit {
+            unit,
+            position: None,
+            rotated: false,
+        }
+    }
+
     fn close(opened: &SideState, actions: &[Action]) -> SideState {
         actions.iter().fold(opened.clone(), |position, action| {
             crate::transition::step_placing(
@@ -1362,7 +1320,7 @@ mod tests {
     }
 
     #[test]
-    fn a_purchase_and_its_immediate_move_share_one_action() {
+    fn a_purchase_and_its_immediate_move_remain_separate_actions() {
         let opened = side();
         let purchase = Action::BuyUnit {
             unit: 1,
@@ -1374,14 +1332,10 @@ mod tests {
             position: Position { x: -100, y: -160 },
             rotated: true,
         };
-        let closed = close(&opened, &[purchase, movement]);
-        let expected = Action::BuyUnit {
-            unit: 1,
-            position: Some(Position { x: -100, y: -160 }),
-            rotated: true,
-        };
+        let expected = [purchase, movement];
+        let closed = close(&opened, &expected);
         let actions = normalized(&opened, &closed);
-        assert_eq!(actions, [expected]);
+        assert_eq!(actions, expected);
         assert!(!serde_yaml::to_string(&actions).unwrap().contains("level:"));
     }
 
@@ -1394,9 +1348,10 @@ mod tests {
             &[moved(0, 350, 55), moved(0, 90, -35), bought(15, 350, 55)],
         );
         let actions = normalized(&opened, &closed);
-        assert_eq!(actions[0], moved(0, 90, -35));
-        assert_eq!(actions.len(), 2);
-        assert_eq!(actions[1], bought(15, 350, 55));
+        assert_eq!(
+            actions,
+            [default_purchase(15), moved(0, 90, -35), moved(2, 350, 55)]
+        );
         let other = close(&opened, &[moved(0, 90, -35), bought(15, 350, 55)]);
         assert_eq!(normalized(&opened, &other), actions);
     }
@@ -1406,6 +1361,92 @@ mod tests {
         let opened = side();
         let closed = close(&opened, &[moved(0, 20, -160), moved(1, 0, -160)]);
         assert_eq!(normalized(&opened, &closed).len(), 3);
+    }
+
+    #[test]
+    fn default_purchase_refuses_a_full_board_instead_of_moving_early() {
+        let mut opened = side();
+        while let Some(position) = crate::landing::landing(&opened, "marksman", false) {
+            let mut held = opened.units[0].clone();
+            held.unit.index = opened.next_index.unit;
+            held.unit.position = position;
+            opened.next_index.unit += 1;
+            opened.units.push(held);
+        }
+        let closed = close(&opened, &[moved(0, 310, 50), default_purchase(2)]);
+        let error = deployment(
+            Economy::embedded().unwrap(),
+            &opened,
+            &closed,
+            None,
+            false,
+            &DeploymentHistory::default(),
+        )
+        .unwrap_err();
+        assert!(
+            error.contains("default purchase of marksman has no landing space"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn existing_and_new_formations_move_after_equipment_and_before_upgrades() {
+        let mut opened = side();
+        opened.units[0].unit.type_name = "wasp".into();
+        opened.units[0].unit.source = UnitSource::Legacy;
+        opened.equipment.push(EquipmentItem {
+            id: crate::mobility::DEPLOYMENT_MODULE,
+            durability: None,
+        });
+        let research = Action::UpgradeTechnology {
+            unit: 6,
+            tech: 1606,
+        };
+        let equip = Action::UseEquipment {
+            index: 0,
+            equipment: crate::mobility::DEPLOYMENT_MODULE,
+        };
+        let upgrade = Action::UpgradeUnit { index: 2 };
+        let history = [
+            research.clone(),
+            moved(0, 100, -160),
+            bought(1, -100, -160),
+            upgrade.clone(),
+            equip.clone(),
+        ];
+        let closed = close(&opened, &history);
+        assert_eq!(
+            normalized(&opened, &closed),
+            [
+                default_purchase(1),
+                research,
+                equip,
+                moved(0, 100, -160),
+                moved(2, -100, -160),
+                upgrade
+            ]
+        );
+    }
+
+    #[test]
+    fn a_purchase_vacates_its_default_landing_before_interceptor_placement() {
+        let opened = side();
+        let landed = close(&opened, &[default_purchase(1)]);
+        let position = landed
+            .units
+            .iter()
+            .find(|held| held.unit.index == 2)
+            .unwrap()
+            .unit
+            .position;
+        let interceptor = Action::ReleaseContraption {
+            contraption: 30_001,
+            position,
+            extra_position: None,
+        };
+        assert!(crate::transition::check_place(&landed, &interceptor).is_err());
+        let history = [default_purchase(1), moved(2, -100, -160), interceptor];
+        assert_eq!(normalized(&opened, &close(&opened, &history)), history);
     }
 
     #[test]
@@ -1609,7 +1650,7 @@ mod tests {
     }
 
     #[test]
-    fn research_follows_complete_purchases_without_splitting_their_moves() {
+    fn research_follows_default_purchases_and_precedes_unified_movement() {
         let opened = side();
         let research = Action::UpgradeTechnology { unit: 6, tech: 206 };
         let purchases = [bought(6, 310, 50), bought(1, -100, -160)];
@@ -1619,7 +1660,13 @@ mod tests {
         );
         assert_eq!(
             normalized(&opened, &closed),
-            [purchases[0].clone(), purchases[1].clone(), research]
+            [
+                default_purchase(6),
+                default_purchase(1),
+                research,
+                moved(2, 310, 50),
+                moved(3, -100, -160)
+            ]
         );
     }
 
@@ -1679,7 +1726,10 @@ mod tests {
         let purchase = bought(1, -100, -160);
         let loan = Action::ActiveEnergyTowerSkill { skill: 1 };
         let closed = close(&opened, &[purchase.clone(), loan.clone()]);
-        assert_eq!(normalized(&opened, &closed), [loan, purchase]);
+        assert_eq!(
+            normalized(&opened, &closed),
+            [loan, default_purchase(1), moved(2, -100, -160)]
+        );
     }
 
     #[test]
@@ -1713,7 +1763,10 @@ mod tests {
             &DeploymentHistory::default(),
         )
         .unwrap();
-        assert_eq!(actions, [choice, loan, purchase]);
+        assert_eq!(
+            actions,
+            [choice, loan, default_purchase(1), moved(2, -100, -160)]
+        );
         assert_eq!(
             crate::transition::deployed(economy, &opened, &actions, false, Some(offers.refund))
                 .unwrap(),
@@ -1744,7 +1797,12 @@ mod tests {
                 Action::ActiveEnergyTowerSkill { skill: 4 },
                 Action::BuyUnit {
                     unit: 6,
-                    position: Some(Position { x: 310, y: 50 }),
+                    position: None,
+                    ..
+                },
+                Action::MoveUnit {
+                    index: 2,
+                    position: Position { x: 310, y: 50 },
                     ..
                 },
             ]
@@ -1752,7 +1810,7 @@ mod tests {
     }
 
     #[test]
-    fn remaining_enhancements_follow_devices_and_unused_unlocks_follow_combat() {
+    fn movement_precedes_devices_and_unused_unlocks_precede_combat() {
         let mut opened = side();
         opened.unlocked_units.retain(|unit| *unit != 25);
         opened.tower_strengthen_levels = vec![0, 0];
@@ -1769,6 +1827,7 @@ mod tests {
                     position: Position { x: -100, y: -100 },
                     extra_position: None,
                 },
+                moved(0, 100, -160),
                 Action::ReleaseCommanderSkill {
                     index: 0,
                     id: 300_001,
@@ -1780,12 +1839,13 @@ mod tests {
         assert!(matches!(
             actions.as_slice(),
             [
+                Action::MoveUnit { index: 0, .. },
                 Action::ReleaseContraption { .. },
                 Action::ActiveEnergyTowerSkill { skill: 5 },
                 Action::ActiveBlueprint { id: 4 },
                 Action::StrengthenTower { tower: 0 },
-                Action::ReleaseCommanderSkill { .. },
                 Action::UnlockUnit { unit: 25 },
+                Action::ReleaseCommanderSkill { .. },
             ]
         ));
     }
