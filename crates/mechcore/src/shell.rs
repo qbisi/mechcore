@@ -55,6 +55,7 @@ without the game
   format | schema                 documents
   mask <file> --side blue|red --unit <type>
                                   geometric purchase placement grids
+  preview <layout|state>           effective attributes and initial target relations
   generate --seed n --count n <dir>
                                   layouts that cover every pair of fight decisions
   man [<topic>|<kind>]            the manual this binary carries
@@ -73,7 +74,8 @@ shell
 
 /// The commands a line may name beside the game's, which need no session.
 const SESSIONLESS: &[&str] = &[
-    "verify", "convert", "diff", "show", "play", "format", "schema", "generate", "mask", "man",
+    "verify", "convert", "diff", "show", "play", "format", "schema", "generate", "mask", "preview",
+    "man",
 ];
 
 /// A match and the side a shell plays of it.

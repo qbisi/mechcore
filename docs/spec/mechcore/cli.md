@@ -92,15 +92,15 @@ carries.
 A YAML document that names no kind, or one this binary does not read, is
 refused rather than guessed at.
 
-| Kind | `verify` | `convert --to` | `diff` | `show --view` | `query` | `play` | `format` | `mask` |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `layout` | yes | `grbr` (transcode), `mcfr` (computation), `fight` (computation) | yes | — | — | yes (computation) | yes | yes |
-| `fight` | yes | `layout` (projection), `grbr` (transcode), `mcfr` (computation) | yes | — | — | yes (computation) | yes | — |
-| `match` | yes | `grbr` (transcode), `layout` (projection), `fight` and `mcfr` (computation) | — | — | — | yes (computation) | — | yes |
-| `state` | — | — | — | — | — | — | — | yes |
-| `action` | — | — | — | — | — | — | — | — |
-| `mcfr` | yes | `fight` and `layout` (projection), `grbr` (transcode) | yes | `outcome`, `stats`, `buildings` | yes | yes | — | — |
-| `grbr` | — | `match` (transcode), `layout` (projection), `mcfr` and `fight` (computation) | — | — | — | — | — | — |
+| Kind | `verify` | `convert --to` | `diff` | `show --view` | `query` | `play` | `format` | `mask` | `preview` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `layout` | yes | `grbr` (transcode), `mcfr` (computation), `fight` (computation) | yes | — | — | yes (computation) | yes | yes | yes |
+| `fight` | yes | `layout` (projection), `grbr` (transcode), `mcfr` (computation) | yes | — | — | yes (computation) | yes | — | — |
+| `match` | yes | `grbr` (transcode), `layout` (projection), `fight` and `mcfr` (computation) | — | — | — | yes (computation) | — | yes | — |
+| `state` | — | — | — | — | — | — | — | yes | yes |
+| `action` | — | — | — | — | — | — | — | — | — |
+| `mcfr` | yes | `fight` and `layout` (projection), `grbr` (transcode) | yes | `outcome`, `stats`, `buildings` | yes | yes | — | — | — |
+| `grbr` | — | `match` (transcode), `layout` (projection), `mcfr` and `fight` (computation) | — | — | — | — | — | — | — |
 
 A state and an action are verified inside a match. A standalone state also
 takes `mask`, which projects its stated position without replaying decisions.
@@ -812,6 +812,98 @@ before rotated, then increasing x. Rows increase along own-side y. This uses
 ordinary spatial rows, without the native terrain grid's transpose or reversed
 bit order. It shares the current compiler's geometric coverage, not an additional
 claim about native inactive deployment cells.
+
+## `preview`
+
+```sh
+mechcore preview <layout|state> [--seed <i32>]
+```
+
+Initializes the supplied deployment through the simulator, stopping at fight
+entry without advancing a logic tick. Empty deployment sides are allowed.
+This is a decision feature query, not a fight result or a recording. It never
+writes the input, a turn cache or an MCFR. Unsupported mechanisms retain the
+simulator's named refusals. JSON and YAML output use the normal `--format`.
+
+The seed comes from `--seed`, then the layout or standalone state, then the
+fixed preview default `1`. The result states `seed` and `seed_source` (`external`,
+`layout` or `default`); zero is refused. The seed controls native member jitter
+and initialization draws. A default-seed forecast is reproducible but need not
+match a later battle fought with another seed.
+
+The result has `schema: mechcore.preview`, the original `document`, `tick: 0`,
+`boundary: fight_start_presearch`, `coordinates: own_side_metres`, seed
+provenance and an `objects` array. Positions use each object's own side frame:
+`x` across, `y` towards the enemy and `height` above the ground, in metres.
+Distances, speeds and intervals are ordinary numeric metres, metres per second
+and seconds, converted from the simulator's fixed-point values.
+
+Each object has `id`, `kind`, `side`, optional-valued `index`, `name`, `members`,
+`lock_basis`, `locks`, `locked_by`, `attacks` and `attacked_by`. Formation IDs use `blue/unit/<index>` or
+`red/unit/<index>`. Constructions and contraptions use their corresponding
+input indices; each construction keeps its native blocks together. Towers
+are named by side and building type. Runtime-created shields without a
+deployment index have separate shield identities. IDs identify relationships,
+not ordered numeric model features.
+
+Formation members carry initialized life, maximum life, personal shields,
+movement speed, collision radius, ground/air damage and ranges, per-hit damage
+reduction, domain, visibility, travelling state and skill slots. Each slot states
+whether it is enabled and its damage, range, minimum range, splash radius,
+composed attack interval and target domains. Member values are preserved rather
+than assuming every member of one formation has identical properties.
+Damage is before mitigation; a conditional mechanism's future stacks, laser
+ramp and future buffs are not simulated into a constant. Buildings carry their
+life and available attack attributes; interceptors carry interception values,
+missiles their trigger range and shot properties, and shields their energy,
+radius and active state. An inapplicable attribute is null rather than zero.
+
+`locks` entries are `{object, in_range, out_of_range}`. The two counts sum
+member-level main-skill relationships to that destination object. A formation
+may therefore lock several formations or buildings. Every outgoing entry has
+an equal reverse entry under the destination's `locked_by`, whose `object`
+names the source. In-range uses the native skill range predicate, including
+minimum range and target radius; it does not promise a shot is ready or aimed.
+
+`attacks` entries are `{object, via_lock, redirected_by, in_range, out_of_range}`.
+They forecast the main skill's attack-target search at frozen fight-entry
+positions. `object` identifies the resulting attack object, `via_lock` the
+presearch lock it was evaluated against, and `redirected_by` is `shield`,
+`wall`, or null for direct attacks. Counts aggregate members sharing all three
+fields. Every entry has an equal reverse under the destination's `attacked_by`,
+whose `object` names the attacker and whose `via_lock` still names the lock.
+Range is checked against the resulting object, including the shield surface.
+The forecast uses the existing shield and wall checkers, including shield
+crossing and the interaction of a wall with a shield. Shield and wall searches
+apply their current reach checks: a protected target beyond those checks can
+still have a direct, out-of-range relation at this boundary. It leaves the reported
+presearch locks intact even where a later native attack search would replace
+a skill lock with a wall. It does not advance the skill state machine, release
+projectiles, predict barrier destruction, or forecast extra-weapon retargeting.
+Missile trigger relations appear only in `locks`; passive shields and
+interceptors have no outgoing attack forecast.
+
+`lock_basis` states which initial-position relation is being shown:
+
+| Value | Meaning |
+| --- | --- |
+| `deployment_presearch` | unit main-skill locks from the existing deployment presearch |
+| `initial_search_forecast` | a searchable construction's first lock search at frozen initial positions |
+| `initial_trigger_forecast` | a missile's existing nearest-trigger-target query, without firing it |
+| `none` | no target search forecast for this object |
+
+Unit presearch precedes fight-entry effects such as entrenchment; the reported
+effective attributes and range checks are at fight entry. No unit moves or
+attacks to obtain these relations. Travelling units do not produce active lock
+edges before arrival. Interceptors find projectiles, so their initial lock
+lists are empty; passive shields also have no outgoing lock. Shield blocking
+of a later attack is not fabricated into a deployment lock. Extra weapons and
+later retargeting can select other enemies once updates begin.
+
+Preview sees exactly the supplied deployment. For a decision model, pass the
+current own position and the opponent's round-opening position, not both
+players' completed deployment. It neither applies unseen opponent actions nor
+removes information the caller already put in its input.
 
 ## `generate`
 

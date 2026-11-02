@@ -85,7 +85,7 @@ impl Simulation {
     /// side whose edge is under the trigger range, the first of equals. The
     /// admitted missile's `CanAttackConstruction` is true; a tower never
     /// sets a missile off.
-    fn nearest_mine_target(&self, mine: &Mine) -> Option<FightActorRef> {
+    pub(in crate::fight) fn nearest_mine_target(&self, mine: &Mine) -> Option<FightActorRef> {
         let mut chosen = None;
         let mut nearest = i64::MAX;
         for (_, tree) in self

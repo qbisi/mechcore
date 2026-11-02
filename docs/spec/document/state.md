@@ -9,6 +9,9 @@ defines, and the other three relate to it by projection and by composition.
 `mechcore mask <state> --side blue|red --unit <type>` reads a standalone state
 for geometric purchase positions; the [CLI contract](../mechcore/cli.md#mask)
 defines its offsets, bit masks and decision-view boundary.
+`mechcore preview <state>` also reads that position for initialized effective
+attributes and initial target relationships, as the
+[preview contract](../mechcore/cli.md#preview) defines.
 
 ```yaml
 kind: state

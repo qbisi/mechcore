@@ -17,10 +17,30 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+pub use fight::{DeploymentPreview, PreviewAttackRelation, PreviewObject, PreviewRelation};
 pub use fight::{
     DivergentTick, Phases, SimulationComparison, SimulationProfile, SimulationResult, SlowestStep,
     TimelineSummary,
 };
+
+/// Initializes the fight and its deployment presearch without advancing a tick.
+/// Missing seeds use the reproducible preview seed 1, reported in the result.
+///
+/// # Errors
+/// Returns the simulator's existing initialization refusals or an invalid seed.
+pub fn preview_document(document: &[u8], seed: Option<i32>) -> Result<DeploymentPreview> {
+    let config = rules::SimulationConfig::load()?;
+    let original = mechcore_document::parse_embedded_yaml(document).map_err(Error::new)?;
+    let (layout_seed, layout) = layout::compile_preview(document, &config.units)?;
+    let (seed, source) = seed.map_or_else(
+        || layout_seed.map_or((1, "default"), |seed| (seed, "layout")),
+        |seed| (seed, "external"),
+    );
+    if seed == 0 {
+        return Err(Error::new("preview seed 0 is not reproducible"));
+    }
+    fight::preview(&layout, &original, &config, seed, source)
+}
 
 /// Where a fight's timeline goes.
 #[derive(Clone, Copy, Debug)]

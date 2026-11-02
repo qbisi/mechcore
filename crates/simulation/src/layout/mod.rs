@@ -334,8 +334,32 @@ pub(crate) fn compile_with_seed(
     bytes: &[u8],
     units: &UnitConfigs,
 ) -> Result<(Option<i32>, CompiledLayout)> {
-    let layout = mechcore_document::parse_yaml(bytes).map_err(Error::new)?;
-    let plan = mechcore_document::compile_layout(layout).map_err(Error::new)?;
+    compile_deployment(bytes, units, false)
+}
+
+pub(crate) fn compile_preview(
+    bytes: &[u8],
+    units: &UnitConfigs,
+) -> Result<(Option<i32>, CompiledLayout)> {
+    compile_deployment(bytes, units, true)
+}
+
+#[allow(
+    clippy::too_many_lines,
+    reason = "compiles each admitted layout component through its existing owner"
+)]
+fn compile_deployment(
+    bytes: &[u8],
+    units: &UnitConfigs,
+    preview: bool,
+) -> Result<(Option<i32>, CompiledLayout)> {
+    let layout = mechcore_document::parse_embedded_yaml(bytes).map_err(Error::new)?;
+    let plan = if preview {
+        mechcore_document::compile::compile_placement_layout(layout)
+    } else {
+        mechcore_document::compile_layout(layout)
+    }
+    .map_err(Error::new)?;
     let loadouts = Loadouts::load()?;
     let table = Constructions::load()?;
     let contraptions = Contraptions::load()?;
