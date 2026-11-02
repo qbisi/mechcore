@@ -640,10 +640,18 @@ struct Game {
 
 impl Game {
     fn editable(&self, side: Side) -> Result<(), Failure> {
-        if !self.phase().decides() || self.turn.side(side).committed {
-            return Err(Failure::refused(
-                "only uncommitted decisions in the current round can be edited",
-            ));
+        if !self.phase().decides() {
+            return Err(Failure::refused(format!(
+                "this match is in the {} phase, which holds no decision",
+                self.phase().name()
+            )));
+        }
+        if self.turn.side(side).committed {
+            return Err(Failure::refused(format!(
+                "{} has committed round {}, and a side commits a round once",
+                side.name(),
+                self.round()
+            )));
         }
         if self.phase() == Phase::Deploy && self.turn.age()? >= f64::from(self.deploy_time()) {
             return Err(Failure::refused("the deployment deadline has expired"));
@@ -685,10 +693,15 @@ impl Game {
                 for side in Side::BOTH {
                     rebuilt.side_mut(side).committed = game.written(side);
                 }
-                held.write(&rebuilt)?;
+                if !game.over() {
+                    held.write(&rebuilt)?;
+                }
                 rebuilt
             }
         };
+        if game.over() {
+            held.remove()?;
+        }
         Ok(game)
     }
 
@@ -768,9 +781,8 @@ impl Game {
     /// Carries the match as far as it goes on its own: the clock ends it, and
     /// a round both sides have committed is fought.
     ///
-    /// Every operation does this before it answers, so a fight no backend
-    /// could resolve is tried again by the next caller rather than left for a
-    /// caller that knows to ask.
+    /// Operations that advance the match do this before answering, retrying
+    /// unresolved fights. Draft edits and candidate queries do not advance it.
     fn settle(mut self, held: &mut Held) -> Result<Self, Failure> {
         loop {
             match self.phase() {
@@ -1094,22 +1106,7 @@ impl Game {
 
     /// Takes one decision, answering what it did, without keeping it.
     fn take(&self, side: Side, decision: &Action) -> Result<Vec<Value>, Failure> {
-        match self.phase() {
-            Phase::Opening | Phase::Deploy => {}
-            phase => {
-                return Err(Failure::refused(format!(
-                    "this match is in the {} phase, which holds no decision",
-                    phase.name()
-                )));
-            }
-        }
-        if self.turn.side(side).committed {
-            return Err(Failure::refused(format!(
-                "{} has committed round {}, and a side commits a round once",
-                side.name(),
-                self.round()
-            )));
-        }
+        self.editable(side)?;
         self.allowed(side, decision)?;
         let before = self.position(side)?;
         transition::check_operation(&before, decision)
