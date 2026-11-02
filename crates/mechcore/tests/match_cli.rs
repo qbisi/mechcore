@@ -1691,3 +1691,54 @@ fn playing_a_match_keeps_each_completed_round() {
         .unwrap();
     assert_eq!(seed.status.code(), Some(2));
 }
+
+#[test]
+fn placement_masks_see_only_the_callers_pending_actions_without_advancing() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    let view = run(&["match", "show", &path, "--side", "red"]).ok();
+    let unit = &view["state"]["red"]["units"][0];
+    let name = unit["name"].as_str().unwrap();
+    let blue_before = run(&["mask", &path, "--side", "blue", "--unit", "rhino"]).ok();
+    let red_before = run(&["mask", &path, "--side", "red", "--unit", name]).ok();
+    let grid = red_before["grids"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|g| {
+            g["rows"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|r| r.as_u64().unwrap() != 0)
+        })
+        .unwrap();
+    let (row, word) = grid["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .enumerate()
+        .find(|(_, r)| r.as_u64().unwrap() != 0)
+        .unwrap();
+    let column = word.as_u64().unwrap().trailing_zeros();
+    let decision = serde_json::json!({"type":"move_unit","index":unit["index"],
+        "position":{"x":grid["offset"]["x"].as_i64().unwrap()+i64::from(column)*10,
+        "y":grid["offset"]["y"].as_i64().unwrap()+i64::try_from(row).unwrap()*10},
+        "rotated":grid["rotated"]})
+    .to_string();
+    run(&["match", "act", &path, "--side", "red", &decision]).ok();
+    let document_before = fs::read(&path).unwrap();
+    let turn_path = Path::new(&path).with_extension("turn");
+    let turn_before = fs::read(&turn_path).unwrap();
+    assert_eq!(
+        blue_before,
+        run(&["mask", &path, "--side", "blue", "--unit", "rhino"]).ok()
+    );
+    assert_ne!(
+        red_before,
+        run(&["mask", &path, "--side", "red", "--unit", name]).ok()
+    );
+    assert_eq!(document_before, fs::read(&path).unwrap());
+    assert_eq!(turn_before, fs::read(&turn_path).unwrap());
+}

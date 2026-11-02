@@ -6,6 +6,10 @@ A state describes one complete match position: everything both players hold at
 one moment of one round. It is the largest of the four documents this format
 defines, and the other three relate to it by projection and by composition.
 
+`mechcore mask <state> --side blue|red --unit <type>` reads a standalone state
+for geometric purchase positions; the [CLI contract](../mechcore/cli.md#mask)
+defines its offsets, bit masks and decision-view boundary.
+
 ```yaml
 kind: state
 map_id: 1001

@@ -92,17 +92,18 @@ carries.
 A YAML document that names no kind, or one this binary does not read, is
 refused rather than guessed at.
 
-| Kind | `verify` | `convert --to` | `diff` | `show --view` | `query` | `play` | `format` |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `layout` | yes | `grbr` (transcode), `mcfr` (computation), `fight` (computation) | yes | — | — | yes (computation) | yes |
-| `fight` | yes | `layout` (projection), `grbr` (transcode), `mcfr` (computation) | yes | — | — | yes (computation) | yes |
-| `match` | yes | `grbr` (transcode), `layout` (projection), `fight` and `mcfr` (computation) | — | — | — | yes (computation) | — |
-| `state` | — | — | — | — | — | — | — |
-| `action` | — | — | — | — | — | — | — |
-| `mcfr` | yes | `fight` and `layout` (projection), `grbr` (transcode) | yes | `outcome`, `stats`, `buildings` | yes | yes | — |
-| `grbr` | — | `match` (transcode), `layout` (projection), `mcfr` and `fight` (computation) | — | — | — | — | — |
+| Kind | `verify` | `convert --to` | `diff` | `show --view` | `query` | `play` | `format` | `mask` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `layout` | yes | `grbr` (transcode), `mcfr` (computation), `fight` (computation) | yes | — | — | yes (computation) | yes | yes |
+| `fight` | yes | `layout` (projection), `grbr` (transcode), `mcfr` (computation) | yes | — | — | yes (computation) | yes | — |
+| `match` | yes | `grbr` (transcode), `layout` (projection), `fight` and `mcfr` (computation) | — | — | — | yes (computation) | — | yes |
+| `state` | — | — | — | — | — | — | — | yes |
+| `action` | — | — | — | — | — | — | — | — |
+| `mcfr` | yes | `fight` and `layout` (projection), `grbr` (transcode) | yes | `outcome`, `stats`, `buildings` | yes | yes | — | — |
+| `grbr` | — | `match` (transcode), `layout` (projection), `mcfr` and `fight` (computation) | — | — | — | — | — | — |
 
-A state and an action are read inside a match, which is what verifies them.
+A state and an action are verified inside a match. A standalone state also
+takes `mask`, which projects its stated position without replaying decisions.
 `schema` names a
 kind rather than a file, and answers the shape of `layout`, `fight`, `match`,
 `state` and `action`.
@@ -762,6 +763,55 @@ rewrite the recorded states or run a fight.
 which is what a reader validates against and what a writer generates from; it
 says nothing about what the fields mean, which is the document's own spec. A
 kind this contract does not name is refused.
+
+## `mask`
+
+```sh
+mechcore mask <layout|state|match> --side blue|red --unit <type>
+```
+
+Answers geometric positions for a newly purchased formation of the named unit,
+in JSON by default or YAML with `--format yaml`. It does not buy, unlock or
+reserve anything, and ignores supply and shop allowances. An empty side is
+admitted before its first purchase; this does not make an empty fight executable.
+Existing geometry must compile. Unknown units and unsupported input kinds are
+refused. The final `buy_unit` action still checks its economic prerequisites.
+
+A layout supplies its stated placements. A standalone state carries `kind:
+state`, `round` and the state fields; optional `map_id` and `seed` have their
+usual document meaning. A match supplies the caller's current decision position,
+including its pending actions, while the opponent stays at its round opening.
+The query takes the turn lock and may rebuild a missing turn cache, but does not
+settle a fight, advance a round, change an existing turn or write the match.
+Round zero is refused because it has no deployment position.
+
+The result has `schema: mechcore.mask`, `side`, `unit`, `step: 10` and `grids`.
+Each grid contains:
+
+| Field | Meaning |
+| --- | --- |
+| `region` | `main`, `left_flank` or `right_flank` |
+| `rotated` | the value to use in the purchase action |
+| `offset` | `{x, y}` of the first candidate formation centre, in own-side metres |
+| `size_x`, `size_y` | column and row counts |
+| `rows` | `size_y` unsigned 32-bit integers, low bit first along x |
+
+Bit `x` of `rows[y]` is one exactly when that candidate centre and orientation
+pass the compiler's footprint, region and collision checks. Its position is
+`{x: offset.x + 10*x, y: offset.y + 10*y}`. A cell represents an entire formation
+placement, not one unoccupied ground square. Shields and missiles do not block
+deployment space. Both orientations are returned even for square footprints.
+Round-one flanks are omitted. A footprint too large for a region has no grid;
+an occupied grid keeps its dimensions even if every row is zero.
+
+Each region/orientation spans its in-bounds, aligned candidate centres. A span
+wider than 32 columns is split left-to-right into blocks with separate offsets;
+the region/orientation can therefore repeat. No word uses bits beyond `size_x`.
+Blocks are ordered main, left flank, right flank; within a region, unrotated
+before rotated, then increasing x. Rows increase along own-side y. This uses
+ordinary spatial rows, without the native terrain grid's transpose or reversed
+bit order. It shares the current compiler's geometric coverage, not an additional
+claim about native inactive deployment cells.
 
 ## `generate`
 
