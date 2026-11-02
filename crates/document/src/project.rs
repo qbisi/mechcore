@@ -20,6 +20,45 @@ use crate::layout::{
 };
 use crate::r#match::{Action, Release, SideState, SkillTarget, State, TurnActions};
 
+/// Reads and projects a standalone state, preserving its optional map and seed.
+/// Unit reinforcement names are interpreted in the state's stated round.
+///
+/// # Errors
+///
+/// Returns a malformed state or a side whose effects cannot be projected.
+pub fn read_state(bytes: &[u8]) -> Result<Layout, String> {
+    let mut value: serde_yaml::Value = serde_yaml::from_slice(bytes).map_err(|e| e.to_string())?;
+    if value.get("kind").and_then(serde_yaml::Value::as_str) != Some("state") {
+        return Err("expected kind: state".into());
+    }
+    let round = value
+        .get("round")
+        .and_then(serde_yaml::Value::as_i64)
+        .and_then(|n| i32::try_from(n).ok())
+        .filter(|n| *n >= 1)
+        .ok_or("state needs round >= 1")?;
+    let fields = value.as_mapping_mut().ok_or("state must be a mapping")?;
+    let optional = |fields: &mut serde_yaml::Mapping, name: &str| -> Result<Option<i32>, String> {
+        fields
+            .remove(serde_yaml::Value::String(name.into()))
+            .map(|v| serde_yaml::from_value::<Option<i32>>(v).map_err(|e| format!("{name}: {e}")))
+            .transpose()
+            .map(Option::flatten)
+    };
+    let map_id = optional(fields, "map_id")?;
+    let seed = optional(fields, "seed")?;
+    let state: State = crate::r#match::payload(value).map_err(|e| e.to_string())?;
+    Ok(Layout {
+        kind: DocumentKind::Layout,
+        game_build: crate::economy::game_build().to_owned(),
+        map_id,
+        seed,
+        round,
+        blue: project_side(&state.blue, "blue")?,
+        red: project_side(&state.red, "red")?,
+    })
+}
+
 /// A deployment state, its projected layout, and any projection warnings.
 pub struct Deployment {
     pub state: State,

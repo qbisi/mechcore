@@ -145,6 +145,15 @@ pub fn compile(value: &Value) -> Result<Plan, String> {
 ///
 /// Returns an error when the layout violates any shared static layout rule.
 pub fn compile_layout(layout: Layout) -> Result<Plan, String> {
+    compile_layout_inner(layout, false)
+}
+
+/// Placement queries also admit an empty side before its first purchase.
+pub(crate) fn compile_placement_layout(layout: Layout) -> Result<Plan, String> {
+    compile_layout_inner(layout, true)
+}
+
+fn compile_layout_inner(layout: Layout, allow_empty: bool) -> Result<Plan, String> {
     if layout.round < 1 {
         return Err("layout round must be at least 1".to_owned());
     }
@@ -155,8 +164,8 @@ pub fn compile_layout(layout: Layout) -> Result<Plan, String> {
                 .to_owned(),
         );
     }
-    let blue = compile_side("blue", layout.blue, layout.round)?;
-    let red = compile_side("red", layout.red, layout.round)?;
+    let blue = compile_side("blue", layout.blue, layout.round, allow_empty)?;
+    let red = compile_side("red", layout.red, layout.round, allow_empty)?;
     validate_record_positions("blue", &blue.units)?;
     validate_record_positions("red", &red.units)?;
     validate_placement_footprints("blue", &blue.units)?;
@@ -178,7 +187,12 @@ pub fn compile_layout(layout: Layout) -> Result<Plan, String> {
     })
 }
 
-fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, String> {
+fn compile_side(
+    side_name: &str,
+    side: Side,
+    round: i32,
+    allow_empty: bool,
+) -> Result<SidePlan, String> {
     validate_techs(side_name, &side)?;
     validate_side_modifiers(side_name, &side)?;
     let Side {
@@ -203,7 +217,7 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
     );
     officers.sort_unstable();
     let slots = crate::economy::Economy::embedded()?.equipment_slots(&officers);
-    let units = compile_units(side_name, units, round, slots)?;
+    let units = compile_units(side_name, units, round, slots, allow_empty)?;
     validate_sources(side_name, &units, &recovered)?;
     let constructions = compile_constructions(side_name, constructions)?;
     let contraptions = compile_contraptions(side_name, contraptions)?;
@@ -377,6 +391,7 @@ fn compile_units(
     definitions: Vec<UnitPlacement>,
     round: i32,
     slots: usize,
+    allow_empty: bool,
 ) -> Result<Vec<Placement>, String> {
     let placements = definitions
         .into_iter()
@@ -501,7 +516,7 @@ fn compile_units(
             })
         })
         .collect::<Result<Vec<_>, _>>()?;
-    if placements.is_empty() {
+    if placements.is_empty() && !allow_empty {
         return Err(format!(
             "side {side_name} units must contain at least one valid unit"
         ));
@@ -1013,7 +1028,10 @@ fn validate_record_positions(side_name: &str, placements: &[Placement]) -> Resul
     Ok(())
 }
 
-fn validate_placement_footprints(side_name: &str, placements: &[Placement]) -> Result<(), String> {
+pub(crate) fn validate_placement_footprints(
+    side_name: &str,
+    placements: &[Placement],
+) -> Result<(), String> {
     for placement in placements {
         match placement.native {
             NativeFormation::Contraption(10001) => {
@@ -1178,7 +1196,7 @@ pub(crate) fn grid_center_remainder(extent: i64) -> Option<i64> {
     }
 }
 
-fn validate_placement_collisions(blue: &SidePlan, red: &SidePlan) -> Result<(), String> {
+pub(crate) fn validate_placement_collisions(blue: &SidePlan, red: &SidePlan) -> Result<(), String> {
     let mut world = Vec::with_capacity(
         blue.units.len()
             + blue.constructions.len()

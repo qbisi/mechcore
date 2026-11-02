@@ -34,6 +34,23 @@ const SCHEMA: &str = "mechcore.match";
 /// promptly and long enough not to hold the lock against the side playing it.
 const POLL: std::time::Duration = std::time::Duration::from_millis(200);
 
+/// Reads the viewer's current deployment without settling a fight or applying
+/// the opponent's private decisions. A missing turn cache is rebuilt as usual.
+pub(crate) fn placement_layout(
+    path: &std::path::Path,
+    side: Side,
+) -> Result<mechcore_document::Layout, Failure> {
+    let mut held = Held::take(&turn_path(path))?;
+    let game = Game::read(path, &mut held, None, side)?;
+    warn_build(&game.r#match.game_build);
+    if game.round() < 1 {
+        return Err(Failure::refused(
+            "placement requires a deployment round, not the opening",
+        ));
+    }
+    game.placement_layout(side, &game.position(side)?)
+}
+
 pub(crate) fn warn_build(build: &str) {
     if let Some(warning) = mechcore_document::r#match::build_warning(build) {
         eprintln!("warning: {warning}");
@@ -1071,10 +1088,20 @@ impl Game {
     /// Round zero places nothing, and a layout states a round from the first,
     /// so nothing is compiled there.
     fn deployable(&self, side: Side, position: &SideState) -> Result<(), Failure> {
-        let round = self.round();
-        if round == 0 {
+        if self.round() == 0 {
             return Ok(());
         }
+        mechcore_document::compile_layout(self.placement_layout(side, position)?)
+            .map(|_| ())
+            .map_err(Failure::refused)
+    }
+
+    fn placement_layout(
+        &self,
+        side: Side,
+        position: &SideState,
+    ) -> Result<mechcore_document::Layout, Failure> {
+        let round = self.round();
         let other = self.opened(side.other())?;
         let (blue, red) = match side {
             Side::Blue => (position.clone(), other.clone()),
@@ -1107,9 +1134,7 @@ impl Game {
             self.r#match.seed,
         )
         .map_err(Failure::refused)?;
-        mechcore_document::compile_layout(layout)
-            .map(|_| ())
-            .map_err(Failure::refused)
+        Ok(layout)
     }
 
     /// Refuses a decision the round does not hold, which the transition alone

@@ -12,6 +12,7 @@ mod generate;
 mod instant;
 mod kind;
 mod man;
+mod mask;
 mod r#match;
 mod outcome;
 mod play;
@@ -42,6 +43,7 @@ fn usage(program: &str) {
         "       {program} play <layout|fight|recording> [<page.html>] [--seed <i32>] [--no-open]"
     );
     eprintln!("       {program} format <document.yaml> [--write]");
+    eprintln!("       {program} mask <layout|state|match> --side blue|red --unit <type>");
     eprintln!(
         "       {program} generate --seed <u64> --count <n> <dir> | --seed <u64> --index <i>"
     );
@@ -100,6 +102,7 @@ pub(crate) fn dispatch(command: &str, arguments: Args) -> Option<Outcome> {
         "query" => query::run(arguments),
         "play" => play::run(arguments),
         "format" => format::run(arguments),
+        "mask" => mask::run(arguments),
         "generate" => generate::run(arguments),
         "schema" => schema::run(arguments),
         "match" => r#match::run(arguments),
