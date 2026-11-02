@@ -73,7 +73,7 @@ impl Side {
 /// The round in progress, as a turn file states it.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct Turn {
+pub(crate) struct Turn<A = Action> {
     pub(crate) schema: String,
     pub(crate) round: i32,
     /// Runtime configuration, not recorded match content.
@@ -84,26 +84,54 @@ pub(crate) struct Turn {
     /// Whether this round's file was rebuilt rather than carried, so a side
     /// waiting on it learns why the wait grew.
     pub(crate) rebuilt: bool,
-    pub(crate) sides: Sides,
+    pub(crate) sides: Sides<A>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct Sides {
-    pub(crate) blue: SideTurn,
-    pub(crate) red: SideTurn,
+pub(crate) struct Sides<A = Action> {
+    pub(crate) blue: SideTurn<A>,
+    pub(crate) red: SideTurn<A>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct SideTurn {
+pub(crate) struct SideTurn<A = Action> {
     /// Whether this side has been handed to a player; a third caller is
     /// refused.
     pub(crate) given: bool,
     /// Whether this side has sealed this round's decisions.
     pub(crate) committed: bool,
     /// This side's pending or sealed decisions, in order.
-    pub(crate) decisions: Vec<Action>,
+    pub(crate) decisions: Vec<A>,
+}
+
+impl Turn<serde_json::Value> {
+    /// The round belongs to the file, not to the spelling of each card.
+    fn decisions_in_round(self) -> Result<Turn, serde_yaml::Error> {
+        let side = |side: SideTurn<serde_json::Value>| -> Result<SideTurn, serde_yaml::Error> {
+            Ok(SideTurn {
+                given: side.given,
+                committed: side.committed,
+                decisions: side
+                    .decisions
+                    .into_iter()
+                    .map(|action| Action::read_in_round(action, self.round))
+                    .collect::<Result<_, _>>()?,
+            })
+        };
+        Ok(Turn {
+            schema: self.schema,
+            round: self.round,
+            deploy_time: self.deploy_time,
+            opened: self.opened,
+            rebuilt: self.rebuilt,
+            sides: Sides {
+                blue: side(self.sides.blue)?,
+                red: side(self.sides.red)?,
+            },
+        })
+    }
 }
 
 const fn default_deploy_time() -> i32 {
@@ -220,14 +248,14 @@ impl Held {
         if text.trim().is_empty() {
             return Ok(None);
         }
-        let turn: Turn = match serde_json::from_str(&text) {
+        let turn: Turn<serde_json::Value> = match serde_json::from_str(&text) {
             Ok(turn) => turn,
             Err(_) => return Ok(None),
         };
         if turn.schema != SCHEMA || turn.deploy_time <= 0 {
             return Ok(None);
         }
-        Ok(Some(turn))
+        Ok(turn.decisions_in_round().ok())
     }
 
     /// Writes the round in progress, in the normal form the contract states.
@@ -298,6 +326,14 @@ mod tests {
         assert!(held.read().unwrap().is_none(), "a new file holds nothing");
         let mut turn = Turn::opening(3, [true, false], false);
         turn.side_mut(Side::Blue).committed = true;
+        let decision = mechcore_document::r#match::Action::read_in_round(
+            serde_json::json!({
+                "type": "choose_reinforce_item", "index": 0, "name": "mustang_2x_lv1"
+            }),
+            3,
+        )
+        .unwrap();
+        turn.side_mut(Side::Blue).decisions.push(decision.clone());
         held.write(&turn).unwrap();
 
         let written = std::fs::read_to_string(&path).unwrap();
@@ -325,6 +361,8 @@ mod tests {
         assert_eq!(read.round, 3);
         assert_eq!(read.given(), [true, false]);
         assert!(read.side(Side::Blue).committed);
+        assert_eq!(read.side(Side::Blue).decisions, [decision]);
+        assert!(written.contains("\"name\": \"mustang_2x_lv1\""));
         assert!(!read.side(Side::Red).committed);
         assert!(read.age().unwrap() < 5.0);
         std::fs::remove_file(&path).unwrap();

@@ -505,7 +505,7 @@ fn act(mut arguments: Args) -> Result<View, Failure> {
                 "decision": written,
             }))
         };
-        let decision: Action = serde_json::from_value(written.clone())
+        let decision = Action::read_in_round(&written, game.round())
             .map_err(|error| Failure::usage(format!("not a decision this build reads: {error}")))
             .map_err(context)?;
         events.extend(game.take(side, &decision).map_err(context)?);

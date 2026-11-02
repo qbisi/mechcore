@@ -610,6 +610,20 @@ impl<'de> Deserialize<'de> for Action {
     }
 }
 
+impl Action {
+    /// Reads a decision with the round that gives unit reinforcement cards
+    /// their identity, just as an action segment does.
+    ///
+    /// # Errors
+    ///
+    /// Refuses malformed decisions and names absent from that round.
+    pub fn read_in_round(value: impl Serialize, round: i32) -> Result<Self, serde_yaml::Error> {
+        let mut value = serde_yaml::to_value(value)?;
+        qualify_action(&mut value, i64::from(round));
+        serde_yaml::from_value(value)
+    }
+}
+
 /// [`Action`]'s reader, which serde derives against the real type: a field
 /// missing here or typed differently from there does not compile.
 #[derive(Deserialize)]
@@ -740,27 +754,34 @@ pub(crate) fn payload<T: serde::de::DeserializeOwned>(
 
 /// Appends `@round` to every unit card name a segment holds.
 fn within_round(fields: &mut serde_yaml::Mapping, round: i64) {
-    let qualify = |name: &mut Value| {
-        if let Value::String(text) = name
-            && crate::names::is_unit_card(text)
-        {
-            *text = format!("{text}@{round}");
-        }
-    };
     if let Some(Value::Sequence(offers)) = fields.get_mut("reinforce_offers") {
-        offers.iter_mut().for_each(qualify);
+        for name in offers {
+            qualify_card(name, round);
+        }
     }
     for side in ["blue", "red"] {
         let Some(Value::Sequence(actions)) = fields.get_mut(side) else {
             continue;
         };
         for action in actions {
-            if action.get("type").and_then(Value::as_str) == Some("choose_reinforce_item")
-                && let Some(name) = action.get_mut("name")
-            {
-                qualify(name);
-            }
+            qualify_action(action, round);
         }
+    }
+}
+
+fn qualify_action(action: &mut Value, round: i64) {
+    if action.get("type").and_then(Value::as_str) == Some("choose_reinforce_item")
+        && let Some(name) = action.get_mut("name")
+    {
+        qualify_card(name, round);
+    }
+}
+
+fn qualify_card(name: &mut Value, round: i64) {
+    if let Value::String(text) = name
+        && crate::names::is_unit_card(text)
+    {
+        *text = format!("{text}@{round}");
     }
 }
 
