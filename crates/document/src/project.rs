@@ -127,7 +127,7 @@ pub fn deployment(
         if !affected.is_empty() {
             let side = if red { "red" } else { "blue" };
             warnings.push(format!(
-                "round {round} {side}: Stealth Cloak activated after flank deployment of Phantom Ray formations {affected:?}. The layout activates technologies before flank deployment and cannot preserve that native initialization order. New purchases encode research before movement; an existing formation still requires research before flank movement."
+                "round {round} {side}: Stealth Cloak activated after flank deployment of Phantom Ray formations {affected:?}. The layout activates technologies before flank deployment and cannot preserve that native initialization order. Normalize research before the unified movement phase to align flank initialization."
             ));
         }
         let affected = travelling_research_formations(opened, &position, 4430, "void_eye");

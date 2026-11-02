@@ -130,25 +130,24 @@ with `PAD_FinishDeploy` unless it concedes:
 | Decision | Recorded as |
 | --- | --- |
 | `choose_reinforce_item` | `PAD_ChooseReinforceItem`, a decline at index −1 |
-| `buy_unit` | `PAD_BuyUnit`, then `PAD_MoveUnit` of the formation it creates to its position and facing |
+| `buy_unit` | `PAD_BuyUnit`; an explicit destination adds an immediate `PAD_MoveUnit` to its position and facing |
 | `upgrade_unit`, `unlock_unit`, `upgrade_technology`, `active_blueprint`, `active_energy_tower_skill`, `strengthen_tower`, `use_equipment`, `release_contraption` | their own action |
 | `move_unit` | `PAD_MoveUnit` of one formation |
 | `release_commander_skill` | `PAD_ReleaseCommanderSkill` from its slot, at its positions or naming its unit or construction |
 | `concede` | `PAD_GiveUp` |
 
 The game places a purchase where the deployment area is free. A standard
-match couples a purchase and its immediately following movement through the
-purchase's position and rotation. Encoding expands that combined placement
-into those two native operations. The formation created is the one the position
-allocates next.
+match leaves purchases at that default landing and moves new and existing
+formations together in its late movement phase. Encoding resolves each default
+landing and refuses a purchase when no space exists. An input purchase with an
+explicit position expands into a purchase and immediate move. The formation
+created is the one the position allocates next.
 
 Match decisions use the standard phases in
 [action.md](action.md#settling-a-round). Their dependencies already place unit
 research, purchases, recovery and Energy Tower activations in native legal
-order. Encoding retains Elite Recruitment's activation order. After the first
-purchase of a type, it inserts that type's later technology activations before the purchase's movement, so flank initialization
-sees them. The activations are omitted from their later match positions;
-they are not repeated for later purchases. Rapid Resupply is already the
+order. Encoding preserves that order without rescheduling technology
+activations. Rapid Resupply is already the
 match's second phase, after reinforcement selection; encoding does not
 activate it on demand. Purchase level is derived
 from the officers and active Energy Tower skills at that point; it is not
