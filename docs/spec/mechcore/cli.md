@@ -1144,8 +1144,9 @@ an agent that is not told it would reason about a board it does not have.
 ### What a side sees of the other
 
 **The opponent remains at its round-opening state.** This holds before and
-after either side commits and while settlement remains unresolved. No current
-action lists are returned. Once a round settles, the next opening state exposes
+after either side commits and while settlement remains unresolved. A side-specific view includes `actions`, the viewer's complete effective
+action sequence for the current round. Views without a side omit it. The
+opponent's current actions remain private. Once a round settles, the next opening state exposes
 its result, and the public match file holds both sides' completed actions.
 
 `--omniscient` applies both sides' current decisions and includes runtime
@@ -1166,7 +1167,7 @@ Takes one decision or an ordered sequence of decisions for one side.
 
 Operands: the match document, and either one [action](../document/action.md)
 mapping or a nonempty array of action mappings, written as YAML or JSON.
-Options: `--side blue|red`, and `--dry-run` to answer without keeping the
+Options: `--side blue|red`, `--force-push`, and `--dry-run` to answer without keeping the
 requested decisions. Nested arrays are not actions.
 
 Each decision runs against the position left by its predecessors, including
@@ -1175,8 +1176,18 @@ file's lock. All requested decisions must succeed before any of them join the
 turn file; a failure keeps none of them and leaves earlier pending decisions
 intact. `act` does not commit the round.
 
+`--force-push` requires an array and replaces the viewer's entire current
+uncommitted action sequence. `[]` clears it. Replacement replays from the
+round-opening state, restoring budgets, indices and technology prices through
+the existing action rules. All steps must pass before saving; failure keeps
+the old sequence. `--dry-run` also applies to replacement. Editing a sealed
+sequence or an expired deployment is refused. No edit resets the clock or
+changes the opponent's decisions.
+
+
 The answer contains the same `header` and live `state` as `show`, after the
-last decision, plus a flat `events` array in execution order. There is no
+last decision, the full effective `actions` sequence, and a flat `events` array
+for this request in execution order. There is no
 separate `position` field.
 An event is a one-key mapping naming what happened, such as `{created: {index:
 7, name: marksman, position: {x: -40, y: -160}}}`, so that a caller learns the
@@ -1192,7 +1203,7 @@ A failed step stops the sequence; later steps do not run. Its error object
 adds `details.decision_index`, the zero-based index within this request, and
 `details.decision`, the input action that failed. A single action has index
 zero too. A malformed action is a `usage` failure; an action refused by the
-rules is a `refused` failure. Invalid YAML and an empty array fail before any
+rules is a `refused` failure. Invalid YAML and an empty array without `--force-push` fail before any
 step and have no decision index. For example:
 
 ```json
@@ -1226,6 +1237,54 @@ rule refused it.
 Refuses a decision the rules do not settle, naming the reason the transition
 gives; refuses a side that has already committed the round, and a decision in a
 phase that does not hold one.
+
+### `match undo`
+
+`mechcore match undo <match.yaml> --side blue|red [--count N]` removes the
+last N effective actions (default 1). N must be positive and no greater than
+the sequence length. The retained prefix is replayed and validated before
+saving. Its answer includes the new observation and effective `actions`.
+Only the current uncommitted round can be edited, before its deployment
+deadline. Undo discards the tail; no redo history is stored. A caller can
+restore a saved sequence with `act --force-push`.
+
+### `match candidates`
+
+`mechcore match candidates <match.yaml> --side blue|red
+--stage buy_unit|upgrade_technology` queries the current deployment's choices.
+It returns the ordinary side-specific view plus
+`candidates: {stage, choices}`. Each choice has `intent`, `dependencies`,
+`cost`, `legal` and `reasons`. Reasons name a `code` and a diagnostic `message`;
+`rule_refused` carries the action validator's refusal. Unexpected failures
+abort the query instead of marking a choice illegal.
+
+A purchase intent states `type: buy_unit`, `name` and the resulting `level`.
+Dependencies are ordered executable actions: unlock if needed, Mass
+Recruitment when the purchase allowance is exhausted and it is unused, then
+Elite Recruitment when the candidate requires its higher shop level. Cost
+includes dependencies and the purchase at the resulting level. Existing
+activations are not paid again. Once Elite Recruitment is active, lower-level
+purchase intents are absent. A technology intent is its executable
+`upgrade_technology` action; its current price includes prior research and
+price modifiers. Non-loadout, already-active and unavailable choices remain
+listed with `legal: false`.
+
+Purchase legality checks the default landing through the same action path as
+`act`. The intent's level is a target result, not a field accepted by
+`buy_unit`: execute its dependencies, remove `level`, and optionally provide
+position and rotation using `mask`. A true legality flag does not validate an
+arbitrary supplied position. Query again after acting; costs and dependencies
+are relative to that exact decision state, not additive across cached choices.
+
+`pass_stage` is an always-legal, zero-cost scheduler choice, not a match action
+or a round commit. The stage is a caller-supplied query filter, not a persisted
+stage constraint on `act`. Choices use unit/technology ID order, with ordinary
+purchases before their Elite Recruitment alternative and pass last.
+
+The query does not execute decisions on disk, settle a fight or reset the
+clock. As with other match reads, a missing turn cache is rebuilt. It refuses
+the opening, a sealed side and an expired deployment. It publishes no
+predicted effect list, next-candidate changes or hypothetical after-state.
 
 ### `match commit`
 
@@ -1286,7 +1345,8 @@ layout for.
 **A player is a client and the arena is its match.** A player writes one JSON
 request per line on its standard output and reads one JSON result per line on
 its standard input, and the requests are `match`'s own operations: `match.show`,
-`match.act` with its decision and its `dry_run`, and `match.commit`. A request
+`match.act` with its decision, `dry_run` and `force_push`, `match.undo`,
+`match.candidates`, and `match.commit`. A request
 names neither the document nor a side, because the arena knows both and a
 player cannot ask about a side it was not given. A player that speaks this to
 `shell --json` and a player that speaks it to an arena are the same program.
@@ -1448,12 +1508,15 @@ options as its fields:
 {"op": "match.show"}
 {"op": "match.show", "wait": 30}
 {"op": "match.act", "decision": {"type": "buy_unit", "name": "marksman"}, "dry_run": true}
+{"op": "match.act", "decision": [], "force_push": true}
+{"op": "match.undo", "count": 1}
+{"op": "match.candidates", "stage": "buy_unit"}
 {"op": "match.commit"}
 ```
 
 `wait` is `--wait`: `true` waits as long as it takes and a number of seconds
 bounds it. `decision` is one [action](../document/action.md) mapping or a
-nonempty ordered array of those mappings, and `dry_run` is `--dry-run`, false
+ordered array of those mappings (empty only with `force_push`), and `dry_run` is `--dry-run`, false
 when left out. A field the operation does not take is refused rather than
 ignored. The result is what the
 operation answers as a command, on one line; a failure is the error object a

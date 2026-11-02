@@ -113,6 +113,41 @@ pub fn step(
     step_placing(economy, state, action, declined, &mut |_, _| None)
 }
 
+/// The current shop level and price for a unit, without placing or buying it.
+#[must_use]
+pub fn purchase_terms(economy: &Economy, state: &SideState, unit: i32) -> Option<(i32, i32)> {
+    let mut purse = Purse::new(economy, &state.officers);
+    purse.raised = state
+        .energy_tower_skills
+        .iter()
+        .filter_map(|id| economy.energy_tower_skill(*id))
+        .map(|row| row.shop_unit_level)
+        .sum();
+    let level = purse.shop_level(unit);
+    Some((level, purse.buy_at_level(unit, level)?))
+}
+
+/// The current unlock price, before checking allowances or affordability.
+#[must_use]
+pub fn unlock_price(economy: &Economy, state: &SideState, unit: i32) -> Option<i32> {
+    Purse::new(economy, &state.officers).unlock(unit)
+}
+
+/// The current research price, including officers and previous research.
+#[must_use]
+pub fn technology_price(economy: &Economy, state: &SideState, tech: i32) -> Option<i32> {
+    let unit = economy.technology_owner(tech)?;
+    let count = i32::try_from(
+        state
+            .techs
+            .iter()
+            .filter(|id| economy.technology_owner(**id) == Some(unit))
+            .count(),
+    )
+    .ok()?;
+    Purse::new(economy, &state.officers).technology(tech, unit, count)
+}
+
 /// [`step`], told where the formations a decision hands out arrive.
 ///
 /// A card and an opening summon formations that no decision gives a position

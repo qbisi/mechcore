@@ -35,10 +35,23 @@ enum Request {
         decision: Value,
         #[serde(default)]
         dry_run: bool,
+        #[serde(default)]
+        force_push: bool,
     },
+    #[serde(rename = "match.undo")]
+    Undo {
+        #[serde(default = "one")]
+        count: usize,
+    },
+    #[serde(rename = "match.candidates")]
+    Candidates { stage: String },
     /// The side's decisions for this round, written.
     #[serde(rename = "match.commit")]
     Commit {},
+}
+
+const fn one() -> usize {
+    1
 }
 
 #[derive(Debug, Deserialize)]
@@ -60,7 +73,7 @@ pub(crate) fn answer(path: &Path, side: Side, line: &str, stopped: &dyn Fn() -> 
         Ok(request) => request,
         Err(error) => {
             return Failure::usage(format!(
-                "{line:?} is not a request: one of match.show, match.act or match.commit, \
+                "{line:?} is not a request: one of match.show, match.act, match.undo, match.candidates or match.commit, \
                  as {{\"op\": ...}}: {error}"
             ))
             .object("request");
@@ -68,10 +81,17 @@ pub(crate) fn answer(path: &Path, side: Side, line: &str, stopped: &dyn Fn() -> 
     };
     let (operation, outcome) = match request {
         Request::Show { wait } => ("match.show", show(path, side, wait.as_ref(), stopped)),
-        Request::Act { decision, dry_run } => {
+        Request::Act {
+            decision,
+            dry_run,
+            force_push,
+        } => {
             let mut words = verb("act", path, side);
             if dry_run {
                 words.push("--dry-run".into());
+            }
+            if force_push {
+                words.push("--force-push".into());
             }
             // A decision is read as YAML, which JSON is.
             words.push(decision.to_string());
@@ -81,6 +101,16 @@ pub(crate) fn answer(path: &Path, side: Side, line: &str, stopped: &dyn Fn() -> 
             "match.commit",
             crate::r#match::answer(Args::new(verb("commit", path, side))),
         ),
+        Request::Undo { count } => {
+            let mut words = verb("undo", path, side);
+            words.extend(["--count".into(), count.to_string()]);
+            ("match.undo", crate::r#match::answer(Args::new(words)))
+        }
+        Request::Candidates { stage } => {
+            let mut words = verb("candidates", path, side);
+            words.extend(["--stage".into(), stage]);
+            ("match.candidates", crate::r#match::answer(Args::new(words)))
+        }
     };
     outcome.unwrap_or_else(|failure| failure.object(operation))
 }

@@ -30,6 +30,9 @@ use crate::{
 
 const SCHEMA: &str = "mechcore.match";
 
+#[path = "match_candidates.rs"]
+mod candidates;
+
 /// How often a `--wait` looks again, which is short enough to answer a round
 /// promptly and long enough not to hold the lock against the side playing it.
 const POLL: std::time::Duration = std::time::Duration::from_millis(200);
@@ -78,15 +81,17 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
 /// Returns a usage failure for a verb this namespace does not hold, and
 /// whatever the verb returns otherwise.
 pub(crate) fn answer(mut arguments: Args) -> Result<Value, Failure> {
-    let verb = arguments.operand("a verb: new, fork, show, act or commit")?;
+    let verb = arguments.operand("a verb: new, fork, show, candidates, act, undo or commit")?;
     let outcome = match verb.as_str() {
         "new" => new(arguments),
         "fork" => fork(arguments),
         "show" => show(arguments),
         "act" => act(arguments),
+        "undo" => undo(arguments),
+        "candidates" => candidates::run(arguments),
         "commit" => commit(arguments),
         other => Err(Failure::usage(format!(
-            "match has no verb {other:?}; it has new, fork, show, act and commit"
+            "match has no verb {other:?}; it has new, fork, show, candidates, act, undo and commit"
         ))),
     }
     .and_then(|view| {
@@ -455,6 +460,7 @@ fn show(mut arguments: Args) -> Result<View, Failure> {
 /// Takes a single decision or an ordered sequence for one side.
 fn act(mut arguments: Args) -> Result<View, Failure> {
     let dry_run = arguments.flag("--dry-run")?;
+    let replace = arguments.flag("--force-push")?;
     let side = side_option(&mut arguments, true)?.unwrap_or(Side::Blue);
     let path = arguments.path("a match document")?;
     // A block-style YAML sequence starts with '-', so it is not read as a
@@ -470,8 +476,13 @@ fn act(mut arguments: Args) -> Result<View, Failure> {
             "{written:?} is not a decision or sequence this build reads: {error}"
         ))
     })?;
+    if replace && !decisions.is_array() {
+        return Err(Failure::usage(
+            "--force-push requires the complete action array",
+        ));
+    }
     let decisions = match decisions {
-        Value::Array(decisions) if decisions.is_empty() => {
+        Value::Array(decisions) if decisions.is_empty() && !replace => {
             return Err(Failure::usage("a decision sequence must not be empty"));
         }
         Value::Array(decisions) => decisions,
@@ -481,7 +492,11 @@ fn act(mut arguments: Args) -> Result<View, Failure> {
     let mut held = Held::take(&turn_path(&path))?;
     let game = Game::read(&path, &mut held, None, side)?;
     warn_build(&game.r#match.game_build);
-    let mut game = game.settle(&mut held)?;
+    let mut game = game;
+    game.editable(side)?;
+    if replace {
+        game.turn.side_mut(side).decisions.clear();
+    }
     let mut events = Vec::new();
     for (index, written) in decisions.into_iter().enumerate() {
         let context = |failure: Failure| {
@@ -503,6 +518,34 @@ fn act(mut arguments: Args) -> Result<View, Failure> {
     if !dry_run {
         game.write_turn(&mut held)?;
     }
+    Ok(view)
+}
+
+fn undo(mut arguments: Args) -> Result<View, Failure> {
+    let count = arguments
+        .parsed::<usize>("--count", "a positive action count")?
+        .unwrap_or(1);
+    let side = side_option(&mut arguments, true)?.unwrap_or(Side::Blue);
+    let path = arguments.path("a match document")?;
+    arguments.finish()?;
+    if count == 0 {
+        return Err(Failure::usage("--count must be positive"));
+    }
+    let mut held = Held::take(&turn_path(&path))?;
+    let mut game = Game::read(&path, &mut held, None, side)?;
+    game.editable(side)?;
+    let branch = game.turn.side_mut(side);
+    if count > branch.decisions.len() {
+        return Err(Failure::refused("not enough actions to undo"));
+    }
+    branch.decisions.truncate(branch.decisions.len() - count);
+    let sequence = std::mem::take(&mut game.turn.side_mut(side).decisions);
+    for action in sequence {
+        game.take(side, &action)?;
+        game.turn.side_mut(side).decisions.push(action);
+    }
+    let view = game.view(Some(side), false)?;
+    game.write_turn(&mut held)?;
     Ok(view)
 }
 
@@ -596,6 +639,17 @@ struct Game {
 }
 
 impl Game {
+    fn editable(&self, side: Side) -> Result<(), Failure> {
+        if !self.phase().decides() || self.turn.side(side).committed {
+            return Err(Failure::refused(
+                "only uncommitted decisions in the current round can be edited",
+            ));
+        }
+        if self.phase() == Phase::Deploy && self.turn.age()? >= f64::from(self.deploy_time()) {
+            return Err(Failure::refused("the deployment deadline has expired"));
+        }
+        Ok(())
+    }
     /// Reads the match that a document and its turn file state.
     ///
     /// A turn file that is missing or unreadable is rebuilt from the document
@@ -1382,6 +1436,8 @@ impl Game {
             remaining,
             unresolved: self.unresolved.clone(),
             events: None,
+            actions: side.map(|side| self.decisions(side)),
+            candidates: None,
             sides: Views {
                 blue: status(Side::Blue),
                 red: status(Side::Red),
@@ -1455,6 +1511,10 @@ struct View {
     /// What the decisions just taken did, in order, which only `act` answers.
     #[serde(skip_serializing_if = "Option::is_none")]
     events: Option<Vec<Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    actions: Option<Vec<Action>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    candidates: Option<Value>,
     sides: Views,
 }
 
