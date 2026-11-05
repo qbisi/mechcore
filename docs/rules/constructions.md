@@ -159,6 +159,13 @@ among the enemy's constructions,
   take the nearest of those to the attacker.
 ```
 
+`FightSkill.Update` clears `WallConstructionTargetChecker.nearestWall` before
+updating the skill state. Once `GetNearestWall` finds a block, subsequent
+checks during that update return that block even when the lock changes. A
+search that finds no block does not fill the cache. The shield exclusion is
+applied after the cached selection. `tests/corpus/2144-r4.yaml` witnesses a
+Stormcaller changing locks while retaining the wall found for its first lock.
+
 The overlap is the build's fixed-point calculation, not an unbounded
 Euclidean distance. `FPoint.op_Multiply` keeps the low 64 bits of finite
 products; the squared cross product in
