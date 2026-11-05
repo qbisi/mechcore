@@ -787,17 +787,29 @@ impl Scoring {
 
 impl Simulation {
     /// `MainSkillSearchTargetController.PrepareSearch` reads its skill's
-    /// ranges as it prepares, after the last tick's modules: a technology an
+    /// ranges, attacked domains and scoring offsets as it prepares, after
+    /// the last tick's modules: a technology an
     /// Electromagnetic Impact switches off on this tick reaches the next
     /// tick's searches, not this one's.
     pub(in crate::fight) fn snapshot_search_ranges(&mut self) {
         let ranges = self
             .actors
             .keys()
-            .map(|&id| (self.main_attack_range(id), self.main_min_range(id)))
+            .map(|&id| {
+                let source = self
+                    .attacker(FightActorRef::Unit(id))
+                    .expect("actor exists");
+                (
+                    (source.attack_range, source.min_range),
+                    source.targets,
+                    source.score_offsets,
+                )
+            })
             .collect::<Vec<_>>();
-        for (actor, ranges) in self.actors.values_mut().zip(ranges) {
+        for (actor, (ranges, targets, offsets)) in self.actors.values_mut().zip(ranges) {
             actor.target_query_ranges = ranges;
+            actor.target_query_targets = targets;
+            actor.target_query_score_offsets = offsets;
         }
     }
 
@@ -1281,6 +1293,15 @@ impl Simulation {
             self.search_candidates(source.owner, !use_live_candidate_positions, widening * 1000)
         });
         let mut scoring = Scoring::default();
+        let (targets, score_offsets) = match source.owner {
+            FightActorRef::Unit(id)
+                if !use_live_candidate_positions && source.skill.slot == SkillSlot::Main =>
+            {
+                let actor = &self.actors[&id];
+                (actor.target_query_targets, actor.target_query_score_offsets)
+            }
+            _ => (source.targets, source.score_offsets),
+        };
         // The job scores with its prepared ranges, but TrySelect asks the
         // live IAttacker whether a visible replacement is still in range.
         let (attack_range, min_range) = match source.owner {
@@ -1349,7 +1370,7 @@ impl Simulation {
                     || (matches!(candidate, FightActorRef::Building(_))
                         && !self.is_construction(candidate)
                         && !self.tower_attackable(source.skill, candidate))
-                    || !source.targets.accepts(target.domain)
+                    || !targets.accepts(target.domain)
                     || passed_over.is_some_and(|passed| {
                         candidate == passed
                             || (matches!(candidate, FightActorRef::Building(_))
@@ -1394,7 +1415,7 @@ impl Simulation {
                 candidate_x_q32,
                 candidate_z_q32,
                 target.radius,
-                source.score_offsets.for_candidate(target.domain, visible),
+                score_offsets.for_candidate(target.domain, visible),
                 min_range,
                 attack_range,
                 source.rotation_window_q32,

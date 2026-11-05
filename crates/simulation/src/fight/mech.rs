@@ -87,6 +87,8 @@ impl Actor {
             target_query_visibility: Visibility::Normal,
             target_query_domain: rules.domain,
             target_query_ranges: (0, 0),
+            target_query_targets: rules.attack.targets,
+            target_query_score_offsets: super::attacker::ScoreOffsets::default(),
             body_rotation: placement.rotation,
             body_rotation_q32: mdeg_to_degrees_q32(placement.rotation),
             aim_rotation: placement.rotation,
