@@ -679,8 +679,11 @@ takes the invisible-target distance penalty.
 **A search reads the tick's start only when its skill asked for that.** At a
 tick's start `FightCoreSystem.PreCalculate` lets each skill state prepare a
 search, scored on where everything stands at that moment and with the skill's
-range and minimum range as they stand then (`PrepareSearch` reads
-`GetAttackRange`), and
+range, minimum range, attacked domains and air/ground distance-score offsets
+as they stand then (`PrepareSearch` reads `GetAttackRange` and stores
+`TeamScoreRatingTargetSelectJob.SourceData`). Disabling Aerial Specialization
+after preparation therefore leaves that update's prepared air preference
+intact ([`1969-r10.yaml`](../../tests/corpus/1969-r10.yaml)). Then
 `ScoreRatingTargetSelector.TrySelect` answers a prepared skill from those
 scores. Replacing a hidden winner with a visible alternative still asks the
 live attacker's range. The range check does not test whether that alternative

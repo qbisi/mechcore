@@ -298,6 +298,8 @@ struct Actor {
     /// The main skill's range and minimum range as the tick's searches were
     /// prepared, millimetres.
     target_query_ranges: (i64, i64),
+    target_query_targets: crate::rules::AttackTargets,
+    target_query_score_offsets: attacker::ScoreOffsets,
     body_rotation: i64,
     body_rotation_q32: i64,
     aim_rotation: i64,
