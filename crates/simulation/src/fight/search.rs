@@ -1212,10 +1212,17 @@ impl Simulation {
             return None;
         }
         if prepared {
-            let chosen = self.select_in_square(source, target_search_order, false, Some(0), None);
-            // Prepare registers a job only with admitted candidates. With
-            // none, TrySelect has no result and PerformSearch queries live
-            // squares, rather than using the prepared job's fallback list.
+            // MainSkillSearchTargetController.PrepareSearch widens its
+            // prepared query by 200, then another 300 metres when Prepare
+            // admits no candidates, retaining tick-start geometry throughout.
+            let mut chosen = None;
+            for widening in [0, 200, 500] {
+                chosen =
+                    self.select_in_square(source, target_search_order, false, Some(widening), None);
+                if self.skill(source.skill).nearest_actor.get().is_some() {
+                    break;
+                }
+            }
             if self.skill(source.skill).nearest_actor.get().is_some() {
                 match chosen {
                     Some(chosen)

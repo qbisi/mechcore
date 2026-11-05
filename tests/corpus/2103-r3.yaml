@@ -1,0 +1,54 @@
+# Projected from match 20261105--2103, round 3 (Europe mini tournament).
+# Pins an empty prepared search falling back to all enemy actors instead
+# of widening live quadtree searches.
+kind: fight
+source: game
+map_id: 1012
+seed: 295649284
+round: 3
+blue:
+  core_damage: 456
+  officers: [giant_specialist]
+  techs:
+    rhino: [whirlwind]
+  units:
+  - {name: hound, index: 0, position: {x: 140, y: -190}, exp: 571/723/750}
+  - {name: hound, index: 1, position: {x: -140, y: -190}, exp: 305/334/750}
+  - {name: hound, index: 2, position: {x: 0, y: -230}, exp: 306/454/750}
+  - {name: mustang, index: 3, position: {x: -65, y: -300}, exp: 761/837/1200}
+  - {name: mustang, index: 4, position: {x: 65, y: -300}, exp: 870/1200/1200}
+  - {name: crawler, index: 5, position: {x: -140, y: -225}, exp: 105/151/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 140, y: -225}, exp: 321/412/450, rotated: true}
+  - {name: crawler, index: 8, position: {x: -310, y: 285}, exp: 450/450/450}
+  - {name: crawler, index: 9, position: {x: 310, y: 285}, exp: 74/74/450}
+  - {name: crawler, index: 10, position: {x: 260, y: -285}, exp: 450/450/450, rotated: true}
+  - {name: rhino, index: 11, position: {x: 285, y: -275}, exp: 0/540/1150, source: joined}
+  - {name: rhino, index: 12, position: {x: -285, y: -275}, exp: 0/558/1150, source: joined}
+  - {name: crawler, index: 13, position: {x: -15, y: -20}, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: 248, y: 32}]}
+red:
+  core_damage: 0
+  officers: [typhoon_specialist]
+  techs:
+    hound: [mechanical_rage]
+  units:
+  - {name: crawler, index: 0, position: {x: 290, y: -35}, exp: 130/450/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: -290, y: -35}, exp: 64/183/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: -200, y: -35}, exp: 165/351/450, rotated: true}
+  - {name: steel_ball, index: 3, position: {x: -255, y: -50}, exp: 665/1000/1000}
+  - {name: steel_ball, index: 4, position: {x: 255, y: -50}, exp: 829/1000/1000}
+  - {name: hound, index: 5, position: {x: -280, y: -70}, exp: 664/750/750}
+  - {name: hound, index: 6, position: {x: 280, y: -70}, exp: 592/750/750}
+  - {name: vortex, index: 7, position: {x: -340, y: 300}, exp: 14/20/750}
+  - {name: vortex, index: 8, position: {x: 340, y: 220}, exp: 228/228/750}
+  - {name: hound, index: 9, position: {x: -350, y: 270}, exp: 42/64/750}
+  - {name: hound, index: 10, position: {x: 350, y: 270}, exp: 663/663/750}
+  - {name: crawler, index: 11, position: {x: 325, y: 300}, exp: 39/39/450, rotated: true}
+  - {name: hound, index: 12, position: {x: 220, y: -180}, exp: 0/372/750, source: joined}
+  - {name: hound, index: 13, position: {x: -210, y: -190}, exp: 0/750/750, source: joined}
+  - {name: crawler, index: 14, position: {x: -325, y: 230}, exp: 0/2/450, rotated: true, travelling: true, source: joined}
+ticks: 1162
+hash: 27:d4a53963718ac6d6c5c769c2390d39586877210d6aed55879eff5744c41a0a29

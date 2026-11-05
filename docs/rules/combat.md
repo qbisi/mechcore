@@ -700,15 +700,17 @@ that falls takes the best-scored Fang anywhere. A skill that was not prepared,
 or whose prepared answer a beam has turned to its side, falls through to
 `PerformSearch`, which scores every candidate where it stands when the search
 runs, in the square below; when the square answers nothing it tries one 200 m
-wider and then one 300 m wider again, and then every enemy. In the square a
+wider and then one 300 m wider again, and then every enemy. A
+prepared search also retries with those two wider squares when `Prepare`
+admits no candidate, scoring the tick-start positions throughout
+([`2103-r3.yaml`](../../tests/corpus/2103-r3.yaml)). In any square a
 candidate is scored only if the target tree
 holds it in a node that a square around the searcher overlaps, a square twice
 `max(range, 400)` wide: at the fight's first tick, a Crawler of replay 134266831
 round 3 scores 13 candidates, and not the enemy 538 m straight ahead of it,
-which a square 800 m wide leaves out. If preparation admits no candidates,
-`ScoreRatingTargetSelector.Prepare` registers no job. The later search uses
-those live squares: a Wraith that has landed since preparation can be found
-immediately even while the cached ground-opponent list still omits it.
+which a square 800 m wide leaves out. If all three prepared squares admit no
+candidates, a later live search can immediately find a Wraith that has landed
+since preparation even while the cached ground-opponent list still omits it.
 
 A prepared search gathers its
 candidates as it is prepared, from the tree and about where the searcher stood
