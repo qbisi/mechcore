@@ -620,6 +620,9 @@ pub(in crate::fight) struct Skill {
     /// `lock_target` is anything but the lock it was found for, the block no
     /// longer answers, without anyone having to clear it.
     pub(in crate::fight) in_the_way: Option<(u64, FightActorRef)>,
+    /// `WallConstructionTargetChecker.nearestWall`: the first block found
+    /// during this skill update, reused even after its lock changes.
+    pub(in crate::fight) nearest_wall: std::cell::Cell<Option<u64>>,
     /// The attack target `FightSkill.SearchLockTarget` left in place as it
     /// changed the lock, and the lock it changed to: until the next
     /// `SearchAttackTarget`, the skill fires at what it fired at. Paired as
@@ -760,6 +763,7 @@ impl Skill {
             attack_time_step: -1,
             lock_target: None,
             in_the_way: None,
+            nearest_wall: std::cell::Cell::new(None),
             kept_attack_target: None,
             target_shield: None,
             // FightSkill owns a second SearchTargetController. FightPrepareState
@@ -1941,6 +1945,8 @@ impl Simulation {
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
         events: &mut Vec<Event>,
     ) -> Result<Option<SkillUpdate>> {
+        // FightSkill.Update clears its wall checker before updating the FSM.
+        self.skill(skill_ref).nearest_wall.set(None);
         self.skill_mut(skill_ref).attack_time_step = i64::try_from(step).unwrap_or(i64::MAX);
         // `SkillLockState` does not update.
         if self.skill(skill_ref).state == SkillState::Locked {

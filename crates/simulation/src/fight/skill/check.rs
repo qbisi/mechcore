@@ -36,8 +36,23 @@ impl Simulation {
         // Badger whose lock stands in a shield beyond a wall off the line to
         // the shield keeps firing at the shield.
         let found = lock.and_then(|target| {
-            self.wall_in_the_way(skill_ref, None, target, shield)
-                .map(|building| (building, target))
+            let wall = self.skill(skill_ref).nearest_wall.get().or_else(|| {
+                let point = if let Some(shield) = shield {
+                    let (x, z, _) = self.shield_transform(shield)?;
+                    (x, z)
+                } else {
+                    let aimed = self.fight_actor(target)?;
+                    (aimed.x_q32, aimed.z_q32)
+                };
+                let wall = self.wall_in_the_way_at(skill_ref, None, point);
+                self.skill(skill_ref).nearest_wall.set(wall);
+                wall
+            });
+            wall.filter(|&wall| {
+                shield
+                    .is_none_or(|shield| !self.shield_holds(shield, FightActorRef::Building(wall)))
+            })
+            .map(|building| (building, target))
         });
         let search_shield = shield.zip(lock);
         let shield = if found.is_none() { search_shield } else { None };
