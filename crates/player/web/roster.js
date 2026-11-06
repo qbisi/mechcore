@@ -14,7 +14,8 @@ const UnitRoster=(()=>{
   function render(root,entries,assets,team,tooltip){
     root.replaceChildren();root.scrollTop=0;
     const width=Math.max(122,...entries.map(entry=>geometry(entry.techs.length).width));
-    root.style.width=(width+20)+"px";
+    // Centre a six-unit scrollbar in the twenty-unit gap before the arsenal.
+    root.style.width=(width+13)+"px";
     root.parentElement?.style.setProperty("--roster-width",(width+20)+"px");
     const hide=()=>{tooltip.hidden=true;};
     root.onscroll=hide;

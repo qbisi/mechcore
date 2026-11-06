@@ -28,7 +28,7 @@ overlay the map on a transparent-to-dark gradient: a full-width seek bar
 above the button row shows elapsed progress, loss marks and the settlement
 tail. The row contains playback, round navigation, elapsed/total time, round
 selection, speed, display settings, fit and SVG export. A compact dark settings
-popover lists life bars and damage numbers with labels on the left and cyan
+popover lists life bars, damage numbers and the skills/equipment panel with labels on the left and cyan
 on/grey off switches on the right. Focusing a switch and pressing Space
 toggles it without starting playback.
 Clicking outside or pressing Escape closes the popover.
@@ -97,7 +97,9 @@ skill panel's gold background and border on both sides; those active before
 the round use the same neutral panel background on both sides. Inputs without
 deployment history do not infer an activation round.
 Frames and positions mirror; artwork stays upright. The drawers do not open.
-Each side scrolls independently, including with the keyboard. Technology hover
+Each side scrolls independently, including with the keyboard. Its scrollbar
+sits midway in the gap between the unit cards and the skills/equipment column,
+mirrored on the red side. Technology hover
 or focus shows its native name, effect, activation state and supply price.
 Match playback carries the current quote for inactive technology and the
 historical cost of active technology, replaying deployment decisions in order
@@ -118,23 +120,33 @@ playback includes completed deployment unlocks, placed formations and researched
 types. Layouts, fights and recordings have no account loadout or unlock list:
 they display only known formations and active technologies, without inventing
 unrecorded choices.
-Inside each unit column, two compact icon strips show battlefield skill slots
-and unequipped inventory. Match skills preserve slot order and duplicates.
+Inside each unit column, one compact scrollable column shows battlefield skill
+slots followed by unequipped inventory. Match skills preserve slot order and duplicates.
 Available skills are bright, released skills gold, used deployment skills dim,
 and cooling skills dim with their remaining round count. These are deployment
 states, not timers inferred from combat. Inventory excludes fitted items and
 shows each unequipped item separately in a circular frame, preserving inventory
 order, duplicates and individual durability without quantity badges. Hover or focus
-shows native names, effects and status. Each strip scrolls independently and
-has no activation or equipment action. Empty strips disappear.
-Either strip can stand alone: its container shrinks to one column, anchored
+shows native names, effects and status. Skills and equipment scroll together
+and have no activation or equipment action. Empty groups disappear.
+Either group can stand alone, anchored
 at the edge nearest the unit roster even after scaling. Both empty hides the
 whole container. Standalone
 inputs show only their known current-round releases, with no invented unused
 skills or inventory. The strips follow natural map scale and mirror placement.
-Both strips hide once the playback position reaches three seconds, including
-their open tooltip. Seeking before three seconds or changing rounds restores
-nonempty panels; pauses and playback speed follow the same playhead timing.
+The display-settings switch `Always show panels` chooses between keeping both
+sides' unit and skills/equipment columns visible throughout combat and
+settlement (on, the default), and hiding them and their open tooltip after
+three seconds of playback (off). The blue columns fade toward the left and
+the red columns toward the right over 0.28 seconds. Hidden panels cannot
+receive pointer or keyboard interaction. Seeking before three seconds or
+enabling the switch restores the panels; reduced-motion preferences disable
+the transition. In auto-hide mode, moving the pointer near either viewport
+edge temporarily reveals both sides' columns. The activation region covers
+the columns' scaled width with a small margin, so they stay visible while
+hovering their cards. Moving away hides them again; keyboard focus within a
+column also keeps both sides visible. The switch retains its choice when
+changing rounds.
 `scripts/player/arsenal.py` extracts native front-facing skill symbols and
 equipment thumbnails into `web/arsenal.json`; each page embeds used images once.
 The list resets when selecting a round. `scripts/player/unit-panels.py`
