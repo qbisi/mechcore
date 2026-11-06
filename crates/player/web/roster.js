@@ -1,6 +1,14 @@
 // Closed deployment drawers: geometry mirrors, portraits and icons do not.
 'use strict';
 const UnitRoster=(()=>{
+  function supplyIcon(team,key){
+    const icon=document.getElementById(`supply-card-${team}`).querySelector('svg').cloneNode(true);
+    icon.setAttribute('aria-hidden','true');
+    const maskId=`roster-supply-cut-${team}-${key}`;
+    icon.querySelector('mask').id=maskId;
+    icon.querySelector('[mask]').setAttribute('mask',`url(#${maskId})`);
+    return icon;
+  }
   function geometry(techCount){
     const columns=Math.min(2,Math.max(1,techCount)),rows=Math.max(1,Math.ceil(techCount/columns)),width=122,height=72;
     // Keep the portrait and frame fixed, fitting two columns into the same
@@ -19,7 +27,8 @@ const UnitRoster=(()=>{
     root.parentElement?.style.setProperty("--roster-width",(width+20)+"px");
     const hide=()=>{tooltip.hidden=true;};
     root.onscroll=hide;
-    for(const [index,entry] of entries.entries()){
+    const sorted=[...entries].sort((a,b)=>(b.investment_supply??0)-(a.investment_supply??0)||(a.kind<b.kind?-1:a.kind>b.kind?1:0));
+    for(const [index,entry] of sorted.entries()){
       const unit=assets.units[entry.kind],name=unit?.name||entry.kind.replaceAll('_',' ');
       const shape=geometry(entry.techs.length);
       const change=Number.isInteger(entry.count_before)?entry.count-entry.count_before:0;
@@ -66,11 +75,7 @@ const UnitRoster=(()=>{
             price.setAttribute('aria-label',known?`${active?'Purchased for':'Purchase price'}: ${purchase_supply} supply${different?`, base ${tech.base_supply}`:''}`:`${tech.base_supply} supply; purchase price unavailable`);
             price.title=known?(active?'Historical purchase price':'Current purchase price'):'Base supply price; purchase history unavailable';
             // Reuse the HUD supply mark, including its SVG cutout.
-            const icon=document.getElementById(`supply-card-${team}`).querySelector('svg').cloneNode(true);
-            const maskId=`tech-supply-cut-${team}`;
-            icon.querySelector('mask').id=maskId;
-            icon.querySelector('[mask]').setAttribute('mask',`url(#${maskId})`);
-            price.append(icon);
+            price.append(supplyIcon(team,'tooltip'));
             if(different){const base=document.createElement('s');base.textContent=String(tech.base_supply);price.append(base);}
             const value=document.createElement('span');value.textContent=String(known?purchase_supply:tech.base_supply);
             price.append(value);tooltip.append(price);
@@ -87,6 +92,13 @@ const UnitRoster=(()=>{
       const count=document.createElement('span');count.className='formation-count';
       count.textContent=String(entry.count);count.title=`${entry.count} formations${delta}`;
       row.append(count);
+      const investment=document.createElement('span');investment.className='formation-investment';
+      const supply=entry.investment_supply??0;
+      investment.title=`${supply} supply invested: held formation values + researched technology costs`;
+      investment.setAttribute('aria-label',investment.title);
+      investment.append(supplyIcon(team,`investment-${index}`));
+      const amount=document.createElement('span');amount.textContent=String(supply);investment.append(amount);
+      row.append(investment);
       root.append(row);
       if(change){
         // Orbit the count badge, upright on both teams, rather than the card.

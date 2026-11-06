@@ -13,6 +13,8 @@ pub struct RosterEntry {
     /// Held formations at the start of this deployment, when history is known.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub count_before: Option<usize>,
+    /// Known held formation values plus historical technology purchase costs.
+    pub investment_supply: i64,
     pub techs: Vec<RosterTechnology>,
 }
 
@@ -83,6 +85,7 @@ pub fn unit_roster(
                 kind,
                 count,
                 count_before: None,
+                investment_supply: 0,
                 techs,
             }
         })
@@ -158,6 +161,7 @@ mod tests {
             kind: "rhino".into(),
             count: 1,
             count_before: None,
+            investment_supply: 0,
             techs: vec![
                 RosterTechnology {
                     id: 1109,
