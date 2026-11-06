@@ -228,6 +228,7 @@ fn play_match(
         })?;
         timeline.rosters = rosters;
         timeline.arsenals = sides.map(mechcore_player::arsenal);
+        match_tower_cards(&mut timeline, sides)?;
         for (seat, (header, state)) in [
             (&stated.blue, &turn.state.blue),
             (&stated.red, &turn.state.red),
@@ -271,6 +272,18 @@ fn play_match(
         seed_source: Some("match"),
         opened: false,
     })
+}
+
+fn match_tower_cards(
+    timeline: &mut mechcore_player::Timeline,
+    sides: [&mechcore_document::r#match::SideState; 2],
+) -> Result<(), Failure> {
+    for (core, state) in timeline.cores.iter_mut().zip(sides) {
+        core.tower_cards =
+            mechcore_player::tower_cards(&state.energy_tower_skills, &state.blueprints)
+                .map_err(|error| Failure::failed(error.to_string()))?;
+    }
+    Ok(())
 }
 
 fn match_rosters(

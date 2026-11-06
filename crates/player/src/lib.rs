@@ -18,6 +18,7 @@ mod deployment;
 mod page;
 mod roster;
 mod timeline;
+mod tower;
 mod track;
 
 pub use arsenal::{Arsenal, HeldItem, SkillSlot, arsenal};
@@ -29,4 +30,5 @@ pub use timeline::{
     ScoreSource, Shield, Terrain, TerrainFrame, TerrainGrid, TerrainShape, Timeline, Unit,
     timeline,
 };
+pub use tower::{TowerCards, TowerChoice, tower_cards};
 pub use track::{Step, Track};

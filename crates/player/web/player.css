@@ -100,14 +100,31 @@ html, body {
 .red .core-label { flex-direction: row-reverse; }
 .core.unknown .core-track { opacity: .4; }
 .core.unknown .core-fill { width: 0; }
-.core-cards { position:absolute; top:56px; left:0; display:flex; align-items:center; gap:6px; pointer-events:auto; }
-.red .core-cards { left:auto; right:0; flex-direction:row-reverse; }
+.core-cards { position:absolute; top:56px; left:0; display:flex; width:max-content; align-items:center; transform-origin:top left; pointer-events:auto; }
+.red .core-cards { left:auto; right:0; flex-direction:row-reverse; transform-origin:top right; }
 .officers { position:relative; }
+.tower-menu { position:relative; }
+.tower-summary { display:flex; align-items:center; justify-content:center; gap:5px; width:60px; height:30px; padding:3px 4px; border:1px solid #61738e; border-radius:3px; color:#d8e1ef; background:linear-gradient(135deg,#25334b,#111b29); cursor:pointer; font:400 11px "Mechcore HUD",system-ui,sans-serif; }
+.tower-symbol { display:flex; align-items:center; gap:2px; opacity:.3; }
+.tower-symbol.active { opacity:1; color:#edf6ff; }
+.tower-symbol img { width:22px; height:22px; object-fit:contain; }
+.tower-symbol:not(.active) { filter:grayscale(1); }
+.tower-summary:hover,.tower-summary:focus-visible { border-color:#adbed4; outline:none; }
+.tower-menu:hover .officer-list,.tower-menu:focus-within .officer-list { display:block; }
+.tower-list article { display:flex; justify-content:space-between; align-items:center; gap:12px; font-size:12px; }
+.tower-list b { font-weight:500; }
+.tower-choice-name { display:flex; align-items:center; gap:8px; }
+.tower-choice-name img { width:20px; height:20px; flex:none; object-fit:contain; }
+.tower-list article:not(.active) .tower-choice-name { opacity:.4; filter:grayscale(1); }
+.tower-price { display:grid; grid-template-columns:14px 3ch; align-items:center; gap:4px; flex:none; color:#efc570; font:400 11px "Mechcore HUD",system-ui,sans-serif; font-variant-numeric:tabular-nums; }
+.tower-price span { text-align:right; }
+.tower-price svg { width:14px; height:14px; color:#ffc400; }
 .supply-card { display:flex; align-items:center; justify-content:center; gap:5px; height:30px; min-width:72px; padding:3px 8px; border:1px solid #8b7957; border-radius:3px 3px 3px 9px; color:#efc570; background:linear-gradient(135deg,#302b23,#171c27); font:400 13px "Mechcore HUD",system-ui,sans-serif; }
-.red .supply-card { border-radius:3px 3px 9px 3px; }
+.blue .supply-card { border-radius:3px 3px 9px 3px; }
 .supply-card svg { width:20px; height:20px; flex:none; color:#ffc400; }
-.officers button { display: flex; align-items: center; gap: 5px; padding: 3px 10px 3px 6px; height: 30px; border: 1px solid #61738e; border-radius: 3px 3px 9px 3px; color: #d8e1ef; background: linear-gradient(135deg,#25334b,#111b29); font: inherit; cursor: pointer; }
+.officers button { width:46px; justify-content:center; display: flex; align-items: center; gap: 2px; padding: 3px 2px; height: 30px; border: 1px solid #61738e; border-radius: 3px 3px 3px 9px; color: #d8e1ef; background: linear-gradient(135deg,#25334b,#111b29); font: inherit; cursor: pointer; }
 .officers button svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; }
+.red .officers button { border-radius:3px 3px 9px 3px; }
 .officers button:hover, .officers button:focus-visible { color: #fff; border-color: #adbed4; outline: none; }
 .officer-list { display: none; position: absolute; top: 100%; left: 0; width: 320px; max-width: calc((100vw - 24px) / var(--hud-scale)); max-height: min(420px, calc((100dvh - 120px) / var(--hud-scale))); overflow-y: auto; padding: 8px 14px; background: linear-gradient(135deg,rgba(25,36,52,.98),rgba(9,15,24,.98)); border: 1px solid #536781; border-top: 2px solid #4c94dc; border-radius: 0 6px 6px 6px; box-shadow: 0 12px 28px #0007; text-shadow: none; }
 .red .officer-list { left: auto; right: 0; border-top-color: #d65d63; border-radius: 6px 0 6px 6px; }

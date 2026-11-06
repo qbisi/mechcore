@@ -17,6 +17,7 @@
   const embedded = JSON.parse(document.getElementById('timeline').textContent);
   const rosterAssets=JSON.parse(document.getElementById('roster-assets').textContent);
   const arsenalAssets=JSON.parse(document.getElementById('arsenal-assets').textContent);
+  const towerAssets=JSON.parse(document.getElementById('tower-assets').textContent);
   const rounds = Array.isArray(embedded) ? embedded : [embedded];
   let roundIndex = 0;
   let data = rounds[0];
@@ -1716,8 +1717,11 @@
     for(const side of [0,1])document.getElementById(`arsenal-${side}`).style.setProperty('--hud-scale',String(scale));
     for (const [i,v] of coreViews.entries()) {
       const width=Math.max(80,v.panel.getBoundingClientRect().width/scale);
+      const cards=v.panel.querySelector('.core-cards');
+      const shape=HudFrame.outline(width,cards.offsetWidth);
+      cards.style.transform=`scale(${shape.cardScale})`;
       v.frame.setAttribute('viewBox',`0 0 ${width} 56`);
-      v.frame.innerHTML=HudFrame.border(width,`core-border-${i}`);
+      v.frame.innerHTML=HudFrame.border(width,`core-border-${i}`,shape);
     }
     const middle=document.getElementById('battle-frame');
     const width=Math.max(80,document.getElementById('battle-clock').getBoundingClientRect().width/scale);
@@ -1726,8 +1730,51 @@
   }
   if(typeof ResizeObserver!=='undefined') {
     const observer=new ResizeObserver(resizeHud);
-    coreViews.forEach(v=>observer.observe(v.panel));
+    coreViews.forEach(v=>{
+      observer.observe(v.panel);
+      observer.observe(v.panel.querySelector('.core-cards'));
+    });
     observer.observe(document.getElementById('battle-clock'));
+  }
+  function renderTowerCards(core,side){
+    const icon=(group,id)=>`<img src="${towerAssets.images[towerAssets[group][id]]}" alt="" draggable="false">`;
+    const data=core.tower_cards||{energy:[],blueprints:[]};
+    const active=(rows,id)=>rows.some(row=>row.id===id&&row.active===true);
+    const attack=active(data.blueprints,401)?2:active(data.blueprints,4)?1:0;
+    const defense=active(data.blueprints,501)?2:active(data.blueprints,5)?1:0;
+    const cards=document.getElementById(`core-${side}`).querySelector('.core-cards');
+    cards.querySelectorAll('.tower-menu').forEach(menu=>menu.remove());
+    for(const kind of ['energy','blueprints']){
+      const rows=data[kind],menu=document.createElement('div');menu.className='tower-menu';
+      const button=document.createElement('button');button.type='button';button.className=`tower-summary ${kind}`;
+      const title=kind==='energy'?'Energy Tower skills':'Research Center blueprints';
+      button.setAttribute('aria-label',kind==='energy'?`${title}: Enhanced Range ${active(rows,5)?'active':'inactive'}, High Mobility ${active(rows,6)?'active':'inactive'}`:`${title}: attack level ${attack}, defense level ${defense}`);
+      button.setAttribute('aria-controls',`tower-list-${kind}-${side}`);
+      if(kind==='energy'){
+        button.innerHTML=[5,6].map(id=>`<span class="tower-symbol ${active(rows,id)?'active':''}">${icon('energy',id)}</span>`).join('');
+      }else{
+        button.innerHTML=[[4,attack],[5,defense]].map(([id,level])=>`<span class="tower-symbol ${level?'active':''}">${icon('blueprints',level===2?(id===4?401:501):id)}</span>`).join('');
+      }
+      const list=document.createElement('section');list.id=`tower-list-${kind}-${side}`;list.className='officer-list tower-list';list.setAttribute('aria-label',title);
+      const heading=document.createElement('h3');heading.textContent=title;list.append(heading);
+      for(const row of rows){
+        const item=document.createElement('article');item.classList.toggle('active',row.active);
+        const name=document.createElement('b');name.textContent=row.name;
+        const label=document.createElement('span');label.className='tower-choice-name';label.innerHTML=icon(kind,row.id);label.append(name);
+        const price=document.createElement('span');price.className='tower-price';
+        price.setAttribute('aria-label',`${row.supply} supply`);
+        const supplyIcon=document.getElementById(`supply-card-${side}`).querySelector('svg').cloneNode(true);
+        const maskId=`tower-supply-${side}-${kind}-${row.id}`;
+        supplyIcon.querySelector('mask').id=maskId;
+        supplyIcon.querySelector('[mask]').setAttribute('mask',`url(#${maskId})`);
+        supplyIcon.setAttribute('aria-hidden','true');
+        const amount=document.createElement('span');amount.textContent=String(row.supply);
+        price.append(supplyIcon,amount);
+        item.append(label,price);list.append(item);
+      }
+      if(!rows.length){const empty=document.createElement('p');empty.textContent='No activations';list.append(empty);}
+      menu.append(button,list);cards.insertBefore(menu,cards.querySelector('.supply-card'));
+    }
   }
   function resetHud() {
     const tip=document.getElementById('roster-tooltip');tip.hidden=true;
@@ -1755,6 +1802,7 @@
       document.getElementById(`supply-value-${i}`).textContent=`${core.supply}/${investment}`;
       supply.setAttribute('aria-label',`${core.name}: ${core.supply} supply available, ${investment} effective investment`);
       supply.title='Available supply / effective investment (available supply + held formation values + researched technology costs)';
+      renderTowerCards(core,i);
       const officers=core.officers || [];
       const list=document.getElementById(`officer-list-${i}`);
       document.getElementById(`officer-count-${i}`).textContent=String(officers.length);
