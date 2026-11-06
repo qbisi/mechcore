@@ -228,10 +228,14 @@ html, body {
 .red .unit-drawer { margin-left:auto; }
 .drawer-shape { position:absolute; inset:0; width:100%; height:100%; }
 .red .drawer-shape { transform:scaleX(-1); }
+.formation-orbit { position:absolute; inset:-1px; width:calc(100% + 2px); height:calc(100% + 2px); z-index:2; overflow:visible; pointer-events:none; filter:drop-shadow(0 0 2px #daf0ff88); }
+.unit-drawer.count-increased .formation-count { border-color:#d5ad54; background:#55401d; color:#fff2b0; }
+.unit-drawer.count-decreased .formation-count { color:#8b95a1; }
+@media (prefers-reduced-motion: reduce) { .formation-orbit { display:none; } }
 .unit-portrait { position:absolute; left:6px; width:56px; height:56px; object-fit:cover; border:1px solid #94a8c64d; border-radius:3px; }
 .red .unit-portrait { left:auto; right:6px; }
-.formation-count { position:absolute; z-index:1; top:0; left:0; min-width:20px; height:20px; padding:0 3px; display:flex; align-items:center; justify-content:center; border:1px solid #94bce3; background:#1b3552; color:#edf6ff; font:400 11px "Mechcore HUD",system-ui,sans-serif; box-shadow:1px 1px 4px #0006; }
-.red .formation-count { left:auto; right:0; border-color:#dfa0ad; background:#542c39; }
+.formation-count { position:absolute; z-index:1; top:0; left:0; min-width:20px; height:20px; padding:0 3px; display:flex; align-items:center; justify-content:center; border:1px solid #aebdce; background:#152234; color:#edf6ff; font:400 11px "Mechcore HUD",system-ui,sans-serif; box-shadow:1px 1px 4px #0006; }
+.red .formation-count { left:auto; right:0; }
 .drawer-badge { position:absolute; display:flex; align-items:center; justify-content:center; width:22px; height:22px; transform:translate(-50%,-50%); background:#152234; border:1px solid #7288a4; border-radius:4px; color:#e1eaf7; }
 .red .drawer-badge { transform:translate(50%,-50%); background:#2a1c29; border-color:#927785; }
 .unit-tech { width:var(--tech-size,22px); height:var(--tech-size,22px); padding:var(--tech-padding,2px); background:#152234e8; }
