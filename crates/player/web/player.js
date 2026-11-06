@@ -483,7 +483,9 @@
   let ctx = canvas.getContext('2d');
   const view = { x: 0, z: 0, s: 1, w: 1, h: 1, dpr: 1 };
   const options = { life: true, damage: false, panels: false };
-  let panelPointerX = null;
+  const PANEL_LINGER_MS = 3000;
+  let panelPointer = null;
+  let panelsVisibleUntil = -Infinity;
   let tau = 1;
   let cursor = 1;
   let playing = true;
@@ -1777,6 +1779,7 @@
     }
   }
   function resetHud() {
+    panelsVisibleUntil = -Infinity;
     const tip=document.getElementById('roster-tooltip');tip.hidden=true;
     for(const side of [0,1])UnitRoster.render(document.getElementById(`roster-list-${side}`),data.rosters[side],rosterAssets,side,tip);
     for(const side of [0,1]){
@@ -1822,6 +1825,24 @@
   }
   resetHud();
 
+  function pointerNearPanels(panels, side) {
+    if (!panelPointer) return false;
+    const {x,y} = panelPointer;
+    // Use the fitted deployment bounds even after the camera moves or zooms.
+    const left = side === 0;
+    const boundary = left ? Math.min(...data.regions.map(r=>r.x0)) : Math.max(...data.regions.map(r=>r.x1));
+    const edge = view.w/2 + boundary/100 * naturalFitScale();
+    if (left ? x >= edge : x <= edge) return false;
+    return panels.some(panel=>{
+      const list = panel.firstElementChild;
+      if (panel.hidden || !list.childElementCount) return false;
+      const box = list.getBoundingClientRect();
+      // The slide animates only X. Anchor the hit area to the resting column.
+      const inner = left ? panel.offsetLeft + box.width : panel.offsetLeft + panel.offsetWidth - box.width;
+      return y >= box.top && y < box.bottom && (left ? x < inner : x >= inner);
+    });
+  }
+
   function updateHud() {
     const seconds = (tau - 1) / TPS;
     const m = Math.floor(seconds / 60);
@@ -1833,12 +1854,11 @@
     document.getElementById('battle-time').textContent=`${m}:${sec}`;
     const ending=ScoreSettlement.sample(settlement,(cursor-LAST)/TPS);
     const sidePanels=[0,1].map(i=>[document.getElementById(`unit-roster-${i}`),document.getElementById(`arsenal-${i}`)]);
-    const nearEdge=panelPointerX!==null&&sidePanels.some((panels,i)=>{
-      const edgeWidth=48+panels.reduce((width,panel)=>width+panel.getBoundingClientRect().width,0);
-      return (i===0?panelPointerX:window.innerWidth-panelPointerX)<=edgeWidth;
-    });
     const focused=sidePanels.flat().some(panel=>panel.contains(document.activeElement));
-    const hidePanels=!options.panels&&(cursor-1)/TPS>=3&&!nearEdge&&!focused;
+    const now = performance.now();
+    if (focused || sidePanels.some(pointerNearPanels)) panelsVisibleUntil = Infinity;
+    else if (panelsVisibleUntil === Infinity) panelsVisibleUntil = now + PANEL_LINGER_MS;
+    const hidePanels=!options.panels&&(cursor-1)/TPS>=3&&now>=panelsVisibleUntil;
     for (const [i,v] of coreViews.entries()) {
       const arsenal=data.arsenals[i];
       for(const panel of sidePanels[i]){
@@ -2041,10 +2061,10 @@
   }
   window.addEventListener('pointermove',showControls);
   window.addEventListener('pointermove',e=>{
-    if(e.pointerType!=='touch')panelPointerX=e.clientX;
+    panelPointer=e.pointerType==='touch'?null:{x:e.clientX,y:e.clientY};
   });
-  document.documentElement.addEventListener('pointerleave',()=>{panelPointerX=null;});
-  window.addEventListener('blur',()=>{panelPointerX=null;});
+  document.documentElement.addEventListener('pointerleave',()=>{panelPointer=null;});
+  window.addEventListener('blur',()=>{panelPointer=null;});
   window.addEventListener('pointerdown',showControls);
   window.addEventListener('keydown',showControls);
   controls.addEventListener('focusin',showControls);
