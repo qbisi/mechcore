@@ -403,7 +403,13 @@ fn player_timeline(
     poses: Option<&[(u32, UnitPose)]>,
 ) -> Result<mechcore_player::Timeline, mechcore_player::Error> {
     let mut timeline = mechcore_player::timeline(recording, poses)?;
-    match score_sources(recording) {
+    let scores = deployed_levels(recording).and_then(|levels| {
+        for unit in &mut timeline.units {
+            unit.level = levels.get(&unit.id).map(|level| level.unwrap_or(1));
+        }
+        score_sources(recording, &levels)
+    });
+    match scores {
         Ok(sources) => timeline.score_sources = sources,
         Err(error) => eprintln!(
             "mechcore: cannot attribute settlement to survivors; showing team totals: {}",
@@ -434,19 +440,33 @@ fn player_timeline(
     Ok(timeline)
 }
 
-/// Reuse the document's score rule and the CLI's formation matching, rather
-/// than distributing a team's damage arbitrarily among visible survivors.
-fn score_sources(recording: &dyn Recording) -> Result<Vec<mechcore_player::ScoreSource>, Failure> {
-    use mechcore_document::reactor_damage::{Survivor, score};
+/// Match by original unit ID so control and rebirth retain the deployment level.
+fn deployed_levels(recording: &dyn Recording) -> Result<BTreeMap<u64, Option<i32>>, Failure> {
     let layout = crate::scene::layout(recording)?;
     let initial = crate::scene::snapshot(recording, 1)?;
     let formations = crate::scene::formations(&layout, &initial)?;
-    let final_state = crate::scene::snapshot(recording, recording.terminal_tick())?;
-    let original_formations: std::collections::BTreeMap<_, _> = initial
+    let levels = formations
+        .into_iter()
+        .filter_map(|(formation, (side, index))| {
+            crate::scene::units_of(&layout, side)
+                .iter()
+                .find(|p| p.index == index)
+                .map(|p| (formation, p.level))
+        })
+        .collect::<BTreeMap<_, _>>();
+    Ok(initial
         .live_units
         .iter()
-        .map(|u| (u.unit_id, u.formation_id))
-        .collect();
+        .filter_map(|u| levels.get(&u.formation_id).map(|level| (u.unit_id, *level)))
+        .collect())
+}
+
+fn score_sources(
+    recording: &dyn Recording,
+    levels: &BTreeMap<u64, Option<i32>>,
+) -> Result<Vec<mechcore_player::ScoreSource>, Failure> {
+    use mechcore_document::reactor_damage::{Survivor, score};
+    let final_state = crate::scene::snapshot(recording, recording.terminal_tick())?;
     let mut sources = Vec::new();
     for unit in final_state
         .live_units
@@ -455,18 +475,11 @@ fn score_sources(recording: &dyn Recording) -> Result<Vec<mechcore_player::Score
     {
         // Control and rebirth can change formation identity. Creation type
         // belongs to the original unit, not its current formation.
-        let placement = original_formations
-            .get(&unit.unit_id)
-            .and_then(|formation| formations.get(formation))
-            .and_then(|(side, index)| {
-                crate::scene::units_of(&layout, *side)
-                    .iter()
-                    .find(|p| p.index == *index)
-            });
+        let level = levels.get(&unit.unit_id);
         let value = score(Survivor {
             unit_type: unit.unit_type_id,
-            level: placement.and_then(|p| p.level),
-            support: placement.is_none(),
+            level: level.copied().flatten(),
+            support: level.is_none(),
             reborn: unit.rebirth_count > 0,
             team_changed: unit.team_id != unit.original_team_id,
         })

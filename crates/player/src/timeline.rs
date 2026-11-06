@@ -176,6 +176,8 @@ pub struct FormationFootprint {
 #[derive(Debug, Serialize)]
 pub struct Unit {
     pub id: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub level: Option<i32>,
     pub team: u32,
     pub formation: u64,
     pub unit_type: u32,
@@ -637,6 +639,7 @@ impl<'a> Builder<'a> {
         self.reach(position.0, position.2);
         let unit = self.units.entry(state.unit_id).or_insert_with(|| Unit {
             id: state.unit_id,
+            level: None,
             team: state.team_id,
             formation: state.formation_id,
             unit_type: state.unit_type_id,

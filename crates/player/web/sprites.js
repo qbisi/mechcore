@@ -21,11 +21,19 @@ const Sprites = (() => {
     { name: 'Blue', accent: '#3d8dff', deep: '#1d4fa6', light: '#a6d2ff', rgb: '61,141,255' },
     { name: 'Red', accent: '#ff4f3c', deep: '#a8261b', light: '#ffb4a8', rgb: '255,79,60' },
   ];
-  const M = {
+  const BASE_MATERIALS = {
     white: '#e6e9ee', pale: '#c3c9d1', mid: '#7f8691', steel: '#575e68',
     dark: '#363b43', darker: '#23272d', black: '#121418', line: '#0a0c0f',
     glass: '#9cc6e6', sand: '#b7a47a', caution: '#f2a640', gold: '#e8c23a',
   };
+  // Light, shaded and recessed armour share the level hue.
+  const ARMOUR_BY_LEVEL = [
+    BASE_MATERIALS,
+    { ...BASE_MATERIALS, white: '#83dc91', pale: '#58ac6c', mid: '#467756' },
+    { ...BASE_MATERIALS, white: '#ffdd69', pale: '#dcba51', mid: '#968143' },
+    { ...BASE_MATERIALS, white: '#ff9d55', pale: '#d97940', mid: '#975838' },
+  ];
+  let M = BASE_MATERIALS;
   // Each unit's emissive colour, read off its model's emission texture.
   const GLOW = {
     marksman: '#5ff2ff', arclight: '#b3f2ff', rhino: '#ffa236', crawler: '#ffb648',
@@ -2810,10 +2818,16 @@ const Sprites = (() => {
 
   const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp, phoenix, fang, hound, void_eye, vortex, mustang, steel_ball, stormcaller, hacker, fire_badger, sabertooth, tarantula, phantom_ray, wraith, scorpion, typhoon, farseer, centurion, fortress, vulcan, melting_point, overlord, war_factory, sandworm, raiden, abyss, mountain, larva, spider_mine, sentry_missile };
 
-  function drawUnit(c, kind, p, radius) {
+  function drawUnit(c, kind, p, radius, level = 1) {
     const draw = UNITS[kind];
-    if (draw) draw(c, p);
-    else generic(c, p, radius, kind);
+    const previous = M;
+    M = ARMOUR_BY_LEVEL[Math.min(level, 4) - 1] || BASE_MATERIALS;
+    try {
+      if (draw) draw(c, p);
+      else generic(c, p, radius, kind);
+    } finally {
+      M = previous;
+    }
   }
 
   // -------------------------------------------------------------- buildings
