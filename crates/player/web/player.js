@@ -1843,15 +1843,15 @@
     });
   }
 
+  function frameTime(frame) {
+    const tenths = Math.round((frame - 1) * 10 / TPS);
+    return `${Math.floor(tenths / 600)}:${((tenths % 600) / 10).toFixed(1).padStart(4, '0')}`;
+  }
+
   function updateHud() {
-    const seconds = (tau - 1) / TPS;
-    const m = Math.floor(seconds / 60);
-    const sec = (seconds - m * 60).toFixed(1).padStart(4, '0');
-    const duration=(LAST-1)/TPS;
-    const total=`${Math.floor(duration/60)}:${(duration%60).toFixed(1).padStart(4,'0')}`;
-    clock.textContent = cursor>LAST?`Settlement +${((cursor-LAST)/TPS).toFixed(1)} s`:`${m}:${sec} / ${total}`;
+    clock.textContent = `${frameTime(cursor)} / ${frameTime(END)}`;
     clock.title=`Tick ${Math.floor(tau)} / ${LAST}`;
-    document.getElementById('battle-time').textContent=`${m}:${sec}`;
+    document.getElementById('battle-time').textContent=frameTime(tau);
     const ending=ScoreSettlement.sample(settlement,(cursor-LAST)/TPS);
     const sidePanels=[0,1].map(i=>[document.getElementById(`unit-roster-${i}`),document.getElementById(`arsenal-${i}`)]);
     const focused=sidePanels.flat().some(panel=>panel.contains(document.activeElement));
@@ -2011,11 +2011,14 @@
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
+  const speedSelect = document.getElementById('speed');
+  const SPEEDS = Array.from(speedSelect.options, option => Number(option.value));
   function setSpeed(value) {
     speed = value;
-    document.getElementById('speed').value = String(value);
+    speedSelect.value = String(value);
   }
-  const SPEEDS = [0.25, 0.5, 1, 2, 4, 8];
+  const autoplay = document.getElementById('opt-autoplay');
+  if (rounds.length < 2) autoplay.closest('label').remove();
   const roundSelect = document.getElementById('round');
   roundSelect.hidden = !Array.isArray(embedded);
   rounds.forEach((round, i) => {
@@ -2077,7 +2080,7 @@
     playing = !playing;
   });
   seek.addEventListener('input', () => setTau(Number(seek.value)));
-  document.getElementById('speed').addEventListener('change', (e) => setSpeed(Number(e.target.value)));
+  speedSelect.addEventListener('change', () => setSpeed(Number(speedSelect.value)));
   document.getElementById('fit').addEventListener('click', fit);
   for (const key of ['life', 'damage', 'panels']) {
     const box = document.getElementById(`opt-${key}`);
@@ -2160,14 +2163,16 @@
     const dt = Math.min(0.1, (now - then) / 1000);
     then = now;
     controls.classList.toggle('inactive',now-controlsActiveAt>2000 && !settings.open && !controls.matches(':hover, :focus-within'));
-    if (playing) {
+    if (playing && cursor >= END) {
+      if (autoplay.checked && roundIndex + 1 < rounds.length) selectRound(roundIndex + 1);
+      else playing = false;
+    } else if (playing) {
       cursor=Math.max(1,Math.min(END,cursor+dt*TPS*speed));
       tau=Math.min(LAST,cursor);
-      if (cursor >= END) playing = false;
     }
     try {
       frame();
-      if (now - hudAt > 100 || !playing) { updateHud(); hudAt = now; }
+      if (now - hudAt > 100 || cursor >= END || !playing) { updateHud(); hudAt = now; }
     } finally {
       requestAnimationFrame(tick);
     }

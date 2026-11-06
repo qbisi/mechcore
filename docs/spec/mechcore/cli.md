@@ -708,7 +708,10 @@ round or one containing a fight the simulator refuses. It takes its own seed;
 `--seed` is a usage error. The result adds `rounds`, counts `ticks` across all
 played rounds, and reports `seed_source: match`. The page's round dropdown,
 immediately left of speed, selects a round at tick 1 while retaining speed and
-playback state. It does not advance automatically to the next round.
+playback state. Playback speeds are 0.5×, 1.0×, 2.0× and 4.0×. In a multi-round
+match, playback advances to the next round after settlement by default and stops
+after the last round. Turn off `Autoplay next round` in settings to stop after
+each round.
 
 The page's download button pauses at the current playback frame, rounded down, and downloads
 the battlefield as a standalone vector image at the current pan and zoom.
@@ -722,7 +725,9 @@ are combat ticks. A presentation-only tail freezes that last tick while
 survivors' score values fly to the opposing core and deduct the recorded
 settlement damage. It adds no recording ticks, changes no CLI `ticks` result,
 and remains seekable and deterministic. `player.tau` stays at the combat tick;
-`player.playhead` includes the tail. A zero-damage fight has no scoring tail.
+`player.playhead` includes the tail. The bottom bar includes settlement in both
+elapsed time and total duration. The battlefield clock holds its final combat
+time throughout settlement. A zero-damage fight has no scoring tail.
 
 A recording is played as it holds the fight, and one made with the
 `unit_pose` instrument channel ([mcfr.md](../mcfr/mcfr.md#instrument-channels))
