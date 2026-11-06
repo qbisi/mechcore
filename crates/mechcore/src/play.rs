@@ -307,6 +307,13 @@ fn match_rosters(
         )
         .map_err(Failure::refused)?;
         for row in &mut rosters[seat] {
+            row.count_before = Some(
+                opening
+                    .units
+                    .iter()
+                    .filter(|unit| unit.unit.type_name == row.kind)
+                    .count(),
+            );
             for tech in &mut row.techs {
                 tech.activated_this_round = tech.active && !opening.techs.contains(&tech.id);
                 tech.purchase_supply = if tech.active {

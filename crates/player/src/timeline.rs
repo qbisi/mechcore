@@ -71,6 +71,8 @@ pub struct Timeline {
     pub score_sources: Vec<ScoreSource>,
     pub field: Field,
     pub regions: Vec<DeploymentRegion>,
+    /// Joined/delivered layout footprints, shown only at the opening tick.
+    pub new_formations: Vec<FormationFootprint>,
     pub units: Vec<Unit>,
     pub buildings: Vec<Building>,
     pub projectiles: Vec<Projectile>,
@@ -156,6 +158,17 @@ fn deployment_regions() -> Vec<DeploymentRegion> {
 pub struct Field {
     pub half_width: i64,
     pub half_depth: i64,
+}
+
+/// A layout formation's occupied rectangle in world centimetres.
+#[derive(Debug, Serialize)]
+pub struct FormationFootprint {
+    pub team: usize,
+    pub index: i32,
+    pub x0: i64,
+    pub z0: i64,
+    pub x1: i64,
+    pub z1: i64,
 }
 
 /// One unit's life. Every track holds one value per tick from `from` to `to`.
@@ -479,6 +492,7 @@ pub fn timeline(
         layout.as_ref().map_or(0, |layout| layout.round),
     );
     if let Some(layout) = &layout {
+        timeline.new_formations = new_formations(layout)?;
         timeline.rosters =
             [&layout.blue, &layout.red].map(|side| crate::unit_roster(side, &[], None));
         for (team, side) in [&layout.blue, &layout.red].into_iter().enumerate() {
@@ -506,6 +520,33 @@ pub fn timeline(
         }
     }
     Ok(timeline)
+}
+
+fn new_formations(layout: &Layout) -> Result<Vec<FormationFootprint>, Error> {
+    let plan =
+        mechcore_document::compile::compile_placement_layout(layout.clone()).map_err(Error)?;
+    let mut footprints = Vec::new();
+    for (team, side) in [&plan.blue, &plan.red].into_iter().enumerate() {
+        for unit in &side.units {
+            if unit.source == mechcore_document::layout::UnitSource::Legacy {
+                continue;
+            }
+            let (width, depth) = mechcore_document::compile::placement_footprint(unit)
+                .ok_or_else(|| Error(format!("unit {} has no footprint", unit.type_name)))?;
+            let turn = if team == 0 { 1 } else { -1 };
+            let x = i64::from(unit.position.x) * turn * 100;
+            let z = i64::from(unit.position.y) * turn * 100;
+            footprints.push(FormationFootprint {
+                team,
+                index: unit.index.unwrap_or_default(),
+                x0: x - width * 50,
+                z0: z - depth * 50,
+                x1: x + width * 50,
+                z1: z + depth * 50,
+            });
+        }
+    }
+    Ok(footprints)
 }
 
 struct Builder<'a> {
@@ -983,6 +1024,7 @@ impl<'a> Builder<'a> {
                 half_depth: self.reach.1 + MARGIN,
             },
             regions,
+            new_formations: Vec::new(),
             units: self.units.into_values().collect(),
             buildings: self.buildings.into_values().collect(),
             projectiles: self.projectiles.into_values().collect(),
@@ -1159,6 +1201,38 @@ mod tests {
     use mechcore_mcfr::TerrainGridState;
 
     const METRE: i64 = 1 << 32;
+
+    #[test]
+    fn new_formation_rectangles_use_layout_rotation_and_red_world_coordinates() {
+        let layout = mechcore_document::parse_embedded_yaml(
+            br"
+kind: layout
+round: 2
+blue:
+  units:
+  - {name: rhino, index: 0, position: {x: 95, y: -45}}
+  - {name: wasp, index: 1, position: {x: 0, y: -105}, rotated: true, source: delivered}
+  - {name: wasp, index: 2, position: {x: -65, y: -50}, source: joined}
+red:
+  units:
+  - {name: wasp, index: 0, position: {x: 65, y: -50}, source: joined}
+",
+        )
+        .unwrap();
+        let rectangles = super::new_formations(&layout).unwrap();
+        let actual: Vec<_> = rectangles
+            .iter()
+            .map(|r| (r.team, r.index, r.x0, r.z0, r.x1, r.z1))
+            .collect();
+        assert_eq!(
+            actual,
+            [
+                (0, 1, -1000, -13000, 1000, -8000),
+                (0, 2, -9000, -6000, -4000, -4000),
+                (1, 0, -9000, 4000, -4000, 6000),
+            ]
+        );
+    }
 
     #[test]
     fn terrain_masks_return_to_world_axes() {

@@ -22,13 +22,15 @@ const UnitRoster=(()=>{
     for(const [index,entry] of entries.entries()){
       const unit=assets.units[entry.kind],name=unit?.name||entry.kind.replaceAll('_',' ');
       const shape=geometry(entry.techs.length);
+      const change=Number.isInteger(entry.count_before)?entry.count-entry.count_before:0;
+      const delta=change?` · ${change>0?'+':''}${change} this round`:'';
       const row=document.createElement('article');
-      row.className='unit-drawer';
+      row.className='unit-drawer'+(change>0?' count-increased':change<0?' count-decreased':'');
       row.style.width=shape.width+'px';
       row.style.setProperty('--tech-size',shape.techSize+'px');
       row.style.setProperty('--tech-padding',shape.techSize<22?'1px':'2px');
       row.style.height=shape.height+'px';row.setAttribute('role','listitem');
-      row.setAttribute('aria-label',`${name}: ${entry.count} formations`);
+      row.setAttribute('aria-label',`${name}: ${entry.count} formations${delta}`);
       const frame=document.createElementNS('http://www.w3.org/2000/svg','svg');
       frame.setAttribute('viewBox',`0 0 ${shape.width} ${shape.height}`);frame.setAttribute('aria-hidden','true');
       frame.classList.add('drawer-shape');
@@ -83,9 +85,24 @@ const UnitRoster=(()=>{
         el.addEventListener('focus',show);el.addEventListener('blur',hide);
       });
       const count=document.createElement('span');count.className='formation-count';
-      count.textContent=String(entry.count);count.title=`${entry.count} formations`;
+      count.textContent=String(entry.count);count.title=`${entry.count} formations${delta}`;
       row.append(count);
       root.append(row);
+      if(change){
+        // Orbit the count badge, upright on both teams, rather than the card.
+        const orbit=document.createElementNS('http://www.w3.org/2000/svg','svg');
+        const width=count.offsetWidth,height=count.offsetHeight;
+        orbit.classList.add('formation-orbit');orbit.setAttribute('viewBox',`0 0 ${width} ${height}`);orbit.setAttribute('aria-hidden','true');
+        const w=width-1,h=height-1,n=Math.min(4,Math.abs(change));
+        const path=change>0?`M1 1H${w}V${h}H1Z`:`M1 1V${h}H${w}V1Z`;
+        // Match the skill contour's cool-white reflection: a bright head with
+        // a fading short trail, following the border even around corners.
+        orbit.innerHTML=Array.from({length:n},(_,i)=>Array.from({length:7},(_,j)=>{
+          const offset=-100*i/n+j*1.6,opacity=0.94*(1-j/7)**1.5;
+          return `<path d="${path}" pathLength="100" fill="none" stroke="#daf0ff" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="2 98" opacity="${opacity}"><animate attributeName="stroke-dashoffset" from="${offset}" to="${offset-100}" dur="3s" repeatCount="indefinite" calcMode="linear"/></path>`;
+        }).join('')).join('');
+        count.append(orbit);
+      }
     }
   }
   return {geometry,render};

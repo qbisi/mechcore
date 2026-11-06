@@ -1290,7 +1290,9 @@ fn missing_footprint(side_name: &str, placement: &Placement) -> String {
     )
 }
 
-pub(crate) fn placement_footprint(placement: &Placement) -> Option<(i64, i64)> {
+/// Occupied width and depth in metres, including rotation and flank orientation.
+#[must_use]
+pub fn placement_footprint(placement: &Placement) -> Option<(i64, i64)> {
     let (width, height) = placement.footprint?;
     Some(
         if matches!(placement.native, NativeFormation::Unit(_))

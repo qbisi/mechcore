@@ -3,6 +3,11 @@
 Plays an MCFR recording back as a flat, top-down picture of the battlefield:
 the map's towers, the constructions, the shields, the units and their shots,
 moving and fighting as the recording says they did.
+At tick 1 only, formations whose layout source is `joined` or `delivered`
+receive a white rectangular outline matching their occupied deployment
+footprint, including rotation, flank orientation and red-side coordinates.
+The outline disappears from tick 2 onward and returns when seeking
+to tick 1. Legacy formations and combat-spawned units receive no such marker.
 
 ```bash
 mechcore play crates/player/scenes/six-units.yaml
@@ -86,7 +91,20 @@ buttons. Each shows the native portrait and technology icons without a unit-name
 caption. A square formation-count badge sits inside the blue card's upper-left
 corner and the red card's upper-right corner. It counts held deployment
 formations, including reinforcements, and remains fixed during combat; an
-unlocked type without a formation shows zero. Technologies follow each side's match
+unlocked type without a formation shows zero.
+When a match deployment increases a type's formation count relative to its
+opening state, the count badge uses gold. Decreases use the neutral panel
+background with grey digits; unchanged counts use that background with normal
+digits. Both sides share these styles, and the card frame retains its normal style.
+One cool-white reflection per net added formation orbits the count badge's
+border clockwise; one per net removed formation travels
+counterclockwise, capped at four lights. Direction is the same on both sides,
+independent of the mirrored card frame. Each reflection has a bright head and
+a short fading trail inspired by the battlefield-skill contour effect.
+The count badge's title and card's
+accessible label include the exact signed change. Reduced-motion preferences
+hide the orbiting lights. Standalone inputs without an opening count do not
+invent a change. Technologies follow each side's match
 loadout in its original order: four icons form two rows of two, six form three
 rows of two. Cards retain the same 122-unit width regardless of loadout:
 four choices use 22-unit icons, six use 20-unit icons with smaller padding.

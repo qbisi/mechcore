@@ -10,6 +10,9 @@ use serde::{Deserialize, Serialize};
 pub struct RosterEntry {
     pub kind: String,
     pub count: usize,
+    /// Held formations at the start of this deployment, when history is known.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub count_before: Option<usize>,
     pub techs: Vec<RosterTechnology>,
 }
 
@@ -76,7 +79,12 @@ pub fn unit_roster(
                 .iter()
                 .filter(|unit| unit.type_name == kind)
                 .count();
-            RosterEntry { kind, count, techs }
+            RosterEntry {
+                kind,
+                count,
+                count_before: None,
+                techs,
+            }
         })
         .collect()
 }
@@ -149,6 +157,7 @@ mod tests {
         let entries = [RosterEntry {
             kind: "rhino".into(),
             count: 1,
+            count_before: None,
             techs: vec![
                 RosterTechnology {
                     id: 1109,
