@@ -307,6 +307,8 @@ fn match_rosters(
         )
         .map_err(Failure::refused)?;
         for row in &mut rosters[seat] {
+            row.investment_supply =
+                unit_investment(sides[seat], &row.kind, &research_history[seat]);
             row.count_before = Some(
                 opening
                     .units
@@ -325,6 +327,33 @@ fn match_rosters(
         }
     }
     Ok(rosters)
+}
+
+fn unit_investment(
+    state: &mechcore_document::r#match::SideState,
+    kind: &str,
+    research_history: &BTreeMap<i32, i32>,
+) -> i64 {
+    let formations: i64 = state
+        .units
+        .iter()
+        .filter(|unit| unit.unit.type_name == kind)
+        .filter_map(|unit| unit.value)
+        .map(i64::from)
+        .sum();
+    let technologies: i64 = state
+        .techs
+        .iter()
+        .filter(|id| {
+            mechcore_document::names::technology_owner(**id)
+                .and_then(mechcore_document::unit_type_from_id)
+                .is_some_and(|(name, _)| name == kind)
+        })
+        .filter_map(|id| research_history.get(id))
+        .copied()
+        .map(i64::from)
+        .sum();
+    formations + technologies
 }
 
 /// Replay deployment decisions in their recorded order: later discounts and

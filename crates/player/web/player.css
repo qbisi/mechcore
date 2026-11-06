@@ -236,6 +236,9 @@ html, body {
 .red .unit-portrait { left:auto; right:6px; }
 .formation-count { position:absolute; z-index:1; top:0; left:0; min-width:20px; height:20px; padding:0 3px; display:flex; align-items:center; justify-content:center; border:1px solid #aebdce; background:#152234; color:#edf6ff; font:400 11px "Mechcore HUD",system-ui,sans-serif; box-shadow:1px 1px 4px #0006; }
 .red .formation-count { left:auto; right:0; }
+.formation-investment { position:absolute; z-index:1; left:0; bottom:0; display:flex; align-items:center; gap:2px; height:18px; padding:1px 3px; border:1px solid #687c98; background:#152234; color:#efc570; font:400 10px "Mechcore HUD",system-ui,sans-serif; }
+.red .formation-investment { left:auto; right:0; }
+.formation-investment svg { width:12px; height:12px; flex:none; color:#ffc400; }
 .drawer-badge { position:absolute; display:flex; align-items:center; justify-content:center; width:22px; height:22px; transform:translate(-50%,-50%); background:#152234; border:1px solid #7288a4; border-radius:4px; color:#e1eaf7; }
 .red .drawer-badge { transform:translate(50%,-50%); background:#2a1c29; border-color:#927785; }
 .unit-tech { width:var(--tech-size,22px); height:var(--tech-size,22px); padding:var(--tech-padding,2px); background:#152234e8; }

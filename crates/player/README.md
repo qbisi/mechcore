@@ -92,6 +92,12 @@ caption. A square formation-count badge sits inside the blue card's upper-left
 corner and the red card's upper-right corner. It counts held deployment
 formations, including reinforcements, and remains fixed during combat; an
 unlocked type without a formation shows zero.
+A supply badge sits in the blue card's lower-left corner and red card's
+lower-right corner. It sums that type's held formation `value` fields and
+historical costs of its activated technologies after deployment. Recovered
+formations no longer contribute; researched technologies still do even with
+zero held formations. It uses the HUD supply symbol. Missing formation values
+or technology history contribute zero; standalone inputs show zero.
 When a match deployment increases a type's formation count relative to its
 opening state, the count badge uses gold. Decreases use the neutral panel
 background with grey digits; unchanged counts use that background with normal
@@ -133,7 +139,8 @@ appear above the drawers. Drawer sizes use the core HUD's natural map scale.
 Compact portraits and technology grids sit inside frames whose outer edges
 align with the core frames, sharing their 12-pixel viewport inset.
 
-Types are sorted by their document names and stay fixed during combat. Match
+Types are sorted by descending investment supply, breaking ties by their
+document names, and stay fixed during combat. Match
 playback includes completed deployment unlocks, placed formations and researched
 types. Layouts, fights and recordings have no account loadout or unlock list:
 they display only known formations and active technologies, without inventing
