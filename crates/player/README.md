@@ -79,14 +79,32 @@ An empty list says `No officers`. The text is presentation only, extracted
 from the local build's OfficerData localization by `scripts/player/officers.py`
 into `web/officers.json`, with description parameters resolved and rich-text
 tags removed. The offline page embeds only the officers held by each side.
-A supply card sits outside the officer button (blue left, red right), using
-the same natural map scale. Its SVG symbol redraws the native `Icon_Supply`'s
+From the viewport edge toward the clock, each row contains the officer, Energy
+Tower, blueprint and supply cards. The officer card has a fixed width of 46
+design units. The supply card fits its numbers and uses the same natural map
+scale. Its SVG symbol redraws the native `Icon_Supply`'s
 gold hexagon and angular cutout without embedding the source bitmap.
 Match playback displays `available supply / effective investment` after the
 completed deployment. Effective investment is available supply plus all held
 formation values and historical unit-technology costs, reusing the unit cards'
 investment totals. These values stay fixed during combat and update on round
 selection. Inputs without economy state display `0/0`.
+Between the supply and officer cards sit two fixed-width tower cards, mirrored
+on red. Both use 60 design units of width. Adjacent cards touch, and the name
+plate extends beyond the measured card row, scaling the row to fit narrow
+frames. Detail lists align their supply symbols and right-align their prices
+in a common numeric column. The Energy Tower card shows Enhanced Range and High Mobility as lit or
+dim native game icons. The blueprint card shows the currently active attack
+and defense blueprint icons, using their native second-level artwork when
+appropriate, without extra digits; grey icons mean no enhancement.
+Hovering or focusing either opens a list of its build-configured names and
+supply prices, with activation indicated by icon/name brightness. Rapid
+Resupply displays the 200 supply it grants instead of its zero cost. Match playback uses the completed deployment's
+full state. In standalone layouts, fights and recordings, omitted economic
+skills and blueprints default to inactive.
+`scripts/player/tower-cards.py` extracts the game's Energy Tower and blueprint
+sprites into `web/tower-cards.json`. The page embeds each icon once and shares
+it across summaries, hover lists, teams and rounds.
 
 Closed rectangular drawers run down the blue and red edges below the card
 buttons. Each shows the native portrait and technology icons without a unit-name

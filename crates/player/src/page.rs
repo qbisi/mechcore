@@ -9,6 +9,7 @@ const HUD_FONT: &str = include_str!("../web/hud-font.css");
 const HUD: &str = include_str!("../web/hud.js");
 const ROSTER: &str = include_str!("../web/roster.js");
 const ARSENAL: &str = include_str!("../web/arsenal.js");
+const TOWER_ASSETS: &str = include_str!("../web/tower-cards.json");
 const SPRITES: &str = include_str!("../web/sprites.js");
 const SNAPSHOT: &str = include_str!("../web/snapshot.js");
 const TERRAIN: &str = include_str!("../web/terrain.js");
@@ -51,6 +52,8 @@ fn render(
     let data = serde_json::to_string(data)?.replace("</", "<\\/");
     let assets = serde_json::to_string(assets)?.replace("</", "<\\/");
     let arsenal = serde_json::to_string(arsenal)?.replace("</", "<\\/");
+    let towers: serde_json::Value = serde_json::from_str(TOWER_ASSETS)?;
+    let towers = serde_json::to_string(&towers)?.replace("</", "<\\/");
     Ok(SHELL
         .replace("{{title}}", &escape(title))
         .replace("/*{{style}}*/", STYLE)
@@ -68,6 +71,7 @@ fn render(
         .replace("/*{{player}}*/", PLAYER)
         .replace("{{timeline}}", &data)
         .replace("{{roster-assets}}", &assets)
+        .replace("{{tower-assets}}", &towers)
         .replace("{{arsenal-assets}}", &arsenal))
 }
 

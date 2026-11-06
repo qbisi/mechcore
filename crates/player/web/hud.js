@@ -9,9 +9,12 @@ const HudFrame = (() => {
     const characters=Array.from(new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(name),s=>s.segment);
     return characters.length>30?characters.slice(0,15).join('')+'*'+characters.slice(-14).join(''):name;
   }
-  function outline(width) {
-    const w=Math.max(80,width), plate=Math.min(w-42,Math.max(110,w*.64));
-    return {width:w,plate,
+  function outline(width,cardWidth=0) {
+    const w=Math.max(80,width);
+    // The lower rail ends at plate-8. Leave another 8 units past the cards.
+    const plate=Math.min(w-30,Math.max(110,w*.74,cardWidth+16));
+    const cardScale=cardWidth>0?Math.min(1,(plate-16)/cardWidth):1;
+    return {width:w,plate,cardScale,
       outer:`M8 1H${w-1}V18L${w-13} 30H${plate+16}L${plate-6} 53H1V8Z`,
       inset:`M9 4H${w-4}V17L${w-15} 27H7V8Z`,
       separator:`M7 30H${plate+16}`,
@@ -19,8 +22,7 @@ const HudFrame = (() => {
       topRail:`M12 3H${w-6}`,
     };
   }
-  function border(width,id) {
-    const g=outline(width);
+  function border(width,id,g=outline(width)) {
     return `<defs>
       <linearGradient id="${id}-metal" x2="0" y2="1"><stop stop-color="#c4cbd5"/><stop offset=".17" stop-color="#5d6a7d"/><stop offset=".56" stop-color="#28364b"/><stop offset="1" stop-color="#7286a3"/></linearGradient>
       <linearGradient id="${id}-panel" x2="0" y2="1"><stop stop-color="#202a3a" stop-opacity=".94"/><stop offset=".58" stop-color="#101824" stop-opacity=".87"/><stop offset="1" stop-color="#27364d" stop-opacity=".9"/></linearGradient>

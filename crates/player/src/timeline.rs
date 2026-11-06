@@ -97,6 +97,7 @@ pub struct Core {
     /// Remaining supply after deployment; zero when the input has no economy.
     pub supply: i32,
     pub officers: Vec<Officer>,
+    pub tower_cards: crate::TowerCards,
 }
 
 /// Native presentation text for an officer held in this deployment.
@@ -496,6 +497,9 @@ pub fn timeline(
         timeline.rosters =
             [&layout.blue, &layout.red].map(|side| crate::unit_roster(side, &[], None));
         for (team, side) in [&layout.blue, &layout.red].into_iter().enumerate() {
+            timeline.cores[team].tower_cards =
+                crate::tower_cards(&side.energy_tower_skills, &side.blueprints)
+                    .map_err(|error| Error(format!("cannot read tower cards: {error}")))?;
             timeline.arsenals[team] = crate::arsenal::released(side)
                 .map_err(|error| Error(format!("cannot read skill artwork: {error}")))?;
         }
@@ -1015,6 +1019,7 @@ impl<'a> Builder<'a> {
                 damage: 0,
                 supply: 0,
                 officers: Vec::new(),
+                tower_cards: crate::TowerCards::default(),
             }),
             score_sources: Vec::new(),
             rosters: [Vec::new(), Vec::new()],
