@@ -8,6 +8,10 @@ receive a white rectangular outline matching their occupied deployment
 footprint, including rotation, flank orientation and red-side coordinates.
 The outline disappears from tick 2 onward and returns when seeking
 to tick 1. Legacy formations and combat-spawned units receive no such marker.
+A deployed unit's armour shows its formation's level: white for level 1,
+green for 2, yellow for 3 and orange for 4 or higher. Team markings keep
+their red or blue colour. Hovering shows the exact level. Units without a
+matching opening placement use their original model colours.
 
 ```bash
 mechcore play crates/player/scenes/six-units.yaml

@@ -134,7 +134,7 @@
       const n = u.to - u.from + 1;
       const o = {
         what: 'unit', id: u.id, team: u.team, kind: u.kind, air: u.air, formation: u.formation,
-        radius: u.radius / 100, maxLife: u.max_life, from: u.from, to: u.to, n,
+        level: u.level, radius: u.radius / 100, maxLife: u.max_life, from: u.from, to: u.to, n,
         X: decode(u.x, n, 0.01), Y: decode(u.y, n, 0.01), Z: decode(u.z, n, 0.01),
         B: decode(u.body, n), R: u.turret ? decode(u.turret, n) : null,
         L: decode(u.life, n), S: u.shield ? decode(u.shield, n) : null,
@@ -835,7 +835,7 @@
       }
       ctx.globalAlpha = opacity;
       place(s.x, s.z, s.body, bodySize);
-      Sprites.drawUnit(ctx, u.kind, p, u.radius);
+      Sprites.drawUnit(ctx, u.kind, p, u.radius, u.level);
       if (p.hurt > 0) hurtFlash(u.radius * 0.9, p.hurt);
       if (s.shield > 0) {
         ctx.globalAlpha = 0.5 * opacity;
@@ -1952,7 +1952,7 @@
       const name = NAMES[o.kind] || o.kind;
       const aim = s.aim > 0 ? `unit ${s.aim}` : s.aim < 0 ? `building ${-s.aim}` : 'nothing';
       lines = [
-        `<b>${name}</b> <span class="dim">#${o.id} · ${TEAMS[o.team].name}</span>`,
+        `<b>${name}</b>${o.level == null ? '' : ` · Lv.${o.level}`} <span class="dim">#${o.id} · ${TEAMS[o.team].name}</span>`,
         `life ${Math.round(s.life)} / ${o.maxLife}${s.shield > 0 ? ` · shield ${Math.round(s.shield)}` : ''}`,
         `${MOTION[s.motion] || s.motion} · aiming at ${aim}`,
         `<span class="dim">x ${s.x.toFixed(1)} · z ${s.z.toFixed(1)}${o.air ? ` · height ${s.y.toFixed(0)}` : ''}</span>`,
