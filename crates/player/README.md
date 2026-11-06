@@ -30,13 +30,15 @@ A match file plays every completed deployment in one page. The round dropdown
 and previous/next round buttons choose a round and start its timeline
 at tick 1, retaining speed and playback state. A trailing state without decisions
 and a concession have no fight to play. Each round is simulated from its own
-recorded deployment; the page does not advance automatically between rounds.
+recorded deployment. A multi-round replay continues at the selected speed
+after settlement and stops at the end of the last round. Turn off
+`Autoplay next round` in settings to stop after each round.
 Round navigation is disabled at the corresponding first/last boundary, and
 the previous/next buttons are hidden for a single round. The lower controls
 overlay the map on a transparent-to-dark gradient: a full-width seek bar
 above the button row shows elapsed progress, loss marks and the settlement
 tail. The row contains playback, round navigation, elapsed/total time, round
-selection, speed, display settings, fit and SVG export. A compact dark settings
+selection, speed (0.5×, 1.0×, 2.0× or 4.0×), settings, fit and SVG export. A compact dark settings
 popover lists life bars, damage numbers and the skills/equipment panel with labels on the left and cyan
 on/grey off switches on the right. Focusing a switch and pressing Space
 toggles it without starting playback.
@@ -235,8 +237,9 @@ numbers pop below the bar, then fade completely before the tail ends. Orb,
 stroke and text sizes follow the HUD's natural map scale, independent of
 interactive camera zoom. Both sides can score in a timeout. No simulation ticks
 or events are added, and the reported recording duration remains unchanged.
-The seek bar includes a tinted tail; the combat clock stops and the lower
-clock labels this interval as settlement. Flights, impacts and deductions are
+The seek bar includes a tinted settlement tail. Its elapsed and total times
+include this tail, while the combat clock holds at the last recorded tick.
+Flights, impacts and deductions are
 functions of the playhead, so speed changes, seeks and exports agree.
 Health numbers retain negative results after overkill; the bar fill stops at
 zero. Only individual hit values float beside the core; no cumulative damage

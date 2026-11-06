@@ -46,16 +46,15 @@
   <div class="control-spacer"></div>
   <select id="round" title="Round" aria-label="Round" hidden></select>
   <select id="speed" title="Speed (+ and −)" aria-label="Speed">
-    <option value="0.25">0.25×</option>
     <option value="0.5">0.5×</option>
-    <option value="1" selected>1×</option>
-    <option value="2">2×</option>
-    <option value="4">4×</option>
-    <option value="8">8×</option>
+    <option value="1" selected>1.0×</option>
+    <option value="2">2.0×</option>
+    <option value="4">4.0×</option>
   </select>
   <details id="display-settings">
     <summary title="Display settings" aria-label="Display settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 3-.6 2.2-2 .9L5.3 5.5 3 9.5l1.6 1.6v1.8L3 14.5l2.3 4 2.1-.6 2 .9L10 21h4l.6-2.2 2-.9 2.1.6 2.3-4-1.6-1.6v-1.8L21 9.5l-2.3-4-2.1.6-2-.9L14 3Z"/><circle cx="12" cy="12" r="3"/></svg></summary>
     <div class="settings-panel">
+      <label><span>Autoplay next round</span><input type="checkbox" role="switch" id="opt-autoplay" checked></label>
       <label><span>Life bars</span><input type="checkbox" role="switch" id="opt-life" checked></label>
       <label><span>Damage numbers</span><input type="checkbox" role="switch" id="opt-damage"></label>
       <label><span>Always show panels</span><input type="checkbox" role="switch" id="opt-panels" aria-label="Always show units, skills and equipment"></label>
