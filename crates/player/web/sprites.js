@@ -104,6 +104,23 @@ const Sprites = (() => {
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
 
+  // Local muzzle positions in model metres (forward is -y), by firing skill
+  // slot. One recorded release can feed more than one visible nozzle.
+  const VULCAN_NOZZLES = [[-11.4, -18.4], [11.4, -18.4]];
+  const WEAPON_MUZZLES = {
+    vulcan: [VULCAN_NOZZLES],
+    wraith: Array.from({length: 8}, (_, k) => {
+      const angle = (k - 3.5) * Math.PI / 6;
+      return [[Math.sin(angle) * 9, -Math.cos(angle) * 9]];
+    }),
+    melting_point: [null, [[-9, -9]], [[9, -9]], [[-9, 9]], [[9, 9]]],
+  };
+  function weaponMuzzles(kind, slot, weapon) {
+    if (kind === 'vulcan' && slot == null)
+      return weapon === 0 || weapon === 1 ? VULCAN_NOZZLES : undefined;
+    return WEAPON_MUZZLES[kind]?.[slot ?? weapon];
+  }
+
   let LW = 0.15; // outline width in metres, set from the zoom
 
   function setScale(metresPerPixel) {
@@ -2146,7 +2163,9 @@ const Sprites = (() => {
     circle(c, 0, 8.6, 0.8);
     paint(c, M.darker, null);
     glow(c, 0, 8.6, 1.4, GLOW.vulcan, 0.5);
-    // the chest
+    // The chest and both flamethrowers turn together above the chassis.
+    c.save();
+    c.rotate(p.turret);
     for (const sx of [-1, 1]) {
       rr(c, sx * 6.4 - 1.9, -6.0, 3.8, 8.4, 0.4);
       paint(c, M.white);
@@ -2183,8 +2202,10 @@ const Sprites = (() => {
       paint(c, M.white, null);
       poly(c, [sx * 11.3, -17.4, sx * 11.9, -17.4, sx * 11.6, -24.0]);
       paint(c, M.dark);
-      flash(c, sx * 11.4, -18.4, 3.6, '#ff8a3c', p.fireAge, 0.3, p.fireIndex + sx);
     }
+    for (const [x, y] of VULCAN_NOZZLES)
+      flash(c, x, y, 3.6, '#ff8a3c', p.fireAge, 0.3, p.fireIndex + Math.sign(x));
+    c.restore();
   }
 
   // Melting Point, as it fires: a platform on four legs out to its corners,
@@ -3175,7 +3196,7 @@ const Sprites = (() => {
   }
 
   return {
-    TEAMS, GLOW, SIZE, setScale, pose, drawUnit, drawBuilding, shieldGenerator, icon,
+    TEAMS, GLOW, SIZE, weaponMuzzles, setScale, pose, drawUnit, drawBuilding, shieldGenerator, icon,
     has: (kind) => kind in UNITS || kind in BUILDINGS,
     glow, flash, ease,
   };

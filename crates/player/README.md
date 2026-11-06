@@ -281,10 +281,13 @@ shot or a blow that splashes rings the ground it covers, as wide as its
 weapon's skill splashed when it fired. A
 weapon that strikes at range without a projectile, as a Vortex's or a
 Melting Point's does, draws its blow from the attacker to its target, an
-arc or a beam. The recording releases every shot at its unit's centre; the
-skills of a weapon group, a Wraith's eight launchers and a Melting Point's
-Energy Diffraction beams, leave from launchers of their own, the shot
-carried out to its launcher by less as it nears where it lands.
+arc or a beam. Models can specify muzzle positions for their weapons.
+The page turns those positions with the firing turret and scales them with
+the sprite. The launch offset decreases with the remaining distance to the
+recorded endpoint. Wraith shots use their individual launchers and Melting
+Point's Energy Diffraction beams start at their respective legs. A Vulcan's
+main flame release draws six jittering puffs per arm nozzle. Both streams
+converge on the recorded impact, then fade out over 0.15 seconds.
 
 A recording made with the `unit_pose` instrument channel also says how the
 game drew each unit: the clip its model played and how far through. The page
