@@ -481,7 +481,7 @@
   const canvas = document.getElementById('field');
   let ctx = canvas.getContext('2d');
   const view = { x: 0, z: 0, s: 1, w: 1, h: 1, dpr: 1 };
-  const options = { life: true, damage: false, aim: false };
+  const options = { life: true, damage: false };
   let tau = 1;
   let cursor = 1;
   let playing = true;
@@ -780,7 +780,7 @@
   // Zoomed far out a unit would shrink to a few pixels: it is drawn larger,
   // up to half again its size, so its silhouette still reads.
   const enlargement = () => Math.max(1, Math.min(1.6, 2.2 / view.s));
-  function drawUnits(air, bars, aims) {
+  function drawUnits(air, bars) {
     const big = enlargement();
     for (const u of units) {
       if (u.air !== air) continue;
@@ -843,7 +843,6 @@
       }
       ctx.globalAlpha = 1;
       if (s.life < u.maxLife) bars.push([s.x, s.z, u.radius * big, s.life, u.maxLife, u.team, false]);
-      if (aims && s.aim) aims.push([s, u, s.aim]);
     }
   }
 
@@ -1640,30 +1639,6 @@
     }
   }
 
-  function drawAims(aims) {
-    screen();
-    ctx.save();
-    ctx.setLineDash([3, 4]);
-    for (const [s, u, aim] of aims) {
-      const target = aim > 0 ? ref(`u${aim}`) : ref(`b${-aim}`);
-      if (!target) continue;
-      let tx;
-      let tz;
-      if (target.what === 'unit') {
-        const t = unitAt(target, tau);
-        if (!t) continue;
-        tx = t.x; tz = t.z;
-      } else { tx = target.x; tz = target.z; }
-      ctx.strokeStyle = `rgba(${TEAMS[u.team].rgb},0.45)`;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(sx(s.x), sy(s.z));
-      ctx.lineTo(sx(tx), sy(tz));
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-
   function drawNumbers(numbers) {
     screen();
     ctx.save();
@@ -1691,18 +1666,16 @@
     for (const d of deployments) SkillPreview.draw(ctx, d, tau, TPS, TEAMS[d.team], view.s);
     for (const d of deployments) SkillPreview.drawStrike(ctx, d, tau, TPS, TEAMS[d.team], view.s);
     const bars = [];
-    const aims = options.aim ? [] : null;
     const numbers = options.damage ? [] : null;
     drawBuildings(bars);
-    drawUnits(false, bars, aims);
+    drawUnits(false, bars);
     drawShields();
     drawProjectiles();
     drawEffects(numbers);
-    drawUnits(true, bars, aims);
+    drawUnits(true, bars);
     drawTerrains(true);
     screen();
     drawBars(bars);
-    if (aims) drawAims(aims);
     if (numbers) drawNumbers(numbers);
     drawHover();
     if(cursor>LAST) {
@@ -2013,13 +1986,14 @@
   seek.addEventListener('input', () => setTau(Number(seek.value)));
   document.getElementById('speed').addEventListener('change', (e) => setSpeed(Number(e.target.value)));
   document.getElementById('fit').addEventListener('click', fit);
-  for (const key of ['life', 'damage', 'aim']) {
+  for (const key of ['life', 'damage']) {
     const box = document.getElementById(`opt-${key}`);
     box.checked = options[key];
     box.addEventListener('change', () => { options[key] = box.checked; });
   }
   window.addEventListener('keydown', (e) => {
     if(e.key==='Escape' && settings.open){settings.open=false;settings.querySelector('summary').focus();return;}
+    if(e.key===' ' && e.target instanceof HTMLInputElement && e.target.type==='checkbox') return;
     if (e.target instanceof HTMLInputElement && e.target.type !== 'checkbox' && e.target.type !== 'range') return;
     if (e.target instanceof HTMLSelectElement) return;
     const step = e.shiftKey ? TPS : 1;
@@ -2032,12 +2006,6 @@
       case '+': case '=': setSpeed(SPEEDS[Math.min(SPEEDS.length - 1, SPEEDS.indexOf(speed) + 1)]); break;
       case '-': case '_': setSpeed(SPEEDS[Math.max(0, SPEEDS.indexOf(speed) - 1)]); break;
       case 'f': fit(); break;
-      case 'l': case 'd': case 'a': {
-        const key = { l: 'life', d: 'damage', a: 'aim' }[e.key];
-        options[key] = !options[key];
-        document.getElementById(`opt-${key}`).checked = options[key];
-        break;
-      }
       default: return;
     }
     e.preventDefault();
