@@ -237,7 +237,7 @@ html, body {
 
 .unit-roster { --hud-scale:1; position:fixed; z-index:2; left:12px; top:calc(12px + 96px * var(--hud-scale)); bottom:84px; width:calc(var(--roster-width,132px) * var(--hud-scale)); pointer-events:none; }
 .unit-roster.red { left:auto; right:12px; }
-.roster-scroll { position:absolute; left:0; width:135px; height:calc(100% / var(--hud-scale)); padding:10px 7px 12px 0; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-gutter:stable; scrollbar-color:#71829b66 transparent; transform:scale(var(--hud-scale)); transform-origin:top left; pointer-events:auto; mask-image:linear-gradient(transparent,#000 10px,#000 calc(100% - 12px),transparent); }
+.roster-scroll { position:absolute; left:0; width:135px; max-height:calc(100% / var(--hud-scale)); padding:10px 7px 12px 0; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-gutter:stable; scrollbar-color:#71829b66 transparent; transform:scale(var(--hud-scale)); transform-origin:top left; pointer-events:auto; mask-image:linear-gradient(transparent,#000 10px,#000 calc(100% - 12px),transparent); }
 .roster-scroll::-webkit-scrollbar { width:6px; }
 .red .roster-scroll { left:auto; right:0; padding:10px 0 12px 7px; transform-origin:top right; direction:rtl; }
 .roster-scroll:focus-visible { outline:1px solid #73849b; outline-offset:-2px; }
@@ -271,7 +271,7 @@ html, body {
 .tech-base-price s { color:#8e9bae; font-size:11px; }
 .arsenal { --hud-scale:1; --roster-offset:142; --arsenal-width:44px; position:fixed; z-index:2; left:calc(12px + var(--roster-offset) * var(--hud-scale) * 1px); top:calc(12px + 106px * var(--hud-scale)); bottom:84px; width:calc(var(--arsenal-width) * var(--hud-scale)); pointer-events:none; }
 .arsenal.red { left:auto; right:calc(12px + var(--roster-offset) * var(--hud-scale) * 1px); }
-.arsenal-content { position:absolute; top:0; left:0; display:flex; flex-direction:column; gap:8px; width:var(--arsenal-width); height:calc(100% / var(--hud-scale)); overflow-y:auto; overflow-x:hidden; scrollbar-width:none; overscroll-behavior:contain; pointer-events:auto; transform:scale(var(--hud-scale)); transform-origin:top left; }
+.arsenal-content { position:absolute; top:0; left:0; display:flex; flex-direction:column; gap:8px; width:var(--arsenal-width); max-height:calc(100% / var(--hud-scale)); overflow-y:auto; overflow-x:hidden; scrollbar-width:none; overscroll-behavior:contain; pointer-events:auto; transform:scale(var(--hud-scale)); transform-origin:top left; }
 .red .arsenal-content { left:auto; right:0; transform-origin:top right; }
 .arsenal-list { width:44px; flex:none; }
 .arsenal-content::-webkit-scrollbar { display:none; }

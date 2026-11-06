@@ -187,10 +187,13 @@ the red columns toward the right over 0.28 seconds. Hidden panels cannot
 receive pointer or keyboard interaction. Seeking before three seconds or
 enabling the switch restores the panels; reduced-motion preferences disable
 the transition. In auto-hide mode, moving the pointer near either viewport
-edge temporarily reveals both sides' columns. The activation region covers
-the columns' scaled width with a small margin, so they stay visible while
-hovering their cards. Moving away hides them again; keyboard focus within a
-column also keeps both sides visible. The switch retains its choice when
+edge temporarily reveals both sides' columns. Each populated column responds
+only over its visible list height, from the viewport edge up to its inner edge
+or the nearest deployment boundary in the default fitted view, whichever comes
+first. Both sides stay visible while the pointer is in this region or a
+column has keyboard focus. After both conditions end, the panels linger for
+three seconds of wall time before fading, even when playback is paused.
+The switch retains its choice when
 changing rounds.
 `scripts/player/arsenal.py` extracts native front-facing skill symbols and
 equipment thumbnails into `web/arsenal.json`; each page embeds used images once.
