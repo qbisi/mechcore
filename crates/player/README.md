@@ -94,7 +94,17 @@ Larger loadouts shrink their icons within two columns, retaining every
 choice. Active technologies light up; inactive choices are dimmed and desaturated.
 Frames and positions mirror; artwork stays upright. The drawers do not open.
 Each side scrolls independently, including with the keyboard. Technology hover
-or focus shows its native name, effect and activation state. Officer popovers
+or focus shows its native name, effect, activation state and supply price.
+Match playback carries the current quote for inactive technology and the
+historical cost of active technology, replaying deployment decisions in order
+through the shared economy transitions. Historical costs persist across rounds;
+later officer discounts or research do not rewrite them. A price differing
+from the base displays the crossed-out base followed by the purchase price,
+using the HUD's gold supply symbol, without an extra price caption.
+When purchase history is absent (standalone inputs or technologies already
+active at an incomplete match's first state), only the configured base is
+shown; the tooltip title identifies the unavailable purchase history.
+Officer popovers
 appear above the drawers. Drawer sizes use the core HUD's natural map scale.
 Compact portraits and technology grids sit inside frames whose outer edges
 align with the core frames, sharing their 12-pixel viewport inset.

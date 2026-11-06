@@ -10,6 +10,7 @@
 //! written, unless `--no-open` says not to.
 
 use std::{
+    collections::BTreeMap,
     path::Path,
     process::{Command, Stdio},
 };
@@ -184,6 +185,7 @@ fn play_match(
         .and_then(|opening| mechcore_document::reinforcement::verify(economy, &stated, &opening))
         .map_err(Failure::refused)?;
     let mut timelines = Vec::new();
+    let mut research_history = [BTreeMap::new(), BTreeMap::new()];
     for (index, turn) in stated.turns.iter().enumerate() {
         // A trailing state opens deployment; a concession ends it without a fight.
         if (index + 1 == stated.turns.len() && !stated.ends_on_actions)
@@ -207,15 +209,14 @@ fn play_match(
         )
         .map_err(Failure::refused)?;
         let sides = [&deployment.state.blue, &deployment.state.red];
-        let layouts = [&deployment.layout.blue, &deployment.layout.red];
-        let loadouts = [&stated.blue.tech_loadout, &stated.red.tech_loadout];
-        let rosters = std::array::from_fn(|seat| {
-            mechcore_player::unit_roster(
-                layouts[seat],
-                &sides[seat].unlocked_units,
-                Some(loadouts[seat]),
-            )
-        });
+        let rosters = match_rosters(
+            economy,
+            &deployment,
+            turn,
+            &stated,
+            reinforcement.declined(turn),
+            &mut research_history,
+        )?;
         let yaml = mechcore_document::canonical_yaml(deployment.layout).map_err(Failure::failed)?;
         let result = mechcore_simulation::simulate_document(yaml.as_bytes(), Record::Memory, None)
             .map_err(|error| Failure::unsimulated(&error))?;
@@ -270,6 +271,81 @@ fn play_match(
         seed_source: Some("match"),
         opened: false,
     })
+}
+
+fn match_rosters(
+    economy: &mechcore_document::economy::Economy,
+    deployment: &mechcore_document::project::Deployment,
+    turn: &mechcore_document::r#match::Turn,
+    stated: &mechcore_document::opening::Stated,
+    declined: Option<i32>,
+    research_history: &mut [BTreeMap<i32, i32>; 2],
+) -> Result<[Vec<mechcore_player::RosterEntry>; 2], Failure> {
+    let sides = [&deployment.state.blue, &deployment.state.red];
+    let layouts = [&deployment.layout.blue, &deployment.layout.red];
+    let loadouts = [&stated.blue.tech_loadout, &stated.red.tech_loadout];
+    let mut rosters = std::array::from_fn(|seat| {
+        mechcore_player::unit_roster(
+            layouts[seat],
+            &sides[seat].unlocked_units,
+            Some(loadouts[seat]),
+        )
+    });
+    for seat in 0..2 {
+        let (opening, actions) = if seat == 0 {
+            (&turn.state.blue, &turn.actions.blue)
+        } else {
+            (&turn.state.red, &turn.actions.red)
+        };
+        remember_research_prices(
+            economy,
+            opening,
+            actions,
+            seat == 1,
+            declined,
+            &mut research_history[seat],
+        )
+        .map_err(Failure::refused)?;
+        for row in &mut rosters[seat] {
+            for tech in &mut row.techs {
+                tech.purchase_supply = if tech.active {
+                    research_history[seat].get(&tech.id).copied()
+                } else {
+                    mechcore_document::transition::technology_price(economy, sides[seat], tech.id)
+                };
+            }
+        }
+    }
+    Ok(rosters)
+}
+
+/// Replay deployment decisions in their recorded order: later discounts and
+/// research must not retroactively change the cost of an earlier purchase.
+fn remember_research_prices(
+    economy: &mechcore_document::economy::Economy,
+    opening: &mechcore_document::r#match::SideState,
+    actions: &[mechcore_document::r#match::Action],
+    red: bool,
+    declined: Option<i32>,
+    history: &mut BTreeMap<i32, i32>,
+) -> Result<(), String> {
+    history.retain(|id, _| opening.techs.contains(id));
+    let mut state = opening.clone();
+    for action in actions {
+        let next = mechcore_document::transition::deployed(
+            economy,
+            &state,
+            std::slice::from_ref(action),
+            red,
+            declined,
+        )
+        .map_err(|error| error.to_string())?;
+        if let mechcore_document::r#match::Action::UpgradeTechnology { tech, .. } = action {
+            history.insert(*tech, state.supply - next.supply);
+        }
+        state = next;
+    }
+    Ok(())
 }
 
 fn player_timeline(
@@ -429,4 +505,56 @@ fn open(page: &Path) -> std::io::Result<()> {
         .stderr(Stdio::null())
         .spawn()
         .map(drop)
+}
+
+#[cfg(test)]
+mod price_tests {
+    use super::*;
+    use mechcore_document::r#match::{Action, ReinforceChoice, SideState};
+
+    #[test]
+    fn research_history_preserves_cost_before_later_discounts_and_across_rounds() {
+        let economy = mechcore_document::economy::Economy::embedded().unwrap();
+        let opening = SideState {
+            supply: 5000,
+            ..SideState::default()
+        };
+        let actions = [
+            Action::UpgradeTechnology {
+                unit: 5,
+                tech: 1109,
+            },
+            Action::ChooseReinforceItem {
+                index: 0,
+                id: ReinforceChoice::Card(20003),
+            },
+            Action::UpgradeTechnology { unit: 5, tech: 905 },
+        ];
+        let mut history = BTreeMap::new();
+        remember_research_prices(economy, &opening, &actions, false, None, &mut history).unwrap();
+        assert_eq!(history[&1109], 150);
+        assert_eq!(history[&905], 350);
+        let next =
+            mechcore_document::transition::deployed(economy, &opening, &actions, false, None)
+                .unwrap();
+        assert_eq!(
+            mechcore_document::transition::technology_price(economy, &next, 3005),
+            Some(550)
+        );
+        remember_research_prices(economy, &next, &[], false, None, &mut history).unwrap();
+        assert_eq!(history[&1109], 150);
+        assert_eq!(history[&905], 350);
+    }
+
+    #[test]
+    fn an_existing_technology_without_history_has_no_invented_purchase_price() {
+        let economy = mechcore_document::economy::Economy::embedded().unwrap();
+        let opening = SideState {
+            techs: vec![1109],
+            ..SideState::default()
+        };
+        let mut history = BTreeMap::new();
+        remember_research_prices(economy, &opening, &[], false, None, &mut history).unwrap();
+        assert!(!history.contains_key(&1109));
+    }
 }

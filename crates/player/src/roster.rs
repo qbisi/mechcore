@@ -17,6 +17,10 @@ pub struct RosterEntry {
 pub struct RosterTechnology {
     pub id: i32,
     pub active: bool,
+    /// Actual historical cost when active, current quote otherwise.
+    /// Absent when the input does not carry enough deployment history.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub purchase_supply: Option<i32>,
 }
 
 /// Includes known unlocks and researched types even when no formation is held.
@@ -61,6 +65,7 @@ pub fn unit_roster(
                 .map(|id| RosterTechnology {
                     id,
                     active: side.techs.contains(&id),
+                    purchase_supply: None,
                 })
                 .collect();
             let count = side
@@ -92,6 +97,8 @@ struct TechAsset {
     name: String,
     effect: String,
     icon: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    base_supply: Option<i32>,
 }
 
 /// A match embeds each used image once, shared by its sides and rounds.
@@ -109,6 +116,15 @@ pub(crate) fn assets<'a>(
         .units
         .retain(|kind, _| kinds.contains(kind.as_str()));
     catalog.techs.retain(|id, _| techs.contains(id));
+    let economy = mechcore_document::economy::Economy::embedded()
+        .map_err(<serde_json::Error as serde::de::Error>::custom)?;
+    for (id, tech) in &mut catalog.techs {
+        tech.base_supply = Some(economy.technology(*id).ok_or_else(|| {
+            <serde_json::Error as serde::de::Error>::custom(format!(
+                "technology {id} has no configured base supply price"
+            ))
+        })?);
+    }
     let images: BTreeSet<_> = catalog
         .units
         .values()
@@ -119,4 +135,34 @@ pub(crate) fn assets<'a>(
         .images
         .retain(|name, _| images.contains(name.as_str()));
     Ok(catalog)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn technology_assets_include_base_prices_for_active_and_inactive_choices() {
+        let entries = [RosterEntry {
+            kind: "rhino".into(),
+            count: 1,
+            techs: vec![
+                RosterTechnology {
+                    id: 1109,
+                    active: true,
+                    purchase_supply: None,
+                },
+                RosterTechnology {
+                    id: 905,
+                    active: false,
+                    purchase_supply: None,
+                },
+            ],
+        }];
+        let catalog = assets(entries.iter()).unwrap();
+        let json = serde_json::to_value(catalog).unwrap();
+        assert_eq!(json["techs"]["1109"]["base_supply"], 150);
+        assert_eq!(json["techs"]["905"]["base_supply"], 200);
+        assert_eq!(json["techs"].as_object().unwrap().len(), 2);
+    }
 }
