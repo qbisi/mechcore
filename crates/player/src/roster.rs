@@ -17,6 +17,8 @@ pub struct RosterEntry {
 pub struct RosterTechnology {
     pub id: i32,
     pub active: bool,
+    /// Researched during this round's deployment, when match history is known.
+    pub activated_this_round: bool,
     /// Actual historical cost when active, current quote otherwise.
     /// Absent when the input does not carry enough deployment history.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -65,6 +67,7 @@ pub fn unit_roster(
                 .map(|id| RosterTechnology {
                     id,
                     active: side.techs.contains(&id),
+                    activated_this_round: false,
                     purchase_supply: None,
                 })
                 .collect();
@@ -150,11 +153,13 @@ mod tests {
                 RosterTechnology {
                     id: 1109,
                     active: true,
+                    activated_this_round: false,
                     purchase_supply: None,
                 },
                 RosterTechnology {
                     id: 905,
                     active: false,
+                    activated_this_round: false,
                     purchase_supply: None,
                 },
             ],

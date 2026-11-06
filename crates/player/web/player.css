@@ -235,8 +235,8 @@ html, body {
 .red .drawer-badge { transform:translate(50%,-50%); background:#2a1c29; border-color:#927785; }
 .unit-tech { width:var(--tech-size,22px); height:var(--tech-size,22px); padding:var(--tech-padding,2px); background:#152234e8; }
 .unit-tech.inactive { opacity:.35; filter:grayscale(1); }
-.unit-tech.active { border-color:#9dcaf0; background:#284d6b; box-shadow:0 0 6px #72bfff50; }
-.red .unit-tech.active { border-color:#efacb4; background:#653a48; box-shadow:0 0 6px #ff809750; }
+.unit-tech.active { border-color:#aebdce; background:#152234; box-shadow:0 0 6px #c4d2e030; }
+.unit-tech.active.activated { border-color:#d5ad54; background:linear-gradient(140deg,#55401de8,#261c10e8); box-shadow:0 0 6px #ffce6450; }
 .unit-tech img { width:100%; height:100%; object-fit:contain; }
 .unit-tech:hover,.unit-tech:focus-visible { border-color:#d1e5ff; outline:none; box-shadow:0 0 7px #83bbf955; }
 #roster-tooltip { position:fixed; z-index:6; width:260px; max-width:calc(100vw - 16px); padding:12px 14px; border:1px solid #687c98; border-radius:6px; background:rgba(13,21,32,.97); color:#e0e9f7; box-shadow:0 8px 24px #0006; pointer-events:none; font-size:13px; }

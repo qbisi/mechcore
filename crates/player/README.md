@@ -92,6 +92,10 @@ rows of two. Cards retain the same 122-unit width regardless of loadout:
 four choices use 22-unit icons, six use 20-unit icons with smaller padding.
 Larger loadouts shrink their icons within two columns, retaining every
 choice. Active technologies light up; inactive choices are dimmed and desaturated.
+Technologies activated during the displayed match round use the battlefield
+skill panel's gold background and border on both sides; those active before
+the round use the same neutral panel background on both sides. Inputs without
+deployment history do not infer an activation round.
 Frames and positions mirror; artwork stays upright. The drawers do not open.
 Each side scrolls independently, including with the keyboard. Technology hover
 or focus shows its native name, effect, activation state and supply price.
