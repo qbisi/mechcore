@@ -176,6 +176,8 @@ html, body {
 #controls button svg, #display-settings summary svg { width: 22px; height: 22px; vertical-align: middle; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
 #play svg, #previous-round svg, #next-round svg { fill: currentColor; }
 #play .pause-icon, #play.playing .play-icon { display: none; }
+#fullscreen .exit, #fullscreen.active .enter { display: none; }
+#fullscreen.active .exit { display: inline; }
 #play.playing .pause-icon { display: inline; }
 #controls button:hover, #controls select:hover, #display-settings summary:hover { color: #38bdf8; }
 #controls button:disabled { opacity: .25; cursor: default; }

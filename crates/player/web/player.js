@@ -2082,18 +2082,51 @@
   seek.addEventListener('input', () => setTau(Number(seek.value)));
   speedSelect.addEventListener('change', () => setSpeed(Number(speedSelect.value)));
   document.getElementById('fit').addEventListener('click', fit);
+  const fullscreenButton = document.getElementById('fullscreen');
+  let fullscreenPending = false;
+  function syncFullscreen() {
+    const active = Boolean(document.fullscreenElement);
+    const label = active ? 'Exit fullscreen' : 'Enter fullscreen';
+    fullscreenButton.hidden = !active && !document.fullscreenEnabled;
+    fullscreenButton.classList.toggle('active', active);
+    fullscreenButton.setAttribute('aria-label', label);
+    fullscreenButton.title = label + ' (F)';
+  }
+  async function toggleFullscreen() {
+    if (fullscreenButton.hidden || fullscreenPending) return;
+    fullscreenPending = true;
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+    } catch (error) {
+      fullscreenButton.title = error.message;
+    } finally {
+      fullscreenPending = false;
+    }
+  }
+  syncFullscreen();
+  document.addEventListener('fullscreenchange', syncFullscreen);
+  fullscreenButton.addEventListener('click', toggleFullscreen);
   for (const key of ['life', 'damage', 'panels']) {
     const box = document.getElementById(`opt-${key}`);
     box.checked = options[key];
     box.addEventListener('change', () => { options[key] = box.checked; updateHud(); });
   }
   window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.fullscreenElement) {
+      if (!e.repeat) toggleFullscreen();
+      return;
+    }
     if(e.key==='Escape' && settings.open){settings.open=false;settings.querySelector('summary').focus();return;}
     if(e.key===' ' && e.target instanceof HTMLInputElement && e.target.type==='checkbox') return;
     if (e.target instanceof HTMLInputElement && e.target.type !== 'checkbox' && e.target.type !== 'range') return;
     if (e.target instanceof HTMLSelectElement) return;
     const step = e.shiftKey ? TPS : 1;
     switch (e.key) {
+      case 'f': case 'F':
+        if (e.ctrlKey || e.metaKey || e.altKey || e.repeat || fullscreenButton.hidden) return;
+        toggleFullscreen();
+        break;
       case ' ': playButton.click(); break;
       case 'ArrowRight': playing = false; setTau(Math.floor(cursor) + step); break;
       case 'ArrowLeft': playing = false; setTau(Math.ceil(cursor) - step); break;
