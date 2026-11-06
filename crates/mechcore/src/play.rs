@@ -308,6 +308,7 @@ fn match_rosters(
         .map_err(Failure::refused)?;
         for row in &mut rosters[seat] {
             for tech in &mut row.techs {
+                tech.activated_this_round = tech.active && !opening.techs.contains(&tech.id);
                 tech.purchase_supply = if tech.active {
                     research_history[seat].get(&tech.id).copied()
                 } else {

@@ -44,16 +44,17 @@ const UnitRoster=(()=>{
         el.style[team===0?'left':'right']=point.x+'px';el.style.top=point.y+'px';
         row.append(el);return el;
       }
-      entry.techs.forEach(({id,active,purchase_supply},i)=>{
-        const tech=assets.techs[id];const el=badge(shape.techs[i],'unit-tech '+(active?'active':'inactive'));
-        el.tabIndex=0;el.setAttribute('role','img');el.setAttribute('aria-label',`${tech?.name||`Technology ${id}`} (${active?'Active':'Inactive'})`);
+      entry.techs.forEach(({id,active,activated_this_round,purchase_supply},i)=>{
+        const status=active?(activated_this_round?'Activated this round':'Active'):'Inactive';
+        const tech=assets.techs[id];const el=badge(shape.techs[i],'unit-tech '+(active?'active':'inactive')+(active&&activated_this_round?' activated':''));
+        el.tabIndex=0;el.setAttribute('role','img');el.setAttribute('aria-label',`${tech?.name||`Technology ${id}`} (${status})`);
         el.setAttribute('aria-describedby','roster-tooltip');
         if(tech && assets.images[tech.icon]){
           const icon=document.createElement('img');icon.src=assets.images[tech.icon];icon.alt='';icon.draggable=false;el.append(icon);
         }else el.textContent='?';
         const show=()=>{
           tooltip.replaceChildren();
-          const title=document.createElement('b');title.textContent=`${tech?.name||`Technology ${id}`} · ${active?'Active':'Inactive'}`;
+          const title=document.createElement('b');title.textContent=`${tech?.name||`Technology ${id}`} · ${status}`;
           const effect=document.createElement('p');effect.textContent=tech?.effect||'Description unavailable';
           tooltip.append(title,effect);
           if(tech?.base_supply!==undefined){
