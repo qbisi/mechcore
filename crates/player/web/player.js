@@ -1708,10 +1708,11 @@
     if(cursor>LAST) {
       const targets=coreViews.map(v=>{
         const r=v.track.getBoundingClientRect();
-        return {x:r.left+r.width/2,y:r.top+r.height/2};
+        return {x:r.left,y:r.top,w:r.width,h:r.height};
       });
       ScoreSettlement.draw(ctx,settlement,(cursor-LAST)/TPS,
-        p=>({x:sx(p.x/100),y:sy(p.z/100)-p.y/100*view.s}),targets,TEAMS,view.w,view.h);
+        p=>({x:sx(p.x/100),y:sy(p.z/100)-p.y/100*view.s}),targets,TEAMS,view.w,view.h,
+        HudFrame.uiScale(naturalFitScale()));
     }
   }
 
@@ -1726,7 +1727,6 @@
     value:document.getElementById(`core-value-${i}`),
     track:document.getElementById(`core-track-${i}`),
     fill:document.getElementById(`core-fill-${i}`),
-    damage:document.getElementById(`core-damage-${i}`),
   }));
   function resizeHud() {
     const scale=HudFrame.uiScale(naturalFitScale());
@@ -1813,7 +1813,6 @@
       v.fill.style.filter=`brightness(${1+ending.flash[i]*1.5})`;
       v.fill.style.width=known && core.maximum>0?`${Math.max(0,Math.min(100,100*value/core.maximum))}%`:'0%';
       v.value.textContent=known?String(value):'—';
-      v.damage.textContent=damage>0?`−${damage}`:'';
       if (known && core.maximum!==null) {
         v.track.setAttribute('aria-valuemin',String(Math.min(0,value)));
         v.track.setAttribute('aria-valuemax',String(core.maximum));
