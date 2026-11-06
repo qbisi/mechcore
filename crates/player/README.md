@@ -139,15 +139,26 @@ core and reduce it on arrival. Values use the shared reactor-damage formula,
 including summoned, reborn and controlled units, and must sum to the recorded
 settlement; when attribution fails, a neutral team-total effect replaces the
 unit effects, with a CLI warning. Smaller values launch first, following the
-native `ScoreAttackController.PerformNormalAttack` order. The 0.4-second lead-in,
-at most 1.2-second launch spread and value-dependent 0.7–1.1-second flights are
-presentation choices. Both sides can score in a timeout. No simulation ticks
+native `ScoreAttackController.PerformNormalAttack` order. After a 0.3-second
+lead-in, each launch waits `min(0.9, score * min(0.01, 3 / team_total))`
+seconds. Each orb gathers at its unit, backs away then accelerates in a
+straight line with DOTween's InBack easing, and flies for
+`0.8 + 0.4 * score / 400` seconds. The core loses that orb's full score on
+arrival. The tail ends 1.1 seconds after the final hit. Native random launch
+jitter is omitted; a fixed hash chooses each landing point along the opposing
+core bar so seeking and export remain deterministic.
+The overload wash, lightning sweeps, energy trails and impact sparks are
+original vector effects inspired by native gameplay footage. Individual hit
+numbers pop below the bar, then fade completely before the tail ends. Orb,
+stroke and text sizes follow the HUD's natural map scale, independent of
+interactive camera zoom. Both sides can score in a timeout. No simulation ticks
 or events are added, and the reported recording duration remains unchanged.
 The seek bar includes a tinted tail; the combat clock stops and the lower
 clock labels this interval as settlement. Flights, impacts and deductions are
 functions of the playhead, so speed changes, seeks and exports agree.
 Health numbers retain negative results after overkill; the bar fill stops at
-zero. Damage labels retain the full damage value. A
+zero. Only individual hit values float beside the core; no cumulative damage
+label or orange screen-wide spark shower is shown. A
 backwards seek and a round change restore that round's starting health.
 The former surviving-unit roster panels and battle-information box are not
 shown. The file's title stays in the browser tab and the SVG download name.
