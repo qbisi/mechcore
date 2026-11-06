@@ -44,7 +44,7 @@ const UnitRoster=(()=>{
         el.style[team===0?'left':'right']=point.x+'px';el.style.top=point.y+'px';
         row.append(el);return el;
       }
-      entry.techs.forEach(({id,active},i)=>{
+      entry.techs.forEach(({id,active,purchase_supply},i)=>{
         const tech=assets.techs[id];const el=badge(shape.techs[i],'unit-tech '+(active?'active':'inactive'));
         el.tabIndex=0;el.setAttribute('role','img');el.setAttribute('aria-label',`${tech?.name||`Technology ${id}`} (${active?'Active':'Inactive'})`);
         el.setAttribute('aria-describedby','roster-tooltip');
@@ -55,7 +55,23 @@ const UnitRoster=(()=>{
           tooltip.replaceChildren();
           const title=document.createElement('b');title.textContent=`${tech?.name||`Technology ${id}`} · ${active?'Active':'Inactive'}`;
           const effect=document.createElement('p');effect.textContent=tech?.effect||'Description unavailable';
-          tooltip.append(title,effect);tooltip.hidden=false;
+          tooltip.append(title,effect);
+          if(tech?.base_supply!==undefined){
+            const price=document.createElement('div');price.className='tech-base-price';
+            const known=Number.isInteger(purchase_supply),different=known&&purchase_supply!==tech.base_supply;
+            price.setAttribute('aria-label',known?`${active?'Purchased for':'Purchase price'}: ${purchase_supply} supply${different?`, base ${tech.base_supply}`:''}`:`${tech.base_supply} supply; purchase price unavailable`);
+            price.title=known?(active?'Historical purchase price':'Current purchase price'):'Base supply price; purchase history unavailable';
+            // Reuse the HUD supply mark, including its SVG cutout.
+            const icon=document.getElementById(`supply-card-${team}`).querySelector('svg').cloneNode(true);
+            const maskId=`tech-supply-cut-${team}`;
+            icon.querySelector('mask').id=maskId;
+            icon.querySelector('[mask]').setAttribute('mask',`url(#${maskId})`);
+            price.append(icon);
+            if(different){const base=document.createElement('s');base.textContent=String(tech.base_supply);price.append(base);}
+            const value=document.createElement('span');value.textContent=String(known?purchase_supply:tech.base_supply);
+            price.append(value);tooltip.append(price);
+          }
+          tooltip.hidden=false;
           const r=el.getBoundingClientRect(),box=tooltip.getBoundingClientRect();
           const x=team===0?r.right+10:r.left-box.width-10;
           tooltip.style.left=Math.max(8,Math.min(window.innerWidth-box.width-8,x))+'px';

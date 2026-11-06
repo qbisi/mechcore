@@ -241,6 +241,9 @@ html, body {
 .unit-tech:hover,.unit-tech:focus-visible { border-color:#d1e5ff; outline:none; box-shadow:0 0 7px #83bbf955; }
 #roster-tooltip { position:fixed; z-index:6; width:260px; max-width:calc(100vw - 16px); padding:12px 14px; border:1px solid #687c98; border-radius:6px; background:rgba(13,21,32,.97); color:#e0e9f7; box-shadow:0 8px 24px #0006; pointer-events:none; font-size:13px; }
 #roster-tooltip p { margin:6px 0 0; color:#aebdd0; line-height:1.5; white-space:pre-line; }
+.tech-base-price { display:flex; align-items:center; gap:6px; margin-top:12px; padding-top:10px; border-top:1px solid #ffffff14; color:#efc570; font:400 13px "Mechcore HUD",system-ui,sans-serif; }
+.tech-base-price svg { width:18px; height:18px; flex:none; color:#ffc400; }
+.tech-base-price s { color:#8e9bae; font-size:11px; }
 .arsenal { --hud-scale:1; --roster-offset:142; --arsenal-width:96px; position:fixed; z-index:2; left:calc(12px + var(--roster-offset) * var(--hud-scale) * 1px); top:calc(12px + 106px * var(--hud-scale)); bottom:84px; width:calc(var(--arsenal-width) * var(--hud-scale)); pointer-events:none; }
 .arsenal.red { left:auto; right:calc(12px + var(--roster-offset) * var(--hud-scale) * 1px); }
 .arsenal-content { position:absolute; top:0; left:0; display:flex; gap:8px; width:var(--arsenal-width); height:calc(100% / var(--hud-scale)); transform:scale(var(--hud-scale)); transform-origin:top left; }
