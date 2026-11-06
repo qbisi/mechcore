@@ -70,7 +70,8 @@ The rendered ground extends 30 metres beyond each map edge; deployment
 regions and simulation bounds stay unchanged. The default camera centres
 this ground and fits its height exactly to the browser, without reserving
 space for the overlaid HUD or playback controls. Narrow windows may crop
-the sides; manual camera movement remains unrestricted.
+the sides; manual camera movement remains unrestricted. The circular locator
+button (`Reset battlefield view`) restores the default centre and zoom.
 Numeric text uses a subset of native Xolonium-Regular;
 names retain the page's system font and shrink to fit their plate. Names up to
 30 grapheme clusters are shown in full. Longer names keep their first 15 and last
