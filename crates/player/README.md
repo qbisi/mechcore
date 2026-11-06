@@ -27,9 +27,11 @@ the previous/next buttons are hidden for a single round. The lower controls
 overlay the map on a transparent-to-dark gradient: a full-width seek bar
 above the button row shows elapsed progress, loss marks and the settlement
 tail. The row contains playback, round navigation, elapsed/total time, round
-selection, speed, display settings, fit and SVG export. Life bars, damage
-numbers and aim lines live in a settings popover, retaining their keyboard
-shortcuts. Clicking outside or pressing Escape closes the popover.
+selection, speed, display settings, fit and SVG export. A compact dark settings
+popover lists life bars and damage numbers with labels on the left and cyan
+on/grey off switches on the right. Focusing a switch and pressing Space
+toggles it without starting playback.
+Clicking outside or pressing Escape closes the popover.
 The controls fade out after two seconds without activity and reappear on
 pointer movement, pointer press or keyboard input. Hovering or focusing the
 controls, or leaving settings open, keeps them visible.
@@ -165,7 +167,7 @@ shown. The file's title stays in the browser tab and the SVG download name.
 
 The download button pauses at the current integer tick and downloads a vector
 image of the battlefield in the current pan and zoom, with the enabled life
-bars, aim lines and damage numbers. It carries the ground, grid, buildings,
+bars and damage numbers. It carries the ground, grid, buildings,
 units and effects as paths, gradients and text, with no embedded bitmap.
 The page's HTML controls and core HUD are not part of the image.
 `window.player.snapshot(frame)` returns the same SVG for an integer frame
@@ -225,7 +227,7 @@ sandstorm has warm haze, wind trails and blowing grit. Smoke is recorded as
 `fog`, sandstorm as `fog_sand`. They remain separate materials when overlapping.
 Smoke and sandstorm draw above ground and airborne units, with cloud-layer
 opacity of 95% and 90% respectively, multiplied by their translucent textures.
-Life bars, aim lines and damage numbers remain above the clouds. The other
+Life bars and damage numbers remain above the clouds. The other
 terrain materials draw below units.
 At each tick, same-type terrain cells are united before drawing: overlapping
 circles have one surface and only the union's exposed edges get a rim.
