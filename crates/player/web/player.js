@@ -1751,9 +1751,10 @@
       v.name.title=core.name;
       v.name.setAttribute('aria-label',core.name);
       const supply=document.getElementById(`supply-card-${i}`);
-      document.getElementById(`supply-value-${i}`).textContent=String(core.supply);
-      supply.setAttribute('aria-label',`${core.name}: ${core.supply} supply remaining`);
-      supply.title='Supply remaining after deployment';
+      const investment=core.supply+data.rosters[i].reduce((sum,row)=>sum+(row.investment_supply??0),0);
+      document.getElementById(`supply-value-${i}`).textContent=`${core.supply}/${investment}`;
+      supply.setAttribute('aria-label',`${core.name}: ${core.supply} supply available, ${investment} effective investment`);
+      supply.title='Available supply / effective investment (available supply + held formation values + researched technology costs)';
       const officers=core.officers || [];
       const list=document.getElementById(`officer-list-${i}`);
       document.getElementById(`officer-count-${i}`).textContent=String(officers.length);

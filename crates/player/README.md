@@ -82,9 +82,11 @@ tags removed. The offline page embeds only the officers held by each side.
 A supply card sits outside the officer button (blue left, red right), using
 the same natural map scale. Its SVG symbol redraws the native `Icon_Supply`'s
 gold hexagon and angular cutout without embedding the source bitmap.
-Match playback displays supply remaining after
-the completed deployment, keeping it fixed during combat and updating it on
-round selection. Inputs without economy state display zero supply.
+Match playback displays `available supply / effective investment` after the
+completed deployment. Effective investment is available supply plus all held
+formation values and historical unit-technology costs, reusing the unit cards'
+investment totals. These values stay fixed during combat and update on round
+selection. Inputs without economy state display `0/0`.
 
 Closed rectangular drawers run down the blue and red edges below the card
 buttons. Each shows the native portrait and technology icons without a unit-name
