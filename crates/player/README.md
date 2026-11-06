@@ -87,14 +87,16 @@ caption. A square formation-count badge sits inside the blue card's upper-left
 corner and the red card's upper-right corner. It counts held deployment
 formations, including reinforcements, and remains fixed during combat; an
 unlocked type without a formation shows zero. Technologies follow each side's match
-loadout in its original order: four icons form two rows of two, six form two
-rows of three. Larger loadouts widen the drawer, retaining two rows and every
-icon. Active technologies light up; inactive choices are dimmed and desaturated.
+loadout in its original order: four icons form two rows of two, six form three
+rows of two. Cards retain the same 122-unit width regardless of loadout:
+four choices use 22-unit icons, six use 20-unit icons with smaller padding.
+Larger loadouts shrink their icons within two columns, retaining every
+choice. Active technologies light up; inactive choices are dimmed and desaturated.
 Frames and positions mirror; artwork stays upright. The drawers do not open.
 Each side scrolls independently, including with the keyboard. Technology hover
 or focus shows its native name, effect and activation state. Officer popovers
 appear above the drawers. Drawer sizes use the core HUD's natural map scale.
-Compact portraits and two technology rows sit inside frames whose outer edges
+Compact portraits and technology grids sit inside frames whose outer edges
 align with the core frames, sharing their 12-pixel viewport inset.
 
 Types are sorted by their document names and stay fixed during combat. Match

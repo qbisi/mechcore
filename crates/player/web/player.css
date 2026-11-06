@@ -233,7 +233,7 @@ html, body {
 .red .formation-count { left:auto; right:0; border-color:#dfa0ad; background:#542c39; }
 .drawer-badge { position:absolute; display:flex; align-items:center; justify-content:center; width:22px; height:22px; transform:translate(-50%,-50%); background:#152234; border:1px solid #7288a4; border-radius:4px; color:#e1eaf7; }
 .red .drawer-badge { transform:translate(50%,-50%); background:#2a1c29; border-color:#927785; }
-.unit-tech { width:22px; height:22px; padding:2px; background:#152234e8; }
+.unit-tech { width:var(--tech-size,22px); height:var(--tech-size,22px); padding:var(--tech-padding,2px); background:#152234e8; }
 .unit-tech.inactive { opacity:.35; filter:grayscale(1); }
 .unit-tech.active { border-color:#9dcaf0; background:#284d6b; box-shadow:0 0 6px #72bfff50; }
 .red .unit-tech.active { border-color:#efacb4; background:#653a48; box-shadow:0 0 6px #ff809750; }
