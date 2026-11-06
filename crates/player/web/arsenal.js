@@ -3,18 +3,18 @@
 const ArsenalPanel=(()=>{
   function render(root,data,assets,team,tooltip){
     root.replaceChildren();
-    const columns=Number(data.skills.length>0)+Number(data.equipment.length>0);
-    const width=columns?44*columns+8*(columns-1):0;
+    const populated=data.skills.length>0||data.equipment.length>0;
+    const width=populated?44:0;
     root.style.width=width+'px';
     if(root.parentElement){
       root.parentElement.style.setProperty('--arsenal-width',width+'px');
-      root.parentElement.hidden=columns===0;
+      root.parentElement.hidden=!populated;
     }
+    root.onscroll=()=>{tooltip.hidden=true;};
     for(const [group,entries] of [['skills',data.skills],['equipment',data.equipment]]){
       if(!entries.length)continue;
       const list=document.createElement('section');list.className='arsenal-list '+group;
       list.setAttribute('aria-label',group==='skills'?'Battlefield skills':'Unequipped items');
-      list.onscroll=()=>{tooltip.hidden=true;};
       for(const entry of entries){
         const asset=assets[group][entry.id];
         const skill=group==='skills';

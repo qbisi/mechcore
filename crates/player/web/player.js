@@ -481,7 +481,8 @@
   const canvas = document.getElementById('field');
   let ctx = canvas.getContext('2d');
   const view = { x: 0, z: 0, s: 1, w: 1, h: 1, dpr: 1 };
-  const options = { life: true, damage: false };
+  const options = { life: true, damage: false, panels: true };
+  let panelPointerX = null;
   let tau = 1;
   let cursor = 1;
   let playing = true;
@@ -1775,11 +1776,22 @@
     clock.title=`Tick ${Math.floor(tau)} / ${LAST}`;
     document.getElementById('battle-time').textContent=`${m}:${sec}`;
     const ending=ScoreSettlement.sample(settlement,(cursor-LAST)/TPS);
+    const sidePanels=[0,1].map(i=>[document.getElementById(`unit-roster-${i}`),document.getElementById(`arsenal-${i}`)]);
+    const nearEdge=panelPointerX!==null&&sidePanels.some((panels,i)=>{
+      const edgeWidth=48+panels.reduce((width,panel)=>width+panel.getBoundingClientRect().width,0);
+      return (i===0?panelPointerX:window.innerWidth-panelPointerX)<=edgeWidth;
+    });
+    const focused=sidePanels.flat().some(panel=>panel.contains(document.activeElement));
+    const hidePanels=!options.panels&&(cursor-1)/TPS>=3&&!nearEdge&&!focused;
     for (const [i,v] of coreViews.entries()) {
-      const panel=document.getElementById(`arsenal-${i}`),arsenal=data.arsenals[i];
-      const hidePanel=(cursor-1)/TPS>=3||(!arsenal.skills.length&&!arsenal.equipment.length);
-      if(hidePanel&&!panel.hidden)document.getElementById('roster-tooltip').hidden=true;
-      panel.hidden=hidePanel;
+      const arsenal=data.arsenals[i];
+      for(const panel of sidePanels[i]){
+        if(hidePanels&&!panel.classList.contains('panels-hidden'))document.getElementById('roster-tooltip').hidden=true;
+        panel.classList.toggle('panels-hidden',hidePanels);
+        panel.inert=hidePanels;
+        panel.setAttribute('aria-hidden',String(hidePanels));
+      }
+      document.getElementById(`arsenal-${i}`).hidden=!arsenal.skills.length&&!arsenal.equipment.length;
       const core=data.cores[i], known=core.begin!==null;
       const damage=ending.damage[i];
       const value=known?core.begin-damage:null;
@@ -1972,6 +1984,11 @@
     controls.classList.remove('inactive');
   }
   window.addEventListener('pointermove',showControls);
+  window.addEventListener('pointermove',e=>{
+    if(e.pointerType!=='touch')panelPointerX=e.clientX;
+  });
+  document.documentElement.addEventListener('pointerleave',()=>{panelPointerX=null;});
+  window.addEventListener('blur',()=>{panelPointerX=null;});
   window.addEventListener('pointerdown',showControls);
   window.addEventListener('keydown',showControls);
   controls.addEventListener('focusin',showControls);
@@ -1986,10 +2003,10 @@
   seek.addEventListener('input', () => setTau(Number(seek.value)));
   document.getElementById('speed').addEventListener('change', (e) => setSpeed(Number(e.target.value)));
   document.getElementById('fit').addEventListener('click', fit);
-  for (const key of ['life', 'damage']) {
+  for (const key of ['life', 'damage', 'panels']) {
     const box = document.getElementById(`opt-${key}`);
     box.checked = options[key];
-    box.addEventListener('change', () => { options[key] = box.checked; });
+    box.addEventListener('change', () => { options[key] = box.checked; updateHud(); });
   }
   window.addEventListener('keydown', (e) => {
     if(e.key==='Escape' && settings.open){settings.open=false;settings.querySelector('summary').focus();return;}
