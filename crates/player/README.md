@@ -22,9 +22,12 @@ carries its style, its script and the whole fight, and plays offline in any brow
 a recording too, and a layout or fight document it fights in memory first;
 [cli.md](../../docs/spec/mechcore/cli.md#play) is its contract. This crate is
 the library it plays with: [`timeline`](src/timeline.rs) lays any
-`Recording` out for the page and [`page`](src/page.rs) writes it. Space plays and pauses, the arrows step a tick (a second with
-Shift), the wheel zooms, a drag pans, and the bar at the bottom seeks, with
-each side's losses marked along it.
+`Recording` out for the page and [`page`](src/page.rs) writes it. Space plays and
+pauses. Left and Right step through time by one tick (one second with Shift).
+W/A/S/D move the camera up/left/down/right, and T/G zoom in/out around the
+view centre. Hold a key to keep moving, including while paused. Dragging pans,
+the wheel zooms at the pointer, and the bottom bar seeks through the fight
+with each side's losses marked along it.
 
 A match file plays every completed deployment in one page. The round dropdown
 and previous/next round buttons choose a round and start its timeline
@@ -71,7 +74,7 @@ regions and simulation bounds stay unchanged. The default camera centres
 this ground and fits its height exactly to the browser, without reserving
 space for the overlaid HUD or playback controls. Narrow windows may crop
 the sides; manual camera movement remains unrestricted. The circular locator
-button (`Reset battlefield view`) restores the default centre and zoom.
+button (`Reset battlefield view`) or R restores the default centre and zoom.
 The fullscreen button or F toggles browser fullscreen for the battlefield,
 HUD and playback controls together. Escape exits fullscreen.
 Numeric text uses a subset of native Xolonium-Regular;

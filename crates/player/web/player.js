@@ -2112,6 +2112,20 @@
     box.checked = options[key];
     box.addEventListener('change', () => { options[key] = box.checked; updateHud(); });
   }
+  const cameraKeys = new Set();
+  const cameraShortcuts = new Set(['w', 'a', 's', 'd', 't', 'g']);
+  const clampZoom = scale => Math.max(0.3, Math.min(40, scale));
+  function moveCamera(keys, dt) {
+    const x = Number(keys.has('d')) - Number(keys.has('a'));
+    const z = Number(keys.has('w')) - Number(keys.has('s'));
+    const distance = 0.65 * view.h / view.s * dt / Math.max(1, Math.hypot(x, z));
+    view.x += x * distance;
+    view.z += z * distance;
+    const zoom = Number(keys.has('t')) - Number(keys.has('g'));
+    if (zoom) view.s = clampZoom(view.s * 2 ** (zoom * dt));
+  }
+  window.addEventListener('keyup', e => cameraKeys.delete(e.key.toLowerCase()));
+  window.addEventListener('blur', () => cameraKeys.clear());
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && document.fullscreenElement) {
       if (!e.repeat) toggleFullscreen();
@@ -2121,8 +2135,23 @@
     if(e.key===' ' && e.target instanceof HTMLInputElement && e.target.type==='checkbox') return;
     if (e.target instanceof HTMLInputElement && e.target.type !== 'checkbox' && e.target.type !== 'range') return;
     if (e.target instanceof HTMLSelectElement) return;
+    const key = e.key.toLowerCase();
+    if (cameraShortcuts.has(key)) {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.target.isContentEditable) return;
+      if (!e.repeat && !cameraKeys.has(key)) {
+        // Give even a tap between animation frames one frame of movement.
+        moveCamera(new Set([key]), 1 / 60);
+        cameraKeys.add(key);
+      }
+      e.preventDefault();
+      return;
+    }
     const step = e.shiftKey ? TPS : 1;
     switch (e.key) {
+      case 'r': case 'R':
+        if (e.ctrlKey || e.metaKey || e.altKey || e.repeat || e.target.isContentEditable) return;
+        fit();
+        break;
       case 'f': case 'F':
         if (e.ctrlKey || e.metaKey || e.altKey || e.repeat || fullscreenButton.hidden) return;
         toggleFullscreen();
@@ -2161,7 +2190,7 @@
       pointers.set(e.pointerId, [e.clientX, e.clientY]);
       if (pointers.size === 2 && pinch) {
         const [a, b] = [...pointers.values()];
-        view.s = Math.max(0.3, Math.min(40, pinch.s * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch.d));
+        view.s = clampZoom(pinch.s * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch.d);
       }
     }
     hover = pointers.size ? null : pick(e.clientX, e.clientY);
@@ -2178,7 +2207,7 @@
     e.preventDefault();
     const x = wx(e.clientX);
     const z = wz(e.clientY);
-    view.s = Math.max(0.3, Math.min(40, view.s * Math.exp(-e.deltaY * 0.0015)));
+    view.s = clampZoom(view.s * Math.exp(-e.deltaY * 0.0015));
     view.x = x - (e.clientX - view.w / 2) / view.s;
     view.z = z + (e.clientY - view.h / 2) / view.s;
   }, { passive: false });
@@ -2193,6 +2222,7 @@
   function tick(now) {
     const dt = Math.min(0.1, (now - then) / 1000);
     then = now;
+    if (cameraKeys.size) moveCamera(cameraKeys, dt);
     controls.classList.toggle('inactive',now-controlsActiveAt>2000 && !settings.open && !controls.matches(':hover, :focus-within'));
     if (playing && cursor >= END) {
       if (autoplay.checked && roundIndex + 1 < rounds.length) selectRound(roundIndex + 1);
