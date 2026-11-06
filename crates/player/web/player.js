@@ -481,7 +481,7 @@
   const canvas = document.getElementById('field');
   let ctx = canvas.getContext('2d');
   const view = { x: 0, z: 0, s: 1, w: 1, h: 1, dpr: 1 };
-  const options = { life: true, damage: false, panels: true };
+  const options = { life: true, damage: false, panels: false };
   let panelPointerX = null;
   let tau = 1;
   let cursor = 1;
