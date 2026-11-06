@@ -2101,7 +2101,6 @@
       case 'End': setTau(END); break;
       case '+': case '=': setSpeed(SPEEDS[Math.min(SPEEDS.length - 1, SPEEDS.indexOf(speed) + 1)]); break;
       case '-': case '_': setSpeed(SPEEDS[Math.max(0, SPEEDS.indexOf(speed) - 1)]); break;
-      case 'f': fit(); break;
       default: return;
     }
     e.preventDefault();
@@ -2142,7 +2141,6 @@
   canvas.addEventListener('pointerup', release);
   canvas.addEventListener('pointercancel', release);
   canvas.addEventListener('pointerleave', () => { pointer = null; hover = null; });
-  canvas.addEventListener('dblclick', fit);
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     const x = wx(e.clientX);
