@@ -204,7 +204,7 @@
           if (projectile) {
             projectile.by = owner || null;
             projectile.splash = (c.splash || 0) / 100;
-            projectile.slot = c.slot;
+            projectile.mounts = Sprites.weaponMuzzles(owner?.kind, c.slot, c.weapon);
             projectile.fired = c.t;
           }
           if (owner && owner.what === 'building' && projectile) {
@@ -350,42 +350,30 @@
     }
     return null;
   }
-  // Where a skill of a weapon group leaves its unit, by skill slot, in the
-  // sprite's metres (front toward -y), turned with the unit's turret. The
-  // recording releases every shot at its unit's centre; only the page moves
-  // one out to its own launcher, and by less as it nears where it lands.
-  // A Wraith's eight launchers are its eight skills, along the front of its
-  // disc; a Melting Point's Energy Diffraction beams are its skills 1 to 4,
-  // one from each leg.
-  const MUZZLES = {
-    wraith: Array.from({ length: 8 }, (_, k) => [Math.sin(((k - 3.5) * Math.PI) / 6) * 9, -Math.cos(((k - 3.5) * Math.PI) / 6) * 9]),
-    melting_point: [null, [-9, -9], [9, -9], [-9, 9], [9, 9]],
-  };
-  // A muzzle's offset in the world from its unit's centre at tick `t`.
-  function muzzle(o, slot, t) {
-    const point = o && o.what === 'unit' && slot !== undefined && MUZZLES[o.kind] && MUZZLES[o.kind][slot];
-    if (!point) return null;
-    const s = unitAt(o, Math.min(Math.max(t, o.from), o.to));
-    if (!s) return null;
-    const a = rad(s.turret);
-    const [px, py] = point;
+  // Rotate a model-space muzzle with the turret at release. World +z is up.
+  function muzzleOffset([px, py], turret) {
+    const a = rad(turret);
     return { x: Math.cos(a) * px - Math.sin(a) * py, z: -(Math.sin(a) * px + Math.cos(a) * py) };
   }
   // A projectile's position, drawn from its muzzle: its recorded flight
   // carried out by its muzzle's offset in proportion to how far it has yet
   // to fly.
-  function projectileAt(p, tau) {
-    const at = flownAt(p, tau);
-    if (!at) return at;
-    if (p.span === undefined) {
-      p.muzzle = muzzle(p.by, p.slot, p.fired);
+  function projectileAt(p, tau, nozzle = 0) {
+    if (!p.mounts) return flownAt(p, tau);
+    if (tau === p.gone?.t) return {x:p.gone.x/100, y:p.gone.y/100, z:p.gone.z/100};
+    if (!p.launch) {
+      p.launch = unitAt(p.by, Math.min(Math.max(p.fired - 1, p.by.from), p.by.to));
+      p.offsets = p.mounts.map(point => muzzleOffset(point, p.launch.turret));
       const last = p.n - 1;
       p.end = p.gone ? { x: p.gone.x / 100, z: p.gone.z / 100 } : { x: p.X[last], z: p.Z[last] };
-      p.span = Math.hypot(p.end.x - p.X[0], p.end.z - p.Z[0]);
+      p.span = Math.hypot(p.end.x - p.launch.x, p.end.z - p.launch.z);
     }
-    if (!p.muzzle) return at;
-    const k = p.span > 0 ? Math.min(1, Math.hypot(p.end.x - at.x, p.end.z - at.z) / p.span) : 0;
-    return { x: at.x + p.muzzle.x * k, y: at.y, z: at.z + p.muzzle.z * k };
+    const at = flownAt(p, tau);
+    if (!at) return null;
+    const remaining = p.span > 0 ? Math.min(1, Math.hypot(p.end.x - at.x, p.end.z - at.z) / p.span) : 0;
+    const k = remaining * enlargement();
+    const offset = p.offsets[nozzle];
+    return { x: at.x + offset.x * k, y: at.y, z: at.z + offset.z * k };
   }
   // A projectile's recorded position, from the muzzle one tick before its
   // first recorded place to where it was removed.
@@ -394,9 +382,9 @@
     if (tau < p.from) {
       const f = tau - (p.from - 1);
       const back = p.n > 1 ? 1 : 0;
-      const ox = p.X[0] - (p.X[back] - p.X[0]);
-      const oy = p.Y[0] - (p.Y[back] - p.Y[0]);
-      const oz = p.Z[0] - (p.Z[back] - p.Z[0]);
+      const ox = p.launch?.x ?? (2 * p.X[0] - p.X[back]);
+      const oy = p.launch?.y ?? (2 * p.Y[0] - p.Y[back]);
+      const oz = p.launch?.z ?? (2 * p.Z[0] - p.Z[back]);
       return { x: ox + (p.X[0] - ox) * f, y: oy + (p.Y[0] - oy) * f, z: oz + (p.Z[0] - oz) * f };
     }
     const k = Math.floor(tau);
@@ -921,8 +909,27 @@
   // gives that a radius of 7 metres.
   const ARCLIGHT_SPLASH = 7;
 
+  const FLAME_LOOKBACK_SECONDS = 0.3;
+  const VULCAN_AFTERGLOW_SECONDS = 0.15;
+  function drawVulcanFlames(p) {
+    const impact = p.gone?.t ?? p.to;
+    const fade = 1 - Math.max(0, tau - impact) / (VULCAN_AFTERGLOW_SECONDS * TPS);
+    if (tau < p.from - 1 || fade <= 0) return;
+    const front = Math.min(tau, impact);
+    const back = Math.max(p.from - 1, front - FLAME_LOOKBACK_SECONDS * TPS * fade);
+    for (let nozzle = 0; nozzle < p.mounts.length; nozzle++) {
+      const head = projectileAt(p, front, nozzle);
+      const tail = projectileAt(p, back, nozzle);
+      drawFlamePuffs(head, tail, SHOTS.vulcan, p.id * 13 + nozzle, fade);
+    }
+  }
+
   function drawProjectiles() {
     for (const p of projectiles.values()) {
+      if (p.by?.kind === 'vulcan' && p.mounts) {
+        drawVulcanFlames(p);
+        continue;
+      }
       if (tau < p.from - 1 || tau > p.to + 2) continue;
       const head = projectileAt(p, tau);
       if (!head) continue;
@@ -1002,6 +1009,16 @@
     }
     ctx.globalAlpha = 1;
   }
+  function drawFlamePuffs(head, tail, look, seed, fade = 1) {
+    const rnd = random(seed + Math.floor(tau * 3));
+    for (let j = 0; j < 6; j++) {
+      const f = j / 6;
+      const x = head.x + (tail.x - head.x) * f + (rnd() - 0.5) * look.size * 0.3;
+      const z = head.z + (tail.z - head.z) * f + (rnd() - 0.5) * look.size * 0.3;
+      place(x, z);
+      Sprites.glow(ctx, 0, 0, look.size * (0.5 + f * 0.6), j < 2 ? '#fff1b0' : look.colour, 0.75 * (1 - f * 0.7) * fade);
+    }
+  }
   const SHOT_STYLES = {
     bolt(p, head, look) {
       const [tail] = flight(p, head, look.trail / 40 / TPS);
@@ -1061,15 +1078,8 @@
       }
     },
     flame(p, head, look) {
-      const [tail] = flight(p, head, 0.3);
-      const rnd = random(p.id * 13 + Math.floor(tau * 3));
-      for (let j = 0; j < 6; j++) {
-        const f = j / 6;
-        const x = head.x + (tail.x - head.x) * f + (rnd() - 0.5) * look.size * 0.3;
-        const z = head.z + (tail.z - head.z) * f + (rnd() - 0.5) * look.size * 0.3;
-        place(x, z);
-        Sprites.glow(ctx, 0, 0, look.size * (0.5 + f * 0.6), j < 2 ? '#fff1b0' : look.colour, 0.75 * (1 - f * 0.7));
-      }
+      const [tail] = flight(p, head, FLAME_LOOKBACK_SECONDS);
+      drawFlamePuffs(head, tail, look, p.id * 13);
     },
     orb(p, head, look) {
       const [tail] = flight(p, head, 0.15);
@@ -1345,8 +1355,11 @@
               if (c.ring && from) splashRing(from.x, from.z, c.ring, age, '#ffc46b');
               break;
             }
-            const offset = from && muzzle(by, c.slot, c.t);
-            if (offset) { from.x += offset.x; from.z += offset.z; }
+            const mount = Sprites.weaponMuzzles(by?.kind, c.slot)?.[0];
+            if (from && mount) {
+              const offset = muzzleOffset(mount, unitAt(by, Math.min(Math.max(c.t, by.from), by.to)).turret);
+              from.x += offset.x * enlargement(); from.z += offset.z * enlargement();
+            }
             if (by && at && from && BEAMS[by.kind]) beam(from, at, age, BEAMS[by.kind], c.seed);
             else if (by && at && by.what === 'unit') slash(at.x, at.z, age, by.kind, c.seed, by.team);
             if (c.ring && at) splashRing(at.x, at.z, c.ring, age, splashColour(by));
@@ -1543,7 +1556,7 @@
   function splashColour(by) {
     if (!by) return '#ffe08a';
     const shot = SHOTS[by.kind];
-    if (shot) return shot.core || shot.colour;
+    if (shot) return shot.core || shot.colour || shot.flame;
     const beamLook = BEAMS[by.kind];
     if (beamLook) return beamLook.outer;
     return (TEAMS[by.team] || TEAMS[0]).accent;
