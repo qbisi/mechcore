@@ -2,10 +2,14 @@
 'use strict';
 const UnitRoster=(()=>{
   function geometry(techCount){
-    const columns=Math.max(1,Math.ceil(techCount/2)),width=Math.max(122,74+24*columns),height=72;
-    const start=(68+width)/2-12*(columns-1);
-    return {width,height,path:`M1 1H${width-1}V${height-1}H1Z`,
-      techs:Array.from({length:techCount},(_,i)=>({x:start+24*(i%columns),y:23+26*Math.floor(i/columns)}))};
+    const columns=Math.min(2,Math.max(1,techCount)),rows=Math.max(1,Math.ceil(techCount/columns)),width=122,height=72;
+    // Keep the portrait and frame fixed, fitting two columns into the same
+    // strip. Six choices use three rows of 20-unit icons.
+    const techSize=Math.min(22,(64-2*(rows-1))/rows),pitch=24;
+    const rowPitch=rows<=2?26:techSize+2;
+    const start=(68+width)/2-pitch*(columns-1)/2,startY=height/2-rowPitch*(rows-1)/2;
+    return {width,height,techSize,path:`M1 1H${width-1}V${height-1}H1Z`,
+      techs:Array.from({length:techCount},(_,i)=>({x:start+pitch*(i%columns),y:startY+rowPitch*Math.floor(i/columns)}))};
   }
   function render(root,entries,assets,team,tooltip){
     root.replaceChildren();root.scrollTop=0;
@@ -20,6 +24,8 @@ const UnitRoster=(()=>{
       const row=document.createElement('article');
       row.className='unit-drawer';
       row.style.width=shape.width+'px';
+      row.style.setProperty('--tech-size',shape.techSize+'px');
+      row.style.setProperty('--tech-padding',shape.techSize<22?'1px':'2px');
       row.style.height=shape.height+'px';row.setAttribute('role','listitem');
       row.setAttribute('aria-label',`${name}: ${entry.count} formations`);
       const frame=document.createElementNS('http://www.w3.org/2000/svg','svg');
