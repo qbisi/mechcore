@@ -1,6 +1,13 @@
 {
   description = "Deterministic Mechabellum simulator, recording toolkit, and battle player";
 
+  nixConfig = {
+    extra-substituters = [ "https://qbisi.cachix.org" ];
+    extra-trusted-public-keys = [
+      "qbisi.cachix.org-1:FUbVbR4ivzvO+Dxu88VHuTbOT7zfH75rRnTn4dZB8+g="
+    ];
+  };
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
