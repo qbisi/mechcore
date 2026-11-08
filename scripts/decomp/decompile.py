@@ -43,7 +43,9 @@ GitHub releases on first use.
 """
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
+from html.parser import HTMLParser
 import json
 import os
 import pathlib
@@ -246,9 +248,10 @@ class Ripper:
             probe.bind(("127.0.0.1", 0))
             self.port = probe.getsockname()[1]
         self.base = f"http://127.0.0.1:{self.port}"
+        binary = assetripper()
         self.log = open(TOOLS / "assetripper.log", "w")
         self.process = subprocess.Popen(
-            [str(assetripper()), "--headless", "--port", str(self.port)],
+            [str(binary), "--headless", "--port", str(self.port)],
             cwd=TOOLS / "AssetRipper", stdout=self.log, stderr=subprocess.STDOUT,
         )
         for _ in range(120):
@@ -289,59 +292,92 @@ class Ripper:
             return response.read()
 
 
-UNITYPY = "1.25.3"
-# Which data objects are exported, by the file they are in. Every MonoBehaviour
-# whose script is in the GameRiver namespace, except GameRiver.Client (the UI),
-# and the language source the configuration's names are localized in.
+# Only these original serialized files contribute configuration objects.
 EXPORT_FILES = ("level0", "resources.assets", "sharedassets0.assets")
 LANGUAGE_SOURCE = ("I2.Loc.LanguageSourceAsset", "I2LanguagesForConfigData")
-ENUMERATE = """
-import json, sys, UnityPy
-from pathlib import Path
-data = Path(sys.argv[1])
-found = []
-for name in sys.argv[2:]:
-    for obj in UnityPy.load(str(data / name)).objects:
-        if obj.type.name != "MonoBehaviour":
-            continue
-        behaviour = obj.read(check_read=False)
-        script = behaviour.m_Script.read()
-        owner = ""
-        if not behaviour.m_Name and behaviour.m_GameObject.path_id:
-            owner = behaviour.m_GameObject.read().m_Name
-        found.append({"file": name, "path_id": obj.path_id, "name": behaviour.m_Name or owner,
-                      "class": f"{script.m_Namespace}.{script.m_ClassName}".lstrip(".")})
-json.dump(found, sys.stdout)
-"""
 
 
-def unitypy():
-    """A Python that has UnityPy, in its own environment under work/tools."""
-    environment = TOOLS / f"unitypy-{UNITYPY}"
-    python = environment / "bin" / "python"
-    if not python.exists():
-        say(f"creating a Python environment with UnityPy {UNITYPY}")
-        if subprocess.run(["uv", "--version"], capture_output=True).returncode == 0:
-            subprocess.run(["uv", "venv", "--quiet", str(environment)], check=True)
-            subprocess.run(["uv", "pip", "install", "--quiet", "--python", str(python), f"UnityPy=={UNITYPY}"], check=True)
-        else:
-            subprocess.run([sys.executable, "-m", "venv", str(environment)], check=True)
-            subprocess.run([str(python), "-m", "pip", "install", "--quiet", f"UnityPy=={UNITYPY}"], check=True)
-    return python
+class TableRows(HTMLParser):
+    """HTML table cells with decoded text and links; no browser is needed."""
+
+    def __init__(self, page):
+        super().__init__()
+        self.rows = []
+        self.row = None
+        self.cell = None
+        self.feed(page)
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "tr":
+            self.row = []
+        elif tag in ("td", "th") and self.row is not None:
+            self.cell = [[], []]
+        elif tag == "a" and self.cell is not None:
+            href = dict(attrs).get("href")
+            if href:
+                self.cell[1].append(href)
+
+    def handle_data(self, data):
+        if self.cell is not None:
+            self.cell[0].append(data)
+
+    def handle_endtag(self, tag):
+        if tag in ("td", "th") and self.cell is not None:
+            text, links = self.cell
+            self.row.append(("".join(text).strip(), links))
+            self.cell = None
+        elif tag == "tr" and self.row is not None:
+            self.rows.append(self.row)
+            self.row = None
 
 
-def exported_objects(app):
-    """The data objects to export: file, path id, name and script class of each."""
-    data = app / "Contents/Resources/Data"
-    result = subprocess.run([str(unitypy()), "-c", ENUMERATE, str(data), *EXPORT_FILES],
-                            capture_output=True, text=True)
-    if result.returncode != 0:
-        fail(f"UnityPy could not list the game's objects:\n{result.stderr.strip()}")
-    return [
-        entry for entry in json.loads(result.stdout)
-        if (entry["class"].startswith("GameRiver.") and not entry["class"].startswith("GameRiver.Client."))
-        or (entry["class"], entry["name"]) == LANGUAGE_SOURCE
-    ]
+def exported_objects(ripper, collections):
+    """Read script types and original names from AssetRipper's loaded game.
+
+    Collection HTML contains every object; pagination is client-side. Do not
+    use GetBestName's display labels for paths: retain m_Name, falling back
+    to the owning GameObject's m_Name for unnamed components.
+    """
+    found = []
+    for name in EXPORT_FILES:
+        if name not in collections:
+            fail(f"AssetRipper found no {name}")
+        collection = collections[name]
+        path = urllib.parse.quote(json.dumps(collection, separators=(",", ":")))
+        rows = TableRows(ripper.get("/Collections/View?Path=" + path).decode()).rows
+        def read_object(row):
+            if len(row) != 3 or row[1][0] != "MonoBehaviour":
+                return None
+            path_id = int(row[0][0])
+            links = row[2][1]
+            if len(links) != 1 or not links[0].startswith("/Assets/View?"):
+                fail(f"AssetRipper has no object link for {name} path id {path_id}")
+            details = TableRows(ripper.get(links[0]).decode()).rows
+            fields = {row[0][0]: row[1] for row in details if len(row) == 2}
+            if "Namespace" not in fields or "Class Name" not in fields:
+                fail(f"AssetRipper has no script type for {name} path id {path_id}")
+            kind = ".".join(filter(None, (fields["Namespace"][0], fields["Class Name"][0])))
+            if not ((kind.startswith("GameRiver.") and not kind.startswith("GameRiver.Client."))
+                    or kind == LANGUAGE_SOURCE[0]):
+                return None
+            raw = ripper.asset(collection, path_id)
+            if raw is None:
+                fail(f"AssetRipper cannot read {name} path id {path_id}")
+            object_name = json.loads(raw)["m_Name"]
+            if not object_name and "GameObject" in fields:
+                owner_links = fields["GameObject"][1]
+                if len(owner_links) != 1:
+                    fail(f"AssetRipper has no GameObject link for {name} path id {path_id}")
+                query = urllib.parse.urlsplit(owner_links[0]).query
+                object_name = json.loads(ripper.get("/Assets/Json?" + query))["m_Name"]
+            if kind == LANGUAGE_SOURCE[0] and object_name != LANGUAGE_SOURCE[1]:
+                return None
+            return {"file": name, "path_id": path_id, "name": object_name, "class": kind}
+        # map preserves serialized order (including duplicate-name suffixes).
+        with ThreadPoolExecutor(max_workers=8) as workers:
+            found.extend(entry for entry in workers.map(read_object, rows) if entry is not None)
+        say(f"enumerated {name}: {sum(entry['file'] == name for entry in found)} data objects")
+    return found
 
 
 def export_path(entry, counts):
@@ -363,28 +399,28 @@ def export_path(entry, counts):
 def step_config(app, out):
     """Every data object of the build, as AssetRipper types it from the build's assemblies.
 
-    UnityPy reads which script each MonoBehaviour runs, which needs no type
-    tree; AssetRipper, which reconstructs the types from the IL2CPP metadata,
-    exports the chosen ones by path id. `ConfigDataContainer` is
-    `config-data-container.json`; the rest go under a directory per file.
+    AssetRipper enumerates MonoBehaviours and resolves their script types.
+    `ConfigDataContainer` is `config-data-container.json`; the rest go under
+    a directory per file.
     """
-    objects = exported_objects(app)
-    counts = {}
-    for entry in objects:
-        counts[(entry["file"], entry["class"])] = counts.get((entry["file"], entry["class"]), 0) + 1
-    paths = {}
-    for entry in objects:
-        path = export_path(entry, counts)
-        if path in paths.values():
-            path = path.with_name(f"{path.stem}_{entry['path_id']}.json")
-        paths[(entry["file"], entry["path_id"])] = path
-    for directory in ("level0", "resources", "sharedassets0"):
-        subprocess.run(["rm", "-rf", str(out / directory)], check=True)
     ripper = Ripper()
     try:
-        say(f"AssetRipper is loading the game to export {len(objects)} objects; this takes a few minutes")
+        say("AssetRipper is loading the game; this takes a few minutes")
         ripper.load(app)
         collections = ripper.collections()
+        objects = exported_objects(ripper, collections)
+        counts = {}
+        for entry in objects:
+            key = (entry["file"], entry["class"])
+            counts[key] = counts.get(key, 0) + 1
+        paths = {}
+        for entry in objects:
+            path = export_path(entry, counts)
+            if path in paths.values():
+                path = path.with_name(f"{path.stem}_{entry['path_id']}.json")
+            paths[(entry["file"], entry["path_id"])] = path
+        for directory in ("level0", "resources", "sharedassets0"):
+            subprocess.run(["rm", "-rf", str(out / directory)], check=True)
         exported = []
         for entry in objects:
             if entry["file"] not in collections:

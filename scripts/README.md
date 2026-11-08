@@ -11,6 +11,12 @@ through `uv run --with`. Two exceptions: `player/export-models.mjs` is Node,
 because what it exports is the player's own JavaScript, and `decomp/ghidra/` is
 Java, the language Ghidra runs a headless script in without a Python of its own.
 
+`decomp/decompile.py` uses AssetRipper both to enumerate configuration objects
+and to export their JSON. It reads script types from the loaded objects and
+keeps their original names, falling back to their GameObject names for unnamed
+components. Enumeration uses Python's standard HTML parser and requires no
+third-party Python package.
+
 | Directory | Scripts | What they work on |
 | --- | --- | --- |
 | [`decomp/`](decomp/) | `decompile.py`, `decomp-diff.py`, `rules-anchors.py`, `fight-structure.py`, `ghidra.py` and `ghidra/*.java` | the build's decompilation under `work/decomp/<build>/`: making it locally from the installed game, comparing two builds, holding `docs/rules/`'s anchors to it, reading the fight architecture out of its index, and decompiling a method to C with Ghidra |
