@@ -216,7 +216,7 @@ batch still runs.
   no layout. A match verifies only when every leaf outside the fight is
   predicted and agrees, every round projects onto a layout the compiler takes,
   and every fight is fought and agrees, except a round explicitly reported as
-  `warning`. Stealth Cloak acquired after an existing Phantom Ray's flank
+  `warning`. Stealth Cloak acquired after a Phantom Ray's flank
   deployment warns that layout projection cannot preserve that order. Acquiring Aerial Mode
   with Aerial Specialist and travelling Void Eyes also warns: research/flank
   order affects native life corrections which the state does not preserve,
@@ -310,13 +310,19 @@ a fight is run again without a recording being kept of it. Without `<out>` it
 answers the layout on standard output; with one it writes the layout there and
 answers its path and round.
 
-When Stealth Cloak was acquired after an existing Phantom Ray's flank
+When Stealth Cloak was acquired after a Phantom Ray's flank
 deployment, this shared projection emits a warning on standard error and
 continues. The simulator
 always settles with technologies activated before deployment, so it may differ
 from the native game; actual settlement follows the selected backend. New
-purchases encode pending technologies between native purchase and movement. Existing formations still require technology activation before flank
-movement to benefit from it earlier. Live match settlement, including shell and arena, uses this same projection path.
+purchases expand their explicit placement into native purchase and movement.
+Initialization-sensitive histories retain the original research/flank order
+when converted from GRBR or formatted as match documents. Only adjacent moves
+of the same formation that stay within the same main/left-flank/right-flank
+region are collapsed; crossing moves and intervening operations remain.
+Verification reports the warning and skips that round's fight comparison,
+continuing to check legal actions and non-combat transitions. Live match
+settlement, including shell and arena, uses this same projection path.
 
 Acquiring Aerial Mode in a round with Aerial Specialist and travelling Void
 Eyes also emits a projection warning. The native life corrections depend

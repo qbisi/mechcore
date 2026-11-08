@@ -532,8 +532,14 @@ last formation depends on its research. Native encoding preserves these explicit
 match actions and their order. Equipment precedes unified placement; upgrades
 and contraptions use that final layout. Infrastructure and remaining unlocks
 follow, before combat skills.
-Normalization preserves the deployment endpoint, not the
-original player's controller-initialization timing.
+Ordinary normalization preserves the deployment endpoint. When layout projection
+warns that controller-initialization history cannot be represented, conversion
+and formatting retain the surviving historical decisions in their original
+order. Only adjacent moves of the same formation which both remain inside one
+region are collapsed to the last move. The regions are the main deployment
+area, left flank and right flank. Crossing a region boundary and every
+intervening decision remain in place, including research, equipment and moves
+of other formations. The retained sequence must reproduce the same endpoint.
 
 Enhancement Modules change upgrade prices, so normalization retains the level
 reached before each module was fitted in the recorded or input action sequence.
@@ -544,22 +550,22 @@ final supply is checked rather than used to infer the module's fitting time.
 A historical sequence that acquires Stealth Cloak after Phantom Ray flank
 deployment still projects with a warning because the layout cannot preserve
 that initialization order. Verification checks its non-combat transitions
-but skips that round's fight comparison. Formatting puts research before
-movement and removes this ordering cause of the warning.
+but skips that round's fight comparison. Formatting retains that historical
+order and its warning. It does not reorder research ahead of the flank move.
 
 Acquiring Aerial Mode while Aerial Specialist is present and a Void Eye
 ends deployment travelling also warns and skips that round's fight
 comparison. Research before or after flank deployment can leave different
 native life corrections on the travelling formation. The written state
-does not distinguish those histories, and normalization may already have
-reordered them, so this warning applies in canonical order too. A round
+does not carry those corrections, so this warning applies in either recorded
+order. A round
 that opens with Aerial Mode already researched does not carry this warning.
 
 Acquiring Fire Extinguisher with a travelling Hound also warns and skips that
 round's fight comparison. Research after flank deployment can activate terrain
 clearing before arrival; the layout activates the technology before travel.
-State does not retain that controller state, and normalization can reorder the
-research, so the warning applies in canonical order too. A round that opens
+State does not retain that controller state, so the warning also applies when
+the recorded research precedes movement. A round that opens
 with Fire Extinguisher already researched is outside this warning.
 
 A round that opens with Land Cruiser already researched also warns when
