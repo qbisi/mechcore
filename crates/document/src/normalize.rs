@@ -3,6 +3,8 @@
 //! The sequence is a normal form of the deployment. History preserves
 //! recovered purchases absent from both endpoints, and upgrades preceding
 //! Enhancement Modules, whose fitting time changes prices.
+//! Histories whose initialization effects a layout cannot carry retain their
+//! operation order, collapsing only adjacent same-region moves of one unit.
 //! Every emitted decision is stepped and compared with the requested endpoint.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -15,10 +17,12 @@ use crate::r#match::{Action, Offers, SideState, SkillTarget, StateUnit};
 
 const ENHANCEMENT_MODULE: i32 = 13_030_004;
 
-/// Facts endpoints cannot recover: purchased formations later recovered, their
-/// recovery state, and upgrade levels preceding Enhancement Module fitting.
+/// Facts endpoints cannot recover: operation order, purchased formations later
+/// recovered, their recovery state, and upgrades preceding Enhancement Modules.
 #[derive(Clone, Default)]
 pub(crate) struct DeploymentHistory {
+    actions: Vec<Action>,
+    initialization: crate::project::InitializationHistory,
     upgrades: BTreeMap<(i32, usize), i32>,
     purchases: BTreeMap<i32, (i32, i32)>,
     recovered: BTreeMap<i32, StateUnit>,
@@ -27,6 +31,10 @@ pub(crate) struct DeploymentHistory {
 impl DeploymentHistory {
     /// Observe an action after it has been stepped in its historical order.
     pub(crate) fn record(&mut self, before: &SideState, position: &SideState, action: &Action) {
+        self.initialization.record(before, position, action);
+        if !matches!(action, Action::Concede) {
+            self.actions.push(action.clone());
+        }
         if let Action::BuyUnit { unit, .. } = action {
             let index = before.next_index.unit;
             if let Some(bought) = position
@@ -62,9 +70,9 @@ impl DeploymentHistory {
     }
 }
 
-/// Formats a match, rebuilding each complete action segment from its endpoints.
-/// Historical decisions supply the closing position, actual recovered
-/// purchases and upgrades preceding Enhancement Modules.
+/// Formats a match, rebuilding ordinary complete action segments from their
+/// endpoints and retaining initialization-sensitive histories in their order.
+/// Historical decisions also supply recovered purchases and module fitting time.
 ///
 /// # Errors
 /// Returns a malformed match, a historical decision that cannot be evaluated,
@@ -167,6 +175,21 @@ pub(crate) fn deployment(
     red: bool,
     dependencies: &DeploymentHistory,
 ) -> Result<Vec<Action>, String> {
+    if !dependencies.actions.is_empty()
+        && !dependencies
+            .initialization
+            .warnings(opened, ended)
+            .is_empty()
+    {
+        return historical_deployment(
+            economy,
+            opened,
+            ended,
+            red,
+            offers.map(|offers| offers.refund),
+            &dependencies.actions,
+        );
+    }
     let choices: Vec<_> = offers.map_or_else(
         || vec![None],
         |offers| {
@@ -251,6 +274,66 @@ pub(crate) fn deployment(
         "deployment has no standard action sequence: {}",
         errors.join("; ")
     ))
+}
+
+fn historical_deployment(
+    economy: &Economy,
+    opened: &SideState,
+    ended: &SideState,
+    red: bool,
+    declined: Option<i32>,
+    history: &[Action],
+) -> Result<Vec<Action>, String> {
+    let actions = collapse_same_region_moves(economy, opened, history, red, declined)?;
+    let reproduced = crate::transition::deployed(economy, opened, &actions, red, declined)
+        .map_err(|error| error.to_string())?;
+    if reproduced != *ended {
+        return Err("historical move compaction changes the deployment endpoint".into());
+    }
+    Ok(actions)
+}
+
+/// Keep crossing moves and every non-movement decision in place. A move can
+/// replace its predecessor only when both stay inside the same region, refer
+/// to the same unit, and have no intervening decision.
+fn collapse_same_region_moves(
+    economy: &Economy,
+    opened: &SideState,
+    history: &[Action],
+    red: bool,
+    declined: Option<i32>,
+) -> Result<Vec<Action>, String> {
+    let mut position = opened.clone();
+    let mut actions = Vec::new();
+    let mut previous_move = None;
+    let mut placement = crate::landing::placement(red);
+    for action in history {
+        let current_move = match action {
+            Action::MoveUnit {
+                index,
+                position: destination,
+                ..
+            } => position
+                .units
+                .iter()
+                .find(|entry| entry.unit.index == *index)
+                .and_then(|entry| {
+                    let region = Region::of(entry.unit.position);
+                    (region == Region::of(*destination)).then_some((*index, region))
+                }),
+            _ => None,
+        };
+        if current_move.is_some() && current_move == previous_move {
+            *actions.last_mut().expect("a merge follows a move") = action.clone();
+        } else {
+            actions.push(action.clone());
+        }
+        position =
+            crate::transition::step_placing(economy, &position, action, declined, &mut placement)
+                .map_err(|error| error.to_string())?;
+        previous_move = current_move;
+    }
+    Ok(actions)
 }
 
 #[derive(Clone)]
@@ -1224,6 +1307,132 @@ mod tests {
             position = next;
         }
         dependencies
+    }
+
+    #[test]
+    fn cloak_history_keeps_crossings_and_research_between_move_runs() {
+        let mut opened = side();
+        opened.units[0].unit.type_name = "phantom_ray".into();
+        opened.units[0].unit.position.x = -100;
+        opened.units[0].value = None;
+        let research = Action::UpgradeTechnology {
+            unit: 25,
+            tech: 3925,
+        };
+        let history = vec![
+            moved(0, -150, -260),
+            moved(0, -200, -260),
+            moved(0, 330, 50),
+            moved(0, 330, 100),
+            moved(0, 330, 150),
+            research.clone(),
+            moved(0, 330, 200),
+            moved(0, 330, 250),
+        ];
+        let ended = close(&opened, &history);
+        let actions = normalized_with_dependencies(
+            &opened,
+            &ended,
+            &recorded_dependencies(&opened, &history),
+        );
+        assert_eq!(
+            actions,
+            vec![
+                moved(0, -200, -260),
+                moved(0, 330, 50),
+                moved(0, 330, 150),
+                research,
+                moved(0, 330, 250),
+            ]
+        );
+    }
+
+    #[test]
+    fn purchased_cloak_units_keep_research_after_flank_deployment() {
+        let opened = side();
+        let history = vec![
+            bought(25, -150, -260),
+            moved(2, 330, 50),
+            Action::UpgradeTechnology {
+                unit: 25,
+                tech: 3925,
+            },
+        ];
+        let ended = close(&opened, &history);
+        assert_eq!(
+            normalized_with_dependencies(
+                &opened,
+                &ended,
+                &recorded_dependencies(&opened, &history),
+            ),
+            history
+        );
+    }
+
+    #[test]
+    fn other_initialization_warnings_also_retain_history() {
+        for (name, unit, tech, initial_techs, officers, destination) in [
+            ("void_eye", 30, 4430, vec![], vec![20021], (330, 50)),
+            ("hound", 32, 4228, vec![], vec![], (330, 50)),
+            ("wraith", 18, 110_181, vec![4418], vec![20021], (-200, -160)),
+        ] {
+            let mut opened = side();
+            opened.units[0].unit.type_name = name.into();
+            opened.units[0].unit.position.x = -100;
+            opened.units[0].value = None;
+            opened.techs = initial_techs;
+            opened.officers = officers;
+            let history = vec![
+                moved(0, destination.0, destination.1),
+                Action::UpgradeTechnology { unit, tech },
+            ];
+            let ended = close(&opened, &history);
+            assert_eq!(
+                normalized_with_dependencies(
+                    &opened,
+                    &ended,
+                    &recorded_dependencies(&opened, &history),
+                ),
+                history,
+                "{name}"
+            );
+        }
+    }
+
+    #[test]
+    fn ordinary_history_still_reconstructs_a_legal_endpoint_plan() {
+        let opened = side();
+        let history = vec![moved(0, 20, -160), moved(0, -100, -160)];
+        let ended = close(&opened, &history);
+        assert_eq!(
+            normalized_with_dependencies(
+                &opened,
+                &ended,
+                &recorded_dependencies(&opened, &history),
+            ),
+            vec![moved(0, -100, -160)],
+        );
+    }
+
+    #[test]
+    fn move_compaction_does_not_cross_another_units_move() {
+        let opened = side();
+        let history = vec![
+            moved(0, -100, -160),
+            moved(1, 100, -160),
+            moved(0, -150, -160),
+        ];
+        assert_eq!(
+            collapse_same_region_moves(
+                Economy::embedded().unwrap(),
+                &opened,
+                &history,
+                false,
+                None,
+            )
+            .unwrap(),
+            history
+        );
     }
 
     fn normalized_with_dependencies(

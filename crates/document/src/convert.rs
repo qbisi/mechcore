@@ -1211,9 +1211,10 @@ enum Recorded {
 /// A side's decisions in one round, from the position the round opened with.
 ///
 /// Each decision is stepped as it is read, which names the skill a release's
-/// slot holds and the index a purchase creates. Only the resulting position
-/// reaches the normalizer, which reconstructs the standard sequence from the
-/// two endpoint positions and checks its result.
+/// slot holds and the index a purchase creates. The resulting position and
+/// surviving historical decisions reach the normalizer: ordinary deployments
+/// use the standard sequence; initialization-sensitive histories keep their
+/// order, with only adjacent same-region moves of one unit collapsed.
 fn actions(
     economy: &Economy,
     round: &PlayerRoundRecord,

@@ -83,84 +83,13 @@ pub fn deployment(
 ) -> Result<Deployment, String> {
     let mut warnings = Vec::new();
     let mut deploy = |opened: &SideState, actions: &[Action], red| {
-        let mut position = opened.clone();
-        let mut affected = std::collections::BTreeSet::new();
-        let mut purchased = std::collections::BTreeSet::new();
-        let mut landed_extra_weapons = false;
-        for action in actions {
-            if matches!(action, Action::BuyUnit { .. }) {
-                purchased.insert(position.next_index.unit);
-            }
-            let next = crate::transition::deployed(
-                economy,
-                &position,
-                std::slice::from_ref(action),
-                red,
-                declined,
-            )
-            .map_err(|error| error.to_string())?;
-            if matches!(action, Action::UpgradeTechnology { tech: 3925, .. }) {
-                affected.extend(
-                    position
-                        .units
-                        .iter()
-                        .filter(|entry| {
-                            entry.unit.type_name == "phantom_ray"
-                                && !purchased.contains(&entry.unit.index)
-                                && entry.unit.travelling == Some(true)
-                        })
-                        .map(|entry| entry.unit.index),
-                );
-            }
-            if matches!(action, Action::UpgradeTechnology { tech: 110_181, .. })
-                && position.techs.contains(&4418)
-            {
-                landed_extra_weapons = true;
-            }
-            affected.retain(|index| {
-                next.units
-                    .iter()
-                    .any(|entry| entry.unit.index == *index && entry.unit.travelling == Some(true))
-            });
-            position = next;
-        }
-        if !affected.is_empty() {
-            let side = if red { "red" } else { "blue" };
-            warnings.push(format!(
-                "round {round} {side}: Stealth Cloak activated after flank deployment of Phantom Ray formations {affected:?}. The layout activates technologies before flank deployment and cannot preserve that native initialization order. Normalize research before the unified movement phase to align flank initialization."
-            ));
-        }
-        let affected = travelling_research_formations(opened, &position, 4430, "void_eye");
-        if position.officers.contains(&20021) && !affected.is_empty() {
-            let side = if red { "red" } else { "blue" };
-            warnings.push(format!(
-                    "round {round} {side}: Aerial Mode acquired with Aerial Specialist and travelling Void Eye formations {affected:?}. Native life corrections depend on whether research follows flank deployment. State/layout does not preserve this initialization history, including after match normalization; the projected fight may differ."
-                ));
-        }
-        let affected = travelling_research_formations(opened, &position, 4228, "hound");
-        if !affected.is_empty() {
-            let side = if red { "red" } else { "blue" };
-            warnings.push(format!(
-                    "round {round} {side}: Fire Extinguisher acquired with travelling Hound formations {affected:?}. Native terrain-clearing activation depends on whether research follows flank deployment. State/layout does not preserve this initialization history, including after match normalization; the projected fight may differ."
-                ));
-        }
-        if (opened.techs.contains(&4418) || landed_extra_weapons)
-            && position.techs.contains(&110_181)
-            && position.officers.contains(&20021)
-        {
-            let affected = position
-                .units
-                .iter()
-                .filter(|entry| entry.unit.type_name == "wraith")
-                .map(|entry| entry.unit.index)
-                .collect::<Vec<_>>();
-            if !affected.is_empty() {
-                let side = if red { "red" } else { "blue" };
-                warnings.push(format!(
-                    "round {round} {side}: Wraith formations {affected:?} have Floating Artillery Array, Aerial Specialist and Land Cruiser. Native extra-weapon officer corrections can retain cross-round initialization history or differ when Floating Artillery Array is researched after Land Cruiser in this round. State/layout does not preserve those corrections; the projected fight may differ."
-                ));
-            }
-        }
+        let (position, side_warnings) = deploy_side(economy, opened, actions, red, declined)?;
+        let side = if red { "red" } else { "blue" };
+        warnings.extend(
+            side_warnings
+                .into_iter()
+                .map(|warning| format!("round {round} {side}: {warning}")),
+        );
         Ok::<_, String>(position)
     };
     let state = State {
@@ -176,6 +105,106 @@ pub fn deployment(
         layout,
         warnings,
     })
+}
+
+/// Apply one side's decisions and identify history that a layout cannot carry.
+/// Conversion and formatting use the same boundary as battle verification.
+fn deploy_side(
+    economy: &crate::economy::Economy,
+    opened: &SideState,
+    actions: &[Action],
+    red: bool,
+    declined: Option<i32>,
+) -> Result<(SideState, Vec<String>), String> {
+    let mut position = opened.clone();
+    let mut history = InitializationHistory::default();
+    for action in actions {
+        let next = crate::transition::deployed(
+            economy,
+            &position,
+            std::slice::from_ref(action),
+            red,
+            declined,
+        )
+        .map_err(|error| error.to_string())?;
+        history.record(&position, &next, action);
+        position = next;
+    }
+    let warnings = history.warnings(opened, &position);
+    Ok((position, warnings))
+}
+
+/// Initialization effects that cannot be reconstructed from endpoint state.
+/// Record these while stepping the actual history, before normalizing actions.
+#[derive(Clone, Default)]
+pub(crate) struct InitializationHistory {
+    cloak_after_flank: std::collections::BTreeSet<i32>,
+    landed_extra_weapons: bool,
+}
+
+impl InitializationHistory {
+    pub(crate) fn record(&mut self, before: &SideState, after: &SideState, action: &Action) {
+        if matches!(action, Action::UpgradeTechnology { tech: 3925, .. }) {
+            self.cloak_after_flank.extend(
+                before
+                    .units
+                    .iter()
+                    .filter(|entry| {
+                        entry.unit.type_name == "phantom_ray" && entry.unit.travelling == Some(true)
+                    })
+                    .map(|entry| entry.unit.index),
+            );
+        }
+        if matches!(action, Action::UpgradeTechnology { tech: 110_181, .. })
+            && before.techs.contains(&4418)
+        {
+            self.landed_extra_weapons = true;
+        }
+        self.cloak_after_flank.retain(|index| {
+            after
+                .units
+                .iter()
+                .any(|entry| entry.unit.index == *index && entry.unit.travelling == Some(true))
+        });
+    }
+
+    pub(crate) fn warnings(&self, opened: &SideState, position: &SideState) -> Vec<String> {
+        let mut warnings = Vec::new();
+        if !self.cloak_after_flank.is_empty() {
+            warnings.push(format!(
+            "Stealth Cloak activated after flank deployment of Phantom Ray formations {:?}. The layout activates technologies before flank deployment and cannot preserve that native initialization order. The match retains the historical operation order instead of reconstructing the standard sequence.", self.cloak_after_flank
+        ));
+        }
+        let affected = travelling_research_formations(opened, position, 4430, "void_eye");
+        if position.officers.contains(&20021) && !affected.is_empty() {
+            warnings.push(format!(
+                "Aerial Mode acquired with Aerial Specialist and travelling Void Eye formations {affected:?}. Native life corrections depend on whether research follows flank deployment. State/layout does not preserve this initialization history, including after match normalization; the projected fight may differ."
+            ));
+        }
+        let affected = travelling_research_formations(opened, position, 4228, "hound");
+        if !affected.is_empty() {
+            warnings.push(format!(
+                "Fire Extinguisher acquired with travelling Hound formations {affected:?}. Native terrain-clearing activation depends on whether research follows flank deployment. State/layout does not preserve this initialization history, including after match normalization; the projected fight may differ."
+            ));
+        }
+        if (opened.techs.contains(&4418) || self.landed_extra_weapons)
+            && position.techs.contains(&110_181)
+            && position.officers.contains(&20021)
+        {
+            let affected = position
+                .units
+                .iter()
+                .filter(|entry| entry.unit.type_name == "wraith")
+                .map(|entry| entry.unit.index)
+                .collect::<Vec<_>>();
+            if !affected.is_empty() {
+                warnings.push(format!(
+                "Wraith formations {affected:?} have Floating Artillery Array, Aerial Specialist and Land Cruiser. Native extra-weapon officer corrections can retain cross-round initialization history or differ when Floating Artillery Array is researched after Land Cruiser in this round. State/layout does not preserve those corrections; the projected fight may differ."
+            ));
+            }
+        }
+        warnings
+    }
 }
 
 /// Travelling formations exposed to a technology's acquisition this deployment.
