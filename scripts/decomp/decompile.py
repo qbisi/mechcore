@@ -44,6 +44,7 @@ GitHub releases on first use.
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack
 import hashlib
 from html.parser import HTMLParser
 import json
@@ -51,11 +52,13 @@ import os
 import pathlib
 import plistlib
 import re
+import signal
 import socket
 import sqlite3
 import subprocess
 import sys
 import tarfile
+import tempfile
 import time
 import urllib.error
 import urllib.parse
@@ -241,32 +244,62 @@ def step_cs(app, work, unity, out):
 
 
 class Ripper:
-    """AssetRipper's headless web server, for as long as one export needs it."""
+    """A headless server whose executable and temporary files belong to one run."""
 
     def __init__(self):
-        with socket.socket() as probe:
-            probe.bind(("127.0.0.1", 0))
-            self.port = probe.getsockname()[1]
-        self.base = f"http://127.0.0.1:{self.port}"
-        binary = assetripper()
-        self.log = open(TOOLS / "assetripper.log", "w")
-        self.process = subprocess.Popen(
-            [str(binary), "--headless", "--port", str(self.port)],
-            cwd=TOOLS / "AssetRipper", stdout=self.log, stderr=subprocess.STDOUT,
-        )
-        for _ in range(120):
-            try:
-                urllib.request.urlopen(self.base + "/openapi.json", timeout=2).read()
-                return
-            except OSError:
-                time.sleep(1)
-        self.close()
-        fail("AssetRipper did not start")
+        self.resources = ExitStack()
+        try:
+            binary = assetripper()
+            # AssetRipper puts temp/ beside its executable, not in its cwd or
+            # TMPDIR. Hard links isolate that location without copying the tool.
+            self.directory = pathlib.Path(self.resources.enter_context(
+                tempfile.TemporaryDirectory(prefix="assetripper-", dir=TOOLS),
+            ))
+            executable = self.directory / binary.name
+            for source in (binary, *binary.parent.glob("*.dylib")):
+                os.link(source, self.directory / source.name)
+            with socket.socket() as probe:
+                probe.bind(("127.0.0.1", 0))
+                self.port = probe.getsockname()[1]
+            self.base = f"http://127.0.0.1:{self.port}"
+            self.log = self.resources.enter_context(open(TOOLS / "assetripper.log", "w"))
+            self.process = subprocess.Popen(
+                [str(executable), "--headless", "--port", str(self.port)],
+                cwd=self.directory, stdout=self.log, stderr=subprocess.STDOUT,
+            )
+            # ExitStack stops and reaps the child before closing its log and
+            # deleting this run's directory, including on startup failures.
+            self.resources.callback(self.stop)
+            for _ in range(120):
+                if self.process.poll() is not None:
+                    fail(f"AssetRipper exited before startup (status {self.process.returncode})")
+                try:
+                    with urllib.request.urlopen(self.base + "/openapi.json", timeout=2):
+                        return
+                except OSError:
+                    time.sleep(1)
+            fail("AssetRipper did not start")
+        except BaseException:
+            self.close()
+            raise
+
+    def stop(self):
+        if self.process.poll() is None:
+            self.process.terminate()
+        try:
+            self.process.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            self.process.kill()
+            self.process.wait()
 
     def close(self):
-        self.process.terminate()
-        self.process.wait(timeout=30)
-        self.log.close()
+        self.resources.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self.close()
 
     def load(self, folder):
         body = urllib.parse.urlencode({"Path": str(folder)}).encode()
@@ -403,8 +436,7 @@ def step_config(app, out):
     `ConfigDataContainer` is `config-data-container.json`; the rest go under
     a directory per file.
     """
-    ripper = Ripper()
-    try:
+    with Ripper() as ripper:
         say("AssetRipper is loading the game; this takes a few minutes")
         ripper.load(app)
         collections = ripper.collections()
@@ -436,8 +468,6 @@ def step_config(app, out):
             fail("the build holds no GameRiver.ConfigDataContainer")
         say(f"exported {len(exported)} data objects")
         return exported
-    finally:
-        ripper.close()
 
 
 def step_manifest(app, build, unity, out, commands, level0):
@@ -619,6 +649,11 @@ def step_index(out, manifest, commands):
 
 # --- main -------------------------------------------------------------------
 
+def exit_on_signal(signum, _frame):
+    """Unwind resource-owning contexts when the CLI is terminated."""
+    sys.exit(128 + signum)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--game", type=pathlib.Path, default=pathlib.Path(os.environ.get("MECHABELLUM_APP", DEFAULT_GAME)))
@@ -679,4 +714,6 @@ def main():
 
 
 if __name__ == "__main__":
+    # Turn termination into an exception so an active Ripper context unwinds.
+    signal.signal(signal.SIGTERM, exit_on_signal)
     main()

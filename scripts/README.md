@@ -16,10 +16,16 @@ and to export their JSON. It reads script types from the loaded objects and
 keeps their original names, falling back to their GameObject names for unnamed
 components. Enumeration uses Python's standard HTML parser and requires no
 third-party Python package.
+Each AssetRipper run hard-links the executable and native libraries into its
+own temporary directory under `work/tools/`: AssetRipper writes its unpacked
+data beside that executable. The child is stopped and reaped before the
+directory is removed on normal completion, startup or export failure,
+keyboard interruption, or SIGTERM. The combined server log remains at
+`work/tools/assetripper.log`; other runs' temporary directories are untouched.
 
 | Directory | Scripts | What they work on |
 | --- | --- | --- |
-| [`decomp/`](decomp/) | `decompile.py`, `decomp-diff.py`, `rules-anchors.py`, `fight-structure.py`, `ghidra.py` and `ghidra/*.java` | the build's decompilation under `work/decomp/<build>/`: making it locally from the installed game, comparing two builds, holding `docs/rules/`'s anchors to it, reading the fight architecture out of its index, and decompiling a method to C with Ghidra |
+| [`decomp/`](decomp/) | `decompile.py`, `test_decompile.py`, `decomp-diff.py`, `rules-anchors.py`, `fight-structure.py`, `ghidra.py` and `ghidra/*.java` | the build's decompilation under `work/decomp/<build>/`: making it locally from the installed game, comparing two builds, holding `docs/rules/`'s anchors to it, reading the fight architecture out of its index, and decompiling a method to C with Ghidra; game-free tests cover AssetRipper process and temporary-file cleanup |
 | [`extract/`](extract/) | `extract-*.py`, `extract_*.py`, `name-tables.py`, `buff_rows.py` | `config/`, read out of the build's typed export; `name-tables.py` writes the name tables of `docs/rules/` and `docs/terminology/` from `config/localization.yaml`, and `buff_rows.py` is the buff source the equipment and technology extractions both write |
 | [`corpus/`](corpus/README.md) | `replay.py`, `default-loadout.py`, `collect-replays.py`, `tournament-replays.py`, `export-replay-corpus.py`, `verify-matches.py`, `match-replays.py`, `divergence-issue.py` | the collected match corpus and local native replay studies |
 | [`player/`](player/) | `model-views.py`, `export-models.mjs`, `pose-timing.py`, `rhino-slash.py`, `shot-effects.py`, `skill-icons.py`, `hud-font.py`, `officers.py`, `unit-panels.py`, `arsenal.py`, `tower-cards.py` | the player's sprites in `crates/player/web/`: the game's models seen from above, which they are drawn after, also in the poses a recording shows; the sprites exported as [`assets/models/`](../assets/models/README.md); the attack timings read off a recording's poses; the Rhino's strike and its Whirlwind spin, keyed off their clips; the effects the game flies for each weapon; native skill icons traced into vectors; the HUD's numeric font subset; native officer names and descriptions; and unit portraits and technology icons for the side drawers |
