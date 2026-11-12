@@ -712,6 +712,11 @@ which a square 800 m wide leaves out. If all three prepared squares admit no
 candidates, a later live search can immediately find a Wraith that has landed
 since preparation even while the cached ground-opponent list still omits it.
 
+A live square search also reads the tree's current traversal order. Movement
+into another node can change which equal-score candidate comes first; retaining
+the prepared order while scoring live positions can select a different target
+([`3156-r8.yaml`](../../tests/corpus/3156-r8.yaml)).
+
 A prepared search gathers its
 candidates as it is prepared, from the tree and about where the searcher stood
 then; units that update before the searcher may have moved to other nodes by
@@ -1945,6 +1950,9 @@ not the game's native attack-type enum.
 - A red Wraith's search scoring blue's units where they stand after they
   moved, and taking another than the tick's start would give it:
   `tests/corpus/201340110-r4.yaml`, tick 121.
+- A summoned Wasp's live search retaining the first equal-score Crawler in
+  the tree's current traversal order after another Crawler changes nodes:
+  `tests/corpus/3156-r8.yaml`, tick 48.
 - A Phantom Ray whose next lock stands inside the enemy's shield naming no
   unit for its whole cooling: `tests/corpus/201370830-r5.yaml`, ticks
   113 to 130.

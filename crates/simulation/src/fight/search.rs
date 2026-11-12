@@ -1290,9 +1290,16 @@ impl Simulation {
         widening: Option<i64>,
         passed_over: Option<FightActorRef>,
     ) -> Option<FightActorRef> {
-        // The unbounded fallback is `GetActors`, not a quadtree query.
+        // `PerformSearch` queries the live tree again: movement can change
+        // traversal order, which breaks score ties. Only `TrySelect` keeps
+        // the order prepared at the tick's start. The unbounded fallback is
+        // `GetActors`, not a quadtree query.
+        let live_order;
         let target_search_order = if widening.is_none() {
             self.opponent_actor_order(source.targets)
+        } else if use_live_candidate_positions {
+            live_order = self.target_search_order();
+            &live_order
         } else {
             target_search_order
         };

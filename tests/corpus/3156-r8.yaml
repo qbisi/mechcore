@@ -1,0 +1,96 @@
+# Match 20261112--3156, round 8, from the 2026-11-12 Americas tournament.
+# Pins the game's fight of the match's projected layout; the original GRBR
+# produces the same ticks and hash. Summoned red Wasp 559 searches on tick 48
+# after blue Crawler 8 crosses the quadtree's x=0 split. Its live query now
+# visits Crawler 6 before 8; their equal scores retain 6 as the lock. Using
+# tick-start traversal order instead first differs at that tick and changes
+# blue's final core damage from 1906 to 2524.
+
+kind: fight
+source: game
+map_id: 1012
+seed: 1044641621
+round: 8
+blue:
+  core_damage: 0
+  officers: [fortified_specialist]
+  techs:
+    arclight: [range_enhancement]
+    mountain: [range_enhancement]
+  blueprints: [attack_enhancement, defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: crawler, index: 0, position: {x: -260, y: -285}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: -135, y: -190}, exp: 450/450/450}
+  - {name: crawler, index: 2, position: {x: 0, y: -285}, exp: 450/450/450, rotated: true}
+  - {name: arclight, index: 5, position: {x: -120, y: -150}, level: 3, exp: 2671/2671/2671}
+  - {name: arclight, index: 6, position: {x: 120, y: -150}, level: 2, exp: 1690/1690/1690}
+  - {name: stormcaller, index: 7, position: {x: -175, y: -160}, level: 2, exp: 2479/2479/2479}
+  - {name: arclight, index: 9, position: {x: 260, y: -200}, level: 3, exp: 0/2671/2671}
+  - {name: arclight, index: 10, position: {x: 0, y: -150}, level: 3, exp: 0/1383/2671}
+  - {name: arclight, index: 11, position: {x: -260, y: -210}, level: 3, exp: 1512/2625/2671}
+  - {name: crawler, index: 13, position: {x: 0, y: -185}, recordPosition: {x: -310, y: 255}, recordRotated: false, exp: 0/120/450, rotated: true, equipment: [deployment_module]}
+  - {name: marksman, index: 14, position: {x: -150, y: -210}, level: 2, exp: 1176/1465/1465}
+  - {name: marksman, index: 15, position: {x: 160, y: -210}, level: 2, exp: 1465/1465/1465}
+  - {name: mountain, index: 16, position: {x: -235, y: -165}, exp: 2552/3200/3200}
+  - {name: crawler, index: 17, position: {x: -280, y: -185}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 18, position: {x: 260, y: -285}, exp: 450/450/450, rotated: true}
+  - {name: mountain, index: 19, position: {x: -75, y: -145}, level: 2, exp: 0/7210/7210}
+  - {name: fang, index: 20, position: {x: -210, y: -225}, exp: 600/600/600, rotated: true}
+  - {name: fang, index: 21, position: {x: 190, y: -135}, exp: 600/600/600, rotated: true}
+  - {name: mountain, index: 23, position: {x: 235, y: -155}, level: 2, exp: 5086/7210/7210}
+  - {name: arclight, index: 24, position: {x: 170, y: -120}, level: 2, exp: 1690/1690/1690}
+  - {name: arclight, index: 25, position: {x: -190, y: -180}, level: 2, exp: 1194/1690/1690}
+  - {name: crawler, index: 26, position: {x: 260, y: -95}, exp: 0/450/450, rotated: true, source: joined}
+  - {name: fang, index: 27, position: {x: -280, y: -135}, exp: 0/394/600, rotated: true, source: joined}
+  - {name: crawler, index: 28, position: {x: 120, y: -115}, exp: 0/216/450, rotated: true, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 2, position: {x: 298, y: -212}, retained: false}
+  - {name: missile, index: 3, position: {x: 296, y: -303}, retained: false}
+  - {name: missile, index: 4, position: {x: 298, y: -29}, retained: false}
+red:
+  core_damage: 1906
+  officers: [elite_specialist]
+  techs:
+    mustang: [range_enhancement]
+    sandworm: [replicate, strike, mechanical_rage]
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: void_eye, index: 0, position: {x: -60, y: -170}, exp: 532/553/650}
+  - {name: void_eye, index: 1, position: {x: 0, y: -170}, level: 2, exp: 293/337/1465}
+  - {name: mustang, index: 3, position: {x: -125, y: -300}, level: 2, exp: 0/76/2704}
+  - {name: mustang, index: 4, position: {x: 125, y: -300}, level: 3, exp: 0/96/4274}
+  - {name: arclight, index: 5, position: {x: 140, y: -150}, level: 2, exp: 1375/1423/1690}
+  - {name: arclight, index: 6, position: {x: -140, y: -150}, level: 2, exp: 740/961/1690}
+  - {name: crawler, index: 7, position: {x: 290, y: -285}, level: 2, exp: 1014/1014/1014, rotated: true}
+  - {name: crawler, index: 8, position: {x: -290, y: -285}, level: 2, exp: 1014/1014/1014, rotated: true}
+  - {name: crawler, index: 9, position: {x: -10, y: -35}, level: 2, exp: 23/32/1014, rotated: true}
+  - {name: crawler, index: 10, position: {x: 140, y: -205}, level: 2, exp: 352/362/1014, rotated: true}
+  - {name: crawler, index: 11, position: {x: -140, y: -205}, level: 2, exp: 63/134/1014, rotated: true}
+  - {name: sandworm, index: 13, position: {x: 240, y: -260}, level: 4, exp: 3107/6179/8981, rotated: true, equipment: [portable_shield]}
+  - {name: crawler, index: 14, position: {x: 0, y: -285}, level: 2, exp: 115/162/1014, rotated: true}
+  - {name: arclight, index: 15, position: {x: -350, y: 300}, level: 2, exp: 410/482/1690}
+  - {name: crawler, index: 16, position: {x: -310, y: 215}, level: 2, exp: 22/22/1014}
+  - {name: crawler, index: 17, position: {x: 290, y: -145}, level: 2, exp: 160/160/1014, rotated: true}
+  - {name: sandworm, index: 18, position: {x: -280, y: -30}, level: 2, exp: 1649/1877/4506}
+  - {name: crawler, index: 19, position: {x: -310, y: 35}, level: 2, exp: 4/4/1014}
+  - {name: mustang, index: 20, position: {x: -245, y: -90}, level: 2, exp: 1875/2503/2704}
+  - {name: phoenix, index: 21, position: {x: -270, y: -70}, level: 4, exp: 0/128/5837}
+  - {name: sandworm, index: 22, position: {x: -190, y: -70}, level: 2, exp: 29/165/4506}
+  - {name: phoenix, index: 23, position: {x: -180, y: -110}, level: 2, exp: 1242/1294/2929}
+  - {name: sandworm, index: 24, position: {x: 200, y: -260}, level: 2, exp: 0/250/4506, source: joined}
+  - {name: crawler, index: 25, position: {x: -290, y: -115}, level: 2, exp: 0/9/1014, rotated: true, source: joined}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: -20, y: 285}]}
+  - {name: mobile_beacon, positions: [{x: -20, y: -40}, {x: -213, y: 12}, {x: -29, y: -66}]}
+asserts:
+- sql: |-
+    SELECT tick,unit_id,mech_lock_target__kind,mech_lock_target__id FROM units WHERE unit_id=559 AND tick=48
+  rows:
+  - [48, 559, unit, 6]
+ticks: 1109
+hash: 27:070b6242365ee908fcd939d23e5b6fe247ef108a418ddcbe337a467810e69f73
