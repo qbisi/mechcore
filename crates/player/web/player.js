@@ -1812,9 +1812,15 @@
       LeadIn.draw(ctx, leadState, h, true);
       screen();
       LeadIn.drawOverlay(ctx, leadState, h);
-      if (ctx === canvasCtx) syncDeployTechs(leadState, h.ui);
+      if (ctx === canvasCtx) syncDeployTechs(leadState, h.ui, 1);
     } else {
-      if (ctx === canvasCtx) syncDeployTechs(null, 1);
+      if (ctx === canvasCtx) {
+        const fadeTicks = Math.max(1, Math.round(0.4 * TPS));
+        const combatFade = leadIn.active && cursor < 1 + fadeTicks
+          ? Math.max(0, 1 - Math.max(0, cursor - 1) / fadeTicks)
+          : 0;
+        syncDeployTechs(null, HudFrame.uiScale(naturalFitScale()), combatFade);
+      }
       drawUnits(false, bars);
       drawShields();
       drawProjectiles();
@@ -1923,31 +1929,44 @@
       menu.append(button,list);cards.insertBefore(menu,cards.querySelector('.supply-card'));
     }
   }
-  function syncDeployTechs(leadState, ui) {
-    if (!leadState) {
-      if (deployTechStrips.size) {
-        deployTechStrips.clear();
-        deployTechLayer.replaceChildren();
-      }
-      if (!deployTechLayer.hidden) deployTechLayer.hidden = true;
+  function clearDeployTechs() {
+    if (deployTechStrips.size) {
+      deployTechStrips.clear();
+      deployTechLayer.replaceChildren();
+    }
+    if (!deployTechLayer.hidden) deployTechLayer.hidden = true;
+  }
+
+  function syncDeployTechs(leadState, ui, combatAlpha = 1) {
+    if (!leadState && combatAlpha <= 0.01) {
+      clearDeployTechs();
       return;
     }
+    const rawInfos = leadState
+      ? leadState.formations.map((fs) => {
+          const info = LeadIn.formationTechs(leadIn, leadState, fs);
+          return info ? { ...info, key: fs.f.i } : null;
+        }).filter(Boolean)
+      : LeadIn.combatTechs(leadIn, (u) => unitAt(u, tau));
+    if (!rawInfos.length) {
+      clearDeployTechs();
+      return;
+    }
+    const alphaScale = leadState ? 1 : combatAlpha;
     const badgeSize = Math.round(Math.max(14, Math.min(22, 17 * ui)));
     const activeKeys = new Set();
-    for (const fs of leadState.formations) {
-      const info = LeadIn.formationTechs(leadIn, leadState, fs);
-      if (!info) continue;
+    for (const info of rawInfos) {
       const items = info.items.filter((item) => rosterAssets.images[rosterAssets.techs[item.id]?.icon]);
       if (!items.length) continue;
-      activeKeys.add(fs.f.i);
+      activeKeys.add(info.key);
       const sig = items.map((x) => x.id).join(',');
-      let entry = deployTechStrips.get(fs.f.i);
+      let entry = deployTechStrips.get(info.key);
       if (!entry) {
         const el = document.createElement('div');
         el.className = `deploy-formation-techs ${info.team ? 'red' : 'blue'}`;
         deployTechLayer.append(el);
         entry = { el, sig: '', badges: new Map(), size: 0, left: '', top: '', opacity: '' };
-        deployTechStrips.set(fs.f.i, entry);
+        deployTechStrips.set(info.key, entry);
       }
       if (entry.sig !== sig) {
         entry.sig = sig;
@@ -1982,7 +2001,7 @@
       }
       const left = `${sx(info.anchor.x).toFixed(1)}px`;
       const top = `${sy(info.anchor.z).toFixed(1)}px`;
-      const opacity = info.alpha.toFixed(3);
+      const opacity = (info.alpha * alphaScale).toFixed(3);
       if (entry.left !== left) { entry.left = left; entry.el.style.left = left; }
       if (entry.top !== top) { entry.top = top; entry.el.style.top = top; }
       if (entry.opacity !== opacity) { entry.opacity = opacity; entry.el.style.opacity = opacity; }
@@ -2043,17 +2062,7 @@
   function syncDeployLog(side, leadState, playEntry) {
     const st = deployLogPanels[side];
     const log = st.log;
-    if (!leadState) {
-      st.panel.hidden = true;
-      st.bar.hidden = true;
-      if (st.count) {
-        st.count = 0;
-        st.userBrowsing = false;
-        log.replaceChildren();
-      }
-      return;
-    }
-    const items = leadState.done[side];
+    const items = leadState ? leadState.done[side] : (leadIn && leadIn.active ? leadIn.tracks[side] : []);
     st.panel.hidden = !items.length;
     if (!items.length) {
       if (st.count) {
@@ -2090,7 +2099,7 @@
         else log.append(li);
       }
       const active = playEntry === e;
-      const done = !active && leadState.completed[side].includes(e);
+      const done = leadState ? (!active && leadState.completed[side].includes(e)) : true;
       const cls = (active ? 'active' : done ? 'done' : '') + (li._placeholder ? ' placeholder' : '');
       if (li.className !== cls) li.className = cls;
     });
@@ -2103,7 +2112,7 @@
 
   function resetHud() {
     panelsVisibleUntil = -Infinity;
-    syncDeployTechs(null, 1);
+    clearDeployTechs();
     for (const st of deployLogPanels) {
       st.expanded = false;
       st.userBrowsing = false;
@@ -2194,10 +2203,15 @@
     clock.title = leadState ? `Deploy ${Math.floor(cursor - START)} / ${leadIn.ticks}` : `Tick ${Math.floor(tau)} / ${LAST}`;
     document.getElementById('battle-time').textContent = frameTime(leadState ? cursor : tau);
     const ending=ScoreSettlement.sample(settlement,(cursor-LAST)/TPS);
-    const sidePanels=[0,1].map(i=>[document.getElementById(`unit-roster-${i}`),document.getElementById(`arsenal-${i}`)]);
+    const sidePanels=[0,1].map(i=>[
+      document.getElementById(`unit-roster-${i}`),
+      document.getElementById(`arsenal-${i}`),
+      document.getElementById(`deploy-panel-${i}`),
+    ]);
     const focused=sidePanels.flat().some(panel=>panel.contains(document.activeElement));
+    const hoveredDeploy=deployLogPanels.some(st=>!st.panel.hidden&&!st.panel.classList.contains('panels-hidden')&&st.panel.matches(':hover'));
     const now = performance.now();
-    if (focused || sidePanels.some(pointerNearPanels)) panelsVisibleUntil = Infinity;
+    if (focused || hoveredDeploy || sidePanels.some((panels,i)=>pointerNearPanels(panels.slice(0,2),i))) panelsVisibleUntil = Infinity;
     else if (panelsVisibleUntil === Infinity) panelsVisibleUntil = now + PANEL_LINGER_MS;
     const hidePanels=!options.panels&&!leadState&&(cursor-1)/TPS>=3&&now>=panelsVisibleUntil;
     for (const [i,v] of coreViews.entries()) {
