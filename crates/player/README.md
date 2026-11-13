@@ -36,7 +36,9 @@ with two seconds per decision and no total duration cap: unit purchase (`buy_uni
 distinguishing flank arrivals), formation move (`move_unit`), formation upgrade
 (`upgrade_unit`) and technology research (`upgrade_technology`) animate directly
 on the battlefield, while other deployment decisions appear as placeholders with
-a quiet formation pulse and a per-side action log under each core bar, along with
+a quiet formation pulse and a per-side actions panel aligned to the top of the
+unit and skills panels (left-aligned on blue, right-aligned on red, showing up
+to 5 actions with hover scrollbar history and an expand toggle), along with
 live supply, pending/active tech badges, per-formation active technology icon
 strips (from prior rounds and newly ignited research), unit-drawer refresh
 effects on tech activation, `Lv from ›› Lv to` flip plates and

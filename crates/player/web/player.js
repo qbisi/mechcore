@@ -1861,6 +1861,7 @@
     document.getElementById('scoreboard').style.setProperty('--hud-scale',String(scale));
     for(const side of [0,1])document.getElementById(`unit-roster-${side}`).style.setProperty('--hud-scale',String(scale));
     for(const side of [0,1])document.getElementById(`arsenal-${side}`).style.setProperty('--hud-scale',String(scale));
+    for(const side of [0,1])document.getElementById(`deploy-panel-${side}`).style.setProperty('--hud-scale',String(scale));
     for (const [i,v] of coreViews.entries()) {
       const width=Math.max(80,v.panel.getBoundingClientRect().width/scale);
       const cards=v.panel.querySelector('.core-cards');
@@ -1995,15 +1996,133 @@
     deployTechLayer.hidden = deployTechStrips.size === 0;
   }
 
+  const DEPLOY_COLLAPSED_ROWS = 5;
+  function syncDeployToggle(st, total) {
+    const showBar = total > DEPLOY_COLLAPSED_ROWS || st.expanded;
+    st.bar.hidden = !showBar;
+    if (!showBar) return;
+    if (st.expanded) {
+      st.toggle.textContent = `Less (${total}) \u25B4`;
+      st.toggle.title = 'Show up to 5 actions';
+    } else {
+      st.toggle.textContent = `More (${DEPLOY_COLLAPSED_ROWS}/${total}) \u25BE`;
+      st.toggle.title = 'Show more actions or scroll above';
+    }
+  }
+  function pinDeployLogBottom(st) {
+    st.log.scrollTop = st.log.scrollHeight;
+  }
+  const deployLogPanels = [0, 1].map((side) => {
+    const panel = document.getElementById(`deploy-panel-${side}`);
+    const log = document.getElementById(`deploy-log-${side}`);
+    const bar = document.getElementById(`deploy-bar-${side}`);
+    const toggle = document.getElementById(`deploy-toggle-${side}`);
+    const st = { panel, log, bar, toggle, expanded: false, userBrowsing: false, count: 0 };
+    log.addEventListener('scroll', () => {
+      st.userBrowsing = (log.scrollHeight - log.clientHeight - log.scrollTop) > 10;
+    });
+    panel.addEventListener('mouseleave', () => {
+      st.userBrowsing = false;
+      pinDeployLogBottom(st);
+    });
+    toggle.addEventListener('click', () => {
+      st.expanded = !st.expanded;
+      panel.classList.toggle('expanded', st.expanded);
+      toggle.setAttribute('aria-expanded', String(st.expanded));
+      syncDeployToggle(st, st.count);
+      if (!st.userBrowsing) pinDeployLogBottom(st);
+    });
+    if (typeof ResizeObserver === 'function') {
+      new ResizeObserver(() => {
+        if (!st.userBrowsing) pinDeployLogBottom(st);
+      }).observe(log);
+    }
+    return st;
+  });
+
+  function syncDeployLog(side, leadState, playEntry) {
+    const st = deployLogPanels[side];
+    const log = st.log;
+    if (!leadState) {
+      st.panel.hidden = true;
+      st.bar.hidden = true;
+      if (st.count) {
+        st.count = 0;
+        st.userBrowsing = false;
+        log.replaceChildren();
+      }
+      return;
+    }
+    const items = leadState.done[side];
+    st.panel.hidden = !items.length;
+    if (!items.length) {
+      if (st.count) {
+        st.count = 0;
+        st.userBrowsing = false;
+        log.replaceChildren();
+      }
+      st.bar.hidden = true;
+      return;
+    }
+    const prevCount = st.count;
+    while (log.children.length > items.length) log.lastElementChild.remove();
+    items.forEach((e, idx) => {
+      let li = log.children[idx];
+      if (!li || li._entry !== e) {
+        const info = LeadIn.describe(e, NAMES, rosterAssets.techs);
+        li = document.createElement('li');
+        li._entry = e;
+        li._placeholder = info.placeholder;
+        const tag = document.createElement('span');
+        tag.className = 'deploy-tag';
+        tag.textContent = info.tag;
+        const label = document.createElement('span');
+        label.className = 'deploy-label';
+        label.textContent = info.label;
+        li.append(tag, label);
+        if (info.delta) {
+          const d = document.createElement('span');
+          d.className = 'deploy-delta';
+          d.textContent = info.delta;
+          li.append(d);
+        }
+        if (log.children[idx]) log.children[idx].replaceWith(li);
+        else log.append(li);
+      }
+      const active = playEntry === e;
+      const done = !active && leadState.completed[side].includes(e);
+      const cls = (active ? 'active' : done ? 'done' : '') + (li._placeholder ? ' placeholder' : '');
+      if (li.className !== cls) li.className = cls;
+    });
+    st.count = items.length;
+    syncDeployToggle(st, items.length);
+    if (!st.userBrowsing && (prevCount !== items.length || !st.panel.matches(':hover'))) {
+      pinDeployLogBottom(st);
+    }
+  }
+
   function resetHud() {
     panelsVisibleUntil = -Infinity;
     syncDeployTechs(null, 1);
+    for (const st of deployLogPanels) {
+      st.expanded = false;
+      st.userBrowsing = false;
+      st.count = 0;
+      st.panel.classList.remove('expanded');
+      st.toggle.setAttribute('aria-expanded', 'false');
+      st.panel.hidden = true;
+      st.bar.hidden = true;
+      st.log.replaceChildren();
+    }
     const tip=document.getElementById('roster-tooltip');tip.hidden=true;
     for(const side of [0,1])UnitRoster.render(document.getElementById(`roster-list-${side}`),data.rosters[side],rosterAssets,side,tip);
     for(const side of [0,1]){
       const width=Math.max(122,...data.rosters[side].map(entry=>UnitRoster.geometry(entry.techs.length).width));
+      const arsenal=data.arsenals[side];
+      const hasArsenal=Boolean(arsenal.skills.length||arsenal.equipment.length);
       document.getElementById(`arsenal-${side}`).style.setProperty('--roster-offset',String(width+20));
-      ArsenalPanel.render(document.getElementById(`arsenal-content-${side}`),data.arsenals[side],arsenalAssets,side,tip);
+      document.getElementById(`deploy-panel-${side}`).style.setProperty('--deploy-offset',String(width+20+(hasArsenal?58:0)));
+      ArsenalPanel.render(document.getElementById(`arsenal-content-${side}`),arsenal,arsenalAssets,side,tip);
     }
     seek.min = String(START);
     seek.max = String(END);
@@ -2097,26 +2216,7 @@
       const investment=core.supply+data.rosters[i].reduce((sum,row)=>sum+(row.investment_supply??0),0);
       document.getElementById(`supply-value-${i}`).textContent=`${liveSupply}/${investment}`;
       supplyCard.classList.toggle('deploy-active',Boolean(playEntry&&playEntry.spent>0));
-      const log=document.getElementById(`deploy-log-${i}`);
-      if(leadState){
-        const recent=leadState.done[i].slice(-3);
-        log.hidden=!recent.length;
-        log.replaceChildren(...recent.map(e=>{
-          const info=LeadIn.describe(e,NAMES,rosterAssets.techs);
-          const li=document.createElement('li');
-          const active=playEntry===e;
-          const done=!active&&leadState.completed[i].includes(e);
-          li.className=(active?'active':done?'done':'')+(info.placeholder?' placeholder':'');
-          const tag=document.createElement('span');tag.className='deploy-tag';tag.textContent=info.tag;
-          const label=document.createElement('span');label.className='deploy-label';label.textContent=info.label;
-          li.append(tag,label);
-          if(info.delta){const d=document.createElement('span');d.className='deploy-delta';d.textContent=info.delta;li.append(d);}
-          return li;
-        }));
-      }else{
-        log.hidden=true;
-        log.replaceChildren();
-      }
+      syncDeployLog(i,leadState,playEntry);
       const roster=document.getElementById(`roster-list-${i}`);
       const refreshTail=Math.round(0.6*TPS);
       for(const row of roster.querySelectorAll('.unit-drawer')){
