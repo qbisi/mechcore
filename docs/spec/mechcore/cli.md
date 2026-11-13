@@ -713,7 +713,8 @@ projection as `convert --to layout --round`, and refuses a match with no such
 round or one containing a fight the simulator refuses. It takes its own seed;
 `--seed` is a usage error. The result adds `rounds`, counts `ticks` across all
 played rounds, and reports `seed_source: match`. The page's round dropdown,
-immediately left of speed, selects a round at tick 1 while retaining speed and
+immediately left of speed, selects a round at its initial frame (`window.player.startTick`,
+preceding tick 1 when the round carries a deployment lead-in) while retaining speed and
 playback state. Playback speeds are 0.5×, 1.0×, 2.0× and 4.0×. In a multi-round
 match, playback advances to the next round after settlement by default and stops
 after the last round. Turn off `Autoplay next round` in settings to stop after
@@ -726,12 +727,15 @@ HTML controls or core HUD. The image's title and filename name the fight, round 
 (or settlement frame during the presentation tail);
 its shapes, ground and effects remain vector elements rather than an embedded
 bitmap. `window.player.snapshot(frame)` returns that image for an integer frame
-from 1 through `window.player.endTick`. Frames through the recording's last tick
+from `window.player.startTick` through `window.player.endTick`. Negative and zero
+frames before tick 1 replay the round's deployment decisions (with blue and red on
+independent clocks) ahead of tick 1; frames from `1` through the recording's last tick
 are combat ticks. A presentation-only tail freezes that last tick while
 survivors' score values fly to the opposing core and deduct the recorded
-settlement damage. It adds no recording ticks, changes no CLI `ticks` result,
-and remains seekable and deterministic. `player.tau` stays at the combat tick;
-`player.playhead` includes the tail. The bottom bar includes settlement in both
+settlement damage. Lead-in and settlement are presentation-only: they add no
+recording ticks, change no CLI `ticks` result, and remain seekable and
+deterministic. `player.tau` stays at the combat tick (`1..=LAST`); `player.playhead` spans
+from `startTick` through the tail. The bottom bar includes deployment lead-in and settlement in both
 elapsed time and total duration. The battlefield clock holds its final combat
 time throughout settlement. A zero-damage fight has no scoring tail.
 

@@ -270,6 +270,8 @@
     return { byRef, units, buildings, projectiles, shields, terrains, deployments, cues, decals, fallen };
   }
   let { byRef, units, buildings, projectiles, shields, terrains, deployments, cues, decals, fallen } = tracks();
+  let leadIn = LeadIn.prepare(data, units);
+  let START = leadIn.start;
   const ref = (name) => (name ? byRef.get(name) : undefined);
 
   // ------------------------------------------------------------- sampling
@@ -468,14 +470,17 @@
 
   // ------------------------------------------------------------- the view
   const canvas = document.getElementById('field');
-  let ctx = canvas.getContext('2d');
+  const canvasCtx = canvas.getContext('2d');
+  let ctx = canvasCtx;
+  const deployTechLayer = document.getElementById('deploy-techs');
+  const deployTechStrips = new Map();
   const view = { x: 0, z: 0, s: 1, w: 1, h: 1, dpr: 1 };
   const options = { life: true, damage: false, panels: false };
   const PANEL_LINGER_MS = 3000;
   let panelPointer = null;
   let panelsVisibleUntil = -Infinity;
   let tau = 1;
-  let cursor = 1;
+  let cursor = START;
   let playing = true;
   let speed = 1;
   let hover = null;
@@ -836,6 +841,118 @@
       ctx.globalAlpha = 1;
       if (s.life < u.maxLife) bars.push([s.x, s.z, u.radius * big, s.life, u.maxLife, u.team, false]);
     }
+  }
+
+  function rectPath(x, y, w, h) {
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + w, y);
+    ctx.lineTo(x + w, y + h);
+    ctx.lineTo(x, y + h);
+    ctx.closePath();
+  }
+
+  function drawLeadInUnit(f, member, level, alpha, opts = {}) {
+    if (alpha <= 0) return;
+    const big = enlargement();
+    const m = member.m;
+    const p = resetPose(f.team);
+    p.facing = rad(member.body);
+    p.turret = rad(member.turret - member.body);
+    p.speed = opts.speed ?? 0;
+    p.walk = (opts.walk ?? 0) + m.id * 1.7;
+    if (opts.clip) {
+      const span = Math.max(m.radius * 4, 16);
+      const uMin = member.x + member.z - span, uMax = member.x + member.z + span;
+      const lo = Math.max(opts.clip[0], uMin), hi = Math.min(opts.clip[1], uMax);
+      if (lo >= hi) return;
+      const v0 = member.x - member.z - span, v1 = member.x - member.z + span;
+      if (opts.clip[1] === Infinity) drawLeadInShadow(member, m.air, big, alpha);
+      place(0, 0);
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo((lo + v0) / 2, -(lo - v0) / 2);
+      ctx.lineTo((hi + v0) / 2, -(hi - v0) / 2);
+      ctx.lineTo((hi + v1) / 2, -(hi - v1) / 2);
+      ctx.lineTo((lo + v1) / 2, -(lo - v1) / 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.globalAlpha = alpha;
+      place(member.x, member.z, member.body, big);
+      Sprites.drawUnit(ctx, m.kind, p, m.radius, level);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+      return;
+    }
+    if (opts.print !== undefined) {
+      if (opts.print <= 0) return;
+      const r = Math.min(1, opts.print);
+      const size = Sprites.SIZE[m.kind];
+      const boxSpan = size ? Math.max(size[0], size[1]) * 0.72 : Math.max(m.radius * 1.8, 4);
+      const top = boxSpan * (1 - 2 * r);
+      drawLeadInShadow(member, m.air, big, alpha * r);
+      place(member.x, member.z, 0, big);
+      ctx.save();
+      ctx.beginPath();
+      rectPath(-boxSpan, top, boxSpan * 2, boxSpan * 2 * r);
+      ctx.clip();
+      ctx.globalAlpha = alpha;
+      place(member.x, member.z, member.body, big);
+      Sprites.drawUnit(ctx, m.kind, p, m.radius, level);
+      ctx.restore();
+      if (r < 1) {
+        place(member.x, member.z, 0, big);
+        ctx.save();
+        ctx.globalAlpha = Math.sin(Math.PI * r) * 0.9;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = Math.max(0.25, 1.8 / (view.s * big));
+        ctx.beginPath();
+        ctx.moveTo(-boxSpan * 0.85, top);
+        ctx.lineTo(boxSpan * 0.85, top);
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+      return;
+    }
+    if (!opts.ghost) drawLeadInShadow(member, m.air, big, alpha);
+    ctx.globalAlpha = alpha;
+    place(member.x, member.z, member.body, big);
+    Sprites.drawUnit(ctx, m.kind, p, m.radius, level);
+    ctx.globalAlpha = 1;
+  }
+
+  function drawLeadInShadow(member, air, big, alpha) {
+    const m = member.m;
+    if (air) {
+      place(member.x + member.y * AIR_SHADOW[0], member.z + member.y * AIR_SHADOW[1], member.body, big);
+      ctx.globalAlpha = 0.24 * alpha;
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      const size = Sprites.SIZE[m.kind];
+      if (size) {
+        ctx.ellipse(0, 0, size[0] * 0.42, size[1] * 0.42, 0, 0, Math.PI * 2);
+      } else {
+        ctx.ellipse(0, -1, m.radius * 0.45, m.radius * 1.3, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, m.radius * 1.2, m.radius * 0.35, 0, 0, Math.PI * 2);
+      }
+      ctx.fill();
+    } else {
+      place(member.x, member.z, member.body, big);
+      ctx.globalAlpha = 0.14 * alpha;
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.ellipse(0.4, 0.6, m.radius * 0.75, m.radius * 0.85, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function leadHelpers() {
+    return {
+      place, sx, sy, scale: view.s, teams: TEAMS,
+      ui: HudFrame.uiScale(naturalFitScale()),
+      footprints: data.new_formations || [],
+      unit: drawLeadInUnit,
+    };
   }
 
   // A projectile's look follows the weapon that fired it, after the effect
@@ -1676,32 +1793,46 @@
   // ---------------------------------------------------------------- frame
   function frame() {
     Sprites.setScale(1 / (view.s * view.dpr));
+    const leadState = LeadIn.sample(leadIn, cursor);
     drawGround();
-    drawDecals();
-    drawTerrains();
-    place(0, 0);
-    for (const d of deployments) SkillPreview.draw(ctx, d, tau, TPS, TEAMS[d.team], view.s);
-    for (const d of deployments) SkillPreview.drawStrike(ctx, d, tau, TPS, TEAMS[d.team], view.s);
+    if (!leadState) {
+      drawDecals();
+      drawTerrains();
+      place(0, 0);
+      for (const d of deployments) SkillPreview.draw(ctx, d, tau, TPS, TEAMS[d.team], view.s);
+      for (const d of deployments) SkillPreview.drawStrike(ctx, d, tau, TPS, TEAMS[d.team], view.s);
+    }
     const bars = [];
     const numbers = options.damage ? [] : null;
     drawBuildings(bars);
-    drawUnits(false, bars);
-    drawShields();
-    drawProjectiles();
-    drawEffects(numbers);
-    drawUnits(true, bars);
-    drawTerrains(true);
-    screen();
-    if(cursor<2){
-      ctx.save();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
-      for(const r of data.new_formations||[]){
-        ctx.strokeRect(sx(r.x0/100),sy(r.z1/100),(r.x1-r.x0)/100*view.s,(r.z1-r.z0)/100*view.s);
+    if (leadState) {
+      const h = leadHelpers();
+      LeadIn.draw(ctx, leadState, h, false);
+      drawShields();
+      LeadIn.draw(ctx, leadState, h, true);
+      screen();
+      LeadIn.drawOverlay(ctx, leadState, h);
+      if (ctx === canvasCtx) syncDeployTechs(leadState, h.ui);
+    } else {
+      if (ctx === canvasCtx) syncDeployTechs(null, 1);
+      drawUnits(false, bars);
+      drawShields();
+      drawProjectiles();
+      drawEffects(numbers);
+      drawUnits(true, bars);
+      drawTerrains(true);
+      screen();
+      if(cursor<2){
+        ctx.save();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
+        for(const r of data.new_formations||[]){
+          ctx.strokeRect(sx(r.x0/100),sy(r.z1/100),(r.x1-r.x0)/100*view.s,(r.z1-r.z0)/100*view.s);
+        }
+        ctx.restore();
       }
-      ctx.restore();
     }
     drawBars(bars);
-    if (numbers) drawNumbers(numbers);
-    drawHover();
+    if (!leadState && numbers) drawNumbers(numbers);
+    if (!leadState) drawHover();
     if(cursor>LAST) {
       const targets=coreViews.map(v=>{
         const r=v.track.getBoundingClientRect();
@@ -1791,8 +1922,82 @@
       menu.append(button,list);cards.insertBefore(menu,cards.querySelector('.supply-card'));
     }
   }
+  function syncDeployTechs(leadState, ui) {
+    if (!leadState) {
+      if (deployTechStrips.size) {
+        deployTechStrips.clear();
+        deployTechLayer.replaceChildren();
+      }
+      if (!deployTechLayer.hidden) deployTechLayer.hidden = true;
+      return;
+    }
+    const badgeSize = Math.round(Math.max(14, Math.min(22, 17 * ui)));
+    const activeKeys = new Set();
+    for (const fs of leadState.formations) {
+      const info = LeadIn.formationTechs(leadIn, leadState, fs);
+      if (!info) continue;
+      const items = info.items.filter((item) => rosterAssets.images[rosterAssets.techs[item.id]?.icon]);
+      if (!items.length) continue;
+      activeKeys.add(fs.f.i);
+      const sig = items.map((x) => x.id).join(',');
+      let entry = deployTechStrips.get(fs.f.i);
+      if (!entry) {
+        const el = document.createElement('div');
+        el.className = `deploy-formation-techs ${info.team ? 'red' : 'blue'}`;
+        deployTechLayer.append(el);
+        entry = { el, sig: '', badges: new Map(), size: 0, left: '', top: '', opacity: '' };
+        deployTechStrips.set(fs.f.i, entry);
+      }
+      if (entry.sig !== sig) {
+        entry.sig = sig;
+        entry.badges.clear();
+        const nodes = [];
+        for (const item of items) {
+          const tech = rosterAssets.techs[item.id];
+          const src = tech && rosterAssets.images[tech.icon];
+          if (!src) continue;
+          const badge = document.createElement('div');
+          badge.className = 'deploy-formation-tech-badge';
+          const img = document.createElement('img');
+          img.src = src;
+          img.alt = '';
+          img.draggable = false;
+          badge.append(img);
+          entry.badges.set(item.id, badge);
+          nodes.push(badge);
+        }
+        entry.el.replaceChildren(...nodes);
+      }
+      for (const item of items) {
+        const badge = entry.badges.get(item.id);
+        if (!badge) continue;
+        badge.classList.toggle('new', item.isNew);
+        badge.classList.toggle('charging', item.state === 'charging');
+        badge.classList.toggle('activating', item.state === 'activating');
+      }
+      if (entry.size !== badgeSize) {
+        entry.size = badgeSize;
+        entry.el.style.setProperty('--deploy-tech-size', `${badgeSize}px`);
+      }
+      const left = `${sx(info.anchor.x).toFixed(1)}px`;
+      const top = `${(sy(info.anchor.topZ) - info.lift * ui).toFixed(1)}px`;
+      const opacity = info.alpha.toFixed(3);
+      if (entry.left !== left) { entry.left = left; entry.el.style.left = left; }
+      if (entry.top !== top) { entry.top = top; entry.el.style.top = top; }
+      if (entry.opacity !== opacity) { entry.opacity = opacity; entry.el.style.opacity = opacity; }
+    }
+    for (const [idx, entry] of deployTechStrips) {
+      if (!activeKeys.has(idx)) {
+        entry.el.remove();
+        deployTechStrips.delete(idx);
+      }
+    }
+    deployTechLayer.hidden = deployTechStrips.size === 0;
+  }
+
   function resetHud() {
     panelsVisibleUntil = -Infinity;
+    syncDeployTechs(null, 1);
     const tip=document.getElementById('roster-tooltip');tip.hidden=true;
     for(const side of [0,1])UnitRoster.render(document.getElementById(`roster-list-${side}`),data.rosters[side],rosterAssets,side,tip);
     for(const side of [0,1]){
@@ -1800,6 +2005,7 @@
       document.getElementById(`arsenal-${side}`).style.setProperty('--roster-offset',String(width+20));
       ArsenalPanel.render(document.getElementById(`arsenal-content-${side}`),data.arsenals[side],arsenalAssets,side,tip);
     }
+    seek.min = String(START);
     seek.max = String(END);
     document.getElementById('previous-round').disabled = roundIndex === 0;
     document.getElementById('next-round').disabled = roundIndex === rounds.length-1;
@@ -1858,20 +2064,23 @@
 
   function frameTime(frame) {
     const tenths = Math.round((frame - 1) * 10 / TPS);
-    return `${Math.floor(tenths / 600)}:${((tenths % 600) / 10).toFixed(1).padStart(4, '0')}`;
+    const sign = tenths < 0 ? '-' : '';
+    const abs = Math.abs(tenths);
+    return `${sign}${Math.floor(abs / 600)}:${((abs % 600) / 10).toFixed(1).padStart(4, '0')}`;
   }
 
   function updateHud() {
+    const leadState = LeadIn.sample(leadIn, cursor);
     clock.textContent = `${frameTime(cursor)} / ${frameTime(END)}`;
-    clock.title=`Tick ${Math.floor(tau)} / ${LAST}`;
-    document.getElementById('battle-time').textContent=frameTime(tau);
+    clock.title = leadState ? `Deploy ${Math.floor(cursor - START)} / ${leadIn.ticks}` : `Tick ${Math.floor(tau)} / ${LAST}`;
+    document.getElementById('battle-time').textContent = frameTime(leadState ? cursor : tau);
     const ending=ScoreSettlement.sample(settlement,(cursor-LAST)/TPS);
     const sidePanels=[0,1].map(i=>[document.getElementById(`unit-roster-${i}`),document.getElementById(`arsenal-${i}`)]);
     const focused=sidePanels.flat().some(panel=>panel.contains(document.activeElement));
     const now = performance.now();
     if (focused || sidePanels.some(pointerNearPanels)) panelsVisibleUntil = Infinity;
     else if (panelsVisibleUntil === Infinity) panelsVisibleUntil = now + PANEL_LINGER_MS;
-    const hidePanels=!options.panels&&(cursor-1)/TPS>=3&&now>=panelsVisibleUntil;
+    const hidePanels=!options.panels&&!leadState&&(cursor-1)/TPS>=3&&now>=panelsVisibleUntil;
     for (const [i,v] of coreViews.entries()) {
       const arsenal=data.arsenals[i];
       for(const panel of sidePanels[i]){
@@ -1882,6 +2091,53 @@
       }
       document.getElementById(`arsenal-${i}`).hidden=!arsenal.skills.length&&!arsenal.equipment.length;
       const core=data.cores[i], known=core.begin!==null;
+      const playEntry=leadState?.playing?.[i]?.entry||null;
+      const supplyCard=document.getElementById(`supply-card-${i}`);
+      const liveSupply=LeadIn.supplyAt(leadIn,leadState,i)??core.supply;
+      const investment=core.supply+data.rosters[i].reduce((sum,row)=>sum+(row.investment_supply??0),0);
+      document.getElementById(`supply-value-${i}`).textContent=`${liveSupply}/${investment}`;
+      supplyCard.classList.toggle('deploy-active',Boolean(playEntry&&playEntry.spent>0));
+      const log=document.getElementById(`deploy-log-${i}`);
+      if(leadState){
+        const recent=leadState.done[i].slice(-3);
+        log.hidden=!recent.length;
+        log.replaceChildren(...recent.map(e=>{
+          const info=LeadIn.describe(e,NAMES,rosterAssets.techs);
+          const li=document.createElement('li');
+          const active=playEntry===e;
+          const done=!active&&leadState.completed[i].includes(e);
+          li.className=(active?'active':done?'done':'')+(info.placeholder?' placeholder':'');
+          const tag=document.createElement('span');tag.className='deploy-tag';tag.textContent=info.tag;
+          const label=document.createElement('span');label.className='deploy-label';label.textContent=info.label;
+          li.append(tag,label);
+          if(info.delta){const d=document.createElement('span');d.className='deploy-delta';d.textContent=info.delta;li.append(d);}
+          return li;
+        }));
+      }else{
+        log.hidden=true;
+        log.replaceChildren();
+      }
+      const roster=document.getElementById(`roster-list-${i}`);
+      const refreshTail=Math.round(0.6*TPS);
+      for(const row of roster.querySelectorAll('.unit-drawer')){
+        const kind=row.dataset.unitKind;
+        row.classList.toggle('deploy-active',Boolean(playEntry&&(playEntry.unit===kind||playEntry.formations.some(f=>f.kind===kind))));
+        let drawerRefresh=false;
+        for(const tech of row.querySelectorAll('.unit-tech')){
+          const id=Number(tech.dataset.techId);
+          const taken=leadState?leadIn.tracks[i].find(e=>e.action==='upgrade_technology'&&e.unit===kind&&e.tech===id):null;
+          const igniteAt=taken?taken.from+taken.ticks*0.45:0;
+          const pending=Boolean(taken&&leadState.t<igniteAt);
+          const refreshing=Boolean(taken&&leadState.t>=igniteAt&&leadState.t<taken.to+refreshTail);
+          if(refreshing)drawerRefresh=true;
+          tech.classList.toggle('deploy-pending',pending);
+          tech.classList.toggle('deploy-active',Boolean(taken&&playEntry===taken&&leadState.t<igniteAt));
+          tech.classList.toggle('deploy-refresh',refreshing);
+        }
+        row.classList.toggle('deploy-refresh',drawerRefresh);
+        const invest=row.querySelector('.formation-investment');
+        if(invest)invest.classList.toggle('deploy-refresh',drawerRefresh);
+      }
       const damage=ending.damage[i];
       const value=known?core.begin-damage:null;
       v.fill.style.filter=`brightness(${1+ending.flash[i]*1.5})`;
@@ -1897,12 +2153,12 @@
       }
     }
     seek.value = String(cursor);
-    document.getElementById('seek-progress').style.width=`${100*(cursor-1)/Math.max(1,END-1)}%`;
+    document.getElementById('seek-progress').style.width=`${100*(cursor-START)/Math.max(1,END-START)}%`;
     playButton.classList.toggle('playing',playing);
     playButton.setAttribute('aria-label',playing?'Pause':'Play');
   }
 
-  // the timeline's marks: who died when
+  // the timeline's marks: deployment steps and who died when
   function drawMarks() {
     const marks = document.getElementById('marks');
     const dpr = window.devicePixelRatio || 1;
@@ -1912,14 +2168,35 @@
     c.scale(dpr, dpr);
     const w = marks.clientWidth;
     const h = marks.clientHeight;
+    const total = Math.max(1, END - START);
+    const xAt = (t) => ((t - START) / total) * w;
+    if (leadIn.active) {
+      const split = xAt(1);
+      c.fillStyle = 'rgba(130,192,255,.12)';
+      c.fillRect(0, 0, split, h);
+      c.fillStyle = 'rgba(216,236,255,.55)';
+      c.fillRect(split, 0, 1, h);
+      const tall = Math.max(0, h / 2 - 2);
+      for (const team of [0, 1]) {
+        for (const e of leadIn.tracks[team]) {
+          const x = xAt(e.from);
+          const spanW = Math.max(1, (e.ticks / total) * w);
+          const y = team === 0 ? h / 2 + 2 : h / 2 - 2 - tall;
+          c.fillStyle = `rgba(${TEAMS[team].rgb},${LeadIn.ANIMATED.has(e.action) ? 0.25 : 0.14})`;
+          c.fillRect(x, y, spanW, tall);
+          c.fillStyle = `rgba(${TEAMS[team].rgb},${LeadIn.ANIMATED.has(e.action) ? 0.85 : 0.45})`;
+          c.fillRect(x, y, 1, tall);
+        }
+      }
+    }
     if(END>LAST){
-      const x=(LAST-1)/(END-1)*w;
+      const x=xAt(LAST);
       c.fillStyle='rgba(255,211,129,.2)';c.fillRect(x,0,w-x,h);
       c.fillStyle='rgba(255,211,129,.65)';c.fillRect(x,0,1,h);
     }
     for (const d of decals) {
       const team = d.unit ? d.unit.team : d.building ? d.building.team : 0;
-      const x = ((d.t - 1) / Math.max(1, END - 1)) * w;
+      const x = xAt(d.t);
       c.fillStyle = `rgba(${TEAMS[team].rgb},${d.k === 'fall' ? 1 : 0.55})`;
       const tall = Math.max(0, h / 2 - 2);
       if (team === 0) c.fillRect(x, h / 2 + 2, d.k === 'fall' ? 2 : 1, tall);
@@ -1989,15 +2266,15 @@
 
   // -------------------------------------------------------------- control
   function setTau(value) {
-    cursor = Math.max(1, Math.min(END, value));
-    tau = Math.min(LAST,cursor);
+    cursor = Math.max(START, Math.min(END, value));
+    tau = Math.max(1, Math.min(LAST, cursor));
     updateHud();
   }
 
   // Render the same frame through the vector context, including the ground.
   // CSS pixels are the SVG viewBox; device pixel density does not affect it.
   function snapshot(value = Math.floor(cursor)) {
-    if (!Number.isInteger(value) || value < 1 || value > END) throw new RangeError(`frame must be an integer from 1 to ${END}`);
+    if (!Number.isInteger(value) || value < START || value > END) throw new RangeError(`frame must be an integer from ${START} to ${END}`);
     playing = false;
     setTau(value);
     const previous = [ctx, ground, view.dpr, hover];
@@ -2008,7 +2285,8 @@
       view.dpr = 1;
       hover = null;
       frame();
-      const title = `${document.title} · round ${data.round} · ${value>LAST?'settlement frame '+(value-LAST):'tick '+value}`;
+      const stage = value < 1 ? `deployment frame ${value - START + 1}` : value > LAST ? `settlement frame ${value - LAST}` : `tick ${value}`;
+      const title = `${document.title} · round ${data.round} · ${stage}`;
       return svg.snapshot(title, view.w, view.h);
     } finally {
       [ctx, ground, view.dpr, hover] = previous;
@@ -2020,7 +2298,8 @@
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${document.title.replace(/ · mechcore player$/, '').replace(/[^a-zA-Z0-9_.-]/g, '_')}-round-${data.round}-${cursor>LAST?'settlement-frame-'+Math.floor(cursor-LAST):'tick-'+tau}.svg`;
+    const stage = cursor < 1 ? `deploy-${Math.floor(cursor - START + 1)}` : cursor > LAST ? `settlement-frame-${Math.floor(cursor - LAST)}` : `tick-${tau}`;
+    link.download = `${document.title.replace(/ · mechcore player$/, '').replace(/[^a-zA-Z0-9_.-]/g, '_')}-round-${data.round}-${stage}.svg`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
@@ -2052,8 +2331,10 @@
     CLIPS = data.clips || [];
     LONGEST_EFFECT = 3 * TPS;
     ({ byRef, units, buildings, projectiles, shields, terrains, deployments, cues, decals, fallen } = tracks());
+    leadIn = LeadIn.prepare(data, units);
+    START = leadIn.start;
     tau = 1;
-    cursor = 1;
+    cursor = START;
     hover = null;
     pointer = null;
     ground = makeGround();
@@ -2089,7 +2370,7 @@
   });
 
   playButton.addEventListener('click', () => {
-    if (!playing && cursor >= END) setTau(1);
+    if (!playing && cursor >= END) setTau(START);
     playing = !playing;
   });
   seek.addEventListener('input', () => setTau(Number(seek.value)));
@@ -2172,7 +2453,7 @@
       case ' ': playButton.click(); break;
       case 'ArrowRight': playing = false; setTau(Math.floor(cursor) + step); break;
       case 'ArrowLeft': playing = false; setTau(Math.ceil(cursor) - step); break;
-      case 'Home': setTau(1); break;
+      case 'Home': setTau(START); break;
       case 'End': setTau(END); break;
       case '+': case '=': setSpeed(SPEEDS[Math.min(SPEEDS.length - 1, SPEEDS.indexOf(speed) + 1)]); break;
       case '-': case '_': setSpeed(SPEEDS[Math.max(0, SPEEDS.indexOf(speed) - 1)]); break;
@@ -2241,8 +2522,8 @@
       if (autoplay.checked && roundIndex + 1 < rounds.length) selectRound(roundIndex + 1);
       else playing = false;
     } else if (playing) {
-      cursor=Math.max(1,Math.min(END,cursor+dt*TPS*speed));
-      tau=Math.min(LAST,cursor);
+      cursor=Math.max(START,Math.min(END,cursor+dt*TPS*speed));
+      tau=Math.max(1,Math.min(LAST,cursor));
     }
     try {
       frame();
@@ -2262,6 +2543,6 @@
     rounds, selectRound, get roundIndex() { return roundIndex; },
     seek: (t) => setTau(t), play: () => { playing = true; }, pause: () => { playing = false; },
     get tau() { return tau; }, view, fit, snapshot,
-    get playhead() { return cursor; }, get endTick() { return END; },
+    get startTick() { return START; }, get playhead() { return cursor; }, get endTick() { return END; },
   };
 })();

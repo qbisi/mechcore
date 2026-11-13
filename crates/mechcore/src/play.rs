@@ -198,56 +198,13 @@ fn play_match(
         {
             continue;
         }
-        let deployment = crate::convert::project_match(
+        timelines.push(match_round(
             economy,
-            &turn.state,
-            &turn.actions,
-            turn.round,
-            stated.map_id,
-            stated.seed,
-            reinforcement.declined(turn),
-        )
-        .map_err(Failure::refused)?;
-        let sides = [&deployment.state.blue, &deployment.state.red];
-        let rosters = match_rosters(
-            economy,
-            &deployment,
             turn,
             &stated,
             reinforcement.declined(turn),
             &mut research_history,
-        )?;
-        let yaml = mechcore_document::canonical_yaml(deployment.layout).map_err(Failure::failed)?;
-        let result = mechcore_simulation::simulate_document(yaml.as_bytes(), Record::Memory, None)
-            .map_err(|error| Failure::unsimulated(&error))?;
-        let recording = result
-            .recording
-            .ok_or_else(|| Failure::failed("the simulator kept no recording of the fight"))?;
-        let mut timeline = player_timeline(&recording, None).map_err(|error| {
-            Failure::failed(format!("cannot read round {}: {error}", turn.round))
-        })?;
-        timeline.rosters = rosters;
-        timeline.arsenals = sides.map(mechcore_player::arsenal);
-        match_tower_cards(&mut timeline, sides)?;
-        for (seat, (header, state)) in [
-            (&stated.blue, &turn.state.blue),
-            (&stated.red, &turn.state.red),
-        ]
-        .into_iter()
-        .enumerate()
-        {
-            let core = &mut timeline.cores[seat];
-            core.name = header.name.clone().unwrap_or_else(|| core.name.clone());
-            core.begin = Some(state.reactor_core);
-            core.supply = sides[seat].supply;
-            core.maximum = header.opening.as_ref().and_then(|opening| {
-                let base = mechcore_document::opening::reactor_core(stated.map_id, seat).ok()?;
-                let team = economy.advance_team(opening.taken.team)?;
-                let specialist = economy.advance_team(opening.taken.specialist)?;
-                Some(base + team.reactor_core + specialist.reactor_core)
-            });
-        }
-        timelines.push(timeline);
+        )?);
     }
     if timelines.is_empty() {
         return Err(Failure::refused(
@@ -272,6 +229,86 @@ fn play_match(
         seed_source: Some("match"),
         opened: false,
     })
+}
+
+fn match_round(
+    economy: &mechcore_document::economy::Economy,
+    turn: &mechcore_document::r#match::Turn,
+    stated: &mechcore_document::opening::Stated,
+    declined: Option<i32>,
+    research_history: &mut [BTreeMap<i32, i32>; 2],
+) -> Result<mechcore_player::Timeline, Failure> {
+    let deployment = crate::convert::project_match(
+        economy,
+        &turn.state,
+        &turn.actions,
+        turn.round,
+        stated.map_id,
+        stated.seed,
+        declined,
+    )
+    .map_err(Failure::refused)?;
+    let sides = [&deployment.state.blue, &deployment.state.red];
+    let rosters = match_rosters(
+        economy,
+        &deployment,
+        turn,
+        stated,
+        declined,
+        research_history,
+    )?;
+    let yaml = mechcore_document::canonical_yaml(deployment.layout).map_err(Failure::failed)?;
+    let result = mechcore_simulation::simulate_document(yaml.as_bytes(), Record::Memory, None)
+        .map_err(|error| Failure::unsimulated(&error))?;
+    let recording = result
+        .recording
+        .ok_or_else(|| Failure::failed("the simulator kept no recording of the fight"))?;
+    let mut timeline = player_timeline(&recording, None)
+        .map_err(|error| Failure::failed(format!("cannot read round {}: {error}", turn.round)))?;
+    let formation_ids: BTreeMap<(u32, i32), u64> = crate::scene::layout(&recording)
+        .and_then(|layout| {
+            let opened = crate::scene::snapshot(&recording, 1)?;
+            crate::scene::formations(&layout, &opened)
+        })?
+        .into_iter()
+        .map(|(id, (side, index))| ((u32::from(side == crate::turn::Side::Red), index), id))
+        .collect();
+    timeline.lead_in = mechcore_player::lead_in(
+        economy,
+        [&turn.state.blue, &turn.state.red],
+        &turn.actions,
+        declined,
+        &formation_ids,
+        timeline.ticks_per_second,
+    )
+    .map_err(|error| {
+        Failure::failed(format!(
+            "cannot replay round {}'s deployment: {error}",
+            turn.round
+        ))
+    })?;
+    timeline.rosters = rosters;
+    timeline.arsenals = sides.map(mechcore_player::arsenal);
+    match_tower_cards(&mut timeline, sides)?;
+    for (seat, (header, state)) in [
+        (&stated.blue, &turn.state.blue),
+        (&stated.red, &turn.state.red),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let core = &mut timeline.cores[seat];
+        core.name = header.name.clone().unwrap_or_else(|| core.name.clone());
+        core.begin = Some(state.reactor_core);
+        core.supply = sides[seat].supply;
+        core.maximum = header.opening.as_ref().and_then(|opening| {
+            let base = mechcore_document::opening::reactor_core(stated.map_id, seat).ok()?;
+            let team = economy.advance_team(opening.taken.team)?;
+            let specialist = economy.advance_team(opening.taken.specialist)?;
+            Some(base + team.reactor_core + specialist.reactor_core)
+        });
+    }
+    Ok(timeline)
 }
 
 fn match_tower_cards(

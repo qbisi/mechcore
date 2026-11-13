@@ -15,6 +15,7 @@
 
 mod arsenal;
 mod deployment;
+mod lead_in;
 mod page;
 mod roster;
 mod timeline;
@@ -23,6 +24,7 @@ mod track;
 
 pub use arsenal::{Arsenal, HeldItem, SkillSlot, arsenal};
 pub use deployment::{Deployment, DeploymentGeometry, StrikeForecast, StrikePoint};
+pub use lead_in::{Change, LeadIn, LeadInEntry, LeadInFormation, Stance, lead_in};
 pub use page::{match_page, page};
 pub use roster::{RosterEntry, RosterTechnology, unit_roster};
 pub use timeline::{

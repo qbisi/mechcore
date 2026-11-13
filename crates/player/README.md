@@ -29,9 +29,20 @@ view centre. Hold a key to keep moving, including while paused. Dragging pans,
 the wheel zooms at the pointer, and the bottom bar seeks through the fight
 with each side's losses marked along it.
 
-A match file plays every completed deployment in one page. The round dropdown
+A match file plays every completed deployment in one page. When a round records
+deployment decisions, `web/lead-in.js` replays them ahead of tick 1 from
+`window.player.startTick` through `0`, running blue and red on independent clocks
+with two seconds per decision and no total duration cap: unit purchase (`buy_unit`,
+distinguishing flank arrivals), formation move (`move_unit`), formation upgrade
+(`upgrade_unit`) and technology research (`upgrade_technology`) animate directly
+on the battlefield, while other deployment decisions appear as placeholders with
+a quiet formation pulse and a per-side action log under each core bar, along with
+live supply, pending/active tech badges, per-formation active technology icon
+strips (from prior rounds and newly ignited research), unit-drawer refresh
+effects on tech activation, `Lv from ›› Lv to` flip plates and
+fading `↑Lv.N` indicators before handing off seamlessly to tick 1. The round dropdown
 and previous/next round buttons choose a round and start its timeline
-at tick 1, retaining speed and playback state. A trailing state without decisions
+at its initial frame (`startTick`), retaining speed and playback state. A trailing state without decisions
 and a concession have no fight to play. Each round is simulated from its own
 recorded deployment. A multi-round replay continues at the selected speed
 after settlement and stops at the end of the last round. Turn off
@@ -260,10 +271,11 @@ bars and damage numbers. It carries the ground, grid, buildings,
 units and effects as paths, gradients and text, with no embedded bitmap.
 The page's HTML controls and core HUD are not part of the image.
 `window.player.snapshot(frame)` returns the same SVG for an integer frame
-from 1 through `window.player.endTick`, including the presentation tail.
+from `window.player.startTick` through `window.player.endTick`, covering any
+deployment lead-in before tick 1, the combat ticks and the presentation tail.
 Frames through the recording's last tick are the original combat ticks;
 later frames freeze that tick and draw the settlement effects. `player.tau`
-remains the combat tick, while `player.playhead` includes the tail.
+remains the combat tick (`1..=LAST`), while `player.playhead` spans `startTick..=endTick`.
 
 ## What it shows and what it does not
 

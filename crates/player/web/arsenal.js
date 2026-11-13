@@ -23,6 +23,7 @@ const ArsenalPanel=(()=>{
           `Unequipped${entry.durability!==null&&entry.durability>=0?` · Durability: ${entry.durability}`:''}`;
         const name=asset?.name||String(entry.id);
         const card=document.createElement('button');card.type='button';card.className='arsenal-card '+state;
+        card.dataset[skill?'skillId':'equipmentId']=String(entry.id);
         card.setAttribute('aria-label',`${name}: ${status}`);
         if(asset&&assets.images[asset.icon]){
           const icon=document.createElement('img');icon.src=assets.images[asset.icon];icon.alt='';icon.draggable=false;card.append(icon);

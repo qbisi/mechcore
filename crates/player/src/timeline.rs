@@ -84,6 +84,10 @@ pub struct Timeline {
     /// numbers; empty for a recording that holds no poses.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub clips: Vec<String>,
+    /// A match round's deployment, replayed before tick 1; absent for a
+    /// standalone layout, fight or recording.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lead_in: Option<crate::LeadIn>,
 }
 
 /// Player core health, separate from unit life. A standalone recording does
@@ -1041,6 +1045,7 @@ impl<'a> Builder<'a> {
             deployments: self.deployments,
             cues: self.cues,
             clips: self.clips,
+            lead_in: None,
         }
     }
 }
