@@ -1981,7 +1981,7 @@
         entry.el.style.setProperty('--deploy-tech-size', `${badgeSize}px`);
       }
       const left = `${sx(info.anchor.x).toFixed(1)}px`;
-      const top = `${(sy(info.anchor.topZ) - info.lift * ui).toFixed(1)}px`;
+      const top = `${sy(info.anchor.z).toFixed(1)}px`;
       const opacity = info.alpha.toFixed(3);
       if (entry.left !== left) { entry.left = left; entry.el.style.left = left; }
       if (entry.top !== top) { entry.top = top; entry.el.style.top = top; }
