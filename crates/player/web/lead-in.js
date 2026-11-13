@@ -52,7 +52,7 @@ const LeadIn = (() => {
     const start = 1 - lead.ticks;
     const techs = [0, 1].map((side) => (lead.techs && lead.techs[side]) || {});
     const formations = lead.formations.map((f, i) => ({
-      i, team: f.team, index: f.index, kind: f.kind, opening: metres(f.opening), history: [],
+      i, team: f.team, index: f.index, kind: f.kind, opening: metres(f.opening), is_new: Boolean(f.is_new), added: Boolean(f.is_new || !f.opening), history: [],
     }));
     const tracks = lead.tracks.map((track, team) => track.map((e) => {
       const entry = { ...e, action: e.action || e.type, team, from: start + e.start, to: start + e.start + e.ticks };
@@ -371,6 +371,7 @@ const LeadIn = (() => {
         }
       }
       if (stance) {
+        if (!air && f.added) box(c, h, stance, team.rgb, 0.78, pixel, { dashed: true, width: 1.5 });
         for (const p of membersAt(f, stance)) if (!!p.m.air === air) h.unit(f, p, stance.level, 1);
       }
       return;
@@ -381,10 +382,15 @@ const LeadIn = (() => {
       const boxRgb = flank ? '255,196,77' : team.rgb;
       if (!air) {
         if (flank) drawFlankArrow(c, h, after, k, pixel);
-        box(c, h, after, boxRgb, 1 - span(k, 0.75, 1) * 0.6, pixel, {
-          brackets: span(k, 0, 0.25),
-          fill: 0.08 * (1 - span(k, 0.7, 1)),
-        });
+        const settle = f.added ? span(k, 0.72, 1) : 0;
+        const buyAlpha = f.added ? 1 - settle : 1 - span(k, 0.75, 1) * 0.6;
+        if (buyAlpha > 0.01) {
+          box(c, h, after, boxRgb, buyAlpha, pixel, {
+            brackets: span(k, 0, 0.25),
+            fill: 0.08 * (1 - span(k, 0.7, 1)),
+          });
+        }
+        if (settle > 0.01) box(c, h, after, team.rgb, 0.78 * settle, pixel, { dashed: true, width: 1.5 });
       }
       for (const p of membersAt(f, after)) {
         if (!!p.m.air !== air) continue;
@@ -410,7 +416,8 @@ const LeadIn = (() => {
       const dx = after.x - before.x, dz = after.z - before.z;
       const heading = Math.hypot(dx, dz) > 0.5 ? Math.atan2(dx, dz) * 1800 / Math.PI : null;
       if (!air) {
-        box(c, h, after, team.rgb, 0.9 * (1 - span(k, 0.85, 1)), pixel, { dashed: k < 0.85 });
+        const destAlpha = f.added ? 0.78 + 0.12 * (1 - span(k, 0.85, 1)) : 0.9 * (1 - span(k, 0.85, 1));
+        box(c, h, after, team.rgb, destAlpha, pixel, { dashed: f.added || k < 0.85 });
         const ghost = 0.35 * (1 - span(k, 0.7, 1));
         box(c, h, before, team.rgb, ghost, pixel, { dashed: true, width: 1 });
         const cx = before.x + dx * travel, cz = before.z + dz * travel;
@@ -451,6 +458,7 @@ const LeadIn = (() => {
       return;
     }
     if (type === 'upgrade_unit' && before && after) {
+      if (!air && f.added) box(c, h, after, team.rgb, 0.78, pixel, { dashed: true, width: 1.5 });
       if (!air) box(c, h, after, team.rgb, 0.9 * Math.sin(Math.PI * span(k, 0, 1)), pixel, { width: 1.8 });
       const sweep = easeInOut(span(k, 0.15, 0.65));
       // a band sweeping across the formation's box, corner to corner
@@ -482,10 +490,12 @@ const LeadIn = (() => {
     }
     // a decision the page does not animate yet: its changes fade
     if (!before && after) {
+      if (!air && f.added) box(c, h, after, team.rgb, 0.78 * k, pixel, { dashed: true, width: 1.5 });
       for (const p of membersAt(f, after)) if (!!p.m.air === air) h.unit(f, p, after.level, k);
     } else if (before && !after) {
       for (const p of membersAt(f, before)) if (!!p.m.air === air) h.unit(f, p, before.level, 1 - k);
     } else if (before && after) {
+      if (!air && f.added) box(c, h, after, team.rgb, 0.78, pixel, { dashed: true, width: 1.5 });
       const e = easeInOut(k);
       const from = membersAt(f, before), to = membersAt(f, after);
       from.forEach((p0, i) => {
@@ -678,8 +688,7 @@ const LeadIn = (() => {
   }
 
   // Screen-space marks above the battlefield: animated transition plates,
-  // persistent before/after state indicators during lead-in, placeholder pulses,
-  // and the tick-1 outline fade-in.
+  // persistent before/after state indicators during lead-in, and placeholder pulses.
   function drawOverlay(c, state, h) {
     if (!state) return;
     const ui = h.ui;
@@ -719,16 +728,6 @@ const LeadIn = (() => {
         const team = h.teams[f.team];
         levelPill(c, h.sx(stance.x), h.sy(stance.z + stance.d / 2) - 11 * ui, ui, 0.88 * persistAlpha, team, `↑Lv.${stance.level}`);
       }
-    }
-
-    // The fight's own outline returns over the last moment before tick 1.
-    if (state.outro > 0 && h.footprints) {
-      c.save();
-      c.globalAlpha = state.outro;
-      c.strokeStyle = '#fff';
-      c.lineWidth = 1.5;
-      for (const r of h.footprints) c.strokeRect(h.sx(r.x0 / 100), h.sy(r.z1 / 100), (r.x1 - r.x0) / 100 * h.scale, (r.z1 - r.z0) / 100 * h.scale);
-      c.restore();
     }
   }
 

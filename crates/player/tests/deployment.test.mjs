@@ -570,7 +570,6 @@ test('deployment lead-in runs independent tracks, animates v1 actions cleanly th
       scale: 1,
       ui: 1,
       teams: [{ rgb: '61,141,255', accent: '#60b8ff' }, { rgb: '255,79,60', accent: '#ff7060' }],
-      footprints: [{ x0: -500, z0: -3200, x1: 500, z1: -2800 }],
       unit: (f, p, level, alpha, opts) => drawn.push({ f: f.i, level, alpha, opts }),
     };
     const st = LeadIn.sample(model, frame);
@@ -581,7 +580,44 @@ test('deployment lead-in runs independent tracks, animates v1 actions cleanly th
     assert.equal(c.stack.length, 0);
     assert.ok(drawn.length > 0);
     assert.doesNotMatch(svg, /NaN|Infinity|<image/);
+    if (frame === -5) {
+      // Settled outro keeps red/blue dashed outlines only for newly added formations and emits no tick-1 white outline.
+      assert.match(svg, /stroke="rgb\(61,141,255\)"[^>]*stroke-dasharray="4 3"/);
+      assert.match(svg, /stroke="rgb\(255,79,60\)"[^>]*stroke-dasharray="4 3"/);
+      assert.doesNotMatch(svg, /stroke="#fff(?:fff)?"/);
+    }
   }
+});
+
+test('deployment lead-in marks opening joined and delivered formations with dashed team outlines while omitting legacy ones', () => {
+  const lead = {
+    ticks: 40,
+    supply: [200, 200],
+    formations: [
+      { team: 0, index: 0, kind: 'crawler', formation: 1, opening: { x: -2000, z: -2000, width: 1000, depth: 400, facing: 0, level: 1 }, is_new: false },
+      { team: 0, index: 1, kind: 'rhino', formation: 2, opening: { x: 2000, z: -2000, width: 1000, depth: 600, facing: 0, level: 1 }, is_new: true },
+      { team: 1, index: 0, kind: 'fang', formation: 3, opening: { x: 0, z: 2000, width: 2000, depth: 800, facing: 1800, level: 1 }, is_new: true },
+    ],
+    tracks: [[], []],
+  };
+  const model = LeadIn.prepare({ lead_in: lead }, []);
+  const st = LeadIn.sample(model, -20);
+  const c = new SnapshotContext();
+  const h = {
+    place: () => c.setTransform(1, 0, 0, 1, 200, 200),
+    sx: (x) => 200 + x,
+    sy: (z) => 200 - z,
+    scale: 1,
+    ui: 1,
+    teams: [{ rgb: '61,141,255', accent: '#60b8ff' }, { rgb: '255,79,60', accent: '#ff7060' }],
+    unit: () => {},
+  };
+  LeadIn.draw(c, st, h, false);
+  const svg = c.snapshot('opening-new-dashed', 400, 400);
+  const blueDashed = svg.match(/stroke="rgb\(61,141,255\)"[^>]*stroke-dasharray="4 3"/g) || [];
+  const redDashed = svg.match(/stroke="rgb\(255,79,60\)"[^>]*stroke-dasharray="4 3"/g) || [];
+  assert.equal(blueDashed.length, 1);
+  assert.equal(redDashed.length, 1);
 });
 
 test('deployment lead-in tracks per-formation active techs from opening and mid-round research cleanly through SnapshotContext', () => {
@@ -647,7 +683,6 @@ test('deployment lead-in tracks per-formation active techs from opening and mid-
     scale: 1,
     ui: 1,
     teams: [{ rgb: '61,141,255', accent: '#60b8ff' }, { rgb: '255,79,60', accent: '#ff7060' }],
-    footprints: [{ x0: -500, z0: -3200, x1: 500, z1: -2800 }],
     unit: () => {},
   };
   LeadIn.draw(c, ignite, h, false);

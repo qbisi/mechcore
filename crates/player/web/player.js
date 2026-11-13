@@ -950,7 +950,6 @@
     return {
       place, sx, sy, scale: view.s, teams: TEAMS,
       ui: HudFrame.uiScale(naturalFitScale()),
-      footprints: data.new_formations || [],
       unit: drawLeadInUnit,
     };
   }
@@ -1828,13 +1827,6 @@
       drawUnits(true, bars);
       drawTerrains(true);
       screen();
-      if(cursor<2){
-        ctx.save();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
-        for(const r of data.new_formations||[]){
-          ctx.strokeRect(sx(r.x0/100),sy(r.z1/100),(r.x1-r.x0)/100*view.s,(r.z1-r.z0)/100*view.s);
-        }
-        ctx.restore();
-      }
     }
     drawBars(bars);
     if (!leadState && numbers) drawNumbers(numbers);
