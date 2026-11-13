@@ -101,16 +101,16 @@ const LeadIn = (() => {
       const x = active.before.x + (active.after.x - active.before.x) * travel;
       const z = active.before.z + (active.after.z - active.before.z) * travel;
       const d = active.before.d + (active.after.d - active.before.d) * travel;
-      return { x, topZ: z + d / 2 };
+      return { x, z: z + d * 0.22 };
     }
     const s = (active && active.after) || stance || (active && active.before);
-    return s ? { x: s.x, topZ: s.z + s.d / 2 } : null;
+    return s ? { x: s.x, z: s.z + s.d * 0.22 } : null;
   }
 
-  // Returns the active or activating unit technologies to display above a formation during deployment.
+  // Returns the active or activating unit technologies to display over a formation during deployment.
   function formationTechs(model, state, fs) {
     if (!model || !state || !fs || !fs.f) return null;
-    const { f, stance, active, doneChanges } = fs;
+    const { f, stance, active } = fs;
     const isBuying = !stance && active && active.entry.action === 'buy_unit';
     if (!stance && !isBuying) return null;
     const visAlpha = isBuying ? span(active.k, 0.55, 0.85) : 1;
@@ -143,9 +143,7 @@ const LeadIn = (() => {
       }
     }
     if (!items.length) return null;
-    const hasPlate = Boolean(active && active.entry.action === 'upgrade_unit' && active.k >= 0.45);
-    const hasLevelPill = Boolean(!active && doneChanges.some((dc) => dc.entry.action === 'upgrade_unit'));
-    return { f, team: f.team, anchor, alpha, lift: hasPlate || hasLevelPill ? 24 : 5, items };
+    return { f, team: f.team, anchor, alpha, items };
   }
 
   // Where each member stands with its formation at `s`: the tick-1 offsets

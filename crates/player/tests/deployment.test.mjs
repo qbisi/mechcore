@@ -613,14 +613,14 @@ test('deployment lead-in tracks per-formation active techs from opening and mid-
   const model = LeadIn.prepare({ lead_in: lead }, units);
   const byIndex = (state, team, index) => state.formations.find((x) => x.f.team === team && x.f.index === index);
 
-  // Initial state: Marksman and Crawler have opening techs; Red Fang is not yet printed until k >= 0.55.
+  // Initial state: Marksman and Crawler have opening techs positioned near the upper-middle of each formation; Red Fang waits until k >= 0.55.
   const early = LeadIn.sample(model, -78);
   const marksmanEarly = LeadIn.formationTechs(model, early, byIndex(early, 0, 0));
   assert.deepEqual(Array.from(marksmanEarly.items, (x) => [x.id, x.state, x.isNew, x.k]), [[101, 'active', false, 1]]);
-  assert.equal(marksmanEarly.lift, 5);
+  assert.ok(marksmanEarly.anchor.z > -30 && marksmanEarly.anchor.z < -28);
   assert.equal(LeadIn.formationTechs(model, early, byIndex(early, 1, 0)), null);
 
-  // Mid-move: Crawler's opening tech tracks smoothly above the moving formation, and Red Fang reveals its opening tech after k >= 0.55.
+  // Mid-move: Crawler's opening tech tracks smoothly with the moving formation, and Red Fang reveals its opening tech after k >= 0.55.
   const moving = LeadIn.sample(model, -68);
   const crawlerMoving = LeadIn.formationTechs(model, moving, byIndex(moving, 0, 1));
   assert.ok(crawlerMoving.anchor.x > -40 && crawlerMoving.anchor.x < 0);
@@ -629,10 +629,9 @@ test('deployment lead-in tracks per-formation active techs from opening and mid-
   assert.ok(fangReveal && fangReveal.alpha > 0 && fangReveal.alpha < 1);
   assert.deepEqual(Array.from(fangReveal.items, (x) => [x.id, x.state, x.isNew, x.k]), [[301, 'active', false, 1]]);
 
-  // Charge phase (k = 0.25 of upgrade_technology) while Marksman carries persistent ↑Lv.2 clearance lift.
+  // Charge phase (k = 0.25 of upgrade_technology).
   const charging = LeadIn.sample(model, -36);
   const marksmanCharge = LeadIn.formationTechs(model, charging, byIndex(charging, 0, 0));
-  assert.equal(marksmanCharge.lift, 24);
   assert.equal(marksmanCharge.items[1].id, 102);
   assert.equal(marksmanCharge.items[1].state, 'charging');
 

@@ -340,14 +340,14 @@ html, body {
 
 .deploy-techs { position:fixed; inset:0; z-index:1; pointer-events:none; overflow:hidden; }
 .deploy-techs[hidden] { display:none; }
-.deploy-formation-techs { position:fixed; display:flex; align-items:center; gap:3px; transform:translate(-50%,-100%); will-change:left,top,opacity; }
+.deploy-formation-techs { position:fixed; display:flex; align-items:center; gap:3px; transform:translate(-50%,-50%); will-change:left,top,opacity; }
 .deploy-formation-tech-badge { position:relative; flex:none; width:var(--deploy-tech-size,18px); height:var(--deploy-tech-size,18px); }
-.deploy-formation-tech-badge img { display:block; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 1px 3px #000c); }
-.deploy-formation-tech-badge.new img { filter:drop-shadow(0 0 5px #ffcf5c99) drop-shadow(0 1px 3px #000c); }
+.deploy-formation-tech-badge img { display:block; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 0 2px #080e16eb) drop-shadow(0 1px 4px #000d); }
+.deploy-formation-tech-badge.new img { filter:drop-shadow(0 0 5px #ffcf5c99) drop-shadow(0 0 2px #080e16eb) drop-shadow(0 1px 4px #000d); }
 .deploy-formation-tech-badge.charging { opacity:.42; animation:deploy-badge-charge .6s ease-in-out infinite alternate; }
 .deploy-formation-tech-badge.charging img { filter:grayscale(1) brightness(1.1) drop-shadow(0 0 5px #78c8ff99); }
 .deploy-formation-tech-badge.activating { animation:deploy-badge-ignite .68s cubic-bezier(.2,1.3,.35,1) both; }
-.deploy-formation-tech-badge.activating img { filter:drop-shadow(0 0 8px #ffd664f0) drop-shadow(0 1px 3px #000c); }
+.deploy-formation-tech-badge.activating img { filter:drop-shadow(0 0 8px #ffd664f0) drop-shadow(0 0 2px #080e16eb) drop-shadow(0 1px 4px #000d); }
 .deploy-formation-tech-badge.activating::after { content:""; position:absolute; inset:-4px; border-radius:50%; pointer-events:none; background:radial-gradient(circle,rgba(255,240,168,.85) 0%,rgba(255,210,100,.42) 48%,transparent 74%); animation:deploy-badge-ring .68s ease-out both; }
 @keyframes deploy-badge-charge {
   from { transform:scale(.88); opacity:.38; }
