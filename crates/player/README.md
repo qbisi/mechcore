@@ -42,7 +42,10 @@ to 5 actions with hover scrollbar history and an expand toggle), along with
 live supply, pending/active tech badges, per-formation active technology icon
 strips (from prior rounds and newly ignited research), unit-drawer refresh
 effects on tech activation, `Lv from ›› Lv to` flip plates and
-fading `↑Lv.N` indicators before handing off seamlessly to tick 1. The round dropdown
+fading `↑Lv.N` indicators before handing off seamlessly to tick 1. The actions
+panels remain visible at combat start and hide and re-appear in sync with the
+unit and skills/equipment panels, while the per-formation technology icon
+strips fade out over 0.4 seconds as combat begins. The round dropdown
 and previous/next round buttons choose a round and start its timeline
 at its initial frame (`startTick`), retaining speed and playback state. A trailing state without decisions
 and a concession have no fight to play. Each round is simulated from its own
@@ -205,18 +208,19 @@ whole container. Standalone
 inputs show only their known current-round releases, with no invented unused
 skills or inventory. The strips follow natural map scale and mirror placement.
 The display-settings switch `Always show panels` chooses between keeping both
-sides' unit and skills/equipment columns visible throughout combat and
-settlement (on), and hiding them and their open tooltip after three seconds of
-playback (off, the default). The blue columns fade toward the left and
-the red columns toward the right over 0.28 seconds. Hidden panels cannot
-receive pointer or keyboard interaction. Seeking before three seconds or
-enabling the switch restores the panels; reduced-motion preferences disable
-the transition. In auto-hide mode, moving the pointer near either viewport
-edge temporarily reveals both sides' columns. Each populated column responds
-only over its visible list height, from the viewport edge up to its inner edge
-or the nearest deployment boundary in the default fitted view, whichever comes
-first. Both sides stay visible while the pointer is in this region or a
-column has keyboard focus. After both conditions end, the panels linger for
+sides' unit, skills/equipment and deployment actions panels visible throughout
+combat and settlement (on), and hiding them and their open tooltip after three
+seconds of combat playback (off, the default). The blue side panels fade toward
+the left and the red side panels toward the right over 0.28 seconds. Hidden
+panels cannot receive pointer or keyboard interaction. Seeking before three
+seconds or enabling the switch restores the panels; reduced-motion preferences
+disable the transition. In auto-hide mode, moving the pointer near either
+viewport edge temporarily reveals both sides' panels. Each populated
+unit/skills column responds only over its visible list height, from the viewport
+edge up to its inner edge or the nearest deployment boundary in the default
+fitted view, whichever comes first. Hovering inside a visible actions panel,
+keeping the pointer in the outer column region, or leaving any side panel
+focused keeps all panels visible. After those conditions end, they linger for
 three seconds of wall time before fading, even when playback is paused.
 The switch retains its choice when
 changing rounds.

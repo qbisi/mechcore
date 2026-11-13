@@ -658,10 +658,27 @@ test('deployment lead-in tracks per-formation active techs from opening and mid-
   assert.match(svg, /<clipPath /);
   assert.doesNotMatch(svg, /NaN|Infinity|<image|data:image/);
 
-  // Settled & outro fade: newly unlocked tech stays active as new, and outro fades down smoothly.
+  // Settled & tick-1 handoff: newly unlocked tech stays active and carries smoothly into combat tech tracking.
   const afterTech = LeadIn.sample(model, -10);
   const marksmanAfter = LeadIn.formationTechs(model, afterTech, byIndex(afterTech, 0, 0));
   assert.deepEqual(Array.from(marksmanAfter.items, (x) => [x.id, x.state, x.isNew]), [[101, 'active', false], [102, 'active', true]]);
   const endOutro = LeadIn.sample(model, 0);
-  assert.equal(LeadIn.formationTechs(model, endOutro, byIndex(endOutro, 0, 0)), null);
+  const marksmanOutro = LeadIn.formationTechs(model, endOutro, byIndex(endOutro, 0, 0));
+  const crawlerOutro = LeadIn.formationTechs(model, endOutro, byIndex(endOutro, 0, 1));
+  assert.equal(marksmanOutro.alpha, 1);
+  assert.ok(crawlerOutro);
+
+  // Combat handoff: tick-1 anchors match frame 0 exactly, follow movement, and drop destroyed formations.
+  const tick1 = LeadIn.combatTechs(model, (u) => ({ x: u.X[0], z: u.Z[0] }));
+  assert.equal(tick1.length, 3);
+  const combatCrawler1 = tick1.find((x) => x.key === 1);
+  assert.ok(Math.abs(combatCrawler1.anchor.x - crawlerOutro.anchor.x) < 1e-6);
+  assert.ok(Math.abs(combatCrawler1.anchor.z - crawlerOutro.anchor.z) < 1e-6);
+
+  // At tick 2, Crawler moves (+4, +2) and Fang (unit id 3, X.length === 1) has died.
+  const combatTick2 = LeadIn.combatTechs(model, (u) => (u.X.length > 1 ? { x: u.X[1], z: u.Z[1] } : (u.id === 1 ? { x: u.X[0], z: u.Z[0] } : null)));
+  assert.deepEqual(Array.from(combatTick2, (x) => x.key), [0, 1]);
+  const combatCrawler2 = combatTick2.find((x) => x.key === 1);
+  assert.ok(Math.abs(combatCrawler2.anchor.x - (crawlerOutro.anchor.x + 4)) < 1e-6);
+  assert.ok(Math.abs(combatCrawler2.anchor.z - (crawlerOutro.anchor.z + 2)) < 1e-6);
 });

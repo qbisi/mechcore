@@ -47,7 +47,7 @@ const LeadIn = (() => {
   function prepare(data, units = []) {
     const lead = data && data.lead_in;
     if (!lead || !lead.ticks) {
-      return { active: false, ticks: 0, start: 1, supply: [0, 0], techs: [{}, {}], tracks: [[], []], formations: [] };
+      return { active: false, ticks: 0, start: 1, supply: [0, 0], techs: [{}, {}], tracks: [[], []], formations: [], combatList: [] };
     }
     const start = 1 - lead.ticks;
     const techs = [0, 1].map((side) => (lead.techs && lead.techs[side]) || {});
@@ -67,20 +67,28 @@ const LeadIn = (() => {
     for (const f of formations) {
       f.last = f.history.length ? f.history[f.history.length - 1].after : f.opening;
       const source = lead.formations[f.i].formation;
+      f.source = source;
       // The fight's own members at tick 1, relative to where the deployment left them.
-      f.members = source == null || !f.last ? [] : units
-        .filter((u) => u.from === 1 && u.team === f.team && u.formation === source)
-        .map((u) => ({
-          dx: u.X[0] - f.last.x,
-          dz: u.Z[0] - f.last.z,
-          y: u.Y[0],
-          body: u.B[0],
-          turret: u.R ? u.R[0] : u.B[0],
-          radius: u.radius,
-          air: u.air,
-          kind: u.kind,
-          id: u.id,
-        }));
+      const sourceUnits = source == null || !f.last ? [] : units
+        .filter((u) => u.from === 1 && u.team === f.team && u.formation === source);
+      f.units = sourceUnits;
+      f.meanDx = sourceUnits.length
+        ? sourceUnits.reduce((sum, u) => sum + (u.X[0] - f.last.x), 0) / sourceUnits.length
+        : 0;
+      f.meanDz = sourceUnits.length
+        ? sourceUnits.reduce((sum, u) => sum + (u.Z[0] - f.last.z), 0) / sourceUnits.length
+        : 0;
+      f.members = sourceUnits.map((u) => ({
+        dx: u.X[0] - f.last.x,
+        dz: u.Z[0] - f.last.z,
+        y: u.Y[0],
+        body: u.B[0],
+        turret: u.R ? u.R[0] : u.B[0],
+        radius: u.radius,
+        air: u.air,
+        kind: u.kind,
+        id: u.id,
+      }));
       if (!f.members.length) {
         const facing = f.last ? f.last.facing : 0;
         f.members = [{
@@ -91,7 +99,20 @@ const LeadIn = (() => {
       const order = f.members.map((m, i) => [Math.hypot(m.dx, m.dz), i]).sort((a, b) => a[0] - b[0]);
       order.forEach(([, i], rank) => { f.members[i].rank = f.members.length > 1 ? rank / (f.members.length - 1) : 0; });
     }
-    return { active: true, ticks: lead.ticks, start, supply: lead.supply || [0, 0], techs, tracks, formations };
+    const model = { active: true, ticks: lead.ticks, start, supply: lead.supply || [0, 0], techs, tracks, formations, combatList: [] };
+    model.combatList = formations
+      .filter((f) => f.source != null && f.last && f.units.length)
+      .map((f) => ({
+        i: f.i,
+        team: f.team,
+        units: f.units,
+        meanDx: f.meanDx,
+        meanDz: f.meanDz,
+        d: f.last.d,
+        items: techListFor(model, f.team, f.kind, 1),
+      }))
+      .filter((g) => g.items.length > 0);
+    return model;
   }
 
   function formationAnchor(fs) {
@@ -107,43 +128,70 @@ const LeadIn = (() => {
     return s ? { x: s.x, z: s.z + s.d * 0.22 } : null;
   }
 
-  // Returns the active or activating unit technologies to display over a formation during deployment.
-  function formationTechs(model, state, fs) {
-    if (!model || !state || !fs || !fs.f) return null;
-    const { f, stance, active } = fs;
-    const isBuying = !stance && active && active.entry.action === 'buy_unit';
-    if (!stance && !isBuying) return null;
-    const visAlpha = isBuying ? span(active.k, 0.55, 0.85) : 1;
-    const outroAlpha = 1 - span(state.outro, 0.25, 0.85);
-    const alpha = visAlpha * outroAlpha;
-    if (alpha <= 0.01) return null;
-    const anchor = formationAnchor(fs);
-    if (!anchor) return null;
-
+  function techListFor(model, team, kind, t) {
     const items = [];
     const seen = new Set();
-    const initial = (model.techs && model.techs[f.team] && model.techs[f.team][f.kind]) || [];
+    const initial = (model.techs && model.techs[team] && model.techs[team][kind]) || [];
     for (const id of initial) {
       if (seen.has(id)) continue;
       seen.add(id);
       items.push({ id, state: 'active', isNew: false, k: 1 });
     }
-    for (const e of model.tracks[f.team] || []) {
-      if (e.action !== 'upgrade_technology' || e.unit !== f.kind || e.tech == null) continue;
+    for (const e of (model.tracks && model.tracks[team]) || []) {
+      if (e.action !== 'upgrade_technology' || e.unit !== kind || e.tech == null) continue;
       if (seen.has(e.tech)) continue;
-      if (state.t >= e.to) {
+      if (t >= e.to) {
         seen.add(e.tech);
         items.push({ id: e.tech, state: 'active', isNew: true, k: 1 });
-      } else if (state.t >= e.from && state.t < e.to) {
-        const k = (state.t - e.from) / (e.to - e.from);
+      } else if (t >= e.from && t < e.to) {
+        const k = (t - e.from) / (e.to - e.from);
         if (k >= 0.15) {
           seen.add(e.tech);
           items.push({ id: e.tech, state: k >= 0.45 ? 'activating' : 'charging', isNew: true, k });
         }
       }
     }
+    return items;
+  }
+
+  // Returns the active or activating unit technologies to display over a formation during deployment.
+  function formationTechs(model, state, fs) {
+    if (!model || !state || !fs || !fs.f) return null;
+    const { f, stance, active } = fs;
+    const isBuying = !stance && active && active.entry.action === 'buy_unit';
+    if (!stance && !isBuying) return null;
+    const alpha = isBuying ? span(active.k, 0.55, 0.85) : 1;
+    if (alpha <= 0.01) return null;
+    const anchor = formationAnchor(fs);
+    if (!anchor) return null;
+    const items = techListFor(model, f.team, f.kind, state.t);
     if (!items.length) return null;
     return { f, team: f.team, anchor, alpha, items };
+  }
+
+  // Returns active formation tech strips tracked by surviving fight units after tick 1.
+  function combatTechs(model, posAt) {
+    if (!model || !model.combatList || !model.combatList.length || typeof posAt !== 'function') return [];
+    const out = [];
+    for (const g of model.combatList) {
+      let sx = 0, sz = 0, alive = 0;
+      for (const u of g.units) {
+        const p = posAt(u);
+        if (!p) continue;
+        sx += p.x;
+        sz += p.z;
+        alive += 1;
+      }
+      if (!alive) continue;
+      out.push({
+        key: g.i,
+        team: g.team,
+        anchor: { x: sx / alive - g.meanDx, z: sz / alive - g.meanDz + g.d * 0.22 },
+        alpha: 1,
+        items: g.items,
+      });
+    }
+    return out;
   }
 
   // Where each member stands with its formation at `s`: the tick-1 offsets
@@ -753,5 +801,5 @@ const LeadIn = (() => {
     c.restore();
   }
 
-  return { prepare, sample, supplyAt, describe, formationTechs, draw, drawOverlay, membersAt, ANIMATED };
+  return { prepare, sample, supplyAt, describe, formationTechs, combatTechs, draw, drawOverlay, membersAt, ANIMATED };
 })();
