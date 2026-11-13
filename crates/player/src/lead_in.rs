@@ -52,6 +52,9 @@ pub struct LeadInFormation {
     /// Where it stood as the deployment opened; absent when a decision brought it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub opening: Option<Stance>,
+    /// Whether this formation joined or was delivered during this round.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub is_new: bool,
 }
 
 /// Where a formation stands and its level, in world centimetres.
@@ -136,6 +139,7 @@ pub fn lead_in(
                 kind: entry.unit.type_name.clone(),
                 formation: formation_ids.get(&(team, entry.unit.index)).copied(),
                 opening: stance(team, entry),
+                is_new: entry.unit.source != mechcore_document::layout::UnitSource::Legacy,
             });
         }
     }
@@ -236,6 +240,7 @@ fn build_track(
                         kind: entry.unit.type_name.clone(),
                         formation: formation_ids.get(&(team, entry.unit.index)).copied(),
                         opening: None,
+                        is_new: true,
                     });
                     formations.len() - 1
                 });
@@ -485,5 +490,78 @@ mod tests {
         .unwrap();
         assert_eq!(lead.techs[0].get(owner), Some(&vec![209]));
         assert!(lead.techs[1].is_empty());
+    }
+
+    #[test]
+    fn added_formations_track_joined_delivered_and_round_purchases_excluding_legacy() {
+        let economy = Economy::embedded().unwrap();
+        let shop = Allowances {
+            buys_remaining: 3,
+            unlocks_remaining: 1,
+            contraptions_remaining: 1,
+        };
+        let legacy: StateUnit = serde_yaml::from_str(
+            "{name: crawler, index: 0, position: {x: 0, y: -100}, level: 1, value: 100}",
+        )
+        .unwrap();
+        let delivered: StateUnit = serde_yaml::from_str(
+            "{name: rhino, index: 1, position: {x: 45, y: -105}, rotated: true, level: 1, source: delivered, value: 200}",
+        )
+        .unwrap();
+        let joined = unit("fang", 0, -65, -50);
+        let blue = SideState {
+            supply: 1000,
+            unlocked_units: vec![9, 10],
+            shop: shop.clone(),
+            next_index: NextIndex {
+                unit: 2,
+                contraption: 0,
+            },
+            units: vec![legacy, delivered],
+            ..SideState::default()
+        };
+        let red = SideState {
+            supply: 1000,
+            unlocked_units: vec![9],
+            shop,
+            next_index: NextIndex {
+                unit: 1,
+                contraption: 0,
+            },
+            units: vec![joined],
+            ..SideState::default()
+        };
+        let actions = TurnActions {
+            blue: vec![Action::BuyUnit {
+                unit: 9,
+                position: Some(Position { x: 0, y: -50 }),
+                rotated: false,
+            }],
+            red: vec![],
+        };
+        let lead = lead_in(economy, [&blue, &red], &actions, None, &BTreeMap::new(), 20)
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            lead.formations
+                .iter()
+                .map(|f| (f.team, f.index, f.kind.as_str(), f.is_new))
+                .collect::<Vec<_>>(),
+            [
+                (0, 0, "crawler", false),
+                (0, 1, "rhino", true),
+                (1, 0, "fang", true),
+                (0, 2, "fang", true),
+            ]
+        );
+        // Rotated blue unit exchanges width/depth and red opening coordinates turn around origin.
+        let delivered_stance = lead.formations[1].opening.unwrap();
+        let (rot_w, rot_d) = unit_footprint("rhino", Position { x: 45, y: -105 }, true).unwrap();
+        assert_eq!(
+            (delivered_stance.width, delivered_stance.depth),
+            (rot_w * 100, rot_d * 100)
+        );
+        let red_stance = lead.formations[2].opening.unwrap();
+        assert_eq!((red_stance.x, red_stance.z), (6_500, 5_000));
     }
 }

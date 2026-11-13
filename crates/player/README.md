@@ -3,11 +3,12 @@
 Plays an MCFR recording back as a flat, top-down picture of the battlefield:
 the map's towers, the constructions, the shields, the units and their shots,
 moving and fighting as the recording says they did.
-At tick 1 only, formations whose layout source is `joined` or `delivered`
-receive a white rectangular outline matching their occupied deployment
-footprint, including rotation, flank orientation and red-side coordinates.
-The outline disappears from tick 2 onward and returns when seeking
-to tick 1. Legacy formations and combat-spawned units receive no such marker.
+During the deployment lead-in, formations newly joined or delivered in that
+round (`joined`, `delivered`, or purchased/reinforced during the round) receive
+a blue or red dashed rectangular outline matching their occupied deployment
+footprint, including rotation, flank orientation and red-side coordinates;
+legacy formations carried from earlier rounds receive no dashed outline, and
+the outlines disappear when combat starts at tick 1.
 A deployed unit's armour shows its formation's level: white for level 1,
 green for 2, yellow for 3 and orange for 4 or higher. Team markings keep
 their red or blue colour. Hovering shows the exact level. Units without a
