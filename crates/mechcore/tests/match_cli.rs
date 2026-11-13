@@ -1635,6 +1635,8 @@ fn playing_a_match_keeps_each_completed_round() {
         serde_json::from_str::<Vec<Value>>(&html[start..end]).unwrap()
     };
     let rounds = read();
+    assert!(rounds[0]["lead_in"]["ticks"].as_u64().unwrap() > 0);
+    assert_eq!(rounds[0]["lead_in"]["tracks"][0][0]["type"], "unlock_unit");
     let roster = rounds[0]["rosters"][0].as_array().unwrap();
     let unlocked = roster.iter().find(|row| row["kind"] == zero_unit).unwrap();
     assert_eq!(unlocked["count"], 0);

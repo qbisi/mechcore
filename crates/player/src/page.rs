@@ -15,6 +15,7 @@ const SNAPSHOT: &str = include_str!("../web/snapshot.js");
 const TERRAIN: &str = include_str!("../web/terrain.js");
 const SKILL_ICONS: &str = include_str!("../web/skill-icons.js");
 const DEPLOYMENT: &str = include_str!("../web/deployment.js");
+const LEAD_IN: &str = include_str!("../web/lead-in.js");
 const SPAWN: &str = include_str!("../web/spawn.js");
 const SETTLEMENT: &str = include_str!("../web/settlement.js");
 const PLAYER: &str = include_str!("../web/player.js");
@@ -66,6 +67,7 @@ fn render(
         .replace("/*{{terrain}}*/", TERRAIN)
         .replace("/*{{skill-icons}}*/", SKILL_ICONS)
         .replace("/*{{deployment}}*/", DEPLOYMENT)
+        .replace("/*{{lead-in}}*/", LEAD_IN)
         .replace("/*{{spawn}}*/", SPAWN)
         .replace("/*{{settlement}}*/", SETTLEMENT)
         .replace("/*{{player}}*/", PLAYER)

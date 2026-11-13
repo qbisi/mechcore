@@ -4,8 +4,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 const source = (name) => readFileSync(new URL(`../web/${name}.js`, import.meta.url), 'utf8');
-const { SkillPreview, SnapshotContext } = vm.runInNewContext(
-  `${source('snapshot')}\n${source('skill-icons')}\n${source('deployment')}\n({ SkillPreview, SnapshotContext });`, { Math });
+const { SkillPreview, LeadIn, SnapshotContext } = vm.runInNewContext(
+  `${source('snapshot')}\n${source('skill-icons')}\n${source('deployment')}\n${source('lead-in')}\n({ SkillPreview, LeadIn, SnapshotContext });`, { Math });
 const team = { rgb: '61,141,255' };
 const release = (kind = 'sticky_oil_bomb', extra = {}) => SkillPreview.prepare({
   kind, geometry: 'line', team: 0, ordinal: 0, x0: -6000, z0: -4000, x1: 6000, z1: -4000,
@@ -499,4 +499,170 @@ test('seed-reconstructed impacts use their exact ticks and positions with determ
     assert.equal(ended.body.length,0);
   }
   assert.equal(images.size,2);
+});
+
+test('deployment lead-in runs independent tracks, animates v1 actions cleanly through SnapshotContext, and hands off seamlessly to tick 1', () => {
+  const lead = {
+    ticks: 90,
+    supply: [400, 300],
+    formations: [
+      { team: 0, index: 0, kind: 'marksman', formation: 10 },
+      { team: 0, index: 1, kind: 'crawler', formation: 11, opening: { x: -4000, z: -2000, width: 2000, depth: 800, facing: 0, level: 1 } },
+      { team: 1, index: 0, kind: 'fang', formation: 20 },
+    ],
+    tracks: [
+      [
+        { start: 8, ticks: 20, type: 'buy_unit', name: 'marksman', spent: 100, supply: 300, changes: [{ formation: 0, to: { x: 0, z: -3000, width: 1000, depth: 400, facing: 0, level: 1 } }] },
+        { start: 28, ticks: 16, type: 'move_unit', unit: 'crawler', spent: 0, supply: 300, changes: [{ formation: 1, to: { x: -1000, z: -1500, width: 2000, depth: 800, facing: 0, level: 1 } }] },
+        { start: 44, ticks: 16, type: 'upgrade_unit', unit: 'marksman', spent: 100, supply: 200, changes: [{ formation: 0, to: { x: 0, z: -3000, width: 1000, depth: 400, facing: 0, level: 2 } }] },
+        { start: 60, ticks: 18, type: 'upgrade_technology', unit: 'marksman', tech: 5, spent: 200, supply: 0 },
+      ],
+      [
+        { start: 8, ticks: 22, type: 'buy_unit', name: 'fang', spent: 100, supply: 200, changes: [{ formation: 2, to: { x: 18000, z: 2000, width: 2000, depth: 800, facing: -900, level: 1 } }] },
+        { start: 30, ticks: 10, type: 'choose_reinforce_item', name: 'supply_specialist', spent: -200, supply: 400 },
+      ],
+    ],
+  };
+  const units = [
+    { id: 1, team: 0, from: 1, formation: 10, kind: 'marksman', radius: 1.5, air: false, X: [0], Y: [0], Z: [-30], B: [0], R: [0] },
+    { id: 2, team: 0, from: 1, formation: 11, kind: 'crawler', radius: 1.0, air: false, X: [-12, -8], Y: [0, 0], Z: [-16, -14], B: [0, 0], R: [0, 0] },
+    { id: 3, team: 1, from: 1, formation: 20, kind: 'fang', radius: 1.0, air: false, X: [180], Y: [0], Z: [20], B: [-900], R: [-900] },
+  ];
+  const model = LeadIn.prepare({ lead_in: lead }, units);
+  assert.equal(model.active, true);
+  assert.equal(model.start, -89);
+  assert.equal(LeadIn.sample(model, 1), null);
+
+  // At frame -59 (start of choose_reinforce_item on red), supply updates at midpoint (-54).
+  const mid = LeadIn.sample(model, -59);
+  assert.equal(mid.playing[0].entry.action, 'move_unit');
+  assert.equal(mid.playing[1].entry.action, 'choose_reinforce_item');
+  assert.equal(LeadIn.supplyAt(model, mid, 0), 300);
+  assert.equal(LeadIn.supplyAt(model, mid, 1), 200);
+  assert.equal(LeadIn.supplyAt(model, LeadIn.sample(model, -54), 1), 400);
+
+  assert.equal(LeadIn.describe(model.tracks[1][0], { fang: 'Fang' }, {}).tag, 'FLANK');
+  assert.equal(LeadIn.describe(model.tracks[0][2], { marksman: 'Marksman' }, {}).label, 'Marksman Lv.2');
+  assert.equal(LeadIn.describe(model.tracks[0][3], { marksman: 'Marksman' }, { 5: { name: 'Range Enhancement' } }).label, 'Marksman · Range Enhancement');
+  assert.equal(LeadIn.describe(model.tracks[1][1], {}, {}).placeholder, true);
+
+  // Tick-1 handoff: final stance places tick-1 members identically to their recorded coordinates.
+  for (const f of model.formations) {
+    const members = LeadIn.membersAt(f, f.last);
+    const matching = units.filter((u) => u.formation === (f.team === 0 ? (f.index === 0 ? 10 : 11) : 20));
+    members.forEach((m, i) => {
+      assert.ok(Math.abs(m.x - matching[i].X[0]) < 1e-6);
+      assert.ok(Math.abs(m.y - matching[i].Y[0]) < 1e-6);
+      assert.ok(Math.abs(m.z - matching[i].Z[0]) < 1e-6);
+      assert.equal(m.body, matching[i].B[0]);
+      assert.equal(m.turret, matching[i].R[0]);
+    });
+  }
+
+  // Draw key moments across both draw and drawOverlay with SnapshotContext.
+  for (const frame of [-75, -60, -37, -21, -5]) {
+    const c = new SnapshotContext();
+    const drawn = [];
+    const h = {
+      place: () => c.setTransform(1, 0, 0, 1, 200, 200),
+      sx: (x) => 200 + x,
+      sy: (z) => 200 - z,
+      scale: 1,
+      ui: 1,
+      teams: [{ rgb: '61,141,255', accent: '#60b8ff' }, { rgb: '255,79,60', accent: '#ff7060' }],
+      footprints: [{ x0: -500, z0: -3200, x1: 500, z1: -2800 }],
+      unit: (f, p, level, alpha, opts) => drawn.push({ f: f.i, level, alpha, opts }),
+    };
+    const st = LeadIn.sample(model, frame);
+    LeadIn.draw(c, st, h, false);
+    LeadIn.draw(c, st, h, true);
+    LeadIn.drawOverlay(c, st, h);
+    const svg = c.snapshot(`deploy-${frame}`, 400, 400);
+    assert.equal(c.stack.length, 0);
+    assert.ok(drawn.length > 0);
+    assert.doesNotMatch(svg, /NaN|Infinity|<image/);
+  }
+});
+
+test('deployment lead-in tracks per-formation active techs from opening and mid-round research cleanly through SnapshotContext', () => {
+  const lead = {
+    ticks: 90,
+    supply: [300, 300],
+    techs: [{ marksman: [101], crawler: [209] }, { fang: [301] }],
+    formations: [
+      { team: 0, index: 0, kind: 'marksman', formation: 10, opening: { x: 0, z: -3000, width: 1000, depth: 400, facing: 0, level: 1 } },
+      { team: 0, index: 1, kind: 'crawler', formation: 11, opening: { x: -4000, z: -2000, width: 2000, depth: 800, facing: 0, level: 1 } },
+      { team: 1, index: 0, kind: 'fang', formation: 20 },
+    ],
+    tracks: [
+      [
+        { start: 8, ticks: 20, type: 'move_unit', unit: 'crawler', spent: 0, supply: 300, changes: [{ formation: 1, to: { x: 0, z: -1000, width: 2000, depth: 800, facing: 0, level: 1 } }] },
+        { start: 28, ticks: 20, type: 'upgrade_unit', unit: 'marksman', spent: 100, supply: 200, changes: [{ formation: 0, to: { x: 0, z: -3000, width: 1000, depth: 400, facing: 0, level: 2 } }] },
+        { start: 48, ticks: 20, type: 'upgrade_technology', unit: 'marksman', tech: 102, spent: 200, supply: 0 },
+      ],
+      [
+        { start: 8, ticks: 20, type: 'buy_unit', name: 'fang', spent: 100, supply: 200, changes: [{ formation: 2, to: { x: 6000, z: 2000, width: 2000, depth: 800, facing: 1800, level: 1 } }] },
+      ],
+    ],
+  };
+  const units = [
+    { id: 1, team: 0, from: 1, formation: 10, kind: 'marksman', radius: 1.5, air: false, X: [0], Y: [0], Z: [-30], B: [0], R: [0] },
+    { id: 2, team: 0, from: 1, formation: 11, kind: 'crawler', radius: 1.0, air: false, X: [-2, 2], Y: [0, 0], Z: [-11, -9], B: [0, 0], R: [0, 0] },
+    { id: 3, team: 1, from: 1, formation: 20, kind: 'fang', radius: 1.0, air: false, X: [60], Y: [0], Z: [20], B: [1800], R: [1800] },
+  ];
+  const model = LeadIn.prepare({ lead_in: lead }, units);
+  const byIndex = (state, team, index) => state.formations.find((x) => x.f.team === team && x.f.index === index);
+
+  // Initial state: Marksman and Crawler have opening techs; Red Fang is not yet printed until k >= 0.55.
+  const early = LeadIn.sample(model, -78);
+  const marksmanEarly = LeadIn.formationTechs(model, early, byIndex(early, 0, 0));
+  assert.deepEqual(Array.from(marksmanEarly.items, (x) => [x.id, x.state, x.isNew, x.k]), [[101, 'active', false, 1]]);
+  assert.equal(marksmanEarly.lift, 5);
+  assert.equal(LeadIn.formationTechs(model, early, byIndex(early, 1, 0)), null);
+
+  // Mid-move: Crawler's opening tech tracks smoothly above the moving formation, and Red Fang reveals its opening tech after k >= 0.55.
+  const moving = LeadIn.sample(model, -68);
+  const crawlerMoving = LeadIn.formationTechs(model, moving, byIndex(moving, 0, 1));
+  assert.ok(crawlerMoving.anchor.x > -40 && crawlerMoving.anchor.x < 0);
+  assert.deepEqual(Array.from(crawlerMoving.items, (x) => [x.id, x.state, x.isNew, x.k]), [[209, 'active', false, 1]]);
+  const fangReveal = LeadIn.formationTechs(model, moving, byIndex(moving, 1, 0));
+  assert.ok(fangReveal && fangReveal.alpha > 0 && fangReveal.alpha < 1);
+  assert.deepEqual(Array.from(fangReveal.items, (x) => [x.id, x.state, x.isNew, x.k]), [[301, 'active', false, 1]]);
+
+  // Charge phase (k = 0.25 of upgrade_technology) while Marksman carries persistent ↑Lv.2 clearance lift.
+  const charging = LeadIn.sample(model, -36);
+  const marksmanCharge = LeadIn.formationTechs(model, charging, byIndex(charging, 0, 0));
+  assert.equal(marksmanCharge.lift, 24);
+  assert.equal(marksmanCharge.items[1].id, 102);
+  assert.equal(marksmanCharge.items[1].state, 'charging');
+
+  // Ignition phase (k = 0.55 of upgrade_technology): flips into activating and emits vector shockwave paths in SnapshotContext.
+  const ignite = LeadIn.sample(model, -30);
+  const marksmanIgnite = LeadIn.formationTechs(model, ignite, byIndex(ignite, 0, 0));
+  assert.equal(marksmanIgnite.items[1].state, 'activating');
+  const c = new SnapshotContext();
+  const h = {
+    place: () => c.setTransform(1, 0, 0, 1, 200, 200),
+    sx: (x) => 200 + x,
+    sy: (z) => 200 - z,
+    scale: 1,
+    ui: 1,
+    teams: [{ rgb: '61,141,255', accent: '#60b8ff' }, { rgb: '255,79,60', accent: '#ff7060' }],
+    footprints: [{ x0: -500, z0: -3200, x1: 500, z1: -2800 }],
+    unit: () => {},
+  };
+  LeadIn.draw(c, ignite, h, false);
+  LeadIn.draw(c, ignite, h, true);
+  LeadIn.drawOverlay(c, ignite, h);
+  const svg = c.snapshot('tech-ignite', 400, 400);
+  assert.equal(c.stack.length, 0);
+  assert.match(svg, /<clipPath /);
+  assert.doesNotMatch(svg, /NaN|Infinity|<image|data:image/);
+
+  // Settled & outro fade: newly unlocked tech stays active as new, and outro fades down smoothly.
+  const afterTech = LeadIn.sample(model, -10);
+  const marksmanAfter = LeadIn.formationTechs(model, afterTech, byIndex(afterTech, 0, 0));
+  assert.deepEqual(Array.from(marksmanAfter.items, (x) => [x.id, x.state, x.isNew]), [[101, 'active', false], [102, 'active', true]]);
+  const endOutro = LeadIn.sample(model, 0);
+  assert.equal(LeadIn.formationTechs(model, endOutro, byIndex(endOutro, 0, 0)), null);
 });

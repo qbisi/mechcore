@@ -35,6 +35,7 @@ const UnitRoster=(()=>{
       const delta=change?` · ${change>0?'+':''}${change} this round`:'';
       const row=document.createElement('article');
       row.className='unit-drawer'+(change>0?' count-increased':change<0?' count-decreased':'');
+      row.dataset.unitKind=entry.kind;
       row.style.width=shape.width+'px';
       row.style.setProperty('--tech-size',shape.techSize+'px');
       row.style.setProperty('--tech-padding',shape.techSize<22?'1px':'2px');
@@ -59,6 +60,7 @@ const UnitRoster=(()=>{
       entry.techs.forEach(({id,active,activated_this_round,purchase_supply},i)=>{
         const status=active?(activated_this_round?'Activated this round':'Active'):'Inactive';
         const tech=assets.techs[id];const el=badge(shape.techs[i],'unit-tech '+(active?'active':'inactive')+(active&&activated_this_round?' activated':''));
+        el.dataset.techId=String(id);
         el.tabIndex=0;el.setAttribute('role','img');el.setAttribute('aria-label',`${tech?.name||`Technology ${id}`} (${status})`);
         el.setAttribute('aria-describedby','roster-tooltip');
         if(tech && assets.images[tech.icon]){

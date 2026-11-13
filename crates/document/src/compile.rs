@@ -1296,13 +1296,30 @@ pub fn placement_footprint(placement: &Placement) -> Option<(i64, i64)> {
     let (width, height) = placement.footprint?;
     Some(
         if matches!(placement.native, NativeFormation::Unit(_))
-            && (placement.rotated ^ is_ambush_unit(placement))
+            && turned(placement.rotated, placement.position)
         {
             (height, width)
         } else {
             (width, height)
         },
     )
+}
+
+/// A unit formation's occupied width and depth in metres where it stands,
+/// as [`placement_footprint`] gives it for the unit's placement.
+#[must_use]
+pub fn unit_footprint(type_name: &str, position: Position, rotated: bool) -> Option<(i64, i64)> {
+    let (width, height) = resolve_unit_type(type_name)?.footprint?;
+    Some(if turned(rotated, position) {
+        (height, width)
+    } else {
+        (width, height)
+    })
+}
+
+/// A unit formation turns a quarter when rotated, and again in a flank.
+fn turned(rotated: bool, position: Position) -> bool {
+    rotated ^ Region::of(position).is_flank()
 }
 
 fn is_ambush_unit(placement: &Placement) -> bool {
