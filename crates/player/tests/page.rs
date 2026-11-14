@@ -531,3 +531,124 @@ red:
             .any(|t| t.frames.iter().any(|f| f.to > f.from))
     );
 }
+
+fn embedded_json(html: &str, id: &str) -> serde_json::Value {
+    let marker = format!("<script id=\"{id}\" type=\"application/json\">");
+    let start = html.find(&marker).unwrap() + marker.len();
+    let end = html[start..].find("</script>").unwrap() + start;
+    let raw = html[start..end].replace("<\\/", "</");
+    serde_json::from_str(&raw).unwrap()
+}
+
+fn simulated_timeline(document: &[u8], with_arsenals: bool) -> Timeline {
+    let recording = mechcore_simulation::simulate_document(document, Record::Memory, None)
+        .unwrap()
+        .recording
+        .unwrap();
+    let mut timeline = mechcore_player::timeline(&recording, None).unwrap();
+    let layout = mechcore_document::parse_embedded_yaml(document).unwrap();
+    timeline.rosters = [
+        mechcore_player::unit_roster(&layout.blue, &[], None),
+        mechcore_player::unit_roster(&layout.red, &[], None),
+    ];
+    if with_arsenals {
+        timeline.arsenals = [
+            mechcore_player::released_arsenal(&layout.blue).unwrap(),
+            mechcore_player::released_arsenal(&layout.red).unwrap(),
+        ];
+    }
+    timeline
+}
+
+#[test]
+fn live_page_embeds_only_initial_round_and_collects_all_round_assets() {
+    use mechcore_player::LiveRoundMeta;
+    let t1 = simulated_timeline(
+        br"
+kind: layout
+seed: 101
+round: 1
+blue:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -60}}
+red:
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -60}}
+",
+        false,
+    );
+    let t2 = simulated_timeline(
+        br"
+kind: layout
+seed: 202
+round: 2
+blue:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -80}}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
+red:
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -60}}
+",
+        true,
+    );
+
+    let meta = [
+        LiveRoundMeta { index: 0, round: 1 },
+        LiveRoundMeta { index: 1, round: 2 },
+    ];
+    let later_rosters: Vec<_> = t2.rosters.iter().flatten().cloned().collect();
+    let html =
+        mechcore_player::live_page(&t1, &meta, &later_rosters, &t2.arsenals, "live test").unwrap();
+
+    let payload = embedded_json(&html, "timeline");
+    assert_eq!(payload["live"], true);
+    assert_eq!(payload["rounds"].as_array().unwrap().len(), 2);
+    assert_eq!(payload["rounds"][0]["index"], 0);
+    assert_eq!(payload["rounds"][0]["round"], 1);
+    assert_eq!(payload["rounds"][1]["index"], 1);
+    assert_eq!(payload["rounds"][1]["round"], 2);
+    assert_eq!(payload["initial"]["round"], 1);
+    assert!(
+        !payload["initial"]["rosters"].to_string().contains("wasp"),
+        "later round timelines must be fetched on demand rather than embedded"
+    );
+
+    let rosters = embedded_json(&html, "roster-assets");
+    assert!(rosters["units"]["crawler"].is_object());
+    assert!(rosters["units"]["wasp"].is_object());
+    let arsenals = embedded_json(&html, "arsenal-assets");
+    assert!(
+        arsenals["skills"]
+            .as_object()
+            .is_some_and(|m| !m.is_empty()),
+        "arsenal assets from later rounds must be embedded up front"
+    );
+
+    let all_rosters: Vec<_> = t1
+        .rosters
+        .iter()
+        .flatten()
+        .chain(later_rosters.iter())
+        .cloned()
+        .collect();
+    let all_arsenals: Vec<_> = t1
+        .arsenals
+        .iter()
+        .chain(t2.arsenals.iter())
+        .cloned()
+        .collect();
+    let first_json = serde_json::to_string(&t1).unwrap();
+    let from_json = mechcore_player::live_page_json(
+        &first_json,
+        &meta,
+        &all_rosters,
+        &all_arsenals,
+        "live test",
+    )
+    .unwrap();
+    assert_eq!(embedded_json(&from_json, "timeline"), payload);
+    assert_eq!(embedded_json(&from_json, "roster-assets"), rosters);
+    assert_eq!(embedded_json(&from_json, "arsenal-assets"), arsenals);
+}

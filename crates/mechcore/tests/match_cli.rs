@@ -1587,6 +1587,48 @@ fn names_are_set_when_each_side_joins_and_survive_later_commands() {
     assert_eq!(game.red.name, "Red Bot");
 }
 
+fn embedded_html_timeline(page: &str) -> Value {
+    let html = fs::read_to_string(page).unwrap();
+    let marker = r#"<script id="timeline" type="application/json">"#;
+    let start = html.find(marker).unwrap() + marker.len();
+    let end = start + html[start..].find("</script>").unwrap();
+    serde_json::from_str(&html[start..end]).unwrap()
+}
+
+fn assert_round_timelines_match_state(rounds: &[Value], deployed: &str, zero_unit: &str) {
+    assert!(rounds[0]["lead_in"]["ticks"].as_u64().unwrap() > 0);
+    assert_eq!(rounds[0]["lead_in"]["tracks"][0][0]["type"], "unlock_unit");
+    let roster = rounds[0]["rosters"][0].as_array().unwrap();
+    let unlocked = roster.iter().find(|row| row["kind"] == zero_unit).unwrap();
+    assert_eq!(unlocked["count"], 0);
+    let techs = unlocked["techs"].as_array().unwrap();
+    assert!(!techs.is_empty());
+    assert!(techs.iter().all(|tech| tech["active"] == false));
+    let stated = mechcore_document::opening::stated(deployed.as_bytes())
+        .unwrap()
+        .unwrap();
+    for round in rounds {
+        let number = round["round"].as_i64().unwrap();
+        let turn = stated
+            .turns
+            .iter()
+            .find(|turn| i64::from(turn.round) == number)
+            .unwrap();
+        assert_eq!(round["cores"][0]["begin"], turn.state.blue.reactor_core);
+        assert_eq!(round["cores"][1]["begin"], turn.state.red.reactor_core);
+        for core in round["cores"].as_array().unwrap() {
+            assert!(core["maximum"].as_i64().unwrap() > 1);
+        }
+    }
+    assert_eq!(
+        rounds
+            .iter()
+            .map(|r| r["round"].as_i64().unwrap())
+            .collect::<Vec<_>>(),
+        [1, 2]
+    );
+}
+
 /// A whole match plays completed deployments, including its final decisions,
 /// but never invents a fight for a pending deployment or a concession.
 #[test]
@@ -1598,7 +1640,7 @@ fn playing_a_match_keeps_each_completed_round() {
     let pending_yaml = fs::read_to_string(&path).unwrap();
     let last_actions = pending_yaml.rfind("---\nkind: action").unwrap();
     fs::write(&path, &pending_yaml[..last_actions]).unwrap();
-    let pending = run(&["play", &path, &page, "--no-open"]).refused();
+    let pending = run(&["convert", &path, "--to", "html", &page]).refused();
     assert!(pending.contains("no completed deployment"), "{pending}");
     fs::write(&path, pending_yaml).unwrap();
     let view = run(&["match", "show", &path, "--side", "blue"]).ok();
@@ -1621,51 +1663,29 @@ fn playing_a_match_keeps_each_completed_round() {
     let deployed = fs::read_to_string(&path).unwrap();
     let last_actions = deployed.rfind("---\nkind: action").unwrap();
     fs::write(&path, &deployed[..last_actions]).unwrap();
-    let report = run(&["play", &path, &page, "--no-open"]).ok();
-    assert_eq!(report["kind"], "match");
+    let report = run(&["convert", &path, "--to", "html", &page]).ok();
+    assert_eq!(report["schema"], "mechcore.convert-html-result");
+    assert_eq!(report["from"], "match");
+    assert_eq!(report["to"], "html");
+    assert_eq!(report["output"], page);
     assert_eq!(report["rounds"], 2);
     assert_eq!(report["seed_source"], "match");
-    let read = || {
-        let html = fs::read_to_string(&page).unwrap();
-        let start = html
-            .find(r#"<script id="timeline" type="application/json">"#)
-            .unwrap()
-            + r#"<script id="timeline" type="application/json">"#.len();
-        let end = start + html[start..].find("</script>").unwrap();
-        serde_json::from_str::<Vec<Value>>(&html[start..end]).unwrap()
-    };
-    let rounds = read();
-    assert!(rounds[0]["lead_in"]["ticks"].as_u64().unwrap() > 0);
-    assert_eq!(rounds[0]["lead_in"]["tracks"][0][0]["type"], "unlock_unit");
-    let roster = rounds[0]["rosters"][0].as_array().unwrap();
-    let unlocked = roster.iter().find(|row| row["kind"] == zero_unit).unwrap();
-    assert_eq!(unlocked["count"], 0);
-    let techs = unlocked["techs"].as_array().unwrap();
-    assert!(!techs.is_empty());
-    assert!(techs.iter().all(|tech| tech["active"] == false));
-    let stated = mechcore_document::opening::stated(deployed.as_bytes())
-        .unwrap()
-        .unwrap();
-    for round in &rounds {
-        let number = round["round"].as_i64().unwrap();
-        let turn = stated
-            .turns
-            .iter()
-            .find(|turn| i64::from(turn.round) == number)
-            .unwrap();
-        assert_eq!(round["cores"][0]["begin"], turn.state.blue.reactor_core);
-        assert_eq!(round["cores"][1]["begin"], turn.state.red.reactor_core);
-        for core in round["cores"].as_array().unwrap() {
-            assert!(core["maximum"].as_i64().unwrap() > 1);
-        }
-    }
-    assert_eq!(
-        rounds
-            .iter()
-            .map(|r| r["round"].as_i64().unwrap())
-            .collect::<Vec<_>>(),
-        [1, 2]
-    );
+    let rounds_value = embedded_html_timeline(&page);
+    let rounds = rounds_value.as_array().unwrap();
+    let single_page = directory.path().join("round-1.html").display().to_string();
+    let single = run(&[
+        "convert",
+        &path,
+        "--to",
+        "html",
+        &single_page,
+        "--round",
+        "1",
+    ])
+    .ok();
+    assert!(single.get("rounds").is_none());
+    assert_eq!(embedded_html_timeline(&single_page)["round"], 1);
+    assert_round_timelines_match_state(rounds, &deployed, zero_unit);
     assert_eq!(
         report["ticks"].as_u64().unwrap(),
         rounds
@@ -1677,21 +1697,28 @@ fn playing_a_match_keeps_each_completed_round() {
     let yaml = fs::read_to_string(&path).unwrap();
     let tail = yaml.rfind("---\nkind: state").unwrap();
     fs::write(&path, &yaml[..tail]).unwrap();
-    run(&["play", &path, &page, "--no-open"]).ok();
-    assert_eq!(read(), rounds);
+    run(&["convert", &path, "--to", "html", &page, "--force"]).ok();
+    assert_eq!(&embedded_html_timeline(&page), &rounds_value);
     fs::write(&path, deployed).unwrap();
     run(&["match", "act", &path, "--side", "blue", "{type: concede}"]).ok();
     run(&["match", "commit", &path, "--side", "blue"]).ok();
     decline(&path, "red");
     run(&["match", "commit", &path, "--side", "red"]).ok();
-    let report = run(&["play", &path, &page, "--no-open"]).ok();
+    let report = run(&["convert", &path, "--to", "html", &page, "--force"]).ok();
     assert_eq!(report["rounds"], 2);
-    assert_eq!(read(), rounds);
-    let seed = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["play", &path, "--seed", "1", "--no-open"])
-        .output()
-        .unwrap();
-    assert_eq!(seed.status.code(), Some(2));
+    assert_eq!(&embedded_html_timeline(&page), &rounds_value);
+    for seed_args in [
+        vec!["play", &path, "--seed", "1", "--no-open"],
+        vec![
+            "convert", &path, "--to", "html", &page, "--force", "--seed", "1",
+        ],
+    ] {
+        let seed = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+            .args(seed_args)
+            .output()
+            .unwrap();
+        assert_eq!(seed.status.code(), Some(2));
+    }
 }
 
 #[test]

@@ -88,19 +88,21 @@ carries.
 | `action` | a YAML document stating `kind: action` |
 | `mcfr` | the ZIP local file header an [MCFR](../mcfr/mcfr.md) opens with |
 | `grbr` | the serialization header .NET's `BinaryFormatter` writes, which a native replay opens with |
+| `html` | a self-contained player HTML page opening with `<!doctype html>` |
 
 A YAML document that names no kind, or one this binary does not read, is
 refused rather than guessed at.
 
 | Kind | `verify` | `convert --to` | `diff` | `show --view` | `query` | `play` | `format` | `mask` | `preview` |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `layout` | yes | `grbr` (transcode), `mcfr` (computation), `fight` (computation) | yes | — | — | yes (computation) | yes | yes | yes |
-| `fight` | yes | `layout` (projection), `grbr` (transcode), `mcfr` (computation) | yes | — | — | yes (computation) | yes | — | — |
-| `match` | yes | `grbr` (transcode), `layout` (projection), `fight` and `mcfr` (computation) | — | — | — | yes (computation) | — | yes | — |
+| `layout` | yes | `grbr` (transcode), `mcfr` (computation), `fight` (computation), `html` (computation) | yes | — | — | yes (computation) | yes | yes | yes |
+| `fight` | yes | `layout` (projection), `grbr` (transcode), `mcfr` (computation), `html` (computation) | yes | — | — | yes (computation) | yes | — | — |
+| `match` | yes | `grbr` (transcode), `layout` (projection), `fight`, `mcfr`, and `html` (computation) | — | — | — | yes (computation) | — | yes | — |
 | `state` | — | — | — | — | — | — | — | yes | yes |
 | `action` | — | — | — | — | — | — | — | — | — |
-| `mcfr` | yes | `fight` and `layout` (projection), `grbr` (transcode) | yes | `outcome`, `stats`, `buildings` | yes | yes | — | — | — |
-| `grbr` | — | `match` (transcode), `layout` (projection), `mcfr` and `fight` (computation) | — | — | — | — | — | — | — |
+| `mcfr` | yes | `fight`, `layout`, and `html` (projection), `grbr` (transcode) | yes | `outcome`, `stats`, `buildings` | yes | yes | — | — | — |
+| `grbr` | — | `match` (transcode), `layout` (projection), `mcfr`, `fight`, and `html` (computation) | — | — | — | yes (computation) | — | — | — |
+| `html` | — | — | — | — | — | — | — | — | — |
 
 A state and an action are verified inside a match. A standalone state also
 takes `mask`, which projects its stated position without replaying decisions.
@@ -470,6 +472,16 @@ that could be two, are refused rather than chosen between.
 makes as `mcfr` to `fight` does. Its `source` names the backend that fought it:
 `simulator` by default or `game` with `--backend game`.
 
+**To `html` (`layout`, `fight`, `match`, `grbr` as computation; `mcfr` as projection).**
+Writes one self-contained offline HTML player page to `<out>` (`mechcore convert <in> --to html <out.html>`),
+embedding all selected timelines, sprites, panels, and styles with no external
+requests. Requires `<out>` and refuses `--backend` (conversion runs locally in
+the binary; `--force` replaces an existing file). `--seed` overrides a layout's
+seed, and `--round` selects a single playable round from a `match` or `grbr`
+(without `--round`, multi-round matches and match GRBRs include every completed
+deployment). Answers `schema: "mechcore.convert-html-result"` with `from`,
+`to: "html"`, `backend`, `output`, `ticks`, optional `rounds`, and `seed`/`seed_source`.
+
 ## `diff`
 
 `diff <left> <right>` reports what two files of one kind differ in, and exits 1
@@ -693,65 +705,44 @@ core damage is the opposing team's score. `--schema` lists these views.
 
 ## `play`
 
-`play <file> [<page>] [--seed <i32>] [--no-open]` writes the page that plays a fight back:
-one HTML file, carrying its script and the whole fight, that a browser opens
-offline and plays the battlefield from above at any speed. Without `<page>` it
-writes in the system temporary directory, under the file's name with `.html`,
-replacing a page already there, and it answers the page's path, the kind of
-the file, who fought the fight (`producer`), its ticks and, for a fight fought here, the seed
-it was fought with and where that seed came from.
+`play <file> [--seed <i32>] [--port <u16>] [--no-open] [--no-cache]` runs a
+foreground local HTTP playback engine backed by `mechcore` for a `layout`,
+`fight`, `match`, `mcfr`, or `grbr`. It loads or simulates round 0 first, binds
+`127.0.0.1:<port>` (`0` selects a free port), emits a single-line startup report
+(`schema: "mechcore.play-result"`, `input`, `kind`, `producer`, `url`, `rounds`,
+`ticks` of round 0, optional `seed`/`seed_source`, `cached`, `opened`) and
+flushes standard output, then serves the UI until interrupted (`SIGINT` /
+`SIGTERM`). `--no-open` skips asking the system browser (`open`, `xdg-open`,
+or `start`) to open `<url>`; a browser launch failure prints to standard error
+without failing the command. Exporting a standalone offline HTML file is
+handled by `mechcore convert <in> --to html <out.html>`.
 
-Once the page is written the command asks the system to open it in its
-default browser (`open` on macOS, `xdg-open` elsewhere, `start` on Windows),
-and answers `opened` for whether the system took the request. A page the
-system cannot open is still written: the command does not fail for it, and
-says so on standard error. `--no-open` only writes the page.
+On multi-round `match` and `grbr` inputs, round 0 opens immediately (`GET /`
+serves the initial timeline and pre-collected panel catalogs for all rounds)
+while a background worker decodes and simulates rounds `1..N` sequentially.
+Switching in the UI to an uncached round requests `GET /api/round/<i>` and
+prioritizes that round ahead of the background queue; `GET /api/status` reports
+each round's `ready` and `failed` status. Conceded turns and a trailing state
+without decisions are excluded just as in `convert --to layout --round`, and a
+match or replay with no playable round is refused before binding.
 
-A match file simulates each round whose deployment decisions are present,
-excluding concessions and a trailing state with no decisions. It uses the same
-projection as `convert --to layout --round`, and refuses a match with no such
-round or one containing a fight the simulator refuses. It takes its own seed;
-`--seed` is a usage error. The result adds `rounds`, counts `ticks` across all
-played rounds, and reports `seed_source: match`. The page's round dropdown,
-immediately left of speed, selects a round at its initial frame (`window.player.startTick`,
-preceding tick 1 when the round carries a deployment lead-in) while retaining speed and
-playback state. Playback speeds are 0.5×, 1.0×, 2.0× and 4.0×. In a multi-round
-match, playback advances to the next round after settlement by default and stops
-after the last round. Turn off `Autoplay next round` in settings to stop after
-each round.
+Computed round timelines are cached in memory and on disk under
+`MECHCORE_PLAY_CACHE` (defaulting to `/tmp/mechcore-play`), keyed by round
+content and the current binary build fingerprint so repeated invocations reuse
+already-simulated rounds (`cached: true`). `--no-cache` keeps rounds in memory
+only for the active session. `--seed` overrides a `layout`'s seed and is a usage
+error for every other input kind (`fight`, `match`, `mcfr`, `grbr`), which supply
+their own seed or recorded outcome.
 
-The page's download button pauses at the current playback frame, rounded down, and downloads
-the battlefield as a standalone vector image at the current pan and zoom.
-It includes the enabled life bars, aim lines and damage numbers, but not the
-HTML controls or core HUD. The image's title and filename name the fight, round and tick
-(or settlement frame during the presentation tail);
-its shapes, ground and effects remain vector elements rather than an embedded
-bitmap. `window.player.snapshot(frame)` returns that image for an integer frame
-from `window.player.startTick` through `window.player.endTick`. Negative and zero
-frames before tick 1 replay the round's deployment decisions (with blue and red on
-independent clocks) ahead of tick 1; frames from `1` through the recording's last tick
-are combat ticks. A presentation-only tail freezes that last tick while
-survivors' score values fly to the opposing core and deduct the recorded
-settlement damage. Lead-in and settlement are presentation-only: they add no
-recording ticks, change no CLI `ticks` result, and remain seekable and
-deterministic. `player.tau` stays at the combat tick (`1..=LAST`); `player.playhead` spans
-from `startTick` through the tail. The bottom bar includes deployment lead-in and settlement in both
-elapsed time and total duration. The battlefield clock holds its final combat
-time throughout settlement. A zero-damage fight has no scoring tail.
-
-A recording is played as it holds the fight, and one made with the
-`unit_pose` instrument channel ([mcfr.md](../mcfr/mcfr.md#instrument-channels))
-is drawn in the poses it records: each unit takes its stance and the phase of
-its attack from the clip its model played. A fight with no poses, which every
-fight the simulator makes is, is drawn from its units' motion and its events.
-A layout or a fight document is
-fought by the simulator first, as [`convert --to mcfr`](#convert) fights it,
-`--seed` overriding a layout's own and a fight document taking its own seed and
-no `--seed`; the fight is kept in memory and laid out for the page directly,
-so no recording is written. One that is wanted is `convert --to mcfr`, and
-playing it plays the same fight. A seed given to a recording or a fight
-document is a usage error, and a fight the simulator does not fight is refused
-as `convert` refuses it.
+Inside the player, the round dropdown immediately left of speed selects a round
+at its initial frame (`window.player.startTick`) while retaining speed
+(`0.5×`, `1.0×`, `2.0×`, `4.0×`) and playback state; `Autoplay next round`
+advances across rounds after score settlement. Recordings with `unit_pose`
+channels draw recorded animation clips while simulator fights animate from
+motion and cues, negative/zero lead-in frames replay deployment actions on
+independent per-side clocks, the presentation tail settles survivor scores onto
+the opposing core, and the SVG download / `window.player.snapshot(frame)`
+exports a deterministic vector snapshot at any frame.
 
 ## `format` and `schema`
 

@@ -15,15 +15,20 @@ their red or blue colour. Hovering shows the exact level. Units without a
 matching opening placement use their original model colours.
 
 ```bash
-mechcore play crates/player/scenes/six-units.yaml
+mechcore convert crates/player/scenes/six-units.yaml --to html six-units.html
 ```
 
-writes `six-units.html` in the system temporary directory: one file that
-carries its style, its script and the whole fight, and plays offline in any browser. `play` takes
-a recording too, and a layout or fight document it fights in memory first;
-[cli.md](../../docs/spec/mechcore/cli.md#play) is its contract. This crate is
-the library it plays with: [`timeline`](src/timeline.rs) lays any
-`Recording` out for the page and [`page`](src/page.rs) writes it. Space plays and
+writes `six-units.html`: one file that carries its style, its script and the
+whole fight, and plays offline in any browser. `convert --to html` takes a
+recording too, and a layout, fight, match, or GRBR document it fights in memory
+first; `mechcore play` runs a foreground local HTTP engine backed by
+`mechcore` that serves round 0 at once while simulating and caching remaining
+rounds in the background (or on demand).
+[cli.md](../../docs/spec/mechcore/cli.md#play) is their contract. This crate is
+the library they play with: [`timeline`](src/timeline.rs) lays any
+`Recording` out for the page and [`page`](src/page.rs) writes it (`page` and
+`match_page` build self-contained pages, while `live_page` embeds round 0 and
+fetches subsequent rounds from `/api/round/<i>`). Space plays and
 pauses. Left and Right step through time by one tick (one second with Shift).
 W/A/S/D move the camera up/left/down/right, and T/G zoom in/out around the
 view centre. Hold a key to keep moving, including while paused. Dragging pans,
@@ -454,7 +459,7 @@ The native random-damage view hides its main frame and symbol at its first
 sub-effect; the player fades them out over 0.25 seconds from the reconstructed
 first arrival, independently of the 15 or 30 repeated strikes.
 
-`mechcore play` reconstructs these skills' ground-arrival plans by initializing
+`mechcore play` and `mechcore convert --to html` reconstruct these skills' ground-arrival plans by initializing
 the simulator from the embedded layout and seed, without advancing the fight.
 It uses the existing placement code and side streams, seeded from
 `(round + team) * 4444` and consumed in release order before the units' first
@@ -470,7 +475,7 @@ These are simulator-reconstructed ground arrivals, not recorded commander
 events. A shield may intercept a falling effect before it reaches that point;
 the forecast does not reconstruct interception. Shield state, damage and buffs
 remain those of the recording. If the current simulator cannot initialize the
-embedded layout, `play` warns and retains the release preview alone, timed by
+embedded layout, playback warns and retains the release preview alone, timed by
 its nominal configured delay. MCFR is unchanged.
 
 `web/skill-icons.js` contains all twenty native deployment symbols, traced

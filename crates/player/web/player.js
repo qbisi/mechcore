@@ -1,4 +1,4 @@
-// Plays the timeline embedded in this page.
+// Plays the timeline embedded or streamed into this page.
 //
 // Combat is drawn from one moment, `tau`, measured in recorded ticks: an
 // object's place is read off its tracks between the two ticks around it, and
@@ -18,8 +18,17 @@
   const rosterAssets=JSON.parse(document.getElementById('roster-assets').textContent);
   const arsenalAssets=JSON.parse(document.getElementById('arsenal-assets').textContent);
   const towerAssets=JSON.parse(document.getElementById('tower-assets').textContent);
-  const rounds = Array.isArray(embedded) ? embedded : [embedded];
+  const isLive = Boolean(embedded && !Array.isArray(embedded) && embedded.live);
+  const liveMeta = isLive ? embedded.rounds : null;
+  const rounds = isLive
+    ? liveMeta.map((_, i) => (i === 0 ? embedded.initial : null))
+    : Array.isArray(embedded)
+      ? embedded
+      : [embedded];
+  const isMultiRound = Array.isArray(embedded) || (isLive && rounds.length > 1);
   let roundIndex = 0;
+  let desiredRound = 0;
+  let resumeAfterLoad = false;
   let data = rounds[0];
   let TPS = data.ticks_per_second;
   let LAST = data.ticks;
@@ -2418,16 +2427,39 @@
   const autoplay = document.getElementById('opt-autoplay');
   if (rounds.length < 2) autoplay.closest('label').remove();
   const roundSelect = document.getElementById('round');
-  roundSelect.hidden = !Array.isArray(embedded);
-  rounds.forEach((round, i) => {
+  roundSelect.hidden = !isMultiRound;
+  (isLive ? liveMeta : rounds).forEach((round, i) => {
     const option = document.createElement('option');
     option.value = String(i);
     option.textContent = `Round ${round.round}`;
     roundSelect.append(option);
   });
-  function selectRound(index) {
-    if (!Number.isInteger(index) || index < 0 || index >= rounds.length) throw new RangeError('unknown round');
+  const pendingRounds = new Map();
+  function fetchRound(index) {
+    if (rounds[index]) return Promise.resolve(rounds[index]);
+    if (pendingRounds.has(index)) return pendingRounds.get(index);
+    const promise = fetch(`/api/round/${index}`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`round ${index} failed (${response.status})`);
+        }
+        return response.json();
+      })
+      .then((timeline) => {
+        rounds[index] = timeline;
+        pendingRounds.delete(index);
+        return timeline;
+      })
+      .catch((error) => {
+        pendingRounds.delete(index);
+        throw error;
+      });
+    pendingRounds.set(index, promise);
+    return promise;
+  }
+  function applyRound(index) {
     roundIndex = index;
+    desiredRound = index;
     roundSelect.value = String(index);
     data = rounds[index];
     TPS = data.ticks_per_second;
@@ -2448,13 +2480,61 @@
     resetHud();
     fit(); drawMarks(); frame(); updateHud();
   }
+  function selectRound(index) {
+    if (!Number.isInteger(index) || index < 0 || index >= rounds.length) throw new RangeError('unknown round');
+    desiredRound = index;
+    if (rounds[index]) {
+      if (resumeAfterLoad) playing = true;
+      resumeAfterLoad = false;
+      applyRound(index);
+      return;
+    }
+    roundSelect.value = String(index);
+    if (playing) {
+      resumeAfterLoad = true;
+      playing = false;
+    }
+    const label = document.getElementById('battle-round');
+    if (label && liveMeta && liveMeta[index]) {
+      label.textContent = `Round ${liveMeta[index].round}…`;
+    }
+    return fetchRound(index).then(() => {
+      if (desiredRound !== index) return;
+      const resume = resumeAfterLoad;
+      resumeAfterLoad = false;
+      applyRound(index);
+      if (resume) playing = true;
+    }).catch((error) => {
+      if (desiredRound === index) {
+        desiredRound = roundIndex;
+        resumeAfterLoad = false;
+        if (label && liveMeta && liveMeta[index]) {
+          label.textContent = `Round ${liveMeta[index].round} unavailable`;
+        }
+        roundSelect.value = String(roundIndex);
+      }
+      console.error(error);
+    });
+  }
   roundSelect.addEventListener('change', () => selectRound(Number(roundSelect.value)));
   document.getElementById('previous-round').addEventListener('click',()=>{
-    if(roundIndex>0)selectRound(roundIndex-1);
+    if(desiredRound>0)selectRound(desiredRound-1);
   });
   document.getElementById('next-round').addEventListener('click',()=>{
-    if(roundIndex+1<rounds.length)selectRound(roundIndex+1);
+    if(desiredRound+1<rounds.length)selectRound(desiredRound+1);
   });
+  if (isLive && rounds.length > 1) {
+    (async () => {
+      for (let i = 1; i < rounds.length; i++) {
+        if (rounds[i]) continue;
+        try {
+          await fetchRound(i);
+        } catch (error) {
+          console.error(`prefetch round ${i}:`, error);
+        }
+      }
+    })();
+  }
   const settings=document.getElementById('display-settings');
   const controls=document.getElementById('controls');
   let controlsActiveAt=performance.now();
@@ -2476,6 +2556,7 @@
   });
 
   playButton.addEventListener('click', () => {
+    resumeAfterLoad = false;
     if (!playing && cursor >= END) setTau(START);
     playing = !playing;
   });

@@ -6,7 +6,7 @@ use mechcore_document::layout::Side;
 use serde::{Deserialize, Serialize};
 
 /// One unit type at deployment, independent of combat losses and summons.
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RosterEntry {
     pub kind: String,
     pub count: usize,
@@ -18,7 +18,7 @@ pub struct RosterEntry {
     pub techs: Vec<RosterTechnology>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RosterTechnology {
     pub id: i32,
     pub active: bool,

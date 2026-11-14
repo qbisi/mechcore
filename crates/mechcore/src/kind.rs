@@ -20,6 +20,7 @@ pub(crate) enum Kind {
     Action,
     Mcfr,
     Grbr,
+    Html,
 }
 
 /// How a conversion reaches the kind it writes.
@@ -54,7 +55,7 @@ const GRBR_HEADER: [u8; 17] = [
 const MCFR_HEADER: [u8; 4] = *b"PK\x03\x04";
 
 impl Kind {
-    pub(crate) const ALL: [Self; 7] = [
+    pub(crate) const ALL: [Self; 8] = [
         Self::Layout,
         Self::Fight,
         Self::Match,
@@ -62,6 +63,7 @@ impl Kind {
         Self::Action,
         Self::Mcfr,
         Self::Grbr,
+        Self::Html,
     ];
 
     pub(crate) const fn name(self) -> &'static str {
@@ -73,6 +75,7 @@ impl Kind {
             Self::Action => "action",
             Self::Mcfr => "mcfr",
             Self::Grbr => "grbr",
+            Self::Html => "html",
         }
     }
 
@@ -93,6 +96,17 @@ impl Kind {
         if bytes.starts_with(&GRBR_HEADER) {
             return Ok(Self::Grbr);
         }
+        let html_head = bytes.strip_prefix(b"\xef\xbb\xbf").unwrap_or(bytes);
+        let html_start = html_head
+            .iter()
+            .position(|byte| !byte.is_ascii_whitespace())
+            .unwrap_or(html_head.len());
+        if html_head[html_start..]
+            .get(..15)
+            .is_some_and(|head| head.eq_ignore_ascii_case(b"<!doctype html>"))
+        {
+            return Ok(Self::Html);
+        }
         let first = serde_yaml::Deserializer::from_slice(bytes)
             .next()
             .and_then(|document| {
@@ -104,7 +118,7 @@ impl Kind {
             .and_then(serde_yaml::Value::as_str)
             .ok_or("the document does not name its kind: it starts with `kind: <kind>`")?;
         Self::parse(named)
-            .filter(|kind| !matches!(kind, Self::Mcfr | Self::Grbr))
+            .filter(|kind| !matches!(kind, Self::Mcfr | Self::Grbr | Self::Html))
             .ok_or_else(|| format!("no document is of kind {named:?}"))
     }
 
@@ -153,9 +167,9 @@ impl Kind {
             Self::Fight => &["verify", "convert", "diff", "play", "format"],
             Self::Match => &["verify", "convert", "play", "format", "mask"],
             Self::State => &["mask", "preview"],
-            Self::Action => &[],
+            Self::Action | Self::Html => &[],
             Self::Mcfr => &["verify", "convert", "diff", "show", "query", "play"],
-            Self::Grbr => &["convert"],
+            Self::Grbr => &["convert", "play"],
         }
     }
 
@@ -166,18 +180,21 @@ impl Kind {
                 (Self::Grbr, Conversion::Transcode),
                 (Self::Mcfr, Conversion::Computation),
                 (Self::Fight, Conversion::Computation),
+                (Self::Html, Conversion::Computation),
             ],
             Self::Match => &[
                 (Self::Grbr, Conversion::Transcode),
                 (Self::Layout, Conversion::Projection),
                 (Self::Fight, Conversion::Computation),
                 (Self::Mcfr, Conversion::Computation),
+                (Self::Html, Conversion::Computation),
             ],
             Self::Grbr => &[
                 (Self::Match, Conversion::Transcode),
                 (Self::Layout, Conversion::Projection),
                 (Self::Mcfr, Conversion::Computation),
                 (Self::Fight, Conversion::Computation),
+                (Self::Html, Conversion::Computation),
             ],
             // What a recording holds of its fight, written onto the layout it
             // embeds: read, not computed.
@@ -185,14 +202,16 @@ impl Kind {
                 (Self::Fight, Conversion::Projection),
                 (Self::Layout, Conversion::Projection),
                 (Self::Grbr, Conversion::Transcode),
+                (Self::Html, Conversion::Projection),
             ],
             // A fight is fought again from its projection and its own seed.
             Self::Fight => &[
                 (Self::Layout, Conversion::Projection),
                 (Self::Grbr, Conversion::Transcode),
                 (Self::Mcfr, Conversion::Computation),
+                (Self::Html, Conversion::Computation),
             ],
-            Self::State | Self::Action => &[],
+            Self::State | Self::Action | Self::Html => &[],
         }
     }
 
@@ -250,8 +269,17 @@ mod tests {
         let mut grbr = super::GRBR_HEADER.to_vec();
         grbr.extend_from_slice(b"\x0c\x02");
         assert_eq!(Kind::of(&grbr).unwrap(), Kind::Grbr);
+        assert_eq!(
+            Kind::of(b"<!doctype html><html></html>").unwrap(),
+            Kind::Html
+        );
+        assert_eq!(
+            Kind::of(b"  <!DOCTYPE html><html></html>").unwrap(),
+            Kind::Html
+        );
         assert!(Kind::of(b"round: 1\n").unwrap_err().contains("kind"));
         assert!(Kind::of(b"kind: mcfr\n").is_err());
+        assert!(Kind::of(b"kind: html\n").is_err());
         assert!(Kind::of(b"kind: novel\n").unwrap_err().contains("novel"));
     }
 
@@ -294,6 +322,16 @@ mod tests {
             Kind::Grbr.conversion(Kind::Mcfr),
             Some(Conversion::Computation)
         );
+        assert_eq!(
+            Kind::Layout.conversion(Kind::Html),
+            Some(Conversion::Computation)
+        );
+        assert_eq!(
+            Kind::Mcfr.conversion(Kind::Html),
+            Some(Conversion::Projection)
+        );
+        assert!(Kind::Grbr.require("play").is_ok());
+        assert!(Kind::Html.verbs().is_empty());
         assert!(Kind::Fight.require("verify").is_ok());
         assert!(
             Kind::State
