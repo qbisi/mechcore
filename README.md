@@ -7,15 +7,17 @@ Read the [Mechcore Wiki](https://qbisi.github.io/mechcore/), starting with
 
 ![Rhino Whirlwind in the battle player at tick 178](assets/demo.svg)
 
-Play a pinned corpus round locally in the battle player:
+Play a pinned corpus round locally in the battle player (serves live over HTTP,
+or export standalone offline HTML with `convert --to html`):
 
 ```sh
 cargo run --release -p mechcore --no-default-features -- play tests/corpus/67158166-r5.yaml
 ```
 
-Space pauses, the timeline seeks, and the mouse wheel zooms. The exported HTML
-plays offline, with its code and battle data in one file.
-The download button exports the current tick as an SVG vector image.
+Space pauses, the timeline seeks, and the mouse wheel zooms. To write a
+self-contained HTML file with code and battle data bundled offline, pass
+`--to html <out.html>` to `convert`. The download button exports the current
+tick as an SVG vector image.
 
 [Wiki](docs/wiki/how-a-match-works.md) · [CLI manual](docs/spec/mechcore/cli.md) ·
 [Game rules](docs/rules/combat.md) · [Terminology](docs/terminology/README.md)

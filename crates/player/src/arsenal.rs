@@ -5,13 +5,13 @@ use std::collections::{BTreeMap, BTreeSet};
 use mechcore_document::{layout, r#match::SideState};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Arsenal {
     pub skills: Vec<SkillSlot>,
     pub equipment: Vec<HeldItem>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SkillSlot {
     pub id: i32,
     pub cooldown: i32,
@@ -19,7 +19,7 @@ pub struct SkillSlot {
     pub released: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct HeldItem {
     pub id: i32,
     pub durability: Option<i32>,
@@ -52,7 +52,11 @@ pub fn arsenal(state: &SideState) -> Arsenal {
 }
 
 /// A standalone fight knows releases, not the account's unused skill slots.
-pub(crate) fn released(side: &layout::Side) -> Result<Arsenal, serde_json::Error> {
+///
+/// # Errors
+///
+/// Returns an error when the embedded arsenal catalog cannot be read.
+pub fn released(side: &layout::Side) -> Result<Arsenal, serde_json::Error> {
     let catalog = catalog()?;
     let skills = side
         .battle_skills

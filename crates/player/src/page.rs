@@ -20,6 +20,13 @@ const SPAWN: &str = include_str!("../web/spawn.js");
 const SETTLEMENT: &str = include_str!("../web/settlement.js");
 const PLAYER: &str = include_str!("../web/player.js");
 
+/// One playable round listed in a live player page.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+pub struct LiveRoundMeta {
+    pub index: usize,
+    pub round: i32,
+}
+
 /// Writes the page that plays `timeline`, titled `title`.
 ///
 /// # Errors
@@ -42,15 +49,74 @@ pub fn match_page(rounds: &[Timeline], title: &str) -> Result<String, serde_json
     render(rounds, title, &assets, &arsenal)
 }
 
+/// Writes a live player page embedding the initial round, round metadata, and
+/// pre-collected panel assets across all rounds.
+///
+/// # Errors
+///
+/// Returns an error when the timeline, metadata, or asset catalogs cannot be
+/// serialised.
+pub fn live_page(
+    first: &Timeline,
+    rounds: &[LiveRoundMeta],
+    rosters: &[crate::RosterEntry],
+    arsenals: &[crate::Arsenal],
+    title: &str,
+) -> Result<String, serde_json::Error> {
+    let first_json = serde_json::to_string(first)?;
+    let assets = crate::roster::assets(first.rosters.iter().flatten().chain(rosters.iter()))?;
+    let arsenal = crate::arsenal::assets(first.arsenals.iter().chain(arsenals.iter()))?;
+    live_render(&first_json, rounds, title, &assets, &arsenal)
+}
+
+/// Writes a live player page from an already-serialised initial round
+/// timeline and full asset slices across all rounds.
+///
+/// # Errors
+///
+/// Returns an error when metadata or asset catalogs cannot be serialised.
+pub fn live_page_json(
+    first_json: &str,
+    rounds: &[LiveRoundMeta],
+    rosters: &[crate::RosterEntry],
+    arsenals: &[crate::Arsenal],
+    title: &str,
+) -> Result<String, serde_json::Error> {
+    let assets = crate::roster::assets(rosters.iter())?;
+    let arsenal = crate::arsenal::assets(arsenals.iter())?;
+    live_render(first_json, rounds, title, &assets, &arsenal)
+}
+
+fn live_render(
+    first_json: &str,
+    rounds: &[LiveRoundMeta],
+    title: &str,
+    assets: &crate::roster::Catalog,
+    arsenal: &crate::arsenal::Catalog,
+) -> Result<String, serde_json::Error> {
+    let rounds_json = serde_json::to_string(rounds)?;
+    let data = format!("{{\"live\":true,\"rounds\":{rounds_json},\"initial\":{first_json}}}");
+    render_raw(&data, title, assets, arsenal)
+}
+
 fn render(
     data: &(impl serde::Serialize + ?Sized),
     title: &str,
     assets: &crate::roster::Catalog,
     arsenal: &crate::arsenal::Catalog,
 ) -> Result<String, serde_json::Error> {
+    render_raw(&serde_json::to_string(data)?, title, assets, arsenal)
+}
+
+fn render_raw(
+    data_json: &str,
+    title: &str,
+    assets: &crate::roster::Catalog,
+    arsenal: &crate::arsenal::Catalog,
+) -> Result<String, serde_json::Error> {
     // Inside a script element only `</` can end the element early, and JSON
     // may write it as `<\/` instead.
-    let data = serde_json::to_string(data)?.replace("</", "<\\/");
+    let data = data_json.replace("</", "<\\/");
     let assets = serde_json::to_string(assets)?.replace("</", "<\\/");
     let arsenal = serde_json::to_string(arsenal)?.replace("</", "<\\/");
     let towers: serde_json::Value = serde_json::from_str(TOWER_ASSETS)?;

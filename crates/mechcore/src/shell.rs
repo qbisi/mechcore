@@ -51,7 +51,8 @@ the game
   game quit_game                  shut the game down
 without the game
   verify | convert | diff | show  files, whose kind is read from what they hold
-  play <file> [<page.html>]       the page that plays a fight back
+  play <file> [--seed s] [--port p] [--no-open] [--no-cache]
+                                  serve interactive playback over HTTP
   format | schema                 documents
   mask <file> --side blue|red --unit <type>
                                   geometric purchase placement grids

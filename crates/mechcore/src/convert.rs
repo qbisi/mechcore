@@ -173,6 +173,11 @@ fn validate(request: &Request, from: Kind) -> Result<(), Failure> {
             )
         })
     })?;
+    if request.backend.is_some() && request.to == Kind::Html {
+        return Err(Failure::usage(
+            "--to html runs locally; --backend does not apply to it",
+        ));
+    }
     if request.backend.is_some() && how != Conversion::Computation {
         return Err(Failure::usage(
             "--backend belongs to a computation; this conversion runs no fight",
@@ -193,16 +198,16 @@ fn validate(request: &Request, from: Kind) -> Result<(), Failure> {
         (from, request.to),
         (
             Kind::Match | Kind::Grbr,
-            Kind::Layout | Kind::Fight | Kind::Mcfr
+            Kind::Layout | Kind::Fight | Kind::Mcfr | Kind::Html
         )
     );
     if request.round.is_some() && !takes_round {
         return Err(Failure::usage(
-            "--round selects one GRBR or match round for layout, fight or mcfr",
+            "--round selects one GRBR or match round for layout, fight, mcfr or html",
         ));
     }
     if request.output.is_none()
-        && (matches!(request.to, Kind::Grbr | Kind::Match)
+        && (matches!(request.to, Kind::Grbr | Kind::Match | Kind::Html)
             || request.backend == Some(Backend::Game))
     {
         return Err(Failure::usage(format!(
@@ -243,6 +248,7 @@ fn convert(request: &Request, from: Kind, bytes: &[u8]) -> Result<Answer, Failur
             let layout = projected(request, from, bytes)?;
             layout_to_replay(layout, request.seed, output.unwrap_or(Path::new("")))
         }
+        (_, Kind::Html) => crate::play::convert_html(request, from, bytes),
         (_, Kind::Layout) => written_layout(projected(request, from, bytes)?, output),
         (Kind::Mcfr, Kind::Fight) => written(crate::outcome::fight(&request.input)?, output),
         (_, Kind::Mcfr | Kind::Fight) => {

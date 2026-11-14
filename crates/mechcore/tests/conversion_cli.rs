@@ -127,6 +127,85 @@ fn conversion_options_are_refused_before_acquiring_a_game() {
             Some(3)
         );
     }
+    for source in [&input, &grbr, &fight, &mcfr] {
+        for backend in ["simulator", "game"] {
+            let answer = run(source, "html", Some(&output), &["--backend", backend]);
+            assert_eq!(answer.status.code(), Some(2));
+            assert!(
+                String::from_utf8_lossy(&answer.stderr).contains("--backend does not apply to it")
+            );
+            assert!(!output.exists());
+        }
+        assert_eq!(run(source, "html", None, &[]).status.code(), Some(2));
+    }
+    for (source, flag, value) in [
+        (&input, "--round", "3"),
+        (&fight, "--round", "3"),
+        (&mcfr, "--round", "3"),
+        (&grbr, "--seed", "7"),
+        (&fight, "--seed", "7"),
+        (&mcfr, "--seed", "7"),
+    ] {
+        let answer = run(source, "html", Some(&output), &[flag, value]);
+        assert_eq!(answer.status.code(), Some(2));
+        assert!(!output.exists());
+    }
+    fs::write(&output, "existing").unwrap();
+    assert_eq!(
+        run(&input, "html", Some(&output), &[]).status.code(),
+        Some(3)
+    );
+    assert_eq!(fs::read_to_string(&output).unwrap(), "existing");
+    converted(&input, "html", Some(&output), &["--force"]);
+}
+
+#[test]
+fn converting_battle_inputs_to_html_writes_offline_player_pages() {
+    let dir = tempfile::tempdir().unwrap();
+    let input = dir.path().join("input.yaml");
+    let grbr = dir.path().join("input.grbr");
+    let mcfr = dir.path().join("input.mcfr");
+    let fight = dir.path().join("fight.yaml");
+    layout(&input);
+    converted(&input, "grbr", Some(&grbr), &[]);
+    converted(&input, "mcfr", Some(&mcfr), &[]);
+    converted(&mcfr, "fight", Some(&fight), &[]);
+
+    let read_timeline = |page: &Path| -> Value {
+        let html = fs::read_to_string(page).unwrap();
+        assert!(html.starts_with("<!doctype html>"));
+        assert!(!html.contains("{{"));
+        let marker = r#"<script id="timeline" type="application/json">"#;
+        let start = html.find(marker).unwrap() + marker.len();
+        let end = start + html[start..].find("</script>").unwrap();
+        serde_json::from_str(&html[start..end]).unwrap()
+    };
+
+    let from_layout = dir.path().join("layout.html");
+    let layout_report = converted(&input, "html", Some(&from_layout), &[]);
+    assert_eq!(layout_report["schema"], "mechcore.convert-html-result");
+    assert_eq!(layout_report["from"], "layout");
+    assert_eq!(layout_report["to"], "html");
+    let baseline = read_timeline(&from_layout);
+
+    for (kind_name, source, opts) in [
+        ("grbr", &grbr, vec![]),
+        ("grbr", &grbr, vec!["--round", "3"]),
+        ("fight", &fight, vec![]),
+        ("mcfr", &mcfr, vec![]),
+    ] {
+        let page = dir.path().join(format!("{kind_name}-{}.html", opts.len()));
+        let report = converted(source, "html", Some(&page), &opts);
+        assert_eq!(report["from"], kind_name);
+        assert_eq!(report["to"], "html");
+        let page_timeline = read_timeline(&page);
+        assert_eq!(page_timeline["round"], baseline["round"]);
+        assert_eq!(page_timeline["ticks"], baseline["ticks"]);
+    }
+
+    let refused = run(&from_layout, "layout", None, &[]);
+    assert_eq!(refused.status.code(), Some(3));
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("html file converts to nothing"));
 }
 
 #[test]

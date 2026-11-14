@@ -22,10 +22,10 @@ mod timeline;
 mod tower;
 mod track;
 
-pub use arsenal::{Arsenal, HeldItem, SkillSlot, arsenal};
+pub use arsenal::{Arsenal, HeldItem, SkillSlot, arsenal, released as released_arsenal};
 pub use deployment::{Deployment, DeploymentGeometry, StrikeForecast, StrikePoint};
 pub use lead_in::{Change, LeadIn, LeadInEntry, LeadInFormation, Stance, lead_in};
-pub use page::{match_page, page};
+pub use page::{LiveRoundMeta, live_page, live_page_json, match_page, page};
 pub use roster::{RosterEntry, RosterTechnology, unit_roster};
 pub use timeline::{
     Building, Core, Cue, DeploymentRegion, Error, Field, Officer, Pose, Projectile, Ref, SCHEMA,

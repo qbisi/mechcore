@@ -41,7 +41,7 @@ fn usage(program: &str) {
     eprintln!("       {program} diff <left> <right> [--fields <group>,...] [--tick <n>]");
     eprintln!("       {program} show <recording.mcfr> --view outcome|stats|buildings [--tick <n>]");
     eprintln!(
-        "       {program} play <layout|fight|recording> [<page.html>] [--seed <i32>] [--no-open]"
+        "       {program} play <file> [--seed <i32>] [--port <u16>] [--no-open] [--no-cache]"
     );
     eprintln!("       {program} format <document.yaml> [--write]");
     eprintln!("       {program} mask <layout|state|match> --side blue|red --unit <type>");
