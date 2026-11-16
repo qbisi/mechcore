@@ -1011,8 +1011,8 @@ alike, and a match that wants a longer one says so in `match new
 Deals a match, or joins one already dealt.
 
 Operands: the match document. Options: `--name <name>`, `--seed <i32>`, `--map <i32>`,
-`--loadout <file>` for that side's technology loadout, and `--deploy-time
-<seconds>`.
+`--loadout <file>` for a custom technology loadout, `--reinforcements
+true|false`, `--full-tech-loadout true|false`, and `--deploy-time <seconds>`.
 
 `--name` sets the display name of the side this caller is given, on the deal
 or on the join. It is one nonempty line without control characters. When
@@ -1024,10 +1024,17 @@ is drawn from the maps this build has an opening initialization for, and a
 deployment time nobody chose is the 100 seconds a standard match deploys in.
 The seed and map are written into the header. Deployment time is runtime
 configuration stored in the turn file, retained across rounds, and reset to
-100 seconds if that file must be rebuilt. A side that names no loadout carries the
-embedded [default loadout](../../../crates/mechcore/default-loadout.yaml): four
-technologies per unit, or six for War Factory, Abyss and Mountain. Both sides
-start with the same preset; `--loadout` on the deal replaces it.
+100 seconds if that file must be rebuilt. Both match rule switches default to
+true. `--loadout` selects custom-loadout mode unless `--full-tech-loadout` is
+explicit, and is refused with an explicitly full loadout. With a custom mode
+but no file, both sides use the embedded
+[default loadout](../../../crates/mechcore/default-loadout.yaml). A full loadout
+uses the complete catalogue for both sides, with four researched technologies
+per unit type, or six for War Factory, Abyss and Mountain. The header writes
+`source: simulator`, the backend that plays these matches. A simulated
+continuation of an imported match updates its output source to `simulator`.
+A join may not specify rule switches or a loadout.
+
 
 Whichever caller names the document first deals the match and writes that
 header; the second joins it. A join that names a different seed or map than
@@ -1365,7 +1372,8 @@ here nothing but the pipe can be read around.
 
 Operands: the match document, or the directory a batch writes into. Options:
 `--blue <command>`, `--red <command>`, `--matches <n>` for how many to play,
-`--seed`, `--map` and `--deploy-time` as `match new` takes them, and
+`--seed`, `--map`, `--deploy-time`, `--reinforcements` and
+`--full-tech-loadout` as `match new` takes them, and
 `--request-timeout <seconds>`. A player's command is run by `sh -c`, so it may
 carry its own arguments.
 

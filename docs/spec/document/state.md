@@ -34,7 +34,10 @@ and then the decline as `refund_<amount>`, for example `refund_400`, naming
 what declining pays in this round. A round that deals offers always offers the
 decline after them. What the decline pays is the round's, not the position's,
 and it is not dealt: it is the map's figure, or in a unit round the schedule's.
-Writing it lets a position price its decline without replaying the deal.
+Writing it lets a position price its decline without replaying the deal. With
+`rules.reinforcements: false` in the match header, every state omits the offer
+and no decline is available; the shared stream stays at its opening checkpoint
+and the pool delta stays empty.
 
 A state is defined after each action, not only at a round's ends. A
 [match](match.md) writes the position each round opens with as a state

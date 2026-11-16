@@ -632,6 +632,96 @@ fn deposits_survive_round_openings_formatting_and_native_replay_round_trips() {
     );
 }
 
+#[test]
+fn full_loadout_and_disabled_reinforcements_use_the_header_rules() {
+    use mechcore_document::{
+        catalog,
+        economy::Economy,
+        r#match::{Action, Source},
+    };
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("rules.yaml").display().to_string();
+    let dealt = run(&[
+        "match",
+        "new",
+        &path,
+        "--seed",
+        "12345",
+        "--map",
+        "1011",
+        "--reinforcements",
+        "false",
+    ])
+    .ok();
+    assert_eq!(dealt["header"]["source"], "simulator");
+    assert_eq!(dealt["header"]["rules"]["full_tech_loadout"], true);
+    assert_eq!(dealt["header"]["rules"]["reinforcements"], false);
+    assert!(dealt["header"]["blue"].get("tech_loadout").is_none());
+    run(&["match", "new", &path]).ok();
+    open_the_match(&path);
+    let mut game = mechcore_document::r#match::read(&fs::read(&path).unwrap())
+        .unwrap()
+        .unwrap();
+    let available = Economy::embedded().unwrap().unit_technologies();
+    assert_eq!(game.blue.tech_loadout, available);
+    assert_eq!(game.red.tech_loadout, available);
+    let unit = game.turns[0]
+        .state
+        .blue
+        .units
+        .iter()
+        .filter_map(|entry| {
+            available
+                .keys()
+                .copied()
+                .find(|id| catalog::unit_type_from_id(*id).unwrap().0 == entry.unit.type_name)
+        })
+        .find(|id| available[id].len() > 4 && mechcore_document::r#match::research_limit(*id) == 4)
+        .unwrap();
+    game.turns[0].state.blue.supply = 50_000;
+    game.source = Source::Game;
+    fs::write(
+        &path,
+        mechcore_document::r#match::canonical_yaml(&game).unwrap(),
+    )
+    .unwrap();
+    for tech in &available[&unit][..4] {
+        let action =
+            serde_json::to_string(&Action::UpgradeTechnology { unit, tech: *tech }).unwrap();
+        run(&["match", "act", &path, "--side", "blue", &action]).ok();
+    }
+    let fifth = serde_json::to_string(&Action::UpgradeTechnology {
+        unit,
+        tech: available[&unit][4],
+    })
+    .unwrap();
+    let reason = run(&["match", "act", &path, "--side", "blue", &fifth]).refused();
+    assert!(reason.contains("research limit"), "{reason}");
+    for side in ["blue", "red"] {
+        run(&["match", "commit", &path, "--side", side]).ok();
+    }
+    let shown = run(&["match", "show", &path, "--side", "blue"]).ok();
+    assert_eq!(shown["header"]["source"], "simulator");
+    assert_eq!(shown["round"], 2);
+    assert!(
+        state(&shown)
+            .get("reinforce_offers")
+            .is_none_or(Value::is_null)
+    );
+    let reason = run(&[
+        "match",
+        "act",
+        &path,
+        "--side",
+        "blue",
+        "{type: choose_reinforce_item, index: 0, name: refund_50}",
+    ])
+    .refused();
+    assert!(reason.contains("no reinforcement"), "{reason}");
+    // Neither side needs an offer answer to commit a disabled round.
+    run(&["match", "commit", &path, "--side", "blue"]).ok();
+}
+
 /// The direct routes execute exactly the layout the projection route writes.
 fn assert_round_conversion(path: &str, round: Option<&str>, directory: &Path) {
     let layout = directory.join("round.yaml").display().to_string();
@@ -1498,7 +1588,20 @@ fn a_round_takes_one_reinforcement_answer() {
 fn the_default_loadout_is_complete_and_fits_each_units_slots() {
     use mechcore_document::{catalog, economy::Economy};
     let directory = tempfile::tempdir().unwrap();
-    let path = dealt(directory.path());
+    let path = directory.path().join("custom.yaml").display().to_string();
+    run(&[
+        "match",
+        "new",
+        &path,
+        "--seed",
+        "12345",
+        "--map",
+        "1011",
+        "--full-tech-loadout",
+        "false",
+    ])
+    .ok();
+    run(&["match", "new", &path]).ok();
     let game = mechcore_document::r#match::read(&fs::read(&path).unwrap())
         .unwrap()
         .unwrap();

@@ -62,7 +62,14 @@ pub fn match_replay(
     xml.push_str(
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<BattleRecord \
          xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" \
-         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><playerRecords>",
+         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">",
+    );
+    let _ = write!(
+        xml,
+        "<MechcoreMatch><Source>{}</Source><Reinforcements>{}</Reinforcements><FullTechLoadout>{}</FullTechLoadout></MechcoreMatch><playerRecords>",
+        stated.source.as_str(),
+        stated.rules.reinforcements,
+        stated.rules.full_tech_loadout
     );
     for (id, name, side, sign) in [(1, "blue", &stated.blue, 1), (2, "red", &stated.red, -1)] {
         write_player(&mut xml, economy, stated, id, name, side, sign)?;
@@ -96,13 +103,16 @@ pub fn match_replay(
          <BattleID>{BATTLE_ID}</BattleID><PrepareTime>30</PrepareTime><DeployTime>{}</DeployTime>\
          <FightTime>120</FightTime><MapID>{}</MapID><MaxRound>40</MaxRound>\
          <BlueprintIncreaseSupply>0</BlueprintIncreaseSupply>\
-         <EnableAdvanceTeam>true</EnableAdvanceTeam><EnableReinforcement>true</EnableReinforcement>\
-         <EnableUnitReinforcement>true</EnableUnitReinforcement>\
+         <EnableAdvanceTeam>true</EnableAdvanceTeam><EnableReinforcement>{reinforcements}</EnableReinforcement>\
+         <EnableUnitReinforcement>{reinforcements}</EnableUnitReinforcement>\
          <EnableConstruction>true</EnableConstruction><GameMode>Normal</GameMode>\
          <MatchMode>VS_1_1</MatchMode><ScoreMode>ReduceScore</ScoreMode><HostID>0</HostID>\
          <SurviveModeDifficulty>VeryEasy</SurviveModeDifficulty></BattleInfo>\
          <CreateTime>0001-01-01T00:00:00</CreateTime></BattleRecord>",
-        stated.seed, DEFAULT_DEPLOY_TIME, stated.map_id
+        stated.seed,
+        DEFAULT_DEPLOY_TIME,
+        stated.map_id,
+        reinforcements = stated.rules.reinforcements
     );
     Ok(binary_formatter(
         BATTLE_ID,
