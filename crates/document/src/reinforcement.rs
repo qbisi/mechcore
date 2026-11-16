@@ -1181,10 +1181,37 @@ fn walk(
 mod tests {
     use super::*;
 
+    fn native_checkpoint(dealer: &Dealer, round: i32) -> crate::record::MatchRound {
+        use crate::record;
+
+        let mut native: record::MatchRound = quick_xml::de::from_str(&format!(
+            "<MatchSnapshotData><round>{round}</round></MatchSnapshotData>"
+        ))
+        .unwrap();
+        native.random_state.states.values = dealer.stream.state().to_vec();
+        native.pool_operations.entries = dealer
+            .log
+            .iter()
+            .map(|&(operation, id)| record::PoolOperation { operation, id })
+            .collect();
+        native.excluded_rounds.entries = dealer
+            .excluded_rounds
+            .iter()
+            .map(|&round| {
+                let mut values = dealer.config.level_four_skills.clone();
+                values.reverse();
+                record::ExcludedRound {
+                    round,
+                    ids: record::ExcludedIds { values },
+                }
+            })
+            .collect();
+        native
+    }
+
     #[test]
     fn a_native_suffix_deals_from_its_recorded_checkpoint() {
         use crate::r#match::{Match, MatchSide, Opening, TurnActions};
-        use crate::record;
 
         let economy = Economy::embedded().unwrap();
         let opening = crate::opening::predict(economy, 12345, 1011).unwrap();
@@ -1236,27 +1263,7 @@ mod tests {
         for round in 2..5 {
             dealer.ordinary(round, &Context::default()).unwrap();
         }
-        let mut native: record::MatchRound =
-            quick_xml::de::from_str("<MatchSnapshotData><round>5</round></MatchSnapshotData>")
-                .unwrap();
-        native.random_state.states.values = dealer.stream.state().to_vec();
-        native.pool_operations.entries = dealer
-            .log
-            .iter()
-            .map(|&(operation, id)| record::PoolOperation { operation, id })
-            .collect();
-        native.excluded_rounds.entries = dealer
-            .excluded_rounds
-            .iter()
-            .map(|&round| {
-                let mut values = dealer.config.level_four_skills.clone();
-                values.reverse();
-                record::ExcludedRound {
-                    round,
-                    ids: record::ExcludedIds { values },
-                }
-            })
-            .collect();
+        let native = native_checkpoint(&dealer, 5);
         let stated =
             crate::opening::stated(crate::r#match::canonical_yaml(&game).unwrap().as_bytes())
                 .unwrap()
