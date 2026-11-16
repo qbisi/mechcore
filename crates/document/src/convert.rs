@@ -74,6 +74,7 @@ impl Seat {
 pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
     let record = record::read(grbr)?;
     readable(&record)?;
+    let (source, rules) = record.match_rules()?;
     let [blue, red] = <[record::PlayerRecord; 2]>::try_from(record.players.entries)
         .map_err(|players| format!("replay has {} sides, and a match has two", players.len()))?;
 
@@ -159,6 +160,8 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
     settle_concession(&mut turns)?;
 
     let mut converted = Match {
+        source,
+        rules,
         result: None,
         has_opening,
         game_build: crate::economy::game_build().to_owned(),
@@ -168,6 +171,7 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
         red: match_side(economy, &red, Seat::Red, dealt.red, has_opening)?,
         turns,
     };
+    check_recorded_loadouts(economy, &converted)?;
     if has_opening {
         crate::reinforcement::fill_checkpoints(economy, &mut converted)?;
     } else {
@@ -180,6 +184,18 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
         )?;
     }
     Ok(converted)
+}
+
+fn check_recorded_loadouts(economy: &Economy, game: &Match) -> Result<(), String> {
+    if game.rules.full_tech_loadout {
+        let full = economy.unit_technologies();
+        for side in [&game.blue, &game.red] {
+            if side.tech_loadout != full {
+                return Err("MechcoreMatch full loadout marker contradicts unitDatas".into());
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Refuses a replay this converter does not read, by the property it fails.
@@ -1511,6 +1527,170 @@ mod tests {
         )
     }
 
+    fn header_fixture(rules: crate::r#match::Rules) -> crate::r#match::Match {
+        use crate::r#match::{Match, Source, State, Turn, TurnActions};
+        let economy = crate::economy::Economy::embedded().unwrap();
+        let predicted = crate::opening::predict(economy, 12345, 1012).unwrap();
+        let (mut blue, blue_state) = opening_side(
+            economy,
+            "blue",
+            predicted.deal.blue,
+            predicted.constructions.blue,
+            7,
+        );
+        let (mut red, red_state) = opening_side(
+            economy,
+            "red",
+            predicted.deal.red,
+            predicted.constructions.red,
+            9,
+        );
+        if rules.full_tech_loadout {
+            blue.tech_loadout = economy.unit_technologies();
+            red.tech_loadout = economy.unit_technologies();
+        }
+        let mut game = Match {
+            source: Source::Simulator,
+            rules,
+            result: None,
+            has_opening: true,
+            game_build: crate::game_build().into(),
+            map_id: 1012,
+            seed: 12345,
+            blue,
+            red,
+            turns: vec![Turn {
+                round: 1,
+                state: State {
+                    blue: blue_state,
+                    red: red_state,
+                    ..Default::default()
+                },
+                actions: TurnActions::default(),
+            }],
+        };
+        crate::reinforcement::fill_checkpoints(economy, &mut game).unwrap();
+        game
+    }
+
+    #[test]
+    fn replay_preserves_sources_and_all_rule_combinations() {
+        use crate::r#match::{Rules, Source};
+        let economy = crate::economy::Economy::embedded().unwrap();
+        for source in [Source::Game, Source::Simulator] {
+            for reinforcements in [false, true] {
+                for full_tech_loadout in [false, true] {
+                    let mut game = header_fixture(Rules {
+                        reinforcements,
+                        full_tech_loadout,
+                    });
+                    game.source = source;
+                    let yaml = crate::r#match::canonical_yaml(&game).unwrap();
+                    let stated = crate::opening::stated(yaml.as_bytes()).unwrap().unwrap();
+                    let native =
+                        crate::match_replay::match_replay(economy, &stated, crate::game_build())
+                            .unwrap();
+                    let restored = super::document(economy, &native).unwrap();
+                    assert_eq!(restored.yaml, yaml, "{source:?} {:?}", game.rules);
+                    let xml = crate::record::embedded_xml(&native).unwrap();
+                    let start = xml.find("<MechcoreMatch>").unwrap();
+                    let end = xml.find("</MechcoreMatch>").unwrap() + "</MechcoreMatch>".len();
+                    let unmarked = format!("{}{}", &xml[..start], &xml[end..]);
+                    let native_game = super::match_from_grbr(unmarked.as_bytes()).unwrap();
+                    assert_eq!(native_game.source, Source::Game);
+                    assert!(!native_game.rules.full_tech_loadout);
+                    assert_eq!(native_game.rules.reinforcements, reinforcements);
+                    for invalid in [
+                        xml.replace("<Source>", "<WrongSource>"),
+                        xml.replace("<Source>game</Source>", "<Source>invalid</Source>")
+                            .replace("<Source>simulator</Source>", "<Source>invalid</Source>"),
+                        xml.replace(
+                            &format!("<Reinforcements>{reinforcements}</Reinforcements>"),
+                            &format!("<Reinforcements>{}</Reinforcements>", !reinforcements),
+                        ),
+                    ] {
+                        // A true marker contradicts a disabled native header.
+                        if invalid == xml {
+                            continue;
+                        }
+                        assert!(super::match_from_grbr(invalid.as_bytes()).is_err());
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn header_defaults_and_disabled_reinforcement_checkpoints_are_checked() {
+        use crate::r#match::{Rules, State, Turn, TurnActions};
+        let economy = crate::economy::Economy::embedded().unwrap();
+        let mut game = header_fixture(Rules {
+            reinforcements: false,
+            full_tech_loadout: true,
+        });
+        let prior = &game.turns[0];
+        let next = |side: &crate::r#match::SideState, red| {
+            crate::transition::predict(
+                economy,
+                1,
+                side,
+                &[],
+                red,
+                None,
+                crate::opening::Stream::from_state(side.random_state).ok(),
+            )
+            .unwrap()
+        };
+        let state = State {
+            blue: next(&prior.state.blue, false),
+            red: next(&prior.state.red, true),
+            ..Default::default()
+        };
+        game.turns.push(Turn {
+            round: 2,
+            state,
+            actions: TurnActions::default(),
+        });
+        crate::reinforcement::fill_checkpoints(economy, &mut game).unwrap();
+        assert_eq!(
+            game.turns[0].state.random_state,
+            game.turns[1].state.random_state
+        );
+        let yaml = crate::r#match::canonical_yaml(&game).unwrap();
+        assert!(!yaml.contains("\n  tech_loadout:"));
+        let stated = crate::opening::stated(yaml.as_bytes()).unwrap().unwrap();
+        let prediction = crate::opening::verify(economy, &stated).unwrap();
+        let deal = crate::reinforcement::verify(economy, &stated, &prediction).unwrap();
+        assert!(deal.rounds.is_empty());
+        assert_eq!(deal.offers_checked, 0);
+        let native =
+            crate::match_replay::match_replay(economy, &stated, crate::game_build()).unwrap();
+        assert_eq!(super::document(economy, &native).unwrap().yaml, yaml);
+        let mut bad = game.clone();
+        bad.turns[1].state.random_state[0] ^= 1;
+        let bad = crate::opening::stated(crate::r#match::canonical_yaml(&bad).unwrap().as_bytes())
+            .unwrap()
+            .unwrap();
+        assert!(crate::reinforcement::verify(economy, &bad, &prediction).is_err());
+        let default = yaml
+            .lines()
+            .filter(|line| !line.starts_with("rules:"))
+            .collect::<Vec<_>>()
+            .join("\n")
+            + "\n";
+        let stated = crate::opening::stated(default.as_bytes()).unwrap().unwrap();
+        assert_eq!(stated.rules, Rules::default());
+        for invalid in [
+            yaml.replacen("source: simulator\n", "", 1),
+            yaml.replacen("source: simulator", "source: unknown", 1),
+            yaml.replacen("reinforcements: false", "reinforcements: no", 1),
+            yaml.replacen("full_tech_loadout: true", "unknown_rule: true", 1),
+            yaml.replacen("blue:\n", "blue:\n  tech_loadout: {}\n", 1),
+        ] {
+            assert!(crate::opening::stated(invalid.as_bytes()).is_err());
+        }
+    }
+
     #[test]
     fn a_server_opening_starts_before_pool_setup_and_keeps_its_chosen_offer() {
         use crate::r#match::{Match, State, Turn, TurnActions};
@@ -1531,6 +1711,11 @@ mod tests {
             9,
         );
         let mut game = Match {
+            source: crate::r#match::Source::Simulator,
+            rules: crate::r#match::Rules {
+                reinforcements: true,
+                full_tech_loadout: false,
+            },
             result: None,
             has_opening: true,
             game_build: crate::game_build().into(),

@@ -529,6 +529,8 @@ pub fn predict(economy: &Economy, seed: i32, map_id: i32) -> Result<Prediction, 
 pub struct Stated {
     pub has_opening: bool,
     pub build: String,
+    pub source: crate::r#match::Source,
+    pub rules: crate::r#match::Rules,
     pub map_id: i32,
     pub seed: i32,
     pub blue: StatedSide,
@@ -557,7 +559,7 @@ pub struct StatedSide {
     pub seed: Option<i32>,
     pub offers: Vec<OpeningOffer>,
     pub constructions: Vec<StaticPlacement>,
-    #[serde(with = "crate::names::loadout")]
+    #[serde(default, with = "crate::names::loadout")]
     pub tech_loadout: BTreeMap<i32, Vec<i32>>,
 }
 
@@ -582,6 +584,9 @@ struct StatedHeader {
     /// A match that states no build is this binary's, as a layout is.
     #[serde(default = "crate::economy::this_build")]
     build: String,
+    source: crate::r#match::Source,
+    #[serde(default)]
+    rules: crate::r#match::Rules,
     map_id: i32,
     seed: i32,
     blue: StatedSide,
@@ -630,7 +635,7 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
     let Some(stream) = crate::r#match::segments(bytes)? else {
         return Ok(None);
     };
-    let header: StatedHeader = serde_yaml::from_value(stream.header)
+    let header: StatedHeader = serde_yaml::from_value(stream.header.clone())
         .map_err(|error| format!("match header is not readable: {error}"))?;
     let has_opening = stream.opening.is_some();
     if !has_opening && stream.rounds.is_empty() {
@@ -644,6 +649,25 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         .unwrap_or_default();
     let mut blue = header.blue;
     let mut red = header.red;
+    for (name, side) in [("blue", &mut blue), ("red", &mut red)] {
+        let explicit = stream
+            .header
+            .get(name)
+            .and_then(|side| side.get("tech_loadout"))
+            .is_some();
+        if header.rules.full_tech_loadout {
+            if explicit {
+                return Err(format!(
+                    "{name} tech_loadout is forbidden with full_tech_loadout"
+                ));
+            }
+            side.tech_loadout = crate::economy::Economy::embedded()?.unit_technologies();
+        } else if !explicit {
+            return Err(format!(
+                "{name} requires tech_loadout when full_tech_loadout is false"
+            ));
+        }
+    }
     blue.opening = StatedOpening::opening(&opening.blue, "blue")?;
     red.opening = StatedOpening::opening(&opening.red, "red")?;
     let ends_on_actions = stream
@@ -673,9 +697,11 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
             })
         })
         .collect::<Result<_, String>>()?;
-    Ok(Some(Stated {
+    let stated = Stated {
         has_opening,
         build: header.build,
+        source: header.source,
+        rules: header.rules,
         map_id: header.map_id,
         seed: header.seed,
         blue,
@@ -684,7 +710,71 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         opening,
         ends_on_actions,
         result: stream.result,
-    }))
+    };
+    validate_rules(&stated)?;
+    Ok(Some(stated))
+}
+
+fn validate_rules(stated: &Stated) -> Result<(), String> {
+    let economy = crate::economy::Economy::embedded()?;
+    for turn in &stated.turns {
+        if !stated.rules.reinforcements
+            && (turn.state.reinforce_offers.is_some() || !turn.state.reinforce_pool.is_empty())
+        {
+            return Err(format!(
+                "round {} states reinforcements while they are disabled",
+                turn.round
+            ));
+        }
+        for (name, side, opened, actions) in [
+            ("blue", &stated.blue, &turn.state.blue, &turn.actions.blue),
+            ("red", &stated.red, &turn.state.red, &turn.actions.red),
+        ] {
+            let mut techs = opened.techs.clone();
+            for tech in &techs {
+                validate_technology(economy, &side.tech_loadout, *tech, &techs)?;
+            }
+            for action in actions {
+                match action {
+                    Action::ChooseReinforceItem { .. } if !stated.rules.reinforcements => {
+                        return Err(format!(
+                            "round {} {name}: reinforcements are disabled",
+                            turn.round
+                        ));
+                    }
+                    Action::UpgradeTechnology { tech, .. } => {
+                        techs.push(*tech);
+                        validate_technology(economy, &side.tech_loadout, *tech, &techs)?;
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn validate_technology(
+    economy: &Economy,
+    loadout: &BTreeMap<i32, Vec<i32>>,
+    tech: i32,
+    held: &[i32],
+) -> Result<(), String> {
+    let unit = economy
+        .technology_owner(tech)
+        .ok_or("unknown research technology")?;
+    if !loadout.get(&unit).is_some_and(|row| row.contains(&tech)) {
+        return Err(format!("technology {tech} is outside its unit loadout"));
+    }
+    if held
+        .iter()
+        .filter(|id| economy.technology_owner(**id) == Some(unit))
+        .count()
+        > crate::r#match::research_limit(unit)
+    {
+        return Err(format!("unit {unit} exceeds its technology research limit"));
+    }
+    Ok(())
 }
 
 /// Checks both offer arrays and construction lists against their seed and map.

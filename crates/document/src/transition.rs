@@ -349,6 +349,13 @@ pub fn step_placing(
                     .count(),
             )
             .unwrap_or(0);
+            if usize::try_from(researched).unwrap_or(usize::MAX)
+                >= crate::r#match::research_limit(unit)
+            {
+                return Err(Unsettled::Refused(
+                    "unit has reached its technology research limit",
+                ));
+            }
             next.supply -= purse
                 .technology(*tech, unit, researched)
                 .ok_or(Unsettled::Unpriced("technology"))?;

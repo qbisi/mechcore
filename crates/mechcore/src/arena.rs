@@ -61,6 +61,8 @@ struct Rules {
     names: [String; 2],
     map: Option<i32>,
     deploy_time: Option<i32>,
+    reinforcements: Option<bool>,
+    full_tech_loadout: Option<bool>,
     request_timeout: Duration,
 }
 
@@ -75,6 +77,8 @@ fn play(mut arguments: Args) -> Outcome {
     let seed = arguments.parsed::<i32>("--seed", "an integer")?;
     let map = arguments.parsed::<i32>("--map", "a map ID")?;
     let deploy_time = arguments.parsed::<i32>("--deploy-time", "a number of seconds")?;
+    let reinforcements = arguments.parsed::<bool>("--reinforcements", "true or false")?;
+    let full_tech_loadout = arguments.parsed::<bool>("--full-tech-loadout", "true or false")?;
     let request_timeout = arguments.parsed::<f64>("--request-timeout", "a number of seconds")?;
     let target = arguments.path("a match document, or the directory a batch writes into")?;
     arguments.finish()?;
@@ -101,6 +105,8 @@ fn play(mut arguments: Args) -> Outcome {
         names,
         map,
         deploy_time,
+        reinforcements,
+        full_tech_loadout,
         request_timeout,
     };
 
@@ -147,6 +153,14 @@ fn fight(path: &Path, rules: &Rules, seed: Option<i32>) -> Result<Played, Failur
         ("--seed", seed),
         ("--map", rules.map),
         ("--deploy-time", rules.deploy_time),
+    ] {
+        if let Some(value) = value {
+            deal.extend([name.to_owned(), value.to_string()]);
+        }
+    }
+    for (name, value) in [
+        ("--reinforcements", rules.reinforcements),
+        ("--full-tech-loadout", rules.full_tech_loadout),
     ] {
         if let Some(value) = value {
             deal.extend([name.to_owned(), value.to_string()]);

@@ -13,6 +13,8 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 #[serde(rename = "BattleRecord")]
 pub struct BattleRecord {
+    #[serde(default, rename = "MechcoreMatch")]
+    pub metadata: Option<MatchMetadata>,
     #[serde(rename = "Version")]
     pub version: String,
     #[serde(rename = "BattleInfo")]
@@ -23,9 +25,53 @@ pub struct BattleRecord {
     pub match_rounds: MatchRounds,
 }
 
+/// Lossless match metadata carried by synthesized replays.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MatchMetadata {
+    #[serde(rename = "Source")]
+    pub source: crate::r#match::Source,
+    #[serde(rename = "Reinforcements")]
+    pub reinforcements: bool,
+    #[serde(rename = "FullTechLoadout")]
+    pub full_tech_loadout: bool,
+}
+
+fn enabled() -> bool {
+    true
+}
+
+impl BattleRecord {
+    pub(crate) fn match_rules(
+        &self,
+    ) -> Result<(crate::r#match::Source, crate::r#match::Rules), String> {
+        if self.info.reinforcements != self.info.unit_reinforcements {
+            return Err("ordinary and unit reinforcement flags disagree".into());
+        }
+        let rules = crate::r#match::Rules {
+            reinforcements: self.info.reinforcements,
+            full_tech_loadout: self
+                .metadata
+                .as_ref()
+                .is_some_and(|meta| meta.full_tech_loadout),
+        };
+        if let Some(meta) = &self.metadata {
+            if meta.reinforcements != rules.reinforcements {
+                return Err("MechcoreMatch reinforcement marker contradicts BattleInfo".into());
+            }
+            return Ok((meta.source, rules));
+        }
+        Ok((crate::r#match::Source::Game, rules))
+    }
+}
+
 /// The match header, constant across every round.
 #[derive(Debug, Deserialize)]
 pub struct BattleInfo {
+    #[serde(default = "enabled", rename = "EnableReinforcement")]
+    pub reinforcements: bool,
+    #[serde(default = "enabled", rename = "EnableUnitReinforcement")]
+    pub unit_reinforcements: bool,
     #[serde(rename = "SystemSeed")]
     pub system_seed: i32,
     #[serde(rename = "MapID")]

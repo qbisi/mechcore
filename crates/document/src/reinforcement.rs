@@ -446,7 +446,7 @@ impl Dealer {
         stated: &Stated,
         turn: &Turn,
     ) -> Result<Option<Offers>, String> {
-        if turn.round == 1 {
+        if turn.round == 1 || !stated.rules.reinforcements {
             return Ok(None);
         }
         let context = self.context(economy, stated, turn)?;
@@ -1009,6 +1009,12 @@ pub fn deal_checkpoint(economy: &Economy, stated: &Stated) -> Result<Dealt, Stri
     let opening = crate::opening::predict(economy, stated.seed, stated.map_id)?;
     let mut dealer = Dealer::new(&opening)?;
     let initial = dealer.members();
+    if !stated.rules.reinforcements {
+        return Ok(Dealt {
+            offers: None,
+            checkpoint: dealer.checkpoint(&initial),
+        });
+    }
     if next.round > 1 {
         let current = stated
             .turns
@@ -1025,6 +1031,41 @@ pub fn deal_checkpoint(economy: &Economy, stated: &Stated) -> Result<Dealt, Stri
     Ok(Dealt {
         offers,
         checkpoint: dealer.checkpoint(&initial),
+    })
+}
+
+fn without_reinforcements(
+    stated: &Stated,
+    opening: &Prediction,
+    check_state: bool,
+) -> Result<Verified, String> {
+    let dealer = Dealer::new(opening)?;
+    let initial = dealer.members();
+    let checkpoint = dealer.checkpoint(&initial);
+    for turn in &stated.turns {
+        if check_state
+            && (turn.state.random_state != checkpoint.random_state
+                || !turn.state.reinforce_pool.is_empty())
+        {
+            return Err(format!(
+                "round {} disabled reinforcement checkpoint disagrees",
+                turn.round
+            ));
+        }
+    }
+    Ok(Verified {
+        rounds: Vec::new(),
+        offers_checked: 0,
+        pools: stated
+            .turns
+            .iter()
+            .map(|_| Pool {
+                log: Vec::new(),
+                choices: Vec::new(),
+                excluded: Vec::new(),
+            })
+            .collect(),
+        checkpoints: stated.turns.iter().map(|_| checkpoint.clone()).collect(),
     })
 }
 
@@ -1045,6 +1086,9 @@ fn walk(
             pools: Vec::new(),
             checkpoints: Vec::new(),
         });
+    }
+    if !stated.rules.reinforcements {
+        return without_reinforcements(stated, opening, check_state);
     }
     let mut dealer = Dealer::new(opening)?;
     let initial = dealer.members();
@@ -1162,6 +1206,11 @@ mod tests {
         };
         crate::transition::open_allowances(&mut opened);
         let mut game = Match {
+            source: crate::r#match::Source::Simulator,
+            rules: crate::r#match::Rules {
+                reinforcements: true,
+                full_tech_loadout: false,
+            },
             result: None,
             has_opening: false,
             game_build: crate::game_build().into(),

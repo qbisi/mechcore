@@ -115,7 +115,8 @@ round otherwise owns.
 ### `choose_reinforce_item`
 
 Answers the round's reinforcement offer. There are two answers and both are
-choices, so both are this one action.
+choices, so both are this one action. A match with
+`rules.reinforcements: false` has no offer and refuses this action.
 
 ```yaml
 - {type: choose_reinforce_item, index: 3, name: photon_coating}
@@ -221,8 +222,11 @@ A type already in `unlocked_units` is refused.
 
 Researches `tech`, which belongs to `unit`, and adds it to that unit's row of
 `techs`. A technology's name is only unique within its unit, and `unit` is what
-resolves it. A technology outside `unit`'s row of the side's `tech_loadout` is
-refused.
+resolves it. The match header's [loadout rule](match.md#match-rules) supplies
+the eligible technologies: all of the unit's catalogue with a full loadout,
+otherwise that side's stated `tech_loadout` row. Research outside those choices
+or past the per-unit research limit is refused. A full loadout never activates
+a technology for free.
 
 The price rises with how many technologies that unit already holds: each one
 already active adds a fixed step to the next one's own price. The count is per

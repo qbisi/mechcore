@@ -117,6 +117,12 @@ fn new(mut arguments: Args) -> Result<View, Failure> {
     let map = arguments.parsed::<i32>("--map", "a map ID")?;
     let deploy_time = arguments.parsed::<i32>("--deploy-time", "a number of seconds")?;
     let loadout = arguments.value("--loadout")?.map(PathBuf::from);
+    let reinforcements = arguments.parsed::<bool>("--reinforcements", "true or false")?;
+    let full_tech_loadout = arguments.parsed::<bool>("--full-tech-loadout", "true or false")?;
+    let rules = mechcore_document::r#match::Rules {
+        reinforcements: reinforcements.unwrap_or(true),
+        full_tech_loadout: full_tech_loadout.unwrap_or(loadout.is_none()),
+    };
     let path = arguments.path("a match document")?;
     arguments.finish()?;
 
@@ -124,6 +130,11 @@ fn new(mut arguments: Args) -> Result<View, Failure> {
     let existing = held.read()?;
     let dealt = existing.is_some() || path.exists();
     let outcome = if dealt {
+        if reinforcements.is_some() || full_tech_loadout.is_some() || loadout.is_some() {
+            return Err(Failure::usage(
+                "joining a match cannot change its rules or loadout",
+            ));
+        }
         join(&path, &mut held, existing, (seed, map, deploy_time), name)
     } else {
         deal(
@@ -132,6 +143,7 @@ fn new(mut arguments: Args) -> Result<View, Failure> {
             (seed, map, deploy_time),
             loadout.as_deref(),
             name,
+            rules,
         )
     };
     match outcome {
@@ -156,6 +168,7 @@ fn deal(
     (seed, map, deploy_time): (Option<i32>, Option<i32>, Option<i32>),
     loadout: Option<&std::path::Path>,
     name: Option<String>,
+    rules: mechcore_document::r#match::Rules,
 ) -> Result<Game, Failure> {
     let economy = Economy::embedded().map_err(Failure::failed)?;
     let maps = opening::maps().map_err(Failure::failed)?;
@@ -180,12 +193,23 @@ fn deal(
         ));
     }
     let dealt = opening::predict(economy, seed, map_id).map_err(Failure::refused)?;
-    let loadout = match loadout {
-        Some(path) => read_loadout(path)?,
-        None => mechcore_document::names::loadout::deserialize(serde_yaml::Deserializer::from_str(
-            include_str!("../default-loadout.yaml"),
-        ))
-        .map_err(|error| Failure::failed(format!("cannot read the default loadout: {error}")))?,
+    let loadout = if rules.full_tech_loadout {
+        if loadout.is_some() {
+            return Err(Failure::usage(
+                "a full tech loadout cannot specify --loadout",
+            ));
+        }
+        economy.unit_technologies()
+    } else {
+        match loadout {
+            Some(path) => read_loadout(path)?,
+            None => mechcore_document::names::loadout::deserialize(
+                serde_yaml::Deserializer::from_str(include_str!("../default-loadout.yaml")),
+            )
+            .map_err(|error| {
+                Failure::failed(format!("cannot read the default loadout: {error}"))
+            })?,
+        }
     };
     // Each player brings a seed of its own, as the game's server hands one
     // out, which an officer that draws its hand-out draws from.
@@ -202,6 +226,8 @@ fn deal(
             seed: Some(draw.seed()),
         };
     let r#match = Match {
+        source: mechcore_document::r#match::Source::Simulator,
+        rules,
         result: None,
         has_opening: true,
         game_build: mechcore_document::game_build().to_owned(),
@@ -884,7 +910,9 @@ impl Game {
         }
         let round = self.round();
         let fight = if round > 0 {
-            Some(self.fought(round)?)
+            let fought = self.fought(round)?;
+            self.r#match.source = mechcore_document::r#match::Source::Simulator;
+            Some(fought)
         } else {
             None
         };
@@ -1644,6 +1672,7 @@ mod tests {
             (Some(12345), Some(1011), None),
             None,
             None,
+            mechcore_document::r#match::Rules::default(),
         )
         .unwrap();
         for side in Side::BOTH {

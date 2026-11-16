@@ -26,6 +26,8 @@ pub struct Match {
     pub has_opening: bool,
     /// The build whose tables this match is written against.
     pub game_build: String,
+    pub source: Source,
+    pub rules: Rules,
     pub map_id: i32,
     pub seed: i32,
     pub blue: MatchSide,
@@ -35,6 +37,47 @@ pub struct Match {
     /// [`Opening`] holds it when known.
     pub turns: Vec<Turn>,
     pub result: Option<MatchResult>,
+}
+
+/// Battle backend that produced a match; transcoding preserves it.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum Source {
+    Game,
+    Simulator,
+}
+
+impl Source {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Game => "game",
+            Self::Simulator => "simulator",
+        }
+    }
+}
+
+/// Match-wide decision switches. Missing switches default on.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(default, deny_unknown_fields)]
+pub struct Rules {
+    pub reinforcements: bool,
+    pub full_tech_loadout: bool,
+}
+
+impl Default for Rules {
+    fn default() -> Self {
+        Self {
+            reinforcements: true,
+            full_tech_loadout: true,
+        }
+    }
+}
+
+/// Maximum researched technologies for one unit type on one side.
+#[must_use]
+pub const fn research_limit(unit: i32) -> usize {
+    if matches!(unit, 17 | 29 | 2002) { 6 } else { 4 }
 }
 
 /// The final score, independent of any next-round opening.
@@ -868,6 +911,8 @@ enum Segment<'a> {
 #[derive(Serialize)]
 struct Header<'a> {
     build: &'a str,
+    source: Source,
+    rules: Rules,
     map_id: i32,
     seed: i32,
     blue: HeaderSide<'a>,
@@ -883,19 +928,22 @@ struct HeaderSide<'a> {
     seed: Option<i32>,
     offers: &'a [OpeningOffer],
     constructions: &'a [StaticPlacement],
-    #[serde(with = "crate::names::loadout")]
-    tech_loadout: &'a BTreeMap<i32, Vec<i32>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tech_loadout: Option<HeaderLoadout<'a>>,
 }
 
+#[derive(Serialize)]
+struct HeaderLoadout<'a>(#[serde(with = "crate::names::loadout")] &'a BTreeMap<i32, Vec<i32>>);
+
 impl<'a> HeaderSide<'a> {
-    fn of(side: &'a MatchSide) -> Self {
+    fn of(side: &'a MatchSide, full: bool) -> Self {
         Self {
             name: &side.name,
             elo_score: side.elo_score,
             seed: side.seed,
             offers: &side.opening.offers,
             constructions: &side.constructions,
-            tech_loadout: &side.tech_loadout,
+            tech_loadout: (!full).then_some(HeaderLoadout(&side.tech_loadout)),
         }
     }
 }
@@ -983,6 +1031,9 @@ pub mod schema {
         /// The game's Application.version, always written by a match writer.
         #[serde(default = "crate::economy::this_build")]
         pub build: String,
+        pub source: super::Source,
+        #[serde(default)]
+        pub rules: super::Rules,
         pub map_id: i32,
         pub seed: i32,
         pub blue: Side,
@@ -1003,8 +1054,8 @@ pub mod schema {
         pub offers: Vec<OpeningOffer>,
         pub constructions: Vec<StaticPlacement>,
         /// Which technologies each unit may research, keyed by type name.
-        #[schemars(with = "BTreeMap<String, Vec<String>>")]
-        pub tech_loadout: BTreeMap<i32, Vec<i32>>,
+        #[schemars(with = "Option<BTreeMap<String, Vec<String>>>")]
+        pub tech_loadout: Option<BTreeMap<i32, Vec<i32>>>,
     }
 
     /// The position a round opens with.
@@ -1112,6 +1163,8 @@ pub fn read(bytes: &[u8]) -> Result<Option<Match>, String> {
     Ok(Some(Match {
         has_opening: stated.has_opening,
         game_build: stated.build,
+        source: stated.source,
+        rules: stated.rules,
         map_id: stated.map_id,
         seed: stated.seed,
         blue: side("blue", stated.blue)?,
@@ -1125,10 +1178,12 @@ pub fn read(bytes: &[u8]) -> Result<Option<Match>, String> {
 fn header_of(r#match: &Match) -> Header<'_> {
     Header {
         build: &r#match.game_build,
+        source: r#match.source,
+        rules: r#match.rules,
         map_id: r#match.map_id,
         seed: r#match.seed,
-        blue: HeaderSide::of(&r#match.blue),
-        red: HeaderSide::of(&r#match.red),
+        blue: HeaderSide::of(&r#match.blue, r#match.rules.full_tech_loadout),
+        red: HeaderSide::of(&r#match.red, r#match.rules.full_tech_loadout),
     }
 }
 
@@ -1702,7 +1757,7 @@ mod tests {
 
     #[test]
     fn the_header_always_preserves_its_game_build() {
-        let input = b"kind: match\nmap_id: 1021\nseed: 1\nblue: {offers: [], constructions: [], tech_loadout: {}}\nred: {offers: [], constructions: [], tech_loadout: {}}\n---\nkind: action\nround: 0\nblue: []\nred: []\n";
+        let input = b"kind: match\nsource: simulator\nrules: {reinforcements: true, full_tech_loadout: false}\nmap_id: 1021\nseed: 1\nblue: {offers: [], constructions: [], tech_loadout: {}}\nred: {offers: [], constructions: [], tech_loadout: {}}\n---\nkind: action\nround: 0\nblue: []\nred: []\n";
         let game = super::read(input).unwrap().unwrap();
         let written = super::canonical_yaml(&game).unwrap();
         let header = super::segment_values(&game).unwrap().remove(0);
@@ -1734,7 +1789,7 @@ mod tests {
 
     #[test]
     fn historical_ratings_are_optional_header_metadata() {
-        let input = b"kind: match\nmap_id: 1021\nseed: 1\nblue: {elo_score: 1448, offers: [], constructions: [], tech_loadout: {}}\nred: {offers: [], constructions: [], tech_loadout: {}}\n---\nkind: action\nround: 0\nblue: []\nred: []\n";
+        let input = b"kind: match\nsource: simulator\nrules: {reinforcements: true, full_tech_loadout: false}\nmap_id: 1021\nseed: 1\nblue: {elo_score: 1448, offers: [], constructions: [], tech_loadout: {}}\nred: {offers: [], constructions: [], tech_loadout: {}}\n---\nkind: action\nround: 0\nblue: []\nred: []\n";
         let game = super::read(input).unwrap().unwrap();
         assert_eq!(game.blue.elo_score, Some(1448));
         assert_eq!(game.red.elo_score, None);
@@ -1759,7 +1814,7 @@ mod tests {
         assert!(super::read(invalid.as_bytes()).is_err());
     }
 
-    const HEADER: &str = "kind: match\nmap_id: 1021\nseed: 1\n";
+    const HEADER: &str = "kind: match\nsource: simulator\nrules: {reinforcements: true, full_tech_loadout: false}\nmap_id: 1021\nseed: 1\n";
     const OPENING: &str = "---\nkind: action\nround: 0\nblue: []\nred: []\n";
 
     fn state(round: i32, blue_core: i32) -> String {
@@ -1813,7 +1868,7 @@ mod tests {
     #[test]
     fn positive_final_cores_require_the_maps_round_limit() {
         let stream = format!(
-            "kind: match\nmap_id: 1012\nseed: 1\n{}{}---\nkind: result\nround: 13\nwinner: blue\nblue: {{reactor_core: 402}}\nred: {{reactor_core: 12}}\n",
+            "kind: match\nsource: simulator\nrules: {{reinforcements: true, full_tech_loadout: false}}\nmap_id: 1012\nseed: 1\n{}{}---\nkind: result\nround: 13\nwinner: blue\nblue: {{reactor_core: 402}}\nred: {{reactor_core: 12}}\n",
             state(13, 402),
             actions(13, "[]"),
         );
@@ -1960,6 +2015,11 @@ mod tests {
             actions: super::TurnActions::default(),
         };
         let ended = super::Match {
+            source: super::Source::Simulator,
+            rules: super::Rules {
+                reinforcements: true,
+                full_tech_loadout: false,
+            },
             result: None,
             has_opening: true,
             game_build: crate::game_build().to_owned(),
