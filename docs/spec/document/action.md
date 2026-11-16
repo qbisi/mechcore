@@ -259,9 +259,31 @@ Activates one Energy Tower skill for this round. Every one of them is a
 one-round effect, so nothing carries into the next round's Settled group. A
 skill already active this round is refused.
 
-Costs the skill's price less what it grants back at once. A skill may also owe
-against the next round's income, and one raises the shop's level for the rest of
+Skill `1` is named `deposit_supply` and represents the inverse of native Rapid
+Resupply. It is an Energy Tower activation, with the deposit rules below.
+Other activations cost the skill's price, and one raises the shop's level for the rest of
 this round, which makes every later purchase dearer.
+
+#### `deposit_supply`
+
+```yaml
+- {type: active_energy_tower_skill, name: deposit_supply}
+```
+
+Deposits 200 supply and adds `deposit_supply` to `energy_tower_skills` for
+the rest of this round. The next round returns 300 supply and clears the
+activation. A second deposit in
+one round or a deposit without enough supply is refused. Omitting the action
+means no deposit and no return. The spelling `deposit_supply` is the skill name.
+
+This is the inverse of native Rapid Resupply. The match starts round 1 with
+200 more supply than the native game; every later round's default income is
+100 lower. Native Rapid Resupply becomes no deposit, and not activating it
+becomes a deposit. Completed deployment balances therefore remain the native
+balances. These adjustments apply before officer and equipment income.
+
+Normalization places the deposit after all other deployment operations.
+A following `concede`, when present, remains the terminal decision.
 
 ### `strengthen_tower`
 
@@ -536,28 +558,27 @@ routes and purchase placements do not determine the normal form.
 The standard phases are:
 
 1. Select reinforcement.
-2. Activate Rapid Resupply once if this deployment chose it, even when no
-   operation needs extra supply. This fixes the budget before recovery.
-3. Recover formations and constructions. Available Enhancement Modules may be
+2. Recover formations and constructions. Available Enhancement Modules may be
    fitted and the formation upgraded first; the closing supply and consumed
    training slots determine whether those operations occurred. A module comes
    back with the recovered formation and can be reused.
-4. Purchase formations at their default landings, in allocator order, deriving
+3. Purchase formations at their default landings, in allocator order, deriving
    each level from the shop. A formation bought and recovered in this round
    keeps its actual recorded type, purchase level,
    equipment and recovery level. Missing purchase or recovery history is
    refused; no substitute unit is invented to fill an allocator gap.
-5. Activate the remaining unit technologies, after their formations exist.
-6. Fit equipment, preserving each formation's fitting order.
-7. Move and rotate existing and newly purchased formations together. Jump Drive
+4. Activate the remaining unit technologies, after their formations exist.
+5. Fit equipment, preserving each formation's fitting order.
+6. Move and rotate existing and newly purchased formations together. Jump Drive
    research and Deployment Module fitting have already occurred; Redeployment
    and swap-space waypoints are emitted where needed.
-8. Apply Intensive Training and upgrade formations.
-9. Place contraptions in allocator order.
-10. Apply remaining Energy Tower activations, tower strengthening and Research
+7. Apply Intensive Training and upgrade formations.
+8. Place contraptions in allocator order.
+9. Apply remaining Energy Tower activations, tower strengthening and Research
     Center blueprints, including range, mobility, attack, defense and Sticky Oil.
-11. Unlock the remaining unit types.
-12. Release combat commander skills, preserving their relative release order.
+10. Unlock the remaining unit types.
+11. Release combat commander skills, preserving their relative release order.
+12. Deposit supply if this deployment chose to save it.
 
 Within a phase, formation indices, technology IDs and panel indices break
 remaining ties. Blueprint chains keep predecessor before successor. A skill
@@ -584,13 +605,16 @@ the last formation of a type depends on that type's pending research; recovery
 also depends on unlocking its Research Center blueprint when needed. A
 purchase depends on its unit unlock, Elite Recruitment for its level and Mass
 Recruitment when no purchase allowance remains. Insufficient supply refuses
-the operation; neither normalization nor encoding activates Rapid Resupply
-on demand. Dependencies use only operations required by the closing state and
+the operation; normalization never invents a deposit or changes that choice.
+Dependencies use only operations required by the closing state and
 recorded recovery facts. Skill-granting blueprints preserve panel allocation order, so an earlier slot's blueprint can itself
 be a dependency.
 
 The match sequence itself meets native operation prerequisites. GRBR encoding
-preserves action order, including unit research and Energy Tower activations.
+replaces the deposit choice by its inverse native Rapid Resupply activation
+before spending, after reinforcement selection when its native balance permits,
+and preserves the order of
+the other actions, including unit research and Energy Tower activations.
 An input purchase with an explicit position expands into a default purchase
 and immediate movement without pulling later research forward. In the normal
 form, research precedes the unified movement phase, so flank initialization
@@ -648,13 +672,6 @@ deployment index and a position, and no action here corresponds to it. Every
 construction this schema can describe arrives through `release_commander_skill`
 instead. Either the type is unreachable in a standard match, in which case
 nothing is missing, or a fifteenth action belongs here.
-
-**Where a deferred cost lives.** An Energy Tower skill can owe against the next
-round's income, which makes the debt a fact about the next position and not only
-about this round's decisions. A state can carry it as a field, or a reader can
-derive it from the previous round's actions. The two are not equivalent: only
-the first survives a position that arrives without the round before it.
-
 
 **Whether `extra_position` stays.** It is carried because the native release
 action has the field. No contraption in this build is known to need a second

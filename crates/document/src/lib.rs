@@ -1066,7 +1066,7 @@ red:
             "kind": "layout",
             "round": 1,
             "blue": {
-                "energy_tower_skills": ["rapid_resupply"],
+                "energy_tower_skills": ["deposit_supply"],
                 "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
             },
             "red": {

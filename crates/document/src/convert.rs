@@ -681,10 +681,10 @@ fn side_state(
         // The allowances are the opening's to set.
         shop: crate::r#match::Allowances::default(),
         blueprints: active_blueprints(economy, data),
-        // What the previous round activated and still owes for, which the
-        // opening charges against the income and then lapses.
-        energy_tower_skills: if energy_tower_debt(player, position, seat)? {
-            vec![RAPID_SUPPLY_SKILL]
+        // Native debt is the inverse of the previous round's deposit.
+        // The match opening consumes the deposit flag and pays its return.
+        energy_tower_skills: if !energy_tower_debt(player, position, seat)? && round > 1 {
+            vec![1]
         } else {
             Vec::new()
         },
@@ -714,7 +714,7 @@ fn side_state(
     if data.special_supply {
         // PlayerSnapshotController.ApplySnapshot locks Player.AddRoundSupply:
         // NetworkMessageData.Convert already added roundSupply to supply.
-        opened.supply = data.supply;
+        opened.supply = data.supply + economy.energy_tower_skill(1).unwrap().granted;
     }
     Ok(opened)
 }
@@ -1242,6 +1242,7 @@ fn actions(
     let mut position = opened.clone();
     let mut dependencies = crate::normalize::DeploymentHistory::default();
     let mut conceded = false;
+    let mut borrowed = false;
     let mut decided = false;
     for (at, recorded) in recorded_actions(round, seat, offers)?
         .into_iter()
@@ -1264,18 +1265,40 @@ fn actions(
                 Action::ReleaseCommanderSkill { index, id, target }
             }
         };
-        conceded |= matches!(action, Action::Concede);
+        if matches!(action, Action::ActiveEnergyTowerSkill { skill: 1 }) {
+            if borrowed {
+                return Err("Rapid Resupply activated twice".into());
+            }
+            borrowed = true;
+            continue;
+        }
         decided |= !matches!(action, Action::Concede);
+        conceded |= matches!(action, Action::Concede);
         let next = step(&position, &action, at)?;
         dependencies.record(&position, &next, &action);
         position = next;
     }
-    if !decided {
+    if !decided
+        && (conceded
+            || offers.is_some()
+            || !round
+                .actions
+                .entries
+                .iter()
+                .any(|action| action.kind == "PAD_FinishDeploy"))
+    {
         return Ok(if conceded {
             vec![Action::Concede]
         } else {
             Vec::new()
         });
+    }
+    if !borrowed {
+        position = step(
+            &position,
+            &Action::ActiveEnergyTowerSkill { skill: 1 },
+            round.actions.entries.len(),
+        )?;
     }
     let mut normalized =
         crate::normalize::deployment(economy, opened, &position, offers, red, &dependencies)
@@ -1624,7 +1647,7 @@ mod tests {
     #[test]
     fn server_supply_is_already_paid_and_completed_research_has_one_active_stage() {
         let economy = crate::economy::Economy::embedded().unwrap();
-        for (special, supply) in [(true, 1250), (false, 2250)] {
+        for (special, supply) in [(true, 1450), (false, 2450)] {
             let round = snapshot_round(special, "");
             let player = format!(
                 "<PlayerRecord><seed>7</seed><data>\

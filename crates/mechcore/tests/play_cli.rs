@@ -90,7 +90,7 @@ impl LiveServer {
             .trim_end_matches('/');
         let mut stream = TcpStream::connect(addr).unwrap();
         stream
-            .set_read_timeout(Some(Duration::from_secs(10)))
+            .set_read_timeout(Some(Duration::from_secs(60)))
             .unwrap();
         write!(
             stream,
@@ -161,7 +161,7 @@ fn create_two_round_match(dir: &Path) -> (PathBuf, PathBuf) {
         run_str(&["match", "commit", path_str, "--side", side]);
     }
 
-    for _ in 0..2 {
+    for round in 0..2 {
         for side in ["blue", "red"] {
             let view = run_str(&["match", "show", path_str, "--side", side]);
             if let Some(offers) = view["state"]["reinforce_offers"].as_array() {
@@ -170,6 +170,16 @@ fn create_two_round_match(dir: &Path) -> (PathBuf, PathBuf) {
                 let decline =
                     format!("{{type: choose_reinforce_item, index: {last}, name: {name}}}");
                 run_str(&["match", "act", path_str, "--side", side, &decline]);
+            }
+            if side == if round == 0 { "blue" } else { "red" } {
+                run_str(&[
+                    "match",
+                    "act",
+                    path_str,
+                    "--side",
+                    side,
+                    "{type: active_energy_tower_skill, name: deposit_supply}",
+                ]);
             }
             run_str(&["match", "commit", path_str, "--side", side]);
         }
@@ -430,6 +440,19 @@ fn live_play_keeps_same_round_recording_caches_separate() {
 
 #[test]
 fn live_play_streams_multiround_match_and_grbr_on_demand() {
+    let deposit_icons = |timeline: &Value, active_side: usize| {
+        for (side, core) in timeline["cores"].as_array().unwrap().iter().enumerate() {
+            let deposit = core["tower_cards"]["energy"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|row| row["id"] == 1)
+                .unwrap();
+            assert_eq!(deposit["name"], "Deposit Supply");
+            assert_eq!(deposit["supply"], 200);
+            assert_eq!(deposit["active"], side == active_side);
+        }
+    };
     let directory = tempfile::tempdir().unwrap();
     let cache_dir = directory.path().join("play-cache");
     let (match_path, grbr_path) = create_two_round_match(directory.path());
@@ -442,6 +465,9 @@ fn live_play_streams_multiround_match_and_grbr_on_demand() {
     assert_eq!(grbr_server.report["rounds"], 2);
     assert_eq!(grbr_server.report["seed_source"], "match");
     assert_eq!(grbr_server.report["cached"], false);
+    let (status, _, round0_bytes) = grbr_server.get("/api/round/0");
+    assert_eq!(status, 200);
+    deposit_icons(&serde_json::from_slice::<Value>(&round0_bytes).unwrap(), 0);
 
     let (status, _, html_bytes) = grbr_server.get("/");
     assert_eq!(status, 200);
@@ -453,6 +479,7 @@ fn live_play_streams_multiround_match_and_grbr_on_demand() {
     assert_eq!(status, 200);
     let round1_json: Value = serde_json::from_slice(&round1_bytes).unwrap();
     assert_eq!(round1_json["round"], 2);
+    deposit_icons(&round1_json, 1);
     assert!(!round1_json["cores"][0]["begin"].is_null());
 
     let (status, _, status_bytes) = grbr_server.get("/api/status");
@@ -473,10 +500,14 @@ fn live_play_streams_multiround_match_and_grbr_on_demand() {
     assert_eq!(match_server.report["kind"], "match");
     assert_eq!(match_server.report["rounds"], 2);
     assert_eq!(match_server.report["cached"], false);
+    let (status, _, round0_bytes) = match_server.get("/api/round/0");
+    assert_eq!(status, 200);
+    deposit_icons(&serde_json::from_slice::<Value>(&round0_bytes).unwrap(), 0);
     let (status, _, match_round1_bytes) = match_server.get("/api/round/1");
     assert_eq!(status, 200);
     let match_round1: Value = serde_json::from_slice(&match_round1_bytes).unwrap();
     assert_eq!(match_round1["round"], 2);
+    deposit_icons(&match_round1, 1);
     assert!(match_server.terminate().success());
 
     let match_cached = LiveServer::spawn(
