@@ -108,12 +108,13 @@ the opening undone:
   add to the panel, the items they add to the inventory, one of them drawn from
   the side's stream as conversion draws it, the squads they hand out, with the
   unit allocator moved back by as many, and the units they unlock;
-- the round's income, what the equipment on the board pays and what the
-  previous round's Rapid Resupply still owes are taken back out of the supply;
+- the match round's income, equipment income and the previous deposit's
+  return are taken back out of supply, recovering the native pre-opening balance;
 - a slot the previous round released is written active, which restarts it as
   the round opens, and every other slot counts down, so a slot on cooldown is
   written one round higher;
-- the previous round's Rapid Resupply is the snapshot's `energyTowerSkills`;
+- from round 2, no deposit in the previous round becomes Rapid Resupply in
+  the snapshot's `energyTowerSkills`; a deposit writes no native debt;
 - the inventory holds every item, the fitted ones among them.
 
 Each undone position is opened again with conversion's own rule, and a
@@ -130,6 +131,7 @@ with `PAD_FinishDeploy` unless it concedes:
 | Decision | Recorded as |
 | --- | --- |
 | `choose_reinforce_item` | `PAD_ChooseReinforceItem`, a decline at index −1 |
+| `active_energy_tower_skill` with `name: deposit_supply` | No native action; its absence activates Rapid Resupply before spending, after reinforcement selection when affordable |
 | `buy_unit` | `PAD_BuyUnit`; an explicit destination adds an immediate `PAD_MoveUnit` to its position and facing |
 | `upgrade_unit`, `unlock_unit`, `upgrade_technology`, `active_blueprint`, `active_energy_tower_skill`, `strengthen_tower`, `use_equipment`, `release_contraption` | their own action |
 | `move_unit` | `PAD_MoveUnit` of one formation |
@@ -147,9 +149,11 @@ Match decisions use the standard phases in
 [action.md](action.md#settling-a-round). Their dependencies already place unit
 research, purchases, recovery and Energy Tower activations in native legal
 order. Encoding preserves that order without rescheduling technology
-activations. Rapid Resupply is already the
-match's second phase, after reinforcement selection; encoding does not
-activate it on demand. Purchase level is derived
+activations. The match's final deposit decision is inverted: when absent,
+encoding activates Rapid Resupply before spending, after reinforcement selection
+when the native balance can afford that selection;
+when present, encoding emits no Rapid Resupply. The native opening balance is
+200 below the match opening, and this translation preserves deployment balances. Purchase level is derived
 from the officers and active Energy Tower skills at that point; it is not
 an action parameter. Research requires a formation of its type.
 
@@ -171,7 +175,9 @@ A match is refused when a replay cannot hold it, and the refusal names why:
 - a round whose undone position does not open onto the match's, or whose
   decisions do not step, or put something where the board already has
   something, which the game would refuse;
-- an object left standing whose skill the panel holds no slot of.
+- an object left standing whose skill the panel holds no slot of;
+- a deposit preceded by spending that the native balance cannot fund without
+  Rapid Resupply, since a deposited round encodes no native loan.
 
 ## Normal form
 

@@ -16,7 +16,12 @@ pub(crate) const RECOVERY_SKILLS: [i32; 4] = [900_001, 900_002, 900_003, 900_004
 ///
 /// The map's row sets the base, and the officers the side holds at the round's
 /// start add to it. An officer taken later in the round cannot have raised an
-/// income that was already granted.
+/// income that was already granted. The match deposit convention adds the
+/// native Rapid Resupply grant to round 1 and reduces later base incomes by
+/// its interest (repayment less grant), after the native income cap.
+///
+/// # Panics
+/// Panics if the embedded economy omits the Rapid Resupply row.
 #[must_use]
 pub fn round_income(economy: &Economy, round: i32, officers: &[i32], map: RoundSupply) -> i32 {
     if round < 1 {
@@ -38,7 +43,15 @@ pub fn round_income(economy: &Economy, round: i32, officers: &[i32], map: RoundS
                 }
         })
         .sum();
+    let rapid = economy
+        .energy_tower_skill(1)
+        .expect("Rapid Resupply is priced");
     base + extra
+        + if round == 1 {
+            rapid.granted
+        } else {
+            rapid.granted - rapid.owed
+        }
 }
 
 /// A side's prices, as the officers it holds change them.

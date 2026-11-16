@@ -2,7 +2,8 @@
 //!
 //! An officer, a unit's technologies, a blueprint, an energy tower skill, a
 //! commander skill and an equipment item are named by the game's own English
-//! names in snake case, which `config/names.yaml` holds and
+//! names in snake case, except skill `1`, whose inverse is `deposit_supply`.
+//! `config/names.yaml` holds the native names and
 //! `scripts/extract/extract_names.py` extracts. A contraption is named as a layout
 //! names it. An opening team is named by its two unit types,
 //! `vortex-fire_badger`; the specialist dealt beside it is an officer.
@@ -105,6 +106,14 @@ fn names() -> &'static Names {
     NAMES_.get_or_init(|| load().unwrap_or_else(|error| panic!("config/names.yaml: {error}")))
 }
 
+fn energy_tower_name(id: i32, native: String) -> String {
+    if id == 1 {
+        "deposit_supply".into()
+    } else {
+        native
+    }
+}
+
 fn load() -> Result<Names, String> {
     let file: NameFile = serde_yaml::from_str(NAMES).map_err(|error| error.to_string())?;
     let mut officers = Named::default();
@@ -129,7 +138,7 @@ fn load() -> Result<Names, String> {
     }
     let mut energy_tower_skills = Named::default();
     for (id, name) in file.energy_tower_skills {
-        energy_tower_skills.insert(id, name);
+        energy_tower_skills.insert(id, energy_tower_name(id, name));
     }
     let mut commander_skills = Named::default();
     for (id, name) in file.commander_skills {

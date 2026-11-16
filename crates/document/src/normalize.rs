@@ -236,12 +236,6 @@ pub(crate) fn deployment(
             errors.push(error);
             continue;
         }
-        if builder.can_activate(1)
-            && let Err(error) = builder.push(Action::ActiveEnergyTowerSkill { skill: 1 })
-        {
-            errors.push(error);
-            continue;
-        }
         if builder.position.officers != ended.officers
             || builder.position.battle_skills.iter().any(|slot| {
                 !ended
@@ -284,7 +278,15 @@ fn historical_deployment(
     declined: Option<i32>,
     history: &[Action],
 ) -> Result<Vec<Action>, String> {
-    let actions = collapse_same_region_moves(economy, opened, history, red, declined)?;
+    let history: Vec<_> = history
+        .iter()
+        .filter(|action| !matches!(action, Action::ActiveEnergyTowerSkill { skill: 1 }))
+        .cloned()
+        .collect();
+    let mut actions = collapse_same_region_moves(economy, opened, &history, red, declined)?;
+    if ended.energy_tower_skills.contains(&1) && !opened.energy_tower_skills.contains(&1) {
+        actions.push(Action::ActiveEnergyTowerSkill { skill: 1 });
+    }
     let reproduced = crate::transition::deployed(economy, opened, &actions, red, declined)
         .map_err(|error| error.to_string())?;
     if reproduced != *ended {
@@ -635,7 +637,7 @@ impl Builder<'_> {
 
     fn infrastructure(&mut self) -> Result<(), String> {
         for skill in self.target.energy_tower_skills.clone() {
-            if !self.position.energy_tower_skills.contains(&skill) {
+            if skill != 1 && !self.position.energy_tower_skills.contains(&skill) {
                 self.push(Action::ActiveEnergyTowerSkill { skill })?;
             }
         }
@@ -1050,6 +1052,9 @@ impl Builder<'_> {
                 target: slot.release.as_ref().unwrap().target.clone(),
             })?;
         }
+        if self.can_activate(1) {
+            self.push(Action::ActiveEnergyTowerSkill { skill: 1 })?;
+        }
         let actual = comparable(&self.position);
         let expected = comparable(self.target);
         if actual != expected {
@@ -1320,6 +1325,7 @@ mod tests {
             tech: 3925,
         };
         let history = vec![
+            Action::ActiveEnergyTowerSkill { skill: 1 },
             moved(0, -150, -260),
             moved(0, -200, -260),
             moved(0, 330, 50),
@@ -1343,6 +1349,7 @@ mod tests {
                 moved(0, 330, 150),
                 research,
                 moved(0, 330, 250),
+                Action::ActiveEnergyTowerSkill { skill: 1 },
             ]
         );
     }
@@ -1916,33 +1923,33 @@ mod tests {
     }
 
     #[test]
-    fn rapid_resupply_is_the_upfront_budget_stage() {
+    fn deposit_follows_spending_and_uses_the_remaining_budget() {
         let mut opened = side();
-        opened.supply = 200;
+        opened.supply = 600;
         let actions = [
-            Action::ActiveEnergyTowerSkill { skill: 1 },
             Action::UpgradeTechnology {
                 unit: 2,
                 tech: 10202,
             },
+            Action::ActiveEnergyTowerSkill { skill: 1 },
         ];
         assert_eq!(normalized(&opened, &close(&opened, &actions)), actions);
     }
 
     #[test]
-    fn optional_rapid_resupply_precedes_spending_even_when_supply_is_sufficient() {
+    fn deposit_is_last_even_when_taken_before_purchases() {
         let opened = side();
         let purchase = bought(1, -100, -160);
-        let loan = Action::ActiveEnergyTowerSkill { skill: 1 };
-        let closed = close(&opened, &[purchase.clone(), loan.clone()]);
+        let deposit = Action::ActiveEnergyTowerSkill { skill: 1 };
+        let closed = close(&opened, &[deposit.clone(), purchase.clone()]);
         assert_eq!(
             normalized(&opened, &closed),
-            [loan, default_purchase(1), moved(2, -100, -160)]
+            [default_purchase(1), moved(2, -100, -160), deposit]
         );
     }
 
     #[test]
-    fn rapid_resupply_follows_the_reinforcement_choice() {
+    fn deposit_follows_reinforcement_and_spending() {
         let economy = Economy::embedded().unwrap();
         let opened = side();
         let offers = Offers {
@@ -1953,12 +1960,12 @@ mod tests {
             index: 0,
             id: crate::r#match::ReinforceChoice::Refund(50),
         };
-        let loan = Action::ActiveEnergyTowerSkill { skill: 1 };
+        let deposit = Action::ActiveEnergyTowerSkill { skill: 1 };
         let purchase = bought(1, -100, -160);
         let closed = crate::transition::deployed(
             economy,
             &opened,
-            &[choice.clone(), purchase.clone(), loan.clone()],
+            &[choice.clone(), deposit.clone(), purchase.clone()],
             false,
             Some(offers.refund),
         )
@@ -1974,7 +1981,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             actions,
-            [choice, loan, default_purchase(1), moved(2, -100, -160)]
+            [choice, default_purchase(1), moved(2, -100, -160), deposit]
         );
         assert_eq!(
             crate::transition::deployed(economy, &opened, &actions, false, Some(offers.refund))
