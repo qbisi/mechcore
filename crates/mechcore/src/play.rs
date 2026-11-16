@@ -127,6 +127,8 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
     listener
         .set_nonblocking(true)
         .map_err(|error| Failure::failed(format!("cannot configure listener: {error}")))?;
+    // Publishing the URL lets a caller immediately request graceful shutdown.
+    let _signal_guard = signal::install();
     let url = format!("http://{local_addr}/");
 
     let mut opened = false;
@@ -924,7 +926,6 @@ struct EngineState {
 }
 
 fn serve(listener: &TcpListener, engine: &SharedEngine, page_html: &str) {
-    let _signal_guard = signal::install();
     std::thread::scope(|scope| {
         if engine.specs.len() > 1 {
             scope.spawn(|| worker_loop(engine));
