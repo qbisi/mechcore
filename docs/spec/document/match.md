@@ -704,9 +704,8 @@ Spending is what the round's decisions cost, charged as each is taken;
 [`action.md`](action.md) says what each costs, and the tables in `config/`
 carry the amounts. Income is the schedule every versus map shares, plus what
 the officers held as the next round opens add and what the equipment worn on
-its board pays, plus 300 when this round deposited supply. The first round
-starts with 200 extra supply; later rounds use the native default schedule
-less 100. Depositing costs 200 in the spending term.
+its board pays, less what an energy tower skill activated this round still
+owes.
 
 Nothing else reaches the supply between two rounds. Standard 1v1 pays nothing
 during a fight: no officer a standard side can hold pays a bounty for
@@ -806,7 +805,7 @@ define:
 | --- | --- |
 | `random_state` | The replay snapshot precedes the current deal or deliveries; the state carries each stream after them |
 | `reinforce_pool` | The seed-derived pool plus the replayed deal gives effective membership changes, replacing the historical operation log |
-| `supply` | Reconstruct the native opening balance from income, equipment and prior Rapid Resupply debt, then add 200 for the match deposit convention. A server snapshot with `IsSpecialSupply` already includes native income, so only the extra 200 is added |
+| `supply` | A client snapshot precedes the round's income, which is added back from the map settings the record itself carries, plus what the equipment on the board the round opens with pays, less the energy tower debt. A server snapshot with `IsSpecialSupply` already includes this payment |
 | `reinforce_offers`' `refund_<amount>` | The record lists the cards alone. The decline is offered after them in every round that deals any, and its amount is the map's figure, or in a unit round the schedule's for that round, from the pool the seed selects; a match whose opening this build cannot deal is refused |
 | `battle_skills[].cooldown` | The recorded cooldowns are the previous round's. A slot the previous round spent restarts at its skill's cooldown, and every other drops by one to zero |
 | `energy_tower_skills` | The recorded list is a debt rather than an activation, so a round's start carries none |
@@ -819,8 +818,8 @@ The reinforcement dealer supplies the shared stream and pool checkpoint.
 allowances, the cooldowns, the energy tower skills, unit sources and the
 deliveries are what a round's opening does, and conversion makes that opening
 rather than restating it: it reads the snapshot as it stands before the round
-opens, marks the slots the previous round's actions spent and the deposit
-inferred from its native debt, and opens the round with the same rule a transition's
+opens, marks the slots the previous round's actions spent and the Rapid Supply
+it still owes for, and opens the round on it with the same rule a transition's
 prediction ends with. A converted opening and a predicted one therefore cannot
 follow two sets of rules. The snapshot marks those same slots active, and one
 that marks another is refused. The opening pays the income schedule every versus map
@@ -859,7 +858,7 @@ because the conversion could not find it.
 
 Server reconstructions carry `IsSpecialSupply=true`. Their supply already
 includes the coming income: the game's snapshot restoration locks the next
-income payment. Conversion adds 200 to that supply while applying the ordinary
+income payment. Conversion keeps that supply while applying the ordinary
 cooldown resets, allowances and officer deliveries. The server omits the
 energy tower debt list; preceding actions identify the debt, whose payment is
 already included in the recorded supply.

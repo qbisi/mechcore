@@ -13,7 +13,7 @@ pub struct TowerChoice {
     pub id: i32,
     pub name: String,
     pub active: bool,
-    /// Activation cost; Deposit Supply costs the native Rapid Resupply grant.
+    /// Activation cost, or the supply granted by Rapid Resupply.
     pub supply: i32,
 }
 
@@ -50,16 +50,10 @@ pub fn tower_cards(energy: &[i32], blueprints: &[i32]) -> Result<TowerCards, ser
                     row.granted
                 },
             })
-            .collect::<Vec<_>>()
+            .collect()
     };
-    let mut energy = choices(names.energy_tower_skills, energy);
-    for choice in &mut energy {
-        if choice.id == 1 {
-            choice.name = "Deposit Supply".into();
-        }
-    }
     Ok(TowerCards {
-        energy,
+        energy: choices(names.energy_tower_skills, energy),
         blueprints: choices(names.blueprints, blueprints),
     })
 }

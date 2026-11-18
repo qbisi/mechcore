@@ -132,10 +132,8 @@ dim native game icons. The blueprint card shows the currently active attack
 and defense blueprint icons, using their native second-level artwork when
 appropriate, without extra digits; grey icons mean no enhancement.
 Hovering or focusing either opens a list of its build-configured names and
-supply prices, with activation indicated by icon/name brightness. The original
-Rapid Resupply icon represents Deposit Supply at a cost of 200: it is lit when
-the match deposits supply (native Rapid Resupply was not activated) and dim
-when no deposit is made (native Rapid Resupply was activated). Match playback uses the completed deployment's
+supply prices, with activation indicated by icon/name brightness. Rapid
+Resupply displays the 200 supply it grants instead of its zero cost. Match playback uses the completed deployment's
 full state. In standalone layouts, fights and recordings, omitted economic
 skills and blueprints default to inactive.
 `scripts/player/tower-cards.py` extracts the game's Energy Tower and blueprint

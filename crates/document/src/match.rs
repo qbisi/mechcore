@@ -1594,7 +1594,6 @@ mod tests {
             Action::UnlockUnit { unit: 9 },
             Action::UpgradeTechnology { unit: 2, tech: 702 },
             Action::ActiveBlueprint { id: 5 },
-            Action::ActiveEnergyTowerSkill { skill: 3 },
             Action::ActiveEnergyTowerSkill { skill: 1 },
             Action::StrengthenTower { tower: 1 },
             Action::UseEquipment {

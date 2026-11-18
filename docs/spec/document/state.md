@@ -208,7 +208,7 @@ reach a layout transformed, and the fields a layout has no reason to hold.
       unlocked_units: [marksman, fang, crawler, arclight, wraith, sabertooth, typhoon, phantom_ray, hound, void_eye, vortex]
 
       blueprints: [sticky_oil_bomb, field_recovery, attack_enhancement_ii]
-      energy_tower_skills: [deposit_supply]
+      energy_tower_skills: [rapid_resupply]
       tower_strengthen_levels: [1, 1]
 
       equipment:
@@ -345,9 +345,7 @@ amount the advance team carries.
 `supply` is what the side can spend at the moment the state describes. The
 round's income has already been added to it, and every purchase, upgrade and
 sale since has already been applied. It is the number a purchase's legality is
-tested against. A round opening is 200 above the native spendable balance;
-a completed deployment, including its deposit choice, has the native balance.
-An installer must undo this translation before writing native supply.
+tested against and the number an installer writes.
 
 That is deliberately not the number the replay stores, which is the residue from
 before the round's income arrived. A converter rebuilds it; [the match
@@ -399,7 +397,7 @@ blueprint, an energy tower skill, a commander skill and an equipment item are
 the game's own English names in snake case, apostrophes dropped, which
 [`config/names.yaml`](../../../config/names.yaml) holds: the
 officer `supply_specialist`, the technology `grenade_launcher`, the blueprint
-`field_recovery`, the energy tower skill `mass_recruitment`, the commander skill
+`field_recovery`, the energy tower skill `rapid_resupply`, the commander skill
 `intensive_training`, the equipment item `photon_coating`.
 
 What is named is what a standard 1v1 match can hand a side: the opening
@@ -467,21 +465,29 @@ The blueprint list and those officers are two spellings of one fact.
 `20311`. A layout spells it the same way, keeping the chains alone: a blueprint
 that grants a skill reaches a fight only as that skill's release.
 
-#### Energy Tower activations and deposits
+#### The energy tower keeps all five
 
-`energy_tower_skills` lists the skills activated in this deployment, empty at
-its opening. Recruitment skills `3` and `4` reach a fight through the units
-they produce; a layout keeps only the combat skills `5` and `6`.
+Every energy tower skill lasts this round only, so this field is the set
+activated in the round the state describes. Like everything else here it is defined after
+each action, which means it is empty at a round's start and fills as the round's
+actions are applied.
 
-Skill `1` is named `deposit_supply`, the inverse of native Rapid Resupply.
-It is activated through `active_energy_tower_skill`, costs 200 supply now and
-returns 300 at the next opening. Its presence in `energy_tower_skills` means
-supply was deposited; its absence means no deposit. There is no separate
-saving flag. The round-opening state omits all activations, which have expired.
+A state lists all five and a layout keeps only the two that reach a fight, `5`
+and `6`. Skills `3` and `4` are recruitment and reach a fight only through the
+units they produce, and `1` is economic. `1` is the one that must not be
+dropped, because it is the half of a decision the next round pays for: it grants
+supply now against a deduction from the next round's income. Carrying the skill
+carries that debt, and nothing else in the document states it.
 
-Native snapshots carry the previous round's Rapid Resupply debt. Conversion
-reads that debt as the inverse of the previous deposit, and translates supply
-to match coordinates. Replay export makes the inverse translation.
+The recorded field is a different quantity and must not be copied into this one.
+The game snapshots only skills with a deferred half, which admits `1` alone, and
+it writes them a round late, because the activation flag survives into the
+following round. So the recorded list is an input to reconstructing `supply`,
+not a source for this field, which is rebuilt from the round's activations.
+
+Installing one needs care in the other direction: the activation flag has to be
+set without paying the immediate half a second time, and an installed state
+whose flag is missing gives the next round too much supply.
 
 ## The skill panel
 

@@ -7,7 +7,7 @@
 //! there. A match's state segment is the position after the opening, so a
 //! round is written by undoing the opening: taking back what the round's
 //! officers deliver, the round's income and cooldown count-down, and the
-//! deposit return from the previous round. Each undone position is opened
+//! energy tower debt the previous round owes. Each undone position is opened
 //! again with the conversion's own rule, and a position that does not open
 //! onto the match's is refused rather than written.
 //!
@@ -407,8 +407,8 @@ fn take_back_deliveries(
 }
 
 /// Undoes the round's reset: a slot the previous round spent restarts as the
-/// round opens and every other counts down, and the income and previous
-/// deposit return are paid.
+/// round opens and every other counts down, and the income, less what the
+/// previous round's Rapid Resupply still owes, is paid.
 fn undo_reset(economy: &Economy, snapshot: &mut SideState, round: i32, previous: &[Action]) {
     let spent: Vec<i32> = previous
         .iter()
@@ -425,17 +425,20 @@ fn undo_reset(economy: &Economy, snapshot: &mut SideState, round: i32, previous:
             slot.cooldown + 1
         };
     }
-    snapshot.energy_tower_skills =
-        if previous.contains(&Action::ActiveEnergyTowerSkill { skill: 1 }) {
-            vec![1]
-        } else {
-            Vec::new()
-        };
-    let returned = if snapshot.energy_tower_skills.contains(&1) {
-        economy.energy_tower_skill(1).unwrap().owed
+    let repays = previous.iter().any(|action| {
+        matches!(action, Action::ActiveEnergyTowerSkill { skill } if *skill == RAPID_SUPPLY_SKILL)
+    });
+    snapshot.energy_tower_skills = if repays {
+        vec![RAPID_SUPPLY_SKILL]
     } else {
-        0
+        Vec::new()
     };
+    let debt: i32 = snapshot
+        .energy_tower_skills
+        .iter()
+        .filter_map(|skill| economy.energy_tower_skill(*skill))
+        .map(|skill| skill.owed)
+        .sum();
     let worn: i32 = snapshot
         .units
         .iter()
@@ -444,7 +447,7 @@ fn undo_reset(economy: &Economy, snapshot: &mut SideState, round: i32, previous:
         .sum();
     let income =
         crate::ledger::round_income(economy, round, &snapshot.officers, economy.round_supply());
-    snapshot.supply -= income + worn + returned;
+    snapshot.supply -= income + worn - debt;
     snapshot.shop = crate::r#match::Allowances::default();
     for entry in &mut snapshot.units {
         entry.redeployed = false;
@@ -499,15 +502,7 @@ fn write_snapshot(
     write_contraptions(xml, side, sign)?;
     write_ints(xml, "bluepints", &side.blueprints);
     xml.push_str("<researchQueue />");
-    write_ints(
-        xml,
-        "energyTowerSkills",
-        if round > 1 && !side.energy_tower_skills.contains(&1) {
-            &[RAPID_SUPPLY_SKILL]
-        } else {
-            &[]
-        },
-    );
+    write_ints(xml, "energyTowerSkills", &side.energy_tower_skills);
     write_ints(xml, "towerStrengthenLevels", &side.tower_strengthen_levels);
     write_constructions(xml, side, sign)?;
     xml.push_str(
@@ -713,9 +708,6 @@ fn write_actions(
         sign < 0,
     )?;
     let mut records: Vec<(&str, String)> = Vec::new();
-    let deposit = actions.contains(&Action::ActiveEnergyTowerSkill { skill: 1 });
-    let advance = economy.energy_tower_skill(1).unwrap().granted;
-    let mut loan_at = 0;
     let offers = turn.state.reinforce_offers.as_ref();
     let declined = offers.map(|offers| offers.refund);
     // Each decision is stepped as conversion steps it, which is what names
@@ -723,7 +715,7 @@ fn write_actions(
     // holds only decisions the board allows in its order, so each is recorded
     // where it stands.
     let mut position = opened.clone();
-    for (at, action) in actions.iter().enumerate() {
+    for action in &actions {
         let moved = match action {
             Action::MoveUnit { index, .. } => position
                 .units
@@ -761,26 +753,6 @@ fn write_actions(
                 turn.round
             )
         })?;
-        if !matches!(action, Action::ActiveEnergyTowerSkill { skill: 1 }) {
-            if deposit && !position.energy_tower_skills.contains(&1) && position.supply < advance {
-                return Err(format!(
-                    "round {} decision {action:?} needs native Rapid Resupply before a later deposit",
-                    turn.round
-                ));
-            }
-            if at == 0
-                && matches!(action, Action::ChooseReinforceItem { .. })
-                && position.supply >= advance
-            {
-                loan_at = 1;
-            }
-        }
-    }
-    if !deposit && actions.as_slice() != [Action::Concede] {
-        records.insert(
-            loan_at,
-            ("PAD_ActiveEnergyTowerSkill", "<SkillID>1</SkillID>".into()),
-        );
     }
     if !matches!(actions.last(), Some(Action::Concede)) {
         records.push(("PAD_FinishDeploy", String::new()));
@@ -959,7 +931,6 @@ fn action_records(
             format!("<UID>{unit}</UID><TechID>{tech}</TechID>"),
         )],
         Action::ActiveBlueprint { id } => vec![("PAD_ActiveBlueprint", format!("<ID>{id}</ID>"))],
-        Action::ActiveEnergyTowerSkill { skill: 1 } => Vec::new(),
         Action::ActiveEnergyTowerSkill { skill } => vec![(
             "PAD_ActiveEnergyTowerSkill",
             format!("<SkillID>{skill}</SkillID>"),
@@ -1112,67 +1083,41 @@ mod tests {
     }
 
     #[test]
-    fn replay_inverts_deposits_and_activates_borrowing_before_spending() {
+    fn native_encoding_keeps_research_and_the_upfront_supply_stage_in_order() {
         let economy = Economy::embedded().unwrap();
-        let opening = opened();
-        let turn = Turn {
-            round: 1,
-            state: crate::r#match::State::default(),
-            actions: crate::r#match::TurnActions::default(),
-        };
-        let purchase = buy(6, -100, -160);
-        for deposit in [false, true] {
-            let mut actions = vec![purchase.clone()];
-            if deposit {
-                actions.push(Action::ActiveEnergyTowerSkill { skill: 1 });
-            }
-            let mut xml = String::new();
-            write_actions(&mut xml, economy, &opening, &turn, &actions, 1, 100).unwrap();
-            assert_eq!(xml.contains("PAD_ActiveEnergyTowerSkill"), !deposit);
-            assert!(!xml.contains("deposit_supply"));
-            if !deposit {
-                assert!(
-                    xml.find("PAD_ActiveEnergyTowerSkill").unwrap()
-                        < xml.find("PAD_BuyUnit").unwrap()
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn native_borrowing_precedes_an_unaffordable_reinforcement() {
-        let economy = Economy::embedded().unwrap();
-        let mut turn = Turn {
-            round: 2,
-            state: crate::r#match::State::default(),
-            actions: crate::r#match::TurnActions::default(),
-        };
-        turn.state.reinforce_offers = Some(crate::r#match::Offers {
-            dealt: vec![20_001],
-            refund: 50,
-        });
-        let choice = Action::ChooseReinforceItem {
-            index: 0,
-            id: crate::r#match::ReinforceChoice::Card(20_001),
-        };
-        for (supply, loan_first) in [(400, true), (600, false)] {
-            let mut opening = opened();
-            opening.supply = supply;
-            let mut xml = String::new();
-            write_actions(
-                &mut xml,
-                economy,
-                &opening,
-                &turn,
-                std::slice::from_ref(&choice),
-                1,
-                100,
-            )
+        let mut opening = opened();
+        let cost = crate::ledger::Purse::new(economy, &opening.officers)
+            .buy(6)
             .unwrap();
-            let loan = xml.find("PAD_ActiveEnergyTowerSkill").unwrap();
-            let selected = xml.find("PAD_ChooseReinforceItem").unwrap();
-            assert_eq!(loan < selected, loan_first);
-        }
+        opening.supply = 2 * cost + economy.technology(206).unwrap()
+            - economy.energy_tower_skill(1).unwrap().granted;
+        let actions = [
+            Action::ActiveEnergyTowerSkill { skill: 1 },
+            buy(6, -100, -160),
+            buy(6, 100, -160),
+            Action::UpgradeTechnology { unit: 6, tech: 206 },
+        ];
+        let lowered = native_actions(economy, &opening, &actions, None, false).unwrap();
+        assert_eq!(
+            crate::transition::deployed(economy, &opening, &lowered, false, None).unwrap(),
+            crate::transition::deployed(economy, &opening, &actions, false, None).unwrap()
+        );
+        assert_eq!(
+            lowered
+                .iter()
+                .filter(|a| matches!(a, Action::ActiveEnergyTowerSkill { skill: 1 }))
+                .count(),
+            1
+        );
+        assert!(matches!(
+            lowered[0],
+            Action::ActiveEnergyTowerSkill { skill: 1 }
+        ));
+        assert!(matches!(
+            lowered.last(),
+            Some(Action::UpgradeTechnology { tech: 206, .. })
+        ));
+        assert!(native_actions(economy, &opening, &actions[1..], None, false).is_err());
     }
 
     #[test]
