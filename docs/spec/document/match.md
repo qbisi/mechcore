@@ -622,20 +622,15 @@ last formation depends on its research. Native encoding preserves these explicit
 match actions and their order. Equipment precedes unified placement; upgrades
 and contraptions use that final layout. Infrastructure and remaining unlocks
 follow, before combat skills.
-Ordinary normalization preserves the deployment endpoint. When layout projection
-warns that controller-initialization history cannot be represented, conversion
-and formatting retain the surviving historical decisions in their original
-order. Only adjacent moves of the same formation which both remain inside one
-region are collapsed to the last move. The regions are the main deployment
-area, left flank and right flank. Crossing a region boundary and every
-intervening decision remain in place, including research, equipment and moves
-of other formations. The retained sequence must reproduce the same endpoint.
-
-Enhancement Modules change upgrade prices, so normalization retains the level
-reached before each module was fitted in the recorded or input action sequence.
-Those upgrades, including any required Intensive Training, precede that module
-as explicit dependencies. Other decisions still follow the standard sequence;
-final supply is checked rather than used to infer the module's fitting time.
+Ordinary normalization preserves the full deployment endpoint. It fits the
+closing equipment before upgrades, uses price-reducing stock modules before
+recovery upgrades, and derives Elite Recruitment's timing from the endpoint.
+When the standard sequence cannot reproduce the result, or layout projection
+warns about order-sensitive initialization, conversion and formatting retain
+the effective historical decisions. Consecutive moves of one formation within
+the main deployment area or one flank may collapse when the retained sequence
+remains legal and reproduces the same endpoint. Crossings and intervening
+decisions retain their order.
 
 A historical sequence that acquires Stealth Cloak after Phantom Ray flank
 deployment still projects with a warning because the layout cannot preserve
