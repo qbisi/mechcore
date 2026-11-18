@@ -408,11 +408,7 @@ pub fn step_placing(
             let row = economy
                 .energy_tower_skill(*skill)
                 .ok_or(Unsettled::Unpriced("energy tower skill"))?;
-            next.supply -= if *skill == 1 {
-                row.granted
-            } else {
-                row.supply - row.granted
-            };
+            next.supply -= row.supply - row.granted;
             if *skill == MASS_RECRUIT_SKILL {
                 next.shop.buys_remaining += EXTRA_BUYS;
             }
@@ -1025,8 +1021,8 @@ pub fn open_allowances(next: &mut SideState) {
 /// skill, restarts at its skill's cooldown; every other counts down by one to
 /// no lower than zero. The shop allows two purchases, one more for every
 /// Extra Deployment card the side holds, and one unlock. Every energy tower
-/// skill lasts one round, and a deposit returns at this opening. The income
-/// uses the match's adjusted schedule, the officers
+/// skill lasts one round, and one that defers part of its price is paid for
+/// out of this round's income. The income is the map's schedule, the officers
 /// the side holds, and the equipment its formations wear; standard 1v1 pays
 /// nothing during a fight, so nothing else reaches the supply between rounds. A formation on the board was there last round, so
 /// it is fixed unless [`crate::mobility::free`] frees it, except in round 1,
@@ -1046,19 +1042,15 @@ fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unse
         slot.release = None;
     }
     open_allowances(next);
-    // Pay the adjusted schedule, officer and equipment income, and the
-    // previous deposit's return. Other tower skills retain their table costs.
-    let mut returned = 0;
+    // The round's income: the map's schedule and what the side's officers add
+    // to it, what the equipment on the board pays, and less what an energy
+    // tower skill the previous round activated still owes.
     let mut owed = 0;
     for skill in &next.energy_tower_skills {
-        let row = economy
+        owed += economy
             .energy_tower_skill(*skill)
-            .ok_or(Unsettled::Unpriced("energy tower skill"))?;
-        if *skill == 1 {
-            returned += row.owed;
-        } else {
-            owed += row.owed;
-        }
+            .ok_or(Unsettled::Unpriced("energy tower skill"))?
+            .owed;
     }
     let worn: i32 = next
         .units
@@ -1068,7 +1060,7 @@ fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unse
         .sum();
     let income =
         crate::ledger::round_income(economy, round, &next.officers, economy.round_supply());
-    next.supply += income + worn + returned - owed;
+    next.supply += income + worn - owed;
     next.energy_tower_skills.clear();
     for entry in &mut next.units {
         entry.unit.source = if round <= 1 {
@@ -1868,7 +1860,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 unlocks_remaining: 0,
                 contraptions_remaining: 0,
             },
-            energy_tower_skills: vec![3],
+            energy_tower_skills: vec![1],
             officers: vec![EXTRA_DEPLOYMENT_CARD, EXTRA_DEPLOYMENT_CARD],
             ..SideState::default()
         };
@@ -1992,9 +1984,10 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
     }
 
     /// The opening pays the map's schedule, the officers' income and what
-    /// worn equipment pays, and returns the previous round's deposit.
+    /// worn equipment pays, less what a Rapid Supply activated in the previous
+    /// round still owes.
     #[test]
-    fn an_opening_pays_income_and_returns_the_deposit() {
+    fn an_opening_pays_the_income_less_what_rapid_supply_owes() {
         let economy = Economy::embedded().unwrap();
         let worn = |index| StateUnit {
             unit: crate::layout::UnitPlacement {
@@ -2019,64 +2012,14 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             // Supply Specialist adds 50 a round.
             officers: vec![10002],
             units: vec![worn(0), worn(1)],
+            // Rapid Supply and one skill that owes nothing.
             energy_tower_skills: vec![1, 3],
             ..SideState::default()
         };
         let opened = super::open_round(economy, &state, 3, &mut |_, _| None, None).unwrap();
         // Round 3 of the shared schedule pays 200 + 2 × 200.
-        assert_eq!(opened.supply, 10 + 600 - 100 + 50 + 2 * 50 + 300);
+        assert_eq!(opened.supply, 10 + 600 + 50 + 2 * 50 - 300);
         assert!(opened.energy_tower_skills.is_empty());
-    }
-
-    #[test]
-    fn deposits_invert_native_borrowing_across_rounds() {
-        let economy = Economy::embedded().unwrap();
-        let mut state = SideState::default();
-        let mut native = 0;
-        let mut previous_borrowed = false;
-        for (round, deposit) in [(1, true), (2, false), (3, true), (4, true)] {
-            let schedule = economy.round_supply();
-            native += (schedule.first + (round - 1) * schedule.increase).min(schedule.max)
-                - if previous_borrowed { 300 } else { 0 };
-            state = super::open_round(economy, &state, round, &mut |_, _| None, None).unwrap();
-            assert_eq!(state.supply, native + 200);
-            if deposit {
-                let before = state.supply;
-                state = super::step(
-                    economy,
-                    &state,
-                    &Action::ActiveEnergyTowerSkill { skill: 1 },
-                    None,
-                )
-                .unwrap();
-                assert_eq!(state.supply, before - 200);
-                assert!(
-                    super::step(
-                        economy,
-                        &state,
-                        &Action::ActiveEnergyTowerSkill { skill: 1 },
-                        None
-                    )
-                    .is_err()
-                );
-            } else {
-                native += 200;
-            }
-            assert_eq!(state.supply, native);
-            previous_borrowed = !deposit;
-        }
-        assert!(
-            super::step(
-                economy,
-                &SideState {
-                    supply: 199,
-                    ..SideState::default()
-                },
-                &Action::ActiveEnergyTowerSkill { skill: 1 },
-                None
-            )
-            .is_err()
-        );
     }
 
     /// Round zero opens round 1 on the chosen team: its unit types join the
@@ -2362,8 +2305,8 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
     }
 
     /// A blueprint or an energy tower skill already active is not activated
-    /// again: a duplicate deposit would charge twice, while a duplicate
-    /// blueprint could put a second skill on the panel.
+    /// again: the game answers `RepeatAction`, where stepping it would pay a
+    /// second Rapid Resupply or put a second skill on the panel.
     #[test]
     fn an_active_item_is_not_activated_again() {
         let economy = Economy::embedded().unwrap();
