@@ -604,7 +604,7 @@ fn full_loadout_and_disabled_reinforcements_use_the_header_rules() {
             available
                 .keys()
                 .copied()
-                .find(|id| catalog::unit_type_from_id(*id).unwrap().0 == entry.unit.type_name)
+                .find(|id| catalog::unit_type_from_id(*id).unwrap().0 == entry.type_name)
         })
         .find(|id| available[id].len() > 4 && mechcore_document::r#match::research_limit(*id) == 4)
         .unwrap();
@@ -863,7 +863,7 @@ fn a_view_applies_only_the_callers_decisions_and_adds_runtime_legality() {
 fn movement_permission_is_recomputed_from_equipment_and_redeploy_actions() {
     use mechcore_document::{
         layout::UnitSource,
-        r#match::{Action, EquipmentItem, PanelSkill},
+        r#match::{Action, PanelSkill, StateEquipment},
         mobility,
     };
 
@@ -875,8 +875,8 @@ fn movement_permission_is_recomputed_from_equipment_and_redeploy_actions() {
             .unwrap()
             .unwrap();
         let blue = &mut game.turns.last_mut().unwrap().state.blue;
-        blue.units[0].unit.source = UnitSource::Legacy;
-        let unit = blue.units[0].unit.index;
+        blue.units[0].source = UnitSource::Legacy;
+        let unit = blue.units[0].index;
         let action = if redeploy {
             let index = blue
                 .battle_skills
@@ -898,9 +898,9 @@ fn movement_permission_is_recomputed_from_equipment_and_redeploy_actions() {
                 target: mechcore_document::r#match::SkillTarget::Unit(unit),
             }
         } else {
-            blue.equipment.push(EquipmentItem {
+            blue.equipment.push(StateEquipment {
                 id: mobility::DEPLOYMENT_MODULE,
-                durability: None,
+                fitted: None,
             });
             Action::UseEquipment {
                 equipment: mobility::DEPLOYMENT_MODULE,
@@ -952,6 +952,56 @@ fn movement_permission_is_recomputed_from_equipment_and_redeploy_actions() {
         );
         assert_eq!(fs::read(&path).unwrap(), before);
     }
+}
+
+#[test]
+fn recovery_reports_a_removal_and_returns_fitted_equipment_to_stock() {
+    use mechcore_document::r#match::{
+        Action, EquipmentFitting, PanelSkill, SkillTarget, StateEquipment,
+    };
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    let mut game = mechcore_document::r#match::read(&fs::read(&path).unwrap())
+        .unwrap()
+        .unwrap();
+    let blue = &mut game.turns.last_mut().unwrap().state.blue;
+    let unit = blue.units[0].index;
+    let slot = blue.battle_skills.last().map_or(0, |slot| slot.index + 1);
+    blue.battle_skills.push(PanelSkill {
+        index: slot,
+        id: 900_001,
+        cooldown: 0,
+        standing: Vec::new(),
+        release: None,
+    });
+    blue.equipment.push(StateEquipment {
+        id: 13_030_001,
+        fitted: Some(EquipmentFitting { unit, slot: 0 }),
+    });
+    fs::write(
+        &path,
+        mechcore_document::r#match::canonical_yaml(&game).unwrap(),
+    )
+    .unwrap();
+    let action = serde_json::to_string(&Action::ReleaseCommanderSkill {
+        index: slot,
+        id: 900_001,
+        target: SkillTarget::Unit(unit),
+    })
+    .unwrap();
+    let recovered = run(&["match", "act", &path, "--side", "blue", &action]).ok();
+    assert_eq!(recovered["events"][0]["removed"]["index"], unit);
+    let blue = &state(&recovered)["blue"];
+    let tombstone = &blue["units"][0];
+    assert_eq!(tombstone["recovered"], true);
+    for field in ["position", "exp", "movable"] {
+        assert!(tombstone.get(field).is_none(), "{tombstone}");
+    }
+    assert_eq!(
+        blue["equipment"],
+        serde_json::json!([{"name": "laser_sights"}])
+    );
 }
 
 #[test]

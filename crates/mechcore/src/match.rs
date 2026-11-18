@@ -1421,7 +1421,9 @@ impl Game {
                     .as_array_mut()
                     .expect("units serialize as an array"),
             ) {
-                written["movable"] = Value::Bool(unit.movable(&position));
+                if !unit.recovered {
+                    written["movable"] = Value::Bool(unit.movable(&position));
+                }
             }
             value[side.name()] = current;
         }
@@ -1488,25 +1490,25 @@ struct SideView {
 /// position it answers with.
 fn events(before: &SideState, after: &SideState) -> Vec<Value> {
     let index = |state: &SideState| -> std::collections::BTreeSet<i32> {
-        state.units.iter().map(|unit| unit.unit.index).collect()
+        state.active_units().map(|unit| unit.index).collect()
     };
     let (was, is) = (index(before), index(after));
     let mut events = Vec::new();
-    for unit in &after.units {
-        if was.contains(&unit.unit.index) {
+    for unit in after.active_units() {
+        if was.contains(&unit.index) {
             continue;
         }
         events.push(serde_json::json!({"created": {
-            "index": unit.unit.index,
-            "name": unit.unit.type_name,
-            "position": unit.unit.position,
+            "index": unit.index,
+            "name": unit.type_name,
+            "position": unit.position,
         }}));
     }
-    for unit in &before.units {
-        if !is.contains(&unit.unit.index) {
+    for unit in before.active_units() {
+        if !is.contains(&unit.index) {
             events.push(serde_json::json!({"removed": {
-                "index": unit.unit.index,
-                "name": unit.unit.type_name,
+                "index": unit.index,
+                "name": unit.type_name,
             }}));
         }
     }
@@ -1629,9 +1631,8 @@ mod tests {
         // A failed settlement keeps both commitments private and retryable.
         let disk = fs::read(&path).unwrap();
         let valid = game.r#match.clone();
-        game.r#match.turns.last_mut().unwrap().state.blue.units[0]
-            .unit
-            .type_name = "missing_unit".into();
+        game.r#match.turns.last_mut().unwrap().state.blue.units[0].type_name =
+            "missing_unit".into();
         let recorded = game.r#match.clone();
         game = game.settle(&mut held).unwrap();
         assert!(game.unresolved.is_some());

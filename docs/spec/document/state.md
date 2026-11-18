@@ -106,12 +106,12 @@ Each unit carries its `source`. In an opening state, an inherited unit is
 `legacy` and leaves the field out; the first round's advance team is `joined`,
 and a squad an officer delivers as the round opens is `delivered`. Units bought
 or granted by the round's decisions are `joined` while applying those decisions.
-The projection also uses the opening allocator and officer delivery schedule
-to list delivered squads recovered during the round.
+Projection checks identities and sources against the opening roster and
+allocator. It adds fitted equipment in slot order to each surviving unit
+and lists recovered `delivered` squads in `Layout.recovered`.
 
-Six side fields project unchanged: `officers`, `techs`, `units`,
-`constructions`, `contraptions` and `tower_strengthen_levels`. Two more reach a
-layout filtered rather than copied straight:
+The side copies `officers`, `techs`, `constructions`, `contraptions` and
+`tower_strengthen_levels`. Two more fields are filtered:
 
 | State source | Layout target | Projection |
 | --- | --- | --- |
@@ -243,9 +243,8 @@ reach a layout transformed, and the fields a layout has no reason to hold.
       contraptions: [ ... ]
 ```
 
-The last four keys are layout fields that project unchanged, elided here
-because [the layout document](layout.md) already defines them. A side always
-writes `units`, and leaves out the other three where it holds nothing.
+A side always writes its `next_index` allocators and its `units` list.
+It omits `constructions` and `contraptions` when their lists are empty.
 
 ### A unit carries its source and recovery value
 
@@ -253,6 +252,7 @@ writes `units`, and leaves out the other three where it holds nothing.
       units:
       - {name: crawler, index: 5, position: {x: -140, y: -135}, exp: 450/450, value: 100}
       - {name: marksman, index: 6, position: {x: 0, y: -160}, value: 0, source: delivered}
+      - {name: fang, index: 7, value: 50, level: 2, source: joined, recovered: true}
 ```
 
 `value` is what the side paid for the unit, at the prices its officers made
@@ -267,10 +267,16 @@ previous deliveries. Source describes arrival, not a permanent movement grant.
 
 `movable` is not a document field. Deployment movement is derived internally:
 a `joined` or `delivered` unit may move, and a `legacy` unit may move only if
-its Deployment Module or Jump Drive frees it, or a Redeploy action has freed
-it during this deployment. The Redeploy effect is remembered while applying
-those actions and cleared at the next opening; it is not serialized.
+its Deployment Module or Jump Drive frees it, or the panel records a
+Redeploy release targeting it in this deployment.
 [The mobility index](../../rules/mobility.md) gives the rule and its evidence.
+
+When a unit is recovered, its row retains its index, name, source, value and
+level and gains `recovered: true`. The row has no position, experience,
+rotation, travelling flag or recorded pose. Its recovery release names the
+same index. Only active rows carry positions, and only active rows take up
+space or wear equipment. The next opening drops the tombstone and keeps the
+index spent. Recovering a construction removes its row.
 
 ### The allocators
 
@@ -312,33 +318,28 @@ fails loudly instead of having its levels written to the wrong building.
 A side holds exactly two towers. Both draw from one shared catalogue whose four
 rows raise the crystal's life, so a level is in `0..=4` for either tower.
 
-### Equipment is stock plus what is fitted
+### Equipment ownership and fitting order
 
-A state stores the difference rather than the record. `equipment` lists only
-what the side owns and no unit wears, and a unit's own `equipment`
-names what it carries. The two together enumerate everything owned, and neither
-can be derived from the other: dropping the side list would lose an unfitted
-item, and dropping the unit's field would lose which unit carries what.
+The side's `equipment` lists every owned copy. Unfitted copies carry only
+`name`. A fitted copy also carries `fitted`, with a standing unit's index
+and its zero-based fitting slot.
 
-Storing the recorded inventory whole would instead let one document contradict
-itself, by listing an item no unit carries beside a unit carrying an
-item the list omits.
+```yaml
+      equipment:
+        - {name: laser_sights}
+        - {name: laser_sights, fitted: {unit: 5, slot: 1}}
+        - {name: heavy_armor, fitted: {unit: 5, slot: 0}}
+```
 
-`equipment` is a multiset: a side can own two copies of one item.
+A side can own several copies of an item, and a formation's fitting slots run
+from zero in the order it fitted them. The example projects the unit's items
+as `[heavy_armor, laser_sights]`. Duplicate slots and gaps are refused.
+Recovering the unit returns its copies to stock by clearing their fittings.
 
-A unit's items are its record's `equipments` list, in fitting order. The
-single `EquipmentID` beside it is always 0.
-
-That difference is what an installer has to undo. The game restores equipment in
-two steps, creating the inventory and then attaching items by replaying the fit,
-so an installer must add the fitted items back to the inventory before it
-attaches them.
-
-`durability` is optional and its absence means `-1`. Equipment in a standard 1v1
-does not wear out and survives every round. The field exists because game rule
-`999903` hands out equipment that expires after one round; under that rule a
-fitted item's durability would have no home in this format, and the rule that
-introduces it is the one that should answer for it.
+A native replay writes each copy to `equipmentDatas` with permanent durability
+`-1`, and each fitted copy to its unit's `equipments` list in slot order.
+The stock on import comes from the inventory after accounting for the copies
+listed on units.
 
 ### Supply and reactor core
 
@@ -581,7 +582,7 @@ absent when its `current` is `0`.
 | Collection | Order |
 | --- | --- |
 | `battle_skills` | ascending `index` |
-| `equipment` | ascending item ID, then `durability`, a multiset |
+| `equipment` | ascending item ID, unfitted copies first, then fitted unit index and slot |
 | `units`, `constructions`, `contraptions` | ascending `index` |
 | `officers` | ascending ID, a multiset |
 | `techs` | ascending unit ID, each unit's technologies ascending ID |
@@ -594,8 +595,8 @@ absent when its `current` is `0`.
 
 The rule behind the first three rows is that a collection is ordered by the key
 the actions use to reference it, so document order and action resolution can
-never disagree. `equipment` sorts on the `durability` an absent field implies,
-`-1`.
+never disagree. The equipment table's order leaves each formation's fitting
+order in its slots.
 
 One cross-check goes with that order rather than in it. Each entry of
 `next_index` must be greater than the highest index in the collection it
@@ -643,6 +644,7 @@ it is read out of the recorded skill panel, onto the slot it is recorded under;
 | `matchDatas.deadCount` | Carries nothing a position needs |
 | `NewUnitData.EquipmentID` | Always 0; the unit's `equipments` list holds what it wears |
 | `NewUnitData.Durability` | Unused for units in this build |
+| `EquipmentData.durability` | Always `-1` for equipment in the supported 1v1 rules |
 | `NewUnitData.RoundCount`, `SellSupply` | Both follow from when the unit was bought and what it cost |
 | `ConstructionSnapshotData.durability` | One entry per segment, and inert |
 | `matchDatas.teamRanks` | Seat ordering; no mechanism reads it |
@@ -662,8 +664,3 @@ transition adds a slot at 0 rather than reading the table, and the table
 gives Nuke, Lightning Storm and Ion Bombardment an `initial_cooldown` of 1.
 Whether the game reads it, so that those skills join the panel already
 cooling down when a specialist or a card hands them out, is not recorded.
-
-**Where a fitted item's durability would live.** `durability` belongs to the
-side's inventory, and a unit's `equipment` names only IDs. Under the game
-rule that makes equipment expire, a fitted item has a durability and this format
-has nowhere to put it.

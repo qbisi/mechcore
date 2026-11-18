@@ -406,9 +406,7 @@ fn take_back_deliveries(
     }
     snapshot.next_index.unit -= squads;
     let first_delivered = snapshot.next_index.unit;
-    snapshot
-        .units
-        .retain(|entry| entry.unit.index < first_delivered);
+    snapshot.units.retain(|entry| entry.index < first_delivered);
     Ok(snapshot)
 }
 
@@ -455,10 +453,10 @@ fn undo_reset(
         .map(|skill| skill.owed)
         .sum();
     let worn: i32 = snapshot
-        .units
+        .equipment
         .iter()
-        .flat_map(|entry| entry.unit.equipment.iter())
-        .map(|item| economy.equipment_round_supply(*item))
+        .filter(|item| item.fitted.is_some())
+        .map(|item| economy.equipment_round_supply(item.id))
         .sum();
     let income =
         crate::ledger::round_income(economy, round, &snapshot.officers, economy.round_supply());
@@ -470,7 +468,7 @@ fn take_item(snapshot: &mut SideState, item: i32, officer: i32) -> Result<(), St
     let at = snapshot
         .equipment
         .iter()
-        .rposition(|held| held.id == item)
+        .rposition(|held| held.id == item && held.fitted.is_none())
         .ok_or_else(|| {
             format!("officer {officer} delivers item {item}, which the side does not hold")
         })?;
@@ -528,13 +526,16 @@ fn write_snapshot(
 }
 
 fn write_units(xml: &mut String, side: &SideState, sign: i32) -> Result<(), String> {
-    if side.units.is_empty() {
+    if side.active_units().next().is_none() {
         xml.push_str("<units />");
         return Ok(());
     }
     xml.push_str("<units>");
-    for entry in &side.units {
-        let unit = &entry.unit;
+    for unit in side.active_units() {
+        let position = unit
+            .position
+            .ok_or_else(|| format!("formation {} has no position", unit.index))?;
+        let equipment = side.worn_equipment(unit.index);
         let type_id = crate::catalog::unit_id_from_type(&unit.type_name)
             .ok_or_else(|| format!("unit type {:?} has no ID", unit.type_name))?;
         let _ = write!(
@@ -545,15 +546,15 @@ fn write_units(xml: &mut String, side: &SideState, sign: i32) -> Result<(), Stri
             unit.index,
             unit.exp.map_or(0, |exp| exp.current),
             unit.level.unwrap_or(1) - 1,
-            board(unit.position, sign),
+            board(position, sign),
             unit.rotated.unwrap_or(false),
-            entry.value.unwrap_or(0),
+            unit.value.unwrap_or(0),
         );
-        if unit.equipment.is_empty() {
+        if equipment.is_empty() {
             xml.push_str("<equipments />");
         } else {
             xml.push_str("<equipments>");
-            for item in &unit.equipment {
+            for item in equipment {
                 let _ = write!(xml, "<equipment data=\"{item}\" />");
             }
             xml.push_str("</equipments>");
@@ -566,26 +567,16 @@ fn write_units(xml: &mut String, side: &SideState, sign: i32) -> Result<(), Stri
 
 /// The inventory: every item the side owns, the fitted ones among them.
 fn write_inventory(xml: &mut String, side: &SideState) {
-    let mut items: Vec<(i32, Option<i32>)> = side
-        .equipment
-        .iter()
-        .map(|item| (item.id, item.durability))
-        .collect();
-    items.extend(
-        side.units
-            .iter()
-            .flat_map(|entry| entry.unit.equipment.iter().map(|id| (*id, None))),
-    );
-    if items.is_empty() {
+    if side.equipment.is_empty() {
         xml.push_str("<equipmentDatas />");
         return;
     }
     xml.push_str("<equipmentDatas>");
-    for (id, durability) in items {
+    for item in &side.equipment {
         let _ = write!(
             xml,
-            "<EquipmentData><id>{id}</id><durability>{}</durability></EquipmentData>",
-            durability.unwrap_or(-1)
+            "<EquipmentData><id>{}</id><durability>-1</durability></EquipmentData>",
+            item.id
         );
     }
     xml.push_str("</equipmentDatas>");
@@ -736,10 +727,9 @@ fn write_actions(
     for action in &actions {
         let moved = match action {
             Action::MoveUnit { index, .. } => position
-                .units
-                .iter()
-                .find(|entry| entry.unit.index == *index)
-                .and_then(|entry| crate::catalog::unit_id_from_type(&entry.unit.type_name))
+                .active_units()
+                .find(|entry| entry.index == *index)
+                .and_then(|entry| crate::catalog::unit_id_from_type(&entry.type_name))
                 .unwrap_or(0),
             _ => 0,
         };
@@ -1026,6 +1016,40 @@ mod tests {
             },
             ..SideState::default()
         }
+    }
+
+    #[test]
+    fn snapshot_writes_every_copy_and_preserves_the_units_fitting_order() {
+        use crate::r#match::{EquipmentFitting, StateEquipment};
+        let side = SideState {
+            units: vec![
+                serde_yaml::from_str("{name: crawler, index: 0, position: {x: 0, y: -160}}")
+                    .unwrap(),
+            ],
+            equipment: vec![
+                StateEquipment {
+                    id: 13_030_001,
+                    fitted: None,
+                },
+                StateEquipment {
+                    id: 13_030_001,
+                    fitted: Some(EquipmentFitting { unit: 0, slot: 1 }),
+                },
+                StateEquipment {
+                    id: 13_030_002,
+                    fitted: Some(EquipmentFitting { unit: 0, slot: 0 }),
+                },
+            ],
+            ..Default::default()
+        };
+        let mut xml = String::new();
+        write_units(&mut xml, &side, 1).unwrap();
+        write_inventory(&mut xml, &side);
+        assert!(xml.contains(
+            r#"<equipments><equipment data="13030002" /><equipment data="13030001" /></equipments>"#
+        ));
+        assert_eq!(xml.matches("<EquipmentData>").count(), 3);
+        assert_eq!(xml.matches("<durability>-1</durability>").count(), 3);
     }
 
     fn buy(unit: i32, x: i32, y: i32) -> Action {

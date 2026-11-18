@@ -131,15 +131,15 @@ pub fn lead_in(
     let mut formations = Vec::new();
     let mut known = BTreeMap::new();
     for (team, side) in (0u32..).zip(opening) {
-        for entry in &side.units {
-            known.insert((team, entry.unit.index), formations.len());
+        for entry in side.active_units() {
+            known.insert((team, entry.index), formations.len());
             formations.push(LeadInFormation {
                 team,
-                index: entry.unit.index,
-                kind: entry.unit.type_name.clone(),
-                formation: formation_ids.get(&(team, entry.unit.index)).copied(),
+                index: entry.index,
+                kind: entry.type_name.clone(),
+                formation: formation_ids.get(&(team, entry.index)).copied(),
                 opening: stance(team, entry),
-                is_new: entry.unit.source != mechcore_document::layout::UnitSource::Legacy,
+                is_new: entry.source != mechcore_document::layout::UnitSource::Legacy,
             });
         }
     }
@@ -217,28 +217,25 @@ fn build_track(
         )
         .map_err(|error| error.to_string())?;
         let mut changes = Vec::new();
-        for before in &state.units {
-            let after = next
-                .units
-                .iter()
-                .find(|e| e.unit.index == before.unit.index);
+        for before in state.active_units() {
+            let after = next.active_units().find(|e| e.index == before.index);
             let (was, now) = (stance(team, before), after.and_then(|e| stance(team, e)));
             if was == now {
                 continue;
             }
             changes.push(Change {
-                formation: known[&(team, before.unit.index)],
+                formation: known[&(team, before.index)],
                 to: now,
             });
         }
-        for entry in &next.units {
-            if state.units.iter().all(|e| e.unit.index != entry.unit.index) {
-                let formation = *known.entry((team, entry.unit.index)).or_insert_with(|| {
+        for entry in next.active_units() {
+            if state.active_units().all(|e| e.index != entry.index) {
+                let formation = *known.entry((team, entry.index)).or_insert_with(|| {
                     formations.push(LeadInFormation {
                         team,
-                        index: entry.unit.index,
-                        kind: entry.unit.type_name.clone(),
-                        formation: formation_ids.get(&(team, entry.unit.index)).copied(),
+                        index: entry.index,
+                        kind: entry.type_name.clone(),
+                        formation: formation_ids.get(&(team, entry.index)).copied(),
                         opening: None,
                         is_new: true,
                     });
@@ -276,14 +273,14 @@ fn build_track(
 
 /// A formation's stance in world centimetres; none for a type without a
 /// footprint. Red's positions turn about the map's centre.
-fn stance(team: u32, entry: &StateUnit) -> Option<Stance> {
-    let unit = &entry.unit;
+fn stance(team: u32, unit: &StateUnit) -> Option<Stance> {
+    let position = unit.position?;
     let rotated = unit.rotated.unwrap_or(false);
-    let (width, depth) = unit_footprint(&unit.type_name, unit.position, rotated)?;
+    let (width, depth) = unit_footprint(&unit.type_name, position, rotated)?;
     let turn = if team == 0 { 100 } else { -100 };
-    let x = i64::from(unit.position.x) * turn;
-    let z = i64::from(unit.position.y) * turn;
-    let facing = match Region::of(unit.position) {
+    let x = i64::from(position.x) * turn;
+    let z = i64::from(position.y) * turn;
+    let facing = match Region::of(position) {
         Region::Main if team == 0 => 0,
         Region::Main => 1800,
         _ if x < 0 => 900,

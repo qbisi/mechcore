@@ -20,7 +20,7 @@ const ArsenalPanel=(()=>{
         const skill=group==='skills';
         const state=skill?(entry.released?'deployed':entry.used?'used':entry.cooldown>0?'cooling':'ready'):'inventory';
         const status=skill?(entry.released?'Deployed this round':entry.used?'Used this round':entry.cooldown>0?`Cooldown: ${entry.cooldown} rounds`:'Available'):
-          `Unequipped${entry.durability!==null&&entry.durability>=0?` · Durability: ${entry.durability}`:''}`;
+          "Unequipped";
         const name=asset?.name||String(entry.id);
         const card=document.createElement('button');card.type='button';card.className='arsenal-card '+state;
         card.dataset[skill?'skillId':'equipmentId']=String(entry.id);

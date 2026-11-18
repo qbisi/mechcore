@@ -32,8 +32,9 @@ own target restrictions (`mechType`, `unitID`).
 holding it fits two to each formation. Nothing else in a standard match sets
 it. The slot is there as soon as the officer is added, and two items write
 their corrections as an item and an officer do, each in its own channel. A
-layout's and a state's `equipment` is a list in fitting order, and the document
-compiler gives a formation the slot count above from the side's officers.
+layout lists each formation's equipment in fitting order, which state
+records as its fitting slots. The document compiler gives a formation the
+slot count above from the side's officers.
 
 **Two of one item may be worn, and both count.** `CanUseEquipment` asks that
 the item is in stock and worn by nobody, that the formation has a free slot, that

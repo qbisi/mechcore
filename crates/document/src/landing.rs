@@ -127,9 +127,11 @@ struct Occupant {
 /// those of the target's region.
 fn occupants(state: &SideState) -> Vec<Occupant> {
     let mut placed = Vec::new();
-    for entry in &state.units {
-        let formation = &entry.unit;
-        let region = Region::of(formation.position);
+    for formation in state.active_units() {
+        let Some(position) = formation.position else {
+            continue;
+        };
+        let region = Region::of(position);
         if let Some(size) = unit_size(
             &formation.type_name,
             formation.rotated == Some(true),
@@ -137,7 +139,7 @@ fn occupants(state: &SideState) -> Vec<Occupant> {
         ) {
             placed.push(Occupant {
                 region,
-                rect: Rect::around(local(formation.position), size),
+                rect: Rect::around(local(position), size),
                 unit: Some(formation.index),
             });
         }

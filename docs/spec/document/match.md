@@ -143,7 +143,9 @@ have the same shape; the header's `source` records their origin.
 
 A match states a round from before its first decision. Its panel has no
 `release` and its `travelling` set is empty. Each side's `reinforce_choice`
-is `-1` when the round deals offers and is absent otherwise.
+is `-1` when the round deals offers and is absent otherwise. An opening
+contains standing units, with equipment assignments kept from the last round,
+and leaves out earlier recovery tombstones.
 An empty final action segment may mark a round still in progress. In a
 completed deployment with offers, both sides record an answer unless a side
 conceded.
@@ -811,7 +813,7 @@ define:
 | `reinforce_offers`' `refund_<amount>` | The record lists the cards alone. The decline is offered after them in every round that deals any, and its amount is the map's figure, or in a unit round the schedule's for that round, from the pool the seed selects; a match whose opening this build cannot deal is refused |
 | `battle_skills[].cooldown` | The recorded cooldowns are the previous round's. A slot the previous round spent restarts at its skill's cooldown, and every other drops by one to zero |
 | `energy_tower_skills` | The recorded list is a debt rather than an activation, so a round's start carries none |
-| `equipment` | The recorded inventory includes fitted items, which the units already name |
+| `equipment` | Fitted copies and their slots come from each unit. The remaining native inventory is stock. |
 | `units[].source` | The opening marks inherited units `legacy`, the first round's advance team `joined`, and a squad its officers deliver that round `delivered`; `legacy` is the omitted default |
 | Deliveries | The snapshot precedes what the round's officers deliver as it opens, so the squads, commander skills, equipment and unlocks each officer's schedule names are added to it, an officer that draws its item draws it from the side's own stream, and a delivered squad lands where [the board puts it](../../rules/landing.md) |
 

@@ -5,15 +5,15 @@
 //! (server snapshots already include it),
 //! the two shop counters are restored to the round's allowance, the energy
 //! tower list is the set activated during the round and so empty at its
-//! start, and the equipment list drops what the formations carry.
+//! start, and the equipment table reconciles stock with ordered fittings.
 //! `docs/spec/document/match.md` says what the conversion refuses.
 
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
 use crate::economy::{Economy, OpeningKind, RoundSupply};
-use crate::layout::{ContraptionPlacement, Experience, Position, StaticPlacement, UnitPlacement};
+use crate::layout::{ContraptionPlacement, Experience, Position, StaticPlacement};
 use crate::r#match::{
-    Action, EquipmentItem, Match, MatchSide, NextIndex, Offers, Opening, OpeningOffer, PanelSkill,
-    SideState, SkillTarget, State, StateUnit, Turn, TurnActions,
+    Action, EquipmentFitting, Match, MatchSide, NextIndex, Offers, Opening, OpeningOffer,
+    PanelSkill, SideState, SkillTarget, State, StateEquipment, StateUnit, Turn, TurnActions,
 };
 use crate::opening::{self, Stream};
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
@@ -660,7 +660,7 @@ fn side_state(
             Vec::new()
         },
         tower_strengthen_levels: data.tower_strengthen_levels.values.clone(),
-        equipment: unfitted_equipment(data),
+        equipment: snapshot_equipment(data)?,
         battle_skills,
         next_index: NextIndex {
             unit: data.unit_index,
@@ -941,25 +941,23 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
         };
         board.units.push(StateUnit {
             value: Some(unit.sell_supply),
-            unit: UnitPlacement {
-                record_position: None,
-                record_rotated: None,
-                type_name: type_name.to_owned(),
-                index: unit.index,
-                position,
-                // The record counts paid upgrades from zero; a layout displays the
-                // level from one.
-                level: Some(unit.level + 1).filter(|level| *level != 1),
-                exp: Experience::of(unit.exp, type_name, unit.level + 1)?,
-                rotated: Some(unit.rotated).filter(|rotated| *rotated),
-                equipment: unit.equipments.entries.iter().map(|item| item.id).collect(),
-                // No recorded field states it; see docs/spec/document/match.md.
-                travelling: None,
-                source: crate::layout::UnitSource::Legacy,
-            },
+            record_position: None,
+            record_rotated: None,
+            type_name: type_name.to_owned(),
+            index: unit.index,
+            position: Some(position),
+            // The record counts paid upgrades from zero; a layout displays the
+            // level from one.
+            level: Some(unit.level + 1).filter(|level| *level != 1),
+            exp: Experience::of(unit.exp, type_name, unit.level + 1)?,
+            rotated: Some(unit.rotated).filter(|rotated| *rotated),
+            // No recorded field states it; see docs/spec/document/match.md.
+            travelling: None,
+            source: crate::layout::UnitSource::Legacy,
+            recovered: false,
         });
     }
-    board.units.sort_by_key(|entry| entry.unit.index);
+    board.units.sort_by_key(|entry| entry.index);
     Ok(board.units)
 }
 
@@ -967,6 +965,11 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
 /// are read separately; this shares the native-to-document mapping with matches.
 pub(crate) fn layout_snapshot(data: &PlayerData, red: bool) -> Result<crate::Side, String> {
     let seat = if red { Seat::Red } else { Seat::Blue };
+    let board = SideState {
+        units: formations(data, seat)?,
+        equipment: fitted_equipment(data),
+        ..SideState::default()
+    };
     Ok(crate::Side {
         officers: data
             .officers
@@ -984,10 +987,10 @@ pub(crate) fn layout_snapshot(data: &PlayerData, red: bool) -> Result<crate::Sid
         blueprints: data.blueprints.values.clone(),
         energy_tower_skills: Vec::new(),
         tower_strengthen_levels: data.tower_strengthen_levels.values.clone(),
-        units: formations(data, seat)?
-            .into_iter()
-            .map(|entry| entry.unit)
-            .collect(),
+        units: board
+            .active_units()
+            .map(|entry| entry.placement(&board))
+            .collect::<Result<_, _>>()?,
         recovered: Vec::new(),
         constructions: constructions(data, seat)?,
         contraptions: contraptions(data, seat)?,
@@ -1035,27 +1038,53 @@ fn contraptions(data: &PlayerData, seat: Seat) -> Result<Vec<ContraptionPlacemen
     Ok(contraptions)
 }
 
-/// The recorded inventory holds fitted items too, and a state stores the rest.
-fn unfitted_equipment(data: &PlayerData) -> Vec<EquipmentItem> {
-    let mut fitted: Vec<i32> = data
-        .units
+fn fitted_equipment(data: &PlayerData) -> Vec<StateEquipment> {
+    data.units
         .entries
         .iter()
-        .flat_map(|unit| unit.equipments.entries.iter().map(|item| item.id))
-        .collect();
-    let mut unfitted = Vec::new();
-    for item in &data.equipment.entries {
-        if let Some(position) = fitted.iter().position(|id| *id == item.id) {
-            fitted.swap_remove(position);
-            continue;
-        }
-        unfitted.push(EquipmentItem {
-            id: item.id,
-            durability: Some(item.durability).filter(|durability| *durability != -1),
-        });
+        .flat_map(|unit| {
+            unit.equipments
+                .entries
+                .iter()
+                .enumerate()
+                .map(|(slot, item)| StateEquipment {
+                    id: item.id,
+                    fitted: Some(EquipmentFitting {
+                        unit: unit.index,
+                        slot,
+                    }),
+                })
+        })
+        .collect()
+}
+
+/// Resolves stock by subtracting the fitted copies from the native inventory.
+fn snapshot_equipment(data: &PlayerData) -> Result<Vec<StateEquipment>, String> {
+    let mut equipment = fitted_equipment(data);
+    let mut fitted = BTreeMap::<i32, usize>::new();
+    for item in &equipment {
+        *fitted.entry(item.id).or_default() += 1;
     }
-    unfitted.sort_unstable();
-    unfitted
+    for item in &data.equipment.entries {
+        if item.durability != -1 {
+            return Err(format!(
+                "equipment {} has unsupported durability {}",
+                item.id, item.durability
+            ));
+        }
+        let pending = fitted.entry(item.id).or_default();
+        if *pending > 0 {
+            *pending -= 1;
+        } else {
+            equipment.push(StateEquipment {
+                id: item.id,
+                fitted: None,
+            });
+        }
+    }
+    // The unit records supply the fitted copies.
+    equipment.sort_unstable();
+    Ok(equipment)
 }
 
 /// Whether last round's Rapid Supply is deducted from this round's income.
@@ -1856,6 +1885,46 @@ mod tests {
     }
 
     #[test]
+    fn snapshot_equipment_preserves_fitting_order_and_counts_unfitted_copies() {
+        let with_equipment = snapshot_round(false, "").replace(
+            "<unitIndex>0</unitIndex>",
+            "<unitIndex>1</unitIndex><units><NewUnitData><id>2</id><Index>0</Index>\
+             <Exp>0</Exp><Level>0</Level><Position><x>0</x><y>-160</y></Position>\
+             <IsRotate>false</IsRotate><SellSupply>100</SellSupply>\
+             <equipments><equipment data=\"13030002\"/><equipment data=\"13030001\"/></equipments>\
+             </NewUnitData></units><equipmentDatas>\
+             <EquipmentData><id>13030001</id><durability>-1</durability></EquipmentData>\
+             <EquipmentData><id>13030002</id><durability>-1</durability></EquipmentData>\
+             <EquipmentData><id>13030001</id><durability>-1</durability></EquipmentData>\
+             </equipmentDatas>",
+        );
+        let round: crate::record::PlayerRoundRecord =
+            quick_xml::de::from_str(&with_equipment).unwrap();
+        let equipment = super::snapshot_equipment(&round.data).unwrap();
+        assert_eq!(
+            equipment
+                .iter()
+                .filter(|item| item.fitted.is_none())
+                .map(|item| item.id)
+                .collect::<Vec<_>>(),
+            [13_030_001]
+        );
+        assert_eq!(
+            super::layout_snapshot(&round.data, false).unwrap().units[0].equipment,
+            [13_030_002, 13_030_001]
+        );
+        let state = crate::r#match::SideState {
+            equipment,
+            units: super::formations(&round.data, super::Seat::Blue).unwrap(),
+            ..Default::default()
+        };
+        assert_eq!(
+            crate::project::project_side(&state, "blue").unwrap().units[0].equipment,
+            [13_030_002, 13_030_001]
+        );
+    }
+
+    #[test]
     fn unplaced_server_units_land_in_each_sides_frame() {
         for coordinate in [i32::MIN, 0] {
             let unit = format!(
@@ -1869,7 +1938,7 @@ mod tests {
             let round: crate::record::PlayerRoundRecord = quick_xml::de::from_str(&xml).unwrap();
             for seat in [super::Seat::Blue, super::Seat::Red] {
                 let units = super::formations(&round.data, seat).unwrap();
-                assert_eq!(units[0].unit.position, Position { x: 0, y: -160 });
+                assert_eq!(units[0].position, Some(Position { x: 0, y: -160 }));
             }
         }
     }

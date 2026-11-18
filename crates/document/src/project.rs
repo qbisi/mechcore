@@ -153,12 +153,11 @@ impl InitializationHistory {
         if matches!(action, Action::UpgradeTechnology { tech: 3925, .. }) {
             self.cloak_after_flank.extend(
                 before
-                    .units
-                    .iter()
+                    .active_units()
                     .filter(|entry| {
-                        entry.unit.type_name == "phantom_ray" && entry.unit.travelling == Some(true)
+                        entry.type_name == "phantom_ray" && entry.travelling == Some(true)
                     })
-                    .map(|entry| entry.unit.index),
+                    .map(|entry| entry.index),
             );
         }
         if matches!(action, Action::UpgradeTechnology { tech: 110_181, .. })
@@ -168,9 +167,8 @@ impl InitializationHistory {
         }
         self.cloak_after_flank.retain(|index| {
             after
-                .units
-                .iter()
-                .any(|entry| entry.unit.index == *index && entry.unit.travelling == Some(true))
+                .active_units()
+                .any(|entry| entry.index == *index && entry.travelling == Some(true))
         });
     }
 
@@ -198,10 +196,9 @@ impl InitializationHistory {
             && position.officers.contains(&20021)
         {
             let affected = position
-                .units
-                .iter()
-                .filter(|entry| entry.unit.type_name == "wraith")
-                .map(|entry| entry.unit.index)
+                .active_units()
+                .filter(|entry| entry.type_name == "wraith")
+                .map(|entry| entry.index)
                 .collect::<Vec<_>>();
             if !affected.is_empty() {
                 warnings.push(format!(
@@ -224,10 +221,9 @@ fn travelling_research_formations(
         return Vec::new();
     }
     deployed
-        .units
-        .iter()
-        .filter(|entry| entry.unit.type_name == unit_type && entry.unit.travelling == Some(true))
-        .map(|entry| entry.unit.index)
+        .active_units()
+        .filter(|entry| entry.type_name == unit_type && entry.travelling == Some(true))
+        .map(|entry| entry.index)
         .collect()
 }
 
@@ -251,8 +247,8 @@ pub fn project(
         map_id: Some(map_id),
         seed: Some(seed),
         round,
-        blue: with_sources(project_side(&state.blue, "blue")?, &opening.blue, round)?,
-        red: with_sources(project_side(&state.red, "red")?, &opening.red, round)?,
+        blue: with_opening(&opening.blue, &state.blue, "blue")?,
+        red: with_opening(&opening.red, &state.red, "red")?,
     })
 }
 
@@ -294,23 +290,41 @@ pub fn assign_sources(side: &mut Side, allocator: i32, round: i32) -> Result<(),
     Ok(())
 }
 
-fn with_sources(mut side: Side, opening: &SideState, round: i32) -> Result<Side, String> {
-    assign_sources(&mut side, opening.next_index.unit, round)?;
+fn with_opening(opening: &SideState, closed: &SideState, side_name: &str) -> Result<Side, String> {
+    let mut side = project_side(closed, side_name)?;
+    let earlier: std::collections::BTreeMap<_, _> = opening
+        .active_units()
+        .map(|unit| (unit.index, unit))
+        .collect();
+    for unit in &closed.units {
+        match earlier.get(&unit.index) {
+            Some(before) if before.source == unit.source && before.type_name == unit.type_name => {}
+            None if unit.index >= opening.next_index.unit && unit.source == UnitSource::Joined => {}
+            _ => {
+                return Err(format!(
+                    "side {side_name} formation {} disagrees with its opening source",
+                    unit.index
+                ));
+            }
+        }
+    }
+    for index in earlier.keys() {
+        if !closed.units.iter().any(|unit| unit.index == *index) {
+            return Err(format!(
+                "side {side_name} opening formation {index} has no closing unit or tombstone"
+            ));
+        }
+    }
     for unit in &mut side.units {
-        let recorded = if unit.source == UnitSource::Legacy {
-            opening
-                .units
-                .iter()
-                .find(|entry| entry.unit.index == unit.index)
-        } else {
-            None
-        };
-        unit.record_position = recorded
-            .map(|entry| entry.unit.position)
-            .filter(|position| *position != unit.position);
-        unit.record_rotated = recorded
-            .map(|entry| entry.unit.rotated.unwrap_or(false))
-            .filter(|rotated| *rotated != unit.rotated.unwrap_or(false));
+        if unit.source == UnitSource::Legacy
+            && let Some(before) = earlier.get(&unit.index)
+        {
+            unit.record_position = before
+                .position
+                .filter(|position| *position != unit.position);
+            unit.record_rotated = Some(before.rotated.unwrap_or(false))
+                .filter(|rotated| *rotated != unit.rotated.unwrap_or(false));
+        }
     }
     Ok(side)
 }
@@ -366,10 +380,21 @@ pub fn every_round(
 /// Returns an error when a released skill has no layout type or aims at a
 /// target a layout cannot state.
 pub fn project_side(state: &SideState, side_name: &str) -> Result<Side, String> {
+    state
+        .check_board(false)
+        .map_err(|error| format!("side {side_name}: {error}"))?;
     let mut techs = state.techs.clone();
     techs.sort_unstable();
     let mut officers = state.officers.clone();
     officers.sort_unstable();
+
+    let mut recovered: Vec<_> = state
+        .units
+        .iter()
+        .filter(|unit| unit.recovered && unit.source == UnitSource::Delivered)
+        .map(|unit| unit.index)
+        .collect();
+    recovered.sort_unstable();
 
     Ok(Side {
         officers,
@@ -377,12 +402,11 @@ pub fn project_side(state: &SideState, side_name: &str) -> Result<Side, String> 
         blueprints: chain_blueprints(&state.blueprints),
         energy_tower_skills: energy_tower_skills(&state.energy_tower_skills),
         tower_strengthen_levels: tower_strengthen_levels(&state.tower_strengthen_levels),
-        recovered: Vec::new(),
+        recovered,
         units: state
-            .units
-            .iter()
-            .map(|formation| formation.unit.clone())
-            .collect(),
+            .active_units()
+            .map(|formation| formation.placement(state))
+            .collect::<Result<_, _>>()?,
         constructions: state.constructions.clone(),
         contraptions: state.contraptions.clone(),
         battle_skills: project_battle_skills(state, side_name)?,
@@ -508,14 +532,12 @@ mod tests {
     #[test]
     fn legacy_record_pose_comes_from_the_round_opening_by_index() {
         let units = side().units;
+        let as_state = |unit: &crate::layout::UnitPlacement| {
+            serde_yaml::from_value::<crate::r#match::StateUnit>(serde_yaml::to_value(unit).unwrap())
+                .unwrap()
+        };
         let opening = SideState {
-            units: units
-                .iter()
-                .map(|unit| crate::r#match::StateUnit {
-                    unit: unit.clone(),
-                    value: Some(100),
-                })
-                .collect(),
+            units: units[..3].iter().map(as_state).collect(),
             next_index: crate::r#match::NextIndex {
                 unit: 6,
                 ..Default::default()
@@ -528,7 +550,12 @@ mod tests {
         moved.units[1].rotated = Some(true);
         moved.units[3].position.x = 240;
         moved.units[3].rotated = Some(true);
-        let projected = with_sources(moved, &opening, 3).unwrap();
+        moved.units[3].source = UnitSource::Joined;
+        let closed = SideState {
+            units: moved.units.iter().map(as_state).collect(),
+            ..Default::default()
+        };
+        let projected = with_opening(&opening, &closed, "blue").unwrap();
         assert_eq!(projected.units[1].record_position, Some(units[1].position));
         assert!(projected.units[0].record_position.is_none());
         assert_eq!(projected.units[0].record_rotated, Some(false));
@@ -621,12 +648,11 @@ mod tests {
                     buys_remaining: 9,
                     ..Default::default()
                 },
-                units: vec![crate::r#match::StateUnit {
-                    unit: serde_json::from_value(json!({"name": "void_eye", "index": 0,
+                units: vec![
+                    serde_json::from_value(json!({"name": "void_eye", "index": 0,
                         "position": {"x": -100, "y": -160}}))
                     .unwrap(),
-                    value: None,
-                }],
+                ],
                 ..Default::default()
             },
             red: SideState::default(),
@@ -699,12 +725,11 @@ mod tests {
                 unlocked_units: vec![18],
                 officers: vec![20021],
                 techs: vec![4418, 110_181],
-                units: vec![crate::r#match::StateUnit {
-                    unit: serde_json::from_value(json!({"name": "wraith", "index": 0,
+                units: vec![
+                    serde_json::from_value(json!({"name": "wraith", "index": 0,
                         "position": {"x": -100, "y": -160}}))
                     .unwrap(),
-                    value: None,
-                }],
+                ],
                 ..Default::default()
             },
             ..Default::default()

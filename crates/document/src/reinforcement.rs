@@ -764,15 +764,9 @@ impl Dealer {
             context.officers.extend(side.officers.iter());
             let delivered = delivered_before(economy, side, turn.round)?;
             let mut investment = Investment::default();
-            for formation in side
-                .units
-                .iter()
-                .filter(|entry| entry.unit.index < delivered)
-            {
-                let native = resolve_unit_type(&formation.unit.type_name)
-                    .ok_or_else(|| {
-                        format!("unknown reinforcement unit {}", formation.unit.type_name)
-                    })?
+            for formation in side.active_units().filter(|entry| entry.index < delivered) {
+                let native = resolve_unit_type(&formation.type_name)
+                    .ok_or_else(|| format!("unknown reinforcement unit {}", formation.type_name))?
                     .native;
                 let NativeFormation::Unit(unit) = native else {
                     return Err("formation is not a unit".into());
@@ -782,7 +776,7 @@ impl Dealer {
                 *context.scores.entry(unit).or_default() += cost.supply;
                 // UnitUtility.CalculateUpgradeLevelCost: the card's price and
                 // every level the formation has risen through.
-                let levels = formation.unit.level.unwrap_or(1) - 1;
+                let levels = formation.level.unwrap_or(1) - 1;
                 *investment.values.entry(unit).or_default() +=
                     i64::from(cost.supply + levels * cost.upgrade);
             }

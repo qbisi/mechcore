@@ -5,9 +5,9 @@
 //! it: the Deployment Module, a Jump Drive technology, or a Redeploy release.
 //! The formation's source states whether it arrived this round; equipment
 //! and technologies supply persistent freedom, and Redeploy is remembered
-//! internally while applying this round's actions.
+//! in the skill panel.
 
-use crate::layout::UnitPlacement;
+use crate::r#match::{SideState, StateUnit};
 
 /// Equipment `13040001`, Deployment Module: the formation wearing it
 /// moves freely in every round.
@@ -24,9 +24,13 @@ pub const JUMP_DRIVES: [(i32, &str); 3] = [(1606, "wasp"), (1611, "overlord"), (
 /// Whether a formation moves freely in every round, whatever round it arrived
 /// in, given the side's researched technologies.
 #[must_use]
-pub fn free(formation: &UnitPlacement, techs: &[i32]) -> bool {
-    formation.equipment.contains(&DEPLOYMENT_MODULE)
-        || JUMP_DRIVES
-            .iter()
-            .any(|(tech, unit)| *unit == formation.type_name && techs.contains(tech))
+pub(crate) fn free(formation: &StateUnit, side: &SideState) -> bool {
+    side.equipment.iter().any(|item| {
+        item.id == DEPLOYMENT_MODULE
+            && item
+                .fitted
+                .is_some_and(|fitted| fitted.unit == formation.index)
+    }) || JUMP_DRIVES
+        .iter()
+        .any(|(tech, unit)| *unit == formation.type_name && side.techs.contains(tech))
 }
