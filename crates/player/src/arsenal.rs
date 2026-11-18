@@ -36,7 +36,10 @@ pub fn arsenal(state: &SideState) -> Arsenal {
             .map(|slot| SkillSlot {
                 id: slot.id,
                 cooldown: slot.cooldown,
-                used: slot.used,
+                used: slot
+                    .release
+                    .as_ref()
+                    .is_some_and(|release| release.order.is_none()),
                 released: slot.release.is_some(),
             })
             .collect(),

@@ -569,12 +569,12 @@ fn verify_match(
     let projected = checked
         .as_ref()
         .ok()
-        .map(|(_, deal)| mechcore_document::project::every_round(economy, stated, deal));
+        .map(|_| mechcore_document::project::every_round(economy, stated));
     // Every round's fight, each from the position the match states for it,
     // so a round that does not agree does not keep the rounds after it from
     // being fought.
-    let fights = checked.as_ref().ok().map(|(_, deal)| {
-        mechcore_document::coverage::fights(economy, stated, deal, |layout| {
+    let fights = checked.as_ref().ok().map(|_| {
+        mechcore_document::coverage::fights(economy, stated, |layout| {
             let yaml = mechcore_document::canonical_yaml(layout.clone())?;
             crate::convert::fought(|record| {
                 mechcore_simulation::simulate_document(yaml.as_bytes(), record, None)

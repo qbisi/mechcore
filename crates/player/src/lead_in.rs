@@ -119,7 +119,7 @@ pub fn lead_in(
     economy: &Economy,
     opening: [&SideState; 2],
     actions: &TurnActions,
-    declined: Option<i32>,
+    offers: Option<&mechcore_document::r#match::Offers>,
     formation_ids: &BTreeMap<(u32, i32), u64>,
     ticks_per_second: u32,
 ) -> Result<Option<LeadIn>, String> {
@@ -152,7 +152,7 @@ pub fn lead_in(
             team,
             side,
             decisions,
-            declined,
+            offers,
             formation_ids,
             &mut formations,
             &mut known,
@@ -195,7 +195,7 @@ fn build_track(
     team: u32,
     opening: &SideState,
     decisions: &[Action],
-    declined: Option<i32>,
+    offers: Option<&mechcore_document::r#match::Offers>,
     formation_ids: &BTreeMap<(u32, i32), u64>,
     formations: &mut Vec<LeadInFormation>,
     known: &mut BTreeMap<(u32, i32), usize>,
@@ -213,7 +213,7 @@ fn build_track(
             &state,
             std::slice::from_ref(action),
             team == 1,
-            declined,
+            offers,
         )
         .map_err(|error| error.to_string())?;
         let mut changes = Vec::new();
@@ -437,6 +437,7 @@ mod tests {
         // ChooseReinforceItem produces a placeholder entry.
         let side_with_offer = SideState {
             supply: 200,
+            reinforce_choice: Some(-1),
             ..SideState::default()
         };
         let with_reinforce = lead_in(
@@ -449,7 +450,10 @@ mod tests {
                 }],
                 red: vec![],
             },
-            Some(100),
+            Some(&mechcore_document::r#match::Offers {
+                dealt: vec![],
+                refund: 100,
+            }),
             &BTreeMap::new(),
             20,
         )
@@ -468,6 +472,7 @@ mod tests {
             .0;
         let blue = SideState {
             supply: 200,
+            reinforce_choice: Some(-1),
             techs: vec![209, 209],
             ..SideState::default()
         };
@@ -482,7 +487,10 @@ mod tests {
                 }],
                 red: vec![],
             },
-            Some(100),
+            Some(&mechcore_document::r#match::Offers {
+                dealt: vec![],
+                refund: 100,
+            }),
             &BTreeMap::new(),
             20,
         )

@@ -1119,7 +1119,7 @@ written into the match document:
 | `shop.buys_remaining` | remaining formation purchases this round |
 | `shop.unlocks_remaining` | remaining unit unlocks this round |
 | `shop.contraptions_remaining` | remaining deployments shared by contraptions and constructions |
-| `reinforce_chosen` | whether a reinforcement answer has been taken this round; false when no answer has been taken, including rounds without offers |
+| `reinforce_chosen` | whether the side's `reinforce_choice` contains an offer index |
 | `units[].movable` | whether this formation currently has deployment movement permission |
 
 `movable` uses the executor's movement rule, including newly arrived units,

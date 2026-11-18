@@ -680,6 +680,9 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         .map(|round| {
             let mut state: crate::r#match::State = crate::r#match::payload(round.state)
                 .map_err(|error| format!("round {} state is not readable: {error}", round.round))?;
+            state
+                .check_reinforcement(true)
+                .map_err(|error| format!("round {}: {error}", round.round))?;
             // A state segment is the position a round opens with, so its
             // allowances are the ones the round opens with.
             crate::transition::open_allowances(&mut state.blue);
@@ -717,7 +720,7 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
 
 fn validate_rules(stated: &Stated) -> Result<(), String> {
     let economy = crate::economy::Economy::embedded()?;
-    for turn in &stated.turns {
+    for (index, turn) in stated.turns.iter().enumerate() {
         if !stated.rules.reinforcements
             && (turn.state.reinforce_offers.is_some() || !turn.state.reinforce_pool.is_empty())
         {
@@ -726,6 +729,17 @@ fn validate_rules(stated: &Stated) -> Result<(), String> {
                 turn.round
             ));
         }
+        let conceded = turn.actions.blue.contains(&Action::Concede)
+            || turn.actions.red.contains(&Action::Concede);
+        // The live writer can end on an empty action segment for the round
+        // still being played. Its decisions and commits are private.
+        let finished = index + 1 < stated.turns.len()
+            || !turn.actions.blue.is_empty()
+            || !turn.actions.red.is_empty()
+            || stated
+                .result
+                .as_ref()
+                .is_some_and(|result| result.round == turn.round);
         for (name, side, opened, actions) in [
             ("blue", &stated.blue, &turn.state.blue, &turn.actions.blue),
             ("red", &stated.red, &turn.state.red, &turn.actions.red),
@@ -734,20 +748,23 @@ fn validate_rules(stated: &Stated) -> Result<(), String> {
             for tech in &techs {
                 validate_technology(economy, &side.tech_loadout, *tech, &techs)?;
             }
+            let invalid = |error| format!("round {} {name}: {error}", turn.round);
+            let mut choice = opened.reinforce_choice;
             for action in actions {
-                match action {
-                    Action::ChooseReinforceItem { .. } if !stated.rules.reinforcements => {
-                        return Err(format!(
-                            "round {} {name}: reinforcements are disabled",
-                            turn.round
-                        ));
-                    }
-                    Action::UpgradeTechnology { tech, .. } => {
-                        techs.push(*tech);
-                        validate_technology(economy, &side.tech_loadout, *tech, &techs)?;
-                    }
-                    _ => {}
+                choice = crate::transition::reinforcement_after(
+                    choice,
+                    action,
+                    turn.state.reinforce_offers.as_ref(),
+                )
+                .map_err(invalid)?;
+                if let Action::UpgradeTechnology { tech, .. } = action {
+                    techs.push(*tech);
+                    validate_technology(economy, &side.tech_loadout, *tech, &techs)?;
                 }
+            }
+            if finished {
+                crate::transition::check_reinforcement_finished(choice, conceded)
+                    .map_err(invalid)?;
             }
         }
     }

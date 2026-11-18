@@ -523,10 +523,9 @@ fn match_layout(bytes: &[u8], round: Option<i32>) -> Result<mechcore_document::L
     let economy = mechcore_document::economy::Economy::embedded().map_err(Failure::failed)?;
     // What declining this round's offer pays is the deal's to say, and a
     // decision that declined one cannot be applied without it.
-    let declined = mechcore_document::opening::verify(economy, &stated)
+    mechcore_document::opening::verify(economy, &stated)
         .and_then(|opening| mechcore_document::reinforcement::verify(economy, &stated, &opening))
-        .map_err(Failure::refused)?
-        .declined(turn);
+        .map_err(Failure::refused)?;
     project_match(
         economy,
         &turn.state,
@@ -534,7 +533,6 @@ fn match_layout(bytes: &[u8], round: Option<i32>) -> Result<mechcore_document::L
         round,
         stated.map_id,
         stated.seed,
-        declined,
     )
     .map(|deployment| deployment.layout)
     .map_err(Failure::refused)
@@ -548,11 +546,9 @@ pub(crate) fn project_match(
     round: i32,
     map_id: i32,
     seed: i32,
-    declined: Option<i32>,
 ) -> Result<mechcore_document::project::Deployment, String> {
-    let deployment = mechcore_document::project::deployment(
-        economy, opening, actions, round, map_id, seed, declined,
-    )?;
+    let deployment =
+        mechcore_document::project::deployment(economy, opening, actions, round, map_id, seed)?;
     for warning in &deployment.warnings {
         eprintln!("warning: {warning}");
     }

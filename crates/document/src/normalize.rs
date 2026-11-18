@@ -92,11 +92,7 @@ pub fn match_yaml(bytes: &[u8]) -> Result<String, String> {
             if actions.is_empty() || actions.as_slice() == [Action::Concede] {
                 continue;
             }
-            let declined = turn
-                .state
-                .reinforce_offers
-                .as_ref()
-                .map(|offers| offers.refund);
+            let offers = turn.state.reinforce_offers.as_ref();
             let mut closed = opened.clone();
             let mut placement = crate::landing::placement(red);
             let mut dependencies = DeploymentHistory::default();
@@ -105,7 +101,7 @@ pub fn match_yaml(bytes: &[u8]) -> Result<String, String> {
                     crate::economy::Economy::embedded()?,
                     &closed,
                     action,
-                    declined,
+                    offers,
                     &mut placement,
                 )
                 .map_err(|error| {
@@ -181,91 +177,46 @@ pub(crate) fn deployment(
             .warnings(opened, ended)
             .is_empty()
     {
-        return historical_deployment(
-            economy,
-            opened,
-            ended,
-            red,
-            offers.map(|offers| offers.refund),
-            &dependencies.actions,
-        );
+        return historical_deployment(economy, opened, ended, red, offers, &dependencies.actions);
     }
-    let choices: Vec<_> = offers.map_or_else(
-        || vec![None],
-        |offers| {
-            offers
-                .dealt
-                .iter()
-                .copied()
-                .map(Some)
-                .chain([None])
-                .enumerate()
-                .map(|(index, id)| {
-                    Some(Action::ChooseReinforceItem {
-                        index: i32::try_from(index).unwrap_or(i32::MAX),
-                        id: id.map_or(
-                            crate::r#match::ReinforceChoice::Refund(offers.refund),
-                            crate::r#match::ReinforceChoice::Card,
-                        ),
-                    })
-                })
-                .collect()
-        },
-    );
+    let mut builder = Builder {
+        economy,
+        target: ended,
+        red,
+        offers,
+        position: opened.clone(),
+        actions: Vec::new(),
+        purchase_levels: BTreeMap::new(),
+        history: dependencies.clone(),
+        research: ended
+            .techs
+            .iter()
+            .filter(|id| !opened.techs.contains(id))
+            .copied()
+            .collect(),
+    };
+    if let Some(offers) = offers {
+        match ended.reinforce_choice {
+            Some(Offers::UNANSWERED) if opened == ended => return Ok(Vec::new()),
+            Some(index) => {
+                let id = offers
+                    .choice(index)
+                    .ok_or("closing reinforcement choice is not among the offers")?;
+                builder.push(Action::ChooseReinforceItem { index, id })?;
+            }
+            None => return Err("closing position omits its reinforcement choice".into()),
+        }
+    }
+    if builder.can_activate(1) {
+        builder.push(Action::ActiveEnergyTowerSkill { skill: 1 })?;
+    }
     let mut errors = Vec::new();
-    for choice in choices {
-        let mut builder = Builder {
-            economy,
-            target: ended,
-            red,
-            declined: offers.map(|offers| offers.refund),
-            position: opened.clone(),
-            actions: Vec::new(),
-            purchase_levels: BTreeMap::new(),
-            history: dependencies.clone(),
-            research: ended
-                .techs
-                .iter()
-                .filter(|id| !opened.techs.contains(id))
-                .copied()
-                .collect(),
-        };
-        if let Some(choice) = choice
-            && let Err(error) = builder.push(choice)
-        {
-            errors.push(error);
-            continue;
-        }
-        if builder.can_activate(1)
-            && let Err(error) = builder.push(Action::ActiveEnergyTowerSkill { skill: 1 })
-        {
-            errors.push(error);
-            continue;
-        }
-        if builder.position.officers != ended.officers
-            || builder.position.battle_skills.iter().any(|slot| {
-                !ended
-                    .battle_skills
-                    .iter()
-                    .any(|wanted| wanted.index == slot.index && wanted.id == slot.id)
-            })
-        {
-            continue;
-        }
-        let plans = match builder.purchase_plans() {
-            Ok(plans) => plans,
-            Err(error) => {
-                errors.push(error);
-                continue;
-            }
-        };
-        for levels in plans {
-            let mut candidate = builder.clone();
-            candidate.purchase_levels = levels;
-            match candidate.finish() {
-                Ok(actions) => return Ok(actions),
-                Err(error) => errors.push(error),
-            }
+    for levels in builder.purchase_plans()? {
+        let mut candidate = builder.clone();
+        candidate.purchase_levels = levels;
+        match candidate.finish() {
+            Ok(actions) => return Ok(actions),
+            Err(error) => errors.push(error),
         }
     }
     errors.sort();
@@ -281,11 +232,11 @@ fn historical_deployment(
     opened: &SideState,
     ended: &SideState,
     red: bool,
-    declined: Option<i32>,
+    offers: Option<&Offers>,
     history: &[Action],
 ) -> Result<Vec<Action>, String> {
-    let actions = collapse_same_region_moves(economy, opened, history, red, declined)?;
-    let reproduced = crate::transition::deployed(economy, opened, &actions, red, declined)
+    let actions = collapse_same_region_moves(economy, opened, history, red, offers)?;
+    let reproduced = crate::transition::deployed(economy, opened, &actions, red, offers)
         .map_err(|error| error.to_string())?;
     if reproduced != *ended {
         return Err("historical move compaction changes the deployment endpoint".into());
@@ -301,7 +252,7 @@ fn collapse_same_region_moves(
     opened: &SideState,
     history: &[Action],
     red: bool,
-    declined: Option<i32>,
+    offers: Option<&Offers>,
 ) -> Result<Vec<Action>, String> {
     let mut position = opened.clone();
     let mut actions = Vec::new();
@@ -329,7 +280,7 @@ fn collapse_same_region_moves(
             actions.push(action.clone());
         }
         position =
-            crate::transition::step_placing(economy, &position, action, declined, &mut placement)
+            crate::transition::step_placing(economy, &position, action, offers, &mut placement)
                 .map_err(|error| error.to_string())?;
         previous_move = current_move;
     }
@@ -341,7 +292,7 @@ struct Builder<'a> {
     economy: &'a Economy,
     target: &'a SideState,
     red: bool,
-    declined: Option<i32>,
+    offers: Option<&'a Offers>,
     position: SideState,
     actions: Vec<Action>,
     research: BTreeSet<i32>,
@@ -360,7 +311,7 @@ impl Builder<'_> {
             self.economy,
             &self.position,
             &action,
-            self.declined,
+            self.offers,
             &mut crate::landing::placement(self.red),
         )
         .map_err(|error| format!("{action:?}: {error}"))?;
@@ -709,24 +660,7 @@ impl Builder<'_> {
         } = recovery
         {
             let removed = self.unit(*index)?.clone();
-            let lost_redeploy = self.target.battle_skills.iter().find(|slot| {
-                crate::mobility::REDEPLOY_SKILLS.contains(&slot.id)
-                    && slot.used
-                    && self
-                        .position
-                        .battle_skills
-                        .iter()
-                        .any(|held| held.index == slot.index && !held.used)
-            });
-            if let Some(slot) = lost_redeploy
-                && !self.target.units.iter().any(|entry| entry.redeployed)
-            {
-                self.push(Action::ReleaseCommanderSkill {
-                    index: slot.index,
-                    id: slot.id,
-                    target: SkillTarget::Unit(*index),
-                })?;
-            }
+            self.redeploy(*index)?;
             let owner =
                 unit_id_from_type(&removed.unit.type_name).ok_or("unknown recovered unit")?;
             if module {
@@ -758,23 +692,9 @@ impl Builder<'_> {
                 }
             }
             for _ in 0..upgrades {
-                if self
-                    .unit(*index)?
-                    .unit
-                    .exp
-                    .is_some_and(|exp| !exp.is_full())
-                    || self.spare_training()
-                        && !self.unit(*index)?.unit.exp.is_some_and(Experience::is_full)
-                {
-                    self.train(*index)?;
-                }
-                self.push(Action::UpgradeUnit { index: *index })?;
+                self.upgrade(*index)?;
             }
-            if self.spare_training()
-                && !self.unit(*index)?.unit.exp.is_some_and(Experience::is_full)
-            {
-                self.train(*index)?;
-            }
+            self.train(*index)?;
         } else if module {
             return Err("only a formation can use an Enhancement Module".into());
         }
@@ -823,33 +743,9 @@ impl Builder<'_> {
             .ok_or_else(|| format!("target formation {index} is absent"))
     }
 
-    fn free_to_move(&mut self, index: i32) -> Result<(), String> {
-        let wanted = self.wanted(index)?.clone();
-        if wanted.redeployed && !self.unit(index)?.redeployed {
-            let skill = self
-                .target
-                .battle_skills
-                .iter()
-                .find(|slot| {
-                    crate::mobility::REDEPLOY_SKILLS.contains(&slot.id)
-                        && slot.used
-                        && self
-                            .position
-                            .battle_skills
-                            .iter()
-                            .any(|held| held.index == slot.index && !held.used)
-                })
-                .ok_or("no unused Redeployment slot for moved formation")?;
-            self.push(Action::ReleaseCommanderSkill {
-                index: skill.index,
-                id: skill.id,
-                target: SkillTarget::Unit(index),
-            })?;
-        }
-        if !self.unit(index)?.movable(&self.position.techs) {
-            return Err(format!(
-                "formation {index} cannot move to its target position"
-            ));
+    fn redeploy(&mut self, index: i32) -> Result<(), String> {
+        for action in self.pending_skill(index, &crate::mobility::REDEPLOY_SKILLS) {
+            self.push(action)?;
         }
         Ok(())
     }
@@ -861,11 +757,15 @@ impl Builder<'_> {
             let moved = held.unit.position != wanted.unit.position
                 || held.unit.rotated.unwrap_or(false) != wanted.unit.rotated.unwrap_or(false)
                 || held.unit.travelling.unwrap_or(false) != wanted.unit.travelling.unwrap_or(false);
-            if moved || wanted.redeployed {
-                self.free_to_move(held.unit.index)?;
-            }
+            self.redeploy(held.unit.index)?;
             if !moved {
                 continue;
+            }
+            if !self.unit(held.unit.index)?.movable(&self.position) {
+                return Err(format!(
+                    "formation {} cannot move to its target position",
+                    held.unit.index
+                ));
             }
             if Region::of(held.unit.position) == Region::of(wanted.unit.position)
                 && Region::of(wanted.unit.position).is_flank()
@@ -1000,11 +900,7 @@ impl Builder<'_> {
             while self.unit(index)?.unit.level.unwrap_or(1) < wanted.unit.level.unwrap_or(1) {
                 self.upgrade(index)?;
             }
-            if self.unit(index)?.unit.exp != wanted.unit.exp
-                && wanted.unit.exp.is_some_and(Experience::is_full)
-            {
-                self.train(index)?;
-            }
+            self.train(index)?;
         }
         for wanted in &self.target.contraptions {
             if wanted.index < self.position.next_index.contraption {
@@ -1035,14 +931,9 @@ impl Builder<'_> {
             .target
             .battle_skills
             .iter()
-            .filter(|slot| !RECOVERY_SKILLS.contains(&slot.id) && slot.release.is_some())
+            .filter(|slot| slot.battle_order().is_some())
             .collect();
-        battle.sort_by_key(|slot| {
-            (
-                slot.release.as_ref().map(|release| release.order),
-                slot.index,
-            )
-        });
+        battle.sort_by_key(|slot| slot.battle_order());
         for slot in battle {
             self.push(Action::ReleaseCommanderSkill {
                 index: slot.index,
@@ -1050,11 +941,9 @@ impl Builder<'_> {
                 target: slot.release.as_ref().unwrap().target.clone(),
             })?;
         }
-        let actual = comparable(&self.position);
-        let expected = comparable(self.target);
-        if actual != expected {
-            let actual = serde_json::to_value(actual).map_err(|error| error.to_string())?;
-            let expected = serde_json::to_value(expected).map_err(|error| error.to_string())?;
+        if self.position != *self.target {
+            let actual = serde_json::to_value(&self.position).map_err(|error| error.to_string())?;
+            let expected = serde_json::to_value(self.target).map_err(|error| error.to_string())?;
             let different: Vec<_> = actual
                 .as_object()
                 .unwrap()
@@ -1068,104 +957,53 @@ impl Builder<'_> {
     }
 
     fn upgrade(&mut self, index: i32) -> Result<(), String> {
-        if self.unit(index)?.unit.exp.is_some_and(|exp| !exp.is_full())
-            || self.spare_training() && !self.unit(index)?.unit.exp.is_some_and(Experience::is_full)
+        let exp = self.unit(index)?.unit.exp;
+        let final_training = self
+            .wanted(index)
+            .is_ok_and(|wanted| wanted.unit.exp.is_some_and(Experience::is_full));
+        let mut training = self
+            .pending_skill(index, &crate::transition::TRAINING_SKILLS)
+            .into_iter();
+        if !exp.is_some_and(Experience::is_full)
+            && (exp.is_some() || training.len() > usize::from(final_training))
+            && let Some(action) = training.next()
         {
-            self.train(index)?;
+            self.push(action)?;
         }
         self.push(Action::UpgradeUnit { index })
     }
 
     fn train(&mut self, index: i32) -> Result<(), String> {
-        let slot = self
-            .target
-            .battle_skills
-            .iter()
-            .find(|slot| {
-                crate::transition::TRAINING_SKILLS.contains(&slot.id)
-                    && slot.used
-                    && self
-                        .position
-                        .battle_skills
-                        .iter()
-                        .any(|held| held.index == slot.index && !held.used)
-            })
-            .ok_or_else(|| format!("no Intensive Training slot for formation {index}"))?;
-        self.push(Action::ReleaseCommanderSkill {
-            index: slot.index,
-            id: slot.id,
-            target: SkillTarget::Unit(index),
-        })
+        for action in self.pending_skill(index, &crate::transition::TRAINING_SKILLS) {
+            self.push(action)?;
+        }
+        Ok(())
     }
 
-    fn spare_training(&self) -> bool {
-        let available = self
-            .target
+    fn pending_skill(&self, index: i32, ids: &[i32]) -> Vec<Action> {
+        let target = SkillTarget::Unit(index);
+        self.target
             .battle_skills
             .iter()
             .filter(|slot| {
-                crate::transition::TRAINING_SKILLS.contains(&slot.id)
-                    && slot.used
-                    && self
+                ids.contains(&slot.id)
+                    && slot
+                        .release
+                        .as_ref()
+                        .is_some_and(|release| release.target == target)
+                    && !self
                         .position
                         .battle_skills
                         .iter()
-                        .any(|held| held.index == slot.index && !held.used)
+                        .any(|held| held.index == slot.index && held.release.is_some())
             })
-            .count();
-        let needed: usize = self
-            .target
-            .units
-            .iter()
-            .map(|wanted| {
-                let Some(entry) = self
-                    .position
-                    .units
-                    .iter()
-                    .find(|entry| entry.unit.index == wanted.unit.index)
-                else {
-                    return usize::from(wanted.unit.exp.is_some_and(Experience::is_full));
-                };
-                let upgraded = wanted.unit.level.unwrap_or(1) > entry.unit.level.unwrap_or(1);
-                usize::from(upgraded && entry.unit.exp.is_some_and(|exp| !exp.is_full()))
-                    + usize::from(
-                        wanted.unit.exp.is_some_and(Experience::is_full)
-                            && (upgraded || entry.unit.exp != wanted.unit.exp),
-                    )
+            .map(|slot| Action::ReleaseCommanderSkill {
+                index: slot.index,
+                id: slot.id,
+                target: target.clone(),
             })
-            .sum();
-        available > needed
+            .collect()
     }
-}
-
-fn comparable(state: &SideState) -> SideState {
-    let mut state = state.clone();
-    let mut order: Vec<_> = state
-        .battle_skills
-        .iter()
-        .filter(|slot| slot.release.is_some())
-        .map(|slot| {
-            let release = slot.release.as_ref().unwrap();
-            (
-                RECOVERY_SKILLS.contains(&slot.id),
-                release.order,
-                slot.index,
-            )
-        })
-        .collect();
-    order.sort_by_key(|(recovery, old, index)| (!*recovery, if *recovery { *index } else { *old }));
-    for (rank, (_, _, index)) in order.into_iter().enumerate() {
-        state
-            .battle_skills
-            .iter_mut()
-            .find(|slot| slot.index == index)
-            .unwrap()
-            .release
-            .as_mut()
-            .unwrap()
-            .order = i32::try_from(rank).unwrap();
-    }
-    state
 }
 
 /// Finds the existing swap-space waypoint without changing a formation's region.
@@ -1239,7 +1077,6 @@ mod tests {
                         source: UnitSource::Joined,
                     },
                     value: Some(100),
-                    redeployed: false,
                 })
                 .collect(),
             ..SideState::default()
@@ -1251,7 +1088,6 @@ mod tests {
             index: 0,
             id,
             cooldown: 0,
-            used: false,
             standing: Vec::new(),
             release: None,
         }
@@ -1444,7 +1280,7 @@ mod tests {
         let actions = deployment(economy, opened, closed, None, false, dependencies).unwrap();
         let reproduced =
             crate::transition::deployed(economy, opened, &actions, false, None).unwrap();
-        assert_eq!(comparable(&reproduced), comparable(closed));
+        assert_eq!(&reproduced, closed);
         assert_eq!(
             deployment(
                 economy,
@@ -1795,6 +1631,27 @@ mod tests {
     }
 
     #[test]
+    fn training_keeps_its_target_when_multiple_formations_upgrade() {
+        let mut opened = side();
+        opened.battle_skills.push(slot(1_100_001));
+        let taken = [
+            Action::UpgradeUnit { index: 0 },
+            Action::ReleaseCommanderSkill {
+                index: 0,
+                id: 1_100_001,
+                target: SkillTarget::Unit(1),
+            },
+            Action::UpgradeUnit { index: 1 },
+        ];
+        let closed = close(&opened, &taken);
+        assert!(closed.units.iter().all(|unit| unit.unit.exp.is_none()));
+        let written = serde_yaml::to_string(&closed).unwrap();
+        let mut read: SideState = serde_yaml::from_str(&written).unwrap();
+        read.shop = closed.shop;
+        assert_eq!(normalized(&opened, &read), taken);
+    }
+
+    #[test]
     fn recovery_restores_continuous_training_and_existing_module_refunds() {
         let mut opened = side();
         opened.units[0].unit.exp = Experience::of(1, "marksman", 1).unwrap();
@@ -1880,9 +1737,10 @@ mod tests {
     }
 
     #[test]
-    fn a_rejected_purchase_plan_does_not_hide_a_later_reinforcement_choice() {
+    fn a_reinforced_formation_can_be_recovered_using_the_recorded_choice() {
         let economy = Economy::embedded().unwrap();
         let mut opened = side();
+        opened.reinforce_choice = Some(Offers::UNANSWERED);
         opened.battle_skills = vec![slot(RECOVERY_SKILLS[0])];
         let offers = Offers {
             dealt: vec![102_115, 102_212],
@@ -1900,8 +1758,14 @@ mod tests {
                 target: SkillTarget::Unit(3),
             },
         ];
-        let closed = close(&opened, &history);
-        let dependencies = recorded_dependencies(&opened, &history);
+        let closed =
+            crate::transition::deployed(economy, &opened, &history, false, Some(&offers)).unwrap();
+        let mut dependencies = DeploymentHistory::default();
+        let reinforced =
+            crate::transition::deployed(economy, &opened, &history[..1], false, Some(&offers))
+                .unwrap();
+        dependencies.record(&opened, &reinforced, &history[0]);
+        dependencies.record(&reinforced, &closed, &history[1]);
         let actions = deployment(
             economy,
             &opened,
@@ -1912,7 +1776,10 @@ mod tests {
         )
         .unwrap();
         assert_eq!(actions[0], choice);
-        assert_eq!(comparable(&close(&opened, &actions)), comparable(&closed));
+        assert_eq!(
+            crate::transition::deployed(economy, &opened, &actions, false, Some(&offers)).unwrap(),
+            closed
+        );
     }
 
     #[test]
@@ -1944,7 +1811,8 @@ mod tests {
     #[test]
     fn rapid_resupply_follows_the_reinforcement_choice() {
         let economy = Economy::embedded().unwrap();
-        let opened = side();
+        let mut opened = side();
+        opened.reinforce_choice = Some(Offers::UNANSWERED);
         let offers = Offers {
             dealt: vec![],
             refund: 50,
@@ -1960,7 +1828,7 @@ mod tests {
             &opened,
             &[choice.clone(), purchase.clone(), loan.clone()],
             false,
-            Some(offers.refund),
+            Some(&offers),
         )
         .unwrap();
         let actions = deployment(
@@ -1977,8 +1845,7 @@ mod tests {
             [choice, loan, default_purchase(1), moved(2, -100, -160)]
         );
         assert_eq!(
-            crate::transition::deployed(economy, &opened, &actions, false, Some(offers.refund))
-                .unwrap(),
+            crate::transition::deployed(economy, &opened, &actions, false, Some(&offers)).unwrap(),
             closed
         );
     }

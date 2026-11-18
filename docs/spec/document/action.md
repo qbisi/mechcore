@@ -67,7 +67,7 @@ group each action touches.
 
 | Group | Fields |
 | --- | --- |
-| Settled | `next_index.unit`, `next_index.contraption`, `unlocked_units`, `techs`, `officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills` less each slot's `standing`, `equipment` |
+| Settled | `reinforce_choice`, `next_index.unit`, `next_index.contraption`, `unlocked_units`, `techs`, `officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills` less each slot's `standing`, `equipment` |
 | Supply | `supply` |
 | Board | `units`, `constructions`, `contraptions`, `battle_skills.standing` |
 
@@ -129,6 +129,7 @@ offers after its cards. The two have to agree, so a decision that names a card
 at another card's position, or the decline anywhere but after the cards, is
 refused. A side answers once a round, as its first decision, so a second answer is
 refused and so is any other decision before the answer, giving up aside.
+The answer writes its index to the side's `reinforce_choice`.
 
 A card is named by what it grants, and a card of units as its unit, squads and
 level, `sledgehammer_2x_lv2`. Two unit cards can share those and differ only in
@@ -371,8 +372,8 @@ is what the game releases and what a retraction matches on; the skill is stated
 beside it so that a release reads without the panel. A release whose slot does
 not hold that skill at that point in the round is refused, and the panel can change
 within a round, since a card or a blueprint adds a skill to it. A release aimed at a
-unit or a construction is refused while its slot is `used`, holds a release or
-has a `cooldown` above zero; one aimed at an area is not.
+unit or a construction is refused while its slot holds a release or has a
+`cooldown` above zero. An area release is checked for where it falls.
 
 `target` is a mapping with exactly one of three keys, never two:
 
@@ -395,10 +396,9 @@ purchase price at the prices its side's officers made at the time, plus one
 upgrade for every level above the first; for a construction, a fixed amount that
 is a property of its type rather than of its history.
 
-A deployment skill is not a release the fight sees. It does its work on the
-position during deployment, so the decision writes that work and marks the slot
-`used`: the slot gains no `release`, carries no target or place in the release
-order, and never reaches a layout.
+Field Recovery, Redeploy and Intensive Training do their work during
+deployment. The slot gains a `release` holding its target. Only battle
+releases have an ordinal and reach the layout.
 
 Intensive Training, `1100001`, is one. It targets one of the side's own
 units with `{unit: <index>}` and fills its experience bar, so `exp` becomes
@@ -539,7 +539,7 @@ routes and purchase placements do not determine the normal form.
 
 The standard phases are:
 
-1. Select reinforcement.
+1. Select the reinforcement at the closing state's `reinforce_choice` index.
 2. Activate Rapid Resupply once if this deployment chose it, even when no
    operation needs extra supply. This fixes the budget before recovery.
 3. Recover formations and constructions. Available Enhancement Modules may be
@@ -566,9 +566,8 @@ The standard phases are:
 Within a phase, formation indices, technology IDs and panel indices break
 remaining ties. Blueprint chains keep predecessor before successor. A skill
 spent on a subsequently recovered formation remains spent; the recovery may
-therefore contain its necessary deployment-skill operations. A recovery's
-release ordinal is written in its new position, while combat releases retain
-their relative order.
+therefore contain its necessary deployment-skill operations. Deployment skills
+use the recorded slot and target. Combat releases retain their relative order.
 
 Moves normally go directly to the closing position. A formation staying on the
 same flank but ending `travelling` first passes through the main region, so

@@ -292,7 +292,6 @@ struct MatchRoundData {
     economy: &'static mechcore_document::economy::Economy,
     stated: Arc<mechcore_document::opening::Stated>,
     turn_index: usize,
-    declined: Option<i32>,
     deployment_layout_yaml: Vec<u8>,
     sides: [mechcore_document::r#match::SideState; 2],
     rosters: [Vec<mechcore_player::RosterEntry>; 2],
@@ -477,7 +476,7 @@ fn prepare_match_session(
 ) -> Result<PreparedSession, Failure> {
     crate::r#match::warn_build(&stated.build);
     let economy = mechcore_document::economy::Economy::embedded().map_err(Failure::failed)?;
-    let reinforcement = mechcore_document::opening::verify(economy, &stated)
+    mechcore_document::opening::verify(economy, &stated)
         .and_then(|opening| mechcore_document::reinforcement::verify(economy, &stated, &opening))
         .map_err(Failure::refused)?;
 
@@ -501,7 +500,6 @@ fn prepare_match_session(
             continue;
         }
 
-        let declined = reinforcement.declined(turn);
         let deployment = crate::convert::project_match(
             economy,
             &turn.state,
@@ -509,17 +507,9 @@ fn prepare_match_session(
             turn.round,
             stated.map_id,
             stated.seed,
-            declined,
         )
         .map_err(Failure::refused)?;
-        let rosters = match_rosters(
-            economy,
-            &deployment,
-            turn,
-            &stated,
-            declined,
-            &mut research_history,
-        )?;
+        let rosters = match_rosters(economy, &deployment, turn, &stated, &mut research_history)?;
         let sides = [deployment.state.blue.clone(), deployment.state.red.clone()];
         let arsenals = [
             mechcore_player::arsenal(&sides[0]),
@@ -538,7 +528,6 @@ fn prepare_match_session(
                 economy,
                 stated: Arc::clone(&stated),
                 turn_index,
-                declined,
                 deployment_layout_yaml: deployment_layout_yaml.into_bytes(),
                 sides,
                 rosters,
@@ -664,7 +653,6 @@ fn compute_round(spec: &RoundSpec) -> Result<ComputedRound, Failure> {
                 data.economy,
                 &data.stated.turns[data.turn_index],
                 &data.stated,
-                data.declined,
                 &data.deployment_layout_yaml,
                 [&data.sides[0], &data.sides[1]],
                 data.rosters.clone(),
@@ -685,7 +673,6 @@ fn compute_match_round(
     economy: &mechcore_document::economy::Economy,
     turn: &mechcore_document::r#match::Turn,
     stated: &mechcore_document::opening::Stated,
-    declined: Option<i32>,
     deployment_layout_yaml: &[u8],
     sides: [&mechcore_document::r#match::SideState; 2],
     rosters: [Vec<mechcore_player::RosterEntry>; 2],
@@ -711,7 +698,7 @@ fn compute_match_round(
         economy,
         [&turn.state.blue, &turn.state.red],
         &turn.actions,
-        declined,
+        turn.state.reinforce_offers.as_ref(),
         &formation_ids,
         timeline.ticks_per_second,
     )
@@ -1271,7 +1258,6 @@ fn match_rosters(
     deployment: &mechcore_document::project::Deployment,
     turn: &mechcore_document::r#match::Turn,
     stated: &mechcore_document::opening::Stated,
-    declined: Option<i32>,
     research_history: &mut [BTreeMap<i32, i32>; 2],
 ) -> Result<[Vec<mechcore_player::RosterEntry>; 2], Failure> {
     let sides = [&deployment.state.blue, &deployment.state.red];
@@ -1295,7 +1281,7 @@ fn match_rosters(
             opening,
             actions,
             seat == 1,
-            declined,
+            turn.state.reinforce_offers.as_ref(),
             &mut research_history[seat],
         )
         .map_err(Failure::refused)?;
@@ -1356,7 +1342,7 @@ fn remember_research_prices(
     opening: &mechcore_document::r#match::SideState,
     actions: &[mechcore_document::r#match::Action],
     red: bool,
-    declined: Option<i32>,
+    offers: Option<&mechcore_document::r#match::Offers>,
     history: &mut BTreeMap<i32, i32>,
 ) -> Result<(), String> {
     history.retain(|id, _| opening.techs.contains(id));
@@ -1367,7 +1353,7 @@ fn remember_research_prices(
             &state,
             std::slice::from_ref(action),
             red,
-            declined,
+            offers,
         )
         .map_err(|error| error.to_string())?;
         if let mechcore_document::r#match::Action::UpgradeTechnology { tech, .. } = action {
@@ -1516,7 +1502,7 @@ fn open(url: &str) -> std::io::Result<()> {
 #[cfg(test)]
 mod price_tests {
     use super::*;
-    use mechcore_document::r#match::{Action, ReinforceChoice, SideState};
+    use mechcore_document::r#match::{Action, Offers, ReinforceChoice, SideState};
 
     #[test]
     fn research_history_preserves_cost_before_later_discounts_and_across_rounds() {
@@ -1525,24 +1511,47 @@ mod price_tests {
             supply: 5000,
             ..SideState::default()
         };
+        let early = [Action::UpgradeTechnology {
+            unit: 5,
+            tech: 1109,
+        }];
+        let mut history = BTreeMap::new();
+        remember_research_prices(economy, &opening, &early, false, None, &mut history).unwrap();
+        let after_research =
+            mechcore_document::transition::deployed(economy, &opening, &early, false, None)
+                .unwrap();
+        let next_opening = SideState {
+            reinforce_choice: Some(Offers::UNANSWERED),
+            ..after_research
+        };
+        let offers = Offers {
+            dealt: vec![20003],
+            refund: 50,
+        };
         let actions = [
-            Action::UpgradeTechnology {
-                unit: 5,
-                tech: 1109,
-            },
             Action::ChooseReinforceItem {
                 index: 0,
                 id: ReinforceChoice::Card(20003),
             },
             Action::UpgradeTechnology { unit: 5, tech: 905 },
         ];
-        let mut history = BTreeMap::new();
-        remember_research_prices(economy, &opening, &actions, false, None, &mut history).unwrap();
-        assert_eq!(history[&1109], 150);
-        assert_eq!(history[&905], 350);
-        let next =
-            mechcore_document::transition::deployed(economy, &opening, &actions, false, None)
-                .unwrap();
+        remember_research_prices(
+            economy,
+            &next_opening,
+            &actions,
+            false,
+            Some(&offers),
+            &mut history,
+        )
+        .unwrap();
+        let next = mechcore_document::transition::deployed(
+            economy,
+            &next_opening,
+            &actions,
+            false,
+            Some(&offers),
+        )
+        .unwrap();
         assert_eq!(
             mechcore_document::transition::technology_price(economy, &next, 3005),
             Some(550)

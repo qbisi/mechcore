@@ -247,29 +247,29 @@ fn turn(
         side_state(grbr, economy, red, position, Seat::Red)?,
     ];
     let [blue_state, red_state] = opened;
+    let mut state = State {
+        blue: blue_state,
+        red: red_state,
+        ..State::default()
+    };
+    state.set_reinforce_offers(offers);
     let taken = |player: &record::PlayerRecord, seat, opened| {
         actions(
             economy,
             &player.rounds.entries[position],
             seat,
             opened,
-            offers.as_ref(),
+            state.reinforce_offers.as_ref(),
         )
         .map_err(|error| format!("round {round}: {error}"))
     };
     let actions = TurnActions {
-        blue: taken(blue, Seat::Blue, &blue_state)?,
-        red: taken(red, Seat::Red, &red_state)?,
+        blue: taken(blue, Seat::Blue, &state.blue)?,
+        red: taken(red, Seat::Red, &state.red)?,
     };
     Ok(Turn {
         round,
-        state: State {
-            random_state: [0; 4],
-            reinforce_pool: crate::r#match::PoolDelta::default(),
-            reinforce_offers: offers,
-            blue: blue_state,
-            red: red_state,
-        },
+        state,
         actions,
     })
 }
@@ -620,6 +620,92 @@ fn side_state(
     let constructions = constructions(data, seat)?;
     let contraptions = contraptions(data, seat)?;
 
+    let (battle_skills, active_slots) = snapshot_panel(grbr, player, position, seat)?;
+
+    let mut officers: Vec<i32> = data
+        .officers
+        .values
+        .iter()
+        .copied()
+        .filter(|officer| !CHAIN_OFFICERS.contains(officer))
+        .collect();
+    officers.sort_unstable();
+
+    let mut units: Vec<i32> = data
+        .active_technologies
+        .entries
+        .iter()
+        .flat_map(|row| row.techs.entries.iter().map(|tech| tech.data))
+        .collect();
+    units.sort_unstable();
+
+    let mut unlocked_units = data.shop.unlocked_units.values.clone();
+    unlocked_units.sort_unstable();
+
+    let snapshot = SideState {
+        random_state: [0; 4],
+        reinforce_choice: None,
+        reactor_core: data.reactor_core,
+        // The snapshot precedes the round's income, which the opening pays.
+        supply: data.supply,
+        unlocked_units,
+        // The allowances are the opening's to set.
+        shop: crate::r#match::Allowances::default(),
+        blueprints: active_blueprints(economy, data),
+        // What the previous round activated and still owes for, which the
+        // opening charges against the income and then lapses.
+        energy_tower_skills: if energy_tower_debt(player, position, seat)? {
+            vec![RAPID_SUPPLY_SKILL]
+        } else {
+            Vec::new()
+        },
+        tower_strengthen_levels: data.tower_strengthen_levels.values.clone(),
+        equipment: unfitted_equipment(data),
+        battle_skills,
+        next_index: NextIndex {
+            unit: data.unit_index,
+            contraption: data.contraption_index,
+        },
+        officers,
+        techs: units,
+        units: formations,
+        constructions,
+        contraptions,
+    };
+
+    // The snapshot is taken before the round opens: before its resets, and
+    // before its deliveries, which the game makes before either side decides
+    // anything. Both belong to the position the round opens with, so the
+    // opening is made here, and each delivery lands where the board puts it.
+    let mut placement = crate::landing::placement(seat == Seat::Red);
+    let stream = player_stream(economy, player, position, seat)?;
+    let mut opened = crate::transition::open_round_with_spent(
+        economy,
+        &snapshot,
+        round,
+        &mut placement,
+        Some(stream),
+        &active_slots,
+    )
+    .map_err(|reason| format!("round {round} {} delivery: {reason:?}", seat.name()))?;
+    if data.special_supply {
+        // PlayerSnapshotController.ApplySnapshot locks Player.AddRoundSupply:
+        // NetworkMessageData.Convert already added roundSupply to supply.
+        opened.supply = data.supply;
+    }
+    Ok(opened)
+}
+
+/// Reads the native panel and the previous round's spent slots for cooldowns.
+fn snapshot_panel(
+    grbr: &[u8],
+    player: &record::PlayerRecord,
+    position: usize,
+    seat: Seat,
+) -> Result<(Vec<PanelSkill>, Vec<i32>), String> {
+    let entry = &player.rounds.entries[position];
+    let data = &entry.data;
+    let round = entry.round;
     // The snapshot is taken before the round opens, so its cooldowns are the
     // previous round's, and the slots the previous round spent are marked
     // for the opening to restart. The actions say which were spent, and the
@@ -658,7 +744,6 @@ fn side_state(
                 index: skill.index,
                 id: skill.id,
                 cooldown: skill.cooling_round,
-                used,
                 standing: Vec::new(),
                 release: None,
             })
@@ -668,71 +753,14 @@ fn side_state(
 
     stand_on_panel(grbr, round, seat, &mut battle_skills)?;
 
-    let mut officers: Vec<i32> = data
-        .officers
-        .values
-        .iter()
-        .copied()
-        .filter(|officer| !CHAIN_OFFICERS.contains(officer))
-        .collect();
-    officers.sort_unstable();
-
-    let mut units: Vec<i32> = data
-        .active_technologies
+    let active_slots: Vec<_> = data
+        .commander_skills
         .entries
         .iter()
-        .flat_map(|row| row.techs.entries.iter().map(|tech| tech.data))
+        .filter(|slot| slot.active)
+        .map(|slot| slot.index)
         .collect();
-    units.sort_unstable();
-
-    let mut unlocked_units = data.shop.unlocked_units.values.clone();
-    unlocked_units.sort_unstable();
-
-    let snapshot = SideState {
-        random_state: [0; 4],
-        reactor_core: data.reactor_core,
-        // The snapshot precedes the round's income, which the opening pays.
-        supply: data.supply,
-        unlocked_units,
-        // The allowances are the opening's to set.
-        shop: crate::r#match::Allowances::default(),
-        blueprints: active_blueprints(economy, data),
-        // What the previous round activated and still owes for, which the
-        // opening charges against the income and then lapses.
-        energy_tower_skills: if energy_tower_debt(player, position, seat)? {
-            vec![RAPID_SUPPLY_SKILL]
-        } else {
-            Vec::new()
-        },
-        tower_strengthen_levels: data.tower_strengthen_levels.values.clone(),
-        equipment: unfitted_equipment(data),
-        battle_skills,
-        next_index: NextIndex {
-            unit: data.unit_index,
-            contraption: data.contraption_index,
-        },
-        officers,
-        techs: units,
-        units: formations,
-        constructions,
-        contraptions,
-    };
-
-    // The snapshot is taken before the round opens: before its resets, and
-    // before its deliveries, which the game makes before either side decides
-    // anything. Both belong to the position the round opens with, so the
-    // opening is made here, and each delivery lands where the board puts it.
-    let mut placement = crate::landing::placement(seat == Seat::Red);
-    let stream = player_stream(economy, player, position, seat)?;
-    let mut opened =
-        crate::transition::open_round(economy, &snapshot, round, &mut placement, Some(stream))
-            .map_err(|reason| format!("round {round} {} delivery: {reason:?}", seat.name()))?;
-    if data.special_supply {
-        // PlayerSnapshotController.ApplySnapshot locks Player.AddRoundSupply:
-        // NetworkMessageData.Convert already added roundSupply to supply.
-        opened.supply = data.supply;
-    }
-    Ok(opened)
+    Ok((battle_skills, active_slots))
 }
 
 /// The server retains every completed research, while the native manager
@@ -913,7 +941,6 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
         };
         board.units.push(StateUnit {
             value: Some(unit.sell_supply),
-            redeployed: false,
             unit: UnitPlacement {
                 record_position: None,
                 record_rotated: None,
@@ -1239,13 +1266,12 @@ fn actions(
     offers: Option<&Offers>,
 ) -> Result<Vec<Action>, String> {
     let red = seat == Seat::Red;
-    let declined = offers.map(|offers| offers.refund);
     let step = |position: &SideState, action: &Action, at: usize| {
         crate::transition::step_placing(
             economy,
             position,
             action,
-            declined,
+            offers,
             &mut crate::landing::placement(red),
         )
         .map_err(|reason| {

@@ -171,17 +171,12 @@ pub fn measure(economy: &Economy, stated: &Stated, deal: Result<&Verified, &str>
     }
     for pair in stated.turns.windows(2) {
         let [turn, next] = pair else { continue };
-        let declined = turn
-            .state
-            .reinforce_offers
-            .as_ref()
-            .map(|offers| offers.refund);
         let mut dealt_from = true;
         for (side, red) in [("blue", false), ("red", true)] {
             let (state, actions, recorded) = sides(turn, next, red);
             dealt_from &= coverage.side(
                 economy,
-                (turn.round, declined),
+                (turn.round, turn.state.reinforce_offers.as_ref()),
                 state,
                 actions,
                 recorded,
@@ -250,7 +245,7 @@ impl Coverage {
     fn side(
         &mut self,
         economy: &Economy,
-        (round, declined): (i32, Option<i32>),
+        (round, offers): (i32, Option<&Offers>),
         state: &SideState,
         actions: &[Action],
         recorded: &SideState,
@@ -260,7 +255,7 @@ impl Coverage {
         // Round zero ends in round 1's opening without a fight.
         let fought = round > 0;
         let predicted =
-            crate::transition::predict(economy, round, state, actions, red, declined, stream);
+            crate::transition::predict(economy, round, state, actions, red, offers, stream);
         let (leaves, unpredicted) = match &predicted {
             Ok(predicted) => {
                 let mut leaves = compare(predicted, recorded, fought);
@@ -510,7 +505,10 @@ fn side_leaves(state: &SideState) -> BTreeMap<String, String> {
     let mut leaves = BTreeMap::new();
     if let Value::Mapping(fields) = to_value(state) {
         for (key, value) in &fields {
-            walk(key.as_str().unwrap_or_default(), value, &mut leaves);
+            // The next deal sets its initial choice, so this belongs to deal coverage.
+            if key.as_str() != Some("reinforce_choice") {
+                walk(key.as_str().unwrap_or_default(), value, &mut leaves);
+            }
         }
     }
     leaves
@@ -721,7 +719,6 @@ impl Fights {
 pub fn fights(
     economy: &Economy,
     stated: &Stated,
-    deal: &Verified,
     mut fight: impl FnMut(&crate::layout::Layout) -> Result<crate::fight::Fight, String>,
 ) -> Fights {
     let mut found = Fights::default();
@@ -742,7 +739,6 @@ pub fn fights(
             }
             continue;
         }
-        let declined = deal.declined(turn);
         let projected = crate::project::deployment(
             economy,
             &turn.state,
@@ -750,7 +746,6 @@ pub fn fights(
             turn.round,
             stated.map_id,
             stated.seed,
-            declined,
         );
         let deployment = match projected {
             Ok(deployment) => deployment,
