@@ -1285,8 +1285,8 @@ enum Recorded {
 /// Each decision is stepped as it is read, which names the skill a release's
 /// slot holds and the index a purchase creates. The resulting position and
 /// surviving historical decisions reach the normalizer: ordinary deployments
-/// use the standard sequence; initialization-sensitive histories keep their
-/// order, with only adjacent same-region moves of one unit collapsed.
+/// use the standard sequence when it reproduces the closing state without
+/// changing order-sensitive initialization.
 fn actions(
     economy: &Economy,
     round: &PlayerRoundRecord,
@@ -1311,7 +1311,7 @@ fn actions(
         })
     };
     let mut position = opened.clone();
-    let mut dependencies = crate::normalize::DeploymentHistory::default();
+    let mut history = crate::normalize::DeploymentHistory::default();
     let mut conceded = false;
     let mut decided = false;
     for (at, recorded) in recorded_actions(round, seat, offers)?
@@ -1338,7 +1338,7 @@ fn actions(
         conceded |= matches!(action, Action::Concede);
         decided |= !matches!(action, Action::Concede);
         let next = step(&position, &action, at)?;
-        dependencies.record(&position, &next, &action);
+        history.record(&position, &next, &action);
         position = next;
     }
     if !decided {
@@ -1348,9 +1348,10 @@ fn actions(
             Vec::new()
         });
     }
-    let mut normalized =
-        crate::normalize::deployment(economy, opened, &position, offers, red, &dependencies)
-            .map_err(|error| format!("{} {error}", seat.name()))?;
+    let mut normalized = crate::normalize::deployment_with_history(
+        economy, opened, &position, offers, red, &history,
+    )
+    .map_err(|error| format!("{} {error}", seat.name()))?;
     if conceded {
         normalized.push(Action::Concede);
     }

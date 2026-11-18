@@ -529,31 +529,27 @@ route. The sequence orders the necessary moves and swap-space waypoints as
 
 ### Settling a round
 
-Replay conversion evaluates the effective native decisions to obtain the
-position deployment reached. The opening and closing states reconstruct the
-action sequence, supplemented by facts that those endpoints cannot preserve:
-the shop level and transient equipment of purchases later recovered, and
-upgrades preceding Enhancement Module fitting. Replay conversion reads those facts from
-the native GRBR operations; `format` reads them from the match's existing
-actions. Reading a match does not rewrite its actions. Intermediate movement
-routes and purchase placements do not determine the normal form.
+Replay conversion and formatting evaluate the effective decisions to obtain the
+closing position. The standard sequence uses the opening and closing positions
+and the round's offers. Intermediate movement routes, purchase placements and
+the timing of historical equipment fits do not determine this sequence.
 
 The standard phases are:
 
 1. Select the reinforcement at the closing state's `reinforce_choice` index.
 2. Activate Rapid Resupply once if this deployment chose it, even when no
    operation needs extra supply. This fixes the budget before recovery.
-3. Recover formations and constructions. Available Enhancement Modules may be
-   fitted and the formation upgraded first. The tombstone fixes its recovery
-   level, and the closing supply checks the cost of the upgrades. A module comes
-   back with the recovered formation and can be reused.
-4. Purchase formations at their default landings, in allocator order, deriving
-   each level from the shop. A formation bought and recovered in this round
-   uses the tombstone's type and recovery level. Historical shop level and
-   transient fittings constrain the reconstruction when available. An
-   allocator gap without an active formation or a tombstone is refused.
+3. Recover formations and constructions already present after reinforcement.
+   The tombstone fixes a formation's recovery level. Before an upgrade, fit
+   available Enhancement Modules while the formation can wear them and each
+   module reduces the upgrade price. Recovery returns those modules to stock.
+4. Purchase formations at their default landings, in allocator order. Recover
+   a newly purchased formation at its own allocator position using the same
+   procedure. Its tombstone supplies the type and recovery level. Every
+   allocated index must end in a standing formation or a tombstone.
 5. Activate the remaining unit technologies, after their formations exist.
-6. Fit equipment, preserving each formation's fitting order.
+6. Fit the equipment worn in the closing position, preserving each formation's
+   fitting order and applying its discounts before upgrades.
 7. Move and rotate existing and newly purchased formations together. Jump Drive
    research and Deployment Module fitting have already occurred; Redeployment
    and swap-space waypoints are emitted where needed.
@@ -576,12 +572,20 @@ that its travelling state is reproduced. If moves exchange occupied space,
 the first waiting formation steps aside within its region, clear of the
 pending targets, using the existing deterministic landing search.
 
-Every emitted decision is checked and applied. The completed sequence must
-reproduce the closing position, including supply, allocators, equipment,
-experience and skill consumption. A state difference that cannot be
-reconstructed is refused explicitly; formatting never silently optimizes a
-player's economic result or writes a partial sequence. Reconstructing the
-result again produces the same sequence.
+When the closing position activates Elite Recruitment, try each cut in allocator
+order, including after all purchases. Each purchase uses its actual shop level
+at that cut. The position chooses among candidates that reproduce every
+closing field, including supply, equipment, formation values, levels,
+experience, allocators and skill use. Prefer the candidate with the fewest
+actions, breaking ties by the earliest cut.
+
+Every emitted decision is checked and applied. If the standard sequence cannot
+reproduce the closing position, normalization from endpoints refuses it.
+Conversion and formatting can instead keep the effective historical actions.
+They also preserve that order when battle initialization is order-sensitive.
+Consecutive moves of one formation within a region may collapse if the retained
+sequence is legal and reproduces the same endpoint. Reformatting the resulting
+sequence produces the same sequence.
 
 Dependencies precede the operation requiring them. A recovery that removes
 the last formation of a type depends on that type's pending research; recovery
@@ -589,9 +593,9 @@ also depends on unlocking its Research Center blueprint when needed. A
 purchase depends on its unit unlock, Elite Recruitment for its level and Mass
 Recruitment when no purchase allowance remains. Insufficient supply refuses
 the operation; neither normalization nor encoding activates Rapid Resupply
-on demand. Dependencies use only operations required by the closing state and
-recorded recovery facts. Skill-granting blueprints preserve panel allocation order, so an earlier slot's blueprint can itself
-be a dependency.
+on demand. Dependencies use the closing state, including recovery tombstones
+and release targets. Skill-granting blueprints preserve panel allocation order,
+so an earlier slot's blueprint can itself be a dependency.
 
 The match sequence itself meets native operation prerequisites. GRBR encoding
 preserves action order, including unit research and Energy Tower activations.

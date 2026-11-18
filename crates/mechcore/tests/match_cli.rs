@@ -1734,6 +1734,59 @@ fn a_match_with_a_repeated_reinforcement_choice_is_not_written_as_a_replay() {
 }
 
 #[test]
+fn format_and_grbr_keep_paid_upgrades_before_an_enhancement_module() {
+    use mechcore_document::r#match::{self as match_doc, Action, StateEquipment};
+
+    let directory = tempfile::tempdir().unwrap();
+    let path = dealt(directory.path());
+    open_the_match(&path);
+    let mut game = match_doc::read(&fs::read(&path).unwrap()).unwrap().unwrap();
+    let turn = &mut game.turns[0];
+    let index = turn.state.blue.units[0].index;
+    turn.state.blue.equipment.push(StateEquipment {
+        id: 13_030_004,
+        fitted: None,
+    });
+    turn.actions.blue = vec![
+        Action::UpgradeUnit { index },
+        Action::UseEquipment {
+            equipment: 13_030_004,
+            index,
+        },
+    ];
+    let historical = turn.actions.blue.clone();
+    fs::write(&path, match_doc::canonical_yaml(&game).unwrap()).unwrap();
+
+    let actions = |path: &str| {
+        match_doc::read(&fs::read(path).unwrap())
+            .unwrap()
+            .unwrap()
+            .turns
+            .remove(0)
+            .actions
+            .blue
+    };
+    run(&["format", &path, "--write"]).ok();
+    assert_eq!(actions(&path), historical);
+    let formatted = fs::read(&path).unwrap();
+    run(&["format", &path, "--write"]).ok();
+    assert_eq!(fs::read(&path).unwrap(), formatted);
+
+    let native = directory.path().join("paid.grbr").display().to_string();
+    let converted = directory
+        .path()
+        .join("converted.yaml")
+        .display()
+        .to_string();
+    run(&["convert", &path, "--to", "grbr", &native]).ok();
+    run(&["convert", &native, "--to", "match", &converted]).ok();
+    assert_eq!(actions(&converted), historical);
+    let from_replay = fs::read(&converted).unwrap();
+    run(&["format", &converted, "--write"]).ok();
+    assert_eq!(fs::read(&converted).unwrap(), from_replay);
+}
+
+#[test]
 fn names_are_set_when_each_side_joins_and_survive_later_commands() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("named.yaml").display().to_string();
