@@ -1965,6 +1965,7 @@ mod tests {
         for broken in [
             formation.replace("value: 100", "value: 100, typo: 1"),
             formation.replace("value: 100", "value: 100, movable: true"),
+            formation.replace("value: 100", "value: 100, unpinned: true"),
             formation.replace("value: 100", "value: 100, redeployed: true"),
             formation.replace(", index: 0", ""),
         ] {

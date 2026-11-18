@@ -29,7 +29,7 @@ enum Request {
         #[serde(default)]
         wait: Option<Wait>,
     },
-    /// One action or a nonempty ordered array of actions, kept unless `dry_run`.
+    /// One deployment edit or an ordered array of edits, kept unless `dry_run`.
     #[serde(rename = "match.act")]
     Act {
         decision: Value,

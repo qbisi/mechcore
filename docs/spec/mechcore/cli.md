@@ -1121,6 +1121,7 @@ written into the match document:
 | `shop.contraptions_remaining` | remaining deployments shared by contraptions and constructions |
 | `reinforce_chosen` | whether the side's `reinforce_choice` contains an offer index |
 | `units[].movable` | whether this formation currently has deployment movement permission |
+| `units[].unpinned` | whether this standing formation may move and has yet to be moved or pinned this round, shown while its side is deploying and uncommitted |
 
 `movable` uses the executor's movement rule, including newly arrived units,
 movement technologies and equipment, and Redeploy already used this round.
@@ -1176,12 +1177,12 @@ it is still in, which is an answer rather than an error.
 
 ### `match act`
 
-Takes one decision or an ordered sequence of decisions for one side.
+Takes one deployment edit or an ordered sequence of edits for one side.
 
-Operands: the match document, and either one [action](../document/action.md)
-mapping or a nonempty array of action mappings, written as YAML or JSON.
+Pass the match document and one edit or a nonempty array of edits as YAML or
+JSON. Each edit is an [action](../document/action.md) or an in-place `pin`.
 Options: `--side blue|red`, `--force-push`, and `--dry-run` to answer without keeping the
-requested decisions. Nested arrays are not actions.
+requested edits.
 
 Each decision runs against the position left by its predecessors, including
 that side's existing uncommitted decisions. The whole request holds the turn
@@ -1189,8 +1190,19 @@ file's lock. All requested decisions must succeed before any of them join the
 turn file; a failure keeps none of them and leaves earlier pending decisions
 intact. `act` does not commit the round.
 
-`--force-push` requires an array and replaces the viewer's entire current
-uncommitted action sequence. `[]` clears it. Replacement replays from the
+```sh
+mechcore match act m.yaml --side blue '{type: pin, index: 7}'
+```
+
+Standing formations with movement permission start deployment unpinned.
+Formations that arrive or gain movement permission during deployment become
+unpinned as well. A successful move pins the formation at its destination.
+`pin` keeps a movable formation in place, with its movement permission intact,
+and adds no action or event. All standing formations occupy their footprints
+throughout deployment, including when the shop picks a default purchase position.
+
+`--force-push` requires an array and replaces all of the caller's uncommitted
+actions and pins. `[]` clears them. Replacement replays from the
 round-opening state, restoring budgets, indices and technology prices through
 the existing action rules. All steps must pass before saving; failure keeps
 the old sequence. `--dry-run` also applies to replacement. Editing a sealed
@@ -1258,7 +1270,8 @@ last N effective actions (default 1). N must be positive and no greater than
 the sequence length. The retained prefix is replayed and validated before
 saving. Its answer includes the new observation and effective `actions`.
 Only the current uncommitted round can be edited, before its deployment
-deadline. Undo discards the tail; no redo history is stored. A caller can
+deadline. Undo discards the tail and any in-place pins made after a discarded
+action. No redo history is stored. A caller can
 restore a saved sequence with `act --force-push`.
 
 ### `match candidates`
@@ -1305,8 +1318,11 @@ Seals that side's decisions in the turn file without changing the shared match.
 
 Operands: the match document. Options: `--side blue|red`.
 
-The turn file retains the decisions and marks the side committed. When both
-sides have committed, the caller settles the round and writes both action
+Before sealing a deployment, commit checks the caller's final formation
+positions against the board and the opponent's opening positions. A refusal
+preserves the draft. A successful commit clears the side's in-place pins and
+the view stops showing `unpinned` for that side. When both sides have committed,
+the caller settles the round with both final deployments and writes both action
 lists in normal form and the next state to the match in one atomic replacement.
 A failed settlement keeps the match unchanged and retains both sealed lists
 for retry. A reader of the match file sees only completed rounds and the
@@ -1522,6 +1538,7 @@ options as its fields:
 {"op": "match.show"}
 {"op": "match.show", "wait": 30}
 {"op": "match.act", "decision": {"type": "buy_unit", "name": "marksman"}, "dry_run": true}
+{"op": "match.act", "decision": {"type": "pin", "index": 7}}
 {"op": "match.act", "decision": [], "force_push": true}
 {"op": "match.undo", "count": 1}
 {"op": "match.candidates", "stage": "buy_unit"}
@@ -1529,7 +1546,7 @@ options as its fields:
 ```
 
 `wait` is `--wait`: `true` waits as long as it takes and a number of seconds
-bounds it. `decision` is one [action](../document/action.md) mapping or a
+bounds it. `decision` is one [deployment edit](#match-act) mapping or an
 ordered array of those mappings (empty only with `force_push`), and `dry_run` is `--dry-run`, false
 when left out. A field the operation does not take is refused rather than
 ignored. The result is what the

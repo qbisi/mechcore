@@ -20,7 +20,7 @@ use mechcore_document::{
     opening::{self, Stream},
     transition,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
@@ -521,7 +521,9 @@ fn act(mut arguments: Args) -> Result<View, Failure> {
     let mut game = game;
     game.editable(side)?;
     if replace {
-        game.turn.side_mut(side).decisions.clear();
+        let branch = game.turn.side_mut(side);
+        branch.decisions.clear();
+        branch.pins.clear();
     }
     let mut events = Vec::new();
     for (index, written) in decisions.into_iter().enumerate() {
@@ -531,13 +533,7 @@ fn act(mut arguments: Args) -> Result<View, Failure> {
                 "decision": written,
             }))
         };
-        let decision = Action::read_in_round(&written, game.round())
-            .map_err(|error| Failure::usage(format!("not a decision this build reads: {error}")))
-            .map_err(context)?;
-        events.extend(game.take(side, &decision).map_err(context)?);
-        // Each step sees its predecessors, but none reaches disk until all
-        // steps and the resulting view succeed. A dry run skips that write.
-        game.turn.side_mut(side).decisions.push(decision);
+        events.extend(game.edit(side, &written).map_err(context)?);
     }
     let mut view = game.view(Some(side), false)?;
     view.events = Some(events);
@@ -565,6 +561,7 @@ fn undo(mut arguments: Args) -> Result<View, Failure> {
         return Err(Failure::refused("not enough actions to undo"));
     }
     branch.decisions.truncate(branch.decisions.len() - count);
+    branch.pins.retain(|_, at| *at <= branch.decisions.len());
     let sequence = std::mem::take(&mut game.turn.side_mut(side).decisions);
     for action in sequence {
         game.take(side, &action)?;
@@ -632,6 +629,13 @@ enum Phase {
     Deploy,
     Fight,
     Over,
+}
+
+/// An interactive edit with no action in the match document.
+#[derive(Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
+enum DeploymentEdit {
+    Pin { index: i32 },
 }
 
 impl Phase {
@@ -1111,10 +1115,14 @@ impl Game {
     /// This side's position in the round in progress: what the round opened
     /// with, and the decisions taken from it.
     fn position(&self, side: Side) -> Result<SideState, Failure> {
+        self.replay(side, &self.decisions(side))
+    }
+
+    fn replay(&self, side: Side, actions: &[Action]) -> Result<SideState, Failure> {
         transition::deployed(
             self.economy,
             &self.opened(side)?,
-            &self.decisions(side),
+            actions,
             side.red(),
             self.offers(),
         )
@@ -1123,6 +1131,46 @@ impl Game {
                 "a decision this match holds is not settled: {unsettled}"
             ))
         })
+    }
+
+    /// Edits the candidate turn. The caller writes it after the whole request succeeds.
+    fn edit(&mut self, side: Side, written: &Value) -> Result<Vec<Value>, Failure> {
+        let unreadable =
+            |error| Failure::usage(format!("not a decision this build reads: {error}"));
+        if written.get("type").and_then(Value::as_str) == Some("pin") {
+            let DeploymentEdit::Pin { index } =
+                DeploymentEdit::deserialize(written).map_err(unreadable)?;
+            self.pin(side, index)?;
+            return Ok(Vec::new());
+        }
+        let action = Action::read_in_round(written, self.round())
+            .map_err(|error| Failure::usage(format!("not a decision this build reads: {error}")))?;
+        let events = self.take(side, &action)?;
+        self.turn.side_mut(side).decisions.push(action);
+        Ok(events)
+    }
+
+    fn pin(&mut self, side: Side, index: i32) -> Result<(), Failure> {
+        self.editable(side)?;
+        if self.round() == 0 {
+            return Err(Failure::refused("pin requires a deployment round"));
+        }
+        let actions = self.decisions(side);
+        let position = self.replay(side, &actions)?;
+        let formation = position
+            .active_units()
+            .find(|unit| unit.index == index)
+            .ok_or_else(|| Failure::refused(format!("no standing formation {index} to pin")))?;
+        if !formation.movable(&position) {
+            return Err(Failure::refused(format!(
+                "formation {index} is fixed in place"
+            )));
+        }
+        if transition::unpinned_units(&position, &actions).contains(&index) {
+            let branch = self.turn.side_mut(side);
+            branch.pins.entry(index).or_insert(actions.len());
+        }
+        Ok(())
     }
 
     /// Takes one decision, answering what it did, without keeping it.
@@ -1284,7 +1332,8 @@ impl Game {
             )));
         }
         let conceded = self.turn.side(side).decisions.contains(&Action::Concede);
-        transition::check_reinforcement_finished(self.position(side)?.reinforce_choice, conceded)
+        let position = self.position(side)?;
+        transition::check_reinforcement_finished(position.reinforce_choice, conceded)
             .map_err(|error| Failure::refused(error.to_string()))?;
         if self.round() == 0 {
             let [decision] = self.turn.side(side).decisions.as_slice() else {
@@ -1295,8 +1344,14 @@ impl Game {
             let Action::ChooseAdvanceTeam { .. } = decision else {
                 return Err(Failure::refused("round zero's decision is the opening"));
             };
+        } else {
+            let layout = self.placement_layout(side, &position)?;
+            mechcore_document::compile::compile_placement_layout(layout)
+                .map_err(Failure::refused)?;
         }
-        self.turn.side_mut(side).committed = true;
+        let branch = self.turn.side_mut(side);
+        branch.pins.clear();
+        branch.committed = true;
         self.write_turn(held)
     }
 
@@ -1405,7 +1460,11 @@ impl Game {
             if !omniscient && viewer != Some(side) {
                 continue;
             }
-            let position = self.position(side)?;
+            let actions = self.decisions(side);
+            let position = self.replay(side, &actions)?;
+            let branch = self.turn.side(side);
+            let unpinned = (self.phase() == Phase::Deploy && !branch.committed)
+                .then(|| transition::unpinned_units(&position, &actions));
             let mut current = serde_json::to_value(&position).map_err(|error| {
                 Failure::failed(format!("cannot serialize decision position: {error}"))
             })?;
@@ -1423,6 +1482,12 @@ impl Game {
             ) {
                 if !unit.recovered {
                     written["movable"] = Value::Bool(unit.movable(&position));
+                    if let Some(unpinned) = &unpinned {
+                        written["unpinned"] = Value::Bool(
+                            unpinned.contains(&unit.index)
+                                && !branch.pins.contains_key(&unit.index),
+                        );
+                    }
                 }
             }
             value[side.name()] = current;
