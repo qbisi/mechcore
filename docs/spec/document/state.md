@@ -21,8 +21,8 @@ round: 7
 
 reinforce_offers: [phoenix_2x_lv2, sabertooth_2x_lv2, steel_ball_2x_lv2, sledgehammer_2x_lv2, refund_400]
 
-blue: { ... }
-red: { ... }
+blue: {reinforce_choice: -1, ...}
+red: {reinforce_choice: -1, ...}
 ```
 
 `map_id` and `seed` carry the same meaning and the same optionality as in a
@@ -38,6 +38,12 @@ Writing it lets a position price its decline without replaying the deal. With
 `rules.reinforcements: false` in the match header, every state omits the offer
 and no decline is available; the shared stream stays at its opening checkpoint
 and the pool delta stays empty.
+
+Each side's `reinforce_choice` is absent in a round without offers. When
+there are offers, it is `-1` until the side answers and then the zero-based
+index of the card or refund in `reinforce_offers`. The refund's index is
+the number of cards dealt. A round's opening position has an unanswered
+choice whenever that round deals offers.
 
 A state is defined after each action, not only at a round's ends. A
 [match](match.md) writes the position each round opens with as a state
@@ -123,13 +129,13 @@ their economic consequences are not part of a layout.
 | Panel source | Layout `battle_skills` entry |
 | --- | --- |
 | each object in a slot's `standing` | one standing entry, `{name, standing}`, named by the slot's skill; all of them first, in the layout's normal-form order |
-| each slot with `release` | one release entry, `{name, positions}`, after the standing entries, sorted by `release.order` |
+| each slot with an ordered `release` | one release entry, `{name, positions}`, after the standing entries, sorted by `release.order` |
 | every other slot | nothing |
 
 A release entry resolves the slot's native `id` to the layout's semantic name
-and maps an area target to `positions`. A unit or construction target has no
-representation in the layout contract, so projecting one is refused rather
-than dropped.
+and maps an area target to `positions`. Deployment releases have already
+changed the state and have no layout entry. Projecting an ordered release
+with an object target is refused.
 
 A round's opening position carries no release at all, since a state is defined
 after each action and a round opens before its first. The releases of a round
@@ -217,7 +223,9 @@ reach a layout transformed, and the fields a layout has no reason to hold.
       battle_skills:
         - index: 0
           name: intensive_training
-          cooldown: 1
+          cooldown: 0
+          release:
+            target: {unit: 8}
         - index: 1
           name: lightning_storm
           cooldown: 0
@@ -510,13 +518,12 @@ the state does not carry cannot be resolved.
           name: lightning_storm
           cooldown: 0
           release:
-            order: 1
+            order: 0
             target: {area: [{x: 50, y: 44}, {x: 189, y: 38}]}
         - index: 3
           name: field_recovery
           cooldown: 0
           release:
-            order: 2
             target: {unit: 12}
 ```
 
@@ -528,16 +535,15 @@ only well-order available, since one panel can hold the same ID twice.
 
 `cooldown` covers a skill that cannot be released this round. A layout cannot
 express one, because a layout only names releases. It is counted as a round
-opens: a slot the round before spent, by a release or a deployment skill,
+opens: a slot the round before released, including deployment releases,
 restarts at its skill's cooldown, and every other slot drops by one to zero. A
 slot joins the panel at its skill's initial cooldown. [The commander skill
 index](../../rules/commander_skills.md) gives both per skill.
 
-`release` is present on a skill released this round, and `order` states where in
-the release sequence it falls. Moving release order into an explicit field is
-what lets the collection be sorted at all: in a layout the array position *is*
-the order, which is why `battle_skills` is the one collection a layout leaves as
-written.
+`release` is present on a skill released this round. A battle release carries
+its zero-based `order` among the side's battle releases and the target.
+Field Recovery, Redeploy and Intensive Training carry their deployment target
+and omit `order`. A round's opening position carries no releases.
 
 `standing` lists the objects the slot's earlier releases left on the
 battlefield, in the payload [the layout](layout.md#standing-entries) gives the
@@ -547,13 +553,6 @@ name. A slot may carry more than one, since a Shield Airdrop is not
 time-limited and the slot may release again while an earlier shield stands,
 and a slot may carry `standing` and `release` together. Order within the list
 carries nothing.
-
-`used: true` marks a deployment skill this round spent. Such a skill does its
-work on the position before the fight, as [`action.md`](action.md#release_commander_skill)
-states, so its slot records only that it was spent: no target, no order, and
-nothing a layout sees. The game flags a spent deployment skill and a released
-one alike; the skill's ID is what tells them apart. A slot is never both `used`
-and released, and a round's opening position carries neither.
 
 ### The release target is exclusive
 

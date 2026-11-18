@@ -18,7 +18,7 @@ use crate::layout::{
     BattleSkillEntry, BattleSkillRelease, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, Side,
     UnitSource,
 };
-use crate::r#match::{Action, Release, SideState, SkillTarget, State, TurnActions};
+use crate::r#match::{Action, Offers, SideState, SkillTarget, State, TurnActions};
 
 /// Reads and projects a standalone state, preserving its optional map and seed.
 /// Unit reinforcement names are interpreted in the state's stated round.
@@ -48,6 +48,7 @@ pub fn read_state(bytes: &[u8]) -> Result<Layout, String> {
     let map_id = optional(fields, "map_id")?;
     let seed = optional(fields, "seed")?;
     let state: State = crate::r#match::payload(value).map_err(|e| e.to_string())?;
+    state.check_reinforcement(false)?;
     Ok(Layout {
         kind: DocumentKind::Layout,
         game_build: crate::economy::game_build().to_owned(),
@@ -79,11 +80,16 @@ pub fn deployment(
     round: i32,
     map_id: i32,
     seed: i32,
-    declined: Option<i32>,
 ) -> Result<Deployment, String> {
     let mut warnings = Vec::new();
     let mut deploy = |opened: &SideState, actions: &[Action], red| {
-        let (position, side_warnings) = deploy_side(economy, opened, actions, red, declined)?;
+        let (position, side_warnings) = deploy_side(
+            economy,
+            opened,
+            actions,
+            red,
+            opening.reinforce_offers.as_ref(),
+        )?;
         let side = if red { "red" } else { "blue" };
         warnings.extend(
             side_warnings
@@ -114,7 +120,7 @@ fn deploy_side(
     opened: &SideState,
     actions: &[Action],
     red: bool,
-    declined: Option<i32>,
+    offers: Option<&Offers>,
 ) -> Result<(SideState, Vec<String>), String> {
     let mut position = opened.clone();
     let mut history = InitializationHistory::default();
@@ -124,7 +130,7 @@ fn deploy_side(
             &position,
             std::slice::from_ref(action),
             red,
-            declined,
+            offers,
         )
         .map_err(|error| error.to_string())?;
         history.record(&position, &next, action);
@@ -325,7 +331,6 @@ fn with_sources(mut side: Side, opening: &SideState, round: i32) -> Result<Side,
 pub fn every_round(
     economy: &crate::economy::Economy,
     stated: &crate::opening::Stated,
-    deal: &crate::reinforcement::Verified,
 ) -> Result<usize, String> {
     let compiled = |opening: &State, state: &State, round: i32, which: &str| {
         project(opening, state, round, stated.map_id, stated.seed)
@@ -335,9 +340,9 @@ pub fn every_round(
     let mut layouts = 0;
     for turn in &stated.turns {
         compiled(&turn.state, &turn.state, turn.round, "opening")?;
-        let declined = deal.declined(turn);
+        let offers = turn.state.reinforce_offers.as_ref();
         let deployed = |state, actions, red| {
-            crate::transition::deployed(economy, state, actions, red, declined)
+            crate::transition::deployed(economy, state, actions, red, offers)
                 .map_err(|unsettled| format!("round {} does not deploy: {unsettled}", turn.round))
         };
         let state = State {
@@ -459,21 +464,15 @@ fn project_battle_skills(
 
 /// Keeps the panel entries this round released, in release order.
 fn project_releases(state: &SideState, side_name: &str) -> Result<Vec<BattleSkillRelease>, String> {
-    let mut released: Vec<(&Release, i32)> = state
+    let mut released: Vec<_> = state
         .battle_skills
         .iter()
-        .filter_map(|slot| Some((slot.release.as_ref()?, slot.id)))
+        .filter_map(|slot| Some((slot.battle_order()?, slot.id, slot.release.as_ref()?)))
         .collect();
-    released.sort_by_key(|(release, _)| release.order);
+    released.sort_by_key(|(order, _, _)| *order);
     released
         .into_iter()
-        .filter(|(_, id)| {
-            // A recovery is deployment's work: it takes one of the side's own
-            // objects away and pays back what it cost before the fight, so the
-            // fight sees nothing of it and a layout states nothing of it.
-            !crate::ledger::RECOVERY_SKILLS.contains(id)
-        })
-        .map(|(release, id)| {
+        .map(|(_, id, release)| {
             let type_name = battle_skill_type_from_id(id).ok_or_else(|| {
                 format!("side {side_name} released commander skill {id}, which has no layout type")
             })?;
@@ -515,7 +514,6 @@ mod tests {
                 .map(|unit| crate::r#match::StateUnit {
                     unit: unit.clone(),
                     value: Some(100),
-                    redeployed: false,
                 })
                 .collect(),
             next_index: crate::r#match::NextIndex {
@@ -589,7 +587,6 @@ mod tests {
                 5,
                 1012,
                 1,
-                None,
             )
             .unwrap()
         };
@@ -629,7 +626,6 @@ mod tests {
                         "position": {"x": -100, "y": -160}}))
                     .unwrap(),
                     value: None,
-                    redeployed: false,
                 }],
                 ..Default::default()
             },
@@ -660,7 +656,6 @@ mod tests {
                 5,
                 1012,
                 1,
-                None,
             )
             .unwrap()
         };
@@ -709,7 +704,6 @@ mod tests {
                         "position": {"x": -100, "y": -160}}))
                     .unwrap(),
                     value: None,
-                    redeployed: false,
                 }],
                 ..Default::default()
             },
@@ -723,7 +717,6 @@ mod tests {
                 9,
                 1012,
                 1,
-                None,
             )
             .unwrap()
         };

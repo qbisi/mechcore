@@ -98,8 +98,10 @@ fn decline(path: &str, side: &str) {
     let name = state(&view)["reinforce_offers"][last].as_str().unwrap();
     let decision = format!("{{type: choose_reinforce_item, index: {last}, name: {name}}}");
     assert_eq!(state(&view)[side]["reinforce_chosen"], false);
+    assert_eq!(state(&view)[side]["reinforce_choice"], -1);
     let chosen = run(&["match", "act", path, "--side", side, &decision]).ok();
     assert_eq!(state(&chosen)[side]["reinforce_chosen"], true);
+    assert_eq!(state(&chosen)[side]["reinforce_choice"], last);
     let shown = run(&["match", "show", path, "--side", side]).ok();
     assert_eq!(state(&shown), state(&chosen));
 }
@@ -887,7 +889,6 @@ fn movement_permission_is_recomputed_from_equipment_and_redeploy_actions() {
                 index,
                 id: mobility::REDEPLOY_SKILLS[0],
                 cooldown: 0,
-                used: false,
                 standing: Vec::new(),
                 release: None,
             });
@@ -926,6 +927,17 @@ fn movement_permission_is_recomputed_from_equipment_and_redeploy_actions() {
         ])
         .ok();
         assert_eq!(state(&trial)["blue"]["units"][0]["movable"], true);
+        if redeploy {
+            let slot = state(&trial)["blue"]["battle_skills"]
+                .as_array()
+                .unwrap()
+                .last()
+                .unwrap();
+            assert_eq!(
+                slot["release"],
+                serde_json::json!({"target": {"unit": unit}})
+            );
+        }
         let unchanged = run(&["match", "show", &path, "--side", "blue"]).ok();
         assert_eq!(state(&unchanged), state(&view));
         let applied = run(&["match", "act", &path, "--side", "blue", &written]).ok();
@@ -1640,7 +1652,7 @@ fn a_round_opens_with_its_reinforcement_answer() {
 }
 
 #[test]
-fn a_match_whose_deal_does_not_verify_is_not_written_as_a_replay() {
+fn a_match_with_a_repeated_reinforcement_choice_is_not_written_as_a_replay() {
     let directory = tempfile::tempdir().unwrap();
     let path = dealt(directory.path());
     open_the_match(&path);
@@ -1667,7 +1679,7 @@ fn a_match_whose_deal_does_not_verify_is_not_written_as_a_replay() {
 
     let replay = directory.path().join("m.grbr").display().to_string();
     let refused = run(&["convert", &path, "--to", "grbr", &replay]).refused();
-    assert!(refused.contains("deal does not verify"), "{refused}");
+    assert!(refused.contains("one answer"), "{refused}");
     assert!(!Path::new(&replay).exists());
 }
 

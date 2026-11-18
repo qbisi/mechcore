@@ -280,19 +280,15 @@ fn write_player(
             &earlier_officers,
             turn.round - 1,
         ));
-        let snapshot = unopen(economy, state, turn.round, previous, red, stream)
+        let spent = spent_slots(previous);
+        let snapshot = unopen(economy, state, turn.round, previous, &spent, red, stream)
             .map_err(|error| format!("round {} {name}: {error}", turn.round))?;
         let _ = write!(
             xml,
             "<PlayerRoundRecord><round>{}</round><playerData>",
             turn.round
         );
-        let chains: Vec<i32> = snapshot
-            .blueprints
-            .iter()
-            .filter_map(|blueprint| crate::catalog::chain_officer(*blueprint))
-            .collect();
-        write_snapshot(xml, &snapshot, &chains, sign, turn.round, &stream.state())?;
+        write_snapshot(xml, &snapshot, &spent, sign, turn.round, &stream.state())?;
         xml.push_str("</playerData>");
         // The round's decisions are taken from the position it opened with,
         // deliveries and all, which is the match's.
@@ -320,16 +316,26 @@ fn unopen(
     state: &SideState,
     round: i32,
     previous: &[Action],
+    spent: &[i32],
     red: bool,
     stream: Stream,
 ) -> Result<SideState, String> {
     let mut snapshot = take_back_deliveries(economy, state, round, stream)?;
-    undo_reset(economy, &mut snapshot, round, previous);
+    undo_reset(economy, &mut snapshot, round, previous, spent);
     // The conversion's own opening has to make the match's position of it.
     let mut placement = crate::landing::placement(red);
-    let opened =
-        crate::transition::open_round(economy, &snapshot, round, &mut placement, Some(stream))
-            .map_err(|reason| format!("the undone position does not open: {reason:?}"))?;
+    let mut opened = crate::transition::open_round_with_spent(
+        economy,
+        &snapshot,
+        round,
+        &mut placement,
+        Some(stream),
+        spent,
+    )
+    .map_err(|reason| format!("the undone position does not open: {reason:?}"))?;
+    opened.reinforce_choice = state
+        .reinforce_choice
+        .map(|_| crate::r#match::Offers::UNANSWERED);
     if &opened != state {
         return Err("the undone position does not open onto the match's".into());
     }
@@ -406,20 +412,29 @@ fn take_back_deliveries(
     Ok(snapshot)
 }
 
-/// Undoes the round's reset: a slot the previous round spent restarts as the
-/// round opens and every other counts down, and the income, less what the
-/// previous round's Rapid Resupply still owes, is paid.
-fn undo_reset(economy: &Economy, snapshot: &mut SideState, round: i32, previous: &[Action]) {
-    let spent: Vec<i32> = previous
+fn spent_slots(actions: &[Action]) -> Vec<i32> {
+    actions
         .iter()
         .filter_map(|action| match action {
             Action::ReleaseCommanderSkill { index, .. } => Some(*index),
             _ => None,
         })
-        .collect();
+        .collect()
+}
+
+/// Undoes the round's reset: a slot the previous round spent restarts as the
+/// round opens and every other counts down, and the income, less what the
+/// previous round's Rapid Resupply still owes, is paid.
+fn undo_reset(
+    economy: &Economy,
+    snapshot: &mut SideState,
+    round: i32,
+    previous: &[Action],
+    spent: &[i32],
+) {
+    snapshot.reinforce_choice = None;
     for slot in &mut snapshot.battle_skills {
-        slot.used = spent.contains(&slot.index);
-        slot.cooldown = if slot.used || slot.cooldown == 0 {
+        slot.cooldown = if spent.contains(&slot.index) || slot.cooldown == 0 {
             0
         } else {
             slot.cooldown + 1
@@ -449,9 +464,6 @@ fn undo_reset(economy: &Economy, snapshot: &mut SideState, round: i32, previous:
         crate::ledger::round_income(economy, round, &snapshot.officers, economy.round_supply());
     snapshot.supply -= income + worn - debt;
     snapshot.shop = crate::r#match::Allowances::default();
-    for entry in &mut snapshot.units {
-        entry.redeployed = false;
-    }
 }
 
 fn take_item(snapshot: &mut SideState, item: i32, officer: i32) -> Result<(), String> {
@@ -470,7 +482,7 @@ fn take_item(snapshot: &mut SideState, item: i32, officer: i32) -> Result<(), St
 fn write_snapshot(
     xml: &mut String,
     side: &SideState,
-    chain_officers: &[i32],
+    spent: &[i32],
     sign: i32,
     round: i32,
     stream: &[u64; 4],
@@ -485,11 +497,15 @@ fn write_snapshot(
     write_units(xml, side, sign)?;
     let _ = write!(xml, "<unitIndex>{}</unitIndex>", side.next_index.unit);
     let mut officers = side.officers.clone();
-    officers.extend_from_slice(chain_officers);
+    officers.extend(
+        side.blueprints
+            .iter()
+            .filter_map(|id| crate::catalog::chain_officer(*id)),
+    );
     officers.sort_unstable();
     write_ints(xml, "officers", &officers);
     xml.push_str("<mainEffects /><lastRoundSupply>0</lastRoundSupply><reinforceShopStrengthens />");
-    write_panel(xml, side, sign, round);
+    write_panel(xml, side, spent, sign, round);
     write_technology_rows(xml, "activeTechnologies", "UnitData", &side.techs);
     write_inventory(xml, side);
     xml.push_str("<shop>");
@@ -658,7 +674,7 @@ fn native_id(spec: Option<crate::catalog::FormationSpec>) -> Option<i32> {
 
 /// The panel, each slot with the objects its earlier releases left standing
 /// in its `rangeItems`.
-fn write_panel(xml: &mut String, side: &SideState, sign: i32, round: i32) {
+fn write_panel(xml: &mut String, side: &SideState, spent: &[i32], sign: i32, round: i32) {
     if side.battle_skills.is_empty() {
         xml.push_str("<commanderSkills />");
         return;
@@ -669,7 +685,10 @@ fn write_panel(xml: &mut String, side: &SideState, sign: i32, round: i32) {
             xml,
             "<CommanderSkillData><index>{}</index><id>{}</id><isActive>{}</isActive>\
              <coolingRound>{}</coolingRound><getRound>{round}</getRound>",
-            slot.index, slot.id, slot.used, slot.cooldown
+            slot.index,
+            slot.id,
+            spent.contains(&slot.index),
+            slot.cooldown
         );
         if slot.standing.is_empty() {
             xml.push_str("<rangeItems />");
@@ -709,7 +728,6 @@ fn write_actions(
     )?;
     let mut records: Vec<(&str, String)> = Vec::new();
     let offers = turn.state.reinforce_offers.as_ref();
-    let declined = offers.map(|offers| offers.refund);
     // Each decision is stepped as conversion steps it, which is what names
     // the formation a purchase creates and the type a move carries. A match
     // holds only decisions the board allows in its order, so each is recorded
@@ -744,7 +762,7 @@ fn write_actions(
             economy,
             &position,
             action,
-            declined,
+            offers,
             &mut crate::landing::placement(sign < 0),
         )
         .map_err(|reason| {
@@ -773,7 +791,7 @@ fn native_actions(
         economy,
         position: opened.clone(),
         actions: Vec::new(),
-        declined: offers.map(|offers| offers.refund),
+        offers,
         red,
     };
     for action in actions {
@@ -816,7 +834,7 @@ struct NativeDeployment<'a> {
     economy: &'a Economy,
     position: SideState,
     actions: Vec<Action>,
-    declined: Option<i32>,
+    offers: Option<&'a crate::r#match::Offers>,
     red: bool,
 }
 
@@ -829,7 +847,7 @@ impl NativeDeployment<'_> {
             &self.position,
             std::slice::from_ref(&action),
             self.red,
-            self.declined,
+            self.offers,
         )
         .map_err(|error| format!("native {action:?}: {error}"))?;
         self.actions.push(action);
@@ -888,22 +906,10 @@ fn action_records(
             let offers = context
                 .offers
                 .ok_or("reinforcement choice without offers")?;
-            let (index, id) = match id {
-                crate::r#match::ReinforceChoice::Refund(amount)
-                    if *index == offers.decline_index() && *amount == offers.refund =>
-                {
-                    (-1, 0)
-                }
-                crate::r#match::ReinforceChoice::Card(card)
-                    if usize::try_from(*index)
-                        .ok()
-                        .and_then(|at| offers.dealt.get(at))
-                        == Some(card) =>
-                {
-                    (*index, *card)
-                }
-                _ => return Err("reinforcement choice differs from its offer".into()),
-            };
+            if offers.choice(*index) != Some(*id) {
+                return Err("reinforcement choice differs from its offer".into());
+            }
+            let (index, id) = id.card().map_or((-1, 0), |card| (*index, card));
             vec![(
                 "PAD_ChooseReinforceItem",
                 format!("<ID>{id}</ID><Index>{index}</Index><paras />"),

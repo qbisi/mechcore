@@ -140,14 +140,16 @@ red:
 
 #[test]
 fn arsenal_keeps_duplicate_skill_slots_and_individual_inventory_items() {
-    use mechcore_document::r#match::{EquipmentItem, PanelSkill, SideState};
-    let slot = |index, cooldown, used| PanelSkill {
+    use mechcore_document::r#match::{EquipmentItem, PanelSkill, Release, SideState, SkillTarget};
+    let slot = |index, cooldown, used: bool| PanelSkill {
         index,
         id: 900_001,
         cooldown,
-        used,
         standing: Vec::new(),
-        release: None,
+        release: used.then_some(Release {
+            order: None,
+            target: SkillTarget::Unit(0),
+        }),
     };
     let item = |durability| EquipmentItem {
         id: 13_030_001,

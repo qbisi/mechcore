@@ -14,8 +14,8 @@ use mechcore_document::{
     economy::Economy,
     layout::StaticPlacement,
     r#match::{
-        Action, DEFAULT_DEPLOY_TIME, Match, MatchSide, Opening, OpeningOffer, SideState, State,
-        Turn as MatchTurn, TurnActions,
+        Action, DEFAULT_DEPLOY_TIME, Match, MatchSide, Offers, Opening, OpeningOffer, SideState,
+        State, Turn as MatchTurn, TurnActions,
     },
     opening::{self, Stream},
     transition,
@@ -990,7 +990,7 @@ impl Game {
         });
         let dealt = self.deal()?;
         if let Some(opened) = self.r#match.turns.last_mut() {
-            opened.state.reinforce_offers = dealt.offers;
+            opened.state.set_reinforce_offers(dealt.offers);
             dealt.checkpoint.write_to(&mut opened.state);
         }
         let deploy_time = self.turn.deploy_time;
@@ -1030,29 +1030,23 @@ impl Game {
     /// Answers why the round is not settled: the fight could not run, or the
     /// recording does not answer everything it decided.
     fn fought(&self, round: i32) -> Result<mechcore_document::Fight, String> {
-        let opening = State {
-            random_state: [0; 4],
-            reinforce_pool: mechcore_document::r#match::PoolDelta::default(),
-            reinforce_offers: None,
-            blue: self
-                .opened(Side::Blue)
-                .map_err(|failure| failure.reason().to_owned())?,
-            red: self
-                .opened(Side::Red)
-                .map_err(|failure| failure.reason().to_owned())?,
-        };
+        let opening = &self
+            .r#match
+            .turns
+            .last()
+            .ok_or("no deployment round to fight")?
+            .state;
         let actions = TurnActions {
             blue: self.decisions(Side::Blue),
             red: self.decisions(Side::Red),
         };
         let layout = crate::convert::project_match(
             self.economy,
-            &opening,
+            opening,
             &actions,
             round,
             self.r#match.map_id,
             self.r#match.seed,
-            self.declined(),
         )?
         .layout;
         let yaml = mechcore_document::canonical_yaml(layout)?;
@@ -1106,13 +1100,12 @@ impl Game {
         }
     }
 
-    /// What declining the round in progress pays, which its offers state.
-    fn declined(&self) -> Option<i32> {
+    /// The full reinforcement deal for the round in progress.
+    fn offers(&self) -> Option<&Offers> {
         self.r#match
             .turns
             .last()
             .and_then(|turn| turn.state.reinforce_offers.as_ref())
-            .map(|offers| offers.refund)
     }
 
     /// This side's position in the round in progress: what the round opened
@@ -1123,7 +1116,7 @@ impl Game {
             &self.opened(side)?,
             &self.decisions(side),
             side.red(),
-            self.declined(),
+            self.offers(),
         )
         .map_err(|unsettled| {
             Failure::failed(format!(
@@ -1144,7 +1137,7 @@ impl Game {
             self.economy,
             &before,
             decision,
-            self.declined(),
+            self.offers(),
             &mut placement,
         )
         .map_err(|unsettled| Failure::refused(unsettled.to_string()))?;
@@ -1224,8 +1217,7 @@ impl Game {
     /// an opening may not be taken in any other round.
     ///
     /// A side researches out of the loadout it brought, which the match states
-    /// and the position does not, and it takes one reinforcement answer a
-    /// round, which only the round's decisions so far can say.
+    /// and the position does not.
     fn allowed(&self, side: Side, decision: &Action) -> Result<(), Failure> {
         let opening = self.round() == 0;
         match decision {
@@ -1259,52 +1251,6 @@ impl Game {
             _ if opening => Err(Failure::refused(
                 "round zero holds one decision, and it is the opening",
             )),
-            // A round that deals an offer opens with its answer; only giving up
-            // comes before it.
-            _ if !matches!(
-                decision,
-                Action::ChooseReinforceItem { .. } | Action::Concede
-            ) && self.offered()
-                && !self.answered(side) =>
-            {
-                Err(Failure::refused(
-                    "this round deals a reinforcement offer, and its answer is the side's first decision",
-                ))
-            }
-            Action::ChooseReinforceItem { index: offer, id } => {
-                if self.answered(side) {
-                    return Err(Failure::refused(
-                        "this side has answered this round's reinforcement offer, and a round takes one answer",
-                    ));
-                }
-                let Some(offers) = self
-                    .r#match
-                    .turns
-                    .last()
-                    .and_then(|turn| turn.state.reinforce_offers.as_ref())
-                else {
-                    return Err(Failure::refused("this round deals no reinforcement offer"));
-                };
-                // The decline sits after the cards dealt, and a card is taken
-                // at its own position.
-                let at = usize::try_from(*offer).ok();
-                let taken = match id {
-                    mechcore_document::r#match::ReinforceChoice::Refund(amount) => {
-                        *offer == offers.decline_index() && *amount == offers.refund
-                    }
-                    mechcore_document::r#match::ReinforceChoice::Card(card) => {
-                        at.and_then(|at| offers.dealt.get(at)) == Some(card)
-                    }
-                };
-                if taken {
-                    return Ok(());
-                }
-                Err(Failure::refused(format!(
-                    "offer {offer} is not what this round offers there: it deals {} and declines at {}",
-                    offers.dealt.len(),
-                    offers.decline_index()
-                )))
-            }
             Action::UpgradeTechnology { unit, tech } => {
                 let brought = self
                     .match_side(side)
@@ -1323,23 +1269,6 @@ impl Game {
         }
     }
 
-    /// Whether the round in progress deals a reinforcement offer.
-    fn offered(&self) -> bool {
-        self.r#match
-            .turns
-            .last()
-            .is_some_and(|turn| turn.state.reinforce_offers.is_some())
-    }
-
-    /// Whether `side` has answered the round's offer.
-    fn answered(&self, side: Side) -> bool {
-        self.turn
-            .side(side)
-            .decisions
-            .iter()
-            .any(|taken| matches!(taken, Action::ChooseReinforceItem { .. }))
-    }
-
     /// Seals this side's decisions without changing the shared document.
     fn commit(&mut self, side: Side, held: &mut Held) -> Result<(), Failure> {
         if !self.phase().decides() {
@@ -1354,19 +1283,9 @@ impl Game {
                 self.round()
             )));
         }
-        // A round that deals an offer is written with one answer from each
-        // side, unless the side gave up.
-        let conceded = self
-            .turn
-            .side(side)
-            .decisions
-            .iter()
-            .any(|taken| matches!(taken, Action::Concede));
-        if self.offered() && !self.answered(side) && !conceded {
-            return Err(Failure::refused(
-                "this round deals a reinforcement offer, and a side answers it before it commits",
-            ));
-        }
+        let conceded = self.turn.side(side).decisions.contains(&Action::Concede);
+        transition::check_reinforcement_finished(self.position(side)?.reinforce_choice, conceded)
+            .map_err(|error| Failure::refused(error.to_string()))?;
         if self.round() == 0 {
             let [decision] = self.turn.side(side).decisions.as_slice() else {
                 return Err(Failure::refused(
@@ -1495,17 +1414,14 @@ impl Game {
                 "unlocks_remaining": position.shop.unlocks_remaining,
                 "contraptions_remaining": position.shop.contraptions_remaining,
             });
-            current["reinforce_chosen"] = Value::Bool(
-                self.decisions(side)
-                    .iter()
-                    .any(|action| matches!(action, Action::ChooseReinforceItem { .. })),
-            );
+            current["reinforce_chosen"] =
+                Value::Bool(position.reinforce_choice.is_some_and(|index| index >= 0));
             for (unit, written) in position.units.iter().zip(
                 current["units"]
                     .as_array_mut()
                     .expect("units serialize as an array"),
             ) {
-                written["movable"] = Value::Bool(unit.movable(&position.techs));
+                written["movable"] = Value::Bool(unit.movable(&position));
             }
             value[side.name()] = current;
         }

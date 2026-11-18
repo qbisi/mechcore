@@ -118,7 +118,10 @@ fn layout_and_state_answer_the_same_geometry_without_spending_supply() {
 fn standalone_state_reads_unit_reinforcements_in_its_own_round() {
     let dir = tempfile::tempdir().unwrap();
     let state = dir.path().join("state.yaml");
-    let side = mechcore_document::r#match::SideState::default();
+    let side = mechcore_document::r#match::SideState {
+        reinforce_choice: Some(-1),
+        ..Default::default()
+    };
     let input = json!({"kind":"state","round":2,"random_state":[1,2,3,4],
         "reinforce_offers":["rhino_1x_lv1","refund_200"],"blue":side,"red":side});
     fs::write(&state, input.to_string()).unwrap();

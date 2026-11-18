@@ -244,6 +244,33 @@ pub struct State {
     pub red: SideState,
 }
 
+impl State {
+    /// Installs the round's deal before either side has answered it.
+    pub fn set_reinforce_offers(&mut self, offers: Option<Offers>) {
+        let choice = offers.as_ref().map(|_| Offers::UNANSWERED);
+        self.blue.reinforce_choice = choice;
+        self.red.reinforce_choice = choice;
+        self.reinforce_offers = offers;
+    }
+
+    pub(crate) fn check_reinforcement(&self, opening: bool) -> Result<(), String> {
+        let offers = self.reinforce_offers.as_ref();
+        for (name, side) in [("blue", &self.blue), ("red", &self.red)] {
+            let valid = match (offers, side.reinforce_choice) {
+                (None, None) | (Some(_), Some(Offers::UNANSWERED)) => true,
+                (Some(offers), Some(index)) if !opening => offers.choice(index).is_some(),
+                _ => false,
+            };
+            if !valid {
+                return Err(format!(
+                    "{name} reinforce_choice disagrees with the round's offers or phase"
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
 /// Current membership relative to the seed's initial ordinary reinforcement pool.
 #[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -288,10 +315,23 @@ impl Serialize for Offers {
 }
 
 impl Offers {
+    /// A side has been dealt an offer and has yet to answer it.
+    pub const UNANSWERED: i32 = -1;
+
     /// The decline's position, after every card dealt.
     #[must_use]
     pub fn decline_index(&self) -> i32 {
         i32::try_from(self.dealt.len()).unwrap_or(i32::MAX)
+    }
+
+    #[must_use]
+    pub fn choice(&self, index: i32) -> Option<ReinforceChoice> {
+        if index == self.decline_index() {
+            Some(ReinforceChoice::Refund(self.refund))
+        } else {
+            let index = usize::try_from(index).ok()?;
+            self.dealt.get(index).copied().map(ReinforceChoice::Card)
+        }
     }
 }
 
@@ -319,6 +359,9 @@ pub struct SideState {
     pub random_state: [u64; 4],
     pub reactor_core: i32,
     pub supply: i32,
+    /// The round's selected offer, or -1 while the offer is unanswered.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reinforce_choice: Option<i32>,
     /// Unit IDs, written as their type names in ID order.
     #[serde(with = "unit_names::units")]
     #[schemars(with = "Vec<String>")]
@@ -391,20 +434,22 @@ pub struct StateUnit {
     pub unit: UnitPlacement,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<i32>,
-    /// A Redeploy action frees this formation for the remainder of deployment.
-    /// Round openings reset this internal flag; the match records the action.
-    #[serde(skip)]
-    pub(crate) redeployed: bool,
 }
 
 impl StateUnit {
     /// Deployment movement follows the source, persistent mobility modifiers,
     /// and any Redeploy action already taken in this round.
     #[must_use]
-    pub fn movable(&self, techs: &[i32]) -> bool {
+    pub fn movable(&self, side: &SideState) -> bool {
         self.unit.source != crate::layout::UnitSource::Legacy
-            || crate::mobility::free(&self.unit, techs)
-            || self.redeployed
+            || crate::mobility::free(&self.unit, &side.techs)
+            || side.battle_skills.iter().any(|slot| {
+                crate::mobility::REDEPLOY_SKILLS.contains(&slot.id)
+                    && slot
+                        .release
+                        .as_ref()
+                        .is_some_and(|release| release.target == SkillTarget::Unit(self.unit.index))
+            })
     }
 }
 
@@ -429,14 +474,6 @@ pub struct PanelSkill {
     #[schemars(with = "String")]
     pub id: i32,
     pub cooldown: i32,
-    /// True on a deployment skill this round used.
-    ///
-    /// A deployment skill does its work before the fight, as a change to the
-    /// position, so the slot records that it was spent and nothing else: no
-    /// target, no place in the release order, and no entry in a layout. A
-    /// round's opening position carries none.
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub used: bool,
     /// What the slot's earlier releases left standing, in the payload the
     /// slot's skill leaves. Only a Shield Airdrop's and a Sticky Oil Bomb's
     /// outlive their round.
@@ -460,8 +497,6 @@ struct PanelSkillFields {
     id: i32,
     cooldown: i32,
     #[serde(default)]
-    used: bool,
-    #[serde(default)]
     standing: Vec<Standing>,
     #[serde(default)]
     release: Option<Release>,
@@ -474,11 +509,13 @@ impl TryFrom<PanelSkillFields> for PanelSkill {
         for standing in &fields.standing {
             standing.require_skill(fields.id)?;
         }
+        if let Some(release) = &fields.release {
+            release.require_skill(fields.id)?;
+        }
         Ok(Self {
             index: fields.index,
             id: fields.id,
             cooldown: fields.cooldown,
-            used: fields.used,
             standing: fields.standing,
             release: fields.release,
         })
@@ -493,10 +530,42 @@ impl TryFrom<PanelSkillFields> for PanelSkill {
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Release {
-    pub order: i32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub order: Option<i32>,
     #[serde(with = "serde_yaml::with::singleton_map")]
     #[schemars(with = "SkillTarget")]
     pub target: SkillTarget,
+}
+
+impl Release {
+    pub(crate) fn is_deployment(skill: i32) -> bool {
+        crate::ledger::RECOVERY_SKILLS.contains(&skill)
+            || crate::mobility::REDEPLOY_SKILLS.contains(&skill)
+            || crate::transition::TRAINING_SKILLS.contains(&skill)
+    }
+
+    fn require_skill(&self, skill: i32) -> Result<(), String> {
+        let valid = if crate::ledger::RECOVERY_SKILLS.contains(&skill) {
+            self.order.is_none() && !matches!(self.target, SkillTarget::Area(_))
+        } else if Self::is_deployment(skill) {
+            self.order.is_none() && matches!(self.target, SkillTarget::Unit(_))
+        } else {
+            self.order.is_some_and(|order| order >= 0)
+        };
+        if valid {
+            Ok(())
+        } else {
+            Err(format!(
+                "release has an invalid order or target for skill {skill}"
+            ))
+        }
+    }
+}
+
+impl PanelSkill {
+    pub(crate) fn battle_order(&self) -> Option<i32> {
+        self.release.as_ref()?.order
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -1323,7 +1392,7 @@ pub fn segments(bytes: &[u8]) -> Result<Option<Segments>, String> {
         if kind == "state" {
             if released(&segment) {
                 return Err(format!(
-                    "round {round} state carries a release or a used skill; a match \
+                    "round {round} state carries a release; a match \
                      states the position a round opens with, before any decision"
                 ));
             }
@@ -1445,11 +1514,7 @@ fn released(state: &Value) -> bool {
     state_sides(state).any(|side| {
         side.get("battle_skills")
             .and_then(Value::as_sequence)
-            .is_some_and(|panel| {
-                panel
-                    .iter()
-                    .any(|slot| slot.get("release").is_some() || slot.get("used").is_some())
-            })
+            .is_some_and(|panel| panel.iter().any(|slot| slot.get("release").is_some()))
     })
 }
 

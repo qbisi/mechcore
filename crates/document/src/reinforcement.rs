@@ -212,23 +212,6 @@ pub struct Verified {
     pub checkpoints: Vec<Checkpoint>,
 }
 
-impl Verified {
-    /// A captured first deal is not a verified draw, but its refund is checked.
-    #[must_use]
-    pub fn declined(&self, turn: &Turn) -> Option<i32> {
-        self.rounds
-            .iter()
-            .find(|dealt| dealt.round == turn.round)
-            .map(|dealt| dealt.declined)
-            .or_else(|| {
-                turn.state
-                    .reinforce_offers
-                    .as_ref()
-                    .map(|offers| offers.refund)
-            })
-    }
-}
-
 /// A deployment opening after its reinforcement deal, before either side acts.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Checkpoint {
@@ -1268,8 +1251,20 @@ mod tests {
             crate::opening::stated(crate::r#match::canonical_yaml(&game).unwrap().as_bytes())
                 .unwrap()
                 .unwrap();
-        game.turns[0].state.reinforce_offers =
-            dealer.deal(economy, &stated, &game.turns[0]).unwrap();
+        let offers = dealer
+            .deal(economy, &stated, &game.turns[0])
+            .unwrap()
+            .unwrap();
+        let index = offers.decline_index();
+        let answer = Action::ChooseReinforceItem {
+            index,
+            id: offers.choice(index).unwrap(),
+        };
+        game.turns[0].state.set_reinforce_offers(Some(offers));
+        game.turns[0].actions = TurnActions {
+            blue: vec![answer.clone()],
+            red: vec![answer],
+        };
         let expected = dealer.checkpoint(&initial);
         let placeholder =
             quick_xml::de::from_str("<MatchSnapshotData><round>0</round></MatchSnapshotData>")

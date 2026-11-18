@@ -141,10 +141,12 @@ have the same shape; the header's `source` records their origin.
 
 ### A state segment is the position a round opens with
 
-A match states a round from before its first decision. No skill on its panel
-carries a `release` or is `used`, and `travelling` is empty, because all three
-are written by the round's own decisions. A state segment that holds a release
-or a used skill is refused.
+A match states a round from before its first decision. Its panel has no
+`release` and its `travelling` set is empty. Each side's `reinforce_choice`
+is `-1` when the round deals offers and is absent otherwise.
+An empty final action segment may mark a round still in progress. In a
+completed deployment with offers, both sides record an answer unless a side
+conceded.
 
 Each state segment repeats the whole position rather than what changed. That is
 accepted rather than encoded away: a segment has to stand alone so that one round

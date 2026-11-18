@@ -16,7 +16,8 @@ use crate::economy::{CardKind, Economy, OpeningKind};
 use crate::layout::{ContraptionPlacement, Experience, Position, Region, StaticPlacement};
 use crate::ledger::Purse;
 use crate::r#match::{
-    Action, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateUnit,
+    Action, EquipmentItem, Offers, PanelSkill, ReinforceChoice, Release, SideState, SkillTarget,
+    StateUnit,
 };
 use crate::opening::Stream;
 
@@ -66,8 +67,7 @@ impl std::fmt::Display for Unsettled {
 /// Commander skills that fill a formation's experience bar:
 /// Intensive Training.
 ///
-/// A deployment skill: it does its work on the position before the fight, so
-/// its slot is marked used rather than released.
+/// A deployment skill whose release carries a target and no battle order.
 pub(crate) const TRAINING_SKILLS: [i32; 1] = [1_100_001];
 
 /// Energy tower skill `3`, Mass Recruitment, which adds a purchase to this round.
@@ -94,10 +94,7 @@ pub(crate) const EXTRA_BUYS: i32 = 1;
 /// leaves the caller the position it started from rather than half of the one
 /// it was reaching for.
 ///
-/// `declined` is what declining the round's reinforcement offer pays, which
-/// the match's unit reinforcement pool decides rather than the position:
-/// [`crate::reinforcement::decline_supply`] gives it. `None` says it is not
-/// known, and a decline is then [`Unsettled::Unpriced`].
+/// `offers` is the round's full deal, including the refund, if it deals one.
 ///
 /// # Errors
 ///
@@ -108,9 +105,52 @@ pub fn step(
     economy: &Economy,
     state: &SideState,
     action: &Action,
-    declined: Option<i32>,
+    offers: Option<&Offers>,
 ) -> Result<SideState, Unsettled> {
-    step_placing(economy, state, action, declined, &mut |_, _| None)
+    step_placing(economy, state, action, offers, &mut |_, _| None)
+}
+
+pub(crate) fn reinforcement_after(
+    choice: Option<i32>,
+    action: &Action,
+    offers: Option<&Offers>,
+) -> Result<Option<i32>, Unsettled> {
+    match action {
+        Action::ChooseReinforceItem { index, id } => {
+            let offers = offers.ok_or(Unsettled::Refused(
+                "this round deals no reinforcement offer",
+            ))?;
+            if choice != Some(Offers::UNANSWERED) {
+                return Err(Unsettled::Refused(
+                    "a round takes one answer to its reinforcement offer",
+                ));
+            }
+            if offers.choice(*index) != Some(*id) {
+                return Err(Unsettled::Refused(
+                    "reinforcement choice is not what this round offers at that index",
+                ));
+            }
+            Ok(Some(*index))
+        }
+        Action::Concede => Ok(choice),
+        _ if choice == Some(Offers::UNANSWERED) => Err(Unsettled::Refused(
+            "the reinforcement answer must be the side's first decision",
+        )),
+        _ => Ok(choice),
+    }
+}
+
+/// Checks that a side has answered any offer before it finishes deploying.
+///
+/// # Errors
+/// Refuses an unanswered offer unless the deployment ended in a concession.
+pub fn check_reinforcement_finished(choice: Option<i32>, conceded: bool) -> Result<(), Unsettled> {
+    if choice == Some(Offers::UNANSWERED) && !conceded {
+        return Err(Unsettled::Refused(
+            "this round deals a reinforcement offer, and a side answers it before it commits",
+        ));
+    }
+    Ok(())
 }
 
 /// The current shop level and price for a unit, without placing or buying it.
@@ -166,10 +206,11 @@ pub fn step_placing(
     economy: &Economy,
     state: &SideState,
     action: &Action,
-    declined: Option<i32>,
+    offers: Option<&Offers>,
     placement: &mut dyn FnMut(&SideState, &str) -> Option<Position>,
 ) -> Result<SideState, Unsettled> {
     let mut next = state.clone();
+    next.reinforce_choice = reinforcement_after(state.reinforce_choice, action, offers)?;
     let mut purse = Purse::new(economy, &state.officers);
     // Elite Recruitment raises the shop for the rest of the round, and the
     // round's activations are in the position rather than in the decision.
@@ -184,19 +225,13 @@ pub fn step_placing(
         // pays: the item it takes is a supply grant of its own, whose size
         // the round decides.
         Action::ChooseReinforceItem {
-            id: crate::r#match::ReinforceChoice::Refund(amount),
+            id: ReinforceChoice::Refund(amount),
             ..
         } => {
-            let offered = declined.ok_or(Unsettled::Unpriced("declined reinforcement"))?;
-            if *amount != offered {
-                return Err(Unsettled::Refused(
-                    "refund amount differs from this round's offer",
-                ));
-            }
-            next.supply += offered;
+            next.supply += amount;
         }
         Action::ChooseReinforceItem {
-            id: crate::r#match::ReinforceChoice::Card(card),
+            id: ReinforceChoice::Card(card),
             ..
         } => {
             let price = economy.card(*card).ok_or(Unsettled::Unpriced("card"))?;
@@ -449,11 +484,15 @@ pub fn step_placing(
             position,
             rotated,
         } => {
-            let techs = &state.techs;
-            let formation = formation_mut(&mut next, *index)?;
-            if !formation.movable(techs) {
+            let held = state
+                .units
+                .iter()
+                .find(|entry| entry.unit.index == *index)
+                .ok_or(Unsettled::Missing("unit"))?;
+            if !held.movable(state) {
                 return Err(Unsettled::Refused("moving a unit fixed in place"));
             }
+            let formation = formation_mut(&mut next, *index)?;
             let left = Region::of(formation.unit.position);
             let arrived = Region::of(*position);
             formation.unit.position = *position;
@@ -523,9 +562,7 @@ fn afford(next: &SideState) -> Result<(), Unsettled> {
 /// Records a release on the panel, and applies what it does to the board.
 ///
 /// Most releases write nothing but the slot: what they do belongs to the fight.
-/// Two write the position as well. Field Recovery takes one of the side's own
-/// objects away and pays back what it cost, and the experience skills raise a
-/// formation's experience by an amount no shipped table carries.
+/// Field Recovery, Redeploy and Intensive Training affect deployment itself.
 fn release(
     economy: &Economy,
     next: &mut SideState,
@@ -533,13 +570,6 @@ fn release(
     named: i32,
     target: &SkillTarget,
 ) -> Result<(), Unsettled> {
-    let order = i32::try_from(
-        next.battle_skills
-            .iter()
-            .filter(|skill| skill.release.is_some())
-            .count(),
-    )
-    .unwrap_or(0);
     let held = next
         .battle_skills
         .iter()
@@ -554,7 +584,7 @@ fn release(
     // A release aimed at an object is refused while its slot is active or
     // cooling; one aimed at an area is checked for where it falls alone.
     if !matches!(target, SkillTarget::Area(_)) {
-        if held.used || held.release.is_some() {
+        if held.release.is_some() {
             return Err(Unsettled::Refused(
                 "releasing a skill already released this round",
             ));
@@ -563,15 +593,13 @@ fn release(
             return Err(Unsettled::Refused("releasing a skill still cooling"));
         }
     }
+    let replaced_order = held.battle_order();
     if crate::mobility::REDEPLOY_SKILLS.contains(&id) {
         let SkillTarget::Unit(index) = target else {
             return Err(Unsettled::Missing("redeploy target"));
         };
-        formation_mut(next, *index)?.redeployed = true;
-        spend(next, slot)?;
-        return Ok(());
-    }
-    if TRAINING_SKILLS.contains(&id) {
+        formation_mut(next, *index)?;
+    } else if TRAINING_SKILLS.contains(&id) {
         let SkillTarget::Unit(index) = target else {
             return Err(Unsettled::Missing("training target"));
         };
@@ -592,10 +620,7 @@ fn release(
             current: maximum,
             maximum,
         });
-        spend(next, slot)?;
-        return Ok(());
-    }
-    if crate::ledger::RECOVERY_SKILLS.contains(&id) {
+    } else if crate::ledger::RECOVERY_SKILLS.contains(&id) {
         match target {
             SkillTarget::Unit(index) => recover_formation(economy, next, *index)?,
             SkillTarget::Construction(index) => {
@@ -612,25 +637,40 @@ fn release(
             SkillTarget::Area(_) => return Err(Unsettled::Missing("recovery target")),
         }
     }
-    let slot = next
+    // An area release may replace an earlier one in the same slot.
+    // Move it to the end of the effective battle release sequence.
+    let order = if Release::is_deployment(id) {
+        None
+    } else {
+        if let Some(replaced) = replaced_order {
+            for release in next
+                .battle_skills
+                .iter_mut()
+                .filter_map(|held| held.release.as_mut())
+            {
+                if let Some(order) = &mut release.order
+                    && *order > replaced
+                {
+                    *order -= 1;
+                }
+            }
+        }
+        let active = next
+            .battle_skills
+            .iter()
+            .filter_map(PanelSkill::battle_order)
+            .count();
+        Some(i32::try_from(active - usize::from(replaced_order.is_some())).unwrap_or(0))
+    };
+    let held = next
         .battle_skills
         .iter_mut()
         .find(|skill| skill.index == slot)
         .ok_or(Unsettled::Missing("panel slot"))?;
-    slot.release = Some(Release {
+    held.release = Some(Release {
         order,
-        target: clone_target(target),
+        target: target.clone(),
     });
-    Ok(())
-}
-
-/// Marks a deployment skill's slot spent.
-fn spend(next: &mut SideState, slot: i32) -> Result<(), Unsettled> {
-    next.battle_skills
-        .iter_mut()
-        .find(|skill| skill.index == slot)
-        .ok_or(Unsettled::Missing("panel slot"))?
-        .used = true;
     Ok(())
 }
 
@@ -714,7 +754,6 @@ fn place(
             source: crate::layout::UnitSource::Joined,
         },
         value: Some(value),
-        redeployed: false,
     });
     next.units.sort_by_key(|entry| entry.unit.index);
     Ok(())
@@ -736,7 +775,6 @@ fn panel_add(next: &mut SideState, id: i32) {
         index,
         id,
         cooldown: 0,
-        used: false,
         standing: Vec::new(),
         release: None,
     });
@@ -755,14 +793,6 @@ fn formation_mut(next: &mut SideState, index: i32) -> Result<&mut StateUnit, Uns
         .iter_mut()
         .find(|entry| entry.unit.index == index)
         .ok_or(Unsettled::Missing("unit"))
-}
-
-fn clone_target(target: &SkillTarget) -> SkillTarget {
-    match target {
-        SkillTarget::Area(positions) => SkillTarget::Area(positions.clone()),
-        SkillTarget::Unit(index) => SkillTarget::Unit(*index),
-        SkillTarget::Construction(index) => SkillTarget::Construction(*index),
-    }
 }
 
 /// The position an opening is taken from.
@@ -803,13 +833,13 @@ pub fn deployed(
     state: &SideState,
     actions: &[Action],
     red: bool,
-    declined: Option<i32>,
+    offers: Option<&Offers>,
 ) -> Result<SideState, Unsettled> {
     let mut placement = crate::landing::placement(red);
     let mut position = state.clone();
     for action in actions {
         check_place(&position, action)?;
-        position = step_placing(economy, &position, action, declined, &mut placement)?;
+        position = step_placing(economy, &position, action, offers, &mut placement)?;
     }
     Ok(position)
 }
@@ -922,10 +952,22 @@ pub fn open_round(
     state: &SideState,
     round: i32,
     placement: &mut dyn FnMut(&SideState, &str) -> Option<Position>,
+    stream: Option<Stream>,
+) -> Result<SideState, Unsettled> {
+    open_round_with_spent(economy, state, round, placement, stream, &[])
+}
+
+/// Opens from a native snapshot, whose active slots have no release targets.
+pub(crate) fn open_round_with_spent(
+    economy: &Economy,
+    state: &SideState,
+    round: i32,
+    placement: &mut dyn FnMut(&SideState, &str) -> Option<Position>,
     mut stream: Option<Stream>,
+    spent: &[i32],
 ) -> Result<SideState, Unsettled> {
     let mut next = state.clone();
-    reset(economy, &mut next, round)?;
+    reset(economy, &mut next, round, spent)?;
     for officer in state.officers.clone() {
         let Some(row) = economy.officer(officer) else {
             continue;
@@ -1028,9 +1070,14 @@ pub fn open_allowances(next: &mut SideState) {
 /// it is fixed unless [`crate::mobility::free`] frees it, except in round 1,
 /// whose whole board arrived with the opening. `docs/rules/commander_skills.md`
 /// and `docs/rules/mobility.md` state the rules.
-fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unsettled> {
+fn reset(
+    economy: &Economy,
+    next: &mut SideState,
+    round: i32,
+    spent: &[i32],
+) -> Result<(), Unsettled> {
     for slot in &mut next.battle_skills {
-        slot.cooldown = if slot.used || slot.release.is_some() {
+        slot.cooldown = if slot.release.is_some() || spent.contains(&slot.index) {
             economy
                 .cooldown(slot.id)
                 .ok_or(Unsettled::Unpriced("cooldown"))?
@@ -1038,9 +1085,9 @@ fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unse
         } else {
             (slot.cooldown - 1).max(0)
         };
-        slot.used = false;
         slot.release = None;
     }
+    next.reinforce_choice = None;
     open_allowances(next);
     // The round's income: the map's schedule and what the side's officers add
     // to it, what the equipment on the board pays, and less what an energy
@@ -1068,7 +1115,6 @@ fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unse
         } else {
             crate::layout::UnitSource::Legacy
         };
-        entry.redeployed = false;
     }
     Ok(())
 }
@@ -1133,11 +1179,11 @@ pub fn predict(
     state: &SideState,
     actions: &[Action],
     red: bool,
-    declined: Option<i32>,
+    offers: Option<&Offers>,
     stream: Option<Stream>,
 ) -> Result<SideState, Unsettled> {
     let mut placement = crate::landing::placement(red);
-    let mut position = deployed(economy, state, actions, red, declined)?;
+    let mut position = deployed(economy, state, actions, red, offers)?;
     // Whatever else the fight does, it empties the travelling set: a
     // formation's crossing is over once the fight has run.
     for entry in &mut position.units {
@@ -1274,9 +1320,9 @@ pub fn fought(
     let mut slots: Vec<&mut PanelSkill> = next
         .battle_skills
         .iter_mut()
-        .filter(|slot| slot.release.is_some() && !crate::ledger::RECOVERY_SKILLS.contains(&slot.id))
+        .filter(|slot| slot.battle_order().is_some())
         .collect();
-    slots.sort_by_key(|slot| slot.release.as_ref().map(|release| release.order));
+    slots.sort_by_key(|slot| slot.battle_order());
     if slots.len() != fought_releases.len() {
         return Err(Unsettled::Missing("release of the fight"));
     }
@@ -1315,13 +1361,13 @@ mod tests {
     use crate::economy::Economy;
     use crate::layout::{Experience, Position, UnitPlacement};
     use crate::r#match::{
-        Action, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateUnit,
+        Action, EquipmentItem, Offers, PanelSkill, ReinforceChoice, Release, SideState,
+        SkillTarget, StateUnit,
     };
 
-    /// [`super::step`] in an ordinary round, where a decline pays the ordinary
-    /// figure.
+    /// [`super::step`] without a reinforcement deal.
     fn step(economy: &Economy, state: &SideState, action: &Action) -> Result<SideState, Unsettled> {
-        super::step(economy, state, action, Some(economy.reinforce_decline()))
+        super::step(economy, state, action, None)
     }
 
     /// Steps `actions` in order from `state` in an ordinary round, landing
@@ -1350,14 +1396,20 @@ mod tests {
         state: &SideState,
         actions: &[Action],
     ) -> Result<SideState, Unsettled> {
-        actions.iter().try_fold(state.clone(), |position, action| {
-            step_placing(
-                economy,
-                &position,
-                action,
-                Some(economy.reinforce_decline()),
-                &mut |_, _| Some(Position { x: 0, y: -160 }),
-            )
+        let mut state = state.clone();
+        let offers = if let Some(Action::ChooseReinforceItem { id, .. }) = actions.first() {
+            state.reinforce_choice = Some(Offers::UNANSWERED);
+            Some(Offers {
+                dealt: id.card().into_iter().collect(),
+                refund: economy.reinforce_decline(),
+            })
+        } else {
+            None
+        };
+        actions.iter().try_fold(state, |position, action| {
+            step_placing(economy, &position, action, offers.as_ref(), &mut |_, _| {
+                Some(Position { x: 0, y: -160 })
+            })
         })
     }
 
@@ -1391,7 +1443,6 @@ mod tests {
                         source: crate::layout::UnitSource::Joined,
                     },
                     value: None,
-                    redeployed: false,
                 })
                 .collect(),
             ..solvent()
@@ -1415,7 +1466,6 @@ mod tests {
                 source: crate::layout::UnitSource::Joined,
             },
             value: None,
-            redeployed: false,
         };
         let contraption = |type_name: &str, index, x| crate::layout::ContraptionPlacement {
             type_name: type_name.into(),
@@ -1455,10 +1505,9 @@ mod tests {
                     index: 0,
                     id: 800_001,
                     cooldown: 0,
-                    used: false,
                     standing: vec![shield(-150), shield(150)],
                     release: Some(Release {
-                        order: 0,
+                        order: Some(0),
                         target: SkillTarget::Area(area(&[(0, -150)])),
                     }),
                 },
@@ -1466,13 +1515,12 @@ mod tests {
                     index: 1,
                     id: 400_002,
                     cooldown: 0,
-                    used: false,
                     standing: vec![crate::layout::Standing::Oil(crate::layout::OilArea {
                         control_points: area(&[(-24, 11), (80, 1)]),
                         grid_rows: std::collections::BTreeMap::new(),
                     })],
                     release: Some(Release {
-                        order: 1,
+                        order: Some(1),
                         target: SkillTarget::Area(area(&[(-30, 150), (60, 150)])),
                     }),
                 },
@@ -1693,17 +1741,14 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             officers: vec![20022],
             ..solvent()
         };
-        let taken = [
-            Action::ChooseReinforceItem {
-                index: 0,
-                id: crate::r#match::ReinforceChoice::Card(20022),
-            },
-            Action::ChooseReinforceItem {
-                index: 1,
-                id: crate::r#match::ReinforceChoice::Card(20022),
-            },
-        ];
-        let next = fold(economy, &state, &taken).unwrap();
+        let taken = Action::ChooseReinforceItem {
+            index: 0,
+            id: ReinforceChoice::Card(20022),
+        };
+        let next = fold(economy, &state, std::slice::from_ref(&taken)).unwrap();
+        let opened = super::open_round(economy, &next, 4, &mut |_, _| None, None).unwrap();
+        assert_eq!(opened.reinforce_choice, None);
+        let next = fold(economy, &opened, &[taken]).unwrap();
         assert_eq!(next.officers, vec![20022, 20022, 20022]);
     }
 
@@ -1712,30 +1757,56 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
     #[test]
     fn a_decline_pays_the_round_figure() {
         let economy = Economy::embedded().unwrap();
-        let state = SideState::default();
-        let declined = Action::ChooseReinforceItem {
-            index: 4,
-            id: crate::r#match::ReinforceChoice::Refund(50),
+        let state = SideState {
+            reinforce_choice: Some(Offers::UNANSWERED),
+            ..SideState::default()
         };
         let ordinary = crate::reinforcement::decline_supply(economy, 1, 3).unwrap();
         let unit = crate::reinforcement::decline_supply(economy, 1, 8).unwrap();
         assert_eq!((ordinary, unit), (50, 400));
         for figure in [ordinary, unit] {
-            let choice = Action::ChooseReinforceItem {
-                index: 4,
-                id: crate::r#match::ReinforceChoice::Refund(figure),
+            let offers = Offers {
+                dealt: vec![20022],
+                refund: figure,
             };
-            let next = super::step(economy, &state, &choice, Some(figure)).unwrap();
+            let choice = Action::ChooseReinforceItem {
+                index: 1,
+                id: ReinforceChoice::Refund(figure),
+            };
+            let next = super::step(economy, &state, &choice, Some(&offers)).unwrap();
             assert_eq!(next.supply, state.supply + figure);
+            assert_eq!(next.reinforce_choice, Some(1));
+            for (position, action, deal) in [
+                (&next, &choice, Some(&offers)),
+                (&state, &choice, None),
+                (
+                    &state,
+                    &Action::ChooseReinforceItem {
+                        index: 0,
+                        id: ReinforceChoice::Refund(figure),
+                    },
+                    Some(&offers),
+                ),
+                (
+                    &state,
+                    &Action::ChooseReinforceItem {
+                        index: 1,
+                        id: ReinforceChoice::Refund(figure + 1),
+                    },
+                    Some(&offers),
+                ),
+                (
+                    &state,
+                    &Action::ActiveEnergyTowerSkill { skill: 1 },
+                    Some(&offers),
+                ),
+            ] {
+                assert!(matches!(
+                    super::step(economy, position, action, deal),
+                    Err(Unsettled::Refused(_))
+                ));
+            }
         }
-        assert!(matches!(
-            super::step(economy, &state, &declined, Some(unit)),
-            Err(Unsettled::Refused(_))
-        ));
-        assert_eq!(
-            super::step(economy, &state, &declined, None),
-            Err(Unsettled::Unpriced("declined reinforcement"))
-        );
     }
 
     /// Declining is the same decision, and it hands out nothing.
@@ -1748,7 +1819,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let economy = Economy::embedded().unwrap();
         let state = SideState::default();
         let declined = [Action::ChooseReinforceItem {
-            index: 4,
+            index: 0,
             id: crate::r#match::ReinforceChoice::Refund(50),
         }];
         let next = fold(economy, &state, &declined).unwrap();
@@ -1756,6 +1827,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         assert_eq!(
             SideState {
                 supply: state.supply,
+                reinforce_choice: None,
                 ..next
             },
             state
@@ -1809,7 +1881,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             index,
             id,
             cooldown,
-            used: false,
+
             standing: Vec::new(),
             release: None,
         }
@@ -1822,13 +1894,16 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let economy = Economy::embedded().unwrap();
         let released = PanelSkill {
             release: Some(Release {
-                order: 0,
+                order: Some(0),
                 target: SkillTarget::Area(Vec::new()),
             }),
             ..slot(0, 300_001, 0)
         };
         let trained = PanelSkill {
-            used: true,
+            release: Some(Release {
+                order: None,
+                target: SkillTarget::Unit(0),
+            }),
             ..slot(1, 1_100_001, 0)
         };
         let state = SideState {
@@ -1892,7 +1967,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 source: crate::layout::UnitSource::Joined,
             },
             value: Some(100),
-            redeployed: false,
         };
         let state = SideState {
             units: vec![
@@ -1906,7 +1980,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 .unwrap()
                 .units
                 .iter()
-                .map(|entry| entry.movable(&state.techs))
+                .map(|entry| entry.movable(&state))
                 .collect::<Vec<_>>()
         };
         assert_eq!(movable(1), [true, true]);
@@ -2005,7 +2079,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 source: crate::layout::UnitSource::Joined,
             },
             value: Some(100),
-            redeployed: false,
         };
         let state = SideState {
             supply: 10,
@@ -2046,7 +2119,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 (
                     entry.unit.type_name.as_str(),
                     entry.unit.level,
-                    entry.movable(&opened.techs),
+                    entry.movable(&opened),
                 )
             })
             .collect();
@@ -2083,7 +2156,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 source: crate::layout::UnitSource::Joined,
             },
             value: Some(100),
-            redeployed: false,
         });
         let predicted = super::predict(economy, 3, &state, &[], false, None, None).unwrap();
         assert_eq!(predicted.units[0].unit.travelling, None);
@@ -2227,7 +2299,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 index: 0,
                 id: 900_001,
                 cooldown: 0,
-                used: false,
                 standing: Vec::new(),
                 release: None,
             }],
@@ -2246,7 +2317,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                     source: crate::layout::UnitSource::Joined,
                 },
                 value: Some(100),
-                redeployed: false,
             }],
             ..SideState::default()
         };
@@ -2468,6 +2538,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let economy = Economy::embedded().unwrap();
         let state = SideState {
             supply: 1000,
+            reinforce_choice: Some(Offers::UNANSWERED),
             next_index: crate::r#match::NextIndex {
                 unit: 4,
                 contraption: 0,
@@ -2475,6 +2546,10 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             ..SideState::default()
         };
         let card = 102_212;
+        let offers = Offers {
+            dealt: vec![card],
+            refund: 400,
+        };
         let reinforcement = economy.unit_reinforcement(card).expect("a squad card");
         let taken = Action::ChooseReinforceItem {
             index: 0,
@@ -2483,15 +2558,16 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         // Where a squad lands is the board's to decide, so the plain step
         // stops at the position and names why.
         assert_eq!(
-            step(economy, &state, &taken),
+            super::step(economy, &state, &taken, Some(&offers)),
             Err(crate::transition::Unsettled::GrantedPosition)
         );
         let mut placed = vec![Position { x: 0, y: -160 }, Position { x: -20, y: -160 }];
         placed.reverse();
-        let next = crate::transition::step_placing(economy, &state, &taken, None, &mut |_, _| {
-            placed.pop()
-        })
-        .unwrap();
+        let next =
+            crate::transition::step_placing(economy, &state, &taken, Some(&offers), &mut |_, _| {
+                placed.pop()
+            })
+            .unwrap();
         assert_eq!(next.next_index.unit, 4 + reinforcement.squads);
         assert_eq!(next.unlocked_units, vec![reinforcement.unit]);
         assert_eq!(next.units.len(), 2);
@@ -2559,6 +2635,38 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
     /// A release names its slot and the skill in it, and a slot holding another
     /// skill is not the panel the decision was taken from.
     #[test]
+    fn deployment_releases_do_not_take_battle_ordinals() {
+        let economy = Economy::embedded().unwrap();
+        let mut state = side_holding(&[(0, Position { x: 0, y: -160 })]);
+        state.battle_skills = vec![
+            slot(0, 300_001, 0),
+            slot(1, 900_001, 0),
+            slot(2, 300_004, 0),
+        ];
+        let released = |index, id, target| Action::ReleaseCommanderSkill { index, id, target };
+        let area = SkillTarget::Area(vec![Position { x: 0, y: 160 }]);
+        let actions = [
+            released(0, 300_001, area.clone()),
+            released(1, 900_001, SkillTarget::Unit(0)),
+            released(2, 300_004, area.clone()),
+            released(0, 300_001, area),
+        ];
+        let closed = fold(economy, &state, &actions).unwrap();
+        let orders: Vec<_> = closed
+            .battle_skills
+            .iter()
+            .map(PanelSkill::battle_order)
+            .collect();
+        assert_eq!(orders, [Some(1), None, Some(0)]);
+        assert_eq!(
+            closed.battle_skills[1].release.as_ref().unwrap().target,
+            SkillTarget::Unit(0)
+        );
+        let projected = crate::project::project_side(&closed, "blue").unwrap();
+        assert_eq!(projected.battle_skills.len(), 2);
+    }
+
+    #[test]
     fn a_release_naming_another_skill_is_refused() {
         let economy = Economy::embedded().unwrap();
         let mut state = side_holding(&[(5, Position { x: 0, y: -160 })]);
@@ -2566,7 +2674,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             index: 0,
             id: 900_001,
             cooldown: 0,
-            used: false,
             standing: Vec::new(),
             release: None,
         }];
@@ -2617,7 +2724,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             index: 0,
             id: 900_001,
             cooldown: 0,
-            used: false,
             standing: Vec::new(),
             release: None,
         }];
@@ -2655,7 +2761,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             index: 0,
             id: 1_100_001,
             cooldown: 0,
-            used: false,
             standing: Vec::new(),
             release: None,
         }];
@@ -2672,8 +2777,13 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 maximum: 650,
             })
         );
-        assert!(next.battle_skills[0].used);
-        assert!(next.battle_skills[0].release.is_none());
+        assert_eq!(
+            next.battle_skills[0].release,
+            Some(Release {
+                order: None,
+                target: SkillTarget::Unit(0)
+            })
+        );
         assert_eq!(next.supply, state.supply);
 
         // Training refuses a full formation.
@@ -2736,21 +2846,14 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             },
         )
         .unwrap();
-        assert!(fitted.units[0].movable(&fitted.techs));
+        assert!(fitted.units[0].movable(&fitted));
         let fitted: SideState =
             serde_yaml::from_str(&serde_yaml::to_string(&fitted).unwrap()).unwrap();
         assert!(step(economy, &fitted, &shift).is_ok());
 
-        // Redeploy frees its target and spends its slot without a release.
+        // Redeploy's recorded target can move even after the position is read back.
         let mut panel = fixed.clone();
-        panel.battle_skills = vec![crate::r#match::PanelSkill {
-            index: 0,
-            id: crate::mobility::REDEPLOY_SKILLS[0],
-            cooldown: 0,
-            used: false,
-            standing: Vec::new(),
-            release: None,
-        }];
+        panel.battle_skills = vec![slot(0, crate::mobility::REDEPLOY_SKILLS[0], 0)];
         let redeployed = step(
             economy,
             &panel,
@@ -2761,18 +2864,20 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             },
         )
         .unwrap();
-        assert!(redeployed.units[0].movable(&redeployed.techs));
-        assert!(redeployed.battle_skills[0].used);
-        assert!(redeployed.battle_skills[0].release.is_none());
+        assert!(redeployed.units[0].movable(&redeployed));
+        assert_eq!(
+            redeployed.battle_skills[0].release,
+            Some(Release {
+                order: None,
+                target: SkillTarget::Unit(0)
+            })
+        );
+        let redeployed =
+            serde_yaml::from_str(&serde_yaml::to_string(&redeployed).unwrap()).unwrap();
         assert!(step(economy, &redeployed, &shift).is_ok());
         let next_round =
             super::open_round(economy, &redeployed, 2, &mut |_, _| None, None).unwrap();
-        assert!(!next_round.units[0].movable(&next_round.techs));
-        assert!(
-            !serde_yaml::to_string(&redeployed)
-                .unwrap()
-                .contains("redeployed:")
-        );
+        assert!(!next_round.units[0].movable(&next_round));
 
         // A Jump Drive frees every formation of its unit, and no other.
         let mut wasps = side_holding(&[
@@ -2793,8 +2898,8 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             },
         )
         .unwrap();
-        assert!(researched.units[0].movable(&researched.techs));
-        assert!(!researched.units[1].movable(&researched.techs));
+        assert!(researched.units[0].movable(&researched));
+        assert!(!researched.units[1].movable(&researched));
         let researched: SideState =
             serde_yaml::from_str(&serde_yaml::to_string(&researched).unwrap()).unwrap();
         assert!(step(economy, &researched, &shift).is_ok());
