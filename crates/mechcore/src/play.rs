@@ -1290,9 +1290,8 @@ fn match_rosters(
                 unit_investment(sides[seat], &row.kind, &research_history[seat]);
             row.count_before = Some(
                 opening
-                    .units
-                    .iter()
-                    .filter(|unit| unit.unit.type_name == row.kind)
+                    .active_units()
+                    .filter(|unit| unit.type_name == row.kind)
                     .count(),
             );
             for tech in &mut row.techs {
@@ -1314,9 +1313,8 @@ fn unit_investment(
     research_history: &BTreeMap<i32, i32>,
 ) -> i64 {
     let formations: i64 = state
-        .units
-        .iter()
-        .filter(|unit| unit.unit.type_name == kind)
+        .active_units()
+        .filter(|unit| unit.type_name == kind)
         .filter_map(|unit| unit.value)
         .map(i64::from)
         .sum();

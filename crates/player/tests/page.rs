@@ -140,7 +140,7 @@ red:
 
 #[test]
 fn arsenal_keeps_duplicate_skill_slots_and_individual_inventory_items() {
-    use mechcore_document::r#match::{EquipmentItem, PanelSkill, Release, SideState, SkillTarget};
+    use mechcore_document::r#match::{PanelSkill, Release, SideState, SkillTarget, StateEquipment};
     let slot = |index, cooldown, used: bool| PanelSkill {
         index,
         id: 900_001,
@@ -151,13 +151,20 @@ fn arsenal_keeps_duplicate_skill_slots_and_individual_inventory_items() {
             target: SkillTarget::Unit(0),
         }),
     };
-    let item = |durability| EquipmentItem {
+    let item = |fitted| StateEquipment {
         id: 13_030_001,
-        durability,
+        fitted,
     };
     let state = SideState {
         battle_skills: vec![slot(3, 2, false), slot(1, 0, true)],
-        equipment: vec![item(None), item(Some(2)), item(None)],
+        equipment: vec![
+            item(None),
+            item(Some(mechcore_document::r#match::EquipmentFitting {
+                unit: 2,
+                slot: 0,
+            })),
+            item(None),
+        ],
         ..SideState::default()
     };
     let panel = mechcore_player::arsenal(&state);
@@ -168,13 +175,9 @@ fn arsenal_keeps_duplicate_skill_slots_and_individual_inventory_items() {
         panel
             .equipment
             .iter()
-            .map(|item| (item.id, item.durability))
+            .map(|item| item.id)
             .collect::<Vec<_>>(),
-        [
-            (13_030_001, None),
-            (13_030_001, Some(2)),
-            (13_030_001, None)
-        ]
+        [13_030_001, 13_030_001]
     );
 }
 

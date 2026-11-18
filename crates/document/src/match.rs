@@ -7,12 +7,15 @@
 //! An optional final result closes the score without another round's state.
 //! Filling one from a replay is [`crate::convert`].
 
-use crate::layout::{ContraptionPlacement, Position, Standing, StaticPlacement, UnitPlacement};
+use crate::layout::{
+    ContraptionPlacement, Experience, Position, Standing, StaticPlacement, UnitPlacement,
+    UnitSource,
+};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::borrow::Cow;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// One recorded match, as `docs/spec/document/match.md` defines it.
 ///
@@ -387,7 +390,7 @@ pub struct SideState {
     pub energy_tower_skills: Vec<i32>,
     pub tower_strengthen_levels: Vec<i32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub equipment: Vec<EquipmentItem>,
+    pub equipment: Vec<StateEquipment>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub battle_skills: Vec<PanelSkill>,
     pub next_index: NextIndex,
@@ -430,39 +433,191 @@ pub struct Allowances {
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct StateUnit {
-    #[serde(flatten)]
-    pub unit: UnitPlacement,
+    #[serde(rename = "name")]
+    pub type_name: String,
+    pub index: i32,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub level: Option<i32>,
+    #[serde(default, skip_serializing_if = "UnitSource::is_legacy")]
+    pub source: UnitSource,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub recovered: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub position: Option<Position>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exp: Option<Experience>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rotated: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub travelling: Option<bool>,
+    #[serde(rename = "recordPosition", skip_serializing_if = "Option::is_none")]
+    pub record_position: Option<Position>,
+    #[serde(rename = "recordRotated", skip_serializing_if = "Option::is_none")]
+    pub record_rotated: Option<bool>,
 }
 
 impl StateUnit {
+    /// The layout pose and experience of a standing formation, with its fitted items.
+    pub(crate) fn placement(&self, side: &SideState) -> Result<UnitPlacement, String> {
+        Ok(UnitPlacement {
+            type_name: self.type_name.clone(),
+            index: self.index,
+            position: self
+                .position
+                .ok_or_else(|| format!("formation {} has no position", self.index))?,
+            record_position: self.record_position,
+            record_rotated: self.record_rotated,
+            level: self.level,
+            exp: self.exp,
+            rotated: self.rotated,
+            equipment: side.worn_equipment(self.index),
+            travelling: self.travelling,
+            source: self.source,
+        })
+    }
+
     /// Deployment movement follows the source, persistent mobility modifiers,
     /// and any Redeploy action already taken in this round.
     #[must_use]
     pub fn movable(&self, side: &SideState) -> bool {
-        self.unit.source != crate::layout::UnitSource::Legacy
-            || crate::mobility::free(&self.unit, &side.techs)
-            || side.battle_skills.iter().any(|slot| {
-                crate::mobility::REDEPLOY_SKILLS.contains(&slot.id)
-                    && slot
-                        .release
-                        .as_ref()
-                        .is_some_and(|release| release.target == SkillTarget::Unit(self.unit.index))
-            })
+        !self.recovered
+            && (self.source != UnitSource::Legacy
+                || crate::mobility::free(self, side)
+                || side.battle_skills.iter().any(|slot| {
+                    crate::mobility::REDEPLOY_SKILLS.contains(&slot.id)
+                        && slot
+                            .release
+                            .as_ref()
+                            .is_some_and(|release| release.target == SkillTarget::Unit(self.index))
+                }))
+    }
+
+    pub(crate) fn mark_recovered(&mut self) {
+        self.recovered = true;
+        self.position = None;
+        self.exp = None;
+        self.rotated = None;
+        self.travelling = None;
+        self.record_position = None;
+        self.record_rotated = None;
     }
 }
 
-/// An owned item no formation carries; a fitted one is named by its formation.
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord)]
+/// A copy of an owned item, either in stock or fitted at a formation's slot.
+#[derive(
+    Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord,
+)]
 #[serde(deny_unknown_fields)]
-pub struct EquipmentItem {
+pub struct StateEquipment {
     #[serde(rename = "name", with = "crate::names::equipment::one")]
     #[schemars(with = "String")]
     pub id: i32,
-    /// Absent means `-1`, which is every item a standard 1v1 hands out.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub durability: Option<i32>,
+    pub fitted: Option<EquipmentFitting>,
+}
+
+#[derive(
+    Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord,
+)]
+#[serde(deny_unknown_fields)]
+pub struct EquipmentFitting {
+    pub unit: i32,
+    /// Zero-based order in which this formation fitted its items.
+    pub slot: usize,
+}
+
+impl SideState {
+    pub fn active_units(&self) -> impl Iterator<Item = &StateUnit> {
+        self.units.iter().filter(|unit| !unit.recovered)
+    }
+
+    /// What a formation wears, in fitting order, including duplicate items.
+    #[must_use]
+    pub fn worn_equipment(&self, index: i32) -> Vec<i32> {
+        let mut fitted: Vec<_> = self
+            .equipment
+            .iter()
+            .filter_map(|item| {
+                let fitted = item.fitted?;
+                (fitted.unit == index).then_some((fitted.slot, item.id))
+            })
+            .collect();
+        fitted.sort_unstable_by_key(|(slot, _)| *slot);
+        fitted.into_iter().map(|(_, id)| id).collect()
+    }
+
+    pub(crate) fn check_board(&self, opening: bool) -> Result<(), String> {
+        let mut indices = BTreeSet::new();
+        let mut active = BTreeSet::new();
+        let spent: BTreeSet<_> = self
+            .battle_skills
+            .iter()
+            .filter_map(|slot| {
+                if crate::ledger::RECOVERY_SKILLS.contains(&slot.id)
+                    && let SkillTarget::Unit(index) = slot.release.as_ref()?.target
+                {
+                    return Some(index);
+                }
+                None
+            })
+            .collect();
+        for unit in &self.units {
+            if !indices.insert(unit.index) {
+                return Err(format!("formation {} appears twice", unit.index));
+            }
+            if unit.recovered {
+                if opening
+                    || !spent.contains(&unit.index)
+                    || unit.position.is_some()
+                    || unit.rotated.is_some()
+                    || unit.exp.is_some()
+                    || unit.travelling.is_some()
+                    || unit.record_position.is_some()
+                    || unit.record_rotated.is_some()
+                {
+                    return Err(format!(
+                        "formation {} is an invalid recovery tombstone",
+                        unit.index
+                    ));
+                }
+            } else if unit.position.is_none() || spent.contains(&unit.index) {
+                return Err(format!(
+                    "formation {} has an invalid on-board state",
+                    unit.index
+                ));
+            } else {
+                active.insert(unit.index);
+            }
+        }
+        if let Some(index) = spent.iter().find(|index| !indices.contains(index)) {
+            return Err(format!("recovery of formation {index} has no tombstone"));
+        }
+        let mut slots = BTreeMap::<i32, BTreeSet<usize>>::new();
+        for fitted in self.equipment.iter().filter_map(|item| item.fitted) {
+            if !active.contains(&fitted.unit) {
+                return Err(format!(
+                    "equipment is fitted to absent formation {}",
+                    fitted.unit
+                ));
+            }
+            if !slots.entry(fitted.unit).or_default().insert(fitted.slot) {
+                return Err(format!(
+                    "formation {} repeats equipment slot {}",
+                    fitted.unit, fitted.slot
+                ));
+            }
+        }
+        for (index, slots) in slots {
+            if slots.iter().copied().ne(0..slots.len()) {
+                return Err(format!(
+                    "formation {index} has a gap in its equipment slots"
+                ));
+            }
+        }
+        Ok(())
+    }
 }
 
 /// One commander skill panel slot.
@@ -1814,6 +1969,33 @@ mod tests {
             formation.replace(", index: 0", ""),
         ] {
             assert!(read(&broken).is_err(), "{broken}");
+        }
+    }
+
+    #[test]
+    fn a_state_refuses_equipment_slots_with_gaps_or_absent_units() {
+        use super::{EquipmentFitting, SideState, StateEquipment, StateUnit};
+
+        let unit: StateUnit =
+            serde_yaml::from_str("{name: crawler, index: 0, position: {x: 0, y: -160}}").unwrap();
+        let mut side = SideState {
+            units: vec![unit],
+            ..Default::default()
+        };
+        for (unit, slot, expected) in [
+            (0, 0, None),
+            (3, 0, Some("absent formation")),
+            (0, 2, Some("gap")),
+        ] {
+            side.equipment = vec![StateEquipment {
+                id: 13_030_001,
+                fitted: Some(EquipmentFitting { unit, slot }),
+            }];
+            let error = side.check_board(false).err();
+            assert_eq!(error.is_none(), expected.is_none());
+            if let Some(expected) = expected {
+                assert!(error.unwrap().contains(expected));
+            }
         }
     }
 

@@ -16,8 +16,8 @@ use crate::economy::{CardKind, Economy, OpeningKind};
 use crate::layout::{ContraptionPlacement, Experience, Position, Region, StaticPlacement};
 use crate::ledger::Purse;
 use crate::r#match::{
-    Action, EquipmentItem, Offers, PanelSkill, ReinforceChoice, Release, SideState, SkillTarget,
-    StateUnit,
+    Action, EquipmentFitting, Offers, PanelSkill, ReinforceChoice, Release, SideState, SkillTarget,
+    StateEquipment, StateUnit,
 };
 use crate::opening::Stream;
 
@@ -256,9 +256,9 @@ pub fn step_placing(
                     next.officers.sort_unstable();
                 }
                 Some(CardKind::CommanderSkill) => panel_add(&mut next, *card),
-                Some(CardKind::Equipment) => next.equipment.push(EquipmentItem {
+                Some(CardKind::Equipment) => next.equipment.push(StateEquipment {
                     id: *card,
-                    durability: None,
+                    fitted: None,
                 }),
                 _ => {}
             }
@@ -329,31 +329,34 @@ pub fn step_placing(
             // The position is where the formation's moves this round end, and
             // one that ends on a flank arrived there from the main half.
             let created = next.next_index.unit - 1;
-            let formation = &mut formation_mut(&mut next, created)?.unit;
+            let formation = formation_mut(&mut next, created)?;
             formation.rotated = Some(*rotated).filter(|rotated| *rotated);
-            formation.travelling = Region::of(formation.position).is_flank().then_some(true);
+            formation.travelling = formation
+                .position
+                .filter(|position| Region::of(*position).is_flank())
+                .map(|_| true);
         }
         Action::UpgradeUnit { index } => {
             let formation = formation_mut(&mut next, *index)?;
             // A formation that has earned experience buys its next level only once
             // the bar is full; one that has not fought since it joined or levelled
             // holds none and buys it whenever.
-            if formation.unit.exp.is_some_and(|exp| !exp.is_full()) {
+            if formation.exp.is_some_and(|exp| !exp.is_full()) {
                 return Err(Unsettled::Refused(
                     "upgrading a unit whose experience bar is not full",
                 ));
             }
             let unit =
-                unit_id_from_type(&formation.unit.type_name).ok_or(Unsettled::Unpriced("unit"))?;
-            let worn = formation.unit.equipment.clone();
-            formation.unit.level = Some(formation.unit.level.unwrap_or(1) + 1);
+                unit_id_from_type(&formation.type_name).ok_or(Unsettled::Unpriced("unit"))?;
+            formation.level = Some(formation.level.unwrap_or(1) + 1);
             // A formation starts the next rank with nothing carried over.
-            formation.unit.exp = None;
+            formation.exp = None;
             // A discount can exceed the price, and an upgrade is never paid
             // backwards.
-            let worn: i32 = worn
-                .iter()
-                .map(|id| economy.equipment_upgrade_supply(*id))
+            let worn: i32 = next
+                .worn_equipment(*index)
+                .into_iter()
+                .map(|id| economy.equipment_upgrade_supply(id))
                 .sum();
             next.supply -= purse
                 .upgrade_wearing(unit, worn)
@@ -467,17 +470,18 @@ pub fn step_placing(
             let position = next
                 .equipment
                 .iter()
-                .position(|item| item.id == *equipment)
+                .position(|item| item.id == *equipment && item.fitted.is_none())
                 .ok_or(Unsettled::Missing("equipment"))?;
             let slots = economy.equipment_slots(&next.officers);
-            let formation = formation_mut(&mut next, *index)?;
-            if formation.unit.equipment.len() >= slots {
+            formation_mut(&mut next, *index)?;
+            let slot = next.worn_equipment(*index).len();
+            if slot >= slots {
                 return Err(Unsettled::Refused(
                     "equipment on a formation with no free slot",
                 ));
             }
-            formation.unit.equipment.push(*equipment);
-            next.equipment.remove(position);
+            next.equipment[position].fitted = Some(EquipmentFitting { unit: *index, slot });
+            next.equipment.sort_unstable();
         }
         Action::MoveUnit {
             index,
@@ -485,20 +489,23 @@ pub fn step_placing(
             rotated,
         } => {
             let held = state
-                .units
-                .iter()
-                .find(|entry| entry.unit.index == *index)
+                .active_units()
+                .find(|entry| entry.index == *index)
                 .ok_or(Unsettled::Missing("unit"))?;
             if !held.movable(state) {
                 return Err(Unsettled::Refused("moving a unit fixed in place"));
             }
             let formation = formation_mut(&mut next, *index)?;
-            let left = Region::of(formation.unit.position);
+            let left = Region::of(
+                formation
+                    .position
+                    .ok_or(Unsettled::Missing("formation position"))?,
+            );
             let arrived = Region::of(*position);
-            formation.unit.position = *position;
-            formation.unit.rotated = Some(*rotated).filter(|rotated| *rotated);
+            formation.position = Some(*position);
+            formation.rotated = Some(*rotated).filter(|rotated| *rotated);
             if left != arrived {
-                formation.unit.travelling = arrived.is_flank().then_some(true);
+                formation.travelling = arrived.is_flank().then_some(true);
             }
         }
         Action::ReleaseCommanderSkill { index, id, target } => {
@@ -603,7 +610,7 @@ fn release(
         let SkillTarget::Unit(index) = target else {
             return Err(Unsettled::Missing("training target"));
         };
-        let formation = &mut formation_mut(next, *index)?.unit;
+        let formation = formation_mut(next, *index)?;
         let level = formation.level.unwrap_or(1);
         // Training takes neither a formation at the last level nor one whose
         // bar is already full.
@@ -680,24 +687,22 @@ fn release(
 /// the time, plus one upgrade for every level above the first. What it wore
 /// goes back into the stock, in time to be fitted again in the same round.
 fn recover_formation(economy: &Economy, next: &mut SideState, index: i32) -> Result<(), Unsettled> {
-    let position = next
-        .units
-        .iter()
-        .position(|entry| entry.unit.index == index)
-        .ok_or(Unsettled::Missing("unit"))?;
-    let entry = next.units.remove(position);
-    let unit = unit_id_from_type(&entry.unit.type_name).ok_or(Unsettled::Unpriced("unit"))?;
     let purse = Purse::new(economy, &next.officers);
+    let entry = next
+        .units
+        .iter_mut()
+        .find(|unit| unit.index == index && !unit.recovered)
+        .ok_or(Unsettled::Missing("unit"))?;
+    let unit = unit_id_from_type(&entry.type_name).ok_or(Unsettled::Unpriced("unit"))?;
     let upgrade = purse.upgrade(unit).ok_or(Unsettled::Unpriced("upgrade"))?;
-    next.supply += entry.value.unwrap_or(0) + (entry.unit.level.unwrap_or(1) - 1) * upgrade;
-    if !entry.unit.equipment.is_empty() {
-        next.equipment
-            .extend(entry.unit.equipment.iter().map(|worn| EquipmentItem {
-                id: *worn,
-                durability: None,
-            }));
-        next.equipment.sort();
+    next.supply += entry.value.unwrap_or(0) + (entry.level.unwrap_or(1) - 1) * upgrade;
+    entry.mark_recovered();
+    for item in &mut next.equipment {
+        if item.fitted.is_some_and(|fitted| fitted.unit == index) {
+            item.fitted = None;
+        }
     }
+    next.equipment.sort_unstable();
     Ok(())
 }
 
@@ -740,22 +745,20 @@ fn place(
     let index = next.next_index.unit;
     next.next_index.unit += 1;
     next.units.push(StateUnit {
-        unit: crate::layout::UnitPlacement {
-            record_position: None,
-            record_rotated: None,
-            type_name: type_name.to_owned(),
-            index,
-            position,
-            level: Some(level).filter(|level| *level != 1),
-            exp: None,
-            rotated: None,
-            equipment: Vec::new(),
-            travelling: None,
-            source: crate::layout::UnitSource::Joined,
-        },
+        record_position: None,
+        record_rotated: None,
+        type_name: type_name.to_owned(),
+        index,
+        position: Some(position),
+        level: Some(level).filter(|level| *level != 1),
+        exp: None,
+        rotated: None,
+        travelling: None,
+        source: crate::layout::UnitSource::Joined,
+        recovered: false,
         value: Some(value),
     });
-    next.units.sort_by_key(|entry| entry.unit.index);
+    next.units.sort_by_key(|entry| entry.index);
     Ok(())
 }
 
@@ -791,7 +794,7 @@ fn unlock(next: &mut SideState, unit: i32) {
 fn formation_mut(next: &mut SideState, index: i32) -> Result<&mut StateUnit, Unsettled> {
     next.units
         .iter_mut()
-        .find(|entry| entry.unit.index == index)
+        .find(|entry| entry.index == index && !entry.recovered)
         .ok_or(Unsettled::Missing("unit"))
 }
 
@@ -852,7 +855,7 @@ pub fn deployed(
 pub fn check_operation(state: &SideState, action: &Action) -> Result<(), Unsettled> {
     if let Action::UpgradeTechnology { unit, tech } = action {
         let (name, _) = unit_type_from_id(*unit).ok_or(Unsettled::Unpriced("unit"))?;
-        if !state.units.iter().any(|entry| entry.unit.type_name == name) {
+        if !state.active_units().any(|entry| entry.type_name == name) {
             return Err(Unsettled::Refused(
                 "researching without a formation of this type",
             ));
@@ -897,17 +900,10 @@ pub fn check_place(state: &SideState, action: &Action) -> Result<(), Unsettled> 
             rotated,
         } => {
             let formation = state
-                .units
-                .iter()
-                .find(|entry| entry.unit.index == *index)
+                .active_units()
+                .find(|entry| entry.index == *index)
                 .ok_or(Unsettled::Missing("formation"))?;
-            crate::landing::unit_fits(
-                state,
-                *index,
-                &formation.unit.type_name,
-                *position,
-                *rotated,
-            )
+            crate::landing::unit_fits(state, *index, &formation.type_name, *position, *rotated)
         }
         Action::ReleaseContraption {
             contraption,
@@ -991,7 +987,7 @@ pub(crate) fn open_round_with_spent(
                 opening.level,
                 placement,
             )?;
-            formation_mut(&mut next, index)?.unit.source = crate::layout::UnitSource::Delivered;
+            formation_mut(&mut next, index)?.source = crate::layout::UnitSource::Delivered;
         }
     }
     if let Some(stream) = stream {
@@ -1019,9 +1015,9 @@ fn hand_out_round(
     } else {
         &officer.equipment[..]
     };
-    next.equipment.extend(items.iter().map(|id| EquipmentItem {
+    next.equipment.extend(items.iter().map(|id| StateEquipment {
         id: *id,
-        durability: None,
+        fitted: None,
     }));
     next.equipment.sort();
     Ok(())
@@ -1100,17 +1096,18 @@ fn reset(
             .owed;
     }
     let worn: i32 = next
-        .units
+        .equipment
         .iter()
-        .flat_map(|entry| entry.unit.equipment.iter())
-        .map(|equipment| economy.equipment_round_supply(*equipment))
+        .filter(|item| item.fitted.is_some())
+        .map(|item| economy.equipment_round_supply(item.id))
         .sum();
     let income =
         crate::ledger::round_income(economy, round, &next.officers, economy.round_supply());
     next.supply += income + worn - owed;
     next.energy_tower_skills.clear();
+    next.units.retain(|unit| !unit.recovered);
     for entry in &mut next.units {
-        entry.unit.source = if round <= 1 {
+        entry.source = if round <= 1 {
             crate::layout::UnitSource::Joined
         } else {
             crate::layout::UnitSource::Legacy
@@ -1187,7 +1184,7 @@ pub fn predict(
     // Whatever else the fight does, it empties the travelling set: a
     // formation's crossing is over once the fight has run.
     for entry in &mut position.units {
-        entry.unit.travelling = None;
+        entry.travelling = None;
     }
     // Round zero has no fight. The team it chose arrives as round 1 opens,
     // and a position that picked a team of formations keeps no trace of which
@@ -1225,7 +1222,7 @@ pub fn settle(
 ) -> Result<SideState, Unsettled> {
     let mut position = fought(position, fight)?;
     for entry in &mut position.units {
-        entry.unit.travelling = None;
+        entry.travelling = None;
     }
     let mut placement = crate::landing::placement(red);
     open_round(economy, &position, round + 1, &mut placement, stream)
@@ -1259,16 +1256,16 @@ pub fn fought(
     use crate::layout::{OilArea, SHIELD_AIRDROP_SKILL, STICKY_OIL_BOMB_SKILL, Standing};
     let mut next = position.clone();
     next.reactor_core -= fight.core_damage;
-    if next.units.len() != fight.units.len() {
+    if next.active_units().count() != fight.units.len() {
         return Err(Unsettled::Missing("formation of the fight"));
     }
-    for entry in &mut next.units {
+    for entry in next.units.iter_mut().filter(|unit| !unit.recovered) {
         let unit = fight
             .units
             .iter()
-            .find(|unit| unit.index == entry.unit.index)
+            .find(|unit| unit.index == entry.index)
             .ok_or(Unsettled::Missing("formation of the fight"))?;
-        entry.unit.exp = unit.exp.filter(|exp| exp.after != 0).map(|exp| Experience {
+        entry.exp = unit.exp.filter(|exp| exp.after != 0).map(|exp| Experience {
             current: exp.after,
             maximum: exp.maximum,
         });
@@ -1359,11 +1356,18 @@ pub fn fought(
 mod tests {
     use super::{EXTRA_DEPLOYMENT_CARD, Stream, Unsettled, step_placing};
     use crate::economy::Economy;
-    use crate::layout::{Experience, Position, UnitPlacement};
+    use crate::layout::{Experience, Position};
     use crate::r#match::{
-        Action, EquipmentItem, Offers, PanelSkill, ReinforceChoice, Release, SideState,
-        SkillTarget, StateUnit,
+        Action, EquipmentFitting, Offers, PanelSkill, ReinforceChoice, Release, SideState,
+        SkillTarget, StateEquipment, StateUnit,
     };
+
+    fn fitted(id: i32, unit: i32, slot: usize) -> StateEquipment {
+        StateEquipment {
+            id,
+            fitted: Some(EquipmentFitting { unit, slot }),
+        }
+    }
 
     /// [`super::step`] without a reinforcement deal.
     fn step(economy: &Economy, state: &SideState, action: &Action) -> Result<SideState, Unsettled> {
@@ -1418,8 +1422,8 @@ mod tests {
         state
             .units
             .iter()
-            .filter(|entry| entry.unit.travelling == Some(true))
-            .map(|entry| entry.unit.index)
+            .filter(|entry| entry.travelling == Some(true))
+            .map(|entry| entry.index)
             .collect()
     }
 
@@ -1429,19 +1433,17 @@ mod tests {
             units: placed
                 .iter()
                 .map(|(index, position)| StateUnit {
-                    unit: UnitPlacement {
-                        record_position: None,
-                        record_rotated: None,
-                        type_name: "marksman".into(),
-                        index: *index,
-                        position: *position,
-                        level: None,
-                        exp: None,
-                        rotated: None,
-                        equipment: Vec::new(),
-                        travelling: None,
-                        source: crate::layout::UnitSource::Joined,
-                    },
+                    record_position: None,
+                    record_rotated: None,
+                    type_name: "marksman".into(),
+                    index: *index,
+                    position: Some(*position),
+                    level: None,
+                    exp: None,
+                    rotated: None,
+                    travelling: None,
+                    source: crate::layout::UnitSource::Joined,
+                    recovered: false,
                     value: None,
                 })
                 .collect(),
@@ -1452,19 +1454,17 @@ mod tests {
     /// The position [`fought_fixture`]'s fight is blue's projection of.
     fn fixture_position() -> SideState {
         let unit = |type_name: &str, index, x, exp| StateUnit {
-            unit: UnitPlacement {
-                record_position: None,
-                record_rotated: None,
-                type_name: type_name.into(),
-                index,
-                position: Position { x, y: -50 },
-                level: None,
-                exp,
-                rotated: None,
-                equipment: Vec::new(),
-                travelling: None,
-                source: crate::layout::UnitSource::Joined,
-            },
+            record_position: None,
+            record_rotated: None,
+            type_name: type_name.into(),
+            index,
+            position: Some(Position { x, y: -50 }),
+            level: None,
+            exp,
+            rotated: None,
+            travelling: None,
+            source: crate::layout::UnitSource::Joined,
+            recovered: false,
             value: None,
         };
         let contraption = |type_name: &str, index, x| crate::layout::ContraptionPlacement {
@@ -1581,7 +1581,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let exp: Vec<Option<(i32, i32)>> = next
             .units
             .iter()
-            .map(|entry| entry.unit.exp.map(|exp| (exp.current, exp.maximum)))
+            .map(|entry| entry.exp.map(|exp| (exp.current, exp.maximum)))
             .collect();
         assert_eq!(exp, [Some((170, 650)), Some((40, 750)), None]);
         let kept: Vec<i32> = next.contraptions.iter().map(|entry| entry.index).collect();
@@ -1656,8 +1656,8 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let mut elite = state.clone();
         elite.energy_tower_skills.push(4);
         let high = step(economy, &elite, &buy).unwrap();
-        assert_eq!(low.units[0].unit.level, None);
-        assert_eq!(high.units[0].unit.level, Some(2));
+        assert_eq!(low.units[0].level, None);
+        assert_eq!(high.units[0].level, Some(2));
         assert_eq!(
             low.supply - high.supply,
             economy.unit(1).unwrap().upgrade_supply
@@ -1703,7 +1703,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         .unwrap();
         let upgraded = step(economy, &bought, &Action::UpgradeUnit { index: 0 }).unwrap();
         assert_eq!(bought.supply, upgraded.supply);
-        assert_eq!(upgraded.units[0].unit.level, Some(2));
+        assert_eq!(upgraded.units[0].level, Some(2));
     }
 
     /// Two Enhancement Modules on one formation both take their 100 off its
@@ -1713,8 +1713,10 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let economy = Economy::embedded().unwrap();
         let paid = |modules: usize| {
             let mut state = side_holding(&[(0, Position { x: 0, y: -160 })]);
-            state.units[0].unit.type_name = "fortress".into();
-            state.units[0].unit.equipment = vec![13_030_004; modules];
+            state.units[0].type_name = "fortress".into();
+            state.equipment = (0..modules)
+                .map(|slot| fitted(13_030_004, 0, slot))
+                .collect();
             let before = state.supply;
             let next = step_placing(
                 economy,
@@ -1845,9 +1847,9 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let next = fold(economy, &solvent(), &taken).unwrap();
         assert_eq!(
             next.equipment,
-            vec![crate::r#match::EquipmentItem {
+            vec![crate::r#match::StateEquipment {
                 id: 13_030_001,
-                durability: None,
+                fitted: None,
             }]
         );
     }
@@ -1872,8 +1874,8 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         ];
         let state = side_holding(&[(4, Position { x: 0, y: -160 })]);
         let next = fold(economy, &state, &taken).unwrap();
-        assert!(next.equipment.is_empty());
-        assert_eq!(next.units[0].unit.equipment, vec![13_030_001]);
+        assert_eq!(next.equipment, [fitted(13_030_001, 4, 0)]);
+        assert_eq!(next.worn_equipment(4), [13_030_001]);
     }
 
     fn slot(index: i32, id: i32, cooldown: i32) -> PanelSkill {
@@ -1952,27 +1954,23 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
     #[test]
     fn an_opening_fixes_the_board_unless_something_frees_it() {
         let economy = Economy::embedded().unwrap();
-        let formation = |index, equipment| StateUnit {
-            unit: crate::layout::UnitPlacement {
-                record_position: None,
-                record_rotated: None,
-                type_name: "crawler".into(),
-                index,
-                position: Position { x: 0, y: -160 },
-                level: None,
-                exp: None,
-                rotated: None,
-                equipment,
-                travelling: None,
-                source: crate::layout::UnitSource::Joined,
-            },
+        let formation = |index| StateUnit {
+            record_position: None,
+            record_rotated: None,
+            type_name: "crawler".into(),
+            index,
+            position: Some(Position { x: 0, y: -160 }),
+            level: None,
+            exp: None,
+            rotated: None,
+            travelling: None,
+            source: crate::layout::UnitSource::Joined,
+            recovered: false,
             value: Some(100),
         };
         let state = SideState {
-            units: vec![
-                formation(0, Vec::new()),
-                formation(1, vec![crate::mobility::DEPLOYMENT_MODULE]),
-            ],
+            units: vec![formation(0), formation(1)],
+            equipment: vec![fitted(crate::mobility::DEPLOYMENT_MODULE, 1, 0)],
             ..SideState::default()
         };
         let movable = |round| {
@@ -1990,7 +1988,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             inherited
                 .units
                 .iter()
-                .all(|unit| unit.unit.source == crate::layout::UnitSource::Legacy)
+                .all(|unit| unit.source == crate::layout::UnitSource::Legacy)
         );
         assert!(
             !serde_yaml::to_string(&inherited)
@@ -2051,7 +2049,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             third
                 .units
                 .iter()
-                .all(|entry| entry.unit.source == crate::layout::UnitSource::Legacy)
+                .all(|entry| entry.source == crate::layout::UnitSource::Legacy)
         );
         assert!(!serde_yaml::to_string(&third).unwrap().contains("source:"));
         assert!(step(economy, &third, &shift(1)).is_err());
@@ -2064,20 +2062,17 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
     fn an_opening_pays_the_income_less_what_rapid_supply_owes() {
         let economy = Economy::embedded().unwrap();
         let worn = |index| StateUnit {
-            unit: crate::layout::UnitPlacement {
-                record_position: None,
-                record_rotated: None,
-                type_name: "crawler".into(),
-                index,
-                position: Position { x: 0, y: -160 },
-                level: None,
-                exp: None,
-                rotated: None,
-                // Command Core pays 50 a round to the side wearing it.
-                equipment: vec![13_030_010],
-                travelling: None,
-                source: crate::layout::UnitSource::Joined,
-            },
+            record_position: None,
+            record_rotated: None,
+            type_name: "crawler".into(),
+            index,
+            position: Some(Position { x: 0, y: -160 }),
+            level: None,
+            exp: None,
+            rotated: None,
+            travelling: None,
+            source: crate::layout::UnitSource::Joined,
+            recovered: false,
             value: Some(100),
         };
         let state = SideState {
@@ -2085,6 +2080,8 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             // Supply Specialist adds 50 a round.
             officers: vec![10002],
             units: vec![worn(0), worn(1)],
+            // Command Core pays 50 a round to the side wearing it.
+            equipment: vec![fitted(13_030_010, 0, 0), fitted(13_030_010, 1, 0)],
             // Rapid Supply and one skill that owes nothing.
             energy_tower_skills: vec![1, 3],
             ..SideState::default()
@@ -2117,8 +2114,8 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             .iter()
             .map(|entry| {
                 (
-                    entry.unit.type_name.as_str(),
-                    entry.unit.level,
+                    entry.type_name.as_str(),
+                    entry.level,
                     entry.movable(&opened),
                 )
             })
@@ -2142,23 +2139,21 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let economy = Economy::embedded().unwrap();
         let mut state = SideState::default();
         state.units.push(StateUnit {
-            unit: crate::layout::UnitPlacement {
-                record_position: None,
-                record_rotated: None,
-                type_name: "crawler".into(),
-                index: 0,
-                position: Position { x: 0, y: -160 },
-                level: None,
-                exp: None,
-                rotated: None,
-                equipment: Vec::new(),
-                travelling: Some(true),
-                source: crate::layout::UnitSource::Joined,
-            },
+            record_position: None,
+            record_rotated: None,
+            type_name: "crawler".into(),
+            index: 0,
+            position: Some(Position { x: 0, y: -160 }),
+            level: None,
+            exp: None,
+            rotated: None,
+            travelling: Some(true),
+            source: crate::layout::UnitSource::Joined,
+            recovered: false,
             value: Some(100),
         });
         let predicted = super::predict(economy, 3, &state, &[], false, None, None).unwrap();
-        assert_eq!(predicted.units[0].unit.travelling, None);
+        assert_eq!(predicted.units[0].travelling, None);
     }
 
     /// An officer delivers in its own round, not when it arrives.
@@ -2207,11 +2202,12 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         assert_eq!(
             next.equipment
                 .iter()
+                .filter(|item| item.fitted.is_none())
                 .map(|item| item.id)
                 .collect::<Vec<_>>(),
             vec![13_030_521; 2]
         );
-        assert_eq!(next.units[0].unit.equipment, vec![13_030_521]);
+        assert_eq!(next.worn_equipment(0), [13_030_521]);
     }
 
     /// Secondary Equipment Expert hands out one of its four items a round,
@@ -2270,19 +2266,27 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let economy = Economy::embedded().unwrap();
         let state = SideState {
             equipment: vec![
-                EquipmentItem {
+                StateEquipment {
                     id: 13_030_521,
-                    durability: None,
+                    fitted: None,
                 };
                 3
             ],
             ..side_holding(&[(0, Position { x: 0, y: -160 })])
         };
-        let fitted = [Action::UseEquipment {
+        let actions = [Action::UseEquipment {
             equipment: 13_030_521,
             index: 0,
         }];
-        assert_eq!(fold(economy, &state, &fitted).unwrap().equipment.len(), 2);
+        let next = fold(economy, &state, &actions).unwrap();
+        assert_eq!(next.equipment.len(), 3);
+        assert_eq!(
+            next.equipment
+                .iter()
+                .filter(|item| item.fitted.is_none())
+                .count(),
+            2
+        );
     }
 
     /// Recovering a formation hands back what it wore, in time to re-fit it.
@@ -2303,21 +2307,20 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 release: None,
             }],
             units: vec![crate::r#match::StateUnit {
-                unit: crate::layout::UnitPlacement {
-                    record_position: None,
-                    record_rotated: None,
-                    type_name: "marksman".into(),
-                    index: 5,
-                    position: crate::layout::Position { x: 0, y: 0 },
-                    level: None,
-                    exp: None,
-                    rotated: None,
-                    equipment: vec![13_030_004],
-                    travelling: None,
-                    source: crate::layout::UnitSource::Joined,
-                },
+                record_position: None,
+                record_rotated: None,
+                type_name: "marksman".into(),
+                index: 5,
+                position: Some(Position { x: 0, y: 0 }),
+                level: None,
+                exp: None,
+                rotated: None,
+                travelling: None,
+                source: crate::layout::UnitSource::Joined,
+                recovered: false,
                 value: Some(100),
             }],
+            equipment: vec![fitted(13_030_004, 5, 0)],
             ..SideState::default()
         };
         let mut state = state;
@@ -2350,9 +2353,14 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             },
         ];
         let next = fold(economy, &state, &refitted).unwrap();
-        assert!(next.equipment.is_empty());
-        assert_eq!(next.units[0].unit.index, 7);
-        assert_eq!(next.units[0].unit.equipment, vec![13_030_004]);
+        assert!(next.units[0].recovered);
+        assert_eq!(
+            next.active_units()
+                .map(|unit| unit.index)
+                .collect::<Vec<_>>(),
+            [7]
+        );
+        assert_eq!(next.equipment, [fitted(13_030_004, 7, 0)]);
     }
 
     /// A fit with nothing to take is refused rather than clamped away.
@@ -2441,7 +2449,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let released = [
             Action::ReleaseContraption {
                 contraption: 20001,
-                position: crate::layout::Position { x: 0, y: 0 },
+                position: Position { x: 0, y: 0 },
                 extra_position: None,
             },
             Action::ReleaseContraption {
@@ -2488,8 +2496,8 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         assert_eq!(next.shop.buys_remaining, 1);
         assert_eq!(next.units.len(), 1);
         let placed = &next.units[0];
-        assert_eq!(placed.unit.index, 7);
-        assert_eq!(placed.unit.position, Position { x: 0, y: -160 });
+        assert_eq!(placed.index, 7);
+        assert_eq!(placed.position, Some(Position { x: 0, y: -160 }));
         // What it is worth to recover is what this side paid for it.
         assert_eq!(placed.value, Some(state.supply - next.supply));
     }
@@ -2503,13 +2511,13 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let economy = Economy::embedded().unwrap();
         let mut state = side_holding(&[(0, Position { x: 0, y: -160 })]);
         state.supply = 1000;
-        state.units[0].unit.exp = Some(Experience {
+        state.units[0].exp = Some(Experience {
             current: 650,
             maximum: 650,
         });
         let next = step(economy, &state, &Action::UpgradeUnit { index: 0 }).unwrap();
-        assert_eq!(next.units[0].unit.level, Some(2));
-        assert_eq!(next.units[0].unit.exp, None);
+        assert_eq!(next.units[0].level, Some(2));
+        assert_eq!(next.units[0].exp, None);
         assert!(next.supply < state.supply);
     }
 
@@ -2519,7 +2527,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let economy = Economy::embedded().unwrap();
         let mut state = side_holding(&[(0, Position { x: 0, y: -160 })]);
         state.supply = 1000;
-        state.units[0].unit.exp = Some(Experience {
+        state.units[0].exp = Some(Experience {
             current: 157,
             maximum: 650,
         });
@@ -2571,8 +2579,8 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         assert_eq!(next.next_index.unit, 4 + reinforcement.squads);
         assert_eq!(next.unlocked_units, vec![reinforcement.unit]);
         assert_eq!(next.units.len(), 2);
-        assert_eq!(next.units[0].unit.index, 4);
-        assert_eq!(next.units[1].unit.index, 5);
+        assert_eq!(next.units[0].index, 4);
+        assert_eq!(next.units[1].index, 5);
     }
 
     /// An opening of formations delivers nothing at the moment it is chosen.
@@ -2727,24 +2735,40 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             standing: Vec::new(),
             release: None,
         }];
+        state.next_index.unit = 6;
         state.units[0].value = Some(400);
-        state.units[0].unit.equipment = vec![13_030_004];
+        state.units[0].source = crate::layout::UnitSource::Delivered;
+        state.units[0].exp = Experience::of(40, "marksman", 1).unwrap();
+        state.equipment = vec![fitted(13_030_004, 5, 0)];
         let released = Action::ReleaseCommanderSkill {
             index: 0,
             id: 900_001,
             target: crate::r#match::SkillTarget::Unit(5),
         };
         let next = step(economy, &state, &released).unwrap();
-        assert!(next.units.is_empty());
+        assert!(next.units[0].recovered);
+        assert_eq!(next.units[0].position, None);
         assert_eq!(next.supply, state.supply + 400);
         assert_eq!(
             next.equipment,
-            vec![EquipmentItem {
+            vec![StateEquipment {
                 id: 13_030_004,
-                durability: None,
+                fitted: None,
             }]
         );
         assert!(next.battle_skills[0].release.is_some());
+        assert_eq!(next.units[0].exp, None);
+        assert_eq!(next.units[0].value, Some(400));
+        let layout = crate::project::project_side(&next, "blue").unwrap();
+        assert!(layout.units.is_empty());
+        assert_eq!(layout.recovered, [5]);
+        assert_ne!(
+            crate::landing::landing(&state, "marksman", false),
+            crate::landing::landing(&next, "marksman", false)
+        );
+        let opened = super::open_round(economy, &next, 3, &mut |_, _| None, None).unwrap();
+        assert!(opened.units.is_empty());
+        assert_eq!(opened.next_index.unit, 6);
     }
 
     /// Intensive Training fills its formation's bar and spends its slot, and
@@ -2753,7 +2777,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
     fn training_fills_the_bar_and_spends_the_slot() {
         let economy = Economy::embedded().unwrap();
         let mut state = side_holding(&[(0, Position { x: 0, y: -160 })]);
-        state.units[0].unit.exp = Some(Experience {
+        state.units[0].exp = Some(Experience {
             current: 54,
             maximum: 650,
         });
@@ -2771,7 +2795,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         };
         let next = step(economy, &state, &train).unwrap();
         assert_eq!(
-            next.units[0].unit.exp,
+            next.units[0].exp,
             Some(Experience {
                 current: 650,
                 maximum: 650,
@@ -2787,7 +2811,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         assert_eq!(next.supply, state.supply);
 
         // Training refuses a full formation.
-        state.units[0].unit.exp = next.units[0].unit.exp;
+        state.units[0].exp = next.units[0].exp;
         assert_eq!(
             step(economy, &state, &train),
             Err(crate::transition::Unsettled::Refused(
@@ -2796,8 +2820,8 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         );
 
         // It refuses the last level too, full or not.
-        state.units[0].unit.level = Some(9);
-        state.units[0].unit.exp = Some(Experience {
+        state.units[0].level = Some(9);
+        state.units[0].exp = Some(Experience {
             current: 12,
             maximum: 4373,
         });
@@ -2817,7 +2841,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
     fn only_a_formation_free_to_move_moves() {
         let economy = Economy::embedded().unwrap();
         let mut fixed = side_holding(&[(0, Position { x: 0, y: -160 })]);
-        fixed.units[0].unit.source = crate::layout::UnitSource::Legacy;
+        fixed.units[0].source = crate::layout::UnitSource::Legacy;
         fixed.supply = 1000;
         let shift = Action::MoveUnit {
             index: 0,
@@ -2833,9 +2857,9 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
 
         // A Deployment Module frees the formation that wears it.
         let mut worn = fixed.clone();
-        worn.equipment = vec![EquipmentItem {
+        worn.equipment = vec![StateEquipment {
             id: crate::mobility::DEPLOYMENT_MODULE,
-            durability: None,
+            fitted: None,
         }];
         let fitted = step(
             economy,
@@ -2885,9 +2909,9 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             (1, Position { x: 40, y: -160 }),
         ]);
         wasps.supply = 1000;
-        wasps.units[0].unit.type_name = "wasp".into();
+        wasps.units[0].type_name = "wasp".into();
         for entry in &mut wasps.units {
-            entry.unit.source = crate::layout::UnitSource::Legacy;
+            entry.source = crate::layout::UnitSource::Legacy;
         }
         let researched = step(
             economy,
@@ -2934,8 +2958,8 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         )
         .unwrap();
         assert_eq!(next.supply, 700);
-        assert_eq!(next.units[0].unit.travelling, Some(true));
-        assert_eq!(next.units[0].unit.rotated, Some(true));
+        assert_eq!(next.units[0].travelling, Some(true));
+        assert_eq!(next.units[0].rotated, Some(true));
     }
 
     /// A move into a flank is what puts a formation in the travelling set.
@@ -3016,7 +3040,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
     fn returning_to_the_main_half_settles() {
         let economy = Economy::embedded().unwrap();
         let mut state = side_holding(&[(0, Position { x: -330, y: 100 })]);
-        state.units[0].unit.travelling = Some(true);
+        state.units[0].travelling = Some(true);
         assert_eq!(travelling(&state), vec![0]);
         let returned = [Action::MoveUnit {
             index: 0,

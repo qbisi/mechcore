@@ -22,7 +22,6 @@ pub struct SkillSlot {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct HeldItem {
     pub id: i32,
-    pub durability: Option<i32>,
 }
 
 /// The match's completed deployment retains unused inventory and skill slots.
@@ -46,10 +45,8 @@ pub fn arsenal(state: &SideState) -> Arsenal {
         equipment: state
             .equipment
             .iter()
-            .map(|item| HeldItem {
-                id: item.id,
-                durability: item.durability,
-            })
+            .filter(|item| item.fitted.is_none())
+            .map(|item| HeldItem { id: item.id })
             .collect(),
     }
 }

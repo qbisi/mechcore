@@ -1,8 +1,8 @@
 //! Reconstructs deployment decisions from their two endpoint positions.
 //!
 //! The sequence is a normal form of the deployment. History preserves
-//! recovered purchases absent from both endpoints, and upgrades preceding
-//! Enhancement Modules, whose fitting time changes prices.
+//! the purchase level and transient fittings of recovered purchases, and
+//! upgrades preceding Enhancement Modules, whose fitting time changes prices.
 //! Histories whose initialization effects a layout cannot carry retain their
 //! operation order, collapsing only adjacent same-region moves of one unit.
 //! Every emitted decision is stepped and compared with the requested endpoint.
@@ -17,15 +17,15 @@ use crate::r#match::{Action, Offers, SideState, SkillTarget, StateUnit};
 
 const ENHANCEMENT_MODULE: i32 = 13_030_004;
 
-/// Facts endpoints cannot recover: operation order, purchased formations later
-/// recovered, their recovery state, and upgrades preceding Enhancement Modules.
+/// Historical operation order and the economic choices session endpoints can
+/// leave ambiguous.
 #[derive(Clone, Default)]
 pub(crate) struct DeploymentHistory {
     actions: Vec<Action>,
     initialization: crate::project::InitializationHistory,
     upgrades: BTreeMap<(i32, usize), i32>,
-    purchases: BTreeMap<i32, (i32, i32)>,
-    recovered: BTreeMap<i32, StateUnit>,
+    purchases: BTreeMap<i32, i32>,
+    recovered_equipment: BTreeMap<i32, Vec<i32>>,
 }
 
 impl DeploymentHistory {
@@ -35,15 +35,10 @@ impl DeploymentHistory {
         if !matches!(action, Action::Concede) {
             self.actions.push(action.clone());
         }
-        if let Action::BuyUnit { unit, .. } = action {
+        if let Action::BuyUnit { .. } = action {
             let index = before.next_index.unit;
-            if let Some(bought) = position
-                .units
-                .iter()
-                .find(|entry| entry.unit.index == index)
-            {
-                self.purchases
-                    .insert(index, (*unit, bought.unit.level.unwrap_or(1)));
+            if let Some(bought) = position.units.iter().find(|entry| entry.index == index) {
+                self.purchases.insert(index, bought.level.unwrap_or(1));
             }
         }
         if let Action::ReleaseCommanderSkill {
@@ -52,19 +47,19 @@ impl DeploymentHistory {
             ..
         } = action
             && RECOVERY_SKILLS.contains(id)
-            && let Some(recovered) = before.units.iter().find(|entry| entry.unit.index == *index)
         {
-            self.recovered.insert(*index, recovered.clone());
+            self.recovered_equipment
+                .insert(*index, before.worn_equipment(*index));
         }
         if let Action::UseEquipment {
             equipment: ENHANCEMENT_MODULE,
             index,
         } = action
-            && let Some(unit) = position.units.iter().find(|unit| unit.unit.index == *index)
+            && let Some(unit) = position.units.iter().find(|unit| unit.index == *index)
         {
             self.upgrades.insert(
-                (*index, unit.unit.equipment.len() - 1),
-                unit.unit.level.unwrap_or(1),
+                (*index, position.worn_equipment(*index).len() - 1),
+                unit.level.unwrap_or(1),
             );
         }
     }
@@ -267,9 +262,9 @@ fn collapse_same_region_moves(
             } => position
                 .units
                 .iter()
-                .find(|entry| entry.unit.index == *index)
+                .find(|entry| entry.index == *index)
                 .and_then(|entry| {
-                    let region = Region::of(entry.unit.position);
+                    let region = Region::of(entry.position?);
                     (region == Region::of(*destination)).then_some((*index, region))
                 }),
             _ => None,
@@ -342,14 +337,9 @@ impl Builder<'_> {
                 equipment: ENHANCEMENT_MODULE,
                 index,
             } => {
-                let held = self.unit(*index)?;
-                if let Some(level) = self
-                    .history
-                    .upgrades
-                    .get(&(*index, held.unit.equipment.len()))
-                    .copied()
-                {
-                    while self.unit(*index)?.unit.level.unwrap_or(1) < level {
+                let fitted = self.position.worn_equipment(*index).len();
+                if let Some(level) = self.history.upgrades.get(&(*index, fitted)).copied() {
+                    while self.unit(*index)?.level.unwrap_or(1) < level {
                         self.upgrade(*index)?;
                     }
                 }
@@ -375,12 +365,11 @@ impl Builder<'_> {
                 if RECOVERY_SKILLS.contains(id)
                     && let SkillTarget::Unit(index) = target
                 {
-                    let name = self.unit(*index)?.unit.type_name.clone();
+                    let name = self.unit(*index)?.type_name.clone();
                     if self
                         .position
-                        .units
-                        .iter()
-                        .filter(|entry| entry.unit.type_name == name)
+                        .active_units()
+                        .filter(|entry| entry.type_name == name)
                         .count()
                         == 1
                     {
@@ -465,30 +454,7 @@ impl Builder<'_> {
     }
 
     fn purchase_type(&self, index: i32) -> Result<i32, String> {
-        if let Some(wanted) = self
-            .target
-            .units
-            .iter()
-            .find(|entry| entry.unit.index == index)
-        {
-            return unit_id_from_type(&wanted.unit.type_name)
-                .ok_or("unknown purchased unit".into());
-        }
-        let recovered =
-            self.history.recovered.get(&index).ok_or_else(|| {
-                format!("allocator gap {index} has no recorded recovered formation")
-            })?;
-        let (unit, _) = self
-            .history
-            .purchases
-            .get(&index)
-            .ok_or_else(|| format!("allocator gap {index} has no recorded purchase"))?;
-        if unit_id_from_type(&recovered.unit.type_name) != Some(*unit) {
-            return Err(format!(
-                "recovered formation {index} differs from its recorded purchase"
-            ));
-        }
-        Ok(*unit)
+        unit_id_from_type(&self.wanted(index)?.type_name).ok_or("unknown purchased unit".into())
     }
 
     fn purchase_plans(&self) -> Result<Vec<BTreeMap<i32, i32>>, String> {
@@ -501,23 +467,19 @@ impl Builder<'_> {
             .sum();
         let mut plans = vec![(BTreeMap::new(), self.purse().raised)];
         for index in self.position.next_index.unit..self.target.next_index.unit {
-            let wanted = self
-                .target
-                .units
-                .iter()
-                .find(|entry| entry.unit.index == index);
+            let wanted = self.wanted(index)?;
             let unit = self.purchase_type(index)?;
             let base = Purse::new(self.economy, &self.position.officers).shop_level(unit);
-            let maximum = wanted.map_or(base + raised, |entry| entry.unit.level.unwrap_or(1));
+            let maximum = wanted.level.unwrap_or(1);
             let mut next = Vec::new();
             for (plan, previous) in plans {
                 for level in (base + previous..=(base + raised).min(maximum)).rev() {
-                    if wanted.is_none()
+                    if wanted.recovered
                         && self
                             .history
                             .purchases
                             .get(&index)
-                            .is_some_and(|(_, recorded_level)| *recorded_level != level)
+                            .is_some_and(|recorded_level| *recorded_level != level)
                     {
                         continue;
                     }
@@ -537,26 +499,20 @@ impl Builder<'_> {
         for recovery in recoveries {
             let mut next = Vec::new();
             for candidate in candidates {
-                let maximum = if let Action::ReleaseCommanderSkill {
-                    target: SkillTarget::Unit(index),
-                    ..
-                } = recovery
-                {
-                    candidate.unit(index).map_or(0, |entry| {
-                        crate::experience::MAX_LEVEL - entry.unit.level.unwrap_or(1)
-                    })
-                } else {
-                    0
+                let upgrades = match &recovery {
+                    Action::ReleaseCommanderSkill {
+                        target: SkillTarget::Unit(index),
+                        ..
+                    } => candidate.recovery_upgrades(*index)?,
+                    _ => 0,
                 };
-                for upgrades in 0..=maximum {
-                    for module in [true, false] {
-                        if upgrades == 0 && module {
-                            continue;
-                        }
-                        let mut recovered = candidate.clone();
-                        if recovered.recover(&recovery, module, upgrades).is_ok() {
-                            next.push(recovered);
-                        }
+                for module in [true, false] {
+                    if upgrades == 0 && module {
+                        continue;
+                    }
+                    let mut recovered = candidate.clone();
+                    if recovered.recover(&recovery, module, upgrades).is_ok() {
+                        next.push(recovered);
                     }
                 }
             }
@@ -653,6 +609,17 @@ impl Builder<'_> {
         }).collect()
     }
 
+    fn recovery_upgrades(&self, index: i32) -> Result<i32, String> {
+        let target = self.wanted(index)?;
+        let upgrades = target.level.unwrap_or(1) - self.unit(index)?.level.unwrap_or(1);
+        if !target.recovered || upgrades < 0 {
+            return Err(format!(
+                "formation {index} has an invalid recovery endpoint"
+            ));
+        }
+        Ok(upgrades)
+    }
+
     fn recover(&mut self, recovery: &Action, module: bool, upgrades: i32) -> Result<(), String> {
         if let Action::ReleaseCommanderSkill {
             target: SkillTarget::Unit(index),
@@ -661,10 +628,10 @@ impl Builder<'_> {
         {
             let removed = self.unit(*index)?.clone();
             self.redeploy(*index)?;
-            let owner =
-                unit_id_from_type(&removed.unit.type_name).ok_or("unknown recovered unit")?;
+            let owner = unit_id_from_type(&removed.type_name).ok_or("unknown recovered unit")?;
             if module {
-                if removed.unit.level.unwrap_or(1) >= crate::experience::MAX_LEVEL
+                let worn = self.position.worn_equipment(*index);
+                if removed.level.unwrap_or(1) >= crate::experience::MAX_LEVEL
                     || !self
                         .economy
                         .unit(owner)
@@ -674,12 +641,12 @@ impl Builder<'_> {
                 }
                 let slots = self.economy.equipment_slots(&self.position.officers);
                 let mut fitted = 0;
-                while self.unit(*index)?.unit.equipment.len() < slots
+                while worn.len() + fitted < slots
                     && self
                         .position
                         .equipment
                         .iter()
-                        .any(|item| item.id == ENHANCEMENT_MODULE)
+                        .any(|item| item.id == ENHANCEMENT_MODULE && item.fitted.is_none())
                 {
                     self.push(Action::UseEquipment {
                         equipment: ENHANCEMENT_MODULE,
@@ -687,7 +654,7 @@ impl Builder<'_> {
                     })?;
                     fitted += 1;
                 }
-                if fitted == 0 && !removed.unit.equipment.contains(&ENHANCEMENT_MODULE) {
+                if fitted == 0 && !worn.contains(&ENHANCEMENT_MODULE) {
                     return Err("no free Enhancement Module".into());
                 }
             }
@@ -714,9 +681,8 @@ impl Builder<'_> {
             .0;
         if !self
             .position
-            .units
-            .iter()
-            .any(|entry| entry.unit.type_name == name)
+            .active_units()
+            .any(|entry| entry.type_name == name)
         {
             return Err(format!("technology {tech} has no formation"));
         }
@@ -729,9 +695,8 @@ impl Builder<'_> {
 
     fn unit(&self, index: i32) -> Result<&StateUnit, String> {
         self.position
-            .units
-            .iter()
-            .find(|entry| entry.unit.index == index)
+            .active_units()
+            .find(|entry| entry.index == index)
             .ok_or_else(|| format!("formation {index} is absent"))
     }
 
@@ -739,7 +704,7 @@ impl Builder<'_> {
         self.target
             .units
             .iter()
-            .find(|entry| entry.unit.index == index)
+            .find(|entry| entry.index == index)
             .ok_or_else(|| format!("target formation {index} is absent"))
     }
 
@@ -752,46 +717,49 @@ impl Builder<'_> {
 
     fn moves(&mut self) -> Result<(), String> {
         let mut pending = Vec::new();
-        for held in self.position.units.clone() {
-            let wanted = self.wanted(held.unit.index)?.clone();
-            let moved = held.unit.position != wanted.unit.position
-                || held.unit.rotated.unwrap_or(false) != wanted.unit.rotated.unwrap_or(false)
-                || held.unit.travelling.unwrap_or(false) != wanted.unit.travelling.unwrap_or(false);
-            self.redeploy(held.unit.index)?;
+        let standing: Vec<_> = self.position.active_units().cloned().collect();
+        for held in standing {
+            let wanted = self.wanted(held.index)?.clone();
+            let from = held.position.ok_or("standing formation has no position")?;
+            let to = wanted.position.ok_or("target formation has no position")?;
+            let moved = from != to
+                || held.rotated.unwrap_or(false) != wanted.rotated.unwrap_or(false)
+                || held.travelling.unwrap_or(false) != wanted.travelling.unwrap_or(false);
+            self.redeploy(held.index)?;
             if !moved {
                 continue;
             }
-            if !self.unit(held.unit.index)?.movable(&self.position) {
+            if !self.unit(held.index)?.movable(&self.position) {
                 return Err(format!(
                     "formation {} cannot move to its target position",
-                    held.unit.index
+                    held.index
                 ));
             }
-            if Region::of(held.unit.position) == Region::of(wanted.unit.position)
-                && Region::of(wanted.unit.position).is_flank()
-                && wanted.unit.travelling == Some(true)
-                && held.unit.travelling != Some(true)
+            if Region::of(from) == Region::of(to)
+                && Region::of(to).is_flank()
+                && wanted.travelling == Some(true)
+                && held.travelling != Some(true)
             {
                 let aside = crate::landing::free_spot(
                     &self.position,
-                    &held.unit.type_name,
-                    held.unit.rotated.unwrap_or(false),
+                    &held.type_name,
+                    held.rotated.unwrap_or(false),
                     Region::Main,
                     self.red,
-                    Some(held.unit.index),
+                    Some(held.index),
                     &[],
                 )
                 .ok_or("no main-region waypoint to reproduce travelling")?;
                 pending.push(Action::MoveUnit {
-                    index: held.unit.index,
+                    index: held.index,
                     position: aside,
-                    rotated: held.unit.rotated.unwrap_or(false),
+                    rotated: held.rotated.unwrap_or(false),
                 });
             }
             pending.push(Action::MoveUnit {
-                index: held.unit.index,
-                position: wanted.unit.position,
-                rotated: wanted.unit.rotated.unwrap_or(false),
+                index: held.index,
+                position: to,
+                rotated: wanted.rotated.unwrap_or(false),
             });
         }
         let mut aside = BTreeSet::new();
@@ -829,12 +797,7 @@ impl Builder<'_> {
             position: None,
             rotated: false,
         })?;
-        if !self
-            .target
-            .units
-            .iter()
-            .any(|entry| entry.unit.index == index)
-        {
+        if self.wanted(index)?.recovered {
             let recovery = self
                 .target
                 .battle_skills
@@ -846,26 +809,17 @@ impl Builder<'_> {
                             .as_ref()
                             .is_some_and(|release| release.target == SkillTarget::Unit(index))
                 })
-                .cloned()
-                .ok_or_else(|| format!("allocator gap {index} has no Field Recovery release"))?;
-            let recorded = self
-                .history
-                .recovered
-                .get(&index)
-                .cloned()
-                .ok_or("missing recorded recovery")?;
-            for equipment in &recorded.unit.equipment {
-                self.push(Action::UseEquipment {
-                    equipment: *equipment,
-                    index,
+                .ok_or_else(|| {
+                    format!("recovered formation {index} has no Field Recovery release")
                 })?;
-            }
-            let upgrades =
-                recorded.unit.level.unwrap_or(1) - self.unit(index)?.unit.level.unwrap_or(1);
-            if upgrades < 0 {
-                return Err(format!(
-                    "recovered formation {index} is below its purchase level"
-                ));
+            let upgrades = self.recovery_upgrades(index)?;
+            if let Some(equipment) = self.history.recovered_equipment.get(&index).cloned() {
+                for id in equipment {
+                    self.push(Action::UseEquipment {
+                        equipment: id,
+                        index,
+                    })?;
+                }
             }
             self.recover(
                 &Action::ReleaseCommanderSkill {
@@ -881,13 +835,14 @@ impl Builder<'_> {
     }
 
     fn remaining(mut self) -> Result<Vec<Action>, String> {
-        for wanted in &self.target.units {
-            let index = wanted.unit.index;
-            let held = self.unit(index)?.unit.equipment.clone();
-            if !wanted.unit.equipment.starts_with(&held) {
+        for wanted in self.target.active_units() {
+            let index = wanted.index;
+            let held = self.position.worn_equipment(index);
+            let equipment = self.target.worn_equipment(index);
+            if !equipment.starts_with(&held) {
                 return Err(format!("formation {index} changes equipment fitting order"));
             }
-            for equipment in &wanted.unit.equipment[held.len()..] {
+            for equipment in &equipment[held.len()..] {
                 self.push(Action::UseEquipment {
                     equipment: *equipment,
                     index,
@@ -895,9 +850,9 @@ impl Builder<'_> {
             }
         }
         self.moves()?;
-        for wanted in &self.target.units {
-            let index = wanted.unit.index;
-            while self.unit(index)?.unit.level.unwrap_or(1) < wanted.unit.level.unwrap_or(1) {
+        for wanted in self.target.active_units() {
+            let index = wanted.index;
+            while self.unit(index)?.level.unwrap_or(1) < wanted.level.unwrap_or(1) {
                 self.upgrade(index)?;
             }
             self.train(index)?;
@@ -957,10 +912,10 @@ impl Builder<'_> {
     }
 
     fn upgrade(&mut self, index: i32) -> Result<(), String> {
-        let exp = self.unit(index)?.unit.exp;
+        let exp = self.unit(index)?.exp;
         let final_training = self
             .wanted(index)
-            .is_ok_and(|wanted| wanted.unit.exp.is_some_and(Experience::is_full));
+            .is_ok_and(|wanted| wanted.exp.is_some_and(Experience::is_full));
         let mut training = self
             .pending_skill(index, &crate::transition::TRAINING_SKILLS)
             .into_iter();
@@ -1023,17 +978,17 @@ fn step_aside(
             } => position
                 .units
                 .iter()
-                .find(|entry| entry.unit.index == *index)
-                .and_then(|entry| crate::landing::unit_rect(&entry.unit.type_name, *to, *rotated)),
+                .find(|entry| entry.index == *index)
+                .and_then(|entry| crate::landing::unit_rect(&entry.type_name, *to, *rotated)),
             _ => None,
         })
         .collect();
     pending.iter().enumerate().find_map(|(at, action)| {
         let Action::MoveUnit { index, .. } = action else { return None; };
         if stepped_aside.contains(index) || pending[..at].iter().any(|earlier| matches!(earlier, Action::MoveUnit { index: other, .. } if other == index)) { return None; }
-        let standing = position.units.iter().find(|entry| entry.unit.index == *index)?;
-        let rotated = standing.unit.rotated.unwrap_or(false);
-        crate::landing::free_spot(position, &standing.unit.type_name, rotated, Region::of(standing.unit.position), red, Some(*index), &needed)
+        let standing = position.active_units().find(|entry| entry.index == *index)?;
+        let rotated = standing.rotated.unwrap_or(false);
+        crate::landing::free_spot(position, &standing.type_name, rotated, Region::of(standing.position?), red, Some(*index), &needed)
             .map(|position| Action::MoveUnit { index: *index, position, rotated })
     })
 }
@@ -1041,8 +996,8 @@ fn step_aside(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::layout::{Position, UnitPlacement, UnitSource};
-    use crate::r#match::{Allowances, EquipmentItem, NextIndex, PanelSkill};
+    use crate::layout::{Position, UnitSource};
+    use crate::r#match::{Allowances, NextIndex, PanelSkill, StateEquipment};
 
     fn side() -> SideState {
         SideState {
@@ -1060,22 +1015,20 @@ mod tests {
             units: [0, 1]
                 .into_iter()
                 .map(|index| StateUnit {
-                    unit: UnitPlacement {
-                        record_position: None,
-                        record_rotated: None,
-                        type_name: "marksman".into(),
-                        index,
-                        position: Position {
-                            x: index * 20,
-                            y: -160,
-                        },
-                        level: None,
-                        exp: None,
-                        rotated: None,
-                        equipment: Vec::new(),
-                        travelling: None,
-                        source: UnitSource::Joined,
-                    },
+                    record_position: None,
+                    record_rotated: None,
+                    type_name: "marksman".into(),
+                    index,
+                    position: Some(Position {
+                        x: index * 20,
+                        y: -160,
+                    }),
+                    level: None,
+                    exp: None,
+                    rotated: None,
+                    travelling: None,
+                    source: UnitSource::Joined,
+                    recovered: false,
                     value: Some(100),
                 })
                 .collect(),
@@ -1148,8 +1101,8 @@ mod tests {
     #[test]
     fn cloak_history_keeps_crossings_and_research_between_move_runs() {
         let mut opened = side();
-        opened.units[0].unit.type_name = "phantom_ray".into();
-        opened.units[0].unit.position.x = -100;
+        opened.units[0].type_name = "phantom_ray".into();
+        opened.units[0].position.as_mut().unwrap().x = -100;
         opened.units[0].value = None;
         let research = Action::UpgradeTechnology {
             unit: 25,
@@ -1213,8 +1166,8 @@ mod tests {
             ("wraith", 18, 110_181, vec![4418], vec![20021], (-200, -160)),
         ] {
             let mut opened = side();
-            opened.units[0].unit.type_name = name.into();
-            opened.units[0].unit.position.x = -100;
+            opened.units[0].type_name = name.into();
+            opened.units[0].position.as_mut().unwrap().x = -100;
             opened.units[0].value = None;
             opened.techs = initial_techs;
             opened.officers = officers;
@@ -1299,11 +1252,11 @@ mod tests {
     #[test]
     fn enhancement_module_preserves_upgrades_before_and_after_fitting() {
         let mut opened = side();
-        opened.units[0].unit.type_name = "melting_point".into();
-        opened.units[0].unit.level = Some(4);
-        opened.equipment.push(EquipmentItem {
+        opened.units[0].type_name = "melting_point".into();
+        opened.units[0].level = Some(4);
+        opened.equipment.push(StateEquipment {
             id: ENHANCEMENT_MODULE,
-            durability: None,
+            fitted: None,
         });
         let upgrade = Action::UpgradeUnit { index: 0 };
         let module = Action::UseEquipment {
@@ -1331,12 +1284,12 @@ mod tests {
     #[test]
     fn successive_modules_keep_distinct_upgrade_dependencies() {
         let mut opened = side();
-        opened.units[0].unit.type_name = "melting_point".into();
+        opened.units[0].type_name = "melting_point".into();
         opened.officers.push(10540);
         opened.equipment = vec![
-            EquipmentItem {
+            StateEquipment {
                 id: ENHANCEMENT_MODULE,
-                durability: None
+                fitted: None
             };
             2
         ];
@@ -1387,7 +1340,7 @@ mod tests {
     #[test]
     fn a_vacated_waypoint_does_not_block_a_later_purchase() {
         let mut opened = side();
-        opened.units[0].unit.position = Position { x: -350, y: 285 };
+        opened.units[0].position = Some(Position { x: -350, y: 285 });
         let closed = close(
             &opened,
             &[moved(0, 350, 55), moved(0, 90, -35), bought(15, 350, 55)],
@@ -1413,8 +1366,8 @@ mod tests {
         let mut opened = side();
         while let Some(position) = crate::landing::landing(&opened, "marksman", false) {
             let mut held = opened.units[0].clone();
-            held.unit.index = opened.next_index.unit;
-            held.unit.position = position;
+            held.index = opened.next_index.unit;
+            held.position = Some(position);
             opened.next_index.unit += 1;
             opened.units.push(held);
         }
@@ -1437,11 +1390,11 @@ mod tests {
     #[test]
     fn existing_and_new_formations_move_after_equipment_and_before_upgrades() {
         let mut opened = side();
-        opened.units[0].unit.type_name = "wasp".into();
-        opened.units[0].unit.source = UnitSource::Legacy;
-        opened.equipment.push(EquipmentItem {
+        opened.units[0].type_name = "wasp".into();
+        opened.units[0].source = UnitSource::Legacy;
+        opened.equipment.push(StateEquipment {
             id: crate::mobility::DEPLOYMENT_MODULE,
-            durability: None,
+            fitted: None,
         });
         let research = Action::UpgradeTechnology {
             unit: 6,
@@ -1480,10 +1433,10 @@ mod tests {
         let position = landed
             .units
             .iter()
-            .find(|held| held.unit.index == 2)
+            .find(|held| held.index == 2)
             .unwrap()
-            .unit
-            .position;
+            .position
+            .unwrap();
         let interceptor = Action::ReleaseContraption {
             contraption: 30_001,
             position,
@@ -1497,8 +1450,8 @@ mod tests {
     #[test]
     fn jump_drive_precedes_the_existing_formations_move() {
         let mut opened = side();
-        opened.units[0].unit.type_name = "wasp".into();
-        opened.units[0].unit.source = UnitSource::Legacy;
+        opened.units[0].type_name = "wasp".into();
+        opened.units[0].source = UnitSource::Legacy;
         let tech = Action::UpgradeTechnology {
             unit: 6,
             tech: 1606,
@@ -1529,9 +1482,9 @@ mod tests {
     fn recovery_module_optimization_is_decided_by_the_recorded_economy() {
         let mut opened = side();
         opened.battle_skills.push(slot(900_001));
-        opened.equipment.push(EquipmentItem {
+        opened.equipment.push(StateEquipment {
             id: ENHANCEMENT_MODULE,
-            durability: None,
+            fitted: None,
         });
         let recover = Action::ReleaseCommanderSkill {
             index: 0,
@@ -1595,16 +1548,7 @@ mod tests {
         );
         assert!(matches!(actions[0], Action::BuyUnit { unit: 15, .. }));
         assert!(actions.contains(&Action::UpgradeUnit { index: 2 }));
-        let error = deployment(
-            Economy::embedded().unwrap(),
-            &opened,
-            &closed,
-            None,
-            false,
-            &DeploymentHistory::default(),
-        )
-        .unwrap_err();
-        assert!(error.contains("no recorded recovered formation"));
+        assert_eq!(normalized(&opened, &closed), actions);
     }
 
     #[test]
@@ -1644,7 +1588,7 @@ mod tests {
             Action::UpgradeUnit { index: 1 },
         ];
         let closed = close(&opened, &taken);
-        assert!(closed.units.iter().all(|unit| unit.unit.exp.is_none()));
+        assert!(closed.units.iter().all(|unit| unit.exp.is_none()));
         let written = serde_yaml::to_string(&closed).unwrap();
         let mut read: SideState = serde_yaml::from_str(&written).unwrap();
         read.shop = closed.shop;
@@ -1654,8 +1598,11 @@ mod tests {
     #[test]
     fn recovery_restores_continuous_training_and_existing_module_refunds() {
         let mut opened = side();
-        opened.units[0].unit.exp = Experience::of(1, "marksman", 1).unwrap();
-        opened.units[0].unit.equipment.push(ENHANCEMENT_MODULE);
+        opened.units[0].exp = Experience::of(1, "marksman", 1).unwrap();
+        opened.equipment.push(StateEquipment {
+            id: ENHANCEMENT_MODULE,
+            fitted: Some(crate::r#match::EquipmentFitting { unit: 0, slot: 0 }),
+        });
         opened.battle_skills = vec![
             slot(900_001),
             PanelSkill {

@@ -288,9 +288,9 @@ oppositely, so nothing may read a tower's identity out of its position.
 ```
 
 Fits the item `name` to the unit at `index`, as `upgrade_unit` and
-`move_unit` name one. The item leaves `equipment`,
-the side's list of what it owns and no unit wears, and joins the end of
-that unit's. A unit wears at most as many items as it has slots, which is the
+`move_unit` name one. An unfitted copy in the side's `equipment` gains a
+`fitted` assignment at the end of the unit's fitting order. A unit wears at
+most as many items as it has slots, which is the
 same count [`layout.md`](layout.md#unit) gives a placement; fitting a full
 unit is refused.
 
@@ -299,10 +299,10 @@ change is later: an item may discount every upgrade of its unit, or pay its
 side an income every round it is worn. Fitting the Deployment Module,
 `13040001`, frees its unit to move in this round and every later one.
 
-The inventory follows one identity across a round:
+Unfitted stock follows one identity across a round:
 
 ```text
-equipment(R+1) = equipment(R)
+stock(R+1) = stock(R)
                + what this round's cards granted
                + what this round's officers delivered
                + what recovering a unit handed back
@@ -389,8 +389,9 @@ JSON reader takes a match as it is.
 
 What a release writes depends on the skill. It may put a construction on the
 board, leave a shield or an area standing on its panel slot, or take one of the side's own
-units or constructions away. Taking a unit away returns what it wore
-to `equipment`, where the same round can fit it to another unit. Releasing is free, except a skill that
+units or constructions away. Recovering a unit keeps its tombstone in
+`units` and returns its fitted items to stock, where they can be fitted again
+in the same round. Releasing is free, except a skill that
 recovers an object, which pays back what that object cost: for a unit, its
 purchase price at the prices its side's officers made at the time, plus one
 upgrade for every level above the first; for a construction, a fixed amount that
@@ -531,8 +532,8 @@ route. The sequence orders the necessary moves and swap-space waypoints as
 Replay conversion evaluates the effective native decisions to obtain the
 position deployment reached. The opening and closing states reconstruct the
 action sequence, supplemented by facts that those endpoints cannot preserve:
-actual purchases subsequently recovered, their state at recovery, and upgrades
-preceding Enhancement Module fitting. Replay conversion reads those facts from
+the shop level and transient equipment of purchases later recovered, and
+upgrades preceding Enhancement Module fitting. Replay conversion reads those facts from
 the native GRBR operations; `format` reads them from the match's existing
 actions. Reading a match does not rewrite its actions. Intermediate movement
 routes and purchase placements do not determine the normal form.
@@ -543,14 +544,14 @@ The standard phases are:
 2. Activate Rapid Resupply once if this deployment chose it, even when no
    operation needs extra supply. This fixes the budget before recovery.
 3. Recover formations and constructions. Available Enhancement Modules may be
-   fitted and the formation upgraded first; the closing supply and consumed
-   training slots determine whether those operations occurred. A module comes
+   fitted and the formation upgraded first. The tombstone fixes its recovery
+   level, and the closing supply checks the cost of the upgrades. A module comes
    back with the recovered formation and can be reused.
 4. Purchase formations at their default landings, in allocator order, deriving
    each level from the shop. A formation bought and recovered in this round
-   keeps its actual recorded type, purchase level,
-   equipment and recovery level. Missing purchase or recovery history is
-   refused; no substitute unit is invented to fill an allocator gap.
+   uses the tombstone's type and recovery level. Historical shop level and
+   transient fittings constrain the reconstruction when available. An
+   allocator gap without an active formation or a tombstone is refused.
 5. Activate the remaining unit technologies, after their formations exist.
 6. Fit equipment, preserving each formation's fitting order.
 7. Move and rotate existing and newly purchased formations together. Jump Drive
