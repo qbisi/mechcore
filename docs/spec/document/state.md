@@ -270,6 +270,8 @@ a `joined` or `delivered` unit may move, and a `legacy` unit may move only if
 its Deployment Module or Jump Drive frees it, or the panel records a
 Redeploy release targeting it in this deployment.
 [The mobility index](../../rules/mobility.md) gives the rule and its evidence.
+The [interactive deployment view](../mechcore/cli.md#match-act) adds `unpinned`
+for the editing side. Match states and recorded actions omit those temporary pins.
 
 When a unit is recovered, its row retains its index, name, source, value and
 level and gains `recovered: true`. The row has no position, experience,
