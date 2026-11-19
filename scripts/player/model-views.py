@@ -62,6 +62,8 @@ MODELS = {
     "crawler": ("sharedassets0.assets", "Mech_Default_10_1", "Attack", 0.2),
     "sledgehammer": ("sharedassets0.assets", "Mech_Default_13_1", None, 0.0),
     "wasp": ("sharedassets0.assets", "Mech_Default_6_1", "Attack", 0.2),
+    "sandworm": ("sharedassets0.assets", "Mech_Default_23_1", "UpIdle", 0.0),
+    "larva": ("sharedassets0.assets", "Mech_Default_1001_1", "UpIdle", 0.0),
     "defensive_wall": ("sharedassets0.assets", "Construction_Default_1", None, 0.0),
     "anti_armor_turret": ("sharedassets0.assets", "Construction_Default_2", None, 0.0),
     "rapid_fire_turret": ("sharedassets0.assets", "Construction_Default_3", None, 0.0),

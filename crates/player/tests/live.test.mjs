@@ -196,7 +196,7 @@ function bootLivePlayer({ rounds, fetchImpl }) {
   windowObj.window = windowObj;
 
   const scripts = [
-    'sprites', 'snapshot', 'terrain', 'skill-icons', 'deployment',
+    'sandworm-motion', 'sprites', 'snapshot', 'terrain', 'skill-icons', 'deployment',
     'lead-in', 'spawn', 'settlement', 'hud', 'roster', 'arsenal', 'player',
   ];
   const bundle = scripts.map((name) => source(name)).join('\n');

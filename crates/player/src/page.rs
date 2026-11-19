@@ -10,6 +10,7 @@ const HUD: &str = include_str!("../web/hud.js");
 const ROSTER: &str = include_str!("../web/roster.js");
 const ARSENAL: &str = include_str!("../web/arsenal.js");
 const TOWER_ASSETS: &str = include_str!("../web/tower-cards.json");
+const SANDWORM_MOTION: &str = include_str!("../web/sandworm-motion.js");
 const SPRITES: &str = include_str!("../web/sprites.js");
 const SNAPSHOT: &str = include_str!("../web/snapshot.js");
 const TERRAIN: &str = include_str!("../web/terrain.js");
@@ -128,6 +129,7 @@ fn render_raw(
         .replace("/*{{hud}}*/", HUD)
         .replace("/*{{roster}}*/", ROSTER)
         .replace("/*{{arsenal}}*/", ARSENAL)
+        .replace("/*{{sandworm-motion}}*/", SANDWORM_MOTION)
         .replace("/*{{sprites}}*/", SPRITES)
         .replace("/*{{snapshot}}*/", SNAPSHOT)
         .replace("/*{{terrain}}*/", TERRAIN)

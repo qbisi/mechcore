@@ -9,12 +9,13 @@
 //! differences a track writes short.
 
 use std::collections::{BTreeMap, HashMap};
+use std::sync::OnceLock;
 
 use mechcore_document::{Layout, Position, Region};
 use mechcore_mcfr::{
     BuildingState, Domain, Event, EventPayload, LiveUnitState, MotionState, ObjectKind, ObjectRef,
     ProjectileState, QVec3, Recording, ShieldSourceKind, ShieldState, TerrainGridState,
-    TerrainState, TerrainType, UnitPose,
+    TerrainState, TerrainType, UnitPose, Visibility,
 };
 use serde::{Deserialize, Serialize, Serializer};
 
@@ -191,12 +192,47 @@ pub struct Unit {
     pub shield: Option<Track>,
     /// `MotionState`: 0 idle, 1 moving, 2 attacking, 3 stopped, 4 between.
     pub motion: Track,
+    /// `Visibility`: 0 normal, 1 disappear, 2 stealth, 3 hide; omitted when
+    /// the unit stays normal throughout.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub visibility: Option<Track>,
+    /// Burrowing transition windows (`burrow` / `emerge`) classified from
+    /// motion, visibility, unit config, and active side technologies; omitted
+    /// for surface-only units.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub underground: Option<Underground>,
     /// What the first weapon fires at, as a [`Ref`] number: a unit by its
     /// id, a building by its negated id, nothing by 0.
     pub aim: Track,
     /// How the game drew the unit, for a recording that holds its poses.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pose: Option<Pose>,
+}
+
+/// Burrowing metadata for a unit whose configuration defines underground
+/// transitions.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct Underground {
+    pub transitions: Vec<UndergroundTransition>,
+}
+
+/// Direction of an underground transition clip.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UndergroundTransitionKind {
+    Burrow,
+    Emerge,
+}
+
+/// One contiguous burrow or emerge transition `[from, to)` in world ticks.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+pub struct UndergroundTransition {
+    pub kind: UndergroundTransitionKind,
+    pub from: u32,
+    pub to: u32,
+    /// Full clip duration in ticks (may exceed `to - from` if truncated at the
+    /// end of the unit's lifetime).
+    pub duration: u32,
 }
 
 /// A unit's animated pose, tick by tick: the clip its model's base layer
@@ -600,29 +636,10 @@ impl<'a> Builder<'a> {
                 .insert((state.unit_id, skill.skill_slot), splash);
         }
         self.reach(position.0, position.2);
-        let unit = self.units.entry(state.unit_id).or_insert_with(|| Unit {
-            id: state.unit_id,
-            level: None,
-            team: state.team_id,
-            formation: state.formation_id,
-            unit_type: state.unit_type_id,
-            kind: unit_kind(state.unit_type_id),
-            air: state.domain == Domain::Air,
-            radius: centimetres(state.collision_radius),
-            max_life: state.life.maximum,
-            from: tick,
-            to: tick,
-            x: Track::default(),
-            y: Track::default(),
-            z: Track::default(),
-            body: Track::default(),
-            turret: state.turret_rotation.map(|_| Track::default()),
-            life: Track::default(),
-            shield: None,
-            motion: Track::default(),
-            aim: Track::default(),
-            pose: None,
-        });
+        let unit = self
+            .units
+            .entry(state.unit_id)
+            .or_insert_with(|| new_unit(tick, state));
         if self.poses.is_some() && unit.pose.is_none() {
             let mut pose = Pose {
                 clip: Track::default(),
@@ -639,12 +656,12 @@ impl<'a> Builder<'a> {
         } else {
             0
         };
-        if shield > 0 && unit.shield.is_none() {
-            let mut track = Track::default();
-            for _ in 0..unit.life.len() {
-                track.push(0);
-            }
-            unit.shield = Some(track);
+        if shield > 0 {
+            ensure_zero_track(&mut unit.shield, unit.life.len());
+        }
+        let vis = visibility(state.visibility);
+        if vis != 0 {
+            ensure_zero_track(&mut unit.visibility, unit.life.len());
         }
         // A tick the unit skipped holds what it last was.
         while unit.to + 1 < tick {
@@ -669,6 +686,9 @@ impl<'a> Builder<'a> {
             track.push(shield);
         }
         unit.motion.push(motion(state.motion_state));
+        if let Some(track) = &mut unit.visibility {
+            track.push(vis);
+        }
         let aim = state
             .skills
             .iter()
@@ -972,6 +992,9 @@ impl<'a> Builder<'a> {
             self.reach(region.x0, region.z0);
             self.reach(region.x1, region.z1);
         }
+        for unit in self.units.values_mut() {
+            unit.underground = underground_for_unit(unit, self.layout);
+        }
         Timeline {
             schema: SCHEMA,
             producer,
@@ -1030,6 +1053,44 @@ fn terrain_grid(grid: &TerrainGridState) -> TerrainGrid {
     }
 }
 
+fn new_unit(tick: u32, state: &LiveUnitState) -> Unit {
+    Unit {
+        id: state.unit_id,
+        level: None,
+        team: state.team_id,
+        formation: state.formation_id,
+        unit_type: state.unit_type_id,
+        kind: unit_kind(state.unit_type_id),
+        air: state.domain == Domain::Air,
+        radius: centimetres(state.collision_radius),
+        max_life: state.life.maximum,
+        from: tick,
+        to: tick,
+        x: Track::default(),
+        y: Track::default(),
+        z: Track::default(),
+        body: Track::default(),
+        turret: state.turret_rotation.map(|_| Track::default()),
+        life: Track::default(),
+        shield: None,
+        motion: Track::default(),
+        visibility: None,
+        underground: None,
+        aim: Track::default(),
+        pose: None,
+    }
+}
+
+fn ensure_zero_track(slot: &mut Option<Track>, prior_len: usize) {
+    if slot.is_none() {
+        let mut track = Track::default();
+        for _ in 0..prior_len {
+            track.push(0);
+        }
+        *slot = Some(track);
+    }
+}
+
 fn repeat_unit(unit: &mut Unit) {
     let mut tracks = vec![
         &mut unit.x,
@@ -1045,6 +1106,9 @@ fn repeat_unit(unit: &mut Unit) {
     }
     if let Some(shield) = &mut unit.shield {
         tracks.push(shield);
+    }
+    if let Some(visibility) = &mut unit.visibility {
+        tracks.push(visibility);
     }
     if let Some(pose) = &mut unit.pose {
         tracks.push(&mut pose.clip);
@@ -1089,6 +1153,15 @@ const fn motion(state: MotionState) -> i64 {
     }
 }
 
+const fn visibility(state: Visibility) -> i64 {
+    match state {
+        Visibility::Normal => 0,
+        Visibility::Disappear => 1,
+        Visibility::Stealth => 2,
+        Visibility::Hide => 3,
+    }
+}
+
 const fn shield_source(kind: ShieldSourceKind) -> &'static str {
     match kind {
         ShieldSourceKind::Contraption => "contraption",
@@ -1098,11 +1171,193 @@ const fn shield_source(kind: ShieldSourceKind) -> &'static str {
     }
 }
 
+#[derive(Deserialize)]
+struct UnitConfigRow {
+    unit_type_id: u32,
+    type_name: String,
+    #[serde(default)]
+    underground: Option<UndergroundConfig>,
+}
+
+#[derive(Clone, Copy, Deserialize)]
+struct UndergroundConfig {
+    enter: f64,
+    exit: f64,
+}
+
+#[derive(Deserialize)]
+struct TechnologyEffectsTable {
+    technologies: Vec<TechnologyEffectRow>,
+}
+
+#[derive(Deserialize)]
+struct TechnologyEffectRow {
+    id: i32,
+    unit: String,
+    #[serde(default)]
+    exit_time_rate: Option<i64>,
+}
+
+struct UnitCatalog {
+    kinds: HashMap<u32, String>,
+    underground: HashMap<String, UndergroundConfig>,
+    exit_time_rates: HashMap<i32, (String, f64)>,
+}
+
+impl UnitCatalog {
+    fn get() -> &'static Self {
+        static CATALOG: OnceLock<UnitCatalog> = OnceLock::new();
+        CATALOG.get_or_init(Self::load)
+    }
+
+    fn load() -> Self {
+        let mut kinds = HashMap::new();
+        let mut underground = HashMap::new();
+        for yaml in mechcore_document::catalog::UNIT_CONFIGS {
+            let row: UnitConfigRow =
+                serde_yaml::from_str(yaml).expect("embedded unit config must parse");
+            if let Some(ug) = row.underground {
+                underground.insert(row.type_name.clone(), ug);
+            }
+            kinds.insert(row.unit_type_id, row.type_name);
+        }
+        let table: TechnologyEffectsTable =
+            serde_yaml::from_str(include_str!("../../../config/technology_effects.yaml"))
+                .expect("embedded technology_effects config must parse");
+        let exit_time_rates = table
+            .technologies
+            .into_iter()
+            .filter_map(|row| Some((row.id, (row.unit, q32_to_f64(row.exit_time_rate?)))))
+            .collect();
+        Self {
+            kinds,
+            underground,
+            exit_time_rates,
+        }
+    }
+}
+
+#[allow(
+    clippy::cast_precision_loss,
+    reason = "Q32.32 rate values fit cleanly within f64 mantissa"
+)]
+fn q32_to_f64(raw: i64) -> f64 {
+    (raw as f64) / 4_294_967_296.0
+}
+
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "clamped positive tick duration fits comfortably in u32"
+)]
+fn ticks_from_seconds(seconds: f64) -> u32 {
+    (seconds * f64::from(TICKS_PER_SECOND))
+        .round()
+        .clamp(1.0, f64::from(u32::MAX)) as u32
+}
+
 fn unit_kind(unit_type: u32) -> String {
+    if let Some(name) = UnitCatalog::get().kinds.get(&unit_type) {
+        return name.clone();
+    }
     i32::try_from(unit_type)
         .ok()
         .and_then(mechcore_document::unit_type_from_id)
         .map_or_else(|| format!("unit_{unit_type}"), |(name, _)| name.to_owned())
+}
+
+fn underground_for_unit(unit: &Unit, layout: Option<&Layout>) -> Option<Underground> {
+    let catalog = UnitCatalog::get();
+    let config = catalog.underground.get(&unit.kind)?;
+    let side_techs = layout.and_then(|layout| match unit.team {
+        0 => Some(layout.blue.techs.as_slice()),
+        1 => Some(layout.red.techs.as_slice()),
+        _ => None,
+    });
+    let exit_rate: f64 = side_techs
+        .into_iter()
+        .flatten()
+        .filter_map(|id| catalog.exit_time_rates.get(id))
+        .filter(|(tech_unit, _)| tech_unit == &unit.kind)
+        .map(|(_, rate)| *rate)
+        .sum();
+    let enter_ticks = ticks_from_seconds(config.enter);
+    let exit_ticks = ticks_from_seconds(config.exit * (1.0 + exit_rate).max(0.05));
+    let transitions = classify_underground_transitions(
+        unit.motion.values(),
+        unit.visibility.as_ref().map(Track::values),
+        unit.from,
+        enter_ticks,
+        exit_ticks,
+    );
+    Some(Underground { transitions })
+}
+
+fn classify_underground_transitions(
+    motion: &[i64],
+    visibility: Option<&[i64]>,
+    from: u32,
+    enter_ticks: u32,
+    exit_ticks: u32,
+) -> Vec<UndergroundTransition> {
+    const MOVING: i64 = 1;
+    const TRANSITIONING: i64 = 4;
+    const HIDE: i64 = 3;
+
+    let n = motion.len();
+    let vis = |idx: usize| {
+        visibility
+            .and_then(|track| track.get(idx))
+            .copied()
+            .unwrap_or(0)
+    };
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < n {
+        if motion[i] != TRANSITIONING {
+            i += 1;
+            continue;
+        }
+        let start = i;
+        while i + 1 < n && motion[i + 1] == TRANSITIONING {
+            i += 1;
+        }
+        let end = i;
+        let next = end + 1;
+        let len = u32::try_from(next - start).unwrap_or(u32::MAX);
+        let tr_from = from + u32::try_from(start).unwrap_or(0);
+        let tr_to = from + u32::try_from(next).unwrap_or(0);
+        if vis(start) == HIDE {
+            let duration = if next == n { len.max(exit_ticks) } else { len };
+            out.push(UndergroundTransition {
+                kind: UndergroundTransitionKind::Emerge,
+                from: tr_from,
+                to: tr_to,
+                duration,
+            });
+        } else if next < n {
+            let enters = vis(next) == HIDE
+                || motion[next] == MOVING
+                || (start..=end).any(|j| vis(j) == HIDE);
+            if enters {
+                out.push(UndergroundTransition {
+                    kind: UndergroundTransitionKind::Burrow,
+                    from: tr_from,
+                    to: tr_to,
+                    duration: len,
+                });
+            }
+        } else if len >= 2 || vis(end) == HIDE {
+            out.push(UndergroundTransition {
+                kind: UndergroundTransitionKind::Burrow,
+                from: tr_from,
+                to: tr_to,
+                duration: len.max(enter_ticks),
+            });
+        }
+        i = next;
+    }
+    out
 }
 
 /// What a building is. A tower says so by its `BuildingType`; a
@@ -1168,7 +1423,11 @@ fn launcher(layout: Option<&Layout>, team: u32, (x, _, z): (i64, i64, i64)) -> O
 
 #[cfg(test)]
 mod tests {
-    use super::{centimetres, tenths_of_a_degree, terrain_grid};
+    use super::{
+        UndergroundTransition, UndergroundTransitionKind, UnitCatalog, centimetres,
+        classify_underground_transitions, tenths_of_a_degree, terrain_grid, ticks_from_seconds,
+        unit_kind,
+    };
     use mechcore_mcfr::TerrainGridState;
 
     const METRE: i64 = 1 << 32;
@@ -1215,5 +1474,105 @@ mod tests {
         assert_eq!(tenths_of_a_degree(90 * METRE), 900);
         assert_eq!(tenths_of_a_degree(-90 * METRE), 2700);
         assert_eq!(tenths_of_a_degree(360 * METRE), 0);
+    }
+
+    #[test]
+    fn unit_kind_resolves_standard_and_summoned_units() {
+        assert_eq!(unit_kind(23), "sandworm");
+        assert_eq!(unit_kind(1001), "larva");
+        assert_eq!(unit_kind(1002), "spider_mine");
+        for id in (1..=32).chain([2002]) {
+            let (expected, _) = mechcore_document::unit_type_from_id(id).unwrap();
+            assert_eq!(unit_kind(u32::try_from(id).unwrap()), expected);
+        }
+        let catalog = UnitCatalog::get();
+        assert_eq!(
+            ticks_from_seconds(catalog.underground["sandworm"].enter),
+            20
+        );
+        assert_eq!(ticks_from_seconds(catalog.underground["larva"].exit), 30);
+    }
+
+    #[test]
+    fn classify_underground_transitions_handles_burrow_emerge_noop_and_truncation() {
+        let mut motion = vec![0_i64; 90];
+        let mut vis = vec![0_i64; 90];
+        // Ticks 1..=20: 20-tick burrow entering Hide on tick 11.
+        for i in 0..20 {
+            motion[i] = 4;
+            if i >= 10 {
+                vis[i] = 3;
+            }
+        }
+        // Ticks 21..=40: moving underground.
+        for i in 20..40 {
+            motion[i] = 1;
+            vis[i] = 3;
+        }
+        // Ticks 41..=70: 30-tick emerge.
+        for i in 40..70 {
+            motion[i] = 4;
+            if i < 60 {
+                vis[i] = 3;
+            }
+        }
+        // Tick 72: 1-tick visible idle-to-attack transition (ignored).
+        motion[71] = 4;
+        for cell in &mut motion[72..] {
+            *cell = 2;
+        }
+
+        assert_eq!(
+            classify_underground_transitions(&motion, Some(&vis), 1, 20, 30),
+            vec![
+                UndergroundTransition {
+                    kind: UndergroundTransitionKind::Burrow,
+                    from: 1,
+                    to: 21,
+                    duration: 20,
+                },
+                UndergroundTransition {
+                    kind: UndergroundTransitionKind::Emerge,
+                    from: 41,
+                    to: 71,
+                    duration: 30,
+                },
+            ]
+        );
+
+        // Truncated emerge at recording end uses Strike-adjusted exit ticks (15) vs default (30).
+        let trunc_emerge_mo = vec![4_i64; 10];
+        let trunc_emerge_vis = vec![3_i64; 10];
+        assert_eq!(
+            classify_underground_transitions(&trunc_emerge_mo, Some(&trunc_emerge_vis), 5, 20, 15),
+            vec![UndergroundTransition {
+                kind: UndergroundTransitionKind::Emerge,
+                from: 5,
+                to: 15,
+                duration: 15,
+            }]
+        );
+        assert_eq!(
+            classify_underground_transitions(&trunc_emerge_mo, Some(&trunc_emerge_vis), 5, 20, 30),
+            vec![UndergroundTransition {
+                kind: UndergroundTransitionKind::Emerge,
+                from: 5,
+                to: 15,
+                duration: 30,
+            }]
+        );
+
+        // Truncated burrow uses enter ticks (20).
+        let trunc_burrow_mo = vec![4_i64; 6];
+        let trunc_burrow_vis = vec![0, 0, 0, 0, 3, 3];
+        assert_eq!(
+            classify_underground_transitions(&trunc_burrow_mo, Some(&trunc_burrow_vis), 19, 20, 30),
+            vec![UndergroundTransition {
+                kind: UndergroundTransitionKind::Burrow,
+                from: 19,
+                to: 25,
+                duration: 20,
+            }]
+        );
     }
 }

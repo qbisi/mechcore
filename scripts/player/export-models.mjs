@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
+const MOTION = join(ROOT, 'crates/player/web/sandworm-motion.js');
 const SPRITES = join(ROOT, 'crates/player/web/sprites.js');
 const SNAPSHOT = join(ROOT, 'crates/player/web/snapshot.js');
 const OUT = join(ROOT, 'assets/models');
@@ -63,7 +64,7 @@ const SnapshotContext = vm.runInNewContext(`${readFileSync(SNAPSHOT, 'utf8')}\nS
 
 function load() {
   const sandbox = { Math };
-  const code = readFileSync(SPRITES, 'utf8');
+  const code = `${readFileSync(MOTION, 'utf8')}\n${readFileSync(SPRITES, 'utf8')}`;
   return vm.runInNewContext(`${code}\nSprites;`, sandbox, { filename: SPRITES });
 }
 

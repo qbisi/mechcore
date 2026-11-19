@@ -29,8 +29,8 @@ pub use page::{LiveRoundMeta, live_page, live_page_json, match_page, page};
 pub use roster::{RosterEntry, RosterTechnology, unit_roster};
 pub use timeline::{
     Building, Core, Cue, DeploymentRegion, Error, Field, Officer, Pose, Projectile, Ref, SCHEMA,
-    ScoreSource, Shield, Terrain, TerrainFrame, TerrainGrid, TerrainShape, Timeline, Unit,
-    timeline,
+    ScoreSource, Shield, Terrain, TerrainFrame, TerrainGrid, TerrainShape, Timeline, Underground,
+    UndergroundTransition, UndergroundTransitionKind, Unit, timeline,
 };
 pub use tower::{TowerCards, TowerChoice, tower_cards};
 pub use track::{Step, Track};

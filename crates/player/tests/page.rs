@@ -4,7 +4,7 @@
 use std::{collections::BTreeMap, path::PathBuf, sync::OnceLock};
 
 use mechcore_mcfr::{MemoryRecording, Recording};
-use mechcore_player::{Cue, Step, Timeline, Track};
+use mechcore_player::{Cue, Step, Timeline, Track, UndergroundTransitionKind};
 use mechcore_simulation::{Record, simulate_layout};
 
 #[test]
@@ -656,4 +656,124 @@ red:
     assert_eq!(embedded_json(&from_json, "timeline"), payload);
     assert_eq!(embedded_json(&from_json, "roster-assets"), rosters);
     assert_eq!(embedded_json(&from_json, "arsenal-assets"), arsenals);
+}
+
+#[test]
+fn sandworm_timeline_records_underground_visibility_and_omits_normal_units() {
+    let document = br"
+kind: layout
+seed: 4242
+round: 1
+blue:
+  units:
+  - {name: sandworm, index: 0, position: {x: 0, y: -100}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+";
+    let recording = mechcore_simulation::simulate_document(document, Record::Memory, None)
+        .unwrap()
+        .recording
+        .unwrap();
+    let timeline = mechcore_player::timeline(&recording, None).unwrap();
+    let sandworm = timeline
+        .units
+        .iter()
+        .find(|unit| unit.kind == "sandworm")
+        .expect("sandworm in timeline");
+    let rhino = timeline
+        .units
+        .iter()
+        .find(|unit| unit.kind == "rhino")
+        .expect("rhino in timeline");
+    assert!(rhino.visibility.is_none());
+    assert!(rhino.underground.is_none());
+    assert!(sandworm.underground.is_some());
+
+    let vis = read_back(
+        sandworm
+            .visibility
+            .as_ref()
+            .expect("sandworm records visibility track"),
+    );
+    let ticks = usize::try_from(sandworm.to - sandworm.from + 1).unwrap();
+    assert_eq!(vis.len(), ticks);
+    assert_eq!(vis[0], 0);
+    assert!(vis.contains(&3), "sandworm must enter Hide visibility");
+    assert_eq!(*vis.last().unwrap(), 0);
+
+    for tick in sandworm.from..=sandworm.to {
+        let state = recording
+            .state(tick)
+            .unwrap()
+            .live_units
+            .into_iter()
+            .find(|unit| unit.unit_id == sandworm.id)
+            .unwrap();
+        let expected = match state.visibility {
+            mechcore_mcfr::Visibility::Normal => 0,
+            mechcore_mcfr::Visibility::Disappear => 1,
+            mechcore_mcfr::Visibility::Stealth => 2,
+            mechcore_mcfr::Visibility::Hide => 3,
+        };
+        let at = usize::try_from(tick - sandworm.from).unwrap();
+        assert_eq!(vis[at], expected, "visibility mismatch at tick {tick}");
+    }
+}
+
+#[test]
+fn sandworm_strike_and_replicate_larva_emit_underground_transitions_and_larva_kind() {
+    let document = br"
+kind: layout
+seed: 4242
+round: 1
+blue:
+  techs:
+    sandworm: [replicate, strike]
+  units:
+  - {name: sandworm, index: 0, position: {x: 0, y: -140}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}}
+";
+    let recording = mechcore_simulation::simulate_document(document, Record::Memory, None)
+        .unwrap()
+        .recording
+        .unwrap();
+    let timeline = mechcore_player::timeline(&recording, None).unwrap();
+
+    let sandworm = timeline
+        .units
+        .iter()
+        .find(|unit| unit.kind == "sandworm")
+        .expect("sandworm in timeline");
+    let ug = sandworm
+        .underground
+        .as_ref()
+        .expect("sandworm emits underground transitions");
+    assert!(
+        ug.transitions
+            .iter()
+            .any(|tr| tr.kind == UndergroundTransitionKind::Burrow),
+        "expected burrow transition on sandworm"
+    );
+    assert!(
+        ug.transitions
+            .iter()
+            .any(|tr| tr.kind == UndergroundTransitionKind::Emerge && tr.duration == 15),
+        "expected 15-tick Strike emerge on sandworm: {:?}",
+        ug.transitions
+    );
+
+    let larvas: Vec<_> = timeline
+        .units
+        .iter()
+        .filter(|unit| unit.unit_type == 1001)
+        .collect();
+    assert!(!larvas.is_empty(), "expected replicated larva units");
+    for larva in larvas {
+        assert_eq!(larva.kind, "larva");
+        assert!(larva.underground.is_some());
+    }
 }
