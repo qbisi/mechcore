@@ -325,6 +325,18 @@ has them: `SWING` and `ACTIONS` in `web/player.js`.
 A Rhino's Whirlwind spins it once round with both chainsaws out, its blow
 landing half way through the turn, and whirls about it out to the skill's
 splash, as the game's TechAttack clip and its whirlwind effect do: `SPINS`.
+[`src/timeline.rs`](src/timeline.rs) resolves both standard and summoned unit kinds
+(`larva`, `spider_mine`) from `UNIT_CONFIGS`, records an optional `visibility`
+track (`0` normal, `1` disappear, `2` stealth, `3` hide, omitted when always
+normal), and classifies burrowing units' `transitioning` runs into
+`unit.underground` (`burrow` and `emerge` windows) using `config/units/*.yaml`
+(`enter`/`exit`) and `config/technology_effects.yaml` (`exit_time_rate`, e.g.
+Strike). The page plays those `Down` and `Up` windows directly; while
+underground, the surface hull gives way to a seismic soil mound with team
+accents and a distance-anchored chevron wake drawn beneath surface units, and
+melee strikes blend near and far ground or air lunge keyframes by target distance
+(`attackMaxDistance`, 50 m for both Sandworm and Larva) alongside a three-claw
+bite slash.
 
 A unit type with no sprite is still drawn, as a disc of its collision size
 under its name. The ground is simplified, under each side's three deployment
@@ -512,7 +524,11 @@ masks it, and each unit's emissive colour. Original model meshes and textures
 are not embedded here. [`scripts/player/model-views.py`](../../scripts/player/model-views.py)
 renders the views the sprites follow from the installed game, into the
 untracked `work/player/models/`, so a sprite is checked against its model
-again whenever either changes.
+again whenever either changes. [`scripts/player/sandworm-motion.py`](../../scripts/player/sandworm-motion.py)
+(`--write` / `--check`) extracts Sandworm and Larva 3D bone trajectories across
+idle, burrow, emerge, and near or far ground and air attacks into
+`web/sandworm-motion.js`, which `web/sprites.js` height-sorts and ground-clips
+each frame.
 
 The sprites are also files: [`assets/models/`](../../assets/models/README.md)
 holds each one as SVG, written from this code by

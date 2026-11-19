@@ -76,7 +76,7 @@
   // A melee strike's swing: how long before the blow it starts, and how long
   // it lasts, in seconds. A Rhino's FiringAL and FiringAR last 0.72 s and
   // land their blow 0.39 of the way through, as the game's poses show.
-  const SWING = { rhino: [0.28, 0.72], crawler: [0.2, 0.5] };
+  const SWING = { rhino: [0.28, 0.72], crawler: [0.2, 0.5], sandworm: [1.0, 2.17], larva: [1.0, 2.0] };
   // A spin that strikes all about its unit, as a Rhino's Whirlwind does: the
   // skill slot that strikes it, how long before the blow it starts and how
   // long it lasts, in seconds. A Rhino spins with TechAttack, 1.7 s; its
@@ -88,10 +88,23 @@
   // melee unit the side each clip strikes with. A recording that holds poses
   // drives these from the clip itself; one that does not, from its events.
   let CLIPS = data.clips || [];
+  const SANDWORM_ACTIONS = {
+    burrow: 'Down',
+    emerge: 'Up',
+    underground: 'DownIdle',
+    strikes: { ground_near: 0, ground_far: 1, air_near: 2, air_far: 3 },
+    attackMaxDistance: 50,
+    biteScale: 1,
+    biteGlow: 4.5,
+    wakeStep: 4.2,
+    wakeScale: 1,
+  };
   const ACTIONS = {
     marksman: { fire: 'Longbow_FiringA', fireLength: 1.067, charge: 'Longbow_PreAttack', chargeLength: 0.5 },
     arclight: { charge: 'attack2', chargeLength: 0.7 },
     rhino: { strikes: { Rhinoceros_FiringAL: 0, Rhinoceros_FiringAR: 1 }, standing: ['Rhinoceros_Walk'] },
+    sandworm: SANDWORM_ACTIONS,
+    larva: { ...SANDWORM_ACTIONS, biteScale: 0.55, biteGlow: 2.5, wakeStep: 2.4, wakeScale: 0.52 },
   };
   // How long a stance takes to change, in ticks: a Rhino raising its
   // chainsaws ahead of it to walk, or lowering them to its sides to fight.
@@ -135,6 +148,21 @@
     }
     return eased;
   }
+  // Classifies a burrower's `transitioning` (`Mo === 4`) runs into burrow and
+  // emerge intervals. Ignores 1-tick idle-to-attack `transitioning` no-ops
+  // that stay visible on the surface and turn directly into `attacking`.
+  function undergroundState(u, tau, s) {
+    if (!u.underground) return { burrow: -1, emerge: -1, underground: 0 };
+    for (const tr of u.underground) {
+      if (tau >= tr.from && tau < tr.to) {
+        const phase = Math.max(0, Math.min(1, (tau - tr.from) / tr.duration));
+        return tr.kind === 'burrow'
+          ? { burrow: phase, emerge: -1, underground: 0 }
+          : { burrow: -1, emerge: phase, underground: 0 };
+      }
+    }
+    return { burrow: -1, emerge: -1, underground: s.visibility === 3 ? 1 : 0 };
+  }
   function tracks() {
     const byRef = new Map();
     const ref = (name) => (name ? byRef.get(name) : undefined);
@@ -148,12 +176,14 @@
         B: decode(u.body, n), R: u.turret ? decode(u.turret, n) : null,
         L: decode(u.life, n), S: u.shield ? decode(u.shield, n) : null,
         Mo: decode(u.motion, n), A: decode(u.aim, n),
+        V: u.visibility ? decode(u.visibility, n) : null,
         PC: u.pose ? decode(u.pose.clip, n) : null, PT: u.pose ? decode(u.pose.time, n, 0.001) : null,
-        fires: [], strikes: [], spins: [], hits: [], death: null, spawn: null,
+        fires: [], strikes: [], strikeMeta: [], spins: [], hits: [], death: null, spawn: null,
       };
       o.D = new Float64Array(n);
       for (let i = 1; i < n; i++) o.D[i] = o.D[i - 1] + Math.hypot(o.X[i] - o.X[i - 1], o.Z[i] - o.Z[i - 1]);
       o.stance = stances(o);
+      o.underground = u.underground ? u.underground.transitions : null;
       byRef.set(`u${u.id}`, o);
       return o;
     });
@@ -235,8 +265,38 @@
               by.spins.push(c.t);
               c.whirl = true;
             }
-          } else if (by && by.what === 'unit' && c.p === undefined && by.strikes[by.strikes.length - 1] !== c.t) {
-            by.strikes.push(c.t);
+          } else if (by && by.what === 'unit' && c.p === undefined) {
+            const maxReach = ACTIONS[by.kind]?.attackMaxDistance;
+            let meta = null;
+            let bi = 0;
+            if (maxReach && target) {
+              bi = Math.max(0, Math.min(by.n - 1, c.t - by.from));
+              let tx, tz;
+              if (target.what === 'unit') {
+                const ti = Math.max(0, Math.min(target.n - 1, c.t - target.from));
+                tx = target.X[ti]; tz = target.Z[ti];
+              } else if (target.what === 'building') {
+                tx = target.x; tz = target.z;
+              } else if (target.what === 'shield') {
+                const si = Math.max(0, Math.min(target.n - 1, c.t - target.from));
+                tx = target.X[si]; tz = target.Z[si];
+              }
+              if (tx !== undefined) {
+                const dist = Math.hypot(tx - by.X[bi], tz - by.Z[bi]);
+                meta = {
+                  reach: Math.max(0, Math.min(1, dist / maxReach)),
+                  air: target.what === 'unit' && Boolean(target.air),
+                };
+              }
+            }
+            if (by.strikes[by.strikes.length - 1] !== c.t) {
+              by.strikes.push(c.t);
+              if (maxReach) by.strikeMeta.push(meta || { reach: 0.4, air: false });
+            } else if (meta && maxReach) {
+              const aimed = (target.what === 'unit' && by.A[bi] === target.id)
+                || (target.what === 'building' && by.A[bi] === -target.id);
+              if (aimed) by.strikeMeta[by.strikeMeta.length - 1] = meta;
+            }
           }
           // a blow that splashes rings its splash once, however many it hits
           if (c.splash && !rings.has(`${c.by}@${c.t}`)) {
@@ -334,6 +394,7 @@
       x: lerp(u.X, i, f, n), z: lerp(u.Z, i, f, n), y: lerp(u.Y, i, f, n),
       body, turret: u.R ? angle(u.R, i, f, n) : body,
       life: u.L[i], shield: u.S ? u.S[i] : 0, motion: u.Mo[i], aim: u.A[i],
+      visibility: u.V ? u.V[i] : 0,
       walk: lerp(u.D, i, f, n), speed: i + 1 < n ? (u.D[i + 1] - u.D[i]) * TPS : 0,
       stance: u.stance ? lerp(u.stance, i, f, n) : 0,
       ...clipAt(u, i, f),
@@ -428,7 +489,15 @@
         if (j < 0) continue;
         const blow = o.strikes[j] - 0.5;
         const s = ((tau - blow) / TPS + windup) / total;
-        if (s >= 0 && s <= 1) { pose.strike = s; pose.strikeIndex = j; break; }
+        if (s >= 0 && s <= 1) {
+          pose.strike = s;
+          pose.strikeIndex = j;
+          if (o.strikeMeta && o.strikeMeta[j]) {
+            pose.strikeReach = o.strikeMeta[j].reach;
+            pose.strikeAir = o.strikeMeta[j].air;
+          }
+          break;
+        }
       }
     }
     if (o.spins && o.spins.length) {
@@ -457,6 +526,15 @@
       const side = action.strikes[clip];
       p.strike = side === undefined ? -1 : phase;
       p.strikeIndex = side === undefined ? 0 : side;
+      if (side !== undefined && action.attackMaxDistance) {
+        p.strikeReach = (clip === 'ground_far' || clip === 'air_far') ? 1 : 0;
+        p.strikeAir = clip === 'air_near' || clip === 'air_far';
+      }
+    }
+    if (action.burrow || action.emerge || action.underground) {
+      p.burrow = clip === action.burrow ? phase : -1;
+      p.emerge = clip === action.emerge ? phase : -1;
+      p.underground = clip === action.underground ? 1 : 0;
     }
     if (SPINS[kind]) p.spin = clip === SPINS[kind].clip ? phase : -1;
     if (action.fire) p.fireAge = clip === action.fire ? phase * action.fireLength : Infinity;
@@ -731,7 +809,14 @@
     p.chargeIn = Infinity;
     p.strike = -1;
     p.strikeIndex = 0;
+    p.strikeReach = 0.4;
+    p.strikeAir = false;
     p.spin = -1;
+    p.burrow = -1;
+    p.emerge = -1;
+    p.underground = 0;
+    p.crater = 0;
+    p.seed = 0;
     p.attacking = false;
     p.life = 1;
     p.hurt = 0;
@@ -786,12 +871,73 @@
   // Zoomed far out a unit would shrink to a few pixels: it is drawn larger,
   // up to half again its size, so its silhouette still reads.
   const enlargement = () => Math.max(1, Math.min(1.6, 2.2 / view.s));
+  // Distance-anchored earthen chevron trench left behind a moving burrowed
+  // Sandworm or Larva (after efx_2023_sandworm_move_01 / _move_02), fading out
+  // over 2.5 seconds of travel.
+  function drawUndergroundWakes() {
+    const big = enlargement();
+    const maxAgeTicks = 2.5 * TPS;
+    for (const u of units) {
+      const action = ACTIONS[u.kind];
+      if (u.air || !u.underground || !action?.wakeStep || !u.V || tau < u.from) continue;
+      const cur = unitAt(u, tau);
+      const step = action.wakeStep;
+      const wScale = action.wakeScale;
+      const tEnd = Math.min(Math.floor(tau), u.to);
+      const tStart = Math.max(u.from, Math.floor(tau - maxAgeTicks));
+      let lastBucket = -1;
+      for (let t = tStart; t <= tEnd; t++) {
+        const i = t - u.from;
+        if (u.V[i] !== 3) continue;
+        const d = u.D[i];
+        const bucket = Math.floor(d / step);
+        if (bucket === lastBucket) continue;
+        lastBucket = bucket;
+        const movedIn = i > 0 ? d - u.D[i - 1] : 0;
+        const movedOut = i + 1 < u.n ? u.D[i + 1] - d : 0;
+        if (movedIn < 0.05 && movedOut < 0.05) continue;
+        const appear = cur && cur.visibility === 3
+          ? Math.max(0, Math.min(1, (cur.walk - d - step * 0.45) / (step * 0.65)))
+          : 1;
+        if (appear <= 0.04) continue;
+        const age = tau - t;
+        const fade = Math.max(0, 1 - age / maxAgeTicks) * appear;
+        if (fade <= 0.04) continue;
+        const T = TEAMS[u.team] || TEAMS[0];
+        place(u.X[i], u.Z[i], u.B[i], big * wScale);
+        ctx.save();
+        ctx.globalAlpha = 0.72 * fade;
+        ctx.fillStyle = '#241e18';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 2.2, 2.8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#594b3c';
+        ctx.strokeStyle = '#14100d';
+        ctx.lineWidth = 0.28;
+        for (const sx of [-1, 1]) {
+          ctx.beginPath();
+          ctx.moveTo(sx * 1.1, -1.6);
+          ctx.lineTo(sx * 3.9, 1.3);
+          ctx.lineTo(sx * 2.5, 2.4);
+          ctx.lineTo(sx * 0.7, 0.2);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 0.36 * fade;
+        ctx.fillStyle = T.accent;
+        ctx.beginPath();
+        ctx.ellipse(0, -0.2, 0.65, 1.1, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
   function drawUnits(air, bars) {
     const big = enlargement();
-    for (const u of units) {
-      if (u.air !== air) continue;
-      const s = unitAt(u, tau);
-      if (!s) continue;
+    const drawOne = (u, s, ug) => {
       const p = resetPose(u.team);
       p.facing = rad(s.body);
       p.turret = rad(s.turret - s.body);
@@ -800,6 +946,13 @@
       p.attacking = s.motion === 2;
       p.life = s.life / u.maxLife;
       p.stance = s.stance;
+      p.seed = u.id;
+      if (ug) {
+        p.burrow = ug.burrow;
+        p.emerge = ug.emerge;
+        p.underground = ug.underground;
+        p.crater = 1;
+      }
       weaponState(u, tau, p);
       if (s.clip) posed(u.kind, s.clip, s.clipTime, p);
       // a unit fades out over the tick it dies in
@@ -827,7 +980,7 @@
           ctx.ellipse(0, 0, u.radius * 1.2, u.radius * 0.35, 0, 0, Math.PI * 2);
         }
         ctx.fill();
-      } else {
+      } else if (!ug) {
         place(s.x, s.z, s.body, bodySize);
         ctx.globalAlpha = 0.14 * opacity;
         ctx.fillStyle = '#000';
@@ -849,7 +1002,23 @@
       }
       ctx.globalAlpha = 1;
       if (s.life < u.maxLife) bars.push([s.x, s.z, u.radius * big, s.life, u.maxLife, u.team, false]);
+    };
+
+    const under = [], above = [];
+    for (const u of units) {
+      if (u.air !== air) continue;
+      const s = unitAt(u, tau);
+      if (!s) continue;
+      const ug = !air && u.underground ? undergroundState(u, tau, s) : null;
+      const underClip = ACTIONS[u.kind]?.underground;
+      const inUnder = ug && (s.clip && underClip
+        ? s.clip === underClip
+        : (ug.underground > 0.5 || ug.burrow > 0.78 || (ug.emerge >= 0 && ug.emerge < 0.25)));
+      if (inUnder) under.push([u, s, ug]);
+      else above.push([u, s, ug]);
     }
+    for (const [u, s, ug] of under) drawOne(u, s, ug);
+    for (const [u, s, ug] of above) drawOne(u, s, ug);
   }
 
   function rectPath(x, y, w, h) {
@@ -869,6 +1038,8 @@
     p.turret = rad(member.turret - member.body);
     p.speed = opts.speed ?? 0;
     p.walk = (opts.walk ?? 0) + m.id * 1.7;
+    p.seed = m.id;
+    if (ACTIONS[m.kind]?.underground) p.crater = opts.ghost ? 0 : 1;
     if (opts.clip) {
       const span = Math.max(m.radius * 4, 16);
       const uMin = member.x + member.z - span, uMax = member.x + member.z + span;
@@ -932,6 +1103,7 @@
 
   function drawLeadInShadow(member, air, big, alpha) {
     const m = member.m;
+    if (!air && ACTIONS[m.kind]?.underground) return;
     if (air) {
       place(member.x + member.y * AIR_SHADOW[0], member.z + member.y * AIR_SHADOW[1], member.body, big);
       ctx.globalAlpha = 0.24 * alpha;
@@ -1728,9 +1900,10 @@
   }
 
   // A melee blow where it landed: a rhino's blade cuts an arc, a crawler's
-  // drill throws sparks.
+  // drill throws sparks, a sandworm's jaws snap shut with 3-claw arcs.
   function slash(x, z, age, kind, seed, team) {
-    const life = 0.3;
+    const bite = ACTIONS[kind]?.biteScale;
+    const life = bite ? 0.4 : 0.3;
     if (age > life) return;
     const k = age / life;
     place(x, z, (seed * 1373) % 3600);
@@ -1747,6 +1920,34 @@
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 0.4 * (1 - k);
       ctx.stroke();
+    } else if (bite) {
+      const sc = bite;
+      const rnd = random(seed);
+      // efx_2023_sandworm_attack: expanding bite shockwave, three 120-degree
+      // saw-claw arcs, and flying amber stone sparks
+      ctx.strokeStyle = '#ffa347';
+      ctx.lineWidth = 1.1 * sc * (1 - k);
+      ctx.beginPath();
+      ctx.arc(0, 0, (2.2 + 6.4 * Sprites.ease(k)) * sc, 0, Math.PI * 2);
+      ctx.stroke();
+      for (let i = 0; i < 3; i++) {
+        const a = (i * Math.PI * 2) / 3;
+        ctx.strokeStyle = i === 0 ? glow : '#ffd38a';
+        ctx.lineWidth = 0.85 * sc * (1 - k);
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * 1.8 * sc, Math.sin(a) * 1.8 * sc, (3.2 + 3.0 * k) * sc, a - 0.55, a + 0.55);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = '#ffbb66';
+      ctx.lineWidth = 0.25 * sc;
+      ctx.beginPath();
+      for (let j = 0; j < 7; j++) {
+        const a = rnd() * Math.PI * 2;
+        const d = (1.0 + 4.8 * k * (0.4 + rnd())) * sc;
+        ctx.moveTo(Math.cos(a) * d * 0.45, Math.sin(a) * d * 0.45);
+        ctx.lineTo(Math.cos(a) * d, Math.sin(a) * d);
+      }
+      ctx.stroke();
     } else {
       const rnd = random(seed);
       ctx.strokeStyle = glow;
@@ -1760,7 +1961,7 @@
       }
       ctx.stroke();
     }
-    Sprites.glow(ctx, 0, 0, 3, glow, 1 - k);
+    Sprites.glow(ctx, 0, 0, ACTIONS[kind]?.biteGlow ?? 3, glow, 1 - k);
     ctx.restore();
   }
 
@@ -1829,6 +2030,7 @@
           : 0;
         syncDeployTechs(null, HudFrame.uiScale(naturalFitScale()), combatFade);
       }
+      drawUndergroundWakes();
       drawUnits(false, bars);
       drawShields();
       drawProjectiles();
@@ -2356,10 +2558,17 @@
       ctx.stroke();
       const name = NAMES[o.kind] || o.kind;
       const aim = s.aim > 0 ? `unit ${s.aim}` : s.aim < 0 ? `building ${-s.aim}` : 'nothing';
+      let motionText = MOTION[s.motion] || s.motion;
+      if (o.underground) {
+        const ug = undergroundState(o, tau, s);
+        if (ug.burrow >= 0) motionText = 'burrowing';
+        else if (ug.emerge >= 0) motionText = 'emerging';
+        else if (ug.underground > 0.5) motionText = s.motion === 1 ? 'moving underground' : 'underground';
+      }
       lines = [
         `<b>${name}</b>${o.level == null ? '' : ` · Lv.${o.level}`} <span class="dim">#${o.id} · ${TEAMS[o.team].name}</span>`,
         `life ${Math.round(s.life)} / ${o.maxLife}${s.shield > 0 ? ` · shield ${Math.round(s.shield)}` : ''}`,
-        `${MOTION[s.motion] || s.motion} · aiming at ${aim}`,
+        `${motionText} · aiming at ${aim}`,
         `<span class="dim">x ${s.x.toFixed(1)} · z ${s.z.toFixed(1)}${o.air ? ` · height ${s.y.toFixed(0)}` : ''}</span>`,
       ];
     } else {
