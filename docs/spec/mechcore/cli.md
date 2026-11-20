@@ -921,17 +921,20 @@ Operands and options:
 
 - `<match.yaml>`: a `match` document. Other kinds are refused.
 - `--profile <profile.yaml>`: required YAML profile manifest (`schema: mechcore.profile/v1`)
-  declaring the `opponent` belief plugin and ordered `pipeline` operators.
+  declaring `services` (`opponent`, optional `space` and `evaluator`),
+  `proposers`, `guards`, `filters`, `observers`, named `operators`, and a
+  recursive `pipeline` (`use`, `call`, `seq`, `branch`, `repeat`, `scope`).
 - `--round <n>`: optional round number. When omitted, selects the last round
   that holds recorded actions (or the last round if none holds actions yet).
 - `--side blue|red`: optional solving side, defaulting to `blue`.
 
-Each solution in `solutions` carries its `rank`, `score` (`core_delta`,
-defined as `opponent_core_damage - own_core_damage`), core damage breakdown,
-tick count, compiled legal `actions` list, and causal `lineage`. `baseline`
-reports the recorded own actions evaluated against the same opponent belief,
-and `trace` summarizes per-stage beam counts, simulation usage, and top pruned
-alternatives.
+Each solution in `solutions` carries its `rank`, `score` (expected
+`core_delta`, defined as `opponent_core_damage - own_core_damage`, optionally
+blended with worst-case `min_core_delta` across opponent beliefs), core damage
+breakdown, tick count, compiled legal `actions` list, and causal `lineage`.
+`baseline` reports the recorded own actions evaluated against the same opponent
+belief set, and `trace` summarizes per-stage beam counts, sweep count,
+simulation usage, stop reason, and top pruned alternatives.
 
 ## `generate`
 

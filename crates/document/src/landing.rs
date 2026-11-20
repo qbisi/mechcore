@@ -32,7 +32,7 @@ pub(crate) struct Rect {
 }
 
 impl Rect {
-    fn around(center: (i64, i64), size: (i64, i64)) -> Self {
+    pub(crate) fn around(center: (i64, i64), size: (i64, i64)) -> Self {
         Self {
             min: (center.0 - size.0 / 2, center.1 - size.1 / 2),
             max: (center.0 + size.0 / 2, center.1 + size.1 / 2),
@@ -40,14 +40,14 @@ impl Rect {
     }
 
     /// Positive-area overlap. Rectangles that only touch do not overlap.
-    const fn overlaps(self, other: Self) -> bool {
+    pub(crate) const fn overlaps(self, other: Self) -> bool {
         self.min.0 < other.max.0
             && other.min.0 < self.max.0
             && self.min.1 < other.max.1
             && other.min.1 < self.max.1
     }
 
-    const fn within(self, region: Self) -> bool {
+    pub(crate) const fn within(self, region: Self) -> bool {
         self.min.0 >= region.min.0
             && self.max.0 <= region.max.0
             && self.min.1 >= region.min.1
@@ -74,7 +74,7 @@ impl Region {
 }
 
 /// A region's rectangle in the side's own frame.
-fn bounds(region: Region) -> Rect {
+pub(crate) fn bounds(region: Region) -> Rect {
     let territory = crate::territory::territory();
     let rect = match region {
         Region::Main => territory.main,
@@ -104,7 +104,7 @@ fn local(position: Position) -> (i64, i64) {
 
 /// A unit's footprint in a region: a flank faces the other way, so what a
 /// rotation does there is undone.
-fn unit_size(type_name: &str, rotated: bool, region: Region) -> Option<(i64, i64)> {
+pub(crate) fn unit_size(type_name: &str, rotated: bool, region: Region) -> Option<(i64, i64)> {
     let (width, height) = resolve_unit_type(type_name)?.footprint?;
     Some(if rotated ^ region.is_flank() {
         (height, width)
@@ -182,6 +182,20 @@ fn occupants(state: &SideState) -> Vec<Occupant> {
         }
     }
     placed
+}
+
+/// Rectangles standing in `region` on `state`, excluding formation `ignore_unit`.
+#[must_use]
+pub(crate) fn region_obstacles(
+    state: &SideState,
+    ignore_unit: Option<i32>,
+    region: Region,
+) -> Vec<Rect> {
+    occupants(state)
+        .into_iter()
+        .filter(|other| other.region == region && other.unit != ignore_unit)
+        .map(|other| other.rect)
+        .collect()
 }
 
 /// Whether moving unit `index` of `type_name` to `position` is one

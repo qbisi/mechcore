@@ -1,4 +1,4 @@
-//! End-to-end tests for `mechcore solve`.
+//! End-to-end tests for `mechcore solve` and its composable plugin runtime.
 
 use std::{
     fs,
@@ -82,7 +82,6 @@ fn played_round_one(directory: &Path) -> String {
     run(&["match", "commit", &path, "--side", "blue"]).ok();
     run(&["match", "commit", &path, "--side", "red"]).ok();
 
-    // Round 1: buy one already-unlocked unit for each side, then commit both sides.
     for side in ["blue", "red"] {
         let view = run(&["match", "show", &path, "--side", side]).ok();
         let unit = view["state"][side]["unlocked_units"][0].as_str().unwrap();
@@ -94,7 +93,7 @@ fn played_round_one(directory: &Path) -> String {
 }
 
 #[test]
-fn solve_default_profile_returns_top_k_verified_actions_and_trace() {
+fn solve_default_profile_runs_coordinate_sweep_loop_and_verifies_actions() {
     let dir = tempfile::tempdir().unwrap();
     let match_path = played_round_one(dir.path());
     let profile = default_profile();
@@ -106,14 +105,13 @@ fn solve_default_profile_returns_top_k_verified_actions_and_trace() {
     assert_eq!(result["side"], "blue");
     assert_eq!(result["profile"], "default");
 
-    let baseline_score = result["baseline"]["core_delta"].as_i64().unwrap();
+    let baseline_score = result["baseline"]["score"].as_f64().unwrap();
     let solutions = result["solutions"].as_array().unwrap();
     assert_eq!(solutions.len(), 3, "default.yaml asks for top_k=3");
 
-    // Scores must be sorted in descending order and beat or tie the stay baseline.
-    let scores: Vec<i64> = solutions
+    let scores: Vec<f64> = solutions
         .iter()
-        .map(|sol| sol["score"].as_i64().unwrap())
+        .map(|sol| sol["score"].as_f64().unwrap())
         .collect();
     assert!(
         scores.windows(2).all(|pair| pair[0] >= pair[1]),
@@ -125,14 +123,16 @@ fn solve_default_profile_returns_top_k_verified_actions_and_trace() {
         scores[0]
     );
 
-    // Verify stages trace and causal lineage.
+    // Verify repeat loop, named operator calls, and trace emission.
+    assert!(result["trace"]["sweeps"].as_u64().unwrap() >= 1);
     let stages = result["trace"]["stages"].as_array().unwrap();
-    assert_eq!(stages.len(), 4);
-    assert_eq!(stages[0]["operator"], "warm_start.own_actions");
-    assert_eq!(stages[1]["operator"], "placement.predict_unpinned");
-    assert_eq!(stages[2]["operator"], "flow.dedup");
-    assert_eq!(stages[3]["operator"], "eval.top_k");
-    assert!(result["trace"]["simulations"].as_u64().unwrap() >= 3);
+    assert!(
+        stages
+            .iter()
+            .any(|s| s["operator"] == "placement.coordinate_sweep")
+    );
+    assert!(stages.iter().any(|s| s["operator"] == "combinator.repeat"));
+    assert!(stages.iter().any(|s| s["operator"] == "call:keep_top_3"));
 
     // Independently replay every returned solution's actions and verify legality.
     let bytes = fs::read(&match_path).unwrap();
@@ -181,30 +181,63 @@ fn solve_default_profile_returns_top_k_verified_actions_and_trace() {
 }
 
 #[test]
-fn solve_supports_red_side_explicit_round_stay_and_right_shift_stubs() {
+fn solve_supports_branch_scope_guards_and_multi_proposer_composition() {
     let dir = tempfile::tempdir().unwrap();
     let match_path = played_round_one(dir.path());
 
-    let stay_profile = dir.path().join("stay.yaml");
+    // Combine stay + right-shift proposers, deduplicate via filter.dedup_poses,
+    // constrain one branch with scope bounds, and cap simulations with bail guard.
+    let composed_profile = dir.path().join("composed.yaml");
     fs::write(
-        &stay_profile,
+        &composed_profile,
         "\
 schema: mechcore.profile/v1
-name: stay-only
-opponent:
-  use: opponent.replay_truth
+name: composed-scope-guard
+services:
+  opponent:
+    use: opponent.replay_truth
+  space:
+    use: space.strict_grid
+  evaluator:
+    use: eval.sim_exact
+proposers:
+  - use: proposer.stay
+  - use: proposer.shift_stub
+    with: { offsets: [10, 20, 30, 40, 50, 60, 70, 80] }
+guards:
+  - use: guard.max_simulations
+    with: { limit: 2 }
+filters:
+  - use: filter.dedup_poses
+  - use: filter.scope_bounds
+observers:
+  - use: observer.trace
+operators:
+  prune_two:
+    use: eval.top_k
+    with: { top_k: 2 }
 pipeline:
   - use: warm_start.own_actions
     with: { unpin_all_movable: true }
-  - use: placement.predict_unpinned
-    with: { predictor: stay }
-  - use: eval.top_k
-    with: { top_k: 2, objective: core_delta }
+  - branch:
+      - scope:
+          constraints: { min_x: -500, max_x: -500 }
+          body:
+            - use: placement.predict_unpinned
+              with: { max_branches: 4 }
+      - repeat:
+          max_iters: 3
+          stop_on_bail: true
+          body:
+            - use: placement.coordinate_sweep
+              with: { keep_per_unit: 1, beam_width: 2 }
+  - use: flow.dedup
+  - call: prune_two
 ",
     )
     .unwrap();
 
-    let stay = run(&[
+    let answer = run(&[
         "solve",
         &match_path,
         "--round",
@@ -212,55 +245,62 @@ pipeline:
         "--side",
         "red",
         "--profile",
-        stay_profile.to_str().unwrap(),
-    ])
-    .ok();
-    assert_eq!(stay["side"], "red");
-    assert_eq!(stay["round"], 1);
-    assert_eq!(stay["solutions"].as_array().unwrap().len(), 1);
-    assert_eq!(stay["solutions"][0]["delta_vs_baseline"], 0);
-
-    // Single right-shift stub (with YAML output format).
-    let right_profile = dir.path().join("right.yaml");
-    fs::write(
-        &right_profile,
-        "\
-schema: mechcore.profile/v1
-name: shift-right-only
-opponent:
-  use: opponent.replay_truth
-pipeline:
-  - use: warm_start.own_actions
-  - use: placement.predict_unpinned
-    with:
-      predictor: shift_stub
-      offsets: [10]
-  - use: eval.top_k
-    with:
-      top_k: 1
-",
-    )
-    .unwrap();
-    let right_yaml = run(&[
-        "solve",
-        &match_path,
-        "--round",
-        "1",
-        "--side",
-        "blue",
-        "--profile",
-        right_profile.to_str().unwrap(),
+        composed_profile.to_str().unwrap(),
         "--format",
         "yaml",
     ]);
-    assert_eq!(right_yaml.code, 0, "{}", right_yaml.error);
-    let parsed: Value = serde_yaml::from_str(&right_yaml.stdout).unwrap();
-    assert_eq!(parsed["profile"], "shift-right-only");
-    assert_eq!(parsed["solutions"].as_array().unwrap().len(), 1);
+    assert_eq!(answer.code, 0, "{}", answer.error);
+    let parsed: Value = serde_yaml::from_str(&answer.stdout).unwrap();
+    assert_eq!(parsed["side"], "red");
+    assert_eq!(parsed["profile"], "composed-scope-guard");
+    assert_eq!(parsed["solutions"].as_array().unwrap().len(), 2);
+    assert_eq!(parsed["trace"]["simulations"], 2);
+    assert_eq!(
+        parsed["trace"]["stop_reason"],
+        "simulation budget reached (2/2)"
+    );
 }
 
 #[test]
-fn solve_refuses_bad_profile_or_non_match_input() {
+fn solve_returns_cached_candidates_after_baseline_spends_budget() {
+    let dir = tempfile::tempdir().unwrap();
+    let match_path = played_round_one(dir.path());
+    let profile = dir.path().join("baseline-budget.yaml");
+    fs::write(
+        &profile,
+        "\
+schema: mechcore.profile/v1
+name: baseline-budget
+services:
+  opponent: { use: opponent.replay_truth }
+guards:
+  - { use: guard.max_simulations, with: { limit: 1 } }
+pipeline:
+  - branch:
+      - { use: eval.score }
+      - { use: warm_start.own_actions }
+",
+    )
+    .unwrap();
+    // The first arm tries to score the opening without its recorded purchase.
+    // The second arm reaches final output with the baseline's cached state.
+    let result = run(&["solve", &match_path, "--profile", profile.to_str().unwrap()]).ok();
+    assert_eq!(result["trace"]["simulations"], 1);
+    assert_eq!(
+        result["trace"]["stop_reason"],
+        "simulation budget reached (1/1)"
+    );
+    let solutions = result["solutions"].as_array().unwrap();
+    assert_eq!(solutions.len(), 1);
+    assert_eq!(solutions[0]["score"], result["baseline"]["score"]);
+    assert_eq!(
+        solutions[0]["lineage"][1]["operator"],
+        "warm_start.own_actions"
+    );
+}
+
+#[test]
+fn solve_refuses_bad_profiles_cycles_and_non_match_inputs() {
     let dir = tempfile::tempdir().unwrap();
     let match_path = played_round_one(dir.path());
     let profile = default_profile();
@@ -278,18 +318,21 @@ fn solve_refuses_bad_profile_or_non_match_input() {
     let reason = run(&["solve", layout.to_str().unwrap(), "--profile", &profile]).refused();
     assert!(reason.contains("layout"), "{reason}");
 
-    // Non-grid offset -> refused.
-    let bad_profile = dir.path().join("bad.yaml");
+    // Cyclic operator call -> refused statically before running.
+    let cycle_profile = dir.path().join("cycle.yaml");
     fs::write(
-        &bad_profile,
+        &cycle_profile,
         "\
 schema: mechcore.profile/v1
-name: bad
-opponent:
-  use: opponent.replay_truth
+name: cycle
+services:
+  opponent:
+    use: opponent.replay_truth
+operators:
+  a: { call: b }
+  b: { call: a }
 pipeline:
-  - use: placement.predict_unpinned
-    with: { predictor: shift_stub, offsets: [5] }
+  - call: a
 ",
     )
     .unwrap();
@@ -297,7 +340,58 @@ pipeline:
         "solve",
         &match_path,
         "--profile",
-        bad_profile.to_str().unwrap(),
+        cycle_profile.to_str().unwrap(),
+    ])
+    .refused();
+    assert!(reason.contains("cyclic"), "{reason}");
+
+    // Undefined operator call -> refused statically.
+    let missing_call = dir.path().join("missing_call.yaml");
+    fs::write(
+        &missing_call,
+        "\
+schema: mechcore.profile/v1
+name: missing-call
+services:
+  opponent:
+    use: opponent.replay_truth
+pipeline:
+  - call: does_not_exist
+",
+    )
+    .unwrap();
+    let reason = run(&[
+        "solve",
+        &match_path,
+        "--profile",
+        missing_call.to_str().unwrap(),
+    ])
+    .refused();
+    assert!(reason.contains("undefined operator"), "{reason}");
+
+    // Non-grid offset -> refused.
+    let bad_offset = dir.path().join("bad_offset.yaml");
+    fs::write(
+        &bad_offset,
+        "\
+schema: mechcore.profile/v1
+name: bad-offset
+services:
+  opponent:
+    use: opponent.replay_truth
+proposers:
+  - use: proposer.shift_stub
+    with: { offsets: [5] }
+pipeline:
+  - use: warm_start.own_actions
+",
+    )
+    .unwrap();
+    let reason = run(&[
+        "solve",
+        &match_path,
+        "--profile",
+        bad_offset.to_str().unwrap(),
     ])
     .refused();
     assert!(reason.contains("10m"), "{reason}");
