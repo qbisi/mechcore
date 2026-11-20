@@ -93,16 +93,16 @@ carries.
 A YAML document that names no kind, or one this binary does not read, is
 refused rather than guessed at.
 
-| Kind | `verify` | `convert --to` | `diff` | `show --view` | `query` | `play` | `format` | `mask` | `preview` |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `layout` | yes | `grbr` (transcode), `mcfr` (computation), `fight` (computation), `html` (computation) | yes | — | — | yes (computation) | yes | yes | yes |
-| `fight` | yes | `layout` (projection), `grbr` (transcode), `mcfr` (computation), `html` (computation) | yes | — | — | yes (computation) | yes | — | — |
-| `match` | yes | `grbr` (transcode), `layout` (projection), `fight`, `mcfr`, and `html` (computation) | — | — | — | yes (computation) | — | yes | — |
-| `state` | — | — | — | — | — | — | — | yes | yes |
-| `action` | — | — | — | — | — | — | — | — | — |
-| `mcfr` | yes | `fight`, `layout`, and `html` (projection), `grbr` (transcode) | yes | `outcome`, `stats`, `buildings` | yes | yes | — | — | — |
-| `grbr` | — | `match` (transcode), `layout` (projection), `mcfr`, `fight`, and `html` (computation) | — | — | — | yes (computation) | — | — | — |
-| `html` | — | — | — | — | — | — | — | — | — |
+| Kind | `verify` | `convert --to` | `diff` | `show --view` | `query` | `play` | `format` | `mask` | `preview` | `solve` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `layout` | yes | `grbr` (transcode), `mcfr` (computation), `fight` (computation), `html` (computation) | yes | — | — | yes (computation) | yes | yes | yes | — |
+| `fight` | yes | `layout` (projection), `grbr` (transcode), `mcfr` (computation), `html` (computation) | yes | — | — | yes (computation) | yes | — | — | — |
+| `match` | yes | `grbr` (transcode), `layout` (projection), `fight`, `mcfr`, and `html` (computation) | — | — | — | yes (computation) | — | yes | — | yes |
+| `state` | — | — | — | — | — | — | — | yes | yes | — |
+| `action` | — | — | — | — | — | — | — | — | — | — |
+| `mcfr` | yes | `fight`, `layout`, and `html` (projection), `grbr` (transcode) | yes | `outcome`, `stats`, `buildings` | yes | yes | — | — | — | — |
+| `grbr` | — | `match` (transcode), `layout` (projection), `mcfr`, `fight`, and `html` (computation) | — | — | — | yes (computation) | — | — | — | — |
+| `html` | — | — | — | — | — | — | — | — | — | — |
 
 A state and an action are verified inside a match. A standalone state also
 takes `mask`, which projects its stated position without replaying decisions.
@@ -910,6 +910,28 @@ Preview sees exactly the supplied deployment. For a decision model, pass the
 current own position and the opponent's round-opening position, not both
 players' completed deployment. It neither applies unseen opponent actions nor
 removes information the caller already put in its input.
+
+## `solve`
+
+`solve <match.yaml> --profile <profile.yaml> [--round <n>] [--side blue|red]`
+runs a profile-driven decision search on one deployment round of a match
+document and answers `mechcore.solve` on standard output.
+
+Operands and options:
+
+- `<match.yaml>`: a `match` document. Other kinds are refused.
+- `--profile <profile.yaml>`: required YAML profile manifest (`schema: mechcore.profile/v1`)
+  declaring the `opponent` belief plugin and ordered `pipeline` operators.
+- `--round <n>`: optional round number. When omitted, selects the last round
+  that holds recorded actions (or the last round if none holds actions yet).
+- `--side blue|red`: optional solving side, defaulting to `blue`.
+
+Each solution in `solutions` carries its `rank`, `score` (`core_delta`,
+defined as `opponent_core_damage - own_core_damage`), core damage breakdown,
+tick count, compiled legal `actions` list, and causal `lineage`. `baseline`
+reports the recorded own actions evaluated against the same opponent belief,
+and `trace` summarizes per-stage beam counts, simulation usage, and top pruned
+alternatives.
 
 ## `generate`
 

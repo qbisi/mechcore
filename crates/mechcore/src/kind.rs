@@ -165,7 +165,7 @@ impl Kind {
                 "verify", "convert", "diff", "play", "format", "mask", "preview",
             ],
             Self::Fight => &["verify", "convert", "diff", "play", "format"],
-            Self::Match => &["verify", "convert", "play", "format", "mask"],
+            Self::Match => &["verify", "convert", "play", "format", "mask", "solve"],
             Self::State => &["mask", "preview"],
             Self::Action | Self::Html => &[],
             Self::Mcfr => &["verify", "convert", "diff", "show", "query", "play"],
@@ -254,7 +254,7 @@ mod tests {
 
     /// The file verbs the command line holds.
     const VERBS: &[&str] = &[
-        "verify", "convert", "diff", "show", "query", "play", "format", "mask", "preview",
+        "verify", "convert", "diff", "show", "query", "play", "format", "mask", "preview", "solve",
     ];
 
     #[test]

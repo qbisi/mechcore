@@ -1,0 +1,23 @@
+schema: mechcore.profile/v1
+name: default
+
+opponent:
+  use: opponent.replay_truth
+
+pipeline:
+  - use: warm_start.own_actions
+    with:
+      unpin_all_movable: true
+
+  - use: placement.predict_unpinned
+    with:
+      predictor: shift_stub
+      offsets: [0, -10, 10]
+      max_branches: 16
+
+  - use: flow.dedup
+
+  - use: eval.top_k
+    with:
+      top_k: 3
+      objective: core_delta
