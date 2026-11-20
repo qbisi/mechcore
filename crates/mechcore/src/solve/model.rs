@@ -1,18 +1,23 @@
-//! Core state, branch arena, capability seams, and plugin traits for `solve`.
+//! Core domain types, service/hook traits, and shared [`SolveContext`] for `solve`.
 
 use std::{
     collections::{BTreeMap, BTreeSet},
     num::NonZeroUsize,
+    sync::Arc,
 };
 
 use mechcore_document::{
+    Position, Region,
     economy::Economy,
+    mask::Mask,
     r#match::{Action, Offers, SideState, State},
-    normalize, project,
+    normalize,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-use crate::{cli::Failure, outcome, turn::Side};
+use crate::{cli::Failure, turn::Side};
+
+use super::predictor::{PlacementProposal, PlacementQuery};
 
 /// Handle to one candidate branch stored in the solver's in-memory arena.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
@@ -26,16 +31,113 @@ pub(crate) struct IntentRecord {
     pub(crate) summary: String,
 }
 
-/// Deterministic fight evaluation metrics from the solver side's perspective.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+/// One weighted opponent deployment hypothesis inside an opponent belief set.
+#[derive(Clone, Debug)]
+pub(crate) struct OpponentHypothesis {
+    #[allow(dead_code)]
+    pub(crate) label: String,
+    pub(crate) weight: f64,
+    pub(crate) state: SideState,
+}
+
+/// Fight evaluation metrics from the solver side's perspective.
+///
+/// For a single opponent hypothesis with weight `1.0`, `score` equals the exact
+/// integer `core_delta = opponent_core_damage - own_core_damage`. For multi-belief
+/// sets, `score` is the weighted objective across all hypotheses.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
 pub(crate) struct Valuation {
-    /// Own reactor core change minus opponent reactor core change:
-    /// `(-own_core_damage) - (-opponent_core_damage) = opponent_core_damage - own_core_damage`.
-    pub(crate) core_delta: i32,
-    pub(crate) own_core_damage: i32,
-    pub(crate) opponent_core_damage: i32,
+    pub(crate) score: f64,
+    pub(crate) min_core_delta: i32,
+    pub(crate) own_core_damage: f64,
+    pub(crate) opponent_core_damage: f64,
     pub(crate) ticks: u32,
     pub(crate) winner: &'static str,
+}
+
+/// Reversible scope constraints pushed onto [`SolveContext::scope_stack`].
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct Constraints {
+    #[serde(default)]
+    pub(crate) min_x: Option<i32>,
+    #[serde(default)]
+    pub(crate) max_x: Option<i32>,
+    #[serde(default)]
+    pub(crate) min_y: Option<i32>,
+    #[serde(default)]
+    pub(crate) max_y: Option<i32>,
+    #[serde(default)]
+    pub(crate) regions: Option<Vec<String>>,
+}
+
+impl Constraints {
+    /// Intersects `self` with a nested child scope's constraints.
+    #[must_use]
+    pub(crate) fn tighten(&self, child: &Self) -> Self {
+        let min_x = match (self.min_x, child.min_x) {
+            (Some(a), Some(b)) => Some(a.max(b)),
+            (a, b) => a.or(b),
+        };
+        let max_x = match (self.max_x, child.max_x) {
+            (Some(a), Some(b)) => Some(a.min(b)),
+            (a, b) => a.or(b),
+        };
+        let min_y = match (self.min_y, child.min_y) {
+            (Some(a), Some(b)) => Some(a.max(b)),
+            (a, b) => a.or(b),
+        };
+        let max_y = match (self.max_y, child.max_y) {
+            (Some(a), Some(b)) => Some(a.min(b)),
+            (a, b) => a.or(b),
+        };
+        let regions = match (&self.regions, &child.regions) {
+            (Some(a), Some(b)) => Some(
+                a.iter()
+                    .filter(|region| b.contains(region))
+                    .cloned()
+                    .collect(),
+            ),
+            (Some(a), None) => Some(a.clone()),
+            (None, Some(b)) => Some(b.clone()),
+            (None, None) => None,
+        };
+        Self {
+            min_x,
+            max_x,
+            min_y,
+            max_y,
+            regions,
+        }
+    }
+
+    /// Whether `position` lies inside these active spatial constraints.
+    #[must_use]
+    pub(crate) fn admits(&self, position: Position) -> bool {
+        if self.min_x.is_some_and(|min| position.x < min) {
+            return false;
+        }
+        if self.max_x.is_some_and(|max| position.x > max) {
+            return false;
+        }
+        if self.min_y.is_some_and(|min| position.y < min) {
+            return false;
+        }
+        if self.max_y.is_some_and(|max| position.y > max) {
+            return false;
+        }
+        if let Some(regions) = &self.regions {
+            let name = match Region::of(position) {
+                Region::Main => "main",
+                Region::LeftFlank => "left_flank",
+                Region::RightFlank => "right_flank",
+            };
+            if !regions.iter().any(|allowed| allowed == name) {
+                return false;
+            }
+        }
+        true
+    }
 }
 
 /// One candidate deployment draft inside the solver's branch arena.
@@ -49,8 +151,7 @@ pub(crate) struct Branch {
     pub(crate) intent: IntentRecord,
     pub(crate) valuation: Option<Valuation>,
     /// Effective action history from round opening, retained only as a fallback
-    /// when a warm-started human replay contains non-rational economic orderings
-    /// that pure endpoint normalization rejects.
+    /// when a warm-started human replay carries non-rational economic orderings.
     pub(crate) history: Vec<Action>,
 }
 
@@ -61,10 +162,10 @@ pub(crate) struct LineageStep {
     pub(crate) operator: String,
     pub(crate) summary: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) score: Option<i32>,
+    pub(crate) score: Option<f64>,
 }
 
-/// Per-stage funnel statistics recorded for observability.
+/// Per-stage funnel statistics recorded by `observer.trace`.
 #[derive(Clone, Debug, Serialize)]
 pub(crate) struct StageTrace {
     pub(crate) index: usize,
@@ -73,17 +174,34 @@ pub(crate) struct StageTrace {
     pub(crate) out_beam: usize,
     pub(crate) simulations: usize,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) best_score: Option<i32>,
+    pub(crate) best_score: Option<f64>,
 }
 
 /// A high-scoring alternative pruned by an evaluation stage.
 #[derive(Clone, Debug, Serialize)]
 pub(crate) struct PrunedCandidate {
     pub(crate) node_id: usize,
-    pub(crate) score: i32,
-    pub(crate) own_core_damage: i32,
-    pub(crate) opponent_core_damage: i32,
+    pub(crate) score: f64,
+    pub(crate) own_core_damage: f64,
+    pub(crate) opponent_core_damage: f64,
     pub(crate) intent: String,
+}
+
+/// Runtime search statistics inspected by `StopGuard` (`bail`) hooks.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct SearchStats {
+    pub(crate) simulations: usize,
+    pub(crate) sweep: usize,
+    pub(crate) best_score: Option<f64>,
+    pub(crate) stagnant_sweeps: usize,
+    pub(crate) stop_reason: Option<String>,
+}
+
+/// Passive lifecycle events emitted to `SearchObserver` (`emit`) hooks.
+pub(crate) enum SearchEvent<'a> {
+    StageFinished(StageTrace),
+    CandidatesPruned(&'a [PrunedCandidate]),
+    Stopped(&'a str),
 }
 
 /// In-memory storage for all candidate branches explored during one solve run.
@@ -154,7 +272,7 @@ impl Arena {
                 node_id: branch.id.0,
                 operator: branch.intent.operator.clone(),
                 summary: branch.intent.summary.clone(),
-                score: branch.valuation.map(|valuation| valuation.core_delta),
+                score: branch.valuation.map(|valuation| valuation.score),
             });
             cursor = branch.parent;
         }
@@ -163,55 +281,8 @@ impl Arena {
     }
 }
 
-/// Read-only context handed to an [`OpponentBelief`] plugin before the pipeline runs.
-pub(crate) struct OpponentContext<'a> {
-    pub(crate) economy: &'a Economy,
-    pub(crate) opponent_side: Side,
-    pub(crate) opponent_opening: &'a SideState,
-    pub(crate) opponent_actions: &'a [Action],
-    pub(crate) offers: Option<&'a Offers>,
-}
-
-/// Plugin resolving the sealed opponent state used by fight evaluation.
-pub(crate) trait OpponentBelief: Send + Sync {
-    /// Resolves the opponent's deployed state for evaluation.
-    ///
-    /// # Errors
-    /// Returns a refusal when the opponent belief cannot be materialized.
-    fn resolve(&self, context: &OpponentContext<'_>) -> Result<SideState, Failure>;
-}
-
-/// Pipeline stage plugin transforming a beam of candidate branches into a new beam.
-pub(crate) trait Operator: Send + Sync {
-    fn name(&self) -> &'static str;
-
-    /// Applies this operator to `beam` using the host's [`KernelSeams`].
-    ///
-    /// # Errors
-    /// Returns a refusal or failure when the stage cannot be executed.
-    fn apply(
-        &self,
-        seams: &mut KernelSeams<'_>,
-        beam: Vec<BranchId>,
-    ) -> Result<Vec<BranchId>, Failure>;
-}
-
-/// Canonical digest of a [`SideState`] for transposition deduplication and sim caching.
-///
-/// # Errors
-/// Returns a failure when the state cannot be serialized for hashing.
-pub(crate) fn state_digest(state: &SideState) -> Result<[u8; 32], Failure> {
-    let bytes = serde_json::to_vec(state)
-        .map_err(|error| Failure::failed(format!("cannot hash state: {error}")))?;
-    Ok(*blake3::hash(&bytes).as_bytes())
-}
-
-/// Host capability seams exposed to pipeline operators.
-///
-/// The opponent's deployed state is held privately inside this struct so
-/// proposal/placement operators can only inspect `opponent_opening()` and
-/// receive fight scores through `evaluate_batch()`.
-pub(crate) struct KernelSeams<'a> {
+/// Static problem context for one match round.
+pub(crate) struct Problem<'a> {
     pub(crate) economy: &'a Economy,
     pub(crate) round: i32,
     pub(crate) side: Side,
@@ -219,41 +290,9 @@ pub(crate) struct KernelSeams<'a> {
     pub(crate) seed: i32,
     pub(crate) opening: &'a State,
     pub(crate) own_actions: &'a [Action],
-    opponent_deployed: SideState,
-    pub(crate) arena: Arena,
-    sim_cache: BTreeMap<[u8; 32], Valuation>,
-    pub(crate) simulations: usize,
-    pub(crate) pruned_top: Vec<PrunedCandidate>,
 }
 
-impl<'a> KernelSeams<'a> {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        economy: &'a Economy,
-        round: i32,
-        side: Side,
-        map_id: i32,
-        seed: i32,
-        opening: &'a State,
-        own_actions: &'a [Action],
-        opponent_deployed: SideState,
-    ) -> Self {
-        Self {
-            economy,
-            round,
-            side,
-            map_id,
-            seed,
-            opening,
-            own_actions,
-            opponent_deployed,
-            arena: Arena::default(),
-            sim_cache: BTreeMap::new(),
-            simulations: 0,
-            pruned_top: Vec::new(),
-        }
-    }
-
+impl<'a> Problem<'a> {
     #[must_use]
     pub(crate) const fn own_opening(&self) -> &'a SideState {
         match self.side {
@@ -274,57 +313,314 @@ impl<'a> KernelSeams<'a> {
     pub(crate) const fn offers(&self) -> Option<&'a Offers> {
         self.opening.reinforce_offers.as_ref()
     }
+}
 
-    /// Evaluates one candidate state against the sealed opponent belief.
+/// Read-only context handed to an [`OpponentService`] before the pipeline runs.
+pub(crate) struct OpponentContext<'a> {
+    pub(crate) economy: &'a Economy,
+    pub(crate) opponent_side: Side,
+    pub(crate) opponent_opening: &'a SideState,
+    pub(crate) opponent_actions: &'a [Action],
+    pub(crate) offers: Option<&'a Offers>,
+}
+
+/// Service resolving the weighted opponent belief set used by fight evaluation.
+pub(crate) trait OpponentService: Send + Sync {
+    /// Resolves one or more weighted opponent hypotheses.
     ///
     /// # Errors
-    /// Returns a refusal if the state cannot be projected or simulated.
-    pub(crate) fn evaluate_state(&self, own_state: &SideState) -> Result<Valuation, Failure> {
-        let mut combined = self.opening.clone();
-        match self.side {
-            Side::Blue => {
-                combined.blue = own_state.clone();
-                combined.red = self.opponent_deployed.clone();
-            }
-            Side::Red => {
-                combined.blue = self.opponent_deployed.clone();
-                combined.red = own_state.clone();
+    /// Returns a refusal when the opponent belief cannot be materialized.
+    fn resolve(&self, context: &OpponentContext<'_>) -> Result<Vec<OpponentHypothesis>, Failure>;
+}
+
+/// Service answering movement placement masks and constrained collision checks.
+pub(crate) trait SpaceService: Send + Sync {
+    /// Computes the legal move mask for standing formation `unit_index`,
+    /// excluding that formation's own current footprint.
+    ///
+    /// # Errors
+    /// Returns a refusal when the formation is absent or unsupported.
+    fn move_mask(
+        &self,
+        round: i32,
+        red: bool,
+        state: &SideState,
+        unit_index: i32,
+    ) -> Result<Mask, Failure>;
+
+    /// Whether `(position, rotated)` is legal under both `mask` and active
+    /// scope `constraints`.
+    fn can_place_move(
+        &self,
+        mask: &Mask,
+        position: Position,
+        rotated: bool,
+        constraints: &Constraints,
+    ) -> bool;
+}
+
+/// Service evaluating a candidate state against the sealed opponent belief set.
+pub(crate) trait EvaluatorService: Send + Sync {
+    /// Evaluates `own_state` against `opponents`.
+    ///
+    /// # Errors
+    /// Returns a refusal or failure when projection or simulation fails.
+    fn evaluate_state(
+        &self,
+        problem: &Problem<'_>,
+        opponents: &[OpponentHypothesis],
+        own_state: &SideState,
+    ) -> Result<Valuation, Failure>;
+}
+
+/// Batch-first placement proposal seam (implemented by stubs or external NNs).
+pub(crate) trait PlacementProposer: Send + Sync {
+    #[allow(dead_code)]
+    fn name(&self) -> &'static str;
+
+    /// Proposes candidate placements for a batch of queries.
+    ///
+    /// # Errors
+    /// Returns a failure when an external predictor fails or times out.
+    fn propose_batch(
+        &self,
+        queries: &[PlacementQuery<'_>],
+    ) -> Result<Vec<Vec<PlacementProposal>>, Failure>;
+}
+
+/// `bail` hook: first guard returning `Some(reason)` stops an active loop.
+pub(crate) trait StopGuard: Send + Sync {
+    fn check(&self, _stats: &SearchStats) -> Option<String> {
+        None
+    }
+
+    /// Global cap applied before dispatching any fights, including the baseline.
+    fn simulation_limit(&self) -> Option<usize> {
+        None
+    }
+}
+
+/// `waterfall` hook: transforms or filters proposals before evaluation.
+pub(crate) trait ProposalFilter: Send + Sync {
+    fn filter(
+        &self,
+        query: &PlacementQuery<'_>,
+        constraints: &Constraints,
+        proposals: Vec<PlacementProposal>,
+    ) -> Vec<PlacementProposal>;
+}
+
+/// `emit` hook: passive observer for tracing or sample export.
+pub(crate) trait SearchObserver: Send + Sync {
+    fn on_event(&mut self, event: &SearchEvent<'_>);
+}
+
+/// Composable operator transforming a beam of branches into a new beam.
+pub(crate) trait Operator: Send + Sync {
+    fn name(&self) -> &str;
+
+    /// Applies this operator to `beam` using the shared [`SolveContext`].
+    ///
+    /// # Errors
+    /// Returns a refusal or failure when the stage cannot be executed.
+    fn apply(
+        &self,
+        ctx: &mut SolveContext<'_>,
+        beam: Vec<BranchId>,
+    ) -> Result<Vec<BranchId>, Failure>;
+}
+
+/// Mounted capability services shared across all operators and nested loops.
+pub(crate) struct Services {
+    pub(crate) opponent: Box<dyn OpponentService>,
+    pub(crate) space: Box<dyn SpaceService>,
+    pub(crate) evaluator: Box<dyn EvaluatorService>,
+    pub(crate) proposers: Vec<Box<dyn PlacementProposer>>,
+    pub(crate) operators: BTreeMap<String, Arc<dyn Operator>>,
+}
+
+/// Mounted Cordis-style typed hook chains (`bail` / `waterfall` / `emit`).
+#[derive(Default)]
+pub(crate) struct Hooks {
+    pub(crate) should_stop: Vec<Box<dyn StopGuard>>,
+    pub(crate) filter_proposals: Vec<Box<dyn ProposalFilter>>,
+    pub(crate) observers: Vec<Box<dyn SearchObserver>>,
+}
+
+/// Canonical digest of a [`SideState`] for transposition deduplication and sim caching.
+///
+/// # Errors
+/// Returns a failure when the state cannot be serialized for hashing.
+pub(crate) fn state_digest(state: &SideState) -> Result<[u8; 32], Failure> {
+    let bytes = serde_json::to_vec(state)
+        .map_err(|error| Failure::failed(format!("cannot hash state: {error}")))?;
+    Ok(*blake3::hash(&bytes).as_bytes())
+}
+
+/// Shared execution context passed into every operator and search loop.
+///
+/// `opponent_beliefs` stays private inside this struct so proposal and placement
+/// plugins only observe `problem.opponent_opening()` and receive fight metrics
+/// through `evaluate_batch()`.
+pub(crate) struct SolveContext<'a> {
+    pub(crate) problem: &'a Problem<'a>,
+    opponent_beliefs: Vec<OpponentHypothesis>,
+    pub(crate) services: &'a Services,
+    pub(crate) hooks: Hooks,
+    pub(crate) arena: Arena,
+    sim_cache: BTreeMap<[u8; 32], Valuation>,
+    pub(crate) stats: SearchStats,
+    scope_stack: Vec<Constraints>,
+    stage_counter: usize,
+}
+
+impl<'a> SolveContext<'a> {
+    pub(crate) fn new(
+        problem: &'a Problem<'a>,
+        opponent_beliefs: Vec<OpponentHypothesis>,
+        services: &'a Services,
+        hooks: Hooks,
+    ) -> Self {
+        Self {
+            problem,
+            opponent_beliefs,
+            services,
+            hooks,
+            arena: Arena::default(),
+            sim_cache: BTreeMap::new(),
+            stats: SearchStats::default(),
+            scope_stack: Vec::new(),
+            stage_counter: 0,
+        }
+    }
+
+    /// Pushes a reversible constraint scope onto the context stack.
+    pub(crate) fn push_scope(&mut self, constraints: Constraints) {
+        self.scope_stack.push(constraints);
+    }
+
+    /// Pops the innermost constraint scope from the context stack.
+    pub(crate) fn pop_scope(&mut self) {
+        self.scope_stack.pop();
+    }
+
+    /// Effective constraints formed by intersecting all active scopes.
+    #[must_use]
+    pub(crate) fn active_constraints(&self) -> Constraints {
+        self.scope_stack
+            .iter()
+            .fold(Constraints::default(), |acc, layer| acc.tighten(layer))
+    }
+
+    /// Evaluates all `StopGuard` (`bail`) hooks; latches the first stop reason.
+    pub(crate) fn check_stop(&mut self) -> Option<String> {
+        if let Some(reason) = &self.stats.stop_reason {
+            return Some(reason.clone());
+        }
+        for guard in &self.hooks.should_stop {
+            if let Some(reason) = guard.check(&self.stats) {
+                self.record_stop(&reason);
+                return Some(reason);
             }
         }
-        let layout = project::project(self.opening, &combined, self.round, self.map_id, self.seed)
-            .map_err(Failure::refused)?;
-        let yaml = mechcore_document::canonical_yaml(layout).map_err(Failure::refused)?;
-        let simulated = mechcore_simulation::simulate_document(
-            yaml.as_bytes(),
-            mechcore_simulation::Record::Memory,
-            None,
-        )
-        .map_err(|error| Failure::unsimulated(&error))?;
-        let recording = simulated
-            .recording
-            .ok_or_else(|| Failure::failed("simulator did not keep in-memory recording"))?;
-        let fight = outcome::read(&recording)?.fight()?;
-        let (own_core_damage, opponent_core_damage) = match self.side {
-            Side::Blue => (fight.blue.core_damage, fight.red.core_damage),
-            Side::Red => (fight.red.core_damage, fight.blue.core_damage),
-        };
-        let core_delta = opponent_core_damage - own_core_damage;
-        let winner = match fight.blue.core_damage.cmp(&fight.red.core_damage) {
-            std::cmp::Ordering::Less => "blue",
-            std::cmp::Ordering::Greater => "red",
-            std::cmp::Ordering::Equal => "draw",
-        };
-        let ticks = fight
-            .trajectory
-            .as_ref()
-            .map_or(0, |trajectory| trajectory.ticks);
-        Ok(Valuation {
-            core_delta,
-            own_core_damage,
-            opponent_core_damage,
-            ticks,
-            winner,
-        })
+        None
+    }
+
+    fn record_stop(&mut self, reason: &str) {
+        if self.stats.stop_reason.is_none() {
+            self.stats.stop_reason = Some(reason.to_owned());
+            self.emit(&SearchEvent::Stopped(reason));
+        }
+    }
+
+    /// Broadcasts a passive lifecycle event to all mounted `SearchObserver`s.
+    pub(crate) fn emit(&mut self, event: &SearchEvent<'_>) {
+        for observer in &mut self.hooks.observers {
+            observer.on_event(event);
+        }
+    }
+
+    /// Invokes a named operator registered in `services.operators`.
+    ///
+    /// # Errors
+    /// Returns a refusal if `name` is not registered, or any operator error.
+    pub(crate) fn call_operator(
+        &mut self,
+        name: &str,
+        beam: Vec<BranchId>,
+    ) -> Result<Vec<BranchId>, Failure> {
+        let operator = self
+            .services
+            .operators
+            .get(name)
+            .cloned()
+            .ok_or_else(|| Failure::refused(format!("unknown named operator {name:?}")))?;
+        self.run_operator(operator.as_ref(), beam)
+    }
+
+    /// Runs an operator and emits its [`StageTrace`] to observers.
+    ///
+    /// # Errors
+    /// Returns any failure raised by `operator`.
+    pub(crate) fn run_operator(
+        &mut self,
+        operator: &dyn Operator,
+        beam: Vec<BranchId>,
+    ) -> Result<Vec<BranchId>, Failure> {
+        let index = self.stage_counter;
+        self.stage_counter += 1;
+        let in_beam = beam.len();
+        let sims_before = self.stats.simulations;
+        let out = operator.apply(self, beam)?;
+        let best_score = out
+            .iter()
+            .filter_map(|&id| self.arena.get(id).valuation.map(|val| val.score))
+            .max_by(f64::total_cmp);
+        self.emit(&SearchEvent::StageFinished(StageTrace {
+            index,
+            operator: operator.name().to_owned(),
+            in_beam,
+            out_beam: out.len(),
+            simulations: self.stats.simulations - sims_before,
+            best_score,
+        }));
+        Ok(out)
+    }
+
+    /// Collects proposals from all mounted `services.proposers` for a batch of
+    /// queries, then passes each query's merged list through all `waterfall`
+    /// `hooks.filter_proposals`.
+    ///
+    /// # Errors
+    /// Returns any failure raised by a mounted proposer.
+    pub(crate) fn propose_batch(
+        &self,
+        queries: &[PlacementQuery<'_>],
+    ) -> Result<Vec<Vec<PlacementProposal>>, Failure> {
+        let mut merged: Vec<Vec<PlacementProposal>> = vec![Vec::new(); queries.len()];
+        for proposer in &self.services.proposers {
+            let batch = proposer.propose_batch(queries)?;
+            if batch.len() != queries.len() {
+                return Err(Failure::failed(format!(
+                    "proposer {} returned {} outputs for {} queries",
+                    proposer.name(),
+                    batch.len(),
+                    queries.len()
+                )));
+            }
+            for (slot, items) in merged.iter_mut().zip(batch) {
+                slot.extend(items);
+            }
+        }
+        let constraints = self.active_constraints();
+        for (query, proposals) in queries.iter().zip(merged.iter_mut()) {
+            let mut filtered = std::mem::take(proposals);
+            for filter in &self.hooks.filter_proposals {
+                filtered = filter.filter(query, &constraints, filtered);
+            }
+            *proposals = filtered;
+        }
+        Ok(merged)
     }
 
     /// Evaluates one state and caches its valuation so identical search
@@ -332,28 +628,31 @@ impl<'a> KernelSeams<'a> {
     ///
     /// # Errors
     /// Returns a refusal if the state cannot be hashed, projected, or simulated.
-    pub(crate) fn evaluate_cached(&mut self, own_state: &SideState) -> Result<Valuation, Failure> {
-        let digest = state_digest(own_state)?;
-        if let Some(&valuation) = self.sim_cache.get(&digest) {
-            return Ok(valuation);
+    pub(crate) fn evaluate_cached(
+        &mut self,
+        own_state: SideState,
+    ) -> Result<Option<Valuation>, Failure> {
+        let digest = state_digest(&own_state)?;
+        if !self.sim_cache.contains_key(&digest) {
+            self.evaluate_misses(vec![(digest, own_state)])?;
         }
-        let valuation = self.evaluate_state(own_state)?;
-        self.sim_cache.insert(digest, valuation);
-        self.simulations += 1;
-        Ok(valuation)
+        Ok(self.sim_cache.get(&digest).copied())
     }
 
-    /// Evaluates every branch in `ids`, deduplicating identical states and running
-    /// cache misses in parallel across available CPU cores.
+    /// Scores beams as one batch and retains fully evaluated branches in each
+    /// beam's original order. Duplicate states share a score across beams.
     ///
     /// # Errors
     /// Returns the first projection or simulation failure encountered.
-    pub(crate) fn evaluate_batch(&mut self, ids: &[BranchId]) -> Result<usize, Failure> {
-        let mut digests = Vec::with_capacity(ids.len());
+    pub(crate) fn evaluate_batch(&mut self, beams: &mut [Vec<BranchId>]) -> Result<(), Failure> {
+        let mut digests = Vec::new();
         let mut unique_misses: Vec<([u8; 32], SideState)> = Vec::new();
         let mut seen_misses = BTreeSet::new();
 
-        for &id in ids {
+        for &id in beams.iter().flatten() {
+            if self.arena.get(id).valuation.is_some() {
+                continue;
+            }
             let state = &self.arena.get(id).state;
             let digest = state_digest(state)?;
             digests.push((id, digest));
@@ -362,20 +661,50 @@ impl<'a> KernelSeams<'a> {
             }
         }
 
-        let executed = unique_misses.len();
+        self.evaluate_misses(unique_misses)?;
+        for (id, digest) in digests {
+            self.arena.get_mut(id).valuation = self.sim_cache.get(&digest).copied();
+        }
+        for beam in beams {
+            beam.retain(|&id| self.arena.get(id).valuation.is_some());
+        }
+        Ok(())
+    }
+
+    fn evaluate_misses(
+        &mut self,
+        mut unique_misses: Vec<([u8; 32], SideState)>,
+    ) -> Result<(), Failure> {
+        let cost = self.opponent_beliefs.len();
+        if cost == 0 {
+            return Err(Failure::refused(
+                "opponent belief service returned no hypotheses",
+            ));
+        }
+        let limit = self
+            .hooks
+            .should_stop
+            .iter()
+            .filter_map(|guard| guard.simulation_limit())
+            .min();
+        if let Some(limit) = limit {
+            unique_misses.truncate((limit - self.stats.simulations) / cost);
+        }
         if !unique_misses.is_empty() {
             let workers = std::thread::available_parallelism()
                 .map_or(1, NonZeroUsize::get)
                 .min(unique_misses.len());
             let chunk_size = unique_misses.len().div_ceil(workers);
+            let problem = self.problem;
+            let opponents = &self.opponent_beliefs;
+            let evaluator = self.services.evaluator.as_ref();
             let evaluated = std::thread::scope(|scope| {
                 let mut handles = Vec::new();
                 for chunk in unique_misses.chunks(chunk_size) {
-                    let seams = &*self;
                     handles.push(scope.spawn(move || {
                         let mut results = Vec::with_capacity(chunk.len());
                         for (digest, state) in chunk {
-                            let valuation = seams.evaluate_state(state)?;
+                            let valuation = evaluator.evaluate_state(problem, opponents, state)?;
                             results.push((*digest, valuation));
                         }
                         Ok::<_, Failure>(results)
@@ -392,40 +721,66 @@ impl<'a> KernelSeams<'a> {
             })?;
             for (digest, valuation) in evaluated {
                 self.sim_cache.insert(digest, valuation);
+                self.update_best(valuation.score);
             }
-            self.simulations += executed;
+            self.stats.simulations += unique_misses.len() * cost;
         }
 
-        for (id, digest) in digests {
-            let valuation = self.sim_cache[&digest];
-            self.arena.get_mut(id).valuation = Some(valuation);
+        if let Some(limit) = limit
+            && limit - self.stats.simulations < cost
+        {
+            self.record_stop(&format!(
+                "simulation budget reached ({}/{limit})",
+                self.stats.simulations
+            ));
         }
-        Ok(executed)
+        Ok(())
+    }
+
+    fn update_best(&mut self, score: f64) {
+        if self.stats.best_score.is_none_or(|best| score > best) {
+            self.stats.best_score = Some(score);
+        }
+    }
+
+    /// Updates sweep counters after one `repeat` iteration completes.
+    pub(crate) fn record_sweep_end(&mut self, best_before: Option<f64>) {
+        self.stats.sweep += 1;
+        let improved = match (best_before, self.stats.best_score) {
+            (None, Some(_)) => true,
+            (Some(before), Some(after)) => after > before + 1e-9,
+            _ => false,
+        };
+        if improved {
+            self.stats.stagnant_sweeps = 0;
+        } else {
+            self.stats.stagnant_sweeps += 1;
+        }
     }
 
     /// Compiles a branch's closing state into a legal action list from round opening.
     ///
     /// Prefers pure two-endpoint normalization (`normalize::deployment`), falling
-    /// back to compacting `branch.history` if a warm-started human replay carried
+    /// back to compacting `branch.history` when a warm-started human replay carried
     /// non-rational economic orderings.
     ///
     /// # Errors
     /// Returns a refusal if neither normalization nor history compaction succeeds.
     pub(crate) fn compile_actions(&self, branch: &Branch) -> Result<(Vec<Action>, bool), Failure> {
         match normalize::deployment(
-            self.economy,
-            self.own_opening(),
+            self.problem.economy,
+            self.problem.own_opening(),
             &branch.state,
-            self.offers(),
-            self.side.red(),
+            self.problem.offers(),
+            self.problem.side.red(),
         ) {
             Ok(actions) => Ok((actions, true)),
             Err(error) if !branch.history.is_empty() => normalize::historical_deployment(
-                self.economy,
-                self.own_opening(),
+                self.problem.economy,
+                self.problem.own_opening(),
                 &branch.state,
-                self.side.red(),
-                self.offers(),
+                self.problem.side.red(),
+                self.problem.offers(),
                 &branch.history,
             )
             .map(|actions| (actions, false))

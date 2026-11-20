@@ -1,17 +1,31 @@
-//! Profile manifest loading and plugin assembly for `solve`.
+//! Declarative profile manifest (`mechcore.profile/v1`) and static plugin assembly.
 
-use std::path::Path;
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::Path,
+    sync::{Arc, Mutex},
+};
 
 use serde::Deserialize;
 
 use crate::cli::Failure;
 
 use super::{
-    model::{Operator, OpponentBelief},
+    hooks::{
+        DedupPosesFilter, MaxSimulationsGuard, ScopeBoundsFilter, StagnationGuard, TraceBuffer,
+        TraceObserver,
+    },
+    model::{
+        Constraints, EvaluatorService, Hooks, Operator, OpponentService, PlacementProposer,
+        ProposalFilter, SearchObserver, Services, SpaceService, StopGuard,
+    },
     operators::{
-        DedupOperator, EvalTopKOperator, PredictUnpinnedPlacement, ReplayTruthOpponent,
+        BranchOperator, CallOperator, CoordinateSweepOperator, DedupOperator, EvalScoreOperator,
+        EvalTopKOperator, PredictUnpinnedPlacement, RepeatOperator, ScopeOperator, SeqOperator,
         WarmStartOwnActions,
     },
+    predictor::{ShiftStubProposer, StayProposer},
+    services::{ExactSimEvaluator, ReplayTruthOpponent, StrictGridSpace},
 };
 
 pub(crate) const SCHEMA: &str = "mechcore.profile/v1";
@@ -22,11 +36,32 @@ pub(crate) const SCHEMA: &str = "mechcore.profile/v1";
 pub(crate) struct Profile {
     pub(crate) schema: String,
     pub(crate) name: String,
-    pub(crate) opponent: PluginSpec,
-    pub(crate) pipeline: Vec<PluginSpec>,
+    pub(crate) services: ServicesSpec,
+    #[serde(default)]
+    pub(crate) proposers: Vec<PluginSpec>,
+    #[serde(default)]
+    pub(crate) guards: Vec<PluginSpec>,
+    #[serde(default)]
+    pub(crate) filters: Vec<PluginSpec>,
+    #[serde(default)]
+    pub(crate) observers: Vec<PluginSpec>,
+    #[serde(default)]
+    pub(crate) operators: BTreeMap<String, StageSpec>,
+    pub(crate) pipeline: Vec<StageSpec>,
 }
 
-/// Reference to one plugin and its parameter map inside a profile.
+/// Mounted capability services declared in a profile.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ServicesSpec {
+    pub(crate) opponent: PluginSpec,
+    #[serde(default)]
+    pub(crate) space: Option<PluginSpec>,
+    #[serde(default)]
+    pub(crate) evaluator: Option<PluginSpec>,
+}
+
+/// Reference to one plugin and its parameter map.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct PluginSpec {
@@ -36,10 +71,60 @@ pub(crate) struct PluginSpec {
     pub(crate) with: serde_json::Value,
 }
 
-/// Instantiated opponent belief and pipeline operators built from a [`Profile`].
+/// Recursive stage AST supporting leaf plugins, named calls, parallel branches,
+/// bounded loops, reversible constraint scopes, and inline sequences.
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub(crate) enum StageSpec {
+    Use {
+        #[serde(rename = "use")]
+        plugin: String,
+        #[serde(default)]
+        with: serde_json::Value,
+    },
+    Call {
+        call: String,
+    },
+    Branch {
+        branch: Vec<StageSpec>,
+    },
+    Repeat {
+        repeat: RepeatSpec,
+    },
+    Scope {
+        scope: ScopeSpec,
+    },
+    Seq {
+        seq: Vec<StageSpec>,
+    },
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct RepeatSpec {
+    pub(crate) max_iters: usize,
+    #[serde(default = "default_true")]
+    pub(crate) stop_on_bail: bool,
+    pub(crate) body: Vec<StageSpec>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ScopeSpec {
+    pub(crate) constraints: Constraints,
+    pub(crate) body: Vec<StageSpec>,
+}
+
+const fn default_true() -> bool {
+    true
+}
+
+/// Instantiated services, hooks, trace handle, and root pipeline operator.
 pub(crate) struct BuiltProfile {
-    pub(crate) opponent: Box<dyn OpponentBelief>,
-    pub(crate) operators: Vec<Box<dyn Operator>>,
+    pub(crate) services: Services,
+    pub(crate) hooks: Hooks,
+    pub(crate) pipeline: Vec<Arc<dyn Operator>>,
+    pub(crate) trace: Arc<Mutex<TraceBuffer>>,
 }
 
 impl Profile {
@@ -69,60 +154,352 @@ impl Profile {
         Ok(profile)
     }
 
-    /// Instantiates the opponent belief plugin and every pipeline operator.
+    /// Instantiates all services, hooks, named operators, and the pipeline AST,
+    /// statically validating every `call` reference and checking for call cycles.
     ///
     /// # Errors
-    /// Returns a refusal for unknown plugin names or invalid parameters.
+    /// Returns a refusal for unknown plugins, invalid parameters, dangling
+    /// operator calls, or cyclic `call` definitions.
     pub(crate) fn build(&self) -> Result<BuiltProfile, Failure> {
-        let opponent: Box<dyn OpponentBelief> = match self.opponent.plugin.as_str() {
-            "opponent.replay_truth" => {
-                if !self.opponent.with.is_null()
-                    && self
-                        .opponent
-                        .with
-                        .as_object()
-                        .is_none_or(|map| !map.is_empty())
-                {
-                    return Err(Failure::refused(
-                        "opponent.replay_truth takes no parameters",
-                    ));
-                }
-                Box::new(ReplayTruthOpponent)
+        let opponent = build_opponent(&self.services.opponent)?;
+        let space = match &self.services.space {
+            Some(spec) => build_space(spec)?,
+            None => Box::new(StrictGridSpace),
+        };
+        let evaluator = match &self.services.evaluator {
+            Some(spec) => build_evaluator(spec)?,
+            None => Box::new(ExactSimEvaluator::from_value(&serde_json::Value::Null)?),
+        };
+        let proposers = self
+            .proposers
+            .iter()
+            .map(build_proposer)
+            .collect::<Result<Vec<_>, _>>()?;
+        let should_stop = self
+            .guards
+            .iter()
+            .map(build_guard)
+            .collect::<Result<Vec<_>, _>>()?;
+        let filter_proposals = self
+            .filters
+            .iter()
+            .map(build_filter)
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let trace = Arc::new(Mutex::new(TraceBuffer::default()));
+        let observers = build_observers(&self.observers, &trace)?;
+
+        let defined: BTreeSet<&str> = self.operators.keys().map(String::as_str).collect();
+        validate_call_graph(&self.operators, &self.pipeline, &defined)?;
+
+        let mut operators = BTreeMap::new();
+        for (name, spec) in &self.operators {
+            operators.insert(name.clone(), build_stage(spec)?);
+        }
+        let pipeline = self
+            .pipeline
+            .iter()
+            .map(build_stage)
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(BuiltProfile {
+            services: Services {
+                opponent,
+                space,
+                evaluator,
+                proposers,
+                operators,
+            },
+            hooks: Hooks {
+                should_stop,
+                filter_proposals,
+                observers,
+            },
+            pipeline,
+            trace,
+        })
+    }
+}
+
+fn ensure_no_params(plugin: &str, with: &serde_json::Value) -> Result<(), Failure> {
+    if with.is_null() || with.as_object().is_some_and(serde_json::Map::is_empty) {
+        return Ok(());
+    }
+    Err(Failure::refused(format!("{plugin} takes no parameters")))
+}
+
+fn build_opponent(spec: &PluginSpec) -> Result<Box<dyn OpponentService>, Failure> {
+    match spec.plugin.as_str() {
+        "opponent.replay_truth" => {
+            ensure_no_params("opponent.replay_truth", &spec.with)?;
+            Ok(Box::new(ReplayTruthOpponent))
+        }
+        other => Err(Failure::refused(format!(
+            "unknown opponent service {other:?}; expected opponent.replay_truth"
+        ))),
+    }
+}
+
+fn build_space(spec: &PluginSpec) -> Result<Box<dyn SpaceService>, Failure> {
+    match spec.plugin.as_str() {
+        "space.strict_grid" => {
+            ensure_no_params("space.strict_grid", &spec.with)?;
+            Ok(Box::new(StrictGridSpace))
+        }
+        other => Err(Failure::refused(format!(
+            "unknown space service {other:?}; expected space.strict_grid"
+        ))),
+    }
+}
+
+fn build_evaluator(spec: &PluginSpec) -> Result<Box<dyn EvaluatorService>, Failure> {
+    match spec.plugin.as_str() {
+        "eval.sim_exact" => Ok(Box::new(ExactSimEvaluator::from_value(&spec.with)?)),
+        other => Err(Failure::refused(format!(
+            "unknown evaluator service {other:?}; expected eval.sim_exact"
+        ))),
+    }
+}
+
+fn build_proposer(spec: &PluginSpec) -> Result<Box<dyn PlacementProposer>, Failure> {
+    match spec.plugin.as_str() {
+        "proposer.stay" => {
+            ensure_no_params("proposer.stay", &spec.with)?;
+            Ok(Box::new(StayProposer))
+        }
+        "proposer.shift_stub" => Ok(Box::new(ShiftStubProposer::from_value(&spec.with)?)),
+        other => Err(Failure::refused(format!(
+            "unknown placement proposer {other:?}; expected proposer.stay or proposer.shift_stub"
+        ))),
+    }
+}
+
+fn build_guard(spec: &PluginSpec) -> Result<Box<dyn StopGuard>, Failure> {
+    match spec.plugin.as_str() {
+        "guard.max_simulations" => Ok(Box::new(MaxSimulationsGuard::from_value(&spec.with)?)),
+        "guard.stagnation" => Ok(Box::new(StagnationGuard::from_value(&spec.with)?)),
+        other => Err(Failure::refused(format!(
+            "unknown guard plugin {other:?}; expected guard.max_simulations or guard.stagnation"
+        ))),
+    }
+}
+
+fn build_filter(spec: &PluginSpec) -> Result<Box<dyn ProposalFilter>, Failure> {
+    match spec.plugin.as_str() {
+        "filter.dedup_poses" => {
+            ensure_no_params("filter.dedup_poses", &spec.with)?;
+            Ok(Box::new(DedupPosesFilter))
+        }
+        "filter.scope_bounds" => {
+            ensure_no_params("filter.scope_bounds", &spec.with)?;
+            Ok(Box::new(ScopeBoundsFilter))
+        }
+        other => Err(Failure::refused(format!(
+            "unknown filter plugin {other:?}; expected filter.dedup_poses or filter.scope_bounds"
+        ))),
+    }
+}
+
+fn build_observers(
+    specs: &[PluginSpec],
+    trace: &Arc<Mutex<TraceBuffer>>,
+) -> Result<Vec<Box<dyn SearchObserver>>, Failure> {
+    let mut out: Vec<Box<dyn SearchObserver>> = Vec::with_capacity(specs.len().max(1));
+    if specs.is_empty() {
+        out.push(Box::new(TraceObserver::new(Arc::clone(trace))));
+        return Ok(out);
+    }
+    for spec in specs {
+        match spec.plugin.as_str() {
+            "observer.trace" => {
+                ensure_no_params("observer.trace", &spec.with)?;
+                out.push(Box::new(TraceObserver::new(Arc::clone(trace))));
             }
             other => {
                 return Err(Failure::refused(format!(
-                    "unknown opponent plugin {other:?}; expected opponent.replay_truth"
+                    "unknown observer plugin {other:?}; expected observer.trace"
                 )));
             }
-        };
-
-        let mut operators: Vec<Box<dyn Operator>> = Vec::with_capacity(self.pipeline.len());
-        for stage in &self.pipeline {
-            let operator: Box<dyn Operator> = match stage.plugin.as_str() {
-                "warm_start.own_actions" => Box::new(WarmStartOwnActions::from_value(&stage.with)?),
-                "placement.predict_unpinned" => {
-                    Box::new(PredictUnpinnedPlacement::from_value(&stage.with)?)
-                }
-                "flow.dedup" => {
-                    if !stage.with.is_null()
-                        && stage.with.as_object().is_none_or(|map| !map.is_empty())
-                    {
-                        return Err(Failure::refused("flow.dedup takes no parameters"));
-                    }
-                    Box::new(DedupOperator)
-                }
-                "eval.top_k" => Box::new(EvalTopKOperator::from_value(&stage.with)?),
-                other => {
-                    return Err(Failure::refused(format!(
-                        "unknown pipeline operator {other:?}"
-                    )));
-                }
-            };
-            operators.push(operator);
         }
-        Ok(BuiltProfile {
-            opponent,
-            operators,
-        })
     }
+    Ok(out)
+}
+
+fn build_stage(spec: &StageSpec) -> Result<Arc<dyn Operator>, Failure> {
+    match spec {
+        StageSpec::Use { plugin, with } => build_leaf_operator(plugin, with),
+        StageSpec::Call { call } => Ok(Arc::new(CallOperator::new(call.clone()))),
+        StageSpec::Seq { seq } => {
+            if seq.is_empty() {
+                return Err(Failure::refused(
+                    "seq combinator requires at least one step",
+                ));
+            }
+            let steps = seq.iter().map(build_stage).collect::<Result<Vec<_>, _>>()?;
+            Ok(Arc::new(SeqOperator::new(steps)))
+        }
+        StageSpec::Branch { branch } => {
+            if branch.is_empty() {
+                return Err(Failure::refused(
+                    "branch combinator requires at least one arm",
+                ));
+            }
+            let arms = branch
+                .iter()
+                .map(build_stage)
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(Arc::new(BranchOperator::new(arms)))
+        }
+        StageSpec::Repeat { repeat } => {
+            if repeat.max_iters == 0 {
+                return Err(Failure::refused(
+                    "repeat combinator requires max_iters >= 1",
+                ));
+            }
+            if repeat.body.is_empty() {
+                return Err(Failure::refused(
+                    "repeat combinator requires a non-empty body",
+                ));
+            }
+            let steps = repeat
+                .body
+                .iter()
+                .map(build_stage)
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(Arc::new(RepeatOperator::new(
+                repeat.max_iters,
+                repeat.stop_on_bail,
+                Arc::new(SeqOperator::new(steps)),
+            )))
+        }
+        StageSpec::Scope { scope } => {
+            if scope.body.is_empty() {
+                return Err(Failure::refused(
+                    "scope combinator requires a non-empty body",
+                ));
+            }
+            let steps = scope
+                .body
+                .iter()
+                .map(build_stage)
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(Arc::new(ScopeOperator::new(
+                scope.constraints.clone(),
+                Arc::new(SeqOperator::new(steps)),
+            )))
+        }
+    }
+}
+
+fn build_leaf_operator(
+    plugin: &str,
+    with: &serde_json::Value,
+) -> Result<Arc<dyn Operator>, Failure> {
+    match plugin {
+        "warm_start.own_actions" => Ok(Arc::new(WarmStartOwnActions::from_value(with)?)),
+        "placement.coordinate_sweep" => Ok(Arc::new(CoordinateSweepOperator::from_value(with)?)),
+        "placement.predict_unpinned" => Ok(Arc::new(PredictUnpinnedPlacement::from_value(with)?)),
+        "flow.dedup" => {
+            ensure_no_params("flow.dedup", with)?;
+            Ok(Arc::new(DedupOperator))
+        }
+        "eval.score" => {
+            ensure_no_params("eval.score", with)?;
+            Ok(Arc::new(EvalScoreOperator))
+        }
+        "eval.top_k" => Ok(Arc::new(EvalTopKOperator::from_value(with)?)),
+        other => Err(Failure::refused(format!(
+            "unknown pipeline operator {other:?}"
+        ))),
+    }
+}
+
+fn validate_call_graph(
+    operators: &BTreeMap<String, StageSpec>,
+    pipeline: &[StageSpec],
+    defined: &BTreeSet<&str>,
+) -> Result<(), Failure> {
+    let mut edges: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
+    for (name, spec) in operators {
+        let mut calls = BTreeSet::new();
+        collect_calls(spec, &mut calls);
+        for target in &calls {
+            if !defined.contains(target) {
+                return Err(Failure::refused(format!(
+                    "operator {name:?} calls undefined operator {target:?}"
+                )));
+            }
+        }
+        edges.insert(name.as_str(), calls);
+    }
+    let mut pipeline_calls = BTreeSet::new();
+    for stage in pipeline {
+        collect_calls(stage, &mut pipeline_calls);
+    }
+    for target in pipeline_calls {
+        if !defined.contains(target) {
+            return Err(Failure::refused(format!(
+                "pipeline calls undefined operator {target:?}"
+            )));
+        }
+    }
+    let mut visiting = BTreeSet::new();
+    let mut visited = BTreeSet::new();
+    for &name in defined {
+        detect_cycle(name, &edges, &mut visiting, &mut visited)?;
+    }
+    Ok(())
+}
+
+fn collect_calls<'a>(spec: &'a StageSpec, out: &mut BTreeSet<&'a str>) {
+    match spec {
+        StageSpec::Use { .. } => {}
+        StageSpec::Call { call } => {
+            out.insert(call.as_str());
+        }
+        StageSpec::Seq { seq } => {
+            for step in seq {
+                collect_calls(step, out);
+            }
+        }
+        StageSpec::Branch { branch } => {
+            for arm in branch {
+                collect_calls(arm, out);
+            }
+        }
+        StageSpec::Repeat { repeat } => {
+            for step in &repeat.body {
+                collect_calls(step, out);
+            }
+        }
+        StageSpec::Scope { scope } => {
+            for step in &scope.body {
+                collect_calls(step, out);
+            }
+        }
+    }
+}
+
+fn detect_cycle<'a>(
+    node: &'a str,
+    edges: &BTreeMap<&'a str, BTreeSet<&'a str>>,
+    visiting: &mut BTreeSet<&'a str>,
+    visited: &mut BTreeSet<&'a str>,
+) -> Result<(), Failure> {
+    if visited.contains(node) {
+        return Ok(());
+    }
+    if !visiting.insert(node) {
+        return Err(Failure::refused(format!(
+            "cyclic operator call detected at {node:?}"
+        )));
+    }
+    if let Some(neighbors) = edges.get(node) {
+        for &next in neighbors {
+            detect_cycle(next, edges, visiting, visited)?;
+        }
+    }
+    visiting.remove(node);
+    visited.insert(node);
+    Ok(())
 }
