@@ -19,8 +19,8 @@ use std::{
 
 pub use fight::{DeploymentPreview, PreviewAttackRelation, PreviewObject, PreviewRelation};
 pub use fight::{
-    DivergentTick, Phases, SimulationComparison, SimulationProfile, SimulationResult, SlowestStep,
-    TimelineSummary,
+    DivergentTick, FightOutcome, Phases, SimulationComparison, SimulationProfile, SimulationResult,
+    SlowestStep, TimelineSummary,
 };
 
 /// Initializes the fight and its deployment presearch without advancing a tick.
@@ -29,7 +29,7 @@ pub use fight::{
 /// # Errors
 /// Returns the simulator's existing initialization refusals or an invalid seed.
 pub fn preview_document(document: &[u8], seed: Option<i32>) -> Result<DeploymentPreview> {
-    let config = rules::SimulationConfig::load()?;
+    let config = rules::SimulationConfig::cached()?;
     let original = mechcore_document::parse_embedded_yaml(document).map_err(Error::new)?;
     let (layout_seed, layout) = layout::compile_preview(document, &config.units)?;
     let (seed, source) = seed.map_or_else(
@@ -39,7 +39,7 @@ pub fn preview_document(document: &[u8], seed: Option<i32>) -> Result<Deployment
     if seed == 0 {
         return Err(Error::new("preview seed 0 is not reproducible"));
     }
-    fight::preview(&layout, &original, &config, seed, source)
+    fight::preview(&layout, &original, config, seed, source)
 }
 
 /// Where a fight's timeline goes.
@@ -56,7 +56,7 @@ pub enum Record<'a> {
 
 /// Why the simulator does not fight something, and where in it each reason
 /// was raised.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Error {
     message: String,
     sites: Vec<&'static std::panic::Location<'static>>,
@@ -128,10 +128,10 @@ pub struct BattleSkillForecast {
 /// Returns an error if the embedded layout has no seed or cannot be initialized
 /// by the current simulator. The plan does not predict shield interceptions.
 pub fn battle_skill_forecasts(document: &[u8]) -> Result<Vec<BattleSkillForecast>> {
-    let config = rules::SimulationConfig::load()?;
+    let config = rules::SimulationConfig::cached()?;
     let (seed, layout) = layout::compile_with_seed(document, &config.units)?;
     let seed = seed.ok_or_else(|| Error::new("a strike forecast needs an explicit layout seed"))?;
-    fight::commander_forecasts(&layout, &config, seed)
+    fight::commander_forecasts(&layout, config, seed)
 }
 
 /// Simulates a supported layout, recording its timeline where `record` says.
@@ -149,9 +149,9 @@ pub fn simulate_layout(
     seed: Option<i32>,
 ) -> Result<SimulationResult> {
     let layout_path = layout_path.as_ref();
-    let config = rules::SimulationConfig::load()?;
+    let config = rules::SimulationConfig::cached()?;
     let loaded = layout::load(layout_path, &config.units)?;
-    run_loaded(loaded, &config, record, seed, || generate_seed(layout_path))
+    run_loaded(loaded, config, record, seed, || generate_seed(layout_path))
 }
 
 /// Simulates a layout held in memory, which is what a match does with the
@@ -166,13 +166,34 @@ pub fn simulate_document(
     record: Record<'_>,
     seed: Option<i32>,
 ) -> Result<SimulationResult> {
-    let config = rules::SimulationConfig::load()?;
+    let config = rules::SimulationConfig::cached()?;
     let loaded = layout::read(layout, &config.units)?;
-    run_loaded(loaded, &config, record, seed, || {
+    run_loaded(loaded, config, record, seed, || {
         Err(Error::new(
             "a layout with no seed cannot be simulated from memory: name the seed",
         ))
     })
+}
+
+/// Simulates a parsed in-memory layout without recording or hashing ticks,
+/// returning only the settled reactor damage and tick count.
+///
+/// # Errors
+///
+/// Returns an error for unsupported layout features, an invalid layout or seed,
+/// or a simulation failure.
+pub fn simulate_layout_outcome(
+    layout: mechcore_document::Layout,
+    seed: Option<i32>,
+) -> Result<FightOutcome> {
+    let config = rules::SimulationConfig::cached()?;
+    let (layout_seed, compiled) = layout::compile_in_memory(layout, &config.units)?;
+    let (seed, _) = resolve_seed(seed, layout_seed, || {
+        Err(Error::new(
+            "a layout with no seed cannot be simulated from memory: name the seed",
+        ))
+    })?;
+    fight::run_outcome(&compiled, config, seed)
 }
 
 /// Runs a compiled layout, whichever way it was read.
@@ -183,17 +204,23 @@ fn run_loaded(
     seed: Option<i32>,
     generate: impl FnOnce() -> Result<i32>,
 ) -> Result<SimulationResult> {
-    let (seed, source) = match (seed, layout_seed) {
-        (Some(0), _) => {
-            return Err(Error::new(
-                "seed 0 is the system-random request, not a match seed: omit the seed to generate one",
-            ));
-        }
-        (Some(seed), _) => (seed, "external"),
-        (None, Some(seed)) => (seed, "layout"),
-        (None, None) => (generate()?, "generated"),
-    };
+    let (seed, source) = resolve_seed(seed, layout_seed, generate)?;
     fight::run(&layout, config, seed, source, record, &replay_layout)
+}
+
+fn resolve_seed(
+    external: Option<i32>,
+    layout: Option<i32>,
+    generate: impl FnOnce() -> Result<i32>,
+) -> Result<(i32, &'static str)> {
+    match (external, layout) {
+        (Some(0), _) => Err(Error::new(
+            "seed 0 is the system-random request, not a match seed: omit the seed to generate one",
+        )),
+        (Some(seed), _) => Ok((seed, "external")),
+        (None, Some(seed)) => Ok((seed, "layout")),
+        (None, None) => Ok((generate()?, "generated")),
+    }
 }
 
 /// Simulates the layout embedded in an MCFR and compares canonical ticks
@@ -207,14 +234,14 @@ fn run_loaded(
 /// Returns an error for an invalid layout or config, a build mismatch, or a
 /// simulation/MCFR failure.
 pub fn compare_recording(recording: &mechcore_mcfr::McfrReader) -> Result<SimulationComparison> {
-    let config = rules::SimulationConfig::load()?;
+    let config = rules::SimulationConfig::cached()?;
     let (seed, layout) =
         layout::compile_with_seed(recording.layout_yaml().as_bytes(), &config.units)
             .map_err(|error| error.context("cannot simulate embedded layout"))?;
     let seed = seed.ok_or_else(|| {
         Error::new("embedded layout has no seed, so the recording cannot be reproduced")
     })?;
-    fight::compare(&layout, &config, seed, recording)
+    fight::compare(&layout, config, seed, recording)
 }
 
 fn generate_seed(layout_path: &Path) -> Result<i32> {
@@ -299,5 +326,46 @@ red:
         let error = Error::new("not measured").context("side blue");
         assert_eq!(error.to_string(), "side blue: not measured");
         assert_eq!(error.sites(), [format!("{}:{line}", file!())]);
+    }
+
+    #[test]
+    fn simulate_layout_outcome_matches_recorded_fight_settlement() {
+        use mechcore_mcfr::Recording as _;
+
+        let document = br"
+kind: layout
+seed: 4242
+round: 1
+blue:
+  units:
+  - {name: fang, index: 0, position: {x: -55, y: -120}}
+  - {name: crawler, index: 1, position: {x: 75, y: -100}}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: -50, y: -180}}
+  - {name: arclight, index: 1, position: {x: 60, y: -150}}
+";
+        let simulated = super::simulate_document(document, super::Record::Memory, None).unwrap();
+        let recording = simulated.recording.expect("memory recording retained");
+        let settlement = recording.settlement();
+        let (expected_blue, expected_red) = mechcore_document::reactor_damage::damage(
+            i64::from(settlement.teams[0].score),
+            i64::from(settlement.teams[1].score),
+        );
+
+        let layout = mechcore_document::parse_yaml(document).unwrap();
+        let headless = super::simulate_layout_outcome(layout.clone(), None).unwrap();
+        assert_eq!(i64::from(headless.blue_core_damage), expected_blue);
+        assert_eq!(i64::from(headless.red_core_damage), expected_red);
+        assert_eq!(headless.ticks, recording.terminal_tick());
+        assert_eq!(u64::from(headless.ticks), simulated.steps);
+
+        assert!(super::simulate_layout_outcome(layout.clone(), Some(0)).is_err());
+        let mut unseeded = layout.clone();
+        unseeded.seed = None;
+        assert!(super::simulate_layout_outcome(unseeded, None).is_err());
+        let mut wrong_build = layout;
+        wrong_build.game_build = "0.0.0".to_owned();
+        assert!(super::simulate_layout_outcome(wrong_build, None).is_err());
     }
 }
