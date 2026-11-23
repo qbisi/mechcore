@@ -932,10 +932,9 @@ Operands and options:
 Each solution in `solutions` carries its `rank`, `score` (expected
 `core_delta`, defined as `opponent_core_damage - own_core_damage`, optionally
 blended with worst-case `min_core_delta` across opponent beliefs), core damage
-breakdown, tick count, compiled legal `actions` list, and causal `lineage`.
-`baseline` reports the recorded own actions evaluated against the same opponent
-belief set, and `trace` summarizes per-stage beam counts, sweep count,
-simulation usage, stop reason, and top pruned alternatives.
+breakdown, tick count, `winner`, `normalized` flag, compiled legal `actions`
+list, and causal `lineage`. `trace` summarizes per-stage beam counts, sweep
+count, simulation usage, stop reason, and top pruned alternatives.
 
 ## `generate`
 

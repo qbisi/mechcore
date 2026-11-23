@@ -30,7 +30,7 @@ use crate::{
 
 use model::{
     BranchId, LineageStep, Operator, OpponentContext, Problem, PrunedCandidate, SolveContext,
-    StageTrace, Valuation,
+    StageTrace,
 };
 use profile::{BuiltProfile, Profile};
 
@@ -43,8 +43,6 @@ struct SolveOutput {
     round: i32,
     side: &'static str,
     profile: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    baseline: Option<Valuation>,
     solutions: Vec<Solution>,
     trace: TraceSummary,
 }
@@ -53,8 +51,6 @@ struct SolveOutput {
 struct Solution {
     rank: usize,
     score: f64,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    delta_vs_baseline: Option<f64>,
     min_core_delta: i32,
     own_core_damage: f64,
     opponent_core_damage: f64,
@@ -181,32 +177,42 @@ pub(crate) fn run(arguments: Args) -> Outcome {
     };
     let mut ctx = SolveContext::new(&problem, opponent_beliefs, &services, hooks);
 
-    let baseline = evaluate_baseline(&mut ctx)?;
     let beam = run_pipeline(&mut ctx, &pipeline)?;
-    let solutions = build_solutions(&ctx, beam, baseline)?;
+    let output = build_output(&ctx, &trace, &match_path, &profile_name, beam)?;
+    emit(&output, format)?;
+    Ok(Verdict::Yes)
+}
+
+fn build_output(
+    ctx: &SolveContext<'_>,
+    trace: &std::sync::Mutex<hooks::TraceBuffer>,
+    match_path: &std::path::Path,
+    profile_name: &str,
+    beam: Vec<BranchId>,
+) -> Result<SolveOutput, Failure> {
+    let solutions = build_solutions(ctx, beam)?;
     let trace_data = trace
         .lock()
         .map_err(|_| Failure::failed("trace observer lock poisoned"))?
         .clone();
 
-    let output = SolveOutput {
+    Ok(SolveOutput {
         schema: OUTPUT_SCHEMA,
         r#match: match_path.display().to_string(),
-        round: turn.round,
-        side: side.name(),
-        profile: profile_name,
-        baseline,
+        round: ctx.problem.round,
+        side: ctx.problem.side.name(),
+        profile: profile_name.to_owned(),
         solutions,
         trace: TraceSummary {
             simulations: ctx.stats.simulations,
             sweeps: ctx.stats.sweep,
-            stop_reason: trace_data.stop_reason.or(ctx.stats.stop_reason),
+            stop_reason: trace_data
+                .stop_reason
+                .or_else(|| ctx.stats.stop_reason.clone()),
             stages: trace_data.stages,
             pruned_top: trace_data.pruned_top,
         },
-    };
-    emit(&output, format)?;
-    Ok(Verdict::Yes)
+    })
 }
 
 fn load_profile(profile_path: &str) -> Result<(String, BuiltProfile), Failure> {
@@ -239,11 +245,7 @@ fn run_pipeline(
     Ok(beam)
 }
 
-fn build_solutions(
-    ctx: &SolveContext<'_>,
-    beam: Vec<BranchId>,
-    baseline: Option<Valuation>,
-) -> Result<Vec<Solution>, Failure> {
+fn build_solutions(ctx: &SolveContext<'_>, beam: Vec<BranchId>) -> Result<Vec<Solution>, Failure> {
     let mut solutions = Vec::with_capacity(beam.len());
     for (idx, id) in beam.into_iter().enumerate() {
         let branch = ctx.arena.get(id);
@@ -253,7 +255,6 @@ fn build_solutions(
         solutions.push(Solution {
             rank: idx + 1,
             score: valuation.score,
-            delta_vs_baseline: baseline.map(|base| valuation.score - base.score),
             min_core_delta: valuation.min_core_delta,
             own_core_damage: valuation.own_core_damage,
             opponent_core_damage: valuation.opponent_core_damage,
@@ -311,16 +312,4 @@ pub(super) fn movable_unit_indices(state: &SideState) -> BTreeSet<i32> {
         .filter(|unit| unit.movable(state))
         .map(|unit| unit.index)
         .collect()
-}
-
-fn evaluate_baseline(ctx: &mut SolveContext<'_>) -> Result<Option<Valuation>, Failure> {
-    let (baseline_state, _) = deploy_non_concede(
-        ctx.problem.economy,
-        ctx.problem.own_opening(),
-        ctx.problem.own_actions,
-        ctx.problem.side.red(),
-        ctx.problem.offers(),
-        &format!("cannot replay {} baseline actions", ctx.problem.side.name()),
-    )?;
-    ctx.evaluate_cached(baseline_state)
 }
