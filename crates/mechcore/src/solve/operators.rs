@@ -13,9 +13,10 @@ use crate::cli::Failure;
 use super::{
     model::{
         BranchId, Constraints, IntentRecord, Operator, PrunedCandidate, SearchEvent, SolveContext,
-        Valuation, state_digest,
+        TemplateService, Valuation, state_digest,
     },
     predictor::{PlacementProposal, PlacementQuery},
+    templates::{JitterOverride, TemplateRequest},
 };
 
 /// Sequential composition `P_n |> ... |> P_1`.
@@ -211,37 +212,25 @@ impl Operator for WarmStartOwnActions {
         ctx: &mut SolveContext<'_>,
         beam: Vec<BranchId>,
     ) -> Result<Vec<BranchId>, Failure> {
-        let effective: Vec<Action> = ctx
-            .problem
-            .own_actions
-            .iter()
-            .filter(|action| !matches!(action, Action::Concede))
-            .cloned()
-            .collect();
+        let error_prefix = format!(
+            "warm_start.own_actions cannot replay {} actions",
+            ctx.problem.side.name()
+        );
         let mut next = Vec::with_capacity(beam.len());
         for parent in beam {
             let base_state = ctx.arena.get(parent).state.clone();
             let base_prior = ctx.arena.get(parent).prior;
             let mut history = ctx.arena.get(parent).history.clone();
-            let deployed = transition::deployed(
+            let (deployed, effective) = super::deploy_non_concede(
                 ctx.problem.economy,
                 &base_state,
-                &effective,
+                ctx.problem.own_actions,
                 ctx.problem.side.red(),
                 ctx.problem.offers(),
-            )
-            .map_err(|error| {
-                Failure::refused(format!(
-                    "warm_start.own_actions cannot replay {} actions: {error}",
-                    ctx.problem.side.name()
-                ))
-            })?;
+                &error_prefix,
+            )?;
             let unpinned = if self.unpin_all_movable {
-                deployed
-                    .active_units()
-                    .filter(|unit| unit.movable(&deployed))
-                    .map(|unit| unit.index)
-                    .collect()
+                super::movable_unit_indices(&deployed)
             } else {
                 transition::unpinned_units(&deployed, &effective)
             };
@@ -270,6 +259,129 @@ impl Operator for WarmStartOwnActions {
                 history,
             );
             next.push(child);
+        }
+        Ok(next)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SeedMacroTemplatesConfig {
+    #[serde(default)]
+    templates: Vec<String>,
+    #[serde(default = "default_variants_per_template")]
+    variants_per_template: usize,
+    #[serde(default = "default_true")]
+    include_clean_base: bool,
+    #[serde(default)]
+    jitter: JitterOverride,
+    #[serde(default = "default_macro_seed")]
+    seed: u64,
+}
+
+const fn default_variants_per_template() -> usize {
+    1
+}
+
+const fn default_macro_seed() -> u64 {
+    1001
+}
+
+/// Expands every incoming branch by placing its `unpinned` formations according
+/// to the configured macro-template library and jitter settings.
+pub(crate) struct SeedMacroTemplatesOperator {
+    templates: Vec<String>,
+    variants_per_template: usize,
+    include_clean_base: bool,
+    jitter: JitterOverride,
+    seed: u64,
+}
+
+impl SeedMacroTemplatesOperator {
+    pub(crate) fn from_value(
+        value: &serde_json::Value,
+        mounted_templates: Option<&dyn TemplateService>,
+    ) -> Result<Self, Failure> {
+        let templates_service = mounted_templates.ok_or_else(|| {
+            Failure::refused("seed.macro_templates requires services.templates to be configured")
+        })?;
+        let config: SeedMacroTemplatesConfig = parse_params("seed.macro_templates", value)?;
+        templates_service.validate_request(
+            &config.templates,
+            config.variants_per_template,
+            &config.jitter,
+        )?;
+        Ok(Self {
+            templates: config.templates,
+            variants_per_template: config.variants_per_template,
+            include_clean_base: config.include_clean_base,
+            jitter: config.jitter,
+            seed: config.seed,
+        })
+    }
+}
+
+impl Operator for SeedMacroTemplatesOperator {
+    fn name(&self) -> &'static str {
+        "seed.macro_templates"
+    }
+
+    fn apply(
+        &self,
+        ctx: &mut SolveContext<'_>,
+        beam: Vec<BranchId>,
+    ) -> Result<Vec<BranchId>, Failure> {
+        let templates_service = ctx.services.templates.as_deref().ok_or_else(|| {
+            Failure::refused("seed.macro_templates requires services.templates to be configured")
+        })?;
+        let constraints = ctx.active_constraints();
+        let seed = self.seed ^ u64::from(ctx.problem.seed.cast_unsigned());
+        let mut next = Vec::new();
+        for parent in beam {
+            let (state, unpinned, base_prior) = {
+                let branch = ctx.arena.get(parent);
+                (branch.state.clone(), branch.unpinned.clone(), branch.prior)
+            };
+            if unpinned.is_empty() {
+                next.push(parent);
+                continue;
+            }
+            let layouts = templates_service.generate(
+                ctx.services.space.as_ref(),
+                &TemplateRequest {
+                    round: ctx.problem.round,
+                    red: ctx.problem.side.red(),
+                    state: &state,
+                    unpinned: &unpinned,
+                    constraints: &constraints,
+                    templates: &self.templates,
+                    variants_per_template: self.variants_per_template,
+                    include_clean_base: self.include_clean_base,
+                    jitter: &self.jitter,
+                    seed,
+                },
+            )?;
+            if layouts.is_empty() {
+                next.push(parent);
+                continue;
+            }
+            for layout in layouts {
+                let next_prior = base_prior + layout.weight.max(1e-9).ln();
+                // Repositioning every unpinned unit overrides earlier move
+                // sequencing; compile_actions normalizes straight from opening.
+                let child = ctx.arena.fork(
+                    parent,
+                    layout.state,
+                    BTreeSet::new(),
+                    next_prior,
+                    IntentRecord {
+                        operator: self.name().to_owned(),
+                        summary: format!("template {}", layout.label),
+                    },
+                    Vec::new(),
+                );
+                next.push(child);
+            }
         }
         Ok(next)
     }

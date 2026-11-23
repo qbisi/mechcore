@@ -16,7 +16,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{cli::Failure, turn::Side};
 
-use super::predictor::{PlacementProposal, PlacementQuery};
+use super::{
+    predictor::{PlacementProposal, PlacementQuery},
+    templates::{GeneratedLayout, JitterOverride, TemplateRequest},
+};
 
 /// Handle to one candidate branch stored in the solver's in-memory arena.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
@@ -317,10 +320,14 @@ impl<'a> Problem<'a> {
 /// Read-only context handed to an [`OpponentService`] before the pipeline runs.
 pub(crate) struct OpponentContext<'a> {
     pub(crate) economy: &'a Economy,
+    pub(crate) round: i32,
+    pub(crate) seed: i32,
     pub(crate) opponent_side: Side,
     pub(crate) opponent_opening: &'a SideState,
     pub(crate) opponent_actions: &'a [Action],
     pub(crate) offers: Option<&'a Offers>,
+    pub(crate) space: &'a dyn SpaceService,
+    pub(crate) templates: Option<&'a dyn TemplateService>,
 }
 
 /// Service resolving the weighted opponent belief set used by fight evaluation.
@@ -347,6 +354,20 @@ pub(crate) trait SpaceService: Send + Sync {
         unit_index: i32,
     ) -> Result<Mask, Failure>;
 
+    /// Computes the legal move mask for standing formation `unit_index`,
+    /// excluding `unit_index` and every formation in `ignored_units`.
+    ///
+    /// # Errors
+    /// Returns a refusal when the formation is absent or unsupported.
+    fn move_mask_excluding(
+        &self,
+        round: i32,
+        red: bool,
+        state: &SideState,
+        unit_index: i32,
+        ignored_units: &BTreeSet<i32>,
+    ) -> Result<Mask, Failure>;
+
     /// Whether `(position, rotated)` is legal under both `mask` and active
     /// scope `constraints`.
     fn can_place_move(
@@ -356,6 +377,30 @@ pub(crate) trait SpaceService: Send + Sync {
         rotated: bool,
         constraints: &Constraints,
     ) -> bool;
+}
+
+/// Shared service generating legal macro-template layouts for unpinned formations.
+pub(crate) trait TemplateService: Send + Sync {
+    /// Validates caller template selection and jitter overrides against loaded tables.
+    ///
+    /// # Errors
+    /// Returns a refusal when any template name or jitter bound is invalid.
+    fn validate_request(
+        &self,
+        templates: &[String],
+        variants_per_template: usize,
+        jitter: &JitterOverride,
+    ) -> Result<(), Failure>;
+
+    /// Materializes weighted, collision-free candidate layouts for `request`.
+    ///
+    /// # Errors
+    /// Returns a refusal when generation fails.
+    fn generate(
+        &self,
+        space: &dyn SpaceService,
+        request: &TemplateRequest<'_>,
+    ) -> Result<Vec<GeneratedLayout>, Failure>;
 }
 
 /// Service evaluating a candidate state against the sealed opponent belief set.
@@ -449,8 +494,9 @@ pub(crate) trait Operator: Send + Sync {
 /// Mounted capability services shared across all operators and nested loops.
 pub(crate) struct Services {
     pub(crate) opponent: Box<dyn OpponentService>,
-    pub(crate) space: Box<dyn SpaceService>,
+    pub(crate) space: Arc<dyn SpaceService>,
     pub(crate) evaluator: Box<dyn EvaluatorService>,
+    pub(crate) templates: Option<Arc<dyn TemplateService>>,
     pub(crate) proposers: Vec<Box<dyn PlacementProposer>>,
     pub(crate) operators: BTreeMap<String, Arc<dyn Operator>>,
 }

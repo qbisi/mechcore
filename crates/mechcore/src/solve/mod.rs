@@ -11,12 +11,13 @@ mod operators;
 mod predictor;
 mod profile;
 mod services;
+mod templates;
 
 use std::{collections::BTreeSet, sync::Arc};
 
 use mechcore_document::{
     economy::Economy,
-    r#match::{Action, Turn},
+    r#match::{Action, Offers, SideState, Turn},
     opening, transition,
 };
 use serde::Serialize;
@@ -75,11 +76,15 @@ struct TraceSummary {
     pruned_top: Vec<PrunedCandidate>,
 }
 
-/// Entry point for `mechcore solve`.
-///
-/// # Errors
-/// Returns usage, refusal, or I/O failures according to the CLI contract.
-pub(crate) fn run(mut arguments: Args) -> Outcome {
+struct ParsedArgs {
+    format: crate::cli::Format,
+    round_requested: Option<i32>,
+    side: Side,
+    profile_path: String,
+    match_path: std::path::PathBuf,
+}
+
+fn parse_args(mut arguments: Args) -> Result<ParsedArgs, Failure> {
     let format = arguments.format()?;
     let round_arg = arguments.value("--round")?;
     let round_requested =
@@ -98,6 +103,27 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
         .ok_or_else(|| Failure::usage("solve needs --profile <profile.yaml>"))?;
     let match_path = arguments.path("a match document")?;
     arguments.finish()?;
+    Ok(ParsedArgs {
+        format,
+        round_requested,
+        side,
+        profile_path,
+        match_path,
+    })
+}
+
+/// Entry point for `mechcore solve`.
+///
+/// # Errors
+/// Returns usage, refusal, or I/O failures according to the CLI contract.
+pub(crate) fn run(arguments: Args) -> Outcome {
+    let ParsedArgs {
+        format,
+        round_requested,
+        side,
+        profile_path,
+        match_path,
+    } = parse_args(arguments)?;
 
     let (kind, bytes) = Kind::read(&match_path)?;
     kind.require("solve")?;
@@ -107,13 +133,15 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
     crate::r#match::warn_build(&stated.build);
 
     let turn = select_turn(&stated, round_requested)?;
-    let profile = Profile::load(std::path::Path::new(&profile_path))?;
-    let BuiltProfile {
-        services,
-        hooks,
-        pipeline,
-        trace,
-    } = profile.build()?;
+    let (
+        profile_name,
+        BuiltProfile {
+            services,
+            hooks,
+            pipeline,
+            trace,
+        },
+    ) = load_profile(&profile_path)?;
 
     let economy = Economy::embedded().map_err(Failure::failed)?;
     let opponent_side = side.other();
@@ -132,10 +160,14 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
 
     let opponent_beliefs = services.opponent.resolve(&OpponentContext {
         economy,
+        round: turn.round,
+        seed: stated.seed,
         opponent_side,
         opponent_opening,
         opponent_actions,
         offers: turn.state.reinforce_offers.as_ref(),
+        space: services.space.as_ref(),
+        templates: services.templates.as_deref(),
     })?;
 
     let problem = Problem {
@@ -162,7 +194,7 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
         r#match: match_path.display().to_string(),
         round: turn.round,
         side: side.name(),
-        profile: profile.name,
+        profile: profile_name,
         baseline,
         solutions,
         trace: TraceSummary {
@@ -177,16 +209,23 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
     Ok(Verdict::Yes)
 }
 
+fn load_profile(profile_path: &str) -> Result<(String, BuiltProfile), Failure> {
+    let profile_file = std::path::Path::new(profile_path);
+    let profile = Profile::load(profile_file)?;
+    let base_dir = match profile_file.parent() {
+        Some(parent) if !parent.as_os_str().is_empty() => parent,
+        _ => std::path::Path::new("."),
+    };
+    let built = profile.build(base_dir)?;
+    Ok((profile.name, built))
+}
+
 fn run_pipeline(
     ctx: &mut SolveContext<'_>,
     pipeline: &[Arc<dyn Operator>],
 ) -> Result<Vec<BranchId>, Failure> {
     let own_opening = ctx.problem.own_opening();
-    let root_unpinned: BTreeSet<i32> = own_opening
-        .active_units()
-        .filter(|unit| unit.movable(own_opening))
-        .map(|unit| unit.index)
-        .collect();
+    let root_unpinned = movable_unit_indices(own_opening);
     let root = ctx.arena.root(own_opening.clone(), root_unpinned);
     let mut beam = vec![root];
 
@@ -245,26 +284,43 @@ fn select_turn(stated: &opening::Stated, requested: Option<i32>) -> Result<&Turn
         .ok_or_else(|| Failure::refused("match holds no deployment rounds"))
 }
 
-fn evaluate_baseline(ctx: &mut SolveContext<'_>) -> Result<Option<Valuation>, Failure> {
-    let effective: Vec<Action> = ctx
-        .problem
-        .own_actions
+/// Replays non-`concede` actions from `opening` and returns the deployed state
+/// alongside the filtered action sequence.
+pub(super) fn deploy_non_concede(
+    economy: &Economy,
+    opening: &SideState,
+    actions: &[Action],
+    red: bool,
+    offers: Option<&Offers>,
+    error_prefix: &str,
+) -> Result<(SideState, Vec<Action>), Failure> {
+    let effective: Vec<Action> = actions
         .iter()
         .filter(|action| !matches!(action, Action::Concede))
         .cloned()
         .collect();
-    let baseline_state = transition::deployed(
+    let deployed = transition::deployed(economy, opening, &effective, red, offers)
+        .map_err(|error| Failure::refused(format!("{error_prefix}: {error}")))?;
+    Ok((deployed, effective))
+}
+
+/// Returns all active movable formation indices on `state`.
+pub(super) fn movable_unit_indices(state: &SideState) -> BTreeSet<i32> {
+    state
+        .active_units()
+        .filter(|unit| unit.movable(state))
+        .map(|unit| unit.index)
+        .collect()
+}
+
+fn evaluate_baseline(ctx: &mut SolveContext<'_>) -> Result<Option<Valuation>, Failure> {
+    let (baseline_state, _) = deploy_non_concede(
         ctx.problem.economy,
         ctx.problem.own_opening(),
-        &effective,
+        ctx.problem.own_actions,
         ctx.problem.side.red(),
         ctx.problem.offers(),
-    )
-    .map_err(|error| {
-        Failure::refused(format!(
-            "cannot replay {} baseline actions: {error}",
-            ctx.problem.side.name()
-        ))
-    })?;
+        &format!("cannot replay {} baseline actions", ctx.problem.side.name()),
+    )?;
     ctx.evaluate_cached(baseline_state)
 }

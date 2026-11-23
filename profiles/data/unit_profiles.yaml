@@ -1,0 +1,245 @@
+schema: mechcore.unit_profiles/v1
+version: v0-stats
+embed_dim: 0
+
+# Fallback profile for any unit type not listed below.
+default:
+  roles: { chaff: 0.25, tank: 0.25, clear: 0.25, carry: 0.25 }
+  depth_offset: 0
+  rotate_prob: 0.0
+  allow_rotate: false
+  edge_bias: 0.0
+
+units:
+  # Core Round 1 units calibrated from high-ELO (>= 1700) replay statistics.
+  crawler:
+    roles: { chaff: 0.92, tank: 0.02, clear: 0.05, carry: 0.01 }
+    depth_offset: -50
+    rotate_prob: 0.79
+    allow_rotate: true
+    edge_bias: 0.25
+
+  fang:
+    roles: { chaff: 0.85, tank: 0.03, clear: 0.08, carry: 0.04 }
+    depth_offset: -15
+    rotate_prob: 0.85
+    allow_rotate: true
+    edge_bias: 0.15
+
+  fire_badger:
+    roles: { chaff: 0.02, tank: 0.38, clear: 0.56, carry: 0.04 }
+    depth_offset: 35
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: -0.10
+
+  vortex:
+    roles: { chaff: 0.05, tank: 0.35, clear: 0.50, carry: 0.10 }
+    depth_offset: 35
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: -0.10
+
+  tarantula:
+    roles: { chaff: 0.02, tank: 0.48, clear: 0.42, carry: 0.08 }
+    depth_offset: 30
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: -0.15
+
+  void_eye:
+    roles: { chaff: 0.05, tank: 0.10, clear: 0.15, carry: 0.70 }
+    depth_offset: 25
+    rotate_prob: 0.05
+    allow_rotate: true
+    edge_bias: -0.10
+
+  sabertooth:
+    roles: { chaff: 0.02, tank: 0.55, clear: 0.08, carry: 0.35 }
+    depth_offset: 5
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: -0.15
+
+  sledgehammer:
+    roles: { chaff: 0.05, tank: 0.55, clear: 0.30, carry: 0.10 }
+    depth_offset: -10
+    rotate_prob: 0.17
+    allow_rotate: true
+    edge_bias: 0.0
+
+  arclight:
+    roles: { chaff: 0.02, tank: 0.13, clear: 0.80, carry: 0.05 }
+    depth_offset: -25
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: 0.0
+
+  marksman:
+    roles: { chaff: 0.01, tank: 0.04, clear: 0.05, carry: 0.90 }
+    depth_offset: -45
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: 0.05
+
+  hound:
+    roles: { chaff: 0.15, tank: 0.15, clear: 0.65, carry: 0.05 }
+    depth_offset: -55
+    rotate_prob: 0.05
+    allow_rotate: true
+    edge_bias: 0.15
+
+  mustang:
+    roles: { chaff: 0.10, tank: 0.05, clear: 0.60, carry: 0.25 }
+    depth_offset: -95
+    rotate_prob: 0.05
+    allow_rotate: true
+    edge_bias: 0.20
+
+  steel_ball:
+    roles: { chaff: 0.02, tank: 0.43, clear: 0.05, carry: 0.50 }
+    depth_offset: -110
+    rotate_prob: 0.05
+    allow_rotate: true
+    edge_bias: 0.35
+
+  # Remaining catalog units (complete 33-unit coverage).
+  fortress:
+    roles: { chaff: 0.00, tank: 0.65, clear: 0.05, carry: 0.30 }
+    depth_offset: -10
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: -0.15
+
+  vulcan:
+    roles: { chaff: 0.00, tank: 0.35, clear: 0.60, carry: 0.05 }
+    depth_offset: 10
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: -0.10
+
+  melting_point:
+    roles: { chaff: 0.00, tank: 0.30, clear: 0.05, carry: 0.65 }
+    depth_offset: -20
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: -0.10
+
+  rhino:
+    roles: { chaff: 0.02, tank: 0.63, clear: 0.15, carry: 0.20 }
+    depth_offset: -80
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: 0.30
+
+  wasp:
+    roles: { chaff: 0.70, tank: 0.02, clear: 0.18, carry: 0.10 }
+    depth_offset: -20
+    rotate_prob: 0.40
+    allow_rotate: true
+    edge_bias: 0.35
+
+  overlord:
+    roles: { chaff: 0.02, tank: 0.28, clear: 0.15, carry: 0.55 }
+    depth_offset: -40
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: 0.10
+
+  stormcaller:
+    roles: { chaff: 0.02, tank: 0.03, clear: 0.45, carry: 0.50 }
+    depth_offset: -95
+    rotate_prob: 0.05
+    allow_rotate: true
+    edge_bias: 0.05
+
+  hacker:
+    roles: { chaff: 0.02, tank: 0.08, clear: 0.15, carry: 0.75 }
+    depth_offset: -45
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: 0.0
+
+  phoenix:
+    roles: { chaff: 0.01, tank: 0.04, clear: 0.05, carry: 0.90 }
+    depth_offset: -75
+    rotate_prob: 0.05
+    allow_rotate: true
+    edge_bias: 0.15
+
+  war_factory:
+    roles: { chaff: 0.10, tank: 0.50, clear: 0.10, carry: 0.30 }
+    depth_offset: -30
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: -0.20
+
+  wraith:
+    roles: { chaff: 0.02, tank: 0.38, clear: 0.50, carry: 0.10 }
+    depth_offset: 10
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: 0.05
+
+  scorpion:
+    roles: { chaff: 0.00, tank: 0.25, clear: 0.35, carry: 0.40 }
+    depth_offset: -20
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: -0.10
+
+  typhoon:
+    roles: { chaff: 0.02, tank: 0.38, clear: 0.50, carry: 0.10 }
+    depth_offset: 0
+    rotate_prob: 0.05
+    allow_rotate: true
+    edge_bias: 0.0
+
+  sandworm:
+    roles: { chaff: 0.02, tank: 0.58, clear: 0.10, carry: 0.30 }
+    depth_offset: -60
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: 0.25
+
+  phantom_ray:
+    roles: { chaff: 0.05, tank: 0.15, clear: 0.20, carry: 0.60 }
+    depth_offset: -35
+    rotate_prob: 0.05
+    allow_rotate: true
+    edge_bias: 0.25
+
+  farseer:
+    roles: { chaff: 0.02, tank: 0.23, clear: 0.35, carry: 0.40 }
+    depth_offset: -70
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: 0.10
+
+  raiden:
+    roles: { chaff: 0.01, tank: 0.19, clear: 0.15, carry: 0.65 }
+    depth_offset: -30
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: 0.05
+
+  abyss:
+    roles: { chaff: 0.05, tank: 0.45, clear: 0.20, carry: 0.30 }
+    depth_offset: -20
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: -0.10
+
+  centurion:
+    roles: { chaff: 0.02, tank: 0.43, clear: 0.10, carry: 0.45 }
+    depth_offset: -15
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: -0.05
+
+  mountain:
+    roles: { chaff: 0.00, tank: 0.60, clear: 0.10, carry: 0.30 }
+    depth_offset: -15
+    rotate_prob: 0.0
+    allow_rotate: false
+    edge_bias: -0.20

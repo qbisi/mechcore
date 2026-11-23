@@ -921,9 +921,10 @@ Operands and options:
 
 - `<match.yaml>`: a `match` document. Other kinds are refused.
 - `--profile <profile.yaml>`: required YAML profile manifest (`schema: mechcore.profile/v1`)
-  declaring `services` (`opponent`, optional `space` and `evaluator`),
-  `proposers`, `guards`, `filters`, `observers`, named `operators`, and a
-  recursive `pipeline` (`use`, `call`, `seq`, `branch`, `repeat`, `scope`).
+  declaring `services` (`opponent`, optional `templates`, `space`, and
+  `evaluator`), `proposers`, `guards`, `filters`, `observers`, named
+  `operators`, and a recursive `pipeline` (`use`, `call`, `seq`, `branch`,
+  `repeat`, `scope`).
 - `--round <n>`: optional round number. When omitted, selects the last round
   that holds recorded actions (or the last round if none holds actions yet).
 - `--side blue|red`: optional solving side, defaulting to `blue`.

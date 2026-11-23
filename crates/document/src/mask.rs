@@ -3,13 +3,15 @@
 //! Each row is a low-bit x mask. Wide regions are split into at most 32-column
 //! blocks, each with its own first-centre offset in the side's coordinates.
 
+use std::collections::BTreeSet;
+
 use serde::Serialize;
 
 use crate::compile::{
     Placement, compile_placement_layout, grid_center_remainder, placement_footprint,
     validate_placement_collisions, validate_placement_footprints,
 };
-use crate::landing::{Rect, bounds as region_bounds, region_obstacles, unit_size};
+use crate::landing::{Rect, bounds as region_bounds, region_obstacles_excluding, unit_size};
 use crate::layout::{Layout, Position, Region, UnitSource};
 use crate::r#match::SideState;
 
@@ -74,6 +76,80 @@ impl Mask {
             }
         }
         false
+    }
+
+    /// Finds the closest legal position to `target` in `region` that satisfies
+    /// `predicate`, trying `preferred_rotated` first and optionally falling back
+    /// to `!preferred_rotated`. Ties in squared distance break by smallest
+    /// `y.abs()` (closer to the frontline), then lexicographically by `(x, y)`.
+    #[must_use]
+    pub fn nearest_in_region(
+        &self,
+        region: &str,
+        target: Position,
+        preferred_rotated: bool,
+        allow_flip: bool,
+        predicate: impl Fn(Position) -> bool,
+    ) -> Option<(Position, bool)> {
+        if let Some(pos) = self.nearest_for_rotation(region, target, preferred_rotated, &predicate)
+        {
+            return Some((pos, preferred_rotated));
+        }
+        if allow_flip {
+            return self
+                .nearest_for_rotation(region, target, !preferred_rotated, &predicate)
+                .map(|pos| (pos, !preferred_rotated));
+        }
+        None
+    }
+
+    fn nearest_for_rotation(
+        &self,
+        region: &str,
+        target: Position,
+        rotated: bool,
+        predicate: &impl Fn(Position) -> bool,
+    ) -> Option<Position> {
+        let mut best: Option<((i128, i64, i64, i64), Position)> = None;
+        for grid in &self.grids {
+            if grid.region != region || grid.rotated != rotated {
+                continue;
+            }
+            for (row_idx, &word_init) in grid.rows.iter().enumerate() {
+                let Ok(row_i64) = i64::try_from(row_idx) else {
+                    continue;
+                };
+                let Ok(y) = i32::try_from(i64::from(grid.offset.y) + row_i64 * self.step) else {
+                    continue;
+                };
+                let mut word = word_init;
+                while word != 0 {
+                    let col = word.trailing_zeros();
+                    word &= word - 1;
+                    let Ok(x) =
+                        i32::try_from(i64::from(grid.offset.x) + i64::from(col) * self.step)
+                    else {
+                        continue;
+                    };
+                    let pos = Position { x, y };
+                    if !predicate(pos) {
+                        continue;
+                    }
+                    let dx = i128::from(pos.x) - i128::from(target.x);
+                    let dy = i128::from(pos.y) - i128::from(target.y);
+                    let key = (
+                        dx * dx + dy * dy,
+                        i64::from(pos.y).abs(),
+                        i64::from(pos.x),
+                        i64::from(pos.y),
+                    );
+                    if best.is_none_or(|(best_key, _)| key < best_key) {
+                        best = Some((key, pos));
+                    }
+                }
+            }
+        }
+        best.map(|(_, pos)| pos)
     }
 }
 
@@ -201,12 +277,33 @@ pub fn move_unit(
     red: bool,
     unit_index: i32,
 ) -> Result<Mask, String> {
+    move_unit_excluding(state, round, red, unit_index, &BTreeSet::new())
+}
+
+/// Enumerates legal move destinations for standing formation `unit_index` on
+/// `state`, excluding `unit_index` and every formation in `ignored_units`
+/// from collisions.
+///
+/// Round-one flanks are omitted.
+///
+/// # Errors
+///
+/// Returns an error when `unit_index` is absent or its type has no footprint.
+pub fn move_unit_excluding(
+    state: &SideState,
+    round: i32,
+    red: bool,
+    unit_index: i32,
+    ignored_units: &BTreeSet<i32>,
+) -> Result<Mask, String> {
     let formation = state
         .active_units()
         .find(|entry| entry.index == unit_index)
         .ok_or_else(|| format!("formation {unit_index} is absent from state"))?;
     let unit = &formation.type_name;
     let side_name = if red { "red" } else { "blue" };
+    let mut ignored = ignored_units.clone();
+    ignored.insert(unit_index);
     let mut result = Mask {
         schema: "mechcore.mask",
         side: side_name,
@@ -224,7 +321,7 @@ pub fn move_unit(
         }
         let ((min_x, min_y), (max_x, max_y)) = region.bounds();
         let region_rect = region_bounds(region);
-        let obstacles = region_obstacles(state, Some(unit_index), region);
+        let obstacles = region_obstacles_excluding(state, &ignored, region);
         for rotated in [false, true] {
             let (width, height) = unit_size(unit, rotated, region)
                 .ok_or_else(|| format!("unit {unit:?} has no footprint"))?;
@@ -475,5 +572,66 @@ mod tests {
                 }
             }
         }
+    }
+
+    fn test_unit(index: i32, type_name: &str, x: i32, y: i32) -> crate::r#match::StateUnit {
+        crate::r#match::StateUnit {
+            type_name: type_name.to_owned(),
+            index,
+            value: Some(100),
+            level: Some(1),
+            source: UnitSource::Joined,
+            recovered: false,
+            position: Some(Position { x, y }),
+            exp: None,
+            rotated: None,
+            travelling: None,
+            record_position: None,
+            record_rotated: None,
+        }
+    }
+
+    #[test]
+    fn move_unit_excluding_clears_ignored_units_only() {
+        let mut state = SideState::default();
+        state.units.push(test_unit(0, "marksman", 0, -150));
+        state.units.push(test_unit(1, "crawler", 0, -100));
+        state.units.push(test_unit(2, "arclight", 50, -150));
+
+        let ignored = BTreeSet::from([1]);
+        let mask = move_unit_excluding(&state, 1, false, 0, &ignored).unwrap();
+        assert!(mask.contains(Position { x: 0, y: -100 }, false));
+        assert!(!mask.contains(Position { x: 50, y: -150 }, false));
+    }
+
+    #[test]
+    fn nearest_in_region_picks_closest_cell_and_flips_when_blocked() {
+        let mut state = SideState::default();
+        state.units.push(test_unit(0, "crawler", -200, -150));
+        state.units.push(test_unit(1, "marksman", -220, -100));
+        state.units.push(test_unit(2, "marksman", -180, -100));
+
+        let mask = move_unit(&state, 1, false, 0).unwrap();
+        // Crawler (50x20 unrotated) aligns x centers to 5 mod 10 and y centers to 0 mod 10.
+        let (pos, rot) = mask
+            .nearest_in_region("main", Position { x: 2, y: -153 }, false, true, |_| true)
+            .unwrap();
+        assert_eq!(pos, Position { x: 5, y: -150 });
+        assert!(!rot);
+
+        // Restricting x == -200 leaves zero unrotated cells (width 50 requires x % 10 == 5),
+        // so allow_flip=true falls back to rotated=true (20x50, x % 10 == 0, y % 10 == 5).
+        let flipped = mask
+            .nearest_in_region("main", Position { x: -200, y: -100 }, false, true, |p| {
+                p.x == -200
+            })
+            .unwrap();
+        assert_eq!(flipped, (Position { x: -200, y: -95 }, true));
+        assert!(
+            mask.nearest_in_region("main", Position { x: -200, y: -100 }, false, false, |p| {
+                p.x == -200
+            })
+            .is_none()
+        );
     }
 }
