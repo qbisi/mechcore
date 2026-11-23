@@ -2,7 +2,6 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet},
-    num::NonZeroUsize,
     sync::Arc,
 };
 
@@ -371,6 +370,23 @@ pub(crate) trait EvaluatorService: Send + Sync {
         opponents: &[OpponentHypothesis],
         own_state: &SideState,
     ) -> Result<Valuation, Failure>;
+
+    /// Evaluates all distinct `own_states` across `opponents`, preserving
+    /// `own_states` order.
+    ///
+    /// # Errors
+    /// Returns a refusal or failure when projection or simulation fails.
+    fn evaluate_batch(
+        &self,
+        problem: &Problem<'_>,
+        opponents: &[OpponentHypothesis],
+        own_states: &[&SideState],
+    ) -> Result<Vec<Valuation>, Failure> {
+        own_states
+            .iter()
+            .map(|own_state| self.evaluate_state(problem, opponents, own_state))
+            .collect()
+    }
 }
 
 /// Batch-first placement proposal seam (implemented by stubs or external NNs).
@@ -688,46 +704,26 @@ impl<'a> SolveContext<'a> {
             .filter_map(|guard| guard.simulation_limit())
             .min();
         if let Some(limit) = limit {
-            unique_misses.truncate((limit - self.stats.simulations) / cost);
+            unique_misses.truncate(limit.saturating_sub(self.stats.simulations) / cost);
         }
         if !unique_misses.is_empty() {
-            let workers = std::thread::available_parallelism()
-                .map_or(1, NonZeroUsize::get)
-                .min(unique_misses.len());
-            let chunk_size = unique_misses.len().div_ceil(workers);
-            let problem = self.problem;
-            let opponents = &self.opponent_beliefs;
-            let evaluator = self.services.evaluator.as_ref();
-            let evaluated = std::thread::scope(|scope| {
-                let mut handles = Vec::new();
-                for chunk in unique_misses.chunks(chunk_size) {
-                    handles.push(scope.spawn(move || {
-                        let mut results = Vec::with_capacity(chunk.len());
-                        for (digest, state) in chunk {
-                            let valuation = evaluator.evaluate_state(problem, opponents, state)?;
-                            results.push((*digest, valuation));
-                        }
-                        Ok::<_, Failure>(results)
-                    }));
-                }
-                let mut merged = Vec::with_capacity(unique_misses.len());
-                for handle in handles {
-                    let part = handle
-                        .join()
-                        .map_err(|_| Failure::failed("simulation worker thread panicked"))??;
-                    merged.extend(part);
-                }
-                Ok::<_, Failure>(merged)
-            })?;
-            for (digest, valuation) in evaluated {
+            let miss_count = unique_misses.len();
+            let state_refs: Vec<&SideState> =
+                unique_misses.iter().map(|(_, state)| state).collect();
+            let valuations = self.services.evaluator.evaluate_batch(
+                self.problem,
+                &self.opponent_beliefs,
+                &state_refs,
+            )?;
+            for ((digest, _), valuation) in unique_misses.into_iter().zip(valuations) {
                 self.sim_cache.insert(digest, valuation);
                 self.update_best(valuation.score);
             }
-            self.stats.simulations += unique_misses.len() * cost;
+            self.stats.simulations += miss_count * cost;
         }
 
         if let Some(limit) = limit
-            && limit - self.stats.simulations < cost
+            && limit.saturating_sub(self.stats.simulations) < cost
         {
             self.record_stop(&format!(
                 "simulation budget reached ({}/{limit})",

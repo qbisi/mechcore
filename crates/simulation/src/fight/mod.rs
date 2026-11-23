@@ -115,8 +115,8 @@ use projectile::*;
 use random::GrRandom;
 pub(crate) use run::*;
 pub use run::{
-    DivergentTick, Phases, SimulationComparison, SimulationProfile, SimulationResult, SlowestStep,
-    TimelineSummary,
+    DivergentTick, FightOutcome, Phases, SimulationComparison, SimulationProfile, SimulationResult,
+    SlowestStep, TimelineSummary,
 };
 use rvo::{AgentInput as RvoAgentInput, AgentKey as RvoAgentKey, AgentSizeType, FixedVec2};
 use search::*;
