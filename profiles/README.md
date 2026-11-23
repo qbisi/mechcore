@@ -17,10 +17,10 @@ pipeline AST:
 - `proposers`: batch-first placement proposal plugins aggregated into one pool
   (`proposer.stay`, `proposer.shift_stub`).
 - `guards` can stop a loop on stagnation (`guard.stagnation`) or cap the total
-  number of simulated fights with `guard.max_simulations`. The cap includes the
-  baseline and every pipeline stage. Within a batch, distinct uncached states get
-  budget in input order. Each state needs one fight per opponent hypothesis.
-  Cached scores remain available after the budget runs out.
+  number of simulated fights with `guard.max_simulations`. The cap covers every
+  pipeline stage. Within a batch, distinct uncached states get budget in input
+  order. Each state needs one fight per opponent hypothesis. Cached scores remain
+  available after the budget runs out.
 - `filters`: `waterfall` proposal filters (`filter.dedup_poses`,
   `filter.scope_bounds`).
 - `observers`: `emit` observers (`observer.trace`).

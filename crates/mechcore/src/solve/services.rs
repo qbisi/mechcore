@@ -408,19 +408,6 @@ impl ExactSimEvaluator {
 }
 
 impl EvaluatorService for ExactSimEvaluator {
-    fn evaluate_state(
-        &self,
-        problem: &Problem<'_>,
-        opponents: &[OpponentHypothesis],
-        own_state: &SideState,
-    ) -> Result<Valuation, Failure> {
-        Ok(self
-            .evaluate_batch(problem, opponents, &[own_state])?
-            .into_iter()
-            .next()
-            .expect("single-state batch produces one valuation"))
-    }
-
     fn evaluate_batch(
         &self,
         problem: &Problem<'_>,

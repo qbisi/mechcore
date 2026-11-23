@@ -405,17 +405,6 @@ pub(crate) trait TemplateService: Send + Sync {
 
 /// Service evaluating a candidate state against the sealed opponent belief set.
 pub(crate) trait EvaluatorService: Send + Sync {
-    /// Evaluates `own_state` against `opponents`.
-    ///
-    /// # Errors
-    /// Returns a refusal or failure when projection or simulation fails.
-    fn evaluate_state(
-        &self,
-        problem: &Problem<'_>,
-        opponents: &[OpponentHypothesis],
-        own_state: &SideState,
-    ) -> Result<Valuation, Failure>;
-
     /// Evaluates all distinct `own_states` across `opponents`, preserving
     /// `own_states` order.
     ///
@@ -426,12 +415,7 @@ pub(crate) trait EvaluatorService: Send + Sync {
         problem: &Problem<'_>,
         opponents: &[OpponentHypothesis],
         own_states: &[&SideState],
-    ) -> Result<Vec<Valuation>, Failure> {
-        own_states
-            .iter()
-            .map(|own_state| self.evaluate_state(problem, opponents, own_state))
-            .collect()
-    }
+    ) -> Result<Vec<Valuation>, Failure>;
 }
 
 /// Batch-first placement proposal seam (implemented by stubs or external NNs).
@@ -455,7 +439,7 @@ pub(crate) trait StopGuard: Send + Sync {
         None
     }
 
-    /// Global cap applied before dispatching any fights, including the baseline.
+    /// Global cap applied before dispatching any pipeline fight batch.
     fn simulation_limit(&self) -> Option<usize> {
         None
     }
@@ -683,22 +667,6 @@ impl<'a> SolveContext<'a> {
             *proposals = filtered;
         }
         Ok(merged)
-    }
-
-    /// Evaluates one state and caches its valuation so identical search
-    /// branches reuse the fight result without re-simulating.
-    ///
-    /// # Errors
-    /// Returns a refusal if the state cannot be hashed, projected, or simulated.
-    pub(crate) fn evaluate_cached(
-        &mut self,
-        own_state: SideState,
-    ) -> Result<Option<Valuation>, Failure> {
-        let digest = state_digest(&own_state)?;
-        if !self.sim_cache.contains_key(&digest) {
-            self.evaluate_misses(vec![(digest, own_state)])?;
-        }
-        Ok(self.sim_cache.get(&digest).copied())
     }
 
     /// Scores beams as one batch and retains fully evaluated branches in each

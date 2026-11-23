@@ -116,9 +116,7 @@ fn opening_decision(view: &Value, side: &str) -> String {
     )
 }
 
-/// Plays through round 0 (openings) and commits round 1 so the match holds one
-/// completed deployment round (round 1) plus round 2's opening state.
-fn played_round_one(directory: &Path) -> String {
+fn open_round_one(directory: &Path) -> String {
     let path = directory.join("match.yaml").display().to_string();
     let blue = run(&["match", "new", &path, "--seed", "12345", "--map", "1011"]).ok();
     let red = run(&["match", "new", &path]).ok();
@@ -130,6 +128,12 @@ fn played_round_one(directory: &Path) -> String {
     run(&["match", "commit", &path, "--side", "blue"]).ok();
     run(&["match", "commit", &path, "--side", "red"]).ok();
 
+    path
+}
+
+/// Adds one recorded purchase per side and commits the round.
+fn played_round_one(directory: &Path) -> String {
+    let path = open_round_one(directory);
     for side in ["blue", "red"] {
         let view = run(&["match", "show", &path, "--side", side]).ok();
         let unit = view["state"][side]["unlocked_units"][0].as_str().unwrap();
@@ -153,7 +157,7 @@ fn solve_default_profile_runs_coordinate_sweep_loop_and_verifies_actions() {
     assert_eq!(result["side"], "blue");
     assert_eq!(result["profile"], "default");
 
-    let baseline_score = result["baseline"]["score"].as_f64().unwrap();
+    assert!(result.get("baseline").is_none(), "{result}");
     let solutions = result["solutions"].as_array().unwrap();
     assert_eq!(solutions.len(), 3, "default.yaml asks for top_k=3");
 
@@ -165,11 +169,9 @@ fn solve_default_profile_runs_coordinate_sweep_loop_and_verifies_actions() {
         scores.windows(2).all(|pair| pair[0] >= pair[1]),
         "{scores:?}"
     );
-    assert!(
-        scores[0] >= baseline_score,
-        "best score {} must be >= baseline {baseline_score}",
-        scores[0]
-    );
+    for sol in solutions {
+        assert!(sol.get("delta_vs_baseline").is_none(), "{sol}");
+    }
 
     // Verify repeat loop, named operator calls, and trace emission.
     assert!(result["trace"]["sweeps"].as_u64().unwrap() >= 1);
@@ -274,28 +276,30 @@ pipeline:
 }
 
 #[test]
-fn solve_returns_cached_candidates_after_baseline_spends_budget() {
+fn solve_returns_cached_candidates_after_budget_runs_out() {
     let dir = tempfile::tempdir().unwrap();
     let match_path = played_round_one(dir.path());
-    let profile = dir.path().join("baseline-budget.yaml");
+    let profile = dir.path().join("budget-cache.yaml");
     fs::write(
         &profile,
         "\
 schema: mechcore.profile/v1
-name: baseline-budget
+name: budget-cache
 services:
   opponent: { use: opponent.replay_truth }
 guards:
   - { use: guard.max_simulations, with: { limit: 1 } }
 pipeline:
+  - { use: eval.score }
   - branch:
-      - { use: eval.score }
       - { use: warm_start.own_actions }
+      - { use: flow.dedup }
 ",
     )
     .unwrap();
-    // The first arm tries to score the opening without its recorded purchase.
-    // The second arm reaches final output with the baseline's cached state.
+    // `eval.score` spends the entire 1-fight budget on the opening state.
+    // The first arm's deployed state is an uncached miss and is dropped, while
+    // the second arm (`flow.dedup`) retains the cached opening state.
     let result = run(&["solve", &match_path, "--profile", profile.to_str().unwrap()]).ok();
     assert_eq!(result["trace"]["simulations"], 1);
     assert_eq!(
@@ -304,11 +308,12 @@ pipeline:
     );
     let solutions = result["solutions"].as_array().unwrap();
     assert_eq!(solutions.len(), 1);
-    assert_eq!(solutions[0]["score"], result["baseline"]["score"]);
-    assert_eq!(
-        solutions[0]["lineage"][1]["operator"],
-        "warm_start.own_actions"
-    );
+    assert!(solutions[0]["score"].is_number());
+    assert_eq!(solutions[0]["lineage"].as_array().unwrap().len(), 1);
+    assert_eq!(solutions[0]["lineage"][0]["operator"], "init");
+    let stages = result["trace"]["stages"].as_array().unwrap();
+    assert_eq!(stages[0]["operator"], "eval.score");
+    assert_eq!(stages[0]["simulations"], 1);
 }
 
 #[test]
@@ -442,6 +447,10 @@ fn solve_r1_blind_profile_generates_legal_macro_solutions_against_six_beliefs() 
 
     let sims = result["trace"]["simulations"].as_u64().unwrap();
     assert!(sims >= 6 && sims.is_multiple_of(6), "sims={sims}");
+    assert!(result.get("baseline").is_none(), "{result}");
+    for sol in solutions {
+        assert!(sol.get("delta_vs_baseline").is_none(), "{sol}");
+    }
 
     verify_legal_blue_solutions(&match_path, solutions);
 }
@@ -497,4 +506,28 @@ pipeline:
     ])
     .refused();
     assert!(reason.contains("services.templates"), "{reason}");
+}
+
+#[test]
+fn solve_r1_blind_succeeds_when_opponent_actions_are_absent() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = open_round_one(dir.path());
+    let profile = r1_blind_profile();
+    let result = run(&[
+        "solve",
+        &path,
+        "--round",
+        "1",
+        "--side",
+        "blue",
+        "--profile",
+        &profile,
+    ])
+    .ok();
+    assert!(result.get("baseline").is_none(), "{result}");
+    let solutions = result["solutions"].as_array().unwrap();
+    assert_eq!(solutions.len(), 3);
+    for sol in solutions {
+        assert!(sol.get("delta_vs_baseline").is_none(), "{sol}");
+    }
 }
