@@ -1,13 +1,18 @@
 //! Built-in capability services (`opponent`, `space`, `evaluator`).
 
+use std::collections::BTreeSet;
+
 use mechcore_document::{Position, mask::Mask, r#match::SideState, project, transition};
 use serde::Deserialize;
 
 use crate::{cli::Failure, turn::Side};
 
-use super::model::{
-    Constraints, EvaluatorService, OpponentContext, OpponentHypothesis, OpponentService, Problem,
-    SpaceService, Valuation,
+use super::{
+    model::{
+        Constraints, EvaluatorService, OpponentContext, OpponentHypothesis, OpponentService,
+        Problem, SpaceService, TemplateService, Valuation,
+    },
+    templates::{JitterOverride, TemplateRequest},
 };
 
 /// Opponent belief service that replays the opponent's recorded match actions
@@ -37,6 +42,127 @@ impl OpponentService for ReplayTruthOpponent {
     }
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ReplayUnpinnedTemplatesConfig {
+    #[serde(default)]
+    templates: Vec<String>,
+    #[serde(default = "default_samples_per_template")]
+    samples_per_template: usize,
+    #[serde(default)]
+    include_clean_base: bool,
+    #[serde(default)]
+    jitter: JitterOverride,
+    #[serde(default = "default_opponent_seed")]
+    seed: u64,
+}
+
+const fn default_samples_per_template() -> usize {
+    1
+}
+
+const fn default_opponent_seed() -> u64 {
+    42
+}
+
+/// Opponent belief service that replays the opponent's recorded economy/buys,
+/// unpins all movable formations, and expands them through `services.templates`.
+pub(crate) struct ReplayUnpinnedTemplatesOpponent {
+    templates: Vec<String>,
+    samples_per_template: usize,
+    include_clean_base: bool,
+    jitter: JitterOverride,
+    seed: u64,
+}
+
+impl ReplayUnpinnedTemplatesOpponent {
+    pub(crate) fn from_value(
+        value: &serde_json::Value,
+        mounted_templates: Option<&dyn TemplateService>,
+    ) -> Result<Self, Failure> {
+        let templates_service = mounted_templates.ok_or_else(|| {
+            Failure::refused(
+                "opponent.replay_unpinned_templates requires services.templates to be configured",
+            )
+        })?;
+        let normalized = if value.is_null() {
+            serde_json::json!({})
+        } else {
+            value.clone()
+        };
+        let config: ReplayUnpinnedTemplatesConfig =
+            serde_json::from_value(normalized).map_err(|error| {
+                Failure::refused(format!(
+                    "invalid parameters for opponent.replay_unpinned_templates: {error}"
+                ))
+            })?;
+        templates_service.validate_request(
+            &config.templates,
+            config.samples_per_template,
+            &config.jitter,
+        )?;
+        Ok(Self {
+            templates: config.templates,
+            samples_per_template: config.samples_per_template,
+            include_clean_base: config.include_clean_base,
+            jitter: config.jitter,
+            seed: config.seed,
+        })
+    }
+}
+
+impl OpponentService for ReplayUnpinnedTemplatesOpponent {
+    fn resolve(&self, context: &OpponentContext<'_>) -> Result<Vec<OpponentHypothesis>, Failure> {
+        let templates_service = context.templates.ok_or_else(|| {
+            Failure::refused(
+                "opponent.replay_unpinned_templates requires services.templates to be configured",
+            )
+        })?;
+        let (deployed, _) = super::deploy_non_concede(
+            context.economy,
+            context.opponent_opening,
+            context.opponent_actions,
+            context.opponent_side.red(),
+            context.offers,
+            &format!(
+                "opponent.replay_unpinned_templates cannot replay {} actions",
+                context.opponent_side.name()
+            ),
+        )?;
+        let unpinned = super::movable_unit_indices(&deployed);
+        if unpinned.is_empty() {
+            return Ok(vec![OpponentHypothesis {
+                label: "replay_fixed".to_owned(),
+                weight: 1.0,
+                state: deployed,
+            }]);
+        }
+        let layouts = templates_service.generate(
+            context.space,
+            &TemplateRequest {
+                round: context.round,
+                red: context.opponent_side.red(),
+                state: &deployed,
+                unpinned: &unpinned,
+                constraints: &Constraints::default(),
+                templates: &self.templates,
+                variants_per_template: self.samples_per_template,
+                include_clean_base: self.include_clean_base,
+                jitter: &self.jitter,
+                seed: self.seed ^ u64::from(context.seed.cast_unsigned()),
+            },
+        )?;
+        Ok(layouts
+            .into_iter()
+            .map(|layout| OpponentHypothesis {
+                label: layout.label,
+                weight: layout.weight,
+                state: layout.state,
+            })
+            .collect())
+    }
+}
+
 /// Strict-collision spatial service backed by `mechcore_document::mask::move_unit`.
 pub(crate) struct StrictGridSpace;
 
@@ -49,6 +175,18 @@ impl SpaceService for StrictGridSpace {
         unit_index: i32,
     ) -> Result<Mask, Failure> {
         mechcore_document::mask::move_unit(state, round, red, unit_index).map_err(Failure::refused)
+    }
+
+    fn move_mask_excluding(
+        &self,
+        round: i32,
+        red: bool,
+        state: &SideState,
+        unit_index: i32,
+        ignored_units: &BTreeSet<i32>,
+    ) -> Result<Mask, Failure> {
+        mechcore_document::mask::move_unit_excluding(state, round, red, unit_index, ignored_units)
+            .map_err(Failure::refused)
     }
 
     fn can_place_move(

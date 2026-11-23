@@ -22,6 +22,7 @@ rustPlatform.buildRustPackage {
       ./crates
       ./config
       ./docs
+      ./profiles
     ];
   };
 

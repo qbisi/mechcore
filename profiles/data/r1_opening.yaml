@@ -1,0 +1,102 @@
+schema: mechcore.r1_opening/v1
+version: v0-high-elo
+
+# Default spatial perturbation applied when generating template variants.
+default_jitter:
+  shift_x: [-30, 30]
+  shift_y: [-20, 20]
+  layer_scale: [1.0, 1.0]
+  unit_jitter_x: 0
+  unit_jitter_y: 0
+  flip_rotate: false
+
+# Biases asymmetric templates toward static constructions on the board.
+construction_bias:
+  enabled: true
+  weight_boost: 1.35
+  anchor_pull: 0.35
+
+# Macro skeletons in own-side Main coordinates: x in [-300, 300], y in [-310, -10].
+templates:
+  - id: asym_front
+    prior: 0.39
+    mirror: true
+    base_y: -85
+    chaff_mode: delayed
+    zones:
+      - name: main_push
+        x_center: -150
+        x_span: 150
+        y_bias: 0
+        quota_ratio: 1.0
+        role_affinity: { chaff: 1.0, tank: 1.0, clear: 1.0, carry: 1.0 }
+
+  - id: asym_mid
+    prior: 0.15
+    mirror: true
+    base_y: -145
+    chaff_mode: delayed
+    zones:
+      - name: main_hold
+        x_center: -140
+        x_span: 150
+        y_bias: 0
+        quota_ratio: 1.0
+        role_affinity: { chaff: 1.0, tank: 1.0, clear: 1.0, carry: 1.0 }
+
+  - id: sym_mid
+    prior: 0.20
+    mirror: false
+    base_y: -145
+    chaff_mode: delayed
+    zones:
+      - name: left_wing
+        x_center: -130
+        x_span: 110
+        y_bias: 0
+        quota_ratio: 0.5
+        role_affinity: { chaff: 1.0, tank: 1.0, clear: 1.0, carry: 1.0 }
+      - name: right_wing
+        x_center: 130
+        x_span: 110
+        y_bias: 0
+        quota_ratio: 0.5
+        role_affinity: { chaff: 1.0, tank: 1.0, clear: 1.0, carry: 1.0 }
+
+  - id: sym_deep
+    prior: 0.19
+    mirror: false
+    base_y: -215
+    chaff_mode: delayed
+    zones:
+      - name: left_defense
+        x_center: -130
+        x_span: 120
+        y_bias: 0
+        quota_ratio: 0.5
+        role_affinity: { chaff: 1.0, tank: 1.0, clear: 1.0, carry: 1.0 }
+      - name: right_defense
+        x_center: 130
+        x_span: 120
+        y_bias: 0
+        quota_ratio: 0.5
+        role_affinity: { chaff: 1.0, tank: 1.0, clear: 1.0, carry: 1.0 }
+
+  - id: asym_split_chaff
+    prior: 0.07
+    mirror: true
+    base_y: -95
+    chaff_mode: delayed
+    zones:
+      - name: main_push
+        x_center: -155
+        x_span: 140
+        y_bias: 0
+        quota_ratio: 0.85
+        role_affinity: { chaff: 0.5, tank: 1.2, clear: 1.2, carry: 1.2 }
+      - name: decoy_flank
+        x_center: 150
+        x_span: 60
+        y_bias: -40
+        max_units: 1
+        role_affinity: { chaff: 2.0, tank: 0.1, clear: 0.1, carry: 0.0 }

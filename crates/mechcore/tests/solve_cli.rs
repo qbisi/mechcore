@@ -59,6 +59,54 @@ fn default_profile() -> String {
         .to_string()
 }
 
+fn r1_blind_profile() -> String {
+    repo_root()
+        .join("profiles/r1_blind.yaml")
+        .display()
+        .to_string()
+}
+
+fn verify_legal_blue_solutions(match_path: &str, solutions: &[Value]) {
+    let bytes = fs::read(match_path).unwrap();
+    let stated = opening::stated(&bytes).unwrap().unwrap();
+    let turn = stated.turns.iter().find(|t| t.round == 1).unwrap();
+    let economy = Economy::embedded().unwrap();
+    let red_deployed = transition::deployed(
+        economy,
+        &turn.state.red,
+        &turn.actions.red,
+        true,
+        turn.state.reinforce_offers.as_ref(),
+    )
+    .unwrap();
+
+    for solution in solutions {
+        assert_eq!(solution["normalized"], true);
+        let actions: Vec<Action> = serde_json::from_value(solution["actions"].clone()).unwrap();
+        let blue_deployed = transition::deployed(
+            economy,
+            &turn.state.blue,
+            &actions,
+            false,
+            turn.state.reinforce_offers.as_ref(),
+        )
+        .unwrap();
+        let mut combined = turn.state.clone();
+        combined.blue = blue_deployed;
+        combined.red = red_deployed.clone();
+        let layout =
+            project::project(&turn.state, &combined, 1, stated.map_id, stated.seed).unwrap();
+        let yaml = mechcore_document::canonical_yaml(layout).unwrap();
+        let sim = mechcore_simulation::simulate_document(
+            yaml.as_bytes(),
+            mechcore_simulation::Record::Memory,
+            None,
+        )
+        .unwrap();
+        assert!(sim.recording.is_some());
+    }
+}
+
 fn opening_decision(view: &Value, side: &str) -> String {
     let offer = &view["header"][side]["offers"][0];
     format!(
@@ -135,49 +183,13 @@ fn solve_default_profile_runs_coordinate_sweep_loop_and_verifies_actions() {
     assert!(stages.iter().any(|s| s["operator"] == "call:keep_top_3"));
 
     // Independently replay every returned solution's actions and verify legality.
-    let bytes = fs::read(&match_path).unwrap();
-    let stated = opening::stated(&bytes).unwrap().unwrap();
-    let turn = stated.turns.iter().find(|t| t.round == 1).unwrap();
-    let economy = Economy::embedded().unwrap();
-    let red_deployed = transition::deployed(
-        economy,
-        &turn.state.red,
-        &turn.actions.red,
-        true,
-        turn.state.reinforce_offers.as_ref(),
-    )
-    .unwrap();
-
     for (idx, solution) in solutions.iter().enumerate() {
         assert_eq!(solution["rank"], idx + 1);
-        assert_eq!(solution["normalized"], true);
         let lineage = solution["lineage"].as_array().unwrap();
         assert_eq!(lineage[0]["operator"], "init");
         assert!(lineage.len() >= 3);
-
-        let actions: Vec<Action> = serde_json::from_value(solution["actions"].clone()).unwrap();
-        let blue_deployed = transition::deployed(
-            economy,
-            &turn.state.blue,
-            &actions,
-            false,
-            turn.state.reinforce_offers.as_ref(),
-        )
-        .unwrap();
-        let mut combined = turn.state.clone();
-        combined.blue = blue_deployed;
-        combined.red = red_deployed.clone();
-        let layout =
-            project::project(&turn.state, &combined, 1, stated.map_id, stated.seed).unwrap();
-        let yaml = mechcore_document::canonical_yaml(layout).unwrap();
-        let sim = mechcore_simulation::simulate_document(
-            yaml.as_bytes(),
-            mechcore_simulation::Record::Memory,
-            None,
-        )
-        .unwrap();
-        assert!(sim.recording.is_some());
     }
+    verify_legal_blue_solutions(&match_path, solutions);
 }
 
 #[test]
@@ -395,4 +407,94 @@ pipeline:
     ])
     .refused();
     assert!(reason.contains("10m"), "{reason}");
+}
+
+#[test]
+fn solve_r1_blind_profile_generates_legal_macro_solutions_against_six_beliefs() {
+    let dir = tempfile::tempdir().unwrap();
+    let match_path = played_round_one(dir.path());
+    let profile = r1_blind_profile();
+
+    let result = run(&["solve", &match_path, "--profile", &profile]).ok();
+    assert_eq!(result["schema"], "mechcore.solve");
+    assert_eq!(result["round"], 1);
+    assert_eq!(result["side"], "blue");
+    assert_eq!(result["profile"], "r1-blind");
+
+    let solutions = result["solutions"].as_array().unwrap();
+    assert_eq!(solutions.len(), 3);
+
+    let scores: Vec<f64> = solutions
+        .iter()
+        .map(|sol| sol["score"].as_f64().unwrap())
+        .collect();
+    assert!(
+        scores.windows(2).all(|pair| pair[0] >= pair[1]),
+        "{scores:?}"
+    );
+
+    let stages = result["trace"]["stages"].as_array().unwrap();
+    assert!(
+        stages
+            .iter()
+            .any(|s| s["operator"] == "seed.macro_templates")
+    );
+
+    let sims = result["trace"]["simulations"].as_u64().unwrap();
+    assert!(sims >= 6 && sims.is_multiple_of(6), "sims={sims}");
+
+    verify_legal_blue_solutions(&match_path, solutions);
+}
+
+#[test]
+fn solve_refuses_template_plugins_without_templates_service() {
+    let dir = tempfile::tempdir().unwrap();
+    let match_path = played_round_one(dir.path());
+
+    let missing_for_opponent = dir.path().join("missing-templates-opp.yaml");
+    fs::write(
+        &missing_for_opponent,
+        "\
+schema: mechcore.profile/v1
+name: missing-templates-opp
+services:
+  opponent:
+    use: opponent.replay_unpinned_templates
+pipeline:
+  - use: warm_start.own_actions
+",
+    )
+    .unwrap();
+    let reason = run(&[
+        "solve",
+        &match_path,
+        "--profile",
+        missing_for_opponent.to_str().unwrap(),
+    ])
+    .refused();
+    assert!(reason.contains("services.templates"), "{reason}");
+
+    let missing_for_seed = dir.path().join("missing-templates-seed.yaml");
+    fs::write(
+        &missing_for_seed,
+        "\
+schema: mechcore.profile/v1
+name: missing-templates-seed
+services:
+  opponent:
+    use: opponent.replay_truth
+pipeline:
+  - use: warm_start.own_actions
+  - use: seed.macro_templates
+",
+    )
+    .unwrap();
+    let reason = run(&[
+        "solve",
+        &match_path,
+        "--profile",
+        missing_for_seed.to_str().unwrap(),
+    ])
+    .refused();
+    assert!(reason.contains("services.templates"), "{reason}");
 }

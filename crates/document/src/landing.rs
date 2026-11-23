@@ -17,6 +17,8 @@
 //! and `y`. Red's frame is the world turned half a turn, so red's landings are
 //! not blue's mirrored and the side has to be named.
 
+use std::collections::BTreeSet;
+
 use crate::catalog::{resolve_construction_type, resolve_contraption_type, resolve_unit_type};
 use crate::layout::{Position, Region};
 use crate::r#match::SideState;
@@ -184,16 +186,22 @@ fn occupants(state: &SideState) -> Vec<Occupant> {
     placed
 }
 
-/// Rectangles standing in `region` on `state`, excluding formation `ignore_unit`.
+/// Rectangles standing in `region` on `state`, excluding every formation in
+/// `ignored_units`.
 #[must_use]
-pub(crate) fn region_obstacles(
+pub(crate) fn region_obstacles_excluding(
     state: &SideState,
-    ignore_unit: Option<i32>,
+    ignored_units: &BTreeSet<i32>,
     region: Region,
 ) -> Vec<Rect> {
     occupants(state)
         .into_iter()
-        .filter(|other| other.region == region && other.unit != ignore_unit)
+        .filter(|other| {
+            other.region == region
+                && !other
+                    .unit
+                    .is_some_and(|index| ignored_units.contains(&index))
+        })
         .map(|other| other.rect)
         .collect()
 }

@@ -2,7 +2,7 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet},
-    path::Path,
+    path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
 
@@ -17,15 +17,18 @@ use super::{
     },
     model::{
         Constraints, EvaluatorService, Hooks, Operator, OpponentService, PlacementProposer,
-        ProposalFilter, SearchObserver, Services, SpaceService, StopGuard,
+        ProposalFilter, SearchObserver, Services, SpaceService, StopGuard, TemplateService,
     },
     operators::{
         BranchOperator, CallOperator, CoordinateSweepOperator, DedupOperator, EvalScoreOperator,
-        EvalTopKOperator, PredictUnpinnedPlacement, RepeatOperator, ScopeOperator, SeqOperator,
-        WarmStartOwnActions,
+        EvalTopKOperator, PredictUnpinnedPlacement, RepeatOperator, ScopeOperator,
+        SeedMacroTemplatesOperator, SeqOperator, WarmStartOwnActions,
     },
     predictor::{ShiftStubProposer, StayProposer},
-    services::{ExactSimEvaluator, ReplayTruthOpponent, StrictGridSpace},
+    services::{
+        ExactSimEvaluator, ReplayTruthOpponent, ReplayUnpinnedTemplatesOpponent, StrictGridSpace,
+    },
+    templates::R1MacroTemplateService,
 };
 
 pub(crate) const SCHEMA: &str = "mechcore.profile/v1";
@@ -54,6 +57,8 @@ pub(crate) struct Profile {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct ServicesSpec {
+    #[serde(default)]
+    pub(crate) templates: Option<PluginSpec>,
     pub(crate) opponent: PluginSpec,
     #[serde(default)]
     pub(crate) space: Option<PluginSpec>,
@@ -160,11 +165,15 @@ impl Profile {
     /// # Errors
     /// Returns a refusal for unknown plugins, invalid parameters, dangling
     /// operator calls, or cyclic `call` definitions.
-    pub(crate) fn build(&self) -> Result<BuiltProfile, Failure> {
-        let opponent = build_opponent(&self.services.opponent)?;
-        let space = match &self.services.space {
+    pub(crate) fn build(&self, base_dir: &Path) -> Result<BuiltProfile, Failure> {
+        let templates = match &self.services.templates {
+            Some(spec) => Some(build_templates(spec, base_dir)?),
+            None => None,
+        };
+        let opponent = build_opponent(&self.services.opponent, templates.as_deref())?;
+        let space: Arc<dyn SpaceService> = match &self.services.space {
             Some(spec) => build_space(spec)?,
-            None => Box::new(StrictGridSpace),
+            None => Arc::new(StrictGridSpace),
         };
         let evaluator = match &self.services.evaluator {
             Some(spec) => build_evaluator(spec)?,
@@ -194,12 +203,12 @@ impl Profile {
 
         let mut operators = BTreeMap::new();
         for (name, spec) in &self.operators {
-            operators.insert(name.clone(), build_stage(spec)?);
+            operators.insert(name.clone(), build_stage(spec, templates.as_deref())?);
         }
         let pipeline = self
             .pipeline
             .iter()
-            .map(build_stage)
+            .map(|spec| build_stage(spec, templates.as_deref()))
             .collect::<Result<Vec<_>, _>>()?;
 
         Ok(BuiltProfile {
@@ -207,6 +216,7 @@ impl Profile {
                 opponent,
                 space,
                 evaluator,
+                templates,
                 proposers,
                 operators,
             },
@@ -221,6 +231,46 @@ impl Profile {
     }
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct R1MacroTemplatesConfig {
+    unit_profiles: PathBuf,
+    opening_templates: PathBuf,
+}
+
+fn resolve_profile_path(base_dir: &Path, path: &Path) -> PathBuf {
+    if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        base_dir.join(path)
+    }
+}
+
+fn build_templates(
+    spec: &PluginSpec,
+    base_dir: &Path,
+) -> Result<Arc<dyn TemplateService>, Failure> {
+    match spec.plugin.as_str() {
+        "templates.r1_macro" => {
+            let config: R1MacroTemplatesConfig = serde_json::from_value(spec.with.clone())
+                .map_err(|error| {
+                    Failure::refused(format!(
+                        "invalid parameters for templates.r1_macro: {error}"
+                    ))
+                })?;
+            let profiles_path = resolve_profile_path(base_dir, &config.unit_profiles);
+            let opening_path = resolve_profile_path(base_dir, &config.opening_templates);
+            Ok(Arc::new(R1MacroTemplateService::from_files(
+                &profiles_path,
+                &opening_path,
+            )?))
+        }
+        other => Err(Failure::refused(format!(
+            "unknown templates service {other:?}; expected templates.r1_macro"
+        ))),
+    }
+}
+
 fn ensure_no_params(plugin: &str, with: &serde_json::Value) -> Result<(), Failure> {
     if with.is_null() || with.as_object().is_some_and(serde_json::Map::is_empty) {
         return Ok(());
@@ -228,23 +278,29 @@ fn ensure_no_params(plugin: &str, with: &serde_json::Value) -> Result<(), Failur
     Err(Failure::refused(format!("{plugin} takes no parameters")))
 }
 
-fn build_opponent(spec: &PluginSpec) -> Result<Box<dyn OpponentService>, Failure> {
+fn build_opponent(
+    spec: &PluginSpec,
+    templates: Option<&dyn TemplateService>,
+) -> Result<Box<dyn OpponentService>, Failure> {
     match spec.plugin.as_str() {
         "opponent.replay_truth" => {
             ensure_no_params("opponent.replay_truth", &spec.with)?;
             Ok(Box::new(ReplayTruthOpponent))
         }
+        "opponent.replay_unpinned_templates" => Ok(Box::new(
+            ReplayUnpinnedTemplatesOpponent::from_value(&spec.with, templates)?,
+        )),
         other => Err(Failure::refused(format!(
-            "unknown opponent service {other:?}; expected opponent.replay_truth"
+            "unknown opponent service {other:?}; expected opponent.replay_truth or opponent.replay_unpinned_templates"
         ))),
     }
 }
 
-fn build_space(spec: &PluginSpec) -> Result<Box<dyn SpaceService>, Failure> {
+fn build_space(spec: &PluginSpec) -> Result<Arc<dyn SpaceService>, Failure> {
     match spec.plugin.as_str() {
         "space.strict_grid" => {
             ensure_no_params("space.strict_grid", &spec.with)?;
-            Ok(Box::new(StrictGridSpace))
+            Ok(Arc::new(StrictGridSpace))
         }
         other => Err(Failure::refused(format!(
             "unknown space service {other:?}; expected space.strict_grid"
@@ -325,9 +381,12 @@ fn build_observers(
     Ok(out)
 }
 
-fn build_stage(spec: &StageSpec) -> Result<Arc<dyn Operator>, Failure> {
+fn build_stage(
+    spec: &StageSpec,
+    templates: Option<&dyn TemplateService>,
+) -> Result<Arc<dyn Operator>, Failure> {
     match spec {
-        StageSpec::Use { plugin, with } => build_leaf_operator(plugin, with),
+        StageSpec::Use { plugin, with } => build_leaf_operator(plugin, with, templates),
         StageSpec::Call { call } => Ok(Arc::new(CallOperator::new(call.clone()))),
         StageSpec::Seq { seq } => {
             if seq.is_empty() {
@@ -335,7 +394,10 @@ fn build_stage(spec: &StageSpec) -> Result<Arc<dyn Operator>, Failure> {
                     "seq combinator requires at least one step",
                 ));
             }
-            let steps = seq.iter().map(build_stage).collect::<Result<Vec<_>, _>>()?;
+            let steps = seq
+                .iter()
+                .map(|step| build_stage(step, templates))
+                .collect::<Result<Vec<_>, _>>()?;
             Ok(Arc::new(SeqOperator::new(steps)))
         }
         StageSpec::Branch { branch } => {
@@ -346,7 +408,7 @@ fn build_stage(spec: &StageSpec) -> Result<Arc<dyn Operator>, Failure> {
             }
             let arms = branch
                 .iter()
-                .map(build_stage)
+                .map(|arm| build_stage(arm, templates))
                 .collect::<Result<Vec<_>, _>>()?;
             Ok(Arc::new(BranchOperator::new(arms)))
         }
@@ -364,7 +426,7 @@ fn build_stage(spec: &StageSpec) -> Result<Arc<dyn Operator>, Failure> {
             let steps = repeat
                 .body
                 .iter()
-                .map(build_stage)
+                .map(|step| build_stage(step, templates))
                 .collect::<Result<Vec<_>, _>>()?;
             Ok(Arc::new(RepeatOperator::new(
                 repeat.max_iters,
@@ -381,7 +443,7 @@ fn build_stage(spec: &StageSpec) -> Result<Arc<dyn Operator>, Failure> {
             let steps = scope
                 .body
                 .iter()
-                .map(build_stage)
+                .map(|step| build_stage(step, templates))
                 .collect::<Result<Vec<_>, _>>()?;
             Ok(Arc::new(ScopeOperator::new(
                 scope.constraints.clone(),
@@ -394,9 +456,13 @@ fn build_stage(spec: &StageSpec) -> Result<Arc<dyn Operator>, Failure> {
 fn build_leaf_operator(
     plugin: &str,
     with: &serde_json::Value,
+    templates: Option<&dyn TemplateService>,
 ) -> Result<Arc<dyn Operator>, Failure> {
     match plugin {
         "warm_start.own_actions" => Ok(Arc::new(WarmStartOwnActions::from_value(with)?)),
+        "seed.macro_templates" => Ok(Arc::new(SeedMacroTemplatesOperator::from_value(
+            with, templates,
+        )?)),
         "placement.coordinate_sweep" => Ok(Arc::new(CoordinateSweepOperator::from_value(with)?)),
         "placement.predict_unpinned" => Ok(Arc::new(PredictUnpinnedPlacement::from_value(with)?)),
         "flow.dedup" => {
