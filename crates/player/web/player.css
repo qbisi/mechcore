@@ -184,6 +184,7 @@ html, body {
 #controls button[hidden], #controls select[hidden] { display: none; }
 #controls :focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
 #controls select { cursor: pointer; max-width: 110px; }
+#controls select.labeled { max-width: 180px; }
 #controls select option { background: #171b22; color: #eee; }
 .control-spacer { flex: 1; }
 #clock { font-variant-numeric: tabular-nums; white-space: nowrap; color: #ddd; font-size: 13px; }
@@ -397,5 +398,6 @@ html, body {
   #control-row { gap: 5px; flex-wrap: wrap; }
   #clock { font-size: 11px; }
   #controls select { max-width: 85px; }
+  #controls select.labeled { max-width: 140px; }
   #controls button { width: 26px; }
 }

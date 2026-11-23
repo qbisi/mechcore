@@ -236,6 +236,155 @@ pub(crate) fn convert_html(request: &Request, from: Kind, bytes: &[u8]) -> Resul
     })
 }
 
+/// Variant kind rendered into a multi-deployment `mechcore solve --html` comparison page.
+pub(crate) enum SolveHtmlVariantKind {
+    Baseline,
+    Candidate { rank: usize },
+}
+
+/// One deployment variant to simulate and embed into a `solve --html` page.
+pub(crate) struct SolveHtmlVariant {
+    pub(crate) kind: SolveHtmlVariantKind,
+    pub(crate) own_actions: Vec<mechcore_document::r#match::Action>,
+}
+
+/// Inputs for rendering a round's baseline and solver candidates into one HTML page.
+pub(crate) struct SolveHtmlRequest<'a> {
+    pub(crate) title: &'a str,
+    pub(crate) economy: &'a mechcore_document::economy::Economy,
+    pub(crate) stated: &'a mechcore_document::opening::Stated,
+    pub(crate) turn_index: usize,
+    pub(crate) side: crate::turn::Side,
+    pub(crate) opponent_actions: &'a [mechcore_document::r#match::Action],
+    pub(crate) variants: &'a [SolveHtmlVariant],
+}
+
+/// Simulates every variant in `req` against `req.opponent_actions` for `req.turn_index`
+/// and renders a standalone offline comparison page.
+pub(crate) fn solve_html(req: &SolveHtmlRequest<'_>) -> Result<String, Failure> {
+    use mechcore_document::r#match::Action;
+
+    if req.variants.is_empty() {
+        return Err(Failure::refused(
+            "cannot render solve HTML comparison with no variants",
+        ));
+    }
+    let base_turn = req
+        .stated
+        .turns
+        .get(req.turn_index)
+        .ok_or_else(|| Failure::failed("solve html turn index out of bounds"))?;
+
+    let mut prior_research_history = [BTreeMap::new(), BTreeMap::new()];
+    for prior_turn in &req.stated.turns[..req.turn_index] {
+        for (seat, actions) in [
+            (0_usize, &prior_turn.actions.blue),
+            (1_usize, &prior_turn.actions.red),
+        ] {
+            let filtered: Vec<Action> = actions
+                .iter()
+                .filter(|action| !matches!(action, Action::Concede))
+                .cloned()
+                .collect();
+            let opening = if seat == 0 {
+                &prior_turn.state.blue
+            } else {
+                &prior_turn.state.red
+            };
+            remember_research_prices(
+                req.economy,
+                opening,
+                &filtered,
+                seat == 1,
+                prior_turn.state.reinforce_offers.as_ref(),
+                &mut prior_research_history[seat],
+            )
+            .map_err(Failure::refused)?;
+        }
+    }
+
+    let workers = std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
+    let chunk_size = req.variants.len().div_ceil(workers);
+    let mut timelines = std::thread::scope(|scope| {
+        let history = &prior_research_history;
+        let handles: Vec<_> = req
+            .variants
+            .chunks(chunk_size)
+            .map(|chunk| {
+                scope.spawn(move || {
+                    chunk
+                        .iter()
+                        .map(|variant| simulate_solve_variant(req, base_turn, history, variant))
+                        .collect::<Result<Vec<_>, Failure>>()
+                })
+            })
+            .collect();
+        let mut timelines = Vec::with_capacity(req.variants.len());
+        for handle in handles {
+            timelines.extend(
+                handle
+                    .join()
+                    .map_err(|_| Failure::failed("solve HTML simulation worker panicked"))??,
+            );
+        }
+        Ok::<_, Failure>(timelines)
+    })?;
+    stamp_solve_labels(req.side, req.variants, &mut timelines);
+
+    if timelines.len() == 1 {
+        mechcore_player::page(&timelines[0], req.title)
+    } else {
+        mechcore_player::match_page(&timelines, req.title)
+    }
+    .map_err(|error| Failure::failed(format!("cannot render the page: {error}")))
+}
+
+fn simulate_solve_variant(
+    req: &SolveHtmlRequest<'_>,
+    base_turn: &mechcore_document::r#match::Turn,
+    prior_research_history: &[BTreeMap<i32, i32>; 2],
+    variant: &SolveHtmlVariant,
+) -> Result<mechcore_player::Timeline, Failure> {
+    use mechcore_document::r#match::{Turn, TurnActions};
+
+    let mut actions = TurnActions {
+        blue: variant.own_actions.clone(),
+        red: req.opponent_actions.to_vec(),
+    };
+    if req.side.red() {
+        std::mem::swap(&mut actions.blue, &mut actions.red);
+    }
+    let synthetic_turn = Turn {
+        round: base_turn.round,
+        state: base_turn.state.clone(),
+        actions,
+    };
+    let deployment = prepare_match_deployment(
+        req.economy,
+        req.stated,
+        &synthetic_turn,
+        &mut prior_research_history.clone(),
+    )?;
+    compute_match_round(req.economy, &synthetic_turn, req.stated, &deployment)
+}
+
+fn stamp_solve_labels(
+    side: crate::turn::Side,
+    variants: &[SolveHtmlVariant],
+    timelines: &mut [mechcore_player::Timeline],
+) {
+    for (timeline, variant) in timelines.iter_mut().zip(variants) {
+        let delta = match side {
+            crate::turn::Side::Blue => timeline.cores[1].damage - timeline.cores[0].damage,
+            crate::turn::Side::Red => timeline.cores[0].damage - timeline.cores[1].damage,
+        };
+        timeline.label = Some(match variant.kind {
+            SolveHtmlVariantKind::Baseline => format!("Baseline ({delta:+})"),
+            SolveHtmlVariantKind::Candidate { rank } => format!("Solve #{rank} ({delta:+})"),
+        });
+    }
+}
+
 fn check_trailing_args(arguments: Args, input: &Path) -> Result<(), Failure> {
     if arguments.is_empty() {
         return Ok(());
@@ -292,6 +441,10 @@ struct MatchRoundData {
     economy: &'static mechcore_document::economy::Economy,
     stated: Arc<mechcore_document::opening::Stated>,
     turn_index: usize,
+    deployment: MatchDeployment,
+}
+
+struct MatchDeployment {
     deployment_layout_yaml: Vec<u8>,
     sides: [mechcore_document::r#match::SideState; 2],
     rosters: [Vec<mechcore_player::RosterEntry>; 2],
@@ -500,23 +653,7 @@ fn prepare_match_session(
             continue;
         }
 
-        let deployment = crate::convert::project_match(
-            economy,
-            &turn.state,
-            &turn.actions,
-            turn.round,
-            stated.map_id,
-            stated.seed,
-        )
-        .map_err(Failure::refused)?;
-        let rosters = match_rosters(economy, &deployment, turn, &stated, &mut research_history)?;
-        let sides = [deployment.state.blue.clone(), deployment.state.red.clone()];
-        let arsenals = [
-            mechcore_player::arsenal(&sides[0]),
-            mechcore_player::arsenal(&sides[1]),
-        ];
-        let deployment_layout_yaml =
-            mechcore_document::canonical_yaml(deployment.layout).map_err(Failure::failed)?;
+        let deployment = prepare_match_deployment(economy, &stated, turn, &mut research_history)?;
 
         if round_filter.is_some_and(|target| target != turn.round) {
             continue;
@@ -528,10 +665,7 @@ fn prepare_match_session(
                 economy,
                 stated: Arc::clone(&stated),
                 turn_index,
-                deployment_layout_yaml: deployment_layout_yaml.into_bytes(),
-                sides,
-                rosters,
-                arsenals,
+                deployment,
             })),
         });
     }
@@ -589,8 +723,8 @@ fn collect_panel_assets(
     let mut arsenals = Vec::new();
     for spec in specs {
         if let RoundSource::MatchRound(data) = &spec.source {
-            rosters.extend(data.rosters.iter().flatten().cloned());
-            arsenals.extend(data.arsenals.iter().cloned());
+            rosters.extend(data.deployment.rosters.iter().flatten().cloned());
+            arsenals.extend(data.deployment.arsenals.iter().cloned());
         }
     }
     (rosters, arsenals)
@@ -653,10 +787,7 @@ fn compute_round(spec: &RoundSpec) -> Result<ComputedRound, Failure> {
                 data.economy,
                 &data.stated.turns[data.turn_index],
                 &data.stated,
-                &data.deployment_layout_yaml,
-                [&data.sides[0], &data.sides[1]],
-                data.rosters.clone(),
-                data.arsenals.clone(),
+                &data.deployment,
             )?;
             Ok(ComputedRound {
                 producer: "simulator",
@@ -668,19 +799,51 @@ fn compute_round(spec: &RoundSpec) -> Result<ComputedRound, Failure> {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+fn prepare_match_deployment(
+    economy: &mechcore_document::economy::Economy,
+    stated: &mechcore_document::opening::Stated,
+    turn: &mechcore_document::r#match::Turn,
+    research_history: &mut [BTreeMap<i32, i32>; 2],
+) -> Result<MatchDeployment, Failure> {
+    let deployment = crate::convert::project_match(
+        economy,
+        &turn.state,
+        &turn.actions,
+        turn.round,
+        stated.map_id,
+        stated.seed,
+    )
+    .map_err(Failure::refused)?;
+    let rosters = match_rosters(economy, &deployment, turn, stated, research_history)?;
+    let sides = [deployment.state.blue, deployment.state.red];
+    let arsenals = [
+        mechcore_player::arsenal(&sides[0]),
+        mechcore_player::arsenal(&sides[1]),
+    ];
+    let deployment_layout_yaml =
+        mechcore_document::canonical_yaml(deployment.layout).map_err(Failure::failed)?;
+
+    Ok(MatchDeployment {
+        deployment_layout_yaml: deployment_layout_yaml.into_bytes(),
+        sides,
+        rosters,
+        arsenals,
+    })
+}
+
 fn compute_match_round(
     economy: &mechcore_document::economy::Economy,
     turn: &mechcore_document::r#match::Turn,
     stated: &mechcore_document::opening::Stated,
-    deployment_layout_yaml: &[u8],
-    sides: [&mechcore_document::r#match::SideState; 2],
-    rosters: [Vec<mechcore_player::RosterEntry>; 2],
-    arsenals: [mechcore_player::Arsenal; 2],
+    deployment: &MatchDeployment,
 ) -> Result<mechcore_player::Timeline, Failure> {
-    let result: SimulationResult =
-        mechcore_simulation::simulate_document(deployment_layout_yaml, Record::Memory, None)
-            .map_err(|error| Failure::unsimulated(&error))?;
+    let sides = deployment.sides.each_ref();
+    let result: SimulationResult = mechcore_simulation::simulate_document(
+        &deployment.deployment_layout_yaml,
+        Record::Memory,
+        None,
+    )
+    .map_err(|error| Failure::unsimulated(&error))?;
     let recording = result
         .recording
         .ok_or_else(|| Failure::failed("the simulator kept no recording of the fight"))?;
@@ -708,8 +871,8 @@ fn compute_match_round(
             turn.round
         ))
     })?;
-    timeline.rosters = rosters;
-    timeline.arsenals = arsenals;
+    timeline.rosters.clone_from(&deployment.rosters);
+    timeline.arsenals.clone_from(&deployment.arsenals);
     match_tower_cards(&mut timeline, sides)?;
     for (seat, (header, state)) in [
         (&stated.blue, &turn.state.blue),

@@ -48,7 +48,7 @@ fn usage(program: &str) {
     eprintln!("       {program} mask <layout|state|match> --side blue|red --unit <type>");
     eprintln!("       {program} preview <layout|state> [--seed <i32>]");
     eprintln!(
-        "       {program} solve <match.yaml> --profile <profile.yaml> [--round <n>] [--side blue|red]"
+        "       {program} solve <match.yaml> --profile <profile.yaml> [--round <n>] [--side blue|red] [--html <out.html>] [--force]"
     );
     eprintln!(
         "       {program} generate --seed <u64> --count <n> <dir> | --seed <u64> --index <i>"
