@@ -531,3 +531,126 @@ fn solve_r1_blind_succeeds_when_opponent_actions_are_absent() {
         assert!(sol.get("delta_vs_baseline").is_none(), "{sol}");
     }
 }
+
+fn extract_timeline_json(html: &str) -> Value {
+    let marker = r#"<script id="timeline" type="application/json">"#;
+    let start = html.find(marker).expect("timeline script tag") + marker.len();
+    let end = html[start..]
+        .find("</script>")
+        .expect("closing timeline script tag");
+    serde_json::from_str(&html[start..start + end]).unwrap()
+}
+
+#[test]
+fn solve_html_writes_offline_comparison_page_with_baseline_and_solutions() {
+    let dir = tempfile::tempdir().unwrap();
+    let match_path = played_round_one(dir.path());
+    let profile = r1_blind_profile();
+    let out_html = dir.path().join("compare.html");
+    let out_str = out_html.to_str().unwrap();
+
+    let res = run(&[
+        "solve",
+        &match_path,
+        "--profile",
+        &profile,
+        "--round",
+        "1",
+        "--side",
+        "red",
+        "--html",
+        out_str,
+    ])
+    .ok();
+    assert_eq!(res["html"], out_str);
+    assert_eq!(res["solutions"].as_array().unwrap().len(), 3);
+
+    let html = fs::read_to_string(&out_html).unwrap();
+    let timelines = extract_timeline_json(&html);
+    let arr = timelines.as_array().unwrap();
+    assert_eq!(arr.len(), 4, "expected baseline + 3 solve candidates");
+    assert!(arr[0]["label"].as_str().unwrap().starts_with("Baseline ("));
+    assert!(arr[1]["label"].as_str().unwrap().starts_with("Solve #1 ("));
+    for (index, entry) in arr.iter().enumerate() {
+        let cores = entry["cores"].as_array().unwrap();
+        let red_delta = cores[0]["damage"].as_i64().unwrap() - cores[1]["damage"].as_i64().unwrap();
+        let name = if index == 0 {
+            "Baseline".to_owned()
+        } else {
+            format!("Solve #{index}")
+        };
+        assert_eq!(entry["label"], format!("{name} ({red_delta:+})"));
+        assert!(entry["ticks"].as_u64().unwrap() > 0, "{entry}");
+        assert!(!entry["lead_in"].is_null(), "{entry}");
+    }
+
+    let refused = run(&[
+        "solve",
+        &match_path,
+        "--profile",
+        &profile,
+        "--round",
+        "1",
+        "--side",
+        "red",
+        "--html",
+        out_str,
+    ])
+    .refused();
+    assert!(refused.contains("--force"), "{refused}");
+
+    let forced = run(&[
+        "solve",
+        &match_path,
+        "--profile",
+        &profile,
+        "--round",
+        "1",
+        "--side",
+        "red",
+        "--html",
+        out_str,
+        "--force",
+    ])
+    .ok();
+    assert_eq!(forced["html"], out_str);
+}
+
+#[test]
+fn solve_html_uses_top_opponent_belief_when_actions_are_absent() {
+    let dir = tempfile::tempdir().unwrap();
+    let profile = r1_blind_profile();
+    let open_match = open_round_one(dir.path());
+    let open_html_path = dir.path().join("open_compare.html");
+    let open_html_str = open_html_path.to_str().unwrap();
+    let open_res = run(&[
+        "solve",
+        &open_match,
+        "--profile",
+        &profile,
+        "--round",
+        "1",
+        "--side",
+        "blue",
+        "--html",
+        open_html_str,
+    ])
+    .ok();
+    assert_eq!(open_res["html"], open_html_str);
+
+    let open_html = fs::read_to_string(&open_html_path).unwrap();
+    let open_timelines = extract_timeline_json(&open_html);
+    let open_arr = open_timelines.as_array().unwrap();
+    assert_eq!(open_arr.len(), 3);
+    assert!(
+        open_arr[0]["label"]
+            .as_str()
+            .unwrap()
+            .starts_with("Solve #1 (")
+    );
+    assert!(open_html.contains("vs belief:"), "{open_html_str}");
+    for entry in open_arr {
+        assert!(entry["ticks"].as_u64().unwrap() > 0, "{entry}");
+        assert!(!entry["lead_in"].is_null(), "{entry}");
+    }
+}

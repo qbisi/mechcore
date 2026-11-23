@@ -913,7 +913,7 @@ removes information the caller already put in its input.
 
 ## `solve`
 
-`solve <match.yaml> --profile <profile.yaml> [--round <n>] [--side blue|red]`
+`solve <match.yaml> --profile <profile.yaml> [--round <n>] [--side blue|red] [--html <out.html>] [--force]`
 runs a profile-driven decision search on one deployment round of a match
 document and answers `mechcore.solve` on standard output.
 
@@ -928,6 +928,14 @@ Operands and options:
 - `--round <n>`: optional round number. When omitted, selects the last round
   that holds recorded actions (or the last round if none holds actions yet).
 - `--side blue|red`: optional solving side, defaulting to `blue`.
+- `--html <out.html>`: optional offline HTML comparison output simulating both the
+  recorded baseline deployment (when present) and every returned solver candidate
+  against the recorded opponent deployment in one player page. An open final
+  round with no recorded opponent decisions uses the highest-weight belief.
+  Each label gives core damage dealt minus core damage taken by the solving side. Refuses to
+  overwrite an existing file unless `--force` is given; when written, `html`
+  names the output path in `mechcore.solve`.
+- `--force`: permits `--html` to replace an existing file.
 
 Each solution in `solutions` carries its `rank`, `score` (expected
 `core_delta`, defined as `opponent_core_damage - own_core_damage`, optionally
