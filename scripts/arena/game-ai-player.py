@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""A player modelled on the game's own computer opponent, for `mechcore arena run`.
+"""A player modelled on the game's own computer opponent, for `mechcore arena`.
 
-    mechcore arena run m.yaml --blue 'python3 scripts/arena/game-ai-player.py --seed 1' \
-        --red 'python3 scripts/arena/random-player.py'
+    mechcore arena --blue 'uv run --with pyyaml scripts/arena/game-ai-player.py --seed 1' \
+        --red 'uv run --with pyyaml scripts/arena/random-player.py' > m.yaml
 
 `--name` prints `game-ai` and exits without reading a match.
 
@@ -35,7 +35,7 @@ A side with nothing that hits air facing flyers buys only what does.
 """
 
 import argparse
-import json
+from bot_round import problems
 import pathlib
 import random
 import re
@@ -119,30 +119,24 @@ class Player:
 
     # The stream.
 
-    def ask(self, request):
-        print(json.dumps(request), flush=True)
-        line = sys.stdin.readline()
-        if not line:
-            sys.exit(0)
-        return json.loads(line)
-
     def take(self, decision):
-        """Takes a decision, answering whether the board took it."""
-        answer = self.ask({"op": "match.act", "decision": decision})
-        if answer.get("schema") == "mechcore.error":
-            print(f"refused {decision}: {answer['reason']}", file=sys.stderr)
+        before = {u["index"] for u in self.position.get("units", [])}
+        state = self.problem.try_action(decision, keep=True)
+        if state is None:
             return None
-        self.seen = answer
-        self.position = answer["state"][self.side]
-        return answer
+        self.position = state[self.side]
+        self.seen["state"][self.side] = self.position
+        created = {u["index"] for u in self.position.get("units", [])} - before
+        if decision["type"] == "buy_unit":
+            self.bought.update(created)
+        else:
+            self.arrived.update(created)
+        return state
 
     def legal(self, decision):
-        answer = self.ask({"op": "match.act", "decision": decision, "dry_run": True})
-        return answer.get("schema") != "mechcore.error"
+        return self.problem.try_action(decision) is not None
 
     def view(self):
-        self.seen = self.ask({"op": "match.show"})
-        self.position = self.seen["state"][self.side]
         return self.position
 
     # The opening.
@@ -150,7 +144,7 @@ class Player:
     def opening(self, view):
         offers = view["header"][self.side]["offers"]
         pick = self.draw.randrange(len(offers))
-        self.take({
+        self.problem.actions.append({
             "type": "choose_advance_team",
             "index": pick,
             "name": offers[pick]["team"],
@@ -174,7 +168,7 @@ class Player:
 
     def reinforce(self, view):
         offers = decision_state(view).get("reinforce_offers") or []
-        if not offers or decision_state(view)[self.side]["reinforce_chosen"]:
+        if not offers:
             return
         cards = []
         for index, name in enumerate(offers[:-1]):
@@ -185,14 +179,7 @@ class Player:
                 cards.append(decision)
         decline = {"type": "choose_reinforce_item", "index": len(offers) - 1,
                    "name": offers[-1]}
-        answer = self.take(self.draw.choice(cards) if cards else decline)
-        self.note(answer)
-
-    def note(self, answer):
-        """Remembers the units a decision that was not a purchase brought."""
-        for event in (answer or {}).get("events", []):
-            if "created" in event:
-                self.arrived.add(event["created"]["index"])
+        self.take(self.draw.choice(cards) if cards else decline)
 
     def weight(self, start_end, executed, most):
         start, end = start_end
@@ -272,16 +259,12 @@ class Player:
         for place in self.places(name, position):
             decision = {"type": "buy_unit", "name": name, "position": place}
             if self.legal(decision):
-                answer = self.take(decision)
-                for event in (answer or {}).get("events", []):
-                    if "created" in event:
-                        self.bought.add(event["created"]["index"])
-                return answer is not None
+                return self.take(decision) is not None
         return False
 
     def research(self):
         position = self.view()
-        loadout = self.seen["header"][self.side]["tech_loadout"]
+        loadout = self.seen["header"][self.side].get("tech_loadout", self.full_loadout)
         held = {unit: set(techs) for unit, techs in (position.get("techs") or {}).items()}
         types = {}
         for unit in position.get("units", []):
@@ -413,25 +396,20 @@ class Player:
     # The match.
 
     def play(self):
-        while True:
-            view = self.ask({"op": "match.show", "wait": True})
-            if view.get("schema") == "mechcore.error":
-                print(f"cannot read the match: {view['reason']}", file=sys.stderr)
-                return 1
-            self.side = view["side"]
-            phase = view["phase"]
-            if phase == "over":
-                return 0
-            if view["sides"][self.side]["committed"] or phase not in ("opening", "deploy"):
-                continue
-            if phase == "opening":
-                self.opening(view)
-            else:
+        import yaml
+
+        technologies = yaml.safe_load((CONFIG / "names.yaml").read_text())["technologies"]
+        self.full_loadout = {unit: list(names.values()) for unit, names in technologies.items()}
+        for problem in problems():
+            self.problem = problem
+            self.side = problem.side
+            view = {"header": problem.header, "state": dict(problem.state), "round": problem.number}
+            if problem.number:
                 self.deploy(view)
-            answer = self.ask({"op": "match.commit"})
-            if answer.get("schema") == "mechcore.error":
-                print(f"commit refused: {answer['reason']}", file=sys.stderr)
-                return 1
+            else:
+                self.opening(view)
+            problem.commit()
+        return 0
 
 
 def main():

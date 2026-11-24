@@ -136,9 +136,8 @@ one-key mapping from the operation's name to its argument object.
 
 A caller that holds a session fills in the fields that session already knows,
 so the object reaching an operation is the same whoever wrote it. A
-[`shell`](#shell) with a match open supplies its document and its side, and an
-[`arena`](#arena) supplies them to a player that could not name them; the field
-is absent from what they write and present in what the operation reads.
+[`shell`](#shell) with a match open supplies its document and its side.
+[`arena`](#arena) runs a separate protocol for answering a round problem.
 
 ## Results
 
@@ -1369,81 +1368,63 @@ layout for.
 
 ## `arena`
 
-`arena run` plays matches between players, each a command it starts.
+```sh
+mechcore arena --blue 'python3 blue.py' --red 'python3 red.py' \
+  --seed 7 --no-reinforce --full-tech --timeout 0 >match.yaml
+```
 
-**A player is a client and the arena is its match.** A player writes one JSON
-request per line on its standard output and reads one JSON result per line on
-its standard input, and the requests are `match`'s own operations: `match.show`,
-`match.act` with its decision, `dry_run` and `force_push`, `match.undo`,
-`match.candidates`, and `match.commit`. A request
-names neither the document nor a side, because the arena knows both and a
-player cannot ask about a side it was not given. A player that speaks this to
-`shell --json` and a player that speaks it to an arena are the same program.
+The command plays one match in memory and writes the final canonical match
+document to stdout. Players write diagnostics to stderr. Each player command
+runs under `sh -c`. Arena first runs the command with `--name` appended and
+expects a successful exit and one nonempty UTF-8 name line. It then starts one
+persistent process per seat. The reference Python players use PyYAML to read
+match documents. A fixed positive `--seed` reproduces the deal, map and player seeds.
+`--map <id>` selects the map. Reinforcements are enabled by default.
+`--full-tech` gives both seats the full loadout. The default is the standard
+loadout used by the CLI.
 
-That is also what makes the arena the only place a side's own view is enforced
-rather than agreed. A player run by an arena never opens the match document or
-its turn file, so what it knows is what `match show` gave it;
-[what a side sees of the other](#what-a-side-sees-of-the-other) is the rule, and
-here nothing but the pipe can be read around.
+Arena writes one JSON object per line to each player's stdin and reads the
+player's stdout as JSON Lines. Flush each request. Each round it asks blue,
+then red, using the same immutable match prefix for both. Completed rounds
+include both seats' decisions. Round zero ends at the match header and each
+deployment problem ends at the current state. The envelope identifies the
+seat and round:
 
-Operands: the match document, or the directory a batch writes into. Options:
-`--blue <command>`, `--red <command>`, `--matches <n>` for how many to play,
-`--seed`, `--map`, `--deploy-time`, `--reinforcements` and
-`--full-tech-loadout` as `match new` takes them, and
-`--request-timeout <seconds>`. A player's command is run by `sh -c`, so it may
-carry its own arguments.
+```json
+{"op":"problem","side":"red","round":1,"match_yaml":"kind: match\n..."}
+```
 
-Before dealing any match, the arena runs each configured command with
-` --name` appended, also through `sh -c`, with standard input closed. That
-invocation prints one nonempty UTF-8 name line on standard output and exits
-successfully; surrounding whitespace is stripped and control characters in
-the remaining name are refused. Diagnostics belong on standard error. A name
-query that fails, returns invalid output, or exceeds `--request-timeout`
-fails the run before a match is dealt. Each side is queried once per run,
-including a batch; the arena passes those names to `match new --name` for
-every match. A normal player invocation speaks only the match request stream.
+Each request carries an unsigned integer `id`, unique within that problem.
+Each response repeats the `round` and `id` and carries either `result` or
+the standard `error` object. A malformed line has a null ID. The player
+may pipeline trials on separate lines or write a nonempty JSON array of
+trial requests. Each item gets its own response line as it finishes. Use IDs
+to correlate replies. An invalid trial leaves siblings independent.
 
-The arena deals each match rather than joining one: it runs `match new`, hands
-one player blue and the other red, and varies the seed across a batch, which is
-what makes a batch a comparison rather than one match played twice. A document
-that is already there is refused rather than joined. A batch writes
-`match-0000.yaml` onward into its directory, each from the seed after the one
-before it when `--seed` names the first, and from a seed of its own otherwise.
+| Request | Actions and result |
+| --- | --- |
+| `act` | `actions: {"blue":[...],"red":[...]}` applies each sequence to its seat's opening and returns `result.state` with both resulting positions and their remaining shop allowances. |
+| `simulate` | Takes the same bilateral actions, projects the deployment and runs one battle. Returns `tick`, `settled`, `stop` and both fight sides in `collect.settlement`. |
+| `commit` | `actions: [...]` contains only the requesting seat's sequence. A legal submission returns `{"committed":true}` and ends that seat's turn. Send it as a standalone request. Outstanding trials for the seat are discarded. |
 
-A player that exits, crashes or stops answering is not answered for. It simply
-stops committing, and the deployment clock ends the match against it, which is
-[the rule a round runs out by](#match). `--request-timeout` bounds one request
-rather than the round: a player that has not sent its next request that long
-after its last answer is killed, and the clock does the rest. The time the
-arena takes to answer, a wait or a fight among it, is not the player's. A bound
-nobody chose is the match's deployment time, since a player silent for that
-long has lost the round it was silent in anyway. A player's own standard error
-is kept beside the match as `<match>.blue.log` and `<match>.red.log` rather
-than read as protocol, so a program may log where it likes.
+An omitted seat in bilateral actions means an empty sequence. Each request
+starts again from the opening. The bot owns its drafts and generates its own
+candidate actions. To extend a plan, resend its entire prefix. All three
+operations apply the same per-action and end-of-sequence checks on the seats
+they validate. Round zero requires exactly one matching `choose_advance_team`
+per validated seat. When a reinforcement is offered, the first action must
+choose a card or its offered refund, unless the seat concedes. A bot can
+therefore inspect the state immediately after a choice. On a refusal it can
+correct its sequence and retry with a fresh ID. A committed concession ends
+the match immediately. A hypothetical opening or concession returns
+`{"tick":0,"stop":"no_fight","settled":false,"collect":{}}` from `simulate`.
+A simulator refusal returns an error, and the trial leaves the match untouched.
 
-The opening has no clock, so a player that leaves before it is committed
-cannot lose by one, and the other side would wait for it for good. The arena
-stops a match there instead: both players are stopped, and the match is
-answered in the `opening` phase with no winner, which is what it is, a match
-nobody has played. A fight that nothing resolves stops the match the same way,
-in its `fight` phase with its `unresolved` reason. Once a match is over, a
-player is sent nothing more, and one that has not left a moment after is
-killed.
-
-Answers one match's outcome, or one per line and a summary for a batch: the
-document it was written to, its seed and map, the last round, the phase it
-ended in, each side's reactor core, the `winner`, and for each player how its
-part `ended` (`over`, `exited`, `timed_out`, or `stopped` by the arena), its
-exit `code` and its `log`. The winner is the one side that neither conceded,
-which is also how a side that ran out of time is written, nor had its reactor
-core destroyed; a match that is not over, and one both sides lost in the same
-round, has none. A batch's summary counts the matches each side won, the ones
-over with no winner as `drawn`, and the ones that stopped before they were over
-as `unfinished`.
-
-One match is one document. A series, a rating and a tournament are things a
-caller builds out of matches, and this namespace plays them rather than
-ranking them.
+`--timeout` is wall-clock seconds per seat per problem, including trial time,
+and also bounds each name query. The default is 100 seconds and 0 disables
+the limit. A deployment timeout concedes for that seat. A failed name query,
+an opening timeout, a broken bot connection or an unresolved official battle
+ends the command with an error on stderr. At match end the bot receives EOF.
 
 ## `game`
 
@@ -1522,14 +1503,10 @@ that lives for one operation has nowhere to carry a side, so each command
 names the side it was given; a shell is one process for a whole match, so it
 is told once and nothing after that repeats what it already holds.
 
-`--json` makes the prompt a request stream: one JSON request per line in, one
-JSON result per line out, which is the protocol `arena` speaks to a player.
-Those requests name neither the document nor the side, exactly as an arena's do
-not, so a program written against one runs under the other unchanged. A stream
-plays the one match it was opened on, so `--json` takes the match and its
-`--side` too, and a stream has nothing else to say: the game's operations and
-the file verbs stay the prompt's, whose session holds a game acquired by one
-line for the next.
+`--json` reads one JSON request per line and writes one result per line.
+It takes the match and its `--side` once when opening the stream. Each
+request plays that bound side. The interactive prompt also supports game
+operations and file verbs.
 
 A request is one of `match`'s operations, named by `op`, with that operation's
 options as its fields:

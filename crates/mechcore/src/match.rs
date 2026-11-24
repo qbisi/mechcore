@@ -170,9 +170,33 @@ fn deal(
     name: Option<String>,
     rules: mechcore_document::r#match::Rules,
 ) -> Result<Game, Failure> {
+    let mut game = dealt_game(
+        path,
+        seed,
+        map,
+        deploy_time,
+        loadout,
+        name,
+        rules,
+        Draw::new(),
+    )?;
+    game.write(held)?;
+    Ok(game)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn dealt_game(
+    path: &std::path::Path,
+    seed: Option<i32>,
+    map: Option<i32>,
+    deploy_time: Option<i32>,
+    loadout: Option<&std::path::Path>,
+    name: Option<String>,
+    rules: mechcore_document::r#match::Rules,
+    mut draw: Draw,
+) -> Result<Game, Failure> {
     let economy = Economy::embedded().map_err(Failure::failed)?;
     let maps = opening::maps().map_err(Failure::failed)?;
-    let mut draw = Draw::new();
     let map_id = match map {
         Some(map) => map,
         None => *draw.one(&maps),
@@ -243,16 +267,14 @@ fn deal(
     };
     let mut turn = Turn::opening(0, [true, false], false);
     turn.deploy_time = deploy_time;
-    let mut game = Game {
+    Ok(Game {
         path: path.to_owned(),
         economy,
         r#match,
         turn,
         side: Side::Blue,
         unresolved: None,
-    };
-    game.write(held)?;
-    Ok(game)
+    })
 }
 
 /// Joins a match already dealt, which is the second caller and no other.
@@ -655,8 +677,9 @@ impl Phase {
     }
 }
 
-/// One match, held open with its turn file locked.
-struct Game {
+/// One match and its pending turn. File-backed callers also hold the turn lock.
+#[derive(Clone)]
+pub(crate) struct Game {
     path: PathBuf,
     economy: &'static Economy,
     r#match: Match,
@@ -667,6 +690,9 @@ struct Game {
     /// What stopped the fight this match is due, when one is.
     unresolved: Option<String>,
 }
+
+#[path = "arena_round.rs"]
+mod arena_round;
 
 impl Game {
     fn editable(&self, side: Side) -> Result<(), Failure> {
@@ -737,7 +763,7 @@ impl Game {
 
     /// The round in progress, which is the one the document has not both
     /// written the decisions of.
-    fn round(&self) -> i32 {
+    pub(crate) fn round(&self) -> i32 {
         self.r#match.turns.last().map_or(0, |turn| turn.round)
     }
 
@@ -793,7 +819,7 @@ impl Game {
 
     /// Whether the match has ended: a side gave up, or a reactor core reached
     /// zero.
-    fn over(&self) -> bool {
+    pub(crate) fn over(&self) -> bool {
         if self.r#match.result.is_some() {
             return true;
         }
@@ -905,12 +931,16 @@ impl Game {
     /// fought, and what the fight decided is written onto the position each
     /// side deployed before the next round opens on it.
     fn fight(&mut self, held: &mut Held) -> Result<(), String> {
+        self.advance()?;
+        self.write(held)
+            .map_err(|failure| failure.reason().to_owned())
+    }
+
+    fn advance(&mut self) -> Result<(), String> {
         self.publish_committed();
         if self.over() {
             self.record_concession();
-            return self
-                .write(held)
-                .map_err(|failure| failure.reason().to_owned());
+            return Ok(());
         }
         let round = self.round();
         let fight = if round > 0 {
@@ -1000,8 +1030,7 @@ impl Game {
         let deploy_time = self.turn.deploy_time;
         self.turn = Turn::opening(round + 1, self.turn.given(), false);
         self.turn.deploy_time = deploy_time;
-        self.write(held)
-            .map_err(|failure| failure.reason().to_owned())
+        Ok(())
     }
 
     /// Continues the player stream saved after this round's opening deliveries.
@@ -1020,56 +1049,34 @@ impl Game {
         mechcore_document::reinforcement::deal_checkpoint(self.economy, &stated)
     }
 
-    /// Runs the round's fight and reads what it decided.
-    ///
-    /// The simulator fights it, over the layout the deployment-end position
-    /// projects onto, and the recording is read as `convert --to fight` reads
-    /// one: the fight document is the one reader of what a fight decided,
-    /// whichever backend fought it. The recording is thrown away with the
-    /// directory it was written in, because the same fight is run again from
-    /// the match itself.
-    ///
-    /// # Errors
-    ///
-    /// Answers why the round is not settled: the fight could not run, or the
-    /// recording does not answer everything it decided.
+    /// Reads the fight's opening, terminal and settlement observations in memory.
     fn fought(&self, round: i32) -> Result<mechcore_document::Fight, String> {
-        let opening = &self
-            .r#match
-            .turns
-            .last()
-            .ok_or("no deployment round to fight")?
-            .state;
         let actions = TurnActions {
             blue: self.decisions(Side::Blue),
             red: self.decisions(Side::Red),
         };
-        let layout = crate::convert::project_match(
+        crate::arena_simulation::fight(self.fight_layout(&actions)?)
+            .map_err(|reason| format!("round {round} is not settled: {reason}"))
+    }
+
+    pub(crate) fn fight_layout(
+        &self,
+        actions: &TurnActions,
+    ) -> Result<mechcore_document::Layout, String> {
+        let turn = self
+            .r#match
+            .turns
+            .last()
+            .ok_or("no deployment round to fight")?;
+        crate::convert::project_match(
             self.economy,
-            opening,
-            &actions,
-            round,
+            &turn.state,
+            actions,
+            turn.round,
             self.r#match.map_id,
             self.r#match.seed,
-        )?
-        .layout;
-        let yaml = mechcore_document::canonical_yaml(layout)?;
-        let recording = mechcore_simulation::simulate_document(
-            yaml.as_bytes(),
-            mechcore_simulation::Record::Memory,
-            None,
         )
-        .map_err(|error| format!("round {round} is not fought: {error}"))?
-        .recording
-        .ok_or_else(|| format!("round {round} is fought and its recording was not kept"))?;
-        crate::outcome::read(&recording)
-            .and_then(crate::outcome::Reading::fight)
-            .map_err(|failure| {
-                format!(
-                    "round {round} is fought and not settled: {}",
-                    failure.reason()
-                )
-            })
+        .map(|p| p.layout)
     }
 
     /// The position the round in progress opened with, before any decision.
@@ -1176,14 +1183,24 @@ impl Game {
     /// Takes one decision, answering what it did, without keeping it.
     fn take(&self, side: Side, decision: &Action) -> Result<Vec<Value>, Failure> {
         self.editable(side)?;
-        self.allowed(side, decision)?;
         let before = self.position(side)?;
-        transition::check_operation(&before, decision)
+        let after = self.apply_action(side, &before, decision)?;
+        Ok(events(&before, &after))
+    }
+
+    fn apply_action(
+        &self,
+        side: Side,
+        before: &SideState,
+        decision: &Action,
+    ) -> Result<SideState, Failure> {
+        self.allowed(side, decision)?;
+        transition::check_operation(before, decision)
             .map_err(|unsettled| Failure::refused(unsettled.to_string()))?;
         let mut placement = mechcore_document::landing::placement(side.red());
         let after = transition::step_placing(
             self.economy,
-            &before,
+            before,
             decision,
             self.offers(),
             &mut placement,
@@ -1192,9 +1209,9 @@ impl Game {
         self.deployable(side, &after)?;
         // Where the position it leaves may stand is the layout's to say; a
         // place that is free only once another unit has moved is the board's.
-        transition::check_place(&before, decision)
+        transition::check_place(before, decision)
             .map_err(|unsettled| Failure::refused(unsettled.to_string()))?;
-        Ok(events(&before, &after))
+        Ok(after)
     }
 
     /// Refuses a position the board would not hold.
@@ -1331,12 +1348,24 @@ impl Game {
                 self.round()
             )));
         }
-        let conceded = self.turn.side(side).decisions.contains(&Action::Concede);
-        let position = self.position(side)?;
+        self.check_answer(side, &self.turn.side(side).decisions, &self.position(side)?)?;
+        let branch = self.turn.side_mut(side);
+        branch.pins.clear();
+        branch.committed = true;
+        self.write_turn(held)
+    }
+
+    fn check_answer(
+        &self,
+        side: Side,
+        decisions: &[Action],
+        position: &SideState,
+    ) -> Result<(), Failure> {
+        let conceded = decisions.contains(&Action::Concede);
         transition::check_reinforcement_finished(position.reinforce_choice, conceded)
             .map_err(|error| Failure::refused(error.to_string()))?;
         if self.round() == 0 {
-            let [decision] = self.turn.side(side).decisions.as_slice() else {
+            let [decision] = decisions else {
                 return Err(Failure::refused(
                     "an opening is one decision, and this side has taken another number of them",
                 ));
@@ -1345,14 +1374,11 @@ impl Game {
                 return Err(Failure::refused("round zero's decision is the opening"));
             };
         } else {
-            let layout = self.placement_layout(side, &position)?;
+            let layout = self.placement_layout(side, position)?;
             mechcore_document::compile::compile_placement_layout(layout)
                 .map_err(Failure::refused)?;
         }
-        let branch = self.turn.side_mut(side);
-        branch.pins.clear();
-        branch.committed = true;
-        self.write_turn(held)
+        Ok(())
     }
 
     /// Copies sealed decisions into a candidate record for settlement.

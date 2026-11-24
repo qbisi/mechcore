@@ -1,243 +1,193 @@
-//! The `arena` namespace: matches played between programs.
-//!
-//! These run real players, as the commands an arena starts, and check the
-//! contract in `docs/spec/mechcore/cli.md`: a player speaks requests and is
-//! answered on the side it was given, a player that leaves or stops asking
-//! is not answered for, and a batch deals each match from its own seed.
+//! End-to-end tests of the arena wire protocol with real subprocesses.
+use serde_json::{Value, json};
+use std::{
+    fs,
+    path::Path,
+    process::{Command, Output},
+};
+use tempfile::TempDir;
 
-use std::{path::Path, process::Command};
-
-use serde_json::Value;
-
-/// A player that opens with its first offer, then concedes, which ends a
-/// match in one round without a fight.
-const CONCEDES: &str = r#"python3 -c '
-import json, sys
-if "--name" in sys.argv[1:]:
-    print("concedes")
-    sys.exit(0)
-def ask(request):
-    print(json.dumps(request), flush=True)
-    return json.loads(sys.stdin.readline())
-view = ask({"op": "match.show"})
-offer = view["header"][view["side"]]["offers"][0]
-ask({"op": "match.act", "decision": {"type": "choose_advance_team", "index": 0,
-     "name": offer["team"], "specialist": offer["specialist"]}})
-ask({"op": "match.commit"})
-ask({"op": "match.show", "wait": True})
-ask({"op": "match.act", "decision": {"type": "concede"}})
-ask({"op": "match.commit"})
-'"#;
-
-/// A player that opens, then commits every round as it opens without taking
-/// a decision, until the match is over.
-const COMMITS: &str = r#"python3 -c '
-import json, sys
-if "--name" in sys.argv[1:]:
-    print("commits")
-    sys.exit(0)
-def ask(request):
-    print(json.dumps(request), flush=True)
-    return json.loads(sys.stdin.readline())
-view = ask({"op": "match.show"})
-offer = view["header"][view["side"]]["offers"][0]
-ask({"op": "match.act", "decision": {"type": "choose_advance_team", "index": 0,
-     "name": offer["team"], "specialist": offer["specialist"]}})
-ask({"op": "match.commit"})
-while True:
-    if ask({"op": "match.show", "wait": True})["phase"] == "over":
-        break
-    ask({"op": "match.commit"})
-'"#;
-
-fn arena(arguments: &[&str]) -> (i32, String) {
-    let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("arena")
-        .arg("run")
-        .args(arguments)
+fn cli(directory: &Path, args: &[&str]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .current_dir(directory)
+        .args(args)
         .output()
-        .unwrap();
-    (
-        output.status.code().unwrap_or(-1),
-        String::from_utf8(output.stdout).unwrap() + &String::from_utf8(output.stderr).unwrap(),
-    )
-}
-
-fn played(arguments: &[&str]) -> Value {
-    let (code, out) = arena(arguments);
-    assert_eq!(code, 0, "{out}");
-    serde_json::from_str(&out).unwrap()
-}
-
-fn document(directory: &Path, name: &str) -> String {
-    directory.join(name).display().to_string()
-}
-
-#[test]
-fn a_side_that_concedes_loses_and_the_match_is_written() {
-    let directory = tempfile::tempdir().unwrap();
-    let path = document(directory.path(), "m.yaml");
-    let named = COMMITS.replace("print(\"commits\")", "print(\"commits & <v1>\")");
-    let outcome = played(&[&path, "--seed", "7", "--blue", &named, "--red", CONCEDES]);
-    assert_eq!(outcome["schema"], "mechcore.arena");
-    assert_eq!(outcome["phase"], "over");
-    assert_eq!(outcome["round"], 1);
-    assert_eq!(outcome["winner"], "blue");
-    assert_eq!(outcome["seed"], 7);
-    assert_eq!(outcome["players"]["blue"]["ended"], "over");
-    assert_eq!(outcome["players"]["red"]["code"], 0);
-    // The match is a document like any other, and nothing of the round in
-    // progress is left beside it.
-    let report = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["verify", &path])
-        .output()
-        .unwrap();
-    assert!(report.status.success());
-    assert!(!directory.path().join("m.turn").exists());
-    assert!(directory.path().join("m.red.log").exists());
-    let game = mechcore_document::r#match::read(&std::fs::read(&path).unwrap())
         .unwrap()
-        .unwrap();
-    assert_eq!(game.blue.name, "commits & <v1>");
-    assert_eq!(game.red.name, "concedes");
+}
 
-    let replay = document(directory.path(), "m.grbr");
-    let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["convert", &path, "--to", "grbr", &replay])
-        .output()
-        .unwrap();
+fn success(output: Output) -> Vec<u8> {
     assert!(
         output.status.success(),
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    let restored =
-        mechcore_document::convert::match_from_grbr(&std::fs::read(&replay).unwrap()).unwrap();
-    assert_eq!(restored.blue.name, "commits & <v1>");
-    assert_eq!(restored.red.name, "concedes");
+    output.stdout
 }
 
-#[test]
-fn a_player_that_leaves_in_the_opening_stops_the_match_there() {
-    let directory = tempfile::tempdir().unwrap();
-    let path = document(directory.path(), "m.yaml");
-    let outcome = played(&[
-        &path,
-        "--blue",
-        r#"python3 -c 'import sys; print("exits") if "--name" in sys.argv else sys.exit(3)'"#,
-        "--red",
-        COMMITS,
-    ]);
-    assert_eq!(outcome["phase"], "opening");
-    assert_eq!(outcome["winner"], Value::Null);
-    assert_eq!(outcome["players"]["blue"]["ended"], "exited");
-    assert_eq!(outcome["players"]["blue"]["code"], 3);
-    assert_eq!(outcome["players"]["red"]["ended"], "stopped");
+// The bot only needs the two opening names from the canonical header.
+// Keep this protocol test runnable with a standard-library Python.
+const BOT: &str = r#"import json, pathlib, re, sys, time
+if "--name" in sys.argv:
+    print("test bot")
+    sys.exit(0)
+def read():
+    return json.loads(input())
+def send(x):
+    print(json.dumps(x), flush=True)
+def ask(x):
+    send(x)
+    reply = read()
+    assert reply["id"] == x["id"] and reply["round"] == p["round"], reply
+    return reply
+def request(op, i, actions, **opts):
+    return dict(op=op, id=i, actions=actions, **opts)
+for line in sys.stdin:
+    p = json.loads(line)
+    side, n, doc = p["side"], p["round"], p["match_yaml"]
+    assert p["op"] == "problem"
+    pathlib.Path(f"{side}-{n}.yaml").write_text(doc)
+    if n == 0:
+        seats = re.findall(r"^  - \{team: ([^,]+), specialist: ([^}]+)\}", doc, re.M)
+        opening = {s:[dict(type="choose_advance_team", index=i, name=seats[start+i][0],
+                           specialist=seats[start+i][1])] for s,start,i in [("blue",0,2),("red",4,1)]}
+        assert "kind: action" not in doc
+        assert "error" in ask(request("commit", 0, opening))
+        assert "error" in ask(request("act", 1, {}))
+        assert ask(request("simulate", 2, opening))["result"]["stop"] == "no_fight"
+        assert "state" in ask(request("act", 3, opening))["result"]
+        own = opening[side]
+    elif n == 1:
+        if "stall" in sys.argv and side == "red":
+            time.sleep(5)
+            break
+        own = []
+        if side == "blue" and not pathlib.Path("clock-test").exists():
+            send([request("simulate", 1, {}), request("act", 2, {"red":[{"type":"invalid"}]}), request("act", 3, {})])
+            replies = {r["id"]: r for r in (read() for _ in range(3))}
+            assert "error" in replies[2] and "state" in replies[3]["result"]
+            full = replies[1]["result"]
+            assert full["settled"] and full["tick"] > 0
+            pathlib.Path("trial.json").write_text(json.dumps(full["collect"]))
+    else:
+        assert n == 2 and "reinforce_offers:" in doc.split("---\n")[-1]
+        if "reinforce_offers:" in doc.split("---\n")[-1]:
+            offers = re.search(r"^reinforce_offers: \[([^\]]+)\]", doc.split("---\n")[-1], re.M)[1].split(", ")
+            decline = dict(type="choose_reinforce_item",index=len(offers)-1,name=offers[-1])
+            assert "error" in ask(request("act", 1, {}))
+            assert "error" in ask(request("commit", 2, []))
+            assert "error" in ask(request("simulate", 3, {side:[decline]}))
+            both = {s:[decline] for s in ["blue","red"]}
+            assert "state" in ask(request("act", 4, both))["result"]
+            own = [decline]
+        else:
+            own = []
+        if side == "red":
+            own = [{"type":"concede"}]
+    assert ask(request("commit", 99, own))["result"]["committed"]
+"#;
+
+fn fixture() -> TempDir {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(dir.path().join("bot.py"), BOT).unwrap();
+    dir
 }
 
-#[test]
-fn a_player_that_stops_asking_is_killed_and_the_clock_ends_its_match() {
-    let directory = tempfile::tempdir().unwrap();
-    let path = document(directory.path(), "m.yaml");
-    let outcome = played(&[
-        &path,
-        "--deploy-time",
-        "2",
-        "--request-timeout",
-        "1",
-        "--blue",
-        COMMITS,
-        "--red",
-        // Opens like the waiting player, then sleeps on the first round.
-        &COMMITS.replace("while True:", "import time\ntime.sleep(60)\nwhile True:"),
-    ]);
-    assert_eq!(outcome["phase"], "over");
-    assert_eq!(outcome["winner"], "blue");
-    assert_eq!(outcome["players"]["red"]["ended"], "timed_out");
-}
-
-#[test]
-fn a_batch_deals_each_match_from_its_own_seed() {
-    let directory = tempfile::tempdir().unwrap();
-    let batch = document(directory.path(), "batch");
-    let queries = directory.path().join("queries");
-    let concedes = CONCEDES.replace(
-        "print(\"concedes\")",
-        &format!(
-            "open({:?}, \"a\").write(\"name\\n\"); print(\"concedes\")",
-            queries.display().to_string()
-        ),
-    );
-    let (code, out) = arena(&[
-        &batch,
-        "--matches",
-        "2",
+fn play(dir: &Path, args: &[&str]) -> Output {
+    let mut command = vec![
+        "arena",
         "--seed",
-        "40",
+        "7",
+        "--map",
+        "1011",
         "--blue",
-        &concedes,
-        "--red",
-        COMMITS,
-    ]);
-    assert_eq!(code, 0, "{out}");
-    let lines: Vec<Value> = out
-        .lines()
-        .map(|line| serde_json::from_str(line).unwrap())
-        .collect();
-    assert_eq!(lines.len(), 3);
-    assert_eq!(lines[0]["seed"], 40);
-    assert_eq!(lines[1]["seed"], 41);
-    assert_eq!(lines[2]["schema"], "mechcore.arena-summary");
-    assert_eq!(lines[2]["matches"], 2);
-    assert_eq!(lines[2]["red"], 2);
-    assert_eq!(std::fs::read_to_string(queries).unwrap(), "name\n");
+        "exec python3 bot.py",
+    ];
+    command.extend(args);
+    cli(dir, &command)
 }
 
 #[test]
-fn an_arena_deals_its_match_rather_than_joining_one() {
-    let directory = tempfile::tempdir().unwrap();
-    let path = document(directory.path(), "m.yaml");
-    std::fs::write(&path, "").unwrap();
-    let (code, out) = arena(&[&path, "--blue", COMMITS, "--red", COMMITS]);
-    assert_eq!(code, 3, "{out}");
-    assert!(out.contains("an arena deals the match it plays"), "{out}");
-}
-
-#[test]
-fn invalid_name_queries_fail_before_a_match_is_dealt() {
-    let directory = tempfile::tempdir().unwrap();
-    let path = document(directory.path(), "m.yaml");
-    for (command, reason) in [
-        ("true", "one nonempty name line"),
-        (
-            "python3 -c 'print(\"one\\ntwo\")'",
-            "one nonempty name line",
-        ),
-        ("exit 3", "exited with"),
-        (
-            "python3 -c 'import time; time.sleep(2)'",
-            "name query timed out",
-        ),
-    ] {
-        let timeout = if reason == "name query timed out" {
-            "0.1"
-        } else {
-            "5"
-        };
-        let (code, out) = arena(&[
-            &path,
-            "--blue",
-            command,
+fn parallel_trials_match_the_recording_and_leave_both_openings_unchanged() {
+    let dir = fixture();
+    let dir = dir.path();
+    let bytes = success(play(
+        dir,
+        &[
             "--red",
-            COMMITS,
-            "--request-timeout",
-            timeout,
-        ]);
-        assert_eq!(code, 5, "{out}");
-        assert!(out.contains(reason), "{out}");
-        assert!(!Path::new(&path).exists());
-        assert!(!directory.path().join("m.turn").exists());
+            "exec python3 bot.py",
+            "--full-tech",
+            "--timeout",
+            "0",
+        ],
+    ));
+    let game = mechcore_document::r#match::read(&bytes).unwrap().unwrap();
+    assert_eq!(
+        game.result.unwrap().winner,
+        mechcore_document::r#match::Winner::Blue
+    );
+    for round in 0..=2 {
+        assert_eq!(
+            fs::read(dir.join(format!("blue-{round}.yaml"))).unwrap(),
+            fs::read(dir.join(format!("red-{round}.yaml"))).unwrap()
+        );
     }
+    fs::write(dir.join("match.yaml"), bytes).unwrap();
+    success(cli(
+        dir,
+        &[
+            "convert",
+            "match.yaml",
+            "--round",
+            "1",
+            "--to",
+            "mcfr",
+            "round.mcfr",
+            "--backend",
+            "simulator",
+        ],
+    ));
+    let collected: Value =
+        serde_json::from_slice(&fs::read(dir.join("trial.json")).unwrap()).unwrap();
+    let fight = success(cli(dir, &["convert", "round.mcfr", "--to", "fight"]));
+    let fight: Value = serde_yaml::from_slice(&fight).unwrap();
+    for side in ["blue", "red"] {
+        assert_eq!(collected["settlement"][side], fight[side]);
+    }
+}
+
+#[test]
+fn deadline_concedes_the_active_seat() {
+    let dir = fixture();
+    fs::write(dir.path().join("clock-test"), "").unwrap();
+    let bytes = success(play(
+        dir.path(),
+        &[
+            "--red",
+            "exec python3 bot.py stall",
+            "--no-reinforce",
+            "--timeout",
+            "2",
+        ],
+    ));
+    let game = mechcore_document::r#match::read(&bytes).unwrap().unwrap();
+    assert_eq!(json!(game.result.unwrap().winner), "blue");
+}
+
+#[test]
+fn bot_exit_fails_with_empty_match_output() {
+    let dir = fixture();
+    let output = play(
+        dir.path(),
+        &[
+            "--red",
+            "python3 -c 'import sys; print(1) if \"--name\" in sys.argv else sys.exit(3)'",
+        ],
+    );
+    assert!(!output.status.success());
+    assert!(output.stdout.is_empty());
+    let error: Value = serde_json::from_slice(&output.stderr).unwrap();
+    assert_eq!(error["kind"], "failed");
+    assert_eq!(error["operation"], "arena");
 }
 
 #[test]

@@ -3,9 +3,7 @@
 //!
 //! `docs/spec/mechcore/cli.md` is the contract. A request is one of `match`'s
 //! own operations on a match its caller already holds, so it names neither the
-//! document nor the side: `shell --json` holds them because it was opened on
-//! them, and an arena holds them because it dealt the match. A player written
-//! against one runs under the other unchanged.
+//! document nor the side. The shell binds both when it opens the session.
 
 use std::path::Path;
 

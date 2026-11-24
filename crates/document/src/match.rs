@@ -1201,8 +1201,24 @@ const SEPARATOR: &str = "---\n";
 ///
 /// Returns an error when a segment cannot be serialized.
 pub fn canonical_yaml(r#match: &Match) -> Result<String, String> {
+    write_values(&segment_values(r#match)?)
+}
+
+/// The problem presented to both arena seats, ending at the current opening.
+///
+/// # Errors
+/// Returns an error for a closed match or an unserializable segment.
+pub fn round_problem_yaml(game: &Match) -> Result<String, String> {
+    let mut segments = segments_of(game);
+    if !matches!(segments.pop(), Some(Segment::Action(_))) {
+        return Err("a round problem needs an open action segment".into());
+    }
+    write_values(&values_of(&segments)?)
+}
+
+fn write_values(values: &[Value]) -> Result<String, String> {
     let mut yaml = String::new();
-    for (at, value) in segment_values(r#match)?.iter().enumerate() {
+    for (at, value) in values.iter().enumerate() {
         if at > 0 {
             yaml.push_str(SEPARATOR);
         }
@@ -1216,7 +1232,11 @@ pub fn canonical_yaml(r#match: &Match) -> Result<String, String> {
 /// # Errors
 /// Returns an error when a segment cannot be serialized.
 pub fn segment_values(game: &Match) -> Result<Vec<Value>, String> {
-    segments_of(game)
+    values_of(&segments_of(game))
+}
+
+fn values_of(segments: &[Segment<'_>]) -> Result<Vec<Value>, String> {
+    segments
         .iter()
         .map(|segment| {
             serde_yaml::to_value(segment)
