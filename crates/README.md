@@ -11,7 +11,7 @@ The Rust workspace. Each crate says what it does in its crate-level comment;
 | [`mechcore/`](mechcore/) | the CLI |
 | [`player/`](player/README.md) | the page that plays a recording back |
 | [`protocol/`](protocol/) | the messages between the CLI and the Adapter |
-| [`simulation/`](simulation/) | the simulator: one round fought from a layout into a recording |
+| [`simulation/`](simulation/) | the simulator: one round fought from a layout, producing a recording or the requested observations |
 
 ## What a test reads
 

@@ -55,7 +55,7 @@ pub(crate) struct Reading {
     layout: Layout,
     source: Source,
     ticks: u32,
-    hash: FightHash,
+    hash: Option<FightHash>,
     sides: [SideReading; 2],
     /// What this fight decided that the recording does not answer. A fight
     /// with an entry here converts to no fight document and settles no round.
@@ -147,15 +147,65 @@ pub(crate) fn read(reader: &dyn Recording) -> Result<Reading, Failure> {
     let layout = scene::layout(reader)?;
     let last = reader.terminal_tick();
     let opened = scene::snapshot(reader, FIRST_TICK)?;
-    let mut ended = scene::snapshot(reader, last)?;
-    ended.formations.clone_from(&reader.settlement().formations);
-    let formations = scene::formations(&layout, &opened)?;
-    let timeline = Timeline::read(reader)?;
-    let started = members(&formations, &opened);
+    let ended = scene::snapshot(reader, last)?;
+    let hash = Some(FightHash {
+        profile: mechcore_mcfr::HASH_PROFILE.to_owned(),
+        result: reader.hashes().result_hash.clone(),
+    });
+    let source = match reader.producer() {
+        Producer::Game => Source::Game,
+        Producer::Simulator => Source::Simulator,
+    };
+    read_parts(
+        layout,
+        &opened,
+        ended,
+        &Timeline::read(reader)?,
+        reader.settlement(),
+        last,
+        source,
+        hash,
+    )
+}
+
+pub(crate) fn observed(
+    layout: Layout,
+    facts: mechcore_simulation::SettlementEvidence,
+    tick: u32,
+) -> Result<Fight, Failure> {
+    read_parts(
+        layout,
+        &facts.first,
+        facts.last,
+        &Timeline {
+            shields: facts.shields,
+        },
+        &facts.settlement,
+        tick,
+        Source::Simulator,
+        None,
+    )?
+    .fight()
+}
+
+#[allow(clippy::too_many_arguments)]
+fn read_parts(
+    layout: Layout,
+    opened: &WorldSnapshot,
+    mut ended: WorldSnapshot,
+    timeline: &Timeline,
+    settlement: &mechcore_mcfr::Settlement,
+    last: u32,
+    source: Source,
+    hash: Option<FightHash>,
+) -> Result<Reading, Failure> {
+    ended.formations.clone_from(&settlement.formations);
+    let formations = scene::formations(&layout, opened)?;
+    let started = members(&formations, opened);
     let survived = members(&formations, &ended);
 
     let mut unresolved = Vec::new();
-    let scores = scores(reader, &mut unresolved)?;
+    let scores = scores(settlement)?;
     let damage = match scores {
         [Some(blue), Some(red)] => {
             let (blue, red) = reactor_damage::damage(blue, red);
@@ -165,9 +215,9 @@ pub(crate) fn read(reader: &dyn Recording) -> Result<Reading, Failure> {
     };
     let scene = Scene {
         formations: &formations,
-        opened: &opened,
+        opened,
         ended: &ended,
-        timeline: &timeline,
+        timeline,
     };
     let sides = Side::BOTH.map(|side| {
         let mut unresolved_here = Vec::new();
@@ -175,7 +225,7 @@ pub(crate) fn read(reader: &dyn Recording) -> Result<Reading, Failure> {
             core_damage: damage[side.seat()],
             survivors: survivors(side, &started, &survived, scene::units_of(&layout, side)),
             exp: experience(&layout, side, &scene, &mut unresolved_here),
-            contraptions: contraptions(&layout, side, reader.settlement()),
+            contraptions: contraptions(&layout, side, settlement),
             battle_skills: battle_skills(&layout, side, &scene, &mut unresolved_here),
         };
         (reading, unresolved_here)
@@ -185,15 +235,9 @@ pub(crate) fn read(reader: &dyn Recording) -> Result<Reading, Failure> {
     unresolved.extend(red_unresolved);
     Ok(Reading {
         layout,
-        source: match reader.producer() {
-            Producer::Game => Source::Game,
-            Producer::Simulator => Source::Simulator,
-        },
+        source,
         ticks: last,
-        hash: FightHash {
-            profile: mechcore_mcfr::HASH_PROFILE.to_owned(),
-            result: reader.hashes().result_hash.clone(),
-        },
+        hash,
         sides: [blue, red],
         unresolved,
     })
@@ -251,9 +295,9 @@ impl Reading {
             seed,
             round,
             source: self.source,
-            trajectory: Some(mechcore_document::fight::Trajectory {
+            trajectory: self.hash.map(|hash| mechcore_document::fight::Trajectory {
                 ticks: self.ticks,
-                hash: self.hash,
+                hash,
             }),
             // A recording answers queries; which ones a fixture asks is the
             // fixture's.
@@ -388,11 +432,7 @@ fn raw(position: Position, side: Side) -> (i64, i64) {
 }
 
 /// The native scores, recorded after exit independently of combat ticks.
-fn scores(
-    reader: &dyn Recording,
-    _unresolved: &mut Vec<String>,
-) -> Result<[Option<i64>; 2], Failure> {
-    let settlement = reader.settlement();
+fn scores(settlement: &mechcore_mcfr::Settlement) -> Result<[Option<i64>; 2], Failure> {
     settlement
         .validate()
         .map_err(|error| Failure::refused(error.to_string()))?;

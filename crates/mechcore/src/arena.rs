@@ -163,9 +163,22 @@ struct Actions {
 #[derive(Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 enum Request {
-    Act { id: u64, actions: Actions },
-    Simulate { id: u64, actions: Actions },
-    Commit { id: u64, actions: Vec<Value> },
+    Act {
+        id: u64,
+        actions: Actions,
+    },
+    Simulate {
+        id: u64,
+        actions: Actions,
+        #[serde(default)]
+        until: Option<Value>,
+        #[serde(default)]
+        collect: Option<Value>,
+    },
+    Commit {
+        id: u64,
+        actions: Vec<Value>,
+    },
 }
 impl Request {
     const fn id(&self) -> u64 {
@@ -336,8 +349,13 @@ impl Bot {
 fn trial(game: &Game, request: Request, cancel: &AtomicBool) -> (u64, Result<Value, Failure>) {
     let id = request.id();
     let (actions, simulation) = match request {
-        Request::Act { actions, .. } => (actions, false),
-        Request::Simulate { actions, .. } => (actions, true),
+        Request::Act { actions, .. } => (actions, None),
+        Request::Simulate {
+            actions,
+            until,
+            collect,
+            ..
+        } => (actions, Some((until, collect))),
         Request::Commit { .. } => unreachable!("commit runs on its seat"),
     };
     let run = || {
@@ -349,16 +367,18 @@ fn trial(game: &Game, request: Request, cancel: &AtomicBool) -> (u64, Result<Val
         if blue.contains(&Action::Concede) && red.contains(&Action::Concede) {
             return Err(Failure::refused("a round ends on its first concession"));
         }
-        if !simulation {
+        let Some((until, collect)) = simulation else {
             return Ok(json!({"state":game.trial_state(blue_state,red_state)?}));
-        }
+        };
+        let plan =
+            mechcore_simulation::ObservationPlan::parse(until, collect).map_err(Failure::usage)?;
         if game.round() == 0 || blue.contains(&Action::Concede) || red.contains(&Action::Concede) {
             return Ok(json!({"stop":"no_fight","tick":0,"settled":false,"collect":{}}));
         }
         let layout = game
             .fight_layout(&TurnActions { blue, red })
             .map_err(Failure::refused)?;
-        crate::arena_simulation::run(layout)
+        crate::arena_simulation::run(&layout, plan, cancel)
     };
     (id, run())
 }

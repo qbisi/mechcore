@@ -357,63 +357,54 @@ pub(in crate::fight) fn execute(
     let mut writer = writer(record, replay_layout, seed, config, &context)?;
     simulation.prepare_and_enter_fight()?;
     costs.prepare = prepare_started.elapsed();
-    let mut steps = 0;
     let mut numbering = mechcore_mcfr::UnitNumbering::default();
     let mut first_divergence = None;
     let mut divergent_tick = None;
-    let max_steps = FIGHT_TIME_SECONDS
-        .saturating_mul(TIME_UNITS_PER_SECOND)
-        .div_ceil(LOGIC_TICK_TIME_UNITS);
-    let mut end_reason = loop {
-        if steps >= max_steps {
-            simulation.stop_fight()?;
-            break "forced_time_limit";
-        }
-        let step_started = Instant::now();
-        let first_formation = simulation.ids.next_formation;
-        let mut events = simulation.step(steps)?;
-        steps += 1;
-        let tick = u32::try_from(steps).map_err(|_| Error::new("tick index exceeds u32"))?;
-        simulation.close_tick(first_formation, &mut events.events)?;
-        let stepped = step_started.elapsed();
-        let snapshot_started = Instant::now();
-        let state = simulation.recorded(tick, &mut numbering, &mut events.events);
-        costs.snapshot += snapshot_started.elapsed();
-        costs.stepped(tick, stepped, state.live_units.len());
-        // The writer takes the state; only a run held to a recording keeps a
-        // copy, to show the tick it parts from it at.
-        let compared = recording.map(|_| state.clone());
-        let record_started = Instant::now();
-        let tick_hashes = writer.append_tick(state, &events)?;
-        costs.record += record_started.elapsed();
-        if let (Some(recording), Some(state)) = (recording, compared) {
-            let expected_hash = if tick <= recording.tick_count() {
-                Some(recording.tick_hash(tick)?)
-            } else {
-                None
-            };
-            if expected_hash.as_deref() != Some(&tick_hashes.tick_hash) {
-                first_divergence = Some(tick);
-                divergent_tick = Some(DivergentTick {
-                    recording: if expected_hash.is_some() {
-                        Some(recording.tick(tick)?)
-                    } else {
-                        None
-                    },
-                    simulation: Some(TickSlice {
-                        tick,
-                        state,
-                        events,
-                        tick_hash: tick_hashes.tick_hash,
-                    }),
-                });
-                break "first_divergence";
+    let (ticks, mut end_reason) = advance_fight(
+        &mut simulation,
+        |simulation, tick, mut events, step_started| {
+            let stepped = step_started.elapsed();
+            let snapshot_started = Instant::now();
+            let state = simulation.recorded(tick, &mut numbering, &mut events.events);
+            costs.snapshot += snapshot_started.elapsed();
+            costs.stepped(tick, stepped, state.live_units.len());
+            // The writer takes the state; only a run held to a recording keeps a
+            // copy, to show the tick it parts from it at.
+            let compared = recording.map(|_| state.clone());
+            let record_started = Instant::now();
+            let tick_hashes = writer.append_tick(state, &events)?;
+            costs.record += record_started.elapsed();
+            if let (Some(recording), Some(state)) = (recording, compared) {
+                let expected_hash = if tick <= recording.tick_count() {
+                    Some(recording.tick_hash(tick)?)
+                } else {
+                    None
+                };
+                if expected_hash.as_deref() != Some(&tick_hashes.tick_hash) {
+                    first_divergence = Some(tick);
+                    divergent_tick = Some(DivergentTick {
+                        recording: if expected_hash.is_some() {
+                            Some(recording.tick(tick)?)
+                        } else {
+                            None
+                        },
+                        simulation: Some(TickSlice {
+                            tick,
+                            state,
+                            events,
+                            tick_hash: tick_hashes.tick_hash,
+                        }),
+                    });
+                    return Ok(true);
+                }
             }
-        }
-        if simulation.ready_to_finish() {
-            break "natural_module_drain";
-        }
-    };
+            Ok(false)
+        },
+    )?;
+    if first_divergence.is_some() {
+        end_reason = "first_divergence";
+    }
+    let steps = u64::from(ticks);
     if first_divergence.is_none()
         && let Some(recording) = recording
         && steps < u64::from(recording.tick_count())
@@ -439,6 +430,39 @@ pub(in crate::fight) fn execute(
         divergent_tick,
         costs,
     })
+}
+
+pub(super) fn fight_ticks() -> u64 {
+    FIGHT_TIME_SECONDS
+        .saturating_mul(TIME_UNITS_PER_SECOND)
+        .div_ceil(LOGIC_TICK_TIME_UNITS)
+}
+
+/// Advances a prepared fight through settlement. A recording comparison can
+/// stop at the first divergent tick by returning true from the observer.
+pub(super) fn advance_fight(
+    simulation: &mut Simulation,
+    mut observe: impl FnMut(&Simulation, u32, TransitionEvents, Instant) -> Result<bool>,
+) -> Result<(u32, &'static str)> {
+    let max_steps = fight_ticks();
+    let mut tick = 0_u32;
+    while u64::from(tick) < max_steps {
+        let started = Instant::now();
+        let first_formation = simulation.ids.next_formation;
+        let mut events = simulation.step(u64::from(tick))?;
+        tick = tick
+            .checked_add(1)
+            .ok_or_else(|| Error::new("tick index exceeds u32"))?;
+        simulation.close_tick(first_formation, &mut events.events)?;
+        if observe(simulation, tick, events, started)? {
+            return Ok((tick, "observer"));
+        }
+        if simulation.ready_to_finish() {
+            return Ok((tick, "natural_module_drain"));
+        }
+    }
+    simulation.stop_fight()?;
+    Ok((tick, "forced_time_limit"))
 }
 
 impl Simulation {
