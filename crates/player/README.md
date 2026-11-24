@@ -53,11 +53,7 @@ panels remain visible at combat start and hide and re-appear in sync with the
 unit and skills/equipment panels, while the per-formation technology icon
 strips fade out over 0.4 seconds as combat begins. The round dropdown
 and previous/next round buttons choose a round and start its timeline
-at its initial frame (`startTick`), retaining speed and playback state. When a
-`Timeline` sets an optional `label` string (for instance when
-`mechcore solve --html` compares multiple candidate deployments of the same
-round in one page), `label` overrides only the lower playback switcher (and SVG
-export label) while keeping the top HUD `Round <n>` unchanged. A trailing state without decisions
+at its initial frame (`startTick`), retaining speed and playback state. A trailing state without decisions
 and a concession have no fight to play. Each round is simulated from its own
 recorded deployment. A multi-round replay continues at the selected speed
 after settlement and stops at the end of the last round. Turn off

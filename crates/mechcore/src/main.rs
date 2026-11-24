@@ -25,7 +25,6 @@ mod schema;
 mod session;
 mod shell;
 mod show;
-mod solve;
 mod stats;
 mod turn;
 mod verify;
@@ -47,9 +46,6 @@ fn usage(program: &str) {
     eprintln!("       {program} format <document.yaml> [--write]");
     eprintln!("       {program} mask <layout|state|match> --side blue|red --unit <type>");
     eprintln!("       {program} preview <layout|state> [--seed <i32>]");
-    eprintln!(
-        "       {program} solve <match.yaml> --profile <profile.yaml> [--round <n>] [--side blue|red] [--html <out.html>] [--force]"
-    );
     eprintln!(
         "       {program} generate --seed <u64> --count <n> <dir> | --seed <u64> --index <i>"
     );
@@ -110,7 +106,6 @@ pub(crate) fn dispatch(command: &str, arguments: Args) -> Option<Outcome> {
         "format" => format::run(arguments),
         "mask" => mask::run(arguments),
         "preview" => preview::run(arguments),
-        "solve" => solve::run(arguments),
         "generate" => generate::run(arguments),
         "schema" => schema::run(arguments),
         "match" => r#match::run(arguments),

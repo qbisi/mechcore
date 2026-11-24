@@ -814,15 +814,6 @@ pub(crate) struct BuildingPosition {
 }
 
 impl SimulationConfig {
-    /// Returns cached embedded rules/unit/map/tower configuration initialized once per process.
-    pub(crate) fn cached() -> Result<&'static Self> {
-        static CACHED: std::sync::OnceLock<Result<SimulationConfig>> = std::sync::OnceLock::new();
-        CACHED
-            .get_or_init(Self::load)
-            .as_ref()
-            .map_err(Clone::clone)
-    }
-
     pub(crate) fn load() -> Result<Self> {
         let towers = parse_towers(DEFAULT_TOWERS.as_bytes(), "embedded tower config")?;
         towers.validate()?;
