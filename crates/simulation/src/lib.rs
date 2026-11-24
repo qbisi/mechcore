@@ -1,4 +1,4 @@
-//! Deterministic single-round layout simulation into the shared MCFR format.
+//! Deterministic single-round layout simulation with MCFR recording or streaming observation.
 //!
 //! The first implemented closure slice is a level-one, no-technology Marksman
 //! versus Arclight fight. Unsupported layout mechanisms fail closed.
@@ -17,6 +17,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+pub use fight::observe::{Observation, ObservationPlan, SettlementEvidence};
 pub use fight::{DeploymentPreview, PreviewAttackRelation, PreviewObject, PreviewRelation};
 pub use fight::{
     DivergentTick, Phases, SimulationComparison, SimulationProfile, SimulationResult, SlowestStep,

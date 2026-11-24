@@ -70,6 +70,7 @@ mod mech;
 mod mech_group;
 mod mine;
 mod motion;
+pub(crate) mod observe;
 mod path_finding;
 mod pilot;
 mod preview;

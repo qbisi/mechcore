@@ -62,11 +62,44 @@ for line in sys.stdin:
             break
         own = []
         if side == "blue" and not pathlib.Path("clock-test").exists():
-            send([request("simulate", 1, {}), request("act", 2, {"red":[{"type":"invalid"}]}), request("act", 3, {})])
-            replies = {r["id"]: r for r in (read() for _ in range(3))}
-            assert "error" in replies[2] and "state" in replies[3]["result"]
-            full = replies[1]["result"]
-            assert full["settled"] and full["tick"] > 0
+            death = {"type":"unit_died"}
+            project = {"from":"events","where":death,"select":["tick","ordinal","object","side","formation","position","last_hit"]}
+            collect = {"timeline":project,"total":{"count":death},"first":{"first":death},"second":{"nth":2,"where":death},
+                       "last":{"last":death},"sides":{"count":death,"group_by":"side"},"cohort":"opening_deaths","settlement":"settlement"}
+            send([request("simulate", 1, {}, collect=collect),
+                  request("simulate", 2, {}, until={"count":{"where":death,"at_least":1}}, collect=collect),
+                  request("simulate", 3, {}, until={"tick":0}, collect={"opening":"preview"}),
+                  request("simulate", 4, {}, until={"bogus":5}),
+                  request("act", 5, {"red":[{"type":"invalid"}]}),
+                  request("act", 6, {})])
+            replies = {r["id"]:r for r in (read() for _ in range(6))}
+            assert "error" in replies[4] and "error" in replies[5] and "state" in replies[6]["result"], replies
+            full, limited, preview = (replies[i]["result"] for i in [1,2,3])
+            assert preview["tick"] == 0 and not preview["settled"] and preview["collect"]["opening"]
+            rows = full["collect"]["timeline"]
+            assert full["settled"] and rows and full["collect"]["total"] == len(rows)
+            assert [full["collect"][k] for k in ["first","second","last"]] == [rows[i]["tick"] for i in [0,1,-1]]
+            assert sum(g["value"] for g in full["collect"]["sides"]) == len(rows)
+            assert limited["collect"]["timeline"] == [r for r in rows if r["tick"] == rows[0]["tick"]]
+            assert limited["tick"] == rows[0]["tick"] and "settlement" not in limited["collect"]
+            death_ticks = {r["object"]["id"]:r["tick"] for r in reversed(rows)}
+            cohort = full["collect"]["cohort"]
+            assert len(cohort) >= 2 and all(c["first_death_tick"] == death_ticks.get(c["object"]["id"]) for c in cohort)
+            # Deliberately cross the threshold inside a tick with several deaths.
+            i = next(i for i in range(1,len(rows)) if rows[i]["tick"] == rows[i-1]["tick"])
+            burst = ask(request("simulate", 7, {}, until={"count":{"where":death,"at_least":i}}, collect={"rows":project}))["result"]
+            assert burst["tick"] == rows[i]["tick"] and len(burst["collect"]["rows"]) > i
+            assert burst["collect"]["rows"] == [r for r in rows if r["tick"] <= burst["tick"]]
+            predicate = {"all":[{"tick":5},{"metric":{"field":"alive_members","side":"blue","at_least":1}}]}
+            small = ask(request("simulate", 8, {}, until={"any":[predicate,{"tick":10}]},
+                                collect={"live":{"at_stop":"alive_members","group_by":"side"}}))["result"]
+            assert small["tick"] == 5 and small["stop"] == predicate
+            assert {g["key"] for g in small["collect"]["live"] if g["value"] > 0} == {"red","blue"}
+            buy = {"type":"buy_unit","name":"crawler"}
+            bought = ask(request("act", 9, {"blue":[buy]}))["result"]["state"]
+            fresh = ask(request("act", 10, {}))["result"]["state"]
+            assert len(bought["blue"]["units"]) == len(fresh["blue"]["units"]) + 1
+            assert bought["red"] == fresh["red"] and fresh == replies[6]["result"]["state"]
             pathlib.Path("trial.json").write_text(json.dumps(full["collect"]))
     else:
         assert n == 2 and "reinforce_offers:" in doc.split("---\n")[-1]
@@ -77,7 +110,11 @@ for line in sys.stdin:
             assert "error" in ask(request("commit", 2, []))
             assert "error" in ask(request("simulate", 3, {side:[decline]}))
             both = {s:[decline] for s in ["blue","red"]}
-            assert "state" in ask(request("act", 4, both))["result"]
+            handled = ask(request("act", 4, both))["result"]["state"]
+            assert all(handled[s]["reinforce_chosen"] for s in both)
+            wrong = {"blue":[{"type":"buy_unit","name":"crawler"}, decline], "red":[decline]}
+            err = ask(request("act", 5, wrong))["error"]
+            assert err["details"] == {"side":"blue","action_index":0}
             own = [decline]
         else:
             own = []
@@ -146,8 +183,41 @@ fn parallel_trials_match_the_recording_and_leave_both_openings_unchanged() {
             "simulator",
         ],
     ));
+    let sql = success(cli(
+        dir,
+        &["query", "round.mcfr", "--query", "death-timeline"],
+    ));
+    let offline: Value = serde_json::from_slice(&sql).unwrap();
+    let positions: Value = serde_json::from_slice(&success(cli(dir, &[
+        "query", "round.mcfr", "--sql",
+        "SELECT position__x, position__y, position__z FROM events WHERE type='unit_died' ORDER BY tick, ordinal"
+    ]))).unwrap();
     let collected: Value =
         serde_json::from_slice(&fs::read(dir.join("trial.json")).unwrap()).unwrap();
+    let rows = collected["timeline"].as_array().unwrap();
+    let expected = offline["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), expected.len());
+    let positions = positions["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), positions.len());
+    for ((row, sql), position) in rows.iter().zip(expected).zip(positions) {
+        assert_eq!(
+            [
+                &row["tick"],
+                &row["ordinal"],
+                &row["object"]["id"],
+                &row["formation"]
+            ],
+            [&sql[0], &sql[1], &sql[2], &sql[5]]
+        );
+        assert_eq!(row["side"], if sql[4] == 0 { "blue" } else { "red" });
+        assert_eq!(
+            row["position"],
+            json!({"x":position[0],"y":position[1],"z":position[2]})
+        );
+        assert_eq!(row["last_hit"]["source"]["kind"], sql[10]);
+        assert_eq!(row["last_hit"]["source"]["id"], sql[11]);
+        assert_eq!(row["last_hit"]["amount"], sql[12]);
+    }
     let fight = success(cli(dir, &["convert", "round.mcfr", "--to", "fight"]));
     let fight: Value = serde_yaml::from_slice(&fight).unwrap();
     for side in ["blue", "red"] {

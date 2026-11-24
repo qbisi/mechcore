@@ -149,6 +149,24 @@ impl UnitNumbering {
         self.seen_units.extend(order);
     }
 
+    /// A producer unit ID in the recording's identity space.
+    #[must_use]
+    pub fn unit(&self, id: u64) -> u64 {
+        self.units.get(&id).copied().unwrap_or(id)
+    }
+
+    /// A producer formation ID in the recording's identity space.
+    #[must_use]
+    pub fn formation(&self, id: u64) -> u64 {
+        self.formations.get(&id).copied().unwrap_or(id)
+    }
+
+    /// Whether the recording already assigned this producer unit an identity.
+    #[must_use]
+    pub fn has_unit(&self, id: u64) -> bool {
+        self.seen_units.contains(&id)
+    }
+
     /// Whether it renames nothing.
     #[must_use]
     pub fn is_identity(&self) -> bool {

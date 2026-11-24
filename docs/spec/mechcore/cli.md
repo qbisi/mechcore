@@ -1403,8 +1403,8 @@ to correlate replies. An invalid trial leaves siblings independent.
 
 | Request | Actions and result |
 | --- | --- |
-| `act` | `actions: {"blue":[...],"red":[...]}` applies each sequence to its seat's opening and returns `result.state` with both resulting positions and their remaining shop allowances. |
-| `simulate` | Takes the same bilateral actions, projects the deployment and runs one battle. Returns `tick`, `settled`, `stop` and both fight sides in `collect.settlement`. |
+| `act` | `actions: {"blue":[...],"red":[...]}` applies each sequence to its seat's opening and returns `result.state` with both resulting positions, remaining shop allowances and each seat's `reinforce_chosen` flag. |
+| `simulate` | Takes the same bilateral actions and optional `until` and `collect`. Checks them, projects the deployment and runs one battle. |
 | `commit` | `actions: [...]` contains only the requesting seat's sequence. A legal submission returns `{"committed":true}` and ends that seat's turn. Send it as a standalone request. Outstanding trials for the seat are discarded. |
 
 An omitted seat in bilateral actions means an empty sequence. Each request
@@ -1425,6 +1425,60 @@ and also bounds each name query. The default is 100 seconds and 0 disables
 the limit. A deployment timeout concedes for that seat. A failed name query,
 an opening timeout, a broken bot connection or an unresolved official battle
 ends the command with an error on stderr. At match end the bot receives EOF.
+
+### Limited battle simulation
+
+`simulate` returns `tick`, `stop`, `settled` and the named values in
+`collect`. Tick 0 is the prepared deployment. Later ticks count closed logic
+ticks from 1. Arena processes all events of a tick before checking its stop
+condition. A natural or forced battle end takes precedence on the same tick.
+Stopping at a condition returns that condition in `stop`. For `any` it
+returns the first matching branch in request order. An early stop leaves
+terminal-only fields absent.
+
+| `until` | Stops when |
+| --- | --- |
+| `"fight_end"` (default) | The fight settles. |
+| `{"tick":120}` | Tick 120 has closed. |
+| `{"event":"unit_died"}` | The tick contains that MCFR event kind. |
+| `{"count":{"where":{"type":"unit_died"},"at_least":5}}` | The cumulative number of matching events reaches the threshold. |
+| `{"metric":{"field":"kills","side":"red","at_least":3}}` | The sum of the named metric reaches the threshold. Optional filters are `side` and canonical `formation`. |
+| `{"any":[...]}`, `{"all":[...]}` | Any or all child predicates hold at the same tick. |
+
+`collect` maps names chosen by the bot to projections. An empty object
+collects nothing. Omitting it requests `{"settlement":"settlement"}`. The
+`settlement` preset returns the two fight sides as written by `convert --to
+fight`. `core_damage` returns the two reactor damage amounts at settlement.
+`preview` returns the deployment preview. `opening_deaths` returns each
+initial unit's object and its first death tick through the stop, or null for
+a unit with no observed death.
+
+```json
+{"op":"simulate","id":10,"actions":{},"until":{"tick":0},"collect":{"board":"preview"}}
+{"op":"simulate","id":11,"actions":{},"until":"fight_end","collect":{"deaths":{"from":"events","where":{"type":{"in":["unit_died","building_destroyed","shield_destroyed"]}},"select":["tick","ordinal","type","object","side","formation","position","last_hit"]},"first_by_entity":{"first":{"type":"unit_died"},"group_by":"object"}}}
+```
+
+Event rows follow MCFR order. The zero-based `ordinal` includes events omitted
+by the filter. Object IDs are scoped by kind, formation IDs use MCFR
+numbering, and positions use the event's raw fixed-point coordinates.
+The event subject supplies `object`, its side at the event and its formation
+when known. Fields with no value are null. `source` and `target` are also
+selectable. `last_hit` is the most recent preceding damage event targeting
+the subject on the same tick. Its fields are `source` and `amount`.
+The built-in offline query `mechcore query round.mcfr --query death-timeline`
+gives a reference for unit deaths. A row projection includes repeated deaths
+and entities created during the battle.
+
+Filters combine `type` (one kind or `{"in":[...]}`), `side`, `formation`
+and `object` by conjunction. `{"count":filter}` returns the number of matches.
+`{"first":filter}`, `{"last":filter}` and `{"nth":2,"where":filter}` return the
+matching tick, or null if absent. Each accepts optional `group_by` equal
+to `side`, `formation` or `object`, and then returns one `{"key":...,"value":...}`
+per observed group. `{"at_stop":"alive_members","group_by":"side"}` reads the
+stopped simulation. Supported metrics are `alive_members`, `damage_real`,
+`damage_taken` and `kills`. Metric grouping accepts side or formation.
+Event counts keep a counter per group. Row projections retain the selected
+rows until the response is written. Arena creates no trial recording.
 
 ## `game`
 

@@ -61,7 +61,7 @@ fn usage(program: &str) {
     eprintln!("       {program} match act <match.yaml> --side blue|red <decision> [--dry-run]");
     eprintln!("       {program} match commit <match.yaml> --side blue|red");
     eprintln!(
-        "       {program} arena --blue <command> --red <command> [--seed <n>] [--timeout <seconds>]"
+        "       {program} arena --blue <command> --red <command> [--seed <n>] [--map <id>] [--no-reinforce] [--full-tech] [--timeout <seconds>]"
     );
     eprintln!("       {program} game launch [--gui] [--online] [--level <0-4>]");
     eprintln!("       {program} game <operation> [--level <0-4>]");
