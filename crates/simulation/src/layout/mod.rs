@@ -262,29 +262,6 @@ impl Loadouts {
     }
 }
 
-struct CompileTables {
-    loadouts: Loadouts,
-    constructions: Constructions,
-    contraptions: Contraptions,
-}
-
-impl CompileTables {
-    /// Returns cached embedded compilation tables initialized once per process.
-    fn cached() -> Result<&'static Self> {
-        static CACHED: std::sync::OnceLock<Result<CompileTables>> = std::sync::OnceLock::new();
-        CACHED
-            .get_or_init(|| {
-                Ok(Self {
-                    loadouts: Loadouts::load()?,
-                    constructions: Constructions::load()?,
-                    contraptions: Contraptions::load()?,
-                })
-            })
-            .as_ref()
-            .map_err(Clone::clone)
-    }
-}
-
 /// Everything a layout is refused for, gathered rather than stopped at.
 ///
 /// A caller wants to know how far a deployment is from being fought, not its
@@ -367,27 +344,10 @@ pub(crate) fn compile_preview(
     compile_deployment(bytes, units, true)
 }
 
-/// Validates and compiles an in-memory layout without YAML round-tripping.
-///
-/// Pre-validates before normalizing so invalid un-normalized fields are refused
-/// identically to `canonical_yaml` + `parse_embedded_yaml`, while still compiling
-/// in canonical element order.
-pub(crate) fn compile_in_memory(
-    layout: mechcore_document::Layout,
-    units: &UnitConfigs,
-) -> Result<(Option<i32>, CompiledLayout)> {
-    if layout.game_build != mechcore_document::game_build() {
-        return Err(Error::new(format!(
-            "document is written against game build {}, and this binary carries {}",
-            layout.game_build,
-            mechcore_document::game_build()
-        )));
-    }
-    mechcore_document::compile_layout(layout.clone()).map_err(Error::new)?;
-    let plan = mechcore_document::compile_layout(layout.normalized()).map_err(Error::new)?;
-    compile_plan(&plan, units)
-}
-
+#[allow(
+    clippy::too_many_lines,
+    reason = "compiles each admitted layout component through its existing owner"
+)]
 fn compile_deployment(
     bytes: &[u8],
     units: &UnitConfigs,
@@ -400,22 +360,9 @@ fn compile_deployment(
         mechcore_document::compile_layout(layout)
     }
     .map_err(Error::new)?;
-    compile_plan(&plan, units)
-}
-
-#[allow(
-    clippy::too_many_lines,
-    reason = "compiles each admitted layout component through its existing owner"
-)]
-fn compile_plan(
-    plan: &mechcore_document::Plan,
-    units: &UnitConfigs,
-) -> Result<(Option<i32>, CompiledLayout)> {
-    let CompileTables {
-        loadouts,
-        constructions: table,
-        contraptions,
-    } = CompileTables::cached()?;
+    let loadouts = Loadouts::load()?;
+    let table = Constructions::load()?;
+    let contraptions = Contraptions::load()?;
     let skill_effects = &loadouts.skill_effects;
 
     // Both sides are asked everything before either is refused. The registry
@@ -444,16 +391,22 @@ fn compile_plan(
                 formation,
                 units,
                 side,
-                loadouts,
+                &loadouts,
                 &mut refused,
             ));
         }
-        constructions.extend(compile_constructions(name, team, side, table, &mut refused));
+        constructions.extend(compile_constructions(
+            name,
+            team,
+            side,
+            &table,
+            &mut refused,
+        ));
         compile_contraptions(
             name,
             team,
             side,
-            (contraptions, &loadouts.officers),
+            (&contraptions, &loadouts.officers),
             &mut refused,
             (&mut interceptors, &mut missiles, &mut shields),
         );
@@ -466,14 +419,14 @@ fn compile_plan(
             side,
             skill_effects,
             units,
-            loadouts,
+            &loadouts,
             &mut refused,
         );
         death_summons.extend(compile_death_summons(
             (name, team, side),
             (team, &placements, &side_skills),
             units,
-            loadouts,
+            &loadouts,
             &mut refused,
         ));
         battle_skills.extend(side_skills);
@@ -485,7 +438,7 @@ fn compile_plan(
         &sides,
         (&placements, &battle_skills),
         units,
-        loadouts,
+        &loadouts,
         &mut death_summons,
     );
     refused.settle()?;

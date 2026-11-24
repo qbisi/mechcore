@@ -17,8 +17,6 @@
 //! and `y`. Red's frame is the world turned half a turn, so red's landings are
 //! not blue's mirrored and the side has to be named.
 
-use std::collections::BTreeSet;
-
 use crate::catalog::{resolve_construction_type, resolve_contraption_type, resolve_unit_type};
 use crate::layout::{Position, Region};
 use crate::r#match::SideState;
@@ -34,7 +32,7 @@ pub(crate) struct Rect {
 }
 
 impl Rect {
-    pub(crate) fn around(center: (i64, i64), size: (i64, i64)) -> Self {
+    fn around(center: (i64, i64), size: (i64, i64)) -> Self {
         Self {
             min: (center.0 - size.0 / 2, center.1 - size.1 / 2),
             max: (center.0 + size.0 / 2, center.1 + size.1 / 2),
@@ -42,14 +40,14 @@ impl Rect {
     }
 
     /// Positive-area overlap. Rectangles that only touch do not overlap.
-    pub(crate) const fn overlaps(self, other: Self) -> bool {
+    const fn overlaps(self, other: Self) -> bool {
         self.min.0 < other.max.0
             && other.min.0 < self.max.0
             && self.min.1 < other.max.1
             && other.min.1 < self.max.1
     }
 
-    pub(crate) const fn within(self, region: Self) -> bool {
+    const fn within(self, region: Self) -> bool {
         self.min.0 >= region.min.0
             && self.max.0 <= region.max.0
             && self.min.1 >= region.min.1
@@ -76,7 +74,7 @@ impl Region {
 }
 
 /// A region's rectangle in the side's own frame.
-pub(crate) fn bounds(region: Region) -> Rect {
+fn bounds(region: Region) -> Rect {
     let territory = crate::territory::territory();
     let rect = match region {
         Region::Main => territory.main,
@@ -106,7 +104,7 @@ fn local(position: Position) -> (i64, i64) {
 
 /// A unit's footprint in a region: a flank faces the other way, so what a
 /// rotation does there is undone.
-pub(crate) fn unit_size(type_name: &str, rotated: bool, region: Region) -> Option<(i64, i64)> {
+fn unit_size(type_name: &str, rotated: bool, region: Region) -> Option<(i64, i64)> {
     let (width, height) = resolve_unit_type(type_name)?.footprint?;
     Some(if rotated ^ region.is_flank() {
         (height, width)
@@ -184,26 +182,6 @@ fn occupants(state: &SideState) -> Vec<Occupant> {
         }
     }
     placed
-}
-
-/// Rectangles standing in `region` on `state`, excluding every formation in
-/// `ignored_units`.
-#[must_use]
-pub(crate) fn region_obstacles_excluding(
-    state: &SideState,
-    ignored_units: &BTreeSet<i32>,
-    region: Region,
-) -> Vec<Rect> {
-    occupants(state)
-        .into_iter()
-        .filter(|other| {
-            other.region == region
-                && !other
-                    .unit
-                    .is_some_and(|index| ignored_units.contains(&index))
-        })
-        .map(|other| other.rect)
-        .collect()
 }
 
 /// Whether moving unit `index` of `type_name` to `position` is one

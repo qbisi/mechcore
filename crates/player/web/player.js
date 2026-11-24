@@ -2610,8 +2610,7 @@
       hover = null;
       frame();
       const stage = value < 1 ? `deployment frame ${value - START + 1}` : value > LAST ? `settlement frame ${value - LAST}` : `tick ${value}`;
-      const roundTag = data.label || `round ${data.round}`;
-      const title = `${document.title} · ${roundTag} · ${stage}`;
+      const title = `${document.title} · round ${data.round} · ${stage}`;
       return svg.snapshot(title, view.w, view.h);
     } finally {
       [ctx, ground, view.dpr, hover] = previous;
@@ -2624,8 +2623,7 @@
     const link = document.createElement('a');
     link.href = url;
     const stage = cursor < 1 ? `deploy-${Math.floor(cursor - START + 1)}` : cursor > LAST ? `settlement-frame-${Math.floor(cursor - LAST)}` : `tick-${tau}`;
-    const roundFile = (data.label || `round-${data.round}`).replace(/[^a-zA-Z0-9_.-]/g, '_');
-    link.download = `${document.title.replace(/ · mechcore player$/, '').replace(/[^a-zA-Z0-9_.-]/g, '_')}-${roundFile}-${stage}.svg`;
+    link.download = `${document.title.replace(/ · mechcore player$/, '').replace(/[^a-zA-Z0-9_.-]/g, '_')}-round-${data.round}-${stage}.svg`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
@@ -2638,14 +2636,11 @@
   const autoplay = document.getElementById('opt-autoplay');
   if (rounds.length < 2) autoplay.closest('label').remove();
   const roundSelect = document.getElementById('round');
-  const entries = isLive ? liveMeta : rounds;
-  const hasCustomLabels = entries.some((entry) => Boolean(entry.label));
-  roundSelect.hidden = !isMultiRound && !hasCustomLabels;
-  roundSelect.classList.toggle('labeled', hasCustomLabels);
-  entries.forEach((round, i) => {
+  roundSelect.hidden = !isMultiRound;
+  (isLive ? liveMeta : rounds).forEach((round, i) => {
     const option = document.createElement('option');
     option.value = String(i);
-    option.textContent = round.label || `Round ${round.round}`;
+    option.textContent = `Round ${round.round}`;
     roundSelect.append(option);
   });
   const pendingRounds = new Map();

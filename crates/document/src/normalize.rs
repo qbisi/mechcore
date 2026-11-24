@@ -140,7 +140,7 @@ pub fn match_yaml(bytes: &[u8]) -> Result<String, String> {
 ///
 /// # Errors
 /// Refuses an endpoint the standard sequence cannot reproduce.
-pub fn deployment(
+pub(crate) fn deployment(
     economy: &Economy,
     opened: &SideState,
     ended: &SideState,
@@ -221,12 +221,7 @@ pub fn deployment(
     ))
 }
 
-/// Compacts a historical action list by collapsing adjacent same-region moves
-/// while verifying that it reproduces `ended` from `opened`.
-///
-/// # Errors
-/// Returns an error when the history cannot legally reproduce `ended`.
-pub fn historical_deployment(
+fn historical_deployment(
     economy: &Economy,
     opened: &SideState,
     ended: &SideState,

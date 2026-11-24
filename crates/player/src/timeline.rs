@@ -87,10 +87,6 @@ pub struct Timeline {
     /// standalone layout, fight or recording.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lead_in: Option<crate::LeadIn>,
-    /// Optional concise label overriding `Round <n>` in the lower playback
-    /// switcher (leaving the top HUD `Round <n>` plate unchanged).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub label: Option<String>,
 }
 
 /// Player core health, separate from unit life. A standalone recording does
@@ -1031,7 +1027,6 @@ impl<'a> Builder<'a> {
             cues: self.cues,
             clips: self.clips,
             lead_in: None,
-            label: None,
         }
     }
 }

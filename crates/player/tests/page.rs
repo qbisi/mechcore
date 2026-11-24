@@ -777,34 +777,3 @@ red:
         assert!(larva.underground.is_some());
     }
 }
-
-#[test]
-fn timeline_labels_are_omitted_by_default_and_preserved_when_set() {
-    let document = br"
-kind: layout
-seed: 7
-round: 1
-blue:
-  units:
-  - {name: arclight, index: 0, position: {x: 0, y: -120}}
-red:
-  units:
-  - {name: arclight, index: 0, position: {x: 0, y: -120}}
-";
-    let recording = mechcore_simulation::simulate_document(document, Record::Memory, None)
-        .unwrap()
-        .recording
-        .unwrap();
-
-    let mut t0 = mechcore_player::timeline(&recording, None).unwrap();
-    let default_json = serde_json::to_string(&t0).unwrap();
-    assert!(!default_json.contains("\"label\""), "{default_json}");
-
-    let mut t1 = mechcore_player::timeline(&recording, None).unwrap();
-    t0.label = Some("Baseline (+0)".into());
-    t1.label = Some("Solve #1 (+100)".into());
-
-    let html = mechcore_player::match_page(&[t0, t1], "compare").unwrap();
-    assert!(html.contains("Baseline (+0)"));
-    assert!(html.contains("Solve #1 (+100)"));
-}
