@@ -12,7 +12,7 @@
 //! A shell may also hold a match and the side it plays, named when it opens
 //! or by the first line that opens one, so that match's verbs are written
 //! without the document and the side. With `--json` the prompt is the request
-//! stream an arena speaks to a player instead, which `requests` answers.
+//! stream for the bound match, which `requests` answers.
 
 use crate::acquire::{Launch, Mode, Ownership};
 use crate::cli::{Args, Failure, emit};

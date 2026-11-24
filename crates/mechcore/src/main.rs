@@ -1,6 +1,7 @@
 mod acquire;
 mod adapter;
 mod arena;
+mod arena_simulation;
 mod buildings;
 mod cli;
 mod convert;
@@ -60,7 +61,7 @@ fn usage(program: &str) {
     eprintln!("       {program} match act <match.yaml> --side blue|red <decision> [--dry-run]");
     eprintln!("       {program} match commit <match.yaml> --side blue|red");
     eprintln!(
-        "       {program} arena run <match.yaml|dir> --blue <command> --red <command> [--matches <n>]"
+        "       {program} arena --blue <command> --red <command> [--seed <n>] [--timeout <seconds>]"
     );
     eprintln!("       {program} game launch [--gui] [--online] [--level <0-4>]");
     eprintln!("       {program} game <operation> [--level <0-4>]");
