@@ -57,11 +57,9 @@ Each formation displays its experience as `current / maximum` (for example,
      fight so that subsequent kills are not wasted on a capped squad.
   3. **Cannot be targeted by Intensive Training** (which also refuses Level `9`
      units).
-- **Zero-Experience Same-Round Upgrades:** As detailed in
-  **[A Round's Decisions — Upgrading a Formation's Level](a-rounds-decisions.md#upgrading-a-formations-level-upgrade_unit)**,
-  a formation that arrived in the current round—or that already upgraded once in
-  the current round—holds `0` combat experience and can be upgraded immediately
-  by paying supply without filling its experience bar first.
+- **Starting experience:** A new formation begins at zero for its purchase
+  level. Intensive Training can fill that bar during deployment. After a paid
+  upgrade the formation needs a full bar again for its next upgrade.
 
 ## How Combat Kills Distribute Experience
 

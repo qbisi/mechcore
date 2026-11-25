@@ -579,7 +579,9 @@ the `Positions` column of the [battle skill index](../../rules/battle_skill.md).
 ## Normal form
 
 A unit's `exp` is written `current/maximum` as a layout writes it, and is
-absent when its `current` is `0`.
+absent when its `current` is `0`. On a standing formation, an omitted field
+means `0/maximum` for its type and level, including immediately after purchase
+or upgrade.
 
 | Collection | Order |
 | --- | --- |

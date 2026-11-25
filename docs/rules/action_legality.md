@@ -82,9 +82,9 @@ position as a move.
 - The side holds the formation (`InvalidUnit`).
 - The formation is below its last level (`LevelMax`), in both layers.
 - The side holds the upgrade price (`NotEnoughSupply`).
-- A formation that holds experience has a full bar (`NotEnoughExp`). One that
-  has earned none since it joined or last levelled, which is every formation
-  that joined or levelled this round, buys its next level without one.
+- The formation's experience bar is full (`NotEnoughExp`). A new purchase
+  starts at zero for its shop level. An upgrade resets the bar to zero for
+  the new level. Intensive Training can fill either bar before combat.
 
 ### `upgrade_technology`
 
@@ -191,10 +191,8 @@ it, and not of the finish.
 - Every round from the second holds one answer from each side, its first
   decision, unless the side conceded: every match of this version's corpus,
   `scripts/corpus/verify-matches.py`.
-- A formation that has fought is upgraded only with a full bar, Intensive
-  Training's among them, and one that joined or levelled in the round is
-  upgraded without one: every match of this version's corpus,
-  `scripts/corpus/verify-matches.py`.
+- Recorded upgrades of formations carrying combat experience use a full bar,
+  including bars filled by Intensive Training: `scripts/corpus/verify-matches.py`.
 
 ### Read
 

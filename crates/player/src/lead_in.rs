@@ -319,7 +319,7 @@ mod tests {
             unlocks_remaining: 3,
             contraptions_remaining: 3,
         };
-        let blue = SideState {
+        let mut blue = SideState {
             supply: 5000,
             unlocked_units: vec![9, 10], // fang, crawler
             shop: shop.clone(),
@@ -330,6 +330,7 @@ mod tests {
             units: vec![unit("crawler", 0, 0, -100)],
             ..SideState::default()
         };
+        blue.units[0].exp = Some("450/450".parse().unwrap());
         let red = SideState {
             supply: 4000,
             unlocked_units: vec![9, 10],

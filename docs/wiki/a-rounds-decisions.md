@@ -99,19 +99,10 @@ Raising a formation's level multiplies its mechs' base life and base attack
 damage (`n` times base life and base damage at level `n`, up to level `9`), and
 resets its experience bar to `0`.
 
-Paying the upgrade supply price is **not** sufficient on its own to upgrade
-every formation:
-
-- **Formations holding experience require a full bar:** Once a formation has
-  fought and earned experience (`current/maximum`), the game refuses
-  `upgrade_unit` unless `current` has reached `maximum`—either from combat kills
-  and assists or from targeting the formation with the commander skill
-  **Intensive Training**.
-- **Formations with zero experience since arriving or leveling:** A formation
-  that has earned no experience since it joined the board or last leveled up—which
-  includes **every formation that arrived or leveled up in the current
-  round**—can be upgraded immediately by paying its upgrade supply price, with
-  no experience bar requirement.
+- **Experience requirement:** A formation needs a full experience bar to
+  upgrade. A newly purchased formation starts at zero for its purchase level.
+  **Intensive Training** can fill its bar during deployment, allowing a paid
+  upgrade before its first fight.
 - **Upgrade price discounts:** Officers and fitted equipment (such as
   **Enhancement Module**, which subtracts `100` supply from its formation's
   upgrade price) modify the upgrade cost. Multiple discounts sum together and

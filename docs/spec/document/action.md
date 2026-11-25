@@ -203,7 +203,9 @@ correction is added to the level price before flooring the total at zero.
 - {type: upgrade_unit, index: 5}
 ```
 
-Raises the unit at `index` by one level. Costs one upgrade for its unit
+Raises the unit at `index` by one level when its experience bar is full, then
+resets the bar to zero at the new level. An omitted `exp` represents an empty
+bar. Costs one upgrade for its unit
 type, less what the unit's equipment discounts, floored at zero.
 
 ### `unlock_unit`

@@ -1885,7 +1885,11 @@ fn format_and_grbr_keep_paid_upgrades_before_an_enhancement_module() {
     open_the_match(&path);
     let mut game = match_doc::read(&fs::read(&path).unwrap()).unwrap().unwrap();
     let turn = &mut game.turns[0];
-    let index = turn.state.blue.units[0].index;
+    let unit = &mut turn.state.blue.units[0];
+    let index = unit.index;
+    let mut bar = unit.exp.unwrap();
+    bar.current = bar.maximum;
+    unit.exp = Some(bar);
     turn.state.blue.equipment.push(StateEquipment {
         id: 13_030_004,
         fitted: None,

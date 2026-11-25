@@ -836,16 +836,11 @@ impl Builder<'_> {
     }
 
     fn upgrade(&mut self, index: i32) -> Result<(), String> {
-        let exp = self.unit(index)?.exp;
-        let final_training = self
-            .wanted(index)
-            .is_ok_and(|wanted| wanted.exp.is_some_and(Experience::is_full));
-        let mut training = self
-            .pending_skill(index, &crate::transition::TRAINING_SKILLS)
-            .into_iter();
-        if !exp.is_some_and(Experience::is_full)
-            && (exp.is_some() || training.len() > usize::from(final_training))
-            && let Some(action) = training.next()
+        if !self.unit(index)?.exp.is_some_and(Experience::is_full)
+            && let Some(action) = self
+                .pending_skill(index, &crate::transition::TRAINING_SKILLS)
+                .into_iter()
+                .next()
         {
             self.push(action)?;
         }
@@ -967,6 +962,25 @@ mod tests {
             cooldown: 0,
             standing: Vec::new(),
             release: None,
+        }
+    }
+
+    fn fill_bar(unit: &mut StateUnit) {
+        let mut bar = Experience::at_level(0, &unit.type_name, unit.level.unwrap_or(1)).unwrap();
+        bar.current = bar.maximum;
+        unit.exp = Some(bar);
+    }
+
+    fn add_training(opened: &mut SideState, unit: i32) -> Action {
+        let index = i32::try_from(opened.battle_skills.len()).unwrap();
+        opened.battle_skills.push(PanelSkill {
+            index,
+            ..slot(1_100_001)
+        });
+        Action::ReleaseCommanderSkill {
+            index,
+            id: 1_100_001,
+            target: SkillTarget::Unit(unit),
         }
     }
 
@@ -1193,15 +1207,41 @@ mod tests {
             id: ENHANCEMENT_MODULE,
             fitted: None,
         });
+        fill_bar(&mut opened.units[0]);
+        let train = add_training(&mut opened, 0);
         let upgrade = Action::UpgradeUnit { index: 0 };
         let module = Action::UseEquipment {
             equipment: ENHANCEMENT_MODULE,
             index: 0,
         };
         for (history, cost) in [
-            (vec![module.clone(), upgrade.clone(), upgrade.clone()], 200),
-            (vec![upgrade.clone(), module.clone(), upgrade.clone()], 300),
-            (vec![upgrade.clone(), upgrade.clone(), module.clone()], 400),
+            (
+                vec![
+                    module.clone(),
+                    upgrade.clone(),
+                    train.clone(),
+                    upgrade.clone(),
+                ],
+                200,
+            ),
+            (
+                vec![
+                    upgrade.clone(),
+                    module.clone(),
+                    train.clone(),
+                    upgrade.clone(),
+                ],
+                300,
+            ),
+            (
+                vec![
+                    upgrade.clone(),
+                    train.clone(),
+                    upgrade.clone(),
+                    module.clone(),
+                ],
+                400,
+            ),
         ] {
             let closed = close(&opened, &history);
             assert_eq!(opened.supply - closed.supply, cost);
@@ -1230,6 +1270,9 @@ mod tests {
             };
             2
         ];
+        fill_bar(&mut opened.units[0]);
+        let train_first = add_training(&mut opened, 0);
+        let train_second = add_training(&mut opened, 0);
         let upgrade = Action::UpgradeUnit { index: 0 };
         let module = Action::UseEquipment {
             equipment: ENHANCEMENT_MODULE,
@@ -1238,8 +1281,10 @@ mod tests {
         let history = [
             upgrade.clone(),
             module.clone(),
+            train_first,
             upgrade.clone(),
             module,
+            train_second,
             upgrade,
         ];
         let closed = close(&opened, &history);
@@ -1340,11 +1385,13 @@ mod tests {
             index: 0,
             equipment: crate::mobility::DEPLOYMENT_MODULE,
         };
+        let train = add_training(&mut opened, 2);
         let upgrade = Action::UpgradeUnit { index: 2 };
         let history = [
             research.clone(),
             moved(0, 100, -160),
             bought(1, -100, -160),
+            train.clone(),
             upgrade.clone(),
             equip.clone(),
         ];
@@ -1357,6 +1404,7 @@ mod tests {
                 equip,
                 moved(0, 100, -160),
                 moved(2, -100, -160),
+                train,
                 upgrade
             ]
         );
@@ -1422,6 +1470,7 @@ mod tests {
             id: ENHANCEMENT_MODULE,
             fitted: None,
         });
+        fill_bar(&mut opened.units[0]);
         let recover = Action::ReleaseCommanderSkill {
             index: 0,
             id: 900_001,
@@ -1482,6 +1531,7 @@ mod tests {
             id: ENHANCEMENT_MODULE,
             fitted: None,
         });
+        let train = add_training(&mut opened, 3);
         let taken = [
             default_purchase(1),
             Action::ActiveEnergyTowerSkill { skill: 4 },
@@ -1490,6 +1540,7 @@ mod tests {
                 equipment: ENHANCEMENT_MODULE,
                 index: 3,
             },
+            train,
             Action::UpgradeUnit { index: 3 },
             Action::ReleaseCommanderSkill {
                 index: 0,
@@ -1504,14 +1555,13 @@ mod tests {
     }
 
     #[test]
-    fn elite_recruitment_uses_fewer_actions_when_purchase_and_upgrade_cost_the_same() {
+    fn elite_recruitment_buys_a_higher_rank_with_an_empty_bar() {
         let opened = side();
         let elite = Action::ActiveEnergyTowerSkill { skill: 4 };
         let buy = default_purchase(2);
-        let closed = close(
-            &opened,
-            &[buy.clone(), Action::UpgradeUnit { index: 2 }, elite.clone()],
-        );
+        let closed = close(&opened, &[elite.clone(), buy.clone()]);
+        assert_eq!(closed.units[2].level, Some(2));
+        assert_eq!(closed.units[2].exp.unwrap().current, 0);
         assert_eq!(normalized(&opened, &closed), [elite, buy]);
     }
 
@@ -1519,8 +1569,10 @@ mod tests {
     fn a_recovered_purchase_keeps_its_recorded_type_and_upgrade() {
         let mut opened = side();
         opened.battle_skills.push(slot(900_001));
+        let train = add_training(&mut opened, 2);
         let history = [
             bought(15, -100, -160),
+            train,
             Action::UpgradeUnit { index: 2 },
             Action::ReleaseCommanderSkill {
                 index: 0,
@@ -1563,6 +1615,7 @@ mod tests {
     fn training_keeps_its_target_when_multiple_formations_upgrade() {
         let mut opened = side();
         opened.battle_skills.push(slot(1_100_001));
+        fill_bar(&mut opened.units[0]);
         let taken = [
             Action::UpgradeUnit { index: 0 },
             Action::ReleaseCommanderSkill {
@@ -1573,7 +1626,12 @@ mod tests {
             Action::UpgradeUnit { index: 1 },
         ];
         let closed = close(&opened, &taken);
-        assert!(closed.units.iter().all(|unit| unit.exp.is_none()));
+        assert!(
+            closed
+                .units
+                .iter()
+                .all(|unit| unit.exp == Experience::at_level(0, &unit.type_name, 2))
+        );
         let written = serde_yaml::to_string(&closed).unwrap();
         let mut read: SideState = serde_yaml::from_str(&written).unwrap();
         read.shop = closed.shop;
@@ -1623,13 +1681,15 @@ mod tests {
 
     #[test]
     fn purchase_levels_allow_a_later_upgrade_without_reversing_elite_recruitment() {
-        let opened = side();
+        let mut opened = side();
+        let train = add_training(&mut opened, 2);
         let closed = close(
             &opened,
             &[
                 bought(1, -100, -160),
                 bought(10, 100, -160),
                 Action::ActiveEnergyTowerSkill { skill: 4 },
+                train,
                 Action::UpgradeUnit { index: 2 },
             ],
         );
