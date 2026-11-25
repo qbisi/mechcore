@@ -1,9 +1,11 @@
 //! Runs one match between two persistent JSON Lines clients.
+mod log;
 use crate::{
     cli::{Args, Failure, Outcome, Verdict},
     r#match::Game,
     turn::Side,
 };
+use log::Log;
 use mechcore_document::r#match::{Action, Rules, TurnActions};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -18,12 +20,13 @@ use std::{
     time::Duration,
 };
 use tokio::{
-    io::{AsyncBufReadExt, AsyncWriteExt, BufReader, Lines},
+    io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, Split},
     process::{Child, ChildStdin, ChildStdout, Command},
     task::JoinSet,
 };
 
 pub(crate) fn run(mut args: Args) -> Outcome {
+    let log_path = args.value("--log")?;
     let parallel = args
         .parsed::<NonZeroUsize>("--parallel", "a positive number of concurrent trials")?
         .unwrap_or_else(|| std::thread::available_parallelism().unwrap_or(NonZeroUsize::MIN))
@@ -64,22 +67,30 @@ pub(crate) fn run(mut args: Args) -> Outcome {
         args.finish()?;
         Game::arena_load(&path, round)?
     };
+    let log = log_path.as_deref().map(Log::open).transpose()?;
+    let log = log.as_ref();
     let runtime = tokio::runtime::Builder::new_current_thread()
         .max_blocking_threads(parallel)
         .enable_all()
         .build()
         .map_err(io_error)?;
     let game = runtime.block_on(async {
-        let names = [name(&blue, timeout).await?, name(&red, timeout).await?];
+        let names = [
+            name(&blue, Side::Blue, timeout, log).await?,
+            name(&red, Side::Red, timeout, log).await?,
+        ];
         game.set_arena_names(names);
         let mut game = Arc::new(game);
-        let mut bots = [Bot::start(&blue)?, Bot::start(&red)?];
+        let mut bots = [
+            Bot::start(&blue, Side::Blue, log)?,
+            Bot::start(&red, Side::Red, log)?,
+        ];
         while !game.over() {
             let problem = game.problem_yaml()?;
             let mut answers = TurnActions::default();
             for side in Side::BOTH {
                 let bot = &mut bots[side.seat()];
-                let play = bot.answer(Arc::clone(&game), side, &problem, duration, parallel);
+                let play = bot.answer(Arc::clone(&game), &problem, duration, parallel);
                 let actions = match timeout {
                     Some(bound) => match tokio::time::timeout(bound, play).await {
                         Ok(answer) => answer?,
@@ -144,24 +155,48 @@ impl Drop for ProcessGroup {
     }
 }
 
-async fn name(cmd: &str, timeout: Option<Duration>) -> Result<String, Failure> {
-    let mut query = command(&format!("{cmd} --name"));
+async fn name(
+    cmd: &str,
+    side: Side,
+    timeout: Option<Duration>,
+    log: Option<&Log>,
+) -> Result<String, Failure> {
+    let invocation = format!("{cmd} --name");
+    let mut query = command(&invocation);
     query.stdin(Stdio::null()).stdout(Stdio::piped());
-    let child = query.spawn().map_err(io_error)?;
+    let mut child = query.spawn().map_err(io_error)?;
     let mut group = ProcessGroup(child.id());
-    let output = child.wait_with_output();
-    let output = match timeout {
+    if let Some(log) = log {
+        log.record(side, "arena_to_bot", "name", &invocation)?;
+    }
+    let mut stdout = Vec::new();
+    let output = async {
+        child
+            .stdout
+            .take()
+            .expect("piped stdout")
+            .read_to_end(&mut stdout)
+            .await?;
+        child.wait().await
+    };
+    let status = match timeout {
         Some(bound) => tokio::time::timeout(bound, output)
             .await
-            .map_err(|_| Failure::failed("bot name query timed out"))?,
-        None => output.await,
+            .map_err(|_| Failure::failed("bot name query timed out"))
+            .and_then(|result| result.map_err(io_error)),
+        None => output.await.map_err(io_error),
+    };
+    if let Some(log) = log
+        && !stdout.is_empty()
+    {
+        log.received(side, "name", &stdout)?;
     }
-    .map_err(io_error)?;
+    let status = status?;
     group.0 = None;
-    let name = std::str::from_utf8(&output.stdout)
+    let name = std::str::from_utf8(&stdout)
         .map_err(|_| Failure::failed("bot name must be UTF-8"))?
         .trim();
-    if !output.status.success() || name.is_empty() || name.chars().any(char::is_control) {
+    if !status.success() || name.is_empty() || name.chars().any(char::is_control) {
         return Err(Failure::failed(format!(
             "{cmd} --name must print one name and exit successfully"
         )));
@@ -169,11 +204,13 @@ async fn name(cmd: &str, timeout: Option<Duration>) -> Result<String, Failure> {
     Ok(name.into())
 }
 
-struct Bot {
+struct Bot<'a> {
+    side: Side,
+    log: Option<&'a Log>,
     group: ProcessGroup,
     child: Child,
     input: ChildStdin,
-    lines: Lines<BufReader<ChildStdout>>,
+    lines: Split<BufReader<ChildStdout>>,
 }
 
 #[derive(Deserialize, Default)]
@@ -218,17 +255,19 @@ impl Drop for Cancel {
     }
 }
 
-impl Bot {
-    fn start(cmd: &str) -> Result<Self, Failure> {
+impl<'a> Bot<'a> {
+    fn start(cmd: &str, side: Side, log: Option<&'a Log>) -> Result<Self, Failure> {
         let mut child = command(cmd)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()
             .map_err(io_error)?;
         Ok(Self {
+            side,
+            log,
             group: ProcessGroup(child.id()),
             input: child.stdin.take().expect("piped stdin"),
-            lines: BufReader::new(child.stdout.take().expect("piped stdout")).lines(),
+            lines: BufReader::new(child.stdout.take().expect("piped stdout")).split(b'\n'),
             child,
         })
     }
@@ -237,7 +276,11 @@ impl Bot {
         let mut line = serde_json::to_vec(value).map_err(|e| Failure::failed(e.to_string()))?;
         line.push(b'\n');
         self.input.write_all(&line).await.map_err(io_error)?;
-        self.input.flush().await.map_err(io_error)
+        self.input.flush().await.map_err(io_error)?;
+        if let Some(log) = self.log {
+            log.record(self.side, "arena_to_bot", "play", value)?;
+        }
+        Ok(())
     }
 
     async fn finish(&mut self) {
@@ -256,12 +299,12 @@ impl Bot {
     async fn answer(
         &mut self,
         game: Arc<Game>,
-        side: Side,
         problem: &str,
         timeout: Duration,
         parallel: usize,
     ) -> Result<Vec<Action>, Failure> {
         let round = game.round();
+        let side = self.side;
         self.send(&json!({
             "op": "problem", "round": round, "side": side, "match_yaml": problem,
             "timeout": timeout.as_secs_f64(), "parallel": parallel
@@ -286,10 +329,14 @@ impl Bot {
                         .map_err(|e| Failure::failed(e.to_string()))?;
                     self.reply(round, &json!(id), result).await?;
                 }
-                line = self.lines.next_line() => {
+                line = self.lines.next_segment() => {
                     let line = line.map_err(io_error)?.ok_or_else(||
                         Failure::failed(format!("{} closed its output during round {round}", side.name())))?;
-                    if let Some(actions) = self.requests(&line, &game, side, &mut ids, &mut queue).await? {
+                    if let Some(log) = self.log {
+                        log.received(side, "play", &line)?;
+                    }
+                    let line = std::str::from_utf8(&line).map_err(|e| Failure::failed(e.to_string()))?;
+                    if let Some(actions) = self.requests(line, &game, &mut ids, &mut queue).await? {
                         return Ok(actions);
                     }
                 }
@@ -301,7 +348,6 @@ impl Bot {
         &mut self,
         line: &str,
         game: &Game,
-        side: Side,
         ids: &mut HashSet<u64>,
         queue: &mut VecDeque<Request>,
     ) -> Result<Option<Vec<Action>>, Failure> {
@@ -344,7 +390,7 @@ impl Bot {
                         .await?;
                     continue;
                 }
-                match game.answer_actions(side, &actions) {
+                match game.answer_actions(self.side, &actions) {
                     Ok((actions, _)) => {
                         self.reply(round, &id, Ok(json!({"committed":true})))
                             .await?;
