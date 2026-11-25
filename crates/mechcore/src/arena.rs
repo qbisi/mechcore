@@ -23,6 +23,12 @@ use tokio::{
 };
 
 pub(crate) fn run(mut args: Args) -> Outcome {
+    let verb = args.operand("an arena verb: new or load")?;
+    if !matches!(verb.as_str(), "new" | "load") {
+        return Err(Failure::usage(format!(
+            "arena has no verb {verb:?}; expected new or load"
+        )));
+    }
     let command = |args: &mut Args, option| {
         args.value(option)?
             .filter(|s| !s.trim().is_empty())
@@ -30,26 +36,37 @@ pub(crate) fn run(mut args: Args) -> Outcome {
     };
     let blue = command(&mut args, "--blue")?;
     let red = command(&mut args, "--red")?;
-    let seed = args.parsed("--seed", "a match seed")?;
-    let map = args.parsed("--map", "a map ID")?;
-    let rules = Rules {
-        reinforcements: !args.flag("--no-reinforce")?,
-        full_tech_loadout: args.flag("--full-tech")?,
-    };
     let seconds = args
         .parsed::<f64>("--timeout", "seconds per problem")?
         .unwrap_or(100.0);
-    args.finish()?;
     let duration = Duration::try_from_secs_f64(seconds)
         .map_err(|_| Failure::usage("timeout must be finite and nonnegative"))?;
     let timeout = (!duration.is_zero()).then_some(duration);
+    let mut game = if verb == "new" {
+        let seed = args.parsed("--seed", "a match seed")?;
+        let map = args.parsed("--map", "a map ID")?;
+        let rules = Rules {
+            reinforcements: !args.flag("--no-reinforce")?,
+            full_tech_loadout: args.flag("--full-tech")?,
+        };
+        args.finish()?;
+        Game::arena_new(seed, map, rules)?
+    } else {
+        let round = args
+            .parsed::<i32>("--round", "a round number")?
+            .unwrap_or(0);
+        let path = args.path("a source match document")?;
+        args.finish()?;
+        Game::arena_load(&path, round)?
+    };
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .map_err(io_error)?;
     let game = runtime.block_on(async {
         let names = [name(&blue, timeout).await?, name(&red, timeout).await?];
-        let mut game = Arc::new(Game::arena(seed, map, names, rules)?);
+        game.set_arena_names(names);
+        let mut game = Arc::new(game);
         let mut bots = [Bot::start(&blue)?, Bot::start(&red)?];
         while !game.over() {
             let problem = game.problem_yaml()?;

@@ -1369,8 +1369,10 @@ layout for.
 ## `arena`
 
 ```sh
-mechcore arena --blue 'python3 blue.py' --red 'python3 red.py' \
+mechcore arena new --blue 'python3 blue.py' --red 'python3 red.py' \
   --seed 7 --no-reinforce --full-tech --timeout 0 >match.yaml
+mechcore arena load match.yaml --round 3 --blue 'python3 blue.py' --red 'python3 red.py' \
+  --timeout 0 >continuation.yaml
 ```
 
 The command plays one match in memory and writes the final canonical match
@@ -1378,10 +1380,22 @@ document to stdout. Players write diagnostics to stderr. Each player command
 runs under `sh -c`. Arena first runs the command with `--name` appended and
 expects a successful exit and one nonempty UTF-8 name line. It then starts one
 persistent process per seat. The reference Python players use PyYAML to read
-match documents. A fixed positive `--seed` reproduces the deal, map and player seeds.
-`--map <id>` selects the map. Reinforcements are enabled by default.
-`--full-tech` gives both seats the full loadout. The default is the standard
-loadout used by the CLI.
+match documents.
+
+`arena new` draws a fresh match. A fixed positive `--seed` reproduces the
+deal, map and player seeds. `--map <id>` selects the map. Reinforcements are
+enabled by default. `--full-tech` gives both seats the full loadout. The
+default is the standard loadout used by the CLI.
+
+`arena load` opens a match document read-only. By default it reopens round
+zero with the recorded deal and lets both bots choose their opening. With
+`--round N` it retains all earlier decisions and the opening state of round N.
+The bots replace both sides' actions from that round onward. A captured suffix
+can start at a playable checkpoint it contains. An absent round or a checkpoint
+whose cores have already ended the match is refused. The source supplies the
+map, seeds, rules and loadouts. The new header uses the two bots' reported names
+and omits the original players' ratings. Both verbs require `--blue` and
+`--red` and write the completed match to stdout.
 
 Arena writes one JSON object per line to each player's stdin and reads the
 player's stdout as JSON Lines. Flush each request. Each round it asks blue,

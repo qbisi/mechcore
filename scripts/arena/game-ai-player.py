@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """A player modelled on the game's own computer opponent, for `mechcore arena`.
 
-    mechcore arena --blue 'uv run --with pyyaml scripts/arena/game-ai-player.py --seed 1' \
+    mechcore arena new --blue 'uv run --with pyyaml scripts/arena/game-ai-player.py --seed 1' \
         --red 'uv run --with pyyaml scripts/arena/random-player.py' > m.yaml
 
 `--name` prints `game-ai` and exits without reading a match.
