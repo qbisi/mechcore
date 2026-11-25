@@ -1401,11 +1401,11 @@ Arena writes one JSON object per line to each player's stdin and reads the
 player's stdout as JSON Lines. Flush each request. Each round it asks blue,
 then red, using the same immutable match prefix for both. Completed rounds
 include both seats' decisions. Round zero ends at the match header and each
-deployment problem ends at the current state. The envelope identifies the
-seat and round:
+deployment problem ends at the current state. Each problem includes the seat,
+round, time budget in seconds (`timeout`) and concurrent trial limit (`parallel`).
 
 ```json
-{"op":"problem","side":"red","round":1,"match_yaml":"kind: match\n..."}
+{"op":"problem","side":"red","round":1,"timeout":30,"parallel":8,"match_yaml":"kind: match\n..."}
 ```
 
 Each request carries an unsigned integer `id`, unique within that problem.
@@ -1435,10 +1435,16 @@ the match immediately. A hypothetical opening or concession returns
 A simulator refusal returns an error, and the trial leaves the match untouched.
 
 `--timeout` is wall-clock seconds per seat per problem, including trial time,
-and also bounds each name query. The default is 100 seconds and 0 disables
+and also bounds each name query. The default is 30 seconds and 0 disables
 the limit. A deployment timeout concedes for that seat. A failed name query,
 an opening timeout, a broken bot connection or an unresolved official battle
 ends the command with an error on stderr. At match end the bot receives EOF.
+
+`--parallel N` lets up to N `act` and `simulate` trials run at once,
+counted together across batches and individual requests. Additional trials
+queue until a slot opens. Both arena verbs accept a positive integer and
+default to the logical CPU count available to the arena process, or 1 if
+the count is unavailable.
 
 ### Limited battle simulation
 

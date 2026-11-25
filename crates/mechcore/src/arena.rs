@@ -9,6 +9,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use std::{
     collections::{HashSet, VecDeque},
+    num::NonZeroUsize,
     process::Stdio,
     sync::{
         Arc,
@@ -23,6 +24,10 @@ use tokio::{
 };
 
 pub(crate) fn run(mut args: Args) -> Outcome {
+    let parallel = args
+        .parsed::<NonZeroUsize>("--parallel", "a positive number of concurrent trials")?
+        .unwrap_or_else(|| std::thread::available_parallelism().unwrap_or(NonZeroUsize::MIN))
+        .get();
     let verb = args.operand("an arena verb: new or load")?;
     if !matches!(verb.as_str(), "new" | "load") {
         return Err(Failure::usage(format!(
@@ -38,7 +43,7 @@ pub(crate) fn run(mut args: Args) -> Outcome {
     let red = command(&mut args, "--red")?;
     let seconds = args
         .parsed::<f64>("--timeout", "seconds per problem")?
-        .unwrap_or(100.0);
+        .unwrap_or(30.0);
     let duration = Duration::try_from_secs_f64(seconds)
         .map_err(|_| Failure::usage("timeout must be finite and nonnegative"))?;
     let timeout = (!duration.is_zero()).then_some(duration);
@@ -60,6 +65,7 @@ pub(crate) fn run(mut args: Args) -> Outcome {
         Game::arena_load(&path, round)?
     };
     let runtime = tokio::runtime::Builder::new_current_thread()
+        .max_blocking_threads(parallel)
         .enable_all()
         .build()
         .map_err(io_error)?;
@@ -73,7 +79,7 @@ pub(crate) fn run(mut args: Args) -> Outcome {
             let mut answers = TurnActions::default();
             for side in Side::BOTH {
                 let bot = &mut bots[side.seat()];
-                let play = bot.answer(Arc::clone(&game), side, &problem);
+                let play = bot.answer(Arc::clone(&game), side, &problem, duration, parallel);
                 let actions = match timeout {
                     Some(bound) => match tokio::time::timeout(bound, play).await {
                         Ok(answer) => answer?,
@@ -252,17 +258,21 @@ impl Bot {
         game: Arc<Game>,
         side: Side,
         problem: &str,
+        timeout: Duration,
+        parallel: usize,
     ) -> Result<Vec<Action>, Failure> {
         let round = game.round();
-        self.send(&json!({"op":"problem", "round":round, "side":side, "match_yaml":problem}))
-            .await?;
+        self.send(&json!({
+            "op": "problem", "round": round, "side": side, "match_yaml": problem,
+            "timeout": timeout.as_secs_f64(), "parallel": parallel
+        }))
+        .await?;
         let cancel = Cancel(Arc::new(AtomicBool::new(false)));
-        let width = std::thread::available_parallelism().map_or(1, usize::from);
         let mut jobs = JoinSet::new();
         let mut queue = VecDeque::new();
         let mut ids = HashSet::new();
         loop {
-            while jobs.len() < width {
+            while jobs.len() < parallel {
                 let Some(request) = queue.pop_front() else {
                     break;
                 };
