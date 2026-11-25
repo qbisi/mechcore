@@ -30,10 +30,24 @@ const BOT: &str = r#"import json, pathlib, re, sys, time
 if "--name" in sys.argv:
     print(sys.argv[1] if sys.argv[1] != "--name" else "original")
     sys.exit(0)
+wire = pathlib.Path("bot-wire.jsonl")
+def record(direction, line):
+    if wire.exists():
+        try:
+            message = json.loads(line)
+        except ValueError:
+            message = line
+        with wire.open("a") as f:
+            print(json.dumps(dict(side=side, direction=direction, phase="play", message=message)), file=f)
 def read():
-    return json.loads(input())
+    line = input()
+    record("arena_to_bot", line)
+    return json.loads(line)
+def send_line(line):
+    record("bot_to_arena", line)
+    print(line, flush=True)
 def send(x):
-    print(json.dumps(x), flush=True)
+    send_line(json.dumps(x))
 def ask(x):
     send(x)
     reply = read()
@@ -44,6 +58,7 @@ def request(op, i, actions, **opts):
 for line in sys.stdin:
     p = json.loads(line)
     side, n, doc = p["side"], p["round"], p["match_yaml"]
+    record("arena_to_bot", line)
     assert p["op"] == "problem"
     limits = pathlib.Path("limits.json")
     if limits.exists():
@@ -52,6 +67,9 @@ for line in sys.stdin:
     if n > 0 and "resign" in sys.argv:
         own = [dict(type="concede")]
     elif n == 0:
+        if wire.exists():
+            send_line("{broken")
+            assert read()["error"]["kind"] == "usage"
         seats = re.findall(r"^  - \{team: ([^,]+), specialist: ([^}]+)\}", doc, re.M)
         opening = {s:[dict(type="choose_advance_team", index=i, name=seats[start+i][0],
                            specialist=seats[start+i][1])] for s,start,i in [("blue",0,2),("red",4,1)]}
@@ -136,6 +154,14 @@ fn fixture() -> TempDir {
     dir
 }
 
+fn json_lines(path: &Path) -> Vec<Value> {
+    fs::read_to_string(path)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect()
+}
+
 fn play(dir: &Path, args: &[&str]) -> Output {
     let mut command = vec![
         "arena",
@@ -156,6 +182,7 @@ fn parallel_trials_match_the_recording_and_leave_both_openings_unchanged() {
     let dir = fixture();
     let dir = dir.path();
     fs::write(dir.join("limits.json"), "[0, 1]").unwrap();
+    fs::write(dir.join("bot-wire.jsonl"), "").unwrap();
     let bytes = success(play(
         dir,
         &[
@@ -166,9 +193,23 @@ fn parallel_trials_match_the_recording_and_leave_both_openings_unchanged() {
             "1",
             "--timeout",
             "0",
+            "--log",
+            "arena.jsonl",
         ],
     ));
     let game = mechcore_document::r#match::read(&bytes).unwrap().unwrap();
+    let log = json_lines(&dir.join("arena.jsonl"));
+    for ([query, reply], side) in log[..4].as_chunks::<2>().0.iter().zip(["blue", "red"]) {
+        assert_eq!(
+            query,
+            &json!({"side":side, "direction":"arena_to_bot", "phase":"name", "message":"exec python3 bot.py --name"})
+        );
+        assert_eq!(
+            reply,
+            &json!({"side":side, "direction":"bot_to_arena", "phase":"name", "message":"original\n"})
+        );
+    }
+    assert_eq!(log[4..], json_lines(&dir.join("bot-wire.jsonl")));
     assert_eq!(
         game.result.unwrap().winner,
         mechcore_document::r#match::Winner::Blue
@@ -293,6 +334,8 @@ fn load_reopens_only_the_selected_round_and_uses_the_new_bot_names() {
             "30.75",
             "--parallel",
             "2",
+            "--log",
+            "arena.jsonl",
         ];
         if let Some(round) = round {
             args.extend(["--round", round]);
@@ -323,6 +366,9 @@ fn load_reopens_only_the_selected_round_and_uses_the_new_bot_names() {
             assert_eq!(new, &expected);
         }
         let first = if round.is_some() { 2 } else { 0 };
+        let log = json_lines(&dir.join("arena.jsonl"));
+        assert_eq!(log[4]["message"]["round"], first);
+        assert_eq!(log[4]["message"]["op"], "problem");
         assert_eq!(dir.join("blue-0.yaml").exists(), first == 0);
         let problem = fs::read_to_string(dir.join(format!("blue-{first}.yaml"))).unwrap();
         let initial =
@@ -353,6 +399,41 @@ fn bot_exit_fails_with_empty_match_output() {
     let error: Value = serde_json::from_slice(&output.stderr).unwrap();
     assert_eq!(error["kind"], "failed");
     assert_eq!(error["operation"], "arena");
+}
+
+#[test]
+fn log_retains_the_last_failed_exchange() {
+    let dir = fixture();
+    fs::write(dir.path().join("broken.py"), "import sys\nif '--name' in sys.argv: print('broken')\nelse: input(); sys.stdout.buffer.write(bytes([255, 10]))\n").unwrap();
+    let args = [
+        "arena",
+        "new",
+        "--blue",
+        "exec python3 broken.py",
+        "--red",
+        "exec python3 bot.py",
+        "--log",
+        "session.jsonl",
+    ];
+    let output = cli(dir.path(), &args);
+    assert!(!output.status.success());
+    assert!(output.stdout.is_empty());
+    let path = dir.path().join("session.jsonl");
+    let rows = json_lines(&path);
+    assert_eq!(
+        rows.last().unwrap(),
+        &json!({"side":"blue","phase":"play","direction":"bot_to_arena","message":{"bytes":[255]}})
+    );
+    let retry = cli(dir.path(), &args);
+    assert!(!retry.status.success());
+    let error: Value = serde_json::from_slice(&retry.stderr).unwrap();
+    assert!(
+        error["reason"]
+            .as_str()
+            .unwrap()
+            .contains("cannot create arena log")
+    );
+    assert_eq!(rows, json_lines(&path));
 }
 
 #[test]

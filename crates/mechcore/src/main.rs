@@ -61,10 +61,10 @@ fn usage(program: &str) {
     eprintln!("       {program} match act <match.yaml> --side blue|red <decision> [--dry-run]");
     eprintln!("       {program} match commit <match.yaml> --side blue|red");
     eprintln!(
-        "       {program} arena new --blue <command> --red <command> [--seed <n>] [--map <id>] [--no-reinforce] [--full-tech] [--timeout <seconds>] [--parallel <n>]"
+        "       {program} arena new --blue <command> --red <command> [--seed <n>] [--map <id>] [--no-reinforce] [--full-tech] [--timeout <seconds>] [--parallel <n>] [--log <file.jsonl>]"
     );
     eprintln!(
-        "       {program} arena load <match.yaml> [--round <n>] --blue <command> --red <command> [--timeout <seconds>] [--parallel <n>]"
+        "       {program} arena load <match.yaml> [--round <n>] --blue <command> --red <command> [--timeout <seconds>] [--parallel <n>] [--log <file.jsonl>]"
     );
     eprintln!("       {program} game launch [--gui] [--online] [--level <0-4>]");
     eprintln!("       {program} game <operation> [--level <0-4>]");

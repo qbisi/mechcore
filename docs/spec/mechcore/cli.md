@@ -1372,7 +1372,7 @@ layout for.
 mechcore arena new --blue 'python3 blue.py' --red 'python3 red.py' \
   --seed 7 --no-reinforce --full-tech --timeout 0 >match.yaml
 mechcore arena load match.yaml --round 3 --blue 'python3 blue.py' --red 'python3 red.py' \
-  --timeout 0 >continuation.yaml
+  --timeout 0 --log continuation.jsonl >continuation.yaml
 ```
 
 The command plays one match in memory and writes the final canonical match
@@ -1396,6 +1396,24 @@ whose cores have already ended the match is refused. The source supplies the
 map, seeds, rules and loadouts. The new header uses the two bots' reported names
 and omits the original players' ratings. Both verbs require `--blue` and
 `--red` and write the completed match to stdout.
+
+Both verbs accept `--log <file.jsonl>`. Arena creates a new file and writes
+one row for each message it sends or receives, in that order across both seats.
+An existing destination is refused. Each row identifies the seat (`side`),
+direction, phase and complete message. For example, a bot's commit and the
+arena's acknowledgement occupy two lines.
+
+```jsonl
+{"side":"blue","direction":"bot_to_arena","phase":"play","message":{"op":"commit","id":9,"actions":[]}}
+{"side":"blue","direction":"arena_to_bot","phase":"play","message":{"round":1,"id":9,"result":{"committed":true}}}
+```
+
+In the `name` phase the messages are the shell command including `--name` and
+its stdout as text. In the `play` phase a JSON Lines batch remains one array,
+and each reply appears when sent. Malformed JSON is recorded as its input
+text. Non-UTF-8 output is represented as an object with a `bytes` array.
+Completed rows remain available if the match fails. Bot diagnostics stay on
+stderr.
 
 Arena writes one JSON object per line to each player's stdin and reads the
 player's stdout as JSON Lines. Flush each request. Each round it asks blue,
