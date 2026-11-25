@@ -2,9 +2,6 @@
 
 A deterministic Mechabellum simulator, recording toolkit, and battle player.
 
-Read the [Mechcore Wiki](https://qbisi.github.io/mechcore/), starting with
-[How a Match Works](docs/wiki/how-a-match-works.md).
-
 ![Rhino Whirlwind in the battle player at tick 178](assets/demo.svg)
 
 Play a pinned corpus round locally in the battle player (serves live over HTTP,
@@ -19,7 +16,7 @@ self-contained HTML file with code and battle data bundled offline, pass
 `--to html <out.html>` to `convert`. The download button exports the current
 tick as an SVG vector image.
 
-[Wiki](docs/wiki/how-a-match-works.md) · [CLI manual](docs/spec/mechcore/cli.md) ·
+[CLI manual](docs/spec/mechcore/cli.md) ·
 [Game rules](docs/rules/combat.md) · [Terminology](docs/terminology/README.md)
 
 Build the Nix package with `nix build .#mechcore`, or on ARM macOS build the
