@@ -3,13 +3,11 @@ use super::{Action, Draw, Failure, Game, Side, SideState, State, TurnActions, Va
 use mechcore_document::r#match::Rules;
 
 impl Game {
-    pub(crate) fn arena(
+    pub(crate) fn arena_new(
         seed: Option<i32>,
         map: Option<i32>,
-        names: [String; 2],
         rules: Rules,
     ) -> Result<Self, Failure> {
-        let [blue, red] = names;
         let mut draw = seed.map_or_else(Draw::new, |seed| Draw(u64::from(seed.unsigned_abs())));
         let seed = seed.unwrap_or_else(|| draw.seed().max(1));
         if seed <= 0 {
@@ -23,13 +21,26 @@ impl Game {
             map,
             None,
             None,
-            Some(blue),
+            None,
             rules,
             draw,
         )?;
-        game.r#match.red.name = red;
         game.turn.side_mut(Side::Red).given = true;
         Ok(game)
+    }
+
+    pub(crate) fn arena_load(path: &std::path::Path, round: i32) -> Result<Self, Failure> {
+        let document = super::read_match(path)?;
+        super::warn_build(&document.game_build);
+        super::fork_position(std::path::PathBuf::new(), document, None, Some(round))
+    }
+
+    pub(crate) fn set_arena_names(&mut self, [blue, red]: [String; 2]) {
+        self.r#match.blue.name = blue;
+        self.r#match.red.name = red;
+        // Historical ratings belong to the recorded players.
+        self.r#match.blue.elo_score = None;
+        self.r#match.red.elo_score = None;
     }
 
     pub(crate) fn document(&self) -> Result<String, Failure> {

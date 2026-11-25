@@ -28,7 +28,7 @@ fn success(output: Output) -> Vec<u8> {
 // Keep this protocol test runnable with a standard-library Python.
 const BOT: &str = r#"import json, pathlib, re, sys, time
 if "--name" in sys.argv:
-    print("test bot")
+    print(sys.argv[1] if sys.argv[1] != "--name" else "original")
     sys.exit(0)
 def read():
     return json.loads(input())
@@ -46,7 +46,9 @@ for line in sys.stdin:
     side, n, doc = p["side"], p["round"], p["match_yaml"]
     assert p["op"] == "problem"
     pathlib.Path(f"{side}-{n}.yaml").write_text(doc)
-    if n == 0:
+    if n > 0 and "resign" in sys.argv:
+        own = [dict(type="concede")]
+    elif n == 0:
         seats = re.findall(r"^  - \{team: ([^,]+), specialist: ([^}]+)\}", doc, re.M)
         opening = {s:[dict(type="choose_advance_team", index=i, name=seats[start+i][0],
                            specialist=seats[start+i][1])] for s,start,i in [("blue",0,2),("red",4,1)]}
@@ -132,6 +134,7 @@ fn fixture() -> TempDir {
 fn play(dir: &Path, args: &[&str]) -> Output {
     let mut command = vec![
         "arena",
+        "new",
         "--seed",
         "7",
         "--map",
@@ -241,6 +244,87 @@ fn deadline_concedes_the_active_seat() {
     ));
     let game = mechcore_document::r#match::read(&bytes).unwrap().unwrap();
     assert_eq!(json!(game.result.unwrap().winner), "blue");
+}
+
+#[test]
+fn load_reopens_only_the_selected_round_and_uses_the_new_bot_names() {
+    use mechcore_document::r#match::{Action, Winner, canonical_yaml, read};
+
+    let original = fixture();
+    fs::write(original.path().join("clock-test"), "").unwrap();
+    let bytes = success(play(
+        original.path(),
+        &[
+            "--red",
+            "exec python3 bot.py",
+            "--full-tech",
+            "--timeout",
+            "0",
+        ],
+    ));
+    let mut recorded = read(&bytes).unwrap().unwrap();
+    assert_eq!(recorded.result.as_ref().unwrap().winner, Winner::Blue);
+    recorded.blue.elo_score = Some(1900);
+    recorded.red.elo_score = Some(2100);
+    let source = canonical_yaml(&recorded).unwrap();
+
+    for round in [Some("2"), None] {
+        let replay = fixture();
+        let dir = replay.path();
+        fs::write(dir.join("match.yaml"), &source).unwrap();
+        let mut args = vec![
+            "arena",
+            "load",
+            "match.yaml",
+            "--blue",
+            "exec python3 bot.py Astra resign",
+            "--red",
+            "exec python3 bot.py Neon",
+            "--timeout",
+            "0",
+        ];
+        if let Some(round) = round {
+            args.extend(["--round", round]);
+        }
+        let output = read(&success(cli(dir, &args))).unwrap().unwrap();
+        let (last, history) = output.turns.split_last().unwrap();
+        let (expected, history_before) = if round.is_some() {
+            recorded.turns.split_last().unwrap()
+        } else {
+            (&recorded.turns[0], &[][..])
+        };
+        assert_eq!(last.round, expected.round);
+        assert_eq!(last.actions.blue, [Action::Concede]);
+        assert!(last.actions.red.is_empty());
+        assert_eq!(output.result.unwrap().winner, Winner::Red);
+        assert_eq!(history, history_before);
+        assert_eq!(last.state, expected.state);
+        assert_eq!(output.rules, recorded.rules);
+        assert_eq!(output.seed, recorded.seed);
+        assert_eq!(output.map_id, recorded.map_id);
+        for (old, new, name) in [
+            (&recorded.blue, &output.blue, "Astra"),
+            (&recorded.red, &output.red, "Neon"),
+        ] {
+            let mut expected = old.clone();
+            expected.name = name.into();
+            expected.elo_score = None;
+            assert_eq!(new, &expected);
+        }
+        let first = if round.is_some() { 2 } else { 0 };
+        assert_eq!(dir.join("blue-0.yaml").exists(), first == 0);
+        let problem = fs::read_to_string(dir.join(format!("blue-{first}.yaml"))).unwrap();
+        let initial =
+            fs::read_to_string(original.path().join(format!("blue-{first}.yaml"))).unwrap();
+        assert_eq!(
+            problem,
+            initial
+                .replacen("name: original", "name: Astra", 1)
+                .replace("name: original", "name: Neon")
+        );
+        assert_eq!(fs::read_to_string(dir.join("match.yaml")).unwrap(), source);
+        assert!(!dir.join("match.turn").exists());
+    }
 }
 
 #[test]
