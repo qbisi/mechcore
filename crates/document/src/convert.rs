@@ -949,7 +949,14 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
             // The record counts paid upgrades from zero; a layout displays the
             // level from one.
             level: Some(unit.level + 1).filter(|level| *level != 1),
-            exp: Experience::of(unit.exp, type_name, unit.level + 1)?,
+            exp: Some(
+                Experience::at_level(unit.exp, type_name, unit.level + 1).ok_or_else(|| {
+                    format!(
+                        "no experience bar for {type_name} at level {}",
+                        unit.level + 1
+                    )
+                })?,
+            ),
             rotated: Some(unit.rotated).filter(|rotated| *rotated),
             // No recorded field states it; see docs/spec/document/match.md.
             travelling: None,

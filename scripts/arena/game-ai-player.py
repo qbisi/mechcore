@@ -298,7 +298,7 @@ class Player:
     def full(unit):
         exp = unit.get("exp")
         if not exp:
-            return True
+            return False
         have, need = (int(part) for part in exp.split("/"))
         return have >= need
 

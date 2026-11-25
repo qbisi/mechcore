@@ -199,10 +199,9 @@ single round:
 - **Per-round action allowances:** By default, each round allows at most **`2`
   unit purchases**, **`1` unit unlock**, and **`8` contraption releases** (see
   **[A Round's Decisions — Per-Round Action Allowances](a-rounds-decisions.md#per-round-action-allowances)**).
-- **Experience conditions for upgrading:** A formation that has already fought
-  and holds experience can be upgraded only when its experience bar is **full**,
-  whereas a formation that arrived or leveled up in the current round (holding
-  zero experience) can be upgraded immediately by paying supply (see
+- **Experience conditions for upgrading:** A formation can be upgraded when its
+  experience bar is **full** and the side can pay. A newly purchased formation
+  starts with an empty bar, and each upgrade empties the bar again (see
   **[A Round's Decisions — Upgrading a Formation's Level](a-rounds-decisions.md#upgrading-a-formations-level-upgrade_unit)**).
 
 ## What Persists Into the Next Round

@@ -431,7 +431,7 @@ pub struct Allowances {
 /// actually paid, at the prices its officers made at the time, so two identical
 /// looking formations bought a round apart can be worth different amounts.
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
+#[serde(remote = "Self", deny_unknown_fields)]
 pub struct StateUnit {
     #[serde(rename = "name")]
     pub type_name: String,
@@ -446,7 +446,8 @@ pub struct StateUnit {
     pub recovered: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub position: Option<Position>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Every active formation has a bar. A zero bar is omitted on the wire.
+    #[serde(default, skip_serializing_if = "Experience::omitted")]
     pub exp: Option<Experience>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rotated: Option<bool>,
@@ -456,6 +457,22 @@ pub struct StateUnit {
     pub record_position: Option<Position>,
     #[serde(rename = "recordRotated", skip_serializing_if = "Option::is_none")]
     pub record_rotated: Option<bool>,
+}
+
+impl Serialize for StateUnit {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        StateUnit::serialize(self, serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for StateUnit {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let mut unit = StateUnit::deserialize(deserializer)?;
+        if !unit.recovered && Experience::omitted(&unit.exp) {
+            unit.exp = Experience::at_level(0, &unit.type_name, unit.level.unwrap_or(1));
+        }
+        Ok(unit)
+    }
 }
 
 impl StateUnit {
@@ -470,7 +487,7 @@ impl StateUnit {
             record_position: self.record_position,
             record_rotated: self.record_rotated,
             level: self.level,
-            exp: self.exp,
+            exp: self.exp.filter(|bar| bar.current != 0),
             rotated: self.rotated,
             equipment: side.worn_equipment(self.index),
             travelling: self.travelling,
@@ -1726,6 +1743,31 @@ fn conceded(actions: &Value, round: i32) -> Result<bool, String> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn hidden_and_explicit_zero_restore_the_same_level_bar() {
+        use super::{Experience, StateUnit};
+
+        for (level, maximum) in [(1, 450), (2, 1014)] {
+            for exp in [String::new(), format!(", exp: 0/{maximum}")] {
+                let text = format!("{{name: crawler, index: 8, level: {level}{exp}}}");
+                let unit: StateUnit = serde_yaml::from_str(&text).unwrap();
+                assert_eq!(
+                    unit.exp,
+                    Some(Experience {
+                        current: 0,
+                        maximum
+                    })
+                );
+                assert!(serde_json::to_value(&unit).unwrap().get("exp").is_none());
+                assert_eq!(
+                    serde_yaml::from_str::<StateUnit>(&serde_yaml::to_string(&unit).unwrap())
+                        .unwrap(),
+                    unit
+                );
+            }
+        }
+    }
+
     #[test]
     fn actions_read_targets_and_refuse_lost_operands() {
         for target in [

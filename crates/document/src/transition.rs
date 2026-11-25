@@ -340,19 +340,19 @@ pub fn step_placing(
         }
         Action::UpgradeUnit { index } => {
             let formation = formation_mut(&mut next, *index)?;
-            // A formation that has earned experience buys its next level only once
-            // the bar is full; one that has not fought since it joined or levelled
-            // holds none and buys it whenever.
-            if formation.exp.is_some_and(|exp| !exp.is_full()) {
+            let level = formation.level.unwrap_or(1);
+            if level >= crate::experience::MAX_LEVEL {
+                return Err(Unsettled::Refused("upgrading a unit at the last level"));
+            }
+            if !formation.exp.is_some_and(Experience::is_full) {
                 return Err(Unsettled::Refused(
                     "upgrading a unit whose experience bar is not full",
                 ));
             }
             let unit =
                 unit_id_from_type(&formation.type_name).ok_or(Unsettled::Unpriced("unit"))?;
-            formation.level = Some(formation.level.unwrap_or(1) + 1);
-            // A formation starts the next rank with nothing carried over.
-            formation.exp = None;
+            formation.level = Some(level + 1);
+            formation.exp = Experience::at_level(0, &formation.type_name, level + 1);
             // A discount can exceed the price, and an upgrade is never paid
             // backwards.
             let worn: i32 = next
@@ -753,7 +753,7 @@ fn place(
         index,
         position: Some(position),
         level: Some(level).filter(|level| *level != 1),
-        exp: None,
+        exp: Experience::at_level(0, type_name, level),
         rotated: None,
         travelling: None,
         source: crate::layout::UnitSource::Joined,
@@ -1288,10 +1288,13 @@ pub fn fought(
             .iter()
             .find(|unit| unit.index == entry.index)
             .ok_or(Unsettled::Missing("formation of the fight"))?;
-        entry.exp = unit.exp.filter(|exp| exp.after != 0).map(|exp| Experience {
-            current: exp.after,
-            maximum: exp.maximum,
-        });
+        entry.exp = match unit.exp {
+            Some(exp) => Some(Experience {
+                current: exp.after,
+                maximum: exp.maximum,
+            }),
+            None => Experience::at_level(0, &entry.type_name, entry.level.unwrap_or(1)),
+        };
     }
     if next.contraptions.len() != fight.contraptions.len() {
         return Err(Unsettled::Missing("contraption of the fight"));
@@ -1462,7 +1465,7 @@ mod tests {
                     index: *index,
                     position: Some(*position),
                     level: None,
-                    exp: None,
+                    exp: Experience::at_level(0, "marksman", 1),
                     rotated: None,
                     travelling: None,
                     source: crate::layout::UnitSource::Joined,
@@ -1606,7 +1609,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             .iter()
             .map(|entry| entry.exp.map(|exp| (exp.current, exp.maximum)))
             .collect();
-        assert_eq!(exp, [Some((170, 650)), Some((40, 750)), None]);
+        assert_eq!(exp, [Some((170, 650)), Some((40, 750)), Some((0, 750))]);
         let kept: Vec<i32> = next.contraptions.iter().map(|entry| entry.index).collect();
         assert_eq!(kept, [1]);
         // The destroyed shield is gone, the airdrop joins what stands, and the
@@ -1724,7 +1727,25 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             },
         )
         .unwrap();
-        let upgraded = step(economy, &bought, &Action::UpgradeUnit { index: 0 }).unwrap();
+        let upgrade = Action::UpgradeUnit { index: 0 };
+        let bar = bought.units[0].exp.unwrap();
+        assert_eq!(
+            bar,
+            Experience {
+                current: 0,
+                maximum: 450
+            }
+        );
+        assert!(matches!(
+            step(economy, &bought, &upgrade),
+            Err(Unsettled::Refused(_))
+        ));
+        let mut earned = bought.clone();
+        earned.units[0].exp = Some(Experience {
+            current: 450,
+            ..bar
+        });
+        let upgraded = step(economy, &earned, &upgrade).unwrap();
         assert_eq!(bought.supply, upgraded.supply);
         assert_eq!(upgraded.units[0].level, Some(2));
     }
@@ -1737,6 +1758,11 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let paid = |modules: usize| {
             let mut state = side_holding(&[(0, Position { x: 0, y: -160 })]);
             state.units[0].type_name = "fortress".into();
+            let maximum = crate::experience::full("fortress", 1).unwrap();
+            state.units[0].exp = Some(Experience {
+                current: maximum,
+                maximum,
+            });
             state.equipment = (0..modules)
                 .map(|slot| fitted(13_030_004, 0, slot))
                 .collect();
@@ -2540,8 +2566,12 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         });
         let next = step(economy, &state, &Action::UpgradeUnit { index: 0 }).unwrap();
         assert_eq!(next.units[0].level, Some(2));
-        assert_eq!(next.units[0].exp, None);
+        assert_eq!(next.units[0].exp, Experience::at_level(0, "marksman", 2));
         assert!(next.supply < state.supply);
+        assert!(matches!(
+            step(economy, &next, &Action::UpgradeUnit { index: 0 }),
+            Err(Unsettled::Refused(_))
+        ));
     }
 
     /// A formation partway along its bar does not buy its next level.

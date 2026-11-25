@@ -270,6 +270,18 @@ impl JsonSchema for Experience {
 }
 
 impl Experience {
+    /// Experience at a specific rank, including a rank that starts at zero.
+    #[must_use]
+    pub fn at_level(current: i32, type_name: &str, level: i32) -> Option<Self> {
+        let maximum = crate::experience::full(type_name, level)?;
+        Some(Self { current, maximum })
+    }
+
+    #[allow(clippy::ref_option)] // Serde borrows the field for skip_serializing_if.
+    pub(crate) fn omitted(exp: &Option<Self>) -> bool {
+        exp.is_none_or(|bar| bar.current == 0)
+    }
+
     /// The gauge of a formation of this type and level holding `current`, or
     /// nothing when it holds none.
     ///
@@ -281,10 +293,10 @@ impl Experience {
         if current == 0 {
             return Ok(None);
         }
-        let maximum = crate::experience::full(type_name, level).ok_or_else(|| {
+        let bar = Self::at_level(current, type_name, level).ok_or_else(|| {
             format!("the experience table has no level {level} bar for {type_name:?}")
         })?;
-        Ok(Some(Self { current, maximum }))
+        Ok(Some(bar))
     }
 
     /// Whether the bar is full.
