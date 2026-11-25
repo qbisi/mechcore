@@ -45,6 +45,9 @@ for line in sys.stdin:
     p = json.loads(line)
     side, n, doc = p["side"], p["round"], p["match_yaml"]
     assert p["op"] == "problem"
+    limits = pathlib.Path("limits.json")
+    if limits.exists():
+        assert [p["timeout"], p["parallel"]] == json.loads(limits.read_text()), p
     pathlib.Path(f"{side}-{n}.yaml").write_text(doc)
     if n > 0 and "resign" in sys.argv:
         own = [dict(type="concede")]
@@ -75,6 +78,8 @@ for line in sys.stdin:
                   request("act", 5, {"red":[{"type":"invalid"}]}),
                   request("act", 6, {})])
             replies = {r["id"]:r for r in (read() for _ in range(6))}
+            if p["parallel"] == 1:
+                assert list(replies) == list(range(1, 7)), list(replies)
             assert "error" in replies[4] and "error" in replies[5] and "state" in replies[6]["result"], replies
             full, limited, preview = (replies[i]["result"] for i in [1,2,3])
             assert preview["tick"] == 0 and not preview["settled"] and preview["collect"]["opening"]
@@ -150,12 +155,15 @@ fn play(dir: &Path, args: &[&str]) -> Output {
 fn parallel_trials_match_the_recording_and_leave_both_openings_unchanged() {
     let dir = fixture();
     let dir = dir.path();
+    fs::write(dir.join("limits.json"), "[0, 1]").unwrap();
     let bytes = success(play(
         dir,
         &[
             "--red",
             "exec python3 bot.py",
             "--full-tech",
+            "--parallel",
+            "1",
             "--timeout",
             "0",
         ],
@@ -252,15 +260,15 @@ fn load_reopens_only_the_selected_round_and_uses_the_new_bot_names() {
 
     let original = fixture();
     fs::write(original.path().join("clock-test"), "").unwrap();
+    let cpus = std::thread::available_parallelism().map_or(1, usize::from);
+    fs::write(
+        original.path().join("limits.json"),
+        json!([30, cpus]).to_string(),
+    )
+    .unwrap();
     let bytes = success(play(
         original.path(),
-        &[
-            "--red",
-            "exec python3 bot.py",
-            "--full-tech",
-            "--timeout",
-            "0",
-        ],
+        &["--red", "exec python3 bot.py", "--full-tech"],
     ));
     let mut recorded = read(&bytes).unwrap().unwrap();
     assert_eq!(recorded.result.as_ref().unwrap().winner, Winner::Blue);
@@ -272,6 +280,7 @@ fn load_reopens_only_the_selected_round_and_uses_the_new_bot_names() {
         let replay = fixture();
         let dir = replay.path();
         fs::write(dir.join("match.yaml"), &source).unwrap();
+        fs::write(dir.join("limits.json"), "[30.75, 2]").unwrap();
         let mut args = vec![
             "arena",
             "load",
@@ -281,7 +290,9 @@ fn load_reopens_only_the_selected_round_and_uses_the_new_bot_names() {
             "--red",
             "exec python3 bot.py Neon",
             "--timeout",
-            "0",
+            "30.75",
+            "--parallel",
+            "2",
         ];
         if let Some(round) = round {
             args.extend(["--round", round]);
