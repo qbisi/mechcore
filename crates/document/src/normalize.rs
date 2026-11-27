@@ -61,6 +61,18 @@ pub(crate) fn deployment_with_history(
 /// Returns a malformed match or a deployment neither normalization nor its
 /// effective action history can represent.
 pub fn match_yaml(bytes: &[u8]) -> Result<String, String> {
+    match_yaml_with(bytes, crate::r#match::TechLoadoutFormat::Compact)
+}
+
+/// Formats a match with the requested `tech_loadout` representation.
+///
+/// # Errors
+/// Returns a malformed match or a deployment neither normalization nor its
+/// effective action history can represent.
+pub fn match_yaml_with(
+    bytes: &[u8],
+    format: crate::r#match::TechLoadoutFormat,
+) -> Result<String, String> {
     let stated = crate::opening::stated(bytes)?.ok_or("not a match document")?;
     let mut game = crate::r#match::read(bytes)?.ok_or("not a match document")?;
     let economy = Economy::embedded()?;
@@ -119,8 +131,9 @@ pub fn match_yaml(bytes: &[u8]) -> Result<String, String> {
             }
         }
     }
-    let mut values = crate::r#match::segment_values(&game)?;
-    if !stated.ends_on_actions
+    let mut values = crate::r#match::segment_values_with(&game, format)?;
+    if !game.turns.is_empty()
+        && !stated.ends_on_actions
         && values
             .last()
             .and_then(|value| value.get("kind"))

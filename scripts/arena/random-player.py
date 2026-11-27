@@ -49,7 +49,7 @@ def main():
         if problem.number:
             deploy(problem, draw)
         else:
-            offers = problem.header[problem.side]["offers"]
+            offers = problem.state[problem.side]["offers"]
             problem.actions.append(problem.choose_team(problem.side, draw.randrange(len(offers))))
         problem.commit()
 

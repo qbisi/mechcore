@@ -748,7 +748,10 @@ exports a deterministic vector snapshot at any frame.
 `format <document>` writes the document in its normal form, in place with
 `--write`. Layouts, fights and matches are the kinds it takes. The leading comment
 block and its blank lines are preserved verbatim; comments within the document
-are not retained. Leading blank lines without a comment are removed.
+are not retained. Leading blank lines without a comment are removed. For a
+match document, `--expanded` writes each side's `tech_loadout` as an expanded
+unit-to-technology mapping instead of `"full"` or the compact Base64url bitset;
+passing `--expanded` to a non-match document is refused.
 
 Fight assertion SQL is formatted with `syntaqlite`'s built-in SQLite dialect
 and default style: 80-column lines, two-space indentation, uppercase keywords
@@ -1011,7 +1014,8 @@ Deals a match, or joins one already dealt.
 
 Operands: the match document. Options: `--name <name>`, `--seed <i32>`, `--map <i32>`,
 `--loadout <file>` for a custom technology loadout, `--reinforcements
-true|false`, `--full-tech-loadout true|false`, and `--deploy-time <seconds>`.
+true|false`, `--full-tech-loadout true|false`, `--max-round <N>`, `--base-core
+<N>`, and `--deploy-time <seconds>`.
 
 `--name` sets the display name of the side this caller is given, on the deal
 or on the join. It is one nonempty line without control characters. When
@@ -1019,20 +1023,25 @@ omitted, the side keeps its header name, defaulting to `blue` or `red`. It
 requires no later declaration and changes neither the seat nor any game rule.
 
 Every option may be left out. A seed nobody chose is drawn, a map nobody chose
-is drawn from the maps this build has an opening initialization for, and a
-deployment time nobody chose is the 100 seconds a standard match deploys in.
-The seed and map are written into the header. Deployment time is runtime
-configuration stored in the turn file, retained across rounds, and reset to
-100 seconds if that file must be rebuilt. Both match rule switches default to
-true. `--loadout` selects custom-loadout mode unless `--full-tech-loadout` is
-explicit, and is refused with an explicitly full loadout. With a custom mode
+is drawn from the maps this build has an opening initialization for, `--max-round`
+defaults to the chosen map preset's `max_round`, `--base-core` defaults to the
+map's starting reactor core (`reactor_cores[0]`), and a deployment time nobody
+chose is the 100 seconds a standard match deploys in. The seed, map,
+`reinforce`, `max_round`, and `base_core` are written into the header.
+Deployment time is runtime configuration stored in the turn file, retained
+across rounds, and reset to 100 seconds if that file must be rebuilt. Both
+`--reinforcements` and `--full-tech-loadout` default to true (with
+`--full-tech-loadout` writing `tech_loadout: full` unless `--loadout` is
+supplied). `--loadout` selects custom-loadout mode unless `--full-tech-loadout`
+is explicit, and is refused with an explicitly full loadout. With a custom mode
 but no file, both sides use the embedded
 [default loadout](../../../crates/mechcore/default-loadout.yaml). A full loadout
-uses the complete catalogue for both sides, with four researched technologies
-per unit type, or six for War Factory, Abyss and Mountain. The header writes
-`source: simulator`, the backend that plays these matches. A simulated
-continuation of an imported match updates its output source to `simulator`.
-A join may not specify rule switches or a loadout.
+(`"full"`) uses the complete catalogue for both sides, with four researched
+technologies per unit type, or six for War Factory, Abyss and Mountain. The
+header writes `source: simulator`, the backend that plays these matches. A
+simulated continuation of an imported match updates its output source to
+`simulator`. A join may not specify rule switches, `--max-round`, `--base-core`,
+or a loadout.
 
 
 Whichever caller names the document first deals the match and writes that
@@ -1099,9 +1108,11 @@ and `commit`. It contains `header` and `state`, not a history array or a
 separate calculated position. The public match file supplies the history.
 
 `header` is exactly the match header's written shape: build, map, match seed,
-both player seeds, opening offer lists, initial constructions and full
-technology loadouts. `state` carries the current round's shared random state,
-reinforcement pool differences and offers, plus `blue` and `red`.
+`reinforce`, `max_round`, `base_core`, both player names, optional ratings,
+player seeds, and compact `tech_loadout` strings. `state` carries the current
+round's shared random state, reinforcement pool differences and offers (at round
+0, each side's `offers` and `constructions` from the round-0 state segment),
+plus `blue` and `red`.
 
 For the calling side, `state` applies all current-round decisions in their
 execution order, including sealed decisions waiting for the opponent. For the
@@ -1383,8 +1394,9 @@ persistent process per seat. The reference Python players use PyYAML to read
 match documents.
 
 `arena new` draws a fresh match. A fixed positive `--seed` reproduces the
-deal, map and player seeds. `--map <id>` selects the map. Reinforcements are
-enabled by default. `--full-tech` gives both seats the full loadout. The
+deal, map and player seeds. `--map <id>` selects the map. `--max-round <N>` and
+`--base-core <N>` override the map defaults. Reinforcements are enabled by
+default. `--full-tech` gives both seats `"full"` technology loadouts. The
 default is the standard loadout used by the CLI.
 
 `arena load` opens a match document read-only. By default it reopens round
@@ -1393,9 +1405,11 @@ zero with the recorded deal and lets both bots choose their opening. With
 The bots replace both sides' actions from that round onward. A captured suffix
 can start at a playable checkpoint it contains. An absent round or a checkpoint
 whose cores have already ended the match is refused. The source supplies the
-map, seeds, rules and loadouts. The new header uses the two bots' reported names
-and omits the original players' ratings. Both verbs require `--blue` and
-`--red` and write the completed match to stdout.
+map, seeds, `reinforce`, `max_round`, `base_core`, and loadouts; `--max-round`
+and `--base-core` may override the header values when starting a continuation.
+The new header uses the two bots' reported names and omits the original players'
+ratings. Both verbs require `--blue` and `--red` and write the completed match
+to stdout.
 
 Both verbs accept `--log <file.jsonl>`. Arena creates a new file and writes
 one row for each message it sends or receives, in that order across both seats.
@@ -1418,9 +1432,9 @@ stderr.
 Arena writes one JSON object per line to each player's stdin and reads the
 player's stdout as JSON Lines. Flush each request. Each round it asks blue,
 then red, using the same immutable match prefix for both. Completed rounds
-include both seats' decisions. Round zero ends at the match header and each
-deployment problem ends at the current state. Each problem includes the seat,
-round, time budget in seconds (`timeout`) and concurrent trial limit (`parallel`).
+include both seats' decisions. Each problem, including round zero, ends at
+that round's state segment. Each problem includes the seat, round, time budget
+in seconds (`timeout`) and concurrent trial limit (`parallel`).
 
 ```json
 {"op":"problem","side":"red","round":1,"timeout":30,"parallel":8,"match_yaml":"kind: match\n..."}

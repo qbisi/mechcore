@@ -103,6 +103,26 @@ pub(crate) fn answer(mut arguments: Args) -> Result<Value, Failure> {
     outcome.map_err(|failure| failure.at(format!("match.{verb}")))
 }
 
+/// Match-creation rule options from CLI flags.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct MatchOptions {
+    pub reinforce: bool,
+    pub full_tech_loadout: bool,
+    pub max_round: Option<i32>,
+    pub base_core: Option<i32>,
+}
+
+impl Default for MatchOptions {
+    fn default() -> Self {
+        Self {
+            reinforce: true,
+            full_tech_loadout: true,
+            max_round: None,
+            base_core: None,
+        }
+    }
+}
+
 /// Deals a match, or joins one already dealt.
 fn new(mut arguments: Args) -> Result<View, Failure> {
     let name = arguments.value("--name")?;
@@ -119,9 +139,13 @@ fn new(mut arguments: Args) -> Result<View, Failure> {
     let loadout = arguments.value("--loadout")?.map(PathBuf::from);
     let reinforcements = arguments.parsed::<bool>("--reinforcements", "true or false")?;
     let full_tech_loadout = arguments.parsed::<bool>("--full-tech-loadout", "true or false")?;
-    let rules = mechcore_document::r#match::Rules {
-        reinforcements: reinforcements.unwrap_or(true),
+    let max_round = arguments.parsed::<i32>("--max-round", "a positive integer")?;
+    let base_core = arguments.parsed::<i32>("--base-core", "a positive integer")?;
+    let options = MatchOptions {
+        reinforce: reinforcements.unwrap_or(true),
         full_tech_loadout: full_tech_loadout.unwrap_or(loadout.is_none()),
+        max_round,
+        base_core,
     };
     let path = arguments.path("a match document")?;
     arguments.finish()?;
@@ -130,9 +154,14 @@ fn new(mut arguments: Args) -> Result<View, Failure> {
     let existing = held.read()?;
     let dealt = existing.is_some() || path.exists();
     let outcome = if dealt {
-        if reinforcements.is_some() || full_tech_loadout.is_some() || loadout.is_some() {
+        if reinforcements.is_some()
+            || full_tech_loadout.is_some()
+            || loadout.is_some()
+            || max_round.is_some()
+            || base_core.is_some()
+        {
             return Err(Failure::usage(
-                "joining a match cannot change its rules or loadout",
+                "joining a match cannot change its rules, max_round, base_core, or loadout",
             ));
         }
         join(&path, &mut held, existing, (seed, map, deploy_time), name)
@@ -143,7 +172,7 @@ fn new(mut arguments: Args) -> Result<View, Failure> {
             (seed, map, deploy_time),
             loadout.as_deref(),
             name,
-            rules,
+            options,
         )
     };
     match outcome {
@@ -168,7 +197,7 @@ fn deal(
     (seed, map, deploy_time): (Option<i32>, Option<i32>, Option<i32>),
     loadout: Option<&std::path::Path>,
     name: Option<String>,
-    rules: mechcore_document::r#match::Rules,
+    options: MatchOptions,
 ) -> Result<Game, Failure> {
     let mut game = dealt_game(
         path,
@@ -177,7 +206,7 @@ fn deal(
         deploy_time,
         loadout,
         name,
-        rules,
+        options,
         Draw::new(),
     )?;
     game.write(held)?;
@@ -185,14 +214,14 @@ fn deal(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn dealt_game(
+pub(crate) fn dealt_game(
     path: &std::path::Path,
     seed: Option<i32>,
     map: Option<i32>,
     deploy_time: Option<i32>,
     loadout: Option<&std::path::Path>,
     name: Option<String>,
-    rules: mechcore_document::r#match::Rules,
+    options: MatchOptions,
     mut draw: Draw,
 ) -> Result<Game, Failure> {
     let economy = Economy::embedded().map_err(Failure::failed)?;
@@ -216,8 +245,26 @@ fn dealt_game(
             "a deployment time is a number of seconds a side can deploy in",
         ));
     }
+    let max_round = match options.max_round {
+        Some(value) => value,
+        None => opening::max_round(map_id).map_err(Failure::refused)?,
+    };
+    if max_round < 1 {
+        return Err(Failure::refused(format!(
+            "match max_round must be >= 1, not {max_round}"
+        )));
+    }
+    let base_core = match options.base_core {
+        Some(value) => value,
+        None => opening::reactor_core(map_id, 0).map_err(Failure::refused)?,
+    };
+    if base_core <= 0 {
+        return Err(Failure::refused(format!(
+            "match base_core must be > 0, not {base_core}"
+        )));
+    }
     let dealt = opening::predict(economy, seed, map_id).map_err(Failure::refused)?;
-    let loadout = if rules.full_tech_loadout {
+    let loadout = if options.full_tech_loadout {
         if loadout.is_some() {
             return Err(Failure::usage(
                 "a full tech loadout cannot specify --loadout",
@@ -251,7 +298,9 @@ fn dealt_game(
         };
     let r#match = Match {
         source: mechcore_document::r#match::Source::Simulator,
-        rules,
+        reinforce: options.reinforce,
+        max_round,
+        base_core,
         result: None,
         has_opening: true,
         game_build: mechcore_document::game_build().to_owned(),
@@ -956,9 +1005,7 @@ impl Game {
                 |unsettled| format!("round {round} {} is not settled: {unsettled}", side.name());
             let next = match &fight {
                 None => {
-                    let opened = self
-                        .opened(side)
-                        .map_err(|failure| failure.reason().to_owned())?;
+                    let opened = self.opened(side);
                     let actions = self.committed_actions(side);
                     // Nothing is declined in round zero, which deals no
                     // reinforcement, and nothing has drawn from the side's own
@@ -997,31 +1044,9 @@ impl Game {
             states.push(next);
         }
         let [blue, red] = [states.remove(0), states.remove(0)];
-        if let Some(winner) =
-            mechcore_document::r#match::Winner::from_cores(blue.reactor_core, red.reactor_core)
-        {
-            self.r#match.result = Some(mechcore_document::r#match::MatchResult {
-                round,
-                winner,
-                blue: mechcore_document::r#match::FinalCore {
-                    reactor_core: blue.reactor_core,
-                },
-                red: mechcore_document::r#match::FinalCore {
-                    reactor_core: red.reactor_core,
-                },
-            });
+        if self.settle_round_result(round, &blue, &red) {
+            return Ok(());
         }
-        self.r#match.turns.push(MatchTurn {
-            round: round + 1,
-            state: State {
-                random_state: [0; 4],
-                reinforce_pool: mechcore_document::r#match::PoolDelta::default(),
-                reinforce_offers: None,
-                blue,
-                red,
-            },
-            actions: TurnActions::default(),
-        });
         let dealt = self.deal()?;
         if let Some(opened) = self.r#match.turns.last_mut() {
             opened.state.set_reinforce_offers(dealt.offers);
@@ -1080,18 +1105,54 @@ impl Game {
     }
 
     /// The position the round in progress opened with, before any decision.
-    fn opened(&self, side: Side) -> Result<SideState, Failure> {
+    fn opened(&self, side: Side) -> SideState {
         if let Some(turn) = self.r#match.turns.last() {
-            return Ok(state_of(&turn.state, side).clone());
+            return state_of(&turn.state, side).clone();
         }
-        // The opening is taken from the position the header deals, which is
-        // the map's reactor core and its constructions and nothing else.
-        let core =
-            opening::reactor_core(self.r#match.map_id, side.seat()).map_err(Failure::refused)?;
-        Ok(transition::before_opening(
-            core,
+        transition::before_opening(
+            self.r#match.base_core,
             self.match_side(side).constructions.clone(),
-        ))
+        )
+    }
+
+    fn settle_round_result(&mut self, round: i32, blue: &SideState, red: &SideState) -> bool {
+        let core_winner =
+            mechcore_document::r#match::Winner::from_cores(blue.reactor_core, red.reactor_core);
+        let at_limit = round >= self.r#match.max_round;
+        let winner = core_winner.or_else(|| {
+            at_limit.then(|| match blue.reactor_core.cmp(&red.reactor_core) {
+                std::cmp::Ordering::Greater => mechcore_document::r#match::Winner::Blue,
+                std::cmp::Ordering::Less => mechcore_document::r#match::Winner::Red,
+                std::cmp::Ordering::Equal => mechcore_document::r#match::Winner::Draw,
+            })
+        });
+        if let Some(winner) = winner {
+            self.r#match.result = Some(mechcore_document::r#match::MatchResult {
+                round,
+                winner,
+                blue: mechcore_document::r#match::FinalCore {
+                    reactor_core: blue.reactor_core,
+                },
+                red: mechcore_document::r#match::FinalCore {
+                    reactor_core: red.reactor_core,
+                },
+            });
+        }
+        if at_limit && core_winner.is_none() {
+            return true;
+        }
+        self.r#match.turns.push(MatchTurn {
+            round: round + 1,
+            state: State {
+                random_state: [0; 4],
+                reinforce_pool: mechcore_document::r#match::PoolDelta::default(),
+                reinforce_offers: None,
+                blue: blue.clone(),
+                red: red.clone(),
+            },
+            actions: TurnActions::default(),
+        });
+        false
     }
 
     /// The decisions this side has committed to the round in progress.
@@ -1128,7 +1189,7 @@ impl Game {
     fn replay(&self, side: Side, actions: &[Action]) -> Result<SideState, Failure> {
         transition::deployed(
             self.economy,
-            &self.opened(side)?,
+            &self.opened(side),
             actions,
             side.red(),
             self.offers(),
@@ -1239,7 +1300,7 @@ impl Game {
         position: &SideState,
     ) -> Result<mechcore_document::Layout, Failure> {
         let round = self.round();
-        let other = self.opened(side.other())?;
+        let other = self.opened(side.other());
         let (blue, red) = match side {
             Side::Blue => (position.clone(), other.clone()),
             Side::Red => (other.clone(), position.clone()),
@@ -1251,7 +1312,7 @@ impl Game {
             blue,
             red,
         };
-        let own = self.opened(side)?;
+        let own = self.opened(side);
         let (blue, red) = match side {
             Side::Blue => (own, other),
             Side::Red => (other, own),
@@ -1477,13 +1538,21 @@ impl Game {
             .turns
             .last()
             .map_or_else(State::default, |turn| turn.state.clone());
-        state.blue = self.opened(Side::Blue)?;
-        state.red = self.opened(Side::Red)?;
+        state.blue = self.opened(Side::Blue);
+        state.red = self.opened(Side::Red);
         state.blue.reinforce_choice = None;
         state.red.reinforce_choice = None;
         let mut value = serde_json::to_value(&state).map_err(|error| {
             Failure::failed(format!("cannot serialize decision state: {error}"))
         })?;
+        if self.round() == 0 {
+            for side in Side::BOTH {
+                value[side.name()]["offers"] = serde_json::to_value(
+                    &self.match_side(side).opening.offers,
+                )
+                .map_err(|error| Failure::failed(format!("cannot serialize offers: {error}")))?;
+            }
+        }
         for side in Side::BOTH {
             if !omniscient && viewer != Some(side) {
                 continue;
@@ -1503,6 +1572,12 @@ impl Game {
             });
             current["reinforce_chosen"] =
                 Value::Bool(position.reinforce_choice.is_some_and(|index| index >= 0));
+            if self.round() == 0 {
+                current["offers"] = serde_json::to_value(&self.match_side(side).opening.offers)
+                    .map_err(|error| {
+                        Failure::failed(format!("cannot serialize offers: {error}"))
+                    })?;
+            }
             for (unit, written) in position.units.iter().zip(
                 current["units"]
                     .as_array_mut()
@@ -1635,7 +1710,7 @@ fn actions_of_mut(actions: &mut TurnActions, side: Side) -> &mut Vec<Action> {
 /// what is drawn is written into the header. Drawing it is not a rule of the
 /// game, so this is the process's own clock mixed rather than the match's
 /// stream.
-struct Draw(u64);
+pub(crate) struct Draw(u64);
 
 impl Draw {
     fn new() -> Self {
@@ -1683,7 +1758,7 @@ mod tests {
             (Some(12345), Some(1011), None),
             None,
             None,
-            mechcore_document::r#match::Rules::default(),
+            MatchOptions::default(),
         )
         .unwrap();
         for side in Side::BOTH {
@@ -1714,7 +1789,7 @@ mod tests {
             assert_eq!(view["phase"], "fight");
             assert!(view.get("document").is_none());
             assert!(view["state"][side.name()]["shop"].is_object());
-            let other = serde_json::to_value(game.opened(side.other()).unwrap()).unwrap();
+            let other = serde_json::to_value(game.opened(side.other())).unwrap();
             assert_eq!(view["state"][side.other().name()], other);
         }
         assert_eq!(

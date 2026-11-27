@@ -151,7 +151,7 @@ fn create_two_round_match(dir: &Path) -> (PathBuf, PathBuf) {
 
     for side in ["blue", "red"] {
         let view = run_str(&["match", "show", path_str, "--side", side]);
-        let offer = &view["header"][side]["offers"][0];
+        let offer = &view["state"][side]["offers"][0];
         let decision = format!(
             "{{type: choose_advance_team, index: 0, name: {}, specialist: {}}}",
             offer["team"].as_str().unwrap(),

@@ -44,7 +44,7 @@ fn usage(program: &str) {
     eprintln!(
         "       {program} play <file> [--seed <i32>] [--port <u16>] [--no-open] [--no-cache]"
     );
-    eprintln!("       {program} format <document.yaml> [--write]");
+    eprintln!("       {program} format <document.yaml> [--write] [--expanded]");
     eprintln!("       {program} mask <layout|state|match> --side blue|red --unit <type>");
     eprintln!("       {program} preview <layout|state> [--seed <i32>]");
     eprintln!(

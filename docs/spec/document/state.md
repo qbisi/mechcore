@@ -50,7 +50,7 @@ Every card entry is validated against the build's catalogues for its `type`,
 `cost` equal to `-<amount>`. Writing `cost` and the decoded unit fields lets a
 position price and evaluate its offers without replaying the deal or looking up
 the tables, while keeping `name` as the card alias referenced by
-`choose_reinforce_item`. With `rules.reinforcements: false` in the match header,
+`choose_reinforce_item`. With `reinforce: false` in the match header,
 every state omits the offer and no decline is available; the shared stream stays
 at its opening checkpoint and the pool delta stays empty.
 
@@ -168,16 +168,14 @@ same array, so it is the one field the two sides share rather than one each.
 Round 1 is dealt no offer, and neither is the opening the game numbers round 0.
 The field is absent there rather than an empty array, since no array was dealt.
 
-### The opening offer is private, and it is not a state field
+### Opening offers are dealt once at round zero
 
-The opening is the exception, and it is not here. It deals each side four
-combinations of an advance team and a specialist officer, privately: neither
-player sees the other's, so it could never be `reinforce_offers`, which the two
-sides share precisely because both choose from one array.
-
-It is not under a side's state either, because the position it is dealt in is
-not a round worth stating. A match's [header](match.md#the-opening-offers)
-holds the four combinations under each side.
+Round zero's state segment is the exception that holds no combat position yet:
+it carries `blue.offers` / `red.offers` (four team-plus-specialist pairs with
+`core_modify`) and `blue.constructions` / `red.constructions`, leaving the two
+sides' opening pools private only in per-player CLI views until chosen. Every
+later state (`round >= 1`) holds no `offers` field at all; between rounds, both
+sides share root-level `reinforce_offers`.
 
 ## Random state
 

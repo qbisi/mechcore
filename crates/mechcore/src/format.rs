@@ -14,12 +14,25 @@ use crate::kind::Kind;
 /// refusal for a kind `format` does not take or a document that does not read.
 pub(crate) fn run(mut arguments: Args) -> Outcome {
     let write = arguments.flag("--write")?;
+    let expanded = arguments.flag("--expanded")?;
     let path = arguments.path("a document to format")?;
     arguments.finish()?;
     let (kind, bytes) = Kind::read(&path)?;
     kind.require("format")?;
+    if expanded && kind != Kind::Match {
+        return Err(Failure::refused(
+            "--expanded is only valid for match documents",
+        ));
+    }
     let mut canonical = match kind {
-        Kind::Match => mechcore_document::normalize::match_yaml(&bytes),
+        Kind::Match => mechcore_document::normalize::match_yaml_with(
+            &bytes,
+            if expanded {
+                mechcore_document::r#match::TechLoadoutFormat::Expanded
+            } else {
+                mechcore_document::r#match::TechLoadoutFormat::Compact
+            },
+        ),
         Kind::Fight => mechcore_document::fight::parse_yaml(&bytes).and_then(|mut fight| {
             let mut formatter = syntaqlite::Formatter::new();
             for (index, assertion) in fight.asserts.iter_mut().enumerate() {

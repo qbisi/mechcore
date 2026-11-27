@@ -11,11 +11,22 @@ side takes from it.
 kind: match
 build: <GAME_VERSION>
 source: game
-rules: {reinforcements: true, full_tech_loadout: false}
+reinforce: true
+max_round: 40
+base_core: 4500
 map_id: 1001
 seed: 2038621361
-blue: {offers: [...], constructions: [...], tech_loadout: {...}}
-red: {offers: [...], constructions: [...], tech_loadout: {...}}
+blue: {name: blue, seed: 134917337, tech_loadout: full}
+red: {name: red, seed: 134917338, tech_loadout: full}
+---
+kind: state
+round: 0
+blue:
+  offers: [...]
+  constructions: [...]
+red:
+  offers: [...]
+  constructions: [...]
 ---
 kind: action
 round: 0
@@ -28,15 +39,6 @@ kind: state
 round: 1
 blue: { ... }
 red: { ... }
----
-kind: action
-round: 1
-blue: [ ... ]
-red: [ ... ]
----
-kind: state
-round: 2
-...
 ```
 
 Each document in the stream is a segment, and each segment names its `kind`.
@@ -60,7 +62,7 @@ An optional final `result` segment states the match's winner and final cores.
 A complete prefix has this order:
 
 ```text
-match, action(0), state(1), action(1), state(2), action(2), ...
+match, state(0), action(0), state(1), action(1), state(2), action(2), ...
 ```
 
 A partial match omits the opening and missing earlier rounds:
@@ -71,12 +73,12 @@ match, state(N), action(N), state(N+1), action(N+1), ...
 
 `N` is any positive round, including 1. The first captured state is a checkpoint;
 its missing history is not reconstructed or claimed to have been verified.
-The header keeps the initial constructions and seeded opening offers, but no
-opening choice is invented.
+A partial match omits both round 0's opening state segment (`state(0)`) and its
+actions (`action(0)`), and no opening choice is invented.
 
 `round` counts up by one from each state to the next, and an action segment
-carries the round of the state before it. Round zero is the opening, which has
-decisions and no state; every later round has both.
+carries the round of the state before it. Every round, starting at round zero,
+has a state segment before its action segment.
 
 A stream may end after any segment. That is what lets a stream grow: a match in
 progress, or a reader that learns the next position later, appends the next
@@ -117,12 +119,13 @@ final score are independent.
 
 `winner` is `blue`, `red` or `draw`. Each side's required `reactor_core` is
 its signed final core value, including negative values. Without a concession,
-one core must be zero or below unless `round` equals the map preset's
-`max_round` in [config/opening.yaml](../../../config/opening.yaml). A surviving
-side wins, or both destroyed cores mean a draw. At the round limit, both cores
-may remain positive and the side with more core wins. Equal positive cores do
-not imply a draw: native ranking also compares team bonus, which this segment
-does not carry, so its explicit winner is retained in that case.
+one core must be zero or below unless `round` equals the match header's
+`max_round` (defaulting to the map preset's `max_round` in
+[config/opening.yaml](../../../config/opening.yaml)). A surviving side wins, or
+both destroyed cores mean a draw. At `max_round`, both cores may remain
+positive and the side with more core wins. Equal positive cores do not imply a
+draw: native ranking also compares team bonus, which this segment does not
+carry, so its explicit winner is retained in that case.
 With a concession, the other side wins and no fight occurs;
 the cores stay at their round-opening values. If a terminal state is also
 present, its cores must equal the result's cores.
@@ -165,7 +168,9 @@ The header holds what every round of the match shares.
 | --- | --- |
 | `build` | the game's `Application.version`, pinned by `GAME_VERSION` |
 | `source` | the backend that produced the match: `game` or `simulator` |
-| `rules` | the match's reinforcement and technology-loadout switches |
+| `reinforce` | whether reinforcement deals and choices occur |
+| `max_round` | final round limit; defaults to the map's preset in [config/opening.yaml](../../../config/opening.yaml) |
+| `base_core` | opening reactor core for both sides; defaults to `reactor_cores[0]` for `map_id` |
 | `seed` | `BattleInfo.SystemSeed` |
 | `map_id` | `BattleInfo.MapID` |
 
@@ -187,11 +192,12 @@ Deployment time is runtime configuration, not recorded match content.
 seconds and keeping it in the [turn file](../mechcore/turn.md).
 Native replay encoding uses the standard 100-second deployment clock.
 
-Apart from `rules`, the rest of the match header is a property of the standard
-1v1 rule set rather than of a match: the other phase durations, the round cap,
-the advance team and construction flags, and the game and score modes. A match
-states the mode once by being this format, rather than restating its consequences in
-every segment. A mode that changes them is a different format.
+Apart from `reinforce`, `max_round` and `base_core`, the rest of the native
+battle header is a property of the standard 1v1 rule set rather than of a match:
+the other phase durations, the advance team and construction flags, and the game
+and score modes. A match states the mode once by being this format, rather than
+restating its consequences in every segment. A mode that changes them is a
+different format.
 
 `FightTime` is the only header constant a simulator reads, and it is 120
 seconds including preparation. A forced timeout ends combat after 2360 logic
@@ -228,58 +234,52 @@ backend of each inherited round.
 
 ### Match rules
 
-`rules` is a mapping with two boolean switches:
+The header carries three top-level rule and opening settings:
 
 ```yaml
-rules: {reinforcements: true, full_tech_loadout: true}
+reinforce: true
+max_round: 40
+base_core: 4500
 ```
 
-An omitted mapping means both switches are true, and a missing switch within
-it means true. Unknown keys and non-boolean values are refused. Canonical
-output writes both resolved switches explicitly. They apply to the whole
-match, including a partial match whose first available round is a checkpoint;
-a later segment cannot change them. They are independent of `source`.
+- `reinforce` is a boolean defaulting to `true` when omitted. When `true`,
+  ordinary and unit reinforcement rounds deal their offers and decline under
+  the normal deal rule; when `false`, no round deals reinforcement offers or a
+  decline, `reinforce_offers` stays absent, `reinforce_pool` stays empty and
+  omitted, the shared stream remains where the opening left it, and
+  `choose_reinforce_item` or any non-empty pool delta is refused. Opening team
+  offers and scheduled officer deliveries still occur.
+- `max_round` is a positive integer defaulting to the map's preset in
+  [config/opening.yaml](../../../config/opening.yaml) when omitted (`13` for map
+  `1012`, `40` otherwise). It bounds play and settles positive-core results at
+  round `max_round`.
+- `base_core` is a positive integer defaulting to the map's starting
+  `reactor_cores[0]` (`4500` in standard 1v1 maps) when omitted. Both sides open
+  round 1 at `base_core + core_modify` from their chosen round-0 offer.
 
-| Switch | When true | When false |
-| --- | --- | --- |
-| `reinforcements` | Ordinary and unit reinforcement rounds deal their offers and decline under the normal deal rule | No round deals reinforcement offers or a decline; `choose_reinforce_item` is refused |
-| `full_tech_loadout` | Every technology in the build's catalogue for a unit is eligible for research, subject to its research limit | Each side's stated `tech_loadout` bounds the technologies it may research |
+Canonical output writes all three explicitly. They apply to the whole match,
+including a partial match whose first available round is a checkpoint; a later
+segment cannot change them. They are independent of `source`. Each side's
+eligible research set is stated directly in its header `tech_loadout` (`"full"`
+or a custom Base64url bitset), subject to the per-unit research limit of four
+technologies, or six for War Factory, Abyss and Mountain.
 
-Disabling reinforcements leaves `reinforce_offers` absent in every state. It
-pays no decline supply, refreshes no reinforcement pool and makes no
-reinforcement draw; the shared stream remains at the state after the opening
-deal, and `reinforce_pool` stays empty and omitted. Opening team offers and
-scheduled officer deliveries still occur. They are not reinforcement choices.
-A stated offer, reinforcement choice or nonempty pool delta under this switch
-is refused, including in the first available checkpoint.
-
-`full_tech_loadout` unlocks research choices, not the unit shop and not the
-technologies themselves. Research still needs its formation, pays its normal
-price and counts already researched technologies. Each unit type may hold at
-most four researched technologies, or six for War Factory, Abyss and Mountain,
-under either switch value. Research past the limit is refused. The limit is
-per side and unit type, not per formation.
-
-With a full loadout, both sides derive their eligible technologies from the
-catalogue; the header omits both `tech_loadout` mappings and refuses an explicit
-one. Otherwise each side must state its custom mapping. A standalone position
-holds no match rule switches; a match-aware decision or research listing reads
-these rules from the header.
-
-These switches are match-format rules, not IDs in native `game_rules`. Native
-conversion writes the reinforcement switch from the recording's matching
-ordinary and unit reinforcement flags and `full_tech_loadout: false` for an unmarked game recording, keeping both
-players' recorded loadouts. A synthesized replay preserves both switches as
-[match-replay.md](match-replay.md#match-metadata) specifies.
+These settings are match-format properties, not IDs in native `game_rules`.
+Native conversion writes `reinforce` from the recording's matching ordinary and
+unit reinforcement flags, reads `max_round` from `BattleInfo.MaxRound` (falling
+back to the map preset) and `base_core` from the players' starting `reactorCore`
+(falling back to the map preset), and keeps both players' recorded loadouts. A
+synthesized replay preserves `source` and `reinforce` in
+[match-replay.md](match-replay.md#match-metadata).
 
 ### Game rules are the premise, so the match carries them
 
 `game_rules` is optional and its absence means none. It is retained separately
-from the two match rule switches because exclusions across the other documents
-rest on it being empty: the research queue is unreachable without rule
-`999917`, equipment never wears out and so needs no `durability` without rule
-`999903`, and the blueprint pool is `[1, 2, 3, 4, 5]` only while no rule enables
-blueprint research. Each of those is a claim about this field.
+because exclusions across the other documents rest on it being empty: the
+research queue is unreachable without rule `999917`, equipment never wears out
+and so needs no `durability` without rule `999903`, and the blueprint pool is
+`[1, 2, 3, 4, 5]` only while no rule enables blueprint research. Each of those
+is a claim about this field.
 
 A match that names a rule is outside what this format defines. A reader refuses
 such a document rather than reading the states inside it under premises the rule
@@ -308,37 +308,38 @@ Reading, formatting and decision-view header projection preserve it. It does
 not change action legality, combat, verification comparisons or the result.
 The original replay states no rating change, so none is inferred.
 
-Alongside its display name and optional rating, each side holds its opening
-offers, initial constructions and player seed. When `full_tech_loadout` is
-false, it also holds its custom technology choices for the whole match.
+Alongside its display name and optional rating, each side in the header holds its
+player seed and its technology loadout (`tech_loadout`). The dealt opening
+offers and initial constructions belong to the round-0 state segment (`kind:
+state`, `round: 0`) rather than the header.
 
-#### The opening offers
+#### The opening offers (round 0 state)
 
 ```yaml
-  blue:
-    offers:
-    - {team: void_eye-sledgehammer, specialist: cost_control_specialist}
-    - {team: vortex-fire_badger, specialist: giant_specialist}
-    - {team: marksman-sledgehammer, specialist: quick_supply_specialist}
-    - {team: crawler-steel_ball, specialist: aerial_specialist}
+---
+kind: state
+round: 0
+blue:
+  offers:
+  - {team: void_eye-sledgehammer, specialist: cost_control_specialist, core_modify: 200}
+  - {team: vortex-fire_badger, specialist: giant_specialist, core_modify: -200}
+  - {team: marksman-sledgehammer, specialist: quick_supply_specialist, core_modify: 100}
+  - {team: crawler-steel_ball, specialist: aerial_specialist, core_modify: -200}
 ```
 
-The opening deals a side four combinations of a team of units and a
-specialist officer, and taking one takes both. `offers` is the four in the
-order shown to the player.
+Round zero's state segment deals each side four combinations of a team of units
+and a specialist officer, and taking one takes both. `offers` is the four in the
+order shown to the player, each carrying an explicit `core_modify` equal to the
+sum of its advance team's and specialist's reactor core modifiers from
+[config/advance_teams.yaml](../../../config/advance_teams.yaml) (mismatches are
+refused on read).
 
-Each side has its own deal, unlike a state's shared `reinforce_offers`, which
-both players choose from. The game's interface shows each side its own deal;
-[the platform view](../mechcore/cli.md#match-show) exposes both header lists,
-while the current round's choice remains hidden from the opponent.
+Each side has its own deal, unlike a later state's shared `reinforce_offers`,
+which both players choose from. The game's interface shows each side its own
+deal; [the platform view](../mechcore/cli.md#match-show) exposes both round-0
+offer lists, while the current round's choice remains hidden from the opponent.
 
-The deal belongs in the header rather than in a state because the opening has no
-position worth stating. Every side of every match enters it holding nothing:
-nothing bought, nothing researched, both towers at level zero and both
-allocators at zero. The header is that position, and the offers are the one
-part of it that differs between matches.
-
-#### The construction layout is dealt, not built
+#### The construction layout is dealt, not built (round 0 state)
 
 ```yaml
   blue:
@@ -348,49 +349,53 @@ part of it that differs between matches.
 ```
 
 The map rolls a construction layout and deals it to both sides before the first
-round. It is the one piece of the opening no decision produces, and without this
-field a match's buildings would appear out of nothing in whichever round it
-starts from.
-
-A state's own `constructions` is a different list with the same shape. That one
-is live: buildings can be recovered or destroyed, so it only ever shortens.
-This one is what the side started with and never moves. The first round's list
-equals it, and every later round's is a subset of the same identities.
+round. In a complete match, round zero's state segment carries both sides' dealt
+`constructions`; in a partial match (`N >= 1`), round `N` carries the surviving
+subset in its own state segment. A state's later `constructions` list has the
+same shape: buildings can be recovered or destroyed, so it only ever shortens
+after round 0.
 
 Each side reads the layout in its own frame, so the two are the same buildings
 at mirrored coordinates rather than the same positions.
 
-#### The custom tech loadout
+#### The technology loadout
 
-When `rules.full_tech_loadout` is false, each player chooses before the match
-which technologies each unit may research. A technology outside a unit's
-loadout cannot be researched in that match, so the loadout bounds every
-`upgrade_technology` a round can hold. With the switch true this field is
-absent, and the full catalogue supplies the choices instead.
+Each player chooses before the match which technologies each unit may research,
+stated under its header side as `tech_loadout`. A technology outside that
+loadout cannot be researched in that match, so `tech_loadout` bounds every
+`upgrade_technology` a round can hold.
+
+- In canonical compact form, every technology enabled across all standard 1v1
+  units is written as the literal string `full`. Any proper subset (including an
+  empty loadout) is encoded as an unpadded RFC 4648 §5 Base64url string (42
+  characters for the 241 standard 1v1 `(tech_id, unit_id)` entries sorted
+  ascending by `tech_id`), where bit `i` (LSB-first within each byte, little-endian
+  bit order `i / 8`, `1 << (i % 8)`) is `1` when enabled (`tech_loadout: f-...` or
+  similar 42-character URL-safe string). Trailing unused bits must be zero, and an
+  all-ones bitset must be written as `"full"` instead.
+- A reader also accepts the expanded YAML mapping (`mechcore format --expanded`
+  writes it for inspection) keyed by unit name in ascending unit ID, listing each
+  unit's enabled technologies in ascending technology ID. Native records for Death
+  Knell (`2001`) and Experimental Death Knell (`4001`), which no standard 1v1
+  match fields, are dropped.
 
 ```yaml
+# Compact form (scalar mapping folds onto one line):
+  blue: {name: blue, elo_score: 1850, seed: 134917337, tech_loadout: full}
+
+# Expanded form (`mechcore format --expanded`):
   blue:
+    name: blue
+    elo_score: 1850
+    seed: 134917337
     tech_loadout:
       fortress: [anti_air_barrage, launcher_overload, solid_shot, elite_marksman]
       marksman: [doubleshot, electromagnetic_shot, aerial_specialization, range_enhancement]
-      war_factory: [high_explosive_ammo, missile_interceptor, range_enhancement, phoenix_production, steel_ball_production, sledgehammer_production]
-      vortex: [grid_integration, range_enhancement, mobile_power_station, emergency_armor]
 ```
 
-A custom loadout is real state and not a catalogue: two players in one match
-may hold different loadouts. A row is keyed by the unit type's name, the one a
-unit's `name` gives, and lists its technologies by name, as a state's `techs` does; the rows
-are in ascending unit ID and a row's technologies in ascending technology ID,
-which is the order the game lists both in. There is one row for each unit a standard 1v1 match can field: IDs
-`1` through `31` and `2002`. The record also holds rows for Death Knell (`2001`)
-and Experimental Death Knell (`4001`), which no standard 1v1 match fields, and
-the conversion drops them.
-
-A technology's name is unique only within its unit, so it is always written
-under one: here under its row, in a state under its unit type, and in an
-`upgrade_technology` beside the `unit` it names. Its owner cannot be read off the
-end of its ID for every row, and says nothing at all about Mountain, whose ID is
-above `2000`; it is resolved against the build's catalogue.
+Two players in one match may hold different loadouts. A technology's name is
+unique only within its unit, so expanded mappings key by unit name and
+`upgrade_technology` names both `unit` and technology.
 
 #### The side's own seed
 
@@ -417,15 +422,15 @@ does.
 
 ## The opening is round zero
 
-The opening is the first action segment, and it holds one
-`choose_advance_team` per side and nothing else. `index` is the zero-based
-position of the combination taken in that side's header `offers`, and `name` and
-`specialist` name the team and specialist that combination holds. A decision
-whose `name` and `specialist` are not what its offer holds is refused.
-
-Round zero has no state segment because the header is its position, and the
-first state segment is round 1, which already shows what the opening delivered.
-The seam from the header to round 1 is checked like every other seam, below.
+Round zero begins with its opening state segment (`kind: state`, `round: 0`),
+holding each side's `offers` and `constructions`, followed by round zero's action
+segment, which holds one `choose_advance_team` per side and nothing else. `index`
+is the zero-based position of the combination taken in that side's round-0
+`offers`, and `name` and `specialist` name the team and specialist that
+combination holds. A decision whose `name` and `specialist` are not what its
+offer holds is refused. The first combat deployment state segment is round 1,
+which already shows what the opening delivered. The seam from round 0 onto
+round 1 is checked like every other seam, below.
 
 ## Checking the deal against the seed
 
@@ -445,14 +450,14 @@ does not establish that the decision is legal there or that it reproduces the
 next round's position.
 
 The opening check computes initialization from `seed` and `map_id`, and compares
-both complete `offers` arrays and both construction lists against it. It
-compares the directly computed result, without searching alternative stream
-positions, and requires each opening decision to name an offer in range and
-the team and specialist that offer holds. It does not prove that a player chose that offer, and it does not validate
-deployment or combat.
+both complete `offers` arrays and both construction lists in round 0's state
+segment against it. It compares the directly computed result, without searching
+alternative stream positions, and requires each opening decision to name an
+offer in range and the team and specialist that offer holds. It does not prove
+that a player chose that offer, and it does not validate deployment or combat.
 
-When `rules.reinforcements` is true, the checks below verify the deal. When
-false, verification checks the absence of offers, choices and pool changes,
+When `reinforce` is true, the checks below verify the deal. When false,
+verification checks the absence of offers, choices and pool changes,
 and that each shared stream is the unchanged opening checkpoint; it reports
 zero reinforcement rounds and zero checked offers. The opening and player
 stream checks still apply.
@@ -588,14 +593,14 @@ the stream the header seeds, and is `equal` only where the deal agrees and
 every field it is dealt from agrees on both sides too, since the deal is
 checked against the recorded position.
 
-The opening transition, from round zero onto round 1, starts from a position
-the header deals rather than a state segment: the map's reactor core for that
-seat, the side's `constructions`, and two towers at level zero. A standard 1v1
-map unlocks no unit and hands out no commander skill before the opening. The
-side's opening decision is stepped on it, and as round 1 opens the chosen team
-arrives: its unit types join the shop, and its units land at level 1
-where the board puts them, in the team's order. Nothing is fought in between,
-so no leaf of this transition is in the `fight` class.
+The opening transition, from round zero onto round 1, starts from the
+header's `base_core`, the round-0 state segment's `constructions`, and two
+towers at level zero. A standard 1v1 map unlocks no unit and hands out no
+commander skill before the opening. The side's opening decision is stepped on
+it, and as round 1 opens the chosen team arrives: its unit types join the shop,
+its `core_modify` adjusts `base_core`, and its units land at level 1 where the
+board puts them, in the team's order. Nothing is fought in between, so no leaf
+of this transition is in the `fight` class.
 
 When a side's decisions cannot be stepped, nothing of that side's transition is
 predicted. A decision naming what the position does not hold, or one the game
@@ -885,11 +890,10 @@ in the extracted map and opening catalogues.
 
 | Collection | Order |
 | --- | --- |
-| segments | header, round zero's actions, then each round's state before its actions, ascending `round`, then the optional final result |
+| segments | header, then each round's state before its actions, ascending `round` (from 0 in complete matches), then the optional final result |
 | `offers` | as dealt; an opening decision's `index` names a zero-based position in it |
 | `constructions` | ascending `index` |
-| `tech_loadout` | absent with a full loadout; otherwise ascending unit ID, each row ascending technology ID |
-| `rules` | `reinforcements`, then `full_tech_loadout`, both explicit booleans |
+| `tech_loadout` | compact `"full"` or 42-char Base64url positive bitmask; with `--expanded`, ascending unit ID, each row ascending technology ID |
 | `game_rules` | ascending rule ID |
 
 A team is written as its two unit types joined by a hyphen, the one it holds
@@ -899,9 +903,13 @@ English names in snake case.
 
 A segment's own collections keep the orders [`state.md`](state.md) and
 [`action.md`](action.md) define. The header writes `kind`, `build`, `source`,
-`rules`, `map_id`, `seed`, then `blue` and `red`. Within every later segment,
-`kind` comes first and `round` second, so a reader scanning the stream finds
-both on the two lines after each separator.
+`reinforce`, `max_round`, `base_core`, `map_id`, `seed`, then `blue` and `red`.
+When formatting in compact form, each header side holds only scalar fields
+(`name`, optional `elo_score`, optional `seed`, `tech_loadout`), so by the
+scalar-mapping rule below it folds onto one flow line; `--expanded` writes block
+mappings inside `tech_loadout`. Within every later segment, `kind` comes first
+and `round` second, so a reader scanning the stream finds both on the two lines
+after each separator.
 
 Three rules decide how every value is spelled, and none of them names a field.
 A [layout](layout.md#normal-form) is spelled by the same three:
@@ -929,14 +937,13 @@ sequence; a reader parses either style.
 
 | Field | Why it is not in the match |
 | --- | --- |
-| A round-zero state | Every side enters the opening holding nothing; the header is that position |
 | A fight's complete settlement | The next state shows it; the final result records only final cores and the winner |
 | `BattleInfo.BattleID` | Names a server record; no rule reads it |
 | `BattleRecord.Seat` | Which client recorded the file, not a property of the match |
 | `PlayerRecord.id`, `ad` | Account identity; nothing reads it |
 | `PlayerRecord.data.styleData` | Skins |
 | `PlayerRecord.data.team`, `isLeader`, `type` | A side is named by which side it is |
-| `PlayerRecord.data` supply and core settings | The map's row in `matchSettings` gives them, keyed by `map_id` |
+| `PlayerRecord.data` round supply settings | Every versus map shares the same base round income |
 | `BattleRecord.reinforceItems` | Carries no offer; the per-round array does |
 | `PAD_GiveUp.Time`, `LocalTime` | A concession is placed by its segment; no rule reads a clock |
 | `BattleRecord.Version`, `CreateTime` | Native build framing and wall-clock provenance; `build` and `source` carry the match-level facts |

@@ -429,7 +429,7 @@ impl Dealer {
         stated: &Stated,
         turn: &Turn,
     ) -> Result<Option<Offers>, String> {
-        if turn.round == 1 || !stated.rules.reinforcements {
+        if turn.round == 1 || !stated.reinforce {
             return Ok(None);
         }
         let context = self.context(economy, stated, turn)?;
@@ -986,7 +986,7 @@ pub fn deal_checkpoint(economy: &Economy, stated: &Stated) -> Result<Dealt, Stri
     let opening = crate::opening::predict(economy, stated.seed, stated.map_id)?;
     let mut dealer = Dealer::new(&opening)?;
     let initial = dealer.members();
-    if !stated.rules.reinforcements {
+    if !stated.reinforce {
         return Ok(Dealt {
             offers: None,
             checkpoint: dealer.checkpoint(&initial),
@@ -1064,7 +1064,7 @@ fn walk(
             checkpoints: Vec::new(),
         });
     }
-    if !stated.rules.reinforcements {
+    if !stated.reinforce {
         return without_reinforcements(stated, opening, check_state);
     }
     let mut dealer = Dealer::new(opening)?;
@@ -1212,20 +1212,16 @@ mod tests {
         crate::transition::open_allowances(&mut opened);
         let mut game = Match {
             source: crate::r#match::Source::Simulator,
-            rules: crate::r#match::Rules {
-                reinforcements: true,
-                full_tech_loadout: false,
-            },
+            reinforce: true,
+            max_round: 40,
+            base_core: 4500,
             result: None,
             has_opening: false,
             game_build: crate::game_build().into(),
             map_id: 1011,
             seed: 12345,
-            blue: side(
-                opening.deal.blue.clone(),
-                opening.constructions.blue.clone(),
-            ),
-            red: side(opening.deal.red.clone(), opening.constructions.red.clone()),
+            blue: side(Vec::new(), Vec::new()),
+            red: side(Vec::new(), Vec::new()),
             turns: vec![Turn {
                 round: 5,
                 state: State {

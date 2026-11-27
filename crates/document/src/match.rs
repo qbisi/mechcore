@@ -31,16 +31,26 @@ pub struct Match {
     /// The build whose tables this match is written against.
     pub game_build: String,
     pub source: Source,
-    pub rules: Rules,
+    pub reinforce: bool,
+    pub max_round: i32,
+    pub base_core: i32,
     pub map_id: i32,
     pub seed: i32,
     pub blue: MatchSide,
     pub red: MatchSide,
     /// The contiguous deployment rounds, starting at the first captured one.
-    /// The opening is round zero and has no state to open it, so each side's
-    /// [`Opening`] holds it when known.
+    /// The opening is round zero and has its own opening state segment holding
+    /// each side's offers and initial constructions.
     pub turns: Vec<Turn>,
     pub result: Option<MatchResult>,
+}
+
+/// How `tech_loadout` is written in a match header.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum TechLoadoutFormat {
+    #[default]
+    Compact,
+    Expanded,
 }
 
 /// Battle backend that produced a match; transcoding preserves it.
@@ -57,23 +67,6 @@ impl Source {
         match self {
             Self::Game => "game",
             Self::Simulator => "simulator",
-        }
-    }
-}
-
-/// Match-wide decision switches. Missing switches default on.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
-#[serde(default, deny_unknown_fields)]
-pub struct Rules {
-    pub reinforcements: bool,
-    pub full_tech_loadout: bool,
-}
-
-impl Default for Rules {
-    fn default() -> Self {
-        Self {
-            reinforcements: true,
-            full_tech_loadout: true,
         }
     }
 }
@@ -158,9 +151,9 @@ pub struct MatchSide {
 
 /// The opening a side was dealt, and which of it the side took.
 ///
-/// The header states the four combinations and the round-zero action segment
-/// states the choice, so the two halves are written in different places. They
-/// are held together here because every reader of one needs the other.
+/// The round-zero state segment holds the four combinations (`offers`), and the
+/// round-zero action segment holds the choice (`choose`). They are kept
+/// together here because every reader of one needs the other.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Opening {
     /// Zero-based index of the combination taken from `offers`, absent while
@@ -173,23 +166,89 @@ pub struct Opening {
     pub choose: Option<i32>,
     /// The four combinations this side was dealt, in the order shown.
     ///
-    /// The deal is private to the side, which is why it sits under the side in
-    /// the header and not beside a state's shared `reinforce_offers`.
     /// Conversion reconstructs it from the replay's random state.
     pub offers: Vec<OpeningOffer>,
 }
 
-/// One of the openings a side was dealt: a team of formations and the
-/// specialist officer bound to it.
-#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+/// One of the openings a side was dealt: a team of formations, the
+/// specialist officer bound to it, and the net `core_modify` applied on pick.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct OpeningOffer {
+    pub team: i32,
+    pub specialist: i32,
+}
+
+#[derive(Deserialize, Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct OpeningOfferWire {
     /// Written as the team's name, its two unit types.
     #[serde(with = "crate::names::advance_team::one")]
     #[schemars(with = "String")]
-    pub team: i32,
+    team: i32,
     #[serde(with = "crate::names::officer::one")]
     #[schemars(with = "String")]
-    pub specialist: i32,
+    specialist: i32,
+    core_modify: i32,
+}
+
+impl OpeningOffer {
+    /// Reactor core delta from choosing this team and specialist together.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the team or specialist ID is absent from the catalogue.
+    pub fn core_modify(self) -> Result<i32, String> {
+        let economy = crate::economy::Economy::embedded()?;
+        let team = economy
+            .advance_team(self.team)
+            .ok_or_else(|| format!("unknown advance team {}", self.team))?;
+        let specialist = economy
+            .advance_team(self.specialist)
+            .ok_or_else(|| format!("unknown specialist {}", self.specialist))?;
+        Ok(team.reactor_core + specialist.reactor_core)
+    }
+}
+
+impl Serialize for OpeningOffer {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::Error;
+        let core_modify = self.core_modify().map_err(S::Error::custom)?;
+        OpeningOfferWire {
+            team: self.team,
+            specialist: self.specialist,
+            core_modify,
+        }
+        .serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for OpeningOffer {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        use serde::de::Error;
+        let wire = OpeningOfferWire::deserialize(deserializer)?;
+        let offer = Self {
+            team: wire.team,
+            specialist: wire.specialist,
+        };
+        let expected = offer.core_modify().map_err(D::Error::custom)?;
+        if wire.core_modify != expected {
+            return Err(D::Error::custom(format!(
+                "opening offer core_modify is {}, expected {expected}",
+                wire.core_modify
+            )));
+        }
+        Ok(offer)
+    }
+}
+
+impl JsonSchema for OpeningOffer {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "OpeningOffer".into()
+    }
+
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        OpeningOfferWire::json_schema(generator)
+    }
 }
 
 impl Opening {
@@ -1138,16 +1197,25 @@ fn is_false(value: &bool) -> bool {
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum Segment<'a> {
     Match(Header<'a>),
-    State(StateSegment<'a>),
+    State(StateKindSegment<'a>),
     Action(ActionSegment<'a>),
     Result(&'a MatchResult),
+}
+
+#[derive(Serialize)]
+#[serde(untagged)]
+enum StateKindSegment<'a> {
+    Opening(OpeningStateSegment<'a>),
+    Round(StateSegment<'a>),
 }
 
 #[derive(Serialize)]
 struct Header<'a> {
     build: &'a str,
     source: Source,
-    rules: Rules,
+    reinforce: bool,
+    max_round: i32,
+    base_core: i32,
     map_id: i32,
     seed: i32,
     blue: HeaderSide<'a>,
@@ -1161,26 +1229,48 @@ struct HeaderSide<'a> {
     elo_score: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     seed: Option<i32>,
-    offers: &'a [OpeningOffer],
-    constructions: &'a [StaticPlacement],
-    #[serde(skip_serializing_if = "Option::is_none")]
-    tech_loadout: Option<HeaderLoadout<'a>>,
+    tech_loadout: HeaderLoadout<'a>,
 }
 
-#[derive(Serialize)]
-struct HeaderLoadout<'a>(#[serde(with = "crate::names::loadout")] &'a BTreeMap<i32, Vec<i32>>);
+enum HeaderLoadout<'a> {
+    Compact(&'a BTreeMap<i32, Vec<i32>>),
+    Expanded(&'a BTreeMap<i32, Vec<i32>>),
+}
+
+impl Serialize for HeaderLoadout<'_> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self {
+            Self::Compact(map) => crate::names::loadout::serialize_compact(map, serializer),
+            Self::Expanded(map) => crate::names::loadout::serialize(map, serializer),
+        }
+    }
+}
 
 impl<'a> HeaderSide<'a> {
-    fn of(side: &'a MatchSide, full: bool) -> Self {
+    fn of(side: &'a MatchSide, format: TechLoadoutFormat) -> Self {
         Self {
             name: &side.name,
             elo_score: side.elo_score,
             seed: side.seed,
-            offers: &side.opening.offers,
-            constructions: &side.constructions,
-            tech_loadout: (!full).then_some(HeaderLoadout(&side.tech_loadout)),
+            tech_loadout: match format {
+                TechLoadoutFormat::Compact => HeaderLoadout::Compact(&side.tech_loadout),
+                TechLoadoutFormat::Expanded => HeaderLoadout::Expanded(&side.tech_loadout),
+            },
         }
     }
+}
+
+#[derive(Serialize)]
+struct OpeningStateSegment<'a> {
+    round: i32,
+    blue: OpeningStateSide<'a>,
+    red: OpeningStateSide<'a>,
+}
+
+#[derive(Serialize)]
+struct OpeningStateSide<'a> {
+    offers: &'a [OpeningOffer],
+    constructions: &'a [StaticPlacement],
 }
 
 #[derive(Serialize)]
@@ -1223,7 +1313,16 @@ const SEPARATOR: &str = "---\n";
 ///
 /// Returns an error when a segment cannot be serialized.
 pub fn canonical_yaml(r#match: &Match) -> Result<String, String> {
-    write_values(&segment_values(r#match)?)
+    canonical_yaml_with(r#match, TechLoadoutFormat::Compact)
+}
+
+/// Serializes a match with the requested `tech_loadout` representation.
+///
+/// # Errors
+///
+/// Returns an error when a segment cannot be serialized.
+pub fn canonical_yaml_with(r#match: &Match, format: TechLoadoutFormat) -> Result<String, String> {
+    write_values(&segment_values_with(r#match, format)?)
 }
 
 /// The problem presented to both arena seats, ending at the current opening.
@@ -1231,7 +1330,7 @@ pub fn canonical_yaml(r#match: &Match) -> Result<String, String> {
 /// # Errors
 /// Returns an error for a closed match or an unserializable segment.
 pub fn round_problem_yaml(game: &Match) -> Result<String, String> {
-    let mut segments = segments_of(game);
+    let mut segments = segments_of(game, TechLoadoutFormat::Compact);
     if !matches!(segments.pop(), Some(Segment::Action(_))) {
         return Err("a round problem needs an open action segment".into());
     }
@@ -1254,7 +1353,15 @@ fn write_values(values: &[Value]) -> Result<String, String> {
 /// # Errors
 /// Returns an error when a segment cannot be serialized.
 pub fn segment_values(game: &Match) -> Result<Vec<Value>, String> {
-    values_of(&segments_of(game))
+    segment_values_with(game, TechLoadoutFormat::Compact)
+}
+
+/// The match's YAML documents as values, with the requested `tech_loadout` representation.
+///
+/// # Errors
+/// Returns an error when a segment cannot be serialized.
+pub fn segment_values_with(game: &Match, format: TechLoadoutFormat) -> Result<Vec<Value>, String> {
+    values_of(&segments_of(game, format))
 }
 
 fn values_of(segments: &[Segment<'_>]) -> Result<Vec<Value>, String> {
@@ -1272,8 +1379,19 @@ fn values_of(segments: &[Segment<'_>]) -> Result<Vec<Value>, String> {
 /// # Errors
 /// Returns an error when the header cannot be serialized.
 pub fn header_value(game: &Match) -> Result<Value, String> {
-    serde_yaml::to_value(Segment::Match(header_of(game)))
+    serde_yaml::to_value(Segment::Match(header_of(game, TechLoadoutFormat::Compact)))
         .map_err(|error| format!("cannot serialize match header: {error}"))
+}
+
+/// Round zero's opening state segment (`offers` and initial `constructions`).
+///
+/// # Errors
+/// Returns an error when the opening state cannot be serialized.
+pub fn opening_state_value(game: &Match) -> Result<Value, String> {
+    serde_yaml::to_value(Segment::State(StateKindSegment::Opening(opening_state_of(
+        game,
+    ))))
+    .map_err(|error| format!("cannot serialize opening state: {error}"))
 }
 
 /// The shape of each segment a match stream is written as.
@@ -1298,12 +1416,25 @@ pub mod schema {
         #[serde(default = "crate::economy::this_build")]
         pub build: String,
         pub source: super::Source,
-        #[serde(default)]
-        pub rules: super::Rules,
+        #[serde(default = "default_true")]
+        pub reinforce: bool,
+        pub max_round: i32,
+        pub base_core: i32,
         pub map_id: i32,
         pub seed: i32,
         pub blue: Side,
         pub red: Side,
+    }
+
+    const fn default_true() -> bool {
+        true
+    }
+
+    #[derive(Serialize, JsonSchema)]
+    #[serde(untagged)]
+    pub enum TechLoadout {
+        Compact(String),
+        Expanded(BTreeMap<String, Vec<String>>),
     }
 
     /// What the header says about one side.
@@ -1316,12 +1447,27 @@ pub mod schema {
         pub elo_score: Option<i32>,
         /// The seed of the side's own stream.
         pub seed: Option<i32>,
+        /// Which technologies each unit may research (`"full"`, compact bitset string, or unit map).
+        #[schemars(with = "TechLoadout")]
+        pub tech_loadout: BTreeMap<i32, Vec<i32>>,
+    }
+
+    /// Round zero's opening state segment.
+    #[derive(Serialize, JsonSchema)]
+    #[serde(deny_unknown_fields)]
+    pub struct OpeningState {
+        pub kind: StateKind,
+        pub round: i32,
+        pub blue: OpeningStateSide,
+        pub red: OpeningStateSide,
+    }
+
+    #[derive(Serialize, JsonSchema)]
+    #[serde(deny_unknown_fields)]
+    pub struct OpeningStateSide {
         /// The four openings this side was dealt.
         pub offers: Vec<OpeningOffer>,
         pub constructions: Vec<StaticPlacement>,
-        /// Which technologies each unit may research, keyed by type name.
-        #[schemars(with = "Option<BTreeMap<String, Vec<String>>>")]
-        pub tech_loadout: Option<BTreeMap<i32, Vec<i32>>>,
     }
 
     /// The position a round opens with.
@@ -1430,7 +1576,9 @@ pub fn read(bytes: &[u8]) -> Result<Option<Match>, String> {
         has_opening: stated.has_opening,
         game_build: stated.build,
         source: stated.source,
-        rules: stated.rules,
+        reinforce: stated.reinforce,
+        max_round: stated.max_round,
+        base_core: stated.base_core,
         map_id: stated.map_id,
         seed: stated.seed,
         blue: side("blue", stated.blue)?,
@@ -1441,22 +1589,41 @@ pub fn read(bytes: &[u8]) -> Result<Option<Match>, String> {
 }
 
 /// The header shared by the document and decision-view writers.
-fn header_of(r#match: &Match) -> Header<'_> {
+fn header_of(r#match: &Match, format: TechLoadoutFormat) -> Header<'_> {
     Header {
         build: &r#match.game_build,
         source: r#match.source,
-        rules: r#match.rules,
+        reinforce: r#match.reinforce,
+        max_round: r#match.max_round,
+        base_core: r#match.base_core,
         map_id: r#match.map_id,
         seed: r#match.seed,
-        blue: HeaderSide::of(&r#match.blue, r#match.rules.full_tech_loadout),
-        red: HeaderSide::of(&r#match.red, r#match.rules.full_tech_loadout),
+        blue: HeaderSide::of(&r#match.blue, format),
+        red: HeaderSide::of(&r#match.red, format),
+    }
+}
+
+fn opening_state_of(r#match: &Match) -> OpeningStateSegment<'_> {
+    OpeningStateSegment {
+        round: 0,
+        blue: OpeningStateSide {
+            offers: &r#match.blue.opening.offers,
+            constructions: &r#match.blue.constructions,
+        },
+        red: OpeningStateSide {
+            offers: &r#match.red.opening.offers,
+            constructions: &r#match.red.constructions,
+        },
     }
 }
 
 /// A match's segments, in stream order.
-fn segments_of(r#match: &Match) -> Vec<Segment<'_>> {
-    let mut segments = vec![Segment::Match(header_of(r#match))];
+fn segments_of(r#match: &Match, format: TechLoadoutFormat) -> Vec<Segment<'_>> {
+    let mut segments = vec![Segment::Match(header_of(r#match, format))];
     if r#match.has_opening {
+        segments.push(Segment::State(StateKindSegment::Opening(opening_state_of(
+            r#match,
+        ))));
         segments.push(Segment::Action(ActionSegment {
             round: 0,
             blue: Cow::Owned(r#match.blue.opening.action().into_iter().collect()),
@@ -1464,14 +1631,14 @@ fn segments_of(r#match: &Match) -> Vec<Segment<'_>> {
         }));
     }
     for turn in &r#match.turns {
-        segments.push(Segment::State(StateSegment {
+        segments.push(Segment::State(StateKindSegment::Round(StateSegment {
             round: turn.round,
             random_state: turn.state.random_state,
             reinforce_pool: &turn.state.reinforce_pool,
             reinforce_offers: turn.state.reinforce_offers.as_ref(),
             blue: &turn.state.blue,
             red: &turn.state.red,
-        }));
+        })));
         // A destroyed reactor core ends the match on the state that states
         // it, so the round it opens has no decisions to write.
         if turn.state.blue.reactor_core <= 0 || turn.state.red.reactor_core <= 0 {
@@ -1498,8 +1665,13 @@ fn segments_of(r#match: &Match) -> Vec<Segment<'_>> {
 #[derive(Debug)]
 pub struct Segments {
     pub header: Value,
+    /// Round zero's opening state segment (`offers` and `constructions`), absent
+    /// from a stream that holds only its header or a partial match starting at
+    /// a later round.
+    pub opening_state: Option<Value>,
     /// The round-zero action segment, absent from a stream that holds only its
-    /// header, or from a partial match starting at a captured state.
+    /// header, stops on `state(0)`, or is a partial match starting at a later
+    /// round.
     pub opening: Option<Value>,
     pub rounds: Vec<RoundSegments>,
     pub result: Option<MatchResult>,
@@ -1519,11 +1691,11 @@ pub struct RoundSegments {
 /// match.
 ///
 /// A file is a match when its first document says `kind: match`. After that
-/// a complete prefix starts with round zero's actions. A partial match starts
-/// with any positive round's state. Both then alternate consecutive states
-/// and same-round actions. It may end after any
-/// segment. Only a final result may follow a concession or a state in which
-/// a reactor core has fallen to zero; nothing follows a result.
+/// a complete prefix starts with round zero's state and actions. A partial match
+/// starts with any positive round's state. Both then alternate consecutive
+/// states and same-round actions. It may end after any segment. Only a final
+/// result may follow a concession or a state in which a reactor core has fallen
+/// to zero; nothing follows a result.
 ///
 /// # Errors
 ///
@@ -1543,6 +1715,7 @@ pub fn segments(bytes: &[u8]) -> Result<Option<Segments>, String> {
     }
     let mut stream = Segments {
         header,
+        opening_state: None,
         opening: None,
         rounds: Vec::new(),
         result: None,
@@ -1570,16 +1743,18 @@ pub fn segments(bytes: &[u8]) -> Result<Option<Segments>, String> {
             .and_then(Value::as_i64)
             .and_then(|round| i32::try_from(round).ok())
             .ok_or_else(|| format!("match segment {position} ({kind}) names no round"))?;
-        let (expected_kind, expected_round) = match (&stream.opening, stream.rounds.last()) {
-            (None, None) if kind == "state" && round >= 1 => ("state", round),
-            (None, None) => ("action", 0),
-            (Some(_), None) => ("state", 1),
-            (_, Some(last)) if last.actions.is_none() => ("action", last.round),
-            (_, Some(last)) => (
-                "state",
-                last.round.checked_add(1).ok_or("match round overflow")?,
-            ),
-        };
+        let (expected_kind, expected_round) =
+            match (&stream.opening_state, &stream.opening, stream.rounds.last()) {
+                (None, None, None) if kind == "state" && round >= 1 => ("state", round),
+                (None, _, None) => ("state", 0),
+                (Some(_), None, None) => ("action", 0),
+                (Some(_), Some(_), None) => ("state", 1),
+                (_, _, Some(last)) if last.actions.is_none() => ("action", last.round),
+                (_, _, Some(last)) => (
+                    "state",
+                    last.round.checked_add(1).ok_or("match round overflow")?,
+                ),
+            };
         if kind != expected_kind || round != expected_round {
             return Err(format!(
                 "match segment {position} is {kind} round {round}; \
@@ -1587,6 +1762,10 @@ pub fn segments(bytes: &[u8]) -> Result<Option<Segments>, String> {
             ));
         }
         if kind == "state" {
+            if round == 0 {
+                stream.opening_state = Some(segment);
+                continue;
+            }
             if released(&segment) {
                 return Err(format!(
                     "round {round} state carries a release; a match \
@@ -1658,7 +1837,15 @@ fn read_result(
         .and_then(Value::as_i64)
         .and_then(|id| i32::try_from(id).ok())
         .ok_or("a result requires a map_id")?;
-    let at_limit = result.round == crate::opening::max_round(map_id)?;
+    let max_round = match header.get("max_round") {
+        Some(value) => value
+            .as_i64()
+            .and_then(|round| i32::try_from(round).ok())
+            .filter(|round| *round >= 1)
+            .ok_or("match max_round must be >= 1")?,
+        None => crate::opening::max_round(map_id)?,
+    };
+    let at_limit = result.round == max_round;
     let winner = concession
         .or_else(|| Winner::from_cores(result.blue.reactor_core, result.red.reactor_core))
         .or_else(|| {
@@ -2148,7 +2335,7 @@ mod tests {
 
     #[test]
     fn the_header_always_preserves_its_game_build() {
-        let input = b"kind: match\nsource: simulator\nrules: {reinforcements: true, full_tech_loadout: false}\nmap_id: 1021\nseed: 1\nblue: {offers: [], constructions: [], tech_loadout: {}}\nred: {offers: [], constructions: [], tech_loadout: {}}\n---\nkind: action\nround: 0\nblue: []\nred: []\n";
+        let input = b"kind: match\nsource: simulator\nreinforce: true\nmax_round: 40\nbase_core: 4500\nmap_id: 1021\nseed: 1\nblue: {tech_loadout: {}}\nred: {tech_loadout: {}}\n---\nkind: state\nround: 0\nblue: {offers: [], constructions: []}\nred: {offers: [], constructions: []}\n---\nkind: action\nround: 0\nblue: []\nred: []\n";
         let game = super::read(input).unwrap().unwrap();
         let written = super::canonical_yaml(&game).unwrap();
         let header = super::segment_values(&game).unwrap().remove(0);
@@ -2180,7 +2367,7 @@ mod tests {
 
     #[test]
     fn historical_ratings_are_optional_header_metadata() {
-        let input = b"kind: match\nsource: simulator\nrules: {reinforcements: true, full_tech_loadout: false}\nmap_id: 1021\nseed: 1\nblue: {elo_score: 1448, offers: [], constructions: [], tech_loadout: {}}\nred: {offers: [], constructions: [], tech_loadout: {}}\n---\nkind: action\nround: 0\nblue: []\nred: []\n";
+        let input = b"kind: match\nsource: simulator\nreinforce: true\nmap_id: 1021\nseed: 1\nblue: {elo_score: 1448, tech_loadout: {}}\nred: {tech_loadout: {}}\n---\nkind: state\nround: 0\nblue: {offers: [], constructions: []}\nred: {offers: [], constructions: []}\n---\nkind: action\nround: 0\nblue: []\nred: []\n";
         let game = super::read(input).unwrap().unwrap();
         assert_eq!(game.blue.elo_score, Some(1448));
         assert_eq!(game.red.elo_score, None);
@@ -2205,8 +2392,9 @@ mod tests {
         assert!(super::read(invalid.as_bytes()).is_err());
     }
 
-    const HEADER: &str = "kind: match\nsource: simulator\nrules: {reinforcements: true, full_tech_loadout: false}\nmap_id: 1021\nseed: 1\n";
-    const OPENING: &str = "---\nkind: action\nround: 0\nblue: []\nred: []\n";
+    const HEADER: &str = "kind: match\nsource: simulator\nreinforce: true\nmax_round: 40\nbase_core: 4500\nmap_id: 1021\nseed: 1\n";
+    const OPENING_STATE: &str = "---\nkind: state\nround: 0\nblue: {offers: [], constructions: []}\nred: {offers: [], constructions: []}\n";
+    const OPENING: &str = "---\nkind: state\nround: 0\nblue: {offers: [], constructions: []}\nred: {offers: [], constructions: []}\n---\nkind: action\nround: 0\nblue: []\nred: []\n";
 
     fn state(round: i32, blue_core: i32) -> String {
         format!(
@@ -2259,12 +2447,13 @@ mod tests {
     #[test]
     fn positive_final_cores_require_the_maps_round_limit() {
         let stream = format!(
-            "kind: match\nsource: simulator\nrules: {{reinforcements: true, full_tech_loadout: false}}\nmap_id: 1012\nseed: 1\n{}{}---\nkind: result\nround: 13\nwinner: blue\nblue: {{reactor_core: 402}}\nred: {{reactor_core: 12}}\n",
+            "kind: match\nsource: simulator\nreinforce: true\nmap_id: 1012\nseed: 1\n{}{}---\nkind: result\nround: 13\nwinner: blue\nblue: {{reactor_core: 402}}\nred: {{reactor_core: 12}}\n",
             state(13, 402),
             actions(13, "[]"),
         );
         assert!(read_ok(&stream));
         assert!(read(&stream.replace("map_id: 1012", "map_id: 1011")).is_err());
+        assert!(read(&stream.replace("map_id: 1012\n", "map_id: 1011\nmax_round: 13\n")).is_ok());
         assert!(read(&stream.replace("round: 13", "round: 12")).is_err());
         assert!(read(&stream.replace("winner: blue", "winner: red")).is_err());
         // Equal cores leave the authoritative winner intact; team bonus is absent.
@@ -2285,11 +2474,16 @@ mod tests {
             state(2, 4800)
         );
         let read = read(&full).unwrap();
+        assert!(read.opening_state.is_some());
         assert!(read.opening.is_some());
         assert_eq!(read.rounds.len(), 2);
         assert!(read.rounds[0].actions.is_some());
         assert!(read.rounds[1].actions.is_none());
         assert!(super::segments(HEADER.as_bytes()).unwrap().is_some());
+        let at_opening_state = format!("{HEADER}{OPENING_STATE}");
+        let parsed = self::read(&at_opening_state).unwrap();
+        assert!(parsed.opening_state.is_some());
+        assert!(parsed.opening.is_none());
         let ends_on_actions = format!("{HEADER}{OPENING}{}{}", state(1, 4800), actions(1, "[]"));
         assert!(read_ok(&ends_on_actions));
     }
@@ -2316,6 +2510,7 @@ mod tests {
                 state(first + 1, 4800)
             );
             let captured = read(&suffix).unwrap();
+            assert!(captured.opening_state.is_none());
             assert!(captured.opening.is_none());
             assert_eq!(captured.rounds[0].round, first);
             assert!(!read_ok(&format!("{suffix}{}", actions(first + 2, "[]"))));
@@ -2326,7 +2521,8 @@ mod tests {
                 state(first + 2, 4800)
             )));
         }
-        assert!(!read_ok(&format!("{HEADER}{}", state(0, 4800))));
+        let action_before_opening_state = format!("{HEADER}{}", actions(0, "[]"));
+        assert!(!read_ok(&action_before_opening_state));
     }
 
     #[test]
@@ -2407,10 +2603,9 @@ mod tests {
         };
         let ended = super::Match {
             source: super::Source::Simulator,
-            rules: super::Rules {
-                reinforcements: true,
-                full_tech_loadout: false,
-            },
+            reinforce: true,
+            max_round: 40,
+            base_core: 4500,
             result: None,
             has_opening: true,
             game_build: crate::game_build().to_owned(),
@@ -2536,7 +2731,9 @@ mod tests {
         }));
         let game = super::Match {
             source: super::Source::Simulator,
-            rules: super::Rules::default(),
+            reinforce: true,
+            max_round: 40,
+            base_core: 4500,
             result: None,
             has_opening: false,
             game_build: crate::game_build().to_owned(),
@@ -2598,5 +2795,77 @@ mod tests {
         let mut bad_level = valid();
         bad_level.red.tower_strengthen_levels[1] = 5;
         assert!(bad_level.check_towers(true).unwrap_err().contains("0..=4"));
+    }
+
+    #[test]
+    fn opening_offer_serializes_core_modify_and_refuses_mismatch() {
+        let predicted =
+            crate::opening::predict(crate::economy::Economy::embedded().unwrap(), 12345, 1012)
+                .unwrap();
+        let offer = predicted.deal.blue[0];
+        let expected_modify = offer.core_modify().unwrap();
+        let value = serde_yaml::to_value(offer).unwrap();
+        let text = serde_yaml::to_string(&value).unwrap();
+        assert_eq!(
+            value.get("core_modify").and_then(serde_yaml::Value::as_i64),
+            Some(i64::from(expected_modify))
+        );
+        let parsed: super::OpeningOffer = serde_yaml::from_str(&text).unwrap();
+        assert_eq!(parsed, offer);
+
+        let wrong = text.replace(
+            &format!("core_modify: {expected_modify}"),
+            &format!("core_modify: {}", expected_modify + 100),
+        );
+        assert!(
+            serde_yaml::from_str::<super::OpeningOffer>(&wrong)
+                .unwrap_err()
+                .to_string()
+                .contains("core_modify")
+        );
+    }
+
+    #[test]
+    fn canonical_match_writes_compact_and_expanded_loadouts() {
+        let economy = crate::economy::Economy::embedded().unwrap();
+        let mut custom = economy.unit_technologies();
+        for (unit, list) in &mut custom {
+            list.truncate(super::research_limit(*unit));
+        }
+        let side = |loadout| super::MatchSide {
+            name: "side".into(),
+            elo_score: None,
+            opening: super::Opening {
+                choose: None,
+                offers: Vec::new(),
+            },
+            constructions: Vec::new(),
+            tech_loadout: loadout,
+            seed: None,
+        };
+        let game = super::Match {
+            has_opening: true,
+            game_build: crate::game_build().to_owned(),
+            source: super::Source::Simulator,
+            reinforce: true,
+            max_round: 13,
+            base_core: 4700,
+            map_id: 1012,
+            seed: 1,
+            blue: side(economy.unit_technologies()),
+            red: side(custom),
+            turns: Vec::new(),
+            result: None,
+        };
+        let compact = super::canonical_yaml(&game).unwrap();
+        assert!(compact.contains("reinforce: true\nmax_round: 13\nbase_core: 4700\n"));
+        assert!(compact.contains("tech_loadout: full"));
+        assert!(compact.contains("---\nkind: state\nround: 0\n"));
+        assert_eq!(super::read(compact.as_bytes()).unwrap().unwrap(), game);
+
+        let expanded =
+            super::canonical_yaml_with(&game, super::TechLoadoutFormat::Expanded).unwrap();
+        assert!(expanded.contains("  tech_loadout:\n    fortress: ["));
+        assert_eq!(super::read(expanded.as_bytes()).unwrap().unwrap(), game);
     }
 }

@@ -19,7 +19,7 @@ class Round:
         self.other = "blue" if side == "red" else "red"
         self.number = number
         self.header = header
-        self.state = opening if number else {}
+        self.state = opening
         self.actions = []
         self.request_id = 0
         # A trial needs one legal answer from each seat. Model the opponent
@@ -32,7 +32,7 @@ class Round:
                               "name": offers[-1]["name"]}]
 
     def choose_team(self, seat, index):
-        offer = self.header[seat]["offers"][index]
+        offer = self.state[seat]["offers"][index]
         return {"type": "choose_advance_team", "index": index,
                 "name": offer["team"], "specialist": offer["specialist"]}
 

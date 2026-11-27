@@ -142,7 +142,7 @@ class Player:
     # The opening.
 
     def opening(self, view):
-        offers = view["header"][self.side]["offers"]
+        offers = view["state"][self.side]["offers"]
         pick = self.draw.randrange(len(offers))
         self.problem.actions.append({
             "type": "choose_advance_team",
@@ -263,9 +263,23 @@ class Player:
                 return self.take(decision) is not None
         return False
 
+    def decode_loadout(self, raw):
+        if raw == "full":
+            return self.full_loadout
+        if isinstance(raw, dict):
+            return raw
+        import base64
+        padded = raw + "=" * (-len(raw) % 4)
+        data = base64.urlsafe_b64decode(padded.encode("ascii"))
+        loadout = {}
+        for bit, (unit, tech) in enumerate(self.tech_table):
+            if (data[bit >> 3] >> (bit & 7)) & 1:
+                loadout.setdefault(unit, []).append(tech)
+        return loadout
+
     def research(self):
         position = self.view()
-        loadout = self.seen["header"][self.side].get("tech_loadout", self.full_loadout)
+        loadout = self.decode_loadout(self.seen["header"][self.side]["tech_loadout"])
         held = {unit: set(techs) for unit, techs in (position.get("techs") or {}).items()}
         types = {}
         for unit in position.get("units", []):
@@ -399,8 +413,15 @@ class Player:
     def play(self):
         import yaml
 
-        technologies = yaml.safe_load((CONFIG / "names.yaml").read_text())["technologies"]
-        self.full_loadout = {unit: list(names.values()) for unit, names in technologies.items()}
+        names = yaml.safe_load((CONFIG / "names.yaml").read_text())["technologies"]
+        unit_techs = yaml.safe_load((CONFIG / "unit_techs.yaml").read_text())["units"]
+        self.full_loadout = {unit: list(items.values()) for unit, items in names.items()}
+        self.tech_table = sorted(
+            (tech["id"], row["type"], names[row["type"]][tech["id"]])
+            for row in unit_techs
+            for tech in row["technologies"]
+        )
+        self.tech_table = [(unit, tech) for _, unit, tech in self.tech_table]
         for problem in problems():
             self.problem = problem
             self.side = problem.side
