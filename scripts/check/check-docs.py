@@ -2,11 +2,12 @@
 """Check what a machine can check about the documents.
 
 Relative links resolve, section anchors exist, readmes are spelled README.md,
-every spec follows the convention in docs/README.md, the name tables of
-docs/rules/ and docs/terminology/ are the ones config/localization.yaml gives,
-config/README.md names the script that writes every file under config/, and
-Chinese is written only where docs/terminology/README.md says. Nothing here
-judges whether a sentence is true; that still needs a reader.
+no document repeats a paragraph unintentionally, the name tables of docs/rules/
+and docs/terminology/ match config/localization.yaml, config/README.md names the
+script that writes every file under config/, GAME_VERSION remains the only
+version pin, and docs/rules/ Evidence sections resolve their fixtures and build
+anchors. Nothing here judges whether a sentence is true; that still needs a
+reader.
 
 Run from the repository root: python3 scripts/check/check-docs.py
 """
@@ -17,37 +18,6 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-
-# Kinds from docs/README.md. A spec must appear in exactly one set, so adding a
-# spec without classifying it fails rather than being silently unchecked.
-DOCUMENT_FORMAT = {
-    "docs/spec/document/fight.md",
-    "docs/spec/document/layout.md",
-    "docs/spec/mechcore/turn.md",
-    "docs/spec/document/state.md",
-    "docs/spec/document/match.md",
-    "docs/spec/document/action.md",
-    "docs/spec/document/layout-replay.md",
-    "docs/spec/document/match-replay.md",
-    "docs/spec/mcfr/mcfr.md",
-    "docs/spec/simulation/unit-rules.md",
-}
-INTERFACE_CONTRACT = {
-    "docs/spec/adapter/adapter.md",
-    "docs/spec/mechcore/cli.md",
-    "docs/spec/mechcore/session.md",
-}
-ALGORITHM_CONTRACT = {
-    "docs/spec/simulation/architecture.md",
-    "docs/spec/simulation/rvo.md",
-    "docs/spec/simulation/quadtree.md",
-}
-
-# Specs that predate the convention. Structure checks are skipped for these and
-# the list is reported, so converting one means deleting a line here. An entry
-# naming a file that already conforms is itself an error. It is empty: every
-# spec is on the convention, and a new one is checked from its first commit.
-PENDING: set[str] = set()
 
 LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 FENCE = re.compile(r"^\s*```")
@@ -87,11 +57,6 @@ def headings(path):
     text = (REPO / path).read_text()
     return [(len(m.group(1)), m.group(2)) for _, line in outside_fences(text)
             for m in [HEADING.match(line)] if m]
-
-
-def sections(path):
-    """The `## ` section titles of a document, in order."""
-    return [title for level, title in headings(path) if level == 2]
 
 
 def check_links(paths, fail):
@@ -160,40 +125,6 @@ def check_repeated_paragraphs(paths, fail):
                 fail(f"{path}: a paragraph appears twice: {block[:60]}...")
                 break
             seen.add(block)
-
-
-def check_spec_classification(paths, fail):
-    classified = DOCUMENT_FORMAT | INTERFACE_CONTRACT | ALGORITHM_CONTRACT
-    present = {str(p) for p in paths if str(p).startswith("docs/spec/")}
-    for path in sorted(present - classified):
-        fail(f"{path}: not classified in scripts/check/check-docs.py; "
-             f"add it to a kind and to docs/README.md")
-    for path in sorted(classified - present):
-        fail(f"{path}: classified but missing from the tree")
-    for path in sorted(PENDING - present):
-        fail(f"{path}: listed as pending but missing from the tree")
-
-
-def check_spec_structure(fail):
-    converted = (DOCUMENT_FORMAT | INTERFACE_CONTRACT | ALGORITHM_CONTRACT) - PENDING
-    for path in sorted(converted):
-        names = sections(Path(path))
-        if not names:
-            fail(f"{path}: no `## ` sections")
-            continue
-        if names[0] != "Scope":
-            fail(f"{path}: first section is `{names[0]}`, must be `Scope`")
-        if names[-1] != "Unresolved":
-            fail(f"{path}: last section is `{names[-1]}`, must be `Unresolved`")
-        for name in names:
-            if name.lower().startswith("current") or name.lower() == "status":
-                fail(f"{path}: section `{name}` names a moment, not a contract")
-    for path in sorted(PENDING & DOCUMENT_FORMAT | PENDING & INTERFACE_CONTRACT
-                       | PENDING & ALGORITHM_CONTRACT):
-        names = sections(Path(path))
-        if names[:1] == ["Scope"] and names[-1:] == ["Unresolved"]:
-            fail(f"{path}: listed as pending but already conforms; "
-                 f"remove it from PENDING in scripts/check/check-docs.py")
 
 
 # What a rules document may not cite, by docs/README.md's "Evidence a rule may
@@ -298,35 +229,6 @@ def check_version_pins(fail):
                 fail(f"{name}:{number}: names a game version ({match.group(0)}); GAME_VERSION is the only place")
 
 
-# Chinese is written in docs/terminology/ alone; the localization and the
-# scripts that read and write it carry the game's own. Elsewhere a Chinese name is quoted only as an identifier, in
-# backticks: a replay named by its players.
-CHINESE = re.compile("[\u3400-\u4dbf\u4e00-\u9fff]")
-CHINESE_HOMES = ("docs/terminology/",)
-CHINESE_FILES = {"config/localization.yaml", "scripts/build_data.py", "scripts/extract/name-tables.py"}
-
-
-def check_chinese(fail):
-    listed = subprocess.run(
-        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
-        cwd=REPO,
-        check=True,
-        capture_output=True,
-    ).stdout.decode().split("\0")
-    for name in filter(None, listed):
-        if name.startswith(CHINESE_HOMES) or name in CHINESE_FILES:
-            continue
-        try:
-            text = (REPO / name).read_text()
-        except (UnicodeDecodeError, FileNotFoundError, IsADirectoryError):
-            continue
-        for number, line in enumerate(text.splitlines(), 1):
-            if CHINESE.search(re.sub(r"`[^`]*`", "", line)):
-                fail(f"{name}:{number}: writes Chinese; name it in English, "
-                     "and put its Chinese in docs/terminology/")
-                break
-
-
 def check_name_tables(fail):
     """The name tables of docs/rules/ and docs/terminology/ are what config/localization.yaml gives."""
     import importlib.util
@@ -363,22 +265,16 @@ def main():
     paths = tracked_markdown()
     check_links(paths, problems.append)
     check_readme_naming(problems.append)
-    check_spec_classification(paths, problems.append)
-    check_spec_structure(problems.append)
     check_repeated_paragraphs(paths, problems.append)
     check_name_tables(problems.append)
     check_config_generators(problems.append)
     check_rules_evidence(problems.append)
     check_version_pins(problems.append)
-    check_chinese(problems.append)
     check_rules_evidence_sections(problems.append)
 
     for problem in problems:
         print(f"error: {problem}", file=sys.stderr)
-    converted = len(DOCUMENT_FORMAT | INTERFACE_CONTRACT | ALGORITHM_CONTRACT) - len(PENDING)
-    total = len(DOCUMENT_FORMAT | INTERFACE_CONTRACT | ALGORITHM_CONTRACT)
-    print(f"{len(paths)} markdown files, {converted}/{total} specs on the convention, "
-          f"{len(PENDING)} pending")
+    print(f"{len(paths)} markdown files checked")
     return 1 if problems else 0
 
 

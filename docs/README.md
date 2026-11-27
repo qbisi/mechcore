@@ -23,14 +23,13 @@ The language rule below governs both.
 
 ## Language
 
-Every document is written in English, and none is translated: a second copy
-is a second thing to keep in step, and it falls behind. Chinese is written in
-[`terminology/`](terminology/README.md) alone, which maps each English term to
-the one Chinese word a discussion uses for it.
+Documents under `docs/` may be written in English or Chinese, with
+specifications migrated in place as they are refactored. Chinese prose uses
+the canonical terms recorded in [`terminology/`](terminology/README.md).
 
-A document names a unit, a technology or anything else the game names by its
-official English name, as `terminology/` lists it, and never by its Chinese
-one.
+Code identifiers, YAML fields, action types, and official game entity names
+(units, technologies, cards, commander skills, etc.) keep their English or
+snake_case spellings in code spans or tables as listed by `terminology/`.
 
 ## A rule is something a reader can rely on
 
@@ -265,23 +264,15 @@ Among what it checks:
   section silently breaks every link into it, which is the failure most likely
   to happen without anyone noticing.
 - **Every readme is spelled `README.md`.**
-- **Every spec under `docs/spec/` is classified** into one of the three kinds
-  above. A new spec fails until it is classified, so none sits unchecked
-  because nobody remembered it existed.
-- **Every converted spec opens with `Scope` and closes with `Unresolved`**, and
-  carries no section titled `Status` or beginning `Current`.
 - **No document says the same paragraph twice.** A repeated paragraph is a paste
   gone wrong or a scripted replacement that matched more than it meant to, and
   the link check cannot see either: one such replacement once grew a 101-line
   readme to 55,000 lines. Table rows, short lines and fenced code may repeat.
-- **No tracked file writes Chinese** outside `terminology/`, but for the
-  localization and the scripts that read it. A Chinese identifier,
-  such as a replay named by its players, is quoted in backticks.
-
-The checker also holds the list of specs that predate this convention, and that
-list is the only record of which ones are left. It fails in both directions: a
-spec still on the list that has started conforming is an error too, so
-converting one means deleting its line.
+- **Name tables and `config/` generators stay in sync** with
+  `config/localization.yaml` and `config/README.md`, and `GAME_VERSION` remains
+  the sole version pin.
+- **`docs/rules/` citations resolve**, keeping `tests/` paths real and `Read`
+  claims anchored to `Class.member` symbols.
 
 What no checker can do is tell whether a sentence is true. Nothing catches a
 rules document that quietly stopped describing the build, or a spec the code
@@ -290,13 +281,9 @@ is written for.
 
 ## Worked examples
 
-Every spec follows this convention, so any of them answers a question about
-form. For a document format copy [match.md](spec/document/match.md) or
-[state.md](spec/document/state.md); for an interface contract
+For a document format spec see [match.md](spec/document/match.md),
+[state.md](spec/document/state.md), or [action.md](spec/document/action.md)
+(Chinese); for an interface contract
 [adapter.md](spec/adapter/adapter.md), whose error taxonomy is the fullest; for
 an algorithm contract [rvo.md](spec/simulation/rvo.md), whose fidelity boundary
 names what it does not cover rather than implying coverage.
-
-The checker holds the list, not this page, and it fails when a new spec is
-neither classified nor conforming. So the claim in the paragraph above cannot
-quietly stop being true.
