@@ -171,14 +171,15 @@ class Player:
         if not offers:
             return
         cards = []
-        for index, name in enumerate(offers[:-1]):
+        for index, offer in enumerate(offers[:-1]):
+            name = offer["name"]
             if name in self.skills or name in SHUNNED_EQUIPMENT:
                 continue
             decision = {"type": "choose_reinforce_item", "index": index, "name": name}
             if self.legal(decision):
                 cards.append(decision)
         decline = {"type": "choose_reinforce_item", "index": len(offers) - 1,
-                   "name": offers[-1]}
+                   "name": offers[-1]["name"]}
         self.take(self.draw.choice(cards) if cards else decline)
 
     def weight(self, start_end, executed, most):

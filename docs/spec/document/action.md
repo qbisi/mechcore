@@ -124,12 +124,13 @@ choices, so both are this one action. A match with
 ```
 
 `index` is the position of what is taken in the round's `reinforce_offers`, and
-`name` names it: a card dealt, or `refund_<amount>`, the decline the round always
-offers after its cards. The two have to agree, so a decision that names a card
-at another card's position, or the decline anywhere but after the cards, is
-refused. A side answers once a round, as its first decision, so a second answer is
-refused and so is any other decision before the answer, giving up aside.
-The answer writes its index to the side's `reinforce_choice`.
+`name` matches that entry's `name`: a card dealt, or `refund_<amount>` on the
+final `supply` entry, which the round always offers after its cards. The two
+have to agree, so a decision that names a card at another entry's position, or
+the decline anywhere but after the cards, is refused. A side answers once a
+round, as its first decision, so a second answer is refused and so is any other
+decision before the answer, giving up aside. The answer writes its index to the
+side's `reinforce_choice`.
 
 A card is named by what it grants, and a card of units as its unit, squads and
 level, `sledgehammer_2x_lv2`. Two unit cards can share those and differ only in
