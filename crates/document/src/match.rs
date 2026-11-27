@@ -250,18 +250,25 @@ pub struct State {
 impl State {
     /// Installs the round's deal before either side has answered it.
     pub fn set_reinforce_offers(&mut self, offers: Option<Offers>) {
-        let choice = offers.as_ref().map(|_| Offers::UNANSWERED);
+        self.reinforce_offers = offers;
+        self.open_reinforcement();
+    }
+
+    /// Populates each side's opening reinforcement status from the round's offers.
+    pub(crate) fn open_reinforcement(&mut self) {
+        let choice = self.reinforce_offers.as_ref().map(|_| Offers::UNANSWERED);
         self.blue.reinforce_choice = choice;
         self.red.reinforce_choice = choice;
-        self.reinforce_offers = offers;
     }
 
     pub(crate) fn check_reinforcement(&self, opening: bool) -> Result<(), String> {
         let offers = self.reinforce_offers.as_ref();
         for (name, side) in [("blue", &self.blue), ("red", &self.red)] {
             let valid = match (offers, side.reinforce_choice) {
-                (None, None) | (Some(_), Some(Offers::UNANSWERED)) => true,
-                (Some(offers), Some(index)) if !opening => offers.choice(index).is_some(),
+                (_, Some(_)) if opening => false,
+                (_, None) if opening => true,
+                (None, None) | (Some(_), None | Some(Offers::UNANSWERED)) => true,
+                (Some(offers), Some(index)) => offers.choice(index).is_some(),
                 _ => false,
             };
             if !valid {
@@ -1197,8 +1204,19 @@ struct StateSegment<'a> {
     reinforce_pool: &'a PoolDelta,
     #[serde(skip_serializing_if = "Option::is_none")]
     reinforce_offers: Option<&'a Offers>,
+    #[serde(serialize_with = "serialize_opening_side")]
     blue: &'a SideState,
+    #[serde(serialize_with = "serialize_opening_side")]
     red: &'a SideState,
+}
+
+fn serialize_opening_side<S: serde::Serializer>(
+    side: &SideState,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    let mut opening = side.clone();
+    opening.reinforce_choice = None;
+    opening.serialize(serializer)
 }
 
 #[derive(Serialize)]
@@ -2417,5 +2435,73 @@ mod tests {
         assert!(segments(b"kind: layout\nsides: {}\n").unwrap().is_none());
         assert!(segments(b"not: [a document").unwrap().is_none());
         assert!(segments(b"").unwrap().is_none());
+    }
+
+    #[test]
+    fn opening_state_segment_omits_and_refuses_reinforce_choice() {
+        let side = || super::MatchSide {
+            name: "side".into(),
+            elo_score: None,
+            opening: super::Opening {
+                choose: None,
+                offers: Vec::new(),
+            },
+            constructions: Vec::new(),
+            tech_loadout: std::collections::BTreeMap::new(),
+            seed: None,
+        };
+        let mut r2 = super::State {
+            random_state: [1, 2, 3, 4],
+            blue: super::SideState {
+                random_state: [5, 6, 7, 8],
+                reactor_core: 4800,
+                ..Default::default()
+            },
+            red: super::SideState {
+                random_state: [9, 10, 11, 12],
+                reactor_core: 4800,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        r2.set_reinforce_offers(Some(super::Offers {
+            dealt: vec![1_100_001],
+            refund: 50,
+        }));
+        let game = super::Match {
+            source: super::Source::Simulator,
+            rules: super::Rules::default(),
+            result: None,
+            has_opening: false,
+            game_build: crate::game_build().to_owned(),
+            map_id: 1021,
+            seed: 1,
+            blue: side(),
+            red: side(),
+            turns: vec![super::Turn {
+                round: 2,
+                state: r2,
+                actions: super::TurnActions::default(),
+            }],
+        };
+        let written = super::canonical_yaml(&game).unwrap();
+        assert!(!written.contains("reinforce_choice"), "{written}");
+        let restored = super::read(written.as_bytes()).unwrap().unwrap();
+        assert_eq!(
+            restored.turns[0].state.blue.reinforce_choice,
+            Some(super::Offers::UNANSWERED)
+        );
+        assert_eq!(
+            restored.turns[0].state.red.reinforce_choice,
+            Some(super::Offers::UNANSWERED)
+        );
+        let explicit =
+            written.replacen("  supply: 0\n", "  supply: 0\n  reinforce_choice: -1\n", 1);
+        assert!(explicit.contains("reinforce_choice: -1"));
+        assert!(
+            super::read(explicit.as_bytes())
+                .unwrap_err()
+                .contains("reinforce_choice disagrees")
+        );
     }
 }

@@ -142,10 +142,12 @@ have the same shape; the header's `source` records their origin.
 ### A state segment is the position a round opens with
 
 A match states a round from before its first decision. Its panel has no
-`release` and its `travelling` set is empty. Each side's `reinforce_choice`
-is `-1` when the round deals offers and is absent otherwise. An opening
-contains standing units, with equipment assignments kept from the last round,
-and leaves out earlier recovery tombstones.
+`release`, its `travelling` set is empty, and its `energy_tower_skills` list is
+empty. Each side omits `reinforce_choice` in a match's opening state segment
+(an explicit `reinforce_choice` is refused); reading a round's opening restores
+it to `-1` when the round deals offers and leaves it absent otherwise. An
+opening contains standing units, with equipment assignments kept from the last
+round, and leaves out earlier recovery tombstones.
 An empty final action segment may mark a round still in progress. In a
 completed deployment with offers, both sides record an answer unless a side
 conceded.

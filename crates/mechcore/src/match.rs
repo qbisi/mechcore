@@ -1479,6 +1479,8 @@ impl Game {
             .map_or_else(State::default, |turn| turn.state.clone());
         state.blue = self.opened(Side::Blue)?;
         state.red = self.opened(Side::Red)?;
+        state.blue.reinforce_choice = None;
+        state.red.reinforce_choice = None;
         let mut value = serde_json::to_value(&state).map_err(|error| {
             Failure::failed(format!("cannot serialize decision state: {error}"))
         })?;
