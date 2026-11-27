@@ -1,25 +1,27 @@
-# Action definition
+# 决策段规范（Action）
 
-## Scope
+## 范围
 
-An action is one decision a side takes in a round. This document defines the
-fourteen of them, what each carries and what each does to the position it was
-taken from, and the action segment that carries one round's decisions for both
-sides: their standard deployment order, the endpoint state they reproduce,
-and which native fields are excluded.
+决策（Action）是玩家在一个回合中执行的一条净操作。本文档定义：
 
-A [match](match.md) is the stream the segments are written in, and places an
-action segment after the state it was decided from. A [state](state.md) defines
-the position an action reads and writes. A [layout](layout.md) is a projection
-of a state and holds no actions at all.
+- 14 种决策的类型标签、操作数及前置校验；
+- `kind: action` 文档段格式及其在 [对局流](match.md) 中的位置；
+- 单步状态转移对资源态与战斗态的影响边界；
+- 原生回放的净决策折叠、12 阶段规范化排序与排除字段。
 
-Positions are side-local and use the [layout's coordinate
-system](layout.md#coordinate-system). An action never states a side: it belongs
-to the sequence it is in.
+文档分工：
 
-## Document shape
+- [match.md](match.md) 定义整场对局流、头文件规则开关及回合端到端覆盖率校验；
+- [state.md](state.md) 定义各回合状态段的完整字段结构（包括第 0 回合开局状态段 `state(0)`）；
+- [layout.md](layout.md) 定义战斗开始前的阵型投影与[坐标系约定](layout.md#coordinate-system)（不含决策）。
 
-An action segment holds one round's decisions, one sequence per side.
+所有坐标与朝向均采用阵营局部坐标系；单条决策本身不携带 `blue`/`red` 字段，其所属阵营由所在的列表键决定。
+
+---
+
+## 文档结构与公共约定
+
+每个决策段承载同一回合内双方的净决策序列，按执行顺序排列：
 
 ```yaml
 kind: action
@@ -28,658 +30,282 @@ blue:
 - {type: choose_reinforce_item, index: 3, name: sledgehammer_2x_lv2}
 - {type: buy_unit, name: void_eye, position: {x: 0, y: -160}}
 - {type: release_commander_skill, index: 0, name: intensive_training, target: {unit: 4}}
-red:
-- ...
+red: []
 ```
 
-`round` is the round of the state segment before it, or zero for the opening,
-which has no state. Both sides are present in every segment, and a side that
-decided nothing holds an empty sequence.
+- `round`：与紧邻在前的状态段保持一致；开局为 `round: 0`（对应前面的开局状态段 `state(0)`）。
+- `blue` / `red`：二者均为必填键，若该阵营本回合未作任何决策则写为空序列 `[]`。
+- `type`：固定以 `snake_case` 作为标签键；除 `concede` 外，每种决策均有固定操作数。
+- **名称字段**：`name` 与 `upgrade_technology` 中的 `unit`/`tech` 一律使用 [state.md](state.md#names) 定义的蛇形英文名称，不写数字 ID。单位科技名仅在本单位命名空间内唯一，因此 `upgrade_technology` 必须同时指明 `unit` 与 `tech`。
+- **索引字段**：
+  - `index` 在编队操作中指代分配器授予的编队索引，在 `release_commander_skill` 中指代技能面板槽位索引，在开局/增援选择中指代对应列表的 0-based 位置；
+  - `tower` 在文档中对红蓝双方统一采用规范塔索引：`0` 表示 `energy_tower`，`1` 表示 `research_center`（原生回放转换与导出会自动处理红方的 `0 <-> 1` 映射，详见 [state.md](state.md)）。
+- **省略约定**：`move_unit` 与 `buy_unit` 在 `rotated: false` 时省略 `rotated`；`buy_unit` 采用默认落点时省略 `position`。
 
-An action is a mapping tagged by `type`, in `snake_case`. The remaining keys are
-fixed per type, and every type but `concede` carries at least one operand.
+### 14 种决策速查总表
+
+| `type` | 所属域 | 操作数 | 影响的状态域 | 补给 / 限额消耗 |
+| --- | --- | --- | --- | --- |
+| `choose_advance_team` | 开局与增援 | `index`, `name`, `specialist` | 资源态（开局队在 round 1 交付） | 无补给消耗；修改核心基线 `core_modify` |
+| `choose_reinforce_item` | 开局与增援 | `index`, `name` | 资源态（+ 局内发牌小队进战斗态） | 按卡牌价格扣补给（或拒绝返还补给） |
+| `unlock_unit` | 商店与科技 | `name` | 资源态（`unlocked_units`） | 消耗单位解锁价；消耗解锁次数 |
+| `buy_unit` | 商店与科技 | `name`, `[position]`, `[rotated]` | 资源态（分配器）+ 战斗态（`units`） | 消耗购买价（含商店等级加价）；消耗购买次数 |
+| `upgrade_unit` | 商店与科技 | `index` | 战斗态（`units[].level/exp`） | 消耗单位升级价（减装备折扣，下限为 0） |
+| `upgrade_technology` | 商店与科技 | `unit`, `tech` | 资源态（`techs`） | 消耗基础科技价 + 同单位已研数量递增惩罚 |
+| `use_equipment` | 装备与布置 | `name`, `index` | 资源态（库存 `equipments`）+ 战斗态（`units[].equipments`） | 免费装配 |
+| `move_unit` | 装备与布置 | `index`, `position`, `[rotated]` | 战斗态（`units[].position/rotated/travelling`） | 免费 |
+| `release_contraption` | 装备与布置 | `name`, `position` | 资源态（分配器）+ 战斗态（`contraptions`） | 消耗装置价格；消耗本回合装置部署次数（每回合 8 次） |
+| `active_blueprint` | 塔与技能 | `name` | 资源态（`blueprints`）+ 资源/面板（`battle_skills`） | 消耗蓝图价格；随后可能开放商店购买或技能槽 |
+| `active_energy_tower_skill` | 塔与技能 | `name` | 资源态（`energy_tower_skills`） | 按技能净价扣补给（或记录下回合欠款） |
+| `strengthen_tower` | 塔与技能 | `tower` | 资源态（`tower_strengthen_levels`） | 消耗达到目标等级的价格 |
+| `release_commander_skill` | 塔与技能 | `index`, `name`, `target` | 资源态 + 战斗态（回收/训级/重部署或战斗释放） | 免费（回收类操作反还对应补给） |
+| `concede` | 终局 | 无 | 无（直接终止对局，不进战斗） | 无 |
+
+---
+
+## 状态转移模型
+
+本格式将一回合内随决策演化的局面抽象为**资源态**与**战斗态**两个部分（各字段的完整结构、默认值与拼写由 [state.md](state.md) 定义）：
+
+- **资源态**：包含补给（`supply`）、单调递增的分配器（`next_index.unit`、`next_index.contraption`）、增援选择、已解锁单位、科技、军官、蓝图、能量塔激活与塔强化等级、未穿戴装备库存，以及核心血量基线等。除战斗直接扣减核心血量与发放单位经验外，资源态完全由决策与回合开启规则确定性决定。
+- **战斗态**：包含棋盘上存活及待传送编队（位置、朝向、经验条、穿戴装备、`travelling` 标记）、建筑（`constructions`，如城墙、炮台）、装置（`contraptions`，如护盾、导弹、拦截器）以及战场技能滞留物和本回合释放目标。部署阶段的决策排布战斗态，随后由战斗阶段消费并结算下一回合的幸存局面。
+
+### 单步可定义性与隐式转移规则
+
+状态在**每执行一条决策后**均须保持良定义：对位置 $S$ 依次应用每条决策必须能够推导出合法中间态（这也是逐动作校验比回合端到端对比更严格的原因）。同时，以下四项规则不体现在动作名中，却直接决定转移结果：
+
+1. **确定性落点与分配器占位**：开局先遣队、增援小队卡牌及军官按周期交付的小队，均通过地图主部署区中心对齐 10 米网格寻找最近空位落盘（见 [rules/landing.md](../../rules/landing.md)），并依次占用 `next_index.unit`。若忽略军官在回合开启时的前置交付，后续所有购买与回收的 `index` 均会错位。
+2. **军官的延迟交付与多重集叠加**：军官不一定在获取当回合交付物资，其小队、战场技能或装备分别在 `active_round` 发放，单位则在 `unlock_round` 进入商店；`officers` 列表按多重集存储，可重复获取并叠加。
+3. **蓝图链替换**：高阶连锁蓝图激活时直接替换 `blueprints` 中同链前驱条目。
+4. **回合次数限额与核心/经验特殊入口**：商店每回合存在购买、解锁与装置部署次数限额（其中能源塔技能 `3` 与军官 `10004` 各永久或本回合增加 1 次购买机会；`10004` 作为军官会持续至后续回合）。`reactor_core` 仅在开局决策按 `core_modify` 移动一次；`units[].exp` 仅在升级清空、或被 `intensive_training` 填满时由决策改动。
+
+---
+
+## 决策类型详述
+
+### 1. 开局与增援
+
+#### `choose_advance_team`
 
 ```yaml
-- {type: buy_unit, name: void_eye, position: {x: 0, y: -160}}
-- {type: upgrade_unit, index: 5}
+- {type: choose_advance_team, index: 1, name: vortex-fire_badger, specialist: giant_specialist}
 ```
 
-`name` names what a decision is about: the unit type bought or unlocked, the
-card, team, blueprint, energy tower skill, equipment item, commander skill or
-contraption taken, fitted or released. It is the name [`state.md`](state.md#names)
-gives that kind, and never an ID. `upgrade_technology` is the one decision about
-two named things, and says `unit` and `tech`. Every other operand is a 32-bit
-integer or a position, except `release_commander_skill`'s target, which is a
-one-key mapping, and `rotated`, which is a boolean defaulting to false.
+- 仅允许出现在 `round: 0`；任何其他回合出现或缺失均拒绝。
+- `index` 必须指向 `state(0)` 中该阵营 `offers` 的合法下标，`name` 与 `specialist` 须与该 offer 一致。
+- 效果：在开启 `round: 1` 时交付对应先遣队编队与 `specialist` 军官（解锁对应单位并推进 `next_index.unit`），同时将头文件 `base_core` 按该 offer 的 `core_modify` 调整后写入 `round: 1` 的 `reactor_core`。
 
-Two keys are not always present. `release_contraption` omits `extra_position`
-unless the contraption spans two points, and `move_unit` omits `rotated` when it
-is false.
-
-`index` is a unit's deployment index, or a panel slot in
-`release_commander_skill`. `tower` is the document tower index (`0` for
-`energy_tower`, `1` for `research_center`), matching `tower_strengthen_levels`.
-
-## What a transition writes
-
-A round's decisions write three groups of state, and this document names which
-group each action touches.
-
-| Group | Fields |
-| --- | --- |
-| Settled | `reinforce_choice`, `next_index.unit`, `next_index.contraption`, `unlocked_units`, `techs`, `officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills` less each slot's `standing`, `equipments`, `units[].equipments` |
-| Supply | `supply` |
-| Board | `units`, `constructions`, `contraptions`, `battle_skills.standing` |
-
-Settled is the group no fight can touch, so a round's decisions determine it
-outright. The board is what the decisions arrange and the fight then consumes.
-
-All three groups are written one decision at a time, not only at a round's end.
-A position is defined after every decision, so applying one decision to the
-position it was taken from has to reach the position the next decision was
-taken from. That is a stronger statement than the round transition
-[`match.md`](match.md#what-a-round-reproduces) defines, and it is the one this
-document's per-action rules are answerable to.
-
-Where a summoned unit lands is the board's rule rather than the
-decision's. A card's squads, an opening's force and an officer's delivery each
-land at the main deployment region's centre, aligned to the world's ten-metre
-grid, or at the free grid position nearest it, which is why the same card lands
-differently in two matches. [The landing index](../../rules/landing.md) states
-the rule. It depends on which side is placing, because the grid and the search
-are the world's, so a transition not told the side reports the landing
-unsettled rather than inventing one.
-
-An allocator is settled while the objects it names are board. A contraption is
-destroyed by the fight and a unit can be, but neither index is handed out
-again, so the two counters only ever rise and rise only by a decision.
-
-`reinforce_offers` is granted by the round and written by no action. The rest of
-that reading needs qualifying, because a decision can reach three things that a
-round otherwise owns.
-
-- `reactor_core` is moved by the opening and by nothing else. Both halves of
-  that one choice move it, so a team and its specialist are added together.
-- The round's allowances, which a state does not write, count down as they are
-  spent, and a purchase, an unlock or a contraption release past its own is
-  refused. Two decisions add a purchase: energy tower skill `3` and
-  reinforcement card `10004` each grant one more. The card is an officer the side
-  keeps, so every later round opens with the extra purchase too. The unlock and
-  the contraption releases only ever count down.
-- A unit's `exp` is the fight's to grant, except that upgrading a unit
-  discards it and Intensive Training fills it. A rank starts at zero however much
-  the rank below it earned.
-
-## The actions
-
-### `choose_reinforce_item`
-
-Answers the round's reinforcement offer. There are two answers and both are
-choices, so both are this one action. A match with
-`rules.reinforcements: false` has no offer and refuses this action.
+#### `choose_reinforce_item`
 
 ```yaml
 - {type: choose_reinforce_item, index: 3, name: photon_coating}
 - {type: choose_reinforce_item, index: 4, name: refund_50}
 ```
 
-`index` is the position of what is taken in the round's `reinforce_offers`, and
-`name` matches that entry's `name`: a card dealt, or `refund_<amount>` on the
-final `supply` entry, which the round always offers after its cards. The two
-have to agree, so a decision that names a card at another entry's position, or
-the decline anywhere but after the cards, is refused. A side answers once a
-round, as its first decision, so a second answer is refused and so is any other
-decision before the answer, giving up aside. The answer writes its index to the
-side's `reinforce_choice`.
+- 仅在头文件 `reinforce: true` 且该回合存在 `reinforce_offers`（普通回合第 2 回合起）时合法；当 `reinforce: false` 或第 1 回合出现此动作时直接拒绝。
+- 必须在除 `concede` 外的首条决策执行，每回合最多一次；`index` 与 `name` 必须同时匹配 `reinforce_offers` 对应槽位（卡牌名或末尾的 `refund_<amount>` 拒绝项）。
+- 效果：写入 `reinforce_choice`；拿取卡牌时按卡牌价格扣补给（叠加军官即时返利），分别向 `officers`、`battle_skills`、`equipments` 发放对象或向棋盘与 `unlocked_units` 发放小队；选择末尾拒绝项则按该回合发牌给出的退款额增加 `supply`（见 [rules/reinforcements.md#declining](../../rules/reinforcements.md#declining)）。
 
-A card is named by what it grants, and a card of units as its unit, squads and
-level, `sledgehammer_2x_lv2`. Two unit cards can share those and differ only in
-the round that deals them, so a unit card's name is read within the round of
-the segment that holds it.
+### 2. 商店、编队与科技
 
-A taken item grants the thing it names, and which thing that is decides
-the effect: an officer joins `officers`, a commander skill joins
-`battle_skills`, an equipment joins `equipments`, and a unit card hands out
-squads. Squads advance `next_index.unit` and their unit type joins
-`unlocked_units`. The decline writes none of those.
-
-A taken item costs its price, less what an officer taken this way grants back at
-once. The decline is the one reinforcement choice that pays the side instead:
-declining is an item of its own rather than the absence of one. The action's
-refund amount must equal the offer at its index; it cannot request extra supply.
-It pays the
-amount named by the round's `refund_<amount>` offer: 50 in an ordinary round,
-and in a unit round the figure the match's unit reinforcement schedule states for that
-round, which grows through the match.
-[The reinforcement rules](../../rules/reinforcements.md#declining) give both.
-
-### `choose_advance_team`
-
-```yaml
-- {type: choose_advance_team, index: 1, name: vortex-fire_badger, specialist: giant_specialist}
-```
-
-The opening, which is one decision with two halves: the team and the specialist
-officer bound to it. `name` names the team as the header's offers do, and
-`specialist` names the officer; both are required. `index` is the combination's
-position in the side's opening offers, which a match's header states.
-
-It is round zero's only decision, and no other round holds one.
-
-The team hands out its force as round 1 opens, advancing `next_index.unit` once
-per squad and unlocking each unit type it is made of, and the specialist joins
-`officers`. The deal draws a team only from teams of units and a specialist only
-from specialist officers, so a decision pairing anything else is refused. An
-opening also moves `reactor_core`, which is the fight's field and not settled
-here.
-
-### `buy_unit`
-
-```yaml
-- {type: buy_unit, name: void_eye, position: {x: 0, y: -160}}
-```
-
-Buys one formation of unit type `name`, advances `next_index.unit` by one,
-and places it under that index. Omitting `position` uses the default landing
-selected by [the board](../../rules/landing.md), with `rotated: false`.
-An explicit destination must be free; a flank position sets `travelling` as a
-move would. A default purchase refuses rotation. Normalization writes every
-purchase without a position or rotation and writes final placement as separate
-`move_unit` actions in the movement phase, even when a purchase and move are
-adjacent. A default landing that has no space refuses the sequence; it does
-not move existing formations to make room for a purchase.
-
-A purchase has no `level` parameter. Its level is derived from the officers
-and active Energy Tower skills at this point in the sequence. Normalization
-inserts Elite Recruitment before the first purchase requiring it, keeping
-lower-level purchases before activation. A purchase costs the unit's
-price plus the base upgrade cost for each level above the first. Officer
-discounts on formation upgrades do not reduce this shop-level surcharge;
-they apply when `upgrade_unit` raises an existing formation. The purchase
-correction is added to the level price before flooring the total at zero.
-
-### `upgrade_unit`
-
-```yaml
-- {type: upgrade_unit, index: 5}
-```
-
-Raises the unit at `index` by one level when its experience bar is full, then
-resets the bar to zero at the new level. An omitted `exp` represents an empty
-bar. Costs one upgrade for its unit
-type, less what the unit's equipment discounts, floored at zero.
-
-### `unlock_unit`
+#### `unlock_unit`
 
 ```yaml
 - {type: unlock_unit, name: void_eye}
 ```
 
-Adds the unit type `name` to `unlocked_units`. Costs the unit's unlock price.
-A type already in `unlocked_units` is refused.
+- 扣除单位解锁价，消耗 1 次解锁限额，将单位类型加入 `unlocked_units`；重复解锁已持有的单位类型会被拒绝。
 
-### `upgrade_technology`
+#### `buy_unit`
+
+```yaml
+- {type: buy_unit, name: void_eye, position: {x: 0, y: -160}}
+```
+
+- 从商店购买一队已解锁单位并按 `next_index.unit` 分配索引。
+- **不携带 `level` 参数**：购买等级完全由当前已激活的军官与能量塔技能动态决定（例如 Elite Recruitment 激活后抬升商店等级）；价格等于单位基础价加上超出 1 级部分的基础升级加价，并叠加购买价格修正（下限为 0；编队升级折扣军官不减免商店购买等级加价）。
+- **落点与规范形式**：省略 `position`（且不允许设 `rotated: true`）时由棋盘确定性落点放置；显式给出 `position` 时目标足迹不得冲突，若位于侧翼则直接设置 `travelling`。规范化形式统一将购买写成无位置无旋转的默认落点购买，并在移动阶段用 `move_unit` 送至终态位置。
+
+#### `upgrade_unit`
+
+```yaml
+- {type: upgrade_unit, index: 5}
+```
+
+- 目标编队 `index` 的 `exp` 必须已满（省略 `exp` 视为 0 经验，不可升级）；升级后等级加 1、经验条清零，扣除该单位升级价减去佩戴装备折扣后的补给（下限为 0）。
+
+#### `upgrade_technology`
 
 ```yaml
 - {type: upgrade_technology, unit: fang, tech: grenade_launcher}
 ```
 
-Researches `tech`, which belongs to `unit`, and adds it to that unit's row of
-`techs`. A technology's name is only unique within its unit, and `unit` is what
-resolves it. The match header's [loadout rule](match.md#match-rules) supplies
-the eligible technologies: all of the unit's catalogue with a full loadout,
-otherwise that side's stated `tech_loadout` row. Research outside those choices
-or past the per-unit research limit is refused. A full loadout never activates
-a technology for free.
+- 为单位 `unit` 研究科技 `tech` 并写入 `techs`：
+  - 必须在场且属于头文件该侧 `tech_loadout` 允许的范围（`"full"` 表示全目录允许，否则须在 42 字符 Base64url 正向位图中置 `1`）；
+  - 须遵守单单位研发上限（`war_factory`、`abyss`、`mountain` 最多 6 项，其余单位最多 4 项），不可重复研究；
+  - 价格随该单位**已研发科技数**递增，与场上其他单位无关。
+- 研究各单位的 Jump Drive（Wasp `1606`、Overlord `1611`、Phoenix `1616`）后，该类型所有编队从本回合起（含后续回合）均获部署移动权限。
 
-The price rises with how many technologies that unit already holds: each one
-already active adds a fixed step to the next one's own price. The count is per
-unit and not per side.
+### 3. 装备与棋盘布置
 
-A Jump Drive frees every unit of its type to move in this round
-and every later one: `1606` for Wasp, `1611` for
-Overlord and `1616` for Phoenix.
-
-### `active_blueprint`
-
-```yaml
-- {type: active_blueprint, name: field_recovery}
-```
-
-Activates a Research Center blueprint and adds it to `blueprints`. A blueprint
-that grants a commander skill puts it on `battle_skills`. A blueprint already in
-`blueprints` is refused. A chain's second level is refused before its first is in
-`blueprints`, and its first once the second has replaced it.
-
-A chain's second level replaces its first in `blueprints` rather than joining
-it. A chain blueprint also hands the side an Officer, but a state names the
-chain and not the Officer, so `officers` does not move. A layout has no
-blueprint list, so the projection onto one names the Officer instead. Both
-documents are complete; they disagree on purpose.
-
-### `active_energy_tower_skill`
-
-```yaml
-- {type: active_energy_tower_skill, name: mass_recruitment}
-```
-
-Activates one Energy Tower skill for this round. Every one of them is a
-one-round effect, so nothing carries into the next round's Settled group. A
-skill already active this round is refused.
-
-Costs the skill's price less what it grants back at once. A skill may also owe
-against the next round's income, and one raises the shop's level for the rest of
-this round, which makes every later purchase dearer.
-
-### `strengthen_tower`
-
-```yaml
-- {type: strengthen_tower, tower: 0}
-```
-
-Raises tower `tower` (`0` = `energy_tower`, `1` = `research_center`) by one
-level, updating `tower_strengthen_levels[tower]`. Costs the price of the level
-reached.
-
-Document actions keep `0` as `energy_tower` and `1` as `research_center` for
-both sides; replay conversion and export translate red's index (`0 <-> 1`) to
-native `PAD_StrengthenTower.Index`, as [`state.md`](state.md) explains.
-
-### `use_equipment`
+#### `use_equipment`
 
 ```yaml
 - {type: use_equipment, name: photon_coating, index: 3}
 ```
 
-Fits the item `name` to the unit at `index`, as `upgrade_unit` and
-`move_unit` name one. The item leaves the side's `equipments` stock and joins
-the end of that unit's `equipments` list. A unit wears at most as many items as
-it has slots, which is the same count [`layout.md`](layout.md#unit) gives a
-placement; fitting a full unit is refused.
-
-Fitting is free, because the item was paid for when it was taken. What it can
-change is later: an item may discount every upgrade of its unit, or pay its
-side an income every round it is worn. Fitting the Deployment Module,
-`13040001`, frees its unit to move in this round and every later one.
-
-Unfitted stock follows one identity across a round:
+- 从本方未穿戴库存 `equipments` 消耗一件装备并追加至编队 `index` 的 `equipments` 末尾（装备槽位已满或库存不足均拒绝）。
+- 装备在装配时免费；未穿戴库存跨回合满足多重集守恒：
 
 ```text
-stock(R+1) = stock(R)
-               + what this round's cards granted
-               + what this round's officers delivered
-               + what recovering a unit handed back
-               − what this round fitted
+stock(R+1) = stock(R) + 本回合增援卡获得 + 本回合军官交付 + 回收编队退回 − 本回合装配消耗
 ```
 
-Every term is a multiset, and so is the inventory: a side can own two of one
-item.
+- 所有操作按顺序生效，因此同一回合获得或经回收退回的装备可立即再次装配。为编队装配 Deployment Module（`13040001`）可授予该编队本回合及此后所有回合的部署移动权限。
 
-The terms are applied where they fall in the sequence rather than all before
-the fits, because an item can arrive and be fitted in the same round, and a
-recovered item can be fitted again later in the round it came back.
-
-Every fit takes a copy out of the stock. A side that fits an item it does not
-hold describes a position the match cannot reach, which is a stronger statement
-than the stock merely staying where it was.
-
-A unit also leaves the board by being destroyed, which is the fight's and
-not a decision's. The identity covers what the decisions do to the stock.
-
-### `move_unit`
+#### `move_unit`
 
 ```yaml
 - {type: move_unit, index: 0, position: {x: 85, y: -80}, rotated: true}
 ```
 
-Moves the unit at `index` to `position`. `rotated` defaults to false and
-faces the unit the other way. Free, and writes nothing but the board.
+- 免费且仅修改棋盘上编队 `index` 的 `position`、`rotated` 与 `travelling`。
+- 编队必须拥有本回合移动权限（当回合到达、佩戴 Deployment Module、研究 Jump Drive，或本回合对该编队施放过 `redeployment`），且目标足迹须完整落入所处部署区而不与其他已占足迹碰撞（见 [rules/landing.md#moving-and-placing](../../rules/landing.md#moving-and-placing)）。
+- **跨区传送语义**：两侧翼部署区从 `round: 2` 起开放。若移动起点与终点在同一区域（主部署区或同一侧翼）内，`travelling` 保持不变；只要跨区域到达任一侧翼（含从一侧翼跨至另一侧翼），即置 `travelling: true`，返回主部署区则清除 `travelling`。战斗结算清空所有 `travelling`。
 
-Only a unit the deployment mobility rule frees may move; a move of any other is
-refused rather than applied. A move is refused too where its place is taken:
-the unit's footprint has to lie inside the region `position` lies in and
-overlap nothing standing there but the unit itself, the rule
-[landing.md](../../rules/landing.md#moving-and-placing) states. A unit is free to move in the round it
-arrives. In a later round, what frees it is a decision of this document: fitting
-a Deployment Module, researching its unit's Jump Drive, or releasing Redeploy at
-it.
-
-A move is also the only decision that writes `travelling`, and it writes it by
-region rather than by coordinate. The coordinate system has three regions per
-side: the main deployment half and the two flank rectangles. A move that ends
-in the region it started in leaves `travelling` alone, so a unit shuffled
-about inside one flank stays travelling and one shuffled about the main half
-stays settled. A move that changes region is settled by the region it arrives
-in: either flank sets `travelling`, and the main half clears it. The two flanks
-are separate regions, so crossing from one to the other sets `travelling` on a
-unit that had already settled.
-
-The fight then empties the set, which is why `travelling` belongs to the
-deployment that produced it rather than to the position the next round starts
-from. A round's opening state carries no travelling unit, and the flank
-regions open at round 2, so the earliest round in which any unit travels
-is round 2.
-
-A unit this round created travels only if it reaches a flank. A card puts
-its unit in the main half, and a purchase whose position is on a flank is
-one whose moves took it there.
-
-### `release_commander_skill`
-
-```yaml
-- {type: release_commander_skill, index: 0, name: intensive_training, target: {unit: 4}}
-```
-
-Releases the skill in panel slot `index`, which holds the skill `name`. The slot
-is what the game releases and what a retraction matches on; the skill is stated
-beside it so that a release reads without the panel. A release whose slot does
-not hold that skill at that point in the round is refused, and the panel can change
-within a round, since a card or a blueprint adds a skill to it. A release aimed at a
-unit or a construction is refused while its slot holds a release or has a
-`cooldown` above zero. An area release is checked for where it falls.
-
-`target` is a mapping with exactly one of three keys, never two:
-
-| Form | Means |
-| --- | --- |
-| `{area: [{x, y}, ...]}` | the points the skill covers, in order |
-| `{unit: <index>}` | one of the side's own units |
-| `{construction: <index>}` | one of the side's own constructions |
-
-The key names the kind of target, as the list the index points into is named,
-and the form is plain YAML rather than a tag such as `!unit 4`, so any YAML or
-JSON reader takes a match as it is.
-
-What a release writes depends on the skill. It may put a construction on the
-board, leave a shield or an area standing on its panel slot, or take one of the side's own
-units or constructions away. Recovering a unit keeps its tombstone in `units` and returns its worn
-items from `units[].equipments` to the side's `equipments` stock, where they
-can be fitted again in the same round. Releasing is free, except a skill that
-recovers an object, which pays back what that object cost: for a unit, its
-purchase price at the prices its side's officers made at the time, plus one
-upgrade for every level above the first; for a construction, a fixed amount that
-is a property of its type rather than of its history.
-
-Field Recovery, Redeploy and Intensive Training do their work during
-deployment. The slot gains a `release` holding its target. Only battle
-releases have an ordinal and reach the layout.
-
-Intensive Training, `1100001`, is one. It targets one of the side's own
-units with `{unit: <index>}` and fills its experience bar, so `exp` becomes
-`maximum/maximum`. A full
-unit takes no further share of the experience a fight hands out;
-[the unit experience index](../../rules/unit_experience.md) gives the amount a
-full bar stands for per unit and level.
-
-The skill cannot target a unit at level 9 or one whose bar is already
-full, and a decision that does is refused rather than applied.
-
-Redeploy, `1000001`, is the other. It targets one of the side's own units
-with `{unit: <index>}` and frees it to move for the rest of the round.
-The effect is remembered internally while the round's actions are applied.
-
-### `release_contraption`
+#### `release_contraption`
 
 ```yaml
 - {type: release_contraption, name: shield, position: {x: -130, y: -153}}
 ```
 
-Buys the contraption `name` names, by the name a layout gives it, from the shop
-and places it at `position`. Advances
-`next_index.contraption` by one and puts the object on the board under that
-index. Costs the contraption's own price.
+- 扣除装置价格并消耗 1 次本回合部署限额（每回合 8 次），分配 `next_index.contraption` 后置入 `contraptions`。
+- 本动作仅用于从商店购买并放置**装置**（`contraptions`，如护盾、导弹、拦截器），不同于**建筑**（`constructions`，如城墙、炮台；后者由地图开局发牌或经 `release_commander_skill` 生成，不通过本动作放置）。
+- 装置通常须避开足迹碰撞，但护盾与导弹不参与部署碰撞检测。
 
-`extra_position` is an optional second point, for a contraption that spans two.
+### 4. 塔、蓝图与战场技能
 
-A contraption is refused where its place is taken, as a move is. A shield and a
-missile take no part in deployment collisions and are never refused for it.
+#### `active_blueprint`
 
-### `concede`
+```yaml
+- {type: active_blueprint, name: field_recovery}
+```
+
+- 激活 `blueprints` 中的一项研发中心蓝图并扣除费用；若提供战场技能则同步写入 `battle_skills`。不可重复激活，连锁蓝图须先激活前驱，且二阶激活后会替换一阶条目。
+- 文档特意区分状态层的 `blueprints` 与投影到 `layout` 中的 `officers`（见 [state.md](state.md)）。
+
+#### `active_energy_tower_skill`
+
+```yaml
+- {type: active_energy_tower_skill, name: mass_recruitment}
+```
+
+- 激活单回合能量塔技能并写入 `energy_tower_skills`（同一技能每回合不可重复）。扣除净价格，部分技能（如 `rapid_resupply`）会在下一回合开启时从回合收入中抵扣相应补给，另有技能会提升本回合后续购买的商店等级加价。
+
+#### `strengthen_tower`
+
+```yaml
+- {type: strengthen_tower, tower: 0}
+```
+
+- 提升 `tower`（`0 = energy_tower`，`1 = research_center`）对应强化等级 1 级并扣除对应费用。
+
+#### `release_commander_skill`
+
+```yaml
+- {type: release_commander_skill, index: 0, name: intensive_training, target: {unit: 4}}
+```
+
+- 释放技能面板槽位 `index` 中当前持有的技能 `name`（槽位实际技能不匹配、`cooldown > 0` 或指向类槽位已释放过均拒绝）。
+- `target` 必须为恰好包含一个键的纯 YAML 映射，不使用 `!unit` 等自定义标签：
+
+| 形式 | 含义 |
+| --- | --- |
+| `{area: [{x, y}, ...]}` | 按顺序给出技能覆盖坐标点 |
+| `{unit: <index>}` | 指向本方现存编队 |
+| `{construction: <index>}` | 指向本方现存建筑（`constructions`，如城墙、炮台；不含装置） |
+
+- **部署期效果 vs 战斗释放**：
+  - `field_recovery` 回收编队或建筑（`constructions`）并返还补给：编队转为恢复墓碑留在 `units`，同时将 `units[].equipments` 全部退回库存；
+  - `intensive_training`（`1100001`）须以非满级（< 9 级）且经验未满的本方编队为目标，将 `exp` 设为 `maximum/maximum`（详见 [rules/unit_experience.md](../../rules/unit_experience.md)）；
+  - `redeployment`（`1000001`）赋予目标编队本回合移动权限；
+  - 仅战斗技能的释放会在面板写入带 `order` 的 `release` 并投射至战斗 `layout`。
+
+### 5. 终局操作
+
+#### `concede`
 
 ```yaml
 - {type: concede}
 ```
 
-Gives up the match. It carries no operand and writes no field: the round is not
-fought, so no position follows it.
+- 无操作数、不修改盘面，立即结束整场对局（不再运行本回合战斗，后续不再出现新状态段）。该阵营同回合此前执行的决策及对手序列予以保留。
 
-It is the last decision its side takes, and the segment that holds it is the
-last one its match holds. What the side decided earlier in the round stands in
-the sequence, and so does everything the other side decided.
+---
 
-## Rules no action states
+## 序列、净决策折叠与规范化
 
-Four rules govern a transition and no action names any of them. Applying
-actions without them produces a position that looks right and is not.
+### 1. 顺序与保密语义
 
-- **A card or an officer allocates units.** A card that hands out squads
-  takes the next indices as it is taken, and an officer's squad arrives before
-  any of the round's own decisions. Everything bought afterwards is filed one
-  along, so ignoring this files later purchases under indices that belong to
-  something else, and a recovery then names the wrong unit.
-- **An officer delivers on a schedule of its own,** not when it arrives. Its
-  squad, its commander skills and its equipment come in its `active_round`, and
-  its unit joins the shop in its `unlock_round`. Both are absolute rounds and
-  the two can differ.
-- **A chain blueprint's second level replaces its first,** and the Officer it
-  produces follows.
-- **An officer list is a multiset.** An item that may be taken again stacks, so
-  taking it a second time adds a copy rather than doing nothing.
+- 序列只记录逻辑执行顺序，不保留时间戳；
+- `blue` 与 `red` 在同回合部署中互相保密、彼此独立，回放无法观测到双方的交叉时序，也不进行跨阵营交错合并。
 
-## Sequences
+### 2. 原生回放的净决策折叠
 
-A sequence carries order alone. No timestamp is stored, because nothing reads
-one: applying a round means applying each side's actions in sequence, and the
-check that a round reproduces its successor never asks when an action happened.
+原生回放录入了玩家的思考与撤回历史，转换器在写入 `action` 前通过栈模型折叠为**净有效决策**：
 
-The two sequences of one segment are simultaneous and secret: neither player
-sees the other's while the round is being deployed. No merge between them is
-attempted, since the interleaving of one side's actions with the other's is not
-observable in a replay.
+- **撤回与重做（`Undo` / `Redo`）**：按回放动作压栈/弹栈，被撤回的决策从净序列中移除；
+- **取消战场技能释放（`CancelReleaseCommanderSkill`）**：仅按面板槽位 `SkillIndex` 匹配并作废最近一次尚未失效的释放；原释放与取消操作在栈中**保留占位**以保证 `Undo` 计步准确，最终仅输出未被作废的净决策。
+- **转换同步剥离的原生细节**：每回合固定唯一的 `FinishDeploy`；`BuyUnit` 未赋值的 `UIDX`（改由分配器推导）；批量 `MoveUnit` 拆分为单编队动作，且仅根据最终位置与旋转重构必要移动。
 
-### Net decision
+### 3. 标准 12 阶段规范化（`convert` 与 `format`）
 
-A sequence stores the decisions that took effect, so a recorded list is
-collapsed before it is written. The game keeps a retraction as an action of its own, and
-there are two kinds.
+基于起止状态重构常规部署序列时，规范化生成器按以下 12 个固定阶段排出确定性决策序列，同阶段内依次以编队索引、科技 ID、面板槽位索引破平局：
 
-Replaying the recorded list into a stack defines the collapse. Every recorded
-action is pushed as an entry, and `Undo` pops the newest entry whether or not it
-still stands for a decision. `Redo` pushes it back.
-`CancelReleaseCommanderSkill` stops the newest standing
-`ReleaseCommanderSkill` with the same `SkillIndex` from counting, but the
-release stays on the stack as a spent entry, and the cancel is pushed as one
-too. Undoing the cancel stands its release again, and redoing the cancel spends
-it once more. What remains standing is the sequence, and it contains no
-retraction of either kind.
+1. 选择部署终态 `reinforce_choice` 对应的增援条目；
+2. 若本回合启用了 `rapid_resupply`，最先激活以固定预算基线；
+3. 回收目标在开局即存在且终态为恢复墓碑的编队/建筑（若升级价格能因库存增强模块降低，回收/升级前先行装配可用模块，回收后模块退回库存）；
+4. 按分配器顺序执行购买（默认落点），并按分配器位置就地处理“购买后即刻回收”的新建编队（每个已分配索引须以存活编队或墓碑收尾）；
+5. 在全部对应编队登场后激活其余单位科技；
+6. 按终态每支编队的穿戴顺序装配其余装备（保证价格折扣早于升级生效）；
+7. 统一移动与旋转所有存活旧编队及新购编队（此时 Jump Drive 与 Deployment Module 已生效；必要时自动插入 `redeployment`、先退回主区再进侧翼以保 `travelling` 的路线，以及互换占位所需的让路中转点）；
+8. 执行 `intensive_training` 与 `upgrade_unit`；
+9. 按分配器顺序放置 `contraptions`；
+10. 执行其余能量塔激活、塔强化与研发中心蓝图；
+11. 执行其余 `unlock_unit`；
+12. 按相对释放顺序执行战斗类 `release_commander_skill`。
 
-Counting the spent entries is the part that is easy to get wrong, and it is what
-the game does: undo walks an index back over the recorded list, so an entry that
-no longer means anything still costs an undo. A cancel matches its release on
-the panel index alone and not on the skill ID, and the release it retracts can
-sit many entries back, so a cancel is not a stack pop.
+- **精英征召（Elite Recruitment）切点搜索**：若终态激活了该能量塔技能，规范化会在所有购买切点中搜索能精确复现全部终态字段的方案，优先选取动作数最少且切点最早者。
+- **顺序敏感回退**：若标准 12 阶段序列无法精确复现部署终态（如涉及 Stealth Cloak / 幽灵光线等顺序敏感初始化），`convert` 与 `format` 会保留能够合法复现终态的原始有效动作序（并在合法且等价的前提下折叠同区连续移动），确保重格式化幂等。
 
-The collapse is lossy on purpose. A sequence states what a side decided, not
-what it considered, so a document cannot express that a player took an action
-and withdrew it.
+---
 
-What the collapse is not is the game's own file format. The method a replay
-calls before playback deletes nothing: it merges a round's actions from both
-players, sorts them, and pads each player's list with a placeholder wherever the
-merged order runs ahead, so that the two lists share an index space. The
-recorded lists still hold every retraction, and collapsing them is this format's
-convention.
+## 规范形式
 
-### What the collapse and the conversion drop
-
-`FinishDeploy` carries no decision: it appears exactly once per round-side.
-
-`BuyUnit` does not name the unit it creates. Its recorded index is always unset,
-so the index comes from the allocator, and applying a round has to hand out
-`next_index.unit` exactly as the game does. That is one of the two things the
-allocator is in a state for.
-
-`ReleaseCommanderSkill` records only the panel slot. The conversion reads the
-skill that slot holds from the position the round has reached by then, which
-is what `id` states.
-
-`MoveUnit` is recorded as a batch carrying one or more units. Each match move
-addresses one unit: the collapse has already run by then, so the batch no
-longer has to stay whole for an undo to pop it. Reconstruction uses the
-deployment's resulting position and rotation rather than its intermediate
-route. The sequence orders the necessary moves and swap-space waypoints as
-[settling](#settling-a-round) defines.
-
-### Settling a round
-
-Replay conversion and formatting evaluate the effective decisions to obtain the
-closing position. The standard sequence uses the opening and closing positions
-and the round's offers. Intermediate movement routes, purchase placements and
-the timing of historical equipment fits do not determine this sequence.
-
-The standard phases are:
-
-1. Select the reinforcement at the closing state's `reinforce_choice` index.
-2. Activate Rapid Resupply once if this deployment chose it, even when no
-   operation needs extra supply. This fixes the budget before recovery.
-3. Recover formations and constructions already present after reinforcement.
-   The tombstone fixes a formation's recovery level. Before an upgrade, fit
-   available Enhancement Modules while the formation can wear them and each
-   module reduces the upgrade price. Recovery returns those modules to stock.
-4. Purchase formations at their default landings, in allocator order. Recover
-   a newly purchased formation at its own allocator position using the same
-   procedure. Its tombstone supplies the type and recovery level. Every
-   allocated index must end in a standing formation or a tombstone.
-5. Activate the remaining unit technologies, after their formations exist.
-6. Fit the equipment worn in the closing position, preserving each formation's
-   fitting order and applying its discounts before upgrades.
-7. Move and rotate existing and newly purchased formations together. Jump Drive
-   research and Deployment Module fitting have already occurred; Redeployment
-   and swap-space waypoints are emitted where needed.
-8. Apply Intensive Training and upgrade formations.
-9. Place contraptions in allocator order.
-10. Apply remaining Energy Tower activations, tower strengthening and Research
-    Center blueprints, including range, mobility, attack, defense and Sticky Oil.
-11. Unlock the remaining unit types.
-12. Release combat commander skills, preserving their relative release order.
-
-Within a phase, formation indices, technology IDs and panel indices break
-remaining ties. Blueprint chains keep predecessor before successor. A skill
-spent on a subsequently recovered formation remains spent; the recovery may
-therefore contain its necessary deployment-skill operations. Deployment skills
-use the recorded slot and target. Combat releases retain their relative order.
-
-Moves normally go directly to the closing position. A formation staying on the
-same flank but ending `travelling` first passes through the main region, so
-that its travelling state is reproduced. If moves exchange occupied space,
-the first waiting formation steps aside within its region, clear of the
-pending targets, using the existing deterministic landing search.
-
-When the closing position activates Elite Recruitment, try each cut in allocator
-order, including after all purchases. Each purchase uses its actual shop level
-at that cut. The position chooses among candidates that reproduce every
-closing field, including supply, equipment, formation values, levels,
-experience, allocators and skill use. Prefer the candidate with the fewest
-actions, breaking ties by the earliest cut.
-
-Every emitted decision is checked and applied. If the standard sequence cannot
-reproduce the closing position, normalization from endpoints refuses it.
-Conversion and formatting can instead keep the effective historical actions.
-They also preserve that order when battle initialization is order-sensitive.
-Consecutive moves of one formation within a region may collapse if the retained
-sequence is legal and reproduces the same endpoint. Reformatting the resulting
-sequence produces the same sequence.
-
-Dependencies precede the operation requiring them. A recovery that removes
-the last formation of a type depends on that type's pending research; recovery
-also depends on unlocking its Research Center blueprint when needed. A
-purchase depends on its unit unlock, Elite Recruitment for its level and Mass
-Recruitment when no purchase allowance remains. Insufficient supply refuses
-the operation; neither normalization nor encoding activates Rapid Resupply
-on demand. Dependencies use the closing state, including recovery tombstones
-and release targets. Skill-granting blueprints preserve panel allocation order,
-so an earlier slot's blueprint can itself be a dependency.
-
-The match sequence itself meets native operation prerequisites. GRBR encoding
-preserves action order, including unit research and Energy Tower activations.
-An input purchase with an explicit position expands into a default purchase
-and immediate movement without pulling later research forward. In the normal
-form, research precedes the unified movement phase, so flank initialization
-sees that research directly from match order.
-
-`GiveUp` is kept, as `concede`, and nothing it recorded besides its type
-survives.
-
-## What a decision reproduces
-
-Applying a decision to the position it was taken from gives the whole next
-position, board included: not what the next round holds, but what this
-position looks like one decision later. That is the transition this document
-defines.
-
-A match states no position between two decisions, so a decision is checked
-through the round it belongs to. [`match.md`](match.md#what-a-round-reproduces)
-steps a round's decisions in order and compares what the next round opens with
-against the recorded state, and a layout captured live at the end of a
-deployment is compared against the projection of that round's decisions,
-stepped from the position it opened with.
-
-Stepping the opening answers what the position is immediately after it, which is
-not what round 1 holds: [`match.md`](match.md#what-a-round-reproduces) says
-where the two frames differ.
-
-## Normal form
-
-| Collection | Order |
+| 集合 | 顺序约定 |
 | --- | --- |
-| `blue`, `red` | as [settled](#settling-a-round) |
+| 决策段字段 | `kind` → `round` → `blue` → `red` |
+| `blue` / `red` 序列 | 按[标准 12 阶段规范化](#3-标准-12-阶段规范化convert-与-format)排序 |
 
-`kind` comes first in a segment and `round` second, and `blue` precedes `red`.
-Each action is written on one line as a flow mapping, by the spelling rules
-[`match.md`](match.md#normal-form) states for every segment.
+每条决策均按 [match.md#normal-form](match.md#normal-form) 的拼写规则写为单行 flow mapping。
 
-## Excluded fields
+---
 
-| Field | Why it is not in an action |
+## 排除字段
+
+| 原生字段 / 历史设计 | 排除原因 |
 | --- | --- |
-| `Time`, `LocalTime` | A sequence carries order, and nothing reads a timestamp |
-| `PAD_Undo`, `PAD_Redo` | Removed by the net-decision collapse |
-| `PAD_CancelReleaseCommanderSkill` | The same, together with the release it retracts |
-| `PAD_FinishDeploy` | Exactly one per round-side, so it carries no decision |
-| `PAD_MoveUnit.positionRecord` | Restates the state before the action |
-| `PAD_MoveUnit.rotateRecord`, `superDeployRecord` | Same |
-| `PAD_BuyUnit.UIDX` | Unset; the allocator names the new unit |
-| `PAD_ReleaseCommanderSkill.Positions` beside an object target | The player's click point, which names no state |
+| `Time`, `LocalTime` | 决策序列只记录执行顺序，无规则读取时间 |
+| `PAD_Undo`, `PAD_Redo`, `PAD_CancelReleaseCommanderSkill` | 已由净决策折叠消去；格式明确只记录净决策而非推敲撤回历史 |
+| `PAD_FinishDeploy` | 每回合每阵营恒出现一次，不携带决策信息 |
+| `PAD_MoveUnit.positionRecord`, `rotateRecord`, `superDeployRecord` | 仅重申动作前的位置快照 |
+| `PAD_BuyUnit.UIDX` | 原生为未设置值；编队索引由状态分配器确定 |
+| 指向对象时的 `PAD_ReleaseCommanderSkill.Positions` | 仅代表玩家鼠标点击坐标，不决定任何状态 |
+| `PAD_ReleaseContraption.ExtraPosition` | 标准 1v1 装置均仅需单点坐标，原生字段恒为零点，不纳入文档格式 |
+| `PAD_ReleaseConstruction` | 区分于商店购买的**装置**（`contraptions`，如护盾、导弹、拦截器，由 `release_contraption` 放置），**建筑**（`constructions`，如城墙、炮台）在标准 1v1 赛制中开局由地图发牌给出、局内新增全部经由 `release_commander_skill` 触发，原生 `PAD_ReleaseConstruction` 不可达，故不单列第 15 种动作 |
 
-## Unresolved
+---
 
-**Whether releasing a construction is an action of its own.**
-`PAD_ReleaseConstruction` is a real type carrying a construction ID, a
-deployment index and a position, and no action here corresponds to it. Every
-construction this schema can describe arrives through `release_commander_skill`
-instead. Either the type is unreachable in a standard match, in which case
-nothing is missing, or a fifteenth action belongs here.
+## 待决问题
 
-**Where a deferred cost lives.** An Energy Tower skill can owe against the next
-round's income, which makes the debt a fact about the next position and not only
-about this round's decisions. A state can carry it as a field, or a reader can
-derive it from the previous round's actions. The two are not equivalent: only
-the first survives a position that arrives without the round before it.
-
-
-**Whether `extra_position` stays.** It is carried because the native release
-action has the field. No contraption in this build is known to need a second
-point, and an optional field that nothing populates is a claim the schema cannot
-support.
-
-**Whether a round can be executed rather than only checked.** Applying a round
-produces the settled fields; the board is the other half, and taking a decision
-in a live game is a capability distinct from installing its result. Until both
-exist, an action segment can be verified against a recording but not replayed
-into one.
-
-**Whether a retraction is ever worth stating.** The collapse discards what a
-player withdrew, on the grounds that a sequence records decisions rather than
-deliberation. A reader that wanted to study how a position was arrived at rather
-than what it became would need the recorded list instead, and the format has no
-place to put it.
+无。

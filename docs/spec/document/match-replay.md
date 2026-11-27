@@ -182,7 +182,7 @@ explicit position expands into a purchase and immediate move. The formation
 created is the one the position allocates next.
 
 Match decisions use the standard phases in
-[action.md](action.md#settling-a-round). Their dependencies already place unit
+[action.md](action.md#3-标准-12-阶段规范化convert-与-format). Their dependencies already place unit
 research, purchases, recovery and Energy Tower activations in native legal
 order. Encoding preserves that order without rescheduling technology
 activations. Rapid Resupply is already the
