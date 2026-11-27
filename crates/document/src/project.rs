@@ -38,21 +38,63 @@ pub fn read_state(bytes: &[u8]) -> Result<Layout, String> {
         .filter(|n| *n >= 1)
         .ok_or("state needs round >= 1")?;
     let fields = value.as_mapping_mut().ok_or("state must be a mapping")?;
-    let optional = |fields: &mut serde_yaml::Mapping, name: &str| -> Result<Option<i32>, String> {
-        fields
-            .remove(serde_yaml::Value::String(name.into()))
+    let remove_opt = |mapping: &mut serde_yaml::Mapping, key: &str| {
+        mapping.remove(serde_yaml::Value::String(key.into()))
+    };
+    let optional_i32 = |mapping: &mut serde_yaml::Mapping,
+                        name: &str|
+     -> Result<Option<i32>, String> {
+        remove_opt(mapping, name)
             .map(|v| serde_yaml::from_value::<Option<i32>>(v).map_err(|e| format!("{name}: {e}")))
             .transpose()
             .map(Option::flatten)
     };
-    let map_id = optional(fields, "map_id")?;
-    let seed = optional(fields, "seed")?;
+    let build = remove_opt(fields, "build")
+        .map(|v| serde_yaml::from_value::<Option<String>>(v).map_err(|e| format!("build: {e}")))
+        .transpose()?
+        .flatten();
+    if let Some(ref b) = build
+        && b.trim().is_empty()
+    {
+        return Err("state build must not be empty".into());
+    }
+    let _reinforce = remove_opt(fields, "reinforce")
+        .map(|v| serde_yaml::from_value::<Option<bool>>(v).map_err(|e| format!("reinforce: {e}")))
+        .transpose()?;
+    if let Some(max_round) = optional_i32(fields, "max_round")?
+        && max_round < 1
+    {
+        return Err(format!("state max_round must be >= 1, not {max_round}"));
+    }
+    let map_id = optional_i32(fields, "map_id")?;
+    let seed = optional_i32(fields, "seed")?;
+    for side_name in ["blue", "red"] {
+        if let Some(side_map) = fields
+            .get_mut(serde_yaml::Value::String(side_name.into()))
+            .and_then(serde_yaml::Value::as_mapping_mut)
+        {
+            if let Some(loadout) = remove_opt(side_map, "tech_loadout") {
+                crate::names::loadout::deserialize(loadout)
+                    .map_err(|e| format!("{side_name} tech_loadout: {e}"))?;
+            }
+            if let Some(shop_val) = remove_opt(side_map, "shop") {
+                let shop: crate::r#match::Allowances = serde_yaml::from_value(shop_val)
+                    .map_err(|e| format!("{side_name} shop: {e}"))?;
+                if shop.buys_remaining < 0
+                    || shop.unlocks_remaining < 0
+                    || shop.contraptions_remaining < 0
+                {
+                    return Err(format!("{side_name} shop counts must be >= 0"));
+                }
+            }
+        }
+    }
     let state: State = crate::r#match::payload(value).map_err(|e| e.to_string())?;
     state.check_reinforcement(false)?;
     state.check_towers(false)?;
     Ok(Layout {
         kind: DocumentKind::Layout,
-        game_build: crate::economy::game_build().to_owned(),
+        game_build: build.unwrap_or_else(|| crate::economy::game_build().to_owned()),
         map_id,
         seed,
         round,
@@ -845,5 +887,26 @@ mod tests {
         side.units.retain(|unit| unit.index != 5);
         assign_sources(&mut side, 6, 2).unwrap();
         assert_eq!(side.recovered, [5]);
+    }
+
+    #[test]
+    fn standalone_state_accepts_public_header_loadout_and_shop() {
+        let base_side = "random_state: [1, 2, 3, 4]\n  reactor_core: 4500\n  supply: 200\n  unlocked_units: [fang]\n  next_index: {unit: 1, contraption: 0}\n  units: []\n";
+        let yaml = format!(
+            "kind: state\nbuild: another-version\nreinforce: false\nmax_round: 13\nmap_id: 1012\nseed: 42\nround: 3\nrandom_state: [5, 6, 7, 8]\nblue:\n  tech_loadout: full\n  shop: {{buys_remaining: 2, unlocks_remaining: 1, contraptions_remaining: 8}}\n  {base_side}red:\n  tech_loadout: {{}}\n  {base_side}"
+        );
+        let layout = super::read_state(yaml.as_bytes()).unwrap();
+        assert_eq!(layout.game_build, "another-version");
+        assert_eq!(layout.map_id, Some(1012));
+        assert_eq!(layout.seed, Some(42));
+        assert_eq!(layout.round, 3);
+
+        for invalid in [
+            yaml.replace("max_round: 13", "max_round: 0"),
+            yaml.replace("tech_loadout: full", "tech_loadout: bad"),
+            yaml.replace("buys_remaining: 2", "buys_remaining: -1"),
+        ] {
+            assert!(super::read_state(invalid.as_bytes()).is_err(), "{invalid}");
+        }
     }
 }

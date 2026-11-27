@@ -723,7 +723,7 @@ fn compute_match_round(
         core.begin = Some(state.reactor_core);
         core.supply = sides[seat].supply;
         core.maximum = header.opening.as_ref().and_then(|opening| {
-            let base = stated.base_core;
+            let base = header.reactor_core?;
             let team = economy.advance_team(opening.taken.team)?;
             let specialist = economy.advance_team(opening.taken.specialist)?;
             Some(base + team.reactor_core + specialist.reactor_core)

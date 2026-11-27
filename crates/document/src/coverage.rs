@@ -205,7 +205,10 @@ impl Coverage {
             ),
             ("red", &stated.red, &stated.opening.red, &first.state.red),
         ] {
-            let before = before_opening(stated.base_core, header.constructions.clone());
+            let base_core = header
+                .reactor_core
+                .expect("round 0 opening state has reactor_core");
+            let before = before_opening(base_core, header.constructions.clone());
             let stream = player_stream(header.seed, 0);
             self.side(
                 economy,

@@ -13,18 +13,21 @@ build: <GAME_VERSION>
 source: game
 reinforce: true
 max_round: 40
-base_core: 4500
 map_id: 1001
 seed: 2038621361
-blue: {name: blue, seed: 134917337, tech_loadout: full}
-red: {name: red, seed: 134917338, tech_loadout: full}
+blue: {name: blue, tech_loadout: full}
+red: {name: red, tech_loadout: full}
 ---
 kind: state
 round: 0
 blue:
+  reactor_core: 4500
+  seed: 134917337
   offers: [...]
   constructions: [...]
 red:
+  reactor_core: 4500
+  seed: 134917338
   offers: [...]
   constructions: [...]
 ---
@@ -170,7 +173,6 @@ The header holds what every round of the match shares.
 | `source` | the backend that produced the match: `game` or `simulator` |
 | `reinforce` | whether reinforcement deals and choices occur |
 | `max_round` | final round limit; defaults to the map's preset in [config/opening.yaml](../../../config/opening.yaml) |
-| `base_core` | opening reactor core for both sides; defaults to `reactor_cores[0]` for `map_id` |
 | `seed` | `BattleInfo.SystemSeed` |
 | `map_id` | `BattleInfo.MapID` |
 
@@ -192,7 +194,7 @@ Deployment time is runtime configuration, not recorded match content.
 seconds and keeping it in the [turn file](../mechcore/turn.md).
 Native replay encoding uses the standard 100-second deployment clock.
 
-Apart from `reinforce`, `max_round` and `base_core`, the rest of the native
+Apart from `reinforce` and `max_round`, the rest of the native
 battle header is a property of the standard 1v1 rule set rather than of a match:
 the other phase durations, the advance team and construction flags, and the game
 and score modes. A match states the mode once by being this format, rather than
@@ -234,12 +236,11 @@ backend of each inherited round.
 
 ### Match rules
 
-The header carries three top-level rule and opening settings:
+The header carries two top-level rule settings:
 
 ```yaml
 reinforce: true
 max_round: 40
-base_core: 4500
 ```
 
 - `reinforce` is a boolean defaulting to `true` when omitted. When `true`,
@@ -253,11 +254,8 @@ base_core: 4500
   [config/opening.yaml](../../../config/opening.yaml) when omitted (`13` for map
   `1012`, `40` otherwise). It bounds play and settles positive-core results at
   round `max_round`.
-- `base_core` is a positive integer defaulting to the map's starting
-  `reactor_cores[0]` (`4500` in standard 1v1 maps) when omitted. Both sides open
-  round 1 at `base_core + core_modify` from their chosen round-0 offer.
 
-Canonical output writes all three explicitly. They apply to the whole match,
+Canonical output writes both explicitly. They apply to the whole match,
 including a partial match whose first available round is a checkpoint; a later
 segment cannot change them. They are independent of `source`. Each side's
 eligible research set is stated directly in its header `tech_loadout` (`"full"`
@@ -267,9 +265,9 @@ technologies, or six for War Factory, Abyss and Mountain.
 These settings are match-format properties, not IDs in native `game_rules`.
 Native conversion writes `reinforce` from the recording's matching ordinary and
 unit reinforcement flags, reads `max_round` from `BattleInfo.MaxRound` (falling
-back to the map preset) and `base_core` from the players' starting `reactorCore`
-(falling back to the map preset), and keeps both players' recorded loadouts. A
-synthesized replay preserves `source` and `reinforce` in
+back to the map preset), writes each side's starting `reactorCore` and `seed`
+into `state(0)` when an opening is recorded, and keeps both players' recorded
+loadouts. A synthesized replay preserves `source` and `reinforce` in
 [match-replay.md](match-replay.md#match-metadata).
 
 ### Game rules are the premise, so the match carries them
@@ -309,9 +307,10 @@ not change action legality, combat, verification comparisons or the result.
 The original replay states no rating change, so none is inferred.
 
 Alongside its display name and optional rating, each side in the header holds its
-player seed and its technology loadout (`tech_loadout`). The dealt opening
-offers and initial constructions belong to the round-0 state segment (`kind:
-state`, `round: 0`) rather than the header.
+technology loadout (`tech_loadout`). The dealt opening offers, initial
+constructions, starting `reactor_core` (defaulting to the map preset when
+created/converted, positive integer), and optional player `seed` belong to the
+round-0 state segment (`kind: state`, `round: 0`) rather than the header.
 
 #### The opening offers (round 0 state)
 
@@ -320,6 +319,8 @@ state`, `round: 0`) rather than the header.
 kind: state
 round: 0
 blue:
+  reactor_core: 4500
+  seed: 134917337
   offers:
   - {team: void_eye-sledgehammer, specialist: cost_control_specialist, core_modify: 200}
   - {team: vortex-fire_badger, specialist: giant_specialist, core_modify: -200}
@@ -594,11 +595,11 @@ every field it is dealt from agrees on both sides too, since the deal is
 checked against the recorded position.
 
 The opening transition, from round zero onto round 1, starts from the
-header's `base_core`, the round-0 state segment's `constructions`, and two
+round-0 state segment's `reactor_core` and `constructions`, and two
 towers at level zero. A standard 1v1 map unlocks no unit and hands out no
 commander skill before the opening. The side's opening decision is stepped on
 it, and as round 1 opens the chosen team arrives: its unit types join the shop,
-its `core_modify` adjusts `base_core`, and its units land at level 1 where the
+its `core_modify` adjusts that `reactor_core`, and its units land at level 1 where the
 board puts them, in the team's order. Nothing is fought in between, so no leaf
 of this transition is in the `fight` class.
 
@@ -903,9 +904,9 @@ English names in snake case.
 
 A segment's own collections keep the orders [`state.md`](state.md) and
 [`action.md`](action.md) define. The header writes `kind`, `build`, `source`,
-`reinforce`, `max_round`, `base_core`, `map_id`, `seed`, then `blue` and `red`.
+`reinforce`, `max_round`, `map_id`, `seed`, then `blue` and `red`.
 When formatting in compact form, each header side holds only scalar fields
-(`name`, optional `elo_score`, optional `seed`, `tech_loadout`), so by the
+(`name`, optional `elo_score`, `tech_loadout`), so by the
 scalar-mapping rule below it folds onto one flow line; `--expanded` writes block
 mappings inside `tech_loadout`. Within every later segment, `kind` comes first
 and `round` second, so a reader scanning the stream finds both on the two lines

@@ -93,7 +93,7 @@ red: []
 
 - 仅允许出现在 `round: 0`；任何其他回合出现或缺失均拒绝。
 - `index` 必须指向 `state(0)` 中该阵营 `offers` 的合法下标，`name` 与 `specialist` 须与该 offer 一致。
-- 效果：在开启 `round: 1` 时交付对应先遣队编队与 `specialist` 军官（解锁对应单位并推进 `next_index.unit`），同时将头文件 `base_core` 按该 offer 的 `core_modify` 调整后写入 `round: 1` 的 `reactor_core`。
+- 效果：在开启 `round: 1` 时交付对应先遣队编队与 `specialist` 军官（解锁对应单位并推进 `next_index.unit`），同时将 `state(0)` 中该阵营的 `reactor_core` 按该 offer 的 `core_modify` 调整后写入 `round: 1` 的 `reactor_core`。
 
 #### `choose_reinforce_item`
 

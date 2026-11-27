@@ -532,7 +532,6 @@ pub struct Stated {
     pub source: crate::r#match::Source,
     pub reinforce: bool,
     pub max_round: i32,
-    pub base_core: i32,
     pub map_id: i32,
     pub seed: i32,
     pub blue: StatedSide,
@@ -553,7 +552,9 @@ pub struct StatedSide {
     pub elo_score: Option<i32>,
     /// The opening this side took, absent while it has not taken one.
     pub opening: Option<StatedOpening>,
-    /// The seed of the side's own stream, when the match states one.
+    /// Round zero's starting reactor core from `state(0)`, absent without opening.
+    pub reactor_core: Option<i32>,
+    /// The seed of the side's own stream, when `state(0)` states one.
     pub seed: Option<i32>,
     pub offers: Vec<OpeningOffer>,
     pub constructions: Vec<StaticPlacement>,
@@ -567,8 +568,6 @@ struct StatedHeaderSide {
     name: Option<String>,
     #[serde(default)]
     elo_score: Option<i32>,
-    #[serde(default)]
-    seed: Option<i32>,
     #[serde(with = "crate::names::loadout")]
     tech_loadout: BTreeMap<i32, Vec<i32>>,
 }
@@ -583,6 +582,9 @@ struct OpeningState {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct OpeningStateSide {
+    reactor_core: i32,
+    #[serde(default)]
+    seed: Option<i32>,
     offers: Vec<OpeningOffer>,
     constructions: Vec<StaticPlacement>,
 }
@@ -620,8 +622,6 @@ struct StatedHeader {
     reinforce: bool,
     #[serde(default)]
     max_round: Option<i32>,
-    #[serde(default)]
-    base_core: Option<i32>,
     map_id: i32,
     seed: i32,
     blue: StatedHeaderSide,
@@ -672,7 +672,7 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
     };
     let header: StatedHeader = serde_yaml::from_value(stream.header.clone())
         .map_err(|error| format!("match header is not readable: {error}"))?;
-    let (max_round, base_core) = stated_header_settings(&header)?;
+    let max_round = stated_header_max_round(&header)?;
     let has_opening = stream.opening_state.is_some();
     if !has_opening && stream.rounds.is_empty() {
         return Err("match states no round 0 opening state or captured state".into());
@@ -689,17 +689,8 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         .map_err(|error| format!("round 0 action segment is not readable: {error}"))?
         .unwrap_or_default();
     let (blue_open, red_open) = match opening_state {
-        Some(state) => (state.blue, state.red),
-        None => (
-            OpeningStateSide {
-                offers: Vec::new(),
-                constructions: Vec::new(),
-            },
-            OpeningStateSide {
-                offers: Vec::new(),
-                constructions: Vec::new(),
-            },
-        ),
+        Some(state) => (Some(state.blue), Some(state.red)),
+        None => (None, None),
     };
     let blue = stated_side(header.blue, blue_open, &opening.blue, "blue")?;
     let red = stated_side(header.red, red_open, &opening.red, "red")?;
@@ -714,7 +705,6 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         source: header.source,
         reinforce: header.reinforce,
         max_round,
-        base_core,
         map_id: header.map_id,
         seed: header.seed,
         blue,
@@ -728,7 +718,7 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
     Ok(Some(stated))
 }
 
-fn stated_header_settings(header: &StatedHeader) -> Result<(i32, i32), String> {
+fn stated_header_max_round(header: &StatedHeader) -> Result<i32, String> {
     let resolved_max = match header.max_round {
         Some(value) => value,
         None => max_round(header.map_id)?,
@@ -736,29 +726,40 @@ fn stated_header_settings(header: &StatedHeader) -> Result<(i32, i32), String> {
     if resolved_max < 1 {
         return Err(format!("match max_round must be >= 1, not {resolved_max}"));
     }
-    let resolved_core = match header.base_core {
-        Some(value) => value,
-        None => reactor_core(header.map_id, 0)?,
-    };
-    if resolved_core <= 0 {
-        return Err(format!("match base_core must be > 0, not {resolved_core}"));
-    }
-    Ok((resolved_max, resolved_core))
+    Ok(resolved_max)
 }
 
 fn stated_side(
     header: StatedHeaderSide,
-    open: OpeningStateSide,
+    open: Option<OpeningStateSide>,
     actions: &[crate::r#match::Action],
     seat: &str,
 ) -> Result<StatedSide, String> {
+    let (reactor_core, seed, offers, constructions) = match open {
+        Some(open) => {
+            if open.reactor_core <= 0 {
+                return Err(format!(
+                    "{seat} round 0 reactor_core must be > 0, not {}",
+                    open.reactor_core
+                ));
+            }
+            (
+                Some(open.reactor_core),
+                open.seed,
+                open.offers,
+                open.constructions,
+            )
+        }
+        None => (None, None, Vec::new(), Vec::new()),
+    };
     Ok(StatedSide {
         name: header.name,
         elo_score: header.elo_score,
         opening: StatedOpening::opening(actions, seat)?,
-        seed: header.seed,
-        offers: open.offers,
-        constructions: open.constructions,
+        reactor_core,
+        seed,
+        offers,
+        constructions,
         tech_loadout: header.tech_loadout,
     })
 }

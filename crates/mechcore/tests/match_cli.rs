@@ -596,7 +596,9 @@ fn full_loadout_and_disabled_reinforcements_use_the_header_rules() {
     assert_eq!(dealt["header"]["source"], "simulator");
     assert_eq!(dealt["header"]["reinforce"], false);
     assert_eq!(dealt["header"]["max_round"], 40);
-    assert_eq!(dealt["header"]["base_core"], 4500);
+    assert!(dealt["header"].get("base_core").is_none());
+    assert_eq!(dealt["state"]["blue"]["reactor_core"], 4500);
+    assert_eq!(dealt["state"]["red"]["reactor_core"], 4500);
     assert_eq!(dealt["header"]["blue"]["tech_loadout"], "full");
     assert_eq!(dealt["header"]["red"]["tech_loadout"], "full");
     run(&["match", "new", &path]).ok();
@@ -2150,7 +2152,8 @@ fn match_new_supports_max_round_and_base_core_overrides() {
     ])
     .ok();
     assert_eq!(blue["header"]["max_round"], 2);
-    assert_eq!(blue["header"]["base_core"], 6000);
+    assert_eq!(blue["state"]["blue"]["reactor_core"], 6000);
+    assert_eq!(blue["state"]["red"]["reactor_core"], 6000);
     assert_eq!(blue["header"]["reinforce"], false);
     run(&["match", "new", &path]).ok();
 

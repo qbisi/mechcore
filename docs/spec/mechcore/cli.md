@@ -923,9 +923,10 @@ requires no later declaration and changes neither the seat nor any game rule.
 Every option may be left out. A seed nobody chose is drawn, a map nobody chose
 is drawn from the maps this build has an opening initialization for, `--max-round`
 defaults to the chosen map preset's `max_round`, `--base-core` defaults to the
-map's starting reactor core (`reactor_cores[0]`), and a deployment time nobody
-chose is the 100 seconds a standard match deploys in. The seed, map,
-`reinforce`, `max_round`, and `base_core` are written into the header.
+map's starting reactor core (`reactor_cores[0]`) for round 0, and a deployment
+time nobody chose is the 100 seconds a standard match deploys in. The seed, map,
+`reinforce`, and `max_round` are written into the header, while round-0
+`reactor_core` and player `seed` are written into `state(0)`.
 Deployment time is runtime configuration stored in the turn file, retained
 across rounds, and reset to 100 seconds if that file must be rebuilt. Both
 `--reinforcements` and `--full-tech-loadout` default to true (with
@@ -1006,11 +1007,11 @@ and `commit`. It contains `header` and `state`, not a history array or a
 separate calculated position. The public match file supplies the history.
 
 `header` is exactly the match header's written shape: build, map, match seed,
-`reinforce`, `max_round`, `base_core`, both player names, optional ratings,
-player seeds, and compact `tech_loadout` strings. `state` carries the current
+`reinforce`, `max_round`, both player names, optional ratings,
+and compact `tech_loadout` strings. `state` carries the current
 round's shared random state, reinforcement pool differences and offers (at round
-0, each side's `offers` and `constructions` from the round-0 state segment),
-plus `blue` and `red`.
+0, each side's `reactor_core`, optional `seed`, `offers` and `constructions` from
+the round-0 state segment), plus `blue` and `red`.
 
 For the calling side, `state` applies all current-round decisions in their
 execution order, including sealed decisions waiting for the opponent. For the
@@ -1303,8 +1304,9 @@ zero with the recorded deal and lets both bots choose their opening. With
 The bots replace both sides' actions from that round onward. A captured suffix
 can start at a playable checkpoint it contains. An absent round or a checkpoint
 whose cores have already ended the match is refused. The source supplies the
-map, seeds, `reinforce`, `max_round`, `base_core`, and loadouts; `--max-round`
-and `--base-core` may override the header values when starting a continuation.
+map, seeds, `reinforce`, `max_round`, round-0 `reactor_core`, and loadouts;
+`--max-round` and `--base-core` may override the match header's `max_round` and
+round 0's `reactor_core` when starting a continuation.
 The new header uses the two bots' reported names and omits the original players'
 ratings. Both verbs require `--blue` and `--red` and write the completed match
 to stdout.
