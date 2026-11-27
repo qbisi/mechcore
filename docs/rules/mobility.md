@@ -3,7 +3,7 @@
 Which units a side may move during deployment, and what frees a unit that may
 not.
 
-[`state.md`](../spec/document/state.md#a-unit-carries-its-source-and-recovery-value)
+[`state.md`](../spec/document/state.md#编队列表-units)
 defines how a position states a unit's arrival, and
 [`action.md`](../spec/document/action.md#move_unit) the deployment decisions.
 

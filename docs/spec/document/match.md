@@ -899,7 +899,7 @@ in the extracted map and opening catalogues.
 
 A team is written as its two unit types joined by a hyphen, the one it holds
 three of first, such as `vortex-fire_badger`. A specialist is an officer, and it
-and the other rows [`state.md`](state.md#names) names are written by the game's
+and the other rows [`state.md`](state.md#命名约定) names are written by the game's
 English names in snake case.
 
 A segment's own collections keep the orders [`state.md`](state.md) and

@@ -281,8 +281,8 @@ is written for.
 
 ## Worked examples
 
-For a document format spec see [match.md](spec/document/match.md),
-[state.md](spec/document/state.md), or [action.md](spec/document/action.md)
+For a document format spec see [match.md](spec/document/match.md), or
+[state.md](spec/document/state.md) and [action.md](spec/document/action.md)
 (Chinese); for an interface contract
 [adapter.md](spec/adapter/adapter.md), whose error taxonomy is the fullest; for
 an algorithm contract [rvo.md](spec/simulation/rvo.md), whose fidelity boundary

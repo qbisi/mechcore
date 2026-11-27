@@ -36,7 +36,7 @@ red: []
 - `round`：与紧邻在前的状态段保持一致；开局为 `round: 0`（对应前面的开局状态段 `state(0)`）。
 - `blue` / `red`：二者均为必填键，若该阵营本回合未作任何决策则写为空序列 `[]`。
 - `type`：固定以 `snake_case` 作为标签键；除 `concede` 外，每种决策均有固定操作数。
-- **名称字段**：`name` 与 `upgrade_technology` 中的 `unit`/`tech` 一律使用 [state.md](state.md#names) 定义的蛇形英文名称，不写数字 ID。单位科技名仅在本单位命名空间内唯一，因此 `upgrade_technology` 必须同时指明 `unit` 与 `tech`。
+- **名称字段**：`name` 与 `upgrade_technology` 中的 `unit`/`tech` 一律使用 [state.md](state.md#命名约定) 定义的蛇形英文名称，不写数字 ID。单位科技名仅在本单位命名空间内唯一，因此 `upgrade_technology` 必须同时指明 `unit` 与 `tech`。
 - **索引字段**：
   - `index` 在编队操作中指代分配器授予的编队索引，在 `release_commander_skill` 中指代技能面板槽位索引，在开局/增援选择中指代对应列表的 0-based 位置；
   - `tower` 在文档中对红蓝双方统一采用规范塔索引：`0` 表示 `energy_tower`，`1` 表示 `research_center`（原生回放转换与导出会自动处理红方的 `0 <-> 1` 映射，详见 [state.md](state.md)）。
