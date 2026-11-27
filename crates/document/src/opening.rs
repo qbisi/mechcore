@@ -684,7 +684,8 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
                 .check_reinforcement(true)
                 .map_err(|error| format!("round {}: {error}", round.round))?;
             // A state segment is the position a round opens with, so its
-            // allowances are the ones the round opens with.
+            // unanswered reinforcement choice and allowances come from the opening.
+            state.open_reinforcement();
             crate::transition::open_allowances(&mut state.blue);
             crate::transition::open_allowances(&mut state.red);
             let actions = match round.actions {

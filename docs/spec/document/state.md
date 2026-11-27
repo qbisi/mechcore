@@ -40,10 +40,12 @@ and no decline is available; the shared stream stays at its opening checkpoint
 and the pool delta stays empty.
 
 Each side's `reinforce_choice` is absent in a round without offers. When
-there are offers, it is `-1` until the side answers and then the zero-based
-index of the card or refund in `reinforce_offers`. The refund's index is
-the number of cards dealt. A round's opening position has an unanswered
-choice whenever that round deals offers.
+there are offers, a standalone or live deployment state holds `-1` (or omits
+it) until the side answers and then holds the zero-based index of the card or
+refund in `reinforce_offers`. The refund's index is the number of cards dealt.
+A match's opening state segment omits `reinforce_choice`, since every round
+opens before its first decision; reading it restores `-1` whenever the round
+deals offers.
 
 A state is defined after each action, not only at a round's ends. A
 [match](match.md) writes the position each round opens with as a state
