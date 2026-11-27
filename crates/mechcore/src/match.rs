@@ -294,13 +294,13 @@ pub(crate) fn dealt_game(
             },
             constructions: constructions.to_vec(),
             tech_loadout: loadout.clone(),
+            reactor_core: Some(base_core),
             seed: Some(draw.seed()),
         };
     let r#match = Match {
         source: mechcore_document::r#match::Source::Simulator,
         reinforce: options.reinforce,
         max_round,
-        base_core,
         result: None,
         has_opening: true,
         game_build: mechcore_document::game_build().to_owned(),
@@ -1110,7 +1110,9 @@ impl Game {
             return state_of(&turn.state, side).clone();
         }
         transition::before_opening(
-            self.r#match.base_core,
+            self.match_side(side)
+                .reactor_core
+                .expect("round 0 opening has reactor_core"),
             self.match_side(side).constructions.clone(),
         )
     }
@@ -1551,6 +1553,9 @@ impl Game {
                     &self.match_side(side).opening.offers,
                 )
                 .map_err(|error| Failure::failed(format!("cannot serialize offers: {error}")))?;
+                if let Some(seed) = self.match_side(side).seed {
+                    value[side.name()]["seed"] = Value::from(seed);
+                }
             }
         }
         for side in Side::BOTH {
@@ -1577,6 +1582,9 @@ impl Game {
                     .map_err(|error| {
                         Failure::failed(format!("cannot serialize offers: {error}"))
                     })?;
+                if let Some(seed) = self.match_side(side).seed {
+                    current["seed"] = Value::from(seed);
+                }
             }
             for (unit, written) in position.units.iter().zip(
                 current["units"]

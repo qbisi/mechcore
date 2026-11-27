@@ -126,20 +126,26 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
     settle_concession(&mut turns)?;
 
     let max_round = resolve_max_round(&record.info)?;
-    let base_core = resolve_base_core(&record.info, &blue, &red)?;
+    let (blue_core, red_core) = resolve_opening_cores(&record.info, &blue, &red)?;
 
     let mut converted = Match {
         source,
         reinforce,
         max_round,
-        base_core,
         result: None,
         has_opening,
         game_build: crate::economy::game_build().to_owned(),
         map_id: record.info.map_id,
         seed: record.info.system_seed,
-        blue: match_side(economy, &blue, Seat::Blue, dealt.blue, has_opening)?,
-        red: match_side(economy, &red, Seat::Red, dealt.red, has_opening)?,
+        blue: match_side(
+            economy,
+            &blue,
+            Seat::Blue,
+            dealt.blue,
+            blue_core,
+            has_opening,
+        )?,
+        red: match_side(economy, &red, Seat::Red, dealt.red, red_core, has_opening)?,
         turns,
     };
     if has_opening {
@@ -207,21 +213,18 @@ fn resolve_max_round(info: &record::BattleInfo) -> Result<i32, String> {
     }
 }
 
-fn resolve_base_core(
+fn resolve_opening_cores(
     info: &record::BattleInfo,
     blue: &record::PlayerRecord,
     red: &record::PlayerRecord,
-) -> Result<i32, String> {
-    match (blue.data.reactor_core, red.data.reactor_core) {
-        (Some(b), Some(r)) if b != r => {
-            Err(format!("replay player reactorCore differs: {b} vs {r}"))
-        }
-        (Some(c), _) | (_, Some(c)) if c <= 0 => {
-            Err(format!("replay reactorCore must be > 0, not {c}"))
-        }
-        (Some(c), _) | (_, Some(c)) => Ok(c),
-        (None, None) => opening::reactor_core(info.map_id, 0),
-    }
+) -> Result<(i32, i32), String> {
+    let default_core = || opening::reactor_core(info.map_id, 0);
+    let resolve = |player: &record::PlayerRecord| match player.data.reactor_core {
+        Some(core) if core <= 0 => Err(format!("replay reactorCore must be > 0, not {core}")),
+        Some(core) => Ok(core),
+        None => default_core(),
+    };
+    Ok((resolve(blue)?, resolve(red)?))
 }
 
 /// Refuses a replay this converter does not read, by the property it fails.
@@ -531,6 +534,7 @@ fn match_side(
     player: &record::PlayerRecord,
     seat: Seat,
     dealt: Vec<OpeningOffer>,
+    reactor_core: i32,
     has_opening: bool,
 ) -> Result<MatchSide, String> {
     let mut loadout = BTreeMap::new();
@@ -562,7 +566,8 @@ fn match_side(
         // it, so the first round's list is the one the side started with.
         constructions: constructions(&player.rounds.entries[OPENING_ROUNDS].data, seat)?,
         tech_loadout: loadout,
-        seed: Some(player.seed),
+        reactor_core: has_opening.then_some(reactor_core),
+        seed: has_opening.then_some(player.seed),
     })
 }
 
@@ -1565,6 +1570,7 @@ mod tests {
                     offers,
                 },
                 constructions,
+                reactor_core: Some(4500),
                 seed: Some(seed),
                 tech_loadout: std::collections::BTreeMap::default(),
             },
@@ -1598,7 +1604,6 @@ mod tests {
             source: Source::Simulator,
             reinforce,
             max_round: 13,
-            base_core: 4500,
             result: None,
             has_opening: true,
             game_build: crate::game_build().into(),
@@ -1717,18 +1722,15 @@ mod tests {
         assert!(crate::reinforcement::verify(economy, &bad, &prediction).is_err());
         let default = yaml
             .lines()
-            .filter(|line| {
-                !line.starts_with("reinforce:")
-                    && !line.starts_with("max_round:")
-                    && !line.starts_with("base_core:")
-            })
+            .filter(|line| !line.starts_with("reinforce:") && !line.starts_with("max_round:"))
             .collect::<Vec<_>>()
             .join("\n")
             + "\n";
         let stated = crate::opening::stated(default.as_bytes()).unwrap().unwrap();
         assert!(stated.reinforce);
         assert_eq!(stated.max_round, 13);
-        assert_eq!(stated.base_core, 4500);
+        assert_eq!(stated.blue.reactor_core, Some(4500));
+        assert_eq!(stated.red.reactor_core, Some(4500));
         for invalid in [
             yaml.replacen("source: simulator\n", "", 1),
             yaml.replacen("source: simulator", "source: unknown", 1),
@@ -1767,7 +1769,6 @@ mod tests {
             source: crate::r#match::Source::Simulator,
             reinforce: true,
             max_round: 13,
-            base_core: 4500,
             result: None,
             has_opening: true,
             game_build: crate::game_build().into(),

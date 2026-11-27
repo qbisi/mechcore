@@ -216,7 +216,9 @@ fn write_player(
         .as_ref()
         .ok_or_else(|| format!("{name} takes no opening, and a replay records one"))?;
     let shared = economy.round_supply();
-    let reactor = stated.base_core;
+    let reactor = side
+        .reactor_core
+        .ok_or_else(|| format!("{name} states no round-0 reactor_core"))?;
     let display_name = side
         .name
         .as_deref()

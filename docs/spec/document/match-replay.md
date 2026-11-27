@@ -47,7 +47,8 @@ is the build number and `Seat` is 0, a locally recorded replay.
 configuration and is not carried in the match header.
 
 Each `PlayerRecord`, blue first, holds the side's `name` (defaulting to `blue`
-or `red`) and `seed`, the match's `base_core` as `reactorCore`, the round
+or `red`) and round-0 `seed` from `state(0)`, each side's round-0
+`reactor_core` as `reactorCore`, the round
 income every versus map shares, and its effective tech loadout as `unitDatas`:
 the side's custom selection or every eligible catalogue technology when
 `tech_loadout` is `"full"`. Canonical decisions obey the match's per-unit

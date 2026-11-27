@@ -1201,7 +1201,8 @@ mod tests {
             },
             constructions,
             tech_loadout: economy.unit_technologies(),
-            seed: Some(1),
+            reactor_core: None,
+            seed: None,
         };
         let mut opened = SideState {
             reactor_core: 4800,
@@ -1214,7 +1215,6 @@ mod tests {
             source: crate::r#match::Source::Simulator,
             reinforce: true,
             max_round: 40,
-            base_core: 4500,
             result: None,
             has_opening: false,
             game_build: crate::game_build().into(),

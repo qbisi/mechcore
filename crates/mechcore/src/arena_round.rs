@@ -48,7 +48,13 @@ impl Game {
             if base_core <= 0 {
                 return Err(Failure::refused("match base_core must be > 0"));
             }
-            document.base_core = base_core;
+            if round != 0 || !document.has_opening {
+                return Err(Failure::refused(
+                    "--base-core only applies when loading round 0",
+                ));
+            }
+            document.blue.reactor_core = Some(base_core);
+            document.red.reactor_core = Some(base_core);
         }
         super::warn_build(&document.game_build);
         super::fork_position(std::path::PathBuf::new(), document, None, Some(round))

@@ -371,7 +371,6 @@ fn load_reopens_only_the_selected_round_and_uses_the_new_bot_names() {
         assert_eq!(last.state, expected.state);
         assert_eq!(output.reinforce, recorded.reinforce);
         assert_eq!(output.max_round, recorded.max_round);
-        assert_eq!(output.base_core, recorded.base_core);
         assert_eq!(output.seed, recorded.seed);
         assert_eq!(output.map_id, recorded.map_id);
         for (old, new, name) in [
@@ -506,7 +505,8 @@ fn arena_new_supports_max_round_and_base_core_overrides() {
     ));
     let output = String::from_utf8(stdout).unwrap();
     assert!(output.contains("max_round: 1\n"), "{output}");
-    assert!(output.contains("base_core: 6000\n"), "{output}");
+    assert!(output.contains("reactor_core: 6000\n"), "{output}");
+    assert!(!output.contains("base_core:"), "{output}");
     assert!(!output.contains("round: 2\n"), "{output}");
     assert!(output.contains("kind: result\n"), "{output}");
 }
