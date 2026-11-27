@@ -961,14 +961,13 @@ fn action_records(
         Action::ReleaseContraption {
             contraption,
             position,
-            extra_position,
         } => vec![(
             "PAD_ReleaseContraption",
             format!(
                 "<ContraptionID>{contraption}</ContraptionID><Position>{}</Position>\
                  <ExtraPosition>{}</ExtraPosition>",
                 board(*position, sign),
-                board(extra_position.unwrap_or(Position { x: 0, y: 0 }), sign)
+                board(Position { x: 0, y: 0 }, sign)
             ),
         )],
         Action::Concede => vec![("PAD_GiveUp", String::new())],
